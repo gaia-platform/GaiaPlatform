@@ -6,6 +6,7 @@
 #include "gaia_internal/catalog/ddl_execution.hpp"
 
 #include <filesystem>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <utility>
@@ -97,15 +98,17 @@ void convert_references_to_relationships(
     // the key of the map) without the corresponding matching references yet.
     std::multimap<std::string, ddl::ref_field_def_t*> table_refs;
 
-    for (auto& stmt : statements)
+    std::vector<std::unique_ptr<ddl::create_relationship_t>> relationships;
+
+    for (auto& statement : statements)
     {
         // Skip statements other than `create table`.
-        if (stmt->type != ddl::create_type_t::create_table)
+        if (statement->type != ddl::create_type_t::create_table)
         {
             continue;
         }
 
-        auto create_table = dynamic_cast<ddl::create_table_t*>(stmt.get());
+        auto create_table = dynamic_cast<ddl::create_table_t*>(statement.get());
         for (auto& field : create_table->fields)
         {
             // Skip non-reference field(s).
@@ -132,6 +135,12 @@ void convert_references_to_relationships(
             for (auto it = candidate_range.first; it != candidate_range.second; ++it)
             {
                 ddl::ref_field_def_t* candidate_ref = it->second;
+
+                // Skip fields not referencing current table.
+                if (candidate_ref->table != create_table->name)
+                {
+                    continue;
+                }
 
                 // The reference definitions are considered a match when any of
                 // the following conditions are met.
@@ -179,33 +188,43 @@ void convert_references_to_relationships(
             }
 
             // Use the [link1]_[link2] as the relationship name.
+            //
             // TODO: Detect name conflict. [GATAPLAT-306]
+            //
+            // For 1:N relationships, always place many side first (including
+            // link placement) before the proper support of one-to-many
+            // relationship definition is ready.
+            //
+            // TODO: Support one-to-many.
+            //
             std::string rel_name
-                = (matching_ref->cardinality == relationship_cardinality_t::many
-                       ? ref->name + "_" + matching_ref->name
-                       : matching_ref->name + "_" + ref->name);
+                = (ref->cardinality == relationship_cardinality_t::many
+                       ? matching_ref->name + "_" + ref->name
+                       : ref->name + "_" + matching_ref->name);
 
-            auto create_relationship = std::make_unique<ddl::create_relationship_t>(rel_name);
+            relationships.emplace_back(std::make_unique<ddl::create_relationship_t>(rel_name));
 
-            create_relationship->relationship = std::make_pair<ddl::link_def_t, ddl::link_def_t>(
-                {"", ref->table, matching_ref->name, "", create_table->name, matching_ref->cardinality},
-                {"", create_table->name, ref->name, "", ref->table, ref->cardinality});
+            ddl::link_def_t ref_link{"", create_table->name, ref->name, "", ref->table, ref->cardinality};
+            ddl::link_def_t matching_ref_link{"", ref->table, matching_ref->name, "", matching_ref->table, matching_ref->cardinality};
+            relationships.back()->relationship
+                = (ref->cardinality == relationship_cardinality_t::many
+                       ? std::make_pair(ref_link, matching_ref_link)
+                       : std::make_pair(matching_ref_link, ref_link));
 
-            create_relationship->if_not_exists = false;
+            relationships.back()->if_not_exists = false;
 
             // TODO: Detect conflict in field map definitions when both
             //       `references` definitions contain one. [GAIAPLAT-306]
             if (matching_ref->field_map)
             {
-                create_relationship->field_map = matching_ref->field_map;
+                relationships.back()->field_map = matching_ref->field_map;
             }
             if (ref->field_map)
             {
-                create_relationship->field_map = ref->field_map;
+                relationships.back()->field_map = ref->field_map;
             }
 
             // Append the new relationship definition to the statement list.
-            statements.emplace_back(std::move(create_relationship));
 
             // Remove the matched reference definition.
             table_refs.erase(matching_iter);
@@ -217,6 +236,11 @@ void convert_references_to_relationships(
     {
         throw orphaned_reference_definition(table_refs.begin()->first, table_refs.begin()->second->name);
     }
+
+    statements.insert(
+        statements.end(),
+        std::make_move_iterator(relationships.begin()),
+        std::make_move_iterator(relationships.end()));
 }
 
 void execute_create_statement_no_txn(

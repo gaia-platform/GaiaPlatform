@@ -213,7 +213,7 @@ create table employee (
 );
 )",
         R"(
-drop relationship mentor_mentee;
+drop relationship mentee_mentor;
 drop table employee;
 )",
         R"(
@@ -252,7 +252,7 @@ create table employee (
 );
 )",
         R"(
-drop relationship employee_person;
+drop relationship person_employee;
 drop table person;
 drop table employee;
 )",
@@ -287,7 +287,7 @@ create table employee (
 );
 )",
         R"(
-drop relationship employee_person;
+drop relationship person_employee;
 drop table person;
 drop table employee;
 )",
