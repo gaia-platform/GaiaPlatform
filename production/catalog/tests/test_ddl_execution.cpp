@@ -200,9 +200,9 @@ CREATE TABLE t2(c2 INT32);
 
 TEST_F(ddl_execution_test, in_table_relationship_definition)
 {
-    // In the following list of DDLs, the first will be the one we want to test.
-    // The second DDL will try to delete the entities created in the first.
-    // Successful deletion also verifies the entities are created successfully.
+    // The following list of DDLs come in pairs. The first one is the test case.
+    // The second one will delete the entities created in the first. Successful
+    // deletion also verifies successful creation.
     array ddls{
         R"(
 -- self-reference 1:1 relationship full form
