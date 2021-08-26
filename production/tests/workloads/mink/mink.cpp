@@ -97,7 +97,6 @@ assigned to nullptr.  When open, it will have the File * that is the output file
 FILE* g_debug_log_file = nullptr;
 const int c_rules_firing_update_buffer_length = 4096;
 
-
 // Used to get a more accurate measurement using the toggle on/off (o) command.
 bool g_is_measured_duration_timer_on;
 bool g_have_measurement;

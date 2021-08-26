@@ -6,8 +6,8 @@ Found In Build:
 Reproducible:
 - Rarely  Sometimes  Frequently  Every Time
 
-Is This Issue A Regresion?
-- Yes   No
+Is This Issue A Regression?
+- Yes   No   Unsure
 
 Reproduce Steps:
 1. Execute `cd <your GaiaPlatform root>/production/tests`

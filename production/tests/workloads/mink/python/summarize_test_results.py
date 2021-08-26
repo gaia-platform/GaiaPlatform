@@ -18,6 +18,7 @@ TEST_RESULTS_DIRECTORY = "test-results/"
 TEST_RESULTS_FILE = "test-summary.json"
 
 ITERATIONS_TITLE = "iterations"
+CONFIGURATION_FILE_TITLE = "configuration-file"
 RETURN_CODE_TITLE = "return-code"
 TOTAL_DURATION_TITLE = "duration-sec"
 TEST_DURATION_TITLE = "test-duration-sec"
@@ -158,7 +159,7 @@ def __handle_t_data(
             )
 
 
-def __load_test_result_files(suite_test_directory):
+def __load_test_result_files(suite_test_directory, test_configuration_file):
     """
     Load sets of individual results from their various sources.
 
@@ -190,6 +191,7 @@ def __load_test_result_files(suite_test_directory):
 
     new_results = {}
     new_results[ITERATIONS_TITLE] = iterations_data
+    new_results[CONFIGURATION_FILE_TITLE] = test_configuration_file
     new_results[RETURN_CODE_TITLE] = return_code_data
     new_results[TOTAL_DURATION_TITLE] = duration_data
     new_results[PAUSE_DURATION_TITLE] = stop_pause_data
@@ -277,7 +279,7 @@ def __process_script_action():
     Process the posting of the message.
     """
 
-    if len(sys.argv) != 2:
+    if len(sys.argv) < 2:
         print("Test results directory must be specified as the second parameter.")
         sys.exit(1)
     test_results_directory = sys.argv[1]
@@ -289,7 +291,12 @@ def __process_script_action():
         )
         sys.exit(1)
 
-    results_dictionary = __load_test_result_files(test_results_directory)
+    if len(sys.argv) < 3:
+        print("Test configuration file must be specified as the third parameter.")
+        sys.exit(1)
+    test_configuration_file = sys.argv[2]
+
+    results_dictionary = __load_test_result_files(test_results_directory, test_configuration_file)
     __dump_results_dictionary(test_results_directory, results_dictionary)
 
 

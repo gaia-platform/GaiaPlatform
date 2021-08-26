@@ -4,4 +4,6 @@
 # This test is specifically in place to determine how the platform scales
 # with large amounts of work.
 
+workload mink
+
 smoke-time-only-with-1m repeat 3
