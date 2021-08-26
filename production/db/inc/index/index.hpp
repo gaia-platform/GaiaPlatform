@@ -52,7 +52,12 @@ class index_generator_t : public common::iterators::generator_t<index_record_t>
 {
 public:
     index_generator_t(std::recursive_mutex& mutex, T_structure& data, gaia_txn_id_t txn_id);
-    index_generator_t(std::recursive_mutex& mutex, typename T_structure::const_iterator begin, typename T_structure::const_iterator end, gaia_txn_id_t txn_id);
+    index_generator_t(
+        std::recursive_mutex& mutex,
+        typename T_structure::const_iterator begin,
+        typename T_structure::const_iterator end,
+        gaia_txn_id_t txn_id);
+
     std::optional<index_record_t> operator()() final;
 
 private:
@@ -75,7 +80,7 @@ public:
         : base_index_t(index_id, index_type, is_unique)
     {
     }
-    virtual ~index_t() override = default;
+    ~index_t() override = default;
 
     virtual T_iterator begin() = 0;
     virtual T_iterator end() = 0;

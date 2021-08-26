@@ -182,11 +182,15 @@ scan_state_t::scan_state_t(std::shared_ptr<index_predicate_t> predicate, size_t 
 
 bool scan_state_t::should_return_row(gaia_ptr_t ptr)
 {
+    if (limit_reached())
+    {
+        return false;
+    }
+
     if (m_predicate && ptr)
     {
         if (m_predicate->filter(ptr))
         {
-            ASSERT_INVARIANT(!limit_reached(), "Limit for scan reached.");
             --m_limit_rows_remaining;
             return true;
         }
@@ -197,7 +201,6 @@ bool scan_state_t::should_return_row(gaia_ptr_t ptr)
     }
     else
     {
-        ASSERT_INVARIANT(!limit_reached(), "Limit for scan reached.");
         --m_limit_rows_remaining;
         return true;
     }

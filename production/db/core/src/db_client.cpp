@@ -70,15 +70,18 @@ int client_t::get_id_cursor_socket_for_type(gaia_type_t type)
     return stream_socket;
 }
 
-int client_t::get_record_cursor_socket_for_index(gaia_id_t index_id, gaia_txn_id_t txn_id, std::shared_ptr<query_processor::scan::index_predicate_t> predicate)
+int client_t::get_record_cursor_socket_for_index(
+    gaia_id_t index_id,
+    gaia_txn_id_t txn_id,
+    std::shared_ptr<query_processor::scan::index_predicate_t> predicate)
 {
     FlatBufferBuilder builder;
 
-    flatbuffers::Offset<void> fb_predicate = 0;
+    flatbuffers::Offset<void> flat_predicate = 0;
 
     if (predicate)
     {
-        fb_predicate = predicate->as_query(builder);
+        flat_predicate = predicate->as_query(builder);
     }
 
     auto info_builder = index_scan_info_tBuilder(builder);
@@ -87,13 +90,17 @@ int client_t::get_record_cursor_socket_for_index(gaia_id_t index_id, gaia_txn_id
 
     if (predicate)
     {
-        info_builder.add_query(fb_predicate);
+        info_builder.add_query(flat_predicate);
         info_builder.add_query_type(predicate->query_type());
     }
 
     auto index_scan_info = info_builder.Finish();
 
-    auto client_request = Createclient_request_t(builder, session_event_t::REQUEST_STREAM, request_data_t::index_scan, index_scan_info.Union());
+    auto client_request = Createclient_request_t(
+        builder,
+        session_event_t::REQUEST_STREAM,
+        request_data_t::index_scan,
+        index_scan_info.Union());
     auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
     builder.Finish(message);
     client_messenger_t client_messenger;
@@ -267,7 +274,10 @@ client_t::get_id_generator_for_type(gaia_type_t type)
 }
 
 std::shared_ptr<gaia::common::iterators::generator_t<index::index_record_t>>
-client_t::get_record_generator_for_index(gaia::common::gaia_id_t index_id, gaia_txn_id_t txn_id, std::shared_ptr<query_processor::scan::index_predicate_t> predicate)
+client_t::get_record_generator_for_index(
+    gaia::common::gaia_id_t index_id,
+    gaia_txn_id_t txn_id,
+    std::shared_ptr<query_processor::scan::index_predicate_t> predicate)
 {
     int stream_socket = get_record_cursor_socket_for_index(index_id, txn_id, predicate);
     auto cleanup_stream_socket = make_scope_guard([&]() {

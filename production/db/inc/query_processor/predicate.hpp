@@ -57,7 +57,7 @@ private:
     index::index_key_t m_key;
 };
 
-// Point read predicate for indexes.
+// Equal range predicate for indexes.
 class index_equal_range_predicate_t : public index_predicate_t
 {
 public:

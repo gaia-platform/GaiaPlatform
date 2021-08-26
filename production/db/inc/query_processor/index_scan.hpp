@@ -29,7 +29,6 @@ class base_index_scan_physical_t;
  * Additional scan state for index scans.
  *
  * In future could be modified to also collect statistics.
- *
  */
 class scan_state_t
 {

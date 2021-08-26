@@ -512,11 +512,13 @@ void server_t::handle_request_stream(
         auto txn_id = static_cast<gaia_txn_id_t>(request_data->txn_id());
         auto query_type = request_data->query_type();
 
-        if (query_type == index_query_t::NONE)
+        switch (query_type)
         {
+        case index_query_t::NONE:
             start_stream_producer(server_socket, id_to_index(index_id)->generator(txn_id));
-        }
-        else if (query_type == index_query_t::index_point_read_query_t || query_type == index_query_t::index_equal_range_query_t)
+            break;
+        case index_query_t::index_point_read_query_t:
+        case index_query_t::index_equal_range_query_t:
         {
             index::index_key_t key;
             {
@@ -531,7 +533,7 @@ void server_t::handle_request_stream(
                     auto key_buffer = data_read_buffer_t(*(query->key()));
                     key = index::index_builder_t::deserialize_key(index_id, key_buffer);
                 }
-                else if (query_type == index_query_t::index_equal_range_query_t)
+                else
                 {
                     auto query = request_data->query_as_index_equal_range_query_t();
                     auto key_buffer = data_read_buffer_t(*(query->key()));
@@ -540,10 +542,11 @@ void server_t::handle_request_stream(
             }
             start_stream_producer(server_socket, id_to_index(index_id)->equal_range_generator(txn_id, key));
         }
-        else
-        {
+        break;
+        default:
             ASSERT_UNREACHABLE(c_message_unexpected_query_type);
         }
+
         break;
     }
     default:

@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "data_holder.hpp"
+
 namespace gaia
 {
 namespace db
