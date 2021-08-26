@@ -1,105 +1,155 @@
-#include "gaia/logger.hpp"
-#include "gaia/events.hpp"
-
-// #define TEST_FAILURES
 #include <atomic>
 #include <unistd.h>
 
-std::atomic<int32_t> g_rule_called;
-std::atomic<int32_t> g_insert_called;
+#include "gaia/events.hpp"
+
+#include "test_serial.hpp"
+
 std::atomic<int32_t> g_update_min_temp_called;
 std::atomic<int32_t> g_update_max_temp_called;
 std::atomic<int32_t> g_update_value_called;
 std::atomic<int32_t> g_update_timestamp_called;
 
-// TODO: think of a deterministic way to cause a concurrency violation instead of using usleep below.
-ruleset test_serial_1A : serial_stream(A)
+
+// On insert of an incubator, multiple it's min_temp by 4
+ruleset test_default_serial : serial_group()
 {
-    // If these rules run in parallel then only one will run
-    // and the other will have a concurrency violation.  This
-    // test requires that the 'gaia.conf' configuration setting
-    // 'thread_pool_count' is not equal to 1.
     on_insert(incubator)
     {
-        gaia_log::app().warn("[rule-1] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
-        usleep(5000);
+        rule_monitor_t m("rule-1", c_None,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
         min_temp += min_temp;
-        g_rule_called++;
     }
-}
 
-ruleset test_serial_2A : serial_stream(A)
-{
-    // If these rules run in parallel then only one will run
-    // and the other will have a concurrency violation.  This
-    // test requires that the 'gaia.conf' configuration setting
-    // 'thread_pool_count' is not equal to 1.
     on_insert(incubator)
     {
-        gaia_log::app().warn("[rule-2] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
-        usleep(5000);
-        max_temp += max_temp;
-        g_rule_called++;
+        rule_monitor_t m("rule-2", c_None,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        min_temp += min_temp;
     }
 }
 
-ruleset test_serial_1B : serial_stream(B)
+ruleset test_default_parallel
 {
-    // If these rules run in parallel then only one will run
-    // and the other will have a concurrency violation.  This
-    // test requires that the 'gaia.conf' configuration setting
-    // 'thread_pool_count' is not equal to 1.
+    on_insert(incubator)
+    {
+        rule_monitor_t m("rule-3", c_None,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        min_temp += min_temp;
+    }
+
+    // Since these rules run in parallel, they cannot update the same
+    // row of the same table.  So pick a table other than 'incubator'.
     on_insert(sensor)
     {
-        gaia_log::app().warn("[rule-3] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
-        usleep(5000);
+        rule_monitor_t m("rule-4", c_None,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
         sensor.value += sensor.value;
-        g_rule_called++;
     }
 }
 
-ruleset test_serial_2B : serial_stream(B)
+// On insert of an incubator row, multiple its max_temp by 4.
+ruleset test_serial_1A : serial_group(A)
 {
-    // If these rules run in parallel then only one will run
-    // and the other will have a concurrency violation.  This
-    // test requires that the 'gaia.conf' configuration setting
-    // 'thread_pool_count' is not equal to 1.
+    on_insert(incubator)
+    {
+        rule_monitor_t m("rule-5", c_A,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        max_temp += max_temp;
+    }
+
+    on_insert(incubator)
+    {
+        rule_monitor_t m("rule-6", c_A,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        max_temp += max_temp;
+    }
+}
+
+// On insert of an incubator row, multiple its min_temp by 4.
+ruleset test_serial_2A : serial_group(A)
+{
+    on_insert(incubator)
+    {
+        rule_monitor_t m("rule-7", c_A,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        min_temp += min_temp;
+    }
+
+    on_insert(incubator)
+    {
+        rule_monitor_t m("rule-8", c_A,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        min_temp += min_temp;
+    }
+}
+
+// On insert of a sensor row, multiple its value by 4.
+ruleset test_serial_1B : serial_group(B)
+{
     on_insert(sensor)
     {
-        gaia_log::app().warn("[rule-4] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
-        usleep(5000);
-        sensor.timestamp += sensor.timestamp;
-        g_rule_called++;
+        rule_monitor_t m("rule-9", c_B,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        sensor.value += sensor.value;
+    }
+
+    on_insert(sensor)
+    {
+        rule_monitor_t m("rule-10", c_B,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        sensor.value += sensor.value;
     }
 }
 
+// On insert of a sensor row, multiply its timestamp by 4.
+ruleset test_serial_2B : serial_group(B)
+{
+    on_insert(sensor)
+    {
+        rule_monitor_t m("rule-11", c_B,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        sensor.timestamp += sensor.timestamp;
+    }
+
+    on_insert(sensor)
+    {
+        rule_monitor_t m("rule-12", c_B,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        sensor.timestamp += sensor.timestamp;
+    }
+}
+
+// Depending on which rulesets from above are subscribed, these counters
+// will also increment.
 ruleset test_parallel
 {
     on_update(incubator.max_temp)
     {
-        gaia_log::app().warn("[rule-5] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
-        g_rule_called++;
+        rule_monitor_t m("rule-13", c_None,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
         g_update_max_temp_called++;
     }
 
     on_update(incubator.min_temp)
     {
-        gaia_log::app().warn("[rule-6] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
-        g_rule_called++;
+        rule_monitor_t m("rule-14", c_None,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
         g_update_min_temp_called++;
     }
 
     on_update(sensor.value)
     {
-        gaia_log::app().warn("[rule-7] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
-        g_rule_called++;
+        rule_monitor_t m("rule-15", c_None,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+
         g_update_value_called++;
     }
 
     on_update(sensor.timestamp)
     {
-        gaia_log::app().warn("[rule-8] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
-        g_rule_called++;
+        rule_monitor_t m("rule-16", c_None,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
         g_update_timestamp_called++;
     }
 }

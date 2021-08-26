@@ -138,7 +138,7 @@ void event_manager_t::process_last_operation_events(
     for (auto const& rule_binding : rules)
     {
         gaia_log::rules().trace("Enqueue table event:'{}', txn_id:'{}', gaia_type:'{}', gaia_id:'{}'", event_type_name(event.event_type), event.txn_id, event.gaia_type, event.record);
-        enqueue_invocation(event, rule_binding, start_time, binding.serial_stream);
+        enqueue_invocation(event, rule_binding, start_time, binding.serial_group);
     }
 }
 
@@ -169,7 +169,7 @@ void event_manager_t::process_field_events(
                     "Enqueue field event:'{}', txn_id:'{}', gaia_type:'{}', field_id:'{}', gaia_id:'{}'",
                     event_type_name(event.event_type), event.txn_id, event.gaia_type, field_position, event.record);
 
-                enqueue_invocation(event, rule_binding, start_time, binding.serial_stream);
+                enqueue_invocation(event, rule_binding, start_time, binding.serial_group);
             }
         }
     }
@@ -224,7 +224,7 @@ void event_manager_t::enqueue_invocation(
     const trigger_event_t& event,
     const _rule_binding_t* rule_binding,
     steady_clock::time_point& start_time,
-    shared_ptr<rule_thread_pool_t::serial_stream_t>& serial_stream)
+    shared_ptr<rule_thread_pool_t::serial_group_t>& serial_group)
 {
     rule_thread_pool_t::rule_invocation_t rule_invocation{
         rule_binding->rule,
@@ -237,7 +237,7 @@ void event_manager_t::enqueue_invocation(
         std::move(rule_invocation),
         rule_binding->log_rule_name.c_str(),
         start_time,
-        serial_stream};
+        serial_group};
     m_invocations->enqueue(invocation);
 }
 
@@ -319,9 +319,9 @@ void event_manager_t::subscribe_rule(
         is_rule_subscribed = add_rule(rules, rule_binding);
     }
 
-    if (rule_binding.serial_stream_name != nullptr && event_binding.serial_stream == nullptr)
+    if (rule_binding.serial_group_name != nullptr && event_binding.serial_group == nullptr)
     {
-        event_binding.serial_stream = m_serial_stream_manager.acquire_stream(rule_binding.serial_stream_name);
+        event_binding.serial_group = m_serial_group_manager.acquire_group(rule_binding.serial_group_name);
     }
 
     if (is_rule_subscribed)
@@ -481,7 +481,7 @@ void event_manager_t::add_subscriptions(
             gaia_type, event_type,
             field,
             rule->line_number,
-            rule->serial_stream_name.c_str()));
+            rule->serial_group_name.c_str()));
     }
 }
 
@@ -564,20 +564,20 @@ event_manager_t::_rule_binding_t::_rule_binding_t(const rule_binding_t& binding)
         binding.rule_name,
         binding.rule,
         binding.line_number,
-        binding.serial_stream_name)
+        binding.serial_group_name)
 {
 }
 
 event_manager_t::_rule_binding_t::_rule_binding_t(
-    const char* a_ruleset_name,
-    const char* a_rule_name,
-    gaia_rule_fn a_rule,
-    uint32_t a_line_number,
-    const char* a_serial_stream_name)
+    const char* ruleset_name,
+    const char* rule_name,
+    gaia_rule_fn rule,
+    uint32_t line_number,
+    const char* serial_group_name)
 {
-    ruleset_name = a_ruleset_name;
-    rule = a_rule;
-    line_number = a_line_number;
+    this->ruleset_name = ruleset_name;
+    this->rule = rule;
+    this->line_number = line_number;
 
     // Create a log/trace friendly name.
     // [<rule line number>] <ruleset_name>::<rule_name>
@@ -586,15 +586,15 @@ event_manager_t::_rule_binding_t::_rule_binding_t(
     log_rule_name.append("] ");
     log_rule_name.append(ruleset_name);
 
-    if (a_rule_name != nullptr)
+    if (rule_name != nullptr)
     {
-        rule_name = a_rule_name;
+        this->rule_name = rule_name;
         log_rule_name.append("::");
         log_rule_name.append(rule_name);
     }
-    if (a_serial_stream_name != nullptr)
+    if (serial_group_name != nullptr)
     {
-        serial_stream_name = a_serial_stream_name;
+        this->serial_group_name = serial_group_name;
     }
 }
 

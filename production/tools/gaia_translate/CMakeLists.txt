@@ -81,7 +81,7 @@ add_gaia_sdk_gtest(
   TARGET_INCLUDES "${TEST_INCLUDES}"
 )
 
-# Test Serial_stream attribute
+# Test serial_group attribute
 add_gaia_sdk_gtest(
   TARGET_NAME "test_serial"
   DDL_FILE "${DDL_PREFIX}/incubator/incubator.ddl"

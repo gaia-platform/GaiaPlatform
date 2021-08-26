@@ -35,17 +35,17 @@ public:
         db::gaia_txn_id_t src_txn_id;
     };
 
-    struct serial_stream_t;
+    struct serial_group_t;
     struct invocation_t
     {
         rule_invocation_t args;
         const char* rule_id;
         std::chrono::steady_clock::time_point start_time;
-        std::shared_ptr<serial_stream_t> serial_stream{nullptr};
+        std::shared_ptr<serial_group_t> serial_group{nullptr};
         uint32_t num_retries{0};
     };
 
-    struct serial_stream_t
+    struct serial_group_t
     {
         std::mutex execute_lock;
         std::mutex enqueue_lock;

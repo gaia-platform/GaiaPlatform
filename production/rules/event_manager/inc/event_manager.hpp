@@ -20,7 +20,7 @@
 
 #include "rule_checker.hpp"
 #include "rule_thread_pool.hpp"
-#include "serial_stream_manager.hpp"
+#include "serial_group_manager.hpp"
 
 namespace gaia
 {
@@ -78,14 +78,18 @@ private:
         static std::string make_key(const char* ruleset_name, const char* rule_name);
         _rule_binding_t(const rules::rule_binding_t& binding);
         _rule_binding_t(
-            const char* a_ruleset_name, const char* a_rule_name, gaia_rule_fn rule, uint32_t line_number, const char* serial_stream_name = nullptr);
+            const char* ruleset_name,
+            const char* rule_name,
+            gaia_rule_fn rule,
+            uint32_t line_number,
+            const char* serial_group_name = nullptr);
 
         std::string ruleset_name;
         std::string rule_name;
         std::string log_rule_name;
         rules::gaia_rule_fn rule;
         uint32_t line_number;
-        std::string serial_stream_name;
+        std::string serial_group_name;
     };
 
     // The rules engine must be initialized through an explicit call
@@ -114,7 +118,7 @@ private:
     {
         rule_list_t last_operation_rules; // rules bound to this operation
         fields_map_t fields_map; // referenced fields of this type
-        std::shared_ptr<rule_thread_pool_t::serial_stream_t> serial_stream; // serial stream associated with this operation
+        std::shared_ptr<rule_thread_pool_t::serial_group_t> serial_group; // serial stream associated with this operation
     };
 
     // Map the event type to the event binding.
@@ -141,9 +145,9 @@ private:
     // whenever a transaction is committed.
     gaia::db::triggers::commit_trigger_fn m_trigger_fn;
 
-    // Ensures that all rules run in a ruleset marked with the 'serial_stream(stream_name)'
+    // Ensures that all rules run in a ruleset marked with the 'serial_group(stream_name)'
     // attribute are run sequentially.
-    serial_stream_manager_t m_serial_stream_manager;
+    serial_group_manager_t m_serial_group_manager;
 
 private:
     // Only internal static creation is allowed.
@@ -176,7 +180,7 @@ private:
         const db::triggers::trigger_event_t& event,
         const _rule_binding_t* rule_binding,
         std::chrono::steady_clock::time_point& start_time,
-        std::shared_ptr<rule_thread_pool_t::serial_stream_t>& serial_stream);
+        std::shared_ptr<rule_thread_pool_t::serial_group_t>& serial_group);
     void check_subscription(db::triggers::event_type_t event_type, const common::field_position_list_t& fields);
     static inline void check_rule_binding(const rule_binding_t& binding)
     {

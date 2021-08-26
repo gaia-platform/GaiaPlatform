@@ -184,36 +184,36 @@ void rule_thread_pool_t::rule_worker(int32_t& count_busy_workers)
 // started by the rules engine, and log the event.
 void rule_thread_pool_t::invoke_rule(invocation_t& invocation)
 {
-    if (invocation.serial_stream == nullptr)
+    if (invocation.serial_group == nullptr)
     {
         invoke_rule_inner(invocation);
         return;
     }
 
-    unique_lock execute_lock{invocation.serial_stream->execute_lock, defer_lock};
+    unique_lock execute_lock{invocation.serial_group->execute_lock, defer_lock};
     if (execute_lock.try_lock())
     {
         invoke_rule_inner(invocation);
     }
     else
     {
-        unique_lock enqueue_lock{invocation.serial_stream->enqueue_lock};
-        invocation.serial_stream->invocations.push(invocation);
+        unique_lock enqueue_lock{invocation.serial_group->enqueue_lock};
+        invocation.serial_group->invocations.push(invocation);
         execute_lock.try_lock();
     }
 
     if (execute_lock)
     {
-        unique_lock enqueue_lock{invocation.serial_stream->enqueue_lock};
-        while (!invocation.serial_stream->invocations.empty())
+        unique_lock enqueue_lock{invocation.serial_group->enqueue_lock};
+        while (!invocation.serial_group->invocations.empty())
         {
             enqueue_lock.unlock();
             do
             {
-                invocation = invocation.serial_stream->invocations.front();
-                invocation.serial_stream->invocations.pop();
+                invocation = invocation.serial_group->invocations.front();
+                invocation.serial_group->invocations.pop();
                 invoke_rule_inner(invocation);
-            } while (!invocation.serial_stream->invocations.empty());
+            } while (!invocation.serial_group->invocations.empty());
             enqueue_lock.lock();
         }
     }

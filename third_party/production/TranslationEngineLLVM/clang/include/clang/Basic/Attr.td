@@ -3205,11 +3205,11 @@ def GaiaFieldValue : Attr {
   let Documentation = [Undocumented];
 }
 
-def RulesetSerialStream : Attr {
-    let Spellings = [Keyword<"serial_stream">];
+def RulesetSerialGroup : Attr {
+    let Spellings = [Keyword<"serial_group">];
     let Subjects = SubjectList<[Ruleset]>;
     let Documentation = [Undocumented];
-    let Args = [IdentifierArgument<"stream">];
+    let Args = [VariadicIdentifierArgument<"group">];
 }
 
 def GaiaFieldLValue : Attr {
