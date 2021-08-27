@@ -214,7 +214,7 @@ void convert_references_to_relationships(
                        ? std::make_pair(ref_link, matching_ref_link)
                        : std::make_pair(matching_ref_link, ref_link));
 
-            relationships.back()->if_not_exists = false;
+            relationships.back()->has_if_not_exists = false;
 
             // TODO: Detect conflict in field map definitions when both
             //       `references` definitions contain one. [GAIAPLAT-306]
@@ -250,7 +250,7 @@ void execute_create_statement_no_txn(
     ddl::create_statement_t* create_stmt)
 {
     bool throw_on_exist = true;
-    if (create_stmt->if_not_exists)
+    if (create_stmt->has_if_not_exists)
     {
         throw_on_exist = false;
     }
@@ -262,11 +262,12 @@ void execute_create_statement_no_txn(
             create_table_stmt->database,
             create_table_stmt->name,
             create_table_stmt->fields,
-            throw_on_exist);
+            throw_on_exist,
+            create_stmt->auto_drop);
     }
     else if (create_stmt->type == ddl::create_type_t::create_database)
     {
-        executor.create_database(create_stmt->name, throw_on_exist);
+        executor.create_database(create_stmt->name, throw_on_exist, create_stmt->auto_drop);
     }
     else if (create_stmt->type == ddl::create_type_t::create_relationship)
     {
@@ -276,7 +277,8 @@ void execute_create_statement_no_txn(
             create_relationship_stmt->relationship.first,
             create_relationship_stmt->relationship.second,
             create_relationship_stmt->field_map,
-            throw_on_exist);
+            throw_on_exist,
+            create_stmt->auto_drop);
     }
     else if (create_stmt->type == ddl::create_type_t::create_index)
     {
@@ -288,7 +290,8 @@ void execute_create_statement_no_txn(
             create_index_stmt->database,
             create_index_stmt->index_table,
             create_index_stmt->index_fields,
-            throw_on_exist);
+            throw_on_exist,
+            create_stmt->auto_drop);
     }
 }
 
@@ -356,7 +359,7 @@ void execute_create_list_statements(
         execute_create_statement_no_txn(executor, create_stmt);
         if (create_stmt->type == ddl::create_type_t::create_database)
         {
-            use_database(create_stmt->name);
+            executor.switch_db_context(create_stmt->name);
         }
     }
     txn.commit();

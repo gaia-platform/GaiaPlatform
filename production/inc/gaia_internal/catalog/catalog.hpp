@@ -580,21 +580,20 @@ struct use_statement_t : statement_t
 
 struct create_statement_t : statement_t
 {
-    explicit create_statement_t(create_type_t type)
-        : statement_t(statement_type_t::create), type(type)
-    {
-    }
-
     create_statement_t(create_type_t type, std::string name)
         : statement_t(statement_type_t::create), type(type), name(std::move(name))
     {
+        has_if_not_exists = false;
+        auto_drop = false;
     }
 
     create_type_t type;
 
     std::string name;
 
-    bool if_not_exists;
+    bool has_if_not_exists;
+
+    bool auto_drop;
 };
 
 struct create_database_t : create_statement_t
@@ -715,7 +714,10 @@ void use_database(const std::string& name);
  * @return id of the new database
  * @throw db_already_exists
  */
-gaia::common::gaia_id_t create_database(const std::string& name, bool throw_on_exists = true);
+gaia::common::gaia_id_t create_database(
+    const std::string& name,
+    bool throw_on_exists = true,
+    bool auto_drop = false);
 
 /**
  * Create a table definition in a given database.
@@ -727,7 +729,11 @@ gaia::common::gaia_id_t create_database(const std::string& name, bool throw_on_e
  * @throw table_already_exists
  */
 gaia::common::gaia_id_t create_table(
-    const std::string& db_name, const std::string& name, const ddl::field_def_list_t& fields, bool throw_on_exist = true);
+    const std::string& db_name,
+    const std::string& name,
+    const ddl::field_def_list_t& fields,
+    bool throw_on_exists = true,
+    bool auto_drop = false);
 
 /**
  * Create a table definition in the catalog's global database.
@@ -761,7 +767,8 @@ gaia::common::gaia_id_t create_index(
     const std::string& db_name,
     const std::string& table_name,
     const std::vector<std::string>& field_names,
-    bool throw_on_exist = true);
+    bool throw_on_exist = true,
+    bool auto_drop = false);
 
 /**
  * Delete a database.
@@ -859,7 +866,8 @@ gaia::common::gaia_id_t create_relationship(
     const std::string& name,
     const ddl::link_def_t& link1,
     const ddl::link_def_t& link2,
-    bool throw_on_exist = true);
+    bool throw_on_exist = true,
+    bool auto_drop = false);
 
 /**
  * Create a relationship between tables.
@@ -874,7 +882,8 @@ gaia::common::gaia_id_t create_relationship(
     const ddl::link_def_t& link1,
     const ddl::link_def_t& link2,
     const std::optional<ddl::table_field_map_t>& field_map,
-    bool throw_on_exist);
+    bool throw_on_exist,
+    bool auto_drop);
 
 /**
  * Delete a given relationship.
