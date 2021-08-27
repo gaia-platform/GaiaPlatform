@@ -599,6 +599,10 @@ protected:
         event_manager_settings_t settings;
         settings.num_background_threads = 0;
         settings.enable_catalog_checks = false;
+        // These standalone tests do not write to the database so that
+        // it cannot verify the validity of the "fake" anchor rows the
+        // test is using to test the event manager.
+        settings.enable_db_checks = false;
         test::initialize_rules_engine(settings);
         g_context_checker.get_dummy_transaction(true);
     }

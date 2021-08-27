@@ -77,8 +77,6 @@ constexpr int c_encoding_mask = 0xFFFF;
 
 constexpr char c_connect_keyword[] = "connect";
 constexpr char c_disconnect_keyword[] = "disconnect";
-constexpr size_t c_connect_keyword_length = 7;
-constexpr size_t c_disconnect_keyword_length = 10;
 
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;

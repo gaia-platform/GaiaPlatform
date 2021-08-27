@@ -15,6 +15,7 @@
 
 #include "gaia_internal/db/triggers.hpp"
 
+#include "rule_checker.hpp"
 #include "rule_stats_manager.hpp"
 
 namespace gaia
@@ -69,7 +70,9 @@ public:
      * mode and no worker threads are created. If SIZE_MAX is specified
      * then create the pool with the number of available hardware threads.
      */
-    rule_thread_pool_t(size_t num_threads, uint32_t max_rule_retries, rule_stats_manager_t& stats_manager);
+    rule_thread_pool_t(
+        size_t num_threads, uint32_t max_rule_retries,
+        rule_stats_manager_t& stats_manager, rule_checker_t& rule_checker);
 
     /**
      * Wait for the current rules "graph" to execute. Wait for all rules to finish
@@ -131,6 +134,12 @@ private:
      * user rule if desired.
      */
     rule_stats_manager_t& m_stats_manager;
+
+    /**
+     * Helper to validate anchor rows.  Test code
+     * can turn off db record verification
+     */
+    rule_checker_t& m_rule_checker;
 
     /**
      * Maximum number of times to retry a rule when getting transaction update conflicts.

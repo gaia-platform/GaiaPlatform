@@ -21,10 +21,27 @@ namespace rules
 class rule_checker_t
 {
 public:
+    // By default, enable all checks.
+    rule_checker_t()
+        : rule_checker_t(true, true)
+    {
+    }
+
+    rule_checker_t(bool enable_catalog_checks, bool enable_db_checks)
+        : m_enable_catalog_checks(enable_catalog_checks)
+        , m_enable_db_checks(enable_db_checks)
+    {
+    }
+
     void check_catalog(common::gaia_type_t type, const common::field_position_list_t& field_list);
+    bool is_valid_row(common::gaia_id_t row_id);
 
 private:
     void check_fields(common::gaia_id_t id, const common::field_position_list_t& field_list);
+
+private:
+    bool m_enable_catalog_checks;
+    bool m_enable_db_checks;
 };
 
 } // namespace rules
