@@ -12,12 +12,22 @@ namespace rules
 {
 
 /**
- * This helper class interfaces with the catalog to verify rule subscriptions.
- * This class is invoked when the user calls the subscribe_rule API.
- *
- * Post Q2 this functionality may be moved to the catalog manager so that other code can
- * also use it.
-  */
+ * This helper class is used by the rules engine at both rule
+ * subscription invocation time.  Currently, the class performs 
+ * the following checks.
+ * 
+ * Catalog Checks:
+ *  Ensure tables and fields that are referenced in a rule are
+ *  actually present in the catalog at rule subscription time.
+ * 
+ * Database Checks:
+ *  Ensure that an anchor row is valid before invoking a rule.
+ * 
+ * Note that the checks can be disabled by unit tests that do not want
+ * to have a dependency on the database.  These tests can intialize
+ * the rules engine with custom settings.  See event_manager_settings.hpp 
+ * and rules_test_helpers.hpp for more information.
+ */
 class rule_checker_t
 {
 public:
