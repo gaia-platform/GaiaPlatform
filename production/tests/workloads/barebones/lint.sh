@@ -5,7 +5,6 @@
 # All rights reserved.
 #############################################
 
-
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -209,7 +208,7 @@ verify_correct_pipenv_installed() {
 }
 
 # Lint the python scripts.
-lint_python_scipts() {
+lint_python_scripts() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Applying formatting to the Python parts of the $PROJECT_NAME project."
     fi
@@ -301,7 +300,7 @@ save_current_directory
 
 # Lint the various parts of the project.
 # lint_c_plus_plus_code
-# lint_python_scipts
+# lint_python_scripts
 lint_shell_scripts
 
 complete_process 0

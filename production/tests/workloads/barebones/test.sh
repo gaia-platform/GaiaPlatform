@@ -11,7 +11,7 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags] [test-name]"
     echo "Flags:"
-    echo "  -d,--directory              Directory to run the tests against."
+    echo "  -d,--directory              Directory to install the tests to and execute from."
     echo "  -ni,--no-init               Do not initialize the test data before executing the test."
     echo "  -nt,--num-threads <threads> Number of threads to use for the rule engine.  If '0' is"
     echo "                              specified, then the number of threads is set to maximum."
@@ -21,8 +21,6 @@ show_usage() {
     echo "  test-name                   Optional name of the test to run.  (Default: 'smoke')"
     exit 1
 }
-
-#    $WORKLOAD_DIRECTORY/test.sh -vv -ni $TEST_THREADS_ARGUMENT -d "$TEST_DIRECTORY" "$NEXT_TEST_NAME" > "$SUITE_TEST_DIRECTORY/output.txt" 2>&1
 
 # Parse the command line.
 parse_command_line() {
@@ -104,7 +102,7 @@ save_current_directory() {
     # Save the current directory so we can get back to it.
     if ! pushd . > "$TEMP_FILE" 2>&1;  then
         cat "$TEMP_FILE"
-        echo "Test script cannot save the current directory before proceeding."
+        echo "Test script cannot save the current directory before proceeding with test execution."
         complete_process 1
     fi
     DID_PUSHD=1
@@ -112,6 +110,9 @@ save_current_directory() {
 
 create_results_directory() {
     # Yes, this is overkill, but when using a rm -rf, cannot be too careful.
+    #
+    # This is overkill because doing a 'rm -rf /*' with sudo permissions will attempt
+    # to remove every file in the system or at the very least, all files in the directory.
     if [ -d "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY" ]; then
         if [ "$(ls -A "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")" ] ; then
             # shellcheck disable=SC2115

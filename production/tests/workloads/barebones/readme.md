@@ -10,7 +10,9 @@ For a workload that has everything setup with a very simple model and some simpl
 
 ## Workload Input
 
-To start executing the workload, three files are required.  Note that for the purposes of the Barebones workload, these files are specifically focused to be executed by the Integration Suite test framework.  The similar scripts in other workloads are larger as they also support running those scripts locally, and different options for how to run those scripts locally.
+To start executing the workload, three files are required: `install.sh`, `build.sh` and `test.sh`.  Note that for the purposes of the Barebones workload, these files are specifically focused to be executed by the Integration Suite test framework.  The similar scripts in other workloads are larger as they also support running those scripts locally, and different options for how to run those scripts locally.
+
+The following sections describe these script files and their usage.
 
 ### Install.sh
 
@@ -26,7 +28,7 @@ For this Barebones workload sample, the script copies everything in the workload
 
 ### Build.sh
 
-`./build.sh -v`
+`./build.sh --verbose`
 
 The `build.sh` script is invoked from the main suite script to build any artifacts needed for the test workload.  Note that when this script is invoked from the suite, the current directory has already been set to the install directory passed to the `install.sh` script.
 
@@ -36,23 +38,23 @@ For this Barebones workload sample, the script simply echoes text to the output.
 
 ### Test.sh
 
-`./test.sh -vv -ni -nt <num-threads> -d <install-directory> <test-name>`
+`./test.sh --very-verbose --no-init --num-threads <num-threads> --directory <install-directory> <test-name>`
 
 The `test.sh` script is invoked from the main suite script once for each test to be executed.  As far as this script is concerned, there are no repeat tests, only the one test that it is being asked to execute and report on.
 
-Some of the parameters are provided for local execution help, such as `-vv` for very verbose mode and `-ni` no initialize.  The `-d` parameter is followed by the name of the install directory passed to the `install.sh` script.
+Some of the parameters are provided for local execution help, such as `--very-verbose` for very verbose mode and `--no-init` no initialize.  The `--directory` parameter is followed by the name of the install directory passed to the `install.sh` script.
 
 At the end of the parameters/flags, the `test-name` argument specifies the name of the test to be executed.  It is completely up to the script
 
-If the number of threads is specified by the suite, the `-nt` parameter will be used to pass that value to the script. It is the responsibility of the `test.sh` script to do any work necessary to honor that setting.
+If the number of threads is specified by the suite, the `--num-threads` parameter will be used to pass that value to the script. It is the responsibility of the `test.sh` script to do any work necessary to honor that setting.
 
 The return code
 
-0 - AOK
-1 - test script failed itself for some reason
-4 - specified test to execute was not available for any reason
-5 - internal error executing any inner scripts/programs from within test.sh
-6 - for integration tests, any expected results did not match actual results.
+- 0 - AOK
+- 1 - test script failed itself for some reason
+- 4 - specified test to execute was not available for any reason
+- 5 - internal error executing any inner scripts/programs from within test.sh
+- 6 - for integration tests, any expected results did not match actual results.
 
 #### Sample Behavior
 

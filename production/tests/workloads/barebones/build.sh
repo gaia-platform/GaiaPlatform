@@ -5,5 +5,4 @@
 # All rights reserved.
 #############################################
 
-
 echo "Project has been built."
