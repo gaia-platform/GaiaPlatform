@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
     "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
     "scopeName": "source.cpp.ruleset",
     "name": "ruleset",
@@ -33,3 +34,35 @@
         }
     }
 }
+=======
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "scopeName": "source.cpp.ruleset",
+  "name": "ruleset",
+  "fileTypes": [
+    "ruleset"
+  ],
+  "patterns": [
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "source.cpp"
+    }
+  ],
+  "repository": {
+    "keywords": {
+			"patterns": [
+				{
+					"name": "keyword.other.cpp.ruleset",
+					"match": "\\bruleset ([a-zA-Z0-9_.-]*)\\b",
+					"captures": {
+						"1": {
+							"name": "support.class.cpp.ruleset"
+						}
+					}
+				}
+			]
+		}
+  }
+}
+>>>>>>> 360715b0a (Added .ddl textmate file)
