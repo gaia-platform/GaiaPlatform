@@ -13,7 +13,7 @@ namespace rules
 
 /**
  * This helper class is used by the rules engine at both rule
- * subscription invocation time.  Currently, the class performs 
+ * subscription and invocation time.  Currently, the class performs 
  * the following checks.
  * 
  * Catalog Checks:
