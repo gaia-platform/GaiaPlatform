@@ -66,7 +66,7 @@ show_usage() {
     echo "  -l,--list           List all available suites for this project."
     echo "  -n,--no-stats       Do not display the statistics when the suite has completed."
     echo "  -j,--json           Display the statistics in JSON format."
-    echo "  -v,--verbose        Show lots of information while executing the suite of tests."
+    echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
     echo "Arguments:"
     echo "  suite-name          Optional name of the suite to run.  (Default: 'smoke')"

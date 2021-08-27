@@ -47,7 +47,7 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
-    echo "  -v,--verbose        Show lots of information while executing the project."
+    echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
     echo ""
     show_usage_commands

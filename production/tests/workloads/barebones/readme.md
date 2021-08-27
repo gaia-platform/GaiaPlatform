@@ -58,7 +58,7 @@ The return code
 
 #### Sample Behavior
 
-For this Barebones workload sample, the script provides for a constant test result.
+For this Barebones workload sample, the script provides for a constant test result.  Because this script is a starting point that example that also needs to work properly, the test result will always report that it was successful and took 1 ms to execute.  When using this workload in a derived workload, it is expected that you will follow the documentation below to change that constant behavior to reflect the information derived from your workload's execution.
 
 After setting some variables, the `parse_command_line` and `save_current_directory` functions are called to set things up for the test.  The `create_results_directory` function is then called to create the required results directory as documented in [Test Results Directory](#test-results-directory) below.
 
@@ -73,7 +73,7 @@ To provide the actual measurements to help performance tests, a `test-summary.js
 }
 ```
 
-This sample [summary file](#test-summary-file) provides for one count-based measure, the `return-code` field, and for one duration-based measure, the `sample-ms` field.  The `return-code` field is required, and the suite will fail if that is not provided.  If a custom Gaia configuration file it to be used for the tests, the path to that file should be specified in the optional `configuration-file`.  If provided, the suite will provide a breakdown of that file in the summary itself, giving more context to the results.
+This sample [summary file](#test-summary-file) provides for one count-based measure, the `return-code` field, and for one duration-based measure, the `sample-ms` field.  The `return-code` field is required, and the suite will fail if that is not provided.  If a custom Gaia configuration file is to be used for the tests, the path to that file should be specified in the optional `configuration-file`.  If provided, the suite will provide a breakdown of that file in the summary itself, giving more context to the results.
 
 With the "test" completed, the `workload.properties` file is copied into the test results directory.  At this point in the script, any other files, such as the `gaia.log` and `gaia_stats.log` files should be copied into that directory along with any other relevant test files.  By using this mechanism, those extra files may provide insight into the test behavior to help diagnose failures.
 

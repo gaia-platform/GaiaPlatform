@@ -16,6 +16,7 @@ show_usage() {
     echo "  -nt,--num-threads <threads> Number of threads to use for the rule engine.  If '0' is"
     echo "                              specified, then the number of threads is set to maximum."
     echo "  -vv,--very-verbose          Verbose for this script and any top level scripts it calls."
+    echo "  -v,--verbose                Display detailed information during execution."
     echo "  -h,--help                   Display this help text."
     echo "Arguments:"
     echo "  test-name                   Optional name of the test to run.  (Default: 'smoke')"
@@ -61,6 +62,10 @@ parse_command_line() {
             else
                 echo "Error: Argument for $1 is missing." >&2; exit 1
             fi
+        ;;
+        -v|--verbose)
+            VERBOSE_MODE=1
+            shift
         ;;
         -h|--help)
             show_usage
@@ -148,7 +153,7 @@ parse_command_line "$@"
 
 save_current_directory
 
-# Create the test results directory forceably.
+# Create the test results directory forciably.
 create_results_directory
 
 # Various flags passed in.
@@ -168,12 +173,12 @@ fi
 # File containing the real data from the test.
 echo "{ \"return-code\" : 0, \"sample-ms\" : 1 }" > "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY/test-summary.json"
 
-# add "configuration-file" if you want a summary of the rules configuration in the output
+# Add "configuration-file" if you want a summary of the rules configuration in the output.
 
 # Workload properties specifies how to treat the data in the test-summary.json file
 cp "$SCRIPTPATH/workload.properties" "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"
 
-# Can copy these into $TEST_RESULTS_DIRECTORY to provide extra insight.
+# Can copy these into $TEST_RESULTS_DIRECTORY to provide extra insight:
 # gaia_stats.log - will use to mine slices for information about rules
 # gaia.log - currently will use to find exceptions
 

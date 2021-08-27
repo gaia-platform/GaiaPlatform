@@ -43,7 +43,7 @@ show_usage() {
     echo "  -m,--make-only    Build only the make part of the project."
     echo "  -nc,--no-cache    (Experimental) Build the project with no CMake cache."
     echo "  -r,--refresh-ddl  (Experimental) Build the project with refreshed DDL."
-    echo "  -v,--verbose      Show lots of information while building the project."
+    echo "  -v,--verbose      Display detailed information during execution."
     echo "  -h,--help         Display this help text."
     echo " "
     echo "Note: The --refresh-ddl flag explicitly drops the database to ensure that the"
