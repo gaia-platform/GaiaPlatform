@@ -173,7 +173,7 @@ scan_state_t::scan_state_t(std::shared_ptr<index_predicate_t> predicate)
     {
         m_has_limit = false;
     }
-} // namespace scan
+}
 
 scan_state_t::scan_state_t(std::shared_ptr<index_predicate_t> predicate, size_t limit)
     : m_predicate(std::move(predicate)), m_has_limit(true), m_limit_rows_remaining(limit)
