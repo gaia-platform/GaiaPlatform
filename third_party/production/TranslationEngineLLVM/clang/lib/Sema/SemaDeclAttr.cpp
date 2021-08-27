@@ -2156,7 +2156,6 @@ static bool validateRuleAttribute(StringRef attribute,
       {
         if (returnValue)
         {
-llvm::errs()<<"0\n";
           S.Diag(AL.getLoc(), diag::err_duplicate_field)
             << attribute << table.first;
           return false;
