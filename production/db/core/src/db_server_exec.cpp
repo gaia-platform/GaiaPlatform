@@ -309,6 +309,8 @@ static server_config_t process_command_line(int argc, char* argv[])
         }
     }
 
+    std::cerr << "Starting " << c_db_server_name << "..." << std::endl;
+
     gaia_config_fallback_t gaia_conf{conf_file_path};
 
     data_dir = gaia_conf.get_value<std::string>(
@@ -374,7 +376,7 @@ int main(int argc, char* argv[])
 {
     auto server_conf = process_command_line(argc, argv);
 
-    std::cerr << "Starting " << c_db_server_exec_name << "..." << std::endl;
+    std::cerr << c_db_server_name << " started!" << std::endl;
 
     gaia::db::server_t::run(server_conf);
 }
