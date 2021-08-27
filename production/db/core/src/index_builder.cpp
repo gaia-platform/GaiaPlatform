@@ -152,6 +152,35 @@ void update_index_entry(
     base_index_t* base_index, bool is_unique, index_key_t&& key, index_record_t record)
 {
     auto index = static_cast<T_index_type*>(base_index);
+
+    // If the index has UNIQUE constraint, then we can't insert duplicate values.
+    // Because we never actually remove index entries, we need special checks
+    // for the situations when we delete keys or re-insert a previously deleted key.
+    if (is_unique && !record.deleted)
+    {
+        auto it_start = index->equal_range(key).first;
+        auto it_end = index->equal_range(key).second;
+
+        bool has_found_duplicate_key = false;
+
+        for (; it_start != it_end; ++it_start)
+        {
+            // The list we iterate over reflects the order of operations.
+            // The key exists if the last seen operation is an insertion.
+            // Updates consist of a delete followed by an insertion
+            // and we perform this check only for insertions, so it should
+            // last see a deletion in this scenario too.
+            has_found_duplicate_key = (it_start->second.deleted) ? false : true;
+        }
+
+        if (has_found_duplicate_key)
+        {
+            auto index_view = index_view_t(id_to_ptr(index->id()));
+            auto table_view = table_view_t(id_to_ptr(index_view.table_id()));
+            throw unique_constraint_violation(index_view.name(), table_view.name());
+        }
+    }
+
     index->insert_index_entry(std::move(key), record);
 }
 
