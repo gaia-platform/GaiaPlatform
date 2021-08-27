@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
     "comments": {
         // Symbol used for single line comment.
         "lineComment": "--",
@@ -70,3 +71,76 @@
         ]
     ]
 }
+=======
+  "comments": {
+    // Symbol used for single line comment.
+    "lineComment": "--",
+    // Symbols used for starting and ending a block comment.
+    "blockComment": [
+			"/*",
+			"*/"
+    ]
+  },
+  // Symbols used as brackets
+  "brackets": [
+    [
+			"{",
+			"}"
+    ],
+    [
+			"[",
+			"]"
+    ],
+    [
+			"(",
+			")"
+    ]
+  ],
+  // Symbols that are auto closed when typing
+  "autoClosingPairs": [
+    [
+			"{",
+			"}"
+    ],
+    [
+			"[",
+			"]"
+    ],
+    [
+			"(",
+			")"
+    ],
+    [
+			"\"",
+			"\""
+    ],
+    [
+			"'",
+			"'"
+    ]
+  ],
+  // Symbols that can be used to surround a selection
+  "surroundingPairs": [
+    [
+			"{",
+			"}"
+    ],
+    [
+			"[",
+			"]"
+    ],
+    [
+			"(",
+			")"
+    ],
+    [
+			"\"",
+			"\""
+    ],
+    [
+			"'",
+			"'"
+    ]
+  ]
+}
+>>>>>>> f181836a9 (Added language configuration directory)
