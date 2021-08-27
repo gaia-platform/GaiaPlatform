@@ -197,3 +197,200 @@ CREATE TABLE t2(c2 INT32);
     ASSERT_NO_THROW(parser.parse_line(create_list_ddl));
     ASSERT_NO_THROW(execute(parser.statements));
 }
+
+TEST_F(ddl_execution_test, in_table_relationship_definition)
+{
+    // The following list of DDLs come in pairs. The first one is the test case.
+    // The second one will delete the entities created in the first. Successful
+    // deletion also verifies successful creation.
+    array ddls{
+        R"(
+-- self-reference 1:1 relationship full form
+create table employee (
+ name string,
+ mentor references employee using mentee,
+ mentee references employee using mentor
+);
+)",
+        R"(
+drop relationship mentee_mentor;
+drop table employee;
+)",
+        R"(
+-- self-reference 1:N relationship full form
+create table employee (
+  name string,
+  manager references employee using reports,
+  reports references employee[] using manager
+);
+)",
+        R"(
+drop relationship manager_reports;
+drop table employee;
+)",
+        R"(
+-- self-reference 1:N relationship without the optional using
+create table employee (
+  name string,
+  manager references employee,
+  reports references employee[]
+);
+)",
+        R"(
+drop relationship manager_reports;
+drop table employee;
+)",
+        R"(
+-- forward references 1:1 relationship without the optional using
+create table person (
+ name string,
+ employee references employee
+)
+create table employee (
+ company string,
+ person references person
+);
+)",
+        R"(
+drop relationship person_employee;
+drop table person;
+drop table employee;
+)",
+        R"(
+-- forward references 1:N relationship without the optional using
+create table doctor (
+ name string,
+ patients references patient[]
+)
+create table patient (
+ name string,
+ doctor references doctor
+);
+)",
+        R"(
+drop relationship doctor_patients;
+drop table doctor;
+drop table patient;
+)",
+        R"(
+-- forward references 1:1 relationship with hybrid index without using
+create table person (
+ name string,
+ email string unique,
+ employee references employee
+  where employee.personal_email = person.email
+)
+create table employee (
+ company string,
+ personal_email string unique,
+ person references person
+);
+)",
+        R"(
+drop relationship person_employee;
+drop table person;
+drop table employee;
+)",
+        R"(
+-- forward references 1:N relationship with hybrid index without using
+create table doctor (
+ name string,
+ phone_no string unique,
+ patients references patient[]
+)
+create table patient (
+ name string,
+ doctor_phone_no string,
+ doctor references doctor
+   where patient.doctor_phone_no = doctor.phone_no
+);
+)",
+        R"(
+drop relationship doctor_patients;
+drop table doctor;
+drop table patient;
+)",
+        R"(
+-- forward references 1:N relationship with hybrid index
+create database hospital
+create table doctor (
+ name string,
+ email string unique,
+ primary_care_patients references patient[],
+ secondary_care_patients references patient[]
+)
+create table patient (
+ name string,
+ primary_care_doctor_email string,
+ secondary_care_doctor_email string,
+ primary_care_doctor references doctor
+  using primary_care_patients
+  where patient.primary_care_doctor_email = doctor.email,
+ secondary_care_doctor references doctor
+  using secondary_care_patients
+  where patient.secondary_care_doctor_email = doctor.email
+);
+)",
+        R"(
+drop relationship primary_care_doctor_primary_care_patients;
+drop relationship secondary_care_doctor_secondary_care_patients;
+drop database hospital;
+)",
+    };
+
+    for (const auto& ddl : ddls)
+    {
+        ddl::parser_t parser;
+        ASSERT_NO_THROW(parser.parse_line(ddl));
+        ASSERT_NO_THROW(execute(parser.statements));
+    }
+}
+
+TEST_F(ddl_execution_test, invalid_create_list)
+{
+    array ddls{
+        R"(
+-- table name should not contain the database name
+create table d.t1(c1 int32, t2 references t2)
+create table d.t2(c2 int32, t1 references t1);
+)",
+        R"(
+-- links in relationship definition should not contain the database name
+create database d
+create table t1(c1 int32)
+create table t2(c2 int32)
+create relationship r (d.t1.link2 -> t2, d.t2.link1 -> t1);
+)",
+    };
+
+    for (const auto& ddl : ddls)
+    {
+        ddl::parser_t parser;
+        ASSERT_NO_THROW(parser.parse_line(ddl));
+        ASSERT_THROW(execute(parser.statements), invalid_create_list);
+    }
+}
+
+TEST_F(ddl_execution_test, ambiguous_reference_definition)
+{
+    string ddl{R"(
+create table t1(c1 int32, link1a references t2, link1b references t2)
+create table t2(c2 int32, link2a references t1, link2b references t1);
+)"};
+
+    ddl::parser_t parser;
+    ASSERT_NO_THROW(parser.parse_line(ddl));
+    ASSERT_THROW(execute(parser.statements), ambiguous_reference_definition);
+}
+
+TEST_F(ddl_execution_test, orphaned_reference_definition)
+{
+    string ddl{R"(
+create table t1(c1 int32, link1 references t2)
+create table t2(c2 int32, link2a references t1, link2b references t1);
+)"};
+
+    ddl::parser_t parser;
+    ASSERT_NO_THROW(parser.parse_line(ddl));
+    ASSERT_THROW(execute(parser.statements), orphaned_reference_definition);
+}

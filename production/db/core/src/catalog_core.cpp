@@ -137,6 +137,11 @@ namespace db
     return catalog::Getgaia_index(m_obj_ptr->data())->fields();
 }
 
+[[nodiscard]] gaia_id_t index_view_t::table_id() const
+{
+    return m_obj_ptr->references()[c_parent_table_ref_offset];
+}
+
 table_view_t catalog_core_t::get_table(gaia_id_t table_id)
 {
     return table_view_t{id_to_ptr(table_id)};
@@ -175,8 +180,7 @@ list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint
     auto obj_ptr = id_to_ptr(table_id);
     const gaia_id_t* references = obj_ptr->references();
     gaia_id_t first_obj_id = references[first_offset];
-    auto generator = [id = first_obj_id, next_offset]() mutable -> std::optional<T_catalog_obj_view>
-    {
+    auto generator = [id = first_obj_id, next_offset]() mutable -> std::optional<T_catalog_obj_view> {
         if (id == c_invalid_gaia_id)
         {
             return std::nullopt;

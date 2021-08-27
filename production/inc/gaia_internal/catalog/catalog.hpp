@@ -284,6 +284,14 @@ public:
         message << "The many to many relationship defined in '" << relationship << "' is not supported.";
         m_message = message.str();
     }
+
+    explicit many_to_many_not_supported(const std::string& table1, const std::string& table2)
+    {
+        std::stringstream message;
+        message << "The many to many relationship defined "
+                << "in '" << table1 << "'  and '" << table2 << "' is not supported.";
+        m_message = message.str();
+    }
 };
 
 /**
@@ -323,6 +331,50 @@ public:
     explicit invalid_field_map(const std::string& message)
     {
         m_message = message;
+    }
+};
+
+/**
+ * Thrown when the `references` definition can match multiple `references`
+ * definitions elsewhere.
+ */
+class ambiguous_reference_definition : public gaia::common::gaia_exception
+{
+public:
+    explicit ambiguous_reference_definition(const std::string& table, const std::string& ref_name)
+    {
+        std::stringstream message;
+        message << "The reference '" << ref_name << "' definition "
+                << "in table '" << table << "' has mutiple matching definitions.";
+        m_message = message.str();
+    }
+};
+
+/**
+ * Thrown when the `references` definition does not have a matching definition.
+ */
+class orphaned_reference_definition : public gaia::common::gaia_exception
+{
+public:
+    explicit orphaned_reference_definition(const std::string& table, const std::string& ref_name)
+    {
+        std::stringstream message;
+        message << "The reference '" << ref_name << "' definition "
+                << "in table '" << table << "' has no matching definition.";
+        m_message = message.str();
+    }
+};
+
+/**
+ * Thrown when the create list is invalid.
+ */
+class invalid_create_list : public gaia::common::gaia_exception
+{
+public:
+    explicit invalid_create_list(const std::string& message)
+    {
+        m_message = "Invalid create statment in a list: ";
+        m_message += message;
     }
 };
 
@@ -485,6 +537,28 @@ struct table_field_list_t
 };
 
 using table_field_map_t = std::pair<table_field_list_t, table_field_list_t>;
+
+// The class represents reference fields in parsing results. The matching
+// references in the two corresponding table definitions will be translated to
+// relationship definitions during execution.
+struct ref_field_def_t : base_field_def_t
+{
+    ref_field_def_t(std::string name, std::string table_name)
+        : base_field_def_t(name, field_type_t::reference), table(std::move(table_name))
+    {
+    }
+
+    // The referenced table.
+    std::string table;
+
+    relationship_cardinality_t cardinality;
+
+    // Optional, the field name of the referenced table.
+    std::string field;
+
+    // Optional, see the `create_relationship_t` for more details.
+    std::optional<table_field_map_t> field_map;
+};
 
 enum class create_type_t : uint8_t
 {
