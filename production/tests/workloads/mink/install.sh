@@ -35,7 +35,7 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags] <directory>"
     echo "Flags:"
-    echo "  -v,--verbose      Show lots of information while installing the project."
+    echo "  -v,--verbose      Display detailed information during execution."
     echo "  -h,--help         Display this help text."
     echo "Other:"
     echo "  directory         Directory to create and install the project into."

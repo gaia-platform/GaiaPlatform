@@ -1,0 +1,10 @@
+#
+# Simple test suite for the barebones tests.
+#
+
+workload barebones
+
+smoke
+smoke repeat 2
+perf
+perf repeat 2
