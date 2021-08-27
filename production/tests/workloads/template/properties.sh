@@ -26,7 +26,6 @@ export SOURCE_PATHS=("template.cpp")
 
 export GENERATED_CONFIGURATION_FILE=("template.conf")
 
-
 # ----------------------------------------------------
 # Variables that are general to this group of scripts.
 # ----------------------------------------------------

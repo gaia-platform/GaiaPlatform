@@ -431,8 +431,6 @@ execute_test_workflow() {
     fi
 }
 
-
-
 # Set up any global script variables.
 # shellcheck disable=SC2164
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
@@ -450,8 +448,6 @@ TEMP_FILE=/tmp/$PROJECT_NAME.test.tmp
 
 # Set up any local script variables.
 DID_PUSHD=0
-
-
 
 # Parse any command line values.
 parse_command_line "$@"

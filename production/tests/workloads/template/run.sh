@@ -226,8 +226,6 @@ create_configuration_file() {
     fi
 }
 
-
-
 # Set up any global script variables.
 # shellcheck disable=SC2164
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
@@ -236,8 +234,6 @@ source "$SCRIPTPATH/properties.sh"
 
 # Set up any project based local script variables.
 TEMP_FILE=/tmp/$PROJECT_NAME.run.tmp
-
-
 
 # Parse any command line values.
 parse_command_line "$@"

@@ -5,7 +5,6 @@
 # All rights reserved.
 #############################################
 
-
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -273,8 +272,6 @@ lint_shell_scripts() {
         complete_process 1 "Linting of shellscript by 'shellcheck' failed."
     fi
 }
-
-
 
 # Set up any global script variables.
 # shellcheck disable=SC2164
