@@ -373,7 +373,9 @@ void server_t::handle_decide_txn(
     // returned, but we don't close the log fd (even for an abort decision),
     // because GC needs the log in order to properly deallocate all allocations
     // made by this txn when they become obsolete.
-    auto cleanup = make_scope_guard([&]() { s_txn_id = c_invalid_gaia_txn_id; });
+    auto cleanup = make_scope_guard([&]() {
+        s_txn_id = c_invalid_gaia_txn_id;
+    });
 
     FlatBufferBuilder builder;
     build_server_reply(builder, event, old_state, new_state, s_txn_id);
@@ -483,8 +485,12 @@ void server_t::handle_request_stream(
     // The client socket should unconditionally be closed on exit because it's
     // duplicated when passed to the client and we no longer need it on the
     // server.
-    auto client_socket_cleanup = make_scope_guard([&]() { close_fd(client_socket); });
-    auto server_socket_cleanup = make_scope_guard([&]() { close_fd(server_socket); });
+    auto client_socket_cleanup = make_scope_guard([&]() {
+        close_fd(client_socket);
+    });
+    auto server_socket_cleanup = make_scope_guard([&]() {
+        close_fd(server_socket);
+    });
 
     auto request = static_cast<const client_request_t*>(event_data);
 
@@ -1043,7 +1049,9 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
     // so no new sessions can be established while we wait for all session
     // threads to exit (we assume they received the same server shutdown
     // notification that we did).
-    auto listener_cleanup = make_scope_guard([&]() { close_fd(s_listening_socket); });
+    auto listener_cleanup = make_scope_guard([&]() {
+        close_fd(s_listening_socket);
+    });
 
     // Set up the epoll loop.
     int epoll_fd = ::epoll_create1(0);
@@ -2404,7 +2412,9 @@ void server_t::txn_rollback()
 
     // We need to unconditionally close the log fd because we're not registering
     // it in a txn metadata entry, so it won't be closed by GC.
-    auto cleanup_log_fd = make_scope_guard([&]() { close_fd(log_fd); });
+    auto cleanup_log_fd = make_scope_guard([&]() {
+        close_fd(log_fd);
+    });
 
     // Free any deallocated objects (don't bother for read-only txns).
     if (!is_log_empty)
