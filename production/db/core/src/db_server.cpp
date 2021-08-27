@@ -933,7 +933,7 @@ void server_t::init_listening_socket(const std::string& socket_name)
             cerr << "ERROR: bind() failed! - " << (::strerror(errno)) << endl;
             cerr << "The " << c_db_server_name
                  << " cannot start because another instance is already running.\n"
-                    "Please stop any running instance of the server."
+                    "Stop any instances of the server and try again."
                  << endl;
             exit(1);
         }
