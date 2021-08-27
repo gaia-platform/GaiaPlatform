@@ -237,8 +237,8 @@ void rule_thread_pool_t::invoke_rule_inner(invocation_t& invocation)
             auto_transaction_t txn(auto_transaction_t::no_auto_begin);
 
             // If the anchor row is invalid, then do not invoke the rule.  This can
-            // occur if the row is deleted in the time after an insert and update
-            // event cause a rule to be queued and before it is invoked here.
+            // occur if the row is deleted after it has been inserted or updated but
+            // before an enqueued rule has been invoked.
             if (!m_rule_checker.is_valid_row(rule_invocation.record))
             {
                 gaia_log::rules().trace("invalid anchor row: rule '{}' was not invoked, src_txn:'{}', new_txn:'{}'", rule_id, rule_invocation.src_txn_id, gaia::db::get_txn_id());

@@ -136,8 +136,7 @@ private:
     rule_stats_manager_t& m_stats_manager;
 
     /**
-     * Helper to validate anchor rows.  Test code
-     * can turn off db record verification
+     * Helper to validate anchor rows.
      */
     rule_checker_t& m_rule_checker;
 
