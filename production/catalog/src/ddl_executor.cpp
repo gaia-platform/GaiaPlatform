@@ -43,13 +43,13 @@ namespace catalog
 
 // If `throw_on_exists` is false, we should skip the operation when the object
 // already exists, while a true setting of `audo_drop` tells us to drop the
-// existing object. The two conditions contradicts with each other.
+// existing object. The two conditions are mutually exclusive.
 static constexpr char c_assert_throw_and_auto_drop[]
     = "Cannot auto drop and skip on exists at the same time.";
 
 ddl_executor_t::ddl_executor_t()
 {
-    reset();
+    bootstrap_catalog();
 }
 
 ddl_executor_t& ddl_executor_t::get()
@@ -60,6 +60,7 @@ ddl_executor_t& ddl_executor_t::get()
 
 void ddl_executor_t::bootstrap_catalog()
 {
+    auto_transaction_t txn(false);
     create_database(c_catalog_db_name, false);
 
     bool is_system = true;
@@ -274,12 +275,6 @@ void ddl_executor_t::bootstrap_catalog()
     // Tables created without specifying a database name will belong to the global database.
     m_empty_db_id = create_database(c_empty_db_name, false);
     m_db_context = c_empty_db_name;
-}
-
-void ddl_executor_t::reset()
-{
-    auto_transaction_t txn(false);
-    bootstrap_catalog();
     txn.commit();
 }
 
@@ -309,7 +304,12 @@ gaia_id_t ddl_executor_t::create_database(const string& name, bool throw_on_exis
 
     gaia_id_t id = gaia_database_t::insert_row(name.c_str());
 
-    gaia_log::catalog().debug("Created databaes '{}', id:'{}'", name, id);
+    gaia_log::catalog().debug("Created database '{}', id:'{}'", name, id);
+
+    if (auto_drop)
+    {
+        switch_db_context(name);
+    }
 
     return id;
 }

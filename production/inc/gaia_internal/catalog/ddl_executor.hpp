@@ -83,9 +83,6 @@ public:
 
     gaia::common::gaia_id_t find_db_id(const std::string& dbname) const;
 
-    // Initialize the catalog manager.
-    void reset();
-
 private:
     // Only internal static creation is allowed
     ddl_executor_t();
@@ -118,7 +115,7 @@ private:
     // Bootstrap catalog with builtin databases and tables.
     void bootstrap_catalog();
 
-    // Drop the given relationship without referential integration check.
+    // Drop the given relationship without referential integrity check.
     static void drop_relationship_no_ri(gaia_relationship_t& relationship);
 
     // Get the full name for a table composed of db and table names.

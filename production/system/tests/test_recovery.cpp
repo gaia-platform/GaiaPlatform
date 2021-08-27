@@ -117,7 +117,6 @@ protected:
         s_server.start();
         begin_session();
         type_id_mapping_t::instance().clear();
-        gaia::catalog::ddl_executor_t::get().reset();
         schema_loader_t::instance().load_schema("addr_book.ddl");
         end_session();
         s_server.stop();
@@ -177,7 +176,8 @@ gaia_id_t recovery_test::get_random_map_key(map<gaia_id_t, employee_copy_t> m)
 
 string recovery_test::generate_string(size_t length_in_bytes)
 {
-    auto randchar = []() -> char {
+    auto randchar = []() -> char
+    {
         const char charset[] = "0123456789"
                                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                "abcdefghijklmnopqrstuvwxyz";
