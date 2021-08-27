@@ -376,7 +376,5 @@ int main(int argc, char* argv[])
 {
     auto server_conf = process_command_line(argc, argv);
 
-    std::cerr << c_db_server_name << " started!" << std::endl;
-
     gaia::db::server_t::run(server_conf);
 }
