@@ -25,7 +25,7 @@ TEST(catalog_ddl_parser_test, create_table)
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
     EXPECT_EQ(create_stmt->name, "t");
-    EXPECT_FALSE(create_stmt->if_not_exists);
+    EXPECT_FALSE(create_stmt->has_if_not_exists);
 }
 
 TEST(catalog_ddl_parser_test, create_table_if_not_exists)
@@ -41,7 +41,7 @@ TEST(catalog_ddl_parser_test, create_table_if_not_exists)
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_table);
     EXPECT_EQ(create_stmt->name, "t");
-    EXPECT_TRUE(create_stmt->if_not_exists);
+    EXPECT_TRUE(create_stmt->has_if_not_exists);
 }
 
 TEST(catalog_ddl_parser_test, create_table_multiple_fields)
@@ -166,7 +166,7 @@ TEST(catalog_ddl_parser_test, create_database)
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_database);
     EXPECT_EQ(create_stmt->name, "db");
-    EXPECT_FALSE(create_stmt->if_not_exists);
+    EXPECT_FALSE(create_stmt->has_if_not_exists);
 }
 
 TEST(catalog_ddl_parser_test, create_database_if_not_exists)
@@ -182,7 +182,7 @@ TEST(catalog_ddl_parser_test, create_database_if_not_exists)
 
     EXPECT_EQ(create_stmt->type, create_type_t::create_database);
     EXPECT_EQ(create_stmt->name, "db");
-    EXPECT_TRUE(create_stmt->if_not_exists);
+    EXPECT_TRUE(create_stmt->has_if_not_exists);
 }
 
 TEST(catalog_ddl_parser_test, create_table_in_database)
@@ -295,7 +295,7 @@ TEST(catalog_ddl_parser_test, create_empty_table)
     auto create_table = dynamic_cast<create_table_t*>(create_stmt);
 
     EXPECT_EQ(create_table->name, "t");
-    EXPECT_FALSE(create_table->if_not_exists);
+    EXPECT_FALSE(create_table->has_if_not_exists);
     EXPECT_EQ(create_table->fields.size(), 0);
 }
 

@@ -206,19 +206,32 @@ create_statement:
 create_database:
   CREATE DATABASE opt_if_not_exists IDENTIFIER {
       $$ = std::make_unique<create_database_t>($4);
-      $$->if_not_exists = $3;
+      $$->has_if_not_exists = $3;
+  }
+| DATABASE IDENTIFIER {
+      $$ = std::make_unique<create_database_t>($2);
+      $$->auto_drop = true;
   }
 ;
 
 create_table:
   CREATE TABLE opt_if_not_exists composite_name "(" field_def_commalist ")" {
       $$ = std::make_unique<create_table_t>($4.second);
-      $$->if_not_exists = $3;
+      $$->has_if_not_exists = $3;
       $$->database = std::move($4.first);
       if ($6)
       {
           $$->fields = std::move(*$6);
       }
+  }
+| TABLE composite_name "(" field_def_commalist ")" {
+      $$ = std::make_unique<create_table_t>($2.second);
+      $$->database = std::move($2.first);
+      if ($4)
+      {
+          $$->fields = std::move(*$4);
+      }
+      $$->auto_drop = true;
   }
 ;
 
@@ -226,13 +239,24 @@ create_relationship:
   CREATE RELATIONSHIP opt_if_not_exists IDENTIFIER "(" link_def "," link_def ")" {
       $$ = std::make_unique<create_relationship_t>($4);
       $$->relationship = std::make_pair($6, $8);
-      $$->if_not_exists = $3;
+      $$->has_if_not_exists = $3;
   }
 | CREATE RELATIONSHIP opt_if_not_exists IDENTIFIER "(" link_def "," link_def "," USING table_field_map")" {
       $$ = std::make_unique<create_relationship_t>($4);
       $$->relationship = std::make_pair($6, $8);
-      $$->if_not_exists = $3;
+      $$->has_if_not_exists = $3;
       $$->field_map = $11;
+  }
+| RELATIONSHIP IDENTIFIER "(" link_def "," link_def ")" {
+      $$ = std::make_unique<create_relationship_t>($2);
+      $$->relationship = std::make_pair($4, $6);
+      $$->auto_drop = true;
+  }
+| RELATIONSHIP IDENTIFIER "(" link_def "," link_def "," USING table_field_map")" {
+      $$ = std::make_unique<create_relationship_t>($2);
+      $$->relationship = std::make_pair($4, $6);
+      $$->field_map = $9;
+      $$->auto_drop = true;
   }
 ;
 
@@ -241,10 +265,19 @@ create_index:
       $$ = std::make_unique<create_index_t>($6);
       $$->unique_index = $2;
       $$->index_type = $3;
-      $$->if_not_exists = $5;
+      $$->has_if_not_exists = $5;
       $$->database = $8.first;
       $$->index_table = $8.second;
       $$->index_fields = std::move($10);
+  }
+| opt_unique opt_index_type INDEX IDENTIFIER ON composite_name  "(" field_commalist ")" {
+      $$ = std::make_unique<create_index_t>($4);
+      $$->unique_index = $1;
+      $$->index_type = $2;
+      $$->database = $6.first;
+      $$->index_table = $6.second;
+      $$->index_fields = std::move($8);
+      $$->auto_drop = true;
   }
 ;
 
