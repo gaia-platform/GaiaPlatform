@@ -173,6 +173,13 @@ void update_index_entry(
             has_found_duplicate_key = (it_start->second.deleted) ? false : true;
         }
 
+        // KNOWN ISSUES:
+        //
+        // 1. This check can generate false positives if the transaction that inserted the earlier value
+        // will get aborted.
+        //
+        // 2. This check can generate false negatives if the transaction that deleted the earlier value
+        // will get aborted.
         if (has_found_duplicate_key)
         {
             auto index_view = index_view_t(id_to_ptr(index->id()));
