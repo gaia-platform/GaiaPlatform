@@ -1,0 +1,18 @@
+Risks for 75 mph solo lap:
+
+issues: no LOR SVL simulation
+issues: when can we run our actual software on the vehicle?
+
+We believe we can simulate in IMS with waypoints in SVL.  Waypoints and sequence of operations.
+
+Harou code just follows waypoints.
+Follow Gary.
+
+
+
+
+
+
+
+Risk for passing demonstration:
+
