@@ -4,7 +4,6 @@
 /////////////////////////////////////////////
 
 #include <algorithm>
-#include <iostream>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -46,7 +45,7 @@ using namespace gaia;
 using namespace gaia::common;
 using namespace gaia::translation;
 
-cl::OptionCategory g_translation_engine_category("Use translation engine options");
+cl::OptionCategory g_translation_engine_category("Translation engine options");
 
 cl::opt<string> g_translation_engine_output_option("output", cl::desc("output file name"), cl::init(""), cl::cat(g_translation_engine_category));
 
@@ -65,6 +64,7 @@ cl::list<std::string> g_source_files(cl::Positional, cl::desc("<sourceFile>"), c
 cl::opt<std::string> g_instance_name("n", cl::desc("DB instance name"), cl::Optional, cl::cat(g_translation_engine_category));
 
 std::string g_current_ruleset;
+std::string g_current_ruleset_serial_group;
 bool g_is_generation_error = false;
 int g_current_ruleset_rule_number = 1;
 unsigned int g_current_ruleset_rule_line_number = 1;
@@ -74,6 +74,11 @@ SourceRange g_rule_attribute_source_range;
 bool g_is_rule_prolog_specified = false;
 constexpr int c_encoding_shift = 16;
 constexpr int c_encoding_mask = 0xFFFF;
+
+constexpr char c_connect_keyword[] = "connect";
+constexpr char c_disconnect_keyword[] = "disconnect";
+constexpr size_t c_connect_keyword_length = 7;
+constexpr size_t c_disconnect_keyword_length = 10;
 
 vector<string> g_rulesets;
 unordered_map<string, unordered_set<string>> g_active_fields;
@@ -469,6 +474,28 @@ string generate_general_subscription_code()
     return return_value;
 }
 
+string get_serial_group(const Decl* decl)
+{
+    const RulesetSerialGroupAttr* serial_attr = decl->getAttr<RulesetSerialGroupAttr>();
+    if (serial_attr != nullptr)
+    {
+        if (serial_attr->group_size() == 1)
+        {
+            const IdentifierInfo* id = *(serial_attr->group_begin());
+            return id->getName().str();
+        }
+
+        // If we see the serial_group attribute without an argument
+        // then we just use the ruleset name as the serial_group name.
+        // This is guaranteed to be unique as we do not allow duplicate
+        // ruleset names.
+        return g_current_ruleset;
+    }
+
+    // No serial_group() attribute so return an empty string
+    return "";
+}
+
 string get_table_name(const Decl* decl)
 {
     const FieldTableAttr* table_attr = decl->getAttr<FieldTableAttr>();
@@ -852,6 +879,14 @@ void generate_table_subscription(
 
     string rule_line_var = rule_line_numbers[g_current_ruleset_rule_number];
 
+    string serial_group = "nullptr";
+    if (!g_current_ruleset_serial_group.empty())
+    {
+        serial_group = "\"";
+        serial_group.append(g_current_ruleset_serial_group);
+        serial_group.append("\"");
+    }
+
     // Declare a constant for the line number of the rule if this is the first
     // time we've seen this rule.  Note that we may see a rule multiple times if
     // the rule has multiple anchor rows.
@@ -887,6 +922,8 @@ void generate_table_subscription(
         .append(rule_name)
         .append(",")
         .append(rule_line_var)
+        .append(",")
+        .append(serial_group)
         .append(");\n");
 
     g_current_ruleset_subscription += common_subscription_code;
@@ -2484,13 +2521,14 @@ public:
                 + "()\n{\n" + g_current_ruleset_unsubscription + "}\n}\n";
         }
         g_current_ruleset = ruleset_declaration->getName().str();
+        g_current_ruleset_serial_group = get_serial_group(ruleset_declaration);
 
         // Make sure each new ruleset name is unique.
         for (const auto& r : g_rulesets)
         {
             if (r == g_current_ruleset)
             {
-                gaiat::diag().emit(diag::err_duplicate_ruleset) << g_current_ruleset;
+                gaiat::diag().emit(ruleset_declaration->getBeginLoc(), diag::err_duplicate_ruleset) << g_current_ruleset;
                 g_is_generation_error = true;
                 return;
             }
@@ -2806,7 +2844,7 @@ public:
         {
             return;
         }
-        const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("RemoveCall");
+        const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("removeCall");
         if (expression != nullptr)
         {
             m_rewriter.ReplaceText(SourceRange(expression->getExprLoc(), expression->getEndLoc()), "delete_row()");
@@ -2837,7 +2875,7 @@ public:
         {
             return;
         }
-        const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("InsertCall");
+        const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("insertCall");
         const auto* expression_declaration = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
         if (expression == nullptr || expression_declaration == nullptr)
         {
@@ -3060,6 +3098,112 @@ private:
     Rewriter& m_rewriter;
 };
 
+// Handles the connect/disconnect calls. Mostly the code figures out what link is between
+// table1.connect(table2) and inserts it: table1.link().connect(table2)
+class declarative_connect_disconnect_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    explicit declarative_connect_disconnect_handler_t(Rewriter& r)
+        : m_rewriter(r){};
+
+    void run(const MatchFinder::MatchResult& result) override
+    {
+        if (g_is_generation_error)
+        {
+            return;
+        }
+
+        string src_table_name;
+        string dest_table_name;
+        string link_name;
+        bool need_link_field = false;
+
+        const auto* method_call_expr = result.Nodes.getNodeAs<CXXMemberCallExpr>("connectDisconnectCall");
+
+        const auto* table_call = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
+        src_table_name = get_table_name(table_call->getDecl());
+
+        const auto* param = result.Nodes.getNodeAs<DeclRefExpr>("connectDisconnectParam");
+        const auto* table_attr = param->getType()->getAsRecordDecl()->getAttr<GaiaTableAttr>();
+        dest_table_name = table_attr->getTable()->getName().str();
+
+        const auto* link_expr = result.Nodes.getNodeAs<MemberExpr>("tableFieldGet");
+
+        unordered_map<string, table_data_t> table_data = table_navigation_t::get_table_data();
+
+        gaiat::diag().set_location(table_call->getLocation());
+
+        auto src_table_iter = table_data.find(src_table_name);
+        if (src_table_iter == table_data.end())
+        {
+            gaiat::diag().emit(diag::err_table_not_found) << src_table_name;
+            g_is_generation_error = true;
+            return;
+        }
+        table_data_t src_table_data = src_table_iter->second;
+
+        auto dest_table_iter = table_data.find(dest_table_name);
+        if (dest_table_iter == table_data.end())
+        {
+            gaiat::diag().emit(param->getLocation(), diag::err_table_not_found) << dest_table_name;
+            g_is_generation_error = true;
+            return;
+        }
+        table_data_t dest_table_data = dest_table_iter->second;
+
+        // If the link_expr is not null this is a call in the form table.link.connect()
+        // hence we don't need to look up the name. Otherwise, this is in the form
+        // table.connect() and we have to infer the link name from the catalog.
+        if (link_expr)
+        {
+            link_name = link_expr->getMemberNameInfo().getName().getAsString();
+        }
+        else
+        {
+            // Search what link connect src_table to dest_table.
+            // We can assume that the link is unique because the check
+            // has already been performed in SemaGaia.
+            for (const auto& link_data_pair : src_table_data.link_data)
+            {
+                if (link_data_pair.second.target_table == dest_table_name)
+                {
+                    link_name = link_data_pair.first;
+                }
+            }
+
+            // We will need to add the field name.
+            need_link_field = true;
+        }
+
+        if (link_name.empty())
+        {
+            gaiat::diag().emit(diag::err_no_path) << src_table_name << dest_table_name;
+            g_is_generation_error = true;
+            return;
+        }
+
+        auto link_data_iter = src_table_data.link_data.find(link_name);
+        if (link_data_iter == src_table_data.link_data.end())
+        {
+            gaiat::diag().emit(diag::err_no_link) << src_table_name << link_name;
+            g_is_generation_error = true;
+            return;
+        }
+
+        link_data_t link_data = link_data_iter->second;
+
+        if (need_link_field)
+        {
+            // Inserts the link name between the table name and the connect/disconnect method:
+            // table.link_name().connect().
+            m_rewriter.InsertTextBefore(method_call_expr->getExprLoc(), link_name + "().");
+        }
+    }
+
+private:
+    Rewriter& m_rewriter;
+};
+
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
 public:
@@ -3076,6 +3220,7 @@ public:
         , m_declarative_break_continue_handler(r)
         , m_declarative_delete_handler(r)
         , m_declarative_insert_handler(r)
+        , m_declarative_connect_disconnect_handler(r)
     {
         DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
         DeclarationMatcher rule_matcher
@@ -3153,6 +3298,7 @@ public:
                           hasOperatorName("--")),
                       hasUnaryOperand(declRefExpr(to(varDecl(hasAttr(attr::GaiaFieldLValue)))))))
                   .bind("fieldUnaryOp");
+
         StatementMatcher table_field_get_matcher
             = memberExpr(
                   member(
@@ -3160,13 +3306,15 @@ public:
                           hasAttr(attr::GaiaField),
                           unless(hasAttr(attr::GaiaFieldLValue)))),
                   hasDescendant(declRefExpr(
-                      to(varDecl(
-                          anyOf(
-                              hasAttr(attr::GaiaField),
-                              hasAttr(attr::FieldTable),
-                              hasAttr(attr::GaiaFieldValue)),
-                          unless(hasAttr(attr::GaiaFieldLValue)))))))
+                                    to(varDecl(
+                                        anyOf(
+                                            hasAttr(attr::GaiaField),
+                                            hasAttr(attr::FieldTable),
+                                            hasAttr(attr::GaiaFieldValue)),
+                                        unless(hasAttr(attr::GaiaFieldLValue)))))
+                                    .bind("tableCall")))
                   .bind("tableFieldGet");
+
         StatementMatcher table_field_set_matcher
             = binaryOperator(
                   allOf(
@@ -3213,14 +3361,50 @@ public:
                   hasAncestor(ruleset_matcher),
                   callee(cxxMethodDecl(hasName("remove"))),
                   hasDescendant(table_call_matcher))
-                  .bind("RemoveCall");
+                  .bind("removeCall");
 
         StatementMatcher declarative_insert_matcher
             = cxxMemberCallExpr(
                   hasAncestor(ruleset_matcher),
                   callee(cxxMethodDecl(hasName("insert"))),
                   hasDescendant(table_call_matcher))
-                  .bind("InsertCall");
+                  .bind("insertCall");
+
+        // Matches an expression in the form: table.connect().
+        StatementMatcher declarative_table_connect_disconnect_matcher
+            = cxxMemberCallExpr(
+                  hasAncestor(ruleset_matcher),
+                  callee(cxxMethodDecl(
+                      anyOf(
+                          hasName(c_connect_keyword),
+                          hasName(c_disconnect_keyword)))),
+                  hasArgument(
+                      0,
+                      anyOf(
+                          // table.connect(s1)
+                          declRefExpr().bind("connectDisconnectParam"),
+                          // table.connect(table2.insert())
+                          hasDescendant(declRefExpr().bind("connectDisconnectParam")))),
+                  on(table_call_matcher))
+                  .bind("connectDisconnectCall");
+
+        // Matches an expression in the form: table.link.connect().
+        StatementMatcher declarative_link_connect_disconnect_matcher
+            = cxxMemberCallExpr(
+                  hasAncestor(ruleset_matcher),
+                  callee(cxxMethodDecl(
+                      anyOf(
+                          hasName(c_connect_keyword),
+                          hasName(c_disconnect_keyword)))),
+                  hasArgument(
+                      0,
+                      anyOf(
+                          // table.link.connect(s1)
+                          declRefExpr().bind("connectDisconnectParam"),
+                          // table.link.connect(table2.insert())
+                          hasDescendant(declRefExpr().bind("connectDisconnectParam")))),
+                  on(table_field_get_matcher))
+                  .bind("connectDisconnectCall");
 
         m_matcher.addMatcher(field_get_matcher, &m_field_get_match_handler);
         m_matcher.addMatcher(table_field_get_matcher, &m_field_get_match_handler);
@@ -3247,6 +3431,9 @@ public:
         m_matcher.addMatcher(declarative_continue_matcher, &m_declarative_break_continue_handler);
         m_matcher.addMatcher(declarative_delete_matcher, &m_declarative_delete_handler);
         m_matcher.addMatcher(declarative_insert_matcher, &m_declarative_insert_handler);
+
+        m_matcher.addMatcher(declarative_table_connect_disconnect_matcher, &m_declarative_connect_disconnect_handler);
+        m_matcher.addMatcher(declarative_link_connect_disconnect_matcher, &m_declarative_connect_disconnect_handler);
     }
 
     void HandleTranslationUnit(clang::ASTContext& context) override
@@ -3269,6 +3456,7 @@ private:
     declarative_break_continue_handler_t m_declarative_break_continue_handler;
     declarative_delete_handler_t m_declarative_delete_handler;
     declarative_insert_handler_t m_declarative_insert_handler;
+    declarative_connect_disconnect_handler_t m_declarative_connect_disconnect_handler;
 };
 
 // This class allows us to generate diagnostics with source file information
@@ -3301,9 +3489,7 @@ public:
         Rewriter& rewriter = *m_rewriter;
 
         // Always call the TextDiagnosticPrinter's EndSourceFile() method.
-        auto call_end_source_file = gaia::common::scope_guard::make_scope_guard([this] {
-            TextDiagnosticPrinter::EndSourceFile();
-        });
+        auto call_end_source_file = gaia::common::scope_guard::make_scope_guard([this] { TextDiagnosticPrinter::EndSourceFile(); });
 
         generate_rules(rewriter);
         if (g_is_generation_error)
@@ -3387,7 +3573,7 @@ int main(int argc, const char** argv)
 
     llvm::raw_string_ostream error_msg_stream(error_msg);
 
-    if (!cl::ParseCommandLineOptions(argc, argv, "A tool to generate C++ rule and rule subscription code from declarative rulesets", &error_msg_stream))
+    if (!cl::ParseCommandLineOptions(argc, argv, "A tool to generate C++ rule and rule subscription code from declarative rulesets.", &error_msg_stream))
     {
         // Since the ClangTool has not run yet, we must show errors from FixedCompilationDatabase::loadFromCommandLine()
         // and cl::ParseCommandLineOptions() or else errors from the former will be invisible.

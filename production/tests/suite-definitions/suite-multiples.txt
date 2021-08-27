@@ -3,6 +3,9 @@
 #
 # Note that this is primarily to ensure the repeat functionality is working.
 #
+
+workload mink
+
 smoke
 smoke-time-only
 smoke

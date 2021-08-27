@@ -27,7 +27,8 @@ add_library(gaia_common STATIC
   src/timer.cpp
   src/logger.cpp
   src/logger_manager.cpp
-  src/random.cpp)
+  src/random.cpp
+  src/gaia_version.cpp)
 
 target_link_libraries(gaia_common PUBLIC gaia_build_options)
 target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})
@@ -39,9 +40,6 @@ target_link_libraries(gaia_common PUBLIC gaia_spdlog_setup)
 
 # The logging unit test needs a logger configuration file.
 configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
-
-# Populate the gaia_version file
-configure_file(${GAIA_INC}/gaia_internal/common/gaia_version.hpp.in ${GAIA_INC}/gaia_internal/common/gaia_version.hpp)
 
 # Tests.
 add_gtest(test_retail_assert tests/test_retail_assert.cpp "${GAIA_COMMON_INCLUDES}" "")

@@ -1,5 +1,11 @@
 #! /usr/bin/bash
 
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
+
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then

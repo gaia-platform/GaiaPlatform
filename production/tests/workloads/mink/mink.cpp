@@ -83,6 +83,18 @@ int g_sleep_time_in_seconds_after_stop;
 int g_sim_with_wait_pause_in_microseconds = c_default_sim_with_wait_pause_in_microseconds;
 bool g_emit_after_pause = false;
 
+/*
+This keep track of a separate log file used for debugging, independant of the
+other logs.
+
+Currently, it is used to track the values of the rule trackers for later examination
+and verification of the stats logs.
+
+This logging can be turned on and off using the `D` command, and will be
+automatically closed at the end of the application.  When closed, it will be
+assigned to nullptr.  When open, it will have the File * that is the output file.
+*/
+FILE* g_debug_log_file = nullptr;
 const int c_rules_firing_update_buffer_length = 4096;
 
 // Used to get a more accurate measurement using the toggle on/off (o) command.
@@ -424,15 +436,25 @@ int wait_for_processing_to_complete(bool is_explicit_pause, int rule_1_sample_ba
     const int no_delta_count_before_break = 300 / c_processing_pause_in_microseconds;
     int current_no_delta_attempt = 0;
 
+    int timestamp = g_timestamp;
+
     char update_trace_buffer[c_rules_firing_update_buffer_length];
     int space_left = sizeof(update_trace_buffer);
     char* start_pointer = update_trace_buffer;
+
+    int amount_written = 0;
+    if (g_debug_log_file != nullptr)
+    {
+        int new_amount_written = snprintf(start_pointer, space_left, "S:%d(%d,%d,%d,%d).\n", timestamp, rule_1_sample_base, rule_2_sample_base, rule_3_sample_base, rule_4_sample_base);
+        space_left -= new_amount_written;
+        start_pointer += new_amount_written;
+        amount_written += new_amount_written;
+    }
 
     for (current_no_delta_attempt = 0;
          current_no_delta_attempt < maximum_no_delta_attempts;
          current_no_delta_attempt++)
     {
-        //std::this_thread::sleep_for(microseconds(c_processing_pause_in_microseconds));
         my_sleep_for(c_processing_pause_in_microseconds);
 
         int rule_1_current_sample = g_rule_1_tracker;
@@ -445,9 +467,14 @@ int wait_for_processing_to_complete(bool is_explicit_pause, int rule_1_sample_ba
         int delta_rule_3 = rule_3_current_sample - rule_3_sample_base;
         int delta_rule_4 = rule_4_current_sample - rule_4_sample_base;
         int delta_u = delta_rule_1 + delta_rule_2 + delta_rule_3 + delta_rule_4;
-        int amount_written = snprintf(start_pointer, space_left, "U:%d(%d,%d,%d,%d).", delta_u, delta_rule_1, delta_rule_2, delta_rule_3, delta_rule_4);
-        space_left -= amount_written;
-        start_pointer += amount_written;
+
+        if (g_debug_log_file != nullptr)
+        {
+            int new_amount_written = snprintf(start_pointer, space_left, "U:%d(%d,%d,%d,%d).", delta_u, delta_rule_1, delta_rule_2, delta_rule_3, delta_rule_4);
+            space_left -= new_amount_written;
+            start_pointer += new_amount_written;
+            amount_written += new_amount_written;
+        }
 
         if (delta_u == 0)
         {
@@ -491,6 +518,12 @@ int wait_for_processing_to_complete(bool is_explicit_pause, int rule_1_sample_ba
     else
     {
         g_total_wait_time_in_microseconds += ms_double.count();
+    }
+    if (g_debug_log_file != nullptr)
+    {
+        int new_amount_written = snprintf(start_pointer, space_left, "\nE:%d(%d,%d,%d,%d).\n", timestamp, rule_1_sample_base, rule_2_sample_base, rule_3_sample_base, rule_4_sample_base);
+        amount_written += new_amount_written;
+        fwrite(update_trace_buffer, 1, amount_written, g_debug_log_file);
     }
     return current_no_delta_attempt;
 }
@@ -621,6 +654,7 @@ public:
     static constexpr char c_cmd_step_sim_with_wait_emit = 'U';
     static constexpr char c_cmd_step_and_emit_state_sim = 'z';
     static constexpr char c_cmd_step_and_emit_state_sim_ex = 'Z';
+    static constexpr char c_cmd_toggle_debug_mode = 'D';
     static constexpr char c_cmd_list_rules = 'l';
     static constexpr char c_cmd_disable_rules = 'd';
     static constexpr char c_cmd_reenable_rules = 'r';
@@ -659,6 +693,11 @@ public:
             m_simulation_thread[0].join();
             printf("Simulation stopped...\n");
         }
+        if (g_debug_log_file != nullptr)
+        {
+            fclose(g_debug_log_file);
+            g_debug_log_file = nullptr;
+        }
     }
 
     bool handle_main(bool is_debug, bool is_live_user)
@@ -687,6 +726,8 @@ public:
                 printf("(%c) | step simulation and emit state\n", c_cmd_step_and_emit_state_sim);
                 printf("(%c) | step simulation and emit state EX\n", c_cmd_step_and_emit_state_sim_ex);
             }
+            printf("(%c) | toggle debug\n", c_cmd_toggle_debug_mode);
+
             printf("(%c) | list rules\n", c_cmd_list_rules);
             printf("(%c) | disable rules\n", c_cmd_disable_rules);
             printf("(%c) | toggle measurement on and off\n", c_cmd_on_off);
@@ -737,6 +778,16 @@ public:
                 break;
             case c_cmd_step_and_emit_state_sim_ex:
                 step_and_emit_state(false);
+                break;
+            case c_cmd_toggle_debug_mode:
+                if (g_debug_log_file == nullptr)
+                {
+                    g_debug_log_file = fopen("test-results/debug.log", "w");
+                }
+                else
+                {
+                    fclose(g_debug_log_file);
+                }
                 break;
             case c_cmd_list_rules:
                 list_rules();

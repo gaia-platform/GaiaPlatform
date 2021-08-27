@@ -119,7 +119,6 @@ install_into_directory() {
     remove_dynamic_directory "$INSTALL_DIRECTORY/$BUILD_DIRECTORY"
     remove_dynamic_directory "$INSTALL_DIRECTORY/$LOG_DIRECTORY"
     remove_dynamic_directory "$INSTALL_DIRECTORY/$TEST_RESULTS_DIRECTORY"
-    remove_dynamic_directory "$INSTALL_DIRECTORY/$SUITE_RESULTS_DIRECTORY"
 
     # ...then go into that directory.
     if ! cd "$INSTALL_DIRECTORY"; then

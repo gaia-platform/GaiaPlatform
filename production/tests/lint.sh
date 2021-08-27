@@ -93,100 +93,6 @@ save_current_directory() {
     DID_PUSHD=1
 }
 
-# Check to ensure that the right version of clang-format is installed.
-verify_correct_clang_format_installed() {
-    local CLANG_FORMAT_VERSION_ACTUAL_FILE=/tmp/lint.clang.format.out
-    local CLANG_FORMAT_VERSION_REQUIRED_FILE=/tmp/lint.clang.format.orig
-    local CLANG_FORMAT_REQUIRED_VERSION="clang-format version 10.0.0-4ubuntu1"
-
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Verifying installation of the Clang-Format application."
-    fi
-
-    if ! command -v clang-format &>/dev/null; then
-        complete_process 1 "Please install clang-format 10.0."
-    fi
-
-    if ! clang-format --version > "$CLANG_FORMAT_VERSION_ACTUAL_FILE" 2>&1 ; then
-        complete_process 1 "Cannot execute 'clang-format' to determine if it has the correct version."
-    fi
-    echo "$CLANG_FORMAT_REQUIRED_VERSION" > "$CLANG_FORMAT_VERSION_REQUIRED_FILE"
-    if ! diff -w "$CLANG_FORMAT_VERSION_REQUIRED_FILE" "$CLANG_FORMAT_VERSION_ACTUAL_FILE" > "$TEMP_FILE" 2>&1 ; then
-        cat "$TEMP_FILE"
-        actual_line=$(head -n 1 "$CLANG_FORMAT_VERSION_ACTUAL_FILE")
-        expected_line=$(head -n 1 "$CLANG_FORMAT_VERSION_REQUIRED_FILE")
-        complete_process 1 "clang-format version is '$actual_line' instead of '$expected_line'."
-    fi
-}
-
-# Check to ensure that the right version of clang-tidy is installed.
-verify_correct_clang_tidy_installed() {
-    local CLANG_TIDY_VERSION_ACTUAL_FILE=/tmp/lint.clang.tidy.out
-    local CLANG_TIDY_VERSION_ACTUAL_FILEx=/tmp/lint.clang.tidy.outx
-    local CLANG_TIDY_VERSION_REQUIRED_FILE=/tmp/lint.clang.tidy.orig
-    local CLANG_TIDY_REQUIRED_VERSION_LINE_1="LLVM (http://llvm.org/):"
-    local CLANG_TIDY_REQUIRED_VERSION_LINE_2="LLVM version 10.0.0"
-
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Verifying installation of the Clang-Tidy application."
-    fi
-
-    if ! command -v clang-tidy &>/dev/null; then
-        complete_process 1 "Please install clang-tidy 10.0."
-    fi
-
-    if ! clang-tidy --version > "$CLANG_TIDY_VERSION_ACTUAL_FILEx" 2>&1 ; then
-        complete_process 1 "Cannot execute 'clang-tidy' to determine if it has the correct version."
-    fi
-    head -n 2 $CLANG_TIDY_VERSION_ACTUAL_FILEx > $CLANG_TIDY_VERSION_ACTUAL_FILE
-
-    echo "$CLANG_TIDY_REQUIRED_VERSION_LINE_1" > $CLANG_TIDY_VERSION_REQUIRED_FILE
-    echo "$CLANG_TIDY_REQUIRED_VERSION_LINE_2" >> $CLANG_TIDY_VERSION_REQUIRED_FILE
-    if ! diff -w "$CLANG_TIDY_VERSION_REQUIRED_FILE" "$CLANG_TIDY_VERSION_ACTUAL_FILE" &>/dev/null ; then
-        actual_line=$(tail -n 1 "$CLANG_TIDY_VERSION_ACTUAL_FILE")
-        expected_line=$(head -n 2 "$CLANG_TIDY_VERSION_REQUIRED_FILE")
-        complete_process 1 "clang-tidy version is '$actual_line' instead of '$expected_line'."
-    fi
-}
-
-# Build the project.  Without this, the C++ lint information may be out of date.
-build_project() {
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Building the $PROJECT_NAME project."
-    fi
-    if ! ./build.sh -v > "$TEMP_FILE" 2>&1 ; then
-        cat "$TEMP_FILE"
-        echo "Build script cannot build the project in directory '$(realpath "$TEST_DIRECTORY")'."
-        complete_process 1
-    fi
-}
-
-# Lint the C++ code.
-lint_c_plus_plus_code() {
-
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Building the $PROJECT_NAME project to ensure the C++ components to scan are current."
-    fi
-    build_project
-
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Applying formatting to the C++ parts of the $PROJECT_NAME project."
-    fi
-
-    if ! clang-format -i "./mink.cpp" --style=file > "$TEMP_FILE" 2>&1; then
-        cat "$TEMP_FILE"
-        complete_process 1 "Formatting of 'mink.cpp' failed."
-    fi
-
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Analyzing the C++ parts of the $PROJECT_NAME project."
-    fi
-    if ! clang-tidy --warnings-as-errors=* -p "build" -extra-arg="-std=c++17" "./mink.cpp" -- -I/opt/gaia/include "-I$SCRIPTPATH/build/gaia_generated/edc/mink" > "$TEMP_FILE" 2>&1; then
-        cat "$TEMP_FILE"
-        complete_process 1 "File 'mink.cpp' contains some lint errors."
-    fi
-}
-
 # Check to ensure that pipenv is installed and ready to go.
 verify_correct_pipenv_installed() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -282,10 +188,6 @@ lint_shell_scripts() {
 
 
 # Set up any global script variables.
-# shellcheck disable=SC2164
-SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-# shellcheck disable=SC1091 source=./properties.sh
-source "$SCRIPTPATH/properties.sh"
 
 # Set up any project based local script variables.
 TEMP_FILE=/tmp/$PROJECT_NAME.lint.tmp
@@ -296,8 +198,6 @@ TEMP_FILE=/tmp/$PROJECT_NAME.lint.tmp
 parse_command_line "$@"
 
 # Verify that we have the right tools installed.
-verify_correct_clang_format_installed
-verify_correct_clang_tidy_installed
 verify_correct_pipenv_installed
 verify_correct_shellcheck_installed
 
@@ -307,7 +207,6 @@ start_process
 save_current_directory
 
 # Lint the various parts of the project.
-lint_c_plus_plus_code
 lint_python_scipts
 lint_shell_scripts
 

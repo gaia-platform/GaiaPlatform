@@ -24,5 +24,8 @@ namespace barn_storage {
 class incubator_t {
 };
 
+class raised_t {
+};
+
 } // namespace barn_storage
 } // namespace gaia

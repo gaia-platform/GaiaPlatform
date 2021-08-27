@@ -66,7 +66,7 @@
 
 // Word tokens
 %token CREATE DROP DATABASE TABLE IF NOT EXISTS ACTIVE RELATIONSHIP USE USING
-%token UNIQUE RANGE HASH INDEX ON
+%token UNIQUE RANGE HASH INDEX ON REFERENCES WHERE
 
 // Symbols
 %token LPAREN "("
@@ -76,6 +76,7 @@
 %token COMMA ","
 %token DOT "."
 %token SEMICOLON ";"
+%token EQUAL "="
 
 %token RARROW "->"
 
@@ -101,6 +102,7 @@
 %type <data_type_t> scalar_type
 %type <std::unique_ptr<gaia::catalog::ddl::base_field_def_t>> field_def
 %type <std::unique_ptr<gaia::catalog::ddl::data_field_def_t>> data_field_def
+%type <std::unique_ptr<gaia::catalog::ddl::ref_field_def_t>> ref_field_def
 %type <std::unique_ptr<field_def_list_t>> field_def_commalist
 %type <std::unique_ptr<statement_list_t>> statement_list
 %type <composite_name_t> composite_name
@@ -112,6 +114,8 @@
 %type <constraint_list_t> constraint_list
 %type <std::optional<constraint_list_t>> opt_constraint_list
 %type <gaia::catalog::ddl::table_field_map_t> table_field_map
+%type <std::string> opt_ref_using
+%type <std::optional<gaia::catalog::ddl::table_field_map_t>> opt_ref_where
 
 %printer { yyo << "statement"; } statement
 %printer { yyo << "create_statement:" << $$->name; } create_statement
@@ -123,6 +127,7 @@
 %printer { yyo << "use_statement:" << $$->name; } use_statement
 %printer { yyo << "field_def:" << $$->name; } field_def
 %printer { yyo << "data_field_def:" << $$->name; } data_field_def
+%printer { yyo << "ref_field_def:" << $$->name; } ref_field_def
 %printer { yyo << "link_def:" << $$.name; } link_def
 %printer { yyo << "field_def_commalist[" << ($$ ? $$->size() : 0) << "]"; } field_def_commalist
 %printer { yyo << "statement_list[" << $$->size() << "]"; } statement_list
@@ -136,6 +141,7 @@
 %printer { yyo << "constraint_list[" << $$.size() << "]"; } constraint_list
 %printer { yyo << "opt_constraint_list"; } opt_constraint_list
 %printer { yyo << "table_field_map:" << $$.first.table << "," << $$.second.table; } table_field_map
+%printer { yyo << "opt_ref_where:" << $$->first.fields.front() << "=" << $$->second.fields.front(); } opt_ref_where
 %printer { yyo << $$; } <*>
 
 %%
@@ -146,8 +152,6 @@ input:
       gaia_parser.statements = std::move(*$1);
   }
 ;
-
-opt_semicolon: ";" | ;
 
 statement_list:
   statement ";" {
@@ -285,6 +289,7 @@ field_def_commalist:
 
 field_def:
   data_field_def { $$ = std::unique_ptr<base_field_def_t>{std::move($1)}; }
+| ref_field_def { $$ = std::unique_ptr<base_field_def_t>{std::move($1)}; }
 ;
 
 data_field_def:
@@ -293,6 +298,34 @@ data_field_def:
   }
 | IDENTIFIER STRING opt_constraint_list {
       $$ = std::make_unique<data_field_def_t>($1, data_type_t::e_string, 1, $3);
+  }
+;
+
+ref_field_def:
+  IDENTIFIER REFERENCES IDENTIFIER opt_array opt_ref_using opt_ref_where {
+      $$ = std::make_unique<ref_field_def_t>($1, $3);
+      $$->cardinality = $4 ? cardinality_t::one : cardinality_t::many;
+      $$->field = std::move($5);
+      $$->field_map = std::move($6);
+  }
+;
+
+opt_ref_using:
+  USING IDENTIFIER {
+      $$ = std::move($2);
+  }
+| {
+      $$ = "";
+  }
+;
+
+opt_ref_where:
+  WHERE composite_name "=" composite_name {
+      $$ = std::make_optional(std::make_pair<table_field_list_t, table_field_list_t>(
+          {"", $2.first, {$2.second}}, {"", $4.first, {$4.second}}));
+  }
+| {
+      $$ = std::nullopt;
   }
 ;
 

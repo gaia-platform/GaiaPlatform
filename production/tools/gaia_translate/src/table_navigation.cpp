@@ -352,6 +352,20 @@ void table_navigation_t::fill_table_data()
 
             m_table_relationship.emplace(child_table.name(), link_data_1);
             m_table_relationship.emplace(parent_table.name(), link_data_n);
+
+            // TODO this is similar to navigation_data_t but not exactly the same. Not worth merging them now
+            //  because we may merge this into the facade architecture used in gaiac.
+
+            link_data_t to_child_link = {
+                child_table.name(),
+                static_cast<catalog::relationship_cardinality_t>(relationship.cardinality())};
+
+            link_data_t to_parent_link = {
+                parent_table.name(),
+                catalog::relationship_cardinality_t::one};
+
+            m_table_data[parent_table.name()].link_data[relationship.to_child_link_name()] = to_child_link;
+            m_table_data[child_table.name()].link_data[relationship.to_child_link_name()] = to_parent_link;
         }
     }
     catch (const exception& e)

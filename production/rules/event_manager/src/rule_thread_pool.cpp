@@ -125,7 +125,6 @@ void rule_thread_pool_t::execute_immediate()
 
 void rule_thread_pool_t::enqueue(invocation_t& invocation)
 {
-
     m_stats_manager.insert_rule_stats(invocation.rule_id);
 
     if (s_tls_can_enqueue)
@@ -185,13 +184,49 @@ void rule_thread_pool_t::rule_worker(int32_t& count_busy_workers)
 // started by the rules engine, and log the event.
 void rule_thread_pool_t::invoke_rule(invocation_t& invocation)
 {
+    if (invocation.serial_group == nullptr)
+    {
+        invoke_rule_inner(invocation);
+        return;
+    }
+
+    unique_lock execute_lock{invocation.serial_group->execute_lock, defer_lock};
+    if (execute_lock.try_lock())
+    {
+        invoke_rule_inner(invocation);
+    }
+    else
+    {
+        unique_lock enqueue_lock{invocation.serial_group->enqueue_lock};
+        invocation.serial_group->invocations.push(invocation);
+        execute_lock.try_lock();
+    }
+
+    if (execute_lock)
+    {
+        unique_lock enqueue_lock{invocation.serial_group->enqueue_lock};
+        while (!invocation.serial_group->invocations.empty())
+        {
+            enqueue_lock.unlock();
+            do
+            {
+                invocation = invocation.serial_group->invocations.front();
+                invocation.serial_group->invocations.pop();
+                invoke_rule_inner(invocation);
+            } while (!invocation.serial_group->invocations.empty());
+            enqueue_lock.lock();
+        }
+    }
+}
+
+void rule_thread_pool_t::invoke_rule_inner(invocation_t& invocation)
+{
     rule_invocation_t& rule_invocation = invocation.args;
     s_tls_can_enqueue = false;
     bool should_schedule = false;
     const char* rule_id = invocation.rule_id;
 
     m_stats_manager.inc_executed(rule_id);
-
     try
     {
         try

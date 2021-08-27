@@ -10,7 +10,12 @@ include(UseJava)
 enable_testing()
 
 # Set the project name.
-project(production VERSION 0.1.0)
+project(production VERSION 0.2.1)
+
+# Sets the pre-release version which will be appended to the
+# product version: 0.1.0-alpha.
+# When the product is GA this should be empty.
+set(PRE_RELEASE_IDENTIFIER "alpha")
 
 option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
 
@@ -178,6 +183,7 @@ set(GAIA_SPDLOG_INC "${GAIA_SPDLOG}/include")
 
 set(ROCKSDB "${GAIA_REPO}/third_party/production/rocksdb")
 set(ROCKSDB_INC "${ROCKSDB}/include")
+set(ROCKSDB_UTIL "${ROCKSDB}/util")
 
 set(GREMLIN_CONSOLE_PATH "/usr/local/share/gremlin-console")
 set(GREMLIN_SERVER_PATH "/usr/local/share/gremlin-server")
@@ -411,9 +417,12 @@ if(JAVA_FOUND AND JNI_FOUND)
   #     com.gaiaplatform.tests.database.cachegraph.TestCacheGraph graphml)
 endif()
 
+# Handle Gaia versioning.
+include(cmake/gaia_version.cmake)
+
 # Customize test commands.
 file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
-  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_db_server> --disable-persistence\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_db_server\")\n"
+  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_db_server> --persistence disabled\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_db_server\")\n"
 )
 
 # Copy log configuration file to make it visible during

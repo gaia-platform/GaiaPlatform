@@ -71,22 +71,15 @@ ruleset test_table_8 : tables(, ) // expected-error {{expected identifier}}
     }
 }
 
-ruleset test_table_9: tables(sensor, incubator, bogus)     // expected-error {{Table 'bogus' was not found in the catalog.}}
+ruleset test_table_9: tables(sensor, incubator, bogus)     // expected-error {{Table 'bogus' was not found in the catalog. Ensure that the table you are referencing in your rule exists in the database.}}
 {
     {
         max_temp += min_temp/2;
     }
 }
 
-ruleset test_serial_stream_1 : tables(sensor, incubator), serialize() // expected-error {{expected identifier}}
-{
-    {
-        min_temp += @value;
-        max_temp += min_temp / 2;
-    }
-}
 // expected-note@+1 {{to match this '('}}
-ruleset test_serial_stream_2 : tables(sensor, incubator), serialize(sdfdf, sfdfsf) // expected-error {{expected ')'}}
+ruleset test_serial_group_2 : tables(sensor, incubator), serial_group(sdfdf, sfdfsf) // expected-error {{expected ')'}}
 {
     {
         min_temp += @value;
@@ -94,7 +87,7 @@ ruleset test_serial_stream_2 : tables(sensor, incubator), serialize(sdfdf, sfdfs
     }
 }
 
-ruleset test_serial_stream_3 : tables(sensor, incubator), serialize(, ) // expected-error {{expected identifier}}
+ruleset test_serial_group_3 : tables(sensor, incubator), serial_group(, ) // expected-error {{expected identifier}}
 {
     {
         min_temp += @value;
@@ -103,7 +96,7 @@ ruleset test_serial_stream_3 : tables(sensor, incubator), serialize(, ) // expec
 }
 
 // expected-note@+1 {{to match this '('}}
-ruleset test_serial_stream_4 : tables(sensor, incubator), serialize(sdsdf, ) // expected-error {{expected ')'}}
+ruleset test_serial_group_4 : tables(sensor, incubator), serial_group(sdsdf, ) // expected-error {{expected ')'}}
 {
     {
         min_temp += @value;

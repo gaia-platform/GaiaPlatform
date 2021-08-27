@@ -8,6 +8,8 @@
 #include <iostream>
 #include <utility>
 
+#include "gaia/exceptions.hpp"
+
 #include "gaia_internal/db/catalog_core.hpp"
 
 #include "data_holder.hpp"
@@ -36,21 +38,21 @@ template <class T_index>
 void truncate_index(index_writer_guard_t<T_index>& w, gaia_txn_id_t commit_ts)
 {
     auto index = w.get_index();
-    auto end = index.end();
-    auto iter = index.begin();
+    auto it_next = index.begin();
+    auto it_end = index.end();
 
-    while (iter != end)
+    while (it_next != it_end)
     {
-        auto curr_iter = iter++;
-        auto ts = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(curr_iter->second.txn_id);
+        auto it_current = it_next++;
+        auto ts = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(it_current->second.txn_id);
 
         // Ignore invalid txn_ids, txn could be in-flight at the point of testing.
         if (ts <= commit_ts && ts != c_invalid_gaia_txn_id)
         {
             // Only erase entry if each key contains at least one additional entry with the same key.
-            if (iter != end && curr_iter->first == iter->first)
+            if (it_next != it_end && it_current->first == it_next->first)
             {
-                iter = index.erase(curr_iter);
+                it_next = index.erase(it_current);
             }
         }
     }
@@ -145,6 +147,14 @@ indexes_t::iterator index_builder_t::create_empty_index(gaia_id_t index_id, inde
     }
 }
 
+template <typename T_index_type>
+void update_index_entry(
+    base_index_t* base_index, bool is_unique, index_key_t&& key, index_record_t record)
+{
+    auto index = static_cast<T_index_type*>(base_index);
+    index->insert_index_entry(std::move(key), record);
+}
+
 void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_record_t record)
 {
     ASSERT_PRECONDITION(get_indexes(), "Indexes not initialized");
@@ -158,20 +168,16 @@ void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_
         it = create_empty_index(index_id, index_view);
     }
 
+    bool is_unique_index = it->second->is_unique();
+
     switch (it->second->type())
     {
     case catalog::index_type_t::range:
-    {
-        auto index = static_cast<range_index_t*>(it->second.get());
-        index->insert_index_entry(std::move(key), record);
-    }
-    break;
+        update_index_entry<range_index_t>(it->second.get(), is_unique_index, std::move(key), record);
+        break;
     case catalog::index_type_t::hash:
-    {
-        auto index = static_cast<hash_index_t*>(it->second.get());
-        index->insert_index_entry(std::move(key), record);
-    }
-    break;
+        update_index_entry<hash_index_t>(it->second.get(), is_unique_index, std::move(key), record);
+        break;
     }
 }
 
@@ -184,13 +190,11 @@ void index_builder_t::update_index(
     switch (log_record.operation)
     {
     case gaia_operation_t::create:
-    {
         index_builder_t::update_index(
             index_id,
             index_builder_t::make_key(index_id, type_id, payload),
             index_builder_t::make_insert_record(log_record.locator, log_record.new_offset));
         break;
-    }
     case gaia_operation_t::update:
     {
         auto old_obj = offset_to_ptr(log_record.old_offset);

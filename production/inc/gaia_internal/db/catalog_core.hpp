@@ -83,11 +83,14 @@ struct relationship_view_t : catalog_db_object_view_t
 
 struct index_view_t : catalog_db_object_view_t
 {
+    static constexpr common::reference_offset_t c_parent_table_ref_offset = 0;
+
     using catalog_db_object_view_t::catalog_db_object_view_t;
     [[nodiscard]] const char* name() const;
     [[nodiscard]] bool unique() const;
     [[nodiscard]] catalog::index_type_t type() const;
     [[nodiscard]] const flatbuffers::Vector<common::gaia_id_t>* fields() const;
+    [[nodiscard]] common::gaia_id_t table_id() const;
 };
 
 using field_list_t = common::iterators::generator_range_t<field_view_t>;
