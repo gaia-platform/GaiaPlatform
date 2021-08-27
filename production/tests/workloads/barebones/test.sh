@@ -103,7 +103,7 @@ complete_process() {
 save_current_directory() {
     # Save the current directory so we can get back to it.
     if ! pushd . > "$TEMP_FILE" 2>&1;  then
-        cat $TEMP_FILE
+        cat "$TEMP_FILE"
         echo "Test script cannot save the current directory before proceeding."
         complete_process 1
     fi
@@ -159,18 +159,18 @@ echo "TEST_MODE=$TEST_MODE"
 
 # File containing test properties. Only one property for now.
 if [[ "$TEST_MODE" == "perf" ]] ; then
-    echo "test-type=performance" > $SCRIPTPATH/$TEST_RESULTS_DIRECTORY/test.properties
+    echo "test-type=performance" > "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY/test.properties"
 else
-    echo "test-type=integration" > $SCRIPTPATH/$TEST_RESULTS_DIRECTORY/test.properties
+    echo "test-type=integration" > "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY/test.properties"
 fi
 
 # File containing the real data from the test.
-echo "{ \"return-code\" : 0, \"sample-ms\" : 1 }" > $SCRIPTPATH/$TEST_RESULTS_DIRECTORY/test-summary.json
+echo "{ \"return-code\" : 0, \"sample-ms\" : 1 }" > "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY/test-summary.json"
 
 # add "configuration-file" if you want a summary of the rules configuration in the output
 
 # Workload properties specifies how to treat the data in the test-summary.json file
-cp $SCRIPTPATH/workload.properties $SCRIPTPATH/$TEST_RESULTS_DIRECTORY
+cp "$SCRIPTPATH/workload.properties" "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"
 
 # Can copy these into $TEST_RESULTS_DIRECTORY to provide extra insight.
 # gaia_stats.log - will use to mine slices for information about rules
