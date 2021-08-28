@@ -31,7 +31,7 @@ class channel {
     return buffer_.empty() && eof_;
   }
 
-  size_t size() {
+  size_t size() const {
     std::lock_guard<std::mutex> lk(lock_);
     return buffer_.size();
   }

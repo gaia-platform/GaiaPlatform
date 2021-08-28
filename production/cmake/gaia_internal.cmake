@@ -287,7 +287,7 @@ function(add_gaia_sdk_gtest)
       -I ${FLATBUFFERS_INC}
       -I ${GAIA_SPDLOG_INC}
       -I ${EDC_INCLUDE}
-      -I /usr/lib/clang/12.0.1/include
+      -I /usr/include/clang/10/include/
       -std=c++${CMAKE_CXX_STANDARD}
     COMMAND pkill -f -KILL gaia_db_server &
 
