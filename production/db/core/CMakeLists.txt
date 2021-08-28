@@ -119,7 +119,7 @@ target_link_libraries(rocks_wrapper PUBLIC rocksdb gaia_storage)
 # Choose static version of the library.
 message(CHECK_START "Looking for liburing")
 find_path(LIBURING_INCLUDE_DIR NAMES liburing.h)
-find_library(LIBURING_LIBRARY NAMES liburing.a)
+find_library(LIBURING_LIBRARY NAMES liburing.so)
 if (LIBURING_LIBRARY)
   message(CHECK_PASS "found")
 else()
