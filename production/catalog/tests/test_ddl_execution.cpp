@@ -38,7 +38,7 @@ protected:
 TEST_F(ddl_execution_test, create_table_with_unique_constraints)
 {
     ddl::parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line("DROP TABLE IF EXISTS t; CREATE TABLE IF NOT EXISTS t(c INT32 UNIQUE);"));
+    ASSERT_NO_THROW(parser.parse_string("DROP TABLE IF EXISTS t; CREATE TABLE IF NOT EXISTS t(c INT32 UNIQUE);"));
     ASSERT_EQ(parser.statements.size(), 2);
     ASSERT_NO_THROW(execute(parser.statements));
 
@@ -70,7 +70,7 @@ CREATE RELATIONSHIP r1 (
 )";
 
     ddl::parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line(ddl));
+    ASSERT_NO_THROW(parser.parse_string(ddl));
     ASSERT_NO_THROW(execute(parser.statements));
 
     gaia::direct_access::auto_transaction_t txn(false);
@@ -112,7 +112,7 @@ DROP TABLE IF EXISTS t2;
 )";
 
     ddl::parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line(create_relationship_ddl));
+    ASSERT_NO_THROW(parser.parse_string(create_relationship_ddl));
     ASSERT_NO_THROW(execute(parser.statements));
 
     {
@@ -125,7 +125,7 @@ DROP TABLE IF EXISTS t2;
         ASSERT_EQ(gaia_relationship_t::list().where(gaia_relationship_expr::name == "r2").size(), 1);
     }
 
-    ASSERT_NO_THROW(parser.parse_line(drop_relationship_ddl));
+    ASSERT_NO_THROW(parser.parse_string(drop_relationship_ddl));
     ASSERT_NO_THROW(execute(parser.statements));
 
     {
@@ -138,7 +138,7 @@ DROP TABLE IF EXISTS t2;
         ASSERT_EQ(gaia_table_t::list().where(gaia_table_expr::name == "t2").size(), 0);
     }
 
-    ASSERT_NO_THROW(parser.parse_line("DROP RELATIONSHIP r3;"));
+    ASSERT_NO_THROW(parser.parse_string("DROP RELATIONSHIP r3;"));
     ASSERT_THROW(execute(parser.statements), relationship_not_exists);
 }
 
@@ -153,7 +153,7 @@ CREATE INDEX IF NOT EXISTS c_i ON t(c);
 )";
 
     ddl::parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line(create_index_ddl));
+    ASSERT_NO_THROW(parser.parse_string(create_index_ddl));
     ASSERT_NO_THROW(execute(parser.statements));
 
     {
@@ -169,7 +169,7 @@ CREATE INDEX IF NOT EXISTS c_i ON t(c);
             1);
     }
 
-    ASSERT_NO_THROW(parser.parse_line("DROP INDEX IF EXISTS c_i;"));
+    ASSERT_NO_THROW(parser.parse_string("DROP INDEX IF EXISTS c_i;"));
     ASSERT_NO_THROW(execute(parser.statements));
 
     {
@@ -178,7 +178,7 @@ CREATE INDEX IF NOT EXISTS c_i ON t(c);
         ASSERT_EQ(gaia_index_t::list().where(gaia_index_expr::name == "c_i").size(), 0);
     }
 
-    ASSERT_NO_THROW(parser.parse_line("DROP INDEX c_i;"));
+    ASSERT_NO_THROW(parser.parse_string("DROP INDEX c_i;"));
     ASSERT_THROW(execute(parser.statements), index_not_exists);
 }
 
@@ -194,7 +194,7 @@ CREATE TABLE t1(c1 INT32)
 CREATE TABLE t2(c2 INT32);
 )";
     ddl::parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line(create_list_ddl));
+    ASSERT_NO_THROW(parser.parse_string(create_list_ddl));
     ASSERT_NO_THROW(execute(parser.statements));
 }
 
@@ -341,7 +341,7 @@ drop database hospital;
     for (const auto& ddl : ddls)
     {
         ddl::parser_t parser;
-        ASSERT_NO_THROW(parser.parse_line(ddl));
+        ASSERT_NO_THROW(parser.parse_string(ddl));
         ASSERT_NO_THROW(execute(parser.statements));
     }
 }
@@ -366,7 +366,7 @@ create relationship r (d.t1.link2 -> t2, d.t2.link1 -> t1);
     for (const auto& ddl : ddls)
     {
         ddl::parser_t parser;
-        ASSERT_NO_THROW(parser.parse_line(ddl));
+        ASSERT_NO_THROW(parser.parse_string(ddl));
         ASSERT_THROW(execute(parser.statements), invalid_create_list);
     }
 }
@@ -379,7 +379,7 @@ create table t2(c2 int32, link2a references t1, link2b references t1);
 )"};
 
     ddl::parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line(ddl));
+    ASSERT_NO_THROW(parser.parse_string(ddl));
     ASSERT_THROW(execute(parser.statements), ambiguous_reference_definition);
 }
 
@@ -391,6 +391,6 @@ create table t2(c2 int32, link2a references t1, link2b references t1);
 )"};
 
     ddl::parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line(ddl));
+    ASSERT_NO_THROW(parser.parse_string(ddl));
     ASSERT_THROW(execute(parser.statements), orphaned_reference_definition);
 }

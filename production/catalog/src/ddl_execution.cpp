@@ -6,6 +6,7 @@
 #include "gaia_internal/catalog/ddl_execution.hpp"
 
 #include <filesystem>
+#include <fstream>
 #include <iterator>
 #include <map>
 #include <memory>
@@ -436,7 +437,11 @@ void load_catalog(ddl::parser_t& parser, const std::string& ddl_filename)
         throw std::invalid_argument("Invalid DDL file: '" + std::string(file_path.c_str()) + "'.");
     }
 
-    parser.parse(file_path.string());
+    std::ifstream ddl_fstream(file_path, std::ifstream::in);
+    std::stringstream buffer;
+    buffer << ddl_fstream.rdbuf() << ";";
+
+    parser.parse_string(buffer.str());
     execute(parser.statements);
 }
 

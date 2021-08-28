@@ -46,7 +46,7 @@ TEST_F(gaia_generate_test, parse_ddl)
 {
     ddl::parser_t parser;
 
-    EXPECT_NO_THROW(parser.parse_line("create table tmp_airport ( name string );"));
+    EXPECT_NO_THROW(parser.parse_string("create table tmp_airport ( name string );"));
     create_database("tmp_airport");
     execute(parser.statements);
 
