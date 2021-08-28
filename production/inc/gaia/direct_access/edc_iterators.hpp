@@ -170,14 +170,14 @@ public:
 
     void insert(gaia::common::gaia_id_t child_id);
     void insert(const T_child& child_edc);
-    void connect(gaia::common::gaia_id_t child_id);
-    void connect(const T_child& child_edc);
+    bool connect(gaia::common::gaia_id_t child_id);
+    bool connect(const T_child& child_edc);
 
     edc_set_iterator_t<T_child> erase(edc_set_iterator_t<T_child> position);
     void remove(gaia::common::gaia_id_t child_id);
     void remove(const T_child& child_edc);
-    void disconnect(gaia::common::gaia_id_t child_id);
-    void disconnect(const T_child& child_edc);
+    bool disconnect(gaia::common::gaia_id_t child_id);
+    bool disconnect(const T_child& child_edc);
     void clear();
 
     reference_chain_container_t<T_child> where(std::function<bool(const T_child&)>) const;
