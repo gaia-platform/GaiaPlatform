@@ -785,3 +785,32 @@ create table t2(c2 int32);
         ASSERT_THROW(parser.parse_line(ddl), parsing_error);
     }
 }
+
+TEST(catalog_ddl_parser_test, empty_statements)
+{
+    array ddls{
+        R"(
+-- empty statements in the front
+;;;;
+create table t(c int32);
+)",
+        R"(
+-- empty statements in the middle
+create table t1(c1 int32);
+;;;;
+create table t2(c2 int32);
+)",
+        R"(
+-- empty statements in the end
+create table t1(c1 int32);
+create table t2(c2 int32);
+;;;;
+)",
+    };
+
+    for (const auto& ddl : ddls)
+    {
+        parser_t parser;
+        ASSERT_NO_THROW(parser.parse_line(ddl));
+    }
+}
