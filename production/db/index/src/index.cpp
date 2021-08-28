@@ -123,16 +123,15 @@ std::ostream& operator<<(std::ostream& os, const index_record_t& record)
        << record.locator
        << " deleted: "
        << (record.deleted ? "true" : "false")
-       << "]"
-       << std::endl;
+       << "]";
     return os;
 }
 
 std::ostream& operator<<(std::ostream& os, const index_key_t& key)
 {
-    for (const auto& k : key.m_key_values)
+    for (const auto& key_value : key.m_key_values)
     {
-        os << k << " ";
+        os << "{" << key_value << "}";
     }
     return os;
 }
