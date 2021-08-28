@@ -158,8 +158,9 @@ void update_index_entry(
     // for the situations when we delete keys or re-insert a previously deleted key.
     if (is_unique && !record.deleted)
     {
-        auto it_start = index->equal_range(key).first;
-        auto it_end = index->equal_range(key).second;
+        auto search_result = index->equal_range(key);
+        auto it_start = search_result.first;
+        auto it_end = search_result.second;
 
         bool has_found_duplicate_key = false;
 
