@@ -39,7 +39,6 @@ namespace
 
 const string c_error_prompt = "ERROR: ";
 const string c_warning_prompt = "WARNING: ";
-const string c_whitespace_chars = " \n\r\t\f\v";
 
 enum class operate_mode_t
 {
