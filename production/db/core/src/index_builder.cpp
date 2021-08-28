@@ -64,9 +64,11 @@ index_key_t index_builder_t::make_key(gaia_id_t index_id, gaia_type_t type_id, c
 
     index_key_t index_key;
     gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(type_id);
+
     ASSERT_INVARIANT(
         type_record_id != c_invalid_gaia_id,
         "The type '" + std::to_string(type_id) + "' does not exist in the catalog.");
+
     auto table = catalog_core_t::get_table(type_record_id);
     auto schema = table.binary_schema();
     auto index_view = index_view_t(id_to_ptr(index_id));
@@ -221,8 +223,10 @@ void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_
 void index_builder_t::update_index(
     gaia::common::gaia_id_t index_id, gaia_type_t type_id, const txn_log_t::log_record_t& log_record)
 {
+    // Most operations expect an object located at new_offset,
+    // so we'll try to get a reference to its payload.
     auto obj = offset_to_ptr(log_record.new_offset);
-    uint8_t* payload = (obj) ? reinterpret_cast<uint8_t*>(obj->payload) : nullptr;
+    auto payload = (obj) ? reinterpret_cast<const uint8_t*>(obj->data()) : nullptr;
 
     switch (log_record.operation)
     {
@@ -235,8 +239,7 @@ void index_builder_t::update_index(
     case gaia_operation_t::update:
     {
         auto old_obj = offset_to_ptr(log_record.old_offset);
-        auto old_payload = (old_obj) ? reinterpret_cast<uint8_t*>(old_obj->payload)
-                                     : nullptr;
+        auto old_payload = (old_obj) ? reinterpret_cast<const uint8_t*>(old_obj->data()) : nullptr;
         index_builder_t::update_index(
             index_id,
             index_builder_t::make_key(index_id, type_id, old_payload),
@@ -250,8 +253,7 @@ void index_builder_t::update_index(
     case gaia_operation_t::remove:
     {
         auto old_obj = offset_to_ptr(log_record.old_offset);
-        auto old_payload = (old_obj) ? reinterpret_cast<uint8_t*>(old_obj->payload)
-                                     : nullptr;
+        auto old_payload = (old_obj) ? reinterpret_cast<const uint8_t*>(old_obj->data()) : nullptr;
         index_builder_t::update_index(
             index_id,
             index_builder_t::make_key(index_id, type_id, old_payload),
