@@ -423,10 +423,10 @@ int main(int argc, char* argv[])
 
             if (mode == operate_mode_t::generation)
             {
-                // Generate EDC code for the default global database if no database is given.
-                if (db_names.empty())
+                // Generate EDC code for the default database if no database is given.
+                if (db_names.size() == 0)
                 {
-                    db_names.emplace_back("");
+                    db_names.emplace_back(c_empty_db_name);
                 }
 
                 for (const auto& db_name : db_names)

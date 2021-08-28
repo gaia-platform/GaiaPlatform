@@ -40,12 +40,9 @@ const std::string c_gaia_namespace = "gaia";
 // and application code.
 const std::string c_internal_suffix = "internal";
 
-// Catalog's notion for the empty database similar to Epsilon for the empty
-// string. Specifically, when a user create a table without specifying a
-// database, it is created in this construct. Users cannot use '()' in database
-// names so there will be no ambiguity, i.e. there will never exist a user
-// created database called "()".
-const std::string c_empty_db_name = "()";
+// When users create tables without specifying a database, the tables are
+// created in the following database.
+const std::string c_empty_db_name = "";
 
 // The character used to connect a database name and a table name to form fully
 // qualified name for a table defined in a given database.
