@@ -39,7 +39,7 @@ ruleset test_mixed
         f2(i);
     }
 
-    // The sensor was deleted, but this rule is still fired.
+    // If the sensor was deleted, this rule will not be fired.
     on_insert(S:sensor)
     {
         S.value += 1.0;

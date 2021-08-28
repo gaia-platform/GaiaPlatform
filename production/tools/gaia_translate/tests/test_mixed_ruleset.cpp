@@ -91,5 +91,6 @@ TEST_F(test_mixed_code, insert_delete_row)
 
     gaia::rules::test::wait_for_rules_to_complete();
 
-    ASSERT_EQ(g_test_mixed_value, 2);
+    // The insert won't be fired because the anchor was deleted.
+    ASSERT_EQ(g_test_mixed_value, 0);
 }
