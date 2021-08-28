@@ -178,7 +178,6 @@ chunk_offset_t memory_manager_t::allocate_chunk()
     chunk_offset_t allocated_chunk_offset = allocate_reused_chunk();
     if (allocated_chunk_offset != c_invalid_chunk_offset)
     {
-        std::cerr << "Reusing chunk " << allocated_chunk_offset << std::endl;
 #ifdef DEBUG
         // In debug mode, we write-protect all allocations after writes are
         // complete. (We do this by allocating only on page boundaries and
@@ -186,7 +185,6 @@ chunk_offset_t memory_manager_t::allocate_chunk()
         // this write protection from the deallocated chunk's pages, then when the
         // chunk is reused, any writes will cause a SIGSEGV signal to be sent to the
         // writing process.
-        std::cerr << "allocate_chunk(" << allocated_chunk_offset << "): marking all data pages read/write" << std::endl;
         gaia_offset_t first_data_page_offset = offset_from_chunk_and_slot(allocated_chunk_offset, c_first_slot_offset);
         void* data_pages_initial_address = page_address_from_offset(first_data_page_offset);
 
@@ -201,10 +199,6 @@ chunk_offset_t memory_manager_t::allocate_chunk()
     if (allocated_chunk_offset == c_invalid_chunk_offset)
     {
         allocated_chunk_offset = allocate_unused_chunk();
-        if (allocated_chunk_offset != c_invalid_chunk_offset)
-        {
-            std::cerr << "Allocating unused chunk " << allocated_chunk_offset << std::endl;
-        }
     }
 
     // At this point, we must either have a valid chunk offset, or we have run out of memory.
@@ -218,8 +212,6 @@ chunk_offset_t memory_manager_t::allocate_chunk()
 // Retires an in-use chunk.
 void memory_manager_t::retire_chunk(chunk_offset_t chunk_offset)
 {
-    std::cerr << "Retiring chunk " << chunk_offset << " in state " << m_metadata->get_current_chunk_state(chunk_offset) << std::endl;
-
     ASSERT_PRECONDITION(
         m_metadata->get_current_chunk_state(chunk_offset) == chunk_state_t::in_use,
         "A chunk cannot be retired unless it is in use!");
@@ -272,13 +264,10 @@ void memory_manager_t::deallocate_chunk(chunk_offset_t chunk_offset)
     // TODO: We could be a little smarter and only decommit up to the last
     // allocated page, but brute force is simpler and safer for now.
     gaia_offset_t first_data_page_offset = offset_from_chunk_and_slot(chunk_offset, c_first_slot_offset);
-    std::cerr << "deallocate_chunk(" << chunk_offset << "): first_data_page_offset: " << first_data_page_offset << std::endl;
     void* data_pages_initial_address = page_address_from_offset(first_data_page_offset);
-    std::cerr << "deallocate_chunk(" << chunk_offset << "): data_pages_initial_address: " << data_pages_initial_address << std::endl;
 
     // MADV_FREE seems like the best fit for our needs, since it allows the OS to lazily reclaim decommitted pages.
     // However, it returns EINVAL when used with MAP_SHARED, so we need to use MADV_REMOVE (which works with memfd objects).
-    std::cerr << "deallocate_chunk(" << chunk_offset << "): decommitting all pages in chunk " << chunk_offset << " at address " << data_pages_initial_address << std::endl;
     if (-1 == ::madvise(data_pages_initial_address, c_data_pages_size_bytes, MADV_REMOVE))
     {
         throw_system_error("madvise(MADV_REMOVE) failed!");

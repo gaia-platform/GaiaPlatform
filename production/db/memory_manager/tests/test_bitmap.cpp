@@ -4,7 +4,6 @@
 /////////////////////////////////////////////
 
 #include <atomic>
-#include <iostream>
 
 #include "gtest/gtest.h"
 

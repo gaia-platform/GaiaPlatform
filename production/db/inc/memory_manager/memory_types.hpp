@@ -7,9 +7,8 @@
 
 #include <cstdint>
 
-#include <iostream>
-
 #include "gaia_internal/common/enum_helpers.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
 
 namespace gaia
 {
@@ -76,7 +75,6 @@ inline std::ostream& operator<<(std::ostream& os, const chunk_state_t& o)
         os << "pending_compaction";
         break;
     default:
-        std::cerr << "Unknown value of chunk_state_t: " << common::to_integral(o) << std::endl;
         ASSERT_UNREACHABLE("Unknown value of chunk_state_t!");
     }
     return os;

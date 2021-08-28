@@ -424,11 +424,6 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t
 
     WRITE_PROTECT(locator_to_offset(locator));
 
-#ifdef DEBUG
-    gaia_offset_t offset = locator_to_offset(locator);
-    std::cerr << "Offset of new object: " << offset << std::endl;
-#endif
-
     obj.create_insert_trigger(type, id);
     return obj;
 }
@@ -459,10 +454,6 @@ void gaia_ptr_t::clone_no_txn()
     db_object_t* new_this = to_ptr();
     size_t new_size = c_db_object_header_size + new_payload_size;
     memcpy(new_this, old_this, new_size);
-#ifdef DEBUG
-    gaia_offset_t offset = locator_to_offset(m_locator);
-    std::cerr << "Offset of cloned object: " << offset << std::endl;
-#endif
 }
 
 void gaia_ptr_t::auto_connect_to_parent(
@@ -610,11 +601,6 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
         changed_fields);
 
     WRITE_PROTECT(to_offset());
-
-#ifdef DEBUG
-    gaia_offset_t offset = locator_to_offset(m_locator);
-    std::cerr << "Offset of updated object: " << offset << std::endl;
-#endif
 
     client_t::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
 

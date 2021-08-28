@@ -5,7 +5,6 @@
 
 #include "persistent_store_manager.hpp"
 
-#include <iostream>
 #include <utility>
 
 #include "rocksdb/db.h"

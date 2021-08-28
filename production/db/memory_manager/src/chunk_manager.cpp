@@ -5,8 +5,6 @@
 
 #include "chunk_manager.hpp"
 
-#include <iostream>
-
 #include <sys/mman.h>
 
 #include "gaia_internal/common/retail_assert.hpp"
@@ -117,7 +115,6 @@ gaia_offset_t chunk_manager_t::allocate(
         "Slot just marked allocated must be visible as allocated!");
 
     gaia_offset_t offset = offset_from_chunk_and_slot(m_chunk_offset, allocated_slot);
-    std::cerr << "Returning offset " << offset << " from chunk_manager_t::allocate(" << allocation_bytes_size << ")" << std::endl;
     return offset;
 }
 
@@ -282,7 +279,6 @@ void chunk_manager_t::decommit_physical_pages_unused_after_object_deallocation(
 
         // MADV_FREE seems like the best fit for our needs, since it allows the OS to lazily reclaim decommitted pages.
         // However, it returns EINVAL when used with MAP_SHARED, so we need to use MADV_REMOVE (which works with memfd objects).
-        std::cerr << "chunk_manager_t::deallocate(): decommitting " << pages_to_decommit_count << " pages starting at address " << pages_to_decommit_initial_address << std::endl;
         if (-1 == ::madvise(pages_to_decommit_initial_address, pages_to_decommit_size_bytes, MADV_REMOVE))
         {
             throw_system_error("madvise(MADV_FREE) failed!");

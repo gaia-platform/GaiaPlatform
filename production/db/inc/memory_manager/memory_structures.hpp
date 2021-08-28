@@ -7,7 +7,6 @@
 
 #include <algorithm>
 #include <atomic>
-#include <iostream>
 
 #include "gaia_internal/common/enum_helpers.hpp"
 #include "gaia_internal/common/inline_shared_lock.hpp"
@@ -90,8 +89,6 @@ struct memory_manager_metadata_t
         uint64_t state_bits = get_element_at_index(
             chunk_bitmap, c_chunk_bitmap_words_size,
             c_chunk_state_bitarray_width, chunk_offset);
-
-        std::cerr << "get_current_chunk_state() numeric result: " << state_bits << std::endl;
 
         return chunk_state_t{state_bits};
     }

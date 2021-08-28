@@ -612,7 +612,6 @@ void client_t::allocate_object(
         {
             // The current chunk is out of memory, so replace it.
             chunk_offset_t prev_chunk_offset = s_chunk_manager.release();
-            std::cerr << "Chunk " << prev_chunk_offset << " out of memory, retiring" << std::endl;
             s_memory_manager.retire_chunk(prev_chunk_offset);
         }
 
@@ -622,7 +621,6 @@ void client_t::allocate_object(
         {
             throw memory_allocation_error("Memory manager ran out of memory during call to allocate_chunk().");
         }
-        std::cerr << "Allocated new chunk " << new_chunk_offset << std::endl;
 
         // Initialize the new chunk.
         s_chunk_manager.initialize(new_chunk_offset);

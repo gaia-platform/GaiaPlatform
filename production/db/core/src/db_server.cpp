@@ -654,7 +654,6 @@ void server_t::init_memory_manager()
     {
         throw memory_allocation_error("Memory manager ran out of memory during call to allocate_chunk().");
     }
-    std::cerr << "Allocated new chunk " << chunk_offset << " for new server memory manager instance" << std::endl;
     s_chunk_manager.initialize(chunk_offset);
 }
 
@@ -739,7 +738,6 @@ void server_t::allocate_object(
     {
         // Retire the current chunk.
         chunk_offset_t prev_chunk_offset = s_chunk_manager.release();
-        std::cerr << "Server chunk " << prev_chunk_offset << " out of memory, retiring" << std::endl;
         s_memory_manager.retire_chunk(prev_chunk_offset);
 
         // We ran out of memory in the current chunk. Allocate a new one!
@@ -748,7 +746,6 @@ void server_t::allocate_object(
         {
             throw memory_allocation_error("Memory manager ran out of memory during call to allocate_chunk().");
         }
-        std::cerr << "Server allocated new chunk " << new_chunk_offset << std::endl;
         // Initialize the new chunk.
         s_chunk_manager.initialize(new_chunk_offset);
 
@@ -2425,14 +2422,12 @@ void server_t::txn_rollback(bool client_disconnected)
         chunk_offset_t chunk_offset = s_log.data()->current_chunk;
         if (chunk_offset != c_invalid_chunk_offset)
         {
-            std::cerr << "Cleaning up chunk " << chunk_offset << " from disconnected txn " << s_txn_id << std::endl;
             chunk_manager_t chunk_manager;
             chunk_manager.load(chunk_offset);
 
             // Get final allocation from chunk metadata, so we can check to be sure
             // it's present in our txn log.
             gaia_offset_t last_allocated_offset = chunk_manager.last_allocated_offset();
-            std::cerr << "last_allocated_offset: " << last_allocated_offset << std::endl;
             // If we haven't logged the final allocation, then deallocate it directly.
             if (last_allocated_offset != c_invalid_gaia_offset)
             {
@@ -2448,7 +2443,6 @@ void server_t::txn_rollback(bool client_disconnected)
                     // If we haven't logged the final allocation, then deallocate it directly.
                     if (last_log_record.new_offset != last_allocated_offset)
                     {
-                        std::cerr << "Found unlogged allocation with offset " << last_allocated_offset << " from txn_id " << s_txn_id << std::endl;
                         should_deallocate_directly = true;
                     }
                 }
@@ -2461,7 +2455,6 @@ void server_t::txn_rollback(bool client_disconnected)
 
             // Now retire the crashed session's chunk.
             chunk_manager.release();
-            std::cerr << "About to retire in-use chunk " << chunk_offset << " from txn_id " << s_txn_id << std::endl;
             s_memory_manager.retire_chunk(chunk_offset);
         }
     }
