@@ -49,11 +49,11 @@ gaia::db::id_index_t* gaia::db::get_id_index()
     return gaia::db::server_t::s_shared_id_index.data();
 }
 
-gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
+void gaia::db::allocate_object(
     gaia_locator_t locator,
     size_t size)
 {
-    return gaia::db::server_t::allocate_object(locator, size);
+    gaia::db::server_t::allocate_object(locator, size);
 }
 
 gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id()

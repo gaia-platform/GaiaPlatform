@@ -23,6 +23,12 @@ constexpr size_t c_uint64_bit_count = CHAR_BIT * sizeof(uint64_t);
 constexpr uint64_t c_all_set_word = -1;
 constexpr size_t c_max_bit_index = -1;
 
+// Returns the index of the first set bit in a word. The word must be nonzero.
+size_t find_first_set_bit_in_word(uint64_t word);
+
+// Returns the index of the last set bit in a word. The word must be nonzero.
+size_t find_last_set_bit_in_word(uint64_t word);
+
 // Checks the value of a bit.
 bool is_bit_set(
     std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t bit_index);

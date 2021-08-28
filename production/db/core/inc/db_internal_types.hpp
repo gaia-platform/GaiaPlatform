@@ -20,11 +20,15 @@
 #include "gaia_internal/db/db_types.hpp"
 
 #include "base_index.hpp"
+#include "memory_types.hpp"
 
 namespace gaia
 {
 namespace db
 {
+
+using memory_manager::chunk_offset_t;
+using memory_manager::slot_offset_t;
 
 template <typename T>
 using aligned_storage_for_t =
@@ -106,6 +110,9 @@ struct hash_node_t
 struct txn_log_t
 {
     gaia_txn_id_t begin_ts;
+    // The current chunk doesn't strictly need to be stored here; this is just a
+    // convenient place for shared state between the client and server.
+    chunk_offset_t current_chunk;
     size_t record_count;
 
     struct log_record_t
@@ -137,6 +144,8 @@ struct txn_log_t
 
     friend std::ostream& operator<<(std::ostream& os, const txn_log_t& l)
     {
+        os << "begin_ts: " << l.begin_ts << std::endl;
+        os << "current_chunk: " << l.current_chunk << std::endl;
         os << "record_count: " << l.record_count << std::endl;
         for (size_t i = 0; i < l.record_count; ++i)
         {

@@ -41,15 +41,21 @@ public:
         uint8_t* memory_address,
         size_t memory_size);
 
-    // Allocates a new chunk of memory.
-    address_offset_t allocate_chunk() const;
+    // Allocates the next available free chunk.
+    chunk_offset_t allocate_chunk();
 
-    // Chunk deallocation method.
-    // Does not perform any validation to ensure that the chunk is unused.
-    void deallocate_chunk(address_offset_t chunk_address_offset) const;
+    // Retires an in-use chunk.
+    void retire_chunk(chunk_offset_t chunk_offset);
 
-    // Object deallocation method.
-    void deallocate(address_offset_t object_offset) const;
+    // Marks the chunk as free, and decommits its physical memory.
+    void deallocate_chunk(chunk_offset_t chunk_offset);
+
+    // Deallocates an object by marking its allocation slot as free,
+    // and decommits any now-empty physical pages the object occupied.
+    void deallocate_object(gaia_offset_t offset);
+
+    // Allows code outside the memory manager to query the current state of a chunk.
+    chunk_state_t get_chunk_state(chunk_offset_t chunk_offset);
 
 private:
     // A pointer to our metadata information, stored inside the memory range that we manage.
@@ -64,17 +70,11 @@ private:
     // Get the amount of memory that has never been used yet.
     size_t get_unused_memory_size() const;
 
-    // Internal method for making allocations from deallocated memory.
-    address_offset_t allocate_from_deallocated_memory() const;
-
     // Internal method for making allocations from the unused portion of memory.
-    address_offset_t allocate_from_unused_memory() const;
+    chunk_offset_t allocate_unused_chunk();
 
-    // Checks whether a chunk is marked as used in the chunk bitmap.
-    bool is_chunk_marked_as_used(chunk_offset_t chunk_offset) const;
-
-    // Try to mark the use of a single chunk in the chunk bitmap.
-    bool try_mark_chunk_used_status(chunk_offset_t chunk_offset, bool is_used) const;
+    // Internal method for making allocations from deallocated memory.
+    chunk_offset_t allocate_reused_chunk();
 
     void output_debugging_information(const std::string& context_description) const;
 };

@@ -36,20 +36,20 @@ TEST(memory_manager, basic_operation)
     memory_manager.set_execution_flags(execution_flags);
     memory_manager.initialize(memory, c_memory_size);
 
-    address_offset_t first_allocation_offset = memory_manager.allocate_chunk();
-    ASSERT_NE(first_allocation_offset, c_invalid_address_offset);
+    chunk_offset_t first_allocation_offset = memory_manager.allocate_chunk();
+    ASSERT_NE(first_allocation_offset, c_invalid_chunk_offset);
     cout << "Chunk was allocated at offset " << first_allocation_offset << "." << endl;
 
-    address_offset_t second_allocation_offset = memory_manager.allocate_chunk();
-    ASSERT_NE(second_allocation_offset, c_invalid_address_offset);
+    chunk_offset_t second_allocation_offset = memory_manager.allocate_chunk();
+    ASSERT_NE(second_allocation_offset, c_invalid_chunk_offset);
     cout << "Chunk was allocated at offset " << second_allocation_offset << "." << endl;
 
     ASSERT_EQ(
         first_allocation_offset + c_chunk_size,
         second_allocation_offset);
 
-    address_offset_t third_allocation_offset = memory_manager.allocate_chunk();
-    ASSERT_NE(third_allocation_offset, c_invalid_address_offset);
+    chunk_offset_t third_allocation_offset = memory_manager.allocate_chunk();
+    ASSERT_NE(third_allocation_offset, c_invalid_chunk_offset);
     cout << "Chunk was allocated at offset " << third_allocation_offset << "." << endl;
 
     ASSERT_EQ(
@@ -59,8 +59,8 @@ TEST(memory_manager, basic_operation)
     memory_manager.deallocate_chunk(second_allocation_offset);
     cout << "Chunk was deallocated at offset " << second_allocation_offset << "." << endl;
 
-    address_offset_t fourth_allocation_offset = memory_manager.allocate_chunk();
-    ASSERT_NE(fourth_allocation_offset, c_invalid_address_offset);
+    chunk_offset_t fourth_allocation_offset = memory_manager.allocate_chunk();
+    ASSERT_NE(fourth_allocation_offset, c_invalid_chunk_offset);
     cout << "Chunk was allocated at offset " << fourth_allocation_offset << "." << endl;
 
     ASSERT_EQ(

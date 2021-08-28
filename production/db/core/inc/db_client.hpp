@@ -50,7 +50,7 @@ class client_t
     friend gaia::db::id_index_t* gaia::db::get_id_index();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
 
-    friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
+    friend void gaia::db::allocate_object(
         gaia_locator_t locator,
         size_t size);
 
@@ -118,12 +118,11 @@ private:
 
     thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
     thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
-    thread_local static inline std::vector<gaia::db::memory_manager::chunk_manager_t> s_previous_chunk_managers{};
 
 private:
     static void init_memory_manager();
 
-    static gaia::db::memory_manager::address_offset_t allocate_object(
+    static void allocate_object(
         gaia_locator_t locator,
         size_t size);
 

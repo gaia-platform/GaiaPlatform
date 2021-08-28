@@ -51,6 +51,7 @@ protected:
 
     inline void validate_address(const uint8_t* const memory_address) const;
     inline void validate_offset(address_offset_t memory_offset) const;
+    inline void validate_slot_offset(slot_offset_t slot_offset) const;
     inline void validate_size(size_t memory_size) const;
 
     // Gets the offset corresponding to a memory address.

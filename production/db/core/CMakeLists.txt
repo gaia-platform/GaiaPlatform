@@ -112,7 +112,7 @@ target_include_directories(rocks_wrapper PRIVATE
 target_include_directories(rocks_wrapper SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(rocks_wrapper SYSTEM PRIVATE "${GEN_DIR}")
 # The client is required to create gaia objects on recovery.
-target_link_libraries(rocks_wrapper PUBLIC rocksdb gaia_storage)
+target_link_libraries(rocks_wrapper PUBLIC rocksdb gaia_common gaia_storage)
 
 set(GAIA_DB_SERVER_SOURCES
   src/mapped_data.cpp

@@ -29,14 +29,14 @@ size_t base_memory_manager_t::calculate_allocation_size(size_t requested_size)
 {
     ASSERT_PRECONDITION(requested_size > 0, "Requested allocation size is 0!");
 
-    size_t allocation_size = ((requested_size + c_slot_size - 1) / c_slot_size) * c_slot_size;
+    size_t allocation_size = ((requested_size + c_slot_size_bytes - 1) / c_slot_size_bytes) * c_slot_size_bytes;
 
     ASSERT_POSTCONDITION(
         allocation_size > 0,
         "Allocation size should not be 0!");
 
     ASSERT_POSTCONDITION(
-        allocation_size % c_slot_size == 0,
+        allocation_size % c_slot_size_bytes == 0,
         "Allocation size should be a multiple of slot size!");
 
     return allocation_size;
@@ -45,7 +45,7 @@ size_t base_memory_manager_t::calculate_allocation_size(size_t requested_size)
 inline void base_memory_manager_t::validate_offset_alignment(address_offset_t memory_offset)
 {
     ASSERT_PRECONDITION(
-        memory_offset % c_slot_size == 0,
+        memory_offset % c_slot_size_bytes == 0,
         "Misaligned memory offset!");
 }
 
@@ -107,6 +107,13 @@ void base_memory_manager_t::validate_offset(address_offset_t memory_offset) cons
         "Memory offset is outside managed memory range!");
 }
 
+void base_memory_manager_t::validate_slot_offset(slot_offset_t slot_offset) const
+{
+    ASSERT_PRECONDITION(
+        slot_offset >= c_first_slot_offset && slot_offset <= c_last_slot_offset,
+        "Slot offset is invalid!");
+}
+
 address_offset_t base_memory_manager_t::get_offset(const uint8_t* const memory_address) const
 {
     validate_address(memory_address);
@@ -129,19 +136,19 @@ address_offset_t base_memory_manager_t::get_chunk_address_offset(address_offset_
 {
     validate_offset_alignment(memory_offset);
 
-    return memory_offset - (memory_offset % c_chunk_size);
+    return memory_offset - (memory_offset % c_chunk_size_bytes);
 }
 
 chunk_offset_t base_memory_manager_t::get_chunk_offset(address_offset_t memory_offset) const
 {
     validate_offset_alignment(memory_offset);
 
-    return static_cast<chunk_offset_t>(memory_offset / c_chunk_size);
+    return static_cast<chunk_offset_t>(memory_offset / c_chunk_size_bytes);
 }
 
 slot_offset_t base_memory_manager_t::get_slot_offset(address_offset_t memory_offset) const
 {
     validate_offset_alignment(memory_offset);
 
-    return static_cast<slot_offset_t>((memory_offset % c_chunk_size) / c_slot_size);
+    return static_cast<slot_offset_t>((memory_offset % c_chunk_size_bytes) / c_slot_size_bytes);
 }

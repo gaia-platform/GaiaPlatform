@@ -7,6 +7,10 @@
 
 #include <cstdint>
 
+#include <iostream>
+
+#include "gaia_internal/common/enum_helpers.hpp"
+
 namespace gaia
 {
 namespace db
@@ -23,10 +27,16 @@ constexpr address_offset_t c_invalid_address_offset = 0;
 constexpr size_t c_allocation_alignment = 8 * sizeof(uint64_t);
 
 // Our allocation slots are currently the size of our alignment.
-constexpr size_t c_slot_size = c_allocation_alignment;
+constexpr size_t c_slot_size_bytes = c_allocation_alignment;
+
+// Our maximum allocation size is currently 64KB, or 1K slots.
+constexpr size_t c_max_allocation_slots_size = 1024;
 
 // Memory manager allocates memory in chunks, from which clients allocate memory for individual objects.
-constexpr size_t c_chunk_size = 4 * 1024 * 1024;
+constexpr size_t c_chunk_size_bytes = 4 * 1024 * 1024;
+
+// We assume everywhere that OS pages are 4KB.
+constexpr size_t c_page_size_bytes = 4096;
 
 // For representing slot offsets within a chunk.
 // The total number of 64B slots in a 4MB chunk can be represented using a 16bit integer.
@@ -39,6 +49,40 @@ constexpr slot_offset_t c_invalid_slot_offset = 0;
 // Because memory starts with a metadata block, we use 0 to represent an invalid chunk offset.
 typedef uint16_t chunk_offset_t;
 constexpr chunk_offset_t c_invalid_chunk_offset = 0;
+
+// These states must all fit into 2 bits.
+enum class chunk_state_t : uint64_t
+{
+    empty = 0b00,
+    in_use = 0b01,
+    retired = 0b10,
+    pending_compaction = 0b11
+};
+
+inline std::ostream& operator<<(std::ostream& os, const chunk_state_t& o)
+{
+    switch (o)
+    {
+    case chunk_state_t::empty:
+        os << "empty";
+        break;
+    case chunk_state_t::in_use:
+        os << "in_use";
+        break;
+    case chunk_state_t::retired:
+        os << "retired";
+        break;
+    case chunk_state_t::pending_compaction:
+        os << "pending_compaction";
+        break;
+    default:
+        std::cerr << "Unknown value of chunk_state_t: " << common::to_integral(o) << std::endl;
+        ASSERT_UNREACHABLE("Unknown value of chunk_state_t!");
+    }
+    return os;
+}
+
+constexpr size_t c_chunk_state_bitarray_width = 2;
 
 } // namespace memory_manager
 } // namespace db

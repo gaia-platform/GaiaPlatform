@@ -33,14 +33,13 @@
 
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
+#include "memory_types.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 #include "record_list_manager.hpp"
 #include "txn_metadata.hpp"
 #include "type_generator.hpp"
 #include "type_id_mapping.hpp"
-
-using namespace std;
 
 using namespace flatbuffers;
 using namespace gaia::db;
@@ -164,12 +163,6 @@ int server_t::safe_fd_from_ts_t::get_fd() const
     return m_local_log_fd;
 }
 
-// This assignment is non-atomic because there seems to be no reason to expect concurrent invocations.
-void server_t::register_object_deallocator(std::function<void(gaia_offset_t)> deallocator_fn)
-{
-    s_object_deallocator_fn = deallocator_fn;
-}
-
 void server_t::handle_connect(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
@@ -265,6 +258,7 @@ void server_t::txn_begin(std::vector<int>& txn_log_fds_for_snapshot)
 
     // Update the log header with our begin timestamp and initialize it to empty.
     s_log.data()->begin_ts = s_txn_id;
+    s_log.data()->current_chunk = c_invalid_chunk_offset;
     s_log.data()->record_count = 0;
 }
 
@@ -416,7 +410,8 @@ void server_t::handle_client_shutdown(
     // If the session had an active txn, clean up all its resources.
     if (s_txn_id != c_invalid_gaia_txn_id)
     {
-        txn_rollback();
+        bool client_disconnected = true;
+        txn_rollback(client_disconnected);
     }
 }
 
@@ -654,19 +649,32 @@ void server_t::init_memory_manager()
         reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
         sizeof(s_shared_data.data()->objects));
 
-    address_offset_t chunk_address_offset = s_memory_manager.allocate_chunk();
-    if (chunk_address_offset == c_invalid_address_offset)
+    chunk_offset_t chunk_offset = s_memory_manager.allocate_chunk();
+    if (chunk_offset == c_invalid_chunk_offset)
     {
         throw memory_allocation_error("Memory manager ran out of memory during call to allocate_chunk().");
     }
-    s_chunk_manager.initialize(
-        reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
-        chunk_address_offset);
+    std::cerr << "Allocated new chunk " << chunk_offset << " for new server memory manager instance" << std::endl;
+    s_chunk_manager.initialize(chunk_offset);
+}
 
-    auto deallocate_object_fn = [=](gaia_offset_t offset) {
-        s_memory_manager.deallocate(get_address_offset(offset));
-    };
-    register_object_deallocator(deallocate_object_fn);
+void server_t::deallocate_object(gaia_offset_t offset)
+{
+    // First extract the chunk ID from the offset, to look up the chunk manager.
+    chunk_offset_t chunk_offset = chunk_from_offset(offset);
+
+    // If we don't have a chunk manager for this chunk ID cached, create it.
+    // REVIEW: This could be changed to use contains() after C++20.
+    if (s_gc_chunk_managers.count(chunk_offset) == 0)
+    {
+        chunk_manager_t chunk_manager;
+        chunk_manager.load(chunk_offset);
+        s_gc_chunk_managers.insert({chunk_offset, chunk_manager});
+    }
+
+    // Delegate deallocation of the object to the chunk manager.
+    chunk_manager_t chunk_manager = s_gc_chunk_managers[chunk_offset];
+    chunk_manager.deallocate(offset);
 }
 
 // Initialize indexes on startup.
@@ -720,37 +728,37 @@ void server_t::update_indexes_from_txn_log()
     index::index_builder_t::update_indexes_from_logs(*s_log.data(), s_server_conf.skip_catalog_integrity_checks());
 }
 
-address_offset_t server_t::allocate_object(
+void server_t::allocate_object(
     gaia_locator_t locator,
     size_t size)
 {
     ASSERT_PRECONDITION(size != 0, "Size passed to server_t::allocate_object() should not be 0!");
 
-    address_offset_t object_offset = s_chunk_manager.allocate(size);
-    if (object_offset == c_invalid_address_offset)
+    gaia_offset_t object_offset = s_chunk_manager.allocate(size + c_db_object_header_size);
+    if (object_offset == c_invalid_gaia_offset)
     {
-        // We ran out of memory in the current chunk.
-        // Mark allocations made so far as committed and allocate a new chunk!
-        s_chunk_manager.commit();
-        address_offset_t chunk_address_offset = s_memory_manager.allocate_chunk();
-        if (chunk_address_offset == c_invalid_address_offset)
+        // Retire the current chunk.
+        chunk_offset_t prev_chunk_offset = s_chunk_manager.release();
+        std::cerr << "Server chunk " << prev_chunk_offset << " out of memory, retiring" << std::endl;
+        s_memory_manager.retire_chunk(prev_chunk_offset);
+
+        // We ran out of memory in the current chunk. Allocate a new one!
+        chunk_offset_t new_chunk_offset = s_memory_manager.allocate_chunk();
+        if (new_chunk_offset == c_invalid_chunk_offset)
         {
             throw memory_allocation_error("Memory manager ran out of memory during call to allocate_chunk().");
         }
-
-        s_chunk_manager.initialize(
-            reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
-            chunk_address_offset);
+        std::cerr << "Server allocated new chunk " << new_chunk_offset << std::endl;
+        // Initialize the new chunk.
+        s_chunk_manager.initialize(new_chunk_offset);
 
         // Allocate from new chunk.
         object_offset = s_chunk_manager.allocate(size + c_db_object_header_size);
     }
 
-    ASSERT_POSTCONDITION(object_offset != c_invalid_address_offset, "Chunk manager allocation was not expected to fail!");
+    ASSERT_POSTCONDITION(object_offset != c_invalid_gaia_offset, "Chunk manager allocation was not expected to fail!");
 
     update_locator(locator, object_offset);
-
-    return object_offset;
 }
 
 void server_t::recover_db()
@@ -760,15 +768,15 @@ void server_t::recover_db()
     {
         // We could get here after a server reset with --disable-persistence-after-recovery,
         // in which case we need to recover from the original persistent image.
-        if (!rdb)
+        if (!s_persistent_store)
         {
-            rdb = make_unique<gaia::db::persistent_store_manager>(get_counters(), s_server_conf.data_dir());
+            s_persistent_store = make_unique<gaia::db::persistent_store_manager>(get_counters(), s_server_conf.data_dir());
             if (s_server_conf.persistence_mode() == persistence_mode_t::e_reinitialized_on_startup)
             {
-                rdb->destroy_persistent_store();
+                s_persistent_store->destroy_persistent_store();
             }
-            rdb->open();
-            rdb->recover();
+            s_persistent_store->open();
+            s_persistent_store->recover();
         }
     }
 
@@ -776,7 +784,7 @@ void server_t::recover_db()
     // instance.
     if (s_server_conf.persistence_mode() == persistence_mode_t::e_disabled_after_recovery)
     {
-        rdb.reset();
+        s_persistent_store.reset();
     }
 }
 
@@ -808,7 +816,7 @@ void server_t::end_startup_txn()
     // Mark this txn as committed.
     txn_metadata_t::update_txn_decision(commit_ts, true);
     // Mark this txn durable if persistence is enabled.
-    if (rdb)
+    if (s_persistent_store)
     {
         txn_metadata_t::set_txn_durable(commit_ts);
     }
@@ -887,7 +895,7 @@ void server_t::signal_handler(sigset_t sigset, int& signum)
     // REVIEW: do we have any use for sigwaitinfo()?
     ::sigwait(&sigset, &signum);
 
-    cerr << "Caught signal '" << ::strsignal(signum) << "'." << endl;
+    std::cerr << "Caught signal '" << ::strsignal(signum) << "'." << std::endl;
 
     signal_eventfd(s_server_shutdown_eventfd);
 }
@@ -1138,7 +1146,7 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
             else
             {
                 // We don't monitor any other fds.
-                ASSERT_INVARIANT(false, c_message_unexpected_fd);
+                ASSERT_UNREACHABLE(c_message_unexpected_fd);
             }
         }
     }
@@ -1251,7 +1259,7 @@ void server_t::session_handler(int session_socket)
                     socklen_t err_len = sizeof(error);
                     // Ignore errors getting error message and default to generic error message.
                     ::getsockopt(s_session_socket, SOL_SOCKET, SO_ERROR, static_cast<void*>(&error), &err_len);
-                    cerr << "Client socket error: " << ::strerror(error) << endl;
+                    std::cerr << "Client socket error: " << ::strerror(error) << std::endl;
                     event = session_event_t::CLIENT_SHUTDOWN;
                 }
                 else if (ev.events & EPOLLHUP)
@@ -1310,7 +1318,7 @@ void server_t::session_handler(int session_socket)
             else
             {
                 // We don't monitor any other fds.
-                ASSERT_INVARIANT(false, c_message_unexpected_fd);
+                ASSERT_UNREACHABLE(c_message_unexpected_fd);
             }
 
             ASSERT_INVARIANT(event != session_event_t::NOP, c_message_unexpected_event_type);
@@ -1324,7 +1332,7 @@ void server_t::session_handler(int session_socket)
             }
             catch (const peer_disconnected& e)
             {
-                cerr << "Client socket error: " << e.what() << endl;
+                std::cerr << "Client socket error: " << e.what() << std::endl;
                 s_session_shutdown = true;
             }
         }
@@ -1421,7 +1429,7 @@ void server_t::stream_producer_handler(
 
                     // Ignore errors getting error message and default to generic error message.
                     ::getsockopt(stream_socket, SOL_SOCKET, SO_ERROR, static_cast<void*>(&error), &err_len);
-                    cerr << "Stream socket error: '" << ::strerror(error) << "'." << endl;
+                    std::cerr << "Stream socket error: '" << ::strerror(error) << "'." << std::endl;
                     producer_shutdown = true;
                 }
                 else if (ev.events & EPOLLHUP)
@@ -1475,7 +1483,7 @@ void server_t::stream_producer_handler(
                             // the receive buffer is always large enough for a batch.
                             ASSERT_INVARIANT(errno != EAGAIN && errno != EWOULDBLOCK, c_message_unexpected_errno_value);
                             // Log the error and break out of the poll loop.
-                            cerr << "Stream socket error: '" << ::strerror(errno) << "'." << endl;
+                            std::cerr << "Stream socket error: '" << ::strerror(errno) << "'." << std::endl;
                             producer_shutdown = true;
                         }
                         else
@@ -1532,7 +1540,7 @@ void server_t::stream_producer_handler(
             else
             {
                 // We don't monitor any other fds.
-                ASSERT_INVARIANT(false, c_message_unexpected_fd);
+                ASSERT_UNREACHABLE(c_message_unexpected_fd);
             }
         }
     }
@@ -2001,14 +2009,9 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
             record_list->request_deletion(txn_log->log_records[i].locator);
         }
 
-        if (offset_to_free && s_object_deallocator_fn)
+        if (offset_to_free)
         {
-            // TODO: If a chunk gets freed as a result of this deallocation,
-            // we should mark the chunk as freed as well.
-            // Also, depending on whether we rollback the memory allocations
-            // there may be no need to make deallocations here for new offsets;
-            // we would only need to do deallocations for old offsets in commit scenarios.
-            s_object_deallocator_fn(offset_to_free);
+            deallocate_object(offset_to_free);
         }
     }
 }
@@ -2082,7 +2085,7 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
 //    watermark. If that fails (or the watermark cannot be advanced because the
 //    commit_ts has TXN_GC_COMPLETE unset), we abort the pass.
 //
-// TODO: Deallocate physical pages backing the txn table for addresses preceding
+// TODO: Decommit physical pages backing the txn table for addresses preceding
 // the post-GC watermark (via madvise(MADV_FREE)).
 //
 // The post-GC watermark will be used to trim the txn table (but we can't just
@@ -2251,6 +2254,9 @@ void server_t::apply_txn_logs_to_shared_view()
 
 void server_t::gc_applied_txn_logs()
 {
+    // Ensure we clean up our cached chunk managers when we exit this task.
+    auto cleanup_fd = make_scope_guard([&]() { s_gc_chunk_managers.clear(); });
+
     // First get a snapshot of the post-apply watermark, for an upper bound on the scan.
     gaia_txn_id_t last_applied_commit_ts_lower_bound = s_last_applied_commit_ts_lower_bound;
 
@@ -2328,6 +2334,23 @@ void server_t::gc_applied_txn_logs()
             ASSERT_INVARIANT(has_set_metadata, "This txn metadata cannot change after we invalidate the log fd!");
         }
     }
+
+    // Now deallocate any empty chunks that have already been retired.
+    for (std::pair<chunk_offset_t, chunk_manager_t> entry : s_gc_chunk_managers)
+    {
+        chunk_offset_t chunk_offset = entry.first;
+        chunk_manager_t chunk_manager = entry.second;
+        if (chunk_manager.is_empty())
+        {
+            chunk_manager.release();
+            // If this check fails, then the chunk will be deallocated when it
+            // is retired by its owning session.
+            if (s_memory_manager.get_chunk_state(chunk_offset) == chunk_state_t::retired)
+            {
+                s_memory_manager.deallocate_chunk(chunk_offset);
+            }
+        }
+    }
 }
 
 void server_t::update_txn_table_safe_truncation_point()
@@ -2383,7 +2406,7 @@ void server_t::update_txn_table_safe_truncation_point()
     }
 }
 
-void server_t::txn_rollback()
+void server_t::txn_rollback(bool client_disconnected)
 {
     // Set our txn status to TXN_TERMINATED.
     // NB: this must be done before calling perform_maintenance()!
@@ -2391,6 +2414,57 @@ void server_t::txn_rollback()
 
     // Update watermarks and perform associated maintenance tasks.
     perform_maintenance();
+
+    // Directly free the final allocation recorded in chunk metadata if it is
+    // absent from the txn log (due to a crashed session), and retire the chunk
+    // owned by the client session when it crashed.
+    if (client_disconnected)
+    {
+        // Load the crashed session's chunk, so we can directly free the final
+        // allocation if necessary.
+        chunk_offset_t chunk_offset = s_log.data()->current_chunk;
+        if (chunk_offset != c_invalid_chunk_offset)
+        {
+            std::cerr << "Cleaning up chunk " << chunk_offset << " from disconnected txn " << s_txn_id << std::endl;
+            chunk_manager_t chunk_manager;
+            chunk_manager.load(chunk_offset);
+
+            // Get final allocation from chunk metadata, so we can check to be sure
+            // it's present in our txn log.
+            gaia_offset_t last_allocated_offset = chunk_manager.last_allocated_offset();
+            std::cerr << "last_allocated_offset: " << last_allocated_offset << std::endl;
+            // If we haven't logged the final allocation, then deallocate it directly.
+            if (last_allocated_offset != c_invalid_gaia_offset)
+            {
+                bool is_log_empty = (s_log.data()->record_count == 0);
+                // If we have no log records, but we do have a final allocation, then deallocate it directly.
+                bool should_deallocate_directly = is_log_empty;
+                // If we do have a non-empty log, then check if the final record matches the final allocation.
+                if (!is_log_empty)
+                {
+                    size_t last_log_record_index = s_log.data()->record_count - 1;
+                    txn_log_t::log_record_t last_log_record = s_log.data()->log_records[last_log_record_index];
+
+                    // If we haven't logged the final allocation, then deallocate it directly.
+                    if (last_log_record.new_offset != last_allocated_offset)
+                    {
+                        std::cerr << "Found unlogged allocation with offset " << last_allocated_offset << " from txn_id " << s_txn_id << std::endl;
+                        should_deallocate_directly = true;
+                    }
+                }
+
+                if (should_deallocate_directly)
+                {
+                    chunk_manager.deallocate(last_allocated_offset);
+                }
+            }
+
+            // Now retire the crashed session's chunk.
+            chunk_manager.release();
+            std::cerr << "About to retire in-use chunk " << chunk_offset << " from txn_id " << s_txn_id << std::endl;
+            s_memory_manager.retire_chunk(chunk_offset);
+        }
+    }
 
     // This session now has no active txn.
     s_txn_id = c_invalid_gaia_txn_id;
@@ -2478,16 +2552,16 @@ bool server_t::txn_commit()
     // This is only used for persistence.
     std::string txn_name;
 
-    if (rdb)
+    if (s_persistent_store)
     {
-        txn_name = rdb->begin_txn(s_txn_id);
+        txn_name = s_persistent_store->begin_txn(s_txn_id);
         // Prepare log for transaction.
         // This is effectively asynchronous with validation, because if it takes
         // too long, then another thread may recursively validate this txn,
         // before the committing thread has a chance to do so.
         mapped_log_t log;
         log.open(log_fd);
-        rdb->prepare_wal_for_write(log.data(), txn_name);
+        s_persistent_store->prepare_wal_for_write(log.data(), txn_name);
     }
 
     // Validate the txn against all other committed txns in the conflict window.
@@ -2500,7 +2574,7 @@ bool server_t::txn_commit()
     // REVIEW: We can return a decision to the client asynchronously with the
     // decision being persisted (because the decision can be reconstructed from
     // the durable log itself, without the decision record).
-    if (rdb)
+    if (s_persistent_store)
     {
         // Mark txn as durable in metadata so we can GC the txn log.
         // We only mark it durable after validation to simplify the
@@ -2510,11 +2584,11 @@ bool server_t::txn_commit()
 
         if (is_committed)
         {
-            rdb->append_wal_commit_marker(txn_name);
+            s_persistent_store->append_wal_commit_marker(txn_name);
         }
         else
         {
-            rdb->append_wal_rollback_marker(txn_name);
+            s_persistent_store->append_wal_rollback_marker(txn_name);
         }
     }
 
@@ -2533,11 +2607,22 @@ void server_t::run(server_config_t server_conf)
 
     if (!is_little_endian())
     {
-        cerr << "Big-endian architectures are currently not supported, exiting." << endl;
+        std::cerr << "Big-endian architectures are currently not supported, exiting." << std::endl;
 
-        // Abort instead of throwing an exception as we don't want to make it possible to avoid termination.
+        // Abort instead of throwing an exception to ensure termination.
         std::abort();
     }
+
+    if (::sysconf(_SC_PAGESIZE) != c_page_size_bytes)
+    {
+        std::cerr << "Page size must be 4KB, exiting." << std::endl;
+
+        // Abort instead of throwing an exception to ensure termination.
+        std::abort();
+    }
+
+    // We assume everywhere that pages are 4KB.
+    ASSERT_INVARIANT(::sysconf(_SC_PAGESIZE) == c_page_size_bytes, "Pages are expected to be 4KB!");
 
     while (true)
     {
@@ -2581,7 +2666,7 @@ void server_t::run(server_config_t server_conf)
         {
             if (caught_signal == SIGHUP)
             {
-                cerr << "Unable to reset the server because persistence is enabled, exiting." << endl;
+                std::cerr << "Unable to reset the server because persistence is enabled, exiting." << std::endl;
             }
 
             // To exit with the correct status (reflecting a caught signal),

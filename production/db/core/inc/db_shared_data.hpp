@@ -29,7 +29,8 @@ gaia::db::data_t* get_data();
 gaia::db::id_index_t* get_id_index();
 
 // Allocate an object from the "data" shared memory segment.
-gaia::db::memory_manager::address_offset_t allocate_object(
+// The `size` argument *does not* include the object header size!
+void allocate_object(
     gaia_locator_t locator,
     size_t size);
 

@@ -30,10 +30,14 @@ class gaia_ptr_t
 {
 public:
     gaia_ptr_t() = default;
-    explicit gaia_ptr_t(gaia_locator_t locator);
 
-    inline bool
-    operator==(const gaia_ptr_t& other) const;
+    inline explicit gaia_ptr_t(gaia_locator_t locator)
+        : m_locator(locator)
+    {
+    }
+
+    inline bool operator==(const gaia_ptr_t& other) const;
+    inline bool operator!=(const gaia_ptr_t& other) const;
     inline bool operator==(const std::nullptr_t) const;
     inline bool operator!=(const std::nullptr_t) const;
     inline explicit operator bool() const;
@@ -66,8 +70,6 @@ public:
     // TODO this should either accept a gaia_id_t or be an instance method.
     static void remove(gaia_ptr_t& node);
 
-    gaia_ptr_t& clone();
-
     gaia_ptr_t& update_payload(size_t data_size, const void* data);
 
     static gaia_ptr_t find_first(common::gaia_type_t type);
@@ -84,6 +86,7 @@ public:
 
     db_object_t* to_ptr() const;
     gaia_offset_t to_offset() const;
+    inline gaia_locator_t to_locator() const;
 
     /**
      * Returns an iterator representing a server-side cursor over all objects of the given type.
@@ -160,8 +163,6 @@ public:
     void update_parent_reference(common::gaia_id_t new_parent_id, common::reference_offset_t parent_offset);
 
 protected:
-    gaia_ptr_t(gaia_locator_t locator, memory_manager::address_offset_t offset);
-
     void allocate(size_t size);
 
     inline bool is(common::gaia_type_t type) const;

@@ -5,6 +5,7 @@
 
 #include "bitmap.hpp"
 
+#include <bitset>
 #include <iostream>
 #include <sstream>
 
@@ -20,6 +21,27 @@ namespace db
 {
 namespace memory_manager
 {
+
+size_t find_first_set_bit_in_word(uint64_t word)
+{
+    ASSERT_PRECONDITION(word != 0, "find_first_set_bit_in_word() cannot evaluate a zero argument!");
+
+    // __builtin_ffsll finds the first set bit and returns its (index + 1), or
+    // returns 0 if no bits are set.
+    size_t first_set_bit_index_in_word = __builtin_ffsll(word) - 1;
+    return first_set_bit_index_in_word;
+}
+
+size_t find_last_set_bit_in_word(uint64_t word)
+{
+    ASSERT_PRECONDITION(word != 0, "find_last_set_bit_in_word() cannot evaluate a zero argument!");
+
+    // __builtin_clzll(x) returns the number of leading 0-bits in x, starting at
+    // the most significant bit position. If x is 0, the result is undefined.
+    size_t leading_zeros_in_word = __builtin_clzll(word);
+    size_t last_set_bit_index_in_word = c_uint64_bit_count - leading_zeros_in_word - 1;
+    return last_set_bit_index_in_word;
+}
 
 void apply_mask_to_word(
     uint64_t& word, uint64_t mask, bool set)
@@ -294,12 +316,7 @@ size_t find_last_set_bit(std::atomic<uint64_t>* bitmap, size_t bitmap_word_size)
             continue;
         }
 
-        // Find the leftmost set bit in a nonzero word (MSB-first).
-        // "__builtin_clzll(x) returns the number of leading 0-bits in x,
-        // starting at the most significant bit position. If x is 0, the result
-        // is undefined."
-        size_t leading_zeros_in_word = __builtin_clzll(word);
-        size_t last_set_bit_index_in_word = c_uint64_bit_count - leading_zeros_in_word - 1;
+        size_t last_set_bit_index_in_word = find_last_set_bit_in_word(word);
         size_t bit_index = (word_index * c_uint64_bit_count) + last_set_bit_index_in_word;
         return bit_index;
     }
@@ -445,7 +462,7 @@ bool try_set_element_in_word(
     uint64_t old_word = word;
     uint64_t new_word = old_word;
 
-    set_element_in_word(new_word, bit_index, element_width, element_value);
+    set_element_in_word(new_word, element_width, bit_index, element_value);
 
     return word.compare_exchange_strong(old_word, new_word);
 }
@@ -454,7 +471,7 @@ bool try_set_element_in_word(
 void safe_set_element_in_word(
     std::atomic<uint64_t>& word, size_t element_width, size_t bit_index, uint64_t element_value)
 {
-    while (!try_set_element_in_word(word, bit_index, element_width, element_value))
+    while (!try_set_element_in_word(word, element_width, bit_index, element_value))
     {
         // Someone else made an update; retry after reading updated word value.
     }
@@ -474,14 +491,14 @@ bool conditional_set_element_in_word(
     {
         expected_word = word.load();
         uint64_t current_element_value = get_element_in_word(
-            expected_word, bit_index, element_width);
+            expected_word, element_width, bit_index);
         if (current_element_value != expected_element_value)
         {
             return false;
         }
         desired_word = expected_word;
         set_element_in_word(
-            desired_word, bit_index, element_width, desired_element_value);
+            desired_word, element_width, bit_index, desired_element_value);
 
     } while (!word.compare_exchange_weak(expected_word, desired_word));
 
@@ -505,7 +522,7 @@ uint64_t get_element_at_index(
     size_t bit_index_within_word = bit_index % c_uint64_bit_count;
     uint64_t word = bitarray[word_index];
 
-    return get_element_in_word(word, bit_index_within_word, element_width);
+    return get_element_in_word(word, element_width, bit_index_within_word);
 }
 
 // This function is threadsafe; we could also have a non-threadsafe equivalent if needed.
@@ -528,7 +545,7 @@ void set_element_at_index(
     size_t word_index = bit_index / c_uint64_bit_count;
     size_t bit_index_within_word = bit_index % c_uint64_bit_count;
 
-    safe_set_element_in_word(bitarray[word_index], bit_index_within_word, element_width, element_value);
+    safe_set_element_in_word(bitarray[word_index], element_width, bit_index_within_word, element_value);
 }
 
 bool conditional_set_element_at_index(
@@ -552,7 +569,7 @@ bool conditional_set_element_at_index(
     size_t bit_index_within_word = bit_index % c_uint64_bit_count;
 
     return conditional_set_element_in_word(
-        bitarray[word_index], bit_index_within_word, element_width, expected_element_value, desired_element_value);
+        bitarray[word_index], element_width, bit_index_within_word, expected_element_value, desired_element_value);
 }
 
 void print_bitmap(
