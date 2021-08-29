@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 #pragma once
 
+#include <algorithm>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -534,6 +535,15 @@ struct table_field_list_t
     std::string database;
     std::string table;
     std::vector<std::string> fields;
+
+    bool operator==(const table_field_list_t& other) const
+    {
+        if (database == other.database && table == other.table && fields == other.fields)
+        {
+            return true;
+        }
+        return false;
+    }
 };
 
 using table_field_map_t = std::pair<table_field_list_t, table_field_list_t>;

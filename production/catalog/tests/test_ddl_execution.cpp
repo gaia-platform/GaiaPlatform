@@ -394,3 +394,32 @@ create table t2(c2 int32, link2a references t1, link2b references t1);
     ASSERT_NO_THROW(parser.parse_line(ddl));
     ASSERT_THROW(execute(parser.statements), orphaned_reference_definition);
 }
+
+TEST_F(ddl_execution_test, invalid_field_map)
+{
+    array ddls{
+        R"(-- incorrect table names in where clause
+create table t1(c1 int32 unique, link1 references t2[])
+create table t2(c2 int32, link2 references t1 where t1.c1 = t.c2);
+)",
+        R"(-- field is not unique
+create table t1(c1 int32, link1 references t2[])
+create table t2(c2 int32, link2 references t1 where t1.c1 = t2.c2);
+)",
+        R"(-- both fields need to be unique in 1:1 relationships
+create table t1(c1 int32 unique, link1 references t2)
+create table t2(c2 int32, link2 references t1 where t1.c1 = t2.c2);
+)",
+        R"(-- non-matching where clauses
+create table t1(a1 int16 unique, c1 int32 unique, link1 references t2[] where t1.a1 = t2.a2)
+create table t2(a2 int16, c2 int32, link2 references t1 where t1.c1 = t2.c2);
+)",
+    };
+
+    for (const auto& ddl : ddls)
+    {
+        ddl::parser_t parser;
+        ASSERT_NO_THROW(parser.parse_line(ddl));
+        ASSERT_THROW(execute(parser.statements), invalid_field_map);
+    }
+}
