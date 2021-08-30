@@ -564,11 +564,14 @@ void client_t::commit_transaction()
     ASSERT_INVARIANT(
         event == session_event_t::DECIDE_TXN_COMMIT
             || event == session_event_t::DECIDE_TXN_ABORT
-            || event == session_event_t::DECIDE_TXN_ABORT_UNIQUE,
+            || event == session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE,
         c_message_unexpected_event_received);
 
     const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
-    ASSERT_INVARIANT(txn_info->transaction_id() == s_txn_id, "Unexpected transaction id!");
+    ASSERT_INVARIANT(
+        txn_info->transaction_id() == s_txn_id
+            || event == session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE,
+        "Unexpected transaction id!");
 
     // Execute trigger only if rules engine is initialized.
     if (s_txn_commit_trigger
@@ -594,7 +597,7 @@ void client_t::commit_transaction()
     }
     // Improving the communication of such errors to the client is tracked by:
     // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1232
-    else if (event == session_event_t::DECIDE_TXN_ABORT_UNIQUE)
+    else if (event == session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE)
     {
         throw index::unique_constraint_violation();
     }

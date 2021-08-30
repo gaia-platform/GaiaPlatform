@@ -168,6 +168,26 @@ void update_index_entry(
 
         for (; it_start != it_end; ++it_start)
         {
+            ASSERT_PRECONDITION(
+                transactions::txn_metadata_t::is_begin_ts(it_start->second.txn_id),
+                "Transaction id in index key entry is not a begin timestamp!");
+
+            // Ignore index entries made by rolled back transactions.
+            if (transactions::txn_metadata_t::is_txn_terminated(it_start->second.txn_id))
+            {
+                continue;
+            }
+            else
+            {
+                // Ignore index entries made by aborted transactions.
+                gaia_txn_id_t commit_ts
+                    = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(it_start->second.txn_id);
+                if (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_aborted(commit_ts))
+                {
+                    continue;
+                }
+            }
+
             // The list we iterate over reflects the order of operations.
             // The key exists if the last seen operation is an insertion.
             // Updates consist of a delete followed by an insertion

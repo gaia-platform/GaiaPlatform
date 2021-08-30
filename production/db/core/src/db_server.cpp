@@ -359,7 +359,11 @@ void server_t::handle_commit_txn(
     }
     catch (const index::unique_constraint_violation& e)
     {
-        decision = session_event_t::DECIDE_TXN_ABORT_UNIQUE;
+        // Rollback our transaction in case of constraint violations.
+        // This is because such failures happen in the early pre-commit phase.
+        txn_rollback();
+
+        decision = session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE;
     }
 
     // Server-initiated state transition! (Any issues with reentrant handlers?)
@@ -372,7 +376,7 @@ void server_t::handle_decide_txn(
     ASSERT_PRECONDITION(
         event == session_event_t::DECIDE_TXN_COMMIT
             || event == session_event_t::DECIDE_TXN_ABORT
-            || event == session_event_t::DECIDE_TXN_ABORT_UNIQUE,
+            || event == session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE,
         c_message_unexpected_event_received);
 
     ASSERT_PRECONDITION(
