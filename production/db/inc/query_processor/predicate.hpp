@@ -21,6 +21,8 @@ namespace scan
 
 using serialized_index_query_t = flatbuffers::Offset<void>;
 
+constexpr int c_null_predicate = 0;
+
 // Default index predicate results in a full scan.
 class index_predicate_t
 {

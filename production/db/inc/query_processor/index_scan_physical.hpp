@@ -22,6 +22,7 @@
 #include "index.hpp"
 #include "qp_operator.hpp"
 #include "range_index.hpp"
+#include "scan_generators.hpp"
 
 namespace gaia
 {

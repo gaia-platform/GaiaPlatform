@@ -10,7 +10,8 @@ project(query_processor)
 add_library(gaia_qp STATIC
   src/qp_operator.cpp
   src/index_scan.cpp
-  src/predicate.cpp)
+  src/predicate.cpp
+  src/scan_generators.cpp)
 
 set(GAIA_QP_PRIVATE_INCLUDES
   "${GAIA_REPO}/production/db/core/inc"
@@ -25,9 +26,7 @@ set(GAIA_QP_PRIVATE_INCLUDES
 
 target_include_directories(gaia_qp PRIVATE ${GAIA_QP_PRIVATE_INCLUDES})
 
-target_link_libraries(gaia_qp PRIVATE gaia_db_client)
-target_link_libraries(gaia_qp PRIVATE gaia_catalog)
-target_link_libraries(gaia_qp PRIVATE gaia_index)
+target_link_libraries(gaia_qp PRIVATE gaia_db_client gaia_catalog gaia_index)
 
 set(QP_TEST_INCLUDES
   ${GAIA_QP_PRIVATE_INCLUDES}

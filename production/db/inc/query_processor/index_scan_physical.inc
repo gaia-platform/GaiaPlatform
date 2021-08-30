@@ -17,7 +17,7 @@ bool base_index_scan_physical_t::is_visible(const db::index::index_record_t& rec
 template <typename T_index, typename T_index_iterator>
 void index_scan_physical_t<T_index, T_index_iterator>::init()
 {
-    auto rec_generator = db::client_t::get_record_generator_for_index(m_index_id, db_client_proxy_t::get_current_txn_id(), m_predicate);
+    auto rec_generator = scan_generator_t::get_record_generator_for_index(m_index_id, db_client_proxy_t::get_current_txn_id(), m_predicate);
 
     // Only return visible records from remote.
     m_remote_it = remote_scan_iterator_t(

@@ -28,7 +28,7 @@ gaia::db::messages::index_query_t index_predicate_t::query_type() const
 
 serialized_index_query_t index_predicate_t::as_query(flatbuffers::FlatBufferBuilder&) const
 {
-    return 0;
+    return c_null_predicate;
 }
 
 index_point_read_predicate_t::index_point_read_predicate_t(index::index_key_t index_key)
