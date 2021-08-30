@@ -302,7 +302,7 @@ TEST_F(index_test, rollback_transaction)
     flight_t::insert_row(first_flight_number, {});
     txn.commit();
 
-    // Insert a second key and the attempt to re-insert the first key.
+    // Insert a second key and then attempt to re-insert the first key.
     // We should trigger the conflict and our transactions should be rolled back.
     flight_t::insert_row(second_flight_number, {});
     flight_t::insert_row(first_flight_number, {});
