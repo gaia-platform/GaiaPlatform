@@ -419,7 +419,7 @@ create table t2(a2 int16, c2 int32, link2 references t1 where t1.c1 = t2.c2);
     for (const auto& ddl : ddls)
     {
         ddl::parser_t parser;
-        ASSERT_NO_THROW(parser.parse_line(ddl));
+        ASSERT_NO_THROW(parser.parse_string(ddl));
         ASSERT_THROW(execute(parser.statements), invalid_field_map);
     }
 }
