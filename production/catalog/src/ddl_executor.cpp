@@ -271,8 +271,8 @@ void ddl_executor_t::bootstrap_catalog()
             static_cast<gaia_type_t>(system_table_type_t::event_log));
     }
 
-    // Create the special global database.
-    // Tables created without specifying a database name will belong to the global database.
+    // Create the special empty database. Tables created without specifying a
+    // database name will be created in it.
     m_empty_db_id = create_database(c_empty_db_name, false);
     m_db_context = c_empty_db_name;
     txn.commit();
