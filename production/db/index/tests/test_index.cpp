@@ -278,7 +278,7 @@ protected:
 
 // This test is disabled until we can add the proper error handling
 // to the server logic, so it can communicate expected errors back to the client.
-TEST_F(index_test, duplicate_key)
+TEST_F(index_test, unique_constraint)
 {
     const int32_t flight_number = 1766;
 
@@ -291,9 +291,7 @@ TEST_F(index_test, duplicate_key)
     EXPECT_THROW(txn.commit(), unique_constraint_violation);
 }
 
-// This test is disabled until we can add the proper error handling
-// to the server logic, so it can communicate expected errors back to the client.
-TEST_F(index_test, rollback_transaction)
+TEST_F(index_test, unique_constraint_rollback_transaction)
 {
     const int32_t first_flight_number = 1766;
     const int32_t second_flight_number = 1767;
