@@ -1,4 +1,4 @@
-// RUN: not %gaiat %s -- 2>&1
+// RUN: %gaiat %s -- 2>&1
 
 ruleset test1
 {
