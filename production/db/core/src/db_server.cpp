@@ -21,6 +21,8 @@
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 
+#include "gaia/exceptions.hpp"
+
 #include "gaia_internal/common/memory_allocation_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
@@ -77,7 +79,6 @@ static constexpr char c_message_validating_txn_should_have_been_validated[]
     = "The txn being tested can only have its log fd invalidated if the validating txn was validated!";
 static constexpr char c_message_preceding_txn_should_have_been_validated[]
     = "A transaction with commit timestamp preceding this transaction's begin timestamp is undecided!";
-static constexpr char c_message_uninitialized_txn_log[] = "Uninitialized transaction log!";
 
 server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd)
     : m_auto_close_fd(auto_close_fd)
@@ -318,7 +319,7 @@ void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<
 }
 
 void server_t::handle_rollback_txn(
-    int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    int* /*fds*/, size_t /*fd_count*/, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::ROLLBACK_TXN, c_message_unexpected_event_received);
 
@@ -338,7 +339,7 @@ void server_t::handle_rollback_txn(
 }
 
 void server_t::handle_commit_txn(
-    int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    int* /*fds*/, size_t /*fd_count*/, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::COMMIT_TXN, c_message_unexpected_event_received);
 
@@ -350,9 +351,16 @@ void server_t::handle_commit_txn(
     ASSERT_PRECONDITION(s_log.is_set(), c_message_uninitialized_log_fd);
 
     // Actually commit the transaction.
-    bool success = txn_commit();
-
-    session_event_t decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
+    session_event_t decision = session_event_t::NOP;
+    try
+    {
+        bool success = txn_commit();
+        decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
+    }
+    catch (const index::unique_constraint_violation& e)
+    {
+        decision = session_event_t::DECIDE_TXN_ABORT_UNIQUE;
+    }
 
     // Server-initiated state transition! (Any issues with reentrant handlers?)
     apply_transition(decision, nullptr, nullptr, 0);
@@ -362,7 +370,9 @@ void server_t::handle_decide_txn(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(
-        event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT,
+        event == session_event_t::DECIDE_TXN_COMMIT
+            || event == session_event_t::DECIDE_TXN_ABORT
+            || event == session_event_t::DECIDE_TXN_ABORT_UNIQUE,
         c_message_unexpected_event_received);
 
     ASSERT_PRECONDITION(

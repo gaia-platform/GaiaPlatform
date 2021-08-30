@@ -17,6 +17,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
+#include "gaia/exceptions.hpp"
+
 #include "gaia_internal/common/memory_allocation_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
@@ -560,7 +562,9 @@ void client_t::commit_transaction()
     // Extract the commit decision from the server's reply and return it.
     session_event_t event = client_messenger.server_reply()->event();
     ASSERT_INVARIANT(
-        event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT,
+        event == session_event_t::DECIDE_TXN_COMMIT
+            || event == session_event_t::DECIDE_TXN_ABORT
+            || event == session_event_t::DECIDE_TXN_ABORT_UNIQUE,
         c_message_unexpected_event_received);
 
     const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
@@ -587,6 +591,12 @@ void client_t::commit_transaction()
         // rollback_chunk_manager_allocations();
 
         throw transaction_update_conflict();
+    }
+    // Improving the communication of such errors to the client is tracked by:
+    // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1232
+    else if (event == session_event_t::DECIDE_TXN_ABORT_UNIQUE)
+    {
+        throw index::unique_constraint_violation();
     }
 
     // TODO: The commit of chunk managers should be done by the server.

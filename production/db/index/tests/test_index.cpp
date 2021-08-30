@@ -278,7 +278,7 @@ protected:
 
 // This test is disabled until we can add the proper error handling
 // to the server logic, so it can communicate expected errors back to the client.
-TEST_F(index_test, DISABLED_duplicate_key)
+TEST_F(index_test, duplicate_key)
 {
     const int32_t flight_number = 1766;
 
@@ -287,5 +287,5 @@ TEST_F(index_test, DISABLED_duplicate_key)
     txn.commit();
 
     flight_id = flight_t::insert_row(flight_number, {});
-    txn.commit();
+    EXPECT_THROW(txn.commit(), unique_constraint_violation);
 }
