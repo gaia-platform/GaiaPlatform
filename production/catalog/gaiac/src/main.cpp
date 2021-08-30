@@ -100,7 +100,7 @@ void start_repl(parser_t& parser)
 
             if (rtrim(line).back() == ';')
             {
-                parser.parse_line(ddl_buffer + line);
+                parser.parse_string(ddl_buffer + line);
                 execute(parser.statements);
                 ddl_buffer = "";
             }
