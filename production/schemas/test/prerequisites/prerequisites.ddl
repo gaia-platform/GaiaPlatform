@@ -3,11 +3,9 @@
 -- All rights reserved.
 ---------------------------------------------
 
-create database if not exists prerequisites;
+database prerequisites
 
-use prerequisites;
-
-create table if not exists student (
+table student (
     student_id string,
     surname string,
     age int32,
@@ -15,7 +13,7 @@ create table if not exists student (
     gpa float
 );
 
-create table if not exists parents (
+table parents (
     name_father string,
     name_mother string
 );
@@ -25,44 +23,44 @@ create relationship if not exists student_parents (
     parents.student -> student
 );
 
-create table if not exists course (
+table course (
     course_id string,
     name string,
     hours int32
 );
 
-create table if not exists registration (
+table registration (
     reg_id string,
     status string,
     grade float
 );
 
-create relationship if not exists student_reg (
+relationship student_reg (
     student.registrations -> registration[],
     registration.registered_student -> student
 );
 
-create relationship if not exists course_reg (
+relationship course_reg (
     course.registrations -> registration[],
     registration.registered_course -> course
 );
 
-create table if not exists prereq (
+table prereq (
     prereq_id string,
     min_grade float
 );
 
-create relationship if not exists prereq_course (
+relationship prereq_course (
     course.required_by -> prereq[],
     prereq.prereq -> course
 );
 
-create relationship if not exists course_prereq (
+relationship course_prereq (
     course.requires -> prereq[],
     prereq.course -> course
 );
 
-create table if not exists enrollment_log (
+table enrollment_log (
     log_student_id string,
     log_surname string,
     log_age int32,
@@ -70,4 +68,4 @@ create table if not exists enrollment_log (
     log_name string,
     log_hours int32,
     log_reg_id string
-);
+)

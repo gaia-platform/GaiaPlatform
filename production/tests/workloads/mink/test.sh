@@ -56,7 +56,7 @@ show_usage() {
     echo "  -nt,--num-threads <threads> Number of threads to use for the rule engine.  If '0' is"
     echo "                              specified, then the number of threads is set to maximum."
     echo "  -vv,--very-verbose          Verbose for this script and any top level scripts it calls."
-    echo "  -v,--verbose                Show lots of information while executing the project."
+    echo "  -v,--verbose                Display detailed information during execution."
     echo "  -h,--help                   Display this help text."
     echo "Arguments:"
     echo "  test-name                   Optional name of the test to run.  (Default: 'smoke')"

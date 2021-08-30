@@ -5,7 +5,6 @@
 # All rights reserved.
 #############################################
 
-
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -209,7 +208,7 @@ verify_correct_pipenv_installed() {
 }
 
 # Lint the python scripts.
-lint_python_scipts() {
+lint_python_scripts() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Applying formatting to the Python parts of the $PROJECT_NAME project."
     fi
@@ -276,12 +275,9 @@ lint_shell_scripts() {
 }
 
 
-
 # Set up any global script variables.
 # shellcheck disable=SC2164
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-# shellcheck disable=SC1091 source=./properties.sh
-source "$SCRIPTPATH/properties.sh"
 
 # Set up any project based local script variables.
 TEMP_FILE=/tmp/$PROJECT_NAME.lint.tmp
@@ -292,9 +288,9 @@ TEMP_FILE=/tmp/$PROJECT_NAME.lint.tmp
 parse_command_line "$@"
 
 # Verify that we have the right tools installed.
-verify_correct_clang_format_installed
-verify_correct_clang_tidy_installed
-verify_correct_pipenv_installed
+# verify_correct_clang_format_installed
+# verify_correct_clang_tidy_installed
+# verify_correct_pipenv_installed
 verify_correct_shellcheck_installed
 
 # Clean entrance into the script.
@@ -303,8 +299,8 @@ start_process
 save_current_directory
 
 # Lint the various parts of the project.
-lint_c_plus_plus_code
-lint_python_scipts
+# lint_c_plus_plus_code
+# lint_python_scripts
 lint_shell_scripts
 
 complete_process 0

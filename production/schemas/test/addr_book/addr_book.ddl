@@ -49,4 +49,4 @@ table internet_contract (
 table customer (
     name string,
     sales_by_quarter int32[]
-);
+)

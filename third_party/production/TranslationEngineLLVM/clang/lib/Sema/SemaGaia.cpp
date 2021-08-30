@@ -729,12 +729,12 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targe
         SmallVector<QualType, 8> parameters;
         parameters.push_back(connectDisconnectParamRef);
 
-        addMethod(&Context.Idents.get("connect"), DeclSpec::TST_bool, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
+        addMethod(&Context.Idents.get("connect"), DeclSpec::TST_void, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
 
         // The disconnect with argument is available only 1:n relationships.
         if (is_one_to_many)
         {
-            addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_bool, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
+            addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_void, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
         }
     }
 
@@ -742,7 +742,7 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targe
     //  person.mother.disconnect();
     if (!is_one_to_many && !sourceTableDecl->hasAttr<GaiaTableAttr>())
     {
-        addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_bool, {}, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
+        addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_void, {}, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
     }
 }
 

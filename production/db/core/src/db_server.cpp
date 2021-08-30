@@ -927,6 +927,17 @@ void server_t::init_listening_socket(const std::string& socket_name)
     socklen_t server_addr_size = sizeof(server_addr.sun_family) + 1 + ::strlen(&server_addr.sun_path[1]);
     if (-1 == ::bind(listening_socket, reinterpret_cast<struct sockaddr*>(&server_addr), server_addr_size))
     {
+        // TODO it would be nice to have a common error handler that can handle common errors.
+        if (errno == EADDRINUSE)
+        {
+            cerr << "ERROR: bind() failed! - " << (::strerror(errno)) << endl;
+            cerr << "The " << c_db_server_name
+                 << " cannot start because another instance is already running.\n"
+                    "Stop any instances of the server and try again."
+                 << endl;
+            exit(1);
+        }
+
         throw_system_error("bind() failed!");
     }
     if (-1 == ::listen(listening_socket, 0))
