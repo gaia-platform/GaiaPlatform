@@ -10,49 +10,55 @@ table student (
     surname string,
     age int32,
     total_hours int32,
-    gpa float,
-    parents references parents,
-    registrations references registration[]
-)
+    gpa float
+);
 
 table parents (
     name_father string,
-    name_mother string,
-    student references student
-)
+    name_mother string
+);
+
+create relationship if not exists student_parents (
+    student.parents -> parents,
+    parents.student -> student
+);
 
 table course (
     course_id string,
     name string,
     hours int32
-)
+);
 
 table registration (
     reg_id string,
     status string,
-    grade string,
-    registered_student references student
-)
+    grade float
+);
+
+relationship student_reg (
+    student.registrations -> registration[],
+    registration.registered_student -> student
+);
 
 relationship course_reg (
     course.registrations -> registration[],
     registration.registered_course -> course
-)
+);
 
 table prereq (
     prereq_id string,
-    min_grade string
-)
+    min_grade float
+);
 
 relationship prereq_course (
     course.required_by -> prereq[],
     prereq.prereq -> course
-)
+);
 
 relationship course_prereq (
     course.requires -> prereq[],
     prereq.course -> course
-)
+);
 
 table enrollment_log (
     log_student_id string,

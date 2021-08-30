@@ -2,8 +2,6 @@
 
 #include "tags_test.h"
 
-// #define TEST_FAILURES
-
 ruleset test
 {
 }
@@ -75,7 +73,7 @@ public:
     }
 };
 
-// GAIAPLAT-911
+// GAIAPLAT-911 (fixed)
 ruleset test7
 {
     on_change(sensor)
@@ -125,8 +123,7 @@ ruleset test10
 }
 
 // This is legal? But has error (duplicate 'name' fields).
-// GAIAPLAT-796
-#ifdef TEST_FAILURES
+// GAIAPLAT-796 (fixed)
 ruleset test11 : tables(sensor)
 {
     on_update(name)
@@ -134,7 +131,6 @@ ruleset test11 : tables(sensor)
         use_string(name);
     }
 }
-#endif
 
 ruleset test12
 {
@@ -145,7 +141,7 @@ ruleset test12
         {
             i = 1;
         }
-// GAIAPLAT-988
+// GAIAPLAT-988 (fixed)
         nomatch
         {
             i = 2;

@@ -808,6 +808,12 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
             isUnaryExpression, isAddressOfOperand, NotCastExpr,
             isTypeCast, isVectorLiteral);
         }
+        else if (NextToken().is(tok::at) &&
+        (getPreviousToken(Tok).is(tok::at) || !(getPreviousToken(Tok).isOneOf(tok::numeric_constant, tok::identifier, tok::r_paren, tok::r_square))))
+        {
+          NotCastExpr = true;
+          return ExprError();
+        }
     }
     else
     {
@@ -1472,9 +1478,9 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
     return ParseExpressionTrait();
 
   case tok::at: {
+    SourceLocation AtLoc = ConsumeToken();
     if (getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope())
     {
-      SourceLocation atTok = ConsumeToken();
       if (Tok.isOneOf(tok::identifier, tok::slash))
       {
         ExprResult expr =  ParseCastExpression(isUnaryExpression,
@@ -1525,14 +1531,14 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
             }
             else
             {
-              return ExprError(Diag(atTok, diag::err_unexpected_at));
+              return ExprError(Diag(AtLoc, diag::err_unexpected_at));
             }
           }
           return expr;
         }
         else
         {
-          return ExprError(Diag(atTok, diag::err_unexpected_at));
+          return ExprError(Diag(AtLoc, diag::err_unexpected_at));
         }
       }
       else
@@ -1541,7 +1547,6 @@ ExprResult Parser::ParseCastExpression(bool isUnaryExpression,
       }
     }
 
-    SourceLocation AtLoc = ConsumeToken();
     return ParseObjCAtExpression(AtLoc);
   }
   case tok::caret:

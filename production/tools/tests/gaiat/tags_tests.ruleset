@@ -2,8 +2,6 @@
 
 #include "tags_test.h"
 
-// #define TEST_FAILURES
-
 ruleset test1
 {
     on_insert(I:incubator)
@@ -242,9 +240,9 @@ ruleset test21
     }
 }
 
-// GAIAPLAT-951
+// GAIAPLAT-951 (won't do)
 // Dereference confused with tag usage.
-#ifdef TEST_FAILURES
+#ifdef TEST_FAILURES // GAIAPLAT-951 (won't do)
 ruleset test22
 {
     {

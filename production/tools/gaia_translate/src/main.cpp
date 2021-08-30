@@ -259,7 +259,6 @@ void get_variable_name(string& variable_name, string& table_name, explicit_path_
 
     if (explicit_path_data.tag_table_map.find(variable_name) == explicit_path_data.tag_table_map.end())
     {
-        variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
         explicit_path_data.tag_table_map[variable_name] = table_name;
     }
     explicit_path_data.variable_name = variable_name;
@@ -708,10 +707,10 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
         {
             continue_label = continue_label_iterator->second;
         }
-        for (const auto& data_iterator : explicit_path_data_iterator.second)
+        for (auto data_iterator = explicit_path_data_iterator.second.rbegin(); data_iterator != explicit_path_data_iterator.second.rend(); data_iterator++)
         {
             string anchor_table_name = get_table_name(
-                get_table_from_expression(anchor_table), data_iterator.tag_table_map);
+                get_table_from_expression(anchor_table), data_iterator->tag_table_map);
 
             SourceRange variable_declaration_range;
             for (const auto& variable_declaration_range_iterator : g_variable_declaration_location)
@@ -724,8 +723,8 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 if (is_range_contained_in_another_range(
                         explicit_path_data_iterator.first, variable_declaration_range_iterator.first))
                 {
-                    if (data_iterator.tag_table_map.find(variable_name) != data_iterator.tag_table_map.end()
-                        || is_tag_defined(data_iterator.defined_tags, variable_name))
+                    if (data_iterator->tag_table_map.find(variable_name) != data_iterator->tag_table_map.end()
+                        || is_tag_defined(data_iterator->defined_tags, variable_name))
                     {
                         gaiat::diag().emit(variable_declaration_range_iterator.first.getBegin(), diag::warn_tag_hidden) << variable_name;
                     }
@@ -735,11 +734,11 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                     {
                         string table_name = get_table_name(
                             get_table_from_expression(
-                                data_iterator.path_components.front()),
-                            data_iterator.tag_table_map);
+                                data_iterator->path_components.front()),
+                            data_iterator->tag_table_map);
 
-                        if (data_iterator.path_components.size() == 1
-                            && table_name == anchor_table_name && !data_iterator.is_absolute_path)
+                        if (data_iterator->path_components.size() == 1
+                            && table_name == anchor_table_name && !data_iterator->is_absolute_path)
                         {
                             auto declaration_source_range_size = variable_declaration_range_iterator.first.getEnd().getRawEncoding() - variable_declaration_range_iterator.first.getBegin().getRawEncoding();
                             auto min_declaration_source_range_size = variable_declaration_range.getEnd().getRawEncoding() - variable_declaration_range.getBegin().getRawEncoding();
@@ -760,35 +759,10 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
 
             if (variable_declaration_range.isValid())
             {
-                string declaration_code = rewriter.getRewrittenText(variable_declaration_range);
-                if (!declaration_code.empty())
-                {
-                    size_t start_position = declaration_code.find(data_iterator.variable_name);
-                    if (start_position != std::string::npos)
-                    {
-                        const auto& table_data = table_navigation_t::get_table_data();
-                        auto anchor_table_data_itr = table_data.find(anchor_table_name);
-
-                        if (anchor_table_data_itr == table_data.end())
-                        {
-                            return;
-                        }
-
-                        string replacement_code
-                            = string("gaia::")
-                                  .append(anchor_table_data_itr->second.db_name)
-                                  .append("::")
-                                  .append(anchor_table_name)
-                                  .append("_t::get(context->record)");
-
-                        declaration_code.replace(start_position, data_iterator.variable_name.length(), replacement_code);
-                        rewriter.ReplaceText(variable_declaration_range, declaration_code);
-                        continue;
-                    }
-                }
+                continue;
             }
 
-            if (data_iterator.skip_implicit_path_generation && data_iterator.path_components.size() == 1)
+            if (data_iterator->skip_implicit_path_generation && data_iterator->path_components.size() == 1)
             {
                 continue;
             }
@@ -797,7 +771,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
             // might be reported.
             gaiat::diag().set_location(explicit_path_data_iterator.first.getBegin());
             navigation_code_data_t navigation_code = table_navigation_t::generate_explicit_navigation_code(
-                anchor_table, data_iterator);
+                anchor_table, *data_iterator);
             if (navigation_code.prefix.empty())
             {
                 g_is_generation_error = true;
@@ -821,11 +795,11 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
             //...............Navigation code for x
             // l1_break:
 
-            if (!break_label.empty() && &data_iterator == &explicit_path_data_iterator.second.back())
+            if (!break_label.empty() && &(*data_iterator) == &explicit_path_data_iterator.second.back())
             {
                 navigation_code.postfix += "\n" + break_label + ":;\n";
             }
-            if (!continue_label.empty() && &data_iterator == &explicit_path_data_iterator.second.back())
+            if (!continue_label.empty() && &(*data_iterator) == &explicit_path_data_iterator.second.back())
             {
                 navigation_code.postfix = "\n" + continue_label + ":;\n" + navigation_code.postfix;
             }
@@ -1003,7 +977,8 @@ void generate_table_subscription(
             if (!data_iterator.is_absolute_path)
             {
                 string first_component_table = get_table_from_expression(data_iterator.path_components.front());
-                if (data_iterator.tag_table_map.find(first_component_table) == data_iterator.tag_table_map.end() || is_tag_defined(data_iterator.defined_tags, first_component_table) || g_attribute_tag_map.find(first_component_table) != g_attribute_tag_map.end())
+                const auto tag_iterator = data_iterator.tag_table_map.find(first_component_table);
+                if (tag_iterator == data_iterator.tag_table_map.end() || tag_iterator->first == tag_iterator->second || is_tag_defined(data_iterator.defined_tags, first_component_table) || g_attribute_tag_map.find(first_component_table) != g_attribute_tag_map.end())
                 {
                     is_absolute_path_only = false;
                     break;
@@ -1012,9 +987,11 @@ void generate_table_subscription(
         }
     }
 
+    bool is_anchor_generation_required = true;
     if (!g_is_rule_context_rule_name_referenced && (is_absolute_path_only || g_expression_explicit_path_data.empty()))
     {
         function_prologue.append("(const gaia::rules::rule_context_t*)\n");
+        is_anchor_generation_required = false;
     }
     else
     {
@@ -1028,6 +1005,35 @@ void generate_table_subscription(
             rewriter.InsertTextAfterToken(
                 g_current_rule_declaration->getLocation(),
                 "\nstatic const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
+        }
+        if (is_anchor_generation_required)
+        {
+            const auto& table_data = table_navigation_t::get_table_data();
+            auto anchor_table_data_itr = table_data.find(table);
+
+            if (anchor_table_data_itr == table_data.end())
+            {
+                return;
+            }
+            string anchor_code = string("auto ")
+                                     .append(table)
+                                     .append(" = gaia::")
+                                     .append(anchor_table_data_itr->second.db_name)
+                                     .append("::")
+                                     .append(table)
+                                     .append("_t::get(context->record);\nif(")
+                                     .append(table)
+                                     .append(")\n{\n");
+            for (const auto& attribute_tag_iterator : g_attribute_tag_map)
+            {
+                anchor_code.append("auto ")
+                    .append(attribute_tag_iterator.first)
+                    .append(" = ")
+                    .append(table)
+                    .append(";\n");
+            }
+            rewriter.InsertTextAfterToken(g_current_rule_declaration->getLocation(), anchor_code);
+            rewriter.InsertTextBefore(g_current_rule_declaration->getEndLoc(), "\n}\n");
         }
         if (g_rule_attribute_source_range.isValid())
         {
@@ -1577,6 +1583,7 @@ void update_expression_explicit_path_data(
     {
         return;
     }
+    auto explicit_path_data_iterator = g_expression_explicit_path_data.find(expression_source_range);
     for (auto& expression_explicit_path_data_iterator : g_expression_explicit_path_data)
     {
         if (is_range_contained_in_another_range(expression_explicit_path_data_iterator.first, expression_source_range))
@@ -1587,18 +1594,19 @@ void update_expression_explicit_path_data(
                 {
                     return;
                 }
+                optimize_path(expression_explicit_path_data_iterator.second, data);
                 if (expression_explicit_path_data_iterator.first == expression_source_range
                     || should_expression_location_be_merged(context, *node))
                 {
                     expression_explicit_path_data_iterator.second.push_back(data);
                     return;
                 }
-                optimize_path(expression_explicit_path_data_iterator.second, data);
             }
             else
             {
                 string first_component = get_table_from_expression(data.path_components.front());
-                if (data.tag_table_map.find(first_component) != data.tag_table_map.end())
+                const auto tag_iterator = data.tag_table_map.find(first_component);
+                if (tag_iterator != data.tag_table_map.end() && (tag_iterator->second != tag_iterator->first || explicit_path_data_iterator != g_expression_explicit_path_data.end()))
                 {
                     data.skip_implicit_path_generation = true;
                 }
@@ -1615,7 +1623,6 @@ void update_expression_explicit_path_data(
     }
     path_data.push_back(data);
 
-    auto explicit_path_data_iterator = g_expression_explicit_path_data.find(expression_source_range);
     if (explicit_path_data_iterator == g_expression_explicit_path_data.end())
     {
         g_expression_explicit_path_data[expression_source_range] = path_data;
@@ -1770,7 +1777,7 @@ public:
             variable_name = expression->getNameInfo().getAsString();
             if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
             {
-                variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
+                variable_name = table_name;
                 explicit_path_present = false;
                 expression_source_range = SourceRange(expression->getLocation(), expression->getEndLoc());
                 g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
@@ -1808,7 +1815,6 @@ public:
 
                 if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
                 {
-                    variable_name = table_navigation_t::get_variable_name(variable_name, explicit_path_data.tag_table_map);
                     explicit_path_present = false;
                     expression_source_range
                         = SourceRange(
@@ -1966,7 +1972,7 @@ public:
             }
             table_name = get_table_name(operator_declaration);
             field_name = operator_declaration->getName().str();
-            variable_name = table_navigation_t::get_variable_name(table_name, unordered_map<string, string>());
+            variable_name = table_name;
             if (!get_explicit_path_data(operator_declaration, explicit_path_data, set_source_range))
             {
                 explicit_path_present = false;
@@ -1978,6 +1984,18 @@ public:
                 variable_name = get_table_from_expression(explicit_path_data.path_components.back());
                 get_variable_name(variable_name, table_name, explicit_path_data);
                 update_used_dbs(explicit_path_data);
+            }
+            if (operator_declaration->hasAttr<GaiaFieldValueAttr>())
+            {
+                if (!explicit_path_present)
+                {
+                    set_source_range = SourceRange(set_source_range.getBegin().getLocWithOffset(-1), set_source_range.getEnd());
+                }
+                gaiat::diag().set_location(set_source_range.getBegin());
+                if (!validate_and_add_active_field(table_name, field_name, true))
+                {
+                    return;
+                }
             }
         }
         else
@@ -1996,7 +2014,6 @@ public:
 
             if (!get_explicit_path_data(decl, explicit_path_data, set_source_range))
             {
-                variable_name = table_navigation_t::get_variable_name(variable_name, explicit_path_data.tag_table_map);
                 explicit_path_present = false;
                 set_source_range.setBegin(member_expression->getBeginLoc());
                 g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
@@ -2006,6 +2023,18 @@ public:
                 variable_name = get_table_from_expression(explicit_path_data.path_components.back());
                 get_variable_name(variable_name, table_name, explicit_path_data);
                 update_used_dbs(explicit_path_data);
+            }
+            if (decl->hasAttr<GaiaFieldValueAttr>())
+            {
+                if (!explicit_path_present)
+                {
+                    set_source_range = SourceRange(set_source_range.getBegin().getLocWithOffset(-1), set_source_range.getEnd());
+                }
+                gaiat::diag().set_location(set_source_range.getBegin());
+                if (!validate_and_add_active_field(table_name, field_name, true))
+                {
+                    return;
+                }
             }
         }
         tok::TokenKind token_kind;
@@ -2216,7 +2245,7 @@ public:
             variable_name = declaration_expression->getNameInfo().getAsString();
             if (!get_explicit_path_data(operator_declaration, explicit_path_data, operator_source_range))
             {
-                variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
+                variable_name = table_name;
                 explicit_path_present = false;
                 g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
             }
@@ -2242,7 +2271,6 @@ public:
             variable_name = declaration_expression->getNameInfo().getAsString();
             if (!get_explicit_path_data(operator_declaration, explicit_path_data, operator_source_range))
             {
-                variable_name = table_navigation_t::get_variable_name(variable_name, explicit_path_data.tag_table_map);
                 explicit_path_present = false;
                 g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
             }

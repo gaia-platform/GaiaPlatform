@@ -164,6 +164,11 @@ Retry:
   switch (Kind) {
   case tok::at: // May be a @try or @throw statement
     {
+      if (getLangOpts().Gaia && Actions.getCurScope()->isInRulesetScope() && GetLookAheadToken(1).is(tok::identifier))
+      {
+        return ParseExprStatement();
+      }
+
       ProhibitAttributes(Attrs); // TODO: is it correct?
       AtLoc = ConsumeToken();  // consume @
       return ParseObjCAtStatement(AtLoc);
