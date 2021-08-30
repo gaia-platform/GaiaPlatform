@@ -5,12 +5,21 @@
 
 #include "gtest/gtest.h"
 
+#include "gaia/exceptions.hpp"
+
+#include "gaia_internal/db/db_catalog_test_base.hpp"
+
 #include "data_holder.hpp"
+#include "gaia_airport.h"
 #include "hash_index.hpp"
 #include "range_index.hpp"
 
+using namespace gaia::airport;
+using namespace gaia::common;
+using namespace gaia::db;
 using namespace gaia::db::payload_types;
 using namespace gaia::db::index;
+using namespace gaia::direct_access;
 
 // Placeholder values for index records.
 constexpr gaia::db::gaia_txn_id_t c_fake_txn_id = 777;
@@ -258,4 +267,25 @@ TEST(index, key_hash_test)
 
     ASSERT_NE(index_key_hash{}(empty_key), index_key_hash{}(zero_key));
     ASSERT_NE(index_key_hash{}(zero_key), index_key_hash{}(double_zero_key));
+}
+
+class index_test : public db_catalog_test_base_t
+{
+protected:
+    index_test()
+        : db_catalog_test_base_t("airport.ddl"){};
+};
+
+// This test is disabled until we can add the proper error handling
+// to the server logic, so it can communicate expected errors back to the client.
+TEST_F(index_test, DISABLED_duplicate_key)
+{
+    const int32_t flight_number = 1766;
+
+    auto_transaction_t txn;
+    gaia_id_t flight_id = flight_t::insert_row(flight_number, {});
+    txn.commit();
+
+    flight_id = flight_t::insert_row(flight_number, {});
+    txn.commit();
 }
