@@ -9,24 +9,24 @@ project(query_processor)
 
 add_library(gaia_qp STATIC
   src/qp_operator.cpp
-  src/index_scan.cpp)
+  src/index_scan.cpp
+  src/predicate.cpp
+  src/scan_generators.cpp)
 
 set(GAIA_QP_PRIVATE_INCLUDES
-  "${PROJECT_SOURCE_DIR}/inc"
   "${GAIA_REPO}/production/db/core/inc"
   "${GAIA_INC}"
   "${GAIA_INTERNAL_INC}/index"
   "${GAIA_REPO}/production/db/inc/memory_manager"
   "${GAIA_REPO}/production/db/inc/payload_types"
   "${GAIA_REPO}/production/db/inc/index"
+  "${GAIA_REPO}/production/db/inc/query_processor"
   "${GAIA_PROD_BUILD}/db/core/generated"
   "${FLATBUFFERS_INC}")
 
 target_include_directories(gaia_qp PRIVATE ${GAIA_QP_PRIVATE_INCLUDES})
 
-target_link_libraries(gaia_qp PRIVATE gaia_db_client)
-target_link_libraries(gaia_qp PRIVATE gaia_catalog)
-target_link_libraries(gaia_qp PRIVATE gaia_index)
+target_link_libraries(gaia_qp PRIVATE gaia_db_client gaia_catalog gaia_index)
 
 set(QP_TEST_INCLUDES
   ${GAIA_QP_PRIVATE_INCLUDES}
