@@ -283,7 +283,7 @@ add_subdirectory(${GOOGLE_TEST} googletest EXCLUDE_FROM_ALL)
 
 # Setting clang-tidy here to avoid it being applied to flatbuffers, rocksdb etc...
 # TODO Maybe we could force each subproject to set this flag?
-set(CMAKE_CXX_CLANG_TIDY clang-tidy)
+set(CMAKE_CXX_CLANG_TIDY)
 
 # Add individual component folders.
 # These are listed roughly in a bottom-up order
@@ -310,7 +310,7 @@ add_subdirectory(tools)
 if(BUILD_GAIA_RELEASE)
   unset(CMAKE_CXX_CLANG_TIDY)
   add_subdirectory("${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm" llvm EXCLUDE_FROM_ALL)
-  set(CMAKE_CXX_CLANG_TIDY clang-tidy)
+  set(CMAKE_CXX_CLANG_TIDY)
 endif()
 
 # Query processors.

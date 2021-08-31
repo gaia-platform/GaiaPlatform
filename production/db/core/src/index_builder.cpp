@@ -231,7 +231,7 @@ void index_builder_t::update_index(
 
 void index_builder_t::populate_index(common::gaia_id_t index_id, common::gaia_type_t type_id, gaia_locator_t locator)
 {
-    auto payload = reinterpret_cast<uint8_t*>(locator_to_ptr(locator)->payload);
+    auto payload = reinterpret_cast<const uint8_t*>(locator_to_ptr(locator)->data());
     update_index(index_id, make_key(index_id, type_id, payload), make_insert_record(locator, locator_to_offset(locator)));
 }
 
