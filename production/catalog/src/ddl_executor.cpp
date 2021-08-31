@@ -394,9 +394,33 @@ gaia_id_t ddl_executor_t::create_relationship(
         throw many_to_many_not_supported(name);
     }
 
-    // The first link defines the parent and child in the relationship.
-    gaia_id_t parent_table_id = link1_src_table_id;
-    gaia_id_t child_table_id = link1_dest_table_id;
+    relationship_cardinality_t cardinality
+        = (link1.cardinality == relationship_cardinality_t::one
+           && link2.cardinality == relationship_cardinality_t::one)
+        ? relationship_cardinality_t::one
+        : relationship_cardinality_t::many;
+
+    gaia_id_t parent_table_id, child_table_id;
+    const char *to_parent_link_name, *to_child_link_name;
+
+    // The first link defines the parent and child in a one-to-one relationship.
+    // In a one-to-many relationship, the one-side is always parent. If the
+    // second link has singular cardinality, the first link will always define
+    // the parent and child in the relationship.
+    if (link2.cardinality == relationship_cardinality_t::one)
+    {
+        parent_table_id = link1_src_table_id;
+        child_table_id = link1_dest_table_id;
+        to_parent_link_name = link2.name.c_str();
+        to_child_link_name = link1.name.c_str();
+    }
+    else
+    {
+        parent_table_id = link2_src_table_id;
+        child_table_id = link2_dest_table_id;
+        to_parent_link_name = link1.name.c_str();
+        to_child_link_name = link2.name.c_str();
+    }
 
     uint8_t parent_available_offset = find_available_offset(parent_table_id);
     uint8_t child_available_offset;
@@ -410,9 +434,6 @@ gaia_id_t ddl_executor_t::create_relationship(
     {
         child_available_offset = find_available_offset(child_table_id);
     }
-
-    const char* to_parent_link_name = link2.name.c_str();
-    const char* to_child_link_name = link1.name.c_str();
 
     reference_offset_t first_child_offset = parent_available_offset;
 
@@ -450,6 +471,7 @@ gaia_id_t ddl_executor_t::create_relationship(
             throw invalid_field_map("The field's table(s) do not match the tables of the relationship");
         }
 
+        // Parent side fields must be unique.
         for (gaia_id_t field_id : parent_field_ids)
         {
             auto field = gaia_field_t::get(field_id);
@@ -460,7 +482,8 @@ gaia_id_t ddl_executor_t::create_relationship(
             }
         }
 
-        if (link1.cardinality == relationship_cardinality_t::one)
+        // In 1:1 relationships, child side fields also need to be unique.
+        if (cardinality == relationship_cardinality_t::one)
         {
             for (gaia_id_t field_id : child_field_ids)
             {
@@ -468,7 +491,7 @@ gaia_id_t ddl_executor_t::create_relationship(
                 if (!field.unique())
                 {
                     throw invalid_field_map(
-                        string("The field '") + field.name() + "' used in the relationship must be unique.");
+                        string("The field '") + field.name() + "' used in the 1:1 relationship must be unique.");
                 }
             }
         }
@@ -487,7 +510,7 @@ gaia_id_t ddl_executor_t::create_relationship(
         name.c_str(),
         to_parent_link_name,
         to_child_link_name,
-        static_cast<uint8_t>(link1.cardinality),
+        static_cast<uint8_t>(cardinality),
         is_parent_required,
         is_deprecated,
         first_child_offset,
