@@ -155,7 +155,7 @@ set(GAIA_DB_SERVER_SOURCES
   src/type_id_mapping.cpp)
 
 add_executable(gaia_db_server ${GAIA_DB_SERVER_SOURCES})
-add_dependencies(gaia_db_server "messages.fbs")
+add_dependencies(gaia_db_server "messages.fbs" "gaia_table.fbs" "gaia_field.fbs" "gaia_relationship.fbs" "gaia_index.fbs")
 target_link_libraries(gaia_db_server PUBLIC gaia_build_options)
 target_include_directories(gaia_db_server PRIVATE
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
