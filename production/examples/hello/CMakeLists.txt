@@ -41,7 +41,7 @@ include("${GAIA_ROOT}/cmake/gaia.cmake")
 set(HELLO_DDL ${PROJECT_SOURCE_DIR}/hello.ddl)
 set(HELLO_RULESET ${PROJECT_SOURCE_DIR}/hello.ruleset)
 
-# --- Generate EDC from DDL---
+# --- Generate Direct Access classes from DDL---
 process_schema(DDL_FILE ${HELLO_DDL})
 
 # -- Translate ruleset into CPP --

@@ -34,7 +34,7 @@ endif()
 set(INCUBATOR_DDL ${PROJECT_SOURCE_DIR}/incubator.ddl)
 set(INCUBATOR_RULESET ${PROJECT_SOURCE_DIR}/incubator.ruleset)
 
-# --- Generate EDC from DDL---
+# --- Generate Direct Access classes from DDL---
 process_schema(DDL_FILE ${INCUBATOR_DDL})
 
 # -- Translate ruleset into CPP --
