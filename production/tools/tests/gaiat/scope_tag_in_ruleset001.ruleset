@@ -1,0 +1,13 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test1
+{
+    on_insert(i:incubator)
+    {
+        for (/i:sensor)
+        {
+        }
+    }
+}
+
+// CHECK: Tag 'i' is already defined
