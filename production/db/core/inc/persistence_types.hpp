@@ -23,6 +23,22 @@ namespace db
 namespace persistence
 {
 
+enum class recovery_mode_t : uint8_t
+{
+    not_set = 0x0,
+
+    // Does not tolerate any IO failure when reading a log file; any
+    // IO error is treated as unrecoverable. Checkpointing does not tolerate any error.
+    checkpoint = 0x1,
+
+    // Stop recovery on first IO error. Database will always start and will try to recover as much
+    // committed data from the log as possible.
+    // Updates are logged one batch as a time; IO request results from a batch are validated
+    // first before marking any txn in the batch as durable (and returning a commit decision to the user);
+    // Thus ignore any txn after the last seen decision timestamp before encountering IO error.
+    finish_on_first_error = 0x2,
+};
+
 enum class record_type_t : uint8_t
 {
     not_set = 0x0,
@@ -66,6 +82,25 @@ struct record_header_t
     // For txn record, this represents the count of deleted objects.
     // For a decision record, this represents the number of decisions in the record's payload.
     uint32_t count;
+};
+
+struct read_record_t
+{
+    record_header_t header;
+    uint8_t payload[];
+};
+
+struct record_iterator_t
+{
+    uint8_t* cursor;
+    uint8_t* end;
+    uint8_t* stop_at;
+    uint8_t* begin;
+    void* mapped;
+    size_t map_size;
+    int file_fd;
+    recovery_mode_t recovery_mode;
+    bool halt_recovery;
 };
 
 struct log_file_info_t

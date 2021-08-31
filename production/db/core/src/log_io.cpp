@@ -326,6 +326,443 @@ void log_handler_t::create_txn_record(
     m_async_disk_writer->enqueue_pwritev_requests(writes_to_submit, m_current_file->get_file_fd(), m_current_file->get_current_offset(), uring_op_t::pwritev_txn);
 }
 
+void log_handler_t::register_write_to_persistent_store_fn(
+    std::function<void(db_object_t&)> write_obj_fn)
+{
+    write_to_persistent_store_fn = write_obj_fn;
+}
+
+void log_handler_t::register_remove_from_persistent_store_fn(
+    std::function<void(gaia_id_t)> remove_obj_fn)
+{
+    remove_from_persistent_store_fn = remove_obj_fn;
+}
+
+void log_handler_t::destroy_persistent_log(uint64_t max_log_seq_to_delete)
+{
+    // Done with recovery, delete all files.
+    for (const auto& file : std::filesystem::directory_iterator(s_wal_dir_path))
+    {
+        uint64_t file_seq = std::stoi(file.path().filename());
+        if (file_seq <= max_log_seq_to_delete)
+        {
+            std::filesystem::remove_all(file.path());
+        }
+    }
+}
+
+void log_handler_t::set_persistent_log_sequence(uint64_t log_seq)
+{
+    s_file_num = log_seq + 1;
+}
+
+void log_handler_t::recover_from_persistent_log(
+    gaia_txn_id_t& last_checkpointed_commit_ts,
+    uint64_t& last_processed_log_seq,
+    uint64_t max_log_seq_to_process,
+    recovery_mode_t mode)
+{
+    // Only relevant for checkpointing. Recovery doesn't care about the
+    // 'last_checkpointed_commit_ts' and will reset this field to zero.
+    // We don't persist txn ids across restarts.
+    m_max_decided_commit_ts = last_checkpointed_commit_ts;
+    std::cout << "Recovering from persistent log." << std::endl;
+    // Scan all files and read log records starting from the highest numbered file.
+    std::vector<uint64_t> log_files;
+    for (const auto& file : std::filesystem::directory_iterator(s_wal_dir_path))
+    {
+        ASSERT_INVARIANT(file.is_regular_file(), "Only expecting files in persistent log directory.");
+        // The file name is just the log sequence number.
+        log_files.push_back(std::stoi(file.path().filename()));
+    }
+
+    // Sort files in ascending order by file name.
+    sort(log_files.begin(), log_files.end());
+
+    // Apply txns from file.
+    uint64_t max_log_file_seq_to_delete = 0;
+    std::vector<int> files_to_close;
+    std::vector<std::pair<void*, size_t>> files_to_unmap;
+
+    auto file_cleanup = scope_guard::make_scope_guard([&]() {
+        for (auto fd : files_to_close)
+        {
+            close_fd(fd);
+        }
+
+        for (auto entry : files_to_unmap)
+        {
+            unmap_file(entry.first, entry.second);
+        }
+    });
+
+    for (auto file_seq : log_files)
+    {
+        ASSERT_PRECONDITION(file_seq > last_processed_log_seq, "Log file sequence number should be ");
+        if (file_seq > max_log_seq_to_process)
+        {
+            break;
+        }
+
+        // Ignore already processed files.
+        if (file_seq <= last_processed_log_seq)
+        {
+            std::cout << "Skipping sequence = " << file_seq << std::endl;
+            continue;
+        }
+
+        // Open file.
+        std::stringstream file_name;
+        file_name << s_wal_dir_path << "/" << file_seq;
+        auto file_fd = open(file_name.str().c_str(), O_RDONLY);
+
+        // Try to close fd as soon as possible.
+        auto file_cleanup = scope_guard::make_scope_guard([&]() {
+            close_fd(file_fd);
+        });
+
+        if (file_fd < 0)
+        {
+            throw_system_error("Unable to open persistent log file.", errno);
+        }
+
+        // mmap file.
+        record_iterator_t it;
+        map_log_file(&it, file_fd, mode);
+
+        // Try to unmap file as soon as possible.
+        auto mmap_cleanup = scope_guard::make_scope_guard([&]() {
+            unmap_file(&it.begin, it.map_size);
+        });
+
+        // halt_recovery is set to true in case an IO issue is encountered while reading the log.
+        auto halt_recovery = write_log_file_to_persistent_store(last_checkpointed_commit_ts, it);
+
+        // Skip unmapping and closing the file in case it has some unprocessed transactions.
+        if (txn_index.size() > 0)
+        {
+            files_to_close.push_back(file_fd);
+            files_to_unmap.push_back(std::pair(it.mapped, it.map_size));
+            mmap_cleanup.dismiss();
+            file_cleanup.dismiss();
+        }
+
+        if (mode == recovery_mode_t::checkpoint)
+        {
+            if (txn_index.size() == 0)
+            {
+                // Safe to delete this file as it doesn't have any more txns to write to the persistent store.
+                max_log_file_seq_to_delete = file_seq;
+                ASSERT_INVARIANT(decision_index.size() == 0, "Failed to process all persistent log records.");
+            }
+        }
+
+        if (halt_recovery)
+        {
+            ASSERT_INVARIANT(file_seq == log_files.back(), "We don't expect IO issues in intermediate log files.");
+            break;
+        }
+    }
+
+    if (log_files.size() > 0)
+    {
+        last_processed_log_seq = (mode == recovery_mode_t::checkpoint) ? max_log_file_seq_to_delete : log_files.back();
+    }
+
+    ASSERT_POSTCONDITION(decision_index.size() == 0, "Failed to process all persistent log records.");
+}
+
+size_t log_handler_t::get_remaining_txns_to_checkpoint_count()
+{
+    return txn_index.size();
+}
+
+bool log_handler_t::write_log_file_to_persistent_store(gaia_txn_id_t& last_checkpointed_commit_ts, record_iterator_t& it)
+{
+    // Iterate over records in file and write them to persistent store.
+    write_records(&it, last_checkpointed_commit_ts);
+
+    // Check that any remaining transactions have commit timestamp greater than the commit ts of the txn that was last written to the persistent store.
+    for (auto entry : txn_index)
+    {
+        ASSERT_INVARIANT(entry.first > last_checkpointed_commit_ts, "Expected to find decision record for txn.");
+    }
+
+    ASSERT_POSTCONDITION(decision_index.size() == 0, "Failed to process all persistent log records in log file.");
+
+    return it.halt_recovery;
+}
+
+void log_handler_t::write_log_record_to_persistent_store(read_record_t* record)
+{
+    if (record->header.record_type != record_type_t::txn)
+    {
+        if (record->header.record_type == record_type_t::decision)
+        {
+            std::cout << "RECORD TYPE WHEN WRITING TO PERSISTENT STORE = DEC" << std::endl;
+        }
+        else
+        {
+            std::cout << "RECORD TYPE WHEN WRITING TO PERSISTENT STORE = NOT SET" << std::endl;
+        }
+    }
+
+    ASSERT_PRECONDITION(record->header.record_type == record_type_t::txn, "Expected transaction record.");
+
+    auto payload_ptr = reinterpret_cast<uint8_t*>(record->payload);
+    auto start_ptr = payload_ptr;
+    auto end_ptr = reinterpret_cast<uint8_t*>(record) + record->header.payload_size;
+    auto deleted_ids_ptr = end_ptr - (sizeof(common::gaia_id_t) * record->header.count);
+
+    std::cout << "======= WRITING RECORD WITH TS ======= " << record->header.txn_commit_ts << " AND SIZE = " << record->header.payload_size << std::endl;
+    while (payload_ptr < deleted_ids_ptr)
+    {
+        auto obj_ptr = reinterpret_cast<db_object_t*>(payload_ptr);
+
+        ASSERT_INVARIANT(obj_ptr, "Object cannot be null.");
+        ASSERT_INVARIANT(obj_ptr->id != common::c_invalid_gaia_id, "Recovered id cannot be invalid.");
+        ASSERT_INVARIANT(obj_ptr->payload_size > 0, "Recovered object size should be greater than 0");
+        write_to_persistent_store_fn(*obj_ptr);
+
+        size_t requested_size = obj_ptr->payload_size + c_db_object_header_size;
+
+        size_t allocation_size = base_memory_manager_t::calculate_allocation_size(requested_size);
+
+        std::cout << "object size " << obj_ptr->payload_size << std::endl;
+        std::cout << "RECORD OFFSET IN CHUNK = " << payload_ptr - start_ptr << " AND ALLOC SIZE = " << allocation_size << " AND PAYLOAD SIZE = " << requested_size << std::endl;
+
+        // ASSERT_INVARIANT(payload_ptr + allocation_size < deleted_ids_ptr, "Object size cannot overflow outside txn record.");
+        payload_ptr += allocation_size;
+    }
+
+    for (size_t i = 0; i < record->header.count; i++)
+    {
+        ASSERT_INVARIANT(deleted_ids_ptr < end_ptr, "Txn content overflow.");
+        auto deleted_id = reinterpret_cast<common::gaia_id_t*>(deleted_ids_ptr);
+        ASSERT_INVARIANT(deleted_id, "Deleted ID cannot be null.");
+        ASSERT_INVARIANT(*deleted_id > 0, "Deleted ID cannot be invalid.");
+        remove_from_persistent_store_fn(*deleted_id);
+        deleted_ids_ptr += sizeof(common::gaia_id_t);
+    }
+}
+
+void log_handler_t::write_records(record_iterator_t* it, gaia_txn_id_t& last_checkpointed_commit_ts)
+{
+    size_t record_size = 0;
+
+    do
+    {
+        auto current_record_ptr = it->cursor;
+        record_size = update_cursor(it);
+
+        if (record_size == 0)
+        {
+            if (it->halt_recovery || it->cursor >= it->stop_at)
+            {
+                it->cursor = nullptr;
+                it->end = nullptr;
+                break;
+            }
+
+            ASSERT_INVARIANT(it->halt_recovery, "We don't expect empty records to be logged.");
+        }
+
+        // Todo: Don't cast structs directly, instead decode byte by byte.
+        read_record_t* record = reinterpret_cast<read_record_t*>(current_record_ptr);
+
+        if (record_size != 0 && record->header.record_type == record_type_t::decision)
+        {
+            // Decode decision record.
+            auto payload_ptr = current_record_ptr + sizeof(record_header_t);
+
+            // Obtain decisions. Decisions may not be in commit order, so sort and process them.
+            for (size_t i = 0; i < record->header.count; i++)
+            {
+                auto decision_entry = reinterpret_cast<decision_entry_t*>(payload_ptr);
+                if (decision_entry->commit_ts > last_checkpointed_commit_ts)
+                {
+                    ASSERT_INVARIANT(txn_index.count(decision_entry->commit_ts) > 0, "Transaction record should be written before the decision record.");
+                    decision_index.insert(std::pair(decision_entry->commit_ts, decision_entry->decision));
+                }
+                payload_ptr += sizeof(decision_entry_t);
+            }
+
+            // Iterare decisions.
+            for (auto decision_it = decision_index.cbegin(); decision_it != decision_index.cend();)
+            {
+                std::cout << "COMMIT TS FOR DEC IS = " << decision_it->first << std::endl;
+                ASSERT_INVARIANT(txn_index.count(decision_it->first) > 0, "Transaction record should be written before the decision record.");
+
+                auto txn_it = txn_index.find(decision_it->first);
+
+                // Only perform recovery and checkpointing for committed transactions.
+                if (decision_it->second == decision_type_t::commit)
+                {
+                    // Txn record is safe to be written to rocksdb at this point, since checksums for both
+                    // the txn & decision record were validated and we asserted that the txn record is written
+                    // before the decision record in the wal.
+                    write_log_record_to_persistent_store(reinterpret_cast<read_record_t*>(txn_it->second));
+                }
+
+                // Update 'last_checkpointed_commit_ts' in memory so it can later be written to persistent store.
+                last_checkpointed_commit_ts = std::max(last_checkpointed_commit_ts, decision_it->first);
+                std::cout << "Erasing decision = " << decision_it->first << std::endl;
+                txn_it = txn_index.erase(txn_it);
+                decision_it = decision_index.erase(decision_it);
+            }
+        }
+        else if (record_size != 0 && record->header.record_type == record_type_t::txn)
+        {
+            // Skip over records that have already been checkpointed.
+            if (record->header.txn_commit_ts <= last_checkpointed_commit_ts)
+            {
+                continue;
+            }
+            txn_index.insert(std::pair(record->header.txn_commit_ts, current_record_ptr));
+        }
+
+    } while (true);
+}
+
+size_t log_handler_t::update_cursor(struct record_iterator_t* it)
+{
+    if (it->cursor < it->stop_at)
+    {
+        size_t record_size = validate_recovered_record_crc(it);
+
+        // Recovery failure.
+        if (record_size == 0)
+        {
+            return 0;
+        }
+
+        it->cursor += record_size;
+        return record_size;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+size_t log_handler_t::validate_recovered_record_crc(struct record_iterator_t* it)
+{
+    auto destination = reinterpret_cast<read_record_t*>(it->cursor);
+    // std::cout << "RECOVERY: CURSOR = " << it->cursor - it->begin  << " AND RECORD = " << (uint8_t) destination->header.record_type << std::endl;
+
+    if (destination->header.payload_size == 0)
+    {
+        std::cout << "CRC = " << destination->header.crc << std::endl;
+        std::cout << "PAYLOAD SIZE = " << destination->header.payload_size << std::endl;
+        // std::cout << "COMMIT TS = " << destination->header.txn_commit_ts << std::endl;
+        std::cout << "halt here " << std::endl;
+    }
+    if (destination->header.crc == 0)
+    {
+        std::cout << "halt here 2" << std::endl;
+        if (is_remaining_file_empty(it->cursor, it->end))
+        {
+            // Stop processing the current log file.
+            it->stop_at = it->cursor;
+            return 0;
+        }
+
+        std::cout << "HEADER CRC zero." << std::endl;
+        if (it->recovery_mode == recovery_mode_t::checkpoint)
+        {
+            throw write_ahead_log_error("Read log record with empty checksum value.");
+        }
+        else if (it->recovery_mode == recovery_mode_t::finish_on_first_error)
+        {
+            // We expect all log files to be truncated to appropriate size, so halt recovery.
+            it->halt_recovery = true;
+            return 0;
+        }
+        else
+        {
+            ASSERT_INVARIANT(false, "Unexpected recovery mode.");
+        }
+    }
+
+    // CRC calculation requires manipulating the recovered record header's CRC;
+    // So create a copy of the header to avoid modifying the wal log once it has been written.
+    record_header_t header_copy;
+    memcpy(&header_copy, &destination->header, sizeof(record_header_t));
+
+    auto expected_crc = header_copy.crc;
+    header_copy.crc = c_crc_initial_value;
+
+    // First calculate CRC of header.
+    auto crc = calculate_crc32(0, &header_copy, sizeof(record_header_t));
+
+    // Calculate payload CRC.
+    crc = calculate_crc32(crc, destination->payload, header_copy.payload_size - sizeof(record_header_t));
+
+    if (crc != expected_crc)
+    {
+        std::cout << "CRC mismatch." << std::endl;
+        if (it->recovery_mode == recovery_mode_t::checkpoint)
+        {
+            throw write_ahead_log_error("Record checksum match failed!");
+        }
+
+        if (it->recovery_mode == recovery_mode_t::finish_on_first_error)
+        {
+            it->halt_recovery = true;
+            return 0;
+        }
+    }
+
+    return header_copy.payload_size;
+}
+
+void log_handler_t::map_log_file(struct record_iterator_t* it, int file_fd, recovery_mode_t recovery_mode)
+{
+    struct stat st;
+    read_record_t* wal_record;
+
+    if (fstat(file_fd, &st) == -1)
+    {
+        throw new write_ahead_log_error("failed to fstat wal file", errno);
+    }
+
+    auto first_data = lseek(file_fd, 0, SEEK_DATA);
+    ASSERT_INVARIANT(first_data == 0, "We don't expect any holes in the beginning to the wal files.");
+    ASSERT_INVARIANT(st.st_size > 0, "We don't expect to write empty persistent log files.");
+
+    gaia::common::map_fd_data(
+        wal_record,
+        st.st_size,
+        PROT_READ,
+        MAP_SHARED,
+        file_fd,
+        0);
+
+    *it = (struct record_iterator_t){
+        .cursor = (uint8_t*)wal_record,
+        .end = (uint8_t*)wal_record + st.st_size,
+        .stop_at = (uint8_t*)wal_record + st.st_size,
+        .begin = (uint8_t*)wal_record,
+        .mapped = wal_record,
+        .map_size = (size_t)st.st_size,
+        .file_fd = file_fd,
+        .recovery_mode = recovery_mode,
+        .halt_recovery = false};
+}
+
+bool log_handler_t::is_remaining_file_empty(uint8_t* start, uint8_t* end)
+{
+    auto remaining_size = end - start;
+    uint8_t zeroblock[remaining_size];
+    memset(zeroblock, 0, sizeof zeroblock);
+    return memcmp(zeroblock, start, remaining_size) == 0;
+}
+
+void log_handler_t::unmap_file(void* begin, size_t size)
+{
+    munmap(begin, size);
+}
+
 } // namespace persistence
 } // namespace db
 } // namespace gaia

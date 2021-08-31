@@ -764,8 +764,42 @@ void server_t::recover_persistent_log()
     {
         if (!s_log_handler)
         {
+            // std::cout << "Have initialized persistent log handler" << std::endl;
             ASSERT_INVARIANT(s_validate_persistence_batch_eventfd >= 0, "Invalid validate flush eventfd.");
-            s_log_handler = make_unique<persistence::log_handler_t>(s_server_conf.data_dir());
+            s_log_handler = make_unique<gaia::db::persistence::log_handler_t>(s_server_conf.data_dir());
+
+            auto put_obj = [&](db_object_t& obj) {
+                rdb->put(obj);
+            };
+            auto remove_obj = [=](gaia_id_t id) {
+                rdb->remove(id);
+            };
+
+            s_log_handler->register_write_to_persistent_store_fn(put_obj);
+            s_log_handler->register_remove_from_persistent_store_fn(remove_obj);
+
+            if (s_server_conf.persistence_mode() == persistence_mode_t::e_reinitialized_on_startup)
+            {
+                s_log_handler->destroy_persistent_log(INT64_MAX);
+            }
+
+            // Get last processed log.
+            auto last_processed_log_seq = rdb->get_value(gaia::db::persistence::persistent_store_manager::c_last_processed_log_num_key);
+            std::cout << "RECOVERED LOG SEQ = " << last_processed_log_seq << std::endl;
+
+            // Recover only the first time this method gets called.
+            gaia_txn_id_t last_checkpointed_commit_ts = 0;
+            s_log_handler->recover_from_persistent_log(
+                last_checkpointed_commit_ts,
+                last_processed_log_seq,
+                INT64_MAX,
+                gaia::db::persistence::recovery_mode_t::finish_on_first_error);
+
+            rdb->update_value(gaia::db::persistence::persistent_store_manager::c_last_processed_log_num_key, last_processed_log_seq);
+
+            s_log_handler->set_persistent_log_sequence(last_processed_log_seq);
+
+            s_log_handler->destroy_persistent_log(INT64_MAX);
 
             s_log_handler->open_for_writes(s_validate_persistence_batch_eventfd, s_signal_checkpoint_log_evenfd);
         }
@@ -879,13 +913,18 @@ void server_t::recover_db()
         // in which case we need to recover from the original persistent image.
         if (!rdb)
         {
-            rdb = make_unique<gaia::db::persistent_store_manager>(get_counters(), s_server_conf.data_dir());
+            rdb = make_unique<gaia::db::persistence::persistent_store_manager>(get_counters(), s_server_conf.data_dir());
             if (s_server_conf.persistence_mode() == persistence_mode_t::e_reinitialized_on_startup)
             {
                 rdb->destroy_persistent_store();
             }
             rdb->open();
+
             recover_persistent_log();
+
+            // Flush persistent store buffer to disk.
+            rdb->flush();
+
             rdb->recover();
         }
     }
@@ -1248,6 +1287,41 @@ void server_t::log_writer_handler()
                 ASSERT_INVARIANT(false, c_message_unexpected_fd);
             }
         }
+    }
+}
+
+void server_t::checkpoint_handler()
+{
+    // Wait for a persistent log file to be closed before checkpointing it.
+    // This can be achieved via blocking on an eventfd read.
+    gaia_txn_id_t last_deleted_log_seq = 0;
+    while (true)
+    {
+        // Log sequence number of file ready to be checkpointed.
+        eventfd_t max_log_seq_to_checkpoint;
+        eventfd_read(s_signal_checkpoint_log_evenfd, &max_log_seq_to_checkpoint);
+
+        // Process all existing log files.
+        gaia_txn_id_t last_processed_log_seq = 0;
+        std::cout << "CHECKPOINT BEGIN" << std::endl;
+        s_log_handler->recover_from_persistent_log(
+            s_last_checkpointed_commit_ts_lower_bound,
+            last_processed_log_seq,
+            max_log_seq_to_checkpoint,
+            gaia::db::persistence::recovery_mode_t::checkpoint);
+
+        rdb->update_value(gaia::db::persistence::persistent_store_manager::c_last_processed_log_num_key, last_processed_log_seq);
+
+        // Flush persistent store buffer to disk.
+        rdb->flush();
+
+        std::cout << "CHECKPOINT DONE" << std::endl;
+
+        ASSERT_INVARIANT(max_log_seq_to_checkpoint > last_deleted_log_seq, "Log files cannot be deleted out of order");
+        s_log_handler->destroy_persistent_log(last_processed_log_seq);
+        last_deleted_log_seq = max_log_seq_to_checkpoint;
+
+        std::cout << "LOG with sequence number destroyed = " << last_processed_log_seq << std::endl;
     }
 }
 
@@ -2849,10 +2923,12 @@ void server_t::run(server_config_t server_conf)
         init_shared_memory();
 
         std::thread log_writer_thread;
+        std::thread checkpoint_thread;
         if (!(s_server_conf.persistence_mode() == persistence_mode_t::e_disabled))
         {
             // Launch persistence thread.
             log_writer_thread = std::thread(&log_writer_handler);
+            checkpoint_thread = std::thread(&checkpoint_handler);
         }
 
         // Launch thread to listen for client connections and create session threads.
@@ -2871,6 +2947,7 @@ void server_t::run(server_config_t server_conf)
         if (!(s_server_conf.persistence_mode() == persistence_mode_t::e_disabled))
         {
             log_writer_thread.join();
+            checkpoint_thread.join();
         }
 
         // We special-case SIGHUP to force reinitialization of the server.

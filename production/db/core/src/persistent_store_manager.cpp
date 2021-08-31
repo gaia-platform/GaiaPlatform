@@ -24,9 +24,17 @@
 using namespace std;
 
 using namespace gaia::db;
-using namespace gaia::db::persistence;
 using namespace gaia::common;
 using namespace rocksdb;
+
+namespace gaia
+{
+namespace db
+{
+namespace persistence
+{
+
+const std::string persistent_store_manager::c_last_processed_log_num_key = "gaia_last_processed_log_num_key";
 
 persistent_store_manager::persistent_store_manager(
     gaia::db::counters_t* counters, std::string data_dir)
@@ -35,7 +43,7 @@ persistent_store_manager::persistent_store_manager(
     rocksdb::WriteOptions write_options{};
     write_options.sync = true;
     rocksdb::TransactionDBOptions transaction_db_options{};
-    m_rdb_internal = make_unique<gaia::db::rdb_internal_t>(m_data_dir_path, write_options, transaction_db_options);
+    m_rdb_internal = make_unique<gaia::db::persistence::rdb_internal_t>(m_data_dir_path, write_options, transaction_db_options);
 }
 
 persistent_store_manager::~persistent_store_manager()
@@ -179,6 +187,11 @@ void persistent_store_manager::recover()
 
     for (it->SeekToFirst(); it->Valid(); it->Next())
     {
+        if (it->key().compare(c_last_processed_log_num_key) == 0)
+        {
+            continue;
+        }
+
         db_object_t* recovered_object = decode_object(it->key(), it->value());
         if (recovered_object->type > max_type_id && recovered_object->type < c_system_table_reserved_range_start)
         {
@@ -194,6 +207,7 @@ void persistent_store_manager::recover()
     m_rdb_internal->handle_rdb_error(it->status());
     m_counters->last_id = max_id;
     m_counters->last_type_id = max_type_id;
+    m_counters->last_txn_id = c_invalid_gaia_txn_id;
 
     // Ensure that other threads (with appropriate acquire barriers) immediately
     // observe the changed value. (This could be changed to a release barrier.)
@@ -204,3 +218,59 @@ void persistent_store_manager::destroy_persistent_store()
 {
     m_rdb_internal->destroy_persistent_store();
 }
+
+uint64_t persistent_store_manager::get_value(const std::string& key)
+{
+    std::string value;
+    m_rdb_internal->get(key, value);
+    gaia::db::persistence::string_reader_t value_reader(value);
+
+    if (value.empty())
+    {
+        return static_cast<uint64_t>(0);
+    }
+
+    uint64_t result;
+    value_reader.read_uint64(result);
+    return reinterpret_cast<uint64_t>(result);
+}
+
+void persistent_store_manager::flush()
+{
+    std::cout << "FLUSHING MEMTABLE" << std::endl;
+    m_rdb_internal->flush();
+}
+
+void persistent_store_manager::update_value(const std::string& key_to_write, uint64_t value_to_write)
+{
+    string_writer_t value;
+    value.write_uint64(value_to_write);
+    m_rdb_internal->put(key_to_write, value.to_slice());
+}
+
+void persistent_store_manager::put(gaia::db::db_object_t& object)
+{
+    string_writer_t key;
+    string_writer_t value;
+    encode_object(&object, key, value);
+
+    // Gaia objects encoded as key-value slices shouldn't be empty.
+    ASSERT_INVARIANT(
+        key.get_current_position() != 0 && value.get_current_position() != 0,
+        "Failed to encode object.");
+    m_rdb_internal->put(key.to_slice(), value.to_slice());
+}
+
+void persistent_store_manager::remove(gaia::common::gaia_id_t id_to_remove)
+{
+    // Encode key to be deleted.
+    string_writer_t key;
+    key.write_uint64(id_to_remove);
+    ASSERT_INVARIANT(key.get_current_position() != 0, "Failed to encode object.");
+    m_rdb_internal->remove(key.to_slice());
+    std::cout << "REMOVE KEY" << std::endl;
+}
+
+} // namespace persistence
+} // namespace db
+} // namespace gaia

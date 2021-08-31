@@ -149,7 +149,7 @@ private:
 
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
 
-    static inline std::unique_ptr<persistent_store_manager> rdb{};
+    static inline std::unique_ptr<persistence::persistent_store_manager> rdb{};
     static inline std::unique_ptr<persistence::log_handler_t> s_log_handler{};
 
     thread_local static inline int s_session_socket = -1;
@@ -197,6 +197,8 @@ private:
 
     // Keep track of the last txn that has been submitted to the async_disk_writer.
     static inline gaia_txn_id_t s_last_queued_commit_ts_upper_bound = c_invalid_gaia_txn_id;
+
+    static inline gaia_txn_id_t s_last_checkpointed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
 
     // Keep a track of undecided txns submitted to the async_disk_writer.
     static inline std::set<gaia_txn_id_t> seen_and_undecided_txn_set{};
@@ -305,6 +307,10 @@ private:
     static void log_writer_handler();
 
     static void write_to_persistent_log(bool sync_writes = false);
+
+    static void checkpoint_handler();
+
+    static void checkpoint_writes();
 
     static void recover_persistent_log();
 

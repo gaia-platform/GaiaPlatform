@@ -24,6 +24,8 @@ namespace gaia
 {
 namespace db
 {
+namespace persistence
+{
 
 static const std::string c_message_rocksdb_not_initialized = "RocksDB database is not initialized.";
 
@@ -128,5 +130,42 @@ void rdb_internal_t::handle_rdb_error(rocksdb::Status status)
     }
 }
 
+void rdb_internal_t::flush()
+{
+    rocksdb::FlushOptions options{};
+    m_txn_db->Flush(options);
+}
+
+void rdb_internal_t::put(const rocksdb::Slice& key, const rocksdb::Slice& value)
+{
+    m_txn_db->Put(m_write_options, key, value);
+}
+
+void rdb_internal_t::remove(const rocksdb::Slice& key)
+{
+    m_txn_db->Delete(m_write_options, key);
+}
+
+void rdb_internal_t::get(const rocksdb::Slice& key, std::string& value)
+{
+    rocksdb::DestroyDB(m_data_dir, rocksdb::Options{});
+    std::string val;
+    rocksdb::Status status = m_txn_db->Get(rocksdb::ReadOptions(), key, &val);
+    if (status.IsNotFound())
+    {
+        // Not found.
+        value = "";
+    }
+    else if (status.ok())
+    {
+        value = val;
+    }
+    else
+    {
+        handle_rdb_error(status);
+    }
+}
+
+} // namespace persistence
 } // namespace db
 } // namespace gaia

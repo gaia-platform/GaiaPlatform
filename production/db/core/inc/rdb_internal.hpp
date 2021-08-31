@@ -16,6 +16,8 @@ namespace gaia
 {
 namespace db
 {
+namespace persistence
+{
 
 class rdb_internal_t
 {
@@ -52,6 +54,14 @@ public:
 
     void handle_rdb_error(rocksdb::Status status);
 
+    void flush();
+
+    void put(const rocksdb::Slice& key, const rocksdb::Slice& value);
+
+    void remove(const rocksdb::Slice& key);
+
+    void get(const rocksdb::Slice& key, std::string& value);
+
 private:
     std::unique_ptr<rocksdb::TransactionDB> m_txn_db;
     std::string m_data_dir;
@@ -59,5 +69,6 @@ private:
     rocksdb::TransactionDBOptions m_txn_options;
 };
 
+} // namespace persistence
 } // namespace db
 } // namespace gaia
