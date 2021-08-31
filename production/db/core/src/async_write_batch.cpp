@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "io_uring_wrapper.hpp"
+#include "async_write_batch.hpp"
 
 #include <iostream>
 
@@ -59,7 +59,7 @@ void async_write_batch_t::prepare_submission_queue_entry(uint64_t data, u_char f
 }
 
 void async_write_batch_t::add_pwritev_op_to_batch(
-    const iovec* iovecs,
+    void* iovec_array,
     size_t num_iovecs,
     int file_fd,
     uint64_t current_offset,
@@ -67,7 +67,7 @@ void async_write_batch_t::add_pwritev_op_to_batch(
     uint8_t flags)
 {
     auto sqe = get_submission_queue_entry();
-    io_uring_prep_writev(sqe, file_fd, iovecs, num_iovecs, current_offset);
+    io_uring_prep_writev(sqe, file_fd, static_cast<const iovec*>(iovec_array), num_iovecs, current_offset);
     prepare_submission_queue_entry(data, flags, sqe);
 }
 
@@ -97,19 +97,27 @@ size_t async_write_batch_t::submit_operation_batch(bool wait)
 
 void async_write_batch_t::close_all_files_in_batch()
 {
-    for (auto fd : m_file_fds)
+    for (log_file_info_t file_info : m_files_to_close)
     {
-        close_fd(fd);
+        close_fd(file_info.file_fd);
     }
-
-    m_file_fds.clear();
+    m_files_to_close.clear();
 }
 
-void async_write_batch_t::append_file_to_batch(int fd)
+void async_write_batch_t::append_file_to_batch(int fd, file_sequence_t log_seq)
 {
-    // Add file fd to the batch that should be closed once
-    // all of its pending writes have finished.
-    m_file_fds.emplace_back(fd);
+    // Add file info to the batch that should be closed once all of its pending writes have finished.
+    log_file_info_t info{log_seq, fd};
+    m_files_to_close.push_back(info);
+}
+
+file_sequence_t async_write_batch_t::get_max_file_seq_to_close()
+{
+    if (m_files_to_close.size() > 0)
+    {
+        return m_files_to_close.back().sequence;
+    }
+    return c_invalid_file_sequence_number;
 }
 
 size_t async_write_batch_t::get_unsubmitted_entries_count()

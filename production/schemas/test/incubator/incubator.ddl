@@ -3,34 +3,26 @@
 -- All rights reserved.
 ---------------------------------------------
 
-CREATE DATABASE IF NOT EXISTS barn_storage;
+DATABASE barn_storage
 
-USE barn_storage;
-
-CREATE TABLE IF NOT EXISTS incubator (
+TABLE incubator (
       name	 STRING,
       min_temp FLOAT,
-      max_temp FLOAT
-);
+      max_temp FLOAT,
+      sensors REFERENCES sensor[],
+      actuators REFERENCES actuator[]
+)
 
-CREATE TABLE IF NOT EXISTS sensor (
+TABLE sensor (
       name STRING,
       timestamp UINT64,
-      value FLOAT active
-);
+      value FLOAT active,
+      incubator REFERENCES incubator
+)
 
-CREATE TABLE IF NOT EXISTS actuator (
+TABLE actuator (
       name STRING,
       timestamp UINT64,
-      value FLOAT
-);
-
-CREATE RELATIONSHIP IF NOT EXISTS sensor_incubator (
-      incubator.sensors -> sensor[],
-      sensor.incubator -> incubator
-);
-
-CREATE RELATIONSHIP IF NOT EXISTS actuator_incubator (
-      incubator.actuators -> actuator[],
-      actuator.incubator -> incubator
-);
+      value FLOAT,
+      incubator REFERENCES incubator
+)

@@ -27,8 +27,8 @@ namespace db
 {
 
 /*
-* Client-side implementation of gaia_ptr_t here.
-*/
+ * Client-side implementation of gaia_ptr_t here.
+ */
 
 gaia_ptr_t::gaia_ptr_t(gaia_locator_t locator, address_offset_t offset)
 {
@@ -58,7 +58,7 @@ gaia_ptr_t::get_id_generator_for_type(gaia_type_t type)
     return client_t::get_id_generator_for_type(type);
 }
 
-void gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)
+bool gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)
 {
     gaia_type_t parent_type = type();
     const type_metadata_t& parent_metadata = type_registry_t::instance().get(parent_type);
@@ -108,7 +108,7 @@ void gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t firs
         // Otherwise throw an exception.
         if (child_ptr.references()[relationship->parent_offset] == id())
         {
-            return;
+            return false;
         }
         throw child_already_referenced(child_ptr.type(), relationship->parent_offset);
     }
@@ -127,9 +127,10 @@ void gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t firs
 
     client_t::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
     client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
+    return true;
 }
 
-void gaia_ptr_t::add_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset)
+bool gaia_ptr_t::add_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset)
 {
     gaia_type_t child_type = type();
 
@@ -148,10 +149,10 @@ void gaia_ptr_t::add_parent_reference(gaia_id_t parent_id, reference_offset_t pa
         throw invalid_object_id(parent_id);
     }
 
-    parent_ptr.add_child_reference(id(), child_relationship->first_child_offset);
+    return parent_ptr.add_child_reference(id(), child_relationship->first_child_offset);
 }
 
-void gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)
+bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)
 {
     gaia_type_t parent_type = type();
     const type_metadata_t& parent_metadata = type_registry_t::instance().get(parent_type);
@@ -182,6 +183,11 @@ void gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
     if (relationship->child_type != child_ptr.type())
     {
         throw invalid_relationship_type(first_child_offset, child_ptr.type(), relationship->child_type);
+    }
+
+    if (child_ptr.references()[relationship->parent_offset] == c_invalid_gaia_id)
+    {
+        return false;
     }
 
     if (child_ptr.references()[relationship->parent_offset] != id())
@@ -228,9 +234,10 @@ void gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
 
     client_t::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
     client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
+    return true;
 }
 
-void gaia_ptr_t::remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset)
+bool gaia_ptr_t::remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset)
 {
     gaia_type_t child_type = type();
 
@@ -250,10 +257,10 @@ void gaia_ptr_t::remove_parent_reference(gaia_id_t parent_id, reference_offset_t
     }
 
     // Remove reference.
-    parent_ptr.remove_child_reference(id(), relationship->first_child_offset);
+    return parent_ptr.remove_child_reference(id(), relationship->first_child_offset);
 }
 
-void gaia_ptr_t::update_parent_reference(
+bool gaia_ptr_t::update_parent_reference(
     gaia_id_t child_id,
     gaia_type_t child_type,
     gaia_id_t* child_references,
@@ -296,12 +303,12 @@ void gaia_ptr_t::update_parent_reference(
         old_parent_ptr.remove_child_reference(child_id, relationship->first_child_offset);
     }
 
-    new_parent_ptr.add_child_reference(child_id, relationship->first_child_offset);
+    return new_parent_ptr.add_child_reference(child_id, relationship->first_child_offset);
 }
 
-void gaia_ptr_t::update_parent_reference(gaia_id_t new_parent_id, reference_offset_t parent_offset)
+bool gaia_ptr_t::update_parent_reference(gaia_id_t new_parent_id, reference_offset_t parent_offset)
 {
-    update_parent_reference(id(), type(), references(), new_parent_id, parent_offset);
+    return update_parent_reference(id(), type(), references(), new_parent_id, parent_offset);
 }
 
 db_object_t* gaia_ptr_t::to_ptr() const

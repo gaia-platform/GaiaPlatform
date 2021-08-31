@@ -1,7 +1,6 @@
 // RUN: %clang_cc1  -fsyntax-only -verify -fgaia-extensions %s
 
 // Uncomment the #define to re-test failing tests.
-// #define TEST_FAILURES
 
 { // expected-error {{expected unqualified-id}}
     min_temp+=@value;

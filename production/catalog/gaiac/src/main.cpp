@@ -47,6 +47,23 @@ enum class operate_mode_t
     loading,
 };
 
+string ltrim(const string& s)
+{
+    size_t start = s.find_first_not_of(c_whitespace_chars);
+    return (start == string::npos) ? "" : s.substr(start);
+}
+
+string rtrim(const string& s)
+{
+    size_t end = s.find_last_not_of(c_whitespace_chars);
+    return (end == string::npos) ? "" : s.substr(0, end + 1);
+}
+
+string trim(const string& s)
+{
+    return rtrim(ltrim(s));
+}
+
 void start_repl(parser_t& parser)
 {
     initialize_catalog();
@@ -54,6 +71,7 @@ void start_repl(parser_t& parser)
     const auto prompt = "gaiac> ";
     const auto exit_command = "exit";
 
+    string ddl_buffer;
     while (true)
     {
         string line;
@@ -62,15 +80,15 @@ void start_repl(parser_t& parser)
         {
             break;
         }
-        if (line == exit_command)
+        if (trim(line) == exit_command)
         {
             break;
         }
         try
         {
-            if (line.length() > 0 && line.at(0) == c_command_prefix)
+            if (line.length() > 0 && ltrim(line).at(0) == c_command_prefix)
             {
-                if (handle_meta_command(line))
+                if (handle_meta_command(trim(line)))
                 {
                     continue;
                 }
@@ -79,12 +97,23 @@ void start_repl(parser_t& parser)
                     break;
                 }
             }
-            parser.parse_line(line);
-            execute(parser.statements);
+
+            if (rtrim(line).back() == ';')
+            {
+                parser.parse_string(ddl_buffer + line);
+                execute(parser.statements);
+                ddl_buffer = "";
+            }
+            else
+            {
+                ddl_buffer += line;
+                ddl_buffer += '\n';
+            }
         }
         catch (gaia::common::gaia_exception& e)
         {
             cerr << c_error_prompt << e.what() << endl;
+            ddl_buffer = "";
         }
     }
 }
@@ -195,29 +224,29 @@ bool valid_db_name(const string& db_name)
     return true;
 }
 
-//TODO make help consistent with other tools: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1200
 string usage()
 {
     std::stringstream ss;
-    ss << "Usage: gaiac [options] [ddl_file]\n\n"
-          "  -d|--db-name <dbname>     Specify the database name.\n"
-          "  -i|--interactive          Interactive prompt, as a REPL.\n"
-          "  -g|--generate             Generate direct access API header files.\n"
-          "  -o|--output <path>        Set the output directory for all generated files.\n"
+    ss << "OVERVIEW: Reads Gaia DDL definitions and generates Direct Access code.\n"
+          "USAGE: gaiac [options] <ddl_file>\n"
+          "\n"
+          "OPTIONS:\n"
+          "  --db-name <dbname>     Specifies the database name to use.\n"
+          "  --interactive          Run gaiac in interactive mode.\n"
+          "  --generate             Generate Direct Access API header files.\n"
+          "  --output <path>        Set the output directory for all generated files.\n"
 #ifdef DEBUG
-          "  -n|--instance-name <name> Specify the database instance name.\n"
-          "                            If not specified will use "
+          "  -n, --instance-name <name> Specifies the database instance name.\n"
+          "                            If not specified, will use "
        << c_default_instance_name << ".\n"
        << "                            If 'rnd' is specified will use a random name.\n"
-          "  -p|--parse-trace          Print parsing trace.\n"
-          "  -s|--scan-trace           Print scanning trace.\n"
-          "  -t|--db-server-path       Start the DB server (for testing purposes).\n"
+          "  -p, --parse-trace          Print parsing trace.\n"
+          "  -s, --scan-trace           Print scanning trace.\n"
+          "  -t, --db-server-path       Start the DB server (for testing purposes).\n"
 #endif
-          "  <ddl_file>                Process the DDLs in the file.\n"
-          "                            In the absence of <dbname>, the ddl file basename will be used as the database name.\n"
-          "                            The database will be created automatically.\n"
-          "  -h|--help                 Print help information.\n"
-          "  -v|--version              Version information.\n";
+          "  <ddl_file>             Process the DDL statements in the file.\n"
+          "  --help                 Print help information.\n"
+          "  --version              Print version information.\n";
     return ss.str();
 }
 
@@ -360,10 +389,9 @@ int main(int argc, char* argv[])
     session_options.skip_catalog_integrity_check = false;
     gaia::db::config::set_default_session_options(session_options);
 
-    gaia::db::begin_session();
-
     const auto cleanup = scope_guard::make_scope_guard(
-        [&server]() {
+        [&server]()
+        {
             gaia::db::end_session();
             if (server.is_initialized())
             {
@@ -371,13 +399,15 @@ int main(int argc, char* argv[])
             }
         });
 
-    if (mode == operate_mode_t::interactive)
+    try
     {
-        start_repl(parser);
-    }
-    else
-    {
-        try
+        gaia::db::begin_session();
+
+        if (mode == operate_mode_t::interactive)
+        {
+            start_repl(parser);
+        }
+        else
         {
             initialize_catalog();
 
@@ -393,10 +423,10 @@ int main(int argc, char* argv[])
 
             if (mode == operate_mode_t::generation)
             {
-                // Generate EDC code for the default global database if no database is given.
-                if (db_names.empty())
+                // Generate EDC code for the default database if no database is given.
+                if (db_names.size() == 0)
                 {
-                    db_names.emplace_back("");
+                    db_names.emplace_back(c_empty_db_name);
                 }
 
                 for (const auto& db_name : db_names)
@@ -405,20 +435,22 @@ int main(int argc, char* argv[])
                 }
             }
         }
-        catch (gaia::common::system_error& e)
+    }
+    catch (gaia::common::system_error& e)
+    {
+        cerr << c_error_prompt << e.what() << endl;
+        if (e.get_errno() == ECONNREFUSED)
         {
-            cerr << c_error_prompt << e.what() << endl;
-            if (e.get_errno() == ECONNREFUSED)
-            {
-                cerr << "Unable to connect to the database server." << endl;
-            }
-            return EXIT_FAILURE;
+            cerr << "Can't connect to a running instance of the " << gaia::db::c_db_server_name << ".\n"
+                 << "Start the " << gaia::db::c_db_server_name << " and rerun gaiac."
+                 << endl;
         }
-        catch (gaia_exception& e)
-        {
-            cerr << c_error_prompt << e.what() << endl;
-            return EXIT_FAILURE;
-        }
+        return EXIT_FAILURE;
+    }
+    catch (gaia_exception& e)
+    {
+        cerr << c_error_prompt << e.what() << endl;
+        return EXIT_FAILURE;
     }
 
     return EXIT_SUCCESS;

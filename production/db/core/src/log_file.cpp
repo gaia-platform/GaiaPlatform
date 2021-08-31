@@ -25,7 +25,7 @@ namespace persistence
 // TODO (Mihir): Use io_uring for fsync, close & fallocate operations in this file.
 // open() operation will remain synchronous, since we need the file fd to perform other async
 // operations on the file.
-log_file_t::log_file_t(const std::string& dir, int dir_fd, size_t file_seq, size_t size)
+log_file_t::log_file_t(const std::string& dir, int dir_fd, file_sequence_t file_seq, size_t size)
 {
     m_dir_fd = dir_fd;
     m_dir_name = dir;

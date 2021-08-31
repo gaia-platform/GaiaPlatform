@@ -236,7 +236,9 @@ TEST_F(test_queries_code, implicit_navigation_fork)
 
 TEST_F(test_queries_code, new_registration)
 {
-    const int num_inserts = 4;
+    // This is the number of successful registrations, based on prerequisite
+    // minimum grade requirements.
+    const int num_eligible = 1;
 
     populate_db();
 
@@ -262,8 +264,8 @@ TEST_F(test_queries_code, new_registration)
 
     gaia::rules::test::wait_for_rules_to_complete();
 
-    EXPECT_EQ(g_insert_count, num_inserts)
-        << "on_insert(registration) not called '" << num_inserts << "'times.";
+    EXPECT_EQ(g_insert_count, num_eligible)
+        << "Expected " << num_eligible << " eligible registrations.";
     EXPECT_TRUE(g_oninsert_called) << "on_insert(registration) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "on_insert failure";
 }
@@ -428,7 +430,7 @@ TEST_F(test_queries_code, if_stmt3)
     gaia::db::begin_transaction();
 
     auto rw = reg_1.writer();
-    rw.grade = "D";
+    rw.grade = c_grade_d;
     rw.update_row();
 
     gaia::db::commit_transaction();
@@ -545,7 +547,7 @@ TEST_F(test_queries_code, nomatch_function_query)
     EXPECT_TRUE(g_oninsert_called) << "on_insert(student) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "on_insert failure";
 
-    EXPECT_EQ(g_string_value, "4C3 ") << "Incorrect result";
+    EXPECT_EQ(g_string_value, "4 2.0 3 ") << "Incorrect result";
 }
 
 TEST_F(test_queries_code, one_to_one)

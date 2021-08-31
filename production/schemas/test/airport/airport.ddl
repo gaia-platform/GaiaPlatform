@@ -3,74 +3,56 @@
 -- All rights reserved.
 ---------------------------------------------
 
-create database if not exists airport;
+database airport
 
-use airport;
-
-create table if not exists airport
+table airport
 (
     name string,
     city string,
     iata string
-);
+)
 
-create table if not exists flight
+table flight
 (
     number int32 unique,
-    miles_flown_by_quarter int32[]
-);
+    miles_flown_by_quarter int32[],
+    segments references segment[],
+    passengers references passenger[],
+    return_passengers references passenger[]
+)
 
-create table if not exists segment
+table segment
 (
     miles int32,
     status int8,
-    luggage_weight int32
-);
+    luggage_weight int32,
+    flight references flight,
+    trip references trip_segment
+)
 
-create table if not exists passenger (
+table passenger (
     name string,
     address string,
-    return_flight_number int32
-);
+    return_flight_number int32,
+    flight references flight using passengers,
+    return_flight references flight using return_passengers
+      where passenger.return_flight_number = flight.number
+)
 
-create relationship if not exists segment_flight
-(
-    flight.segments -> segment[],
-    segment.flight -> flight
-);
-
-create relationship if not exists segments_from
+relationship segments_from
 (
     airport.segments_from -> segment[],
     segment.src -> airport
-);
+)
 
-create relationship if not exists segments_to
+relationship segments_to
 (
     airport.segments_to -> segment[],
     segment.dst -> airport
-);
+)
 
-create table if not exists trip_segment
+table trip_segment
 (
-    who string
-);
-
-create relationship if not exists segment_trip
-(
-    segment.trip -> trip_segment,
-    trip_segment.segment -> segment
-);
-
-create relationship flight_passenger
-(
-    flight.passengers -> passenger[],
-    passenger.flight -> flight
-);
-
-create relationship return_flight_passenger
-(
-    flight.return_passengers -> passenger[],
-    passenger.return_flight -> flight,
-    using passenger(return_flight_number), flight(number)
-);
+    who string,
+    segment references segment
+)

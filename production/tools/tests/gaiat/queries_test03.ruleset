@@ -9,5 +9,5 @@ ruleset test01
     }
 }
 
-// GAIAPLAT-826
+// GAIAPLAT-826 (V1)
 // CHECK: Tag 'I' cannot be used in this context.

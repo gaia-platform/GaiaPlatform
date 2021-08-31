@@ -758,7 +758,7 @@ void server_t::recover_db()
     // If persistence is disabled, then this is a no-op.
     if (s_server_conf.persistence_mode() != persistence_mode_t::e_disabled)
     {
-        // We could get here after a server reset with --disable-persistence-after-recovery,
+        // We could get here after a server reset with '--persistence disabled-after-recovery',
         // in which case we need to recover from the original persistent image.
         if (!rdb)
         {
@@ -889,7 +889,7 @@ void server_t::signal_handler(sigset_t sigset, int& signum)
 
     cerr << "Caught signal '" << ::strsignal(signum) << "'." << endl;
 
-    signal_eventfd(s_server_shutdown_eventfd);
+    signal_eventfd_multiple_threads(s_server_shutdown_eventfd);
 }
 
 void server_t::init_listening_socket(const std::string& socket_name)
@@ -927,6 +927,17 @@ void server_t::init_listening_socket(const std::string& socket_name)
     socklen_t server_addr_size = sizeof(server_addr.sun_family) + 1 + ::strlen(&server_addr.sun_path[1]);
     if (-1 == ::bind(listening_socket, reinterpret_cast<struct sockaddr*>(&server_addr), server_addr_size))
     {
+        // TODO it would be nice to have a common error handler that can handle common errors.
+        if (errno == EADDRINUSE)
+        {
+            cerr << "ERROR: bind() failed! - " << (::strerror(errno)) << endl;
+            cerr << "The " << c_db_server_name
+                 << " cannot start because another instance is already running.\n"
+                    "Stop any instances of the server and try again."
+                 << endl;
+            exit(1);
+        }
+
         throw_system_error("bind() failed!");
     }
     if (-1 == ::listen(listening_socket, 0))
@@ -1186,7 +1197,7 @@ void server_t::session_handler(int session_socket)
     s_session_shutdown_eventfd = make_eventfd();
     auto owned_threads_cleanup = make_scope_guard([]() {
         // Signal all session-owned threads to terminate.
-        signal_eventfd(s_session_shutdown_eventfd);
+        signal_eventfd_multiple_threads(s_session_shutdown_eventfd);
 
         // Wait for all session-owned threads to terminate.
         for (auto& thread : s_session_owned_threads)

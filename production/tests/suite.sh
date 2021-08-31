@@ -66,7 +66,7 @@ show_usage() {
     echo "  -l,--list           List all available suites for this project."
     echo "  -n,--no-stats       Do not display the statistics when the suite has completed."
     echo "  -j,--json           Display the statistics in JSON format."
-    echo "  -v,--verbose        Show lots of information while executing the suite of tests."
+    echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
     echo "Arguments:"
     echo "  suite-name          Optional name of the suite to run.  (Default: 'smoke')"
@@ -289,7 +289,7 @@ install_and_build_cleanly() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Suite script building the project in directory '$(realpath "$TEST_DIRECTORY")'..."
     fi
-    if ! ./build.sh -v  > "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/build.txt" 2>&1 ; then
+    if ! ./build.sh --verbose  > "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/build.txt" 2>&1 ; then
         cat "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/build.txt"
         complete_process 1 "Suite script failed to build the project in directory '$(realpath "$TEST_DIRECTORY")'."
     fi
@@ -344,7 +344,7 @@ execute_single_test() {
 
     TEST_THREADS_ARGUMENT=
     if [ -n "$NUMBER_OF_THREADS" ] ; then
-        TEST_THREADS_ARGUMENT="-nt $NUMBER_OF_THREADS"
+        TEST_THREADS_ARGUMENT="--num-threads $NUMBER_OF_THREADS"
     fi
 
     # Make sure to record the eventual directory that we used so we can summarize it more effectively.
@@ -360,16 +360,18 @@ execute_single_test() {
     # the return_code.json file.
 
     # shellcheck disable=SC2086
-    $WORKLOAD_DIRECTORY/test.sh -vv -ni $TEST_THREADS_ARGUMENT -d "$TEST_DIRECTORY" "$NEXT_TEST_NAME" > "$SUITE_TEST_DIRECTORY/output.txt" 2>&1
+    $WORKLOAD_DIRECTORY/test.sh --very-verbose --no-init $TEST_THREADS_ARGUMENT --directory "$TEST_DIRECTORY" "$NEXT_TEST_NAME" > "$SUITE_TEST_DIRECTORY/output.txt" 2>&1
     TEST_RETURN_CODE=$?
 
     # Copy any files in the `test-results` directory into a test-specific directory for
     # that one test.
-    if ! cp -r "$WORKLOAD_DIRECTORY/$TEST_RESULTS_DIRECTORY"/* "$SUITE_TEST_DIRECTORY" > "$TEMP_FILE" 2>&1;  then
-        cat "$TEMP_FILE"
-        complete_process 2 "Suite script cannot copy test results from '$(realpath "$TEST_RESULTS_DIRECTORY")' to '$(realpath "$SUITE_TEST_DIRECTORY")'."
+    test_files=$(shopt -s nullglob dotglob; echo "$WORKLOAD_DIRECTORY/$TEST_RESULTS_DIRECTORY"/*)
+    if (( ${#test_files} )) ; then
+        if ! cp -r "$WORKLOAD_DIRECTORY/$TEST_RESULTS_DIRECTORY"/* "$SUITE_TEST_DIRECTORY" > "$TEMP_FILE" 2>&1;  then
+            cat "$TEMP_FILE"
+            complete_process 2 "Suite script cannot copy test results from '$(realpath "$TEST_RESULTS_DIRECTORY")' to '$(realpath "$SUITE_TEST_DIRECTORY")'."
+        fi
     fi
-
     echo " { \"return-code\" : $TEST_RETURN_CODE }" > "$SUITE_TEST_DIRECTORY/return_code2.json"
 }
 

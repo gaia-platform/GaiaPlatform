@@ -29,7 +29,7 @@ namespace persistence
 class log_file_t
 {
 public:
-    log_file_t(const std::string& dir_name, int dir_fd, size_t file_seq, size_t file_size);
+    log_file_t(const std::string& dir_name, int dir_fd, file_sequence_t file_seq, size_t file_size);
 
     /**
      * Obtain offset to write the next log record at.
@@ -50,7 +50,7 @@ public:
 
 private:
     size_t m_file_size;
-    size_t m_file_seq;
+    file_sequence_t m_file_seq;
     size_t m_current_offset;
     std::string m_dir_name;
     int m_dir_fd;

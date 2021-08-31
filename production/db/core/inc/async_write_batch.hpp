@@ -31,8 +31,7 @@ enum class uring_op_t : uint8_t
     pwritev_decision = 2,
     pwritev_eventfd_flush = 3,
     pwritev_eventfd_validate = 4,
-    fdatasync_log = 5,
-    fdatasync_decision = 6,
+    fdatasync = 5,
 };
 
 /**
@@ -53,13 +52,15 @@ public:
     /**
      * Add file fd to the batch that should be closed once all of its pending writes have finished.
      */
-    void append_file_to_batch(int fd);
+    void append_file_to_batch(int fd, file_sequence_t log_seq);
+
+    file_sequence_t get_max_file_seq_to_close();
 
     /**
      * https://man7.org/linux/man-pages/man2/pwritev.2.html
      */
     void add_pwritev_op_to_batch(
-        const iovec* iovecs,
+        void* iovec_array,
         size_t num_iovecs,
         int file_fd,
         uint64_t current_offset,
@@ -104,7 +105,7 @@ private:
     io_uring m_ring;
 
     // Keep track of all persistent log file_fds that need to be closed.
-    std::vector<int> m_file_fds;
+    std::vector<log_file_info_t> m_files_to_close;
 
     void prepare_submission_queue_entry(uint64_t data, u_char flags, io_uring_sqe* sqe);
 

@@ -257,7 +257,6 @@ TEST_F(test_insert_delete_code, build_database)
     // Use the rules for insert & delete.
     gaia::rules::subscribe_ruleset("test_insert_delete_2");
 
-    // Fire on_update(S:student).
     gaia::db::begin_transaction();
     enrollment_log_t::insert_row("stu001", "Wayne", 67, "cou001", "math101", 3, "reg001");
     enrollment_log_t::insert_row("stu002", "William", 23, "cou002", "csci101", 5, "reg002");
@@ -282,7 +281,7 @@ TEST_F(test_insert_delete_code, build_database)
             auto course = registration.registered_course();
             EXPECT_EQ(student.total_hours() * 2, course.hours());
             EXPECT_STREQ(student.surname(), registration.status());
-            EXPECT_STREQ(registration.grade(), "D+");
+            EXPECT_EQ(registration.grade(), c_grade_d + c_grade_plus);
         }
     }
     gaia::db::commit_transaction();

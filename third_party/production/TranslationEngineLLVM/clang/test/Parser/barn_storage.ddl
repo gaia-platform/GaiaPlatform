@@ -1,7 +1,5 @@
 create database if not exists incubator;
 
-USE incubator;
-
 create table if not exists animal (
     animal_name string unique,
     breed string,
@@ -37,7 +35,8 @@ create relationship if not exists farmer_condos (
 create table if not exists  sensor (
     name string,
     timestamp uint64,
-    value float
+    value float,
+    precision uint32
 );
 
 create relationship if not exists incubator_sensors (
@@ -48,7 +47,8 @@ create relationship if not exists incubator_sensors (
 create table if not exists  actuator (
     name string,
     timestamp uint64,
-    value float
+    value float,
+    max_rpm uint32
 );
 
 create relationship if not exists incubator_actuators (
@@ -99,7 +99,8 @@ create relationship if not exists crop_animal (
 );
 
 create table if not exists feeding (
-    portion uint32
+    portion uint32,
+    frequency uint32
 );
 
 create relationship if not exists yield_feeding (
