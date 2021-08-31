@@ -136,7 +136,6 @@ ruleset test130
     }
 }
 
-// GAIAPLAT-822 (won't do)
 ruleset test131
 {
     {

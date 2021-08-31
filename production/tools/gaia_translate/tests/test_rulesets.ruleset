@@ -438,7 +438,6 @@ ruleset test_query_10
 // in the translated code. The break labels, BREAK1_TARGET, etc. are currently left in
 // the code unconditionally. The Jira issue, when fixed, will eliminate any unused labels.
 // These pragmas should be removed then.
-// GAIAPLAT-1198 (won't do)
 // GAIAPLAT-1143 (V1)
 ruleset test_compile
 {
