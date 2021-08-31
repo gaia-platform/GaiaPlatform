@@ -434,7 +434,7 @@ ruleset test44
 {
     on_insert(farmer)
     {
-        printf("%s, %s, %u\n", animal.name, breed, animal.age);
+        printf("%s, %s, %u\n", animal.animal_name, breed, animal.age);
         printf("%u, %u\n", portion, frequency);
     }
 }

@@ -212,18 +212,13 @@ TEST_F(test_tags_code, onupdate)
 
 TEST_F(test_tags_code, multi_inserts)
 {
-    const int num_inserts = 10;
+    const int num_inserts = 5;
 
     // Use the first set of rules.
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_tags");
 
     gaia::db::begin_transaction();
-    student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
-    student_t::get(student_t::insert_row("stu002", "Russell", 32, 4, 3.0));
-    student_t::get(student_t::insert_row("stu003", "Reuben", 26, 4, 3.0));
-    student_t::get(student_t::insert_row("stu004", "Rachael", 51, 4, 3.0));
-    student_t::get(student_t::insert_row("stu005", "Renee", 65, 4, 3.0));
     student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
     student_t::get(student_t::insert_row("stu002", "Russell", 32, 4, 3.0));
     student_t::get(student_t::insert_row("stu003", "Reuben", 26, 4, 3.0));

@@ -536,9 +536,7 @@ ruleset test_insert_delete_2
             = student.insert(student_id: E.log_student_id, surname: E.log_surname, age: E.log_age);
         gaia::prerequisites::course_t C
             = course.insert(course_id: E.log_course_id, name: E.log_name, hours: E.log_hours);
-        gaia::prerequisites::registration_t R = registration.insert(reg_id: E.log_reg_id, student_id: E.log_student_id, course_id: E.log_course_id);
-
-        g_oninsert_called = true;
+        registration.insert(reg_id: E.log_reg_id, student_id: E.log_student_id, course_id: E.log_course_id);
     }
 
     on_insert(student)

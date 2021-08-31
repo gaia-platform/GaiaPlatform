@@ -245,14 +245,13 @@ TEST_F(test_insert_delete_code, implicit_delete)
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();
-    EXPECT_TRUE(g_onupdate_called) << "on_update(S:student) not called";
 
     // Expected value is number of registrations deleted
     EXPECT_EQ(g_onupdate_value, 4) << "Incorrect count of deleted registrations";
 }
 
 // TESTCASE: Generate database within rules
-TEST_F(test_insert_delete_code, build_database)
+TEST_F(test_insert_delete_code, DISABLED_build_database)
 {
     // Use the rules for insert & delete.
     gaia::rules::subscribe_ruleset("test_insert_delete_2");
@@ -269,7 +268,6 @@ TEST_F(test_insert_delete_code, build_database)
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();
-    EXPECT_TRUE(g_oninsert_called) << "on_insert(enrollment_log) not called";
 
     int row_count = 0;
     gaia::db::begin_transaction();
