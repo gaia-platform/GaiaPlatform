@@ -78,7 +78,7 @@ macro(check_param PARAM)
   endif()
 endmacro()
 
-# Creates a CMake target that generates the direct access classes for a given Gaia database.
+# Creates a CMake target that generates the Direct Access classes for a given Gaia database.
 # Optionally loads a DDL file into the database before the generation.
 #
 # The path for the generated files is as follows: ${OUTPUT_DIR}/gaia_${DDL_NAME}[.h|.cpp]
