@@ -109,7 +109,7 @@ public:
      * @throws Exceptions there is no relationship between the parent and the child or if other
      *         integrity constraints are violated.
      */
-    void add_child_reference(common::gaia_id_t child_id, common::reference_offset_t first_child_offset);
+    bool add_child_reference(common::gaia_id_t child_id, common::reference_offset_t first_child_offset);
 
     /**
      * Add a parent reference to a child object. All the pointers involved in the relationship
@@ -123,7 +123,7 @@ public:
      * @throws Exceptions there is no relationship between the parent and the child  or if other
      *         integrity constraints are violated.
      */
-    void add_parent_reference(common::gaia_id_t parent_id, common::reference_offset_t parent_offset);
+    bool add_parent_reference(common::gaia_id_t parent_id, common::reference_offset_t parent_offset);
 
     /**
      * Removes a child reference from a parent object. Without an index this operation
@@ -134,7 +134,7 @@ public:
      * @param child_id The id of the children to be removed.
      * @param first_child_offset The offset, in the references array, of the pointer to the first child.
      */
-    void remove_child_reference(common::gaia_id_t child_id, common::reference_offset_t first_child_offset);
+    bool remove_child_reference(common::gaia_id_t child_id, common::reference_offset_t first_child_offset);
 
     /**
      * Removes a parent reference from a child object. Without an index this operation
@@ -145,7 +145,7 @@ public:
      * @param parent_id The id of the parent to be removed.
      * @param parent_offset The offset, in the references array, of the pointer to the parent.
      */
-    void remove_parent_reference(common::gaia_id_t parent_id, common::reference_offset_t parent_offset);
+    bool remove_parent_reference(common::gaia_id_t parent_id, common::reference_offset_t parent_offset);
 
     /**
      * Update the parent reference with the given new_parent_id. If the this object does not
@@ -157,7 +157,7 @@ public:
      * @param new_parent_id The id of the new parent.
      * @param parent_offset The offset, in the references array, of the pointer to the parent.
      */
-    void update_parent_reference(common::gaia_id_t new_parent_id, common::reference_offset_t parent_offset);
+    bool update_parent_reference(common::gaia_id_t new_parent_id, common::reference_offset_t parent_offset);
 
 protected:
     gaia_ptr_t(gaia_locator_t locator, memory_manager::address_offset_t offset);
@@ -177,7 +177,7 @@ private:
 
     static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> get_id_generator_for_type(common::gaia_type_t type);
 
-    static void update_parent_reference(
+    static bool update_parent_reference(
         common::gaia_id_t child_id,
         common::gaia_type_t child_type,
         common::gaia_id_t* child_references,

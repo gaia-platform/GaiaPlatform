@@ -6,6 +6,7 @@
 #include "gaia_internal/catalog/ddl_execution.hpp"
 
 #include <filesystem>
+#include <fstream>
 #include <iterator>
 #include <map>
 #include <memory>
@@ -85,6 +86,42 @@ void rearrange_create_list_statements(
     index = move_to_front(statements, ddl::create_type_t::create_table, index);
     // Move all create index statements before create relationship statements.
     move_to_front(statements, ddl::create_type_t::create_index, index);
+}
+
+void check_reference_field_maps(
+    std::optional<ddl::table_field_map_t>& field_map1,
+    std::optional<ddl::table_field_map_t>& field_map2,
+    std::string& table1,
+    std::string& table2)
+{
+    ASSERT_PRECONDITION(!table1.empty() && !table2.empty(), "Cannot verify without both table names.");
+
+    // Nothing to verify when both are undefined.
+    if (!field_map1 && !field_map2)
+    {
+        return;
+    }
+
+    // When both are defined, they need to be equivalent.
+    if (field_map1 && field_map2)
+    {
+        if (!((field_map1->first == field_map2->first && field_map1->second == field_map2->second)
+              || (field_map1->first == field_map2->second && field_map1->second == field_map2->first)))
+        {
+            throw invalid_field_map("Two matching references have conflict field settings.");
+        }
+    }
+
+    // Pick any one that is defined to verify. If both are defined, we have
+    // verified they are equivalent. We still only need to verify one.
+    ddl::table_field_map_t& field_map = field_map1 ? field_map1.value() : field_map2.value();
+
+    // Make sure tables on both side match corresponding table names.
+    if (!((field_map.first.table == table1 && field_map.second.table == table2)
+          || (field_map.first.table == table2 && field_map.second.table == table1)))
+    {
+        throw invalid_field_map("Reference field setting has incorrect table name.");
+    }
 }
 
 /**
@@ -187,6 +224,8 @@ void convert_references_to_relationships(
                 throw many_to_many_not_supported(ref->table, matching_ref->table);
             }
 
+            check_reference_field_maps(matching_ref->field_map, ref->field_map, ref->table, matching_ref->table);
+
             // Use the [link1]_[link2] as the relationship name.
             //
             // TODO: Detect name conflict. [GATAPLAT-306]
@@ -216,13 +255,11 @@ void convert_references_to_relationships(
 
             relationships.back()->has_if_not_exists = false;
 
-            // TODO: Detect conflict in field map definitions when both
-            //       `references` definitions contain one. [GAIAPLAT-306]
             if (matching_ref->field_map)
             {
                 relationships.back()->field_map = matching_ref->field_map;
             }
-            if (ref->field_map)
+            else if (ref->field_map)
             {
                 relationships.back()->field_map = ref->field_map;
             }
@@ -436,7 +473,11 @@ void load_catalog(ddl::parser_t& parser, const std::string& ddl_filename)
         throw std::invalid_argument("Invalid DDL file: '" + std::string(file_path.c_str()) + "'.");
     }
 
-    parser.parse(file_path.string());
+    std::ifstream ddl_fstream(file_path, std::ifstream::in);
+    std::stringstream buffer;
+    buffer << ddl_fstream.rdbuf() << ";";
+
+    parser.parse_string(buffer.str());
     execute(parser.statements);
 }
 

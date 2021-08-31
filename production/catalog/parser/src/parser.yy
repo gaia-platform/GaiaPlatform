@@ -154,13 +154,19 @@ input:
 ;
 
 statement_list:
-  statement ";" {
+  statement {
       $$ = std::make_unique<statement_list_t>();
-      $$->push_back(std::move($1));
+      if ($1)
+      {
+          $$->emplace_back(std::move($1));
+      }
   }
-| statement_list statement ";" {
-      $1->push_back(std::move($2));
+| statement_list statement {
       $$ = std::move($1);
+      if ($2)
+      {
+          $$->emplace_back(std::move($2));
+      }
   }
 ;
 
@@ -169,10 +175,11 @@ opt_if_exists: IF EXISTS { $$ = true; } | { $$ = false; };
 opt_if_not_exists: IF NOT EXISTS { $$ = true; } | { $$ = false; };
 
 statement:
-  create_db_list { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
-| create_list { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
-| drop_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
-| use_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
+  create_db_list ";" { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
+| create_list ";" { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
+| drop_statement ";" { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
+| use_statement ";" { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
+| ";" { $$ = std::unique_ptr<statement_t>{}; }
 ;
 
 create_list:

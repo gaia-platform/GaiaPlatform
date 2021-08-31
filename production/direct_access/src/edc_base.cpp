@@ -164,7 +164,7 @@ void edc_db_t::update(gaia_id_t id, size_t data_size, const void* data)
     gaia_ptr.update_payload(data_size, data);
 }
 
-void edc_db_t::insert_child_reference(gaia_id_t parent_id, gaia_id_t child_id, common::reference_offset_t child_slot)
+bool edc_db_t::insert_child_reference(gaia_id_t parent_id, gaia_id_t child_id, common::reference_offset_t child_slot)
 {
     gaia_ptr_t parent = gaia_ptr_t::open(parent_id);
     if (!parent)
@@ -172,10 +172,10 @@ void edc_db_t::insert_child_reference(gaia_id_t parent_id, gaia_id_t child_id, c
         throw invalid_object_id(parent_id);
     }
 
-    parent.add_child_reference(child_id, child_slot);
+    return parent.add_child_reference(child_id, child_slot);
 }
 
-void edc_db_t::remove_child_reference(gaia_id_t parent_id, gaia_id_t child_id, common::reference_offset_t child_slot)
+bool edc_db_t::remove_child_reference(gaia_id_t parent_id, gaia_id_t child_id, common::reference_offset_t child_slot)
 {
     gaia_ptr_t parent = gaia_ptr_t::open(parent_id);
     if (!parent)
@@ -183,7 +183,7 @@ void edc_db_t::remove_child_reference(gaia_id_t parent_id, gaia_id_t child_id, c
         throw invalid_object_id(parent_id);
     }
 
-    parent.remove_child_reference(child_id, child_slot);
+    return parent.remove_child_reference(child_id, child_slot);
 }
 
 //

@@ -6,8 +6,10 @@
 FROM gaia_ubuntu_18
 ENV DEBIAN_FRONTEND=noninteractive
 
+ARG gaia_sdk_deb
+
 COPY build_sdk_samples.sh .
-COPY gaia-0.1.0_amd64.deb .
+COPY $gaia_sdk_deb .
 
 ENV CC=/usr/bin/clang-10
 ENV CPP=/usr/bin/clang-cpp-10
@@ -15,5 +17,5 @@ ENV CXX=/usr/bin/clang++-10
 ENV LDFLAGS=-fuse-ld=lld-10
 
 RUN apt-get update \
-    && apt-get install -y ./gaia-0.1.0_amd64.deb
+    && apt-get install -y ./$gaia_sdk_deb
 RUN /bin/bash ./build_sdk_samples.sh

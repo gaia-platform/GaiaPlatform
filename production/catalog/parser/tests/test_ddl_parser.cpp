@@ -15,7 +15,7 @@ using namespace gaia::catalog::ddl;
 TEST(catalog_ddl_parser_test, create_table)
 {
     parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t (c INT32);"));
+    ASSERT_NO_THROW(parser.parse_string("CREATE TABLE t (c INT32);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
@@ -31,7 +31,7 @@ TEST(catalog_ddl_parser_test, create_table)
 TEST(catalog_ddl_parser_test, create_table_if_not_exists)
 {
     parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line("CREATE TABLE IF NOT EXISTS t (c INT32);"));
+    ASSERT_NO_THROW(parser.parse_string("CREATE TABLE IF NOT EXISTS t (c INT32);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
@@ -47,7 +47,7 @@ TEST(catalog_ddl_parser_test, create_table_if_not_exists)
 TEST(catalog_ddl_parser_test, create_table_multiple_fields)
 {
     parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t (c1 INT32[], c2 DOUBLE[]);"));
+    ASSERT_NO_THROW(parser.parse_string("CREATE TABLE t (c1 INT32[], c2 DOUBLE[]);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
@@ -82,7 +82,7 @@ TEST(catalog_ddl_parser_test, create_table_multiple_fields)
 TEST(catalog_ddl_parser_test, drop_table)
 {
     parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line("DROP TABLE t;"));
+    ASSERT_NO_THROW(parser.parse_string("DROP TABLE t;"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::drop);
@@ -93,7 +93,7 @@ TEST(catalog_ddl_parser_test, drop_table)
     EXPECT_EQ(drop_stmt->name, "t");
     EXPECT_FALSE(drop_stmt->if_exists);
 
-    ASSERT_NO_THROW(parser.parse_line("DROP TABLE IF EXISTS t;"));
+    ASSERT_NO_THROW(parser.parse_string("DROP TABLE IF EXISTS t;"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::drop);
@@ -108,20 +108,20 @@ TEST(catalog_ddl_parser_test, drop_table)
 TEST(catalog_ddl_parser_test, case_sensitivity)
 {
     parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t (c INT32);"));
-    ASSERT_NO_THROW(parser.parse_line("create table t (c int32);"));
-    ASSERT_NO_THROW(parser.parse_line("cReAte taBle T (c int32);"));
-    ASSERT_NO_THROW(parser.parse_line("CREATE TABLE T (c int32, C int32);"));
+    ASSERT_NO_THROW(parser.parse_string("CREATE TABLE t (c INT32);"));
+    ASSERT_NO_THROW(parser.parse_string("create table t (c int32);"));
+    ASSERT_NO_THROW(parser.parse_string("cReAte taBle T (c int32);"));
+    ASSERT_NO_THROW(parser.parse_string("CREATE TABLE T (c int32, C int32);"));
 
-    ASSERT_NO_THROW(parser.parse_line("DROP TABLE t;"));
-    ASSERT_NO_THROW(parser.parse_line("drop table t;"));
-    ASSERT_NO_THROW(parser.parse_line("DrOp TaBle T;"));
+    ASSERT_NO_THROW(parser.parse_string("DROP TABLE t;"));
+    ASSERT_NO_THROW(parser.parse_string("drop table t;"));
+    ASSERT_NO_THROW(parser.parse_string("DrOp TaBle T;"));
 }
 
 TEST(catalog_ddl_parser_test, create_active_field)
 {
     parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t (id INT32[] ACTIVE, name STRING ACTIVE);"));
+    ASSERT_NO_THROW(parser.parse_string("CREATE TABLE t (id INT32[] ACTIVE, name STRING ACTIVE);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
@@ -156,7 +156,7 @@ TEST(catalog_ddl_parser_test, create_active_field)
 TEST(catalog_ddl_parser_test, create_database)
 {
     parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line("CREATE DATABASE db;"));
+    ASSERT_NO_THROW(parser.parse_string("CREATE DATABASE db;"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
@@ -172,7 +172,7 @@ TEST(catalog_ddl_parser_test, create_database)
 TEST(catalog_ddl_parser_test, create_database_if_not_exists)
 {
     parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line("CREATE DATABASE IF NOT EXISTS db;"));
+    ASSERT_NO_THROW(parser.parse_string("CREATE DATABASE IF NOT EXISTS db;"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
@@ -188,7 +188,7 @@ TEST(catalog_ddl_parser_test, create_database_if_not_exists)
 TEST(catalog_ddl_parser_test, create_table_in_database)
 {
     parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line("CREATE TABLE d.t (id INT32);"));
+    ASSERT_NO_THROW(parser.parse_string("CREATE TABLE d.t (id INT32);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
@@ -207,7 +207,7 @@ TEST(catalog_ddl_parser_test, create_table_in_database)
 TEST(catalog_ddl_parser_test, drop_database)
 {
     parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line("DROP DATABASE d;"));
+    ASSERT_NO_THROW(parser.parse_string("DROP DATABASE d;"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::drop);
@@ -218,7 +218,7 @@ TEST(catalog_ddl_parser_test, drop_database)
     EXPECT_EQ(drop_stmt->name, "d");
     EXPECT_FALSE(drop_stmt->if_exists);
 
-    ASSERT_NO_THROW(parser.parse_line("DROP DATABASE IF EXISTS d;"));
+    ASSERT_NO_THROW(parser.parse_string("DROP DATABASE IF EXISTS d;"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::drop);
@@ -233,23 +233,23 @@ TEST(catalog_ddl_parser_test, drop_database)
 TEST(catalog_ddl_parser_test, illegal_characters)
 {
     parser_t parser;
-    EXPECT_THROW(parser.parse_line("CREATE TABLE t(id : int8);"), parsing_error);
-    EXPECT_THROW(parser.parse_line("CREATE : TABLE t(id int8);"), parsing_error);
-    EXPECT_THROW(parser.parse_line("CREATE TABLE t(id - int8);"), parsing_error);
+    EXPECT_THROW(parser.parse_string("CREATE TABLE t(id : int8);"), parsing_error);
+    EXPECT_THROW(parser.parse_string("CREATE : TABLE t(id int8);"), parsing_error);
+    EXPECT_THROW(parser.parse_string("CREATE TABLE t(id - int8);"), parsing_error);
 }
 
 TEST(catalog_ddl_parser_test, fixed_size_array)
 {
     parser_t parser;
-    ASSERT_THROW(parser.parse_line("CREATE TABLE t (c INT32[2]);"), parsing_error);
-    ASSERT_THROW(parser.parse_line("CREATE TABLE t (c INT32[1]);"), parsing_error);
-    ASSERT_THROW(parser.parse_line("CREATE TABLE t (c INT32[0]);"), parsing_error);
+    ASSERT_THROW(parser.parse_string("CREATE TABLE t (c INT32[2]);"), parsing_error);
+    ASSERT_THROW(parser.parse_string("CREATE TABLE t (c INT32[1]);"), parsing_error);
+    ASSERT_THROW(parser.parse_string("CREATE TABLE t (c INT32[0]);"), parsing_error);
 }
 
 TEST(catalog_ddl_parser_test, vector_of_strings)
 {
     parser_t parser;
-    ASSERT_THROW(parser.parse_line("CREATE TABLE t (c STRING[]);"), parsing_error);
+    ASSERT_THROW(parser.parse_string("CREATE TABLE t (c STRING[]);"), parsing_error);
 }
 
 TEST(catalog_ddl_parser_test, code_comments)
@@ -272,17 +272,17 @@ CREATE TABLE t -- create table t
 
     parser_t parser;
 
-    ASSERT_NO_THROW(parser.parse_line(correct_ddl_text));
+    ASSERT_NO_THROW(parser.parse_string(correct_ddl_text));
     EXPECT_EQ(1, parser.statements.size());
 
-    ASSERT_THROW(parser.parse_line(incorrect_ddl_text), parsing_error);
+    ASSERT_THROW(parser.parse_string(incorrect_ddl_text), parsing_error);
 }
 
 TEST(catalog_ddl_parser_test, create_empty_table)
 {
     parser_t parser;
 
-    ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t ();"));
+    ASSERT_NO_THROW(parser.parse_string("CREATE TABLE t ();"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
@@ -309,7 +309,7 @@ CREATE RELATIONSHIP r (
   d2.t2.link2 -> d1.t1
 );
 )";
-    ASSERT_NO_THROW(parser.parse_line(ddl_text_full_db));
+    ASSERT_NO_THROW(parser.parse_string(ddl_text_full_db));
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
     auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
@@ -322,7 +322,7 @@ CREATE RELATIONSHIP r (
   t2.link2 -> t1
 );
 )";
-    ASSERT_NO_THROW(parser.parse_line(ddl_text_no_db));
+    ASSERT_NO_THROW(parser.parse_string(ddl_text_no_db));
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
     create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
@@ -335,7 +335,7 @@ CREATE RELATIONSHIP r (
   t2.link2 -> d1.t1
 );
 )";
-    ASSERT_NO_THROW(parser.parse_line(ddl_text_partial_db));
+    ASSERT_NO_THROW(parser.parse_string(ddl_text_partial_db));
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
     create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
@@ -348,20 +348,20 @@ CREATE RELATIONSHIP (
   t2.link2 -> t1
 );
 )";
-    ASSERT_THROW(parser.parse_line(ddl_text_negative_case_no_name), parsing_error);
+    ASSERT_THROW(parser.parse_string(ddl_text_negative_case_no_name), parsing_error);
 
     const string ddl_text_negative_case_single_link = R"(
 CREATE RELATIONSHIP r (
   t1.link -> t2,
 );
 )";
-    ASSERT_THROW(parser.parse_line(ddl_text_negative_case_single_link), parsing_error);
+    ASSERT_THROW(parser.parse_string(ddl_text_negative_case_single_link), parsing_error);
 }
 
 TEST(catalog_ddl_parser_test, create_index)
 {
     parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line("CREATE INDEX IF NOT EXISTS idx ON d.t (name);"));
+    ASSERT_NO_THROW(parser.parse_string("CREATE INDEX IF NOT EXISTS idx ON d.t (name);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
@@ -383,7 +383,7 @@ TEST(catalog_ddl_parser_test, create_index)
 TEST(catalog_ddl_parser_test, create_unique_index)
 {
     parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line("CREATE UNIQUE INDEX idx ON d.t (name);"));
+    ASSERT_NO_THROW(parser.parse_string("CREATE UNIQUE INDEX idx ON d.t (name);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
@@ -405,7 +405,7 @@ TEST(catalog_ddl_parser_test, create_unique_index)
 TEST(catalog_ddl_parser_test, create_hash_index)
 {
     parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line("CREATE UNIQUE HASH INDEX idx ON d.t (name);"));
+    ASSERT_NO_THROW(parser.parse_string("CREATE UNIQUE HASH INDEX idx ON d.t (name);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
@@ -427,7 +427,7 @@ TEST(catalog_ddl_parser_test, create_hash_index)
 TEST(catalog_ddl_parser_test, create_range_index)
 {
     parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line("CREATE RANGE INDEX IF NOT EXISTS idx ON d.t (name);"));
+    ASSERT_NO_THROW(parser.parse_string("CREATE RANGE INDEX IF NOT EXISTS idx ON d.t (name);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
@@ -457,7 +457,7 @@ CREATE RELATIONSHIP r (
 );
 )";
 
-    ASSERT_NO_THROW(parser.parse_line(ddl_one_to_one));
+    ASSERT_NO_THROW(parser.parse_string(ddl_one_to_one));
     auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
     auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
     EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
@@ -493,7 +493,7 @@ CREATE RELATIONSHIP r (
 );
 )";
 
-    ASSERT_NO_THROW(parser.parse_line(ddl_one_to_one));
+    ASSERT_NO_THROW(parser.parse_string(ddl_one_to_one));
     auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
     auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
     EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
@@ -521,7 +521,7 @@ CREATE RELATIONSHIP r (
 TEST(catalog_ddl_parser_test, create_unique_field)
 {
     parser_t parser;
-    ASSERT_NO_THROW(parser.parse_line("CREATE TABLE t (id UINT64 UNIQUE, name STRING UNIQUE ACTIVE, ssn STRING ACTIVE UNIQUE);"));
+    ASSERT_NO_THROW(parser.parse_string("CREATE TABLE t (id UINT64 UNIQUE, name STRING UNIQUE ACTIVE, ssn STRING ACTIVE UNIQUE);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
@@ -575,7 +575,7 @@ CREATE RELATIONSHIP r (
 );
 )";
 
-    ASSERT_NO_THROW(parser.parse_line(create_relationship_ddl));
+    ASSERT_NO_THROW(parser.parse_string(create_relationship_ddl));
     auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
     auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
     EXPECT_EQ(create_stmt->type, create_type_t::create_relationship);
@@ -631,9 +631,9 @@ CREATE RELATIONSHIP r (
 );
 )";
 
-    EXPECT_THROW(parser.parse_line(negative_1), parsing_error);
-    EXPECT_THROW(parser.parse_line(negative_2), parsing_error);
-    EXPECT_THROW(parser.parse_line(negative_3), parsing_error);
+    EXPECT_THROW(parser.parse_string(negative_1), parsing_error);
+    EXPECT_THROW(parser.parse_string(negative_2), parsing_error);
+    EXPECT_THROW(parser.parse_string(negative_3), parsing_error);
 }
 
 TEST(catalog_ddl_parser_test, create_statement_list)
@@ -670,8 +670,8 @@ CREATE table  t2(
 ;
 )";
 
-    ASSERT_NO_THROW(parser.parse_line(create_list_ddl));
-    ASSERT_NO_THROW(parser.parse_line(create_db_list_ddl));
+    ASSERT_NO_THROW(parser.parse_string(create_list_ddl));
+    ASSERT_NO_THROW(parser.parse_string(create_db_list_ddl));
 
     // Negative test cases.
     const string negative_1 = R"(
@@ -718,9 +718,9 @@ CREATE table  t2(
   c2 int32
 )
 )";
-    ASSERT_THROW(parser.parse_line(negative_1), parsing_error);
-    ASSERT_THROW(parser.parse_line(negative_2), parsing_error);
-    ASSERT_THROW(parser.parse_line(negative_3), parsing_error);
+    ASSERT_THROW(parser.parse_string(negative_1), parsing_error);
+    ASSERT_THROW(parser.parse_string(negative_2), parsing_error);
+    ASSERT_THROW(parser.parse_string(negative_3), parsing_error);
 }
 
 TEST(catalog_ddl_parser_test, in_table_relationship)
@@ -759,8 +759,8 @@ create table patient (
 );
 )";
 
-    ASSERT_NO_THROW(parser.parse_line(one_to_many_ddl));
-    ASSERT_NO_THROW(parser.parse_line(hybrid_index_ddl));
+    ASSERT_NO_THROW(parser.parse_string(one_to_many_ddl));
+    ASSERT_NO_THROW(parser.parse_string(hybrid_index_ddl));
 }
 
 TEST(catalog_ddl_parser_test, invalid_create_list)
@@ -782,6 +782,35 @@ create table t2(c2 int32);
     for (const auto& ddl : ddls)
     {
         parser_t parser;
-        ASSERT_THROW(parser.parse_line(ddl), parsing_error);
+        ASSERT_THROW(parser.parse_string(ddl), parsing_error);
+    }
+}
+
+TEST(catalog_ddl_parser_test, empty_statements)
+{
+    array ddls{
+        R"(
+-- empty statements in the front
+;;;;
+create table t(c int32);
+)",
+        R"(
+-- empty statements in the middle
+create table t1(c1 int32);
+;;;;
+create table t2(c2 int32);
+)",
+        R"(
+-- empty statements in the end
+create table t1(c1 int32);
+create table t2(c2 int32);
+;;;;
+)",
+    };
+
+    for (const auto& ddl : ddls)
+    {
+        parser_t parser;
+        ASSERT_NO_THROW(parser.parse_string(ddl));
     }
 }
