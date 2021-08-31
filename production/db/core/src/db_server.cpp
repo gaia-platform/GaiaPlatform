@@ -2790,25 +2790,27 @@ bool server_t::txn_commit()
     // Register the committing txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = submit_txn(s_txn_id, log_fd);
 
+    // This is only used for persistence.
+    std::string txn_name;
+
     if (use_gaia_log_implementation)
     {
         // Signal to the persistence thread to write txn log to disk.
         eventfd_write(s_signal_log_write_eventfd, static_cast<eventfd_t>(commit_ts));
     }
-
-    // This is only used for persistence.
-    std::string txn_name;
-
-    if (rdb)
+    else
     {
-        txn_name = rdb->begin_txn(s_txn_id);
-        // Prepare log for transaction.
-        // This is effectively asynchronous with validation, because if it takes
-        // too long, then another thread may recursively validate this txn,
-        // before the committing thread has a chance to do so.
-        mapped_log_t log;
-        log.open(log_fd);
-        rdb->prepare_wal_for_write(log.data(), txn_name);
+        if (rdb)
+        {
+            txn_name = rdb->begin_txn(s_txn_id);
+            // Prepare log for transaction.
+            // This is effectively asynchronous with validation, because if it takes
+            // too long, then another thread may recursively validate this txn,
+            // before the committing thread has a chance to do so.
+            mapped_log_t log;
+            log.open(log_fd);
+            rdb->prepare_wal_for_write(log.data(), txn_name);
+        }
     }
 
     // Validate the txn against all other committed txns in the conflict window.

@@ -110,7 +110,7 @@ private:
     static inline server_config_t s_server_conf{};
 
     // TODO: Delete this once recovery/checkpointing implementation is in.
-    static inline bool use_gaia_log_implementation = false;
+    static inline bool use_gaia_log_implementation = true;
 
     // TODO: Make configurable.
     static constexpr int64_t txn_group_timeout_ms = 100;
