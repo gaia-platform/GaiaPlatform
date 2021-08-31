@@ -13,7 +13,7 @@ cmake_minimum_required(VERSION 3.16)
 # - GAIA_LIB: Automatically set by CMake if libgaia.so is found.
 # - GAIA_GAIAC_CMD: The gaiac command. Default: ${GAIA_BIN}/gaiac.
 # - GAIA_GAIAT_CMD: The gaiat command. Default: ${GAIA_BIN}/gaiat.
-# - GAIA_DEFAULT_DIRECT_ACESS_GENERATED_DIR: The process_schema() function puts the generated direct access code
+# - GAIA_DEFAULT_DIRECT_ACCESS_GENERATED_DIR: The process_schema() function puts the generated direct access code
 #     in this directory if the OUTPUT_DIR param is not specified.
 # - GAIA_DEFAULT_RULES_GENERATED_DIR: The translate_ruleset() function puts the generated rules code
 #     in this directory if the OUTPUT_DIR param is not specified.
@@ -51,9 +51,9 @@ if(NOT GAIA_LIB)
   set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${GAIA_LIB_DIR}/libgaia.so)
 endif()
 
-if(NOT DEFINED GAIA_DEFAULT_DIRECT_ACESS_GENERATED_DIR)
-  set(GAIA_DEFAULT_DIRECT_ACESS_GENERATED_DIR ${CMAKE_BINARY_DIR}/gaia_generated/direct_access)
-  file(MAKE_DIRECTORY ${GAIA_DEFAULT_DIRECT_ACESS_GENERATED_DIR})
+if(NOT DEFINED GAIA_DEFAULT_DIRECT_ACCESS_GENERATED_DIR)
+  set(GAIA_DEFAULT_DIRECT_ACCESS_GENERATED_DIR ${CMAKE_BINARY_DIR}/gaia_generated/direct_access)
+  file(MAKE_DIRECTORY ${GAIA_DEFAULT_DIRECT_ACCESS_GENERATED_DIR})
 endif()
 
 if(NOT DEFINED GAIA_DEFAULT_RULES_GENERATED_DIR)
@@ -64,9 +64,9 @@ endif()
 # The target_add_gaia_generated_sources() function uses the following variables
 # to add the generated sources to a user target. The process_schema() and
 # translate_ruleset() functions set the value of these variables after generating the code.
-list(APPEND GAIA_DIRECT_ACESS_GENERATION_TARGETS "")
-list(APPEND GAIA_DIRECT_ACESS_GENERATED_HEADERS "")
-list(APPEND GAIA_DIRECT_ACESS_GENERATED_CPP "")
+list(APPEND GAIA_DIRECT_ACCESS_GENERATION_TARGETS "")
+list(APPEND GAIA_DIRECT_ACCESS_GENERATED_HEADERS "")
+list(APPEND GAIA_DIRECT_ACCESS_GENERATED_CPP "")
 
 list(APPEND GAIA_RULES_TRANSLATION_TARGETS "")
 list(APPEND GAIA_RULES_TRANSLATED_CPP "")
@@ -90,7 +90,7 @@ endmacro()
 #     Changes to this functionality are under review.
 # - DDL_FILE: [optional] the path to the .ddl file to load into the database before the generation.
 # - OUTPUT_DIR: [optional] directory where the header files will be generated.
-#     If an output folder is not specified, the files are written to ${GAIA_DEFAULT_DIRECT_ACESS_GENERATED_DIR}/${DATABASE_NAME}.
+#     If an output folder is not specified, the files are written to ${GAIA_DEFAULT_DIRECT_ACCESS_GENERATED_DIR}/${DATABASE_NAME}.
 # - INSTANCE_NAME: [optional] name of the database instance gaiac will connect to.
 #     If not specified it will try to connect to gaia_default_instance.
 # - TARGET_NAME: [optional] the name of the generated target.
@@ -114,7 +114,7 @@ function(process_schema)
   endif()
 
   if(NOT DEFINED ARG_OUTPUT_DIR)
-    set(ARG_OUTPUT_DIR ${GAIA_DEFAULT_DIRECT_ACESS_GENERATED_DIR}/${ARG_DATABASE_NAME})
+    set(ARG_OUTPUT_DIR ${GAIA_DEFAULT_DIRECT_ACCESS_GENERATED_DIR}/${ARG_DATABASE_NAME})
     message(STATUS "OUTPUT_DIR not specified, using: ${ARG_OUTPUT_DIR}.")
   endif()
 
@@ -125,7 +125,7 @@ function(process_schema)
     set(INSTANCE_NAME "-n ${ARG_INSTANCE_NAME}")
   endif()
 
-  message(STATUS "Adding target to generate direct access code for database ${ARG_DATABASE_NAME}...")
+  message(STATUS "Adding target to generate Direct Access code for database ${ARG_DATABASE_NAME}...")
 
   if(DEFINED ARG_DDL_FILE)
     add_custom_command(
@@ -163,9 +163,9 @@ function(process_schema)
     DEPENDS ${DIRECT_ACCESS_CPP_FILE}
   )
 
-  set(GAIA_DIRECT_ACESS_GENERATION_TARGETS "${GAIA_DIRECT_ACESS_GENERATION_TARGETS};${ARG_TARGET_NAME}" PARENT_SCOPE)
-  set(GAIA_DIRECT_ACESS_GENERATED_HEADERS "${GAIA_DIRECT_ACESS_GENERATED_HEADERS};${DIRECT_ACCESS_HEADER_FILE}" PARENT_SCOPE)
-  set(GAIA_DIRECT_ACESS_GENERATED_CPP "${GAIA_DIRECT_ACESS_GENERATED_CPP};${DIRECT_ACCESS_CPP_FILE}" PARENT_SCOPE)
+  set(GAIA_DIRECT_ACCESS_GENERATION_TARGETS "${GAIA_DIRECT_ACCESS_GENERATION_TARGETS};${ARG_TARGET_NAME}" PARENT_SCOPE)
+  set(GAIA_DIRECT_ACCESS_GENERATED_HEADERS "${GAIA_DIRECT_ACCESS_GENERATED_HEADERS};${DIRECT_ACCESS_HEADER_FILE}" PARENT_SCOPE)
+  set(GAIA_DIRECT_ACCESS_GENERATED_CPP "${GAIA_DIRECT_ACCESS_GENERATED_CPP};${DIRECT_ACCESS_CPP_FILE}" PARENT_SCOPE)
 endfunction()
 
 # Creates a CMake target that translates the ruleset file specified by RULESET_FILE
@@ -181,7 +181,7 @@ endfunction()
 # Args:
 # - RULESET_FILE: the path to the .ruleset file.
 # - OUTPUT_DIR: [optional] directory where the header files will be generated.
-#     If not specified the default value is ${GAIA_DEFAULT_DIRECT_ACESS_GENERATED_DIR}/${RULESET_NAME}
+#     If not specified the default value is ${GAIA_DEFAULT_DIRECT_ACCESS_GENERATED_DIR}/${RULESET_NAME}
 # - TARGET_NAME: [optional] the name of the generated target.
 #     If not specified the default value is translate_${RULESET_NAME}_ruleset.
 # - CLANG_PARAMS: [optional]: Additional parameters to pass to clang (invoked by gaiat)
@@ -191,7 +191,7 @@ endfunction()
 #     Typically, the translation depends on the successful generation of the
 #     schema headers.
 #     If not specified, translation will depend on the targets listed in
-#     ${GAIA_DIRECT_ACESS_GENERATION_TARGETS}
+#     ${GAIA_DIRECT_ACCESS_GENERATION_TARGETS}
 function(translate_ruleset)
   set(options "")
   set(oneValueArgs RULESET_FILE OUTPUT_DIR TARGET_NAME GAIAT_CMD)
@@ -227,7 +227,7 @@ function(translate_ruleset)
 
   # Add the output directory (which contains the DDL headers)
 
-  foreach(HEADER_FILE ${GAIA_DIRECT_ACESS_GENERATED_HEADERS})
+  foreach(HEADER_FILE ${GAIA_DIRECT_ACCESS_GENERATED_HEADERS})
     get_filename_component(HEADER_DIR ${HEADER_FILE} DIRECTORY)
     message(STATUS "Adding ${HEADER_DIR} to ${ARG_TARGET_NAME}...")
     string(APPEND GAIAT_INCLUDE_PATH "-I;${HEADER_DIR};")
@@ -238,7 +238,7 @@ function(translate_ruleset)
   endif()
 
   if(NOT DEFINED ARG_DEPENDS)
-    set(ARG_DEPENDS ${GAIA_DIRECT_ACESS_GENERATION_TARGETS})
+    set(ARG_DEPENDS ${GAIA_DIRECT_ACCESS_GENERATION_TARGETS})
   endif()
 
   add_custom_command(
@@ -269,14 +269,14 @@ endfunction()
 # translate_ruleset() functions.
 function(target_add_gaia_generated_sources TARGET_NAME)
   # Adds direct access .h header directories
-  foreach(HEADER_FILE ${GAIA_DIRECT_ACESS_GENERATED_HEADERS})
+  foreach(HEADER_FILE ${GAIA_DIRECT_ACCESS_GENERATED_HEADERS})
     get_filename_component(HEADER_DIR ${HEADER_FILE} DIRECTORY)
     message(STATUS "Adding ${HEADER_DIR} to ${TARGET_NAME}...")
     target_include_directories(${TARGET_NAME} PUBLIC ${HEADER_DIR})
   endforeach()
 
   # Adds direct access .cpp files
-  foreach(CPP_FILE ${GAIA_DIRECT_ACESS_GENERATED_CPP})
+  foreach(CPP_FILE ${GAIA_DIRECT_ACCESS_GENERATED_CPP})
     message(STATUS "Adding ${CPP_FILE} to ${TARGET_NAME}...")
     target_sources(${TARGET_NAME} PRIVATE ${CPP_FILE})
   endforeach()
