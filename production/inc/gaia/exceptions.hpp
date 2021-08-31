@@ -65,6 +65,11 @@ namespace index
 class unique_constraint_violation : public common::gaia_exception
 {
 public:
+    unique_constraint_violation()
+    {
+        m_message = "UNIQUE constraint violation.";
+    }
+
     explicit unique_constraint_violation(const char* index_name, const char* table_name)
     {
         std::stringstream message;
