@@ -79,6 +79,7 @@ static constexpr char c_message_validating_txn_should_have_been_validated[]
     = "The txn being tested can only have its log fd invalidated if the validating txn was validated!";
 static constexpr char c_message_preceding_txn_should_have_been_validated[]
     = "A transaction with commit timestamp preceding this transaction's begin timestamp is undecided!";
+static constexpr char c_message_unexpected_query_type[] = "Unexpected query type!";
 
 server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd)
     : m_auto_close_fd(auto_close_fd)
@@ -523,8 +524,42 @@ void server_t::handle_request_stream(
         auto request_data = request->data_as_index_scan();
         auto index_id = static_cast<gaia_id_t>(request_data->index_id());
         auto txn_id = static_cast<gaia_txn_id_t>(request_data->txn_id());
+        auto query_type = request_data->query_type();
 
-        start_stream_producer(server_socket, id_to_index(index_id)->generator(txn_id));
+        switch (query_type)
+        {
+        case index_query_t::NONE:
+            start_stream_producer(server_socket, id_to_index(index_id)->generator(txn_id));
+            break;
+        case index_query_t::index_point_read_query_t:
+        case index_query_t::index_equal_range_query_t:
+        {
+            index::index_key_t key;
+            {
+                // Create local snapshot to query catalog for key serialization schema.
+                bool apply_logs = false;
+                create_local_snapshot(apply_logs);
+                auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
+
+                if (query_type == index_query_t::index_point_read_query_t)
+                {
+                    auto query = request_data->query_as_index_point_read_query_t();
+                    auto key_buffer = data_read_buffer_t(*(query->key()));
+                    key = index::index_builder_t::deserialize_key(index_id, key_buffer);
+                }
+                else
+                {
+                    auto query = request_data->query_as_index_equal_range_query_t();
+                    auto key_buffer = data_read_buffer_t(*(query->key()));
+                    key = index::index_builder_t::deserialize_key(index_id, key_buffer);
+                }
+            }
+            start_stream_producer(server_socket, id_to_index(index_id)->equal_range_generator(txn_id, key));
+            break;
+        }
+        default:
+            ASSERT_UNREACHABLE(c_message_unexpected_query_type);
+        }
 
         break;
     }

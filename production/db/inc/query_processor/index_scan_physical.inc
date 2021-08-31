@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
-
 // Checks visibility of the index entry.
 // For now, we always add an index entry when the indexed object is updated
 // regardless if the indexed fields are updated. The following logic is sufficient.
@@ -19,7 +17,7 @@ bool base_index_scan_physical_t::is_visible(const db::index::index_record_t& rec
 template <typename T_index, typename T_index_iterator>
 void index_scan_physical_t<T_index, T_index_iterator>::init()
 {
-    auto rec_generator = db::client_t::get_record_generator_for_index(m_index_id, db_client_proxy_t::get_current_txn_id());
+    auto rec_generator = scan_generator_t::get_record_generator_for_index(m_index_id, db_client_proxy_t::get_current_txn_id(), m_predicate);
 
     // Only return visible records from remote.
     m_remote_it = remote_scan_iterator_t(
@@ -106,6 +104,7 @@ bool index_scan_physical_t<T_index, T_index_iterator>::has_more()
     {
         init();
     }
+
     return !remote_end() || !local_end();
 }
 
@@ -113,7 +112,7 @@ template <typename T_index, typename T_index_iterator>
 db::index::index_key_t index_scan_physical_t<T_index, T_index_iterator>::record_to_key(const db::index::index_record_t& record) const
 {
     auto obj = db::locator_to_ptr(record.locator);
-    return db::index::index_builder_t::make_key(m_index_id, obj->type, reinterpret_cast<const uint8_t*>(obj->payload));
+    return db::index::index_builder_t::make_key(m_index_id, obj->type, reinterpret_cast<const uint8_t*>(obj->data()));
 }
 
 template <typename T_index, typename T_index_iterator>

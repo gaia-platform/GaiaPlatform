@@ -47,8 +47,8 @@ relationship segments_from
 
 relationship segments_to
 (
-    airport.segments_to -> segment[],
-    segment.dst -> airport
+    segment.dst -> airport,
+    airport.segments_to -> segment[]
 )
 
 table trip_segment
