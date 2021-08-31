@@ -35,12 +35,21 @@ public:
         db::gaia_txn_id_t src_txn_id;
     };
 
+    struct serial_group_t;
     struct invocation_t
     {
         rule_invocation_t args;
         const char* rule_id;
         std::chrono::steady_clock::time_point start_time;
+        std::shared_ptr<serial_group_t> serial_group{nullptr};
         uint32_t num_retries{0};
+    };
+
+    struct serial_group_t
+    {
+        std::mutex execute_lock;
+        std::mutex enqueue_lock;
+        std::queue<invocation_t> invocations;
     };
 
     /**
@@ -100,6 +109,7 @@ public:
 private:
     void rule_worker(int32_t& count_busy_workers);
     void invoke_rule(invocation_t& invocation);
+    void invoke_rule_inner(invocation_t& invocation);
     void process_pending_invocations(bool should_schedule);
     void wait_for_rules_to_complete(std::unique_lock<std::mutex>& lock);
 

@@ -40,12 +40,9 @@ const std::string c_gaia_namespace = "gaia";
 // and application code.
 const std::string c_internal_suffix = "internal";
 
-// Catalog's notion for the empty database similar to Epsilon for the empty
-// string. Specifically, when a user create a table without specifying a
-// database, it is created in this construct. Users cannot use '()' in database
-// names so there will be no ambiguity, i.e. there will never exist a user
-// created database called "()".
-const std::string c_empty_db_name = "()";
+// When users create tables without specifying a database, the tables are
+// created in the following database.
+const std::string c_empty_db_name = "";
 
 // The character used to connect a database name and a table name to form fully
 // qualified name for a table defined in a given database.
@@ -284,6 +281,14 @@ public:
         message << "The many to many relationship defined in '" << relationship << "' is not supported.";
         m_message = message.str();
     }
+
+    explicit many_to_many_not_supported(const std::string& table1, const std::string& table2)
+    {
+        std::stringstream message;
+        message << "The many to many relationship defined "
+                << "in '" << table1 << "'  and '" << table2 << "' is not supported.";
+        m_message = message.str();
+    }
 };
 
 /**
@@ -323,6 +328,50 @@ public:
     explicit invalid_field_map(const std::string& message)
     {
         m_message = message;
+    }
+};
+
+/**
+ * Thrown when the `references` definition can match multiple `references`
+ * definitions elsewhere.
+ */
+class ambiguous_reference_definition : public gaia::common::gaia_exception
+{
+public:
+    explicit ambiguous_reference_definition(const std::string& table, const std::string& ref_name)
+    {
+        std::stringstream message;
+        message << "The reference '" << ref_name << "' definition "
+                << "in table '" << table << "' has mutiple matching definitions.";
+        m_message = message.str();
+    }
+};
+
+/**
+ * Thrown when the `references` definition does not have a matching definition.
+ */
+class orphaned_reference_definition : public gaia::common::gaia_exception
+{
+public:
+    explicit orphaned_reference_definition(const std::string& table, const std::string& ref_name)
+    {
+        std::stringstream message;
+        message << "The reference '" << ref_name << "' definition "
+                << "in table '" << table << "' has no matching definition.";
+        m_message = message.str();
+    }
+};
+
+/**
+ * Thrown when the create list is invalid.
+ */
+class invalid_create_list : public gaia::common::gaia_exception
+{
+public:
+    explicit invalid_create_list(const std::string& message)
+    {
+        m_message = "Invalid create statment in a list: ";
+        m_message += message;
     }
 };
 
@@ -482,9 +531,40 @@ struct table_field_list_t
     std::string database;
     std::string table;
     std::vector<std::string> fields;
+
+    bool operator==(const table_field_list_t& other) const
+    {
+        if (database == other.database && table == other.table && fields == other.fields)
+        {
+            return true;
+        }
+        return false;
+    }
 };
 
 using table_field_map_t = std::pair<table_field_list_t, table_field_list_t>;
+
+// The class represents reference fields in parsing results. The matching
+// references in the two corresponding table definitions will be translated to
+// relationship definitions during execution.
+struct ref_field_def_t : base_field_def_t
+{
+    ref_field_def_t(std::string name, std::string table_name)
+        : base_field_def_t(name, field_type_t::reference), table(std::move(table_name))
+    {
+    }
+
+    // The referenced table.
+    std::string table;
+
+    relationship_cardinality_t cardinality;
+
+    // Optional, the field name of the referenced table.
+    std::string field;
+
+    // Optional, see the `create_relationship_t` for more details.
+    std::optional<table_field_map_t> field_map;
+};
 
 enum class create_type_t : uint8_t
 {
@@ -506,21 +586,20 @@ struct use_statement_t : statement_t
 
 struct create_statement_t : statement_t
 {
-    explicit create_statement_t(create_type_t type)
-        : statement_t(statement_type_t::create), type(type)
-    {
-    }
-
     create_statement_t(create_type_t type, std::string name)
         : statement_t(statement_type_t::create), type(type), name(std::move(name))
     {
+        has_if_not_exists = false;
+        auto_drop = false;
     }
 
     create_type_t type;
 
     std::string name;
 
-    bool if_not_exists;
+    bool has_if_not_exists;
+
+    bool auto_drop;
 };
 
 struct create_database_t : create_statement_t
@@ -641,7 +720,10 @@ void use_database(const std::string& name);
  * @return id of the new database
  * @throw db_already_exists
  */
-gaia::common::gaia_id_t create_database(const std::string& name, bool throw_on_exists = true);
+gaia::common::gaia_id_t create_database(
+    const std::string& name,
+    bool throw_on_exists = true,
+    bool auto_drop = false);
 
 /**
  * Create a table definition in a given database.
@@ -653,7 +735,11 @@ gaia::common::gaia_id_t create_database(const std::string& name, bool throw_on_e
  * @throw table_already_exists
  */
 gaia::common::gaia_id_t create_table(
-    const std::string& db_name, const std::string& name, const ddl::field_def_list_t& fields, bool throw_on_exist = true);
+    const std::string& db_name,
+    const std::string& name,
+    const ddl::field_def_list_t& fields,
+    bool throw_on_exists = true,
+    bool auto_drop = false);
 
 /**
  * Create a table definition in the catalog's global database.
@@ -687,7 +773,8 @@ gaia::common::gaia_id_t create_index(
     const std::string& db_name,
     const std::string& table_name,
     const std::vector<std::string>& field_names,
-    bool throw_on_exist = true);
+    bool throw_on_exist = true,
+    bool auto_drop = false);
 
 /**
  * Delete a database.
@@ -785,7 +872,8 @@ gaia::common::gaia_id_t create_relationship(
     const std::string& name,
     const ddl::link_def_t& link1,
     const ddl::link_def_t& link2,
-    bool throw_on_exist = true);
+    bool throw_on_exist = true,
+    bool auto_drop = false);
 
 /**
  * Create a relationship between tables.
@@ -800,7 +888,8 @@ gaia::common::gaia_id_t create_relationship(
     const ddl::link_def_t& link1,
     const ddl::link_def_t& link2,
     const std::optional<ddl::table_field_map_t>& field_map,
-    bool throw_on_exist);
+    bool throw_on_exist,
+    bool auto_drop);
 
 /**
  * Delete a given relationship.

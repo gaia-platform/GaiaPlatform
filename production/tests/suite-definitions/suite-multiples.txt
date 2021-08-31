@@ -1,0 +1,15 @@
+#
+# Simple test suite to run a mix of single tests and repeated tests.
+#
+# Note that this is primarily to ensure the repeat functionality is working.
+#
+
+workload mink
+
+smoke
+smoke-time-only
+smoke
+smoke repeat 2
+smoke
+smoke-time-only repeat 2
+smoke

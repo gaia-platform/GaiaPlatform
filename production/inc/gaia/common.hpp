@@ -100,6 +100,14 @@ enum class data_type_t : uint8_t
     e_string,
 };
 
+template <typename T>
+std::underlying_type_t<T> get_enum_value(T val)
+{
+    return static_cast<std::underlying_type_t<T>>(val);
+}
+
+constexpr char c_whitespace_chars[] = " \n\r\t\f\v";
+
 /*@}*/
 } // namespace common
 /*@}*/

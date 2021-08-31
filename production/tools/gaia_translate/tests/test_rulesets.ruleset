@@ -126,38 +126,40 @@ ruleset test_tags
 
 ruleset test_queries
 {
-    // This rule is patterned after an example in the document "Paths and
-    // Tags in Declarative Rules". Pseudo-code will be used until the
-    // translator is done.
-
     // test_queries_code.new_registration
     on_insert(R:registration)
     {
-        // printf("on_insert(registration) = %s\n", registration.reg_id);
-        // printf("course name=%s\n", course.name);
+        printf("on_insert(registration) = %s\n", registration.reg_id);
+        printf("course name=%s\n", course.name);
         status = "Ineligible";
+
         // Has this student taken all prerequisites?
-        //>for (course.requires->prereq.prereq->PC:course) {
-        //>    bool taken = false;
-        //>    for (student->registration->TC:course) {
-        //>        if (TC.courseId == PC.courseId) {
-        //>            taken = true;
-        //>            break;
-        //>        }
-        //>    }
-        //>    if (!taken) {
-        //>        printf("student has not taken course %s\n", PC.courseId);
-        //>        return;
-        //>    }
-        //>}
-        //
+        for (course.requires->prereq.prereq->PC:course)
+        {
+            bool taken = false;
+COURSE_TAKEN:
+            if (student->registration->course.course_id == PC.course_id)
+            {
+                taken = true;
+                break COURSE_TAKEN;
+            }
+            if (!taken)
+            {
+                printf("student has not taken course %s\n", PC.course_id);
+                return;
+            }
+        }
+
         // Has this student passed all prerequisites with minimum grades?
-        //>for (course.requires->P:prereq.required_by->course->R:registration->S:student) {
-        //>    if (student_id == S.student_id) {
-        //>    if (R:Grade < P.MinGrade) {
-        //>        return;
-        //>    }
-        //>}
+        if (course.requires->P:prereq.prereq->course->R1:registration->student.student_id
+            == registration->student.student_id)
+        {
+            if (R1.grade < P.min_grade)
+            {
+                printf("student has insufficient prerequisite grade: %f, needed %f\n", R1.grade, P.min_grade);
+                return;
+            }
+        }
         status = "Eligible";
 
         g_insert_count++;
@@ -195,15 +197,13 @@ ruleset test_queries
     }
 }
 
-// WLW TODO - change 'student.total_hours' back to 'total_hours'.
-// GAIAPLAT-1124 - the "student." qualification on this implicit navigation
+// GAIAPLAT-1124 (fixed)
 ruleset test_query_1
 {
     // test_queries_code.sum_of_hours
     // Auto-sum of student hours.
     on_insert(registration)
     {
-        // GAIAPLAT-1124 (fixed)
         total_hours = 0;
         // Both 'total_hours' and 'hours' are single-cardinality implicit test_queries
         // from the registration row.
@@ -286,7 +286,7 @@ ruleset test_query_4
 
     // test_queries_code.if_stmt3
     {
-        if (strcmp(@student->G:registration.grade, "C") == 0)
+        if (@student->G:registration.grade == c_grade_c)
         {
             student.gpa *= 1.1;
         }
@@ -378,7 +378,7 @@ ruleset test_query_8
     on_insert(student)
     {
         // This student will have no registrations. The nomatch should execute.
-        if (strcmp(student->registration.grade, "F") == 0)
+        if (student->registration.grade == c_grade_f)
         {
             g_string_value = std::string("found grade 'F' > 0");
         }
@@ -400,7 +400,7 @@ ruleset test_query_9
     on_insert(student)
     {
         char str[200];
-        sprintf(str, "%d%s%d ", S:student.total_hours, S->R:registration.grade, R->course.hours);
+        sprintf(str, "%d%4.1f %d ", S:student.total_hours, S->R:registration.grade, R->course.hours);
         g_string_value = std::string(str);
         g_oninsert_result = test_error_result_t::e_none;
         g_oninsert_called = true;
@@ -432,15 +432,23 @@ ruleset test_query_10
 }
 
 // This ruleset is not used, but its translation must compile with C++.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-label"
+// These pragmas are needed to prevent compiler warnings resulting from unused labels
+// in the translated code. The break labels, BREAK1_TARGET, etc. are currently left in
+// the code unconditionally. The Jira issue, when fixed, will eliminate any unused labels.
+// These pragmas should be removed then.
+// GAIAPLAT-1198 (won't do)
+// GAIAPLAT-1143 (V1)
 ruleset test_compile
 {
-    // GAIAPLAT-1112
+    // GAIAPLAT-1112 (fixed)
     on_insert(student)
     {
         student.insert(surname: course.name, total_hours: course.hours);
     }
 
-    // GAIAPLAT-1142
+    // GAIAPLAT-1142 (fixed)
     on_update(student)
     {
     BREAK1_TARGET:
@@ -463,7 +471,7 @@ ruleset test_compile
         }
     }
 
-    // GAIAPLAT-564 (tentative)
+    // GAIAPLAT-564 (fixed)
     // TESTCASE: use field name same as a catalog field name, expect no conflict
     on_insert(course)
     {
@@ -476,8 +484,8 @@ ruleset test_compile
         printf("%s\n", name);
     }
 
-    // GAIAPLAT-1140
-#if TEST_FAILURES
+    // GAIAPLAT-1140 (V1)
+#ifdef TEST_FAILURES // GAIAPLAT-1140 (V1)
     on_update(student)
     {
     BREAK_TARGET:
@@ -491,6 +499,7 @@ ruleset test_compile
 #endif
 
 }
+#pragma clang diagnostic pop
 
 ruleset test_insert_delete
 {
@@ -502,12 +511,13 @@ ruleset test_insert_delete
         do
         {
             deleted = false;
+DELETE_REG:
             for (/R:registration)
             {
                 R.remove();
                 deleted = true;
                 g_onupdate_value++;
-                break;
+                break DELETE_REG;
             }
         }
         while (deleted);
@@ -517,32 +527,16 @@ ruleset test_insert_delete
 
 ruleset test_insert_delete_2
 {
-    // GAIAPLAT-1110
-    // GAIAPLAT-1112
+    // GAIAPLAT-1110 (fixed)
+    // GAIAPLAT-1112 (fixed)
+    // GAIAPLAT-1188 (fixed)
     on_insert(E:enrollment_log)
     {
-        const char* str1 = nullptr;
-        const char* str2 = nullptr;
-        int32_t int1 = 0;
+        gaia::prerequisites::student_t S = student.insert(student_id: E.log_student_id, surname: E.log_surname, age: E.log_age);
+        gaia::prerequisites::course_t C = course.insert(course_id: E.log_course_id, name: E.log_name, hours: E.log_hours);
+        gaia::prerequisites::registration_t R = registration.insert(reg_id: E.log_reg_id);
 
-        // WLW TODO - when bugs are fixed, use the tagged parameters.
-        // The uncommented code is a poor workaround for this, which should get fixed soon.
-        // auto S = student.insert(student_id: E.log_student_id, surname: E.log_surname, E.log_age);
-        // auto C = course.insert(course_id: E.log_course_id, name: E.log_name, E.log_hours);
-        // auto R = registration.insert(reg_id: E.log_reg_id);
-
-        str1 = E.log_student_id;
-        str2 = E.log_surname;
-        int1 = E.log_age;
-        gaia::prerequisites::student_t S = student.insert(student_id: str1, surname: str2, age: int1);
-        str1 = E.log_course_id;
-        str2 = E.log_name;
-        int1 = E.log_hours;
-        gaia::prerequisites::course_t C = course.insert(course_id: str1, name: str2, hours: int1);
-        str1 = E.log_reg_id;
-        gaia::prerequisites::registration_t R = registration.insert(reg_id: str1);
-
-        // WLW TODO - when declarative connect() is ready, use it rather than EDC.
+        // [WLW] Convert this to declarative connect.
         S.registrations().insert(R);
         C.registrations().insert(R);
 
@@ -566,7 +560,7 @@ ruleset test_insert_delete_2
 
     on_update(status)
     {
-        grade = "D+";
+        grade = c_grade_d + c_grade_plus;
     }
 }
 
@@ -634,8 +628,10 @@ ruleset test_disconnect_1_n
         else
         {
             // This doesn't work for the same reason as delete.
-            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1176
-//            student.disconnect(registration);
+            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1176 (V1)
+#ifdef TEST_FAILURES // GAIAPLAT-1176 (V1)
+            student.disconnect(registration);
+#endif
         }
     }
 
@@ -651,7 +647,9 @@ ruleset test_disconnect_1_n
         else
         {
             // This doesn't work for the same reason as delete.
-//            course.registrations.disconnect(registration);
+#ifdef TEST_FAILURES // GAIAPLAT-1176 (V1)
+            course.registrations.disconnect(registration);
+#endif
         }
     }
 };

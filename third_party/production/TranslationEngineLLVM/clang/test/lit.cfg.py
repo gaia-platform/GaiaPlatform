@@ -202,7 +202,7 @@ try:
         if p.info['name'] == "gaia_db_server":
             p.kill()
     if os.path.exists(config.gaia_binary_dir + "/db/core"):
-        psutil.Popen([config.gaia_binary_dir + "/db/core/gaia_db_server", "--disable-persistence"])
+        psutil.Popen([config.gaia_binary_dir + "/db/core/gaia_db_server", "--persistence", "disabled"])
         time.sleep(1)
     if os.path.exists(config.gaia_binary_dir + "/catalog/gaiac"):
         psutil.Popen([config.gaia_binary_dir + "/catalog/gaiac/gaiac", config.gaia_source_dir + "/third_party/production/TranslationEngineLLVM/clang/test/Parser/barn_storage.ddl"])

@@ -50,13 +50,13 @@ class server_config_t
 public:
     enum class persistence_mode_t : uint8_t
     {
-        e_default,
+        e_enabled,
         e_disabled,
         e_disabled_after_recovery,
         e_reinitialized_on_startup,
     };
 
-    static constexpr persistence_mode_t c_default_persistence_mode = persistence_mode_t::e_default;
+    static constexpr persistence_mode_t c_default_persistence_mode = persistence_mode_t::e_enabled;
 
 public:
     server_config_t(server_config_t::persistence_mode_t persistence_mode, std::string instance_name, std::string data_dir, bool testing)
@@ -233,6 +233,7 @@ private:
         {messages::session_state_t::TXN_IN_PROGRESS, messages::session_event_t::COMMIT_TXN, {messages::session_state_t::TXN_COMMITTING, handle_commit_txn}},
         {messages::session_state_t::TXN_COMMITTING, messages::session_event_t::DECIDE_TXN_COMMIT, {messages::session_state_t::CONNECTED, handle_decide_txn}},
         {messages::session_state_t::TXN_COMMITTING, messages::session_event_t::DECIDE_TXN_ABORT, {messages::session_state_t::CONNECTED, handle_decide_txn}},
+        {messages::session_state_t::TXN_COMMITTING, messages::session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE, {messages::session_state_t::CONNECTED, handle_decide_txn}},
         {messages::session_state_t::ANY, messages::session_event_t::SERVER_SHUTDOWN, {messages::session_state_t::DISCONNECTED, handle_server_shutdown}},
         {messages::session_state_t::ANY, messages::session_event_t::REQUEST_STREAM, {messages::session_state_t::ANY, handle_request_stream}},
     };

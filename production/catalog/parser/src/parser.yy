@@ -66,7 +66,7 @@
 
 // Word tokens
 %token CREATE DROP DATABASE TABLE IF NOT EXISTS ACTIVE RELATIONSHIP USE USING
-%token UNIQUE RANGE HASH INDEX ON
+%token UNIQUE RANGE HASH INDEX ON REFERENCES WHERE
 
 // Symbols
 %token LPAREN "("
@@ -76,6 +76,7 @@
 %token COMMA ","
 %token DOT "."
 %token SEMICOLON ";"
+%token EQUAL "="
 
 %token RARROW "->"
 
@@ -101,6 +102,7 @@
 %type <data_type_t> scalar_type
 %type <std::unique_ptr<gaia::catalog::ddl::base_field_def_t>> field_def
 %type <std::unique_ptr<gaia::catalog::ddl::data_field_def_t>> data_field_def
+%type <std::unique_ptr<gaia::catalog::ddl::ref_field_def_t>> ref_field_def
 %type <std::unique_ptr<field_def_list_t>> field_def_commalist
 %type <std::unique_ptr<statement_list_t>> statement_list
 %type <composite_name_t> composite_name
@@ -112,6 +114,8 @@
 %type <constraint_list_t> constraint_list
 %type <std::optional<constraint_list_t>> opt_constraint_list
 %type <gaia::catalog::ddl::table_field_map_t> table_field_map
+%type <std::string> opt_ref_using
+%type <std::optional<gaia::catalog::ddl::table_field_map_t>> opt_ref_where
 
 %printer { yyo << "statement"; } statement
 %printer { yyo << "create_statement:" << $$->name; } create_statement
@@ -123,6 +127,7 @@
 %printer { yyo << "use_statement:" << $$->name; } use_statement
 %printer { yyo << "field_def:" << $$->name; } field_def
 %printer { yyo << "data_field_def:" << $$->name; } data_field_def
+%printer { yyo << "ref_field_def:" << $$->name; } ref_field_def
 %printer { yyo << "link_def:" << $$.name; } link_def
 %printer { yyo << "field_def_commalist[" << ($$ ? $$->size() : 0) << "]"; } field_def_commalist
 %printer { yyo << "statement_list[" << $$->size() << "]"; } statement_list
@@ -136,6 +141,7 @@
 %printer { yyo << "constraint_list[" << $$.size() << "]"; } constraint_list
 %printer { yyo << "opt_constraint_list"; } opt_constraint_list
 %printer { yyo << "table_field_map:" << $$.first.table << "," << $$.second.table; } table_field_map
+%printer { yyo << "opt_ref_where:" << $$->first.fields.front() << "=" << $$->second.fields.front(); } opt_ref_where
 %printer { yyo << $$; } <*>
 
 %%
@@ -147,16 +153,20 @@ input:
   }
 ;
 
-opt_semicolon: ";" | ;
-
 statement_list:
-  statement ";" {
+  statement {
       $$ = std::make_unique<statement_list_t>();
-      $$->push_back(std::move($1));
+      if ($1)
+      {
+          $$->emplace_back(std::move($1));
+      }
   }
-| statement_list statement ";" {
-      $1->push_back(std::move($2));
+| statement_list statement {
       $$ = std::move($1);
+      if ($2)
+      {
+          $$->emplace_back(std::move($2));
+      }
   }
 ;
 
@@ -165,10 +175,11 @@ opt_if_exists: IF EXISTS { $$ = true; } | { $$ = false; };
 opt_if_not_exists: IF NOT EXISTS { $$ = true; } | { $$ = false; };
 
 statement:
-  create_db_list { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
-| create_list { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
-| drop_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
-| use_statement { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
+  create_db_list ";" { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
+| create_list ";" { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
+| drop_statement ";" { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
+| use_statement ";" { $$ = std::unique_ptr<statement_t>{std::move($1)}; }
+| ";" { $$ = std::unique_ptr<statement_t>{}; }
 ;
 
 create_list:
@@ -202,19 +213,32 @@ create_statement:
 create_database:
   CREATE DATABASE opt_if_not_exists IDENTIFIER {
       $$ = std::make_unique<create_database_t>($4);
-      $$->if_not_exists = $3;
+      $$->has_if_not_exists = $3;
+  }
+| DATABASE IDENTIFIER {
+      $$ = std::make_unique<create_database_t>($2);
+      $$->auto_drop = true;
   }
 ;
 
 create_table:
   CREATE TABLE opt_if_not_exists composite_name "(" field_def_commalist ")" {
       $$ = std::make_unique<create_table_t>($4.second);
-      $$->if_not_exists = $3;
+      $$->has_if_not_exists = $3;
       $$->database = std::move($4.first);
       if ($6)
       {
           $$->fields = std::move(*$6);
       }
+  }
+| TABLE composite_name "(" field_def_commalist ")" {
+      $$ = std::make_unique<create_table_t>($2.second);
+      $$->database = std::move($2.first);
+      if ($4)
+      {
+          $$->fields = std::move(*$4);
+      }
+      $$->auto_drop = true;
   }
 ;
 
@@ -222,13 +246,24 @@ create_relationship:
   CREATE RELATIONSHIP opt_if_not_exists IDENTIFIER "(" link_def "," link_def ")" {
       $$ = std::make_unique<create_relationship_t>($4);
       $$->relationship = std::make_pair($6, $8);
-      $$->if_not_exists = $3;
+      $$->has_if_not_exists = $3;
   }
 | CREATE RELATIONSHIP opt_if_not_exists IDENTIFIER "(" link_def "," link_def "," USING table_field_map")" {
       $$ = std::make_unique<create_relationship_t>($4);
       $$->relationship = std::make_pair($6, $8);
-      $$->if_not_exists = $3;
+      $$->has_if_not_exists = $3;
       $$->field_map = $11;
+  }
+| RELATIONSHIP IDENTIFIER "(" link_def "," link_def ")" {
+      $$ = std::make_unique<create_relationship_t>($2);
+      $$->relationship = std::make_pair($4, $6);
+      $$->auto_drop = true;
+  }
+| RELATIONSHIP IDENTIFIER "(" link_def "," link_def "," USING table_field_map")" {
+      $$ = std::make_unique<create_relationship_t>($2);
+      $$->relationship = std::make_pair($4, $6);
+      $$->field_map = $9;
+      $$->auto_drop = true;
   }
 ;
 
@@ -237,10 +272,19 @@ create_index:
       $$ = std::make_unique<create_index_t>($6);
       $$->unique_index = $2;
       $$->index_type = $3;
-      $$->if_not_exists = $5;
+      $$->has_if_not_exists = $5;
       $$->database = $8.first;
       $$->index_table = $8.second;
       $$->index_fields = std::move($10);
+  }
+| opt_unique opt_index_type INDEX IDENTIFIER ON composite_name  "(" field_commalist ")" {
+      $$ = std::make_unique<create_index_t>($4);
+      $$->unique_index = $1;
+      $$->index_type = $2;
+      $$->database = $6.first;
+      $$->index_table = $6.second;
+      $$->index_fields = std::move($8);
+      $$->auto_drop = true;
   }
 ;
 
@@ -285,6 +329,7 @@ field_def_commalist:
 
 field_def:
   data_field_def { $$ = std::unique_ptr<base_field_def_t>{std::move($1)}; }
+| ref_field_def { $$ = std::unique_ptr<base_field_def_t>{std::move($1)}; }
 ;
 
 data_field_def:
@@ -293,6 +338,34 @@ data_field_def:
   }
 | IDENTIFIER STRING opt_constraint_list {
       $$ = std::make_unique<data_field_def_t>($1, data_type_t::e_string, 1, $3);
+  }
+;
+
+ref_field_def:
+  IDENTIFIER REFERENCES IDENTIFIER opt_array opt_ref_using opt_ref_where {
+      $$ = std::make_unique<ref_field_def_t>($1, $3);
+      $$->cardinality = $4 ? cardinality_t::one : cardinality_t::many;
+      $$->field = std::move($5);
+      $$->field_map = std::move($6);
+  }
+;
+
+opt_ref_using:
+  USING IDENTIFIER {
+      $$ = std::move($2);
+  }
+| {
+      $$ = "";
+  }
+;
+
+opt_ref_where:
+  WHERE composite_name "=" composite_name {
+      $$ = std::make_optional(std::make_pair<table_field_list_t, table_field_list_t>(
+          {"", $2.first, {$2.second}}, {"", $4.first, {$4.second}}));
+  }
+| {
+      $$ = std::nullopt;
   }
 ;
 

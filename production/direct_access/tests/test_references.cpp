@@ -51,30 +51,45 @@ protected:
             "Impossible to find an invalid ID in the range "
             + to_string(c_lower_id_range) + " - " + to_string(c_higher_id_range));
     }
-};
 
-employee_t insert_records(size_t count)
-{
-    employee_writer employee_writer;
-    address_writer address_writer;
-
-    employee_writer.name_first = "Many";
-    employee_writer.name_last = "Addresses";
-    employee_t employee = employee_t::get(employee_writer.insert_row());
-
-    for (size_t i = 0; i < count; i++)
+    employee_t insert_records(size_t count)
     {
-        address_writer.street = to_string(i);
-        gaia_id_t address_id = address_writer.insert_row();
-        employee.addresses().insert(address_id);
+        employee_writer employee_writer;
+        address_writer address_writer;
+
+        employee_writer.name_first = "Many";
+        employee_writer.name_last = "Addresses";
+        employee_t employee = employee_t::get(employee_writer.insert_row());
+
+        for (size_t i = 0; i < count; i++)
+        {
+            address_writer.street = to_string(i);
+            gaia_id_t address_id = address_writer.insert_row();
+            employee.addresses().insert(address_id);
+        }
+
+        return employee;
     }
 
-    return employee;
-}
+    employee_t insert_employee(const std::string& name)
+    {
+        employee_writer ew;
+        ew.name_first = name.c_str();
+        return employee_t::get(ew.insert_row());
+    }
+
+    address_t insert_address(const std::string& street, const std::string& city)
+    {
+        address_writer aw;
+        aw.city = city.c_str();
+        aw.street = street.c_str();
+        return address_t::get(aw.insert_row());
+    }
+};
 
 // Test connecting, disconnecting, navigating records
 // ==================================================
-TEST_F(gaia_references_test, connect)
+TEST_F(gaia_references_test, insert_remove)
 {
     begin_transaction();
 
@@ -92,13 +107,27 @@ TEST_F(gaia_references_test, connect)
     EXPECT_EQ(e3.addresses().size(), 1);
 
     e3.addresses().remove(a3);
-    a3.delete_row();
-    e3.delete_row();
+    EXPECT_EQ(e3.addresses().size(), 0);
+    commit_transaction();
+}
+
+TEST_F(gaia_references_test, connect_disconnect)
+{
+    begin_transaction();
+
+    // Connect two inserted rows.
+    employee_t e1 = insert_employee("Hidalgo");
+    address_t a1 = insert_address("2400 4th Ave", "Houston");
+    e1.addresses().connect(a1);
+    EXPECT_EQ(e1.addresses().size(), 1);
+
+    e1.addresses().disconnect(a1);
+    EXPECT_EQ(e1.addresses().size(), 0);
     commit_transaction();
 }
 
 // Repeat above test, but with gaia_id_t members only.
-TEST_F(gaia_references_test, connect_id_member)
+TEST_F(gaia_references_test, insert_remove_id_member)
 {
     begin_transaction();
 
@@ -128,6 +157,21 @@ TEST_F(gaia_references_test, connect_id_member)
     address_t::delete_row(aid3);
     e3.delete_row();
     EXPECT_THROW(address_t::delete_row(invalid_id), invalid_object_id);
+    commit_transaction();
+}
+
+TEST_F(gaia_references_test, connect_disconnect_id_member)
+{
+    begin_transaction();
+
+    // Connect two inserted rows.
+    employee_t e1 = insert_employee("Hidalgo");
+    address_t a1 = insert_address("2400 4th Ave", "Houston");
+    e1.addresses().connect(a1.gaia_id());
+    EXPECT_EQ(e1.addresses().size(), 1);
+
+    e1.addresses().disconnect(a1.gaia_id());
+    EXPECT_EQ(e1.addresses().size(), 0);
     commit_transaction();
 }
 
@@ -332,19 +376,6 @@ void scan_manages(std::vector<string>& employee_vector, employee_t& e)
     }
 }
 
-employee_t insert_employee(employee_writer& writer, const char* name_first)
-{
-    writer.name_first = name_first;
-    return employee_t::get(writer.insert_row());
-}
-
-address_t insert_address(address_writer& writer, const char* street, const char* city)
-{
-    writer.street = street;
-    writer.city = city;
-    return address_t::get(writer.insert_row());
-}
-
 // Test recursive scanning, employee_t to employee_t through manages relationship.
 TEST_F(gaia_references_test, recursive_scan)
 {
@@ -360,14 +391,13 @@ TEST_F(gaia_references_test, recursive_scan)
     //    Hector
     //    Hank
 
-    employee_writer writer;
-    auto e1 = insert_employee(writer, "Horace");
-    auto e2 = insert_employee(writer, "Henry");
-    auto e3 = insert_employee(writer, "Hal");
-    auto e4 = insert_employee(writer, "Hiram");
-    auto e5 = insert_employee(writer, "Howard");
-    auto e6 = insert_employee(writer, "Hector");
-    auto e7 = insert_employee(writer, "Hank");
+    auto e1 = insert_employee("Horace");
+    auto e2 = insert_employee("Henry");
+    auto e3 = insert_employee("Hal");
+    auto e4 = insert_employee("Hiram");
+    auto e5 = insert_employee("Howard");
+    auto e6 = insert_employee("Hector");
+    auto e7 = insert_employee("Hank");
 
     e1.reportees().insert(e2); // Horace to Henry
     e2.reportees().insert(e3); //    Henry to Hal
@@ -425,12 +455,9 @@ TEST_F(gaia_references_test, connect_after_txn)
 {
     auto_transaction_t txn;
 
-    employee_writer employee_w;
-    auto e1 = insert_employee(employee_w, "Horace");
-
-    address_writer address_w;
-    auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
-    auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
+    auto e1 = insert_employee("Horace");
+    auto a1 = insert_address("430 S. 41st St.", "Boulder");
+    auto a2 = insert_address("10618 129th Pl. N.E.", "Kirkland");
 
     // In a subsequent transaction, connect the objects.
     txn.commit();
@@ -449,12 +476,9 @@ TEST_F(gaia_references_test, disconnect_after_txn)
 {
     auto_transaction_t txn;
 
-    employee_writer employee_w;
-    auto e1 = insert_employee(employee_w, "Horace");
-
-    address_writer address_w;
-    auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
-    auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
+    auto e1 = insert_employee("Horace");
+    auto a1 = insert_address("430 S. 41st St.", "Boulder");
+    auto a2 = insert_address("10618 129th Pl. N.E.", "Kirkland");
 
     e1.addresses().insert(a1);
     e1.addresses().insert(a2);
@@ -472,12 +496,9 @@ TEST_F(gaia_references_test, connect_twice)
     auto_transaction_t txn;
 
     /* Create some unconnected Employee and Address objects */
-    employee_writer employee_w;
-    auto e1 = insert_employee(employee_w, "Horace");
-    auto e2 = insert_employee(employee_w, "Hector");
-
-    address_writer address_w;
-    auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
+    auto e1 = insert_employee("Horace");
+    auto e2 = insert_employee("Hector");
+    auto a1 = insert_address("430 S. 41st St.", "Boulder");
 
     // The second insert is redundant and is treated as a no-op.
     e1.addresses().insert(a1);
@@ -493,19 +514,18 @@ TEST_F(gaia_references_test, remove_uninserted)
 {
     auto_transaction_t txn;
 
-    employee_writer employee_w;
-    auto e1 = insert_employee(employee_w, "Horace");
+    auto e1 = insert_employee("Horace");
+    auto a1 = insert_address("430 S. 41st St.", "Boulder");
 
-    address_writer address_w;
-    auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
-
-    // The remove() should fail.
-    EXPECT_THROW(e1.addresses().remove(a1), invalid_child);
+    // The remove should not have any effect.
+    e1.addresses().remove(a1);
 
     // Now insert it, remove, and remove again.
     e1.addresses().insert(a1);
     e1.addresses().remove(a1);
-    EXPECT_THROW(e1.addresses().remove(a1), invalid_child);
+
+    // The remove should not have any effect.
+    e1.addresses().remove(a1);
 }
 
 // Make sure that erasing a member found in iterator doesn't crash.
@@ -513,13 +533,11 @@ TEST_F(gaia_references_test, remove_in_iterator)
 {
     auto_transaction_t txn;
 
-    employee_writer employee_w;
-    auto e1 = insert_employee(employee_w, "Horace");
+    auto e1 = insert_employee("Horace");
 
-    address_writer address_w;
-    auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
-    auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
-    auto a3 = insert_address(address_w, "10805 Circle Dr.", "Bothell");
+    auto a1 = insert_address("430 S. 41st St.", "Boulder");
+    auto a2 = insert_address("10618 129th Pl. N.E.", "Kirkland");
+    auto a3 = insert_address("10805 Circle Dr.", "Bothell");
 
     e1.addresses().insert(a1);
     e1.addresses().insert(a2);
@@ -527,7 +545,7 @@ TEST_F(gaia_references_test, remove_in_iterator)
 
     // We're happy with it not crashing, even though the list is cut short.
     int count = 0;
-    for (auto a : e1.addresses())
+    for (const auto& a : e1.addresses())
     {
         e1.addresses().remove(a);
         count++;
@@ -536,7 +554,7 @@ TEST_F(gaia_references_test, remove_in_iterator)
 
     // There should be two on the list here, but same behavior.
     count = 0;
-    for (auto a : e1.addresses())
+    for (const auto& a : e1.addresses())
     {
         e1.addresses().remove(a);
         count++;
@@ -558,13 +576,11 @@ TEST_F(gaia_references_test, scan_past_end)
 {
     auto_transaction_t txn;
 
-    employee_writer employee_w;
-    auto e1 = insert_employee(employee_w, "Horace");
+    auto e1 = insert_employee("Horace");
 
-    address_writer address_w;
-    auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
-    auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
-    auto a3 = insert_address(address_w, "10805 Circle Dr.", "Bothell");
+    auto a1 = insert_address("430 S. 41st St.", "Boulder");
+    auto a2 = insert_address("10618 129th Pl. N.E.", "Kirkland");
+    auto a3 = insert_address("10805 Circle Dr.", "Bothell");
 
     e1.addresses().insert(a1);
     e1.addresses().insert(a2);
@@ -635,7 +651,9 @@ TEST_F(gaia_references_test, m_to_n_connections)
 {
     auto_transaction_t txn;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
     auto e1 = employee_t::get(employee_t::insert_row("Hubert", "Humphrey", "XXX", 1902, "", ""));
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
     auto e2 = employee_t::get(employee_t::insert_row("Howard", "Hughs", "YYY", 1895, "", ""));
     auto a1 = address_t::get(address_t::insert_row("1233", "", "Bot Hell", "98099", "AW", "USA", false));
     auto a2 = address_t::get(address_t::insert_row("11111", "", "LandofKirk", "89088", "OW", "USA", false));
@@ -716,13 +734,11 @@ TEST_F(gaia_references_test, thread_inserts)
 {
     auto_transaction_t txn;
 
-    employee_writer employee_w;
-    auto e1 = insert_employee(employee_w, "Horace");
+    auto e1 = insert_employee("Horace");
 
-    address_writer address_w;
-    auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
-    auto a2 = insert_address(address_w, "10618 129th Pl. N.E.", "Kirkland");
-    auto a3 = insert_address(address_w, "10805 Circle Dr.", "Bothell");
+    auto a1 = insert_address("430 S. 41st St.", "Boulder");
+    auto a2 = insert_address("10618 129th Pl. N.E.", "Kirkland");
+    auto a3 = insert_address("10805 Circle Dr.", "Bothell");
 
     // These threads should have problems since the objects aren't committed yet.
     thread t = thread(insert_object, false, e1, a1);
@@ -787,31 +803,30 @@ TEST_F(gaia_references_test, set_filter)
 {
     auto_transaction_t txn;
 
-    employee_writer writer;
-    auto e_mgr = insert_employee(writer, "Harold");
-    auto e_emp = insert_employee(writer, "Hunter");
+    auto e_mgr = insert_employee("Harold");
+    auto e_emp = insert_employee("Hunter");
     e_mgr.reportees().insert(e_emp);
-    e_emp = insert_employee(writer, "Howard");
+    e_emp = insert_employee("Howard");
     e_mgr.reportees().insert(e_emp);
-    e_emp = insert_employee(writer, "Henry");
+    e_emp = insert_employee("Henry");
     e_mgr.reportees().insert(e_emp);
-    e_emp = insert_employee(writer, "Harry");
+    e_emp = insert_employee("Harry");
     e_mgr.reportees().insert(e_emp);
-    e_emp = insert_employee(writer, "Hoover");
+    e_emp = insert_employee("Hoover");
     e_mgr.reportees().insert(e_emp);
 
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
     size_t name_length = 5;
     int count = 0;
     auto name_length_list = e_mgr.reportees()
-                                .where([&name_length](const employee_t& e) {
-                                    return strlen(e.name_first()) == name_length;
-                                });
+                                .where([&name_length](const employee_t& e) { return strlen(e.name_first()) == name_length; });
     for (const auto& e : name_length_list)
     {
         EXPECT_EQ(strlen(e.name_first()), name_length);
         count++;
     }
     EXPECT_EQ(count, 2);
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
     name_length = 6;
     count = 0;
     auto it = name_length_list.begin();
@@ -840,7 +855,7 @@ TEST_F(gaia_references_test, test_remove)
     employee_t employee = insert_records(c_num_addresses);
     auto addr_list = employee.addresses();
 
-    for (address_t addr : addr_list)
+    for (const address_t& addr : addr_list)
     {
         addr_list.remove(addr);
     }

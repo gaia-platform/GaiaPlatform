@@ -128,9 +128,10 @@ TEST_F(ddl_executor_test, list_tables)
     }
 
     set<gaia_id_t> list_result;
+    gaia_id_t empty_db_id = find_db_id("");
     auto_transaction_t txn;
     {
-        for (const auto& table : gaia_database_t::get(find_db_id("")).gaia_tables())
+        for (const auto& table : gaia_database_t::get(empty_db_id).gaia_tables())
         {
             list_result.insert(table.gaia_id());
         }

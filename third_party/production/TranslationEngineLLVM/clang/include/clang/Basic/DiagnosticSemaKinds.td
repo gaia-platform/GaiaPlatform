@@ -9534,7 +9534,7 @@ def err_duplicate_parameter_name : Error<
 def err_duplicate_ruleset : Error<
   "Ruleset '%0' is defined more than once. Ruleset names must be unique.">;
 def err_edc_init : Error<
-  "Initialization of a declared variable with an EDC object is not supported.">;
+  "Initialization of a declared variable with a direct access object is not supported.">;
 def err_field_deprecated : Error<
   "Field '%0' of table '%1' is marked as deprecated in the catalog. "
   "Ensure that you are using the correct field in the catalog.">;
@@ -9619,6 +9619,9 @@ def err_parameter_names_numbers_different_from_parameter: Error<
 def err_table_not_found : Error<
   "Table '%0' was not found in the catalog. "
   "Ensure that the table you are referencing in your rule exists in the database.">;
+def err_tag_hidden : Error<
+   "Local variable '%0' hides a tag defined with the same name. "
+   "Rename your local variable or tag so that their names do not conflict.">;
 def err_tag_redefined : Error<
   "Tag '%0' is already defined.">;
 def err_unknown_field : Error<
@@ -9646,8 +9649,4 @@ def warn_table_hidden : Warning<
 def warn_table_referenced_not_in_table_attribute : Warning<
   "Table '%0' is not referenced in tables attribute.">,
   InGroup<GaiaExtensions>;
-def warn_tag_hidden : Warning<
-   "Local variable '%0' hides a tag defined with the same name. "
-   "Rename your local variable or tag so that their names do not conflict.">,
-   InGroup<GaiaExtensions>;
 } // end of sema component.

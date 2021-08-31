@@ -1,6 +1,6 @@
 // RUN: not %gaiat %s -- 2>&1| FileCheck %s
 
-// GAIAPLAT-946
+// GAIAPLAT-946 (fixed)
 // Leave this at the end of the file.
 ruleset gen_infinite_loop
 

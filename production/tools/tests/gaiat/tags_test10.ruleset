@@ -1,4 +1,4 @@
-// RUN: %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
 #include "tags_test.h"
 
@@ -13,4 +13,5 @@ ruleset test10
 }
 
 // GAIAPLAT-794
+// GAIAPLAT-1178
 // CHECK: Local variable 'a' hides a tag defined with the same name. Rename your local variable or tag so that their names do not conflict.

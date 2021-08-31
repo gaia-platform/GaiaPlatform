@@ -33,7 +33,7 @@ public:
     explicit index_not_found(common::gaia_id_t index_id)
     {
         std::stringstream message;
-        message << "Cannot find index \"" << index_id << "\".";
+        message << "Cannot find index '" << index_id << "'.";
         m_message = message.str();
     }
 };

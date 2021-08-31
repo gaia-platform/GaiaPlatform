@@ -1,0 +1,13 @@
+#
+# Simple test suite to run the `smoke-time-only` with various step sizes.
+#
+# This test is specifically in place to determine how the platform scales
+# with different amounts of work.
+
+workload mink
+
+smoke-time-only-with-100 repeat 3
+smoke-time-only-with-1k repeat 3
+smoke-time-only-with-10k repeat 3
+smoke-time-only-with-100k repeat 3
+#smoke-time-only-with-1m repeat 3

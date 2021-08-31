@@ -1,6 +1,6 @@
 // RUN: %clang_cc1 -fgaia-extensions -ast-dump %s | FileCheck -strict-whitespace %s
 
-ruleset test : tables(sensor, incubator), serialize(ttt)
+ruleset test : tables(sensor, incubator), serial_group(ttt)
 {
   on_update(incubator, sensor.value)
   {
@@ -10,7 +10,7 @@ ruleset test : tables(sensor, incubator), serialize(ttt)
 }
 // CHECK:      RulesetDecl{{.*}} test
 // CHECK-NEXT:     RulesetTablesAttr 0x{{[^ ]*}} <col:16, col:40> 0x{{[^ ]*}} 0x{{[^ ]*}}
-// CHECK-NEXT:     -RulesetSerializeAttr 0x{{[^ ]*}} <col:43, col:56> ttt
+// CHECK-NEXT:     -RulesetSerialGroupAttr 0x{{[^ ]*}} <col:43, col:59> 0x{{[^ ]*}}
 // CHECK:      FunctionDecl{{.*}} {{.*}} 'void (...)'
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'float' lvalue Var 0x{{[^ ]*}} 'min_temp' 'float'
 // CHECK:     DeclRefExpr 0x{{[^ ]*}} <col:16> 'float' lvalue Var 0x{{[^ ]*}} 'value' 'float'

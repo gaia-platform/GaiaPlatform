@@ -1,8 +1,0 @@
-#
-# Simple test suite to run repeated smoke tests.
-#
-# Note that this suite is to provide a simple manner in which
-#   to grab repeated measurements of the two standard tests.
-#
-smoke repeat 5
-smoke-time-only repeat 5

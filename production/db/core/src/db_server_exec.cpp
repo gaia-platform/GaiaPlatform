@@ -10,6 +10,7 @@
 #include <string>
 
 #include "gaia_internal/common/config.hpp"
+#include "gaia_internal/common/gaia_version.hpp"
 
 #include "cpptoml.h"
 #include "db_server.hpp"
@@ -17,36 +18,50 @@
 using namespace gaia::common;
 using namespace gaia::db;
 
-static constexpr char c_data_dir_command_flag[] = "--data-dir";
-static constexpr char c_instance_name_command_flag[] = "--instance-name";
-static constexpr char c_disable_persistence_flag[] = "--disable-persistence";
-static constexpr char c_disable_persistence_after_recovery_flag[] = "--disable-persistence-after-recovery";
-static constexpr char c_reinitialize_persistent_store_flag[] = "--reinitialize-persistent-store";
-static constexpr char c_conf_file_flag[] = "--configuration-file-path";
-static constexpr char c_skip_catalog_integrity_flag[] = "--skip-catalog-integrity-checks";
+static constexpr char c_help_param[] = "--help";
+static constexpr char c_version_param[] = "--version";
+static constexpr char c_data_dir_command_param[] = "--data-dir";
+static constexpr char c_instance_name_command_param[] = "--instance-name";
+static constexpr char c_config_file_param[] = "--config-file";
+static constexpr char c_persistence_param[] = "--persistence";
+static constexpr char c_reset_data_store_param[] = "--reset-data-store";
+static constexpr char c_skip_catalog_integrity_param[] = "--skip-catalog-integrity-checks";
+
+static constexpr char c_persistence_enabled_mode[] = "enabled";
+static constexpr char c_persistence_disabled_mode[] = "disabled";
+static constexpr char c_persistence_disabled_after_recovery_mode[] = "disabled-after-recovery";
 
 static void usage()
 {
     std::cerr
-        << "\nCopyright (c) Gaia Platform LLC\n\n"
-        << "Usage: gaia_db_server ["
-        << c_disable_persistence_flag
-        << " | "
-        << c_disable_persistence_after_recovery_flag
-        << " | "
-        << c_reinitialize_persistent_store_flag
-        << "] \n"
-        << "                      ["
-        << c_data_dir_command_flag
-        << " <data dir>]\n"
-        << "                      ["
-        << c_instance_name_command_flag
-        << " <db instance name>]\n"
-        << "                      ["
-        << c_conf_file_flag
-        << " <config file path>]"
-        << std::endl;
-    std::exit(1);
+        << "OVERVIEW: Gaia Database Server. Used by Gaia applications to store data.\n"
+           "USAGE: gaia_db_server [options]\n"
+           "\n"
+           "OPTIONS:\n"
+           "  --persistence <mode>        Specifies the database persistence mode.\n"
+           "                              If not specified, the default mode is enabled.\n"
+           "                              The data location is specified with --data-dir.\n"
+           "                              - <enabled>: Persist data [default].\n"
+           "                              - <disabled>: Do not persist any data.\n"
+           "                              - <disabled-after-recovery>: Load data from the datastore and\n"
+           "                                disable persistence.\n"
+           "  --data-dir <data_dir>       Specifies the directory in which to create the data store.\n"
+           "  --reset-data-store          Deletes the data in the data store.\n"
+#ifdef DEBUG
+           "  --instance-name <db_instance_name>   Specify the database instance name.\n"
+           "                                       If not specified, will use "
+        << c_default_instance_name
+        << ".\n"
+           "  --skip-catalog-integrity-checks      ????"
+#endif
+           "  --config-file <file>        Specifies the location of the Gaia configuration file to use.\n"
+           "  --help                      Print help information.\n"
+           "  --version                   Print version information.\n";
+}
+
+static void version()
+{
+    std::cerr << "Gaia DB Server " << gaia_full_version() << "\nCopyright (c) Gaia Platform LLC\n";
 }
 
 // Replaces the tilde '~' with the full user home path.
@@ -68,6 +83,7 @@ static void expand_home_path(std::string& path)
             << "'. No $HOME environment variable found."
             << std::endl;
         usage();
+        std::exit(1);
     }
 
     path = home + path.substr(1);
@@ -201,9 +217,35 @@ private:
     }
 };
 
+static server_config_t::persistence_mode_t parse_persistence_mode(std::string persistence_mode)
+{
+    if (persistence_mode == c_persistence_enabled_mode)
+    {
+        return server_config_t::persistence_mode_t::e_enabled;
+    }
+    else if (persistence_mode == c_persistence_disabled_mode)
+    {
+        return server_config_t::persistence_mode_t::e_disabled;
+    }
+    else if (persistence_mode == c_persistence_disabled_after_recovery_mode)
+    {
+        return server_config_t::persistence_mode_t::e_disabled_after_recovery;
+    }
+    else
+    {
+        std::cerr
+            << "\nUnrecognized persistence mode: '"
+            << persistence_mode
+            << "'."
+            << std::endl;
+        usage();
+        std::exit(1);
+    }
+}
+
 static server_config_t process_command_line(int argc, char* argv[])
 {
-    std::set<std::string> used_flags;
+    std::set<std::string> used_params;
 
     server_config_t::persistence_mode_t persistence_mode{server_config_t::c_default_persistence_mode};
     std::string instance_name;
@@ -220,32 +262,38 @@ static server_config_t process_command_line(int argc, char* argv[])
 
     for (int i = 1; i < argc; ++i)
     {
-        used_flags.insert(argv[i]);
-        if (strcmp(argv[i], c_disable_persistence_flag) == 0)
+        used_params.insert(argv[i]);
+        if (strcmp(argv[i], c_help_param) == 0)
         {
-            persistence_mode = server_config_t::persistence_mode_t::e_disabled;
+            usage();
+            std::exit(0);
         }
-        else if (strcmp(argv[i], c_disable_persistence_after_recovery_flag) == 0)
+        if (strcmp(argv[i], c_version_param) == 0)
         {
-            persistence_mode = server_config_t::persistence_mode_t::e_disabled_after_recovery;
+            version();
+            std::exit(0);
         }
-        else if (strcmp(argv[i], c_reinitialize_persistent_store_flag) == 0)
+        else if (strcmp(argv[i], c_persistence_param) == 0)
+        {
+            persistence_mode = parse_persistence_mode(argv[++i]);
+        }
+        else if (strcmp(argv[i], c_reset_data_store_param) == 0)
         {
             persistence_mode = server_config_t::persistence_mode_t::e_reinitialized_on_startup;
         }
-        else if ((strcmp(argv[i], c_data_dir_command_flag) == 0) && (i + 1 < argc))
+        else if ((strcmp(argv[i], c_data_dir_command_param) == 0) && (i + 1 < argc))
         {
             data_dir = argv[++i];
         }
-        else if ((strcmp(argv[i], c_conf_file_flag) == 0) && (i + 1 < argc))
+        else if ((strcmp(argv[i], c_config_file_param) == 0) && (i + 1 < argc))
         {
             conf_file_path = argv[++i];
         }
-        else if ((strcmp(argv[i], c_instance_name_command_flag) == 0) && (i + 1 < argc))
+        else if ((strcmp(argv[i], c_instance_name_command_param) == 0) && (i + 1 < argc))
         {
             instance_name = argv[++i];
         }
-        else if ((strcmp(argv[i], c_skip_catalog_integrity_flag) == 0))
+        else if ((strcmp(argv[i], c_skip_catalog_integrity_param) == 0))
         {
             testing = true;
         }
@@ -257,8 +305,11 @@ static server_config_t process_command_line(int argc, char* argv[])
                 << "'."
                 << std::endl;
             usage();
+            std::exit(1);
         }
     }
+
+    std::cerr << "Starting " << c_db_server_name << "..." << std::endl;
 
     gaia_config_fallback_t gaia_conf{conf_file_path};
 
@@ -301,6 +352,7 @@ static server_config_t process_command_line(int argc, char* argv[])
                 << "to identify the location of the database."
                 << std::endl;
             usage();
+            std::exit(1);
         }
 
         expand_home_path(data_dir);
@@ -317,34 +369,11 @@ static server_config_t process_command_line(int argc, char* argv[])
             << "Database directory is '" << data_dir << "'." << std::endl;
     }
 
-    for (const auto& flag_pair : std::initializer_list<std::pair<std::string, std::string>>{
-             // Disable persistence flag is mutually exclusive with specifying data directory for persistence.
-             {c_disable_persistence_flag, c_data_dir_command_flag},
-             // The three persistence flags that are mutually exclusive with each other.
-             {c_disable_persistence_flag, c_disable_persistence_after_recovery_flag},
-             {c_disable_persistence_flag, c_reinitialize_persistent_store_flag},
-             {c_disable_persistence_after_recovery_flag, c_reinitialize_persistent_store_flag}})
-    {
-        if ((used_flags.find(flag_pair.first) != used_flags.end()) && (used_flags.find(flag_pair.second) != used_flags.end()))
-        {
-            std::cerr
-                << "\n'"
-                << flag_pair.first
-                << "' and '"
-                << flag_pair.second
-                << "' flags are mutually exclusive."
-                << std::endl;
-            usage();
-        }
-    }
-
     return server_config_t{persistence_mode, instance_name, data_dir, testing};
 }
 
 int main(int argc, char* argv[])
 {
-    std::cerr << "Starting " << c_db_server_exec_name << "..." << std::endl;
-
     auto server_conf = process_command_line(argc, argv);
 
     gaia::db::server_t::run(server_conf);

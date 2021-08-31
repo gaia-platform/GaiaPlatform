@@ -21,6 +21,8 @@
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 
+#include "gaia/exceptions.hpp"
+
 #include "gaia_internal/common/memory_allocation_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
@@ -77,7 +79,6 @@ static constexpr char c_message_validating_txn_should_have_been_validated[]
     = "The txn being tested can only have its log fd invalidated if the validating txn was validated!";
 static constexpr char c_message_preceding_txn_should_have_been_validated[]
     = "A transaction with commit timestamp preceding this transaction's begin timestamp is undecided!";
-static constexpr char c_message_uninitialized_txn_log[] = "Uninitialized transaction log!";
 static constexpr char c_message_unexpected_query_type[] = "Unexpected query type!";
 
 server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd)
@@ -319,7 +320,7 @@ void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<
 }
 
 void server_t::handle_rollback_txn(
-    int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    int* /*fds*/, size_t /*fd_count*/, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::ROLLBACK_TXN, c_message_unexpected_event_received);
 
@@ -339,7 +340,7 @@ void server_t::handle_rollback_txn(
 }
 
 void server_t::handle_commit_txn(
-    int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    int* /*fds*/, size_t /*fd_count*/, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::COMMIT_TXN, c_message_unexpected_event_received);
 
@@ -351,9 +352,20 @@ void server_t::handle_commit_txn(
     ASSERT_PRECONDITION(s_log.is_set(), c_message_uninitialized_log_fd);
 
     // Actually commit the transaction.
-    bool success = txn_commit();
+    session_event_t decision = session_event_t::NOP;
+    try
+    {
+        bool success = txn_commit();
+        decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
+    }
+    catch (const index::unique_constraint_violation& e)
+    {
+        // Rollback our transaction in case of constraint violations.
+        // This is because such failures happen in the early pre-commit phase.
+        txn_rollback();
 
-    session_event_t decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
+        decision = session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE;
+    }
 
     // Server-initiated state transition! (Any issues with reentrant handlers?)
     apply_transition(decision, nullptr, nullptr, 0);
@@ -363,7 +375,9 @@ void server_t::handle_decide_txn(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(
-        event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT,
+        event == session_event_t::DECIDE_TXN_COMMIT
+            || event == session_event_t::DECIDE_TXN_ABORT
+            || event == session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE,
         c_message_unexpected_event_received);
 
     ASSERT_PRECONDITION(
@@ -793,7 +807,7 @@ void server_t::recover_db()
     // If persistence is disabled, then this is a no-op.
     if (s_server_conf.persistence_mode() != persistence_mode_t::e_disabled)
     {
-        // We could get here after a server reset with --disable-persistence-after-recovery,
+        // We could get here after a server reset with '--persistence disabled-after-recovery',
         // in which case we need to recover from the original persistent image.
         if (!rdb)
         {
@@ -924,7 +938,7 @@ void server_t::signal_handler(sigset_t sigset, int& signum)
 
     cerr << "Caught signal '" << ::strsignal(signum) << "'." << endl;
 
-    signal_eventfd(s_server_shutdown_eventfd);
+    signal_eventfd_multiple_threads(s_server_shutdown_eventfd);
 }
 
 void server_t::init_listening_socket(const std::string& socket_name)
@@ -962,6 +976,17 @@ void server_t::init_listening_socket(const std::string& socket_name)
     socklen_t server_addr_size = sizeof(server_addr.sun_family) + 1 + ::strlen(&server_addr.sun_path[1]);
     if (-1 == ::bind(listening_socket, reinterpret_cast<struct sockaddr*>(&server_addr), server_addr_size))
     {
+        // TODO it would be nice to have a common error handler that can handle common errors.
+        if (errno == EADDRINUSE)
+        {
+            cerr << "ERROR: bind() failed! - " << (::strerror(errno)) << endl;
+            cerr << "The " << c_db_server_name
+                 << " cannot start because another instance is already running.\n"
+                    "Stop any instances of the server and try again."
+                 << endl;
+            exit(1);
+        }
+
         throw_system_error("bind() failed!");
     }
     if (-1 == ::listen(listening_socket, 0))
@@ -1221,7 +1246,7 @@ void server_t::session_handler(int session_socket)
     s_session_shutdown_eventfd = make_eventfd();
     auto owned_threads_cleanup = make_scope_guard([]() {
         // Signal all session-owned threads to terminate.
-        signal_eventfd(s_session_shutdown_eventfd);
+        signal_eventfd_multiple_threads(s_session_shutdown_eventfd);
 
         // Wait for all session-owned threads to terminate.
         for (auto& thread : s_session_owned_threads)
