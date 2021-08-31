@@ -404,7 +404,7 @@ link_def:
       $$.name = $3;
       $$.to_database = $5.first;
       $$.to_table = $5.second;
-      $$.cardinality = $6 ? cardinality_t::one : cardinality_t::many;
+      $$.cardinality = ($6 == 1) ? cardinality_t::one : cardinality_t::many;
   }
 | IDENTIFIER "." IDENTIFIER "." IDENTIFIER "->" composite_name opt_array {
       $$.from_database = $1;
@@ -412,7 +412,7 @@ link_def:
       $$.name = $5;
       $$.to_database = $7.first;
       $$.to_table = $7.second;
-      $$.cardinality = $8 ? cardinality_t::one : cardinality_t::many;
+      $$.cardinality = ($8 == 1) ? cardinality_t::one : cardinality_t::many;
   }
 ;
 
