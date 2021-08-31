@@ -11,7 +11,6 @@
 
 #include "gaia_internal/common/socket_helpers.hpp"
 
-#include "client_messenger.hpp"
 #include "messages_generated.h"
 
 namespace gaia

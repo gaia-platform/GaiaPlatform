@@ -46,13 +46,13 @@ gaia::db::messages::index_query_t index_point_read_predicate_t::query_type() con
     return messages::index_query_t::index_point_read_query_t;
 }
 
-serialized_index_query_t index_point_read_predicate_t::as_query(flatbuffers::FlatBufferBuilder& fbb) const
+serialized_index_query_t index_point_read_predicate_t::as_query(flatbuffers::FlatBufferBuilder& builder) const
 {
-    data_write_buffer_t buf(fbb);
-    index::index_builder_t::serialize_key(m_key, buf);
-    auto output = buf.output();
+    data_write_buffer_t buffer(builder);
+    index::index_builder_t::serialize_key(m_key, buffer);
+    auto output = buffer.output();
 
-    auto query = messages::Createindex_point_read_query_t(fbb, output);
+    auto query = messages::Createindex_point_read_query_t(builder, output);
 
     return query.Union();
 }
@@ -72,13 +72,13 @@ gaia::db::messages::index_query_t index_equal_range_predicate_t::query_type() co
     return messages::index_query_t::index_equal_range_query_t;
 }
 
-serialized_index_query_t index_equal_range_predicate_t::as_query(flatbuffers::FlatBufferBuilder& fbb) const
+serialized_index_query_t index_equal_range_predicate_t::as_query(flatbuffers::FlatBufferBuilder& builder) const
 {
-    data_write_buffer_t buf(fbb);
-    index::index_builder_t::serialize_key(m_key, buf);
-    auto output = buf.output();
+    data_write_buffer_t buffer(builder);
+    index::index_builder_t::serialize_key(m_key, buffer);
+    auto output = buffer.output();
 
-    auto query = messages::Createindex_equal_range_query_t(fbb, output);
+    auto query = messages::Createindex_equal_range_query_t(builder, output);
 
     return query.Union();
 }

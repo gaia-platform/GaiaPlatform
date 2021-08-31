@@ -68,7 +68,7 @@ public:
     ~index_equal_range_predicate_t() override = default;
 
     gaia::db::messages::index_query_t query_type() const override;
-    serialized_index_query_t as_query(flatbuffers::FlatBufferBuilder& fbb) const override;
+    serialized_index_query_t as_query(flatbuffers::FlatBufferBuilder& builder) const override;
 
 private:
     index::index_key_t m_key;
