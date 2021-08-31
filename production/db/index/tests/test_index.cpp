@@ -308,7 +308,9 @@ TEST_F(index_test, unique_constraint_rollback_transaction)
 
     // Attempt to insert the second key again.
     // We should succeed if the previous transaction was properly rolled back.
-    auto_transaction_t txn2;
+    // We need to manually start a transaction because the exception generated earlier
+    // prevented the automatic restart.
+    txn.begin();
     flight_t::insert_row(second_flight_number, {});
-    txn2.commit();
+    txn.commit();
 }
