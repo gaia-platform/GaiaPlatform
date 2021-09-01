@@ -5,6 +5,13 @@
 
 #pragma once
 
+namespace gaia
+{
+namespace db
+{
+namespace transactions
+{
+
 constexpr char c_message_uninitialized_timestamp[] = "Uninitialized timestamp!";
 constexpr char c_message_not_a_begin_timestamp[] = "Not a begin timestamp!";
 constexpr char c_message_not_a_commit_timestamp[] = "Not a commit timestamp!";
@@ -395,3 +402,7 @@ txn_metadata_entry_t txn_metadata_t::compare_exchange(
     txn_metadata_entry_t actual_value{expected_word};
     return actual_value;
 }
+
+} // namespace transactions
+} // namespace db
+} // namespace gaia
