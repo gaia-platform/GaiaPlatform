@@ -21,9 +21,14 @@ option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
 
 option(ENABLE_STACKTRACE "Enable stack traces" ON)
 
-option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
-
 option(BUILD_GAIA_RELEASE "Build Gaia Release packages and binaries" OFF)
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
+else()
+  option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
+endif()
+
 include(GNUInstallDirs)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
