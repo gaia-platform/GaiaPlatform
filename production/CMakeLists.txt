@@ -26,7 +26,7 @@ option(BUILD_GAIA_RELEASE "Build Gaia Release packages and binaries" OFF)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
 else()
-  option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
+  option(ENABLE_CLANG_TIDY "Enable clang tidy" OFF)
 endif()
 
 include(GNUInstallDirs)
