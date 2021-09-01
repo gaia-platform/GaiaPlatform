@@ -1570,6 +1570,23 @@ bool should_expression_location_be_merged(ASTContext* context, const Stmt& node,
     return true;
 }
 
+bool can_path_be_optimized(const string& path_first_component, const vector<explicit_path_data_t>& path_data)
+{
+    for (const auto& path_iterator : path_data)
+    {
+        if (is_tag_defined(path_iterator.defined_tags, path_first_component))
+        {
+            return true;
+        }
+        if (path_iterator.tag_table_map.find(path_first_component) != path_iterator.tag_table_map.end())
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void update_expression_explicit_path_data(
     ASTContext* context,
     const Stmt* node,
@@ -1610,7 +1627,7 @@ void update_expression_explicit_path_data(
             {
                 string first_component = get_table_from_expression(data.path_components.front());
                 const auto tag_iterator = data.tag_table_map.find(first_component);
-                if (tag_iterator != data.tag_table_map.end() && (tag_iterator->second != tag_iterator->first || explicit_path_data_iterator != g_expression_explicit_path_data.end()))
+                if (tag_iterator != data.tag_table_map.end() && (tag_iterator->second != tag_iterator->first || explicit_path_data_iterator != g_expression_explicit_path_data.end() || can_path_be_optimized(first_component, expression_explicit_path_data_iterator.second) ))
                 {
                     data.skip_implicit_path_generation = true;
                 }
