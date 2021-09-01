@@ -580,7 +580,7 @@ TEST_F(test_queries_code, one_to_one)
     EXPECT_TRUE(g_oninsert_called) << "on_update(student) not called";
     EXPECT_EQ(test_error_result_t::e_none, g_oninsert_result) << "on_update failure";
 
-    EXPECT_EQ(g_oninsert_value, 3) << "Incorrect result";
+    EXPECT_EQ(g_oninsert_value, 6) << "Incorrect result";
 }
 
 // Query tests:

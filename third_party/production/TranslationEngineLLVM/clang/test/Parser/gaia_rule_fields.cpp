@@ -54,12 +54,10 @@ ruleset test22
     }
 }
 
-// GAIAPLAT-803
-#ifdef TEST_FAILURES // GAIAPLAT-803
+// GAIAPLAT-803 (fixed)
 ruleset test134
 {
     {
         @animal.age = 4;
     }
 }
-#endif

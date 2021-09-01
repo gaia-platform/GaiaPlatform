@@ -1,7 +1,7 @@
 create database if not exists incubator;
 
 create table if not exists animal (
-    animal_name string unique,
+    name string unique,
     breed string,
     age uint64
 );
@@ -64,7 +64,7 @@ create table if not exists raised (
 create relationship if not exists animal_raised (
     animal.raised -> raised,
     raised.animal -> animal,
-    using raised(animal_name), animal(animal_name)
+    using raised(animal_name), animal(name)
 );
 
 create relationship if not exists farmer_raised (

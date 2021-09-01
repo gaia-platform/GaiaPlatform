@@ -212,16 +212,14 @@ ruleset test24
     }
 }
 
-// GAIAPLAT-803
+// GAIAPLAT-803 (fixed)
 // This should be identical to test1 above.
-#ifdef TEST_FAILURES // GAIAPLAT-803
 ruleset test25
 {
     {
         @actuator.value += sensor.value;
     }
 }
-#endif
 
 // GAIAPLAT-808 (fixed)
 // The I.min_temp doesn't use the tag from the 'if'.
@@ -434,7 +432,7 @@ ruleset test44
 {
     on_insert(farmer)
     {
-        printf("%s, %s, %u\n", animal.animal_name, breed, animal.age);
+        printf("%s, %s, %u\n", animal.name, breed, animal.age);
         printf("%u, %u\n", portion, frequency);
     }
 }

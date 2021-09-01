@@ -417,14 +417,11 @@ ruleset test_query_10
         {
             count++;
         }
-#ifdef GAIAPLAT_1180
-        // When issue is fixed, this should count to 3 as well.
+        // GAIAPLAT-1180 (fixed)
         for (/student->parents)
         {
             count++;
         }
-        count -= 3;
-#endif
         g_oninsert_value = count;
         g_oninsert_result = test_error_result_t::e_none;
         g_oninsert_called = true;
@@ -529,6 +526,7 @@ ruleset test_insert_delete_2
     // GAIAPLAT-1110 (fixed)
     // GAIAPLAT-1112 (fixed)
     // GAIAPLAT-1188 (fixed)
+    // GAIAPLAT-1250
     on_insert(E:enrollment_log)
     {
         gaia::prerequisites::student_t S

@@ -251,6 +251,7 @@ TEST_F(test_insert_delete_code, implicit_delete)
 }
 
 // TESTCASE: Generate database within rules
+// GAIAPLAT-1250
 TEST_F(test_insert_delete_code, DISABLED_build_database)
 {
     // Use the rules for insert & delete.

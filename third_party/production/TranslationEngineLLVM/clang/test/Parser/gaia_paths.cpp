@@ -145,7 +145,7 @@ ruleset test131
 }
 
 // GAIAPLAT-877
-#ifdef TEST_FAILURES // GAIAPLAT-877
+#ifdef TEST_FAILURES
 ruleset test132
 {
     on_insert(animal)
@@ -167,7 +167,8 @@ ruleset test133
 #endif
 
 // GAIAPLAT-821 (fixed)
-// GAIAPLAT-1172
+// GAIAPLAT-1172 (fixed)
+// GAIAPLAT-1199 (fixed)
 ruleset test129
 {
     on_update(incubator)
