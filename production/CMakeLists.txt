@@ -22,6 +22,13 @@ option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
 option(ENABLE_STACKTRACE "Enable stack traces" ON)
 
 option(BUILD_GAIA_RELEASE "Build Gaia Release packages and binaries" OFF)
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
+else()
+  option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
+endif()
+
 include(GNUInstallDirs)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
@@ -289,7 +296,9 @@ add_subdirectory(${GOOGLE_TEST} googletest EXCLUDE_FROM_ALL)
 
 # Setting clang-tidy here to avoid it being applied to flatbuffers, rocksdb etc...
 # TODO Maybe we could force each subproject to set this flag?
-set(CMAKE_CXX_CLANG_TIDY)
+if(ENABLE_CLANG_TIDY)
+    set(CMAKE_CXX_CLANG_TIDY clang-tidy)
+endif()
 
 # Add individual component folders.
 # These are listed roughly in a bottom-up order
@@ -316,7 +325,9 @@ add_subdirectory(tools)
 if(BUILD_GAIA_RELEASE)
   unset(CMAKE_CXX_CLANG_TIDY)
   add_subdirectory("${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm" llvm EXCLUDE_FROM_ALL)
-  set(CMAKE_CXX_CLANG_TIDY)
+  if(ENABLE_CLANG_TIDY)
+    set(CMAKE_CXX_CLANG_TIDY clang-tidy)
+  endif()
 endif()
 
 # Query processors.
