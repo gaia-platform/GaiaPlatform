@@ -21,6 +21,8 @@
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 
+#include "gaia/exceptions.hpp"
+
 #include "gaia_internal/common/memory_allocation_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
@@ -77,7 +79,7 @@ static constexpr char c_message_validating_txn_should_have_been_validated[]
     = "The txn being tested can only have its log fd invalidated if the validating txn was validated!";
 static constexpr char c_message_preceding_txn_should_have_been_validated[]
     = "A transaction with commit timestamp preceding this transaction's begin timestamp is undecided!";
-static constexpr char c_message_uninitialized_txn_log[] = "Uninitialized transaction log!";
+static constexpr char c_message_unexpected_query_type[] = "Unexpected query type!";
 
 server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd)
     : m_auto_close_fd(auto_close_fd)
@@ -318,7 +320,7 @@ void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<
 }
 
 void server_t::handle_rollback_txn(
-    int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    int* /*fds*/, size_t /*fd_count*/, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::ROLLBACK_TXN, c_message_unexpected_event_received);
 
@@ -338,7 +340,7 @@ void server_t::handle_rollback_txn(
 }
 
 void server_t::handle_commit_txn(
-    int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    int* /*fds*/, size_t /*fd_count*/, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::COMMIT_TXN, c_message_unexpected_event_received);
 
@@ -350,9 +352,20 @@ void server_t::handle_commit_txn(
     ASSERT_PRECONDITION(s_log.is_set(), c_message_uninitialized_log_fd);
 
     // Actually commit the transaction.
-    bool success = txn_commit();
+    session_event_t decision = session_event_t::NOP;
+    try
+    {
+        bool success = txn_commit();
+        decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
+    }
+    catch (const index::unique_constraint_violation& e)
+    {
+        // Rollback our transaction in case of constraint violations.
+        // This is because such failures happen in the early pre-commit phase.
+        txn_rollback();
 
-    session_event_t decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
+        decision = session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE;
+    }
 
     // Server-initiated state transition! (Any issues with reentrant handlers?)
     apply_transition(decision, nullptr, nullptr, 0);
@@ -362,7 +375,9 @@ void server_t::handle_decide_txn(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(
-        event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT,
+        event == session_event_t::DECIDE_TXN_COMMIT
+            || event == session_event_t::DECIDE_TXN_ABORT
+            || event == session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE,
         c_message_unexpected_event_received);
 
     ASSERT_PRECONDITION(
@@ -509,8 +524,42 @@ void server_t::handle_request_stream(
         auto request_data = request->data_as_index_scan();
         auto index_id = static_cast<gaia_id_t>(request_data->index_id());
         auto txn_id = static_cast<gaia_txn_id_t>(request_data->txn_id());
+        auto query_type = request_data->query_type();
 
-        start_stream_producer(server_socket, id_to_index(index_id)->generator(txn_id));
+        switch (query_type)
+        {
+        case index_query_t::NONE:
+            start_stream_producer(server_socket, id_to_index(index_id)->generator(txn_id));
+            break;
+        case index_query_t::index_point_read_query_t:
+        case index_query_t::index_equal_range_query_t:
+        {
+            index::index_key_t key;
+            {
+                // Create local snapshot to query catalog for key serialization schema.
+                bool apply_logs = false;
+                create_local_snapshot(apply_logs);
+                auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
+
+                if (query_type == index_query_t::index_point_read_query_t)
+                {
+                    auto query = request_data->query_as_index_point_read_query_t();
+                    auto key_buffer = data_read_buffer_t(*(query->key()));
+                    key = index::index_builder_t::deserialize_key(index_id, key_buffer);
+                }
+                else
+                {
+                    auto query = request_data->query_as_index_equal_range_query_t();
+                    auto key_buffer = data_read_buffer_t(*(query->key()));
+                    key = index::index_builder_t::deserialize_key(index_id, key_buffer);
+                }
+            }
+            start_stream_producer(server_socket, id_to_index(index_id)->equal_range_generator(txn_id, key));
+            break;
+        }
+        default:
+            ASSERT_UNREACHABLE(c_message_unexpected_query_type);
+        }
 
         break;
     }
@@ -927,6 +976,17 @@ void server_t::init_listening_socket(const std::string& socket_name)
     socklen_t server_addr_size = sizeof(server_addr.sun_family) + 1 + ::strlen(&server_addr.sun_path[1]);
     if (-1 == ::bind(listening_socket, reinterpret_cast<struct sockaddr*>(&server_addr), server_addr_size))
     {
+        // TODO it would be nice to have a common error handler that can handle common errors.
+        if (errno == EADDRINUSE)
+        {
+            cerr << "ERROR: bind() failed! - " << (::strerror(errno)) << endl;
+            cerr << "The " << c_db_server_name
+                 << " cannot start because another instance is already running.\n"
+                    "Stop any instances of the server and try again."
+                 << endl;
+            exit(1);
+        }
+
         throw_system_error("bind() failed!");
     }
     if (-1 == ::listen(listening_socket, 0))

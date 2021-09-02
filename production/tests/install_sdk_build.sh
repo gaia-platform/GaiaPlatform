@@ -37,7 +37,7 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags] new_debian_install_file"
     echo "Flags:"
-    echo "  -v,--verbose                Show lots of information while executing the project."
+    echo "  -v,--verbose                Display detailed information during execution."
     echo "  -h,--help                   Display this help text."
     echo "Parameters:"
     echo "  new_debian_install_file     Filename of a debian build file to install while the"

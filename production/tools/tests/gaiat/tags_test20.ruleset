@@ -9,5 +9,5 @@ ruleset test20
     }
 }
 
-// GAIAPLAT-850
+// GAIAPLAT-850 (V1)
 // CHECK: Tag 'I' defined but not used.

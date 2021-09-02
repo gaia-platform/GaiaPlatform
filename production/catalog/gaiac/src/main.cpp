@@ -47,6 +47,23 @@ enum class operate_mode_t
     loading,
 };
 
+string ltrim(const string& s)
+{
+    size_t start = s.find_first_not_of(c_whitespace_chars);
+    return (start == string::npos) ? "" : s.substr(start);
+}
+
+string rtrim(const string& s)
+{
+    size_t end = s.find_last_not_of(c_whitespace_chars);
+    return (end == string::npos) ? "" : s.substr(0, end + 1);
+}
+
+string trim(const string& s)
+{
+    return rtrim(ltrim(s));
+}
+
 void start_repl(parser_t& parser)
 {
     initialize_catalog();
@@ -63,15 +80,15 @@ void start_repl(parser_t& parser)
         {
             break;
         }
-        if (line == exit_command)
+        if (trim(line) == exit_command)
         {
             break;
         }
         try
         {
-            if (line.length() > 0 && line.at(0) == c_command_prefix)
+            if (line.length() > 0 && ltrim(line).at(0) == c_command_prefix)
             {
-                if (handle_meta_command(line))
+                if (handle_meta_command(trim(line)))
                 {
                     continue;
                 }
@@ -81,9 +98,9 @@ void start_repl(parser_t& parser)
                 }
             }
 
-            if (line.back() == ';')
+            if (rtrim(line).back() == ';')
             {
-                parser.parse_line(ddl_buffer + line);
+                parser.parse_string(ddl_buffer + line);
                 execute(parser.statements);
                 ddl_buffer = "";
             }
@@ -158,7 +175,7 @@ void generate_edc(const string& db_name, const filesystem::path& output_path)
 {
     if (output_path.empty())
     {
-        cerr << "ERROR - No output location provided for the generated EDC files. " << endl;
+        cerr << "ERROR - No output location provided for the generated Direct Access files. " << endl;
         exit(1);
     }
 
@@ -175,7 +192,7 @@ void generate_edc(const string& db_name, const filesystem::path& output_path)
         throw std::invalid_argument("Invalid output path: '" + output_path.string() + "'.");
     }
 
-    cout << "Generating EDC code in: " << absolute_output_path << "." << endl;
+    cout << "Generating Direct Access classes in: " << absolute_output_path << "." << endl;
 
     generate_fbs_headers(db_name, absolute_output_path);
     generate_edc_code(db_name, absolute_output_path);
@@ -373,8 +390,7 @@ int main(int argc, char* argv[])
     gaia::db::config::set_default_session_options(session_options);
 
     const auto cleanup = scope_guard::make_scope_guard(
-        [&server]()
-        {
+        [&server]() {
             gaia::db::end_session();
             if (server.is_initialized())
             {
@@ -406,10 +422,10 @@ int main(int argc, char* argv[])
 
             if (mode == operate_mode_t::generation)
             {
-                // Generate EDC code for the default global database if no database is given.
-                if (db_names.empty())
+                // Generate EDC code for the default database if no database is given.
+                if (db_names.size() == 0)
                 {
-                    db_names.emplace_back("");
+                    db_names.emplace_back(c_empty_db_name);
                 }
 
                 for (const auto& db_name : db_names)

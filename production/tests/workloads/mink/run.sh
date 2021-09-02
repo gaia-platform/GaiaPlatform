@@ -45,7 +45,7 @@ show_usage() {
     echo "                              this overrides any configuration in a specified configuration"
     echo "                              file. If '0' is specified, then the number of threads is set"
     echo "                              to maximum."
-    echo "  -v,--verbose                Show lots of information while executing the project."
+    echo "  -v,--verbose                Display detailed information during execution."
     echo "  -h,--help                   Display this help text."
     echo ""
     show_usage_commands

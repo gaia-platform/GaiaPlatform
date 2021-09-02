@@ -2,7 +2,6 @@
 
 #include "tags_test.h"
 
-// GAIAPLAT-914
 ruleset test27
 {
     on_insert(incubator)
@@ -16,4 +15,5 @@ ruleset test27
     }
 }
 
+// GAIAPLAT-914 (fixed)
 // CHECK: use of undeclared label 'LABEL'

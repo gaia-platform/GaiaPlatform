@@ -25,7 +25,6 @@ constexpr int c_variable_length = 15;
 
 bool table_navigation_t::m_is_initialized = false;
 unordered_map<string, table_data_t> table_navigation_t::m_table_data;
-unordered_multimap<string, table_navigation_t::navigation_data_t> table_navigation_t::m_table_relationship;
 
 // Function that generates code to navigate between tables when explicit navigation path is specified.
 navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(const string& anchor_table, explicit_path_data_t path_data)
@@ -156,30 +155,34 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
         table_name = table_iterator->second;
     }
 
-    if (tables.size() == 1 && table_name == anchor_table_name)
+    if (table_name == anchor_table_name)
     {
         variable_name = last_variable_name;
     }
-    return_value.prefix
-        .append("\n{\nauto ")
-        .append(variable_name)
-        .append(" = gaia::")
-        .append(anchor_table_data_itr->second.db_name)
-        .append("::")
-        .append(anchor_table)
-        .append("_t::get(context->record);\n");
+    if (variable_name != anchor_table_name)
+    {
+        return_value.prefix
+            .append("\n{\nauto ")
+            .append(variable_name)
+            .append(" = ")
+            .append(anchor_table_name)
+            .append(";\n");
+    }
+    else
+    {
+        return_value.prefix = "\n{\n";
+    }
     return_value.postfix = "\n}\n";
 
     if (tables.size() == 1 && table_name == anchor_table_name)
     {
         return return_value;
     }
-    if (m_table_relationship.find(anchor_table_name) == m_table_relationship.end())
+    if (anchor_table_data_itr->second.link_data.empty())
     {
         gaiat::diag().emit(diag::err_no_anchor_path) << anchor_table;
         return navigation_code_data_t();
     }
-    auto table_itr = m_table_relationship.equal_range(anchor_table_name);
     unordered_set<string> processed_tables;
     // Iterate through list of destination tables
     for (const string& table : tables)
@@ -203,17 +206,16 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
         bool is_1_relationship = false, is_n_relationship = false;
 
         string linking_field;
-        for (auto it = table_itr.first; it != table_itr.second; ++it)
+        for (const auto& it : anchor_table_data_itr->second.link_data)
         {
-            if (it != m_table_relationship.end() && it->second.table_name == table_name)
+            if (it.second.target_table == table_name)
             {
-
                 if (is_1_relationship || is_n_relationship)
                 {
                     gaiat::diag().emit(diag::err_ambiguous_path) << anchor_table << table;
                     return navigation_code_data_t();
                 }
-                if (it->second.is_parent)
+                if (it.second.cardinality == catalog::relationship_cardinality_t::one)
                 {
                     is_1_relationship = true;
                 }
@@ -221,7 +223,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
                 {
                     is_n_relationship = true;
                 }
-                linking_field = it->second.linking_field;
+                linking_field = it.first;
             }
         }
 
@@ -344,15 +346,6 @@ void table_navigation_t::fill_table_data()
                 continue;
             }
 
-            navigation_data_t link_data_1 = {parent_table.name(), relationship.to_parent_link_name(), true};
-            navigation_data_t link_data_n = {child_table.name(), relationship.to_child_link_name(), false};
-
-            m_table_relationship.emplace(child_table.name(), link_data_1);
-            m_table_relationship.emplace(parent_table.name(), link_data_n);
-
-            // TODO this is similar to navigation_data_t but not exactly the same. Not worth merging them now
-            //  because we may merge this into the facade architecture used in gaiac.
-
             link_data_t to_child_link = {
                 child_table.name(),
                 static_cast<catalog::relationship_cardinality_t>(relationship.cardinality())};
@@ -362,7 +355,7 @@ void table_navigation_t::fill_table_data()
                 catalog::relationship_cardinality_t::one};
 
             m_table_data[parent_table.name()].link_data[relationship.to_child_link_name()] = to_child_link;
-            m_table_data[child_table.name()].link_data[relationship.to_child_link_name()] = to_parent_link;
+            m_table_data[child_table.name()].link_data[relationship.to_parent_link_name()] = to_parent_link;
         }
     }
     catch (const exception& e)
@@ -397,7 +390,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
     {
         return true;
     }
-    bool return_value = find_navigation_path(src, dst, current_path, m_table_relationship);
+    bool return_value = find_navigation_path(src, dst, current_path, m_table_data);
     if (!return_value)
     {
         gaiat::diag().emit(diag::err_no_path) << src << dst;
@@ -409,20 +402,20 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
     for (size_t path_index = 0; path_index < path_length - 1; ++path_index)
     {
         vector<navigation_data_t> path;
-        unordered_multimap<string, navigation_data_t> graph_data(m_table_relationship);
+        unordered_map<string, table_data_t> graph_data(m_table_data);
         const auto& edge_src = current_path[path_index];
         const auto& edge_dst = current_path[path_index + 1];
-        auto graph_itr = graph_data.equal_range(edge_src.table_name);
+        auto graph_itr = graph_data.find(edge_src.table_name);
 
-        for (auto it = graph_itr.first; it != graph_itr.second; ++it)
+        for (auto it = graph_itr->second.link_data.begin(); it != graph_itr->second.link_data.end();)
         {
-            if (it != graph_data.end())
+            if (it->second.target_table == edge_dst.table_name)
             {
-                if (it->second.table_name == edge_dst.table_name)
-                {
-                    graph_data.erase(it);
-                    break;
-                }
+                it = graph_itr->second.link_data.erase(it);
+            }
+            else
+            {
+                ++it;
             }
         }
 
@@ -440,7 +433,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
 }
 
 // Find shortest navigation path between 2 tables.
-bool table_navigation_t::find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path, const unordered_multimap<string, navigation_data_t>& graph_data)
+bool table_navigation_t::find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path, const unordered_map<string, table_data_t>& graph_data)
 {
     if (src == dst)
     {
@@ -476,20 +469,17 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
 
         table_distance.erase(closest_table);
 
-        auto table_itr = graph_data.equal_range(closest_table);
-        for (auto it = table_itr.first; it != table_itr.second; ++it)
+        auto table_itr = graph_data.find(closest_table);
+        for (const auto& it : table_itr->second.link_data)
         {
-            if (it != graph_data.end())
+            string table_name = it.second.target_table;
+            if (table_distance.find(table_name) != table_distance.end())
             {
-                string table_name = it->second.table_name;
-                if (table_distance.find(table_name) != table_distance.end())
+                if (table_distance[table_name] > distance + 1)
                 {
-                    if (table_distance[table_name] > distance + 1)
-                    {
-                        table_distance[table_name] = distance + 1;
-                        table_prev[table_name] = closest_table;
-                        table_navigation[table_name] = it->second;
-                    }
+                    table_distance[table_name] = distance + 1;
+                    table_prev[table_name] = closest_table;
+                    table_navigation[table_name] = {it.second.target_table, it.first};
                 }
             }
         }
@@ -540,20 +530,20 @@ string table_navigation_t::generate_random_string(string::size_type length)
 // Function that generates a single navigation step code.
 bool table_navigation_t::generate_navigation_step(const string& source_table, const string& source_field, const string& destination_table, const string& source_variable_name, const string& variable_name, navigation_code_data_t& navigation_data)
 {
-    auto table_itr = m_table_relationship.equal_range(source_table);
+    auto table_itr = m_table_data.find(source_table);
 
     bool is_1_relationship = false, is_n_relationship = false;
 
     string linking_field = source_field;
-    for (auto it = table_itr.first; it != table_itr.second; ++it)
+    for (const auto& it : table_itr->second.link_data)
     {
-        if (it != m_table_relationship.end() && it->second.table_name == destination_table)
+        if (it.second.target_table == destination_table)
         {
             if (!source_field.empty())
             {
-                if (it->second.linking_field == source_field)
+                if (it.first == source_field)
                 {
-                    if (it->second.is_parent)
+                    if (it.second.cardinality == catalog::relationship_cardinality_t::one)
                     {
                         is_1_relationship = true;
                     }
@@ -571,7 +561,7 @@ bool table_navigation_t::generate_navigation_step(const string& source_table, co
                     gaiat::diag().emit(diag::err_ambiguous_path) << source_table << destination_table;
                     return false;
                 }
-                if (it->second.is_parent)
+                if (it.second.cardinality == catalog::relationship_cardinality_t::one)
                 {
                     is_1_relationship = true;
                 }
@@ -579,7 +569,7 @@ bool table_navigation_t::generate_navigation_step(const string& source_table, co
                 {
                     is_n_relationship = true;
                 }
-                linking_field = it->second.linking_field;
+                linking_field = it.first;
             }
         }
     }

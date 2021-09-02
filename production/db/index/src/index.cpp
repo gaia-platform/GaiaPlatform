@@ -115,23 +115,23 @@ std::size_t index_key_hash::operator()(index_key_t const& key) const
 
 std::ostream& operator<<(std::ostream& os, const index_record_t& record)
 {
-    os << "\ttxn_id: "
+    os << "[txn_id: "
        << record.txn_id
-       << "\toffset: "
+       << " offset: "
        << record.offset
-       << "locator: "
+       << " locator: "
        << record.locator
-       << "\tdeleted: "
-       << record.deleted
-       << std::endl;
+       << " deleted: "
+       << (record.deleted ? "true" : "false")
+       << "]";
     return os;
 }
 
 std::ostream& operator<<(std::ostream& os, const index_key_t& key)
 {
-    for (const auto& k : key.m_key_values)
+    for (const auto& key_value : key.m_key_values)
     {
-        os << k << " ";
+        os << "{" << key_value << "}";
     }
     return os;
 }

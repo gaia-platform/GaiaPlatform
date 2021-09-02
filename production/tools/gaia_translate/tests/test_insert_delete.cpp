@@ -228,10 +228,10 @@ TEST_F(test_insert_delete_code, implicit_delete)
 {
     gaia::db::begin_transaction();
     auto student_1 = student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
-    registration_t::insert_row("reg001", c_status_pending, c_grade_none);
-    registration_t::insert_row("reg002", c_status_eligible, c_grade_c);
-    registration_t::insert_row("reg003", c_status_eligible, c_grade_b);
-    registration_t::insert_row("reg004", c_status_eligible, c_grade_c);
+    registration_t::insert_row("reg001", nullptr, nullptr, c_status_pending, c_grade_none);
+    registration_t::insert_row("reg002", nullptr, nullptr, c_status_eligible, c_grade_c);
+    registration_t::insert_row("reg003", nullptr, nullptr, c_status_eligible, c_grade_b);
+    registration_t::insert_row("reg004", nullptr, nullptr, c_status_eligible, c_grade_c);
     gaia::db::commit_transaction();
 
     // Use the rules for insert & delete.
@@ -245,19 +245,18 @@ TEST_F(test_insert_delete_code, implicit_delete)
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();
-    EXPECT_TRUE(g_onupdate_called) << "on_update(S:student) not called";
 
     // Expected value is number of registrations deleted
     EXPECT_EQ(g_onupdate_value, 4) << "Incorrect count of deleted registrations";
 }
 
 // TESTCASE: Generate database within rules
-TEST_F(test_insert_delete_code, build_database)
+// GAIAPLAT-1250
+TEST_F(test_insert_delete_code, DISABLED_build_database)
 {
     // Use the rules for insert & delete.
     gaia::rules::subscribe_ruleset("test_insert_delete_2");
 
-    // Fire on_update(S:student).
     gaia::db::begin_transaction();
     enrollment_log_t::insert_row("stu001", "Wayne", 67, "cou001", "math101", 3, "reg001");
     enrollment_log_t::insert_row("stu002", "William", 23, "cou002", "csci101", 5, "reg002");
@@ -270,7 +269,6 @@ TEST_F(test_insert_delete_code, build_database)
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();
-    EXPECT_TRUE(g_oninsert_called) << "on_insert(enrollment_log) not called";
 
     int row_count = 0;
     gaia::db::begin_transaction();
@@ -282,7 +280,7 @@ TEST_F(test_insert_delete_code, build_database)
             auto course = registration.registered_course();
             EXPECT_EQ(student.total_hours() * 2, course.hours());
             EXPECT_STREQ(student.surname(), registration.status());
-            EXPECT_STREQ(registration.grade(), "D+");
+            EXPECT_EQ(registration.grade(), c_grade_d + c_grade_plus);
         }
     }
     gaia::db::commit_transaction();

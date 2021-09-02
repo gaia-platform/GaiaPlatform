@@ -10,5 +10,5 @@ ruleset test07 : tables (S:sensor)
     }
 }
 
-// GAIAPLAT-819
+// GAIAPLAT-819 (fixed)
 // CHECK: Tag not allowed in a Table attribute

@@ -15,6 +15,11 @@ auto_transaction_t::auto_transaction_t(bool auto_begin)
     gaia::db::begin_transaction();
 }
 
+void auto_transaction_t::begin()
+{
+    gaia::db::begin_transaction();
+}
+
 void auto_transaction_t::commit()
 {
     gaia::db::commit_transaction();

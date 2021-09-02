@@ -9,11 +9,13 @@
 
 constexpr char c_status_pending[] = "pending";
 constexpr char c_status_eligible[] = "eligible";
-constexpr char c_grade_none[] = "";
-constexpr char c_grade_a[] = "A";
-constexpr char c_grade_b[] = "B";
-constexpr char c_grade_c[] = "C";
-constexpr char c_grade_d[] = "D";
+constexpr float c_grade_none = -1.0;
+constexpr float c_grade_plus = 0.5;
+constexpr float c_grade_a = 4.0;
+constexpr float c_grade_b = 3.0;
+constexpr float c_grade_c = 2.0;
+constexpr float c_grade_d = 1.0;
+constexpr float c_grade_f = 0.0;
 
 enum class test_error_result_t
 {

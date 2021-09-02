@@ -1,7 +1,6 @@
 #include "gaia/logger.hpp"
 #include "gaia/events.hpp"
 
-// #define TEST_FAILURES
 #include <atomic>
 
 std::atomic<int32_t> g_rule_called;
