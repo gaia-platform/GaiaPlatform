@@ -373,6 +373,27 @@ TEST_F(rule_integration_test, test_update)
     }
 }
 
+// This test verifies that a rule is not invoked if the anchor row
+// is deleted before the rule can be called.
+TEST_F(rule_integration_test, test_update_and_delete)
+{
+    subscribe_update();
+    {
+        // The update rule should not be fired because we delete the row.
+        rule_monitor_t monitor(0);
+        auto_transaction_t txn(true);
+        employee_writer writer;
+        writer.name_first = "Ignore";
+        employee_t e = employee_t::get(writer.insert_row());
+        txn.commit();
+        writer = e.writer();
+        writer.name_first = c_name;
+        writer.update_row();
+        e.delete_row();
+        txn.commit();
+    }
+}
+
 // Test single rule, single active field binding.
 TEST_F(rule_integration_test, test_update_field)
 {

@@ -121,9 +121,11 @@ TEST_F(sdk_test, rule_subscribe_unsubscribe)
         employee_writer w;
         w.name_first = "Public";
         w.name_last = "Headers";
-        gaia_id_t id = w.insert_row();
-        employee_t e = employee_t::get(id);
-        e.delete_row();
+        w.insert_row();
+        // [GAIAPLAT-1205]:  We now do not fire an event if
+        // the anchor row has been deleted.
+        // employee_t e = employee_t::get(id);
+        // e.delete_row();
         tx.commit();
 
         wait_for_rule(g_rule_1_called);
