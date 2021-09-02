@@ -226,16 +226,10 @@ void convert_references_to_relationships(
 
             check_reference_field_maps(matching_ref->field_map, ref->field_map, ref->table, matching_ref->table);
 
-            // Use the [link1]_[link2] as the relationship name.
+            // Use the [link1]_[link2] as the relationship name. For 1:N
+            // relationships, always place many side first.
             //
             // TODO: Detect name conflict. [GATAPLAT-306]
-            //
-            // For 1:N relationships, always place many side first (including
-            // link placement) before the proper support of one-to-many
-            // relationship definition is ready.
-            //
-            // TODO: Update the code after we can support placing one side link
-            //       before many side link in `create relationship` statements.
             //
             std::string rel_name
                 = (ref->cardinality == relationship_cardinality_t::many
@@ -248,10 +242,7 @@ void convert_references_to_relationships(
                 "", create_table->name, ref->name, "", ref->table, ref->cardinality};
             ddl::link_def_t matching_ref_link{
                 "", ref->table, matching_ref->name, "", matching_ref->table, matching_ref->cardinality};
-            relationships.back()->relationship
-                = (ref->cardinality == relationship_cardinality_t::many
-                       ? std::make_pair(ref_link, matching_ref_link)
-                       : std::make_pair(matching_ref_link, ref_link));
+            relationships.back()->relationship = std::make_pair(matching_ref_link, ref_link);
 
             relationships.back()->has_if_not_exists = false;
 

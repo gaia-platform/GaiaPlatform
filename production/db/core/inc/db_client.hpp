@@ -8,6 +8,8 @@
 #include <memory>
 #include <optional>
 
+#include <sys/socket.h>
+
 #include "gaia/db/db.hpp"
 
 #include "gaia_internal/common/generator_iterator.hpp"
@@ -17,6 +19,7 @@
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
+#include "client_messenger.hpp"
 #include "db_shared_data.hpp"
 #include "mapped_data.hpp"
 #include "memory_manager.hpp"
@@ -24,14 +27,13 @@
 
 namespace gaia
 {
-
 namespace db
 {
 
 namespace query_processor
 {
 class db_client_proxy_t;
-}
+} // namespace query_processor
 
 class client_t
 {
@@ -76,12 +78,17 @@ public:
     static void commit_transaction();
 
     static inline gaia_txn_id_t get_txn_id();
+    static inline int get_session_socket_for_txn();
 
     // This returns a generator object for gaia_ids of a given type.
     static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>>
     get_id_generator_for_type(common::gaia_type_t type);
-    static std::shared_ptr<common::iterators::generator_t<index::index_record_t>>
-    get_record_generator_for_index(common::gaia_id_t index_id, gaia_txn_id_t txn_id);
+
+    // This is a helper for higher-level methods that use
+    // this generator to build a range or iterator object.
+    template <typename T_element_type>
+    static std::function<std::optional<T_element_type>()>
+    get_stream_generator_for_socket(int stream_socket);
 
 private:
     // These fields have transaction lifetime.
@@ -137,13 +144,6 @@ private:
     static int get_session_socket(const std::string& socket_name);
 
     static int get_id_cursor_socket_for_type(common::gaia_type_t type);
-    static int get_record_cursor_socket_for_index(common::gaia_id_t index_id, gaia_txn_id_t txn_id);
-
-    // This is a helper for higher-level methods that use
-    // this generator to build a range or iterator object.
-    template <typename T_element_type>
-    static std::function<std::optional<T_element_type>()>
-    get_stream_generator_for_socket(int stream_socket);
 
     static std::function<std::optional<int>()>
     get_fd_stream_generator_for_socket(int stream_socket);
@@ -172,7 +172,7 @@ private:
         common::gaia_id_t deleted_id = common::c_invalid_gaia_id);
 };
 
-#include "db_client.inc"
-
 } // namespace db
 } // namespace gaia
+
+#include "db_client.inc"

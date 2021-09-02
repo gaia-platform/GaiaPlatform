@@ -1,7 +1,7 @@
 // RUN: %gaiat %s --
 
-// TESTCASE: break from multiple outer loops from implicit query
 // GAIAPLAT-1073 (won't do)
+// TESTCASE: break from 'if' statement within declarative loop
 ruleset test5
 {
     on_update(raised)
@@ -16,8 +16,7 @@ ruleset test5
     }
 }
 
-// TESTCASE: continue from multiple outer loops from implicit query
-// GAIAPLAT-1073 (won't do)
+// TESTCASE: continue from 'if' statement within declarative loop
 ruleset test6
 {
     on_update(raised)

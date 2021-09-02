@@ -3,7 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
+namespace gaia
+{
+namespace db
+{
 
 inline bool client_t::is_transaction_open()
 {
@@ -18,6 +21,11 @@ inline void client_t::set_commit_trigger(triggers::commit_trigger_fn trigger_fn)
 inline gaia_txn_id_t client_t::get_txn_id()
 {
     return s_txn_id;
+}
+
+inline int client_t::get_session_socket_for_txn()
+{
+    return s_session_socket;
 }
 
 inline bool client_t::is_valid_event(common::gaia_type_t type)
@@ -87,3 +95,87 @@ inline void client_t::txn_log(
     lr.deleted_id = deleted_id;
     lr.operation = operation;
 }
+
+// This generator wraps a socket which reads a stream of values of `T_element_type` from the server.
+template <typename T_element_type>
+std::function<std::optional<T_element_type>()>
+client_t::get_stream_generator_for_socket(int stream_socket)
+{
+    // Verify that the socket is the correct type for the semantics we assume.
+    common::check_socket_type(stream_socket, SOCK_SEQPACKET);
+
+    // Currently, we associate a cursor with a snapshot view, i.e., a transaction.
+    verify_txn_active();
+    gaia_txn_id_t owning_txn_id = s_txn_id;
+
+    // The userspace buffer that we use to receive a batch datagram message.
+    std::vector<T_element_type> batch_buffer;
+
+    // The definition of the generator we return.
+    return [stream_socket, owning_txn_id, batch_buffer]() mutable -> std::optional<T_element_type> {
+        // We shouldn't be called again after we received EOF from the server.
+        ASSERT_INVARIANT(stream_socket != -1, c_message_stream_socket_is_invalid);
+
+        // The cursor should only be called from within the scope of its owning transaction.
+        ASSERT_INVARIANT(s_txn_id == owning_txn_id, "Cursor was not called from the scope of its own transaction!");
+
+        // If buffer is empty, block until a new batch is available.
+        if (batch_buffer.size() == 0)
+        {
+            // Get the datagram size, and grow the buffer if necessary.
+            // This decouples the client from the server (i.e., client
+            // doesn't need to know server batch size), at the expense
+            // of an extra system call per batch.
+            // We set MSG_PEEK to avoid reading the datagram into our buffer,
+            // and we set MSG_TRUNC to return the actual buffer size needed.
+            ssize_t datagram_size = ::recv(stream_socket, nullptr, 0, MSG_PEEK | MSG_TRUNC);
+            if (datagram_size == -1)
+            {
+                common::throw_system_error("recv(MSG_PEEK) failed!");
+            }
+
+            if (datagram_size == 0)
+            {
+                // We received EOF from the server, so close
+                // client socket and stop iteration.
+                common::close_fd(stream_socket);
+                // Tell the caller to stop iteration.
+                return std::nullopt;
+            }
+
+            // The datagram size must be an integer multiple of our datum size.
+            ASSERT_INVARIANT(datagram_size % sizeof(T_element_type) == 0, c_message_unexpected_datagram_size);
+
+            // Align the end of the buffer to the datagram size.
+            // Per the C++ standard, this will never reduce capacity.
+            batch_buffer.resize(datagram_size);
+
+            // Get the actual data.
+            // This is a nonblocking read, because the previous blocking
+            // read will not return until data is available.
+            ssize_t bytes_read = ::recv(stream_socket, batch_buffer.data(), batch_buffer.size(), MSG_DONTWAIT);
+            if (bytes_read == -1)
+            {
+                // Per above, we should never have to block here.
+                ASSERT_INVARIANT(errno != EAGAIN && errno != EWOULDBLOCK, "Unexpected errno value!");
+                common::throw_system_error("recv() failed!");
+            }
+
+            // Because our buffer is exactly the same size as the datagram,
+            // we should read exactly the number of bytes in the datagram.
+            ASSERT_INVARIANT(bytes_read == datagram_size, "Bytes read differ from datagram size!");
+        }
+
+        // At this point we know our buffer is non-empty.
+        ASSERT_INVARIANT(batch_buffer.size() > 0, c_message_empty_batch_buffer_detected);
+
+        // Loop through the buffer and return entries in FIFO order
+        // (the server reversed the original buffer before sending).
+        T_element_type next_value = batch_buffer.back();
+        batch_buffer.pop_back();
+        return next_value;
+    };
+}
+
+} // namespace db
+} // namespace gaia

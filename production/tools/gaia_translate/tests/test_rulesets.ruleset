@@ -417,14 +417,11 @@ ruleset test_query_10
         {
             count++;
         }
-#ifdef GAIAPLAT_1180
-        // When issue is fixed, this should count to 3 as well.
+        // GAIAPLAT-1180 (fixed)
         for (/student->parents)
         {
             count++;
         }
-        count -= 3;
-#endif
         g_oninsert_value = count;
         g_oninsert_result = test_error_result_t::e_none;
         g_oninsert_called = true;
@@ -438,7 +435,6 @@ ruleset test_query_10
 // in the translated code. The break labels, BREAK1_TARGET, etc. are currently left in
 // the code unconditionally. The Jira issue, when fixed, will eliminate any unused labels.
 // These pragmas should be removed then.
-// GAIAPLAT-1198 (won't do)
 // GAIAPLAT-1143 (V1)
 ruleset test_compile
 {
@@ -530,17 +526,14 @@ ruleset test_insert_delete_2
     // GAIAPLAT-1110 (fixed)
     // GAIAPLAT-1112 (fixed)
     // GAIAPLAT-1188 (fixed)
+    // GAIAPLAT-1250
     on_insert(E:enrollment_log)
     {
-        gaia::prerequisites::student_t S = student.insert(student_id: E.log_student_id, surname: E.log_surname, age: E.log_age);
-        gaia::prerequisites::course_t C = course.insert(course_id: E.log_course_id, name: E.log_name, hours: E.log_hours);
-        gaia::prerequisites::registration_t R = registration.insert(reg_id: E.log_reg_id);
-
-        // [WLW] Convert this to declarative connect.
-        S.registrations().insert(R);
-        C.registrations().insert(R);
-
-        g_oninsert_called = true;
+        gaia::prerequisites::student_t S
+            = student.insert(student_id: E.log_student_id, surname: E.log_surname, age: E.log_age);
+        gaia::prerequisites::course_t C
+            = course.insert(course_id: E.log_course_id, name: E.log_name, hours: E.log_hours);
+        registration.insert(reg_id: E.log_reg_id, student_id: E.log_student_id, course_id: E.log_course_id);
     }
 
     on_insert(student)
@@ -664,9 +657,9 @@ ruleset test_disconnect_1_1
 
 ruleset test_disconnect_delete
 {
-    on_insert(registration)
+    on_insert(R:registration)
     {
-        registration->student.disconnect(registration);
+        registration.student_id = nullptr;
         registration.remove();
     }
 }

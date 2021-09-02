@@ -5,6 +5,8 @@
 
 #include "gaia_internal/common/gaia_version.hpp"
 
+#include <cstring>
+
 namespace gaia
 {
 namespace common

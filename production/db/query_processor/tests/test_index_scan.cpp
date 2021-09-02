@@ -10,7 +10,9 @@
 #include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
+#include "db_object_helpers.hpp"
 #include "gaia_index_sandbox.h"
+#include "index_key.hpp"
 #include "index_scan.hpp"
 #include "type_id_mapping.hpp"
 
@@ -18,8 +20,12 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::direct_access;
 using namespace gaia::db::query_processor::scan;
+using namespace gaia::catalog;
+using namespace gaia::db::index;
 
 constexpr size_t c_num_initial_rows = 20;
+constexpr size_t c_query_limit_rows = 5;
+constexpr const char* c_no_match_str = "no match";
 
 class test_index_scan : public gaia::db::db_catalog_test_base_t
 {
@@ -76,6 +82,288 @@ TEST_F(test_index_scan, verify_cardinality)
 
         EXPECT_TRUE(count == scan_count);
     }
+}
+
+// Check counts match for all indexes.
+TEST_F(test_index_scan, test_limits)
+{
+    auto_transaction_t txn;
+
+    size_t limit = c_query_limit_rows;
+
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+
+    for (const auto& idx : catalog_core_t::list_indexes(type_record_id))
+    {
+        // Open an index scan operator for this operator with the fixed limit.
+        auto scan = index_scan_t(idx.id(), nullptr, limit);
+        size_t scan_count = 0;
+        for (const auto& p : scan)
+        {
+            (void)p;
+            scan_count++;
+        }
+
+        EXPECT_TRUE(limit == scan_count);
+
+        // Open an index scan operator for this operator with limit 0.
+        auto scan2 = index_scan_t(idx.id(), nullptr, 0);
+        scan_count = 0;
+        for (const auto& p : scan2)
+        {
+            (void)p;
+            scan_count++;
+        }
+
+        EXPECT_TRUE(0 == scan_count);
+
+        // Open an index scan operator for this operator with limit 1.
+        auto scan3 = index_scan_t(idx.id(), nullptr, 1);
+        scan_count = 0;
+        for (const auto& p : scan3)
+        {
+            (void)p;
+            scan_count++;
+        }
+
+        EXPECT_TRUE(1 == scan_count);
+
+        // Open an index scan operator for this operator greater than the number of rows.
+        auto scan4 = index_scan_t(idx.id(), nullptr, c_num_initial_rows + 1);
+        scan_count = 0;
+        for (const auto& p : scan4)
+        {
+            (void)p;
+            scan_count++;
+        }
+
+        EXPECT_TRUE(c_num_initial_rows == scan_count);
+    }
+}
+
+TEST_F(test_index_scan, query_single_match)
+{
+    // Lookup index_id for integer field.
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t range_index_id = c_invalid_gaia_id;
+    gaia_id_t hash_index_id = c_invalid_gaia_id;
+
+    auto_transaction_t txn;
+
+    for (const auto& index : catalog_core_t::list_indexes(type_record_id))
+    {
+        for (const auto& field_id : *index.fields())
+        {
+            const auto& field = field_view_t(gaia::db::id_to_ptr(field_id));
+            if (field.data_type() == data_type_t::e_int32 && index.type() == index_type_t::range)
+            {
+                range_index_id = index.id();
+                break;
+            }
+            else if (field.data_type() == data_type_t::e_int32 && index.type() == index_type_t::hash)
+            {
+                hash_index_id = index.id();
+                break;
+            }
+        }
+    }
+
+    EXPECT_TRUE(range_index_id != c_invalid_gaia_id && hash_index_id != c_invalid_gaia_id);
+
+    // Queries the indexes.
+    int32_t value = c_num_initial_rows;
+
+    // Equal-range query on range index.
+    size_t num_results = 0;
+    auto index_key = index_key_t(value);
+    auto equal_predicate = std::make_shared<index_equal_range_predicate_t>(index_key);
+    for (const auto& scan : index_scan_t(range_index_id, equal_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, 1);
+
+    // Equal-range query on hash index.
+    num_results = 0;
+    for (const auto& scan : index_scan_t(hash_index_id, equal_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, 1);
+
+    auto point_predicate = std::make_shared<index_point_read_predicate_t>(index_key);
+
+    // Point-query on range index.
+    num_results = 0;
+    for (const auto& scan : index_scan_t(range_index_id, point_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, 1);
+
+    // Point-query on hash index.
+    num_results = 0;
+    for (const auto& scan : index_scan_t(hash_index_id, point_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, 1);
+}
+
+TEST_F(test_index_scan, query_multi_match)
+{
+    // Lookup index_id for integer field.
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t range_index_id = c_invalid_gaia_id;
+    gaia_id_t hash_index_id = c_invalid_gaia_id;
+
+    auto_transaction_t txn;
+
+    for (const auto& index : catalog_core_t::list_indexes(type_record_id))
+    {
+        for (const auto& field_id : *index.fields())
+        {
+            const auto& field = field_view_t(gaia::db::id_to_ptr(field_id));
+            if (field.data_type() == data_type_t::e_string && index.type() == index_type_t::range)
+            {
+                range_index_id = index.id();
+                break;
+            }
+            else if (field.data_type() == data_type_t::e_string && index.type() == index_type_t::hash)
+            {
+                hash_index_id = index.id();
+                break;
+            }
+        }
+    }
+
+    EXPECT_TRUE(range_index_id != c_invalid_gaia_id && hash_index_id != c_invalid_gaia_id);
+
+    // Equal-range query on range index.
+    size_t num_results = 0;
+    auto index_key = index_key_t("");
+    auto equal_predicate = std::make_shared<index_equal_range_predicate_t>(index_key);
+    for (const auto& scan : index_scan_t(range_index_id, equal_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, c_num_initial_rows);
+
+    // Equal-range query on hash index.
+    num_results = 0;
+    for (const auto& scan : index_scan_t(hash_index_id, equal_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, c_num_initial_rows);
+
+    auto point_predicate = std::make_shared<index_point_read_predicate_t>(index_key);
+
+    // Point-query on range index.
+    num_results = 0;
+    for (const auto& scan : index_scan_t(range_index_id, point_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, 1);
+
+    // Point-query on hash index.
+    num_results = 0;
+    for (const auto& scan : index_scan_t(hash_index_id, point_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, 1);
+}
+
+TEST_F(test_index_scan, query_no_match)
+{
+    // Lookup index_id for integer field.
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t range_index_id = c_invalid_gaia_id;
+    gaia_id_t hash_index_id = c_invalid_gaia_id;
+
+    auto_transaction_t txn;
+
+    for (const auto& index : catalog_core_t::list_indexes(type_record_id))
+    {
+        for (const auto& field_id : *index.fields())
+        {
+            const auto& field = field_view_t(gaia::db::id_to_ptr(field_id));
+            if (field.data_type() == data_type_t::e_string && index.type() == index_type_t::range)
+            {
+                range_index_id = index.id();
+                break;
+            }
+            else if (field.data_type() == data_type_t::e_string && index.type() == index_type_t::hash)
+            {
+                hash_index_id = index.id();
+                break;
+            }
+        }
+    }
+
+    EXPECT_TRUE(range_index_id != c_invalid_gaia_id && hash_index_id != c_invalid_gaia_id);
+
+    // Equal-range query on range index.
+    size_t num_results = 0;
+    auto index_key = index_key_t(c_no_match_str);
+    auto equal_predicate = std::make_shared<index_equal_range_predicate_t>(index_key);
+    for (const auto& scan : index_scan_t(range_index_id, equal_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, 0);
+
+    // Equal-range query on hash index.
+    num_results = 0;
+    for (const auto& scan : index_scan_t(hash_index_id, equal_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, 0);
+
+    auto point_predicate = std::make_shared<index_point_read_predicate_t>(index_key);
+
+    // Point-query on range index.
+    num_results = 0;
+    for (const auto& scan : index_scan_t(range_index_id, point_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, 0);
+
+    // Point-query on hash index.
+    num_results = 0;
+    for (const auto& scan : index_scan_t(hash_index_id, point_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, 0);
 }
 
 TEST_F(test_index_scan, rollback_txn)

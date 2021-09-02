@@ -30,12 +30,6 @@ namespace db
  * Client-side implementation of gaia_ptr_t here.
  */
 
-gaia_ptr_t::gaia_ptr_t(gaia_locator_t locator, address_offset_t offset)
-{
-    m_locator = locator;
-    client_t::txn_log(m_locator, c_invalid_gaia_offset, get_gaia_offset(offset), gaia_operation_t::create);
-}
-
 void gaia_ptr_t::reset()
 {
     gaia::db::locators_t* locators = gaia::db::get_locators();
@@ -224,10 +218,12 @@ bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
         {
             // Non-first child in the linked list, update the previous child.
             auto prev_ptr = gaia_ptr_t::open(prev_child);
+            prev_ptr.clone_no_txn();
             prev_ptr.references()[relationship->next_child_offset]
                 = curr_ptr.references()[relationship->next_child_offset];
         }
 
+        curr_ptr.clone_no_txn();
         curr_ptr.references()[relationship->parent_offset] = c_invalid_gaia_id;
         curr_ptr.references()[relationship->next_child_offset] = c_invalid_gaia_id;
     }
@@ -363,9 +359,10 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t
     //  or it should be initialized inside the constructor.
     hash_node_t* hash_node = db_hash_map::insert(id);
     size_t object_size = total_payload_size + c_db_object_header_size;
-    hash_node->locator = allocate_locator();
-    address_offset_t offset = client_t::allocate_object(hash_node->locator, object_size);
-    gaia_ptr_t obj(hash_node->locator, offset);
+    gaia_locator_t locator = allocate_locator();
+    hash_node->locator = locator;
+    client_t::allocate_object(locator, object_size);
+    gaia_ptr_t obj(locator);
     db_object_t* obj_ptr = obj.to_ptr();
     obj_ptr->id = id;
     obj_ptr->type = type;
@@ -383,6 +380,7 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t
     {
         ASSERT_INVARIANT(data_size == 0, "Null payload with non-zero payload size!");
     }
+    client_t::txn_log(locator, c_invalid_gaia_offset, obj.to_offset(), gaia_operation_t::create);
 
     auto_connect_to_parent(
         id,

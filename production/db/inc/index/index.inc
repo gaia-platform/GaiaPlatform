@@ -3,25 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-template <typename... T_keys>
-index_key_t::index_key_t(T_keys... keys)
-{
-    multi_insert(keys...);
-}
-
-template <typename T_key, typename... T_keys>
-void index_key_t::multi_insert(T_key key_value, T_keys... rest)
-{
-    insert(key_value);
-    multi_insert(rest...);
-}
-
-template <typename T_key>
-void index_key_t::multi_insert(T_key key_value)
-{
-    insert(key_value);
-}
-
 // Index structure maintenance.
 template <typename T_structure, typename T_iterator>
 void index_t<T_structure, T_iterator>::insert_index_entry(index_key_t&& key, index_record_t record)
@@ -57,6 +38,16 @@ index_writer_guard_t<T_structure> index_t<T_structure, T_iterator>::get_writer()
 template <typename T_structure>
 index_generator_t<T_structure>::index_generator_t(std::recursive_mutex& mutex, T_structure& data, gaia_txn_id_t txn_id)
     : m_index_lock(mutex), m_it(data.cbegin()), m_end(data.cend()), m_txn_id(txn_id)
+{
+}
+
+template <typename T_structure>
+index_generator_t<T_structure>::index_generator_t(
+    std::recursive_mutex& mutex,
+    typename T_structure::const_iterator begin,
+    typename T_structure::const_iterator end,
+    gaia_txn_id_t txn_id)
+    : m_index_lock(mutex), m_it(begin), m_end(end), m_txn_id(txn_id)
 {
 }
 

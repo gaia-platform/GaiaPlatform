@@ -7,6 +7,7 @@
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/db/gaia_ptr.hpp"
 
 using namespace gaia::rules;
 using namespace gaia::common;
@@ -90,6 +91,10 @@ ruleset_not_found::ruleset_not_found(const char* ruleset_name)
 //
 void rule_checker_t::check_catalog(gaia_type_t type, const field_position_list_t& field_list)
 {
+    if (!m_enable_catalog_checks)
+    {
+        return;
+    }
     auto_transaction_t txn;
     // Find the id of the table defining gaia_type.
     for (const auto& table : catalog::gaia_table_t::list())
@@ -147,4 +152,16 @@ void rule_checker_t::check_fields(gaia_id_t id, const field_position_list_t& fie
             throw invalid_subscription(id, gaia_table.name(), requested_position);
         }
     }
+}
+
+// A transaction must be active before calling this function.
+bool rule_checker_t::is_valid_row(gaia::common::gaia_id_t row_id)
+{
+    if (!m_enable_db_checks)
+    {
+        return true;
+    }
+
+    gaia::db::gaia_ptr_t row_ptr = gaia::db::gaia_ptr_t::open(row_id);
+    return static_cast<bool>(row_ptr);
 }
