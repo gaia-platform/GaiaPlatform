@@ -1038,3 +1038,13 @@ ruleset test66
         }
     }
 }
+
+// TESTCASE: support initialization of declared variable with EDC object
+// GAIAPLAT-966 (fixed)
+ruleset test67
+{
+    on_insert(incubator)
+    {
+        float max = incubator.max_temp;
+    }
+}

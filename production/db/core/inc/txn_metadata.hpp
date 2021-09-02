@@ -179,8 +179,8 @@ private:
     static inline std::atomic<uint64_t>* s_txn_metadata_map{nullptr};
 };
 
-#include "txn_metadata.inc"
-
 } // namespace transactions
 } // namespace db
 } // namespace gaia
+
+#include "txn_metadata.inc"

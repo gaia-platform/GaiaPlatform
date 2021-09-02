@@ -1025,9 +1025,8 @@ void generate_table_subscription(
                                      .append(anchor_table_data_itr->second.db_name)
                                      .append("::")
                                      .append(table)
-                                     .append("_t::get(context->record);\nif(")
-                                     .append(table)
-                                     .append(")\n{\n");
+                                     .append("_t::get(context->record);\n")
+                                     .append("{\n");
             for (const auto& attribute_tag_iterator : g_attribute_tag_map)
             {
                 anchor_code.append("auto ")
