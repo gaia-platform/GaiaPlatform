@@ -88,11 +88,14 @@ void async_disk_writer_t::throw_error(std::string err_msg, int err, uint64_t use
 
 void async_disk_writer_t::map_commit_ts_to_session_decision_efd(gaia_txn_id_t commit_ts, int session_decision_eventfd)
 {
+    std::cout << "INSERT COMMIT ts in MAP = " << commit_ts << std::endl;
     m_ts_to_session_decision_eventfd_map.insert(std::pair(commit_ts, session_decision_eventfd));
 }
 
 void async_disk_writer_t::add_decisions_to_batch(decision_list_t& decisions)
 {
+    std::cout << "Number of decisions to add to batch = " << decisions.size() << std::endl;
+
     for (const auto& decision : decisions)
     {
         m_in_progress_batch->add_decision_to_batch(decision);
@@ -120,12 +123,20 @@ void async_disk_writer_t::perform_post_completion_maintenance()
     }
 
     const decision_list_t& decisions = m_in_flight_batch->get_decision_batch_entries();
+    std::cout << "Get decision batch size = " << m_in_flight_batch->get_decision_batch_size() << std::endl;
     for (auto decision : decisions)
     {
+        if (transactions::txn_metadata_t::is_txn_durable(decision.commit_ts))
+        {
+            continue;
+        }
+
         // Set durability flags for txn.
+        std::cout << "SET DURABLE = " << decision.commit_ts << std::endl;
         transactions::txn_metadata_t::set_txn_durable(decision.commit_ts);
 
         // Unblock session thread.
+        std::cout << "FIND COMMIT ts in MAP = " << decision.commit_ts << std::endl;
         auto itr = m_ts_to_session_decision_eventfd_map.find(decision.commit_ts);
         ASSERT_INVARIANT(itr != m_ts_to_session_decision_eventfd_map.end(), "Unable to find session durability eventfd from committing txn's commit_ts");
         signal_eventfd_single_thread(itr->second);
@@ -142,6 +153,8 @@ void async_disk_writer_t::submit_and_swap_in_progress_batch(int file_fd, bool sh
     // Block on any pending disk flushes.
     eventfd_read(s_flush_efd, &event_counter);
 
+    std::cout << "Not blocked on s_flush_efd." << std::endl;
+
     // Perform any maintenance on the in_flight batch.
     perform_post_completion_maintenance();
     finish_and_submit_batch(file_fd, should_wait_for_completion);
@@ -152,6 +165,7 @@ void async_disk_writer_t::finish_and_submit_batch(int file_fd, bool should_wait_
     size_t submission_entries_needed = c_submit_batch_sqe_count;
 
     size_t in_progress_size = m_in_progress_batch->get_unsubmitted_entries_count();
+    std::cout << "IN PROG SIZE DURING SUBMIT = " << in_progress_size << std::endl;
     if (in_progress_size == 0)
     {
         swap_batches();
@@ -161,6 +175,7 @@ void async_disk_writer_t::finish_and_submit_batch(int file_fd, bool should_wait_
 
         // Reset metadata buffer.
         m_metadata_buffer.clear();
+        return;
     }
     in_progress_size += submission_entries_needed;
 
@@ -168,9 +183,10 @@ void async_disk_writer_t::finish_and_submit_batch(int file_fd, bool should_wait_
     m_in_progress_batch->add_fdatasync_op_to_batch(file_fd, get_enum_value(uring_op_t::fdatasync), IOSQE_IO_LINK);
 
     // Signal eventfd's as part of batch.
-    m_in_progress_batch->add_pwritev_op_to_batch(static_cast<void*>(&c_default_iov), 1, s_flush_efd, 0, get_enum_value(uring_op_t::pwritev_eventfd_flush), IOSQE_IO_LINK);
-    m_in_progress_batch->add_pwritev_op_to_batch(static_cast<void*>(&c_default_iov), 1, m_validate_flush_efd, 0, get_enum_value(uring_op_t::pwritev_eventfd_validate), IOSQE_IO_DRAIN);
+    m_in_progress_batch->add_pwritev_op_to_batch(&c_default_iov, 1, s_flush_efd, 0, get_enum_value(uring_op_t::pwritev_eventfd_flush), IOSQE_IO_LINK);
+    m_in_progress_batch->add_pwritev_op_to_batch(&c_default_iov, 1, m_validate_flush_efd, 0, get_enum_value(uring_op_t::pwritev_eventfd_validate), IOSQE_IO_DRAIN);
 
+    std::cout << "m_validate_flush_efd = " << m_validate_flush_efd << std::endl;
     swap_batches();
     auto flushed_batch_size = m_in_flight_batch->get_unsubmitted_entries_count();
     ASSERT_INVARIANT(in_progress_size == flushed_batch_size, "Failed to swap in-flight batch with in-progress batch.");
@@ -291,7 +307,7 @@ void async_disk_writer_t::enqueue_pwritev_request(
     uring_op_t type)
 {
     submit_if_full(file_fd, c_single_submission_entry_count);
-    m_in_progress_batch->add_pwritev_op_to_batch(iovec_array, iovec_array_count, file_fd, current_offset, get_enum_value(type), 0);
+    m_in_progress_batch->add_pwritev_op_to_batch(static_cast<const iovec*>(iovec_array), iovec_array_count, file_fd, current_offset, get_enum_value(type), 0);
 }
 
 void async_disk_writer_t::swap_batches()

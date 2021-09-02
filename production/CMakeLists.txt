@@ -97,7 +97,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
   add_compile_options(-fno-limit-debug-info)
 
   target_compile_options(gaia_build_options INTERFACE -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf)
-  target_link_options(gaia_build_options INTERFACE -Wl,--gdb-index)
+  target_link_options(gaia_build_options INTERFACE -Wl)
 
   if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(gaia_build_options INTERFACE -O0)

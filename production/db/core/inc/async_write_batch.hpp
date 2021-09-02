@@ -60,12 +60,12 @@ public:
      * https://man7.org/linux/man-pages/man2/pwritev.2.html
      */
     void add_pwritev_op_to_batch(
-        void* iovec_array,
+        const iovec* iovec_array,
         size_t num_iovecs,
         int file_fd,
         uint64_t current_offset,
         uint64_t data,
-        uint8_t flags);
+        u_char flags);
 
     /**
      * https://man7.org/linux/man-pages/man2/fdatasync.2.html

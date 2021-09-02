@@ -229,6 +229,7 @@ void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t comm
 
     if (deleted_ids.size() > 0 || contiguous_offsets.size() > 0)
     {
+        std::cout << "COMMIT TS - CREATE TXN RECORD = " << commit_ts << std::endl;
         create_txn_record(commit_ts, record_type_t::txn, contiguous_offsets, deleted_ids);
     }
 }
@@ -648,13 +649,13 @@ size_t log_handler_t::update_cursor(struct record_iterator_t* it)
 size_t log_handler_t::validate_recovered_record_crc(struct record_iterator_t* it)
 {
     auto destination = reinterpret_cast<read_record_t*>(it->cursor);
-    // std::cout << "RECOVERY: CURSOR = " << it->cursor - it->begin  << " AND RECORD = " << (uint8_t) destination->header.record_type << std::endl;
+    std::cout << "RECOVERY: CURSOR = " << it->cursor - it->begin << " AND RECORD = " << (uint8_t)destination->header.record_type << std::endl;
 
     if (destination->header.payload_size == 0)
     {
         std::cout << "CRC = " << destination->header.crc << std::endl;
         std::cout << "PAYLOAD SIZE = " << destination->header.payload_size << std::endl;
-        // std::cout << "COMMIT TS = " << destination->header.txn_commit_ts << std::endl;
+        std::cout << "COMMIT TS = " << destination->header.txn_commit_ts << std::endl;
         std::cout << "halt here " << std::endl;
     }
     if (destination->header.crc == 0)
