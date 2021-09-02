@@ -123,6 +123,8 @@ file_offset_t log_handler_t::allocate_log_space(size_t payload_size)
     auto current_offset = m_current_file->get_current_offset();
     m_current_file->allocate(payload_size);
 
+    std::cout << "PAYLOAD SIZE OF LOG ALLOC = " << payload_size << std::endl;
+    std::cout << "LOG ALLOCATION AT = " << current_offset << std::endl;
     // Return starting offset of the allocation.
     return current_offset;
 }
@@ -138,7 +140,7 @@ void log_handler_t::create_decision_record(decision_list_t& txn_decisions)
     std::vector<iovec> writes_to_submit;
     size_t txn_decision_size = txn_decisions.size() * (sizeof(gaia_txn_id_t) + sizeof(decision_type_t));
     auto total_log_space_needed = txn_decision_size + sizeof(record_header_t);
-    allocate_log_space(total_log_space_needed);
+    auto begin_offset = allocate_log_space(total_log_space_needed);
 
     // Create log record header.
     record_header_t header;
@@ -163,7 +165,7 @@ void log_handler_t::create_decision_record(decision_list_t& txn_decisions)
     writes_to_submit.push_back({header_ptr, sizeof(record_header_t)});
     writes_to_submit.push_back({txn_decisions_ptr, txn_decision_size});
 
-    m_async_disk_writer->enqueue_pwritev_requests(writes_to_submit, m_current_file->get_file_fd(), m_current_file->get_current_offset(), uring_op_t::pwritev_decision);
+    m_async_disk_writer->enqueue_pwritev_requests(writes_to_submit, m_current_file->get_file_fd(), begin_offset, uring_op_t::pwritev_decision);
 }
 
 void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t commit_ts, memory_manager_t* memory_manager)
@@ -173,6 +175,8 @@ void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t comm
     log.open(txn_log_fd);
 
     map_commit_ts_to_session_decision_eventfd(commit_ts, log.data()->session_decision_eventfd);
+
+    std::cout << "CREATE TXN RECORD COMMIT TS =" << commit_ts << std::endl;
 
     std::vector<common::gaia_id_t> deleted_ids;
     std::map<chunk_offset_t, std::set<gaia_offset_t>> chunk_to_offsets_map;
@@ -196,9 +200,11 @@ void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t comm
         }
         else
         {
+            std::cout << "WRITING OBJECT SIZE = " << offset_to_ptr(lr->new_offset)->payload_size << std::endl;
             auto chunk = memory_manager->get_chunk_offset(get_address_offset(lr->new_offset));
             ASSERT_INVARIANT(chunk_to_offsets_map.count(chunk) > 0, "Can't find chunk.");
             ASSERT_INVARIANT(chunk != c_invalid_chunk_offset, "Invalid chunk offset found.");
+            std::cout << "WRITING OFFSET = " << get_address_offset(lr->new_offset) << std::endl;
             chunk_to_offsets_map.find(chunk)->second.insert(get_address_offset(lr->new_offset));
         }
     }
@@ -283,7 +289,7 @@ void log_handler_t::create_txn_record(
     auto total_log_space_needed = payload_size + sizeof(record_header_t);
 
     // Allocate log space.
-    allocate_log_space(total_log_space_needed);
+    auto begin_offset = allocate_log_space(total_log_space_needed);
 
     // Create header.
     record_header_t header;
@@ -324,7 +330,7 @@ void log_handler_t::create_txn_record(
     }
 
     // Finally send I/O requests to the async_disk_writer.
-    m_async_disk_writer->enqueue_pwritev_requests(writes_to_submit, m_current_file->get_file_fd(), m_current_file->get_current_offset(), uring_op_t::pwritev_txn);
+    m_async_disk_writer->enqueue_pwritev_requests(writes_to_submit, m_current_file->get_file_fd(), begin_offset, uring_op_t::pwritev_txn);
 }
 
 void log_handler_t::register_write_to_persistent_store_fn(
@@ -374,8 +380,11 @@ void log_handler_t::recover_from_persistent_log(
     {
         ASSERT_INVARIANT(file.is_regular_file(), "Only expecting files in persistent log directory.");
         // The file name is just the log sequence number.
+        std::cout << std::stoi(file.path().filename()) << std::endl;
         log_files.push_back(std::stoi(file.path().filename()));
     }
+
+    std::cout << "TOTAL LOG FILES = " << log_files.size();
 
     // Sort files in ascending order by file name.
     sort(log_files.begin(), log_files.end());
@@ -510,9 +519,9 @@ void log_handler_t::write_log_record_to_persistent_store(read_record_t* record)
 
     ASSERT_PRECONDITION(record->header.record_type == record_type_t::txn, "Expected transaction record.");
 
-    auto payload_ptr = reinterpret_cast<uint8_t*>(record->payload);
+    auto payload_ptr = reinterpret_cast<unsigned char*>(record->payload);
     auto start_ptr = payload_ptr;
-    auto end_ptr = reinterpret_cast<uint8_t*>(record) + record->header.payload_size;
+    auto end_ptr = reinterpret_cast<unsigned char*>(record) + record->header.payload_size;
     auto deleted_ids_ptr = end_ptr - (sizeof(common::gaia_id_t) * record->header.count);
 
     std::cout << "======= WRITING RECORD WITH TS ======= " << record->header.txn_commit_ts << " AND SIZE = " << record->header.payload_size << std::endl;
@@ -649,7 +658,7 @@ size_t log_handler_t::update_cursor(struct record_iterator_t* it)
 size_t log_handler_t::validate_recovered_record_crc(struct record_iterator_t* it)
 {
     auto destination = reinterpret_cast<read_record_t*>(it->cursor);
-    std::cout << "RECOVERY: CURSOR = " << it->cursor - it->begin << " AND RECORD = " << (uint8_t)destination->header.record_type << std::endl;
+    std::cout << "RECOVERY: CURSOR = " << it->cursor - it->begin << " AND RECORD = " << (unsigned char)destination->header.record_type << std::endl;
 
     if (destination->header.payload_size == 0)
     {
@@ -740,10 +749,10 @@ void log_handler_t::map_log_file(struct record_iterator_t* it, int file_fd, reco
         0);
 
     *it = (struct record_iterator_t){
-        .cursor = (uint8_t*)wal_record,
-        .end = (uint8_t*)wal_record + st.st_size,
-        .stop_at = (uint8_t*)wal_record + st.st_size,
-        .begin = (uint8_t*)wal_record,
+        .cursor = (unsigned char*)wal_record,
+        .end = (unsigned char*)wal_record + st.st_size,
+        .stop_at = (unsigned char*)wal_record + st.st_size,
+        .begin = (unsigned char*)wal_record,
         .mapped = wal_record,
         .map_size = (size_t)st.st_size,
         .file_fd = file_fd,
@@ -751,10 +760,10 @@ void log_handler_t::map_log_file(struct record_iterator_t* it, int file_fd, reco
         .halt_recovery = false};
 }
 
-bool log_handler_t::is_remaining_file_empty(uint8_t* start, uint8_t* end)
+bool log_handler_t::is_remaining_file_empty(unsigned char* start, unsigned char* end)
 {
     auto remaining_size = end - start;
-    uint8_t zeroblock[remaining_size];
+    unsigned char zeroblock[remaining_size];
     memset(zeroblock, 0, sizeof zeroblock);
     return memcmp(zeroblock, start, remaining_size) == 0;
 }

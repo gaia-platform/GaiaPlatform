@@ -87,15 +87,15 @@ struct record_header_t
 struct read_record_t
 {
     record_header_t header;
-    uint8_t payload[];
+    unsigned char payload[];
 };
 
 struct record_iterator_t
 {
-    uint8_t* cursor;
-    uint8_t* end;
-    uint8_t* stop_at;
-    uint8_t* begin;
+    unsigned char* cursor;
+    unsigned char* end;
+    unsigned char* stop_at;
+    unsigned char* begin;
     void* mapped;
     size_t map_size;
     int file_fd;

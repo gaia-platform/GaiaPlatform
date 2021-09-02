@@ -123,6 +123,7 @@ void server_instance_t::start(bool wait_for_init)
         }
     }
 
+    std::cout << "Starting server instance:{} with command: " << command_str << std::endl;
     gaia_log::sys().debug("Starting server instance:{} with command: '{}'.", instance_name(), command_str);
 
     m_server_pid = ::fork();
