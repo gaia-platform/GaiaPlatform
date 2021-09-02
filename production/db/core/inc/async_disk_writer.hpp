@@ -114,6 +114,14 @@ public:
      */
     void map_commit_ts_to_session_decision_efd(gaia_txn_id_t commit_ts, int session_decision_efd);
 
+    /**
+     * Used for testing purposes.
+     */
+    int get_flush_eventfd()
+    {
+        return s_flush_efd;
+    }
+
 private:
     // Reserve slots in the in_progress batch to be able to append additional operations to it (before it gets submitted to the kernel)
     static constexpr size_t c_submit_batch_sqe_count = 3;

@@ -42,7 +42,6 @@ log_file_t::log_file_t(const std::string& dir, int dir_fd, file_sequence_t file_
         const char* reason = ::explain_openat(dir_fd, file_name.str().c_str(), O_WRONLY | O_CREAT, c_file_permissions);
         throw_system_error(reason);
     }
-
     // Reference: http://yoshinorimatsunobu.blogspot.com/2009/05/overwriting-is-much-faster-than_28.html
     if (-1 == fallocate(m_file_fd, FALLOC_FL_KEEP_SIZE, 0, m_file_size))
     {

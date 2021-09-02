@@ -53,6 +53,16 @@ public:
 
     int get_file_fd();
 
+    /**
+     * Return the name of the file. Used for testing purposes.
+     */
+    void get_file_name(std::string& file_name)
+    {
+        std::stringstream file_name0;
+        file_name0 << m_dir_name << "/" << m_file_seq;
+        file_name = file_name0.str();
+    }
+
 private:
     size_t m_file_size;
     file_sequence_t m_file_seq;
@@ -60,7 +70,6 @@ private:
     std::string m_dir_name;
     int m_dir_fd;
     int m_file_fd;
-    std::string m_file_name;
     inline static constexpr int c_file_permissions = 0666;
 };
 
