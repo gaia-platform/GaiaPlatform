@@ -160,8 +160,6 @@ public:
     bool update_parent_reference(common::gaia_id_t new_parent_id, common::reference_offset_t parent_offset);
 
 protected:
-    gaia_ptr_t(gaia_locator_t locator, memory_manager::address_offset_t offset);
-
     void allocate(size_t size);
 
     inline bool is(common::gaia_type_t type) const;
