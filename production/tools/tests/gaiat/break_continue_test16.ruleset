@@ -1,0 +1,35 @@
+// RUN: %gaiat %s -- 2>&1| FileCheck  %s
+
+// TESTCASE: break within declarative for
+ruleset test3
+{
+    on_update(incubator)
+    {
+        for (S:sensor)
+        {
+            if (S.value > 99.0)
+            {
+                break;
+            }
+        }
+    }
+}
+
+// TESTCASE: continue within declarative for
+ruleset test4
+{
+    on_update(incubator)
+    {
+        for (S:sensor)
+        {
+            if (S.value > 99.0)
+            {
+                continue;
+            }
+        }
+    }
+}
+
+// CHECK: Use of non declarative break in declarative statements may lead to unexpected results
+// CHECK: Use of non declarative continue in declarative statements may lead to unexpected results
+// GAIAPLAT-1083 (fixed)

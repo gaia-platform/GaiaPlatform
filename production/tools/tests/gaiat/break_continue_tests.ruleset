@@ -1,37 +1,5 @@
 // RUN: %gaiat %s --
 
-#include "tags_test.h"
-
-// TESTCASE: break within declarative for
-ruleset test3
-{
-    on_update(incubator)
-    {
-        for (S:sensor)
-        {
-            if (S.value > 99.0)
-            {
-                break;
-            }
-        }
-    }
-}
-
-// TESTCASE: continue within declarative for
-ruleset test4
-{
-    on_update(incubator)
-    {
-        for (S:sensor)
-        {
-            if (S.value > 99.0)
-            {
-                continue;
-            }
-        }
-    }
-}
-
 // TESTCASE: break from multiple outer loops from implicit query
 // GAIAPLAT-1073 (won't do)
 ruleset test5
