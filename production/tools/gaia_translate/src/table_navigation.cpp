@@ -167,11 +167,8 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
         .append(anchor_table_data_itr->second.db_name)
         .append("::")
         .append(anchor_table)
-        .append("_t::get(context->record);\n")
-        .append("if (")
-        .append(variable_name)
-        .append(")\n{\n");
-    return_value.postfix = "\n}\n}\n";
+        .append("_t::get(context->record);\n");
+    return_value.postfix = "\n}\n";
 
     if (tables.size() == 1 && table_name == anchor_table_name)
     {
