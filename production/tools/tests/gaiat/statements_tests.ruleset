@@ -1023,3 +1023,18 @@ ruleset test65
         while (farmer->yield.bushels < 10);
     }
 }
+
+void printf(const char*, ...);
+
+// check for meta-rule 2 compliance
+// GAIAPLAT-1252
+ruleset test66
+{
+    on_update(incubator.min_temp)
+    {
+        if (actuator.value > 50.0)
+        {
+            printf("%s, %ul\n", actuator.name, actuator.timestamp);
+        }
+    }
+}
