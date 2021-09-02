@@ -1627,7 +1627,10 @@ void update_expression_explicit_path_data(
             {
                 string first_component = get_table_from_expression(data.path_components.front());
                 const auto tag_iterator = data.tag_table_map.find(first_component);
-                if (tag_iterator != data.tag_table_map.end() && (tag_iterator->second != tag_iterator->first || explicit_path_data_iterator != g_expression_explicit_path_data.end() || can_path_be_optimized(first_component, expression_explicit_path_data_iterator.second) ))
+                if (tag_iterator != data.tag_table_map.end() &&
+                    (tag_iterator->second != tag_iterator->first ||
+                     explicit_path_data_iterator != g_expression_explicit_path_data.end() ||
+                     can_path_be_optimized(first_component, expression_explicit_path_data_iterator.second)))
                 {
                     data.skip_implicit_path_generation = true;
                 }

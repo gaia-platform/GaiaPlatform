@@ -286,3 +286,21 @@ ruleset test19
         crop.acres = 0;
     }
 }
+
+//GAIAPLAT-1083
+ruleset test20
+{
+    on_update(crop)
+    {
+        if (Y:yield.bushels < Y->feeding.portion)
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                if (i >5)
+                {
+                    break;
+                }
+            }
+        }
+    }
+}
