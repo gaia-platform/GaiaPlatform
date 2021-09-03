@@ -1,5 +1,8 @@
 {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 61587b10c (Spacing fixes)
     "comments": {
         // Symbol used for single line comment.
         "lineComment": "--",
@@ -9,7 +12,11 @@
             "*/"
         ]
     },
+<<<<<<< HEAD
     // Symbols used as brackets.
+=======
+    // Symbols used as brackets
+>>>>>>> 61587b10c (Spacing fixes)
     "brackets": [
         [
             "{",
@@ -23,6 +30,7 @@
             "(",
             ")"
         ]
+<<<<<<< HEAD
     ],
     // Symbols that are auto closed when typing.
     "autoClosingPairs": [
@@ -109,41 +117,62 @@
     [
 			"(",
 			")"
+=======
+>>>>>>> 61587b10c (Spacing fixes)
     ],
+    // Symbols that are auto closed when typing
+    "autoClosingPairs": [
+        [
+            "{",
+            "}"
+        ],
+        [
+            "[",
+            "]"
+        ],
     [
-			"\"",
-			"\""
+            "(",
+            ")"
+        ],
+        [
+            "\"",
+            "\""
+        ],
+        [
+            "'",
+            "'"
+        ]
     ],
-    [
-			"'",
-			"'"
+    // Symbols that can be used to surround a selection
+    "surroundingPairs": [
+        [
+            "{",
+            "}"
+        ],
+        [
+            "[",
+            "]"
+        ],
+        [
+            "(",
+            ")"
+        ],
+        [
+            "\"",
+            "\""
+        ],
+        [
+            "'",
+            "'"
+        ]
     ]
-  ],
-  // Symbols that can be used to surround a selection
-  "surroundingPairs": [
-    [
-			"{",
-			"}"
-    ],
-    [
-			"[",
-			"]"
-    ],
-    [
-			"(",
-			")"
-    ],
-    [
-			"\"",
-			"\""
-    ],
-    [
-			"'",
-			"'"
-    ]
+<<<<<<< HEAD
   ]
 }
 <<<<<<< HEAD
 >>>>>>> f181836a9 (Added language configuration directory)
 =======
 >>>>>>> f61105079 (Added spacing @ end of file)
+=======
+}
+>>>>>>> 61587b10c (Spacing fixes)
