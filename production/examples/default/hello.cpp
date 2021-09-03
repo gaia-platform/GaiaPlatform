@@ -7,7 +7,7 @@
 
 #include "gaia/system.hpp"
 
-#include "gaia_hello.h"
+#include "gaia.h"
 
 using namespace std;
 
@@ -20,9 +20,9 @@ int main()
     gaia::system::initialize();
 
     gaia::db::begin_transaction();
-    gaia::hello::names_t::insert_row("Alice");
-    gaia::hello::names_t::insert_row("Bob");
-    gaia::hello::names_t::insert_row("Charles");
+    gaia::names_t::insert_row("Alice");
+    gaia::names_t::insert_row("Bob");
+    gaia::names_t::insert_row("Charles");
     gaia::db::commit_transaction();
 
     gaia::system::shutdown();
