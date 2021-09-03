@@ -1,37 +1,6 @@
 // RUN: %gaiat %s --
 
-#include "tags_test.h"
-
-// TESTCASE: break within declarative for
-ruleset test3
-{
-    on_update(incubator)
-    {
-        for (S:sensor)
-        {
-            if (S.value > 99.0)
-            {
-                break;
-            }
-        }
-    }
-}
-
-// TESTCASE: continue within declarative for
-ruleset test4
-{
-    on_update(incubator)
-    {
-        for (S:sensor)
-        {
-            if (S.value > 99.0)
-            {
-                continue;
-            }
-        }
-    }
-}
-
+// GAIAPLAT-1073 (won't do)
 // TESTCASE: break from 'if' statement within declarative loop
 ruleset test5
 {
@@ -282,5 +251,23 @@ ruleset test19
     on_update(crop)
     {
         crop.acres = 0;
+    }
+}
+
+//GAIAPLAT-1083
+ruleset test20
+{
+    on_update(crop)
+    {
+        if (Y:yield.bushels < Y->feeding.portion)
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                if (i >5)
+                {
+                    break;
+                }
+            }
+        }
     }
 }

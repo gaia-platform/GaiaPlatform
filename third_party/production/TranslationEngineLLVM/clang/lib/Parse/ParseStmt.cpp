@@ -2109,6 +2109,28 @@ StmtResult Parser::ParseGotoStatement() {
   return Res;
 }
 
+static bool checkGaiaScope(const Scope* currentScope, const Scope* parentScope)
+{
+  if (parentScope == nullptr)
+  {
+    return false;
+  }
+
+  for (const Scope *S = currentScope; S; S = S->getParent())
+  {
+    if (S == parentScope)
+    {
+      return false;
+    }
+
+    if (S->isGaiaBreakScope())
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
 /// ParseContinueStatement
 ///       jump-statement:
 ///         'continue' ';'
@@ -2134,6 +2156,10 @@ StmtResult Parser::ParseContinueStatement() {
     Actions.ActOnStartDeclarativeLabel(labelIdentifier->getName().str());
     auto statement = returnValue.getAs<ContinueStmt>();
     statement->setLabel(LD);
+  }
+  else if (getCurScope()->isInGaiaBreakScope() && !returnValue.isInvalid() && checkGaiaScope(getCurScope(), getCurScope()->getContinueParent()))
+  {
+    Diag(ContinueLoc, diag::warn_non_declarative_continue_in_declarative_scope);
   }
 
   return returnValue;
@@ -2164,6 +2190,10 @@ StmtResult Parser::ParseBreakStatement() {
     Actions.ActOnStartDeclarativeLabel(labelIdentifier->getName().str());
     auto statement = returnValue.getAs<BreakStmt>();
     statement->setLabel(LD);
+  }
+  else if (getCurScope()->isInGaiaBreakScope() && !returnValue.isInvalid() && checkGaiaScope(getCurScope(), getCurScope()->getBreakParent()))
+  {
+    Diag(BreakLoc, diag::warn_non_declarative_break_in_declarative_scope);
   }
 
   return returnValue;

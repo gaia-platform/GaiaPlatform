@@ -1024,13 +1024,27 @@ ruleset test65
     }
 }
 
+void printf(const char*, ...);
+
+// check for meta-rule 2 compliance
+// GAIAPLAT-1252
+ruleset test66
+{
+    on_update(incubator.min_temp)
+    {
+        if (actuator.value > 50.0)
+        {
+            printf("%s, %ul\n", actuator.name, actuator.timestamp);
+        }
+    }
+}
+
 // TESTCASE: support initialization of declared variable with EDC object
 // GAIAPLAT-966 (fixed)
-ruleset test66
+ruleset test67
 {
     on_insert(incubator)
     {
         float max = incubator.max_temp;
     }
 }
-
