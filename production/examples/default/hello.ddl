@@ -3,8 +3,6 @@
 -- All rights reserved.
 ---------------------------------------------
 
-database hello
-
 table names
 (
     name string

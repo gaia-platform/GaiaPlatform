@@ -9,6 +9,7 @@ configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
 # --- Generate EDC from DDL---
 process_schema(
   DDL_FILE ${PING_PONG_DDL}
+  DATABASE_NAME ping_pong
   OUTPUT_FOLDER ${PROJECT_BINARY_DIR}
   GAIAC_CMD ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac
 )

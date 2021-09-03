@@ -11,6 +11,7 @@ set(GAIA_INC "${GAIA}/include")
 # --- Generate EDC from DDL---
 process_schema(
   DDL_FILE ${PING_PONG_DDL}
+  DATABASE_NAME ping_pong
   OUTPUT_FOLDER ${PROJECT_BINARY_DIR})
 
 # -- Translate ruleset into CPP --
