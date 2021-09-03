@@ -617,6 +617,11 @@ string get_table_name(const string& table, const unordered_map<string, string>& 
     return table;
 }
 
+string db_namespace(const string& db_name)
+{
+    return db_name == catalog::c_empty_db_name ? "" : db_name + "::";
+}
+
 void generate_navigation(const string& anchor_table, Rewriter& rewriter)
 {
     if (g_is_generation_error)
@@ -628,8 +633,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
     {
         string class_qualification_string = "gaia::";
         class_qualification_string
-            .append(table_navigation_t::get_table_data().find(insert_data.table_name)->second.db_name)
-            .append("::")
+            .append(db_namespace(table_navigation_t::get_table_data().find(insert_data.table_name)->second.db_name))
             .append(insert_data.table_name)
             .append("_t::");
         string replacement_string = class_qualification_string;
@@ -910,8 +914,7 @@ void generate_table_subscription(
         g_current_ruleset_subscription
             .append(c_ident)
             .append("gaia::rules::subscribe_rule(gaia::")
-            .append(table_navigation_t::get_table_data().find(table)->second.db_name)
-            .append("::")
+            .append(db_namespace(table_navigation_t::get_table_data().find(table)->second.db_name))
             .append(table);
         if (subscribe_update)
         {
@@ -930,8 +933,7 @@ void generate_table_subscription(
         g_current_ruleset_unsubscription
             .append(c_ident)
             .append("gaia::rules::unsubscribe_rule(gaia::")
-            .append(table_navigation_t::get_table_data().find(table)->second.db_name)
-            .append("::")
+            .append(db_namespace(table_navigation_t::get_table_data().find(table)->second.db_name))
             .append(table)
             .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,")
             .append(rule_name)
@@ -3553,7 +3555,7 @@ public:
                 output_file << "\n";
                 for (const string& db : g_used_dbs)
                 {
-                    if (db.empty())
+                    if (db == catalog::c_empty_db_name)
                     {
                         output_file << "#include \"gaia.h\"\n";
                     }
