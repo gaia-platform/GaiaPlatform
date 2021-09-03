@@ -35,7 +35,7 @@ set(INCUBATOR_DDL ${PROJECT_SOURCE_DIR}/incubator.ddl)
 set(INCUBATOR_RULESET ${PROJECT_SOURCE_DIR}/incubator.ruleset)
 
 # --- Generate Direct Access classes from DDL---
-process_schema(DDL_FILE ${INCUBATOR_DDL})
+process_schema(DDL_FILE ${INCUBATOR_DDL} DATABASE_NAME incubator)
 
 # -- Translate ruleset into CPP --
 translate_ruleset(RULESET_FILE ${INCUBATOR_RULESET})
