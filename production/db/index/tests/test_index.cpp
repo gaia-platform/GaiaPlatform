@@ -276,9 +276,17 @@ protected:
         : db_catalog_test_base_t("airport.ddl"){};
 };
 
-// This test is disabled until we can add the proper error handling
-// to the server logic, so it can communicate expected errors back to the client.
-TEST_F(index_test, unique_constraint)
+TEST_F(index_test, unique_constraint_same_txn)
+{
+    const int32_t flight_number = 1766;
+
+    auto_transaction_t txn;
+    flight_t::insert_row(flight_number, {});
+    flight_t::insert_row(flight_number, {});
+    EXPECT_THROW(txn.commit(), unique_constraint_violation);
+}
+
+TEST_F(index_test, unique_constraint_different_txn)
 {
     const int32_t flight_number = 1766;
 

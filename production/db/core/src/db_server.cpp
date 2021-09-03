@@ -320,7 +320,7 @@ void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<
 }
 
 void server_t::handle_rollback_txn(
-    int* /*fds*/, size_t /*fd_count*/, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::ROLLBACK_TXN, c_message_unexpected_event_received);
 
@@ -340,7 +340,7 @@ void server_t::handle_rollback_txn(
 }
 
 void server_t::handle_commit_txn(
-    int* /*fds*/, size_t /*fd_count*/, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::COMMIT_TXN, c_message_unexpected_event_received);
 
@@ -963,7 +963,9 @@ void server_t::init_listening_socket(const std::string& socket_name)
 
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
-    ASSERT_INVARIANT(socket_name.size() <= sizeof(server_addr.sun_path) - 1, "Socket name '" + socket_name + "' is too long!");
+    ASSERT_INVARIANT(
+        socket_name.size() <= sizeof(server_addr.sun_path) - 1,
+        "Socket name '" + socket_name + "' is too long!");
 
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
@@ -1010,6 +1012,7 @@ bool server_t::authenticate_client_socket(int socket)
     // Disable client authentication until we can figure out
     // how to fix the Postgres tests.
     // Client must have same effective user ID as server.
+    // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1253
     // return (cred.uid == ::geteuid());
 
     return true;

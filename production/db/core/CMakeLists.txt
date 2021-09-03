@@ -85,7 +85,8 @@ add_library(gaia_db_client STATIC
   src/type_id_mapping.cpp
   src/db_client_config.cpp
   src/db_server_instance.cpp
-  src/index_builder.cpp)
+  src/index_builder.cpp
+  src/txn_metadata.cpp)
 
 add_dependencies(gaia_db_client
   "gaia_db_server"
