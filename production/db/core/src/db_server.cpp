@@ -1011,8 +1011,8 @@ bool server_t::authenticate_client_socket(int socket)
 
     // Disable client authentication until we can figure out
     // how to fix the Postgres tests.
-    // Client must have same effective user ID as server.
     // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1253
+    // Client must have same effective user ID as server.
     // return (cred.uid == ::geteuid());
 
     return true;
