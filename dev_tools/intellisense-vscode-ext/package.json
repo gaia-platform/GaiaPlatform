@@ -1,6 +1,7 @@
 {
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     "name": "gaia-platform",
     "displayName": "Gaia Platform Intellisense",
     "description": "Intellisense for Gaia Platform",
@@ -102,32 +103,42 @@
 	"name": "GaiaPlatform",
 	"displayName": "GaiaPlatform-Syntax-Highlighting",
 	"description": "Syntax Highlighting for GaiaPlatform",
+=======
+	"name": "gaia-platform",
+	"displayName": "Gaia Platform Intellisense",
+	"description": "Intellisense for Gaia Platform",
+>>>>>>> 0507bb04d (Spacing fixes)
 	"version": "0.0.1",
 	"engines": {
-			"vscode": "^1.59.0"
+		"vscode": "^1.59.0"
 	},
 	"categories": [
-			"Programming Languages"
+		"Programming Languages"
 	],
+	"activationEvents": [
+		"onLanguage:ruleset",
+		"onLanguage:ddl"
+	],
+	"main": "./client/extension.ts",
 	"contributes": {
 		"languages": [
 			{
 				"id": "ruleset",
 				"aliases": [
-						"ruleset"
+					"ruleset"
 				],
 				"extensions": [
-						".ruleset"
+					".ruleset"
 				],
 				"configuration": "./language-configurations/ruleset-language-configuration.json"
 			},
 			{
 				"id": "ddl",
 				"aliases": [
-						"ddl"
+					"ddl"
 				],
 				"extensions": [
-						".ddl"
+					".ddl"
 				],
 				"configuration": "./language-configurations/ddl-language-configuration.json"
 			}
@@ -147,6 +158,13 @@
 				"path": "./syntaxes/ddl.tmLanguage.json"
 			}
 		]
+	},
+	"devDependencies": {
+		"@types/node": "^16.7.4",
+		"typescript": "^4.4.2"
+	},
+	"dependencies": {
+		"vscode-cpptools": "^5.0.0"
 	}
 }
 <<<<<<< HEAD
