@@ -109,11 +109,12 @@ function(process_schema)
     message(STATUS "OUTPUT_DIR not specified, using: ${ARG_OUTPUT_DIR}.")
   endif()
 
-  if(DEFINED ARG_INSTANCE_NAME)
-    set(INSTANCE_NAME "-n ${ARG_INSTANCE_NAME}")
-  endif()
+  set(GAIA_GAIAC_ARGS "-o" ${ARG_OUTPUT_DIR} "-g")
 
-  set(GAIA_GAIAC_ARGS "-o" ${ARG_OUTPUT_DIR} "-n" ${GAIAC_INSTANCE_NAME} "-g")
+  if(DEFINED ARG_INSTANCE_NAME)
+    message(STATUS "Adding target to use the server instance ${ARG_INSTANCE_NAME}...")
+    list(PREPEND GAIA_GAIAC_ARGS  "-n ${ARG_INSTANCE_NAME}")
+  endif()
 
   if (DEFINED ARG_DDL_FILE)
     message(STATUS "Adding target to load schema from the DDL file ${ARG_DDL_FILE}...")
