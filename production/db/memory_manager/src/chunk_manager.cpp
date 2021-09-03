@@ -90,6 +90,8 @@ void chunk_manager_t::initialize_internal(
 address_offset_t chunk_manager_t::allocate(
     size_t memory_size)
 {
+    ASSERT_PRECONDITION(memory_size != 0, "Size passed to chunk_manager_t::allocate() should not be 0!");
+
     validate_metadata(m_metadata);
 
     // Adjust the requested memory size, to ensure proper alignment.

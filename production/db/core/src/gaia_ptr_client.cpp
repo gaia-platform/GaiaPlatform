@@ -360,10 +360,9 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t
     //  the db_object_t should either be initialized before and passed in
     //  or it should be initialized inside the constructor.
     hash_node_t* hash_node = db_hash_map::insert(id);
-    size_t object_size = total_payload_size + c_db_object_header_size;
     gaia_locator_t locator = allocate_locator();
     hash_node->locator = locator;
-    client_t::allocate_object(locator, object_size);
+    client_t::allocate_object(locator, total_payload_size);
     gaia_ptr_t obj(locator);
     db_object_t* obj_ptr = obj.to_ptr();
     obj_ptr->id = id;
@@ -416,10 +415,11 @@ void gaia_ptr_t::remove(gaia_ptr_t& node)
 void gaia_ptr_t::clone_no_txn()
 {
     db_object_t* old_this = to_ptr();
-    size_t new_size = c_db_object_header_size + old_this->payload_size;
-    client_t::allocate_object(m_locator, new_size);
+    size_t total_payload_size = old_this->payload_size;
+    size_t total_object_size = c_db_object_header_size + total_payload_size;
+    client_t::allocate_object(m_locator, total_payload_size);
     db_object_t* new_this = to_ptr();
-    memcpy(new_this, old_this, new_size);
+    memcpy(new_this, old_this, total_object_size);
 }
 
 gaia_ptr_t& gaia_ptr_t::clone()
@@ -555,7 +555,7 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
     }
 
     // Updates m_locator to point to the new object.
-    client_t::allocate_object(m_locator, c_db_object_header_size + total_payload_size);
+    client_t::allocate_object(m_locator, total_payload_size);
 
     db_object_t* new_this = to_ptr();
 

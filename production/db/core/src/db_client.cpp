@@ -505,9 +505,7 @@ address_offset_t client_t::allocate_object(
     gaia_locator_t locator,
     size_t size)
 {
-    ASSERT_PRECONDITION(size != 0, "Size passed to client_t::allocate_object() should not be 0!");
-
-    address_offset_t object_offset = s_chunk_manager.allocate(size);
+    address_offset_t object_offset = s_chunk_manager.allocate(size + c_db_object_header_size);
     if (object_offset == c_invalid_address_offset)
     {
         // We ran out of memory in the current chunk. Allocate a new one!
