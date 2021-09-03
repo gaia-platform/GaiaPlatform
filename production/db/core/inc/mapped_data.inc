@@ -3,7 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
+namespace gaia
+{
+namespace db
+{
 
 template <typename T_data>
 core_mapped_data_t<T_data>::core_mapped_data_t()
@@ -240,3 +243,6 @@ void data_mapping_t::collect_fds(
         fd_list[i] = mappings[i].fd();
     }
 }
+
+} // namespace db
+} // namespace gaia

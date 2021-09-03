@@ -1023,3 +1023,14 @@ ruleset test65
         while (farmer->yield.bushels < 10);
     }
 }
+
+// TESTCASE: support initialization of declared variable with EDC object
+// GAIAPLAT-966 (fixed)
+ruleset test66
+{
+    on_insert(incubator)
+    {
+        float max = incubator.max_temp;
+    }
+}
+

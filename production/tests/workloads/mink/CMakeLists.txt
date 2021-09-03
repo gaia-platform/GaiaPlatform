@@ -34,7 +34,7 @@ include("/opt/gaia/cmake/gaia.cmake")
 set(MINK_DDL ${PROJECT_SOURCE_DIR}/mink.ddl)
 set(MINK_RULESET ${PROJECT_SOURCE_DIR}/mink.ruleset)
 
-# --- Generate EDC from DDL---
+# --- Generate Direct Access classes from DDL---
 process_schema(DDL_FILE ${MINK_DDL})
 
 # -- Translate ruleset into CPP --

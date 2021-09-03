@@ -5,14 +5,6 @@
 
 #include "gaia_fdw_adapter.hpp"
 
-/*
- * PostgresSQL "port.h" tries to replace printf() and friends with macros to
- * their own versions. This leads to build error in other headers like spdlog.
- */
-#ifdef fprintf
-#undef fprintf
-#endif
-
 #include <sstream>
 
 #include "gaia_internal/catalog/catalog.hpp"

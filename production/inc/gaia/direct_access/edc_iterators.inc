@@ -296,15 +296,21 @@ void reference_chain_container_t<T_child>::insert(const T_child& child_edc)
 }
 
 template <typename T_child>
-void reference_chain_container_t<T_child>::connect(gaia::common::gaia_id_t child_id)
+bool reference_chain_container_t<T_child>::connect(gaia::common::gaia_id_t child_id)
 {
-    insert(child_id);
+    // The gaia_id() will be zero if the row hasn't been inserted into the SE.
+    if (child_id == gaia::common::c_invalid_gaia_id || m_parent_id == gaia::common::c_invalid_gaia_id)
+    {
+        throw edc_invalid_state(m_parent_id, child_id, T_child::gaia_typename());
+    }
+
+    return edc_db_t::insert_child_reference(m_parent_id, child_id, m_child_offset);
 }
 
 template <typename T_child>
-void reference_chain_container_t<T_child>::connect(const T_child& child_edc)
+bool reference_chain_container_t<T_child>::connect(const T_child& child_edc)
 {
-    insert(child_edc.gaia_id());
+    return connect(child_edc.gaia_id());
 }
 
 template <typename T_child>
@@ -320,15 +326,15 @@ void reference_chain_container_t<T_child>::remove(const T_child& child_edc)
 }
 
 template <typename T_child>
-void reference_chain_container_t<T_child>::disconnect(gaia::common::gaia_id_t child_id)
+bool reference_chain_container_t<T_child>::disconnect(gaia::common::gaia_id_t child_id)
 {
-    remove(child_id);
+    return edc_db_t::remove_child_reference(m_parent_id, child_id, m_child_offset);
 }
 
 template <typename T_child>
-void reference_chain_container_t<T_child>::disconnect(const T_child& child_edc)
+bool reference_chain_container_t<T_child>::disconnect(const T_child& child_edc)
 {
-    remove(child_edc.gaia_id());
+    return disconnect(child_edc.gaia_id());
 }
 
 template <typename T_child>

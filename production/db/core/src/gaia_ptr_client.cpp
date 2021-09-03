@@ -27,14 +27,8 @@ namespace db
 {
 
 /*
-* Client-side implementation of gaia_ptr_t here.
-*/
-
-gaia_ptr_t::gaia_ptr_t(gaia_locator_t locator, address_offset_t offset)
-{
-    m_locator = locator;
-    client_t::txn_log(m_locator, c_invalid_gaia_offset, get_gaia_offset(offset), gaia_operation_t::create);
-}
+ * Client-side implementation of gaia_ptr_t here.
+ */
 
 void gaia_ptr_t::reset()
 {
@@ -58,7 +52,7 @@ gaia_ptr_t::get_id_generator_for_type(gaia_type_t type)
     return client_t::get_id_generator_for_type(type);
 }
 
-void gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)
+bool gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)
 {
     gaia_type_t parent_type = type();
     const type_metadata_t& parent_metadata = type_registry_t::instance().get(parent_type);
@@ -108,7 +102,7 @@ void gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t firs
         // Otherwise throw an exception.
         if (child_ptr.references()[relationship->parent_offset] == id())
         {
-            return;
+            return false;
         }
         throw child_already_referenced(child_ptr.type(), relationship->parent_offset);
     }
@@ -127,9 +121,10 @@ void gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t firs
 
     client_t::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
     client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
+    return true;
 }
 
-void gaia_ptr_t::add_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset)
+bool gaia_ptr_t::add_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset)
 {
     gaia_type_t child_type = type();
 
@@ -148,10 +143,10 @@ void gaia_ptr_t::add_parent_reference(gaia_id_t parent_id, reference_offset_t pa
         throw invalid_object_id(parent_id);
     }
 
-    parent_ptr.add_child_reference(id(), child_relationship->first_child_offset);
+    return parent_ptr.add_child_reference(id(), child_relationship->first_child_offset);
 }
 
-void gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)
+bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)
 {
     gaia_type_t parent_type = type();
     const type_metadata_t& parent_metadata = type_registry_t::instance().get(parent_type);
@@ -182,6 +177,11 @@ void gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
     if (relationship->child_type != child_ptr.type())
     {
         throw invalid_relationship_type(first_child_offset, child_ptr.type(), relationship->child_type);
+    }
+
+    if (child_ptr.references()[relationship->parent_offset] == c_invalid_gaia_id)
+    {
+        return false;
     }
 
     if (child_ptr.references()[relationship->parent_offset] != id())
@@ -218,19 +218,24 @@ void gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
         {
             // Non-first child in the linked list, update the previous child.
             auto prev_ptr = gaia_ptr_t::open(prev_child);
+            // REVIEW: We need to clone prev_ptr before modifying its references,
+            // but the original fix that did this caused a test regression:
+            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1279
             prev_ptr.references()[relationship->next_child_offset]
                 = curr_ptr.references()[relationship->next_child_offset];
         }
 
+        curr_ptr.clone_no_txn();
         curr_ptr.references()[relationship->parent_offset] = c_invalid_gaia_id;
         curr_ptr.references()[relationship->next_child_offset] = c_invalid_gaia_id;
     }
 
     client_t::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
     client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
+    return true;
 }
 
-void gaia_ptr_t::remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset)
+bool gaia_ptr_t::remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset)
 {
     gaia_type_t child_type = type();
 
@@ -250,10 +255,10 @@ void gaia_ptr_t::remove_parent_reference(gaia_id_t parent_id, reference_offset_t
     }
 
     // Remove reference.
-    parent_ptr.remove_child_reference(id(), relationship->first_child_offset);
+    return parent_ptr.remove_child_reference(id(), relationship->first_child_offset);
 }
 
-void gaia_ptr_t::update_parent_reference(
+bool gaia_ptr_t::update_parent_reference(
     gaia_id_t child_id,
     gaia_type_t child_type,
     gaia_id_t* child_references,
@@ -296,12 +301,12 @@ void gaia_ptr_t::update_parent_reference(
         old_parent_ptr.remove_child_reference(child_id, relationship->first_child_offset);
     }
 
-    new_parent_ptr.add_child_reference(child_id, relationship->first_child_offset);
+    return new_parent_ptr.add_child_reference(child_id, relationship->first_child_offset);
 }
 
-void gaia_ptr_t::update_parent_reference(gaia_id_t new_parent_id, reference_offset_t parent_offset)
+bool gaia_ptr_t::update_parent_reference(gaia_id_t new_parent_id, reference_offset_t parent_offset)
 {
-    update_parent_reference(id(), type(), references(), new_parent_id, parent_offset);
+    return update_parent_reference(id(), type(), references(), new_parent_id, parent_offset);
 }
 
 db_object_t* gaia_ptr_t::to_ptr() const
@@ -356,9 +361,10 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t
     //  or it should be initialized inside the constructor.
     hash_node_t* hash_node = db_hash_map::insert(id);
     size_t object_size = total_payload_size + c_db_object_header_size;
-    hash_node->locator = allocate_locator();
-    address_offset_t offset = client_t::allocate_object(hash_node->locator, object_size);
-    gaia_ptr_t obj(hash_node->locator, offset);
+    gaia_locator_t locator = allocate_locator();
+    hash_node->locator = locator;
+    client_t::allocate_object(locator, object_size);
+    gaia_ptr_t obj(locator);
     db_object_t* obj_ptr = obj.to_ptr();
     obj_ptr->id = id;
     obj_ptr->type = type;
@@ -376,6 +382,7 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t
     {
         ASSERT_INVARIANT(data_size == 0, "Null payload with non-zero payload size!");
     }
+    client_t::txn_log(locator, c_invalid_gaia_offset, obj.to_offset(), gaia_operation_t::create);
 
     auto_connect_to_parent(
         id,

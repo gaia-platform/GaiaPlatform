@@ -32,8 +32,7 @@ ruleset test4
     }
 }
 
-// TESTCASE: break from multiple outer loops from implicit query
-// GAIAPLAT-1073
+// TESTCASE: break from 'if' statement within declarative loop
 ruleset test5
 {
     on_update(raised)
@@ -48,8 +47,7 @@ ruleset test5
     }
 }
 
-// TESTCASE: continue from multiple outer loops from implicit query
-// GAIAPLAT-1073
+// TESTCASE: continue from 'if' statement within declarative loop
 ruleset test6
 {
     on_update(raised)
@@ -245,8 +243,8 @@ BREAK_TARGET:
 }
 
 // TESTCASE: break from non-declarative if within declarative while
-// GAIAPLAT-1140
-#ifdef TEST_FAILURES
+// GAIAPLAT-1140 (V1)
+#ifdef TEST_FAILURES // GAIAPLAT-1140 (V1)
 ruleset test17
 {
     on_update(crop)
@@ -263,7 +261,7 @@ BREAK_TARGET:
 
 // TESTCASE: break from an if condition with two navigations
 // GAIAPLAT-1141 (fixed)
-// GAIAPLAT-1164
+// GAIAPLAT-1164 (fixed)
 ruleset test18
 {
     on_update(crop)
@@ -276,8 +274,7 @@ BREAK_TARGET:
     }
 }
 
-#ifdef TEST_FAILURES
-// GAIAPLAT-1151
+// GAIAPLAT-1151 (fixed)
 ruleset test19
 {
 #ifdef TEST_IFDEF
@@ -287,4 +284,3 @@ ruleset test19
         crop.acres = 0;
     }
 }
-#endif

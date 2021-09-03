@@ -18,7 +18,6 @@ namespace db
 void db_catalog_test_base_t::reset_database_status()
 {
     type_id_mapping_t::instance().clear();
-    gaia::catalog::ddl_executor_t::get().reset();
 }
 
 void db_catalog_test_base_t::load_schema(std::string ddl_file_name)

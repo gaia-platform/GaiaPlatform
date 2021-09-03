@@ -45,6 +45,8 @@ checks.json
 
 # Integration/Performance Test files.
 production/tests/Pipfile.lock
+
+third_party/production
 production/tests/suite-results/*
 production/tests/workloads/mink/test-results/*
 production/tests/workloads/template/test-results/*

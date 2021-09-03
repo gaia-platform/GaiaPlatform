@@ -3,11 +3,9 @@
 -- All rights reserved.
 ---------------------------------------------
 
-drop database if exists addr_book;
+database addr_book
 
-create database addr_book
-
-create table employee (
+table employee (
     name_first string active,
     name_last string,
     ssn string,
@@ -21,7 +19,7 @@ create table employee (
     internet_contract references internet_contract
 )
 
-create table address (
+table address (
     street string,
     apt_suite string,
     city string,
@@ -34,7 +32,7 @@ create table address (
     internet_contract references internet_contract
 )
 
-create table phone (
+table phone (
     phone_number string active,
     type string active,
     primary bool active,
@@ -42,13 +40,13 @@ create table phone (
     owner references employee
 )
 
-create table internet_contract (
+table internet_contract (
     provider string,
     owner references employee,
     address references address
-);
+)
 
-create table customer (
+table customer (
     name string,
     sales_by_quarter int32[]
-);
+)

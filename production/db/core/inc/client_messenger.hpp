@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#pragma once
+
 #include <flatbuffers/flatbuffers.h>
 
 #include "gaia/common.hpp"
@@ -15,6 +17,11 @@ namespace gaia
 {
 namespace db
 {
+
+static const std::string c_message_unexpected_event_received = "Unexpected event received!";
+static const std::string c_message_stream_socket_is_invalid = "Stream socket is invalid!";
+static const std::string c_message_unexpected_datagram_size = "Unexpected datagram size!";
+static const std::string c_message_empty_batch_buffer_detected = "Empty batch buffer detected!";
 
 // Instances of this class are used by the client to communicate with the server.
 //

@@ -517,13 +517,15 @@ TEST_F(gaia_references_test, remove_uninserted)
     auto e1 = insert_employee("Horace");
     auto a1 = insert_address("430 S. 41st St.", "Boulder");
 
-    // The remove() should fail.
-    EXPECT_THROW(e1.addresses().remove(a1), invalid_child);
+    // The remove should not have any effect.
+    e1.addresses().remove(a1);
 
     // Now insert it, remove, and remove again.
     e1.addresses().insert(a1);
     e1.addresses().remove(a1);
-    EXPECT_THROW(e1.addresses().remove(a1), invalid_child);
+
+    // The remove should not have any effect.
+    e1.addresses().remove(a1);
 }
 
 // Make sure that erasing a member found in iterator doesn't crash.

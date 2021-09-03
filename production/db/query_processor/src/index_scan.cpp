@@ -9,6 +9,7 @@
 #include "gaia_internal/db/catalog_core.hpp"
 
 #include "index_scan_physical.hpp"
+#include "predicate.hpp"
 #include "qp_operator.hpp"
 
 using namespace gaia::db::index;
@@ -24,24 +25,63 @@ namespace scan
 
 index_scan_iterator_t index_scan_t::begin()
 {
-    return index_scan_iterator_t(m_index_id);
+    if (m_has_limit)
+    {
+        return index_scan_iterator_t(m_index_id, scan_state_t(m_predicate, m_limit));
+    }
+    else
+    {
+        return index_scan_iterator_t(m_index_id, scan_state_t(m_predicate));
+    }
 }
+
 std::nullptr_t index_scan_t::end()
 {
     return nullptr;
 }
 
-index_scan_iterator_t::index_scan_iterator_t(gaia::common::gaia_id_t index_id)
-    : m_index_id(index_id), m_scan_impl(base_index_scan_physical_t::open(m_index_id))
+index_scan_iterator_t::index_scan_iterator_t(gaia::common::gaia_id_t index_id, scan_state_t scan_state)
+    : m_index_id(index_id), m_scan_impl(base_index_scan_physical_t::open(m_index_id, scan_state.predicate())), m_scan_state(std::move(scan_state))
 {
-    // This will result in the index scan init() method being called.
-    m_gaia_ptr = db::gaia_ptr_t(m_scan_impl->locator());
+    if (m_scan_state.limit_reached())
+    {
+        m_gaia_ptr = db::gaia_ptr_t();
+    }
+    else
+    {
+        // This will result in the index scan init() method being called.
+        auto ptr = db::gaia_ptr_t(m_scan_impl->locator());
+
+        // Advance scan to next row passing our filters.
+        while (!m_scan_state.should_return_row(ptr))
+        {
+            m_scan_impl->next_visible_locator();
+            ptr = db::gaia_ptr_t(m_scan_impl->locator());
+        }
+        m_gaia_ptr = ptr;
+    }
 }
 
 index_scan_iterator_t index_scan_iterator_t::operator++()
 {
-    m_scan_impl->next_visible_locator();
-    m_gaia_ptr = db::gaia_ptr_t(m_scan_impl->locator());
+    if (m_scan_state.limit_reached())
+    {
+        m_gaia_ptr = db::gaia_ptr_t();
+    }
+    else
+    {
+        m_scan_impl->next_visible_locator();
+        auto ptr = db::gaia_ptr_t(m_scan_impl->locator());
+
+        // Advance scan to next row passing our filters.
+        while (!m_scan_state.should_return_row(ptr))
+        {
+            m_scan_impl->next_visible_locator();
+            ptr = db::gaia_ptr_t(m_scan_impl->locator());
+        }
+
+        m_gaia_ptr = ptr;
+    }
     return *this;
 }
 
@@ -85,7 +125,7 @@ bool index_scan_iterator_t::operator!=(std::nullptr_t) const
 // Factory method. This method looks up the type of index associated with the index_id
 // and returns the appropriate index scan type.
 std::shared_ptr<base_index_scan_physical_t>
-base_index_scan_physical_t::open(common::gaia_id_t index_id)
+base_index_scan_physical_t::open(common::gaia_id_t index_id, std::shared_ptr<index_predicate_t> predicate)
 {
     db_client_proxy_t::verify_txn_active();
     db_client_proxy_t::rebuild_local_indexes();
@@ -111,14 +151,64 @@ base_index_scan_physical_t::open(common::gaia_id_t index_id)
     switch (index->type())
     {
     case catalog::index_type_t::range:
-        return std::make_shared<range_scan_impl_t>(index_id);
+        return std::make_shared<range_scan_impl_t>(index_id, predicate);
     case catalog::index_type_t::hash:
-        return std::make_shared<hash_scan_impl_t>(index_id);
+        return std::make_shared<hash_scan_impl_t>(index_id, predicate);
     default:
         ASSERT_UNREACHABLE("Index type not found.");
     }
 
     return nullptr;
+}
+
+scan_state_t::scan_state_t(std::shared_ptr<index_predicate_t> predicate)
+    : m_predicate(std::move(predicate))
+{
+    if (m_predicate && m_predicate->query_type() == messages::index_query_t::index_point_read_query_t)
+    {
+        m_has_limit = true;
+        m_limit_rows_remaining = 1;
+    }
+    else
+    {
+        m_has_limit = false;
+    }
+}
+
+scan_state_t::scan_state_t(std::shared_ptr<index_predicate_t> predicate, size_t limit)
+    : m_predicate(std::move(predicate)), m_has_limit(true), m_limit_rows_remaining(limit)
+{
+}
+
+bool scan_state_t::should_return_row(gaia_ptr_t ptr)
+{
+    if (limit_reached())
+    {
+        return false;
+    }
+
+    if (m_predicate && ptr)
+    {
+        if (m_predicate->filter(ptr))
+        {
+            --m_limit_rows_remaining;
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    else
+    {
+        --m_limit_rows_remaining;
+        return true;
+    }
+}
+
+std::shared_ptr<index_predicate_t> scan_state_t::predicate()
+{
+    return m_predicate;
 }
 
 } // namespace scan

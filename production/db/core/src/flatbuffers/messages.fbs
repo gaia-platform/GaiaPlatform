@@ -22,6 +22,7 @@ enum session_event_t: uint8 {
     DECIDE_TXN_COMMIT,
     DECIDE_TXN_ABORT,
     REQUEST_STREAM,
+    DECIDE_TXN_ROLLBACK_UNIQUE,
 }
 
 // FlatBuffers doesn't allow scalar fields in a union.
