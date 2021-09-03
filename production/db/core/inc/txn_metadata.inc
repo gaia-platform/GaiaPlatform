@@ -379,6 +379,8 @@ bool txn_metadata_t::set_txn_gc_complete(gaia_txn_id_t commit_ts)
 
 txn_metadata_entry_t txn_metadata_t::get_entry()
 {
+    ASSERT_PRECONDITION(s_txn_metadata_map, "Transaction metadata has not been initialized!");
+
     return txn_metadata_entry_t{s_txn_metadata_map[m_ts].load()};
 }
 
