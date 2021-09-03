@@ -3,12 +3,12 @@
 -- All rights reserved.
 ---------------------------------------------
 
-create table if not exists names
+table names
 (
     name string
-);
+)
 
-create table if not exists greetings
+table greetings
 (
     greeting string
-);
+)

@@ -35,7 +35,10 @@ set(MINK_DDL ${PROJECT_SOURCE_DIR}/mink.ddl)
 set(MINK_RULESET ${PROJECT_SOURCE_DIR}/mink.ruleset)
 
 # --- Generate Direct Access classes from DDL---
-process_schema(DDL_FILE ${MINK_DDL} DATABASE_NAME mink)
+process_schema(
+  DDL_FILE ${MINK_DDL}
+  DATABASE_NAME mink
+)
 
 # -- Translate ruleset into CPP --
 translate_ruleset(RULESET_FILE ${MINK_RULESET})
