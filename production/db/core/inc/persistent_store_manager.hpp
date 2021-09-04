@@ -87,7 +87,7 @@ public:
     /**
      * This API is only used during checkpointing & recovery.
      */
-    void put(gaia::db::db_object_t& object);
+    void put(gaia::db::db_recovered_object_t& object);
 
     /**
      * This API is only used during checkpointing & recovery.

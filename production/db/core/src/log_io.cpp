@@ -334,7 +334,7 @@ void log_handler_t::create_txn_record(
 }
 
 void log_handler_t::register_write_to_persistent_store_fn(
-    std::function<void(db_object_t&)> write_obj_fn)
+    std::function<void(db_recovered_object_t&)> write_obj_fn)
 {
     write_to_persistent_store_fn = write_obj_fn;
 }
@@ -527,7 +527,7 @@ void log_handler_t::write_log_record_to_persistent_store(read_record_t* record)
     std::cout << "======= WRITING RECORD WITH TS ======= " << record->header.txn_commit_ts << " AND SIZE = " << record->header.payload_size << std::endl;
     while (payload_ptr < deleted_ids_ptr)
     {
-        auto obj_ptr = reinterpret_cast<db_object_t*>(payload_ptr);
+        auto obj_ptr = reinterpret_cast<db_recovered_object_t*>(payload_ptr);
 
         ASSERT_INVARIANT(obj_ptr, "Object cannot be null.");
         ASSERT_INVARIANT(obj_ptr->id != common::c_invalid_gaia_id, "Recovered id cannot be invalid.");

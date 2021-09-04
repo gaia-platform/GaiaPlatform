@@ -174,6 +174,11 @@ void encode_object(
     string_writer_t& key,
     string_writer_t& value);
 
+void encode_checkpointed_object(
+    const db_recovered_object_t* gaia_object,
+    string_writer_t& key,
+    string_writer_t& value);
+
 db_object_t* decode_object(
     const rocksdb::Slice& key,
     const rocksdb::Slice& value);

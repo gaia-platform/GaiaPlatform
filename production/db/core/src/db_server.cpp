@@ -768,7 +768,7 @@ void server_t::recover_persistent_log()
             ASSERT_INVARIANT(s_validate_persistence_batch_eventfd >= 0, "Invalid validate flush eventfd.");
             s_log_handler = make_unique<gaia::db::persistence::log_handler_t>(s_server_conf.data_dir());
 
-            auto put_obj = [&](db_object_t& obj) {
+            auto put_obj = [&](db_recovered_object_t& obj) {
                 rdb->put(obj);
             };
             auto remove_obj = [=](gaia_id_t id) {

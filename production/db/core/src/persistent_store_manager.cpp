@@ -248,11 +248,11 @@ void persistent_store_manager::update_value(const std::string& key_to_write, uin
     m_rdb_internal->put(key_to_write, value.to_slice());
 }
 
-void persistent_store_manager::put(gaia::db::db_object_t& object)
+void persistent_store_manager::put(gaia::db::db_recovered_object_t& object)
 {
     string_writer_t key;
     string_writer_t value;
-    encode_object(&object, key, value);
+    encode_checkpointed_object(&object, key, value);
 
     // Gaia objects encoded as key-value slices shouldn't be empty.
     ASSERT_INVARIANT(

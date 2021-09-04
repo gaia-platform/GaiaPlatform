@@ -104,7 +104,7 @@ public:
     /**
      * Register persistent store create/delete APIs. Rework to call persistent store APIs directly?
      */
-    void register_write_to_persistent_store_fn(std::function<void(db_object_t&)> write_obj_fn);
+    void register_write_to_persistent_store_fn(std::function<void(db_recovered_object_t&)> write_obj_fn);
     void register_remove_from_persistent_store_fn(std::function<void(gaia::common::gaia_id_t)> remove_obj_fn);
 
     /**
@@ -142,7 +142,7 @@ private:
 
     gaia_txn_id_t m_max_decided_commit_ts;
 
-    std::function<void(db_object_t&)> write_to_persistent_store_fn;
+    std::function<void(db_recovered_object_t&)> write_to_persistent_store_fn;
     std::function<void(gaia::common::gaia_id_t)> remove_from_persistent_store_fn;
 
     // Recovery & Checkpointing APIs
