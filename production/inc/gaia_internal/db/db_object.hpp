@@ -54,6 +54,25 @@ struct alignas(gaia::db::memory_manager::c_allocation_alignment) db_object_t
     }
 };
 
+struct db_recovered_object_t
+{
+    gaia::common::gaia_id_t id;
+    gaia::common::gaia_type_t type;
+    uint16_t payload_size;
+    gaia::common::reference_offset_t num_references;
+    char payload[];
+
+    [[nodiscard]] const char* data() const
+    {
+        return payload + num_references * sizeof(gaia::common::gaia_id_t);
+    }
+
+    [[nodiscard]] const gaia::common::gaia_id_t* references() const
+    {
+        return reinterpret_cast<const gaia::common::gaia_id_t*>(payload);
+    }
+};
+
 // Because the type is explicitly aligned to a granularity larger than
 // its nominal size, we cannot use sizeof() to compute the size of the
 // object header!
