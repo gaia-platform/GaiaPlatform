@@ -658,7 +658,7 @@ size_t log_handler_t::update_cursor(struct record_iterator_t* it)
 size_t log_handler_t::validate_recovered_record_crc(struct record_iterator_t* it)
 {
     auto destination = reinterpret_cast<read_record_t*>(it->cursor);
-    std::cout << "RECOVERY: CURSOR = " << it->cursor - it->begin << " AND RECORD = " << (unsigned char)destination->header.record_type << std::endl;
+    std::cout << "RECOVERY: CURSOR = " << it->cursor - it->begin << std::endl;
 
     if (destination->header.payload_size == 0)
     {

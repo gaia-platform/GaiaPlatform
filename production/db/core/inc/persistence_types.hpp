@@ -46,7 +46,7 @@ enum class record_type_t : uint8_t
     decision = 0x2,
 };
 
-enum class decision_type_t : uint8_t
+enum class decision_type_t : uint64_t
 {
     undecided = 0,
     commit = 1,
@@ -82,11 +82,12 @@ struct record_header_t
     // For txn record, this represents the count of deleted objects.
     // For a decision record, this represents the number of decisions in the record's payload.
     uint32_t count;
+    char padding[3];
 };
 
 struct read_record_t
 {
-    record_header_t header;
+    struct record_header_t header;
     unsigned char payload[];
 };
 
