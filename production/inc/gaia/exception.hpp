@@ -5,6 +5,9 @@
 
 #pragma once
 
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
+
 #include <exception>
 #include <string>
 
@@ -47,3 +50,6 @@ public:
 } // namespace common
 /*@}*/
 } // namespace gaia
+
+// Restore default hidden visibility for all symbols.
+#pragma GCC visibility pop

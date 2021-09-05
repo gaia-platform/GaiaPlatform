@@ -5,6 +5,9 @@
 
 #pragma once
 
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
+
 #include "gaia/direct_access/edc_base.hpp"
 
 namespace gaia
@@ -198,3 +201,6 @@ private:
 // that template specializations that are declared later will pick up the
 // definitions.
 #include "edc_iterators.inc"
+
+// Restore default hidden visibility for all symbols.
+#pragma GCC visibility pop

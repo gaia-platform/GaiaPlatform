@@ -5,6 +5,9 @@
 
 #pragma once
 
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
+
 #include <cstdint>
 
 #include <limits>
@@ -112,3 +115,6 @@ constexpr char c_whitespace_chars[] = " \n\r\t\f\v";
 } // namespace common
 /*@}*/
 } // namespace gaia
+
+// Restore default hidden visibility for all symbols.
+#pragma GCC visibility pop

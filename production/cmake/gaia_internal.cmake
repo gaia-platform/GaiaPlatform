@@ -16,6 +16,20 @@ function(get_repo_root project_source_dir repo_dir)
 endfunction()
 
 #
+# This function only exists because CMake visibility properties
+# (CXX_VISIBILITY_PRESET/VISIBILITY_INLINES_HIDDEN) don't seem to propagate to
+# dependent targets when they're set on an INTERFACE target (i.e.,
+# gaia_build_options), so we need to set them directly on the target.
+#
+function(configure_gaia_target TARGET)
+  target_link_libraries(${TARGET} PUBLIC gaia_build_options)
+  # See https://cmake.org/cmake/help/latest/policy/CMP0063.html.
+  cmake_policy(SET CMP0063 NEW)
+  set_target_properties(${TARGET} PROPERTIES CXX_VISIBILITY_PRESET hidden)
+  set_target_properties(${TARGET} PROPERTIES VISIBILITY_INLINES_HIDDEN ON)
+endfunction(configure_gaia_target)
+
+#
 # Helper function for setting up our tests.
 #
 function(set_test target arg result)
@@ -67,7 +81,7 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
     set(ENV "")
   endif()
 
-  target_link_libraries(${TARGET} PUBLIC gaia_build_options)
+  configure_gaia_target(${TARGET})
   set_target_properties(${TARGET} PROPERTIES CXX_CLANG_TIDY "")
   gtest_discover_tests(${TARGET} PROPERTIES ENVIRONMENT "${ENV}")
 endfunction(add_gtest)
@@ -206,7 +220,7 @@ function(process_schema_internal)
   add_library(${ARG_LIB_NAME}
     ${EDC_CPP_FILE})
 
-  target_link_libraries(${ARG_LIB_NAME} PUBLIC gaia_build_options)
+  configure_gaia_target(${ARG_LIB_NAME})
   target_include_directories(${ARG_LIB_NAME} PUBLIC ${ARG_OUTPUT_DIR})
   target_include_directories(${ARG_LIB_NAME} PUBLIC ${FLATBUFFERS_INC})
   target_include_directories(${ARG_LIB_NAME} PRIVATE ${GAIA_INC})
@@ -239,7 +253,7 @@ endmacro()
 # Outputs:
 #
 # RULESET_FILE.CPP - translated ruleset source under ${GAIA_GENERATED_CODE}
-# 
+#
 function(add_gaia_sdk_gtest)
   set(options "")
   set(oneValueArgs TARGET_NAME DDL_FILE RULESET_FILE DATABASE_NAME PREVIOUS_TARGET_NAME)

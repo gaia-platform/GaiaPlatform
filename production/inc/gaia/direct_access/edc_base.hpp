@@ -5,6 +5,9 @@
 
 #pragma once
 
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
+
 #include <memory>
 
 #include "gaia/common.hpp"
@@ -185,3 +188,6 @@ public:
 } // namespace direct_access
 /*@}*/
 } // namespace gaia
+
+// Restore default hidden visibility for all symbols.
+#pragma GCC visibility pop

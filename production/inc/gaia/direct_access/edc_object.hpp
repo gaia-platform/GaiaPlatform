@@ -5,6 +5,9 @@
 
 #pragma once
 
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
+
 #include "flatbuffers/flatbuffers.h"
 
 #include "gaia/common.hpp"
@@ -184,3 +187,6 @@ private:
 // need to be in the header so that template specializations
 // that are declared later will pick up the definitions.
 #include "gaia/direct_access/edc_object.inc"
+
+// Restore default hidden visibility for all symbols.
+#pragma GCC visibility pop

@@ -5,6 +5,9 @@
 
 #pragma once
 
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
+
 #include <cstdint>
 
 namespace gaia
@@ -30,3 +33,6 @@ const char* event_type_name(event_type_t event_type);
 } // namespace triggers
 } // namespace db
 } // namespace gaia
+
+// Restore default hidden visibility for all symbols.
+#pragma GCC visibility pop

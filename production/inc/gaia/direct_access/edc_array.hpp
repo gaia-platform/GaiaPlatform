@@ -5,6 +5,9 @@
 
 #pragma once
 
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
+
 #include <type_traits>
 
 #include "flatbuffers/flatbuffers.h"
@@ -59,3 +62,6 @@ private:
 
 } // namespace direct_access
 } // namespace gaia
+
+// Restore default hidden visibility for all symbols.
+#pragma GCC visibility pop
