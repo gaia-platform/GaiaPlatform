@@ -5,11 +5,11 @@
 
 #pragma once
 
-// Export all symbols declared in this file.
-#pragma GCC visibility push(default)
-
 #include <functional>
 #include <type_traits>
+
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
 
 namespace gaia
 {

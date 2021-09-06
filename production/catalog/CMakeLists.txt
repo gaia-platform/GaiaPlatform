@@ -11,10 +11,11 @@ add_library(edc_catalog STATIC
     src/gaia_catalog.cpp
 )
 
+configure_gaia_target(edc_catalog)
 target_include_directories(edc_catalog PRIVATE ${GAIA_INC})
 target_include_directories(edc_catalog PRIVATE ${GAIA_INC}/gaia_internal/catalog)
 target_include_directories(edc_catalog PUBLIC ${FLATBUFFERS_INC})
-target_link_libraries(edc_catalog gaia_direct)
+target_link_libraries(edc_catalog PUBLIC gaia_direct)
 
 set(GAIA_CATALOG_PUBLIC_INCLUDES
   ${GAIA_INC}

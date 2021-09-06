@@ -5,13 +5,13 @@
 
 #pragma once
 
-// Export all symbols declared in this file.
-#pragma GCC visibility push(default)
-
 #include <memory>
 
 #include "gaia/common.hpp"
 #include "gaia/exception.hpp"
+
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
 
 namespace gaia
 {

@@ -5,10 +5,10 @@
 
 #pragma once
 
+#include <cstdint>
+
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
-
-#include <cstdint>
 
 namespace gaia
 {

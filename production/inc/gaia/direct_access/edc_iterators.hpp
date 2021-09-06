@@ -5,10 +5,10 @@
 
 #pragma once
 
+#include "gaia/direct_access/edc_base.hpp"
+
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
-
-#include "gaia/direct_access/edc_base.hpp"
 
 namespace gaia
 {

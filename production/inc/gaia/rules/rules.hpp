@@ -4,9 +4,6 @@
 /////////////////////////////////////////////
 #pragma once
 
-// Export all symbols declared in this file.
-#pragma GCC visibility push(default)
-
 #include <memory>
 #include <set>
 #include <sstream>
@@ -17,6 +14,9 @@
 #include "gaia/direct_access/auto_transaction.hpp"
 #include "gaia/events.hpp"
 #include "gaia/exception.hpp"
+
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
 
 namespace gaia
 {

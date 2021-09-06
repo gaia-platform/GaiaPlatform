@@ -5,14 +5,14 @@
 
 #pragma once
 
-// Export all symbols declared in this file.
-#pragma GCC visibility push(default)
-
 #include <type_traits>
 
 #include "flatbuffers/flatbuffers.h"
 
 #include "gaia/direct_access/edc_object.hpp"
+
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
 
 namespace gaia
 {
