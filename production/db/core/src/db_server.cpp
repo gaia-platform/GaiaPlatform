@@ -777,7 +777,7 @@ void server_t::recover_persistent_log()
     }
 }
 
-void server_t::write_to_persistent_log(bool sync_writes)
+void server_t::write_to_persistent_log(int64_t txn_group_timeout_ms, bool sync_writes)
 {
     ASSERT_PRECONDITION(s_log_handler, "Persistent log handler should be initialized.");
 
@@ -1141,7 +1141,7 @@ void server_t::flush_all_pending_writes()
 {
     do
     {
-        write_to_persistent_log();
+        write_to_persistent_log(c_txn_group_timeout_ms);
         if (seen_and_undecided_txn_set.size() == 0)
         {
             break;
@@ -1222,19 +1222,29 @@ void server_t::log_writer_handler()
             // need to be validated.
             if (ev.data.fd == s_validate_persistence_batch_eventfd)
             {
-                consume_eventfd(s_validate_persistence_batch_eventfd);
-                s_log_handler->validate_flushed_batch();
-                write_to_persistent_log();
+                uint64_t val;
+                ssize_t bytes_read = ::read(s_validate_persistence_batch_eventfd, &val, sizeof(val));
+                if (bytes_read == -1)
+                {
+                    ASSERT_INVARIANT(errno == EAGAIN, "");
+                }
+                else
+                {
+                    // Validate the results of a previously flushed batch only if read returns successfully.
+                    s_log_handler->validate_flushed_batch();
+                }
+
+                write_to_persistent_log(c_txn_group_timeout_ms);
             }
             else if (ev.data.fd == s_signal_log_write_eventfd)
             {
-                write_to_persistent_log();
-                consume_eventfd(s_signal_log_write_eventfd);
+                read_eventfd(s_signal_log_write_eventfd);
+                write_to_persistent_log(c_txn_group_timeout_ms);
             }
             else if (ev.data.fd == s_signal_decision_eventfd)
             {
-                write_to_persistent_log();
-                consume_eventfd(s_signal_decision_eventfd);
+                read_eventfd(s_signal_decision_eventfd);
+                write_to_persistent_log(c_txn_group_timeout_ms);
             }
             else if (ev.data.fd == s_server_shutdown_eventfd)
             {
@@ -2828,11 +2838,20 @@ void server_t::run(server_config_t server_conf)
             close_fd(s_server_shutdown_eventfd);
         });
 
-        // To signal to the persistence thread to validate the return values of a batch of async I/O operations.
-        s_validate_persistence_batch_eventfd = make_blocking_eventfd();
+        // To signal to the persistence thread to validate the return values of a batch of async I/O operations post batch flush.
+        // This eventfd does not require semaphore semantics since only a single batch can be flushed to disk at a time so we expect
+        // the eventfd counter to never exceed 1.
+        // The persistence batch should only be validated after a batch has finished flushing (or this will lead to
+        // premature cleaning of metadata in the in-flight persistence batch)
+        s_validate_persistence_batch_eventfd = make_nonblocking_eventfd();
+
         // To signal to the persistence thread that new writes are available to be written.
-        s_signal_log_write_eventfd = make_blocking_eventfd();
-        s_signal_decision_eventfd = make_blocking_eventfd();
+        // Semaphore semantics in this case will be correct but will lead to the thread being awake
+        // unnecessarily - in case several session threads signal log/decision eventfd writes.
+        s_signal_log_write_eventfd = make_nonblocking_eventfd();
+
+        s_signal_decision_eventfd = make_nonblocking_eventfd();
+
         s_signal_checkpoint_log_evenfd = make_blocking_eventfd();
 
         auto cleanup_persistence_eventfds = make_scope_guard([]() {

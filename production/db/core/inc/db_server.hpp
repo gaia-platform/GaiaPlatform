@@ -113,7 +113,7 @@ private:
     static inline bool use_gaia_log_implementation = false;
 
     // TODO: Make configurable.
-    static constexpr int64_t txn_group_timeout_ms = 100;
+    static constexpr int64_t c_txn_group_timeout_ms = 100;
 
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t c_stream_batch_size{1ULL << 10};
@@ -304,7 +304,7 @@ private:
 
     static void log_writer_handler();
 
-    static void write_to_persistent_log(bool sync_writes = false);
+    static void write_to_persistent_log(int64_t txn_group_timeout_ms, bool sync_writes = false);
 
     static void recover_persistent_log();
 
