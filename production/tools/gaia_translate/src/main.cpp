@@ -828,6 +828,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 rewriter.ReplaceText(
                     SourceRange(g_nomatch_location_map[nomatch_range], nomatch_range.getEnd()),
                     navigation_code.postfix + "\nif (!" + variable_name + ")\n" + rewriter.getRewrittenText(nomatch_range) + "}\n");
+                nomatch_range = SourceRange();
             }
             else
             {

@@ -141,6 +141,22 @@ ruleset testE22
     }
 }
 
+// GAIAPLAT-1269
+ruleset testE23
+{
+    on_update(incubator)
+    {
+        if (/S:sensor.value > 5 && strcmp(S->incubator.name, "1") == 0)
+        {
+        }
+        nomatch
+        {
+            int test = 0;
+            test = 1;
+        };
+    }
+}
+
 #if 0
 // This rule interferes with 'ruleset set' rules
 ruleset test15
