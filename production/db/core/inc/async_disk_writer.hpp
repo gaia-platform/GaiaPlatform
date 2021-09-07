@@ -98,7 +98,7 @@ public:
     /**
      * Copy any temporary writes (which don't exist in gaia shared memory) into the metadata buffer.
      */
-    unsigned char* copy_into_metadata_buffer(void* source, size_t size, int file_fd);
+    unsigned char* copy_into_metadata_buffer(const void* source, size_t size, int file_fd);
 
     /**
      * Perform maintenance actions on in_flight batch after all of its IO entries have been processed.

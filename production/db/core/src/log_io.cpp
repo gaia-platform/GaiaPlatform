@@ -81,7 +81,7 @@ log_handler_t::~log_handler_t()
 
 // Currently using the rocksdb impl.
 // Todo(Mihir) - Research other crc libs.
-uint32_t calculate_crc32(uint32_t init_crc, void* data, size_t n)
+uint32_t calculate_crc32(uint32_t init_crc, const void* data, size_t n)
 {
     // This implementation uses the CRC32 instruction from the SSE4 (SSE4.2) instruction set if it is available.
     // Otherwise, it defaults to a 4 table based lookup implementation.
