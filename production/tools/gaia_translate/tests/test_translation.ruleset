@@ -125,6 +125,22 @@ ruleset testE21
     }
 }
 
+// GAIAPLAT-1274
+ruleset testE22
+{
+    on_update(incubator)
+    {
+        for (/S:sensor)
+        {
+            use_string(S->incubator.name);
+            if (strcmp(S->incubator.name, "1") == 0)
+            {
+                return;
+            }
+        }
+    }
+}
+
 #if 0
 // This rule interferes with 'ruleset set' rules
 ruleset test15

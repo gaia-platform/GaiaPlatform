@@ -257,6 +257,11 @@ void get_variable_name(string& variable_name, string& table_name, explicit_path_
         explicit_path_data.tag_table_map[variable_name] = table_name;
     }
 
+    if (explicit_path_data.path_components.size() > 1 && table_name == variable_name)
+    {
+        variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
+    }
+
     if (explicit_path_data.tag_table_map.find(variable_name) == explicit_path_data.tag_table_map.end())
     {
         explicit_path_data.tag_table_map[variable_name] = table_name;
