@@ -734,10 +734,6 @@ gaia::common::gaia_id_t create_database(
  * @return id of the new table
  * @throw table_already_exists
  */
-// REVIEW: This workaround is necessary because test_sdk.cpp calls this internal
-// method even though it should only call public methods.
-// Remove the attribute when this is fixed.
-__attribute__((visibility("default")))
 gaia::common::gaia_id_t
 create_table(
     const std::string& db_name,
