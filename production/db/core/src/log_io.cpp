@@ -56,7 +56,8 @@ log_handler_t::log_handler_t(const std::string& wal_dir_path)
         throw_system_error("Unable to create persistent log directory");
     }
 
-    if (-1 == open(s_wal_dir_path.c_str(), O_DIRECTORY))
+    s_dir_fd = open(s_wal_dir_path.c_str(), O_DIRECTORY);
+    if (-1 == s_dir_fd)
     {
         throw_system_error("Unable to open persistent log directory.");
     }
