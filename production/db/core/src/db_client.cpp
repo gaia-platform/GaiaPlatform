@@ -631,7 +631,7 @@ address_offset_t client_t::allocate_object(
     address_offset_t object_offset = s_chunk_manager.allocate(size);
     if (object_offset == c_invalid_address_offset)
     {
-        if (s_log.data()->chunk_count == c_max_chunk_per_txn)
+        if (s_log.data()->chunk_count == c_max_chunks_per_txn)
         {
             throw memory_allocation_error("Maximum number of chunks for this transaction has been reached.");
         }

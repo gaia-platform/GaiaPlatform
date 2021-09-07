@@ -44,7 +44,7 @@ public:
     /**
      * Get remaining space in persistent log file.
      */
-    size_t get_remaining_bytes_count(size_t record_size);
+    size_t get_bytes_remaining_after_append(size_t record_size);
 
     /**
      * Allocate space in persistent log file.

@@ -51,8 +51,8 @@ TEST(io_uring_manager_test, single_write)
     int file_fd;
     auto file_size = 4 * 1024 * 1024;
 
-    auto validate_flush_efd = gaia::common::make_nonblocking_eventfd();
-    std::unique_ptr<async_disk_writer_t> io_uring_mgr = std::make_unique<async_disk_writer_t>(validate_flush_efd, gaia::common::make_blocking_eventfd());
+    auto validate_flush_eventfd = gaia::common::make_nonblocking_eventfd();
+    std::unique_ptr<async_disk_writer_t> io_uring_mgr = std::make_unique<async_disk_writer_t>(validate_flush_eventfd, gaia::common::make_blocking_eventfd());
     io_uring_mgr->open();
     log_file_t wal_file(dirname, dir_fd, file_num, file_size);
 
@@ -70,12 +70,12 @@ TEST(io_uring_manager_test, single_write)
     io_uring_mgr->perform_file_close_operations(wal_file.get_file_fd(), wal_file.get_file_sequence());
     io_uring_mgr->submit_and_swap_in_progress_batch(wal_file.get_file_fd(), false);
 
-    int flush_efd = io_uring_mgr->get_flush_eventfd();
+    int flush_eventfd = io_uring_mgr->get_flush_eventfd();
 
     eventfd_t counter;
 
     // Block on read.
-    eventfd_read(flush_efd, &counter);
+    eventfd_read(flush_eventfd, &counter);
 
     // Validate count.
     io_uring_mgr->perform_post_completion_maintenance();
@@ -87,7 +87,7 @@ TEST(io_uring_manager_test, single_write)
     read(file_fd, &buf, to_write.size());
     ASSERT_EQ(memcmp(&buf, (void*)to_write.c_str(), to_write.size()), 0);
     close(file_fd);
-    close(validate_flush_efd);
+    close(validate_flush_eventfd);
 
     assert(filesystem::remove_all(dirname) > 0);
 }
@@ -100,8 +100,8 @@ TEST(io_uring_manager_test, multiple_write)
     size_t file_num = 2;
     auto file_size = 4 * 1024 * 1024;
 
-    auto validate_flush_efd = gaia::common::make_nonblocking_eventfd();
-    std::unique_ptr<async_disk_writer_t> io_uring_mgr = std::make_unique<async_disk_writer_t>(validate_flush_efd, gaia::common::make_blocking_eventfd());
+    auto validate_flush_eventfd = gaia::common::make_nonblocking_eventfd();
+    std::unique_ptr<async_disk_writer_t> io_uring_mgr = std::make_unique<async_disk_writer_t>(validate_flush_eventfd, gaia::common::make_blocking_eventfd());
     size_t batch_size = 16;
     io_uring_mgr->open(batch_size);
     log_file_t wal_file(dirname, dir_fd, file_num, file_size);
@@ -128,11 +128,11 @@ TEST(io_uring_manager_test, multiple_write)
     io_uring_mgr->perform_file_close_operations(wal_file.get_file_fd(), wal_file.get_file_sequence());
     io_uring_mgr->submit_and_swap_in_progress_batch(wal_file.get_file_fd(), false);
 
-    int flush_efd = io_uring_mgr->get_flush_eventfd();
+    int flush_eventfd = io_uring_mgr->get_flush_eventfd();
     eventfd_t counter;
 
     // Block on read.
-    eventfd_read(flush_efd, &counter);
+    eventfd_read(flush_eventfd, &counter);
 
     // Validate count.
     io_uring_mgr->perform_post_completion_maintenance();
@@ -149,7 +149,7 @@ TEST(io_uring_manager_test, multiple_write)
     }
 
     close(verify_fd);
-    close(validate_flush_efd);
+    close(validate_flush_eventfd);
 
     assert(filesystem::remove_all(dirname) > 0);
 }

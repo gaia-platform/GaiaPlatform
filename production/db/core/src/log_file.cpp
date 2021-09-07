@@ -86,7 +86,7 @@ void log_file_t::allocate(size_t size)
     m_current_offset += size;
 }
 
-size_t log_file_t::get_remaining_bytes_count(size_t record_size)
+size_t log_file_t::get_bytes_remaining_after_append(size_t record_size)
 {
     ASSERT_INVARIANT(m_file_size > 0, "Preallocated file size should be greater than 0.");
     if (m_file_size < (m_current_offset + record_size))
