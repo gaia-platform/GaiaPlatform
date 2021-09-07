@@ -67,8 +67,12 @@ constexpr file_sequence_t c_invalid_file_sequence_number = 0;
 typedef size_t file_offset_t;
 
 // The record size is constrained by the size of the log file.
-// We'd never need more that 32 bits for the record size.
+// We'd never need more than 32 bits for the record size.
 typedef uint32_t record_size_t;
+
+// https://stackoverflow.com/questions/2321676/data-length-vs-crc-length
+// "From the wikipedia article: "maximal total blocklength is equal to 2**r − 1". That's in bits.
+// So CRC-32 would have max message size 2^33-1 bits or about 2^30 bytes = 1GB
 typedef uint32_t crc32_t;
 
 struct record_header_t
@@ -79,9 +83,14 @@ struct record_header_t
     gaia_txn_id_t txn_commit_ts;
 
     // Stores a count value depending on the record type.
-    // For txn record, this represents the count of deleted objects.
+    // For a txn record, this represents the count of deleted objects.
     // For a decision record, this represents the number of decisions in the record's payload.
-    uint32_t count;
+    union
+    {
+        uint32_t deleted_object_count;
+        uint32_t decision_count;
+    };
+
     char padding[3];
 };
 

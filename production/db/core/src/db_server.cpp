@@ -764,8 +764,7 @@ void server_t::recover_persistent_log()
     {
         if (!s_log_handler)
         {
-            // std::cout << "Have initialized persistent log handler" << std::endl;
-            ASSERT_INVARIANT(s_validate_persistence_batch_eventfd >= 0, "Invalid validate flush eventfd.");
+            ASSERT_PRECONDITION(s_validate_persistence_batch_eventfd >= 0, "Invalid validate flush eventfd.");
             s_log_handler = make_unique<gaia::db::persistence::log_handler_t>(s_server_conf.data_dir());
 
             auto put_obj = [&](db_recovered_object_t& obj) {
@@ -802,7 +801,7 @@ void server_t::recover_persistent_log()
             s_log_handler->destroy_persistent_log(INT64_MAX);
 
             std::cout << "s_validate_persistence_batch_eventfd = " << s_validate_persistence_batch_eventfd << std::endl;
-            s_log_handler->open_for_writes(s_validate_persistence_batch_eventfd, s_signal_checkpoint_log_evenfd);
+            s_log_handler->open_for_writes(s_validate_persistence_batch_eventfd, s_signal_checkpoint_log_eventfd);
         }
     }
 
@@ -812,7 +811,7 @@ void server_t::recover_persistent_log()
     }
 }
 
-void server_t::write_to_persistent_log(int64_t txn_group_timeout_ms, bool sync_writes)
+void server_t::write_to_persistent_log(int64_t txn_group_timeout_us, bool sync_writes)
 {
     std::cout << "GETTING CALLED" << std::endl;
 
@@ -821,41 +820,16 @@ void server_t::write_to_persistent_log(int64_t txn_group_timeout_ms, bool sync_w
     // This list is needed to enable batching of txn decisions and writing them in one go.
     persistence::decision_list_t txn_decisions;
 
-    // Obtain last written ts; use full memory barrier to obtain value.
-    gaia_txn_id_t last_allocated_ts = get_exact_last_txn_id();
-
     auto start = chrono::steady_clock::now();
     auto end = start;
     bool updates_exist = false;
 
     // Run loop till there are no more updates to consume or there is a timeout.
     updates_exist = false;
-    do
+    while (true)
     {
-        // Iterate through commit ts of previously undecided txn's and create decision records for them.
-        if (seen_and_undecided_txn_set.size() > 0)
-        {
-            for (auto itr = seen_and_undecided_txn_set.cbegin(); itr != seen_and_undecided_txn_set.cend();)
-            {
-                auto ts = *itr;
-                if (txn_metadata_t::is_txn_decided(ts))
-                {
-                    updates_exist = true;
-                    int txn_log_fd = txn_metadata_t::get_txn_log_fd(ts);
-                    ASSERT_INVARIANT(txn_log_fd != -1, "Invalid log fd");
-                    mapped_log_t log;
-                    log.open(txn_log_fd);
-                    s_log_handler->map_commit_ts_to_session_decision_eventfd(ts, log.data()->session_decision_eventfd);
-                    auto decision = txn_metadata_t::is_txn_committed(ts) ? persistence::decision_type_t::commit : persistence::decision_type_t::abort;
-                    txn_decisions.push_back(persistence::decision_entry_t{ts, decision});
-                    itr = seen_and_undecided_txn_set.erase(itr);
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
+        // Take snapshot of last allocated timestamp.
+        gaia_txn_id_t last_allocated_ts = get_last_txn_id();
 
         for (gaia_txn_id_t ts = s_last_queued_commit_ts_upper_bound + 1; ts <= last_allocated_ts; ++ts)
         {
@@ -867,46 +841,62 @@ void server_t::write_to_persistent_log(int64_t txn_group_timeout_ms, bool sync_w
 
             if (txn_metadata_t::is_commit_ts(ts))
             {
-                if (txn_metadata_t::is_txn_validating(ts))
+                updates_exist = true;
+                int txn_log_fd = txn_metadata_t::get_txn_log_fd(ts);
+                if (txn_log_fd == -1)
                 {
-                    updates_exist = true;
-                    int txn_log_fd = txn_metadata_t::get_txn_log_fd(ts);
-                    if (txn_log_fd == -1)
-                    {
-                        continue;
-                    }
-                    seen_and_undecided_txn_set.insert(ts);
-                    s_log_handler->process_txn_log_and_write(txn_log_fd, ts, &s_memory_manager);
+                    continue;
                 }
-                else if (txn_metadata_t::is_txn_decided(ts))
-                {
-                    updates_exist = true;
-                    int txn_log_fd = txn_metadata_t::get_txn_log_fd(ts);
-                    std::cout << "TXN LOG FD = " << txn_log_fd << std::endl;
-                    std::cout << "COMMIT TS IN PERSISTENCE THREAD = " << ts << std::endl;
-                    if (txn_log_fd == -1)
-                    {
-                        std::cout << "COMMIT TS SKIP = " << ts << std::endl;
-                        continue;
-                    }
-                    seen_and_undecided_txn_set.insert(ts);
-                    auto decision = txn_metadata_t::is_txn_committed(ts) ? persistence::decision_type_t::commit : persistence::decision_type_t::abort;
-                    std::cout << "COMMIT TS DECISION FOR TS = " << ts << std::endl;
-                    txn_decisions.push_back(persistence::decision_entry_t{ts, decision});
-                    s_log_handler->process_txn_log_and_write(txn_log_fd, ts, &s_memory_manager);
-                }
+                s_seen_and_undecided_txn_set.insert(ts);
+
+                // Add txn writes to the async_write_batch. Internally writes will get logged to disk when the
+                // batch becomes full.
+                s_log_handler->process_txn_log_and_write(txn_log_fd, ts, &s_memory_manager);
             }
         }
 
         // Update upper bound.
         s_last_queued_commit_ts_upper_bound = last_allocated_ts;
+
+        // Iterate through commit ts of previously undecided txn's and create decision records for them.
+        // It would be correct to update this if condition to a while loop, but in that case writes to the txn log
+        // won't proceed in parallel with validation when the number of entries to the async_write_batch doesn't meet the criteria
+        // for it to get flushed to disk.
+        if (s_seen_and_undecided_txn_set.size() > 0)
+        {
+            for (auto it = s_seen_and_undecided_txn_set.cbegin(); it != s_seen_and_undecided_txn_set.cend();)
+            {
+                auto ts = *it;
+
+                if (txn_metadata_t::is_txn_validating(ts))
+                {
+                    // This ensures that if a txn with commit ts 'X' has been decided then all txn's with
+                    // commit ts < X have also been decided.
+                    break;
+                }
+
+                if (txn_metadata_t::is_txn_decided(ts))
+                {
+                    updates_exist = true;
+                    int txn_log_fd = txn_metadata_t::get_txn_log_fd(ts);
+                    ASSERT_INVARIANT(txn_log_fd != -1, "Invalid log fd");
+                    mapped_log_t log;
+                    log.open(txn_log_fd);
+                    s_log_handler->register_commit_ts_for_session_notification(ts, log.data()->session_decision_eventfd);
+                    auto decision = txn_metadata_t::is_txn_committed(ts) ? persistence::decision_type_t::commit : persistence::decision_type_t::abort;
+                    txn_decisions.emplace_back(persistence::decision_entry_t{ts, decision});
+                    it = s_seen_and_undecided_txn_set.erase(it);
+                }
+            }
+        }
+
         end = chrono::steady_clock::now();
 
-        if (chrono::duration_cast<chrono::microseconds>(end - start).count() >= txn_group_timeout_ms)
+        if (chrono::duration_cast<chrono::microseconds>(end - start).count() >= txn_group_timeout_us)
         {
             break;
         }
-    } while (true);
+    }
 
     std::cout << "broken out of loop " << std::endl;
     if (updates_exist)
@@ -917,6 +907,7 @@ void server_t::write_to_persistent_log(int64_t txn_group_timeout_ms, bool sync_w
             s_log_handler->create_decision_record(txn_decisions);
         }
 
+        // Explicitly submit any remaining writes that are still not logged.
         s_log_handler->submit_writes(sync_writes);
     }
     else
@@ -1199,14 +1190,14 @@ static void reap_exited_threads(std::vector<std::thread>& threads)
 
 void server_t::flush_all_pending_writes()
 {
-    do
+    while (true)
     {
-        write_to_persistent_log(c_txn_group_timeout_ms);
-        if (seen_and_undecided_txn_set.size() == 0)
+        write_to_persistent_log(c_txn_group_timeout_us);
+        if (s_seen_and_undecided_txn_set.size() == 0)
         {
             break;
         }
-    } while (true);
+    }
 }
 
 void server_t::log_writer_handler()
@@ -1248,7 +1239,7 @@ void server_t::log_writer_handler()
             throw_system_error(c_message_epoll_wait_failed);
         }
 
-        for (int i = 0; i < ready_fd_count; ++i)
+        for (int i = 0; i < ready_fd_count && !shutdown; ++i)
         {
             epoll_event ev = events[i];
 
@@ -1260,7 +1251,7 @@ void server_t::log_writer_handler()
                 }
                 if (ev.data.fd == s_signal_decision_eventfd)
                 {
-                    throw_system_error("decision eventfd error!");
+                    throw_system_error("Decision eventfd error!");
                 }
                 else if (ev.data.fd == s_server_shutdown_eventfd)
                 {
@@ -1296,18 +1287,17 @@ void server_t::log_writer_handler()
                     s_log_handler->validate_flushed_batch();
                 }
 
-                uint64_t txn_group_timeout_ms = 0;
-                write_to_persistent_log(txn_group_timeout_ms);
+                write_to_persistent_log(c_txn_group_timeout_us);
             }
             else if (ev.data.fd == s_signal_log_write_eventfd)
             {
                 read_eventfd(s_signal_log_write_eventfd);
-                write_to_persistent_log(c_txn_group_timeout_ms);
+                write_to_persistent_log(c_txn_group_timeout_us);
             }
             else if (ev.data.fd == s_signal_decision_eventfd)
             {
                 read_eventfd(s_signal_decision_eventfd);
-                write_to_persistent_log(c_txn_group_timeout_ms);
+                write_to_persistent_log(c_txn_group_timeout_us);
             }
             else if (ev.data.fd == s_server_shutdown_eventfd)
             {
@@ -1320,7 +1310,7 @@ void server_t::log_writer_handler()
             else
             {
                 // We don't monitor any other fds.
-                ASSERT_INVARIANT(false, c_message_unexpected_fd);
+                ASSERT_UNREACHABLE(c_message_unexpected_fd);
             }
         }
     }
@@ -1335,7 +1325,7 @@ void server_t::checkpoint_handler()
     {
         // Log sequence number of file ready to be checkpointed.
         eventfd_t max_log_seq_to_checkpoint;
-        eventfd_read(s_signal_checkpoint_log_evenfd, &max_log_seq_to_checkpoint);
+        eventfd_read(s_signal_checkpoint_log_eventfd, &max_log_seq_to_checkpoint);
 
         // Process all existing log files.
         gaia_txn_id_t last_processed_log_seq = 0;
@@ -2830,7 +2820,7 @@ bool server_t::txn_commit()
     // This is only used for persistence.
     std::string txn_name;
 
-    if (use_gaia_log_implementation)
+    if (c_use_gaia_log_implementation)
     {
         // Signal to the persistence thread to write txn log to disk.
         signal_eventfd_single_thread(s_signal_log_write_eventfd);
@@ -2857,9 +2847,9 @@ bool server_t::txn_commit()
     txn_metadata_t::update_txn_decision(commit_ts, is_committed);
 
     // Signal to the persistence thread to write txn decision to disk.
-    ASSERT_INVARIANT(txn_metadata_t::is_txn_decided(commit_ts), "Txn should be decided before signaling to the log writer.");
+    ASSERT_INVARIANT(txn_metadata_t::is_txn_decided(commit_ts), "Txn decision not updated!");
 
-    if (use_gaia_log_implementation)
+    if (c_use_gaia_log_implementation)
     {
         // Use another decision fd to not lose events.
         signal_eventfd_single_thread(s_signal_decision_eventfd);
@@ -2872,14 +2862,7 @@ bool server_t::txn_commit()
                 return is_committed;
             }
 
-            uint64_t val;
-            ssize_t bytes_read = ::read(s_session_decision_eventfd, &val, sizeof(val));
-            if (bytes_read == -1)
-            {
-                int err = errno;
-                const char* reason = ::explain_read(s_session_decision_eventfd, &val, sizeof(val));
-                throw_system_error(reason, err);
-            }
+            consume_eventfd(s_session_decision_eventfd);
             ASSERT_POSTCONDITION(txn_metadata_t::is_txn_durable(commit_ts), "Txn should be durable post eventfd read");
         }
     }
@@ -2960,13 +2943,13 @@ void server_t::run(server_config_t server_conf)
         s_signal_decision_eventfd = make_nonblocking_eventfd();
         std::cout << "SIGNAL DEC EFD = " << s_signal_decision_eventfd << std::endl;
 
-        s_signal_checkpoint_log_evenfd = make_blocking_eventfd();
+        s_signal_checkpoint_log_eventfd = make_blocking_eventfd();
 
         auto cleanup_persistence_eventfds = make_scope_guard([]() {
             close_fd(s_signal_log_write_eventfd);
             close_fd(s_signal_decision_eventfd);
             close_fd(s_validate_persistence_batch_eventfd);
-            close_fd(s_signal_checkpoint_log_evenfd);
+            close_fd(s_signal_checkpoint_log_eventfd);
         });
 
         // Launch signal handler thread.
@@ -2977,7 +2960,7 @@ void server_t::run(server_config_t server_conf)
 
         std::thread log_writer_thread;
         std::thread checkpoint_thread;
-        if (!(s_server_conf.persistence_mode() == persistence_mode_t::e_disabled))
+        if (s_server_conf.persistence_mode() != persistence_mode_t::e_disabled)
         {
             // Launch persistence thread.
             log_writer_thread = std::thread(&log_writer_handler);
@@ -2997,7 +2980,7 @@ void server_t::run(server_config_t server_conf)
         // We shouldn't get here unless the signal handler thread has caught a signal.
         ASSERT_INVARIANT(caught_signal != 0, "A signal should have been caught!");
 
-        if (!(s_server_conf.persistence_mode() == persistence_mode_t::e_disabled))
+        if (s_server_conf.persistence_mode() != persistence_mode_t::e_disabled)
         {
             log_writer_thread.join();
             checkpoint_thread.join();

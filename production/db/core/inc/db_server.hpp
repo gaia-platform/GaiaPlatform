@@ -110,10 +110,10 @@ private:
     static inline server_config_t s_server_conf{};
 
     // TODO: Delete this once recovery/checkpointing implementation is in.
-    static inline bool use_gaia_log_implementation = true;
+    static inline bool c_use_gaia_log_implementation = true;
 
     // TODO: Make configurable.
-    static constexpr int64_t c_txn_group_timeout_ms = 100;
+    static constexpr int64_t c_txn_group_timeout_us = 100;
 
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t c_stream_batch_size{1ULL << 10};
@@ -127,7 +127,7 @@ private:
     static inline int s_signal_decision_eventfd = -1;
 
     // Signals the checkpointing thread to merge log file updates into the LSM store.
-    static inline int s_signal_checkpoint_log_evenfd = -1;
+    static inline int s_signal_checkpoint_log_eventfd = -1;
 
     // These thread objects are owned by the client dispatch thread.
     // These fields have session lifetime.
@@ -196,12 +196,12 @@ private:
     static inline std::atomic<gaia_txn_id_t> s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
 
     // Keep track of the last txn that has been submitted to the async_disk_writer.
-    static inline gaia_txn_id_t s_last_queued_commit_ts_upper_bound = c_invalid_gaia_txn_id;
+    static inline std::atomic<gaia_txn_id_t> s_last_queued_commit_ts_upper_bound = c_invalid_gaia_txn_id;
 
     static inline gaia_txn_id_t s_last_checkpointed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
 
     // Keep a track of undecided txns submitted to the async_disk_writer.
-    static inline std::set<gaia_txn_id_t> seen_and_undecided_txn_set{};
+    static inline std::set<gaia_txn_id_t> s_seen_and_undecided_txn_set{};
 
     // This is an extension point called by the transactional system when the
     // "watermark" advances (i.e., the oldest active txn terminates or commits),
@@ -306,7 +306,7 @@ private:
 
     static void log_writer_handler();
 
-    static void write_to_persistent_log(int64_t txn_group_timeout_ms, bool sync_writes = false);
+    static void write_to_persistent_log(int64_t txn_group_timeout_us, bool sync_writes = false);
 
     static void checkpoint_handler();
 

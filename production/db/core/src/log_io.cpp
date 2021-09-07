@@ -51,14 +51,12 @@ log_handler_t::log_handler_t(const std::string& wal_dir_path)
     ASSERT_PRECONDITION(!dirpath.empty(), "Gaia persistent directory path shouldn't be empty.");
     s_wal_dir_path = dirpath.append(c_gaia_wal_dir_name);
 
-    auto code = mkdir(s_wal_dir_path.c_str(), c_gaia_wal_dir_permissions);
-    if (code == -1 && errno != EEXIST)
+    if (-1 == mkdir(s_wal_dir_path.c_str(), c_gaia_wal_dir_permissions) && errno != EEXIST)
     {
         throw_system_error("Unable to create persistent log directory");
     }
 
-    s_dir_fd = open(s_wal_dir_path.c_str(), O_DIRECTORY);
-    if (s_dir_fd <= 0)
+    if (-1 == open(s_wal_dir_path.c_str(), O_DIRECTORY))
     {
         throw_system_error("Unable to open persistent log directory.");
     }
@@ -66,9 +64,9 @@ log_handler_t::log_handler_t(const std::string& wal_dir_path)
 
 void log_handler_t::open_for_writes(int validate_flushed_batch_eventfd, int signal_checkpoint_eventfd)
 {
-    ASSERT_PRECONDITION(validate_flushed_batch_eventfd >= 0, "Invalid validate_flushed_batch_eventfd.");
-    ASSERT_PRECONDITION(signal_checkpoint_eventfd >= 0, "Invalid signal_checkpoint_eventfd.");
-    ASSERT_INVARIANT(s_dir_fd > 0, "Unable to open data directory for persistent log writes.");
+    ASSERT_PRECONDITION(validate_flushed_batch_eventfd != -1, "Eventfd to signal post flush maintenance operations invalid!");
+    ASSERT_PRECONDITION(signal_checkpoint_eventfd != -1, "Eventfd to signal checkpointing of log file is invalid!");
+    ASSERT_INVARIANT(s_dir_fd != -1, "Unable to open data directory for persistent log writes.");
 
     // Create new log file every time the log_writer gets initialized.
     m_async_disk_writer = std::make_unique<async_disk_writer_t>(validate_flushed_batch_eventfd, signal_checkpoint_eventfd);
@@ -81,7 +79,7 @@ log_handler_t::~log_handler_t()
     close_fd(s_dir_fd);
 }
 
-// Currently using to the rocksdb impl.
+// Currently using the rocksdb impl.
 // Todo(Mihir) - Research other crc libs.
 uint32_t calculate_crc32(uint32_t init_crc, void* data, size_t n)
 {
@@ -96,16 +94,15 @@ file_offset_t log_handler_t::allocate_log_space(size_t payload_size)
 {
     // For simplicity, we don't break up transaction records across log files. Txn updates
     // which don't fit in the current file are written to the next one.
-    // If a transaction is greater in size than size of the log file,
-    // then the entire txn is written to the next log file.
-    // Another simplification is that an async_write_batch contains writes belonging to a single log file.
+    // If a transaction is larger than the log file size, then the entire txn is written to the next log file.
+    // Another simplification is that an async_write_batch contains only writes belonging to a single log file.
     if (!m_current_file)
     {
         auto file_size = (payload_size > c_file_size) ? payload_size : c_file_size;
         m_current_file.reset();
         m_current_file = std::make_unique<log_file_t>(s_wal_dir_path, s_dir_fd, s_file_num, file_size);
     }
-    else if (m_current_file->get_remaining_bytes_count(payload_size) <= 0)
+    else if (m_current_file->get_bytes_remaining_after_append(payload_size) <= 0)
     {
         m_async_disk_writer->perform_file_close_operations(m_current_file->get_file_fd(), m_current_file->get_file_sequence());
 
@@ -129,7 +126,7 @@ file_offset_t log_handler_t::allocate_log_space(size_t payload_size)
     return current_offset;
 }
 
-void log_handler_t::create_decision_record(decision_list_t& txn_decisions)
+void log_handler_t::create_decision_record(const decision_list_t& txn_decisions)
 {
     ASSERT_PRECONDITION(!txn_decisions.empty(), "Decision record cannot have empty payload.");
 
@@ -146,8 +143,8 @@ void log_handler_t::create_decision_record(decision_list_t& txn_decisions)
     record_header_t header;
     header.crc = c_crc_initial_value;
     header.payload_size = total_log_space_needed;
-    header.count = txn_decisions.size();
-    header.txn_commit_ts = 0;
+    header.decision_count = txn_decisions.size();
+    header.txn_commit_ts = c_invalid_gaia_txn_id;
     header.record_type = record_type_t::decision;
 
     // Compute crc.
@@ -174,7 +171,7 @@ void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t comm
     mapped_log_t log;
     log.open(txn_log_fd);
 
-    map_commit_ts_to_session_decision_eventfd(commit_ts, log.data()->session_decision_eventfd);
+    register_commit_ts_for_session_notification(commit_ts, log.data()->session_decision_eventfd);
 
     std::cout << "CREATE TXN RECORD COMMIT TS =" << commit_ts << std::endl;
 
@@ -240,7 +237,7 @@ void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t comm
     }
 }
 
-void log_handler_t::map_commit_ts_to_session_decision_eventfd(gaia_txn_id_t commit_ts, int session_decision_eventfd)
+void log_handler_t::register_commit_ts_for_session_notification(gaia_txn_id_t commit_ts, int session_decision_eventfd)
 {
     ASSERT_INVARIANT(session_decision_eventfd > 0, "Invalid session_decision_eventfd.");
     m_async_disk_writer->map_commit_ts_to_session_decision_efd(commit_ts, session_decision_eventfd);
@@ -295,7 +292,7 @@ void log_handler_t::create_txn_record(
     record_header_t header;
     header.crc = c_crc_initial_value;
     header.payload_size = total_log_space_needed;
-    header.count = deleted_ids.size();
+    header.deleted_object_count = deleted_ids.size();
     header.txn_commit_ts = commit_ts;
     header.record_type = type;
 
@@ -522,7 +519,7 @@ void log_handler_t::write_log_record_to_persistent_store(read_record_t* record)
     auto payload_ptr = reinterpret_cast<unsigned char*>(record->payload);
     auto start_ptr = payload_ptr;
     auto end_ptr = reinterpret_cast<unsigned char*>(record) + record->header.payload_size;
-    auto deleted_ids_ptr = end_ptr - (sizeof(common::gaia_id_t) * record->header.count);
+    auto deleted_ids_ptr = end_ptr - (sizeof(common::gaia_id_t) * record->header.deleted_object_count);
 
     std::cout << "======= WRITING RECORD WITH TS ======= " << record->header.txn_commit_ts << " AND SIZE = " << record->header.payload_size << std::endl;
     while (payload_ptr < deleted_ids_ptr)
@@ -545,7 +542,7 @@ void log_handler_t::write_log_record_to_persistent_store(read_record_t* record)
         payload_ptr += allocation_size;
     }
 
-    for (size_t i = 0; i < record->header.count; i++)
+    for (size_t i = 0; i < record->header.deleted_object_count; i++)
     {
         ASSERT_INVARIANT(deleted_ids_ptr < end_ptr, "Txn content overflow.");
         auto deleted_id = reinterpret_cast<common::gaia_id_t*>(deleted_ids_ptr);
@@ -586,7 +583,7 @@ void log_handler_t::write_records(record_iterator_t* it, gaia_txn_id_t& last_che
             auto payload_ptr = current_record_ptr + sizeof(record_header_t);
 
             // Obtain decisions. Decisions may not be in commit order, so sort and process them.
-            for (size_t i = 0; i < record->header.count; i++)
+            for (size_t i = 0; i < record->header.decision_count; i++)
             {
                 auto decision_entry = reinterpret_cast<decision_entry_t*>(payload_ptr);
                 if (decision_entry->commit_ts > last_checkpointed_commit_ts)

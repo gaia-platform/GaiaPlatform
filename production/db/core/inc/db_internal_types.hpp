@@ -86,13 +86,13 @@ constexpr size_t c_max_locators = (1ULL << 32) - 1;
 // similarly optimized by substituting locators for gaia_ids.
 constexpr size_t c_hash_buckets = 1ULL << 20;
 
-// This is arbitrary, but we need to keep txn logs to a reasonable size.
-constexpr size_t c_max_log_records = 1ULL << 20;
-
 // Track maximum number of new chunks (apart from the one that the txn is already using)
 // that can be allocated per transaction.
 // This sets an upper bound on txn size: 32MB < txn_size < 36MB
-constexpr size_t c_max_chunk_per_txn = 8;
+constexpr size_t c_max_chunks_per_txn = 8;
+
+// 8 chunks can hold up to 8 * (2^16 - 2^8) = 522240 64B objects,
+constexpr size_t c_max_log_records = 522240;
 
 // This is an array of offsets in the data segment corresponding to object
 // versions, where each array index is referred to as a "locator."
@@ -141,7 +141,7 @@ struct txn_log_t
     };
 
     log_record_t log_records[c_max_log_records];
-    gaia_offset_t chunks[c_max_chunk_per_txn];
+    gaia_offset_t chunks[c_max_chunks_per_txn];
 
     friend std::ostream& operator<<(std::ostream& os, const txn_log_t& l)
     {

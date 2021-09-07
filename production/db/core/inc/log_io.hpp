@@ -42,7 +42,7 @@ static constexpr crc32_t c_crc_initial_value = ((uint32_t)-1);
 class log_handler_t
 {
 public:
-    log_handler_t(const std::string& directory_path);
+    explicit log_handler_t(const std::string& directory_path);
     ~log_handler_t();
     void open_for_writes(int validate_flushed_batch_eventfd, int signal_checkpoint_eventfd);
 
@@ -68,7 +68,7 @@ public:
     /**
      * Create a log record which stores decisions for one or more txns.
      */
-    void create_decision_record(decision_list_t& txn_decisions);
+    void create_decision_record(const decision_list_t& txn_decisions);
 
     /**
      * Submit async_disk_writer's internal I/O request queue to the kernel for processing.
@@ -85,7 +85,7 @@ public:
      * session_decision_eventfd is written to by the log_writer thread - signifying that the txn decision
      * has been persisted.
      */
-    void map_commit_ts_to_session_decision_eventfd(gaia_txn_id_t commit_ts, int session_decision_eventfd);
+    void register_commit_ts_for_session_notification(gaia_txn_id_t commit_ts, int session_decision_eventfd);
 
     /**
      * Entry point to start recovery procedure from gaia log files. Checkpointing reuses the same function.
@@ -120,10 +120,10 @@ private:
     static constexpr std::string_view c_gaia_wal_dir_name = "/wal_dir";
     static constexpr int c_gaia_wal_dir_permissions = 0755;
     static inline std::string s_wal_dir_path{};
-    static inline int s_dir_fd = 0;
+    static inline int s_dir_fd = -1;
 
     // Log file sequence starts from 1.
-    static inline file_sequence_t s_file_num = 1;
+    static inline std::atomic<file_sequence_t> s_file_num = 1;
 
     // Keep track of the current log file.
     std::unique_ptr<log_file_t> m_current_file;

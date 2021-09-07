@@ -37,7 +37,7 @@ namespace persistence
 class async_disk_writer_t
 {
 public:
-    async_disk_writer_t(int validate_flushed_batch_efd, int signal_checkpoint_efd);
+    async_disk_writer_t(int validate_flushed_batch_eventfd, int signal_checkpoint_eventfd);
 
     ~async_disk_writer_t();
 
@@ -105,21 +105,21 @@ public:
      */
     void perform_post_completion_maintenance();
 
-    void add_decisions_to_batch(decision_list_t& decisions);
+    void add_decisions_to_batch(const decision_list_t& decisions);
 
     /**
      * For each commit ts, keep track of the eventfd which the session thread blocks on. Once the txn
      * has been made durable, this eventfd is written to so that the session thread can make progress and
      * return commit decision to the client.
      */
-    void map_commit_ts_to_session_decision_efd(gaia_txn_id_t commit_ts, int session_decision_efd);
+    void map_commit_ts_to_session_decision_efd(gaia_txn_id_t commit_ts, int session_decision_eventfd);
 
     /**
      * Used for testing purposes.
      */
     int get_flush_eventfd()
     {
-        return s_flush_efd;
+        return s_flush_eventfd;
     }
 
 private:
@@ -128,18 +128,18 @@ private:
     static constexpr size_t c_single_submission_entry_count = 1;
     static constexpr size_t c_async_batch_size = 32;
     static constexpr size_t c_max_iovec_array_size_bytes = IOV_MAX * sizeof(iovec);
-    static inline eventfd_t c_default_flush_efd_value = 1;
-    static inline iovec c_default_iov = {static_cast<void*>(&c_default_flush_efd_value), sizeof(eventfd_t)};
+    static inline eventfd_t c_default_flush_eventfd_value = 1;
+    static inline iovec c_default_iov = {static_cast<void*>(&c_default_flush_eventfd_value), sizeof(eventfd_t)};
 
     // eventfd to signal that a batch flush has completed.
     // Used to block new writes to disk when a batch is already getting flushed.
-    static inline int s_flush_efd = -1;
+    static inline int s_flush_eventfd = -1;
 
     // eventfd to signal that the IO results belonging to a batch are ready to be validated.
-    int m_validate_flush_efd = -1;
+    int m_validate_flush_eventfd = -1;
 
     // eventfd to signal that a file is ready to be checkpointed.
-    int m_signal_checkpoint_efd = -1;
+    int m_signal_checkpoint_eventfd = -1;
 
     // Keep track of session threads to unblock.
     std::unordered_map<gaia_txn_id_t, int> m_ts_to_session_decision_eventfd_map;
