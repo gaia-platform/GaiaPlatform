@@ -16,7 +16,7 @@ function(get_repo_root project_source_dir repo_dir)
 endfunction()
 
 #
-# This function only exists because CMake visibility properties
+# This function only exists because CMake symbol visibility properties
 # (CXX_VISIBILITY_PRESET/VISIBILITY_INLINES_HIDDEN) don't seem to propagate to
 # dependent targets when they're set on an INTERFACE target (i.e.,
 # gaia_build_options), so we need to set them directly on the target.
