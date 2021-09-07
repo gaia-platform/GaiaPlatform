@@ -767,7 +767,7 @@ void server_t::recover_persistent_log()
             ASSERT_INVARIANT(s_validate_persistence_batch_eventfd >= 0, "Invalid validate flush eventfd.");
             s_log_handler = make_unique<persistence::log_handler_t>(s_server_conf.data_dir());
 
-            s_log_handler->open_for_writes(s_validate_persistence_batch_eventfd, s_signal_checkpoint_log_evenfd);
+            s_log_handler->open_for_writes(s_validate_persistence_batch_eventfd, s_signal_checkpoint_log_eventfd);
         }
     }
 

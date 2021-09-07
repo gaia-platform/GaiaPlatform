@@ -210,7 +210,7 @@ void async_disk_writer_t::perform_file_close_operations(int file_fd, file_sequen
     m_in_progress_batch->append_file_to_batch(file_fd, log_seq);
 }
 
-unsigned char* async_disk_writer_t::copy_into_metadata_buffer(void* source, size_t size, int file_fd)
+unsigned char* async_disk_writer_t::copy_into_metadata_buffer(const void* source, size_t size, int file_fd)
 {
     auto current_ptr = m_metadata_buffer.get_current_ptr();
     ASSERT_PRECONDITION(current_ptr, "Invalid metadata buffer pointer.");
