@@ -184,6 +184,21 @@ inline int make_blocking_eventfd()
     return eventfd;
 }
 
+/**
+ * Create an eventfd only with the EFD_NONBLOCK flag.
+ */
+inline int make_nonblocking_eventfd()
+{
+    int eventfd = ::eventfd(0, EFD_NONBLOCK);
+    if (eventfd == -1)
+    {
+        int err = errno;
+        const char* reason = ::explain_eventfd(0, EFD_NONBLOCK);
+        throw system_error(reason, err);
+    }
+    return eventfd;
+}
+
 inline void signal_eventfd(int eventfd, uint64_t efd_counter_val)
 {
     ssize_t bytes_written = ::write(eventfd, &efd_counter_val, sizeof(efd_counter_val));
@@ -214,9 +229,11 @@ inline void signal_eventfd_multiple_threads(int eventfd)
     signal_eventfd(eventfd, c_max_semaphore_count);
 }
 
-inline void consume_eventfd(int eventfd)
+/**
+ * Simply return eventfd counter value. '1' will be returned for an eventfd created with the semaphore flag. 
+ */
+inline uint64_t read_eventfd(int eventfd)
 {
-    // We should always read the value 1 from a semaphore eventfd.
     uint64_t val;
     ssize_t bytes_read = ::read(eventfd, &val, sizeof(val));
     if (bytes_read == -1)
@@ -226,6 +243,13 @@ inline void consume_eventfd(int eventfd)
         throw system_error(reason, err);
     }
     ASSERT_POSTCONDITION(bytes_read == sizeof(val), "Failed to fully read data!");
+    return val;
+}
+
+inline void consume_eventfd(int eventfd)
+{
+    // We should always read the value 1 from a semaphore eventfd.
+    uint64_t val = read_eventfd(eventfd);
     ASSERT_POSTCONDITION(val == 1, "Unexpected value!");
 }
 

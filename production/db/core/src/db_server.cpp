@@ -812,7 +812,7 @@ void server_t::recover_persistent_log()
     }
 }
 
-void server_t::write_to_persistent_log(bool sync_writes)
+void server_t::write_to_persistent_log(int64_t txn_group_timeout_ms, bool sync_writes)
 {
     std::cout << "GETTING CALLED" << std::endl;
 
@@ -904,12 +904,11 @@ void server_t::write_to_persistent_log(bool sync_writes)
 
         if (chrono::duration_cast<chrono::microseconds>(end - start).count() >= txn_group_timeout_ms)
         {
-            std::cout << "broken out of loop" << std::endl;
             break;
         }
     } while (true);
 
-    std::cout << "broken out of loop 2 " << std::endl;
+    std::cout << "broken out of loop " << std::endl;
     if (updates_exist)
     {
         std::cout << "DECISION SIZE = " << txn_decisions.size() << std::endl;
@@ -1202,7 +1201,7 @@ void server_t::flush_all_pending_writes()
 {
     do
     {
-        write_to_persistent_log();
+        write_to_persistent_log(c_txn_group_timeout_ms);
         if (seen_and_undecided_txn_set.size() == 0)
         {
             break;
@@ -1285,25 +1284,35 @@ void server_t::log_writer_handler()
             if (ev.data.fd == s_validate_persistence_batch_eventfd)
             {
                 std::cout << "CONSUME 1" << std::endl;
-                s_log_handler->validate_flushed_batch();
-                write_to_persistent_log();
-                eventfd_read(s_validate_persistence_batch_eventfd, &val);
+                uint64_t val;
+                ssize_t bytes_read = ::read(s_validate_persistence_batch_eventfd, &val, sizeof(val));
+                if (bytes_read == -1)
+                {
+                    ASSERT_INVARIANT(errno == EAGAIN, "");
+                }
+                else
+                {
+                    // Validate the results of a previously flushed batch only if read returns successfully.
+                    s_log_handler->validate_flushed_batch();
+                }
+
+                uint64_t txn_group_timeout_ms = 0;
+                write_to_persistent_log(txn_group_timeout_ms);
             }
             else if (ev.data.fd == s_signal_log_write_eventfd)
             {
-                std::cout << "CONSUME 2" << std::endl;
-                write_to_persistent_log();
-                eventfd_read(s_signal_log_write_eventfd, &val);
+                read_eventfd(s_signal_log_write_eventfd);
+                write_to_persistent_log(c_txn_group_timeout_ms);
             }
             else if (ev.data.fd == s_signal_decision_eventfd)
             {
-                std::cout << "CONSUME 3" << std::endl;
-                write_to_persistent_log();
-                eventfd_read(s_signal_decision_eventfd, &val);
+                read_eventfd(s_signal_decision_eventfd);
+                write_to_persistent_log(c_txn_group_timeout_ms);
             }
             else if (ev.data.fd == s_server_shutdown_eventfd)
             {
                 // Server shutdown; before shutdown finish persisting any pending writes before exiting.
+                // No need to consume the s_server_shutdown_eventfd eventfd.
                 std::cout << "CONSUME 4?" << std::endl;
                 flush_all_pending_writes();
                 shutdown = true;
@@ -2933,11 +2942,24 @@ void server_t::run(server_config_t server_conf)
             close_fd(s_server_shutdown_eventfd);
         });
 
-        // To signal to the persistence thread to validate the return values of a batch of async I/O operations.
-        s_validate_persistence_batch_eventfd = make_blocking_eventfd();
+        // To signal to the persistence thread to validate the return values of a batch of async I/O operations post batch flush.
+        // This eventfd does not require semaphore semantics since only a single batch can be flushed to disk at a time so we expect
+        // the eventfd counter to never exceed 1.
+        // The persistence batch should only be validated after a batch has finished flushing (or this will lead to
+        // premature cleaning of metadata in the in-flight persistence batch)
+        s_validate_persistence_batch_eventfd = make_nonblocking_eventfd();
+
+        std::cout << "VALIDATE BATCH EFD = " << s_validate_persistence_batch_eventfd << std::endl;
+
         // To signal to the persistence thread that new writes are available to be written.
-        s_signal_log_write_eventfd = make_blocking_eventfd();
-        s_signal_decision_eventfd = make_blocking_eventfd();
+        // Semaphore semantics in this case will be correct but will lead to the thread being awake
+        // unnecessarily - in case several session threads signal log/decision eventfd writes.
+        s_signal_log_write_eventfd = make_nonblocking_eventfd();
+        std::cout << "SIGNAL LOG EFD = " << s_signal_log_write_eventfd << std::endl;
+
+        s_signal_decision_eventfd = make_nonblocking_eventfd();
+        std::cout << "SIGNAL DEC EFD = " << s_signal_decision_eventfd << std::endl;
+
         s_signal_checkpoint_log_evenfd = make_blocking_eventfd();
 
         auto cleanup_persistence_eventfds = make_scope_guard([]() {

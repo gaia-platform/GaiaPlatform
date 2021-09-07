@@ -153,10 +153,21 @@ void async_disk_writer_t::submit_and_swap_in_progress_batch(int file_fd, bool sh
     // Block on any pending disk flushes.
     eventfd_read(s_flush_efd, &event_counter);
 
-    std::cout << "Not blocked on s_flush_efd." << std::endl;
+    std::cout << "Try to validate batch" << std::endl;
 
-    // Perform any maintenance on the in_flight batch.
-    perform_post_completion_maintenance();
+    // m_validate_flush_efd might already be consumed by the caller.
+    uint64_t val;
+    ssize_t bytes_read = ::read(m_validate_flush_efd, &val, sizeof(val));
+    if (bytes_read == -1)
+    {
+        ASSERT_INVARIANT(errno == EAGAIN, "");
+    }
+    else
+    {
+        // Before submitting the next batch perform any maintenance on the in_flight batch.
+        perform_post_completion_maintenance();
+    }
+
     finish_and_submit_batch(file_fd, should_wait_for_completion);
 }
 
@@ -183,8 +194,8 @@ void async_disk_writer_t::finish_and_submit_batch(int file_fd, bool should_wait_
     m_in_progress_batch->add_fdatasync_op_to_batch(file_fd, get_enum_value(uring_op_t::fdatasync), IOSQE_IO_LINK);
 
     // Signal eventfd's as part of batch.
-    m_in_progress_batch->add_pwritev_op_to_batch(&c_default_iov, 1, s_flush_efd, 0, get_enum_value(uring_op_t::pwritev_eventfd_flush), IOSQE_IO_LINK);
     m_in_progress_batch->add_pwritev_op_to_batch(&c_default_iov, 1, m_validate_flush_efd, 0, get_enum_value(uring_op_t::pwritev_eventfd_validate), IOSQE_IO_DRAIN);
+    m_in_progress_batch->add_pwritev_op_to_batch(&c_default_iov, 1, s_flush_efd, 0, get_enum_value(uring_op_t::pwritev_eventfd_flush), IOSQE_IO_LINK);
 
     std::cout << "m_validate_flush_efd = " << m_validate_flush_efd << std::endl;
     swap_batches();

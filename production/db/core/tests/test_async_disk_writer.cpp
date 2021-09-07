@@ -51,7 +51,7 @@ TEST(io_uring_manager_test, single_write)
     int file_fd;
     auto file_size = 4 * 1024 * 1024;
 
-    auto validate_flush_efd = gaia::common::make_blocking_eventfd();
+    auto validate_flush_efd = gaia::common::make_nonblocking_eventfd();
     std::unique_ptr<async_disk_writer_t> io_uring_mgr = std::make_unique<async_disk_writer_t>(validate_flush_efd, gaia::common::make_blocking_eventfd());
     io_uring_mgr->open();
     log_file_t wal_file(dirname, dir_fd, file_num, file_size);
@@ -100,7 +100,7 @@ TEST(io_uring_manager_test, multiple_write)
     size_t file_num = 2;
     auto file_size = 4 * 1024 * 1024;
 
-    auto validate_flush_efd = gaia::common::make_blocking_eventfd();
+    auto validate_flush_efd = gaia::common::make_nonblocking_eventfd();
     std::unique_ptr<async_disk_writer_t> io_uring_mgr = std::make_unique<async_disk_writer_t>(validate_flush_efd, gaia::common::make_blocking_eventfd());
     size_t batch_size = 16;
     io_uring_mgr->open(batch_size);
