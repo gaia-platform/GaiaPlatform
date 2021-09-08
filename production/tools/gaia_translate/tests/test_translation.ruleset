@@ -157,6 +157,15 @@ ruleset testE23
     }
 }
 
+// GAIAPLAT-1314
+ruleset testE24
+{
+    on_update(incubator)
+    {
+        auto id = incubator.gaia_id();
+    }
+}
+
 #if 0
 // This rule interferes with 'ruleset set' rules
 ruleset test15
