@@ -257,6 +257,11 @@ void get_variable_name(string& variable_name, string& table_name, explicit_path_
         explicit_path_data.tag_table_map[variable_name] = table_name;
     }
 
+    if (explicit_path_data.path_components.size() > 1 && table_name == variable_name)
+    {
+        variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
+    }
+
     if (explicit_path_data.tag_table_map.find(variable_name) == explicit_path_data.tag_table_map.end())
     {
         explicit_path_data.tag_table_map[variable_name] = table_name;
@@ -823,6 +828,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 rewriter.ReplaceText(
                     SourceRange(g_nomatch_location_map[nomatch_range], nomatch_range.getEnd()),
                     navigation_code.postfix + "\nif (!" + variable_name + ")\n" + rewriter.getRewrittenText(nomatch_range) + "}\n");
+                nomatch_range = SourceRange();
             }
             else
             {
@@ -2772,7 +2778,6 @@ public:
         variable_name = decl->getNameAsString();
         if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
         {
-            variable_name = table_navigation_t::get_variable_name(table_name, explicit_path_data.tag_table_map);
             explicit_path_present = false;
             expression_source_range = SourceRange(expression->getLocation(), expression->getEndLoc());
             g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
@@ -2804,7 +2809,7 @@ public:
                     return;
                 }
 
-                if (table_name == variable_name)
+                if (table_name != variable_name)
                 {
                     gaiat::diag().emit(diag::err_insert_with_tag);
                     g_is_generation_error = true;
