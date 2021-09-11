@@ -2017,7 +2017,8 @@ public:
             }
         }
         tok::TokenKind token_kind;
-        string replacement_text = "[&]() mutable {auto w = " + variable_name + ".writer(); w." + field_name;
+        string writer_variable = table_navigation_t::get_variable_name("writer", unordered_map<string, string>());
+        string replacement_text = "[&]() mutable {auto " + writer_variable + " = " + variable_name + ".writer(); " + writer_variable + "." + field_name;
 
         switch (op->getOpcode())
         {
@@ -2100,11 +2101,9 @@ public:
         }
         m_rewriter.ReplaceText(set_source_range, replacement_text);
         g_rewriter_history.push_back({set_source_range, replacement_text, replace_text});
-        m_rewriter.InsertTextAfterToken(
-            op->getEndLoc(), "; w.update_row(); return w." + field_name + ";}()");
-        g_rewriter_history.push_back(
-            {SourceRange(op->getEndLoc()), "; w.update_row(); return w." + field_name + ";}()",
-             insert_text_after_token});
+        replacement_text = "; " + writer_variable + ".update_row(); return " + writer_variable + "." + field_name + ";}()";
+        m_rewriter.InsertTextAfterToken(op->getEndLoc(), replacement_text);
+        g_rewriter_history.push_back({SourceRange(op->getEndLoc()), replacement_text, insert_text_after_token});
 
         auto offset = Lexer::MeasureTokenLength(op->getEndLoc(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
         if (!explicit_path_present)
@@ -2260,21 +2259,25 @@ public:
                 update_used_dbs(explicit_path_data);
             }
         }
-
+        string writer_variable = table_navigation_t::get_variable_name("writer", unordered_map<string, string>());
         if (op->isPostfix())
         {
+            string temp_variable = table_navigation_t::get_variable_name("temp", unordered_map<string, string>());
             if (op->isIncrementOp())
             {
                 replace_string
-                    = "[&]() mutable {auto t = "
-                    + variable_name + "." + field_name + "(); auto w = "
-                    + variable_name + ".writer(); w." + field_name + "++; w.update_row(); return t;}()";
+                    = "[&]() mutable {auto " + temp_variable + " = "
+                    + variable_name + "." + field_name + "(); auto " + writer_variable + " = "
+                    + variable_name + ".writer(); " + writer_variable + "." + field_name + "++; "
+                    + writer_variable + ".update_row(); return " + temp_variable + ";}()";
             }
             else if (op->isDecrementOp())
             {
                 replace_string
-                    = "[&]() mutable {auto t =" + variable_name + "." + field_name + "(); auto w = "
-                    + variable_name + ".writer(); w." + field_name + "--; w.update_row(); return t;}()";
+                    = "[&]() mutable {auto " + temp_variable + " = "
+                    + variable_name + "." + field_name + "(); auto " + writer_variable + " = "
+                    + variable_name + ".writer(); " + writer_variable + "." + field_name + "--; "
+                    + writer_variable + ".update_row(); return " + temp_variable + ";}()";
             }
         }
         else
@@ -2282,14 +2285,18 @@ public:
             if (op->isIncrementOp())
             {
                 replace_string
-                    = "[&]() mutable {auto w = " + variable_name + ".writer(); ++ w." + field_name
-                    + ";w.update_row(); return w." + field_name + ";}()";
+                    = "[&]() mutable {auto " + writer_variable + " = " + variable_name
+                    + ".writer(); ++ " + writer_variable + "." + field_name
+                    + ";" + writer_variable + ".update_row(); return " + writer_variable
+                    + "." + field_name + ";}()";
             }
             else if (op->isDecrementOp())
             {
                 replace_string
-                    = "[&]() mutable {auto w = " + variable_name + ".writer(); -- w." + field_name
-                    + ";w.update_row(); return w." + field_name + ";}()";
+                    = "[&]() mutable {auto " + writer_variable + " = " + variable_name
+                    + ".writer(); -- " + writer_variable + "." + field_name
+                    + ";" + writer_variable + ".update_row(); return " + writer_variable
+                    + "." + field_name + ";}()";
             }
         }
 

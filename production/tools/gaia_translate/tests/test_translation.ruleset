@@ -178,6 +178,19 @@ ruleset testE25
      }
 }
 
+//GAIAT-1388
+ruleset testE26
+{
+     on_update(incubator)
+     {
+        for (w:sensor)
+        {
+            w.timestamp = 0;
+        }
+     }
+}
+
+
 #if 0
 // This rule interferes with 'ruleset set' rules
 ruleset test15
