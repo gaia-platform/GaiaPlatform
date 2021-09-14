@@ -49,9 +49,9 @@ TEST_F(test_connect_disconnect, test_connect_1_1)
     gaia::db::begin_transaction();
 
     // The rule will create a connection between the student and these registrations.
-    registration_t::insert_row("reg006", c_status_eligible, c_grade_c);
-    registration_t::insert_row("reg007", c_status_eligible, c_grade_c);
     student_t student_1 = student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
+    registration_t::insert_row("reg006", "stu001", nullptr, c_status_eligible, c_grade_c);
+    registration_t::insert_row("reg007", "stu001", nullptr, c_status_eligible, c_grade_c);
 
     gaia::db::commit_transaction();
 
@@ -101,8 +101,8 @@ TEST_F(test_connect_disconnect, test_disconnect_1_n)
 
     // Create the registrations
     gaia::db::begin_transaction();
-    gaia_id_t reg001 = registration_t::insert_row("reg001", c_status_eligible, c_grade_c);
-    gaia_id_t reg002 = registration_t::insert_row("reg002", c_status_eligible, c_grade_c);
+    gaia_id_t reg001 = registration_t::insert_row("reg001", nullptr, nullptr, c_status_eligible, c_grade_c);
+    gaia_id_t reg002 = registration_t::insert_row("reg002", nullptr, nullptr, c_status_eligible, c_grade_c);
     gaia::db::commit_transaction();
 
     gaia::db::begin_transaction();
@@ -168,10 +168,8 @@ TEST_F(test_connect_disconnect, disconnect_delete)
 
     gaia::db::begin_transaction();
     student_t student_1 = student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
-    gaia_id_t reg001 = registration_t::insert_row("reg001", c_status_eligible, c_grade_c);
-    gaia_id_t reg002 = registration_t::insert_row("reg002", c_status_eligible, c_grade_c);
-    student_1.registrations().insert(reg001);
-    student_1.registrations().insert(reg002);
+    registration_t::insert_row("reg001", "stu001", nullptr, c_status_eligible, c_grade_c);
+    registration_t::insert_row("reg002", "stu001", nullptr, c_status_eligible, c_grade_c);
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();

@@ -31,6 +31,11 @@ namespace transactions
 class txn_metadata_t
 {
 public:
+    static void init_txn_metadata_map();
+
+    static bool is_txn_metadata_map_initialized();
+
+public:
     inline explicit txn_metadata_t(gaia_txn_id_t ts);
     txn_metadata_t(const txn_metadata_t&) = default;
 
@@ -41,10 +46,6 @@ public:
     friend inline bool operator==(txn_metadata_t a, txn_metadata_t b);
     friend inline bool operator!=(txn_metadata_t a, txn_metadata_t b);
 
-private:
-    const gaia_txn_id_t m_ts;
-
-public:
     inline gaia_txn_id_t get_timestamp();
 
     inline bool is_uninitialized();
@@ -129,8 +130,8 @@ private:
     inline txn_metadata_entry_t compare_exchange(
         txn_metadata_entry_t expected_value, txn_metadata_entry_t desired_value);
 
-public:
-    static void init_txn_metadata_map();
+private:
+    const gaia_txn_id_t m_ts;
 
 private:
     // This is an effectively infinite array of timestamp entries, indexed by
@@ -179,8 +180,8 @@ private:
     static inline std::atomic<uint64_t>* s_txn_metadata_map{nullptr};
 };
 
-#include "txn_metadata.inc"
-
 } // namespace transactions
 } // namespace db
 } // namespace gaia
+
+#include "txn_metadata.inc"

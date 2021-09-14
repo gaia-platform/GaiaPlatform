@@ -31,6 +31,7 @@
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
 #include "messages_generated.h"
+#include "predicate.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -39,11 +40,6 @@ using namespace gaia::db::messages;
 using namespace gaia::db::memory_manager;
 using namespace flatbuffers;
 using namespace scope_guard;
-
-static const std::string c_message_unexpected_event_received = "Unexpected event received!";
-static const std::string c_message_stream_socket_is_invalid = "Stream socket is invalid!";
-static const std::string c_message_unexpected_datagram_size = "Unexpected datagram size!";
-static const std::string c_message_empty_batch_buffer_detected = "Empty batch buffer detected!";
 
 int client_t::get_id_cursor_socket_for_type(gaia_type_t type)
 {
@@ -70,112 +66,6 @@ int client_t::get_id_cursor_socket_for_type(gaia_type_t type)
 
     cleanup_stream_socket.dismiss();
     return stream_socket;
-}
-
-int client_t::get_record_cursor_socket_for_index(gaia_id_t index_id, gaia_txn_id_t txn_id)
-{
-    FlatBufferBuilder builder;
-    auto index_scan_info = Createindex_scan_info_t(builder, index_id, txn_id);
-    auto client_request = Createclient_request_t(builder, session_event_t::REQUEST_STREAM, request_data_t::index_scan, index_scan_info.Union());
-    auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
-    builder.Finish(message);
-    client_messenger_t client_messenger;
-    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 1);
-
-    int stream_socket = client_messenger.received_fd(client_messenger_t::c_index_stream_socket);
-    auto cleanup_stream_socket = make_scope_guard([&]() {
-        close_fd(stream_socket);
-    });
-
-    const session_event_t event = client_messenger.server_reply()->event();
-    ASSERT_INVARIANT(event == session_event_t::REQUEST_STREAM, c_message_unexpected_event_received);
-
-    // Check that our stream socket is blocking (because we need to perform blocking reads).
-    ASSERT_INVARIANT(!is_non_blocking(stream_socket), "Stream socket is not set to blocking!");
-
-    cleanup_stream_socket.dismiss();
-    return stream_socket;
-}
-
-// This generator wraps a socket which reads a stream of values of `T_element_type` from the server.
-template <typename T_element_type>
-std::function<std::optional<T_element_type>()>
-client_t::get_stream_generator_for_socket(int stream_socket)
-{
-    // Verify that the socket is the correct type for the semantics we assume.
-    check_socket_type(stream_socket, SOCK_SEQPACKET);
-
-    // Currently, we associate a cursor with a snapshot view, i.e., a transaction.
-    verify_txn_active();
-    gaia_txn_id_t owning_txn_id = s_txn_id;
-
-    // The userspace buffer that we use to receive a batch datagram message.
-    std::vector<T_element_type> batch_buffer;
-
-    // The definition of the generator we return.
-    return [stream_socket, owning_txn_id, batch_buffer]() mutable -> std::optional<T_element_type> {
-        // We shouldn't be called again after we received EOF from the server.
-        ASSERT_INVARIANT(stream_socket != -1, c_message_stream_socket_is_invalid);
-
-        // The cursor should only be called from within the scope of its owning transaction.
-        ASSERT_INVARIANT(s_txn_id == owning_txn_id, "Cursor was not called from the scope of its own transaction!");
-
-        // If buffer is empty, block until a new batch is available.
-        if (batch_buffer.size() == 0)
-        {
-            // Get the datagram size, and grow the buffer if necessary.
-            // This decouples the client from the server (i.e., client
-            // doesn't need to know server batch size), at the expense
-            // of an extra system call per batch.
-            // We set MSG_PEEK to avoid reading the datagram into our buffer,
-            // and we set MSG_TRUNC to return the actual buffer size needed.
-            ssize_t datagram_size = ::recv(stream_socket, nullptr, 0, MSG_PEEK | MSG_TRUNC);
-            if (datagram_size == -1)
-            {
-                throw_system_error("recv(MSG_PEEK) failed!");
-            }
-
-            if (datagram_size == 0)
-            {
-                // We received EOF from the server, so close
-                // client socket and stop iteration.
-                close_fd(stream_socket);
-                // Tell the caller to stop iteration.
-                return std::nullopt;
-            }
-
-            // The datagram size must be an integer multiple of our datum size.
-            ASSERT_INVARIANT(datagram_size % sizeof(T_element_type) == 0, c_message_unexpected_datagram_size);
-
-            // Align the end of the buffer to the datagram size.
-            // Per the C++ standard, this will never reduce capacity.
-            batch_buffer.resize(datagram_size);
-
-            // Get the actual data.
-            // This is a nonblocking read, because the previous blocking
-            // read will not return until data is available.
-            ssize_t bytes_read = ::recv(stream_socket, batch_buffer.data(), batch_buffer.size(), MSG_DONTWAIT);
-            if (bytes_read == -1)
-            {
-                // Per above, we should never have to block here.
-                ASSERT_INVARIANT(errno != EAGAIN && errno != EWOULDBLOCK, "Unexpected errno value!");
-                throw_system_error("recv() failed!");
-            }
-
-            // Because our buffer is exactly the same size as the datagram,
-            // we should read exactly the number of bytes in the datagram.
-            ASSERT_INVARIANT(bytes_read == datagram_size, "Bytes read differ from datagram size!");
-        }
-
-        // At this point we know our buffer is non-empty.
-        ASSERT_INVARIANT(batch_buffer.size() > 0, c_message_empty_batch_buffer_detected);
-
-        // Loop through the buffer and return entries in FIFO order
-        // (the server reversed the original buffer before sending).
-        T_element_type next_value = batch_buffer.back();
-        batch_buffer.pop_back();
-        return next_value;
-    };
 }
 
 std::function<std::optional<gaia_id_t>()>
@@ -247,20 +137,6 @@ client_t::get_id_generator_for_type(gaia_type_t type)
     // in the current transaction, which the server does not yet know about.
     auto augmented_id_generator = augment_id_generator_for_type(type, id_generator);
     return std::make_shared<gaia::common::iterators::generator_t<gaia_id_t>>(augmented_id_generator);
-}
-
-std::shared_ptr<gaia::common::iterators::generator_t<index::index_record_t>>
-client_t::get_record_generator_for_index(gaia::common::gaia_id_t index_id, gaia_txn_id_t txn_id)
-{
-    int stream_socket = get_record_cursor_socket_for_index(index_id, txn_id);
-    auto cleanup_stream_socket = make_scope_guard([&]() {
-        close_fd(stream_socket);
-    });
-
-    auto record_generator = get_stream_generator_for_socket<index::index_record_t>(stream_socket);
-    cleanup_stream_socket.dismiss();
-
-    return std::make_shared<gaia::common::iterators::generator_t<index::index_record_t>>(record_generator);
 }
 
 static void build_client_request(
@@ -629,9 +505,7 @@ address_offset_t client_t::allocate_object(
     gaia_locator_t locator,
     size_t size)
 {
-    ASSERT_PRECONDITION(size != 0, "Size passed to client_t::allocate_object() should not be 0!");
-
-    address_offset_t object_offset = s_chunk_manager.allocate(size);
+    address_offset_t object_offset = s_chunk_manager.allocate(size + c_db_object_header_size);
     if (object_offset == c_invalid_address_offset)
     {
         // We ran out of memory in the current chunk. Allocate a new one!

@@ -23,8 +23,11 @@ using namespace gaia::direct_access;
 thread_local bool rule_thread_pool_t::s_tls_can_enqueue = true;
 thread_local queue<rule_thread_pool_t::invocation_t> rule_thread_pool_t::s_tls_pending_invocations;
 
-rule_thread_pool_t::rule_thread_pool_t(size_t count_threads, uint32_t max_retries, rule_stats_manager_t& stats_manager)
-    : m_stats_manager(stats_manager), m_max_rule_retries(max_retries), m_count_busy_workers(count_threads)
+rule_thread_pool_t::rule_thread_pool_t(size_t count_threads, uint32_t max_retries, rule_stats_manager_t& stats_manager, rule_checker_t& rule_checker)
+    : m_stats_manager(stats_manager)
+    , m_rule_checker(rule_checker)
+    , m_max_rule_retries(max_retries)
+    , m_count_busy_workers(count_threads)
 {
     m_exit = false;
     for (uint32_t i = 0; i < count_threads; i++)
@@ -232,6 +235,23 @@ void rule_thread_pool_t::invoke_rule_inner(invocation_t& invocation)
         try
         {
             auto_transaction_t txn(auto_transaction_t::no_auto_begin);
+
+            // If the anchor row is invalid, then do not invoke the rule.  This can
+            // occur if the row is deleted after it has been inserted or updated but
+            // before an enqueued rule has been invoked.
+            if (!m_rule_checker.is_valid_row(rule_invocation.record))
+            {
+                gaia_log::rules().trace("invalid anchor row: rule '{}' was not invoked, src_txn:'{}', new_txn:'{}'", rule_id, rule_invocation.src_txn_id, gaia::db::get_txn_id());
+
+                // It is safe to exit early out of this routine. The transaction will clean up on
+                // exit of the function and there will be no pending rule invocations to process.
+                // An invocation can only be pending if the rule itself called commit such that
+                // a new rule is enqueued while the existing rule is executing.  Since we
+                // never called a rule function, this cannot happen.
+                ASSERT_INVARIANT(s_tls_pending_invocations.empty(), "No pending invocations should exist!");
+                return;
+            }
+
             rule_context_t context(
                 txn,
                 rule_invocation.gaia_type,

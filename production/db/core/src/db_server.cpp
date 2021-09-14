@@ -79,6 +79,7 @@ static constexpr char c_message_validating_txn_should_have_been_validated[]
     = "The txn being tested can only have its log fd invalidated if the validating txn was validated!";
 static constexpr char c_message_preceding_txn_should_have_been_validated[]
     = "A transaction with commit timestamp preceding this transaction's begin timestamp is undecided!";
+static constexpr char c_message_unexpected_query_type[] = "Unexpected query type!";
 
 server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd)
     : m_auto_close_fd(auto_close_fd)
@@ -319,7 +320,7 @@ void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<
 }
 
 void server_t::handle_rollback_txn(
-    int* /*fds*/, size_t /*fd_count*/, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::ROLLBACK_TXN, c_message_unexpected_event_received);
 
@@ -339,7 +340,7 @@ void server_t::handle_rollback_txn(
 }
 
 void server_t::handle_commit_txn(
-    int* /*fds*/, size_t /*fd_count*/, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::COMMIT_TXN, c_message_unexpected_event_received);
 
@@ -523,8 +524,42 @@ void server_t::handle_request_stream(
         auto request_data = request->data_as_index_scan();
         auto index_id = static_cast<gaia_id_t>(request_data->index_id());
         auto txn_id = static_cast<gaia_txn_id_t>(request_data->txn_id());
+        auto query_type = request_data->query_type();
 
-        start_stream_producer(server_socket, id_to_index(index_id)->generator(txn_id));
+        switch (query_type)
+        {
+        case index_query_t::NONE:
+            start_stream_producer(server_socket, id_to_index(index_id)->generator(txn_id));
+            break;
+        case index_query_t::index_point_read_query_t:
+        case index_query_t::index_equal_range_query_t:
+        {
+            index::index_key_t key;
+            {
+                // Create local snapshot to query catalog for key serialization schema.
+                bool apply_logs = false;
+                create_local_snapshot(apply_logs);
+                auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
+
+                if (query_type == index_query_t::index_point_read_query_t)
+                {
+                    auto query = request_data->query_as_index_point_read_query_t();
+                    auto key_buffer = data_read_buffer_t(*(query->key()));
+                    key = index::index_builder_t::deserialize_key(index_id, key_buffer);
+                }
+                else
+                {
+                    auto query = request_data->query_as_index_equal_range_query_t();
+                    auto key_buffer = data_read_buffer_t(*(query->key()));
+                    key = index::index_builder_t::deserialize_key(index_id, key_buffer);
+                }
+            }
+            start_stream_producer(server_socket, id_to_index(index_id)->equal_range_generator(txn_id, key));
+            break;
+        }
+        default:
+            ASSERT_UNREACHABLE(c_message_unexpected_query_type);
+        }
 
         break;
     }
@@ -738,9 +773,7 @@ address_offset_t server_t::allocate_object(
     gaia_locator_t locator,
     size_t size)
 {
-    ASSERT_PRECONDITION(size != 0, "Size passed to server_t::allocate_object() should not be 0!");
-
-    address_offset_t object_offset = s_chunk_manager.allocate(size);
+    address_offset_t object_offset = s_chunk_manager.allocate(size + c_db_object_header_size);
     if (object_offset == c_invalid_address_offset)
     {
         // We ran out of memory in the current chunk.
@@ -928,7 +961,9 @@ void server_t::init_listening_socket(const std::string& socket_name)
 
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
-    ASSERT_INVARIANT(socket_name.size() <= sizeof(server_addr.sun_path) - 1, "Socket name '" + socket_name + "' is too long!");
+    ASSERT_INVARIANT(
+        socket_name.size() <= sizeof(server_addr.sun_path) - 1,
+        "Socket name '" + socket_name + "' is too long!");
 
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
@@ -974,6 +1009,7 @@ bool server_t::authenticate_client_socket(int socket)
 
     // Disable client authentication until we can figure out
     // how to fix the Postgres tests.
+    // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1253
     // Client must have same effective user ID as server.
     // return (cred.uid == ::geteuid());
 

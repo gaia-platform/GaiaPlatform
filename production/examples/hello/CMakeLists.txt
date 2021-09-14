@@ -42,7 +42,10 @@ set(HELLO_DDL ${PROJECT_SOURCE_DIR}/hello.ddl)
 set(HELLO_RULESET ${PROJECT_SOURCE_DIR}/hello.ruleset)
 
 # --- Generate Direct Access classes from DDL---
-process_schema(DDL_FILE ${HELLO_DDL})
+process_schema(
+  DDL_FILE ${HELLO_DDL}
+  DATABASE_NAME hello
+)
 
 # -- Translate ruleset into CPP --
 translate_ruleset(RULESET_FILE ${HELLO_RULESET})

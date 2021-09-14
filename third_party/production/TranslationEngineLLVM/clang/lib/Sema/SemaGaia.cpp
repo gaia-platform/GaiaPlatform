@@ -37,6 +37,8 @@ using namespace clang;
 static string fieldTableName;
 
 static constexpr char ruleContextTypeName[] = "rule_context__type";
+static constexpr char connectFunctionName[] = "connect";
+static constexpr char disconnectFunctionName[] = "disconnect";
 
 static string get_table_from_expression(const string& expression)
 {
@@ -260,6 +262,18 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             {
                 tableName = pathComponent.substr(0, dotPosition);
                 fieldName = pathComponent.substr(dotPosition + 1);
+                dotPosition = fieldName.find('.');
+                // If there is a dot in a field it is actually a link.
+                // The links are allowed to reference connect/disconnect functions.
+                if (dotPosition != string::npos)
+                {
+                    string postLink = fieldName.substr(dotPosition + 1);
+                    if (postLink != connectFunctionName && postLink != disconnectFunctionName)
+                    {
+                        Diag(loc, diag::err_invalid_explicit_path);
+                        return "";
+                    }
+                }
             }
             else
             {
@@ -729,12 +743,12 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targe
         SmallVector<QualType, 8> parameters;
         parameters.push_back(connectDisconnectParamRef);
 
-        addMethod(&Context.Idents.get("connect"), DeclSpec::TST_void, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
+        addMethod(&Context.Idents.get(connectFunctionName), DeclSpec::TST_void, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
 
         // The disconnect with argument is available only 1:n relationships.
         if (is_one_to_many)
         {
-            addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_void, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
+            addMethod(&Context.Idents.get(disconnectFunctionName), DeclSpec::TST_void, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
         }
     }
 
@@ -742,7 +756,7 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targe
     //  person.mother.disconnect();
     if (!is_one_to_many && !sourceTableDecl->hasAttr<GaiaTableAttr>())
     {
-        addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_void, {}, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
+        addMethod(&Context.Idents.get(disconnectFunctionName), DeclSpec::TST_void, {}, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
     }
 }
 

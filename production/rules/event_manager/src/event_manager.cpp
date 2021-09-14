@@ -85,13 +85,11 @@ void event_manager_t::init(const event_manager_settings_t& settings)
         count_worker_threads,
         settings.stats_log_interval);
 
-    m_invocations = make_unique<rule_thread_pool_t>(
-        count_worker_threads, settings.max_rule_retries, *m_stats_manager);
+    m_rule_checker = make_unique<rule_checker_t>(
+        settings.enable_catalog_checks, settings.enable_db_checks);
 
-    if (settings.enable_catalog_checks)
-    {
-        m_rule_checker = make_unique<rule_checker_t>();
-    }
+    m_invocations = make_unique<rule_thread_pool_t>(
+        count_worker_threads, settings.max_rule_retries, *m_stats_manager, *m_rule_checker);
 
     m_trigger_fn = [](const trigger_event_list_t& event_list) {
         event_manager_t::get().commit_trigger(event_list);
@@ -265,13 +263,8 @@ void event_manager_t::subscribe_rule(
     check_subscription(event_type, fields);
 
     // Verify that the type and fields specified in the rule subscription
-    // are valid according to the catalog.  The rule checker may be null
-    // if the event_manager was initialized with 'disabled_catalog_checks'
-    // set to true in its settings.
-    if (m_rule_checker)
-    {
-        m_rule_checker->check_catalog(gaia_type, fields);
-    }
+    // are valid according to the catalog.
+    m_rule_checker->check_catalog(gaia_type, fields);
 
     // Look up the gaia_type in our type map.  If we do not find it
     // then we create a new empty event map map.

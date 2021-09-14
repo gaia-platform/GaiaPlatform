@@ -3,16 +3,14 @@
 -- All rights reserved.
 ---------------------------------------------
 
-create database if not exists hello;
+database hello
 
-use hello;
-
-create table if not exists names
+table names
 (
     name string
-);
+)
 
-create table if not exists greetings
+table greetings
 (
     greeting string
-);
+)

@@ -212,16 +212,14 @@ ruleset test24
     }
 }
 
-// GAIAPLAT-803
+// GAIAPLAT-803 (fixed)
 // This should be identical to test1 above.
-#ifdef TEST_FAILURES // GAIAPLAT-803
 ruleset test25
 {
     {
         @actuator.value += sensor.value;
     }
 }
-#endif
 
 // GAIAPLAT-808 (fixed)
 // The I.min_temp doesn't use the tag from the 'if'.

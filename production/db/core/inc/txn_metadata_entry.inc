@@ -3,7 +3,14 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
+#include <bitset>
+
+namespace gaia
+{
+namespace db
+{
+namespace transactions
+{
 
 bool operator==(txn_metadata_entry_t a, txn_metadata_entry_t b)
 {
@@ -70,13 +77,13 @@ bool txn_metadata_entry_t::is_sealed()
 
 bool txn_metadata_entry_t::is_begin_ts_entry()
 {
-    // The "uninitialized" value has the commit bit unset, so we need to check it as well.
+    // "Uninitialized" values also have the commit bit unset, but they're not considered to be begin timestamps.
     return (!is_uninitialized() && ((m_word & c_txn_status_commit_mask) == 0));
 }
 
 bool txn_metadata_entry_t::is_commit_ts_entry()
 {
-    // The "sealed" value has the commit bit set, so we need to check it as well.
+    // "Sealed" values also have the commit bit set, but they're not considered to be commit timestamps.
     return (!is_sealed() && ((m_word & c_txn_status_commit_mask) == c_txn_status_commit_mask));
 }
 
@@ -271,3 +278,7 @@ std::string txn_metadata_entry_t::dump_metadata()
     }
     return str.str();
 }
+
+} // namespace transactions
+} // namespace db
+} // namespace gaia

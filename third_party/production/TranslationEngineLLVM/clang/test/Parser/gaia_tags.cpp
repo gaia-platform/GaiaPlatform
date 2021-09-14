@@ -26,8 +26,7 @@ ruleset test82
 
 
 // The 'value' is not duplicated, but qualified by 'sensor'.
-// GAIALAT-796
-#ifdef TEST_FAILURES // GAIALAT-796
+// GAIALAT-796 (fixed)
 ruleset test83 : tables(sensor)
 {
     on_update(value)
@@ -36,7 +35,6 @@ ruleset test83 : tables(sensor)
         v = value * 2.0;
     }
 }
-#endif
 
 ruleset test84
 {

@@ -23,6 +23,7 @@ set(GAIA_DB_CORE_PRIVATE_INCLUDES
   "${ROCKSDB_INC}"
   "${ROCKSDB_UTIL}"
   "${PROJECT_SOURCE_DIR}/inc"
+  "${GAIA_DB_INC}/query_processor"
 )
 
 message(VERBOSE "GAIA_DB_CORE_PRIVATE_INCLUDES=${GAIA_DB_CORE_PRIVATE_INCLUDES}")
@@ -84,9 +85,17 @@ add_library(gaia_db_client STATIC
   src/type_id_mapping.cpp
   src/db_client_config.cpp
   src/db_server_instance.cpp
-  src/index_builder.cpp)
+  src/index_builder.cpp
+  src/txn_metadata.cpp)
 
-add_dependencies(gaia_db_client "messages.fbs" "gaia_table.fbs" "gaia_field.fbs" "gaia_relationship.fbs" "gaia_index.fbs" "gaia_db_server")
+add_dependencies(gaia_db_client
+  "gaia_db_server"
+  "gaia_field.fbs"
+  "gaia_index.fbs"
+  "gaia_relationship.fbs"
+  "gaia_table.fbs"
+  "messages.fbs"
+)
 target_link_libraries(gaia_db_client PUBLIC gaia_build_options)
 target_include_directories(gaia_db_client PUBLIC ${GAIA_DB_CORE_PUBLIC_INCLUDES})
 target_include_directories(gaia_db_client PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES})
@@ -155,7 +164,13 @@ set(GAIA_DB_SERVER_SOURCES
   src/type_id_mapping.cpp)
 
 add_executable(gaia_db_server ${GAIA_DB_SERVER_SOURCES})
-add_dependencies(gaia_db_server "messages.fbs")
+add_dependencies(gaia_db_server
+  "gaia_field.fbs"
+  "gaia_index.fbs"
+  "gaia_relationship.fbs"
+  "gaia_table.fbs"
+  "messages.fbs"
+)
 target_link_libraries(gaia_db_server PUBLIC gaia_build_options)
 target_include_directories(gaia_db_server PRIVATE
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
@@ -166,7 +181,18 @@ target_include_directories(gaia_db_server SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_db_server SYSTEM PRIVATE "${GEN_DIR}")
 
 # Suppress spurious warnings about zero-initialized structs.
-target_link_libraries(gaia_db_server PRIVATE gaia_common Threads::Threads rocks_wrapper gaia_db_persistence gaia_memory_manager gaia_index ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_server
+  PRIVATE
+    ${LIB_CAP}
+    ${LIB_EXPLAIN}
+    Threads::Threads
+    dl
+    gaia_common
+    gaia_db_persistence
+    gaia_index
+    gaia_memory_manager
+    rocks_wrapper
+)
 if(ENABLE_STACKTRACE)
   target_link_libraries(gaia_db_server PRIVATE gaia_stack_trace)
 endif()

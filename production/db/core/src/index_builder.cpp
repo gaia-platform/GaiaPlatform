@@ -168,23 +168,28 @@ void update_index_entry(
 
         for (; it_start != it_end; ++it_start)
         {
-            ASSERT_PRECONDITION(
-                transactions::txn_metadata_t::is_begin_ts(it_start->second.txn_id),
-                "Transaction id in index key entry is not a begin timestamp!");
+            if (transactions::txn_metadata_t::is_txn_metadata_map_initialized())
+            {
+                gaia_txn_id_t begin_ts = it_start->second.txn_id;
 
-            // Ignore index entries made by rolled back transactions.
-            if (transactions::txn_metadata_t::is_txn_terminated(it_start->second.txn_id))
-            {
-                continue;
-            }
-            else
-            {
-                // Ignore index entries made by aborted transactions.
-                gaia_txn_id_t commit_ts
-                    = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(it_start->second.txn_id);
-                if (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_aborted(commit_ts))
+                ASSERT_PRECONDITION(
+                    transactions::txn_metadata_t::is_begin_ts(begin_ts),
+                    "Transaction id in index key entry is not a begin timestamp!");
+
+                // Ignore index entries made by rolled back transactions.
+                if (transactions::txn_metadata_t::is_txn_terminated(begin_ts))
                 {
                     continue;
+                }
+                else
+                {
+                    // Ignore index entries made by aborted transactions.
+                    gaia_txn_id_t commit_ts
+                        = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(begin_ts);
+                    if (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_aborted(commit_ts))
+                    {
+                        continue;
+                    }
                 }
             }
 
@@ -220,7 +225,7 @@ void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_
 
     auto it = get_indexes()->find(index_id);
 
-    // Not found, need to do a catalog lookup to bootstrap the index
+    // Not found, need to do a catalog lookup to bootstrap the index.
     if (it == get_indexes()->end())
     {
         auto index_view = index_view_t(id_to_ptr(index_id));
@@ -294,7 +299,7 @@ void index_builder_t::update_index(
 
 void index_builder_t::populate_index(common::gaia_id_t index_id, common::gaia_type_t type_id, gaia_locator_t locator)
 {
-    auto payload = reinterpret_cast<uint8_t*>(locator_to_ptr(locator)->payload);
+    auto payload = reinterpret_cast<const uint8_t*>(locator_to_ptr(locator)->data());
     update_index(index_id, make_key(index_id, type_id, payload), make_insert_record(locator, locator_to_offset(locator)));
 }
 

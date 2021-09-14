@@ -106,6 +106,11 @@ void txn_metadata_t::init_txn_metadata_map()
         0);
 }
 
+bool txn_metadata_t::is_txn_metadata_map_initialized()
+{
+    return (s_txn_metadata_map != nullptr);
+}
+
 // This method allocates a new begin_ts and initializes its metadata in the txn
 // table.
 gaia_txn_id_t txn_metadata_t::register_begin_ts()
@@ -197,8 +202,8 @@ void txn_metadata_t::dump_txn_metadata_at_ts(gaia_txn_id_t ts)
     {
         txn_metadata_t begin_ts_metadata = ts_metadata.get_begin_ts_metadata();
         std::cerr
-            << "Metadata for commit_ts " << ts << " metadata's begin_ts "
-            << begin_ts_metadata.get_timestamp() << ": " << std::endl
+            << "Metadata for commit_ts `" << ts << "` metadata's begin_ts `"
+            << begin_ts_metadata.get_timestamp() << "`: " << std::endl
             << begin_ts_metadata.get_entry().dump_metadata();
     }
 
@@ -211,8 +216,8 @@ void txn_metadata_t::dump_txn_metadata_at_ts(gaia_txn_id_t ts)
         {
             txn_metadata_t commit_ts_metadata = *opt_commit_ts_metadata;
             std::cerr
-                << "Metadata for begin_ts " << ts << " metadata's commit_ts "
-                << commit_ts_metadata.get_timestamp() << ": " << std::endl
+                << "Metadata for begin_ts `" << ts << "` metadata's commit_ts `"
+                << commit_ts_metadata.get_timestamp() << "`: " << std::endl
                 << commit_ts_metadata.get_entry().dump_metadata();
         }
     }

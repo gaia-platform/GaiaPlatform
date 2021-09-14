@@ -86,8 +86,7 @@ endmacro()
 #
 # Args:
 # - DATABASE_NAME: [optional] name of the database the code is generated from.
-#     If not specified, the database name is inferred as ${DDL_NAME}.
-#     Changes to this functionality are under review.
+#     If not specified, the default database will be used.
 # - DDL_FILE: [optional] the path to the .ddl file to load into the database before the generation.
 # - OUTPUT_DIR: [optional] directory where the header files will be generated.
 #     If an output folder is not specified, the files are written to ${GAIA_DEFAULT_DIRECT_ACCESS_GENERATED_DIR}/${DATABASE_NAME}.
@@ -105,53 +104,41 @@ function(process_schema)
     message(FATAL_ERROR "You must specify either the DDL_FILE or the DATABASE_NAME!")
   endif()
 
-  # If the database name is not specified we infer it from the DDL file name.
-  if(NOT DEFINED ARG_DATABASE_NAME)
-    get_filename_component(DDL_NAME ${ARG_DDL_FILE} NAME)
-    string(REPLACE ".ddl" "" DDL_NAME ${DDL_NAME})
-    set(ARG_DATABASE_NAME ${DDL_NAME})
-    message(STATUS "DATABASE_NAME not specified, using: ${ARG_DATABASE_NAME}.")
-  endif()
-
   if(NOT DEFINED ARG_OUTPUT_DIR)
     set(ARG_OUTPUT_DIR ${GAIA_DEFAULT_DIRECT_ACCESS_GENERATED_DIR}/${ARG_DATABASE_NAME})
     message(STATUS "OUTPUT_DIR not specified, using: ${ARG_OUTPUT_DIR}.")
   endif()
 
-  set(DIRECT_ACCESS_HEADER_FILE ${ARG_OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.h)
-  set(DIRECT_ACCESS_CPP_FILE ${ARG_OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.cpp)
+  set(GAIA_GAIAC_ARGS "-o" ${ARG_OUTPUT_DIR} "-g")
 
   if(DEFINED ARG_INSTANCE_NAME)
-    set(INSTANCE_NAME "-n ${ARG_INSTANCE_NAME}")
+    message(STATUS "Adding target to use the server instance ${ARG_INSTANCE_NAME}...")
+    list(PREPEND GAIA_GAIAC_ARGS  "-n ${ARG_INSTANCE_NAME}")
   endif()
 
-  message(STATUS "Adding target to generate Direct Access code for database ${ARG_DATABASE_NAME}...")
+  if (DEFINED ARG_DDL_FILE)
+    message(STATUS "Adding target to load schema from the DDL file ${ARG_DDL_FILE}...")
+    list(APPEND GAIA_GAIAC_ARGS ${ARG_DDL_FILE})
+  endif()
 
-  if(DEFINED ARG_DDL_FILE)
-    add_custom_command(
-      COMMENT "Generating Direct Access code for database ${ARG_DATABASE_NAME} into ${ARG_OUTPUT_DIR}..."
-      OUTPUT ${DIRECT_ACCESS_HEADER_FILE}
-      OUTPUT ${DIRECT_ACCESS_CPP_FILE}
-      COMMAND ${GAIA_GAIAC_CMD}
-        -o ${ARG_OUTPUT_DIR}
-        -d ${ARG_DATABASE_NAME}
-        ${ARG_INSTANCE_NAME}
-        -g ${ARG_DDL_FILE}
-      DEPENDS ${ARG_DDL_FILE}
-    )
+  if(DEFINED ARG_DATABASE_NAME)
+    set(DIRECT_ACCESS_HEADER_FILE ${ARG_OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.h)
+    set(DIRECT_ACCESS_CPP_FILE ${ARG_OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.cpp)
+    message(STATUS "Adding target to generate Direct Access code for database ${ARG_DATABASE_NAME}...")
+    list(PREPEND GAIA_GAIAC_ARGS "-d" "${ARG_DATABASE_NAME}")
   else()
-    add_custom_command(
-      COMMENT "Generating Direct Access code for database ${ARG_DATABASE_NAME} into ${ARG_OUTPUT_DIR}..."
-      OUTPUT ${DIRECT_ACCESS_HEADER_FILE}
-      OUTPUT ${DIRECT_ACCESS_CPP_FILE}
-      COMMAND ${GAIA_GAIAC_CMD}
-        -o ${ARG_OUTPUT_DIR}
-        -d ${ARG_DATABASE_NAME}
-        ${ARG_INSTANCE_NAME}
-        -g
-      DEPENDS ${ARG_DDL_FILE}
-    )
+    # If the database name is not specified, we use the default database.
+    message(STATUS "DATABASE_NAME not specified, using default.")
+    set(DIRECT_ACCESS_HEADER_FILE ${ARG_OUTPUT_DIR}/gaia.h)
+    set(DIRECT_ACCESS_CPP_FILE ${ARG_OUTPUT_DIR}/gaia.cpp)
   endif()
+
+  add_custom_command(
+    COMMENT "Generating Direct Access code..."
+    OUTPUT ${DIRECT_ACCESS_HEADER_FILE}
+    OUTPUT ${DIRECT_ACCESS_CPP_FILE}
+    COMMAND ${GAIA_GAIAC_CMD} ${GAIA_GAIAC_ARGS}
+  )
 
   if(NOT DEFINED ARG_TARGET_NAME)
     set(ARG_TARGET_NAME "generate_${DDL_NAME}_direct_access")

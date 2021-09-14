@@ -5,8 +5,13 @@
 
 #pragma once
 
-#include <string>
-#include <unordered_map>
+/*
+ * PostgresSQL "port.h" tries to replace printf() and friends with macros to
+ * their own versions. This leads to build error in other headers like spdlog.
+ */
+#ifdef fprintf
+#undef fprintf
+#endif
 
 // All Postgres headers and function declarations must have C linkage.
 extern "C"
@@ -23,6 +28,11 @@ extern "C"
 #include "utils/lsyscache.h"
 
 } // extern "C"
+
+#define fprintf fprintf
+
+#include <string>
+#include <unordered_map>
 
 #include "gaia/common.hpp"
 

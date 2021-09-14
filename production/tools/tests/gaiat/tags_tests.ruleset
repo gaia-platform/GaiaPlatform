@@ -240,17 +240,6 @@ ruleset test21
     }
 }
 
-// GAIAPLAT-951 (won't do)
-// Dereference confused with tag usage.
-#ifdef TEST_FAILURES // GAIAPLAT-951 (won't do)
-ruleset test22
-{
-    {
-        auto r = context->record;
-    }
-}
-#endif
-
 ruleset test23
 {
     on_change(A:actuator.value, B:actuator.name)
