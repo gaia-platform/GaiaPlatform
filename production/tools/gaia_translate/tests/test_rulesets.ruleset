@@ -124,6 +124,8 @@ ruleset test_tags
     }
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-label"
 ruleset test_queries
 {
     // test_queries_code.new_registration
@@ -196,6 +198,7 @@ COURSE_TAKEN:
         g_onupdate_called = true;
     }
 }
+#pragma clang diagnostic pop
 
 // GAIAPLAT-1124 (fixed)
 ruleset test_query_1
@@ -494,8 +497,43 @@ ruleset test_compile
     }
 #endif
 
+    // TESTCASE: make sure the nomatch is translated into compilable code while using explicit path
+    // GAIAPLAT-1311
+    on_insert(registration)
+    {
+        gaia::prerequisites::student_t studdy;
+        if (/S:student.age > 12 && strcmp(S->parents.name_father, student.student_id) == 0)
+        {
+            studdy = S;
+        }
+        nomatch
+        {
+            fprintf(stderr, "cannot find father's name that matches student id %s\n", student.student_id);
+        }
+    }
+
+    // TESTCASE: should not need qualification to access row's field value
+    // GAIAPLAT-1384
+    on_insert(registration)
+    {
+        student.age = 34;
+        if (strcmp(student->parents.name_father, "Lawrence") == 0)
+        {
+            course.course_id = student.student_id;
+        }
+    }
+
+    // TESTCASE: table out of scope when used in if statement
+    // GAIAPLAT-1393 (likely related to 1384)
+    on_insert(registration)
+    {
+        fprintf(stderr, "student id = %s\n", student.student_id);
+        if (strcmp(student->parents.name_father, "Lawrence") == 0)
+        {
+            fprintf(stderr, "Child of Lawrence student id = %s\n", student.student_id);
+        }
+    }
 }
-#pragma clang diagnostic pop
 
 ruleset test_insert_delete
 {
@@ -520,6 +558,7 @@ DELETE_REG:
         g_onupdate_called = true;
     }
 }
+#pragma clang diagnostic pop
 
 ruleset test_insert_delete_2
 {

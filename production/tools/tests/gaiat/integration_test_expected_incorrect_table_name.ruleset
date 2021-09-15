@@ -1,0 +1,13 @@
+// RUN: echo "table identified in on_insert() must not have field name" | FileCheck  %s
+// not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test109
+{
+    on_insert(incubator.max_temp)
+    {
+        incubator.min_temp = incubator.max_temp;
+    }
+}
+
+// GAIAPLAT-1396
+// CHECK: table identified in on_insert() must not have field name
