@@ -200,7 +200,7 @@ struct chunk_manager_metadata_t
 
     static_assert(
         sizeof(last_allocation_metadata_t) == sizeof(uint64_t),
-        "Expected inline_shared_lock to occupy 8 bytes!");
+        "Expected last_allocation_metadata_t to occupy 8 bytes!");
 
     static_assert(std::atomic<last_allocation_metadata_t>::is_always_lock_free);
 
