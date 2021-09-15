@@ -99,10 +99,10 @@ inline void client_t::txn_log(
 // This generator wraps a socket which reads a stream of values of `T_element_type` from the server.
 template <typename T_element_type>
 std::function<std::optional<T_element_type>()>
-client_t::get_stream_generator_for_socket(int stream_socket)
+client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr)
 {
     // Verify that the socket is the correct type for the semantics we assume.
-    common::check_socket_type(stream_socket, SOCK_SEQPACKET);
+    common::check_socket_type(*stream_socket_ptr, SOCK_SEQPACKET);
 
     // Currently, we associate a cursor with a snapshot view, i.e., a transaction.
     verify_txn_active();
@@ -112,9 +112,9 @@ client_t::get_stream_generator_for_socket(int stream_socket)
     std::vector<T_element_type> batch_buffer;
 
     // The definition of the generator we return.
-    return [stream_socket, owning_txn_id, batch_buffer]() mutable -> std::optional<T_element_type> {
+    return [stream_socket_ptr, owning_txn_id, batch_buffer]() mutable -> std::optional<T_element_type> {
         // We shouldn't be called again after we received EOF from the server.
-        ASSERT_INVARIANT(stream_socket != -1, c_message_stream_socket_is_invalid);
+        ASSERT_INVARIANT(*stream_socket_ptr != -1, c_message_stream_socket_is_invalid);
 
         // The cursor should only be called from within the scope of its owning transaction.
         ASSERT_INVARIANT(s_txn_id == owning_txn_id, "Cursor was not called from the scope of its own transaction!");
@@ -128,7 +128,7 @@ client_t::get_stream_generator_for_socket(int stream_socket)
             // of an extra system call per batch.
             // We set MSG_PEEK to avoid reading the datagram into our buffer,
             // and we set MSG_TRUNC to return the actual buffer size needed.
-            ssize_t datagram_size = ::recv(stream_socket, nullptr, 0, MSG_PEEK | MSG_TRUNC);
+            ssize_t datagram_size = ::recv(*stream_socket_ptr, nullptr, 0, MSG_PEEK | MSG_TRUNC);
             if (datagram_size == -1)
             {
                 common::throw_system_error("recv(MSG_PEEK) failed!");
@@ -136,10 +136,7 @@ client_t::get_stream_generator_for_socket(int stream_socket)
 
             if (datagram_size == 0)
             {
-                // We received EOF from the server, so close
-                // client socket and stop iteration.
-                common::close_fd(stream_socket);
-                // Tell the caller to stop iteration.
+                // We received EOF from the server, so tell the caller to stop iteration.
                 return std::nullopt;
             }
 
@@ -153,7 +150,7 @@ client_t::get_stream_generator_for_socket(int stream_socket)
             // Get the actual data.
             // This is a nonblocking read, because the previous blocking
             // read will not return until data is available.
-            ssize_t bytes_read = ::recv(stream_socket, batch_buffer.data(), batch_buffer.size(), MSG_DONTWAIT);
+            ssize_t bytes_read = ::recv(*stream_socket_ptr, batch_buffer.data(), batch_buffer.size(), MSG_DONTWAIT);
             if (bytes_read == -1)
             {
                 // Per above, we should never have to block here.

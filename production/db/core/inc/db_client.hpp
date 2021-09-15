@@ -88,7 +88,7 @@ public:
     // this generator to build a range or iterator object.
     template <typename T_element_type>
     static std::function<std::optional<T_element_type>()>
-    get_stream_generator_for_socket(int stream_socket);
+    get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr);
 
 private:
     // These fields have transaction lifetime.
@@ -143,7 +143,7 @@ private:
 
     static int get_session_socket(const std::string& socket_name);
 
-    static int get_id_cursor_socket_for_type(common::gaia_type_t type);
+    static std::shared_ptr<int> get_id_cursor_socket_for_type(common::gaia_type_t type);
 
     static std::function<std::optional<int>()>
     get_fd_stream_generator_for_socket(int stream_socket);
