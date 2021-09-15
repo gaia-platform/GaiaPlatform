@@ -3,6 +3,9 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "gaia/common.hpp"
+
+#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
@@ -12,6 +15,8 @@
 #include "db_hash_map.hpp"
 #include "db_helpers.hpp"
 #include "field_access.hpp"
+#include "index_key.hpp"
+#include "index_scan.hpp"
 #include "memory_types.hpp"
 #include "payload_diff.hpp"
 #include "type_id_mapping.hpp"
@@ -499,31 +504,27 @@ void gaia_ptr_t::auto_connect_to_parent(
                     schema->size(),
                     field_position);
 
-                // TODO: use index to find the parent record more efficiently.
                 gaia_type_t parent_table_type = catalog_core_t::get_table(relationship_view.parent_table_id()).table_type();
                 gaia_id_t parent_table_id = type_id_mapping_t::instance().get_record_id(parent_table_type);
                 bool updated = false;
-                for (auto parent_record : find_all_range(parent_table_type))
-                {
-                    auto parent_schema = catalog_core_t::get_table(parent_table_id).binary_schema();
-                    auto parent_field_value = payload_types::get_field_value(
-                        parent_table_id,
-                        reinterpret_cast<const uint8_t*>(parent_record.data()),
-                        parent_schema->data(),
-                        parent_schema->size(),
-                        relationship_view.parent_field_positions()->Get(0));
 
-                    if (parent_field_value.compare(field_value) == 0)
-                    {
-                        update_parent_reference(
-                            child_id,
-                            child_type,
-                            child_references,
-                            parent_record.id(),
-                            relationship_view.parent_offset());
-                        updated = true;
-                        break;
-                    }
+                gaia_id_t parent_index_id = catalog_core_t::find_index(
+                    parent_table_id, relationship_view.parent_field_positions()->Get(0));
+                ASSERT_INVARIANT(parent_index_id != c_invalid_gaia_id, "Cannot find value index for the parent table.");
+
+                auto index_key = index::index_key_t(field_value);
+                for (const auto& parent_scan : query_processor::scan::index_scan_t(
+                         parent_index_id,
+                         std::make_shared<query_processor::scan::index_equal_range_predicate_t>(index_key)))
+                {
+                    update_parent_reference(
+                        child_id,
+                        child_type,
+                        child_references,
+                        parent_scan.id(),
+                        relationship_view.parent_offset());
+                    updated = true;
+                    break;
                 }
 
                 // If there is no match and the record was connected to some
