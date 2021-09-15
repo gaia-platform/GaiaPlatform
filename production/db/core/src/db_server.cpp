@@ -525,11 +525,14 @@ void server_t::handle_request_stream(
         auto index_id = static_cast<gaia_id_t>(request_data->index_id());
         auto txn_id = static_cast<gaia_txn_id_t>(request_data->txn_id());
         auto query_type = request_data->query_type();
+        auto index = id_to_index(index_id);
+
+        ASSERT_INVARIANT(index != nullptr, "Cannot find index!");
 
         switch (query_type)
         {
         case index_query_t::NONE:
-            start_stream_producer(server_socket, id_to_index(index_id)->generator(txn_id));
+            start_stream_producer(server_socket, index->generator(txn_id));
             break;
         case index_query_t::index_point_read_query_t:
         case index_query_t::index_equal_range_query_t:
@@ -554,7 +557,7 @@ void server_t::handle_request_stream(
                     key = index::index_builder_t::deserialize_key(index_id, key_buffer);
                 }
             }
-            start_stream_producer(server_socket, id_to_index(index_id)->equal_range_generator(txn_id, key));
+            start_stream_producer(server_socket, index->equal_range_generator(txn_id, key));
             break;
         }
         default:
@@ -734,6 +737,15 @@ void server_t::init_indexes()
     gaia_locator_t locator = c_invalid_gaia_locator;
     gaia_locator_t last_locator = s_shared_counters.data()->last_locator;
 
+    // Create initial index data structures.
+    for (auto& tbl : catalog_core_t::list_tables())
+    {
+        for (auto& idx : catalog_core_t::list_indexes(tbl.id()))
+        {
+            index::index_builder_t::create_empty_index(idx);
+        }
+    }
+
     while (++locator && locator <= last_locator)
     {
         auto obj = locator_to_ptr(locator);
@@ -752,7 +764,7 @@ void server_t::init_indexes()
             throw invalid_type(obj->type);
         }
 
-        for (auto idx : catalog_core_t::list_indexes(type_record_id))
+        for (auto& idx : catalog_core_t::list_indexes(type_record_id))
         {
             index::index_builder_t::populate_index(idx.id(), obj->type, locator);
         }
