@@ -136,7 +136,7 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
 
             if (datagram_size == 0)
             {
-                // Tell the caller to stop iteration.
+                // We received EOF from the server, so tell the caller to stop iteration.
                 return std::nullopt;
             }
 
