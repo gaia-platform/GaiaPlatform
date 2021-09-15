@@ -144,9 +144,8 @@ function(process_schema)
     get_filename_component(DDL_NAME ${ARG_DDL_FILE} NAME)
     string(REPLACE ".ddl" "" DDL_NAME ${DDL_NAME})
     set(ARG_DATABASE_NAME ${DDL_NAME})
-    message(STATUS "DATABASE_NAME not specified, using: ${ARG_DATABASE_NAME}.")
     set(ARG_TARGET_NAME "generate_${DDL_NAME}_direct_access")
-    message(STATUS "TARGET_NAME not specified, using default value: ${ARG_TARGET_NAME}.")
+    message(STATUS "TARGET_NAME not specified, using value: ${ARG_TARGET_NAME}.")
   endif()
 
   add_custom_target(${ARG_TARGET_NAME} ALL
