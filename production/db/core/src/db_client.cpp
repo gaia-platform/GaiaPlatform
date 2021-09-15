@@ -70,7 +70,7 @@ std::shared_ptr<int> client_t::get_id_cursor_socket_for_type(gaia_type_t type)
     // same effect with an RAII wrapper, but it would need to have copy rather
     // than move semantics, since the socket is captured by a lambda that must
     // be copyable (since it is coerced to std::function).
-    std::shared_ptr<int> stream_socket_ptr(new int{stream_socket}, [](int* pfd) { close_fd(*pfd); delete pfd; });
+    std::shared_ptr<int> stream_socket_ptr(new int{stream_socket}, [](int* fd_ptr) { close_fd(*fd_ptr); delete fd_ptr; });
 
     // Both our explicit new() and the shared_ptr constructor dynamically allocate
     // memory, so we might need to clean up the socket if either fails.
