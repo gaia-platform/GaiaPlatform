@@ -2477,7 +2477,6 @@ public:
                 string table, field, tag;
                 if (parse_attribute(table_iterator, table, field, tag))
                 {
-                    std::string attrib = table_iterator;
                     if (!field.empty())
                     {
                         gaiat::diag().emit(diag::err_illegal_field_reference);
