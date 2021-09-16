@@ -190,6 +190,18 @@ ruleset testE26
      }
 }
 
+//GAIAT-1326
+ruleset testE27
+{
+     on_update(sensor)
+     {
+        if ((strcmp(S:sensor.name, "1") == 0))
+        {
+            incubator.connect(actuator);
+        }
+     }
+}
+
 
 #if 0
 // This rule interferes with 'ruleset set' rules

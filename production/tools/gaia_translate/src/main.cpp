@@ -1283,50 +1283,50 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
         }
         else if (const auto* expression = node_parents_iterator.get<CXXOperatorCallExpr>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
-            update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            SourceRange source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
+            update_expression_location(return_value, source_range.getBegin(), source_range.getEnd());
             return get_expression_source_range(context, *expression, return_value, rewriter);
         }
         else if (const auto* expression = node_parents_iterator.get<BinaryOperator>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
-            update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            SourceRange source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
+            update_expression_location(return_value, source_range.getBegin(), source_range.getEnd());
             return get_expression_source_range(context, *expression, return_value, rewriter);
         }
         else if (const auto* expression = node_parents_iterator.get<UnaryOperator>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
-            update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            SourceRange source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
+            update_expression_location(return_value, source_range.getBegin(), source_range.getEnd());
             return get_expression_source_range(context, *expression, return_value, rewriter);
         }
         else if (const auto* expression = node_parents_iterator.get<ConditionalOperator>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
-            update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            SourceRange source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
+            update_expression_location(return_value, source_range.getBegin(), source_range.getEnd());
             return get_expression_source_range(context, *expression, return_value, rewriter);
         }
         else if (const auto* expression = node_parents_iterator.get<BinaryConditionalOperator>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
-            update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            SourceRange source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
+            update_expression_location(return_value, source_range.getBegin(), source_range.getEnd());
             return get_expression_source_range(context, *expression, return_value, rewriter);
         }
         else if (const auto* expression = node_parents_iterator.get<CompoundAssignOperator>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
-            update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            SourceRange source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
+            update_expression_location(return_value, source_range.getBegin(), source_range.getEnd());
             return get_expression_source_range(context, *expression, return_value, rewriter);
         }
         else if (const auto* expression = node_parents_iterator.get<CXXMemberCallExpr>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
-            update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            SourceRange source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
+            update_expression_location(return_value, source_range.getBegin(), source_range.getEnd());
             return get_expression_source_range(context, *expression, return_value, rewriter);
         }
         else if (const auto* expression = node_parents_iterator.get<CallExpr>())
         {
-            auto offset = Lexer::MeasureTokenLength(expression->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
-            update_expression_location(return_value, expression->getBeginLoc(), expression->getEndLoc().getLocWithOffset(offset));
+            SourceRange source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
+            update_expression_location(return_value, source_range.getBegin(), source_range.getEnd());
             return get_expression_source_range(context, *expression, return_value, rewriter);
         }
         else if (const auto* expression = node_parents_iterator.get<IfStmt>())
@@ -1334,8 +1334,8 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
             if (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value)
                 || is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange()))
             {
-                SourceRange if_source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
-                update_expression_location(return_value, if_source_range.getBegin(), if_source_range.getEnd());
+                SourceRange source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
+                update_expression_location(return_value, source_range.getBegin(), source_range.getEnd());
             }
             return return_value;
         }
@@ -1392,12 +1392,14 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
         }
         else if (const auto* declaration = node_parents_iterator.get<VarDecl>())
         {
-            auto offset
-                = Lexer::MeasureTokenLength(declaration->getEndLoc(), rewriter.getSourceMgr(), rewriter.getLangOpts()) + 1;
-            update_expression_location(
-                return_value, declaration->getBeginLoc(), declaration->getEndLoc().getLocWithOffset(offset));
-            return_value.setEnd(declaration->getEndLoc().getLocWithOffset(offset));
             return_value.setBegin(declaration->getBeginLoc());
+            return_value.setEnd(declaration->getEndLoc());
+
+            SourceLocation end_location = Lexer::findLocationAfterToken(return_value.getEnd(), tok::semi, rewriter.getSourceMgr(), rewriter.getLangOpts(), true);
+            if (end_location.isValid())
+            {
+                return_value.setEnd(end_location.getLocWithOffset(-1));
+            }
             auto node_parents = context->getParents(*declaration);
             return get_expression_source_range(context, *(node_parents[0].get<DeclStmt>()), return_value, rewriter);
         }
