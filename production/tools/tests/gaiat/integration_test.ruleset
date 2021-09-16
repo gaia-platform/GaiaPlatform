@@ -154,10 +154,6 @@ ruleset test12
 // are multi-anchor rules.
 ruleset test13
 {
-    on_insert(sensor.value, sensor.timestamp)
-    {
-    }
-
     on_insert(sensor, sensor)
     {
     }

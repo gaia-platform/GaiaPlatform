@@ -136,6 +136,8 @@ ruleset test14
     }
 }
 
+#if 0
+// Note: this has been recently disallowed by GAIAPLAT-1396.
 ruleset test15
 {
     // NOTE: the ".min_temp" field didn't cause this rule to fire, but
@@ -145,6 +147,7 @@ ruleset test15
         use_float(I.min_temp);
     }
 }
+#endif
 
 // GAIAPLAT-829 (fixed)
 ruleset test16
