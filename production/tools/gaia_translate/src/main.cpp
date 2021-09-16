@@ -791,19 +791,24 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 navigation_code.postfix = "\n" + continue_label + ":;\n" + navigation_code.postfix;
             }
 
-            rewriter.InsertTextBefore(explicit_path_data_iterator.first.getBegin(), navigation_code.prefix);
-            rewriter.InsertTextAfter(explicit_path_data_iterator.first.getEnd(), navigation_code.postfix);
+            if (nomatch_range.isValid())
+            {
+                string variable_name = table_navigation_t::get_variable_name("", unordered_map<string, string>());
+                string nomatch_prefix = "{\nbool " + variable_name + " = false;\n";
+                rewriter.InsertTextBefore(explicit_path_data_iterator.first.getBegin(), nomatch_prefix + navigation_code.prefix);
+                rewriter.InsertTextAfter(explicit_path_data_iterator.first.getBegin(), variable_name + " = true;\n");
+                rewriter.RemoveText(SourceRange(get_previous_token_location(nomatch_range.getBegin(), rewriter), nomatch_range.getBegin().getLocWithOffset(-1)));
+                rewriter.InsertTextBefore(nomatch_range.getBegin(),navigation_code.postfix + "\nif (!" + variable_name + ")\n");
+                rewriter.InsertTextAfter(nomatch_range.getEnd(),"}\n");
+                nomatch_range = SourceRange();
+            }
+            else
+            {
+                rewriter.InsertTextBefore(explicit_path_data_iterator.first.getBegin(), navigation_code.prefix);
+                rewriter.InsertTextAfter(explicit_path_data_iterator.first.getEnd(), navigation_code.postfix);
+            }
         }
-        if (nomatch_range.isValid())
-        {
-            string variable_name = table_navigation_t::get_variable_name("", unordered_map<string, string>());
-            string nomatch_prefix = "{\nbool " + variable_name + " = false;\n";
-            rewriter.InsertTextBefore(explicit_path_data_iterator.first.getBegin(), nomatch_prefix);
-            rewriter.InsertTextAfter(explicit_path_data_iterator.first.getBegin(), variable_name + " = true;\n");
-            rewriter.RemoveText(SourceRange(get_previous_token_location(nomatch_range.getBegin(), rewriter), nomatch_range.getBegin().getLocWithOffset(-1)));
-            rewriter.InsertTextBefore(nomatch_range.getBegin(), "\nif (!" + variable_name + ")\n");
-            rewriter.InsertTextAfter(nomatch_range.getEnd(),"}\n");
-        }
+
     }
 }
 
