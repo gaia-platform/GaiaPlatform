@@ -64,7 +64,7 @@ public:
         common::gaia_id_t id);
 
     // TODO this should either accept a gaia_id_t or be an instance method.
-    static void remove(gaia_ptr_t& node);
+    static void remove(gaia_ptr_t& object);
 
     gaia_ptr_t& clone();
 

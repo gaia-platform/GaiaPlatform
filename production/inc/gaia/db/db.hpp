@@ -162,7 +162,7 @@ public:
     explicit invalid_object_id(common::gaia_id_t id)
     {
         std::stringstream strs;
-        strs << "Cannot find a node with ID '" << id << "'.";
+        strs << "Cannot find a object with ID '" << id << "'.";
         m_message = strs.str();
     }
 };
@@ -175,12 +175,15 @@ public:
 class object_still_referenced : public common::gaia_exception
 {
 public:
-    object_still_referenced(common::gaia_id_t id, common::gaia_type_t object_type)
+    object_still_referenced(
+        common::gaia_id_t id, common::gaia_type_t object_type,
+        common::gaia_id_t other_id, common::gaia_type_t other_type)
     {
         std::stringstream msg;
         msg
-            << "Cannot delete object '" << id << "', type '" << object_type
-            << "', because it is still referenced by another object.";
+            << "Cannot delete object with ID '" << id << "', type '" << object_type
+            << "', because it is still referenced by another object with ID '"
+            << other_id << "', type: '" << other_type << "'";
         m_message = msg.str();
     }
 };
