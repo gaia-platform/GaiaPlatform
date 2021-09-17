@@ -9592,7 +9592,7 @@ def err_multi_anchor_tables : Error<
   "in 'on_' attributes (on_insert, on_change, or on_update). "
   "Ensure that all your active field references belong to the same table.">;
 def err_illegal_field_reference : Error<
-  "A field name may not be referenced in the on_insert statement. Use only a table name.">;
+  "A field may not be referenced in the 'on_insert' statement. The 'on_insert' attribute only accepts a table.">;
 def err_multiple_shortest_paths : Error<
   "Multiple shortest paths exist between tables '%0' and '%1'. "
   "Explicitly specify the navigation path between these two tables to resolve the ambiguity.">;

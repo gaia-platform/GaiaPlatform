@@ -9,4 +9,4 @@ ruleset test109
 }
 
 // GAIAPLAT-1396
-// CHECK: A field name may not be referenced in the on_insert statement. Use only a table name.
+// CHECK: A field may not be referenced in the 'on_insert' statement. The 'on_insert' attribute only accepts a table.
