@@ -69,7 +69,7 @@ void start_repl(parser_t& parser)
     initialize_catalog();
 
     const auto prompt = "gaiac> ";
-    const auto wait_for_more_prompt = "... gaiac> ";
+    const auto wait_for_more_prompt = "> ";
     const auto exit_command = "exit";
 
     string ddl_buffer;
