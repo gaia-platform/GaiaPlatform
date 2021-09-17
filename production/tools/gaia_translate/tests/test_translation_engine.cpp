@@ -43,15 +43,15 @@ public:
         w.name = name;
         w.min_temp = min_temp;
         w.max_temp = max_temp;
-        return w.insert_row();
+        return w.insert();
     }
 
     void init_storage()
     {
         gaia::db::begin_transaction();
         auto incubator = gaia::barn_storage::incubator_t::get(insert_incubator("TestIncubator", c_g_incubator_min_temperature, c_g_incubator_max_temperature));
-        incubator.sensors().insert(gaia::barn_storage::sensor_t::insert_row("TestSensor1", 0, 0.0));
-        incubator.actuators().insert(gaia::barn_storage::actuator_t::insert_row("TestActuator1", 0, 0.0));
+        incubator.sensors().insert(gaia::barn_storage::sensor_t::insert("TestSensor1", 0, 0.0));
+        incubator.actuators().insert(gaia::barn_storage::actuator_t::insert("TestActuator1", 0, 0.0));
         gaia::db::commit_transaction();
     }
 
@@ -117,7 +117,7 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
     {
         auto w = s.writer();
         w.value = c_g_expected_sensor_value;
-        w.update_row();
+        w.update();
     }
     gaia::db::commit_transaction();
 
@@ -156,7 +156,7 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
 
     gaia::db::begin_transaction();
 
-    auto s_id = gaia::barn_storage::sensor_t::insert_row("TestSensor2", 0, 0.0);
+    auto s_id = gaia::barn_storage::sensor_t::insert("TestSensor2", 0, 0.0);
     auto incubator = *(gaia::barn_storage::incubator_t::list().begin());
     incubator.sensors().insert(s_id);
     gaia::db::commit_transaction();
@@ -174,7 +174,7 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
 
     auto s = gaia::barn_storage::sensor_t::get(s_id);
     s.incubator().sensors().remove(s);
-    s.delete_row();
+    s.remove();
 
     gaia::db::commit_transaction();
 }

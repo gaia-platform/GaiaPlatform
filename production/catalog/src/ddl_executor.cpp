@@ -302,7 +302,7 @@ gaia_id_t ddl_executor_t::create_database(const string& name, bool throw_on_exis
 
     gaia_log::catalog().debug("Creating database '{}'", name);
 
-    gaia_id_t id = gaia_database_t::insert_row(name.c_str());
+    gaia_id_t id = gaia_database_t::insert(name.c_str());
 
     gaia_log::catalog().debug("Created database '{}', id:'{}'", name, id);
 
@@ -506,7 +506,7 @@ gaia_id_t ddl_executor_t::create_relationship(
         }
     }
 
-    gaia_id_t relationship_id = gaia_relationship_t::insert_row(
+    gaia_id_t relationship_id = gaia_relationship_t::insert(
         name.c_str(),
         to_parent_link_name,
         to_child_link_name,
@@ -543,7 +543,7 @@ void ddl_executor_t::drop_relationship_no_ri(gaia_relationship_t& relationship)
             .remove(relationship);
     }
 
-    relationship.delete_row();
+    relationship.remove();
 }
 
 void ddl_executor_t::drop_relationship(const std::string& name, bool throw_unless_exists)
@@ -616,7 +616,7 @@ void ddl_executor_t::drop_relationships(gaia_id_t table_id, bool enforce_referen
             // Mark the relationship as deprecated.
             auto writer = relationship.writer();
             writer.deprecated = true;
-            writer.update_row();
+            writer.update();
 
             // Unlink the child side of the relationship.
             relationship.child()
@@ -626,7 +626,7 @@ void ddl_executor_t::drop_relationships(gaia_id_t table_id, bool enforce_referen
         else
         {
             // Parent is already unlinked (maybe the field has been deleted).
-            relationship.delete_row();
+            relationship.remove();
         }
     }
 }
@@ -642,7 +642,7 @@ void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_int
         // Unlink the field and the table.
         table_record.gaia_fields().remove(field_id);
         // Remove the field.
-        gaia_field_t::get(field_id).delete_row();
+        gaia_field_t::get(field_id).remove();
     }
 
     for (gaia_id_t reference_id : list_references(table_id))
@@ -651,7 +651,7 @@ void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_int
         table_record.gaia_fields().remove(reference_id);
         auto reference_record = gaia_field_t::get(reference_id);
         // Remove the reference.
-        reference_record.delete_row();
+        reference_record.remove();
     }
 
     std::vector<gaia_id_t> index_ids;
@@ -664,13 +664,13 @@ void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_int
         // Unlink the index.
         table_record.gaia_indexes().remove(id);
         // Remove the index.
-        gaia_index_t::get(id).delete_row();
+        gaia_index_t::get(id).remove();
     }
 
     // Unlink the table from its database.
     table_record.database().gaia_tables().remove(table_record);
     // Remove the table.
-    table_record.delete_row();
+    table_record.remove();
 }
 
 void ddl_executor_t::drop_database(const string& name, bool throw_unless_exists)
@@ -695,7 +695,7 @@ void ddl_executor_t::drop_database(const string& name, bool throw_unless_exists)
     {
         drop_table(table_id, false);
     }
-    db_record.delete_row();
+    db_record.remove();
 }
 
 void ddl_executor_t::drop_table(const string& db_name, const string& name, bool throw_unless_exists)
@@ -855,7 +855,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
 
     gaia_type_t table_type = fixed_type == c_invalid_gaia_type ? allocate_type() : fixed_type;
 
-    gaia_id_t table_id = gaia_table_t::insert_row(
+    gaia_id_t table_id = gaia_table_t::insert(
         table_name.c_str(),
         table_type,
         is_system,
@@ -876,7 +876,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
         }
 
         const data_field_def_t* data_field = dynamic_cast<data_field_def_t*>(field.get());
-        gaia_id_t field_id = gaia_field_t::insert_row(
+        gaia_id_t field_id = gaia_field_t::insert(
             field->name.c_str(),
             static_cast<uint8_t>(data_field->data_type),
             data_field->length,
@@ -889,7 +889,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
         // Create an unique range index for the unique field.
         if (data_field->unique)
         {
-            gaia_id_t index_id = gaia_index_t::insert_row(
+            gaia_id_t index_id = gaia_index_t::insert(
                 string(table_name + '_' + field->name).c_str(),
                 true,
                 static_cast<uint8_t>(index_type_t::range),
@@ -999,7 +999,7 @@ gaia_id_t ddl_executor_t::create_index(
 
     std::vector<gaia_id_t> index_field_ids = find_table_field_ids(table_id, field_names);
 
-    gaia_id_t index_id = gaia_index_t::insert_row(
+    gaia_id_t index_id = gaia_index_t::insert(
         index_name.c_str(),
         unique,
         static_cast<uint8_t>(type),
@@ -1014,7 +1014,7 @@ gaia_id_t ddl_executor_t::create_index(
     {
         auto field_writer = gaia_field_t::get(index_field_ids.front()).writer();
         field_writer.unique = true;
-        field_writer.update_row();
+        field_writer.update();
     }
 
     return index_id;
@@ -1033,7 +1033,7 @@ void ddl_executor_t::drop_index(const std::string& name, bool throw_unless_exist
         return;
     }
     index_iter->table().gaia_indexes().remove(index_iter->gaia_id());
-    index_iter->delete_row();
+    index_iter->remove();
 }
 
 } // namespace catalog

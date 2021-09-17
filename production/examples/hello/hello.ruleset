@@ -20,7 +20,7 @@ ruleset hello_ruleset
         string new_greeting = "Hello " + string(names.name) + "!";
 
         // Insert the greeting.
-        gaia::hello::greetings_t::insert_row(new_greeting.c_str());
+        gaia::hello::greetings_t::insert(new_greeting.c_str());
     }
     // Rule 2: Whenever a greeting is inserted,
     // output it to the console.

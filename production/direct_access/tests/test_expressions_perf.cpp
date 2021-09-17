@@ -122,14 +122,14 @@ public:
             employee_writer.name_first = "Name_" + to_string(index_employee);
             employee_writer.name_last = "Surname_" + to_string(index_employee);
             employee_writer.hire_date = static_cast<int64_t>(index_employee);
-            auto employee = employee_t::get(employee_writer.insert_row());
+            auto employee = employee_t::get(employee_writer.insert());
 
             for (uint64_t index_address = 0; index_address < c_num_employee_addresses; index_address++)
             {
                 auto address_w = address_writer();
                 address_w.city = "city_" + to_string(index_address);
                 address_w.state = "state_" + to_string(index_address);
-                employee.addresses().insert(address_w.insert_row());
+                employee.addresses().insert(address_w.insert());
             }
 
             if (index_employee % 10000 == 0)

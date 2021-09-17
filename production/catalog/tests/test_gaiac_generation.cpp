@@ -38,7 +38,7 @@ TEST_F(gaia_generate_test, use_create_table)
     EXPECT_NE(0, header_str.find("class airport_t"));
 
     auto cpp_str = generate_edc_cpp("airport_test", "gaia_airport.h");
-    EXPECT_NE(0, header_str.find("trip_segment_t::insert_row"));
+    EXPECT_NE(0, header_str.find("trip_segment_t::insert"));
 }
 
 // Start from Gaia DDL to create an EDC header.
@@ -54,7 +54,7 @@ TEST_F(gaia_generate_test, parse_ddl)
     EXPECT_NE(0, header_str.find("class tmp_airport"));
 
     auto cpp_str = generate_edc_cpp(c_empty_db_name, "gaia_airport.h");
-    EXPECT_NE(0, header_str.find("tmp_airport::insert_row"));
+    EXPECT_NE(0, header_str.find("tmp_airport::insert"));
 }
 
 TEST_F(gaia_generate_test, airport_example)
@@ -64,13 +64,13 @@ TEST_F(gaia_generate_test, airport_example)
     // flies from Denver to Chicago. A segment 888 miles long, no status, no
     // miles flown.
     const int32_t c_miles1 = 888;
-    auto segment_1 = segment_t::get(segment_t::insert_row(c_miles1, 0, 0));
+    auto segment_1 = segment_t::get(segment_t::insert(c_miles1, 0, 0));
 
     // An airport.
     auto airport_1 = airport_t::get(
-        airport_t::insert_row("Denver International", "Denver", "DEN"));
+        airport_t::insert("Denver International", "Denver", "DEN"));
     auto airport_2 = airport_t::get(
-        airport_t::insert_row("Chicago O'Hare International", "Chicago", "ORD"));
+        airport_t::insert("Chicago O'Hare International", "Chicago", "ORD"));
 
     // Connect the segment to the source and destination airports.
     airport_1.segments_from().insert(segment_1);
@@ -80,15 +80,15 @@ TEST_F(gaia_generate_test, airport_example)
     begin_transaction();
     // A 606 mile segment.
     const int c_miles2 = 606;
-    auto segment_2 = segment_t::get(segment_t::insert_row(c_miles2, 0, 0));
+    auto segment_2 = segment_t::get(segment_t::insert(c_miles2, 0, 0));
     auto airport_3 = airport_t::get(
-        airport_t::insert_row("Atlanta International", "Atlanta", "ATL"));
+        airport_t::insert("Atlanta International", "Atlanta", "ATL"));
     airport_2.segments_from().insert(segment_2);
     airport_3.segments_to().insert(segment_2);
 
     // Create the flight #58 that spans two segments.
     const int c_flight = 58;
-    auto flight_1 = flight_t::get(flight_t::insert_row(c_flight, {0}));
+    auto flight_1 = flight_t::get(flight_t::insert(c_flight, {0}));
     // Insert both segments to the flight's list of segments.
     flight_1.segments().insert(segment_1);
     flight_1.segments().insert(segment_2);

@@ -562,7 +562,7 @@ public:
         auto entry = *(gaia::event_log::event_log_t::list().begin());
         while (entry)
         {
-            entry.delete_row();
+            entry.remove();
             entry = *(gaia::event_log::event_log_t::list().begin());
             rows_cleared++;
         }

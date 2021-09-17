@@ -54,7 +54,7 @@ TEST_F(test_mixed_code, subscribe_valid_ruleset)
     gaia::db::begin_transaction();
 
     auto incubator = incubator_t::get(
-        incubator_t::insert_row(
+        incubator_t::insert(
             "TestIncubator",
             c_g_incubator_min_temperature,
             c_g_incubator_max_temperature));
@@ -85,8 +85,8 @@ TEST_F(test_mixed_code, insert_delete_row)
 {
     gaia::db::begin_transaction();
 
-    auto sensor = sensor_t::get(sensor_t::insert_row("TestSensor", 20210708, 98.6));
-    sensor.delete_row();
+    auto sensor = sensor_t::get(sensor_t::insert("TestSensor", 20210708, 98.6));
+    sensor.remove();
 
     g_test_mixed_value = 0;
     gaia::db::commit_transaction();

@@ -83,7 +83,7 @@ public:
      * Delete the database object. This doesn't destroy the extended data class
      * object.
      */
-    void delete_row();
+    void remove();
 
     /**
      * Delete the database object specified by the id.
@@ -119,9 +119,9 @@ protected:
 
     /**
      * Insert a mutable flatbuffer into a newly created database object. This will be
-     * used by the generated type-specific insert_row() method.
+     * used by the generated type-specific insert() method.
      */
-    static gaia::common::gaia_id_t insert_row(flatbuffers::FlatBufferBuilder& fbb);
+    static gaia::common::gaia_id_t insert(flatbuffers::FlatBufferBuilder& fbb);
 
     /**
      * Materialize the flatbuffer associated with this record
@@ -159,12 +159,12 @@ public:
      * Insert the values in this new object into a newly created database object.
      * The user can get a new object by fetching the returned id using get(id)
      */
-    gaia::common::gaia_id_t insert_row();
+    gaia::common::gaia_id_t insert();
 
     /**
      * Update the row values stored in this writer.
      */
-    void update_row();
+    void update();
 
 private:
     flatbuffers::FlatBufferBuilder m_builder;

@@ -645,7 +645,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
         replacement_string
             .append("get(")
             .append(class_qualification_string)
-            .append("insert_row(");
+            .append("insert(");
         vector<string> function_arguments = table_navigation_t::get_table_fields(insert_data.table_name);
         const auto table_data_iterator = table_navigation_t::get_table_data().find(insert_data.table_name);
         // Generate call arguments.
@@ -1629,10 +1629,7 @@ void update_expression_explicit_path_data(
             {
                 string first_component = get_table_from_expression(data.path_components.front());
                 const auto tag_iterator = data.tag_table_map.find(first_component);
-                if (tag_iterator != data.tag_table_map.end() &&
-                    (tag_iterator->second != tag_iterator->first ||
-                     explicit_path_data_iterator != g_expression_explicit_path_data.end() ||
-                     can_path_be_optimized(first_component, expression_explicit_path_data_iterator.second)))
+                if (tag_iterator != data.tag_table_map.end() && (tag_iterator->second != tag_iterator->first || explicit_path_data_iterator != g_expression_explicit_path_data.end() || can_path_be_optimized(first_component, expression_explicit_path_data_iterator.second)))
                 {
                     data.skip_implicit_path_generation = true;
                 }
@@ -2148,9 +2145,9 @@ public:
         m_rewriter.ReplaceText(set_source_range, replacement_text);
         g_rewriter_history.push_back({set_source_range, replacement_text, replace_text});
         m_rewriter.InsertTextAfterToken(
-            op->getEndLoc(), "; w.update_row(); return w." + field_name + ";}()");
+            op->getEndLoc(), "; w.update(); return w." + field_name + ";}()");
         g_rewriter_history.push_back(
-            {SourceRange(op->getEndLoc()), "; w.update_row(); return w." + field_name + ";}()",
+            {SourceRange(op->getEndLoc()), "; w.update(); return w." + field_name + ";}()",
              insert_text_after_token});
 
         auto offset = Lexer::MeasureTokenLength(op->getEndLoc(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
@@ -2315,13 +2312,13 @@ public:
                 replace_string
                     = "[&]() mutable {auto t = "
                     + variable_name + "." + field_name + "(); auto w = "
-                    + variable_name + ".writer(); w." + field_name + "++; w.update_row(); return t;}()";
+                    + variable_name + ".writer(); w." + field_name + "++; w.update(); return t;}()";
             }
             else if (op->isDecrementOp())
             {
                 replace_string
                     = "[&]() mutable {auto t =" + variable_name + "." + field_name + "(); auto w = "
-                    + variable_name + ".writer(); w." + field_name + "--; w.update_row(); return t;}()";
+                    + variable_name + ".writer(); w." + field_name + "--; w.update(); return t;}()";
             }
         }
         else
@@ -2330,13 +2327,13 @@ public:
             {
                 replace_string
                     = "[&]() mutable {auto w = " + variable_name + ".writer(); ++ w." + field_name
-                    + ";w.update_row(); return w." + field_name + ";}()";
+                    + ";w.update(); return w." + field_name + ";}()";
             }
             else if (op->isDecrementOp())
             {
                 replace_string
                     = "[&]() mutable {auto w = " + variable_name + ".writer(); -- w." + field_name
-                    + ";w.update_row(); return w." + field_name + ";}()";
+                    + ";w.update(); return w." + field_name + ";}()";
             }
         }
 
@@ -2898,8 +2895,8 @@ public:
         const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("removeCall");
         if (expression != nullptr)
         {
-            m_rewriter.ReplaceText(SourceRange(expression->getExprLoc(), expression->getEndLoc()), "delete_row()");
-            g_rewriter_history.push_back({SourceRange(expression->getExprLoc(), expression->getEndLoc()), "delete_row()", replace_text});
+            m_rewriter.ReplaceText(SourceRange(expression->getExprLoc(), expression->getEndLoc()), "remove()");
+            g_rewriter_history.push_back({SourceRange(expression->getExprLoc(), expression->getEndLoc()), "remove()", replace_text});
         }
         else
         {
@@ -2950,12 +2947,8 @@ public:
             size_t argument_name_end_position = raw_argument_name.find(':');
             string argument_name = raw_argument_name.substr(0, argument_name_end_position);
             // Trim the argument name of whitespaces.
-            argument_name.erase(argument_name.begin(), find_if(argument_name.begin(), argument_name.end(), [](unsigned char ch)
-                                                               { return !isspace(ch); }));
-            argument_name.erase(find_if(argument_name.rbegin(), argument_name.rend(), [](unsigned char ch)
-                                        { return !isspace(ch); })
-                                    .base(),
-                                argument_name.end());
+            argument_name.erase(argument_name.begin(), find_if(argument_name.begin(), argument_name.end(), [](unsigned char ch) { return !isspace(ch); }));
+            argument_name.erase(find_if(argument_name.rbegin(), argument_name.rend(), [](unsigned char ch) { return !isspace(ch); }).base(), argument_name.end());
             insert_data.argument_map[argument_name] = argument->getSourceRange();
             insert_data.argument_replacement_map[argument->getSourceRange()] = m_rewriter.getRewrittenText(argument->getSourceRange());
         }
@@ -3544,8 +3537,7 @@ public:
         Rewriter& rewriter = *m_rewriter;
 
         // Always call the TextDiagnosticPrinter's EndSourceFile() method.
-        auto call_end_source_file = gaia::common::scope_guard::make_scope_guard([this]
-                                                                                { TextDiagnosticPrinter::EndSourceFile(); });
+        auto call_end_source_file = gaia::common::scope_guard::make_scope_guard([this] { TextDiagnosticPrinter::EndSourceFile(); });
 
         generate_rules(rewriter);
         if (g_is_generation_error)

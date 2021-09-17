@@ -331,7 +331,7 @@ std::string class_writer_t::generate_public_constructor()
 std::string class_writer_t::generate_insert()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "static gaia::common::gaia_id_t insert_row(\\";
+    code += "static gaia::common::gaia_id_t insert(\\";
     code += generate_method_params(m_table.fields()) + "\\";
     code += ");";
     return code.ToString();
@@ -340,7 +340,7 @@ std::string class_writer_t::generate_insert()
 std::string class_writer_t::generate_insert_cpp()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "gaia::common::gaia_id_t {{TABLE_NAME}}_t::insert_row(\\";
+    code += "gaia::common::gaia_id_t {{TABLE_NAME}}_t::insert(\\";
     code += generate_method_params(m_table.fields()) + "\\";
     code += ") {";
     code.IncrementIdentLevel();
@@ -359,7 +359,7 @@ std::string class_writer_t::generate_insert_cpp()
         code += field.field_name() + "\\";
     }
     code += "));";
-    code += "return edc_object_t::insert_row(b);";
+    code += "return edc_object_t::insert(b);";
     code.DecrementIdentLevel();
     code += "}";
     return code.ToString();

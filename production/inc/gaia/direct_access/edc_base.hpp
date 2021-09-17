@@ -164,7 +164,7 @@ public:
 };
 
 // To connect two objects, a gaia_id() is needed but not available until SE create is called during
-// the insert_row().
+// the insert().
 class edc_invalid_state : public common::gaia_exception
 {
 public:

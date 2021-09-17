@@ -31,7 +31,7 @@ protected:
         w.name = name;
         w.min_temp = min_temp;
         w.max_temp = max_temp;
-        return w.insert_row();
+        return w.insert();
     }
 };
 
@@ -48,7 +48,7 @@ TEST_F(gaia_incubator_test, schema_read_write_test)
         incubator_id = insert_incubator(c_chicken, c_chicken_min, c_chicken_max);
         ASSERT_TRUE(incubator_id != c_invalid_gaia_id);
         auto incubator = incubator_t::get(incubator_id);
-        auto sensor = sensor_t::insert_row(c_sensor_a, 0, c_chicken_min);
+        auto sensor = sensor_t::insert(c_sensor_a, 0, c_chicken_min);
         incubator.sensors().insert(sensor);
         txn.commit();
     }

@@ -34,7 +34,7 @@ TEST(sdk_test_no_init_rules, app_check)
         employee_writer w;
         w.name_first = "Did_not";
         w.name_last = "Provide_initialize_rules";
-        w.insert_row();
+        w.insert();
         // Don't change the state of the db at all (no commit).
     }
     gaia::system::shutdown();

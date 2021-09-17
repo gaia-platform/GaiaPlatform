@@ -74,7 +74,7 @@ class gaia_index_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_i
 public:
     gaia_index_t() : edc_object_t() {}
     static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(const char* name, bool unique, uint8_t type, const std::vector<uint64_t>& fields);
+    static gaia::common::gaia_id_t insert(const char* name, bool unique, uint8_t type, const std::vector<uint64_t>& fields);
     static gaia::direct_access::edc_container_t<c_gaia_type_gaia_index, gaia_index_t> list();
     const char* name() const;
     bool unique() const;
@@ -119,7 +119,7 @@ class gaia_rule_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_ru
 public:
     gaia_rule_t() : edc_object_t() {}
     static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(const char* name);
+    static gaia::common::gaia_id_t insert(const char* name);
     static gaia::direct_access::edc_container_t<c_gaia_type_gaia_rule, gaia_rule_t> list();
     const char* name() const;
     gaia_ruleset_t ruleset() const;
@@ -153,7 +153,7 @@ public:
     typedef gaia::direct_access::reference_chain_container_t<gaia_rule_t> gaia_rules_list_t;
     gaia_ruleset_t() : edc_object_t() {}
     static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(const char* name, bool active_on_startup, const std::vector<uint64_t>& table_ids, const char* source_location, const char* serial_stream);
+    static gaia::common::gaia_id_t insert(const char* name, bool active_on_startup, const std::vector<uint64_t>& table_ids, const char* source_location, const char* serial_stream);
     static gaia::direct_access::edc_container_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t> list();
     const char* name() const;
     bool active_on_startup() const;
@@ -202,7 +202,7 @@ class gaia_relationship_t : public gaia::direct_access::edc_object_t<c_gaia_type
 public:
     gaia_relationship_t() : edc_object_t() {}
     static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(const char* name, const char* to_parent_link_name, const char* to_child_link_name, uint8_t cardinality, bool parent_required, bool deprecated, uint16_t first_child_offset, uint16_t next_child_offset, uint16_t parent_offset, const std::vector<uint16_t>& parent_field_positions, const std::vector<uint16_t>& child_field_positions);
+    static gaia::common::gaia_id_t insert(const char* name, const char* to_parent_link_name, const char* to_child_link_name, uint8_t cardinality, bool parent_required, bool deprecated, uint16_t first_child_offset, uint16_t next_child_offset, uint16_t parent_offset, const std::vector<uint16_t>& parent_field_positions, const std::vector<uint16_t>& child_field_positions);
     static gaia::direct_access::edc_container_t<c_gaia_type_gaia_relationship, gaia_relationship_t> list();
     const char* name() const;
     const char* to_parent_link_name() const;
@@ -279,7 +279,7 @@ class gaia_field_t : public gaia::direct_access::edc_object_t<c_gaia_type_gaia_f
 public:
     gaia_field_t() : edc_object_t() {}
     static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(const char* name, uint8_t type, uint16_t repeated_count, uint16_t position, bool deprecated, bool active, bool unique);
+    static gaia::common::gaia_id_t insert(const char* name, uint8_t type, uint16_t repeated_count, uint16_t position, bool deprecated, bool active, bool unique);
     static gaia::direct_access::edc_container_t<c_gaia_type_gaia_field, gaia_field_t> list();
     const char* name() const;
     uint8_t type() const;
@@ -340,7 +340,7 @@ public:
     typedef gaia::direct_access::reference_chain_container_t<gaia_field_t> gaia_fields_list_t;
     gaia_table_t() : edc_object_t() {}
     static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(const char* name, uint32_t type, bool is_system, const std::vector<uint8_t>& binary_schema, const std::vector<uint8_t>& serialization_template);
+    static gaia::common::gaia_id_t insert(const char* name, uint32_t type, bool is_system, const std::vector<uint8_t>& binary_schema, const std::vector<uint8_t>& serialization_template);
     static gaia::direct_access::edc_container_t<c_gaia_type_gaia_table, gaia_table_t> list();
     const char* name() const;
     uint32_t type() const;
@@ -406,7 +406,7 @@ public:
     typedef gaia::direct_access::reference_chain_container_t<gaia_table_t> gaia_tables_list_t;
     gaia_database_t() : edc_object_t() {}
     static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(const char* name);
+    static gaia::common::gaia_id_t insert(const char* name);
     static gaia::direct_access::edc_container_t<c_gaia_type_gaia_database, gaia_database_t> list();
     const char* name() const;
     gaia_tables_list_t gaia_tables() const;

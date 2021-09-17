@@ -281,8 +281,8 @@ TEST_F(index_test, unique_constraint_same_txn)
     const int32_t flight_number = 1766;
 
     auto_transaction_t txn;
-    flight_t::insert_row(flight_number, {});
-    flight_t::insert_row(flight_number, {});
+    flight_t::insert(flight_number, {});
+    flight_t::insert(flight_number, {});
     EXPECT_THROW(txn.commit(), unique_constraint_violation);
 }
 
@@ -291,11 +291,11 @@ TEST_F(index_test, unique_constraint_different_txn)
     const int32_t flight_number = 1766;
 
     auto_transaction_t txn;
-    flight_t::insert_row(flight_number, {});
+    flight_t::insert(flight_number, {});
     txn.commit();
 
     // Attempt to re-insert the same key - we should trigger the conflict.
-    flight_t::insert_row(flight_number, {});
+    flight_t::insert(flight_number, {});
     EXPECT_THROW(txn.commit(), unique_constraint_violation);
 }
 
@@ -305,13 +305,13 @@ TEST_F(index_test, unique_constraint_rollback_transaction)
     const int32_t second_flight_number = 1767;
 
     auto_transaction_t txn;
-    flight_t::insert_row(first_flight_number, {});
+    flight_t::insert(first_flight_number, {});
     txn.commit();
 
     // Insert a second key and then attempt to re-insert the first key.
     // We should trigger the conflict and our transactions should be rolled back.
-    flight_t::insert_row(second_flight_number, {});
-    flight_t::insert_row(first_flight_number, {});
+    flight_t::insert(second_flight_number, {});
+    flight_t::insert(first_flight_number, {});
     EXPECT_THROW(txn.commit(), unique_constraint_violation);
 
     // Attempt to insert the second key again.
@@ -319,6 +319,6 @@ TEST_F(index_test, unique_constraint_rollback_transaction)
     // We need to manually start a transaction because the exception generated earlier
     // prevented the automatic restart.
     txn.begin();
-    flight_t::insert_row(second_flight_number, {});
+    flight_t::insert(second_flight_number, {});
     txn.commit();
 }

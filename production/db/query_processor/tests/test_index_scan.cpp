@@ -45,7 +45,7 @@ public:
             w.str = ""; // SAME
             w.f = static_cast<float>(i); // ASC
             w.i = c_num_initial_rows - i; // DESC
-            w.insert_row();
+            w.insert();
         }
 
         txn.commit();
@@ -404,7 +404,7 @@ TEST_F(test_index_scan, insert_followed_by_delete)
     w.str = "HELLO";
     w.f = 21.0;
     w.i = -1;
-    to_delete = w.insert_row();
+    to_delete = w.insert();
 
     // Insert should be visible.
     gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
@@ -424,7 +424,7 @@ TEST_F(test_index_scan, insert_followed_by_delete)
     gaia::db::commit_transaction();
 
     gaia::db::begin_transaction();
-    gaia::index_sandbox::sandbox_t::get(to_delete).delete_row();
+    gaia::index_sandbox::sandbox_t::get(to_delete).remove();
 
     // Delete in effect.
     for (const auto& idx : catalog_core_t::list_indexes(type_record_id))
@@ -451,9 +451,9 @@ TEST_F(test_index_scan, multi_insert_followed_by_delete)
     w.str = "HELLO";
     w.f = 21.0;
     w.i = -1;
-    to_delete = w.insert_row();
-    to_delete2 = w.insert_row();
-    to_delete3 = w.insert_row();
+    to_delete = w.insert();
+    to_delete2 = w.insert();
+    to_delete3 = w.insert();
 
     // Insert should be visible.
     gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
@@ -473,9 +473,9 @@ TEST_F(test_index_scan, multi_insert_followed_by_delete)
     gaia::db::commit_transaction();
 
     gaia::db::begin_transaction();
-    gaia::index_sandbox::sandbox_t::get(to_delete).delete_row();
-    gaia::index_sandbox::sandbox_t::get(to_delete2).delete_row();
-    gaia::index_sandbox::sandbox_t::get(to_delete3).delete_row();
+    gaia::index_sandbox::sandbox_t::get(to_delete).remove();
+    gaia::index_sandbox::sandbox_t::get(to_delete2).remove();
+    gaia::index_sandbox::sandbox_t::get(to_delete3).remove();
 
     // Delete in effect.
     for (const auto& idx : catalog_core_t::list_indexes(type_record_id))

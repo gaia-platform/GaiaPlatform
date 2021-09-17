@@ -26,7 +26,7 @@ protected:
     template <class T_edc, typename... T_args>
     T_edc create(T_args... args)
     {
-        return T_edc::get(T_edc::insert_row(args...));
+        return T_edc::get(T_edc::insert(args...));
     }
 };
 

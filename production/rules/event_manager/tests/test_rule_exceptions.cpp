@@ -111,7 +111,7 @@ void rule_conflict_exception(const rule_context_t* context)
     {
         auto ew = employee_t::get(context->record).writer();
         ew.name_first = "Success";
-        ew.update_row();
+        ew.update();
     }
 
     thread([&context] {
@@ -120,7 +120,7 @@ void rule_conflict_exception(const rule_context_t* context)
             auto_transaction_t txn(auto_transaction_t::no_auto_begin);
             auto ew = employee_t::get(context->record).writer();
             ew.name_first = "Conflict";
-            ew.update_row();
+            ew.update();
             txn.commit();
         }
         end_session();
@@ -182,7 +182,7 @@ public:
         auto_transaction_t txn(auto_transaction_t::no_auto_begin);
         employee_writer writer;
         writer.name_first = c_name;
-        writer.insert_row();
+        writer.insert();
         txn.commit();
     }
 

@@ -111,24 +111,24 @@ protected:
     {
         gaia::db::begin_transaction();
 
-        student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
-        student_t::get(student_t::insert_row("stu002", "Russell", 32, 4, 3.0));
-        student_t::get(student_t::insert_row("stu003", "Reuben", 26, 4, 3.0));
+        student_t::get(student_t::insert("stu001", "Richard", 45, 4, 3.0));
+        student_t::get(student_t::insert("stu002", "Russell", 32, 4, 3.0));
+        student_t::get(student_t::insert("stu003", "Reuben", 26, 4, 3.0));
 
-        course_t::get(course_t::insert_row("cou001", "math101", 3));
-        course_t::get(course_t::insert_row("cou002", "math201", 4));
-        course_t::get(course_t::insert_row("cou003", "eng101", 3));
-        course_t::get(course_t::insert_row("cou004", "sci101", 3));
-        course_t::get(course_t::insert_row("cou005", "math301", 5));
+        course_t::get(course_t::insert("cou001", "math101", 3));
+        course_t::get(course_t::insert("cou002", "math201", 4));
+        course_t::get(course_t::insert("cou003", "eng101", 3));
+        course_t::get(course_t::insert("cou004", "sci101", 3));
+        course_t::get(course_t::insert("cou005", "math301", 5));
 
-        registration_t::insert_row("reg001", "stu001", "cou002", c_status_pending, c_grade_none);
-        registration_t::insert_row("reg002", "stu001", "cou004", c_status_eligible, c_grade_c);
-        registration_t::insert_row("reg003", "stu002", "cou001", c_status_eligible, c_grade_b);
-        registration_t::insert_row("reg004", "stu002", "cou003", c_status_eligible, c_grade_c);
-        registration_t::insert_row("reg005", "stu002", "cou004", c_status_eligible, c_grade_d);
-        registration_t::insert_row("reg006", "stu003", "cou005", c_status_pending, c_grade_none);
-        registration_t::insert_row("reg007", "stu003", "cou002", c_status_eligible, c_grade_c);
-        registration_t::insert_row("reg008", "stu003", "cou001", c_status_eligible, c_grade_b);
+        registration_t::insert("reg001", "stu001", "cou002", c_status_pending, c_grade_none);
+        registration_t::insert("reg002", "stu001", "cou004", c_status_eligible, c_grade_c);
+        registration_t::insert("reg003", "stu002", "cou001", c_status_eligible, c_grade_b);
+        registration_t::insert("reg004", "stu002", "cou003", c_status_eligible, c_grade_c);
+        registration_t::insert("reg005", "stu002", "cou004", c_status_eligible, c_grade_d);
+        registration_t::insert("reg006", "stu003", "cou005", c_status_pending, c_grade_none);
+        registration_t::insert("reg007", "stu003", "cou002", c_status_eligible, c_grade_c);
+        registration_t::insert("reg008", "stu003", "cou001", c_status_eligible, c_grade_b);
         gaia::db::commit_transaction();
     }
 
@@ -137,42 +137,42 @@ protected:
         gaia::db::begin_transaction();
 
         // These must be EDC objects. They have insert() methods.
-        student_1 = student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
-        student_2 = student_t::get(student_t::insert_row("stu002", "Russell", 32, 4, 3.0));
-        student_3 = student_t::get(student_t::insert_row("stu003", "Reuben", 26, 4, 3.0));
-        student_4 = student_t::get(student_t::insert_row("stu004", "Rachael", 51, 4, 3.0));
-        student_5 = student_t::get(student_t::insert_row("stu005", "Renee", 65, 4, 3.0));
+        student_1 = student_t::get(student_t::insert("stu001", "Richard", 45, 4, 3.0));
+        student_2 = student_t::get(student_t::insert("stu002", "Russell", 32, 4, 3.0));
+        student_3 = student_t::get(student_t::insert("stu003", "Reuben", 26, 4, 3.0));
+        student_4 = student_t::get(student_t::insert("stu004", "Rachael", 51, 4, 3.0));
+        student_5 = student_t::get(student_t::insert("stu005", "Renee", 65, 4, 3.0));
 
         // These must be EDC objects. They have insert() methods.
-        course_1 = course_t::get(course_t::insert_row("cou001", "math101", 3));
-        course_2 = course_t::get(course_t::insert_row("cou002", "math201", 4));
-        course_3 = course_t::get(course_t::insert_row("cou003", "eng101", 3));
-        course_4 = course_t::get(course_t::insert_row("cou004", "sci101", 3));
-        course_5 = course_t::get(course_t::insert_row("cou005", "math301", 5));
+        course_1 = course_t::get(course_t::insert("cou001", "math101", 3));
+        course_2 = course_t::get(course_t::insert("cou002", "math201", 4));
+        course_3 = course_t::get(course_t::insert("cou003", "eng101", 3));
+        course_4 = course_t::get(course_t::insert("cou004", "sci101", 3));
+        course_5 = course_t::get(course_t::insert("cou005", "math301", 5));
 
-        reg_1 = registration_t::get(registration_t::insert_row("reg001", "stu001", "cou002", c_status_pending, c_grade_none));
+        reg_1 = registration_t::get(registration_t::insert("reg001", "stu001", "cou002", c_status_pending, c_grade_none));
         // These are gaia_id_t.
-        registration_t::insert_row("reg002", "stu001", "cou004", c_status_eligible, c_grade_c);
-        registration_t::insert_row("reg003", "stu002", "cou001", c_status_eligible, c_grade_b);
-        registration_t::insert_row("reg004", "stu002", "cou003", c_status_eligible, c_grade_c);
-        registration_t::insert_row("reg005", "stu002", "cou004", c_status_eligible, c_grade_d);
-        registration_t::insert_row("reg006", "stu003", "cou005", c_status_pending, c_grade_none);
-        registration_t::insert_row("reg007", "stu003", "cou002", c_status_eligible, c_grade_c);
-        registration_t::insert_row("reg008", "stu003", "cou001", c_status_eligible, c_grade_b);
-        registration_t::insert_row("reg009", "stu003", "cou003", c_status_eligible, c_grade_b);
-        registration_t::insert_row("reg00A", "stu003", "cou004", c_status_eligible, c_grade_a);
-        registration_t::insert_row("reg00B", "stu004", "cou004", c_status_eligible, c_grade_b);
-        registration_t::insert_row("reg00C", "stu004", "cou001", c_status_eligible, c_grade_b);
-        registration_t::insert_row("reg00D", "stu005", "cou002", c_status_pending, c_grade_none);
-        registration_t::insert_row("reg00E", "stu005", "cou003", c_status_eligible, c_grade_c);
-        registration_t::insert_row("reg00F", "stu005", "cou004", c_status_eligible, c_grade_a);
-        registration_t::insert_row("reg00G", "stu005", "cou001", c_status_eligible, c_grade_b);
+        registration_t::insert("reg002", "stu001", "cou004", c_status_eligible, c_grade_c);
+        registration_t::insert("reg003", "stu002", "cou001", c_status_eligible, c_grade_b);
+        registration_t::insert("reg004", "stu002", "cou003", c_status_eligible, c_grade_c);
+        registration_t::insert("reg005", "stu002", "cou004", c_status_eligible, c_grade_d);
+        registration_t::insert("reg006", "stu003", "cou005", c_status_pending, c_grade_none);
+        registration_t::insert("reg007", "stu003", "cou002", c_status_eligible, c_grade_c);
+        registration_t::insert("reg008", "stu003", "cou001", c_status_eligible, c_grade_b);
+        registration_t::insert("reg009", "stu003", "cou003", c_status_eligible, c_grade_b);
+        registration_t::insert("reg00A", "stu003", "cou004", c_status_eligible, c_grade_a);
+        registration_t::insert("reg00B", "stu004", "cou004", c_status_eligible, c_grade_b);
+        registration_t::insert("reg00C", "stu004", "cou001", c_status_eligible, c_grade_b);
+        registration_t::insert("reg00D", "stu005", "cou002", c_status_pending, c_grade_none);
+        registration_t::insert("reg00E", "stu005", "cou003", c_status_eligible, c_grade_c);
+        registration_t::insert("reg00F", "stu005", "cou004", c_status_eligible, c_grade_a);
+        registration_t::insert("reg00G", "stu005", "cou001", c_status_eligible, c_grade_b);
 
         // These are gaia_id_t.
-        auto prereq_1 = prereq_t::get(prereq_t::insert_row("pre001", c_grade_c));
-        auto prereq_2 = prereq_t::get(prereq_t::insert_row("pre002", c_grade_d));
-        auto prereq_3 = prereq_t::get(prereq_t::insert_row("pre003", c_grade_c));
-        auto prereq_4 = prereq_t::get(prereq_t::insert_row("pre004", c_grade_c));
+        auto prereq_1 = prereq_t::get(prereq_t::insert("pre001", c_grade_c));
+        auto prereq_2 = prereq_t::get(prereq_t::insert("pre002", c_grade_d));
+        auto prereq_3 = prereq_t::get(prereq_t::insert("pre003", c_grade_c));
+        auto prereq_4 = prereq_t::get(prereq_t::insert("pre004", c_grade_c));
 
         course_2.requires().insert(prereq_1);
         course_1.required_by().insert(prereq_1);
@@ -204,7 +204,7 @@ TEST_F(test_queries_code, basic_implicit_navigation)
     auto s = student_t::list().where(surname == "Richard").begin();
     auto sw = s->writer();
     sw.age = 46;
-    sw.update_row();
+    sw.update();
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();
@@ -225,7 +225,7 @@ TEST_F(test_queries_code, implicit_navigation_fork)
     auto r = registration_t::list().where(reg_id == "reg003").begin();
     auto rw = r->writer();
     rw.grade = c_grade_c;
-    rw.update_row();
+    rw.update();
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();
@@ -249,16 +249,16 @@ TEST_F(test_queries_code, new_registration)
     gaia::db::begin_transaction();
 
     // Richard registers for math301
-    auto reg = registration_t::insert_row("reg00H", "stu001", "cou005", c_status_pending, c_grade_none);
+    auto reg = registration_t::insert("reg00H", "stu001", "cou005", c_status_pending, c_grade_none);
 
     // Russell registers for math201.
-    reg = registration_t::insert_row("reg00I", "stu002", "cou002", c_status_pending, c_grade_none);
+    reg = registration_t::insert("reg00I", "stu002", "cou002", c_status_pending, c_grade_none);
 
     // Rachael register for eng101.
-    reg = registration_t::insert_row("reg00K", "stu004", "cou003", c_status_pending, c_grade_none);
+    reg = registration_t::insert("reg00K", "stu004", "cou003", c_status_pending, c_grade_none);
 
     // Renee registers for math301
-    reg = registration_t::insert_row("reg00L", "stu005", "cou005", c_status_pending, c_grade_none);
+    reg = registration_t::insert("reg00L", "stu005", "cou005", c_status_pending, c_grade_none);
 
     gaia::db::commit_transaction();
 
@@ -279,7 +279,7 @@ TEST_F(test_queries_code, sum_of_ages)
     // Fire on_insert(student). Expect to see a sum of all student ages.
     gaia::db::begin_transaction();
 
-    auto student = student_t::get(student_t::insert_row("stu006", "Paul", 62, 4, 3.3));
+    auto student = student_t::get(student_t::insert("stu006", "Paul", 62, 4, 3.3));
 
     gaia::db::commit_transaction();
 
@@ -299,7 +299,7 @@ TEST_F(test_queries_code, sum_of_hours)
     // on_insert(registration) will sum up the student's hours.
     gaia::db::begin_transaction();
 
-    registration_t::insert_row("reg00H", "stu001", "cou005", c_status_pending, c_grade_none);
+    registration_t::insert("reg00H", "stu001", "cou005", c_status_pending, c_grade_none);
 
     gaia::db::commit_transaction();
 
@@ -319,7 +319,7 @@ TEST_F(test_queries_code, sum_of_all_hours)
     // on_insert(registration) will sum up the student's hours.
     gaia::db::begin_transaction();
 
-    registration_t::insert_row("reg00H", "stu001", "cou005", c_status_pending, c_grade_none);
+    registration_t::insert("reg00H", "stu001", "cou005", c_status_pending, c_grade_none);
 
     gaia::db::commit_transaction();
 
@@ -339,7 +339,7 @@ TEST_F(test_queries_code, tag_define_use)
     // on_insert(registration) will sum up the student's hours.
     gaia::db::begin_transaction();
 
-    registration_t::insert_row("reg00H", "stu001", "cou005", c_status_pending, c_grade_none);
+    registration_t::insert("reg00H", "stu001", "cou005", c_status_pending, c_grade_none);
 
     gaia::db::commit_transaction();
 
@@ -380,7 +380,7 @@ TEST_F(test_queries_code, if_stmt)
     // on_insert(registration) will sum up the student's hours.
     gaia::db::begin_transaction();
 
-    auto student = student_t::get(student_t::insert_row("stu006", "Paul", 62, 4, 3.3));
+    auto student = student_t::get(student_t::insert("stu006", "Paul", 62, 4, 3.3));
 
     gaia::db::commit_transaction();
 
@@ -406,7 +406,7 @@ TEST_F(test_queries_code, if_stmt2)
 
     auto cw = course_1.writer();
     cw.hours = num_updates;
-    cw.update_row();
+    cw.update();
 
     gaia::db::commit_transaction();
 
@@ -431,7 +431,7 @@ TEST_F(test_queries_code, if_stmt3)
 
     auto rw = reg_1.writer();
     rw.grade = c_grade_d;
-    rw.update_row();
+    rw.update();
 
     gaia::db::commit_transaction();
 
@@ -453,7 +453,7 @@ TEST_F(test_queries_code, nomatch_stmt)
 
     auto sw = student_1.writer();
     sw.gpa = 3.5;
-    sw.update_row();
+    sw.update();
 
     gaia::db::commit_transaction();
 
@@ -474,7 +474,7 @@ TEST_F(test_queries_code, nomatch_stmt2)
     g_string_value = "";
     gaia::db::begin_transaction();
 
-    auto student = student_t::get(student_t::insert_row("stu006", "Paul", 62, 4, 3.3));
+    auto student = student_t::get(student_t::insert("stu006", "Paul", 62, 4, 3.3));
 
     gaia::db::commit_transaction();
 
@@ -495,8 +495,8 @@ TEST_F(test_queries_code, nomatch_stmt3)
     g_string_value = "";
     gaia::db::begin_transaction();
 
-    auto student = student_t::get(student_t::insert_row("stu006", "Paul", 62, 4, 3.3));
-    registration_t::insert_row("reg00H", "stu006", nullptr, c_status_eligible, c_grade_c);
+    auto student = student_t::get(student_t::insert("stu006", "Paul", 62, 4, 3.3));
+    registration_t::insert("reg00H", "stu006", nullptr, c_status_eligible, c_grade_c);
 
     gaia::db::commit_transaction();
 
@@ -517,7 +517,7 @@ TEST_F(test_queries_code, nomatch_stmt4)
     g_string_value = "";
     gaia::db::begin_transaction();
 
-    auto student = student_t::get(student_t::insert_row("stu006", "Paul", 62, 4, 3.3));
+    auto student = student_t::get(student_t::insert("stu006", "Paul", 62, 4, 3.3));
 
     gaia::db::commit_transaction();
 
@@ -537,9 +537,9 @@ TEST_F(test_queries_code, nomatch_function_query)
     g_string_value = "";
     gaia::db::begin_transaction();
 
-    auto student = student_t::get(student_t::insert_row("stu006", "Paul", 62, 4, 3.3));
-    auto registration = registration_t::insert_row("reg00H", "stu006", "cou001", c_status_eligible, c_grade_c);
-    registration = registration_t::insert_row("reg00I", "stu006", "cou002", c_status_eligible, c_grade_d);
+    auto student = student_t::get(student_t::insert("stu006", "Paul", 62, 4, 3.3));
+    auto registration = registration_t::insert("reg00H", "stu006", "cou001", c_status_eligible, c_grade_c);
+    registration = registration_t::insert("reg00I", "stu006", "cou002", c_status_eligible, c_grade_d);
 
     gaia::db::commit_transaction();
 
@@ -553,16 +553,16 @@ TEST_F(test_queries_code, nomatch_function_query)
 TEST_F(test_queries_code, one_to_one)
 {
     gaia::db::begin_transaction();
-    student_1 = student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
-    student_2 = student_t::get(student_t::insert_row("stu002", "Russell", 32, 4, 3.0));
-    student_3 = student_t::get(student_t::insert_row("stu003", "Reuben", 26, 4, 3.0));
-    student_4 = student_t::get(student_t::insert_row("stu004", "Rachael", 51, 4, 3.0));
-    student_5 = student_t::get(student_t::insert_row("stu005", "Renee", 65, 4, 3.0));
+    student_1 = student_t::get(student_t::insert("stu001", "Richard", 45, 4, 3.0));
+    student_2 = student_t::get(student_t::insert("stu002", "Russell", 32, 4, 3.0));
+    student_3 = student_t::get(student_t::insert("stu003", "Reuben", 26, 4, 3.0));
+    student_4 = student_t::get(student_t::insert("stu004", "Rachael", 51, 4, 3.0));
+    student_5 = student_t::get(student_t::insert("stu005", "Renee", 65, 4, 3.0));
 
     // Create and connect 1:1 parents for 3 of the students.
-    auto parents_1 = parents_t::get(parents_t::insert_row("Lawrence", "Elizabeth"));
-    auto parents_2 = parents_t::get(parents_t::insert_row("Clarence", "Pauline"));
-    auto parents_3 = parents_t::get(parents_t::insert_row("George", "Irvie"));
+    auto parents_1 = parents_t::get(parents_t::insert("Lawrence", "Elizabeth"));
+    auto parents_2 = parents_t::get(parents_t::insert("Clarence", "Pauline"));
+    auto parents_3 = parents_t::get(parents_t::insert("George", "Irvie"));
 
     student_1.parents().connect(parents_1);
     student_3.parents().connect(parents_2);
@@ -573,7 +573,7 @@ TEST_F(test_queries_code, one_to_one)
 
     g_string_value = "";
     gaia::db::begin_transaction();
-    auto student = student_t::get(student_t::insert_row("stu006", "Paul", 62, 4, 3.3));
+    auto student = student_t::get(student_t::insert("stu006", "Paul", 62, 4, 3.3));
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();

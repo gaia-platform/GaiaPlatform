@@ -28,14 +28,14 @@ protected:
         employee_writer ew;
         ew.name_first = name.c_str();
         ew.name_last = surname.c_str();
-        return employee_t::get(ew.insert_row());
+        return employee_t::get(ew.insert());
     }
 
     address_t insert_address(const std::string& city)
     {
         address_writer aw;
         aw.city = city.c_str();
-        return address_t::get(aw.insert_row());
+        return address_t::get(aw.insert());
     }
 };
 

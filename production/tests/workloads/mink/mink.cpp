@@ -121,7 +121,7 @@ gaia_id_t insert_incubator(const char* name, float min_temp, float max_temp)
     w.is_on = false;
     w.min_temp = min_temp;
     w.max_temp = max_temp;
-    return w.insert_row();
+    return w.insert();
 }
 
 void restore_sensor(sensor_t& sensor, float min_temp)
@@ -129,7 +129,7 @@ void restore_sensor(sensor_t& sensor, float min_temp)
     sensor_writer w = sensor.writer();
     w.timestamp = 0;
     w.value = min_temp;
-    w.update_row();
+    w.update();
 }
 
 void restore_actuator(actuator_t& actuator)
@@ -137,7 +137,7 @@ void restore_actuator(actuator_t& actuator)
     actuator_writer w = actuator.writer();
     w.timestamp = 0;
     w.value = 0.0;
-    w.update_row();
+    w.update();
 }
 
 void restore_incubator(incubator_t& incubator, float min_temp, float max_temp)
@@ -146,7 +146,7 @@ void restore_incubator(incubator_t& incubator, float min_temp, float max_temp)
     w.is_on = false;
     w.min_temp = min_temp;
     w.max_temp = max_temp;
-    w.update_row();
+    w.update();
 
     for (auto& sensor : incubator.sensors())
     {
@@ -195,16 +195,16 @@ void init_storage()
     auto incubator = incubator_t::get(
         insert_incubator(c_chicken, c_chicken_min, c_chicken_max));
     incubator.sensors().insert(
-        sensor_t::insert_row(c_sensor_a, 0, c_chicken_min));
+        sensor_t::insert(c_sensor_a, 0, c_chicken_min));
     incubator.sensors().insert(
-        sensor_t::insert_row(c_sensor_c, 0, c_chicken_min));
-    incubator.actuators().insert(actuator_t::insert_row(c_actuator_a, 0, 0.0));
+        sensor_t::insert(c_sensor_c, 0, c_chicken_min));
+    incubator.actuators().insert(actuator_t::insert(c_actuator_a, 0, 0.0));
 
     // Puppy Incubator: 1 sensor, 2 fans
     incubator = incubator_t::get(insert_incubator(c_puppy, c_puppy_min, c_puppy_max));
-    incubator.sensors().insert(sensor_t::insert_row(c_sensor_b, 0, c_puppy_min));
-    incubator.actuators().insert(actuator_t::insert_row(c_actuator_b, 0, 0.0));
-    incubator.actuators().insert(actuator_t::insert_row(c_actuator_c, 0, 0.0));
+    incubator.sensors().insert(sensor_t::insert(c_sensor_b, 0, c_puppy_min));
+    incubator.actuators().insert(actuator_t::insert(c_actuator_b, 0, 0.0));
+    incubator.actuators().insert(actuator_t::insert(c_actuator_c, 0, 0.0));
 
     tx.commit();
 }
@@ -354,7 +354,7 @@ void set_power(bool is_on)
     {
         auto w = i.writer();
         w.is_on = is_on;
-        w.update_row();
+        w.update();
     }
     tx.commit();
 }
@@ -409,7 +409,7 @@ void simulation_step()
             w.timestamp = g_timestamp;
         }
         my_time_point update_start_mark = my_clock::now();
-        w.update_row();
+        w.update();
         my_time_point update_end_mark = my_clock::now();
         my_duration_in_microseconds update_duration = update_end_mark - update_start_mark;
         g_update_row_duration_in_microseconds += update_duration.count();
@@ -1089,7 +1089,7 @@ public:
         {
             incubator_writer w = m_current_incubator.writer();
             w.is_on = turn_on;
-            w.update_row();
+            w.update();
         }
         commit_transaction();
     }
@@ -1114,7 +1114,7 @@ public:
             }
             else
             {
-                w.update_row();
+                w.update();
                 changed = true;
             }
         }

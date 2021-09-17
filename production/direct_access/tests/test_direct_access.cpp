@@ -46,7 +46,7 @@ employee_t create_employee(const char* name)
 {
     auto w = employee_writer();
     w.name_first = name;
-    gaia_id_t id = w.insert_row();
+    gaia_id_t id = w.insert();
     auto e = employee_t::get(id);
     EXPECT_STREQ(e.name_first(), name);
     return e;
@@ -68,7 +68,7 @@ TEST_F(edc_object_test, create_employee_delete)
 {
     begin_transaction();
     auto e = create_employee("Jameson");
-    e.delete_row();
+    e.remove();
     commit_transaction();
 }
 
@@ -91,7 +91,7 @@ TEST_F(edc_object_test, net_set_get)
     EXPECT_STREQ(w.name_last.c_str(), "Smith");
 
     auto_transaction_t txn;
-    auto eid = w.insert_row();
+    auto eid = w.insert();
     EXPECT_STREQ(w.name_last.c_str(), "Smith");
     auto employee = employee_t::get(eid);
     EXPECT_STREQ(w.name_last.c_str(), employee.name_last());
@@ -111,7 +111,7 @@ TEST_F(edc_object_test, new_insert_get)
 {
     begin_transaction();
 
-    auto e = employee_t::get(employee_writer().insert_row());
+    auto e = employee_t::get(employee_writer().insert());
     auto name = e.name_first();
     auto hire_date = e.hire_date();
 
@@ -138,11 +138,11 @@ TEST_F(edc_object_test, new_get)
 TEST_F(edc_object_test, existing_insert_field)
 {
     begin_transaction();
-    auto e = employee_t::get(employee_writer().insert_row());
+    auto e = employee_t::get(employee_writer().insert());
     auto writer = e.writer();
 
     // This creates a new row.
-    auto eid = writer.insert_row();
+    auto eid = writer.insert();
     EXPECT_NE(e.gaia_id(), employee_t::get(eid).gaia_id());
     commit_transaction();
 }
@@ -184,7 +184,7 @@ void update_read_back(bool update_flag)
     w.name_last = "Hollman";
     if (update_flag)
     {
-        w.update_row();
+        w.update();
     }
     e = *(++i);
 
@@ -194,7 +194,7 @@ void update_read_back(bool update_flag)
     w.name_last = "Glickman";
     if (update_flag)
     {
-        w.update_row();
+        w.update();
     }
     txn.commit();
 
@@ -243,8 +243,8 @@ TEST_F(edc_object_test, new_delete_insert)
     begin_transaction();
     auto e = create_employee("Hector");
     auto w = e.writer();
-    e.delete_row();
-    w.insert_row();
+    e.remove();
+    w.insert();
     commit_transaction();
 }
 
@@ -346,7 +346,7 @@ TEST_F(edc_object_test, read_back_id)
     writer.name_first = "Heinrich";
     EXPECT_STREQ("Henry", e.name_first());
     // While we have the original and modified values, update
-    writer.update_row();
+    writer.update();
     EXPECT_STREQ("Heinrich", e.name_first());
     EXPECT_STREQ("Heinrich", writer.name_first.c_str());
 
@@ -354,7 +354,7 @@ TEST_F(edc_object_test, read_back_id)
     writer.name_first = "Hank";
     EXPECT_STREQ("Heinrich", e.name_first());
     // Delete this object with original and modified fields
-    e.delete_row();
+    e.remove();
     // Can't access data of a deleted row
     EXPECT_THROW(e.name_first(), invalid_object_id);
 }
@@ -364,8 +364,8 @@ TEST_F(edc_object_test, new_del_field_ref)
     // create GAIA-64 scenario
     begin_transaction();
 
-    auto e = employee_t::get(employee_writer().insert_row());
-    e.delete_row();
+    auto e = employee_t::get(employee_writer().insert());
+    e.remove();
     // can't access data from a deleted row
     EXPECT_THROW(e.name_first(), invalid_object_id);
 
@@ -380,8 +380,8 @@ TEST_F(edc_object_test, new_del_update)
 {
     begin_transaction();
     auto e = create_employee("Hector");
-    e.delete_row();
-    EXPECT_THROW(e.writer().update_row(), invalid_object_id);
+    e.remove();
+    EXPECT_THROW(e.writer().update(), invalid_object_id);
     commit_transaction();
 }
 
@@ -392,11 +392,11 @@ TEST_F(edc_object_test, found_del_ins)
 
     auto e = create_employee("Hector");
     auto writer = e.writer();
-    e.delete_row();
+    e.remove();
     EXPECT_THROW(e.writer(), invalid_object_id);
     // We got the writer before we deleted the row.
     // We can't update the row but we can insert a new one.
-    auto eid = writer.insert_row();
+    auto eid = writer.insert();
     commit_transaction();
 
     begin_transaction();
@@ -415,18 +415,18 @@ TEST_F(edc_object_test, found_del_update)
     begin_transaction();
     auto e = employee_t::get(eid);
     auto w = e.writer();
-    e.delete_row();
-    EXPECT_THROW(w.update_row(), invalid_object_id);
+    e.remove();
+    EXPECT_THROW(w.update(), invalid_object_id);
     commit_transaction();
 }
 
 // The simplified model allows you to
 // do multiple insertions with the same
 // writer.  This seems reasonable given the model
-// of passing in the row object to an insert_row method
+// of passing in the row object to an insert method
 // auto writer = Employe::writer();
-// writer.insert_row();
-// writer.insert_row();
+// writer.insert();
+// writer.insert();
 
 // Simplified model doesn't allow this because you
 // you cannot create a new employee_t() and the
@@ -442,9 +442,9 @@ TEST_F(edc_object_test, new_del_del)
     begin_transaction();
     auto e = create_employee("Hugo");
     // The first delete succeeds.
-    e.delete_row();
+    e.remove();
     // The second one should throw.
-    EXPECT_THROW(e.delete_row(), invalid_object_id);
+    EXPECT_THROW(e.remove(), invalid_object_id);
     commit_transaction();
 }
 
@@ -456,7 +456,7 @@ TEST_F(edc_object_test, auto_txn_begin)
 
     auto writer = employee_writer();
     writer.name_last = "Hawkins";
-    employee_t e = employee_t::get(writer.insert_row());
+    employee_t e = employee_t::get(writer.insert());
     txn.commit();
 
     EXPECT_STREQ(e.name_last(), "Hawkins");
@@ -464,7 +464,7 @@ TEST_F(edc_object_test, auto_txn_begin)
     // update
     writer = e.writer();
     writer.name_last = "Clinton";
-    writer.update_row();
+    writer.update();
     txn.commit();
 
     EXPECT_STREQ(e.name_last(), "Clinton");
@@ -477,7 +477,7 @@ TEST_F(edc_object_test, auto_txn)
     auto writer = employee_writer();
 
     writer.name_last = "Hawkins";
-    employee_t e = employee_t::get(writer.insert_row());
+    employee_t e = employee_t::get(writer.insert());
     txn.commit();
 
     // Expect an exception since we're not in a transaction
@@ -498,7 +498,7 @@ TEST_F(edc_object_test, auto_txn_rollback)
         auto_transaction_t txn;
         auto writer = employee_writer();
         writer.name_last = "Hawkins";
-        id = writer.insert_row();
+        id = writer.insert();
     }
     // Transaction was rolled back
     auto_transaction_t txn;
@@ -511,14 +511,14 @@ TEST_F(edc_object_test, writer_value_ref)
     begin_transaction();
     employee_writer w1 = employee_writer();
     w1.name_last = "Gretzky";
-    employee_t e = employee_t::get(w1.insert_row());
+    employee_t e = employee_t::get(w1.insert());
     commit_transaction();
 
     begin_transaction();
     w1 = e.writer();
     auto& ssn = w1.ssn;
     ssn = "987654321";
-    w1.update_row();
+    w1.update();
     commit_transaction();
 
     begin_transaction();
@@ -537,7 +537,7 @@ void insert_thread(bool new_thread)
 
     begin_transaction();
     {
-        g_inserted_id = employee_t::insert_row(g_insert, nullptr, nullptr, 0, nullptr, nullptr);
+        g_inserted_id = employee_t::insert(g_insert, nullptr, nullptr, 0, nullptr, nullptr);
     }
     commit_transaction();
 
@@ -556,7 +556,7 @@ void update_thread(gaia_id_t id)
         employee_t e = employee_t::get(id);
         employee_writer w = e.writer();
         w.name_first = g_update;
-        w.update_row();
+        w.update();
     }
     commit_transaction();
     end_session();
@@ -625,7 +625,7 @@ TEST_F(edc_object_test, thread_update_conflict)
 
         employee_writer w = employee_t::get(g_inserted_id).writer();
         w.name_first = "Violation";
-        w.update_row();
+        w.update();
     }
     EXPECT_THROW(commit_transaction(), transaction_update_conflict);
 
@@ -645,8 +645,8 @@ TEST_F(edc_object_test, thread_update_other_row)
 
     begin_transaction();
     {
-        row1_id = employee_t::insert_row(g_insert, nullptr, nullptr, 0, nullptr, nullptr);
-        row2_id = employee_t::insert_row(g_insert, nullptr, nullptr, 0, nullptr, nullptr);
+        row1_id = employee_t::insert(g_insert, nullptr, nullptr, 0, nullptr, nullptr);
+        row2_id = employee_t::insert(g_insert, nullptr, nullptr, 0, nullptr, nullptr);
     }
     commit_transaction();
 
@@ -658,7 +658,7 @@ TEST_F(edc_object_test, thread_update_other_row)
 
         employee_writer w = employee_t::get(row2_id).writer();
         w.name_first = "No Violation";
-        w.update_row();
+        w.update();
     }
     EXPECT_NO_THROW(commit_transaction());
 
@@ -707,8 +707,8 @@ TEST_F(edc_object_test, thread_insert_update_delete)
 
     begin_transaction();
     {
-        row1_id = employee_t::insert_row(local, nullptr, nullptr, 0, nullptr, nullptr);
-        row2_id = employee_t::insert_row("Red Shirt", nullptr, nullptr, 0, nullptr, nullptr);
+        row1_id = employee_t::insert(local, nullptr, nullptr, 0, nullptr, nullptr);
+        row2_id = employee_t::insert("Red Shirt", nullptr, nullptr, 0, nullptr, nullptr);
     }
     commit_transaction();
 
@@ -809,7 +809,7 @@ TEST_F(edc_object_test, default_construction)
         EXPECT_THROW(a.owner(), invalid_object_id);
         EXPECT_THROW(e.manager(), invalid_object_id);
         EXPECT_THROW(e.writer(), invalid_object_id);
-        EXPECT_THROW(e.delete_row(), invalid_object_id);
+        EXPECT_THROW(e.remove(), invalid_object_id);
         ASSERT_EQ(e.addresses().begin(), e.addresses().end());
 
         e = create_employee("Windsor");
@@ -899,7 +899,7 @@ TEST_F(edc_object_test, array_insert)
 
     auto_transaction_t txn;
     const std::vector<int32_t> sales_by_quarter{q1_sales, q2_sales, q3_sales};
-    gaia_id_t id = customer_t::insert_row(customer_name, sales_by_quarter);
+    gaia_id_t id = customer_t::insert(customer_name, sales_by_quarter);
     txn.commit();
 
     auto c = customer_t::get(id);
@@ -917,7 +917,7 @@ TEST_F(edc_object_test, array_writer)
     auto w = customer_writer();
     w.name = customer_name;
     w.sales_by_quarter = {q1_sales, q2_sales};
-    gaia_id_t id = w.insert_row();
+    gaia_id_t id = w.insert();
     txn.commit();
 
     auto c = customer_t::get(id);
@@ -927,7 +927,7 @@ TEST_F(edc_object_test, array_writer)
 
     w = c.writer();
     w.sales_by_quarter.push_back(q3_sales);
-    w.update_row();
+    w.update();
     txn.commit();
 
     EXPECT_EQ(customer_t::get(id).sales_by_quarter()[2], q3_sales);
@@ -935,12 +935,12 @@ TEST_F(edc_object_test, array_writer)
 
 // TESTCASE: Delete rows accessed through a list() iterator.
 // GAIAPLAT-1049
-// The delete_row() interferes with iterator.
+// The remove() interferes with iterator.
 TEST_F(edc_object_test, delete_row_in_loop)
 {
     auto_transaction_t txn;
-    phone_t::insert_row("206", "Y", true);
-    phone_t::insert_row("425", "Y", true);
+    phone_t::insert("206", "Y", true);
+    phone_t::insert("425", "Y", true);
 
     int count = 0;
 
@@ -948,7 +948,7 @@ TEST_F(edc_object_test, delete_row_in_loop)
 #if 0
     for (auto p : phone_t::list())
     {
-        p.delete_row();
+        p.remove();
         count++;
     }
 #endif
@@ -956,7 +956,7 @@ TEST_F(edc_object_test, delete_row_in_loop)
     for (auto p = phone_t::list().begin(); p != phone_t::list().end();)
     {
         auto pp = p++;
-        (*pp).delete_row();
+        (*pp).remove();
         count++;
     }
 

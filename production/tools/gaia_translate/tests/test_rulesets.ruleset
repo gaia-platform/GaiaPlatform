@@ -578,7 +578,7 @@ ruleset test_connect_1_n
 
         gaia::prerequisites::registration_writer w;
         w.reg_id = "reg003";
-        gaia::prerequisites::registration_t r4 = gaia::prerequisites::registration_t::get(w.insert_row());
+        gaia::prerequisites::registration_t r4 = gaia::prerequisites::registration_t::get(w.insert());
         student.connect(r4);
         student.registrations.connect(r4);
 
@@ -601,7 +601,7 @@ ruleset test_connect_1_1
             gaia::prerequisites::parents_writer w;
             w.name_father = "John";
             w.name_mother = "Jane";
-            auto p = gaia::prerequisites::parents_t::get(w.insert_row());
+            auto p = gaia::prerequisites::parents_t::get(w.insert());
             student.parents.connect(p);
         }
     }

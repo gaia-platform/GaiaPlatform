@@ -20,9 +20,9 @@ int main()
     gaia::system::initialize();
 
     gaia::db::begin_transaction();
-    gaia::hello::names_t::insert_row("Alice");
-    gaia::hello::names_t::insert_row("Bob");
-    gaia::hello::names_t::insert_row("Charles");
+    gaia::hello::names_t::insert("Alice");
+    gaia::hello::names_t::insert("Bob");
+    gaia::hello::names_t::insert("Charles");
     gaia::db::commit_transaction();
 
     gaia::system::shutdown();

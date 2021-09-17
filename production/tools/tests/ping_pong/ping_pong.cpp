@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
     gaia_log::app().info("Starting Ping Pong example with {} workers.", num_workers);
 
     gaia::db::begin_transaction();
-    auto ping_pong_id = ping_pong_t::insert_row(c_pong);
+    auto ping_pong_id = ping_pong_t::insert(c_pong);
     gaia::db::commit_transaction();
 
     vector<thread> workers;
@@ -111,7 +111,7 @@ void worker(gaia::common::gaia_id_t ping_pong_id)
                 gaia_log::app().info("Main:'{}'->'{}' iteration:'{}' txn_id:'{}'", ping_pong.status(), c_ping, iteration_count, txn_id);
                 auto ping_pong_writer = ping_pong.writer();
                 ping_pong_writer.status = c_ping;
-                ping_pong_writer.update_row();
+                ping_pong_writer.update();
             }
             gaia::db::commit_transaction();
         }

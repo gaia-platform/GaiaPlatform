@@ -123,8 +123,8 @@ public:
     void init_storage()
     {
         gaia::db::begin_transaction();
-        gaia::barn_storage::incubator_t::insert_row("TestIncubator", c_g_incubator_min_temperature, c_g_incubator_max_temperature);
-        gaia::barn_storage::sensor_t::insert_row("TestSensor", c_g_sensor_timestamp, c_g_sensor_value);
+        gaia::barn_storage::incubator_t::insert("TestIncubator", c_g_incubator_min_temperature, c_g_incubator_max_temperature);
+        gaia::barn_storage::sensor_t::insert("TestSensor", c_g_sensor_timestamp, c_g_sensor_value);
         gaia::db::commit_transaction();
     }
 

@@ -176,8 +176,7 @@ gaia_id_t recovery_test::get_random_map_key(map<gaia_id_t, employee_copy_t> m)
 
 string recovery_test::generate_string(size_t length_in_bytes)
 {
-    auto randchar = []() -> char
-    {
+    auto randchar = []() -> char {
         const char charset[] = "0123456789"
                                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                "abcdefghijklmnopqrstuvwxyz";
@@ -201,7 +200,7 @@ void recovery_test::modify_data()
         auto w1 = e1.writer();
         auto name_first = generate_string(c_field_size_bytes);
         w1.name_first = name_first;
-        w1.update_row();
+        w1.update();
         commit_transaction();
         to_update->second.name_first = name_first;
 
@@ -216,7 +215,7 @@ void recovery_test::modify_data()
         s_employee_map.erase(id);
         begin_transaction();
         auto e = employee_t::get(id);
-        e.delete_row();
+        e.remove();
         commit_transaction();
     }
 }
@@ -232,7 +231,7 @@ employee_t recovery_test::generate_employee_record()
     w.email = generate_string(c_field_size_bytes);
     w.web = generate_string(c_field_size_bytes);
 
-    gaia_id_t id = w.insert_row();
+    gaia_id_t id = w.insert();
     return employee_t::get(id);
 }
 
@@ -327,7 +326,7 @@ void recovery_test::delete_all(int initial_record_count)
             auto e = employee_t::get(id);
             try
             {
-                e.delete_row();
+                e.remove();
             }
             catch (const object_still_referenced& e)
             {
@@ -454,7 +453,7 @@ TEST_F(recovery_test, reference_update_test)
         w.postal = generate_string(c_field_size_bytes);
         w.country = generate_string(c_field_size_bytes);
         w.current = true;
-        address_id = w.insert_row();
+        address_id = w.insert();
         txn.commit();
     }
     ASSERT_NE(address_id, c_invalid_gaia_id);
@@ -470,7 +469,7 @@ TEST_F(recovery_test, reference_update_test)
             w.phone_number = generate_string(c_field_size_bytes);
             w.type = generate_string(c_field_size_bytes);
             w.primary = true;
-            gaia_id_t phone_id = w.insert_row();
+            gaia_id_t phone_id = w.insert();
             ASSERT_NE(phone_id, c_invalid_gaia_id);
             phone_ids.insert(phone_id);
         }
@@ -493,7 +492,7 @@ TEST_F(recovery_test, reference_update_test)
     {
         auto_transaction_t txn;
         // Make sure address cannot be deleted upon recovery.
-        ASSERT_THROW(address_t::get(address_id).delete_row(), object_still_referenced);
+        ASSERT_THROW(address_t::get(address_id).remove(), object_still_referenced);
         for (auto const& phone : address_t::get(address_id).phones())
         {
             recovered_phone_ids.insert(phone.gaia_id());

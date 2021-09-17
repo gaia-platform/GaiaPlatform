@@ -68,7 +68,7 @@ ruleset test6 : tables(sensor)
 class test
 {
 public:
-    void delete_row()
+    void remove()
     {
     }
 };
@@ -82,7 +82,7 @@ ruleset test7
         if (sensor.value == 5)
         {
             test t;
-            t.delete_row();
+            t.remove();
         }
     }
 }

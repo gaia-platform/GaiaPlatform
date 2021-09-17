@@ -74,7 +74,7 @@ public:
             employee_writer ew;
             ew.name_first = std::string("name_") + std::to_string(i);
             ew.name_last = std::string("surname_") + std::to_string(i);
-            ew.insert_row();
+            ew.insert();
         }
 
         commit_transaction();

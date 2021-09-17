@@ -43,12 +43,12 @@ public:
 
         employee_writer.name_first = "Many";
         employee_writer.name_last = "Addresses";
-        m_employee = employee_t::get(employee_writer.insert_row());
+        m_employee = employee_t::get(employee_writer.insert());
 
         for (size_t i = 0; i < count; i++)
         {
             address_writer.street = to_string(i);
-            address_t address = address_t::get(address_writer.insert_row());
+            address_t address = address_t::get(address_writer.insert());
             m_employee.addresses().insert(address);
         }
     }

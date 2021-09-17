@@ -87,7 +87,7 @@ protected:
         employee_w.name_last = last_name;
         employee_w.email = email;
         employee_w.hire_date = hire_date;
-        gaia_id_t id = employee_w.insert_row();
+        gaia_id_t id = employee_w.insert();
         employee_t employee = employee_t::get(id);
 
         employee.addresses().insert(address);
@@ -100,7 +100,7 @@ protected:
         auto address_w = address_writer();
         address_w.city = city;
         address_w.state = state;
-        return address_t::get(address_w.insert_row());
+        return address_t::get(address_w.insert());
     }
 
     phone_t create_phone(const string& number, const string& type, address_t& address)
@@ -108,7 +108,7 @@ protected:
         phone_writer writer;
         writer.phone_number = number;
         writer.type = type;
-        phone_t phone = phone_t::get(writer.insert_row());
+        phone_t phone = phone_t::get(writer.insert());
 
         address.phones().insert(phone);
 
@@ -117,13 +117,13 @@ protected:
 
     customer_t create_customer(const char* name, const std::vector<int32_t>& sales_by_quarter)
     {
-        return customer_t::get(customer_t::insert_row(name, sales_by_quarter));
+        return customer_t::get(customer_t::insert(name, sales_by_quarter));
     }
 
     internet_contract_t create_internet_contract(const char* provider, address_t address, employee_t owner)
     {
         internet_contract_t internet_contract = internet_contract_t::get(
-            internet_contract_t::insert_row(provider));
+            internet_contract_t::insert(provider));
 
         address.internet_contract().connect(internet_contract);
         owner.internet_contract().connect(internet_contract);
@@ -342,7 +342,7 @@ TEST_F(test_expressions, object_eq)
     auto employee_writer = gaia::addr_book::employee_writer();
     employee_writer.name_first = "Zack";
     employee_writer.name_last = "Nolan";
-    auto zack = employee_t::get(employee_writer.insert_row());
+    auto zack = employee_t::get(employee_writer.insert());
 
     assert_empty(
         address_t::list()
@@ -365,7 +365,7 @@ TEST_F(test_expressions, object_ne)
     auto employee_writer = gaia::addr_book::employee_writer();
     employee_writer.name_first = "Zack";
     employee_writer.name_last = "Nolan";
-    auto zack = employee_t::get(employee_writer.insert_row());
+    auto zack = employee_t::get(employee_writer.insert());
 
     assert_contains(
         address_t::list()

@@ -71,7 +71,7 @@ void rule_insert_address(const rule_context_t* context)
     {
         address_writer aw;
         aw.city = c_city;
-        aw.insert_row();
+        aw.insert();
     }
     g_wait_for_count--;
 }
@@ -83,7 +83,7 @@ void rule_update_helper(const rule_context_t* context)
     address_t a = address_t::get(context->record);
     address_writer aw = a.writer();
     aw.state = c_state;
-    aw.update_row();
+    aw.update();
 }
 
 // When an address is inserted, update the zip code of the
@@ -136,7 +136,7 @@ void rule_field_phone_type(const rule_context_t* context)
 // {
 //     employee_t d = employee_t::get(context->record);
 //     EXPECT_EQ(context->event_type, triggers::event_type_t::row_delete);
-//     EXPECT_THROW(d.delete_row(), invalid_object_id);
+//     EXPECT_THROW(d.remove(), invalid_object_id);
 //     g_wait_for_count--;
 // }
 
@@ -151,7 +151,7 @@ void rule_conflict(const rule_context_t* context)
     {
         auto ew = employee_t::get(context->record).writer();
         ew.name_first = "Success";
-        ew.update_row();
+        ew.update();
     }
 
     if (g_num_conflicts > 0)
@@ -163,7 +163,7 @@ void rule_conflict(const rule_context_t* context)
                 auto_transaction_t txn(auto_transaction_t::no_auto_begin);
                 auto ew = employee_t::get(context->record).writer();
                 ew.name_first = "Conflict";
-                ew.update_row();
+                ew.update();
                 txn.commit();
             }
             end_session();
@@ -326,7 +326,7 @@ TEST_F(rule_integration_test, test_insert)
         auto_transaction_t txn(false);
         employee_writer writer;
         writer.name_first = c_name;
-        writer.insert_row();
+        writer.insert();
         txn.commit();
     }
 
@@ -350,9 +350,9 @@ TEST_F(rule_integration_test, test_insert)
 //         auto_transaction_t txn(true);
 //         employee_writer writer;
 //         writer.name_first = c_name;
-//         employee_t e = employee_t::get(writer.insert_row());
+//         employee_t e = employee_t::get(writer.insert());
 //         txn.commit();
-//         e.delete_row();
+//         e.remove();
 //         txn.commit();
 //     }
 // }
@@ -364,11 +364,11 @@ TEST_F(rule_integration_test, test_update)
         auto_transaction_t txn(true);
         employee_writer writer;
         writer.name_first = "Ignore";
-        employee_t e = employee_t::get(writer.insert_row());
+        employee_t e = employee_t::get(writer.insert());
         txn.commit();
         writer = e.writer();
         writer.name_first = c_name;
-        writer.update_row();
+        writer.update();
         txn.commit();
     }
 }
@@ -384,12 +384,12 @@ TEST_F(rule_integration_test, test_update_and_delete)
         auto_transaction_t txn(true);
         employee_writer writer;
         writer.name_first = "Ignore";
-        employee_t e = employee_t::get(writer.insert_row());
+        employee_t e = employee_t::get(writer.insert());
         txn.commit();
         writer = e.writer();
         writer.name_first = c_name;
-        writer.update_row();
-        e.delete_row();
+        writer.update();
+        e.remove();
         txn.commit();
     }
 }
@@ -403,11 +403,11 @@ TEST_F(rule_integration_test, test_update_field)
         auto_transaction_t txn(true);
         phone_writer writer;
         writer.phone_number = "111-1111";
-        phone_t p = phone_t::get(writer.insert_row());
+        phone_t p = phone_t::get(writer.insert());
         txn.commit();
         writer = p.writer();
         writer.phone_number = c_phone_number;
-        writer.update_row();
+        writer.update();
         txn.commit();
     }
 }
@@ -423,12 +423,12 @@ TEST_F(rule_integration_test, test_update_field_multiple_rules)
         phone_writer writer;
         writer.phone_number = "111-1111";
         // writer.type = "home";
-        phone_t p = phone_t::get(writer.insert_row());
+        phone_t p = phone_t::get(writer.insert());
         txn.commit();
         writer = p.writer();
         writer.phone_number = c_phone_number;
         writer.type = c_phone_type;
-        writer.update_row();
+        writer.update();
         txn.commit();
     }
 }
@@ -444,7 +444,7 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
         phone_writer writer;
         writer.phone_number = "111-1111";
         writer.primary = false;
-        phone_id = writer.insert_row();
+        phone_id = writer.insert();
         txn.commit();
 
         {
@@ -452,7 +452,7 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
             rule_monitor_t monitor(1);
             phone_writer writer = phone_t::get(phone_id).writer();
             writer.phone_number = c_phone_number;
-            writer.update_row();
+            writer.update();
             txn.commit();
         }
 
@@ -461,7 +461,7 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
             rule_monitor_t monitor(1);
             phone_writer writer = phone_t::get(phone_id).writer();
             writer.primary = true;
-            writer.update_row();
+            writer.update();
             txn.commit();
         }
     }
@@ -480,16 +480,16 @@ TEST_F(rule_integration_test, test_two_rules)
         auto_transaction_t txn(true);
         employee_writer writer;
         writer.name_first = "Marty";
-        first = writer.insert_row();
+        first = writer.insert();
         writer.name_first = "McFly";
-        second = writer.insert_row();
+        second = writer.insert();
         txn.commit();
 
         // Update second record.
         employee_t::delete_row(first);
         writer = employee_t::get(second).writer();
         writer.name_first = c_name;
-        writer.update_row();
+        writer.update();
         txn.commit();
     }
 }
@@ -515,7 +515,7 @@ TEST_F(rule_integration_test, test_parallel)
             auto_transaction_t txn(false);
             for (size_t i = 0; i < num_inserts; i++)
             {
-                employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
+                employee_t::insert("John", "Jones", "111-11-1111", i, nullptr, nullptr);
             }
             txn.commit();
         }
@@ -540,7 +540,7 @@ TEST_F(rule_integration_test, test_serial)
         auto_transaction_t txn(false);
         for (size_t i = 0; i < num_inserts; i++)
         {
-            employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
+            employee_t::insert("John", "Jones", "111-11-1111", i, nullptr, nullptr);
         }
         txn.commit();
     });
@@ -564,14 +564,14 @@ TEST_F(rule_integration_test, test_shutdown_pending_rules)
         auto_transaction_t txn;
         employee_writer writer;
         writer.name_first = c_name;
-        gaia_id_t id = writer.insert_row();
+        gaia_id_t id = writer.insert();
         txn.commit();
 
         writer = employee_t::get(id).writer();
         for (size_t i = 0; i < num_rule_invocations; i++)
         {
             writer.hire_date = i;
-            writer.update_row();
+            writer.update();
         }
         txn.commit();
     }
@@ -599,11 +599,11 @@ TEST_F(rule_integration_test, test_shutdown_rule_chaining)
         auto_transaction_t txn;
         employee_writer writer;
         writer.name_first = c_name;
-        writer.insert_row();
+        writer.insert();
         txn.commit();
 
         writer.name_first = c_name;
-        writer.insert_row();
+        writer.insert();
         txn.commit();
     }
     gaia::rules::shutdown_rules_engine();
@@ -643,7 +643,7 @@ TEST_F(rule_integration_test, test_retry)
             auto_transaction_t txn(auto_transaction_t::no_auto_begin);
             employee_writer writer;
             writer.name_first = name;
-            ids.emplace_back(writer.insert_row());
+            ids.emplace_back(writer.insert());
             txn.commit();
         }
         // Shut down the rules engine to ensure the rule fires.

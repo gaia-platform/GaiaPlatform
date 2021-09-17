@@ -59,12 +59,12 @@ protected:
 
         employee_writer.name_first = "Many";
         employee_writer.name_last = "Addresses";
-        employee_t employee = employee_t::get(employee_writer.insert_row());
+        employee_t employee = employee_t::get(employee_writer.insert());
 
         for (size_t i = 0; i < count; i++)
         {
             address_writer.street = to_string(i);
-            gaia_id_t address_id = address_writer.insert_row();
+            gaia_id_t address_id = address_writer.insert();
             employee.addresses().insert(address_id);
         }
 
@@ -75,7 +75,7 @@ protected:
     {
         employee_writer ew;
         ew.name_first = name.c_str();
-        return employee_t::get(ew.insert_row());
+        return employee_t::get(ew.insert());
     }
 
     address_t insert_address(const std::string& street, const std::string& city)
@@ -83,7 +83,7 @@ protected:
         address_writer aw;
         aw.city = city.c_str();
         aw.street = street.c_str();
-        return address_t::get(aw.insert_row());
+        return address_t::get(aw.insert());
     }
 };
 
@@ -96,11 +96,11 @@ TEST_F(gaia_references_test, insert_remove)
     // Connect two inserted rows.
     employee_writer ew;
     ew.name_first = "Hidalgo";
-    employee_t e3 = employee_t::get(ew.insert_row());
+    employee_t e3 = employee_t::get(ew.insert());
 
     address_writer aw;
     aw.city = "Houston";
-    address_t a3 = address_t::get(aw.insert_row());
+    address_t a3 = address_t::get(aw.insert());
 
     e3.addresses().insert(a3);
 
@@ -134,11 +134,11 @@ TEST_F(gaia_references_test, insert_remove_id_member)
     // Connect two inserted rows.
     employee_writer ew;
     ew.name_first = "Hidalgo";
-    employee_t e3 = employee_t::get(ew.insert_row());
+    employee_t e3 = employee_t::get(ew.insert());
 
     address_writer aw;
     aw.city = "Houston";
-    gaia_id_t aid3 = aw.insert_row();
+    gaia_id_t aid3 = aw.insert();
 
     e3.addresses().insert(aid3);
     int count = 0;
@@ -155,7 +155,7 @@ TEST_F(gaia_references_test, insert_remove_id_member)
 
     e3.addresses().remove(aid3);
     address_t::delete_row(aid3);
-    e3.delete_row();
+    e3.remove();
     EXPECT_THROW(address_t::delete_row(invalid_id), invalid_object_id);
     commit_transaction();
 }
@@ -183,19 +183,19 @@ employee_t create_hierarchy()
     const int addr_size = 6;
     const int phone_size = 5;
     auto employee
-        = employee_t::get(employee_t::insert_row("Heidi", "Humphry", "555-22-4444", hire_date, "heidi@gmail.com", ""));
+        = employee_t::get(employee_t::insert("Heidi", "Humphry", "555-22-4444", hire_date, "heidi@gmail.com", ""));
     for (int i = 0; i < count_addresses; i++)
     {
         char addr_string[addr_size];
         sprintf(addr_string, "%d", i);
         auto address = address_t::get(
-            address_t::insert_row(addr_string, addr_string, addr_string, addr_string, addr_string, addr_string, true));
+            address_t::insert(addr_string, addr_string, addr_string, addr_string, addr_string, addr_string, true));
         employee.addresses().insert(address);
         for (int j = 0; j < count_phones; j++)
         {
             char phone_string[phone_size];
             sprintf(phone_string, "%d", j);
-            auto phone = phone_t::get(phone_t::insert_row(phone_string, phone_string, true));
+            auto phone = phone_t::get(phone_t::insert(phone_string, phone_string, true));
             address.phones().insert(phone);
         }
     }
@@ -273,18 +273,18 @@ bool delete_hierarchy(employee_t& employee_to_delete)
                 if (count_phones)
                 {
                     address.phones().remove(phone_to_delete);
-                    phone_to_delete.delete_row();
+                    phone_to_delete.remove();
                 }
             }
         }
         if (count_addressee)
         {
             employee_to_delete.addresses().remove(address_to_delete);
-            address_to_delete.delete_row();
+            address_to_delete.remove();
         }
     }
 
-    employee_to_delete.delete_row();
+    employee_to_delete.remove();
     return true;
 }
 
@@ -342,7 +342,7 @@ TEST_F(gaia_references_test, connect_scan)
     auto eptr = create_hierarchy();
 
     // Removing a row involved in any set should be prevented.
-    EXPECT_THROW(eptr.delete_row(), object_still_referenced);
+    EXPECT_THROW(eptr.remove(), object_still_referenced);
 
     // Count the records in the hierarchy
     auto record_count = scan_hierarchy(eptr);
@@ -429,16 +429,16 @@ TEST_F(gaia_references_test, connect_to_ids)
     /* Create some unconnected Employee and Address objects */
     employee_writer employee_w;
     employee_w.name_first = "Horace";
-    gaia_id_t eid1 = employee_w.insert_row();
+    gaia_id_t eid1 = employee_w.insert();
 
     address_writer address_w;
     address_w.street = "430 S. 41st St.";
     address_w.city = "Boulder";
-    gaia_id_t aid1 = address_w.insert_row();
+    gaia_id_t aid1 = address_w.insert();
 
     address_w.street = "10618 129th Pl. N.E.";
     address_w.city = "Kirkland";
-    gaia_id_t aid2 = address_w.insert_row();
+    gaia_id_t aid2 = address_w.insert();
 
     txn.commit();
 
@@ -652,15 +652,15 @@ TEST_F(gaia_references_test, m_to_n_connections)
     auto_transaction_t txn;
 
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-    auto e1 = employee_t::get(employee_t::insert_row("Hubert", "Humphrey", "XXX", 1902, "", ""));
+    auto e1 = employee_t::get(employee_t::insert("Hubert", "Humphrey", "XXX", 1902, "", ""));
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-    auto e2 = employee_t::get(employee_t::insert_row("Howard", "Hughs", "YYY", 1895, "", ""));
-    auto a1 = address_t::get(address_t::insert_row("1233", "", "Bot Hell", "98099", "AW", "USA", false));
-    auto a2 = address_t::get(address_t::insert_row("11111", "", "LandofKirk", "89088", "OW", "USA", false));
-    auto p1 = phone_t::get(phone_t::insert_row("303", "H", false));
-    auto p2 = phone_t::get(phone_t::insert_row("303", "M", false));
-    auto p3 = phone_t::get(phone_t::insert_row("206", "H", false));
-    auto p4 = phone_t::get(phone_t::insert_row("206", "M", false));
+    auto e2 = employee_t::get(employee_t::insert("Howard", "Hughs", "YYY", 1895, "", ""));
+    auto a1 = address_t::get(address_t::insert("1233", "", "Bot Hell", "98099", "AW", "USA", false));
+    auto a2 = address_t::get(address_t::insert("11111", "", "LandofKirk", "89088", "OW", "USA", false));
+    auto p1 = phone_t::get(phone_t::insert("303", "H", false));
+    auto p2 = phone_t::get(phone_t::insert("303", "M", false));
+    auto p3 = phone_t::get(phone_t::insert("206", "H", false));
+    auto p4 = phone_t::get(phone_t::insert("206", "M", false));
     e1.phones().insert(p1);
     e1.phones().insert(p2);
     e2.phones().insert(p3);
@@ -778,12 +778,12 @@ TEST_F(gaia_references_test, set_iter_arrow_deref)
 
     employee_writer emp_writer;
     emp_writer.name_first = emp_name;
-    employee_t employee = employee_t::get(emp_writer.insert_row());
+    employee_t employee = employee_t::get(emp_writer.insert());
 
     address_writer addr_writer;
     addr_writer.city = addr_city;
 
-    employee.addresses().insert(addr_writer.insert_row());
+    employee.addresses().insert(addr_writer.insert());
     txn.commit();
 
     auto emp_addr_set_iter = employee.addresses().begin();
@@ -958,7 +958,7 @@ TEST_F(gaia_references_test, test_refernece_container_size)
     {
         address_writer address_w;
         address_w.street = to_string(i);
-        gaia_id_t address_id = address_w.insert_row();
+        gaia_id_t address_id = address_w.insert();
         employee.addresses().insert(address_id);
     }
 
@@ -978,11 +978,11 @@ TEST_F(gaia_references_test, test_temporary_object)
     // Connect two inserted rows.
     employee_writer ew;
     ew.name_first = "Hidalgo";
-    employee_t emp = employee_t::get(ew.insert_row());
+    employee_t emp = employee_t::get(ew.insert());
 
     // Ensure that we can pass a temporary object to the insert method.
     // Regression test for: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1167
-    emp.addresses().insert(address_t::get(address_t::insert_row("", "", "", "", "", "", true)));
+    emp.addresses().insert(address_t::get(address_t::insert("", "", "", "", "", "", true)));
 
     commit_transaction();
 }

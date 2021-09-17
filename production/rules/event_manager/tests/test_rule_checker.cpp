@@ -70,7 +70,7 @@ void load_catalog()
         {
             continue;
         }
-        writer.update_row();
+        writer.update();
     }
     commit_transaction();
 }

@@ -29,11 +29,11 @@ TEST_F(default_db_test, direct_access)
     // in the DDL. The direct access classes generated from the default database
     // will be under the `gaia` namespace (instead of `gaia::[database]`).
     auto_transaction_t txn;
-    gaia_id_t dr_house_id = gaia::doctor_t::insert_row("Gregory House", "greg.house@ppth.org");
-    gaia_id_t dr_wilson_id = gaia::doctor_t::insert_row("James Wilson", "james.wilson@ppth.org");
+    gaia_id_t dr_house_id = gaia::doctor_t::insert("Gregory House", "greg.house@ppth.org");
+    gaia_id_t dr_wilson_id = gaia::doctor_t::insert("James Wilson", "james.wilson@ppth.org");
     txn.commit();
     gaia_id_t patient_id
-        = gaia::patient_t::insert_row(
+        = gaia::patient_t::insert(
             "Rebecca Adler",
             "james.wilson@ppth.org",
             "greg.house@ppth.org");

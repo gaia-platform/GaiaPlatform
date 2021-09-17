@@ -98,13 +98,13 @@ void perform_transactions(uint32_t count_transactions, uint32_t crud_events_per_
         // Insert row.
         employee_writer w;
         w.name_first = "name";
-        gaia_id_t id = w.insert_row();
+        gaia_id_t id = w.insert();
         auto e = employee_t::get(id);
 
         // Update row.
         w = e.writer();
         w.name_first = "updated_name";
-        w.update_row();
+        w.update();
 
         // [GAIAPLAT-1205]:  We now do not fire an event if
         // the anchor row has been deleted.
