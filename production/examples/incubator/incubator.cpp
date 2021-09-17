@@ -13,6 +13,7 @@
 #include <iomanip>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
 #include <thread>
 
@@ -369,7 +370,7 @@ public:
         if (g_in_simulation)
         {
             g_in_simulation = false;
-            m_simulation_thread[0].join();
+            m_simulation_thread->join();
             std::cout << "Simulation stopped...\n";
         }
     }
@@ -397,7 +398,7 @@ public:
                 if (!g_in_simulation)
                 {
                     g_in_simulation = true;
-                    m_simulation_thread[0] = std::thread(simulation);
+                    m_simulation_thread = std::unique_ptr<std::thread>(new std::thread(simulation));
                     std::cout << "Simulation started...\n";
                 }
                 else
@@ -430,7 +431,7 @@ public:
                 {
                     std::cout << "Stopping simulation...\n";
                     g_in_simulation = false;
-                    m_simulation_thread[0].join();
+                    m_simulation_thread->join();
                     std::cout << "Simulation stopped...\n";
                 }
                 std::cout << "Exiting..." << std::endl;
@@ -660,7 +661,7 @@ private:
     std::string m_input;
     incubator_t m_current_incubator;
     const char* m_current_incubator_name;
-    std::thread m_simulation_thread[1];
+    std::unique_ptr<std::thread> m_simulation_thread;
     menu_t m_current_menu = menu_t::main;
 
     void wrong_input()
