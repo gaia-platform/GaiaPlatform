@@ -129,7 +129,7 @@ bool index_builder_t::index_exists(common::gaia_id_t index_id)
     return get_indexes()->find(index_id) != get_indexes()->end();
 }
 
-indexes_t::iterator index_builder_t::create_empty_index(index_view_t& index_view)
+indexes_t::iterator index_builder_t::create_empty_index(const index_view_t& index_view)
 {
     bool is_unique = index_view.unique();
 
