@@ -540,6 +540,16 @@ ruleset test_compile
         }
     }
 
+    // TESTCASE: access anchor row relatoinships from inside if
+    // GAIAPLAT-1298
+    on_insert(registration)
+    {
+        if (strcmp(/P:parents.name_father, "Lawrence") == 0)
+        {
+            fprintf(stderr, "Found %s and %s\n", P.name_mother, course.course_id);
+        }
+    }
+
     // TESTCASE: table out of scope when used in if statement
     // GAIAPLAT-1393 (likely related to 1384)
     on_insert(registration)
@@ -548,6 +558,17 @@ ruleset test_compile
         if (strcmp(student->parents.name_father, "Lawrence") == 0)
         {
             fprintf(stderr, "Child of Lawrence student id = %s\n", student.student_id);
+        }
+    }
+
+    // TESTCASE: verify the presence of all rows within a declarative if
+    // GAIAPLAT-1251
+    on_update(total_hours)
+    {
+        if (total_hours == 0)
+        {
+            total_hours += hours;
+            fprintf(stderr, "Total class hours for %s is %d\n", surname, total_hours);
         }
     }
 }
