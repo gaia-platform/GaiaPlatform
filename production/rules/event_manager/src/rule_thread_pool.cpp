@@ -207,17 +207,21 @@ void rule_thread_pool_t::invoke_rule(invocation_t& invocation)
 
     if (execute_lock)
     {
-        unique_lock enqueue_lock{invocation.serial_group->enqueue_lock};
-        while (!invocation.serial_group->invocations.empty())
+        unique_lock enqueue_lock{invocation.serial_group->enqueue_lock, defer_lock};
+        while (true)
         {
-            enqueue_lock.unlock();
-            do
-            {
-                invocation = invocation.serial_group->invocations.front();
-                invocation.serial_group->invocations.pop();
-                invoke_rule_inner(invocation);
-            } while (!invocation.serial_group->invocations.empty());
             enqueue_lock.lock();
+            if (!invocation.serial_group->invocations.empty())
+            {
+                invocation_t new_invocation = invocation.serial_group->invocations.front();
+                invocation.serial_group->invocations.pop();
+                enqueue_lock.unlock();
+                invoke_rule_inner(new_invocation);
+            }
+            else
+            {
+                break;
+            }
         }
     }
 }
@@ -256,8 +260,7 @@ void rule_thread_pool_t::invoke_rule_inner(invocation_t& invocation)
                 txn,
                 rule_invocation.gaia_type,
                 rule_invocation.event_type,
-                rule_invocation.record,
-                rule_invocation.fields);
+                rule_invocation.record);
 
             m_stats_manager.compute_rule_invocation_latency(rule_id, invocation.start_time);
 

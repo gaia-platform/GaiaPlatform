@@ -21,9 +21,8 @@ using namespace gaia::db::triggers;
 void check_all_event_types(gaia_type_t context_type, gaia_type_t test_type, last_operation_t* expected)
 {
     gaia::direct_access::auto_transaction_t txn;
-    field_position_list_t fields;
 
-    rule_context_t context(txn, context_type, event_type_t::row_update, 0, fields);
+    rule_context_t context(txn, context_type, event_type_t::row_update, 0);
 
     // Test the insert/update events which map to last operation types.
     EXPECT_EQ(expected ? *expected : last_operation_t::row_update, context.last_operation(test_type));
@@ -71,10 +70,9 @@ TEST_F(rule_context_test, last_operation_type_mismatch)
 TEST_F(rule_context_test, last_operation_type_const)
 {
     gaia::direct_access::auto_transaction_t txn(false);
-    field_position_list_t fields;
     const gaia_id_t record = 33;
 
-    const rule_context_t context(txn, c_gaia_type, event_type_t::row_update, record, fields);
+    const rule_context_t context(txn, c_gaia_type, event_type_t::row_update, record);
     EXPECT_EQ(last_operation_t::row_update, context.last_operation(c_gaia_type));
     EXPECT_NO_THROW(context.txn.commit());
 }
