@@ -211,17 +211,15 @@ void rule_thread_pool_t::invoke_rule(invocation_t& invocation)
         while (true)
         {
             enqueue_lock.lock();
-            if (!invocation.serial_group->invocations.empty())
-            {
-                invocation_t new_invocation = invocation.serial_group->invocations.front();
-                invocation.serial_group->invocations.pop();
-                enqueue_lock.unlock();
-                invoke_rule_inner(new_invocation);
-            }
-            else
+            if (invocation.serial_group->invocations.empty())
             {
                 break;
             }
+            invocation_t new_invocation = invocation.serial_group->invocations.front();
+            invocation.serial_group->invocations.pop();
+            enqueue_lock.unlock();
+
+            invoke_rule_inner(new_invocation);
         }
     }
 }
