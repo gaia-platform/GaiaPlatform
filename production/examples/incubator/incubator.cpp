@@ -19,8 +19,6 @@
 
 #include "gaia_incubator.h"
 
-using namespace std;
-
 using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::db::triggers;
@@ -43,8 +41,8 @@ const char c_puppy[] = "puppy";
 constexpr float c_puppy_min = 85.0;
 constexpr float c_puppy_max = 100.0;
 
-atomic<bool> g_in_simulation{false};
-atomic<int> g_timestamp{0};
+std::atomic<bool> g_in_simulation{false};
+std::atomic<int> g_timestamp{0};
 
 void add_fan_control_rule();
 
@@ -646,7 +644,7 @@ private:
         incubators,
         settings
     };
-    string m_input;
+    std::string m_input;
     incubator_t m_current_incubator;
     const char* m_current_incubator_name;
     thread m_simulation_thread[1];
