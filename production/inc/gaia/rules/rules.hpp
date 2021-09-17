@@ -216,13 +216,11 @@ public:
         direct_access::auto_transaction_t& txn,
         common::gaia_type_t gaia_type,
         db::triggers::event_type_t event_type,
-        common::gaia_id_t record,
-        const common::field_position_list_t& field_list)
+        common::gaia_id_t record)
         : txn(txn)
         , gaia_type(gaia_type)
         , event_type(event_type)
         , record(record)
-        , fields(field_list)
     {
     }
 
@@ -247,7 +245,6 @@ public:
     common::gaia_type_t gaia_type;
     db::triggers::event_type_t event_type;
     common::gaia_id_t record;
-    const common::field_position_list_t& fields;
 };
 
 /**
