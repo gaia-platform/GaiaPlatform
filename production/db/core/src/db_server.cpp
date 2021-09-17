@@ -738,11 +738,11 @@ void server_t::init_indexes()
     gaia_locator_t last_locator = s_shared_counters.data()->last_locator;
 
     // Create initial index data structures.
-    for (auto& tbl : catalog_core_t::list_tables())
+    for (const auto& table : catalog_core_t::list_tables())
     {
-        for (auto& idx : catalog_core_t::list_indexes(tbl.id()))
+        for (const auto& index : catalog_core_t::list_indexes(table.id()))
         {
-            index::index_builder_t::create_empty_index(idx);
+            index::index_builder_t::create_empty_index(index);
         }
     }
 
@@ -764,9 +764,9 @@ void server_t::init_indexes()
             throw invalid_type(obj->type);
         }
 
-        for (auto& idx : catalog_core_t::list_indexes(type_record_id))
+        for (const auto& index : catalog_core_t::list_indexes(type_record_id))
         {
-            index::index_builder_t::populate_index(idx.id(), obj->type, locator);
+            index::index_builder_t::populate_index(index.id(), obj->type, locator);
         }
     }
 }
