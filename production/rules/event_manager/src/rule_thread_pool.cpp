@@ -207,10 +207,9 @@ void rule_thread_pool_t::invoke_rule(invocation_t& invocation)
 
     if (execute_lock)
     {
-        unique_lock enqueue_lock{invocation.serial_group->enqueue_lock, defer_lock};
         while (true)
         {
-            enqueue_lock.lock();
+            unique_lock enqueue_lock{invocation.serial_group->enqueue_lock};
             if (invocation.serial_group->invocations.empty())
             {
                 break;
