@@ -3,8 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <unistd.h>
-
+#include <chrono>
 #include <cstring>
 #include <ctime>
 
@@ -213,14 +212,13 @@ void set_power(bool is_on)
 
 void simulation()
 {
-    time_t start, cur;
-    time(&start);
+    auto start = std::chrono::steady_clock::now();
     begin_session();
     set_power(true);
 
     while (g_in_simulation)
     {
-        sleep(1);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
 
         auto_transaction_t tx(auto_transaction_t::no_auto_begin);
 
@@ -245,8 +243,8 @@ void simulation()
             }
         }
 
-        time(&cur);
-        g_timestamp = difftime(cur, start);
+        auto cur = std::chrono::steady_clock::now();
+        g_timestamp = std::chrono::duration_cast<std::chrono::seconds>(cur - start).count();
         for (auto s : sensor_t::list())
         {
             sensor_writer w = s.writer();
@@ -591,7 +589,7 @@ public:
     {
         begin_transaction();
         {
-            incubator_writer w = m_current_incubator.writer();
+            auto w = m_current_incubator.writer();
             w.is_on = turn_on;
             w.update_row();
         }
