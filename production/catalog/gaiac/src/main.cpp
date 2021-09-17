@@ -69,13 +69,22 @@ void start_repl(parser_t& parser)
     initialize_catalog();
 
     const auto prompt = "gaiac> ";
+    const auto wait_for_more_prompt = "... gaiac> ";
     const auto exit_command = "exit";
 
     string ddl_buffer;
     while (true)
     {
         string line;
-        cout << prompt << flush;
+        if (ddl_buffer.empty())
+        {
+            cout << prompt << flush;
+        }
+        else
+        {
+            cout << wait_for_more_prompt << flush;
+        }
+
         if (!getline(cin, line))
         {
             break;
@@ -390,7 +399,8 @@ int main(int argc, char* argv[])
     gaia::db::config::set_default_session_options(session_options);
 
     const auto cleanup = scope_guard::make_scope_guard(
-        [&server]() {
+        [&server]()
+        {
             gaia::db::end_session();
             if (server.is_initialized())
             {
