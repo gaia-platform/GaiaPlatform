@@ -31,7 +31,7 @@ export CXX=/usr/bin/clang++-10
 Additionally, the build system expects the LLVM linker `ld.lld` to be present in your `PATH` and to resolve to the `ld.lld-10` executable. You can ensure this by installing the `lld-10` package on Debian-derived systems (such as Ubuntu) and adding the following line to your `.bashrc`:
 
 ```
-export LDFLAGS=-fuse-ld=lld-10
+export LDFLAGS="-B/usr/lib/llvm-10/bin/ -fuse-ld=lld"
 ```
 
 ## Folder structuring
@@ -181,18 +181,18 @@ When we are ready to release a new version of Gaia this is the process to follow
 1. Ensure you are on `master` and have the latest changed:
    ```shell
    git checkout master
-   git pull 
+   git pull
    ```
 2. Bump the project version in the [production/CMakeLists.txt](production/CMakeLists.txt) according to Semantic Versioning 2.0 spec. Note that Major version bumps should involve consultation with a number of folks across the team.
    ```cmake
-   # From 
+   # From
    project(production VERSION 0.2.5)
    # To
    project(production VERSION 0.3.0)
    ```
 3. Change, if necessary, the `PRE_RELEASE_IDENTIFIER` in the [production/CMakeLists.txt](production/CMakeLists.txt). For GA releases leave the `PRE_RELEASE_IDENTIFIER` empty.
    ```cmake
-   # From  
+   # From
    set(PRE_RELEASE_IDENTIFIER "alpha")
    # To
    set(PRE_RELEASE_IDENTIFIER "beta")
