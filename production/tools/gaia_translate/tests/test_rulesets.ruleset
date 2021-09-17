@@ -124,8 +124,6 @@ ruleset test_tags
     }
 }
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-label"
 ruleset test_queries
 {
     // test_queries_code.new_registration
@@ -198,7 +196,6 @@ COURSE_TAKEN:
         g_onupdate_called = true;
     }
 }
-#pragma clang diagnostic pop
 
 // GAIAPLAT-1124 (fixed)
 ruleset test_query_1
@@ -432,12 +429,7 @@ ruleset test_query_10
 }
 
 // This ruleset is not used, but its translation must compile with C++.
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-label"
-// These pragmas are needed to prevent compiler warnings resulting from unused labels
-// in the translated code. The break labels, BREAK1_TARGET, etc. are currently left in
-// the code unconditionally. The Jira issue, when fixed, will eliminate any unused labels.
-// These pragmas should be removed then.
+// GAIAPLAT-1198 (fixed)
 // GAIAPLAT-1143 (V1)
 ruleset test_compile
 {
@@ -468,6 +460,8 @@ ruleset test_compile
                 break BREAK2_TARGET;
             }
         }
+        // A goto should cause the break/continue label to exist in translated code.
+        goto BREAK1_TARGET;
     }
 
     // GAIAPLAT-564 (fixed)
@@ -488,14 +482,37 @@ ruleset test_compile
     on_update(student)
     {
     BREAK_TARGET:
-        while (age < 13)
+        while (hours < 13)
         {
+            printf("hours=%d\n", hours);
+            hours++;
             break BREAK_TARGET;
         }
         int i = 0;
         i++;
     }
 #endif
+
+    // TESTCASE: use declarative condition inside while statement
+    on_update(student)
+    {
+        while (hours < 13)
+        {
+            printf("hours=%d\n", hours);
+            hours++;
+        }
+    }
+
+    // TESTCASE: use declarative condition inside do-while statement
+    on_update(student)
+    {
+        do
+        {
+            printf("hours=%d\n", hours);
+            hours++;
+        }
+        while (hours < 13);
+    }
 
     // TESTCASE: make sure the nomatch is translated into compilable code while using explicit path
     // GAIAPLAT-1311
@@ -558,7 +575,6 @@ DELETE_REG:
         g_onupdate_called = true;
     }
 }
-#pragma clang diagnostic pop
 
 ruleset test_insert_delete_2
 {
