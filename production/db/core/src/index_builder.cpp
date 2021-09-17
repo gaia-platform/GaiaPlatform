@@ -159,18 +159,21 @@ void update_index_entry(
 {
     auto index = static_cast<T_index_type*>(base_index);
 
+    // BULK lock to avoid race condition where two different txns can insert the same value.
+    auto w = index->get_writer();
+
     // If the index has UNIQUE constraint, then we can't insert duplicate values.
     // Because we never actually remove index entries, we need special checks
     // for the situations when we delete keys or re-insert a previously deleted key.
     if (is_unique && !record.deleted)
     {
-        auto search_result = index->equal_range(key);
-        auto it_start = search_result.first;
-        auto it_end = search_result.second;
+        auto search_result = w.equal_range(key);
+        auto& it_start = search_result.first;
+        auto& it_end = search_result.second;
 
         bool has_found_duplicate_key = false;
 
-        for (; it_start != it_end; ++it_start)
+        while (it_start != it_end)
         {
             if (transactions::txn_metadata_t::is_txn_metadata_map_initialized())
             {
@@ -180,18 +183,20 @@ void update_index_entry(
                     transactions::txn_metadata_t::is_begin_ts(begin_ts),
                     "Transaction id in index key entry is not a begin timestamp!");
 
-                // Ignore index entries made by rolled back transactions.
+                // Remove index entries made by rolled back transactions, since we are already holding the lock.
                 if (transactions::txn_metadata_t::is_txn_terminated(begin_ts))
                 {
+                    it_start = w.get_index().erase(it_start);
                     continue;
                 }
                 else
                 {
-                    // Ignore index entries made by aborted transactions.
+                    // Remove index entries made by aborted transactions, since we are already holding the lock.
                     gaia_txn_id_t commit_ts
                         = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(begin_ts);
                     if (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_aborted(commit_ts))
                     {
+                        it_start = w.get_index().erase(it_start);
                         continue;
                     }
                 }
@@ -203,15 +208,9 @@ void update_index_entry(
             // and we perform this check only for insertions, so it should
             // last see a deletion in this scenario too.
             has_found_duplicate_key = (it_start->second.deleted) ? false : true;
+            ++it_start;
         }
 
-        // KNOWN ISSUES:
-        //
-        // 1. This check can generate false positives if the transaction that inserted the earlier value
-        // will get aborted.
-        //
-        // 2. This check can generate false negatives if the transaction that deleted the earlier value
-        // will get aborted.
         if (has_found_duplicate_key)
         {
             auto index_view = index_view_t(id_to_ptr(index->id()));

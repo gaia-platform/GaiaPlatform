@@ -49,6 +49,13 @@ std::shared_ptr<common::iterators::generator_t<index_record_t>> hash_index_t::eq
     return std::make_shared<index_generator_t<hash_type_t>>(get_lock(), start, end, txn_id);
 }
 
+template <>
+std::pair<hash_type_t::iterator, hash_type_t::iterator>
+index_writer_guard_t<hash_type_t>::equal_range(const index_key_t& key)
+{
+    return m_data.equal_range(key);
+}
+
 } // namespace index
 } // namespace db
 } // namespace gaia
