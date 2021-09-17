@@ -3224,6 +3224,50 @@ private:
     Rewriter& m_rewriter;
 };
 
+class unused_label_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    explicit unused_label_handler_t(Rewriter& r)
+        : m_rewriter(r){};
+
+    void run(const MatchFinder::MatchResult& result) override
+    {
+        if (g_is_generation_error)
+        {
+            return;
+        }
+
+        const auto* label_statement = result.Nodes.getNodeAs<LabelStmt>("labelDeclaration");
+        if (label_statement == nullptr)
+        {
+            gaiat::diag().emit(diag::err_incorrect_matched_expression);
+            g_is_generation_error = true;
+            return;
+        }
+
+        const auto* label_declaration = label_statement->getDecl();
+        if (label_declaration == nullptr)
+        {
+            gaiat::diag().emit(diag::err_incorrect_matched_expression);
+            g_is_generation_error = true;
+            return;
+        }
+
+        SourceRange label_source_range = label_declaration->getSourceRange();
+        SourceLocation end_location = Lexer::findLocationAfterToken(label_source_range.getEnd(), tok::colon, m_rewriter.getSourceMgr(), m_rewriter.getLangOpts(), true);
+        if (end_location.isValid())
+        {
+            label_source_range.setEnd(end_location.getLocWithOffset(-1));
+        }
+        if (!label_declaration->isUsed())
+        {
+            m_rewriter.RemoveText(label_source_range);
+        }
+    }
+private:
+    Rewriter& m_rewriter;
+};
+
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
 public:
@@ -3241,6 +3285,7 @@ public:
         , m_declarative_delete_handler(r)
         , m_declarative_insert_handler(r)
         , m_declarative_connect_disconnect_handler(r)
+        , m_unused_label_handler(r)
     {
         DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
         DeclarationMatcher rule_matcher
@@ -3426,6 +3471,8 @@ public:
                   on(table_field_get_matcher))
                   .bind("connectDisconnectCall");
 
+        StatementMatcher unused_label_matcher = labelStmt(hasAncestor(rule_matcher)).bind("labelDeclaration");
+
         m_matcher.addMatcher(field_get_matcher, &m_field_get_match_handler);
         m_matcher.addMatcher(table_field_get_matcher, &m_field_get_match_handler);
 
@@ -3454,6 +3501,7 @@ public:
 
         m_matcher.addMatcher(declarative_table_connect_disconnect_matcher, &m_declarative_connect_disconnect_handler);
         m_matcher.addMatcher(declarative_link_connect_disconnect_matcher, &m_declarative_connect_disconnect_handler);
+        m_matcher.addMatcher(unused_label_matcher, &m_unused_label_handler);
     }
 
     void HandleTranslationUnit(clang::ASTContext& context) override
@@ -3477,6 +3525,7 @@ private:
     declarative_delete_handler_t m_declarative_delete_handler;
     declarative_insert_handler_t m_declarative_insert_handler;
     declarative_connect_disconnect_handler_t m_declarative_connect_disconnect_handler;
+    unused_label_handler_t m_unused_label_handler;
 };
 
 // This class allows us to generate diagnostics with source file information
