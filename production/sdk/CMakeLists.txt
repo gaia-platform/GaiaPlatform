@@ -16,7 +16,12 @@ set(SDK_LINK_LIBRARIES
   gaia_system
   -Wl,--no-whole-archive
 )
-target_compile_options(gaia PRIVATE -Qunused-arguments)
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  # GCC doesn't support this option.
+  target_compile_options(gaia PRIVATE -Qunused-arguments)
+endif()
+
 target_link_libraries(gaia PRIVATE
   ${SDK_LINK_LIBRARIES}
 )

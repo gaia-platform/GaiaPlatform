@@ -62,14 +62,18 @@ add_custom_command(
   DEPENDS ${CMAKE_BINARY_DIR}/flatbuffers/flatc
   VERBATIM)
 
-
 add_custom_target(test_serialization_schena ALL DEPENDS ${GEN_DIR}/test_serialization_generated.h)
+
 # Tests.
 add_gtest(test_field_access tests/test_field_access.cpp "${GAIA_PAYLOAD_TYPES_INCLUDES}" "gaia_common;gaia_payload_types;flatbuffers")
+add_dependencies(test_field_access test_record_data_bin)
 add_gtest(test_data_holder tests/test_data_holder.cpp "${GAIA_PAYLOAD_TYPES_INCLUDES}" "gaia_common;gaia_payload_types;flatbuffers")
 add_gtest(test_serialization tests/test_serialization.cpp "${GAIA_PAYLOAD_TYPES_INCLUDES}" "gaia_common;gaia_payload_types;flatbuffers")
+add_dependencies(test_serialization test_serialization_schena)
+
 # The flatbuffers test also requires our two input files.
 configure_file(tests/test_record.fbs . COPYONLY)
 configure_file(tests/test_record_data.json . COPYONLY)
 
 add_gtest(test_flatbuffers tests/test_flatbuffers.cpp "${GAIA_PAYLOAD_TYPES_INCLUDES}" "gaia_common;flatbuffers")
+add_dependencies(test_flatbuffers test_record_data_bin)

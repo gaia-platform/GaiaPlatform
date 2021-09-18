@@ -59,8 +59,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
 # We want everything in the build to use libc++,
 # including third-party packages.
-add_compile_options(-stdlib=libc++)
-add_link_options(-stdlib=libc++)
+# add_compile_options(-stdlib=libc++)
+# add_link_options(-stdlib=libc++)
 
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
@@ -77,7 +77,11 @@ endif(CCACHE_FOUND)
 
 # Default compiler/linker flags for Gaia targets.
 add_library(gaia_build_options INTERFACE)
-target_compile_options(gaia_build_options INTERFACE -Wall -Wextra -ftime-trace)
+target_compile_options(gaia_build_options INTERFACE -Wall -Wextra)
+# Only clang supports -ftime-trace.
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  target_compile_options(gaia_build_options INTERFACE -ftime-trace)
+endif()
 
 # LLVM and CLANG specific options.
 if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
@@ -89,7 +93,7 @@ if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
   set(LLVM_ENABLE_RTTI ON CACHE BOOL "")
   # LLD/libc++ are necessary for MSan.
   set(LLVM_ENABLE_LLD ON CACHE BOOL "")
-  set(LLVM_ENABLE_LIBCXX ON CACHE BOOL "")
+  # set(LLVM_ENABLE_LIBCXX ON CACHE BOOL "")
   if(ENABLE_STACKTRACE)
     set(LLVM_GENERATE_STACKTRACE_DEBUG_INFO ON CACHE BOOL "")
   endif()
@@ -105,6 +109,11 @@ endif()
 
 # Debug build-specific options.
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+  # GCC is only supported in Release builds.
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    message(FATAL_ERROR "GCC can only be used in Release builds.")
+  endif()
+
   # Don't omit debug symbols from any built binaries.
   add_compile_options(-fno-limit-debug-info)
 
@@ -279,10 +288,17 @@ if(ENABLE_STACKTRACE)
   target_compile_options(gaia_stack_trace INTERFACE -funwind-tables -fno-omit-frame-pointer)
   # Only append this option for Release builds, or it will disable all other debug info generation.
   if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    target_compile_options(gaia_stack_trace INTERFACE -gline-tables-only)
-  endif()
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+      # Only clang supports -gline-tables-only.
+      target_compile_options(gaia_stack_trace INTERFACE -gline-tables-only)
+    else()
+      # GCC
+      target_compile_options(gaia_stack_trace INTERFACE -g1)
+    endif(CMAKE_CXX_COMPILER_ID)
+  endif(CMAKE_BUILD_TYPE)
   target_link_libraries(gaia_stack_trace INTERFACE backward)
-endif()
+endif(ENABLE_STACKTRACE)
+
 # Cpptoml.
 add_subdirectory("${GAIA_REPO}/third_party/production/cpptoml" cpptoml)
 # Spdlog.

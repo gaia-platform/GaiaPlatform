@@ -476,6 +476,25 @@ bool conditional_set_element_at_index(
         bitarray[word_index], bit_index_within_word, element_width, expected_element_value, desired_element_value);
 }
 
+// On clang we could just use __builtin_bitreverse64(), but GCC has no equivalent.
+// From https://graphics.stanford.edu/~seander/bithacks.html#BitReverseObvious.
+static uint64_t reverse_bits_in_word(uint64_t word)
+{
+    uint64_t reversed_word = word;
+    constexpr size_t c_max_bit_index = c_uint64_bit_count - 1;
+    size_t highest_set_bit_index = 0;
+
+    for (word >>= 1; word; word >>= 1)
+    {
+        reversed_word <<= 1;
+        reversed_word |= (word & 1);
+        ++highest_set_bit_index;
+    }
+    // Shift the reversed bitstring all the way to the left.
+    reversed_word <<= (c_max_bit_index - highest_set_bit_index);
+    return reversed_word;
+}
+
 void print_bitmap(
     std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, bool msb_first)
 {
@@ -493,7 +512,7 @@ void print_bitmap(
         // with usual binary representation of word).
         if (msb_first)
         {
-            word = __builtin_bitreverse64(word);
+            word = reverse_bits_in_word(word);
         }
 
         for (size_t bit_index = 0; bit_index < c_uint64_bit_count; ++bit_index)
