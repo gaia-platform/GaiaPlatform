@@ -15,6 +15,9 @@
 #include "gaia/events.hpp"
 #include "gaia/exception.hpp"
 
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
+
 namespace gaia
 {
 /**
@@ -48,7 +51,7 @@ typedef void (*gaia_rule_fn)(const rule_context_t* context);
  */
 extern "C" void initialize_rules();
 
-/** 
+/**
  * The application may provide an implementation of handle_rule_exception(). This
  * function is invoked if an exception is caused when calling the rule
  * or if there is an underlying platform issue.
@@ -394,3 +397,6 @@ void list_subscribed_rules(
 } // namespace rules
 /*@}*/
 } // namespace gaia
+
+// Restore default hidden visibility for all symbols.
+#pragma GCC visibility pop

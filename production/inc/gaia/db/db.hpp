@@ -10,6 +10,9 @@
 #include "gaia/common.hpp"
 #include "gaia/exception.hpp"
 
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
+
 namespace gaia
 {
 /**
@@ -291,3 +294,6 @@ void commit_transaction();
 } // namespace db
 /*@}*/
 } // namespace gaia
+
+// Restore default hidden visibility for all symbols.
+#pragma GCC visibility pop

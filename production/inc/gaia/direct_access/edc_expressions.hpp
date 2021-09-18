@@ -8,6 +8,9 @@
 #include <functional>
 #include <type_traits>
 
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
+
 namespace gaia
 {
 
@@ -186,3 +189,6 @@ private:
 // need to be in the header so that template specializations
 // that are declared later will pick up the definitions.
 #include "edc_expressions.inc"
+
+// Restore default hidden visibility for all symbols.
+#pragma GCC visibility pop

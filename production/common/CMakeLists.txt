@@ -30,7 +30,7 @@ add_library(gaia_common STATIC
   src/random.cpp
   src/gaia_version.cpp)
 
-target_link_libraries(gaia_common PUBLIC gaia_build_options)
+configure_gaia_target(gaia_common)
 target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})
 
 # The following are INTERFACE libraries for including headers.

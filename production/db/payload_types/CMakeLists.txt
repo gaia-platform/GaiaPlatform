@@ -24,7 +24,7 @@ add_library(gaia_payload_types STATIC
   src/type_cache.cpp
   src/field_access.cpp
   src/data_buffer.cpp)
-target_link_libraries(gaia_payload_types PUBLIC gaia_build_options)
+configure_gaia_target(gaia_payload_types)
 target_include_directories(gaia_payload_types PUBLIC ${GAIA_PAYLOAD_TYPES_INCLUDES})
 target_link_libraries(gaia_payload_types PRIVATE gaia_common flatbuffers)
 
