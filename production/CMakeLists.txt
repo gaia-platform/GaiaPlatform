@@ -57,11 +57,6 @@ cmake_policy(SET CMP0083 NEW)
 # Our shared libraries and executables must all be ASLR-compatible.
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
-# We want everything in the build to use libc++,
-# including third-party packages.
-add_compile_options(-stdlib=libc++)
-add_link_options(-stdlib=libc++)
-
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
 
@@ -87,12 +82,13 @@ if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
   set(LLVM_ENABLE_EH ON CACHE BOOL "")
   set(LLVM_ENABLE_PROJECTS "clang" CACHE STRING "")
   set(LLVM_ENABLE_RTTI ON CACHE BOOL "")
-  # LLD/libc++ are necessary for MSan.
+  # LLD should make building LLVM significantly faster.
   set(LLVM_ENABLE_LLD ON CACHE BOOL "")
-  set(LLVM_ENABLE_LIBCXX ON CACHE BOOL "")
+
   if(ENABLE_STACKTRACE)
     set(LLVM_GENERATE_STACKTRACE_DEBUG_INFO ON CACHE BOOL "")
   endif()
+
   if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     # This speeds up linking by separating debug info.
     set(LLVM_USE_SPLIT_DWARF ON CACHE BOOL "")
@@ -113,6 +109,11 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
 
   if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(gaia_build_options INTERFACE -O0)
+
+    # For eventual MemorySanitizer support, we need all targets in debug builds
+    # to use libc++, including third-party packages.
+    add_compile_options(-stdlib=libc++)
+    add_link_options(-stdlib=libc++)
 
     # Enable ASan by default in debug builds.
     set(SANITIZER "ASAN" CACHE STRING "Enable sanitizers in debug builds")
