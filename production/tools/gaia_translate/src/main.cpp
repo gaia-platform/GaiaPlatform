@@ -799,13 +799,13 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 rewriter.InsertTextAfter(explicit_path_data_iterator.first.getBegin(), variable_name + " = true;\n");
                 rewriter.RemoveText(SourceRange(get_previous_token_location(nomatch_range.getBegin(), rewriter), nomatch_range.getBegin().getLocWithOffset(-1)));
                 rewriter.InsertTextBefore(nomatch_range.getBegin(),navigation_code.postfix + "\nif (!" + variable_name + ")\n");
-                rewriter.InsertTextAfter(nomatch_range.getEnd(),"}\n");
+                rewriter.InsertTextAfterToken(nomatch_range.getEnd(),"}\n");
                 nomatch_range = SourceRange();
             }
             else
             {
                 rewriter.InsertTextBefore(explicit_path_data_iterator.first.getBegin(), navigation_code.prefix);
-                rewriter.InsertTextAfter(explicit_path_data_iterator.first.getEnd(), navigation_code.postfix);
+                rewriter.InsertTextAfterToken(explicit_path_data_iterator.first.getEnd(), navigation_code.postfix);
             }
         }
 
@@ -3253,14 +3253,14 @@ public:
             return;
         }
 
-        SourceRange label_source_range = label_declaration->getSourceRange();
-        SourceLocation end_location = Lexer::findLocationAfterToken(label_source_range.getEnd(), tok::colon, m_rewriter.getSourceMgr(), m_rewriter.getLangOpts(), true);
-        if (end_location.isValid())
-        {
-            label_source_range.setEnd(end_location.getLocWithOffset(-1));
-        }
         if (!label_declaration->isUsed())
         {
+            SourceRange label_source_range = label_declaration->getSourceRange();
+            SourceLocation end_location = Lexer::findLocationAfterToken(label_source_range.getEnd(), tok::colon, m_rewriter.getSourceMgr(), m_rewriter.getLangOpts(), true);
+            if (end_location.isValid())
+            {
+                label_source_range.setEnd(end_location.getLocWithOffset(-1));
+            }
             m_rewriter.RemoveText(label_source_range);
         }
     }
