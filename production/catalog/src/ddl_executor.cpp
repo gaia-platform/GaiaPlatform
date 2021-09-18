@@ -306,10 +306,7 @@ gaia_id_t ddl_executor_t::create_database(const string& name, bool throw_on_exis
 
     gaia_log::catalog().debug("Created database '{}', id:'{}'", name, id);
 
-    if (auto_drop)
-    {
-        switch_db_context(name);
-    }
+    switch_db_context(name);
 
     return id;
 }

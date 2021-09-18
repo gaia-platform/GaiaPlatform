@@ -385,10 +385,6 @@ void execute_create_list_statements(
     {
         auto create_stmt = dynamic_cast<ddl::create_statement_t*>(stmt.get());
         execute_create_statement_no_txn(executor, create_stmt);
-        if (create_stmt->type == ddl::create_type_t::create_database)
-        {
-            executor.switch_db_context(create_stmt->name);
-        }
     }
     txn.commit();
 }
