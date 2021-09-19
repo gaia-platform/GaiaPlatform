@@ -699,12 +699,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
             for (const auto& variable_declaration_range_iterator : g_variable_declaration_location)
             {
                 string variable_name = variable_declaration_range_iterator.second;
-                if (g_attribute_tag_map.find(variable_name) != g_attribute_tag_map.end())
-                {
-                    gaiat::diag().emit(variable_declaration_range_iterator.first.getBegin(), diag::err_tag_hidden) << variable_name;
-                    g_is_generation_error = true;
-                    return;
-                }
+
                 if (is_range_contained_in_another_range(
                         explicit_path_data_iterator.first, variable_declaration_range_iterator.first))
                 {
@@ -2632,6 +2627,13 @@ public:
                     gaiat::diag().emit(diag::warn_field_hidden) << variable_name;
                     return;
                 }
+            }
+
+            if (g_attribute_tag_map.find(variable_name) != g_attribute_tag_map.end())
+            {
+                gaiat::diag().emit(diag::err_tag_hidden) << variable_name;
+                g_is_generation_error = true;
+                return;
             }
         }
     }
