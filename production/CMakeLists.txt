@@ -107,7 +107,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
   target_compile_options(gaia_build_options INTERFACE -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf)
   target_link_options(gaia_build_options INTERFACE -Wl,--gdb-index)
 
-  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(gaia_build_options INTERFACE -O0)
 
     # For eventual MemorySanitizer support, we need all targets in debug builds
@@ -123,7 +123,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
     set_property(CACHE SANITIZER PROPERTY STRINGS "ASAN")
   endif()
 
-  if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+  if(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     # Set the highest optimization level compatible with reasonable debuggability.
     target_compile_options(gaia_build_options INTERFACE -Og)
   endif()
@@ -212,7 +212,7 @@ find_package(Threads REQUIRED)
 message(CHECK_START "Looking for libexplain and libcap")
 find_library(LIB_EXPLAIN NAMES libexplain.a)
 find_library(LIB_CAP NAMES libcap.a cap)
-if (LIB_EXPLAIN AND LIB_CAP)
+if(LIB_EXPLAIN AND LIB_CAP)
   message(CHECK_PASS "found")
 else()
   message(CHECK_FAIL "not found")
