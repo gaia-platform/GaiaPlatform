@@ -225,15 +225,15 @@ void update_index_entry(
 
 void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_record_t record, bool allow_create_empty)
 {
-    ASSERT_PRECONDITION(get_indexes(), "Indexes not initialized.");
+    ASSERT_PRECONDITION(get_indexes(), "Indexes are not initialized.");
 
     auto it = get_indexes()->find(index_id);
 
     if (allow_create_empty && it == get_indexes()->end())
     {
         auto index_ptr = id_to_ptr(index_id);
-        auto index_view = index_view_t(index_ptr);
         ASSERT_INVARIANT(index_ptr != nullptr, "Cannot find index in catalog.");
+        auto index_view = index_view_t(index_ptr);
         it = index::index_builder_t::create_empty_index(index_view);
     }
     else
