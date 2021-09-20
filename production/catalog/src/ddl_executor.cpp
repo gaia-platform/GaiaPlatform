@@ -282,7 +282,7 @@ gaia_id_t ddl_executor_t::create_database(const string& name, bool throw_on_exis
 {
     ASSERT_PRECONDITION(throw_on_exists || !auto_drop, c_assert_throw_and_auto_drop);
 
-    // TODO: swtich to index for fast lookup.
+    // TODO: switch to index for fast lookup.
     auto db_iter = gaia_database_t::list().where(gaia_database_expr::name == name).begin();
     if (db_iter != gaia_database_t::list().end())
     {
@@ -329,7 +329,7 @@ gaia_id_t ddl_executor_t::get_table_id(const std::string& db, const std::string&
         throw db_not_exists(db);
     }
 
-    // TODO: swtich to index for fast lookup.
+    // TODO: switch to index for fast lookup.
     auto table_iter = gaia_database_t::get(db_id).gaia_tables().where(gaia_table_expr::name == table).begin();
     if (table_iter->gaia_id() == c_invalid_gaia_id)
     {
@@ -351,7 +351,7 @@ gaia_id_t ddl_executor_t::create_relationship(
 {
     ASSERT_PRECONDITION(throw_on_exists || !auto_drop, c_assert_throw_and_auto_drop);
 
-    // TODO: swtich to index for fast lookup.
+    // TODO: switch to index for fast lookup.
     auto rel_iter = gaia_relationship_t::list().where(gaia_relationship_expr::name == name).begin();
     if (rel_iter != gaia_relationship_t::list().end())
     {
@@ -475,7 +475,7 @@ gaia_id_t ddl_executor_t::create_relationship(
             if (!field.unique())
             {
                 throw invalid_field_map(
-                    string("The field '") + field.name() + "' defined in the table '" + field.table().name()
+                    string("The field '") + field.name() + "' defined in table '" + field.table().name()
                     + "' is used to define a relationship and must be declared UNIQUE.");
             }
         }
@@ -547,7 +547,7 @@ void ddl_executor_t::drop_relationship_no_ri(gaia_relationship_t& relationship)
 
 void ddl_executor_t::drop_relationship(const std::string& name, bool throw_unless_exists)
 {
-    // TODO: swtich to index for fast lookup.
+    // TODO: switch to index for fast lookup.
     auto rel_iter = gaia_relationship_t::list().where(gaia_relationship_expr::name == name).begin();
     if (rel_iter == gaia_relationship_t::list().end())
     {
@@ -709,7 +709,7 @@ void ddl_executor_t::drop_table(const string& db_name, const string& name, bool 
         return;
     }
 
-    // TODO: swtich to index for fast lookup.
+    // TODO: switch to index for fast lookup.
     auto table_iter = gaia_database_t::get(db_id).gaia_tables().where(gaia_table_expr::name == name).begin();
     if (table_iter->gaia_id() == c_invalid_gaia_id)
     {
@@ -800,7 +800,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
         throw db_not_exists(db_name);
     }
 
-    // TODO: swtich to index for fast lookup.
+    // TODO: switch to index for fast lookup.
     auto table_iter = gaia_database_t::get(db_id).gaia_tables().where(gaia_table_expr::name == table_name).begin();
     if (table_iter->gaia_id() != c_invalid_gaia_id)
     {
@@ -907,7 +907,7 @@ gaia_id_t ddl_executor_t::find_db_id(const string& db_name) const
     {
         return m_empty_db_id;
     }
-    // TODO: swtich to index for fast lookup.
+    // TODO: switch to index for fast lookup.
     return gaia_database_t::list().where(gaia_database_expr::name == db_name).begin()->gaia_id();
 }
 
@@ -1021,7 +1021,7 @@ gaia_id_t ddl_executor_t::create_index(
 
 void ddl_executor_t::drop_index(const std::string& name, bool throw_unless_exists)
 {
-    // TODO: swtich to index for fast lookup.
+    // TODO: switch to index for fast lookup.
     auto index_iter = gaia_index_t::list().where(gaia_index_expr::name == name).begin();
     if (index_iter == gaia_index_t::list().end())
     {
