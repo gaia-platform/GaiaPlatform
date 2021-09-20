@@ -66,7 +66,11 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   # We only link libc++ in Debug builds.
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "clang-10,lld-10,libc++-10-dev,libc++abi-10-dev")
 else()
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "clang-10,lld-10")
+  # We use libstdc++ in Release builds for compatibility with other software
+  # built with libstdc++ (which is the default stdlib in both gcc and clang).
+  # GCC 9 is installed by default on Ubuntu 20.04 with the build-essential
+  # package, so we try to be compatible with that.
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "clang-10,lld-10,libstdc++-9-dev")
 endif(CMAKE_BUILD_TYPE)
 
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
