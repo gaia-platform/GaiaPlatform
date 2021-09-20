@@ -124,7 +124,7 @@ void check_reference_field_maps(
     {
         throw invalid_field_map(
             "The WHERE clause for matching reference definitions in table '" + table1
-            + "' and table '" + table2 + "'" + " uses a different table than the two matching tables.");
+            + "' and table '" + table2 + "'" + " must use a field from each table on both side of '='.");
     }
 }
 
@@ -345,7 +345,7 @@ void sanity_check_create_list_statements(
             {
                 throw invalid_create_list(
                     "CREATE TABLE " + create_table->name
-                    + "... should not specify a database.");
+                    + "definition should not specify a database.");
             }
         }
         else if (stmt->type == ddl::create_type_t::create_index)
@@ -355,7 +355,7 @@ void sanity_check_create_list_statements(
             {
                 throw invalid_create_list(
                     "CREATE INDEX " + create_index->name
-                    + "... should not specify a database.");
+                    + "definition should not specify a database.");
             }
         }
         else if (stmt->type == ddl::create_type_t::create_relationship)
@@ -368,7 +368,7 @@ void sanity_check_create_list_statements(
             {
                 throw invalid_create_list(
                     "CREATE RELATIONSHIP " + create_relationship->name
-                    + "... should not specify a database in the link(s).");
+                    + "definition should not specify a database in the link(s).");
             }
             if (create_relationship->field_map
                 && (!create_relationship->field_map->first.database.empty()
@@ -376,7 +376,7 @@ void sanity_check_create_list_statements(
             {
                 throw invalid_create_list(
                     "CREATE RELATIONSHIP " + create_relationship->name
-                    + "... should not specify a database in the field(s).");
+                    + "definition should not specify a database in the field(s).");
             }
         }
     }
