@@ -110,7 +110,7 @@ void check_reference_field_maps(
         {
             throw invalid_field_map(
                 "The matching reference definitions in table '" + table1 + "' and table '" + table2 + "'"
-                + " both contain a WHERE clause that does not match each other.");
+                + " both contain WHERE clauses that do not match each other.");
         }
     }
 
