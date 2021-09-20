@@ -162,7 +162,7 @@ public:
     explicit invalid_object_id(common::gaia_id_t id)
     {
         std::stringstream strs;
-        strs << "Cannot find a object with ID '" << id << "'.";
+        strs << "Cannot find an object with ID '" << id << "'.";
         m_message = strs.str();
     }
 };
