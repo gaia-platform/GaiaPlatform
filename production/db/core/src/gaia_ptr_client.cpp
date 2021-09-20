@@ -394,22 +394,23 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t
     return obj;
 }
 
-void gaia_ptr_t::remove(gaia_ptr_t& node)
+void gaia_ptr_t::remove(gaia_ptr_t& object)
 {
-    if (!node)
+    if (!object)
     {
         return;
     }
 
-    const gaia_id_t* references = node.references();
-    for (reference_offset_t i = 0; i < node.num_references(); i++)
+    const gaia_id_t* references = object.references();
+    for (reference_offset_t i = 0; i < object.num_references(); i++)
     {
         if (references[i] != c_invalid_gaia_id)
         {
-            throw object_still_referenced(node.id(), node.type());
+            auto other_obj = gaia_ptr_t::open(references[i]);
+            throw object_still_referenced(object.id(), object.type(), other_obj.id(), other_obj.type());
         }
     }
-    node.reset();
+    object.reset();
 }
 
 void gaia_ptr_t::clone_no_txn()
