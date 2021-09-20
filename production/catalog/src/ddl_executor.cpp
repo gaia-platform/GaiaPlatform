@@ -475,7 +475,8 @@ gaia_id_t ddl_executor_t::create_relationship(
             if (!field.unique())
             {
                 throw invalid_field_map(
-                    string("The field '") + field.name() + "' used in the relationship must be unique.");
+                    string("The field '") + field.name() + "' defined in the table '" + field.table().name()
+                    + "' is used to establish a relationship and must be decalared as unique.");
             }
         }
 
@@ -488,7 +489,8 @@ gaia_id_t ddl_executor_t::create_relationship(
                 if (!field.unique())
                 {
                     throw invalid_field_map(
-                        string("The field '") + field.name() + "' used in the 1:1 relationship must be unique.");
+                        string("The field '") + field.name() + "' defined in the table '" + field.table().name()
+                        + "' is used to establish a 1:1 relationship and must be decalared as unique.");
                 }
             }
         }
