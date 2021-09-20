@@ -485,59 +485,63 @@ void gaia_ptr_t::auto_connect_to_parent(
     {
         return;
     }
-    // For every field, check if the field is used in establishing a
-    // relationship where the field's table is on the child side. For every such
-    // relationship, check if the new value exists in any parent record. If yes,
-    // link the child record to the parent record.
+
     for (auto field_position : candidate_fields)
     {
+        // For every field, check if the field is used in establishing a
+        // relationship where the field's table is on the child side.
         for (auto relationship_view : catalog_core_t::list_relationship_to(child_type_id))
         {
-            if (relationship_view.child_field_positions()->size() == 1
-                && relationship_view.child_field_positions()->Get(0) == field_position)
+            if (relationship_view.child_field_positions()->size() != 1
+                || relationship_view.child_field_positions()->Get(0) != field_position)
             {
-                auto schema = catalog_core_t::get_table(child_type_id).binary_schema();
-                auto field_value = payload_types::get_field_value(
-                    child_type_id,
-                    child_payload,
-                    schema->data(),
-                    schema->size(),
-                    field_position);
+                continue;
+            }
 
-                gaia_type_t parent_table_type = catalog_core_t::get_table(relationship_view.parent_table_id()).table_type();
-                gaia_id_t parent_table_id = type_id_mapping_t::instance().get_record_id(parent_table_type);
-                bool updated = false;
+            // At this point, we have found the relationship (that uses the
+            // field), check if the new field value exists in any parent record.
+            // If yes, link the child record to the parent record.
+            auto schema = catalog_core_t::get_table(child_type_id).binary_schema();
+            auto field_value = payload_types::get_field_value(
+                child_type_id,
+                child_payload,
+                schema->data(),
+                schema->size(),
+                field_position);
 
-                gaia_id_t parent_index_id = catalog_core_t::find_index(
-                    parent_table_id, relationship_view.parent_field_positions()->Get(0));
-                ASSERT_INVARIANT(parent_index_id != c_invalid_gaia_id, "Cannot find value index for the parent table.");
+            gaia_type_t parent_table_type = catalog_core_t::get_table(relationship_view.parent_table_id()).table_type();
+            gaia_id_t parent_table_id = type_id_mapping_t::instance().get_record_id(parent_table_type);
+            bool updated = false;
 
-                auto index_key = index::index_key_t(field_value);
-                for (const auto& parent_scan : query_processor::scan::index_scan_t(
-                         parent_index_id,
-                         std::make_shared<query_processor::scan::index_equal_range_predicate_t>(index_key)))
+            gaia_id_t parent_index_id = catalog_core_t::find_index(
+                parent_table_id, relationship_view.parent_field_positions()->Get(0));
+            ASSERT_INVARIANT(parent_index_id != c_invalid_gaia_id, "Cannot find value index for the parent table.");
+
+            auto index_key = index::index_key_t(field_value);
+            for (const auto& parent_scan : query_processor::scan::index_scan_t(
+                     parent_index_id,
+                     std::make_shared<query_processor::scan::index_equal_range_predicate_t>(index_key)))
+            {
+                update_parent_reference(
+                    child_id,
+                    child_type,
+                    child_references,
+                    parent_scan.id(),
+                    relationship_view.parent_offset());
+                updated = true;
+                break;
+            }
+
+            // If there is no match and the record was connected to some parent
+            // record, we need to disconnect them.
+            if (!updated)
+            {
+                gaia_ptr_t child_ptr(child_id);
+                reference_offset_t parent_offset = relationship_view.parent_offset();
+                gaia_id_t parent_id = child_ptr.references()[relationship_view.parent_offset()];
+                if (parent_id != c_invalid_gaia_id)
                 {
-                    update_parent_reference(
-                        child_id,
-                        child_type,
-                        child_references,
-                        parent_scan.id(),
-                        relationship_view.parent_offset());
-                    updated = true;
-                    break;
-                }
-
-                // If there is no match and the record was connected to some
-                // parent record, we need to disconnect them.
-                if (!updated)
-                {
-                    gaia_ptr_t child_ptr(child_id);
-                    reference_offset_t parent_offset = relationship_view.parent_offset();
-                    gaia_id_t parent_id = child_ptr.references()[relationship_view.parent_offset()];
-                    if (parent_id != c_invalid_gaia_id)
-                    {
-                        child_ptr.remove_parent_reference(parent_id, parent_offset);
-                    }
+                    child_ptr.remove_parent_reference(parent_id, parent_offset);
                 }
             }
         }
