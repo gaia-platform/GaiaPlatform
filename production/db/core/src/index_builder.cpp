@@ -159,15 +159,15 @@ void update_index_entry(
 {
     auto index = static_cast<T_index_type*>(base_index);
 
-    // BULK lock to avoid race condition where two different txns can insert the same value.
-    auto w = index->get_writer();
-
     // If the index has UNIQUE constraint, then we can't insert duplicate values.
     // Because we never actually remove index entries, we need special checks
     // for the situations when we delete keys or re-insert a previously deleted key.
     if (is_unique && !record.deleted)
     {
-        auto search_result = w.equal_range(key);
+        // BULK lock to avoid race condition where two different txns can insert the same value.
+        auto index_guard = index->get_writer();
+
+        auto search_result = index_guard.equal_range(key);
         auto& it_start = search_result.first;
         auto& it_end = search_result.second;
 
@@ -183,20 +183,20 @@ void update_index_entry(
                     transactions::txn_metadata_t::is_begin_ts(begin_ts),
                     "Transaction id in index key entry is not a begin timestamp!");
 
-                // Remove index entries made by rolled back transactions, since we are already holding the lock.
+                // We can remove index entries made by rolled back transactions, because we are already holding a lock.
                 if (transactions::txn_metadata_t::is_txn_terminated(begin_ts))
                 {
-                    it_start = w.get_index().erase(it_start);
+                    it_start = index_guard.get_index().erase(it_start);
                     continue;
                 }
                 else
                 {
-                    // Remove index entries made by aborted transactions, since we are already holding the lock.
+                    // We can remove index entries made by aborted transactions, because we are already holding the lock.
                     gaia_txn_id_t commit_ts
                         = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(begin_ts);
                     if (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_aborted(commit_ts))
                     {
-                        it_start = w.get_index().erase(it_start);
+                        it_start = index_guard.get_index().erase(it_start);
                         continue;
                     }
                 }
@@ -217,9 +217,13 @@ void update_index_entry(
             auto table_view = table_view_t(id_to_ptr(index_view.table_id()));
             throw unique_constraint_violation(index_view.name(), table_view.name());
         }
-    }
 
-    index->insert_index_entry(std::move(key), record);
+        index->insert_index_entry(std::move(key), record);
+    }
+    else
+    {
+        index->insert_index_entry(std::move(key), record);
+    }
 }
 
 void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_record_t record, bool allow_create_empty)
