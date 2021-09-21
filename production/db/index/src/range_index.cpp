@@ -61,6 +61,15 @@ std::shared_ptr<common::iterators::generator_t<index_record_t>> range_index_t::e
     return std::make_shared<index_generator_t<range_type_t>>(get_lock(), first, last, txn_id);
 }
 
+template <>
+std::pair<range_type_t::iterator, range_type_t::iterator>
+index_writer_guard_t<range_type_t>::equal_range(const index_key_t& key)
+{
+    auto first = m_data.find(key);
+    auto last = (first == m_data.end()) ? m_data.end() : m_data.upper_bound(key);
+    return {first, last};
+}
+
 } // namespace index
 } // namespace db
 } // namespace gaia

@@ -42,6 +42,9 @@ public:
         m_db_idx->get_lock().unlock();
     }
 
+    // Bulk iterators
+    std::pair<typename T_structure::iterator, typename T_structure::iterator> equal_range(const index_key_t& key);
+
 private:
     base_index_t* m_db_idx;
     T_structure& m_data;
