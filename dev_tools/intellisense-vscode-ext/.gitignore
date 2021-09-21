@@ -1,7 +1,11 @@
 out
 node_modules
 <<<<<<< HEAD
+<<<<<<< HEAD
 !.vscode
 =======
 !.vscode
 >>>>>>> 1716c6508 (created gitignore)
+=======
+!.vscode
+>>>>>>> 9fa7a34e6 (fixed new lines)
