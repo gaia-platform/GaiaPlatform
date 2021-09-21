@@ -119,7 +119,7 @@
 		"onLanguage:ruleset",
 		"onLanguage:ddl"
 	],
-	"main": "./client/extension.ts",
+	"main": "./client/out/extension",
 	"contributes": {
 		"languages": [
 			{
@@ -157,17 +157,32 @@
 				"scopeName": "source.ddl",
 				"path": "./syntaxes/ddl.tmLanguage.json"
 			}
+		],
+		"snippets": [
+			{
+				"language": "ruleset",
+				"path": "./snippets/ruleset.json"
+			},
+			{
+				"language": "ddl",
+				"path": "./snippets/ddl.json"
+			}
 		]
 	},
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+		"compile": "tsc -b",
+		"watch": "tsc -b -w"
+    },
 	"devDependencies": {
 		"@types/node": "^16.7.4",
 		"typescript": "^4.4.2"
-	},
-	"dependencies": {
-		"vscode-cpptools": "^5.0.0"
 	}
 }
+<<<<<<< HEAD
 <<<<<<< HEAD
 >>>>>>> bae195833 (Added .ddl language settings)
 =======
 >>>>>>> 6aeac18cd (Fixed nits)
+=======
+>>>>>>> a2dec6ae4 (updated dependencies and added scripts)
