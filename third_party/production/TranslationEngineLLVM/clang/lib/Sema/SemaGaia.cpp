@@ -317,7 +317,8 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                 {
                     Diag(loc, diag::err_invalid_field_usage) << tableName;
                 }
-                else{
+                else
+                {
                     Diag(loc, diag::err_invalid_tag_defined) << tableName;
                 }
                 return "";
@@ -1096,6 +1097,8 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
     return retVal;
 }
 
+// This method is a simplified version of getFieldType() used only to determine if a string
+// is the name of a field in the database.
 bool Sema::findFieldType(const std::string& fieldOrTagName, SourceLocation loc)
 {
     bool retVal = false;
@@ -1121,6 +1124,7 @@ bool Sema::findFieldType(const std::string& fieldOrTagName, SourceLocation loc)
         Diag(loc, diag::err_no_ruleset_for_rule);
         return false;
     }
+
     vector<string> tables;
     RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(context);
     RulesetTablesAttr* attr = rulesetDecl->getAttr<RulesetTablesAttr>();

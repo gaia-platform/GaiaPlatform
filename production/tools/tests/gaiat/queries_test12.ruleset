@@ -10,5 +10,5 @@ ruleset test43
 
 }
 
-// CHECK: Field 'portion' cannot be used after a 'refers to' operator ('->') in a path. Use a dot ('.') to separate the table name from the field name.
+// CHECK: Field 'portion' cannot be used after a '->' in a path. Use a '.' to separate the table name from the field name.
 // GAIAPLAT-877
