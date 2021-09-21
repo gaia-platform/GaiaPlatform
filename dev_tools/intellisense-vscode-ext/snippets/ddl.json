@@ -28,4 +28,8 @@
         "body": ["name string,", "$0"],
         "description": "snippet for name"
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 70f683487 (snippets for ddl files)
