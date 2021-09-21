@@ -13,8 +13,8 @@ ruleset test91
 {
     on_update(incubator)
     {
-        long i = actuator->timestamp; // expected-error {{Tag refers to an invalid table 'timestamp'.}}
-        // expected-error@-1 {{use of undeclared identifier 'actuator'}}
+        long i = actuator->timestamp; // expected-error {{Field 'timestamp' cannot be used after a 'refers to' operator ('->') in a path. Use a dot ('.') to separate the table name from the field name.}}
+            // expected-error@-1 {{use of undeclared identifier 'actuator'}}
     }
 }
 
@@ -145,17 +145,17 @@ ruleset test131
 }
 
 // GAIAPLAT-877
-#ifdef TEST_FAILURES
 ruleset test132
 {
     on_insert(animal)
     {
-        animal->feeding->portion = 5;
+        animal->feeding->portion = 5; // expected-error {{Field 'portion' cannot be used after a 'refers to' operator ('->') in a path. Use a dot ('.') to separate the table name from the field name.}}
+            // expected-error@-1 {{use of undeclared identifier 'animal'}}
     }
 }
-#endif
 
 // GAIAPLAT-913 (V1)
+// GAIAPLAT-878 (V1)
 #ifdef TEST_FAILURES // GAIAPLAT-913 (V1)
 ruleset test133
 {

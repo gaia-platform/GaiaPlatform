@@ -1,0 +1,11 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test91
+{
+    on_update(incubator)
+    {
+        long i = actuator->timestamp;
+    }
+}
+
+// CHECK: Field 'timestamp' cannot be used after a 'refers to' operator ('->') in a path. Use a dot ('.') to separate the table name from the field name.
