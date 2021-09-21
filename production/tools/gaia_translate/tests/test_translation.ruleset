@@ -217,6 +217,30 @@ ruleset testE28
         }
     }
 }
+namespace test_test{
+    enum test_enum
+    {
+        test1,
+        test2,
+        test3,
+        test4,
+    };
+}
+
+//GAIAT-1235
+ruleset testE29
+{
+    on_insert(sensor)
+    {
+        switch(sensor.timestamp)
+        {
+            case test_test::test1 : sensor.timestamp=1; break;
+            case test_test::test2: sensor.timestamp=2; break;
+            case test_test::test3:sensor.timestamp=3; break;
+            case test_test::test4 :sensor.timestamp=4; break;
+        }
+    }
+}
 
 #if 0
 // This rule interferes with 'ruleset set' rules
