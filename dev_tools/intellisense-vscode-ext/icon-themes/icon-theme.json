@@ -1,0 +1,22 @@
+{
+    "iconDefinitions": {
+        "ruleset": {
+            "iconPath": "../icons/ruleset.png"
+        },
+        "database": {
+            "iconPath": "../icons/database.svg"
+        },
+        "cpp":{
+            "iconPath": "../icons/cpp.svg"
+        },
+        "hpp": {
+            "iconPath": "../icons/hpp.svg"
+        }
+    },
+    "fileExtensions": {
+        "ruleset": "ruleset",
+        "ddl": "database",
+        "cpp": "cpp",
+        "hpp": "hpp"
+    }
+}
