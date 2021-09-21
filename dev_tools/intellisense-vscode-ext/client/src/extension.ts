@@ -1,5 +1,3 @@
-// const vscode = require('vscode');
-// const hover_info = require('..hover_info.json');
 import { hover_info } from './hover_info';
 import { 
     workspace,
