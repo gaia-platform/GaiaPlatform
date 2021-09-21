@@ -1,7 +1,11 @@
 // A launch configuration that launches the extension inside a new window
 
 {
+<<<<<<< HEAD
     "version": "0.2.0",
+=======
+	"version": "0.2.0",
+>>>>>>> f5e7deb54 (vscode extension config)
     "configurations": [
         {
             "name": "Launch Client",
@@ -12,4 +16,8 @@
             ]
         }
     ]
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> f5e7deb54 (vscode extension config)
