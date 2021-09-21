@@ -1,0 +1,31 @@
+{
+    "table": {
+        "prefix": "table",
+        "body": ["table $1 (", "\t$0", ")\n"],
+        "description": "snippet for table"
+    },
+
+    "create table if not exists": {
+        "prefix": "create table i",
+        "body": ["create table if not exists $1 (", "\t$0", ")\n"],
+        "description": "snippet for create table if not exists"
+    },
+
+    "timestamp": {
+        "prefix": ["tim", "time"],
+        "body": ["timestamp uint64,", "$0"],
+        "description": "snippet for timestamps"
+    },
+
+    "id": {
+        "prefix": ["id"],
+        "body": ["id string,", "$0"],
+        "description": "snippet for ids"
+    },
+
+    "name": {
+        "prefix": ["nam"],
+        "body": ["name string,", "$0"],
+        "description": "snippet for name"
+    }
+}
