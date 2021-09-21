@@ -517,10 +517,11 @@ void gaia_ptr_t::auto_connect_to_parent(
                 parent_table_id, relationship_view.parent_field_positions()->Get(0));
             ASSERT_INVARIANT(parent_index_id != c_invalid_gaia_id, "Cannot find value index for the parent table.");
 
-            auto index_key = index::index_key_t(field_value);
+            index::index_key_t key;
+            key.insert(field_value);
             for (const auto& parent_scan : query_processor::scan::index_scan_t(
                      parent_index_id,
-                     std::make_shared<query_processor::scan::index_equal_range_predicate_t>(index_key)))
+                     std::make_shared<query_processor::scan::index_point_read_predicate_t>(key)))
             {
                 update_parent_reference(
                     child_id,
