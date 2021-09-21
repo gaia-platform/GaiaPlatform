@@ -9,6 +9,9 @@
 
 #include "gaia/exception.hpp"
 
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
+
 namespace gaia
 {
 /**
@@ -46,9 +49,9 @@ namespace logging
  * - https://github.com/guangie88/spdlog_setup
  *
  * The logging configuration file location can be specified in gaia::system::initialize().
- * 
+ *
  * You can check whether a log level is enabled before running expensive calculations:
- * 
+ *
  *  if (gaia_log::app().is_debug_enabled())
  *  {
  *      int num = very_slow_function();
@@ -211,3 +214,6 @@ logger_t& app();
 } // namespace gaia
 
 namespace gaia_log = gaia::common::logging;
+
+// Restore default hidden visibility for all symbols.
+#pragma GCC visibility pop

@@ -14,6 +14,9 @@
 #include "gaia/direct_access/edc_expressions.hpp"
 #include "gaia/direct_access/nullable_string.hpp"
 
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
+
 namespace gaia
 {
 
@@ -184,3 +187,6 @@ private:
 // need to be in the header so that template specializations
 // that are declared later will pick up the definitions.
 #include "gaia/direct_access/edc_object.inc"
+
+// Restore default hidden visibility for all symbols.
+#pragma GCC visibility pop

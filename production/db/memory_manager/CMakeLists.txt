@@ -17,7 +17,7 @@ add_library(gaia_memory_manager STATIC
   src/bitmap.cpp
   src/memory_manager.cpp
   src/chunk_manager.cpp)
-target_link_libraries(gaia_memory_manager PUBLIC gaia_build_options)
+configure_gaia_target(gaia_memory_manager)
 target_include_directories(gaia_memory_manager PUBLIC ${GAIA_MEMORY_MANAGER_INCLUDES})
 target_link_libraries(gaia_memory_manager PRIVATE gaia_common)
 

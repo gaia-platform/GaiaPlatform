@@ -95,7 +95,7 @@ TEST_F(ddl_executor_test, create_database)
 
 TEST_F(ddl_executor_test, create_table)
 {
-    string test_db_name{"create_database_test"};
+    string test_db_name{"test_db"};
     create_database(test_db_name);
 
     string test_table_name{"create_table_test"};
@@ -104,8 +104,7 @@ TEST_F(ddl_executor_test, create_table)
     gaia_id_t table_id = create_table(test_table_name, fields);
     check_table_name(table_id, test_table_name);
 
-    table_id = create_table(test_db_name, test_table_name, fields);
-    check_table_name(table_id, test_table_name);
+    ASSERT_THROW(create_table(test_db_name, test_table_name, fields), table_already_exists);
 }
 
 TEST_F(ddl_executor_test, create_existing_table)

@@ -84,6 +84,27 @@ TEST_F(test_index_scan, verify_cardinality)
     }
 }
 
+// Check scans on empty indexes.
+TEST_F(test_index_scan, verify_cardinality_empty)
+{
+    auto_transaction_t txn;
+
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::empty_t::s_gaia_type);
+
+    for (const auto& index : catalog_core_t::list_indexes(type_record_id))
+    {
+        auto scan = index_scan_t(index.id());
+        size_t scan_count = 0;
+        for (const auto& row : scan)
+        {
+            (void)row;
+            scan_count++;
+        }
+
+        EXPECT_TRUE(scan_count == 0);
+    }
+}
+
 // Check counts match for all indexes.
 TEST_F(test_index_scan, test_limits)
 {
