@@ -16,11 +16,13 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
 # Default compiler/linker flags.
-add_compile_options(-c -Wall -Wextra -stdlib=libc++)
-add_link_options(-stdlib=libc++)
+add_compile_options(-Wall -Wextra)
 
 # Debug build-specific options.
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  # We build the SDK with libc++ in debug mode.
+  add_compile_options(-stdlib=libc++)
+  add_link_options(-stdlib=libc++)
   add_compile_options(-O0 -g3 -ggdb -fno-limit-debug-info -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf)
   if("$CACHE{SANITIZER}" STREQUAL "ASAN")
     add_compile_options(-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all)
