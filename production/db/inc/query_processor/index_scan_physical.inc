@@ -54,8 +54,17 @@ void index_scan_physical_t<T_index, T_index_iterator>::init()
 
     m_index = idx_iter->second;
 
-    m_local_it = static_cast<T_index*>(m_index.get())->begin();
-    m_local_it_end = static_cast<T_index*>(m_index.get())->end();
+    if (m_predicate)
+    {
+        auto range = local_iterator_helper<T_index, T_index_iterator>(static_cast<T_index*>(m_index.get()), *m_predicate);
+        m_local_it = range.first;
+        m_local_it_end = range.second;
+    }
+    else
+    {
+        m_local_it = static_cast<T_index*>(m_index.get())->begin();
+        m_local_it_end = static_cast<T_index*>(m_index.get())->end();
+    }
 
     // Advance local iterator to first visible record.
     if (!local_end() && !is_visible(m_local_it->second))
