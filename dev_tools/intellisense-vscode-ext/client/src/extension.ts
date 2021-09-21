@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { hover_info } from './hover_info';
 import { 
     ExtensionContext,
@@ -33,6 +34,8 @@ function activate(context: ExtensionContext) {
 =======
 // const vscode = require('vscode');
 // const hover_info = require('..hover_info.json');
+=======
+>>>>>>> d987c1231 (removed extra comments)
 import { hover_info } from './hover_info';
 import { 
     workspace,
