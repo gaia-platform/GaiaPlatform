@@ -1,3 +1,7 @@
 out
 node_modules
+<<<<<<< HEAD
 !.vscode
+=======
+!.vscode
+>>>>>>> 1716c6508 (created gitignore)
