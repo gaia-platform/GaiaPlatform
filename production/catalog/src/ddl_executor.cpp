@@ -448,7 +448,7 @@ gaia_id_t ddl_executor_t::create_relationship(
         if (cardinality == relationship_cardinality_t::one)
         {
             throw invalid_field_map(
-                "Defining 1:1 relationship using fields (between table '"
+                "Defining a 1:1 relationship using common fields (between table '"
                 + link1.from_table + "' and table '" + link1.to_table + "') is not supported.");
         }
 
