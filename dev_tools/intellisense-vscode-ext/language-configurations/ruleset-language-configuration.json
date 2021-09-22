@@ -13,6 +13,7 @@
         ]
     },
 <<<<<<< HEAD
+<<<<<<< HEAD
 <<<<<<< HEAD:dev_tools/intellisense-vscode-ext/language-configurations/ruleset-language-configuration.json
     // Symbols used as brackets.
 =======
@@ -21,6 +22,9 @@
 =======
     // Symbols used as brackets
 >>>>>>> c6f9fdaf5 (converted spacing back to spaces)
+=======
+    // Symbols used as brackets.
+>>>>>>> f9229d4ae (updated comments)
     "brackets": [
         [
             "{",
@@ -35,6 +39,7 @@
             ")"
         ]
     ],
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD:dev_tools/intellisense-vscode-ext/language-configurations/ruleset-language-configuration.json
   // Symbols that are auto closed when typing.
@@ -119,6 +124,9 @@
 =======
 >>>>>>> c6f9fdaf5 (converted spacing back to spaces)
   // Symbols that are auto closed when typing
+=======
+  // Symbols that are auto closed when typing.
+>>>>>>> f9229d4ae (updated comments)
     "autoClosingPairs": [
         [
             "{",
@@ -141,6 +149,7 @@
             "'"
         ]
     ],
+<<<<<<< HEAD
   // Symbols that can be used to surround a selection
 <<<<<<< HEAD
 	"surroundingPairs": [
@@ -173,6 +182,9 @@
 >>>>>>> b22598e58 (Added spacing @ end of file)
 =======
 =======
+=======
+  // Symbols that can be used to surround a selection.
+>>>>>>> f9229d4ae (updated comments)
     "surroundingPairs": [
         [
             "{",

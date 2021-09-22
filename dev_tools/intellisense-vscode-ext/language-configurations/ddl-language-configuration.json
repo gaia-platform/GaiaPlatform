@@ -13,10 +13,14 @@
         ]
     },
 <<<<<<< HEAD
+<<<<<<< HEAD
     // Symbols used as brackets.
 =======
     // Symbols used as brackets
 >>>>>>> 61587b10c (Spacing fixes)
+=======
+    // Symbols used as brackets.
+>>>>>>> f9229d4ae (updated comments)
     "brackets": [
         [
             "{",
@@ -120,7 +124,7 @@
 =======
 >>>>>>> 61587b10c (Spacing fixes)
     ],
-    // Symbols that are auto closed when typing
+    // Symbols that are auto closed when typing.
     "autoClosingPairs": [
         [
             "{",
@@ -143,7 +147,7 @@
             "'"
         ]
     ],
-    // Symbols that can be used to surround a selection
+    // Symbols that can be used to surround a selection.
     "surroundingPairs": [
         [
             "{",
