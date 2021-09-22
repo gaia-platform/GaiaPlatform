@@ -1,14 +1,14 @@
 {
-	"name": "gaiaplatform-language-client",
-	"description": "VSCode client for language server",
-	"version": "0.0.1",
-	"engines": {
-		"vscode": "^1.59.0"
-	},
-	"dependencies": {
-		"vscode-languageclient": "^7.0.0"
-	},
-	"devDependencies": {
-		"@types/vscode": "^1.52.0"
-	}
+    "name": "gaiaplatform-language-client",
+    "description": "VSCode client for language server",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.59.0"
+    },
+    "dependencies": {
+        "vscode-languageclient": "^7.0.0"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.52.0"
+    }
 }

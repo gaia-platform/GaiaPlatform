@@ -15,7 +15,7 @@
     ],
     "repository": {
         "keywords": {
-			"patterns": [
+            "patterns": [
                 {
                   "name": "keyword.other.cpp.ruleset",
                   "match": "\\bruleset ([a-zA-Z0-9_.-]*)\\b",
@@ -29,7 +29,7 @@
                     "name": "keyword.other.cpp.ruleset",
                     "match": "\\brule_context"
                 }
-			]
-		}
+            ]
+        }
     }
 }
