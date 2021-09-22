@@ -2,10 +2,14 @@
 
 {
 <<<<<<< HEAD
+<<<<<<< HEAD
     "version": "0.2.0",
 =======
 	"version": "0.2.0",
 >>>>>>> f5e7deb54 (vscode extension config)
+=======
+    "version": "0.2.0",
+>>>>>>> c6f9fdaf5 (converted spacing back to spaces)
     "configurations": [
         {
             "name": "Launch Client",

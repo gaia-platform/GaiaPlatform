@@ -5,6 +5,7 @@
     "typescript.preferences.quoteStyle": "single",
     "editor.codeActionsOnSave": {
         "source.fixAll.eslint": true
+<<<<<<< HEAD
     },
     "editor.detectIndentation": false,
     "editor.insertSpaces": true
@@ -18,6 +19,8 @@
 	"typescript.preferences.quoteStyle": "single",
 	"editor.codeActionsOnSave": {
 		"source.fixAll.eslint": true
+=======
+>>>>>>> c6f9fdaf5 (converted spacing back to spaces)
     },
     "editor.detectIndentation": false,
     "editor.insertSpaces": true

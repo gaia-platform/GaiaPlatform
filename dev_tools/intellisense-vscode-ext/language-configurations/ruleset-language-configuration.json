@@ -1,5 +1,8 @@
 {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> c6f9fdaf5 (converted spacing back to spaces)
     "comments": {
         // Symbol used for single line comment.
         "lineComment": "//",
@@ -9,11 +12,15 @@
             "*/"
         ]
     },
+<<<<<<< HEAD
 <<<<<<< HEAD:dev_tools/intellisense-vscode-ext/language-configurations/ruleset-language-configuration.json
     // Symbols used as brackets.
 =======
     // Symbols used as brackets
 >>>>>>> 355bf0f69 (Fixed comments):dev_tools/intellisense-vscode-ext/language-configuration.json
+=======
+    // Symbols used as brackets
+>>>>>>> c6f9fdaf5 (converted spacing back to spaces)
     "brackets": [
         [
             "{",
@@ -28,6 +35,7 @@
             ")"
         ]
     ],
+<<<<<<< HEAD
 <<<<<<< HEAD:dev_tools/intellisense-vscode-ext/language-configurations/ruleset-language-configuration.json
   // Symbols that are auto closed when typing.
 =======
@@ -108,30 +116,33 @@
 			")"
 		]
 	],
+=======
+>>>>>>> c6f9fdaf5 (converted spacing back to spaces)
   // Symbols that are auto closed when typing
-	"autoClosingPairs": [
-		[
-			"{",
-			"}"
-		],
-		[
-			"[",
-			"]"
-		],
-		[
-			"(",
-			")"
-		],
-		[
-			"\"",
-			"\""
-		],
-		[
-			"'",
-			"'"
-		]
-	],
+    "autoClosingPairs": [
+        [
+            "{",
+            "}"
+        ],
+        [
+            "[",
+            "]"
+        ],
+        [
+            "(",
+            ")"
+        ],
+        [
+            "\"",
+            "\""
+        ],
+        [
+            "'",
+            "'"
+        ]
+    ],
   // Symbols that can be used to surround a selection
+<<<<<<< HEAD
 	"surroundingPairs": [
 		[
 			"{",
@@ -161,5 +172,29 @@
 =======
 >>>>>>> b22598e58 (Added spacing @ end of file)
 =======
+=======
+    "surroundingPairs": [
+        [
+            "{",
+            "}"
+        ],
+        [
+            "[",
+            "]"
+        ],
+        [
+            "(",
+            ")"
+        ],
+        [
+            "\"",
+            "\""
+        ],
+        [
+            "'",
+            "'"
+        ]
+    ]
+>>>>>>> c6f9fdaf5 (converted spacing back to spaces)
 }
 >>>>>>> 61587b10c (Spacing fixes)

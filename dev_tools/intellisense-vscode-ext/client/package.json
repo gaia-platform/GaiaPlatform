@@ -1,5 +1,8 @@
 {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> c6f9fdaf5 (converted spacing back to spaces)
     "name": "gaiaplatform-language-client",
     "description": "VSCode client for language server",
     "version": "0.0.1",
@@ -12,6 +15,7 @@
     "devDependencies": {
         "@types/vscode": "^1.52.0"
     }
+<<<<<<< HEAD
 =======
 	"name": "gaiaplatform-language-client",
 	"description": "VSCode client for language server",
@@ -26,4 +30,6 @@
 		"@types/vscode": "^1.52.0"
 	}
 >>>>>>> 61b1f2794 (created new package json for client dependencies)
+=======
+>>>>>>> c6f9fdaf5 (converted spacing back to spaces)
 }
