@@ -2,9 +2,9 @@
 <<<<<<< HEAD
 =======
     "#inc": {
-      "prefix": "#inc",
-      "body": ["#include "],
-      "description": "snippet for #include"
+        "prefix": "#inc",
+        "body": ["#include "],
+        "description": "snippet for #include"
     },
 
 >>>>>>> b34786591 (snippets for ruleset files)
@@ -33,6 +33,7 @@
     },
   
     "using": {
+<<<<<<< HEAD
 <<<<<<< HEAD
         "prefix": "using",
         "body": ["using namespace $0"],
@@ -79,175 +80,54 @@
       "prefix": "using",
       "body": ["using namespace $0"],
       "description": "snippet for using namespace"
+=======
+        "prefix": "using",
+        "body": ["using namespace $0"],
+        "description": "snippet for using namespace"
+>>>>>>> 16f40822d (spacing)
     },
   
     "for loop": {
-      "prefix": "for",
-      "body": ["for ($1)", "{", "\t$0", "}"],
-      "description": "snippet for a for loop"
-    },
-  
-    "foreach": {
-      "prefix": "fore",
-      "body": ["for (auto &$1 : $2)", "{", "\t$0", "}\n"],
-      "description": "snippet for a for-auto loop"
+        "prefix": "for",
+        "body": ["for ($1)", "{", "\t$0", "}"],
+        "description": "snippet for a for loop"
     },
   
     "do": {
-      "prefix": "do",
-      "body": ["do", "{", "\t$0", "} while($1);\n"],
-      "description": "snippet for a do...while loop"
+        "prefix": "do",
+        "body": ["do", "{", "\t$0", "} while($1);\n"],
+        "description": "snippet for a do...while loop"
     },
   
     "while": {
-      "prefix": "while",
-      "body": ["while ($1)", "{", "\t$0", "}\n"],
-      "description": "snippet for a while loop"
+        "prefix": "while",
+        "body": ["while ($1)", "{", "\t$0", "}\n"],
+        "description": "snippet for a while loop"
     },
   
     "if": {
-      "prefix": "if",
-      "body": ["if ($1)","{", "\t$0", "}"],
-      "description": "snippet for an if statement"
+        "prefix": "if",
+        "body": ["if ($1)","{", "\t$0", "}"],
+        "description": "snippet for an if statement"
     },
   
     "else": {
-      "prefix": "else",
-      "body": ["else", "{", "\t$0", "}\n"],
-      "description": "snippet for else"
+        "prefix": "else",
+        "body": ["else", "{", "\t$0", "}\n"],
+        "description": "snippet for else"
     },
   
     "else if": {
-      "prefix": "else if",
-      "body": ["else if ($1)", "{", "\t$0", "}"],
-      "description": "snippet for else-if"
-    },
-  
-    "enum": {
-      "prefix": "enum",
-      "body": ["enum $1", "{", "\t$0", "};\n"],
-      "description": "snippet for an enum declaration"
-    },
-  
-    "class": {
-      "prefix": "class",
-      "body": ["class $0", "{", "", "};\n"],
-      "description": "snippet for a class declaration"
-    },
-  
-    "class inherit": {
-      "prefix": "classi",
-      "body": ["class $1 :public $0", "{", "", "};\n"],
-      "description": "snippet for a class-inherit declaration"
-    },
-  
-    "namespace": {
-      "prefix": "namespace",
-      "body": ["namespace $1", "{", "\t$0", "}//$1\n"]
-    },
-  
-    "#ifndef": {
-      "prefix": "#ifndef",
-      "body": [
-        "#ifndef __${TM_FILENAME_BASE/(.*)/${1:/upcase}/}__H__",
-        "#define __${TM_FILENAME_BASE/(.*)/${1:/upcase}/}__H__",
-        "$0",
-        "#endif  //!__${TM_FILENAME_BASE/(.*)/${1:/upcase}/}__H__"
-      ],
-      "description": "snippet for #ifndef"
-    },
-  
-    "#ifdef": {
-      "prefix": "#ifdef",
-      "body": ["#ifdef  ${1}", "$0", "#endif  //$1"],
-      "description": "snippet for #if"
-    },
-  
-    "struct": {
-      "prefix": "struct",
-      "body": ["struct $1", "{", "\t$0", "};\n"],
-      "description": "snippet for a struct declaration"
-    },
-  
-    "switch": {
-      "prefix": "switch",
-      "body": [
-        "switch ($1)",
-        "{",
-        "  case $2:",
-        "\t$0",
-        "\tbreak;",
-        "\n",
-        "\n",
-        "  default:",
-        "\tbreak;",
-        "}"
-      ],
-      "description": "snippet for a switch statement"
-    },
-  
-    "case": {
-      "prefix": "case",
-      "body": ["  case $1:", "\t$0", "\tbreak;"],
-      "description": "snippet for case (...)"
-    },
-  
-    "try": {
-      "prefix": "try",
-      "body": ["try", "{", "\t$1", "}", "catch (const std::exception& $2)", "{", "\t$0", "}\n"],
-      "description": "snippet for a try-catch block"
-    },
-  
-    "union": {
-      "prefix": "union",
-      "body": ["union $1", "{", "\t$0", "};\n"],
-      "description": "snippet for a union declaration"
-    },
-  
-    "#def": {
-      "prefix": "#def",
-      "body": ["#define  $1  $2\n"],
-      "description": "snippet for #def"
-    },
-  
-    "main": {
-      "prefix": "main",
-      "body": [
-        "int\tmain(int argc, char **argv)",
-        "{",
-        "\t$0",
-  
-        "\n",
-        "\tsystem(\"pause\");",
-        "\treturn 0;",
-        "}\n"
-      ],
-      "description": "snippet for a main function declaration"
-    },
-  
-    "fileheader": {
-      "prefix": "fileheader",
-      "body": [
-        "/**",
-        "**********************************************************************************************************************************************************************************************************************************",
-        "* @file:\t$TM_FILENAME",
-        "* @author:\t$1",
-        "* @date:\t$CURRENT_YEAR年$CURRENT_MONTH月$CURRENT_DATE日 $CURRENT_HOUR:$CURRENT_MINUTE:$CURRENT_SECOND $CURRENT_DAY_NAME",
-        "* @brief:\t$2",
-        "**********************************************************************************************************************************************************************************************************************************",
-        "**/"
-      ],
-      "description": "snippet for a file header"
-    },
-  
-    "template": {
-      "prefix": "tem",
-      "body": ["template <typename $0>"],
-      "description": "snippet for a template"
+        "prefix": "else if",
+        "body": ["else if ($1)", "{", "\t$0", "}"],
+        "description": "snippet for else-if"
     }
   }
+<<<<<<< HEAD
 <<<<<<< HEAD
 >>>>>>> b34786591 (snippets for ruleset files)
 =======
   
 >>>>>>> c6f9fdaf5 (converted spacing back to spaces)
+=======
+>>>>>>> 16f40822d (spacing)
