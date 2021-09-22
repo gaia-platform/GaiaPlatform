@@ -1,5 +1,6 @@
 {
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     "#inc": {
         "prefix": "#inc",
@@ -8,6 +9,8 @@
     },
 
 >>>>>>> b34786591 (snippets for ruleset files)
+=======
+>>>>>>> f51f28446 (snippets only specific to rulesets)
     "ruleset": {
         "prefix": "rul",
         "body": ["ruleset "],
@@ -76,6 +79,7 @@
         "description": "snippet for else-if"
     }
 }
+<<<<<<< HEAD
 =======
       "prefix": "using",
       "body": ["using namespace $0"],
@@ -131,3 +135,5 @@
 >>>>>>> c6f9fdaf5 (converted spacing back to spaces)
 =======
 >>>>>>> 16f40822d (spacing)
+=======
+>>>>>>> f51f28446 (snippets only specific to rulesets)
