@@ -56,10 +56,10 @@ let client: LanguageClient;
 
 function activate(context: ExtensionContext) {
 
-	//creates map out of hover_info keys/values.
+	//Creates map out of hover_info keys/values.
 	const hover_info_map = new Map(Object.entries(hover_info))
 
-	//creates provider to give the extension hover functionality.
+	//Creates provider to give the extension hover functionality.
     languages.registerHoverProvider('ruleset', {
         provideHover(document, position, token) {
 
