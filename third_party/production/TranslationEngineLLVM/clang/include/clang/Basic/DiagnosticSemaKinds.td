@@ -9523,7 +9523,7 @@ def err_declarative_label_statement_is_invalid : Error<
 def err_declarative_label_wrong_statement : Error<
   "The statement of the declarative label is not a declarative 'if' or 'for'.">;
 def err_duplicate_field : Error<
-  "Duplicate field '%0' found in table '%1'. Qualify your field with the "
+  "Duplicate field '%0' found in multiple tables. Qualify your field with the "
   "table name (table.field) to disambiguate field names that occur in more "
   "than one table. You can also restrict the list of tables to search by "
   "specifying them in the ruleset 'tables' attribute.">;

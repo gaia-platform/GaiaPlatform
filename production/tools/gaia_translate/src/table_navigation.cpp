@@ -302,7 +302,7 @@ void table_navigation_t::fill_table_data()
             table_data_t table_data = m_table_data[table.name()];
             if (table_data.field_data.find(field.name()) != table_data.field_data.end())
             {
-                gaiat::diag().emit(diag::err_duplicate_field) << field.name() << table.name();
+                gaiat::diag().emit(diag::err_duplicate_field) << field.name();
                 m_table_data.clear();
                 return;
             }
