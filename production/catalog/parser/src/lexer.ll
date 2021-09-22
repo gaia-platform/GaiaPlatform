@@ -23,10 +23,7 @@
 
 %{
     yy::parser::symbol_type
-    make_NUMBER(const std::string& s, const yy::parser::location_type& loc);
-
-    yy::parser::symbol_type
-    make_IDENTIFIER(const char* yytext, int yyleng, const yy::parser::location_type& loc);
+    make_NUMBER (const std::string &s, const yy::parser::location_type& loc);
 %}
 
 /* The exclusive start condition for C style comments. */
@@ -107,7 +104,7 @@ comment ("--".*)
 
 "->"         return yy::parser::make_RARROW(loc);
 
-{id}         return make_IDENTIFIER(yytext, yyleng, loc);
+{id}         return yy::parser::make_IDENTIFIER(yytext, loc);
 {int}        return make_NUMBER(yytext, loc);
 
 
@@ -118,26 +115,15 @@ comment ("--".*)
 %%
 
 yy::parser::symbol_type
-make_IDENTIFIER(const char* yytext, int yyleng, const yy::parser::location_type& loc)
-{
-    if (yyleng < 0)
-    {
-        throw gaia::catalog::ddl::parsing_error(loc, std::string("The identifier ") + yytext + " is too long.");
-    }
-    return yy::parser::make_IDENTIFIER(yytext, loc);
-}
-
-
-yy::parser::symbol_type
 make_NUMBER(const std::string &s, const yy::parser::location_type& loc)
 {
     errno = 0;
     long n = strtol(s.c_str(), NULL, 10);
-    if (!(INT_MIN <= n && n <= INT_MAX && errno != ERANGE))
+    if (! (INT_MIN <= n && n <= INT_MAX && errno != ERANGE))
     {
         throw gaia::catalog::ddl::parsing_error(loc, "The integer " + s + " is out of range.");
     }
-    return yy::parser::make_NUMBER((int) n, loc);
+    return yy::parser::make_NUMBER ((int) n, loc);
 }
 
 void gaia::catalog::ddl::parser_t::scan_begin()
