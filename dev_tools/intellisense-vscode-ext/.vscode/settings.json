@@ -1,5 +1,6 @@
 {
 <<<<<<< HEAD
+<<<<<<< HEAD
     "typescript.tsc.autoDetect": "off",
     "typescript.preferences.quoteStyle": "single",
     "editor.codeActionsOnSave": {
@@ -11,10 +12,15 @@
 =======
 	"editor.insertSpaces": false,
 	"typescript.tsc.autoDetect": "off",
+=======
+    "typescript.tsc.autoDetect": "off",
+>>>>>>> 06051b345 (fixed settings)
 	"typescript.preferences.quoteStyle": "single",
 	"editor.codeActionsOnSave": {
 		"source.fixAll.eslint": true
-	}
+    },
+    "editor.detectIndentation": false,
+    "editor.insertSpaces": true
 }
 <<<<<<< HEAD
 >>>>>>> f5e7deb54 (vscode extension config)
