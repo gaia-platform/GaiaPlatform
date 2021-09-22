@@ -219,6 +219,10 @@ bool valid_db_name(const string& db_name)
     {
         return true;
     }
+    if (db_name.length() > std::numeric_limits<int>::max())
+    {
+        return false;
+    }
     if (!isalpha(db_name.front()))
     {
         return false;

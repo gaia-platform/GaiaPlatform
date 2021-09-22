@@ -5,6 +5,7 @@
 
 #include "gaia_internal/catalog/ddl_executor.hpp"
 
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -780,6 +781,83 @@ reference_offset_t ddl_executor_t::find_available_offset(gaia::common::gaia_id_t
         find_parent_available_offset(table.outgoing_relationships()));
 }
 
+// Adapted from the public domain murmur3 hash implementation at:
+// https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp
+uint32_t murmurhash3_x86_32(const void* key, int len)
+{
+    const auto* data = static_cast<const uint8_t*>(key);
+    const int nblocks = len / 4;
+
+    uint32_t h1 = len;
+
+    const uint32_t c1 = 0xcc9e2d51;
+    const uint32_t c2 = 0x1b873593;
+
+    //----------
+    // body
+
+    const auto* blocks = reinterpret_cast<const uint32_t*>(data + nblocks * 4);
+
+    for (int i = -nblocks; i; i++)
+    {
+        uint32_t k1;
+        std::memcpy(&k1, (blocks + i), sizeof(k1));
+
+        k1 *= c1;
+        k1 = (k1 << 15) | (k1 >> (32 - 15)); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+        k1 *= c2;
+
+        h1 ^= k1;
+        h1 = (k1 << 13) | (k1 >> (32 - 13)); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+        h1 = h1 * 5 + 0xe6546b64; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+    }
+
+    //----------
+    // tail
+
+    const auto* tail = static_cast<const uint8_t*>(data + nblocks * 4);
+
+    uint32_t k1 = 0;
+
+    switch (len & 3)
+    {
+    case 3:
+        k1 ^= tail[2] << 16; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+    case 2:
+        k1 ^= tail[1] << 8; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+    case 1:
+        k1 ^= tail[0];
+        k1 *= c1;
+        k1 = (k1 << 15) | (k1 >> (32 - 15)); // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+        k1 *= c2;
+        h1 ^= k1;
+    };
+
+    //----------
+    // finalization
+
+    h1 ^= len;
+
+    h1 ^= h1 >> 16; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+    h1 *= 0x85ebca6b; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+    h1 ^= h1 >> 13; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+    h1 *= 0xc2b2ae35; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+    h1 ^= h1 >> 16; // NOLINT(cppcoreguidelines-avoid-magic-numbers)
+
+    return h1;
+}
+
+uint32_t get_table_type(const string& db_name, const string& table_name)
+{
+    // The identitfer length is constrainted by Flex token buffer size (yyleng)
+    // which uses an `int` as the type.
+    ASSERT_PRECONDITION(db_name.length() <= std::numeric_limits<int>::max(), "The DB name is too long.");
+    ASSERT_PRECONDITION(table_name.length() <= std::numeric_limits<int>::max(), "The table name is too long.");
+
+    return murmurhash3_x86_32(table_name.data(), static_cast<int>(table_name.length()))
+        ^ (murmurhash3_x86_32(db_name.data(), static_cast<int>(db_name.length())) << 1);
+}
+
 gaia_id_t ddl_executor_t::create_table_impl(
     const string& db_name,
     const string& table_name,
@@ -791,10 +869,12 @@ gaia_id_t ddl_executor_t::create_table_impl(
 {
     ASSERT_PRECONDITION(throw_on_exists || !auto_drop, c_assert_throw_and_auto_drop);
 
-    gaia_id_t db_id = find_db_id(in_context(db_name));
+    string in_context_db_name = in_context(db_name);
+
+    gaia_id_t db_id = find_db_id(in_context_db_name);
     if (db_id == c_invalid_gaia_id)
     {
-        throw db_not_exists(db_name);
+        throw db_not_exists(in_context_db_name);
     }
 
     // TODO: switch to index for fast lookup.
@@ -845,13 +925,13 @@ gaia_id_t ddl_executor_t::create_table_impl(
         field_names.insert(field_name);
     }
 
-    string fbs{generate_fbs(in_context(db_name), table_name, fields)};
+    string fbs{generate_fbs(in_context_db_name, table_name, fields)};
     const std::vector<uint8_t> bfbs = generate_bfbs(fbs);
     const std::vector<uint8_t> bin = generate_bin(fbs, generate_json(fields));
 
     gaia_type_t table_type
         = (fixed_type == c_invalid_gaia_type)
-        ? std::hash<string>{}(table_name) ^ (std::hash<string>{}(in_context(db_name)) << 1)
+        ? get_table_type(in_context_db_name, table_name)
         : fixed_type;
 
     gaia_id_t table_id = gaia_table_t::insert_row(
