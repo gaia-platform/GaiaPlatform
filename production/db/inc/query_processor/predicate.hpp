@@ -28,6 +28,8 @@ class index_predicate_t
 {
 public:
     index_predicate_t() = default;
+    explicit index_predicate_t(index::index_key_t index_key);
+    explicit index_predicate_t(index::index_key_t&& index_key);
     virtual ~index_predicate_t() = default;
 
     // This is the client-side filter.
@@ -42,6 +44,10 @@ public:
     // flatbuffers query object.
     // By default, returns empty flatbuffers union.
     virtual serialized_index_query_t as_query(flatbuffers::FlatBufferBuilder& fbb) const;
+    const index::index_key_t& key() const;
+
+protected:
+    index::index_key_t m_key;
 };
 
 // Point read predicate for indexes.
@@ -54,9 +60,6 @@ public:
 
     gaia::db::messages::index_query_t query_type() const override;
     serialized_index_query_t as_query(flatbuffers::FlatBufferBuilder& fbb) const override;
-
-private:
-    index::index_key_t m_key;
 };
 
 // Equal range predicate for indexes.
@@ -69,9 +72,6 @@ public:
 
     gaia::db::messages::index_query_t query_type() const override;
     serialized_index_query_t as_query(flatbuffers::FlatBufferBuilder& builder) const override;
-
-private:
-    index::index_key_t m_key;
 };
 
 } // namespace scan

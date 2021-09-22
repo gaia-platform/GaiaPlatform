@@ -11,6 +11,9 @@
 
 #include "gaia/direct_access/edc_object.hpp"
 
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
+
 namespace gaia
 {
 
@@ -59,3 +62,6 @@ private:
 
 } // namespace direct_access
 } // namespace gaia
+
+// Restore default hidden visibility for all symbols.
+#pragma GCC visibility pop

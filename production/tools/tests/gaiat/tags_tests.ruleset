@@ -136,16 +136,6 @@ ruleset test14
     }
 }
 
-ruleset test15
-{
-    // NOTE: the ".min_temp" field didn't cause this rule to fire, but
-    // may serve as documentation for the rule's intended use.
-    on_insert(I:incubator.min_temp)
-    {
-        use_float(I.min_temp);
-    }
-}
-
 // GAIAPLAT-829 (fixed)
 ruleset test16
 {

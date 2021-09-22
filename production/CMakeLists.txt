@@ -57,11 +57,6 @@ cmake_policy(SET CMP0083 NEW)
 # Our shared libraries and executables must all be ASLR-compatible.
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
-# We want everything in the build to use libc++,
-# including third-party packages.
-add_compile_options(-stdlib=libc++)
-add_link_options(-stdlib=libc++)
-
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
 
@@ -87,12 +82,13 @@ if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
   set(LLVM_ENABLE_EH ON CACHE BOOL "")
   set(LLVM_ENABLE_PROJECTS "clang" CACHE STRING "")
   set(LLVM_ENABLE_RTTI ON CACHE BOOL "")
-  # LLD/libc++ are necessary for MSan.
+  # LLD should make building LLVM significantly faster.
   set(LLVM_ENABLE_LLD ON CACHE BOOL "")
-  set(LLVM_ENABLE_LIBCXX ON CACHE BOOL "")
+
   if(ENABLE_STACKTRACE)
     set(LLVM_GENERATE_STACKTRACE_DEBUG_INFO ON CACHE BOOL "")
   endif()
+
   if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     # This speeds up linking by separating debug info.
     set(LLVM_USE_SPLIT_DWARF ON CACHE BOOL "")
@@ -111,8 +107,13 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
   target_compile_options(gaia_build_options INTERFACE -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf)
   target_link_options(gaia_build_options INTERFACE -Wl,--gdb-index)
 
-  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(gaia_build_options INTERFACE -O0)
+
+    # For eventual MemorySanitizer support, we need all targets in debug builds
+    # to use libc++, including third-party packages.
+    add_compile_options(-stdlib=libc++)
+    add_link_options(-stdlib=libc++)
 
     # Enable ASan by default in debug builds.
     set(SANITIZER "ASAN" CACHE STRING "Enable sanitizers in debug builds")
@@ -122,7 +123,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
     set_property(CACHE SANITIZER PROPERTY STRINGS "ASAN")
   endif()
 
-  if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+  if(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     # Set the highest optimization level compatible with reasonable debuggability.
     target_compile_options(gaia_build_options INTERFACE -Og)
   endif()
@@ -211,7 +212,7 @@ find_package(Threads REQUIRED)
 message(CHECK_START "Looking for libexplain and libcap")
 find_library(LIB_EXPLAIN NAMES libexplain.a)
 find_library(LIB_CAP NAMES libcap.a cap)
-if (LIB_EXPLAIN AND LIB_CAP)
+if(LIB_EXPLAIN AND LIB_CAP)
   message(CHECK_PASS "found")
 else()
   message(CHECK_FAIL "not found")

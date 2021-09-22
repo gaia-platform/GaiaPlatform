@@ -40,8 +40,9 @@ public:
 
     const typename T_index_it::value_type* operator->() const;
 
-    bool operator==(const index_iterator_t& other) const;
+    index_iterator_t& operator=(const index_iterator_t& other);
 
+    bool operator==(const index_iterator_t& other) const;
     bool operator!=(const index_iterator_t& other) const;
 
 private:

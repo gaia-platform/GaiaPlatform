@@ -41,12 +41,13 @@ using namespace gaia::db::memory_manager;
 using namespace flatbuffers;
 using namespace scope_guard;
 
-int client_t::get_id_cursor_socket_for_type(gaia_type_t type)
+std::shared_ptr<int> client_t::get_id_cursor_socket_for_type(gaia_type_t type)
 {
     // Build the cursor socket request.
     FlatBufferBuilder builder;
     auto table_scan_info = Createtable_scan_info_t(builder, type);
-    auto client_request = Createclient_request_t(builder, session_event_t::REQUEST_STREAM, request_data_t::table_scan, table_scan_info.Union());
+    auto client_request = Createclient_request_t(
+        builder, session_event_t::REQUEST_STREAM, request_data_t::table_scan, table_scan_info.Union());
     auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
     builder.Finish(message);
 
@@ -64,8 +65,18 @@ int client_t::get_id_cursor_socket_for_type(gaia_type_t type)
     // Check that our stream socket is blocking (because we need to perform blocking reads).
     ASSERT_INVARIANT(!is_non_blocking(stream_socket), "Stream socket is not set to blocking!");
 
+    // We use shared_ptr with a custom deleter to guarantee that the socket is
+    // closed when its owning object is destroyed. We could possibly achieve the
+    // same effect with an RAII wrapper, but it would need to have copy rather
+    // than move semantics, since the socket is captured by a lambda that must
+    // be copyable (since it is coerced to std::function).
+    std::shared_ptr<int> stream_socket_ptr(new int{stream_socket}, [](int* fd_ptr) { close_fd(*fd_ptr); delete fd_ptr; });
+
+    // Both our explicit new() and the shared_ptr constructor dynamically allocate
+    // memory, so we might need to clean up the socket if either fails.
     cleanup_stream_socket.dismiss();
-    return stream_socket;
+
+    return stream_socket_ptr;
 }
 
 std::function<std::optional<gaia_id_t>()>
@@ -124,13 +135,9 @@ client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::opt
 std::shared_ptr<gaia::common::iterators::generator_t<gaia_id_t>>
 client_t::get_id_generator_for_type(gaia_type_t type)
 {
-    int stream_socket = get_id_cursor_socket_for_type(type);
-    auto cleanup_stream_socket = make_scope_guard([&]() {
-        close_fd(stream_socket);
-    });
+    std::shared_ptr<int> stream_socket_ptr = get_id_cursor_socket_for_type(type);
 
-    auto id_generator = get_stream_generator_for_socket<gaia_id_t>(stream_socket);
-    cleanup_stream_socket.dismiss();
+    auto id_generator = get_stream_generator_for_socket<gaia_id_t>(stream_socket_ptr);
 
     // We need to augment the server-based id generator with a local generator
     // that will also return the elements that have been added by the client

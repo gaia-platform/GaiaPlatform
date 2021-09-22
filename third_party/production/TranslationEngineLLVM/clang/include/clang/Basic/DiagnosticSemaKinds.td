@@ -9523,7 +9523,7 @@ def err_declarative_label_statement_is_invalid : Error<
 def err_declarative_label_wrong_statement : Error<
   "The statement of the declarative label is not a declarative 'if' or 'for'.">;
 def err_duplicate_field : Error<
-  "Duplicate field '%0' found in table '%1'. Qualify your field with the "
+  "Duplicate field '%0' found in multiple tables. Qualify your field with the "
   "table name (table.field) to disambiguate field names that occur in more "
   "than one table. You can also restrict the list of tables to search by "
   "specifying them in the ruleset 'tables' attribute.">;
@@ -9591,6 +9591,8 @@ def err_multi_anchor_tables : Error<
   "A rule may not specify multiple tables or active fields from different tables "
   "in 'on_' attributes (on_insert, on_change, or on_update). "
   "Ensure that all your active field references belong to the same table.">;
+def err_illegal_field_reference : Error<
+  "A field may not be referenced in the 'on_insert' statement. The 'on_insert' attribute only accepts a table.">;
 def err_multiple_shortest_paths : Error<
   "Multiple shortest paths exist between tables '%0' and '%1'. "
   "Explicitly specify the navigation path between these two tables to resolve the ambiguity.">;

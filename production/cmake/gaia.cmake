@@ -96,7 +96,7 @@ endmacro()
 #     If not specified the default value is generate_${DDL_NAME}_direct_access.
 function(process_schema)
   set(options "")
-  set(oneValueArgs DDL_FILE OUTPUT_DIR LIB_NAME DATABASE_NAME INSTANCE_NAME)
+  set(oneValueArgs DDL_FILE OUTPUT_DIR LIB_NAME DATABASE_NAME INSTANCE_NAME TARGET_NAME)
   set(multiValueArgs "")
   cmake_parse_arguments("ARG" "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
@@ -141,8 +141,11 @@ function(process_schema)
   )
 
   if(NOT DEFINED ARG_TARGET_NAME)
+    get_filename_component(DDL_NAME ${ARG_DDL_FILE} NAME)
+    string(REPLACE ".ddl" "" DDL_NAME ${DDL_NAME})
+    set(ARG_DATABASE_NAME ${DDL_NAME})
     set(ARG_TARGET_NAME "generate_${DDL_NAME}_direct_access")
-    message(STATUS "TARGET_NAME not specified, using default value: ${ARG_TARGET_NAME}.")
+    message(STATUS "TARGET_NAME not specified, using value: ${ARG_TARGET_NAME}.")
   endif()
 
   add_custom_target(${ARG_TARGET_NAME} ALL

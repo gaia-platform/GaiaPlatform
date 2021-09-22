@@ -32,7 +32,6 @@ public:
         common::gaia_type_t gaia_type;
         db::triggers::event_type_t event_type;
         common::gaia_id_t record;
-        common::field_position_list_t fields;
         db::gaia_txn_id_t src_txn_id;
     };
 

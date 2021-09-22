@@ -48,12 +48,26 @@ range_index_iterator_t range_index_t::upper_bound(const index_key_t& key)
 
 std::pair<range_index_iterator_t, range_index_iterator_t> range_index_t::equal_range(const index_key_t& key)
 {
-    return {find(key), upper_bound(key)};
+    auto first = find(key);
+    auto last = (first == end()) ? end() : upper_bound(key);
+    return {first, last};
 }
 
 std::shared_ptr<common::iterators::generator_t<index_record_t>> range_index_t::equal_range_generator(gaia_txn_id_t txn_id, const index_key_t& key)
 {
-    return std::make_shared<index_generator_t<range_type_t>>(get_lock(), m_data.find(key), m_data.upper_bound(key), txn_id);
+    std::lock_guard<std::recursive_mutex> lock(m_index_lock);
+    auto first = m_data.find(key);
+    auto last = (first == m_data.cend()) ? m_data.cend() : m_data.upper_bound(key);
+    return std::make_shared<index_generator_t<range_type_t>>(get_lock(), first, last, txn_id);
+}
+
+template <>
+std::pair<range_type_t::iterator, range_type_t::iterator>
+index_writer_guard_t<range_type_t>::equal_range(const index_key_t& key)
+{
+    auto first = m_data.find(key);
+    auto last = (first == m_data.end()) ? m_data.end() : m_data.upper_bound(key);
+    return {first, last};
 }
 
 } // namespace index

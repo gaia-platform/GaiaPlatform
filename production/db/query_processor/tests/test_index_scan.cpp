@@ -84,6 +84,27 @@ TEST_F(test_index_scan, verify_cardinality)
     }
 }
 
+// Check scans on empty indexes.
+TEST_F(test_index_scan, verify_cardinality_empty)
+{
+    auto_transaction_t txn;
+
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::empty_t::s_gaia_type);
+
+    for (const auto& index : catalog_core_t::list_indexes(type_record_id))
+    {
+        auto scan = index_scan_t(index.id());
+        size_t scan_count = 0;
+        for (const auto& row : scan)
+        {
+            (void)row;
+            scan_count++;
+        }
+
+        EXPECT_TRUE(scan_count == 0);
+    }
+}
+
 // Check counts match for all indexes.
 TEST_F(test_index_scan, test_limits)
 {
@@ -290,6 +311,170 @@ TEST_F(test_index_scan, query_multi_match)
     }
 
     EXPECT_EQ(num_results, 1);
+}
+
+TEST_F(test_index_scan, query_local_modify_no_match)
+{
+    // Lookup index_id for integer field.
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t range_index_id = c_invalid_gaia_id;
+    gaia_id_t hash_index_id = c_invalid_gaia_id;
+
+    gaia::db::begin_transaction();
+
+    auto w = gaia::index_sandbox::sandbox_writer();
+    w.str = "NO MATCH";
+    w.f = 21.0;
+    w.i = -1;
+    w.insert_row();
+
+    for (const auto& index : catalog_core_t::list_indexes(type_record_id))
+    {
+        for (const auto& field_id : *index.fields())
+        {
+            const auto& field = field_view_t(gaia::db::id_to_ptr(field_id));
+            if (field.data_type() == data_type_t::e_string && index.type() == index_type_t::range)
+            {
+                range_index_id = index.id();
+                break;
+            }
+            else if (field.data_type() == data_type_t::e_string && index.type() == index_type_t::hash)
+            {
+                hash_index_id = index.id();
+                break;
+            }
+        }
+    }
+
+    EXPECT_TRUE(range_index_id != c_invalid_gaia_id && hash_index_id != c_invalid_gaia_id);
+
+    // Equal-range query on range index.
+    size_t num_results = 0;
+    auto index_key = index_key_t("");
+    auto equal_predicate = std::make_shared<index_equal_range_predicate_t>(index_key);
+    for (const auto& scan : index_scan_t(range_index_id, equal_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, c_num_initial_rows);
+
+    // Equal-range query on hash index.
+    num_results = 0;
+    for (const auto& scan : index_scan_t(hash_index_id, equal_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, c_num_initial_rows);
+
+    auto point_predicate = std::make_shared<index_point_read_predicate_t>(index_key);
+
+    // Point-query on range index.
+    num_results = 0;
+    for (const auto& scan : index_scan_t(range_index_id, point_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, 1);
+
+    // Point-query on hash index.
+    num_results = 0;
+    for (const auto& scan : index_scan_t(hash_index_id, point_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, 1);
+
+    gaia::db::rollback_transaction();
+}
+
+TEST_F(test_index_scan, query_local_modify_match)
+{
+    // Lookup index_id for integer field.
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t range_index_id = c_invalid_gaia_id;
+    gaia_id_t hash_index_id = c_invalid_gaia_id;
+
+    gaia::db::begin_transaction();
+
+    auto w = gaia::index_sandbox::sandbox_writer();
+    w.str = "";
+    w.f = 21.0;
+    w.i = -1;
+    w.insert_row();
+
+    for (const auto& index : catalog_core_t::list_indexes(type_record_id))
+    {
+        for (const auto& field_id : *index.fields())
+        {
+            const auto& field = field_view_t(gaia::db::id_to_ptr(field_id));
+            if (field.data_type() == data_type_t::e_string && index.type() == index_type_t::range)
+            {
+                range_index_id = index.id();
+                break;
+            }
+            else if (field.data_type() == data_type_t::e_string && index.type() == index_type_t::hash)
+            {
+                hash_index_id = index.id();
+                break;
+            }
+        }
+    }
+
+    EXPECT_TRUE(range_index_id != c_invalid_gaia_id && hash_index_id != c_invalid_gaia_id);
+
+    // Equal-range query on range index.
+    size_t num_results = 0;
+    auto index_key = index_key_t("");
+    auto equal_predicate = std::make_shared<index_equal_range_predicate_t>(index_key);
+    for (const auto& scan : index_scan_t(range_index_id, equal_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, c_num_initial_rows + 1);
+
+    // Equal-range query on hash index.
+    num_results = 0;
+    for (const auto& scan : index_scan_t(hash_index_id, equal_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, c_num_initial_rows + 1);
+
+    auto point_predicate = std::make_shared<index_point_read_predicate_t>(index_key);
+
+    // Point-query on range index.
+    num_results = 0;
+    for (const auto& scan : index_scan_t(range_index_id, point_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, 1);
+
+    // Point-query on hash index.
+    num_results = 0;
+    for (const auto& scan : index_scan_t(hash_index_id, point_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, 1);
+
+    gaia::db::rollback_transaction();
 }
 
 TEST_F(test_index_scan, query_no_match)

@@ -734,7 +734,8 @@ gaia::common::gaia_id_t create_database(
  * @return id of the new table
  * @throw table_already_exists
  */
-gaia::common::gaia_id_t create_table(
+gaia::common::gaia_id_t
+create_table(
     const std::string& db_name,
     const std::string& name,
     const ddl::field_def_list_t& fields,

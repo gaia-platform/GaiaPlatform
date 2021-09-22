@@ -14,6 +14,6 @@ message(VERBOSE "GAIA_TRIGGERS_INCLUDES=${GAIA_TRIGGERS_INCLUDES}")
 # Our main target.
 add_library(gaia_triggers STATIC
   src/events.cpp)
-target_link_libraries(gaia_triggers PUBLIC gaia_build_options)
+configure_gaia_target(gaia_triggers)
 target_include_directories(gaia_triggers PUBLIC ${GAIA_TRIGGERS_INCLUDES})
 target_link_libraries(gaia_triggers PRIVATE "gaia_common")

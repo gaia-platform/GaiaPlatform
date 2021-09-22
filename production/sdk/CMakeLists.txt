@@ -33,7 +33,8 @@ set(SDK_TEST_INCLUDES
 
 configure_file("${GAIA_CONFIG}" "${PROJECT_BINARY_DIR}/gaia.conf")
 configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
-add_gtest(test_sdk "tests/test_sdk.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;gaia_spdlog;edc_addr_book")
+# Disabling test_sdk until we can remove the dependency on non-public methods exported from the SDK shared library.
+# add_gtest(test_sdk "tests/test_sdk.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;gaia_spdlog;edc_addr_book")
 add_gtest(test_sdk_no_init_rules "tests/test_sdk_no_init_rules.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;edc_addr_book")
 
 # Set CPack variables required for building a DEB/RPM package.
@@ -60,7 +61,18 @@ set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE amd64)
 set(CPACK_DEBIAN_PACKAGE_DESCRIPTION ${CPACK_PACKAGE_DESCRIPTION})
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER ${CPACK_PACKAGE_CONTACT})
 set(CPACK_DEBIAN_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}.deb)
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "clang-10,lld-10,libc++-10-dev,libc++abi-10-dev")
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  # We only link libc++ in Debug builds.
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "clang-10,lld-10,libc++-10-dev,libc++abi-10-dev")
+else()
+  # We use libstdc++ in Release builds for compatibility with other software
+  # built with libstdc++ (which is the default stdlib in both gcc and clang).
+  # GCC 9 is installed by default on Ubuntu 20.04 with the build-essential
+  # package, so we try to be compatible with that.
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "clang-10,lld-10,libstdc++-9-dev")
+endif()
+
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
 set(CPACK_DEBIAN_PACKAGE_SECTION "custom")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
