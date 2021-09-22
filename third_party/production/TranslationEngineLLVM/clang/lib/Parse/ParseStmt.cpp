@@ -2118,14 +2118,14 @@ static bool checkGaiaScope(const Scope* currentScope, const Scope* parentScope)
 
   for (const Scope *S = currentScope; S; S = S->getParent())
   {
-    if (S == parentScope)
-    {
-      return false;
-    }
-
     if (S->isGaiaBreakScope())
     {
       return true;
+    }
+
+    if (S == parentScope)
+    {
+      return false;
     }
   }
   return false;
@@ -2193,7 +2193,9 @@ StmtResult Parser::ParseBreakStatement() {
   }
   else if (getCurScope()->isInGaiaBreakScope() && !returnValue.isInvalid() && checkGaiaScope(getCurScope(), getCurScope()->getBreakParent()))
   {
-    Diag(BreakLoc, diag::warn_non_declarative_break_in_declarative_scope);
+    Diag(BreakLoc, diag::err_non_declarative_break_in_declarative_scope);
+    SkipUntil(tok::semi, StopBeforeMatch);
+    return StmtError();
   }
 
   return returnValue;

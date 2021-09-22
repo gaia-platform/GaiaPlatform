@@ -891,9 +891,9 @@ ruleset test57
 {
     on_insert(incubator)
     {
-        for (S:sensor) if (S.value > 99.9)
+        l:for (S:sensor) if (S.value > 99.9)
         {
-            break;
+            break l;
         }
         else
         {
@@ -910,11 +910,11 @@ ruleset test58
     {
         for (S:sensor)
         {
-            for (S->incubator.farmer->farmer->Y:yield)
+            l:for (S->incubator.farmer->farmer->Y:yield)
             {
                 if (Y.bushels > 10)
                 {
-                    break;
+                    break l;
                 }
             }
             int i = 0;
