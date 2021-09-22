@@ -4,7 +4,7 @@ import {
     ExtensionContext,
     languages,
     Hover,
-	MarkdownString
+    MarkdownString
 } from 'vscode';
 
 import {
