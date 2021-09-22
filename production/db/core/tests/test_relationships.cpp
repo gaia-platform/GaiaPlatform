@@ -19,11 +19,31 @@ using namespace gaia::db::test;
 
 class gaia_relationships_test : public db_test_base_t
 {
+protected:
+    void SetUp() override
+    {
+        db_test_base_t::SetUp();
+        gaia_id_t doctor_table_id = gaia::catalog::create_table("dcotor", {});
+        gaia_id_t patient_table_id = gaia::catalog::create_table("patient", {});
+
+        begin_transaction();
+        doctor_table_type = gaia::catalog::gaia_table_t::get(doctor_table_id).type();
+        patient_table_type = gaia::catalog::gaia_table_t::get(patient_table_id).type();
+        commit_transaction();
+    }
+
     void TearDown() override
     {
         clean_type_registry();
+        db_test_base_t::TearDown();
     }
+
+    static gaia_type_t doctor_table_type;
+    static gaia_type_t patient_table_type;
 };
+
+gaia_type_t gaia_relationships_test::doctor_table_type = c_invalid_gaia_type;
+gaia_type_t gaia_relationships_test::patient_table_type = c_invalid_gaia_type;
 
 // simone: I tried overloading the operator == with no success.
 bool compare_relationships(const relationship_t& lhs, const relationship_t& rhs)
@@ -128,15 +148,15 @@ TEST_F(gaia_relationships_test, metadata_one_to_many)
     type_registry_t& test_registry = type_registry_t::instance();
 
     relationship_builder_t::one_to_many()
-        .parent(c_doctor_type)
-        .child(c_patient_type)
+        .parent(doctor_table_type)
+        .child(patient_table_type)
         .create_relationship();
 
-    auto& parent = test_registry.get(c_doctor_type);
-    auto& child = test_registry.get(c_patient_type);
+    auto& parent = test_registry.get(doctor_table_type);
+    auto& child = test_registry.get(patient_table_type);
 
-    ASSERT_EQ(parent.get_type(), c_doctor_type);
-    ASSERT_EQ(child.get_type(), c_patient_type);
+    ASSERT_EQ(parent.get_type(), doctor_table_type);
+    ASSERT_EQ(child.get_type(), patient_table_type);
 
     ASSERT_EQ(parent.num_references(), 1);
     ASSERT_EQ(child.num_references(), 2);
@@ -150,8 +170,8 @@ TEST_F(gaia_relationships_test, metadata_one_to_many)
     // Parent and child should be sharing the same relation.
     ASSERT_TRUE(compare_relationships(*parent_rel, *child_rel));
 
-    ASSERT_EQ(parent_rel->parent_type, c_doctor_type);
-    ASSERT_EQ(parent_rel->child_type, c_patient_type);
+    ASSERT_EQ(parent_rel->parent_type, doctor_table_type);
+    ASSERT_EQ(parent_rel->child_type, patient_table_type);
     ASSERT_EQ(parent_rel->first_child_offset, c_first_patient_offset);
     ASSERT_EQ(parent_rel->next_child_offset, c_next_patient_offset);
     ASSERT_EQ(parent_rel->parent_offset, c_parent_doctor_offset);
@@ -164,15 +184,15 @@ TEST_F(gaia_relationships_test, metadata_one_to_one)
     type_registry_t& test_registry = type_registry_t::instance();
 
     relationship_builder_t::one_to_one()
-        .parent(c_doctor_type)
-        .child(c_patient_type)
+        .parent(doctor_table_type)
+        .child(patient_table_type)
         .create_relationship();
 
-    auto& parent = test_registry.get(c_doctor_type);
-    auto& child = test_registry.get(c_patient_type);
+    auto& parent = test_registry.get(doctor_table_type);
+    auto& child = test_registry.get(patient_table_type);
 
-    ASSERT_EQ(parent.get_type(), c_doctor_type);
-    ASSERT_EQ(child.get_type(), c_patient_type);
+    ASSERT_EQ(parent.get_type(), doctor_table_type);
+    ASSERT_EQ(child.get_type(), patient_table_type);
 
     ASSERT_EQ(parent.num_references(), 1);
     ASSERT_EQ(child.num_references(), 2);
@@ -186,8 +206,8 @@ TEST_F(gaia_relationships_test, metadata_one_to_one)
     // Parent and child should be sharing the same relation.
     ASSERT_TRUE(compare_relationships(*parent_rel, *child_rel));
 
-    ASSERT_EQ(parent_rel->parent_type, c_doctor_type);
-    ASSERT_EQ(parent_rel->child_type, c_patient_type);
+    ASSERT_EQ(parent_rel->parent_type, doctor_table_type);
+    ASSERT_EQ(parent_rel->child_type, patient_table_type);
     ASSERT_EQ(parent_rel->first_child_offset, c_first_patient_offset);
     ASSERT_EQ(parent_rel->next_child_offset, c_next_patient_offset);
     ASSERT_EQ(parent_rel->parent_offset, c_parent_doctor_offset);
@@ -200,11 +220,11 @@ TEST_F(gaia_relationships_test, child_relation_do_not_use_next_child)
     type_registry_t& test_registry = type_registry_t::instance();
 
     relationship_builder_t::one_to_one()
-        .parent(c_doctor_type)
-        .child(c_patient_type)
+        .parent(doctor_table_type)
+        .child(patient_table_type)
         .create_relationship();
 
-    auto& child = test_registry.get(c_patient_type);
+    auto& child = test_registry.get(patient_table_type);
     // although next_patient offset exists in child, it is not the one used
     // to identify the relation
     auto child_rel = child.find_child_relationship(c_next_patient_offset);
