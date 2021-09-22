@@ -16,23 +16,23 @@ template <typename T_index, typename T_index_iterator>
 std::pair<T_index_iterator, T_index_iterator>
 local_iterator_helper(T_index* index, index_predicate_t& predicate)
 {
-    std::pair<T_index_iterator, T_index_iterator> retval;
+    std::pair<T_index_iterator, T_index_iterator> result;
 
     switch (predicate.query_type())
     {
     case messages::index_query_t::NONE:
-        retval.first = index->begin();
-        retval.second = index->end();
+        result.first = index->begin();
+        result.second = index->end();
         break;
     case messages::index_query_t::index_equal_range_query_t:
     case messages::index_query_t::index_point_read_query_t:
-        retval = index->equal_range(predicate.key());
+        result = index->equal_range(predicate.key());
         break;
     default:
         ASSERT_UNREACHABLE("Unknown query type.");
     }
 
-    return retval;
+    return result;
 }
 
 // This method initializes the physical index scan.
