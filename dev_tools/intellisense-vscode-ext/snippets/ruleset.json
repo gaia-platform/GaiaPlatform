@@ -1,10 +1,4 @@
 {
-    "#inc": {
-        "prefix": "#inc",
-        "body": ["#include "],
-        "description": "snippet for #include"
-    },
-
     "ruleset": {
         "prefix": "rul",
         "body": ["ruleset "],
@@ -70,4 +64,4 @@
         "body": ["else if ($1)", "{", "\t$0", "}"],
         "description": "snippet for else-if"
     }
-  }
+}
