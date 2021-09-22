@@ -445,6 +445,13 @@ gaia_id_t ddl_executor_t::create_relationship(
 
     if (field_map)
     {
+        if (cardinality == relationship_cardinality_t::one)
+        {
+            throw invalid_field_map(
+                "Defining 1:1 relationship using fields (between table '"
+                + link1.from_table + "' and table '" + link1.to_table + "') is not supported.");
+        }
+
         if (field_map->first.fields.size() != 1 || field_map->second.fields.size() != 1)
         {
             throw invalid_field_map("Defining relationships using composite keys are not supported currently.");

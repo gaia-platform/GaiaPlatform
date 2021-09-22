@@ -63,7 +63,7 @@ DROP TABLE IF EXISTS t2;
 CREATE TABLE IF NOT EXISTS t2(c2 INT32 UNIQUE);
 
 CREATE RELATIONSHIP r1 (
-  t1.link1 -> t2,
+  t1.link1 -> t2[],
   t2.link2 -> t1,
   USING t1(c1), t2(c2)
 );
@@ -273,25 +273,6 @@ drop table doctor;
 drop table patient;
 )",
         R"(
--- forward references 1:1 relationship with hybrid index without using
-create table person (
- name string,
- email string unique,
- employee references employee
-  where employee.personal_email = person.email
-)
-create table employee (
- company string,
- personal_email string unique,
- person references person
-);
-)",
-        R"(
-drop relationship person_employee;
-drop table person;
-drop table employee;
-)",
-        R"(
 -- forward references 1:N relationship with hybrid index without using
 create table doctor (
  name string,
@@ -413,6 +394,19 @@ create table t2(c2 int32, link2 references t1 where t1.c1 = t2.c2);
         R"(-- non-matching where clauses
 create table t1(a1 int16 unique, c1 int32 unique, link1 references t2[] where t1.a1 = t2.a2)
 create table t2(a2 int16, c2 int32, link2 references t1 where t1.c1 = t2.c2);
+)",
+        R"(-- forward references 1:1 relationship with hybrid index without using
+create table person (
+ name string,
+ email string unique,
+ employee references employee
+  where employee.personal_email = person.email
+)
+create table employee (
+ company string,
+ personal_email string unique,
+ person references person
+);
 )",
     };
 
