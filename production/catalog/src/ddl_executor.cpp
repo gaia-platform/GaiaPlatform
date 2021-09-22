@@ -851,7 +851,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
 
     gaia_type_t table_type
         = (fixed_type == c_invalid_gaia_type)
-        ? std::hash<string>{}(table_name) ^ (std::hash<string>{}(db_name) << 1)
+        ? std::hash<string>{}(table_name) ^ (std::hash<string>{}(in_context(db_name)) << 1)
         : fixed_type;
 
     gaia_id_t table_id = gaia_table_t::insert_row(
