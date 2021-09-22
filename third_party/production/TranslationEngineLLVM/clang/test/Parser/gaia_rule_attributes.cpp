@@ -343,3 +343,12 @@ ruleset test108
         age=5;
     }
 }
+
+ruleset test109
+{
+    on_insert(incubator.max_temp)
+    {
+        incubator.min_temp = incubator.max_temp;
+    }
+}
+

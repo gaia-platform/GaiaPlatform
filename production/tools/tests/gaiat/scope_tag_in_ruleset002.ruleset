@@ -1,11 +1,11 @@
-// RUN: %gaiat %s -- 2>&1
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
 ruleset test1
 {
     on_insert(i:incubator)
     {
-        // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1178
-        // TODO: this works and does not produce any warning.
         int i = 0;
     }
 }
+
+// CHECK: Local variable 'i' hides a tag defined with the same name. Rename your local variable or tag so that their names do not conflict.

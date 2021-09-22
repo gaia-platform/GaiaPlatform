@@ -166,6 +166,82 @@ ruleset testE24
     }
 }
 
+//GAIAT-1367
+ruleset testE25
+{
+     on_update(sensor)
+     {
+        if (strcmp(/S:sensor.name, "1") == 0)
+        {
+            incubator.connect(actuator);
+        }
+     }
+}
+
+//GAIAT-1388
+ruleset testE26
+{
+     on_update(incubator)
+     {
+        for (w:sensor)
+        {
+            w.timestamp = 0;
+        }
+     }
+}
+
+//GAIAT-1326
+ruleset testE27
+{
+     on_update(sensor)
+     {
+        if ((strcmp(S:sensor.name, "1") == 0))
+        {
+            incubator.connect(actuator);
+        }
+     }
+}
+
+//GAIAT-1375
+ruleset testE28
+{
+    on_insert(incubator)
+    {
+        if (incubator.name != nullptr)
+        {
+        }
+        nomatch
+        {
+            for (incubator->s:sensor) { use_string(s.name);}
+            nomatch { use_string(incubator.name);}
+        }
+    }
+}
+namespace test_test{
+    enum test_enum
+    {
+        test1,
+        test2,
+        test3,
+        test4,
+    };
+}
+
+//GAIAT-1235
+ruleset testE29
+{
+    on_insert(sensor)
+    {
+        switch(sensor.timestamp)
+        {
+            case test_test::test1 : sensor.timestamp=1; break;
+            case test_test::test2: sensor.timestamp=2; break;
+            case test_test::test3:sensor.timestamp=3; break;
+            case test_test::test4 :sensor.timestamp=4; break;
+        }
+    }
+}
+
 #if 0
 // This rule interferes with 'ruleset set' rules
 ruleset test15

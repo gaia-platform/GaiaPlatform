@@ -1,0 +1,16 @@
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+
+ruleset testE30
+{
+    on_insert(sensor)
+    {
+        for (sensor->incubator)
+        {
+            break;
+        }
+    }
+}
+
+// CHECK: Use of non-declarative 'break' in declarative statements may not break out of a declarative loop. Consider adding a label to the declarative loop and using 'break label' instead.
+// GAIAPLAT-1390

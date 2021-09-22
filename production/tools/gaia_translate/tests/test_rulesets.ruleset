@@ -429,12 +429,7 @@ ruleset test_query_10
 }
 
 // This ruleset is not used, but its translation must compile with C++.
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-label"
-// These pragmas are needed to prevent compiler warnings resulting from unused labels
-// in the translated code. The break labels, BREAK1_TARGET, etc. are currently left in
-// the code unconditionally. The Jira issue, when fixed, will eliminate any unused labels.
-// These pragmas should be removed then.
+// GAIAPLAT-1198 (fixed)
 // GAIAPLAT-1143 (V1)
 ruleset test_compile
 {
@@ -465,6 +460,8 @@ ruleset test_compile
                 break BREAK2_TARGET;
             }
         }
+        // A goto should cause the break/continue label to exist in translated code.
+        goto BREAK1_TARGET;
     }
 
     // GAIAPLAT-564 (fixed)
@@ -485,8 +482,10 @@ ruleset test_compile
     on_update(student)
     {
     BREAK_TARGET:
-        while (age < 13)
+        while (hours < 13)
         {
+            printf("hours=%d\n", hours);
+            hours++;
             break BREAK_TARGET;
         }
         int i = 0;
@@ -494,8 +493,85 @@ ruleset test_compile
     }
 #endif
 
+    // TESTCASE: use declarative condition inside while statement
+    on_update(student)
+    {
+        while (hours < 13)
+        {
+            printf("hours=%d\n", hours);
+            hours++;
+        }
+    }
+
+    // TESTCASE: use declarative condition inside do-while statement
+    on_update(student)
+    {
+        do
+        {
+            printf("hours=%d\n", hours);
+            hours++;
+        }
+        while (hours < 13);
+    }
+
+    // TESTCASE: make sure the nomatch is translated into compilable code while using explicit path
+    // GAIAPLAT-1311
+    on_insert(registration)
+    {
+        gaia::prerequisites::student_t studdy;
+        if (/S:student.age > 12 && strcmp(S->parents.name_father, student.student_id) == 0)
+        {
+            studdy = S;
+        }
+        nomatch
+        {
+            fprintf(stderr, "cannot find father's name that matches student id %s\n", student.student_id);
+        }
+    }
+
+    // TESTCASE: should not need qualification to access row's field value
+    // GAIAPLAT-1384
+    on_insert(registration)
+    {
+        student.age = 34;
+        if (strcmp(student->parents.name_father, "Lawrence") == 0)
+        {
+            course.course_id = student.student_id;
+        }
+    }
+
+    // TESTCASE: access anchor row relatoinships from inside if
+    // GAIAPLAT-1298
+    on_insert(registration)
+    {
+        if (strcmp(/P:parents.name_father, "Lawrence") == 0)
+        {
+            fprintf(stderr, "Found %s and %s\n", P.name_mother, course.course_id);
+        }
+    }
+
+    // TESTCASE: table out of scope when used in if statement
+    // GAIAPLAT-1393 (likely related to 1384)
+    on_insert(registration)
+    {
+        fprintf(stderr, "student id = %s\n", student.student_id);
+        if (strcmp(student->parents.name_father, "Lawrence") == 0)
+        {
+            fprintf(stderr, "Child of Lawrence student id = %s\n", student.student_id);
+        }
+    }
+
+    // TESTCASE: verify the presence of all rows within a declarative if
+    // GAIAPLAT-1251
+    on_update(total_hours)
+    {
+        if (total_hours == 0)
+        {
+            total_hours += hours;
+            fprintf(stderr, "Total class hours for %s is %d\n", surname, total_hours);
+        }
+    }
 }
-#pragma clang diagnostic pop
 
 ruleset test_insert_delete
 {

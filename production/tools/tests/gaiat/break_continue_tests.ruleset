@@ -1,35 +1,5 @@
 // RUN: %gaiat %s --
 
-// GAIAPLAT-1073 (won't do)
-// TESTCASE: break from 'if' statement within declarative loop
-ruleset test5
-{
-    on_update(raised)
-    {
-        for (S:sensor)
-        {
-            if (S.value > 99.0)
-            {
-                break;
-            }
-        }
-    }
-}
-
-// TESTCASE: continue from 'if' statement within declarative loop
-ruleset test6
-{
-    on_update(raised)
-    {
-        for (S:sensor)
-        {
-            if (S.value > 99.0)
-            {
-                continue;
-            }
-        }
-    }
-}
 
 // TESTCASE: break within declarative if to label
 ruleset test9
