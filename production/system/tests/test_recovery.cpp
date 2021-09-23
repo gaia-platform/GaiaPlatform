@@ -119,7 +119,7 @@ protected:
         type_id_mapping_t::instance().clear();
         schema_loader_t::instance().load_schema("addr_book.ddl");
 
-        gaia_id_t doctor_table_id = gaia::catalog::create_table("dcotor", {});
+        gaia_id_t doctor_table_id = gaia::catalog::create_table("doctor", {});
         gaia_id_t patient_table_id = gaia::catalog::create_table("patient", {});
 
         begin_transaction();

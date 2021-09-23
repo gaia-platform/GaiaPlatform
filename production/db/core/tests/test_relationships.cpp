@@ -23,7 +23,7 @@ protected:
     void SetUp() override
     {
         db_test_base_t::SetUp();
-        gaia_id_t doctor_table_id = gaia::catalog::create_table("dcotor", {});
+        gaia_id_t doctor_table_id = gaia::catalog::create_table("doctor", {});
         gaia_id_t patient_table_id = gaia::catalog::create_table("patient", {});
 
         begin_transaction();
