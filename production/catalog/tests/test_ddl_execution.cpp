@@ -228,7 +228,7 @@ create table employee (
 drop relationship manager_reports;
 drop table employee;
 )",
-        // Self-reference 1:N relationship without the optional `using`.
+        // Self-reference 1:N relationship without the optional 'using'.
         R"(
 create table employee (
   name string,
@@ -240,7 +240,7 @@ create table employee (
 drop relationship manager_reports;
 drop table employee;
 )",
-        // Forward reference 1:1 relationship without the optional `using`.
+        // Forward reference 1:1 relationship without the optional 'using'.
         R"(
 create table person (
  name string,
@@ -256,7 +256,7 @@ drop relationship person_employee;
 drop table person;
 drop table employee;
 )",
-        // Forward reference 1:N relationship without the optional `using`.
+        // Forward reference 1:N relationship without the optional 'using'.
         R"(
 create table doctor (
  name string,
@@ -272,7 +272,7 @@ drop relationship doctor_patients;
 drop table doctor;
 drop table patient;
 )",
-        // Forward reference 1:N relationship with `where` without `using`.
+        // Forward reference 1:N relationship with 'where' without 'using'.
         R"(
 create table doctor (
  name string,
@@ -291,7 +291,7 @@ drop relationship doctor_patients;
 drop table doctor;
 drop table patient;
 )",
-        // Forward reference 1:N relationship with `where`.
+        // Forward reference 1:N relationship with 'where'.
         R"(
 create database hospital
 create table doctor (
@@ -399,7 +399,7 @@ create table t2(c2 int32, link2 references t1 where t1.c1 = t2.c2);
 create table t1(a1 int16 unique, c1 int32 unique, link1 references t2[] where t1.a1 = t2.a2)
 create table t2(a2 int16, c2 int32, link2 references t1 where t1.c1 = t2.c2);
 )",
-        // Forward reference 1:1 relationship with `where` without `using`.
+        // Forward reference 1:1 relationship with 'where' without 'using'.
         // We have disabled 1:1 relationships using common fields (hybrid index).
         R"(
 create table person (
