@@ -148,25 +148,18 @@ void dump_db()
     for (auto i : incubator_t::list())
     {
         std::cout << "-----------------------------------------\n";
-        std::cout << std::left << std::setw(8) << i.name();
-        std::cout << "|power: " << std::right << std::setw(3) << (i.is_on() ? "ON" : "OFF");
-        std::cout << "|min: " << std::setw(5) << i.min_temp();
-        std::cout << "|max: " << std::setw(5) << i.max_temp() << "\n";
+        std::printf(
+            "%-8s|power: %-3s|min: %5.1lf|max: %5.1lf\n",
+            i.name(), i.is_on() ? "ON" : "OFF", i.min_temp(), i.max_temp());
         std::cout << "-----------------------------------------\n";
         for (const auto& s : i.sensors())
         {
-            std::cout << std::setprecision(2) << "\t|" << std::left;
-            std::cout << std::setw(10) << s.name() << "|" << std::right;
-            std::cout << std::setw(10) << s.timestamp() << "|";
-            std::cout << std::setw(10) << s.value() << "\n";
+            std::printf("\t|%-10s|%10ld|%10.2lf\n", s.name(), s.timestamp(), s.value());
         }
         std::cout << "\t---------------------------------\n";
         for (const auto& a : i.actuators())
         {
-            std::cout << std::setprecision(1) << "\t|" << std::left;
-            std::cout << std::setw(10) << a.name() << "|" << std::right;
-            std::cout << std::setw(10) << a.timestamp() << "|";
-            std::cout << std::setw(10) << a.value() << "\n";
+            std::printf("\t|%-10s|%10ld|%10.1lf\n", a.name(), a.timestamp(), a.value());
         }
         std::cout << "\n"
                   << std::endl;
@@ -281,23 +274,13 @@ void simulation()
 void list_rules()
 {
     subscription_list_t subs;
+    const char* subscription_format = "%5s|%-20s|%-12s|%5s|%-10s|%5s\n";
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subs);
     std::cout << "Number of rules for incubator: " << subs.size() << "\n";
     if (subs.size() > 0)
     {
         std::cout << "\n";
-        std::cout << std::setw(5) << std::right << "line"
-                  << "|";
-        std::cout << std::setw(20) << std::left << "ruleset"
-                  << "|";
-        std::cout << std::setw(12) << std::left << "rule"
-                  << "|";
-        std::cout << std::setw(5) << std::right << "type"
-                  << "|";
-        std::cout << std::setw(10) << std::left << "event"
-                  << "|";
-        std::cout << std::setw(5) << std::right << "field"
-                  << "\n";
+        std::printf(subscription_format, "line", "ruleset", "rule", "type", "event", "field");
         std::cout << "--------------------------------------------------------------\n";
     }
     std::map<event_type_t, const char*> event_names;
@@ -305,12 +288,14 @@ void list_rules()
     event_names[event_type_t::row_insert] = "row insert";
     for (auto& s : subs)
     {
-        std::cout << std::setw(5) << std::right << std::to_string(s->line_number) << "|";
-        std::cout << std::setw(20) << std::left << s->ruleset_name << "|";
-        std::cout << std::setw(12) << std::left << s->rule_name << "|";
-        std::cout << std::setw(5) << std::right << std::to_string(s->gaia_type) << "|";
-        std::cout << std::setw(10) << std::left << event_names[s->event_type] << "|";
-        std::cout << std::setw(5) << std::right << std::to_string(s->field) << "\n";
+        std::printf(
+            subscription_format,
+            std::to_string(s->line_number).c_str(),
+            s->ruleset_name,
+            s->rule_name,
+            std::to_string(s->gaia_type).c_str(),
+            event_names[s->event_type],
+            std::to_string(s->field).c_str());
     }
     std::cout << std::endl;
 }
