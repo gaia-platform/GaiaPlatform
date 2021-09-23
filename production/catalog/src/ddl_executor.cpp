@@ -5,6 +5,7 @@
 
 #include "gaia_internal/catalog/ddl_executor.hpp"
 
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -13,11 +14,11 @@
 #include <utility>
 
 #include "gaia/common.hpp"
-#include "gaia/db/db.hpp"
 #include "gaia/exception.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/common/hash.hpp"
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
@@ -32,9 +33,7 @@ using namespace gaia::db;
 using namespace gaia::direct_access;
 
 using std::make_unique;
-using std::shared_lock;
 using std::string;
-using std::unique_lock;
 
 namespace gaia
 {
@@ -783,6 +782,19 @@ reference_offset_t ddl_executor_t::find_available_offset(gaia::common::gaia_id_t
         find_parent_available_offset(table.outgoing_relationships()));
 }
 
+uint32_t generate_table_type(const string& db_name, const string& table_name)
+{
+    // An identifier length is limited to a flex token which is limited to the
+    // size of the bison/flex input buffer (YY_BUF_SIZE). We currently use
+    // default setting which is 16k. The assertions below make sure the token
+    // length does not exceed the `len` parameter of the hash function.
+    ASSERT_PRECONDITION(db_name.length() <= std::numeric_limits<int>::max(), "The DB name is too long.");
+    ASSERT_PRECONDITION(table_name.length() <= std::numeric_limits<int>::max(), "The table name is too long.");
+
+    return murmurhash3_x86_32(table_name.data(), static_cast<int>(table_name.length()))
+        ^ (murmurhash3_x86_32(db_name.data(), static_cast<int>(db_name.length())) << 1);
+}
+
 gaia_id_t ddl_executor_t::create_table_impl(
     const string& db_name,
     const string& table_name,
@@ -852,7 +864,10 @@ gaia_id_t ddl_executor_t::create_table_impl(
     const std::vector<uint8_t> bfbs = generate_bfbs(fbs);
     const std::vector<uint8_t> bin = generate_bin(fbs, generate_json(fields));
 
-    gaia_type_t table_type = fixed_type == c_invalid_gaia_type ? allocate_type() : fixed_type;
+    gaia_type_t table_type
+        = (fixed_type == c_invalid_gaia_type)
+        ? generate_table_type(in_context(db_name), table_name)
+        : fixed_type;
 
     gaia_id_t table_id = gaia_table_t::insert_row(
         table_name.c_str(),
