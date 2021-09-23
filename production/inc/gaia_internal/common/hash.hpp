@@ -11,7 +11,7 @@
 
 // Adapted from the public domain murmur3 hash implementation at:
 // https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp
-uint32_t murmurhash3_32(const void* key, int len)
+uint32_t murmurhash3(const void* key, int len)
 {
     auto data = static_cast<const uint8_t*>(key);
     const int nblocks = len / 4;
