@@ -38,6 +38,7 @@ ruleset incubator_ruleset
             return;
         }
 
+        sensor_loop:
         for(S:sensor)
         {
             if (S.value < incubator.min_temp ||
@@ -45,7 +46,7 @@ ruleset incubator_ruleset
             {
                 actuator.value = adjust_temperature(incubator.min_temp, incubator.max_temp, S.value, actuator.value);
                 actuator.timestamp = g_timestamp;
-                break;
+                break sensor_loop;
             }
         }
     }
