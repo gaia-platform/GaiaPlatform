@@ -511,7 +511,7 @@ void gaia_ptr_t::auto_connect_to_parent(
 
             gaia_type_t parent_table_type = catalog_core_t::get_table(relationship_view.parent_table_id()).table_type();
             gaia_id_t parent_table_id = type_id_mapping_t::instance().get_record_id(parent_table_type);
-            bool updated = false;
+            bool has_connected = false;
 
             gaia_id_t parent_index_id = catalog_core_t::find_index(
                 parent_table_id, relationship_view.parent_field_positions()->Get(0));
@@ -529,13 +529,13 @@ void gaia_ptr_t::auto_connect_to_parent(
                     child_references,
                     parent_scan.id(),
                     relationship_view.parent_offset());
-                updated = true;
+                has_connected = true;
                 break;
             }
 
             // If there is no match and the record was connected to some parent
             // record, we need to disconnect them.
-            if (!updated)
+            if (!has_connected)
             {
                 gaia_ptr_t child_ptr(child_id);
                 reference_offset_t parent_offset = relationship_view.parent_offset();

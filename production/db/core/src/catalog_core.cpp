@@ -228,7 +228,8 @@ gaia_id_t catalog_core_t::find_index(gaia_id_t table_id, field_position_t field_
 {
     for (const auto& index : catalog_core_t::list_indexes(table_id))
     {
-        if (field_view_t(id_to_ptr(index.fields()->Get(0))).position() == field_position)
+        const field_view_t first_field_of_index(id_to_ptr(index.fields()->Get(0)));
+        if (first_field_of_index.position() == field_position)
         {
             return index.id();
         }
