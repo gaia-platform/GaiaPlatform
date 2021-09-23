@@ -243,8 +243,8 @@ void simulation()
             }
         }
 
-        auto cur = std::chrono::steady_clock::now();
-        g_timestamp = std::chrono::duration_cast<std::chrono::seconds>(cur - start).count();
+        auto current = std::chrono::steady_clock::now();
+        g_timestamp = std::chrono::duration_cast<std::chrono::seconds>(current - start).count();
         for (auto s : sensor_t::list())
         {
             sensor_writer w = s.writer();
@@ -396,7 +396,7 @@ public:
                 if (!g_in_simulation)
                 {
                     g_in_simulation = true;
-                    m_simulation_thread = std::unique_ptr<std::thread>(new std::thread(simulation));
+                    m_simulation_thread = std::make_unique<std::thread>(simulation);
                     std::cout << "Simulation started...\n";
                 }
                 else

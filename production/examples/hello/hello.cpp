@@ -11,9 +11,7 @@
 
 int main()
 {
-    std::cout
-        << "Hello example is running..."
-        << std::endl;
+    std::cout << "Hello example is running..." << std::endl;
 
     gaia::system::initialize();
 
