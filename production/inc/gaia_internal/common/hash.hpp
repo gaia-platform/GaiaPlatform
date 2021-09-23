@@ -7,11 +7,13 @@
 #include <cstdint>
 #include <cstring>
 
+#include <bit>
+
 // Adapted from the public domain murmur3 hash implementation at:
 // https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp
-uint32_t murmurhash3_x86_32(const void* key, int len)
+uint32_t murmurhash3_32(const void* key, int len)
 {
-    const auto* data = static_cast<const uint8_t*>(key);
+    auto data = static_cast<const uint8_t*>(key);
     const int nblocks = len / 4;
 
     uint32_t h1 = len;
@@ -22,7 +24,7 @@ uint32_t murmurhash3_x86_32(const void* key, int len)
     //----------
     // body
 
-    const auto* blocks = reinterpret_cast<const uint32_t*>(data + nblocks * 4);
+    auto blocks = reinterpret_cast<const uint32_t*>(data + nblocks * 4);
 
     for (int i = -nblocks; i; i++)
     {
@@ -31,12 +33,12 @@ uint32_t murmurhash3_x86_32(const void* key, int len)
 
         k1 *= c1;
         // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-        k1 = (k1 << 15) | (k1 >> (32 - 15));
+        k1 = std::__rotl(k1, 15);
         k1 *= c2;
 
         h1 ^= k1;
         // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-        h1 = (k1 << 13) | (k1 >> (32 - 13));
+        h1 = std::__rotl(h1, 13);
         // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
         h1 = h1 * 5 + 0xe6546b64;
     }
@@ -44,7 +46,7 @@ uint32_t murmurhash3_x86_32(const void* key, int len)
     //----------
     // tail
 
-    const auto* tail = static_cast<const uint8_t*>(data + nblocks * 4);
+    auto tail = static_cast<const uint8_t*>(data + nblocks * 4);
 
     uint32_t k1 = 0;
 
@@ -60,7 +62,7 @@ uint32_t murmurhash3_x86_32(const void* key, int len)
         k1 ^= tail[0];
         k1 *= c1;
         // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-        k1 = (k1 << 15) | (k1 >> (32 - 15));
+        k1 = std::__rotl(k1, 15);
         k1 *= c2;
         h1 ^= k1;
     };
