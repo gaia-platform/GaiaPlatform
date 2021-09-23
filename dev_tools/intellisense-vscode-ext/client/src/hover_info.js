@@ -2,9 +2,9 @@
 
 export const hover_info = {
     // Methods.
-    on_update: "Reacts to the change of the specified fields in existing rows in a table or a change to a specified table.  \n  \nIf the fields are unique in the Catalog, you can omit specifying which table they are in.",
-    on_insert: "Reacts to the insertion of a new row.",
-    on_change: "Reacts to the insertion or change of a row that contains the specified fields in the specified table.",
+    on_update: "Specifies that the rule fires when a change occurs to the specified fields in existing rows in a table or a change to a specified table.  \n  \nIf the fields are unique in the Catalog, you can omit specifying which table they are in.",
+    on_insert: "Specifies that the rule fires on the insertion of a row in the specified table.",
+    on_change: "Specifies that the rule fires when there is an insertion or change of a row that contains the specified fields in the specified table.",
     connect: "Connect links rows between two tables based on an existing relationship between the tables.  \n  \n[Identifier].field_name1.connect(Table_name2)  \n  \nThe identifier can be either a table name or a tag.  \n  \nTable_name 1.connect(Table_name2).  \n  \nYou can use connect()/disconnect() directly on tables if there is only one relationship between the two tables. Otherwise, you need to use the link name as defined in the DDL.",
     disconnect: "Disconnect unlinks the rows.  \n  \nDisconnecting a one to many relationship: [identifier].link_name.disconnect(row).  \n  \nDisconnecting a one to one relationship: [identifier].link_name.disconnect()",
     insert: "Inserts a row into a table.\n[Table_name].Insert(field_1:  value_1, ..., field_n: value_n)\n  Table_name: a table in the Catalog.  \n  Name Map: a series of entries in the form FieldName: FieldValue.  \n*Note: Omitting a parameter will result in a default value of empty or 0.  \nThe insert statement only allows inserting into primitive types.",
