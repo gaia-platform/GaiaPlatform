@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <cstring>
 
+#include "gaia_internal/common/retail_assert.hpp"
+
 namespace gaia
 {
 namespace common
@@ -14,12 +16,14 @@ namespace common
 namespace hash
 {
 
-// Replacement of `std::rotl` before C++ 20. Most compiler should be able to
-// optimize the one liner into a single instruction.
-inline uint32_t rotl32(uint32_t x, int8_t r)
+// Replacement of `std::rotl` before C++ 20 from the post below:
+// https://blog.regehr.org/archives/1063
+inline uint32_t rotl32(uint32_t x, uint32_t n)
 {
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-    return (x << r) | (x >> (32 - r));
+    ASSERT_PRECONDITION(n < 32, "Out of range rotation number.");
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
+    return (x << n) | (x >> (-n & 31));
 }
 
 // Compute murmur3 32 bit hash for the key. Adapted from the public domain
