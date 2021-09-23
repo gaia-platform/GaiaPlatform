@@ -15,15 +15,14 @@ index_generator_t<T_structure>::index_generator_t(
 }
 
 template <typename T_structure>
-void index_generator_t<T_structure>::init()
-{
-    m_initialized = true;
-    m_index_lock.lock();
-}
-
-template <typename T_structure>
 std::optional<index_record_t> index_generator_t<T_structure>::operator()()
 {
+    if (!m_initialized)
+    {
+        m_index_lock.lock();
+        m_initialized = true;
+    }
+
     while (m_it != m_end)
     {
         index_record_t record = m_it->second;

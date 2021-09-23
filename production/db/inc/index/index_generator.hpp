@@ -15,6 +15,7 @@ namespace db
 {
 namespace index
 {
+
 template <typename T_structure>
 class index_generator_t : public common::iterators::generator_t<index_record_t>
 {
@@ -28,7 +29,6 @@ public:
 
     std::optional<index_record_t> operator()() final;
 
-    void init() override;
     void cleanup() override;
 
 private:

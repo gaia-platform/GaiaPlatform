@@ -44,7 +44,7 @@ public:
     virtual ~generator_t() = default;
 
     // Generator lifecycle functions.
-    virtual void init(){};
+    virtual void initialize(){};
     virtual void cleanup(){};
 
 private:
@@ -74,11 +74,6 @@ public:
         std::function<bool(T_output)> predicate = [](T_output) { return true; })
         : m_generator(std::make_shared<generator_t<T_output>>(generator)), m_predicate(std::move(predicate))
     {
-        // We need to initialize the iterator to the first valid state.
-        if (m_generator)
-        {
-            m_generator->init();
-        }
         init_generator();
     }
 
@@ -87,10 +82,6 @@ public:
         std::function<bool(T_output)> predicate = [](T_output) { return true; })
         : m_generator(std::move(generator)), m_predicate(std::move(predicate))
     {
-        if (m_generator)
-        {
-            m_generator->init();
-        }
         init_generator();
     }
 
@@ -102,30 +93,12 @@ public:
         }
     }
 
-    // Returns current state.
-    T_output& operator*()
+    // const versions of operators.
+    const T_output& operator*() const
     {
         // If we de-reference m_state via *m_state, we can run into undefined behavior
         // if m_state does not contain a value, so we'll use the value() method instead,
         // which throws an exception in that case.
-        return m_state.value();
-    }
-
-    T_output* operator->()
-    {
-        if (m_state.has_value())
-        {
-            return &m_state.value();
-        }
-        else
-        {
-            return nullptr;
-        }
-    }
-
-    // const versions of the above.
-    const T_output& operator*() const
-    {
         return m_state.value();
     }
 
@@ -141,8 +114,22 @@ public:
         }
     }
 
+    // Returns current state.
+    T_output& operator*()
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+        return const_cast<T_output&>(const_cast<const generator_iterator_t*>(this)->operator*());
+    }
+
+    T_output* operator->()
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+        return const_cast<T_output*>(const_cast<const generator_iterator_t*>(this)->operator->());
+    }
+
     // Advance to the next valid state.
-    generator_iterator_t& operator++()
+    generator_iterator_t&
+    operator++()
     {
         while ((m_state = (*m_generator)()))
         {
@@ -195,6 +182,8 @@ public:
 private:
     void init_generator()
     {
+        m_generator->initialize();
+
         // We need to initialize the iterator to the first valid state.
         while ((m_state = (*m_generator)()))
         {
@@ -210,7 +199,7 @@ private:
     // Non-copyable iterators cannot be used in range-based for loops.
     std::shared_ptr<generator_t<T_output>> m_generator;
     std::function<bool(T_output)> m_predicate;
-};
+}; // namespace iterators
 
 template <typename T_output>
 struct generator_range_t
