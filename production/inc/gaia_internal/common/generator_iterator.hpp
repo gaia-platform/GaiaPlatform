@@ -43,6 +43,10 @@ public:
 
     virtual ~generator_t() = default;
 
+    // Generator lifecycle functions.
+    virtual void init(){};
+    virtual void cleanup(){};
+
 private:
     std::function<std::optional<T_output>()> m_function;
 };
@@ -71,6 +75,10 @@ public:
         : m_generator(std::make_shared<generator_t<T_output>>(generator)), m_predicate(std::move(predicate))
     {
         // We need to initialize the iterator to the first valid state.
+        if (m_generator)
+        {
+            m_generator->init();
+        }
         init_generator();
     }
 
@@ -79,7 +87,19 @@ public:
         std::function<bool(T_output)> predicate = [](T_output) { return true; })
         : m_generator(std::move(generator)), m_predicate(std::move(predicate))
     {
+        if (m_generator)
+        {
+            m_generator->init();
+        }
         init_generator();
+    }
+
+    ~generator_iterator_t()
+    {
+        if (m_generator)
+        {
+            m_generator->cleanup();
+        }
     }
 
     // Returns current state.
