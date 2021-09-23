@@ -1281,6 +1281,12 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
         {
             return return_value;
         }
+        else if (const auto* expression = node_parents_iterator.get<CXXThrowExpr>())
+        {
+            SourceRange source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
+            update_expression_location(return_value, source_range.getBegin(), source_range.getEnd());
+            return get_expression_source_range(context, *expression, return_value, rewriter);
+        }
         else if (const auto* expression = node_parents_iterator.get<CXXOperatorCallExpr>())
         {
             SourceRange source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
