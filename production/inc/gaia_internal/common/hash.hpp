@@ -7,11 +7,35 @@
 #include <cstdint>
 #include <cstring>
 
-#include <bit>
+namespace gaia
+{
+namespace common
+{
+namespace hash
+{
 
-// Adapted from the public domain murmur3 hash implementation at:
+// Replacement of `std::rotl` before C++ 20. Most compiler should be able to
+// optimize the one liner into a single instruction.
+inline uint32_t rotl32(uint32_t x, int8_t r)
+{
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
+    return (x << r) | (x >> (32 - r));
+}
+
+// Compute murmur3 32 bit hash for the key. Adapted from the public domain
+// murmur3 hash implementation at:
 // https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp
-uint32_t murmurhash3(const void* key, int len)
+//
+// We made the following changes to the original implementation.
+// - Use the key length as the seed.
+// - Use `std::memcpy` for block read.
+// - Return `uint32_t` directly to avoid block write.
+// - Change C-style cast to C++ cast and switch to `auto` type.
+// - Code format change in various places to adhering to Gaia coding guideline.
+//
+// Warning: murmur3 is not a cryptographic hash function and should not be used
+// in places where security is a concern.
+uint32_t murmur3_32(const void* key, int len)
 {
     auto data = static_cast<const uint8_t*>(key);
     const int nblocks = len / 4;
@@ -33,12 +57,12 @@ uint32_t murmurhash3(const void* key, int len)
 
         k1 *= c1;
         // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-        k1 = std::__rotl(k1, 15);
+        k1 = rotl32(k1, 15);
         k1 *= c2;
 
         h1 ^= k1;
         // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-        h1 = std::__rotl(h1, 13);
+        h1 = rotl32(h1, 13);
         // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
         h1 = h1 * 5 + 0xe6546b64;
     }
@@ -62,7 +86,7 @@ uint32_t murmurhash3(const void* key, int len)
         k1 ^= tail[0];
         k1 *= c1;
         // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-        k1 = std::__rotl(k1, 15);
+        k1 = rotl32(k1, 15);
         k1 *= c2;
         h1 ^= k1;
     };
@@ -85,3 +109,7 @@ uint32_t murmurhash3(const void* key, int len)
 
     return h1;
 }
+
+} // namespace hash
+} // namespace common
+} // namespace gaia
