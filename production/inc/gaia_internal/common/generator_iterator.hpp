@@ -43,8 +43,7 @@ public:
 
     virtual ~generator_t() = default;
 
-    // Generator lifecycle functions.
-    virtual void initialize(){};
+    // Generator lifecycle function.
     virtual void cleanup(){};
 
 private:
@@ -182,8 +181,6 @@ public:
 private:
     void init_generator()
     {
-        m_generator->initialize();
-
         // We need to initialize the iterator to the first valid state.
         while ((m_state = (*m_generator)()))
         {
@@ -199,7 +196,7 @@ private:
     // Non-copyable iterators cannot be used in range-based for loops.
     std::shared_ptr<generator_t<T_output>> m_generator;
     std::function<bool(T_output)> m_predicate;
-}; // namespace iterators
+};
 
 template <typename T_output>
 struct generator_range_t
