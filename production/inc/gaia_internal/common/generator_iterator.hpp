@@ -50,6 +50,14 @@ private:
 template <typename T_output>
 class generator_iterator_t
 {
+    // Iterator properties.
+    // See: https://en.cppreference.com/w/cpp/iterator/iterator_traits
+    using iterator_category = std::input_iterator_tag;
+    using difference_type = void;
+    using value_type = T_output;
+    using pointer = T_output*;
+    using reference = T_output;
+
 public:
     // Default all special member functions.
     generator_iterator_t(generator_iterator_t&&) noexcept = default;
