@@ -793,8 +793,8 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 rewriter.InsertTextBefore(explicit_path_data_iterator.first.getBegin(), nomatch_prefix + navigation_code.prefix);
                 rewriter.InsertTextAfter(explicit_path_data_iterator.first.getBegin(), variable_name + " = true;\n");
                 rewriter.RemoveText(SourceRange(get_previous_token_location(nomatch_range.getBegin(), rewriter), nomatch_range.getBegin().getLocWithOffset(-1)));
-                rewriter.InsertTextBefore(nomatch_range.getBegin(),navigation_code.postfix + "\nif (!" + variable_name + ")\n");
-                rewriter.InsertTextAfterToken(nomatch_range.getEnd(),"}\n");
+                rewriter.InsertTextBefore(nomatch_range.getBegin(), navigation_code.postfix + "\nif (!" + variable_name + ")\n");
+                rewriter.InsertTextAfterToken(nomatch_range.getEnd(), "}\n");
                 nomatch_range = SourceRange();
             }
             else
@@ -803,7 +803,6 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 rewriter.InsertTextAfterToken(explicit_path_data_iterator.first.getEnd(), navigation_code.postfix);
             }
         }
-
     }
 }
 
@@ -1360,8 +1359,8 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
             if (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value)
                 || is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange()))
             {
-               SourceRange source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
-               update_expression_location(return_value, source_range.getBegin(), source_range.getEnd());
+                SourceRange source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
+                update_expression_location(return_value, source_range.getBegin(), source_range.getEnd());
             }
             return return_value;
         }
@@ -1382,8 +1381,8 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
         else if (const auto* expression = node_parents_iterator.get<GaiaForStmt>())
         {
             SourceRange for_condition_source_range = SourceRange(expression->getLParenLoc().getLocWithOffset(1), expression->getRParenLoc().getLocWithOffset(-1));
-            if (is_range_contained_in_another_range(for_condition_source_range, return_value) ||
-                is_range_contained_in_another_range(return_value, for_condition_source_range))
+            if (is_range_contained_in_another_range(for_condition_source_range, return_value)
+                || is_range_contained_in_another_range(return_value, for_condition_source_range))
             {
                 SourceRange for_source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
                 update_expression_location(return_value, for_source_range.getBegin(), for_source_range.getEnd());
@@ -2580,14 +2579,14 @@ public:
                 "namespace " + g_current_ruleset + "\n{\n");
 
             // Replace closing brace with namespace comment.
-            m_rewriter.ReplaceText(SourceRange(ruleset_declaration->getEndLoc()), "}// namespace " + g_current_ruleset);
+            m_rewriter.ReplaceText(SourceRange(ruleset_declaration->getEndLoc()), "} // namespace " + g_current_ruleset + "\n");
 
             g_rewriter_history.push_back(
                 {SourceRange(ruleset_declaration->getBeginLoc(), ruleset_declaration->decls_begin()->getBeginLoc().getLocWithOffset(c_declaration_to_ruleset_offset)),
                  "namespace " + g_current_ruleset + "\n{\n", replace_text});
             g_rewriter_history.push_back(
                 {SourceRange(ruleset_declaration->getEndLoc()),
-                 "}// namespace " + g_current_ruleset, replace_text});
+                 "} // namespace " + g_current_ruleset + "\n", replace_text});
         }
     }
 
@@ -3272,6 +3271,7 @@ public:
             m_rewriter.RemoveText(label_source_range);
         }
     }
+
 private:
     Rewriter& m_rewriter;
 };
