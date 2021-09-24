@@ -186,7 +186,7 @@ public:
         msg
             << "Cannot delete object with ID '" << id << "', type '" << object_type
             << "', because it is still referenced by another object with ID '"
-            << other_id << "', type: '" << other_type << "'";
+            << other_id << "', type '" << other_type << "'";
         m_message = msg.str();
     }
 };
