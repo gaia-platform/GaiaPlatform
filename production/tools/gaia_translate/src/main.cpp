@@ -1381,7 +1381,8 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
         else if (const auto* expression = node_parents_iterator.get<GaiaForStmt>())
         {
             SourceRange for_condition_source_range = SourceRange(expression->getLParenLoc().getLocWithOffset(1), expression->getRParenLoc().getLocWithOffset(-1));
-            if (is_range_contained_in_another_range(for_condition_source_range, return_value) || is_range_contained_in_another_range(return_value, for_condition_source_range))
+            if (is_range_contained_in_another_range(for_condition_source_range, return_value)
+                || is_range_contained_in_another_range(return_value, for_condition_source_range))
             {
                 SourceRange for_source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
                 update_expression_location(return_value, for_source_range.getBegin(), for_source_range.getEnd());
@@ -2578,14 +2579,14 @@ public:
                 "namespace " + g_current_ruleset + "\n{\n");
 
             // Replace closing brace with namespace comment.
-            m_rewriter.ReplaceText(SourceRange(ruleset_declaration->getEndLoc()), "}// namespace " + g_current_ruleset);
+            m_rewriter.ReplaceText(SourceRange(ruleset_declaration->getEndLoc()), "} // namespace " + g_current_ruleset + "\n");
 
             g_rewriter_history.push_back(
                 {SourceRange(ruleset_declaration->getBeginLoc(), ruleset_declaration->decls_begin()->getBeginLoc().getLocWithOffset(c_declaration_to_ruleset_offset)),
                  "namespace " + g_current_ruleset + "\n{\n", replace_text});
             g_rewriter_history.push_back(
                 {SourceRange(ruleset_declaration->getEndLoc()),
-                 "}// namespace " + g_current_ruleset, replace_text});
+                 "} // namespace " + g_current_ruleset + "\n", replace_text});
         }
     }
 

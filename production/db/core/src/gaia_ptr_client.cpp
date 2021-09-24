@@ -3,6 +3,9 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "gaia/common.hpp"
+
+#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
@@ -12,6 +15,8 @@
 #include "db_hash_map.hpp"
 #include "db_helpers.hpp"
 #include "field_access.hpp"
+#include "index_key.hpp"
+#include "index_scan.hpp"
 #include "memory_types.hpp"
 #include "payload_diff.hpp"
 #include "type_id_mapping.hpp"
@@ -480,63 +485,64 @@ void gaia_ptr_t::auto_connect_to_parent(
     {
         return;
     }
-    // For every field, check if the field is used in establishing a
-    // relationship where the field's table is on the child side. For every such
-    // relationship, check if the new value exists in any parent record. If yes,
-    // link the child record to the parent record.
+
     for (auto field_position : candidate_fields)
     {
+        // For every field, check if the field is used in establishing a
+        // relationship where the field's table is on the child side.
         for (auto relationship_view : catalog_core_t::list_relationship_to(child_type_id))
         {
-            if (relationship_view.child_field_positions()->size() == 1
-                && relationship_view.child_field_positions()->Get(0) == field_position)
+            if (relationship_view.child_field_positions()->size() != 1
+                || relationship_view.child_field_positions()->Get(0) != field_position)
             {
-                auto schema = catalog_core_t::get_table(child_type_id).binary_schema();
-                auto field_value = payload_types::get_field_value(
-                    child_type_id,
-                    child_payload,
-                    schema->data(),
-                    schema->size(),
-                    field_position);
+                continue;
+            }
 
-                // TODO: use index to find the parent record more efficiently.
-                gaia_type_t parent_table_type = catalog_core_t::get_table(relationship_view.parent_table_id()).table_type();
-                gaia_id_t parent_table_id = type_id_mapping_t::instance().get_record_id(parent_table_type);
-                bool updated = false;
-                for (auto parent_record : find_all_range(parent_table_type))
+            // At this point, we have found the relationship (that uses the
+            // field), check if the new field value exists in any parent record.
+            // If yes, link the child record to the parent record.
+            auto schema = catalog_core_t::get_table(child_type_id).binary_schema();
+            auto field_value = payload_types::get_field_value(
+                child_type_id,
+                child_payload,
+                schema->data(),
+                schema->size(),
+                field_position);
+
+            gaia_type_t parent_table_type = catalog_core_t::get_table(relationship_view.parent_table_id()).table_type();
+            gaia_id_t parent_table_id = type_id_mapping_t::instance().get_record_id(parent_table_type);
+            bool has_connected = false;
+
+            gaia_id_t parent_index_id = catalog_core_t::find_index(
+                parent_table_id, relationship_view.parent_field_positions()->Get(0));
+            ASSERT_INVARIANT(parent_index_id != c_invalid_gaia_id, "Cannot find value index for the parent table.");
+
+            index::index_key_t key;
+            key.insert(field_value);
+            for (const auto& parent_scan : query_processor::scan::index_scan_t(
+                     parent_index_id,
+                     std::make_shared<query_processor::scan::index_point_read_predicate_t>(key)))
+            {
+                update_parent_reference(
+                    child_id,
+                    child_type,
+                    child_references,
+                    parent_scan.id(),
+                    relationship_view.parent_offset());
+                has_connected = true;
+                break;
+            }
+
+            // If there is no match and the record was connected to some parent
+            // record, we need to disconnect them.
+            if (!has_connected)
+            {
+                gaia_ptr_t child_ptr(child_id);
+                reference_offset_t parent_offset = relationship_view.parent_offset();
+                gaia_id_t parent_id = child_ptr.references()[relationship_view.parent_offset()];
+                if (parent_id != c_invalid_gaia_id)
                 {
-                    auto parent_schema = catalog_core_t::get_table(parent_table_id).binary_schema();
-                    auto parent_field_value = payload_types::get_field_value(
-                        parent_table_id,
-                        reinterpret_cast<const uint8_t*>(parent_record.data()),
-                        parent_schema->data(),
-                        parent_schema->size(),
-                        relationship_view.parent_field_positions()->Get(0));
-
-                    if (parent_field_value.compare(field_value) == 0)
-                    {
-                        update_parent_reference(
-                            child_id,
-                            child_type,
-                            child_references,
-                            parent_record.id(),
-                            relationship_view.parent_offset());
-                        updated = true;
-                        break;
-                    }
-                }
-
-                // If there is no match and the record was connected to some
-                // parent record, we need to disconnect them.
-                if (!updated)
-                {
-                    gaia_ptr_t child_ptr(child_id);
-                    reference_offset_t parent_offset = relationship_view.parent_offset();
-                    gaia_id_t parent_id = child_ptr.references()[relationship_view.parent_offset()];
-                    if (parent_id != c_invalid_gaia_id)
-                    {
-                        child_ptr.remove_parent_reference(parent_id, parent_offset);
-                    }
+                    child_ptr.remove_parent_reference(parent_id, parent_offset);
                 }
             }
         }
