@@ -243,6 +243,7 @@ ruleset testE29
     }
 }
 
+//GAIAPLAT-1259
 const char* generate_error_message(double)
 {
     return "test";
@@ -259,6 +260,7 @@ ruleset testE30
     }
 }
 
+//GAIAPLAT-1025
 ruleset test_comment
 {
     /* COMMENT

@@ -149,6 +149,7 @@ struct insert_data_t
     string table_name;
     unordered_map<string, SourceRange> argument_map;
     unordered_map<SourceRange, string> argument_replacement_map;
+    unordered_set<string> argument_tables;
 };
 
 // Vector to contain all the data to properly generate code for insert function call.
@@ -710,6 +711,16 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                         g_is_generation_error = true;
                         return;
                     }
+                    string insert_table;
+
+                    for (auto& insert_data : g_insert_data)
+                    {
+                        if (insert_data.expression_range.getEnd() == variable_declaration_range_iterator.first.getEnd() &&
+                            insert_data.argument_tables.find(insert_data.table_name) == insert_data.argument_tables.end())
+                        {
+                            insert_table = insert_data.table_name;
+                        }
+                    }
 
                     if (g_variable_declaration_init_location.find(variable_declaration_range_iterator.first)
                         != g_variable_declaration_init_location.end())
@@ -718,9 +729,8 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                             get_table_from_expression(
                                 data_iterator->path_components.front()),
                             data_iterator->tag_table_map);
-
-                        if (data_iterator->path_components.size() == 1
-                            && table_name == anchor_table_name && !data_iterator->is_absolute_path)
+                        if ((!insert_table.empty() && insert_table == table_name) || (data_iterator->path_components.size() == 1
+                            && table_name == anchor_table_name && !data_iterator->is_absolute_path))
                         {
                             auto declaration_source_range_size = variable_declaration_range_iterator.first.getEnd().getRawEncoding() - variable_declaration_range_iterator.first.getBegin().getRawEncoding();
                             auto min_declaration_source_range_size = variable_declaration_range.getEnd().getRawEncoding() - variable_declaration_range.getBegin().getRawEncoding();
@@ -1855,6 +1865,7 @@ public:
                     if (is_range_contained_in_another_range(expression_source_range, insert_data_argument_range_iterator.first))
                     {
                         insert_data_argument_range_iterator.second = replacement;
+                        insert_data.argument_tables.insert(table_name);
                     }
                 }
             }
@@ -2315,6 +2326,7 @@ public:
                 if (is_range_contained_in_another_range(SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)), insert_data_argument_range_iterator.first))
                 {
                     insert_data_argument_range_iterator.second = replace_string;
+                    insert_data.argument_tables.insert(table_name);
                 }
             }
         }
