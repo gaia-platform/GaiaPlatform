@@ -9497,6 +9497,8 @@ def err_builtin_launder_invalid_arg : Error<
 
 def err_invalid_field_operation : Error<
   "Incorrect field operation.">;
+def err_invalid_field_usage : Error<
+  "Field '%0' cannot be used after a '->' in a path. Use a '.' to separate the table name from the field name.">;
 def err_active_field_not_supported : Error<
   "Mixed use of 'on_' attributes (on_insert, on_change, or on_update) and "
   "specifying active fields using '@' is not supported. Use either an 'on_' "
