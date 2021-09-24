@@ -43,6 +43,9 @@ public:
 
     virtual ~generator_t() = default;
 
+    // Generator lifecycle function.
+    virtual void cleanup(){};
+
 private:
     std::function<std::optional<T_output>()> m_function;
 };
@@ -70,7 +73,6 @@ public:
         std::function<bool(T_output)> predicate = [](T_output) { return true; })
         : m_generator(std::make_shared<generator_t<T_output>>(generator)), m_predicate(std::move(predicate))
     {
-        // We need to initialize the iterator to the first valid state.
         init_generator();
     }
 
@@ -82,30 +84,20 @@ public:
         init_generator();
     }
 
-    // Returns current state.
-    T_output& operator*()
+    ~generator_iterator_t()
+    {
+        if (m_generator)
+        {
+            m_generator->cleanup();
+        }
+    }
+
+    // const versions of operators.
+    const T_output& operator*() const
     {
         // If we de-reference m_state via *m_state, we can run into undefined behavior
         // if m_state does not contain a value, so we'll use the value() method instead,
         // which throws an exception in that case.
-        return m_state.value();
-    }
-
-    T_output* operator->()
-    {
-        if (m_state.has_value())
-        {
-            return &m_state.value();
-        }
-        else
-        {
-            return nullptr;
-        }
-    }
-
-    // const versions of the above.
-    const T_output& operator*() const
-    {
         return m_state.value();
     }
 
@@ -119,6 +111,19 @@ public:
         {
             return nullptr;
         }
+    }
+
+    // Returns current state.
+    T_output& operator*()
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+        return const_cast<T_output&>(const_cast<const generator_iterator_t*>(this)->operator*());
+    }
+
+    T_output* operator->()
+    {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+        return const_cast<T_output*>(const_cast<const generator_iterator_t*>(this)->operator->());
     }
 
     // Advance to the next valid state.

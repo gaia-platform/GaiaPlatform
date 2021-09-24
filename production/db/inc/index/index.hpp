@@ -8,6 +8,7 @@
 #include "gaia_internal/db/db_types.hpp"
 
 #include "base_index.hpp"
+#include "index_generator.hpp"
 #include "index_key.hpp"
 
 namespace gaia
@@ -27,9 +28,8 @@ class index_writer_guard_t
 {
 public:
     index_writer_guard_t(base_index_t* db_idx, T_structure& index)
-        : m_db_idx(db_idx), m_data(index)
+        : m_index_lock(db_idx->get_lock()), m_db_idx(db_idx), m_data(index)
     {
-        m_db_idx->get_lock().lock();
     }
 
     T_structure& get_index()
@@ -37,37 +37,13 @@ public:
         return m_data;
     }
 
-    ~index_writer_guard_t()
-    {
-        m_db_idx->get_lock().unlock();
-    }
-
     // Bulk iterators
     std::pair<typename T_structure::iterator, typename T_structure::iterator> equal_range(const index_key_t& key);
 
 private:
+    std::unique_lock<std::recursive_mutex> m_index_lock;
     base_index_t* m_db_idx;
     T_structure& m_data;
-};
-
-template <typename T_structure>
-class index_generator_t : public common::iterators::generator_t<index_record_t>
-{
-public:
-    index_generator_t(std::recursive_mutex& mutex, T_structure& data, gaia_txn_id_t txn_id);
-    index_generator_t(
-        std::recursive_mutex& mutex,
-        typename T_structure::const_iterator begin,
-        typename T_structure::const_iterator end,
-        gaia_txn_id_t txn_id);
-
-    std::optional<index_record_t> operator()() final;
-
-private:
-    std::unique_lock<std::recursive_mutex> m_index_lock;
-    typename T_structure::const_iterator m_it;
-    typename T_structure::const_iterator m_end;
-    gaia_txn_id_t m_txn_id;
 };
 
 /**
