@@ -9,10 +9,15 @@
 
 TEST(hash_test, murmur3_32)
 {
-    constexpr size_t c_test_case_num = 3;
-    const char* keys[c_test_case_num] = {"abc", "zzzzzzzzzz", "foo_bar123"};
+    constexpr size_t c_test_case_num = 5;
+    const char* keys[c_test_case_num] = {
+        "",
+        "abc",
+        "zzzzzzzzzz",
+        "foo_bar123",
+        "The quick brown fox jumps over the lazy dog"};
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-    uint32_t expected_hash_values[c_test_case_num] = {1193954329, 2673600387, 2223942957};
+    uint32_t expected_hash_values[c_test_case_num] = {0, 1193954329, 2673600387, 2223942957, 2832703669};
 
     for (size_t i = 0; i < c_test_case_num; i++)
     {
