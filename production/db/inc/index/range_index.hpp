@@ -10,6 +10,7 @@
 
 #include <iterator>
 #include <map>
+#include <optional>
 #include <tuple>
 
 #include "index.hpp"
@@ -45,6 +46,13 @@ public:
     range_index_iterator_t upper_bound(const index_key_t& key);
 
     std::pair<range_index_iterator_t, range_index_iterator_t> equal_range(const index_key_t& key) override;
+    std::shared_ptr<common::iterators::generator_t<index_record_t>> equal_range_generator(
+        gaia_txn_id_t txn_id,
+        const index_key_t& key) override;
+    std::shared_ptr<common::iterators::generator_t<index_record_t>> range_generator(
+        gaia_txn_id_t txn_id,
+        std::optional<index_key_t> lower_bound,
+        std::optional<index_key_t> upper_bound);
 };
 
 } // namespace index

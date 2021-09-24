@@ -57,6 +57,17 @@ enum class index_record_operation_t : uint8_t
     update,
 };
 
+class index_operation_not_supported : public common::gaia_exception
+{
+public:
+    explicit index_operation_not_supported()
+    {
+        std::stringstream message;
+        message << "Index operation not supported. ";
+        m_message = message.str();
+    }
+};
+
 struct index_record_t
 {
     // The following fields should occupy 3x64bit.

@@ -14,10 +14,27 @@ bool base_index_scan_physical_t::is_visible(const db::index::index_record_t& rec
     return db::locator_exists(rec.locator) && db::locator_to_offset(rec.locator) == rec.offset;
 }
 
+template <typename T_index, typename T_index_iterator>
+std::pair<T_index_iterator, T_index_iterator> compute_range_iterators(T_index*, index_range_predicate_t&)
+{
+    // index_range_predicates are only supported on RANGE indexes.
+    throw index::index_operation_not_supported();
+}
+
+template <>
+std::pair<db::index::range_index_iterator_t, db::index::range_index_iterator_t> compute_range_iterators(db::index::range_index_t* index, index_range_predicate_t& predicate)
+{
+    std::pair<db::index::range_index_iterator_t, db::index::range_index_iterator_t> result;
+
+    result.first = (predicate.lower_bound().key()) ? index->lower_bound(*predicate.lower_bound().key()) : index->begin();
+    result.second = (predicate.upper_bound().key()) ? index->upper_bound(*predicate.upper_bound().key()) : index->end();
+
+    return result;
+}
+
 // Helper to get iterators for querying client-side indexes
 template <typename T_index, typename T_index_iterator>
-std::pair<T_index_iterator, T_index_iterator>
-local_iterator_helper(T_index* index, index_predicate_t& predicate)
+std::pair<T_index_iterator, T_index_iterator> local_iterator_helper(T_index* index, index_predicate_t& predicate)
 {
     std::pair<T_index_iterator, T_index_iterator> result;
 
@@ -28,9 +45,22 @@ local_iterator_helper(T_index* index, index_predicate_t& predicate)
         result.second = index->end();
         break;
     case messages::index_query_t::index_equal_range_query_t:
-    case messages::index_query_t::index_point_read_query_t:
-        result = index->equal_range(predicate.key());
+    {
+        auto& key = static_cast<index_equal_range_predicate_t&>(predicate).key();
+        result = index->equal_range(key);
         break;
+    }
+    case messages::index_query_t::index_point_read_query_t:
+    {
+        auto& key = static_cast<index_point_read_predicate_t&>(predicate).key();
+        result = index->equal_range(key);
+        break;
+    }
+    case messages::index_query_t::index_range_query_t:
+    {
+        result = compute_range_iterators<T_index, T_index_iterator>(index, static_cast<index_range_predicate_t&>(predicate));
+        break;
+    }
     default:
         ASSERT_UNREACHABLE("Unknown query type.");
     }
@@ -44,14 +74,6 @@ local_iterator_helper(T_index* index, index_predicate_t& predicate)
 template <typename T_index, typename T_index_iterator>
 void index_scan_physical_t<T_index, T_index_iterator>::init()
 {
-    auto rec_generator = scan_generator_t::get_record_generator_for_index(
-        m_index_id, db_client_proxy_t::get_current_txn_id(), m_predicate);
-
-    // Only return visible records from remote.
-    m_remote_it = remote_scan_iterator_t(
-        rec_generator,
-        is_visible);
-
     auto idx_iter = db::get_indexes()->find(m_index_id);
 
     ASSERT_PRECONDITION(idx_iter != db::get_indexes()->end(), "Index does not exist.");
@@ -70,6 +92,13 @@ void index_scan_physical_t<T_index, T_index_iterator>::init()
         m_local_it = static_cast<T_index*>(m_index.get())->begin();
         m_local_it_end = static_cast<T_index*>(m_index.get())->end();
     }
+
+    auto rec_generator = scan_generator_t::get_record_generator_for_index(m_index_id, db_client_proxy_t::get_current_txn_id(), m_predicate);
+
+    // Only return visible records from remote.
+    m_remote_it = remote_scan_iterator_t(
+        rec_generator,
+        is_visible);
 
     // Advance local iterator to first visible record.
     if (!local_end() && !is_visible(m_local_it->second))

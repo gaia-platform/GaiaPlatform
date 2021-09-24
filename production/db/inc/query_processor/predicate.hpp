@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <optional>
+
 #include "gaia_internal/db/gaia_ptr.hpp"
 
 #include "index.hpp"
@@ -31,8 +33,6 @@ class index_predicate_t
 {
 public:
     index_predicate_t() = default;
-    explicit index_predicate_t(index::index_key_t index_key);
-    explicit index_predicate_t(index::index_key_t&& index_key);
     virtual ~index_predicate_t() = default;
 
     // This is the client-side filter.
@@ -46,11 +46,15 @@ public:
 
     // flatbuffers query object.
     // By default, returns empty flatbuffers union.
+<<<<<<< HEAD
     virtual serialized_index_query_t as_query(common::gaia_id_t index_id, flatbuffers::FlatBufferBuilder& fbb) const;
     const index::index_key_t& key() const;
 
 protected:
     index::index_key_t m_key;
+=======
+    virtual serialized_index_query_t as_query(flatbuffers::FlatBufferBuilder& fbb) const;
+>>>>>>> INDEX: Internal APIs for range queries on index
 };
 
 // Point read predicate for indexes.
@@ -62,7 +66,15 @@ public:
     ~index_point_read_predicate_t() override = default;
 
     gaia::db::messages::index_query_t query_type() const override;
+<<<<<<< HEAD
     serialized_index_query_t as_query(common::gaia_id_t index_id, flatbuffers::FlatBufferBuilder& fbb) const override;
+=======
+    serialized_index_query_t as_query(flatbuffers::FlatBufferBuilder& fbb) const override;
+    const index::index_key_t& key() const;
+
+private:
+    index::index_key_t m_key;
+>>>>>>> INDEX: Internal APIs for range queries on index
 };
 
 // Equal range predicate for indexes.
@@ -74,7 +86,48 @@ public:
     ~index_equal_range_predicate_t() override = default;
 
     gaia::db::messages::index_query_t query_type() const override;
+<<<<<<< HEAD
     serialized_index_query_t as_query(common::gaia_id_t index_id, flatbuffers::FlatBufferBuilder& builder) const override;
+=======
+    serialized_index_query_t as_query(flatbuffers::FlatBufferBuilder& builder) const override;
+    const index::index_key_t& key() const;
+
+private:
+    index::index_key_t m_key;
+};
+
+// Bound for range query.
+class range_bound_t
+{
+public:
+    range_bound_t(std::optional<index::index_key_t> index_key, bool inclusive);
+    const std::optional<index::index_key_t>& key() const;
+    bool inclusive() const;
+
+private:
+    std::optional<index::index_key_t> m_key;
+    bool m_inclusive;
+};
+
+// Range predicate for indexes.
+class index_range_predicate_t : public index_predicate_t
+{
+public:
+    index_range_predicate_t(common::gaia_id_t index_id, range_bound_t lower_bound, range_bound_t upper_bound);
+    ~index_range_predicate_t() override = default;
+
+    const range_bound_t& lower_bound() const;
+    const range_bound_t& upper_bound() const;
+
+    gaia::db::messages::index_query_t query_type() const override;
+    serialized_index_query_t as_query(flatbuffers::FlatBufferBuilder& builder) const override;
+    bool filter(const gaia_ptr_t& ptr) const override;
+
+private:
+    common::gaia_id_t m_index_id;
+    range_bound_t m_lower_bound;
+    range_bound_t m_upper_bound;
+>>>>>>> INDEX: Internal APIs for range queries on index
 };
 
 } // namespace scan

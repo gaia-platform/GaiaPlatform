@@ -532,6 +532,32 @@ void server_t::handle_request_stream(
             start_stream_producer(server_socket, index->equal_range_generator(txn_id, std::move(key_storage), key));
             break;
         }
+        case index_query_t::index_range_query_t:
+        {
+            bool apply_logs = false;
+            create_local_snapshot(apply_logs);
+            auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
+
+            std::optional<index::index_key_t> lower_bound_key, upper_bound_key;
+            auto query = request_data->query_as_index_range_query_t();
+
+            if (query->lower_bound_key())
+            {
+                auto lower_bound_key_buffer = payload_types::data_read_buffer_t(*(query->lower_bound_key()));
+                auto deserialized = index::index_builder_t::deserialize_key(index_id, lower_bound_key_buffer);
+                lower_bound_key.emplace(std::move(deserialized));
+            }
+
+            if (query->upper_bound_key())
+            {
+                auto upper_bound_key_buffer = payload_types::data_read_buffer_t(*(query->upper_bound_key()));
+                auto deserialized = index::index_builder_t::deserialize_key(index_id, upper_bound_key_buffer);
+                upper_bound_key.emplace(std::move(deserialized));
+            }
+            auto range_index = static_cast<index::range_index_t*>(index.get());
+            start_stream_producer(server_socket, range_index->range_generator(txn_id, lower_bound_key, upper_bound_key));
+            break;
+        }
         default:
             ASSERT_UNREACHABLE(c_message_unexpected_query_type);
         }

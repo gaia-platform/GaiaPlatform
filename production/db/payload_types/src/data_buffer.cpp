@@ -47,7 +47,9 @@ void data_write_buffer_t::write(const char* buffer, size_t size)
 
 serialization_output_t data_write_buffer_t::output()
 {
-    return m_builder.CreateVector(m_buffer);
+    auto result = m_builder.CreateVector(m_buffer);
+    m_buffer.clear();
+    return result;
 }
 
 } // namespace payload_types
