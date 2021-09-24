@@ -48,3 +48,4 @@ add_gtest(test_multi_process tests/test_multi_process.cpp "${GAIA_MULTI_PROCESS_
 add_gtest(test_logging "tests/test_logging.cpp;${GAIA_REPO}/production/common/src/debug_logger.cpp" "${GAIA_COMMON_INCLUDES}" "gaia_common")
 add_gtest(test_random tests/test_random.cpp "${GAIA_COMMON_INCLUDES}" "gaia_common")
 add_gtest(test_inline_shared_lock tests/test_inline_shared_lock.cpp "${GAIA_COMMON_INCLUDES}" "gaia_common")
+add_gtest(test_hash tests/test_hash.cpp "${GAIA_COMMON_INCLUDES}" "")
