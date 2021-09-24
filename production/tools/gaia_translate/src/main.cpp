@@ -3399,13 +3399,19 @@ public:
                                   declRefExpr(
                                       to(varDecl(hasAttr(attr::GaiaFieldLValue)))))))))
                   .bind("fieldSet");
+
         StatementMatcher table_field_unary_operator_matcher
-            = unaryOperator(allOf(
-                                hasAncestor(ruleset_matcher),
-                                anyOf(
-                                    hasOperatorName("++"),
-                                    hasOperatorName("--")),
-                                hasUnaryOperand(memberExpr(member(hasAttr(attr::GaiaFieldLValue))))))
+            = unaryOperator(
+                  allOf(
+                      hasAncestor(ruleset_matcher),
+                      anyOf(
+                          hasOperatorName("++"),
+                          hasOperatorName("--")),
+                      hasUnaryOperand(
+                          memberExpr(
+                              hasDescendant(
+                                  declRefExpr(
+                                      to(varDecl(hasAttr(attr::GaiaFieldLValue)))))))))
                   .bind("fieldUnaryOp");
 
         StatementMatcher if_no_match_matcher
