@@ -2585,7 +2585,7 @@ public:
                  "namespace " + g_current_ruleset + "\n{\n", replace_text});
             g_rewriter_history.push_back(
                 {SourceRange(ruleset_declaration->getEndLoc()),
-                 "}// namespace " + g_current_ruleset + "\n", replace_text});
+                 "} // namespace " + g_current_ruleset + "\n", replace_text});
         }
     }
 
