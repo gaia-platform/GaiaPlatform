@@ -127,8 +127,7 @@ public:
     }
 
     // Advance to the next valid state.
-    generator_iterator_t&
-    operator++()
+    generator_iterator_t& operator++()
     {
         while ((m_state = (*m_generator)()))
         {
