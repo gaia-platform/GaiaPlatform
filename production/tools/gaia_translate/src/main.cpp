@@ -1381,7 +1381,8 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
         else if (const auto* expression = node_parents_iterator.get<GaiaForStmt>())
         {
             SourceRange for_condition_source_range = SourceRange(expression->getLParenLoc().getLocWithOffset(1), expression->getRParenLoc().getLocWithOffset(-1));
-            if (is_range_contained_in_another_range(for_condition_source_range, return_value) || is_range_contained_in_another_range(return_value, for_condition_source_range))
+            if (is_range_contained_in_another_range(for_condition_source_range, return_value)
+                || is_range_contained_in_another_range(return_value, for_condition_source_range))
             {
                 SourceRange for_source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
                 update_expression_location(return_value, for_source_range.getBegin(), for_source_range.getEnd());
