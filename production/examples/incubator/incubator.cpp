@@ -358,6 +358,12 @@ public:
         }
     }
 
+    bool read_input()
+    {
+        std::getline(std::cin, m_input);
+        return !std::cin.eof();
+    }
+
     bool handle_main()
     {
         std::cout << "\n";
@@ -371,7 +377,10 @@ public:
         std::cout << "(" << c_cmd_quit << ") | quit\n\n";
         std::cout << "main> ";
 
-        std::cin >> m_input;
+        if (!read_input())
+        {
+            return false;
+        }
 
         if (m_input.size() == 1)
         {
@@ -425,6 +434,10 @@ public:
                 break;
             }
         }
+        else
+        {
+            wrong_input();
+        }
         return true;
     }
 
@@ -451,7 +464,11 @@ public:
         std::cout << "(" << c_cmd_back << ") | go back\n"
                   << std::endl;
         std::cout << "manage incubators> ";
-        std::cin >> m_input;
+
+        if (!read_input())
+        {
+            return false;
+        }
 
         if (m_input.size() == 1)
         {
@@ -473,6 +490,10 @@ public:
                 break;
             }
         }
+        else
+        {
+            wrong_input();
+        }
 
         return true;
     }
@@ -489,7 +510,10 @@ public:
                   << std::endl;
         std::cout << m_current_incubator_name << "> ";
 
-        std::cin >> m_input;
+        if (!read_input())
+        {
+            return false;
+        }
 
         if (m_input.size() == 1)
         {

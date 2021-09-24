@@ -29,7 +29,26 @@ float adjust_temperature(float min_temp, float max_temp, float sensor_value, flo
 
 ruleset incubator_ruleset
 {
-    // Rule 1:  Verify the temperature is kept in range if the
+    // Rule 1:  Keep the temperature in range of the incubator limits.
+    on_update(sensor.value)
+    {
+        if (!incubator.is_on)
+        {
+            return;
+        }
+
+        if (sensor.value < incubator.min_temp 
+            || sensor.value > incubator.max_temp)
+        {
+            for (A:actuator)
+            {
+                A.value = adjust_temperature(incubator.min_temp, incubator.max_temp, sensor.value, A.value);
+                A.timestamp = g_timestamp;
+            }
+        }
+    }
+
+    // Rule 2:  Verify the temperature is kept in range if the
     // incubator temperature limits change. 
     on_update(incubator.max_temp, incubator.min_temp)
     {
@@ -39,42 +58,30 @@ ruleset incubator_ruleset
         }
 
         sensor_loop:
-        for(S:sensor)
+        for (S:sensor)
         {
-            if (S.value < incubator.min_temp ||
-                S.value > incubator.max_temp)
+            if (S.value < min_temp 
+                || S.value > max_temp)
             {
-                actuator.value = adjust_temperature(incubator.min_temp, incubator.max_temp, S.value, actuator.value);
-                actuator.timestamp = g_timestamp;
+                for (A:actuator)
+                {
+                    A.value = adjust_temperature(min_temp, max_temp, S.value, A.value);
+                    A.timestamp = g_timestamp;
+                }
                 break sensor_loop;
             }
         }
-    }
-
-    // Rule 2:  Keep the temperature in range of the incubator limits.
-    on_update(sensor.value)
-    {
-        if (!incubator.is_on)
-        {
-            return;
-        }
-
-        if (sensor.value >= incubator.min_temp &&
-            sensor.value <= incubator.max_temp)
-        {
-            return;
-        }
-
-        actuator.value = adjust_temperature(incubator.min_temp, incubator.max_temp, sensor.value, actuator.value);
-        actuator.timestamp = g_timestamp;
     }
 
     // Rule 3:  Turn off all the fans if the incubator is powered down.
     {
         if (!@incubator.is_on)
         {
-            actuator.value = 0;
-            actuator.timestamp = g_timestamp;
+            for (A:actuator)
+            {
+                A.value = 0;
+                A.timestamp = g_timestamp;
+            }
         }
     }
 
@@ -87,9 +94,15 @@ ruleset incubator_ruleset
             return;
         }
 
-        if (actuator.value > c_fan_threshold * c_fan_speed_limit && sensor.value > incubator.max_temp)
+        if_loop:
+        if (S:sensor.value > incubator.max_temp)
         {
-            actuator.value = c_fan_speed_limit;
+            if (actuator.value > c_fan_threshold * c_fan_speed_limit)
+            {
+                actuator.value = c_fan_speed_limit;
+                actuator.timestamp = g_timestamp;
+            }
+            break if_loop;
         }
     }
 }
