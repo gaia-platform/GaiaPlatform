@@ -64,7 +64,7 @@ class transaction_in_progress : public common::gaia_exception
 public:
     transaction_in_progress()
     {
-        m_message = "Commit or roll back the current transaction before opening a new transaction.";
+        m_message = "Commit or rollback the current transaction before opening a new transaction.";
     }
 };
 
