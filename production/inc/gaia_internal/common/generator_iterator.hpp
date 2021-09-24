@@ -50,7 +50,7 @@ private:
 template <typename T_output>
 class generator_iterator_t
 {
-    // Iterator properties.
+    // Iterator properties for specialization by generic code.
     // See: https://en.cppreference.com/w/cpp/iterator/iterator_traits
     using iterator_category = std::input_iterator_tag;
     using difference_type = void;
@@ -132,6 +132,7 @@ private:
     std::function<bool(T_output)> m_predicate;
 };
 
+// This object can be used with a range-based 'for' loop.
 template <typename T_output>
 struct generator_range_t
 {
