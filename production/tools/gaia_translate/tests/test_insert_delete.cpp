@@ -251,8 +251,8 @@ TEST_F(test_insert_delete_code, implicit_delete)
 }
 
 // TESTCASE: Generate database within rules
-// GAIAPLAT-1250
-TEST_F(test_insert_delete_code, DISABLED_build_database)
+// GAIAPLAT-1250 (fixed)
+TEST_F(test_insert_delete_code, build_database)
 {
     // Use the rules for insert & delete.
     gaia::rules::subscribe_ruleset("test_insert_delete_2");

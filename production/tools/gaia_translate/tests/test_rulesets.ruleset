@@ -530,7 +530,7 @@ ruleset test_compile
     }
 
     // TESTCASE: should not need qualification to access row's field value
-    // GAIAPLAT-1384
+    // GAIAPLAT-1384 (fixed)
     on_insert(registration)
     {
         student.age = 34;
@@ -541,7 +541,7 @@ ruleset test_compile
     }
 
     // TESTCASE: access anchor row relatoinships from inside if
-    // GAIAPLAT-1298
+    // GAIAPLAT-1298 (fixed)
     on_insert(registration)
     {
         if (strcmp(/P:parents.name_father, "Lawrence") == 0)
@@ -551,7 +551,7 @@ ruleset test_compile
     }
 
     // TESTCASE: table out of scope when used in if statement
-    // GAIAPLAT-1393 (likely related to 1384)
+    // GAIAPLAT-1393 (fixed, likely related to 1384)
     on_insert(registration)
     {
         fprintf(stderr, "student id = %s\n", student.student_id);
@@ -569,6 +569,17 @@ ruleset test_compile
         {
             total_hours += hours;
             fprintf(stderr, "Total class hours for %s is %d\n", surname, total_hours);
+        }
+    }
+
+    // TESTCASE: reference of anchor row not found within 'if' statement
+    // GAIAPLAT-1408 (fixed)
+    on_insert(registration)
+    {
+        if (strcmp(/P:parents.name_father, "Lawrence")== 0)
+        {
+            student.parents.connect(P);
+            student.parents.disconnect();
         }
     }
 }
