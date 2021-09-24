@@ -37,8 +37,8 @@ ruleset incubator_ruleset
             return;
         }
 
-        if (sensor.value < incubator.min_temp ||
-            sensor.value > incubator.max_temp)
+        if (sensor.value < incubator.min_temp 
+            || sensor.value > incubator.max_temp)
         {
             for (A:actuator)
             {
@@ -58,12 +58,12 @@ ruleset incubator_ruleset
         }
 
         sensor_loop:
-        for(S:sensor)
+        for (S:sensor)
         {
-            if (S.value < min_temp ||
-                S.value > max_temp)
+            if (S.value < min_temp 
+                || S.value > max_temp)
             {
-                for(A:actuator)
+                for (A:actuator)
                 {
                     A.value = adjust_temperature(min_temp, max_temp, S.value, A.value);
                     A.timestamp = g_timestamp;
@@ -95,9 +95,9 @@ ruleset incubator_ruleset
         }
 
         if_loop:
-        if(S:sensor.value > incubator.max_temp)
+        if (S:sensor.value > incubator.max_temp)
         {
-            if(actuator.value > c_fan_threshold * c_fan_speed_limit)
+            if (actuator.value > c_fan_threshold * c_fan_speed_limit)
             {
                 actuator.value = c_fan_speed_limit;
                 actuator.timestamp = g_timestamp;
