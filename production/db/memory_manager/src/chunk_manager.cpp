@@ -129,159 +129,69 @@ void chunk_manager_t::deallocate(gaia_offset_t offset)
 
     // Update the deallocation bitmap.
     mark_slot_deallocated(deallocated_slot);
-
-    // Decommit any eligible physical pages.
-    decommit_physical_pages_unused_after_object_deallocation(deallocated_slot);
 }
 
-void chunk_manager_t::decommit_physical_pages_unused_after_object_deallocation(
-    slot_offset_t deallocated_slot_offset)
+void chunk_manager_t::decommit_page_at_index(size_t page_index)
 {
-    // Eager decommit of physical pages (i.e., as soon as a page contains no
-    // live allocations) is best-effort: if a page contains the current
-    // allocation boundary, then it cannot be decommitted. The allocation
-    // boundary check is conservative, because it may be invalid by the time the
-    // deallocating thread would have decommitted the page, but it is safe
-    // because slots are allocated monotonically. If an empty page cannot be
-    // decommitted because of the allocation boundary check, it will be leaked
-    // until the entire chunk is deallocated after its last object is
-    // deallocated. This is not expected to be an issue in practice.
-    //
-    // To determine if this allocation continues into consecutive pages, we need
-    // to determine whether it is the last set bit in its word in the allocation
-    // bitmap. If so, we need to scan forward to the next set bit in the
-    // allocation bitmap to find the end of this allocation (or to
-    // min_unallocated_slot_offset if it is the last set bit in the allocation
-    // bitmap). We can decommit any pages used by this allocation, except for
-    // possibly the last used page, which we need to check for other live
-    // allocations.
-    //
-    // To determine if a previous live allocation continues into this
-    // allocation's first page, we need to scan backward to the last preceding
-    // set bit in the allocation bitmap, and check if its corresponding bit is
-    // set in the deallocation bitmap. If not, then we cannot decommit the page.
-    //
-    // We combine these page ranges (the current page, if no live allocations
-    // are using it, any consecutive pages wholly contained in this allocation,
-    // and the final page of this allocation, if no live allocations are using
-    // it) into a single contiguous range, which we submit to
-    // madvise(MADV_FREE).
+    // Get starting page address.
+    slot_offset_t first_page_slot = page_index_to_first_slot_in_page(page_index);
+    gaia_offset_t first_page_offset = offset_from_chunk_and_slot(m_chunk_offset, first_page_slot);
+    void* page_initial_address = page_address_from_offset(first_page_offset);
 
-    // First, test whether the first page of this allocation is empty.
-    size_t deallocated_slot_page_index = slot_to_page_index(deallocated_slot_offset);
-    size_t deallocated_slot_in_page_index = slot_to_word_index(deallocated_slot_offset);
-    bool is_first_allocated_page_empty = is_page_empty(deallocated_slot_page_index);
-
-    // Next, test whether this allocation is the last set bit in its word in the allocation bitmap.
-    // If so, then it may continue into consecutive pages (unless the first bit in the next word is set).
-    uint64_t first_page_allocations = m_metadata->allocated_slots_bitmap[deallocated_slot_page_index];
-    size_t last_allocation_in_page_index = find_last_set_bit_in_word(first_page_allocations);
-    bool is_last_allocation_in_first_page = (deallocated_slot_in_page_index == last_allocation_in_page_index);
-
-    // Finally, test whether the first slot in this allocation's first page has its bit set.
-    // If not, there is another allocation continuing into the first page.
-    bool first_page_has_leading_allocation = !(first_page_allocations & 1);
-    // This cannot be the first page in the chunk, or there would not be a leading allocation.
-    ASSERT_INVARIANT(
-        !first_page_has_leading_allocation || (deallocated_slot_page_index > 0),
-        "The first page in a chunk cannot contain a leading allocation!");
-
-    // If the first page is empty and contains a leading allocation, then
-    // determine if the allocation corresponding to the last set bit in a
-    // previous word is still live. If not, we can decommit the first page.
-
-    bool can_decommit_first_allocated_page = is_first_allocated_page_empty;
-    if (is_first_allocated_page_empty && first_page_has_leading_allocation)
+    // MADV_FREE seems like the best fit for our needs, since it allows the OS to lazily reclaim decommitted pages.
+    // However, it returns EINVAL when used with MAP_SHARED, so we need to use MADV_REMOVE (which works with memfd objects).
+    // According to the manpage, madvise(MADV_REMOVE) is equivalent to fallocate(FALLOC_FL_PUNCH_HOLE).
+    if (-1 == ::madvise(page_initial_address, c_page_size_bytes, MADV_REMOVE))
     {
-        can_decommit_first_allocated_page = false;
-
-        // Scan backward to the last set bit in previous words.
-        // (By the previous assert, this is not the first page in the chunk.)
-        for (size_t page_index = deallocated_slot_page_index - 1;
-             page_index < deallocated_slot_page_index - 1; --page_index)
-        {
-            uint64_t allocation_word = m_metadata->allocated_slots_bitmap[page_index];
-            if (allocation_word == 0)
-            {
-                // We can't get all the way to the start of the allocation bitmap without finding a set bit.
-                ASSERT_INVARIANT(page_index != 0, "A leading allocation must have an allocation bit set!");
-                continue;
-            }
-
-            size_t last_allocation_bit = find_last_set_bit_in_word(allocation_word);
-            uint64_t deallocation_word = m_metadata->deallocated_slots_bitmap[page_index];
-            uint64_t mask = 1ULL << last_allocation_bit;
-            // If the leading allocation is deallocated, then we can decommit the first page.
-            can_decommit_first_allocated_page = (deallocation_word & mask);
-            break;
-        }
+        throw_system_error("madvise(MADV_FREE) failed!");
     }
+}
 
-    // If this is the last allocation in its page, we need to find all the pages
-    // contained within its allocation, by scanning forward to the next set bit
-    // in the allocation bitmap, until we reach the first unallocated slot. We
-    // can decommit all pages entirely contained within this allocation, and we
-    // can decommit the first and last pages as well, if they contain no live
-    // allocations.
+void chunk_manager_t::decommit_unused_physical_pages()
+{
+    // Only scan up to the last page containing an allocation.
+    size_t last_allocated_page_index = slot_to_page_index(
+        m_metadata->min_unallocated_slot_offset());
 
-    size_t trailing_pages_to_decommit_count = 0;
-    if (is_last_allocation_in_first_page)
+    // To correctly determine whether the current page is unused, we need to
+    // track whether a live allocation from the previous page continues into the
+    // current page.
+    bool has_continued_live_allocation = false;
+
+    // Scan the allocation bitmaps and decommit all pages that do not intersect
+    // any live allocations.
+    for (size_t page_index = 0; page_index <= last_allocated_page_index; ++page_index)
     {
-        // We can scan only up to the allocation boundary.
-        size_t min_unallocated_slot_page_index = slot_to_page_index(
-            m_metadata->min_unallocated_slot_offset());
-
-        // Scan forward to the first set bit in consecutive words.
-        for (size_t page_index = deallocated_slot_page_index + 1;
-             page_index <= min_unallocated_slot_page_index; ++page_index)
+        // If no live allocation from the previous page continues into the
+        // current page, and no live allocations start in the current page, then
+        // the current page is unused and can be decommitted.
+        if (!has_continued_live_allocation && is_page_empty(page_index))
         {
-            uint64_t allocation_word = m_metadata->allocated_slots_bitmap[page_index];
-            if (allocation_word == 0)
-            {
-                // This page is contained completely within our allocation, so add it to the count.
-                ++trailing_pages_to_decommit_count;
-                continue;
-            }
-
-            // If the first set bit in this word is at the beginning of the page,
-            // then this page is not part of our allocation.
-            if (find_first_set_bit_in_word(allocation_word) == 0)
-            {
-                break;
-            }
-
-            // If there are no live allocations in the final page, then we can decommit it as well.
-            if (is_page_empty(page_index))
-            {
-                ++trailing_pages_to_decommit_count;
-            }
-            break;
+            // REVIEW: This is a lot of syscalls if we're decommitting many
+            // pages. We should expect unused pages to be mostly contiguous, so
+            // we should be able to coalesce the unused pages into a small
+            // number of contiguous ranges and minimize the number of syscalls.
+            decommit_page_at_index(page_index);
+            continue;
         }
-    }
 
-    // Now actually decommit eligible pages.
-    if (can_decommit_first_allocated_page || (trailing_pages_to_decommit_count > 0))
-    {
-        size_t start_page_index_to_decommit = deallocated_slot_page_index;
-        size_t pages_to_decommit_count = 1;
-        if (!can_decommit_first_allocated_page)
+        // Check whether the last live allocation in the current page continues
+        // into the next page. If so, the next page cannot be decommitted.
+        uint64_t allocation_word = m_metadata->allocated_slots_bitmap[page_index];
+        if (allocation_word != 0)
         {
-            ++start_page_index_to_decommit;
-            --pages_to_decommit_count;
-        }
-        pages_to_decommit_count += trailing_pages_to_decommit_count;
-
-        // Get starting page address and size of page range in bytes.
-        slot_offset_t first_page_slot = page_index_to_first_slot_in_page(start_page_index_to_decommit);
-        gaia_offset_t first_page_offset = offset_from_chunk_and_slot(m_chunk_offset, first_page_slot);
-        void* pages_to_decommit_initial_address = page_address_from_offset(first_page_offset);
-        size_t pages_to_decommit_size_bytes = pages_to_decommit_count * c_page_size_bytes;
-
-        // MADV_FREE seems like the best fit for our needs, since it allows the OS to lazily reclaim decommitted pages.
-        // However, it returns EINVAL when used with MAP_SHARED, so we need to use MADV_REMOVE (which works with memfd objects).
-        if (-1 == ::madvise(pages_to_decommit_initial_address, pages_to_decommit_size_bytes, MADV_REMOVE))
-        {
-            throw_system_error("madvise(MADV_FREE) failed!");
+            // At least one allocation started in the current page; determine if the last allocation is live.
+            size_t last_allocated_slot_index_in_page = find_last_set_bit_in_word(allocation_word);
+            slot_offset_t first_slot_in_page = page_index_to_first_slot_in_page(page_index);
+            slot_offset_t last_allocated_slot_in_page = first_slot_in_page + last_allocated_slot_index_in_page;
+            if (is_slot_allocated(last_allocated_slot_in_page) && page_index < last_allocated_page_index)
+            {
+                // If the last allocation in the current page is live, it might continue into the next page.
+                // Check if the next page has its first allocation on its leading boundary; if not, then the
+                // last allocation from the current page continues into the next page.
+                uint64_t next_allocation_word = m_metadata->allocated_slots_bitmap[page_index + 1];
+                has_continued_live_allocation = (next_allocation_word & 1);
+            }
         }
     }
 }

@@ -74,6 +74,9 @@ public:
     // reconciled before returning the last allocation.
     gaia_offset_t last_allocated_offset();
 
+    // Decommits all unused physical pages in the managed chunk.
+    void decommit_unused_physical_pages();
+
 private:
     // The offset of the managed chunk within the global chunk array.
     chunk_offset_t m_chunk_offset;
@@ -93,11 +96,11 @@ private:
     // Marks a slot in the deallocation bitmap.
     void mark_slot_deallocated(slot_offset_t slot_offset);
 
-    // Decommits all physical pages unused after deallocating an object.
-    void decommit_physical_pages_unused_after_object_deallocation(
-        slot_offset_t deallocated_slot_offset);
-
     bool is_page_empty(size_t page_offset);
+
+    bool is_page_unused(size_t page_index, bool has_continued_allocation);
+
+    void decommit_page_at_index(size_t page_index);
 
     void output_debugging_information(const std::string& context_description) const;
 };

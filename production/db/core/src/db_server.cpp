@@ -2332,11 +2332,14 @@ void server_t::gc_applied_txn_logs()
         }
     }
 
-    // Now deallocate any empty chunks that have already been retired.
+    // Now decommit unused pages and deallocate any empty chunks that have already been retired.
     for (std::pair<chunk_offset_t, chunk_manager_t> entry : s_gc_chunk_managers)
     {
         chunk_offset_t chunk_offset = entry.first;
         chunk_manager_t chunk_manager = entry.second;
+
+        chunk_manager.decommit_unused_physical_pages();
+
         if (chunk_manager.is_empty())
         {
             chunk_manager.release();

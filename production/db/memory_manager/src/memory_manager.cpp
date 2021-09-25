@@ -255,24 +255,6 @@ void memory_manager_t::deallocate_chunk(chunk_offset_t chunk_offset)
     chunk_manager.release();
 #endif
 
-    // To avoid races with concurrent GC tasks, we only decommit data pages,
-    // but leave the metadata pages intact. The metadata pages will be reused
-    // when the chunk is reused. If many chunks are deallocated and never
-    // subsequently reused, we could revisit this decision.
-
-    // Get starting page address and size of page range in bytes.
-    // TODO: We could be a little smarter and only decommit up to the last
-    // allocated page, but brute force is simpler and safer for now.
-    gaia_offset_t first_data_page_offset = offset_from_chunk_and_slot(chunk_offset, c_first_slot_offset);
-    void* data_pages_initial_address = page_address_from_offset(first_data_page_offset);
-
-    // MADV_FREE seems like the best fit for our needs, since it allows the OS to lazily reclaim decommitted pages.
-    // However, it returns EINVAL when used with MAP_SHARED, so we need to use MADV_REMOVE (which works with memfd objects).
-    if (-1 == ::madvise(data_pages_initial_address, c_data_pages_size_bytes, MADV_REMOVE))
-    {
-        throw_system_error("madvise(MADV_REMOVE) failed!");
-    }
-
     // This could fail if a concurrent GC or compaction task already deallocated
     // the chunk. In that case, the chunk could have already been reused by this
     // point. It shouldn't matter, since we don't decommit metadata pages, and
