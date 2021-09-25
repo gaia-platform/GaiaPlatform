@@ -98,8 +98,6 @@ private:
 
     bool is_page_empty(size_t page_offset);
 
-    bool is_page_unused(size_t page_index, bool has_continued_allocation);
-
     void decommit_page_at_index(size_t page_index);
 
     void output_debugging_information(const std::string& context_description) const;
