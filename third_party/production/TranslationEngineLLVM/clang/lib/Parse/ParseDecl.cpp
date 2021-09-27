@@ -5594,8 +5594,7 @@ void Parser::ParseDirectDeclarator(Declarator &D) {
     if (getCurScope()->isRulesetScope())
     {
       if (Tok.is(tok::identifier)
-        &&
-        (getPreviousToken(Tok).isOneOf(tok::r_brace, tok::l_brace, tok::comment)
+        && (getPreviousToken(Tok).isOneOf(tok::r_brace, tok::l_brace, tok::comment)
         || (getPreviousToken(Tok).is(tok::slash) && getPreviousToken(getPreviousToken(Tok)).is(tok::star))
         || (getPreviousToken(Tok).getIdentifierInfo() && getPreviousToken(Tok).getIdentifierInfo()->getPPKeywordID() != tok::pp_not_keyword)))
       {

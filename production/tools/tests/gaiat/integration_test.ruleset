@@ -185,7 +185,7 @@ ruleset test13
     }
 }
 
-//GAIAPLAT-1179
+// GAIAPLAT-1179
 ruleset testE31
 {
     on_update(incubator)
