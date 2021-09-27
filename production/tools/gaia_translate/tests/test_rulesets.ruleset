@@ -582,6 +582,13 @@ ruleset test_compile
             student.parents.disconnect();
         }
     }
+
+    on_update(s:student)
+    {
+        total_hours++;
+        student.total_hours++;
+        s.total_hours++;
+    }
 }
 
 ruleset test_insert_delete
@@ -641,13 +648,6 @@ ruleset test_insert_delete_2
     on_update(status)
     {
         grade = c_grade_d + c_grade_plus;
-    }
-
-    on_update(s:student)
-    {
-        total_hours++;
-        student.total_hours++;
-        s.total_hours++;
     }
 }
 
