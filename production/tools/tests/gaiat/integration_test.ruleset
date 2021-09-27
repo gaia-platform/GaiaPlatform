@@ -184,3 +184,19 @@ ruleset test13
         }
     }
 }
+
+// GAIAPLAT-1179
+ruleset testE31
+{
+    on_update(incubator)
+    {
+        auto s4 = sensor.insert(name: "temp");
+
+       for(/s1 : sensor)
+       {
+           auto s2 = sensor.insert(name: "temp");
+       }
+
+       auto s5 = sensor.insert(name: incubator.name);
+    }
+}

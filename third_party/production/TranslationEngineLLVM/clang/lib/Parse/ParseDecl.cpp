@@ -3192,7 +3192,9 @@ void Parser::ParseDeclarationSpecifiers(DeclSpec &DS,
     case tok::kw_decltype:
     case tok::identifier: {
       if (getCurScope()->isRulesetScope() && Tok.is(tok::identifier)
-        && (getPreviousToken(Tok).isOneOf(tok::r_brace, tok::l_brace) || (getPreviousToken(Tok).getIdentifierInfo() && getPreviousToken(Tok).getIdentifierInfo()->getPPKeywordID() != tok::pp_not_keyword))
+        && (getPreviousToken(Tok).isOneOf(tok::r_brace, tok::l_brace, tok::comment)
+        || (getPreviousToken(Tok).is(tok::slash) && getPreviousToken(getPreviousToken(Tok)).is(tok::star))
+        || (getPreviousToken(Tok).getIdentifierInfo() && getPreviousToken(Tok).getIdentifierInfo()->getPPKeywordID() != tok::pp_not_keyword))
         && NextToken().is(tok::l_paren))
       {
         IdentifierInfo *Id = Tok.getIdentifierInfo();
@@ -5592,7 +5594,9 @@ void Parser::ParseDirectDeclarator(Declarator &D) {
     if (getCurScope()->isRulesetScope())
     {
       if (Tok.is(tok::identifier)
-        && (getPreviousToken(Tok).isOneOf(tok::r_brace, tok::l_brace, tok::comment) || (getPreviousToken(Tok).getIdentifierInfo() && getPreviousToken(Tok).getIdentifierInfo()->getPPKeywordID() != tok::pp_not_keyword)))
+        && (getPreviousToken(Tok).isOneOf(tok::r_brace, tok::l_brace, tok::comment)
+        || (getPreviousToken(Tok).is(tok::slash) && getPreviousToken(getPreviousToken(Tok)).is(tok::star))
+        || (getPreviousToken(Tok).getIdentifierInfo() && getPreviousToken(Tok).getIdentifierInfo()->getPPKeywordID() != tok::pp_not_keyword)))
       {
         IdentifierInfo *Id = Tok.getIdentifierInfo();
         if (Id != nullptr)

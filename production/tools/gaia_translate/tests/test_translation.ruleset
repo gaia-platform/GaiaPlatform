@@ -2,6 +2,7 @@
 #include "gaia/events.hpp"
 
 #include <atomic>
+#include <stdexcept>
 
 std::atomic<int32_t> g_rule_called;
 std::atomic<int32_t> g_insert_called;
@@ -239,6 +240,35 @@ ruleset testE29
             case test_test::test3:sensor.timestamp=3; break;
             case test_test::test4 :sensor.timestamp=4; break;
         }
+    }
+}
+
+// GAIAPLAT-1259
+const char* generate_error_message(double)
+{
+    return "test";
+}
+
+ruleset testE30
+{
+    on_insert(incubator)
+    {
+        if (strcmp(incubator.name, "ttt") == 0)
+        {
+            throw std::runtime_error(generate_error_message(sensor.value));
+        }
+    }
+}
+
+// GAIAPLAT-1025
+ruleset test_comment
+{
+    /* COMMENT
+     * COMMENT
+     * COMMENT
+     */
+    on_insert(sensor)
+    {
     }
 }
 
