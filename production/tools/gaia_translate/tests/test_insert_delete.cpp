@@ -278,7 +278,13 @@ TEST_F(test_insert_delete_code, build_database)
         {
             row_count++;
             auto course = registration.registered_course();
-            EXPECT_EQ(student.total_hours() * 2, course.hours());
+            // Enable the following statement when the issue of rule ordering is resolved. The corresponding
+            // rule, on_insert(course) in test_insert_delete_2, should be enabled at the same time.
+            // Currently when that rule and the on_insert(student) rule execute in different orders, the
+            // results change and this test fails.
+            // GAIAPLAT-1422
+            // EXPECT_EQ(student.total_hours() * 2, course.hours());
+            EXPECT_EQ(student.total_hours(), course.hours());
             EXPECT_STREQ(student.surname(), registration.status());
             EXPECT_EQ(registration.grade(), c_grade_d + c_grade_plus);
         }
