@@ -260,7 +260,7 @@ ruleset testE30
     }
 }
 
-// GAIAPLAT-1025
+// GAIAPLAT-1025 (fixed)
 ruleset test_comment
 {
     /* COMMENT

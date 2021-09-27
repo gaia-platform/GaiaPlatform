@@ -1,5 +1,4 @@
-// RUN: echo "WARNING: Variable declaration hides a tag." | FileCheck  %s
-// not %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
 #include "tags_test.h"
 
@@ -12,6 +11,6 @@ ruleset test09
     }
 }
 
-// GAIAPLAT-794
-// GAIAPLAT-1178
-// CHECK: WARNING: Variable declaration hides a tag.
+// GAIAPLAT-794 (fixed)
+// GAIAPLAT-1178 (fixed)
+// CHECK: Local variable 'a' hides a tag defined with the same name. Rename your local variable or tag so that their names do not conflict.
