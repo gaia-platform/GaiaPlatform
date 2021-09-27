@@ -63,6 +63,10 @@ export const hover_info = {
     while: "The while and do while statements allow you to iterate over a set of rows in the database.  \n  \nwhile (Table->Table1) { …}",
     do: "The while and do while statements allow you to iterate over a set of rows in the database.  \n  \ndo {...} while(Table->Table1)",
     // Keywords.
+<<<<<<< HEAD
     nomatch: "A nomatch clause is added to indicate when the condition in an if or else-if could not be evaluated if there are no rows returned in the navigation path. If the nomatch clause is omitted and there are no rows, then execution continues with the next statement after the if, as if nomatch {} is specified.  \n  \nA nomatch{} statement is bound to its closest matching if or else-if statement."
 >>>>>>> c6f9fdaf5 (converted spacing back to spaces)
+=======
+    nomatch: "A nomatch clause is added to indicate when the condition in an if, else-if or for could not be evaluated if there are no rows returned in the navigation path. If the nomatch clause is omitted and there are no rows, then execution continues with the next statement after the if, as if nomatch {} is specified.  \n  \nA nomatch{} statement is bound to its closest matching if or else-if statement."
+>>>>>>> d766c4eaa (Nomatch hover update)
 }
