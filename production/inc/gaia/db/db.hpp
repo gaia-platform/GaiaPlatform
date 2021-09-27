@@ -64,7 +64,7 @@ class transaction_in_progress : public common::gaia_exception
 public:
     transaction_in_progress()
     {
-        m_message = "Commit or roll back the current transaction before opening a new transaction.";
+        m_message = "Commit or rollback the current transaction before opening a new transaction.";
     }
 };
 
@@ -186,7 +186,7 @@ public:
         msg
             << "Cannot delete object with ID '" << id << "', type '" << object_type
             << "', because it is still referenced by another object with ID '"
-            << other_id << "', type: '" << other_type << "'";
+            << other_id << "', type '" << other_type << "'";
         m_message = msg.str();
     }
 };

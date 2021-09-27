@@ -68,6 +68,7 @@ ruleset test38
     }
 }
 
+// GAIAPLAT-1425 (fixed)
 ruleset test39
 {
     on_update(value) // expected-error {{Duplicate field 'value' found in multiple tables. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifying them in the ruleset 'tables' attribute.}}

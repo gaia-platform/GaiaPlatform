@@ -100,7 +100,7 @@ configure_gaia_target(gaia_db_client)
 target_include_directories(gaia_db_client PUBLIC ${GAIA_DB_CORE_PUBLIC_INCLUDES})
 target_include_directories(gaia_db_client PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES})
 target_link_libraries(gaia_db_client PUBLIC gaia_common)
-target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager edc_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager gaia_qp edc_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
 
 # Suppress spurious warnings about zero-initialized structs.
 target_compile_options(gaia_db_client PRIVATE -Wno-missing-field-initializers)
@@ -109,7 +109,7 @@ target_compile_options(gaia_db_client PRIVATE -Wno-missing-field-initializers)
 target_include_directories(gaia_db_client SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_db_client SYSTEM PRIVATE "${GEN_DIR}")
 target_link_libraries(gaia_db_client PUBLIC gaia_common)
-target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager gaia_index edc_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager gaia_index gaia_qp edc_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
 
 add_library(rocks_wrapper STATIC
   src/rdb_internal.cpp

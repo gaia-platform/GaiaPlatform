@@ -180,7 +180,8 @@ list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint
     auto obj_ptr = id_to_ptr(table_id);
     const gaia_id_t* references = obj_ptr->references();
     gaia_id_t first_obj_id = references[first_offset];
-    auto generator = [id = first_obj_id, next_offset]() mutable -> std::optional<T_catalog_obj_view> {
+    auto generator = [id = first_obj_id, next_offset]() mutable -> std::optional<T_catalog_obj_view>
+    {
         if (id == c_invalid_gaia_id)
         {
             return std::nullopt;
@@ -221,6 +222,19 @@ index_list_t catalog_core_t::list_indexes(gaia_id_t table_id)
         table_id,
         c_gaia_table_first_gaia_index_offset,
         c_gaia_index_next_gaia_index_offset);
+}
+
+gaia_id_t catalog_core_t::find_index(gaia_id_t table_id, field_position_t field_position)
+{
+    for (const auto& index : catalog_core_t::list_indexes(table_id))
+    {
+        const field_view_t first_field_of_index(id_to_ptr(index.fields()->Get(0)));
+        if (first_field_of_index.position() == field_position)
+        {
+            return index.id();
+        }
+    }
+    return c_invalid_gaia_id;
 }
 
 } // namespace db

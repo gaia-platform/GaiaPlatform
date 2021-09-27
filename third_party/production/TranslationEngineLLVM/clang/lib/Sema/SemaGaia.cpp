@@ -312,7 +312,15 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             auto tableDescription = tableData.find(tableName);
             if (tableDescription == tableData.end())
             {
-                Diag(loc, diag::err_invalid_tag_defined) << tableName;
+                // Test to see if this is a field name
+                if (findFieldType(tableName, loc))
+                {
+                    Diag(loc, diag::err_invalid_field_usage) << tableName;
+                }
+                else
+                {
+                    Diag(loc, diag::err_invalid_tag_defined) << tableName;
+                }
                 return "";
             }
 
@@ -1084,6 +1092,78 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
     if (retVal == Context.VoidTy)
     {
         Diag(loc, diag::err_unknown_field) << fieldOrTagName;
+    }
+
+    return retVal;
+}
+
+// This method is a simplified version of getFieldType() used only to determine if a string
+// is the name of a field in the database.
+bool Sema::findFieldType(const std::string& fieldOrTagName, SourceLocation loc)
+{
+    bool retVal = false;
+
+    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
+    if (tableData.empty())
+    {
+        return retVal;
+    }
+
+    DeclContext* context = getCurFunctionDecl();
+    while (context)
+    {
+        if (isa<RulesetDecl>(context))
+        {
+            break;
+        }
+        context = context->getParent();
+    }
+
+    if (context == nullptr || !isa<RulesetDecl>(context))
+    {
+        Diag(loc, diag::err_no_ruleset_for_rule);
+        return false;
+    }
+
+    vector<string> tables;
+    RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(context);
+    RulesetTablesAttr* attr = rulesetDecl->getAttr<RulesetTablesAttr>();
+
+    if (attr != nullptr)
+    {
+        for (const IdentifierInfo* id : attr->tables())
+        {
+            tables.push_back(id->getName().str());
+        }
+    }
+    else
+    {
+        for (auto it : tableData)
+        {
+            tables.push_back(it.first);
+        }
+    }
+
+    for (string tableName : tables)
+    {
+        // Search if there is a match in the table fields.
+        auto tableDescription = tableData.find(tableName);
+        if (tableDescription == tableData.end())
+        {
+            break;
+        }
+        auto fieldDescription = tableDescription->second.find(fieldOrTagName);
+
+        if (fieldDescription != tableDescription->second.end())
+        {
+            if (fieldDescription->second->isVoidType())
+            {
+                Diag(loc, diag::err_invalid_field_type) << fieldOrTagName;
+                break;
+            }
+            retVal = true;
+            break;
+        }
     }
 
     return retVal;

@@ -167,7 +167,7 @@ ruleset testE24
     }
 }
 
-//GAIAT-1367
+//GAIAT-1367 (fixed)
 ruleset testE25
 {
      on_update(sensor)

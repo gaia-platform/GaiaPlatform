@@ -4642,6 +4642,7 @@ private:
   NamedDecl *injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, const std::string &explicitPath);
   std::string ParseExplicitPath(const std::string& pathString, SourceLocation loc);
   QualType getFieldType (const std::string& fieldOrTagName, SourceLocation loc);
+  bool findFieldType (const std::string& fieldOrTagName, SourceLocation loc);
   QualType getTableType (const std::string &tableName, SourceLocation loc);
   std::unordered_map<std::string, std::string> getTagMapping(const DeclContext *context, SourceLocation loc);
   QualType getRuleContextType(SourceLocation loc);

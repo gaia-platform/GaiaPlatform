@@ -172,19 +172,11 @@ install(PROGRAMS ${GAIA_REPO}/production/examples/hello/run.sh DESTINATION examp
 install(FILES ${GAIA_REPO}/production/examples/hello/CMakeLists.txt DESTINATION examples/hello)
 
 # Place incubator example.
-set(GAIA_CMAKE "${CPACK_PACKAGING_INSTALL_PREFIX}/cmake/gaia.cmake")
-configure_file(${GAIA_REPO}/production/examples/incubator/CMakeLists.txt ${PROJECT_BINARY_DIR}/CMakeLists_incubator.txt COPYONLY)
-# The following two commands will create a CMakeLists.txt appropriate for the SDK build environment
-# by substituting in the correct CMAKE VARS into the incubator CMakeLists text file.
-configure_file(${GAIA_REPO}/production/examples/incubator/cmake_sdk.sed ${PROJECT_BINARY_DIR}/cmake_sdk_incubator.sed)
-add_custom_target(install_incubator ALL
-  COMMAND sed -i -f ${PROJECT_BINARY_DIR}/cmake_sdk_incubator.sed ${PROJECT_BINARY_DIR}/CMakeLists_incubator.txt
-)
 install(FILES ${GAIA_REPO}/production/examples/incubator/incubator.ddl DESTINATION examples/incubator)
 install(FILES ${GAIA_REPO}/production/examples/incubator/incubator.ruleset DESTINATION examples/incubator)
 install(FILES ${GAIA_REPO}/production/examples/incubator/incubator.cpp DESTINATION examples/incubator)
 install(FILES ${GAIA_REPO}/production/examples/incubator/README.md DESTINATION examples/incubator)
-install(FILES ${PROJECT_BINARY_DIR}/CMakeLists_incubator.txt DESTINATION examples/incubator RENAME CMakeLists.txt)
+install(FILES ${GAIA_REPO}/production/examples/incubator/CMakeLists.txt DESTINATION examples/incubator)
 
 # Place license files.
 install(FILES ${GAIA_REPO}/production/licenses/LICENSE.third-party.txt DESTINATION .)
