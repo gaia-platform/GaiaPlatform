@@ -582,6 +582,13 @@ ruleset test_compile
             student.parents.disconnect();
         }
     }
+
+    on_update(s:student)
+    {
+        total_hours++;
+        student.total_hours++;
+        s.total_hours++;
+    }
 }
 
 ruleset test_insert_delete
@@ -628,10 +635,14 @@ ruleset test_insert_delete_2
         student.total_hours += course.hours;
     }
 
+    /* Re-enable this rule when rule ordering issues are resolved. Must also update the
+       code in test_insert_delete_code.build_database (as documented there).
+       GAIAPLAT-1422
     on_insert(course)
     {
         hours *= 2;
     }
+    */
 
     on_insert(registration)
     {
@@ -641,13 +652,6 @@ ruleset test_insert_delete_2
     on_update(status)
     {
         grade = c_grade_d + c_grade_plus;
-    }
-
-    on_update(s:student)
-    {
-        total_hours++;
-        student.total_hours++;
-        s.total_hours++;
     }
 }
 
