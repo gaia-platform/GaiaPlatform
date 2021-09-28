@@ -10,6 +10,7 @@ std::atomic<int32_t> g_update_min_temp_called;
 std::atomic<int32_t> g_update_max_temp_called;
 std::atomic<int32_t> g_update_sensor_value_called;
 std::atomic<int32_t> g_actuator_rule_called;
+std::atomic<int32_t> g_rule_looped;
 
 ruleset test
 {
@@ -269,6 +270,21 @@ ruleset test_comment
      */
     on_insert(sensor)
     {
+    }
+}
+
+// GAIAPLAT-1432
+ruleset testE31
+{
+    on_update(incubator.max_temp, incubator.min_temp)
+    {
+        for (S:sensor)
+        {
+            if (S.value > min_temp || S.value < max_temp)
+            {
+                g_rule_looped++;
+            }
+        }
     }
 }
 
