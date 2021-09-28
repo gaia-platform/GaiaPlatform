@@ -10,7 +10,7 @@ std::atomic<int32_t> g_update_min_temp_called;
 std::atomic<int32_t> g_update_max_temp_called;
 std::atomic<int32_t> g_update_sensor_value_called;
 std::atomic<int32_t> g_actuator_rule_called;
-std::atomic<int32_t> g_rule_looped;
+std::atomic<int32_t> g_rule_navigation_loop_count;
 
 ruleset test
 {
@@ -282,7 +282,7 @@ ruleset testE31
         {
             if (S.value > min_temp || S.value < max_temp)
             {
-                g_rule_looped++;
+                g_rule_navigation_loop_count++;
             }
         }
     }

@@ -299,6 +299,7 @@ bool can_path_be_optimized(const string& path_first_component, const vector<expl
         {
             return true;
         }
+
         if (path_iterator.tag_table_map.find(path_first_component) != path_iterator.tag_table_map.end())
         {
             return true;
@@ -327,6 +328,7 @@ void optimize_path(vector<explicit_path_data_t>& path, explicit_path_data_t& pat
             path_segment.skip_implicit_path_generation = true;
             return;
         }
+
         if (is_tag_defined(path_segment.defined_tags, get_table_from_expression(path_iterator.path_components.front())))
         {
             path_iterator.skip_implicit_path_generation = true;

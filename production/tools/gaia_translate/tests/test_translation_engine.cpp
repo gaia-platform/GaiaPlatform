@@ -25,7 +25,7 @@ extern std::atomic<int32_t> g_update_sensor_value_called;
 extern std::atomic<int32_t> g_update_min_temp_called;
 extern std::atomic<int32_t> g_update_max_temp_called;
 extern std::atomic<int32_t> g_actuator_rule_called;
-extern std::atomic<int32_t> g_rule_looped;
+extern std::atomic<int32_t> g_rule_navigation_loop_count;
 
 const float c_g_incubator_min_temperature = 99.0;
 const float c_g_incubator_max_temperature = 102.0;
@@ -187,7 +187,7 @@ TEST_F(translation_engine_test, test_navigation_looping)
 
     gaia::rules::test::wait_for_rules_to_complete();
 
-    EXPECT_EQ(g_rule_looped, 2);
+    EXPECT_EQ(g_rule_navigation_loop_count, 2);
 
     gaia::db::begin_transaction();
 
@@ -203,5 +203,5 @@ TEST_F(translation_engine_test, test_navigation_looping)
 
     gaia::rules::test::wait_for_rules_to_complete();
 
-    EXPECT_EQ(g_rule_looped, 8);
+    EXPECT_EQ(g_rule_navigation_loop_count, 8);
 }
