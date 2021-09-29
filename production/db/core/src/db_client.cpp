@@ -17,7 +17,6 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#include "gaia_internal/common/memory_allocation_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/socket_helpers.hpp"
@@ -584,58 +583,4 @@ void client_t::init_memory_manager()
     s_memory_manager.load(
         reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
         sizeof(s_shared_data.data()->objects));
-}
-
-void client_t::allocate_object(
-    gaia_locator_t locator,
-    size_t size)
-{
-    // REVIEW: This assert should really be in chunk_manager_t.allocate(), but
-    // that class doesn't have a reference to the memory manager, so it can't
-    // query global chunk metadata.
-    // If we have a current chunk, it must be in the IN_USE state.
-    chunk_offset_t current_chunk_offset = s_chunk_manager.chunk_offset();
-    if (current_chunk_offset != c_invalid_chunk_offset)
-    {
-        chunk_state_t chunk_state = s_memory_manager.get_chunk_state(current_chunk_offset);
-        ASSERT_PRECONDITION(
-            chunk_state == chunk_state_t::in_use,
-            "Cannot allocate from a chunk that is not in the IN_USE state!");
-    }
-
-    // The allocation can fail either because there is no current chunk, or
-    // because the current chunk is full.
-    gaia_offset_t object_offset = s_chunk_manager.allocate(size + c_db_object_header_size);
-    if (object_offset == c_invalid_gaia_offset)
-    {
-        if (s_chunk_manager.initialized())
-        {
-            // The current chunk is out of memory, so replace it.
-            chunk_offset_t prev_chunk_offset = s_chunk_manager.release();
-            s_memory_manager.retire_chunk(prev_chunk_offset);
-        }
-
-        // Allocate a new chunk.
-        chunk_offset_t new_chunk_offset = s_memory_manager.allocate_chunk();
-        if (new_chunk_offset == c_invalid_chunk_offset)
-        {
-            throw memory_allocation_error("Memory manager ran out of memory during call to allocate_chunk().");
-        }
-
-        // Initialize the new chunk.
-        s_chunk_manager.initialize(new_chunk_offset);
-
-        // Before we allocate, persist current chunk ID in txn log, for access on the server in case we crash.
-        s_log.data()->current_chunk = new_chunk_offset;
-
-        // Allocate from new chunk.
-        object_offset = s_chunk_manager.allocate(size + c_db_object_header_size);
-    }
-
-    ASSERT_POSTCONDITION(
-        object_offset != c_invalid_gaia_offset,
-        "Allocation from chunk was not expected to fail!");
-
-    // Update locator array to point to the new offset.
-    update_locator(locator, object_offset);
 }

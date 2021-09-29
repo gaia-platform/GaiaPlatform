@@ -35,7 +35,7 @@ static void write_protect_allocation_page_for_offset(gaia::db::gaia_offset_t off
     void* offset_page = gaia::db::page_address_from_offset(offset);
     if (-1 == ::mprotect(offset_page, gaia::db::memory_manager::c_page_size_bytes, PROT_READ))
     {
-        throw_system_error("mprotect failed!");
+        throw_system_error("mprotect(PROT_READ) failed!");
     }
 }
 
@@ -394,7 +394,7 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t
     gaia_locator_t locator = allocate_locator();
     hash_node_t* hash_node = db_hash_map::insert(id);
     hash_node->locator = locator;
-    client_t::allocate_object(locator, total_payload_size);
+    allocate_object(locator, total_payload_size);
     gaia_ptr_t obj(locator);
     db_object_t* obj_ptr = obj.to_ptr();
     obj_ptr->id = id;
@@ -450,7 +450,7 @@ void gaia_ptr_t::clone_no_txn()
 {
     db_object_t* old_this = to_ptr();
     size_t new_payload_size = old_this->payload_size;
-    client_t::allocate_object(m_locator, new_payload_size);
+    allocate_object(m_locator, new_payload_size);
     db_object_t* new_this = to_ptr();
     size_t new_size = c_db_object_header_size + new_payload_size;
     memcpy(new_this, old_this, new_size);
@@ -574,7 +574,7 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
     }
 
     // Updates m_locator to point to the new object.
-    client_t::allocate_object(m_locator, total_payload_size);
+    allocate_object(m_locator, total_payload_size);
 
     db_object_t* new_this = to_ptr();
 

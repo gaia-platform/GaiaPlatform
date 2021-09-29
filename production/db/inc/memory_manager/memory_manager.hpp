@@ -44,18 +44,8 @@ public:
     // Allocates the next available free chunk.
     chunk_offset_t allocate_chunk();
 
-    // Retires an in-use chunk.
-    void retire_chunk(chunk_offset_t chunk_offset);
-
-    // Marks the chunk as free, and decommits its physical memory.
-    void deallocate_chunk(chunk_offset_t chunk_offset);
-
-    // Deallocates an object by marking its allocation slot as free,
-    // and decommits any now-empty physical pages the object occupied.
-    void deallocate_object(gaia_offset_t offset);
-
-    // Allows code outside the memory manager to query the current state of a chunk.
-    chunk_state_t get_chunk_state(chunk_offset_t chunk_offset);
+    // Updates the "allocated chunk bitmap" after allocating or deallocating a chunk.
+    void update_chunk_allocation_status(chunk_offset_t chunk_offset, bool is_allocated);
 
 private:
     // A pointer to our metadata information, stored inside the memory range that we manage.

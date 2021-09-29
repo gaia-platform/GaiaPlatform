@@ -11,6 +11,7 @@
 #include "gaia/db/db.hpp"
 #include "gaia/exception.hpp"
 
+#include "gaia_internal/common/memory_allocation_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
@@ -238,6 +239,69 @@ inline bool is_little_endian()
     uint32_t val = 1;
     uint8_t least_significant_byte = *(reinterpret_cast<uint8_t*>(&val));
     return (least_significant_byte == val);
+}
+
+// Allocate an object from the "data" shared memory segment.
+// The `size` argument *does not* include the object header size!
+inline void allocate_object(
+    gaia_locator_t locator,
+    size_t size)
+{
+    memory_manager::memory_manager_t* memory_manager = gaia::db::get_memory_manager();
+    memory_manager::chunk_manager_t* chunk_manager = gaia::db::get_chunk_manager();
+
+    // REVIEW: This assert should really be in chunk_manager_t.allocate(), but
+    // that class doesn't have a reference to the memory manager, so it can't
+    // query global chunk metadata.
+    // If we have a current chunk, it must be in the IN_USE state.
+    memory_manager::chunk_offset_t current_chunk_offset = chunk_manager->chunk_offset();
+    if (current_chunk_offset != memory_manager::c_invalid_chunk_offset)
+    {
+        memory_manager::chunk_state_t chunk_state = chunk_manager->get_state();
+        ASSERT_PRECONDITION(
+            chunk_state == memory_manager::chunk_state_t::in_use,
+            "Cannot allocate from a chunk that is not in the IN_USE state!");
+    }
+
+    // The allocation can fail either because there is no current chunk, or
+    // because the current chunk is full.
+    gaia_offset_t object_offset = chunk_manager->allocate(size + c_db_object_header_size);
+    if (object_offset == c_invalid_gaia_offset)
+    {
+        if (chunk_manager->initialized())
+        {
+            // The current chunk is out of memory, so retire it and allocate a new chunk.
+            // In case it is already empty, try to deallocate it after retiring it.
+
+            // Get the session's chunk version for safe deallocation.
+            memory_manager::chunk_version_t version = chunk_manager->get_version();
+            // Now retire the chunk.
+            chunk_manager->retire_chunk(version);
+        }
+
+        // Allocate a new chunk.
+        memory_manager::chunk_offset_t new_chunk_offset = memory_manager->allocate_chunk();
+        if (new_chunk_offset == memory_manager::c_invalid_chunk_offset)
+        {
+            throw memory_allocation_error("Memory manager ran out of memory during call to allocate_chunk().");
+        }
+
+        // Initialize the new chunk.
+        chunk_manager->initialize(new_chunk_offset);
+
+        // Before we allocate, persist current chunk ID in txn log, for access on the server in case we crash.
+        gaia::db::get_mapped_log()->data()->current_chunk = new_chunk_offset;
+
+        // Allocate from new chunk.
+        object_offset = chunk_manager->allocate(size + c_db_object_header_size);
+    }
+
+    ASSERT_POSTCONDITION(
+        object_offset != c_invalid_gaia_offset,
+        "Allocation from chunk was not expected to fail!");
+
+    // Update locator array to point to the new offset.
+    update_locator(locator, object_offset);
 }
 
 } // namespace db

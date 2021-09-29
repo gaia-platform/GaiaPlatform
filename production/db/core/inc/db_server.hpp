@@ -97,9 +97,16 @@ class server_t
     friend gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
 
-    friend void gaia::db::allocate_object(
-        gaia_locator_t locator,
-        size_t size);
+public:
+    // This needs to be public to be accessible from gaia::db::get_memory_manager().
+    // This field has session lifetime.
+    thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
+    // This needs to be public to be accessible from gaia::db::get_chunk_manager().
+    // This field has session lifetime.
+    thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
+    // This needs to be public to be accessible from gaia::db::get_mapped_log().
+    // This field has transaction lifetime.
+    thread_local static inline mapped_log_t s_log{};
 
 public:
     static void run(server_config_t server_conf);
@@ -122,11 +129,8 @@ private:
     static inline mapped_data_t<id_index_t> s_shared_id_index{};
     static inline index::indexes_t s_global_indexes{};
     static inline std::unique_ptr<persistent_store_manager> s_persistent_store{};
-    static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
-    static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
 
     // These fields have transaction lifetime.
-    thread_local static inline mapped_log_t s_log{};
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
 
     // Local snapshot. This is a private copy of locators for server-side transactions.
@@ -134,8 +138,8 @@ private:
 
     // This is used by GC tasks on a session thread to cache chunk managers for object deallocation.
     thread_local static inline std::unordered_map<
-        chunk_offset_t, gaia::db::memory_manager::chunk_manager_t>
-        s_gc_chunk_managers{};
+        memory_manager::chunk_offset_t, memory_manager::chunk_version_t>
+        s_gc_chunks_to_versions{};
 
     // These fields have session lifetime.
     thread_local static inline int s_session_socket = -1;
@@ -242,7 +246,7 @@ private:
 
     static void clear_shared_memory();
 
-    static void init_memory_manager();
+    static void init_memory_manager(bool initializing);
 
     static void init_shared_memory();
 
@@ -288,10 +292,6 @@ private:
     static void txn_rollback(bool client_disconnected = false);
 
     static bool txn_commit();
-
-    static void allocate_object(
-        gaia_locator_t locator,
-        size_t size);
 
     static void perform_maintenance();
 

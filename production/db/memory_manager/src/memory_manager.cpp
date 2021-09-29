@@ -86,7 +86,6 @@ void memory_manager_t::initialize_internal(
     if (initialize_memory)
     {
         m_metadata->clear();
-        m_metadata->next_available_unused_chunk_offset = c_first_chunk_offset;
     }
 
     if (m_execution_flags.enable_console_output)
@@ -115,8 +114,9 @@ chunk_offset_t memory_manager_t::allocate_unused_chunk()
         }
 
         // Now try to claim this chunk.
-        if (m_metadata->apply_chunk_transition(
-                next_chunk_offset, chunk_state_t::empty, chunk_state_t::in_use))
+        chunk_manager_t chunk_manager;
+        chunk_manager.load(next_chunk_offset);
+        if (chunk_manager.allocate_chunk())
         {
             return next_chunk_offset;
         }
@@ -127,42 +127,35 @@ chunk_offset_t memory_manager_t::allocate_reused_chunk()
 {
     // Starting from the first chunk, scan for the first available reused chunk,
     // up to a snapshot of next_available_unused_chunk_offset. If we fail to
-    // claim an available chunk, move onto the next one. (If we fail to find or
-    // claim any reused chunks, then the caller can allocate a new chunk from
-    // unused memory.) Since next_available_unused_chunk_offset can be
-    // concurrently advanced, and chunks can also be deallocated behind our scan
-    // pointer, this search is best-effort; we could miss a chunk deallocated
+    // claim an available chunk, restart the scan. (If we fail to find or claim
+    // any reused chunks, then the caller can allocate a new chunk from unused
+    // memory.) Since next_available_unused_chunk_offset can be concurrently
+    // advanced, and chunks can also be deallocated behind our scan pointer,
+    // this search is best-effort; we could miss a chunk deallocated
     // concurrently with our scan.
     size_t first_unused_chunk_offset = m_metadata->next_available_unused_chunk_offset;
     if (first_unused_chunk_offset != c_first_chunk_offset)
     {
-        size_t current_start_offset = c_first_chunk_offset;
-        while (current_start_offset < first_unused_chunk_offset)
+        while (true)
         {
-            size_t found_index = find_first_element(
-                m_metadata->chunk_bitmap,
+            size_t found_index = find_first_unset_bit(
+                m_metadata->allocated_chunks_bitmap,
                 memory_manager_metadata_t::c_chunk_bitmap_words_size,
-                c_chunk_state_bitarray_width,
-                common::to_integral(chunk_state_t::empty),
-                current_start_offset,
                 first_unused_chunk_offset);
 
-            if (found_index == -1)
+            if (found_index == c_max_bit_index)
             {
                 break;
             }
 
             // We found an available chunk, so try to claim it.
             auto available_chunk_offset = static_cast<chunk_offset_t>(found_index);
-            if (m_metadata->apply_chunk_transition(
-                    available_chunk_offset, chunk_state_t::empty, chunk_state_t::in_use))
+            chunk_manager_t chunk_manager;
+            chunk_manager.load(available_chunk_offset);
+            if (chunk_manager.allocate_chunk())
             {
                 return available_chunk_offset;
             }
-
-            // We failed to claim the chunk at this index, so start the next
-            // search after the current position.
-            current_start_offset = found_index + 1;
         }
     }
 
@@ -209,74 +202,12 @@ chunk_offset_t memory_manager_t::allocate_chunk()
     return allocated_chunk_offset;
 }
 
-// Retires an in-use chunk.
-void memory_manager_t::retire_chunk(chunk_offset_t chunk_offset)
+void memory_manager_t::update_chunk_allocation_status(chunk_offset_t chunk_offset, bool is_allocated)
 {
-    ASSERT_PRECONDITION(
-        m_metadata->get_current_chunk_state(chunk_offset) == chunk_state_t::in_use,
-        "A chunk cannot be retired unless it is in use!");
-
-    // This should never fail, because only one thread can own an IN_USE chunk.
-    bool success = m_metadata->apply_chunk_transition(
-        chunk_offset, chunk_state_t::in_use, chunk_state_t::retired);
-    ASSERT_INVARIANT(success, "Retiring an in-use chunk cannot fail!");
-
-    // After transitioning the chunk to RETIRED state, we need to check for
-    // emptiness. This is because it's possible that GC tasks freed all
-    // allocations while the chunk was still in IN_USE state, so the task that
-    // made the last deallocation wasn't able to deallocate the chunk. If the
-    // chunk is now empty, then there may be no GC task that will ever try to
-    // deallocate it, and its virtual memory could be leaked forever, along with
-    // any physical memory that couldn't be eagerly decommitted by GC tasks.
-
-    // REVIEW: We need to instantiate an ad-hoc chunk manager just to check for
-    // emptiness. This is a bit unfortunate.
-    chunk_manager_t chunk_manager;
-    chunk_manager.load(chunk_offset);
-    bool should_deallocate_chunk = chunk_manager.is_empty();
-    chunk_manager.release();
-    if (should_deallocate_chunk)
-    {
-        deallocate_chunk(chunk_offset);
-    }
-}
-
-// Marks the chunk as free, and decommits its physical memory.
-void memory_manager_t::deallocate_chunk(chunk_offset_t chunk_offset)
-{
-    ASSERT_PRECONDITION(
-        m_metadata->get_current_chunk_state(chunk_offset) == chunk_state_t::retired,
-        "A chunk cannot be deallocated unless it is retired!");
-#ifdef DEBUG
-    // Verify that the deallocated chunk contains no live allocations.
-    chunk_manager_t chunk_manager;
-    chunk_manager.load(chunk_offset);
-    ASSERT_INVARIANT(chunk_manager.is_empty(), "Cannot deallocate a non-empty chunk!");
-    chunk_manager.release();
-#endif
-
-    // This could fail if a concurrent GC or compaction task already deallocated
-    // the chunk. In that case, the chunk could have already been reused by this
-    // point. It shouldn't matter, since we don't decommit metadata pages, and
-    // decommitted data pages will be allocated/zeroed on demand.
-    bool success = m_metadata->apply_chunk_transition(
-        chunk_offset, chunk_state_t::retired, chunk_state_t::empty);
-    // This assert will fail if the chunk has already been reused.
-    // If concurrent reuse is a problem, then instead of introducing a new
-    // transitional state, we could use the shared_lock field and acquire an
-    // exclusive lock during deallocation, which allocate_chunk() would need to
-    // acquire before transitioning the chunk from the EMPTY state to the IN_USE
-    // state. However, such reuse is almost certainly benign as noted above,
-    // since we don't decommit any metadata pages, and dirty data pages won't be
-    // observable to any client (unless there's a bug).
-    ASSERT_INVARIANT(
-        success || (m_metadata->get_current_chunk_state(chunk_offset) == chunk_state_t::empty),
-        "Chunk reused during deallocation!");
-}
-
-chunk_state_t memory_manager_t::get_chunk_state(chunk_offset_t chunk_offset)
-{
-    return m_metadata->get_current_chunk_state(chunk_offset);
+    safe_set_bit_value(
+        m_metadata->allocated_chunks_bitmap,
+        memory_manager_metadata_t::c_chunk_bitmap_words_size,
+        chunk_offset, is_allocated);
 }
 
 size_t memory_manager_t::get_unused_memory_size() const

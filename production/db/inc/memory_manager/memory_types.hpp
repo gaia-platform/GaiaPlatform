@@ -49,13 +49,18 @@ constexpr slot_offset_t c_invalid_slot_offset = 0;
 typedef uint16_t chunk_offset_t;
 constexpr chunk_offset_t c_invalid_chunk_offset = 0;
 
-// These states must all fit into 2 bits.
-enum class chunk_state_t : uint64_t
+// A 62-bit sequential version counter concatenated with the 2-bit chunk state.
+typedef uint64_t chunk_version_t;
+constexpr chunk_version_t c_invalid_chunk_version = 0;
+
+// These states must all fit into 2 bits. The underlying type is compatible with
+// the type of the chunk version counter, so they can be combined without casts.
+enum class chunk_state_t : chunk_version_t
 {
     empty = 0b00,
     in_use = 0b01,
     retired = 0b10,
-    pending_compaction = 0b11
+    deallocating = 0b11
 };
 
 inline std::ostream& operator<<(std::ostream& os, const chunk_state_t& o)
@@ -71,8 +76,8 @@ inline std::ostream& operator<<(std::ostream& os, const chunk_state_t& o)
     case chunk_state_t::retired:
         os << "retired";
         break;
-    case chunk_state_t::pending_compaction:
-        os << "pending_compaction";
+    case chunk_state_t::deallocating:
+        os << "deallocating";
         break;
     default:
         ASSERT_UNREACHABLE("Unknown value of chunk_state_t!");
@@ -80,7 +85,11 @@ inline std::ostream& operator<<(std::ostream& os, const chunk_state_t& o)
     return os;
 }
 
-constexpr size_t c_chunk_state_bitarray_width = 2;
+constexpr size_t c_chunk_state_bit_width{2};
+constexpr size_t c_chunk_version_bit_width{
+    (CHAR_BIT * sizeof(chunk_version_t)) - c_chunk_state_bit_width};
+constexpr size_t c_chunk_version_shift{
+    (CHAR_BIT * sizeof(chunk_version_t)) - c_chunk_version_bit_width};
 
 } // namespace memory_manager
 } // namespace db

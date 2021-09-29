@@ -53,7 +53,7 @@ inline db_object_t* create_object(
 {
     gaia::db::hash_node_t* hash_node = db_hash_map::insert(id);
     hash_node->locator = allocate_locator();
-    gaia::db::allocate_object(hash_node->locator, obj_data_size);
+    allocate_object(hash_node->locator, obj_data_size);
     db_object_t* obj_ptr = locator_to_ptr(hash_node->locator);
     obj_ptr->id = id;
     obj_ptr->type = type;

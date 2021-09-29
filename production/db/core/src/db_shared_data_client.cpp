@@ -71,13 +71,6 @@ gaia::db::id_index_t* gaia::db::get_id_index()
     return gaia::db::client_t::s_shared_id_index.data();
 }
 
-void gaia::db::allocate_object(
-    gaia_locator_t locator,
-    size_t size)
-{
-    gaia::db::client_t::allocate_object(locator, size);
-}
-
 gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id()
 {
     return gaia::db::client_t::get_txn_id();
@@ -86,4 +79,19 @@ gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id()
 gaia::db::index::indexes_t* gaia::db::get_indexes()
 {
     return &gaia::db::client_t::s_local_indexes;
+}
+
+gaia::db::memory_manager::memory_manager_t* gaia::db::get_memory_manager()
+{
+    return &gaia::db::client_t::s_memory_manager;
+}
+
+gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager()
+{
+    return &gaia::db::client_t::s_chunk_manager;
+}
+
+gaia::db::mapped_log_t* gaia::db::get_mapped_log()
+{
+    return &gaia::db::client_t::s_log;
 }
