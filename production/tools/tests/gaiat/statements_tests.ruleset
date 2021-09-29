@@ -1048,3 +1048,27 @@ ruleset test67
         float max = incubator.max_temp;
     }
 }
+
+float adjust_temperature(float, float, float, float);
+
+// TESTCASE: regression, translation caused extra loop in C++ code
+// GAIAPLAT-1432
+ruleset test72
+{
+    // NOTE: Translated C++ code must be studied to verify correctness.
+    on_update(incubator.max_temp)
+    {
+    sensor_loop:
+        for(S:sensor)
+        {
+            if (S.value < min_temp || S.value > max_temp)
+            {
+                for(A:actuator)
+                {
+                    A.value = adjust_temperature(min_temp, max_temp, S.value, A.value);
+                }
+                break sensor_loop;
+            }
+        }
+    }
+}
