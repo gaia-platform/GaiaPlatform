@@ -2567,6 +2567,13 @@ public:
         {
             return;
         }
+
+        if (ruleset_declaration->getSourceRange().isInvalid())
+        {
+            g_is_generation_error = true;
+            return;
+        }
+
         if (!g_current_ruleset.empty())
         {
             g_generated_subscription_code
@@ -3604,6 +3611,11 @@ public:
 
     void EndSourceFile() override
     {
+        if (g_is_generation_error)
+        {
+            return;
+        }
+
         if (!g_translation_engine_output_option.empty())
         {
             std::remove(g_translation_engine_output_option.c_str());
