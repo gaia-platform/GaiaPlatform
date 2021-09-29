@@ -1,0 +1,348 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+#include <algorithm>
+#include <atomic>
+#include <iostream>
+
+#include "gaia/logger.hpp"
+
+#include "bot_commands.hpp"
+#include "communication.hpp"
+#include "gaia_amr_swarm.h"
+#include "constants.hpp"
+
+namespace gaia
+{
+namespace amr_swarm
+{
+
+void dump_db_state();
+
+}
+}
+
+using namespace gaia::amr_swarm;
+
+ruleset amr_swarm_ruleset : serial_group()
+{
+    /////////////////
+    // Helper methods
+    //
+    // None of these should be needed, but at this moment
+    // their code cannot be called directly inside a rule.
+    /////////////////
+
+    size_t size(pallet_t& pallet)
+    {
+        return pallet.widgets().size();
+    }
+
+    bool has_pallets(station_t& station)
+    {
+        return (station.pallets().size() != 0);
+    }
+
+    bool has_widgets(station_t& station)
+    {
+        return (station.widgets().size() != 0);
+    }
+
+    ////////
+    // Rules
+    ////////
+
+    on_insert(ping_event)
+    {
+        communication::publish_message("running", "true");
+    }
+
+    on_insert(pallet_arrived_event)
+    {
+        gaia_log::app().info("RULE>> Pallet '{}' arrived at station '{}'.", pallet.id, station.id);
+        dump_db_state();
+
+        if (strcmp(station.id, c_station_inbound) == 0)
+        {
+            // Allow iterations to run until the end, to prevent leaks.
+            bool has_found = false;
+            for (/R:robot)
+            {
+                if (!has_found
+                    && R.is_idle
+                    && strcmp(R->robot_type.id, c_robot_type_pallet) == 0)
+                {
+                    has_found = true;
+
+                    commands::move_robot(R, station);
+                }
+            }
+        }
+        else if (strcmp(station.id, c_station_outbound) == 0)
+        {
+            // Disconnect the shipped pallets.
+            // We should have had a dedicated event for this, but we don't,
+            // so we'll piggyback on this event.
+            for (station->P:pallet)
+            {
+                if (size(P) == 4)
+                {
+                    station.pallets.disconnect(P);
+                }
+            }
+        }
+    }
+
+    on_insert(pallet_unpacked_event)
+    {
+        gaia_log::app().info("RULE>> Pallet '{}' was unpacked at buffer station.", pallet.id);
+        dump_db_state();
+
+        station.pallets.connect(pallet);
+        station.widgets.connect(pallet->widget);
+        pallet.widgets.disconnect(station->widget);
+
+        // Allow iterations to run until the end, to prevent leaks.
+        bool has_found = false;
+        for (/R:robot)
+        {
+            if (!has_found
+                && R.is_idle
+                && strcmp(R->robot_type.id, c_robot_type_widget) == 0)
+            {
+                has_found = true;
+
+                commands::move_robot(R, c_station_buffer);
+            }
+        }
+    }
+
+    on_insert(bot_moving_to_station_event)
+    {
+        gaia_log::app().info("RULE>> Robot '{}' is moving to station '{}'", robot.id, station.id);
+        dump_db_state();
+
+        robot->station.robots.disconnect(robot);
+        robot.is_idle = false;
+    }
+
+    on_insert(bot_arrived_at_station_event)
+    {
+        gaia_log::app().info("RULE>> Robot '{}' arrived at station '{}'.", robot.id, station.id);
+        dump_db_state();
+
+        station.robots.connect(robot);
+
+        if (strcmp(station.id, c_station_charging) == 0)
+        {
+            commands::charge(robot);
+        }
+        else
+        {
+            if (strcmp(robot_type.id, c_robot_type_pallet) == 0)
+            {
+                if (robot.is_loaded)
+                {
+                    commands::drop_pallet(robot);
+                }
+                else
+                {
+                    if (has_pallets(station))
+                    {
+                        commands::pickup_pallet(robot, station->pallet);
+                    }
+                    else
+                    {
+                        commands::move_robot(robot, c_station_charging);
+                    }
+                }
+            }
+            else
+            {
+                if (robot.is_loaded)
+                {
+                    commands::drop_widget(robot);
+                }
+                else
+                {
+                    if (has_widgets(station))
+                    {
+                        // Need to do this dance because pickup_widget needs to be called with a widget.
+                        // But the generated event won't indicate the widget, so we'll have to dance again.
+                        bool has_picked_widget = false;
+                        for (station->W:widget)
+                        {
+                            if (!has_picked_widget)
+                            {
+                                has_picked_widget = true;
+                                commands::pickup_widget(robot, W);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        commands::move_robot(robot, c_station_charging);
+                    }
+                }
+            }
+        }
+    }
+
+    on_insert(bot_pick_up_payload_event)
+    {
+        gaia_log::app().info("RULE>> Robot '{}' is picking up payload at station '{}'.", robot.id, station.id);
+        dump_db_state();
+
+        if (strcmp(robot_type.id, c_robot_type_pallet) == 0)
+        {
+            robot.pallets.connect(station->pallet);
+            station.pallets.disconnect(station->pallet);
+
+            robot.is_loaded = true;
+
+            commands::move_robot(robot, c_station_buffer);
+        }
+        else
+        {
+            bool has_picked_widget = false;
+            for (station->W:widget)
+            {
+                if (!has_picked_widget)
+                {
+                    has_picked_widget = true;
+
+                    robot.widgets.connect(W);
+                    station.widgets.disconnect(W);
+
+                    robot.is_loaded = true;
+                }
+            }
+
+            if (strcmp(station.id, c_station_buffer) == 0)
+            {
+                commands::move_robot(robot, c_station_pl_start);
+            }
+            else if (strcmp(station.id, c_station_pl_end) == 0)
+            {
+                commands::move_robot(robot, c_station_outbound);
+            }
+        }
+    }
+
+    on_insert(bot_drop_off_payload_event)
+    {
+        gaia_log::app().info("RULE>> Robot '{}' is dropping off payload at station '{}'.", robot.id, station.id);
+        dump_db_state();
+
+        if (strcmp(robot_type.id, c_robot_type_pallet) == 0)
+        {
+            station.pallets.connect(robot->pallet);
+            robot.pallets.disconnect(robot->pallet);
+
+            robot.is_loaded = false;
+
+            commands::move_robot(robot, c_station_charging);
+        }
+        else
+        {
+            for (robot->W:widget)
+            {
+                // We normally unload widgets to the station,
+                // but at Outbound we can place them on a pallet.
+                if (strcmp(robot->station.id, c_station_outbound) == 0)
+                {
+                    station->pallet.widgets.connect(W);
+                }
+                else
+                {
+                    station.widgets.connect(W);
+                }
+
+                robot.widgets.disconnect(W);
+            }
+
+            robot.is_loaded = false;
+
+            if (strcmp(station.id, c_station_pl_start) == 0)
+            {
+                // Keep the robot at PL Start until the widget is processed.
+            }
+            else if (strcmp(station.id, c_station_outbound) == 0)
+            {
+                // If we're done with a widget, try to get a new one.
+                commands::move_robot(robot, c_station_buffer);
+            }
+        }
+    }
+
+    on_insert(widget_production_start_event)
+    {
+        gaia_log::app().info("RULE>> Widget '{}' is available at PL Start.", widget.id);
+        dump_db_state();
+    }
+
+    on_insert(widget_production_end_event)
+    {
+        gaia_log::app().info("RULE>> Widget '{}' is coming out of PL.", widget.id);
+        dump_db_state();
+
+        // Disconnect the widget from PL Start and connect it to PL Area.
+        station.widgets.disconnect(widget);
+
+        for (/S:station)
+        {
+            if (strcmp(S.id, c_station_pl_area) == 0)
+            {
+                S.widgets.connect(widget);
+            }
+        }
+    }
+
+    on_insert(widget_processed_event)
+    {
+        gaia_log::app().info("RULE>> Widget '{}' is delivered at PL End.", widget.id);
+        dump_db_state();
+
+        // Disconnect the widget from PL Area and connect it to PL End.
+        station.widgets.disconnect(widget);
+
+        for (/S:station)
+        {
+            if (strcmp(S.id, c_station_pl_end) == 0)
+            {
+                S.widgets.connect(widget);
+            }
+        }
+
+        // Find the robot waiting at PL Start and send it to PL End.
+        for (/S:station)
+        {
+            if (strcmp(S.id, c_station_pl_start) == 0)
+            {
+                commands::move_robot(S->robot, c_station_pl_end);
+            }
+        }
+    }
+
+    on_insert(bot_charging_event)
+    {
+        gaia_log::app().info("RULE>> Robot '{}' is charging.", robot.id);
+        dump_db_state();
+
+        robot.is_idle = true;
+    }
+
+    on_insert(bot_cant_navigate_event)
+    {
+        gaia_log::app().info("RULE>> Robot '{}' can't navigate.", robot.id);
+        dump_db_state();
+    }
+
+    on_insert(bot_crashed_event)
+    {
+        gaia_log::app().info("RULE>> Robot '{}' has crashed.", robot.id);
+        dump_db_state();
+    }
+}
