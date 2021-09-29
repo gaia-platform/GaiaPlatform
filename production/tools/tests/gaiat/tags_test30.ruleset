@@ -6,8 +6,8 @@ ruleset test30
 {
     on_update(i:incubator)
     {
-       int i = 0;
-   }
+        int i = 0;
+    }
 }
 
 // GAIAPLAT-1178

@@ -428,6 +428,19 @@ ruleset test_query_10
     }
 }
 
+// Used in rules in test_compile.
+float adjustment(float, float, float)
+{
+    return 0.0;
+}
+
+enum class e_hours_range_t : unsigned int
+{
+    few      = 0,
+    normal   = 1,
+    too_much = 2
+};
+
 // This ruleset is not used, but its translation must compile with C++.
 // GAIAPLAT-1198 (fixed)
 // GAIAPLAT-1143 (V1)
@@ -515,7 +528,7 @@ ruleset test_compile
     }
 
     // TESTCASE: make sure the nomatch is translated into compilable code while using explicit path
-    // GAIAPLAT-1311
+    // GAIAPLAT-1311 (fixed)
     on_insert(registration)
     {
         gaia::prerequisites::student_t studdy;
@@ -562,7 +575,7 @@ ruleset test_compile
     }
 
     // TESTCASE: verify the presence of all rows within a declarative if
-    // GAIAPLAT-1251
+    // GAIAPLAT-1251 (fixed)
     on_update(total_hours)
     {
         if (total_hours == 0)
@@ -588,6 +601,45 @@ ruleset test_compile
         total_hours++;
         student.total_hours++;
         s.total_hours++;
+    }
+
+    // GAIAPLAT-1204 (fixed)
+    on_update(R:registration.grade)
+    {
+        if (student.total_hours > 10)
+        {
+            if (!(registration.grade >= student.gpa && registration.grade <= student.gpa+1))
+            {
+                for(student->RR:registration)
+                {
+                    RR.grade = adjustment(student.gpa, R.grade, RR.grade);
+                }
+            }
+        }
+    }
+
+    // TESTCASE: examine the translation of a switch statement without curly braces
+    // GAIAPLAT-1235 (fixed)
+    on_insert(student)
+    {
+        switch (e_hours_range_t(C:course.hours))
+        {
+            case e_hours_range_t::few      : C.hours += 1; break;
+            case e_hours_range_t::normal   : C.hours += 2; break;
+            case e_hours_range_t::too_much : C.hours += 3; break;
+        }
+    }
+
+    // TESTCASE: examine the translation of a switch statement without curly braces, no loops
+    // GAIAPLAT-1235 (fixed)
+    on_insert(course)
+    {
+        switch (e_hours_range_t(C:course.hours))
+        {
+            case e_hours_range_t::few      : C.hours += 1; break;
+            case e_hours_range_t::normal   : C.hours += 2; break;
+            case e_hours_range_t::too_much : C.hours += 3; break;
+        }
     }
 }
 

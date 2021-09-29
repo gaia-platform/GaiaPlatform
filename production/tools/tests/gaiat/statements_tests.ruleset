@@ -1048,3 +1048,88 @@ ruleset test67
         float max = incubator.max_temp;
     }
 }
+
+unsigned int g_timestamp = 5;
+float adjust_temperature(float, float, float, float);
+
+// TESTCASE: expose translation problem that produces uncompilable C++ code
+// GAIAPLAT-1204 (fixed)
+ruleset test68
+{
+    on_update(S:sensor.value)
+    {
+        if (incubator.max_temp > 50.0)
+        {
+            if (!(sensor.value >= incubator.min_temp && sensor.value <= incubator.max_temp))
+            {
+                for(A:actuator)
+                {
+                    A.value = adjust_temperature(incubator.min_temp, incubator.max_temp, S.value, A.value);
+                    A.timestamp = g_timestamp;
+                }
+            }
+        }
+    }
+}
+
+enum class e_timestamp_range_t : unsigned int
+{
+    beginning = 0,
+    next      = 1,
+    last      = 2
+};
+
+// TESTCASE: examine the translation of a switch statement without curly braces
+// GAIAPLAT-1235
+ruleset test69
+{
+    on_insert(incubator)
+    {
+        switch (e_timestamp_range_t(sensor.timestamp))
+        {
+            case e_timestamp_range_t::beginning : sensor.value = sensor.value + 1.0;  break;
+            case e_timestamp_range_t::next      : sensor.value = sensor.value + 2.0;  break;
+            case e_timestamp_range_t::last      : sensor.value = sensor.value + 3.0;  break;
+        }
+    }
+}
+
+
+// TESTCASE: examine the translation of a switch statement without curly braces, no looping
+// GAIAPLAT-1235
+ruleset test70
+{
+    on_insert(sensor)
+    {
+        switch (e_timestamp_range_t(sensor.timestamp))
+        {
+            case e_timestamp_range_t::beginning : sensor.value = sensor.value + 1.0;  break;
+            case e_timestamp_range_t::next      : sensor.value = sensor.value + 2.0;  break;
+            case e_timestamp_range_t::last      : sensor.value = sensor.value + 3.0;  break;
+        }
+    }
+}
+
+// TESTCASE: add an outer 'for' making sure it doesn't invalidate an inner 'for'
+// GAIAPLAT-1247
+#ifdef TEST_FAILURES
+ruleset test71
+{
+    on_update(incubator)
+    {
+        for (/I:incubator)
+        {
+            float current_max = I.max_temp;
+            float current_min = I.min_temp;
+            if (current_max < current_min)
+            {
+                for (/II:isolated)
+                {
+                    II.age = 3;
+                }
+            }
+        }
+    }
+}
+#endif
+
