@@ -144,7 +144,7 @@ ruleset test131
     }
 }
 
-// GAIAPLAT-877
+// GAIAPLAT-877 (fixed)
 ruleset test132
 {
     on_insert(animal)

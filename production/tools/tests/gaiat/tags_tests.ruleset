@@ -241,6 +241,20 @@ ruleset test23
 
 ruleset test24
 {
+    // GAIAPLAT-921 (fixed)
+    /*
+    on_update(incubator)
+    {
+        F:incubator.farmer->farmer->yield.bushels = 0;
+
+        int unsigned i = 0;
+        if (i == 0)
+        {
+            F:incubator.landlord->farmer.acreage += 1;
+        }
+    }
+    */
+
     on_update(incubator)
     {
         F:incubator.farmer->farmer->yield.bushels = 0;

@@ -127,6 +127,7 @@ ruleset testE21
 }
 
 // GAIAPLAT-1274
+// [WLW] Note: not sure this test relates to GAIAPLAT-1274
 ruleset testE22
 {
     on_update(incubator)
@@ -142,7 +143,7 @@ ruleset testE22
     }
 }
 
-// GAIAPLAT-1269
+// GAIAPLAT-1269 (fixed)
 ruleset testE23
 {
     on_update(incubator)
@@ -158,16 +159,21 @@ ruleset testE23
     }
 }
 
-// GAIAPLAT-1314
+void use_id(unsigned int)
+{
+}
+
+// GAIAPLAT-1314 (fixed)
 ruleset testE24
 {
     on_update(incubator)
     {
         auto id = incubator.gaia_id();
+        use_id(id);
     }
 }
 
-//GAIAT-1367 (fixed)
+//GAIAPLAT-1367 (fixed)
 ruleset testE25
 {
      on_update(sensor)
@@ -179,7 +185,7 @@ ruleset testE25
      }
 }
 
-//GAIAT-1388
+//GAIAPLAT-1388 (fixed)
 ruleset testE26
 {
      on_update(incubator)
@@ -191,7 +197,7 @@ ruleset testE26
      }
 }
 
-//GAIAT-1326
+//GAIAPLAT-1326 (fixed)
 ruleset testE27
 {
      on_update(sensor)
@@ -203,7 +209,7 @@ ruleset testE27
      }
 }
 
-//GAIAT-1375
+//GAIAPLAT-1375 (fixed)
 ruleset testE28
 {
     on_insert(incubator)
@@ -228,7 +234,7 @@ namespace test_test{
     };
 }
 
-//GAIAT-1235
+//GAIAPLAT-1235 (fixed)
 ruleset testE29
 {
     on_insert(sensor)
@@ -243,7 +249,7 @@ ruleset testE29
     }
 }
 
-// GAIAPLAT-1259
+// GAIAPLAT-1259 (fixed)
 const char* generate_error_message(double)
 {
     return "test";
@@ -260,7 +266,7 @@ ruleset testE30
     }
 }
 
-// GAIAPLAT-1025
+// GAIAPLAT-1025 (fixed)
 ruleset test_comment
 {
     /* COMMENT
