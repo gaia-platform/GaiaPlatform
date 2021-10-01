@@ -10,7 +10,7 @@
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
-#include "clang/Basic/DiagnosticSema.h"
+#include <clang/Basic/DiagnosticSema.h>
 #pragma clang diagnostic pop
 
 #include "diagnostics.h"

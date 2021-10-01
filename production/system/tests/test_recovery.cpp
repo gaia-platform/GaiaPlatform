@@ -2,6 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #include <unistd.h>
 
 #include <iostream>
@@ -9,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/db/db.hpp"
 
@@ -191,8 +192,7 @@ gaia_id_t recovery_test::get_random_map_key(map<gaia_id_t, employee_copy_t> m)
 
 string recovery_test::generate_string(size_t length_in_bytes)
 {
-    auto randchar = []() -> char
-    {
+    auto randchar = []() -> char {
         const char charset[] = "0123456789"
                                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                "abcdefghijklmnopqrstuvwxyz";

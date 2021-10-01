@@ -13,7 +13,6 @@
 #include <iostream>
 #include <thread>
 
-#include <gaia_spdlog/fmt/fmt.h>
 #include <libexplain/execve.h>
 #include <libexplain/fork.h>
 #include <libexplain/kill.h>
@@ -30,6 +29,8 @@
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
+
+#include "gaia_spdlog/fmt/fmt.h"
 
 namespace fs = std::filesystem;
 

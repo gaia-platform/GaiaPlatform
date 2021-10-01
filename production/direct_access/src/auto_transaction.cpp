@@ -2,6 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #include "gaia/direct_access/auto_transaction.hpp"
 
 namespace gaia

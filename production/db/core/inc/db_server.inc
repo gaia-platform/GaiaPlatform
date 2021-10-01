@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#pragma once
+
 namespace gaia
 {
 namespace db

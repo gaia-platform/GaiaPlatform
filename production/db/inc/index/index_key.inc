@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#pragma once
+
 template <typename... T_keys>
 index_key_t::index_key_t(T_keys... keys)
 {

@@ -5,11 +5,11 @@
 
 #include <iostream>
 
-#include "gaia_spdlog/sinks/basic_file_sink.h"
-
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/logger_manager.hpp"
 #include "gaia_internal/common/logger_spdlog.hpp"
+
+#include "gaia_spdlog/sinks/basic_file_sink.h"
 
 using namespace std;
 

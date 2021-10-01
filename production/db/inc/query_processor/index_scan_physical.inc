@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#pragma once
+
 // Checks visibility of the index entry.
 // For now, we always add an index entry when the indexed object is updated
 // regardless if the indexed fields are updated. The following logic is sufficient.

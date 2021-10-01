@@ -14,7 +14,7 @@
 #include <thread>
 #include <utility>
 
-#include "flatbuffers/flatbuffers.h"
+#include <flatbuffers/flatbuffers.h>
 
 #include "gaia/exception.hpp"
 

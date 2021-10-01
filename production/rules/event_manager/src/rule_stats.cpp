@@ -2,6 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #include "rule_stats.hpp"
 
 #include "gaia_internal/common/logger_internal.hpp"

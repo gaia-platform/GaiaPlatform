@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#pragma once
+
 #include <bitset>
 
 namespace gaia

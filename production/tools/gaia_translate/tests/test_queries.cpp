@@ -5,7 +5,7 @@
 
 #include <atomic>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/rules/rules.hpp"
 

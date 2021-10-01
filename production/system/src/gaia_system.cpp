@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <cpptoml.h>
+
 #include "gaia/db/db.hpp"
 #include "gaia/exception.hpp"
 #include "gaia/exceptions.hpp"
@@ -15,8 +17,6 @@
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/rules/rules_config.hpp"
-
-#include "cpptoml.h"
 
 using namespace std;
 using namespace gaia::rules;

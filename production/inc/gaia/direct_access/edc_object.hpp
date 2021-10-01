@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "flatbuffers/flatbuffers.h"
+#include <flatbuffers/flatbuffers.h>
 
 #include "gaia/common.hpp"
 #include "gaia/direct_access/auto_transaction.hpp"
