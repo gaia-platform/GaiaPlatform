@@ -92,15 +92,25 @@ void gaia::system::shutdown()
     gaia::rules::shutdown_rules_engine();
     try
     {
-        gaia::db::end_session();
+        if (gaia::db::is_session_open())
+        {
+            gaia_log::sys().warn(
+                "System was shut down with an open session!");
+
+            if (gaia::db::is_transaction_open())
+            {
+                gaia_log::sys().warn(
+                    "System was shut down with an open transaction!");
+                gaia::db::rollback_transaction();
+            }
+
+            gaia::db::end_session();
+        }
     }
-    catch (const gaia::db::no_open_session&)
+    catch (const std::exception& e)
     {
-        // Ignore exception; session socket will be closed when thread terminates.
-    }
-    catch (const gaia::db::transaction_in_progress&)
-    {
-        // Ignore exception; session socket will be closed when thread terminates.
+        gaia_log::sys().warn(
+            "Exception while shutting down database:\n{}", e.what());
     }
     gaia_log::shutdown();
 }

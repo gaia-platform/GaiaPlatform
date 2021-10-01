@@ -233,6 +233,13 @@ public:
 };
 
 /**
+ * \brief Returns true if a session is open in this thread.
+ *
+ * \return true if a session has been opened in this thread, false otherwise.
+ */
+bool is_session_open();
+
+/**
  * \brief Returns true if a transaction is open in this session.
  *
  * \return true if a transaction has been opened in this session, false otherwise.
