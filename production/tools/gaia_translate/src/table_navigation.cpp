@@ -582,7 +582,7 @@ bool table_navigation_t::generate_navigation_step(const string& source_table, co
     if (is_1_relationship)
     {
         navigation_data.prefix
-            .append("auto ")
+            .append("{\nauto ")
             .append(variable_name)
             .append(" = ")
             .append(source_variable_name)
@@ -592,7 +592,7 @@ bool table_navigation_t::generate_navigation_step(const string& source_table, co
             .append("if(")
             .append(variable_name)
             .append(")\n{\n");
-        navigation_data.postfix.append("}\n");
+        navigation_data.postfix.append("}\n}\n");
     }
     else
     {
