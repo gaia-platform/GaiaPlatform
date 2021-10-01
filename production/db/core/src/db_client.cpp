@@ -317,6 +317,9 @@ void client_t::begin_session(config::session_options_t session_options)
 
 void client_t::end_session()
 {
+    verify_session_active();
+    verify_no_txn();
+
     // This will gracefully shut down the server-side session thread
     // and all other threads that session thread owns.
     close_fd(s_session_socket);

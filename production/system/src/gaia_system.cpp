@@ -90,6 +90,17 @@ void gaia::system::shutdown()
     // Shutdown in reverse order of initialization. Shutdown functions should
     // not fail even if the component has not been initialized.
     gaia::rules::shutdown_rules_engine();
-    gaia::db::end_session();
+    try
+    {
+        gaia::db::end_session();
+    }
+    catch (const gaia::db::no_open_session&)
+    {
+        // Ignore exception; session socket will be closed when thread terminates.
+    }
+    catch (const gaia::db::transaction_in_progress&)
+    {
+        // Ignore exception; session socket will be closed when thread terminates.
+    }
     gaia_log::shutdown();
 }
