@@ -1,5 +1,9 @@
-// RUN: %gaiat %s --
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
 
+// RUN: %gaiat %s --
 
 // TESTCASE: break within declarative if to label
 ruleset test9

@@ -8,7 +8,7 @@
 #include <atomic>
 #include <thread>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/rules/rules.hpp"
 

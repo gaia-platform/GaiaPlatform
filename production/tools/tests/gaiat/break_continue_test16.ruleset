@@ -1,3 +1,8 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 // RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
 // TESTCASE: break within declarative for

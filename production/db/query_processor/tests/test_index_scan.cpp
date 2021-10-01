@@ -5,7 +5,7 @@
 
 #include <string>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/db/db_catalog_test_base.hpp"

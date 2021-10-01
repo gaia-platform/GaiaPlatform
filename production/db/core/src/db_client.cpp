@@ -12,7 +12,6 @@
 #include <thread>
 
 #include <flatbuffers/flatbuffers.h>
-#include <gaia_spdlog/fmt/fmt.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -26,6 +25,8 @@
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
+
+#include "gaia_spdlog/fmt/fmt.h"
 
 #include "client_messenger.hpp"
 #include "db_helpers.hpp"

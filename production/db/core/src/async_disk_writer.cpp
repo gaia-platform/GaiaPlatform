@@ -5,8 +5,6 @@
 
 #include "async_disk_writer.hpp"
 
-#include <liburing.h>
-
 #include <climits>
 
 #include <functional>
@@ -15,6 +13,7 @@
 #include <unordered_map>
 
 #include <sys/eventfd.h>
+#include <liburing.h>
 
 #include "gaia_internal/common/fd_helpers.hpp"
 #include "gaia_internal/common/retail_assert.hpp"

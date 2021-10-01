@@ -6,7 +6,7 @@
 #include <iostream>
 #include <memory>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "base_memory_manager.hpp"
 #include "memory_structures.hpp"

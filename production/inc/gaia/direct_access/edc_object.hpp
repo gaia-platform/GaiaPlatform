@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "flatbuffers/flatbuffers.h"
+#include <flatbuffers/flatbuffers.h>
 
 #include "gaia/common.hpp"
 #include "gaia/direct_access/auto_transaction.hpp"
@@ -178,15 +178,15 @@ private:
     } m_gaia;
 };
 
-/*@}*/
-} // namespace direct_access
-/*@}*/
-} // namespace gaia
-
 // Pick up our template implementation.  These still
 // need to be in the header so that template specializations
 // that are declared later will pick up the definitions.
 #include "gaia/direct_access/edc_object.inc"
+
+/*@}*/
+} // namespace direct_access
+/*@}*/
+} // namespace gaia
 
 // Restore default hidden visibility for all symbols.
 #pragma GCC visibility pop
