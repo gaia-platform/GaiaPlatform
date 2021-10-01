@@ -5,13 +5,6 @@
 
 #include <bitset>
 
-namespace gaia
-{
-namespace db
-{
-namespace transactions
-{
-
 bool operator==(txn_metadata_entry_t a, txn_metadata_entry_t b)
 {
     return (a.m_word == b.m_word);
@@ -278,7 +271,3 @@ std::string txn_metadata_entry_t::dump_metadata()
     }
     return str.str();
 }
-
-} // namespace transactions
-} // namespace db
-} // namespace gaia

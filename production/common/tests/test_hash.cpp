@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia_internal/common/hash.hpp"
 

@@ -5,7 +5,7 @@
 
 #include <atomic>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia_internal/common/inline_shared_lock.hpp"
 

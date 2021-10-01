@@ -8,8 +8,8 @@
 #include <iostream>
 #include <utility>
 
-#include "rocksdb/db.h"
-#include "rocksdb/write_batch.h"
+#include <rocksdb/db.h>
+#include <rocksdb/write_batch.h>
 
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/db_object.hpp"

@@ -1,5 +1,10 @@
 #! /usr/bin/bash
 
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 find_gaia_db_server_pid() {
     local gaia_output=
 

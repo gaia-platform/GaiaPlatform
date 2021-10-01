@@ -10,7 +10,7 @@
 // get a link error.  The other test (test_sdk.cpp) tests that a strong
 // reference will override the weak reference and take precedence.
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"

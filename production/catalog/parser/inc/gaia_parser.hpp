@@ -2,6 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #pragma once
 
 #include <memory>
@@ -53,8 +54,7 @@ public:
         m_file = filename;
         location.initialize(&m_file);
         scan_begin();
-        const auto finish_scan = common::scope_guard::make_scope_guard([this]()
-                                                                       { scan_end(); });
+        const auto finish_scan = common::scope_guard::make_scope_guard([this]() { scan_end(); });
 
         yy::parser parse(*this);
         parse.set_debug_level(trace_parsing);
@@ -70,8 +70,7 @@ public:
     void parse_string(const std::string& str)
     {
         scan_string_begin(str);
-        const auto finish_scan_string = common::scope_guard::make_scope_guard([this]()
-                                                                              { scan_string_end(); });
+        const auto finish_scan_string = common::scope_guard::make_scope_guard([this]() { scan_string_end(); });
 
         yy::parser parse(*this);
         parse.set_debug_level(trace_parsing);

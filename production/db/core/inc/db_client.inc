@@ -3,11 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-namespace gaia
-{
-namespace db
-{
-
 inline bool client_t::is_transaction_open()
 {
     return (s_private_locators.is_set());
@@ -175,6 +170,3 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
         return next_value;
     };
 }
-
-} // namespace db
-} // namespace gaia

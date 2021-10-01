@@ -6,8 +6,8 @@
 #include <fstream>
 #include <iostream>
 
-#include "flatbuffers/idl.h"
-#include "gtest/gtest.h"
+#include <flatbuffers/idl.h>
+#include <gtest/gtest.h>
 
 using namespace std;
 

@@ -14,7 +14,7 @@
 #include <thread>
 #include <utility>
 
-#include "flatbuffers/flatbuffers.h"
+#include <flatbuffers/flatbuffers.h>
 
 #include "gaia/exception.hpp"
 
@@ -384,7 +384,7 @@ private:
     };
 };
 
+#include "db_server.inc"
+
 } // namespace db
 } // namespace gaia
-
-#include "db_server.inc"

@@ -12,7 +12,7 @@
 #include <type_traits>
 #include <unordered_set>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/direct_access/edc_iterators.hpp"
 
