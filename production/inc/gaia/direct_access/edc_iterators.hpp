@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <utility>
+
 #include "gaia/direct_access/edc_base.hpp"
 
 // Export all symbols declared in this file.

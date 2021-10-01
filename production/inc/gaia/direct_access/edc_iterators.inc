@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <utility>
-
 //
 // Implementation for edc_iterator_t.
 //
