@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
-
 template <typename T_structure, typename T_index_it>
 index_iterator_t<T_structure, T_index_it>::index_iterator_t(base_index_t* db_idx, T_index_it it, T_index_it end_it)
 {

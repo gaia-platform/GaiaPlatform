@@ -3,15 +3,9 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
-
 // NOTE: This is included included by edc_object.hpp as this is a template
 // implementation file.  Because the template specializations of edc_object_t are
 // created by user-defined schema, we don't know what they will be a priori.
-namespace gaia
-{
-namespace direct_access
-{
 
 //
 // The edc_object_t implementation.
@@ -160,6 +154,3 @@ void edc_writer_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>
     edc_db_t::update(m_gaia.id, m_builder.GetSize(), m_builder.GetBufferPointer());
     m_builder.Clear();
 }
-
-} // namespace direct_access
-} // namespace gaia

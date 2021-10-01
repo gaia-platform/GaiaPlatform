@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
-
 template <typename T_value>
 data_write_buffer_t& data_write_buffer_t::operator<<(T_value value)
 {

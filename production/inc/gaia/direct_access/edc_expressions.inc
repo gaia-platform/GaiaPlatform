@@ -3,13 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
-
-namespace gaia
-{
-namespace direct_access
-{
-
 template <typename T_class, typename T_return>
 T_return member_accessor_t<T_class, T_return>::operator()(const T_class& obj) const
 {
@@ -192,6 +185,3 @@ expression_t<T_class, int64_t> expression_t<T_class, T_return>::count()
 
     return expression_t<T_class, int64_t>{count_accessor};
 }
-
-} // namespace direct_access
-} // namespace gaia

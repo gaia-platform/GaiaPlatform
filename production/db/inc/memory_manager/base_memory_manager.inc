@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
-
 uint8_t* base_memory_manager_t::get_base_memory_address() const
 {
     return m_base_memory_address;

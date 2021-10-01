@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
-
 // Index structure maintenance.
 template <typename T_structure, typename T_iterator>
 void index_t<T_structure, T_iterator>::insert_index_entry(index_key_t&& key, index_record_t record)

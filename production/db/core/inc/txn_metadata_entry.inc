@@ -3,16 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
-
 #include <bitset>
-
-namespace gaia
-{
-namespace db
-{
-namespace transactions
-{
 
 bool operator==(txn_metadata_entry_t a, txn_metadata_entry_t b)
 {
@@ -280,7 +271,3 @@ std::string txn_metadata_entry_t::dump_metadata()
     }
     return str.str();
 }
-
-} // namespace transactions
-} // namespace db
-} // namespace gaia

@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
-
 template <class T>
 queue_element_t<T>::queue_element_t()
     : value{}

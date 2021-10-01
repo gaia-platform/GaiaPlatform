@@ -384,7 +384,7 @@ private:
     };
 };
 
+#include "db_server.inc"
+
 } // namespace db
 } // namespace gaia
-
-#include "db_server.inc"
