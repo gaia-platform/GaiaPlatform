@@ -9,10 +9,10 @@
 extern "C"
 {
 
+// postgres.h must be included prior to other headers.
 #include <postgres.h>
-
-// postgres.h must be included prior to these headers.
-// This comment will ensure that the header order is not changed by clang-format.
+// These surrounding comments will ensure that the header order is not changed by clang-format.
+// For FDW helpers: https://www.postgresql.org/docs/devel/fdw-helpers.html.
 #include <access/reloptions.h>
 #include <access/table.h>
 #include <catalog/pg_foreign_server.h>
@@ -20,7 +20,6 @@ extern "C"
 #include <commands/defrem.h>
 #include <executor/executor.h>
 #include <foreign/fdwapi.h>
-// For FDW helpers: https://www.postgresql.org/docs/devel/fdw-helpers.html.
 #include <foreign/foreign.h>
 #include <nodes/makefuncs.h>
 #include <nodes/pathnodes.h>
