@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
-
 record_range_t* record_range_t::next_range()
 {
     return m_next_range;

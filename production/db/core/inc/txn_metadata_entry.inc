@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <bitset>
-
 bool operator==(txn_metadata_entry_t a, txn_metadata_entry_t b)
 {
     return (a.m_word == b.m_word);

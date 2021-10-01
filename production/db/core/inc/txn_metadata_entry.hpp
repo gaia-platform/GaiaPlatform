@@ -7,6 +7,7 @@
 
 #include <cstdint>
 
+#include <bitset>
 #include <limits>
 #include <sstream>
 #include <string>
