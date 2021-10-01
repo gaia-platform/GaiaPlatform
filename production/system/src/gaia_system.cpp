@@ -110,7 +110,7 @@ void gaia::system::shutdown()
     catch (const std::exception& e)
     {
         gaia_log::sys().warn(
-            "Exception while shutting down database:\n{}", e.what());
+            "Exception while shutting down database: '{}'.", e.what());
     }
     gaia_log::shutdown();
 }
