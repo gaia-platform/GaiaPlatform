@@ -2,6 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #pragma once
 
 #include "gaia/rules/rules.hpp"
@@ -13,19 +14,19 @@ namespace rules
 
 /**
  * This helper class is used by the rules engine at both rule
- * subscription and invocation time.  Currently, the class performs 
+ * subscription and invocation time.  Currently, the class performs
  * the following checks.
- * 
+ *
  * Catalog Checks:
  *  Ensure tables and fields that are referenced in a rule are
  *  actually present in the catalog at rule subscription time.
- * 
+ *
  * Database Checks:
  *  Ensure that an anchor row is valid before invoking a rule.
- * 
+ *
  * Note that the checks can be disabled by unit tests that do not want
  * to have a dependency on the database.  These tests can intialize
- * the rules engine with custom settings.  See event_manager_settings.hpp 
+ * the rules engine with custom settings.  See event_manager_settings.hpp
  * and rules_test_helpers.hpp for more information.
  */
 class rule_checker_t

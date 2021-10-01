@@ -17,15 +17,15 @@
 extern "C"
 {
 
-#include "postgres.h"
-
-// postgres.h must be included prior to these headers.
-#include "catalog/pg_type.h"
-#include "lib/stringinfo.h"
-#include "nodes/pg_list.h"
-#include "utils/array.h"
-#include "utils/builtins.h"
-#include "utils/lsyscache.h"
+// postgres.h must be included prior to other headers.
+#include <postgres.h>
+// These surrounding comments will ensure that the header order is not changed by clang-format.
+#include <catalog/pg_type.h>
+#include <lib/stringinfo.h>
+#include <nodes/pg_list.h>
+#include <utils/array.h>
+#include <utils/builtins.h>
+#include <utils/lsyscache.h>
 
 } // extern "C"
 

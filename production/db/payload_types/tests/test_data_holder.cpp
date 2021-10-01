@@ -6,7 +6,7 @@
 #include <iostream>
 #include <string>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "data_holder.hpp"
 

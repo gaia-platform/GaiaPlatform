@@ -7,7 +7,7 @@
 
 #include <type_traits>
 
-#include "flatbuffers/flatbuffers.h"
+#include <flatbuffers/flatbuffers.h>
 
 #include "gaia/direct_access/edc_object.hpp"
 

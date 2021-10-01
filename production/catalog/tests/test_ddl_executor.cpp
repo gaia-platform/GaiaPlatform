@@ -8,7 +8,7 @@
 #include <set>
 #include <vector>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/direct_access/auto_transaction.hpp"
 
@@ -36,8 +36,7 @@ gaia_relationship_t find_relationship(
 
     auto it = std::find_if(
         out_relationships.begin(), out_relationships.end(),
-        [&](gaia_relationship_t& relationship)
-        {
+        [&](gaia_relationship_t& relationship) {
             return relationship.to_child_link_name() == field_name;
         });
 
@@ -50,8 +49,7 @@ gaia_relationship_t find_relationship(
 
     it = std::find_if(
         in_relationships.begin(), in_relationships.end(),
-        [&](gaia_relationship_t& relationship)
-        {
+        [&](gaia_relationship_t& relationship) {
             return relationship.to_parent_link_name() == field_name;
         });
 
@@ -584,8 +582,7 @@ TEST_F(ddl_executor_test, list_indexes)
         gaia_table_t::get(table_id).gaia_fields().begin(),
         gaia_table_t::get(table_id).gaia_fields().end(),
         back_inserter(unique_settings),
-        [](const auto& field) -> bool
-        { return field.unique(); });
+        [](const auto& field) -> bool { return field.unique(); });
 
     vector<bool> expected_unique_settings{true, false, false};
     ASSERT_EQ(unique_settings, expected_unique_settings);

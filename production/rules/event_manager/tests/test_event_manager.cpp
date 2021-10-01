@@ -8,7 +8,7 @@
 
 #include <unordered_map>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/direct_access/edc_base.hpp"
 #include "gaia/rules/rules.hpp"

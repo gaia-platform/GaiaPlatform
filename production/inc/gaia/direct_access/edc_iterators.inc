@@ -5,13 +5,6 @@
 
 #include <utility>
 
-#include "edc_iterators.hpp"
-
-namespace gaia
-{
-namespace direct_access
-{
-
 //
 // Implementation for edc_iterator_t.
 //
@@ -360,6 +353,3 @@ size_t reference_chain_container_t<T_child>::size() const
 {
     return std::distance(begin(), end());
 }
-
-} // namespace direct_access
-} // namespace gaia

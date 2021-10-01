@@ -173,7 +173,7 @@ private:
         common::gaia_id_t deleted_id = common::c_invalid_gaia_id);
 };
 
+#include "db_client.inc"
+
 } // namespace db
 } // namespace gaia
-
-#include "db_client.inc"

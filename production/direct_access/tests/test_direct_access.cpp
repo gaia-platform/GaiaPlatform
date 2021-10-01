@@ -8,7 +8,7 @@
 #include <iostream>
 #include <thread>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 

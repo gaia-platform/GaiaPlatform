@@ -1,3 +1,8 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 template <typename T_structure>
 index_generator_t<T_structure>::index_generator_t(std::recursive_mutex& mutex, T_structure& data, gaia_txn_id_t txn_id)
     : m_initialized(false), m_index_lock(mutex), m_it(data.cbegin()), m_end(data.cend()), m_txn_id(txn_id)
