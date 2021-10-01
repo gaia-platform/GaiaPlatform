@@ -139,6 +139,6 @@ add_gaia_sdk_gtest(
   RULESET_FILE "${RULESET_PREFIX}/test_amr_swarm.ruleset"
   DATABASE_NAME "amr_swarm"
   PREVIOUS_TARGET_NAME "test_connect_disconnect_ruleset"
-  TARGET_SOURCES "tests/test_amr_swarm.cpp;${RULES_TEST_HELPERS}"
+  TARGET_SOURCES "tests/test_amr_swarm.cpp;tests/bot_commands.cpp;tests/bot_helpers.cpp;${RULES_TEST_HELPERS}"
   TARGET_INCLUDES "${TEST_INCLUDES}"
 )

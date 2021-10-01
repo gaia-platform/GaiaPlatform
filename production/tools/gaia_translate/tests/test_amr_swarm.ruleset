@@ -9,6 +9,8 @@
 
 #include "gaia/logger.hpp"
 
+#include "bot_commands.hpp"
+#include "bot_helpers.hpp"
 #include "constants.hpp"
 #include "exceptions.hpp"
 #include "gaia_amr_swarm.h"
@@ -47,21 +49,18 @@ ruleset amr_swarm_ruleset
     on_insert(bot_arrived_at_charging_station_event)
     {
         // GAIAPLAT-1461
-        // This won't create valid C++ code yet.
-        // Uncomment when fixed.
-        /*
+        // This created invalid C++ code.
         for (/C:configuration)
         {
             if (C.main_pallet_bot->robot.id == R:robot.id)
             {
-                    temp_main_pallet_bot = R;
+                temp_main_pallet_bot = R;
             }
             else if (C.left_widget_bot->robot.id == RR:robot.id)
             {
-                    temp_left_widget_bot = RR;
+                temp_left_widget_bot = RR;
             }
         }
-        */
     }
 
     on_insert(setup_complete_event)
@@ -135,7 +134,6 @@ ruleset amr_swarm_ruleset
         temp_right_widget_bot = right_widget_bot;
         fprintf(stderr, "setup_complete_event: %d\n", __LINE__);
     }
-#if 0 
 
     on_insert(bot_picked_up_payload_event)
     {
@@ -1292,5 +1290,4 @@ ruleset amr_swarm_ruleset
 
         gaia_log::app().info("<<on_insert(bot_is_charged_event)");
     }
-#endif
 }

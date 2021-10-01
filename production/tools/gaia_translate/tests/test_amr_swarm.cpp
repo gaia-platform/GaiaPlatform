@@ -49,29 +49,62 @@ constexpr uint16_t c_robot3_id = 3;
 constexpr uint32_t c_pallet_capacity = 10;
 constexpr uint32_t c_widget_capacity = 10;
 constexpr float c_max_charge = 1.0;
+constexpr char c_sandbox[] = "sand01";
 
 TEST_F(test_amr_swarm, setup_complete_event)
 {
-    gaia::rules::subscribe_ruleset("amr_swarm_ruleset");
+    subscribe_ruleset("amr_swarm_ruleset");
 
-    gaia::db::begin_transaction();
+    begin_transaction();
 
     // Initial conditions require a Charging station, a Widget robot type, a Pallet robot type,
     // a pallet bot and two widget bots.
-    station_type_t::insert_row((uint8_t)station_types::Charging, "sand01", 0, 8);
-    station_t::insert_row(c_station_type_id, "sand01", (uint8_t)station_types::Charging);
+    station_type_t::insert_row((uint8_t)station_types::Charging, c_sandbox, 0, 8);
+    station_t::insert_row(c_station_type_id, c_sandbox, (uint8_t)station_types::Charging);
 
-    robot_type_t::insert_row((uint8_t)robot_types::Pallet, "sand01", c_pallet_capacity, 0);
-    robot_t::insert_row(c_robot1_id, "robot01", c_max_charge, false, true, false, (uint8_t)robot_types::Pallet, c_station_type_id);
+    robot_type_t::insert_row((uint8_t)robot_types::Pallet, c_sandbox, c_pallet_capacity, 0);
+    robot_t::insert_row(c_robot1_id, c_sandbox, c_max_charge, false, true, false, (uint8_t)robot_types::Pallet, c_station_type_id);
 
-    robot_type_t::insert_row((uint8_t)robot_types::Widget, "sand01", 0, c_widget_capacity);
-    robot_t::insert_row(c_robot2_id, "robot02", c_max_charge, false, true, false, (uint8_t)robot_types::Widget, c_station_type_id);
-    robot_t::insert_row(c_robot3_id, "robot03", c_max_charge, false, true, false, (uint8_t)robot_types::Widget, c_station_type_id);
+    robot_type_t::insert_row((uint8_t)robot_types::Widget, c_sandbox, 0, c_widget_capacity);
+    robot_t::insert_row(c_robot2_id, c_sandbox, c_max_charge, false, true, false, (uint8_t)robot_types::Widget, c_station_type_id);
+    robot_t::insert_row(c_robot3_id, c_sandbox, c_max_charge, false, true, false, (uint8_t)robot_types::Widget, c_station_type_id);
 
     // The setup_complete_event row causes the setup rule to fire.
     setup_complete_event_t::insert_row(0);
 
-    gaia::db::commit_transaction();
+    commit_transaction();
 
-    gaia::rules::test::wait_for_rules_to_complete();
+    test::wait_for_rules_to_complete();
+
+    // Look for expected results of the rule.
+    begin_transaction();
+
+    // Obtain the configuration row.
+    configuration_t configuration;
+    int counter = 0;
+    for (const configuration_t& c : configuration_t::list())
+    {
+        ++counter;
+        configuration = c;
+    }
+    EXPECT_EQ(counter, 1) << "Wrong number of configuration rows.";
+
+    // Expect 3 robots.
+    counter = 0;
+    for (const auto& robot : configuration.robots())
+    {
+        EXPECT_EQ(robot.station_id(), c_station_type_id);
+        ++counter;
+    }
+    EXPECT_EQ(counter, 3) << "Wrong number of robots";
+
+    // Expect one robot connected to each of the next 3 relationships.
+    auto robot = configuration.main_pallet_bot();
+    EXPECT_EQ(robot.id(), c_robot1_id);
+    robot = configuration.left_widget_bot();
+    EXPECT_EQ(robot.id(), c_robot2_id);
+    robot = configuration.right_widget_bot();
+    EXPECT_EQ(robot.id(), c_robot3_id);
+
+    commit_transaction();
 }
