@@ -95,12 +95,12 @@ void gaia::system::shutdown()
         if (gaia::db::is_session_open())
         {
             gaia_log::sys().warn(
-                "System was shut down with an open session!");
+                "A system shutdown was initiated while a session was open.");
 
             if (gaia::db::is_transaction_open())
             {
                 gaia_log::sys().warn(
-                    "System was shut down with an open transaction!");
+                    "A system shutdown was initiated while a transaction was open.");
                 gaia::db::rollback_transaction();
             }
 
@@ -110,7 +110,7 @@ void gaia::system::shutdown()
     catch (const std::exception& e)
     {
         gaia_log::sys().warn(
-            "Exception while shutting down database: '{}'.", e.what());
+            "An exception occurred while shutting down the database: '{}'.", e.what());
     }
     gaia_log::shutdown();
 }
