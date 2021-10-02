@@ -28,13 +28,13 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   # We build the SDK with libc++ in debug mode.
   add_compile_options(-stdlib=libc++)
   add_link_options(-stdlib=libc++)
-  add_compile_options(-O0 -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf)
+  add_compile_options(-O0 -g3 -ggdb -fno-omit-frame-pointer -funwind-tables -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf)
   if(SANITIZER STREQUAL "ASAN")
     add_compile_options(-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all)
     add_link_options(-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all)
   endif()
 else()
-  add_compile_options(-O3)
+  add_compile_options(-O3 -funwind-tables -fno-omit-frame-pointer -gline-tables-only)
 endif()
 
 set(ITERATOR_STRESS_TEST_DDL ${PROJECT_SOURCE_DIR}/iterator_stress_test.ddl)
@@ -54,6 +54,8 @@ add_executable(iterator_stress_test
 )
 
 target_add_gaia_generated_sources(iterator_stress_test)
+target_sources(iterator_stress_test PRIVATE
+  "${GAIA_REPO}/production/inc/gaia_internal/common/backward.cpp")
 target_include_directories(iterator_stress_test PRIVATE ${GAIA_INC})
 target_link_directories(iterator_stress_test PRIVATE ${GAIA_LIB_DIR})
 target_link_libraries(iterator_stress_test PRIVATE gaia rt Threads::Threads)
