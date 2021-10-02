@@ -3,6 +3,11 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+inline bool client_t::is_session_open()
+{
+    return (s_session_socket != -1);
+}
+
 inline bool client_t::is_transaction_open()
 {
     return (s_private_locators.is_set());
