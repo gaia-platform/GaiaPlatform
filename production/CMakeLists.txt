@@ -434,7 +434,7 @@ include(cmake/gaia_version.cmake)
 
 # Customize test commands.
 file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
-  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_db_server> --persistence disabled\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_db_server\")\n"
+  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_db_server_exec> --persistence disabled\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_db_server\")\n"
 )
 
 # Copy log configuration file to make it visible during
