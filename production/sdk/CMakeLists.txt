@@ -176,7 +176,11 @@ install(FILES ${GAIA_REPO}/production/examples/incubator/incubator.ddl DESTINATI
 install(FILES ${GAIA_REPO}/production/examples/incubator/incubator.ruleset DESTINATION examples/incubator)
 install(FILES ${GAIA_REPO}/production/examples/incubator/incubator.cpp DESTINATION examples/incubator)
 install(FILES ${GAIA_REPO}/production/examples/incubator/README.md DESTINATION examples/incubator)
-install(FILES ${GAIA_REPO}/production/examples/incubator/CMakeLists.txt DESTINATION examples/incubator)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  install(FILES ${GAIA_REPO}/production/examples/incubator/CMakeLists_debug.txt DESTINATION examples/incubator RENAME CMakeLists.txt)
+else()
+  install(FILES ${GAIA_REPO}/production/examples/incubator/CMakeLists.txt DESTINATION examples/incubator)
+endif()
 
 # Place license files.
 install(FILES ${GAIA_REPO}/production/licenses/LICENSE.third-party.txt DESTINATION .)
