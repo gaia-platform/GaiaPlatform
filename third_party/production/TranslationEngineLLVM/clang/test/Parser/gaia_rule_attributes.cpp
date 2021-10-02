@@ -277,6 +277,8 @@ ruleset test79
     {
         actuator.value += value/2; // expected-error {{Duplicate field 'value' found in multiple tables. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifying them in the ruleset 'tables' attribute.}}
                                    // expected-error@-1 {{use of undeclared identifier 'value'}}
+                                   // expected-note@-2 {{'actuator__type::value' declared here}}
+                                   // expected-error@-3 {{invalid use of non-static data member 'value'}}
     }
 }
 
@@ -352,4 +354,3 @@ ruleset test109
         incubator.min_temp = incubator.max_temp;
     }
 }
-

@@ -59,6 +59,7 @@ class client_t
     friend class gaia::db::query_processor::db_client_proxy_t;
 
 public:
+    static inline bool is_session_open();
     static inline bool is_transaction_open();
 
     /**

@@ -90,6 +90,26 @@ void gaia::system::shutdown()
     // Shutdown in reverse order of initialization. Shutdown functions should
     // not fail even if the component has not been initialized.
     gaia::rules::shutdown_rules_engine();
-    gaia::db::end_session();
+    try
+    {
+        // We expect the session opened by gaia::system::initialize() on the
+        // main thread to still be open, but don't want to fail if it's not.
+        if (gaia::db::is_session_open())
+        {
+            if (gaia::db::is_transaction_open())
+            {
+                gaia_log::sys().warn(
+                    "A system shutdown was initiated while a transaction was open.");
+                gaia::db::rollback_transaction();
+            }
+
+            gaia::db::end_session();
+        }
+    }
+    catch (const gaia::common::gaia_exception& e)
+    {
+        gaia_log::sys().warn(
+            "An exception occurred while shutting down the database: '{}'.", e.what());
+    }
     gaia_log::shutdown();
 }

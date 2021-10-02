@@ -233,6 +233,13 @@ public:
 };
 
 /**
+ * \brief Returns true if a session is open in this thread.
+ *
+ * \return true if a session has been opened in this thread, false otherwise.
+ */
+bool is_session_open();
+
+/**
  * \brief Returns true if a transaction is open in this session.
  *
  * \return true if a transaction has been opened in this session, false otherwise.
@@ -256,6 +263,7 @@ void begin_session();
  * releases session-owned resources on both the client and the server.
  *
  * \exception gaia::db::no_open_session no session is open in this thread.
+ * \exception gaia::db::transaction_in_progress call commit_transaction() or rollback_transaction() before closing this session.
  */
 void end_session();
 
