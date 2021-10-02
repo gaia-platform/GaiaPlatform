@@ -18,7 +18,7 @@ find_package(Threads REQUIRED)
 include("/opt/gaia/cmake/gaia.cmake")
 
 # Default compiler/linker flags.
-add_compile_options(-Wall -Wextra -O0 -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf -stdlib=libc++)
+add_compile_options(-Wall -Wextra -O0 -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all -stdlib=libc++)
 add_link_options(-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all -stdlib=libc++)
 
 set(INCUBATOR_DDL ${PROJECT_SOURCE_DIR}/incubator.ddl)
