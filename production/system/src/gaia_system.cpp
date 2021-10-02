@@ -92,11 +92,10 @@ void gaia::system::shutdown()
     gaia::rules::shutdown_rules_engine();
     try
     {
+        // We expect the session opened by gaia::system::initialize() on the
+        // main thread to still be open, but don't want to fail if it's not.
         if (gaia::db::is_session_open())
         {
-            gaia_log::sys().warn(
-                "A system shutdown was initiated while a session was open.");
-
             if (gaia::db::is_transaction_open())
             {
                 gaia_log::sys().warn(
@@ -107,7 +106,7 @@ void gaia::system::shutdown()
             gaia::db::end_session();
         }
     }
-    catch (const std::exception& e)
+    catch (const gaia::common::gaia_exception& e)
     {
         gaia_log::sys().warn(
             "An exception occurred while shutting down the database: '{}'.", e.what());
