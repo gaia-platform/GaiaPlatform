@@ -64,23 +64,29 @@ set(CPACK_DEBIAN_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${CPAC
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   # We only link libc++ in Debug builds.
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "cmake,clang-10,lld-10,libc++-10-dev,libc++abi-10-dev")
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "clang-10,lld-10,libc++-10-dev,libc++abi-10-dev")
   # REVIEW (GAIAPLAT-1474): When CPack correctly applies
   # CPACK_DEBIAN_PACKAGE_RECOMMENDS, then uncomment the following 2 lines and
   # remove the preceding definition of CPACK_DEBIAN_PACKAGE_DEPENDS.
   # set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc++1-10,libc++abi1-10")
-  # set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "cmake,clang-10,lld-10,libc++-10-dev,libc++abi-10-dev")
+  # set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "clang-10,lld-10,libc++-10-dev,libc++abi-10-dev")
+  # REVIEW: CMake ideally would be an included dependency, but Kitware does not
+  # version their CMake debian packages, so it is impossible to avoid clobbering
+  # newer versions of CMake if we include it in CPACK_DEBIAN_PACKAGE_DEPENDS.
+  # Once CPack respects CPACK_DEBIAN_PACKAGE_RECOMMENDS and
+  # CPACK_DEBIAN_PACKAGE_SUGGESTS, we could consider including CMake as a
+  # "Recommends" or "Suggests" dependency.
 else()
   # We use libstdc++ in Release builds for compatibility with other software
   # built with libstdc++ (which is the default stdlib in both gcc and clang).
   # GCC 9 is installed by default on Ubuntu 20.04 with the build-essential
   # package, so we try to be compatible with that.
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "cmake,clang-10,lld-10,libstdc++-9-dev")
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "clang-10,lld-10,libstdc++-9-dev")
   # REVIEW (GAIAPLAT-1474): When CPack correctly applies
   # CPACK_DEBIAN_PACKAGE_RECOMMENDS, then uncomment the following 2 lines and
   # remove the preceding definition of CPACK_DEBIAN_PACKAGE_DEPENDS.
   # set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6")
-  # set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "cmake,clang-10,lld-10,libstdc++-9-dev")
+  # set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "clang-10,lld-10,libstdc++-9-dev")
 endif()
 
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
