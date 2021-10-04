@@ -9,8 +9,8 @@
 #include <sstream>
 #include <string>
 
-#include "flatbuffers/idl.h"
-#include "flatbuffers/util.h"
+#include <flatbuffers/idl.h>
+#include <flatbuffers/util.h>
 
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/retail_assert.hpp"

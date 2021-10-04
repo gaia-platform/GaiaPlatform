@@ -10,21 +10,21 @@
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
-#include "clang/AST/ASTConsumer.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Attr.h"
-#include "clang/AST/RecursiveASTVisitor.h"
-#include "clang/ASTMatchers/ASTMatchFinder.h"
-#include "clang/ASTMatchers/ASTMatchers.h"
-#include "clang/Basic/DiagnosticOptions.h"
-#include "clang/Basic/DiagnosticSema.h"
-#include "clang/Driver/Options.h"
-#include "clang/Frontend/CompilerInstance.h"
-#include "clang/Frontend/FrontendAction.h"
-#include "clang/Frontend/TextDiagnosticPrinter.h"
-#include "clang/Rewrite/Core/Rewriter.h"
-#include "clang/Tooling/CommonOptionsParser.h"
-#include "clang/Tooling/Tooling.h"
+#include <clang/AST/ASTConsumer.h>
+#include <clang/AST/ASTContext.h>
+#include <clang/AST/Attr.h>
+#include <clang/AST/RecursiveASTVisitor.h>
+#include <clang/ASTMatchers/ASTMatchFinder.h>
+#include <clang/ASTMatchers/ASTMatchers.h>
+#include <clang/Basic/DiagnosticOptions.h>
+#include <clang/Basic/DiagnosticSema.h>
+#include <clang/Driver/Options.h>
+#include <clang/Frontend/CompilerInstance.h>
+#include <clang/Frontend/FrontendAction.h>
+#include <clang/Frontend/TextDiagnosticPrinter.h>
+#include <clang/Rewrite/Core/Rewriter.h>
+#include <clang/Tooling/CommonOptionsParser.h>
+#include <clang/Tooling/Tooling.h>
 #pragma clang diagnostic pop
 
 #include "gaia_internal/common/gaia_version.hpp"
@@ -291,9 +291,36 @@ bool is_tag_defined(const unordered_map<string, string>& tag_map, const string& 
     return false;
 }
 
-void optimize_path(vector<explicit_path_data_t>& path, explicit_path_data_t& path_segment)
+bool can_path_be_optimized(const string& path_first_component, const vector<explicit_path_data_t>& path_data)
+{
+    for (const auto& path_iterator : path_data)
+    {
+        if (is_tag_defined(path_iterator.defined_tags, path_first_component))
+        {
+            return true;
+        }
+
+        if (path_iterator.tag_table_map.find(path_first_component) != path_iterator.tag_table_map.end())
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void optimize_path(vector<explicit_path_data_t>& path, explicit_path_data_t& path_segment, bool is_explicit_path_data_stored)
 {
     string first_table = get_table_from_expression(path_segment.path_components.front());
+    const auto tag_iterator = path_segment.tag_table_map.find(first_table);
+
+    if (tag_iterator != path_segment.tag_table_map.end()
+        && (tag_iterator->second != tag_iterator->first
+            || (is_explicit_path_data_stored && can_path_be_optimized(first_table, path))))
+    {
+        path_segment.skip_implicit_path_generation = true;
+    }
+
     for (auto& path_iterator : path)
     {
         if (is_tag_defined(path_iterator.defined_tags, first_table))
@@ -301,6 +328,7 @@ void optimize_path(vector<explicit_path_data_t>& path, explicit_path_data_t& pat
             path_segment.skip_implicit_path_generation = true;
             return;
         }
+
         if (is_tag_defined(path_segment.defined_tags, get_table_from_expression(path_iterator.path_components.front())))
         {
             path_iterator.skip_implicit_path_generation = true;
@@ -735,7 +763,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                         //Check if a declaration has table references that is not an anchor table.
                         if ((!insert_table.empty() && insert_table == table_name)
                             || (data_iterator->path_components.size() == 1
-                            && table_name == anchor_table_name && !data_iterator->is_absolute_path))
+                                && table_name == anchor_table_name && !data_iterator->is_absolute_path))
                         {
                             auto declaration_source_range_size = variable_declaration_range_iterator.first.getEnd().getRawEncoding() - variable_declaration_range_iterator.first.getBegin().getRawEncoding();
                             auto min_declaration_source_range_size = variable_declaration_range.getEnd().getRawEncoding() - variable_declaration_range.getBegin().getRawEncoding();
@@ -759,7 +787,8 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 continue;
             }
 
-            if (data_iterator->skip_implicit_path_generation && data_iterator->path_components.size() == 1)
+            if (data_iterator->skip_implicit_path_generation && data_iterator->path_components.size() == 1
+                && break_label.empty() && continue_label.empty() && nomatch_range.isInvalid())
             {
                 continue;
             }
@@ -767,12 +796,16 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
             // Set the source location to print out diagnostics on a line close to where an error
             // might be reported.
             gaiat::diag().set_location(explicit_path_data_iterator.first.getBegin());
-            navigation_code_data_t navigation_code = table_navigation_t::generate_explicit_navigation_code(
-                anchor_table, *data_iterator);
-            if (navigation_code.prefix.empty())
+            navigation_code_data_t navigation_code;
+            if (!(data_iterator->skip_implicit_path_generation && data_iterator->path_components.size() == 1))
             {
-                g_is_generation_error = true;
-                return;
+                navigation_code = table_navigation_t::generate_explicit_navigation_code(
+                    anchor_table, *data_iterator);
+                if (navigation_code.prefix.empty())
+                {
+                    g_is_generation_error = true;
+                    return;
+                }
             }
 
             // The following code
@@ -1547,23 +1580,6 @@ bool should_expression_location_be_merged(ASTContext* context, const Stmt& node,
     return true;
 }
 
-bool can_path_be_optimized(const string& path_first_component, const vector<explicit_path_data_t>& path_data)
-{
-    for (const auto& path_iterator : path_data)
-    {
-        if (is_tag_defined(path_iterator.defined_tags, path_first_component))
-        {
-            return true;
-        }
-        if (path_iterator.tag_table_map.find(path_first_component) != path_iterator.tag_table_map.end())
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 void update_expression_explicit_path_data(
     ASTContext* context,
     const Stmt* node,
@@ -1592,7 +1608,7 @@ void update_expression_explicit_path_data(
                 {
                     return;
                 }
-                optimize_path(expression_explicit_path_data_iterator.second, data);
+                optimize_path(expression_explicit_path_data_iterator.second, data, explicit_path_data_iterator != g_expression_explicit_path_data.end());
                 if (expression_explicit_path_data_iterator.first == expression_source_range
                     || should_expression_location_be_merged(context, *node))
                 {
@@ -2551,6 +2567,13 @@ public:
         {
             return;
         }
+
+        if (ruleset_declaration->getSourceRange().isInvalid())
+        {
+            g_is_generation_error = true;
+            return;
+        }
+
         if (!g_current_ruleset.empty())
         {
             g_generated_subscription_code
@@ -3588,6 +3611,11 @@ public:
 
     void EndSourceFile() override
     {
+        if (g_is_generation_error)
+        {
+            return;
+        }
+
         if (!g_translation_engine_output_option.empty())
         {
             std::remove(g_translation_engine_output_option.c_str());

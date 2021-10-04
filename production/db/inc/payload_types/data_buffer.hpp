@@ -10,7 +10,7 @@
 
 #include <vector>
 
-#include "flatbuffers/flatbuffers.h"
+#include <flatbuffers/flatbuffers.h>
 
 namespace gaia
 {

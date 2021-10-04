@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/common.hpp"
 #include "gaia/direct_access/auto_transaction.hpp"

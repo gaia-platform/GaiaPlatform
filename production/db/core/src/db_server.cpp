@@ -17,7 +17,6 @@
 #include <thread>
 #include <unordered_set>
 
-#include "gaia_spdlog/fmt/fmt.h"
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 
@@ -32,6 +31,8 @@
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 #include "gaia_internal/db/index_builder.hpp"
+
+#include "gaia_spdlog/fmt/fmt.h"
 
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"

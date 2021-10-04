@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include <gaia_spdlog/spdlog.h>
-
 #include "gaia/exception.hpp"
+
+#include "gaia_spdlog/spdlog.h"
 
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)

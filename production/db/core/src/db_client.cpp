@@ -12,7 +12,6 @@
 #include <thread>
 
 #include <flatbuffers/flatbuffers.h>
-#include <gaia_spdlog/fmt/fmt.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -26,6 +25,8 @@
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
+
+#include "gaia_spdlog/fmt/fmt.h"
 
 #include "client_messenger.hpp"
 #include "db_helpers.hpp"
@@ -317,6 +318,9 @@ void client_t::begin_session(config::session_options_t session_options)
 
 void client_t::end_session()
 {
+    verify_session_active();
+    verify_no_txn();
+
     // This will gracefully shut down the server-side session thread
     // and all other threads that session thread owns.
     close_fd(s_session_socket);

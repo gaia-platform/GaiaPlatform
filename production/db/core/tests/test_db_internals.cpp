@@ -5,7 +5,7 @@
 
 #include <iostream>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "mapped_data.hpp"
 

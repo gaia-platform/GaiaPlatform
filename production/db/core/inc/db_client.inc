@@ -3,10 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-namespace gaia
+inline bool client_t::is_session_open()
 {
-namespace db
-{
+    return (s_session_socket != -1);
+}
 
 inline bool client_t::is_transaction_open()
 {
@@ -175,6 +175,3 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
         return next_value;
     };
 }
-
-} // namespace db
-} // namespace gaia

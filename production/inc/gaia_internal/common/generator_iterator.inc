@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
-
 template <typename T_output>
 std::optional<T_output> generator_t<T_output>::operator()()
 {

@@ -59,6 +59,7 @@ class client_t
     friend class gaia::db::query_processor::db_client_proxy_t;
 
 public:
+    static inline bool is_session_open();
     static inline bool is_transaction_open();
 
     /**
@@ -172,7 +173,7 @@ private:
         common::gaia_id_t deleted_id = common::c_invalid_gaia_id);
 };
 
+#include "db_client.inc"
+
 } // namespace db
 } // namespace gaia
-
-#include "db_client.inc"

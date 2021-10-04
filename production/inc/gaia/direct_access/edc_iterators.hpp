@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <utility>
+
 #include "gaia/direct_access/edc_base.hpp"
 
 // Export all symbols declared in this file.
@@ -192,15 +194,15 @@ private:
     common::reference_offset_t m_next_offset;
 };
 
-/*@}*/
-} // namespace direct_access
-/*@}*/
-} // namespace gaia
-
 // Pick up our template implementation. These still need to be in the header so
 // that template specializations that are declared later will pick up the
 // definitions.
 #include "edc_iterators.inc"
+
+/*@}*/
+} // namespace direct_access
+/*@}*/
+} // namespace gaia
 
 // Restore default hidden visibility for all symbols.
 #pragma GCC visibility pop

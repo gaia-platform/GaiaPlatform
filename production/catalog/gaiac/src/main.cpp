@@ -10,7 +10,7 @@
 #include <iostream>
 #include <string>
 
-#include "flatbuffers/idl.h"
+#include <flatbuffers/idl.h>
 
 #include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
@@ -399,8 +399,7 @@ int main(int argc, char* argv[])
     gaia::db::config::set_default_session_options(session_options);
 
     const auto cleanup = scope_guard::make_scope_guard(
-        [&server]()
-        {
+        [&server]() {
             gaia::db::end_session();
             if (server.is_initialized())
             {

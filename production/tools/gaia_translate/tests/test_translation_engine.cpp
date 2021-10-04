@@ -2,9 +2,10 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #include <unistd.h>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/rules/rules.hpp"
 
@@ -25,6 +26,7 @@ extern std::atomic<int32_t> g_update_sensor_value_called;
 extern std::atomic<int32_t> g_update_min_temp_called;
 extern std::atomic<int32_t> g_update_max_temp_called;
 extern std::atomic<int32_t> g_actuator_rule_called;
+extern std::atomic<int32_t> g_rule_navigation_loop_count;
 
 const float c_g_incubator_min_temperature = 99.0;
 const float c_g_incubator_max_temperature = 102.0;
@@ -177,4 +179,30 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
     s.delete_row();
 
     gaia::db::commit_transaction();
+}
+
+
+TEST_F(translation_engine_test, test_navigation_looping)
+{
+    init_storage();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    EXPECT_EQ(g_rule_navigation_loop_count, 2);
+
+    gaia::db::begin_transaction();
+
+    auto incubator = *(gaia::barn_storage::incubator_t::list().begin());
+
+    auto s_id = gaia::barn_storage::sensor_t::insert_row("TestSensor3", 0, 0.0);
+    incubator.sensors().insert(s_id);
+
+    gaia::barn_storage::incubator_writer w = incubator.writer();
+    w.max_temp = c_g_incubator_max_temperature - 1;
+    w.update_row();
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    EXPECT_EQ(g_rule_navigation_loop_count, 8);
 }
