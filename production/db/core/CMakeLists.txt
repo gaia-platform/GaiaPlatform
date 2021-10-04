@@ -163,7 +163,7 @@ set(GAIA_DB_SERVER_SOURCES
   src/catalog_core.cpp
   src/type_id_mapping.cpp)
 
-add_executable(gaia_db_server ${GAIA_DB_SERVER_SOURCES})
+add_library(gaia_db_server ${GAIA_DB_SERVER_SOURCES})
 add_dependencies(gaia_db_server
   "gaia_field.fbs"
   "gaia_index.fbs"
@@ -180,7 +180,6 @@ target_include_directories(gaia_db_server PRIVATE
 target_include_directories(gaia_db_server SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_db_server SYSTEM PRIVATE "${GEN_DIR}")
 
-# Suppress spurious warnings about zero-initialized structs.
 target_link_libraries(gaia_db_server
   PRIVATE
     ${LIB_CAP}
@@ -193,10 +192,20 @@ target_link_libraries(gaia_db_server
     gaia_memory_manager
     rocks_wrapper
 )
+
+add_executable(gaia_db_server_exec src/db_server_exec.cpp)
+configure_gaia_target(gaia_db_server_exec)
+set_target_properties(gaia_db_server_exec PROPERTIES OUTPUT_NAME gaia_db_server)
+target_include_directories(gaia_db_server_exec PRIVATE
+  "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
+  "${GAIA_DB_CORE_PRIVATE_INCLUDES}"
+  "${FLATBUFFERS_INC}"
+  "${GEN_DIR}")
+target_link_libraries(gaia_db_server_exec PRIVATE gaia_db_server)
 if(ENABLE_STACKTRACE)
-  target_link_libraries(gaia_db_server PRIVATE gaia_stack_trace)
+  target_link_libraries(gaia_db_server_exec PRIVATE gaia_stack_trace)
 endif()
-install(TARGETS gaia_db_server DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS gaia_db_server_exec DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 set(GAIA_DB_CORE_TEST_INCLUDES
   ${GAIA_DB_CORE_PUBLIC_INCLUDES}
