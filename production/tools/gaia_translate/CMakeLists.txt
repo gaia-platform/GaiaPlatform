@@ -28,6 +28,7 @@ link_directories(
 add_executable(gaiat ${GAIAT_SRCS})
 configure_gaia_target(gaiat)
 target_include_directories(gaiat PRIVATE ${TRANSLATION_ENGINE_INCLUDES})
+add_dependencies(gaiat gaia_db_server_exec)
 target_link_libraries(gaiat
   PRIVATE
   rt
