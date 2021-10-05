@@ -41,6 +41,7 @@ set(FBS_SOURCES
   "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_relationship.fbs"
   "${PROJECT_SOURCE_DIR}/src/flatbuffers/gaia_index.fbs")
 
+set(FBS_SOURCE_FILENAMES "")
 foreach(FBS_SOURCE ${FBS_SOURCES})
   get_filename_component(FBS_SOURCE_FILENAME ${FBS_SOURCE} NAME)
   string(REGEX REPLACE "\\.fbs$" "_generated.h" GEN_HEADER ${FBS_SOURCE_FILENAME})
@@ -55,6 +56,7 @@ foreach(FBS_SOURCE ${FBS_SOURCES})
     VERBATIM)
 
   add_custom_target(${FBS_SOURCE_FILENAME} ALL DEPENDS "${GEN_DIR}/${GEN_HEADER}")
+  list(APPEND FBS_SOURCE_FILENAMES ${FBS_SOURCE_FILENAME})
 endforeach(FBS_SOURCE)
 
 ###############################################
@@ -88,14 +90,7 @@ add_library(gaia_db_client STATIC
   src/index_builder.cpp
   src/txn_metadata.cpp)
 
-add_dependencies(gaia_db_client
-  "gaia_db_server"
-  "gaia_field.fbs"
-  "gaia_index.fbs"
-  "gaia_relationship.fbs"
-  "gaia_table.fbs"
-  "messages.fbs"
-)
+add_dependencies(gaia_db_client ${FBS_SOURCE_FILENAMES})
 configure_gaia_target(gaia_db_client)
 target_include_directories(gaia_db_client PUBLIC ${GAIA_DB_CORE_PUBLIC_INCLUDES})
 target_include_directories(gaia_db_client PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES})
@@ -164,13 +159,7 @@ set(GAIA_DB_SERVER_SOURCES
   src/type_id_mapping.cpp)
 
 add_library(gaia_db_server ${GAIA_DB_SERVER_SOURCES})
-add_dependencies(gaia_db_server
-  "gaia_field.fbs"
-  "gaia_index.fbs"
-  "gaia_relationship.fbs"
-  "gaia_table.fbs"
-  "messages.fbs"
-)
+add_dependencies(gaia_db_server ${FBS_SOURCE_FILENAMES})
 configure_gaia_target(gaia_db_server)
 target_include_directories(gaia_db_server PRIVATE
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
