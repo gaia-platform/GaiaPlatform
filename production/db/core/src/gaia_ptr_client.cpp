@@ -52,9 +52,9 @@ void gaia_ptr_t::reset()
 
 // This trivial implementation is necessary to avoid calling into client_t code from the header file.
 std::shared_ptr<generator_t<gaia_id_t>>
-gaia_ptr_t::get_id_generator_for_type(gaia_type_t type, gaia_txn_id_t txn_id)
+gaia_ptr_t::get_id_generator_for_type(gaia_type_t type)
 {
-    return client_t::get_id_generator_for_type(type, txn_id);
+    return client_t::get_id_generator_for_type(type);
 }
 
 bool gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)

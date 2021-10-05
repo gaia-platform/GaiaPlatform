@@ -294,7 +294,7 @@ private:
     template <typename T_element>
     static void start_stream_producer(int stream_socket, std::shared_ptr<common::iterators::generator_t<T_element>> generator);
 
-    static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> get_id_generator_for_type(common::gaia_type_t type, gaia_txn_id_t txn_id);
+    static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> get_id_generator_for_type(common::gaia_type_t type);
 
     static void get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds);
 

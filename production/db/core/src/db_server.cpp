@@ -515,9 +515,8 @@ void server_t::handle_request_stream(
     case request_data_t::table_scan:
     {
         auto type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
-        auto txn_id = static_cast<gaia_type_t>(request->data_as_table_scan()->txn_id());
 
-        start_stream_producer(server_socket, get_id_generator_for_type(type, txn_id));
+        start_stream_producer(server_socket, get_id_generator_for_type(type));
 
         break;
     }
@@ -542,7 +541,7 @@ void server_t::handle_request_stream(
             index::index_key_t key;
             {
                 // Create local snapshot to query catalog for key serialization schema.
-                bool apply_logs = true;
+                bool apply_logs = false;
                 create_local_snapshot(apply_logs);
                 auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
 
@@ -777,6 +776,7 @@ void server_t::init_indexes()
 void server_t::update_indexes_from_txn_log()
 {
     bool replay_logs = true;
+
     create_local_snapshot(replay_logs);
     auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
     index::index_builder_t::update_indexes_from_logs(*s_log.data(), s_server_conf.skip_catalog_integrity_checks());
@@ -1630,9 +1630,9 @@ void server_t::start_stream_producer(int stream_socket, std::shared_ptr<generato
         stream_producer_handler<T_element>, stream_socket, s_session_shutdown_eventfd, std::move(generator_fn));
 }
 
-std::shared_ptr<generator_t<gaia_id_t>> server_t::get_id_generator_for_type(gaia_type_t type, gaia_txn_id_t txn_id)
+std::shared_ptr<generator_t<gaia_id_t>> server_t::get_id_generator_for_type(gaia_type_t type)
 {
-    return std::make_shared<type_generator_t>(type, txn_id);
+    return std::make_shared<type_generator_t>(type);
 }
 
 void server_t::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts)
