@@ -55,6 +55,15 @@ namespace db
  * @{
  */
 
+class session_limit_exceeded : public common::gaia_exception
+{
+public:
+    session_limit_exceeded()
+    {
+        m_message = "Server session limit exceeded.";
+    }
+};
+
 namespace index
 {
 /**
