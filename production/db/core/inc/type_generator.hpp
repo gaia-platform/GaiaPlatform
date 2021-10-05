@@ -21,7 +21,7 @@ namespace db
 class type_generator_t : public common::iterators::generator_t<common::gaia_id_t>
 {
 public:
-    type_generator_t(common::gaia_type_t type);
+    type_generator_t(common::gaia_type_t type, gaia_txn_id_t txn_id);
 
     std::optional<common::gaia_id_t> operator()() final;
 
@@ -32,6 +32,7 @@ public:
 
 private:
     common::gaia_type_t m_type;
+    gaia_txn_id_t m_txn_id;
     storage::record_iterator_t m_iterator;
     bool m_is_initialized;
     // If a snapshot has not been created, we create it.

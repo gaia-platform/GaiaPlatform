@@ -108,7 +108,7 @@ generator_iterator_t<gaia_ptr_t>
 gaia_ptr_t::find_all_iterator(
     gaia_type_t type)
 {
-    return generator_iterator_t<gaia_ptr_t>(gaia_ptr_generator_t(get_id_generator_for_type(type)));
+    return generator_iterator_t<gaia_ptr_t>(gaia_ptr_generator_t(get_id_generator_for_type(type, get_current_txn_id())));
 }
 
 generator_range_t<gaia_ptr_t> gaia_ptr_t::find_all_range(

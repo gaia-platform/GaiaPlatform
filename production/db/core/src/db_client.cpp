@@ -46,7 +46,7 @@ std::shared_ptr<int> client_t::get_id_cursor_socket_for_type(gaia_type_t type)
 {
     // Build the cursor socket request.
     FlatBufferBuilder builder;
-    auto table_scan_info = Createtable_scan_info_t(builder, type);
+    auto table_scan_info = Createtable_scan_info_t(builder, type, s_txn_id);
     auto client_request = Createclient_request_t(
         builder, session_event_t::REQUEST_STREAM, request_data_t::table_scan, table_scan_info.Union());
     auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
@@ -134,7 +134,7 @@ client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::opt
 }
 
 std::shared_ptr<gaia::common::iterators::generator_t<gaia_id_t>>
-client_t::get_id_generator_for_type(gaia_type_t type)
+client_t::get_id_generator_for_type(gaia_type_t type, gaia_txn_id_t)
 {
     std::shared_ptr<int> stream_socket_ptr = get_id_cursor_socket_for_type(type);
 

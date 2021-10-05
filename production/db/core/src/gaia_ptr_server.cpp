@@ -39,9 +39,9 @@ gaia_offset_t gaia_ptr_t::to_offset() const
 }
 
 std::shared_ptr<generator_t<gaia_id_t>>
-gaia_ptr_t::get_id_generator_for_type(gaia_type_t type)
+gaia_ptr_t::get_id_generator_for_type(gaia_type_t type, gaia_txn_id_t txn_id)
 {
-    return server_t::get_id_generator_for_type(type);
+    return server_t::get_id_generator_for_type(type, txn_id);
 }
 
 } // namespace db

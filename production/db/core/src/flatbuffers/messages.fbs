@@ -28,6 +28,7 @@ enum session_event_t: uint8 {
 // FlatBuffers doesn't allow scalar fields in a union.
 table table_scan_info_t {
     type_id: uint64;
+    txn_id: uint64;
 }
 
 union index_query_t {index_range_query_t, index_point_read_query_t, index_equal_range_query_t}

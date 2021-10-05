@@ -83,7 +83,7 @@ public:
 
     // This returns a generator object for gaia_ids of a given type.
     static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>>
-    get_id_generator_for_type(common::gaia_type_t type);
+    get_id_generator_for_type(common::gaia_type_t type, gaia_txn_id_t txn_id);
 
     // This is a helper for higher-level methods that use
     // this generator to build a range or iterator object.

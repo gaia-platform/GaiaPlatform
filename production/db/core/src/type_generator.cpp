@@ -20,8 +20,8 @@ namespace gaia
 namespace db
 {
 
-type_generator_t::type_generator_t(gaia_type_t type)
-    : m_type(type), m_iterator(), m_is_initialized(false), m_manage_local_snapshot(false)
+type_generator_t::type_generator_t(gaia_type_t type, gaia_txn_id_t txn_id)
+    : m_type(type), m_txn_id(txn_id), m_iterator(), m_is_initialized(false), m_manage_local_snapshot(false)
 {
 }
 
@@ -38,7 +38,9 @@ std::optional<gaia_id_t> type_generator_t::operator()()
         // Also, set the flag to clear the snapshot if we opened it.
         if (!server_t::s_local_snapshot_locators.is_set())
         {
-            bool replay_logs = false;
+            ASSERT_INVARIANT(server_t::s_txn_id == c_invalid_gaia_txn_id, "txn_id already set!");
+            server_t::s_txn_id = m_txn_id;
+            bool replay_logs = true;
             server_t::create_local_snapshot(replay_logs);
             m_manage_local_snapshot = true;
         }
@@ -73,6 +75,7 @@ type_generator_t::~type_generator_t()
     if (m_manage_local_snapshot)
     {
         server_t::s_local_snapshot_locators.close();
+        server_t::s_txn_id = c_invalid_gaia_txn_id;
     }
 }
 
