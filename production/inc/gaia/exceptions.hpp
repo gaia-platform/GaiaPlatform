@@ -60,7 +60,7 @@ class session_limit_exceeded : public common::gaia_exception
 public:
     session_limit_exceeded()
     {
-        m_message = "The server's session limit would have been exceeded by accepting this connection.";
+        m_message = "Server session limit exceeded.";
     }
 };
 
