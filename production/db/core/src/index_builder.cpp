@@ -202,11 +202,16 @@ void update_index_entry(
                 }
             }
 
+            // Updates consist of a delete followed by an insertion.
+            // Exit if we encounter our own delete record.
+            if (it_start->second.deleted && it_start->second.txn_id == record.txn_id)
+            {
+                has_found_duplicate_key = false;
+                break;
+            }
+
             // The list we iterate over reflects the order of operations.
             // The key exists if the last seen operation is an insertion.
-            // Updates consist of a delete followed by an insertion
-            // and we perform this check only for insertions, so it should
-            // last see a deletion in this scenario too.
             has_found_duplicate_key = (it_start->second.deleted) ? false : true;
             ++it_start;
         }
