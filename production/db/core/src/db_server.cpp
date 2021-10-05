@@ -541,7 +541,7 @@ void server_t::handle_request_stream(
             index::index_key_t key;
             {
                 // Create local snapshot to query catalog for key serialization schema.
-                bool apply_logs = false;
+                bool apply_logs = true;
                 create_local_snapshot(apply_logs);
                 auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
 
