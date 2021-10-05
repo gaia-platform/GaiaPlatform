@@ -282,7 +282,7 @@ void rule_thread_pool_t::invoke_rule_inner(invocation_t& invocation)
             should_schedule = false;
             if (invocation.num_retries >= m_max_rule_retries)
             {
-                gaia_log::rules().error("serialization exception: '{}'", rule_id);
+                gaia_log::rules().error("'{}': Transaction update conflict.", rule_id);
                 throw;
             }
             else
