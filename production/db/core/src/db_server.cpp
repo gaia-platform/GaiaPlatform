@@ -889,6 +889,9 @@ void server_t::create_local_snapshot(bool apply_logs)
 
     if (apply_logs)
     {
+        ASSERT_PRECONDITION(
+            s_txn_id != c_invalid_gaia_txn_id && txn_metadata_t::is_txn_active(s_txn_id),
+            "create_local_snapshot() must be called from within an active transaction!");
         std::vector<int> txn_log_fds;
         get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds);
         auto cleanup_log_fds = make_scope_guard([&]() {
@@ -1192,19 +1195,22 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
                 {
                     throw_system_error("accept() failed!");
                 }
-                if (authenticate_client_socket(session_socket))
-                {
-                    // First reap any session threads that have terminated (to
-                    // avoid memory and system resource leaks).
-                    reap_exited_threads(s_session_threads);
 
-                    // Create session thread.
-                    s_session_threads.emplace_back(session_handler, session_socket);
-                }
-                else
+                if (s_session_threads.size() >= c_session_limit
+                    || !authenticate_client_socket(session_socket))
                 {
+                    // The connecting client will get ECONNRESET on their first
+                    // read from this socket.
                     close_fd(session_socket);
+                    continue;
                 }
+
+                // First reap any session threads that have terminated (to
+                // avoid memory and system resource leaks).
+                reap_exited_threads(s_session_threads);
+
+                // Create session thread.
+                s_session_threads.emplace_back(session_handler, session_socket);
             }
             else if (ev.data.fd == s_server_shutdown_eventfd)
             {

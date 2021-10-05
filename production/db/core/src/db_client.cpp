@@ -272,7 +272,20 @@ void client_t::begin_session(config::session_options_t session_options)
     build_client_request(builder, session_event_t::CONNECT);
 
     client_messenger_t client_messenger;
-    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 4);
+
+    // If we receive ECONNRESET from the server, we assume that the session
+    // limit was exceeded.
+    // REVIEW: distinguish authentication failure from "session limit exceeded"
+    // (authentication failure will also result in ECONNRESET, but
+    // authentication is currently disabled in the server).
+    try
+    {
+        client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 4);
+    }
+    catch (const gaia::common::peer_disconnected&)
+    {
+        throw session_limit_exceeded();
+    }
 
     // Set up scope guards for the fds.
     // The locators fd needs to be kept around, so its scope guard will be dismissed at the end of this scope.
