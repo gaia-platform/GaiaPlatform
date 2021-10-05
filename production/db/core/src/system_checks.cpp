@@ -3,19 +3,21 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
+#include "system_checks.hpp"
 
 #include <fcntl.h>
 
 #include <charconv>
 
+#include <iostream>
+
 #include <libexplain/getrlimit.h>
 #include <libexplain/open.h>
 #include <libexplain/read.h>
-#include <sys/resource.h>
 
 #include "gaia/exception.hpp"
 
+#include "gaia_internal/common/fd_helpers.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/system_error.hpp"
@@ -27,41 +29,14 @@ namespace db
 namespace os
 {
 
-// https://www.kernel.org/doc/html/latest/admin-guide/sysctl/vm.html says
-// the default is 65536, but Ubuntu seems to default to 65530.
-constexpr uint64_t c_min_vma_limit{65530};
-
-// https://man7.org/linux/man-pages/man2/getrlimit.2.html:
-// "This [RLIMIT_AS] is the maximum size of the process's virtual memory
-// (address space).  The limit is specified in bytes, and is
-// rounded down to the system page size."
-// NB: POSIX guarantees that rlim_t is an unsigned integer
-// (https://pubs.opengroup.org/onlinepubs/009695399/basedefs/sys/resource.h.html).
-constexpr uint64_t c_min_vm_limit{RLIM_INFINITY};
-
-// https://man7.org/linux/man-pages/man2/getrlimit.2.html: "This [RLIMIT_NOFILE]
-// specifies a value one greater than the maximum file descriptor number that
-// can be opened by this process."
-// NB: (2^16 - 1) is the "invalid" value of a txn log fd, so the maximum valid
-// value of a txn log fd is (2^16 - 2). Also, we plan to support up to 2^7
-// sessions (to avoid exhausting virtual memory), and each session requires a
-// few fds for its socket fd, epoll fd, cancellation eventfd, server-side txn
-// log fd, etc., so (2^16 - 1 + 512) seems to be a reasonable minimum hard
-// limit. (The default hard limit on Ubuntu 20.04, as reported by `prlimit -n`,
-// seems to be 2^20, while the default soft limit seems to be 2^10, so a soft
-// limit of (2^16 + 511) is compatible with our preferred platform, in the sense
-// that it should not require any reconfiguration by a privileged
-// administrator.)
-constexpr uint64_t c_min_fd_limit{std::numeric_limits<uint16_t>::max() + 512};
-
-inline bool is_little_endian()
+bool is_little_endian()
 {
     uint32_t val = 1;
     uint8_t least_significant_byte = *(reinterpret_cast<uint8_t*>(&val));
     return (least_significant_byte == val);
 }
 
-inline uint64_t read_integer_from_proc_fd(int proc_fd)
+static uint64_t read_integer_from_proc_fd(int proc_fd)
 {
     char digits[16];
     ssize_t bytes_read = ::read(proc_fd, &digits, sizeof(digits));
@@ -83,7 +58,7 @@ inline uint64_t read_integer_from_proc_fd(int proc_fd)
     return static_cast<uint64_t>(value);
 }
 
-inline bool is_overcommit_unlimited()
+bool is_overcommit_unlimited()
 {
     // See https://www.kernel.org/doc/html/latest/admin-guide/sysctl/vm.html and
     // https://www.kernel.org/doc/Documentation/vm/overcommit-accounting.
@@ -107,7 +82,7 @@ inline bool is_overcommit_unlimited()
     return true;
 }
 
-inline bool check_vma_limit()
+bool check_vma_limit()
 {
     // See https://www.kernel.org/doc/html/latest/admin-guide/sysctl/vm.html.
     int proc_fd = ::open("/proc/sys/vm/max_map_count", O_RDONLY, 0);
@@ -130,7 +105,7 @@ inline bool check_vma_limit()
     return true;
 }
 
-inline bool check_and_adjust_resource_limit(int rlimit_id, const char* rlimit_desc, uint64_t min_hard_limit)
+static bool check_and_adjust_resource_limit(int rlimit_id, const char* rlimit_desc, uint64_t min_hard_limit)
 {
     // See https://man7.org/linux/man-pages/man2/getrlimit.2.html.
     rlimit old_rlimit{};
@@ -181,12 +156,12 @@ inline bool check_and_adjust_resource_limit(int rlimit_id, const char* rlimit_de
     return true;
 }
 
-inline bool check_and_adjust_vm_limit()
+bool check_and_adjust_vm_limit()
 {
     return check_and_adjust_resource_limit(RLIMIT_AS, "virtual address space", c_min_vm_limit);
 }
 
-inline bool check_and_adjust_fd_limit()
+bool check_and_adjust_fd_limit()
 {
     return check_and_adjust_resource_limit(RLIMIT_NOFILE, "open file descriptor", c_min_fd_limit);
 }
