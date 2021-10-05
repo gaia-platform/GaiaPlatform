@@ -27,7 +27,7 @@ static constexpr int c_delayed_check_production_start_task = 1;
 // Whether to show state debug.
 static constexpr bool show_state_debug = true;
 
-// https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1430
+// https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1430 (fixed)
 static robot_t temp_main_pallet_bot;
 static robot_t temp_left_widget_bot;
 static robot_t temp_right_widget_bot;
@@ -42,7 +42,7 @@ ruleset amr_swarm_ruleset
 {
     on_insert(bot_arrived_at_charging_station_event)
     {
-        // GAIAPLAT-1461
+        // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1461 (fixed)
         // This created invalid C++ code.
         for (/C:configuration)
         {
@@ -53,6 +53,20 @@ ruleset amr_swarm_ruleset
             else if (C.left_widget_bot->robot.id == RR:robot.id)
             {
                 temp_left_widget_bot = RR;
+            }
+        }
+    }
+
+    // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1427
+    on_insert(setup_complete_event) {
+        for(/C:configuration) {
+            configuration_t temp_config;
+            for (/R:robot) {
+                if (R->robot_type.id == (int)robot_types::Pallet) {
+                    temp_config.main_pallet_bot().connect(R);
+                    // GAIAPLAT-1427 - the next line should compile.
+                    // C.main_pallet_bot.connect(R);
+                }
             }
         }
     }
@@ -577,17 +591,22 @@ ruleset amr_swarm_ruleset
 
     on_insert(bot_arrived_at_charging_station_event)
     {
+        gaia_log::app().info(">>on_insert(bot_arrived_at_charging_station_event)");
+
+        // Once the robot arrives at the charging station, start it charging.
+        gaia_log::app().info("Robot {} starting to charge.", robot.id);
+        commands::start_charging_robot(robot);
+
         for (/C:configuration)
         {
-            if (C.main_pallet_bot->robot.id == R:robot.id)
+            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1461 (fixed)
+            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1472 (fixed)
+            if (temp_main_pallet_bot.id() == bot_arrived_at_charging_station_event->robot.id && C.number_of_pallet_bots > 1)
             {
-                    temp_main_pallet_bot = R;
-            }
-            else if (C.left_widget_bot->robot.id == RR:robot.id)
-            {
-                    temp_left_widget_bot = RR;
             }
         }
+
+        gaia_log::app().info("<<on_insert(bot_arrived_at_charging_station_event)");
     }
 
     on_insert(bot_arrived_at_inbound_station_event)
@@ -782,7 +801,7 @@ ruleset amr_swarm_ruleset
 
     on_insert(requeue_task)
     {
-        // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1430
+        // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1430 (fixed)
         uint event_type_to_search_for = delayed_event_type;
 
     // If we are being asked to requeue an event type, we need to find a
@@ -1025,15 +1044,21 @@ ruleset amr_swarm_ruleset
     {
         gaia_log::app().info(">>on_insert(move_widget_bot_to_buffer_task)");
 
-        for (/ C : configuration.left_widget_bot->R : robot)
+        // GAIAPLAT-1447
+        // If you replace 'robot_to_move' with 'R' in the move_robot_to_station() method,
+        // it results in a translation error. Note that in the on_insert(move_pallet_bot_to_inbound_task)
+        // rule above, 'R' can be used this way.
+        if (/R:robot->robot_type.id == (int)robot_types::Widget)
         {
+            robot_t robot_to_move;
+            robot_to_move = R;
             if (R.charge < R.config->configuration.widget_bot_recharge_threshold)
             {
-                commands::move_robot_to_station(R, stations::Charging);
+                commands::move_robot_to_station(robot_to_move, stations::Charging);
             }
             else
             {
-                commands::move_robot_to_station(R, stations::Buffer);
+                commands::move_robot_to_station(robot_to_move, stations::Buffer);
             }
             R.is_idle = true;
         }
@@ -1052,10 +1077,9 @@ ruleset amr_swarm_ruleset
             right_widget_botxx = C.right_widget_bot->robot;
             if (right_widget_botxx)
             {
-                // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1430
-                //if (/R:robot.id == C.right_widget_bot->robot.id)
-                if (/ R
-                    : robot.id == temp_right_widget_bot.id())
+                // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1430 (fixed)
+                if (/R:robot.id == C.right_widget_bot->robot.id)
+                // if (/ R : robot.id == temp_right_widget_bot.id())
                 {
                     if (R.charge < C.widget_bot_recharge_threshold)
                     {
@@ -1067,14 +1091,12 @@ ruleset amr_swarm_ruleset
                     }
                     R.is_idle = false;
                 }
-                // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1430
-                // else if (/R:robot.id == C.left_widget_bot->robot.id)
-            }
-            else if (/ R
-                     : robot.id == temp_left_widget_bot.id())
-            {
-                commands::move_robot_to_station(R, stations::Pl_end);
-                R.is_idle = false;
+                // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1430 (fixed)
+                else if (R.id == C.left_widget_bot->robot.id)
+                {
+                    commands::move_robot_to_station(R, stations::Pl_end);
+                    R.is_idle = false;
+                }
             }
         }
 
@@ -1218,10 +1240,11 @@ ruleset amr_swarm_ruleset
             // for a path that covers 4 stations.  If there are two bots, that path
             // still starts at the Buffer station, but only covers 2 stations.
 
-            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1430
+            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1430 (fixed)
+            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1459 (fixed)
             //if (robot.id == C.left_widget_bot:robot.id) {
-            if (robot.id == temp_left_widget_bot.id())
-            {
+            // if (robot.id == temp_left_widget_bot.id())
+            if (bot_is_charged_event->robot.id == temp_left_widget_bot.id() && C.number_of_widget_bots <= 2)            {
                 if (/ S
                     : station.id == (int)stations::Buffer)
                 {
@@ -1270,7 +1293,7 @@ ruleset amr_swarm_ruleset
                 // Unless it is charging or in motion, the pallet bot is always stationed
                 // at the Inbound station.
 
-                // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1430
+                // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1430 (fixed)
                 // else if (C.main_pallet_bot->R:robot.id == robot.id) {
             }
             else if (temp_main_pallet_bot.id() == robot.id)

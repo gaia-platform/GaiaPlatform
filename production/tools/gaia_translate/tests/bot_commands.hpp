@@ -27,6 +27,8 @@ void pickup_widget_from_station(const gaia::amr_swarm::robot_t& robot, const gai
 void drop_pallet_at_station(const gaia::amr_swarm::robot_t& robot);
 void drop_widget_at_station(const gaia::amr_swarm::robot_t& robot);
 
+void start_charging_robot(const gaia::amr_swarm::robot_t& robot);
+
 void request_charge_level(const gaia::amr_swarm::robot_t& robot);
 
 void press_unpack_pallet_button();

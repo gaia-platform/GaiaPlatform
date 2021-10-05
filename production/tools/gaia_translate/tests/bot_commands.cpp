@@ -127,6 +127,20 @@ void drop_pallet_at_station(const robot_t& robot)
     }
 }
 
+void start_charging_robot(const robot_t& robot)
+{
+    if (robot.station().id() != (int)stations::Charging)
+    {
+        throw amr_exception(
+            gaia_fmt::format("Cannot charge robot {} since it is not on a charging station waypoint", robot.id()));
+    }
+
+    if (show_outgoing_robot_messages)
+    {
+        gaia_log::app().info("BOT>>charge: robot {}.", robot.id());
+    }
+}
+
 void drop_widget_at_station(const robot_t& robot)
 {
     if (robot.widgets().size() == 0)
