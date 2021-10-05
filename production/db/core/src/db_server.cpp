@@ -1632,7 +1632,7 @@ void server_t::start_stream_producer(int stream_socket, std::shared_ptr<generato
 
 std::shared_ptr<generator_t<gaia_id_t>> server_t::get_id_generator_for_type(gaia_type_t type)
 {
-    return std::make_shared<type_generator_t>(type);
+    return std::make_shared<type_generator_t>(type, s_txn_id);
 }
 
 void server_t::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts)
