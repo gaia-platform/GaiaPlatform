@@ -10,7 +10,9 @@
 #include "gaia_hospital.h"
 
 using namespace gaia::hospital;
-using namespace gaia::common;
+
+using gaia::common::gaia_id_t;
+using gaia::direct_access::auto_transaction_t;
 
 ///
 /// Direct Access API examples.
@@ -91,6 +93,38 @@ void access_invalid_record()
 }
 
 /**
+ * DACs override the == operators which can be used to test instances equality.
+ * The equality is based on the database identity (gaia_id).
+ */
+void compare_records()
+{
+    gaia_id_t id = doctor_t::insert_row("Dr. House");
+
+    doctor_t dr_house_1 = doctor_t::get(id);
+    doctor_t dr_house_2 = doctor_t::get(id);
+
+    if (dr_house_1 == dr_house_2)
+    {
+        gaia_log::app().info("The instances refer to the same object.");
+    }
+    else
+    {
+        throw std::runtime_error("The records are expected to be equal.");
+    }
+
+    doctor_t dr_dorian = doctor_t::get(doctor_t::insert_row("Dr. Dorian"));
+
+    if (dr_dorian == dr_house_2)
+    {
+        throw std::runtime_error("The records are not expected to be equal.");
+    }
+    else
+    {
+        gaia_log::app().info("The instances do not refer to the same object.");
+    }
+}
+
+/**
  * Each DAC class exposes a static list() method that allow to iterate
  * through all the table records.
  */
@@ -111,6 +145,27 @@ void delete_single_record()
     doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House"));
 
     dr_house.delete_row();
+
+    if (dr_house)
+    {
+        throw std::runtime_error("The doctor is expected to be invalid after deletion.");
+    }
+    else
+    {
+        gaia_log::app().info("The record has been deleted");
+    }
+}
+
+/**
+ * Records can be deleted using the static delete_row() method.
+ */
+void delete_single_record_static()
+{
+    gaia_id_t dr_house_id = doctor_t::insert_row("Dr. House");
+
+    doctor_t::delete_row(dr_house_id);
+
+    doctor_t dr_house = doctor_t::get(dr_house_id);
 
     if (dr_house)
     {
@@ -531,6 +586,26 @@ void filter_gaia_predicates_containers()
     }
 }
 
+void use_dac_object_across_transactions()
+{
+    auto_transaction_t txn{false};
+    doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House"));
+    txn.commit();
+
+    try
+    {
+        dr_house.name();
+    }
+    catch (const gaia::db::no_open_transaction& ex)
+    {
+        gaia_log::app().info("As expected, you cannot access a record outside of a transaction: '{}'", ex.what());
+    }
+
+    txn.begin();
+    gaia_log::app().info("'{}' has survived across transactions", dr_house.name());
+    txn.commit();
+}
+
 /**
  * Clean the database.
  */
@@ -573,8 +648,10 @@ int main()
     lookup_record_get();
     lookup_invalid_record();
     access_invalid_record();
+    compare_records();
     list_all_patients();
     delete_single_record();
+    delete_single_record_static();
     delete_all_records();
     delete_all_records_iter();
     gaia_id_t doctor_id = create_one_to_many_relationship();
@@ -594,5 +671,8 @@ int main()
     filter_gaia_predicates_containers();
 
     txn.commit();
+
+    use_dac_object_across_transactions();
+
     gaia::system::shutdown();
 }
