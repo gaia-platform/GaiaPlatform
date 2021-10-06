@@ -150,7 +150,6 @@ set(GAIA_DB_SERVER_SOURCES
   src/txn_metadata.cpp
   src/db_server.cpp
   src/db_shared_data_server.cpp
-  src/db_server_exec.cpp
   src/type_generator.cpp
   src/gaia_ptr.cpp
   src/gaia_ptr_server.cpp
@@ -190,7 +189,7 @@ target_include_directories(gaia_db_server_exec PRIVATE
   "${GAIA_DB_CORE_PRIVATE_INCLUDES}"
   "${FLATBUFFERS_INC}"
   "${GEN_DIR}")
-target_link_libraries(gaia_db_server_exec PRIVATE gaia_db_server)
+target_link_libraries(gaia_db_server_exec PRIVATE gaia_db_server gaia_common)
 if(ENABLE_STACKTRACE)
   target_link_libraries(gaia_db_server_exec PRIVATE gaia_stack_trace)
 endif()
