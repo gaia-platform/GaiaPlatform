@@ -55,6 +55,8 @@ enum class index_record_operation_t : uint8_t
 
     insert,
     remove,
+    // Updates that modify the index key will issue remove and insert.
+    // Updates that do not modify the index key will issue update_remove and update_insert.
     update_remove,
     update_insert,
 };

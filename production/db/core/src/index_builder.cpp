@@ -164,7 +164,7 @@ void update_index_entry(
     auto index = static_cast<T_index_type*>(base_index);
 
     // If the index has UNIQUE constraint, then we need to prevent inserting duplicate values.
-    // We need this check only for insertions, so we can skip record removals and updates.
+    // We need this check only for insertions.
     // Our checks also require access to txn_metadata_t, so they can only be performed on the server.
     if (is_unique
         && record.operation == index_record_operation_t::insert
@@ -199,8 +199,9 @@ void update_index_entry(
             }
 
             // The list we iterate over reflects the order of operations.
-            // We only care about insertions and removals;
-            // updates are harmless because they don't change the state of the "key set".
+            // Updates that don't change the index key are harmless
+            // and those that do change it are indicated as separate removals and insertions.
+            // Hence, we only care about insertions and removals;
             // The key exists if the last seen operation is not a committed removal.
             // We ignore uncommitted removals, because if their transaction is aborted,
             // it would allow us to perform a duplicate insertion.
@@ -286,18 +287,41 @@ void index_builder_t::update_index(
     {
         auto old_obj = offset_to_ptr(log_record.old_offset);
         auto old_payload = (old_obj) ? reinterpret_cast<const uint8_t*>(old_obj->data()) : nullptr;
-        index_builder_t::update_index(
-            index_id,
-            index_builder_t::make_key(index_id, type_id, old_payload),
-            index_builder_t::make_record(
-                log_record.locator, log_record.old_offset, index_record_operation_t::update_remove),
-            allow_create_empty);
-        index_builder_t::update_index(
-            index_id,
-            index_builder_t::make_key(index_id, type_id, payload),
-            index_builder_t::make_record(
-                log_record.locator, log_record.new_offset, index_record_operation_t::update_insert),
-            allow_create_empty);
+        index_key_t old_key = index_builder_t::make_key(index_id, type_id, old_payload);
+        index_key_t new_key = index_builder_t::make_key(index_id, type_id, payload);
+        // If the index key is not changed, flag operations as update steps.
+        // Otherwise, we'll flag them as individual remove/insert operations,
+        // because they're semantically indistinguishable from our transaction just doing that.
+        if (new_key == old_key)
+        {
+            index_builder_t::update_index(
+                index_id,
+                old_key,
+                index_builder_t::make_record(
+                    log_record.locator, log_record.old_offset, index_record_operation_t::update_remove),
+                allow_create_empty);
+            index_builder_t::update_index(
+                index_id,
+                new_key,
+                index_builder_t::make_record(
+                    log_record.locator, log_record.new_offset, index_record_operation_t::update_insert),
+                allow_create_empty);
+        }
+        else
+        {
+            index_builder_t::update_index(
+                index_id,
+                old_key,
+                index_builder_t::make_record(
+                    log_record.locator, log_record.old_offset, index_record_operation_t::remove),
+                allow_create_empty);
+            index_builder_t::update_index(
+                index_id,
+                new_key,
+                index_builder_t::make_record(
+                    log_record.locator, log_record.new_offset, index_record_operation_t::insert),
+                allow_create_empty);
+        }
     }
     break;
     case gaia_operation_t::remove:
