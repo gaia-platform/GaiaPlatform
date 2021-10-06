@@ -13,7 +13,7 @@ table doctor (
 table patient (
     name string,
     height uint8,
-    is_female bool,
+    is_active bool,
     doctor references doctor,
     address references address
 )
