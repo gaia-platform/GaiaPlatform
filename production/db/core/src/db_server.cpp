@@ -50,7 +50,6 @@ using namespace flatbuffers;
 using namespace gaia::db;
 using namespace gaia::db::messages;
 using namespace gaia::db::memory_manager;
-using namespace gaia::db::os;
 using namespace gaia::db::storage;
 using namespace gaia::db::transactions;
 using namespace gaia::common;
@@ -994,14 +993,16 @@ void server_t::init_listening_socket(const std::string& socket_name)
     socklen_t server_addr_size = sizeof(server_addr.sun_family) + 1 + ::strlen(&server_addr.sun_path[1]);
     if (-1 == ::bind(listening_socket, reinterpret_cast<struct sockaddr*>(&server_addr), server_addr_size))
     {
-        // TODO it would be nice to have a common error handler that can handle common errors.
+        // REVIEW: Identify other common errors that should have user-friendly error messages.
         if (errno == EADDRINUSE)
         {
             std::cerr << "ERROR: bind() failed! - " << (::strerror(errno)) << std::endl;
-            std::cerr << "The " << c_db_server_name
-                      << " cannot start because another instance is already running.\n"
-                         "Stop any instances of the server and try again."
-                      << std::endl;
+            std::cerr
+                << "The " << c_db_server_name
+                << " cannot start because another instance is already running."
+                << std::endl
+                << "Stop any instances of the server and try again."
+                << std::endl;
             exit(1);
         }
 
@@ -2605,30 +2606,70 @@ bool server_t::txn_commit()
 
 static bool is_system_compatible()
 {
+    std::cerr << std::endl;
+
     if (!is_little_endian())
     {
-        std::cerr << "The Gaia Database Server does not currently support big-endian architectures." << std::endl;
+        std::cerr << "The Gaia Database Server does not support big-endian CPU architectures." << std::endl;
         return false;
     }
 
-    if (!is_overcommit_unlimited())
+    uint64_t policy_id = check_overcommit_policy();
+    const char* policy_desc = c_vm_overcommit_policies[policy_id].desc;
+    if (policy_id != c_always_overcommit_policy_id)
     {
+        std::cerr
+            << "The current overcommit policy has a value of "
+            << policy_id << " (" << policy_desc << ")."
+            << std::endl;
+    }
+
+    if (policy_id == c_heuristic_overcommit_policy_id)
+    {
+        std::cerr
+            << "The Gaia Database Server will run normally under this overcommit policy,"
+            << std::endl
+            << "but may become unstable under rare conditions."
+            << std::endl;
+    }
+
+    if (policy_id == c_never_overcommit_policy_id)
+    {
+        std::cerr
+            << "The Gaia Database Server will not run under this overcommit policy."
+            << std::endl;
+    }
+
+    if (policy_id != c_always_overcommit_policy_id)
+    {
+        std::cerr
+            << std::endl
+            << "To ensure stable performance under all conditions, we recommend"
+            << std::endl
+            << "changing the overcommit policy to "
+            << c_always_overcommit_policy_id << " ("
+            << c_vm_overcommit_policies[c_always_overcommit_policy_id].desc << ")."
+            << std::endl;
+
         std::cerr << R"(
-The Gaia Database Server requires the "always overcommit" memory policy to be enabled.
-To enable this policy temporarily, type
+To temporarily enable this policy, open a shell with root privileges
+and type the following command:
 
   echo 1 > /proc/sys/vm/overcommit_memory
 
-To enable this policy permanently, add the line
+To permanently enable this policy, open /etc/sysctl.conf
+in an editor with root privileges and add the line
 
   vm.overcommit_memory=1
 
-to /etc/sysctl.conf and type
+Save the file, and in a shell with root privileges type
 
   sysctl -p
-
-(These commands must all be run with root privileges.)
         )" << std::endl;
+    }
+
+    if (policy_id == c_never_overcommit_policy_id)
+    {
         return false;
     }
 
@@ -2636,19 +2677,20 @@ to /etc/sysctl.conf and type
     {
         std::cerr << R"(
 The Gaia Database Server requires a per-process virtual memory area limit of at least 65530.
-To enable this policy temporarily, type
+
+To temporarily set the minimum virtual memory area limit,
+open a shell with root privileges and type the following command:
 
   echo 65530 > /proc/sys/vm/max_map_count
 
-To enable this policy permanently, add the line
+To permanently set the minimum virtual memory area limit, open /etc/sysctl.conf
+in an editor with root privileges and add the line
 
   vm.max_map_count=65530
 
-to /etc/sysctl.conf and type
+Save the file, and in a shell with root privileges type
 
   sysctl -p
-
-(These commands must all be run with root privileges.)
         )" << std::endl;
         return false;
     }
@@ -2656,21 +2698,23 @@ to /etc/sysctl.conf and type
     if (!check_and_adjust_vm_limit())
     {
         std::cerr << R"(
-The Gaia Database Server requires the maximum possible virtual memory address space available.
-You can ensure that this requirement is temporarily met by typing
-(from a shell running with root privileges)
+The Gaia Database Server requires that the maximum possible virtual memory address space is available.
+
+To temporarily enable the maximum virtual memory address space,
+open a shell with root privileges and type the following command:
 
   ulimit -v unlimited
 
-You can ensure that this requirement is permanently met by adding the following lines to
-/etc/security/limits.conf (from an editor running with root privileges),
-and starting a new terminal session:
+To permanently enable the maximum virtual memory address space, open /etc/security/limits.conf
+in an editor with root privileges and add the following lines:
 
   * soft as unlimited
   * hard as unlimited
 
-(For greater security, the wildcard `*` in these file entries can be replaced by the user name
-of the account running the Gaia Database Server.)
+Note: For enhanced security, replace the wildcard '*' in these file entries
+with the user name of the account that is running the Gaia Database Server.
+
+Save the file and start a new terminal session.
         )" << std::endl;
         return false;
     }
@@ -2678,21 +2722,23 @@ of the account running the Gaia Database Server.)
     if (!check_and_adjust_fd_limit())
     {
         std::cerr << R"(
-The Gaia Database Server requires a per-process file descriptor limit of at least 66047.
-You can ensure that this requirement is temporarily met by typing
-(from a shell running with root privileges)
+The Gaia Database Server requires a per-process open file descriptor limit of at least 66047.
+
+To temporarily set the minimum open file descriptor limit,
+open a shell with root privileges and type the following command:
 
   ulimit -n 66047
 
-You can ensure that this requirement is permanently met by adding the following lines to
-/etc/security/limits.conf (from an editor running with root privileges),
-and starting a new terminal session:
+To permanently set the minimum open file descriptor limit, open /etc/security/limits.conf
+in an editor with root privileges and add the following lines:
 
-  * soft nofile 66047
-  * hard nofile 66047
+  soft nofile 66047
+  hard nofile 66047
 
-(For greater security, the wildcard `*` in these file entries can be replaced by the user name
-of the account running the Gaia Database Server.)
+Note: For enhanced security, replace the wildcard '*' in these file entries
+with the user name of the account that is running the Gaia Database Server.
+
+Save the file and start a new terminal session.
         )" << std::endl;
         return false;
     }
@@ -2707,7 +2753,7 @@ void server_t::run(server_config_t server_conf)
     // First validate our system assumptions.
     if (!is_system_compatible())
     {
-        std::cerr << "Unsupported system configuration, exiting." << std::endl;
+        std::cerr << "The Gaia Database Server is exiting due to an unsupported system configuration." << std::endl;
         std::exit(1);
     }
 

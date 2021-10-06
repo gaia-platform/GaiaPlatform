@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 #include <limits>
@@ -14,8 +15,6 @@
 namespace gaia
 {
 namespace db
-{
-namespace os
 {
 
 // https://www.kernel.org/doc/html/latest/admin-guide/sysctl/vm.html says
@@ -45,9 +44,25 @@ constexpr uint64_t c_min_vm_limit{RLIM_INFINITY};
 // administrator.)
 constexpr uint64_t c_min_fd_limit{std::numeric_limits<uint16_t>::max() + 512};
 
+struct vm_overcommit_policy
+{
+    size_t id;
+    const char* desc;
+};
+
+constexpr size_t c_heuristic_overcommit_policy_id{0};
+constexpr size_t c_always_overcommit_policy_id{1};
+constexpr size_t c_never_overcommit_policy_id{2};
+
+inline constexpr vm_overcommit_policy c_vm_overcommit_policies[] = {
+    {c_heuristic_overcommit_policy_id, "heuristic overcommit"},
+    {c_always_overcommit_policy_id, "always overcommit"},
+    {c_never_overcommit_policy_id, "never overcommit"},
+};
+
 bool is_little_endian();
 
-bool is_overcommit_unlimited();
+uint64_t check_overcommit_policy();
 
 bool check_vma_limit();
 
@@ -55,6 +70,5 @@ bool check_and_adjust_vm_limit();
 
 bool check_and_adjust_fd_limit();
 
-} // namespace os
 } // namespace db
 } // namespace gaia

@@ -21,12 +21,11 @@
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/system_error.hpp"
+#include "gaia_internal/db/gaia_db_internal.hpp"
 
 namespace gaia
 {
 namespace db
-{
-namespace os
 {
 
 bool is_little_endian()
@@ -38,7 +37,8 @@ bool is_little_endian()
 
 static uint64_t read_integer_from_proc_fd(int proc_fd)
 {
-    char digits[16];
+    constexpr size_t c_max_digits{16};
+    char digits[c_max_digits];
     ssize_t bytes_read = ::read(proc_fd, &digits, sizeof(digits));
     if (bytes_read == -1)
     {
@@ -58,7 +58,7 @@ static uint64_t read_integer_from_proc_fd(int proc_fd)
     return static_cast<uint64_t>(value);
 }
 
-bool is_overcommit_unlimited()
+uint64_t check_overcommit_policy()
 {
     // See https://www.kernel.org/doc/html/latest/admin-guide/sysctl/vm.html and
     // https://www.kernel.org/doc/Documentation/vm/overcommit-accounting.
@@ -72,14 +72,14 @@ bool is_overcommit_unlimited()
     auto cleanup_proc_fd = gaia::common::scope_guard::make_scope_guard(
         [&]() { gaia::common::close_fd(proc_fd); });
 
-    uint64_t value = read_integer_from_proc_fd(proc_fd);
-    if (value != 1)
-    {
-        std::cerr << "vm.overcommit_memory has value " << value << ", but the only supported value is 1." << std::endl;
-        return false;
-    }
+    uint64_t policy_id = read_integer_from_proc_fd(proc_fd);
+    ASSERT_POSTCONDITION(
+        policy_id == c_heuristic_overcommit_policy_id
+            || policy_id == c_always_overcommit_policy_id
+            || policy_id == c_never_overcommit_policy_id,
+        "Unrecognized overcommit policy!");
 
-    return true;
+    return policy_id;
 }
 
 bool check_vma_limit()
@@ -98,7 +98,11 @@ bool check_vma_limit()
     uint64_t value = read_integer_from_proc_fd(proc_fd);
     if (value < c_min_vma_limit)
     {
-        std::cerr << "vm.max_map_count has value " << value << ", which is smaller than the minimum required, " << c_min_vma_limit << "." << std::endl;
+        std::cerr
+            << "vm.max_map_count has a value of " << value
+            << ", which is smaller than the minimum required value of "
+            << c_min_vma_limit << "." << std::endl;
+
         return false;
     }
 
@@ -130,27 +134,43 @@ static bool check_and_adjust_resource_limit(int rlimit_id, const char* rlimit_de
 
     if (hard_limit < min_hard_limit)
     {
-        std::cerr << "The per-process " << rlimit_desc << " hard limit is " << hard_limit << ", rather than " << min_hard_limit << "." << std::endl;
+        std::cerr
+            << "The per-process " << rlimit_desc
+            << " hard limit is " << hard_limit
+            << ", which is smaller than the minimum required limit "
+            << min_hard_limit << "." << std::endl;
+
         return false;
     }
 
     if (soft_limit < hard_limit)
     {
-        // Try to increase the soft limit to the hard limit.
-        rlimit new_rlimit{min_hard_limit, min_hard_limit};
+        // Try to increase the soft limit to the minimum hard limit.
+        rlimit new_rlimit{min_hard_limit, hard_limit};
         if (-1 == ::setrlimit(rlimit_id, &new_rlimit))
         {
             // If we don't have privileges, return failure.
             if (errno == EPERM)
             {
-                std::cerr << "The current process does not have sufficient privileges to increase the " << rlimit_desc << " soft limit to " << min_hard_limit << "." << std::endl;
+                std::cerr
+                    << "The " << c_db_server_name
+                    << " process does not have sufficient privileges to increase the "
+                    << rlimit_desc << " soft limit to " << min_hard_limit
+                    << "." << std::endl;
+
                 return false;
             }
 
             // For all other failures, throw an exception.
-            // Sadly, explain_setrlimit() is not implemented.
+            // (Sadly, explain_setrlimit() is not implemented.)
             gaia::common::throw_system_error("setrlimit() failed!");
         }
+        std::cerr
+            << "The " << c_db_server_name
+            << " process increased the " << rlimit_desc
+            << " soft limit from " << soft_limit
+            << " to " << min_hard_limit
+            << "." << std::endl;
     }
 
     return true;
@@ -166,6 +186,5 @@ bool check_and_adjust_fd_limit()
     return check_and_adjust_resource_limit(RLIMIT_NOFILE, "open file descriptor", c_min_fd_limit);
 }
 
-} // namespace os
 } // namespace db
 } // namespace gaia
