@@ -121,8 +121,8 @@ std::ostream& operator<<(std::ostream& os, const index_record_t& record)
        << record.locator
        << " offset: "
        << record.offset
-       << " deleted: "
-       << (record.deleted ? "true" : "false")
+       << " operation: "
+       << get_enum_value(record.operation)
        << "]";
     return os;
 }

@@ -46,8 +46,7 @@ public:
     static void update_indexes_from_logs(const txn_log_t& records, bool skip_catalog_integrity_check, bool allow_create_empty = false);
 
 private:
-    static index_record_t make_insert_record(gaia_locator_t locator, gaia_offset_t offset);
-    static index_record_t make_delete_record(gaia_locator_t locator, gaia_offset_t offset);
+    static index_record_t make_record(gaia_locator_t locator, gaia_offset_t offset, index_record_operation_t operation);
 
     static void update_index(common::gaia_id_t index_id, index_key_t&& key, index_record_t record, bool allow_create_empty = false);
 };

@@ -29,7 +29,7 @@ index_record_t create_index_record()
 {
     thread_local static gaia::db::gaia_locator_t locator = 0;
 
-    return {c_fake_txn_id, locator++, c_fake_offset, false};
+    return {c_fake_txn_id, locator++, c_fake_offset, index_record_operation_t::insert};
 }
 
 TEST(index, empty_range_index)
@@ -173,7 +173,7 @@ TEST(index, range_update_test)
 
     range_index.insert_index_entry(index_key_t(0), to_update);
     range_index.insert_index_entry(index_key_t(1), to_update);
-    to_update.deleted = true;
+    to_update.operation = index_record_operation_t::remove;
     range_index.insert_index_entry(index_key_t(1), to_update);
     range_index.insert_index_entry(index_key_t(2), to_update);
 
@@ -195,7 +195,7 @@ TEST(index, hash_update_test)
 
     hash_index.insert_index_entry(index_key_t(0), to_update);
     hash_index.insert_index_entry(index_key_t(1), to_update);
-    to_update.deleted = true;
+    to_update.operation = index_record_operation_t::remove;
     hash_index.insert_index_entry(index_key_t(1), to_update);
     hash_index.insert_index_entry(index_key_t(2), to_update);
 

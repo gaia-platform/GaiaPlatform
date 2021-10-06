@@ -49,14 +49,23 @@ public:
     }
 };
 
+enum class index_record_operation_t : uint8_t
+{
+    not_set,
+
+    insert,
+    remove,
+    update_remove,
+    update_insert,
+};
+
 struct index_record_t
 {
+    // The following fields should occupy 3x64bit.
     gaia::db::gaia_txn_id_t txn_id;
     gaia::db::gaia_locator_t locator;
     gaia::db::gaia_offset_t offset;
-    uint8_t deleted;
-    uint8_t reserved1;
-    uint16_t reserved2;
+    index_record_operation_t operation;
 
     friend std::ostream& operator<<(std::ostream& os, const index_record_t& rec);
 };
