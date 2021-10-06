@@ -146,16 +146,17 @@ target_include_directories(gaia_db_persistence SYSTEM PRIVATE "${LIBURING_INCLUD
 target_link_libraries(gaia_db_persistence PUBLIC rocksdb "${LIBURING_LIBRARY}")
 
 set(GAIA_DB_SERVER_SOURCES
-  src/mapped_data.cpp
-  src/txn_metadata.cpp
+  src/catalog_core.cpp
   src/db_server.cpp
-  src/db_shared_data_server.cpp
   src/db_server_exec.cpp
-  src/type_generator.cpp
+  src/db_shared_data_server.cpp
   src/gaia_ptr.cpp
   src/gaia_ptr_server.cpp
   src/index_builder.cpp
-  src/catalog_core.cpp
+  src/mapped_data.cpp
+  src/system_checks.cpp
+  src/txn_metadata.cpp
+  src/type_generator.cpp
   src/type_id_mapping.cpp)
 
 add_library(gaia_db_server ${GAIA_DB_SERVER_SOURCES})
