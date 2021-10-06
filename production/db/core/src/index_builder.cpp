@@ -115,13 +115,13 @@ index_key_t index_builder_t::deserialize_key(common::gaia_id_t index_id, data_re
 index_record_t index_builder_t::make_insert_record(gaia::db::gaia_locator_t locator, gaia::db::gaia_offset_t offset)
 {
     bool is_delete = false;
-    return index_record_t{get_current_txn_id(), offset, locator, is_delete};
+    return index_record_t{get_current_txn_id(), locator, offset, is_delete};
 }
 
 index_record_t index_builder_t::make_delete_record(gaia::db::gaia_locator_t locator, gaia::db::gaia_offset_t offset)
 {
     bool is_delete = true;
-    return index_record_t{get_current_txn_id(), offset, locator, is_delete};
+    return index_record_t{get_current_txn_id(), locator, offset, is_delete};
 }
 
 bool index_builder_t::index_exists(common::gaia_id_t index_id)

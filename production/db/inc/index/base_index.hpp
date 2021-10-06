@@ -52,12 +52,17 @@ public:
 struct index_record_t
 {
     gaia::db::gaia_txn_id_t txn_id;
-    gaia::db::gaia_offset_t offset;
     gaia::db::gaia_locator_t locator;
+    gaia::db::gaia_offset_t offset;
     uint8_t deleted;
+    uint8_t reserved1;
+    uint16_t reserved2;
 
     friend std::ostream& operator<<(std::ostream& os, const index_record_t& rec);
 };
+
+// We use this assert to check that the index record structure is packed optimally.
+static_assert(sizeof(index_record_t) == 24, "index_record_t size has changed undexpectedly!");
 
 class index_key_t;
 

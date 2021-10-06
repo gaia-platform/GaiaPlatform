@@ -117,10 +117,10 @@ std::ostream& operator<<(std::ostream& os, const index_record_t& record)
 {
     os << "[txn_id: "
        << record.txn_id
-       << " offset: "
-       << record.offset
        << " locator: "
        << record.locator
+       << " offset: "
+       << record.offset
        << " deleted: "
        << (record.deleted ? "true" : "false")
        << "]";
