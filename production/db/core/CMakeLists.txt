@@ -160,16 +160,16 @@ set(GAIA_DB_SERVER_SOURCES
 add_library(gaia_db_server ${GAIA_DB_SERVER_SOURCES})
 add_dependencies(gaia_db_server ${FBS_SOURCE_FILENAMES})
 configure_gaia_target(gaia_db_server)
-target_include_directories(gaia_db_server PRIVATE
+target_include_directories(gaia_db_server PUBLIC
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
   "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
 
 # For flatbuffers generated code.
-target_include_directories(gaia_db_server SYSTEM PRIVATE "${FLATBUFFERS_INC}")
-target_include_directories(gaia_db_server SYSTEM PRIVATE "${GEN_DIR}")
+target_include_directories(gaia_db_server SYSTEM PUBLIC "${FLATBUFFERS_INC}")
+target_include_directories(gaia_db_server SYSTEM PUBLIC "${GEN_DIR}")
 
 target_link_libraries(gaia_db_server
-  PRIVATE
+  PUBLIC
     ${LIB_CAP}
     ${LIB_EXPLAIN}
     Threads::Threads
@@ -189,7 +189,7 @@ target_include_directories(gaia_db_server_exec PRIVATE
   "${GAIA_DB_CORE_PRIVATE_INCLUDES}"
   "${FLATBUFFERS_INC}"
   "${GEN_DIR}")
-target_link_libraries(gaia_db_server_exec PRIVATE gaia_db_server gaia_common)
+target_link_libraries(gaia_db_server_exec PRIVATE gaia_db_server)
 if(ENABLE_STACKTRACE)
   target_link_libraries(gaia_db_server_exec PRIVATE gaia_stack_trace)
 endif()
