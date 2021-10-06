@@ -691,9 +691,9 @@ TagDecl* Sema::lookupEDCClass(std::string className)
     //   LookupQualifiedName(gaiaNS, Context.getTranslationUnitDecl());
     //  ....
 
-    static std::map<std::string, RecordDecl*> found_classes;
+    static std::map<std::string, RecordDecl*> s_found_classes;
 
-    RecordDecl* record = found_classes[className];
+    RecordDecl* record = s_found_classes[className];
     if (record)
     {
         return llvm::cast_or_null<TagDecl>(record);
@@ -708,7 +708,7 @@ TagDecl* Sema::lookupEDCClass(std::string className)
                 const IdentifierInfo* id = record->getIdentifier();
                 if (id && id->getName().equals(className))
                 {
-                    found_classes[className] = record;
+                    s_found_classes[className] = record;
                     return llvm::cast_or_null<TagDecl>(record);
                 }
             }
