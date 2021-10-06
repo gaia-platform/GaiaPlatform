@@ -31,6 +31,7 @@ using gaia::direct_access::auto_transaction_t;
 void create_record_insert()
 {
     PRINT_METHOD_NAME();
+
     [[maybe_unused]] gaia_id_t id = patient_t::insert_row("Jane", 183, true);
 }
 
@@ -43,6 +44,7 @@ void create_record_insert()
 void create_record_writer()
 {
     PRINT_METHOD_NAME();
+
     patient_writer patient_w;
     patient_w.name = "Emma";
     patient_w.is_active = true;
@@ -68,6 +70,7 @@ void lookup_record_get()
 void lookup_invalid_record()
 {
     PRINT_METHOD_NAME();
+
     patient_t john = patient_t::get(gaia::common::c_invalid_gaia_id);
 
     if (john)
@@ -87,6 +90,7 @@ void lookup_invalid_record()
 void access_invalid_record()
 {
     PRINT_METHOD_NAME();
+
     patient_t john = patient_t::get(gaia::common::c_invalid_gaia_id);
 
     try
@@ -106,6 +110,7 @@ void access_invalid_record()
 void compare_records()
 {
     PRINT_METHOD_NAME();
+
     gaia_id_t id = doctor_t::insert_row("Dr. House");
 
     doctor_t dr_house_1 = doctor_t::get(id);
@@ -139,6 +144,7 @@ void compare_records()
 void list_all_patients()
 {
     PRINT_METHOD_NAME();
+
     for (auto& patient : patient_t::list())
     {
         gaia_log::app().info(
@@ -152,6 +158,7 @@ void list_all_patients()
 void delete_single_record()
 {
     PRINT_METHOD_NAME();
+
     doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House"));
 
     dr_house.delete_row();
@@ -172,6 +179,7 @@ void delete_single_record()
 void delete_single_record_static()
 {
     PRINT_METHOD_NAME();
+
     gaia_id_t dr_house_id = doctor_t::insert_row("Dr. House");
 
     doctor_t::delete_row(dr_house_id);
@@ -223,6 +231,7 @@ void delete_all_records()
 void delete_all_records_iter()
 {
     PRINT_METHOD_NAME();
+
     doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House"));
     doctor_t dr_dorian = doctor_t::get(doctor_t::insert_row("Dr. Dorian"));
     doctor_t dr_reid = doctor_t::get(doctor_t::insert_row("Dr. Reid"));
@@ -270,6 +279,7 @@ gaia_id_t create_one_to_many_relationship()
 void traverse_one_to_many_relationship(gaia_id_t doctor_id)
 {
     PRINT_METHOD_NAME();
+
     doctor_t doctor = doctor_t::get(doctor_id);
 
     // doctor.patients() returns a container of patient_t.
@@ -293,6 +303,7 @@ void traverse_one_to_many_relationship(gaia_id_t doctor_id)
 void delete_one_to_many_relationship_re(gaia_id_t doctor_id)
 {
     PRINT_METHOD_NAME();
+
     doctor_t doctor = doctor_t::get(doctor_id);
 
     // Pick one of the doctor's patients.
@@ -326,6 +337,7 @@ void delete_one_to_many_relationship_re(gaia_id_t doctor_id)
 void delete_one_to_many_relationship(gaia_id_t doctor_id)
 {
     PRINT_METHOD_NAME();
+
     doctor_t doctor = doctor_t::get(doctor_id);
 
     // Pick one of the doctor's patients.
@@ -352,6 +364,7 @@ void delete_one_to_many_relationship(gaia_id_t doctor_id)
 void delete_one_to_many_relationship_erase()
 {
     PRINT_METHOD_NAME();
+
     gaia_id_t doctor_id = create_one_to_many_relationship();
 
     doctor_t doctor = doctor_t::get(doctor_id);
@@ -376,6 +389,7 @@ void delete_one_to_many_relationship_erase()
 gaia_id_t create_one_to_one_relationship()
 {
     PRINT_METHOD_NAME();
+
     patient_t jane = patient_t::get(patient_t::insert_row("Jane", 183, true));
     address_t amsterdam = address_t::get(address_t::insert_row("Tuinstraat", "Amsterdam"));
 
@@ -396,6 +410,7 @@ gaia_id_t create_one_to_one_relationship()
 void traverse_one_to_one_relationship(gaia_id_t patient_id)
 {
     PRINT_METHOD_NAME();
+
     patient_t patient = patient_t::get(patient_id);
     // Actually returns address_ref_t which being a subclass of
     // address_t can be assigned to address_t.
@@ -424,6 +439,7 @@ void traverse_one_to_one_relationship(gaia_id_t patient_id)
 void delete_one_to_one_relationship_re(gaia_id_t patient_id)
 {
     PRINT_METHOD_NAME();
+
     patient_t patient = patient_t::get(patient_id);
     address_ref_t address = patient.address();
 
@@ -454,6 +470,7 @@ void delete_one_to_one_relationship_re(gaia_id_t patient_id)
 void delete_one_to_one_relationship(gaia_id_t patient_id)
 {
     PRINT_METHOD_NAME();
+
     patient_t patient = patient_t::get(patient_id);
     address_t address = patient.address(); // NOLINT(cppcoreguidelines-slicing)
 
@@ -498,6 +515,7 @@ void create_filter_data()
 void filter_lambda()
 {
     PRINT_METHOD_NAME();
+
     // Find all the doctors whose name is "Dr. House".
     // using a lambda to express a predicate.
     // The result is a gaia container.
@@ -539,6 +557,7 @@ void filter_lambda()
 void filter_gaia_predicates_strings()
 {
     PRINT_METHOD_NAME();
+
     // The doctor_expr namespace is generated along with the doctor_t class.
     auto doctors = doctor_t::list().where(doctor_expr::name == "Dr. House");
 
@@ -565,6 +584,7 @@ void filter_gaia_predicates_strings()
 void filter_gaia_predicates_numbers()
 {
     PRINT_METHOD_NAME();
+
     auto active_patients = patient_t::list().where(patient_expr::is_active == true);
     gaia_log::app().info("There are {} active patients", active_patients.size());
 
@@ -578,6 +598,7 @@ void filter_gaia_predicates_numbers()
 void filter_gaia_predicates_containers()
 {
     PRINT_METHOD_NAME();
+
     // Contains with expression.
     auto jacks_doctor_container = doctor_t::list().where(
         doctor_expr::patients.contains(
@@ -614,6 +635,7 @@ void filter_gaia_predicates_containers()
 void use_dac_object_across_transactions()
 {
     PRINT_METHOD_NAME();
+
     auto_transaction_t txn{false};
     doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House"));
     txn.commit();
