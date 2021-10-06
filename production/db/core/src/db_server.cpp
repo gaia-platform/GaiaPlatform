@@ -542,7 +542,7 @@ void server_t::handle_request_stream(
             index::index_key_t key;
             {
                 // Create local snapshot to query catalog for key serialization schema.
-                bool apply_logs = false;
+                bool apply_logs = true;
                 create_local_snapshot(apply_logs);
                 auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
 
@@ -1635,7 +1635,7 @@ void server_t::start_stream_producer(int stream_socket, std::shared_ptr<generato
 
 std::shared_ptr<generator_t<gaia_id_t>> server_t::get_id_generator_for_type(gaia_type_t type)
 {
-    return std::make_shared<type_generator_t>(type);
+    return std::make_shared<type_generator_t>(type, s_txn_id);
 }
 
 void server_t::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts)
