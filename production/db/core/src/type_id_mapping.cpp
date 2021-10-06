@@ -5,6 +5,8 @@
 
 #include "type_id_mapping.hpp"
 
+#include <iostream>
+
 #include "gaia/common.hpp"
 
 #include "gaia_internal/common/retail_assert.hpp"
@@ -38,6 +40,7 @@ void type_id_mapping_t::init_type_map()
     for (const auto& table_view : catalog_core_t::list_tables())
     {
         m_type_map[table_view.table_type()] = table_view.id();
+        std::cout << " TABLE TYPE INSERTED INTO CATALOG = " << table_view.table_type() << " WITH ID = " << table_view.id() << std::endl;
     }
 }
 

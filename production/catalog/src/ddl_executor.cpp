@@ -5,6 +5,7 @@
 
 #include "gaia_internal/catalog/ddl_executor.hpp"
 
+#include <iostream>
 #include <memory>
 #include <optional>
 #include <string>
@@ -817,6 +818,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
                 // skipped normally if the tables already exist.
                 gaia_log::catalog().warn("Table '{}' (id: {}) already exists, skipping.", full_table_name, id);
             }
+            std::cout << "CREATING TABLE WITH ID = " << id << " AND NAME = " << full_table_name << std::endl;
             return id;
         }
     }

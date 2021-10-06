@@ -707,6 +707,8 @@ void server_t::init_indexes()
         {
             index::index_builder_t::populate_index(idx.id(), obj->type, locator);
         }
+
+        std::cout << "INDEX POPULATED FOR TYPE = " << obj->type << " AND ID = " << type_record_id << std::endl;
     }
 }
 

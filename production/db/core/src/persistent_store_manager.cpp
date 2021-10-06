@@ -180,6 +180,7 @@ void persistent_store_manager::recover()
     for (it->SeekToFirst(); it->Valid(); it->Next())
     {
         db_object_t* recovered_object = decode_object(it->key(), it->value());
+        std::cout << "RECOVERED TYPE = " << recovered_object->type << std::endl;
         if (recovered_object->type > max_type_id && recovered_object->type < c_system_table_reserved_range_start)
         {
             max_type_id = recovered_object->type;

@@ -82,6 +82,7 @@ public:
         gaia::common::gaia_type_t type_id = gaia::catalog::gaia_table_t::get(table_id).type();
         gaia::db::commit_transaction();
 
+        std::cout << "CREATE TYPE ID = " << type_id << " WITH TABLE ID = " << table_id << std::endl;
         return type_id;
     }
 
