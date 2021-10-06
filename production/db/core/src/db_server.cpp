@@ -39,6 +39,7 @@
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 #include "record_list_manager.hpp"
+#include "system_checks.hpp"
 #include "txn_metadata.hpp"
 #include "type_generator.hpp"
 #include "type_id_mapping.hpp"
@@ -950,7 +951,7 @@ void server_t::signal_handler(sigset_t sigset, int& signum)
     // REVIEW: do we have any use for sigwaitinfo()?
     ::sigwait(&sigset, &signum);
 
-    cerr << "Caught signal '" << ::strsignal(signum) << "'." << endl;
+    std::cerr << "Caught signal '" << ::strsignal(signum) << "'." << std::endl;
 
     signal_eventfd_multiple_threads(s_server_shutdown_eventfd);
 }
@@ -992,14 +993,16 @@ void server_t::init_listening_socket(const std::string& socket_name)
     socklen_t server_addr_size = sizeof(server_addr.sun_family) + 1 + ::strlen(&server_addr.sun_path[1]);
     if (-1 == ::bind(listening_socket, reinterpret_cast<struct sockaddr*>(&server_addr), server_addr_size))
     {
-        // TODO it would be nice to have a common error handler that can handle common errors.
+        // REVIEW: Identify other common errors that should have user-friendly error messages.
         if (errno == EADDRINUSE)
         {
-            cerr << "ERROR: bind() failed! - " << (::strerror(errno)) << endl;
-            cerr << "The " << c_db_server_name
-                 << " cannot start because another instance is already running.\n"
-                    "Stop any instances of the server and try again."
-                 << endl;
+            std::cerr << "ERROR: bind() failed! - " << (::strerror(errno)) << std::endl;
+            std::cerr
+                << "The " << c_db_server_name
+                << " cannot start because another instance is already running."
+                << std::endl
+                << "Stop any instances of the server and try again."
+                << std::endl;
             exit(1);
         }
 
@@ -1331,7 +1334,7 @@ void server_t::session_handler(int session_socket)
                     socklen_t err_len = sizeof(error);
                     // Ignore errors getting error message and default to generic error message.
                     ::getsockopt(s_session_socket, SOL_SOCKET, SO_ERROR, static_cast<void*>(&error), &err_len);
-                    cerr << "Client socket error: " << ::strerror(error) << endl;
+                    std::cerr << "Client socket error: " << ::strerror(error) << std::endl;
                     event = session_event_t::CLIENT_SHUTDOWN;
                 }
                 else if (ev.events & EPOLLHUP)
@@ -1404,7 +1407,7 @@ void server_t::session_handler(int session_socket)
             }
             catch (const peer_disconnected& e)
             {
-                cerr << "Client socket error: " << e.what() << endl;
+                std::cerr << "Client socket error: " << e.what() << std::endl;
                 s_session_shutdown = true;
             }
         }
@@ -1501,7 +1504,7 @@ void server_t::stream_producer_handler(
 
                     // Ignore errors getting error message and default to generic error message.
                     ::getsockopt(stream_socket, SOL_SOCKET, SO_ERROR, static_cast<void*>(&error), &err_len);
-                    cerr << "Stream socket error: '" << ::strerror(error) << "'." << endl;
+                    std::cerr << "Stream socket error: '" << ::strerror(error) << "'." << std::endl;
                     producer_shutdown = true;
                 }
                 else if (ev.events & EPOLLHUP)
@@ -1555,7 +1558,7 @@ void server_t::stream_producer_handler(
                             // the receive buffer is always large enough for a batch.
                             ASSERT_INVARIANT(errno != EAGAIN && errno != EWOULDBLOCK, c_message_unexpected_errno_value);
                             // Log the error and break out of the poll loop.
-                            cerr << "Stream socket error: '" << ::strerror(errno) << "'." << endl;
+                            std::cerr << "Stream socket error: '" << ::strerror(errno) << "'." << std::endl;
                             producer_shutdown = true;
                         }
                         else
@@ -2601,23 +2604,164 @@ bool server_t::txn_commit()
     return is_committed;
 }
 
-// this must be run on main thread
-// see https://thomastrapp.com/blog/signal-handler-for-multithreaded-c++/
+static bool is_system_compatible()
+{
+    std::cerr << std::endl;
+
+    if (!is_little_endian())
+    {
+        std::cerr << "The Gaia Database Server does not support big-endian CPU architectures." << std::endl;
+        return false;
+    }
+
+    uint64_t policy_id = check_overcommit_policy();
+    const char* policy_desc = c_vm_overcommit_policies[policy_id].desc;
+    if (policy_id != c_always_overcommit_policy_id)
+    {
+        std::cerr
+            << "The current overcommit policy has a value of "
+            << policy_id << " (" << policy_desc << ")."
+            << std::endl;
+    }
+
+    if (policy_id == c_heuristic_overcommit_policy_id)
+    {
+        std::cerr
+            << "The Gaia Database Server will run normally under this overcommit policy,"
+            << std::endl
+            << "but may become unstable under rare conditions."
+            << std::endl;
+    }
+
+    if (policy_id == c_never_overcommit_policy_id)
+    {
+        std::cerr
+            << "The Gaia Database Server will not run under this overcommit policy."
+            << std::endl;
+    }
+
+    if (policy_id != c_always_overcommit_policy_id)
+    {
+        std::cerr
+            << std::endl
+            << "To ensure stable performance under all conditions, we recommend"
+            << std::endl
+            << "changing the overcommit policy to "
+            << c_always_overcommit_policy_id << " ("
+            << c_vm_overcommit_policies[c_always_overcommit_policy_id].desc << ")."
+            << std::endl;
+
+        std::cerr << R"(
+To temporarily enable this policy, open a shell with root privileges
+and type the following command:
+
+  echo 1 > /proc/sys/vm/overcommit_memory
+
+To permanently enable this policy, open /etc/sysctl.conf
+in an editor with root privileges and add the line
+
+  vm.overcommit_memory=1
+
+Save the file, and in a shell with root privileges type
+
+  sysctl -p
+        )" << std::endl;
+    }
+
+    if (policy_id == c_never_overcommit_policy_id)
+    {
+        return false;
+    }
+
+    if (!check_vma_limit())
+    {
+        std::cerr << R"(
+The Gaia Database Server requires a per-process virtual memory area limit of at least 65530.
+
+To temporarily set the minimum virtual memory area limit,
+open a shell with root privileges and type the following command:
+
+  echo 65530 > /proc/sys/vm/max_map_count
+
+To permanently set the minimum virtual memory area limit, open /etc/sysctl.conf
+in an editor with root privileges and add the line
+
+  vm.max_map_count=65530
+
+Save the file, and in a shell with root privileges type
+
+  sysctl -p
+        )" << std::endl;
+        return false;
+    }
+
+    if (!check_and_adjust_vm_limit())
+    {
+        std::cerr << R"(
+The Gaia Database Server requires that the maximum possible virtual memory address space is available.
+
+To temporarily enable the maximum virtual memory address space,
+open a shell with root privileges and type the following command:
+
+  ulimit -v unlimited
+
+To permanently enable the maximum virtual memory address space, open /etc/security/limits.conf
+in an editor with root privileges and add the following lines:
+
+  * soft as unlimited
+  * hard as unlimited
+
+Note: For enhanced security, replace the wildcard '*' in these file entries
+with the user name of the account that is running the Gaia Database Server.
+
+Save the file and start a new terminal session.
+        )" << std::endl;
+        return false;
+    }
+
+    if (!check_and_adjust_fd_limit())
+    {
+        std::cerr << R"(
+The Gaia Database Server requires a per-process open file descriptor limit of at least 66047.
+
+To temporarily set the minimum open file descriptor limit,
+open a shell with root privileges and type the following command:
+
+  ulimit -n 66047
+
+To permanently set the minimum open file descriptor limit, open /etc/security/limits.conf
+in an editor with root privileges and add the following lines:
+
+  soft nofile 66047
+  hard nofile 66047
+
+Note: For enhanced security, replace the wildcard '*' in these file entries
+with the user name of the account that is running the Gaia Database Server.
+
+Save the file and start a new terminal session.
+        )" << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+// This method must be run on the main thread
+// (https://thomastrapp.com/blog/signal-handler-for-multithreaded-c++/).
 void server_t::run(server_config_t server_conf)
 {
+    // First validate our system assumptions.
+    if (!is_system_compatible())
+    {
+        std::cerr << "The Gaia Database Server is exiting due to an unsupported system configuration." << std::endl;
+        std::exit(1);
+    }
+
     // There can only be one thread running at this point, so this doesn't need synchronization.
     s_server_conf = server_conf;
 
     // Block handled signals in this thread and subsequently spawned threads.
     sigset_t handled_signals = mask_signals();
-
-    if (!is_little_endian())
-    {
-        cerr << "Big-endian architectures are currently not supported, exiting." << endl;
-
-        // Abort instead of throwing an exception as we don't want to make it possible to avoid termination.
-        std::abort();
-    }
 
     while (true)
     {
@@ -2661,7 +2805,7 @@ void server_t::run(server_config_t server_conf)
         {
             if (caught_signal == SIGHUP)
             {
-                cerr << "Unable to reset the server because persistence is enabled, exiting." << endl;
+                std::cerr << "Unable to reset the server because persistence is enabled, exiting." << std::endl;
             }
 
             // To exit with the correct status (reflecting a caught signal),
