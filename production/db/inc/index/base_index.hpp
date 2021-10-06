@@ -73,7 +73,7 @@ struct index_record_t
 };
 
 // We use this assert to check that the index record structure is packed optimally.
-static_assert(sizeof(index_record_t) == 24, "index_record_t size has changed undexpectedly!");
+static_assert(sizeof(index_record_t) == 24, "index_record_t size has changed unexpectedly!");
 
 class index_key_t;
 
