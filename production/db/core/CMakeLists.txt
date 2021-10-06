@@ -149,7 +149,6 @@ set(GAIA_DB_SERVER_SOURCES
   src/catalog_core.cpp
   src/db_server.cpp
   src/db_shared_data_server.cpp
-  src/type_generator.cpp
   src/gaia_ptr.cpp
   src/gaia_ptr_server.cpp
   src/index_builder.cpp
