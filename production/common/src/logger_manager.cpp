@@ -7,11 +7,11 @@
 
 #include <filesystem>
 
+#include "gaia_internal/common/logger_spdlog.hpp"
+
 #include "gaia_spdlog/async.h"
 #include "gaia_spdlog/sinks/stdout_sinks.h"
 #include "gaia_spdlog_setup/conf.h"
-
-#include "gaia_internal/common/logger_spdlog.hpp"
 
 namespace fs = std::filesystem;
 

@@ -180,15 +180,15 @@ private:
     member_accessor_t<T_class, T_return> m_member_accessor;
 };
 
-/*@}*/
-} // namespace direct_access
-/*@}*/
-} // namespace gaia
-
 // Pick up our template implementation.  These still
 // need to be in the header so that template specializations
 // that are declared later will pick up the definitions.
 #include "edc_expressions.inc"
+
+/*@}*/
+} // namespace direct_access
+/*@}*/
+} // namespace gaia
 
 // Restore default hidden visibility for all symbols.
 #pragma GCC visibility pop

@@ -1,3 +1,8 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 #include "gaia_barn_storage.h"
 
 int g_rule_called = 0;
@@ -37,6 +42,8 @@ ruleset test_mixed
         f(i);
         f1(i);
         f2(i);
+        gaia::barn_storage::incubator_t ii = i;
+        gaia::barn_storage::incubator_t iii = incubator;
     }
 
     // If the sensor was deleted, this rule will not be fired.

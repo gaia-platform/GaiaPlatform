@@ -28,6 +28,7 @@ link_directories(
 add_executable(gaiat ${GAIAT_SRCS})
 configure_gaia_target(gaiat)
 target_include_directories(gaiat PRIVATE ${TRANSLATION_ENGINE_INCLUDES})
+add_dependencies(gaiat gaia_db_server_exec)
 target_link_libraries(gaiat
   PRIVATE
   rt
@@ -130,5 +131,15 @@ add_gaia_sdk_gtest(
   DATABASE_NAME "prerequisites"
   PREVIOUS_TARGET_NAME "test_insert_delete_ruleset"
   TARGET_SOURCES "tests/test_connect_disconnect.cpp;${RULES_TEST_HELPERS}"
+  TARGET_INCLUDES "${TEST_INCLUDES}"
+)
+
+add_gaia_sdk_gtest(
+  TARGET_NAME "test_amr_swarm_ruleset"
+  DDL_FILE "${DDL_PREFIX}/amr_swarm/amr_swarm.ddl"
+  RULESET_FILE "${RULESET_PREFIX}/test_amr_swarm.ruleset"
+  DATABASE_NAME "amr_swarm"
+  PREVIOUS_TARGET_NAME "test_connect_disconnect_ruleset"
+  TARGET_SOURCES "tests/test_amr_swarm.cpp;tests/bot_commands.cpp;${RULES_TEST_HELPERS}"
   TARGET_INCLUDES "${TEST_INCLUDES}"
 )

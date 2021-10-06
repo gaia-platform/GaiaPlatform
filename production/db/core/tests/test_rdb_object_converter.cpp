@@ -5,7 +5,7 @@
 
 #include <cstring>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "rdb_object_converter.hpp"
 

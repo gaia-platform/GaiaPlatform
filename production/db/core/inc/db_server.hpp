@@ -14,7 +14,7 @@
 #include <thread>
 #include <utility>
 
-#include "flatbuffers/flatbuffers.h"
+#include <flatbuffers/flatbuffers.h>
 
 #include "gaia/exception.hpp"
 
@@ -109,6 +109,14 @@ private:
 
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t c_stream_batch_size{1ULL << 10};
+
+    // This is necessary to avoid VM exhaustion in the worst case where all
+    // sessions are opened from a single process (we remap the 256GB data
+    // segment for each session, so the 128TB of VM available to each process
+    // would be exhausted by 512 sessions opened in a single process, but we
+    // also create other large per-session mappings, so we need a large margin
+    // of error, hence the choice of 128 for the session limit).
+    static constexpr size_t c_session_limit{1ULL << 7};
 
     static inline int s_server_shutdown_eventfd = -1;
 
@@ -384,7 +392,7 @@ private:
     };
 };
 
+#include "db_server.inc"
+
 } // namespace db
 } // namespace gaia
-
-#include "db_server.inc"

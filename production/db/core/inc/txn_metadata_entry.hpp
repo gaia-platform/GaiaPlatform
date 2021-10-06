@@ -7,6 +7,7 @@
 
 #include <cstdint>
 
+#include <bitset>
 #include <limits>
 #include <sstream>
 #include <string>
@@ -218,8 +219,8 @@ private:
     static constexpr uint64_t c_value_sealed{0b101ULL << c_txn_status_flags_shift};
 };
 
+#include "txn_metadata_entry.inc"
+
 } // namespace transactions
 } // namespace db
 } // namespace gaia
-
-#include "txn_metadata_entry.inc"
