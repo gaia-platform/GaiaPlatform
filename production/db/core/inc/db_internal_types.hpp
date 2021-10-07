@@ -36,7 +36,6 @@ enum class gaia_operation_t : uint8_t
     create = 0x1,
     update = 0x2,
     remove = 0x3,
-    clone = 0x4
 };
 
 inline std::ostream& operator<<(std::ostream& os, const gaia_operation_t& o)
@@ -54,9 +53,6 @@ inline std::ostream& operator<<(std::ostream& os, const gaia_operation_t& o)
         break;
     case gaia_operation_t::remove:
         os << "remove";
-        break;
-    case gaia_operation_t::clone:
-        os << "clone";
         break;
     default:
         ASSERT_UNREACHABLE("Unknown value of gaia_operation_t!");

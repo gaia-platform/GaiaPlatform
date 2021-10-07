@@ -428,21 +428,6 @@ void gaia_ptr_t::clone_no_txn()
     memcpy(new_this, old_this, total_object_size);
 }
 
-gaia_ptr_t& gaia_ptr_t::clone()
-{
-    gaia_offset_t old_offset = to_offset();
-    clone_no_txn();
-
-    client_t::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::clone);
-
-    db_object_t* new_this = to_ptr();
-    if (client_t::is_valid_event(new_this->type))
-    {
-        client_t::s_events.emplace_back(event_type_t::row_insert, new_this->type, new_this->id, empty_position_list, get_txn_id());
-    }
-
-    return *this;
-}
 void gaia_ptr_t::auto_connect_to_parent(
     gaia_id_t child_id,
     gaia_type_t child_type,
