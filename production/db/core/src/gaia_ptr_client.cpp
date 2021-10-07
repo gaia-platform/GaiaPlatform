@@ -237,6 +237,7 @@ bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
     gaia_offset_t old_parent_offset = to_offset();
     WRITE_PROTECT(old_parent_offset);
     clone_no_txn();
+
     gaia_offset_t old_child_offset = child_ptr.to_offset();
 
     // Need to handle self-references.
