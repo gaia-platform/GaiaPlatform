@@ -25,21 +25,23 @@ using gaia::direct_access::auto_transaction_t;
 ///
 
 /**
- * Creates a record using the insert() method. insert() returns a gaia_id_t
- * that can later be used to lookup the record.
+ * Creates a record using the insert() method. insert() returns an
+ * ID of type gaia_id_t that is used to look up the record.
  */
 void create_record_insert()
 {
     PRINT_METHOD_NAME();
 
-    [[maybe_unused]] gaia_id_t id = patient_t::insert_row("Jane", 183, true);
+    gaia_id_t id = patient_t::insert_row("Jane", 183, true);
+
+    gaia_log::app().info("Created patient with ID: {}", id);
 }
 
 /**
  *  Creates a record using the writer class (patient_writer in this case).
- *  A writer class does not require to set the value for all the fields.
- *  The unspecified fields can will be assigned a default value.
- *  The writer returns a gaia_id_t.
+ *  A writer class does not require that values are set for all of the
+ *  fields in the class. Fields for which a value is not specified
+ *  are assigned a default value. The writer returns a gaia_id_t.
  */
 void create_record_writer()
 {
@@ -48,7 +50,9 @@ void create_record_writer()
     patient_writer patient_w;
     patient_w.name = "Emma";
     patient_w.is_active = true;
-    [[maybe_unused]] gaia_id_t id = patient_w.insert_row();
+    gaia_id_t id = patient_w.insert_row();
+
+    gaia_log::app().info("Created patient with ID: {}", id);
 }
 
 /**
@@ -64,7 +68,7 @@ void lookup_record_get()
 }
 
 /**
- * DACs override the bool() operator that evaluate to true when the
+ * DACs override the bool() operator to return true when the
  * instance is in a valid state and false otherwise.
  */
 void lookup_invalid_record()
@@ -84,8 +88,8 @@ void lookup_invalid_record()
 }
 
 /**
- * If you interact with a DAC instance that points to an invalid database record
- * you will get a invalid_object_id exception.
+ * When a DAC instance references an invalid database record
+ * Gaia throws an invalid_object_id exception.
  */
 void access_invalid_record()
 {
@@ -99,13 +103,13 @@ void access_invalid_record()
     }
     catch (gaia::db::invalid_object_id& ex)
     {
-        gaia_log::app().error("As expected, attempting to access an invalid object is raising the following exception: '{}'.", ex.what());
+        gaia_log::app().info("As expected, attempting to access an invalid object is raising the following exception: '{}'.", ex.what());
     }
 }
 
 /**
- * DACs override the == operators which can be used to test instances equality.
- * The equality is based on the database identity (gaia_id).
+ * DACs override the == operator which can be used to test instances equality.
+ * Instances are determined to be equal when their gaia_id matches.
  */
 void compare_records()
 {
@@ -138,8 +142,8 @@ void compare_records()
 }
 
 /**
- * Each DAC class exposes a static list() method that allow to iterate
- * through all the table records.
+ * Each DAC class exposes a static list() method that allows you to iterate
+ * through all of the records in a table.
  */
 void list_all_patients()
 {
@@ -148,12 +152,12 @@ void list_all_patients()
     for (auto& patient : patient_t::list())
     {
         gaia_log::app().info(
-            "Patient name:{}, height:{}", patient.name(), patient.height());
+            "Patient name:{}, height:{} is_active:{}", patient.name(), patient.height(), patient.is_active());
     }
 }
 
 /**
- * Records can be deleted using the delete_row() method.
+ * You can delete records by calling the delete_row() method.
  */
 void delete_single_record()
 {
@@ -174,7 +178,9 @@ void delete_single_record()
 }
 
 /**
- * Records can be deleted using the static delete_row() method.
+ * You can delete records by calling the delete_row(gaia_id_t) static method.
+ * This can be useful if you have a gaia_id_t and you don't want to
+ * instantiate an object to call the delete_row() instance method.
  */
 void delete_single_record_static()
 {
@@ -226,7 +232,7 @@ void delete_all_records()
 }
 
 /**
- * Shows another way of deleting all the records using an iterator.
+ * Another way to delete all of the records is to use an iterator.
  */
 void delete_all_records_iter()
 {
@@ -247,10 +253,9 @@ void delete_all_records_iter()
 }
 
 /**
- * Creates a one-to-many relationships between doctor and patients by
- * adding three patients to a single doctor.
+ * Creates a one-to-many relationship between a doctor and several patients.
  *
- * @return A gaia_id used by the following examples.
+ * @return A gaia_id used by the subsequent methods in this source file.
  */
 gaia_id_t create_one_to_many_relationship()
 {
@@ -271,8 +276,8 @@ gaia_id_t create_one_to_many_relationship()
 }
 
 /**
- * Iterate over all the patients of the given doctor and, from each patient,
- * traverse the backlink to doctor.
+ * Iterates over all the patients of the specified doctor.
+ * For each patient, traverse the backlink to the doctor.
  *
  * @param doctor_id Id of previously created doctor with patients.
  */
@@ -288,15 +293,15 @@ void traverse_one_to_many_relationship(gaia_id_t doctor_id)
     {
         gaia_log::app().info("Patient name: {}", patient.name());
 
-        // Traverse the backlink from patient to doctor.
+        // Traverse the backlink from the patient to the doctor.
         gaia_log::app().info("Patient's doctor: {}", patient.doctor().name());
     }
 }
 
 /**
- * If you try to delete a database object that is referenced by another
- * object you get a object_still_referenced exception because this violates
- * referential integrity.
+ * Attempting to delete a database object that is referenced by another
+ * object violates referential integrity and causes Gaia to throw an
+ * object_still_referenced exception.
  *
  * @param doctor_id Id of previously created doctor with patients.
  */
@@ -315,7 +320,7 @@ void delete_one_to_many_relationship_re(gaia_id_t doctor_id)
     }
     catch (const gaia::db::object_still_referenced& ex)
     {
-        gaia_log::app().error("s expected, deleting the doctor record is raising the following exception '{}'.", ex.what());
+        gaia_log::app().info("As expected, deleting the doctor record is raising the following exception '{}'.", ex.what());
     }
 
     try
@@ -324,13 +329,13 @@ void delete_one_to_many_relationship_re(gaia_id_t doctor_id)
     }
     catch (const gaia::db::object_still_referenced& ex)
     {
-        gaia_log::app().error("As expected, deleting the patient record is raising the following exception '{}'.", ex.what());
+        gaia_log::app().info("As expected, deleting the patient record is raising the following exception '{}'.", ex.what());
     }
 }
 
 /**
- * The correct way of deleting object referenced by other objects is to disconnect
- * them first, and then delete them.
+ * The correct to delete an object that is referenced by other objects
+ * is to disconnect it first, and then delete it.
  *
  * @param doctor_id Id of previously created doctor with patients.
  */
@@ -357,9 +362,9 @@ void delete_one_to_many_relationship(gaia_id_t doctor_id)
 }
 
 /**
- * Gaia relationships container expose the erase() method which behaves like
- * the STL erase method. Removes the element at the given position and return
- * an iterator to the following value.
+ * Gaia reference containers expose the erase() method which behaves like
+ * the STL erase method. It removes the element at the specified position
+ * and returns an iterator to the following value.
  */
 void delete_one_to_many_relationship_erase()
 {
@@ -394,7 +399,7 @@ gaia_id_t create_one_to_one_relationship()
     address_t amsterdam = address_t::get(address_t::insert_row("Tuinstraat", "Amsterdam"));
 
     // The address() method returns an address_ref_t which is a subclass of
-    // address_t that expose connect()/disconnect() methods to set/unset
+    // address_t that exposes the connect()/disconnect() methods to set/unset
     // the reference.
     jane.address().connect(amsterdam);
 
@@ -424,14 +429,15 @@ void traverse_one_to_one_relationship(gaia_id_t patient_id)
     // You can do: patient.address().connect(...)
     // You can't do: address.patient().connect(...)
     //
-    // This depends on the order things appear in the DDL. patient appears
-    // first hence it exposes the ability to set/unset the reference to address.
+    // This depends on the order in which items are defined in the DDL.
+    // patient appears first hence it exposes the ability to set/unset
+    // the reference to address.
     gaia_log::app().info("Patient {}", address.patient().name());
 }
 
 /**
- * Likewise in 1:n relationships, if you try to delete a a database object that
- * is referenced by another object (in a 1:1 relationship) you will get
+ * Likewise in 1:n relationships, if you try to delete a database object that
+ * is referenced by another object (in a 1:1 relationship) Gaia throw an
  * object_still_referenced exception.
  *
  * @param patient_id Id of previously created patient with an address.
@@ -506,7 +512,7 @@ void create_filter_data()
 }
 
 /**
- * The Direct Access API allow filtering data using predicates expressed as:
+ * The Direct Access API allows filtering of data using predicates expressed as:
  *
  *   std::function<bool (const T_class&)>
  *
@@ -552,7 +558,8 @@ void filter_lambda()
  * This API is under the T_class_expr namespace (eg. doctor_expr for
  * doctor_t class).
  *
- * The API provide the == and != for string (const char* and std::string).
+ * The API provides the == and != operators for string (const char*
+ * and std::string).
  */
 void filter_gaia_predicates_strings()
 {
