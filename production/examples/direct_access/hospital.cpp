@@ -578,8 +578,16 @@ void one_to_many_relationships_with_common_field()
     // is automatically disconnected.
 
     jane_w.doctor_email = "";
+    jane_w.update_row();
     john_w.doctor_email = "";
+    john_w.update_row();
     jack_w.doctor_email = "";
+    jack_w.update_row();
+
+    if (dr_house.patients().size() > 0)
+    {
+        throw std::runtime_error("The doctor is supposed to have no patients!");
+    }
 
     gaia_log::app().info("{} patients count {}", dr_house.name(), dr_house.patients().size());
 
@@ -758,7 +766,7 @@ void use_dac_object_across_transactions()
     }
 
     txn.begin();
-    gaia_log::app().info("'{}' has survived across transactions", dr_house.name());
+    gaia_log::app().info("{} has survived across transactions", dr_house.name());
     txn.commit();
 }
 
