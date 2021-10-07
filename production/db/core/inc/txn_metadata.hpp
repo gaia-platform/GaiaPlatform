@@ -158,7 +158,7 @@ private:
     // virtual address space (1/8 of the total virtual address space available
     // to the process), but allocate physical pages only on first access. When a
     // range of timestamp entries falls behind the watermark, its physical pages
-    // can be deallocated via madvise(MADV_FREE).
+    // can be decommitted via madvise(MADV_REMOVE).
     //
     // REVIEW: Because we reserve 2^45 bytes of virtual address space and each
     // array entry is 8 bytes, we can address the whole range using 2^42

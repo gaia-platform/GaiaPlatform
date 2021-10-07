@@ -8,6 +8,11 @@ bool gaia_ptr_t::operator==(const gaia_ptr_t& other) const
     return m_locator == other.m_locator;
 }
 
+bool gaia_ptr_t::operator!=(const gaia_ptr_t& other) const
+{
+    return m_locator != other.m_locator;
+}
+
 bool gaia_ptr_t::operator==(const std::nullptr_t) const
 {
     return !to_ptr();
@@ -64,4 +69,9 @@ common::reference_offset_t gaia_ptr_t::num_references() const
 bool gaia_ptr_t::is(common::gaia_type_t type) const
 {
     return to_ptr() && to_ptr()->type == type;
+}
+
+gaia_locator_t gaia_ptr_t::to_locator() const
+{
+    return m_locator;
 }

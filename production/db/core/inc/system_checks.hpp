@@ -62,6 +62,8 @@ inline constexpr vm_overcommit_policy c_vm_overcommit_policies[] = {
 
 bool is_little_endian();
 
+bool has_expected_page_size();
+
 uint64_t check_overcommit_policy();
 
 bool check_vma_limit();

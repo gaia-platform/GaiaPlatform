@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <sys/mman.h>
+
 #include "gaia/common.hpp"
 
 #include "gaia_internal/common/retail_assert.hpp"
@@ -23,8 +25,31 @@
 
 using namespace gaia::common;
 using namespace gaia::common::iterators;
+using namespace gaia::db;
 using namespace gaia::db::triggers;
 using namespace gaia::db::memory_manager;
+
+// This helper is only used for DEBUG allocation mode, where we allocate all
+// objects at page granularity and write-protect allocated pages after all
+// updates to the allocated object are complete.
+static void write_protect_allocation_page_for_offset(gaia_offset_t offset)
+{
+    // Offset must be aligned to a page in debug mode.
+    ASSERT_INVARIANT(
+        ((offset * c_slot_size_bytes) % c_page_size_bytes) == 0,
+        "Allocations must be page-aligned in debug mode!");
+    void* offset_page = page_address_from_offset(offset);
+    if (-1 == ::mprotect(offset_page, c_page_size_bytes, PROT_READ))
+    {
+        throw_system_error("mprotect(PROT_READ) failed!");
+    }
+}
+
+#ifdef DEBUG
+#define WRITE_PROTECT(o) write_protect_allocation_page_for_offset((o))
+#else
+#define WRITE_PROTECT(o) ((void)0)
+#endif
 
 namespace gaia
 {
@@ -37,7 +62,7 @@ namespace db
 
 void gaia_ptr_t::reset()
 {
-    gaia::db::locators_t* locators = gaia::db::get_locators();
+    locators_t* locators = get_locators();
     client_t::txn_log(m_locator, to_offset(), c_invalid_gaia_offset, gaia_operation_t::remove, to_ptr()->id);
 
     // TODO[GAIAPLAT-445]:  We don't expose delete events.
@@ -122,7 +147,15 @@ bool gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t firs
 
     child_ptr.references()[relationship->next_child_offset] = references()[first_child_offset];
     references()[first_child_offset] = child_ptr.id();
+
+    // Need to handle self-references.
+    if (*this != child_ptr)
+    {
+        WRITE_PROTECT(to_offset());
+    }
+
     child_ptr.references()[relationship->parent_offset] = id();
+    WRITE_PROTECT(child_ptr.to_offset());
 
     client_t::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
     client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
@@ -223,16 +256,24 @@ bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
         {
             // Non-first child in the linked list, update the previous child.
             auto prev_ptr = gaia_ptr_t::open(prev_child);
-            // REVIEW: We need to clone prev_ptr before modifying its references,
-            // but the original fix that did this caused a test regression:
-            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1279
+            gaia_offset_t old_prev_offset = prev_ptr.to_offset();
+            prev_ptr.clone_no_txn();
             prev_ptr.references()[relationship->next_child_offset]
                 = curr_ptr.references()[relationship->next_child_offset];
+            WRITE_PROTECT(prev_ptr.to_offset());
+            client_t::txn_log(prev_ptr.m_locator, old_prev_offset, prev_ptr.to_offset(), gaia_operation_t::update);
         }
 
-        curr_ptr.clone_no_txn();
         curr_ptr.references()[relationship->parent_offset] = c_invalid_gaia_id;
         curr_ptr.references()[relationship->next_child_offset] = c_invalid_gaia_id;
+    }
+
+    WRITE_PROTECT(to_offset());
+
+    // Need to handle self-references.
+    if (*this != child_ptr)
+    {
+        WRITE_PROTECT(child_ptr.to_offset());
     }
 
     client_t::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
@@ -364,10 +405,10 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t
     // TODO: this constructor allows creating a gaia_ptr_t in an invalid state;
     //  the db_object_t should either be initialized before and passed in
     //  or it should be initialized inside the constructor.
-    hash_node_t* hash_node = db_hash_map::insert(id);
     gaia_locator_t locator = allocate_locator();
+    hash_node_t* hash_node = db_hash_map::insert(id);
     hash_node->locator = locator;
-    client_t::allocate_object(locator, total_payload_size);
+    allocate_object(locator, total_payload_size);
     gaia_ptr_t obj(locator);
     db_object_t* obj_ptr = obj.to_ptr();
     obj_ptr->id = id;
@@ -394,6 +435,8 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t
         // NOLINTNEXTLINE: cppcoreguidelines-pro-type-const-cast
         const_cast<gaia_id_t*>(obj_ptr->references()),
         reinterpret_cast<const uint8_t*>(obj_ptr->data()));
+
+    WRITE_PROTECT(locator_to_offset(locator));
 
     obj.create_insert_trigger(type, id);
     return obj;
@@ -423,7 +466,7 @@ void gaia_ptr_t::clone_no_txn()
     db_object_t* old_this = to_ptr();
     size_t total_payload_size = old_this->payload_size;
     size_t total_object_size = c_db_object_header_size + total_payload_size;
-    client_t::allocate_object(m_locator, total_payload_size);
+    allocate_object(m_locator, total_payload_size);
     db_object_t* new_this = to_ptr();
     memcpy(new_this, old_this, total_object_size);
 }
@@ -443,6 +486,7 @@ gaia_ptr_t& gaia_ptr_t::clone()
 
     return *this;
 }
+
 void gaia_ptr_t::auto_connect_to_parent(
     gaia_id_t child_id,
     gaia_type_t child_type,
@@ -562,7 +606,7 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
     }
 
     // Updates m_locator to point to the new object.
-    client_t::allocate_object(m_locator, total_payload_size);
+    allocate_object(m_locator, total_payload_size);
 
     db_object_t* new_this = to_ptr();
 
@@ -587,6 +631,8 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
         references(),
         new_data,
         changed_fields);
+
+    WRITE_PROTECT(to_offset());
 
     client_t::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
 

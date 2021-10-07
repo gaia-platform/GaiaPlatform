@@ -96,13 +96,19 @@ class server_t
     friend gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
 
-    friend gaia::db::memory_manager::address_offset_t gaia::db::allocate_object(
-        gaia_locator_t locator,
-        size_t size);
+public:
+    // This needs to be public to be accessible from gaia::db::get_memory_manager().
+    // This field has session lifetime.
+    thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
+    // This needs to be public to be accessible from gaia::db::get_chunk_manager().
+    // This field has session lifetime.
+    thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
+    // This needs to be public to be accessible from gaia::db::get_mapped_log().
+    // This field has transaction lifetime.
+    thread_local static inline mapped_log_t s_log{};
 
 public:
     static void run(server_config_t server_conf);
-    static void register_object_deallocator(std::function<void(gaia_offset_t)>);
 
 private:
     static inline server_config_t s_server_conf{};
@@ -119,29 +125,30 @@ private:
     static constexpr size_t c_session_limit{1ULL << 7};
 
     static inline int s_server_shutdown_eventfd = -1;
+    static inline int s_listening_socket = -1;
 
     // These thread objects are owned by the client dispatch thread.
-    // These fields have session lifetime.
     static inline std::vector<std::thread> s_session_threads{};
-    static inline int s_listening_socket = -1;
 
     static inline mapped_data_t<locators_t> s_shared_locators{};
     static inline mapped_data_t<counters_t> s_shared_counters{};
     static inline mapped_data_t<data_t> s_shared_data{};
     static inline mapped_data_t<id_index_t> s_shared_id_index{};
     static inline index::indexes_t s_global_indexes{};
+    static inline std::unique_ptr<persistent_store_manager> s_persistent_store{};
 
     // These fields have transaction lifetime.
-
-    thread_local static inline mapped_log_t s_log{};
+    thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
 
     // Local snapshot. This is a private copy of locators for server-side transactions.
     thread_local static inline mapped_data_t<locators_t> s_local_snapshot_locators{};
 
-    thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
+    // This is used by GC tasks on a session thread to cache chunk IDs for empty chunk deallocation.
+    thread_local static inline std::unordered_map<
+        memory_manager::chunk_offset_t, memory_manager::chunk_version_t>
+        s_gc_chunks_to_versions{};
 
-    static inline std::unique_ptr<persistent_store_manager> rdb{};
-
+    // These fields have session lifetime.
     thread_local static inline int s_session_socket = -1;
     thread_local static inline messages::session_state_t s_session_state = messages::session_state_t::DISCONNECTED;
     thread_local static inline bool s_session_shutdown = false;
@@ -149,9 +156,6 @@ private:
 
     // These thread objects are owned by the session thread that created them.
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
-
-    static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
-    static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
 
     // These global timestamp variables are "watermarks" that represent the
     // progress of various system functions with respect to transaction history.
@@ -180,13 +184,6 @@ private:
     static inline std::atomic<gaia_txn_id_t> s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
     static inline std::atomic<gaia_txn_id_t> s_last_applied_commit_ts_lower_bound = c_invalid_gaia_txn_id;
     static inline std::atomic<gaia_txn_id_t> s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
-
-    // This is an extension point called by the transactional system when the
-    // "watermark" advances (i.e., the oldest active txn terminates or commits),
-    // allowing all the superseded object versions in txns with commit
-    // timestamps before the watermark to be freed (because they are no longer
-    // visible to any present or future txns).
-    static inline std::function<void(gaia_offset_t)> s_object_deallocator_fn{};
 
 private:
     // A list of data mappings that we manage together.
@@ -257,7 +254,7 @@ private:
 
     static void clear_shared_memory();
 
-    static void init_memory_manager();
+    static void init_memory_manager(bool initializing);
 
     static void init_shared_memory();
 
@@ -300,13 +297,9 @@ private:
 
     static void txn_begin(std::vector<int>& txn_log_fds_for_snapshot);
 
-    static void txn_rollback();
+    static void txn_rollback(bool client_disconnected = false);
 
     static bool txn_commit();
-
-    static gaia::db::memory_manager::address_offset_t allocate_object(
-        gaia_locator_t locator,
-        size_t size);
 
     static void perform_maintenance();
 
@@ -345,6 +338,8 @@ private:
     static void end_startup_txn();
 
     static void sort_log();
+
+    static void deallocate_object(gaia_offset_t offset);
 
     class invalid_log_fd : public common::gaia_exception
     {

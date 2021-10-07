@@ -6,6 +6,7 @@
 #include "system_checks.hpp"
 
 #include <fcntl.h>
+#include <unistd.h>
 
 #include <charconv>
 
@@ -23,6 +24,8 @@
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 
+#include "memory_types.hpp"
+
 namespace gaia
 {
 namespace db
@@ -33,6 +36,15 @@ bool is_little_endian()
     uint32_t val = 1;
     uint8_t least_significant_byte = *(reinterpret_cast<uint8_t*>(&val));
     return (least_significant_byte == val);
+}
+
+bool has_expected_page_size()
+{
+    if (::sysconf(_SC_PAGESIZE) != memory_manager::c_page_size_bytes)
+    {
+        return false;
+    }
+    return true;
 }
 
 static uint64_t read_integer_from_proc_fd(int proc_fd)

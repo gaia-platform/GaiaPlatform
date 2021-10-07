@@ -6,14 +6,17 @@
 #include "chunk_manager.hpp"
 
 #include <iostream>
+#include <thread>
+
+#include <sys/mman.h>
 
 #include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/scope_guard.hpp"
 
 #include "bitmap.hpp"
-
-using namespace std;
-
-using namespace gaia::common;
+#include "db_helpers.hpp"
+#include "db_shared_data.hpp"
+#include "memory_types.hpp"
 
 namespace gaia
 {
@@ -22,240 +25,340 @@ namespace db
 namespace memory_manager
 {
 
-inline void validate_metadata(chunk_manager_metadata_t* metadata)
+using namespace gaia::common;
+using scope_guard::make_scope_guard;
+
+static void validate_metadata(chunk_manager_metadata_t* metadata)
 {
     ASSERT_PRECONDITION(metadata != nullptr, "Chunk manager was not initialized!");
 }
 
-void chunk_manager_t::initialize(
-    uint8_t* base_memory_address,
-    address_offset_t memory_offset)
-{
-    bool initialize_memory = true;
-    initialize_internal(base_memory_address, memory_offset, initialize_memory);
-}
-
-void chunk_manager_t::load(
-    uint8_t* base_memory_address,
-    address_offset_t memory_offset)
-{
-    bool initialize_memory = false;
-    initialize_internal(base_memory_address, memory_offset, initialize_memory);
-}
-
 void chunk_manager_t::initialize_internal(
-    uint8_t* base_memory_address,
-    address_offset_t memory_offset,
-    bool initialize_memory)
+    chunk_offset_t chunk_offset, bool initialize_memory)
 {
-    ASSERT_PRECONDITION(
-        base_memory_address != nullptr,
-        "chunk_manager_t::initialize_internal() was called with a null memory address!");
-    ASSERT_PRECONDITION(
-        (reinterpret_cast<size_t>(base_memory_address)) % c_allocation_alignment == 0,
-        "chunk_manager_t::initialize_internal() was called with a misaligned memory address!");
-    ASSERT_PRECONDITION(
-        memory_offset != c_invalid_address_offset,
-        "chunk_manager_t::initialize_internal() was called with an invalid memory offset!");
-    ASSERT_PRECONDITION(
-        memory_offset % c_chunk_size == 0,
-        "chunk_manager_t::initialize_internal() was called with a memory offset that is not a multiple of the chunk size (4MB)!");
-
-    // Save our parameters.
-    m_base_memory_address = base_memory_address;
-    m_start_memory_offset = memory_offset;
-    m_total_memory_size = c_chunk_size;
-
-    // Now that we set our parameters, we can do one last sanity check.
-    validate_managed_memory_range();
+    m_chunk_offset = chunk_offset;
 
     // Map the metadata information for quick reference.
-    uint8_t* metadata_address = m_base_memory_address + m_start_memory_offset;
-    m_metadata = reinterpret_cast<chunk_manager_metadata_t*>(metadata_address);
+    char* base_address = reinterpret_cast<char*>(gaia::db::get_data()->objects);
+    void* metadata_address = base_address + (chunk_offset * c_chunk_size_bytes);
+    m_metadata = static_cast<chunk_manager_metadata_t*>(metadata_address);
 
     if (initialize_memory)
     {
         m_metadata->clear();
-        m_metadata->last_committed_slot_offset = get_slot_offset(sizeof(chunk_manager_metadata_t)) - 1;
-    }
-
-    m_last_allocated_slot_offset = m_metadata->last_committed_slot_offset;
-
-    if (m_execution_flags.enable_console_output)
-    {
-        output_debugging_information(initialize_memory ? "initialize" : "load");
     }
 }
 
-address_offset_t chunk_manager_t::allocate(
-    size_t memory_size)
+void chunk_manager_t::initialize(chunk_offset_t chunk_offset)
 {
-    ASSERT_PRECONDITION(memory_size != 0, "Size passed to chunk_manager_t::allocate() should not be 0!");
+    bool initialize_memory = true;
+    initialize_internal(chunk_offset, initialize_memory);
+}
 
-    validate_metadata(m_metadata);
+void chunk_manager_t::load(chunk_offset_t chunk_offset)
+{
+    bool initialize_memory = false;
+    initialize_internal(chunk_offset, initialize_memory);
+}
 
-    // Adjust the requested memory size, to ensure proper alignment.
-    memory_size = calculate_allocation_size(memory_size);
+chunk_offset_t chunk_manager_t::release()
+{
+    chunk_offset_t chunk_offset = m_chunk_offset;
+    m_chunk_offset = c_invalid_chunk_offset;
+    m_metadata = nullptr;
+    return chunk_offset;
+}
 
-    // Quick exit for memory requests that are way too large.
-    size_t available_memory_size = (m_last_allocated_slot_offset == c_last_slot_offset)
-        ? 0
-        : m_total_memory_size - (m_last_allocated_slot_offset + 1) * c_slot_size;
-    if (memory_size > available_memory_size)
+chunk_version_t chunk_manager_t::get_version()
+{
+    return m_metadata->get_chunk_version();
+}
+
+chunk_state_t chunk_manager_t::get_state()
+{
+    return m_metadata->get_chunk_state();
+}
+
+gaia_offset_t chunk_manager_t::allocate(
+    size_t allocation_size_bytes)
+{
+    // If we are uninitialized, then the caller must initialize us with a new chunk.
+    if (!initialized())
     {
-        return c_invalid_address_offset;
+        return c_invalid_gaia_offset;
     }
 
-    // Get the number of slots required for this allocation and update m_last_allocated_slot_offset.
-    slot_offset_t slot_count = memory_size / c_slot_size;
-    ASSERT_INVARIANT(slot_count >= 1, "An allocation should use at least one slot!");
-    slot_offset_t allocation_slot_offset = m_last_allocated_slot_offset + 1;
+    ASSERT_PRECONDITION(allocation_size_bytes > 0, "Requested allocation size cannot be 0!");
+
+    // Check before converting to slot units to avoid overflow.
+    ASSERT_PRECONDITION(
+        allocation_size_bytes <= c_max_allocation_size_slots * c_slot_size_bytes,
+        "Requested allocation size exceeds maximum allocation size of 64KB!");
+
+    // Calculate allocation size in slot units.
+#ifdef DEBUG
+    // Round up allocation to a page so we can mprotect() it.
+    size_t allocation_size_pages = (allocation_size_bytes + c_page_size_bytes - 1) / c_page_size_bytes;
+    size_t allocation_size_slots = allocation_size_pages * (c_page_size_bytes / c_slot_size_bytes);
+#else
+    size_t allocation_size_slots = (allocation_size_bytes + c_slot_size_bytes - 1) / c_slot_size_bytes;
+#endif
+    // Ensure that the new allocation doesn't overflow the chunk.
+    if (m_metadata->min_unallocated_slot_offset() + allocation_size_slots > c_last_slot_offset)
+    {
+        return c_invalid_gaia_offset;
+    }
+
+    // Ensure that allocation metadata is consistent if an exception is thrown
+    // while it is being updated.
+    auto sync_metadata = make_scope_guard([&]() {
+        m_metadata->synchronize_allocation_metadata();
+    });
+
+    // Now update the atomic allocation metadata.
+    m_metadata->update_last_allocation_metadata(allocation_size_slots);
+
+    // Finally, update the allocation bitmap (order is important for crash-consistency).
+    slot_offset_t allocated_slot = m_metadata->max_allocated_slot_offset();
+    mark_slot_allocated(allocated_slot);
     ASSERT_INVARIANT(
-        m_last_allocated_slot_offset + slot_count > m_last_allocated_slot_offset,
-        "The update of m_last_allocated_slot_offset would cause an integer overflow!");
+        is_slot_allocated(allocated_slot),
+        "Slot just marked allocated must be visible as allocated!");
 
-    // Mark the first allocation slot as used in the metadata slot bitmap.
-    // This marking is done immediately, before we get a decision for our transaction.
-    // If our process dies, the server will ignore this portion of the bitmap
-    // based on the value of the metadata's last_committed_slot_offset.
-    while (!try_mark_slot_used_status(allocation_slot_offset, true))
-    {
-        // Retry until we succeed.
-        // Failure can be due to another thread attempting to do GC.
-        // Allocations should only be performed on one thread,
-        // so we just need to retry until we succeed.
-        ASSERT_INVARIANT(!is_slot_marked_as_used(allocation_slot_offset), "Another thread has marked slot as used!");
-    };
-
-    m_last_allocated_slot_offset += slot_count;
-
-    // Convert the allocation_slot_offset into an allocation_address_offset.
-    address_offset_t allocation_address_offset
-        = m_start_memory_offset + (allocation_slot_offset * c_slot_size);
-
-    if (m_execution_flags.enable_console_output)
-    {
-        output_debugging_information(__func__);
-    }
-
-    return allocation_address_offset;
+    gaia_offset_t offset = offset_from_chunk_and_slot(m_chunk_offset, allocated_slot);
+    return offset;
 }
 
-void chunk_manager_t::commit(slot_offset_t last_allocated_offset)
+void chunk_manager_t::deallocate(gaia_offset_t offset)
 {
-    validate_metadata(m_metadata);
+    slot_offset_t deallocated_slot = slot_from_offset(offset);
+
+    // It is illegal to deallocate the same object twice.
     ASSERT_PRECONDITION(
-        m_last_allocated_slot_offset >= m_metadata->last_committed_slot_offset,
-        "m_last_allocated_slot_offset is lesser than last_committed_slot_offset!");
+        is_slot_allocated(deallocated_slot),
+        "Only an allocated object can be deallocated!");
 
-    if (last_allocated_offset != c_invalid_slot_offset)
-    {
-        ASSERT_PRECONDITION(
-            m_last_allocated_slot_offset == m_metadata->last_committed_slot_offset,
-            "commit() should only be called with a valid offset if m_last_allocated_slot_offset has not been changed!");
-
-        m_last_allocated_slot_offset = last_allocated_offset;
-    }
-
-    m_metadata->last_committed_slot_offset = m_last_allocated_slot_offset;
-
-    if (m_execution_flags.enable_console_output)
-    {
-        output_debugging_information(__func__);
-    }
+    // Update the deallocation bitmap.
+    mark_slot_deallocated(deallocated_slot);
 }
 
-void chunk_manager_t::rollback()
+bool chunk_manager_t::is_slot_allocated(slot_offset_t slot_offset) const
 {
     validate_metadata(m_metadata);
-    ASSERT_PRECONDITION(
-        m_last_allocated_slot_offset >= m_metadata->last_committed_slot_offset,
-        "m_last_allocated_slot_offset is lesser than last_committed_slot_offset!");
 
-    slot_offset_t first_uncommitted_allocation_slot_offset = m_metadata->last_committed_slot_offset + 1;
-    size_t slot_count = m_last_allocated_slot_offset - m_metadata->last_committed_slot_offset;
+    size_t bit_index = slot_to_bit_index(slot_offset);
 
-    // There may be no work to do if no allocations were actually made.
-    if (slot_count)
-    {
-        // We don't know how many allocations were actually made,
-        // so we'll just reset all the bits for the uncommitted slots.
-        mark_slot_range_used_status(first_uncommitted_allocation_slot_offset, slot_count, false);
-
-        m_last_allocated_slot_offset = m_metadata->last_committed_slot_offset;
-    }
-
-    if (m_execution_flags.enable_console_output)
-    {
-        output_debugging_information(__func__);
-    }
-}
-
-bool chunk_manager_t::is_slot_marked_as_used(slot_offset_t slot_offset) const
-{
-    validate_metadata(m_metadata);
-    ASSERT_PRECONDITION(
-        slot_offset >= c_first_slot_offset && slot_offset <= c_last_slot_offset,
-        "Slot offset passed to is_slot_marked_as_used() is out of bounds");
-
-    uint64_t bit_index = slot_offset - c_first_slot_offset;
-
-    return is_bit_set(
-        m_metadata->slot_bitmap,
-        chunk_manager_metadata_t::c_slot_bitmap_size,
+    // We need to return whether the bit is set in the allocation bitmap and
+    // unset in the deallocation bitmap.
+    bool was_slot_allocated = is_bit_set(
+        m_metadata->allocated_slots_bitmap,
+        chunk_manager_metadata_t::c_slot_bitmap_size_words,
         bit_index);
+
+    bool was_slot_deallocated = is_bit_set(
+        m_metadata->deallocated_slots_bitmap,
+        chunk_manager_metadata_t::c_slot_bitmap_size_words,
+        bit_index);
+
+    bool is_slot_allocated = (was_slot_allocated && !was_slot_deallocated);
+
+    ASSERT_INVARIANT(
+        was_slot_allocated || !was_slot_deallocated,
+        "It is illegal for a slot to be marked in the deallocation bitmap but not in the allocation bitmap!");
+
+    return is_slot_allocated;
 }
 
-bool chunk_manager_t::try_mark_slot_used_status(slot_offset_t slot_offset, bool is_used) const
+void chunk_manager_t::mark_slot_allocated(slot_offset_t slot_offset)
 {
     validate_metadata(m_metadata);
     ASSERT_PRECONDITION(
         slot_offset >= c_first_slot_offset && slot_offset <= c_last_slot_offset,
-        "Slot offset passed to try_mark_slot_used_status() is out of bounds");
+        "Slot offset passed to mark_slot_allocated() is out of bounds");
 
-    uint64_t bit_index = slot_offset - c_first_slot_offset;
+    // is_slot_allocated() also checks that the deallocation bit is not set if
+    // the allocation bit is not set.
+    ASSERT_PRECONDITION(
+        !is_slot_allocated(slot_offset),
+        "Slot cannot be allocated multiple times!");
 
-    return try_set_bit_value(
-        m_metadata->slot_bitmap,
-        chunk_manager_metadata_t::c_slot_bitmap_size,
+    size_t bit_index = slot_to_bit_index(slot_offset);
+
+    // We don't need a CAS because only the owning thread can allocate a slot.
+    set_bit_value(
+        m_metadata->allocated_slots_bitmap,
+        chunk_manager_metadata_t::c_slot_bitmap_size_words,
         bit_index,
-        is_used);
+        true);
 }
 
-void chunk_manager_t::mark_slot_range_used_status(slot_offset_t start_slot_offset, slot_offset_t slot_count, bool is_used) const
+void chunk_manager_t::mark_slot_deallocated(slot_offset_t slot_offset)
 {
     validate_metadata(m_metadata);
+
     ASSERT_PRECONDITION(
-        start_slot_offset >= c_first_slot_offset && start_slot_offset <= c_last_slot_offset,
-        "Slot offset passed to mark_slot_range_used_status() is out of bounds");
+        slot_offset >= c_first_slot_offset && slot_offset <= c_last_slot_offset,
+        "Slot offset passed to mark_slot_deallocated() is out of bounds");
 
-    uint64_t start_bit_index = start_slot_offset - c_first_slot_offset;
+    // is_slot_allocated() also checks that the deallocation bit is not set if
+    // the allocation bit is not set.
+    ASSERT_PRECONDITION(
+        is_slot_allocated(slot_offset),
+        "Slot cannot be deallocated unless it is first allocated!");
 
-    safe_set_bit_range_value(
-        m_metadata->slot_bitmap,
-        chunk_manager_metadata_t::c_slot_bitmap_size,
-        start_bit_index,
-        slot_count,
-        is_used);
+    size_t bit_index = slot_to_bit_index(slot_offset);
+
+    // We need safe_set_bit_value() because GC tasks deallocate slots, and multiple GC
+    // tasks can be concurrently active within a chunk.
+    safe_set_bit_value(
+        m_metadata->deallocated_slots_bitmap,
+        chunk_manager_metadata_t::c_slot_bitmap_size_words,
+        bit_index, true);
 }
 
-void chunk_manager_t::output_debugging_information(const string& context_description) const
+bool chunk_manager_t::allocate_chunk()
 {
-    cout << "\n"
-         << c_debug_output_separator_line_start << endl;
-    cout << "  Chunk Manager information for context: " << context_description << ":" << endl;
+    bool is_allocated = m_metadata->apply_chunk_transition(
+        chunk_state_t::empty, chunk_state_t::in_use);
 
-    if (m_metadata == nullptr)
+    // If allocation succeeded, update the "allocated chunk bitmap" in the memory manager.
+    if (is_allocated)
     {
-        cout << "    Chunk Manager has not been initialized." << endl;
-    }
-    else
-    {
-        cout << "    Last committed slot offset = " << m_metadata->last_committed_slot_offset << endl;
-        cout << "    Last allocated slot offset = " << m_last_allocated_slot_offset << endl;
+        gaia::db::get_memory_manager()->update_chunk_allocation_status(m_chunk_offset, true);
     }
 
-    cout << c_debug_output_separator_line_end << endl;
+    return is_allocated;
+}
+
+void chunk_manager_t::retire_chunk(chunk_version_t version)
+{
+    // This transition must succeed because only the owning thread can
+    // legally transition the chunk from IN_USE to RETIRED.
+    bool transition_succeeded = m_metadata->apply_chunk_transition_from_version(
+        version, chunk_state_t::in_use, chunk_state_t::retired);
+
+    ASSERT_INVARIANT(transition_succeeded, "Transition from IN_USE to RETIRED cannot fail!");
+
+    // If the retired chunk is empty, deallocate it.
+    try_deallocate_chunk(version);
+}
+
+bool chunk_manager_t::try_deallocate_chunk(chunk_version_t initial_version)
+{
+    if (!is_empty(initial_version))
+    {
+        return false;
+    }
+
+    // This transition may fail if the chunk is still in the IN_USE state, or if
+    // another thread concurrently transitioned it from RETIRED to DEALLOCATING,
+    // or if the chunk was concurrently reused.
+    bool transition_succeeded = m_metadata->apply_chunk_transition_from_version(
+        initial_version, chunk_state_t::retired, chunk_state_t::deallocating);
+
+    if (!transition_succeeded)
+    {
+        return false;
+    }
+
+    // If we successfully transitioned the chunk to DEALLOCATING state, then it
+    // cannot be reused until we transition it to EMPTY state, so we can safely
+    // decommit all data pages.
+    decommit_data_pages();
+
+    // This transition must succeed because only the deallocating thread can
+    // legally transition the chunk from DEALLOCATING to EMPTY.
+    transition_succeeded = m_metadata->apply_chunk_transition_from_version(
+        initial_version, chunk_state_t::deallocating, chunk_state_t::empty);
+    ASSERT_INVARIANT(transition_succeeded, "Transition from DEALLOCATING to EMPTY cannot fail!");
+
+    // Finally, update the "allocated chunk bitmap" in the memory manager.
+    gaia::db::get_memory_manager()->update_chunk_allocation_status(m_chunk_offset, false);
+
+    return true;
+}
+
+void chunk_manager_t::decommit_data_pages()
+{
+    ASSERT_PRECONDITION(
+        m_metadata->get_chunk_state() == chunk_state_t::deallocating,
+        "Chunk must be in DEALLOCATING state to decommit data pages!");
+
+    // Get address of first data page.
+    gaia_offset_t first_data_page_offset = offset_from_chunk_and_slot(m_chunk_offset, c_first_slot_offset);
+    void* first_data_page_address = page_address_from_offset(first_data_page_offset);
+
+    // In debug mode, we must remove any write protection from the chunk, or
+    // madvise(MADV_REMOVE) will fail with EACCES.
+#ifdef DEBUG
+    if (-1 == ::mprotect(first_data_page_address, c_data_pages_size_bytes, PROT_READ | PROT_WRITE))
+    {
+        throw_system_error("mprotect(PROT_READ|PROT_WRITE) failed!");
+    }
+#endif
+
+    // MADV_FREE seems like the best fit for our needs, since it allows the OS to lazily reclaim decommitted pages.
+    // However, it returns EINVAL when used with MAP_SHARED, so we need to use MADV_REMOVE (which works with memfd objects).
+    // According to the manpage, madvise(MADV_REMOVE) is equivalent to fallocate(FALLOC_FL_PUNCH_HOLE).
+    if (-1 == ::madvise(first_data_page_address, c_data_pages_size_bytes, MADV_REMOVE))
+    {
+        throw_system_error("madvise(MADV_REMOVE) failed!");
+    }
+}
+
+bool chunk_manager_t::is_empty(chunk_version_t initial_version)
+{
+    // This is a best-effort non-atomic scan; it's possible that some page
+    // previously observed to be non-empty will be empty by the end of the scan.
+    // However, we check after every read that the current version is still
+    // `initial_version`, so if this method returns success, the caller knows
+    // that the chunk was not reused during the scan.
+
+    // Loop over both bitmaps in parallel, XORing each pair of words to
+    // determine if there are any live allocations in that word.
+    for (size_t word_index = 0; word_index < chunk_manager_metadata_t::c_slot_bitmap_size_words; ++word_index)
+    {
+        uint64_t allocation_word = m_metadata->allocated_slots_bitmap[word_index];
+        uint64_t deallocation_word = m_metadata->deallocated_slots_bitmap[word_index];
+
+        // If the version changed, then the chunk was concurrently reused during
+        // the scan, so abort without checking invariants.
+        // REVIEW: do we need a distinct return value for failed version check?
+        if (m_metadata->get_chunk_version() != initial_version)
+        {
+            return false;
+        }
+
+        // The bits set in the deallocation bitmap word must be a subset of the
+        // bits set in the allocation bitmap word.
+        ASSERT_INVARIANT(
+            (allocation_word | deallocation_word) == allocation_word,
+            "All bits set in the deallocation bitmap must be set in the allocation bitmap!");
+
+        // If some bits set in the allocation word are not set in the deallocation word,
+        // then this page contains live allocations, otherwise it is empty.
+        if ((allocation_word ^ deallocation_word) != 0)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+gaia_offset_t chunk_manager_t::last_allocated_offset()
+{
+    // This is expected to be called from a server session thread cleaning up
+    // after a crash, so we expect allocation metadata to be possibly
+    // inconsistent.
+    m_metadata->synchronize_allocation_metadata();
+
+    slot_offset_t max_allocated_slot_offset = m_metadata->max_allocated_slot_offset();
+    if (max_allocated_slot_offset == c_invalid_slot_offset)
+    {
+        return c_invalid_gaia_offset;
+    }
+    return offset_from_chunk_and_slot(m_chunk_offset, max_allocated_slot_offset);
 }
 
 } // namespace memory_manager

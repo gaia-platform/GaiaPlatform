@@ -30,10 +30,14 @@ class gaia_ptr_t
 {
 public:
     gaia_ptr_t() = default;
-    explicit gaia_ptr_t(gaia_locator_t locator);
 
-    inline bool
-    operator==(const gaia_ptr_t& other) const;
+    inline explicit gaia_ptr_t(gaia_locator_t locator)
+        : m_locator(locator)
+    {
+    }
+
+    inline bool operator==(const gaia_ptr_t& other) const;
+    inline bool operator!=(const gaia_ptr_t& other) const;
     inline bool operator==(const std::nullptr_t) const;
     inline bool operator!=(const std::nullptr_t) const;
     inline explicit operator bool() const;
@@ -84,6 +88,7 @@ public:
 
     db_object_t* to_ptr() const;
     gaia_offset_t to_offset() const;
+    inline gaia_locator_t to_locator() const;
 
     /**
      * Returns an iterator representing a server-side cursor over all objects of the given type.
