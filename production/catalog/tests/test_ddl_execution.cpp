@@ -322,10 +322,8 @@ drop database hospital;
     for (const auto& ddl : ddls)
     {
         ddl::parser_t parser;
-        // ASSERT_NO_THROW(parser.parse_string(ddl));
-        parser.parse_string(ddl);
-        // ASSERT_NO_THROW(execute(parser.statements));
-        execute(parser.statements);
+        ASSERT_NO_THROW(parser.parse_string(ddl));
+        ASSERT_NO_THROW(execute(parser.statements));
     }
 }
 
