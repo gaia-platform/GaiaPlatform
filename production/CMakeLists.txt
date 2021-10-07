@@ -89,6 +89,9 @@ if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
     set(LLVM_GENERATE_STACKTRACE_DEBUG_INFO ON CACHE BOOL "")
   endif()
 
+  # gaiat is very slow in Debug builds, so allow skipping SDK tests.
+  set(ENABLE_SDK_TESTS ON CACHE BOOL "")
+
   if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     # This speeds up linking by separating debug info.
     set(LLVM_USE_SPLIT_DWARF ON CACHE BOOL "")
