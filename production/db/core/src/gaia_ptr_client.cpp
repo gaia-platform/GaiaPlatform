@@ -140,25 +140,31 @@ bool gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t firs
     // BUILD THE REFERENCES
     // TODO (Mihir): if the parent/child have been created in the same txn, the clone may not be necessary.
     gaia_offset_t old_parent_offset = to_offset();
+    WRITE_PROTECT(old_parent_offset);
     clone_no_txn();
 
     gaia_offset_t old_child_offset = child_ptr.to_offset();
-    child_ptr.clone_no_txn();
-
-    child_ptr.references()[relationship->next_child_offset] = references()[first_child_offset];
-    references()[first_child_offset] = child_ptr.id();
 
     // Need to handle self-references.
     if (*this != child_ptr)
     {
-        WRITE_PROTECT(to_offset());
+        WRITE_PROTECT(old_child_offset);
+        child_ptr.clone_no_txn();
     }
 
+    child_ptr.references()[relationship->next_child_offset] = references()[first_child_offset];
+    references()[first_child_offset] = child_ptr.id();
     child_ptr.references()[relationship->parent_offset] = id();
-    WRITE_PROTECT(child_ptr.to_offset());
 
+    // Need to handle self-references.
+    if (*this != child_ptr)
+    {
+        WRITE_PROTECT(child_ptr.to_offset());
+        client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
+    }
+
+    WRITE_PROTECT(to_offset());
     client_t::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
-    client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
     return true;
 }
 
@@ -227,16 +233,17 @@ bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
         throw invalid_child(child_ptr.type(), child_id, type(), id());
     }
 
-    // Remove reference.
+    // Clone parent and child objects for CoW updates.
     gaia_offset_t old_parent_offset = to_offset();
+    WRITE_PROTECT(old_parent_offset);
     clone_no_txn();
     gaia_offset_t old_child_offset = child_ptr.to_offset();
-    child_ptr.clone_no_txn();
 
     // Need to handle self-references.
     if (*this != child_ptr)
     {
-        WRITE_PROTECT(child_ptr.to_offset());
+        WRITE_PROTECT(old_child_offset);
+        child_ptr.clone_no_txn();
     }
 
     gaia_id_t prev_child = c_invalid_gaia_id;
@@ -263,6 +270,7 @@ bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
             // Non-first child in the linked list, update the previous child.
             auto prev_ptr = gaia_ptr_t::open(prev_child);
             gaia_offset_t old_prev_offset = prev_ptr.to_offset();
+            WRITE_PROTECT(old_prev_offset);
             prev_ptr.clone_no_txn();
             prev_ptr.references()[relationship->next_child_offset]
                 = curr_ptr.references()[relationship->next_child_offset];
@@ -270,23 +278,19 @@ bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
             client_t::txn_log(prev_ptr.m_locator, old_prev_offset, prev_ptr.to_offset(), gaia_operation_t::update);
         }
 
-        curr_ptr.clone_no_txn();
         curr_ptr.references()[relationship->parent_offset] = c_invalid_gaia_id;
         curr_ptr.references()[relationship->next_child_offset] = c_invalid_gaia_id;
-        WRITE_PROTECT(curr_ptr.to_offset());
     }
-    WRITE_PROTECT(to_offset());
-
-    WRITE_PROTECT(to_offset());
 
     // Need to handle self-references.
     if (*this != child_ptr)
     {
         WRITE_PROTECT(child_ptr.to_offset());
+        client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
     }
 
+    WRITE_PROTECT(to_offset());
     client_t::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
-    client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
     return true;
 }
 
@@ -478,22 +482,6 @@ void gaia_ptr_t::clone_no_txn()
     allocate_object(m_locator, total_payload_size);
     db_object_t* new_this = to_ptr();
     memcpy(new_this, old_this, total_object_size);
-}
-
-gaia_ptr_t& gaia_ptr_t::clone()
-{
-    gaia_offset_t old_offset = to_offset();
-    clone_no_txn();
-
-    client_t::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::clone);
-
-    db_object_t* new_this = to_ptr();
-    if (client_t::is_valid_event(new_this->type))
-    {
-        client_t::s_events.emplace_back(event_type_t::row_insert, new_this->type, new_this->id, empty_position_list, get_txn_id());
-    }
-
-    return *this;
 }
 
 void gaia_ptr_t::auto_connect_to_parent(

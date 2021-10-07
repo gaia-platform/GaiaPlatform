@@ -23,6 +23,8 @@ option(ENABLE_STACKTRACE "Enable stack traces" ON)
 
 option(BUILD_GAIA_RELEASE "Build Gaia Release packages and binaries" OFF)
 
+option(ENABLE_SDK_TESTS "Build and execute ruleset translation tests" ON)
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
 else()
