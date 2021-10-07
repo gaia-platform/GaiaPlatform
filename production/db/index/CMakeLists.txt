@@ -31,4 +31,4 @@ set (INDEX_TEST_INCLUDES
 
 # Tests.
 
-add_gtest(test_index tests/test_index.cpp "${INDEX_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;gaia_common;gaia_payload_types;gaia_index;edc_airport")
+add_gtest(test_index tests/test_index.cpp "${INDEX_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;gaia_common;gaia_payload_types;gaia_index;edc_prerequisites")

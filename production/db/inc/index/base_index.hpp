@@ -49,15 +49,30 @@ public:
     }
 };
 
+enum class index_record_operation_t : uint8_t
+{
+    not_set,
+
+    insert,
+    remove,
+    // Updates that modify the index key will generate remove and insert records.
+    // Updates that do not modify the index key will generate a single update record.
+    update,
+};
+
 struct index_record_t
 {
+    // The following fields should occupy 3x64bit.
     gaia::db::gaia_txn_id_t txn_id;
-    gaia::db::gaia_offset_t offset;
     gaia::db::gaia_locator_t locator;
-    uint8_t deleted;
+    gaia::db::gaia_offset_t offset;
+    index_record_operation_t operation;
 
     friend std::ostream& operator<<(std::ostream& os, const index_record_t& rec);
 };
+
+// We use this assert to check that the index record structure is packed optimally.
+static_assert(sizeof(index_record_t) == 24, "index_record_t size has changed unexpectedly!");
 
 class index_key_t;
 
