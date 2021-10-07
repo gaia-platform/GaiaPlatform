@@ -285,9 +285,9 @@ void delete_all_records_iter()
 {
     PRINT_METHOD_NAME();
 
-    doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House", "house@md.com"));
-    doctor_t dr_dorian = doctor_t::get(doctor_t::insert_row("Dr. Dorian", "dorian@md.com"));
-    doctor_t dr_reid = doctor_t::get(doctor_t::insert_row("Dr. Reid", "reid@md.com"));
+    doctor_t::insert_row("Dr. House", "house@md.com");
+    doctor_t::insert_row("Dr. Dorian", "dorian@md.com");
+    doctor_t::insert_row("Dr. Reid", "reid@md.com");
 
     for (auto doctor_it = doctor_t::list().begin();
          doctor_it != doctor_t::list().end();)
@@ -547,7 +547,15 @@ void one_to_many_relationships_with_common_field()
     // will be automatically linked to the doctor with that email.
     gaia_id_t jane_id = patient_t::insert_row("Jane", 183, true, "house@md.com", {});
     gaia_id_t jack_id = patient_t::insert_row("Jack", 176, false, "house@md.com", {});
-    gaia_id_t john_id = patient_t::insert_row("John", 175, false, "house@md.com", {});
+
+    // John is not immediately connected with the doctor...
+    patient_t john = patient_t::get(
+        patient_t::insert_row("John", 175, false, "", {}));
+
+    // The connection with the doctor is created with this update.
+    patient_writer john_w = john.writer();
+    john_w.doctor_email = "house@md.com";
+    john_w.update_row();
 
     // --- Traverse the relationship ---
 
@@ -560,12 +568,11 @@ void one_to_many_relationships_with_common_field()
     // --- Disconnect the relationship ---
 
     patient_t jane = patient_t::get(jane_id);
-    patient_t john = patient_t::get(john_id);
     patient_t jack = patient_t::get(jack_id);
 
     patient_writer jane_w = jane.writer();
-    patient_writer john_w = john.writer();
     patient_writer jack_w = jack.writer();
+    john_w = john.writer();
 
     // By setting to "" the doctor_email field the relationship
     // is automatically disconnected.

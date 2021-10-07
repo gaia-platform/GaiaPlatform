@@ -17,7 +17,8 @@ table patient (
     is_active bool,
     doctor_email string,
     analysis_results float[],
-    doctor references doctor,
+    doctor references doctor
+        where patient.doctor_email = doctor.email,
     address references address
 )
 
