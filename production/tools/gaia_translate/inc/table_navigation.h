@@ -9,6 +9,11 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#include <clang/Catalog/GaiaCatalog.h>
+#pragma clang diagnostic pop
+
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/catalog/catalog.hpp"
 
@@ -37,27 +42,6 @@ struct explicit_path_data_t
     bool skip_implicit_path_generation{false};
 };
 
-struct field_data_t
-{
-    bool is_deprecated;
-    bool is_active;
-    field_position_t position;
-    data_type_t field_type;
-};
-
-struct link_data_t
-{
-    string target_table;
-    catalog::relationship_cardinality_t cardinality;
-};
-
-struct table_data_t
-{
-    unordered_map<string, field_data_t> field_data;
-    unordered_map<string, link_data_t> link_data;
-    string db_name;
-};
-
 struct navigation_code_data_t
 {
     string prefix;
@@ -67,11 +51,6 @@ struct navigation_code_data_t
 class table_navigation_t
 {
 public:
-    static const unordered_map<string, table_data_t>& get_table_data()
-    {
-        ensure_initialization();
-        return m_table_data;
-    }
     // Function that generates code to navigate between tables for explicit navigation.
     static navigation_code_data_t generate_explicit_navigation_code(const string& anchor_table, explicit_path_data_t path_data);
     // Function that generates variable name for navigation code variables.
@@ -80,21 +59,6 @@ public:
     static vector<string> get_table_fields(const string& table);
 
 private:
-    class db_monitor_t
-    {
-    public:
-        db_monitor_t()
-        {
-            gaia::db::begin_session();
-            gaia::db::begin_transaction();
-        }
-
-        ~db_monitor_t()
-        {
-            gaia::db::commit_transaction();
-            gaia::db::end_session();
-        }
-    };
     struct navigation_data_t
     {
         string table_name;
@@ -102,16 +66,11 @@ private:
     };
 
 private:
-    static void ensure_initialization();
-    static void fill_table_data();
     static string get_closest_table(const unordered_map<string, int>& table_distance);
     static bool find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path);
-    static bool find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path, const unordered_map<string, table_data_t>& graph_data);
-    static string generate_random_string(string::size_type length);
+    static bool find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path, const unordered_map<string, clang::gaia::catalog::CatalogTableData>& graph_data);
     static navigation_code_data_t generate_navigation_code(const string& anchor_table, const unordered_set<string>& tables, const unordered_map<string, string>& tags, string& last_table);
     static bool generate_navigation_step(const string& source_table, const string& source_field, const string& destination_table, const string& source_variable_name, const string& variable_name, navigation_code_data_t& navigation_data);
-    static bool m_is_initialized;
-    static unordered_map<string, table_data_t> m_table_data;
 };
 } // namespace translation
 } // namespace gaia

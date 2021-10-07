@@ -1137,9 +1137,23 @@ TypedefDecl *ASTContext::getUInt128Decl() const {
   return UInt128Decl;
 }
 
+void ASTContext::cacheEDCType(const Type* type) const
+{
+  RecordDecl* record = type->getAsRecordDecl();
+  if (record != nullptr)
+  {
+    const IdentifierInfo* id = record->getIdentifier();
+    if (id)
+    {
+      EDCTypesMap[id->getName()] = type;
+    }
+  }
+}
+
 void ASTContext::InitBuiltinType(CanQualType &R, BuiltinType::Kind K) {
   auto *Ty = new (*this, TypeAlignment) BuiltinType(K);
   R = CanQualType::CreateUnsafe(QualType(Ty, 0));
+  cacheEDCType(Ty);
   Types.push_back(Ty);
 }
 
@@ -2837,6 +2851,7 @@ QualType ASTContext::getComplexType(QualType T) const {
     assert(!NewIP && "Shouldn't be in the map!"); (void)NewIP;
   }
   auto *New = new (*this, TypeAlignment) ComplexType(T, Canonical);
+  cacheEDCType(New);
   Types.push_back(New);
   ComplexTypes.InsertNode(New, InsertPos);
   return QualType(New, 0);
@@ -2866,6 +2881,7 @@ QualType ASTContext::getPointerType(QualType T) const {
   }
   auto *New = new (*this, TypeAlignment) PointerType(T, Canonical);
   Types.push_back(New);
+  cacheEDCType(New);
   PointerTypes.InsertNode(New, InsertPos);
   return QualType(New, 0);
 }
@@ -2887,6 +2903,7 @@ QualType ASTContext::getAdjustedType(QualType Orig, QualType New) const {
   AT = new (*this, TypeAlignment)
       AdjustedType(Type::Adjusted, Orig, New, Canonical);
   Types.push_back(AT);
+  cacheEDCType(AT);
   AdjustedTypes.InsertNode(AT, InsertPos);
   return QualType(AT, 0);
 }
@@ -2926,6 +2943,7 @@ QualType ASTContext::getDecayedType(QualType T) const {
 
   AT = new (*this, TypeAlignment) DecayedType(T, Decayed, Canonical);
   Types.push_back(AT);
+  cacheEDCType(AT);
   AdjustedTypes.InsertNode(AT, InsertPos);
   return QualType(AT, 0);
 }
@@ -2957,6 +2975,7 @@ QualType ASTContext::getBlockPointerType(QualType T) const {
   }
   auto *New = new (*this, TypeAlignment) BlockPointerType(T, Canonical);
   Types.push_back(New);
+  cacheEDCType(New);
   BlockPointerTypes.InsertNode(New, InsertPos);
   return QualType(New, 0);
 }
@@ -2996,6 +3015,7 @@ ASTContext::getLValueReferenceType(QualType T, bool SpelledAsLValue) const {
   auto *New = new (*this, TypeAlignment) LValueReferenceType(T, Canonical,
                                                              SpelledAsLValue);
   Types.push_back(New);
+  cacheEDCType(New);
   LValueReferenceTypes.InsertNode(New, InsertPos);
 
   return QualType(New, 0);
@@ -3031,6 +3051,7 @@ QualType ASTContext::getRValueReferenceType(QualType T) const {
 
   auto *New = new (*this, TypeAlignment) RValueReferenceType(T, Canonical);
   Types.push_back(New);
+  cacheEDCType(New);
   RValueReferenceTypes.InsertNode(New, InsertPos);
   return QualType(New, 0);
 }
@@ -3061,6 +3082,7 @@ QualType ASTContext::getMemberPointerType(QualType T, const Type *Cls) const {
   }
   auto *New = new (*this, TypeAlignment) MemberPointerType(T, Cls, Canonical);
   Types.push_back(New);
+  cacheEDCType(New);
   MemberPointerTypes.InsertNode(New, InsertPos);
   return QualType(New, 0);
 }
@@ -3107,6 +3129,7 @@ QualType ASTContext::getConstantArrayType(QualType EltTy,
     ConstantArrayType(EltTy, Canon, ArySize, ASM, IndexTypeQuals);
   ConstantArrayTypes.InsertNode(New, InsertPos);
   Types.push_back(New);
+  cacheEDCType(New);
   return QualType(New, 0);
 }
 
@@ -3270,6 +3293,7 @@ QualType ASTContext::getVariableArrayType(QualType EltTy,
 
   VariableArrayTypes.push_back(New);
   Types.push_back(New);
+  cacheEDCType(New);
   return QualType(New, 0);
 }
 
@@ -3296,6 +3320,7 @@ QualType ASTContext::getDependentSizedArrayType(QualType elementType,
                                   numElements, ASM, elementTypeQuals,
                                   brackets);
     Types.push_back(newType);
+    cacheEDCType(newType);
     return QualType(newType, 0);
   }
 
@@ -3322,6 +3347,7 @@ QualType ASTContext::getDependentSizedArrayType(QualType elementType,
                               brackets);
     DependentSizedArrayTypes.InsertNode(canonTy, insertPos);
     Types.push_back(canonTy);
+    cacheEDCType(canonTy);
   }
 
   // Apply qualifiers from the element type to the array.
@@ -3341,6 +3367,7 @@ QualType ASTContext::getDependentSizedArrayType(QualType elementType,
         DependentSizedArrayType(*this, elementType, canon, numElements,
                                 ASM, elementTypeQuals, brackets);
   Types.push_back(sugaredType);
+  cacheEDCType(sugaredType);
   return QualType(sugaredType, 0);
 }
 
@@ -3377,6 +3404,7 @@ QualType ASTContext::getIncompleteArrayType(QualType elementType,
 
   IncompleteArrayTypes.InsertNode(newType, insertPos);
   Types.push_back(newType);
+  cacheEDCType(newType);
   return QualType(newType, 0);
 }
 
@@ -3408,6 +3436,7 @@ QualType ASTContext::getVectorType(QualType vecType, unsigned NumElts,
     VectorType(vecType, NumElts, Canonical, VecKind);
   VectorTypes.InsertNode(New, InsertPos);
   Types.push_back(New);
+  cacheEDCType(New);
   return QualType(New, 0);
 }
 
@@ -3447,6 +3476,7 @@ ASTContext::getDependentVectorType(QualType VecType, Expr *SizeExpr,
   }
 
   Types.push_back(New);
+  cacheEDCType(New);
   return QualType(New, 0);
 }
 
@@ -3478,6 +3508,7 @@ ASTContext::getExtVectorType(QualType vecType, unsigned NumElts) const {
     ExtVectorType(vecType, NumElts, Canonical);
   VectorTypes.InsertNode(New, InsertPos);
   Types.push_back(New);
+  cacheEDCType(New);
   return QualType(New, 0);
 }
 
@@ -3519,6 +3550,7 @@ ASTContext::getDependentSizedExtVectorType(QualType vecType,
     }
   }
 
+  cacheEDCType(New);
   Types.push_back(New);
   return QualType(New, 0);
 }
@@ -3544,6 +3576,7 @@ QualType ASTContext::getDependentAddressSpaceType(QualType PointeeType,
                                 QualType(), AddrSpaceExpr, AttrLoc);
     DependentAddressSpaceTypes.InsertNode(canonTy, insertPos);
     Types.push_back(canonTy);
+    cacheEDCType(canonTy);
   }
 
   if (canonPointeeType == PointeeType &&
@@ -3555,6 +3588,7 @@ QualType ASTContext::getDependentAddressSpaceType(QualType PointeeType,
         DependentAddressSpaceType(*this, PointeeType, QualType(canonTy, 0),
                                   AddrSpaceExpr, AttrLoc);
   Types.push_back(sugaredType);
+  cacheEDCType(sugaredType);
   return QualType(sugaredType, 0);
 }
 
@@ -3593,6 +3627,7 @@ ASTContext::getFunctionNoProtoType(QualType ResultTy,
   auto *New = new (*this, TypeAlignment)
     FunctionNoProtoType(ResultTy, Canonical, Info);
   Types.push_back(New);
+  cacheEDCType(New);
   FunctionNoProtoTypes.InsertNode(New, InsertPos);
   return QualType(New, 0);
 }
@@ -3778,6 +3813,7 @@ QualType ASTContext::getFunctionTypeInternal(
   FunctionProtoType::ExtProtoInfo newEPI = EPI;
   new (FTP) FunctionProtoType(ResultTy, ArgArray, Canonical, newEPI);
   Types.push_back(FTP);
+  cacheEDCType(FTP);
   if (!Unique)
     FunctionProtoTypes.InsertNode(FTP, InsertPos);
   return QualType(FTP, 0);
@@ -3804,6 +3840,7 @@ QualType ASTContext::getPipeType(QualType T, bool ReadOnly) const {
   }
   auto *New = new (*this, TypeAlignment) PipeType(T, Canonical, ReadOnly);
   Types.push_back(New);
+  cacheEDCType(New);
   PipeTypes.InsertNode(New, InsertPos);
   return QualType(New, 0);
 }
@@ -3851,6 +3888,7 @@ QualType ASTContext::getInjectedClassNameType(CXXRecordDecl *Decl,
       new (*this, TypeAlignment) InjectedClassNameType(Decl, TST);
     Decl->TypeForDecl = newType;
     Types.push_back(newType);
+    cacheEDCType(newType);
   }
   return QualType(Decl->TypeForDecl, 0);
 }
@@ -3878,6 +3916,7 @@ QualType ASTContext::getTypeDeclTypeSlow(const TypeDecl *Decl) const {
     Type *newType = new (*this, TypeAlignment) UnresolvedUsingType(Using);
     Decl->TypeForDecl = newType;
     Types.push_back(newType);
+    cacheEDCType(newType);
   } else
     llvm_unreachable("TypeDecl without a type?");
 
@@ -3897,6 +3936,7 @@ ASTContext::getTypedefType(const TypedefNameDecl *Decl,
     TypedefType(Type::Typedef, Decl, Canonical);
   Decl->TypeForDecl = newType;
   Types.push_back(newType);
+  cacheEDCType(newType);
   return QualType(newType, 0);
 }
 
@@ -3910,6 +3950,7 @@ QualType ASTContext::getRecordType(const RecordDecl *Decl) const {
   auto *newType = new (*this, TypeAlignment) RecordType(Decl);
   Decl->TypeForDecl = newType;
   Types.push_back(newType);
+  cacheEDCType(newType);
   return QualType(newType, 0);
 }
 
@@ -3923,6 +3964,7 @@ QualType ASTContext::getEnumType(const EnumDecl *Decl) const {
   auto *newType = new (*this, TypeAlignment) EnumType(Decl);
   Decl->TypeForDecl = newType;
   Types.push_back(newType);
+  cacheEDCType(newType);
   return QualType(newType, 0);
 }
 
@@ -3941,6 +3983,7 @@ QualType ASTContext::getAttributedType(attr::Kind attrKind,
            AttributedType(canon, attrKind, modifiedType, equivalentType);
 
   Types.push_back(type);
+  cacheEDCType(type);
   AttributedTypes.InsertNode(type, insertPos);
 
   return QualType(type, 0);
@@ -3963,6 +4006,7 @@ ASTContext::getSubstTemplateTypeParmType(const TemplateTypeParmType *Parm,
     SubstParm = new (*this, TypeAlignment)
       SubstTemplateTypeParmType(Parm, Replacement);
     Types.push_back(SubstParm);
+    cacheEDCType(SubstParm);
     SubstTemplateTypeParmTypes.InsertNode(SubstParm, InsertPos);
   }
 
@@ -3999,6 +4043,7 @@ QualType ASTContext::getSubstTemplateTypeParmPackType(
     = new (*this, TypeAlignment) SubstTemplateTypeParmPackType(Parm, Canon,
                                                                ArgPack);
   Types.push_back(SubstParm);
+  cacheEDCType(SubstParm);
   SubstTemplateTypeParmPackTypes.InsertNode(SubstParm, InsertPos);
   return QualType(SubstParm, 0);
 }
@@ -4031,6 +4076,7 @@ QualType ASTContext::getTemplateTypeParmType(unsigned Depth, unsigned Index,
       TemplateTypeParmType(Depth, Index, ParameterPack);
 
   Types.push_back(TypeParm);
+  cacheEDCType(TypeParm);
   TemplateTypeParmTypes.InsertNode(TypeParm, InsertPos);
 
   return QualType(TypeParm, 0);
@@ -4119,6 +4165,7 @@ ASTContext::getTemplateSpecializationType(TemplateName Template,
                                          IsTypeAlias ? Underlying : QualType());
 
   Types.push_back(Spec);
+  cacheEDCType(Spec);
   return QualType(Spec, 0);
 }
 
@@ -4158,6 +4205,7 @@ QualType ASTContext::getCanonicalTemplateSpecializationType(
                                                 CanonArgs,
                                                 QualType(), QualType());
     Types.push_back(Spec);
+    cacheEDCType(Spec);
     TemplateSpecializationTypes.InsertNode(Spec, InsertPos);
   }
 
@@ -4191,6 +4239,7 @@ QualType ASTContext::getElaboratedType(ElaboratedTypeKeyword Keyword,
   T = new (Mem) ElaboratedType(Keyword, NNS, NamedType, Canon, OwnedTagDecl);
 
   Types.push_back(T);
+  cacheEDCType(T);
   ElaboratedTypes.InsertNode(T, InsertPos);
   return QualType(T, 0);
 }
@@ -4215,6 +4264,7 @@ ASTContext::getParenType(QualType InnerType) const {
 
   T = new (*this, TypeAlignment) ParenType(InnerType, Canon);
   Types.push_back(T);
+  cacheEDCType(T);
   ParenTypes.InsertNode(T, InsertPos);
   return QualType(T, 0);
 }
@@ -4240,6 +4290,7 @@ QualType ASTContext::getDependentNameType(ElaboratedTypeKeyword Keyword,
 
   T = new (*this, TypeAlignment) DependentNameType(Keyword, NNS, Name, Canon);
   Types.push_back(T);
+  cacheEDCType(T);
   DependentNameTypes.InsertNode(T, InsertPos);
   return QualType(T, 0);
 }
@@ -4306,6 +4357,7 @@ ASTContext::getDependentTemplateSpecializationType(
   T = new (Mem) DependentTemplateSpecializationType(Keyword, NNS,
                                                     Name, Args, Canon);
   Types.push_back(T);
+  cacheEDCType(T);
   DependentTemplateSpecializationTypes.InsertNode(T, InsertPos);
   return QualType(T, 0);
 }
@@ -4382,6 +4434,7 @@ QualType ASTContext::getPackExpansionType(QualType Pattern,
   T = new (*this, TypeAlignment)
       PackExpansionType(Pattern, Canon, NumExpansions);
   Types.push_back(T);
+  cacheEDCType(T);
   PackExpansionTypes.InsertNode(T, InsertPos);
   return QualType(T, 0);
 }
@@ -4504,6 +4557,7 @@ QualType ASTContext::getObjCObjectType(
                                  isKindOf);
 
   Types.push_back(T);
+  cacheEDCType(T);
   ObjCObjectTypes.InsertNode(T, InsertPos);
   return QualType(T, 0);
 }
@@ -4612,6 +4666,7 @@ ASTContext::getObjCTypeParamType(const ObjCTypeParamDecl *Decl,
   auto *newType = new (mem) ObjCTypeParamType(Decl, Canonical, protocols);
 
   Types.push_back(newType);
+  cacheEDCType(newType);
   ObjCTypeParamTypes.InsertNode(newType, InsertPos);
   return QualType(newType, 0);
 }
@@ -4708,6 +4763,7 @@ QualType ASTContext::getObjCObjectPointerType(QualType ObjectT) const {
     new (Mem) ObjCObjectPointerType(Canonical, ObjectT);
 
   Types.push_back(QType);
+  cacheEDCType(QType);
   ObjCObjectPointerTypes.InsertNode(QType, InsertPos);
   return QualType(QType, 0);
 }
@@ -4733,6 +4789,7 @@ QualType ASTContext::getObjCInterfaceType(const ObjCInterfaceDecl *Decl,
   auto *T = new (Mem) ObjCInterfaceType(Decl);
   Decl->TypeForDecl = T;
   Types.push_back(T);
+  cacheEDCType(T);
   return QualType(T, 0);
 }
 
@@ -4767,6 +4824,7 @@ QualType ASTContext::getTypeOfExprType(Expr *tofExpr) const {
     toe = new (*this, TypeAlignment) TypeOfExprType(tofExpr, Canonical);
   }
   Types.push_back(toe);
+  cacheEDCType(toe);
   return QualType(toe, 0);
 }
 
@@ -4779,6 +4837,7 @@ QualType ASTContext::getTypeOfType(QualType tofType) const {
   QualType Canonical = getCanonicalType(tofType);
   auto *tot = new (*this, TypeAlignment) TypeOfType(tofType, Canonical);
   Types.push_back(tot);
+  cacheEDCType(tot);
   return QualType(tot, 0);
 }
 
@@ -4812,6 +4871,7 @@ QualType ASTContext::getDecltypeType(Expr *e, QualType UnderlyingType) const {
         DecltypeType(e, UnderlyingType, getCanonicalType(UnderlyingType));
   }
   Types.push_back(dt);
+  cacheEDCType(dt);
   return QualType(dt, 0);
 }
 
@@ -4849,6 +4909,7 @@ QualType ASTContext::getUnaryTransformType(QualType BaseType,
                                                         CanonType);
   }
   Types.push_back(ut);
+  cacheEDCType(ut);
   return QualType(ut, 0);
 }
 
@@ -4870,6 +4931,7 @@ QualType ASTContext::getAutoType(QualType DeducedType, AutoTypeKeyword Keyword,
   auto *AT = new (*this, TypeAlignment)
       AutoType(DeducedType, Keyword, IsDependent);
   Types.push_back(AT);
+  cacheEDCType(AT);
   if (InsertPos)
     AutoTypes.InsertNode(AT, InsertPos);
   return QualType(AT, 0);
@@ -4892,6 +4954,7 @@ QualType ASTContext::getDeducedTemplateSpecializationType(
   auto *DTST = new (*this, TypeAlignment)
       DeducedTemplateSpecializationType(Template, DeducedType, IsDependent);
   Types.push_back(DTST);
+  cacheEDCType(DTST);
   if (InsertPos)
     DeducedTemplateSpecializationTypes.InsertNode(DTST, InsertPos);
   return QualType(DTST, 0);
@@ -4921,6 +4984,7 @@ QualType ASTContext::getAtomicType(QualType T) const {
   }
   auto *New = new (*this, TypeAlignment) AtomicType(T, Canonical);
   Types.push_back(New);
+  cacheEDCType(New);
   AtomicTypes.InsertNode(New, InsertPos);
   return QualType(New, 0);
 }

@@ -5,34 +5,32 @@
 
 #include <climits>
 
-#include <iostream>
-#include <random>
-
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
 #include <clang/Basic/DiagnosticSema.h>
 #pragma clang diagnostic pop
 
+#include "gaia_internal/common/random.hpp"
+
 #include "diagnostics.h"
 #include "table_navigation.h"
 
+
 using namespace std;
 using namespace clang;
-using namespace gaia::translation;
+using namespace ::gaia::translation;
+using namespace clang::gaia::catalog;
 
 constexpr char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
 constexpr int c_variable_length = 15;
-
-bool table_navigation_t::m_is_initialized = false;
-unordered_map<string, table_data_t> table_navigation_t::m_table_data;
 
 // Function that generates code to navigate between tables when explicit navigation path is specified.
 navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(const string& anchor_table, explicit_path_data_t path_data)
 {
     string last_variable_name;
-    ensure_initialization();
     navigation_code_data_t return_value;
-    if (m_table_data.empty() || path_data.path_components.empty())
+    const auto& table_data = GaiaCatalog::getCatalogTableData();
+    if (table_data.empty() || path_data.path_components.empty())
     {
         return navigation_code_data_t();
     }
@@ -81,8 +79,8 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
         {
             if (path_data.is_absolute_path)
             {
-                auto table_data_itr = m_table_data.find(table);
-                if (table_data_itr == m_table_data.end())
+                auto table_data_itr = table_data.find(table);
+                if (table_data_itr == table_data.end())
                 {
                     return navigation_code_data_t();
                 }
@@ -92,7 +90,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
                     .append("\nfor (auto ")
                     .append(last_variable_name)
                     .append(" : gaia::")
-                    .append(table_data_itr->second.db_name)
+                    .append(table_data_itr->second.dbName)
                     .append("::")
                     .append(table)
                     .append("_t::")
@@ -128,9 +126,9 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
 navigation_code_data_t table_navigation_t::generate_navigation_code(
     const string& anchor_table, const unordered_set<string>& tables, const unordered_map<string, string>& tags, string& last_variable_name)
 {
-    ensure_initialization();
     navigation_code_data_t return_value;
-    if (m_table_data.empty() || tables.empty())
+    const auto& table_data =GaiaCatalog::getCatalogTableData();
+    if (table_data.empty() || tables.empty())
     {
         return navigation_code_data_t();
     }
@@ -142,8 +140,8 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
         auto tag_iterator = tags.find(anchor_table);
         anchor_table_name = tag_iterator->second;
     }
-    auto anchor_table_data_itr = m_table_data.find(anchor_table);
-    if (anchor_table_data_itr == m_table_data.end())
+    auto anchor_table_data_itr = table_data.find(anchor_table);
+    if (anchor_table_data_itr == table_data.end())
     {
         return navigation_code_data_t();
     }
@@ -178,7 +176,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
     {
         return return_value;
     }
-    if (anchor_table_data_itr->second.link_data.empty())
+    if (anchor_table_data_itr->second.linkData.empty())
     {
         gaiat::diag().emit(diag::err_no_anchor_path) << anchor_table;
         return navigation_code_data_t();
@@ -206,9 +204,9 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
         bool is_1_relationship = false, is_n_relationship = false;
 
         string linking_field;
-        for (const auto& it : anchor_table_data_itr->second.link_data)
+        for (const auto& it : anchor_table_data_itr->second.linkData)
         {
-            if (it.second.target_table == table_name)
+            if (it.second.targetTable == table_name)
             {
                 if (is_1_relationship || is_n_relationship)
                 {
@@ -277,95 +275,6 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
     return return_value;
 }
 
-// Fill internal data from catalog.
-void table_navigation_t::fill_table_data()
-{
-    try
-    {
-        db_monitor_t monitor;
-        for (const auto& field : catalog::gaia_field_t::list())
-        {
-            catalog::gaia_table_t table = field.table();
-            if (!table)
-            {
-                // TODO: Add better message. How does this happen?
-                gaiat::diag().emit(diag::err_incorrect_table) << field.name();
-                m_table_data.clear();
-                return;
-            }
-
-            if (table.is_system())
-            {
-                continue;
-            }
-
-            table_data_t table_data = m_table_data[table.name()];
-            if (table_data.field_data.find(field.name()) != table_data.field_data.end())
-            {
-                gaiat::diag().emit(diag::err_duplicate_field) << field.name();
-                m_table_data.clear();
-                return;
-            }
-            field_data_t field_data;
-            field_data.is_active = field.active();
-            field_data.position = field.position();
-            field_data.is_deprecated = field.deprecated();
-            field_data.field_type = static_cast<data_type_t>(field.type());
-            table_data.db_name = table.database().name();
-            table_data.field_data[field.name()] = field_data;
-            m_table_data[table.name()] = table_data;
-        }
-
-        for (const auto& relationship : catalog::gaia_relationship_t::list())
-        {
-            catalog::gaia_table_t child_table = relationship.child();
-            if (!child_table)
-            {
-                // TODO:  what is the action a user can take?
-                gaiat::diag().emit(diag::err_invalid_child_table) << relationship.name();
-                m_table_data.clear();
-                return;
-            }
-
-            if (child_table.is_system())
-            {
-                continue;
-            }
-
-            catalog::gaia_table_t parent_table = relationship.parent();
-            if (!parent_table)
-            {
-                // TODO:  what is the action a user can take?
-                gaiat::diag().emit(diag::err_invalid_parent_table) << relationship.name();
-                m_table_data.clear();
-                return;
-            }
-
-            if (parent_table.is_system())
-            {
-                continue;
-            }
-
-            link_data_t to_child_link = {
-                child_table.name(),
-                static_cast<catalog::relationship_cardinality_t>(relationship.cardinality())};
-
-            link_data_t to_parent_link = {
-                parent_table.name(),
-                catalog::relationship_cardinality_t::one};
-
-            m_table_data[parent_table.name()].link_data[relationship.to_child_link_name()] = to_child_link;
-            m_table_data[child_table.name()].link_data[relationship.to_parent_link_name()] = to_parent_link;
-        }
-    }
-    catch (const exception& e)
-    {
-        gaiat::diag().emit(diag::err_catalog_exception) << e.what();
-        m_table_data.clear();
-        return;
-    }
-}
-
 // Auxilary function find topologically closest table.
 string table_navigation_t::get_closest_table(const unordered_map<string, int>& table_distance)
 {
@@ -390,7 +299,8 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
     {
         return true;
     }
-    bool return_value = find_navigation_path(src, dst, current_path, m_table_data);
+    const auto& table_data = GaiaCatalog::getCatalogTableData();
+    bool return_value = find_navigation_path(src, dst, current_path, table_data);
     if (!return_value)
     {
         gaiat::diag().emit(diag::err_no_path) << src << dst;
@@ -402,16 +312,16 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
     for (size_t path_index = 0; path_index < path_length - 1; ++path_index)
     {
         vector<navigation_data_t> path;
-        unordered_map<string, table_data_t> graph_data(m_table_data);
+        unordered_map<string, CatalogTableData> graph_data(table_data);
         const auto& edge_src = current_path[path_index];
         const auto& edge_dst = current_path[path_index + 1];
         auto graph_itr = graph_data.find(edge_src.table_name);
 
-        for (auto it = graph_itr->second.link_data.begin(); it != graph_itr->second.link_data.end();)
+        for (auto it = graph_itr->second.linkData.begin(); it != graph_itr->second.linkData.end();)
         {
-            if (it->second.target_table == edge_dst.table_name)
+            if (it->second.targetTable == edge_dst.table_name)
             {
-                it = graph_itr->second.link_data.erase(it);
+                it = graph_itr->second.linkData.erase(it);
             }
             else
             {
@@ -433,7 +343,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
 }
 
 // Find shortest navigation path between 2 tables.
-bool table_navigation_t::find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path, const unordered_map<string, table_data_t>& graph_data)
+bool table_navigation_t::find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path, const unordered_map<string, CatalogTableData>& graph_data)
 {
     if (src == dst)
     {
@@ -444,7 +354,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
     unordered_map<string, string> table_prev;
     unordered_map<string, navigation_data_t> table_navigation;
 
-    for (const auto& table_description : m_table_data)
+    for (const auto& table_description : GaiaCatalog::getCatalogTableData())
     {
         table_distance[table_description.first] = INT_MAX;
     }
@@ -470,16 +380,16 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
         table_distance.erase(closest_table);
 
         auto table_itr = graph_data.find(closest_table);
-        for (const auto& it : table_itr->second.link_data)
+        for (const auto& it : table_itr->second.linkData)
         {
-            string table_name = it.second.target_table;
+            string table_name = it.second.targetTable;
             if (table_distance.find(table_name) != table_distance.end())
             {
                 if (table_distance[table_name] > distance + 1)
                 {
                     table_distance[table_name] = distance + 1;
                     table_prev[table_name] = closest_table;
-                    table_navigation[table_name] = {it.second.target_table, it.first};
+                    table_navigation[table_name] = {it.second.targetTable, it.first};
                 }
             }
         }
@@ -500,7 +410,7 @@ string table_navigation_t::get_variable_name(const string& variable, const unord
 {
     if (tags.find(variable) == tags.end())
     {
-        return "_" + variable + "_" + generate_random_string(c_variable_length);
+        return "_" + variable + "_" + common::gen_random_str(c_variable_length);
     }
     else
     {
@@ -508,36 +418,17 @@ string table_navigation_t::get_variable_name(const string& variable, const unord
     }
 }
 
-string table_navigation_t::generate_random_string(string::size_type length)
-{
-    const char chrs[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ_"
-                        "abcdefghijklmnopqrstuvwxyz0123456789";
-
-    random_device rd;
-    mt19937_64 gen(rd());
-    uniform_int_distribution<string::size_type> dis;
-
-    string s;
-
-    s.reserve(length);
-    while (length--)
-    {
-        s += chrs[dis(gen) % (sizeof(chrs) - 1)];
-    }
-
-    return s;
-}
 // Function that generates a single navigation step code.
 bool table_navigation_t::generate_navigation_step(const string& source_table, const string& source_field, const string& destination_table, const string& source_variable_name, const string& variable_name, navigation_code_data_t& navigation_data)
 {
-    auto table_itr = m_table_data.find(source_table);
+    auto table_itr = GaiaCatalog::getCatalogTableData().find(source_table);
 
     bool is_1_relationship = false, is_n_relationship = false;
 
     string linking_field = source_field;
-    for (const auto& it : table_itr->second.link_data)
+    for (const auto& it : table_itr->second.linkData)
     {
-        if (it.second.target_table == destination_table)
+        if (it.second.targetTable == destination_table)
         {
             if (!source_field.empty())
             {
@@ -610,19 +501,10 @@ bool table_navigation_t::generate_navigation_step(const string& source_table, co
     return true;
 }
 
-void table_navigation_t::ensure_initialization()
-{
-    if (!m_is_initialized)
-    {
-        fill_table_data();
-        m_is_initialized = true;
-    }
-}
-
 vector<string> table_navigation_t::get_table_fields(const string& table)
 {
     vector<string> return_value;
-    auto table_data = get_table_data();
+    const auto& table_data = GaiaCatalog::getCatalogTableData();
     if (table_data.empty())
     {
         return return_value;
@@ -634,35 +516,13 @@ vector<string> table_navigation_t::get_table_fields(const string& table)
         return return_value;
     }
 
-    return_value.resize(table_iterator->second.field_data.size());
-    try
-    {
-        db_monitor_t monitor;
-        for (const catalog::gaia_field_t& field : catalog::gaia_field_t::list())
-        {
-            catalog::gaia_table_t field_table = field.table();
-            if (!field_table)
-            {
-                gaiat::diag().emit(diag::err_incorrect_table) << field.name();
-                return vector<string>();
-            }
+    return_value.resize(table_iterator->second.fieldData.size());
 
-            if (field_table.is_system())
-            {
-                continue;
-            }
-
-            if (table == field_table.name())
-            {
-                return_value.at(field.position()) = field.name();
-            }
-        }
-    }
-    catch (const exception& e)
+    for (const auto& fieldData : table_iterator->second.fieldData)
     {
-        gaiat::diag().emit(diag::err_catalog_exception) << e.what();
-        return vector<string>();
+        return_value.at(fieldData.second.position) = fieldData.first;
     }
+
 
     return return_value;
 }

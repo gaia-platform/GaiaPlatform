@@ -24,33 +24,14 @@
 #include "clang/Sema/DeclSpec.h"
 #include "clang/Sema/Scope.h"
 #include "clang/Sema/TypoCorrection.h"
-#include <random>
+
+#include "gaia_internal/common/random.hpp"
 using namespace clang;
 
 void Parser::ConsumeInvalidRuleset()
 {
     while(!SkipUntil(tok::l_brace) && Tok.getKind() != tok::eof);
     while(!SkipUntil(tok::r_brace) && Tok.getKind() != tok::eof);
-}
-
-static std::string RandomString(std::string::size_type length)
-{
-    constexpr char chrs[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ_"
-        "abcdefghijklmnopqrstuvwxyz0123456789";
-
-    std::random_device rd;
-    std::mt19937_64 gen(rd());
-    std::uniform_int_distribution<std::string::size_type> dis;
-
-    std::string s;
-
-    s.reserve(length);
-    while(length--)
-    {
-        s += chrs[dis(gen)%(sizeof(chrs) - 1)];
-    }
-
-    return s;
 }
 
 std::string Parser::GetExplicitNavigationPath()
@@ -187,7 +168,7 @@ void Parser::InjectRuleFunction(Declarator &decl, ParsedAttributesWithRange &att
     declSpec.Finish(Actions, Actions.getASTContext().getPrintingPolicy());
 
     // Set function name
-    IdentifierInfo *func = &PP.getIdentifierTable().get(RandomString(15));
+    IdentifierInfo *func = &PP.getIdentifierTable().get(gaia::common::gen_random_str(15));
     decl.SetIdentifier(func, loc);
 
     decl.takeAttributes(attrs, endLoc);

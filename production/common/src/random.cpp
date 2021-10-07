@@ -34,11 +34,14 @@ std::string gen_random_str(size_t len)
     std::string random_str;
     random_str.reserve(len);
 
-    for (size_t i = 0; i < len; ++i)
-    {
-        random_str += c_alphanum[gen_random_num(0, c_alphanum_len - 1)];
-    }
+    std::random_device rd;
+    std::mt19937_64 gen(rd());
+    std::uniform_int_distribution<std::string::size_type> dis;
 
+    while (len--)
+    {
+        random_str += c_alphanum[dis(gen) % c_alphanum_len];
+    }
     return random_str;
 }
 

@@ -2014,7 +2014,7 @@ static void handleRulesetTableAttr(Sema &S, Decl *D, const ParsedAttr &AL)
     return;
   }
   SmallVector<IdentifierInfo *, 8> tables;
-  auto tableData = S.getCatalogTableList(AL.getLoc());
+  const auto& tableData = S.getCatalogTableList();
   for (unsigned ArgNo = 0; ArgNo < getNumAttributeArgs(AL); ++ArgNo)
   {
     if (!AL.isArgIdent(ArgNo))
@@ -2056,7 +2056,7 @@ static bool validateRuleAttribute(StringRef attribute,
     }
   }
 
-  auto tableData = S.getTableData(AL.getLoc());
+  auto tableData = S.getTableData();
   if (tableData.empty())
   {
     return false;
@@ -2247,9 +2247,8 @@ static void handleRulesetSerialGroupAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 
   if (getNumAttributeArgs(AL) == 1)
   {
-
     if (!AL.isArgIdent(0))
-    { 
+    {
       S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
         << AL << AANT_ArgumentIdentifier;
       return;

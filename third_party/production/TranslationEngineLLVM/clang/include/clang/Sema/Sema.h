@@ -4624,8 +4624,8 @@ public:
                                SourceLocation IdentLoc, IdentifierInfo *Ident,
                                const ParsedAttributesView &AttrList);
   void ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace);
-  std::unordered_set<std::string> getCatalogTableList(SourceLocation loc);
-  std::unordered_map<std::string, std::unordered_map<std::string, QualType>> getTableData(SourceLocation loc);
+  std::unordered_set<std::string> getCatalogTableList();
+  std::unordered_map<std::string, std::unordered_map<std::string, QualType>> getTableData();
   void AddExplicitPathData(SourceLocation location, SourceLocation startLocation, SourceLocation endLocation, const std::string &explicitPath);
   bool GetExplicitPathData(SourceLocation location, SourceLocation &startLocation, SourceLocation &endLocation, std::string &explicitPath);
   bool IsInExtendedExplicitPathScope() const { return isInExtendedExplicitPathScope;}
@@ -4685,18 +4685,8 @@ private:
     std::unordered_map<std::string, std::string> tagMap;
   };
 
-  struct TableLinkData_t
-  {
-    std::string table;
-    std::string field;
-    bool is_one_to_many;
-    bool is_from_parent;
-  };
-
   std::unordered_set<std::string> labelsInProcess;
   std::unordered_set<std::string> declarativeLabelsInProcess;
-
-  std::unordered_multimap<std::string, TableLinkData_t> getCatalogTableRelations(SourceLocation loc);
 
   std::unordered_map<SourceLocation, ExplicitPathData_t>  explicitPathData;
 

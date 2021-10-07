@@ -25,11 +25,8 @@
 #include "clang/Sema/DeclSpec.h"
 #include "clang/Sema/Scope.h"
 #include "clang/Sema/Sema.h"
-#include <clang/Sema/Lookup.h>
-
-#include "gaia_internal/catalog/catalog.hpp"
-#include "gaia_internal/catalog/gaia_catalog.h"
-
+#include "clang/Sema/Lookup.h"
+#include "clang/Catalog/GaiaCatalog.h"
 using namespace gaia;
 using namespace std;
 using namespace clang;
@@ -120,22 +117,6 @@ StringRef Sema::ConvertString(const string& str, SourceLocation loc)
     return literal->getString();
 }
 
-class DBMonitor
-{
-public:
-    DBMonitor()
-    {
-        gaia::db::begin_session();
-        gaia::db::begin_transaction();
-    }
-
-    ~DBMonitor()
-    {
-        gaia::db::commit_transaction();
-        gaia::db::end_session();
-    }
-};
-
 bool Sema::doesPathIncludesTags(const std::vector<std::string>& path, SourceLocation loc)
 {
     std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
@@ -169,7 +150,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
     }
     string tag;
     size_t tagPosition = 0, arrowPosition = 0;
-    unordered_set<string> tableData = getCatalogTableList(loc);
+    const unordered_set<string>& tableData = getCatalogTableList();
     std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
 
     while (tagPosition != string::npos || arrowPosition != string::npos)
@@ -231,8 +212,6 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
     // Therefore there is no need to perform more checks here.
     if (path.size() > 1 || pathString.front() == '/' || !tagMap.empty() || doesPathIncludesTags(path, loc))
     {
-        unordered_multimap<string, TableLinkData_t> relationData = getCatalogTableRelations(loc);
-
         for (auto tagEntry : tagMap)
         {
             auto tableDescription = tableData.find(tagEntry.second);
@@ -326,36 +305,34 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
 
             if (!previousTable.empty())
             {
-                auto relatedTablesIterator = relationData.equal_range(previousTable);
+                const unordered_map<string, gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+                auto relatedTablesIterator = catalogData.find(previousTable);
 
-                if (relatedTablesIterator.first == relationData.end() && relatedTablesIterator.second == relationData.end())
+                if (relatedTablesIterator == catalogData.end() || relatedTablesIterator->second.linkData.empty())
                 {
                     Diag(loc, diag::err_no_relations_table_in_path) << previousTable << pathComponent;
                     return "";
                 }
 
                 bool isMatchFound = false;
-                for (auto tableIterator = relatedTablesIterator.first; tableIterator != relatedTablesIterator.second; ++tableIterator)
+                for (const auto& tableIterator : relatedTablesIterator->second.linkData)
                 {
-                    if (tableIterator != relationData.end())
+                    string table = tableIterator.second.targetTable;
+                    string field = tableIterator.first;
+                    if (tableName == table)
                     {
-                        string table = tableIterator->second.table;
-                        string field = tableIterator->second.field;
-                        if (tableName == table)
+                        if (!previousField.empty())
                         {
-                            if (!previousField.empty())
-                            {
-                                if (previousField == field)
-                                {
-                                    isMatchFound = true;
-                                    break;
-                                }
-                            }
-                            else
+                            if (previousField == field)
                             {
                                 isMatchFound = true;
                                 break;
                             }
+                        }
+                        else
+                        {
+                            isMatchFound = true;
+                            break;
                         }
                     }
                 }
@@ -386,125 +363,32 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
     return path.back();
 }
 
-unordered_map<string, unordered_map<string, QualType>> Sema::getTableData(SourceLocation loc)
+unordered_map<string, unordered_map<string, QualType>> Sema::getTableData()
 {
     unordered_map<string, unordered_map<string, QualType>> retVal;
-    try
+    const unordered_map<string, gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+
+    for (const auto& catalogDataItem : catalogData)
     {
-        DBMonitor monitor;
-        for (const catalog::gaia_field_t& field : catalog::gaia_field_t::list())
+        unordered_map<string, QualType> fields;
+        for (const auto& fieldData : catalogDataItem.second.fieldData)
         {
-            catalog::gaia_table_t tbl = field.table();
-            if (!tbl)
-            {
-                Diag(loc, diag::err_invalid_table_field) << field.name();
-                return unordered_map<string, unordered_map<string, QualType>>();
-            }
-            if (tbl.is_system())
-            {
-                continue;
-            }
-            unordered_map<string, QualType> fields = retVal[tbl.name()];
-            if (fields.find(field.name()) != fields.end())
-            {
-                Diag(loc, diag::err_duplicate_field) << field.name();
-                return unordered_map<string, unordered_map<string, QualType>>();
-            }
-            fields[field.name()] = mapFieldType(static_cast<catalog::data_type_t>(field.type()), &Context);
-            retVal[tbl.name()] = fields;
+            fields[fieldData.first] =  mapFieldType(fieldData.second.fieldType, &Context);
         }
+        retVal[catalogDataItem.first] = fields;
     }
-    catch (const exception& e)
-    {
-        Diag(loc, diag::err_catalog_exception) << e.what();
-        return unordered_map<string, unordered_map<string, QualType>>();
-    }
+
     return retVal;
 }
 
-unordered_set<string> Sema::getCatalogTableList(SourceLocation loc)
+unordered_set<string> Sema::getCatalogTableList()
 {
     unordered_set<string> retVal;
-    try
+    const unordered_map<string, gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+
+    for (const auto& catalogDataItem : catalogData)
     {
-        DBMonitor monitor;
-        for (const catalog::gaia_field_t& field : catalog::gaia_field_t::list())
-        {
-            catalog::gaia_table_t tbl = field.table();
-            if (!tbl)
-            {
-                Diag(loc, diag::err_invalid_table_field) << field.name();
-                return unordered_set<string>();
-            }
-            if (tbl.is_system())
-            {
-                continue;
-            }
-            retVal.emplace(tbl.name());
-        }
-    }
-    catch (const exception& e)
-    {
-        Diag(loc, diag::err_catalog_exception) << e.what();
-        return unordered_set<string>();
-    }
-
-    return retVal;
-}
-
-unordered_multimap<string, Sema::TableLinkData_t> Sema::getCatalogTableRelations(SourceLocation loc)
-{
-    unordered_multimap<string, Sema::TableLinkData_t> retVal;
-    try
-    {
-        DBMonitor monitor;
-        for (const auto& relationship : catalog::gaia_relationship_t::list())
-        {
-            catalog::gaia_table_t child_table = relationship.child();
-            if (!child_table)
-            {
-                Diag(loc, diag::err_invalid_child_table) << relationship.name();
-                return unordered_multimap<string, Sema::TableLinkData_t>();
-            }
-
-            if (child_table.is_system())
-            {
-                continue;
-            }
-
-            catalog::gaia_table_t parent_table = relationship.parent();
-            if (!parent_table)
-            {
-                Diag(loc, diag::err_invalid_parent_table) << relationship.name();
-                return unordered_multimap<string, Sema::TableLinkData_t>();
-            }
-
-            if (parent_table.is_system())
-            {
-                continue;
-            }
-
-            TableLinkData_t link_data_1;
-            link_data_1.table = parent_table.name();
-            link_data_1.field = relationship.to_parent_link_name();
-            link_data_1.is_from_parent = false;
-            link_data_1.is_one_to_many = false;
-
-            TableLinkData_t link_data_n;
-            link_data_n.table = child_table.name();
-            link_data_n.field = relationship.to_child_link_name();
-            link_data_n.is_from_parent = true;
-            link_data_n.is_one_to_many = static_cast<catalog::relationship_cardinality_t>(relationship.cardinality())
-                == catalog::relationship_cardinality_t::many;
-
-            retVal.emplace(child_table.name(), link_data_1);
-            retVal.emplace(parent_table.name(), link_data_n);
-        }
-    }
-    catch (const exception& e)
-    {
-        Diag(loc, diag::err_catalog_exception) << e.what();
-        return unordered_multimap<string, Sema::TableLinkData_t>();
+        retVal.emplace(catalogDataItem.first);
     }
 
     return retVal;
@@ -691,17 +575,10 @@ TagDecl* Sema::lookupEDCClass(std::string className)
     //   LookupQualifiedName(gaiaNS, Context.getTranslationUnitDecl());
     //  ....
 
-    for (Type* type : Context.getTypes())
+    auto typeIterator = Context.getEDCTypes().find(className);
+    if (typeIterator != Context.getEDCTypes().end())
     {
-        RecordDecl* record = type->getAsRecordDecl();
-        if (record != nullptr)
-        {
-            const IdentifierInfo* id = record->getIdentifier();
-            if (id && id->getName().equals(className))
-            {
-                return llvm::cast_or_null<TagDecl>(record);
-            }
-        }
+        return llvm::cast_or_null<TagDecl>(typeIterator->second->getAsRecordDecl());
     }
 
     return nullptr;
@@ -794,7 +671,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         typeName = tagMapping[tableName];
     }
 
-    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
+    const unordered_map<string, unordered_map<string, QualType>>& tableData = getTableData();
     if (tableData.empty())
     {
         return Context.VoidTy;
@@ -895,8 +772,8 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         addField(&Context.Idents.get(fieldName), fieldType, RD, loc);
     }
 
-    unordered_multimap<string, Sema::TableLinkData_t> relationships = getCatalogTableRelations(loc);
-    auto links = relationships.equal_range(typeName);
+    const unordered_map<string, gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+    const auto& links = catalogData.find(typeName)->second.linkData;
 
     // For every relationship target table we count how many links
     // we have from tableName. This is needed to determine if we can
@@ -909,18 +786,19 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     // because the connect/disconnect methods are not generated.
     unordered_map<string, bool> links_cardinality;
 
-    for (auto link = links.first; link != links.second; ++link)
+    for (const auto& link : links)
     {
-        TableLinkData_t linkData = link->second;
+        const auto& linkData = link.second;
 
         // For now, connect/disconnect is supported only from the parent side
         // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1190
-        if (linkData.is_from_parent)
+        if (linkData.isFromParent)
         {
-            QualType type = getLinkType(linkData.field, tableName, linkData.table, linkData.is_one_to_many, loc);
-            addField(&Context.Idents.get(linkData.field), type, RD, loc);
-            links_target_tables[linkData.table]++;
-            links_cardinality[linkData.table] = linkData.is_one_to_many;
+            QualType type = getLinkType(link.first, tableName, linkData.targetTable
+                , linkData.cardinality == catalog::relationship_cardinality_t::many, loc);
+            addField(&Context.Idents.get(link.first), type, RD, loc);
+            links_target_tables[linkData.targetTable]++;
+            links_cardinality[linkData.targetTable] = linkData.cardinality == catalog::relationship_cardinality_t::many;
         }
     }
 
@@ -963,7 +841,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
 QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation loc)
 {
     DeclContext* context = getCurFunctionDecl();
-    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
+    const unordered_map<string, unordered_map<string, QualType>>& tableData = getTableData();
     if (tableData.empty())
     {
         return Context.VoidTy;
@@ -1061,20 +939,19 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
         else
         {
             // Search if there is a match in the table links.
+            const unordered_map<string, gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+            auto links = catalogData.find(tableName)->second.linkData;
 
-            unordered_multimap<string, Sema::TableLinkData_t> relationships = getCatalogTableRelations(loc);
-            auto links = relationships.equal_range(tableName);
-
-            for (auto link = links.first; link != links.second; ++link)
+            for (const auto& link : links)
             {
-                TableLinkData_t linkData = link->second;
+                const auto& linkData = link.second;
 
-                if (!linkData.is_from_parent)
+                if (!linkData.isFromParent)
                 {
                     continue;
                 }
 
-                if (linkData.field == fieldOrTagName)
+                if (link.first == fieldOrTagName)
                 {
                     if (retVal != Context.VoidTy)
                     {
@@ -1082,7 +959,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
                         return Context.VoidTy;
                     }
 
-                    retVal = getLinkType(linkData.field, tableName, linkData.table, linkData.is_one_to_many, loc);
+                    retVal = getLinkType(link.first, tableName, linkData.targetTable, linkData.cardinality == catalog::relationship_cardinality_t::many, loc);
                     fieldTableName = tableName;
                 }
             }
@@ -1103,7 +980,7 @@ bool Sema::findFieldType(const std::string& fieldOrTagName, SourceLocation loc)
 {
     bool retVal = false;
 
-    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
+    const unordered_map<string, unordered_map<string, QualType>>& tableData = getTableData();
     if (tableData.empty())
     {
         return retVal;

@@ -5485,7 +5485,7 @@ ExprResult Sema::ActOnCallExpr(Scope *Scope, Expr *Fn, SourceLocation LParenLoc,
       return ExprError();
     }
 
-    const auto catalogTableData = getTableData(LParenLoc);
+    const auto& catalogTableData = getTableData();
     const auto catalogTableDataIterator = catalogTableData.find(tableName);
     if (catalogTableDataIterator == catalogTableData.end())
     {
