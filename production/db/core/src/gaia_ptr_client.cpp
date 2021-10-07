@@ -223,14 +223,13 @@ bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
         {
             // Non-first child in the linked list, update the previous child.
             auto prev_ptr = gaia_ptr_t::open(prev_child);
-            // REVIEW: We need to clone prev_ptr before modifying its references,
-            // but the original fix that did this caused a test regression:
-            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1279
+            gaia_offset_t old_prev_offset = prev_ptr.to_offset();
+            prev_ptr.clone_no_txn();
             prev_ptr.references()[relationship->next_child_offset]
                 = curr_ptr.references()[relationship->next_child_offset];
+            client_t::txn_log(prev_ptr.m_locator, old_prev_offset, prev_ptr.to_offset(), gaia_operation_t::update);
         }
 
-        curr_ptr.clone_no_txn();
         curr_ptr.references()[relationship->parent_offset] = c_invalid_gaia_id;
         curr_ptr.references()[relationship->next_child_offset] = c_invalid_gaia_id;
     }
