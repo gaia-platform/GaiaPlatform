@@ -12,10 +12,11 @@
 #include <thread>
 
 #include <flatbuffers/flatbuffers.h>
-#include <gaia_spdlog/fmt/fmt.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+
+#include "gaia/exceptions.hpp"
 
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
@@ -24,10 +25,13 @@
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
+#include "gaia_spdlog/fmt/fmt.h"
+
 #include "client_messenger.hpp"
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
 #include "messages_generated.h"
+#include "predicate.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -37,17 +41,13 @@ using namespace gaia::db::memory_manager;
 using namespace flatbuffers;
 using namespace scope_guard;
 
-static const std::string c_message_unexpected_event_received = "Unexpected event received!";
-static const std::string c_message_stream_socket_is_invalid = "Stream socket is invalid!";
-static const std::string c_message_unexpected_datagram_size = "Unexpected datagram size!";
-static const std::string c_message_empty_batch_buffer_detected = "Empty batch buffer detected!";
-
-int client_t::get_id_cursor_socket_for_type(gaia_type_t type)
+std::shared_ptr<int> client_t::get_id_cursor_socket_for_type(gaia_type_t type)
 {
     // Build the cursor socket request.
     FlatBufferBuilder builder;
     auto table_scan_info = Createtable_scan_info_t(builder, type);
-    auto client_request = Createclient_request_t(builder, session_event_t::REQUEST_STREAM, request_data_t::table_scan, table_scan_info.Union());
+    auto client_request = Createclient_request_t(
+        builder, session_event_t::REQUEST_STREAM, request_data_t::table_scan, table_scan_info.Union());
     auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
     builder.Finish(message);
 
@@ -65,114 +65,18 @@ int client_t::get_id_cursor_socket_for_type(gaia_type_t type)
     // Check that our stream socket is blocking (because we need to perform blocking reads).
     ASSERT_INVARIANT(!is_non_blocking(stream_socket), "Stream socket is not set to blocking!");
 
+    // We use shared_ptr with a custom deleter to guarantee that the socket is
+    // closed when its owning object is destroyed. We could possibly achieve the
+    // same effect with an RAII wrapper, but it would need to have copy rather
+    // than move semantics, since the socket is captured by a lambda that must
+    // be copyable (since it is coerced to std::function).
+    std::shared_ptr<int> stream_socket_ptr(new int{stream_socket}, [](int* fd_ptr) { close_fd(*fd_ptr); delete fd_ptr; });
+
+    // Both our explicit new() and the shared_ptr constructor dynamically allocate
+    // memory, so we might need to clean up the socket if either fails.
     cleanup_stream_socket.dismiss();
-    return stream_socket;
-}
 
-int client_t::get_record_cursor_socket_for_index(gaia_id_t index_id, gaia_txn_id_t txn_id)
-{
-    FlatBufferBuilder builder;
-    auto index_scan_info = Createindex_scan_info_t(builder, index_id, txn_id);
-    auto client_request = Createclient_request_t(builder, session_event_t::REQUEST_STREAM, request_data_t::index_scan, index_scan_info.Union());
-    auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
-    builder.Finish(message);
-    client_messenger_t client_messenger;
-    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 1);
-
-    int stream_socket = client_messenger.received_fd(client_messenger_t::c_index_stream_socket);
-    auto cleanup_stream_socket = make_scope_guard([&]() {
-        close_fd(stream_socket);
-    });
-
-    const session_event_t event = client_messenger.server_reply()->event();
-    ASSERT_INVARIANT(event == session_event_t::REQUEST_STREAM, c_message_unexpected_event_received);
-
-    // Check that our stream socket is blocking (because we need to perform blocking reads).
-    ASSERT_INVARIANT(!is_non_blocking(stream_socket), "Stream socket is not set to blocking!");
-
-    cleanup_stream_socket.dismiss();
-    return stream_socket;
-}
-
-// This generator wraps a socket which reads a stream of values of `T_element_type` from the server.
-template <typename T_element_type>
-std::function<std::optional<T_element_type>()>
-client_t::get_stream_generator_for_socket(int stream_socket)
-{
-    // Verify that the socket is the correct type for the semantics we assume.
-    check_socket_type(stream_socket, SOCK_SEQPACKET);
-
-    // Currently, we associate a cursor with a snapshot view, i.e., a transaction.
-    verify_txn_active();
-    gaia_txn_id_t owning_txn_id = s_txn_id;
-
-    // The userspace buffer that we use to receive a batch datagram message.
-    std::vector<T_element_type> batch_buffer;
-
-    // The definition of the generator we return.
-    return [stream_socket, owning_txn_id, batch_buffer]() mutable -> std::optional<T_element_type> {
-        // We shouldn't be called again after we received EOF from the server.
-        ASSERT_INVARIANT(stream_socket != -1, c_message_stream_socket_is_invalid);
-
-        // The cursor should only be called from within the scope of its owning transaction.
-        ASSERT_INVARIANT(s_txn_id == owning_txn_id, "Cursor was not called from the scope of its own transaction!");
-
-        // If buffer is empty, block until a new batch is available.
-        if (batch_buffer.size() == 0)
-        {
-            // Get the datagram size, and grow the buffer if necessary.
-            // This decouples the client from the server (i.e., client
-            // doesn't need to know server batch size), at the expense
-            // of an extra system call per batch.
-            // We set MSG_PEEK to avoid reading the datagram into our buffer,
-            // and we set MSG_TRUNC to return the actual buffer size needed.
-            ssize_t datagram_size = ::recv(stream_socket, nullptr, 0, MSG_PEEK | MSG_TRUNC);
-            if (datagram_size == -1)
-            {
-                throw_system_error("recv(MSG_PEEK) failed!");
-            }
-
-            if (datagram_size == 0)
-            {
-                // We received EOF from the server, so close
-                // client socket and stop iteration.
-                close_fd(stream_socket);
-                // Tell the caller to stop iteration.
-                return std::nullopt;
-            }
-
-            // The datagram size must be an integer multiple of our datum size.
-            ASSERT_INVARIANT(datagram_size % sizeof(T_element_type) == 0, c_message_unexpected_datagram_size);
-
-            // Align the end of the buffer to the datagram size.
-            // Per the C++ standard, this will never reduce capacity.
-            batch_buffer.resize(datagram_size);
-
-            // Get the actual data.
-            // This is a nonblocking read, because the previous blocking
-            // read will not return until data is available.
-            ssize_t bytes_read = ::recv(stream_socket, batch_buffer.data(), batch_buffer.size(), MSG_DONTWAIT);
-            if (bytes_read == -1)
-            {
-                // Per above, we should never have to block here.
-                ASSERT_INVARIANT(errno != EAGAIN && errno != EWOULDBLOCK, "Unexpected errno value!");
-                throw_system_error("recv() failed!");
-            }
-
-            // Because our buffer is exactly the same size as the datagram,
-            // we should read exactly the number of bytes in the datagram.
-            ASSERT_INVARIANT(bytes_read == datagram_size, "Bytes read differ from datagram size!");
-        }
-
-        // At this point we know our buffer is non-empty.
-        ASSERT_INVARIANT(batch_buffer.size() > 0, c_message_empty_batch_buffer_detected);
-
-        // Loop through the buffer and return entries in FIFO order
-        // (the server reversed the original buffer before sending).
-        T_element_type next_value = batch_buffer.back();
-        batch_buffer.pop_back();
-        return next_value;
-    };
+    return stream_socket_ptr;
 }
 
 std::function<std::optional<gaia_id_t>()>
@@ -231,33 +135,15 @@ client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::opt
 std::shared_ptr<gaia::common::iterators::generator_t<gaia_id_t>>
 client_t::get_id_generator_for_type(gaia_type_t type)
 {
-    int stream_socket = get_id_cursor_socket_for_type(type);
-    auto cleanup_stream_socket = make_scope_guard([&]() {
-        close_fd(stream_socket);
-    });
+    std::shared_ptr<int> stream_socket_ptr = get_id_cursor_socket_for_type(type);
 
-    auto id_generator = get_stream_generator_for_socket<gaia_id_t>(stream_socket);
-    cleanup_stream_socket.dismiss();
+    auto id_generator = get_stream_generator_for_socket<gaia_id_t>(stream_socket_ptr);
 
     // We need to augment the server-based id generator with a local generator
     // that will also return the elements that have been added by the client
     // in the current transaction, which the server does not yet know about.
     auto augmented_id_generator = augment_id_generator_for_type(type, id_generator);
     return std::make_shared<gaia::common::iterators::generator_t<gaia_id_t>>(augmented_id_generator);
-}
-
-std::shared_ptr<gaia::common::iterators::generator_t<index::index_record_t>>
-client_t::get_record_generator_for_index(gaia::common::gaia_id_t index_id, gaia_txn_id_t txn_id)
-{
-    int stream_socket = get_record_cursor_socket_for_index(index_id, txn_id);
-    auto cleanup_stream_socket = make_scope_guard([&]() {
-        close_fd(stream_socket);
-    });
-
-    auto record_generator = get_stream_generator_for_socket<index::index_record_t>(stream_socket);
-    cleanup_stream_socket.dismiss();
-
-    return std::make_shared<gaia::common::iterators::generator_t<index::index_record_t>>(record_generator);
 }
 
 static void build_client_request(
@@ -385,7 +271,20 @@ void client_t::begin_session(config::session_options_t session_options)
     build_client_request(builder, session_event_t::CONNECT);
 
     client_messenger_t client_messenger;
-    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 4);
+
+    // If we receive ECONNRESET from the server, we assume that the session
+    // limit was exceeded.
+    // REVIEW: distinguish authentication failure from "session limit exceeded"
+    // (authentication failure will also result in ECONNRESET, but
+    // authentication is currently disabled in the server).
+    try
+    {
+        client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 4);
+    }
+    catch (const gaia::common::peer_disconnected&)
+    {
+        throw session_limit_exceeded();
+    }
 
     // Set up scope guards for the fds.
     // The locators fd needs to be kept around, so its scope guard will be dismissed at the end of this scope.
@@ -431,10 +330,26 @@ void client_t::begin_session(config::session_options_t session_options)
 
 void client_t::end_session()
 {
+    verify_session_active();
+    verify_no_txn();
+
     // This will gracefully shut down the server-side session thread
     // and all other threads that session thread owns.
     close_fd(s_session_socket);
-    s_chunk_manager.release();
+
+    // If we own a chunk, we need to release it to the memory manager to be
+    // reused when it is empty.
+    if (s_chunk_manager.initialized())
+    {
+        // Get the session's chunk version for safe deallocation.
+        chunk_version_t version = s_chunk_manager.get_version();
+
+        // Now retire the chunk.
+        s_chunk_manager.retire_chunk(version);
+
+        // Release ownership of the chunk.
+        s_chunk_manager.release();
+    }
 }
 
 void client_t::begin_transaction()
@@ -554,11 +469,16 @@ void client_t::commit_transaction()
     // Extract the commit decision from the server's reply and return it.
     session_event_t event = client_messenger.server_reply()->event();
     ASSERT_INVARIANT(
-        event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT,
+        event == session_event_t::DECIDE_TXN_COMMIT
+            || event == session_event_t::DECIDE_TXN_ABORT
+            || event == session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE,
         c_message_unexpected_event_received);
 
     const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
-    ASSERT_INVARIANT(txn_info->transaction_id() == s_txn_id, "Unexpected transaction id!");
+    ASSERT_INVARIANT(
+        txn_info->transaction_id() == s_txn_id
+            || event == session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE,
+        "Unexpected transaction id!");
 
     // Execute trigger only if rules engine is initialized.
     if (s_txn_commit_trigger
@@ -575,6 +495,12 @@ void client_t::commit_transaction()
     if (event == session_event_t::DECIDE_TXN_ABORT)
     {
         throw transaction_update_conflict();
+    }
+    // Improving the communication of such errors to the client is tracked by:
+    // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1232
+    else if (event == session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE)
+    {
+        throw index::unique_constraint_violation();
     }
 }
 

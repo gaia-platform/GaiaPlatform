@@ -5,9 +5,7 @@
 
 #include <cctype>
 
-#include <iostream>
-
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia_internal/common/random.hpp"
 

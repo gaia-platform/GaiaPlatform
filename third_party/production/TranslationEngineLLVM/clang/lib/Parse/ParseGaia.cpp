@@ -85,7 +85,7 @@ std::string Parser::GetExplicitNavigationPath()
     else if (previousPreviousToken.is(tok::colon) && insertCallParameterLocations.find(previousToken.getLocation()) == insertCallParameterLocations.end())
     {
         Token tagToken = getPreviousToken(previousPreviousToken);
-        if (tagToken.is(tok::identifier))
+        if (tagToken.is(tok::identifier) && !(Actions.getCurScope()->isSwitchScope() && getPreviousToken(tagToken).is(tok::coloncolon)))
         {
             returnValue = tagToken.getIdentifierInfo()->getName().str() + ":";
             startLocation = tagToken.getLocation();
@@ -220,9 +220,9 @@ bool Parser::ParseGaiaAttributeSpecifier(ParsedAttributesWithRange &attrs, GaiaA
                 return ParseRulesetTable(attrs, EndLoc);
             }
 
-            if (Tok.getIdentifierInfo()->getName().equals("serialize"))
+            if (Tok.getIdentifierInfo()->getName().equals("serial_group"))
             {
-                return ParseRulesetSerialStream(attrs, EndLoc);
+                return ParseRulesetSerialGroup(attrs, EndLoc);
             }
         }
         else if (attributeType == Rule)
@@ -370,10 +370,10 @@ bool Parser::ParseGaiaAttributes(ParsedAttributesWithRange &attrs, GaiaAttribute
     return true;
 }
 
-bool Parser::ParseRulesetSerialStream(ParsedAttributesWithRange &attrs,
+bool Parser::ParseRulesetSerialGroup(ParsedAttributesWithRange &attrs,
     SourceLocation *endLoc)
 {
-    assert(Tok.getIdentifierInfo()->getName().equals("serialize") && "Not a 'serialize' attribute!");
+    assert(Tok.getIdentifierInfo()->getName().equals("serial_group") && "Not a 'serial_group' attribute!");
 
     ArgsVector argExprs;
 
@@ -394,18 +394,15 @@ bool Parser::ParseRulesetSerialStream(ParsedAttributesWithRange &attrs,
     }
     else
     {
-        Diag(Tok, diag::err_expected) << tok::identifier;
-        return false;
+        if (Tok.isNot(tok::r_paren))
+        {
+            Diag(Tok, diag::err_expected) << tok::identifier;
+            return false;
+        }
     }
 
     if (tracker.consumeClose())
     {
-        return false;
-    }
-
-    if (argExprs.size() == 0)
-    {
-        Diag(Tok, diag::err_invalid_ruleset_attribute);
         return false;
     }
 

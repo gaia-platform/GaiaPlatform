@@ -39,7 +39,7 @@ show_usage() {
     echo "Flags:"
     echo "  -s,--stop                   Stop the database service only, but do not restart it."
     echo "  -d,--database               Reset any database files while database is shutdown."
-    echo "  -v,--verbose                Show lots of information while executing the project."
+    echo "  -v,--verbose                Display detailed information during execution."
     echo "  -h,--help                   Display this help text."
     echo ""
     exit 1

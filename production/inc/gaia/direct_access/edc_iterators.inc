@@ -3,17 +3,12 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-namespace gaia
-{
-namespace direct_access
-{
-
 //
 // Implementation for edc_iterator_t.
 //
 template <typename T_class>
 edc_iterator_t<T_class>::edc_iterator_t(std::shared_ptr<edc_base_iterator_state_t> iterator_state)
-    : m_iterator_state(iterator_state)
+    : m_iterator_state(std::move(iterator_state))
 {
     gaia::common::gaia_id_t id = edc_db_t::get_iterator_value(m_iterator_state);
     m_obj = T_class::get(id);
@@ -23,7 +18,7 @@ template <typename T_class>
 edc_iterator_t<T_class>::edc_iterator_t(
     std::shared_ptr<edc_base_iterator_state_t> iterator_state,
     std::function<bool(const T_class&)> filter_function)
-    : m_iterator_state(iterator_state), m_filter_fn(filter_function)
+    : m_iterator_state(std::move(iterator_state)), m_filter_fn(filter_function)
 {
     gaia::common::gaia_id_t id = edc_db_t::get_iterator_value(m_iterator_state);
     m_obj = T_class::get(id);
@@ -292,6 +287,24 @@ void reference_chain_container_t<T_child>::insert(const T_child& child_edc)
 }
 
 template <typename T_child>
+bool reference_chain_container_t<T_child>::connect(gaia::common::gaia_id_t child_id)
+{
+    // The gaia_id() will be zero if the row hasn't been inserted into the SE.
+    if (child_id == gaia::common::c_invalid_gaia_id || m_parent_id == gaia::common::c_invalid_gaia_id)
+    {
+        throw edc_invalid_state(m_parent_id, child_id, T_child::gaia_typename());
+    }
+
+    return edc_db_t::insert_child_reference(m_parent_id, child_id, m_child_offset);
+}
+
+template <typename T_child>
+bool reference_chain_container_t<T_child>::connect(const T_child& child_edc)
+{
+    return connect(child_edc.gaia_id());
+}
+
+template <typename T_child>
 void reference_chain_container_t<T_child>::remove(gaia::common::gaia_id_t child_id)
 {
     edc_db_t::remove_child_reference(m_parent_id, child_id, m_child_offset);
@@ -301,6 +314,18 @@ template <typename T_child>
 void reference_chain_container_t<T_child>::remove(const T_child& child_edc)
 {
     remove(child_edc.gaia_id());
+}
+
+template <typename T_child>
+bool reference_chain_container_t<T_child>::disconnect(gaia::common::gaia_id_t child_id)
+{
+    return edc_db_t::remove_child_reference(m_parent_id, child_id, m_child_offset);
+}
+
+template <typename T_child>
+bool reference_chain_container_t<T_child>::disconnect(const T_child& child_edc)
+{
+    return disconnect(child_edc.gaia_id());
 }
 
 template <typename T_child>
@@ -326,6 +351,3 @@ size_t reference_chain_container_t<T_child>::size() const
 {
     return std::distance(begin(), end());
 }
-
-} // namespace direct_access
-} // namespace gaia

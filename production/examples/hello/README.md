@@ -21,7 +21,7 @@ You can also build this code with the `cmake` and `make` tools, by using the inc
 export CC=/usr/bin/clang-10
 export CPP=/usr/bin/clang-cpp-10
 export CXX=/usr/bin/clang++-10
-export LDFLAGS=-fuse-ld=lld-10
+export LDFLAGS="-B/usr/lib/llvm-10/bin/ -fuse-ld=lld"
 ```
 
 The steps for the cmake build are:

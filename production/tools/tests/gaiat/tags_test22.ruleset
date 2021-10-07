@@ -1,3 +1,8 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 // RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
 ruleset test22
@@ -12,5 +17,5 @@ ruleset test22
     }
 }
 
-// GAIAPLAT-851
+// GAIAPLAT-851 (fixed)
 // CHECK: use of undeclared label 'A'

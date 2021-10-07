@@ -8,7 +8,7 @@
 #include <thread>
 #include <utility>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/db/db.hpp"
 #include "gaia/logger.hpp"

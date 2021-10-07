@@ -6,10 +6,11 @@
 #pragma once
 
 #include <cstdint>
+#include <cstring>
 
 #include <vector>
 
-#include "flatbuffers/flatbuffers.h"
+#include <flatbuffers/flatbuffers.h>
 
 namespace gaia
 {

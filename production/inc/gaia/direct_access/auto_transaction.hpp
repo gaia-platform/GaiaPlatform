@@ -9,6 +9,9 @@
 
 #include "gaia/db/db.hpp"
 
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
+
 namespace gaia
 {
 
@@ -23,17 +26,24 @@ namespace direct_access
 /**
  * \addtogroup Direct
  * @{
- * 
+ *
  * Provides a RAII object for exception safe handling of transactions.
- * 
+ *
  */
 
 /**
- * The auto transaction object begins a transaction on construction and 
- * does a rollback on destruction.  The user must explicitly call commit()
+ * The auto transaction object begins a transaction on construction and
+ * does a rollback on destruction.  The user must explicitly call commit().
+ *
+ * If an exception occurs during commit, it will prevent the start of
+ * another transaction when auto_begin was set; in such situations,
+ * begin() can be called to start a new transaction directly.
  */
 class auto_transaction_t
 {
+public:
+    static const bool no_auto_begin = false;
+
 public:
     auto_transaction_t()
         : auto_transaction_t(true)
@@ -41,9 +51,9 @@ public:
     }
     auto_transaction_t(bool auto_begin);
     ~auto_transaction_t();
-    void commit();
 
-    static const bool no_auto_begin = false;
+    void begin();
+    void commit();
 
 private:
     bool m_auto_begin;
@@ -53,3 +63,6 @@ private:
 } // namespace direct_access
 /*@}*/
 } // namespace gaia
+
+// Restore default hidden visibility for all symbols.
+#pragma GCC visibility pop

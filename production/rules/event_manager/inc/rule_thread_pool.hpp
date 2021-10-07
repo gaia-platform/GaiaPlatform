@@ -2,6 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #pragma once
 
 #include <condition_variable>
@@ -15,6 +16,7 @@
 
 #include "gaia_internal/db/triggers.hpp"
 
+#include "rule_checker.hpp"
 #include "rule_stats_manager.hpp"
 
 namespace gaia
@@ -31,16 +33,24 @@ public:
         common::gaia_type_t gaia_type;
         db::triggers::event_type_t event_type;
         common::gaia_id_t record;
-        common::field_position_list_t fields;
         db::gaia_txn_id_t src_txn_id;
     };
 
+    struct serial_group_t;
     struct invocation_t
     {
         rule_invocation_t args;
         const char* rule_id;
         std::chrono::steady_clock::time_point start_time;
+        std::shared_ptr<serial_group_t> serial_group{nullptr};
         uint32_t num_retries{0};
+    };
+
+    struct serial_group_t
+    {
+        std::mutex execute_lock;
+        std::mutex enqueue_lock;
+        std::queue<invocation_t> invocations;
     };
 
     /**
@@ -54,13 +64,15 @@ public:
 
     /**
      * Construct a thread pool used for executing rules.
-     * 
+     *
      * @param num_threads create a pool with this many worker threads.
      * If 0 threads are specified then the thread pool is in "immediate"
      * mode and no worker threads are created. If SIZE_MAX is specified
      * then create the pool with the number of available hardware threads.
      */
-    rule_thread_pool_t(size_t num_threads, uint32_t max_rule_retries, rule_stats_manager_t& stats_manager);
+    rule_thread_pool_t(
+        size_t num_threads, uint32_t max_rule_retries,
+        rule_stats_manager_t& stats_manager, rule_checker_t& rule_checker);
 
     /**
      * Wait for the current rules "graph" to execute. Wait for all rules to finish
@@ -78,7 +90,7 @@ public:
     /**
      * Enqueue a rule onto the thread pool and notify any worker thread
      * that a rule is ready to be invoked.
-     * 
+     *
      * @param invocation the function pointer of the rule along with the
      *   trigger event information needed to call the rule.
      */
@@ -92,7 +104,7 @@ public:
 
     /**
      * Returns the number of worker threads this thread pool is managing.
-     * 
+     *
      * @return number of threads
      */
     size_t get_num_threads();
@@ -100,6 +112,7 @@ public:
 private:
     void rule_worker(int32_t& count_busy_workers);
     void invoke_rule(invocation_t& invocation);
+    void invoke_rule_inner(invocation_t& invocation);
     void process_pending_invocations(bool should_schedule);
     void wait_for_rules_to_complete(std::unique_lock<std::mutex>& lock);
 
@@ -123,6 +136,11 @@ private:
     rule_stats_manager_t& m_stats_manager;
 
     /**
+     * Helper to validate anchor rows.
+     */
+    rule_checker_t& m_rule_checker;
+
+    /**
      * Maximum number of times to retry a rule when getting transaction update conflicts.
      */
     const uint32_t m_max_rule_retries;
@@ -133,7 +151,7 @@ private:
     std::vector<std::thread> m_threads;
 
     /**
-     * This lock together with the condition variable ensure synchronized 
+     * This lock together with the condition variable ensure synchronized
      * access and signaling between the enqueue function and the worker
      * threads.
      */

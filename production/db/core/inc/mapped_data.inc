@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
-
 template <typename T_data>
 core_mapped_data_t<T_data>::core_mapped_data_t()
 {

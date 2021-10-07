@@ -1,68 +1,9 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 // RUN: %gaiat %s --
-
-#include "tags_test.h"
-
-// TESTCASE: break within declarative for
-ruleset test3
-{
-    on_update(incubator)
-    {
-        for (S:sensor)
-        {
-            if (S.value > 99.0)
-            {
-                break;
-            }
-        }
-    }
-}
-
-// TESTCASE: continue within declarative for
-ruleset test4
-{
-    on_update(incubator)
-    {
-        for (S:sensor)
-        {
-            if (S.value > 99.0)
-            {
-                continue;
-            }
-        }
-    }
-}
-
-// TESTCASE: break from multiple outer loops from implicit query
-// GAIAPLAT-1073
-ruleset test5
-{
-    on_update(raised)
-    {
-        for (S:sensor)
-        {
-            if (S.value > 99.0)
-            {
-                break;
-            }
-        }
-    }
-}
-
-// TESTCASE: continue from multiple outer loops from implicit query
-// GAIAPLAT-1073
-ruleset test6
-{
-    on_update(raised)
-    {
-        for (S:sensor)
-        {
-            if (S.value > 99.0)
-            {
-                continue;
-            }
-        }
-    }
-}
 
 // TESTCASE: break within declarative if to label
 ruleset test9
@@ -245,8 +186,8 @@ BREAK_TARGET:
 }
 
 // TESTCASE: break from non-declarative if within declarative while
-// GAIAPLAT-1140
-#ifdef TEST_FAILURES
+// GAIAPLAT-1140 (V1)
+#ifdef TEST_FAILURES // GAIAPLAT-1140 (V1)
 ruleset test17
 {
     on_update(crop)
@@ -263,7 +204,7 @@ BREAK_TARGET:
 
 // TESTCASE: break from an if condition with two navigations
 // GAIAPLAT-1141 (fixed)
-// GAIAPLAT-1164
+// GAIAPLAT-1164 (fixed)
 ruleset test18
 {
     on_update(crop)
@@ -276,8 +217,7 @@ BREAK_TARGET:
     }
 }
 
-#ifdef TEST_FAILURES
-// GAIAPLAT-1151
+// GAIAPLAT-1151 (fixed)
 ruleset test19
 {
 #ifdef TEST_IFDEF
@@ -287,4 +227,21 @@ ruleset test19
         crop.acres = 0;
     }
 }
-#endif
+
+//GAIAPLAT-1083
+ruleset test20
+{
+    on_update(crop)
+    {
+        if (Y:yield.bushels < Y->feeding.portion)
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                if (i >5)
+                {
+                    break;
+                }
+            }
+        }
+    }
+}

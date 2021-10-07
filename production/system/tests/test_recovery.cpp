@@ -2,6 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #include <unistd.h>
 
 #include <iostream>
@@ -9,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/db/db.hpp"
 
@@ -117,8 +118,16 @@ protected:
         s_server.start();
         begin_session();
         type_id_mapping_t::instance().clear();
-        gaia::catalog::ddl_executor_t::get().reset();
         schema_loader_t::instance().load_schema("addr_book.ddl");
+
+        gaia_id_t doctor_table_id = gaia::catalog::create_table("doctor", {});
+        gaia_id_t patient_table_id = gaia::catalog::create_table("patient", {});
+
+        begin_transaction();
+        doctor_table_type = gaia::catalog::gaia_table_t::get(doctor_table_id).type();
+        patient_table_type = gaia::catalog::gaia_table_t::get(patient_table_id).type();
+        commit_transaction();
+
         end_session();
         s_server.stop();
     }
@@ -129,11 +138,17 @@ protected:
         s_server.delete_data_dir();
     }
 
+    static gaia_type_t doctor_table_type;
+    static gaia_type_t patient_table_type;
+
 private:
     // Map of employees for which the server has returned a successful commit.
     // We maintain this map in memory & will use it to validate recovered shared memory post crash.
     static inline std::map<gaia_id_t, employee_copy_t> s_employee_map{};
 };
+
+gaia_type_t recovery_test::doctor_table_type = c_invalid_gaia_type;
+gaia_type_t recovery_test::patient_table_type = c_invalid_gaia_type;
 
 void recovery_test::validate_data()
 {
@@ -531,20 +546,22 @@ TEST_F(recovery_test, reference_create_delete_test_new)
     {
         auto_transaction_t txn;
 
+        txn.commit();
+
         // Create the relationship.
         relationship_builder_t::one_to_many()
-            .parent(c_doctor_type)
-            .child(c_patient_type)
+            .parent(doctor_table_type)
+            .child(patient_table_type)
             .create_relationship();
 
         // Create the parent.
-        gaia_ptr_t parent = create_object(c_doctor_type, "Dr. House");
+        gaia_ptr_t parent = create_object(doctor_table_type, "Dr. House");
         parent_id = parent.id();
 
         // Create the children.
         for (int i = 0; i < c_num_children; i++)
         {
-            gaia_ptr_t child = create_object(c_patient_type, "John Doe " + std::to_string(i));
+            gaia_ptr_t child = create_object(patient_table_type, "John Doe " + std::to_string(i));
 
             // Add half references from the parent and half from the children.
             // (semantically same operation)
@@ -636,16 +653,16 @@ TEST_F(recovery_test, reference_update_test_new)
 
         // Create the relationship.
         relationship_builder_t::one_to_many()
-            .parent(c_doctor_type)
-            .child(c_patient_type)
+            .parent(doctor_table_type)
+            .child(patient_table_type)
             .create_relationship();
 
         // Create the parent.
-        gaia_ptr_t parent = create_object(c_doctor_type, "Dr. House");
+        gaia_ptr_t parent = create_object(doctor_table_type, "Dr. House");
         parent_id = parent.id();
 
         // Create child.
-        gaia_ptr_t child = create_object(c_patient_type, "John Doe ");
+        gaia_ptr_t child = create_object(patient_table_type, "John Doe ");
         child_id = child.id();
 
         parent.add_child_reference(child_id, c_first_patient_offset);
@@ -661,7 +678,7 @@ TEST_F(recovery_test, reference_update_test_new)
         auto_transaction_t txn;
 
         // Create the new parent.
-        gaia_ptr_t new_parent = create_object(c_doctor_type, "Dr. House");
+        gaia_ptr_t new_parent = create_object(doctor_table_type, "Dr. House");
         new_parent_id = new_parent.id();
 
         // Get the child

@@ -1,0 +1,19 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// TESTCASE: use a field name in the place of a table name in a path
+ruleset test43
+{
+    on_insert(animal)
+    {
+        animal->feeding->portion = 5;
+    }
+
+}
+
+// CHECK: Field 'portion' cannot be used after a '->' in a path. Use a '.' to separate the table name from the field name.
+// GAIAPLAT-877 (fixed)

@@ -1,0 +1,20 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+int strcmp(const char*, const char*){return 0;}
+ruleset test58
+{
+   on_insert(sensor)
+   {
+        if (i:incubator.min_temp > 5 && (strcmp(i.sensors.name, "1") == 0))
+        {
+        }
+    }
+}
+
+// CHECK: error: Invalid explicit path.
+// GAIAPLAT-1273

@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
-
 server_config_t::persistence_mode_t server_config_t::persistence_mode()
 {
     return m_persistence_mode;

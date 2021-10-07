@@ -2,6 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #pragma once
 
 #include <optional>
@@ -37,20 +38,25 @@ public:
     /**
      * APIs for accessing catalog records
      */
-    gaia::common::gaia_id_t create_database(const std::string& name, bool throw_on_exist = true);
+    gaia::common::gaia_id_t create_database(
+        const std::string& name,
+        bool throw_on_exists = true,
+        bool auto_drop = false);
 
     gaia::common::gaia_id_t create_table(
         const std::string& db_name,
         const std::string& name,
         const ddl::field_def_list_t& fields,
-        bool throw_on_exist = true);
+        bool throw_on_exists = true,
+        bool auto_drop = false);
 
     gaia::common::gaia_id_t create_relationship(
         const std::string& name,
         const ddl::link_def_t& link1,
         const ddl::link_def_t& link2,
         const std::optional<ddl::table_field_map_t>& field_map,
-        bool throw_on_exists);
+        bool throw_on_exists,
+        bool auto_drop = false);
 
     gaia::common::gaia_id_t create_index(
         const std::string& index_name,
@@ -59,7 +65,8 @@ public:
         const std::string& db_name,
         const std::string& table_name,
         const std::vector<std::string>& field_names,
-        bool throw_on_exists = true);
+        bool throw_on_exists = true,
+        bool auto_drop = false);
 
     void drop_table(const std::string& db_name, const std::string& name, bool throw_unless_exists);
 
@@ -70,14 +77,12 @@ public:
     void drop_index(const std::string& name, bool throw_unless_exists);
 
     void drop_table(const std::string& db_name, const std::string& name);
+
     void drop_database(const std::string& name);
 
     void switch_db_context(const std::string& db_name);
 
     gaia::common::gaia_id_t find_db_id(const std::string& dbname) const;
-
-    // Initialize the catalog manager.
-    void reset();
 
 private:
     // Only internal static creation is allowed
@@ -94,33 +99,25 @@ private:
         const std::string& database_name,
         const std::string& table_name,
         const ddl::field_def_list_t& fields,
-        bool is_log = false,
-        bool throw_on_exist = true,
+        bool is_system = false,
+        bool throw_on_exists = true,
+        bool auto_drop = false,
         gaia::common::gaia_type_t type = gaia::common::c_invalid_gaia_type);
 
     // Internal drop table implementation. Callers need to acquire a transaction
     // before calling this method.
     // If enforce_referential_integrity is false it does not check referential integrity, fails otherwise.
-    void drop_table_no_txn(gaia::common::gaia_id_t table_id, bool enforce_referential_integrity);
+    void drop_table(gaia::common::gaia_id_t table_id, bool enforce_referential_integrity);
 
     // Drops the relationships associated with this table.
     // If enforce_referential_integrity is false it does not check referential integrity, fails otherwise.
-    void drop_relationships_no_txn(gaia::common::gaia_id_t table_id, bool enforce_referential_integrity);
+    void drop_relationships(gaia::common::gaia_id_t table_id, bool enforce_referential_integrity);
 
-    // Find the database ID given its name.
-    // The method does not use a lock.
-    inline gaia::common::gaia_id_t find_db_id_no_lock(const std::string& dbname) const;
-
-    // Clear all the caches (only for testing purposes).
-    void clear_cache();
-    // Reload all the caches from catalog records in database.
-    void reload_cache();
-
-    // Bootstrap catalog with its own tables.
+    // Bootstrap catalog with builtin databases and tables.
     void bootstrap_catalog();
 
-    // Create other system tables that need constant IDs.
-    void create_system_tables();
+    // Drop the given relationship without referential integrity check.
+    static void drop_relationship_no_ri(gaia_relationship_t& relationship);
 
     // Get the full name for a table composed of db and table names.
     static inline std::string get_full_table_name(const std::string& db, const std::string& table);
@@ -147,14 +144,6 @@ private:
     static std::vector<gaia::common::gaia_id_t> find_table_field_ids(
         gaia::common::gaia_id_t table_id, const std::vector<std::string>& field_names);
 
-    // Maintain some in-memory cache for fast lookup.
-    // This is only intended for single process usage.
-    // We cannot guarantee the cache is consistent across multiple processes.
-    // We should switch to use value index when the feature is ready.
-    db_names_t m_db_names;
-    table_names_t m_table_names;
-    relationship_names_t m_relationship_names;
-
     gaia::common::gaia_id_t m_empty_db_id;
 
     // The DB context defines the database in which an entity like a table, an
@@ -164,9 +153,6 @@ private:
     {
         return db.empty() ? m_db_context : db;
     }
-
-    // Use the lock to ensure exclusive access to caches.
-    mutable std::shared_mutex m_lock;
 };
 } // namespace catalog
 } // namespace gaia

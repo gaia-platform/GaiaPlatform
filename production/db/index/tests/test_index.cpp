@@ -3,14 +3,23 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
+
+#include "gaia/exceptions.hpp"
+
+#include "gaia_internal/db/db_catalog_test_base.hpp"
 
 #include "data_holder.hpp"
+#include "gaia_airport.h"
 #include "hash_index.hpp"
 #include "range_index.hpp"
 
+using namespace gaia::airport;
+using namespace gaia::common;
+using namespace gaia::db;
 using namespace gaia::db::payload_types;
 using namespace gaia::db::index;
+using namespace gaia::direct_access;
 
 // Placeholder values for index records.
 constexpr gaia::db::gaia_txn_id_t c_fake_txn_id = 777;
@@ -258,4 +267,58 @@ TEST(index, key_hash_test)
 
     ASSERT_NE(index_key_hash{}(empty_key), index_key_hash{}(zero_key));
     ASSERT_NE(index_key_hash{}(zero_key), index_key_hash{}(double_zero_key));
+}
+
+class index_test : public db_catalog_test_base_t
+{
+protected:
+    index_test()
+        : db_catalog_test_base_t("airport.ddl"){};
+};
+
+TEST_F(index_test, unique_constraint_same_txn)
+{
+    const int32_t flight_number = 1766;
+
+    auto_transaction_t txn;
+    flight_t::insert_row(flight_number, {});
+    flight_t::insert_row(flight_number, {});
+    EXPECT_THROW(txn.commit(), unique_constraint_violation);
+}
+
+TEST_F(index_test, unique_constraint_different_txn)
+{
+    const int32_t flight_number = 1766;
+
+    auto_transaction_t txn;
+    flight_t::insert_row(flight_number, {});
+    txn.commit();
+
+    // Attempt to re-insert the same key - we should trigger the conflict.
+    flight_t::insert_row(flight_number, {});
+    EXPECT_THROW(txn.commit(), unique_constraint_violation);
+}
+
+TEST_F(index_test, unique_constraint_rollback_transaction)
+{
+    const int32_t first_flight_number = 1766;
+    const int32_t second_flight_number = 1767;
+
+    auto_transaction_t txn;
+    flight_t::insert_row(first_flight_number, {});
+    txn.commit();
+
+    // Insert a second key and then attempt to re-insert the first key.
+    // We should trigger the conflict and our transactions should be rolled back.
+    flight_t::insert_row(second_flight_number, {});
+    flight_t::insert_row(first_flight_number, {});
+    EXPECT_THROW(txn.commit(), unique_constraint_violation);
+
+    // Attempt to insert the second key again.
+    // We should succeed if the previous transaction was properly rolled back.
+    // We need to manually start a transaction because the exception generated earlier
+    // prevented the automatic restart.
+    txn.begin();
+    flight_t::insert_row(second_flight_number, {});
+    txn.commit();
 }

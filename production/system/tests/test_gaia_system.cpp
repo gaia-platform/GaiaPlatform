@@ -8,7 +8,7 @@
 #include <atomic>
 #include <thread>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/rules/rules.hpp"
 
@@ -106,8 +106,9 @@ void perform_transactions(uint32_t count_transactions, uint32_t crud_events_per_
         w.name_first = "updated_name";
         w.update_row();
 
-        // Delete row.
-        employee_t::delete_row(id);
+        // [GAIAPLAT-1205]:  We now do not fire an event if
+        // the anchor row has been deleted.
+        // employee_t::delete_row(id);
         gaia::db::commit_transaction();
 
         // We should get crud_events_per_txn per commit.  Wait for them.
@@ -131,7 +132,7 @@ void validate_and_end_test(uint32_t count_txn, uint32_t crud_events_per_txn, uin
 TEST_F(gaia_system_test, single_threaded_transactions)
 {
     uint32_t count_txn = 2;
-    uint32_t crud_events_per_txn = 2;
+    uint32_t crud_events_per_txn = 2; // insert and update
     perform_transactions(count_txn, crud_events_per_txn, false);
     validate_and_end_test(count_txn, crud_events_per_txn, 1);
 }

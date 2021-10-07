@@ -140,7 +140,7 @@ chunk_offset_t memory_manager_t::allocate_reused_chunk()
         {
             size_t found_index = find_first_unset_bit(
                 m_metadata->allocated_chunks_bitmap,
-                memory_manager_metadata_t::c_chunk_bitmap_words_size,
+                memory_manager_metadata_t::c_chunk_bitmap_size_words,
                 first_unused_chunk_offset);
 
             if (found_index == c_max_bit_index)
@@ -206,7 +206,7 @@ void memory_manager_t::update_chunk_allocation_status(chunk_offset_t chunk_offse
 {
     safe_set_bit_value(
         m_metadata->allocated_chunks_bitmap,
-        memory_manager_metadata_t::c_chunk_bitmap_words_size,
+        memory_manager_metadata_t::c_chunk_bitmap_size_words,
         chunk_offset, is_allocated);
 }
 

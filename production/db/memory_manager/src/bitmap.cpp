@@ -316,13 +316,11 @@ size_t find_last_set_bit(std::atomic<uint64_t>* bitmap, size_t bitmap_word_size)
     for (size_t word_index = bitmap_word_size - 1; word_index < bitmap_word_size; --word_index)
     {
         uint64_t word = bitmap[word_index];
-
         // Skip any zero words.
         if (word == 0)
         {
             continue;
         }
-
         size_t last_set_bit_index_in_word = find_last_set_bit_in_word(word);
         size_t bit_index = (word_index * c_uint64_bit_count) + last_set_bit_index_in_word;
         return bit_index;

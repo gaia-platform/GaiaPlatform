@@ -13,7 +13,7 @@
 #include <map>
 #include <thread>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/rules/rules.hpp"
 
@@ -236,6 +236,12 @@ public:
         subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule);
     }
 
+    void subscribe_sleep_serial()
+    {
+        rule_binding_t rule{"ruleset", "rule_sleep", rule_sleep, 0, "Serial"};
+        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule);
+    }
+
     // We have two rules:  rule_field_phone_number and rule_phone_type.
     // The former is fired when phone_number changes and the latter is
     // fired when the type changes.  Both will fire if the 'primary' field
@@ -363,6 +369,27 @@ TEST_F(rule_integration_test, test_update)
         writer = e.writer();
         writer.name_first = c_name;
         writer.update_row();
+        txn.commit();
+    }
+}
+
+// This test verifies that a rule is not invoked if the anchor row
+// is deleted before the rule can be called.
+TEST_F(rule_integration_test, test_update_and_delete)
+{
+    subscribe_update();
+    {
+        // The update rule should not be fired because we delete the row.
+        rule_monitor_t monitor(0);
+        auto_transaction_t txn(true);
+        employee_writer writer;
+        writer.name_first = "Ignore";
+        employee_t e = employee_t::get(writer.insert_row());
+        txn.commit();
+        writer = e.writer();
+        writer.name_first = c_name;
+        writer.update_row();
+        e.delete_row();
         txn.commit();
     }
 }
@@ -495,6 +522,30 @@ TEST_F(rule_integration_test, test_parallel)
     });
     double total_seconds = gaia::common::timer_t::ns_to_s(total_time);
     EXPECT_TRUE(total_seconds < 2.0);
+}
+
+// Invoke the sleep rule which sleeps for 1 second.  This time, however,
+// associate it with a serial stream.
+TEST_F(rule_integration_test, test_serial)
+{
+    const size_t num_inserts = 5;
+
+    // Don't use the optional_timer_t here because we actually do
+    // want to get the duration of the function as part of this test.
+    gaia::common::timer_t timer;
+    subscribe_sleep_serial();
+
+    int64_t total_time = timer.get_function_duration([&]() {
+        rule_monitor_t monitor(num_inserts);
+        auto_transaction_t txn(false);
+        for (size_t i = 0; i < num_inserts; i++)
+        {
+            employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
+        }
+        txn.commit();
+    });
+    double total_seconds = gaia::common::timer_t::ns_to_s(total_time);
+    EXPECT_TRUE(total_seconds >= num_inserts);
 }
 
 TEST_F(rule_integration_test, test_shutdown_pending_rules)

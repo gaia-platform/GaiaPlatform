@@ -5,7 +5,7 @@
 
 #include <iostream>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia_internal/common/debug_logger.hpp"
 #include "gaia_internal/common/logger_internal.hpp"

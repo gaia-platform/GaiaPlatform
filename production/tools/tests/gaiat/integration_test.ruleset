@@ -1,8 +1,11 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 // RUN: %gaiat %s --
 
 #include "tags_test.h"
-
-// #define TEST_FAILURES
 
 ruleset test
 {
@@ -75,7 +78,7 @@ public:
     }
 };
 
-// GAIAPLAT-911
+// GAIAPLAT-911 (fixed)
 ruleset test7
 {
     on_change(sensor)
@@ -125,8 +128,7 @@ ruleset test10
 }
 
 // This is legal? But has error (duplicate 'name' fields).
-// GAIAPLAT-796
-#ifdef TEST_FAILURES
+// GAIAPLAT-796 (fixed)
 ruleset test11 : tables(sensor)
 {
     on_update(name)
@@ -134,7 +136,6 @@ ruleset test11 : tables(sensor)
         use_string(name);
     }
 }
-#endif
 
 ruleset test12
 {
@@ -145,7 +146,7 @@ ruleset test12
         {
             i = 1;
         }
-// GAIAPLAT-988
+// GAIAPLAT-988 (fixed)
         nomatch
         {
             i = 2;
@@ -158,10 +159,6 @@ ruleset test12
 // are multi-anchor rules.
 ruleset test13
 {
-    on_insert(sensor.value, sensor.timestamp)
-    {
-    }
-
     on_insert(sensor, sensor)
     {
     }
@@ -190,5 +187,21 @@ ruleset test13
         if (@actuator.value > 0 && @actuator.timestamp == 0)
         {
         }
+    }
+}
+
+// GAIAPLAT-1179 (fixed)
+ruleset testE31
+{
+    on_update(incubator)
+    {
+        auto s4 = sensor.insert(name: "temp");
+
+       for(/s1 : sensor)
+       {
+           auto s2 = sensor.insert(name: "temp");
+       }
+
+       auto s5 = sensor.insert(name: incubator.name);
     }
 }

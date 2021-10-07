@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/db/db.hpp"
 
@@ -133,8 +133,9 @@ TEST_F(db_client_test, early_session_termination)
     // does not generate any internal assertion failures
     // when attempting to reopen a session.
     begin_transaction();
-    end_session();
-    begin_session();
+    EXPECT_THROW(end_session(), transaction_in_progress);
+    EXPECT_THROW(begin_session(), session_exists);
+    rollback_transaction();
 }
 
 TEST_F(db_client_test, creation_fail_for_invalid_type)

@@ -5,6 +5,9 @@
 
 #include <sys/mman.h>
 
+#include "gaia/common.hpp"
+
+#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
@@ -14,26 +17,29 @@
 #include "db_hash_map.hpp"
 #include "db_helpers.hpp"
 #include "field_access.hpp"
+#include "index_key.hpp"
+#include "index_scan.hpp"
 #include "memory_types.hpp"
 #include "payload_diff.hpp"
 #include "type_id_mapping.hpp"
 
 using namespace gaia::common;
 using namespace gaia::common::iterators;
+using namespace gaia::db;
 using namespace gaia::db::triggers;
 using namespace gaia::db::memory_manager;
 
 // This helper is only used for DEBUG allocation mode, where we allocate all
 // objects at page granularity and write-protect allocated pages after all
 // updates to the allocated object are complete.
-static void write_protect_allocation_page_for_offset(gaia::db::gaia_offset_t offset)
+static void write_protect_allocation_page_for_offset(gaia_offset_t offset)
 {
     // Offset must be aligned to a page in debug mode.
     ASSERT_INVARIANT(
-        ((offset * gaia::db::memory_manager::c_slot_size_bytes) % gaia::db::memory_manager::c_page_size_bytes) == 0,
+        ((offset * c_slot_size_bytes) % c_page_size_bytes) == 0,
         "Allocations must be page-aligned in debug mode!");
-    void* offset_page = gaia::db::page_address_from_offset(offset);
-    if (-1 == ::mprotect(offset_page, gaia::db::memory_manager::c_page_size_bytes, PROT_READ))
+    void* offset_page = page_address_from_offset(offset);
+    if (-1 == ::mprotect(offset_page, c_page_size_bytes, PROT_READ))
     {
         throw_system_error("mprotect(PROT_READ) failed!");
     }
@@ -51,12 +57,12 @@ namespace db
 {
 
 /*
-* Client-side implementation of gaia_ptr_t here.
-*/
+ * Client-side implementation of gaia_ptr_t here.
+ */
 
 void gaia_ptr_t::reset()
 {
-    gaia::db::locators_t* locators = gaia::db::get_locators();
+    locators_t* locators = get_locators();
     client_t::txn_log(m_locator, to_offset(), c_invalid_gaia_offset, gaia_operation_t::remove, to_ptr()->id);
 
     // TODO[GAIAPLAT-445]:  We don't expose delete events.
@@ -76,7 +82,7 @@ gaia_ptr_t::get_id_generator_for_type(gaia_type_t type)
     return client_t::get_id_generator_for_type(type);
 }
 
-void gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)
+bool gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)
 {
     gaia_type_t parent_type = type();
     const type_metadata_t& parent_metadata = type_registry_t::instance().get(parent_type);
@@ -126,7 +132,7 @@ void gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t firs
         // Otherwise throw an exception.
         if (child_ptr.references()[relationship->parent_offset] == id())
         {
-            return;
+            return false;
         }
         throw child_already_referenced(child_ptr.type(), relationship->parent_offset);
     }
@@ -153,9 +159,10 @@ void gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t firs
 
     client_t::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
     client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
+    return true;
 }
 
-void gaia_ptr_t::add_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset)
+bool gaia_ptr_t::add_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset)
 {
     gaia_type_t child_type = type();
 
@@ -174,10 +181,10 @@ void gaia_ptr_t::add_parent_reference(gaia_id_t parent_id, reference_offset_t pa
         throw invalid_object_id(parent_id);
     }
 
-    parent_ptr.add_child_reference(id(), child_relationship->first_child_offset);
+    return parent_ptr.add_child_reference(id(), child_relationship->first_child_offset);
 }
 
-void gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)
+bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)
 {
     gaia_type_t parent_type = type();
     const type_metadata_t& parent_metadata = type_registry_t::instance().get(parent_type);
@@ -208,6 +215,11 @@ void gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
     if (relationship->child_type != child_ptr.type())
     {
         throw invalid_relationship_type(first_child_offset, child_ptr.type(), relationship->child_type);
+    }
+
+    if (child_ptr.references()[relationship->parent_offset] == c_invalid_gaia_id)
+    {
+        return false;
     }
 
     if (child_ptr.references()[relationship->parent_offset] != id())
@@ -250,10 +262,12 @@ void gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
         {
             // Non-first child in the linked list, update the previous child.
             auto prev_ptr = gaia_ptr_t::open(prev_child);
+            gaia_offset_t old_prev_offset = prev_ptr.to_offset();
             prev_ptr.clone_no_txn();
             prev_ptr.references()[relationship->next_child_offset]
                 = curr_ptr.references()[relationship->next_child_offset];
             WRITE_PROTECT(prev_ptr.to_offset());
+            client_t::txn_log(prev_ptr.m_locator, old_prev_offset, prev_ptr.to_offset(), gaia_operation_t::update);
         }
 
         curr_ptr.clone_no_txn();
@@ -263,11 +277,20 @@ void gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
     }
     WRITE_PROTECT(to_offset());
 
+    WRITE_PROTECT(to_offset());
+
+    // Need to handle self-references.
+    if (*this != child_ptr)
+    {
+        WRITE_PROTECT(child_ptr.to_offset());
+    }
+
     client_t::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
     client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
+    return true;
 }
 
-void gaia_ptr_t::remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset)
+bool gaia_ptr_t::remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset)
 {
     gaia_type_t child_type = type();
 
@@ -287,10 +310,10 @@ void gaia_ptr_t::remove_parent_reference(gaia_id_t parent_id, reference_offset_t
     }
 
     // Remove reference.
-    parent_ptr.remove_child_reference(id(), relationship->first_child_offset);
+    return parent_ptr.remove_child_reference(id(), relationship->first_child_offset);
 }
 
-void gaia_ptr_t::update_parent_reference(
+bool gaia_ptr_t::update_parent_reference(
     gaia_id_t child_id,
     gaia_type_t child_type,
     gaia_id_t* child_references,
@@ -333,12 +356,12 @@ void gaia_ptr_t::update_parent_reference(
         old_parent_ptr.remove_child_reference(child_id, relationship->first_child_offset);
     }
 
-    new_parent_ptr.add_child_reference(child_id, relationship->first_child_offset);
+    return new_parent_ptr.add_child_reference(child_id, relationship->first_child_offset);
 }
 
-void gaia_ptr_t::update_parent_reference(gaia_id_t new_parent_id, reference_offset_t parent_offset)
+bool gaia_ptr_t::update_parent_reference(gaia_id_t new_parent_id, reference_offset_t parent_offset)
 {
-    update_parent_reference(id(), type(), references(), new_parent_id, parent_offset);
+    return update_parent_reference(id(), type(), references(), new_parent_id, parent_offset);
 }
 
 db_object_t* gaia_ptr_t::to_ptr() const
@@ -413,7 +436,7 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t
     {
         ASSERT_INVARIANT(data_size == 0, "Null payload with non-zero payload size!");
     }
-    client_t::txn_log(locator, c_invalid_gaia_offset, locator_to_offset(locator), gaia_operation_t::create);
+    client_t::txn_log(locator, c_invalid_gaia_offset, obj.to_offset(), gaia_operation_t::create);
 
     auto_connect_to_parent(
         id,
@@ -428,32 +451,49 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t
     return obj;
 }
 
-void gaia_ptr_t::remove(gaia_ptr_t& node)
+void gaia_ptr_t::remove(gaia_ptr_t& object)
 {
-    if (!node)
+    if (!object)
     {
         return;
     }
 
-    const gaia_id_t* references = node.references();
-    for (reference_offset_t i = 0; i < node.num_references(); i++)
+    const gaia_id_t* references = object.references();
+    for (reference_offset_t i = 0; i < object.num_references(); i++)
     {
         if (references[i] != c_invalid_gaia_id)
         {
-            throw object_still_referenced(node.id(), node.type());
+            auto other_obj = gaia_ptr_t::open(references[i]);
+            throw object_still_referenced(object.id(), object.type(), other_obj.id(), other_obj.type());
         }
     }
-    node.reset();
+    object.reset();
 }
 
 void gaia_ptr_t::clone_no_txn()
 {
     db_object_t* old_this = to_ptr();
-    size_t new_payload_size = old_this->payload_size;
-    allocate_object(m_locator, new_payload_size);
+    size_t total_payload_size = old_this->payload_size;
+    size_t total_object_size = c_db_object_header_size + total_payload_size;
+    allocate_object(m_locator, total_payload_size);
     db_object_t* new_this = to_ptr();
-    size_t new_size = c_db_object_header_size + new_payload_size;
-    memcpy(new_this, old_this, new_size);
+    memcpy(new_this, old_this, total_object_size);
+}
+
+gaia_ptr_t& gaia_ptr_t::clone()
+{
+    gaia_offset_t old_offset = to_offset();
+    clone_no_txn();
+
+    client_t::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::clone);
+
+    db_object_t* new_this = to_ptr();
+    if (client_t::is_valid_event(new_this->type))
+    {
+        client_t::s_events.emplace_back(event_type_t::row_insert, new_this->type, new_this->id, empty_position_list, get_txn_id());
+    }
+
+    return *this;
 }
 
 void gaia_ptr_t::auto_connect_to_parent(
@@ -498,63 +538,64 @@ void gaia_ptr_t::auto_connect_to_parent(
     {
         return;
     }
-    // For every field, check if the field is used in establishing a
-    // relationship where the field's table is on the child side. For every such
-    // relationship, check if the new value exists in any parent record. If yes,
-    // link the child record to the parent record.
+
     for (auto field_position : candidate_fields)
     {
+        // For every field, check if the field is used in establishing a
+        // relationship where the field's table is on the child side.
         for (auto relationship_view : catalog_core_t::list_relationship_to(child_type_id))
         {
-            if (relationship_view.child_field_positions()->size() == 1
-                && relationship_view.child_field_positions()->Get(0) == field_position)
+            if (relationship_view.child_field_positions()->size() != 1
+                || relationship_view.child_field_positions()->Get(0) != field_position)
             {
-                auto schema = catalog_core_t::get_table(child_type_id).binary_schema();
-                auto field_value = payload_types::get_field_value(
-                    child_type_id,
-                    child_payload,
-                    schema->data(),
-                    schema->size(),
-                    field_position);
+                continue;
+            }
 
-                // TODO: use index to find the parent record more efficiently.
-                gaia_type_t parent_table_type = catalog_core_t::get_table(relationship_view.parent_table_id()).table_type();
-                gaia_id_t parent_table_id = type_id_mapping_t::instance().get_record_id(parent_table_type);
-                bool updated = false;
-                for (auto parent_record : find_all_range(parent_table_type))
+            // At this point, we have found the relationship (that uses the
+            // field), check if the new field value exists in any parent record.
+            // If yes, link the child record to the parent record.
+            auto schema = catalog_core_t::get_table(child_type_id).binary_schema();
+            auto field_value = payload_types::get_field_value(
+                child_type_id,
+                child_payload,
+                schema->data(),
+                schema->size(),
+                field_position);
+
+            gaia_type_t parent_table_type = catalog_core_t::get_table(relationship_view.parent_table_id()).table_type();
+            gaia_id_t parent_table_id = type_id_mapping_t::instance().get_record_id(parent_table_type);
+            bool has_connected = false;
+
+            gaia_id_t parent_index_id = catalog_core_t::find_index(
+                parent_table_id, relationship_view.parent_field_positions()->Get(0));
+            ASSERT_INVARIANT(parent_index_id != c_invalid_gaia_id, "Cannot find value index for the parent table.");
+
+            index::index_key_t key;
+            key.insert(field_value);
+            for (const auto& parent_scan : query_processor::scan::index_scan_t(
+                     parent_index_id,
+                     std::make_shared<query_processor::scan::index_point_read_predicate_t>(key)))
+            {
+                update_parent_reference(
+                    child_id,
+                    child_type,
+                    child_references,
+                    parent_scan.id(),
+                    relationship_view.parent_offset());
+                has_connected = true;
+                break;
+            }
+
+            // If there is no match and the record was connected to some parent
+            // record, we need to disconnect them.
+            if (!has_connected)
+            {
+                gaia_ptr_t child_ptr(child_id);
+                reference_offset_t parent_offset = relationship_view.parent_offset();
+                gaia_id_t parent_id = child_ptr.references()[relationship_view.parent_offset()];
+                if (parent_id != c_invalid_gaia_id)
                 {
-                    auto parent_schema = catalog_core_t::get_table(parent_table_id).binary_schema();
-                    auto parent_field_value = payload_types::get_field_value(
-                        parent_table_id,
-                        reinterpret_cast<const uint8_t*>(parent_record.data()),
-                        parent_schema->data(),
-                        parent_schema->size(),
-                        relationship_view.parent_field_positions()->Get(0));
-
-                    if (parent_field_value.compare(field_value) == 0)
-                    {
-                        update_parent_reference(
-                            child_id,
-                            child_type,
-                            child_references,
-                            parent_record.id(),
-                            relationship_view.parent_offset());
-                        updated = true;
-                        break;
-                    }
-                }
-
-                // If there is no match and the record was connected to some
-                // parent record, we need to disconnect them.
-                if (!updated)
-                {
-                    gaia_ptr_t child_ptr(child_id);
-                    reference_offset_t parent_offset = relationship_view.parent_offset();
-                    gaia_id_t parent_id = child_ptr.references()[relationship_view.parent_offset()];
-                    if (parent_id != c_invalid_gaia_id)
-                    {
-                        child_ptr.remove_parent_reference(parent_id, parent_offset);
-                    }
+                    child_ptr.remove_parent_reference(parent_id, parent_offset);
                 }
             }
         }

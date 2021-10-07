@@ -2,6 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #pragma once
 
 #include <memory>
@@ -14,6 +15,9 @@
 #include "gaia/direct_access/auto_transaction.hpp"
 #include "gaia/events.hpp"
 #include "gaia/exception.hpp"
+
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
 
 namespace gaia
 {
@@ -48,7 +52,7 @@ typedef void (*gaia_rule_fn)(const rule_context_t* context);
  */
 extern "C" void initialize_rules();
 
-/** 
+/**
  * The application may provide an implementation of handle_rule_exception(). This
  * function is invoked if an exception is caused when calling the rule
  * or if there is an underlying platform issue.
@@ -75,22 +79,38 @@ extern "C" void unsubscribe_ruleset(const char* ruleset_name);
 struct rule_binding_t
 {
     rule_binding_t()
-        : ruleset_name(nullptr)
-        , rule_name(nullptr)
-        , rule(nullptr)
-        , line_number(0)
+        : rule_binding_t(nullptr, nullptr, nullptr, 0, nullptr)
     {
     }
 
     rule_binding_t(
-        const char* a_ruleset_name,
-        const char* a_rule_name,
-        gaia_rule_fn a_rule,
-        uint32_t a_line_number = 0)
-        : ruleset_name(a_ruleset_name)
-        , rule_name(a_rule_name)
-        , rule(a_rule)
-        , line_number(a_line_number)
+        const char* ruleset_name,
+        const char* rule_name,
+        gaia_rule_fn rule)
+        : rule_binding_t(ruleset_name, rule_name, rule, 0, nullptr)
+    {
+    }
+
+    rule_binding_t(
+        const char* ruleset_name,
+        const char* rule_name,
+        gaia_rule_fn rule,
+        uint32_t line_number)
+        : rule_binding_t(ruleset_name, rule_name, rule, line_number, nullptr)
+    {
+    }
+
+    rule_binding_t(
+        const char* ruleset_name,
+        const char* rule_name,
+        gaia_rule_fn rule,
+        uint32_t line_number,
+        const char* serial_group_name)
+        : ruleset_name(ruleset_name)
+        , rule_name(rule_name)
+        , rule(rule)
+        , line_number(line_number)
+        , serial_group_name(serial_group_name)
     {
     }
 
@@ -98,6 +118,7 @@ struct rule_binding_t
     const char* rule_name;
     gaia_rule_fn rule;
     uint32_t line_number;
+    const char* serial_group_name;
 };
 
 /**
@@ -107,28 +128,36 @@ struct rule_binding_t
 struct subscription_t
 {
     subscription_t()
-        : ruleset_name(nullptr)
-        , rule_name(nullptr)
-        , gaia_type(common::c_invalid_gaia_type)
-        , event_type(db::triggers::event_type_t::not_set)
-        , field(0)
-        , line_number(0)
+        : subscription_t(nullptr, nullptr, common::c_invalid_gaia_type, db::triggers::event_type_t::not_set, 0, 0, nullptr)
     {
     }
 
     subscription_t(
-        const char* a_ruleset_name,
-        const char* a_rule_name,
-        common::gaia_type_t a_gaia_type,
-        db::triggers::event_type_t an_event_type,
-        common::field_position_t a_field,
-        uint32_t a_line_number)
-        : ruleset_name(a_ruleset_name)
-        , rule_name(a_rule_name)
-        , gaia_type(a_gaia_type)
-        , event_type(an_event_type)
-        , field(a_field)
-        , line_number(a_line_number)
+        const char* ruleset_name,
+        const char* rule_name,
+        common::gaia_type_t gaia_type,
+        db::triggers::event_type_t event_type,
+        common::field_position_t field,
+        uint32_t line_number)
+        : subscription_t(ruleset_name, rule_name, gaia_type, event_type, field, line_number, nullptr)
+    {
+    }
+
+    subscription_t(
+        const char* ruleset_name,
+        const char* rule_name,
+        common::gaia_type_t gaia_type,
+        db::triggers::event_type_t event_type,
+        common::field_position_t field,
+        uint32_t line_number,
+        const char* serial_group_name)
+        : ruleset_name(ruleset_name)
+        , rule_name(rule_name)
+        , gaia_type(gaia_type)
+        , event_type(event_type)
+        , field(field)
+        , line_number(line_number)
+        , serial_group_name(serial_group_name)
     {
     }
 
@@ -138,6 +167,7 @@ struct subscription_t
     db::triggers::event_type_t event_type;
     const common::field_position_t field;
     uint32_t line_number;
+    const char* serial_group_name;
 };
 
 /**
@@ -187,16 +217,14 @@ struct rule_context_t
 {
 public:
     rule_context_t(
-        direct_access::auto_transaction_t& a_txn,
-        common::gaia_type_t a_gaia_type,
-        db::triggers::event_type_t a_event_type,
-        common::gaia_id_t a_record,
-        const common::field_position_list_t& a_field_list)
-        : txn(a_txn)
-        , gaia_type(a_gaia_type)
-        , event_type(a_event_type)
-        , record(a_record)
-        , fields(a_field_list)
+        direct_access::auto_transaction_t& txn,
+        common::gaia_type_t gaia_type,
+        db::triggers::event_type_t event_type,
+        common::gaia_id_t record)
+        : txn(txn)
+        , gaia_type(gaia_type)
+        , event_type(event_type)
+        , record(record)
     {
     }
 
@@ -221,7 +249,6 @@ public:
     common::gaia_type_t gaia_type;
     db::triggers::event_type_t event_type;
     common::gaia_id_t record;
-    const common::field_position_list_t& fields;
 };
 
 /**
@@ -371,3 +398,6 @@ void list_subscribed_rules(
 } // namespace rules
 /*@}*/
 } // namespace gaia
+
+// Restore default hidden visibility for all symbols.
+#pragma GCC visibility pop

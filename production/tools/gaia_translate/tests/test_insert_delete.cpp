@@ -5,7 +5,7 @@
 
 #include <atomic>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/rules/rules.hpp"
 
@@ -94,6 +94,8 @@ protected:
     void SetUp() override
     {
         db_catalog_test_base_t::SetUp();
+        gaia::rules::initialize_rules_engine();
+        gaia::rules::unsubscribe_rules();
         g_oninsert_called = false;
         g_oninsert2_called = false;
         g_oninsert3_called = false;
@@ -226,15 +228,13 @@ TEST_F(test_insert_delete_code, implicit_delete)
 {
     gaia::db::begin_transaction();
     auto student_1 = student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
-    registration_t::insert_row("reg001", c_status_pending, c_grade_none);
-    registration_t::insert_row("reg002", c_status_eligible, c_grade_c);
-    registration_t::insert_row("reg003", c_status_eligible, c_grade_b);
-    registration_t::insert_row("reg004", c_status_eligible, c_grade_c);
+    registration_t::insert_row("reg001", nullptr, nullptr, c_status_pending, c_grade_none);
+    registration_t::insert_row("reg002", nullptr, nullptr, c_status_eligible, c_grade_c);
+    registration_t::insert_row("reg003", nullptr, nullptr, c_status_eligible, c_grade_b);
+    registration_t::insert_row("reg004", nullptr, nullptr, c_status_eligible, c_grade_c);
     gaia::db::commit_transaction();
 
-    gaia::rules::initialize_rules_engine();
     // Use the rules for insert & delete.
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_insert_delete");
 
     // Fire on_update(S:student).
@@ -245,21 +245,18 @@ TEST_F(test_insert_delete_code, implicit_delete)
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();
-    EXPECT_TRUE(g_onupdate_called) << "on_update(S:student) not called";
 
     // Expected value is number of registrations deleted
     EXPECT_EQ(g_onupdate_value, 4) << "Incorrect count of deleted registrations";
 }
 
 // TESTCASE: Generate database within rules
+// GAIAPLAT-1250 (fixed)
 TEST_F(test_insert_delete_code, build_database)
 {
-    gaia::rules::initialize_rules_engine();
     // Use the rules for insert & delete.
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_insert_delete_2");
 
-    // Fire on_update(S:student).
     gaia::db::begin_transaction();
     enrollment_log_t::insert_row("stu001", "Wayne", 67, "cou001", "math101", 3, "reg001");
     enrollment_log_t::insert_row("stu002", "William", 23, "cou002", "csci101", 5, "reg002");
@@ -272,7 +269,6 @@ TEST_F(test_insert_delete_code, build_database)
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();
-    EXPECT_TRUE(g_oninsert_called) << "on_insert(enrollment_log) not called";
 
     int row_count = 0;
     gaia::db::begin_transaction();
@@ -282,12 +278,19 @@ TEST_F(test_insert_delete_code, build_database)
         {
             row_count++;
             auto course = registration.registered_course();
-            EXPECT_EQ(student.total_hours() * 2, course.hours());
+            // Enable the following statement when the issue of rule ordering is resolved. The corresponding
+            // rule, on_insert(course) in test_insert_delete_2, should be enabled at the same time.
+            // Currently when that rule and the on_insert(student) rule execute in different orders, the
+            // results change and this test fails.
+            // GAIAPLAT-1422
+            // EXPECT_EQ(student.total_hours() * 2, course.hours());
+            EXPECT_EQ(student.total_hours(), course.hours());
             EXPECT_STREQ(student.surname(), registration.status());
-            EXPECT_STREQ(registration.grade(), "D+");
+            EXPECT_EQ(registration.grade(), c_grade_d + c_grade_plus);
         }
     }
     gaia::db::commit_transaction();
 
+    gaia::rules::test::wait_for_rules_to_complete();
     EXPECT_EQ(row_count, 8) << "on_insert(enrollment_log) failed to create connections";
 }

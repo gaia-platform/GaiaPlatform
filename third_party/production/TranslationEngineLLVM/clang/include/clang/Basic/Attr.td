@@ -3191,17 +3191,25 @@ def GaiaField : Attr {
   let Documentation = [Undocumented];
 }
 
+// Identify Records (class/structs) that represent a Gaia table.
+def GaiaTable : Attr {
+  let Spellings = [Keyword<"gaiaTable">];
+  let Subjects = SubjectList<[Record]>;
+  let Documentation = [Undocumented];
+  let Args = [IdentifierArgument<"table">];
+}
+
 def GaiaFieldValue : Attr {
   let Spellings = [Keyword<"gaiaFieldValue">];
   let Subjects = SubjectList<[Var]>;
   let Documentation = [Undocumented];
 }
 
-def RulesetSerialize : Attr {
-    let Spellings = [Keyword<"serialize">];
+def RulesetSerialGroup : Attr {
+    let Spellings = [Keyword<"serial_group">];
     let Subjects = SubjectList<[Ruleset]>;
     let Documentation = [Undocumented];
-    let Args = [IdentifierArgument<"stream">];
+    let Args = [VariadicIdentifierArgument<"group">];
 }
 
 def GaiaFieldLValue : Attr {

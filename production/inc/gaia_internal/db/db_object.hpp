@@ -10,9 +10,9 @@
 #include <iomanip>
 #include <ostream>
 
-#include <gaia_spdlog/fmt/fmt.h>
-
 #include "gaia/common.hpp"
+
+#include <gaia_spdlog/fmt/fmt.h>
 
 #include "memory_types.hpp"
 

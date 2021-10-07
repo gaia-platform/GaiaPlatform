@@ -2026,7 +2026,7 @@ static void handleRulesetTableAttr(Sema &S, Decl *D, const ParsedAttr &AL)
     IdentifierLoc *tableArg = AL.getArgAsIdent(ArgNo);
     if (tableData.find(tableArg->Ident->getName().str()) == tableData.end())
     {
-      S.Diag(AL.getLoc(), diag::err_invalid_table_name)
+      S.Diag(AL.getLoc(), diag::err_table_not_found)
         << tableArg->Ident->getName();
       return;
     }
@@ -2038,13 +2038,45 @@ static void handleRulesetTableAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 }
 
 static bool validateRuleAttribute(StringRef attribute,
-    Sema &S, const ParsedAttr &AL)
+    Sema &S, const ParsedAttr &AL, const Decl *D)
 {
+  const DeclContext *context = D->getDeclContext();
+  const RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(context);
+  std::unordered_set<std::string> attributeTables;
+  if (rulesetDecl != nullptr)
+  {
+    RulesetTablesAttr* tablesAttribute = rulesetDecl->getAttr<RulesetTablesAttr>();
+
+    if (tablesAttribute != nullptr)
+    {
+      for (const IdentifierInfo* id : tablesAttribute->tables())
+      {
+        attributeTables.emplace(id->getName().str());
+      }
+    }
+  }
+
   auto tableData = S.getTableData(AL.getLoc());
   if (tableData.empty())
   {
     return false;
   }
+
+  if (!attributeTables.empty())
+  {
+    for (auto tableDataIterator = tableData.begin(); tableDataIterator != tableData.end();)
+    {
+      if (attributeTables.find(tableDataIterator->first) == attributeTables.end())
+      {
+        tableDataIterator = tableData.erase(tableDataIterator);
+      }
+      else
+      {
+        ++tableDataIterator;
+      }
+    }
+  }
+
   size_t colonPosition = attribute.find(':');
   StringRef tag;
   if (colonPosition != StringRef::npos)
@@ -2082,7 +2114,7 @@ static bool validateRuleAttribute(StringRef attribute,
   {
     if (dotPosition == 0)
     {
-      S.Diag(AL.getLoc(), diag::err_invalid_table_name)
+      S.Diag(AL.getLoc(), diag::err_table_not_found)
         << "";
       return false;
     }
@@ -2092,7 +2124,7 @@ static bool validateRuleAttribute(StringRef attribute,
     auto tableDescription = tableData.find(table);
     if (tableDescription == tableData.end())
     {
-      S.Diag(AL.getLoc(), diag::err_invalid_table_name)
+      S.Diag(AL.getLoc(), diag::err_table_not_found)
         << table;
       return false;
     }
@@ -2124,8 +2156,7 @@ static bool validateRuleAttribute(StringRef attribute,
       {
         if (returnValue)
         {
-          S.Diag(AL.getLoc(), diag::err_duplicate_field)
-            << attribute << table.first;
+          S.Diag(AL.getLoc(), diag::err_duplicate_field) << attribute;
           return false;
         }
         returnValue = true;
@@ -2143,8 +2174,7 @@ static bool validateRuleAttribute(StringRef attribute,
   {
     if (table.second.find(attribute) != table.second.end())
     {
-      S.Diag(AL.getLoc(), diag::err_duplicate_field)
-        << attribute << table.first;
+      S.Diag(AL.getLoc(), diag::err_duplicate_field) << attribute;
       return false;
     }
   }
@@ -2178,7 +2208,7 @@ static void handleGaiaRuleAttr(Sema &S, Decl *D, const ParsedAttr &AL)
       return;
     }
 
-    if (!validateRuleAttribute(table, S, AL))
+    if (!validateRuleAttribute(table, S, AL, D))
     {
       return;
     }
@@ -2208,18 +2238,35 @@ static void handleGaiaRuleAttr(Sema &S, Decl *D, const ParsedAttr &AL)
   }
 }
 
-static void handleStreamAttr(Sema &S, Decl *D, const ParsedAttr &AL)
+static void handleRulesetSerialGroupAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 {
-  IdentifierLoc *streamArg = AL.getArgAsIdent(0);
-  if (!AL.isArgIdent(0))
+  if (!checkAttributeAtMostNumArgs(S, AL, 1))
   {
-    S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
-      << AL << AANT_ArgumentIdentifier;
     return;
   }
-  D->addAttr(::new (S.Context) RulesetSerializeAttr(
-    AL.getRange(), S.Context, streamArg->Ident,
-    AL.getAttributeSpellingListIndex()));
+
+  if (getNumAttributeArgs(AL) == 1)
+  {
+
+    if (!AL.isArgIdent(0))
+    { 
+      S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
+        << AL << AANT_ArgumentIdentifier;
+      return;
+    }
+    IdentifierLoc *groupArg = AL.getArgAsIdent(0);
+    SmallVector<IdentifierInfo*, 1> group;
+    group.push_back(groupArg->Ident);
+
+    D->addAttr(::new (S.Context) RulesetSerialGroupAttr(
+      AL.getRange(), S.Context, group.data(), group.size(),
+      AL.getAttributeSpellingListIndex()));
+  }
+  else
+  {
+    D->addAttr(::new (S.Context) RulesetSerialGroupAttr(
+      AL.getRange(), S.Context, AL.getAttributeSpellingListIndex()));
+  }
 }
 
 static void handleRuleAttr(Sema &S, Decl *D, const ParsedAttr &AL)
@@ -7244,8 +7291,8 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
   case ParsedAttr::AT_Rule:
     handleRuleAttr(S, D, AL);
     break;
-  case ParsedAttr::AT_RulesetSerialize:
-    handleStreamAttr(S, D, AL);
+  case ParsedAttr::AT_RulesetSerialGroup:
+    handleRulesetSerialGroupAttr(S, D, AL);
     break;
   case ParsedAttr::AT_GaiaOnUpdate:
   case ParsedAttr::AT_GaiaOnInsert:

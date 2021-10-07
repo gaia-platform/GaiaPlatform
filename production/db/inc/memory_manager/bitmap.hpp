@@ -56,14 +56,14 @@ void safe_set_bit_range_value(
     std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t start_bit_index, size_t bit_count, bool value);
 
 // Count the number of set bits within a bitmap.
-// end_limit_bit_index (exclusive) can limit the counting to a prefix of a large bitmap.
-// If end_limit_bit_index is not set, we'll count the entire bitmap.
+// end_limit_bit_index can limit the counting to a prefix of a large bitmap.
+// If end_limit_bit_index (exclusive) is not set, we'll count the entire bitmap.
 size_t count_set_bits(
     std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t end_limit_bit_index = c_max_bit_index);
 
 // Find the first unset bit in a bitmap.
-// end_limit_bit_index (exclusive) can limit the search to a prefix of a large bitmap.
-// If end_limit_bit_index is not set, we'll search the entire bitmap.
+// end_limit_bit_index can limit the search to a prefix of a large bitmap.
+// If end_limit_bit_index (exclusive) is not set, we'll search the entire bitmap.
 size_t find_first_unset_bit(
     std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t end_limit_bit_index = c_max_bit_index);
 

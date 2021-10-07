@@ -33,7 +33,7 @@ public:
     explicit index_not_found(common::gaia_id_t index_id)
     {
         std::stringstream message;
-        message << "Cannot find index \"" << index_id << "\".";
+        message << "Cannot find index '" << index_id << "'.";
         m_message = message.str();
     }
 };
@@ -59,6 +59,8 @@ struct index_record_t
     friend std::ostream& operator<<(std::ostream& os, const index_record_t& rec);
 };
 
+class index_key_t;
+
 class base_index_t
 {
 public:
@@ -78,6 +80,7 @@ public:
 
     virtual void clear() = 0;
     virtual std::shared_ptr<common::iterators::generator_t<index_record_t>> generator(gaia_txn_id_t txn_id) = 0;
+    virtual std::shared_ptr<common::iterators::generator_t<index_record_t>> equal_range_generator(gaia_txn_id_t txn_id, const index_key_t& key) = 0;
 
 protected:
     gaia::common::gaia_id_t m_index_id;

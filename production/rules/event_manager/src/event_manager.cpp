@@ -85,13 +85,11 @@ void event_manager_t::init(const event_manager_settings_t& settings)
         count_worker_threads,
         settings.stats_log_interval);
 
-    m_invocations = make_unique<rule_thread_pool_t>(
-        count_worker_threads, settings.max_rule_retries, *m_stats_manager);
+    m_rule_checker = make_unique<rule_checker_t>(
+        settings.enable_catalog_checks, settings.enable_db_checks);
 
-    if (settings.enable_catalog_checks)
-    {
-        m_rule_checker = make_unique<rule_checker_t>();
-    }
+    m_invocations = make_unique<rule_thread_pool_t>(
+        count_worker_threads, settings.max_rule_retries, *m_stats_manager, *m_rule_checker);
 
     m_trigger_fn = [](const trigger_event_list_t& event_list) {
         event_manager_t::get().commit_trigger(event_list);
@@ -135,10 +133,10 @@ void event_manager_t::process_last_operation_events(
 {
     rule_list_t& rules = binding.last_operation_rules;
 
-    for (auto const& binding : rules)
+    for (auto const& rule_binding : rules)
     {
         gaia_log::rules().trace("Enqueue table event:'{}', txn_id:'{}', gaia_type:'{}', gaia_id:'{}'", event_type_name(event.event_type), event.txn_id, event.gaia_type, event.record);
-        enqueue_invocation(event, binding, start_time);
+        enqueue_invocation(event, rule_binding, start_time, binding.serial_group);
     }
 }
 
@@ -163,13 +161,13 @@ void event_manager_t::process_field_events(
             // referenced by at least one rule.  Schedule those rules
             // for invocation now.
             rule_list_t& rules = field_it->second;
-            for (auto const& binding : rules)
+            for (auto const& rule_binding : rules)
             {
                 gaia_log::rules().trace(
                     "Enqueue field event:'{}', txn_id:'{}', gaia_type:'{}', field_id:'{}', gaia_id:'{}'",
                     event_type_name(event.event_type), event.txn_id, event.gaia_type, field_position, event.record);
 
-                enqueue_invocation(event, binding, start_time);
+                enqueue_invocation(event, rule_binding, start_time, binding.serial_group);
             }
         }
     }
@@ -223,19 +221,20 @@ void event_manager_t::commit_trigger(const trigger_event_list_t& trigger_event_l
 void event_manager_t::enqueue_invocation(
     const trigger_event_t& event,
     const _rule_binding_t* rule_binding,
-    steady_clock::time_point& start_time)
+    steady_clock::time_point& start_time,
+    shared_ptr<rule_thread_pool_t::serial_group_t>& serial_group)
 {
     rule_thread_pool_t::rule_invocation_t rule_invocation{
         rule_binding->rule,
         event.gaia_type,
         event.event_type,
         event.record,
-        event.columns,
         event.txn_id};
     rule_thread_pool_t::invocation_t invocation{
         std::move(rule_invocation),
         rule_binding->log_rule_name.c_str(),
-        start_time};
+        start_time,
+        serial_group};
     m_invocations->enqueue(invocation);
 }
 
@@ -255,20 +254,16 @@ void event_manager_t::check_subscription(event_type_t event_type, const field_po
 void event_manager_t::subscribe_rule(
     gaia_type_t gaia_type,
     event_type_t event_type,
-    const field_position_list_t& fields, const rule_binding_t& rule_binding)
+    const field_position_list_t& fields,
+    const rule_binding_t& rule_binding)
 {
     // If any of these checks fail then an exception is thrown.
     check_rule_binding(rule_binding);
     check_subscription(event_type, fields);
 
     // Verify that the type and fields specified in the rule subscription
-    // are valid according to the catalog.  The rule checker may be null
-    // if the event_manager was initialized with 'disabled_catalog_checks'
-    // set to true in its settings.
-    if (m_rule_checker)
-    {
-        m_rule_checker->check_catalog(gaia_type, fields);
-    }
+    // are valid according to the catalog.
+    m_rule_checker->check_catalog(gaia_type, fields);
 
     // Look up the gaia_type in our type map.  If we do not find it
     // then we create a new empty event map map.
@@ -314,6 +309,11 @@ void event_manager_t::subscribe_rule(
         // because no field reference fields were provided.
         rule_list_t& rules = event_binding.last_operation_rules;
         is_rule_subscribed = add_rule(rules, rule_binding);
+    }
+
+    if (rule_binding.serial_group_name != nullptr && event_binding.serial_group == nullptr)
+    {
+        event_binding.serial_group = m_serial_group_manager.acquire_group(rule_binding.serial_group_name);
     }
 
     if (is_rule_subscribed)
@@ -472,7 +472,8 @@ void event_manager_t::add_subscriptions(
             rule->rule_name.c_str(),
             gaia_type, event_type,
             field,
-            rule->line_number));
+            rule->line_number,
+            rule->serial_group_name.c_str()));
     }
 }
 
@@ -550,19 +551,25 @@ string event_manager_t::_rule_binding_t::make_key(const char* ruleset_name, cons
 
 // Enable conversion from rule_binding_t -> internal_rules_binding_t.
 event_manager_t::_rule_binding_t::_rule_binding_t(const rule_binding_t& binding)
-    : _rule_binding_t(binding.ruleset_name, binding.rule_name, binding.rule, binding.line_number)
+    : _rule_binding_t(
+        binding.ruleset_name,
+        binding.rule_name,
+        binding.rule,
+        binding.line_number,
+        binding.serial_group_name)
 {
 }
 
 event_manager_t::_rule_binding_t::_rule_binding_t(
-    const char* a_ruleset_name,
-    const char* a_rule_name,
-    gaia_rule_fn a_rule,
-    uint32_t a_line_number)
+    const char* ruleset_name,
+    const char* rule_name,
+    gaia_rule_fn rule,
+    uint32_t line_number,
+    const char* serial_group_name)
 {
-    ruleset_name = a_ruleset_name;
-    rule = a_rule;
-    line_number = a_line_number;
+    this->ruleset_name = ruleset_name;
+    this->rule = rule;
+    this->line_number = line_number;
 
     // Create a log/trace friendly name.
     // [<rule line number>] <ruleset_name>::<rule_name>
@@ -571,11 +578,15 @@ event_manager_t::_rule_binding_t::_rule_binding_t(
     log_rule_name.append("] ");
     log_rule_name.append(ruleset_name);
 
-    if (a_rule_name != nullptr)
+    if (rule_name != nullptr)
     {
-        rule_name = a_rule_name;
+        this->rule_name = rule_name;
         log_rule_name.append("::");
         log_rule_name.append(rule_name);
+    }
+    if (serial_group_name != nullptr)
+    {
+        this->serial_group_name = serial_group_name;
     }
 }
 

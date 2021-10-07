@@ -1,8 +1,5 @@
 // RUN: %clang_cc1  -fsyntax-only -verify -fgaia-extensions %s
 
-// Uncomment the #define to re-test failing tests.
-// #define TEST_FAILURES
-
 ruleset test80
 {
     on_insert(S:sensor)
@@ -29,8 +26,7 @@ ruleset test82
 
 
 // The 'value' is not duplicated, but qualified by 'sensor'.
-// GAIALAT-796
-#ifdef TEST_FAILURES
+// GAIALAT-796 (fixed)
 ruleset test83 : tables(sensor)
 {
     on_update(value)
@@ -39,7 +35,6 @@ ruleset test83 : tables(sensor)
         v = value * 2.0;
     }
 }
-#endif
 
 ruleset test84
 {
@@ -77,7 +72,7 @@ ruleset test89 : tables(actuator)
     }
 }
 
-// GAIAPLAT-808
+// GAIAPLAT-808 (fixed)
 // The I.min_temp doesn't use the tag from the 'if'.
 ruleset test126
 {
@@ -91,7 +86,7 @@ ruleset test126
     }
 }
 
-// GAIAPLAT-922
+// GAIAPLAT-922 (fixed)
 ruleset test127
 {
     on_change(actuator)
@@ -104,7 +99,7 @@ ruleset test127
     }
 }
 
-// GAIAPLAT-808
+// GAIAPLAT-808 (fixed)
 ruleset test128
 {
     on_change(actuator)
@@ -113,12 +108,12 @@ ruleset test128
         {
             I.min_temp ++;
         }
-        I.max_temp++; // expected-error {{Table 'I' was not found in the catalog.}}
+        I.max_temp++; // expected-error {{Table 'I' was not found in the catalog}}
         // expected-error@-1  {{use of undeclared identifier 'I'}}
     }
 }
 
-// GAIAPLAT-827
+// GAIAPLAT-827 (fixed)
 ruleset test122
 {
     on_change(sensor.value)

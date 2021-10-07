@@ -1,3 +1,8 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 // RUN: %gaiat %s --
 
 #include "tags_test.h"
@@ -145,7 +150,7 @@ ruleset test18
 {
     on_change(yield.bushels)
     {
-        F : farmer.condos -> I : incubator -> R : raised -> A : animal -> D : feeding -> Y : yield 
+        F : farmer.condos -> I : incubator -> R : raised -> A : animal -> D : feeding -> Y : yield
             -> C : crop . acres ++;
         / F:farmer.incubators->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres++;
     }
@@ -212,16 +217,14 @@ ruleset test24
     }
 }
 
-// GAIAPLAT-803
+// GAIAPLAT-803 (fixed)
 // This should be identical to test1 above.
-#ifdef TEST_FAILURES
 ruleset test25
 {
     {
         @actuator.value += sensor.value;
     }
 }
-#endif
 
 // GAIAPLAT-808 (fixed)
 // The I.min_temp doesn't use the tag from the 'if'.
@@ -385,7 +388,7 @@ ruleset test39
     }
 }
 
-void printf(const char*, float);
+void printf(const char*, ...);
 
 // TESTCASE: use link names together with table names
 ruleset test40
@@ -426,5 +429,40 @@ ruleset test43
     {
         int acre = crop.acres;
         printf("%d\n", acre);
+    }
+}
+
+// TESTCASE: use multiple fields from the same row in one statement
+ruleset test44
+{
+    on_insert(farmer)
+    {
+        printf("%s, %s, %u\n", animal.name, breed, animal.age);
+        printf("%u, %u\n", portion, frequency);
+    }
+}
+
+// TESTCASE: use multiple fields from the multiple rows in one statement
+ruleset test45
+{
+    on_insert(incubator)
+    {
+        printf("%s, %f, %u,%s, %f, %u\n", sensor.name, sensor.value, precision, actuator.name,
+            actuator.value, max_rpm);
+    }
+}
+
+// TESTCASE: expect navigation from anchor
+// GAIAPLAT-1191 (fixed)
+ruleset test46
+{
+    on_update(farmer)
+    {
+        if (bushels > 40)
+        {
+            int total_portion = 0;
+            int total_frequency = 0;
+            total_portion += portion, total_frequency += frequency;
+        }
     }
 }

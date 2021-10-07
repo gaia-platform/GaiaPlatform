@@ -1,3 +1,8 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 template <typename T_structure, typename T_index_it>
 index_iterator_t<T_structure, T_index_it>::index_iterator_t(base_index_t* db_idx, T_index_it it, T_index_it end_it)
 {
@@ -5,7 +10,10 @@ index_iterator_t<T_structure, T_index_it>::index_iterator_t(base_index_t* db_idx
     m_index_it = it;
     m_end_it = end_it;
 
-    m_db_idx->get_lock().lock();
+    if (m_db_idx != nullptr)
+    {
+        m_db_idx->get_lock().lock();
+    }
 }
 
 template <typename T_structure, typename T_index_it>
@@ -15,7 +23,28 @@ index_iterator_t<T_structure, T_index_it>::index_iterator_t(const index_iterator
     m_index_it = other.m_index_it;
     m_end_it = other.m_end_it;
 
-    m_db_idx->get_lock().lock();
+    if (m_db_idx != nullptr)
+    {
+        m_db_idx->get_lock().lock();
+    }
+}
+
+template <typename T_structure, typename T_index_it>
+index_iterator_t<T_structure, T_index_it>& index_iterator_t<T_structure, T_index_it>::operator=(const index_iterator_t& other)
+{
+    if (this != &other)
+    {
+        m_db_idx = other.m_db_idx;
+        m_index_it = other.m_index_it;
+        m_end_it = other.m_end_it;
+
+        if (m_db_idx != nullptr)
+        {
+            m_db_idx->get_lock().lock();
+        }
+    }
+
+    return *this;
 }
 
 template <typename T_structure, typename T_index_it>
@@ -30,7 +59,7 @@ index_iterator_t<T_structure, T_index_it>::~index_iterator_t()
 template <typename T_structure, typename T_index_it>
 index_iterator_t<T_structure, T_index_it>& index_iterator_t<T_structure, T_index_it>::operator++()
 {
-    m_index_it++;
+    ++m_index_it;
     return *this;
 }
 

@@ -1,0 +1,311 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+#include "gaia/logger.hpp"
+#include "gaia/events.hpp"
+
+#include <atomic>
+#include <stdexcept>
+
+std::atomic<int32_t> g_rule_called;
+std::atomic<int32_t> g_insert_called;
+std::atomic<int32_t> g_update_min_temp_called;
+std::atomic<int32_t> g_update_max_temp_called;
+std::atomic<int32_t> g_update_sensor_value_called;
+std::atomic<int32_t> g_actuator_rule_called;
+std::atomic<int32_t> g_rule_navigation_loop_count;
+
+ruleset test
+{
+    on_update(incubator.min_temp)
+    {
+        gaia_log::app().warn("[rule-1] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+
+        max_temp = sensor.value + min_temp;
+        max_temp = sensor.value + 4;
+        if (actuator.value > 0)
+        {
+            g_actuator_rule_called++;
+        }
+
+        if (sensor.value > 5)
+        {
+            actuator.value = 1000;
+        }
+        g_update_min_temp_called++;
+        g_rule_called++;
+    }
+
+    on_update(incubator.max_temp)
+    {
+        gaia_log::app().warn("[rule-2] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        g_update_max_temp_called++;
+        g_rule_called++;
+    }
+
+    on_update(actuator.value)
+    {
+        gaia_log::app().warn("[rule-3] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        g_actuator_rule_called++;
+        g_rule_called++;
+    }
+
+    on_change(s:sensor.value)
+    {
+        gaia_log::app().warn("[rule-4] begin {} {} {} {}", rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        max_temp = s.value + min_temp;
+        max_temp = s.value + 4;
+        if (actuator.value > 0)
+        {
+            g_actuator_rule_called++;
+        }
+
+        if ((const gaia::db::triggers::event_type_t)rule_context.event_type == gaia::db::triggers::event_type_t::row_insert)
+        {
+            g_insert_called++;
+        }
+
+        if ((const gaia::db::triggers::event_type_t)rule_context.event_type == gaia::db::triggers::event_type_t::row_update)
+        {
+            if (s.value > 5)
+            {
+                actuator.value = 1000;
+            }
+            g_update_sensor_value_called++;
+        }
+        g_rule_called++;
+    }
+}
+
+ruleset test2
+{
+}
+
+void use_string(const char*)
+{
+
+}
+
+ruleset test3
+{
+    on_update(S:sensor, T:sensor)
+    {
+        use_string(S.name);
+        use_string(T.name);
+    }
+}
+
+ruleset testE13
+{
+    on_insert(sensor)
+    {
+        float daily = 0;
+        daily += /sensor.value;
+    }
+}
+
+#if 0
+// This rule interferes with 'ruleset set' rules
+ruleset test21
+{
+    on_insert(I:incubator)
+    {
+        I->actuator.value += 1.0;
+    }
+}
+#endif
+
+void use_float(float)
+{
+}
+
+ruleset testE21
+{
+    on_update(incubator)
+    {
+        if (I:incubator.max_temp == 100.0)
+        {
+            use_float(I.min_temp);
+        }
+    }
+}
+
+// GAIAPLAT-1274
+// [WLW] Note: not sure this test relates to GAIAPLAT-1274
+ruleset testE22
+{
+    on_update(incubator)
+    {
+        for (/S:sensor)
+        {
+            use_string(S->incubator.name);
+            if (strcmp(S->incubator.name, "1") == 0)
+            {
+                return;
+            }
+        }
+    }
+}
+
+// GAIAPLAT-1269 (fixed)
+ruleset testE23
+{
+    on_update(incubator)
+    {
+        if (/S:sensor.value > 5 && strcmp(S->incubator.name, "1") == 0)
+        {
+        }
+        nomatch
+        {
+            int test = 0;
+            test = 1;
+        };
+    }
+}
+
+void use_id(unsigned int)
+{
+}
+
+// GAIAPLAT-1314 (fixed)
+ruleset testE24
+{
+    on_update(incubator)
+    {
+        auto id = incubator.gaia_id();
+        use_id(id);
+    }
+}
+
+//GAIAPLAT-1367 (fixed)
+ruleset testE25
+{
+     on_update(sensor)
+     {
+        if (strcmp(/S:sensor.name, "1") == 0)
+        {
+            incubator.connect(actuator);
+        }
+     }
+}
+
+//GAIAPLAT-1388 (fixed)
+ruleset testE26
+{
+     on_update(incubator)
+     {
+        for (w:sensor)
+        {
+            w.timestamp = 0;
+        }
+     }
+}
+
+//GAIAPLAT-1326 (fixed)
+ruleset testE27
+{
+     on_update(sensor)
+     {
+        if ((strcmp(S:sensor.name, "1") == 0))
+        {
+            incubator.connect(actuator);
+        }
+     }
+}
+
+//GAIAPLAT-1375 (fixed)
+ruleset testE28
+{
+    on_insert(incubator)
+    {
+        if (incubator.name != nullptr)
+        {
+        }
+        nomatch
+        {
+            for (incubator->s:sensor) { use_string(s.name);}
+            nomatch { use_string(incubator.name);}
+        }
+    }
+}
+namespace test_test{
+    enum test_enum
+    {
+        test1,
+        test2,
+        test3,
+        test4,
+    };
+}
+
+//GAIAPLAT-1235 (fixed)
+ruleset testE29
+{
+    on_insert(sensor)
+    {
+        switch(sensor.timestamp)
+        {
+            case test_test::test1 : sensor.timestamp=1; break;
+            case test_test::test2: sensor.timestamp=2; break;
+            case test_test::test3:sensor.timestamp=3; break;
+            case test_test::test4 :sensor.timestamp=4; break;
+        }
+    }
+}
+
+// GAIAPLAT-1259 (fixed)
+const char* generate_error_message(double)
+{
+    return "test";
+}
+
+ruleset testE30
+{
+    on_insert(incubator)
+    {
+        if (strcmp(incubator.name, "ttt") == 0)
+        {
+            throw std::runtime_error(generate_error_message(sensor.value));
+        }
+    }
+}
+
+// GAIAPLAT-1025 (fixed)
+ruleset test_comment
+{
+    /* COMMENT
+     * COMMENT
+     * COMMENT
+     */
+    on_insert(sensor)
+    {
+    }
+}
+
+// GAIAPLAT-1432
+ruleset testE31
+{
+    on_update(incubator.max_temp, incubator.min_temp)
+    {
+        for (S:sensor)
+        {
+            if (S.value > min_temp || S.value < max_temp)
+            {
+                g_rule_navigation_loop_count++;
+            }
+        }
+    }
+}
+
+#if 0
+// This rule interferes with 'ruleset set' rules
+ruleset test15
+{
+    on_change(incubator)
+    {
+        S:sensor.value = S.value * 1.01;
+    }
+}
+#endif

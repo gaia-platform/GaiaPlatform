@@ -1,4 +1,9 @@
-// RUN: %gaiat %s -- 2>&1| FileCheck  %s
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
 #include "tags_test.h"
 
@@ -15,4 +20,5 @@ ruleset test11
 }
 
 // GAIAPLAT-794
+// GAIAPLAT-1194
 // CHECK: Local variable 'a' hides a tag defined with the same name. Rename your local variable or tag so that their names do not conflict.

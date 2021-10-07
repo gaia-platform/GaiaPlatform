@@ -33,9 +33,9 @@ set(SDK_TEST_INCLUDES
 
 configure_file("${GAIA_CONFIG}" "${PROJECT_BINARY_DIR}/gaia.conf")
 configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
-add_gtest(test_sdk "tests/test_sdk.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;gaia_spdlog;edc_addr_book")
+# Disabling test_sdk until we can remove the dependency on non-public methods exported from the SDK shared library.
+# add_gtest(test_sdk "tests/test_sdk.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;gaia_spdlog;edc_addr_book")
 add_gtest(test_sdk_no_init_rules "tests/test_sdk_no_init_rules.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;edc_addr_book")
-
 
 # Set CPack variables required for building a DEB/RPM package.
 #
@@ -61,7 +61,34 @@ set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE amd64)
 set(CPACK_DEBIAN_PACKAGE_DESCRIPTION ${CPACK_PACKAGE_DESCRIPTION})
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER ${CPACK_PACKAGE_CONTACT})
 set(CPACK_DEBIAN_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}.deb)
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "clang-10,lld-10,libc++-10-dev,libc++abi-10-dev")
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  # We only link libc++ in Debug builds.
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "clang-10,lld-10,libc++-10-dev,libc++abi-10-dev")
+  # REVIEW (GAIAPLAT-1474): When CPack correctly applies
+  # CPACK_DEBIAN_PACKAGE_RECOMMENDS, then uncomment the following 2 lines and
+  # remove the preceding definition of CPACK_DEBIAN_PACKAGE_DEPENDS.
+  # set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc++1-10,libc++abi1-10")
+  # set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "clang-10,lld-10,libc++-10-dev,libc++abi-10-dev")
+  # REVIEW: CMake ideally would be an included dependency, but Kitware does not
+  # version their CMake debian packages, so it is impossible to avoid clobbering
+  # newer versions of CMake if we include it in CPACK_DEBIAN_PACKAGE_DEPENDS.
+  # Once CPack respects CPACK_DEBIAN_PACKAGE_RECOMMENDS and
+  # CPACK_DEBIAN_PACKAGE_SUGGESTS, we could consider including CMake as a
+  # "Recommends" or "Suggests" dependency.
+else()
+  # We use libstdc++ in Release builds for compatibility with other software
+  # built with libstdc++ (which is the default stdlib in both gcc and clang).
+  # GCC 9 is installed by default on Ubuntu 20.04 with the build-essential
+  # package, so we try to be compatible with that.
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "clang-10,lld-10,libstdc++-9-dev")
+  # REVIEW (GAIAPLAT-1474): When CPack correctly applies
+  # CPACK_DEBIAN_PACKAGE_RECOMMENDS, then uncomment the following 2 lines and
+  # remove the preceding definition of CPACK_DEBIAN_PACKAGE_DEPENDS.
+  # set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6")
+  # set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "clang-10,lld-10,libstdc++-9-dev")
+endif()
+
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
 set(CPACK_DEBIAN_PACKAGE_SECTION "custom")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
@@ -161,19 +188,15 @@ install(PROGRAMS ${GAIA_REPO}/production/examples/hello/run.sh DESTINATION examp
 install(FILES ${GAIA_REPO}/production/examples/hello/CMakeLists.txt DESTINATION examples/hello)
 
 # Place incubator example.
-set(GAIA_CMAKE "${CPACK_PACKAGING_INSTALL_PREFIX}/cmake/gaia.cmake")
-configure_file(${GAIA_REPO}/production/examples/incubator/CMakeLists.txt ${PROJECT_BINARY_DIR}/CMakeLists_incubator.txt COPYONLY)
-# The following two commands will create a CMakeLists.txt appropriate for the SDK build environment
-# by substituting in the correct CMAKE VARS into the incubator CMakeLists text file.
-configure_file(${GAIA_REPO}/production/examples/incubator/cmake_sdk.sed ${PROJECT_BINARY_DIR}/cmake_sdk_incubator.sed)
-add_custom_target(install_incubator ALL
-  COMMAND sed -i -f ${PROJECT_BINARY_DIR}/cmake_sdk_incubator.sed ${PROJECT_BINARY_DIR}/CMakeLists_incubator.txt
-)
 install(FILES ${GAIA_REPO}/production/examples/incubator/incubator.ddl DESTINATION examples/incubator)
 install(FILES ${GAIA_REPO}/production/examples/incubator/incubator.ruleset DESTINATION examples/incubator)
 install(FILES ${GAIA_REPO}/production/examples/incubator/incubator.cpp DESTINATION examples/incubator)
 install(FILES ${GAIA_REPO}/production/examples/incubator/README.md DESTINATION examples/incubator)
-install(FILES ${PROJECT_BINARY_DIR}/CMakeLists_incubator.txt DESTINATION examples/incubator RENAME CMakeLists.txt)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  install(FILES ${GAIA_REPO}/production/examples/incubator/CMakeLists_debug.txt DESTINATION examples/incubator RENAME CMakeLists.txt)
+else()
+  install(FILES ${GAIA_REPO}/production/examples/incubator/CMakeLists.txt DESTINATION examples/incubator)
+endif()
 
 # Place license files.
 install(FILES ${GAIA_REPO}/production/licenses/LICENSE.third-party.txt DESTINATION .)

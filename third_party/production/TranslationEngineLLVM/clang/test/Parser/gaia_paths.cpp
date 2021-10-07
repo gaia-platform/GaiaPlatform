@@ -1,8 +1,5 @@
 // RUN: %clang_cc1  -fsyntax-only -verify -fgaia-extensions %s
 
-// Uncomment the #define to re-test failing tests.
-// #define TEST_FAILURES
-
 ruleset test90
 {
     on_update(incubator)
@@ -16,7 +13,7 @@ ruleset test91
 {
     on_update(incubator)
     {
-        long i = actuator->timestamp; // expected-error {{Tag refers to an invalid table 'timestamp'.}}
+        long i = actuator->timestamp; // expected-error {{Field 'timestamp' cannot be used after a '->' in a path. Use a '.' to separate the table name from the field name.}}
         // expected-error@-1 {{use of undeclared identifier 'actuator'}}
     }
 }
@@ -87,8 +84,8 @@ ruleset test101
     }
 }
 
-// GAIAPLAT-913
-#ifdef TEST_FAILURES
+// GAIAPLAT-913 (V1)
+#ifdef TEST_FAILURES // GAIAPLAT-913 (V1)
 ruleset test102
 {
     {
@@ -139,29 +136,28 @@ ruleset test130
     }
 }
 
-// GAIAPLAT-822
 ruleset test131
 {
     {
-        if (farmer->yield.bushels)
+        if (farmer->yield) // expected-error {{value of type 'yield__type' is not contextually convertible to 'bool'}}
         {}
     }
 }
 
-// GAIAPLAT-877
-#ifdef TEST_FAILURES
+// GAIAPLAT-877 (fixed)
 ruleset test132
 {
     on_insert(animal)
     {
-        animal->feeding->portion = 5;
+        animal->feeding->portion = 5; // expected-error {{Field 'portion' cannot be used after a '->' in a path. Use a '.' to separate the table name from the field name.}}
+        // expected-error@-1 {{use of undeclared identifier 'animal'}}
     }
 }
-#endif
 
+// GAIAPLAT-913 (V1)
+// GAIAPLAT-878 (V1)
+#ifdef TEST_FAILURES // GAIAPLAT-913 (V1)
 // GAIAPLAT-878
-// GAIAPLAT-913
-#ifdef TEST_FAILURES
 ruleset test133
 {
     on_insert(animal)
@@ -172,11 +168,13 @@ ruleset test133
 #endif
 
 // GAIAPLAT-821 (fixed)
+// GAIAPLAT-1172 (fixed)
+// GAIAPLAT-1199 (fixed)
 ruleset test129
 {
     on_update(incubator)
     {
-        if (/@incubator.min_temp)
+        if (/@incubator.min_temp) // expected-error {{expected expression}}
         {
             int i = 0;
         }

@@ -1,3 +1,8 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 #include "gaia_barn_storage.h"
 
 int g_rule_called = 0;
@@ -7,7 +12,6 @@ int g_actuator_rule_called = 0;
 
 using namespace gaia::barn_storage;
 
-extern int g_test_mixed_called;
 extern int g_test_mixed_value;
 
 void f(gaia::barn_storage::incubator_t i)
@@ -38,10 +42,11 @@ ruleset test_mixed
         f(i);
         f1(i);
         f2(i);
-        g_test_mixed_called++;
+        gaia::barn_storage::incubator_t ii = i;
+        gaia::barn_storage::incubator_t iii = incubator;
     }
 
-    // The sensor was deleted, but this rule is still fired.
+    // If the sensor was deleted, this rule will not be fired.
     on_insert(S:sensor)
     {
         S.value += 1.0;
@@ -55,6 +60,5 @@ ruleset test_mixed
             // This is the correct path, since there is no S.
             g_test_mixed_value = 2;
         }
-        g_test_mixed_called++;
     }
 }

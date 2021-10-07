@@ -5,7 +5,7 @@
 
 #include <atomic>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "bitmap.hpp"
 
@@ -127,7 +127,7 @@ TEST(bitmap, limit)
     }
 
     // Check that we have set the bits of the bitmap.
-    ASSERT_EQ(c_uint64_bit_count, count_set_bits(&bitmap, 1));
+    ASSERT_EQ(end_limit_bit_index, count_set_bits(&bitmap, 1, end_limit_bit_index));
 }
 
 TEST(bitmap, count_set_bits)

@@ -9497,6 +9497,8 @@ def err_builtin_launder_invalid_arg : Error<
 
 def err_invalid_field_operation : Error<
   "Incorrect field operation.">;
+def err_invalid_field_usage : Error<
+  "Field '%0' cannot be used after a '->' in a path. Use a '.' to separate the table name from the field name.">;
 def err_active_field_not_supported : Error<
   "Mixed use of 'on_' attributes (on_insert, on_change, or on_update) and "
   "specifying active fields using '@' is not supported. Use either an 'on_' "
@@ -9523,10 +9525,10 @@ def err_declarative_label_statement_is_invalid : Error<
 def err_declarative_label_wrong_statement : Error<
   "The statement of the declarative label is not a declarative 'if' or 'for'.">;
 def err_duplicate_field : Error<
-  "Duplicate field '%0' found in table '%1'. Qualify your field with the "
+  "Duplicate field '%0' found in multiple tables. Qualify your field with the "
   "table name (table.field) to disambiguate field names that occur in more "
   "than one table. You can also restrict the list of tables to search by "
-  "specifing them in the ruleset 'tables' attribute.">;
+  "specifying them in the ruleset 'tables' attribute.">;
 def err_duplicate_link : Error<
   "Duplicate link '%0'.">;
 def err_duplicate_parameter_name : Error<
@@ -9534,7 +9536,7 @@ def err_duplicate_parameter_name : Error<
 def err_duplicate_ruleset : Error<
   "Ruleset '%0' is defined more than once. Ruleset names must be unique.">;
 def err_edc_init : Error<
-  "Initialization of a declared variable with an EDC object is not supported.">;
+  "Initialization of a declared variable with a direct access object is not supported.">;
 def err_field_deprecated : Error<
   "Field '%0' of table '%1' is marked as deprecated in the catalog. "
   "Ensure that you are using the correct field in the catalog.">;
@@ -9578,8 +9580,6 @@ def err_invalid_parent_table : Error<
   "Incorrect parent table in the relationship '%0'.">;
 def err_invalid_table_field : Error<
   "Field '%0' has no table in the catalog.">;
-def err_invalid_table_name : Error<
-  "Table '%0' was not found in the catalog.">;
 def err_invalid_rule_context_internal_error : Error<
   "Internal error while generating 'rule_context'.">;
 def err_invalid_rule_attribute : Error<
@@ -9593,6 +9593,8 @@ def err_multi_anchor_tables : Error<
   "A rule may not specify multiple tables or active fields from different tables "
   "in 'on_' attributes (on_insert, on_change, or on_update). "
   "Ensure that all your active field references belong to the same table.">;
+def err_illegal_field_reference : Error<
+  "A field may not be referenced in the 'on_insert' statement. The 'on_insert' attribute only accepts a table.">;
 def err_multiple_shortest_paths : Error<
   "Multiple shortest paths exist between tables '%0' and '%1'. "
   "Explicitly specify the navigation path between these two tables to resolve the ambiguity.">;
@@ -9603,7 +9605,9 @@ def err_no_anchor_path : Error<
   "No navigation path exists between table '%0' and other tables. "
   "Ensure that your schema has a relationship between the tables you are referencing.">;
 def err_no_fields_referenced_by_table : Error<
-  "No fields referenced by table '%0'.">;  
+  "No fields referenced by table '%0'.">;
+def err_no_link : Error<
+  "Table link '%0.%1' was not found in the catalog.">;
 def err_no_path : Error<
   "No navigation path exists between tables '%0' and '%1'. "
   "Ensure that your schema has a relationship between these two tables.">;
@@ -9619,6 +9623,9 @@ def err_parameter_names_numbers_different_from_parameter: Error<
 def err_table_not_found : Error<
   "Table '%0' was not found in the catalog. "
   "Ensure that the table you are referencing in your rule exists in the database.">;
+def err_tag_hidden : Error<
+   "Local variable '%0' hides a tag defined with the same name. "
+   "Rename your local variable or tag so that their names do not conflict.">;
 def err_tag_redefined : Error<
   "Tag '%0' is already defined.">;
 def err_unknown_field : Error<
@@ -9646,8 +9653,4 @@ def warn_table_hidden : Warning<
 def warn_table_referenced_not_in_table_attribute : Warning<
   "Table '%0' is not referenced in tables attribute.">,
   InGroup<GaiaExtensions>;
-def warn_tag_hidden : Warning<
-   "Local variable '%0' hides a tag defined with the same name. "
-   "Rename your local variable or tag so that their names do not conflict.">,
-   InGroup<GaiaExtensions>;
 } // end of sema component.

@@ -1,0 +1,22 @@
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
+# Turn chicken portion on.
+m
+c
+on
+m
+# Turn puppy portion on.
+m
+p
+on
+m
+# Wait 5 milliseconds to allow the turn on effects to finish.
+w5
+# Take 10,000 steps.
+o
+s10000
+o
+x

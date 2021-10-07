@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/rules/rules.hpp"
 
@@ -58,6 +58,8 @@ protected:
     void SetUp() override
     {
         db_catalog_test_base_t::SetUp();
+        gaia::rules::initialize_rules_engine();
+        gaia::rules::unsubscribe_rules();
         g_oninsert_called = false;
         g_oninsert2_called = false;
         g_oninsert3_called = false;
@@ -89,9 +91,6 @@ protected:
 
 TEST_F(test_tags_code, oninsert)
 {
-    gaia::rules::initialize_rules_engine();
-    // Use the first set of rules.
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_tags");
 
     // Creating a record should fire on_insert and on_change, but not on_update.
@@ -129,9 +128,7 @@ TEST_F(test_tags_code, onchange)
     auto student = student_t::get(student_t::insert_row("stu001", "Warren", 66, 3, 2.9));
     gaia::db::commit_transaction();
 
-    gaia::rules::initialize_rules_engine();
     // Use the first set of rules.
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_tags");
 
     // Changing a record should fire on_change and on_update, but not on_insert.
@@ -174,9 +171,7 @@ TEST_F(test_tags_code, onupdate)
     auto student = student_t::get(student_t::insert_row("stu001", "Warren", 66, 3, 2.9));
     gaia::db::commit_transaction();
 
-    gaia::rules::initialize_rules_engine();
     // Use the first set of rules.
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_tags");
 
     // Changing the age field should fire on_change and on_update, but not on_insert.
@@ -217,19 +212,13 @@ TEST_F(test_tags_code, onupdate)
 
 TEST_F(test_tags_code, multi_inserts)
 {
-    const int num_inserts = 10;
+    const int num_inserts = 5;
 
-    gaia::rules::initialize_rules_engine();
     // Use the first set of rules.
     gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_tags");
 
     gaia::db::begin_transaction();
-    student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
-    student_t::get(student_t::insert_row("stu002", "Russell", 32, 4, 3.0));
-    student_t::get(student_t::insert_row("stu003", "Reuben", 26, 4, 3.0));
-    student_t::get(student_t::insert_row("stu004", "Rachael", 51, 4, 3.0));
-    student_t::get(student_t::insert_row("stu005", "Renee", 65, 4, 3.0));
     student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
     student_t::get(student_t::insert_row("stu002", "Russell", 32, 4, 3.0));
     student_t::get(student_t::insert_row("stu003", "Reuben", 26, 4, 3.0));
@@ -245,13 +234,11 @@ TEST_F(test_tags_code, multi_inserts)
 
 TEST_F(test_tags_code, basic_tags)
 {
-    gaia::rules::initialize_rules_engine();
     // Use the first set of rules.
-    gaia::rules::unsubscribe_rules();
     gaia::rules::subscribe_ruleset("test_tags");
 
     gaia::db::begin_transaction();
-    registration_t::insert_row("reg00H", c_status_pending, c_grade_none);
+    registration_t::insert_row("reg00H", nullptr, nullptr, c_status_pending, c_grade_none);
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();

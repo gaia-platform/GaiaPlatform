@@ -37,6 +37,8 @@ using namespace clang;
 static string fieldTableName;
 
 static constexpr char ruleContextTypeName[] = "rule_context__type";
+static constexpr char connectFunctionName[] = "connect";
+static constexpr char disconnectFunctionName[] = "disconnect";
 
 static string get_table_from_expression(const string& expression)
 {
@@ -236,7 +238,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             auto tableDescription = tableData.find(tagEntry.second);
             if (tableDescription == tableData.end())
             {
-                Diag(loc, diag::err_invalid_table_name) << tagEntry.second;
+                Diag(loc, diag::err_table_not_found) << tagEntry.second;
                 return "";
             }
         }
@@ -260,6 +262,18 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             {
                 tableName = pathComponent.substr(0, dotPosition);
                 fieldName = pathComponent.substr(dotPosition + 1);
+                dotPosition = fieldName.find('.');
+                // If there is a dot in a field it is actually a link.
+                // The links are allowed to reference connect/disconnect functions.
+                if (dotPosition != string::npos)
+                {
+                    string postLink = fieldName.substr(dotPosition + 1);
+                    if (postLink != connectFunctionName && postLink != disconnectFunctionName)
+                    {
+                        Diag(loc, diag::err_invalid_explicit_path);
+                        return "";
+                    }
+                }
             }
             else
             {
@@ -298,7 +312,15 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             auto tableDescription = tableData.find(tableName);
             if (tableDescription == tableData.end())
             {
-                Diag(loc, diag::err_invalid_tag_defined) << tableName;
+                // Test to see if this is a field name
+                if (findFieldType(tableName, loc))
+                {
+                    Diag(loc, diag::err_invalid_field_usage) << tableName;
+                }
+                else
+                {
+                    Diag(loc, diag::err_invalid_tag_defined) << tableName;
+                }
                 return "";
             }
 
@@ -385,7 +407,7 @@ unordered_map<string, unordered_map<string, QualType>> Sema::getTableData(Source
             unordered_map<string, QualType> fields = retVal[tbl.name()];
             if (fields.find(field.name()) != fields.end())
             {
-                Diag(loc, diag::err_duplicate_field) << field.name() << tbl.name();
+                Diag(loc, diag::err_duplicate_field) << field.name();
                 return unordered_map<string, unordered_map<string, QualType>>();
             }
             fields[field.name()] = mapFieldType(static_cast<catalog::data_type_t>(field.type()), &Context);
@@ -465,9 +487,15 @@ unordered_multimap<string, Sema::TableLinkData_t> Sema::getCatalogTableRelations
             TableLinkData_t link_data_1;
             link_data_1.table = parent_table.name();
             link_data_1.field = relationship.to_parent_link_name();
+            link_data_1.is_from_parent = false;
+            link_data_1.is_one_to_many = false;
+
             TableLinkData_t link_data_n;
             link_data_n.table = child_table.name();
             link_data_n.field = relationship.to_child_link_name();
+            link_data_n.is_from_parent = true;
+            link_data_n.is_one_to_many = static_cast<catalog::relationship_cardinality_t>(relationship.cardinality())
+                == catalog::relationship_cardinality_t::many;
 
             retVal.emplace(child_table.name(), link_data_1);
             retVal.emplace(parent_table.name(), link_data_n);
@@ -593,7 +621,7 @@ QualType Sema::getRuleContextType(SourceLocation loc)
     return Context.getTagDeclType(RD);
 }
 
-QualType Sema::getLinkType(const std::string& linkName, const std::string& from_table, const std::string& to_table, SourceLocation loc)
+QualType Sema::getLinkType(const std::string& linkName, const std::string& from_table, const std::string& to_table, bool is_one_to_many, SourceLocation loc)
 {
     // If you have (farmer)-[incubators]->(incubator), the type name is: farmer_incubators__type.
     // The table name is necessary because there could me multiple links in multiple tables
@@ -619,7 +647,7 @@ QualType Sema::getLinkType(const std::string& linkName, const std::string& from_
     AttributeFactory attrFactory;
     ParsedAttributes attrs(attrFactory);
 
-    addConnectDisconnect(RD, to_table, loc, attrFactory, attrs);
+    addConnectDisconnect(RD, to_table, is_one_to_many, loc, attrFactory, attrs);
 
     RD->completeDefinition();
 
@@ -663,15 +691,26 @@ TagDecl* Sema::lookupEDCClass(std::string className)
     //   LookupQualifiedName(gaiaNS, Context.getTranslationUnitDecl());
     //  ....
 
-    for (Type* type : Context.getTypes())
+    static std::map<std::string, RecordDecl*> s_found_classes;
+
+    RecordDecl* record = s_found_classes[className];
+    if (record)
     {
-        RecordDecl* record = type->getAsRecordDecl();
-        if (record != nullptr)
+        return llvm::cast_or_null<TagDecl>(record);
+    }
+    else
+    {
+        for (Type* type : Context.getTypes())
         {
-            const IdentifierInfo* id = record->getIdentifier();
-            if (id && id->getName().equals(className))
+            record = type->getAsRecordDecl();
+            if (record != nullptr)
             {
-                return llvm::cast_or_null<TagDecl>(record);
+                const IdentifierInfo* id = record->getIdentifier();
+                if (id && id->getName().equals(className))
+                {
+                    s_found_classes[className] = record;
+                    return llvm::cast_or_null<TagDecl>(record);
+                }
             }
         }
     }
@@ -679,7 +718,7 @@ TagDecl* Sema::lookupEDCClass(std::string className)
     return nullptr;
 }
 
-void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targetTableName, SourceLocation loc, AttributeFactory& attrFactory, ParsedAttributes& attrs)
+void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targetTableName, bool is_one_to_many, SourceLocation loc, AttributeFactory& attrFactory, ParsedAttributes& attrs)
 {
     SmallVector<TagDecl*, 2> targetTypes;
 
@@ -694,6 +733,7 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targe
             getASTContext(), RecordDecl::TagKind::TTK_Struct, Context.getTranslationUnitDecl(),
             SourceLocation(), SourceLocation(), &Context.Idents.get(implicitTableTypeName));
 
+        implicitTargetTypeDecl->addAttr(GaiaTableAttr::CreateImplicit(Context, &Context.Idents.get(targetTableName)));
         implicitTargetTypeDecl->setLexicalDeclContext(getCurFunctionDecl());
         PushOnScopeChains(implicitTargetTypeDecl, getCurScope());
     }
@@ -708,6 +748,8 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targe
     if (edcTargetTypeDecl)
     {
         targetTypes.push_back(edcTargetTypeDecl);
+        // TODO ideally we should apply this to all EDC classes...
+        edcTargetTypeDecl->addAttr(GaiaTableAttr::CreateImplicit(Context, &Context.Idents.get(targetTableName)));
     }
 
     // Add connect/disconnect both for the implicit class and EDC class (if available).
@@ -720,8 +762,20 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targe
         SmallVector<QualType, 8> parameters;
         parameters.push_back(connectDisconnectParamRef);
 
-        addMethod(&Context.Idents.get("connect"), DeclSpec::TST_bool, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
-        addMethod(&Context.Idents.get("disconnect"), DeclSpec::TST_bool, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
+        addMethod(&Context.Idents.get(connectFunctionName), DeclSpec::TST_void, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
+
+        // The disconnect with argument is available only 1:n relationships.
+        if (is_one_to_many)
+        {
+            addMethod(&Context.Idents.get(disconnectFunctionName), DeclSpec::TST_void, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
+        }
+    }
+
+    // The disconnect without arguments is available only for 1:1 relationships that have explicit link:
+    //  person.mother.disconnect();
+    if (!is_one_to_many && !sourceTableDecl->hasAttr<GaiaTableAttr>())
+    {
+        addMethod(&Context.Idents.get(disconnectFunctionName), DeclSpec::TST_void, {}, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
     }
 }
 
@@ -760,7 +814,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     auto tableDescription = tableData.find(typeName);
     if (tableDescription == tableData.end())
     {
-        Diag(loc, diag::err_invalid_table_name) << typeName;
+        Diag(loc, diag::err_table_not_found) << typeName;
         return Context.VoidTy;
     }
 
@@ -808,6 +862,12 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
 
     RD->setLexicalDeclContext(functionDecl);
     RD->startDefinition();
+
+    // The attribute may have already been set in the forward declaration.
+    if (!RD->hasAttr<GaiaTableAttr>())
+    {
+        RD->addAttr(GaiaTableAttr::CreateImplicit(Context, &Context.Idents.get(typeName)));
+    }
     PushOnScopeChains(RD, getCurScope());
     AttributeFactory attrFactory;
     ParsedAttributes attrs(attrFactory);
@@ -825,7 +885,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         DeclarationName Name = Context.DeclarationNames.getCXXConversionFunctionName(ClassType);
         DeclarationNameInfo NameInfo(Name, loc);
 
-        auto conversionFunctionDeclaration = CXXConversionDecl::Create(
+        auto* conversionFunctionDeclaration = CXXConversionDecl::Create(
             Context, cast<CXXRecordDecl>(RD), loc, NameInfo, R,
             nullptr, false, false, false, SourceLocation());
 
@@ -852,14 +912,27 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     // For every relationship target table we count how many links
     // we have from tableName. This is needed to determine if we can
     // have a connect/disconnect method for a given target type.
-    unordered_map<string, int> links_targets;
+    unordered_map<string, int> links_target_tables;
+
+    // Stores the cardinality for a given target table.
+    // true -> one-to-many, false otherwise.
+    // Note that if a table has multiple links it does not matter
+    // because the connect/disconnect methods are not generated.
+    unordered_map<string, bool> links_cardinality;
 
     for (auto link = links.first; link != links.second; ++link)
     {
         TableLinkData_t linkData = link->second;
-        QualType type = getLinkType(linkData.field, tableName, linkData.table, loc);
-        addField(&Context.Idents.get(linkData.field), type, RD, loc);
-        links_targets[linkData.table]++;
+
+        // For now, connect/disconnect is supported only from the parent side
+        // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1190
+        if (linkData.is_from_parent)
+        {
+            QualType type = getLinkType(linkData.field, tableName, linkData.table, linkData.is_one_to_many, loc);
+            addField(&Context.Idents.get(linkData.field), type, RD, loc);
+            links_target_tables[linkData.table]++;
+            links_cardinality[linkData.table] = linkData.is_one_to_many;
+        }
     }
 
     // Insert fields and methods that are not part of the schema.  Note that we use the keyword 'remove' to
@@ -869,7 +942,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     addMethod(&Context.Idents.get("gaia_id"), DeclSpec::TST_int, {}, attrFactory, attrs, RD, loc);
 
     // connect and disconnect can be present only if the table has outgoing relationships.
-    if (!links_targets.empty())
+    if (!links_target_tables.empty())
     {
         // For each outgoing relationship creates an overload connect/disconnect to the target types. eg:
         // incubator__type
@@ -878,7 +951,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         //   bool connect(farmer_type&);
         //   bool disconnect(farmer_type&);
         //   ....
-        for (auto targetTablePair : links_targets)
+        for (auto targetTablePair : links_target_tables)
         {
             // connect/disconnect are not appended to the table if there is more than one
             // link pointing to a target type.
@@ -889,7 +962,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
                 continue;
             }
 
-            addConnectDisconnect(RD, targetTablePair.first, loc, attrFactory, attrs);
+            addConnectDisconnect(RD, targetTablePair.first, links_cardinality[targetTablePair.first], loc, attrFactory, attrs);
         }
     }
 
@@ -974,7 +1047,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
         auto tableDescription = tableData.find(tableName);
         if (tableDescription == tableData.end())
         {
-            Diag(loc, diag::err_invalid_table_name) << tableName;
+            Diag(loc, diag::err_table_not_found) << tableName;
             return Context.VoidTy;
         }
 
@@ -989,7 +1062,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
             }
             if (retVal != Context.VoidTy)
             {
-                Diag(loc, diag::err_duplicate_field) << fieldOrTagName << tableName;
+                Diag(loc, diag::err_duplicate_field) << fieldOrTagName;
                 return Context.VoidTy;
             }
 
@@ -1007,6 +1080,11 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
             {
                 TableLinkData_t linkData = link->second;
 
+                if (!linkData.is_from_parent)
+                {
+                    continue;
+                }
+
                 if (linkData.field == fieldOrTagName)
                 {
                     if (retVal != Context.VoidTy)
@@ -1015,7 +1093,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
                         return Context.VoidTy;
                     }
 
-                    retVal = getLinkType(linkData.field, tableName, linkData.table, loc);
+                    retVal = getLinkType(linkData.field, tableName, linkData.table, linkData.is_one_to_many, loc);
                     fieldTableName = tableName;
                 }
             }
@@ -1025,6 +1103,78 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
     if (retVal == Context.VoidTy)
     {
         Diag(loc, diag::err_unknown_field) << fieldOrTagName;
+    }
+
+    return retVal;
+}
+
+// This method is a simplified version of getFieldType() used only to determine if a string
+// is the name of a field in the database.
+bool Sema::findFieldType(const std::string& fieldOrTagName, SourceLocation loc)
+{
+    bool retVal = false;
+
+    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
+    if (tableData.empty())
+    {
+        return retVal;
+    }
+
+    DeclContext* context = getCurFunctionDecl();
+    while (context)
+    {
+        if (isa<RulesetDecl>(context))
+        {
+            break;
+        }
+        context = context->getParent();
+    }
+
+    if (context == nullptr || !isa<RulesetDecl>(context))
+    {
+        Diag(loc, diag::err_no_ruleset_for_rule);
+        return false;
+    }
+
+    vector<string> tables;
+    RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(context);
+    RulesetTablesAttr* attr = rulesetDecl->getAttr<RulesetTablesAttr>();
+
+    if (attr != nullptr)
+    {
+        for (const IdentifierInfo* id : attr->tables())
+        {
+            tables.push_back(id->getName().str());
+        }
+    }
+    else
+    {
+        for (auto it : tableData)
+        {
+            tables.push_back(it.first);
+        }
+    }
+
+    for (string tableName : tables)
+    {
+        // Search if there is a match in the table fields.
+        auto tableDescription = tableData.find(tableName);
+        if (tableDescription == tableData.end())
+        {
+            break;
+        }
+        auto fieldDescription = tableDescription->second.find(fieldOrTagName);
+
+        if (fieldDescription != tableDescription->second.end())
+        {
+            if (fieldDescription->second->isVoidType())
+            {
+                Diag(loc, diag::err_invalid_field_type) << fieldOrTagName;
+                break;
+            }
+            retVal = true;
+            break;
+        }
     }
 
     return retVal;

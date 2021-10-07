@@ -13,7 +13,6 @@
 #include <iostream>
 #include <thread>
 
-#include <gaia_spdlog/fmt/fmt.h>
 #include <libexplain/execve.h>
 #include <libexplain/fork.h>
 #include <libexplain/kill.h>
@@ -30,6 +29,8 @@
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
+
+#include "gaia_spdlog/fmt/fmt.h"
 
 namespace fs = std::filesystem;
 
@@ -315,7 +316,8 @@ std::vector<const char*> server_instance_t::get_server_command_and_argument()
     if (m_conf.disable_persistence)
     {
         ASSERT_PRECONDITION(m_conf.data_dir.empty(), "data_dir must be empty when persistence is disabled.");
-        strings.push_back("--disable-persistence");
+        strings.push_back("--persistence");
+        strings.push_back("disabled");
     }
     else
     {

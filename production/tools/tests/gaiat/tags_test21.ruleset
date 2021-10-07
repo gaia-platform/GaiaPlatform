@@ -1,3 +1,8 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 // RUN: echo "Tag 'A' defined but not used." | FileCheck  %s
 // not %gaiat %s -- 2>&1| FileCheck  %s
 
@@ -12,5 +17,5 @@ ruleset test21
     }
 }
 
-// GAIAPLAT-850
+// GAIAPLAT-850 (V1)
 // CHECK: Tag 'A' defined but not used.

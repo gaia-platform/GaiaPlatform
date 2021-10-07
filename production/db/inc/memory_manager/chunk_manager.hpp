@@ -34,7 +34,6 @@ public:
         return m_chunk_offset;
     }
 
-    // Initialize the chunk manager with an empty chunk.
     inline bool initialized()
     {
         return (m_chunk_offset != c_invalid_chunk_offset);
@@ -80,7 +79,7 @@ public:
     // Returns false if the chunk was not deallocated, either because it was
     // non-empty or because it was concurrently reused.
     // This can safely be called by non-owning threads like GC tasks.
-    bool try_deallocate_chunk(chunk_version_t initial_version = c_invalid_chunk_version);
+    bool try_deallocate_chunk(chunk_version_t initial_version);
 
     // This returns the last allocation recorded in this chunk, so a crashed
     // session can reconcile its txn log with allocation metadata. For

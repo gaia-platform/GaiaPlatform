@@ -1,0 +1,160 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+#include <atomic>
+#include <unistd.h>
+
+#include "gaia/events.hpp"
+
+#include "test_serial.hpp"
+
+std::atomic<int32_t> g_update_min_temp_called;
+std::atomic<int32_t> g_update_max_temp_called;
+std::atomic<int32_t> g_update_value_called;
+std::atomic<int32_t> g_update_timestamp_called;
+
+
+// On insert of an incubator, multiple it's min_temp by 4
+ruleset test_default_serial : serial_group()
+{
+    on_insert(incubator)
+    {
+        rule_monitor_t m("rule-1", c_None,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        min_temp += min_temp;
+    }
+
+    on_insert(incubator)
+    {
+        rule_monitor_t m("rule-2", c_None,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        min_temp += min_temp;
+    }
+}
+
+ruleset test_default_parallel
+{
+    on_insert(incubator)
+    {
+        rule_monitor_t m("rule-3", c_None,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        min_temp += min_temp;
+    }
+
+    // Since these rules run in parallel, they cannot update the same
+    // row of the same table.  So pick a table other than 'incubator'.
+    on_insert(sensor)
+    {
+        rule_monitor_t m("rule-4", c_None,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        sensor.value += sensor.value;
+    }
+}
+
+// On insert of an incubator row, multiple its max_temp by 4.
+ruleset test_serial_1A : serial_group(A)
+{
+    on_insert(incubator)
+    {
+        rule_monitor_t m("rule-5", c_A,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        max_temp += max_temp;
+    }
+
+    on_insert(incubator)
+    {
+        rule_monitor_t m("rule-6", c_A,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        max_temp += max_temp;
+    }
+}
+
+// On insert of an incubator row, multiple its min_temp by 4.
+ruleset test_serial_2A : serial_group(A)
+{
+    on_insert(incubator)
+    {
+        rule_monitor_t m("rule-7", c_A,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        min_temp += min_temp;
+    }
+
+    on_insert(incubator)
+    {
+        rule_monitor_t m("rule-8", c_A,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        min_temp += min_temp;
+    }
+}
+
+// On insert of a sensor row, multiple its value by 4.
+ruleset test_serial_1B : serial_group(B)
+{
+    on_insert(sensor)
+    {
+        rule_monitor_t m("rule-9", c_B,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        sensor.value += sensor.value;
+    }
+
+    on_insert(sensor)
+    {
+        rule_monitor_t m("rule-10", c_B,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        sensor.value += sensor.value;
+    }
+}
+
+// On insert of a sensor row, multiply its timestamp by 4.
+ruleset test_serial_2B : serial_group(B)
+{
+    on_insert(sensor)
+    {
+        rule_monitor_t m("rule-11", c_B,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        sensor.timestamp += sensor.timestamp;
+    }
+
+    on_insert(sensor)
+    {
+        rule_monitor_t m("rule-12", c_B,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        sensor.timestamp += sensor.timestamp;
+    }
+}
+
+// Depending on which rulesets from above are subscribed, these counters
+// will also increment.
+ruleset test_parallel
+{
+    on_update(incubator.max_temp)
+    {
+        rule_monitor_t m("rule-13", c_None,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        g_update_max_temp_called++;
+    }
+
+    on_update(incubator.min_temp)
+    {
+        rule_monitor_t m("rule-14", c_None,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        g_update_min_temp_called++;
+    }
+
+    on_update(sensor.value)
+    {
+        rule_monitor_t m("rule-15", c_None,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+
+        g_update_value_called++;
+    }
+
+    on_update(sensor.timestamp)
+    {
+        rule_monitor_t m("rule-16", c_None,
+            rule_context.ruleset_name, rule_context.rule_name, rule_context.event_type, rule_context.gaia_type);
+        g_update_timestamp_called++;
+    }
+}

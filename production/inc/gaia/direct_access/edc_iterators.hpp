@@ -5,7 +5,12 @@
 
 #pragma once
 
+#include <utility>
+
 #include "gaia/direct_access/edc_base.hpp"
+
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
 
 namespace gaia
 {
@@ -170,10 +175,14 @@ public:
 
     void insert(gaia::common::gaia_id_t child_id);
     void insert(const T_child& child_edc);
+    bool connect(gaia::common::gaia_id_t child_id);
+    bool connect(const T_child& child_edc);
 
     edc_set_iterator_t<T_child> erase(edc_set_iterator_t<T_child> position);
     void remove(gaia::common::gaia_id_t child_id);
     void remove(const T_child& child_edc);
+    bool disconnect(gaia::common::gaia_id_t child_id);
+    bool disconnect(const T_child& child_edc);
     void clear();
 
     reference_chain_container_t<T_child> where(std::function<bool(const T_child&)>) const;
@@ -185,12 +194,15 @@ private:
     common::reference_offset_t m_next_offset;
 };
 
+// Pick up our template implementation. These still need to be in the header so
+// that template specializations that are declared later will pick up the
+// definitions.
+#include "edc_iterators.inc"
+
 /*@}*/
 } // namespace direct_access
 /*@}*/
 } // namespace gaia
 
-// Pick up our template implementation. These still need to be in the header so
-// that template specializations that are declared later will pick up the
-// definitions.
-#include "edc_iterators.inc"
+// Restore default hidden visibility for all symbols.
+#pragma GCC visibility pop

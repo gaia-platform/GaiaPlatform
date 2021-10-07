@@ -33,9 +33,10 @@ add_library(gaia_rules STATIC
   src/scheduler_stats.cpp
   src/rule_stats_manager.cpp
   src/event_manager_settings.cpp
+  src/serial_group_manager.cpp
 )
 
-target_link_libraries(gaia_rules PUBLIC gaia_build_options)
+configure_gaia_target(gaia_rules)
 
 target_include_directories(gaia_rules PUBLIC ${GAIA_EVENT_MANAGER_PUBLIC_INCLUDES})
 target_include_directories(gaia_rules PRIVATE ${GAIA_EVENT_MANAGER_PRIVATE_INCLUDES})

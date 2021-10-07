@@ -1,8 +1,5 @@
 // RUN: %clang_cc1 -fsyntax-only -verify -fgaia-extensions %s
 
-// Uncomment the #define to re-test failing tests.
-// #define TEST_FAILURES
-
 ruleset test9
 {
     {
@@ -45,7 +42,8 @@ ruleset test16
 ruleset test17
 {
     {
-        x.value++; // expected-error {{Table 'x' was not found in the catalog.}} expected-error {{use of undeclared identifier 'x'}}
+      x.value++; // expected-error {{Table 'x' was not found in the catalog}} \
+                 // expected-error {{use of undeclared identifier 'x'}}
     }
 }
 
@@ -56,12 +54,10 @@ ruleset test22
     }
 }
 
-// GAIAPLAT-803
-#ifdef TEST_FAILURES
+// GAIAPLAT-803 (fixed)
 ruleset test134
 {
     {
         @animal.age = 4;
     }
 }
-#endif

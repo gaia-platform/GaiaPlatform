@@ -17,9 +17,10 @@
 #include <thread>
 #include <unordered_set>
 
-#include "gaia_spdlog/fmt/fmt.h"
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
+
+#include "gaia/exceptions.hpp"
 
 #include "gaia_internal/common/memory_allocation_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
@@ -31,12 +32,15 @@
 #include "gaia_internal/db/gaia_db_internal.hpp"
 #include "gaia_internal/db/index_builder.hpp"
 
+#include "gaia_spdlog/fmt/fmt.h"
+
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
 #include "memory_types.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 #include "record_list_manager.hpp"
+#include "system_checks.hpp"
 #include "txn_metadata.hpp"
 #include "type_generator.hpp"
 #include "type_id_mapping.hpp"
@@ -76,7 +80,7 @@ static constexpr char c_message_validating_txn_should_have_been_validated[]
     = "The txn being tested can only have its log fd invalidated if the validating txn was validated!";
 static constexpr char c_message_preceding_txn_should_have_been_validated[]
     = "A transaction with commit timestamp preceding this transaction's begin timestamp is undecided!";
-static constexpr char c_message_uninitialized_txn_log[] = "Uninitialized transaction log!";
+static constexpr char c_message_unexpected_query_type[] = "Unexpected query type!";
 
 server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd)
     : m_auto_close_fd(auto_close_fd)
@@ -312,7 +316,7 @@ void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<
 }
 
 void server_t::handle_rollback_txn(
-    int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::ROLLBACK_TXN, c_message_unexpected_event_received);
 
@@ -332,7 +336,7 @@ void server_t::handle_rollback_txn(
 }
 
 void server_t::handle_commit_txn(
-    int* fds, size_t fd_count, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::COMMIT_TXN, c_message_unexpected_event_received);
 
@@ -344,9 +348,20 @@ void server_t::handle_commit_txn(
     ASSERT_PRECONDITION(s_log.is_set(), c_message_uninitialized_log_fd);
 
     // Actually commit the transaction.
-    bool success = txn_commit();
+    session_event_t decision = session_event_t::NOP;
+    try
+    {
+        bool success = txn_commit();
+        decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
+    }
+    catch (const index::unique_constraint_violation& e)
+    {
+        // Rollback our transaction in case of constraint violations.
+        // This is because such failures happen in the early pre-commit phase.
+        txn_rollback();
 
-    session_event_t decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
+        decision = session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE;
+    }
 
     // Server-initiated state transition! (Any issues with reentrant handlers?)
     apply_transition(decision, nullptr, nullptr, 0);
@@ -356,7 +371,9 @@ void server_t::handle_decide_txn(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(
-        event == session_event_t::DECIDE_TXN_COMMIT || event == session_event_t::DECIDE_TXN_ABORT,
+        event == session_event_t::DECIDE_TXN_COMMIT
+            || event == session_event_t::DECIDE_TXN_ABORT
+            || event == session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE,
         c_message_unexpected_event_received);
 
     ASSERT_PRECONDITION(
@@ -504,8 +521,45 @@ void server_t::handle_request_stream(
         auto request_data = request->data_as_index_scan();
         auto index_id = static_cast<gaia_id_t>(request_data->index_id());
         auto txn_id = static_cast<gaia_txn_id_t>(request_data->txn_id());
+        auto query_type = request_data->query_type();
+        auto index = id_to_index(index_id);
 
-        start_stream_producer(server_socket, id_to_index(index_id)->generator(txn_id));
+        ASSERT_INVARIANT(index != nullptr, "Cannot find index!");
+
+        switch (query_type)
+        {
+        case index_query_t::NONE:
+            start_stream_producer(server_socket, index->generator(txn_id));
+            break;
+        case index_query_t::index_point_read_query_t:
+        case index_query_t::index_equal_range_query_t:
+        {
+            index::index_key_t key;
+            {
+                // Create local snapshot to query catalog for key serialization schema.
+                bool apply_logs = true;
+                create_local_snapshot(apply_logs);
+                auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
+
+                if (query_type == index_query_t::index_point_read_query_t)
+                {
+                    auto query = request_data->query_as_index_point_read_query_t();
+                    auto key_buffer = data_read_buffer_t(*(query->key()));
+                    key = index::index_builder_t::deserialize_key(index_id, key_buffer);
+                }
+                else
+                {
+                    auto query = request_data->query_as_index_equal_range_query_t();
+                    auto key_buffer = data_read_buffer_t(*(query->key()));
+                    key = index::index_builder_t::deserialize_key(index_id, key_buffer);
+                }
+            }
+            start_stream_producer(server_socket, index->equal_range_generator(txn_id, key));
+            break;
+        }
+        default:
+            ASSERT_UNREACHABLE(c_message_unexpected_query_type);
+        }
 
         break;
     }
@@ -717,6 +771,15 @@ void server_t::init_indexes()
     gaia_locator_t locator = c_invalid_gaia_locator;
     gaia_locator_t last_locator = s_shared_counters.data()->last_locator;
 
+    // Create initial index data structures.
+    for (const auto& table : catalog_core_t::list_tables())
+    {
+        for (const auto& index : catalog_core_t::list_indexes(table.id()))
+        {
+            index::index_builder_t::create_empty_index(index);
+        }
+    }
+
     while (++locator && locator <= last_locator)
     {
         auto obj = locator_to_ptr(locator);
@@ -735,9 +798,9 @@ void server_t::init_indexes()
             throw invalid_type(obj->type);
         }
 
-        for (auto idx : catalog_core_t::list_indexes(type_record_id))
+        for (const auto& index : catalog_core_t::list_indexes(type_record_id))
         {
-            index::index_builder_t::populate_index(idx.id(), obj->type, locator);
+            index::index_builder_t::populate_index(index.id(), obj->type, locator);
         }
     }
 }
@@ -757,11 +820,11 @@ void server_t::recover_db()
     // If persistence is disabled, then this is a no-op.
     if (s_server_conf.persistence_mode() != persistence_mode_t::e_disabled)
     {
-        // We could get here after a server reset with --disable-persistence-after-recovery,
+        // We could get here after a server reset with '--persistence disabled-after-recovery',
         // in which case we need to recover from the original persistent image.
         if (!s_persistent_store)
         {
-            s_persistent_store = make_unique<gaia::db::persistent_store_manager>(get_counters(), s_server_conf.data_dir());
+            s_persistent_store = std::make_unique<gaia::db::persistent_store_manager>(get_counters(), s_server_conf.data_dir());
             if (s_server_conf.persistence_mode() == persistence_mode_t::e_reinitialized_on_startup)
             {
                 s_persistent_store->destroy_persistent_store();
@@ -826,6 +889,9 @@ void server_t::create_local_snapshot(bool apply_logs)
 
     if (apply_logs)
     {
+        ASSERT_PRECONDITION(
+            s_txn_id != c_invalid_gaia_txn_id && txn_metadata_t::is_txn_active(s_txn_id),
+            "create_local_snapshot() must be called from within an active transaction!");
         std::vector<int> txn_log_fds;
         get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds);
         auto cleanup_log_fds = make_scope_guard([&]() {
@@ -888,7 +954,7 @@ void server_t::signal_handler(sigset_t sigset, int& signum)
 
     std::cerr << "Caught signal '" << ::strsignal(signum) << "'." << std::endl;
 
-    signal_eventfd(s_server_shutdown_eventfd);
+    signal_eventfd_multiple_threads(s_server_shutdown_eventfd);
 }
 
 void server_t::init_listening_socket(const std::string& socket_name)
@@ -913,7 +979,9 @@ void server_t::init_listening_socket(const std::string& socket_name)
 
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
-    ASSERT_INVARIANT(socket_name.size() <= sizeof(server_addr.sun_path) - 1, "Socket name '" + socket_name + "' is too long!");
+    ASSERT_INVARIANT(
+        socket_name.size() <= sizeof(server_addr.sun_path) - 1,
+        "Socket name '" + socket_name + "' is too long!");
 
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
@@ -926,6 +994,19 @@ void server_t::init_listening_socket(const std::string& socket_name)
     socklen_t server_addr_size = sizeof(server_addr.sun_family) + 1 + ::strlen(&server_addr.sun_path[1]);
     if (-1 == ::bind(listening_socket, reinterpret_cast<struct sockaddr*>(&server_addr), server_addr_size))
     {
+        // REVIEW: Identify other common errors that should have user-friendly error messages.
+        if (errno == EADDRINUSE)
+        {
+            std::cerr << "ERROR: bind() failed! - " << (::strerror(errno)) << std::endl;
+            std::cerr
+                << "The " << c_db_server_name
+                << " cannot start because another instance is already running."
+                << std::endl
+                << "Stop any instances of the server and try again."
+                << std::endl;
+            exit(1);
+        }
+
         throw_system_error("bind() failed!");
     }
     if (-1 == ::listen(listening_socket, 0))
@@ -948,6 +1029,7 @@ bool server_t::authenticate_client_socket(int socket)
 
     // Disable client authentication until we can figure out
     // how to fix the Postgres tests.
+    // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1253
     // Client must have same effective user ID as server.
     // return (cred.uid == ::geteuid());
 
@@ -1115,19 +1197,22 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
                 {
                     throw_system_error("accept() failed!");
                 }
-                if (authenticate_client_socket(session_socket))
-                {
-                    // First reap any session threads that have terminated (to
-                    // avoid memory and system resource leaks).
-                    reap_exited_threads(s_session_threads);
 
-                    // Create session thread.
-                    s_session_threads.emplace_back(session_handler, session_socket);
-                }
-                else
+                if (s_session_threads.size() >= c_session_limit
+                    || !authenticate_client_socket(session_socket))
                 {
+                    // The connecting client will get ECONNRESET on their first
+                    // read from this socket.
                     close_fd(session_socket);
+                    continue;
                 }
+
+                // First reap any session threads that have terminated (to
+                // avoid memory and system resource leaks).
+                reap_exited_threads(s_session_threads);
+
+                // Create session thread.
+                s_session_threads.emplace_back(session_handler, session_socket);
             }
             else if (ev.data.fd == s_server_shutdown_eventfd)
             {
@@ -1189,7 +1274,7 @@ void server_t::session_handler(int session_socket)
     s_session_shutdown_eventfd = make_eventfd();
     auto owned_threads_cleanup = make_scope_guard([]() {
         // Signal all session-owned threads to terminate.
-        signal_eventfd(s_session_shutdown_eventfd);
+        signal_eventfd_multiple_threads(s_session_shutdown_eventfd);
 
         // Wait for all session-owned threads to terminate.
         for (auto& thread : s_session_owned_threads)
@@ -1555,7 +1640,7 @@ void server_t::start_stream_producer(int stream_socket, std::shared_ptr<generato
 
 std::shared_ptr<generator_t<gaia_id_t>> server_t::get_id_generator_for_type(gaia_type_t type)
 {
-    return std::make_shared<type_generator_t>(type);
+    return std::make_shared<type_generator_t>(type, s_txn_id);
 }
 
 void server_t::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts)
@@ -2579,31 +2664,167 @@ bool server_t::txn_commit()
     return is_committed;
 }
 
-// this must be run on main thread
-// see https://thomastrapp.com/blog/signal-handler-for-multithreaded-c++/
-void server_t::run(server_config_t server_conf)
+static bool is_system_compatible()
 {
-    // There can only be one thread running at this point, so this doesn't need synchronization.
-    s_server_conf = server_conf;
+    std::cerr << std::endl;
 
     if (!is_little_endian())
     {
-        std::cerr << "Big-endian architectures are currently not supported, exiting." << std::endl;
-
-        // Abort instead of throwing an exception to ensure termination.
-        std::abort();
+        std::cerr << "The Gaia Database Server does not support big-endian CPU architectures." << std::endl;
+        return false;
     }
 
-    if (::sysconf(_SC_PAGESIZE) != c_page_size_bytes)
+    if (!has_expected_page_size())
     {
-        std::cerr << "Page size must be 4KB, exiting." << std::endl;
-
-        // Abort instead of throwing an exception to ensure termination.
-        std::abort();
+        std::cerr << "The Gaia Database Server requires page size to be 4KB." << std::endl;
+        return false;
     }
 
-    // We assume everywhere that pages are 4KB.
-    ASSERT_INVARIANT(::sysconf(_SC_PAGESIZE) == c_page_size_bytes, "Pages are expected to be 4KB!");
+    uint64_t policy_id = check_overcommit_policy();
+    const char* policy_desc = c_vm_overcommit_policies[policy_id].desc;
+    if (policy_id != c_always_overcommit_policy_id)
+    {
+        std::cerr
+            << "The current overcommit policy has a value of "
+            << policy_id << " (" << policy_desc << ")."
+            << std::endl;
+    }
+
+    if (policy_id == c_heuristic_overcommit_policy_id)
+    {
+        std::cerr
+            << "The Gaia Database Server will run normally under this overcommit policy,"
+            << std::endl
+            << "but may become unstable under rare conditions."
+            << std::endl;
+    }
+
+    if (policy_id == c_never_overcommit_policy_id)
+    {
+        std::cerr
+            << "The Gaia Database Server will not run under this overcommit policy."
+            << std::endl;
+    }
+
+    if (policy_id != c_always_overcommit_policy_id)
+    {
+        std::cerr
+            << std::endl
+            << "To ensure stable performance under all conditions, we recommend"
+            << std::endl
+            << "changing the overcommit policy to "
+            << c_always_overcommit_policy_id << " ("
+            << c_vm_overcommit_policies[c_always_overcommit_policy_id].desc << ")."
+            << std::endl;
+
+        std::cerr << R"(
+To temporarily enable this policy, open a shell with root privileges
+and type the following command:
+
+  echo 1 > /proc/sys/vm/overcommit_memory
+
+To permanently enable this policy, open /etc/sysctl.conf
+in an editor with root privileges and add the line
+
+  vm.overcommit_memory=1
+
+Save the file, and in a shell with root privileges type
+
+  sysctl -p
+        )" << std::endl;
+    }
+
+    if (policy_id == c_never_overcommit_policy_id)
+    {
+        return false;
+    }
+
+    if (!check_vma_limit())
+    {
+        std::cerr << R"(
+The Gaia Database Server requires a per-process virtual memory area limit of at least 65530.
+
+To temporarily set the minimum virtual memory area limit,
+open a shell with root privileges and type the following command:
+
+  echo 65530 > /proc/sys/vm/max_map_count
+
+To permanently set the minimum virtual memory area limit, open /etc/sysctl.conf
+in an editor with root privileges and add the line
+
+  vm.max_map_count=65530
+
+Save the file, and in a shell with root privileges type
+
+  sysctl -p
+        )" << std::endl;
+        return false;
+    }
+
+    if (!check_and_adjust_vm_limit())
+    {
+        std::cerr << R"(
+The Gaia Database Server requires that the maximum possible virtual memory address space is available.
+
+To temporarily enable the maximum virtual memory address space,
+open a shell with root privileges and type the following command:
+
+  ulimit -v unlimited
+
+To permanently enable the maximum virtual memory address space, open /etc/security/limits.conf
+in an editor with root privileges and add the following lines:
+
+  * soft as unlimited
+  * hard as unlimited
+
+Note: For enhanced security, replace the wildcard '*' in these file entries
+with the user name of the account that is running the Gaia Database Server.
+
+Save the file and start a new terminal session.
+        )" << std::endl;
+        return false;
+    }
+
+    if (!check_and_adjust_fd_limit())
+    {
+        std::cerr << R"(
+The Gaia Database Server requires a per-process open file descriptor limit of at least 66047.
+
+To temporarily set the minimum open file descriptor limit,
+open a shell with root privileges and type the following command:
+
+  ulimit -n 66047
+
+To permanently set the minimum open file descriptor limit, open /etc/security/limits.conf
+in an editor with root privileges and add the following lines:
+
+  soft nofile 66047
+  hard nofile 66047
+
+Note: For enhanced security, replace the wildcard '*' in these file entries
+with the user name of the account that is running the Gaia Database Server.
+
+Save the file and start a new terminal session.
+        )" << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+// This method must be run on the main thread
+// (https://thomastrapp.com/blog/signal-handler-for-multithreaded-c++/).
+void server_t::run(server_config_t server_conf)
+{
+    // First validate our system assumptions.
+    if (!is_system_compatible())
+    {
+        std::cerr << "The Gaia Database Server is exiting due to an unsupported system configuration." << std::endl;
+        std::exit(1);
+    }
+
+    // There can only be one thread running at this point, so this doesn't need synchronization.
+    s_server_conf = server_conf;
 
     while (true)
     {

@@ -2,6 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #include "gaia/direct_access/auto_transaction.hpp"
 
 namespace gaia
@@ -12,6 +13,11 @@ namespace direct_access
 auto_transaction_t::auto_transaction_t(bool auto_begin)
 {
     m_auto_begin = auto_begin;
+    gaia::db::begin_transaction();
+}
+
+void auto_transaction_t::begin()
+{
     gaia::db::begin_transaction();
 }
 

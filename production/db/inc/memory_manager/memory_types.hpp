@@ -7,7 +7,6 @@
 
 #include <cstdint>
 
-#include "gaia_internal/common/enum_helpers.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 
 namespace gaia
@@ -29,12 +28,12 @@ constexpr size_t c_allocation_alignment = 8 * sizeof(uint64_t);
 constexpr size_t c_slot_size_bytes = c_allocation_alignment;
 
 // Our maximum allocation size is currently 64KB, or 1K slots.
-constexpr size_t c_max_allocation_slots_size = 1024;
+constexpr size_t c_max_allocation_size_slots = 1024;
 
 // Memory manager allocates memory in chunks, from which clients allocate memory for individual objects.
 constexpr size_t c_chunk_size_bytes = 4 * 1024 * 1024;
 
-// We assume everywhere that OS pages are 4KB.
+// We assume everywhere that OS pages are 4KB (this is verified at server startup).
 constexpr size_t c_page_size_bytes = 4096;
 
 // For representing slot offsets within a chunk.

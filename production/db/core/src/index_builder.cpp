@@ -8,6 +8,8 @@
 #include <iostream>
 #include <utility>
 
+#include "gaia/exceptions.hpp"
+
 #include "gaia_internal/db/catalog_core.hpp"
 
 #include "data_holder.hpp"
@@ -36,21 +38,21 @@ template <class T_index>
 void truncate_index(index_writer_guard_t<T_index>& w, gaia_txn_id_t commit_ts)
 {
     auto index = w.get_index();
-    auto end = index.end();
-    auto iter = index.begin();
+    auto it_next = index.begin();
+    auto it_end = index.end();
 
-    while (iter != end)
+    while (it_next != it_end)
     {
-        auto curr_iter = iter++;
-        auto ts = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(curr_iter->second.txn_id);
+        auto it_current = it_next++;
+        auto ts = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(it_current->second.txn_id);
 
         // Ignore invalid txn_ids, txn could be in-flight at the point of testing.
         if (ts <= commit_ts && ts != c_invalid_gaia_txn_id)
         {
             // Only erase entry if each key contains at least one additional entry with the same key.
-            if (iter != end && curr_iter->first == iter->first)
+            if (it_next != it_end && it_current->first == it_next->first)
             {
-                iter = index.erase(curr_iter);
+                it_next = index.erase(it_current);
             }
         }
     }
@@ -62,9 +64,11 @@ index_key_t index_builder_t::make_key(gaia_id_t index_id, gaia_type_t type_id, c
 
     index_key_t index_key;
     gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(type_id);
+
     ASSERT_INVARIANT(
         type_record_id != c_invalid_gaia_id,
         "The type '" + std::to_string(type_id) + "' does not exist in the catalog.");
+
     auto table = catalog_core_t::get_table(type_record_id);
     auto schema = table.binary_schema();
     auto index_view = index_view_t(id_to_ptr(index_id));
@@ -92,7 +96,11 @@ index_key_t index_builder_t::deserialize_key(common::gaia_id_t index_id, data_re
     ASSERT_PRECONDITION(index_id != c_invalid_gaia_id, "Invalid gaia id.");
 
     index_key_t index_key;
-    auto index_view = index_view_t(id_to_ptr(index_id));
+    auto index_ptr = id_to_ptr(index_id);
+
+    ASSERT_INVARIANT(index_ptr != nullptr, "Cannot find catalog entry for index.");
+
+    auto index_view = index_view_t(index_ptr);
 
     const auto& fields = *(index_view.fields());
     for (auto field_id : fields)
@@ -121,7 +129,7 @@ bool index_builder_t::index_exists(common::gaia_id_t index_id)
     return get_indexes()->find(index_id) != get_indexes()->end();
 }
 
-indexes_t::iterator index_builder_t::create_empty_index(gaia_id_t index_id, index_view_t index_view)
+indexes_t::iterator index_builder_t::create_empty_index(const index_view_t& index_view)
 {
     bool is_unique = index_view.unique();
 
@@ -129,99 +137,181 @@ indexes_t::iterator index_builder_t::create_empty_index(gaia_id_t index_id, inde
     {
     case catalog::index_type_t::range:
         return get_indexes()->emplace(
-                                index_id,
+                                index_view.id(),
                                 std::make_shared<range_index_t, gaia_id_t, bool>(
-                                    std::forward<gaia_id_t>(index_id), std::forward<bool>(is_unique)))
+                                    std::forward<gaia_id_t>(index_view.id()), std::forward<bool>(is_unique)))
             .first;
         break;
 
     case catalog::index_type_t::hash:
         return get_indexes()->emplace(
-                                index_id,
+                                index_view.id(),
                                 std::make_shared<hash_index_t, gaia_id_t, bool>(
-                                    std::forward<gaia_id_t>(index_id), std::forward<bool>(is_unique)))
+                                    std::forward<gaia_id_t>(index_view.id()), std::forward<bool>(is_unique)))
             .first;
         break;
     }
 }
 
-void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_record_t record)
+template <typename T_index_type>
+void update_index_entry(
+    base_index_t* base_index, bool is_unique, index_key_t&& key, index_record_t record)
 {
-    ASSERT_PRECONDITION(get_indexes(), "Indexes not initialized");
+    auto index = static_cast<T_index_type*>(base_index);
+
+    // If the index has UNIQUE constraint, then we can't insert duplicate values.
+    // Because we never actually remove index entries, we need special checks
+    // for the situations when we delete keys or re-insert a previously deleted key.
+    if (is_unique && !record.deleted)
+    {
+        // BULK lock to avoid race condition where two different txns can insert the same value.
+        auto index_guard = index->get_writer();
+
+        auto search_result = index_guard.equal_range(key);
+        auto& it_start = search_result.first;
+        auto& it_end = search_result.second;
+
+        bool has_found_duplicate_key = false;
+
+        while (it_start != it_end)
+        {
+            if (transactions::txn_metadata_t::is_txn_metadata_map_initialized())
+            {
+                gaia_txn_id_t begin_ts = it_start->second.txn_id;
+
+                ASSERT_PRECONDITION(
+                    transactions::txn_metadata_t::is_begin_ts(begin_ts),
+                    "Transaction id in index key entry is not a begin timestamp!");
+
+                // We can remove index entries made by rolled back transactions, because we are already holding a lock.
+                if (transactions::txn_metadata_t::is_txn_terminated(begin_ts))
+                {
+                    it_start = index_guard.get_index().erase(it_start);
+                    continue;
+                }
+                else
+                {
+                    // We can remove index entries made by aborted transactions, because we are already holding the lock.
+                    gaia_txn_id_t commit_ts
+                        = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(begin_ts);
+                    if (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_aborted(commit_ts))
+                    {
+                        it_start = index_guard.get_index().erase(it_start);
+                        continue;
+                    }
+                }
+            }
+
+            // Updates consist of a delete followed by an insertion.
+            // Exit if we encounter our own delete record.
+            if (it_start->second.deleted && it_start->second.txn_id == record.txn_id)
+            {
+                has_found_duplicate_key = false;
+                break;
+            }
+
+            // The list we iterate over reflects the order of operations.
+            // The key exists if the last seen operation is an insertion.
+            has_found_duplicate_key = (it_start->second.deleted) ? false : true;
+            ++it_start;
+        }
+
+        if (has_found_duplicate_key)
+        {
+            auto index_view = index_view_t(id_to_ptr(index->id()));
+            auto table_view = table_view_t(id_to_ptr(index_view.table_id()));
+            throw unique_constraint_violation(index_view.name(), table_view.name());
+        }
+
+        index->insert_index_entry(std::move(key), record);
+    }
+    else
+    {
+        index->insert_index_entry(std::move(key), record);
+    }
+}
+
+void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_record_t record, bool allow_create_empty)
+{
+    ASSERT_PRECONDITION(get_indexes(), "Indexes are not initialized.");
 
     auto it = get_indexes()->find(index_id);
 
-    // Not found, need to do a catalog lookup to bootstrap the index
-    if (it == get_indexes()->end())
+    if (allow_create_empty && it == get_indexes()->end())
     {
-        auto index_view = index_view_t(id_to_ptr(index_id));
-        it = create_empty_index(index_id, index_view);
+        auto index_ptr = id_to_ptr(index_id);
+        ASSERT_INVARIANT(index_ptr != nullptr, "Cannot find index in catalog.");
+        auto index_view = index_view_t(index_ptr);
+        it = index::index_builder_t::create_empty_index(index_view);
     }
+    else
+    {
+        ASSERT_INVARIANT(it != get_indexes()->end(), "Index structure could not be found.");
+    }
+
+    bool is_unique_index = it->second->is_unique();
 
     switch (it->second->type())
     {
     case catalog::index_type_t::range:
-    {
-        auto index = static_cast<range_index_t*>(it->second.get());
-        index->insert_index_entry(std::move(key), record);
-    }
-    break;
+        update_index_entry<range_index_t>(it->second.get(), is_unique_index, std::move(key), record);
+        break;
     case catalog::index_type_t::hash:
-    {
-        auto index = static_cast<hash_index_t*>(it->second.get());
-        index->insert_index_entry(std::move(key), record);
-    }
-    break;
+        update_index_entry<hash_index_t>(it->second.get(), is_unique_index, std::move(key), record);
+        break;
     }
 }
 
 void index_builder_t::update_index(
-    gaia::common::gaia_id_t index_id, gaia_type_t type_id, const txn_log_t::log_record_t& log_record)
+    gaia::common::gaia_id_t index_id, gaia_type_t type_id, const txn_log_t::log_record_t& log_record, bool allow_create_empty)
 {
+    // Most operations expect an object located at new_offset,
+    // so we'll try to get a reference to its payload.
     auto obj = offset_to_ptr(log_record.new_offset);
-    uint8_t* payload = (obj) ? reinterpret_cast<uint8_t*>(obj->payload) : nullptr;
+    auto payload = (obj) ? reinterpret_cast<const uint8_t*>(obj->data()) : nullptr;
 
     switch (log_record.operation)
     {
     case gaia_operation_t::create:
-    {
         index_builder_t::update_index(
             index_id,
             index_builder_t::make_key(index_id, type_id, payload),
-            index_builder_t::make_insert_record(log_record.locator, log_record.new_offset));
+            index_builder_t::make_insert_record(log_record.locator, log_record.new_offset),
+            allow_create_empty);
         break;
-    }
     case gaia_operation_t::update:
     {
         auto old_obj = offset_to_ptr(log_record.old_offset);
-        auto old_payload = (old_obj) ? reinterpret_cast<uint8_t*>(old_obj->payload)
-                                     : nullptr;
+        auto old_payload = (old_obj) ? reinterpret_cast<const uint8_t*>(old_obj->data()) : nullptr;
         index_builder_t::update_index(
             index_id,
             index_builder_t::make_key(index_id, type_id, old_payload),
-            index_builder_t::make_delete_record(log_record.locator, log_record.old_offset));
+            index_builder_t::make_delete_record(log_record.locator, log_record.old_offset),
+            allow_create_empty);
         index_builder_t::update_index(
             index_id,
             index_builder_t::make_key(index_id, type_id, payload),
-            index_builder_t::make_insert_record(log_record.locator, log_record.new_offset));
+            index_builder_t::make_insert_record(log_record.locator, log_record.new_offset),
+            allow_create_empty);
     }
     break;
     case gaia_operation_t::remove:
     {
         auto old_obj = offset_to_ptr(log_record.old_offset);
-        auto old_payload = (old_obj) ? reinterpret_cast<uint8_t*>(old_obj->payload)
-                                     : nullptr;
+        auto old_payload = (old_obj) ? reinterpret_cast<const uint8_t*>(old_obj->data()) : nullptr;
         index_builder_t::update_index(
             index_id,
             index_builder_t::make_key(index_id, type_id, old_payload),
-            index_builder_t::make_delete_record(log_record.locator, log_record.old_offset));
+            index_builder_t::make_delete_record(log_record.locator, log_record.old_offset),
+            allow_create_empty);
     }
     break;
     case gaia_operation_t::clone:
         index_builder_t::update_index(
             index_id,
             index_builder_t::make_key(index_id, type_id, payload),
-            index_builder_t::make_insert_record(log_record.locator, log_record.new_offset));
+            index_builder_t::make_insert_record(log_record.locator, log_record.new_offset),
+            allow_create_empty);
         break;
     default:
         ASSERT_UNREACHABLE("Cannot handle log type");
@@ -231,7 +321,7 @@ void index_builder_t::update_index(
 
 void index_builder_t::populate_index(common::gaia_id_t index_id, common::gaia_type_t type_id, gaia_locator_t locator)
 {
-    auto payload = reinterpret_cast<uint8_t*>(locator_to_ptr(locator)->payload);
+    auto payload = reinterpret_cast<const uint8_t*>(locator_to_ptr(locator)->data());
     update_index(index_id, make_key(index_id, type_id, payload), make_insert_record(locator, locator_to_offset(locator)));
 }
 
@@ -264,44 +354,49 @@ void index_builder_t::truncate_index_to_ts(common::gaia_id_t index_id, gaia_txn_
     }
 }
 
-void index_builder_t::update_indexes_from_logs(const txn_log_t& records, bool skip_catalog_integrity_check)
+void index_builder_t::update_indexes_from_logs(const txn_log_t& records, bool skip_catalog_integrity_check, bool allow_create_empty)
 {
     for (size_t i = 0; i < records.record_count; ++i)
     {
         auto& log_record = records.log_records[i];
-        gaia_type_t obj_type = c_invalid_gaia_type;
+        db_object_t* obj = nullptr;
 
         if (log_record.operation == gaia_operation_t::remove)
         {
-            auto obj = offset_to_ptr(log_record.old_offset);
+            obj = offset_to_ptr(log_record.old_offset);
             ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
-            obj_type = obj->type;
         }
         else
         {
-            auto obj = offset_to_ptr(log_record.new_offset);
+            obj = offset_to_ptr(log_record.new_offset);
             ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
-            obj_type = obj->type;
         }
 
         // Flag the type_id_mapping cache to clear if any changes in the schema are detected.
-        if (obj_type == static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table))
+        if (obj->type == static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table))
         {
             type_id_mapping_t::instance().clear();
         }
 
-        gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(obj_type);
+        gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(obj->type);
+
+        // New index object.
+        if (obj->type == static_cast<gaia_type_t>(catalog_table_type_t::gaia_index))
+        {
+            auto index_view = index_view_t(obj);
+            index::index_builder_t::create_empty_index(index_view);
+        }
 
         // System tables are not indexed.
         // Skip if catalog verification disabled and type not found in the catalog.
-        if (is_system_object(obj_type) || (skip_catalog_integrity_check && type_record_id == c_invalid_gaia_id))
+        if (is_system_object(obj->type) || (skip_catalog_integrity_check && type_record_id == c_invalid_gaia_id))
         {
             continue;
         }
 
         for (const auto& index : catalog_core_t::list_indexes(type_record_id))
         {
-            index::index_builder_t::update_index(index.id(), obj_type, log_record);
+            index::index_builder_t::update_index(index.id(), obj->type, log_record, allow_create_empty);
         }
     }
 }

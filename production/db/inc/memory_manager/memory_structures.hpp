@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <atomic>
 
-#include "gaia_internal/common/enum_helpers.hpp"
 #include "gaia_internal/common/inline_shared_lock.hpp"
 
 #include "bitmap.hpp"
@@ -30,7 +29,7 @@ struct memory_manager_metadata_t
     // allocation units at memory manager level.
     // There are 4 chunk states defined, so we need 2 bits/chunk.
     // Therefore our bitmap contains 2*2^16 bits = 16KB, or 2048 64-bit words.
-    static constexpr size_t c_chunk_bitmap_words_size{
+    static constexpr size_t c_chunk_bitmap_size_words{
         (1ULL << (CHAR_BIT * sizeof(chunk_offset_t))) / c_uint64_bit_count};
 
     // This is a physical array of 64-bit words, storing a logical array of
@@ -50,7 +49,7 @@ struct memory_manager_metadata_t
     // will allocate an unused chunk unnecessarily. In that case, another
     // session will eventually allocate the empty chunk we overlooked, so this
     // should not be a problem in practice.
-    std::atomic<uint64_t> allocated_chunks_bitmap[c_chunk_bitmap_words_size];
+    std::atomic<uint64_t> allocated_chunks_bitmap[c_chunk_bitmap_size_words];
 
     // As we keep allocating memory, the available contiguous virtual memory
     // region will keep shrinking. We'll use this offset to track the
@@ -66,7 +65,7 @@ struct memory_manager_metadata_t
     // and any remainder smaller than 8B is covered by individual variables.
     uint32_t reserved1;
     uint32_t reserved2;
-    uint64_t reserved[c_chunk_size_bytes / sizeof(uint64_t) - c_chunk_bitmap_words_size - 2];
+    uint64_t reserved[c_chunk_size_bytes / sizeof(uint64_t) - c_chunk_bitmap_size_words - 2];
 
     inline memory_manager_metadata_t();
 
@@ -82,9 +81,9 @@ inline void memory_manager_metadata_t::clear()
     // Start allocating at the first valid chunk offset.
     next_available_unused_chunk_offset = c_first_chunk_offset;
     // Mark all chunks as initially unallocated.
-    std::fill(allocated_chunks_bitmap, allocated_chunks_bitmap + c_chunk_bitmap_words_size, 0);
+    std::fill(allocated_chunks_bitmap, allocated_chunks_bitmap + c_chunk_bitmap_size_words, 0);
     // Mark all metadata chunks as allocated.
-    safe_set_bit_range_value(allocated_chunks_bitmap, c_chunk_bitmap_words_size, 0, c_first_chunk_offset, true);
+    safe_set_bit_range_value(allocated_chunks_bitmap, c_chunk_bitmap_size_words, 0, c_first_chunk_offset, true);
 }
 
 // This assert should be edited if we need to use more memory for the metadata.
@@ -108,7 +107,7 @@ struct chunk_manager_metadata_t
     // occupy the space of 256 slots. Because the bitmaps do not need to track
     // those 256 slots, that frees 32B per bitmap (64B combined), so each bitmap
     // needs 2^10 - 4 64-bit words.
-    static constexpr size_t c_slot_bitmap_words_size = 1024 - 4;
+    static constexpr size_t c_slot_bitmap_size_words = 1024 - 4;
 
     // This lock is used to enforce mutual exclusion between a compaction task
     // and any GC tasks. We allow any number of GC tasks to be concurrently
@@ -264,7 +263,7 @@ struct chunk_manager_metadata_t
     // set in strictly increasing order. Once a chunk is in RETIRED state, no
     // more bits can ever be set in this bitmap (until it is reused). No bits
     // can be set for slots > max_allocated_slot_offset.
-    std::atomic<uint64_t> allocated_slots_bitmap[c_slot_bitmap_words_size];
+    std::atomic<uint64_t> allocated_slots_bitmap[c_slot_bitmap_size_words];
 
     // We have 32 bytes of slack for the second bitmap, and we have used none.
     uint64_t deallocated_slots_bitmap_unused_slack[4];
@@ -273,7 +272,7 @@ struct chunk_manager_metadata_t
     // can only be set in this bitmap if it was first set in the allocation
     // bitmap. Once set, a bit is never cleared. Bits may be set in arbitrary
     // order, in either the IN_USE or RETIRED chunk states.
-    std::atomic<uint64_t> deallocated_slots_bitmap[c_slot_bitmap_words_size];
+    std::atomic<uint64_t> deallocated_slots_bitmap[c_slot_bitmap_size_words];
 
     inline slot_offset_t get_last_allocated_slot_from_bitmap();
 
@@ -334,8 +333,8 @@ inline bool chunk_manager_metadata_t::apply_chunk_transition_from_version(
     chunk_version_t shifted_expected_version = expected_version << c_chunk_version_shift;
     chunk_version_t shifted_desired_version = desired_version << c_chunk_version_shift;
 
-    chunk_version_t expected_token = shifted_expected_version | common::to_integral(expected_state);
-    chunk_version_t desired_token = shifted_desired_version | common::to_integral(desired_state);
+    chunk_version_t expected_token = shifted_expected_version | common::get_enum_value(expected_state);
+    chunk_version_t desired_token = shifted_desired_version | common::get_enum_value(desired_state);
 
     return chunk_state_and_version.compare_exchange_strong(expected_token, desired_token);
 }
@@ -364,7 +363,7 @@ static slot_offset_t bit_index_to_slot(size_t bit_index)
 
 inline slot_offset_t chunk_manager_metadata_t::get_last_allocated_slot_from_bitmap()
 {
-    size_t bit_index = find_last_set_bit(allocated_slots_bitmap, c_slot_bitmap_words_size);
+    size_t bit_index = find_last_set_bit(allocated_slots_bitmap, c_slot_bitmap_size_words);
     if (bit_index == c_max_bit_index)
     {
         return c_invalid_slot_offset;
@@ -389,7 +388,7 @@ inline void chunk_manager_metadata_t::synchronize_allocation_metadata()
 
         // Fix up the allocation bitmap.
         set_bit_value(
-            allocated_slots_bitmap, c_slot_bitmap_words_size,
+            allocated_slots_bitmap, c_slot_bitmap_size_words,
             max_allocated_slot_offset(), true);
     }
 }
@@ -398,8 +397,8 @@ inline void chunk_manager_metadata_t::clear()
 {
     shared_lock.clear();
     last_allocation_metadata.store({});
-    std::fill(allocated_slots_bitmap, allocated_slots_bitmap + c_slot_bitmap_words_size, 0);
-    std::fill(deallocated_slots_bitmap, deallocated_slots_bitmap + c_slot_bitmap_words_size, 0);
+    std::fill(allocated_slots_bitmap, allocated_slots_bitmap + c_slot_bitmap_size_words, 0);
+    std::fill(deallocated_slots_bitmap, deallocated_slots_bitmap + c_slot_bitmap_size_words, 0);
 }
 
 } // namespace memory_manager

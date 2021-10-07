@@ -1,6 +1,11 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 // RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
-// GAIAPLAT-1050
+// GAIAPLAT-1050 (fixed)
 ruleset test10
 {
     on_update(crop)

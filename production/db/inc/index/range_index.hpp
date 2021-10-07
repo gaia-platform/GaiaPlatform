@@ -34,14 +34,15 @@ public:
     }
     ~range_index_t() = default;
 
-    range_index_iterator_t begin();
-    range_index_iterator_t end();
+    range_index_iterator_t begin() override;
+    range_index_iterator_t end() override;
 
-    range_index_iterator_t find(const index_key_t& key);
+    range_index_iterator_t find(const index_key_t& key) override;
     range_index_iterator_t lower_bound(const index_key_t& key);
     range_index_iterator_t upper_bound(const index_key_t& key);
 
-    std::pair<range_index_iterator_t, range_index_iterator_t> equal_range(const index_key_t& key);
+    std::pair<range_index_iterator_t, range_index_iterator_t> equal_range(const index_key_t& key) override;
+    std::shared_ptr<common::iterators::generator_t<index_record_t>> equal_range_generator(gaia_txn_id_t txn_id, const index_key_t& key) override;
 };
 
 } // namespace index

@@ -137,6 +137,11 @@ namespace db
     return catalog::Getgaia_index(m_obj_ptr->data())->fields();
 }
 
+[[nodiscard]] gaia_id_t index_view_t::table_id() const
+{
+    return m_obj_ptr->references()[c_parent_table_ref_offset];
+}
+
 table_view_t catalog_core_t::get_table(gaia_id_t table_id)
 {
     return table_view_t{id_to_ptr(table_id)};
@@ -217,6 +222,19 @@ index_list_t catalog_core_t::list_indexes(gaia_id_t table_id)
         table_id,
         c_gaia_table_first_gaia_index_offset,
         c_gaia_index_next_gaia_index_offset);
+}
+
+gaia_id_t catalog_core_t::find_index(gaia_id_t table_id, field_position_t field_position)
+{
+    for (const auto& index : catalog_core_t::list_indexes(table_id))
+    {
+        const field_view_t first_field_of_index(id_to_ptr(index.fields()->Get(0)));
+        if (first_field_of_index.position() == field_position)
+        {
+            return index.id();
+        }
+    }
+    return c_invalid_gaia_id;
 }
 
 } // namespace db

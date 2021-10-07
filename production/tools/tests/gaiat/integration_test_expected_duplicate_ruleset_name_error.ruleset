@@ -1,3 +1,8 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 // RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
 ruleset test
@@ -14,6 +19,5 @@ ruleset test
     }
 }
 
-// GAIAPLAT-802
+// GAIAPLAT-802 (fixed)
 // CHECK: Ruleset 'test' is defined more than once. Ruleset names must be unique.
-

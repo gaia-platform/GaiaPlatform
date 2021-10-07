@@ -2,11 +2,12 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #pragma once
 
 #include <cstddef>
 
-#include "cpptoml.h"
+#include <cpptoml.h>
 
 namespace gaia
 {
@@ -32,6 +33,7 @@ struct event_manager_settings_t
     event_manager_settings_t()
         : num_background_threads(SIZE_MAX)
         , enable_catalog_checks(true)
+        , enable_db_checks(true)
         , enable_rule_stats(false)
         , stats_log_interval(10)
         , max_rule_retries(1)
@@ -46,6 +48,9 @@ struct event_manager_settings_t
     // Specifying true will allow rule subscriptions without comparing the table
     // and fields to existing catalog definitions.
     bool enable_catalog_checks;
+    // Specifies whether rule anchor rows are validated by the database
+    // before invoking a rule.
+    bool enable_db_checks;
     // Enable logging of rule specific statistcs.
     bool enable_rule_stats;
     // Specifies the interval in seconds that performance statistics

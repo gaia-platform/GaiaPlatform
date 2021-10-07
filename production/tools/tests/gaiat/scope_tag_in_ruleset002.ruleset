@@ -1,0 +1,16 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test1
+{
+    on_insert(i:incubator)
+    {
+        int i = 0;
+    }
+}
+
+// CHECK: Local variable 'i' hides a tag defined with the same name. Rename your local variable or tag so that their names do not conflict.

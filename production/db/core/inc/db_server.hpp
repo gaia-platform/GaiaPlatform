@@ -14,7 +14,7 @@
 #include <thread>
 #include <utility>
 
-#include "flatbuffers/flatbuffers.h"
+#include <flatbuffers/flatbuffers.h>
 
 #include "gaia/exception.hpp"
 
@@ -50,13 +50,13 @@ class server_config_t
 public:
     enum class persistence_mode_t : uint8_t
     {
-        e_default,
+        e_enabled,
         e_disabled,
         e_disabled_after_recovery,
         e_reinitialized_on_startup,
     };
 
-    static constexpr persistence_mode_t c_default_persistence_mode = persistence_mode_t::e_default;
+    static constexpr persistence_mode_t c_default_persistence_mode = persistence_mode_t::e_enabled;
 
 public:
     server_config_t(server_config_t::persistence_mode_t persistence_mode, std::string instance_name, std::string data_dir, bool testing)
@@ -88,8 +88,7 @@ class server_t
     friend class gaia_ptr_t;
     friend class type_generator_t;
 
-    friend gaia::db::locators_t*
-    gaia::db::get_locators();
+    friend gaia::db::locators_t* gaia::db::get_locators();
     friend gaia::db::locators_t* gaia::db::get_locators_for_allocator();
     friend gaia::db::counters_t* gaia::db::get_counters();
     friend gaia::db::data_t* gaia::db::get_data();
@@ -117,6 +116,14 @@ private:
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t c_stream_batch_size{1ULL << 10};
 
+    // This is necessary to avoid VM exhaustion in the worst case where all
+    // sessions are opened from a single process (we remap the 256GB data
+    // segment for each session, so the 128TB of VM available to each process
+    // would be exhausted by 512 sessions opened in a single process, but we
+    // also create other large per-session mappings, so we need a large margin
+    // of error, hence the choice of 128 for the session limit).
+    static constexpr size_t c_session_limit{1ULL << 7};
+
     static inline int s_server_shutdown_eventfd = -1;
     static inline int s_listening_socket = -1;
 
@@ -136,7 +143,7 @@ private:
     // Local snapshot. This is a private copy of locators for server-side transactions.
     thread_local static inline mapped_data_t<locators_t> s_local_snapshot_locators{};
 
-    // This is used by GC tasks on a session thread to cache chunk managers for object deallocation.
+    // This is used by GC tasks on a session thread to cache chunk IDs for empty chunk deallocation.
     thread_local static inline std::unordered_map<
         memory_manager::chunk_offset_t, memory_manager::chunk_version_t>
         s_gc_chunks_to_versions{};
@@ -230,6 +237,7 @@ private:
         {messages::session_state_t::TXN_IN_PROGRESS, messages::session_event_t::COMMIT_TXN, {messages::session_state_t::TXN_COMMITTING, handle_commit_txn}},
         {messages::session_state_t::TXN_COMMITTING, messages::session_event_t::DECIDE_TXN_COMMIT, {messages::session_state_t::CONNECTED, handle_decide_txn}},
         {messages::session_state_t::TXN_COMMITTING, messages::session_event_t::DECIDE_TXN_ABORT, {messages::session_state_t::CONNECTED, handle_decide_txn}},
+        {messages::session_state_t::TXN_COMMITTING, messages::session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE, {messages::session_state_t::CONNECTED, handle_decide_txn}},
         {messages::session_state_t::ANY, messages::session_event_t::SERVER_SHUTDOWN, {messages::session_state_t::DISCONNECTED, handle_server_shutdown}},
         {messages::session_state_t::ANY, messages::session_event_t::REQUEST_STREAM, {messages::session_state_t::ANY, handle_request_stream}},
     };

@@ -112,7 +112,7 @@ struct txn_log_t
     gaia_txn_id_t begin_ts;
     // The current chunk doesn't strictly need to be stored here; this is just a
     // convenient place for shared state between the client and server.
-    chunk_offset_t current_chunk;
+    memory_manager::chunk_offset_t current_chunk;
     size_t record_count;
 
     struct log_record_t

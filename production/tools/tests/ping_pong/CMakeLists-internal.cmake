@@ -9,6 +9,7 @@ configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
 # --- Generate EDC from DDL---
 process_schema(
   DDL_FILE ${PING_PONG_DDL}
+  DATABASE_NAME ping_pong
   OUTPUT_FOLDER ${PROJECT_BINARY_DIR}
   GAIAC_CMD ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac
 )
@@ -28,7 +29,7 @@ add_executable(ping_pong
 )
 
 add_dependencies(ping_pong translate_ping_pong_ruleset)
-target_link_libraries(ping_pong PUBLIC gaia_build_options)
+configure_gaia_target(ping_pong)
 target_include_directories(ping_pong PRIVATE
   ${GAIA_INC}
   ${FLATBUFFERS_INC}

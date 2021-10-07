@@ -8,7 +8,7 @@
 #include <set>
 #include <vector>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/direct_access/auto_transaction.hpp"
 
@@ -36,8 +36,7 @@ gaia_relationship_t find_relationship(
 
     auto it = std::find_if(
         out_relationships.begin(), out_relationships.end(),
-        [&](gaia_relationship_t& relationship)
-        {
+        [&](gaia_relationship_t& relationship) {
             return relationship.to_child_link_name() == field_name;
         });
 
@@ -50,8 +49,7 @@ gaia_relationship_t find_relationship(
 
     it = std::find_if(
         in_relationships.begin(), in_relationships.end(),
-        [&](gaia_relationship_t& relationship)
-        {
+        [&](gaia_relationship_t& relationship) {
             return relationship.to_parent_link_name() == field_name;
         });
 
@@ -95,7 +93,7 @@ TEST_F(ddl_executor_test, create_database)
 
 TEST_F(ddl_executor_test, create_table)
 {
-    string test_db_name{"create_database_test"};
+    string test_db_name{"test_db"};
     create_database(test_db_name);
 
     string test_table_name{"create_table_test"};
@@ -104,8 +102,7 @@ TEST_F(ddl_executor_test, create_table)
     gaia_id_t table_id = create_table(test_table_name, fields);
     check_table_name(table_id, test_table_name);
 
-    table_id = create_table(test_db_name, test_table_name, fields);
-    check_table_name(table_id, test_table_name);
+    ASSERT_THROW(create_table(test_db_name, test_table_name, fields), table_already_exists);
 }
 
 TEST_F(ddl_executor_test, create_existing_table)
@@ -128,9 +125,10 @@ TEST_F(ddl_executor_test, list_tables)
     }
 
     set<gaia_id_t> list_result;
+    gaia_id_t empty_db_id = find_db_id("");
     auto_transaction_t txn;
     {
-        for (const auto& table : gaia_database_t::get(find_db_id("")).gaia_tables())
+        for (const auto& table : gaia_database_t::get(empty_db_id).gaia_tables())
         {
             list_result.insert(table.gaia_id());
         }
@@ -584,8 +582,7 @@ TEST_F(ddl_executor_test, list_indexes)
         gaia_table_t::get(table_id).gaia_fields().begin(),
         gaia_table_t::get(table_id).gaia_fields().end(),
         back_inserter(unique_settings),
-        [](const auto& field) -> bool
-        { return field.unique(); });
+        [](const auto& field) -> bool { return field.unique(); });
 
     vector<bool> expected_unique_settings{true, false, false};
     ASSERT_EQ(unique_settings, expected_unique_settings);

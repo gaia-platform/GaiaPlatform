@@ -10,13 +10,25 @@ include(UseJava)
 enable_testing()
 
 # Set the project name.
-project(production VERSION 0.1.0)
+project(production VERSION 0.2.1)
+
+# Sets the pre-release version which will be appended to the
+# product version: 0.1.0-alpha.
+# When the product is GA this should be empty.
+set(PRE_RELEASE_IDENTIFIER "alpha")
 
 option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
 
 option(ENABLE_STACKTRACE "Enable stack traces" ON)
 
 option(BUILD_GAIA_RELEASE "Build Gaia Release packages and binaries" OFF)
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
+else()
+  option(ENABLE_CLANG_TIDY "Enable clang tidy" OFF)
+endif()
+
 include(GNUInstallDirs)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
@@ -45,11 +57,6 @@ cmake_policy(SET CMP0083 NEW)
 # Our shared libraries and executables must all be ASLR-compatible.
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
-# We want everything in the build to use libc++,
-# including third-party packages.
-add_compile_options(-stdlib=libc++)
-add_link_options(-stdlib=libc++)
-
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
 
@@ -75,12 +82,13 @@ if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
   set(LLVM_ENABLE_EH ON CACHE BOOL "")
   set(LLVM_ENABLE_PROJECTS "clang" CACHE STRING "")
   set(LLVM_ENABLE_RTTI ON CACHE BOOL "")
-  # LLD/libc++ are necessary for MSan.
+  # LLD should make building LLVM significantly faster.
   set(LLVM_ENABLE_LLD ON CACHE BOOL "")
-  set(LLVM_ENABLE_LIBCXX ON CACHE BOOL "")
+
   if(ENABLE_STACKTRACE)
     set(LLVM_GENERATE_STACKTRACE_DEBUG_INFO ON CACHE BOOL "")
   endif()
+
   if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     # This speeds up linking by separating debug info.
     set(LLVM_USE_SPLIT_DWARF ON CACHE BOOL "")
@@ -99,8 +107,13 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
   target_compile_options(gaia_build_options INTERFACE -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf)
   target_link_options(gaia_build_options INTERFACE -Wl,--gdb-index)
 
-  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(gaia_build_options INTERFACE -O0)
+
+    # For eventual MemorySanitizer support, we need all targets in debug builds
+    # to use libc++, including third-party packages.
+    add_compile_options(-stdlib=libc++)
+    add_link_options(-stdlib=libc++)
 
     # Enable ASan by default in debug builds.
     set(SANITIZER "ASAN" CACHE STRING "Enable sanitizers in debug builds")
@@ -110,7 +123,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
     set_property(CACHE SANITIZER PROPERTY STRINGS "ASAN")
   endif()
 
-  if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+  if(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     # Set the highest optimization level compatible with reasonable debuggability.
     target_compile_options(gaia_build_options INTERFACE -Og)
   endif()
@@ -178,6 +191,7 @@ set(GAIA_SPDLOG_INC "${GAIA_SPDLOG}/include")
 
 set(ROCKSDB "${GAIA_REPO}/third_party/production/rocksdb")
 set(ROCKSDB_INC "${ROCKSDB}/include")
+set(ROCKSDB_UTIL "${ROCKSDB}/util")
 
 set(GREMLIN_CONSOLE_PATH "/usr/local/share/gremlin-console")
 set(GREMLIN_SERVER_PATH "/usr/local/share/gremlin-server")
@@ -198,7 +212,7 @@ find_package(Threads REQUIRED)
 message(CHECK_START "Looking for libexplain and libcap")
 find_library(LIB_EXPLAIN NAMES libexplain.a)
 find_library(LIB_CAP NAMES libcap.a cap)
-if (LIB_EXPLAIN AND LIB_CAP)
+if(LIB_EXPLAIN AND LIB_CAP)
   message(CHECK_PASS "found")
 else()
   message(CHECK_FAIL "not found")
@@ -263,10 +277,10 @@ if(ENABLE_STACKTRACE)
   add_subdirectory("${GAIA_REPO}/third_party/production/backward" backward)
   add_library(gaia_stack_trace INTERFACE)
   target_sources(gaia_stack_trace INTERFACE "${GAIA_INC}/gaia_internal/common/backward.cpp")
-  target_compile_options(gaia_stack_trace INTERFACE -funwind-tables -fno-omit-frame-pointer)
+  add_compile_options(-funwind-tables -fno-omit-frame-pointer)
   # Only append this option for Release builds, or it will disable all other debug info generation.
   if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    target_compile_options(gaia_stack_trace INTERFACE -gline-tables-only)
+    add_compile_options(-gline-tables-only)
   endif()
   target_link_libraries(gaia_stack_trace INTERFACE backward)
 endif()
@@ -283,7 +297,9 @@ add_subdirectory(${GOOGLE_TEST} googletest EXCLUDE_FROM_ALL)
 
 # Setting clang-tidy here to avoid it being applied to flatbuffers, rocksdb etc...
 # TODO Maybe we could force each subproject to set this flag?
-set(CMAKE_CXX_CLANG_TIDY clang-tidy)
+if(ENABLE_CLANG_TIDY)
+    set(CMAKE_CXX_CLANG_TIDY clang-tidy)
+endif()
 
 # Add individual component folders.
 # These are listed roughly in a bottom-up order
@@ -310,7 +326,9 @@ add_subdirectory(tools)
 if(BUILD_GAIA_RELEASE)
   unset(CMAKE_CXX_CLANG_TIDY)
   add_subdirectory("${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm" llvm EXCLUDE_FROM_ALL)
-  set(CMAKE_CXX_CLANG_TIDY clang-tidy)
+  if(ENABLE_CLANG_TIDY)
+    set(CMAKE_CXX_CLANG_TIDY clang-tidy)
+  endif()
 endif()
 
 # Query processors.
@@ -411,9 +429,12 @@ if(JAVA_FOUND AND JNI_FOUND)
   #     com.gaiaplatform.tests.database.cachegraph.TestCacheGraph graphml)
 endif()
 
+# Handle Gaia versioning.
+include(cmake/gaia_version.cmake)
+
 # Customize test commands.
 file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
-  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_db_server_exec> --disable-persistence\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_db_server\")\n"
+  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_db_server_exec> --persistence disabled\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_db_server\")\n"
 )
 
 # Copy log configuration file to make it visible during

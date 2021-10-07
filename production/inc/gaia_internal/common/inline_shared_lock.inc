@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
-
 inline bool inline_shared_lock::is_free(uint64_t lock_word)
 {
     return (lock_word == 0);

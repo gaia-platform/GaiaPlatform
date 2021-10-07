@@ -2,6 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #pragma once
 
 #include <memory>
@@ -66,9 +67,9 @@ public:
             "Failed to handle parsing errors in the DDL file '" + filename + "'.");
     };
 
-    void parse_line(const std::string& line)
+    void parse_string(const std::string& str)
     {
-        scan_string_begin(line);
+        scan_string_begin(str);
         const auto finish_scan_string = common::scope_guard::make_scope_guard([this]() { scan_string_end(); });
 
         yy::parser parse(*this);
@@ -79,7 +80,7 @@ public:
         // Any violation below means there are unhandled parsing errors.
         ASSERT_POSTCONDITION(
             parsing_result == EXIT_SUCCESS,
-            "Failed to handle parsing errors in the line: '" + line + "'.");
+            "Failed to handle parsing errors in the line: '" + str + "'.");
     }
 
     yy::location location;

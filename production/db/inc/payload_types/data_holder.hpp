@@ -12,7 +12,7 @@
 #include <string_view>
 #include <type_traits>
 
-#include "flatbuffers/reflection.h"
+#include <flatbuffers/reflection.h>
 
 #include "gaia/exception.hpp"
 

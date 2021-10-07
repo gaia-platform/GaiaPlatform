@@ -7,13 +7,33 @@
 # repo root directory.  We use this to build absolute
 # include paths to code stored in the third-party
 # directory.  Note that this code assumes that the
-# function is invoked from a directoy directly below
+# function is invoked from a directory directly below
 # the repo root (i.e. production or demos).
 function(get_repo_root project_source_dir repo_dir)
   string(FIND ${project_source_dir} "/" repo_root_path REVERSE)
   string(SUBSTRING ${project_source_dir} 0 ${repo_root_path} project_repo)
   set(${repo_dir} "${project_repo}" PARENT_SCOPE)
 endfunction()
+
+#
+# This function only exists because CMake symbol visibility properties
+# (CXX_VISIBILITY_PRESET/VISIBILITY_INLINES_HIDDEN) don't seem to propagate to
+# dependent targets when they're set on an INTERFACE target (i.e.,
+# gaia_build_options), so we need to set them directly on the target.
+#
+function(configure_gaia_target TARGET)
+  target_link_libraries(${TARGET} PUBLIC gaia_build_options)
+  # See https://cmake.org/cmake/help/latest/policy/CMP0063.html.
+  cmake_policy(SET CMP0063 NEW)
+  # This property sets the compiler option -fvisibility=hidden, so all symbols
+  # are "hidden" (i.e., not exported) from our shared library (libgaia.so).
+  # See https://gcc.gnu.org/wiki/Visibility.
+  set_target_properties(${TARGET} PROPERTIES CXX_VISIBILITY_PRESET hidden)
+  # This property sets the compiler option -fvisibility-inlines-hidden.
+  # "This causes all inlined class member functions to have hidden visibility"
+  # (https://gcc.gnu.org/wiki/Visibility).
+  set_target_properties(${TARGET} PROPERTIES VISIBILITY_INLINES_HIDDEN ON)
+endfunction(configure_gaia_target)
 
 #
 # Helper function for setting up our tests.
@@ -67,8 +87,9 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
     set(ENV "")
   endif()
 
-  target_link_libraries(${TARGET} PUBLIC gaia_build_options)
+  configure_gaia_target(${TARGET})
   set_target_properties(${TARGET} PROPERTIES CXX_CLANG_TIDY "")
+  add_dependencies(${TARGET} gaia_db_server_exec)
   gtest_discover_tests(${TARGET} PROPERTIES ENVIRONMENT "${ENV}")
 endfunction(add_gtest)
 
@@ -145,8 +166,7 @@ endfunction()
 # - LIB_NAME: [optional] the name of the generated target.
 #     If not specified the default value is edc_${DDL_NAME}.
 # - DATABASE_NAME: [optional] name of the database the headers are generated from.
-#     If not specified the database name will be inferred as ${DDL_NAME}.
-#     This is a temporary workaround, until we improve gaiac.
+#     If not specified, the default database will be used.
 function(process_schema_internal)
   set(options "")
   set(oneValueArgs DDL_FILE OUTPUT_DIR LIB_NAME DATABASE_NAME INSTANCE_NAME)
@@ -157,66 +177,162 @@ function(process_schema_internal)
     message(FATAL_ERROR "You must specify either the DDL_FILE or the DATABASE_NAME!")
   endif()
 
-  # If the database name is not specified we infer it from the DDL file name.
-  if(NOT DEFINED ARG_DATABASE_NAME)
-    get_filename_component(DDL_NAME ${ARG_DDL_FILE} NAME)
-    string(REPLACE ".ddl" "" DDL_NAME ${DDL_NAME})
-    set(ARG_DATABASE_NAME ${DDL_NAME})
-    message(VERBOSE "DATABASE_NAME not specified, using: ${ARG_DATABASE_NAME}.")
-  endif()
-
   if(NOT DEFINED ARG_OUTPUT_DIR)
     set(ARG_OUTPUT_DIR ${GAIA_GENERATED_CODE}/${ARG_DATABASE_NAME})
     message(VERBOSE "OUTPUT_DIR not specified, defaulted to: ${ARG_OUTPUT_DIR}.")
   endif()
 
-  set(EDC_HEADER_FILE ${ARG_OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.h)
-  set(EDC_CPP_FILE ${ARG_OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.cpp)
-
   message(VERBOSE "Adding target to generate EDC code for database ${ARG_DATABASE_NAME}...")
 
   string(RANDOM GAIAC_INSTANCE_NAME)
 
+  set(GAIAC_COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac)
+  set(GAIAC_ARGS "-t" "${GAIA_PROD_BUILD}/db/core" "-o" "${ARG_OUTPUT_DIR}" "-n" "${GAIAC_INSTANCE_NAME}" "-g")
+
   if (DEFINED ARG_DDL_FILE)
-    add_custom_command(
-      COMMENT "Generating EDC code for file ${ARG_DDL_FILE} and database ${ARG_DATABASE_NAME}..."
-      OUTPUT ${EDC_HEADER_FILE}
-      OUTPUT ${EDC_CPP_FILE}
-      COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac
-        -t ${GAIA_PROD_BUILD}/db/core
-        -o ${ARG_OUTPUT_DIR}
-        -g ${ARG_DDL_FILE}
-        -d ${ARG_DATABASE_NAME}
-        -n ${GAIAC_INSTANCE_NAME}
-      DEPENDS ${ARG_DDL_FILE}
-      DEPENDS gaiac
-    )
-  else()
-    add_custom_command(
-      COMMENT "Generating EDC code for database ${ARG_DATABASE_NAME}..."
-      OUTPUT ${EDC_HEADER_FILE}
-      OUTPUT ${EDC_CPP_FILE}
-      COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac
-        -t ${GAIA_PROD_BUILD}/db/core
-        -o ${ARG_OUTPUT_DIR}
-        -d ${ARG_DATABASE_NAME}
-        -n ${GAIAC_INSTANCE_NAME}
-        -g
-      DEPENDS gaiac
-    )
+    message(STATUS "Adding target to load schema from the DDL file ${ARG_DDL_FILE}...")
+    list(APPEND GAIAC_ARGS ${ARG_DDL_FILE})
   endif()
 
+  if(DEFINED ARG_DATABASE_NAME)
+    set(EDC_HEADER_FILE ${ARG_OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.h)
+    set(EDC_CPP_FILE ${ARG_OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.cpp)
+    message(STATUS "Adding target to generate EDC code for database ${ARG_DATABASE_NAME}...")
+    list(PREPEND GAIAC_ARGS "-d" "${ARG_DATABASE_NAME}")
+  else()
+    # If the database name is not specified, we use the default database.
+    message(STATUS "DATABASE_NAME not specified, using default.")
+    set(EDC_HEADER_FILE ${ARG_OUTPUT_DIR}/gaia.h)
+    set(EDC_CPP_FILE ${ARG_OUTPUT_DIR}/gaia.cpp)
+  endif()
+
+  add_custom_command(
+    COMMENT "Generating EDC code..."
+    OUTPUT ${EDC_HEADER_FILE}
+    OUTPUT ${EDC_CPP_FILE}
+    COMMAND ${GAIAC_COMMAND} ${GAIAC_ARGS}
+    DEPENDS ${ARG_DDL_FILE}
+    DEPENDS gaiac
+  )
+
   if(NOT DEFINED ARG_LIB_NAME)
-    set(ARG_LIB_NAME "edc_${ARG_DATABASE_NAME}")
+    if (DEFINED ARG_DATABASE_NAME)
+      set(ARG_LIB_NAME "edc_${ARG_DATABASE_NAME}")
+    else()
+      set(ARG_LIB_NAME "edc")
+    endif()
     message(VERBOSE "LIB_NAME not specified, using: ${ARG_LIB_NAME}.")
   endif()
 
   add_library(${ARG_LIB_NAME}
     ${EDC_CPP_FILE})
 
-  target_link_libraries(${ARG_LIB_NAME} PUBLIC gaia_build_options)
+  configure_gaia_target(${ARG_LIB_NAME})
   target_include_directories(${ARG_LIB_NAME} PUBLIC ${ARG_OUTPUT_DIR})
   target_include_directories(${ARG_LIB_NAME} PUBLIC ${FLATBUFFERS_INC})
   target_include_directories(${ARG_LIB_NAME} PRIVATE ${GAIA_INC})
   target_link_libraries(${ARG_LIB_NAME} PUBLIC gaia_direct)
+endfunction()
+
+# Stop CMake if the given parameter was not passed to the function.
+macro(check_param PARAM)
+  if(NOT DEFINED ${PARAM})
+    message(FATAL_ERROR "The parameter ${PARAM} is required!")
+  endif()
+endmacro()
+
+# Builds everything required for an end to end gtest that uses gaiac and gaiat.
+# Currently starts and stops a default server instance.
+#
+# Inputs:
+#
+# TARGET_NAME - name of the gtest
+# DDL_FILE - input gaia ddl file, but gtest will link to already build edc lib
+# RULESET_FILE - input ruleset file
+# DATABASE_NAME - name of the database used in the DDL_FILE
+# [PREVIOUS_TARGET_NAME] - for now these test use the same db instance so serialize build
+#   by specifying a previous target.  This argument is optional
+# TARGET_SOURCES - semicolon delimited list of gtest sources
+# TARGET_INCLUDES - include list for gtest
+# [TARGET_LIBRARIES] - other libraries to link to excluding the EDC_LIBRARY.  If not specified
+#   the gtest will be linked to "rt;gaia_system;gaia_db_catalog_test;EDC_LIBRARY"
+#
+# Outputs:
+#
+# RULESET_FILE.CPP - translated ruleset source under ${GAIA_GENERATED_CODE}
+#
+function(add_gaia_sdk_gtest)
+  set(options "")
+  set(oneValueArgs TARGET_NAME DDL_FILE RULESET_FILE DATABASE_NAME PREVIOUS_TARGET_NAME)
+  set(multiValueArgs TARGET_SOURCES TARGET_INCLUDES TARGET_LIBRARIES)
+  cmake_parse_arguments("ARG" "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  check_param(ARG_TARGET_NAME)
+  check_param(ARG_DDL_FILE)
+  check_param(ARG_RULESET_FILE)
+  check_param(ARG_DATABASE_NAME)
+  check_param(ARG_TARGET_SOURCES)
+  check_param(ARG_TARGET_INCLUDES)
+
+  set(EDC_INCLUDE "${GAIA_GENERATED_CODE}/${ARG_DATABASE_NAME}")
+  set(EDC_LIBRARY "edc_${ARG_DATABASE_NAME}")
+  if (NOT DEFINED ARG_TARGET_LIBRARIES)
+    set(ARG_TARGET_LIBRARIES "rt;gaia_system;gaia_db_catalog_test;${EDC_LIBRARY}")
+  endif()
+
+  get_filename_component(RULESET_NAME ${ARG_RULESET_FILE} NAME)
+  string(REPLACE ".ruleset" "" RULESET_NAME ${RULESET_NAME})
+
+  set(RULESET_CPP_NAME ${RULESET_NAME}_ruleset.cpp)
+  set(RULESET_CPP_OUT ${GAIA_GENERATED_CODE}/${RULESET_CPP_NAME})
+
+  set(GAIAC_CMD "${GAIA_PROD_BUILD}/catalog/gaiac/gaiac")
+  set(GAIAT_CMD "${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat")
+
+  add_custom_command(
+    COMMENT "Compiling ${RULESET_FILE}..."
+    OUTPUT ${RULESET_CPP_OUT}
+    COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --persistence disabled &
+    COMMAND sleep 1
+    COMMAND ${GAIAC_CMD} ${ARG_DDL_FILE}
+    COMMAND ${GAIAT_CMD} ${ARG_RULESET_FILE} -output ${RULESET_CPP_OUT} --
+      -I ${GAIA_INC}
+      -I ${FLATBUFFERS_INC}
+      -I ${GAIA_SPDLOG_INC}
+      -I ${EDC_INCLUDE}
+      -I /usr/include/clang/10/include/
+      -std=c++${CMAKE_CXX_STANDARD}
+    COMMAND pkill -f -KILL gaia_db_server &
+
+    # In some contexts, the next attempt to start gaia_db_server precedes this kill, leading
+    # to a build failure. A short sleep is currently fixing that, but may not be the
+    # correct long-term solution.
+    COMMAND sleep 1
+    DEPENDS ${GAIAC_CMD}
+    DEPENDS ${GAIAT_CMD}
+    DEPENDS ${ARG_DDL_FILE}
+    DEPENDS ${ARG_RULESET_FILE}
+  )
+
+  set(GENERATE_RULES_TARGET "generate_${ARG_TARGET_NAME}")
+
+  if(DEFINED ARG_PREVIOUS_TARGET_NAME)
+    add_custom_target(${GENERATE_RULES_TARGET} ALL
+      DEPENDS ${RULESET_CPP_OUT}
+      DEPENDS ${EDC_LIBRARY}
+      DEPENDS ${ARG_PREVIOUS_TARGET_NAME}
+    )
+  else()
+    add_custom_target(${GENERATE_RULES_TARGET} ALL
+      DEPENDS ${RULESET_CPP_OUT}
+      DEPENDS ${EDC_LIBRARY}
+    )
+  endif()
+
+  add_gtest(${ARG_TARGET_NAME}
+    "${ARG_TARGET_SOURCES};${RULESET_CPP_OUT}"
+    "${ARG_TARGET_INCLUDES};${EDC_INCLUDE}"
+    "${ARG_TARGET_LIBRARIES}"
+    "${GENERATE_RULES_TARGET}"
+  )
 endfunction()
