@@ -32,7 +32,7 @@ void create_record_insert()
 {
     PRINT_METHOD_NAME();
 
-    // The insert_row() methods has one argument for each column
+    // The insert_row() method has one argument for each column
     // in the doctor table.
     gaia_id_t id = doctor_t::insert_row("Dr. House", "house@md.com");
 
