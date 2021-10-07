@@ -306,13 +306,6 @@ void index_builder_t::update_index(
             allow_create_empty);
     }
     break;
-    case gaia_operation_t::clone:
-        index_builder_t::update_index(
-            index_id,
-            index_builder_t::make_key(index_id, type_id, payload),
-            index_builder_t::make_insert_record(log_record.locator, log_record.new_offset),
-            allow_create_empty);
-        break;
     default:
         ASSERT_UNREACHABLE("Cannot handle log type");
         return;

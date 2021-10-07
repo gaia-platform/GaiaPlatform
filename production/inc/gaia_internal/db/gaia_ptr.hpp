@@ -66,8 +66,6 @@ public:
     // TODO this should either accept a gaia_id_t or be an instance method.
     static void remove(gaia_ptr_t& object);
 
-    gaia_ptr_t& clone();
-
     gaia_ptr_t& update_payload(size_t data_size, const void* data);
 
     static gaia_ptr_t find_first(common::gaia_type_t type);
