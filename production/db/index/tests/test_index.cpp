@@ -10,16 +10,16 @@
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
 #include "data_holder.hpp"
-#include "gaia_airport.h"
+#include "gaia_prerequisites.h"
 #include "hash_index.hpp"
 #include "range_index.hpp"
 
-using namespace gaia::airport;
 using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::db::payload_types;
 using namespace gaia::db::index;
 using namespace gaia::direct_access;
+using namespace gaia::prerequisites;
 
 // Placeholder values for index records.
 constexpr gaia::db::gaia_txn_id_t c_fake_txn_id = 777;
@@ -273,45 +273,65 @@ class index_test : public db_catalog_test_base_t
 {
 protected:
     index_test()
-        : db_catalog_test_base_t("airport.ddl"){};
+        : db_catalog_test_base_t("prerequisites.ddl"){};
 };
 
 TEST_F(index_test, unique_constraint_same_txn)
 {
-    const int32_t flight_number = 1766;
+    const char* student_id = "00002217";
 
     auto_transaction_t txn;
-    flight_t::insert_row(flight_number, {});
-    flight_t::insert_row(flight_number, {});
+    student_t::insert_row(student_id, "Alice", 21, 30, 3.75);
+    student_t::insert_row(student_id, "Bob", 22, 28, 3.5);
     EXPECT_THROW(txn.commit(), unique_constraint_violation);
 }
 
 TEST_F(index_test, unique_constraint_different_txn)
 {
-    const int32_t flight_number = 1766;
+    const char* student_id = "00002217";
 
     auto_transaction_t txn;
-    flight_t::insert_row(flight_number, {});
+    student_t::insert_row(student_id, "Alice", 21, 30, 3.75);
     txn.commit();
 
     // Attempt to re-insert the same key - we should trigger the conflict.
-    flight_t::insert_row(flight_number, {});
+    student_t::insert_row(student_id, "Bob", 22, 28, 3.5);
     EXPECT_THROW(txn.commit(), unique_constraint_violation);
+}
+
+TEST_F(index_test, unique_constraint_update_record)
+{
+    const char* student_id = "00002217";
+
+    auto_transaction_t txn;
+    gaia_id_t id = student_t::insert_row(student_id, "Alice", 21, 30, 3.75);
+    txn.commit();
+
+    // Update the record - this should not trigger any conflict.
+    student_t alice = student_t::get(id);
+    auto alice_w = alice.writer();
+    alice_w.surname = "Alicia";
+    alice_w.update_row();
+    txn.commit();
+
+    // Verify the update.
+    alice = student_t::get(id);
+    ASSERT_EQ(0, strcmp(alice.surname(), "Alicia"));
 }
 
 TEST_F(index_test, unique_constraint_rollback_transaction)
 {
-    const int32_t first_flight_number = 1766;
-    const int32_t second_flight_number = 1767;
+    const char* alice_student_id = "00002217";
+    const char* bob_student_id = "00002346";
 
     auto_transaction_t txn;
-    flight_t::insert_row(first_flight_number, {});
+    student_t::insert_row(alice_student_id, "Alice", 21, 30, 3.75);
     txn.commit();
 
     // Insert a second key and then attempt to re-insert the first key.
-    // We should trigger the conflict and our transactions should be rolled back.
-    flight_t::insert_row(second_flight_number, {});
-    flight_t::insert_row(first_flight_number, {});
+    // We should trigger the conflict and our transaction should be rolled back.
+    student_t::insert_row(bob_student_id, "Bob", 22, 28, 3.5);
+    student_t::insert_row(alice_student_id, "Charles", 22, 24, 3.25);
     EXPECT_THROW(txn.commit(), unique_constraint_violation);
 
     // Attempt to insert the second key again.
@@ -319,6 +339,6 @@ TEST_F(index_test, unique_constraint_rollback_transaction)
     // We need to manually start a transaction because the exception generated earlier
     // prevented the automatic restart.
     txn.begin();
-    flight_t::insert_row(second_flight_number, {});
+    student_t::insert_row(bob_student_id, "Bob", 22, 28, 3.5);
     txn.commit();
 }

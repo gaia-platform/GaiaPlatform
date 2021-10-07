@@ -289,35 +289,30 @@ void index_builder_t::update_index(
         auto old_payload = (old_obj) ? reinterpret_cast<const uint8_t*>(old_obj->data()) : nullptr;
         index_key_t old_key = index_builder_t::make_key(index_id, type_id, old_payload);
         index_key_t new_key = index_builder_t::make_key(index_id, type_id, payload);
-        // If the index key is not changed, flag operations as update steps.
-        // Otherwise, we'll flag them as individual remove/insert operations,
-        // because they're semantically indistinguishable from our transaction just doing that.
+
+        // If the index key is not changed, mark operation as an update.
+        // Otherwise, we'll mark it as two individual remove/insert operations,
+        // because it's semantically indistinguishable from our transaction just doing that.
         if (new_key == old_key)
         {
             index_builder_t::update_index(
                 index_id,
-                old_key,
+                std::move(new_key),
                 index_builder_t::make_record(
-                    log_record.locator, log_record.old_offset, index_record_operation_t::update_remove),
-                allow_create_empty);
-            index_builder_t::update_index(
-                index_id,
-                new_key,
-                index_builder_t::make_record(
-                    log_record.locator, log_record.new_offset, index_record_operation_t::update_insert),
+                    log_record.locator, log_record.new_offset, index_record_operation_t::update),
                 allow_create_empty);
         }
         else
         {
             index_builder_t::update_index(
                 index_id,
-                old_key,
+                std::move(old_key),
                 index_builder_t::make_record(
                     log_record.locator, log_record.old_offset, index_record_operation_t::remove),
                 allow_create_empty);
             index_builder_t::update_index(
                 index_id,
-                new_key,
+                std::move(new_key),
                 index_builder_t::make_record(
                     log_record.locator, log_record.new_offset, index_record_operation_t::insert),
                 allow_create_empty);
