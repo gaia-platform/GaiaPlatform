@@ -51,7 +51,6 @@ endif()
 install(TARGETS gaiat DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 if("$CACHE{ENABLE_SDK_TESTS}")
-
   set(TEST_INCLUDES
     ${GAIA_INC}
     ${FLATBUFFERS_INC}
@@ -145,5 +144,4 @@ if("$CACHE{ENABLE_SDK_TESTS}")
     TARGET_SOURCES "tests/test_amr_swarm.cpp;tests/bot_commands.cpp;${RULES_TEST_HELPERS}"
     TARGET_INCLUDES "${TEST_INCLUDES}"
   )
-
 endif()

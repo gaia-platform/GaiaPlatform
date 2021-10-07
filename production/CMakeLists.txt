@@ -23,6 +23,8 @@ option(ENABLE_STACKTRACE "Enable stack traces" ON)
 
 option(BUILD_GAIA_RELEASE "Build Gaia Release packages and binaries" OFF)
 
+option(ENABLE_SDK_TESTS "Build and execute ruleset translation tests" ON)
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
 else()
@@ -88,9 +90,6 @@ if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
   if(ENABLE_STACKTRACE)
     set(LLVM_GENERATE_STACKTRACE_DEBUG_INFO ON CACHE BOOL "")
   endif()
-
-  # gaiat is very slow in Debug builds, so allow skipping SDK tests.
-  set(ENABLE_SDK_TESTS ON CACHE BOOL "")
 
   if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     # This speeds up linking by separating debug info.
