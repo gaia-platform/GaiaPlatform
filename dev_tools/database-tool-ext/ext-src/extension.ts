@@ -106,14 +106,13 @@ class ReactPanel {
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
                 <meta name="theme-color" content="#000000">
-                <title>React App</title>
+                <title>Database Tool</title>
                 <link rel="stylesheet" type="text/css" href="${styleUri}">
                 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src vscode-resource: https:; script-src 'nonce-${nonce}';style-src vscode-resource: 'unsafe-inline' http: https: data:;">
                 <base href="${vscode.Uri.file(path.join(this._extensionPath, 'build')).with({ scheme: 'vscode-resource' })}/">
             </head>
 
             <body>
-                <noscript>You need to enable JavaScript to run this app.</noscript>
                 <div id="root"></div>
                 
                 <script nonce="${nonce}" src="${scriptUri}"></script>
