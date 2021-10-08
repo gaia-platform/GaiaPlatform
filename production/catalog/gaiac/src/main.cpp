@@ -200,7 +200,7 @@ void generate_edc(const string& db_name, const filesystem::path& output_path)
         throw std::invalid_argument("Invalid output path: '" + output_path.string() + "'.");
     }
 
-    cout << "Generating Direct Access classes in: " << absolute_output_path << "." << endl;
+    cerr << "Generating Direct Access classes in: " << absolute_output_path << "." << endl;
 
     generate_fbs_headers(db_name, absolute_output_path);
     generate_edc_code(db_name, absolute_output_path);
@@ -368,12 +368,12 @@ int main(int argc, char* argv[])
         }
         else if (argv[i] == string("-h") || argv[i] == string("--help"))
         {
-            cout << usage();
+            cerr << usage();
             exit(EXIT_SUCCESS);
         }
         else if (argv[i] == string("-v") || argv[i] == string("--version"))
         {
-            cout << version();
+            cerr << version();
             exit(EXIT_SUCCESS);
         }
         else if (argv[i][0] == '-')
