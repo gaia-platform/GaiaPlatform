@@ -32,8 +32,8 @@ public:
     gaia_ptr_t() = default;
     explicit gaia_ptr_t(gaia_locator_t locator);
 
-    inline bool
-    operator==(const gaia_ptr_t& other) const;
+    inline bool operator==(const gaia_ptr_t& other) const;
+    inline bool operator!=(const gaia_ptr_t& other) const;
     inline bool operator==(const std::nullptr_t) const;
     inline bool operator!=(const std::nullptr_t) const;
     inline explicit operator bool() const;
