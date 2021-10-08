@@ -6,7 +6,6 @@
 #include <cctype>
 
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <string>
 
@@ -377,10 +376,49 @@ int main(int argc, char* argv[])
             cout << version();
             exit(EXIT_SUCCESS);
         }
+        else if (argv[i][0] == '-')
+        {
+            cerr << c_error_prompt << "Unrecognized parameter: " << argv[i] << endl;
+            exit(EXIT_FAILURE);
+        }
         else
         {
             ddl_filename = argv[i];
+
+            if (!std::filesystem::exists(ddl_filename))
+            {
+                cerr << c_error_prompt << "DDL file '" << ddl_filename << "' does not exists." << endl;
+                exit(EXIT_FAILURE);
+            }
         }
+    }
+
+    // --output make sense only if gaiac is run in generation mode.
+    if (!output_path.empty() && mode != operate_mode_t::generation)
+    {
+        cerr << c_error_prompt
+             << "An output directory (--output) can be specified only in generation mode (--generate)."
+             << endl;
+        exit(EXIT_FAILURE);
+    }
+
+    if (mode == operate_mode_t::generation && output_path.empty())
+    {
+        // TODO: in the spec https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1240?focusedCommentId=11101
+        //  we decided to fail here, but at one day from Preview release this could be dangerous. I decided
+        //  to print this warning instead.
+        output_path = filesystem::current_path() / filesystem::path(ddl_filename).stem();
+        cerr << c_warning_prompt
+             << "Output directory (--output) not specified, using default: '" << output_path << "'"
+             << endl;
+    }
+
+    if (!db_names.empty() && mode != operate_mode_t::generation)
+    {
+        cerr << c_error_prompt
+             << "A database name (--db-name) can be specified only in generation mode (--generate)."
+             << endl;
+        exit(EXIT_FAILURE);
     }
 
     if (path_to_db_server)
@@ -422,11 +460,6 @@ int main(int argc, char* argv[])
             if (!ddl_filename.empty())
             {
                 load_catalog(parser, ddl_filename);
-
-                if (output_path.empty())
-                {
-                    output_path = filesystem::path(ddl_filename).stem();
-                }
             }
 
             if (mode == operate_mode_t::generation)
