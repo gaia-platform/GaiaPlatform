@@ -2616,42 +2616,78 @@ static bool is_system_compatible()
 
     uint64_t policy_id = check_overcommit_policy();
     const char* policy_desc = c_vm_overcommit_policies[policy_id].desc;
-    if (policy_id != c_always_overcommit_policy_id)
-    {
-        std::cerr
-            << "The current overcommit policy has a value of "
-            << policy_id << " (" << policy_desc << ")."
-            << std::endl;
-    }
-
-    if (policy_id == c_heuristic_overcommit_policy_id)
-    {
-        std::cerr
-            << "The Gaia Database Server will run normally under this overcommit policy,"
-            << std::endl
-            << "but may become unstable under rare conditions."
-            << std::endl;
-    }
-
-    if (policy_id == c_never_overcommit_policy_id)
-    {
-        std::cerr
-            << "The Gaia Database Server will not run under this overcommit policy."
-            << std::endl;
-    }
 
     if (policy_id != c_always_overcommit_policy_id)
     {
-        std::cerr
-            << std::endl
-            << "To ensure stable performance under all conditions, we recommend"
-            << std::endl
-            << "changing the overcommit policy to "
-            << c_always_overcommit_policy_id << " ("
-            << c_vm_overcommit_policies[c_always_overcommit_policy_id].desc << ")."
-            << std::endl;
+        bool should_print_warning = false;
+        bool should_set_warn_once_attr = false;
+        int ret = get_warn_once_attribute();
 
-        std::cerr << R"(
+        if (ret == ENOTSUP)
+        {
+            // Extended attributes are not supported on this system, so print
+            // the warning but don't try to set the attribute.
+            should_print_warning = true;
+            should_set_warn_once_attr = false;
+        }
+        else if (ret == ENODATA)
+        {
+            // The warn_once extended attribute was not set on the
+            // gaia_db_server executable, so print the warning and try to set
+            // the attribute so we omit the warning the next time gaia_db_server
+            // is run.
+            should_print_warning = true;
+            should_set_warn_once_attr = true;
+        }
+        else if (ret == 0)
+        {
+            // The warn_once extended attribute was already set on the
+            // gaia_db_server executable, so omit the warning.
+            should_print_warning = false;
+            should_set_warn_once_attr = false;
+        }
+        else
+        {
+            ASSERT_UNREACHABLE("Unexpected return value!");
+        }
+
+        ASSERT_INVARIANT(
+            !(should_print_warning == false && should_set_warn_once_attr == true),
+            "If warning is not printed, then warn_once attribute should not be set!");
+
+        if (should_print_warning)
+        {
+            std::cerr
+                << "The current overcommit policy has a value of "
+                << policy_id << " (" << policy_desc << ")."
+                << std::endl;
+
+            if (policy_id == c_heuristic_overcommit_policy_id)
+            {
+                std::cerr
+                    << "The Gaia Database Server will run normally under this overcommit policy,"
+                    << std::endl
+                    << "but may become unstable under rare conditions."
+                    << std::endl;
+            }
+
+            if (policy_id == c_never_overcommit_policy_id)
+            {
+                std::cerr
+                    << "The Gaia Database Server will not run under this overcommit policy."
+                    << std::endl;
+            }
+
+            std::cerr
+                << std::endl
+                << "To ensure stable performance under all conditions, we recommend"
+                << std::endl
+                << "changing the overcommit policy to "
+                << c_always_overcommit_policy_id << " ("
+                << c_vm_overcommit_policies[c_always_overcommit_policy_id].desc << ")."
+                << std::endl;
+
+            std::cerr << R"(
 To temporarily enable this policy, open a shell with root privileges
 and type the following command:
 
@@ -2665,7 +2701,16 @@ in an editor with root privileges and add the line
 Save the file, and in a shell with root privileges type
 
   sysctl -p
-        )" << std::endl;
+            )" << std::endl;
+        }
+
+        if (should_set_warn_once_attr)
+        {
+            // It should not be possible for this call to fail, because we
+            // already tested for system support in get_warn_once_attribute().
+            bool set_attr = set_warn_once_attribute();
+            ASSERT_POSTCONDITION(set_attr, "set_warn_once_attribute() should not fail!");
+        }
     }
 
     if (policy_id == c_never_overcommit_policy_id)

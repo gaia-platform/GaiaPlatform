@@ -6,6 +6,7 @@
 #include "system_checks.hpp"
 
 #include <fcntl.h>
+#include <unistd.h>
 
 #include <charconv>
 
@@ -14,6 +15,8 @@
 #include <libexplain/getrlimit.h>
 #include <libexplain/open.h>
 #include <libexplain/read.h>
+#include <libexplain/readlink.h>
+#include <sys/xattr.h>
 
 #include "gaia/exception.hpp"
 
@@ -56,6 +59,66 @@ static uint64_t read_integer_from_proc_fd(int proc_fd)
     ASSERT_POSTCONDITION(result.ec == std::errc{}, "Failed to convert bytes to integer!");
 
     return static_cast<uint64_t>(value);
+}
+
+static size_t get_process_path(char* buf, size_t len)
+{
+    // readlink(2) does not null-terminate the written value,
+    // so leave a byte at the end for the null terminator.
+    ssize_t bytes_read = ::readlink("/proc/self/exe", buf, len - 1);
+    if (bytes_read == -1)
+    {
+        int err = errno;
+        const char* reason = ::explain_readlink("/proc/self/exe", buf, len - 1);
+        throw gaia::common::system_error(reason, err);
+    }
+    ASSERT_POSTCONDITION(bytes_read > 0, "Expected non-empty path!");
+
+    // readlink(2) does not null-terminate the written value, so insert a null
+    // terminator immediately after the last written byte.
+    buf[bytes_read] = '\0';
+
+    return static_cast<size_t>(bytes_read);
+}
+
+bool set_warn_once_attribute()
+{
+    char path[c_path_size_bytes];
+    get_process_path(path, sizeof(path));
+    if (-1 == ::setxattr(path, c_warn_once_attr_name, c_warn_once_attr_value, sizeof(c_warn_once_attr_value), XATTR_CREATE))
+    {
+        // If the attribute already exists, ignore failure.
+        if (errno == EEXIST)
+        {
+            return false;
+        }
+        else
+        {
+            gaia::common::throw_system_error("setxattr(XATTR_CREATE) failed!");
+        }
+    }
+    return true;
+}
+
+int get_warn_once_attribute()
+{
+    char path[c_path_size_bytes];
+    get_process_path(path, sizeof(path));
+    char value[sizeof(c_warn_once_attr_value)];
+
+    ssize_t bytes_read = ::getxattr(
+        path, c_warn_once_attr_name, value, sizeof(value));
+    if (bytes_read == -1)
+    {
+        if (errno == ENODATA || errno == ENOTSUP)
+        {
+            return errno;
+        }
+        gaia::common::throw_system_error("getxattr() failed!");
+    }
+
+    ASSERT_POSTCONDITION(strcmp(value, c_warn_once_attr_value) == 0, "Unexpected attribute value!");
+    return 0;
 }
 
 uint64_t check_overcommit_policy()

@@ -44,6 +44,11 @@ constexpr uint64_t c_min_vm_limit{RLIM_INFINITY};
 // administrator.)
 constexpr uint64_t c_min_fd_limit{std::numeric_limits<uint16_t>::max() + 512};
 
+constexpr char c_warn_once_attr_name[] = "user.gaia.warn_once";
+constexpr char c_warn_once_attr_value[] = "true";
+
+// This buffer size includes the null terminator.
+constexpr size_t c_path_size_bytes{256};
 struct vm_overcommit_policy
 {
     size_t id;
@@ -63,6 +68,14 @@ inline constexpr vm_overcommit_policy c_vm_overcommit_policies[] = {
 bool is_little_endian();
 
 uint64_t check_overcommit_policy();
+
+// This returns true if the attribute was set and false otherwise.
+bool set_warn_once_attribute();
+
+// This returns 0 on success or `errno` on failure, with ENODATA indicating the
+// attribute was not present, and ENOTSUP that extended attributes are not
+// supported on this system.
+int get_warn_once_attribute();
 
 bool check_vma_limit();
 
