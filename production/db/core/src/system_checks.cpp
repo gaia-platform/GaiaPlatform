@@ -86,18 +86,19 @@ bool set_warn_once_attribute()
 {
     char path[c_path_size_bytes];
     get_process_path(path, sizeof(path));
+
     if (-1 == ::setxattr(path, c_warn_once_attribute_name, c_warn_once_attribute_value, sizeof(c_warn_once_attribute_value), XATTR_CREATE))
     {
-        // If the attribute already exists, ignore failure.
-        if (errno == EEXIST)
+        // Ignore failure if the attribute already exists, or the user has
+        // insufficient permissions.
+        if (errno == EEXIST || errno == EACCES)
         {
             return false;
         }
-        else
-        {
-            gaia::common::throw_system_error("setxattr(XATTR_CREATE) failed!");
-        }
+
+        gaia::common::throw_system_error("setxattr(XATTR_CREATE) failed!");
     }
+
     return true;
 }
 

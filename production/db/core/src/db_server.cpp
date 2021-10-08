@@ -2706,10 +2706,9 @@ Save the file, and in a shell with root privileges type
 
         if (should_set_warn_once_attribute)
         {
-            // It should not be possible for this call to fail, because we
-            // already tested for system support in get_warn_once_attribute().
-            bool set_attribute = set_warn_once_attribute();
-            ASSERT_POSTCONDITION(set_attribute, "set_warn_once_attribute() should not fail!");
+            // We could still fail here because we had read permissions but not
+            // write permissions on xattrs. This is best-effort.
+            set_warn_once_attribute();
         }
     }
 
