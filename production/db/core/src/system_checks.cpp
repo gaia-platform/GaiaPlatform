@@ -163,7 +163,7 @@ bool check_vma_limit()
     {
         std::cerr
             << "vm.max_map_count has a value of " << value
-            << ", which is smaller than the minimum required value of "
+            << ", which is less than the minimum required value of "
             << c_min_vma_limit << "." << std::endl;
 
         return false;
@@ -200,7 +200,7 @@ static bool check_and_adjust_resource_limit(int rlimit_id, const char* rlimit_de
         std::cerr
             << "The per-process " << rlimit_desc
             << " hard limit is " << hard_limit
-            << ", which is smaller than the minimum required limit "
+            << ", which is less than the minimum required limit "
             << min_hard_limit << "." << std::endl;
 
         return false;
