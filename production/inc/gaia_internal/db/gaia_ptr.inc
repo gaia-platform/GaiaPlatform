@@ -8,6 +8,11 @@ bool gaia_ptr_t::operator==(const gaia_ptr_t& other) const
     return m_locator == other.m_locator;
 }
 
+bool gaia_ptr_t::operator!=(const gaia_ptr_t& other) const
+{
+    return m_locator != other.m_locator;
+}
+
 bool gaia_ptr_t::operator==(const std::nullptr_t) const
 {
     return !to_ptr();
