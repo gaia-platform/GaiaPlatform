@@ -24,6 +24,7 @@
 #include "clang/Sema/DeclSpec.h"
 #include "clang/Sema/Scope.h"
 #include "clang/Sema/TypoCorrection.h"
+#include "llvm/ADT/StringSet.h"
 
 #include "gaia_internal/common/random.hpp"
 using namespace clang;
@@ -236,7 +237,7 @@ bool Parser::ParseRuleSubscriptionAttributes(ParsedAttributesWithRange &attrs,
         return false;
     }
 
-    std::unordered_set<std::string> tags;
+   llvm::StringSet<> tags;
     do
     {
         SourceLocation tokenLocation = Tok.getLocation();
@@ -252,7 +253,7 @@ bool Parser::ParseRuleSubscriptionAttributes(ParsedAttributesWithRange &attrs,
                 }
                 else
                 {
-                    tags.emplace(table);
+                    tags.insert(table);
                 }
                 table += std::string(":");
                 ConsumeToken();

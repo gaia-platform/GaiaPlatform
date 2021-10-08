@@ -27,6 +27,7 @@
 #include "clang/Sema/Sema.h"
 #include "clang/Sema/Lookup.h"
 #include "clang/Catalog/GaiaCatalog.h"
+#include "llvm/ADT/StringSet.h"
 using namespace gaia;
 using namespace std;
 using namespace clang;
@@ -212,7 +213,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
     // Therefore there is no need to perform more checks here.
     if (path.size() > 1 || pathString.front() == '/' || !tagMap.empty() || doesPathIncludesTags(path, loc))
     {
-        for (auto tagEntry : tagMap)
+        for (const auto& tagEntry : tagMap)
         {
             auto tableDescription = tableData.find(tagEntry.second);
             if (tableDescription == tableData.end())
@@ -222,9 +223,9 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             }
         }
 
-        unordered_set<string> duplicate_component_check_set;
+        llvm::StringSet<> duplicate_component_check_set;
         string previousTable, previousField;
-        for (string pathComponent : path)
+        for (const string& pathComponent : path)
         {
             if (duplicate_component_check_set.find(pathComponent) != duplicate_component_check_set.end())
             {
@@ -406,7 +407,7 @@ void Sema::addField(IdentifierInfo* name, QualType type, RecordDecl* RD, SourceL
     RD->addDecl(Field);
 }
 
-void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, SmallVector<QualType, 8> parameterTypes, AttributeFactory& attrFactory, ParsedAttributes& attrs, RecordDecl* RD, SourceLocation loc, bool isVariadic, ParsedType returnType)
+void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, const SmallVector<QualType, 8>& parameterTypes, AttributeFactory& attrFactory, ParsedAttributes& attrs, RecordDecl* RD, SourceLocation loc, bool isVariadic, ParsedType returnType)
 {
     DeclContext* functionDecl = getCurFunctionDecl();
     DeclSpec DS(attrFactory);
@@ -441,7 +442,7 @@ void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, SmallVector
         paramDeclarator.SetIdentifier(name, loc);
         int paramIndex = 1;
 
-        for (QualType& type : parameterTypes)
+        for (const QualType& type : parameterTypes)
         {
             // TODO we need a way to pass named params to have better diagnostics.
             string paramName = "param_" + to_string(paramIndex);
@@ -818,7 +819,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         //   bool connect(farmer_type&);
         //   bool disconnect(farmer_type&);
         //   ....
-        for (auto targetTablePair : links_target_tables)
+        for (const auto& targetTablePair : links_target_tables)
         {
             // connect/disconnect are not appended to the table if there is more than one
             // link pointing to a target type.
@@ -900,14 +901,14 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
     }
     else
     {
-        for (auto it : tableData)
+        for (const auto& it : tableData)
         {
             tables.push_back(it.first);
         }
     }
 
     QualType retVal = Context.VoidTy;
-    for (string tableName : tables)
+    for (const string& tableName : tables)
     {
         // Search if there is a match in the table fields.
 
@@ -1021,7 +1022,7 @@ bool Sema::findFieldType(const std::string& fieldOrTagName, SourceLocation loc)
         }
     }
 
-    for (string tableName : tables)
+    for (const string& tableName : tables)
     {
         // Search if there is a match in the table fields.
         auto tableDescription = tableData.find(tableName);
@@ -1222,12 +1223,12 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
         std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
         SmallVector<StringRef, 4> argPathComponents, argTagKeys, argTagTables,
             argDefinedTagKeys, argDefinedTagTables;
-        for (auto pathComponentsIterator : explicitPathData[loc].path)
+        for (const auto& pathComponentsIterator : explicitPathData[loc].path)
         {
             argPathComponents.push_back(ConvertString(pathComponentsIterator, loc));
         }
 
-        for (auto tagsIterator : explicitPathData[loc].tagMap)
+        for (const auto& tagsIterator : explicitPathData[loc].tagMap)
         {
             argTagKeys.push_back(ConvertString(tagsIterator.first, loc));
             argTagTables.push_back(ConvertString(tagsIterator.second, loc));
@@ -1235,17 +1236,17 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
             argDefinedTagTables.push_back(ConvertString(tagsIterator.first, loc));
         }
 
-        for (auto tagsIterator : explicitPathTagMapping[loc])
+        for (const auto& tagsIterator : explicitPathTagMapping[loc])
         {
             argTagKeys.push_back(ConvertString(tagsIterator.first, loc));
             argTagTables.push_back(ConvertString(tagsIterator.second, loc));
         }
-        for (auto tagsIterator : extendedExplicitPathTagMapping[loc])
+        for (const auto& tagsIterator : extendedExplicitPathTagMapping[loc])
         {
             argTagKeys.push_back(ConvertString(tagsIterator.first, loc));
             argTagTables.push_back(ConvertString(tagsIterator.second, loc));
         }
-        for (auto tagsIterator : tagMapping)
+        for (const auto& tagsIterator : tagMapping)
         {
             argTagKeys.push_back(ConvertString(tagsIterator.first, loc));
             argTagTables.push_back(ConvertString(tagsIterator.second, loc));
@@ -1372,7 +1373,7 @@ bool Sema::ValidateLabel(const LabelDecl* label)
     string labelName = label->getName().str();
 
     // Check if there is a declarative label which is not currently processed as a regular label.
-    for (auto declarativeLabel : declarativeLabelsInProcess)
+    for (const auto& declarativeLabel : declarativeLabelsInProcess)
     {
         if (labelsInProcess.find(declarativeLabel) == labelsInProcess.end())
         {

@@ -4647,7 +4647,7 @@ private:
   std::unordered_map<std::string, std::string> getTagMapping(const DeclContext *context, SourceLocation loc);
   QualType getRuleContextType(SourceLocation loc);
   QualType getLinkType(const std::string& linkName, const std::string& from_table, const std::string& to_table, bool is_one_to_many, SourceLocation loc);
-  void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, SmallVector<QualType, 8> parameterTypes,
+  void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, const SmallVector<QualType, 8>& parameterTypes,
                  AttributeFactory &attrFactory, ParsedAttributes &attrs, RecordDecl *RD,
                  SourceLocation loc, bool isVariadic = false, ParsedType returnType = nullptr);
 
