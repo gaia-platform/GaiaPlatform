@@ -796,7 +796,10 @@ void server_t::init_indexes()
 
         if (type_record_id == c_invalid_gaia_id)
         {
-            throw invalid_type(obj->type);
+            // Orphaned object detected. We continue instead of throw here because of GAIAPLAT-1276.
+            // This should be reverted once we no longer orphan objects during a DROP operation.
+            std::cerr << "Cannot find type for object " << obj->id << " in the catalog!";
+            continue;
         }
 
         for (const auto& index : catalog_core_t::list_indexes(type_record_id))
@@ -2799,18 +2802,18 @@ Save the file and start a new terminal session.
     if (!check_and_adjust_fd_limit())
     {
         std::cerr << R"(
-The Gaia Database Server requires a per-process open file descriptor limit of at least 66047.
+The Gaia Database Server requires a per-process open file descriptor limit of at least 65535.
 
 To temporarily set the minimum open file descriptor limit,
 open a shell with root privileges and type the following command:
 
-  ulimit -n 66047
+  ulimit -n 65535
 
 To permanently set the minimum open file descriptor limit, open /etc/security/limits.conf
 in an editor with root privileges and add the following lines:
 
-  soft nofile 66047
-  hard nofile 66047
+  * soft nofile 65535
+  * hard nofile 65535
 
 Note: For enhanced security, replace the wildcard '*' in these file entries
 with the user name of the account that is running the Gaia Database Server.

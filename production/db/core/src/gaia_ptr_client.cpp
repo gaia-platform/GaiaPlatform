@@ -120,7 +120,7 @@ bool gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t firs
         throw child_already_referenced(child_ptr.type(), relationship->parent_offset);
     }
 
-    // BUILD THE REFERENCES
+    // Clone parent and child objects for CoW updates.
     // TODO (Mihir): if the parent/child have been created in the same txn, the clone may not be necessary.
     gaia_offset_t old_parent_offset = to_offset();
     WRITE_PROTECT(old_parent_offset);
