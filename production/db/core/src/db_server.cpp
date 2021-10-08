@@ -763,7 +763,10 @@ void server_t::init_indexes()
 
         if (type_record_id == c_invalid_gaia_id)
         {
-            throw invalid_type(obj->type);
+            // Orphaned object detected. We continue instead of throw here because of GAIAPLAT-1276.
+            // This should be reverted once we no longer orphan objects during a DROP operation.
+            std::cerr << "Cannot find type for object " << obj->id << " in the catalog!";
+            continue;
         }
 
         for (const auto& index : catalog_core_t::list_indexes(type_record_id))
