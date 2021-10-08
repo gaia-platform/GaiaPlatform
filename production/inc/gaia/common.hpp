@@ -104,7 +104,7 @@ enum class data_type_t : uint8_t
 };
 
 template <typename T>
-std::underlying_type_t<T> get_enum_value(T val)
+constexpr std::underlying_type_t<T> get_enum_value(T val)
 {
     return static_cast<std::underlying_type_t<T>>(val);
 }

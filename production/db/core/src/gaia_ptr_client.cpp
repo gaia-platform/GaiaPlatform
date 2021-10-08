@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <sys/mman.h>
-
 #include "gaia/common.hpp"
 
 #include "gaia_internal/common/retail_assert.hpp"
@@ -20,6 +18,7 @@
 #include "index_key.hpp"
 #include "index_scan.hpp"
 #include "memory_types.hpp"
+#include "mm_helpers.hpp"
 #include "payload_diff.hpp"
 #include "type_id_mapping.hpp"
 
@@ -28,22 +27,6 @@ using namespace gaia::common::iterators;
 using namespace gaia::db;
 using namespace gaia::db::triggers;
 using namespace gaia::db::memory_manager;
-
-// This helper is only used for DEBUG allocation mode, where we allocate all
-// objects at page granularity and write-protect allocated pages after all
-// updates to the allocated object are complete.
-static void write_protect_allocation_page_for_offset(gaia_offset_t offset)
-{
-    // Offset must be aligned to a page in debug mode.
-    ASSERT_INVARIANT(
-        ((offset * c_slot_size_bytes) % c_page_size_bytes) == 0,
-        "Allocations must be page-aligned in debug mode!");
-    void* offset_page = page_address_from_offset(offset);
-    if (-1 == ::mprotect(offset_page, c_page_size_bytes, PROT_READ))
-    {
-        throw_system_error("mprotect(PROT_READ) failed!");
-    }
-}
 
 #ifdef DEBUG
 #define WRITE_PROTECT(o) write_protect_allocation_page_for_offset((o))

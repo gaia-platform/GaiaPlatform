@@ -10,7 +10,7 @@
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
-#include "base_memory_manager.hpp"
+#include "memory_structures.hpp"
 
 namespace gaia
 {
@@ -66,7 +66,13 @@ public:
     // Returns false if the chunk is concurrently allocated by another thread.
     bool allocate_chunk();
 
-    // Transitions the chunk from IN_USE to RETIRED.
+    // Transitions the chunk from IN_USE to RETIRED and deallocates it if empty
+    // (transitioning it to DEALLOCATING and then to EMPTY).
+    // A chunk in RETIRED state cannot be used for any new allocations until
+    // it is transitioned to EMPTY state, making it eligible for reuse.
+    // When all allocations in the chunk have been deallocated, the chunk is
+    // eligible to transition to EMPTY state (via a temporary transition to
+    // DEALLOCATING for decommitting data pages).
     // This should only be called by an owning thread like a session, so it
     // cannot fail. The supplied version is used to safely deallocate the
     // retired chunk if it is empty.
@@ -109,12 +115,10 @@ private:
     // Returns whether a chunk has no live allocations.
     // Specify `version` to fail if the chunk version changes during the
     // metadata scan (which indicates concurrent reuse).
-    bool is_empty(chunk_version_t initial_version = c_invalid_chunk_version);
+    bool is_empty(chunk_version_t initial_version);
 
     // Decommits all data pages in this chunk.
     void decommit_data_pages();
-
-    void output_debugging_information(const std::string& context_description) const;
 };
 
 } // namespace memory_manager

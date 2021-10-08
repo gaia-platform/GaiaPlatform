@@ -38,6 +38,7 @@
 #include "db_internal_types.hpp"
 #include "memory_types.hpp"
 #include "messages_generated.h"
+#include "mm_helpers.hpp"
 #include "persistent_store_manager.hpp"
 #include "record_list_manager.hpp"
 #include "system_checks.hpp"
@@ -729,7 +730,7 @@ void server_t::deallocate_object(gaia_offset_t offset)
 {
     // First extract the chunk ID from the offset, so we know which chunks are
     // candidates for deallocation.
-    chunk_offset_t chunk_offset = chunk_from_offset(offset);
+    memory_manager::chunk_offset_t chunk_offset = memory_manager::chunk_from_offset(offset);
 
     // Cache this chunk and its current version for later deallocation.
     // REVIEW: This could be changed to use contains() after C++20.
@@ -738,7 +739,7 @@ void server_t::deallocate_object(gaia_offset_t offset)
     // We need to read the chunk version *before* we deallocate the object, to
     // ensure that the chunk hasn't already been deallocated and reused before
     // we read the version!
-    chunk_version_t version = s_chunk_manager.get_version();
+    memory_manager::chunk_version_t version = s_chunk_manager.get_version();
 
     if (s_gc_chunks_to_versions.count(chunk_offset) == 0)
     {
@@ -747,7 +748,7 @@ void server_t::deallocate_object(gaia_offset_t offset)
     else
     {
         // If this GC task already cached this chunk, then the versions must match!
-        chunk_version_t cached_version = s_gc_chunks_to_versions[chunk_offset];
+        memory_manager::chunk_version_t cached_version = s_gc_chunks_to_versions[chunk_offset];
         ASSERT_INVARIANT(version == cached_version, "Chunk version must match cached chunk version!");
     }
 
@@ -2423,6 +2424,9 @@ void server_t::gc_applied_txn_logs()
         chunk_version_t chunk_version = entry.second;
         s_chunk_manager.load(chunk_offset);
         s_chunk_manager.try_deallocate_chunk(chunk_version);
+        // To avoid confusion with session-owned chunks, don't leave the last
+        // chunk sitting in our session-local chunk manager.
+        s_chunk_manager.release();
     }
 }
 
@@ -2495,6 +2499,9 @@ void server_t::txn_rollback(bool client_disconnected)
     {
         // Load the crashed session's chunk, so we can directly free the final
         // allocation if necessary.
+        // BUG (GAIAPLAT-1489): this will only work if we're inside a txn when
+        // the session crashes. Otherwise, we'll leak the chunk and it wil be
+        // orphaned forever (unless we had some GC process for orphaned chunks).
         chunk_offset_t chunk_offset = s_log.data()->current_chunk;
         if (chunk_offset != c_invalid_chunk_offset)
         {
@@ -2503,23 +2510,22 @@ void server_t::txn_rollback(bool client_disconnected)
             // Get final allocation from chunk metadata, so we can check to be sure
             // it's present in our txn log.
             gaia_offset_t last_allocated_offset = s_chunk_manager.last_allocated_offset();
+
             // If we haven't logged the final allocation, then deallocate it directly.
             if (last_allocated_offset != c_invalid_gaia_offset)
             {
                 bool is_log_empty = (s_log.data()->record_count == 0);
+
                 // If we have no log records, but we do have a final allocation, then deallocate it directly.
                 bool should_deallocate_directly = is_log_empty;
+
                 // If we do have a non-empty log, then check if the final record matches the final allocation.
                 if (!is_log_empty)
                 {
-                    size_t last_log_record_index = s_log.data()->record_count - 1;
-                    txn_log_t::log_record_t last_log_record = s_log.data()->log_records[last_log_record_index];
-
-                    // If we haven't logged the final allocation, then deallocate it directly.
-                    if (last_log_record.new_offset != last_allocated_offset)
-                    {
-                        should_deallocate_directly = true;
-                    }
+                    // BUG (GAIAPLAT-1490): I removed the original logic here
+                    // because it was incorrect. We can afford to leak the final
+                    // allocation when a session crashes in the middle of a txn
+                    // for now, until we implement this properly.
                 }
 
                 if (should_deallocate_directly)
@@ -2530,8 +2536,13 @@ void server_t::txn_rollback(bool client_disconnected)
 
             // Get the session's chunk version for safe deallocation.
             chunk_version_t version = s_chunk_manager.get_version();
+
             // Now retire the chunk.
             s_chunk_manager.retire_chunk(version);
+
+            // We don't strictly need this since the session thread is about to exit,
+            // but it's good hygiene to clear unused thread-locals.
+            s_chunk_manager.release();
         }
     }
 

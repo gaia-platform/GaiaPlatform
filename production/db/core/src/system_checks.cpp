@@ -40,7 +40,7 @@ bool is_little_endian()
 
 bool has_expected_page_size()
 {
-    if (::sysconf(_SC_PAGESIZE) != memory_manager::c_page_size_bytes)
+    if (::sysconf(_SC_PAGESIZE) != memory_manager::c_page_size_in_bytes)
     {
         return false;
     }

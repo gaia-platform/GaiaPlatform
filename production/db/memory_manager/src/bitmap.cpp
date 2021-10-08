@@ -205,22 +205,22 @@ void safe_set_bit_range_value(
 }
 
 size_t count_set_bits(
-    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t end_limit_bit_index)
+    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t end_limit_exclusive_bit_index)
 {
     validate_bitmap_parameters(bitmap, bitmap_word_size);
 
     // If no limit bit index was provided, set the limit to just past the last bit index in the bitmap.
-    if (end_limit_bit_index == c_max_bit_index)
+    if (end_limit_exclusive_bit_index == c_max_bit_index)
     {
-        end_limit_bit_index = bitmap_word_size * c_uint64_bit_count;
+        end_limit_exclusive_bit_index = bitmap_word_size * c_uint64_bit_count;
     }
     else
     {
-        validate_bit_index(bitmap_word_size, end_limit_bit_index - 1);
+        validate_bit_index(bitmap_word_size, end_limit_exclusive_bit_index - 1);
     }
 
-    size_t end_word_index_exclusive = (end_limit_bit_index + c_uint64_bit_count - 1) / c_uint64_bit_count;
-    size_t end_bit_index_in_word_exclusive = end_limit_bit_index % c_uint64_bit_count;
+    size_t end_word_index_exclusive = (end_limit_exclusive_bit_index + c_uint64_bit_count - 1) / c_uint64_bit_count;
+    size_t end_bit_index_in_word_exclusive = end_limit_exclusive_bit_index % c_uint64_bit_count;
     // If end_bit_index_in_word_exclusive == 0, then we need to convert it to
     // the word size in bits, because that means that the exclusive upper bound
     // is at the very end of the word.
@@ -251,22 +251,23 @@ size_t count_set_bits(
 }
 
 size_t find_first_unset_bit(
-    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t end_limit_bit_index)
+    std::atomic<uint64_t>* bitmap, size_t bitmap_word_size, size_t end_limit_exclusive_bit_index)
 {
     validate_bitmap_parameters(bitmap, bitmap_word_size);
 
     // If no limit bit index was provided, set the limit to the last bit index in the bitmap.
-    if (end_limit_bit_index == c_max_bit_index)
+    if (end_limit_exclusive_bit_index == c_max_bit_index)
     {
-        end_limit_bit_index = bitmap_word_size * c_uint64_bit_count;
+        end_limit_exclusive_bit_index = bitmap_word_size * c_uint64_bit_count;
     }
     else
     {
-        validate_bit_index(bitmap_word_size, end_limit_bit_index - 1);
+        validate_bit_index(bitmap_word_size, end_limit_exclusive_bit_index - 1);
     }
 
-    size_t end_word_index_exclusive = (end_limit_bit_index + c_uint64_bit_count - 1) / c_uint64_bit_count;
-    size_t end_bit_index_in_word_exclusive = end_limit_bit_index % c_uint64_bit_count;
+    size_t end_word_index_exclusive = (end_limit_exclusive_bit_index + c_uint64_bit_count - 1) / c_uint64_bit_count;
+    size_t end_bit_index_in_word_exclusive = end_limit_exclusive_bit_index % c_uint64_bit_count;
+
     // If end_bit_index_in_word_exclusive == 0, then we need to convert it to
     // the word size in bits, because that means that the exclusive upper bound
     // is at the very end of the word.

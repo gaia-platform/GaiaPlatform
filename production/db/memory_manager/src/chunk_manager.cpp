@@ -14,9 +14,9 @@
 #include "gaia_internal/common/scope_guard.hpp"
 
 #include "bitmap.hpp"
-#include "db_helpers.hpp"
 #include "db_shared_data.hpp"
 #include "memory_types.hpp"
+#include "mm_helpers.hpp"
 
 namespace gaia
 {
@@ -40,7 +40,7 @@ void chunk_manager_t::initialize_internal(
 
     // Map the metadata information for quick reference.
     char* base_address = reinterpret_cast<char*>(gaia::db::get_data()->objects);
-    void* metadata_address = base_address + (chunk_offset * c_chunk_size_bytes);
+    void* metadata_address = base_address + (chunk_offset * c_chunk_size_in_bytes);
     m_metadata = static_cast<chunk_manager_metadata_t*>(metadata_address);
 
     if (initialize_memory)
@@ -80,7 +80,7 @@ chunk_state_t chunk_manager_t::get_state()
 }
 
 gaia_offset_t chunk_manager_t::allocate(
-    size_t allocation_size_bytes)
+    size_t allocation_size_in_bytes)
 {
     // If we are uninitialized, then the caller must initialize us with a new chunk.
     if (!initialized())
@@ -88,35 +88,36 @@ gaia_offset_t chunk_manager_t::allocate(
         return c_invalid_gaia_offset;
     }
 
-    ASSERT_PRECONDITION(allocation_size_bytes > 0, "Requested allocation size cannot be 0!");
+    // If we are allocating from a chunk, it must be in the IN_USE state.
+    chunk_state_t chunk_state = get_state();
+    ASSERT_PRECONDITION(
+        chunk_state == chunk_state_t::in_use,
+        "Cannot allocate from a chunk that is not in the IN_USE state!");
+
+    ASSERT_PRECONDITION(allocation_size_in_bytes > 0, "Requested allocation size cannot be 0!");
 
     // Check before converting to slot units to avoid overflow.
     ASSERT_PRECONDITION(
-        allocation_size_bytes <= c_max_allocation_size_slots * c_slot_size_bytes,
+        allocation_size_in_bytes <= (c_max_allocation_size_in_slots * c_slot_size_in_bytes),
         "Requested allocation size exceeds maximum allocation size of 64KB!");
 
     // Calculate allocation size in slot units.
 #ifdef DEBUG
     // Round up allocation to a page so we can mprotect() it.
-    size_t allocation_size_pages = (allocation_size_bytes + c_page_size_bytes - 1) / c_page_size_bytes;
-    size_t allocation_size_slots = allocation_size_pages * (c_page_size_bytes / c_slot_size_bytes);
+    size_t allocation_size_in_pages = (allocation_size_in_bytes + c_page_size_in_bytes - 1) / c_page_size_in_bytes;
+    size_t allocation_size_in_slots = allocation_size_in_pages * (c_page_size_in_bytes / c_slot_size_in_bytes);
 #else
-    size_t allocation_size_slots = (allocation_size_bytes + c_slot_size_bytes - 1) / c_slot_size_bytes;
+    size_t allocation_size_in_slots = (allocation_size_in_bytes + c_slot_size_in_bytes - 1) / c_slot_size_in_bytes;
 #endif
+
     // Ensure that the new allocation doesn't overflow the chunk.
-    if (m_metadata->min_unallocated_slot_offset() + allocation_size_slots > c_last_slot_offset)
+    if (m_metadata->min_unallocated_slot_offset() + allocation_size_in_slots > c_last_slot_offset)
     {
         return c_invalid_gaia_offset;
     }
 
-    // Ensure that allocation metadata is consistent if an exception is thrown
-    // while it is being updated.
-    auto sync_metadata = make_scope_guard([&]() {
-        m_metadata->synchronize_allocation_metadata();
-    });
-
     // Now update the atomic allocation metadata.
-    m_metadata->update_last_allocation_metadata(allocation_size_slots);
+    m_metadata->update_last_allocation_metadata(allocation_size_in_slots);
 
     // Finally, update the allocation bitmap (order is important for crash-consistency).
     slot_offset_t allocated_slot = m_metadata->max_allocated_slot_offset();
@@ -152,19 +153,19 @@ bool chunk_manager_t::is_slot_allocated(slot_offset_t slot_offset) const
     // unset in the deallocation bitmap.
     bool was_slot_allocated = is_bit_set(
         m_metadata->allocated_slots_bitmap,
-        chunk_manager_metadata_t::c_slot_bitmap_size_words,
+        chunk_manager_metadata_t::c_slot_bitmap_size_in_words,
         bit_index);
 
     bool was_slot_deallocated = is_bit_set(
         m_metadata->deallocated_slots_bitmap,
-        chunk_manager_metadata_t::c_slot_bitmap_size_words,
+        chunk_manager_metadata_t::c_slot_bitmap_size_in_words,
         bit_index);
-
-    bool is_slot_allocated = (was_slot_allocated && !was_slot_deallocated);
 
     ASSERT_INVARIANT(
         was_slot_allocated || !was_slot_deallocated,
         "It is illegal for a slot to be marked in the deallocation bitmap but not in the allocation bitmap!");
+
+    bool is_slot_allocated = (was_slot_allocated && !was_slot_deallocated);
 
     return is_slot_allocated;
 }
@@ -172,6 +173,7 @@ bool chunk_manager_t::is_slot_allocated(slot_offset_t slot_offset) const
 void chunk_manager_t::mark_slot_allocated(slot_offset_t slot_offset)
 {
     validate_metadata(m_metadata);
+
     ASSERT_PRECONDITION(
         slot_offset >= c_first_slot_offset && slot_offset <= c_last_slot_offset,
         "Slot offset passed to mark_slot_allocated() is out of bounds");
@@ -187,7 +189,7 @@ void chunk_manager_t::mark_slot_allocated(slot_offset_t slot_offset)
     // We don't need a CAS because only the owning thread can allocate a slot.
     set_bit_value(
         m_metadata->allocated_slots_bitmap,
-        chunk_manager_metadata_t::c_slot_bitmap_size_words,
+        chunk_manager_metadata_t::c_slot_bitmap_size_in_words,
         bit_index,
         true);
 }
@@ -212,7 +214,7 @@ void chunk_manager_t::mark_slot_deallocated(slot_offset_t slot_offset)
     // tasks can be concurrently active within a chunk.
     safe_set_bit_value(
         m_metadata->deallocated_slots_bitmap,
-        chunk_manager_metadata_t::c_slot_bitmap_size_words,
+        chunk_manager_metadata_t::c_slot_bitmap_size_in_words,
         bit_index, true);
 }
 
@@ -291,7 +293,7 @@ void chunk_manager_t::decommit_data_pages()
     // In debug mode, we must remove any write protection from the chunk, or
     // madvise(MADV_REMOVE) will fail with EACCES.
 #ifdef DEBUG
-    if (-1 == ::mprotect(first_data_page_address, c_data_pages_size_bytes, PROT_READ | PROT_WRITE))
+    if (-1 == ::mprotect(first_data_page_address, c_data_pages_size_in_bytes, PROT_READ | PROT_WRITE))
     {
         throw_system_error("mprotect(PROT_READ|PROT_WRITE) failed!");
     }
@@ -300,7 +302,7 @@ void chunk_manager_t::decommit_data_pages()
     // MADV_FREE seems like the best fit for our needs, since it allows the OS to lazily reclaim decommitted pages.
     // However, it returns EINVAL when used with MAP_SHARED, so we need to use MADV_REMOVE (which works with memfd objects).
     // According to the manpage, madvise(MADV_REMOVE) is equivalent to fallocate(FALLOC_FL_PUNCH_HOLE).
-    if (-1 == ::madvise(first_data_page_address, c_data_pages_size_bytes, MADV_REMOVE))
+    if (-1 == ::madvise(first_data_page_address, c_data_pages_size_in_bytes, MADV_REMOVE))
     {
         throw_system_error("madvise(MADV_REMOVE) failed!");
     }
@@ -316,7 +318,7 @@ bool chunk_manager_t::is_empty(chunk_version_t initial_version)
 
     // Loop over both bitmaps in parallel, XORing each pair of words to
     // determine if there are any live allocations in that word.
-    for (size_t word_index = 0; word_index < chunk_manager_metadata_t::c_slot_bitmap_size_words; ++word_index)
+    for (size_t word_index = 0; word_index < chunk_manager_metadata_t::c_slot_bitmap_size_in_words; ++word_index)
     {
         uint64_t allocation_word = m_metadata->allocated_slots_bitmap[word_index];
         uint64_t deallocation_word = m_metadata->deallocated_slots_bitmap[word_index];

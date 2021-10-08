@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "chunk_manager.hpp"
 #include "db_internal_types.hpp"
 #include "mapped_data.hpp"
 #include "memory_manager.hpp"

@@ -27,9 +27,6 @@ namespace gaia
 namespace db
 {
 
-using memory_manager::chunk_offset_t;
-using memory_manager::slot_offset_t;
-
 template <typename T>
 using aligned_storage_for_t =
     typename std::aligned_storage<sizeof(T), alignof(T)>::type;
@@ -201,7 +198,7 @@ namespace index
 {
 
 typedef std::shared_ptr<base_index_t> db_index_t;
-typedef std::unordered_map<gaia::common::gaia_id_t, db_index_t> indexes_t;
+typedef std::unordered_map<common::gaia_id_t, db_index_t> indexes_t;
 
 } // namespace index
 
