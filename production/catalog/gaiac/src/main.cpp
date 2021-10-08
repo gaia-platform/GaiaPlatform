@@ -402,6 +402,7 @@ int main(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
 
+    // If an output path is not provided we generate one.
     if (mode == operate_mode_t::generation && output_path.empty())
     {
         // TODO: in the spec https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1240?focusedCommentId=11101
@@ -413,6 +414,7 @@ int main(int argc, char* argv[])
              << endl;
     }
 
+    // --db-name make sense only if gaiac is run in generation mode.
     if (!db_names.empty() && mode != operate_mode_t::generation)
     {
         cerr << c_error_prompt
