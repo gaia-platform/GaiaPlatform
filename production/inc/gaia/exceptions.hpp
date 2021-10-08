@@ -36,7 +36,7 @@ public:
 };
 
 /**
- * An exception class used for to indicate invalid Gaia configuration settings.
+ * An exception class used to indicate invalid Gaia configuration settings.
  */
 class configuration_error : public gaia_exception
 {

@@ -44,8 +44,8 @@ constexpr uint64_t c_min_vm_limit{RLIM_INFINITY};
 // administrator.)
 constexpr uint64_t c_min_fd_limit{std::numeric_limits<uint16_t>::max() + 512};
 
-constexpr char c_warn_once_attr_name[] = "user.gaia.warn_once";
-constexpr char c_warn_once_attr_value[] = "true";
+constexpr char c_warn_once_attribute_name[] = "user.gaia.warn_once";
+constexpr char c_warn_once_attribute_value[] = "true";
 
 // This buffer size includes the null terminator.
 constexpr size_t c_path_size_bytes{256};

@@ -11,6 +11,7 @@
 #include <charconv>
 
 #include <iostream>
+#include <sstream>
 
 #include <libexplain/getrlimit.h>
 #include <libexplain/open.h>
@@ -85,7 +86,7 @@ bool set_warn_once_attribute()
 {
     char path[c_path_size_bytes];
     get_process_path(path, sizeof(path));
-    if (-1 == ::setxattr(path, c_warn_once_attr_name, c_warn_once_attr_value, sizeof(c_warn_once_attr_value), XATTR_CREATE))
+    if (-1 == ::setxattr(path, c_warn_once_attribute_name, c_warn_once_attribute_value, sizeof(c_warn_once_attribute_value), XATTR_CREATE))
     {
         // If the attribute already exists, ignore failure.
         if (errno == EEXIST)
@@ -104,10 +105,10 @@ int get_warn_once_attribute()
 {
     char path[c_path_size_bytes];
     get_process_path(path, sizeof(path));
-    char value[sizeof(c_warn_once_attr_value)];
+    char value[sizeof(c_warn_once_attribute_value)];
 
     ssize_t bytes_read = ::getxattr(
-        path, c_warn_once_attr_name, value, sizeof(value));
+        path, c_warn_once_attribute_name, value, sizeof(value));
     if (bytes_read == -1)
     {
         if (errno == ENODATA || errno == ENOTSUP)
@@ -117,7 +118,16 @@ int get_warn_once_attribute()
         gaia::common::throw_system_error("getxattr() failed!");
     }
 
-    ASSERT_POSTCONDITION(strcmp(value, c_warn_once_attr_value) == 0, "Unexpected attribute value!");
+    if (strcmp(value, c_warn_once_attribute_value) != 0)
+    {
+        std::stringstream strstream;
+        strstream
+            << "Unexpected value of extended attribute '"
+            << c_warn_once_attribute_name << "': '" << value
+            << "' (expected value: '" << c_warn_once_attribute_value << "')";
+        throw common::gaia_exception(strstream.str());
+    }
+
     return 0;
 }
 

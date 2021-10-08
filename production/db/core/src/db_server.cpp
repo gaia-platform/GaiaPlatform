@@ -2620,7 +2620,7 @@ static bool is_system_compatible()
     if (policy_id != c_always_overcommit_policy_id)
     {
         bool should_print_warning = false;
-        bool should_set_warn_once_attr = false;
+        bool should_set_warn_once_attribute = false;
         int ret = get_warn_once_attribute();
 
         if (ret == ENOTSUP)
@@ -2628,7 +2628,7 @@ static bool is_system_compatible()
             // Extended attributes are not supported on this system, so print
             // the warning but don't try to set the attribute.
             should_print_warning = true;
-            should_set_warn_once_attr = false;
+            should_set_warn_once_attribute = false;
         }
         else if (ret == ENODATA)
         {
@@ -2637,22 +2637,22 @@ static bool is_system_compatible()
             // the attribute so we omit the warning the next time gaia_db_server
             // is run.
             should_print_warning = true;
-            should_set_warn_once_attr = true;
+            should_set_warn_once_attribute = true;
         }
         else if (ret == 0)
         {
             // The warn_once extended attribute was already set on the
             // gaia_db_server executable, so omit the warning.
             should_print_warning = false;
-            should_set_warn_once_attr = false;
+            should_set_warn_once_attribute = false;
         }
         else
         {
-            ASSERT_UNREACHABLE("Unexpected return value!");
+            ASSERT_UNREACHABLE("get_warn_once_attribute() returned an unexpected value!");
         }
 
         ASSERT_INVARIANT(
-            !(should_print_warning == false && should_set_warn_once_attr == true),
+            should_print_warning || !should_set_warn_once_attribute,
             "If warning is not printed, then warn_once attribute should not be set!");
 
         if (should_print_warning)
@@ -2704,12 +2704,12 @@ Save the file, and in a shell with root privileges type
             )" << std::endl;
         }
 
-        if (should_set_warn_once_attr)
+        if (should_set_warn_once_attribute)
         {
             // It should not be possible for this call to fail, because we
             // already tested for system support in get_warn_once_attribute().
-            bool set_attr = set_warn_once_attribute();
-            ASSERT_POSTCONDITION(set_attr, "set_warn_once_attribute() should not fail!");
+            bool set_attribute = set_warn_once_attribute();
+            ASSERT_POSTCONDITION(set_attribute, "set_warn_once_attribute() should not fail!");
         }
     }
 
