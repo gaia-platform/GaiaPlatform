@@ -112,20 +112,30 @@ bool gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t firs
         throw child_already_referenced(child_ptr.type(), relationship->parent_offset);
     }
 
-    // BUILD THE REFERENCES
+    // Clone parent and child objects for CoW updates.
     // TODO (Mihir): if the parent/child have been created in the same txn, the clone may not be necessary.
     gaia_offset_t old_parent_offset = to_offset();
     clone_no_txn();
 
     gaia_offset_t old_child_offset = child_ptr.to_offset();
-    child_ptr.clone_no_txn();
+
+    // Need to handle self-references.
+    if (*this != child_ptr)
+    {
+        child_ptr.clone_no_txn();
+    }
 
     child_ptr.references()[relationship->next_child_offset] = references()[first_child_offset];
     references()[first_child_offset] = child_ptr.id();
     child_ptr.references()[relationship->parent_offset] = id();
 
+    // Need to handle self-references.
+    if (*this != child_ptr)
+    {
+        client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
+    }
+
     client_t::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
-    client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
     return true;
 }
 
@@ -194,11 +204,17 @@ bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
         throw invalid_child(child_ptr.type(), child_id, type(), id());
     }
 
-    // Remove reference.
+    // Clone parent and child objects for CoW updates.
     gaia_offset_t old_parent_offset = to_offset();
     clone_no_txn();
+
     gaia_offset_t old_child_offset = child_ptr.to_offset();
-    child_ptr.clone_no_txn();
+
+    // Need to handle self-references.
+    if (*this != child_ptr)
+    {
+        child_ptr.clone_no_txn();
+    }
 
     gaia_id_t prev_child = c_invalid_gaia_id;
     gaia_id_t curr_child = references()[first_child_offset];
@@ -234,8 +250,13 @@ bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
         curr_ptr.references()[relationship->next_child_offset] = c_invalid_gaia_id;
     }
 
+    // Need to handle self-references.
+    if (*this != child_ptr)
+    {
+        client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
+    }
+
     client_t::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
-    client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
     return true;
 }
 
