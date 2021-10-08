@@ -230,6 +230,9 @@ function(translate_ruleset)
 
   if(NOT DEFINED ARG_DEPENDS)
     set(ARG_DEPENDS ${GAIA_DIRECT_ACCESS_GENERATION_TARGETS})
+    # This prevents adding the direct access custom targets to the
+    # user target within target_add_gaia_generated_sources().
+    set(GAIA_DIRECT_ACCESS_GENERATION_TARGETS "")
   endif()
 
   add_custom_command(
@@ -262,19 +265,29 @@ function(target_add_gaia_generated_sources TARGET_NAME)
   # Adds direct access .h header directories
   foreach(HEADER_FILE ${GAIA_DIRECT_ACCESS_GENERATED_HEADERS})
     get_filename_component(HEADER_DIR ${HEADER_FILE} DIRECTORY)
-    message(STATUS "Adding ${HEADER_DIR} to ${TARGET_NAME}...")
+    message(STATUS "Adding headers ${HEADER_DIR} to target ${TARGET_NAME}...")
     target_include_directories(${TARGET_NAME} PUBLIC ${HEADER_DIR})
   endforeach()
 
   # Adds direct access .cpp files
   foreach(CPP_FILE ${GAIA_DIRECT_ACCESS_GENERATED_CPP})
-    message(STATUS "Adding ${CPP_FILE} to ${TARGET_NAME}...")
+    message(STATUS "Adding source ${CPP_FILE} to target ${TARGET_NAME}...")
     target_sources(${TARGET_NAME} PRIVATE ${CPP_FILE})
   endforeach()
 
   # Adds Rules .cpp files
   foreach(CPP_FILE ${GAIA_RULES_TRANSLATED_CPP})
-    message(STATUS "Adding ${CPP_FILE} to ${TARGET_NAME}...")
+    message(STATUS "Adding source ${CPP_FILE} to target ${TARGET_NAME}...")
     target_sources(${TARGET_NAME} PRIVATE ${CPP_FILE})
+  endforeach()
+
+  foreach(DIRECT_ACCESS_TARGET ${GAIA_DIRECT_ACCESS_GENERATION_TARGETS})
+    message(STATUS "Adding custom target ${DIRECT_ACCESS_TARGET} to ${TARGET_NAME}...")
+    add_dependencies(${TARGET_NAME} ${DIRECT_ACCESS_TARGET})
+  endforeach()
+
+  foreach(TRANSLATION_TARGET ${GAIA_RULES_TRANSLATION_TARGETS})
+    message(STATUS "Adding custom target ${TRANSLATION_TARGET} to ${TARGET_NAME}...")
+    add_dependencies(${TARGET_NAME} ${TRANSLATION_TARGET})
   endforeach()
 endfunction()
