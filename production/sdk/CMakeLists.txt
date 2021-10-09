@@ -198,5 +198,10 @@ else()
   install(FILES ${GAIA_REPO}/production/examples/incubator/CMakeLists.txt DESTINATION examples/incubator)
 endif()
 
+# Place direct_access example
+install(FILES ${GAIA_REPO}/production/examples/direct_access/hospital.ddl DESTINATION examples/direct_access)
+install(FILES ${GAIA_REPO}/production/examples/direct_access/hospital.cpp DESTINATION examples/direct_access)
+install(FILES ${GAIA_REPO}/production/examples/direct_access/CMakeLists.txt DESTINATION examples/direct_access)
+
 # Place license files.
 install(FILES ${GAIA_REPO}/production/licenses/LICENSE.third-party.txt DESTINATION .)

@@ -843,7 +843,7 @@ int main()
     delete_one_to_one_relationship_re(patient_id);
     delete_one_to_one_relationship(patient_id);
     clean_db();
-    one_to_many_relationships_with_common_field();
+    one_to_many_value_linked_relationship();
     clean_db();
     create_filter_data();
     filter_lambda();

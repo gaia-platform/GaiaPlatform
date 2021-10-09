@@ -29,4 +29,5 @@ add_executable(hospital
 
 target_add_gaia_generated_sources(hospital)
 target_include_directories(hospital PRIVATE ${GAIA_INC})
-target_link_libraries(hospital PRIVATE gaia Threads::Threads)
+target_link_directories(hospital PRIVATE ${GAIA_LIB_DIR})
+target_link_libraries(hospital PRIVATE Threads::Threads)
