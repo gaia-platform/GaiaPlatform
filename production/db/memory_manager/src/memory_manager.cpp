@@ -14,9 +14,8 @@
 
 #include "bitmap.hpp"
 #include "chunk_manager.hpp"
-#include "db_internal_types.hpp"
+#include "memory_helpers.hpp"
 #include "memory_types.hpp"
-#include "mm_helpers.hpp"
 
 using namespace std;
 
@@ -104,7 +103,10 @@ chunk_offset_t memory_manager_t::allocate_unused_chunk()
 
         // Now try to claim this chunk.
         chunk_manager_t chunk_manager;
-        chunk_manager.load(allocated_chunk_offset);
+        chunk_manager.initialize(allocated_chunk_offset);
+        // REVIEW: the memory manager should call
+        // update_chunk_allocation_status() directly instead of delegating
+        // it to chunk_manager_t::allocate_chunk().
         if (chunk_manager.allocate_chunk())
         {
             return allocated_chunk_offset;
@@ -112,7 +114,7 @@ chunk_offset_t memory_manager_t::allocate_unused_chunk()
     }
 }
 
-chunk_offset_t memory_manager_t::allocate_reused_chunk()
+chunk_offset_t memory_manager_t::allocate_used_chunk()
 {
     // Starting from the first chunk, scan for the first empty chunk, up to a
     // snapshot of next_available_unused_chunk_offset. If we fail to claim an
@@ -124,43 +126,40 @@ chunk_offset_t memory_manager_t::allocate_reused_chunk()
     // scan.
     size_t first_unused_chunk_offset = m_metadata->next_available_unused_chunk_offset;
 
-    // If we're out of unused chunks, clamp next_available_unused_chunk_offset
-    // to its maximum logical value as an exclusive upper bound on valid chunk
-    // offsets.
+    // If we're out of unused chunks, set the exclusive upper bound of the
+    // bitmap scan to just past the end of the bitmap.
     if (first_unused_chunk_offset > c_last_chunk_offset)
     {
         first_unused_chunk_offset = c_last_chunk_offset + 1;
     }
 
-    // If first_unused_chunk_offset == c_first_chunk_offset,
-    // then we know that no chunks are available for reuse.
-    if (first_unused_chunk_offset != c_first_chunk_offset)
+    while (true)
     {
-        while (true)
+        size_t found_index = find_first_unset_bit(
+            m_metadata->allocated_chunks_bitmap,
+            memory_manager_metadata_t::c_chunk_bitmap_size_in_words,
+            first_unused_chunk_offset);
+
+        if (found_index == c_max_bit_index)
         {
-            size_t found_index = find_first_unset_bit(
-                m_metadata->allocated_chunks_bitmap,
-                memory_manager_metadata_t::c_chunk_bitmap_size_in_words,
-                first_unused_chunk_offset);
+            break;
+        }
 
-            if (found_index == c_max_bit_index)
-            {
-                break;
-            }
+        // We found an empty chunk, so try to claim it.
+        ASSERT_INVARIANT(
+            found_index >= c_first_chunk_offset
+                && found_index <= c_last_chunk_offset,
+            "Index returned by find_first_unset_bit() is outside expected range!");
 
-            // We found an empty chunk, so try to claim it.
-            ASSERT_INVARIANT(
-                found_index >= c_first_chunk_offset
-                    && found_index <= c_last_chunk_offset,
-                "found_index is out of range!");
-
-            auto available_chunk_offset = static_cast<chunk_offset_t>(found_index);
-            chunk_manager_t chunk_manager;
-            chunk_manager.load(available_chunk_offset);
-            if (chunk_manager.allocate_chunk())
-            {
-                return available_chunk_offset;
-            }
+        auto available_chunk_offset = static_cast<chunk_offset_t>(found_index);
+        chunk_manager_t chunk_manager;
+        chunk_manager.initialize(available_chunk_offset);
+        // REVIEW: the memory manager should call
+        // update_chunk_allocation_status() directly instead of delegating
+        // it to chunk_manager_t::allocate_chunk().
+        if (chunk_manager.allocate_chunk())
+        {
+            return available_chunk_offset;
         }
     }
 
@@ -173,7 +172,7 @@ chunk_offset_t memory_manager_t::allocate_reused_chunk()
 chunk_offset_t memory_manager_t::allocate_chunk()
 {
     // First try to reuse a deallocated chunk.
-    chunk_offset_t allocated_chunk_offset = allocate_reused_chunk();
+    chunk_offset_t allocated_chunk_offset = allocate_used_chunk();
     if (allocated_chunk_offset != c_invalid_chunk_offset)
     {
 #ifdef DEBUG
@@ -186,7 +185,7 @@ chunk_offset_t memory_manager_t::allocate_chunk()
         gaia_offset_t first_data_page_offset = offset_from_chunk_and_slot(allocated_chunk_offset, c_first_slot_offset);
         void* data_pages_initial_address = page_address_from_offset(first_data_page_offset);
 
-        if (-1 == ::mprotect(data_pages_initial_address, c_data_pages_size_in_bytes, PROT_READ | PROT_WRITE))
+        if (-1 == ::mprotect(data_pages_initial_address, c_chunk_data_pages_size_in_bytes, PROT_READ | PROT_WRITE))
         {
             throw_system_error("mprotect(PROT_READ|PROT_WRITE) failed!");
         }

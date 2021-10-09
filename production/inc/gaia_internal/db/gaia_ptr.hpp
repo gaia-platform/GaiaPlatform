@@ -86,7 +86,6 @@ public:
 
     db_object_t* to_ptr() const;
     gaia_offset_t to_offset() const;
-    inline gaia_locator_t to_locator() const;
 
     /**
      * Returns an iterator representing a server-side cursor over all objects of the given type.

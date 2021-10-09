@@ -78,7 +78,7 @@ struct alignas(gaia::db::memory_manager::c_allocation_alignment) db_object_t
         os << std::endl;
 
         size_t data_size = o.payload_size - (o.num_references * sizeof(gaia::common::gaia_id_t));
-        os << "data (binary):" << std::endl;
+        os << "data (hex):" << std::endl;
 
         for (size_t i = 0; i < data_size; ++i)
         {

@@ -36,9 +36,9 @@
 
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
+#include "memory_helpers.hpp"
 #include "memory_types.hpp"
 #include "messages_generated.h"
-#include "mm_helpers.hpp"
 #include "persistent_store_manager.hpp"
 #include "record_list_manager.hpp"
 #include "system_checks.hpp"
@@ -741,14 +741,14 @@ void server_t::deallocate_object(gaia_offset_t offset)
     // we read the version!
     memory_manager::chunk_version_t version = s_chunk_manager.get_version();
 
-    if (s_gc_chunks_to_versions.count(chunk_offset) == 0)
+    if (s_map_gc_chunks_to_versions.count(chunk_offset) == 0)
     {
-        s_gc_chunks_to_versions.insert({chunk_offset, version});
+        s_map_gc_chunks_to_versions.insert({chunk_offset, version});
     }
     else
     {
         // If this GC task already cached this chunk, then the versions must match!
-        memory_manager::chunk_version_t cached_version = s_gc_chunks_to_versions[chunk_offset];
+        memory_manager::chunk_version_t cached_version = s_map_gc_chunks_to_versions[chunk_offset];
         ASSERT_INVARIANT(version == cached_version, "Chunk version must match cached chunk version!");
     }
 
@@ -2339,7 +2339,7 @@ void server_t::apply_txn_logs_to_shared_view()
 void server_t::gc_applied_txn_logs()
 {
     // Ensure we clean up our cached chunk IDs when we exit this task.
-    auto cleanup_fd = make_scope_guard([&]() { s_gc_chunks_to_versions.clear(); });
+    auto cleanup_fd = make_scope_guard([&]() { s_map_gc_chunks_to_versions.clear(); });
 
     // First get a snapshot of the post-apply watermark, for an upper bound on the scan.
     gaia_txn_id_t last_applied_commit_ts_lower_bound = s_last_applied_commit_ts_lower_bound;
@@ -2421,7 +2421,7 @@ void server_t::gc_applied_txn_logs()
 
     // Now deallocate any unused chunks that have already been retired.
     // TODO: decommit unused pages (https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1446)
-    for (auto& entry : s_gc_chunks_to_versions)
+    for (auto& entry : s_map_gc_chunks_to_versions)
     {
         chunk_offset_t chunk_offset = entry.first;
         chunk_version_t chunk_version = entry.second;

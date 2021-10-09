@@ -8,6 +8,7 @@
 #include <sys/mman.h>
 
 #include "db_shared_data.hpp"
+#include "memory_structures.hpp"
 #include "memory_types.hpp"
 
 namespace gaia
@@ -23,7 +24,7 @@ inline chunk_offset_t chunk_from_offset(gaia_offset_t offset)
     static_assert(
         sizeof(gaia_offset_t) == sizeof(uint32_t)
         && sizeof(chunk_offset_t) == sizeof(uint16_t));
-    return static_cast<chunk_offset_t>(offset >> 16);
+    return static_cast<chunk_offset_t>(offset >> (CHAR_BIT * sizeof(slot_offset_t)));
 }
 
 inline slot_offset_t slot_from_offset(gaia_offset_t offset)
@@ -33,7 +34,7 @@ inline slot_offset_t slot_from_offset(gaia_offset_t offset)
         sizeof(gaia_offset_t) == sizeof(uint32_t)
         && sizeof(slot_offset_t) == sizeof(uint16_t));
     // First mask out the 16 high bits (for correctness), then truncate.
-    uint32_t mask = (1UL << 16) - 1;
+    constexpr uint32_t mask{(1UL << (CHAR_BIT * sizeof(slot_offset_t))) - 1};
     return static_cast<slot_offset_t>(offset & mask);
 }
 
@@ -46,7 +47,7 @@ inline gaia_offset_t offset_from_chunk_and_slot(
         sizeof(gaia_offset_t) == sizeof(uint32_t)
         && sizeof(chunk_offset_t) == sizeof(uint16_t)
         && sizeof(slot_offset_t) == sizeof(uint16_t));
-    return (chunk_offset << 16) | slot_offset;
+    return (chunk_offset << (CHAR_BIT * sizeof(slot_offset_t))) | slot_offset;
 }
 
 inline void* page_address_from_offset(gaia_offset_t offset)
@@ -65,12 +66,17 @@ inline void* page_address_from_offset(gaia_offset_t offset)
     return reinterpret_cast<void*>(page_ptr);
 }
 
+inline slot_offset_t bit_index_to_slot(size_t bit_index)
+{
+    return static_cast<slot_offset_t>(bit_index + c_first_slot_offset);
+}
+
 // Converts a slot offset to its bitmap index.
 inline size_t slot_to_bit_index(slot_offset_t slot_offset)
 {
     ASSERT_PRECONDITION(
         slot_offset >= c_first_slot_offset && slot_offset <= c_last_slot_offset,
-        "Slot offset passed to is_slot_allocated() is out of bounds!");
+        "Slot offset passed to slot_to_bit_index() is out of bounds!");
     return slot_offset - c_first_slot_offset;
 }
 

@@ -16,10 +16,12 @@ void memory_manager_metadata_t::clear()
 std::pair<chunk_state_t, chunk_version_t>
 chunk_manager_metadata_t::get_chunk_state_and_version()
 {
-    constexpr chunk_version_t c_chunk_state_mask{((chunk_version_t)1 << c_chunk_state_bit_width) - 1};
+    constexpr chunk_version_t c_chunk_state_mask{
+        ((1ULL << c_chunk_state_bit_width) - 1) << c_chunk_state_shift};
     constexpr chunk_version_t c_chunk_version_mask{
-        (((chunk_version_t)1 << c_chunk_version_bit_width) - 1) << c_chunk_version_shift};
-    chunk_state_t state{chunk_state_and_version & c_chunk_state_mask};
+        ((1ULL << c_chunk_version_bit_width) - 1) << c_chunk_version_shift};
+    chunk_state_t state{
+        (chunk_state_and_version & c_chunk_state_mask) >> c_chunk_state_shift};
     chunk_version_t version{
         (chunk_state_and_version & c_chunk_version_mask) >> c_chunk_version_shift};
     return {state, version};
@@ -35,8 +37,11 @@ chunk_version_t chunk_manager_metadata_t::get_chunk_version()
     return get_chunk_state_and_version().second;
 }
 
-chunk_manager_metadata_t::last_allocation_metadata_t::last_allocation_metadata_t()
-    : prev_max_allocated_slot_offset(c_invalid_slot_offset), max_allocated_slot_offset(c_invalid_slot_offset), min_unallocated_slot_offset(c_first_slot_offset), reserved(0)
+last_allocation_metadata_t::last_allocation_metadata_t()
+    : prev_max_allocated_slot_offset(c_invalid_slot_offset)
+    , max_allocated_slot_offset(c_invalid_slot_offset)
+    , min_unallocated_slot_offset(c_first_slot_offset)
+    , reserved(0)
 {
 }
 
@@ -105,11 +110,6 @@ void chunk_manager_metadata_t::update_last_allocation_metadata(size_t allocation
     new_metadata.min_unallocated_slot_offset = old_metadata.min_unallocated_slot_offset + allocation_size_in_slots;
     // Set the new "last allocation metadata" variables in a single atomic write.
     last_allocation_metadata = new_metadata;
-}
-
-static slot_offset_t bit_index_to_slot(size_t bit_index)
-{
-    return static_cast<slot_offset_t>(bit_index + c_first_slot_offset);
 }
 
 slot_offset_t chunk_manager_metadata_t::get_last_allocated_slot_from_bitmap()

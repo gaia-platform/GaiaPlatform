@@ -14,9 +14,8 @@
 #include "gaia_internal/common/scope_guard.hpp"
 
 #include "bitmap.hpp"
-#include "db_shared_data.hpp"
+#include "memory_helpers.hpp"
 #include "memory_types.hpp"
-#include "mm_helpers.hpp"
 
 namespace gaia
 {
@@ -28,9 +27,11 @@ namespace memory_manager
 using namespace gaia::common;
 using scope_guard::make_scope_guard;
 
-static void validate_metadata(chunk_manager_metadata_t* metadata)
+void chunk_manager_t::validate()
 {
-    ASSERT_PRECONDITION(metadata != nullptr, "Chunk manager was not initialized!");
+    ASSERT_PRECONDITION(
+        (m_chunk_offset != c_invalid_chunk_offset) && (m_metadata != nullptr),
+        "Chunk manager was not initialized!");
 }
 
 void chunk_manager_t::initialize_internal(
@@ -71,11 +72,13 @@ chunk_offset_t chunk_manager_t::release()
 
 chunk_version_t chunk_manager_t::get_version()
 {
+    validate();
     return m_metadata->get_chunk_version();
 }
 
 chunk_state_t chunk_manager_t::get_state()
 {
+    validate();
     return m_metadata->get_chunk_state();
 }
 
@@ -145,7 +148,7 @@ void chunk_manager_t::deallocate(gaia_offset_t offset)
 
 bool chunk_manager_t::is_slot_allocated(slot_offset_t slot_offset) const
 {
-    validate_metadata(m_metadata);
+    validate();
 
     size_t bit_index = slot_to_bit_index(slot_offset);
 
@@ -170,52 +173,46 @@ bool chunk_manager_t::is_slot_allocated(slot_offset_t slot_offset) const
     return is_slot_allocated;
 }
 
-void chunk_manager_t::mark_slot_allocated(slot_offset_t slot_offset)
+void chunk_manager_t::mark_slot(slot_offset_t slot_offset, bool allocating_slot)
 {
-    validate_metadata(m_metadata);
+    validate();
 
     ASSERT_PRECONDITION(
         slot_offset >= c_first_slot_offset && slot_offset <= c_last_slot_offset,
-        "Slot offset passed to mark_slot_allocated() is out of bounds");
+        "Slot offset passed to mark_slot() is out of bounds");
 
     // is_slot_allocated() also checks that the deallocation bit is not set if
     // the allocation bit is not set.
     ASSERT_PRECONDITION(
-        !is_slot_allocated(slot_offset),
-        "Slot cannot be allocated multiple times!");
+        !allocating_slot && is_slot_allocated(slot_offset),
+        allocating_slot
+            ? "Slot cannot be allocated multiple times!"
+            : "Slot cannot be deallocated unless it is first allocated!");
 
     size_t bit_index = slot_to_bit_index(slot_offset);
 
-    // We don't need a CAS because only the owning thread can allocate a slot.
-    set_bit_value(
-        m_metadata->allocated_slots_bitmap,
+    // We really need safe_set_bit_value() only for deallocation, because GC
+    // tasks deallocate slots, and multiple GC tasks can be concurrently active
+    // within a chunk, but only the owning thread can allocate slots in a chunk.
+    safe_set_bit_value(
+        allocating_slot
+            ? m_metadata->allocated_slots_bitmap
+            : m_metadata->deallocated_slots_bitmap,
         chunk_manager_metadata_t::c_slot_bitmap_size_in_words,
         bit_index,
-        true);
+        allocating_slot);
+}
+
+void chunk_manager_t::mark_slot_allocated(slot_offset_t slot_offset)
+{
+    bool is_slot_allocated = true;
+    mark_slot(slot_offset, is_slot_allocated);
 }
 
 void chunk_manager_t::mark_slot_deallocated(slot_offset_t slot_offset)
 {
-    validate_metadata(m_metadata);
-
-    ASSERT_PRECONDITION(
-        slot_offset >= c_first_slot_offset && slot_offset <= c_last_slot_offset,
-        "Slot offset passed to mark_slot_deallocated() is out of bounds");
-
-    // is_slot_allocated() also checks that the deallocation bit is not set if
-    // the allocation bit is not set.
-    ASSERT_PRECONDITION(
-        is_slot_allocated(slot_offset),
-        "Slot cannot be deallocated unless it is first allocated!");
-
-    size_t bit_index = slot_to_bit_index(slot_offset);
-
-    // We need safe_set_bit_value() because GC tasks deallocate slots, and multiple GC
-    // tasks can be concurrently active within a chunk.
-    safe_set_bit_value(
-        m_metadata->deallocated_slots_bitmap,
-        chunk_manager_metadata_t::c_slot_bitmap_size_in_words,
-        bit_index, true);
+    bool is_slot_allocated = false;
+    mark_slot(slot_offset, is_slot_allocated);
 }
 
 bool chunk_manager_t::allocate_chunk()
@@ -243,6 +240,85 @@ void chunk_manager_t::retire_chunk(chunk_version_t version)
 
     // If the retired chunk is empty, deallocate it.
     try_deallocate_chunk(version);
+}
+
+bool chunk_manager_t::is_empty(chunk_version_t initial_version)
+{
+    // This is a best-effort non-atomic scan; it's possible that some page
+    // previously observed to be non-empty will be empty by the end of the scan.
+    // However, we check after every read that the current version is still
+    // `initial_version`, so if this method returns success, the caller knows
+    // that the chunk was not reused during the scan.
+
+    // Loop over both bitmaps in parallel, XORing each pair of words to
+    // determine if there are any initial slots of live allocations in that
+    // word.
+    for (size_t word_index = 0; word_index < chunk_manager_metadata_t::c_slot_bitmap_size_in_words; ++word_index)
+    {
+        uint64_t allocation_word = m_metadata->allocated_slots_bitmap[word_index];
+        uint64_t deallocation_word = m_metadata->deallocated_slots_bitmap[word_index];
+
+        // If the version changed, then the chunk was concurrently reused during
+        // the scan, so abort without checking invariants.
+        // NB: It's crucial that the version is checked immediately _after_ we
+        // have read any values that might have concurrently changed, but
+        // _before_ we do anything with them. If we checked the version before
+        // the read, we wouldn't know if the chunk had been concurrently reused
+        // before or during the read, so we couldn't safely check invariants.
+        // REVIEW: do we need a distinct return value for failed
+        // version check?
+        if (m_metadata->get_chunk_version() != initial_version)
+        {
+            return false;
+        }
+
+        // The bits set in the deallocation bitmap word must be a subset of the
+        // bits set in the allocation bitmap word.
+        ASSERT_INVARIANT(
+            (allocation_word | deallocation_word) == allocation_word,
+            "All bits set in the deallocation bitmap must be set in the allocation bitmap!");
+
+        // If some bits set in the allocation word are not set in the
+        // deallocation word, then this page contains the initial slots of live
+        // allocations, otherwise the only live allocations it can contain must
+        // be continued from a previous page. But if no pages contain the
+        // initial slots of live allocations, then the entire chunk must be
+        // empty.
+        if ((allocation_word ^ deallocation_word) != 0)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void chunk_manager_t::decommit_data_pages()
+{
+    ASSERT_PRECONDITION(
+        m_metadata->get_chunk_state() == chunk_state_t::deallocating,
+        "Chunk must be in DEALLOCATING state to decommit data pages!");
+
+    // Get address of first data page.
+    gaia_offset_t first_data_page_offset = offset_from_chunk_and_slot(m_chunk_offset, c_first_slot_offset);
+    void* first_data_page_address = page_address_from_offset(first_data_page_offset);
+
+    // In debug mode, we must remove any write protection from the chunk, or
+    // madvise(MADV_REMOVE) will fail with EACCES.
+#ifdef DEBUG
+    if (-1 == ::mprotect(first_data_page_address, c_chunk_data_pages_size_in_bytes, PROT_READ | PROT_WRITE))
+    {
+        throw_system_error("mprotect(PROT_READ|PROT_WRITE) failed!");
+    }
+#endif
+
+    // MADV_FREE seems like the best fit for our needs, since it allows the OS to lazily reclaim decommitted pages.
+    // However, it returns EINVAL when used with MAP_SHARED, so we need to use MADV_REMOVE (which works with memfd objects).
+    // According to the manpage, madvise(MADV_REMOVE) is equivalent to fallocate(FALLOC_FL_PUNCH_HOLE).
+    if (-1 == ::madvise(first_data_page_address, c_chunk_data_pages_size_in_bytes, MADV_REMOVE))
+    {
+        throw_system_error("madvise(MADV_REMOVE) failed!");
+    }
 }
 
 bool chunk_manager_t::try_deallocate_chunk(chunk_version_t initial_version)
@@ -276,74 +352,6 @@ bool chunk_manager_t::try_deallocate_chunk(chunk_version_t initial_version)
 
     // Finally, update the "allocated chunk bitmap" in the memory manager.
     gaia::db::get_memory_manager()->update_chunk_allocation_status(m_chunk_offset, false);
-
-    return true;
-}
-
-void chunk_manager_t::decommit_data_pages()
-{
-    ASSERT_PRECONDITION(
-        m_metadata->get_chunk_state() == chunk_state_t::deallocating,
-        "Chunk must be in DEALLOCATING state to decommit data pages!");
-
-    // Get address of first data page.
-    gaia_offset_t first_data_page_offset = offset_from_chunk_and_slot(m_chunk_offset, c_first_slot_offset);
-    void* first_data_page_address = page_address_from_offset(first_data_page_offset);
-
-    // In debug mode, we must remove any write protection from the chunk, or
-    // madvise(MADV_REMOVE) will fail with EACCES.
-#ifdef DEBUG
-    if (-1 == ::mprotect(first_data_page_address, c_data_pages_size_in_bytes, PROT_READ | PROT_WRITE))
-    {
-        throw_system_error("mprotect(PROT_READ|PROT_WRITE) failed!");
-    }
-#endif
-
-    // MADV_FREE seems like the best fit for our needs, since it allows the OS to lazily reclaim decommitted pages.
-    // However, it returns EINVAL when used with MAP_SHARED, so we need to use MADV_REMOVE (which works with memfd objects).
-    // According to the manpage, madvise(MADV_REMOVE) is equivalent to fallocate(FALLOC_FL_PUNCH_HOLE).
-    if (-1 == ::madvise(first_data_page_address, c_data_pages_size_in_bytes, MADV_REMOVE))
-    {
-        throw_system_error("madvise(MADV_REMOVE) failed!");
-    }
-}
-
-bool chunk_manager_t::is_empty(chunk_version_t initial_version)
-{
-    // This is a best-effort non-atomic scan; it's possible that some page
-    // previously observed to be non-empty will be empty by the end of the scan.
-    // However, we check after every read that the current version is still
-    // `initial_version`, so if this method returns success, the caller knows
-    // that the chunk was not reused during the scan.
-
-    // Loop over both bitmaps in parallel, XORing each pair of words to
-    // determine if there are any live allocations in that word.
-    for (size_t word_index = 0; word_index < chunk_manager_metadata_t::c_slot_bitmap_size_in_words; ++word_index)
-    {
-        uint64_t allocation_word = m_metadata->allocated_slots_bitmap[word_index];
-        uint64_t deallocation_word = m_metadata->deallocated_slots_bitmap[word_index];
-
-        // If the version changed, then the chunk was concurrently reused during
-        // the scan, so abort without checking invariants.
-        // REVIEW: do we need a distinct return value for failed version check?
-        if (m_metadata->get_chunk_version() != initial_version)
-        {
-            return false;
-        }
-
-        // The bits set in the deallocation bitmap word must be a subset of the
-        // bits set in the allocation bitmap word.
-        ASSERT_INVARIANT(
-            (allocation_word | deallocation_word) == allocation_word,
-            "All bits set in the deallocation bitmap must be set in the allocation bitmap!");
-
-        // If some bits set in the allocation word are not set in the deallocation word,
-        // then this page contains live allocations, otherwise it is empty.
-        if ((allocation_word ^ deallocation_word) != 0)
-        {
-            return false;
-        }
-    }
 
     return true;
 }

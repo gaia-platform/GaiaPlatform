@@ -36,6 +36,9 @@ public:
 
     inline bool initialized()
     {
+        ASSERT_INVARIANT(
+            (m_chunk_offset != c_invalid_chunk_offset) == bool(m_metadata),
+            "The chunk offset and the metadata pointer must both be set or both be unset!");
         return (m_chunk_offset != c_invalid_chunk_offset);
     }
 
@@ -45,7 +48,8 @@ public:
     // Initialize the chunk manager with a used chunk.
     void load(chunk_offset_t chunk_offset);
 
-    // Takes ownership of the current chunk from the chunk manager.
+    // Takes ownership of the current chunk from the chunk manager. This
+    // facilitates reusing the same chunk manager instance for many chunks.
     chunk_offset_t release();
 
     // Returns an opaque version token for detecting chunk reuse.
@@ -104,7 +108,14 @@ private:
     void initialize_internal(chunk_offset_t chunk_offset, bool initialize_memory);
 
     // Checks whether a slot is currently allocated in the slot bitmaps.
+    // (A slot is considered "allocated" if it is the first slot of an
+    // allocation, and that allocation has not been subsequently deallocated.
+    // Equivalently, its bit in the allocation bitmap is set, and its bit in the
+    // deallocation bitmap is not set.)
     bool is_slot_allocated(slot_offset_t slot_offset) const;
+
+    // Marks a slot in the allocation or deallocation bitmap.
+    void mark_slot(slot_offset_t slot_offset, bool allocating_slot);
 
     // Marks a slot in the allocation bitmap.
     void mark_slot_allocated(slot_offset_t slot_offset);

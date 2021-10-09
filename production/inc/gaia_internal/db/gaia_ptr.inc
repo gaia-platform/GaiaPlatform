@@ -70,8 +70,3 @@ bool gaia_ptr_t::is(common::gaia_type_t type) const
 {
     return to_ptr() && to_ptr()->type == type;
 }
-
-gaia_locator_t gaia_ptr_t::to_locator() const
-{
-    return m_locator;
-}

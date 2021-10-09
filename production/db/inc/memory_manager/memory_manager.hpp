@@ -60,7 +60,7 @@ private:
     chunk_offset_t allocate_unused_chunk();
 
     // Internal method for making allocations from deallocated memory.
-    chunk_offset_t allocate_reused_chunk();
+    chunk_offset_t allocate_used_chunk();
 };
 
 } // namespace memory_manager

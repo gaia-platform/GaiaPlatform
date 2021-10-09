@@ -146,7 +146,7 @@ private:
     // This is used by GC tasks on a session thread to cache chunk IDs for empty chunk deallocation.
     thread_local static inline std::unordered_map<
         memory_manager::chunk_offset_t, memory_manager::chunk_version_t>
-        s_gc_chunks_to_versions{};
+        s_map_gc_chunks_to_versions{};
 
     // These fields have session lifetime.
     thread_local static inline int s_session_socket = -1;
@@ -169,7 +169,7 @@ private:
     // post-apply watermark has advanced to its commit_ts. The "post-GC"
     // watermark represents a lower bound on the latest commit_ts whose txn log
     // could have had GC reclaim all its resources. The txn table cannot be
-    // truncated at any timestamp after the post-GC watermark.
+    // safely truncated at any timestamp after the post-GC watermark.
     //
     // The pre-apply watermark must either be equal to the post-apply watermark or greater by 1.
     //

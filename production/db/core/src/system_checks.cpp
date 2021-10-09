@@ -40,11 +40,7 @@ bool is_little_endian()
 
 bool has_expected_page_size()
 {
-    if (::sysconf(_SC_PAGESIZE) != memory_manager::c_page_size_in_bytes)
-    {
-        return false;
-    }
-    return true;
+    return (::sysconf(_SC_PAGESIZE) == memory_manager::c_page_size_in_bytes);
 }
 
 static uint64_t read_integer_from_proc_fd(int proc_fd)

@@ -12,6 +12,7 @@
 
 #include "bitmap.hpp"
 #include "db_internal_types.hpp"
+#include "memory_helpers.hpp"
 #include "memory_types.hpp"
 
 namespace gaia
@@ -55,6 +56,9 @@ struct memory_manager_metadata_t
     // As we keep allocating memory, the available contiguous virtual memory
     // region will keep shrinking. We'll use this offset to track the
     // lowest-numbered chunk that has never been allocated.
+    // NB: We use size_t here rather than chunk_offset_t in order to avoid
+    // overflows. A 64-bit atomically incremented counter cannot overflow in any
+    // reasonable time.
     std::atomic<size_t> next_available_unused_chunk_offset{};
 
     // These reserved variables account for how much space is remaining unused
@@ -85,62 +89,89 @@ static_assert(
     sizeof(memory_manager_metadata_t) % c_chunk_size_in_bytes == 0,
     "The size of memory_manager_metadata_t is expected to be a multiple of the chunk size!");
 
+// We group our "last allocation metadata" logical variables into an 8-byte
+// struct, so we can set them all in a single atomic write, which is
+// necessary for crash-consistency. Given that these 3 variables are always
+// consistent, we can recover from arbitrary crashes by determining whether
+// the allocation bitmap is out-of-date WRT the "last allocation metadata",
+// and synchronizing it if so. After ensuring that the allocation bitmap is
+// consistent with the "last allocation metadata", we can finally check if
+// the txn log is consistent with the allocation bitmap, and synchronize it
+// if not. Finally, the server session thread can invoke the ordinary GC
+// code with the now-guaranteed-consistent txn log to ensure that a crashed
+// session frees all its allocations.
+
+// REVIEW: I think we could eliminate this extra metadata and its non-atomic
+// update WRT the allocation bitmap, if we tracked the final slot (+1) of
+// each allocation in the bitmaps, instead of the initial slot. That would
+// simplify the consistency invariants (because only the bitmap would be
+// updated on allocation), but would complicate conversion of an allocation
+// bitmap index to a gaia_offset or vice versa (to find the gaia_offset
+// corresponding to a set bit in the allocation bitmap, we would need to
+// scan backward to find the preceding set bit and then convert its index to
+// a gaia_offset).
+
+struct last_allocation_metadata_t
+{
+    // The previous highest allocated slot.
+    slot_offset_t prev_max_allocated_slot_offset;
+
+    // The current highest allocated slot.
+    slot_offset_t max_allocated_slot_offset;
+
+    // The lowest unallocated slot.
+    // This is the slot immediately following the slot at the end of the last
+    // allocation, and will become the allocated slot for the next allocation.
+    slot_offset_t min_unallocated_slot_offset;
+
+    // Pad the struct to 8 bytes to ensure atomicity.
+    uint16_t reserved;
+
+    inline last_allocation_metadata_t();
+};
+
+static_assert(
+    sizeof(last_allocation_metadata_t) == sizeof(uint64_t),
+    "Expected last_allocation_metadata_t to occupy 8 bytes!");
+
+static_assert(std::atomic<last_allocation_metadata_t>::is_always_lock_free);
+
+struct valid_chunk_transition_t
+{
+    chunk_state_t old_state;
+    chunk_state_t new_state;
+};
+
+static inline constexpr valid_chunk_transition_t c_valid_chunk_transitions[] = {
+    // ALLOCATE
+    {chunk_state_t::empty, chunk_state_t::in_use},
+    // RETIRE
+    {chunk_state_t::in_use, chunk_state_t::retired},
+    // BEGIN_DEALLOCATE
+    {chunk_state_t::retired, chunk_state_t::deallocating},
+    // END_DEALLOCATE
+    {chunk_state_t::deallocating, chunk_state_t::empty},
+};
+
 // A chunk manager's metadata information.
 struct chunk_manager_metadata_t
 {
-    // We group our "last allocation metadata" logical variables into an 8-byte
-    // struct, so we can set them all in a single atomic write, which is
-    // necessary for crash-consistency. Given that these 3 variables are always
-    // consistent, we can recover from arbitrary crashes by determining whether
-    // the allocation bitmap is out-of-date WRT the "last allocation metadata",
-    // and synchronizing it if so. After ensuring that the allocation bitmap is
-    // consistent with the "last allocation metadata", we can finally check if
-    // the txn log is consistent with the allocation bitmap, and synchronize it
-    // if not. Finally, the server session thread can invoke the ordinary GC
-    // code with the now-guaranteed-consistent txn log to ensure that a crashed
-    // session frees all its allocations.
-
-    // REVIEW: I think we could eliminate this extra metadata and its non-atomic
-    // update WRT the allocation bitmap, if we tracked the final slot (+1) of
-    // each allocation in the bitmaps, instead of the initial slot. That would
-    // simplify the consistency invariants (because only the bitmap would be
-    // updated on allocation), but would complicate conversion of an allocation
-    // bitmap index to a gaia_offset or vice versa (to find the gaia_offset
-    // corresponding to a set bit in the allocation bitmap, we would need to
-    // scan backward to find the preceding set bit and then convert its index to
-    // a gaia_offset).
-
-    struct last_allocation_metadata_t
-    {
-        // The previous highest allocated slot.
-        slot_offset_t prev_max_allocated_slot_offset;
-
-        // The current highest allocated slot.
-        slot_offset_t max_allocated_slot_offset;
-
-        // The lowest unallocated slot.
-        // This is the slot immediately following the last allocation, and will
-        // become the allocated slot for the next allocation.
-        slot_offset_t min_unallocated_slot_offset;
-
-        // Pad the struct to 8 bytes to ensure atomicity.
-        uint16_t reserved;
-
-        inline last_allocation_metadata_t();
-    };
-
-    static_assert(
-        sizeof(last_allocation_metadata_t) == sizeof(uint64_t),
-        "Expected last_allocation_metadata_t to occupy 8 bytes!");
-
-    static_assert(std::atomic<last_allocation_metadata_t>::is_always_lock_free);
-
     // A 4MB chunk can store 2^16 64B slots. A bitmap for 2^16 slots takes 8KB,
     // or the space of 128 slots. We have 2 such bitmaps, so together they
     // occupy the space of 256 slots. Because the bitmaps do not need to track
     // those 256 slots, that frees 32B per bitmap (64B combined), so each bitmap
     // needs 2^10 - 4 64-bit words.
-    static constexpr size_t c_slot_bitmap_size_in_words = 1024 - 4;
+    static constexpr size_t c_bitmap_count{2};
+    static constexpr size_t c_total_slots_count{
+        (1ULL << (CHAR_BIT * sizeof(slot_offset_t)))};
+    static constexpr size_t c_slot_bitmap_size_in_words_raw{
+        c_total_slots_count / c_uint64_bit_count};
+    static constexpr size_t c_slots_occupied_by_bitmap{
+        (c_slot_bitmap_size_in_words_raw * sizeof(uint64_t)) / c_slot_size_in_bytes};
+    static constexpr size_t c_adjusted_slots_count{
+        c_total_slots_count - (c_bitmap_count * c_slots_occupied_by_bitmap)};
+    static constexpr size_t c_slot_bitmap_size_in_words{
+        c_adjusted_slots_count / c_uint64_bit_count};
 
     // This lock is used to enforce mutual exclusion between a compaction task
     // and any GC tasks. We allow any number of GC tasks to be concurrently
@@ -170,46 +201,6 @@ struct chunk_manager_metadata_t
 
     // Just in case chunk_version_t is smaller than a word.
     static_assert(std::atomic<chunk_version_t>::is_always_lock_free);
-
-    inline std::pair<chunk_state_t, chunk_version_t>
-    get_chunk_state_and_version();
-
-    inline chunk_state_t get_chunk_state();
-
-    inline chunk_version_t get_chunk_version();
-
-    struct valid_chunk_transition_t
-    {
-        chunk_state_t old_state;
-        chunk_state_t new_state;
-    };
-
-    static inline constexpr valid_chunk_transition_t c_valid_chunk_transitions[] = {
-        // ALLOCATE
-        {chunk_state_t::empty, chunk_state_t::in_use},
-        // RETIRE
-        {chunk_state_t::in_use, chunk_state_t::retired},
-        // BEGIN_DEALLOCATE
-        {chunk_state_t::retired, chunk_state_t::deallocating},
-        // END_DEALLOCATE
-        {chunk_state_t::deallocating, chunk_state_t::empty},
-    };
-
-    inline bool apply_chunk_transition_from_version(
-        chunk_version_t expected_version, chunk_state_t expected_state, chunk_state_t desired_state);
-
-    inline bool apply_chunk_transition(
-        chunk_state_t expected_state, chunk_state_t desired_state);
-
-    std::atomic<last_allocation_metadata_t> last_allocation_metadata{};
-
-    inline void update_last_allocation_metadata(size_t allocation_size_slots);
-
-    inline slot_offset_t max_allocated_slot_offset();
-
-    inline slot_offset_t min_unallocated_slot_offset();
-
-    inline slot_offset_t prev_max_allocated_slot_offset();
 
     // These reserved "slack" variables account for how much space is remaining
     // unused out of the space we reserved for this metadata structure. Their
@@ -242,6 +233,29 @@ struct chunk_manager_metadata_t
     // happen when the client session thread crashes.
     inline void synchronize_allocation_metadata();
 
+    inline std::pair<chunk_state_t, chunk_version_t>
+    get_chunk_state_and_version();
+
+    inline chunk_state_t get_chunk_state();
+
+    inline chunk_version_t get_chunk_version();
+
+    inline bool apply_chunk_transition_from_version(
+        chunk_version_t expected_version, chunk_state_t expected_state, chunk_state_t desired_state);
+
+    inline bool apply_chunk_transition(
+        chunk_state_t expected_state, chunk_state_t desired_state);
+
+    std::atomic<last_allocation_metadata_t> last_allocation_metadata{};
+
+    inline void update_last_allocation_metadata(size_t allocation_size_slots);
+
+    inline slot_offset_t max_allocated_slot_offset();
+
+    inline slot_offset_t min_unallocated_slot_offset();
+
+    inline slot_offset_t prev_max_allocated_slot_offset();
+
     inline void clear();
 };
 
@@ -259,13 +273,17 @@ static_assert(
     "The size of chunk_manager_metadata_t is expected to be a multiple of the slot size!");
 
 // Constants for the range of available slots within a chunk.
-constexpr slot_offset_t c_first_slot_offset = sizeof(chunk_manager_metadata_t) / c_slot_size_in_bytes;
-constexpr slot_offset_t c_last_slot_offset = -1;
+constexpr slot_offset_t c_first_slot_offset{
+    sizeof(chunk_manager_metadata_t) / c_slot_size_in_bytes};
+
+constexpr slot_offset_t c_last_slot_offset{
+    std::numeric_limits<slot_offset_t>::max()};
 
 constexpr size_t c_chunk_data_pages_count{
     (c_chunk_size_in_bytes - sizeof(chunk_manager_metadata_t)) / c_page_size_in_bytes};
 
-constexpr size_t c_data_pages_size_in_bytes = c_chunk_data_pages_count * c_page_size_in_bytes;
+constexpr size_t c_chunk_data_pages_size_in_bytes{
+    c_chunk_data_pages_count * c_page_size_in_bytes};
 
 #include "memory_structures.inc"
 
