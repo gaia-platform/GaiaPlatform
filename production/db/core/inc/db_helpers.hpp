@@ -156,12 +156,5 @@ inline index::db_index_t id_to_index(common::gaia_id_t index_id)
     return (it != get_indexes()->end()) ? it->second : nullptr;
 }
 
-inline bool is_little_endian()
-{
-    uint32_t val = 1;
-    uint8_t least_significant_byte = *(reinterpret_cast<uint8_t*>(&val));
-    return least_significant_byte == val;
-}
-
 } // namespace db
 } // namespace gaia

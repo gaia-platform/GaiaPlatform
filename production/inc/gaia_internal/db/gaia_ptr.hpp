@@ -32,8 +32,8 @@ public:
     gaia_ptr_t() = default;
     explicit gaia_ptr_t(gaia_locator_t locator);
 
-    inline bool
-    operator==(const gaia_ptr_t& other) const;
+    inline bool operator==(const gaia_ptr_t& other) const;
+    inline bool operator!=(const gaia_ptr_t& other) const;
     inline bool operator==(const std::nullptr_t) const;
     inline bool operator!=(const std::nullptr_t) const;
     inline explicit operator bool() const;
@@ -65,8 +65,6 @@ public:
 
     // TODO this should either accept a gaia_id_t or be an instance method.
     static void remove(gaia_ptr_t& object);
-
-    gaia_ptr_t& clone();
 
     gaia_ptr_t& update_payload(size_t data_size, const void* data);
 

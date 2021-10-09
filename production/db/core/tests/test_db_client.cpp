@@ -164,7 +164,6 @@ TEST_F(db_client_test, gaia_ptr_no_transaction_fail)
     EXPECT_THROW(node1.data_size(), no_open_transaction);
     EXPECT_THROW(node1.references(), no_open_transaction);
     EXPECT_THROW(node1.find_next(), no_open_transaction);
-    EXPECT_THROW(node1.clone(), no_open_transaction);
     EXPECT_THROW(node1.update_payload(0, ""), no_open_transaction);
     EXPECT_THROW(node1.add_child_reference(1, 2), no_open_transaction);
     EXPECT_THROW(node1.add_parent_reference(1, 2), no_open_transaction);
