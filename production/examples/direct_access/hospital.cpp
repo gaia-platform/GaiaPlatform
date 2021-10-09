@@ -534,9 +534,17 @@ void delete_one_to_one_relationship(gaia_id_t patient_id)
 }
 
 /**
- * TODO we need to settle on terminology here.
+ * Shows the usage of value linked relationships. Traditional Gaia relationships
+ * link records together using the Gaia ID, a system generate value the user have no
+ * control over. Value linked relationships allow linking records using user specified
+ * values.
+ *
+ * In this example we are going to link patients to a doctor using the doctor email.
+ * As you can see there is no explict call to link the records (insert()/connect()),
+ * the records are automatically linked when the a patient is assigned an existing
+ * doctor email.
  */
-void one_to_many_relationships_with_common_field()
+void one_to_many_value_linked_relationship()
 {
     PRINT_METHOD_NAME();
 
@@ -556,6 +564,11 @@ void one_to_many_relationships_with_common_field()
     patient_writer john_w = john.writer();
     john_w.doctor_email = "house@md.com";
     john_w.update_row();
+
+    // If you set an email that does not correspond to any doctor,
+    // no connection is created. You can delete the record right away.
+    gaia_id_t jasmine_id = patient_t::insert_row("Jasmine", 154, false, "i_dont_exist@md.com", {});
+    patient_t::delete_row(jasmine_id);
 
     // --- Traverse the relationship ---
 
