@@ -763,16 +763,21 @@ void filter_gaia_predicates_containers()
     }
 }
 
+/**
+ * DAC objects can be used across different transactions.
+ */
 void use_dac_object_across_transactions()
 {
     PRINT_METHOD_NAME();
 
+    // First transaction.
     auto_transaction_t txn{false};
     doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House", "house@md.com"));
     txn.commit();
 
     try
     {
+        // Outside a transaction.
         dr_house.name();
     }
     catch (const gaia::db::no_open_transaction& ex)
@@ -780,6 +785,7 @@ void use_dac_object_across_transactions()
         gaia_log::app().info("As expected, you cannot access a record outside of a transaction: '{}'", ex.what());
     }
 
+    // Second transaction.
     txn.begin();
     gaia_log::app().info("{} has survived across transactions", dr_house.name());
     txn.commit();
