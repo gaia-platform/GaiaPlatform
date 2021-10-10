@@ -91,11 +91,9 @@ gaia_offset_t chunk_manager_t::allocate(
         return c_invalid_gaia_offset;
     }
 
-    // If we are allocating from a chunk, it must be in the IN_USE state.
-    chunk_state_t chunk_state = get_state();
     ASSERT_PRECONDITION(
-        chunk_state == chunk_state_t::in_use,
-        "Cannot allocate from a chunk that is not in the IN_USE state!");
+        get_state() == chunk_state_t::in_use,
+        "Objects can only be allocated from a chunk in the IN_USE state!");
 
     ASSERT_PRECONDITION(allocation_size_in_bytes > 0, "Requested allocation size cannot be 0!");
 
@@ -135,6 +133,10 @@ gaia_offset_t chunk_manager_t::allocate(
 
 void chunk_manager_t::deallocate(gaia_offset_t offset)
 {
+    ASSERT_PRECONDITION(
+        (get_state() == chunk_state_t::in_use) || (get_state() == chunk_state_t::retired),
+        "Objects can only be deallocated from a chunk in the IN_USE or RETIRED state!");
+
     slot_offset_t deallocated_slot = slot_from_offset(offset);
 
     // It is illegal to deallocate the same object twice.
