@@ -196,7 +196,7 @@ void chunk_manager_t::mark_slot(slot_offset_t slot_offset, bool is_allocating)
             : m_metadata->deallocated_slots_bitmap,
         chunk_manager_metadata_t::c_slot_bitmap_size_in_words,
         bit_index,
-        is_allocating);
+        true);
 }
 
 void chunk_manager_t::mark_slot_allocated(slot_offset_t slot_offset)
@@ -263,7 +263,8 @@ bool chunk_manager_t::is_empty(chunk_version_t initial_version) const
         // before or during the read, so we couldn't safely check invariants.
         // REVIEW: do we need a distinct return value for failed
         // version check?
-        if (m_metadata->get_chunk_version() != initial_version)
+        chunk_version_t current_version = m_metadata->get_chunk_version();
+        if (current_version != initial_version)
         {
             return false;
         }
