@@ -169,7 +169,7 @@ bool chunk_manager_t::is_slot_allocated(slot_offset_t slot_offset) const
     return is_slot_allocated;
 }
 
-void chunk_manager_t::mark_slot(slot_offset_t slot_offset, bool allocating_slot)
+void chunk_manager_t::mark_slot(slot_offset_t slot_offset, bool is_allocating)
 {
     validate();
 
@@ -180,8 +180,8 @@ void chunk_manager_t::mark_slot(slot_offset_t slot_offset, bool allocating_slot)
     // is_slot_allocated() also checks that the deallocation bit is not set if
     // the allocation bit is not set.
     ASSERT_PRECONDITION(
-        !allocating_slot && is_slot_allocated(slot_offset),
-        allocating_slot
+        is_allocating != is_slot_allocated(slot_offset),
+        is_allocating
             ? "Slot cannot be allocated multiple times!"
             : "Slot cannot be deallocated unless it is first allocated!");
 
@@ -191,24 +191,24 @@ void chunk_manager_t::mark_slot(slot_offset_t slot_offset, bool allocating_slot)
     // tasks deallocate slots, and multiple GC tasks can be concurrently active
     // within a chunk, but only the owning thread can allocate slots in a chunk.
     safe_set_bit_value(
-        allocating_slot
+        is_allocating
             ? m_metadata->allocated_slots_bitmap
             : m_metadata->deallocated_slots_bitmap,
         chunk_manager_metadata_t::c_slot_bitmap_size_in_words,
         bit_index,
-        allocating_slot);
+        is_allocating);
 }
 
 void chunk_manager_t::mark_slot_allocated(slot_offset_t slot_offset)
 {
-    bool is_slot_allocated = true;
-    mark_slot(slot_offset, is_slot_allocated);
+    bool is_allocating = true;
+    mark_slot(slot_offset, is_allocating);
 }
 
 void chunk_manager_t::mark_slot_deallocated(slot_offset_t slot_offset)
 {
-    bool is_slot_allocated = false;
-    mark_slot(slot_offset, is_slot_allocated);
+    bool is_allocating = false;
+    mark_slot(slot_offset, is_allocating);
 }
 
 bool chunk_manager_t::allocate_chunk()
