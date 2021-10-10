@@ -29,12 +29,12 @@ public:
     {
     }
 
-    inline chunk_offset_t chunk_offset()
+    inline chunk_offset_t chunk_offset() const
     {
         return m_chunk_offset;
     }
 
-    inline bool initialized()
+    inline bool initialized() const
     {
         ASSERT_INVARIANT(
             (m_chunk_offset != c_invalid_chunk_offset) == bool(m_metadata),
@@ -53,10 +53,10 @@ public:
     chunk_offset_t release();
 
     // Returns an opaque version token for detecting chunk reuse.
-    chunk_version_t get_version();
+    chunk_version_t get_version() const;
 
     // Returns the current state of the chunk.
-    chunk_state_t get_state();
+    chunk_state_t get_state() const;
 
     // Allocate a new memory block inside our managed chunk.
     gaia_offset_t allocate(size_t allocation_slots_size);
@@ -107,6 +107,13 @@ private:
 private:
     void initialize_internal(chunk_offset_t chunk_offset, bool initialize_memory);
 
+    inline void validate() const
+    {
+        ASSERT_PRECONDITION(
+            (m_chunk_offset != c_invalid_chunk_offset) && (m_metadata != nullptr),
+            "Chunk manager was not initialized!");
+    }
+
     // Checks whether a slot is currently allocated in the slot bitmaps.
     // (A slot is considered "allocated" if it is the first slot of an
     // allocation, and that allocation has not been subsequently deallocated.
@@ -126,7 +133,7 @@ private:
     // Returns whether a chunk has no live allocations.
     // Specify `version` to fail if the chunk version changes during the
     // metadata scan (which indicates concurrent reuse).
-    bool is_empty(chunk_version_t initial_version);
+    bool is_empty(chunk_version_t initial_version) const;
 
     // Decommits all data pages in this chunk.
     void decommit_data_pages();

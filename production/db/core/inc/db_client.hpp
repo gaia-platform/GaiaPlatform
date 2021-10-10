@@ -19,6 +19,7 @@
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
+#include "chunk_manager.hpp"
 #include "client_messenger.hpp"
 #include "db_shared_data.hpp"
 #include "mapped_data.hpp"

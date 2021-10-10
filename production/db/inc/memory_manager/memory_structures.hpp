@@ -12,7 +12,6 @@
 
 #include "bitmap.hpp"
 #include "db_internal_types.hpp"
-#include "memory_helpers.hpp"
 #include "memory_types.hpp"
 
 namespace gaia
@@ -226,19 +225,17 @@ struct chunk_manager_metadata_t
     // order, in either the IN_USE or RETIRED chunk states.
     std::atomic<uint64_t> deallocated_slots_bitmap[c_slot_bitmap_size_in_words];
 
-    inline slot_offset_t get_last_allocated_slot_from_bitmap();
-
     // We need to call this method whenever the "last allocation metadata" is
     // possibly inconsistent with the allocation bitmap, which should only
     // happen when the client session thread crashes.
     inline void synchronize_allocation_metadata();
 
     inline std::pair<chunk_state_t, chunk_version_t>
-    get_chunk_state_and_version();
+    get_chunk_state_and_version() const;
 
-    inline chunk_state_t get_chunk_state();
+    inline chunk_state_t get_chunk_state() const;
 
-    inline chunk_version_t get_chunk_version();
+    inline chunk_version_t get_chunk_version() const;
 
     inline bool apply_chunk_transition_from_version(
         chunk_version_t expected_version, chunk_state_t expected_state, chunk_state_t desired_state);
@@ -250,11 +247,11 @@ struct chunk_manager_metadata_t
 
     inline void update_last_allocation_metadata(size_t allocation_size_slots);
 
-    inline slot_offset_t max_allocated_slot_offset();
+    inline slot_offset_t max_allocated_slot_offset() const;
 
-    inline slot_offset_t min_unallocated_slot_offset();
+    inline slot_offset_t min_unallocated_slot_offset() const;
 
-    inline slot_offset_t prev_max_allocated_slot_offset();
+    inline slot_offset_t prev_max_allocated_slot_offset() const;
 
     inline void clear();
 };

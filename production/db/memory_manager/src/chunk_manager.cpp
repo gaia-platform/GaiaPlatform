@@ -15,6 +15,7 @@
 
 #include "bitmap.hpp"
 #include "memory_helpers.hpp"
+#include "memory_manager.hpp"
 #include "memory_types.hpp"
 
 namespace gaia
@@ -26,13 +27,6 @@ namespace memory_manager
 
 using namespace gaia::common;
 using scope_guard::make_scope_guard;
-
-void chunk_manager_t::validate()
-{
-    ASSERT_PRECONDITION(
-        (m_chunk_offset != c_invalid_chunk_offset) && (m_metadata != nullptr),
-        "Chunk manager was not initialized!");
-}
 
 void chunk_manager_t::initialize_internal(
     chunk_offset_t chunk_offset, bool initialize_memory)
@@ -70,13 +64,13 @@ chunk_offset_t chunk_manager_t::release()
     return chunk_offset;
 }
 
-chunk_version_t chunk_manager_t::get_version()
+chunk_version_t chunk_manager_t::get_version() const
 {
     validate();
     return m_metadata->get_chunk_version();
 }
 
-chunk_state_t chunk_manager_t::get_state()
+chunk_state_t chunk_manager_t::get_state() const
 {
     validate();
     return m_metadata->get_chunk_state();
@@ -244,7 +238,7 @@ void chunk_manager_t::retire_chunk(chunk_version_t version)
     try_deallocate_chunk(version);
 }
 
-bool chunk_manager_t::is_empty(chunk_version_t initial_version)
+bool chunk_manager_t::is_empty(chunk_version_t initial_version) const
 {
     // This is a best-effort non-atomic scan; it's possible that some page
     // previously observed to be non-empty will be empty by the end of the scan.

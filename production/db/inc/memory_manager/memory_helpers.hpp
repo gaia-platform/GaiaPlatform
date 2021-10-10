@@ -66,11 +66,6 @@ inline void* page_address_from_offset(gaia_offset_t offset)
     return reinterpret_cast<void*>(page_ptr);
 }
 
-inline slot_offset_t bit_index_to_slot(size_t bit_index)
-{
-    return static_cast<slot_offset_t>(bit_index + c_first_slot_offset);
-}
-
 // Converts a slot offset to its bitmap index.
 inline size_t slot_to_bit_index(slot_offset_t slot_offset)
 {

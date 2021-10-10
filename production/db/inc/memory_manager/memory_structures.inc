@@ -14,7 +14,7 @@ void memory_manager_metadata_t::clear()
 }
 
 std::pair<chunk_state_t, chunk_version_t>
-chunk_manager_metadata_t::get_chunk_state_and_version()
+chunk_manager_metadata_t::get_chunk_state_and_version() const
 {
     constexpr chunk_version_t c_chunk_state_mask{
         ((1ULL << c_chunk_state_bit_width) - 1) << c_chunk_state_shift};
@@ -27,12 +27,12 @@ chunk_manager_metadata_t::get_chunk_state_and_version()
     return {state, version};
 }
 
-chunk_state_t chunk_manager_metadata_t::get_chunk_state()
+chunk_state_t chunk_manager_metadata_t::get_chunk_state() const
 {
     return get_chunk_state_and_version().first;
 }
 
-chunk_version_t chunk_manager_metadata_t::get_chunk_version()
+chunk_version_t chunk_manager_metadata_t::get_chunk_version() const
 {
     return get_chunk_state_and_version().second;
 }
@@ -45,17 +45,17 @@ last_allocation_metadata_t::last_allocation_metadata_t()
 {
 }
 
-slot_offset_t chunk_manager_metadata_t::max_allocated_slot_offset()
+slot_offset_t chunk_manager_metadata_t::max_allocated_slot_offset() const
 {
     return last_allocation_metadata.load().max_allocated_slot_offset;
 }
 
-slot_offset_t chunk_manager_metadata_t::min_unallocated_slot_offset()
+slot_offset_t chunk_manager_metadata_t::min_unallocated_slot_offset() const
 {
     return last_allocation_metadata.load().min_unallocated_slot_offset;
 }
 
-slot_offset_t chunk_manager_metadata_t::prev_max_allocated_slot_offset()
+slot_offset_t chunk_manager_metadata_t::prev_max_allocated_slot_offset() const
 {
     return last_allocation_metadata.load().prev_max_allocated_slot_offset;
 }
@@ -112,20 +112,22 @@ void chunk_manager_metadata_t::update_last_allocation_metadata(size_t allocation
     last_allocation_metadata = new_metadata;
 }
 
-slot_offset_t chunk_manager_metadata_t::get_last_allocated_slot_from_bitmap()
+// REVIEW: This helper logically belongs in memory_helpers.hpp, but is defined
+// inline here to avoid a circular dependency. We can revisit this decision if
+// it acquires additional callers.
+static inline slot_offset_t bit_index_to_slot(size_t bit_index)
 {
-    size_t bit_index = find_last_set_bit(allocated_slots_bitmap, c_slot_bitmap_size_in_words);
-    if (bit_index == c_max_bit_index)
-    {
-        return c_invalid_slot_offset;
-    }
-    return bit_index_to_slot(bit_index);
+    return static_cast<slot_offset_t>(bit_index + c_first_slot_offset);
 }
 
 void chunk_manager_metadata_t::synchronize_allocation_metadata()
 {
     // Find the last set bit in the allocation bitmap.
-    slot_offset_t last_allocated_slot_from_bitmap = get_last_allocated_slot_from_bitmap();
+    size_t bit_index = find_last_set_bit(allocated_slots_bitmap, c_slot_bitmap_size_in_words);
+    slot_offset_t last_allocated_slot_from_bitmap{
+        (bit_index == c_max_bit_index)
+            ? c_invalid_slot_offset
+            : bit_index_to_slot(bit_index)};
 
     // Check to be sure the last set bit points to the same slot as
     // max_allocated_slot_offset. If not, then it must point to

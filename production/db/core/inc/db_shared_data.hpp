@@ -5,16 +5,22 @@
 
 #pragma once
 
-#include "chunk_manager.hpp"
 #include "db_internal_types.hpp"
 #include "mapped_data.hpp"
-#include "memory_manager.hpp"
 #include "memory_types.hpp"
 
 namespace gaia
 {
 namespace db
 {
+
+// We forward-declare these definitions instead of including their header files,
+// to avoid circular dependencies.
+namespace memory_manager
+{
+class memory_manager_t;
+class chunk_manager_t;
+} // namespace memory_manager
 
 // Returns a pointer to a mapping of the "locators" shared memory segment.
 gaia::db::locators_t* get_locators();
