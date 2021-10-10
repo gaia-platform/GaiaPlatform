@@ -767,8 +767,8 @@ void filter_gaia_predicates_containers()
  * DAC objects can be used across different transactions.
  *
  * This example uses auto_transaction_t to manage transactions.
- * Look into the gaia/direct_access/auto_transaction.hpp header for
- * more information about auto_transaction_t usage.
+ * See gaia/direct_access/auto_transaction.hpp for more information
+ * about auto_transaction_t usage.
  */
 void use_dac_object_across_transactions()
 {
