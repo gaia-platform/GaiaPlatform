@@ -150,7 +150,7 @@ void access_invalid_record()
     }
     catch (gaia::db::invalid_object_id& ex)
     {
-        gaia_log::app().info("As expected, attempting to access an invalid object is raising the following exception: '{}'.", ex.what());
+        gaia_log::app().info("As expected, attempting to access an invalid object raised the following exception: '{}'.", ex.what());
     }
 }
 
@@ -250,9 +250,11 @@ void delete_single_record_static()
 }
 
 /**
- * Deleting all the records is not as simple as listing all the records with list()
- * and calling delete() on each of them. This approach will not work as you
- * modify the container while iterating it.
+ * While you might attempt to list all of the records with list()
+ * and call delete() on each of them, this approach will not work.
+ * The container uses the current record to find the next record.
+ * Deleting the current record stops the iteration because the
+ * next record cannot be found.
  */
 void delete_all_records()
 {
@@ -267,7 +269,7 @@ void delete_all_records()
     //     doctor.delete_row();
     // }
 
-    // This is a possible working approach:
+    // The following is an approach that works to delete all the records:
     for (auto& doctor = *doctor_t::list().begin();
          doctor;
          doctor = *doctor_t::list().begin())
@@ -367,7 +369,7 @@ void delete_one_to_many_relationship_re(gaia_id_t doctor_id)
     }
     catch (const gaia::db::object_still_referenced& ex)
     {
-        gaia_log::app().info("As expected, deleting the doctor record is raising the following exception '{}'.", ex.what());
+        gaia_log::app().info("As expected, deleting the doctor record raised the following exception '{}'.", ex.what());
     }
 
     try
@@ -376,7 +378,7 @@ void delete_one_to_many_relationship_re(gaia_id_t doctor_id)
     }
     catch (const gaia::db::object_still_referenced& ex)
     {
-        gaia_log::app().info("As expected, deleting the patient record is raising the following exception '{}'.", ex.what());
+        gaia_log::app().info("As expected, deleting the patient record raised the following exception '{}'.", ex.what());
     }
 }
 
@@ -502,7 +504,7 @@ void delete_one_to_one_relationship_re(gaia_id_t patient_id)
     }
     catch (const gaia::db::object_still_referenced& ex)
     {
-        gaia_log::app().info("As expected, deleting the patient record is raising the following exception '{}'.", ex.what());
+        gaia_log::app().info("As expected, deleting the patient record raised the following exception '{}'.", ex.what());
     }
 
     try
@@ -511,7 +513,7 @@ void delete_one_to_one_relationship_re(gaia_id_t patient_id)
     }
     catch (const gaia::db::object_still_referenced& ex)
     {
-        gaia_log::app().info("As expected, deleting the address record is raising the following exception '{}'.", ex.what());
+        gaia_log::app().info("As expected, deleting the address record raised the following exception '{}'.", ex.what());
     }
 }
 
@@ -525,7 +527,7 @@ void delete_one_to_one_relationship(gaia_id_t patient_id)
     PRINT_METHOD_NAME();
 
     patient_t patient = patient_t::get(patient_id);
-    address_t address = patient.address(); // NOLINT(cppcoreguidelines-slicing)
+    address_ref_t address = patient.address(); // NOLINT(cppcoreguidelines-slicing)
 
     patient.address().disconnect();
 
@@ -658,7 +660,7 @@ void filter_lambda()
         throw std::runtime_error("No doctors found!");
     }
 
-    // Assuming there is only one result.
+    // Takes the first item in the container (there should be only one match).
     doctor_t dr_house = *doctors.begin();
 
     auto patients = dr_house.patients().where(
