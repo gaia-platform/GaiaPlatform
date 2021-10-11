@@ -200,8 +200,8 @@ When we are ready to release a new version of Gaia this is the process to follow
 4. Create a commit for the new Release:
    ```shell
    git add -u
-   git commit -m "Bump version to 0.3.0-beta."
-   git push
+   git commit -m "Bump Gaia version to 0.3.0-beta."
+   # Create a PR to push the change into master.
    ```
 5. Create a tag reflecting the new version:
    ```shell
