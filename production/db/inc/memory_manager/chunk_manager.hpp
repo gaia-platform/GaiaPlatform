@@ -43,9 +43,11 @@ public:
     }
 
     // Initialize the chunk manager with an empty chunk.
+    // (The chunk manager must not already be initialized.)
     void initialize(chunk_offset_t chunk_offset);
 
     // Initialize the chunk manager with a used chunk.
+    // (The chunk manager must not already be initialized.)
     void load(chunk_offset_t chunk_offset);
 
     // Takes ownership of the current chunk from the chunk manager. This
@@ -107,11 +109,18 @@ private:
 private:
     void initialize_internal(chunk_offset_t chunk_offset, bool initialize_memory);
 
-    inline void validate() const
+    inline void validate_initialized() const
     {
         ASSERT_PRECONDITION(
             (m_chunk_offset != c_invalid_chunk_offset) && (m_metadata != nullptr),
             "Chunk manager was not initialized!");
+    }
+
+    inline void validate_uninitialized() const
+    {
+        ASSERT_PRECONDITION(
+            (m_chunk_offset == c_invalid_chunk_offset) && (m_metadata == nullptr),
+            "Chunk manager was already initialized!");
     }
 
     // Checks whether a slot is currently allocated in the slot bitmaps.

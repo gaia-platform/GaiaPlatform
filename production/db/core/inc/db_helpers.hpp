@@ -156,6 +156,8 @@ inline void allocate_object(
             memory_manager::chunk_version_t version = chunk_manager->get_version();
             // Now retire the chunk.
             chunk_manager->retire_chunk(version);
+            // Release ownership of the chunk.
+            chunk_manager->release();
         }
 
         // Allocate a new chunk.

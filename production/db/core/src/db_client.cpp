@@ -339,6 +339,8 @@ void client_t::end_session()
 
     // If we own a chunk, we need to release it to the memory manager to be
     // reused when it is empty.
+    // NB: The chunk manager could be uninitialized if this session never made
+    // any allocations.
     if (s_chunk_manager.initialized())
     {
         // Get the session's chunk version for safe deallocation.

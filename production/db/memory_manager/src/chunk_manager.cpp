@@ -46,12 +46,14 @@ void chunk_manager_t::initialize_internal(
 
 void chunk_manager_t::initialize(chunk_offset_t chunk_offset)
 {
+    validate_uninitialized();
     bool initialize_memory = true;
     initialize_internal(chunk_offset, initialize_memory);
 }
 
 void chunk_manager_t::load(chunk_offset_t chunk_offset)
 {
+    validate_uninitialized();
     bool initialize_memory = false;
     initialize_internal(chunk_offset, initialize_memory);
 }
@@ -66,13 +68,13 @@ chunk_offset_t chunk_manager_t::release()
 
 chunk_version_t chunk_manager_t::get_version() const
 {
-    validate();
+    validate_initialized();
     return m_metadata->get_chunk_version();
 }
 
 chunk_state_t chunk_manager_t::get_state() const
 {
-    validate();
+    validate_initialized();
     return m_metadata->get_chunk_state();
 }
 
@@ -144,7 +146,7 @@ void chunk_manager_t::deallocate(gaia_offset_t offset)
 
 bool chunk_manager_t::is_slot_allocated(slot_offset_t slot_offset) const
 {
-    validate();
+    validate_initialized();
 
     size_t bit_index = slot_to_bit_index(slot_offset);
 
@@ -171,7 +173,7 @@ bool chunk_manager_t::is_slot_allocated(slot_offset_t slot_offset) const
 
 void chunk_manager_t::mark_slot(slot_offset_t slot_offset, bool is_allocating)
 {
-    validate();
+    validate_initialized();
 
     ASSERT_PRECONDITION(
         slot_offset >= c_first_slot_offset && slot_offset <= c_last_slot_offset,
@@ -260,7 +262,13 @@ bool chunk_manager_t::is_empty(chunk_version_t initial_version) const
         // have read any values that might have concurrently changed, but
         // _before_ we do anything with them. If we checked the version before
         // the read, we wouldn't know if the chunk had been concurrently reused
-        // before or during the read, so we couldn't safely check invariants.
+        // before or during the read, so the data we just read might be invalid
+        // and we couldn't safely check invariants. If the version check
+        // succeeds, we know that the chunk wasn't reused before or during the
+        // read, so the data we read was valid *at the time we read it*, even
+        // though it might be invalid now. But if it is invalid (i.e., the
+        // version has changed), we'll find out when we try to transition the
+        // chunk to a new state using our now-outdated version.
         // REVIEW: do we need a distinct return value for failed
         // version check?
         chunk_version_t current_version = m_metadata->get_chunk_version();

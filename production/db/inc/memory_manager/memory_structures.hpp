@@ -55,8 +55,8 @@ struct memory_manager_metadata_t
     // As we keep allocating memory, the available contiguous virtual memory
     // region will keep shrinking. We'll use this offset to track the
     // lowest-numbered chunk that has never been allocated.
-    // NB: We use size_t here rather than chunk_offset_t in order to avoid
-    // overflows. A 64-bit atomically incremented counter cannot overflow in any
+    // NB: We use size_t here rather than chunk_offset_t to avoid integer
+    // overflow. A 64-bit atomically incremented counter cannot overflow in any
     // reasonable time.
     std::atomic<size_t> next_available_unused_chunk_offset{};
 
