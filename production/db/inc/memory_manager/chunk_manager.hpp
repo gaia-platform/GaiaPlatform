@@ -7,7 +7,10 @@
 
 #include <string>
 
-#include "base_memory_manager.hpp"
+#include "gaia_internal/db/db_object.hpp"
+#include "gaia_internal/db/db_types.hpp"
+
+#include "memory_structures.hpp"
 
 namespace gaia
 {
@@ -17,65 +20,132 @@ namespace memory_manager
 {
 
 // A chunk manager is used to allocate memory from a 4MB memory "chunk".
-// Memory is allocated in increments of 64B allocation units.
-class chunk_manager_t : public base_memory_manager_t
+// Memory is allocated in 64B "slots".
+class chunk_manager_t
 {
-    friend class memory_manager_t;
-
 public:
-    chunk_manager_t() = default;
+    chunk_manager_t()
+        : m_chunk_offset(c_invalid_chunk_offset), m_metadata(nullptr)
+    {
+    }
 
-    // Initialize the chunk_manager_t with a specific memory chunk from which to allocate memory.
-    // The start of the buffer is specified as an offset from a base address.
-    void initialize(
-        uint8_t* base_memory_address,
-        address_offset_t memory_offset);
+    inline chunk_offset_t chunk_offset() const
+    {
+        return m_chunk_offset;
+    }
 
-    // Load a specific memory chunk from which memory has already been allocated.
-    // This method can be used to read the allocations made by another chunk manager instance.
-    // The start of the buffer is specified as an offset from a base address.
-    void load(
-        uint8_t* base_memory_address,
-        address_offset_t memory_offset);
+    inline bool initialized() const
+    {
+        ASSERT_INVARIANT(
+            (m_chunk_offset != c_invalid_chunk_offset) == bool(m_metadata),
+            "The chunk offset and the metadata pointer must both be set or both be unset!");
+        return (m_chunk_offset != c_invalid_chunk_offset);
+    }
+
+    // Initialize the chunk manager with an empty chunk.
+    // (The chunk manager must not already be initialized.)
+    void initialize(chunk_offset_t chunk_offset);
+
+    // Initialize the chunk manager with a used chunk.
+    // (The chunk manager must not already be initialized.)
+    void load(chunk_offset_t chunk_offset);
+
+    // Takes ownership of the current chunk from the chunk manager. This
+    // facilitates reusing the same chunk manager instance for many chunks.
+    chunk_offset_t release();
+
+    // Returns an opaque version token for detecting chunk reuse.
+    chunk_version_t get_version() const;
+
+    // Returns the current state of the chunk.
+    chunk_state_t get_state() const;
 
     // Allocate a new memory block inside our managed chunk.
-    address_offset_t allocate(
-        size_t memory_size);
+    gaia_offset_t allocate(size_t allocation_slots_size);
 
-    // Mark all allocations as committed.
-    // An argument is only needed when calling this method on the server;
-    // On the client, the value is tracked in m_last_allocated_offset already.
-    void commit(slot_offset_t last_allocated_offset = c_invalid_slot_offset);
+    // Mark the slot corresponding to this offset as deallocated.
+    // It is illegal to call this method twice on the same offset
+    // (unless the containing chunk was reused, of course).
+    void deallocate(gaia_offset_t offset);
 
-    // Rollback all allocations made since last commit.
-    void rollback();
+    // Transitions the chunk from EMPTY to IN_USE.
+    // Returns false if the chunk is concurrently allocated by another thread.
+    bool allocate_chunk();
+
+    // Transitions the chunk from IN_USE to RETIRED and deallocates it if empty
+    // (transitioning it to DEALLOCATING and then to EMPTY).
+    // A chunk in RETIRED state cannot be used for any new allocations until
+    // it is transitioned to EMPTY state, making it eligible for reuse.
+    // When all allocations in the chunk have been deallocated, the chunk is
+    // eligible to transition to EMPTY state (via a temporary transition to
+    // DEALLOCATING for decommitting data pages).
+    // This should only be called by an owning thread like a session, so it
+    // cannot fail. The supplied version is used to safely deallocate the
+    // retired chunk if it is empty.
+    void retire_chunk(chunk_version_t version);
+
+    // Deallocates the chunk if empty, using the given version to detect
+    // concurrent reuse. Transitions the chunk from RETIRED to DEALLOCATING and
+    // decommits all data pages, then transitions the chunk from DEALLOCATING to
+    // EMPTY and marks it as deallocated in the allocated chunk bitmap.
+    // Returns false if the chunk was not deallocated, either because it was
+    // non-empty or because it was concurrently reused.
+    // This can safely be called by non-owning threads like GC tasks.
+    bool try_deallocate_chunk(chunk_version_t initial_version);
+
+    // This returns the last allocation recorded in this chunk, so a crashed
+    // session can reconcile its txn log with allocation metadata. For
+    // crash-consistency, we ensure that the "last allocation metadata" is
+    // reconciled before returning the last allocation.
+    gaia_offset_t last_allocated_offset();
 
 private:
+    // The offset of the managed chunk within the global chunk array.
+    chunk_offset_t m_chunk_offset;
+
     // A pointer to our metadata information, stored inside the memory chunk that we manage.
     chunk_manager_metadata_t* m_metadata;
 
-    // An indicator of the last allocated slot offset.
-    // This is guaranteed to be >= than the metadata last_committed_slot_offset.
-    slot_offset_t m_last_allocated_slot_offset{c_invalid_slot_offset};
-
 private:
-    void initialize_internal(
-        uint8_t* base_memory_address,
-        address_offset_t memory_offset,
-        bool initialize_memory);
+    void initialize_internal(chunk_offset_t chunk_offset, bool initialize_memory);
 
-    // Checks whether a slot is marked as used in the slot bitmap.
-    bool is_slot_marked_as_used(slot_offset_t slot_offset) const;
+    inline void validate_initialized() const
+    {
+        ASSERT_PRECONDITION(
+            (m_chunk_offset != c_invalid_chunk_offset) && (m_metadata != nullptr),
+            "Chunk manager was not initialized!");
+    }
 
-    // Try to mark the use of a single slot in the slot bitmap.
-    // This will prevent loss of updates in the case of concurrent bitmap updates,
-    // but means that the call could fail if a conflict with another update is detected.
-    bool try_mark_slot_used_status(slot_offset_t slot_offset, bool is_used) const;
+    inline void validate_uninitialized() const
+    {
+        ASSERT_PRECONDITION(
+            (m_chunk_offset == c_invalid_chunk_offset) && (m_metadata == nullptr),
+            "Chunk manager was already initialized!");
+    }
 
-    // Mark the use of a range of slots in the slot bitmap.
-    void mark_slot_range_used_status(slot_offset_t start_slot_offset, slot_offset_t slot_count, bool is_used) const;
+    // Checks whether a slot is currently allocated in the slot bitmaps.
+    // (A slot is considered "allocated" if it is the first slot of an
+    // allocation, and that allocation has not been subsequently deallocated.
+    // Equivalently, its bit in the allocation bitmap is set, and its bit in the
+    // deallocation bitmap is not set.)
+    bool is_slot_allocated(slot_offset_t slot_offset) const;
 
-    void output_debugging_information(const std::string& context_description) const;
+    // Marks a slot in the allocation or deallocation bitmap.
+    void mark_slot(slot_offset_t slot_offset, bool allocating_slot);
+
+    // Marks a slot in the allocation bitmap.
+    void mark_slot_allocated(slot_offset_t slot_offset);
+
+    // Marks a slot in the deallocation bitmap.
+    void mark_slot_deallocated(slot_offset_t slot_offset);
+
+    // Returns whether a chunk has no live allocations.
+    // Specify `version` to fail if the chunk version changes during the
+    // metadata scan (which indicates concurrent reuse).
+    bool is_empty(chunk_version_t initial_version) const;
+
+    // Decommits all data pages in this chunk.
+    void decommit_data_pages();
 };
 
 } // namespace memory_manager

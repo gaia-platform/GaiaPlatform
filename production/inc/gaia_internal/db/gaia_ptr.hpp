@@ -30,7 +30,11 @@ class gaia_ptr_t
 {
 public:
     gaia_ptr_t() = default;
-    explicit gaia_ptr_t(gaia_locator_t locator);
+
+    inline explicit gaia_ptr_t(gaia_locator_t locator)
+        : m_locator(locator)
+    {
+    }
 
     inline bool operator==(const gaia_ptr_t& other) const;
     inline bool operator!=(const gaia_ptr_t& other) const;

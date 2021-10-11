@@ -24,6 +24,7 @@ set(GAIA_DB_CORE_PRIVATE_INCLUDES
   "${ROCKSDB_UTIL}"
   "${PROJECT_SOURCE_DIR}/inc"
   "${GAIA_DB_INC}/query_processor"
+  "${GAIA_SPDLOG_INC}"
 )
 
 message(VERBOSE "GAIA_DB_CORE_PRIVATE_INCLUDES=${GAIA_DB_CORE_PRIVATE_INCLUDES}")
@@ -117,7 +118,7 @@ target_include_directories(rocks_wrapper PRIVATE
 target_include_directories(rocks_wrapper SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(rocks_wrapper SYSTEM PRIVATE "${GEN_DIR}")
 # The client is required to create gaia objects on recovery.
-target_link_libraries(rocks_wrapper PUBLIC rocksdb gaia_storage)
+target_link_libraries(rocks_wrapper PUBLIC rocksdb gaia_common gaia_storage)
 
 # Liburing
 # Choose static version of the library.
@@ -164,7 +165,6 @@ configure_gaia_target(gaia_db_server)
 target_include_directories(gaia_db_server PUBLIC
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
   "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
-
 # For flatbuffers generated code.
 target_include_directories(gaia_db_server SYSTEM PUBLIC "${FLATBUFFERS_INC}")
 target_include_directories(gaia_db_server SYSTEM PUBLIC "${GEN_DIR}")
@@ -267,7 +267,7 @@ configure_gaia_target(gaia_db_catalog_test)
 target_include_directories(gaia_db_catalog_test PRIVATE ${GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES})
 target_link_libraries(gaia_db_catalog_test PRIVATE gaia_common gaia_db_client gaia_schema_loader gtest)
 
-add_gtest(test_rdb_object_converter tests/test_rdb_object_converter.cpp "${GEN_DIR};${GAIA_DB_CORE_TEST_INCLUDES}" "rocks_wrapper")
+add_gtest(test_rdb_object_converter tests/test_rdb_object_converter.cpp "${GEN_DIR};${GAIA_DB_CORE_TEST_INCLUDES}" "rocks_wrapper;gaia_db_server")
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage")
 add_gtest(test_record_list_manager tests/test_record_list_manager.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage")
 add_gtest(test_db_client tests/test_db_client.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_db_client;gaia_direct;gaia_catalog")

@@ -5,15 +5,19 @@
 
 #pragma once
 
+#include <unistd.h>
+
 #include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
 #include "gaia/exception.hpp"
 
+#include "gaia_internal/common/memory_allocation_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 
+#include "chunk_manager.hpp"
 #include "db_internal_types.hpp"
 #include "db_shared_data.hpp"
 #include "memory_manager.hpp"
@@ -62,38 +66,11 @@ inline gaia_locator_t allocate_locator()
     return __sync_add_and_fetch(&counters->last_locator, 1);
 }
 
-inline constexpr size_t get_gaia_alignment_unit()
-{
-    return gaia::db::memory_manager::c_allocation_alignment;
-}
-
-inline gaia_offset_t get_gaia_offset(gaia::db::memory_manager::address_offset_t offset)
-{
-    if (offset == gaia::db::memory_manager::c_invalid_address_offset)
-    {
-        return c_invalid_gaia_offset;
-    }
-
-    return offset / get_gaia_alignment_unit();
-}
-
-inline gaia::db::memory_manager::address_offset_t get_address_offset(gaia_offset_t offset)
-{
-    if (offset == c_invalid_gaia_offset)
-    {
-        return gaia::db::memory_manager::c_invalid_address_offset;
-    }
-
-    return offset * get_gaia_alignment_unit();
-}
-
-inline void update_locator(
-    gaia_locator_t locator,
-    gaia::db::memory_manager::address_offset_t offset)
+inline void update_locator(gaia_locator_t locator, gaia_offset_t offset)
 {
     locators_t* locators = gaia::db::get_locators_for_allocator();
 
-    (*locators)[locator] = get_gaia_offset(offset);
+    (*locators)[locator] = offset;
 }
 
 inline bool locator_exists(gaia_locator_t locator)
@@ -154,6 +131,60 @@ inline index::db_index_t id_to_index(common::gaia_id_t index_id)
     auto it = get_indexes()->find(index_id);
 
     return (it != get_indexes()->end()) ? it->second : nullptr;
+}
+
+// Allocate an object from the "data" shared memory segment.
+// The `size` argument *does not* include the object header size!
+inline void allocate_object(
+    gaia_locator_t locator,
+    size_t size)
+{
+    memory_manager::memory_manager_t* memory_manager = gaia::db::get_memory_manager();
+    memory_manager::chunk_manager_t* chunk_manager = gaia::db::get_chunk_manager();
+
+    // The allocation can fail either because there is no current chunk, or
+    // because the current chunk is full.
+    gaia_offset_t object_offset = chunk_manager->allocate(size + c_db_object_header_size);
+    if (object_offset == c_invalid_gaia_offset)
+    {
+        if (chunk_manager->initialized())
+        {
+            // The current chunk is out of memory, so retire it and allocate a new chunk.
+            // In case it is already empty, try to deallocate it after retiring it.
+
+            // Get the session's chunk version for safe deallocation.
+            memory_manager::chunk_version_t version = chunk_manager->get_version();
+            // Now retire the chunk.
+            chunk_manager->retire_chunk(version);
+            // Release ownership of the chunk.
+            chunk_manager->release();
+        }
+
+        // Allocate a new chunk.
+        memory_manager::chunk_offset_t new_chunk_offset = memory_manager->allocate_chunk();
+        if (new_chunk_offset == memory_manager::c_invalid_chunk_offset)
+        {
+            throw memory_allocation_error(
+                "Memory manager ran out of memory during call to allocate_chunk().");
+        }
+
+        // Initialize the new chunk.
+        chunk_manager->initialize(new_chunk_offset);
+
+        // Before we allocate, persist current chunk ID in txn log, for access
+        // on the server in case we crash.
+        gaia::db::get_mapped_log()->data()->current_chunk = new_chunk_offset;
+
+        // Allocate from new chunk.
+        object_offset = chunk_manager->allocate(size + c_db_object_header_size);
+    }
+
+    ASSERT_POSTCONDITION(
+        object_offset != c_invalid_gaia_offset,
+        "Allocation from chunk was not expected to fail!");
+
+    // Update locator array to point to the new offset.
+    update_locator(locator, object_offset);
 }
 
 } // namespace db
