@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <climits>
 #include <cstdint>
 
 #include "gaia_internal/common/retail_assert.hpp"

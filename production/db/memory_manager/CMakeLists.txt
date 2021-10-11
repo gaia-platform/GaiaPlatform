@@ -21,7 +21,8 @@ add_library(gaia_memory_manager STATIC
   src/chunk_manager.cpp)
 configure_gaia_target(gaia_memory_manager)
 target_include_directories(gaia_memory_manager PUBLIC ${GAIA_MEMORY_MANAGER_INCLUDES})
-target_link_libraries(gaia_memory_manager PRIVATE gaia_common)
+# libstdc++ apparently needs libatomic for struct last_allocation_metadata_t, even though it's 8 bytes.
+target_link_libraries(gaia_memory_manager PRIVATE gaia_common atomic)
 
 # Our unit tests.
 add_gtest(test_system tests/test_system.cpp "${GAIA_MEMORY_MANAGER_INCLUDES}" "gaia_common;gaia_memory_manager")

@@ -201,6 +201,8 @@ struct chunk_manager_metadata_t
     // Just in case chunk_version_t is smaller than a word.
     static_assert(std::atomic<chunk_version_t>::is_always_lock_free);
 
+    std::atomic<last_allocation_metadata_t> last_allocation_metadata{};
+
     // These reserved "slack" variables account for how much space is remaining
     // unused out of the space we reserved for this metadata structure. Their
     // total size in bytes should be (c_first_slot_offset / CHAR_BIT) * 2.
@@ -216,7 +218,7 @@ struct chunk_manager_metadata_t
     // can be set for slots > max_allocated_slot_offset.
     std::atomic<uint64_t> allocated_slots_bitmap[c_slot_bitmap_size_in_words];
 
-    // We have 32 bytes of slack for the second bitmap, and we have used none.
+    // We have 32 bytes of slack for the second bitmap, and we have used 0 bytes.
     uint64_t deallocated_slots_bitmap_unused_slack[4];
 
     // This bitmap records the first slot used by each deallocated object. A bit
@@ -242,8 +244,6 @@ struct chunk_manager_metadata_t
 
     inline bool apply_chunk_transition(
         chunk_state_t expected_state, chunk_state_t desired_state);
-
-    std::atomic<last_allocation_metadata_t> last_allocation_metadata{};
 
     inline void update_last_allocation_metadata(size_t allocation_size_slots);
 
