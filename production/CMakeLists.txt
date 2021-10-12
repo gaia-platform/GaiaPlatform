@@ -15,7 +15,7 @@ project(production VERSION 0.3.0)
 # Sets the pre-release version which will be appended to the
 # product version: 0.1.0-alpha.
 # When the product is GA this should be empty.
-set(PRE_RELEASE_IDENTIFIER "alpha")
+set(PRE_RELEASE_IDENTIFIER "beta")
 
 option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
 
