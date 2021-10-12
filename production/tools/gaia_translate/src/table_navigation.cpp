@@ -221,7 +221,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
                 {
                     is_n_relationship = true;
                 }
-                linking_field = it.first;
+                linking_field = it.first();
             }
         }
 
@@ -312,7 +312,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
     for (size_t path_index = 0; path_index < path_length - 1; ++path_index)
     {
         vector<navigation_data_t> path;
-        unordered_map<string, CatalogTableData> graph_data(table_data);
+        llvm::StringMap<CatalogTableData> graph_data(table_data);
         const auto& edge_src = current_path[path_index];
         const auto& edge_dst = current_path[path_index + 1];
         auto graph_itr = graph_data.find(edge_src.table_name);
@@ -321,7 +321,9 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
         {
             if (it->second.targetTable == edge_dst.table_name)
             {
-                it = graph_itr->second.linkData.erase(it);
+                auto toErase = it;
+                graph_itr->second.linkData.erase(toErase);
+                ++it;
             }
             else
             {
@@ -343,7 +345,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
 }
 
 // Find shortest navigation path between 2 tables.
-bool table_navigation_t::find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path, const unordered_map<string, CatalogTableData>& graph_data)
+bool table_navigation_t::find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path, const llvm::StringMap<CatalogTableData>& graph_data)
 {
     if (src == dst)
     {
@@ -356,7 +358,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
 
     for (const auto& table_description : GaiaCatalog::getCatalogTableData())
     {
-        table_distance[table_description.first] = INT_MAX;
+        table_distance[table_description.first()] = INT_MAX;
     }
     table_distance[src] = 0;
 
@@ -389,7 +391,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
                 {
                     table_distance[table_name] = distance + 1;
                     table_prev[table_name] = closest_table;
-                    table_navigation[table_name] = {it.second.targetTable, it.first};
+                    table_navigation[table_name] = {it.second.targetTable, it.first()};
                 }
             }
         }
@@ -432,7 +434,7 @@ bool table_navigation_t::generate_navigation_step(const string& source_table, co
         {
             if (!source_field.empty())
             {
-                if (it.first == source_field)
+                if (it.first() == source_field)
                 {
                     if (it.second.cardinality == catalog::relationship_cardinality_t::one)
                     {
@@ -460,7 +462,7 @@ bool table_navigation_t::generate_navigation_step(const string& source_table, co
                 {
                     is_n_relationship = true;
                 }
-                linking_field = it.first;
+                linking_field = it.first();
             }
         }
     }
@@ -520,7 +522,7 @@ vector<string> table_navigation_t::get_table_fields(const string& table)
 
     for (const auto& fieldData : table_iterator->second.fieldData)
     {
-        return_value.at(fieldData.second.position) = fieldData.first;
+        return_value.at(fieldData.second.position) = fieldData.first();
     }
 
 

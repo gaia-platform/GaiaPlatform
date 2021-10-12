@@ -547,7 +547,7 @@ bool parse_attribute(const string& attribute, string& table, string& field, stri
         {
             if (tbl.second.fieldData.find(tagless_attribute) != tbl.second.fieldData.end())
             {
-                table = tbl.first;
+                table = tbl.first();
                 field = tagless_attribute;
                 return true;
             }
@@ -2672,7 +2672,7 @@ public:
                 return;
             }
 
-            for (auto table_data : GaiaCatalog::getCatalogTableData())
+            for (const auto& table_data : GaiaCatalog::getCatalogTableData())
             {
                 if (table_data.second.fieldData.find(variable_name) != table_data.second.fieldData.end())
                 {
@@ -3203,7 +3203,7 @@ public:
 
         const auto* link_expr = result.Nodes.getNodeAs<MemberExpr>("tableFieldGet");
 
-        unordered_map<string, CatalogTableData> table_data = GaiaCatalog::getCatalogTableData();
+        llvm::StringMap<CatalogTableData> table_data = GaiaCatalog::getCatalogTableData();
 
         gaiat::diag().set_location(table_call->getLocation());
 
@@ -3241,7 +3241,7 @@ public:
             {
                 if (link_data_pair.second.targetTable == dest_table_name)
                 {
-                    link_name = link_data_pair.first;
+                    link_name = link_data_pair.first();
                 }
             }
 

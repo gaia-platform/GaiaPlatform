@@ -13,13 +13,11 @@ using namespace clang;
 using namespace clang::gaia::catalog;
 using namespace ::gaia::catalog;
 
-
 bool GaiaCatalog::isInitialized = false;
-unordered_map<string, CatalogTableData> GaiaCatalog::catalogTableData;
-
+llvm::StringMap<CatalogTableData> GaiaCatalog::catalogTableData;
 
 class db_monitor_t
-    {
+{
     public:
         db_monitor_t()
         {
@@ -32,7 +30,7 @@ class db_monitor_t
             ::gaia::db::commit_transaction();
             ::gaia::db::end_session();
         }
-    };
+};
 
 
 // Fill internal data from catalog.
@@ -65,7 +63,7 @@ void GaiaCatalog::fillTableData()
             CatalogTableData table_data = catalogTableData[table.name()];
             if (table_data.fieldData.find(field.name()) != table_data.fieldData.end())
             {
-               Diags.Report(diag::err_duplicate_field) << field.name();
+                Diags.Report(diag::err_duplicate_field) << field.name();
                 catalogTableData.clear();
                 return;
             }

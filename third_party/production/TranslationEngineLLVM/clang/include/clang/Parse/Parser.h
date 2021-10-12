@@ -2493,9 +2493,9 @@ private:
   static constexpr char c_on_insert_rule_attribute[] = "on_insert";
   static constexpr char c_on_change_rule_attribute[] = "on_change";
 
-  std::unordered_map<SourceLocation, std::string> insertCallTableMap;
-  std::unordered_map<SourceLocation, std::vector<std::string>> insertCallParameterMap;
-  std::unordered_set<SourceLocation> insertCallParameterLocations;
+  llvm::DenseMap<SourceLocation, std::string> insertCallTableMap;
+  llvm::DenseMap<SourceLocation, std::vector<std::string>> insertCallParameterMap;
+  llvm::DenseSet<SourceLocation> insertCallParameterLocations;
 
   bool ParseGaiaAttributes(ParsedAttributesWithRange &attrs,
                             GaiaAttributeType attributeType,

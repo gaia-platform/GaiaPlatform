@@ -6,9 +6,7 @@
 #pragma once
 
 #include <string>
-#include <unordered_map>
-#include <unordered_set>
-
+#include "llvm/ADT/StringMap.h"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/catalog/catalog.hpp"
 
@@ -42,15 +40,15 @@ struct CatalogLinkData
 
 struct CatalogTableData
 {
-    unordered_map<string, CatalogFieldData> fieldData;
-    unordered_map<string, CatalogLinkData> linkData;
+    llvm::StringMap<CatalogFieldData> fieldData;
+    llvm::StringMap<CatalogLinkData> linkData;
     string dbName;
 };
 
 class GaiaCatalog
 {
 public:
-    static const unordered_map<string, CatalogTableData>& getCatalogTableData()
+    static const llvm::StringMap<CatalogTableData>& getCatalogTableData()
     {
         ensureInitialization();
         return catalogTableData;
@@ -60,7 +58,7 @@ private:
     static void ensureInitialization();
     static void fillTableData();
     static bool isInitialized;
-    static unordered_map<string, CatalogTableData> catalogTableData;
+    static llvm::StringMap<CatalogTableData> catalogTableData;
 };
 } // namespace catalog
 } // namespace gaia

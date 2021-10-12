@@ -24,7 +24,9 @@
 #include "clang/Sema/DeclSpec.h"
 #include "clang/Sema/Scope.h"
 #include "clang/Sema/TypoCorrection.h"
+#include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/StringSet.h"
+#include "llvm/ADT/StringSwitch.h"
 
 #include "gaia_internal/common/random.hpp"
 using namespace clang;
@@ -37,16 +39,16 @@ void Parser::ConsumeInvalidRuleset()
 
 std::string Parser::GetExplicitNavigationPath()
 {
-    std::string returnValue;
+    SmallString<50> returnValue;
     if (!getLangOpts().Gaia || !Actions.getCurScope()->isInRulesetScope())
     {
-        return returnValue;
+        return std::string();
     }
     Token previousToken = getPreviousToken(Tok);
     Token previousPreviousToken = getPreviousToken(previousToken);
     if (previousToken.isNot(tok::identifier))
     {
-        return returnValue;
+        return std::string();
     }
 
     SourceLocation startLocation, endLocation;
@@ -69,22 +71,23 @@ std::string Parser::GetExplicitNavigationPath()
         Token tagToken = getPreviousToken(previousPreviousToken);
         if (tagToken.is(tok::identifier) && !(Actions.getCurScope()->isSwitchScope() && getPreviousToken(tagToken).is(tok::coloncolon)))
         {
-            returnValue = tagToken.getIdentifierInfo()->getName().str() + ":";
+            returnValue = tagToken.getIdentifierInfo()->getName();
+            returnValue += ':';
             startLocation = tagToken.getLocation();
             if (getPreviousToken(tagToken).is(tok::slash))
             {
-                returnValue = "/" + returnValue;
+                returnValue.insert(returnValue.begin(), '/');
                 startLocation = getPreviousToken(tagToken).getLocation();
                 if (getPreviousToken(getPreviousToken(tagToken)).is(tok::at))
                 {
-                    returnValue = "@" + returnValue;;
+                    returnValue.insert(returnValue.begin(), '@');
                     startLocation = getPreviousToken(getPreviousToken(tagToken)).getLocation();
                 }
             }
             else if (getPreviousToken(tagToken).is(tok::at))
             {
                 tagToken = getPreviousToken(tagToken);
-                returnValue = "@" + returnValue;
+                returnValue.insert(returnValue.begin(), '@');
                 startLocation = tagToken.getLocation();
             }
         }
@@ -99,7 +102,7 @@ std::string Parser::GetExplicitNavigationPath()
         startLocation = previousToken.getLocation();
     }
 
-    returnValue.append(previousToken.getIdentifierInfo()->getName().str());
+    returnValue.append(previousToken.getIdentifierInfo()->getName());
     unsigned tokenIterator = 0;
     Token currentToken = GetLookAheadToken(tokenIterator);
 
@@ -117,7 +120,7 @@ std::string Parser::GetExplicitNavigationPath()
                 returnValue.append(".");
                 break;
             case tok::identifier:
-                returnValue.append(currentToken.getIdentifierInfo()->getName().str());
+                returnValue.append(currentToken.getIdentifierInfo()->getName());
                 break;
             default:
                 break;
@@ -135,8 +138,8 @@ std::string Parser::GetExplicitNavigationPath()
     {
         endLocation = previousToken.getEndLoc();
     }
-    Actions.AddExplicitPathData(getPreviousToken(Tok).getLocation(), startLocation, endLocation, returnValue);
-    return returnValue;
+    Actions.AddExplicitPathData(getPreviousToken(Tok).getLocation(), startLocation, endLocation, returnValue.str().str());
+    return returnValue.str().str();
 }
 
 // Insert a dummy function declaration to turn rule definition
@@ -237,13 +240,13 @@ bool Parser::ParseRuleSubscriptionAttributes(ParsedAttributesWithRange &attrs,
         return false;
     }
 
-   llvm::StringSet<> tags;
+    llvm::StringSet<> tags;
     do
     {
         SourceLocation tokenLocation = Tok.getLocation();
         if (Tok.is(tok::identifier))
         {
-            std::string table = Tok.getIdentifierInfo()->getName().str();
+            SmallString<20> table = Tok.getIdentifierInfo()->getName();
             if (NextToken().is(tok::colon))
             {
                 if (tags.find(table) != tags.end())
@@ -255,7 +258,7 @@ bool Parser::ParseRuleSubscriptionAttributes(ParsedAttributesWithRange &attrs,
                 {
                     tags.insert(table);
                 }
-                table += std::string(":");
+                table += ':';
                 ConsumeToken();
                 if (NextToken().is(tok::identifier))
                 {
@@ -275,7 +278,8 @@ bool Parser::ParseRuleSubscriptionAttributes(ParsedAttributesWithRange &attrs,
                 if (NextToken().is(tok::identifier))
                 {
                     ConsumeToken();
-                    table += std::string(".") + Tok.getIdentifierInfo()->getName().str();
+                    table += '.';
+                    table += Tok.getIdentifierInfo()->getName();
                 }
                 else
                 {
@@ -283,7 +287,8 @@ bool Parser::ParseRuleSubscriptionAttributes(ParsedAttributesWithRange &attrs,
                     return false;
                 }
             }
-            table = std::string("\"") + table + std::string("\"");
+            table.insert(table.begin(), '"');
+            table += '"';
             Token Toks[1];
             Toks[0].startToken();
             Toks[0].setKind(tok::string_literal);
@@ -368,7 +373,6 @@ bool Parser::ParseRulesetSerialGroup(ParsedAttributesWithRange &attrs,
         Diag(Tok, diag::err_expected) << tok::l_paren;
         return false;
     }
-
 
     if (Tok.is(tok::identifier))
     {
@@ -579,10 +583,7 @@ void Parser::ParseRule(Declarator &D)
 
 bool Parser::isGaiaSpecialFunction(StringRef name) const
 {
-    if (name == "insert")
-    {
-        return true;
-    }
-
-    return false;
+    return llvm::StringSwitch<bool>(name)
+        .Case("insert", true)
+        .Default(false);
 }
