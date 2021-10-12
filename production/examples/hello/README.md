@@ -24,7 +24,7 @@ cp -r /opt/gaia/examples/hello_sample/* .
 ./run.sh
 ```
 
-3. To build the and run the dem using the provide *cmake* and *make* scripts:
+3. To build the and run the demo using the provided *cmake* and *make* scripts:
 
 ```script
 mkdir build
@@ -34,7 +34,7 @@ make
 ```
 
 ## Inspecting the data
-You can use Postgres to inspect the data in the hello database. The `setup.sh` script sets up access to the *hello* example data through Postgres, by creating a *hello* database and importing the Gaia tables into it (this is done using the commands from the `setup.sql` script.) For information on using Postgres with the Gaia SDK, see [Using Postgres to access Gaia database information](https://gaia-platform.github.io/gaia-platform-docs.io/articles/tools/using-postgress-with-gaia.html).
+You can use Postgres to inspect the data in the hello database. The `setup.sh` script sets up access to the *hello* example data through Postgres by creating a *hello* database and importing the Gaia tables into it (this is done using the commands from the `setup.sql` script.) For information on using Postgres with the Gaia SDK, see [Using Postgres to access Gaia database information](https://gaia-platform.github.io/gaia-platform-docs.io/articles/tools/using-postgress-with-gaia.html).
 
 To inspect the data, connect to Postgres as user *postgres*, then execute:
 
