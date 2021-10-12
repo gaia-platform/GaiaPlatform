@@ -75,7 +75,7 @@ To update the package, remove it and install the updated package:
 
 <pre>
 /opt/gaia/bin
-    gaia_db_server - The Gaia database catalog server.
+    gaia_db_server - The Gaia database server.
     gaiac - Gaia Catalog compiler.
     gaiat - Gaia Translation Engine.
 /opt/gaia/etc
