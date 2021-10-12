@@ -425,15 +425,15 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t
         ASSERT_INVARIANT(data_size == 0, "Null payload with non-zero payload size!");
     }
 
+    WRITE_PROTECT(obj.to_offset());
+    client_t::txn_log(locator, c_invalid_gaia_offset, obj.to_offset(), gaia_operation_t::create);
+
     auto_connect_to_parent(
         id,
         type,
         // NOLINTNEXTLINE: cppcoreguidelines-pro-type-const-cast
         const_cast<gaia_id_t*>(obj_ptr->references()),
         reinterpret_cast<const uint8_t*>(obj_ptr->data()));
-
-    WRITE_PROTECT(locator_to_offset(locator));
-    client_t::txn_log(locator, c_invalid_gaia_offset, obj.to_offset(), gaia_operation_t::create);
 
     obj.create_insert_trigger(type, id);
     return obj;
@@ -600,6 +600,9 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
     new_this->num_references = old_this->num_references;
     memcpy(new_this->payload + references_size, data, data_size);
 
+    WRITE_PROTECT(to_offset());
+    client_t::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
+
     auto new_data = reinterpret_cast<const uint8_t*>(data);
     auto old_data = reinterpret_cast<const uint8_t*>(old_this->payload);
     const uint8_t* old_data_payload = old_data + references_size;
@@ -612,10 +615,6 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
         references(),
         new_data,
         changed_fields);
-
-    WRITE_PROTECT(to_offset());
-
-    client_t::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
 
     if (client_t::is_valid_event(new_this->type))
     {
