@@ -202,6 +202,7 @@ endif()
 install(FILES ${GAIA_REPO}/production/examples/direct_access/hospital.ddl DESTINATION examples/direct_access)
 install(FILES ${GAIA_REPO}/production/examples/direct_access/hospital.cpp DESTINATION examples/direct_access)
 install(FILES ${GAIA_REPO}/production/examples/direct_access/CMakeLists.txt DESTINATION examples/direct_access)
+install(FILES ${GAIA_REPO}/production/examples/direct_access/README.md DESTINATION examples/direct_access)
 
 # Place license files.
 install(FILES ${GAIA_REPO}/production/licenses/LICENSE.third-party.txt DESTINATION .)
