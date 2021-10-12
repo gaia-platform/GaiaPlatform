@@ -183,36 +183,41 @@ When we are ready to release a new version of Gaia this is the process to follow
    git checkout master
    git pull
    ```
-2. Bump the project version in the [production/CMakeLists.txt](production/CMakeLists.txt) according to Semantic Versioning 2.0 spec. Note that Major version bumps should involve consultation with a number of folks across the team.
+2. Create a branch for the version to release:
+   ```shell
+    git checkout -b gaia-release-0.3.0-beta
+    ```
+3. Bump the project version in the [production/CMakeLists.txt](production/CMakeLists.txt) according to Semantic Versioning 2.0 spec. Note that Major version bumps should involve consultation with a number of folks across the team.
    ```cmake
    # From
    project(production VERSION 0.2.5)
    # To
    project(production VERSION 0.3.0)
    ```
-3. Change, if necessary, the `PRE_RELEASE_IDENTIFIER` in the [production/CMakeLists.txt](production/CMakeLists.txt). For GA releases leave the `PRE_RELEASE_IDENTIFIER` empty.
+4. Change, if necessary, the `PRE_RELEASE_IDENTIFIER` in the [production/CMakeLists.txt](production/CMakeLists.txt). For GA releases leave the `PRE_RELEASE_IDENTIFIER` empty.
    ```cmake
    # From
    set(PRE_RELEASE_IDENTIFIER "alpha")
    # To
    set(PRE_RELEASE_IDENTIFIER "beta")
    ```
-4. Create a commit for the new Release:
+5. Create a commit for the new Release:
    ```shell
    git add -u
    git commit -m "Bump Gaia version to 0.3.0-beta"
+   git branch --set-upstream-to origin/gaia-release-0.3.0-beta
    # Create a PR to push the change into master.
    ```
-5. Create a tag reflecting the new version:
+6. Create a tag reflecting the new version:
    ```shell
    # Pull the version change after the PR is approved and merged.
    git checkout master
    git pull
    # Create and push the version tag.
-   git tag 0.3.0-beta
+   git tag v0.3.0-beta
    git push origin v0.3.0-beta
    ```
-6. Go on [GitHub releases tab](https://github.com/gaia-platform/GaiaPlatform/releases) and draft a new release, using the tag created in the previous step.
+7. Go on [GitHub releases tab](https://github.com/gaia-platform/GaiaPlatform/releases) and draft a new release, using the tag created in the previous step.
    1. Tag Version: `0.3.0-beta`
    2. Release Title: `Gaia Platform 0.3.0-beta`
    3. Description: High level description of new features and relevant bug fixes.
