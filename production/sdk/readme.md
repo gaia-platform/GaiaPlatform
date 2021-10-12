@@ -1,6 +1,6 @@
 # Getting Started with the Gaia SDK
 
-This document provides guidance on setting up the Gaia SDK which includes the Gaia database server.
+This document provides guidance on setting up the Gaia SDK which, includes the Gaia database server.
 
 ## Prerequisites
 
@@ -13,7 +13,7 @@ The Gaia SDK installer installs the Gaia tools and Clang 10.
 
 CMake is the officially supported method for building Gaia applications.  In addition, the Gaia SDK uses CMake to automate code generation from DDL and ruleset files.
 
-To install CMake run the following command:
+To install CMake, run the following command:
 
 `sudo apt-get install cmake`
 
@@ -30,7 +30,7 @@ export LDFLAGS="-B/usr/lib/llvm-10/bin/ -fuse-ld=lld"
 
 The Gaia SDK is delivered as a Debian software package (DEB).
 
-**gaia-x.y.z__amd64.deb**
+gaia-x.y.z__amd64.deb
 
 Where x.y.z represents the Gaia version number.
 
@@ -47,16 +47,18 @@ To install the package:
 1. Navigate to the folder that contains the downloaded package.
 1.  At the command prompt, replace the x.y.z with the correct version number and run the following commands:
 
-    ```
+    ```bash
     sudo apt-get update
-    sudo apt install ./gaia-x.y.z__amd64.deb
+    sudo apt-get install ./gaia-x.y.z_amd64.deb
     ```
 
 To remove the package:
 
 1. At the command prompt, run the following command:
 
-    `sudo apt remove gaia`
+    ```bash
+    sudo apt-get remove gaia
+    ```
 
 To update the package, remove it and install the updated package:
 
@@ -80,9 +82,13 @@ To update the package, remove it and install the updated package:
     gaiat - Gaia Translation Engine.
 /opt/gaia/etc
     gaia.conf - Contains configuration settings for the platform and application loggers that the Gaia Platform uses.
-    Gaia_log.conf - Configuration settings for the database and rules  engine that comprise the Gaia Platform.
+    gaia_log.conf - Contains configuration settings for the database and rules engine that comprise the Gaia Platform.
+/opt/gaia/examples/direct_access
+    Direct Access Classes example app
+/opt/gaia/examples/hello
+    Hello World example app
 /opt/gaia/examples/incubator
-    Incubator example
+    Incubator example app
 /opt/gaia/include
     Include files for the Gaia Platform.
 /opt/gaia/lib
@@ -93,7 +99,7 @@ To update the package, remove it and install the updated package:
 
 The Gaia server must be running to build or run any solution that is based on the Gaia Platform.
 
-We recommend that you don't run gaia\_db\_server under the root user, As with any daemon process that is accessible to the outside, running the Gaia server process as root, or any other account with special access rights, is a security risk. As best practice in production, run Gaia under a separate user account. This user account should only own the data that is managed by the server, and should not be used to run other daemons. For example, using the user nobody is not recommended.
+We recommend that you don't run gaia\_db\_server under the root user. As with any daemon process that is accessible to the outside, running the Gaia server process as root, or any other account with special access rights, is a security risk. As best practice in production, run Gaia under a separate user account. This user account should only own the data that is managed by the server, and should not be used to run other daemons. For example, using the user `nobody` is not recommended.
 
 To prevent a compromised server process from modifying the Gaia executables, the user account must not own the Gaia executable files.
 
@@ -102,14 +108,16 @@ Gaia server command line arguments:
 |   |   |
 |---|---|
 |--data-dir \<database-folder-path>   | Specifies the location in which to store the Gaia database.  |
-|--configuration-file-path \<config-file-name>  | Specifies the location in which to store the Gaia database.  |
+|--configuration-file-path \<config-file-name>  | Specifies the location in which to store the Gaia configuration file.  |
 | --disable-persistence  | No previous changes to the database will be visible after the database is started, and no changes made while the database is running will be visible after it is restarted.  | 
 | --disable-persistence-after-recovery  | Previous changes to the database will be visible after the database is started, but no changes made while the database is running will be visible after it is restarted.  | 
 |--reinitialize-persistent-store   |   All previous changes to the database will be deleted from persistent storage and will not be visible after the database is started, but changes made while the database is running will be visible after the database is restarted.  | 
 
 To start the server on a machine that supports systemd:
 
-`sudo systemctl start gaia`
+```bash
+sudo apt-get install cmake
+```
 
 ### Starting the Gaia server on WSL
 
@@ -117,7 +125,9 @@ When starting the Gaia server on WSL, use the --data-dir argument to specify the
 
 To start the server on Ubuntu and run it in the background on WSL2 (Gaia has not been tested on WSL1):
 
-`gaia_db_server --data-dir ~/.local/gaia/db &`
+```bash
+gaia_db_server --data-dir ~/.local/gaia/db &
+```
 
 ## Next Steps
 
