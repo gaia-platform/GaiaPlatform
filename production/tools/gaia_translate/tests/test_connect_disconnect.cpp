@@ -162,8 +162,7 @@ TEST_F(test_connect_disconnect, test_disconnect_1_1)
     gaia::db::commit_transaction();
 }
 
-// Temporarily disabled until https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1501 is resolved.
-TEST_F(test_connect_disconnect, DISABLED_disconnect_delete)
+TEST_F(test_connect_disconnect, disconnect_delete)
 {
     gaia::rules::subscribe_ruleset("test_disconnect_delete");
 
