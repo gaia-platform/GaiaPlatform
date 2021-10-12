@@ -4,20 +4,20 @@ A demo of a rule-based system for controlling the temperature of two incubators.
 ## Build Instructions
 These instructions assume you have installed the SDK and have installed the *clang* and *cmake* tools.  See the SDK User's Guide for instructions on how to do this.
 
-1. We suggest copying the sources to a new directory so that you always have a backup in the installed folder if you want to go back.
+1. To preserve the initial state of the sample code, copy the source files to a new folder.
     ```shell
     mkdir incubator
     cd incubator
     cp -r /opt/gaia/examples/incubator/* .
     ```
-2. Create a build directory (in this case it is under the current *incubator/* folder and build.
+2. Create the build folder under the current `incubator/` folder and initiate the build.
     ```shell
     mkdir build
     cd build/
     cmake ..
     make
     ```
-3. If everything runs successfully the *incubator* executable will be built.
+3. The output of the build is an executable the 'incubator' executable.
 
 # Running the Demo
 The demo operates in two modes:  a show mode and a sim mode.
