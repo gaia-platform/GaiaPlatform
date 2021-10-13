@@ -3,10 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <algorithm>
 #include <string>
-#include <unordered_set>
-#include <vector>
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
@@ -25,6 +22,8 @@
 #include <clang/Rewrite/Core/Rewriter.h>
 #include <clang/Tooling/CommonOptionsParser.h>
 #include <clang/Tooling/Tooling.h>
+#include <llvm/ADT/DenseMap.h>
+#include <llvm/ADT/DenseSet.h>
 #pragma clang diagnostic pop
 
 #include "gaia_internal/common/gaia_version.hpp"
@@ -73,44 +72,21 @@ constexpr int c_declaration_to_ruleset_offset = -2;
 bool g_is_rule_context_rule_name_referenced = false;
 SourceRange g_rule_attribute_source_range;
 bool g_is_rule_prolog_specified = false;
-constexpr int c_encoding_shift = 16;
-constexpr int c_encoding_mask = 0xFFFF;
 
 constexpr char c_connect_keyword[] = "connect";
 constexpr char c_disconnect_keyword[] = "disconnect";
 
-vector<string> g_rulesets;
-unordered_map<string, unordered_set<string>> g_active_fields;
-unordered_set<string> g_insert_tables;
-unordered_set<string> g_update_tables;
-unordered_map<string, string> g_attribute_tag_map;
+llvm::SmallVector<string, 8> g_rulesets;
+llvm::StringMap<llvm::StringSet<>> g_active_fields;
+llvm::StringSet<> g_insert_tables;
+llvm::StringSet<> g_update_tables;
+llvm::StringMap<string> g_attribute_tag_map;
 
-namespace std
-{
-template <>
-struct hash<SourceRange>
-{
-    std::size_t operator()(SourceRange const& range) const noexcept
-    {
-        return std::hash<unsigned int>{}(
-            (range.getBegin().getRawEncoding() << c_encoding_shift) | (range.getEnd().getRawEncoding() & c_encoding_mask));
-    }
-};
-template <>
-struct hash<SourceLocation>
-{
-    std::size_t operator()(SourceLocation const& location) const noexcept
-    {
-        return std::hash<unsigned int>{}(location.getRawEncoding());
-    }
-};
-} // namespace std
+llvm::DenseSet<SourceLocation> g_insert_call_locations;
 
-unordered_set<SourceLocation> g_insert_call_locations;
+llvm::DenseMap<SourceRange, llvm::SmallVector<explicit_path_data_t, 8>> g_expression_explicit_path_data;
 
-unordered_map<SourceRange, vector<explicit_path_data_t>> g_expression_explicit_path_data;
-
-unordered_set<string> g_used_dbs;
+llvm::StringSet<> g_used_dbs;
 
 const FunctionDecl* g_current_rule_declaration = nullptr;
 
@@ -148,20 +124,20 @@ struct insert_data_t
 {
     SourceRange expression_range;
     string table_name;
-    unordered_map<string, SourceRange> argument_map;
-    unordered_map<SourceRange, string> argument_replacement_map;
-    unordered_set<string> argument_table_names;
+    llvm::StringMap<SourceRange> argument_map;
+    llvm::DenseMap<SourceRange, string> argument_replacement_map;
+    llvm::StringSet<> argument_table_names;
 };
 
 // Vector to contain all the data to properly generate code for insert function call.
 // The generation deferred to allow proper code generation for declarative references as arguments for insert call.
-vector<insert_data_t> g_insert_data;
-vector<rewriter_history_t> g_rewriter_history;
-unordered_map<SourceRange, string> g_variable_declaration_location;
-unordered_set<SourceRange> g_variable_declaration_init_location;
-vector<SourceRange> g_nomatch_location_list;
-unordered_map<SourceRange, string> g_break_label_map;
-unordered_map<SourceRange, string> g_continue_label_map;
+llvm::SmallVector<insert_data_t, 8> g_insert_data;
+llvm::SmallVector<rewriter_history_t, 8> g_rewriter_history;
+llvm::DenseMap<SourceRange, string> g_variable_declaration_location;
+llvm::DenseSet<SourceRange> g_variable_declaration_init_location;
+llvm::SmallVector<SourceRange, 8> g_nomatch_location_list;
+llvm::DenseMap<SourceRange, string> g_break_label_map;
+llvm::DenseMap<SourceRange, string> g_continue_label_map;
 
 // Suppress these clang-tidy warnings for now.
 static const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
@@ -223,7 +199,7 @@ void get_variable_name(string& variable_name, string& table_name, explicit_path_
     {
         table_name = table_iterator->second;
     }
-    auto defined_tag_iterator = explicit_path_data.defined_tags.find(variable_name);
+    const auto& defined_tag_iterator = explicit_path_data.defined_tags.find(variable_name);
     if (defined_tag_iterator != explicit_path_data.defined_tags.end())
     {
         variable_name = defined_tag_iterator->second;
@@ -280,7 +256,7 @@ string get_table_from_expression(const string& expression)
     }
 }
 
-bool is_tag_defined(const unordered_map<string, string>& tag_map, const string& tag)
+bool is_tag_defined(const llvm::StringMap<string>& tag_map, const string& tag)
 {
     for (const auto& defined_tag_iterator : tag_map)
     {
@@ -292,7 +268,7 @@ bool is_tag_defined(const unordered_map<string, string>& tag_map, const string& 
     return false;
 }
 
-bool can_path_be_optimized(const string& path_first_component, const vector<explicit_path_data_t>& path_data)
+bool can_path_be_optimized(const string& path_first_component, const llvm::SmallVector<explicit_path_data_t, 8>& path_data)
 {
     for (const auto& path_iterator : path_data)
     {
@@ -310,13 +286,13 @@ bool can_path_be_optimized(const string& path_first_component, const vector<expl
     return false;
 }
 
-void optimize_path(vector<explicit_path_data_t>& path, explicit_path_data_t& path_segment, bool is_explicit_path_data_stored)
+void optimize_path(llvm::SmallVector<explicit_path_data_t, 8>& path, explicit_path_data_t& path_segment, bool is_explicit_path_data_stored)
 {
     string first_table = get_table_from_expression(path_segment.path_components.front());
-    const auto tag_iterator = path_segment.tag_table_map.find(first_table);
+    const auto& tag_iterator = path_segment.tag_table_map.find(first_table);
 
     if (tag_iterator != path_segment.tag_table_map.end()
-        && (tag_iterator->second != tag_iterator->first
+        && (tag_iterator->second != tag_iterator->first()
             || (is_explicit_path_data_stored && can_path_be_optimized(first_table, path))))
     {
         path_segment.skip_implicit_path_generation = true;
@@ -338,10 +314,10 @@ void optimize_path(vector<explicit_path_data_t>& path, explicit_path_data_t& pat
 }
 
 bool is_path_segment_contained_in_another_path(
-    const vector<explicit_path_data_t>& path,
+    const llvm::SmallVector<explicit_path_data_t, 8>& path,
     const explicit_path_data_t& path_segment)
 {
-    unordered_set<string> tag_container, table_container;
+    llvm::StringSet<> tag_container, table_container;
 
     if (!path_segment.defined_tags.empty())
     {
@@ -353,7 +329,7 @@ bool is_path_segment_contained_in_another_path(
         for (const auto& table_iterator : path_iterator.path_components)
         {
             string table_name = get_table_from_expression(table_iterator);
-            auto tag_iterator = path_iterator.defined_tags.find(table_name);
+            const auto& tag_iterator = path_iterator.defined_tags.find(table_name);
             if (tag_iterator != path_iterator.defined_tags.end())
             {
                 table_name = tag_iterator->second;
@@ -362,13 +338,13 @@ bool is_path_segment_contained_in_another_path(
         }
         for (const auto& tag_iterator : path_iterator.tag_table_map)
         {
-            tag_container.insert(tag_iterator.first);
+            tag_container.insert(tag_iterator.first());
         }
     }
 
     for (const auto& tag_map_iterator : path_segment.tag_table_map)
     {
-        if (tag_container.find(tag_map_iterator.first) == tag_container.end())
+        if (tag_container.find(tag_map_iterator.first()) == tag_container.end())
         {
             return false;
         }
@@ -584,16 +560,16 @@ bool validate_and_add_active_field(const string& table_name, const string& field
         return false;
     }
 
-    auto fields = GaiaCatalog::getCatalogTableData().find(table_name)->second.fieldData;
-
-    if (fields.find(field_name) == fields.end())
+    const auto& fields = GaiaCatalog::getCatalogTableData().find(table_name)->second.fieldData;
+    const auto& field_iterator = fields.find(field_name);
+    if (field_iterator == fields.end())
     {
         gaiat::diag().emit(diag::err_field_not_found) << field_name << table_name;
         g_is_generation_error = true;
         return false;
     }
 
-    if (fields[field_name].isDeprecated)
+    if (field_iterator->second.isDeprecated)
     {
         gaiat::diag().emit(diag::err_field_deprecated) << field_name << table_name;
         g_is_generation_error = true;
@@ -607,7 +583,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
     return true;
 }
 
-string get_table_name(const string& table, const unordered_map<string, string>& tag_map)
+string get_table_name(const string& table, const llvm::StringMap<string>& tag_map)
 {
     auto tag_iterator = tag_map.find(table);
     if (tag_iterator == tag_map.end())
@@ -650,16 +626,16 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
             .append("get(")
             .append(class_qualification_string)
             .append("insert_row(");
-        vector<string> function_arguments = table_navigation_t::get_table_fields(insert_data.table_name);
-        const auto table_data_iterator = GaiaCatalog::getCatalogTableData().find(insert_data.table_name);
+        llvm::SmallVector<string, 8> function_arguments = table_navigation_t::get_table_fields(insert_data.table_name);
+        const auto& table_data_iterator = GaiaCatalog::getCatalogTableData().find(insert_data.table_name);
         // Generate call arguments.
         for (const auto& call_argument : function_arguments)
         {
-            const auto argument_map_iterator = insert_data.argument_map.find(call_argument);
+            const auto& argument_map_iterator = insert_data.argument_map.find(call_argument);
             if (argument_map_iterator == insert_data.argument_map.end())
             {
                 // Provide default parameter value.
-                const auto field_data_iterator = table_data_iterator->second.fieldData.find(call_argument);
+                const auto& field_data_iterator = table_data_iterator->second.fieldData.find(call_argument);
                 switch (field_data_iterator->second.fieldType)
                 {
                 case data_type_t::e_bool:
@@ -708,8 +684,8 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 break;
             }
         }
-        const auto break_label_iterator = g_break_label_map.find(explicit_path_data_iterator.first);
-        const auto continue_label_iterator = g_continue_label_map.find(explicit_path_data_iterator.first);
+        const auto& break_label_iterator = g_break_label_map.find(explicit_path_data_iterator.first);
+        const auto& continue_label_iterator = g_continue_label_map.find(explicit_path_data_iterator.first);
         string break_label;
         string continue_label;
         if (break_label_iterator != g_break_label_map.end())
@@ -744,7 +720,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                     string insert_table;
 
                     // Find a table on which insert method is invoked.
-                    for (auto& insert_data : g_insert_data)
+                    for (const auto& insert_data : g_insert_data)
                     {
                         if (insert_data.expression_range.getEnd() == variable_declaration_range_iterator.first.getEnd()
                             && insert_data.argument_table_names.find(insert_data.table_name) == insert_data.argument_table_names.end())
@@ -837,7 +813,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
 
             if (nomatch_range.isValid())
             {
-                string variable_name = table_navigation_t::get_variable_name("", unordered_map<string, string>());
+                string variable_name = table_navigation_t::get_variable_name("", llvm::StringMap<string>());
                 string nomatch_prefix = "{\nbool " + variable_name + " = false;\n";
                 rewriter.InsertTextBefore(explicit_path_data_iterator.first.getBegin(), nomatch_prefix + navigation_code.prefix);
                 rewriter.InsertTextAfter(explicit_path_data_iterator.first.getBegin(), variable_name + " = true;\n");
@@ -860,7 +836,7 @@ void generate_table_subscription(
     const string& field_subscription_code,
     int rule_count,
     bool subscribe_update,
-    unordered_map<uint32_t, string>& rule_line_numbers,
+    llvm::DenseMap<uint32_t, string>& rule_line_numbers,
     Rewriter& rewriter)
 {
     string common_subscription_code;
@@ -999,8 +975,8 @@ void generate_table_subscription(
             if (!data_iterator.is_absolute_path)
             {
                 string first_component_table = get_table_from_expression(data_iterator.path_components.front());
-                const auto tag_iterator = data_iterator.tag_table_map.find(first_component_table);
-                if (tag_iterator == data_iterator.tag_table_map.end() || tag_iterator->first == tag_iterator->second || is_tag_defined(data_iterator.defined_tags, first_component_table) || g_attribute_tag_map.find(first_component_table) != g_attribute_tag_map.end())
+                const auto& tag_iterator = data_iterator.tag_table_map.find(first_component_table);
+                if (tag_iterator == data_iterator.tag_table_map.end() || tag_iterator->first() == tag_iterator->second || is_tag_defined(data_iterator.defined_tags, first_component_table) || g_attribute_tag_map.find(first_component_table) != g_attribute_tag_map.end())
                 {
                     is_absolute_path_only = false;
                     break;
@@ -1047,7 +1023,7 @@ void generate_table_subscription(
             for (const auto& attribute_tag_iterator : g_attribute_tag_map)
             {
                 anchor_code.append("auto ")
-                    .append(attribute_tag_iterator.first)
+                    .append(attribute_tag_iterator.first())
                     .append(" = ")
                     .append(table)
                     .append(";\n");
@@ -1167,7 +1143,7 @@ bool has_multiple_anchors()
     // Handle the special case of on_update(table1, table2.field)
     if (g_active_fields.size() == 1
         && g_update_tables.size() == 1
-        && g_active_fields.find(*(g_update_tables.begin())) == g_active_fields.end())
+        && g_active_fields.find((g_update_tables.begin()->first())) == g_active_fields.end())
     {
         gaiat::diag().emit(g_last_rule_location, diag::err_multi_anchor_tables);
         return true;
@@ -1194,13 +1170,13 @@ void generate_rules(Rewriter& rewriter)
         return;
     }
     int rule_count = 1;
-    unordered_map<uint32_t, string> rule_line_numbers;
+    llvm::DenseMap<uint32_t, string> rule_line_numbers;
 
     // Optimize active fields by removing field subscriptions
     // if entire table was subscribed in rule prolog.
     for (const auto& table : g_update_tables)
     {
-        g_active_fields.erase(table);
+        g_active_fields.erase(table.first());
     }
 
     if (has_multiple_anchors())
@@ -1216,7 +1192,7 @@ void generate_rules(Rewriter& rewriter)
             return;
         }
 
-        string table = field_description.first;
+        string table = field_description.first();
 
         if (field_description.second.empty())
         {
@@ -1238,13 +1214,14 @@ void generate_rules(Rewriter& rewriter)
             .append(rule_name)
             .append(";\n");
 
-        auto fields = GaiaCatalog::getCatalogTableData().find(table)->second.fieldData;
+        const auto& fields = GaiaCatalog::getCatalogTableData().find(table)->second.fieldData;
 
         for (const auto& field : field_description.second)
         {
-            if (fields.find(field) == fields.end())
+            const auto& field_iterator = fields.find(field.first());
+            if (field_iterator == fields.end())
             {
-                gaiat::diag().emit(diag::err_field_not_found) << field << table;
+                gaiat::diag().emit(diag::err_field_not_found) << field.first() << table;
                 g_is_generation_error = true;
                 return;
             }
@@ -1253,7 +1230,7 @@ void generate_rules(Rewriter& rewriter)
                 .append("fields_")
                 .append(rule_name)
                 .append(".push_back(")
-                .append(to_string(fields[field].position))
+                .append(to_string(field_iterator->second.position))
                 .append(");\n");
         }
 
@@ -1271,9 +1248,9 @@ void generate_rules(Rewriter& rewriter)
             return;
         }
 
-        generate_table_subscription(table, "", rule_count, true, rule_line_numbers, rewriter);
+        generate_table_subscription(table.first(), "", rule_count, true, rule_line_numbers, rewriter);
 
-        optimize_subscription(table, rule_count);
+        optimize_subscription(table.first(), rule_count);
 
         rule_count++;
     }
@@ -1285,7 +1262,7 @@ void generate_rules(Rewriter& rewriter)
             return;
         }
 
-        generate_table_subscription(table, "", rule_count, false, rule_line_numbers, rewriter);
+        generate_table_subscription(table.first(), "", rule_count, false, rule_line_numbers, rewriter);
         rule_count++;
     }
 }
@@ -1592,13 +1569,13 @@ void update_expression_explicit_path_data(
     {
         return;
     }
-    vector<explicit_path_data_t> path_data;
+    llvm::SmallVector<explicit_path_data_t, 8> path_data;
     SourceRange expression_source_range = get_expression_source_range(context, *node, source_range, rewriter);
     if (expression_source_range.isInvalid())
     {
         return;
     }
-    auto explicit_path_data_iterator = g_expression_explicit_path_data.find(expression_source_range);
+    const auto& explicit_path_data_iterator = g_expression_explicit_path_data.find(expression_source_range);
     for (auto& expression_explicit_path_data_iterator : g_expression_explicit_path_data)
     {
         if (is_range_contained_in_another_range(expression_explicit_path_data_iterator.first, expression_source_range))
@@ -1620,9 +1597,9 @@ void update_expression_explicit_path_data(
             else
             {
                 string first_component = get_table_from_expression(data.path_components.front());
-                const auto tag_iterator = data.tag_table_map.find(first_component);
+                const auto& tag_iterator = data.tag_table_map.find(first_component);
                 if (tag_iterator != data.tag_table_map.end()
-                    && (tag_iterator->second != tag_iterator->first
+                    && (tag_iterator->second != tag_iterator->first()
                         || (explicit_path_data_iterator != g_expression_explicit_path_data.end()
                             && can_path_be_optimized(first_component, expression_explicit_path_data_iterator.second))))
                 {
@@ -1630,7 +1607,7 @@ void update_expression_explicit_path_data(
                 }
                 for (const auto& defined_tag_iterator : expression_explicit_path_data_iterator.second.front().defined_tags)
                 {
-                    data.tag_table_map[defined_tag_iterator.second] = defined_tag_iterator.first;
+                    data.tag_table_map[defined_tag_iterator.second] = defined_tag_iterator.first();
                     if (first_component == defined_tag_iterator.second)
                     {
                         data.skip_implicit_path_generation = true;
@@ -1683,8 +1660,8 @@ bool get_explicit_path_data(const Decl* decl, explicit_path_data_t& data, Source
     data.is_absolute_path = explicit_path_attribute->getPath().startswith("/") || explicit_path_attribute->getPath().startswith("@/");
     path_source_range.setBegin(SourceLocation::getFromRawEncoding(explicit_path_attribute->getPathStart()));
     path_source_range.setEnd(SourceLocation::getFromRawEncoding(explicit_path_attribute->getPathEnd()));
-    vector<string> path_components;
-    unordered_map<string, string> tag_map;
+    llvm::SmallVector<string, 8> path_components;
+    llvm::StringMap<string> tag_map;
     for (const auto& path_component_iterator : explicit_path_attribute->pathComponents())
     {
         data.path_components.push_back(path_component_iterator);
@@ -1704,7 +1681,7 @@ bool get_explicit_path_data(const Decl* decl, explicit_path_data_t& data, Source
         g_is_generation_error = true;
         return false;
     }
-    vector<string> tag_map_keys, tag_map_values, defined_tag_map_keys, defined_tag_map_values;
+    llvm::SmallVector<string, 8> tag_map_keys, tag_map_values, defined_tag_map_keys, defined_tag_map_values;
 
     for (const auto& tag_map_keys_iterator : explicit_path_tag_key_attribute->tagMapKeys())
     {
@@ -1741,7 +1718,7 @@ bool get_explicit_path_data(const Decl* decl, explicit_path_data_t& data, Source
 
     for (const auto& attribute_tag_map_iterator : g_attribute_tag_map)
     {
-        data.tag_table_map[attribute_tag_map_iterator.first] = attribute_tag_map_iterator.second;
+        data.tag_table_map[attribute_tag_map_iterator.first()] = attribute_tag_map_iterator.second;
     }
     return true;
 }
@@ -2057,7 +2034,7 @@ public:
             }
         }
         tok::TokenKind token_kind;
-        string writer_variable = table_navigation_t::get_variable_name("writer", unordered_map<string, string>());
+        string writer_variable = table_navigation_t::get_variable_name("writer", llvm::StringMap<string>());
         string replacement_text = "[&]() mutable {auto " + writer_variable + " = " + variable_name + ".writer(); " + writer_variable + "." + field_name;
 
         switch (op->getOpcode())
@@ -2170,7 +2147,6 @@ public:
 private:
     string convert_compound_binary_opcode(const BinaryOperator* op)
     {
-
         switch (op->getOpcode())
         {
         case BO_Assign:
@@ -2299,10 +2275,10 @@ public:
                 update_used_dbs(explicit_path_data);
             }
         }
-        string writer_variable = table_navigation_t::get_variable_name("writer", unordered_map<string, string>());
+        string writer_variable = table_navigation_t::get_variable_name("writer", llvm::StringMap<string>());
         if (op->isPostfix())
         {
-            string temp_variable = table_navigation_t::get_variable_name("temp", unordered_map<string, string>());
+            string temp_variable = table_navigation_t::get_variable_name("temp", llvm::StringMap<string>());
             if (op->isIncrementOp())
             {
                 replace_string
@@ -2744,9 +2720,9 @@ public:
             g_rewriter_history.push_back(
                 {expression_source_range, replacement_text, replace_text});
 
-            for (auto& insert_data : g_insert_data)
+            for (const auto& insert_data : g_insert_data)
             {
-                for (auto& insert_data_argument_range_iterator : insert_data.argument_replacement_map)
+                for (auto insert_data_argument_range_iterator : insert_data.argument_replacement_map)
                 {
                     if (is_range_contained_in_another_range(expression_source_range, insert_data_argument_range_iterator.first))
                     {
@@ -2961,7 +2937,7 @@ public:
         const ValueDecl* decl = expression_declaration->getDecl();
         insert_data.table_name = get_table_name(decl);
         // Parse insert call arguments to build name value map.
-        for (auto argument : expression->arguments())
+        for (const auto& argument : expression->arguments())
         {
             argument_start_location = get_previous_token_location(
                 get_previous_token_location(argument->getSourceRange().getBegin(), m_rewriter), m_rewriter);
@@ -3138,7 +3114,7 @@ public:
             auto break_label_iterator = g_break_label_map.find(statement_source_range);
             if (break_label_iterator == g_break_label_map.end())
             {
-                label_name = table_navigation_t::get_variable_name("break", unordered_map<string, string>());
+                label_name = table_navigation_t::get_variable_name("break", llvm::StringMap<string>());
                 g_break_label_map[statement_source_range] = label_name;
             }
             else
@@ -3151,7 +3127,7 @@ public:
             auto continue_label_iterator = g_continue_label_map.find(statement_source_range);
             if (continue_label_iterator == g_continue_label_map.end())
             {
-                label_name = table_navigation_t::get_variable_name("continue", unordered_map<string, string>());
+                label_name = table_navigation_t::get_variable_name("continue", llvm::StringMap<string>());
                 g_continue_label_map[statement_source_range] = label_name;
             }
             else
@@ -3203,7 +3179,7 @@ public:
 
         const auto* link_expr = result.Nodes.getNodeAs<MemberExpr>("tableFieldGet");
 
-        llvm::StringMap<CatalogTableData> table_data = GaiaCatalog::getCatalogTableData();
+        const llvm::StringMap<CatalogTableData>& table_data = GaiaCatalog::getCatalogTableData();
 
         gaiat::diag().set_location(table_call->getLocation());
 
@@ -3214,7 +3190,7 @@ public:
             g_is_generation_error = true;
             return;
         }
-        CatalogTableData src_table_data = src_table_iter->second;
+        const CatalogTableData& src_table_data = src_table_iter->second;
 
         auto dest_table_iter = table_data.find(dest_table_name);
         if (dest_table_iter == table_data.end())
@@ -3223,7 +3199,6 @@ public:
             g_is_generation_error = true;
             return;
         }
-        CatalogTableData dest_table_data = dest_table_iter->second;
 
         // If the link_expr is not null this is a call in the form table.link.connect()
         // hence we don't need to look up the name. Otherwise, this is in the form
@@ -3263,8 +3238,6 @@ public:
             g_is_generation_error = true;
             return;
         }
-
-        CatalogLinkData link_data = link_data_iter->second;
 
         if (need_link_field)
         {
@@ -3653,8 +3626,9 @@ public:
                 output_file << "#include \"gaia/events.hpp\"\n";
                 output_file << "#include \"gaia/rules/rules.hpp\"\n";
                 output_file << "\n";
-                for (const string& db : g_used_dbs)
+                for (const auto& db_iterator : g_used_dbs)
                 {
+                    const string& db = db_iterator.first();
                     if (db == catalog::c_empty_db_name)
                     {
                         output_file << "#include \"gaia.h\"\n";

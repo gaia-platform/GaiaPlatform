@@ -17,7 +17,6 @@
 /////////////////////////////////////////////
 
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include "clang/AST/PrettyDeclStackTrace.h"
@@ -108,7 +107,6 @@ static QualType mapFieldType(catalog::data_type_t dbType, ASTContext* context)
 
 StringRef Sema::ConvertString(const string& str, SourceLocation loc)
 {
-
     llvm::SmallString<20> literalString;
     literalString += '"';
     literalString += str;
@@ -124,7 +122,7 @@ StringRef Sema::ConvertString(const string& str, SourceLocation loc)
     return literal->getString();
 }
 
-bool Sema::doesPathIncludesTags(const SmallVector<std::string, 10>& path, SourceLocation loc)
+bool Sema::doesPathIncludesTags(const SmallVector<std::string, 8>& path, SourceLocation loc)
 {
     const llvm::StringMap<std::string>& tagMapping = getTagMapping(getCurFunctionDecl(), loc);
     if (tagMapping.empty())
@@ -145,7 +143,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
 {
     size_t searchStartPosition = 0;
     llvm::StringMap<string> tagMap;
-    SmallVector<string, 10> path;
+    SmallVector<string, 8> path;
     bool is_absolute = pathString.front() == '/';
     if (pathString.front() == '/' || pathString.front() == '@')
     {
@@ -898,7 +896,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
         Diag(loc, diag::err_no_ruleset_for_rule);
         return Context.VoidTy;
     }
-    SmallVector<string, 20> tables;
+    SmallVector<string, 8> tables;
     RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(context);
     RulesetTablesAttr* attr = rulesetDecl->getAttr<RulesetTablesAttr>();
 
@@ -1013,7 +1011,7 @@ bool Sema::findFieldType(const std::string& fieldOrTagName, SourceLocation loc)
         return false;
     }
 
-    SmallVector<string, 20> tables;
+    SmallVector<string, 8> tables;
     RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(context);
     RulesetTablesAttr* attr = rulesetDecl->getAttr<RulesetTablesAttr>();
 
@@ -1309,7 +1307,7 @@ ExprResult Sema::ActOnGaiaRuleContext(SourceLocation Loc)
 
 void Sema::AddExplicitPathData(SourceLocation location, SourceLocation startLocation, SourceLocation endLocation, const std::string& explicitPath)
 {
-    explicitPathData[location] = {startLocation, endLocation, explicitPath, SmallVector<std::string, 10>(), llvm::StringMap<std::string>()};
+    explicitPathData[location] = {startLocation, endLocation, explicitPath, SmallVector<std::string, 8>(), llvm::StringMap<std::string>()};
 }
 
 void Sema::RemoveExplicitPathData(SourceLocation location)

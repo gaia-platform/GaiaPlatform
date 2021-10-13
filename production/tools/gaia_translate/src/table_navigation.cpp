@@ -52,6 +52,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
         {
             table = path_component;
         }
+
         if (path_component == path_data.path_components.back() && !path_data.variable_name.empty())
         {
             last_variable_name = path_data.variable_name;
@@ -124,7 +125,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(con
 
 // Function that generates  code to navigate between anchor table and set of tables and return more data about the generated path.
 navigation_code_data_t table_navigation_t::generate_navigation_code(
-    const string& anchor_table, const unordered_set<string>& tables, const unordered_map<string, string>& tags, string& last_variable_name)
+    const string& anchor_table, const llvm::StringSet<>& tables, const llvm::StringMap<string>& tags, string& last_variable_name)
 {
     navigation_code_data_t return_value;
     const auto& table_data =GaiaCatalog::getCatalogTableData();
@@ -146,7 +147,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
         return navigation_code_data_t();
     }
 
-    string table_name = *tables.begin();
+    string table_name = tables.begin()->first();
     const auto table_iterator = tags.find(table_name);
     if (table_iterator != tags.end())
     {
@@ -181,10 +182,11 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
         gaiat::diag().emit(diag::err_no_anchor_path) << anchor_table;
         return navigation_code_data_t();
     }
-    unordered_set<string> processed_tables;
+    llvm::StringSet<> processed_tables;
     // Iterate through list of destination tables
-    for (const string& table : tables)
+    for (const auto& table_name_iterator : tables)
     {
+        const string& table = table_name_iterator.first();
         string table_name = table;
         const auto table_iterator = tags.find(table);
         if (table_iterator != tags.end())
@@ -227,7 +229,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
 
         if (!is_1_relationship && !is_n_relationship)
         {
-            vector<navigation_data_t> path;
+            llvm::SmallVector<navigation_data_t, 8> path;
             // Find topographically shortest path between anchor table and destination table.
             if (find_navigation_path(anchor_table_name, table_name, path))
             {
@@ -276,7 +278,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
 }
 
 // Auxilary function find topologically closest table.
-string table_navigation_t::get_closest_table(const unordered_map<string, int>& table_distance)
+string table_navigation_t::get_closest_table(const llvm::StringMap<int>& table_distance)
 {
     int min_distance = INT_MAX;
     string return_value;
@@ -285,7 +287,7 @@ string table_navigation_t::get_closest_table(const unordered_map<string, int>& t
         if (d.second < min_distance)
         {
             min_distance = d.second;
-            return_value = d.first;
+            return_value = d.first();
         }
     }
 
@@ -293,7 +295,7 @@ string table_navigation_t::get_closest_table(const unordered_map<string, int>& t
 }
 
 // Find shortest navigation path between 2 tables. If multiple shortest paths exist, return an error.
-bool table_navigation_t::find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path)
+bool table_navigation_t::find_navigation_path(const string& src, const string& dst, SmallVector<navigation_data_t, 8>& current_path)
 {
     if (src == dst)
     {
@@ -311,11 +313,11 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
     // Remove edges from the original shortest path and check if a shortest path with the same length can be found.
     for (size_t path_index = 0; path_index < path_length - 1; ++path_index)
     {
-        vector<navigation_data_t> path;
+        SmallVector<navigation_data_t, 8> path;
         llvm::StringMap<CatalogTableData> graph_data(table_data);
         const auto& edge_src = current_path[path_index];
         const auto& edge_dst = current_path[path_index + 1];
-        auto graph_itr = graph_data.find(edge_src.table_name);
+        const auto& graph_itr = graph_data.find(edge_src.table_name);
 
         for (auto it = graph_itr->second.linkData.begin(); it != graph_itr->second.linkData.end();)
         {
@@ -345,16 +347,16 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
 }
 
 // Find shortest navigation path between 2 tables.
-bool table_navigation_t::find_navigation_path(const string& src, const string& dst, vector<navigation_data_t>& current_path, const llvm::StringMap<CatalogTableData>& graph_data)
+bool table_navigation_t::find_navigation_path(const string& src, const string& dst, llvm::SmallVector<navigation_data_t, 8>& current_path, const llvm::StringMap<CatalogTableData>& graph_data)
 {
     if (src == dst)
     {
         return true;
     }
 
-    unordered_map<string, int> table_distance;
-    unordered_map<string, string> table_prev;
-    unordered_map<string, navigation_data_t> table_navigation;
+    llvm::StringMap<int> table_distance;
+    llvm::StringMap<string> table_prev;
+    llvm::StringMap<navigation_data_t> table_navigation;
 
     for (const auto& table_description : GaiaCatalog::getCatalogTableData())
     {
@@ -408,7 +410,7 @@ bool table_navigation_t::find_navigation_path(const string& src, const string& d
 }
 
 // Get variable name for navigation code
-string table_navigation_t::get_variable_name(const string& variable, const unordered_map<string, string>& tags)
+string table_navigation_t::get_variable_name(const string& variable, const llvm::StringMap<string>& tags)
 {
     if (tags.find(variable) == tags.end())
     {
@@ -503,9 +505,9 @@ bool table_navigation_t::generate_navigation_step(const string& source_table, co
     return true;
 }
 
-vector<string> table_navigation_t::get_table_fields(const string& table)
+llvm::SmallVector<string, 8> table_navigation_t::get_table_fields(const string& table)
 {
-    vector<string> return_value;
+    llvm::SmallVector<string, 8> return_value;
     const auto& table_data = GaiaCatalog::getCatalogTableData();
     if (table_data.empty())
     {
@@ -522,9 +524,8 @@ vector<string> table_navigation_t::get_table_fields(const string& table)
 
     for (const auto& fieldData : table_iterator->second.fieldData)
     {
-        return_value.at(fieldData.second.position) = fieldData.first();
+        return_value[fieldData.second.position] = fieldData.first();
     }
-
 
     return return_value;
 }

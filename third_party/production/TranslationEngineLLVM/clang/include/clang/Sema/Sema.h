@@ -78,7 +78,7 @@ namespace std
     {
         std::size_t operator()(clang::SourceLocation const& location) const noexcept
         {
-            return std::hash<unsigned int>{}(location.getRawEncoding());
+            return llvm::hash_value(location.getRawEncoding());
         }
     };
 } // namespace std
@@ -4675,7 +4675,7 @@ private:
   void addField(IdentifierInfo *name, QualType type, RecordDecl *R, SourceLocation locD) const ;
   void RemoveExplicitPathData(SourceLocation location);
   StringRef ConvertString(const std::string& str, SourceLocation loc);
-  bool doesPathIncludesTags(const SmallVector<std::string, 10>& path, SourceLocation loc);
+  bool doesPathIncludesTags(const SmallVector<std::string, 8>& path, SourceLocation loc);
   void ActOnStartDeclarativeLabel(StringRef label);
   bool ActOnStartLabel(StringRef label);
 
@@ -4684,7 +4684,7 @@ private:
     SourceLocation startLocation;
     SourceLocation endLocation;
     std::string explicitPath;
-    llvm::SmallVector<std::string, 10> path;
+    llvm::SmallVector<std::string, 8> path;
     llvm::StringMap<std::string> tagMap;
   };
 
