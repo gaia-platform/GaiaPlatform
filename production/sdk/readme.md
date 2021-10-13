@@ -1,6 +1,6 @@
 # Getting Started with the Gaia SDK
 
-This document provides guidance on setting up the Gaia SDK which, includes the Gaia database server.
+This document provides guidance on setting up the Gaia SDK, which includes the Gaia Database Server.
 
 ## Prerequisites
 
@@ -19,7 +19,7 @@ To install CMake, run the following command:
 sudo apt-get install cmake
 ```
 
-To build Gaia samples using CMake and make tools, specify the clang compiler by setting the following variables in your environment:
+To build Gaia exmamples using CMake and make tools, specify the Clang compiler by setting the following variables in your environment:
 
 ```bash
 export CC=/usr/bin/clang-10
@@ -30,13 +30,13 @@ export LDFLAGS="-B/usr/lib/llvm-10/bin/ -fuse-ld=lld"
 
 ## Download the Gaia SDK
 
-The Gaia SDK is delivered as a Debian software package (DEB).
+The Gaia SDK is delivered as a Debian software package (DEB): 
 
 gaia-x.y.z_amd64.deb
 
 Where x.y.z represents the Gaia version number.
 
-The Gaia SDK includes the Gaia database server executable and the Gaia Declarative C++ SDK.
+The Gaia SDK includes the Database Server executable and the Gaia Declarative C++ SDK.
 
 To download the package, use the time-limited URL that was sent to you in your welcome email.
 
@@ -56,7 +56,7 @@ To install the package:
 
 To remove the package:
 
-1. At the command prompt, run the following command:
+1.  At the command prompt, run the following command:
 
     ```bash
     sudo apt-get remove gaia
@@ -65,32 +65,30 @@ To remove the package:
 To update the package, remove it and install the updated package:
 
 1.  Download the updated package.
-2.  Navigate to the folder that contains the downloaded package.
-3.  To remove the currently installed package, run the following
-    command:
+2.  Remove the currently installed package, run the following command:
 
     ```bash
     sudo apt-get remove gaia
-    ```
-
-1.  To install the new version, run the following command after replacing the x.y.z with the version number of the server that you are installing:
+    ``
+2.  Navigate to the folder that contains the updated package.
+4.  Install the new version, run the following command after replacing the x.y.z with the version number of the server that you are installing:
 
     ```bash
-    sudo apt-get install ./gaia-x.y.x_amd64.deb
+    sudo apt-get install ./gaia-x.y.z_amd64.deb
     ```
 
 ### Installed components
 
 <pre>
 /opt/gaia/bin
-    gaia_db_server - The Gaia database server.
-    gaiac - Gaia Catalog compiler.
+    gaia_db_server - The Gaia Database Server.
+    gaiac - Gaia Catalog Tool.
     gaiat - Gaia Translation Engine.
 /opt/gaia/etc
     gaia.conf - Contains configuration settings for the platform and application loggers that the Gaia Platform uses.
-    gaia_log.conf - Contains configuration settings for the database and rules engine that comprise the Gaia Platform.
+    gaia_log.conf - Contains configuration settings for the Database Server and rules engine that comprise the Gaia Platform.
 /opt/gaia/examples/
-    Example apps
+    Example apps.
 /opt/gaia/include
     Include files for the Gaia Platform.
 /opt/gaia/lib
@@ -110,9 +108,9 @@ Gaia server command line arguments:
 | Option  | Description  |
 |---|---|
 | --persistence \<mode> | If not specified, the default mode is enabled.<br>The data location is specified with --data-dir.<br>- <enabled>: Persist data [default].<br>- <disabled>: Do not persist any data.<br>- <disabled-after-recovery>: Load data from the datastore and disable persistence.  | 
-| --data-dir \<database-folder-path> | Specifies the location in which to store the Gaia database.  |
+| --data-dir \<database-folder-path> | Specifies the location in which to store the database.  |
 | --configuration-file-path \<config-file-name> | Specifies the location in which to store the Gaia configuration file.  |
-| --reinitialize-persistent-store | All previous changes to the database will be deleted from persistent storage and will not be visible after the database is started, but changes made while the database is running will be visible after the database is restarted.  | 
+| --reinitialize-persistent-store | All previous changes to the database are deleted from persistent storage and will not be visible after the Database Server is started, Changes to the database made while the Database Server is running will be visible after it is restarted.  | 
 
 To start the server on a machine that supports systemd:
 
