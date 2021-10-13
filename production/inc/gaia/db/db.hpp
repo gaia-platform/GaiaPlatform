@@ -92,7 +92,7 @@ class transaction_update_conflict : public common::gaia_exception
 public:
     transaction_update_conflict()
     {
-        m_message = "Transaction was aborted due to a serialization error.";
+        m_message = "Transaction was aborted due to a conflict with another transaction.";
     }
 };
 

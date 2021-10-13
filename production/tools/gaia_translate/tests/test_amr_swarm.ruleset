@@ -1,0 +1,1308 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+#include <algorithm>
+#include <atomic>
+#include <iostream>
+
+#include "gaia/logger.hpp"
+
+#include "bot_commands.hpp"
+#include "constants.hpp"
+#include "exceptions.hpp"
+#include "gaia_amr_swarm.h"
+
+using namespace gaia::amr_swarm;
+
+//
+// Blah section.
+//
+
+// Ids used to register a task to be requeued.
+static constexpr int c_delayed_check_buffer_start_task = 0;
+static constexpr int c_delayed_check_production_start_task = 1;
+
+// Whether to show state debug.
+static constexpr bool show_state_debug = true;
+
+// https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1430 (fixed)
+static robot_t temp_main_pallet_bot;
+static robot_t temp_left_widget_bot;
+static robot_t temp_right_widget_bot;
+static configuration_t temp_config;
+
+uint64_t get_time_millis()
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+}
+
+ruleset amr_swarm_ruleset
+{
+    on_insert(bot_arrived_at_charging_station_event)
+    {
+        // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1461 (fixed)
+        // This created invalid C++ code.
+        for (/C:configuration)
+        {
+            if (C.main_pallet_bot->robot.id == R:robot.id)
+            {
+                temp_main_pallet_bot = R;
+            }
+            else if (C.left_widget_bot->robot.id == RR:robot.id)
+            {
+                temp_left_widget_bot = RR;
+            }
+        }
+    }
+
+    // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1427
+    on_insert(setup_complete_event) {
+        for(/C:configuration) {
+            configuration_t temp_config;
+            for (/R:robot) {
+                if (R->robot_type.id == (int)robot_types::Pallet) {
+                    temp_config.main_pallet_bot().connect(R);
+                    // GAIAPLAT-1427 - the next line should compile.
+                    // C.main_pallet_bot.connect(R);
+                }
+            }
+        }
+    }
+
+    on_insert(setup_complete_event)
+    {
+        fprintf(stderr, "setup_complete_event: %d\n", __LINE__);
+        gaia_log::app().info(">>on_insert(setup_complete_event)");
+        configuration_t config;
+        config = configuration.insert(
+            widget_bot_recharge_threshold : 0.20,
+            pallet_bot_recharge_threshold : 0.20);
+        for (/ R : robot)
+        {
+            config.robots().connect(R);
+        }
+
+        robot_t main_pallet_bot;
+        robot_t left_widget_bot;
+        robot_t right_widget_bot;
+
+        for (/ C : configuration)
+        {
+            C.number_of_pallet_bots = 0;
+            C.number_of_widget_bots = 0;
+            for (/ R : robot)
+            {
+                if (R->robot_type.id == (int)robot_types::Pallet)
+                {
+                    if (C.number_of_pallet_bots == 0)
+                    {
+                        // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1427
+                        // C.main_pallet_bot.connect(R);
+                        main_pallet_bot = R;
+                    }
+                    C.number_of_pallet_bots += 1;
+                }
+                else
+                {
+                    if (C.number_of_widget_bots == 0)
+                    {
+                        left_widget_bot = R;
+                    }
+                    if (C.number_of_widget_bots == 1)
+                    {
+                        right_widget_bot = R;
+                    }
+                    C.number_of_widget_bots += 1;
+                }
+            }
+            gaia_log::app().info("number_of_pallet_bots={}, number_of_widget_bots={}",
+                C.number_of_pallet_bots, C.number_of_widget_bots);
+            gaia_log::app().info("active pallet bot->{}", main_pallet_bot.id());
+            gaia_log::app().info("left widget bot->{}", left_widget_bot.id());
+            if (right_widget_bot)
+            {
+                gaia_log::app().info("right widget bot->{}", right_widget_bot.id());
+            }
+        }
+        fprintf(stderr, "setup_complete_event: %d\n", __LINE__);
+        gaia_log::app().info("<<on_insert(setup_complete_event)");
+
+        // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1427
+        // need to connect out here as cannot inside of loop
+        config.main_pallet_bot().connect(main_pallet_bot);
+        config.left_widget_bot().connect(left_widget_bot);
+        if (right_widget_bot)
+        {
+            config.right_widget_bot().connect(right_widget_bot);
+        }
+        temp_main_pallet_bot = main_pallet_bot;
+        temp_left_widget_bot = left_widget_bot;
+        temp_right_widget_bot = right_widget_bot;
+        fprintf(stderr, "setup_complete_event: %d\n", __LINE__);
+    }
+
+    on_insert(bot_picked_up_payload_event)
+    {
+        gaia_log::app().info(">>on_insert(bot_picked_up_payload_event)");
+
+        // Common debug code
+        if (show_state_debug)
+        {
+            gaia_log::app().info("bot_picked_up_payload_event::robot->widgets");
+            gaia_log::app().info("Robot={}, Widget {}.", R
+                                 : robot.id, R->W
+                                 : widget.id);
+            gaia_log::app().info("bot_picked_up_payload_event::robots->pallets");
+            gaia_log::app().info("Robot={}, Pallet {}.", R
+                                 : robot.id, R->P
+                                 : pallet.id);
+            gaia_log::app().info("bot_picked_up_payload_event::station->pallets");
+            gaia_log::app().info("Station={}, Pallet {}.", S
+                                 : station.id, S->P
+                                 : pallet.id);
+            gaia_log::app().info("bot_picked_up_payload_event::station->pallets->widget");
+            gaia_log::app().info("Station={}, Pallet={}, Widget {}.", S
+                                 : station.id, S->P
+                                 : pallet.id, P->W
+                                 : widget.id);
+            gaia_log::app().info("bot_picked_up_payload_event::station->widgets");
+            gaia_log::app().info("Station={}, Widget {}.", S
+                                 : station.id, S->W
+                                 : widget.id);
+        }
+
+        // The robot has picked up the payload, so it is now loaded.
+        gaia_log::app().info("Payload picked up by robot {} at {}", robot.id, robot->station.id);
+        robot.is_loaded = true;
+
+        // Once we have a payload, we need to move the robot to the proper
+        // destination station to get rid of the payload.  If we wanted to,
+        // we could place these values in a dictionary and look them up,
+        // but we feel that this is more readable.
+        stations destination_station;
+        if (robot->station.id == (int)stations::Inbound)
+        {
+            destination_station = stations::Buffer;
+        }
+        else if (robot->station.id == (int)stations::Buffer)
+        {
+            destination_station = stations::Pl_start;
+        }
+        else if (robot->station.id == (int)stations::Pl_end)
+        {
+            destination_station = stations::Outbound;
+        }
+        else
+        {
+            std::string error_message;
+            error_message = gaia_fmt::format("Robot {} cannot pickup payload from station {}", robot.id, robot->station.id);
+            throw exceptions::amr_exception(error_message);
+        }
+
+        if (robot->station.id == (int)stations::Inbound)
+        {
+            robot->station->pallet.robot_id = robot.id;
+            robot->station->pallet.station_id = (int)stations::None;
+        }
+        else
+        {
+            for (robot->station->W : widget)
+            {
+                W.robot_id = robot.id;
+                W.station_id = (int)stations::None;
+            }
+        }
+        commands::move_robot_to_station(robot, destination_station);
+        robot.is_idle = false;
+
+        gaia_log::app().info("<<on_insert(bot_picked_up_payload_event)");
+    }
+
+    on_insert(bot_dropped_off_payload_event)
+    {
+        gaia_log::app().info(">>on_insert(bot_dropped_off_payload_event)");
+
+        // Common debug code
+        if (show_state_debug)
+        {
+            gaia_log::app().info("bot_dropped_off_payload_event::robot->widgets");
+            gaia_log::app().info("Robot={}, Widget {}.", R
+                                 : robot.id, R->W
+                                 : widget.id);
+            gaia_log::app().info("bot_dropped_off_payload_event::robots->pallets");
+            gaia_log::app().info("Robot={}, Pallet {}.", R
+                                 : robot.id, R->P
+                                 : pallet.id);
+            gaia_log::app().info("bot_dropped_off_payload_event::station->pallets");
+            gaia_log::app().info("Station={}, Pallet {}.", S
+                                 : station.id, S->P
+                                 : pallet.id);
+            gaia_log::app().info("bot_dropped_off_payload_event::station->pallets->widget");
+            gaia_log::app().info("Station={}, Pallet={}, Widget {}.", S
+                                 : station.id, S->P
+                                 : pallet.id, P->W
+                                 : widget.id);
+            gaia_log::app().info("bot_dropped_off_payload_event::station->widgets");
+            gaia_log::app().info("Station={}, Widget {}.", S
+                                 : station.id, S->W
+                                 : widget.id);
+        }
+
+        // If we drop off the payload, the robot no longer has it.
+        gaia_log::app().info("Payload was dropped at {}.", robot->station.sandbox_id);
+        robot.is_loaded = false;
+
+        // If the pallet bot drops the pallet at the buffer, need
+        // to make sure to get it into position for the next
+        // pallet.
+        if (robot->station.id == (int)stations::Buffer)
+        {
+            robot->pallet.station_id = station.id;
+            robot->pallet.robot_id = 0;
+
+            move_pallet_bot_to_inbound_task.insert(timestamp: get_time_millis());
+
+            commands::press_receive_order_button();
+            commands::press_unpack_pallet_button();
+        }
+
+        // If the widget bot drops a widget, figure out what to do next.
+        else if (robot->station.id == (int)stations::Pl_start)
+        {
+            robot->widget.station_id = robot.station_id;
+            robot->widget.robot_id = c_robot_id_none;
+
+            move_widget_bot_to_line_end_task.insert(
+                timestamp
+                : get_time_millis());
+        }
+
+        // If the widget bot drops a widget in outbound, check to see
+        // if there are any other things to be kicked off.
+        else if (robot->station.id == (int)stations::Outbound)
+        {
+            // Widget has been dropped, so transfer ownership.
+            robot->widget.pallet_id = station->pallet.id;
+            robot->widget.robot_id = c_robot_id_none;
+
+            check_for_outbound_ship_task.insert(
+                timestamp
+                : get_time_millis());
+        }
+
+        gaia_log::app().info("<<on_insert(bot_dropped_off_payload_event)");
+    }
+
+    on_insert(pallet_arrived_event)
+    {
+        gaia_log::app().info(">>on_insert(pallet_arrived_event)");
+
+        // Common debug code
+        if (show_state_debug)
+        {
+            gaia_log::app().info("pallet_arrived_event::robot->widgets");
+            gaia_log::app().info("Robot={}, Widget {}.", R
+                                 : robot.id, R->W
+                                 : widget.id);
+            gaia_log::app().info("pallet_arrived_event::robots->pallets");
+            gaia_log::app().info("Robot={}, Pallet {}.", R
+                                 : robot.id, R->P
+                                 : pallet.id);
+            gaia_log::app().info("pallet_arrived_event::station->pallets");
+            gaia_log::app().info("Station={}, Pallet {}.", S
+                                 : station.id, S->P
+                                 : pallet.id);
+            gaia_log::app().info("pallet_arrived_event::station->pallets->widget");
+            gaia_log::app().info("Station={}, Pallet={}, Widget {}.", S
+                                 : station.id, S->P
+                                 : pallet.id, P->W
+                                 : widget.id);
+            gaia_log::app().info("pallet_arrived_event::station->widgets");
+            gaia_log::app().info("Station={}, Widget {}.", S
+                                 : station.id, S->W
+                                 : widget.id);
+        }
+
+        // The pallet bot cannot move the pallet until there is a place
+        // in the buffer station to place it.  Since that action is complex,
+        // delegate it to a task object and hand it off.
+        gaia_log::app().info("Pallet {} arrived at {} station.", pallet.id, station.id);
+        if (station.id == (int)stations::Inbound)
+        {
+            check_buffer_start_task.insert(
+                timestamp
+                : get_time_millis(),
+                  station_id
+                : station.id);
+        }
+
+        gaia_log::app().info("<<on_insert(pallet_arrived_event)");
+    }
+
+    on_change(pallet_unpacked_event)
+    {
+        gaia_log::app().info(">>on_insert(pallet_unpacked_event)");
+
+        // Common debug code
+        if (show_state_debug)
+        {
+            gaia_log::app().info("pallet_unpacked_event::robot->widgets");
+            gaia_log::app().info("Robot={}, Widget {}.", R
+                                 : robot.id, R->W
+                                 : widget.id);
+            gaia_log::app().info("pallet_unpacked_event::robots->pallets");
+            gaia_log::app().info("Robot={}, Pallet {}.", R
+                                 : robot.id, R->P
+                                 : pallet.id);
+            gaia_log::app().info("pallet_unpacked_event::station->pallets");
+            gaia_log::app().info("Station={}, Pallet {}.", S
+                                 : station.id, S->P
+                                 : pallet.id);
+            gaia_log::app().info("pallet_unpacked_event::station->pallets->widget");
+            gaia_log::app().info("Station={}, Pallet={}, Widget {}.", S
+                                 : station.id, S->P
+                                 : pallet.id, P->W
+                                 : widget.id);
+            gaia_log::app().info("pallet_unpacked_event::station->widgets");
+            gaia_log::app().info("Station={}, Widget {}.", S
+                                 : station.id, S->W
+                                 : widget.id);
+        }
+
+        gaia_log::app().info("Pallet has been unpacked.");
+
+        // Unpack the pallet by moving the ownership from the pallet to the station.
+        int number_of_widgets_left_on_pallet = 1;
+        while (number_of_widgets_left_on_pallet != 0)
+        {
+            number_of_widgets_left_on_pallet = 0;
+            for (pallet->W : widget)
+            {
+                number_of_widgets_left_on_pallet++;
+            }
+
+        pallet_unpacked_event_1:
+            for (pallet->W : widget)
+            {
+                gaia_log::app().info("widget = {}", W.id);
+                W.station_id = station.id;
+                W.pallet_id = c_pallet_id_none;
+                break pallet_unpacked_event_1;
+            }
+        }
+
+        // With the pallet unpacked, we should now have some new widgets to process.
+        check_production_start_task.insert(
+            timestamp
+            : get_time_millis(),
+              station_id
+            : station.id);
+
+        // Make sure to disconnect the pallet itself from the station so that
+        // we can know that the station has room for another pallet.
+        pallet.station_id = (int)stations::None;
+
+        gaia_log::app().info("<<on_insert(pallet_unpacked_event)");
+    }
+
+    on_insert(pallet_shipped_event)
+    {
+        gaia_log::app().info(">>on_insert(pallet_shipped_event)");
+
+        gaia_log::app().info("<<on_insert(pallet_shipped_event)");
+    }
+
+    on_insert(widget_unloaded_from_production_line_event)
+    {
+        gaia_log::app().info(">>on_insert(widget_unloaded_from_production_line_event)");
+
+        // Common debug code
+        if (show_state_debug)
+        {
+            gaia_log::app().info("widget_unloaded_from_production_line_event::robot->widgets");
+            gaia_log::app().info("Robot={}, Widget {}.", R
+                                 : robot.id, R->W
+                                 : widget.id);
+            gaia_log::app().info("widget_unloaded_from_production_line_event::robots->pallets");
+            gaia_log::app().info("Robot={}, Pallet {}.", R
+                                 : robot.id, R->P
+                                 : pallet.id);
+            gaia_log::app().info("widget_unloaded_from_production_line_event::station->pallets");
+            gaia_log::app().info("Station={}, Pallet {}.", S
+                                 : station.id, S->P
+                                 : pallet.id);
+            gaia_log::app().info("widget_unloaded_from_production_line_event::station->pallets->widget");
+            gaia_log::app().info("Station={}, Pallet={}, Widget {}.", S
+                                 : station.id, S->P
+                                 : pallet.id, P->W
+                                 : widget.id);
+            gaia_log::app().info("widget_unloaded_from_production_line_event::station->widgets");
+            gaia_log::app().info("Station={}, Widget {}.", S
+                                 : station.id, S->W
+                                 : widget.id);
+        }
+
+        // Move the ownership of the widgets from the PL_Area
+        // station to the PL_end station.
+        widget.station_id = (int)stations::Pl_end;
+
+        bool is_robot_already_at_station = false;
+        for (station->robot)
+        {
+            is_robot_already_at_station = true;
+        }
+        gaia_log::app().info("Robot is already at PL End = {}.", is_robot_already_at_station);
+        if (is_robot_already_at_station)
+        {
+        widget_unloaded_from_production_line_event_1:
+            for (station->W : widget)
+            {
+                gaia_log::app().info("Robot {} is grabbing PL end widget {}.", station->robot.id, W.id);
+                commands::pickup_widget_from_station(station->robot, W);
+                break widget_unloaded_from_production_line_event_1;
+            }
+        }
+        else
+        {
+            // Are all robots idle?
+            bool are_all_idle = true;
+            if (! / robot.is_idle)
+            {
+                are_all_idle = false;
+            }
+            gaia_log::app().info("Robots are all idle ={}.", are_all_idle);
+
+            // Look for an idle widget bot that we can use, sending it to the buffer
+            // station if we find one.
+            if (are_all_idle)
+            {
+                move_widget_bot_to_outbound_task.insert(
+                    timestamp
+                    : get_time_millis());
+            }
+        }
+
+        gaia_log::app().info("<<on_insert(widget_unloaded_from_production_line_event)");
+    }
+
+    on_insert(bot_arrived_event)
+    {
+        gaia_log::app().info(">>on_insert(bot_arrived_event)");
+
+        // Common debug code
+        if (show_state_debug)
+        {
+            gaia_log::app().info("bot_arrived_event::robot->widgets");
+            gaia_log::app().info("Robot={}, Widget {}.", R
+                                 : robot.id, R->W
+                                 : widget.id);
+            gaia_log::app().info("bot_arrived_event::robots->pallets");
+            gaia_log::app().info("Robot={}, Pallet {}.", R
+                                 : robot.id, R->P
+                                 : pallet.id);
+            gaia_log::app().info("bot_arrived_event::station->pallets");
+            gaia_log::app().info("Station={}, Pallet {}.", S
+                                 : station.id, S->P
+                                 : pallet.id);
+            gaia_log::app().info("bot_arrived_event::station->pallets->widget");
+            gaia_log::app().info("Station={}, Pallet={}, Widget {}.", S
+                                 : station.id, S->P
+                                 : pallet.id, P->W
+                                 : widget.id);
+            gaia_log::app().info("bot_arrived_event::station->widgets");
+            gaia_log::app().info("Station={}, Widget {}.", S
+                                 : station.id, S->W
+                                 : widget.id);
+        }
+
+        // Connect the robot the new station and mark it as idle as it is no longer moving.
+        robot.station_id = station.id;
+        robot.is_idle = true;
+
+        gaia_log::app().info("bot_arrived_event>>Robot {} station={}, idle={}, type.id={}.", robot.id, station.id, robot.is_idle, robot_type.id);
+        gaia_log::app().info("Robot {} is now at the {} station.", robot.id, station.id);
+
+        // Now that the common stuff has been handle, create child events, one for each station.
+        if (station.id == (int)stations::Charging)
+        {
+            bot_arrived_at_charging_station_event.insert(
+                timestamp
+                : get_time_millis(),
+                  station_id
+                : station.id,
+                  robot_id
+                : robot.id);
+        }
+        else if (station.id == (int)stations::Inbound)
+        {
+            bot_arrived_at_inbound_station_event.insert(
+                timestamp
+                : get_time_millis(),
+                  station_id
+                : station.id,
+                  robot_id
+                : robot.id);
+        }
+        else if (station.id == (int)stations::Buffer)
+        {
+            bot_arrived_at_buffer_station_event.insert(
+                timestamp
+                : get_time_millis(),
+                  station_id
+                : station.id,
+                  robot_id
+                : robot.id);
+        }
+        else if (station.id == (int)stations::Pl_start)
+        {
+            bot_arrived_at_pl_start_station_event.insert(
+                timestamp
+                : get_time_millis(),
+                  station_id
+                : station.id,
+                  robot_id
+                : robot.id);
+        }
+        else if (station.id == (int)stations::Pl_end)
+        {
+            bot_arrived_at_pl_end_station_event.insert(
+                timestamp
+                : get_time_millis(),
+                  station_id
+                : station.id,
+                  robot_id
+                : robot.id);
+        }
+        else if (station.id == (int)stations::Outbound)
+        {
+            bot_arrived_at_outbound_station_event.insert(
+                timestamp
+                : get_time_millis(),
+                  station_id
+                : station.id,
+                  robot_id
+                : robot.id);
+        }
+
+        gaia_log::app().info("<<on_insert(bot_arrived_event)");
+    }
+
+    on_insert(bot_arrived_at_charging_station_event)
+    {
+        gaia_log::app().info(">>on_insert(bot_arrived_at_charging_station_event)");
+
+        // Once the robot arrives at the charging station, start it charging.
+        gaia_log::app().info("Robot {} starting to charge.", robot.id);
+        commands::start_charging_robot(robot);
+
+        for (/C:configuration)
+        {
+            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1461 (fixed)
+            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1472 (fixed)
+            if (temp_main_pallet_bot.id() == bot_arrived_at_charging_station_event->robot.id && C.number_of_pallet_bots > 1)
+            {
+            }
+        }
+
+        gaia_log::app().info("<<on_insert(bot_arrived_at_charging_station_event)");
+    }
+
+    on_insert(bot_arrived_at_inbound_station_event)
+    {
+        gaia_log::app().info(">>on_insert(bot_arrived_at_inbound_station_event)");
+
+        // Check to see how many widgets and pallets are at the buffer station.
+        int num_buffer_pallets = 0;
+        int num_buffer_widgets = 0;
+        if (/ S
+            : station.id == (int)stations::Buffer)
+        {
+            for (S->pallet)
+            {
+                num_buffer_pallets++;
+            }
+            for (S->widget)
+            {
+                num_buffer_widgets++;
+            }
+        }
+        gaia_log::app().info("Buffer->pallet={}, buffer->widgets={}", num_buffer_pallets, num_buffer_widgets);
+        bool is_buffer_station_empty = num_buffer_pallets == 0 and num_buffer_widgets == 0;
+        gaia_log::app().info("Buffer station is empty = {}.", is_buffer_station_empty);
+
+        // If the buffer station is currently empty, the pickup the pallet.
+        if (is_buffer_station_empty)
+        {
+            gaia_log::app().info("Robot {} is lifting pallet {}.", robot.id, station->pallet.id);
+            commands::pickup_pallet_from_station(robot, station->pallet);
+
+            // Otherwise, there are widgets to process, so make sure to kick off the widget production
+            // if needed.
+        }
+        else
+        {
+            requeue_task.insert(
+                timestamp
+                : get_time_millis(),
+                  delayed_event_type
+                : c_delayed_check_production_start_task);
+        }
+
+        gaia_log::app().info("<<on_insert(bot_arrived_at_inbound_station_event)");
+    }
+
+    on_insert(bot_arrived_at_buffer_station_event)
+    {
+        gaia_log::app().info(">>on_insert(bot_arrived_at_buffer_station_event)");
+
+        // If a robot arrives at the buffer station loaded, then it is the pallet
+        // bot and it needs to drop the pallet.
+        if (robot.is_loaded)
+        {
+            gaia_log::app().info("Robot {} is dropping pallet {} at buffer.", robot.id, robot->pallet.id);
+            commands::drop_pallet_at_station(robot);
+        }
+
+        // Otherwise, it is a widget bot arriving at the station, and the robot
+        // needs to pick up one widget.
+        else
+        {
+        // Pick up the first, and only the first, widget.
+        bot_arrived_at_buffer_station_event_1:
+            for (station->W : widget)
+            {
+                gaia_log::app().info("Robot {} is grabbing widget {} at buffer.", robot.id, W.id);
+                commands::pickup_widget_from_station(robot, W);
+                break bot_arrived_at_buffer_station_event_1;
+            }
+        }
+
+        gaia_log::app().info("<<on_insert(bot_arrived_at_buffer_station_event)");
+    }
+
+    on_insert(bot_arrived_at_pl_start_station_event)
+    {
+        gaia_log::app().info(">>on_insert(bot_arrived_at_pl_start_station_event)");
+
+        // If a widget bot gets to the PL Start station, it has a widget that
+        // it needs to deliver.
+        gaia_log::app().info("Robot {} is dropping widget {} at PL Start.", robot.id, robot->widget.id);
+        commands::drop_widget_at_station(robot);
+
+        gaia_log::app().info("<<on_insert(bot_arrived_at_pl_start_station_event)");
+    }
+
+    on_insert(bot_arrived_at_pl_end_station_event)
+    {
+        gaia_log::app().info(">>on_insert(bot_arrived_at_pl_end_station_event)");
+
+        // If a widget bot gets to the PL End station, it needs to pick up a widget
+        // to deliver.
+        gaia_log::app().info("Robot {} is grabbing PL end widget {}.", robot.id, station->widget.id);
+        commands::pickup_widget_from_station(robot, station->widget);
+
+        gaia_log::app().info("<<on_insert(bot_arrived_at_pl_end_station_event)");
+    }
+
+    on_insert(bot_arrived_at_outbound_station_event)
+    {
+        gaia_log::app().info(">>on_insert(bot_arrived_at_outbound_station_event)");
+
+        // If a widget bot gets to the Outbound station, it has a widget that
+        // it needs to deliver.
+        gaia_log::app().info("Robot {} is dropping widget {} at outbound.", robot.id, robot->widget.id);
+        commands::drop_widget_at_station(robot);
+
+        gaia_log::app().info("<<on_insert(bot_arrived_at_outbound_station_event)");
+    }
+
+    on_insert(widget_ready_for_production_line_event)
+    {
+        gaia_log::app().info(">>on_insert(widget_ready_for_production_line_event)");
+
+        // Starting the Production Line moves the pallet to be worked on
+        // from the PL Start area into the PL Area.
+        commands::press_start_production_button();
+
+        gaia_log::app().info("<<on_insert(widget_ready_for_production_line_event)");
+    }
+
+    on_insert(widget_production_finished_event)
+    {
+        gaia_log::app().info(">>on_insert(widget_production_finished_event)");
+
+        // As the production is finished, the ownership of the widgets
+        // is now the PL Area station.
+        widget.station_id = (int)stations::Pl_area;
+
+        // Unloading the Production Line moves the finished pallet into
+        // the PL End area.
+        commands::press_unload_pl_button();
+
+        gaia_log::app().info("<<on_insert(widget_production_finished_event)");
+    }
+
+    on_insert(bot_crashed_event)
+    {
+        gaia_log::app().info(">>on_insert(bot_crashed_event)");
+
+        gaia_log::app().info("Robot {} crashed.", robot.id);
+
+        gaia_log::app().info("<<on_insert(bot_crashed_event)");
+    }
+
+    on_insert(bot_cannot_navigate_event)
+    {
+        gaia_log::app().info(">>on_insert(bot_cannot_navigate_event)");
+
+        gaia_log::app().info("Robot {} can't navigate.", robot.id);
+
+        gaia_log::app().info("<<on_insert(bot_cannot_navigate_event)");
+    }
+
+    on_insert(bot_moving_to_station_event)
+    {
+        gaia_log::app().info(">>on_insert(bot_moving_to_station_event)");
+
+        // Disconnect the robot from the current station.
+        robot.station_id = (int)stations::None;
+
+        // The robot only consumes energy when moving, so request the
+        // charge level when it starts moving.
+        //
+        // Note that the charge level is not a 100% accurate measure
+        // of the robot's charge, just a good approximation from the
+        // last time that we requested the level.
+        commands::request_charge_level(robot);
+
+        gaia_log::app().info("<<on_insert(bot_moving_to_station_event)");
+    }
+
+    on_insert(bot_out_of_battery_event)
+    {
+        gaia_log::app().info(">>on_insert(bot_battery_charge_update_event)");
+
+        gaia_log::app().info("Robot {} is out of battery.", robot.id);
+
+        gaia_log::app().info("<<on_insert(bot_battery_charge_update_event)");
+    }
+
+    on_insert(bot_battery_charge_update_event)
+    {
+        gaia_log::app().info(">>on_insert(bot_battery_charge_update_event)");
+
+        gaia_log::app().info("Setting Robot {} charge to {}%.", robot.id, bot_battery_charge_update_event.charge * 100.0);
+        robot.charge = bot_battery_charge_update_event.charge;
+
+        gaia_log::app().info("<<on_insert(bot_battery_charge_update_event)");
+    }
+
+    on_insert(requeue_task)
+    {
+        // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1430 (fixed)
+        uint event_type_to_search_for = delayed_event_type;
+
+    // If we are being asked to requeue an event type, we need to find a
+    // delayed event with that type to retry.
+    requeue_task_1:
+        for (/ E : delayed_event)
+        {
+            gaia_log::app().info("Event type: {}, used={}", E.event_type, E.event_requeued);
+            if ((E.event_type == event_type_to_search_for) && !E.event_requeued)
+            {
+                E.event_requeued = true;
+                gaia_log::app().info("Requeuing delayed event...");
+
+                // That retried event is either a `check_production_start_task`...
+                if (event_type_to_search_for == c_delayed_check_production_start_task)
+                {
+
+                // Search through all the check_production_start_task objects for
+                // the specific one to restart.  When we find it, bump the timestamp
+                // by 1 (millisecond) to cause a change in the object.
+                requeue_task_2:
+                    for (/ F : check_production_start_task)
+                    {
+                        if (F.gaia_id() == E.delayed_id)
+                        {
+                            gaia_log::app().info("found delayed_id={}", E.delayed_id);
+                            F.timestamp += 1;
+                            break requeue_task_2;
+                        }
+                    }
+                    gaia_log::app().info("not found delayed_id={}", E.delayed_id);
+
+                    // or a `check_buffer_start_task`.
+                }
+                else if (event_type_to_search_for == c_delayed_check_buffer_start_task)
+                {
+
+                // Search through all the check_buffer_start_task objects for
+                // the specific one to restart.  When we find it, bump the timestamp
+                // by 1 (millisecond) to cause a change in the object.
+                requeue_task_3:
+                    for (/ F : check_buffer_start_task)
+                    {
+                        if (F.gaia_id() == E.delayed_id)
+                        {
+                            gaia_log::app().debug("found delayed_id={}", E.delayed_id);
+                            F.timestamp += 1;
+                            break requeue_task_3;
+                        }
+                    }
+                    gaia_log::app().error("not found delayed_id={}", E.delayed_id);
+                }
+                break requeue_task_1;
+            }
+        }
+    }
+
+    on_change(check_buffer_start_task)
+    {
+        gaia_log::app().info(">>on_insert(check_buffer_start_task)");
+
+        // Common debug code
+        if (show_state_debug)
+        {
+            gaia_log::app().info("check_buffer_start_task::robot->widgets");
+            gaia_log::app().info("Robot={}, Widget {}.", R
+                                 : robot.id, R->W
+                                 : widget.id);
+            gaia_log::app().info("check_buffer_start_task::robots->pallets");
+            gaia_log::app().info("Robot={}, Pallet {}.", R
+                                 : robot.id, R->P
+                                 : pallet.id);
+            gaia_log::app().info("check_buffer_start_task::station->pallets");
+            gaia_log::app().info("Station={}, Pallet {}.", S
+                                 : station.id, S->P
+                                 : pallet.id);
+            gaia_log::app().info("check_buffer_start_task::station->pallets->widget");
+            gaia_log::app().info("Station={}, Pallet={}, Widget {}.", S
+                                 : station.id, S->P
+                                 : pallet.id, P->W
+                                 : widget.id);
+            gaia_log::app().info("check_buffer_start_task::station->widgets");
+            gaia_log::app().info("Station={}, Widget {}.", S
+                                 : station.id, S->W
+                                 : widget.id);
+        }
+
+        // are all robots idle?
+        bool are_all_idle = true;
+        if (! / robot.is_idle)
+        {
+            are_all_idle = false;
+        }
+        gaia_log::app().info("Robots are all idle ={}.", are_all_idle);
+
+        // Look at the buffer station to see if there are any pallets
+        // or widgets that need processing.
+        int num_buffer_pallets = 0;
+        int num_buffer_widgets = 0;
+        if (/ S
+            : station.id == (int)stations::Buffer)
+        {
+            for (S->pallet)
+            {
+                num_buffer_pallets++;
+            }
+            for (S->widget)
+            {
+                num_buffer_widgets++;
+            }
+        }
+        gaia_log::app().info("Buffer->pallet={}, buffer->widgets={}", num_buffer_pallets, num_buffer_widgets);
+        bool is_buffer_station_empty = num_buffer_pallets == 0 and num_buffer_widgets == 0;
+        gaia_log::app().info("Buffer station is empty = {}.", is_buffer_station_empty);
+
+        // If no bots are moving and the buffer station is empty...
+        if (are_all_idle && is_buffer_station_empty)
+        {
+            // If the pallet bot is already at the Inbound station, just pick up the
+            // pallet, otherwise, move the bot there so it can pickup the pallet when
+            // it gets there.
+            for (/ C : configuration.main_pallet_bot->R : robot)
+            {
+                if (R->station.id == (int)stations::Inbound)
+                {
+                    gaia_log::app().info("Robot {} is already at the inbound station.", R.id);
+                    commands::pickup_pallet_from_station(R, R->station->pallet);
+                }
+                else
+                {
+                    move_pallet_bot_to_inbound_task.insert(
+                        timestamp
+                        : get_time_millis());
+                }
+            }
+        }
+
+        // If we cannot find one, add the information to the delay table so we can
+        // handle it when we can.
+        else
+        {
+            gaia_log::app().info("Delaying pallet arrived event: {}", pallet_arrived_event.gaia_id());
+            delayed_event.insert(
+                event_type
+                : c_delayed_check_buffer_start_task,
+                  event_requeued
+                : false,
+                  delayed_id
+                : check_buffer_start_task.gaia_id());
+        }
+
+        gaia_log::app().info("<<on_insert(check_buffer_start_task)");
+    }
+
+    on_change(check_production_start_task)
+    {
+        gaia_log::app().info(">>on_insert(check_production_start_task)");
+
+        // Common debug code
+        if (show_state_debug)
+        {
+            gaia_log::app().info("check_production_start_task::robot->widgets");
+            gaia_log::app().info("Robot={}, Widget {}.", R
+                                 : robot.id, R->W
+                                 : widget.id);
+            gaia_log::app().info("check_production_start_task::robots->pallets");
+            gaia_log::app().info("Robot={}, Pallet {}.", R
+                                 : robot.id, R->P
+                                 : pallet.id);
+            gaia_log::app().info("check_production_start_task::station->pallets");
+            gaia_log::app().info("Station={}, Pallet {}.", S
+                                 : station.id, S->P
+                                 : pallet.id);
+            gaia_log::app().info("check_production_start_task::station->pallets->widget");
+            gaia_log::app().info("Station={}, Pallet={}, Widget {}.", S
+                                 : station.id, S->P
+                                 : pallet.id, P->W
+                                 : widget.id);
+            gaia_log::app().info("check_production_start_task::station->widgets");
+            gaia_log::app().info("Station={}, Widget {}.", S
+                                 : station.id, S->W
+                                 : widget.id);
+        }
+
+        // are all robots idle?
+        bool are_all_idle = true;
+        if (! / robot.is_idle)
+        {
+            are_all_idle = false;
+        }
+        gaia_log::app().info("Robots are all idle ={}.", are_all_idle);
+
+        // Look for an idle widget bot that we can use, sending it to the buffer
+        // station if we find one.
+        if (are_all_idle)
+        {
+            move_widget_bot_to_buffer_task.insert(
+                timestamp
+                : get_time_millis());
+        }
+
+        // If we cannot find one, add the information to the delay table so we can
+        // handle it when we can.
+        else
+        {
+            gaia_log::app().info("Delaying check_production_start_task event {}.", check_production_start_task.gaia_id());
+            delayed_event.insert(
+                event_type
+                : c_delayed_check_production_start_task,
+                  event_requeued
+                : false,
+                  delayed_id
+                : check_production_start_task.gaia_id());
+        }
+
+        gaia_log::app().info("<<on_insert(check_production_start_task)");
+    }
+
+    on_insert(move_pallet_bot_to_inbound_task)
+    {
+        gaia_log::app().info(">>on_insert(move_pallet_bot_to_inbound_task)");
+
+        for (/ C : configuration.main_pallet_bot->R : robot)
+        {
+            if (R.charge < R.config->configuration.pallet_bot_recharge_threshold)
+            {
+                commands::move_robot_to_station(R, stations::Charging);
+            }
+            else
+            {
+                commands::move_robot_to_station(R, stations::Inbound);
+            }
+            R.is_idle = false;
+        }
+
+        gaia_log::app().info("<<on_insert(move_pallet_bot_to_inbound_task)");
+    }
+
+    on_insert(move_widget_bot_to_buffer_task)
+    {
+        gaia_log::app().info(">>on_insert(move_widget_bot_to_buffer_task)");
+
+        // GAIAPLAT-1447
+        // If you replace 'robot_to_move' with 'R' in the move_robot_to_station() method,
+        // it results in a translation error. Note that in the on_insert(move_pallet_bot_to_inbound_task)
+        // rule above, 'R' can be used this way.
+        if (/R:robot->robot_type.id == (int)robot_types::Widget)
+        {
+            robot_t robot_to_move;
+            robot_to_move = R;
+            if (R.charge < R.config->configuration.widget_bot_recharge_threshold)
+            {
+                commands::move_robot_to_station(robot_to_move, stations::Charging);
+            }
+            else
+            {
+                commands::move_robot_to_station(robot_to_move, stations::Buffer);
+            }
+            R.is_idle = true;
+        }
+
+        gaia_log::app().info("<<on_insert(move_widget_bot_to_buffer_task)");
+    }
+
+    on_insert(move_widget_bot_to_line_end_task)
+    {
+        gaia_log::app().info(">>on_insert(move_widget_bot_to_line_end_task)");
+
+        for (/ C : configuration)
+        {
+            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1428
+            robot_t right_widget_botxx;
+            right_widget_botxx = C.right_widget_bot->robot;
+            if (right_widget_botxx)
+            {
+                // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1430 (fixed)
+                if (/R:robot.id == C.right_widget_bot->robot.id)
+                // if (/ R : robot.id == temp_right_widget_bot.id())
+                {
+                    if (R.charge < C.widget_bot_recharge_threshold)
+                    {
+                        commands::move_robot_to_station(R, stations::Charging);
+                    }
+                    else
+                    {
+                        commands::move_robot_to_station(R, stations::Pl_end);
+                    }
+                    R.is_idle = false;
+                }
+                // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1430 (fixed)
+                else if (R.id == C.left_widget_bot->robot.id)
+                {
+                    commands::move_robot_to_station(R, stations::Pl_end);
+                    R.is_idle = false;
+                }
+            }
+        }
+
+        gaia_log::app().info("<<on_insert(move_widget_bot_to_line_end_task)");
+    }
+
+    on_insert(move_widget_bot_to_outbound_task)
+    {
+        gaia_log::app().info(">>on_insert(move_widget_bot_to_outbound_task)");
+
+        for (/ C : configuration)
+        {
+            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1428
+            robot_t right_widget_bot;
+            right_widget_bot = C.right_widget_bot->robot;
+            for (/ R : robot)
+            {
+                bool is_eligible_bot = false;
+                if (right_widget_bot)
+                {
+                    is_eligible_bot = R.id == right_widget_bot.id() && R->station.id == (int)stations::Outbound;
+                }
+                else
+                {
+                    is_eligible_bot = R.id == C.left_widget_bot->robot.id;
+                }
+                if (is_eligible_bot)
+                {
+                    commands::move_robot_to_station(R, stations::Pl_end);
+                    R.is_idle = false;
+                }
+            }
+        }
+
+        gaia_log::app().info("<<on_insert(move_widget_bot_to_outbound_task)");
+    }
+
+    on_insert(check_for_robot_starts_task)
+    {
+        // Figure out if the buffer station has any widgets left to process.
+        int buffer_station_widget_count = 0;
+        if (/ S
+            : station.id == (int)stations::Buffer)
+        {
+            for (S->W : widget)
+            {
+                buffer_station_widget_count++;
+            }
+        }
+        gaia_log::app().info("{} widgets available at Buffer stations.", buffer_station_widget_count);
+
+        // If there are widgets to process, then move a robot to the Buffer station to process them.
+        if (buffer_station_widget_count != 0)
+        {
+            move_widget_bot_to_buffer_task.insert(
+                timestamp
+                : get_time_millis());
+
+            // If there are no widgets to process, then check for a pallet at the Inbound station to process.
+        }
+        else
+        {
+            int num_pallets = 0;
+            if (/ T
+                : station.id == (int)stations::Inbound)
+            {
+                for (T->P : pallet)
+                {
+                    num_pallets++;
+                }
+                gaia_log::app().info("{} pallets available at Inbound stations.", num_pallets);
+            }
+
+            // We already have a task queued up for this, so just requeue it.
+            if (num_pallets != 0)
+            {
+                requeue_task.insert(
+                    timestamp
+                    : get_time_millis(),
+                      delayed_event_type
+                    : c_delayed_check_buffer_start_task);
+            }
+        }
+    }
+
+    on_insert(check_for_outbound_ship_task)
+    {
+        gaia_log::app().info(">>on_insert(check_for_outbound_ship_task)");
+
+        // Figure out the number of widgets on the pallet at the Outbound station.
+        int outbound_station_widget_count = 0;
+        if (/ S
+            : station.id == (int)stations::Outbound)
+        {
+            for (S->pallet->W : widget)
+            {
+                outbound_station_widget_count++;
+            }
+            gaia_log::app().info("widgets on pallet = {}", outbound_station_widget_count);
+
+            // If we hit the maximum number of widgets for the pallet, ship it!
+            if (outbound_station_widget_count == S->pallet.max_widgets)
+            {
+                commands::press_ship_button();
+            }
+        }
+
+        check_for_robot_starts_task.insert(
+            timestamp
+            : get_time_millis());
+
+        gaia_log::app().info("<<on_insert(check_for_outbound_ship_task)");
+    }
+
+    on_insert(bot_charging_event)
+    {
+        gaia_log::app().info(">>on_insert(bot_charging_event)");
+
+        // Do not do anything specific, but report that we are charging.
+        gaia_log::app().info("Robot {} is charging.", robot.id);
+
+        gaia_log::app().info("<<on_insert(bot_charging_event)");
+    }
+
+    on_insert(bot_is_charged_event)
+    {
+        gaia_log::app().info(">>on_insert(bot_is_charged_event)");
+
+        // The robot is now fully charged, so remember that.
+        robot.charge = 1;
+
+        for (/ C : configuration)
+        {
+            robot_t right_widget_bot;
+            right_widget_bot = C.right_widget_bot->robot;
+
+            // If the bot that just charged is the "left" bot, then we want to
+            // move to the Buffer station if there are any widgets to process.
+            //
+            // Note that if there is only one bot, then this is the starting station
+            // for a path that covers 4 stations.  If there are two bots, that path
+            // still starts at the Buffer station, but only covers 2 stations.
+
+            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1430 (fixed)
+            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1459 (fixed)
+            //if (robot.id == C.left_widget_bot:robot.id) {
+            // if (robot.id == temp_left_widget_bot.id())
+            if (bot_is_charged_event->robot.id == temp_left_widget_bot.id() && C.number_of_widget_bots <= 2)            {
+                if (/ S
+                    : station.id == (int)stations::Buffer)
+                {
+                    int num_widgets = 0;
+                    for (S->widget)
+                    {
+                        num_widgets++;
+                    }
+
+                    gaia_log::app().info("{} widgets available at Buffer station.", num_widgets);
+                    if (num_widgets != 0)
+                    {
+                        move_widget_bot_to_buffer_task.insert(
+                            timestamp
+                            : get_time_millis());
+                    }
+                }
+            }
+
+            // If the bot that just charged is the "right" bot, then we want to
+            // move to the PL End station if there are any widgets to process.
+            //
+            // Note that if this bot is set, then by definition there are 2 bots and
+            // this bot is there to take care of the PL End->Outbound path, and nothing
+            // else.
+            else if (right_widget_bot && (robot.id == right_widget_bot.id()))
+            {
+                if (/ S
+                    : station.id == (int)stations::Pl_end)
+                {
+                    int num_widgets = 0;
+                    for (S->widget)
+                    {
+                        num_widgets++;
+                    }
+
+                    gaia_log::app().info("{} widgets available at PL_End station.", num_widgets);
+                    if (num_widgets != 0)
+                    {
+                        move_widget_bot_to_line_end_task.insert(
+                            timestamp
+                            : get_time_millis());
+                    }
+                }
+
+                // Unless it is charging or in motion, the pallet bot is always stationed
+                // at the Inbound station.
+
+                // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1430 (fixed)
+                // else if (C.main_pallet_bot->R:robot.id == robot.id) {
+            }
+            else if (temp_main_pallet_bot.id() == robot.id)
+            {
+                move_pallet_bot_to_inbound_task.insert(timestamp
+                                                       : get_time_millis());
+            }
+        }
+
+        gaia_log::app().info("<<on_insert(bot_is_charged_event)");
+    }
+}

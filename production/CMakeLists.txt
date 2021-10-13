@@ -10,18 +10,20 @@ include(UseJava)
 enable_testing()
 
 # Set the project name.
-project(production VERSION 0.2.1)
+project(production VERSION 0.3.0)
 
 # Sets the pre-release version which will be appended to the
 # product version: 0.1.0-alpha.
 # When the product is GA this should be empty.
-set(PRE_RELEASE_IDENTIFIER "alpha")
+set(PRE_RELEASE_IDENTIFIER "beta")
 
 option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
 
 option(ENABLE_STACKTRACE "Enable stack traces" ON)
 
 option(BUILD_GAIA_RELEASE "Build Gaia Release packages and binaries" OFF)
+
+option(ENABLE_SDK_TESTS "Build and execute ruleset translation tests" ON)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
@@ -277,10 +279,10 @@ if(ENABLE_STACKTRACE)
   add_subdirectory("${GAIA_REPO}/third_party/production/backward" backward)
   add_library(gaia_stack_trace INTERFACE)
   target_sources(gaia_stack_trace INTERFACE "${GAIA_INC}/gaia_internal/common/backward.cpp")
-  target_compile_options(gaia_stack_trace INTERFACE -funwind-tables -fno-omit-frame-pointer)
+  add_compile_options(-funwind-tables -fno-omit-frame-pointer)
   # Only append this option for Release builds, or it will disable all other debug info generation.
   if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    target_compile_options(gaia_stack_trace INTERFACE -gline-tables-only)
+    add_compile_options(-gline-tables-only)
   endif()
   target_link_libraries(gaia_stack_trace INTERFACE backward)
 endif()
@@ -434,7 +436,7 @@ include(cmake/gaia_version.cmake)
 
 # Customize test commands.
 file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
-  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_db_server> --persistence disabled\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_db_server\")\n"
+  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_db_server_exec> --persistence disabled\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_db_server\")\n"
 )
 
 # Copy log configuration file to make it visible during

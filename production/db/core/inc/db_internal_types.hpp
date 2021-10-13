@@ -20,6 +20,7 @@
 #include "gaia_internal/db/db_types.hpp"
 
 #include "base_index.hpp"
+#include "memory_types.hpp"
 
 namespace gaia
 {
@@ -36,7 +37,6 @@ enum class gaia_operation_t : uint8_t
     create = 0x1,
     update = 0x2,
     remove = 0x3,
-    clone = 0x4
 };
 
 inline std::ostream& operator<<(std::ostream& os, const gaia_operation_t& o)
@@ -54,9 +54,6 @@ inline std::ostream& operator<<(std::ostream& os, const gaia_operation_t& o)
         break;
     case gaia_operation_t::remove:
         os << "remove";
-        break;
-    case gaia_operation_t::clone:
-        os << "clone";
         break;
     default:
         ASSERT_UNREACHABLE("Unknown value of gaia_operation_t!");
@@ -106,6 +103,9 @@ struct hash_node_t
 struct txn_log_t
 {
     gaia_txn_id_t begin_ts;
+    // The current chunk doesn't strictly need to be stored here; this is just a
+    // convenient place for shared state between the client and server.
+    memory_manager::chunk_offset_t current_chunk;
     size_t record_count;
 
     struct log_record_t
@@ -137,6 +137,8 @@ struct txn_log_t
 
     friend std::ostream& operator<<(std::ostream& os, const txn_log_t& l)
     {
+        os << "begin_ts: " << l.begin_ts << std::endl;
+        os << "current_chunk: " << l.current_chunk << std::endl;
         os << "record_count: " << l.record_count << std::endl;
         for (size_t i = 0; i < l.record_count; ++i)
         {
@@ -196,7 +198,7 @@ namespace index
 {
 
 typedef std::shared_ptr<base_index_t> db_index_t;
-typedef std::unordered_map<gaia::common::gaia_id_t, db_index_t> indexes_t;
+typedef std::unordered_map<common::gaia_id_t, db_index_t> indexes_t;
 
 } // namespace index
 

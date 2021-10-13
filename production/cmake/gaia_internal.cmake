@@ -89,6 +89,7 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
 
   configure_gaia_target(${TARGET})
   set_target_properties(${TARGET} PROPERTIES CXX_CLANG_TIDY "")
+  add_dependencies(${TARGET} gaia_db_server_exec)
   gtest_discover_tests(${TARGET} PROPERTIES ENVIRONMENT "${ENV}")
 endfunction(add_gtest)
 

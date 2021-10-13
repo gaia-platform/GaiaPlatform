@@ -90,6 +90,8 @@ public:
     // and is intended only for logging/debugging.
     size_t get_reader_count();
 
+    void clear();
+
 private:
     static constexpr uint64_t c_free_lock{0};
     static constexpr uint64_t c_exclusive_bit_index{63};

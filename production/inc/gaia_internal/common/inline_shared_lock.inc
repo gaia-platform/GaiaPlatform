@@ -204,3 +204,8 @@ inline void inline_shared_lock::release_exclusive()
     ASSERT_POSTCONDITION(has_released_lock, "Cannot release an exclusive lock that is not acquired!");
     check_state();
 }
+
+inline void inline_shared_lock::clear()
+{
+    m_lock_word.store(0);
+}

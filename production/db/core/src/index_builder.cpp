@@ -112,16 +112,16 @@ index_key_t index_builder_t::deserialize_key(common::gaia_id_t index_id, data_re
     return index_key;
 }
 
-index_record_t index_builder_t::make_insert_record(gaia::db::gaia_locator_t locator, gaia::db::gaia_offset_t offset)
+index_record_t index_builder_t::make_record(
+    gaia::db::gaia_locator_t locator,
+    gaia::db::gaia_offset_t offset,
+    index_record_operation_t operation)
 {
-    bool is_delete = false;
-    return index_record_t{get_current_txn_id(), offset, locator, is_delete};
-}
+    ASSERT_PRECONDITION(
+        operation != index_record_operation_t::not_set,
+        "A valid operation should be set in each index record!");
 
-index_record_t index_builder_t::make_delete_record(gaia::db::gaia_locator_t locator, gaia::db::gaia_offset_t offset)
-{
-    bool is_delete = true;
-    return index_record_t{get_current_txn_id(), offset, locator, is_delete};
+    return index_record_t{get_current_txn_id(), locator, offset, operation};
 }
 
 bool index_builder_t::index_exists(common::gaia_id_t index_id)
@@ -157,12 +157,18 @@ template <typename T_index_type>
 void update_index_entry(
     base_index_t* base_index, bool is_unique, index_key_t&& key, index_record_t record)
 {
+    ASSERT_PRECONDITION(
+        record.operation != index_record_operation_t::not_set,
+        "A valid operation was expected in the index record!");
+
     auto index = static_cast<T_index_type*>(base_index);
 
-    // If the index has UNIQUE constraint, then we can't insert duplicate values.
-    // Because we never actually remove index entries, we need special checks
-    // for the situations when we delete keys or re-insert a previously deleted key.
-    if (is_unique && !record.deleted)
+    // If the index has UNIQUE constraint, then we need to prevent inserting duplicate values.
+    // We need this check only for insertions.
+    // Our checks also require access to txn_metadata_t, so they can only be performed on the server.
+    if (is_unique
+        && record.operation == index_record_operation_t::insert
+        && transactions::txn_metadata_t::is_txn_metadata_map_initialized())
     {
         // BULK lock to avoid race condition where two different txns can insert the same value.
         auto index_guard = index->get_writer();
@@ -175,39 +181,41 @@ void update_index_entry(
 
         while (it_start != it_end)
         {
-            if (transactions::txn_metadata_t::is_txn_metadata_map_initialized())
+            gaia_txn_id_t begin_ts = it_start->second.txn_id;
+            gaia_txn_id_t commit_ts
+                = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(begin_ts);
+
+            ASSERT_PRECONDITION(
+                transactions::txn_metadata_t::is_begin_ts(begin_ts),
+                "Transaction id in index key entry is not a begin timestamp!");
+
+            // Index entries made by rolled back transactions or aborted transactions can be ignored,
+            // We can also remove them, because we are already holding a lock.
+            if (transactions::txn_metadata_t::is_txn_terminated(begin_ts)
+                || (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_aborted(commit_ts)))
             {
-                gaia_txn_id_t begin_ts = it_start->second.txn_id;
-
-                ASSERT_PRECONDITION(
-                    transactions::txn_metadata_t::is_begin_ts(begin_ts),
-                    "Transaction id in index key entry is not a begin timestamp!");
-
-                // We can remove index entries made by rolled back transactions, because we are already holding a lock.
-                if (transactions::txn_metadata_t::is_txn_terminated(begin_ts))
-                {
-                    it_start = index_guard.get_index().erase(it_start);
-                    continue;
-                }
-                else
-                {
-                    // We can remove index entries made by aborted transactions, because we are already holding the lock.
-                    gaia_txn_id_t commit_ts
-                        = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(begin_ts);
-                    if (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_aborted(commit_ts))
-                    {
-                        it_start = index_guard.get_index().erase(it_start);
-                        continue;
-                    }
-                }
+                it_start = index_guard.get_index().erase(it_start);
+                continue;
             }
 
             // The list we iterate over reflects the order of operations.
-            // The key exists if the last seen operation is an insertion.
-            // Updates consist of a delete followed by an insertion
-            // and we perform this check only for insertions, so it should
-            // last see a deletion in this scenario too.
-            has_found_duplicate_key = (it_start->second.deleted) ? false : true;
+            // Updates that don't change the index key are harmless
+            // and those that do change it are indicated as separate removals and insertions.
+            // Hence, we only care about insertions and removals;
+            // The key exists if the last seen operation is not a committed removal.
+            // We ignore uncommitted removals, because if their transaction is aborted,
+            // it would allow us to perform a duplicate insertion.
+            if (it_start->second.operation == index_record_operation_t::remove
+                && commit_ts != c_invalid_gaia_txn_id
+                && transactions::txn_metadata_t::is_txn_committed(commit_ts))
+            {
+                has_found_duplicate_key = false;
+            }
+            else if (it_start->second.operation == index_record_operation_t::insert)
+            {
+                has_found_duplicate_key = true;
+            }
+
             ++it_start;
         }
 
@@ -271,23 +279,44 @@ void index_builder_t::update_index(
         index_builder_t::update_index(
             index_id,
             index_builder_t::make_key(index_id, type_id, payload),
-            index_builder_t::make_insert_record(log_record.locator, log_record.new_offset),
+            index_builder_t::make_record(
+                log_record.locator, log_record.new_offset, index_record_operation_t::insert),
             allow_create_empty);
         break;
     case gaia_operation_t::update:
     {
         auto old_obj = offset_to_ptr(log_record.old_offset);
         auto old_payload = (old_obj) ? reinterpret_cast<const uint8_t*>(old_obj->data()) : nullptr;
-        index_builder_t::update_index(
-            index_id,
-            index_builder_t::make_key(index_id, type_id, old_payload),
-            index_builder_t::make_delete_record(log_record.locator, log_record.old_offset),
-            allow_create_empty);
-        index_builder_t::update_index(
-            index_id,
-            index_builder_t::make_key(index_id, type_id, payload),
-            index_builder_t::make_insert_record(log_record.locator, log_record.new_offset),
-            allow_create_empty);
+        index_key_t old_key = index_builder_t::make_key(index_id, type_id, old_payload);
+        index_key_t new_key = index_builder_t::make_key(index_id, type_id, payload);
+
+        // If the index key is not changed, mark operation as an update.
+        // Otherwise, we'll mark it as two individual remove/insert operations,
+        // because it's semantically indistinguishable from our transaction just doing that.
+        if (new_key == old_key)
+        {
+            index_builder_t::update_index(
+                index_id,
+                std::move(new_key),
+                index_builder_t::make_record(
+                    log_record.locator, log_record.new_offset, index_record_operation_t::update),
+                allow_create_empty);
+        }
+        else
+        {
+            index_builder_t::update_index(
+                index_id,
+                std::move(old_key),
+                index_builder_t::make_record(
+                    log_record.locator, log_record.old_offset, index_record_operation_t::remove),
+                allow_create_empty);
+            index_builder_t::update_index(
+                index_id,
+                std::move(new_key),
+                index_builder_t::make_record(
+                    log_record.locator, log_record.new_offset, index_record_operation_t::insert),
+                allow_create_empty);
+        }
     }
     break;
     case gaia_operation_t::remove:
@@ -297,17 +326,11 @@ void index_builder_t::update_index(
         index_builder_t::update_index(
             index_id,
             index_builder_t::make_key(index_id, type_id, old_payload),
-            index_builder_t::make_delete_record(log_record.locator, log_record.old_offset),
+            index_builder_t::make_record(
+                log_record.locator, log_record.old_offset, index_record_operation_t::remove),
             allow_create_empty);
     }
     break;
-    case gaia_operation_t::clone:
-        index_builder_t::update_index(
-            index_id,
-            index_builder_t::make_key(index_id, type_id, payload),
-            index_builder_t::make_insert_record(log_record.locator, log_record.new_offset),
-            allow_create_empty);
-        break;
     default:
         ASSERT_UNREACHABLE("Cannot handle log type");
         return;
@@ -317,7 +340,10 @@ void index_builder_t::update_index(
 void index_builder_t::populate_index(common::gaia_id_t index_id, common::gaia_type_t type_id, gaia_locator_t locator)
 {
     auto payload = reinterpret_cast<const uint8_t*>(locator_to_ptr(locator)->data());
-    update_index(index_id, make_key(index_id, type_id, payload), make_insert_record(locator, locator_to_offset(locator)));
+    update_index(
+        index_id,
+        make_key(index_id, type_id, payload),
+        make_record(locator, locator_to_offset(locator), index_record_operation_t::insert));
 }
 
 void index_builder_t::truncate_index_to_ts(common::gaia_id_t index_id, gaia_txn_id_t commit_ts)
@@ -349,7 +375,8 @@ void index_builder_t::truncate_index_to_ts(common::gaia_id_t index_id, gaia_txn_
     }
 }
 
-void index_builder_t::update_indexes_from_logs(const txn_log_t& records, bool skip_catalog_integrity_check, bool allow_create_empty)
+void index_builder_t::update_indexes_from_logs(
+    const txn_log_t& records, bool skip_catalog_integrity_check, bool allow_create_empty)
 {
     for (size_t i = 0; i < records.record_count; ++i)
     {
