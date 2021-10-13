@@ -15,11 +15,13 @@ CMake is the officially supported method for building Gaia applications.  In add
 
 To install CMake, run the following command:
 
-`sudo apt-get install cmake`
+```bash
+sudo apt-get install cmake
+```
 
 To build Gaia samples using CMake and make tools, specify the clang compiler by setting the following variables in your environment:
 
-```
+```bash
 export CC=/usr/bin/clang-10
 export CPP=/usr/bin/clang-cpp-10
 export CXX=/usr/bin/clang++-10
@@ -67,11 +69,15 @@ To update the package, remove it and install the updated package:
 3.  To remove the currently installed package, run the following
     command:
 
-    `sudo apt remove gaia`
+    ```bash
+    sudo apt-get remove gaia
+    ```
 
 1.  To install the new version, run the following command after replacing the x.y.z with the version number of the server that you are installing:
 
-    `sudo apt install ./gaia-x.y.x_amd64.deb`
+    ```bash
+    sudo apt-get install ./gaia-x.y.x_amd64.deb
+    ```
 
 ### Installed components
 
@@ -83,12 +89,8 @@ To update the package, remove it and install the updated package:
 /opt/gaia/etc
     gaia.conf - Contains configuration settings for the platform and application loggers that the Gaia Platform uses.
     gaia_log.conf - Contains configuration settings for the database and rules engine that comprise the Gaia Platform.
-/opt/gaia/examples/direct_access
-    Direct Access Classes example app
-/opt/gaia/examples/hello
-    Hello World example app
-/opt/gaia/examples/incubator
-    Incubator example app
+/opt/gaia/examples/
+    Example apps
 /opt/gaia/include
     Include files for the Gaia Platform.
 /opt/gaia/lib
