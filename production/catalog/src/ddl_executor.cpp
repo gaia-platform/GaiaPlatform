@@ -22,6 +22,7 @@
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
+#include "gaia_internal/db/gaia_ptr.hpp"
 
 #include "db_helpers.hpp"
 #include "fbs_generator.hpp"
@@ -640,6 +641,11 @@ void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_int
 {
     auto table_record = gaia_table_t::get(table_id);
 
+    if (gaia_ptr_t::find_all_iterator(table_record.type()) != std::nullopt)
+    {
+        throw cannot_drop_table_with_data(table_record.name());
+    }
+
     drop_relationships(table_id, enforce_referential_integrity);
 
     for (gaia_id_t field_id : list_fields(table_id))
@@ -648,15 +654,6 @@ void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_int
         table_record.gaia_fields().remove(field_id);
         // Remove the field.
         gaia_field_t::get(field_id).delete_row();
-    }
-
-    for (gaia_id_t reference_id : list_references(table_id))
-    {
-        // Unlink the reference and the owner table.
-        table_record.gaia_fields().remove(reference_id);
-        auto reference_record = gaia_field_t::get(reference_id);
-        // Remove the reference.
-        reference_record.delete_row();
     }
 
     std::vector<gaia_id_t> index_ids;
