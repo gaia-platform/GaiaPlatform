@@ -505,9 +505,9 @@ bool table_navigation_t::generate_navigation_step(const string& source_table, co
     return true;
 }
 
-llvm::SmallVector<string, 8> table_navigation_t::get_table_fields(const string& table)
+llvm::SmallVector<string, 16> table_navigation_t::get_table_fields(const string& table)
 {
-    llvm::SmallVector<string, 8> return_value;
+    llvm::SmallVector<string, 16> return_value;
     const auto& table_data = GaiaCatalog::getCatalogTableData();
     if (table_data.empty())
     {

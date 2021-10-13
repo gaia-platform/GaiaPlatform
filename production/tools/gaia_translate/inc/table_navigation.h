@@ -55,7 +55,7 @@ public:
     // Function that generates variable name for navigation code variables.
     static string get_variable_name(const string& table, const llvm::StringMap<string>& tags);
     // Function that retrieve fields for a table in DB defined order.
-    static llvm::SmallVector<string, 8> get_table_fields(const string& table);
+    static llvm::SmallVector<string, 16> get_table_fields(const string& table);
 
 private:
     struct navigation_data_t

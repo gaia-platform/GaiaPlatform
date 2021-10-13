@@ -626,7 +626,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
             .append("get(")
             .append(class_qualification_string)
             .append("insert_row(");
-        llvm::SmallVector<string, 8> function_arguments = table_navigation_t::get_table_fields(insert_data.table_name);
+        llvm::SmallVector<string, 16> function_arguments = table_navigation_t::get_table_fields(insert_data.table_name);
         const auto& table_data_iterator = GaiaCatalog::getCatalogTableData().find(insert_data.table_name);
         // Generate call arguments.
         for (const auto& call_argument : function_arguments)

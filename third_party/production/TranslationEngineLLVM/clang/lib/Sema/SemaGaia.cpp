@@ -1339,24 +1339,45 @@ bool Sema::GetExplicitPathData(SourceLocation location, SourceLocation& startLoc
 
 bool Sema::RemoveTagData(SourceRange range)
 {
+    bool returnValue = true;
     if (range.isValid())
     {
-        auto startLocationIterator = extendedExplicitPathTagMapping.lower_bound(range.getBegin());
-        auto endLocationIterator = extendedExplicitPathTagMapping.upper_bound(range.getEnd());
-        if (startLocationIterator == extendedExplicitPathTagMapping.end() && endLocationIterator == extendedExplicitPathTagMapping.end())
+        returnValue = false;
+        for (auto tableIterator = extendedExplicitPathTagMapping.begin(); tableIterator != extendedExplicitPathTagMapping.end();)
         {
-            return false;
+            SourceLocation tagLocation = tableIterator->first;
+            if (tagLocation == range.getBegin() || (range.getBegin() < tagLocation && tagLocation < range.getEnd()))
+            {
+                auto toErase = tableIterator;
+                extendedExplicitPathTagMapping.erase(toErase);
+                ++tableIterator;
+                returnValue = true;
+            }
+            else
+            {
+                ++tableIterator;
+            }
         }
-        extendedExplicitPathTagMapping.erase(startLocationIterator, endLocationIterator);
     }
-    return true;
+    return returnValue;
 }
 
 bool Sema::IsExplicitPathInRange(SourceRange range) const
 {
     if (range.isValid())
     {
-        return extendedExplicitPathTagMapping.lower_bound(range.getBegin()) != extendedExplicitPathTagMapping.end() || extendedExplicitPathTagMapping.upper_bound(range.getEnd()) != extendedExplicitPathTagMapping.end();
+        for (auto tableIterator = extendedExplicitPathTagMapping.begin(); tableIterator != extendedExplicitPathTagMapping.end();)
+        {
+            SourceLocation tagLocation = tableIterator->first;
+            if (tagLocation == range.getBegin() || (range.getBegin() < tagLocation && tagLocation < range.getEnd()))
+            {
+                return true;
+            }
+            else
+            {
+                ++tableIterator;
+            }
+        }
     }
     return false;
 }

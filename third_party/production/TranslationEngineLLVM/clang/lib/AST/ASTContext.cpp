@@ -1145,7 +1145,10 @@ void ASTContext::cacheEDCType(const Type* type) const
     const IdentifierInfo* id = record->getIdentifier();
     if (id)
     {
-      EDCTypesMap[id->getName()] = type;
+      if (id->getName().endswith("_t"))
+      {
+        EDCTypesMap[id->getName()] = type;
+      }
     }
   }
 }

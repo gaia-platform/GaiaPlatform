@@ -72,18 +72,6 @@ namespace llvm {
   struct InlineAsmIdentifierInfo;
 }
 
-namespace std
-{
-    template<> struct hash<clang::SourceLocation>
-    {
-        std::size_t operator()(clang::SourceLocation const& location) const noexcept
-        {
-            return llvm::hash_value(location.getRawEncoding());
-        }
-    };
-} // namespace std
-
-
 namespace clang {
   class ADLResult;
   class ASTConsumer;
@@ -4693,9 +4681,9 @@ private:
 
   llvm::DenseMap<SourceLocation, ExplicitPathData_t>  explicitPathData;
 
-  std::map<SourceLocation, llvm::StringMap<std::string>> explicitPathTagMapping;
+  llvm::DenseMap<SourceLocation, llvm::StringMap<std::string>> explicitPathTagMapping;
 
-  std::map<SourceLocation, llvm::StringMap<std::string>> extendedExplicitPathTagMapping;
+  llvm::DenseMap<SourceLocation, llvm::StringMap<std::string>> extendedExplicitPathTagMapping;
 
   llvm::DenseSet<SourceLocation> injectedVariablesLocation;
   bool isInExtendedExplicitPathScope;

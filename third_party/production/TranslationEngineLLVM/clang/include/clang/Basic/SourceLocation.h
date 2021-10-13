@@ -458,7 +458,8 @@ namespace llvm {
       return LHS == RHS;
     }
   };
-
+  /// Define DenseMapInfo so that SourceLocation's can be used as keys in DenseMap and
+  /// DenseSets.
   template <>
   struct DenseMapInfo<clang::SourceLocation> {
     static clang::SourceLocation getEmptyKey() {
@@ -477,7 +478,8 @@ namespace llvm {
       return LHS == RHS;
     }
   };
-
+  /// Define DenseMapInfo so that SourceLocation's can be used as keys in DenseMap and
+  /// DenseSets.
   template <>
   struct DenseMapInfo<clang::SourceRange> {
     static clang::SourceRange getEmptyKey() {
