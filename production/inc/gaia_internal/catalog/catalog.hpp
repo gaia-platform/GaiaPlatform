@@ -376,6 +376,21 @@ public:
     }
 };
 
+/**
+ * Thrown when dropping a table that still has (user) data.
+ */
+class cannot_drop_table_with_data : public gaia::common::gaia_exception
+{
+public:
+    explicit cannot_drop_table_with_data(const std::string& name)
+    {
+        std::stringstream message;
+        message << "Cannot drop the table '" << name << "' because it still contains data."
+                << "Please delete all records of the table before dropping it.";
+        m_message = message.str();
+    }
+};
+
 namespace ddl
 {
 /**

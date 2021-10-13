@@ -16,6 +16,7 @@
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
 #include "catalog_tests_helper.hpp"
+#include "gaia_addr_book.h"
 
 using namespace std;
 
@@ -36,7 +37,8 @@ gaia_relationship_t find_relationship(
 
     auto it = std::find_if(
         out_relationships.begin(), out_relationships.end(),
-        [&](gaia_relationship_t& relationship) {
+        [&](gaia_relationship_t& relationship)
+        {
             return relationship.to_child_link_name() == field_name;
         });
 
@@ -49,7 +51,8 @@ gaia_relationship_t find_relationship(
 
     it = std::find_if(
         in_relationships.begin(), in_relationships.end(),
-        [&](gaia_relationship_t& relationship) {
+        [&](gaia_relationship_t& relationship)
+        {
             return relationship.to_parent_link_name() == field_name;
         });
 
@@ -71,7 +74,7 @@ class ddl_executor_test : public db_catalog_test_base_t
 {
 protected:
     ddl_executor_test()
-        : db_catalog_test_base_t(){};
+        : db_catalog_test_base_t("addr_book.ddl"){};
 
     void check_table_name(gaia_id_t id, const string& name)
     {
@@ -116,6 +119,8 @@ TEST_F(ddl_executor_test, create_existing_table)
 
 TEST_F(ddl_executor_test, list_tables)
 {
+    use_database(c_empty_db_name);
+
     ddl::field_def_list_t fields;
     set<gaia_id_t> table_ids;
     constexpr int c_num_fields = 10;
@@ -125,13 +130,14 @@ TEST_F(ddl_executor_test, list_tables)
     }
 
     set<gaia_id_t> list_result;
-    gaia_id_t empty_db_id = find_db_id("");
-    auto_transaction_t txn;
+    gaia_id_t empty_db_id = find_db_id(c_empty_db_name);
     {
+        auto_transaction_t txn;
         for (const auto& table : gaia_database_t::get(empty_db_id).gaia_tables())
         {
             list_result.insert(table.gaia_id());
         }
+        txn.commit();
     }
 
     EXPECT_TRUE(includes(list_result.begin(), list_result.end(), table_ids.begin(), table_ids.end()));
@@ -306,6 +312,23 @@ TEST_F(ddl_executor_test, drop_table_child_reference)
     EXPECT_FALSE(gaia_table_t::get(parent_table_id));
     EXPECT_FALSE(gaia_relationship_t::get(relationship_id));
     commit_transaction();
+}
+
+TEST_F(ddl_executor_test, drop_table_with_data)
+{
+    begin_transaction();
+    auto w = gaia::addr_book::customer_writer();
+    w.name = "test";
+    gaia_id_t customer_id = w.insert_row();
+    commit_transaction();
+
+    ASSERT_THROW(drop_table("addr_book", "customer", true), cannot_drop_table_with_data);
+
+    begin_transaction();
+    gaia::addr_book::customer_t::delete_row(customer_id);
+    commit_transaction();
+
+    ASSERT_NO_THROW(drop_table("addr_book", "customer", true));
 }
 
 TEST_F(ddl_executor_test, drop_database)
@@ -582,7 +605,8 @@ TEST_F(ddl_executor_test, list_indexes)
         gaia_table_t::get(table_id).gaia_fields().begin(),
         gaia_table_t::get(table_id).gaia_fields().end(),
         back_inserter(unique_settings),
-        [](const auto& field) -> bool { return field.unique(); });
+        [](const auto& field) -> bool
+        { return field.unique(); });
 
     vector<bool> expected_unique_settings{true, false, false};
     ASSERT_EQ(unique_settings, expected_unique_settings);

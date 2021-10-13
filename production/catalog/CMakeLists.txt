@@ -56,7 +56,7 @@ target_link_libraries(gaia_catalog PRIVATE gaia_parser gaia_direct flatbuffers e
 add_gtest(test_ddl_executor
   "tests/test_ddl_executor.cpp"
   "${GAIA_CATALOG_PUBLIC_INCLUDES};${GAIA_CATALOG_PRIVATE_INCLUDES}"
-  "rt;gaia_system;gaia_catalog;gaia_db_catalog_test"
+  "rt;gaia_system;gaia_catalog;gaia_db_catalog_test;edc_addr_book"
   gaia_catalog)
 
 add_gtest(test_fbs_generation
