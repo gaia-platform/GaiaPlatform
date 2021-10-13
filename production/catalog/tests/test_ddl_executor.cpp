@@ -319,10 +319,16 @@ TEST_F(ddl_executor_test, drop_table_with_data)
     begin_transaction();
     auto w = gaia::addr_book::customer_writer();
     w.name = "test";
-    w.insert_row();
+    gaia_id_t customer_id = w.insert_row();
     commit_transaction();
 
     ASSERT_THROW(drop_table("addr_book", "customer", true), cannot_drop_table_with_data);
+
+    begin_transaction();
+    gaia::addr_book::customer_t::delete_row(customer_id);
+    commit_transaction();
+
+    ASSERT_NO_THROW(drop_table("addr_book", "customer", true));
 }
 
 TEST_F(ddl_executor_test, drop_database)

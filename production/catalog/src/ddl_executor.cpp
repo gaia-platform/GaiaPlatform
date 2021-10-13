@@ -641,7 +641,7 @@ void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_int
 {
     auto table_record = gaia_table_t::get(table_id);
 
-    if (gaia_ptr_t::find_all_iterator(table_record.type()) != std::nullopt)
+    if (gaia_ptr_t::find_all_iterator(table_record.type()))
     {
         throw cannot_drop_table_with_data(table_record.name());
     }
