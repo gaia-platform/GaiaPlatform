@@ -38,7 +38,7 @@ Where x.y.z represents the Gaia version number.
 
 The Gaia SDK includes the Database Server executable and the Gaia Declarative C++ SDK.
 
-To download the package, use the time-limited URL that was sent to you in your welcome email.
+To download the package, use the URL that you were sent in your welcome email.
 
 ## Install the package
 
@@ -46,8 +46,8 @@ You must have sudo privileges to install the package.
 
 To install the package:
 
-1. Navigate to the folder that contains the downloaded package.
-1.  At the command prompt, replace the x.y.z with the correct version number and run the following commands:
+1.  Navigate to the folder that contains the downloaded package.
+2.  At the command prompt, replace the x.y.z with the correct version number and run the following commands:
 
     ```bash
     sudo apt-get update
@@ -69,8 +69,8 @@ To update the package, remove it and install the updated package:
 
     ```bash
     sudo apt-get remove gaia
-    ``
-2.  Navigate to the folder that contains the updated package.
+    ```
+3.  Navigate to the folder that contains the updated package.
 4.  After replacing the x.y.z with the version number of the package that you are installing, run the following command:
 
     ```bash
@@ -97,9 +97,9 @@ To update the package, remove it and install the updated package:
 
 ## Start the Gaia server
 
-The Gaia server must be running to build or run any solution that is based on the Gaia Platform.
+To build or run any solution that is based on the Gaia Platform, the Gaia server must be running .
 
-We recommend that you don't run gaia\_db\_server under the root user. As with any daemon process that is accessible to the outside, running the Gaia server process as root, or any other account with special access rights, is a security risk. As best practice in production, run Gaia under a separate user account. This user account should only own the data that is managed by the server, and should not be used to run other daemons. For example, using the user `nobody` is not recommended.
+We recommend that you don't run gaia\_db\_server under the root user. As with any daemon process that is accessible to the outside, running the Database Server process as root, or any other account with special access rights, is a security risk. As best practice in production, run Gaia under a separate user account. This user account should only own the data that is managed by the server, and should not be used to run other daemons. For example, using the user `nobody` is not recommended.
 
 To prevent a compromised server process from modifying the Gaia executables, the user account must not own the Gaia executable files.
 
