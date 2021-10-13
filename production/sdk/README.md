@@ -71,7 +71,7 @@ To update the package, remove it and install the updated package:
     sudo apt-get remove gaia
     ``
 2.  Navigate to the folder that contains the updated package.
-4.  Install the new version, run the following command after replacing the x.y.z with the version number of the server that you are installing:
+4.  After replacing the x.y.z with the version number of the package that you are installing, run the following command:
 
     ```bash
     sudo apt-get install ./gaia-x.y.z_amd64.deb
