@@ -11,7 +11,7 @@ Before you begin, make sure that you have the following prerequisites:
 
 The Gaia SDK installer installs the Gaia tools and Clang 10.
 
-CMake is the officially supported method for building Gaia applications.  In addition, the Gaia SDK uses CMake to automate code generation from DDL and ruleset files.
+CMake is the officially supported method for building Gaia applications. In addition, the Gaia SDK uses CMake to automate code generation from DDL and ruleset files.
 
 To install CMake, run the following command:
 
@@ -32,7 +32,7 @@ export LDFLAGS="-B/usr/lib/llvm-10/bin/ -fuse-ld=lld"
 
 The Gaia SDK is delivered as a Debian software package (DEB).
 
-gaia-x.y.z__amd64.deb
+gaia-x.y.z_amd64.deb
 
 Where x.y.z represents the Gaia version number.
 
@@ -107,21 +107,20 @@ To prevent a compromised server process from modifying the Gaia executables, the
 
 Gaia server command line arguments:
 
-|   |   |
+| Option  | Description  |
 |---|---|
-|--data-dir \<database-folder-path>   | Specifies the location in which to store the Gaia database.  |
-|--configuration-file-path \<config-file-name>  | Specifies the location in which to store the Gaia configuration file.  |
-| --disable-persistence  | No previous changes to the database will be visible after the database is started, and no changes made while the database is running will be visible after it is restarted.  | 
-| --disable-persistence-after-recovery  | Previous changes to the database will be visible after the database is started, but no changes made while the database is running will be visible after it is restarted.  | 
-|--reinitialize-persistent-store   |   All previous changes to the database will be deleted from persistent storage and will not be visible after the database is started, but changes made while the database is running will be visible after the database is restarted.  | 
+| --persistence \<mode> | If not specified, the default mode is enabled.<br>The data location is specified with --data-dir.<br>- <enabled>: Persist data [default].<br>- <disabled>: Do not persist any data.<br>- <disabled-after-recovery>: Load data from the datastore and disable persistence.  | 
+| --data-dir \<database-folder-path> | Specifies the location in which to store the Gaia database.  |
+| --configuration-file-path \<config-file-name> | Specifies the location in which to store the Gaia configuration file.  |
+| --reinitialize-persistent-store | All previous changes to the database will be deleted from persistent storage and will not be visible after the database is started, but changes made while the database is running will be visible after the database is restarted.  | 
 
 To start the server on a machine that supports systemd:
 
 ```bash
-sudo apt-get install cmake
+sudo systemctl start gaia
 ```
 
-### Starting the Gaia server on WSL
+### Starting the Gaia server on Windows Subsystem for Linux (WSL)
 
 When starting the Gaia server on WSL, use the --data-dir argument to specify the location in which to store the database. We recommend that you store it locally in ~/.local/gaia/db.
 
@@ -133,4 +132,4 @@ gaia_db_server --data-dir ~/.local/gaia/db &
 
 ## Next Steps
 
-[Gaia Techical Documentation](http://docs.gaiaplatform.io)
+[Gaia Technical Documentation](http://docs.gaiaplatform.io)
