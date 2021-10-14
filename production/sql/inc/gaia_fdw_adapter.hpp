@@ -5,13 +5,8 @@
 
 #pragma once
 
-/*
- * PostgresSQL "port.h" tries to replace printf() and friends with macros to
- * their own versions. This leads to build error in other headers like spdlog.
- */
-#ifdef fprintf
-#undef fprintf
-#endif
+#include <string>
+#include <unordered_map>
 
 // All Postgres headers and function declarations must have C linkage.
 extern "C"
@@ -28,15 +23,6 @@ extern "C"
 #include <utils/lsyscache.h>
 
 } // extern "C"
-
-// We use `#pragma GCC` instead of `#pragma clang` for compatibility with both clang and gcc.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmacro-redefined"
-#define fprintf fprintf
-#pragma GCC diagnostic pop
-
-#include <string>
-#include <unordered_map>
 
 #include "gaia/common.hpp"
 
