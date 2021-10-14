@@ -74,14 +74,14 @@ void rdb_internal_t::prepare_wal_for_write(rocksdb::Transaction* txn)
 
 void rdb_internal_t::rollback(const std::string& txn_name)
 {
-    auto txn = get_txn_by_name(txn_name);
+    auto txn = std::unique_ptr<rocksdb::Transaction>(get_txn_by_name(txn_name));
     auto s = txn->Rollback();
     handle_rdb_error(s);
 }
 
 void rdb_internal_t::commit(const std::string& txn_name)
 {
-    auto txn = get_txn_by_name(txn_name);
+    auto txn = std::unique_ptr<rocksdb::Transaction>(get_txn_by_name(txn_name));
     auto s = txn->Commit();
     handle_rdb_error(s);
 }
