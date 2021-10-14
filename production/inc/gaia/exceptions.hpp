@@ -9,6 +9,9 @@
 
 #include "gaia/exception.hpp"
 
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
+
 namespace gaia
 {
 /**
@@ -33,7 +36,7 @@ public:
 };
 
 /**
- * An exception class used for to indicate invalid Gaia configuration settings.
+ * An exception class used to indicate invalid Gaia configuration settings.
  */
 class configuration_error : public gaia_exception
 {
@@ -52,6 +55,18 @@ namespace db
  * @{
  */
 
+/**
+ * An exception class used to indicate that the Gaia server session limit has been exceeded.
+ */
+class session_limit_exceeded : public common::gaia_exception
+{
+public:
+    session_limit_exceeded()
+    {
+        m_message = "Server session limit exceeded.";
+    }
+};
+
 namespace index
 {
 /**
@@ -60,7 +75,7 @@ namespace index
  */
 
 /**
- * An exception class used for to indicate the violation of a UNIQUE constraint.
+ * An exception class used to indicate the violation of a UNIQUE constraint.
  */
 class unique_constraint_violation : public common::gaia_exception
 {
@@ -74,7 +89,7 @@ public:
     {
         std::stringstream message;
         message
-            << "UNIQUE constraint violation for index: '" << index_name
+            << "UNIQUE constraint violation for index '" << index_name
             << "' of table '" << table_name << "'.";
         m_message = message.str();
     }
@@ -88,3 +103,6 @@ public:
 
 /*@}*/
 } // namespace gaia
+
+// Restore default hidden visibility for all symbols.
+#pragma GCC visibility pop

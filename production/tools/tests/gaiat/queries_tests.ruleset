@@ -1,3 +1,8 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 // RUN: %gaiat %s --
 
 #include "tags_test.h"
@@ -145,7 +150,7 @@ ruleset test18
 {
     on_change(yield.bushels)
     {
-        F : farmer.condos -> I : incubator -> R : raised -> A : animal -> D : feeding -> Y : yield 
+        F : farmer.condos -> I : incubator -> R : raised -> A : animal -> D : feeding -> Y : yield
             -> C : crop . acres ++;
         / F:farmer.incubators->I:incubator->R:raised->A:animal->D:feeding->Y:yield->C:crop.acres++;
     }

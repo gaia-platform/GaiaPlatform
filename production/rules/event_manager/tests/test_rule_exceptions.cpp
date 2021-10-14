@@ -13,7 +13,7 @@
 #include <map>
 #include <thread>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"

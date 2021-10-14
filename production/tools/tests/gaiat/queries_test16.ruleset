@@ -1,0 +1,17 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// TESTCASE: assign insert call result to declared variable
+ruleset test43
+{
+    on_update(incubator)
+    {
+        auto s4 = sensor.insert(name: actuator.name);
+    }
+}
+
+// CHECK: Initialization of a declared variable with a direct access object is not supported.

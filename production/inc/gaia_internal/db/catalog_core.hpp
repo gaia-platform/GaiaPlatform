@@ -2,11 +2,13 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #pragma once
+
 #include <string>
 #include <vector>
 
-#include "flatbuffers/flatbuffers.h"
+#include <flatbuffers/flatbuffers.h>
 
 #include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
@@ -158,6 +160,11 @@ struct catalog_core_t
     static relationship_list_t list_relationship_to(common::gaia_id_t table_id);
 
     static index_list_t list_indexes(common::gaia_id_t table_id);
+
+    // TODO: Decide if the method belongs to catalog_core or index headers.
+    // Helper method to find an index for a given table and field. Return
+    // invalid_gaia_id if cannot find index (for the field).
+    static common::gaia_id_t find_index(common::gaia_id_t table_id, common::field_position_t field_position);
 };
 
 class table_generator_t : public common::iterators::generator_t<table_view_t>

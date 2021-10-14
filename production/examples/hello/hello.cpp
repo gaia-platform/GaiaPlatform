@@ -9,13 +9,9 @@
 
 #include "gaia_hello.h"
 
-using namespace std;
-
 int main()
 {
-    cout
-        << "Hello example is running..."
-        << endl;
+    std::cout << "Hello example is running..." << std::endl;
 
     gaia::system::initialize();
 
@@ -27,5 +23,5 @@ int main()
 
     gaia::system::shutdown();
 
-    cout << "Hello example has shut down." << endl;
+    std::cout << "Hello example has shut down." << std::endl;
 }

@@ -1,5 +1,10 @@
 #! /usr/bin/python3
 
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 """
 Script to calculate the summary.json file for a suite of tests that were run.
 

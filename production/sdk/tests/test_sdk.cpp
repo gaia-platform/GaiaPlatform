@@ -6,7 +6,7 @@
 // Do not include event_manager.hpp to ensure that
 // we don't have a dependency on the internal implementation.
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
@@ -217,7 +217,9 @@ TEST_F(sdk_test, db_exceptions)
     test_exception<gaia::db::duplicate_id>(gaia::common::c_invalid_gaia_id);
     test_exception<gaia::db::out_of_memory>();
     test_exception<gaia::db::invalid_object_id>(gaia::common::c_invalid_gaia_id);
-    test_exception<gaia::db::object_still_referenced>(gaia::common::c_invalid_gaia_id, employee_t::s_gaia_type);
+    test_exception<gaia::db::object_still_referenced>(
+        gaia::common::c_invalid_gaia_id, employee_t::s_gaia_type,
+        gaia::common::c_invalid_gaia_id, employee_t::s_gaia_type);
     test_exception<gaia::db::object_too_large>(100, 100);
     test_exception<gaia::db::invalid_type>(employee_t::s_gaia_type);
 }

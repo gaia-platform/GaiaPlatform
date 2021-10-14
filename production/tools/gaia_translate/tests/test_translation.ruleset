@@ -1,7 +1,13 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 #include "gaia/logger.hpp"
 #include "gaia/events.hpp"
 
 #include <atomic>
+#include <stdexcept>
 
 std::atomic<int32_t> g_rule_called;
 std::atomic<int32_t> g_insert_called;
@@ -9,6 +15,7 @@ std::atomic<int32_t> g_update_min_temp_called;
 std::atomic<int32_t> g_update_max_temp_called;
 std::atomic<int32_t> g_update_sensor_value_called;
 std::atomic<int32_t> g_actuator_rule_called;
+std::atomic<int32_t> g_rule_navigation_loop_count;
 
 ruleset test
 {
@@ -126,6 +133,7 @@ ruleset testE21
 }
 
 // GAIAPLAT-1274
+// [WLW] Note: not sure this test relates to GAIAPLAT-1274
 ruleset testE22
 {
     on_update(incubator)
@@ -141,7 +149,7 @@ ruleset testE22
     }
 }
 
-// GAIAPLAT-1269
+// GAIAPLAT-1269 (fixed)
 ruleset testE23
 {
     on_update(incubator)
@@ -157,12 +165,137 @@ ruleset testE23
     }
 }
 
-// GAIAPLAT-1314
+void use_id(unsigned int)
+{
+}
+
+// GAIAPLAT-1314 (fixed)
 ruleset testE24
 {
     on_update(incubator)
     {
         auto id = incubator.gaia_id();
+        use_id(id);
+    }
+}
+
+//GAIAPLAT-1367 (fixed)
+ruleset testE25
+{
+     on_update(sensor)
+     {
+        if (strcmp(/S:sensor.name, "1") == 0)
+        {
+            incubator.connect(actuator);
+        }
+     }
+}
+
+//GAIAPLAT-1388 (fixed)
+ruleset testE26
+{
+     on_update(incubator)
+     {
+        for (w:sensor)
+        {
+            w.timestamp = 0;
+        }
+     }
+}
+
+//GAIAPLAT-1326 (fixed)
+ruleset testE27
+{
+     on_update(sensor)
+     {
+        if ((strcmp(S:sensor.name, "1") == 0))
+        {
+            incubator.connect(actuator);
+        }
+     }
+}
+
+//GAIAPLAT-1375 (fixed)
+ruleset testE28
+{
+    on_insert(incubator)
+    {
+        if (incubator.name != nullptr)
+        {
+        }
+        nomatch
+        {
+            for (incubator->s:sensor) { use_string(s.name);}
+            nomatch { use_string(incubator.name);}
+        }
+    }
+}
+namespace test_test{
+    enum test_enum
+    {
+        test1,
+        test2,
+        test3,
+        test4,
+    };
+}
+
+//GAIAPLAT-1235 (fixed)
+ruleset testE29
+{
+    on_insert(sensor)
+    {
+        switch(sensor.timestamp)
+        {
+            case test_test::test1 : sensor.timestamp=1; break;
+            case test_test::test2: sensor.timestamp=2; break;
+            case test_test::test3:sensor.timestamp=3; break;
+            case test_test::test4 :sensor.timestamp=4; break;
+        }
+    }
+}
+
+// GAIAPLAT-1259 (fixed)
+const char* generate_error_message(double)
+{
+    return "test";
+}
+
+ruleset testE30
+{
+    on_insert(incubator)
+    {
+        if (strcmp(incubator.name, "ttt") == 0)
+        {
+            throw std::runtime_error(generate_error_message(sensor.value));
+        }
+    }
+}
+
+// GAIAPLAT-1025 (fixed)
+ruleset test_comment
+{
+    /* COMMENT
+     * COMMENT
+     * COMMENT
+     */
+    on_insert(sensor)
+    {
+    }
+}
+
+// GAIAPLAT-1432
+ruleset testE31
+{
+    on_update(incubator.max_temp, incubator.min_temp)
+    {
+        for (S:sensor)
+        {
+            if (S.value > min_temp || S.value < max_temp)
+            {
+                g_rule_navigation_loop_count++;
+            }
+        }
     }
 }
 

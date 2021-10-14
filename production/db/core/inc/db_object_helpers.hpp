@@ -13,6 +13,7 @@
 #include "gaia_internal/db/db_types.hpp"
 
 #include "db_hash_map.hpp"
+#include "db_helpers.hpp"
 #include "db_internal_types.hpp"
 
 namespace gaia
@@ -32,7 +33,7 @@ inline db_object_t* create_object(
     size_t total_len = obj_data_size + ref_len;
     gaia::db::hash_node_t* hash_node = db_hash_map::insert(id);
     hash_node->locator = allocate_locator();
-    allocate_object(hash_node->locator, total_len);
+    gaia::db::allocate_object(hash_node->locator, total_len);
     db_object_t* obj_ptr = locator_to_ptr(hash_node->locator);
     obj_ptr->id = id;
     obj_ptr->type = type;

@@ -10,7 +10,7 @@
 // get a link error.  The other test (test_sdk.cpp) tests that a strong
 // reference will override the weak reference and take precedence.
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
@@ -34,7 +34,7 @@ TEST(sdk_test_no_init_rules, app_check)
         employee_writer w;
         w.name_first = "Did_not";
         w.name_last = "Provide_initialize_rules";
-        w.insert_row();
+        // Don't write to the db because catalog is not properly populated.
         // Don't change the state of the db at all (no commit).
     }
     gaia::system::shutdown();

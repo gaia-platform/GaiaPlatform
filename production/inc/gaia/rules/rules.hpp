@@ -2,6 +2,7 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #pragma once
 
 #include <memory>
@@ -14,6 +15,9 @@
 #include "gaia/direct_access/auto_transaction.hpp"
 #include "gaia/events.hpp"
 #include "gaia/exception.hpp"
+
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
 
 namespace gaia
 {
@@ -48,7 +52,7 @@ typedef void (*gaia_rule_fn)(const rule_context_t* context);
  */
 extern "C" void initialize_rules();
 
-/** 
+/**
  * The application may provide an implementation of handle_rule_exception(). This
  * function is invoked if an exception is caused when calling the rule
  * or if there is an underlying platform issue.
@@ -216,13 +220,11 @@ public:
         direct_access::auto_transaction_t& txn,
         common::gaia_type_t gaia_type,
         db::triggers::event_type_t event_type,
-        common::gaia_id_t record,
-        const common::field_position_list_t& field_list)
+        common::gaia_id_t record)
         : txn(txn)
         , gaia_type(gaia_type)
         , event_type(event_type)
         , record(record)
-        , fields(field_list)
     {
     }
 
@@ -247,7 +249,6 @@ public:
     common::gaia_type_t gaia_type;
     db::triggers::event_type_t event_type;
     common::gaia_id_t record;
-    const common::field_position_list_t& fields;
 };
 
 /**
@@ -397,3 +398,6 @@ void list_subscribed_rules(
 } // namespace rules
 /*@}*/
 } // namespace gaia
+
+// Restore default hidden visibility for all symbols.
+#pragma GCC visibility pop
