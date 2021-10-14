@@ -103,7 +103,8 @@ chunk_offset_t memory_manager_t::allocate_unused_chunk()
 
         // Now try to claim this chunk.
         chunk_manager_t chunk_manager;
-        chunk_manager.initialize(allocated_chunk_offset);
+        // NB: We cannot call initialize() here because we don't own the chunk yet!
+        chunk_manager.load(allocated_chunk_offset);
         // REVIEW: the memory manager should call
         // update_chunk_allocation_status() directly instead of delegating
         // it to chunk_manager_t::allocate_chunk().
@@ -153,7 +154,8 @@ chunk_offset_t memory_manager_t::allocate_used_chunk()
 
         auto available_chunk_offset = static_cast<chunk_offset_t>(found_index);
         chunk_manager_t chunk_manager;
-        chunk_manager.initialize(available_chunk_offset);
+        // NB: We cannot call initialize() here because we don't own the chunk yet!
+        chunk_manager.load(available_chunk_offset);
         // REVIEW: the memory manager should call
         // update_chunk_allocation_status() directly instead of delegating
         // it to chunk_manager_t::allocate_chunk().
