@@ -21,3 +21,18 @@ The output will be in JSON format.
     ]
 }
 ```
+## JSON format for a range of rows.
+```
+{
+    "table": "<tablename>",
+    "rows": [
+        "row_id": <gaia_id>,
+        "row": {
+            "field1": "<field1_value>",
+            "field2": "<field2_value>",
+            ...
+        },
+        ...
+    ]
+}
+```
