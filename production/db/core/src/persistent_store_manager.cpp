@@ -8,6 +8,7 @@
 #include <utility>
 
 #include <rocksdb/db.h>
+#include <rocksdb/table.h>
 #include <rocksdb/write_batch.h>
 
 #include "gaia_internal/common/system_table_types.hpp"
@@ -46,6 +47,7 @@ void persistent_store_manager::open()
 {
     rocksdb::TransactionDBOptions options{};
     rocksdb::Options init_options{};
+    rocksdb::BlockBasedTableOptions table_options{};
 
     // Implies 2PC log writes.
     constexpr bool c_allow_2pc = true;
@@ -89,6 +91,11 @@ void persistent_store_manager::open()
     init_options.max_write_buffer_number = c_max_write_buffer_number;
     init_options.min_write_buffer_number_to_merge = c_min_write_buffer_number_to_merge;
     init_options.wal_recovery_mode = c_wal_recovery_mode;
+
+    // Block cache is where RocksDB caches data in memory for reads, which we don't need at all.
+    table_options.no_block_cache = true;
+    auto table_factory = NewBlockBasedTableFactory(table_options);
+    init_options.table_factory.reset(table_factory);
 
     m_rdb_internal->open_txn_db(init_options, options);
 }
