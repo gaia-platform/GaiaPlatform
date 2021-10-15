@@ -8,16 +8,24 @@ The output will be in JSON format.
 ## JSON format for catalog.
 ```
 {
-    "database": "<dbname>",
-    "tables": [
+    "databases":
+    [
         {
-            "table": "<tablename>",
-            "fields": [
-                "field": {"name": "<fieldname>", "type": "<fieldtype>"},
+            "database": "<dbname>",
+            "tables":
+            [
+                {
+                    "table": "<tablename>",
+                    "fields":
+                    [
+                        "field": {"name": "<fieldname>", "type": "<fieldtype>"},
+                        ...
+                    ]
+                },
                 ...
-            ],
-            ...
-        }
+            ]
+        },
+        ...
     ]
 }
 ```
@@ -25,7 +33,8 @@ The output will be in JSON format.
 ```
 {
     "table": "<tablename>",
-    "rows": [
+    "rows":
+    [
         "row_id": <gaia_id>,
         "row": {
             "field1": "<field1_value>",
