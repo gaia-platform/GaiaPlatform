@@ -148,6 +148,7 @@ void chunk_manager_metadata_t::synchronize_allocation_metadata()
 
 void chunk_manager_metadata_t::clear()
 {
+    // NB: We cannot clear the chunk state and version!
     shared_lock.clear();
     last_allocation_metadata.store({});
     std::fill(allocated_slots_bitmap, allocated_slots_bitmap + c_slot_bitmap_size_in_words, 0);
