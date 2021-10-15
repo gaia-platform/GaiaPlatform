@@ -1,7 +1,7 @@
 import * as React from 'react';
 import './components.css'
 
-// Tables function to be exported for use in MainContainer
+// Tables function to be exported for use in MainContainer.
 export default function Tables() {
     // Hook to set initial state as placeholder names until database info is accessed.
     const [table_names, useTable_names] = React.useState(
@@ -25,6 +25,7 @@ export default function Tables() {
             </thead>
             <tbody>
                 {table_names.map(tname => (
+                    // Each row will represent a table in the database.
                     <tr>
                         <td>{tname}</td>
                     </tr>
