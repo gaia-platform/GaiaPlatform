@@ -1,8 +1,8 @@
 import * as React from 'react';
-import CollapsibleTable from '../components/Table';
+import Tables from '../components/Tables';
 
 export default function MainContainer() {
     return (
-        <CollapsibleTable></CollapsibleTable>
+        <Tables></Tables>
     )
 }
