@@ -158,6 +158,9 @@ endif()
 # Load the CPack module.
 include(CPack)
 
+# Place the README.md file.
+install(FILES ${GAIA_REPO}/production/sdk/README.md DESTINATION .)
+
 # Place flatbuffer headers.
 install(FILES ${FLATBUFFERS_INC}/flatbuffers/flatbuffers.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/flatbuffers)
 install(FILES ${FLATBUFFERS_INC}/flatbuffers/base.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/flatbuffers)
