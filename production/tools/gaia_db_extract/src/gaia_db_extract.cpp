@@ -16,76 +16,81 @@
 #include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
+#include "json.hpp"
+
 using namespace gaia::common;
 using namespace gaia::catalog;
 using namespace gaia::db;
 using namespace std;
+using json = nlohmann::json;
 
-static string print_indent(int32_t level)
+json print_field(gaia::catalog::gaia_field_t field)
 {
-    stringstream dump;
+    json j;
 
-    for (int i = 0; i < level; ++i)
-    {
-        dump << "    ";
-    }
+    j["name"] = field.name();
+    j["type"] = field.type();
+    j["id"] = field.gaia_id();
 
-    return dump.str();
+    return j;
 }
 
-void print_field(int32_t level, gaia::catalog::gaia_field_t field)
+json print_table(gaia::catalog::gaia_table_t table)
 {
-    print_indent(level);
-    printf("field name:  %s, id: %08lx, type: %08x\n", field.name(), uint64_t(field.gaia_id()), uint32_t(field.type()));
-}
+    json j;
 
-void print_table(int32_t level, gaia::catalog::gaia_table_t table)
-{
-    print_indent(level);
-    printf("table name:  %s, id: %08lx, type: %08x\n", table.name(), uint64_t(table.gaia_id()), uint32_t(table.type()));
+    j["name"] = table.name();
+    j["id"] = table.gaia_id();
+
     for (auto field : table.gaia_fields())
     {
-        print_field(level + 1, field);
+        j["fields"].push_back(print_field(field));
     }
+
+    return j;
 }
 
-string print_database(int32_t level, gaia::catalog::gaia_database_t db)
+json print_database(gaia::catalog::gaia_database_t db)
 {
-    stringstream dump;
+    json j;
 
-    dump << print_indent(level);
-    dump << "\"database\": \"" << db.name() << "\",\n";
-    dump << print_indent(level);
-    dump << "\"tables\":\n";
-    dump << print_indent(level);
-    dump << "\n";
+    j["name"] = db.name();
 
     for (auto table : db.gaia_tables())
     {
-        print_table(level + 1, table);
+        j["tables"].push_back(print_table(table));
     }
 
-    return dump.str();
+    return j;
 }
 
-stringstream gaia_db_extract(gaia_id_t, gaia_id_t, bool, bool, bool, int, type_vector)
+string gaia_db_extract(string database, string table, gaia_id_t start_after, uint32_t row_limit)
 {
     stringstream dump;
-    bool first_loop = true;
+    json j;
 
     begin_transaction();
-    dump << "{\n    \"databases\":\n    [\n";
-    for (auto db : gaia::catalog::gaia_database_t::list())
+
+    if (database.size() == 0)
     {
-        if (strlen(db.name()) == 0 || !strcmp(db.name(), "catalog") || !strcmp(db.name(), "()"))
+        for (auto db : gaia::catalog::gaia_database_t::list())
         {
-            continue;
+            if (strlen(db.name()) == 0 || !strcmp(db.name(), "catalog") || !strcmp(db.name(), "()"))
+            {
+                continue;
+            }
+            j["databases"].push_back(print_database(db));
         }
-        dump << print_database(2, db);
     }
-    dump << "    ]\n}\n";
+    else
+    {
+        // Dump table from database.
+    }
 
     commit_transaction();
 
-    return dump;
+    // Serialize the json object.
+    dump << j.dump(4);
+
+    return dump.str();
 }

@@ -14,115 +14,89 @@
 using namespace gaia::common;
 using namespace std;
 
-constexpr gaia_id_t c_high_default = 1000;
-constexpr char c_references_string[] = "--references";
-constexpr char c_payload_string[] = "--payload";
-constexpr char c_catalog_string[] = "--catalog";
-constexpr char c_show_types_string[] = "--show-types";
-const int c_show_types_length = strlen(c_show_types_string);
-constexpr char c_start_string[] = "--start";
+constexpr char c_start_string[] = "--start-after";
 const int c_start_length = strlen(c_start_string);
-constexpr char c_end_string[] = "--end";
-const int c_end_length = strlen(c_end_string);
-constexpr char c_line_limit_string[] = "--line-limit";
-const int c_line_limit_length = strlen(c_line_limit_string);
+constexpr char c_row_limit_string[] = "--row-limit";
+const int c_row_limit_length = strlen(c_row_limit_string);
+constexpr char c_database_string[] = "--database";
+const int c_database_length = strlen(c_database_string);
+constexpr char c_table_string[] = "--table";
+const int c_table_length = strlen(c_table_string);
 
 int main(int argc, char* argv[])
 {
-    gaia_id_t low = 1;
-    gaia_id_t high = c_high_default;
-    int line_limit = -1;
-    bool payload = false;
-    bool references = false;
-    bool catalog = false;
-    string show_types;
-    type_vector type_vec;
+    gaia_id_t start_after = c_start_after_none;
+    uint32_t row_limit = c_row_limit_unlimited;
+    string database;
+    string table;
 
     // Usage:
-    //  gaia_db_extract --start=ID --end=ID --references --payload --catalog --line-limit=N --show-types=list
+    //  gaia_db_extract --database=<dbmame> --table=<tablename> --start-after=ID --row-limit=N
+    //  when no database/table specified, dump catalog
     for (auto i = 1; i < argc; i++)
     {
         string arg(argv[i]);
 
-        if (arg.compare(c_references_string) == 0)
-        {
-            references = true;
-        }
-        else if (arg.compare(c_payload_string) == 0)
-        {
-            payload = true;
-        }
-        else if (arg.compare(c_catalog_string) == 0)
-        {
-            catalog = true;
-        }
-        else if (arg.compare(0, c_start_length, c_start_string) == 0)
+        if (arg.compare(0, c_start_length, c_start_string) == 0)
         {
             if (arg.length() == c_start_length)
             {
-                low = atoi(argv[++i]);
+                start_after = atoi(argv[++i]);
             }
             else
             {
-                // Allow for equals sign form (--start=12). One arg rather than two.
-                low = atoi(arg.substr(c_start_length + 1).c_str());
+                // Allow for equals sign form (--start-after=12). One arg rather than two.
+                start_after = atoi(arg.substr(c_start_length + 1).c_str());
             }
         }
-        else if (arg.compare(0, c_end_length, c_end_string) == 0)
+        else if (arg.compare(0, c_row_limit_length, c_row_limit_string) == 0)
         {
-            if (arg.length() == c_end_length)
+            if (arg.length() == c_row_limit_length)
             {
-                high = atoi(argv[++i]);
+                row_limit = atoi(argv[++i]);
             }
             else
             {
-                // Allow for equals sign form (--end=10). One arg rather than two.
-                high = atoi(arg.substr(c_end_length + 1).c_str());
+                // Allow for equals sign form (--row-limit=12). One arg rather than two.
+                row_limit = atoi(arg.substr(c_row_limit_length + 1).c_str());
             }
         }
-        else if (arg.compare(0, c_line_limit_length, c_line_limit_string) == 0)
+        else if (arg.compare(0, c_database_length, c_database_string) == 0)
         {
-            if (arg.length() == c_line_limit_length)
+            if (arg.length() == c_database_length)
             {
-                line_limit = atoi(argv[++i]);
+                database = string(argv[++i]);
             }
             else
             {
-                // Allow for equals sign form (--line-limit=12). One arg rather than two.
-                line_limit = atoi(arg.substr(c_line_limit_length + 1).c_str());
+                // Allow for equals sign form (--row-limit=12). One arg rather than two.
+                database = arg.substr(c_row_limit_length + 1);
             }
         }
-        else if (arg.compare(0, c_show_types_length, c_show_types_string) == 0)
+        else if (arg.compare(0, c_table_length, c_table_string) == 0)
         {
-            if (arg.length() == c_show_types_length)
+            if (arg.length() == c_table_length)
             {
-                show_types = string(argv[++i]);
+                table = string(argv[++i]);
             }
             else
             {
-                // Allow for equals sign form (--line-limit=12). One arg rather than two.
-                show_types = arg.substr(c_show_types_length + 1);
-            }
-            string type;
-            stringstream types(show_types);
-            while (getline(types, type, ','))
-            {
-                int hex_type;
-                sscanf(type.c_str(), "%x", &hex_type);
-                type_vec.push_back(hex_type);
+                // Allow for equals sign form (--row-limit=12). One arg rather than two.
+                table = arg.substr(c_row_limit_length + 1);
             }
         }
         else
         {
-            fprintf(stderr, "Invalid command-line option: '%s'\n", argv[i]);
-            fprintf(
-                stderr,
-                "Usage: gaia_db_extract [--start=ID] [--end=ID] [--references] [--payload] [--catalog]\n"
-                "    [--line-limit=N] [--show-types=list]\n"
-                "    where list = xx,xx,...\n");
-            fprintf(stderr, "default: gaia_db_extract --start=1 --end=1000\n");
+            fprintf(stderr, "Invalid command-row option: '%s'\n", argv[i]);
+            fprintf(stderr, "Usage: gaia_db_extract [--database=<dbname>] [--table=<tableneme>] [--start-after=ID] [--row-limit=N]\n");
             exit(1);
         }
+    }
+
+    if ((database.size() && !table.size()) || (!database.size() && table.size()))
+    {
+        fprintf(stderr, "Must have both database name and table name to extract row data.\n");
+        exit(1);
     }
 
     try
@@ -135,9 +109,18 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-    stringstream dump = gaia_db_extract(low, high, payload, references, catalog, line_limit, type_vec);
+    string dump;
+
+    try
+    {
+        dump = gaia_db_extract(database, table, start_after, row_limit);
+    }
+    catch (gaia_exception& e)
+    {
+        fprintf(stderr, "Failure generating JSON: '%s'\n", e.what());
+    }
 
     gaia::db::end_session();
 
-    cout << dump.str();
+    cout << dump << endl;
 }
