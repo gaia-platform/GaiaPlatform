@@ -627,7 +627,6 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, StringRef targetTab
     for (TagDecl* targetType : targetTypes)
     {
         // Creates a reference parameter (eg. incubator__type&).
-        QualType connectDisconnectParam = Context.getTypeDeclType(targetType);
         QualType connectDisconnectParamRef = BuildReferenceType(QualType(targetType->getTypeForDecl(), 0).withConst(), true, loc, DeclarationName());
 
         SmallVector<QualType, 8> parameters;
@@ -747,7 +746,7 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
 
     // Adds a conversion function from the generated table type (table__type)
     // to the EDC type (table_t).
-    llvm::SmallString<20> edcClassName = tableName ;
+    llvm::SmallString<20> edcClassName = typeName;
     edcClassName += "_t";
     TagDecl* edcType = lookupEDCClass(edcClassName);
     if (edcType != nullptr)
@@ -863,7 +862,6 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
     {
         for (const auto& iterator : tableData)
         {
-
             if (iterator.second.find(fieldOrTagName) != iterator.second.end())
             {
                 // TODO add information about the source of ambiguity.
@@ -1196,7 +1194,6 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
     QualType qualType = Context.VoidTy;
 
     string table = ParseExplicitPath(explicitPath, loc);
-
     if (!table.empty())
     {
         size_t dot_position = table.find('.');
