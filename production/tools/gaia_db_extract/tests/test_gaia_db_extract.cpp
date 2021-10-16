@@ -34,7 +34,7 @@ TEST_F(gaia_db_extract_test, dump)
 
     int line_limit = -1;
     vector<gaia_id_t> type_vec;
-    auto dump_str = gaia_db_extract(c_start, c_end, true, true, true, line_limit, type_vec);
+    auto dump_str = gaia_db_extract("", "", 0, 0);
     EXPECT_NE(0, dump_str.find("references=01"));
     EXPECT_NE(0, dump_str.find("references=04"));
 }
