@@ -385,7 +385,7 @@ public:
     explicit cannot_drop_table_with_data(const std::string& name)
     {
         std::stringstream message;
-        message << "Cannot drop the table '" << name << "' because it still contains data."
+        message << "Cannot drop the table '" << name << "' because it still contains data. "
                 << "Please delete all records of the table before dropping it.";
         m_message = message.str();
     }

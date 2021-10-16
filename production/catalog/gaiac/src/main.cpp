@@ -200,8 +200,6 @@ void generate_edc(const string& db_name, const filesystem::path& output_path)
         throw std::invalid_argument("Invalid output path: '" + output_path.string() + "'.");
     }
 
-    cout << "Generating Direct Access classes in: " << absolute_output_path << "." << endl;
-
     generate_fbs_headers(db_name, absolute_output_path);
     generate_edc_code(db_name, absolute_output_path);
 }
