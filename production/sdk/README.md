@@ -157,7 +157,7 @@ To permanently set the minimum open file descriptor limit:
 
     **Note**: For enhanced security, replace the wild card '*' in these file entries with the user name of the account that is running the  Database Server.
 
-2. save the file and start a new terminal session.
+2. Save the file and start a new terminal session.
 
 ### Starting the Gaia Database Server on a machine that supports systemd
 
@@ -169,7 +169,7 @@ sudo systemctl start gaia
 
 ### Starting the Gaia Database Server on Windows Subsystem for Linux (WSL)
 
-When starting the Database Server on WSL, use the --data-dir argument to specify the location in which to store the database. We recommend that you store it locally in ~/.local/gaia/db.
+When starting the Database Server on WSL, use the --data-dir argument to specify the location to store the database. We recommend that you store it locally in ~/.local/gaia/db.
 
 To start the server on Ubuntu and run it in the background on WSL2 (Gaia has not been tested on WSL1):
 
