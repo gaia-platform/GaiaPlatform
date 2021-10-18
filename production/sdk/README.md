@@ -114,7 +114,7 @@ Gaia server command line arguments:
 
 ### Configuration settings
 
-### Overcommit policy
+#### Overcommit policy
 
 The Database Server can run normally with an overcommit policy value of 0 (heuristic overcommit.), but might become unstable under rare conditions.
 
@@ -136,7 +136,7 @@ To permanently enable this policy:
 
     sysctl -p
   
-### Open file descriptor limit
+#### Open file descriptor limit
 
 The Database Server requires a per-process open file descriptor limit of at least 65535.
 
