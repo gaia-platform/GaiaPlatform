@@ -17,7 +17,6 @@
 /////////////////////////////////////////////
 
 #include <string>
-#include <vector>
 
 #include "clang/AST/PrettyDeclStackTrace.h"
 #include "clang/Basic/DiagnosticSema.h"
@@ -105,7 +104,7 @@ static QualType mapFieldType(catalog::data_type_t dbType, ASTContext* context)
     return returnType;
 }
 
-StringRef Sema::ConvertString(const string& str, SourceLocation loc)
+StringRef Sema::ConvertString(StringRef str, SourceLocation loc)
 {
     llvm::SmallString<20> literalString;
     literalString += '"';
@@ -139,7 +138,7 @@ bool Sema::doesPathIncludesTags(const SmallVector<std::string, 8>& path, SourceL
     return false;
 }
 
-std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocation loc)
+std::string Sema::ParseExplicitPath(StringRef pathString, SourceLocation loc)
 {
     size_t searchStartPosition = 0;
     llvm::StringMap<string> tagMap;
@@ -153,7 +152,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
     {
         searchStartPosition = 2;
     }
-    string tag;
+    StringRef tag;
     size_t tagPosition = 0, arrowPosition = 0;
     const llvm::StringSet<>& tableData = getCatalogTableList();
     const llvm::StringMap<std::string>& tagMapping = getTagMapping(getCurFunctionDecl(), loc);
@@ -187,12 +186,12 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                 Diag(loc, diag::err_invalid_explicit_path);
                 return "";
             }
-            string table = pathString.substr(searchStartPosition, arrowPosition - searchStartPosition);
+            StringRef table = pathString.substr(searchStartPosition, arrowPosition - searchStartPosition);
 
             if (!tag.empty())
             {
                 tagMap[tag] = getTableFromExpression(table);
-                tag.clear();
+                tag = StringRef();
             }
             path.push_back(table);
             searchStartPosition = arrowPosition + 2;
@@ -201,7 +200,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
         tagPosition = pathString.find(':', searchStartPosition);
         arrowPosition = pathString.find("->", searchStartPosition);
     }
-    string table = pathString.substr(searchStartPosition);
+    StringRef table = pathString.substr(searchStartPosition);
     if (table.empty())
     {
         Diag(loc, diag::err_invalid_explicit_path);
@@ -228,8 +227,8 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
         }
 
         llvm::StringSet<> duplicate_component_check_set;
-        string previousTable, previousField;
-        for (const string& pathComponent : path)
+        StringRef previousTable, previousField;
+        for (StringRef pathComponent : path)
         {
             if (duplicate_component_check_set.find(pathComponent) != duplicate_component_check_set.end())
             {
@@ -240,7 +239,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             {
                 duplicate_component_check_set.insert(pathComponent);
             }
-            string tableName, fieldName;
+            StringRef tableName, fieldName;
             size_t dotPosition = pathComponent.find('.');
             if (dotPosition != string::npos)
             {
@@ -322,8 +321,8 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                 bool isMatchFound = false;
                 for (const auto& tableIterator : relatedTablesIterator->second.linkData)
                 {
-                    const string& table = tableIterator.second.targetTable;
-                    const string& field = tableIterator.first();
+                    StringRef table = tableIterator.second.targetTable;
+                    StringRef field = tableIterator.first();
                     if (tableName == table)
                     {
                         if (!previousField.empty())

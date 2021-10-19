@@ -4631,7 +4631,7 @@ private:
 
   // TODO we need to decide what style to use: PascalCase, camelCase, snake_case (we're using all of them now).
   NamedDecl *injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, const std::string &explicitPath);
-  std::string ParseExplicitPath(const std::string& pathString, SourceLocation loc);
+  std::string ParseExplicitPath(StringRef pathString, SourceLocation loc);
   QualType getFieldType (const std::string& fieldOrTagName, SourceLocation loc);
   bool findFieldType (const std::string& fieldOrTagName, SourceLocation loc);
   QualType getTableType (StringRef tableName, SourceLocation loc);
@@ -4662,7 +4662,7 @@ private:
 
   void addField(IdentifierInfo *name, QualType type, RecordDecl *R, SourceLocation locD) const ;
   void RemoveExplicitPathData(SourceLocation location);
-  StringRef ConvertString(const std::string& str, SourceLocation loc);
+  StringRef ConvertString(StringRef str, SourceLocation loc);
   bool doesPathIncludesTags(const SmallVector<std::string, 8>& path, SourceLocation loc);
   void ActOnStartDeclarativeLabel(StringRef label);
   bool ActOnStartLabel(StringRef label);

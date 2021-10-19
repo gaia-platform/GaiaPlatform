@@ -11,6 +11,7 @@
 #pragma clang diagnostic ignored "-Wunused-parameter"
 #include <clang/Catalog/GaiaCatalog.h>
 #include "llvm/ADT/StringSet.h"
+#include "llvm/ADT/SmallString.h"
 #pragma clang diagnostic pop
 
 #include "gaia_internal/catalog/gaia_catalog.h"
@@ -43,19 +44,19 @@ struct explicit_path_data_t
 
 struct navigation_code_data_t
 {
-    string prefix;
-    string postfix;
+    llvm::SmallString<256> prefix;
+    llvm::SmallString<256> postfix;
 };
 
 class table_navigation_t
 {
 public:
     // Function that generates code to navigate between tables for explicit navigation.
-    static navigation_code_data_t generate_explicit_navigation_code(const string& anchor_table, explicit_path_data_t path_data);
+    static navigation_code_data_t generate_explicit_navigation_code(llvm::StringRef anchor_table, explicit_path_data_t path_data);
     // Function that generates variable name for navigation code variables.
-    static string get_variable_name(const string& table, const llvm::StringMap<string>& tags);
+    static string get_variable_name(llvm::StringRef table, const llvm::StringMap<string>& tags);
     // Function that retrieve fields for a table in DB defined order.
-    static llvm::SmallVector<string, 16> get_table_fields(const string& table);
+    static llvm::SmallVector<string, 16> get_table_fields(llvm::StringRef table);
 
 private:
     struct navigation_data_t
@@ -65,11 +66,11 @@ private:
     };
 
 private:
-    static string get_closest_table(const llvm::StringMap<int>& table_distance);
-    static bool find_navigation_path(const string& src, const string& dst, llvm::SmallVector<navigation_data_t, 8>& current_path);
-    static bool find_navigation_path(const string& src, const string& dst, llvm::SmallVector<navigation_data_t, 8>& current_path, const llvm::StringMap<clang::gaia::catalog::CatalogTableData>& graph_data);
-    static navigation_code_data_t generate_navigation_code(const string& anchor_table, const llvm::StringSet<>& tables, const llvm::StringMap<string>& tags, string& last_table);
-    static bool generate_navigation_step(const string& source_table, const string& source_field, const string& destination_table, const string& source_variable_name, const string& variable_name, navigation_code_data_t& navigation_data);
+    static llvm::StringRef get_closest_table(const llvm::StringMap<int>& table_distance);
+    static bool find_navigation_path(llvm::StringRef src, llvm::StringRef dst, llvm::SmallVector<navigation_data_t, 8>& current_path);
+    static bool find_navigation_path(llvm::StringRef src, llvm::StringRef dst, llvm::SmallVector<navigation_data_t, 8>& current_path, const llvm::StringMap<clang::gaia::catalog::CatalogTableData>& graph_data);
+    static navigation_code_data_t generate_navigation_code(llvm::StringRef anchor_table, const llvm::StringSet<>& tables, const llvm::StringMap<string>& tags, string& last_table);
+    static bool generate_navigation_step(llvm::StringRef source_table, llvm::StringRef source_field, llvm::StringRef destination_table, llvm::StringRef source_variable_name, llvm::StringRef variable_name, navigation_code_data_t& navigation_data);
 };
 } // namespace translation
 } // namespace gaia

@@ -138,8 +138,9 @@ std::string Parser::GetExplicitNavigationPath()
     {
         endLocation = previousToken.getEndLoc();
     }
-    Actions.AddExplicitPathData(getPreviousToken(Tok).getLocation(), startLocation, endLocation, returnValue.str().str());
-    return returnValue.str().str();
+    std::string returnValueStr = returnValue.str().str();
+    Actions.AddExplicitPathData(getPreviousToken(Tok).getLocation(), startLocation, endLocation, returnValueStr);
+    return returnValueStr;
 }
 
 // Insert a dummy function declaration to turn rule definition
@@ -514,7 +515,7 @@ Parser::DeclGroupPtrTy Parser::ParseRuleset()
     return Actions.ConvertDeclToDeclGroup(rulesetDecl, nullptr);
 }
 
-void Parser::ParseRulesetContents( BalancedDelimiterTracker &tracker)
+void Parser::ParseRulesetContents(BalancedDelimiterTracker &tracker)
 {
     while (Tok.isNot(tok::r_brace) && Tok.isNot(tok::eof))
     {
