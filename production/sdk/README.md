@@ -116,9 +116,9 @@ Gaia server command line arguments:
 
 #### Overcommit policy
 
-The Database Server can run normally with an overcommit policy value of 0 (heuristic overcommit.), but might become unstable under rare conditions.
+The Database Server can run normally with an overcommit policy value of 0 (heuristic overcommit), but might become unstable under rare conditions.
 
-To ensure stable performance under all conditions, we recommend changing the overcommit policy to 1 (always overcommit.)
+To ensure stable performance under all conditions, we recommend changing the overcommit policy to 1 (always overcommit)
 
 To temporarily enable this policy, open a shell with root privileges and type the following command:
 
