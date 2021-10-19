@@ -15,6 +15,11 @@ start_process() {
 # Simple function to stop the process, including any cleanup
 complete_process() {
     local SCRIPT_RETURN_CODE=$1
+    local COMPLETE_REASON=$2
+
+    if [ -n "$COMPLETE_REASON" ] ; then
+        echo "$COMPLETE_REASON"
+    fi
 
     if [ "$SCRIPT_RETURN_CODE" -ne 0 ]; then
         echo "Build of project $PROJECT_NAME failed."
@@ -109,8 +114,7 @@ generate_makefile() {
         if [ $VERBOSE_MODE -eq 0 ]; then
             cat "$TEMP_FILE"
         fi
-        echo "Generation of the makefile failed."
-        complete_process 1
+        complete_process 1 "Generation of the makefile failed."
     fi
 }
 
@@ -120,8 +124,7 @@ invoke_makefile() {
         echo "Building the executable..."
     fi
     if ! make -C "$BUILD_DIRECTORY" --silent; then
-        echo "Build of the executable failed."
-        complete_process 1
+        complete_process 1 "Build of the executable failed."
     fi
 }
 
@@ -143,8 +146,7 @@ prepare_build_directory() {
         FORCE_BUILD=1
 
         if ! mkdir "$BUILD_DIRECTORY"; then
-            echo "Creation of the build directory failed."
-            complete_process 1
+            complete_process 1 "Creation of the build directory failed."
         fi
     fi
 }
@@ -204,8 +206,7 @@ touch "$EXECUTABLE_PATH"
 if [ $LINT_MODE -ne 0 ]; then
     if ! ./lint.sh  > "$TEMP_FILE" 2>&1 ; then
         cat "$TEMP_FILE"
-        echo "Linting of the project after a successful build failed."
-        complete_process 1
+        complete_process 1 "Linting of the project after a successful build failed."
     fi
 fi
 
