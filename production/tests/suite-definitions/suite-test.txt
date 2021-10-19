@@ -1,0 +1,11 @@
+#
+# Simple test suite for the template tests.
+#
+
+workload pingpong
+
+#smoke-test
+perf-test-100 repeat 3
+perf-test-1K repeat 3
+perf-test-10K repeat 3
+perf-test-100K repeat 3
