@@ -1,3 +1,8 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 // RUN: %gaiat %s -- 2>&1| FileCheck  %s
 
 ruleset test
@@ -9,4 +14,3 @@ ruleset test
 }
 
 // CHECK: Local variable 'incubator' hides a database table with the same name. Rename your local variable so that it doesn't conflict with an existing table name.
-

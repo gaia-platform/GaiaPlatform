@@ -8,11 +8,11 @@
 #include <sstream>
 #include <string>
 
-#include "rocksdb/db.h"
-#include "rocksdb/slice.h"
-#include "rocksdb/status.h"
-#include "rocksdb/utilities/transaction_db.h"
-#include "rocksdb/write_batch.h"
+#include <rocksdb/db.h>
+#include <rocksdb/slice.h>
+#include <rocksdb/status.h>
+#include <rocksdb/utilities/transaction_db.h>
+#include <rocksdb/write_batch.h>
 
 #include "gaia_internal/common/persistent_store_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
@@ -74,14 +74,18 @@ void rdb_internal_t::prepare_wal_for_write(rocksdb::Transaction* txn)
 
 void rdb_internal_t::rollback(const std::string& txn_name)
 {
-    auto txn = get_txn_by_name(txn_name);
+    // https://github.com/facebook/rocksdb/blob/master/include/rocksdb/utilities/transaction_db.h#L398
+    // Caller is responsible for deleting the returned transaction when no longer needed.
+    auto txn = std::unique_ptr<rocksdb::Transaction>(get_txn_by_name(txn_name));
     auto s = txn->Rollback();
     handle_rdb_error(s);
 }
 
 void rdb_internal_t::commit(const std::string& txn_name)
 {
-    auto txn = get_txn_by_name(txn_name);
+    // https://github.com/facebook/rocksdb/blob/master/include/rocksdb/utilities/transaction_db.h#L398
+    // Caller is responsible for deleting the returned transaction when no longer needed.
+    auto txn = std::unique_ptr<rocksdb::Transaction>(get_txn_by_name(txn_name));
     auto s = txn->Commit();
     handle_rdb_error(s);
 }

@@ -36,12 +36,12 @@ public:
     {
     }
 
-    virtual std::optional<T_output> operator()()
-    {
-        return m_function();
-    }
+    virtual std::optional<T_output> operator()();
 
     virtual ~generator_t() = default;
+
+    // Generator lifecycle function.
+    virtual void cleanup(){};
 
 private:
     std::function<std::optional<T_output>()> m_function;
@@ -50,6 +50,8 @@ private:
 template <typename T_output>
 class generator_iterator_t
 {
+    // Iterator properties for specialization by generic code.
+    // See: https://en.cppreference.com/w/cpp/iterator/iterator_traits
     using difference_type = void;
     using value_type = T_output;
     using pointer = T_output*;
@@ -70,7 +72,6 @@ public:
         std::function<bool(T_output)> predicate = [](T_output) { return true; })
         : m_generator(std::make_shared<generator_t<T_output>>(generator)), m_predicate(std::move(predicate))
     {
-        // We need to initialize the iterator to the first valid state.
         init_generator();
     }
 
@@ -82,64 +83,18 @@ public:
         init_generator();
     }
 
-    // Returns current state.
-    T_output& operator*()
-    {
-        // If we de-reference m_state via *m_state, we can run into undefined behavior
-        // if m_state does not contain a value, so we'll use the value() method instead,
-        // which throws an exception in that case.
-        return m_state.value();
-    }
+    ~generator_iterator_t();
 
-    T_output* operator->()
-    {
-        if (m_state.has_value())
-        {
-            return &m_state.value();
-        }
-        else
-        {
-            return nullptr;
-        }
-    }
-
-    // const versions of the above.
-    const T_output& operator*() const
-    {
-        return m_state.value();
-    }
-
-    const T_output* operator->() const
-    {
-        if (m_state.has_value())
-        {
-            return &m_state.value();
-        }
-        else
-        {
-            return nullptr;
-        }
-    }
+    // const versions of operators.
+    const T_output& operator*() const;
+    const T_output* operator->() const;
 
     // Advance to the next valid state.
-    generator_iterator_t& operator++()
-    {
-        while ((m_state = (*m_generator)()))
-        {
-            if (m_predicate(*m_state))
-            {
-                break;
-            }
-        }
-        return *this;
-    }
+    generator_iterator_t& operator++();
+    generator_iterator_t operator++(int);
 
-    generator_iterator_t operator++(int)
-    {
-        auto r = *this;
-        ++(*this);
-        return r;
-    }
+    // Returns false when the generator is exhausted (has state nullopt).
+    explicit operator bool() const noexcept;
 
     // Generator iterators are only equal if they are both in the "end" state.
     friend bool operator==(generator_iterator_t const& lhs, generator_iterator_t const& rhs) noexcept
@@ -166,46 +121,25 @@ public:
         return !(lhs == rhs);
     }
 
-    // Returns false when the generator is exhausted (has state nullopt).
-    explicit operator bool() const noexcept
-    {
-        return m_state.has_value();
-    }
-
 private:
-    void init_generator()
-    {
-        // We need to initialize the iterator to the first valid state.
-        while ((m_state = (*m_generator)()))
-        {
-            if (m_predicate(*m_state))
-            {
-                break;
-            }
-        }
-    }
+    void init_generator();
 
     std::optional<T_output> m_state;
+
     // We need to use shared_ptr here to allow generator_iterator_t to be copyable.
     // Non-copyable iterators cannot be used in range-based for loops.
     std::shared_ptr<generator_t<T_output>> m_generator;
     std::function<bool(T_output)> m_predicate;
 };
 
+// This object can be used with a range-based 'for' loop.
 template <typename T_output>
 struct generator_range_t
 {
     generator_iterator_t<T_output> begin_it;
 
-    const generator_iterator_t<T_output>& begin() const
-    {
-        return begin_it;
-    }
-
-    const std::nullopt_t end() const
-    {
-        return std::nullopt;
-    }
+    const generator_iterator_t<T_output>& begin() const;
+    const std::nullopt_t end() const;
 };
 
 template <typename T_output>
@@ -221,19 +155,7 @@ auto range_from_generator(T_fn&& fn)
     return range_from_generator_iterator<T_val>(generator_iterator_t<T_val>(std::move(fn)));
 }
 
-// Usage:
-//
-// int main() {
-//     auto generator_from_1_to_10 = [i = 0]() mutable -> std::optional<int>
-//     {
-//         auto r = ++i;
-//         if (r > 10) return {};
-//         return r;
-//     };
-//     for (int i : range_from_generator(generator_from_1_to_10)) {
-//         std::cout << i << '\n';
-//     }
-// }
+#include "generator_iterator.inc"
 
 } // namespace iterators
 } // namespace common

@@ -2,11 +2,12 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #pragma once
 
 #include <cstddef>
 
-#include "cpptoml.h"
+#include <cpptoml.h>
 
 namespace gaia
 {

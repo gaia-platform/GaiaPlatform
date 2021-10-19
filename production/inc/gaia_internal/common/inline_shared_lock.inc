@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#pragma once
-
 inline bool inline_shared_lock::is_free(uint64_t lock_word)
 {
     return (lock_word == 0);
@@ -205,4 +203,9 @@ inline void inline_shared_lock::release_exclusive()
     bool has_released_lock = m_lock_word.compare_exchange_strong(expected_value, c_free_lock);
     ASSERT_POSTCONDITION(has_released_lock, "Cannot release an exclusive lock that is not acquired!");
     check_state();
+}
+
+inline void inline_shared_lock::clear()
+{
+    m_lock_word.store(0);
 }

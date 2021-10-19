@@ -10,6 +10,9 @@
 #include "gaia/common.hpp"
 #include "gaia/exception.hpp"
 
+// Export all symbols declared in this file.
+#pragma GCC visibility push(default)
+
 namespace gaia
 {
 /**
@@ -61,7 +64,7 @@ class transaction_in_progress : public common::gaia_exception
 public:
     transaction_in_progress()
     {
-        m_message = "Commit or roll back the current transaction before opening a new transaction.";
+        m_message = "Commit or rollback the current transaction before opening a new transaction.";
     }
 };
 
@@ -89,7 +92,7 @@ class transaction_update_conflict : public common::gaia_exception
 public:
     transaction_update_conflict()
     {
-        m_message = "Transaction was aborted due to a serialization error.";
+        m_message = "Transaction was aborted due to a conflict with another transaction.";
     }
 };
 
@@ -162,7 +165,7 @@ public:
     explicit invalid_object_id(common::gaia_id_t id)
     {
         std::stringstream strs;
-        strs << "Cannot find a node with ID '" << id << "'.";
+        strs << "Cannot find an object with ID '" << id << "'.";
         m_message = strs.str();
     }
 };
@@ -175,12 +178,15 @@ public:
 class object_still_referenced : public common::gaia_exception
 {
 public:
-    object_still_referenced(common::gaia_id_t id, common::gaia_type_t object_type)
+    object_still_referenced(
+        common::gaia_id_t id, common::gaia_type_t object_type,
+        common::gaia_id_t other_id, common::gaia_type_t other_type)
     {
         std::stringstream msg;
         msg
-            << "Cannot delete object '" << id << "', type '" << object_type
-            << "', because it is still referenced by another object.";
+            << "Cannot delete object with ID '" << id << "', type '" << object_type
+            << "', because it is still referenced by another object with ID '"
+            << other_id << "', type '" << other_type << "'";
         m_message = msg.str();
     }
 };
@@ -227,6 +233,13 @@ public:
 };
 
 /**
+ * \brief Returns true if a session is open in this thread.
+ *
+ * \return true if a session has been opened in this thread, false otherwise.
+ */
+bool is_session_open();
+
+/**
  * \brief Returns true if a transaction is open in this session.
  *
  * \return true if a transaction has been opened in this session, false otherwise.
@@ -250,6 +263,7 @@ void begin_session();
  * releases session-owned resources on both the client and the server.
  *
  * \exception gaia::db::no_open_session no session is open in this thread.
+ * \exception gaia::db::transaction_in_progress call commit_transaction() or rollback_transaction() before closing this session.
  */
 void end_session();
 
@@ -291,3 +305,6 @@ void commit_transaction();
 } // namespace db
 /*@}*/
 } // namespace gaia
+
+// Restore default hidden visibility for all symbols.
+#pragma GCC visibility pop

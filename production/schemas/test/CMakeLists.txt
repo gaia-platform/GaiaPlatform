@@ -24,5 +24,8 @@ process_schema_internal(
 process_schema_internal(
     DDL_FILE "${PROJECT_SOURCE_DIR}/incubator/incubator.ddl"
     DATABASE_NAME barn_storage)
+process_schema_internal(
+    DDL_FILE "${PROJECT_SOURCE_DIR}/amr_swarm/amr_swarm.ddl"
+    DATABASE_NAME amr_swarm)
 
 process_schema_internal(DDL_FILE "${PROJECT_SOURCE_DIR}/default/no_db.ddl")

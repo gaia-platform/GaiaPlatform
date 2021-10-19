@@ -16,7 +16,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "sys/eventfd.h"
+#include <sys/eventfd.h>
 
 #include "gaia_internal/db/db_types.hpp"
 
@@ -31,7 +31,7 @@ namespace persistence
 
 /**
  * This class is used by the server to perform asynchronous log writes to disk.
- * Internally manages two instances of async_write_batch_t; the in_flight batch and the 
+ * Internally manages two instances of async_write_batch_t; the in_flight batch and the
  * in_progress batch.
  */
 class async_disk_writer_t
@@ -83,14 +83,14 @@ public:
     size_t get_total_pwritev_size_in_bytes(void* iovec_array, size_t count);
 
     /**
-     * Append fdatasync to the in_progress_batch, empty the in_progress batch into the in_flight batch 
+     * Append fdatasync to the in_progress_batch, empty the in_progress batch into the in_flight batch
      * and submit the IO requests in the in_flight batch to the kernel. Note that this API
      * will block on any other IO batches to finish disk flush before proceeding.
      */
     void submit_and_swap_in_progress_batch(int file_fd, bool should_wait_for_completion = false);
 
     /**
-     * Append fdatasync to the in_progress_batch and update batch with file fd so that the file 
+     * Append fdatasync to the in_progress_batch and update batch with file fd so that the file
      * can be closed once the kernel has processed it.
      */
     void perform_file_close_operations(int file_fd, file_sequence_t log_seq);

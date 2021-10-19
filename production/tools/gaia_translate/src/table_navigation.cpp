@@ -10,7 +10,7 @@
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
-#include "clang/Basic/DiagnosticSema.h"
+#include <clang/Basic/DiagnosticSema.h>
 #pragma clang diagnostic pop
 
 #include "diagnostics.h"
@@ -302,7 +302,7 @@ void table_navigation_t::fill_table_data()
             table_data_t table_data = m_table_data[table.name()];
             if (table_data.field_data.find(field.name()) != table_data.field_data.end())
             {
-                gaiat::diag().emit(diag::err_duplicate_field) << field.name() << table.name();
+                gaiat::diag().emit(diag::err_duplicate_field) << field.name();
                 m_table_data.clear();
                 return;
             }
@@ -582,7 +582,7 @@ bool table_navigation_t::generate_navigation_step(const string& source_table, co
     if (is_1_relationship)
     {
         navigation_data.prefix
-            .append("auto ")
+            .append("{\nauto ")
             .append(variable_name)
             .append(" = ")
             .append(source_variable_name)
@@ -592,7 +592,7 @@ bool table_navigation_t::generate_navigation_step(const string& source_table, co
             .append("if(")
             .append(variable_name)
             .append(")\n{\n");
-        navigation_data.postfix.append("}\n");
+        navigation_data.postfix.append("}\n}\n");
     }
     else
     {

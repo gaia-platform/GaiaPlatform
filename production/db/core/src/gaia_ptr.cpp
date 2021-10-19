@@ -21,11 +21,6 @@ namespace gaia
 namespace db
 {
 
-gaia_ptr_t::gaia_ptr_t(gaia_locator_t locator)
-    : m_locator(locator)
-{
-}
-
 gaia_id_t gaia_ptr_t::generate_id()
 {
     return allocate_id();

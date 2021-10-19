@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/db/db.hpp"
 
@@ -133,8 +133,9 @@ TEST_F(db_client_test, early_session_termination)
     // does not generate any internal assertion failures
     // when attempting to reopen a session.
     begin_transaction();
-    end_session();
-    begin_session();
+    EXPECT_THROW(end_session(), transaction_in_progress);
+    EXPECT_THROW(begin_session(), session_exists);
+    rollback_transaction();
 }
 
 TEST_F(db_client_test, creation_fail_for_invalid_type)
@@ -163,7 +164,6 @@ TEST_F(db_client_test, gaia_ptr_no_transaction_fail)
     EXPECT_THROW(node1.data_size(), no_open_transaction);
     EXPECT_THROW(node1.references(), no_open_transaction);
     EXPECT_THROW(node1.find_next(), no_open_transaction);
-    EXPECT_THROW(node1.clone(), no_open_transaction);
     EXPECT_THROW(node1.update_payload(0, ""), no_open_transaction);
     EXPECT_THROW(node1.add_child_reference(1, 2), no_open_transaction);
     EXPECT_THROW(node1.add_parent_reference(1, 2), no_open_transaction);

@@ -15,10 +15,6 @@ namespace gaia::db::test
 // The relationship can be both 1:1 or 1:n depending on the test.
 // Doctor --> Patient
 // This relationship is used in most relationship/references tests.
-
-constexpr common::gaia_type_t c_doctor_type = 1;
-constexpr common::gaia_type_t c_patient_type = 2;
-
 constexpr common::reference_offset_t c_first_patient_offset = 0;
 constexpr common::reference_offset_t c_next_patient_offset = 0;
 constexpr common::reference_offset_t c_parent_doctor_offset = 1;

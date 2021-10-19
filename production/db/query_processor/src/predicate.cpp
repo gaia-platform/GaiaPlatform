@@ -16,6 +16,16 @@ namespace query_processor
 namespace scan
 {
 
+index_predicate_t::index_predicate_t(index::index_key_t index_key)
+    : m_key(std::move(index_key))
+{
+}
+
+index_predicate_t::index_predicate_t(index::index_key_t&& index_key)
+    : m_key(index_key)
+{
+}
+
 bool index_predicate_t::filter(const gaia_ptr_t&) const
 {
     return true;
@@ -32,12 +42,12 @@ serialized_index_query_t index_predicate_t::as_query(flatbuffers::FlatBufferBuil
 }
 
 index_point_read_predicate_t::index_point_read_predicate_t(index::index_key_t index_key)
-    : m_key(std::move(index_key))
+    : index_predicate_t(index_key)
 {
 }
 
 index_point_read_predicate_t::index_point_read_predicate_t(index::index_key_t&& index_key)
-    : m_key(index_key)
+    : index_predicate_t(index_key)
 {
 }
 
@@ -58,12 +68,12 @@ serialized_index_query_t index_point_read_predicate_t::as_query(flatbuffers::Fla
 }
 
 index_equal_range_predicate_t::index_equal_range_predicate_t(index::index_key_t index_key)
-    : m_key(std::move(index_key))
+    : index_predicate_t(index_key)
 {
 }
 
 index_equal_range_predicate_t::index_equal_range_predicate_t(index::index_key_t&& index_key)
-    : m_key(index_key)
+    : index_predicate_t(index_key)
 {
 }
 
@@ -81,6 +91,11 @@ serialized_index_query_t index_equal_range_predicate_t::as_query(flatbuffers::Fl
     auto query = messages::Createindex_equal_range_query_t(builder, output);
 
     return query.Union();
+}
+
+const index::index_key_t& index_predicate_t::key() const
+{
+    return m_key;
 }
 
 } // namespace scan

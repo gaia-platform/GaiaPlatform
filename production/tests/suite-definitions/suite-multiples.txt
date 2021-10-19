@@ -1,3 +1,8 @@
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 #
 # Simple test suite to run a mix of single tests and repeated tests.
 #

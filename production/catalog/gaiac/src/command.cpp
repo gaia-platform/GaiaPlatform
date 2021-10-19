@@ -2,12 +2,13 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #include "command.hpp"
 
 #include <functional>
 #include <queue>
 
-#include "tabulate/table.hpp"
+#include <tabulate/table.hpp>
 
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/retail_assert.hpp"

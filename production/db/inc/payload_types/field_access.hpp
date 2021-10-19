@@ -8,7 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "flatbuffers/reflection.h"
+#include <flatbuffers/reflection.h>
 
 #include "gaia/exception.hpp"
 

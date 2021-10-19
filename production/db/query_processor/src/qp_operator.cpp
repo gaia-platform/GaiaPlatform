@@ -38,8 +38,10 @@ void db_client_proxy_t::rebuild_local_indexes()
         index.second->clear();
     }
 
+    bool allow_create_empty = true;
+
     index::index_builder_t::update_indexes_from_logs(
-        *client_t::s_log.data(), client_t::s_session_options.skip_catalog_integrity_check);
+        *client_t::s_log.data(), client_t::s_session_options.skip_catalog_integrity_check, allow_create_empty);
 }
 
 } // namespace query_processor

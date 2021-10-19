@@ -1,3 +1,8 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 // RUN: %gaiat %s --
 
 #include "tags_test.h"
@@ -136,16 +141,6 @@ ruleset test14
     }
 }
 
-ruleset test15
-{
-    // NOTE: the ".min_temp" field didn't cause this rule to fire, but
-    // may serve as documentation for the rule's intended use.
-    on_insert(I:incubator.min_temp)
-    {
-        use_float(I.min_temp);
-    }
-}
-
 // GAIAPLAT-829 (fixed)
 ruleset test16
 {
@@ -251,6 +246,20 @@ ruleset test23
 
 ruleset test24
 {
+    // GAIAPLAT-921 (fixed)
+    /*
+    on_update(incubator)
+    {
+        F:incubator.farmer->farmer->yield.bushels = 0;
+
+        int unsigned i = 0;
+        if (i == 0)
+        {
+            F:incubator.landlord->farmer.acreage += 1;
+        }
+    }
+    */
+
     on_update(incubator)
     {
         F:incubator.farmer->farmer->yield.bushels = 0;

@@ -7,7 +7,12 @@
 
 #include <cstddef>
 
+#include <iomanip>
+#include <ostream>
+
 #include "gaia/common.hpp"
+
+#include <gaia_spdlog/fmt/fmt.h>
 
 #include "memory_types.hpp"
 
@@ -51,6 +56,44 @@ struct alignas(gaia::db::memory_manager::c_allocation_alignment) db_object_t
     [[nodiscard]] const gaia::common::gaia_id_t* references() const
     {
         return reinterpret_cast<const gaia::common::gaia_id_t*>(payload);
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const db_object_t& o)
+    {
+        os << "id: "
+           << o.id
+           << "\ttype: "
+           << o.type
+           << "\tpayload_size: "
+           << o.payload_size
+           << "\tnum_references: "
+           << o.num_references
+           << std::endl;
+
+        os << "references:" << std::endl;
+        for (size_t i = 0; i < o.num_references; ++i)
+        {
+            os << o.references()[i] << std::endl;
+        }
+        os << std::endl;
+
+        size_t data_size = o.payload_size - (o.num_references * sizeof(gaia::common::gaia_id_t));
+        os << "data (hex):" << std::endl;
+
+        for (size_t i = 0; i < data_size; ++i)
+        {
+            os << gaia_fmt::format("{:#04x}", static_cast<uint8_t>(o.data()[i])) << " ";
+        }
+        os << std::endl;
+
+        os << "data (ASCII):" << std::endl;
+        for (size_t i = 0; i < data_size; ++i)
+        {
+            os << o.data()[i] << " ";
+        }
+        os << std::endl;
+
+        return os;
     }
 };
 

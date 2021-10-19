@@ -25,7 +25,10 @@ This list should be maintained in alphabetical order, for easier lookup.
 * fmt
   * MIT: https://github.com/fmtlib/fmt/blob/master/LICENSE.rst
 * libexplain
-  * LGPL: https://salsa.debian.org/debian/libexplain/-/blob/master/LICENSE
+  * LGPL3: https://salsa.debian.org/debian/libexplain/-/blob/master/LICENSE
+* liburing
+  * License notes: https://github.com/axboe/liburing/blob/master/README
+  * MIT: https://github.com/axboe/liburing/blob/master/LICENSE
 * LLVM
   * Apache: https://llvm.org/docs/DeveloperPolicy.html#new-llvm-project-license-framework
 * RocksDB

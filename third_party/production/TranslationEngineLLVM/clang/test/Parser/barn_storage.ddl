@@ -57,14 +57,12 @@ create relationship if not exists incubator_actuators (
 );
 
 create table if not exists raised (
-    animal_name string unique,
     birthdate string
 );
 
 create relationship if not exists animal_raised (
     animal.raised -> raised,
-    raised.animal -> animal,
-    using raised(animal_name), animal(name)
+    raised.animal -> animal
 );
 
 create relationship if not exists farmer_raised (
