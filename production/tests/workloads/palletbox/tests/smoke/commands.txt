@@ -1,0 +1,12 @@
+# Turn debug on.
+#D
+# Turn off transaction mode for the pause.
+p
+# Wait 5 milliseconds to allow the turn on effects to finish.
+w5
+# Take 1000 steps.
+o
+t1000
+o
+# end
+

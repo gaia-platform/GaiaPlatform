@@ -1,0 +1,111 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+#include <atomic>
+#include <algorithm>
+
+#include "gaia/logger.hpp"
+
+
+#include "constants.hpp"
+#include "gaia_palletbox.h"
+
+using namespace std;
+
+ruleset palletbox
+{
+    on_insert(bot_moving_to_station_event)
+    {
+        gaia_log::app().info("Fired on bot_moving_to_station_event: bot={}, station={}", robot.id, gaia::palletbox::station_name_map[station.id]);
+
+        // After moving to a station, it will eventually get there.
+        bot_arrived_event.insert(
+            timestamp: get_time_millis(),
+            station_id : station.id,
+            robot_id: robot.id);
+
+        // Disconnect the robot from the station.
+        robot.station_id = (int)gaia::palletbox::station_id_t::none;
+
+        // Clean up the event.
+        bot_moving_to_station_event.station_id = (int)gaia::palletbox::station_id_t::none;
+        bot_moving_to_station_event.robot_id = 0;
+        bot_moving_to_station_event.remove();
+    }
+
+    on_insert(payload_pick_up_event) {
+        gaia_log::app().info("Fired on payload_pick_up_event: bot={}, station={}", robot.id, gaia::palletbox::station_name_map[station.id]);
+
+        // Add simulated picking up of payload here.
+
+        // Now that we have the pallet, move to outbound.
+        bot_moving_to_station_event.insert(
+            timestamp: get_time_millis(),
+            station_id: (int)gaia::palletbox::station_id_t::outbound,
+            robot_id: robot.id);
+
+        // Clean up the event.
+        payload_pick_up_event.station_id = (int)gaia::palletbox::station_id_t::none;
+        payload_pick_up_event.robot_id = 0;
+        payload_pick_up_event.remove();
+    }
+
+    on_insert(payload_drop_off_event) {
+        gaia_log::app().info("Fired on payload_drop_off_event: bot={}, station={}", robot.id, gaia::palletbox::station_name_map[station.id]);
+
+        // Add simulated dropping off of payload here.
+
+        // Now that we have dropped the pallet, move to charging to await more orders.
+        bot_moving_to_station_event.insert(
+            timestamp: get_time_millis(),
+            station_id: (int)gaia::palletbox::station_id_t::charging,
+            robot_id: robot.id);
+
+        // Clean up the event.
+        payload_drop_off_event.station_id = (int)gaia::palletbox::station_id_t::none;
+        payload_drop_off_event.robot_id = 0;
+        payload_drop_off_event.remove();
+    }
+
+    on_insert(bot_arrived_event)
+    {
+        gaia_log::app().info("Fired on bot_arrived_event: bot={}, station={}", robot.id, gaia::palletbox::station_name_map[station.id]);
+
+        // As the robot has arrived at this station, set it up as so.
+        robot.station_id = station.id;
+
+        // Depending on which station the palletbot arrives at, spawn a different event off.
+        switch(station.id)
+        {
+            case (int)gaia::palletbox::station_id_t::charging:
+                gaia_log::app().info("times_to_charging: {}, target={}", times_to_charging, target_times_to_charge);
+                times_to_charging = times_to_charging + 1;
+                if (times_to_charging <= target_times_to_charge) {
+                    bot_moving_to_station_event.insert(
+                        timestamp: get_time_millis(),
+                        station_id: (int)gaia::palletbox::station_id_t::inbound,
+                        robot_id: robot.id);
+                }
+                break;
+            case (int)gaia::palletbox::station_id_t::inbound:
+                payload_pick_up_event.insert(
+                    timestamp: get_time_millis(),
+                    station_id: station.id,
+                    robot_id: robot.id);
+                break;
+            case (int)gaia::palletbox::station_id_t::outbound:
+                payload_drop_off_event.insert(
+                    timestamp: get_time_millis(),
+                    station_id: station.id,
+                    robot_id: robot.id);
+                break;
+        }
+
+        // Clean up the event.
+        bot_arrived_event.station_id = (int)gaia::palletbox::station_id_t::none;
+        bot_arrived_event.robot_id = 0;
+        bot_arrived_event.remove();
+    }
+}
