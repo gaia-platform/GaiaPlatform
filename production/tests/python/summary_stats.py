@@ -53,6 +53,8 @@ def __translate_return_code(return_code):
     elif return_code == 1:
         value = "SuiteFailure"
     elif return_code == 5:
+        value = "CriticalFailure"
+    elif return_code == 5:
         value = "TestExecutionFailure"
     elif return_code == 6:
         value = "ExpectedComparisonFailure"
@@ -244,7 +246,10 @@ def __compute_scale_info(source_list_name, translate_scale):
     compute_error = None
     if scale == MeasuredScale.COUNT:
         if translate_scale and translate_scale != MeasuredScale.COUNT:
-            compute_error = f"Cannot translate from a COUNT measure to a {translate_scale.name} measure."
+            compute_error = (
+                "Cannot translate from a COUNT measure to "
+                + f"a {translate_scale.name} measure."
+            )
     else:
         if translate_scale:
             scale_delta = translate_scale.value - scale.value
@@ -290,7 +295,9 @@ def __add_new_sample_set(
     """
     Look into the suite_data dictionary and interpret the specified sample set.
     """
-    scale, translation_factor, compute_error = __compute_scale_info(source_list_name, translate_scale)
+    scale, translation_factor, compute_error = __compute_scale_info(
+        source_list_name, translate_scale
+    )
     if compute_error:
         print(f"Processing error: {compute_error}")
         return
@@ -369,19 +376,26 @@ def __output_suite_header(suite_data, formatted_header, suite_dictionary):
     return is_single_test_report, test_type
 
 
-def __find_passed_tests(return_code_data):
+def __find_passed_tests(return_code_data, invoke_return_code_data):
     passed_test_indices = []
     test_index = 0
-    for next_return_code in return_code_data:
-        if not next_return_code:
+    for index, next_return_code in enumerate(return_code_data):
+
+        if not next_return_code and not invoke_return_code_data[index]:
             passed_test_indices.append(test_index)
         test_index += 1
     return passed_test_indices
 
 
 def __summarize_single_integration_test(
-    return_code_data, suite_data, formatted_header, summary_data
+    return_code_data,
+    invoke_return_code_data,
+    suite_data,
+    formatted_header,
+    summary_data,
 ):
+    return_code_data = max(return_code_data, invoke_return_code_data)
+
     test_duration = None
     if "measured-duration-sec" in suite_data["per-test"]:
         test_duration = suite_data["per-test"]["measured-duration-sec"]
@@ -405,17 +419,25 @@ def __summarize_single_integration_test(
             )
 
 
+# pylint: disable=too-many-branches
 def __summarize_integration(
     suite_data, is_single_test_report, formatted_header, summary_data
 ):
 
     return_code_data = suite_data["per-test"]["return-code"]
+    invoke_return_code_data = suite_data["per-test"]["invoke-return-code"]
     if is_single_test_report:
         __summarize_single_integration_test(
-            return_code_data, suite_data, formatted_header, summary_data
+            return_code_data,
+            invoke_return_code_data,
+            suite_data,
+            formatted_header,
+            summary_data,
         )
     else:
-        passed_test_indices = __find_passed_tests(return_code_data)
+        passed_test_indices = __find_passed_tests(
+            return_code_data, invoke_return_code_data
+        )
         if formatted_header:
             formatted_header.add_row(
                 [
@@ -439,7 +461,8 @@ def __summarize_integration(
 
         if len(passed_test_indices) != len(return_code_data):
             translated_array = []
-            for next_test in return_code_data:
+            for index, next_test in enumerate(return_code_data):
+                next_test = max(next_test, invoke_return_code_data[index])
                 translated_array.append(__translate_return_code(next_test))
 
             if formatted_header:
@@ -458,11 +481,16 @@ def __summarize_integration(
                 summary_data["test-duration-seconds"] = test_duration
 
 
+# pylint: enable=too-many-branches
+
+
 def __summarize_performance_basics(
     suite_data, is_single_test_report, formatted_header, summary_data
 ):
     return_code_data = suite_data["per-test"]["return-code"]
+    invoke_return_code_data = suite_data["per-test"]["invoke-return-code"]
     if is_single_test_report:
+        return_code_data = max(return_code_data, invoke_return_code_data)
         passed_test_indices = None
         if formatted_header:
             formatted_header.add_row(
@@ -471,7 +499,9 @@ def __summarize_performance_basics(
         else:
             summary_data["test-results"] = __translate_return_code(return_code_data)
     else:
-        passed_test_indices = __find_passed_tests(return_code_data)
+        passed_test_indices = __find_passed_tests(
+            return_code_data, invoke_return_code_data
+        )
         if formatted_header:
             formatted_header.add_row(
                 [
@@ -521,7 +551,7 @@ def __summarize_performance(
         sample_title = performance_legend_data[next_display_value].split(":")
         sample_scale = None
         if len(sample_title) > 1:
-            sample_scale, _, compute_error = __compute_scale_info("-" + sample_title[1], None)
+            sample_scale, _, _ = __compute_scale_info("-" + sample_title[1], None)
 
         sample_data = None
         if summary_data:
@@ -620,5 +650,6 @@ def __process_script_action():
         __generate_json_output(data_dictionary)
     else:
         __generate_plain_output(data_dictionary)
+
 
 sys.exit(__process_script_action())

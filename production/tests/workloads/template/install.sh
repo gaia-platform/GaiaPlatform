@@ -17,6 +17,11 @@ start_process() {
 # Simple function to stop the process, including any cleanup
 complete_process() {
     local SCRIPT_RETURN_CODE=$1
+    local COMPLETE_REASON=$2
+
+    if [ -n "$COMPLETE_REASON" ] ; then
+        echo "$COMPLETE_REASON"
+    fi
 
     if [ "$SCRIPT_RETURN_CODE" -ne 0 ]; then
         echo "Installation of the $PROJECT_NAME project failed."
@@ -82,13 +87,11 @@ calculate_install_directory() {
 
     # Make sure it does not already exist.
     if [ -d "$INSTALL_DIRECTORY" ]; then
-        echo "Directory '$(realpath "$INSTALL_DIRECTORY")' already exists. Please specify a new directory to create."
-        complete_process 1
+        complete_process 1 "Directory '$(realpath "$INSTALL_DIRECTORY")' already exists. Please specify a new directory to create."
     fi
 
     if [ -f "$INSTALL_DIRECTORY" ]; then
-        echo "'$(realpath "$INSTALL_DIRECTORY")' already exists as a file. Please specify a new directory to create."
-        complete_process 1
+        complete_process 1 "'$(realpath "$INSTALL_DIRECTORY")' already exists as a file. Please specify a new directory to create."
     fi
 }
 
@@ -97,14 +100,12 @@ remove_dynamic_directory() {
     local DYNAMIC_DIRECTORY_PATH=$1
 
     if [ "$DYNAMIC_DIRECTORY_PATH" == "/" ]; then
-        echo "Removing the specified directory '$DYNAMIC_DIRECTORY_PATH' is dangerous. Aborting."
-        complete_process 1
+        complete_process 1 "Removing the specified directory '$DYNAMIC_DIRECTORY_PATH' is dangerous. Aborting."
     fi
 
     if [ -d "$DYNAMIC_DIRECTORY_PATH" ]; then
         if ! rm -rf "$DYNAMIC_DIRECTORY_PATH"; then
-            echo "Existing '$(realpath "$DYNAMIC_DIRECTORY_PATH")' directory not removed from the '$(realpath "$INSTALL_DIRECTORY")' directory."
-            complete_process 1
+            complete_process 1 "Existing '$(realpath "$DYNAMIC_DIRECTORY_PATH")' directory not removed from the '$(realpath "$INSTALL_DIRECTORY")' directory."
         fi
     fi
 }
@@ -112,8 +113,7 @@ remove_dynamic_directory() {
 # Copy the example into the directory.
 install_into_directory() {
     if ! cp -rf "$SCRIPTPATH" "$INSTALL_DIRECTORY"; then
-        echo "Project $PROJECT_NAME cannot be copied into the '$(realpath "$INSTALL_DIRECTORY")' directory."
-        complete_process 1
+        complete_process 1 "Project $PROJECT_NAME cannot be copied into the '$(realpath "$INSTALL_DIRECTORY")' directory."
     fi
     remove_dynamic_directory "$INSTALL_DIRECTORY/$BUILD_DIRECTORY"
     remove_dynamic_directory "$INSTALL_DIRECTORY/$LOG_DIRECTORY"
@@ -121,8 +121,7 @@ install_into_directory() {
 
     # ...then go into that directory.
     if ! cd "$INSTALL_DIRECTORY"; then
-        echo "Cannot change the current directory to the '$(realpath "$INSTALL_DIRECTORY")' directory."
-        complete_process 1
+        complete_process 1 "Cannot change the current directory to the '$(realpath "$INSTALL_DIRECTORY")' directory."
     fi
 }
 

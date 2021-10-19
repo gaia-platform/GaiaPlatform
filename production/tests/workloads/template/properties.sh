@@ -105,7 +105,6 @@ execute_commands() {
         echo "Command was not provided."
         show_usage
     else
-        echo "Command '${PARAMS[0]}' not known."
-        complete_process 1
+        complete_process 1 "Command '${PARAMS[0]}' not known."
     fi
 }

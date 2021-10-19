@@ -15,6 +15,11 @@ start_process() {
 # Simple function to stop the process, including any cleanup
 complete_process() {
     local SCRIPT_RETURN_CODE=$1
+    local COMPLETE_REASON=$2
+
+    if [ -n "$COMPLETE_REASON" ] ; then
+        echo "$COMPLETE_REASON"
+    fi
 
     if [ "$SCRIPT_RETURN_CODE" -ne 2 ]; then
         copy_test_output
@@ -154,16 +159,14 @@ parse_command_line() {
     fi
     TEST_SOURCE_DIRECTORY=$SCRIPTPATH/tests/$TEST_MODE
     if [ ! -f "$TEST_SOURCE_DIRECTORY/commands.txt" ]; then
-        echo "Test mode directory '$(realpath "$TEST_SOURCE_DIRECTORY")' does not contain a 'commands.txt' file."
-        complete_process 1
+        complete_process 1 "Test mode directory '$(realpath "$TEST_SOURCE_DIRECTORY")' does not contain a 'commands.txt' file."
     fi
 }
 
 # Clear the test output directory, making sure it exists for the test execution.
 clear_test_output() {
     if [ "$TEST_RESULTS_DIRECTORY" == "" ]; then
-        echo "Removing the specified directory '$TEST_RESULTS_DIRECTORY' is dangerous. Aborting."
-        complete_process 1
+        complete_process 1 "Removing the specified directory '$TEST_RESULTS_DIRECTORY' is dangerous. Aborting."
     fi
 
     if [ -d "$TEST_RESULTS_DIRECTORY" ]; then
@@ -171,15 +174,13 @@ clear_test_output() {
             # shellcheck disable=SC2115
             if ! rm -rf "$TEST_RESULTS_DIRECTORY"/* > "$TEMP_FILE" 2>&1; then
                 cat "$TEMP_FILE"
-                echo "Test script cannot remove intermediate test results directory '$(realpath "$TEST_RESULTS_DIRECTORY")' prior to test execution."
-                complete_process 1
+                complete_process 1 "Test script cannot remove intermediate test results directory '$(realpath "$TEST_RESULTS_DIRECTORY")' prior to test execution."
             fi
         fi
     else
         if ! mkdir "$TEST_RESULTS_DIRECTORY" > "$TEMP_FILE" 2>&1; then
             cat "$TEMP_FILE"
-            echo "Test script cannot create intermediate test results directory '$(realpath "$TEST_RESULTS_DIRECTORY")' prior to test execution."
-            complete_process 1
+            complete_process 1 "Test script cannot create intermediate test results directory '$(realpath "$TEST_RESULTS_DIRECTORY")' prior to test execution."
         fi
     fi
 
@@ -187,8 +188,7 @@ clear_test_output() {
     if [ -f "$MAIN_LOG" ]; then
         if ! rm "$MAIN_LOG" > "$TEMP_FILE" 2>&1; then
             cat "$TEMP_FILE"
-            echo "Test script cannot remove general log '$MAIN_LOG' before running test."
-            complete_process 1
+            complete_process 1 "Test script cannot remove general log '$MAIN_LOG' before running test."
         fi
     fi
 
@@ -196,8 +196,7 @@ clear_test_output() {
     if [ -f "$STATS_LOG" ]; then
         if ! rm "$STATS_LOG" > "$TEMP_FILE" 2>&1; then
             cat "$TEMP_FILE"
-            echo "Test script cannot remove stats log '$STATS_LOG' before running test."
-            complete_process 1
+            complete_process 1 "Test script cannot remove stats log '$STATS_LOG' before running test."
         fi
     fi
 }
@@ -282,8 +281,7 @@ save_current_directory() {
     fi
     if ! pushd . >"$TEMP_FILE" 2>&1;  then
         cat "$TEMP_FILE"
-        echo "Test script cannot save the current directory before proceeding."
-        complete_process 1
+        complete_process 1 "Test script cannot save the current directory before proceeding."
     fi
     DID_PUSHD=1
 }
@@ -291,8 +289,7 @@ save_current_directory() {
 # Change to the test directory for execution.
 cd_to_test_directory() {
     if ! cd "$TEST_DIRECTORY"; then
-        echo "Test script cannot change to the test directory '$(realpath "$TEST_DIRECTORY")'."
-        complete_process 1
+        complete_process 1 "Test script cannot change to the test directory '$(realpath "$TEST_DIRECTORY")'."
     fi
 }
 
@@ -306,8 +303,7 @@ initialize_and_build_test_directory() {
     fi
     if ! rm -rf "$TEST_DIRECTORY" > "$TEMP_FILE" 2>&1 ; then
         cat "$TEMP_FILE"
-        echo "Test script cannot remove test directory '$(realpath "$TEST_DIRECTORY")' prior to test execution."
-        complete_process 1
+        complete_process 1 "Test script cannot remove test directory '$(realpath "$TEST_DIRECTORY")' prior to test execution."
     fi
 
     # Install the project into the new test directory and cd into it.
@@ -316,8 +312,7 @@ initialize_and_build_test_directory() {
     fi
     if ! ./install.sh "$TEST_DIRECTORY" > "$TEMP_FILE" 2>&1 ; then
         cat "$TEMP_FILE"
-        echo "Test script cannot install the project into directory '$(realpath "$TEST_DIRECTORY")'."
-        complete_process 1
+        complete_process 1 "Test script cannot install the project into directory '$(realpath "$TEST_DIRECTORY")'."
     fi
 
     cd_to_test_directory
@@ -339,8 +334,7 @@ initialize_and_build_test_directory() {
         if [ "$VERY_VERBOSE_MODE" -eq 0 ]; then
             cat "$TEMP_FILE"
         fi
-        echo "Test script cannot build the project in directory '$(realpath "$TEST_DIRECTORY")'."
-        complete_process 1
+        complete_process 1 "Test script cannot build the project in directory '$(realpath "$TEST_DIRECTORY")'."
     fi
 }
 

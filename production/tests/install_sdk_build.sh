@@ -15,6 +15,11 @@ start_process() {
 # Simple function to stop the process, including any cleanup
 complete_process() {
     local SCRIPT_RETURN_CODE=$1
+    local COMPLETE_REASON=$2
+
+    if [ -n "$COMPLETE_REASON" ] ; then
+        echo "$COMPLETE_REASON"
+    fi
 
     if [ "$SCRIPT_RETURN_CODE" -ne 0 ]; then
         echo "Installation of the new SDK build failed."
@@ -90,32 +95,27 @@ verify_install_file() {
     INSTALL_FILE=${PARAMS[0]}
 
     if [ -z "$INSTALL_FILE" ] ; then
-        echo "Install file '$(realpath "$INSTALL_FILE")' does not exist."
-        complete_process 1
+        complete_process 1 "Install file '$(realpath "$INSTALL_FILE")' does not exist."
     fi
 
     # Make sure it exists.
     if [ ! -f "$INSTALL_FILE" ]; then
-        echo "Install file '$(realpath "$INSTALL_FILE")' does not exist."
-        complete_process 1
+        complete_process 1 "Install file '$(realpath "$INSTALL_FILE")' does not exist."
     fi
 
     if [[ ! "$INSTALL_FILE" == *.deb ]] ; then
-        echo "Install file '$(realpath "$INSTALL_FILE")' does not end with the required suffix '.deb'."
-        complete_process 1
+        complete_process 1 "Install file '$(realpath "$INSTALL_FILE")' does not end with the required suffix '.deb'."
     fi
 }
 
 # Remove the old package and install the new package.
 install_new_package() {
     if ! sudo apt --assume-yes remove gaia ; then
-        echo "Removal of old Gaia package did not complete.  Gaia may be in an undefined state."
-        complete_process 1
+        complete_process 1 "Removal of old Gaia package did not complete.  Gaia may be in an undefined state."
     fi
 
     if ! sudo apt --assume-yes install "$INSTALL_FILE" ; then
-        echo "Installation of new Gaia package did not complete.  Gaia may be in an undefined state."
-        complete_process 1
+        complete_process 1 "Installation of new Gaia package did not complete.  Gaia may be in an undefined state."
     fi
 }
 
@@ -138,8 +138,7 @@ start_process
 
 # Stop any installed `gaia` service that is running.
 if ! ./reset_database.sh --stop --database ; then
-    echo "Database service stop did not complete."
-    complete_process 1
+    complete_process 1 "Database service stop did not complete."
 fi
 
 # Make sure the executable isn't being run manually.
@@ -154,6 +153,8 @@ fi
 # is to start the new DB server as a service.  As such, we don't
 # need this script to balance out the stop service with a start service.
 install_new_package
+
+sudo bash -c "echo 'Installed: $INSTALL_FILE' > /opt/gaia/installed.txt"
 
 # If we get here, we have a clean exit from the script.
 complete_process 0

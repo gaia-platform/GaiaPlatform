@@ -15,6 +15,11 @@ start_process() {
 # Simple function to stop the process, including any cleanup
 complete_process() {
     local SCRIPT_RETURN_CODE=$1
+    local COMPLETE_REASON=$2
+
+    if [ -n "$COMPLETE_REASON" ] ; then
+        echo "$COMPLETE_REASON"
+    fi
 
     if [ "$SCRIPT_RETURN_CODE" -ne 0 ]; then
         echo "Resetting the database failed."
@@ -87,8 +92,7 @@ get_service_state() {
     if [[ $systemctl_output =~ $regex ]] ; then
         service_state="${BASH_REMATCH[1]}"
     else
-        echo "Output for systemctl not as expected."
-        complete_process 1
+        complete_process 1 "Output for systemctl not as expected."
     fi
 }
 
@@ -108,8 +112,7 @@ wait_for_service_state() {
     done
 
     if ! [[ "$service_state" == "$state_to_wait_for" ]] ; then
-        echo "Service $service_name did not transition to the $state_to_wait_for state."
-        complete_process 1
+        complete_process 1 "Service $service_name did not transition to the $state_to_wait_for state."
     fi
 }
 
@@ -123,8 +126,7 @@ stop_database_service() {
     if [ "$service_state" != "inactive" ] && [ "$service_state" != "failed" ]; then
         echo "Setting service $service_name to 'inactive'."
         if ! sudo systemctl stop gaia ; then
-            echo "Service $service_name cannot be stopped."
-            complete_process 1
+            complete_process 1 "Service $service_name cannot be stopped."
         fi
 
         wait_for_service_state "inactive"
@@ -146,8 +148,7 @@ start_database_service() {
     if ! [ "$service_state" == "active" ] ; then
         echo "Setting service $service_name to 'active'."
         if ! sudo systemctl start gaia ; then
-            echo "Service $service_name cannot be started."
-            complete_process 1
+            complete_process 1 "Service $service_name cannot be started."
         fi
 
         wait_for_service_state "active"
@@ -165,8 +166,7 @@ remove_data_store() {
         echo "Removing gaia data store files from default location."
     fi
     if ! sudo rm -rf /var/lib/gaia/db ; then
-        echo "Gaia data store files cannot be removed."
-        complete_process 1
+        complete_process 1 "Gaia data store files cannot be removed."
     fi
 }
 
