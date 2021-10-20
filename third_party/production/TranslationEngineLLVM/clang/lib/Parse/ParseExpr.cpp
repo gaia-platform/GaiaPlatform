@@ -177,7 +177,7 @@ ExprResult Parser::ParseAssignmentExpression(TypeCastState isTypeCast,
       ConsumeToken();
       ConsumeToken();
       insertCallParameterMap[expressionLocation].push_back(parameterName);
-      insertCallParameterLocations.emplace(Tok.getLocation());
+      insertCallParameterLocations.insert(Tok.getLocation());
     }
     else
     {
@@ -1843,7 +1843,7 @@ Parser::ParsePostfixExpressionSuffix(ExprResult LHS) {
         if (GaiaCallLocation.isValid())
         {
           tableName = insertCallTableMap[GaiaCallLocation];
-          std::unordered_map<std::string, std::string> tagMapping = Actions.getTagMapping(Actions.getCurFunctionDecl(), GaiaCallLocation);
+          llvm::StringMap<std::string> tagMapping = Actions.getTagMapping(Actions.getCurFunctionDecl(), GaiaCallLocation);
           auto tag_iterator = tagMapping.find(tableName);
           if (tag_iterator != tagMapping.end())
           {

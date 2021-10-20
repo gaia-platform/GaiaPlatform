@@ -40,6 +40,16 @@ uint64_t get_time_millis()
 
 ruleset amr_swarm_ruleset
 {
+    //GAIAPLAT-1426
+    on_insert (bot_arrived_at_charging_station_event)
+    {
+        if(/C:configuration.main_pallet_bot->R:robot->station.id == 5)
+        {
+                gaia_log::app().info("Robot {} is already at the inbound station.", R.id);
+                commands::pickup_pallet_from_station(R, R->station->pallet);
+        }
+    }
+
     on_insert(bot_arrived_at_charging_station_event)
     {
         // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1461 (fixed)

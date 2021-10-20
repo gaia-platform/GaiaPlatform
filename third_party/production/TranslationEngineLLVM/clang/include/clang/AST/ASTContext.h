@@ -228,6 +228,7 @@ private:
   mutable llvm::ContextualFoldingSet<SubstTemplateTemplateParmPackStorage,
                                      ASTContext&>
     SubstTemplateTemplateParmPacks;
+  mutable llvm::StringMap<const Type*> EDCTypesMap;
 
   /// The set of nested name specifiers.
   ///
@@ -298,6 +299,8 @@ private:
 
   TemplateTemplateParmDecl *
     getCanonicalTemplateTemplateParmDecl(TemplateTemplateParmDecl *TTP) const;
+
+  void cacheEDCType(const Type* type) const;
 
   /// The typedef for the __int128_t type.
   mutable TypedefDecl *Int128Decl = nullptr;
@@ -1099,6 +1102,8 @@ public:
 
   void PrintStats() const;
   const SmallVectorImpl<Type *>& getTypes() const { return Types; }
+
+  const llvm::StringMap<const Type*>& getEDCTypes() const { return EDCTypesMap; }
 
   BuiltinTemplateDecl *buildBuiltinTemplateDecl(BuiltinTemplateKind BTK,
                                                 const IdentifierInfo *II) const;
