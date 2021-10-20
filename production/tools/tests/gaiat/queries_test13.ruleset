@@ -1,0 +1,16 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test91
+{
+    on_update(incubator)
+    {
+        long i = actuator->timestamp;
+    }
+}
+
+// CHECK: Field 'timestamp' cannot be used after a '->' in a path. Use a '.' to separate the table name from the field name.

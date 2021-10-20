@@ -176,7 +176,7 @@ struct data_mapping_t
         const data_mapping_t mappings[], int fd_list[]);
 };
 
+#include "mapped_data.inc"
+
 } // namespace db
 } // namespace gaia
-
-#include "mapped_data.inc"

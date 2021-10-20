@@ -32,7 +32,7 @@ public:
         std::shared_ptr<query_processor::scan::index_predicate_t> predicate);
 
 private:
-    static int get_record_cursor_socket_for_index(
+    static std::shared_ptr<int> get_record_cursor_socket_for_index(
         common::gaia_id_t index_id,
         gaia_txn_id_t txn_id,
         std::shared_ptr<query_processor::scan::index_predicate_t> predicate);

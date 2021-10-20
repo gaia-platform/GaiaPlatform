@@ -645,7 +645,7 @@ StmtResult Parser::ParseLabeledStatement(ParsedAttributesWithRange &attrs) {
     }
   }
 
-  if (!Actions.ActOnStartLabel(IdentTok.getIdentifierInfo()->getName().str()))
+  if (!Actions.ActOnStartLabel(IdentTok.getIdentifierInfo()->getName()))
   {
     Diag(IdentTok.getLocation(), diag::err_incorrect_declarative_label_scope) << IdentTok.getIdentifierInfo()->getName();
     return StmtError();
@@ -2118,14 +2118,14 @@ static bool checkGaiaScope(const Scope* currentScope, const Scope* parentScope)
 
   for (const Scope *S = currentScope; S; S = S->getParent())
   {
-    if (S == parentScope)
-    {
-      return false;
-    }
-
     if (S->isGaiaBreakScope())
     {
       return true;
+    }
+
+    if (S == parentScope)
+    {
+      return false;
     }
   }
   return false;
@@ -2153,7 +2153,7 @@ StmtResult Parser::ParseContinueStatement() {
       SkipUntil(tok::semi, StopBeforeMatch);
       return StmtError();
     }
-    Actions.ActOnStartDeclarativeLabel(labelIdentifier->getName().str());
+    Actions.ActOnStartDeclarativeLabel(labelIdentifier->getName());
     auto statement = returnValue.getAs<ContinueStmt>();
     statement->setLabel(LD);
   }
@@ -2187,13 +2187,15 @@ StmtResult Parser::ParseBreakStatement() {
       SkipUntil(tok::semi, StopBeforeMatch);
       return StmtError();
     }
-    Actions.ActOnStartDeclarativeLabel(labelIdentifier->getName().str());
+    Actions.ActOnStartDeclarativeLabel(labelIdentifier->getName());
     auto statement = returnValue.getAs<BreakStmt>();
     statement->setLabel(LD);
   }
   else if (getCurScope()->isInGaiaBreakScope() && !returnValue.isInvalid() && checkGaiaScope(getCurScope(), getCurScope()->getBreakParent()))
   {
-    Diag(BreakLoc, diag::warn_non_declarative_break_in_declarative_scope);
+    Diag(BreakLoc, diag::err_non_declarative_break_in_declarative_scope);
+    SkipUntil(tok::semi, StopBeforeMatch);
+    return StmtError();
   }
 
   return returnValue;

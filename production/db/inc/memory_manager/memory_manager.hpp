@@ -8,8 +8,8 @@
 #include <list>
 #include <shared_mutex>
 
-#include "base_memory_manager.hpp"
-#include "chunk_manager.hpp"
+#include "memory_structures.hpp"
+#include "memory_types.hpp"
 
 namespace gaia
 {
@@ -21,7 +21,7 @@ namespace memory_manager
 // A memory manager is used to manage the memory range allocated for our process.
 // We allocate memory from this range in 4MB "chunks".
 // Chunks are then used via a chunk manager to allocate memory in multiples of 64B allocation units.
-class memory_manager_t : public base_memory_manager_t
+class memory_manager_t
 {
 public:
     memory_manager_t() = default;
@@ -29,8 +29,7 @@ public:
     // Tells the memory manager which memory area it should manage.
     // Memory will be treated as a blank slate.
     //
-    // All addresses will be offsets relative to the beginning of this block
-    // and will be represented as address_offset_t.
+    // All chunk offsets are relative to the beginning of this block.
     void initialize(
         uint8_t* memory_address,
         size_t memory_size);
@@ -41,15 +40,11 @@ public:
         uint8_t* memory_address,
         size_t memory_size);
 
-    // Allocates a new chunk of memory.
-    address_offset_t allocate_chunk() const;
+    // Allocates the next available free chunk.
+    chunk_offset_t allocate_chunk();
 
-    // Chunk deallocation method.
-    // Does not perform any validation to ensure that the chunk is unused.
-    void deallocate_chunk(address_offset_t chunk_address_offset) const;
-
-    // Object deallocation method.
-    void deallocate(address_offset_t object_offset) const;
+    // Updates the "allocated chunk bitmap" after allocating or deallocating a chunk.
+    void update_chunk_allocation_status(chunk_offset_t chunk_offset, bool is_allocated);
 
 private:
     // A pointer to our metadata information, stored inside the memory range that we manage.
@@ -61,22 +56,11 @@ private:
         size_t memory_size,
         bool initialize_memory);
 
-    // Get the amount of memory that has never been used yet.
-    size_t get_unused_memory_size() const;
+    // Internal method for making allocations from the unused portion of memory.
+    chunk_offset_t allocate_unused_chunk();
 
     // Internal method for making allocations from deallocated memory.
-    address_offset_t allocate_from_deallocated_memory() const;
-
-    // Internal method for making allocations from the unused portion of memory.
-    address_offset_t allocate_from_unused_memory() const;
-
-    // Checks whether a chunk is marked as used in the chunk bitmap.
-    bool is_chunk_marked_as_used(chunk_offset_t chunk_offset) const;
-
-    // Try to mark the use of a single chunk in the chunk bitmap.
-    bool try_mark_chunk_used_status(chunk_offset_t chunk_offset, bool is_used) const;
-
-    void output_debugging_information(const std::string& context_description) const;
+    chunk_offset_t allocate_used_chunk();
 };
 
 } // namespace memory_manager

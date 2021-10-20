@@ -2,13 +2,14 @@
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
 #include "test_serial.hpp"
 
 #include <unistd.h>
 
 #include <mutex>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"

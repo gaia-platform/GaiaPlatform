@@ -1276,9 +1276,9 @@ def err_incorrect_declarative_label_scope: Error<
   "Declarative label '%0' is defined in the incorrect scope.">;
 def err_incorrect_parameter_for_insert : Error<
   "Incorrect parameter is specified for Insert function.">;
-def warn_non_declarative_break_in_declarative_scope: Warning<
+def err_non_declarative_break_in_declarative_scope: Error<
   "Use of non-declarative 'break' in declarative statements may not break out of a declarative loop. "
-  "Consider adding a label to the declarative loop and using 'break label' instead.">, InGroup<GaiaExtensions>;
+  "Consider adding a label to the declarative loop and using 'break label' instead.">;
 def warn_non_declarative_continue_in_declarative_scope: Warning<
   "Use of non-declarative 'continue' in declarative statements may not continue to the next iteration in a declarative loop. "
   "Consider adding a label to the declarative loop and using 'continue label' instead.">, InGroup<GaiaExtensions>;

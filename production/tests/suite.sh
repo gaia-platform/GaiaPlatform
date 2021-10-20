@@ -5,7 +5,6 @@
 # All rights reserved.
 #############################################
 
-
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -378,8 +377,6 @@ execute_single_test() {
 # Execute a test within the test suite.
 execute_suite_test() {
     local NEXT_TEST_NAME=$1
-    # shellcheck disable=SC2116
-    NEXT_TEST_NAME=$( echo "${NEXT_TEST_NAME,,}")
 
     SUB="^[[:space:]]*#"
     if [[ "$NEXT_TEST_NAME" =~ $SUB ]] || [[ -z "${NEXT_TEST_NAME// }" ]]; then

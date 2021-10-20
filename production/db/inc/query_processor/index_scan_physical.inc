@@ -11,6 +11,30 @@ bool base_index_scan_physical_t::is_visible(const db::index::index_record_t& rec
     return db::locator_exists(rec.locator) && db::locator_to_offset(rec.locator) == rec.offset;
 }
 
+// Helper to get iterators for querying client-side indexes
+template <typename T_index, typename T_index_iterator>
+std::pair<T_index_iterator, T_index_iterator>
+local_iterator_helper(T_index* index, index_predicate_t& predicate)
+{
+    std::pair<T_index_iterator, T_index_iterator> result;
+
+    switch (predicate.query_type())
+    {
+    case messages::index_query_t::NONE:
+        result.first = index->begin();
+        result.second = index->end();
+        break;
+    case messages::index_query_t::index_equal_range_query_t:
+    case messages::index_query_t::index_point_read_query_t:
+        result = index->equal_range(predicate.key());
+        break;
+    default:
+        ASSERT_UNREACHABLE("Unknown query type.");
+    }
+
+    return result;
+}
+
 // This method initializes the physical index scan.
 // Initialization is fairly expensive and complicated (RPC, locking on structures in the server)
 // So we delay the initialization until it is needed.
@@ -30,8 +54,17 @@ void index_scan_physical_t<T_index, T_index_iterator>::init()
 
     m_index = idx_iter->second;
 
-    m_local_it = static_cast<T_index*>(m_index.get())->begin();
-    m_local_it_end = static_cast<T_index*>(m_index.get())->end();
+    if (m_predicate)
+    {
+        auto range = local_iterator_helper<T_index, T_index_iterator>(static_cast<T_index*>(m_index.get()), *m_predicate);
+        m_local_it = range.first;
+        m_local_it_end = range.second;
+    }
+    else
+    {
+        m_local_it = static_cast<T_index*>(m_index.get())->begin();
+        m_local_it_end = static_cast<T_index*>(m_index.get())->end();
+    }
 
     // Advance local iterator to first visible record.
     if (!local_end() && !is_visible(m_local_it->second))

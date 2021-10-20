@@ -1,7 +1,7 @@
 /////////////////////////////////////////////
-//// Copyright (c) Gaia Platform LLC
-//// All rights reserved.
-///////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
 
 #pragma once
 
@@ -23,7 +23,7 @@
 //
 // 3) You can set the source location to output the line and column number near where the diagnostic occurred.
 // The line and column number information is for the .ruleset file and not the generated .cpp file.  Source
-// location can be set on the global diag() object via the `diag().set_location(...)` method.  In addition, you can 
+// location can be set on the global diag() object via the `diag().set_location(...)` method.  In addition, you can
 // pass a location as an argument to the emit() method itself.  A typical pattern is to set the source location on
 // the diag() object at a higher level function and then let lower level functions pass in more specific locations
 // as more context is gathered.
@@ -49,7 +49,7 @@ static const char c_copyright[] = "Copyright (c) Gaia Platform LLC";
 
 // This is a command line error that can occur before we even get the
 // LLVM diagnostic sub-system.
-static const char c_err_multiple_ruleset_files[] = 
+static const char c_err_multiple_ruleset_files[] =
     "The Translation Engine does not support more than one source ruleset file. "
     "Combine your rulesets into a single ruleset file.\n";
 

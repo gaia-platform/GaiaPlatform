@@ -1796,11 +1796,21 @@ StmtResult Sema::ActOnGaiaForStmt(SourceLocation ForLoc,
 {
   RemoveTagData(SourceRange(ForLoc, Body->getEndLoc()));
 
-  auto startLocationIterator = explicitPathTagMapping.lower_bound(ForLoc);
-  auto endLocationIterator = explicitPathTagMapping.upper_bound(Body->getEndLoc());
-  if (startLocationIterator != explicitPathTagMapping.end() || endLocationIterator != explicitPathTagMapping.end())
+
+  for (auto tableIterator = explicitPathTagMapping.begin(); tableIterator != explicitPathTagMapping.end();)
   {
-    explicitPathTagMapping.erase(startLocationIterator, endLocationIterator);
+    SourceLocation tagLocation = tableIterator->first;
+    if (tagLocation == ForLoc
+      || (ForLoc < tagLocation && tagLocation < Body->getEndLoc()))
+    {
+      auto toErase = tableIterator;
+      explicitPathTagMapping.erase(toErase);
+      ++tableIterator;
+    }
+    else
+    {
+      ++tableIterator;
+    }
   }
 
   if (Path == nullptr)

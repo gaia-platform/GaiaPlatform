@@ -11,7 +11,7 @@
 
 #include <vector>
 
-#include "rocksdb/slice.h"
+#include <rocksdb/slice.h>
 
 #include "gaia_internal/common/persistent_store_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"

@@ -1,3 +1,8 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 // RUN: %gaiat %s --
 
 #include "tags_test.h"
@@ -154,10 +159,6 @@ ruleset test12
 // are multi-anchor rules.
 ruleset test13
 {
-    on_insert(sensor.value, sensor.timestamp)
-    {
-    }
-
     on_insert(sensor, sensor)
     {
     }
@@ -186,5 +187,30 @@ ruleset test13
         if (@actuator.value > 0 && @actuator.timestamp == 0)
         {
         }
+    }
+}
+
+// GAIAPLAT-1179 (fixed)
+ruleset testE31
+{
+    on_update(incubator)
+    {
+        auto s4 = sensor.insert(name: "temp");
+
+       for(/s1 : sensor)
+       {
+           auto s2 = sensor.insert(name: "temp");
+       }
+
+       auto s5 = sensor.insert(name: incubator.name);
+    }
+}
+
+//GAIAPLAT-1565
+ruleset testE32
+{
+    on_insert(detection)
+    {
+
     }
 }

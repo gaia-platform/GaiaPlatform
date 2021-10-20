@@ -2195,6 +2195,7 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
   }
 
   bool isVariableInjected = false;
+  bool isInjectionFailed = false;
 
   if (R.empty() && getCurScope()->isInRulesetScope())
   {
@@ -2208,13 +2209,16 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
         {
           if (FD->hasAttr<RuleAttr>())
           {
-            NamedDecl *D = injectVariableDefinition(II, NameLoc,
-              explicitPath);
+            NamedDecl *D = injectVariableDefinition(II, NameLoc, explicitPath);
             if (D)
             {
               R.addDecl(D);
               isVariableInjected = true;
               injectedVariablesLocation.insert(NameLoc);
+            }
+            else
+            {
+              isInjectionFailed = true;
             }
           }
         }
@@ -2267,7 +2271,7 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
     // before we get here if it must be a template name.
     if (DiagnoseEmptyLookup(S, SS, R,
                             CCC ? std::move(CCC) : std::move(DefaultValidator),
-                            nullptr, None, &TE)) {
+                            nullptr, None, isInjectionFailed ? nullptr : &TE)) {
       if (TE && KeywordReplacement) {
         auto &State = getTypoExprState(TE);
         auto BestTC = State.Consumer->getNextCorrection();
@@ -5481,7 +5485,7 @@ ExprResult Sema::ActOnCallExpr(Scope *Scope, Expr *Fn, SourceLocation LParenLoc,
       return ExprError();
     }
 
-    const auto catalogTableData = getTableData(LParenLoc);
+    const auto& catalogTableData = getTableData();
     const auto catalogTableDataIterator = catalogTableData.find(tableName);
     if (catalogTableDataIterator == catalogTableData.end())
     {
@@ -5489,7 +5493,7 @@ ExprResult Sema::ActOnCallExpr(Scope *Scope, Expr *Fn, SourceLocation LParenLoc,
       return ExprError();
     }
     // Perform semantic check of parameters.
-    std::unordered_set<std::string> processed_parameters;
+    llvm::StringSet<> processed_parameters;
     for (unsigned i = 0; i != numberOfParameters; ++i)
     {
       const auto fieldDataIterator = catalogTableDataIterator->second.find(parameterNames[i]);

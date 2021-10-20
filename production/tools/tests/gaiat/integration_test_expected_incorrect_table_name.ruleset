@@ -1,0 +1,17 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test109
+{
+    on_insert(INC:incubator.max_temp)
+    {
+        incubator.min_temp = incubator.max_temp;
+    }
+}
+
+// GAIAPLAT-1396 (fixed)
+// CHECK: A field may not be referenced in the 'on_insert' statement. The 'on_insert' attribute only accepts a table.

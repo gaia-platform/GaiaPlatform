@@ -229,7 +229,6 @@ void event_manager_t::enqueue_invocation(
         event.gaia_type,
         event.event_type,
         event.record,
-        event.columns,
         event.txn_id};
     rule_thread_pool_t::invocation_t invocation{
         std::move(rule_invocation),

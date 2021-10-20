@@ -13,6 +13,10 @@ CREATE TABLE if not exists sandbox (
     i INT32
 );
 
+CREATE TABLE if not exists empty (
+    i INT32
+);
+
 CREATE INDEX str_idx ON sandbox(str);
 CREATE HASH INDEX str_hash_idx ON sandbox(str);
 
@@ -21,3 +25,6 @@ CREATE HASH INDEX int_hash_idx ON sandbox(i);
 
 CREATE INDEX float_idx ON sandbox(f);
 CREATE HASH INDEX float_hash_idx ON sandbox(f);
+
+CREATE INDEX empty_idx ON empty(i);
+CREATE HASH INDEX empty_hash_idx ON empty(i);

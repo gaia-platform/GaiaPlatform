@@ -35,6 +35,7 @@
 #include "clang/Sema/SemaInternal.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringExtras.h"
+#include "llvm/ADT/StringSet.h"
 #include "llvm/Support/MathExtras.h"
 
 using namespace clang;
@@ -2014,7 +2015,7 @@ static void handleRulesetTableAttr(Sema &S, Decl *D, const ParsedAttr &AL)
     return;
   }
   SmallVector<IdentifierInfo *, 8> tables;
-  auto tableData = S.getCatalogTableList(AL.getLoc());
+  const auto& tableData = S.getCatalogTableList();
   for (unsigned ArgNo = 0; ArgNo < getNumAttributeArgs(AL); ++ArgNo)
   {
     if (!AL.isArgIdent(ArgNo))
@@ -2042,7 +2043,7 @@ static bool validateRuleAttribute(StringRef attribute,
 {
   const DeclContext *context = D->getDeclContext();
   const RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(context);
-  std::unordered_set<std::string> attributeTables;
+  llvm::StringSet<> attributeTables;
   if (rulesetDecl != nullptr)
   {
     RulesetTablesAttr* tablesAttribute = rulesetDecl->getAttr<RulesetTablesAttr>();
@@ -2051,12 +2052,12 @@ static bool validateRuleAttribute(StringRef attribute,
     {
       for (const IdentifierInfo* id : tablesAttribute->tables())
       {
-        attributeTables.emplace(id->getName().str());
+        attributeTables.insert(id->getName());
       }
     }
   }
 
-  auto tableData = S.getTableData(AL.getLoc());
+  auto tableData = S.getTableData();
   if (tableData.empty())
   {
     return false;
@@ -2066,9 +2067,11 @@ static bool validateRuleAttribute(StringRef attribute,
   {
     for (auto tableDataIterator = tableData.begin(); tableDataIterator != tableData.end();)
     {
-      if (attributeTables.find(tableDataIterator->first) == attributeTables.end())
+      if (attributeTables.find(tableDataIterator->first()) == attributeTables.end())
       {
-        tableDataIterator = tableData.erase(tableDataIterator);
+        auto toErase = tableDataIterator;
+        tableData.erase(toErase);
+        ++tableDataIterator;
       }
       else
       {
@@ -2096,7 +2099,7 @@ static bool validateRuleAttribute(StringRef attribute,
       return false;
     }
 
-    for (auto table : tableData)
+    for (const auto& table : tableData)
     {
       if (table.second.find(tag) != table.second.end())
       {
@@ -2150,14 +2153,13 @@ static bool validateRuleAttribute(StringRef attribute,
     }
 
     bool returnValue = false;
-    for (auto table : tableData)
+    for (const auto& table : tableData)
     {
       if (table.second.find(attribute) != table.second.end())
       {
         if (returnValue)
         {
-          S.Diag(AL.getLoc(), diag::err_duplicate_field)
-            << attribute << table.first;
+          S.Diag(AL.getLoc(), diag::err_duplicate_field) << attribute;
           return false;
         }
         returnValue = true;
@@ -2171,12 +2173,11 @@ static bool validateRuleAttribute(StringRef attribute,
     return returnValue;
   }
   // Could be a table or a field. Should check if there is a field with the same name.
-  for (auto table : tableData)
+  for (const auto& table : tableData)
   {
     if (table.second.find(attribute) != table.second.end())
     {
-      S.Diag(AL.getLoc(), diag::err_duplicate_field)
-        << attribute << table.first;
+      S.Diag(AL.getLoc(), diag::err_duplicate_field) << attribute;
       return false;
     }
   }
@@ -2249,9 +2250,8 @@ static void handleRulesetSerialGroupAttr(Sema &S, Decl *D, const ParsedAttr &AL)
 
   if (getNumAttributeArgs(AL) == 1)
   {
-
     if (!AL.isArgIdent(0))
-    { 
+    {
       S.Diag(AL.getLoc(), diag::err_attribute_argument_type)
         << AL << AANT_ArgumentIdentifier;
       return;

@@ -3,8 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "flatbuffers/flatbuffers.h"
-#include "gtest/gtest.h"
+#include <flatbuffers/flatbuffers.h>
+#include <gtest/gtest.h>
 
 #include "data_holder.hpp"
 #include "test_serialization_generated.h"

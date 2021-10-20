@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include "gaia/direct_access/auto_transaction.hpp"
 
@@ -63,7 +63,7 @@ DROP TABLE IF EXISTS t2;
 CREATE TABLE IF NOT EXISTS t2(c2 INT32 UNIQUE);
 
 CREATE RELATIONSHIP r1 (
-  t1.link1 -> t2,
+  t1.link1 -> t2[],
   t2.link2 -> t1,
   USING t1(c1), t2(c2)
 );
@@ -204,8 +204,8 @@ TEST_F(ddl_execution_test, in_table_relationship_definition)
     // The second one will delete the entities created in the first. Successful
     // deletion also verifies successful creation.
     array ddls{
+        // Self-reference 1:1 relationship full form.
         R"(
--- self-reference 1:1 relationship full form
 create table employee (
  name string,
  mentor references employee using mentee,
@@ -216,8 +216,8 @@ create table employee (
 drop relationship mentee_mentor;
 drop table employee;
 )",
+        // Self-reference 1:N relationship full form.
         R"(
--- self-reference 1:N relationship full form
 create table employee (
   name string,
   manager references employee using reports,
@@ -228,8 +228,8 @@ create table employee (
 drop relationship manager_reports;
 drop table employee;
 )",
+        // Self-reference 1:N relationship without the optional 'using'.
         R"(
--- self-reference 1:N relationship without the optional using
 create table employee (
   name string,
   manager references employee,
@@ -240,8 +240,8 @@ create table employee (
 drop relationship manager_reports;
 drop table employee;
 )",
+        // Forward reference 1:1 relationship without the optional 'using'.
         R"(
--- forward references 1:1 relationship without the optional using
 create table person (
  name string,
  employee references employee
@@ -256,8 +256,8 @@ drop relationship person_employee;
 drop table person;
 drop table employee;
 )",
+        // Forward reference 1:N relationship without the optional 'using'.
         R"(
--- forward references 1:N relationship without the optional using
 create table doctor (
  name string,
  patients references patient[]
@@ -272,27 +272,8 @@ drop relationship doctor_patients;
 drop table doctor;
 drop table patient;
 )",
+        // Forward reference 1:N relationship with 'where' without 'using'.
         R"(
--- forward references 1:1 relationship with hybrid index without using
-create table person (
- name string,
- email string unique,
- employee references employee
-  where employee.personal_email = person.email
-)
-create table employee (
- company string,
- personal_email string unique,
- person references person
-);
-)",
-        R"(
-drop relationship person_employee;
-drop table person;
-drop table employee;
-)",
-        R"(
--- forward references 1:N relationship with hybrid index without using
 create table doctor (
  name string,
  phone_no string unique,
@@ -310,8 +291,8 @@ drop relationship doctor_patients;
 drop table doctor;
 drop table patient;
 )",
+        // Forward reference 1:N relationship with 'where'.
         R"(
--- forward references 1:N relationship with hybrid index
 create database hospital
 create table doctor (
  name string,
@@ -349,13 +330,13 @@ drop database hospital;
 TEST_F(ddl_execution_test, invalid_create_list)
 {
     array ddls{
+        // Table names cannot contain a database name.
         R"(
--- table name should not contain the database name
 create table d.t1(c1 int32, t2 references t2)
 create table d.t2(c2 int32, t1 references t1);
 )",
+        // Links in relationship definition cannot contain a database name.
         R"(
--- links in relationship definition should not contain the database name
 create database d
 create table t1(c1 int32)
 create table t2(c2 int32)
@@ -398,21 +379,40 @@ create table t2(c2 int32, link2a references t1, link2b references t1);
 TEST_F(ddl_execution_test, invalid_field_map)
 {
     array ddls{
-        R"(-- incorrect table names in where clause
+        // Incorrect table names in where clause.
+        R"(
 create table t1(c1 int32 unique, link1 references t2[])
 create table t2(c2 int32, link2 references t1 where t1.c1 = t.c2);
 )",
-        R"(-- field is not unique
+        // Field is not unique.
+        R"(
 create table t1(c1 int32, link1 references t2[])
 create table t2(c2 int32, link2 references t1 where t1.c1 = t2.c2);
 )",
-        R"(-- both fields need to be unique in 1:1 relationships
+        // Both fields need to be unique in 1:1 relationships.
+        R"(
 create table t1(c1 int32 unique, link1 references t2)
 create table t2(c2 int32, link2 references t1 where t1.c1 = t2.c2);
 )",
-        R"(-- non-matching where clauses
+        // Non-matching where clauses.
+        R"(
 create table t1(a1 int16 unique, c1 int32 unique, link1 references t2[] where t1.a1 = t2.a2)
 create table t2(a2 int16, c2 int32, link2 references t1 where t1.c1 = t2.c2);
+)",
+        // Forward reference 1:1 relationship with 'where' without 'using'.
+        // We have disabled 1:1 relationships using common fields (hybrid index).
+        R"(
+create table person (
+ name string,
+ email string unique,
+ employee references employee
+  where employee.personal_email = person.email
+)
+create table employee (
+ company string,
+ personal_email string unique,
+ person references person
+);
 )",
     };
 

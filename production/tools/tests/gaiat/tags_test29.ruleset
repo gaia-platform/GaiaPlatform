@@ -1,0 +1,30 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+#include "tags_test.h"
+
+class sensor_t
+{
+    float value;
+};
+
+ruleset test29
+{
+    on_update(incubator)
+    {
+       for(/s2 : sensor)
+       {
+           incubator.connect(s2);
+
+           sensor_t s2;
+           incubator.connect(s2);
+       }
+   }
+}
+
+// GAIAPLAT-1178
+// CHECK: Local variable 's2' hides a tag defined with the same name. Rename your local variable or tag so that their names do not conflict.

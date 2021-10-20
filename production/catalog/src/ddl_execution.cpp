@@ -108,7 +108,9 @@ void check_reference_field_maps(
         if (!((field_map1->first == field_map2->first && field_map1->second == field_map2->second)
               || (field_map1->first == field_map2->second && field_map1->second == field_map2->first)))
         {
-            throw invalid_field_map("Two matching references have conflict field settings.");
+            throw invalid_field_map(
+                "The matching reference definitions in table '" + table1 + "' and table '" + table2 + "'"
+                + " both contain WHERE clauses that do not match each other.");
         }
     }
 
@@ -120,7 +122,9 @@ void check_reference_field_maps(
     if (!((field_map.first.table == table1 && field_map.second.table == table2)
           || (field_map.first.table == table2 && field_map.second.table == table1)))
     {
-        throw invalid_field_map("Reference field setting has incorrect table name.");
+        throw invalid_field_map(
+            "The WHERE clause for matching reference definitions in table '" + table1
+            + "' and table '" + table2 + "'" + " must use a field from each table on opposite sides of '='.");
     }
 }
 
@@ -339,7 +343,9 @@ void sanity_check_create_list_statements(
             auto create_table = dynamic_cast<ddl::create_table_t*>(stmt.get());
             if (!create_table->database.empty())
             {
-                throw invalid_create_list("CREATE TABLE should not specify a database.");
+                throw invalid_create_list(
+                    "CREATE TABLE " + create_table->name
+                    + " definition cannot specify a database.");
             }
         }
         else if (stmt->type == ddl::create_type_t::create_index)
@@ -347,7 +353,9 @@ void sanity_check_create_list_statements(
             auto create_index = dynamic_cast<ddl::create_index_t*>(stmt.get());
             if (!create_index->database.empty())
             {
-                throw invalid_create_list("CREATE INDEX should not specify a database.");
+                throw invalid_create_list(
+                    "CREATE INDEX " + create_index->name
+                    + " definition cannot specify a database.");
             }
         }
         else if (stmt->type == ddl::create_type_t::create_relationship)
@@ -358,13 +366,17 @@ void sanity_check_create_list_statements(
                 || !create_relationship->relationship.first.to_database.empty()
                 || !create_relationship->relationship.second.to_database.empty())
             {
-                throw invalid_create_list("CREATE RELATIONSHIP should not specify a database in the link(s).");
+                throw invalid_create_list(
+                    "CREATE RELATIONSHIP " + create_relationship->name
+                    + " definition cannot specify a database in the link(s).");
             }
             if (create_relationship->field_map
                 && (!create_relationship->field_map->first.database.empty()
                     || !create_relationship->field_map->second.database.empty()))
             {
-                throw invalid_create_list("CREATE RELATIONSHIP should not specify a database in the field(s).");
+                throw invalid_create_list(
+                    "CREATE RELATIONSHIP " + create_relationship->name
+                    + " definition cannot specify a database in the field(s).");
             }
         }
     }
@@ -385,10 +397,6 @@ void execute_create_list_statements(
     {
         auto create_stmt = dynamic_cast<ddl::create_statement_t*>(stmt.get());
         execute_create_statement_no_txn(executor, create_stmt);
-        if (create_stmt->type == ddl::create_type_t::create_database)
-        {
-            executor.switch_db_context(create_stmt->name);
-        }
     }
     txn.commit();
 }

@@ -32,7 +32,7 @@ add_library(gaia_parser STATIC
   ${FLEX_lexer_OUTPUTS}
   ${BISON_parser_OUTPUTS})
 
-target_link_libraries(gaia_parser PUBLIC gaia_build_options)
+configure_gaia_target(gaia_parser)
 target_include_directories(gaia_parser PRIVATE ${GAIA_PARSER_INCLUDES})
 target_link_libraries(gaia_parser PRIVATE gaia_catalog)
 

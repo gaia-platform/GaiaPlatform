@@ -1,3 +1,8 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 // RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
 // GAIAPLAT-1050 (fixed)
@@ -10,4 +15,4 @@ ruleset test10
     }
 }
 
-// CHECK: Multiple shortest paths exist between tables 'crop' and 'sensor'. Explicitly specify the navigation path between these two tables to resolve the ambiguity.
+// CHECK: Multiple shortest paths exist between tables 'crop' and 'feeding'. Explicitly specify the navigation path between these two tables to resolve the ambiguity.

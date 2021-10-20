@@ -17,33 +17,31 @@
 /////////////////////////////////////////////
 
 #include <string>
-#include <unordered_map>
-#include <vector>
 
 #include "clang/AST/PrettyDeclStackTrace.h"
 #include "clang/Basic/DiagnosticSema.h"
 #include "clang/Sema/DeclSpec.h"
 #include "clang/Sema/Scope.h"
 #include "clang/Sema/Sema.h"
-#include <clang/Sema/Lookup.h>
-
-#include "gaia_internal/catalog/catalog.hpp"
-#include "gaia_internal/catalog/gaia_catalog.h"
-
+#include "clang/Sema/Lookup.h"
+#include "clang/Catalog/GaiaCatalog.h"
+#include "llvm/ADT/SmallString.h"
+#include "llvm/ADT/StringSet.h"
+#include "llvm/ADT/StringMap.h"
 using namespace gaia;
 using namespace std;
 using namespace clang;
 
-static string fieldTableName;
+static SmallString<20> fieldTableName;
 
 static constexpr char ruleContextTypeName[] = "rule_context__type";
 static constexpr char connectFunctionName[] = "connect";
 static constexpr char disconnectFunctionName[] = "disconnect";
 
-static string get_table_from_expression(const string& expression)
+static StringRef getTableFromExpression(StringRef expression)
 {
     size_t dot_position = expression.find('.');
-    if (dot_position != string::npos)
+    if (dot_position != StringRef::npos)
     {
         return expression.substr(0, dot_position);
     }
@@ -106,9 +104,12 @@ static QualType mapFieldType(catalog::data_type_t dbType, ASTContext* context)
     return returnType;
 }
 
-StringRef Sema::ConvertString(const string& str, SourceLocation loc)
+StringRef Sema::ConvertString(StringRef str, SourceLocation loc)
 {
-    string literalString = string("\"") + str + string("\"");
+    llvm::SmallString<20> literalString;
+    literalString += '"';
+    literalString += str;
+    literalString += '"';
     Token Toks[1];
     Toks[0].startToken();
     Toks[0].setKind(tok::string_literal);
@@ -120,32 +121,16 @@ StringRef Sema::ConvertString(const string& str, SourceLocation loc)
     return literal->getString();
 }
 
-class DBMonitor
+bool Sema::doesPathIncludesTags(const SmallVector<std::string, 8>& path, SourceLocation loc)
 {
-public:
-    DBMonitor()
-    {
-        gaia::db::begin_session();
-        gaia::db::begin_transaction();
-    }
-
-    ~DBMonitor()
-    {
-        gaia::db::commit_transaction();
-        gaia::db::end_session();
-    }
-};
-
-bool Sema::doesPathIncludesTags(const std::vector<std::string>& path, SourceLocation loc)
-{
-    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
+    const llvm::StringMap<std::string>& tagMapping = getTagMapping(getCurFunctionDecl(), loc);
     if (tagMapping.empty())
     {
         return false;
     }
     for (const auto& path_component : path)
     {
-        if (tagMapping.find(get_table_from_expression(path_component)) != tagMapping.end())
+        if (tagMapping.find(getTableFromExpression(path_component)) != tagMapping.end())
         {
             return true;
         }
@@ -153,11 +138,11 @@ bool Sema::doesPathIncludesTags(const std::vector<std::string>& path, SourceLoca
     return false;
 }
 
-std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocation loc)
+std::string Sema::ParseExplicitPath(StringRef pathString, SourceLocation loc)
 {
     size_t searchStartPosition = 0;
-    unordered_map<string, string> tagMap;
-    vector<string> path;
+    llvm::StringMap<string> tagMap;
+    SmallVector<string, 8> path;
     bool is_absolute = pathString.front() == '/';
     if (pathString.front() == '/' || pathString.front() == '@')
     {
@@ -167,10 +152,10 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
     {
         searchStartPosition = 2;
     }
-    string tag;
+    StringRef tag;
     size_t tagPosition = 0, arrowPosition = 0;
-    unordered_set<string> tableData = getCatalogTableList(loc);
-    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
+    const llvm::StringSet<>& tableData = getCatalogTableList();
+    const llvm::StringMap<std::string>& tagMapping = getTagMapping(getCurFunctionDecl(), loc);
 
     while (tagPosition != string::npos || arrowPosition != string::npos)
     {
@@ -201,12 +186,12 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                 Diag(loc, diag::err_invalid_explicit_path);
                 return "";
             }
-            string table = pathString.substr(searchStartPosition, arrowPosition - searchStartPosition);
+            StringRef table = pathString.substr(searchStartPosition, arrowPosition - searchStartPosition);
 
             if (!tag.empty())
             {
-                tagMap[tag] = get_table_from_expression(table);
-                tag.clear();
+                tagMap[tag] = getTableFromExpression(table);
+                tag = StringRef();
             }
             path.push_back(table);
             searchStartPosition = arrowPosition + 2;
@@ -215,7 +200,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
         tagPosition = pathString.find(':', searchStartPosition);
         arrowPosition = pathString.find("->", searchStartPosition);
     }
-    string table = pathString.substr(searchStartPosition);
+    StringRef table = pathString.substr(searchStartPosition);
     if (table.empty())
     {
         Diag(loc, diag::err_invalid_explicit_path);
@@ -223,7 +208,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
     }
     if (!tag.empty())
     {
-        tagMap[tag] = get_table_from_expression(table);
+        tagMap[tag] = getTableFromExpression(table);
     }
     path.push_back(table);
 
@@ -231,11 +216,9 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
     // Therefore there is no need to perform more checks here.
     if (path.size() > 1 || pathString.front() == '/' || !tagMap.empty() || doesPathIncludesTags(path, loc))
     {
-        unordered_multimap<string, TableLinkData_t> relationData = getCatalogTableRelations(loc);
-
-        for (auto tagEntry : tagMap)
+        for (const auto& tagEntry : tagMap)
         {
-            auto tableDescription = tableData.find(tagEntry.second);
+            const auto& tableDescription = tableData.find(tagEntry.second);
             if (tableDescription == tableData.end())
             {
                 Diag(loc, diag::err_table_not_found) << tagEntry.second;
@@ -243,9 +226,9 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             }
         }
 
-        unordered_set<string> duplicate_component_check_set;
-        string previousTable, previousField;
-        for (string pathComponent : path)
+        llvm::StringSet<> duplicate_component_check_set;
+        StringRef previousTable, previousField;
+        for (StringRef pathComponent : path)
         {
             if (duplicate_component_check_set.find(pathComponent) != duplicate_component_check_set.end())
             {
@@ -256,7 +239,7 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             {
                 duplicate_component_check_set.insert(pathComponent);
             }
-            string tableName, fieldName;
+            StringRef tableName, fieldName;
             size_t dotPosition = pathComponent.find('.');
             if (dotPosition != string::npos)
             {
@@ -279,8 +262,8 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
             {
                 tableName = pathComponent;
             }
-            auto tagMappingIterator = tagMapping.find(tableName);
-            auto tagMapIterator = tagMap.find(tableName);
+            const auto& tagMappingIterator = tagMapping.find(tableName);
+            const auto& tagMapIterator = tagMap.find(tableName);
             if (tagMappingIterator != tagMapping.end() || tagMapIterator != tagMap.end())
             {
                 if (tagMappingIterator != tagMapping.end() && is_absolute)
@@ -309,45 +292,51 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
                     tableName = tagMapIterator->second;
                 }
             }
-            auto tableDescription = tableData.find(tableName);
+            const auto& tableDescription = tableData.find(tableName);
             if (tableDescription == tableData.end())
             {
-                Diag(loc, diag::err_invalid_tag_defined) << tableName;
+                // Test to see if this is a field name
+                if (findFieldType(tableName, loc))
+                {
+                    Diag(loc, diag::err_invalid_field_usage) << tableName;
+                }
+                else
+                {
+                    Diag(loc, diag::err_invalid_tag_defined) << tableName;
+                }
                 return "";
             }
 
             if (!previousTable.empty())
             {
-                auto relatedTablesIterator = relationData.equal_range(previousTable);
+                const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+                const auto& relatedTablesIterator = catalogData.find(previousTable);
 
-                if (relatedTablesIterator.first == relationData.end() && relatedTablesIterator.second == relationData.end())
+                if (relatedTablesIterator == catalogData.end() || relatedTablesIterator->second.linkData.empty())
                 {
                     Diag(loc, diag::err_no_relations_table_in_path) << previousTable << pathComponent;
                     return "";
                 }
 
                 bool isMatchFound = false;
-                for (auto tableIterator = relatedTablesIterator.first; tableIterator != relatedTablesIterator.second; ++tableIterator)
+                for (const auto& tableIterator : relatedTablesIterator->second.linkData)
                 {
-                    if (tableIterator != relationData.end())
+                    StringRef table = tableIterator.second.targetTable;
+                    StringRef field = tableIterator.first();
+                    if (tableName == table)
                     {
-                        string table = tableIterator->second.table;
-                        string field = tableIterator->second.field;
-                        if (tableName == table)
+                        if (!previousField.empty())
                         {
-                            if (!previousField.empty())
-                            {
-                                if (previousField == field)
-                                {
-                                    isMatchFound = true;
-                                    break;
-                                }
-                            }
-                            else
+                            if (previousField == field)
                             {
                                 isMatchFound = true;
                                 break;
                             }
+                        }
+                        else
+                        {
+                            isMatchFound = true;
+                            break;
                         }
                     }
                 }
@@ -378,125 +367,32 @@ std::string Sema::ParseExplicitPath(const std::string& pathString, SourceLocatio
     return path.back();
 }
 
-unordered_map<string, unordered_map<string, QualType>> Sema::getTableData(SourceLocation loc)
+llvm::StringMap<llvm::StringMap<QualType>> Sema::getTableData()
 {
-    unordered_map<string, unordered_map<string, QualType>> retVal;
-    try
-    {
-        DBMonitor monitor;
-        for (const catalog::gaia_field_t& field : catalog::gaia_field_t::list())
-        {
-            catalog::gaia_table_t tbl = field.table();
-            if (!tbl)
-            {
-                Diag(loc, diag::err_invalid_table_field) << field.name();
-                return unordered_map<string, unordered_map<string, QualType>>();
-            }
-            if (tbl.is_system())
-            {
-                continue;
-            }
-            unordered_map<string, QualType> fields = retVal[tbl.name()];
-            if (fields.find(field.name()) != fields.end())
-            {
-                Diag(loc, diag::err_duplicate_field) << field.name() << tbl.name();
-                return unordered_map<string, unordered_map<string, QualType>>();
-            }
-            fields[field.name()] = mapFieldType(static_cast<catalog::data_type_t>(field.type()), &Context);
-            retVal[tbl.name()] = fields;
-        }
-    }
-    catch (const exception& e)
-    {
-        Diag(loc, diag::err_catalog_exception) << e.what();
-        return unordered_map<string, unordered_map<string, QualType>>();
-    }
-    return retVal;
-}
+    llvm::StringMap<llvm::StringMap<QualType>> retVal;
+    const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
 
-unordered_set<string> Sema::getCatalogTableList(SourceLocation loc)
-{
-    unordered_set<string> retVal;
-    try
+    for (const auto& catalogDataItem : catalogData)
     {
-        DBMonitor monitor;
-        for (const catalog::gaia_field_t& field : catalog::gaia_field_t::list())
+        llvm::StringMap<QualType> fields;
+        for (const auto& fieldData : catalogDataItem.second.fieldData)
         {
-            catalog::gaia_table_t tbl = field.table();
-            if (!tbl)
-            {
-                Diag(loc, diag::err_invalid_table_field) << field.name();
-                return unordered_set<string>();
-            }
-            if (tbl.is_system())
-            {
-                continue;
-            }
-            retVal.emplace(tbl.name());
+            fields[fieldData.first()] =  mapFieldType(fieldData.second.fieldType, &Context);
         }
-    }
-    catch (const exception& e)
-    {
-        Diag(loc, diag::err_catalog_exception) << e.what();
-        return unordered_set<string>();
+        retVal[catalogDataItem.first()] = fields;
     }
 
     return retVal;
 }
 
-unordered_multimap<string, Sema::TableLinkData_t> Sema::getCatalogTableRelations(SourceLocation loc)
+llvm::StringSet<> Sema::getCatalogTableList()
 {
-    unordered_multimap<string, Sema::TableLinkData_t> retVal;
-    try
+    llvm::StringSet<> retVal;
+    const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+
+    for (const auto& catalogDataItem : catalogData)
     {
-        DBMonitor monitor;
-        for (const auto& relationship : catalog::gaia_relationship_t::list())
-        {
-            catalog::gaia_table_t child_table = relationship.child();
-            if (!child_table)
-            {
-                Diag(loc, diag::err_invalid_child_table) << relationship.name();
-                return unordered_multimap<string, Sema::TableLinkData_t>();
-            }
-
-            if (child_table.is_system())
-            {
-                continue;
-            }
-
-            catalog::gaia_table_t parent_table = relationship.parent();
-            if (!parent_table)
-            {
-                Diag(loc, diag::err_invalid_parent_table) << relationship.name();
-                return unordered_multimap<string, Sema::TableLinkData_t>();
-            }
-
-            if (parent_table.is_system())
-            {
-                continue;
-            }
-
-            TableLinkData_t link_data_1;
-            link_data_1.table = parent_table.name();
-            link_data_1.field = relationship.to_parent_link_name();
-            link_data_1.is_from_parent = false;
-            link_data_1.is_one_to_many = false;
-
-            TableLinkData_t link_data_n;
-            link_data_n.table = child_table.name();
-            link_data_n.field = relationship.to_child_link_name();
-            link_data_n.is_from_parent = true;
-            link_data_n.is_one_to_many = static_cast<catalog::relationship_cardinality_t>(relationship.cardinality())
-                == catalog::relationship_cardinality_t::many;
-
-            retVal.emplace(child_table.name(), link_data_1);
-            retVal.emplace(parent_table.name(), link_data_n);
-        }
-    }
-    catch (const exception& e)
-    {
-        Diag(loc, diag::err_catalog_exception) << e.what();
-        return unordered_multimap<string, Sema::TableLinkData_t>();
+        retVal.insert(catalogDataItem.first());
     }
 
     return retVal;
@@ -514,7 +410,7 @@ void Sema::addField(IdentifierInfo* name, QualType type, RecordDecl* RD, SourceL
     RD->addDecl(Field);
 }
 
-void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, SmallVector<QualType, 8> parameterTypes, AttributeFactory& attrFactory, ParsedAttributes& attrs, RecordDecl* RD, SourceLocation loc, bool isVariadic, ParsedType returnType)
+void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, const SmallVector<QualType, 8>& parameterTypes, AttributeFactory& attrFactory, ParsedAttributes& attrs, RecordDecl* RD, SourceLocation loc, bool isVariadic, ParsedType returnType)
 {
     DeclContext* functionDecl = getCurFunctionDecl();
     DeclSpec DS(attrFactory);
@@ -549,7 +445,7 @@ void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, SmallVector
         paramDeclarator.SetIdentifier(name, loc);
         int paramIndex = 1;
 
-        for (QualType& type : parameterTypes)
+        for (const QualType& type : parameterTypes)
         {
             // TODO we need a way to pass named params to have better diagnostics.
             string paramName = "param_" + to_string(paramIndex);
@@ -613,17 +509,15 @@ QualType Sema::getRuleContextType(SourceLocation loc)
     return Context.getTagDeclType(RD);
 }
 
-QualType Sema::getLinkType(const std::string& linkName, const std::string& from_table, const std::string& to_table, bool is_one_to_many, SourceLocation loc)
+QualType Sema::getLinkType(StringRef linkName, StringRef from_table, StringRef to_table, bool is_one_to_many, SourceLocation loc)
 {
     // If you have (farmer)-[incubators]->(incubator), the type name is: farmer_incubators__type.
     // The table name is necessary because there could me multiple links in multiple tables
     // with the same name.
-    std::string linkTypeName;
-    linkTypeName
-        .append(from_table)
-        .append("_")
-        .append(linkName)
-        .append("__type");
+    llvm::SmallString<20> linkTypeName = from_table;
+    linkTypeName += '_';
+    linkTypeName += linkName;
+    linkTypeName += "__type";
 
     TagDecl* linkTypeDeclaration = lookupClass(linkTypeName, loc, getCurScope());
 
@@ -646,7 +540,7 @@ QualType Sema::getLinkType(const std::string& linkName, const std::string& from_
     return Context.getTagDeclType(RD);
 }
 
-TagDecl* Sema::lookupClass(std::string className, SourceLocation loc, Scope* scope)
+TagDecl* Sema::lookupClass(StringRef className, SourceLocation loc, Scope* scope)
 {
     DeclarationName declName = &Context.Idents.get(className);
 
@@ -675,7 +569,7 @@ TagDecl* Sema::lookupClass(std::string className, SourceLocation loc, Scope* sco
     return classDecl;
 }
 
-TagDecl* Sema::lookupEDCClass(std::string className)
+TagDecl* Sema::lookupEDCClass(StringRef className)
 {
     // TODO do a search bound to a namespace:
     //   LookupResult gaiaNS(
@@ -683,28 +577,22 @@ TagDecl* Sema::lookupEDCClass(std::string className)
     //   LookupQualifiedName(gaiaNS, Context.getTranslationUnitDecl());
     //  ....
 
-    for (Type* type : Context.getTypes())
+    auto typeIterator = Context.getEDCTypes().find(className);
+    if (typeIterator != Context.getEDCTypes().end())
     {
-        RecordDecl* record = type->getAsRecordDecl();
-        if (record != nullptr)
-        {
-            const IdentifierInfo* id = record->getIdentifier();
-            if (id && id->getName().equals(className))
-            {
-                return llvm::cast_or_null<TagDecl>(record);
-            }
-        }
+        return llvm::cast_or_null<TagDecl>(typeIterator->second->getAsRecordDecl());
     }
 
     return nullptr;
 }
 
-void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targetTableName, bool is_one_to_many, SourceLocation loc, AttributeFactory& attrFactory, ParsedAttributes& attrs)
+void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, StringRef targetTableName, bool is_one_to_many, SourceLocation loc, AttributeFactory& attrFactory, ParsedAttributes& attrs)
 {
     SmallVector<TagDecl*, 2> targetTypes;
 
     // Look up the implicit class type (table__type).
-    string implicitTableTypeName = targetTableName + "__type";
+    llvm::SmallString<20> implicitTableTypeName = targetTableName;
+    implicitTableTypeName += "__type";
     TagDecl* implicitTargetTypeDecl = lookupClass(implicitTableTypeName, loc, getCurScope());
 
     if (!implicitTargetTypeDecl)
@@ -723,7 +611,8 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targe
 
     // TODO [GAIAPLAT-1168] We should not statically build the EDC type, bust ask the Catalog for it.
     // Lookup the EDC class type (table_t)
-    string edcTableTypeName = targetTableName + "_t";
+    llvm::SmallString<20> edcTableTypeName = targetTableName;
+    edcTableTypeName += "_t";
     TagDecl* edcTargetTypeDecl = lookupEDCClass(edcTableTypeName);
 
     if (edcTargetTypeDecl)
@@ -737,7 +626,6 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targe
     for (TagDecl* targetType : targetTypes)
     {
         // Creates a reference parameter (eg. incubator__type&).
-        QualType connectDisconnectParam = Context.getTypeDeclType(targetType);
         QualType connectDisconnectParamRef = BuildReferenceType(QualType(targetType->getTypeForDecl(), 0).withConst(), true, loc, DeclarationName());
 
         SmallVector<QualType, 8> parameters;
@@ -760,7 +648,7 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, const string& targe
     }
 }
 
-QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
+QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
 {
     DeclContext* functionDecl = getCurFunctionDecl();
     DeclContext* rulesetContext = functionDecl;
@@ -779,20 +667,21 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         return Context.VoidTy;
     }
 
-    std::string typeName = tableName;
-    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(functionDecl, loc);
-    if (tagMapping.find(tableName) != tagMapping.end())
+    llvm::SmallString<20> typeName = tableName;
+    const llvm::StringMap<std::string>& tagMapping = getTagMapping(functionDecl, loc);
+    const auto& tagMappingIterator = tagMapping.find(tableName);
+    if (tagMappingIterator != tagMapping.end())
     {
-        typeName = tagMapping[tableName];
+        typeName = tagMappingIterator->second;
     }
 
-    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
+    const llvm::StringMap<llvm::StringMap<QualType>>& tableData = getTableData();
     if (tableData.empty())
     {
         return Context.VoidTy;
     }
 
-    auto tableDescription = tableData.find(typeName);
+    const auto& tableDescription = tableData.find(typeName);
     if (tableDescription == tableData.end())
     {
         Diag(loc, diag::err_table_not_found) << typeName;
@@ -805,7 +694,8 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     //  3. It finds the definition and returns it. This happens if this method
     //     is called multiple times for the same table.
 
-    string implicitClassName = typeName + "__type";
+    llvm::SmallString<20> implicitClassName = typeName;
+    implicitClassName += "__type";
 
     TagDecl* previousDeclaration = lookupClass(implicitClassName, loc, getCurScope());
     fieldTableName = typeName;
@@ -823,7 +713,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         bool table_found = false;
         for (const IdentifierInfo* id : attr->tables())
         {
-            if (id->getName().str() == typeName)
+            if (id->getName() == typeName)
             {
                 table_found = true;
                 break;
@@ -855,7 +745,8 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
 
     // Adds a conversion function from the generated table type (table__type)
     // to the EDC type (table_t).
-    string edcClassName = tableName + "_t";
+    llvm::SmallString<20> edcClassName = typeName;
+    edcClassName += "_t";
     TagDecl* edcType = lookupEDCClass(edcClassName);
     if (edcType != nullptr)
     {
@@ -877,7 +768,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
     // Add fields to the type.
     for (const auto& f : tableDescription->second)
     {
-        string fieldName = f.first;
+        string fieldName = f.first();
         QualType fieldType = f.second;
         if (fieldType->isVoidType())
         {
@@ -887,32 +778,33 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         addField(&Context.Idents.get(fieldName), fieldType, RD, loc);
     }
 
-    unordered_multimap<string, Sema::TableLinkData_t> relationships = getCatalogTableRelations(loc);
-    auto links = relationships.equal_range(typeName);
+    const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+    const auto& links = catalogData.find(typeName)->second.linkData;
 
     // For every relationship target table we count how many links
     // we have from tableName. This is needed to determine if we can
     // have a connect/disconnect method for a given target type.
-    unordered_map<string, int> links_target_tables;
+    llvm::StringMap<int> links_target_tables;
 
     // Stores the cardinality for a given target table.
     // true -> one-to-many, false otherwise.
     // Note that if a table has multiple links it does not matter
     // because the connect/disconnect methods are not generated.
-    unordered_map<string, bool> links_cardinality;
+    llvm::StringMap<bool> links_cardinality;
 
-    for (auto link = links.first; link != links.second; ++link)
+    for (const auto& link : links)
     {
-        TableLinkData_t linkData = link->second;
+        const auto& linkData = link.second;
 
         // For now, connect/disconnect is supported only from the parent side
         // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1190
-        if (linkData.is_from_parent)
+        if (linkData.isFromParent)
         {
-            QualType type = getLinkType(linkData.field, tableName, linkData.table, linkData.is_one_to_many, loc);
-            addField(&Context.Idents.get(linkData.field), type, RD, loc);
-            links_target_tables[linkData.table]++;
-            links_cardinality[linkData.table] = linkData.is_one_to_many;
+            QualType type = getLinkType(link.first(), tableName, linkData.targetTable
+                , linkData.cardinality == catalog::relationship_cardinality_t::many, loc);
+            addField(&Context.Idents.get(link.first()), type, RD, loc);
+            links_target_tables[linkData.targetTable]++;
+            links_cardinality[linkData.targetTable] = linkData.cardinality == catalog::relationship_cardinality_t::many;
         }
     }
 
@@ -932,7 +824,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
         //   bool connect(farmer_type&);
         //   bool disconnect(farmer_type&);
         //   ....
-        for (auto targetTablePair : links_target_tables)
+        for (const auto& targetTablePair : links_target_tables)
         {
             // connect/disconnect are not appended to the table if there is more than one
             // link pointing to a target type.
@@ -943,7 +835,7 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
                 continue;
             }
 
-            addConnectDisconnect(RD, targetTablePair.first, links_cardinality[targetTablePair.first], loc, attrFactory, attrs);
+            addConnectDisconnect(RD, targetTablePair.first(), links_cardinality[targetTablePair.first()], loc, attrFactory, attrs);
         }
     }
 
@@ -955,20 +847,20 @@ QualType Sema::getTableType(const std::string& tableName, SourceLocation loc)
 QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation loc)
 {
     DeclContext* context = getCurFunctionDecl();
-    unordered_map<string, unordered_map<string, QualType>> tableData = getTableData(loc);
+    const llvm::StringMap<llvm::StringMap<QualType>>& tableData = getTableData();
     if (tableData.empty())
     {
         return Context.VoidTy;
     }
 
-    std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
+    const llvm::StringMap<std::string>& tagMapping = getTagMapping(getCurFunctionDecl(), loc);
 
     // Check if the fieldOrTagName is a reference to a table or to a tag.
-    if (tableData.find(fieldOrTagName) != tableData.end() || tagMapping.find(fieldOrTagName) != tagMapping.end())
+    const auto& tagMappingIterator = tagMapping.find(fieldOrTagName);
+    if (tableData.find(fieldOrTagName) != tableData.end() || tagMappingIterator != tagMapping.end())
     {
-        for (auto iterator : tableData)
+        for (const auto& iterator : tableData)
         {
-
             if (iterator.second.find(fieldOrTagName) != iterator.second.end())
             {
                 // TODO add information about the source of ambiguity.
@@ -983,7 +875,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
         }
         else
         {
-            return getTableType(tagMapping[fieldOrTagName], loc);
+            return getTableType(tagMappingIterator->second, loc);
         }
     }
 
@@ -1001,7 +893,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
         Diag(loc, diag::err_no_ruleset_for_rule);
         return Context.VoidTy;
     }
-    vector<string> tables;
+    SmallVector<string, 8> tables;
     RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(context);
     RulesetTablesAttr* attr = rulesetDecl->getAttr<RulesetTablesAttr>();
 
@@ -1009,30 +901,30 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
     {
         for (const IdentifierInfo* id : attr->tables())
         {
-            tables.push_back(id->getName().str());
+            tables.push_back(id->getName());
         }
     }
     else
     {
-        for (auto it : tableData)
+        for (const auto& it : tableData)
         {
-            tables.push_back(it.first);
+            tables.push_back(it.first());
         }
     }
 
     QualType retVal = Context.VoidTy;
-    for (string tableName : tables)
+    for (const string& tableName : tables)
     {
         // Search if there is a match in the table fields.
 
-        auto tableDescription = tableData.find(tableName);
+        const auto& tableDescription = tableData.find(tableName);
         if (tableDescription == tableData.end())
         {
             Diag(loc, diag::err_table_not_found) << tableName;
             return Context.VoidTy;
         }
 
-        auto fieldDescription = tableDescription->second.find(fieldOrTagName);
+        const auto& fieldDescription = tableDescription->second.find(fieldOrTagName);
 
         if (fieldDescription != tableDescription->second.end())
         {
@@ -1043,7 +935,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
             }
             if (retVal != Context.VoidTy)
             {
-                Diag(loc, diag::err_duplicate_field) << fieldOrTagName << tableName;
+                Diag(loc, diag::err_duplicate_field) << fieldOrTagName;
                 return Context.VoidTy;
             }
 
@@ -1053,20 +945,19 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
         else
         {
             // Search if there is a match in the table links.
+            const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+            const auto& links = catalogData.find(tableName)->second.linkData;
 
-            unordered_multimap<string, Sema::TableLinkData_t> relationships = getCatalogTableRelations(loc);
-            auto links = relationships.equal_range(tableName);
-
-            for (auto link = links.first; link != links.second; ++link)
+            for (const auto& link : links)
             {
-                TableLinkData_t linkData = link->second;
+                const auto& linkData = link.second;
 
-                if (!linkData.is_from_parent)
+                if (!linkData.isFromParent)
                 {
                     continue;
                 }
 
-                if (linkData.field == fieldOrTagName)
+                if (link.first() == fieldOrTagName)
                 {
                     if (retVal != Context.VoidTy)
                     {
@@ -1074,7 +965,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
                         return Context.VoidTy;
                     }
 
-                    retVal = getLinkType(linkData.field, tableName, linkData.table, linkData.is_one_to_many, loc);
+                    retVal = getLinkType(link.first(), tableName, linkData.targetTable, linkData.cardinality == catalog::relationship_cardinality_t::many, loc);
                     fieldTableName = tableName;
                 }
             }
@@ -1089,7 +980,79 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
     return retVal;
 }
 
-static bool parse_tagged_attribute(const string& attribute, string& table, string& tag)
+// This method is a simplified version of getFieldType() used only to determine if a string
+// is the name of a field in the database.
+bool Sema::findFieldType(const std::string& fieldOrTagName, SourceLocation loc)
+{
+    bool retVal = false;
+
+    const llvm::StringMap<llvm::StringMap<QualType>>& tableData = getTableData();
+    if (tableData.empty())
+    {
+        return retVal;
+    }
+
+    DeclContext* context = getCurFunctionDecl();
+    while (context)
+    {
+        if (isa<RulesetDecl>(context))
+        {
+            break;
+        }
+        context = context->getParent();
+    }
+
+    if (context == nullptr || !isa<RulesetDecl>(context))
+    {
+        Diag(loc, diag::err_no_ruleset_for_rule);
+        return false;
+    }
+
+    SmallVector<string, 8> tables;
+    RulesetDecl* rulesetDecl = dyn_cast<RulesetDecl>(context);
+    RulesetTablesAttr* attr = rulesetDecl->getAttr<RulesetTablesAttr>();
+
+    if (attr != nullptr)
+    {
+        for (const IdentifierInfo* id : attr->tables())
+        {
+            tables.push_back(id->getName().str());
+        }
+    }
+    else
+    {
+        for (const auto& it : tableData)
+        {
+            tables.push_back(it.first());
+        }
+    }
+
+    for (const string& tableName : tables)
+    {
+        // Search if there is a match in the table fields.
+        const auto& tableDescription = tableData.find(tableName);
+        if (tableDescription == tableData.end())
+        {
+            break;
+        }
+        const auto& fieldDescription = tableDescription->second.find(fieldOrTagName);
+
+        if (fieldDescription != tableDescription->second.end())
+        {
+            if (fieldDescription->second->isVoidType())
+            {
+                Diag(loc, diag::err_invalid_field_type) << fieldOrTagName;
+                break;
+            }
+            retVal = true;
+            break;
+        }
+    }
+
+    return retVal;
+}
+
+static bool parseTaggedAttribute(StringRef attribute, StringRef& table, StringRef& tag)
 {
     size_t tag_position = attribute.find(':');
     if (tag_position != string::npos)
@@ -1112,9 +1075,9 @@ static bool parse_tagged_attribute(const string& attribute, string& table, strin
     return true;
 }
 
-std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclContext* context, SourceLocation loc)
+llvm::StringMap<std::string> Sema::getTagMapping(const DeclContext* context, SourceLocation loc)
 {
-    std::unordered_map<std::string, std::string> retVal;
+    llvm::StringMap<std::string> retVal;
     const FunctionDecl* ruleContext = dyn_cast<FunctionDecl>(context);
     if (ruleContext == nullptr)
     {
@@ -1129,13 +1092,13 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
     {
         for (const auto& table_iterator : update_attribute->tables())
         {
-            string table, tag;
-            if (parse_tagged_attribute(table_iterator, table, tag))
+            StringRef table, tag;
+            if (parseTaggedAttribute(table_iterator, table, tag))
             {
                 if (retVal.find(tag) != retVal.end())
                 {
                     Diag(loc, diag::err_tag_redefined) << tag;
-                    return std::unordered_map<std::string, std::string>();
+                    return llvm::StringMap<std::string>();
                 }
                 else
                 {
@@ -1149,13 +1112,13 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
     {
         for (const auto& table_iterator : insert_attribute->tables())
         {
-            string table, tag;
-            if (parse_tagged_attribute(table_iterator, table, tag))
+            StringRef table, tag;
+            if (parseTaggedAttribute(table_iterator, table, tag))
             {
                 if (retVal.find(tag) != retVal.end())
                 {
                     Diag(loc, diag::err_tag_redefined) << tag;
-                    return std::unordered_map<std::string, std::string>();
+                    return llvm::StringMap<std::string>();
                 }
                 else
                 {
@@ -1169,13 +1132,13 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
     {
         for (const auto& table_iterator : change_attribute->tables())
         {
-            string table, tag;
-            if (parse_tagged_attribute(table_iterator, table, tag))
+            StringRef table, tag;
+            if (parseTaggedAttribute(table_iterator, table, tag))
             {
                 if (retVal.find(tag) != retVal.end())
                 {
                     Diag(loc, diag::err_tag_redefined) << tag;
-                    return std::unordered_map<std::string, std::string>();
+                    return llvm::StringMap<std::string>();
                 }
                 else
                 {
@@ -1190,14 +1153,14 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
         const auto& tagMap = explicitPathTagMapIterator.second;
         for (const auto& tagMapIterator : tagMap)
         {
-            if (retVal.find(tagMapIterator.first) != retVal.end())
+            if (retVal.find(tagMapIterator.first()) != retVal.end())
             {
-                Diag(loc, diag::err_tag_redefined) << tagMapIterator.first;
-                return std::unordered_map<std::string, std::string>();
+                Diag(loc, diag::err_tag_redefined) << tagMapIterator.first();
+                return llvm::StringMap<std::string>();
             }
             else
             {
-                retVal[tagMapIterator.first] = tagMapIterator.second;
+                retVal[tagMapIterator.first()] = tagMapIterator.second;
             }
         }
     }
@@ -1209,14 +1172,14 @@ std::unordered_map<std::string, std::string> Sema::getTagMapping(const DeclConte
         {
             if (explicitPathTagMapping.find(explicitPathTagMapIterator.first) == explicitPathTagMapping.end())
             {
-                if (retVal.find(tagMapIterator.first) != retVal.end())
+                if (retVal.find(tagMapIterator.first()) != retVal.end())
                 {
-                    Diag(loc, diag::err_tag_redefined) << tagMapIterator.first;
-                    return std::unordered_map<std::string, std::string>();
+                    Diag(loc, diag::err_tag_redefined) << tagMapIterator.first();
+                    return llvm::StringMap<std::string>();
                 }
                 else
                 {
-                    retVal[tagMapIterator.first] = tagMapIterator.second;
+                    retVal[tagMapIterator.first()] = tagMapIterator.second;
                 }
             }
         }
@@ -1230,7 +1193,6 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
     QualType qualType = Context.VoidTy;
 
     string table = ParseExplicitPath(explicitPath, loc);
-
     if (!table.empty())
     {
         size_t dot_position = table.find('.');
@@ -1262,35 +1224,35 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
 
     if (GetExplicitPathData(loc, startLocation, endLocation, path))
     {
-        std::unordered_map<std::string, std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
+        llvm::StringMap<std::string> tagMapping = getTagMapping(getCurFunctionDecl(), loc);
         SmallVector<StringRef, 4> argPathComponents, argTagKeys, argTagTables,
             argDefinedTagKeys, argDefinedTagTables;
-        for (auto pathComponentsIterator : explicitPathData[loc].path)
+        for (const auto& pathComponentsIterator : explicitPathData[loc].path)
         {
             argPathComponents.push_back(ConvertString(pathComponentsIterator, loc));
         }
 
-        for (auto tagsIterator : explicitPathData[loc].tagMap)
+        for (const auto& tagsIterator : explicitPathData[loc].tagMap)
         {
-            argTagKeys.push_back(ConvertString(tagsIterator.first, loc));
+            argTagKeys.push_back(ConvertString(tagsIterator.first(), loc));
             argTagTables.push_back(ConvertString(tagsIterator.second, loc));
             argDefinedTagKeys.push_back(ConvertString(tagsIterator.second, loc));
-            argDefinedTagTables.push_back(ConvertString(tagsIterator.first, loc));
+            argDefinedTagTables.push_back(ConvertString(tagsIterator.first(), loc));
         }
 
-        for (auto tagsIterator : explicitPathTagMapping[loc])
+        for (const auto& tagsIterator : explicitPathTagMapping[loc])
         {
-            argTagKeys.push_back(ConvertString(tagsIterator.first, loc));
+            argTagKeys.push_back(ConvertString(tagsIterator.first(), loc));
             argTagTables.push_back(ConvertString(tagsIterator.second, loc));
         }
-        for (auto tagsIterator : extendedExplicitPathTagMapping[loc])
+        for (const auto& tagsIterator : extendedExplicitPathTagMapping[loc])
         {
-            argTagKeys.push_back(ConvertString(tagsIterator.first, loc));
+            argTagKeys.push_back(ConvertString(tagsIterator.first(), loc));
             argTagTables.push_back(ConvertString(tagsIterator.second, loc));
         }
-        for (auto tagsIterator : tagMapping)
+        for (const auto& tagsIterator : tagMapping)
         {
-            argTagKeys.push_back(ConvertString(tagsIterator.first, loc));
+            argTagKeys.push_back(ConvertString(tagsIterator.first(), loc));
             argTagTables.push_back(ConvertString(tagsIterator.second, loc));
         }
 
@@ -1341,7 +1303,7 @@ ExprResult Sema::ActOnGaiaRuleContext(SourceLocation Loc)
 
 void Sema::AddExplicitPathData(SourceLocation location, SourceLocation startLocation, SourceLocation endLocation, const std::string& explicitPath)
 {
-    explicitPathData[location] = {startLocation, endLocation, explicitPath, std::vector<std::string>(), std::unordered_map<std::string, std::string>()};
+    explicitPathData[location] = {startLocation, endLocation, explicitPath, SmallVector<std::string, 8>(), llvm::StringMap<std::string>()};
 }
 
 void Sema::RemoveExplicitPathData(SourceLocation location)
@@ -1373,51 +1335,72 @@ bool Sema::GetExplicitPathData(SourceLocation location, SourceLocation& startLoc
 
 bool Sema::RemoveTagData(SourceRange range)
 {
+    bool returnValue = true;
     if (range.isValid())
     {
-        auto startLocationIterator = extendedExplicitPathTagMapping.lower_bound(range.getBegin());
-        auto endLocationIterator = extendedExplicitPathTagMapping.upper_bound(range.getEnd());
-        if (startLocationIterator == extendedExplicitPathTagMapping.end() && endLocationIterator == extendedExplicitPathTagMapping.end())
+        returnValue = false;
+        for (auto tableIterator = extendedExplicitPathTagMapping.begin(); tableIterator != extendedExplicitPathTagMapping.end();)
         {
-            return false;
+            SourceLocation tagLocation = tableIterator->first;
+            if (tagLocation == range.getBegin() || (range.getBegin() < tagLocation && tagLocation < range.getEnd()))
+            {
+                auto toErase = tableIterator;
+                extendedExplicitPathTagMapping.erase(toErase);
+                ++tableIterator;
+                returnValue = true;
+            }
+            else
+            {
+                ++tableIterator;
+            }
         }
-        extendedExplicitPathTagMapping.erase(startLocationIterator, endLocationIterator);
     }
-    return true;
+    return returnValue;
 }
 
 bool Sema::IsExplicitPathInRange(SourceRange range) const
 {
     if (range.isValid())
     {
-        return extendedExplicitPathTagMapping.lower_bound(range.getBegin()) != extendedExplicitPathTagMapping.end() || extendedExplicitPathTagMapping.upper_bound(range.getEnd()) != extendedExplicitPathTagMapping.end();
+        for (auto tableIterator = extendedExplicitPathTagMapping.begin(); tableIterator != extendedExplicitPathTagMapping.end();)
+        {
+            SourceLocation tagLocation = tableIterator->first;
+            if (tagLocation == range.getBegin() || (range.getBegin() < tagLocation && tagLocation < range.getEnd()))
+            {
+                return true;
+            }
+            else
+            {
+                ++tableIterator;
+            }
+        }
     }
     return false;
 }
 
-void Sema::ActOnStartDeclarativeLabel(const string& label)
+void Sema::ActOnStartDeclarativeLabel(StringRef label)
 {
-    declarativeLabelsInProcess.emplace(label);
+    declarativeLabelsInProcess.insert(label);
 }
 
-bool Sema::ActOnStartLabel(const string& label)
+bool Sema::ActOnStartLabel(StringRef label)
 {
     if (declarativeLabelsInProcess.find(label) != declarativeLabelsInProcess.end())
     {
         return false;
     }
-    labelsInProcess.emplace(label);
+    labelsInProcess.insert(label);
     return true;
 }
 
 bool Sema::ValidateLabel(const LabelDecl* label)
 {
-    string labelName = label->getName().str();
+    StringRef labelName = label->getName();
 
     // Check if there is a declarative label which is not currently processed as a regular label.
-    for (auto declarativeLabel : declarativeLabelsInProcess)
+    for (const auto& declarativeLabel : declarativeLabelsInProcess)
     {
-        if (labelsInProcess.find(declarativeLabel) == labelsInProcess.end())
+        if (labelsInProcess.find(declarativeLabel.first()) == labelsInProcess.end())
         {
             Diag(label->getLocation(), diag::err_declarative_label_does_not_exist);
             return false;

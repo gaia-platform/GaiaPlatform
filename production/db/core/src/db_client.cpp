@@ -12,20 +12,20 @@
 #include <thread>
 
 #include <flatbuffers/flatbuffers.h>
-#include <gaia_spdlog/fmt/fmt.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
 #include "gaia/exceptions.hpp"
 
-#include "gaia_internal/common/memory_allocation_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/socket_helpers.hpp"
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
+
+#include "gaia_spdlog/fmt/fmt.h"
 
 #include "client_messenger.hpp"
 #include "db_helpers.hpp"
@@ -41,12 +41,13 @@ using namespace gaia::db::memory_manager;
 using namespace flatbuffers;
 using namespace scope_guard;
 
-int client_t::get_id_cursor_socket_for_type(gaia_type_t type)
+std::shared_ptr<int> client_t::get_id_cursor_socket_for_type(gaia_type_t type)
 {
     // Build the cursor socket request.
     FlatBufferBuilder builder;
     auto table_scan_info = Createtable_scan_info_t(builder, type);
-    auto client_request = Createclient_request_t(builder, session_event_t::REQUEST_STREAM, request_data_t::table_scan, table_scan_info.Union());
+    auto client_request = Createclient_request_t(
+        builder, session_event_t::REQUEST_STREAM, request_data_t::table_scan, table_scan_info.Union());
     auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
     builder.Finish(message);
 
@@ -64,8 +65,18 @@ int client_t::get_id_cursor_socket_for_type(gaia_type_t type)
     // Check that our stream socket is blocking (because we need to perform blocking reads).
     ASSERT_INVARIANT(!is_non_blocking(stream_socket), "Stream socket is not set to blocking!");
 
+    // We use shared_ptr with a custom deleter to guarantee that the socket is
+    // closed when its owning object is destroyed. We could possibly achieve the
+    // same effect with an RAII wrapper, but it would need to have copy rather
+    // than move semantics, since the socket is captured by a lambda that must
+    // be copyable (since it is coerced to std::function).
+    std::shared_ptr<int> stream_socket_ptr(new int{stream_socket}, [](int* fd_ptr) { close_fd(*fd_ptr); delete fd_ptr; });
+
+    // Both our explicit new() and the shared_ptr constructor dynamically allocate
+    // memory, so we might need to clean up the socket if either fails.
     cleanup_stream_socket.dismiss();
-    return stream_socket;
+
+    return stream_socket_ptr;
 }
 
 std::function<std::optional<gaia_id_t>()>
@@ -124,13 +135,9 @@ client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::opt
 std::shared_ptr<gaia::common::iterators::generator_t<gaia_id_t>>
 client_t::get_id_generator_for_type(gaia_type_t type)
 {
-    int stream_socket = get_id_cursor_socket_for_type(type);
-    auto cleanup_stream_socket = make_scope_guard([&]() {
-        close_fd(stream_socket);
-    });
+    std::shared_ptr<int> stream_socket_ptr = get_id_cursor_socket_for_type(type);
 
-    auto id_generator = get_stream_generator_for_socket<gaia_id_t>(stream_socket);
-    cleanup_stream_socket.dismiss();
+    auto id_generator = get_stream_generator_for_socket<gaia_id_t>(stream_socket_ptr);
 
     // We need to augment the server-based id generator with a local generator
     // that will also return the elements that have been added by the client
@@ -264,7 +271,20 @@ void client_t::begin_session(config::session_options_t session_options)
     build_client_request(builder, session_event_t::CONNECT);
 
     client_messenger_t client_messenger;
-    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 4);
+
+    // If we receive ECONNRESET from the server, we assume that the session
+    // limit was exceeded.
+    // REVIEW: distinguish authentication failure from "session limit exceeded"
+    // (authentication failure will also result in ECONNRESET, but
+    // authentication is currently disabled in the server).
+    try
+    {
+        client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 4);
+    }
+    catch (const gaia::common::peer_disconnected&)
+    {
+        throw session_limit_exceeded();
+    }
 
     // Set up scope guards for the fds.
     // The locators fd needs to be kept around, so its scope guard will be dismissed at the end of this scope.
@@ -310,9 +330,28 @@ void client_t::begin_session(config::session_options_t session_options)
 
 void client_t::end_session()
 {
+    verify_session_active();
+    verify_no_txn();
+
     // This will gracefully shut down the server-side session thread
     // and all other threads that session thread owns.
     close_fd(s_session_socket);
+
+    // If we own a chunk, we need to release it to the memory manager to be
+    // reused when it is empty.
+    // NB: The chunk manager could be uninitialized if this session never made
+    // any allocations.
+    if (s_chunk_manager.initialized())
+    {
+        // Get the session's chunk version for safe deallocation.
+        chunk_version_t version = s_chunk_manager.get_version();
+
+        // Now retire the chunk.
+        s_chunk_manager.retire_chunk(version);
+
+        // Release ownership of the chunk.
+        s_chunk_manager.release();
+    }
 }
 
 void client_t::begin_transaction()
@@ -392,12 +431,6 @@ void client_t::rollback_transaction()
     // Clean up all transaction-local session state.
     auto cleanup = make_scope_guard(txn_cleanup);
 
-    // TODO: For now, we do no rollback because the current logic will attempt to
-    // deallocate the memory of the new objects manually in deallocate_txn_log().
-    // This just means that for now the memory used by rolled back transactions
-    // will take longer to be marked as freed.
-    // rollback_chunk_manager_allocations();
-
     // We need to close our log mapping so the server can seal and truncate it.
     s_log.close();
 
@@ -463,12 +496,6 @@ void client_t::commit_transaction()
     // (https://gaiaplatform.atlassian.net/browse/GAIAPLAT-292).
     if (event == session_event_t::DECIDE_TXN_ABORT)
     {
-        // TODO: For now, we do no rollback because the current logic will attempt to
-        // deallocate the memory of the new objects manually in deallocate_txn_log().
-        // This just means that for now the memory used by rolled back transactions
-        // will take longer to be marked as freed.
-        // rollback_chunk_manager_allocations();
-
         throw transaction_update_conflict();
     }
     // Improving the communication of such errors to the client is tracked by:
@@ -477,12 +504,6 @@ void client_t::commit_transaction()
     {
         throw index::unique_constraint_violation();
     }
-
-    // TODO: The commit of chunk managers should be done by the server.
-    // This requires the client to communicate the offsets of the chunks
-    // to the server at the time it requests the commit of the transaction.
-    // The call here is just a reminder that this work needs to be done somewhere.
-    // commit_chunk_manager_allocations();
 }
 
 void client_t::init_memory_manager()
@@ -490,89 +511,4 @@ void client_t::init_memory_manager()
     s_memory_manager.load(
         reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
         sizeof(s_shared_data.data()->objects));
-
-    address_offset_t chunk_address_offset = s_memory_manager.allocate_chunk();
-    if (chunk_address_offset == c_invalid_address_offset)
-    {
-        throw memory_allocation_error("Memory manager ran out of memory during call to allocate_chunk().");
-    }
-    s_chunk_manager.initialize(
-        reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
-        chunk_address_offset);
-}
-
-address_offset_t client_t::allocate_object(
-    gaia_locator_t locator,
-    size_t size)
-{
-    address_offset_t object_offset = s_chunk_manager.allocate(size + c_db_object_header_size);
-    if (object_offset == c_invalid_address_offset)
-    {
-        // We ran out of memory in the current chunk. Allocate a new one!
-        address_offset_t chunk_address_offset = s_memory_manager.allocate_chunk();
-        if (chunk_address_offset == c_invalid_address_offset)
-        {
-            throw memory_allocation_error("Memory manager ran out of memory during call to allocate_chunk().");
-        }
-
-        // Keep track of the exhausted chunk manager.
-        s_previous_chunk_managers.push_back(s_chunk_manager);
-
-        s_chunk_manager.initialize(
-            reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
-            chunk_address_offset);
-
-        // Allocate from new chunk.
-        object_offset = s_chunk_manager.allocate(size + c_db_object_header_size);
-    }
-
-    ASSERT_POSTCONDITION(object_offset != c_invalid_address_offset, "Chunk manager allocation was not expected to fail!");
-
-    // Update locator array to point to the new offset.
-    update_locator(locator, object_offset);
-
-    return object_offset;
-}
-
-void client_t::commit_chunk_manager_allocations()
-{
-    // We commit the chunk managers in the order in which they were allocated.
-    //
-    // NOTE: when the server will do this work, we will no longer need to make these calls in the client,
-    // but this is required until that point, to enable rollback to work properly.
-    for (auto& current_chunk_manager : s_previous_chunk_managers)
-    {
-        current_chunk_manager.commit();
-    }
-
-    // We're done with the previous chunk managers.
-    s_previous_chunk_managers.clear();
-
-    s_chunk_manager.commit();
-
-    ASSERT_POSTCONDITION(
-        s_previous_chunk_managers.empty(),
-        "List of previous chunk managers was not emptied by the end of commit!");
-}
-
-void client_t::rollback_chunk_manager_allocations()
-{
-    // We rollback the chunk managers starting with the last one used.
-    // At the end of this method, we should be left with one chunk manager
-    // and an empty list of previous chunk managers.
-    s_chunk_manager.rollback();
-
-    while (!s_previous_chunk_managers.empty())
-    {
-        s_memory_manager.deallocate_chunk(s_chunk_manager.get_start_memory_offset());
-
-        s_chunk_manager = s_previous_chunk_managers[s_previous_chunk_managers.size() - 1];
-        s_previous_chunk_managers.pop_back();
-
-        s_chunk_manager.rollback();
-    }
-
-    ASSERT_POSTCONDITION(
-        s_previous_chunk_managers.empty(),
-        "List of previous chunk managers was not emptied by the end of rollback!");
 }

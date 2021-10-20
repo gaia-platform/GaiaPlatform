@@ -10,18 +10,20 @@ include(UseJava)
 enable_testing()
 
 # Set the project name.
-project(production VERSION 0.2.1)
+project(production VERSION 0.3.1)
 
 # Sets the pre-release version which will be appended to the
 # product version: 0.1.0-alpha.
 # When the product is GA this should be empty.
-set(PRE_RELEASE_IDENTIFIER "alpha")
+set(PRE_RELEASE_IDENTIFIER "beta")
 
 option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
 
 option(ENABLE_STACKTRACE "Enable stack traces" ON)
 
 option(BUILD_GAIA_RELEASE "Build Gaia Release packages and binaries" OFF)
+
+option(ENABLE_SDK_TESTS "Build and execute ruleset translation tests" ON)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
@@ -57,11 +59,6 @@ cmake_policy(SET CMP0083 NEW)
 # Our shared libraries and executables must all be ASLR-compatible.
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
-# We want everything in the build to use libc++,
-# including third-party packages.
-add_compile_options(-stdlib=libc++)
-add_link_options(-stdlib=libc++)
-
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
 
@@ -87,12 +84,13 @@ if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
   set(LLVM_ENABLE_EH ON CACHE BOOL "")
   set(LLVM_ENABLE_PROJECTS "clang" CACHE STRING "")
   set(LLVM_ENABLE_RTTI ON CACHE BOOL "")
-  # LLD/libc++ are necessary for MSan.
+  # LLD should make building LLVM significantly faster.
   set(LLVM_ENABLE_LLD ON CACHE BOOL "")
-  set(LLVM_ENABLE_LIBCXX ON CACHE BOOL "")
+
   if(ENABLE_STACKTRACE)
     set(LLVM_GENERATE_STACKTRACE_DEBUG_INFO ON CACHE BOOL "")
   endif()
+
   if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     # This speeds up linking by separating debug info.
     set(LLVM_USE_SPLIT_DWARF ON CACHE BOOL "")
@@ -111,8 +109,13 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
   target_compile_options(gaia_build_options INTERFACE -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf)
   target_link_options(gaia_build_options INTERFACE -Wl,--gdb-index)
 
-  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(gaia_build_options INTERFACE -O0)
+
+    # For eventual MemorySanitizer support, we need all targets in debug builds
+    # to use libc++, including third-party packages.
+    add_compile_options(-stdlib=libc++)
+    add_link_options(-stdlib=libc++)
 
     # Enable ASan by default in debug builds.
     set(SANITIZER "ASAN" CACHE STRING "Enable sanitizers in debug builds")
@@ -122,7 +125,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
     set_property(CACHE SANITIZER PROPERTY STRINGS "ASAN")
   endif()
 
-  if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+  if(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     # Set the highest optimization level compatible with reasonable debuggability.
     target_compile_options(gaia_build_options INTERFACE -Og)
   endif()
@@ -211,7 +214,7 @@ find_package(Threads REQUIRED)
 message(CHECK_START "Looking for libexplain and libcap")
 find_library(LIB_EXPLAIN NAMES libexplain.a)
 find_library(LIB_CAP NAMES libcap.a cap)
-if (LIB_EXPLAIN AND LIB_CAP)
+if(LIB_EXPLAIN AND LIB_CAP)
   message(CHECK_PASS "found")
 else()
   message(CHECK_FAIL "not found")
@@ -276,10 +279,10 @@ if(ENABLE_STACKTRACE)
   add_subdirectory("${GAIA_REPO}/third_party/production/backward" backward)
   add_library(gaia_stack_trace INTERFACE)
   target_sources(gaia_stack_trace INTERFACE "${GAIA_INC}/gaia_internal/common/backward.cpp")
-  target_compile_options(gaia_stack_trace INTERFACE -funwind-tables -fno-omit-frame-pointer)
+  add_compile_options(-funwind-tables -fno-omit-frame-pointer)
   # Only append this option for Release builds, or it will disable all other debug info generation.
   if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    target_compile_options(gaia_stack_trace INTERFACE -gline-tables-only)
+    add_compile_options(-gline-tables-only)
   endif()
   target_link_libraries(gaia_stack_trace INTERFACE backward)
 endif()
@@ -433,7 +436,7 @@ include(cmake/gaia_version.cmake)
 
 # Customize test commands.
 file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
-  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_db_server> --persistence disabled\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_db_server\")\n"
+  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_db_server_exec> --persistence disabled\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_db_server\")\n"
 )
 
 # Copy log configuration file to make it visible during

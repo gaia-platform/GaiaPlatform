@@ -3,14 +3,16 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <unistd.h>
-
+#include <chrono>
 #include <cstring>
 #include <ctime>
 
 #include <algorithm>
 #include <atomic>
+#include <iomanip>
 #include <iostream>
+#include <map>
+#include <memory>
 #include <string>
 #include <thread>
 
@@ -18,8 +20,6 @@
 #include "gaia/system.hpp"
 
 #include "gaia_incubator.h"
-
-using namespace std;
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -43,8 +43,8 @@ const char c_puppy[] = "puppy";
 constexpr float c_puppy_min = 85.0;
 constexpr float c_puppy_max = 100.0;
 
-atomic<bool> g_in_simulation{false};
-atomic<int> g_timestamp{0};
+std::atomic<bool> g_in_simulation{false};
+std::atomic<int> g_timestamp{0};
 
 void add_fan_control_rule();
 
@@ -143,23 +143,26 @@ void init_storage()
 void dump_db()
 {
     begin_transaction();
-    printf("\n");
+    std::cout << "\n";
+    std::cout << std::fixed << std::setprecision(1);
     for (auto i : incubator_t::list())
     {
-        printf("-----------------------------------------\n");
-        printf("%-8s|power: %-3s|min: %5.1lf|max: %5.1lf\n", i.name(), i.is_on() ? "ON" : "OFF", i.min_temp(), i.max_temp());
-        printf("-----------------------------------------\n");
+        std::cout << "-----------------------------------------\n";
+        std::printf(
+            "%-8s|power: %-3s|min: %5.1lf|max: %5.1lf\n",
+            i.name(), i.is_on() ? "ON" : "OFF", i.min_temp(), i.max_temp());
+        std::cout << "-----------------------------------------\n";
         for (const auto& s : i.sensors())
         {
-            printf("\t|%-10s|%10ld|%10.2lf\n", s.name(), s.timestamp(), s.value());
+            std::printf("\t|%-10s|%10ld|%10.2lf\n", s.name(), s.timestamp(), s.value());
         }
-        printf("\t---------------------------------\n");
+        std::cout << "\t---------------------------------\n";
         for (const auto& a : i.actuators())
         {
-            printf("\t|%-10s|%10ld|%10.1lf\n", a.name(), a.timestamp(), a.value());
+            std::printf("\t|%-10s|%10ld|%10.1lf\n", a.name(), a.timestamp(), a.value());
         }
-        printf("\n");
-        printf("\n");
+        std::cout << "\n"
+                  << std::endl;
     }
     commit_transaction();
 }
@@ -202,14 +205,13 @@ void set_power(bool is_on)
 
 void simulation()
 {
-    time_t start, cur;
-    time(&start);
+    auto start = std::chrono::steady_clock::now();
     begin_session();
     set_power(true);
 
     while (g_in_simulation)
     {
-        sleep(1);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
 
         auto_transaction_t tx(auto_transaction_t::no_auto_begin);
 
@@ -234,8 +236,8 @@ void simulation()
             }
         }
 
-        time(&cur);
-        g_timestamp = difftime(cur, start);
+        auto current = std::chrono::steady_clock::now();
+        g_timestamp = std::chrono::duration_cast<std::chrono::seconds>(current - start).count();
         for (auto s : sensor_t::list())
         {
             sensor_writer w = s.writer();
@@ -274,21 +276,28 @@ void list_rules()
     subscription_list_t subs;
     const char* subscription_format = "%5s|%-20s|%-12s|%5s|%-10s|%5s\n";
     list_subscribed_rules(nullptr, nullptr, nullptr, nullptr, subs);
-    printf("Number of rules for incubator: %ld\n", subs.size());
+    std::cout << "Number of rules for incubator: " << subs.size() << "\n";
     if (subs.size() > 0)
     {
-        printf("\n");
-        printf(subscription_format, "line", "ruleset", "rule", "type", "event", "field");
-        printf("--------------------------------------------------------------\n");
+        std::cout << "\n";
+        std::printf(subscription_format, "line", "ruleset", "rule", "type", "event", "field");
+        std::cout << "--------------------------------------------------------------\n";
     }
-    map<event_type_t, const char*> event_names;
+    std::map<event_type_t, const char*> event_names;
     event_names[event_type_t::row_update] = "row update";
     event_names[event_type_t::row_insert] = "row insert";
     for (auto& s : subs)
     {
-        printf(subscription_format, to_string(s->line_number).c_str(), s->ruleset_name, s->rule_name, to_string(s->gaia_type).c_str(), event_names[s->event_type], to_string(s->field).c_str());
+        std::printf(
+            subscription_format,
+            std::to_string(s->line_number).c_str(),
+            s->ruleset_name,
+            s->rule_name,
+            std::to_string(s->gaia_type).c_str(),
+            event_names[s->event_type],
+            std::to_string(s->field).c_str());
     }
-    printf("\n");
+    std::cout << std::endl;
 }
 
 void add_fan_control_rule()
@@ -299,16 +308,16 @@ void add_fan_control_rule()
     }
     catch (const duplicate_rule&)
     {
-        printf("The ruleset has already been added.\n");
+        std::cout << "The ruleset has already been added." << std::endl;
     }
 }
 
 void usage(const char* command)
 {
-    printf("Usage: %s [sim|show|help]\n", command);
-    printf(" sim: run the incubator simulation.\n");
-    printf(" show: dump the tables in storage.\n");
-    printf(" help: print this message.\n");
+    std::cout << "Usage: " << command << " [sim|show|help]\n";
+    std::cout << " sim: run the incubator simulation.\n";
+    std::cout << " show: dump the tables in storage.\n";
+    std::cout << " help: print this message.\n";
 }
 
 class simulation_t
@@ -344,27 +353,32 @@ public:
         if (g_in_simulation)
         {
             g_in_simulation = false;
-            m_simulation_thread[0].join();
-            printf("Simulation stopped...\n");
+            m_simulation_thread->join();
+            std::cout << "Simulation stopped...\n";
         }
+    }
+
+    bool read_input()
+    {
+        std::getline(std::cin, m_input);
+        return !std::cin.eof();
     }
 
     bool handle_main()
     {
-        printf("\n");
-        printf("(%c) | begin simulation\n", c_cmd_begin_sim);
-        printf("(%c) | end simulation \n", c_cmd_end_sim);
-        printf("(%c) | list rules\n", c_cmd_list_rules);
-        printf("(%c) | disable rules\n", c_cmd_disable_rules);
-        printf("(%c) | re-enable rules\n", c_cmd_reenable_rules);
-        printf("(%c) | print current state\n", c_cmd_print_state);
-        printf("(%c) | manage incubators\n", c_cmd_manage_incubators);
-        printf("(%c) | quit\n\n", c_cmd_quit);
-        printf("main> ");
+        std::cout << "\n";
+        std::cout << "(" << c_cmd_begin_sim << ") | begin simulation\n";
+        std::cout << "(" << c_cmd_end_sim << ") | end simulation \n";
+        std::cout << "(" << c_cmd_list_rules << ") | list rules\n";
+        std::cout << "(" << c_cmd_disable_rules << ") | disable rules\n";
+        std::cout << "(" << c_cmd_reenable_rules << ") | re-enable rules\n";
+        std::cout << "(" << c_cmd_print_state << ") | print current state\n";
+        std::cout << "(" << c_cmd_manage_incubators << ") | manage incubators\n";
+        std::cout << "(" << c_cmd_quit << ") | quit\n\n";
+        std::cout << "main> ";
 
         if (!read_input())
         {
-            // Stop the simulation as well.
             return false;
         }
 
@@ -376,12 +390,12 @@ public:
                 if (!g_in_simulation)
                 {
                     g_in_simulation = true;
-                    m_simulation_thread[0] = thread(simulation);
-                    printf("Simulation started...\n");
+                    m_simulation_thread = std::make_unique<std::thread>(simulation);
+                    std::cout << "Simulation started...\n";
                 }
                 else
                 {
-                    printf("Simulation is already running.\n");
+                    std::cout << "Simulation is already running.\n";
                 }
                 break;
             case c_cmd_end_sim:
@@ -407,27 +421,24 @@ public:
             case c_cmd_quit:
                 if (g_in_simulation)
                 {
-                    printf("Stopping simulation...\n");
+                    std::cout << "Stopping simulation...\n";
                     g_in_simulation = false;
-                    m_simulation_thread[0].join();
-                    printf("Simulation stopped...\n");
+                    m_simulation_thread->join();
+                    std::cout << "Simulation stopped...\n";
                 }
-                printf("Exiting...\n");
+                std::cout << "Exiting..." << std::endl;
                 return false;
                 break;
             default:
-                printf("%s\n", c_wrong_input);
+                wrong_input();
                 break;
             }
         }
+        else
+        {
+            wrong_input();
+        }
         return true;
-    }
-
-    // Return false if EOF is reached.
-    bool read_input()
-    {
-        getline(cin, m_input);
-        return !cin.eof();
     }
 
     void get_incubator(const char* name)
@@ -447,15 +458,18 @@ public:
 
     bool handle_incubators()
     {
-        printf("\n");
-        printf("(%c) | select chicken incubator\n", c_cmd_choose_chickens);
-        printf("(%c) | select puppy incubator\n", c_cmd_choose_puppies);
-        printf("(%c) | go back\n\n", c_cmd_back);
-        printf("manage incubators> ");
+        std::cout << "\n";
+        std::cout << "(" << c_cmd_choose_chickens << ") | select chicken incubator\n";
+        std::cout << "(" << c_cmd_choose_puppies << ") | select puppy incubator\n";
+        std::cout << "(" << c_cmd_back << ") | go back\n"
+                  << std::endl;
+        std::cout << "manage incubators> ";
+
         if (!read_input())
         {
             return false;
         }
+
         if (m_input.size() == 1)
         {
             switch (m_input[0])
@@ -472,9 +486,13 @@ public:
                 m_current_menu = menu_t::main;
                 break;
             default:
-                printf("%s\n", c_wrong_input);
+                wrong_input();
                 break;
             }
+        }
+        else
+        {
+            wrong_input();
         }
 
         return true;
@@ -482,14 +500,15 @@ public:
 
     bool handle_incubator_settings()
     {
-        printf("\n");
-        printf("(%s)    | turn power on\n", c_cmd_on);
-        printf("(%s)   | turn power off\n", c_cmd_off);
-        printf("(%s #) | set minimum\n", c_cmd_min);
-        printf("(%s #) | set maximum\n", c_cmd_max);
-        printf("(%c)     | go back\n", c_cmd_back);
-        printf("(%c)     | main menu\n\n", c_cmd_main);
-        printf("%s> ", m_current_incubator_name);
+        std::cout << "\n";
+        std::cout << "(" << c_cmd_on << ")    | turn power on\n";
+        std::cout << "(" << c_cmd_off << ")   | turn power off\n";
+        std::cout << "(" << c_cmd_min << " #) | set minimum\n";
+        std::cout << "(" << c_cmd_max << " #) | set maximum\n";
+        std::cout << "(" << c_cmd_back << ")     | go back\n";
+        std::cout << "(" << c_cmd_main << ")     | main menu\n"
+                  << std::endl;
+        std::cout << m_current_incubator_name << "> ";
 
         if (!read_input())
         {
@@ -507,7 +526,7 @@ public:
                 m_current_menu = menu_t::main;
                 break;
             default:
-                printf("%s\n", c_wrong_input);
+                wrong_input();
                 break;
             }
             return true;
@@ -522,7 +541,7 @@ public:
             }
             else
             {
-                printf("%s\n", c_wrong_input);
+                wrong_input();
             }
             return true;
         }
@@ -536,7 +555,7 @@ public:
             }
             else
             {
-                printf("%s\n", c_wrong_input);
+                wrong_input();
             }
             return true;
         }
@@ -552,7 +571,7 @@ public:
         }
         else
         {
-            printf("%s\n", c_wrong_input);
+            wrong_input();
             return true;
         }
 
@@ -561,9 +580,9 @@ public:
         {
             set_point = stof(m_input.substr(3, m_input.size() - 1));
         }
-        catch (invalid_argument& ex)
+        catch (std::invalid_argument& ex)
         {
-            printf("Invalid temperature setting.\n");
+            std::cout << "Invalid temperature setting." << std::endl;
             return true;
         }
 
@@ -579,7 +598,7 @@ public:
     {
         begin_transaction();
         {
-            incubator_writer w = m_current_incubator.writer();
+            auto w = m_current_incubator.writer();
             w.is_on = turn_on;
             w.update_row();
         }
@@ -602,7 +621,7 @@ public:
             }
             if (w.min_temp >= w.max_temp)
             {
-                printf("Max temp must be greater than min temp.\n");
+                std::cout << "Max temp must be greater than min temp.\n";
             }
             else
             {
@@ -646,11 +665,16 @@ private:
         incubators,
         settings
     };
-    string m_input;
+    std::string m_input;
     incubator_t m_current_incubator;
     const char* m_current_incubator_name;
-    thread m_simulation_thread[1];
+    std::unique_ptr<std::thread> m_simulation_thread;
     menu_t m_current_menu = menu_t::main;
+
+    void wrong_input()
+    {
+        std::cerr << c_wrong_input << std::endl;
+    };
 };
 
 int main(int argc, const char** argv)
@@ -678,7 +702,7 @@ int main(int argc, const char** argv)
     {
         if (argc > 1)
         {
-            cout << "Wrong arguments." << endl;
+            std::cerr << "Wrong arguments." << std::endl;
         }
         usage(argv[0]);
         return EXIT_FAILURE;
@@ -695,11 +719,11 @@ int main(int argc, const char** argv)
     simulation_t sim;
     gaia::system::initialize();
 
-    printf("-----------------------------------------\n");
-    printf("Gaia Incubator\n\n");
-    printf("No chickens or puppies were harmed in the\n");
-    printf("development or presentation of this demo.\n");
-    printf("-----------------------------------------\n");
+    std::cout << "-----------------------------------------\n";
+    std::cout << "Gaia Incubator\n\n";
+    std::cout << "No chickens or puppies were harmed in the\n";
+    std::cout << "development or presentation of this demo.\n";
+    std::cout << "-----------------------------------------\n";
 
     init_storage();
     sim.run();

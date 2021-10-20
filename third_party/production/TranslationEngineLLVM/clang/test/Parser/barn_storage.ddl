@@ -57,14 +57,12 @@ create relationship if not exists incubator_actuators (
 );
 
 create table if not exists raised (
-    animal_name string unique,
     birthdate string
 );
 
 create relationship if not exists animal_raised (
     animal.raised -> raised,
-    raised.animal -> animal,
-    using raised(animal_name), animal(name)
+    raised.animal -> animal
 );
 
 create relationship if not exists farmer_raised (
@@ -134,3 +132,11 @@ create relationship if not exists hyperconnected_target_2 (
     hyperconnected.link2 -> target[],
     target.back_link2 -> hyperconnected
 );
+
+
+table detection (
+    d_objects references d_object[]
+)
+table d_object (
+    detection references detection
+)

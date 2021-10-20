@@ -1,5 +1,10 @@
 #! /usr/bin/python3
 
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 """
 Script to calculate the summary.json file for a suite of tests that were run.
 
@@ -443,10 +448,9 @@ def __process_configuration_file(base_dir, workload_specific_data):
         loaded_files = config.read(json_path)
         if not loaded_files:
             return None, f"Cannot load configuration file '{json_path}'."
-        else:
-            assert "Rules" in config
-            for key in config["Rules"]:
-                __translate_entry(rules_configuration, config["Rules"], key)
+        assert "Rules" in config
+        for key in config["Rules"]:
+            __translate_entry(rules_configuration, config["Rules"], key)
     return rules_configuration, None
 
 
@@ -485,7 +489,10 @@ def __load_test_summary(base_dir):
         data = json.load(input_file)
 
     if "return-code" not in data:
-        return None, f"Per test summary file '{json_path}' must contain a 'return-code' entry."
+        return (
+            None,
+            f"Per test summary file '{json_path}' must contain a 'return-code' entry.",
+        )
     return data, None
 
 
@@ -524,15 +531,17 @@ def __load_test_result_files(suite_test_directory):
         else os.path.join(SUITE_DIRECTORY, suite_test_directory)
     )
     return_code_data = __load_simple_result_files(base_dir)
-
-    workload_specific_data, workload_specific_error = __load_test_summary(base_dir)
-    if not workload_specific_error:
-        if "return-code" not in workload_specific_data:
-            workload_specific_error = f"File '{os.path.join(base_dir, 'test-summary.json')}' does not contain a return-code field."
+    if return_code_data == 4:
+        workload_specific_data = None
+        workload_specific_error = "Critical error prevented test from executing."
+    else:
+        workload_specific_data, workload_specific_error = __load_test_summary(base_dir)
     if not workload_specific_error:
         stats_data = __process_rules_engine_stats(base_dir)
         log_data = __process_rules_engine_logs(base_dir)
-        configuration_data, configuration_error = __process_configuration_file(base_dir, workload_specific_data)
+        configuration_data, configuration_error = __process_configuration_file(
+            base_dir, workload_specific_data
+        )
         property_data = __process_properties_file(base_dir)
     else:
         stats_data = None
@@ -544,9 +553,11 @@ def __load_test_result_files(suite_test_directory):
         return_code_data,
         stats_data,
         log_data,
-        configuration_data,configuration_error,
+        configuration_data,
+        configuration_error,
         property_data,
-        workload_specific_data, workload_specific_error
+        workload_specific_data,
+        workload_specific_error,
     )
 
 
@@ -566,7 +577,7 @@ def __load_results_for_test(suite_test_directory, source_info):
         configuration_error,
         property_data,
         workload_specific_data,
-        workload_specific_error
+        workload_specific_error,
     ) = __load_test_result_files(suite_test_directory)
     if configuration_error:
         return None, configuration_error
@@ -588,7 +599,9 @@ def __load_results_for_test(suite_test_directory, source_info):
     if log_data:
         new_results[RULES_ENGINE_EXCEPTIONS_TITLE] = log_data
 
-    new_results[PER_TEST_TITLE][INVOKE_RETURN_CODE_TITLE] = new_results[RETURN_CODE_TITLE]
+    new_results[PER_TEST_TITLE][INVOKE_RETURN_CODE_TITLE] = new_results[
+        RETURN_CODE_TITLE
+    ]
     return new_results, None
 
 
@@ -606,20 +619,32 @@ def __summarize_repeated_tests(max_test, map_lines, map_line_index, source_info)
         if os.path.isabs(recorded_name)
         else os.path.join(SUITE_DIRECTORY, recorded_name)
     )
-    aggregate_data, performance_legend_data, configuration_error = __process_workload_properties_file(
-        base_dir
-    )
-    if configuration_error:
-        return None, None, None, configuration_error
+    (
+        aggregate_data,
+        performance_legend_data,
+        configuration_error,
+    ) = __process_workload_properties_file(base_dir)
 
     main_dictionary[SOURCE_TITLE] = source_info
     main_dictionary[PER_TEST_TITLE] = {}
 
-    for aggregate_key in aggregate_data:
-        assert (
-            aggregate_key not in main_dictionary[PER_TEST_TITLE]
-        ), f"Key to aggregate on '{aggregate_key}' must be in '{PER_TEST_TITLE}' section."
-        main_dictionary[PER_TEST_TITLE][aggregate_key] = []
+    main_dictionary[PER_TEST_TITLE][RETURN_CODE_TITLE] = []
+    main_dictionary[PER_TEST_TITLE][INVOKE_RETURN_CODE_TITLE] = []
+
+    if configuration_error:
+        map_line_index += max_test
+        main_dictionary[PER_TEST_TITLE][RETURN_CODE_TITLE].append(3)
+        main_dictionary[PER_TEST_TITLE][INVOKE_RETURN_CODE_TITLE].append(1)
+        return main_dictionary, map_line_index, None, configuration_error
+
+    if aggregate_data:
+        for aggregate_key in aggregate_data:
+            if aggregate_key in (RETURN_CODE_TITLE, INVOKE_RETURN_CODE_TITLE):
+                continue
+            assert (
+                aggregate_key not in main_dictionary[PER_TEST_TITLE]
+            ), f"Key to aggregate on '{aggregate_key}' must be in '{PER_TEST_TITLE}' section."
+            main_dictionary[PER_TEST_TITLE][aggregate_key] = []
 
     totals = {}
     totals[SCHEDULED_TITLE] = []
@@ -672,25 +697,38 @@ def __add_individual_test_results(
     Add the approriate fields to the main aggregation list for that field.
     """
 
-    for aggregate_key in aggregate_data:
-        value = aggregate_data[aggregate_key]
+    return_code = new_results[PER_TEST_TITLE][RETURN_CODE_TITLE]
+    invoke_return_code = new_results[PER_TEST_TITLE][INVOKE_RETURN_CODE_TITLE]
+    main_dictionary[PER_TEST_TITLE][RETURN_CODE_TITLE].append(return_code)
+    main_dictionary[PER_TEST_TITLE][INVOKE_RETURN_CODE_TITLE].append(invoke_return_code)
 
-        if value == "always":
-            main_dictionary[PER_TEST_TITLE][aggregate_key].append(
-                new_results[PER_TEST_TITLE][aggregate_key]
-            )
-        elif value == "if-present-or-none":
-            if aggregate_key in new_results[PER_TEST_TITLE]:
+    did_succeed_enough = return_code == 0 or (
+        return_code == 1 and invoke_return_code == 6
+    )
+
+    if did_succeed_enough:
+        for aggregate_key in aggregate_data:
+            if aggregate_key in (RETURN_CODE_TITLE, INVOKE_RETURN_CODE_TITLE):
+                continue
+
+            value = aggregate_data[aggregate_key]
+
+            if value == "always":
                 main_dictionary[PER_TEST_TITLE][aggregate_key].append(
                     new_results[PER_TEST_TITLE][aggregate_key]
                 )
-            else:
-                main_dictionary[PER_TEST_TITLE][aggregate_key].append(None)
-        elif value == "if-present":
-            if aggregate_key in new_results[PER_TEST_TITLE]:
-                main_dictionary[PER_TEST_TITLE][aggregate_key].append(
-                    new_results[PER_TEST_TITLE][aggregate_key]
-                )
+            elif value == "if-present-or-none":
+                if aggregate_key in new_results[PER_TEST_TITLE]:
+                    main_dictionary[PER_TEST_TITLE][aggregate_key].append(
+                        new_results[PER_TEST_TITLE][aggregate_key]
+                    )
+                else:
+                    main_dictionary[PER_TEST_TITLE][aggregate_key].append(None)
+            elif value == "if-present":
+                if aggregate_key in new_results[PER_TEST_TITLE]:
+                    main_dictionary[PER_TEST_TITLE][aggregate_key].append(
+                        new_results[PER_TEST_TITLE][aggregate_key]
+                    )
 
     if RULES_ENGINE_TITLE in new_results:
         test_totals = new_results[RULES_ENGINE_TITLE][RULES_ENGINE_TOTALS_TITLE]
@@ -702,7 +740,9 @@ def __add_individual_test_results(
             totals[RETRY_TITLE].append(test_totals[RETRY_TITLE])
             totals[EXCEPTION_TITLE].append(test_totals[EXCEPTION_TITLE])
 
-        test_calculations = new_results[RULES_ENGINE_TITLE][RULES_ENGINE_CALCULATIONS_TITLE]
+        test_calculations = new_results[RULES_ENGINE_TITLE][
+            RULES_ENGINE_CALCULATIONS_TITLE
+        ]
         if AVERAGE_LATENCY_TITLE in test_calculations:
             calculations[AVERAGE_LATENCY_TITLE].append(
                 test_calculations[AVERAGE_LATENCY_TITLE]
@@ -710,8 +750,12 @@ def __add_individual_test_results(
             calculations[MAXIMUM_LATENCY_TITLE].append(
                 test_calculations[MAXIMUM_LATENCY_TITLE]
             )
-            calculations[AVERAGE_EXEC_TITLE].append(test_calculations[AVERAGE_EXEC_TITLE])
-            calculations[MAXIMUM_EXEC_TITLE].append(test_calculations[MAXIMUM_EXEC_TITLE])
+            calculations[AVERAGE_EXEC_TITLE].append(
+                test_calculations[AVERAGE_EXEC_TITLE]
+            )
+            calculations[MAXIMUM_EXEC_TITLE].append(
+                test_calculations[MAXIMUM_EXEC_TITLE]
+            )
 
 
 def __load_scenario_file():
@@ -797,29 +841,31 @@ def __execute_suite_tests(suite_file, suite_file_lines, map_lines):
                 full_test_results[next_suite_test],
                 map_line_index,
                 performance_legend_data,
-                configuration_error
+                configuration_error,
             ) = __summarize_repeated_tests(
                 max_test, map_lines, map_line_index, source_info
             )
-            if configuration_error:
-                break
-            full_test_results[next_suite_test][
-                "performance-legend"
-            ] = performance_legend_data
+            if not configuration_error:
+                full_test_results[next_suite_test][
+                    "performance-legend"
+                ] = performance_legend_data
             map_line_index += 1
         else:
             suite_test_results_directory = map_lines[map_line_index].strip()
             simple_results_name = os.path.basename(suite_test_results_directory)
 
-            _, performance_legend_data, configuration_error = __process_workload_properties_file(
-                suite_test_results_directory
-            )
+            (
+                full_test_results[simple_results_name],
+                configuration_error,
+            ) = __load_results_for_test(suite_test_results_directory, source_info)
             if configuration_error:
                 break
 
-            full_test_results[simple_results_name], configuration_error = __load_results_for_test(
-                suite_test_results_directory, source_info
-            )
+            (
+                _,
+                performance_legend_data,
+                configuration_error,
+            ) = __process_workload_properties_file(suite_test_results_directory)
             if configuration_error:
                 break
 
@@ -842,11 +888,14 @@ def __process_script_action():
     """
     suite_file_name, map_file_lines = __load_scenario_file()
     map_lines = __load_execution_map_file()
-    test_results, configuration_error = __execute_suite_tests(suite_file_name, map_file_lines, map_lines)
+    test_results, configuration_error = __execute_suite_tests(
+        suite_file_name, map_file_lines, map_lines
+    )
     if configuration_error:
         print(f"Procssesing error: {configuration_error}")
         return 1
     __dump_results_dictionary(test_results)
+    return 0
 
 
 sys.exit(__process_script_action())

@@ -5,14 +5,14 @@
 
 #include <cstdlib>
 
-#include <initializer_list>
 #include <iostream>
 #include <string>
+
+#include <cpptoml.h>
 
 #include "gaia_internal/common/config.hpp"
 #include "gaia_internal/common/gaia_version.hpp"
 
-#include "cpptoml.h"
 #include "db_server.hpp"
 
 using namespace gaia::common;
