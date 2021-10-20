@@ -49,16 +49,19 @@
 #include "clang/Sema/TypoCorrection.h"
 #include "clang/Sema/Weak.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/SmallBitVector.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/StringSet.h"
+#include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/TinyPtrVector.h"
 #include <deque>
 #include <memory>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
 namespace llvm {
@@ -68,18 +71,6 @@ namespace llvm {
   class SmallBitVector;
   struct InlineAsmIdentifierInfo;
 }
-
-namespace std
-{
-    template<> struct hash<clang::SourceLocation>
-    {
-        std::size_t operator()(clang::SourceLocation const& location) const noexcept
-        {
-            return std::hash<unsigned int>{}(location.getRawEncoding());
-        }
-    };
-} // namespace std
-
 
 namespace clang {
   class ADLResult;
@@ -4624,8 +4615,8 @@ public:
                                SourceLocation IdentLoc, IdentifierInfo *Ident,
                                const ParsedAttributesView &AttrList);
   void ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace);
-  std::unordered_set<std::string> getCatalogTableList(SourceLocation loc);
-  std::unordered_map<std::string, std::unordered_map<std::string, QualType>> getTableData(SourceLocation loc);
+  llvm::StringSet<> getCatalogTableList();
+  llvm::StringMap<llvm::StringMap<QualType>> getTableData();
   void AddExplicitPathData(SourceLocation location, SourceLocation startLocation, SourceLocation endLocation, const std::string &explicitPath);
   bool GetExplicitPathData(SourceLocation location, SourceLocation &startLocation, SourceLocation &endLocation, std::string &explicitPath);
   bool IsInExtendedExplicitPathScope() const { return isInExtendedExplicitPathScope;}
@@ -4640,71 +4631,61 @@ private:
 
   // TODO we need to decide what style to use: PascalCase, camelCase, snake_case (we're using all of them now).
   NamedDecl *injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, const std::string &explicitPath);
-  std::string ParseExplicitPath(const std::string& pathString, SourceLocation loc);
+  std::string ParseExplicitPath(StringRef pathString, SourceLocation loc);
   QualType getFieldType (const std::string& fieldOrTagName, SourceLocation loc);
   bool findFieldType (const std::string& fieldOrTagName, SourceLocation loc);
-  QualType getTableType (const std::string &tableName, SourceLocation loc);
-  std::unordered_map<std::string, std::string> getTagMapping(const DeclContext *context, SourceLocation loc);
+  QualType getTableType (StringRef tableName, SourceLocation loc);
+  llvm::StringMap<std::string> getTagMapping(const DeclContext *context, SourceLocation loc);
   QualType getRuleContextType(SourceLocation loc);
-  QualType getLinkType(const std::string& linkName, const std::string& from_table, const std::string& to_table, bool is_one_to_many, SourceLocation loc);
-  void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, SmallVector<QualType, 8> parameterTypes,
+  QualType getLinkType(StringRef linkName, StringRef from_table, StringRef to_table, bool is_one_to_many, SourceLocation loc);
+  void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, const SmallVector<QualType, 8>& parameterTypes,
                  AttributeFactory &attrFactory, ParsedAttributes &attrs, RecordDecl *RD,
                  SourceLocation loc, bool isVariadic = false, ParsedType returnType = nullptr);
 
   /// Lookup a class name in the given context. Returns nullptr if the class is not found.
   /// If the class has been defined in this context (eg. "class x {};") the defined type is
   /// returned otherwise only the forward declaration is returned (eg. "class x;").
-  TagDecl* lookupClass(std::string className, SourceLocation loc, Scope* scope);
+  TagDecl* lookupClass(StringRef className, SourceLocation loc, Scope* scope);
 
   /// Look up a Gaia EDC class using the EDC class name.
   /// TODO [GAIAPLAT-1028]: the lookup logic does not follow the Clang way of doing it (see lookupClass).
   ///  The class name will be searched everywhere regardless of the namespace. If the class
   ///  name appears multiple times in different namespaces the first occurrence is returned.
   ///  This is inline with the fact that the translation process is unaware of databases.
-  TagDecl* lookupEDCClass(std::string className);
+  TagDecl* lookupEDCClass(StringRef className);
 
   /// Add the connect/disconnect methods to the given sourceTable and target type (eg. source:incubator target:sensor).
   /// This method will generate connect/disconnect for the dynamic type (table__type) and, if available, the EDC type (table_t):
   /// - bool incubator::connect(sensor__type&)
   /// - bool incubator::connect(sensor_t&)
-  void addConnectDisconnect(RecordDecl* sourceTableDecl, const std::string& targetTableName, bool is_one_to_many, SourceLocation loc, AttributeFactory& attrFactory, ParsedAttributes& attrs);
+  void addConnectDisconnect(RecordDecl* sourceTableDecl, StringRef targetTableName, bool is_one_to_many, SourceLocation loc, AttributeFactory& attrFactory, ParsedAttributes& attrs);
 
   void addField(IdentifierInfo *name, QualType type, RecordDecl *R, SourceLocation locD) const ;
   void RemoveExplicitPathData(SourceLocation location);
-  StringRef ConvertString(const std::string& str, SourceLocation loc);
-  bool doesPathIncludesTags(const std::vector<std::string>& path, SourceLocation loc);
-  void ActOnStartDeclarativeLabel(const std::string& label);
-  bool ActOnStartLabel(const std::string& label);
+  StringRef ConvertString(StringRef str, SourceLocation loc);
+  bool doesPathIncludesTags(const SmallVector<std::string, 8>& path, SourceLocation loc);
+  void ActOnStartDeclarativeLabel(StringRef label);
+  bool ActOnStartLabel(StringRef label);
 
   struct ExplicitPathData_t
   {
     SourceLocation startLocation;
     SourceLocation endLocation;
     std::string explicitPath;
-    std::vector<std::string> path;
-    std::unordered_map<std::string, std::string> tagMap;
+    llvm::SmallVector<std::string, 8> path;
+    llvm::StringMap<std::string> tagMap;
   };
 
-  struct TableLinkData_t
-  {
-    std::string table;
-    std::string field;
-    bool is_one_to_many;
-    bool is_from_parent;
-  };
+  llvm::StringSet<> labelsInProcess;
+  llvm::StringSet<> declarativeLabelsInProcess;
 
-  std::unordered_set<std::string> labelsInProcess;
-  std::unordered_set<std::string> declarativeLabelsInProcess;
+  llvm::DenseMap<SourceLocation, ExplicitPathData_t>  explicitPathData;
 
-  std::unordered_multimap<std::string, TableLinkData_t> getCatalogTableRelations(SourceLocation loc);
+  llvm::DenseMap<SourceLocation, llvm::StringMap<std::string>> explicitPathTagMapping;
 
-  std::unordered_map<SourceLocation, ExplicitPathData_t>  explicitPathData;
+  llvm::DenseMap<SourceLocation, llvm::StringMap<std::string>> extendedExplicitPathTagMapping;
 
-  std::map<SourceLocation, std::unordered_map<std::string, std::string>> explicitPathTagMapping;
-
-  std::map<SourceLocation, std::unordered_map<std::string, std::string>> extendedExplicitPathTagMapping;
-
-  std::unordered_set<SourceLocation> injectedVariablesLocation;
+  llvm::DenseSet<SourceLocation> injectedVariablesLocation;
   bool isInExtendedExplicitPathScope;
 
   // A cache representing if we've fully checked the various comparison category

@@ -1527,7 +1527,7 @@ Parser::TryAnnotateName(bool IsAddressOfOperand,
             {
                 if (FD->hasAttr<RuleAttr>())
                 {
-                  auto tableData = Actions.getTableData(NameLoc);
+                  const auto& tableData = Actions.getTableData();
                   // Check if the identifier is a table name.
                   if (tableData.find(Name->getName()) != tableData.end())
                   {

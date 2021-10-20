@@ -17,6 +17,7 @@
 
 #include "clang/Basic/LLVM.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/Hashing.h"
 #include "llvm/Support/PointerLikeTypeTraits.h"
 #include <cassert>
 #include <cstdint>
@@ -454,6 +455,46 @@ namespace llvm {
     }
 
     static bool isEqual(clang::FileID LHS, clang::FileID RHS) {
+      return LHS == RHS;
+    }
+  };
+  /// Define DenseMapInfo so that SourceLocation's can be used as keys in DenseMap and
+  /// DenseSets.
+  template <>
+  struct DenseMapInfo<clang::SourceLocation> {
+    static clang::SourceLocation getEmptyKey() {
+      return {};
+    }
+
+    static clang::SourceLocation getTombstoneKey() {
+      return clang::SourceLocation::getFromRawEncoding(~0);
+    }
+
+    static unsigned getHashValue(clang::SourceLocation S) {
+      return llvm::hash_value(S.getRawEncoding());
+    }
+
+    static bool isEqual(clang::SourceLocation LHS, clang::SourceLocation RHS) {
+      return LHS == RHS;
+    }
+  };
+  /// Define DenseMapInfo so that SourceLocation's can be used as keys in DenseMap and
+  /// DenseSets.
+  template <>
+  struct DenseMapInfo<clang::SourceRange> {
+    static clang::SourceRange getEmptyKey() {
+      return {};
+    }
+
+    static clang::SourceRange getTombstoneKey() {
+      return clang::SourceRange(clang::SourceLocation::getFromRawEncoding(~0));
+    }
+
+    static unsigned getHashValue(clang::SourceRange S) {
+      return llvm::hash_combine(S.getBegin().getRawEncoding(), S.getEnd().getRawEncoding());
+    }
+
+    static bool isEqual(clang::SourceRange LHS, clang::SourceRange RHS) {
       return LHS == RHS;
     }
   };
