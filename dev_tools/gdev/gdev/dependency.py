@@ -173,7 +173,7 @@ class Dependency:
             parser.add_argument(
                 '--mounts',
                 default=[],
-                nargs='*',
+                nargs=1,
                 help=(
                     f'<host_path>:<container_path> mounts to be created (or if already created,'
                     f' resumed) during `docker run`. Paths may be specified as relative paths.'
