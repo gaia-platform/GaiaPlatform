@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
             else
             {
                 // Allow for equals sign form (--row-limit=12). One arg rather than two.
-                database = arg.substr(c_row_limit_length + 1);
+                database = arg.substr(c_database_length + 1);
             }
         }
         else if (arg.compare(0, c_table_length, c_table_string) == 0)
@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
             else
             {
                 // Allow for equals sign form (--row-limit=12). One arg rather than two.
-                table = arg.substr(c_row_limit_length + 1);
+                table = arg.substr(c_table_length + 1);
             }
         }
         else
@@ -109,11 +109,11 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-    string dump;
+    nlohmann::json j;
 
     try
     {
-        dump = gaia_db_extract(database, table, start_after, row_limit);
+        j = gaia_db_extract(database, table, start_after, row_limit);
     }
     catch (gaia_exception& e)
     {
@@ -122,5 +122,5 @@ int main(int argc, char* argv[])
 
     gaia::db::end_session();
 
-    cout << dump << endl;
+    // cout << j.dump(4) << endl;
 }
