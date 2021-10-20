@@ -44,6 +44,16 @@ void GaiaCatalog::fillTableData()
     try
     {
         db_monitor_t monitor;
+        for (const auto& table : gaia_table_t::list())
+        {
+            if (table.is_system())
+            {
+                continue;
+            }
+            CatalogTableData table_data;
+            catalogTableData[table.name()] = table_data;
+        }
+
         for (const auto& field : gaia_field_t::list())
         {
             gaia_table_t table = field.table();
