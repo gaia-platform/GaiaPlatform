@@ -19,21 +19,20 @@ constexpr float c_fan_speed_limit = 5000.0;
 constexpr float c_fan_speed_increment = 500.0;
 constexpr float c_fan_threshold = 0.7f;
 
-    float adjust_temperature(float min_temp, float max_temp, float sensor_value, float fan_rpm)
+float adjust_temperature(float min_temp, float max_temp, float sensor_value, float fan_rpm)
+{
+    float new_fan_rpm = fan_rpm;
+    if (sensor_value >= max_temp)
     {
-        float new_fan_rpm = fan_rpm;
-        if (sensor_value >= max_temp)
-        {
-            new_fan_rpm = min(c_fan_speed_limit, fan_rpm + c_fan_speed_increment);
-        }
-        else if (sensor_value <= min_temp)
-        {
-            new_fan_rpm = max(0.0f, fan_rpm - (2*c_fan_speed_increment));
-        }
-
-        return new_fan_rpm;
+        new_fan_rpm = min(c_fan_speed_limit, fan_rpm + c_fan_speed_increment);
+    }
+    else if (sensor_value <= min_temp)
+    {
+        new_fan_rpm = max(0.0f, fan_rpm - (2*c_fan_speed_increment));
     }
 
+    return new_fan_rpm;
+}
 
 ruleset mink_ruleset
 {

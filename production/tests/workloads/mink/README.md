@@ -7,7 +7,7 @@ about the workloads as it is a fully functional and reportable workload.
 
 ## See Also
 
-For a workload that has the bare minimum of infrastrucre required to create a workload,
+For a workload that has the bare minimum of infrastructure required to create a workload,
 please consult the [Barebones Workload](#template).
 
 For a workload that sets a lot of the requirements and infrastructure up, but not the

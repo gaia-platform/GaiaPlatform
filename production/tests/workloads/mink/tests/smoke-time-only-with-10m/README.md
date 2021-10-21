@@ -1,6 +1,6 @@
 # Test Description
 
-The `smoke-time-only-with-10m` test is descendant of the
+The `smoke-time-only-with-10m` test is the descendant of the
 `smoke-time-only` test.
 
 ## Purpose

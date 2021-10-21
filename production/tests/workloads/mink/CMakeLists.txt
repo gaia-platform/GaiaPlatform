@@ -18,8 +18,6 @@ find_package(Threads REQUIRED)
 include("/opt/gaia/cmake/gaia.cmake")
 
 # Default compiler/linker flags.
-#add_compile_options(-Wall -Wextra -O0 -g3 -ggdb -fno-omit-frame-pointer -fno-optimize-sibling-calls -ggnu-pubnames -gsplit-dwarf -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all)
-#add_link_options(-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all)
 add_compile_options(-Wall -Wextra)
 
 set(MINK_DDL ${PROJECT_SOURCE_DIR}/mink.ddl)

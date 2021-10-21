@@ -18,7 +18,7 @@ complete_process() {
     local SCRIPT_RETURN_CODE=$1
     local COMPLETE_REASON=$2
 
-    if [ -n "$COMPLETE_REASON" ] ; then
+    if [ -n "$COMPLETE_REASON" ]; then
         echo "$COMPLETE_REASON"
     fi
 
