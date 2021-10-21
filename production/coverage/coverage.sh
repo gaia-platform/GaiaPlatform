@@ -23,7 +23,7 @@ start_process() {
     fi
 }
 
-# Simple function to stop the process, including any cleanup
+# Simple function to stop the process, including any cleanup.
 complete_process() {
     local SCRIPT_RETURN_CODE=$1
     local COMPLETE_REASON=$2
