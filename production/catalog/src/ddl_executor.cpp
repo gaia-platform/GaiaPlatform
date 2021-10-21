@@ -568,7 +568,7 @@ void ddl_executor_t::drop_relationship(const std::string& name, bool throw_unles
     drop_relationship_no_ri(*rel_iter);
 }
 
-void ddl_executor_t::drop_relationships(gaia_id_t table_id)
+void ddl_executor_t::drop_relationships_no_ri(gaia_id_t table_id)
 {
     auto table_record = gaia_table_t::get(table_id);
 
@@ -598,7 +598,7 @@ void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_int
     {
         // Under the referential integrity requirements, we do not allow
         // dropping a table that is referenced by any other table.
-        for (auto relationship_id : list_parent_relationships(table_id))
+        for (gaia_id_t relationship_id : list_parent_relationships(table_id))
         {
             auto relationship = gaia_relationship_t::get(relationship_id);
             if (relationship.child().gaia_id() != table_id)
@@ -609,7 +609,7 @@ void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_int
             }
         }
 
-        for (auto relationship_id : list_child_relationships(table_id))
+        for (gaia_id_t relationship_id : list_child_relationships(table_id))
         {
             auto relationship = gaia_relationship_t::get(relationship_id);
             if (relationship.parent().gaia_id() != table_id)
@@ -624,7 +624,7 @@ void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_int
     // At this point, we have passed the referential integrity check or do not
     // care the referential integrity. Either way, it is safe to delete all
     // relationships associated with the table.
-    drop_relationships(table_id);
+    drop_relationships_no_ri(table_id);
 
     for (gaia_id_t field_id : list_fields(table_id))
     {
