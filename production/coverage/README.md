@@ -1,6 +1,6 @@
 # Gaia Production Code Coverage
 
-This directory contains the scripts necessary to generated the code coverage statistics for the platform.
+This directory contains the scripts necessary to generate the code coverage statistics for the platform.
 There are two main outputs for this process:
 
 1. A `coverage.json` file in the `coverage/output` directory that contains a quick summary, broken down by team/group.
@@ -32,8 +32,7 @@ This snapshot is then filtered more to produce the `rules`, `database`, and `oth
 Finally, the `raw` report is generated to provide for a double check of the base level of coverage that was reported on.
 Basically, if it did not make it into the `raw` report, it will not show up in the other reports.
 
-Once this is completed, the `coverage.json` file is generated and the `coverage.zip` file is generated before exitting the main
-script.
+Once this is completed, the `coverage.json` file is generated and the `coverage.zip` file is generated before exitting the main script.
 
 ## What Tests Are Covered?
 
