@@ -191,8 +191,9 @@ void update_index_entry(
 
             // Index entries made by rolled back transactions or aborted transactions can be ignored,
             // We can also remove them, because we are already holding a lock.
+            bool is_aborted_operation = (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_aborted(commit_ts));
             if (transactions::txn_metadata_t::is_txn_terminated(begin_ts)
-                || (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_aborted(commit_ts)))
+                || is_aborted_operation)
             {
                 it_start = index_guard.get_index().erase(it_start);
                 continue;
@@ -202,12 +203,15 @@ void update_index_entry(
             // Updates that don't change the index key are harmless
             // and those that do change it are indicated as separate removals and insertions.
             // Hence, we only care about insertions and removals;
-            // The key exists if the last seen operation is not a committed removal.
-            // We ignore uncommitted removals, because if their transaction is aborted,
+            // The key exists if the last seen operation is not a committed removal
+            // or our own transaction's removal.
+            // We ignore uncommitted removals by other transactions,
+            // because if their transaction is aborted,
             // it would allow us to perform a duplicate insertion.
+            bool is_our_operation = (begin_ts == record.txn_id);
+            bool is_committed_operation = (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_committed(commit_ts));
             if (it_start->second.operation == index_record_operation_t::remove
-                && commit_ts != c_invalid_gaia_txn_id
-                && transactions::txn_metadata_t::is_txn_committed(commit_ts))
+                && (is_our_operation || is_committed_operation))
             {
                 has_found_duplicate_key = false;
             }
