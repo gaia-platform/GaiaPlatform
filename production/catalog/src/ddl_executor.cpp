@@ -568,72 +568,20 @@ void ddl_executor_t::drop_relationship(const std::string& name, bool throw_unles
     drop_relationship_no_ri(*rel_iter);
 }
 
-void ddl_executor_t::drop_relationships(gaia_id_t table_id, bool enforce_referential_integrity)
+void ddl_executor_t::drop_relationships(gaia_id_t table_id)
 {
     auto table_record = gaia_table_t::get(table_id);
 
     for (auto& relationship_id : list_parent_relationships(table_id))
     {
         auto relationship = gaia_relationship_t::get(relationship_id);
-
-        if (!enforce_referential_integrity)
-        {
-            drop_relationship_no_ri(relationship);
-            continue;
-        }
-
-        // Cannot drop a parent relationship the link with the children still exists,
-        // and it is not a self-reference. In a self-reference relationship the same table
-        // is both parent and child, thus you can delete it.
-        if (relationship.child()
-            && (relationship.child().gaia_id() != table_id))
-        {
-            throw referential_integrity_violation::drop_parent_table(
-                table_record.name(),
-                relationship.child().name());
-        }
-
-        // There are 2 options here:
-        // 1. The child side of this relationship has already been deleted.
-        //    Now we are deleting the parent, hence the relationship object
-        //    can be deleted too.
-        // 2. This is a self-reference hence both links have to be removed
-        //    before deleting it.
         drop_relationship_no_ri(relationship);
     }
 
-    // Unlink the child side of the relationship.
     for (gaia_id_t relationship_id : list_child_relationships(table_id))
     {
         auto relationship = gaia_relationship_t::get(relationship_id);
-
-        if (!enforce_referential_integrity)
-        {
-            drop_relationship_no_ri(relationship);
-            continue;
-        }
-
-        // If the parent side of the relationship still exists we can't
-        // delete the relationship object. The parent table need to keep
-        // track of the total amount of relationships to correctly
-        // maintain the references array.
-        if (relationship.parent())
-        {
-            // Mark the relationship as deprecated.
-            auto writer = relationship.writer();
-            writer.deprecated = true;
-            writer.update_row();
-
-            // Unlink the child side of the relationship.
-            relationship.child()
-                .incoming_relationships()
-                .remove(relationship);
-        }
-        else
-        {
-            // Parent is already unlinked (maybe the field has been deleted).
-            relationship.delete_row();
-        }
+        drop_relationship_no_ri(relationship);
     }
 }
 
@@ -646,7 +594,37 @@ void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_int
         throw cannot_drop_table_with_data(table_record.name());
     }
 
-    drop_relationships(table_id, enforce_referential_integrity);
+    if (enforce_referential_integrity)
+    {
+        // Under the referential integrity requirements, we do not allow
+        // dropping a table that is referenced by any other table.
+        for (auto relationship_id : list_parent_relationships(table_id))
+        {
+            auto relationship = gaia_relationship_t::get(relationship_id);
+            if (relationship.child().gaia_id() != table_id)
+            {
+                throw referential_integrity_violation::drop_referenced_table(
+                    table_record.name(),
+                    relationship.child().name());
+            }
+        }
+
+        for (auto relationship_id : list_child_relationships(table_id))
+        {
+            auto relationship = gaia_relationship_t::get(relationship_id);
+            if (relationship.parent().gaia_id() != table_id)
+            {
+                throw referential_integrity_violation::drop_referenced_table(
+                    table_record.name(),
+                    relationship.parent().name());
+            }
+        }
+    }
+
+    // At this point, we have passed the referential integrity check or do not
+    // care the referential integrity. Either way, it is safe to delete all
+    // relationships associated with the table.
+    drop_relationships(table_id);
 
     for (gaia_id_t field_id : list_fields(table_id))
     {

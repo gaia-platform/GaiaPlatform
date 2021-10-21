@@ -109,9 +109,9 @@ private:
     // If enforce_referential_integrity is false it does not check referential integrity, fails otherwise.
     void drop_table(gaia::common::gaia_id_t table_id, bool enforce_referential_integrity);
 
-    // Drops the relationships associated with this table.
-    // If enforce_referential_integrity is false it does not check referential integrity, fails otherwise.
-    void drop_relationships(gaia::common::gaia_id_t table_id, bool enforce_referential_integrity);
+    // Drops the relationships associated with this table. Does not check
+    // referential integrity.
+    void drop_relationships(gaia::common::gaia_id_t table_id);
 
     // Bootstrap catalog with builtin databases and tables.
     void bootstrap_catalog();
