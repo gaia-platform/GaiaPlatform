@@ -132,3 +132,11 @@ create relationship if not exists hyperconnected_target_2 (
     hyperconnected.link2 -> target[],
     target.back_link2 -> hyperconnected
 );
+
+
+table detection (
+    d_objects references d_object[]
+)
+table d_object (
+    detection references detection
+)
