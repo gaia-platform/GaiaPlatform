@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
     {
         string arg(argv[i]);
 
-        if (arg.compare(0, c_start_length, c_start_string) == 0)
+        if (!arg.compare(0, c_start_length, c_start_string))
         {
             if (arg.length() == c_start_length)
             {
@@ -48,8 +48,13 @@ int main(int argc, char* argv[])
                 // Allow for equals sign form (--start-after=12). One arg rather than two.
                 start_after = atoi(arg.substr(c_start_length + 1).c_str());
             }
+            if (start_after < 1)
+            {
+                fprintf(stderr, "Illegal value for start_after. It must be 1 or greater\n");
+                exit(1);
+            }
         }
-        else if (arg.compare(0, c_row_limit_length, c_row_limit_string) == 0)
+        else if (!arg.compare(0, c_row_limit_length, c_row_limit_string))
         {
             if (arg.length() == c_row_limit_length)
             {
@@ -60,8 +65,13 @@ int main(int argc, char* argv[])
                 // Allow for equals sign form (--row-limit=12). One arg rather than two.
                 row_limit = atoi(arg.substr(c_row_limit_length + 1).c_str());
             }
+            if (row_limit < 1)
+            {
+                fprintf(stderr, "Illegal value for row_limit. It must be 1 or greater\n");
+                exit(1);
+            }
         }
-        else if (arg.compare(0, c_database_length, c_database_string) == 0)
+        else if (!arg.compare(0, c_database_length, c_database_string))
         {
             if (arg.length() == c_database_length)
             {
@@ -73,7 +83,7 @@ int main(int argc, char* argv[])
                 database = arg.substr(c_database_length + 1);
             }
         }
-        else if (arg.compare(0, c_table_length, c_table_string) == 0)
+        else if (!arg.compare(0, c_table_length, c_table_string))
         {
             if (arg.length() == c_table_length)
             {
@@ -109,11 +119,11 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-    nlohmann::json j;
+    string extracted_data;
 
     try
     {
-        j = gaia_db_extract(database, table, start_after, row_limit);
+        extracted_data = gaia_db_extract(database, table, start_after, row_limit);
     }
     catch (gaia_exception& e)
     {
@@ -122,5 +132,5 @@ int main(int argc, char* argv[])
 
     gaia::db::end_session();
 
-    // cout << j.dump(4) << endl;
+    cout << extracted_data << endl;
 }

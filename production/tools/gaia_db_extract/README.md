@@ -32,10 +32,11 @@ The output will be in JSON format.
 ## JSON format for a range of rows.
 ```
 {
+    "database": <databasename>,
     "table": "<tablename>",
     "rows": [
-        "row_id": <gaia_id>,
-        "row": {
+        {
+            "row_id": <gaia_id>,
             "field1": "<field1_value>",
             "field2": "<field2_value>",
             ...
