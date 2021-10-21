@@ -319,6 +319,25 @@ TEST_F(index_test, unique_constraint_update_record)
     ASSERT_EQ(0, strcmp(alice.surname(), "Alicia"));
 }
 
+TEST_F(index_test, unique_constraint_delete_record)
+{
+    const char* student_id = "00002217";
+
+    auto_transaction_t txn;
+    gaia_id_t id = student_t::insert_row(student_id, "Alice", 21, 30, 3.75);
+    txn.commit();
+
+    // Delete the record and reinsert the key - this should not trigger any conflict.
+    student_t alice = student_t::get(id);
+    alice.delete_row();
+    id = student_t::insert_row(student_id, "Alicia", 21, 30, 3.75);
+    txn.commit();
+
+    // Verify the insert.
+    alice = student_t::get(id);
+    ASSERT_EQ(0, strcmp(alice.surname(), "Alicia"));
+}
+
 TEST_F(index_test, unique_constraint_rollback_transaction)
 {
     const char* alice_student_id = "00002217";
