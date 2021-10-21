@@ -292,26 +292,7 @@ TEST_F(ddl_executor_test, drop_table_child_reference)
     gaia_table_t child_table = gaia_table_t::get(child_table_id);
     commit_transaction();
 
-    drop_table(child_table_name);
-
-    begin_transaction();
-    EXPECT_FALSE(gaia_table_t::get(child_table_id));
-
-    // the relationship has been marked deprecated and the child has been unlinked.
-    ASSERT_EQ(1, parent_table.outgoing_relationships().size());
-    gaia_relationship_t relationship = *parent_table.outgoing_relationships().begin();
-    gaia_id_t relationship_id = relationship.gaia_id();
-
-    ASSERT_TRUE(relationship.deprecated());
-    EXPECT_FALSE(relationship.child());
-    commit_transaction();
-
-    drop_table(parent_table_name);
-
-    begin_transaction();
-    EXPECT_FALSE(gaia_table_t::get(parent_table_id));
-    EXPECT_FALSE(gaia_relationship_t::get(relationship_id));
-    commit_transaction();
+    EXPECT_THROW(drop_table(child_table_name), referential_integrity_violation);
 }
 
 TEST_F(ddl_executor_test, drop_table_with_data)
