@@ -12,7 +12,7 @@ start_process() {
     fi
 }
 
-# Simple function to stop the process, including any cleanup
+# Simple function to stop the process, including any cleanup.
 complete_process() {
     local SCRIPT_RETURN_CODE=$1
     local COMPLETE_REASON=$2
@@ -281,14 +281,12 @@ source "$SCRIPTPATH/properties.sh"
 # Set up any project based local script variables.
 TEMP_FILE=/tmp/$PROJECT_NAME.lint.tmp
 
-# Set up any local script variables.
-
 # Parse any command line values.
 parse_command_line "$@"
 
 # Verify that we have the right tools installed.
-#verify_correct_clang_format_installed
-#verify_correct_clang_tidy_installed
+verify_correct_clang_format_installed
+verify_correct_clang_tidy_installed
 verify_correct_pipenv_installed
 verify_correct_shellcheck_installed
 
@@ -298,7 +296,7 @@ start_process
 save_current_directory
 
 # Lint the various parts of the project.
-#lint_c_plus_plus_code
+lint_c_plus_plus_code
 lint_python_scipts
 lint_shell_scripts
 

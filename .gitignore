@@ -51,3 +51,4 @@ production/tests/workloads/mink/test-results/*
 production/tests/workloads/template/test-results/*
 production/tests/workloads/barebones/test-results/*
 production/tests/workloads/pingpong/test-results/*
+production/tests/workloads/palletbox/test-results/*
