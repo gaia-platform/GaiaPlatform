@@ -69,7 +69,7 @@ def process_command_line():
 
 def read_thread_pool_count(data, thread_pool_count):
     """
-    Retrive the thread_pool_count setting from the configuration file.
+    Retrieve the thread_pool_count setting from the configuration file.
     """
     if "thread_pool_count" in data:
         thread_pool_count = data["thread_pool_count"]
@@ -89,7 +89,7 @@ def read_thread_pool_count(data, thread_pool_count):
 
 def read_stats_log_interval(data, stats_log_interval):
     """
-    Retrive the stats_log_interval setting from the configuration file.
+    Retrieve the stats_log_interval setting from the configuration file.
     """
     if "stats_log_interval" in data:
         stats_log_interval = data["stats_log_interval"]

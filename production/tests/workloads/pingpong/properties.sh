@@ -48,7 +48,6 @@ export TEST_DIRECTORY=/tmp/test_$PROJECT_NAME
 # Set up any local script variables.
 export EXECUTABLE_PATH=./$BUILD_DIRECTORY/$EXECUTABLE_NAME
 
-
 # -----------------------------------------------------------------
 # Functions to specify project specific information for test.sh.
 #

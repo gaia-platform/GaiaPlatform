@@ -1,3 +1,8 @@
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 # Turn debug on.
 #D
 # Turn off transaction mode for the pause.
