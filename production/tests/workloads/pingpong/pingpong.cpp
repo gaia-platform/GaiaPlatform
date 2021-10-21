@@ -112,7 +112,8 @@ void my_sleep_for(long parse_for_microsecond)
     my_time_point start_mark = my_clock::now();
     while (chrono::duration_cast<chrono::microseconds>(my_clock::now() - start_mark).count() < parse_for_microsecond)
     {
-        ;
+        // Do nothing in this loop.  Need this loop to be tight so that we
+        // can measure in microseconds.
     }
 }
 
@@ -313,13 +314,13 @@ int handle_marco_polo(string m_input)
     int initial_state_tracker = g_rule_1_tracker;
 
     my_time_point start_transaction_start_mark = my_clock::now();
-    auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+    auto_transaction_t txn(auto_transaction_t::no_auto_begin);
     my_time_point inside_transaction_start_mark = my_clock::now();
 
     restore_marco_table(limit);
 
     my_time_point inside_transaction_end_mark = my_clock::now();
-    tx.commit();
+    txn.commit();
     my_time_point commit_transaction_end_mark = my_clock::now();
 
     wait_for_processing_to_complete(false, initial_state_tracker, c_marco_polo_wait_timeout_in_microseconds);
@@ -655,7 +656,17 @@ public:
                              "\"check_time_in_sec\" : %.9f, "
                              "\"total_print_in_sec\" : %.9f"
                              "%s }\n",
-                ms_double.count() / c_microseconds_in_second, last_known_timestamp, g_total_start_transaction_duration_in_microseconds / c_microseconds_in_second, g_total_inside_transaction_duration_in_microseconds / c_microseconds_in_second, g_total_end_transaction_duration_in_microseconds / c_microseconds_in_second, g_update_row_duration_in_microseconds / c_microseconds_in_second, g_total_wait_time_in_microseconds / c_microseconds_in_second, g_explicit_wait_time_in_microseconds / c_microseconds_in_second, g_check_time_in_microseconds / c_microseconds_in_second, g_total_print_time_in_microseconds / c_microseconds_in_second, measured_buffer);
+                ms_double.count() / c_microseconds_in_second,
+                last_known_timestamp,
+                g_total_start_transaction_duration_in_microseconds / c_microseconds_in_second,
+                g_total_inside_transaction_duration_in_microseconds / c_microseconds_in_second,
+                g_total_end_transaction_duration_in_microseconds / c_microseconds_in_second,
+                g_update_row_duration_in_microseconds / c_microseconds_in_second,
+                g_total_wait_time_in_microseconds / c_microseconds_in_second,
+                g_explicit_wait_time_in_microseconds / c_microseconds_in_second,
+                g_check_time_in_microseconds / c_microseconds_in_second,
+                g_total_print_time_in_microseconds / c_microseconds_in_second,
+                measured_buffer);
         fclose(delays_file);
         return EXIT_SUCCESS;
     }
@@ -667,12 +678,13 @@ private:
 int main(int argc, const char** argv)
 {
     const char* c_arg_debug = "debug";
+    const int c_first_argument_count = 2;
 
-    if (argc >= 2 && strncmp(argv[1], c_arg_debug, strlen(c_arg_debug)) == 0)
+    if (argc >= c_first_argument_count && strncmp(argv[1], c_arg_debug, strlen(c_arg_debug)) == 0)
     {
-        if (argc == 3)
+        if (argc > c_first_argument_count)
         {
-            g_sleep_time_in_seconds_after_stop = atoi(argv[2]);
+            g_sleep_time_in_seconds_after_stop = atoi(argv[c_first_argument_count]);
         }
         else
         {
@@ -681,7 +693,7 @@ int main(int argc, const char** argv)
     }
     else
     {
-        if (argc > 1)
+        if (argc >= c_first_argument_count)
         {
             cout << "Wrong arguments." << endl;
         }
@@ -690,7 +702,7 @@ int main(int argc, const char** argv)
     }
 
     int return_code = EXIT_FAILURE;
-    simulation_t sim;
+    simulation_t active_simulation;
     try
     {
         // Do this so we get a record of the mode in the logs.
@@ -702,7 +714,7 @@ int main(int argc, const char** argv)
         gaia::system::initialize(g_configuration_file_name, nullptr);
 
         init_storage();
-        sim.run();
+        active_simulation.run();
 
         gaia::system::shutdown();
 
@@ -711,7 +723,7 @@ int main(int argc, const char** argv)
     catch (std::exception& e)
     {
         printf("Simulation caught an unhandled exception: %s\n", e.what());
-        sim.stop();
+        active_simulation.stop();
     }
 
     if (g_object_log_file != nullptr)
