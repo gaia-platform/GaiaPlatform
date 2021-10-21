@@ -1,0 +1,7 @@
+build.sh
+install.sh
+lint.sh
+run.sh
+test.sh
+python/generate_config.py
+python/summarize_test_results.py

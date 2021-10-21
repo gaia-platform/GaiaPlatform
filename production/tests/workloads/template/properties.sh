@@ -108,3 +108,14 @@ execute_commands() {
         complete_process 1 "Command '${PARAMS[0]}' not known."
     fi
 }
+
+# With everything else set up, do the heavy lifting of building the project.
+build_project() {
+    # These next two functions build a standard Gaia project.
+    #generate_makefile
+    #invoke_makefile
+
+    # These next two lines provide for a simple representation of them until implemented.
+    mkdir "$BUILD_DIRECTORY"
+    touch "$EXECUTABLE_PATH"
+}

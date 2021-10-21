@@ -53,3 +53,5 @@ production/tests/workloads/barebones/test-results/*
 production/tests/workloads/pingpong/test-results/*
 production/output/*
 production/tests/workloads/palletbox/test-results/*
+production/tests/workloads/palletbox/python/summarize_test_results.py
+production/tests/workloads/palletbox/python/generate_config.py

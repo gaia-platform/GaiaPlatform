@@ -195,13 +195,8 @@ prepare_build_directory
 
 handle_optional_flags
 
-# These next two functions build a standard Gaia project.
-#generate_makefile
-#invoke_makefile
-
-# These next two lines provide for a simple representation of them until implemented.
-mkdir "$BUILD_DIRECTORY"
-touch "$EXECUTABLE_PATH"
+# Hand-off to properties.sh for the actual build kick-off.
+build_project
 
 if [ $LINT_MODE -ne 0 ]; then
     if ! ./lint.sh  > "$TEMP_FILE" 2>&1 ; then
