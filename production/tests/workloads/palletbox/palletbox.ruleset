@@ -38,7 +38,7 @@ ruleset palletbox
     on_insert(payload_pick_up_event) {
         gaia_log::app().info("Fired on payload_pick_up_event: bot={}, station={}", robot.id, gaia::palletbox::station_name_map[station.id]);
 
-        // Add simulated picking up of payload here.
+        // TODO: Add simulated picking up of payload here.
 
         // Now that we have the pallet, move to outbound.
         bot_moving_to_station_event.insert(
@@ -55,7 +55,7 @@ ruleset palletbox
     on_insert(payload_drop_off_event) {
         gaia_log::app().info("Fired on payload_drop_off_event: bot={}, station={}", robot.id, gaia::palletbox::station_name_map[station.id]);
 
-        // Add simulated dropping off of payload here.
+        // TODO: Add simulated dropping off of payload here.
 
         // Now that we have dropped the pallet, move to charging to await more orders.
         bot_moving_to_station_event.insert(

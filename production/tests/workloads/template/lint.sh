@@ -12,7 +12,7 @@ start_process() {
     fi
 }
 
-# Simple function to stop the process, including any cleanup
+# Simple function to stop the process, including any cleanup.
 complete_process() {
     local SCRIPT_RETURN_CODE=$1
     local COMPLETE_REASON=$2
@@ -47,6 +47,7 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
+    echo "  -nb,--no-build      Do not build the project before linting."
     echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
     echo ""
@@ -56,9 +57,14 @@ show_usage() {
 # Parse the command line.
 parse_command_line() {
     VERBOSE_MODE=0
+    BUILD_BEFORE_LINT_MODE=1
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
+        -nb|--no-build)
+            BUILD_BEFORE_LINT_MODE=0
+            shift
+        ;;
         -v|--verbose)
             VERBOSE_MODE=1
             shift
@@ -161,11 +167,15 @@ build_project() {
 # Lint the C++ code.
 lint_c_plus_plus_code() {
 
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Building the $PROJECT_NAME project to ensure the C++ components to scan are current."
+    if [ "$BUILD_BEFORE_LINT_MODE" -ne 0 ]; then
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Building the $PROJECT_NAME project to ensure the C++ components to scan are current."
+        fi
+        if ! ./build.sh -v > "$TEMP_FILE" 2>&1; then
+            cat "$TEMP_FILE"
+            complete_process 1 "Building of the $PROJECT_NAME project failed."
+        fi
     fi
-    build_project
-
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Applying formatting to the C++ parts of the $PROJECT_NAME project."
     fi
@@ -281,14 +291,12 @@ source "$SCRIPTPATH/properties.sh"
 # Set up any project based local script variables.
 TEMP_FILE=/tmp/$PROJECT_NAME.lint.tmp
 
-# Set up any local script variables.
-
 # Parse any command line values.
 parse_command_line "$@"
 
 # Verify that we have the right tools installed.
-#verify_correct_clang_format_installed
-#verify_correct_clang_tidy_installed
+verify_correct_clang_format_installed
+verify_correct_clang_tidy_installed
 verify_correct_pipenv_installed
 verify_correct_shellcheck_installed
 
@@ -298,7 +306,7 @@ start_process
 save_current_directory
 
 # Lint the various parts of the project.
-#lint_c_plus_plus_code
+lint_c_plus_plus_code
 lint_python_scipts
 lint_shell_scripts
 

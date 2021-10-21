@@ -12,7 +12,7 @@ start_process() {
     fi
 }
 
-# Simple function to stop the process, including any cleanup
+# Simple function to stop the process, including any cleanup.
 complete_process() {
     local SCRIPT_RETURN_CODE=$1
     local COMPLETE_REASON=$2
@@ -100,7 +100,7 @@ parse_command_line() {
     done
 }
 
-# Generate the Makefile
+# Generate the Makefile.
 generate_makefile() {
     if [ $VERBOSE_MODE -ne 0 ]; then
         echo "Generating the makefile..."
@@ -184,8 +184,6 @@ source "$SCRIPTPATH/properties.sh"
 # Set up any project based local script variables.
 TEMP_FILE=/tmp/$PROJECT_NAME.build.tmp
 
-# Set up any local script variables.
-
 parse_command_line "$@"
 
 # Clean entrance into the script.
@@ -199,7 +197,12 @@ handle_optional_flags
 build_project
 
 if [ $LINT_MODE -ne 0 ]; then
-    if ! ./lint.sh  > "$TEMP_FILE" 2>&1 ; then
+    LINT_FLAG=
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo Invoking lint on "$PROJECT_NAME"...
+        LINT_FLAG=-v
+    fi
+    if ! ./lint.sh $LINT_FLAG -nb > "$TEMP_FILE" 2>&1 ; then
         cat "$TEMP_FILE"
         complete_process 1 "Linting of the project after a successful build failed."
     fi

@@ -25,7 +25,7 @@ start_process() {
 
 }
 
-# Simple function to stop the process, including any cleanup
+# Simple function to stop the process, including any cleanup.
 complete_process() {
     local SCRIPT_RETURN_CODE=$1
     local COMPLETE_REASON=$2
@@ -196,7 +196,6 @@ for NEXT_TEMPLATE_FILE_NAME in "${TEMPLATE_FILE_NAMES[@]}"; do
         fi
     fi
 done
-
 
 # If we get here, we have a clean exit from the script.
 complete_process 0
