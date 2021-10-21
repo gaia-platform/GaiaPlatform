@@ -27,8 +27,6 @@ namespace gaia
 {
 namespace extract
 {
-unordered_map<string, pair<gaia_id_t, gaia_type_t>> scan_state_t::s_map_table_name_to_ids;
-
 #define Int16GetDatum(X) ((Datum)(X))
 #define Int32GetDatum(X) ((Datum)(X))
 #define Int64GetDatum(X) ((Datum)(X))
@@ -148,20 +146,8 @@ bool scan_state_t::initialize_caches()
             fprintf(stderr, "Failed to set type information in type_cache_t!\n");
             return false;
         }
-
-        // TODO: Decide if this is needed.
-        s_map_table_name_to_ids.insert(make_pair(
-            table_name,
-            make_pair(table_view.id(), table_view.table_type())));
     }
 
-    if (type_cache_t::get()->size() != s_map_table_name_to_ids.size())
-    {
-        fprintf(stderr, "Inconsistent initialization of caches! "
-                        "type_cache_t has size '%ld', but s_map_table_name_to_ids has size '%ld'.\n",
-                type_cache_t::get()->size(), s_map_table_name_to_ids.size());
-        return false;
-    }
     return true;
 }
 
