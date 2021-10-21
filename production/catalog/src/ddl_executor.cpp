@@ -621,8 +621,8 @@ void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_int
         }
     }
 
-    // At this point, we have passed the referential integrity check or do not
-    // care the referential integrity. Either way, it is safe to delete all
+    // At this point, we have either passed the referential integrity check or
+    // are ignoring referential integrity. Either way, it is safe to delete all
     // relationships associated with the table.
     drop_relationships_no_ri(table_id);
 
