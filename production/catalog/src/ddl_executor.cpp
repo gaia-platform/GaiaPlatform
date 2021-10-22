@@ -534,7 +534,7 @@ gaia_id_t ddl_executor_t::create_relationship(
 void ddl_executor_t::drop_relationship_no_ri(gaia_relationship_t& relationship)
 {
     // Clear all links in table records on both sides of the relationship. We do
-    // this by disconnect all child records from their parent.
+    // this by disconnecting all child records from their parent.
     for (auto record : gaia_ptr_t::find_all_range(relationship.child().type()))
     {
         record.remove_parent_reference(relationship.parent_offset());
