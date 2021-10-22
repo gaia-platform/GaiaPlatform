@@ -19,9 +19,10 @@
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
 
+#include "gaia_palletbox.h"
+
 #include "constants.hpp"
 #include "exceptions.hpp"
-#include "gaia_palletbox.h"
 
 using namespace std;
 
@@ -59,7 +60,7 @@ std::unordered_map<int, const char*> g_station_name_map = {
 } // namespace palletbox
 } // namespace gaia
 
-// Common Names
+// Common names.
 const char* g_configuration_file_name = "palletbox.conf";
 
 // Used for conversions.
@@ -85,10 +86,10 @@ const int c_processing_complete_timeout_in_microseconds = static_cast<int>(300 *
 
 // This keep track of a separate log file used for debugging, independant of the
 // other logs.
-
+//
 // Currently, it is used to track the values of the rule trackers for later examination
 // and verification of the stats logs.
-
+//
 // This logging can be turned on and off using the `D` command, and will be
 // automatically closed at the end of the application.  When closed, it will be
 // assigned to nullptr.  When open, it will have the File * that is the output file.
@@ -118,7 +119,7 @@ bool g_is_measured_duration_timer_on;
 bool g_have_measurement;
 my_time_point g_measured_duration_start_mark;
 
-// Forward References
+// Forward references.
 int wait_for_processing_to_complete(bool is_explicit_pause, int timeout);
 
 atomic<uint64_t> g_timestamp{1};
@@ -150,9 +151,7 @@ gaia_id_t insert_robot(int robot_id)
     w.id = robot_id;
     w.times_to_charging = 0;
     w.target_times_to_charge = 1;
-    printf("--->insert row\n");
     gaia_id_t gid = w.insert_row();
-    printf("--->row inserted\n");
     return gid;
 }
 
@@ -185,14 +184,14 @@ void restore_default_values(int expected_iterations)
 
 void init_storage()
 {
-    auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+    auto_transaction_t txn(auto_transaction_t::no_auto_begin);
 
     // If we already have inserted a ping pong table then our storage has already been
     // initialized.  Re-initialize the database to default values.
     if (station_t::list().size())
     {
         restore_default_values(-1);
-        tx.commit();
+        txn.commit();
         return;
     }
 
@@ -202,7 +201,7 @@ void init_storage()
 
     auto pallet_bot = robot_t::get(insert_robot(c_sole_robot_id));
     charging_station.robots().connect(pallet_bot);
-    tx.commit();
+    txn.commit();
 }
 
 void dump_db_json()
@@ -271,13 +270,13 @@ int handle_test(string m_input)
 
     restore_default_values(limit);
 
-    auto robot_iter = robot_t::list().where(robot_expr::id == c_sole_robot_id).begin();
-    if (robot_iter == robot_t::list().end())
+    auto robot_it = robot_t::list().where(robot_expr::id == c_sole_robot_id).begin();
+    if (robot_it == robot_t::list().end())
     {
         throw palletbox_exception(gaia_fmt::format("Cannot find robot with id {}", c_sole_robot_id));
     }
 
-    bot_moving_to_station_event_t::insert_row(get_time_millis(), static_cast<int>(station_id_t::inbound), robot_iter->id());
+    bot_moving_to_station_event_t::insert_row(get_time_millis(), static_cast<int>(station_id_t::inbound), robot_it->id());
 
     my_time_point inside_transaction_end_mark = my_clock::now();
     tx.commit();
@@ -408,7 +407,7 @@ public:
         my_time_point start_mark = my_clock::now();
         while (chrono::duration_cast<chrono::microseconds>(my_clock::now() - start_mark).count() < parse_for_microsecond)
         {
-            ;
+            // Keep waiting for time to elapse.
         }
     }
 
@@ -417,7 +416,11 @@ public:
         my_time_point end_sleep_start_mark = my_clock::now();
 
         int limit = stoi(m_input.substr(1, m_input.size() - 1));
-        std::this_thread::sleep_for(microseconds(limit * (static_cast<long>(c_microseconds_in_second) / static_cast<long>(c_milliseconds_in_second))));
+        std::this_thread::sleep_for(
+            microseconds(
+                limit * (
+                    static_cast<long>(c_microseconds_in_second) /
+                    static_cast<long>(c_milliseconds_in_second))));
 
         my_time_point end_sleep_end_mark = my_clock::now();
 
@@ -538,12 +541,13 @@ private:
 int main(int argc, const char** argv)
 {
     const char* c_arg_debug = "debug";
+    const int c_debug_parameter_index = 2;
 
-    if (argc >= 2 && strncmp(argv[1], c_arg_debug, strlen(c_arg_debug)) == 0)
+    if (argc >= c_debug_parameter_index && strncmp(argv[1], c_arg_debug, strlen(c_arg_debug)) == 0)
     {
-        if (argc == 3)
+        if (argc > c_debug_parameter_index)
         {
-            g_sleep_time_in_seconds_after_stop = atoi(argv[2]);
+            g_sleep_time_in_seconds_after_stop = atoi(argv[c_debug_parameter_index]);
         }
         else
         {
@@ -552,7 +556,7 @@ int main(int argc, const char** argv)
     }
     else
     {
-        if (argc > 1)
+        if (argc >= c_debug_parameter_index)
         {
             cout << "Wrong arguments." << endl;
         }
@@ -566,12 +570,9 @@ int main(int argc, const char** argv)
     {
         g_object_log_file = fopen("test-results/output.json", "w");
 
-        printf("-->Initializeing system\n");
         gaia::system::initialize(g_configuration_file_name, nullptr);
 
-        printf("-->Initializeing storage\n");
         init_storage();
-        printf("-->Starting Simulation\n");
         sim.run();
 
         gaia::system::shutdown();

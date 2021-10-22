@@ -19,20 +19,20 @@ class palletbox_exception : public std::exception
 {
 public:
     explicit palletbox_exception(const char* message)
-        : m_msg(message){};
+        : m_message(message){};
 
     explicit palletbox_exception(std::string message)
-        : m_msg(std::move(message)){};
+        : m_message(std::move(message)){};
 
     ~palletbox_exception() noexcept override = default;
 
     [[nodiscard]] const char* what() const noexcept override
     {
-        return m_msg.c_str();
+        return m_message.c_str();
     }
 
 protected:
-    std::string m_msg;
+    std::string m_message;
 };
 
 } // namespace exceptions

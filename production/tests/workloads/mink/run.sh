@@ -15,6 +15,11 @@ start_process() {
 # Simple function to stop the process, including any cleanup
 complete_process() {
     local SCRIPT_RETURN_CODE=$1
+    local COMPLETE_REASON=$2
+
+    if [ -n "$COMPLETE_REASON" ] ; then
+        echo "$COMPLETE_REASON"
+    fi
 
     if [ "$SCRIPT_RETURN_CODE" -ne 0 ]; then
         echo "Execution of the $PROJECT_NAME project failed."
@@ -180,8 +185,7 @@ handle_auto_build() {
             fi
             if ! ./build.sh -v "$FULL_BUILD_FLAG" > "$TEMP_FILE" 2>&1 ; then
                 cat "$TEMP_FILE"
-                echo "Build script cannot build the project in directory '$(realpath "$TEST_DIRECTORY")'."
-                complete_process 1
+                complete_process 1 "Build script cannot build the project in directory '$(realpath "$TEST_DIRECTORY")'."
             fi
         else
             if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -218,8 +222,7 @@ create_configuration_file() {
 
     if [ $DID_FAIL -ne 0 ]; then
         cat "$TEMP_FILE"
-        echo "Generating gaia configuration file '$CONFIGURATION_PATH' failed."
-        complete_process 1
+        complete_process 1 "Generating gaia configuration file '$CONFIGURATION_PATH' failed."
     else
         echo "Gaia configuration file '$CONFIGURATION_PATH' generated."
         STATS_LOG_INTERVAL=$(cat "$TEMP_FILE")
@@ -249,14 +252,12 @@ create_configuration_file
 
 # Make sure the program is compiled before going on.
 if [ ! -f "$EXECUTABLE_PATH" ]; then
-    echo "Building of the project has not be completed.  Cannot run."
-    complete_process 1
+    complete_process 1 "Building of the project has not be completed.  Cannot run."
 fi
 
 # Make sure that the program configuration file is present.
 if [ ! -f "$CONFIGURATION_PATH" ]; then
-    echo "Building of the project configuration file has not be completed.  Cannot run."
-    complete_process 1
+    complete_process 1 "Building of the project configuration file has not be completed.  Cannot run."
 fi
 
 # Clean entrance into the script.

@@ -8,7 +8,6 @@
 
 #include "gaia/logger.hpp"
 
-
 #include "constants.hpp"
 #include "gaia_palletbox.h"
 
