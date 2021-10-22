@@ -299,7 +299,7 @@ ruleset testE31
     }
 }
 
-//GAIAPLAT-1428
+// GAIAPLAT-1428
 ruleset testE32
 {
     on_update(I:incubator.max_temp)

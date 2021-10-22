@@ -758,7 +758,7 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
         DeclarationName Name = Context.DeclarationNames.getCXXConversionFunctionName(ClassType);
         DeclarationNameInfo NameInfo(Name, loc);
 
-        auto* conversionFunctionDeclaration = CXXConversionDecl::Create(
+        auto conversionFunctionDeclaration = CXXConversionDecl::Create(
             Context, cast<CXXRecordDecl>(RD), loc, NameInfo, R,
             nullptr, false, false, false, SourceLocation());
 
@@ -772,7 +772,7 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
     DeclarationName BooleanConversionName = Context.DeclarationNames.getCXXConversionFunctionName(ClassBooleanConversionType);
     DeclarationNameInfo BooleanConversionNameInfo(BooleanConversionName, loc);
 
-    auto* booleanConversionFunctionDeclaration = CXXConversionDecl::Create(
+    auto booleanConversionFunctionDeclaration = CXXConversionDecl::Create(
         Context, cast<CXXRecordDecl>(RD), loc, BooleanConversionNameInfo, BooleanConversionType,
         nullptr, false, true, false, SourceLocation());
 
