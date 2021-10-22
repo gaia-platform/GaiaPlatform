@@ -141,11 +141,12 @@ bool scan_state_t::initialize_caches()
             table_view.serialization_template()->size());
 
         bool result = type_cache_t::get()->set_type_information(table_view.table_type(), type_information);
-        if (result == false)
-        {
-            fprintf(stderr, "Failed to set type information in type_cache_t!\n");
-            return false;
-        }
+        // TODO: Verify that it's okay for the information to exist after the first initialization.
+        // if (result == false)
+        // {
+        //     fprintf(stderr, "Failed to set type information in type_cache_t!\n");
+        //     return false;
+        // }
     }
 
     return true;
@@ -176,7 +177,8 @@ bool scan_state_t::initialize_scan(gaia_type_t container_id, gaia_id_t start_aft
             m_current_record = m_current_record.find_next();
             if (m_current_record.type() != container_id)
             {
-                fprintf(stderr, "Starting row is not correct type.\n");
+                // This is expected when the scan is already at the end.
+                // fprintf(stderr, "Starting row is not correct type.\n");
                 return false;
             }
         }
