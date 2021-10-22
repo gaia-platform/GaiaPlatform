@@ -45,7 +45,6 @@ checks.json
 
 # Integration/Performance Test files.
 production/tests/Pipfile.lock
-
 production/tests/suite-results/*
 production/tests/workloads/mink/test-results/*
 production/tests/workloads/template/test-results/*
@@ -55,3 +54,8 @@ production/output/*
 production/tests/workloads/palletbox/test-results/*
 production/tests/workloads/palletbox/python/summarize_test_results.py
 production/tests/workloads/palletbox/python/generate_config.py
+production/tests/workloads/palletbox/build.sh
+production/tests/workloads/palletbox/install.sh
+production/tests/workloads/palletbox/lint.sh
+production/tests/workloads/palletbox/run.sh
+production/tests/workloads/palletbox/test.sh

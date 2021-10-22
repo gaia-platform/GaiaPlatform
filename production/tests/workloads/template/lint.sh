@@ -164,6 +164,23 @@ build_project() {
     fi
 }
 
+find_edc_directory() {
+
+    # Look for any subdirectories and place them in the array.
+    EDC_CHILD_DIRECTORY=$SCRIPTPATH/build/gaia_generated/direct_access/
+    readarray -d '' subdirs < <(find "$EDC_CHILD_DIRECTORY" -maxdepth 1 -type d -name "*" -print0)
+
+    if [ ${#subdirs[@]} -ne 2 ] ; then
+        complete_process 1 "Generated EDC directory for the generated files not found."
+    fi
+
+    if [ "${subdirs[0]}" != "$EDC_CHILD_DIRECTORY" ] ; then
+        complete_process 1 "Expected the base directory to be the first element."
+    fi
+
+    EDC_CHILD_DIRECTORY=${subdirs[1]}
+}
+
 # Lint the C++ code.
 lint_c_plus_plus_code() {
 
@@ -180,17 +197,44 @@ lint_c_plus_plus_code() {
         echo "Applying formatting to the C++ parts of the $PROJECT_NAME project."
     fi
 
-    if ! clang-format -i "./mink.cpp" --style=file > "$TEMP_FILE" 2>&1; then
-        cat "$TEMP_FILE"
-        complete_process 1 "Formatting of 'mink.cpp' failed."
+    local FILE_INDEX=0
+    local DID_FAIL=0
+    while [ $FILE_INDEX -lt ${#c_plus_plus_files[@]} ]
+    do
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Formatting C++ file: ${c_plus_plus_files[$FILE_INDEX]}"
+        fi
+        if ! clang-format -i "${c_plus_plus_files[$FILE_INDEX]}" --style=file > "$TEMP_FILE" 2>&1; then
+            cat "$TEMP_FILE"
+            DID_FAIL=1
+        fi
+        (( FILE_INDEX++ )) || true
+    done
+    if [ $DID_FAIL -ne 0 ] ; then
+        complete_process 1 "Formatting of one or more files failed."
     fi
+
+    find_edc_directory
 
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Analyzing the C++ parts of the $PROJECT_NAME project."
     fi
-    if ! clang-tidy --warnings-as-errors=* -p "build" -extra-arg="-std=c++17" "./mink.cpp" -- -I/opt/gaia/include "-I$SCRIPTPATH/build/gaia_generated/edc/mink" > "$TEMP_FILE" 2>&1; then
-        cat "$TEMP_FILE"
-        complete_process 1 "File 'mink.cpp' contains some lint errors."
+
+    local FILE_INDEX=0
+    local DID_FAIL=0
+    while [ $FILE_INDEX -lt ${#c_plus_plus_files[@]} ]
+    do
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Analyzing C++ file: ${c_plus_plus_files[$FILE_INDEX]}"
+        fi
+        if ! clang-tidy --warnings-as-errors=* -p "build" -extra-arg="-std=c++17" "${c_plus_plus_files[$FILE_INDEX]}" -- -I/opt/gaia/include "-I$EDC_CHILD_DIRECTORY" > "$TEMP_FILE" 2>&1; then
+            cat "$TEMP_FILE"
+            DID_FAIL=1
+        fi
+        (( FILE_INDEX++ )) || true
+    done
+    if [ $DID_FAIL -ne 0 ] ; then
+        complete_process 1 "Analyzing of one or more files failed."
     fi
 }
 
@@ -294,9 +338,16 @@ TEMP_FILE=/tmp/$PROJECT_NAME.lint.tmp
 # Parse any command line values.
 parse_command_line "$@"
 
+# Look for file extensions of the types that we want to lint.
+readarray -d '' c_plus_plus_files < <(find . -maxdepth 2 -type f \( -iname "*.hpp" -o -iname "*.cpp" \) -print0 )
+
 # Verify that we have the right tools installed.
-verify_correct_clang_format_installed
-verify_correct_clang_tidy_installed
+if [ ${#c_plus_plus_files[@]} -ne 0 ] ; then
+    verify_correct_clang_format_installed
+    verify_correct_clang_tidy_installed
+fi
+
+# Verify that we have the right tools installed.
 verify_correct_pipenv_installed
 verify_correct_shellcheck_installed
 
