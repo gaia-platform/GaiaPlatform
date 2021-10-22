@@ -205,3 +205,12 @@ ruleset testE31
        auto s5 = sensor.insert(name: incubator.name);
     }
 }
+
+//GAIAPLAT-1565
+ruleset testE32
+{
+    on_insert(detection)
+    {
+
+    }
+}

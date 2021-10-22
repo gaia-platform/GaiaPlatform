@@ -52,3 +52,6 @@ production/tests/workloads/template/test-results/*
 production/tests/workloads/barebones/test-results/*
 production/tests/workloads/pingpong/test-results/*
 production/tests/workloads/palletbox/test-results/*
+production/coverage/output/*
+production/output/*
+production/coverage/coverage.json

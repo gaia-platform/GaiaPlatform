@@ -155,8 +155,7 @@ build_project() {
     fi
     if ! ./build.sh -v > "$TEMP_FILE" 2>&1 ; then
         cat "$TEMP_FILE"
-        echo "Build script cannot build the project."
-        complete_process 1
+        complete_process 1 "Build script cannot build the project."
     fi
 }
 

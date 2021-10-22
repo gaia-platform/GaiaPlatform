@@ -575,7 +575,7 @@ TEST_F(gaia_db_references_test, remove_parent_reference__one_to_one)
 
     // WHEN
 
-    child.remove_parent_reference(parent.id(), c_parent_doctor_offset);
+    child.remove_parent_reference(c_parent_doctor_offset);
 
     // THEN
 

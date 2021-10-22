@@ -139,15 +139,11 @@ public:
     bool remove_child_reference(common::gaia_id_t child_id, common::reference_offset_t first_child_offset);
 
     /**
-     * Removes a parent reference from a child object. Without an index this operation
-     * could have O(n) time complexity where n is the number of children.
+     * Removes a parent reference from a child object at the given parent offset.
      *
-     * All the pointers involved in the relationship will be updated, not only parent_offset.
-     *
-     * @param parent_id The id of the parent to be removed.
      * @param parent_offset The offset, in the references array, of the pointer to the parent.
      */
-    bool remove_parent_reference(common::gaia_id_t parent_id, common::reference_offset_t parent_offset);
+    bool remove_parent_reference(common::reference_offset_t parent_offset);
 
     /**
      * Update the parent reference with the given new_parent_id. If the this object does not
