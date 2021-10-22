@@ -1,0 +1,43 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+#include <atomic>
+#include <algorithm>
+
+using namespace std;
+
+extern atomic<int> g_timestamp;
+extern atomic<int> g_rule_1_tracker;
+
+ruleset pingpong_ruleset
+{
+    on_update(ping_table.step_timestamp)
+    {
+        /pong_table.rule_timestamp = ping_table.step_timestamp;
+        g_rule_1_tracker++;
+    }
+
+    on_update(M:marco_table)
+    {
+        int current_count = M.marco_count;
+        int current_limit = M.marco_limit;
+        if (current_count < current_limit) {
+            for(/P:polo_table)
+            {
+                P.polo_count = current_count;
+            }
+        } else {
+            g_rule_1_tracker++;
+        }
+    }
+
+    on_update(polo_table)
+    {
+        for(/M:marco_table)
+        {
+            M.marco_count = M.marco_count + 1;
+        }
+    }
+}
