@@ -1,7 +1,7 @@
 # Database Extraction Utility
 This is a utility used by VS Code funtionality to display a grid of data in the VS Code Terminal window. The command-line parameters dictate the output, which is printed to stdout. Types of output include
-  - catalog
-  - range of rows
+  - catalog (all database, table and field values in the catalog)
+  - range of rows (rows from a single table, showing all field values)
 
 Note: There is currently no support for arrays.
 
@@ -9,18 +9,18 @@ Note: There is currently no support for arrays.
 The output will be in JSON format.
 
 ### JSON format for catalog.
-```
+```javascript
 {
     "databases": [
         {
-            "name": "<dbname>",
+            "name": "<database_name>",
             "tables": [
                 {
-                    "name": "<tablename>",
+                    "name": "<table_name>",
                     "fields": [
                         {
-                            "name": "<fieldname>",
-                            "type": "<fieldtype>"
+                            "name": "<field_name>",
+                            "type": "<field_type>"
                         },
                         ...
                     ]
@@ -33,10 +33,10 @@ The output will be in JSON format.
 }
 ```
 ### JSON format for a range of rows.
-```
+```javascript
 {
-    "database": <databasename>,
-    "table": "<tablename>",
+    "database": <database_name>,
+    "table": "<table_name>",
     "rows": [
         {
             "row_id": <gaia_id>,
@@ -50,22 +50,22 @@ The output will be in JSON format.
 ```
 
 ## Command-line
-```
-gaia_db_extract [--database=<dbname>] [--table=<tableneme>] [--start-after=ID] [--row-limit=N]
+```javascript
+gaia_db_extract [--database=<database_name>] [--table=<table_name>] [--start-after=ID] [--row-limit=N]
 ```
 To obtain the catalog (shown above), use the command without any parameters:
-```
+```javascript
 gaia_db_extract
 ```
 To obtain the row values for an entire table, specify the database and table name:
+```javascript
+gaia_db_extract --database=<database_name> --table=<table_name>
 ```
-gaia_db_extract --database=<dbname> --table=<tablename>
-```
-where `<dbname>` and `<tablename>` can be found in the catalog.
+where `<database_name>` and `<table_name>` can be found in the catalog.
 
 To limit the number of rows extracted, use the `--row-limit` parameter:
-```
-gaia_db_extract --database=<dbname> --table=<tablename> --row-limit=N
+```javascript
+gaia_db_extract --database=<database_name> --table=<table_name> --row-limit=N
 ```
 
 To obtain the block of rows following an already-fetched block of rows, provide the `gaia_id`
@@ -75,7 +75,7 @@ the utility will locate a previously known `gaia_id` and start with the one afte
 
 For example, the following command-line will produce two `gaia_field` rows, as shown after
 the command:
-```
+```javascript
 gaia_db_extract --database=catalog --table=gaia_field --row-limit=2
 {
     "database": "catalog",
@@ -107,7 +107,7 @@ gaia_db_extract --database=catalog --table=gaia_field --row-limit=2
 
 To view the next two `gaia_field` rows, add the -`-start-after` parameter. Use the value `5`
 since `5` is the `row_id` of the last row:
-```
+```javascript
 gaia_db_extract --database=catalog --table=gaia_field --row-limit=2 --start-after=5
 {
     "database": "catalog",
@@ -138,5 +138,5 @@ gaia_db_extract --database=catalog --table=gaia_field --row-limit=2 --start-afte
 ```
 
 This progression may continue until there are no remaining rows. In this example, the next value
-for `--start-after` should be `7`. The utility will print `null` if there are no
+for `--start-after` should be `7`. The utility will print `{}` if there are no
 more rows to extract.

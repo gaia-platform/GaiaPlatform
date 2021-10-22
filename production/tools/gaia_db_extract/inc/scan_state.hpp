@@ -23,16 +23,18 @@
 
 namespace gaia
 {
-namespace extract
+namespace tools
+{
+namespace db_extract
 {
 
-typedef uintptr_t Datum;
+using datum_t = uintptr_t;
 
-typedef struct NullableDatum
+typedef struct nullable_datum_t
 {
-    Datum value;
+    datum_t value;
     bool isnull;
-} NullableDatum;
+} nullable_datum_t;
 
 // A structure holding basic field information.
 struct field_information_t
@@ -51,7 +53,7 @@ struct field_information_t
     bool is_reference;
 
     // Note: currently, this is used only for the delayed setting of references.
-    NullableDatum value_to_set;
+    nullable_datum_t value_to_set;
 };
 
 // The scan state is set up in gaia_begin_foreign_scan,
@@ -60,14 +62,6 @@ struct field_information_t
 class scan_state_t
 {
     friend class extractor_t;
-
-protected:
-    // Do not allow copies to be made;
-    // disable copy constructor and assignment operator.
-    scan_state_t(const scan_state_t&) = delete;
-    scan_state_t& operator=(const scan_state_t&) = delete;
-
-    bool initialize_caches();
 
 public:
     scan_state_t();
@@ -83,14 +77,21 @@ public:
     // Scan API.
     bool initialize_scan(gaia::common::gaia_type_t, gaia::common::gaia_id_t);
     bool has_scan_ended();
-    NullableDatum extract_field_value(uint16_t, size_t field_index);
+    nullable_datum_t extract_field_value(uint16_t, size_t field_index);
     bool scan_forward();
     gaia::common::gaia_id_t gaia_id()
     {
         return m_current_record.id();
     }
 
-protected:
+private:
+    // Do not allow copies to be made;
+    // disable copy constructor and assignment operator.
+    scan_state_t(const scan_state_t&) = delete;
+    scan_state_t& operator=(const scan_state_t&) = delete;
+
+    bool initialize_caches();
+
     // Store the table name for the convenience of printing it in error messages.
     char* m_table_name;
 
@@ -112,5 +113,6 @@ protected:
         s_map_table_name_to_ids;
 };
 
-} // namespace extract
+} // namespace db_extract
+} // namespace tools
 } // namespace gaia

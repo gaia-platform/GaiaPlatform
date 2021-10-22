@@ -25,15 +25,17 @@ using namespace nlohmann;
 
 namespace gaia
 {
-namespace extract
+namespace tools
 {
-#define Int16GetDatum(X) ((Datum)(X))
-#define Int32GetDatum(X) ((Datum)(X))
-#define Int64GetDatum(X) ((Datum)(X))
-#define UInt64GetDatum(X) ((Datum)(X))
-#define CStringGetDatum(X) ((Datum)(X))
+namespace db_extract
+{
+#define Int16GetDatum(X) ((datum_t)(X))
+#define Int32GetDatum(X) ((datum_t)(X))
+#define Int64GetDatum(X) ((datum_t)(X))
+#define UInt64GetDatum(X) ((datum_t)(X))
+#define CStringGetDatum(X) ((datum_t)(X))
 
-static inline Datum
+static inline datum_t
 Float4GetDatum(float X)
 {
     union
@@ -46,7 +48,7 @@ Float4GetDatum(float X)
     return Int32GetDatum(myunion.retval);
 }
 
-static inline Datum
+static inline datum_t
 Float8GetDatum(double X)
 {
     union
@@ -59,8 +61,8 @@ Float8GetDatum(double X)
     return Int64GetDatum(myunion.retval);
 }
 
-// Convert a non-string data holder value to PostgreSQL Datum.
-Datum convert_to_datum(const data_holder_t& value)
+// Convert a non-string data holder value to PostgreSQL datum_t.
+datum_t convert_to_datum(const data_holder_t& value)
 {
     switch (value.type)
     {
@@ -88,12 +90,12 @@ Datum convert_to_datum(const data_holder_t& value)
     default:
         fprintf(stderr, "Unhandled data_holder_t type '%d'.\n", value.type);
     }
-    return Datum{};
+    return datum_t{};
 }
 
-NullableDatum convert_to_nullable_datum(const data_holder_t& value)
+nullable_datum_t convert_to_nullable_datum(const data_holder_t& value)
 {
-    NullableDatum nullable_datum{};
+    nullable_datum_t nullable_datum{};
     nullable_datum.value = 0;
     nullable_datum.isnull = false;
 
@@ -169,6 +171,11 @@ bool scan_state_t::initialize_scan(gaia_type_t container_id, gaia_id_t start_aft
         if (start_after != 0)
         {
             m_current_record = gaia_ptr_t::open(start_after);
+            if (m_current_record.type() != container_id)
+            {
+                fprintf(stderr, "Starting row is not correct type.\n");
+                return false;
+            }
             m_current_record = m_current_record.find_next();
             if (m_current_record.type() != container_id)
             {
@@ -203,11 +210,11 @@ bool scan_state_t::has_scan_ended()
     return !m_current_record;
 }
 
-NullableDatum scan_state_t::extract_field_value(uint16_t repeated_count, size_t position)
+nullable_datum_t scan_state_t::extract_field_value(uint16_t repeated_count, size_t position)
 {
     try
     {
-        NullableDatum field_value{};
+        nullable_datum_t field_value{};
         field_value.isnull = false;
 
         // TODO: Code for this method was originally in gaia_fdw_adapter.cpp. Not all of
@@ -278,7 +285,7 @@ NullableDatum scan_state_t::extract_field_value(uint16_t repeated_count, size_t 
                 get_table_name(), m_container_id, position, e.what());
     }
 
-    return NullableDatum{};
+    return nullable_datum_t{};
 }
 
 bool scan_state_t::scan_forward()
@@ -301,5 +308,6 @@ bool scan_state_t::scan_forward()
     return false;
 }
 
-} // namespace extract
+} // namespace db_extract
+} // namespace tools
 } // namespace gaia

@@ -25,11 +25,18 @@
 using namespace gaia::common;
 using namespace gaia::catalog;
 using namespace gaia::db;
-using namespace gaia::extract;
+using namespace gaia::tools::db_extract;
 using namespace std;
 using json = nlohmann::json;
 
-json print_field(gaia_field_t field)
+namespace gaia
+{
+namespace tools
+{
+namespace db_extract
+{
+
+json marshall_field(gaia_field_t field)
 {
     json j;
 
@@ -42,7 +49,7 @@ json print_field(gaia_field_t field)
     return j;
 }
 
-json print_table(gaia_table_t table)
+json marshall_table(gaia_table_t table)
 {
     json j;
 
@@ -52,13 +59,13 @@ json print_table(gaia_table_t table)
 
     for (auto field : table.gaia_fields())
     {
-        j["fields"].push_back(print_field(field));
+        j["fields"].push_back(marshall_field(field));
     }
 
     return j;
 }
 
-json print_database(gaia_database_t db)
+json marshall_database(gaia_database_t db)
 {
     json j;
 
@@ -66,7 +73,7 @@ json print_database(gaia_database_t db)
 
     for (auto table : db.gaia_tables())
     {
-        j["tables"].push_back(print_table(table));
+        j["tables"].push_back(marshall_table(table));
     }
 
     return j;
@@ -86,7 +93,7 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
             continue;
         }
 
-        j["databases"].push_back(print_database(db));
+        j["databases"].push_back(marshall_database(db));
     }
 
     // If a database and table have been specified, move ahead to extract the row data.
@@ -94,13 +101,21 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
     {
         commit_transaction();
         catalog_dump << j.dump(4);
-        return catalog_dump.str();
+        auto return_string = catalog_dump.str();
+        if (!return_string.compare("null"))
+        {
+            return "{}";
+        }
+        else
+        {
+            return return_string;
+        }
     }
 
     bool terminate = false;
     scan_state_t scan_state;
     stringstream row_dump;
-    json rows;
+    json rows = json{};
 
     for (auto& json_databases : j["databases"])
     {
@@ -164,6 +179,17 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
     commit_transaction();
 
     row_dump << rows.dump(4);
-
-    return row_dump.str();
+    auto return_string = rows.dump(4);
+    if (!return_string.compare("null"))
+    {
+        return "{}";
+    }
+    else
+    {
+        return return_string;
+    }
 }
+
+} // namespace db_extract
+} // namespace tools
+} // namespace gaia

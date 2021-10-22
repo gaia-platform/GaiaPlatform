@@ -12,6 +12,7 @@
 #include "gaia_db_extract.hpp"
 
 using namespace gaia::common;
+using namespace gaia::tools::db_extract;
 using namespace std;
 
 constexpr char c_start_string[] = "--start-after";
@@ -51,6 +52,7 @@ int main(int argc, char* argv[])
             if (start_after < 1)
             {
                 fprintf(stderr, "Illegal value for start_after. It must be 1 or greater\n");
+                cout << "{}" << endl;
                 exit(1);
             }
         }
@@ -68,6 +70,7 @@ int main(int argc, char* argv[])
             if (row_limit < 1)
             {
                 fprintf(stderr, "Illegal value for row_limit. It must be 1 or greater\n");
+                cout << "{}" << endl;
                 exit(1);
             }
         }
@@ -99,6 +102,7 @@ int main(int argc, char* argv[])
         {
             fprintf(stderr, "Invalid command-row option: '%s'\n", argv[i]);
             fprintf(stderr, "Usage: gaia_db_extract [--database=<dbname>] [--table=<tableneme>] [--start-after=ID] [--row-limit=N]\n");
+            cout << "{}" << endl;
             exit(1);
         }
     }
@@ -106,6 +110,7 @@ int main(int argc, char* argv[])
     if ((database.size() && !table.size()) || (!database.size() && table.size()))
     {
         fprintf(stderr, "Must have both database name and table name to extract row data.\n");
+        cout << "{}" << endl;
         exit(1);
     }
 
@@ -116,10 +121,11 @@ int main(int argc, char* argv[])
     catch (gaia_exception& e)
     {
         fprintf(stderr, "Startup failure, exception: '%s'\n", e.what());
+        cout << "{}" << endl;
         exit(1);
     }
 
-    string extracted_data;
+    string extracted_data("{}");
 
     try
     {

@@ -17,6 +17,7 @@ using namespace gaia::catalog;
 using namespace gaia::catalog::ddl;
 using namespace gaia::common;
 using namespace gaia::db;
+using namespace gaia::tools::db_extract;
 using namespace std;
 using namespace nlohmann;
 
@@ -132,7 +133,7 @@ TEST_F(gaia_db_extract_test, extract_catalog_rows)
     for (;;)
     {
         auto extracted_rows = gaia_db_extract("catalog", "gaia_field", row_id, 3);
-        if (!extracted_rows.compare("null"))
+        if (!extracted_rows.compare("{}"))
         {
             break;
         }
