@@ -1077,7 +1077,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
                 }
 
                 // If the existing reference was valid, we need to remove it.
-                record.remove_parent_reference(old_reference_id, reference_offset);
+                record.remove_parent_reference(reference_offset);
             }
             else
             {

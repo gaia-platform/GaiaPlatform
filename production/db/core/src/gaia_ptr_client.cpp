@@ -278,7 +278,7 @@ bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
     return true;
 }
 
-bool gaia_ptr_t::remove_parent_reference(gaia_id_t parent_id, reference_offset_t parent_offset)
+bool gaia_ptr_t::remove_parent_reference(reference_offset_t parent_offset)
 {
     gaia_type_t child_type = type();
 
@@ -290,11 +290,11 @@ bool gaia_ptr_t::remove_parent_reference(gaia_id_t parent_id, reference_offset_t
         throw invalid_reference_offset(child_type, parent_offset);
     }
 
-    auto parent_ptr = gaia_ptr_t::open(parent_id);
+    auto parent_ptr = gaia_ptr_t::open(this->references()[parent_offset]);
 
     if (!parent_ptr)
     {
-        throw invalid_object_id(parent_id);
+        return false;
     }
 
     // Remove reference.
@@ -564,11 +564,7 @@ void gaia_ptr_t::auto_connect_to_parent(
             {
                 gaia_ptr_t child_ptr(child_id);
                 reference_offset_t parent_offset = relationship_view.parent_offset();
-                gaia_id_t parent_id = child_ptr.references()[relationship_view.parent_offset()];
-                if (parent_id != c_invalid_gaia_id)
-                {
-                    child_ptr.remove_parent_reference(parent_id, parent_offset);
-                }
+                child_ptr.remove_parent_reference(parent_offset);
             }
         }
     }

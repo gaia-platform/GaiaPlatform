@@ -69,7 +69,7 @@ add_clang_library(clangSema
   clangBasic
   clangEdit
   clangLex
-  gaia_system
+  clangCatalog
   )
 
 target_include_directories(clangSema PRIVATE ${GAIA_CATALOG_INCLUDES})
