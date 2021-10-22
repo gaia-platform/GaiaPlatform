@@ -30,10 +30,8 @@ typedef uintptr_t Datum;
 
 typedef struct NullableDatum
 {
-    // TODO: the 'value' field was oribinally the postgres Datum type.
     Datum value;
     bool isnull;
-    /* due to alignment padding this could be used for flags for free */
 } NullableDatum;
 
 // A structure holding basic field information.

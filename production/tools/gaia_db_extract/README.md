@@ -3,6 +3,8 @@ This is a utility used by VS Code funtionality to display a grid of data in the 
   - catalog
   - range of rows
 
+Note: There is currently no support for arrays.
+
 ## JSON Output
 The output will be in JSON format.
 

@@ -140,13 +140,8 @@ bool scan_state_t::initialize_caches()
             table_view.serialization_template()->data(),
             table_view.serialization_template()->size());
 
-        bool result = type_cache_t::get()->set_type_information(table_view.table_type(), type_information);
-        // TODO: Verify that it's okay for the information to exist after the first initialization.
-        // if (result == false)
-        // {
-        //     fprintf(stderr, "Failed to set type information in type_cache_t!\n");
-        //     return false;
-        // }
+        // It's okay for the information to exist after the first initialization.
+        type_cache_t::get()->set_type_information(table_view.table_type(), type_information);
     }
 
     return true;
@@ -215,7 +210,9 @@ NullableDatum scan_state_t::extract_field_value(uint16_t repeated_count, size_t 
         NullableDatum field_value{};
         field_value.isnull = false;
 
-        /* TODO: Remove postgres dependency in array handling.
+        // TODO: Code for this method was originally in gaia_fdw_adapter.cpp. Not all of
+        // it belongs here, but the following blocks are left for reference.
+        /*
         if (is_gaia_id_field_index(field_index))
         {
             field_value.value = UInt64GetDatum(m_current_record.id());
@@ -238,6 +235,8 @@ NullableDatum scan_state_t::extract_field_value(uint16_t repeated_count, size_t 
             }
         }
         */
+
+        // TODO: Decide how arrays should be represented. Currently nothing will happen,
         if (repeated_count != 1)
         {
             size_t array_size = get_field_array_size(
