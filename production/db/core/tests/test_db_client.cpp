@@ -168,7 +168,7 @@ TEST_F(db_client_test, gaia_ptr_no_transaction_fail)
     EXPECT_THROW(node1.add_child_reference(1, 2), no_open_transaction);
     EXPECT_THROW(node1.add_parent_reference(1, 2), no_open_transaction);
     EXPECT_THROW(node1.remove_child_reference(1, 2), no_open_transaction);
-    EXPECT_THROW(node1.remove_parent_reference(1, 2), no_open_transaction);
+    EXPECT_THROW(node1.remove_parent_reference(2), no_open_transaction);
     EXPECT_THROW(node1.update_parent_reference(1, 2), no_open_transaction);
     EXPECT_THROW(gaia_ptr_t::remove(node1), no_open_transaction);
 
