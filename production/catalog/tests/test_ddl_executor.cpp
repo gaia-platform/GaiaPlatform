@@ -10,6 +10,8 @@
 
 #include <gtest/gtest.h>
 
+#include "gaia/common.hpp"
+#include "gaia/db/db.hpp"
 #include "gaia/direct_access/auto_transaction.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
@@ -591,4 +593,49 @@ TEST_F(ddl_executor_test, list_indexes)
 
     vector<bool> expected_unique_settings{true, false, false};
     ASSERT_EQ(unique_settings, expected_unique_settings);
+}
+
+TEST_F(ddl_executor_test, drop_relationship_with_data)
+{
+    begin_transaction();
+
+    auto employee_writer = gaia::addr_book::employee_writer();
+    employee_writer.name_first = "Michael";
+    employee_writer.name_last = "Scott";
+    gaia_id_t scott_id = employee_writer.insert_row();
+
+    employee_writer.name_first = "Dwight";
+    employee_writer.name_last = "Schrute";
+    gaia_id_t schrute_id = employee_writer.insert_row();
+
+    auto address_writer = gaia::addr_book::address_writer();
+    address_writer.street = "Main Street";
+    address_writer.city = "Honesdale";
+    address_writer.state = "PA";
+    address_writer.postal = "85364";
+    address_writer.country = "United States";
+    gaia_id_t schrute_farm_id = address_writer.insert_row();
+
+    gaia::addr_book::employee_t::get(schrute_id).addresses().connect(schrute_farm_id);
+    gaia::addr_book::employee_t::get(scott_id).reportees().connect(schrute_id);
+
+    EXPECT_EQ(gaia::addr_book::employee_t::get(schrute_id).manager().gaia_id(), scott_id);
+    EXPECT_EQ(gaia::addr_book::address_t::get(schrute_farm_id).owner().gaia_id(), schrute_id);
+
+    commit_transaction();
+
+    ASSERT_NO_THROW(drop_relationship("manager_reportees"));
+    ASSERT_NO_THROW(drop_relationship("owner_addresses"));
+
+    // After the relationship is dropped, users are not expected to use the
+    // direct access API to access the links between tables. We still use the
+    // old direct access API here only for testing purposes (to verify the links
+    // are indeed erased).
+    begin_transaction();
+
+    EXPECT_EQ(gaia::addr_book::employee_t::get(schrute_id).manager().gaia_id(), c_invalid_gaia_id);
+    EXPECT_EQ(gaia::addr_book::employee_t::get(scott_id).reportees().size(), 0);
+    EXPECT_EQ(gaia::addr_book::employee_t::get(schrute_id).addresses().size(), 0);
+
+    commit_transaction();
 }
