@@ -402,6 +402,24 @@ void index_builder_t::update_indexes_from_logs(
         if (obj->type == static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table))
         {
             type_id_mapping_t::instance().clear();
+            break;
+        }
+    }
+
+    for (size_t i = 0; i < records.record_count; ++i)
+    {
+        auto& log_record = records.log_records[i];
+        db_object_t* obj = nullptr;
+
+        if (log_record.operation == gaia_operation_t::remove)
+        {
+            obj = offset_to_ptr(log_record.old_offset);
+            ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
+        }
+        else
+        {
+            obj = offset_to_ptr(log_record.new_offset);
+            ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
         }
 
         gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(obj->type);

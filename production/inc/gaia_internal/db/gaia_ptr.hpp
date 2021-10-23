@@ -157,14 +157,14 @@ public:
      */
     bool update_parent_reference(common::gaia_id_t new_parent_id, common::reference_offset_t parent_offset);
 
+    void reset();
+
 protected:
     void allocate(size_t size);
 
     inline bool is(common::gaia_type_t type) const;
 
     gaia_ptr_t find_next(common::gaia_type_t type) const;
-
-    void reset();
 
 private:
     void clone_no_txn();
