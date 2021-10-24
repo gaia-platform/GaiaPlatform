@@ -595,7 +595,6 @@ void ddl_executor_t::drop_relationships_no_ri(gaia_id_t table_id)
 void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_integrity)
 {
     auto table_record = gaia_table_t::get(table_id);
-    gaia_type_t table_type = table_record.type();
 
     if (enforce_referential_integrity)
     {
@@ -629,10 +628,10 @@ void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_int
     // relationships associated with the table.
     drop_relationships_no_ri(table_id);
 
-    // Delete all table records.
-    for (auto record : gaia_ptr_t::find_all_range(table_type))
+    // Delete all data records of the table.
+    for (gaia_ptr_t data_record : gaia_ptr_t::find_all_range(table_record.type()))
     {
-        record.reset();
+        data_record.reset();
     }
 
     for (gaia_id_t field_id : list_fields(table_id))
