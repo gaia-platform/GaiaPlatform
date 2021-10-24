@@ -382,24 +382,17 @@ void index_builder_t::truncate_index_to_ts(common::gaia_id_t index_id, gaia_txn_
 void index_builder_t::update_indexes_from_logs(
     const txn_log_t& records, bool skip_catalog_integrity_check, bool allow_create_empty)
 {
+    // Clear the type_id_mapping cache (so it will be refreshed) if any table
+    // creation or deletion changes are detected in the txn.
     for (size_t i = 0; i < records.record_count; ++i)
     {
         auto& log_record = records.log_records[i];
-        db_object_t* obj = nullptr;
-
-        if (log_record.operation == gaia_operation_t::remove)
-        {
-            obj = offset_to_ptr(log_record.old_offset);
-            ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
-        }
-        else
-        {
-            obj = offset_to_ptr(log_record.new_offset);
-            ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
-        }
-
-        // Flag the type_id_mapping cache to clear if any changes in the schema are detected.
-        if (obj->type == static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table))
+        if (offset_to_ptr(
+                log_record.operation == gaia_operation_t::remove
+                    ? log_record.old_offset
+                    : log_record.new_offset)
+                ->type
+            == static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table))
         {
             type_id_mapping_t::instance().clear();
             break;
