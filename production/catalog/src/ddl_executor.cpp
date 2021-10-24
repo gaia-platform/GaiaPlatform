@@ -630,11 +630,9 @@ void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_int
     drop_relationships_no_ri(table_id);
 
     // Delete all table records.
-    for (auto record = gaia_ptr_t::find_all_iterator(table_type);
-         record;
-         record = gaia_ptr_t::find_all_iterator(table_type))
+    for (auto record : gaia_ptr_t::find_all_range(table_type))
     {
-        record->reset();
+        record.reset();
     }
 
     for (gaia_id_t field_id : list_fields(table_id))
