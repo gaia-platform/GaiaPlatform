@@ -28,7 +28,7 @@ const T_output& generator_iterator_t<T_output>::operator*() const
 }
 
 template <typename T_output>
-T_output* generator_iterator_t<T_output>::operator->()
+const T_output* generator_iterator_t<T_output>::operator->() const
 {
     if (m_state.has_value())
     {

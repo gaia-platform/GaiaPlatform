@@ -27,8 +27,7 @@ class generator_t
 {
 public:
     generator_t()
-        : m_function([]()
-                     { return std::nullopt; })
+        : m_function([]() { return std::nullopt; })
     {
     }
 
@@ -70,8 +69,7 @@ public:
     // We implicitly construct from a std::function with the right signature.
     explicit generator_iterator_t(
         std::function<std::optional<T_output>()> generator,
-        std::function<bool(T_output)> predicate = [](T_output)
-        { return true; })
+        std::function<bool(T_output)> predicate = [](T_output) { return true; })
         : m_generator(std::make_shared<generator_t<T_output>>(generator)), m_predicate(std::move(predicate))
     {
         init_generator();
@@ -79,8 +77,7 @@ public:
 
     explicit generator_iterator_t(
         std::shared_ptr<generator_t<T_output>> generator,
-        std::function<bool(T_output)> predicate = [](T_output)
-        { return true; })
+        std::function<bool(T_output)> predicate = [](T_output) { return true; })
         : m_generator(std::move(generator)), m_predicate(std::move(predicate))
     {
         init_generator();
@@ -90,8 +87,7 @@ public:
 
     // const versions of operators.
     const T_output& operator*() const;
-
-    T_output* operator->();
+    const T_output* operator->() const;
 
     // Advance to the next valid state.
     generator_iterator_t& operator++();
