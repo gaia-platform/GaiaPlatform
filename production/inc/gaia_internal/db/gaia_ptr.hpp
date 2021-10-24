@@ -67,7 +67,8 @@ public:
     static gaia_ptr_t open(
         common::gaia_id_t id);
 
-    // TODO this should either accept a gaia_id_t or be an instance method.
+    // Removes the database record at the given pointer object. Throws
+    // exceptions in case of referential integrity violation.
     static void remove(gaia_ptr_t& object);
 
     gaia_ptr_t& update_payload(size_t data_size, const void* data);
@@ -157,6 +158,9 @@ public:
      */
     bool update_parent_reference(common::gaia_id_t new_parent_id, common::reference_offset_t parent_offset);
 
+    // Delete the database record at the pointer. This method will not check
+    // referential integrity violation for the deletion. Use 'remove()' instead
+    // if you want referential integrity to be respected.
     void reset();
 
 protected:
