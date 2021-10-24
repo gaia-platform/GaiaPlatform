@@ -42,8 +42,8 @@ include(GoogleTest)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# Ensure debug builds have the DEBUG flag defined.
-add_compile_options("$<$<CONFIG:DEBUG>:-DDEBUG>")
+# Ensure Debug builds have the DEBUG macro defined.
+add_compile_options("$<$<CONFIG:Debug>:-DDEBUG>")
 
 # Check that PIE flags are actually passed to the linker.
 # This ensures that our executables are ASLR-compatible.

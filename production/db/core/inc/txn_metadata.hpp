@@ -23,6 +23,11 @@ namespace db
 namespace transactions
 {
 
+// This can be used as either an inclusive upper bound on timestamp values, or
+// as a sentinel value where c_invalid_gaia_txn_id cannot be used because a
+// nonzero value is required.
+static constexpr gaia_txn_id_t c_max_valid_ts{(1ULL << c_txn_ts_bits) - 1};
+
 // This identity class represents mutable txn metadata at an immutable (begin or
 // commit) timestamp. (It also manages the allocation and lifetime of the txn
 // metadata array.) This class handles all reads, writes, and synchronization on
@@ -34,6 +39,8 @@ public:
     static void init_txn_metadata_map();
 
     static bool is_txn_metadata_map_initialized();
+
+    static char* get_txn_metadata_map_base_address();
 
 public:
     inline explicit txn_metadata_t(gaia_txn_id_t ts);
