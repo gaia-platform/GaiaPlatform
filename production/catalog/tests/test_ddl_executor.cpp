@@ -301,17 +301,24 @@ TEST_F(ddl_executor_test, drop_table_with_data)
 {
     begin_transaction();
     auto w = gaia::addr_book::customer_writer();
-    w.name = "test";
-    gaia_id_t customer_id = w.insert_row();
-    commit_transaction();
+    w.name = "Customer 1";
+    w.insert_row();
+    w.name = "Customer 2";
+    w.insert_row();
 
-    ASSERT_THROW(drop_table("addr_book", "customer", true), cannot_drop_table_with_data);
-
-    begin_transaction();
-    gaia::addr_book::customer_t::delete_row(customer_id);
+    EXPECT_EQ(gaia::addr_book::customer_t::list().size(), 2);
     commit_transaction();
 
     ASSERT_NO_THROW(drop_table("addr_book", "customer", true));
+
+    // After the table is dropped, users are not expected to use the direct
+    // access API to access the table records. We still use the old direct
+    // access API here only for testing purposes (to verify the data records are
+    // indeed erased).
+    // TODO: Switch to other methods for testing after GAIAPLAT-1623.
+    begin_transaction();
+    EXPECT_EQ(gaia::addr_book::customer_t::list().size(), 0);
+    commit_transaction();
 }
 
 TEST_F(ddl_executor_test, drop_database)
@@ -631,6 +638,7 @@ TEST_F(ddl_executor_test, drop_relationship_with_data)
     // direct access API to access the links between tables. We still use the
     // old direct access API here only for testing purposes (to verify the links
     // are indeed erased).
+    // TODO: Switch to other methods for testing after GAIAPLAT-1623.
     begin_transaction();
 
     EXPECT_EQ(gaia::addr_book::employee_t::get(schrute_id).manager().gaia_id(), c_invalid_gaia_id);

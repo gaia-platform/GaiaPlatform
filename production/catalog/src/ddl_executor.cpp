@@ -596,11 +596,6 @@ void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_int
 {
     auto table_record = gaia_table_t::get(table_id);
 
-    if (gaia_ptr_t::find_all_iterator(table_record.type()))
-    {
-        throw cannot_drop_table_with_data(table_record.name());
-    }
-
     if (enforce_referential_integrity)
     {
         // Under the referential integrity requirements, we do not allow
@@ -632,6 +627,12 @@ void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_int
     // are ignoring referential integrity. Either way, it is safe to delete all
     // relationships associated with the table.
     drop_relationships_no_ri(table_id);
+
+    // Delete all data records of the table.
+    for (gaia_ptr_t data_record : gaia_ptr_t::find_all_range(table_record.type()))
+    {
+        data_record.reset();
+    }
 
     for (gaia_id_t field_id : list_fields(table_id))
     {
