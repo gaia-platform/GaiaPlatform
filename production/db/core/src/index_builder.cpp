@@ -382,11 +382,11 @@ void index_builder_t::truncate_index_to_ts(common::gaia_id_t index_id, gaia_txn_
 void index_builder_t::update_indexes_from_logs(
     const txn_log_t& records, bool skip_catalog_integrity_check, bool allow_create_empty)
 {
-    // Clear the type_id_mapping cache (so it will be refreshed) if any table
-    // creation or deletion changes are detected in the txn.
+    // Clear the type_id_mapping cache (so it will be refreshed) if we find any
+    // table is created or dropped in the txn.
     for (size_t i = 0; i < records.record_count; ++i)
     {
-        auto& log_record = records.log_records[i];
+        const auto& log_record = records.log_records[i];
         if ((log_record.operation == gaia_operation_t::remove || log_record.operation == gaia_operation_t::create)
             && offset_to_ptr(
                    log_record.operation == gaia_operation_t::remove
