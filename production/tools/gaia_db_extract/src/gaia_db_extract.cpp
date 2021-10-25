@@ -36,7 +36,7 @@ namespace tools
 namespace db_extract
 {
 
-json_t marshall_field(gaia_field_t field)
+json_t to_field(gaia_field_t field)
 {
     json_t json_object;
 
@@ -49,7 +49,7 @@ json_t marshall_field(gaia_field_t field)
     return json_object;
 }
 
-json_t marshall_table(gaia_table_t table)
+json_t to_table(gaia_table_t table)
 {
     json_t json_object;
 
@@ -59,13 +59,13 @@ json_t marshall_table(gaia_table_t table)
 
     for (auto field : table.gaia_fields())
     {
-        json_object["fields"].push_back(marshall_field(field));
+        json_object["fields"].push_back(to_field(field));
     }
 
     return json_object;
 }
 
-json_t marshall_database(gaia_database_t db)
+json_t to_database(gaia_database_t db)
 {
     json_t json_object;
 
@@ -73,7 +73,7 @@ json_t marshall_database(gaia_database_t db)
 
     for (auto table : db.gaia_tables())
     {
-        json_object["tables"].push_back(marshall_table(table));
+        json_object["tables"].push_back(to_table(table));
     }
 
     return json_object;
@@ -93,7 +93,7 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
             continue;
         }
 
-        json_object["databases"].push_back(marshall_database(db));
+        json_object["databases"].push_back(to_database(db));
     }
 
     // If a database and table have been specified, move ahead to extract the row data.
@@ -142,13 +142,13 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
                             break;
                         }
                         json_t row;
-                        for (auto& f : json_tables["fields"])
+                        for (auto& field : json_tables["fields"])
                         {
-                            auto value = scan_state.extract_field_value(f["repeated_count"].get<uint16_t>(), f["position"].get<uint32_t>());
-                            if (!value.isnull)
+                            auto value = scan_state.extract_field_value(field["repeated_count"].get<uint16_t>(), field["position"].get<uint32_t>());
+                            if (!value.is_null)
                             {
-                                auto field_type = f["type"].get<string>();
-                                auto field_name = f["name"].get<string>();
+                                auto field_type = field["type"].get<string>();
+                                auto field_name = field["name"].get<string>();
                                 row["row_id"] = scan_state.gaia_id();
                                 if (!field_type.compare("string"))
                                 {

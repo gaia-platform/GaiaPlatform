@@ -19,7 +19,7 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::tools::db_extract;
 using namespace std;
-using namespace nlohmann;
+using json_t = nlohmann::json;
 
 constexpr char c_table_name[] = "test_table";
 
@@ -97,12 +97,12 @@ TEST_F(gaia_db_extract_test, extract_catalog)
 
     auto extracted_catalog = gaia_db_extract("", "", c_start_after_none, c_row_limit_unlimited);
 
-    json j = json::parse(extracted_catalog);
-    json expected_json = json::parse(c_expected_table);
+    json_t json_object = json_t::parse(extracted_catalog);
+    json_t expected_json = json_t::parse(c_expected_table);
 
     bool found_match = false;
 
-    for (auto& json_databases : j["databases"])
+    for (auto& json_databases : json_object["databases"])
     {
         if (!json_databases["name"].get<string>().compare("extract_test"))
         {
@@ -142,8 +142,8 @@ TEST_F(gaia_db_extract_test, extract_catalog_rows)
         {
             break;
         }
-        json j = json::parse(extracted_rows);
-        for (auto& json_rows : j["rows"])
+        json_t json_object = json_t::parse(extracted_rows);
+        for (auto& json_rows : json_object["rows"])
         {
             // This obtains the last seen row_id.
             row_id = json_rows["row_id"].get<uint64_t>();

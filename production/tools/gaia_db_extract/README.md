@@ -1,5 +1,5 @@
 # Database Extraction Utility
-This is a utility used by VS Code funtionality to display a grid of data in the VS Code Terminal window. The command-line parameters dictate the output, which is printed to stdout. Types of output include
+This is a utility used by VS Code functionality to display a grid of data in the VS Code Terminal window. The command-line parameters dictate the output, which is printed to stdout. Types of output include:
   - catalog (all database, table and field values in the catalog)
   - range of rows (rows from a single table, showing all field values)
 
@@ -53,7 +53,7 @@ The output will be in JSON format.
 ```javascript
 gaia_db_extract [--database=<database_name>] [--table=<table_name>] [--start-after=ID] [--row-limit=N]
 ```
-To obtain the catalog (shown above), use the command without any parameters:
+To obtain the catalog (shown above as JSON document), use the command without any parameters:
 ```javascript
 gaia_db_extract
 ```
@@ -68,13 +68,10 @@ To limit the number of rows extracted, use the `--row-limit` parameter:
 gaia_db_extract --database=<database_name> --table=<table_name> --row-limit=N
 ```
 
-To obtain the block of rows following an already-fetched block of rows, provide the `gaia_id`
-of the row before the start of the next block. This `gaia_id` is the last one (hightest number)
-of the previously fetched block. Since the `gaia_id` of the first row of the next block is unknown,
-the utility will locate a previously known `gaia_id` and start with the one after that.
+To obtain the block of rows following an already-fetched block of rows, provide the `gaia_id` of the row before the start of the next block. This `gaia_id` is the last one (highest number)
+of the previously fetched block. Since the `gaia_id` of the first row of the next block is unknown, the utility will locate a previously known `gaia_id` and start with the one after that.
 
-For example, the following command-line will produce two `gaia_field` rows, as shown after
-the command:
+For example, the following command-line will produce two `gaia_field` rows, as shown after the command:
 ```javascript
 gaia_db_extract --database=catalog --table=gaia_field --row-limit=2
 {
@@ -105,8 +102,7 @@ gaia_db_extract --database=catalog --table=gaia_field --row-limit=2
 }
 ```
 
-To view the next two `gaia_field` rows, add the -`-start-after` parameter. Use the value `5`
-since `5` is the `row_id` of the last row:
+To view the next two `gaia_field` rows, add the -`-start-after` parameter. Use the value `5` because `5` is the `row_id` of the last row:
 ```javascript
 gaia_db_extract --database=catalog --table=gaia_field --row-limit=2 --start-after=5
 {
@@ -137,6 +133,4 @@ gaia_db_extract --database=catalog --table=gaia_field --row-limit=2 --start-afte
 }
 ```
 
-This progression may continue until there are no remaining rows. In this example, the next value
-for `--start-after` should be `7`. The utility will print `{}` if there are no
-more rows to extract.
+This progression may continue until there are no remaining rows. In this example, the next value for `--start-after` should be `7`. The utility will print `{}` if there are no more rows to extract.

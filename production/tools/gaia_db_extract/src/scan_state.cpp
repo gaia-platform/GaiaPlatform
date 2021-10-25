@@ -51,11 +51,11 @@ float_get_datum(float X)
     union
     {
         float value;
-        int32_t retval;
-    } myunion;
+        int32_t return_value;
+    } float_union_t;
 
-    myunion.value = X;
-    return int32_get_datum(myunion.retval);
+    float_union_t.value = X;
+    return int32_get_datum(float_union_t.return_value);
 }
 
 static inline datum_t
@@ -64,11 +64,11 @@ double_get_datum(double X)
     union
     {
         double value;
-        int64_t retval;
-    } myunion;
+        int64_t return_value;
+    } double_union_t;
 
-    myunion.value = X;
-    return int64_get_datum(myunion.retval);
+    double_union_t.value = X;
+    return int64_get_datum(double_union_t.return_value);
 }
 
 // Convert a non-string data holder value to PostgreSQL datum_t.
@@ -107,13 +107,13 @@ static nullable_datum_t convert_to_nullable_datum(const data_holder_t& value)
 {
     nullable_datum_t nullable_datum{};
     nullable_datum.value = 0;
-    nullable_datum.isnull = false;
+    nullable_datum.is_null = false;
 
     if (value.type == reflection::String)
     {
         if (value.hold.string_value == nullptr)
         {
-            nullable_datum.isnull = true;
+            nullable_datum.is_null = true;
             return nullable_datum;
         }
 
@@ -200,9 +200,7 @@ bool scan_state_t::initialize_scan(gaia_type_t container_id, gaia_id_t start_aft
     }
     catch (const exception& e)
     {
-        fprintf(stderr, "Failed initializing table scan. "
-                        "Table: '%s', container id: '%u'. Exception: '%s'.\n",
-                get_table_name(), m_container_id, e.what());
+        fprintf(stderr, "Failed initializing table scan. Table: '%s', container id: '%u'. Exception: '%s'.\n", get_table_name(), m_container_id, e.what());
     }
     return false;
 }
@@ -217,33 +215,7 @@ nullable_datum_t scan_state_t::extract_field_value(uint16_t repeated_count, size
     try
     {
         nullable_datum_t field_value{};
-        field_value.isnull = false;
-
-        // TODO: Code for this method was originally in gaia_fdw_adapter.cpp. Not all of
-        // it belongs here, but the following blocks are left for reference.
-        /*
-        if (is_gaia_id_field_index(field_index))
-        {
-            field_value.value = Uint64_get_datum(m_current_record.id());
-        }
-        else if (m_fields[field_index].is_reference)
-        {
-            reference_offset_t reference_offset = m_fields[field_index].position;
-            if (reference_offset >= m_current_record.num_references())
-            {
-                fprintf(stderr,"Attempt to dereference an invalid reference offset '%ld' for table '%s'!");
-            }
-
-            gaia_id_t reference_id = m_current_record.references()[reference_offset];
-            field_value.value = Uint64_get_datum(reference_id);
-
-            // If the reference id is invalid, surface the value as NULL.
-            if (reference_id == c_invalid_gaia_id)
-            {
-                field_value.isnull = true;
-            }
-        }
-        */
+        field_value.is_null = false;
 
         // TODO: Decide how arrays should be represented. Currently nothing will happen,
         if (repeated_count != 1)

@@ -33,7 +33,7 @@ using datum_t = uintptr_t;
 typedef struct nullable_datum_t
 {
     datum_t value;
-    bool isnull;
+    bool is_null;
 } nullable_datum_t;
 
 // A structure holding basic field information.
@@ -56,15 +56,17 @@ struct field_information_t
     nullable_datum_t value_to_set;
 };
 
-// The scan state is set up in gaia_begin_foreign_scan,
-// is stashed away in node->fdw_private,
-// and is fetched in gaia_iterate_foreign_scan and gaia_rescan_foreign_scan.
 class scan_state_t
 {
     friend class extractor_t;
 
 public:
     scan_state_t();
+
+    // Do not allow copies to be made;
+    // disable copy constructor and assignment operator.
+    scan_state_t(const scan_state_t&) = delete;
+    scan_state_t& operator=(const scan_state_t&) = delete;
 
     // Provides the index corresponding to each field.
     // This enables future calls to use index values.
@@ -85,18 +87,13 @@ public:
     }
 
 private:
-    // Do not allow copies to be made;
-    // disable copy constructor and assignment operator.
-    scan_state_t(const scan_state_t&) = delete;
-    scan_state_t& operator=(const scan_state_t&) = delete;
-
     bool initialize_caches();
 
+private:
     // Store the table name for the convenience of printing it in error messages.
     char* m_table_name;
 
-    // The table id and container id.
-    gaia::common::gaia_id_t m_table_id;
+    // The table (container) id.
     gaia::common::gaia_type_t m_container_id;
 
     // Field information array.
