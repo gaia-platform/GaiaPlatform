@@ -26,7 +26,7 @@ const int c_table_length = strlen(c_table_string);
 
 int main(int argc, char* argv[])
 {
-    gaia_id_t start_after = c_start_after_none;
+    gaia_id_t start_after = c_start_at_first;
     uint32_t row_limit = c_row_limit_unlimited;
     string database;
     string table;

@@ -5,12 +5,6 @@
 
 #pragma once
 
-// We use `#pragma GCC` instead of `#pragma clang` for compatibility with both clang and gcc.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmacro-redefined"
-#define fprintf fprintf
-#pragma GCC diagnostic pop
-
 #include <string>
 #include <unordered_map>
 

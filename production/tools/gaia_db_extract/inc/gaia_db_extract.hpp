@@ -15,7 +15,7 @@ namespace tools
 namespace db_extract
 {
 
-constexpr uint64_t c_start_after_none = 0;
+constexpr uint64_t c_start_at_first = 0;
 constexpr uint32_t c_row_limit_unlimited = -1;
 
 /**

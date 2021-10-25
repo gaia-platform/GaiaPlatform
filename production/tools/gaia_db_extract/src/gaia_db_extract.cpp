@@ -36,53 +36,55 @@ namespace tools
 namespace db_extract
 {
 
+constexpr int c_default_json_indentation = 4;
+
 json_t to_field(gaia_field_t field)
 {
-    json_t json_object;
+    json_t json;
 
-    json_object["name"] = field.name();
-    json_object["id"] = field.gaia_id();
-    json_object["position"] = field.position();
-    json_object["repeated_count"] = field.repeated_count();
-    json_object["type"] = get_data_type_name(data_type_t(field.type()));
+    json["name"] = field.name();
+    json["id"] = field.gaia_id();
+    json["position"] = field.position();
+    json["repeated_count"] = field.repeated_count();
+    json["type"] = get_data_type_name(data_type_t(field.type()));
 
-    return json_object;
+    return json;
 }
 
 json_t to_table(gaia_table_t table)
 {
-    json_t json_object;
+    json_t json;
 
-    json_object["name"] = table.name();
-    json_object["id"] = table.gaia_id();
-    json_object["type"] = table.type();
+    json["name"] = table.name();
+    json["id"] = table.gaia_id();
+    json["type"] = table.type();
 
     for (auto field : table.gaia_fields())
     {
-        json_object["fields"].push_back(to_field(field));
+        json["fields"].push_back(to_field(field));
     }
 
-    return json_object;
+    return json;
 }
 
 json_t to_database(gaia_database_t db)
 {
-    json_t json_object;
+    json_t json;
 
-    json_object["name"] = db.name();
+    json["name"] = db.name();
 
     for (auto table : db.gaia_tables())
     {
-        json_object["tables"].push_back(to_table(table));
+        json["tables"].push_back(to_table(table));
     }
 
-    return json_object;
+    return json;
 }
 
 string gaia_db_extract(string database, string table, uint64_t start_after, uint32_t row_limit)
 {
     stringstream catalog_dump;
-    json_t json_object;
+    json_t json;
 
     begin_transaction();
 
@@ -93,14 +95,14 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
             continue;
         }
 
-        json_object["databases"].push_back(to_database(db));
+        json["databases"].push_back(to_database(db));
     }
 
     // If a database and table have been specified, move ahead to extract the row data.
     if (database.size() == 0 || table.size() == 0)
     {
         commit_transaction();
-        catalog_dump << json_object.dump(4);
+        catalog_dump << json.dump(c_default_json_indentation);
         auto return_string = catalog_dump.str();
         if (!return_string.compare("null"))
         {
@@ -117,7 +119,7 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
     stringstream row_dump;
     json_t rows = json_t{};
 
-    for (auto& json_databases : json_object["databases"])
+    for (auto& json_databases : json["databases"])
     {
         if (!json_databases["name"].get<string>().compare(database))
         {
@@ -178,8 +180,8 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
 
     commit_transaction();
 
-    row_dump << rows.dump(4);
-    auto return_string = rows.dump(4);
+    row_dump << rows.dump(c_default_json_indentation);
+    auto return_string = rows.dump(c_default_json_indentation);
     if (!return_string.compare("null"))
     {
         return "{}";
