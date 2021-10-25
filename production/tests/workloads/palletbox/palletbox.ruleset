@@ -17,7 +17,7 @@ ruleset palletbox
 {
     on_insert(bot_moving_to_station_event)
     {
-        gaia_log::app().info("Fired on bot_moving_to_station_event: bot={}, station={}", robot.id, gaia::palletbox::station_name_map[station.id]);
+        gaia_log::app().info("Fired on bot_moving_to_station_event: bot={}, station={}", robot.id, gaia::palletbox::g_station_name_map[station.id]);
 
         // After moving to a station, it will eventually get there.
         bot_arrived_event.insert(
@@ -35,7 +35,7 @@ ruleset palletbox
     }
 
     on_insert(payload_pick_up_event) {
-        gaia_log::app().info("Fired on payload_pick_up_event: bot={}, station={}", robot.id, gaia::palletbox::station_name_map[station.id]);
+        gaia_log::app().info("Fired on payload_pick_up_event: bot={}, station={}", robot.id, gaia::palletbox::g_station_name_map[station.id]);
 
         // TODO: Add simulated picking up of payload here.
 
@@ -52,7 +52,7 @@ ruleset palletbox
     }
 
     on_insert(payload_drop_off_event) {
-        gaia_log::app().info("Fired on payload_drop_off_event: bot={}, station={}", robot.id, gaia::palletbox::station_name_map[station.id]);
+        gaia_log::app().info("Fired on payload_drop_off_event: bot={}, station={}", robot.id, gaia::palletbox::g_station_name_map[station.id]);
 
         // TODO: Add simulated dropping off of payload here.
 
@@ -70,7 +70,7 @@ ruleset palletbox
 
     on_insert(bot_arrived_event)
     {
-        gaia_log::app().info("Fired on bot_arrived_event: bot={}, station={}", robot.id, gaia::palletbox::station_name_map[station.id]);
+        gaia_log::app().info("Fired on bot_arrived_event: bot={}, station={}", robot.id, gaia::palletbox::g_station_name_map[station.id]);
 
         // As the robot has arrived at this station, set it up as so.
         robot.station_id = station.id;

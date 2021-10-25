@@ -52,11 +52,10 @@ namespace gaia
 namespace palletbox
 {
 
-std::unordered_map<int, const char*> station_name_map = {
-    {(int)station_id_t::charging, c_sandbox_station_charging},
-    {(int)station_id_t::outbound, c_sandbox_station_outbound},
-    {(int)station_id_t::inbound, c_sandbox_station_inbound}
-};
+std::unordered_map<int, const char*> g_station_name_map = {
+    {static_cast<int>(station_id_t::charging), c_sandbox_station_charging},
+    {static_cast<int>(station_id_t::outbound), c_sandbox_station_outbound},
+    {static_cast<int>(station_id_t::inbound), c_sandbox_station_inbound}};
 
 } // namespace palletbox
 } // namespace gaia
@@ -79,15 +78,13 @@ double g_total_end_transaction_duration_in_microseconds = 0.0;
 double g_update_row_duration_in_microseconds = 0.0;
 my_duration_in_microseconds g_measured_duration_in_microseconds;
 
-// For any of the pauses, microseconds between checks.
+// for any of the pauses, microseconds between checks
 const int c_processing_pause_in_microseconds = 10;
 
 // Timeouts to use when waiting for actions to complete.
-const int c_normal_wait_timeout_in_microseconds = 3000;
-const int c_marco_polo_wait_timeout_in_microseconds = static_cast<int>(300 * c_microseconds_in_second);
+const int c_processing_complete_timeout_in_microseconds = static_cast<int>(300 * c_microseconds_in_second);
 
-//
-// This keeps track of a separate log file used for debugging, independant of the
+// This keep track of a separate log file used for debugging, independant of the
 // other logs.
 //
 // Currently, it is used to track the values of the rule trackers for later examination
@@ -99,11 +96,11 @@ const int c_marco_polo_wait_timeout_in_microseconds = static_cast<int>(300 * c_m
 FILE* g_debug_log_file = nullptr;
 const int c_rules_firing_update_buffer_length = 4096;
 
-// After the simulation ends, the number of seconds to wait before doing.
+// After the simulation ends, the number of seconds to wait before doing
 // the final summary for the simulation, including the final output of
 // the gaia_stats.log.
 //
-// This is in place to give the simulation a good chance at capturing all
+// this is in place to give the simulation a good chance at capturing all
 // relevant debug information.
 const int c_default_sleep_time_in_seconds_after_stop = 6;
 int g_sleep_time_in_seconds_after_stop;
@@ -144,7 +141,7 @@ void my_sleep_for(long parse_for_microsecond)
 gaia_id_t insert_station(station_id_t station_id)
 {
     station_writer w;
-    w.id = (int)station_id;
+    w.id = static_cast<int>(station_id);
     return w.insert_row();
 }
 
@@ -279,18 +276,13 @@ int handle_test(string m_input)
         throw palletbox_exception(gaia_fmt::format("Cannot find robot with id {}", c_sole_robot_id));
     }
 
-    gaia_id_t inserted_row_id = bot_moving_to_station_event_t::insert_row(
-        get_time_millis(),
-        (int)station_id_t::inbound, robot_it->id());
-    // auto new_event = bot_moving_to_station_event_t::get(inserted_row_id);
-    // robot_it->bot_moving_to_station_events().connect(new_event);
-    // robot_it->station().bot_moving_to_station_events().connect(new_event);
+    bot_moving_to_station_event_t::insert_row(get_time_millis(), static_cast<int>(station_id_t::inbound), robot_it->id());
 
     my_time_point inside_transaction_end_mark = my_clock::now();
     tx.commit();
     my_time_point commit_transaction_end_mark = my_clock::now();
 
-    wait_for_processing_to_complete(false, c_marco_polo_wait_timeout_in_microseconds);
+    wait_for_processing_to_complete(false, c_processing_complete_timeout_in_microseconds);
 
     my_duration_in_microseconds start_transaction_duration = inside_transaction_start_mark - start_transaction_start_mark;
     my_duration_in_microseconds inside_transaction_duration = inside_transaction_end_mark - inside_transaction_start_mark;
@@ -514,28 +506,30 @@ public:
         }
 
         FILE* delays_file = fopen("test-results/output.delay", "w");
-        fprintf(delays_file, "{ \"stop_pause_in_sec\" : %.9f, "
-                             "\"iterations\" : %d, "
-                             "\"start_transaction_in_sec\" : %.9f, "
-                             "\"inside_transaction_in_sec\" : %.9f, "
-                             "\"end_transaction_in_sec\" : %.9f, "
-                             "\"update_row_in_sec\" : %.9f, "
-                             "\"total_wait_in_sec\" : %.9f, "
-                             "\"explicit_wait_in_sec\" : %.9f, "
-                             "\"check_time_in_sec\" : %.9f, "
-                             "\"total_print_in_sec\" : %.9f"
-                             "%s }\n",
-                ms_double.count() / c_microseconds_in_second,
-                last_known_timestamp,
-                g_total_start_transaction_duration_in_microseconds / c_microseconds_in_second,
-                g_total_inside_transaction_duration_in_microseconds / c_microseconds_in_second,
-                g_total_end_transaction_duration_in_microseconds / c_microseconds_in_second,
-                g_update_row_duration_in_microseconds / c_microseconds_in_second,
-                g_total_wait_time_in_microseconds / c_microseconds_in_second,
-                g_explicit_wait_time_in_microseconds / c_microseconds_in_second,
-                g_check_time_in_microseconds / c_microseconds_in_second,
-                g_total_print_time_in_microseconds / c_microseconds_in_second,
-                measured_buffer);
+        fprintf(
+            delays_file,
+            "{ \"stop_pause_in_sec\" : %.9f, "
+            "\"iterations\" : %d, "
+            "\"start_transaction_in_sec\" : %.9f, "
+            "\"inside_transaction_in_sec\" : %.9f, "
+            "\"end_transaction_in_sec\" : %.9f, "
+            "\"update_row_in_sec\" : %.9f, "
+            "\"total_wait_in_sec\" : %.9f, "
+            "\"explicit_wait_in_sec\" : %.9f, "
+            "\"check_time_in_sec\" : %.9f, "
+            "\"total_print_in_sec\" : %.9f"
+            "%s }\n",
+            ms_double.count() / c_microseconds_in_second,
+            last_known_timestamp,
+            g_total_start_transaction_duration_in_microseconds / c_microseconds_in_second,
+            g_total_inside_transaction_duration_in_microseconds / c_microseconds_in_second,
+            g_total_end_transaction_duration_in_microseconds / c_microseconds_in_second,
+            g_update_row_duration_in_microseconds / c_microseconds_in_second,
+            g_total_wait_time_in_microseconds / c_microseconds_in_second,
+            g_explicit_wait_time_in_microseconds / c_microseconds_in_second,
+            g_check_time_in_microseconds / c_microseconds_in_second,
+            g_total_print_time_in_microseconds / c_microseconds_in_second,
+            measured_buffer);
         fclose(delays_file);
         return EXIT_SUCCESS;
     }

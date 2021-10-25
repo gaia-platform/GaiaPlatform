@@ -3,9 +3,7 @@
 -- All rights reserved.
 ---------------------------------------------
 
-drop database if exists palletbox;
-
-create database if not exists palletbox;
+database palletbox;
 
 use palletbox;
 

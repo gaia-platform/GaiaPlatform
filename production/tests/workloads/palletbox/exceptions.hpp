@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include <string>
 #include <exception>
+#include <string>
 
 namespace gaia
 {
@@ -21,8 +21,8 @@ public:
     explicit palletbox_exception(const char* message)
         : m_message(message){};
 
-    explicit palletbox_exception(const std::string& message)
-        : m_message(message){};
+    explicit palletbox_exception(std::string message)
+        : m_message(std::move(message)){};
 
     ~palletbox_exception() noexcept override = default;
 

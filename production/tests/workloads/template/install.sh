@@ -14,7 +14,7 @@ start_process() {
     fi
 }
 
-# Simple function to stop the process, including any cleanup
+# Simple function to stop the process, including any cleanup.
 complete_process() {
     local SCRIPT_RETURN_CODE=$1
     local COMPLETE_REASON=$2
@@ -130,10 +130,6 @@ install_into_directory() {
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 # shellcheck disable=SC1091 source=./properties.sh
 source "$SCRIPTPATH/properties.sh"
-
-# Set up any project based local script variables.
-
-# Set up any local script variables.
 
 parse_command_line "$@"
 

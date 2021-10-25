@@ -26,6 +26,8 @@ export SOURCE_PATHS=("palletbox.cpp")
 
 export GENERATED_CONFIGURATION_FILE=("palletbox.conf")
 
+export TEMPLATE_PATH="$SCRIPTPATH/../template"
+
 # ----------------------------------------------------
 # Variables that are general to this group of scripts.
 # ----------------------------------------------------
@@ -77,14 +79,14 @@ process_debug() {
     local SCRIPT_STOP_PAUSE=$2
 
     if ! "$EXECUTABLE_PATH" debug "$SCRIPT_STOP_PAUSE" < "$COMMAND_FILE" > "$JSON_OUTPUT"; then
-        cat $JSON_OUTPUT
+        cat "$JSON_OUTPUT"
         echo "Execution of the executable $EXECUTABLE_PATH in debug mode failed."
         complete_process 1
     fi
 
-    tail -n 1 $JSON_OUTPUT > $STOP_OUTPUT
-    head -n -1 $JSON_OUTPUT > $TEST_DIRECTORY/blah
-    cp $TEST_DIRECTORY/blah $JSON_OUTPUT
+    tail -n 1 "$JSON_OUTPUT" > "$STOP_OUTPUT"
+    head -n -1 "$JSON_OUTPUT" > $TEST_DIRECTORY/blah
+    cp $TEST_DIRECTORY/blah "$JSON_OUTPUT"
 }
 
 # Process a debug command which executes a file containing commands
@@ -92,7 +94,6 @@ process_debug() {
 # in the form of a JSON file.
 # Process the various commands.
 execute_commands() {
-    GENERATE_CSV_MODE=$1
     DEBUG_END_PAUSE=$2
 
     JSON_OUTPUT=$BUILD_DIRECTORY/output.json
@@ -107,3 +108,10 @@ execute_commands() {
         complete_process 1 "Command '${PARAMS[0]}' not known."
     fi
 }
+
+# With everything else set up, do the heavy lifting of building the project.
+build_project() {
+    generate_makefile
+    invoke_makefile
+}
+
