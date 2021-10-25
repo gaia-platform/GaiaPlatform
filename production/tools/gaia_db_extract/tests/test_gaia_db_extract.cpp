@@ -95,7 +95,7 @@ TEST_F(gaia_db_extract_test, extract_catalog)
     create_database("extract_test", false);
     create_table(c_table_name, test_table_fields);
 
-    auto extracted_catalog = gaia_db_extract("", "", c_start_after_none, c_row_limit_unlimited);
+    auto extracted_catalog = gaia_db_extract("", "", c_start_at_first, c_row_limit_unlimited);
 
     json_t json_object = json_t::parse(extracted_catalog);
     json_t expected_json = json_t::parse(c_expected_table);
@@ -134,7 +134,7 @@ TEST_F(gaia_db_extract_test, extract_catalog_rows)
         false);
 
     // Fetch one row at a time, from the beginning.
-    uint64_t row_id = c_start_after_none;
+    uint64_t row_id = c_start_at_first;
     for (;;)
     {
         auto extracted_rows = gaia_db_extract("catalog", "gaia_field", row_id, 3);
@@ -149,5 +149,5 @@ TEST_F(gaia_db_extract_test, extract_catalog_rows)
             row_id = json_rows["row_id"].get<uint64_t>();
         }
     }
-    ASSERT_NE(row_id, c_start_after_none);
+    ASSERT_NE(row_id, c_start_at_first);
 }
