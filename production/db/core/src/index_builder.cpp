@@ -387,12 +387,13 @@ void index_builder_t::update_indexes_from_logs(
     for (size_t i = 0; i < records.record_count; ++i)
     {
         auto& log_record = records.log_records[i];
-        if (offset_to_ptr(
-                log_record.operation == gaia_operation_t::remove
-                    ? log_record.old_offset
-                    : log_record.new_offset)
-                ->type
-            == static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table))
+        if ((log_record.operation == gaia_operation_t::remove || log_record.operation == gaia_operation_t::create)
+            && offset_to_ptr(
+                   log_record.operation == gaia_operation_t::remove
+                       ? log_record.old_offset
+                       : log_record.new_offset)
+                    ->type
+                == static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table))
         {
             type_id_mapping_t::instance().clear();
             break;
