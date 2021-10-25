@@ -148,10 +148,10 @@ private:
         memory_manager::chunk_offset_t, memory_manager::chunk_version_t>
         s_map_gc_chunks_to_versions{};
 
-    static constexpr c_invalid_s_safe_ts_entry_index{std::size(s_safe_ts_per_thread_entries)};
+    static constexpr c_invalid_safe_ts_index{std::size(s_safe_ts_per_thread_entries)};
 
     // The current thread's index in the "safe_ts entries" array.
-    thread_local static inline size_t s_safe_ts_entry_index{c_invalid_s_safe_ts_entry_index};
+    thread_local static inline size_t s_safe_ts_index{c_invalid_safe_ts_index};
 
     // These fields have session lifetime.
     thread_local static inline int s_session_socket = -1;
@@ -175,11 +175,11 @@ private:
     // watermark represents a lower bound on the latest commit_ts whose txn log
     // could have had GC reclaim all its resources. Finally, the "pre-truncate"
     // watermark represents an (exclusive) upper bound on the timestamps whose
-    // metadata entries could have had their memory reclaimed (via zeroing or
-    // unmapping). Any timestamp whose metadata entry could potentially be
-    // dereferenced must be registered via the "safe_ts" API to prevent the
-    // pre-truncate watermark from advancing past it and allowing its metadata
-    // entry to be reclaimed.
+    // metadata entries could have had their memory reclaimed (e.g., via
+    // zeroing, unmapping, or overwriting). Any timestamp whose metadata entry
+    // could potentially be dereferenced must be "reserved" via the "safe_ts"
+    // API to prevent the pre-truncate watermark from advancing past it and
+    // allowing its metadata entry to be reclaimed.
     //
     // The pre-apply watermark must either be equal to the post-apply watermark or greater by 1.
     //
@@ -227,10 +227,11 @@ private:
     // an entry by setting a cleared bit in this bitmap. When it is no longer
     // using the safe_ts API (e.g., at session exit), each thread should clear
     // the bit that it set.
-    static constexpr size_t c_safe_ts_reserved_entries_bitmap_size_in_words{c_session_limit / c_uint64_bit_count};
+    static constexpr size_t c_safe_ts_reserved_indexes_bitmap_size_in_words{
+        c_session_limit / c_uint64_bit_count};
 
-    static inline std::array<std::atomic<uint64_t>, c_safe_ts_reserved_entries_bitmap_size_in_words>
-        s_safe_ts_reserved_entries_bitmap{};
+    static inline std::array<std::atomic<uint64_t>, c_safe_ts_reserved_indexes_bitmap_size_in_words>
+        s_safe_ts_reserved_indexes_bitmap{};
 
     // Reserves an index for the current thread in the "safe_ts entries" array.
     static bool reserve_safe_ts_entry();
@@ -238,9 +239,12 @@ private:
     // Releases the current thread's index in the "safe_ts entries" array.
     static void release_safe_ts_entry();
 
-    // Reserves a "safe timestamp" that protects its own and all subsequent entries in the txn table from memory reclamation.
-    // The current "safe timestamp" value for this entry will be atomically replaced by the new "safe timestamp" value.
-    // If the given timestamp cannot be reserved as "safe", then return false, otherwise true.
+    // Reserves a "safe timestamp" that protects its own and all subsequent
+    // entries in the txn table from memory reclamation.
+    // The current "safe timestamp" value for this thread's entry will be
+    // atomically replaced by the new "safe timestamp" value.
+    // If the given timestamp cannot be reserved as "safe", then return false,
+    // otherwise true.
     static bool reserve_safe_ts(gaia_txn_id_t safe_ts);
 
     // Releases the current thread's "safe timestamp", allowing that timestamp's
@@ -250,7 +254,7 @@ private:
 
     // This method computes a "safe truncation timestamp" for the txn table,
     // i.e., an (exclusive) upper bound below which the txn table can be safely
-    // truncated. The timestamp returned is guaranteed not to be after any
+    // truncated. The timestamp returned is guaranteed not to exceed any
     // safe_ts that was reserved before this method was called.
     static gaia_txn_id_t get_safe_truncation_ts();
 
