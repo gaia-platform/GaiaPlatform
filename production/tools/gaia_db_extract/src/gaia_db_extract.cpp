@@ -27,7 +27,7 @@ using namespace gaia::catalog;
 using namespace gaia::db;
 using namespace gaia::tools::db_extract;
 using namespace std;
-using json = nlohmann::json;
+using json_t = nlohmann::json;
 
 namespace gaia
 {
@@ -36,71 +36,71 @@ namespace tools
 namespace db_extract
 {
 
-json marshall_field(gaia_field_t field)
+json_t marshall_field(gaia_field_t field)
 {
-    json j;
+    json_t json_object;
 
-    j["name"] = field.name();
-    j["id"] = field.gaia_id();
-    j["position"] = field.position();
-    j["repeated_count"] = field.repeated_count();
-    j["type"] = get_data_type_name(data_type_t(field.type()));
+    json_object["name"] = field.name();
+    json_object["id"] = field.gaia_id();
+    json_object["position"] = field.position();
+    json_object["repeated_count"] = field.repeated_count();
+    json_object["type"] = get_data_type_name(data_type_t(field.type()));
 
-    return j;
+    return json_object;
 }
 
-json marshall_table(gaia_table_t table)
+json_t marshall_table(gaia_table_t table)
 {
-    json j;
+    json_t json_object;
 
-    j["name"] = table.name();
-    j["id"] = table.gaia_id();
-    j["type"] = table.type();
+    json_object["name"] = table.name();
+    json_object["id"] = table.gaia_id();
+    json_object["type"] = table.type();
 
     for (auto field : table.gaia_fields())
     {
-        j["fields"].push_back(marshall_field(field));
+        json_object["fields"].push_back(marshall_field(field));
     }
 
-    return j;
+    return json_object;
 }
 
-json marshall_database(gaia_database_t db)
+json_t marshall_database(gaia_database_t db)
 {
-    json j;
+    json_t json_object;
 
-    j["name"] = db.name();
+    json_object["name"] = db.name();
 
     for (auto table : db.gaia_tables())
     {
-        j["tables"].push_back(marshall_table(table));
+        json_object["tables"].push_back(marshall_table(table));
     }
 
-    return j;
+    return json_object;
 }
 
 string gaia_db_extract(string database, string table, uint64_t start_after, uint32_t row_limit)
 {
     stringstream catalog_dump;
-    json j;
+    json_t json_object;
 
     begin_transaction();
 
     for (auto db : gaia_database_t::list())
     {
-        if (strlen(db.name()) == 0 || /*!strcmp(db.name(), "catalog") ||*/ !strcmp(db.name(), "()"))
+        if (/*strlen(db.name()) == 0 || !strcmp(db.name(), "catalog") ||*/ !strcmp(db.name(), "()"))
         {
             continue;
         }
 
-        j["databases"].push_back(marshall_database(db));
+        json_object["databases"].push_back(marshall_database(db));
     }
 
     // If a database and table have been specified, move ahead to extract the row data.
     if (database.size() == 0 || table.size() == 0)
     {
         commit_transaction();
-        catalog_dump << j.dump(4);
+        catalog_dump << json_object.dump(4);
         auto return_string = catalog_dump.str();
         if (!return_string.compare("null"))
         {
@@ -115,9 +115,9 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
     bool terminate = false;
     scan_state_t scan_state;
     stringstream row_dump;
-    json rows = json{};
+    json_t rows = json_t{};
 
-    for (auto& json_databases : j["databases"])
+    for (auto& json_databases : json_object["databases"])
     {
         if (!json_databases["name"].get<string>().compare(database))
         {
@@ -141,7 +141,7 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
                             terminate = true;
                             break;
                         }
-                        json row;
+                        json_t row;
                         for (auto& f : json_tables["fields"])
                         {
                             auto value = scan_state.extract_field_value(f["repeated_count"].get<uint16_t>(), f["position"].get<uint32_t>());

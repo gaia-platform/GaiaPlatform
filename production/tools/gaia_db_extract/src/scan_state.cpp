@@ -29,14 +29,24 @@ namespace tools
 {
 namespace db_extract
 {
-#define Int16GetDatum(X) ((datum_t)(X))
-#define Int32GetDatum(X) ((datum_t)(X))
-#define Int64GetDatum(X) ((datum_t)(X))
-#define UInt64GetDatum(X) ((datum_t)(X))
-#define CStringGetDatum(X) ((datum_t)(X))
+
+// The scan_state_t object is used to support the interpretation of a single table's
+// objects, obtaining the individual field values from each object (row). It reads through
+// a single table type (gaia_type_t in the database) one object time, from the first to
+// the last. The field values are obtained using flatbuffers reflection.
+//
+// The form of this object was borrowed and simplified from the SQL FDW adapter,
+// in gaia_fdw_adapter.cpp, which also interfaces with Postgres. As this utility does
+// not use Postgres, all of the Postgres-specif code has been eliminated.
+
+#define int16_get_datum(X) ((datum_t)(X))
+#define int32_get_datum(X) ((datum_t)(X))
+#define int64_get_datum(X) ((datum_t)(X))
+#define Uint64_get_datum(X) ((datum_t)(X))
+#define cstring_get_datum(X) ((datum_t)(X))
 
 static inline datum_t
-Float4GetDatum(float X)
+float_get_datum(float X)
 {
     union
     {
@@ -45,11 +55,11 @@ Float4GetDatum(float X)
     } myunion;
 
     myunion.value = X;
-    return Int32GetDatum(myunion.retval);
+    return int32_get_datum(myunion.retval);
 }
 
 static inline datum_t
-Float8GetDatum(double X)
+double_get_datum(double X)
 {
     union
     {
@@ -58,11 +68,11 @@ Float8GetDatum(double X)
     } myunion;
 
     myunion.value = X;
-    return Int64GetDatum(myunion.retval);
+    return int64_get_datum(myunion.retval);
 }
 
 // Convert a non-string data holder value to PostgreSQL datum_t.
-datum_t convert_to_datum(const data_holder_t& value)
+static datum_t convert_to_datum(const data_holder_t& value)
 {
     switch (value.type)
     {
@@ -71,21 +81,21 @@ datum_t convert_to_datum(const data_holder_t& value)
     case reflection::UByte:
     case reflection::Short:
     case reflection::UShort:
-        return Int16GetDatum(static_cast<int16_t>(value.hold.integer_value));
+        return int16_get_datum(static_cast<int16_t>(value.hold.integer_value));
 
     case reflection::Int:
     case reflection::UInt:
-        return Int32GetDatum(static_cast<int32_t>(value.hold.integer_value));
+        return int32_get_datum(static_cast<int32_t>(value.hold.integer_value));
 
     case reflection::Long:
     case reflection::ULong:
-        return Int64GetDatum(value.hold.integer_value);
+        return int64_get_datum(value.hold.integer_value);
 
     case reflection::Float:
-        return Float4GetDatum(static_cast<float>(value.hold.float_value));
+        return float_get_datum(static_cast<float>(value.hold.float_value));
 
     case reflection::Double:
-        return Float8GetDatum(value.hold.float_value);
+        return double_get_datum(value.hold.float_value);
 
     default:
         fprintf(stderr, "Unhandled data_holder_t type '%d'.\n", value.type);
@@ -93,7 +103,7 @@ datum_t convert_to_datum(const data_holder_t& value)
     return datum_t{};
 }
 
-nullable_datum_t convert_to_nullable_datum(const data_holder_t& value)
+static nullable_datum_t convert_to_nullable_datum(const data_holder_t& value)
 {
     nullable_datum_t nullable_datum{};
     nullable_datum.value = 0;
@@ -107,15 +117,7 @@ nullable_datum_t convert_to_nullable_datum(const data_holder_t& value)
             return nullable_datum;
         }
 
-        // size_t string_length = strlen(value.hold.string_value);
-        // if (string_length > 30) {
-        //     fprintf(stderr, "A little worried here, string_length=%lu\n", string_length);
-        // }
-        // char* text = reinterpret_cast<char*>(malloc(string_length+1));
-
-        // memcpy(text, value.hold.string_value, string_length);
-        // text[string_length] = '\0';
-        nullable_datum.value = CStringGetDatum(value.hold.string_value);
+        nullable_datum.value = cstring_get_datum(value.hold.string_value);
     }
     else
     {
@@ -222,7 +224,7 @@ nullable_datum_t scan_state_t::extract_field_value(uint16_t repeated_count, size
         /*
         if (is_gaia_id_field_index(field_index))
         {
-            field_value.value = UInt64GetDatum(m_current_record.id());
+            field_value.value = Uint64_get_datum(m_current_record.id());
         }
         else if (m_fields[field_index].is_reference)
         {
@@ -233,7 +235,7 @@ nullable_datum_t scan_state_t::extract_field_value(uint16_t repeated_count, size
             }
 
             gaia_id_t reference_id = m_current_record.references()[reference_offset];
-            field_value.value = UInt64GetDatum(reference_id);
+            field_value.value = Uint64_get_datum(reference_id);
 
             // If the reference id is invalid, surface the value as NULL.
             if (reference_id == c_invalid_gaia_id)

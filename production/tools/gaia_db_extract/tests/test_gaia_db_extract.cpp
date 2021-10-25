@@ -88,6 +88,8 @@ constexpr char c_expected_table[] = "{"
                                     "\"type\": 3905506732"
                                     "}";
 
+// Compare a JSON-formatted query result to a known good result. Use a JSON
+// comparison method that is white-space and ordering independent.
 TEST_F(gaia_db_extract_test, extract_catalog)
 {
     create_database("extract_test", false);
@@ -118,6 +120,9 @@ TEST_F(gaia_db_extract_test, extract_catalog)
     ASSERT_TRUE(found_match);
 }
 
+// Exercise the ability to scan through a database table as a sequence of blocks
+// of table rows. Verify that rows have been scanned and that the last of the rows
+// has been read.
 TEST_F(gaia_db_extract_test, extract_catalog_rows)
 {
     create_database("extract_test", false);
