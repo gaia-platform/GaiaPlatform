@@ -28,6 +28,7 @@
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/StringMap.h"
+#include "llvm/ADT/Twine.h"
 using namespace gaia;
 using namespace std;
 using namespace clang;
@@ -448,7 +449,7 @@ void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, const Small
         for (const QualType& type : parameterTypes)
         {
             // TODO we need a way to pass named params to have better diagnostics.
-            string paramName = "param_" + to_string(paramIndex);
+            string paramName = (Twine("param_") + Twine(paramIndex)).str();
             ParmVarDecl* param = ParmVarDecl::Create(
                 Context, Context.getTranslationUnitDecl(), loc, loc, &Context.Idents.get(paramName),
                 Context.getAdjustedParameterType(type), nullptr, SC_None, nullptr);
@@ -757,13 +758,26 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
         DeclarationName Name = Context.DeclarationNames.getCXXConversionFunctionName(ClassType);
         DeclarationNameInfo NameInfo(Name, loc);
 
-        auto* conversionFunctionDeclaration = CXXConversionDecl::Create(
+        auto conversionFunctionDeclaration = CXXConversionDecl::Create(
             Context, cast<CXXRecordDecl>(RD), loc, NameInfo, R,
             nullptr, false, false, false, SourceLocation());
 
         conversionFunctionDeclaration->setAccess(AS_public);
         RD->addDecl(conversionFunctionDeclaration);
     }
+
+    // Adds a conversion function from the generated table type to a boolean
+    QualType BooleanConversionType = Context.getFunctionType(Context.BoolTy, None, FunctionProtoType::ExtProtoInfo());
+    CanQualType ClassBooleanConversionType = Context.getCanonicalType(BooleanConversionType);
+    DeclarationName BooleanConversionName = Context.DeclarationNames.getCXXConversionFunctionName(ClassBooleanConversionType);
+    DeclarationNameInfo BooleanConversionNameInfo(BooleanConversionName, loc);
+
+    auto booleanConversionFunctionDeclaration = CXXConversionDecl::Create(
+        Context, cast<CXXRecordDecl>(RD), loc, BooleanConversionNameInfo, BooleanConversionType,
+        nullptr, false, true, false, SourceLocation());
+
+    booleanConversionFunctionDeclaration->setAccess(AS_public);
+    RD->addDecl(booleanConversionFunctionDeclaration);
 
     // Add fields to the type.
     for (const auto& f : tableDescription->second)
@@ -1055,7 +1069,7 @@ bool Sema::findFieldType(const std::string& fieldOrTagName, SourceLocation loc)
 static bool parseTaggedAttribute(StringRef attribute, StringRef& table, StringRef& tag)
 {
     size_t tag_position = attribute.find(':');
-    if (tag_position != string::npos)
+    if (tag_position != StringRef::npos)
     {
         tag = attribute.substr(0, tag_position);
     }
@@ -1065,7 +1079,7 @@ static bool parseTaggedAttribute(StringRef attribute, StringRef& table, StringRe
     }
     size_t dot_position = attribute.find('.', tag_position + 1);
     // Handle fully qualified reference.
-    if (dot_position != string::npos)
+    if (dot_position != StringRef::npos)
     {
         table = attribute.substr(tag_position + 1, dot_position - tag_position - 1);
         return true;

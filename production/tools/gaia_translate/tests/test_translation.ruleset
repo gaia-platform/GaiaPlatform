@@ -299,6 +299,26 @@ ruleset testE31
     }
 }
 
+// GAIAPLAT-1428
+ruleset testE32
+{
+    on_update(I:incubator.max_temp)
+    {
+        if (sensor)
+        {
+        }
+        if (I)
+        {
+        }
+        for (S:sensor)
+        {
+            if (S)
+            {
+            }
+        }
+    }
+}
+
 #if 0
 // This rule interferes with 'ruleset set' rules
 ruleset test15
