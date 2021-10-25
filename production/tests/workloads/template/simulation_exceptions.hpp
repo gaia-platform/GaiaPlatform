@@ -10,21 +10,21 @@
 
 namespace gaia
 {
-namespace palletbox
+namespace simulation
 {
 namespace exceptions
 {
 
-class palletbox_exception : public std::exception
+class simulation_exception : public std::exception
 {
 public:
-    explicit palletbox_exception(const char* message)
+    explicit simulation_exception(const char* message)
         : m_message(message){};
 
-    explicit palletbox_exception(std::string message)
+    explicit simulation_exception(std::string message)
         : m_message(std::move(message)){};
 
-    ~palletbox_exception() noexcept override = default;
+    ~simulation_exception() noexcept override = default;
 
     [[nodiscard]] const char* what() const noexcept override
     {
@@ -36,5 +36,5 @@ protected:
 };
 
 } // namespace exceptions
-} // namespace palletbox
+} // namespace simulation
 } // namespace gaia

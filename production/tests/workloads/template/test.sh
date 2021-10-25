@@ -392,8 +392,8 @@ execute_test_workflow() {
     # Make sure to calculate the runtime and store it in the `duration.json` file.
     TEST_RUNTIME=$( echo "$TEST_END_MARK - $TEST_START_MARK" | bc -l )
 
-    SUB="^\.*"
-    if [[ "$TEST_RUNTIME" =~ $SUB ]] ; then
+    echo "Test executed in $TEST_RUNTIME ms."
+    if [[ "$TEST_RUNTIME" == .* ]] ; then
         TEST_RUNTIME=0$TEST_RUNTIME
     fi
 

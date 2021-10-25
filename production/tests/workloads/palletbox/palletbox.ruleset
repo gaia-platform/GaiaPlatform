@@ -3,12 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <atomic>
-#include <algorithm>
+#include "simulation.hpp"
 
-#include "gaia/logger.hpp"
+#include "palletbox_constants.hpp"
 
-#include "constants.hpp"
 #include "gaia_palletbox.h"
 
 using namespace std;
