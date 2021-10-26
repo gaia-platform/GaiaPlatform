@@ -2709,8 +2709,7 @@ static bool is_system_compatible()
     {
         std::cerr
             << "The Gaia Database Server will run normally under this overcommit policy,"
-            << std::endl
-            << "but may become unstable under rare conditions."
+            << " but may become unstable under rare conditions."
             << std::endl;
     }
 
@@ -2726,20 +2725,17 @@ static bool is_system_compatible()
         std::cerr
             << std::endl
             << "To ensure stable performance under all conditions, we recommend"
-            << std::endl
-            << "changing the overcommit policy to "
+            << " changing the overcommit policy to "
             << c_always_overcommit_policy_id << " ("
             << c_vm_overcommit_policies[c_always_overcommit_policy_id].desc << ")."
             << std::endl;
 
         std::cerr << R"(
-To temporarily enable this policy, open a shell with root privileges
-and type the following command:
+To temporarily enable this policy, open a shell with root privileges and type the following command:
 
   echo 1 > /proc/sys/vm/overcommit_memory
 
-To permanently enable this policy, open /etc/sysctl.conf
-in an editor with root privileges and add the line
+To permanently enable this policy, open /etc/sysctl.conf in an editor with root privileges and add the line
 
   vm.overcommit_memory=1
 
@@ -2759,13 +2755,11 @@ Save the file, and in a shell with root privileges type
         std::cerr << R"(
 The Gaia Database Server requires a per-process virtual memory area limit of at least 65530.
 
-To temporarily set the minimum virtual memory area limit,
-open a shell with root privileges and type the following command:
+To temporarily set the minimum virtual memory area limit, open a shell with root privileges and type the following command:
 
   echo 65530 > /proc/sys/vm/max_map_count
 
-To permanently set the minimum virtual memory area limit, open /etc/sysctl.conf
-in an editor with root privileges and add the line
+To permanently set the minimum virtual memory area limit, open /etc/sysctl.conf in an editor with root privileges and add the line
 
   vm.max_map_count=65530
 
@@ -2781,19 +2775,16 @@ Save the file, and in a shell with root privileges type
         std::cerr << R"(
 The Gaia Database Server requires that the maximum possible virtual memory address space is available.
 
-To temporarily enable the maximum virtual memory address space,
-open a shell with root privileges and type the following command:
+To temporarily enable the maximum virtual memory address space, open a shell with root privileges and type the following command:
 
   ulimit -v unlimited
 
-To permanently enable the maximum virtual memory address space, open /etc/security/limits.conf
-in an editor with root privileges and add the following lines:
+To permanently enable the maximum virtual memory address space, open /etc/security/limits.conf in an editor with root privileges and add the following lines:
 
   * soft as unlimited
   * hard as unlimited
 
-Note: For enhanced security, replace the wildcard '*' in these file entries
-with the user name of the account that is running the Gaia Database Server.
+Note: For enhanced security, replace the wildcard '*' in these file entries with the user name of the account that is running the Gaia Database Server.
 
 Save the file and start a new terminal session.
         )" << std::endl;
@@ -2805,19 +2796,16 @@ Save the file and start a new terminal session.
         std::cerr << R"(
 The Gaia Database Server requires a per-process open file descriptor limit of at least 65535.
 
-To temporarily set the minimum open file descriptor limit,
-open a shell with root privileges and type the following command:
+To temporarily set the minimum open file descriptor limit, open a shell with root privileges and type the following command:
 
   ulimit -n 65535
 
-To permanently set the minimum open file descriptor limit, open /etc/security/limits.conf
-in an editor with root privileges and add the following lines:
+To permanently set the minimum open file descriptor limit, open /etc/security/limits.conf in an editor with root privileges and add the following lines:
 
   * soft nofile 65535
   * hard nofile 65535
 
-Note: For enhanced security, replace the wildcard '*' in these file entries
-with the user name of the account that is running the Gaia Database Server.
+Note: For enhanced security, replace the wildcard '*' in these file entries with the user name of the account that is running the Gaia Database Server.
 
 Save the file and start a new terminal session.
         )" << std::endl;
