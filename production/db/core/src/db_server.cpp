@@ -2735,11 +2735,11 @@ To temporarily enable this policy, open a shell with root privileges and type th
 
   echo 1 > /proc/sys/vm/overcommit_memory
 
-To permanently enable this policy, open /etc/sysctl.conf in an editor with root privileges and add the line
+To permanently enable this policy, open /etc/sysctl.conf in an editor with root privileges and add the line:
 
   vm.overcommit_memory=1
 
-Save the file, and in a shell with root privileges type
+Save the file, and in a shell with root privileges type:
 
   sysctl -p
         )" << std::endl;
@@ -2759,11 +2759,11 @@ To temporarily set the minimum virtual memory area limit, open a shell with root
 
   echo 65530 > /proc/sys/vm/max_map_count
 
-To permanently set the minimum virtual memory area limit, open /etc/sysctl.conf in an editor with root privileges and add the line
+To permanently set the minimum virtual memory area limit, open /etc/sysctl.conf in an editor with root privileges and add the line:
 
   vm.max_map_count=65530
 
-Save the file, and in a shell with root privileges type
+Save the file, and in a shell with root privileges type:
 
   sysctl -p
         )" << std::endl;
