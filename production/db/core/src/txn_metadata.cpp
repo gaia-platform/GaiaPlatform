@@ -114,7 +114,7 @@ bool txn_metadata_t::is_txn_metadata_map_initialized()
 char* txn_metadata_t::get_txn_metadata_map_base_address()
 {
     ASSERT_PRECONDITION(is_txn_metadata_map_initialized(), "Txn metadata map is uninitialized!");
-    return s_txn_metadata_map;
+    return static_cast<char*>(s_txn_metadata_map);
 }
 
 // This method allocates a new begin_ts and initializes its metadata in the txn

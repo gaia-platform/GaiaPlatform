@@ -169,75 +169,6 @@ int server_t::safe_fd_from_ts_t::get_fd() const
     return m_local_log_fd;
 }
 
-server_t::gc_guard_t::gc_guard_t(bool allow_recursion)
-{
-    // The session should have already claimed an entry in the "observed post-GC watermarks" array.
-    ASSERT_PRECONDITION(
-        s_last_observed_post_gc_watermark_values_index < s_last_observed_post_gc_watermark_values.size(),
-        "s_last_observed_post_gc_watermark_values_index must be initialized!");
-
-    // Only one instance of this class can exist within a given scope, unless
-    // recursion is allowed. Recursion is safe, as long as the publication step
-    // is a no-op, because a recursive caller may still be performing a scan
-    // based on a previously observed watermark value.
-    if (!allow_recursion)
-    {
-        ASSERT_PRECONDITION(
-            s_last_observed_post_gc_watermark_values[s_last_observed_post_gc_watermark_values_index] == c_max_valid_ts,
-            "gc_guard_t can only have one instance within a thread!");
-    }
-
-    if (allow_recursion)
-    {
-
-        // Retry publication of our observed post-GC watermark value until we know
-        // that atomicity was preserved: the global value did not change after we
-        // read it but before we had published our observed value.
-        //
-        // NB: Retries are unbounded, which means the algorithm is technically not
-        // wait-free, but we don't expect updates of the watermark to be frequent
-        // enough for retries to significantly delay the caller.
-        while (true)
-        {
-            // First take a snapshot of the post-GC watermark.
-            gaia_txn_id_t last_freed_commit_ts_lower_bound = s_last_freed_commit_ts_lower_bound;
-
-            // Now write the snapshot to our entry in the "observed post-GC watermarks" array.
-            s_last_observed_post_gc_watermark_values[s_last_observed_post_gc_watermark_values_index] = last_freed_commit_ts_lower_bound;
-
-            // Check that the global watermark hasn't changed since our write, to
-            // ensure that we don't begin a scan until we're sure that our observed
-            // value was published before the global value changed.
-            if (s_last_freed_commit_ts_lower_bound == last_freed_commit_ts_lower_bound)
-            {
-                break;
-            }
-        }
-    }
-}
-
-server_t::gc_guard_t::~gc_guard_t()
-{
-    // The session should have already claimed an entry in the "observed post-GC watermarks" array.
-    ASSERT_PRECONDITION(
-        s_last_observed_post_gc_watermark_values_index < s_last_observed_post_gc_watermark_values.size(),
-        "s_last_observed_post_gc_watermark_values_index must be initialized!");
-
-    // We must have already published a valid timestamp for the post-GC watermark.
-    gaia_txn_id_t last_observed_post_gc_watermark = s_last_observed_post_gc_watermark_values[s_last_observed_post_gc_watermark_values_index];
-
-    ASSERT_PRECONDITION(
-        last_observed_post_gc_watermark != c_invalid_gaia_txn_id,
-        "This session's entry in the observed post-GC watermarks array is uninitialized!");
-
-    ASSERT_PRECONDITION(
-        last_observed_post_gc_watermark != c_max_valid_ts,
-        "This session's entry in the observed post-GC watermarks array is unpublished!");
-
-    // Retract our published entry, so we do not block any GC tasks from truncating the txn table.
-    s_last_observed_post_gc_watermark_values[s_last_observed_post_gc_watermark_values_index] = c_max_valid_ts;
-}
-
 void server_t::handle_connect(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
@@ -341,9 +272,6 @@ void server_t::txn_begin(std::vector<int>& txn_log_fds_for_snapshot)
 void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds)
 {
     ASSERT_PRECONDITION(txn_log_fds.empty(), "Vector passed in to get_txn_log_fds_for_snapshot() should be empty!");
-
-    // Ensure our scan interval isn't decommitted while in use.
-    gc_guard_t gc_guard();
 
     // Take a snapshot of the post-apply watermark and scan backward from
     // begin_ts, stopping either just before the saved watermark or at the first
@@ -1368,15 +1296,20 @@ void server_t::session_handler(int session_socket)
     bool initializing = false;
     init_memory_manager(initializing);
 
-    // Claim an entry in the safe_ts array.
-    // TODO: move this assignment into reserve_safe_ts_entry()
-    s_safe_ts_entries_index = reserve_safe_ts_entry();
+    // Claim an index in the safe_ts array. If this fails (because all indexes
+    // are currently claimed by sessions), then immediately close the socket, so
+    // the client throws a `peer_disconnected` exception and rethrows a
+    // `session_limit_exceeded` exception.
+    // REVIEW: When we have a way to marshal exceptions to the client, we should
+    // directly ensure that `session_limit_exceeded` is thrown in this case.
+    if (!reserve_safe_ts_index())
+    {
+        return;
+    }
 
-    auto watermark_entry_cleanup = make_scope_guard([&]() {
-        // Release this thread's entry in the safe_ts array.
-        // TODO: move this assignment into release_safe_ts_entry()
-        s_safe_ts_entries_index = c_invalid_safe_ts_entries_index;
-        release_safe_ts_entry();
+    auto safe_ts_index_cleanup = make_scope_guard([&]() {
+        // Release this thread's index in the safe_ts array.
+        release_safe_ts_index();
     });
 
     // Set up epoll loop.
@@ -1646,7 +1579,7 @@ void server_t::stream_producer_handler(
                 else if (ev.events & EPOLLHUP)
                 {
                     // This flag is unmaskable, so we don't need to register for it.
-                    // We shold get this when the client has closed its end of the socket.
+                    // We should get this when the client has closed its end of the socket.
                     ASSERT_INVARIANT(!(ev.events & EPOLLERR), c_message_epollerr_flag_should_not_be_set);
                     producer_shutdown = true;
                 }
@@ -1858,7 +1791,7 @@ bool server_t::txn_logs_conflict(int log_fd1, int log_fd2)
     return false;
 }
 
-bool server_t::validate_txn(gaia_txn_id_t commit_ts, bool recursing)
+bool server_t::validate_txn(gaia_txn_id_t commit_ts)
 {
     // Validation algorithm:
 
@@ -1928,11 +1861,6 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts, bool recursing)
     // Because we make multiple passes over the conflict window, we need to track
     // committed txns that have already been tested for conflicts.
     std::unordered_set<gaia_txn_id_t> committed_txns_tested_for_conflicts;
-
-    // Ensure our scan interval isn't decommitted while in use.
-    // NB: We can't acquire gc_guard_t recursively, so we need to know if we're
-    // in a recursive validation.
-    gc_guard_t gc_guard();
 
     // Iterate over all txns in conflict window, and test all committed txns for
     // conflicts. Repeat until no new committed txns are discovered. This gives
@@ -2040,8 +1968,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts, bool recursing)
                     c_message_preceding_txn_should_have_been_validated);
 
                 // Recursively validate the current undecided txn.
-                bool recursing = true;
-                bool is_committed = validate_txn(ts, recursing);
+                bool is_committed = validate_txn(ts);
 
                 // Update the current txn's decided status.
                 txn_metadata_t::update_txn_decision(ts, is_committed);
@@ -2127,9 +2054,9 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts, bool recursing)
 // NB: we use compare_exchange_weak() for the global update because we need to
 // retry anyway on concurrent updates, so tolerating spurious failures
 // requires no additional logic.
-bool server_t::advance_watermark(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts)
+bool server_t::advance_watermark(watermark_t watermark, gaia_txn_id_t ts)
 {
-    gaia_txn_id_t last_watermark_ts = watermark;
+    gaia_txn_id_t last_watermark_ts = get_watermark(watermark));
     do
     {
         // NB: last_watermark_ts is an inout argument holding the previous value
@@ -2139,7 +2066,7 @@ bool server_t::advance_watermark(std::atomic<gaia_txn_id_t>& watermark, gaia_txn
             return false;
         }
 
-    } while (!watermark.compare_exchange_weak(last_watermark_ts, ts));
+    } while (!get_watermark_entry(watermark).compare_exchange_weak(last_watermark_ts, ts));
 
     return true;
 }
@@ -2342,9 +2269,6 @@ void server_t::perform_maintenance()
 
 void server_t::apply_txn_logs_to_shared_view()
 {
-    // Ensure our scan interval isn't decommitted while in use.
-    gc_guard_t gc_guard();
-
     // First get a snapshot of the timestamp counter for an upper bound on
     // the scan (we don't know yet if this is a begin_ts or commit_ts).
     gaia_txn_id_t last_allocated_ts = get_last_txn_id();
@@ -2359,7 +2283,6 @@ void server_t::apply_txn_logs_to_shared_view()
     // txn. Advance the pre-apply watermark before applying the txn log
     // of a committed txn, and advance the post-apply watermark after
     // applying the txn log.
-
     for (gaia_txn_id_t ts = pre_apply_watermark + 1; ts <= last_allocated_ts; ++ts)
     {
         // We need to seal uninitialized entries as we go along, so that we
@@ -2694,8 +2617,8 @@ void server_t::txn_rollback(bool client_disconnected)
         // Load the crashed session's chunk, so we can directly free the final
         // allocation if necessary.
         // BUG (GAIAPLAT-1489): this will only work if we're inside a txn when
-        // the session crashes. Otherwise, we'll leak the chunk and it wil be
-        // orphaned forever (unless we had some GC process for orphaned chunks).
+        // the session crashes. Otherwise, we'll leak the chunk and it will be
+        // orphaned forever (unless we somehow GC orphaned chunks).
         memory_manager::chunk_offset_t chunk_offset = s_log.data()->current_chunk;
         if (chunk_offset != c_invalid_chunk_offset)
         {
@@ -2819,6 +2742,11 @@ bool server_t::txn_commit()
     // Claim ownership of the log fd from the mapping object.
     int log_fd = s_log.unmap_truncate_seal_fd();
 
+    // Obtain a safe_ts for our begin_ts, to prevent recursive validation from
+    // allowing the pre-truncate watermark to advance past our begin_ts.
+    // NB: This MUST be done before obtaining a commit_ts!
+    safe_ts_t(s_txn_id);
+
     // Register the committing txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = submit_txn(s_txn_id, log_fd);
 
@@ -2941,6 +2869,15 @@ bool server_t::reserve_safe_ts(gaia_txn_id_t safe_ts)
     ASSERT_PRECONDITION(
         s_safe_ts_index != c_invalid_safe_ts_index,
         "Expected this thread's safe_ts entry index to be valid!");
+
+    // This function executes an "observe and publish" protocol similar to
+    // epoch-based reclamation or hazard pointers, where the current thread
+    // publishes a "safe timestamp" by writing it to its entry in the "published
+    // safe timestamps" array and validating that the published timestamp is
+    // still at least as large as the post-GC watermark, so the safety
+    // properties described in the correctness proof for
+    // `get_safe_truncation_ts()` hold. If validation fails, then we invalidate
+    // the timestamp we just published and return failure to the caller.
 
     // NB: We have to validate the safe_ts *after* speculatively publishing it
     // (in order to prevent races from the pre-truncate watermark concurrently

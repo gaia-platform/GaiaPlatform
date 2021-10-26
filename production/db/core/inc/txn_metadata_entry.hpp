@@ -22,6 +22,8 @@ namespace db
 namespace transactions
 {
 
+static constexpr uint64_t c_txn_ts_bits{42ULL};
+
 // This value class represents an immutable snapshot of txn metadata for a
 // single timestamp, but with no association to a particular timestamp. (The
 // association of a metadata entry value with a timestamp is the responsibility
@@ -206,7 +208,6 @@ private:
     // garbage accumulation (which consumes memory, open fds, and other
     // resources, and also increases txn begin latency, although it doesn't
     // affect read/write latency, because we don't use version chains).
-    static constexpr uint64_t c_txn_ts_bits{42ULL};
     static constexpr uint64_t c_txn_ts_shift{0ULL};
     static constexpr uint64_t c_txn_ts_mask{((1ULL << c_txn_ts_bits) - 1) << c_txn_ts_shift};
 

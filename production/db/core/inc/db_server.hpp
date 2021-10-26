@@ -148,11 +148,6 @@ private:
         memory_manager::chunk_offset_t, memory_manager::chunk_version_t>
         s_map_gc_chunks_to_versions{};
 
-    static constexpr c_invalid_safe_ts_index{std::size(s_safe_ts_per_thread_entries)};
-
-    // The current thread's index in the "safe_ts entries" array.
-    thread_local static inline size_t s_safe_ts_index{c_invalid_safe_ts_index};
-
     // These fields have session lifetime.
     thread_local static inline int s_session_socket = -1;
     thread_local static inline messages::session_state_t s_session_state = messages::session_state_t::DISCONNECTED;
@@ -202,9 +197,17 @@ private:
         member_count
     };
 
-    static inline std::array<std::atomic<gaia_txn_id_t>, watermark_t::member_count> s_watermarks{};
+    static inline std::array<std::atomic<gaia_txn_id_t>, common::get_enum_value(watermark_t::member_count)> s_watermarks{};
 
-    static gaia_txn_id_t get_watermark(watermark_t watermark);
+    static inline gaia_txn_id_t get_watermark(watermark_t watermark)
+    {
+        return s_watermarks[watermark].load();
+    }
+
+    static inline std::atomic<gaia_txn_id_t>& get_watermark_entry(watermark_t watermark)
+    {
+        return s_watermarks[watermark];
+    }
 
     // A "publication list" in which each session thread publishes a "safe
     // timestamp" that it needs to protect from txn table truncation. This is
@@ -228,10 +231,15 @@ private:
     // using the safe_ts API (e.g., at session exit), each thread should clear
     // the bit that it set.
     static constexpr size_t c_safe_ts_reserved_indexes_bitmap_size_in_words{
-        c_session_limit / c_uint64_bit_count};
+        c_session_limit / memory_manager::c_uint64_bit_count};
 
     static inline std::array<std::atomic<uint64_t>, c_safe_ts_reserved_indexes_bitmap_size_in_words>
         s_safe_ts_reserved_indexes_bitmap{};
+
+    static constexpr size_t c_invalid_safe_ts_index{std::size(s_safe_ts_per_thread_entries)};
+
+    // The current thread's index in the "safe_ts entries" array.
+    thread_local static inline size_t s_safe_ts_index{c_invalid_safe_ts_index};
 
     // Reserves an index for the current thread in the "safe_ts entries" array.
     static bool reserve_safe_ts_entry();
@@ -382,7 +390,7 @@ private:
 
     static void update_txn_table_safe_truncation_point();
 
-    static bool advance_watermark(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts);
+    static bool advance_watermark(watermark_t watermark, gaia_txn_id_t ts);
 
     static gaia_txn_id_t submit_txn(gaia_txn_id_t begin_ts, int log_fd);
 
@@ -471,126 +479,165 @@ private:
     // post-GC watermark, regardless of which watermark an object of this class
     // logically protects.
     //
-    // The constructor executes an "observe and publish" protocol like
-    // epoch-based reclamation or hazard pointers, where the current thread
-    // reads the current value of the post-GC watermark and publishes that value
-    // by writing it to its entry in the "last observed post-GC watermark"
-    // array, retrying until it can verify that the post-GC watermark hasn't
-    // changed after the write (so publication appears to be an atomic
-    // memory-memory copy). If the constructor is invoked while another object
-    // of this class is in scope, it simply increments a thread-local nesting
-    // level counter, because previously instantiated objects still need to
-    // protect their watermarks using their observed values, and all watermarks
-    // are monotonically nondecreasing with time.
+    // The constructor pushes its "safe timestamp" onto a stack containing all
+    // safe_ts objects in a currently active scope. The minimum "safe timestamp"
+    // on the stack is recomputed, and if it has changed, the new minimum "safe
+    // timestamp" is published to the current thread's entry in the "safe
+    // timestamp entries" array.
     //
-    // The destructor simply retracts the current thread's published value of
-    // the post-GC watermark, so the current thread no longer blocks GC tasks
-    // from advancing the truncation point of the txn table. If the destructor
-    // is invoked while another object of this class is in scope, it decrements
-    // the thread-local nesting level counter. (If the counter is 0, it retracts
-    // the published value as described above.)
-    //
-    // This class has no per-instance state; all the state it uses is stored in
-    // either global or thread-local variables.
+    // The destructor pops the "safe timestamp" at the top of the stack, causing
+    // the minimum "safe timestamp" on the stack to be recomputed. If it has
+    // changed, the new minimum "safe timestamp" is published to the current
+    // thread's entry in the "safe timestamp entries" array. If the stack is now
+    // empty, then the current "safe timestamp" is retracted and no replacement
+    // is published.
     class safe_ts_t
     {
+    private:
+        // This member is logically immutable, but it cannot be `const` because
+        // it needs to be set to an invalid value by the move
+        // constructor/assignment operator.
+        gaia_txn_id_t m_ts;
+
+        // We keep this vector sorted for fast searches and add entries by
+        // appending and remove entries by swapping them with the tail.
+        thread_local static inline std::vector<gaia_txn_id_t> s_safe_ts_values{};
+
     public:
         inline explicit safe_ts_t(gaia_txn_id_t safe_ts)
         {
-            // Find the minimum safe_ts in the stack of scoped safe_ts values.
-            auto min_iter = std::min_element(
-                s_safe_ts_by_scope_depth.begin(), s_safe_ts_by_scope_depth.end());
-
-            // If the new safe_ts is the new minimum safe_ts, then replace the
-            // current published value, speculatively publish the new safe_ts,
-            // and perform the consistency check. If the check fails, retract
-            // the publication and throw an exception.
-            if (safe_ts < *min_iter)
+            // If safe_ts is the minimum element in the safe_ts array, then
+            // replace this thread's reserved safe_ts entry.
+            bool is_new_min_safe_ts = true;
+            if (!s_safe_ts_values.empty())
             {
-                // NB: We have to do the consistency check *after* publishing
-                // the new value, so publication is necessarily speculative. We
-                // need to be sure to restore the previous published value in
-                // case the consistency check fails.
-                gaia_txn_id_t previous_safe_ts = gaia::db::server_t::publish_safe_ts(safe_ts);
-                // If the new safe_ts is older than the current post-GC
-                // watermark, then throw an exception.
-                gaia_txn_id_t post_gc_watermark_snapshot = get_watermark(watermark_t::post_gc);
-                if (safe_ts < post_gc_watermark_snapshot)
+                is_new_min_safe_ts = (safe_ts < s_safe_ts_values[0]);
+            }
+
+            if (is_new_min_safe_ts)
+            {
+                if (!gaia::db::server_t::reserve_safe_ts(safe_ts))
                 {
-                    // Restore the previous published value.
-                    gaia::db::server_t::publish_safe_ts(previous_safe_ts);
-                    // Force the client to handle the failed consistency check.
+                    // Force the client to handle the validation failure.
                     throw safe_ts_failure();
                 }
             }
 
-            // Push the new safe_ts onto the stack of scoped safe_ts values.
-            s_safe_ts_by_scope_depth.push_back(safe_ts);
+            // We have successfully reserved the new safe_ts if necessary, so
+            // add the new safe_ts to the sorted array of safe_ts values.
+            s_safe_ts_values.push_back(safe_ts);
+            std::sort(s_safe_ts_values.begin(), s_safe_ts_values.end());
         }
 
-        safe_watermark_t() = delete;
-        safe_watermark_t(const safe_watermark_t&) = delete;
-        safe_watermark_t& operator=(const safe_watermark_t&) = delete;
+        // No default constructor.
+        safe_ts_t() = delete;
+        // No copy constructor.
+        safe_ts_t(const safe_ts_t&) = delete;
+        // No copy assignment operator.
+        safe_ts_t& operator=(const safe_ts_t&) = delete;
 
-        inline ~safe_watermark_t()
+        // We need a move constructor.
+        inline safe_ts_t& operator=(const safe_ts_t&& other) noexcept
         {
+            this->m_ts = std::exchange(other.m_ts, c_invalid_gaia_txn_id);
+        }
+
+        // We need a move assignment operator.
+        inline safe_ts_t(safe_ts_t&& other) noexcept
+            : m_ts(std::exchange(other.m_ts, c_invalid_gaia_txn_id)
+        {
+        }
+
+        inline ~safe_ts_t()
+        {
+            // A moved-from object has an invalid timestamp.
+            if (m_ts == c_invalid_gaia_txn_id)
+            {
+                return;
+            }
+
             // The destructor cannot fail, so we need to ensure that all
             // consistency conditions we already satisfied still hold.
+            ASSERT_INVARIANT(!s_safe_ts_values.empty(), "Expected safe_ts array to be non-empty!");
 
-            // Pop the current safe_ts from the stack of scoped safe_ts values.
-            gaia_txn_id_t safe_ts = s_safe_ts_by_scope_depth.back();
-            s_safe_ts_by_scope_depth.pop_back();
-
-            // If the safe_ts value we're popping from the scope stack was the
-            // minimum value on the stack, then we need to find the new minimum,
-            // so we can replace the published safe_ts value.
-
-            // Find the minimum safe_ts in the stack of scoped safe_ts values.
-            auto min_iter = std::min_element(
-                s_safe_ts_by_scope_depth.begin(), s_safe_ts_by_scope_depth.end());
-
-            // If the current safe_ts was the minimum safe_ts, then replace the
-            // current published value, speculatively publish the new safe_ts,
-            // and perform the consistency check.
-            if (safe_ts < *min_iter)
+            // First handle the case where our safe_ts was the only value in the
+            // safe_ts array.
+            if (s_safe_ts_by_scope_depth.size() == 1)
             {
-                // NB: We have to do the consistency check *after* publishing
-                // the new value, so publication is necessarily speculative. We
-                // need to be sure to restore the previous published value in
-                // case the consistency check fails.
-                gaia_txn_id_t previous_safe_ts = gaia::db::server_t::publish_safe_ts(safe_ts);
-                // If the new safe_ts is older than the current post-GC
-                // watermark, then throw an exception.
-                gaia_txn_id_t post_gc_watermark_snapshot = get_watermark(watermark_t::post_gc);
-                if (safe_ts < post_gc_watermark_snapshot)
+                // Retract this thread's published safe_ts value.
+                gaia::db::server_t::release_safe_ts();
+                return;
+            }
+
+            // Because our safe_ts array is sorted, we can use binary search to
+            // find the index of our safe_ts.
+            auto iter = std::lower_bound(s_safe_ts_values.begin(), s_safe_ts_values.end(), m_ts);
+            ASSERT_INVARIANT(*iter == m_ts, "Cannot find this timestamp in the safe_ts array!");
+            safe_ts_index = std::distance(s_safe_ts_values.begin(), iter);
+            // Move the last element into our entry.
+            *iter = std::move(s_safe_ts_values.back());
+            // Remove the moved last element.
+            s_safe_ts_values.pop_back();
+            // Restore sorted order.
+            std::sort(s_safe_ts_values.begin(), s_safe_ts_values.end());
+
+            // If the minimum safe_ts has changed, then we need to replace the
+            // published safe_ts value.
+            if (s_safe_ts_values[0] > m_ts)
+            {
+                bool reservation_succeeded = gaia::db::server_t::reserve_safe_ts(s_safe_ts_values[0]);
+                // The new minimum safe_ts was protected by the previous minimum
+                // safe_ts from falling behind the pre-truncate watermark, so
+                // its reservation must succeed.
+                ASSERT_INVARIANT(reservation_succeeded, "Reservation of new minimum safe_ts cannot fail!");
+            }
+
+            // This is a conversion operator for convenience.
+            inline operator gaia_txn_id_t() const
+            {
+                return m_ts;
+            }
+    };
+
+    class safe_watermark_t
+    {
+        public:
+            inline explicit safe_watermark_t(watermark_t watermark)
+            {
+                // Retry until we have a valid safe_ts for the current value of
+                // the watermark.
+                while (true)
                 {
-                    // Restore the previous published value.
-                    gaia::db::server_t::publish_safe_ts(previous_safe_ts);
-                    // Force the client to handle the failed consistency check.
-                    throw safe_ts_failure();
+                    gaia_txn_id_t watermark_ts = get_watermark(watermark);
+                    try
+                    {
+                        // First try to obtain a local safe_ts for the current
+                        // value of the watermark. Then if that succeeds, use
+                        // that safe_ts to initialize our member safe_ts.
+                        // (Initialization cannot fail because the published
+                        // "safe timestamp" is never retracted.)
+                        safe_ts_t safe_ts(watermark_ts);
+                        m_safe_ts(safe_ts);
+                        break;
+                    }
+                    catch (const safe_ts_failure&)
+                    {
+                        continue;
+                    }
                 }
             }
 
-            --s_nesting_level;
-            if (s_nesting_level == 0)
+            // This is a conversion operator for convenience.
+            inline operator gaia_txn_id_t() const
             {
-                gaia::db::server_t::retract_safe_ts();
+                return gaia_txn_id_t(m_safe_ts);
             }
-        }
 
-        // This is a conversion operator for convenience.
-        inline operator gaia_txn_id_t() const
-        {
-            return m_observed_watermark_value;
-        }
-
-    private:
-        const gaia_txn_id_t m_safe_ts;
-        thread_local static inline std::vector<gaia_txn_id_t> s_safe_ts_by_scope_depth{};
+        private:
+            const inline safe_ts_t m_safe_ts;
     };
-};
 
 #include "db_server.inc"
 
+    } // namespace db
 } // namespace db
-} // namespace gaia
