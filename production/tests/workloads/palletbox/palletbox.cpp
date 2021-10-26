@@ -43,18 +43,18 @@ class palletbox_simulation_t : public simulation_t
 public:
     gaia_id_t insert_station(station_id_t station_id)
     {
-        station_writer w;
-        w.id = static_cast<int>(station_id);
-        return w.insert_row();
+        station_writer station_w;
+        station_w.id = static_cast<int>(station_id);
+        return station_w.insert_row();
     }
 
     gaia_id_t insert_robot(int robot_id)
     {
-        robot_writer w;
-        w.id = robot_id;
-        w.times_to_charging = 0;
-        w.target_times_to_charge = 1;
-        gaia_id_t gid = w.insert_row();
+        robot_writer robot_w;
+        robot_w.id = robot_id;
+        robot_w.times_to_charging = 0;
+        robot_w.target_times_to_charge = 1;
+        gaia_id_t gid = robot_w.insert_row();
         return gid;
     }
 
@@ -62,18 +62,18 @@ public:
     {
         for (auto& station_table : station_t::list())
         {
-            station_writer w = station_table.writer();
-            w.update_row();
+            station_writer station_w = station_table.writer();
+            station_w.update_row();
         }
     }
 
     void restore_robot_table(robot_t& robot_table)
     {
-        robot_writer w = robot_table.writer();
-        w.times_to_charging = 0;
-        w.target_times_to_charge = 0;
-        //w.station_id = (int)station_id_t::charging;
-        w.update_row();
+        robot_writer robot_w = robot_table.writer();
+        robot_w.times_to_charging = 0;
+        robot_w.target_times_to_charge = 0;
+        robot_w.station_id = static_cast<int>(station_id_t::charging);
+        robot_w.update_row();
     }
 
     void restore_default_values()
@@ -115,12 +115,15 @@ public:
             throw simulation_exception(gaia_fmt::format("Cannot find robot with id {}.", c_sole_robot_id));
         }
 
-        robot_writer w = robot_it->writer();
-        w.times_to_charging = 0;
-        w.target_times_to_charge = required_iterations;
-        w.update_row();
+        robot_writer robot_w = robot_it->writer();
+        robot_w.times_to_charging = 0;
+        robot_w.target_times_to_charge = required_iterations;
+        robot_w.update_row();
 
-        bot_moving_to_station_event_t::insert_row(get_time_millis(), static_cast<int>(station_id_t::inbound), robot_it->id());
+        bot_moving_to_station_event_t::insert_row(
+            generate_unique_millisecond_timestamp(),
+            static_cast<int>(station_id_t::inbound),
+            robot_it->id());
     }
 
     bool has_test_completed() override

@@ -15,7 +15,7 @@ using namespace gaia::rules;
 
 atomic<uint64_t> g_timestamp{1};
 
-uint64_t get_time_millis()
+uint64_t generate_unique_millisecond_timestamp()
 {
     return g_timestamp++;
 }
@@ -226,11 +226,11 @@ bool simulation_t::handle_main()
             break;
         }
     }
-    else if (m_command_input_line.size() > 1 &&
-        (m_command_input_line[0] == c_cmd_wait ||
-        m_command_input_line[0] == c_cmd_comment ||
-        m_command_input_line[0] == c_cmd_test ||
-        m_command_input_line[0] == c_cmd_initialize))
+    else if (m_command_input_line.size() > 1
+        &&  (m_command_input_line[0] == c_cmd_wait
+            || m_command_input_line[0] == c_cmd_comment
+            || m_command_input_line[0] == c_cmd_test
+            || m_command_input_line[0] == c_cmd_initialize))
     {
         if (m_command_input_line[0] == c_cmd_wait)
         {
@@ -327,7 +327,6 @@ int simulation_t::run_simulation()
 
 int simulation_t::handle_command_line_arguments(int argc, const char** argv)
 {
-
     const char* c_arg_debug = "debug";
     const int c_debug_parameter_index = 2;
     if (argc >= c_debug_parameter_index && strncmp(argv[1], c_arg_debug, strlen(c_arg_debug)) == 0)

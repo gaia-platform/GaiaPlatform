@@ -23,10 +23,14 @@
 
 #include "simulation_exceptions.hpp"
 
-uint64_t get_time_millis();
+uint64_t generate_unique_millisecond_timestamp();
 
 class simulation_t
 {
+public:
+    // Main entry point.
+    int main(int argc, const char** argv);
+
 private:
     typedef std::chrono::steady_clock my_clock_t;
     typedef my_clock_t::time_point my_time_point_t;
@@ -156,8 +160,4 @@ protected:
     // most likely involve opening a transaction, searching for a given object or
     // objects in the database, and checking to see if they are in their final state.
     virtual bool has_test_completed() = 0;
-
-public:
-    // Main entry point.
-    int main(int argc, const char** argv);
 };
