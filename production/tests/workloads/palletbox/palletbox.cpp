@@ -112,7 +112,7 @@ public:
         auto robot_it = robot_t::list().where(robot_expr::id == c_sole_robot_id).begin();
         if (robot_it == robot_t::list().end())
         {
-            throw simulation_exception(gaia_fmt::format("Cannot find robot with id {}", c_sole_robot_id));
+            throw simulation_exception(gaia_fmt::format("Cannot find robot with id {}.", c_sole_robot_id));
         }
 
         robot_writer w = robot_it->writer();

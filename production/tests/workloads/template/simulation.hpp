@@ -28,10 +28,9 @@ uint64_t get_time_millis();
 class simulation_t
 {
 private:
-    typedef std::chrono::steady_clock my_clock;
-    typedef my_clock::time_point my_time_point;
-    typedef std::chrono::microseconds microseconds;
-    typedef std::chrono::duration<double, std::micro> my_duration_in_microseconds;
+    typedef std::chrono::steady_clock my_clock_t;
+    typedef my_clock_t::time_point my_time_point_t;
+    typedef std::chrono::duration<double, std::micro> my_duration_in_microseconds_t;
 
     // Used for conversions.
     const double c_milliseconds_in_second = 1000.0;
@@ -61,7 +60,7 @@ private:
     double m_total_inside_transaction_duration_in_microseconds = 0.0;
     double m_total_end_transaction_duration_in_microseconds = 0.0;
     double m_update_row_duration_in_microseconds = 0.0;
-    my_duration_in_microseconds m_measured_duration_in_microseconds = my_duration_in_microseconds(0);
+    my_duration_in_microseconds_t m_measured_duration_in_microseconds = my_duration_in_microseconds_t(0);
 
     // This keep track of a separate log file used for debugging, independant of the
     // other logs.
@@ -94,7 +93,7 @@ private:
     // Used to get a more accurate measurement using the toggle on/off (o) command.
     bool m_is_measured_duration_timer_on = false;
     bool m_have_measurement = false;
-    my_time_point m_measured_duration_start_mark;
+    my_time_point_t m_measured_duration_start_mark;
 
     // Count of the number of iterations through the test loop that were executed.
     int m_number_of_test_iterations = 0;
@@ -114,7 +113,7 @@ private:
 
     bool read_input();
     void close_open_log_files();
-    void precise_sleep_for(long parse_for_microsecond);
+    void sleep_for(long parse_for_microsecond);
     void handle_wait();
     bool handle_main();
 

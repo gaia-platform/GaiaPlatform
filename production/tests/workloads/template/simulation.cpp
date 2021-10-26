@@ -26,11 +26,11 @@ void simulation_t::toggle_measurement()
     {
         printf("Measure timer activated.\n");
         m_is_measured_duration_timer_on = true;
-        m_measured_duration_start_mark = my_clock::now();
+        m_measured_duration_start_mark = my_clock_t::now();
     }
     else
     {
-        my_time_point measured_duration_end_mark = my_clock::now();
+        my_time_point_t measured_duration_end_mark = my_clock_t::now();
         m_is_measured_duration_timer_on = false;
         m_have_measurement = true;
         m_measured_duration_in_microseconds = measured_duration_end_mark - m_measured_duration_start_mark;
@@ -75,9 +75,9 @@ void simulation_t::handle_test(const string& input)
 {
     int limit = stoi(input.substr(1, input.size() - 1));
 
-    my_time_point start_transaction_start_mark = my_clock::now();
+    my_time_point_t start_transaction_start_mark = my_clock_t::now();
     auto_transaction_t txn(auto_transaction_t::no_auto_begin);
-    my_time_point inside_transaction_start_mark = my_clock::now();
+    my_time_point_t inside_transaction_start_mark = my_clock_t::now();
 
     if (!m_has_database_been_initialized)
     {
@@ -86,15 +86,15 @@ void simulation_t::handle_test(const string& input)
 
     setup_test_data(limit);
 
-    my_time_point inside_transaction_end_mark = my_clock::now();
+    my_time_point_t inside_transaction_end_mark = my_clock_t::now();
     txn.commit();
-    my_time_point commit_transaction_end_mark = my_clock::now();
+    my_time_point_t commit_transaction_end_mark = my_clock_t::now();
 
     wait_for_processing_to_complete(false, get_processing_timeout_in_microseconds());
 
-    my_duration_in_microseconds start_transaction_duration = inside_transaction_start_mark - start_transaction_start_mark;
-    my_duration_in_microseconds inside_transaction_duration = inside_transaction_end_mark - inside_transaction_start_mark;
-    my_duration_in_microseconds end_transaction_duration = commit_transaction_end_mark - inside_transaction_end_mark;
+    my_duration_in_microseconds_t start_transaction_duration = inside_transaction_start_mark - start_transaction_start_mark;
+    my_duration_in_microseconds_t inside_transaction_duration = inside_transaction_end_mark - inside_transaction_start_mark;
+    my_duration_in_microseconds_t end_transaction_duration = commit_transaction_end_mark - inside_transaction_end_mark;
     m_total_start_transaction_duration_in_microseconds += start_transaction_duration.count();
     m_total_inside_transaction_duration_in_microseconds += inside_transaction_duration.count();
     m_total_end_transaction_duration_in_microseconds += end_transaction_duration.count();
@@ -104,7 +104,7 @@ void simulation_t::handle_test(const string& input)
 
 void simulation_t::wait_for_processing_to_complete(bool is_explicit_pause, long timeout_in_microseconds)
 {
-    my_time_point end_sleep_start_mark = my_clock::now();
+    my_time_point_t end_sleep_start_mark = my_clock_t::now();
 
     const long maximum_no_delta_attempts = timeout_in_microseconds / c_processing_pause_in_microseconds;
 
@@ -121,27 +121,27 @@ void simulation_t::wait_for_processing_to_complete(bool is_explicit_pause, long 
          current_no_delta_attempt < maximum_no_delta_attempts;
          current_no_delta_attempt++)
     {
-        my_time_point check_start_mark = my_clock::now();
-        bool have_completed = has_test_completed();
-        my_time_point check_end_mark = my_clock::now();
-        my_duration_in_microseconds ms_double = check_end_mark - check_start_mark;
+        my_time_point_t check_start_mark = my_clock_t::now();
+        bool has_completed = has_test_completed();
+        my_time_point_t check_end_mark = my_clock_t::now();
+        my_duration_in_microseconds_t ms_double = check_end_mark - check_start_mark;
         m_check_time_in_microseconds += ms_double.count();
 
         if (m_debug_log_file != nullptr)
         {
-            int new_amount_written = snprintf(start_pointer, space_left, "%d,", static_cast<int>(have_completed));
+            int new_amount_written = snprintf(start_pointer, space_left, "%d,", static_cast<int>(has_completed));
             space_left -= new_amount_written;
             start_pointer += new_amount_written;
             amount_written += new_amount_written;
         }
-        if (have_completed)
+        if (has_completed)
         {
             break;
         }
-        precise_sleep_for(c_processing_pause_in_microseconds);
+        sleep_for(c_processing_pause_in_microseconds);
     }
-    my_time_point end_sleep_end_mark = my_clock::now();
-    my_duration_in_microseconds ms_double = end_sleep_end_mark - end_sleep_start_mark;
+    my_time_point_t end_sleep_end_mark = my_clock_t::now();
+    my_duration_in_microseconds_t ms_double = end_sleep_end_mark - end_sleep_start_mark;
 
     if (current_no_delta_attempt == maximum_no_delta_attempts)
     {
@@ -168,10 +168,10 @@ void simulation_t::display_usage(const char* command)
     printf("Usage: %s debug <input-file>\n", command);
 }
 
-void simulation_t::precise_sleep_for(long parse_for_microsecond)
+void simulation_t::sleep_for(long parse_for_microsecond)
 {
-    my_time_point start_mark = my_clock::now();
-    while (chrono::duration_cast<chrono::microseconds>(my_clock::now() - start_mark).count() < parse_for_microsecond)
+    my_time_point_t start_mark = my_clock_t::now();
+    while (chrono::duration_cast<chrono::microseconds>(my_clock_t::now() - start_mark).count() < parse_for_microsecond)
     {
         // Keep waiting for time to elapse.
     }
@@ -179,16 +179,16 @@ void simulation_t::precise_sleep_for(long parse_for_microsecond)
 
 void simulation_t::handle_wait()
 {
-    my_time_point end_sleep_start_mark = my_clock::now();
+    my_time_point_t end_sleep_start_mark = my_clock_t::now();
 
     int limit = stoi(m_command_input_line.substr(1, m_command_input_line.size() - 1));
     std::this_thread::sleep_for(
-        microseconds(
+        std::chrono::microseconds(
             limit * (static_cast<long>(c_microseconds_in_second) / static_cast<long>(c_milliseconds_in_second))));
 
-    my_time_point end_sleep_end_mark = my_clock::now();
+    my_time_point_t end_sleep_end_mark = my_clock_t::now();
 
-    my_duration_in_microseconds ms_double = end_sleep_end_mark - end_sleep_start_mark;
+    my_duration_in_microseconds_t ms_double = end_sleep_end_mark - end_sleep_start_mark;
     m_explicit_wait_time_in_microseconds += ms_double.count();
 }
 
@@ -226,7 +226,11 @@ bool simulation_t::handle_main()
             break;
         }
     }
-    else if (m_command_input_line.size() > 1 && (m_command_input_line[0] == c_cmd_wait || m_command_input_line[0] == c_cmd_comment || m_command_input_line[0] == c_cmd_test || m_command_input_line[0] == c_cmd_initialize))
+    else if (m_command_input_line.size() > 1 &&
+        (m_command_input_line[0] == c_cmd_wait ||
+        m_command_input_line[0] == c_cmd_comment ||
+        m_command_input_line[0] == c_cmd_test ||
+        m_command_input_line[0] == c_cmd_initialize))
     {
         if (m_command_input_line[0] == c_cmd_wait)
         {
@@ -278,10 +282,10 @@ int simulation_t::run_simulation()
 
     close_open_log_files();
 
-    my_time_point end_sleep_start_mark = my_clock::now();
+    my_time_point_t end_sleep_start_mark = my_clock_t::now();
     sleep(m_sleep_time_in_seconds_after_stop);
-    my_time_point end_sleep_end_mark = my_clock::now();
-    my_duration_in_microseconds ms_double = end_sleep_end_mark - end_sleep_start_mark;
+    my_time_point_t end_sleep_end_mark = my_clock_t::now();
+    my_duration_in_microseconds_t ms_double = end_sleep_end_mark - end_sleep_start_mark;
 
     const int c_measured_buffer_size = 100;
     char measured_buffer[c_measured_buffer_size];
