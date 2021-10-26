@@ -20,7 +20,7 @@
 #include "gaia_internal/db/gaia_ptr.hpp"
 
 #include "json.hpp"
-#include "scan_state.hpp"
+#include "table_iterator.hpp"
 
 using namespace gaia::common;
 using namespace gaia::catalog;
@@ -38,7 +38,8 @@ namespace db_extract
 
 constexpr int c_default_json_indentation = 4;
 
-json_t to_field(gaia_field_t field)
+// Add a field array element.
+json_t to_json(gaia_field_t field)
 {
     json_t json;
 
@@ -51,7 +52,8 @@ json_t to_field(gaia_field_t field)
     return json;
 }
 
-json_t to_table(gaia_table_t table)
+// Add a table array element.
+json_t to_json(gaia_table_t table)
 {
     json_t json;
 
@@ -61,13 +63,14 @@ json_t to_table(gaia_table_t table)
 
     for (auto field : table.gaia_fields())
     {
-        json["fields"].push_back(to_field(field));
+        json["fields"].push_back(to_json(field));
     }
 
     return json;
 }
 
-json_t to_database(gaia_database_t db)
+// Add a database array element.
+json_t to_json(gaia_database_t db)
 {
     json_t json;
 
@@ -75,7 +78,7 @@ json_t to_database(gaia_database_t db)
 
     for (auto table : db.gaia_tables())
     {
-        json["tables"].push_back(to_table(table));
+        json["tables"].push_back(to_json(table));
     }
 
     return json;
@@ -95,7 +98,7 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
             continue;
         }
 
-        json["databases"].push_back(to_database(db));
+        json["databases"].push_back(to_json(db));
     }
 
     // If a database and table have been specified, move ahead to extract the row data.
@@ -115,7 +118,7 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
     }
 
     bool terminate = false;
-    scan_state_t scan_state;
+    table_iterator_t table_iterator;
     stringstream row_dump;
     json_t rows = json_t{};
 
@@ -128,14 +131,14 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
                 if (!json_tables["name"].get<string>().compare(table))
                 {
                     gaia_type_t table_type = json_tables["type"].get<uint32_t>();
-                    if (!scan_state.initialize_scan(table_type, start_after))
+                    if (!table_iterator.initialize_scan(table_type, start_after))
                     {
                         terminate = true;
                         break;
                     }
                     rows["database"] = database;
                     rows["table"] = table;
-                    while (!scan_state.has_scan_ended())
+                    while (!table_iterator.has_scan_ended())
                     {
                         // Note that a row_limit of -1 means "unlimited", so it will never be 0.
                         if (row_limit-- == 0)
@@ -146,24 +149,21 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
                         json_t row;
                         for (auto& field : json_tables["fields"])
                         {
-                            auto value = scan_state.extract_field_value(field["repeated_count"].get<uint16_t>(), field["position"].get<uint32_t>());
-                            if (!value.is_null)
+                            auto value = table_iterator.extract_field_value(field["repeated_count"].get<uint16_t>(), field["position"].get<uint32_t>());
+                            auto field_type = field["type"].get<string>();
+                            auto field_name = field["name"].get<string>();
+                            row["row_id"] = table_iterator.gaia_id();
+                            if (!field_type.compare("string"))
                             {
-                                auto field_type = field["type"].get<string>();
-                                auto field_name = field["name"].get<string>();
-                                row["row_id"] = scan_state.gaia_id();
-                                if (!field_type.compare("string"))
-                                {
-                                    row[field_name] = (char*)value.value;
-                                }
-                                else
-                                {
-                                    row[field_name] = value.value;
-                                }
+                                row[field_name] = value.hold.string_value;
+                            }
+                            else
+                            {
+                                row[field_name] = table_iterator.convert_to_value(value);
                             }
                         }
                         rows["rows"].push_back(row);
-                        scan_state.scan_forward();
+                        table_iterator.scan_forward();
                     }
                     if (terminate)
                     {

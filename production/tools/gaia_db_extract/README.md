@@ -9,7 +9,7 @@ Note: There is currently no support for arrays.
 The output will be in JSON format.
 
 ### JSON format for catalog.
-```javascript
+```bash
 {
     "databases": [
         {
@@ -33,7 +33,7 @@ The output will be in JSON format.
 }
 ```
 ### JSON format for a range of rows.
-```javascript
+```bash
 {
     "database": <database_name>,
     "table": "<table_name>",
@@ -50,21 +50,21 @@ The output will be in JSON format.
 ```
 
 ## Command-line
-```javascript
+```bash
 gaia_db_extract [--database=<database_name>] [--table=<table_name>] [--start-after=ID] [--row-limit=N]
 ```
 To obtain the catalog (shown above as JSON document), use the command without any parameters:
-```javascript
+```bash
 gaia_db_extract
 ```
 To obtain the row values for an entire table, specify the database and table name:
-```javascript
+```bash
 gaia_db_extract --database=<database_name> --table=<table_name>
 ```
 where `<database_name>` and `<table_name>` can be found in the catalog.
 
 To limit the number of rows extracted, use the `--row-limit` parameter:
-```javascript
+```bash
 gaia_db_extract --database=<database_name> --table=<table_name> --row-limit=N
 ```
 
@@ -72,7 +72,7 @@ To obtain the block of rows following an already-fetched block of rows, provide 
 of the previously fetched block. Since the `gaia_id` of the first row of the next block is unknown, the utility will locate a previously known `gaia_id` and start with the one after that.
 
 For example, the following command-line will produce two `gaia_field` rows, as shown after the command:
-```javascript
+```bash
 gaia_db_extract --database=catalog --table=gaia_field --row-limit=2
 {
     "database": "catalog",
@@ -103,7 +103,7 @@ gaia_db_extract --database=catalog --table=gaia_field --row-limit=2
 ```
 
 To view the next two `gaia_field` rows, add the -`-start-after` parameter. Use the value `5` because `5` is the `row_id` of the last row:
-```javascript
+```bash
 gaia_db_extract --database=catalog --table=gaia_field --row-limit=2 --start-after=5
 {
     "database": "catalog",

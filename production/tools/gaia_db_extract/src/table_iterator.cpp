@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "scan_state.hpp"
+#include "table_iterator.hpp"
 
 #include <sstream>
 
@@ -12,7 +12,6 @@
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
 
-#include "field_access.hpp"
 #include "reflection.hpp"
 
 using namespace std;
@@ -30,23 +29,17 @@ namespace tools
 namespace db_extract
 {
 
-// The scan_state_t object is used to support the interpretation of a single table's
+// The table_iterator_t object is used to support the interpretation of a single table's
 // objects, obtaining the individual field values from each object (row). It reads through
-// a single table type (gaia_type_t in the database) one object time, from the first to
+// a single table type (gaia_type_t in the database) one object at a time, from the first to
 // the last. The field values are obtained using flatbuffers reflection.
 //
 // The form of this object was borrowed and simplified from the SQL FDW adapter,
 // in gaia_fdw_adapter.cpp, which also interfaces with Postgres. As this utility does
-// not use Postgres, all of the Postgres-specif code has been eliminated.
+// not use Postgres, all of the Postgres-specific code has been eliminated.
 
-#define int16_get_datum(X) ((datum_t)(X))
-#define int32_get_datum(X) ((datum_t)(X))
-#define int64_get_datum(X) ((datum_t)(X))
-#define Uint64_get_datum(X) ((datum_t)(X))
-#define cstring_get_datum(X) ((datum_t)(X))
-
-static inline datum_t
-float_get_datum(float X)
+static inline value_t
+float_get_value(float X)
 {
     union
     {
@@ -55,11 +48,11 @@ float_get_datum(float X)
     } float_union_t;
 
     float_union_t.value = X;
-    return int32_get_datum(float_union_t.return_value);
+    return float_union_t.return_value;
 }
 
-static inline datum_t
-double_get_datum(double X)
+static inline value_t
+double_get_value(double X)
 {
     union
     {
@@ -68,11 +61,11 @@ double_get_datum(double X)
     } double_union_t;
 
     double_union_t.value = X;
-    return int64_get_datum(double_union_t.return_value);
+    return double_union_t.return_value;
 }
 
-// Convert a non-string data holder value to PostgreSQL datum_t.
-static datum_t convert_to_datum(const data_holder_t& value)
+// Convert a non-string data holder value to value_t.
+value_t table_iterator_t::convert_to_value(const data_holder_t& value)
 {
     switch (value.type)
     {
@@ -81,53 +74,29 @@ static datum_t convert_to_datum(const data_holder_t& value)
     case reflection::UByte:
     case reflection::Short:
     case reflection::UShort:
-        return int16_get_datum(static_cast<int16_t>(value.hold.integer_value));
+        return static_cast<int16_t>(value.hold.integer_value);
 
     case reflection::Int:
     case reflection::UInt:
-        return int32_get_datum(static_cast<int32_t>(value.hold.integer_value));
+        return static_cast<int32_t>(value.hold.integer_value);
 
     case reflection::Long:
     case reflection::ULong:
-        return int64_get_datum(value.hold.integer_value);
+        return value.hold.integer_value;
 
     case reflection::Float:
-        return float_get_datum(static_cast<float>(value.hold.float_value));
+        return float_get_value(static_cast<float>(value.hold.float_value));
 
     case reflection::Double:
-        return double_get_datum(value.hold.float_value);
+        return double_get_value(value.hold.float_value);
 
     default:
         fprintf(stderr, "Unhandled data_holder_t type '%d'.\n", value.type);
     }
-    return datum_t{};
+    return value_t{};
 }
 
-static nullable_datum_t convert_to_nullable_datum(const data_holder_t& value)
-{
-    nullable_datum_t nullable_datum{};
-    nullable_datum.value = 0;
-    nullable_datum.is_null = false;
-
-    if (value.type == reflection::String)
-    {
-        if (value.hold.string_value == nullptr)
-        {
-            nullable_datum.is_null = true;
-            return nullable_datum;
-        }
-
-        nullable_datum.value = cstring_get_datum(value.hold.string_value);
-    }
-    else
-    {
-        nullable_datum.value = convert_to_datum(value);
-    }
-
-    return nullable_datum;
-}
-
-bool scan_state_t::initialize_caches()
+bool table_iterator_t::initialize_caches()
 {
     for (auto table_view : catalog_core_t::list_tables())
     {
@@ -151,17 +120,17 @@ bool scan_state_t::initialize_caches()
     return true;
 }
 
-const char* scan_state_t::get_table_name()
+const char* table_iterator_t::get_table_name()
 {
     return m_table_name;
 }
 
-scan_state_t::scan_state_t()
+table_iterator_t::table_iterator_t()
 {
     m_current_payload = nullptr;
 }
 
-bool scan_state_t::initialize_scan(gaia_type_t container_id, gaia_id_t start_after)
+bool table_iterator_t::initialize_scan(gaia_type_t container_id, gaia_id_t start_after)
 {
     if (!initialize_caches())
     {
@@ -205,17 +174,15 @@ bool scan_state_t::initialize_scan(gaia_type_t container_id, gaia_id_t start_aft
     return false;
 }
 
-bool scan_state_t::has_scan_ended()
+bool table_iterator_t::has_scan_ended()
 {
     return !m_current_record;
 }
 
-nullable_datum_t scan_state_t::extract_field_value(uint16_t repeated_count, size_t position)
+data_holder_t table_iterator_t::extract_field_value(uint16_t repeated_count, size_t position)
 {
     try
     {
-        nullable_datum_t field_value{};
-        field_value.is_null = false;
 
         // TODO: Decide how arrays should be represented. Currently nothing will happen,
         if (repeated_count != 1)
@@ -229,7 +196,7 @@ nullable_datum_t scan_state_t::extract_field_value(uint16_t repeated_count, size
 
             for (size_t i = 0; i < array_size; i++)
             {
-                data_holder_t value = get_field_array_element(
+                auto value = get_field_array_element(
                     m_container_id,
                     m_current_payload,
                     nullptr,
@@ -240,29 +207,21 @@ nullable_datum_t scan_state_t::extract_field_value(uint16_t repeated_count, size
         }
         else
         {
-            data_holder_t value = get_field_value(
-                m_container_id,
-                m_current_payload,
-                nullptr,
-                0,
-                position);
-
-            field_value = convert_to_nullable_datum(value);
+            return get_field_value(m_container_id, m_current_payload, nullptr, 0, position);
         }
-
-        return field_value;
     }
     catch (const exception& e)
     {
-        fprintf(stderr, "Failed reading field value. "
-                        "Table: '%s', container id: '%u', field index: '%ld'. Exception: '%s'.\n",
-                get_table_name(), m_container_id, position, e.what());
+        fprintf(
+            stderr,
+            "Failed reading field value. Table: '%s', container id: '%u', field index: '%ld'. Exception: '%s'.\n",
+            get_table_name(), m_container_id, position, e.what());
     }
 
-    return nullable_datum_t{};
+    return data_holder_t{};
 }
 
-bool scan_state_t::scan_forward()
+bool table_iterator_t::scan_forward()
 {
     try
     {
@@ -277,7 +236,10 @@ bool scan_state_t::scan_forward()
     }
     catch (const exception& e)
     {
-        fprintf(stderr, "Failed iterating to next record. Table id: '%s', container id: '%u'. Exception: '%s'.\n", get_table_name(), m_container_id, e.what());
+        fprintf(
+            stderr,
+            "Failed iterating to next record. Table id: '%s', container id: '%u'. Exception: '%s'.\n",
+            get_table_name(), m_container_id, e.what());
     }
     return false;
 }

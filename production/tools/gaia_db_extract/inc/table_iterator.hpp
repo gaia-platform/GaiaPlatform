@@ -13,6 +13,7 @@
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 
+#include "field_access.hpp"
 #include "json.hpp"
 
 namespace gaia
@@ -22,13 +23,7 @@ namespace tools
 namespace db_extract
 {
 
-using datum_t = uintptr_t;
-
-typedef struct nullable_datum_t
-{
-    datum_t value;
-    bool is_null;
-} nullable_datum_t;
+using value_t = uintptr_t;
 
 // A structure holding basic field information.
 struct field_information_t
@@ -45,22 +40,19 @@ struct field_information_t
     uint64_t repeated_count;
 
     bool is_reference;
-
-    // Note: currently, this is used only for the delayed setting of references.
-    nullable_datum_t value_to_set;
 };
 
-class scan_state_t
+class table_iterator_t
 {
     friend class extractor_t;
 
 public:
-    scan_state_t();
+    table_iterator_t();
 
     // Do not allow copies to be made;
     // disable copy constructor and assignment operator.
-    scan_state_t(const scan_state_t&) = delete;
-    scan_state_t& operator=(const scan_state_t&) = delete;
+    table_iterator_t(const table_iterator_t&) = delete;
+    table_iterator_t& operator=(const table_iterator_t&) = delete;
 
     // Provides the index corresponding to each field.
     // This enables future calls to use index values.
@@ -73,7 +65,8 @@ public:
     // Scan API.
     bool initialize_scan(gaia::common::gaia_type_t, gaia::common::gaia_id_t);
     bool has_scan_ended();
-    nullable_datum_t extract_field_value(uint16_t, size_t field_index);
+    db::payload_types::data_holder_t extract_field_value(uint16_t, size_t field_index);
+    value_t convert_to_value(const gaia::db::payload_types::data_holder_t& value);
     bool scan_forward();
     gaia::common::gaia_id_t gaia_id()
     {
@@ -98,10 +91,6 @@ private:
 
     // Pointer to the deserialized payload of the current record.
     const uint8_t* m_current_payload;
-
-    // Small cache to enable looking up a table type by name.
-    static std::unordered_map<std::string, std::pair<gaia::common::gaia_id_t, gaia::common::gaia_type_t>>
-        s_map_table_name_to_ids;
 };
 
 } // namespace db_extract
