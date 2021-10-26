@@ -1,5 +1,7 @@
 # Database Extraction Utility
-This is a utility used by VS Code functionality to display a grid of data in the VS Code Terminal window. The command-line parameters dictate the output, which is printed to stdout. Types of output include:
+This is a utility used by VS Code functionality to display a grid of data in the VS Code Terminal window.
+The command-line parameters dictate the output, which is printed to stdout.
+Types of output include:
   - catalog (all database, table and field values in the catalog)
   - range of rows (rows from a single table, showing all field values)
 
@@ -68,8 +70,9 @@ To limit the number of rows extracted, use the `--row-limit` parameter:
 gaia_db_extract --database=<database_name> --table=<table_name> --row-limit=N
 ```
 
-To obtain the block of rows following an already-fetched block of rows, provide the `gaia_id` of the row before the start of the next block. This `gaia_id` is the last one (highest number)
-of the previously fetched block. Since the `gaia_id` of the first row of the next block is unknown, the utility will locate a previously known `gaia_id` and start with the one after that.
+To obtain the block of rows following an already-fetched block of rows, provide the `gaia_id` of the row before the start of the next block.
+This `gaia_id` is the last one (highest number) of the previously fetched block.
+Since the `gaia_id` of the first row of the next block is unknown, the utility will locate a previously known `gaia_id` and start with the one after that.
 
 For example, the following command-line will produce two `gaia_field` rows, as shown after the command:
 ```bash
@@ -133,4 +136,6 @@ gaia_db_extract --database=catalog --table=gaia_field --row-limit=2 --start-afte
 }
 ```
 
-This progression may continue until there are no remaining rows. In this example, the next value for `--start-after` should be `7`. The utility will print `{}` if there are no more rows to extract.
+This progression may continue until there are no remaining rows.
+In this example, the next value for `--start-after` should be `7`.
+The utility will print `{}` if there are no more rows to extract.

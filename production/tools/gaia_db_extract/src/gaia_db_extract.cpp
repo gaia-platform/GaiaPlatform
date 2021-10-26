@@ -26,6 +26,7 @@ using namespace gaia::common;
 using namespace gaia::catalog;
 using namespace gaia::db;
 using namespace gaia::tools::db_extract;
+using namespace gaia::db::payload_types;
 using namespace std;
 using json_t = nlohmann::json;
 
@@ -39,7 +40,7 @@ namespace db_extract
 constexpr int c_default_json_indentation = 4;
 
 // Add a field array element.
-json_t to_json(gaia_field_t field)
+static json_t to_json(gaia_field_t field)
 {
     json_t json;
 
@@ -53,7 +54,7 @@ json_t to_json(gaia_field_t field)
 }
 
 // Add a table array element.
-json_t to_json(gaia_table_t table)
+static json_t to_json(gaia_table_t table)
 {
     json_t json;
 
@@ -70,7 +71,7 @@ json_t to_json(gaia_table_t table)
 }
 
 // Add a database array element.
-json_t to_json(gaia_database_t db)
+static json_t to_json(gaia_database_t db)
 {
     json_t json;
 
@@ -84,6 +85,38 @@ json_t to_json(gaia_database_t db)
     return json;
 }
 
+// To make sure that gaia_db_extract() can issue a warning if not initialized.
+static bool s_cache_initialized = false;
+
+bool gaia_db_extract_initialize()
+{
+    begin_transaction();
+
+    for (auto table_view : catalog_core_t::list_tables())
+    {
+        string table_name(table_view.name());
+
+        auto type_information = make_unique<type_information_t>();
+
+        initialize_type_information_from_binary_schema(
+            type_information.get(),
+            table_view.binary_schema()->data(),
+            table_view.binary_schema()->size());
+
+        type_information.get()->set_serialization_template(
+            table_view.serialization_template()->data(),
+            table_view.serialization_template()->size());
+
+        // It's okay for the information to exist after the first initialization.
+        type_cache_t::get()->set_type_information(table_view.table_type(), type_information);
+    }
+
+    commit_transaction();
+
+    s_cache_initialized = true;
+    return s_cache_initialized;
+}
+
 string gaia_db_extract(string database, string table, uint64_t start_after, uint32_t row_limit)
 {
     stringstream catalog_dump;
@@ -93,6 +126,9 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
 
     for (auto db : gaia_database_t::list())
     {
+        // The nameless database is "default" for tables that are not in a named database, and
+        // "catalog" is the name of the catalog database. If you don't want one or both of these
+        // to be part of the catalog extraction, uncomment them.
         if (/*strlen(db.name()) == 0 || !strcmp(db.name(), "catalog") ||*/ !strcmp(db.name(), "()"))
         {
             continue;
@@ -121,6 +157,12 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
     table_iterator_t table_iterator;
     stringstream row_dump;
     json_t rows = json_t{};
+
+    if (!s_cache_initialized)
+    {
+        fprintf(stderr, "API not initialized. Call gaia_db_extract_initialize first.\n");
+        return "{}";
+    }
 
     for (auto& json_databases : json["databases"])
     {
@@ -153,13 +195,33 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
                             auto field_type = field["type"].get<string>();
                             auto field_name = field["name"].get<string>();
                             row["row_id"] = table_iterator.gaia_id();
-                            if (!field_type.compare("string"))
+                            switch (value.type)
                             {
+                            case reflection::String:
                                 row[field_name] = value.hold.string_value;
-                            }
-                            else
-                            {
-                                row[field_name] = table_iterator.convert_to_value(value);
+                                break;
+
+                            case reflection::Float:
+                            case reflection::Double:
+                                row[field_name] = value.hold.float_value;
+                                break;
+
+                            // The remainder are integers.
+                            case reflection::Bool:
+                            case reflection::Byte:
+                            case reflection::UByte:
+                            case reflection::Short:
+                            case reflection::UShort:
+                            case reflection::Int:
+                            case reflection::UInt:
+                            case reflection::Long:
+                            case reflection::ULong:
+                                row[field_name] = value.hold.integer_value;
+                                break;
+
+                            default:
+                                fprintf(stderr, "Unhandled data_holder_t type '%d'.\n", value.type);
+                                break;
                             }
                         }
                         rows["rows"].push_back(row);

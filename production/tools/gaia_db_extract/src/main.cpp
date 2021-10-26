@@ -125,11 +125,20 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
+    // Return an empty JSON document on failure.
     string extracted_data("{}");
 
     try
     {
-        extracted_data = gaia_db_extract(database, table, start_after, row_limit);
+        // One-time preparation for scanning rows.
+        if (!gaia_db_extract_initialize())
+        {
+            fprintf(stderr, "Extraction API failed to initialize\n");
+        }
+        else
+        {
+            extracted_data = gaia_db_extract(database, table, start_after, row_limit);
+        }
     }
     catch (gaia_exception& e)
     {
