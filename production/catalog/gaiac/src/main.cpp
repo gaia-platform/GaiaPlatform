@@ -436,10 +436,9 @@ int main(int argc, char* argv[])
     session_options.skip_catalog_integrity_check = false;
     gaia::db::config::set_default_session_options(session_options);
 
-    const auto cleanup = scope_guard::make_scope_guard(
+    const auto server_cleanup = scope_guard::make_scope_guard(
         [&server]()
         {
-            gaia::db::end_session();
             if (server.is_initialized())
             {
                 server.stop();
@@ -449,6 +448,11 @@ int main(int argc, char* argv[])
     try
     {
         gaia::db::begin_session();
+        const auto session_cleanup = scope_guard::make_scope_guard(
+            []()
+            {
+                gaia::db::end_session();
+            });
 
         if (mode == operate_mode_t::interactive)
         {
