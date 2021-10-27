@@ -825,7 +825,7 @@ int main()
 {
     gaia::system::initialize();
 
-    // The no_auto_begin params prevent to begin a new transaction
+    // The no_auto_begin argument prevents beginning a new transaction
     // when the current one is committed.
     auto_transaction_t txn{auto_transaction_t::no_auto_begin};
 
