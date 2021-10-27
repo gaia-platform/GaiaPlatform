@@ -35,6 +35,7 @@
 
 #include "gaia_spdlog/fmt/fmt.h"
 
+#include "bitmap.hpp"
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
 #include "memory_helpers.hpp"
@@ -387,9 +388,7 @@ void server_t::handle_decide_txn(
     // returned, but we don't close the log fd (even for an abort decision),
     // because GC needs the log in order to properly deallocate all allocations
     // made by this txn when they become obsolete.
-    auto cleanup = make_scope_guard([&]() {
-        s_txn_id = c_invalid_gaia_txn_id;
-    });
+    auto cleanup = make_scope_guard([&]() { s_txn_id = c_invalid_gaia_txn_id; });
 
     FlatBufferBuilder builder;
     build_server_reply(builder, event, old_state, new_state, s_txn_id);
@@ -405,46 +404,6 @@ void server_t::handle_decide_txn(
     // delay beginning new transactions but not delay committing the current
     // transaction seems like a good compromise.
     perform_maintenance();
-}
-
-// Called by a session to claim an entry in the "observed post-GC watermarks" array.
-static void claim_post_gc_watermark_values_entry()
-{
-    // We assume our array entry is uninitialized.
-    ASSERT_PRECONDITION(
-        s_last_observed_post_gc_watermark_values_index == s_last_observed_post_gc_watermark_values.size(),
-        "s_last_observed_post_gc_watermark_values_index is already initialized!");
-
-    // Try to claim the first uninitialized entry.
-    for (size_t i = 0; i < c_last_observed_post_gc_watermark_values.size(); ++i)
-    {
-        // REVIEW: Unnecessary optimization?
-        if (s_last_observed_post_gc_watermark_values[i] == c_invalid_gaia_txn_id)
-        {
-            // We use `c_max_valid_ts` to indicate that the entry is owned but contains no valid value.
-            if (s_last_observed_post_gc_watermark_values[i].compare_exchange_strong(c_invalid_gaia_txn_id, c_max_valid_ts))
-            {
-                s_last_observed_post_gc_watermark_values_index = i;
-                return;
-            }
-        }
-    }
-
-    // REVIEW: If no uninitialized entries are found, should we retry the scan? How many times?
-    throw common::gaia_exception("Could not claim entry in observed post-GC watermarks array!");
-}
-
-// Called by a session to release its entry in the "observed post-GC watermarks" array.
-static void release_post_gc_watermark_values_entry()
-{
-    if (s_last_observed_post_gc_watermark_values_index < s_last_observed_post_gc_watermark_values.size())
-    {
-        ASSERT_INVARIANT(
-            s_last_observed_post_gc_watermark_values[s_last_observed_post_gc_watermark_values_index] != c_gaia_invalid_txn_id,
-            "A claimed entry in the observed post-GC watermarks array must be nonzero!");
-        s_last_observed_post_gc_watermark_values[s_last_observed_post_gc_watermark_values_index] = c_gaia_invalid_txn_id;
-        s_last_observed_post_gc_watermark_values_index = s_last_observed_post_gc_watermark_values.size();
-    }
 }
 
 void server_t::handle_client_shutdown(
@@ -540,12 +499,8 @@ void server_t::handle_request_stream(
     // The client socket should unconditionally be closed on exit because it's
     // duplicated when passed to the client and we no longer need it on the
     // server.
-    auto client_socket_cleanup = make_scope_guard([&]() {
-        close_fd(client_socket);
-    });
-    auto server_socket_cleanup = make_scope_guard([&]() {
-        close_fd(server_socket);
-    });
+    auto client_socket_cleanup = make_scope_guard([&]() { close_fd(client_socket); });
+    auto server_socket_cleanup = make_scope_guard([&]() { close_fd(server_socket); });
 
     auto request = static_cast<const client_request_t*>(event_data);
 
@@ -695,9 +650,10 @@ void server_t::init_shared_memory()
     txn_metadata_t::init_txn_metadata_map();
 
     // Initialize watermarks.
-    s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
-    s_last_applied_commit_ts_lower_bound = c_invalid_gaia_txn_id;
-    s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
+    for (auto& elem : s_watermarks)
+    {
+        std::atomic_init(&elem, c_invalid_gaia_txn_id);
+    }
 
     // We may be reinitializing the server upon receiving a SIGHUP.
     clear_shared_memory();
@@ -1167,9 +1123,7 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
     // so no new sessions can be established while we wait for all session
     // threads to exit (we assume they received the same server shutdown
     // notification that we did).
-    auto listener_cleanup = make_scope_guard([&]() {
-        close_fd(s_listening_socket);
-    });
+    auto listener_cleanup = make_scope_guard([&]() { close_fd(s_listening_socket); });
 
     // Set up the epoll loop.
     int epoll_fd = ::epoll_create1(0);
@@ -2056,7 +2010,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
 // requires no additional logic.
 bool server_t::advance_watermark(watermark_t watermark, gaia_txn_id_t ts)
 {
-    gaia_txn_id_t last_watermark_ts = get_watermark(watermark));
+    gaia_txn_id_t last_watermark_ts = get_watermark(watermark);
     do
     {
         // NB: last_watermark_ts is an inout argument holding the previous value
@@ -2261,10 +2215,10 @@ void server_t::perform_maintenance()
     // to the post-apply watermark.
     gc_applied_txn_logs();
 
-    // Advance the post-GC watermark to the end of the longest prefix of
-    // committed txns whose resources have been completely reclaimed, to mark a
-    // safe point for truncating transaction history.
-    update_txn_table_safe_truncation_point();
+    // Find a timestamp at which we can safely truncate the txn table, and
+    // reclaim the physical memory of all metadata entries preceding that
+    // timestamp.
+    truncate_txn_table();
 }
 
 void server_t::apply_txn_logs_to_shared_view()
@@ -2549,7 +2503,7 @@ void server_t::truncate_txn_table()
     // pre-truncate watermark.
 
     // Get a snapshot of the pre-truncate watermark before advancing it.
-    gaia_txn_id_t previous_pre_truncate_watermark = get_watermark(watermark_t::pre_truncate);
+    gaia_txn_id_t prev_pre_truncate_watermark = get_watermark(watermark_t::pre_truncate);
 
     gaia_txn_id_t new_pre_truncate_watermark = get_safe_truncation_ts();
     if (!advance_watermark(watermark_t::pre_truncate, new_pre_truncate_watermark))
@@ -2573,25 +2527,25 @@ void server_t::truncate_txn_table()
     // Calculate the number of pages between the previously read pre-truncate
     // watermark and our safe truncation timestamp. If the result exceeds zero,
     // then decommit all such pages.
-    char* previous_pre_truncate_watermark_page_start_address = get_txn_metadata_page_address_from_ts(previous_pre_truncate_watermark);
-    char* new_pre_truncate_watermark_page_start_address = get_txn_metadata_page_address_from_ts(new_pre_truncate_watermark);
+    char* prev_page_start_address = get_txn_metadata_page_address_from_ts(prev_pre_truncate_watermark);
+    char* new_page_start_address = get_txn_metadata_page_address_from_ts(new_pre_truncate_watermark);
     // Check for overflow.
     ASSERT_INVARIANT(
-        new_pre_truncate_watermark_page_start >= previous_pre_truncate_watermark_page_start,
+        prev_page_start_address >= new_page_start_address,
         "The new pre-truncate watermark must start on the same or later page than the previous pre-truncate watermark!");
-    size_t pages_to_decommit_count = (new_pre_truncate_watermark_page_start - previous_pre_truncate_watermark_page_start) / c_page_size_in_bytes;
+    size_t pages_to_decommit_count = (new_page_start_address - prev_page_start_address) / c_page_size_in_bytes;
     if (pages_to_decommit_count > 0)
     {
         // MADV_FREE seems like the best fit for our needs, since it allows the OS to lazily reclaim decommitted pages.
         // If we move the txn table to a shared mapping (e.g. memfd), then we'll need to switch to MADV_REMOVE.
-        if (-1 == ::madvise(previous_pre_truncate_watermark_page_start_address, pages_to_decommit_count * c_page_size_in_bytes, MADV_FREE))
+        if (-1 == ::madvise(prev_page_start_address, pages_to_decommit_count * c_page_size_in_bytes, MADV_FREE))
         {
             throw_system_error("madvise(MADV_FREE) failed!");
         }
     }
 }
 
-char* get_txn_metadata_page_address_from_ts(gaia_txn_id_t ts)
+char* server_t::get_txn_metadata_page_address_from_ts(gaia_txn_id_t ts)
 {
     char* txn_metadata_map_base_address = txn_metadata_t::get_txn_metadata_map_base_address();
     size_t ts_entry_byte_offset = ts * sizeof(txn_metadata_entry_t);
@@ -2672,9 +2626,7 @@ void server_t::txn_rollback(bool client_disconnected)
 
     // We need to unconditionally close the log fd because we're not registering
     // it in a txn metadata entry, so it won't be closed by GC.
-    auto cleanup_log_fd = make_scope_guard([&]() {
-        close_fd(log_fd);
-    });
+    auto cleanup_log_fd = make_scope_guard([&]() { close_fd(log_fd); });
 
     // Free any deallocated objects (don't bother for read-only txns).
     if (!is_log_empty)
@@ -2745,7 +2697,7 @@ bool server_t::txn_commit()
     // Obtain a safe_ts for our begin_ts, to prevent recursive validation from
     // allowing the pre-truncate watermark to advance past our begin_ts.
     // NB: This MUST be done before obtaining a commit_ts!
-    safe_ts_t(s_txn_id);
+    safe_ts_t safe_begin_ts(s_txn_id);
 
     // Register the committing txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = submit_txn(s_txn_id, log_fd);
@@ -2806,8 +2758,8 @@ bool server_t::reserve_safe_ts_index()
     size_t reserved_index = c_invalid_safe_ts_index;
     while (true)
     {
-        reserved_index = find_first_unset_bit(
-            s_safe_ts_reserved_indexes_bitmap, c_safe_ts_reserved_indexes_bitmap_size_in_words);
+        reserved_index = memory_manager::find_first_unset_bit(
+            s_safe_ts_reserved_indexes_bitmap.data(), s_safe_ts_reserved_indexes_bitmap.size());
 
         // If our scan doesn't find any unset bits, immediately return failure
         // rather than retrying the scan (otherwise this could lead to an
@@ -2819,9 +2771,9 @@ bool server_t::reserve_safe_ts_index()
 
         // If the CAS to set the bit fails, we need to retry the scan, even if
         // the bit was still unset when the CAS failed.
-        if (try_set_bit_value(
-                s_safe_ts_reserved_indexes_bitmap,
-                c_safe_ts_reserved_indexes_bitmap_size_in_words,
+        if (memory_manager::try_set_bit_value(
+                s_safe_ts_reserved_indexes_bitmap.data(),
+                s_safe_ts_reserved_indexes_bitmap.size(),
                 reserved_index, true))
         {
             break;
@@ -2841,15 +2793,15 @@ void server_t::release_safe_ts_index()
         "Expected this thread's safe_ts entry index to be valid!");
 
     ASSERT_PRECONDITION(
-        is_bit_set(
-            s_safe_ts_reserved_indexes_bitmap,
-            c_safe_ts_reserved_indexes_bitmap_size_in_words,
+        memory_manager::is_bit_set(
+            s_safe_ts_reserved_indexes_bitmap.data(),
+            s_safe_ts_reserved_indexes_bitmap.size(),
             s_safe_ts_index),
         "Expected the bit for this thread's safe_ts entry index to be set!");
 
     // Invalidate both of this thread's safe_ts entries.
-    s_safe_ts_per_thread_entries[s_safe_ts_entry_index][0] = c_invalid_gaia_txn_id;
-    s_safe_ts_per_thread_entries[s_safe_ts_entry_index][1] = c_invalid_gaia_txn_id;
+    s_safe_ts_per_thread_entries[s_safe_ts_index][0] = c_invalid_gaia_txn_id;
+    s_safe_ts_per_thread_entries[s_safe_ts_index][1] = c_invalid_gaia_txn_id;
 
     // Invalidate the thread-local copy of this entry's index before marking its
     // index "free".
@@ -2858,10 +2810,10 @@ void server_t::release_safe_ts_index()
 
     // Clear the bit for this entry's index in the "free safe_ts entries"
     // bitmap.
-    safe_set_bit_value(
-        s_safe_ts_reserved_indexes_bitmap,
-        c_safe_ts_reserved_indexes_bitmap_size_in_words,
-        safe_ts_index, false));
+    memory_manager::safe_set_bit_value(
+        s_safe_ts_reserved_indexes_bitmap.data(),
+        s_safe_ts_reserved_indexes_bitmap.size(),
+        safe_ts_index, false);
 }
 
 bool server_t::reserve_safe_ts(gaia_txn_id_t safe_ts)

@@ -201,12 +201,12 @@ private:
 
     static inline gaia_txn_id_t get_watermark(watermark_t watermark)
     {
-        return s_watermarks[watermark].load();
+        return s_watermarks[common::get_enum_value(watermark)].load();
     }
 
     static inline std::atomic<gaia_txn_id_t>& get_watermark_entry(watermark_t watermark)
     {
-        return s_watermarks[watermark];
+        return s_watermarks[common::get_enum_value(watermark)];
     }
 
     // A "publication list" in which each session thread publishes a "safe
@@ -242,10 +242,10 @@ private:
     thread_local static inline size_t s_safe_ts_index{c_invalid_safe_ts_index};
 
     // Reserves an index for the current thread in the "safe_ts entries" array.
-    static bool reserve_safe_ts_entry();
+    static bool reserve_safe_ts_index();
 
     // Releases the current thread's index in the "safe_ts entries" array.
-    static void release_safe_ts_entry();
+    static void release_safe_ts_index();
 
     // Reserves a "safe timestamp" that protects its own and all subsequent
     // entries in the txn table from memory reclamation.
@@ -388,7 +388,7 @@ private:
 
     static void gc_applied_txn_logs();
 
-    static void update_txn_table_safe_truncation_point();
+    static void truncate_txn_table();
 
     static bool advance_watermark(watermark_t watermark, gaia_txn_id_t ts);
 
@@ -421,6 +421,8 @@ private:
     static void sort_log();
 
     static void deallocate_object(gaia_offset_t offset);
+
+    static char* get_txn_metadata_page_address_from_ts(gaia_txn_id_t ts);
 
     class invalid_log_fd : public common::gaia_exception
     {
@@ -497,7 +499,7 @@ private:
         // This member is logically immutable, but it cannot be `const` because
         // it needs to be set to an invalid value by the move
         // constructor/assignment operator.
-        gaia_txn_id_t m_ts;
+        gaia_txn_id_t m_ts{c_invalid_gaia_txn_id};
 
         // We keep this vector sorted for fast searches and add entries by
         // appending and remove entries by swapping them with the tail.
@@ -529,23 +531,24 @@ private:
             std::sort(s_safe_ts_values.begin(), s_safe_ts_values.end());
         }
 
-        // No default constructor.
-        safe_ts_t() = delete;
+        // We need a default constructor.
+        safe_ts_t() = default;
         // No copy constructor.
         safe_ts_t(const safe_ts_t&) = delete;
         // No copy assignment operator.
         safe_ts_t& operator=(const safe_ts_t&) = delete;
 
         // We need a move constructor.
-        inline safe_ts_t& operator=(const safe_ts_t&& other) noexcept
+        inline safe_ts_t(safe_ts_t&& other) noexcept
+            : m_ts(std::exchange(other.m_ts, c_invalid_gaia_txn_id))
         {
-            this->m_ts = std::exchange(other.m_ts, c_invalid_gaia_txn_id);
         }
 
         // We need a move assignment operator.
-        inline safe_ts_t(safe_ts_t&& other) noexcept
-            : m_ts(std::exchange(other.m_ts, c_invalid_gaia_txn_id)
+        inline safe_ts_t& operator=(safe_ts_t&& other) noexcept
         {
+            this->m_ts = std::exchange(other.m_ts, c_invalid_gaia_txn_id);
+            return *this;
         }
 
         inline ~safe_ts_t()
@@ -562,7 +565,7 @@ private:
 
             // First handle the case where our safe_ts was the only value in the
             // safe_ts array.
-            if (s_safe_ts_by_scope_depth.size() == 1)
+            if (s_safe_ts_values.size() == 1)
             {
                 // Retract this thread's published safe_ts value.
                 gaia::db::server_t::release_safe_ts();
@@ -573,7 +576,6 @@ private:
             // find the index of our safe_ts.
             auto iter = std::lower_bound(s_safe_ts_values.begin(), s_safe_ts_values.end(), m_ts);
             ASSERT_INVARIANT(*iter == m_ts, "Cannot find this timestamp in the safe_ts array!");
-            safe_ts_index = std::distance(s_safe_ts_values.begin(), iter);
             // Move the last element into our entry.
             *iter = std::move(s_safe_ts_values.back());
             // Remove the moved last element.
@@ -591,53 +593,68 @@ private:
                 // its reservation must succeed.
                 ASSERT_INVARIANT(reservation_succeeded, "Reservation of new minimum safe_ts cannot fail!");
             }
+        }
 
-            // This is a conversion operator for convenience.
-            inline operator gaia_txn_id_t() const
-            {
-                return m_ts;
-            }
+        // This is a conversion operator for convenience.
+        inline operator gaia_txn_id_t() const
+        {
+            return m_ts;
+        }
     };
 
     class safe_watermark_t
     {
-        public:
-            inline explicit safe_watermark_t(watermark_t watermark)
+    public:
+        inline explicit safe_watermark_t(watermark_t watermark)
+        {
+            // Retry until we have a valid safe_ts for the current value of
+            // the watermark.
+            while (true)
             {
-                // Retry until we have a valid safe_ts for the current value of
-                // the watermark.
-                while (true)
+                gaia_txn_id_t watermark_ts = get_watermark(watermark);
+                try
                 {
-                    gaia_txn_id_t watermark_ts = get_watermark(watermark);
-                    try
-                    {
-                        // First try to obtain a local safe_ts for the current
-                        // value of the watermark. Then if that succeeds, use
-                        // that safe_ts to initialize our member safe_ts.
-                        // (Initialization cannot fail because the published
-                        // "safe timestamp" is never retracted.)
-                        safe_ts_t safe_ts(watermark_ts);
-                        m_safe_ts(safe_ts);
-                        break;
-                    }
-                    catch (const safe_ts_failure&)
-                    {
-                        continue;
-                    }
+                    // First try to obtain a local safe_ts for the current
+                    // value of the watermark. Then if that succeeds, use
+                    // that safe_ts to initialize our member safe_ts.
+                    // (Initialization cannot fail because the published
+                    // "safe timestamp" is never retracted.)
+                    safe_ts_t safe_ts(watermark_ts);
+                    m_safe_ts = std::move(safe_ts);
+                    break;
+                }
+                catch (const safe_ts_failure&)
+                {
+                    continue;
                 }
             }
+        }
 
-            // This is a conversion operator for convenience.
-            inline operator gaia_txn_id_t() const
-            {
-                return gaia_txn_id_t(m_safe_ts);
-            }
+        // No default constructor.
+        safe_watermark_t() = delete;
+        // No copy constructor.
+        safe_watermark_t(const safe_watermark_t&) = delete;
+        // No copy assignment operator.
+        safe_watermark_t& operator=(const safe_watermark_t&) = delete;
+        // No move constructor.
+        safe_watermark_t(safe_watermark_t&&) = delete;
+        // No move assignment operator.
+        safe_watermark_t& operator=(safe_watermark_t&&) = delete;
 
-        private:
-            const inline safe_ts_t m_safe_ts;
+        // This is a conversion operator for convenience.
+        inline operator gaia_txn_id_t() const
+        {
+            return gaia_txn_id_t(m_safe_ts);
+        }
+
+    private:
+        // This member is logically immutable, but it cannot be `const`, because
+        // the constructor needs to move a local variable into it.
+        safe_ts_t m_safe_ts;
     };
+};
 
 #include "db_server.inc"
 
-    } // namespace db
 } // namespace db
+} // namespace gaia
