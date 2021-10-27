@@ -8,12 +8,10 @@
 #include <utility>
 
 #include <rocksdb/db.h>
-#include <rocksdb/write_batch.h>
 
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
-#include "gaia_internal/db/gaia_db_internal.hpp"
 
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
@@ -121,10 +119,10 @@ void persistent_store_manager::prepare_wal_for_write(gaia::db::txn_log_t* log, c
     // The key_count variable represents the number of puts + deletes.
     size_t key_count = 0;
     // Obtain RocksDB transaction object.
-    auto txn = m_rdb_internal->get_txn_by_name(txn_name);
+    rocksdb::Transaction* txn = m_rdb_internal->get_txn_by_name(txn_name);
     for (size_t i = 0; i < log->record_count; i++)
     {
-        auto lr = log->log_records + i;
+        txn_log_t::log_record_t* lr = log->log_records + i;
         if (lr->operation == gaia_operation_t::remove)
         {
             // Encode key to be deleted.
@@ -137,7 +135,7 @@ void persistent_store_manager::prepare_wal_for_write(gaia::db::txn_log_t* log, c
         {
             string_writer_t key;
             string_writer_t value;
-            auto obj = offset_to_ptr(lr->new_offset);
+            db_object_t* obj = offset_to_ptr(lr->new_offset);
             if (!obj)
             {
                 // Object was deleted in current transaction.

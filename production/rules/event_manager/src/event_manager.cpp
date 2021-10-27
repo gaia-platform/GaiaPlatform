@@ -231,7 +231,7 @@ void event_manager_t::enqueue_invocation(
         event.record,
         event.txn_id};
     rule_thread_pool_t::invocation_t invocation{
-        std::move(rule_invocation),
+        rule_invocation,
         rule_binding->log_rule_name.c_str(),
         start_time,
         serial_group};
