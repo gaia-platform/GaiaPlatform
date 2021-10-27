@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: %gaiat %s --
 
 // TESTCASE: Path without nomatch, guarded by declarative if condiiton.
 //           The non-conditional portion causes error.
@@ -17,5 +17,3 @@ ruleset test19
         }
     }
 }
-
-// CHECK: not contextually convertible to 'bool'
