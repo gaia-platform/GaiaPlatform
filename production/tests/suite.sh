@@ -32,6 +32,19 @@ complete_process() {
         fi
     fi
 
+    if [ -n "$WORKLOAD_DIRECTORY" ] ; then
+        if [ -f "$WORKLOAD_DIRECTORY/template.sh" ]; then
+            if [ "$VERBOSE_MODE" -ne 0 ]; then
+                echo "Removing workload template."
+            fi
+            if ! "$WORKLOAD_DIRECTORY"/template.sh -v -r > "$TEMP_FILE" 2>&1; then
+                cat "$TEMP_FILE"
+                echo "Workload template cannot be removed. Please remove manually."
+            fi
+        fi
+    fi
+
+
     if [ "$DID_REPORT_START" -ne 0 ] ; then
         if [ "$SLACK_MODE" -ne 0 ] ; then
             ./python/publish_to_slack.py message "$SUITE_MODE" "$COMPLETE_MESSAGE"
@@ -231,6 +244,16 @@ verify_workload_directory() {
         complete_process 1 "Workload directory '$WORKLOAD_DIRECTORY' must exist."
     fi
 
+    if [ -f "$WORKLOAD_DIRECTORY/template.sh" ]; then
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Applying workload template."
+        fi
+        if ! "$WORKLOAD_DIRECTORY"/template.sh -v > "$TEMP_FILE" 2>&1; then
+            cat "$TEMP_FILE"
+            complete_process 1 "Workload template cannot be appplied."
+        fi
+    fi
+
     if [ ! -f "$WORKLOAD_DIRECTORY/install.sh" ]; then
         complete_process 1 "Workload directory '$WORKLOAD_DIRECTORY' must specify an 'install.sh' script."
     fi
@@ -377,8 +400,6 @@ execute_single_test() {
 # Execute a test within the test suite.
 execute_suite_test() {
     local NEXT_TEST_NAME=$1
-    # shellcheck disable=SC2116
-    NEXT_TEST_NAME=$( echo "${NEXT_TEST_NAME,,}")
 
     SUB="^[[:space:]]*#"
     if [[ "$NEXT_TEST_NAME" =~ $SUB ]] || [[ -z "${NEXT_TEST_NAME// }" ]]; then
@@ -438,13 +459,13 @@ TEMP_FILE=/tmp/$SUITE_MODE.suite.tmp
 EXECUTE_MAP_FILE=$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/map.txt
 TEST_DIRECTORY=/tmp/test_suite
 
-
 # Set up any local script variables.
 PAUSE_IN_SECONDS_BEFORE_NEXT_TEST=15
 
 DID_PUSHD=0
 DID_PUSHD_FOR_BUILD=0
 DID_REPORT_START=0
+WORKLOAD_DIRECTORY=
 
 
 # Parse any command line values.

@@ -1,0 +1,10 @@
+#
+# Simple test suite for the template tests.
+#
+
+workload template
+
+smoke
+smoke repeat 2
+perf
+perf repeat 2

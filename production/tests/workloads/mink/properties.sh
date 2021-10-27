@@ -83,8 +83,7 @@ process_debug() {
 
     if [ -z "$DEBUG_COMMAND_FILE" ]
     then
-        echo "No debug file to execute supplied for command 'debug'."
-        complete_process 1
+        complete_process 1 "No debug file to execute supplied for command 'debug'."
     fi
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Executing the executable $EXECUTABLE_NAME in debug mode with input file: $(realpath "$DEBUG_COMMAND_FILE")"
@@ -93,8 +92,7 @@ process_debug() {
     # Run the commands and produce a JSON output file.
     if ! "$EXECUTABLE_PATH" debug "$SCRIPT_STOP_PAUSE" < "$DEBUG_COMMAND_FILE" > "$JSON_OUTPUT"; then
         cat $JSON_OUTPUT
-        echo "Execution of the executable $EXECUTABLE_PATH in debug mode failed."
-        complete_process 1
+        complete_process 1 "Execution of the executable $EXECUTABLE_PATH in debug mode failed."
     fi
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "JSON output file located at: $(realpath "$JSON_OUTPUT")"
@@ -108,8 +106,7 @@ process_debug() {
         else
             head -n -1 $JSON_OUTPUT > $TEST_DIRECTORY/blah
             if ! ./python/translate_to_csv.py "$TEST_DIRECTORY/blah" > "$CSV_OUTPUT"; then
-                echo "Translation of the JSON output to CSV failed."
-                complete_process 1
+                complete_process 1 "Translation of the JSON output to CSV failed."
             fi
             if [ "$VERBOSE_MODE" -ne 0 ]; then
                 echo "CSV output file located at: $(realpath "$CSV_OUTPUT")"
@@ -133,8 +130,7 @@ process_watch() {
 # Process a normal command that interacts with the user.
 process_normal() {
     if ! "$EXECUTABLE_PATH" "$1"; then
-        echo "Execution of the executable $EXECUTABLE_NAME in $1 mode failed."
-        complete_process 1
+        complete_process 1 "Execution of the executable $EXECUTABLE_NAME in $1 mode failed."
     fi
 }
 
@@ -159,8 +155,7 @@ execute_commands() {
         echo "Command was not provided."
         show_usage
     else
-        echo "Command '${PARAMS[0]}' not known."
-        complete_process 1
+        complete_process 1 "Command '${PARAMS[0]}' not known."
     fi
 }
 

@@ -3,10 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <algorithm>
 #include <string>
-#include <unordered_set>
-#include <vector>
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
@@ -25,6 +22,8 @@
 #include <clang/Rewrite/Core/Rewriter.h>
 #include <clang/Tooling/CommonOptionsParser.h>
 #include <clang/Tooling/Tooling.h>
+#include <llvm/ADT/DenseMap.h>
+#include <llvm/ADT/Twine.h>
 #pragma clang diagnostic pop
 
 #include "gaia_internal/common/gaia_version.hpp"
@@ -41,9 +40,10 @@ using namespace clang::driver;
 using namespace clang::tooling;
 using namespace llvm;
 using namespace clang::ast_matchers;
-using namespace gaia;
-using namespace gaia::common;
-using namespace gaia::translation;
+using namespace ::gaia;
+using namespace ::gaia::common;
+using namespace ::gaia::translation;
+using namespace clang::gaia::catalog;
 
 cl::OptionCategory g_translation_engine_category("Translation engine options");
 
@@ -72,50 +72,27 @@ constexpr int c_declaration_to_ruleset_offset = -2;
 bool g_is_rule_context_rule_name_referenced = false;
 SourceRange g_rule_attribute_source_range;
 bool g_is_rule_prolog_specified = false;
-constexpr int c_encoding_shift = 16;
-constexpr int c_encoding_mask = 0xFFFF;
 
 constexpr char c_connect_keyword[] = "connect";
 constexpr char c_disconnect_keyword[] = "disconnect";
 
-vector<string> g_rulesets;
-unordered_map<string, unordered_set<string>> g_active_fields;
-unordered_set<string> g_insert_tables;
-unordered_set<string> g_update_tables;
-unordered_map<string, string> g_attribute_tag_map;
+llvm::SmallVector<string, 8> g_rulesets;
+llvm::StringMap<llvm::StringSet<>> g_active_fields;
+llvm::StringSet<> g_insert_tables;
+llvm::StringSet<> g_update_tables;
+llvm::StringMap<string> g_attribute_tag_map;
 
-namespace std
-{
-template <>
-struct hash<SourceRange>
-{
-    std::size_t operator()(SourceRange const& range) const noexcept
-    {
-        return std::hash<unsigned int>{}(
-            (range.getBegin().getRawEncoding() << c_encoding_shift) | (range.getEnd().getRawEncoding() & c_encoding_mask));
-    }
-};
-template <>
-struct hash<SourceLocation>
-{
-    std::size_t operator()(SourceLocation const& location) const noexcept
-    {
-        return std::hash<unsigned int>{}(location.getRawEncoding());
-    }
-};
-} // namespace std
+llvm::DenseSet<SourceLocation> g_insert_call_locations;
 
-unordered_set<SourceLocation> g_insert_call_locations;
+llvm::DenseMap<SourceRange, llvm::SmallVector<explicit_path_data_t, 8>> g_expression_explicit_path_data;
 
-unordered_map<SourceRange, vector<explicit_path_data_t>> g_expression_explicit_path_data;
-
-unordered_set<string> g_used_dbs;
+llvm::StringSet<> g_used_dbs;
 
 const FunctionDecl* g_current_rule_declaration = nullptr;
 
-string g_current_ruleset_subscription;
-string g_generated_subscription_code;
-string g_current_ruleset_unsubscription;
+llvm::SmallString<256> g_current_ruleset_subscription;
+llvm::SmallString<256> g_generated_subscription_code;
+llvm::SmallString<256> g_current_ruleset_unsubscription;
 
 // We use this to report the rule location when reporting diagnostics.
 // In the best caese, we'll update the location to report the exact
@@ -147,20 +124,20 @@ struct insert_data_t
 {
     SourceRange expression_range;
     string table_name;
-    unordered_map<string, SourceRange> argument_map;
-    unordered_map<SourceRange, string> argument_replacement_map;
-    unordered_set<string> argument_table_names;
+    llvm::StringMap<SourceRange> argument_map;
+    llvm::DenseMap<SourceRange, string> argument_replacement_map;
+    llvm::StringSet<> argument_table_names;
 };
 
 // Vector to contain all the data to properly generate code for insert function call.
 // The generation deferred to allow proper code generation for declarative references as arguments for insert call.
-vector<insert_data_t> g_insert_data;
-vector<rewriter_history_t> g_rewriter_history;
-unordered_map<SourceRange, string> g_variable_declaration_location;
-unordered_set<SourceRange> g_variable_declaration_init_location;
-vector<SourceRange> g_nomatch_location_list;
-unordered_map<SourceRange, string> g_break_label_map;
-unordered_map<SourceRange, string> g_continue_label_map;
+llvm::SmallVector<insert_data_t, 8> g_insert_data;
+llvm::SmallVector<rewriter_history_t, 8> g_rewriter_history;
+llvm::DenseMap<SourceRange, string> g_variable_declaration_location;
+llvm::DenseSet<SourceRange> g_variable_declaration_init_location;
+llvm::SmallVector<SourceRange, 8> g_nomatch_location_list;
+llvm::DenseMap<SourceRange, string> g_break_label_map;
+llvm::DenseMap<SourceRange, string> g_continue_label_map;
 
 // Suppress these clang-tidy warnings for now.
 static const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
@@ -222,7 +199,7 @@ void get_variable_name(string& variable_name, string& table_name, explicit_path_
     {
         table_name = table_iterator->second;
     }
-    auto defined_tag_iterator = explicit_path_data.defined_tags.find(variable_name);
+    const auto& defined_tag_iterator = explicit_path_data.defined_tags.find(variable_name);
     if (defined_tag_iterator != explicit_path_data.defined_tags.end())
     {
         variable_name = defined_tag_iterator->second;
@@ -266,10 +243,10 @@ bool is_range_contained_in_another_range(const SourceRange& range1, const Source
     return false;
 }
 
-string get_table_from_expression(const string& expression)
+StringRef get_table_from_expression(StringRef expression)
 {
     size_t dot_position = expression.find('.');
-    if (dot_position != string::npos)
+    if (dot_position != StringRef::npos)
     {
         return expression.substr(0, dot_position);
     }
@@ -279,7 +256,7 @@ string get_table_from_expression(const string& expression)
     }
 }
 
-bool is_tag_defined(const unordered_map<string, string>& tag_map, const string& tag)
+bool is_tag_defined(const llvm::StringMap<string>& tag_map, StringRef tag)
 {
     for (const auto& defined_tag_iterator : tag_map)
     {
@@ -291,7 +268,7 @@ bool is_tag_defined(const unordered_map<string, string>& tag_map, const string& 
     return false;
 }
 
-bool can_path_be_optimized(const string& path_first_component, const vector<explicit_path_data_t>& path_data)
+bool can_path_be_optimized(StringRef path_first_component, const llvm::SmallVector<explicit_path_data_t, 8>& path_data)
 {
     for (const auto& path_iterator : path_data)
     {
@@ -309,13 +286,13 @@ bool can_path_be_optimized(const string& path_first_component, const vector<expl
     return false;
 }
 
-void optimize_path(vector<explicit_path_data_t>& path, explicit_path_data_t& path_segment, bool is_explicit_path_data_stored)
+void optimize_path(llvm::SmallVector<explicit_path_data_t, 8>& path, explicit_path_data_t& path_segment, bool is_explicit_path_data_stored)
 {
-    string first_table = get_table_from_expression(path_segment.path_components.front());
-    const auto tag_iterator = path_segment.tag_table_map.find(first_table);
+    StringRef first_table = get_table_from_expression(path_segment.path_components.front());
+    const auto& tag_iterator = path_segment.tag_table_map.find(first_table);
 
     if (tag_iterator != path_segment.tag_table_map.end()
-        && (tag_iterator->second != tag_iterator->first
+        && (tag_iterator->second != tag_iterator->first()
             || (is_explicit_path_data_stored && can_path_be_optimized(first_table, path))))
     {
         path_segment.skip_implicit_path_generation = true;
@@ -337,10 +314,10 @@ void optimize_path(vector<explicit_path_data_t>& path, explicit_path_data_t& pat
 }
 
 bool is_path_segment_contained_in_another_path(
-    const vector<explicit_path_data_t>& path,
+    const llvm::SmallVector<explicit_path_data_t, 8>& path,
     const explicit_path_data_t& path_segment)
 {
-    unordered_set<string> tag_container, table_container;
+    llvm::StringSet<> tag_container, table_container;
 
     if (!path_segment.defined_tags.empty())
     {
@@ -351,8 +328,8 @@ bool is_path_segment_contained_in_another_path(
     {
         for (const auto& table_iterator : path_iterator.path_components)
         {
-            string table_name = get_table_from_expression(table_iterator);
-            auto tag_iterator = path_iterator.defined_tags.find(table_name);
+            StringRef table_name = get_table_from_expression(table_iterator);
+            const auto& tag_iterator = path_iterator.defined_tags.find(table_name);
             if (tag_iterator != path_iterator.defined_tags.end())
             {
                 table_name = tag_iterator->second;
@@ -361,13 +338,13 @@ bool is_path_segment_contained_in_another_path(
         }
         for (const auto& tag_iterator : path_iterator.tag_table_map)
         {
-            tag_container.insert(tag_iterator.first);
+            tag_container.insert(tag_iterator.first());
         }
     }
 
     for (const auto& tag_map_iterator : path_segment.tag_table_map)
     {
-        if (tag_container.find(tag_map_iterator.first) == tag_container.end())
+        if (tag_container.find(tag_map_iterator.first()) == tag_container.end())
         {
             return false;
         }
@@ -386,100 +363,96 @@ bool is_path_segment_contained_in_another_path(
 
 void validate_table_data()
 {
-    if (table_navigation_t::get_table_data().empty())
+    if (GaiaCatalog::getCatalogTableData().empty())
     {
         g_is_generation_error = true;
         return;
     }
 }
 
-string generate_general_subscription_code()
+llvm::SmallString<256> generate_general_subscription_code()
 {
-    string return_value;
-    return_value
-        .append("namespace gaia\n")
-        .append("{\n")
-        .append("namespace rules\n")
-        .append("{\n")
-        .append("extern \"C\" void subscribe_ruleset(const char* ruleset_name)\n")
-        .append("{\n");
+    llvm::SmallString<256> return_value = StringRef(
+        "namespace gaia\n"
+        "{\n"
+        "namespace rules\n"
+        "{\n"
+        "extern \"C\" void subscribe_ruleset(const char* ruleset_name)\n"
+        "{\n");
 
     for (const string& ruleset : g_rulesets)
     {
-        return_value
-            .append(c_ident)
-            .append("if (strcmp(ruleset_name, \"")
-            .append(ruleset)
-            .append("\") == 0)\n")
-            .append(c_ident)
-            .append("{\n")
-            .append(c_ident)
-            .append(c_ident)
-            .append("::")
-            .append(ruleset)
-            .append("::subscribe_ruleset_")
-            .append(ruleset)
-            .append("();\n")
-            .append(c_ident)
-            .append(c_ident)
-            .append("return;\n")
-            .append(c_ident)
-            .append("}\n");
+        return_value.append(c_ident);
+        return_value.append("if (strcmp(ruleset_name, \"");
+        return_value.append(ruleset);
+        return_value.append("\") == 0)\n");
+        return_value.append(c_ident);
+        return_value.append("{\n");
+        return_value.append(c_ident);
+        return_value.append(c_ident);
+        return_value.append("::");
+        return_value.append(ruleset);
+        return_value.append("::subscribe_ruleset_");
+        return_value.append(ruleset);
+        return_value.append("();\n");
+        return_value.append(c_ident);
+        return_value.append(c_ident);
+        return_value.append("return;\n");
+        return_value.append(c_ident);
+        return_value.append("}\n");
     }
 
-    return_value
-        .append(c_ident)
-        .append("throw gaia::rules::ruleset_not_found(ruleset_name);\n")
-        .append("}\n")
-        .append("extern \"C\" void unsubscribe_ruleset(const char* ruleset_name)\n")
-        .append("{\n");
+    return_value.append(c_ident);
+    return_value.append("throw gaia::rules::ruleset_not_found(ruleset_name);\n"
+                        "}\n"
+                        "extern \"C\" void unsubscribe_ruleset(const char* ruleset_name)\n"
+                        "{\n");
 
     for (const string& ruleset : g_rulesets)
     {
-        return_value
-            .append(c_ident)
-            .append("if (strcmp(ruleset_name, \"")
-            .append(ruleset)
-            .append("\") == 0)\n")
-            .append(c_ident)
-            .append("{\n")
-            .append(c_ident)
-            .append(c_ident)
-            .append("::")
-            .append(ruleset)
-            .append("::unsubscribe_ruleset_")
-            .append(ruleset)
-            .append("();\n")
-            .append(c_ident)
-            .append(c_ident)
-            .append("return;\n")
-            .append(c_ident)
-            .append("}\n");
+        return_value.append(c_ident);
+        return_value.append("if (strcmp(ruleset_name, \"");
+        return_value.append(ruleset);
+        return_value.append("\") == 0)\n");
+        return_value.append(c_ident);
+        return_value.append("{\n");
+        return_value.append(c_ident);
+        return_value.append(c_ident);
+        return_value.append("::");
+        return_value.append(ruleset);
+        return_value.append("::unsubscribe_ruleset_");
+        return_value.append(ruleset);
+        return_value.append("();\n");
+        return_value.append(c_ident);
+        return_value.append(c_ident);
+        return_value.append("return;\n");
+        return_value.append(c_ident);
+        return_value.append("}\n");
     }
 
-    return_value
-        .append(c_ident)
-        .append("throw ruleset_not_found(ruleset_name);\n")
-        .append("}\n")
-        .append("extern \"C\" void initialize_rules()\n")
-        .append("{\n");
+    return_value.append(c_ident);
+    return_value.append("throw ruleset_not_found(ruleset_name);\n"
+                        "}\n"
+                        "extern \"C\" void initialize_rules()\n"
+                        "{\n");
 
     for (const string& ruleset : g_rulesets)
     {
-        return_value
-            .append(c_ident)
-            .append("::" + ruleset)
-            .append("::subscribe_ruleset_" + ruleset + "();\n");
+        return_value.append(c_ident);
+        return_value.append("::");
+        return_value.append(ruleset);
+        return_value.append("::subscribe_ruleset_");
+        return_value.append(ruleset);
+        return_value.append("();\n");
     }
-    return_value
-        .append("}\n")
-        .append("} // namespace rules\n")
-        .append("} // namespace gaia\n");
+    return_value.append("}\n"
+                        "} // namespace rules\n"
+                        "} // namespace gaia\n");
 
     return return_value;
 }
 
-string get_serial_group(const Decl* decl)
+StringRef get_serial_group(const Decl* decl)
 {
     const RulesetSerialGroupAttr* serial_attr = decl->getAttr<RulesetSerialGroupAttr>();
     if (serial_attr != nullptr)
@@ -487,7 +460,7 @@ string get_serial_group(const Decl* decl)
         if (serial_attr->group_size() == 1)
         {
             const IdentifierInfo* id = *(serial_attr->group_begin());
-            return id->getName().str();
+            return id->getName();
         }
 
         // If we see the serial_group attribute without an argument
@@ -498,17 +471,17 @@ string get_serial_group(const Decl* decl)
     }
 
     // No serial_group() attribute so return an empty string
-    return "";
+    return StringRef();
 }
 
-string get_table_name(const Decl* decl)
+StringRef get_table_name(const Decl* decl)
 {
     const FieldTableAttr* table_attr = decl->getAttr<FieldTableAttr>();
     if (table_attr != nullptr)
     {
-        return table_attr->getTable()->getName().str();
+        return table_attr->getTable()->getName();
     }
-    return "";
+    return StringRef();
 }
 
 // The function parses a rule  attribute e.g.
@@ -516,11 +489,11 @@ string get_table_name(const Decl* decl)
 // Employee.name_last
 // E:Employee
 // E:Employee.name_last
-bool parse_attribute(const string& attribute, string& table, string& field, string& tag)
+bool parse_attribute(StringRef attribute, string& table, string& field, string& tag)
 {
-    string tagless_attribute;
+    StringRef tagless_attribute;
     size_t tag_position = attribute.find(':');
-    if (tag_position != string::npos)
+    if (tag_position != StringRef::npos)
     {
         tag = attribute.substr(0, tag_position);
         tagless_attribute = attribute.substr(tag_position + 1);
@@ -531,7 +504,7 @@ bool parse_attribute(const string& attribute, string& table, string& field, stri
     }
     size_t dot_position = tagless_attribute.find('.');
     // Handle fully qualified reference.
-    if (dot_position != string::npos)
+    if (dot_position != StringRef::npos)
     {
         table = tagless_attribute.substr(0, dot_position);
         field = tagless_attribute.substr(dot_position + 1);
@@ -539,14 +512,14 @@ bool parse_attribute(const string& attribute, string& table, string& field, stri
     }
     validate_table_data();
 
-    if (table_navigation_t::get_table_data().find(tagless_attribute) == table_navigation_t::get_table_data().end())
+    if (GaiaCatalog::getCatalogTableData().find(tagless_attribute) == GaiaCatalog::getCatalogTableData().end())
     {
         // Might be a field.
-        for (const auto& tbl : table_navigation_t::get_table_data())
+        for (const auto& tbl : GaiaCatalog::getCatalogTableData())
         {
-            if (tbl.second.field_data.find(tagless_attribute) != tbl.second.field_data.end())
+            if (tbl.second.fieldData.find(tagless_attribute) != tbl.second.fieldData.end())
             {
-                table = tbl.first;
+                table = tbl.first();
                 field = tagless_attribute;
                 return true;
             }
@@ -560,7 +533,7 @@ bool parse_attribute(const string& attribute, string& table, string& field, stri
 
 // This function adds a field to active fields list if it is marked as active in the catalog;
 // it returns true if there was no error and false otherwise.
-bool validate_and_add_active_field(const string& table_name, const string& field_name, bool is_active_from_field = false)
+bool validate_and_add_active_field(StringRef table_name, StringRef field_name, bool is_active_from_field = false)
 {
     if (g_is_rule_prolog_specified && is_active_from_field)
     {
@@ -576,23 +549,23 @@ bool validate_and_add_active_field(const string& table_name, const string& field
         return false;
     }
 
-    if (table_navigation_t::get_table_data().find(table_name) == table_navigation_t::get_table_data().end())
+    if (GaiaCatalog::getCatalogTableData().find(table_name) == GaiaCatalog::getCatalogTableData().end())
     {
         gaiat::diag().emit(diag::err_table_not_found) << table_name;
         g_is_generation_error = true;
         return false;
     }
 
-    auto fields = table_navigation_t::get_table_data().find(table_name)->second.field_data;
-
-    if (fields.find(field_name) == fields.end())
+    const auto& fields = GaiaCatalog::getCatalogTableData().find(table_name)->second.fieldData;
+    const auto& field_iterator = fields.find(field_name);
+    if (field_iterator == fields.end())
     {
         gaiat::diag().emit(diag::err_field_not_found) << field_name << table_name;
         g_is_generation_error = true;
         return false;
     }
 
-    if (fields[field_name].is_deprecated)
+    if (field_iterator->second.isDeprecated)
     {
         gaiat::diag().emit(diag::err_field_deprecated) << field_name << table_name;
         g_is_generation_error = true;
@@ -606,7 +579,7 @@ bool validate_and_add_active_field(const string& table_name, const string& field
     return true;
 }
 
-string get_table_name(const string& table, const unordered_map<string, string>& tag_map)
+StringRef get_table_name(StringRef table, const llvm::StringMap<string>& tag_map)
 {
     auto tag_iterator = tag_map.find(table);
     if (tag_iterator == tag_map.end())
@@ -625,12 +598,12 @@ string get_table_name(const string& table, const unordered_map<string, string>& 
     return table;
 }
 
-string db_namespace(const string& db_name)
+string db_namespace(StringRef db_name)
 {
-    return db_name == catalog::c_empty_db_name ? "" : db_name + "::";
+    return db_name == catalog::c_empty_db_name ? "" : Twine(db_name, "::").str();
 }
 
-void generate_navigation(const string& anchor_table, Rewriter& rewriter)
+void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
 {
     if (g_is_generation_error)
     {
@@ -639,27 +612,25 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
 
     for (auto& insert_data : g_insert_data)
     {
-        string class_qualification_string = "gaia::";
-        class_qualification_string
-            .append(db_namespace(table_navigation_t::get_table_data().find(insert_data.table_name)->second.db_name))
-            .append(insert_data.table_name)
-            .append("_t::");
-        string replacement_string = class_qualification_string;
-        replacement_string
-            .append("get(")
-            .append(class_qualification_string)
-            .append("insert_row(");
-        vector<string> function_arguments = table_navigation_t::get_table_fields(insert_data.table_name);
-        const auto table_data_iterator = table_navigation_t::get_table_data().find(insert_data.table_name);
+        llvm::SmallString<32> class_qualification_string = StringRef("gaia::");
+        class_qualification_string.append(db_namespace(GaiaCatalog::getCatalogTableData().find(insert_data.table_name)->second.dbName));
+        class_qualification_string.append(insert_data.table_name);
+        class_qualification_string.append("_t::");
+        llvm::SmallString<64> replacement_string = class_qualification_string.str();
+        replacement_string.append("get(");
+        replacement_string.append(class_qualification_string);
+        replacement_string.append("insert_row(");
+        llvm::SmallVector<string, 16> function_arguments = table_navigation_t::get_table_fields(insert_data.table_name);
+        const auto& table_data_iterator = GaiaCatalog::getCatalogTableData().find(insert_data.table_name);
         // Generate call arguments.
         for (const auto& call_argument : function_arguments)
         {
-            const auto argument_map_iterator = insert_data.argument_map.find(call_argument);
+            const auto& argument_map_iterator = insert_data.argument_map.find(call_argument);
             if (argument_map_iterator == insert_data.argument_map.end())
             {
                 // Provide default parameter value.
-                const auto field_data_iterator = table_data_iterator->second.field_data.find(call_argument);
-                switch (static_cast<data_type_t>(field_data_iterator->second.field_type))
+                const auto& field_data_iterator = table_data_iterator->second.fieldData.find(call_argument);
+                switch (field_data_iterator->second.fieldType)
                 {
                 case data_type_t::e_bool:
                     replacement_string.append("false,");
@@ -684,7 +655,8 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
             else
             {
                 // Provide value from the code.
-                replacement_string.append(insert_data.argument_replacement_map[argument_map_iterator->second]).append(",");
+                replacement_string.append(insert_data.argument_replacement_map[argument_map_iterator->second]);
+                replacement_string.append(",");
             }
         }
         replacement_string.resize(replacement_string.size() - 1);
@@ -707,10 +679,10 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                 break;
             }
         }
-        const auto break_label_iterator = g_break_label_map.find(explicit_path_data_iterator.first);
-        const auto continue_label_iterator = g_continue_label_map.find(explicit_path_data_iterator.first);
-        string break_label;
-        string continue_label;
+        const auto& break_label_iterator = g_break_label_map.find(explicit_path_data_iterator.first);
+        const auto& continue_label_iterator = g_continue_label_map.find(explicit_path_data_iterator.first);
+        StringRef break_label;
+        StringRef continue_label;
         if (break_label_iterator != g_break_label_map.end())
         {
             break_label = break_label_iterator->second;
@@ -721,13 +693,13 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
         }
         for (auto data_iterator = explicit_path_data_iterator.second.rbegin(); data_iterator != explicit_path_data_iterator.second.rend(); data_iterator++)
         {
-            string anchor_table_name = get_table_name(
+            StringRef anchor_table_name = get_table_name(
                 get_table_from_expression(anchor_table), data_iterator->tag_table_map);
 
             SourceRange variable_declaration_range;
             for (const auto& variable_declaration_range_iterator : g_variable_declaration_location)
             {
-                string variable_name = variable_declaration_range_iterator.second;
+                StringRef variable_name = variable_declaration_range_iterator.second;
 
                 if (is_range_contained_in_another_range(
                         explicit_path_data_iterator.first, variable_declaration_range_iterator.first))
@@ -740,10 +712,10 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                         return;
                     }
 
-                    string insert_table;
+                    StringRef insert_table;
 
                     // Find a table on which insert method is invoked.
-                    for (auto& insert_data : g_insert_data)
+                    for (const auto& insert_data : g_insert_data)
                     {
                         if (insert_data.expression_range.getEnd() == variable_declaration_range_iterator.first.getEnd()
                             && insert_data.argument_table_names.find(insert_data.table_name) == insert_data.argument_table_names.end())
@@ -755,7 +727,7 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
                     if (g_variable_declaration_init_location.find(variable_declaration_range_iterator.first)
                         != g_variable_declaration_init_location.end())
                     {
-                        string table_name = get_table_name(
+                        StringRef table_name = get_table_name(
                             get_table_from_expression(
                                 data_iterator->path_components.front()),
                             data_iterator->tag_table_map);
@@ -827,21 +799,21 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
 
             if (!break_label.empty() && &(*data_iterator) == &explicit_path_data_iterator.second.back())
             {
-                navigation_code.postfix += "\n" + break_label + ":;\n";
+                navigation_code.postfix += (Twine("\n") + break_label + ":;\n").str();
             }
             if (!continue_label.empty() && &(*data_iterator) == &explicit_path_data_iterator.second.back())
             {
-                navigation_code.postfix = "\n" + continue_label + ":;\n" + navigation_code.postfix;
+                navigation_code.postfix = (Twine("\n") + continue_label + ":;\n" + navigation_code.postfix).str();
             }
 
             if (nomatch_range.isValid())
             {
-                string variable_name = table_navigation_t::get_variable_name("", unordered_map<string, string>());
-                string nomatch_prefix = "{\nbool " + variable_name + " = false;\n";
-                rewriter.InsertTextBefore(explicit_path_data_iterator.first.getBegin(), nomatch_prefix + navigation_code.prefix);
-                rewriter.InsertTextAfter(explicit_path_data_iterator.first.getBegin(), variable_name + " = true;\n");
+                string variable_name = table_navigation_t::get_variable_name(StringRef(), llvm::StringMap<string>());
+                string nomatch_prefix = (Twine("{\nbool ") + variable_name + " = false;\n").str();
+                rewriter.InsertTextBefore(explicit_path_data_iterator.first.getBegin(), (nomatch_prefix + navigation_code.prefix).str());
+                rewriter.InsertTextAfter(explicit_path_data_iterator.first.getBegin(), Twine(variable_name, " = true;\n").str());
                 rewriter.RemoveText(SourceRange(get_previous_token_location(nomatch_range.getBegin(), rewriter), nomatch_range.getBegin().getLocWithOffset(-1)));
-                rewriter.InsertTextBefore(nomatch_range.getBegin(), navigation_code.postfix + "\nif (!" + variable_name + ")\n");
+                rewriter.InsertTextBefore(nomatch_range.getBegin(), (Twine(navigation_code.postfix) + "\nif (!" + variable_name + ")\n").str());
                 rewriter.InsertTextAfterToken(nomatch_range.getEnd(), "}\n");
                 nomatch_range = SourceRange();
             }
@@ -855,33 +827,30 @@ void generate_navigation(const string& anchor_table, Rewriter& rewriter)
 }
 
 void generate_table_subscription(
-    const string& table,
-    const string& field_subscription_code,
+    StringRef table,
+    StringRef field_subscription_code,
     int rule_count,
     bool subscribe_update,
-    unordered_map<uint32_t, string>& rule_line_numbers,
+    llvm::DenseMap<uint32_t, string>& rule_line_numbers,
     Rewriter& rewriter)
 {
-    string common_subscription_code;
-    if (table_navigation_t::get_table_data().find(table) == table_navigation_t::get_table_data().end())
+    llvm::SmallString<256> common_subscription_code;
+    if (GaiaCatalog::getCatalogTableData().find(table) == GaiaCatalog::getCatalogTableData().end())
     {
         gaiat::diag().emit(diag::err_table_not_found) << table;
         g_is_generation_error = true;
         return;
     }
     string rule_name
-        = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
-    string rule_name_log = to_string(g_current_ruleset_rule_number);
-    rule_name_log.append("_").append(table);
+        = (Twine(g_current_ruleset) + "_" + g_current_rule_declaration->getName() + "_" + Twine(rule_count)).str();
+    string rule_name_log = (Twine(g_current_ruleset_rule_number) + "_" + table).str();
 
     string rule_line_var = rule_line_numbers[g_current_ruleset_rule_number];
 
     string serial_group = "nullptr";
     if (!g_current_ruleset_serial_group.empty())
     {
-        serial_group = "\"";
-        serial_group.append(g_current_ruleset_serial_group);
-        serial_group.append("\"");
+        serial_group = (Twine("\"") + g_current_ruleset_serial_group + "\"").str();
     }
 
     // Declare a constant for the line number of the rule if this is the first
@@ -889,50 +858,48 @@ void generate_table_subscription(
     // the rule has multiple anchor rows.
     if (rule_line_var.empty())
     {
-        rule_line_var = "c_rule_line_";
-        rule_line_var.append(to_string(g_current_ruleset_rule_number));
+        rule_line_var = (Twine("c_rule_line_") + Twine(g_current_ruleset_rule_number)).str();
         rule_line_numbers[g_current_ruleset_rule_number] = rule_line_var;
 
-        common_subscription_code
-            .append(c_ident)
-            .append("const uint32_t ")
-            .append(rule_line_var)
-            .append(" = ")
-            .append(to_string(g_current_ruleset_rule_line_number))
-            .append(";\n");
+        (
+            Twine(c_ident)
+            + "const uint32_t "
+            + rule_line_var
+            + " = "
+            + Twine(g_current_ruleset_rule_line_number)
+            + ";\n"
+        ).toVector(common_subscription_code);
     }
 
-    common_subscription_code
-        .append(c_ident)
-        .append(c_nolint_identifier_naming)
-        .append("\n")
-        .append(c_ident)
-        .append("gaia::rules::rule_binding_t ")
-        .append(rule_name)
-        .append("binding(\"")
-        .append(g_current_ruleset)
-        .append("\",\"")
-        .append(rule_name_log)
-        .append("\",")
-        .append(g_current_ruleset)
-        .append("::")
-        .append(rule_name)
-        .append(",")
-        .append(rule_line_var)
-        .append(",")
-        .append(serial_group)
-        .append(");\n");
+    common_subscription_code.append(c_ident);
+    common_subscription_code.append(c_nolint_identifier_naming);
+    common_subscription_code.append("\n");
+    common_subscription_code.append(c_ident);
+    common_subscription_code.append("gaia::rules::rule_binding_t ");
+    common_subscription_code.append(rule_name);
+    common_subscription_code.append("binding(\"");
+    common_subscription_code.append(g_current_ruleset);
+    common_subscription_code.append("\",\"");
+    common_subscription_code.append(rule_name_log);
+    common_subscription_code.append("\",");
+    common_subscription_code.append(g_current_ruleset);
+    common_subscription_code.append("::");
+    common_subscription_code.append(rule_name);
+    common_subscription_code.append(",");
+    common_subscription_code.append(rule_line_var);
+    common_subscription_code.append(",");
+    common_subscription_code.append(serial_group);
+    common_subscription_code.append(");\n");
 
     g_current_ruleset_subscription += common_subscription_code;
     g_current_ruleset_unsubscription += common_subscription_code;
 
     if (field_subscription_code.empty())
     {
-        g_current_ruleset_subscription
-            .append(c_ident)
-            .append("gaia::rules::subscribe_rule(gaia::")
-            .append(db_namespace(table_navigation_t::get_table_data().find(table)->second.db_name))
-            .append(table);
+        g_current_ruleset_subscription.append(c_ident);
+        g_current_ruleset_subscription.append("gaia::rules::subscribe_rule(gaia::");
+        g_current_ruleset_subscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
+        g_current_ruleset_subscription.append(table);
         if (subscribe_update)
         {
             g_current_ruleset_subscription.append(
@@ -943,49 +910,48 @@ void generate_table_subscription(
             g_current_ruleset_subscription.append(
                 "_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
         }
-        g_current_ruleset_subscription
-            .append(rule_name)
-            .append("binding);\n");
+        g_current_ruleset_subscription.append(rule_name);
+        g_current_ruleset_subscription.append("binding);\n");
 
-        g_current_ruleset_unsubscription
-            .append(c_ident)
-            .append("gaia::rules::unsubscribe_rule(gaia::")
-            .append(db_namespace(table_navigation_t::get_table_data().find(table)->second.db_name))
-            .append(table)
-            .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,")
-            .append(rule_name)
-            .append("binding);\n");
+        g_current_ruleset_unsubscription.append(c_ident);
+        g_current_ruleset_unsubscription.append("gaia::rules::unsubscribe_rule(gaia::");
+        g_current_ruleset_unsubscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
+        g_current_ruleset_unsubscription.append(table);
+        g_current_ruleset_unsubscription.append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
+        g_current_ruleset_unsubscription.append(rule_name);
+        g_current_ruleset_unsubscription.append("binding);\n");
     }
     else
     {
-        g_current_ruleset_subscription
-            .append(field_subscription_code)
-            .append(c_ident)
-            .append("gaia::rules::subscribe_rule(gaia::")
-            .append(db_namespace(table_navigation_t::get_table_data().find(table)->second.db_name))
-            .append(table)
-            .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_update, fields_")
-            .append(rule_name)
-            .append(",")
-            .append(rule_name)
-            .append("binding);\n");
-        g_current_ruleset_unsubscription
-            .append(field_subscription_code)
-            .append(c_ident)
-            .append("gaia::rules::unsubscribe_rule(gaia::")
-            .append(db_namespace(table_navigation_t::get_table_data().find(table)->second.db_name))
-            .append(table)
-            .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_update, fields_")
-            .append(rule_name)
-            .append(",")
-            .append(rule_name)
-            .append("binding);\n");
+        g_current_ruleset_subscription.append(field_subscription_code);
+        g_current_ruleset_subscription.append(c_ident);
+        g_current_ruleset_subscription.append("gaia::rules::subscribe_rule(gaia::");
+        g_current_ruleset_subscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
+        g_current_ruleset_subscription.append(table);
+        g_current_ruleset_subscription.append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_update, fields_");
+        g_current_ruleset_subscription.append(rule_name);
+        g_current_ruleset_subscription.append(",");
+        g_current_ruleset_subscription.append(rule_name);
+        g_current_ruleset_subscription.append("binding);\n");
+        g_current_ruleset_unsubscription.append(field_subscription_code);
+        g_current_ruleset_unsubscription.append(c_ident);
+        g_current_ruleset_unsubscription.append("gaia::rules::unsubscribe_rule(gaia::");
+        g_current_ruleset_unsubscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
+        g_current_ruleset_unsubscription.append(table);
+        g_current_ruleset_unsubscription.append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_update, fields_");
+        g_current_ruleset_unsubscription.append(rule_name);
+        g_current_ruleset_unsubscription.append(",");
+        g_current_ruleset_unsubscription.append(rule_name);
+        g_current_ruleset_unsubscription.append("binding);\n");
     }
 
-    string function_prologue = string("\n")
-                                   .append(c_nolint_identifier_naming)
-                                   .append("\nvoid ")
-                                   .append(rule_name);
+    SmallString<64> function_prologue;
+    (
+        Twine("\n")
+        + c_nolint_identifier_naming
+        + "\nvoid "
+        + rule_name
+    ).toVector(function_prologue);
     bool is_absolute_path_only = true;
     for (const auto& explicit_path_data_iterator : g_expression_explicit_path_data)
     {
@@ -997,9 +963,9 @@ void generate_table_subscription(
         {
             if (!data_iterator.is_absolute_path)
             {
-                string first_component_table = get_table_from_expression(data_iterator.path_components.front());
-                const auto tag_iterator = data_iterator.tag_table_map.find(first_component_table);
-                if (tag_iterator == data_iterator.tag_table_map.end() || tag_iterator->first == tag_iterator->second || is_tag_defined(data_iterator.defined_tags, first_component_table) || g_attribute_tag_map.find(first_component_table) != g_attribute_tag_map.end())
+                StringRef first_component_table = get_table_from_expression(data_iterator.path_components.front());
+                const auto& tag_iterator = data_iterator.tag_table_map.find(first_component_table);
+                if (tag_iterator == data_iterator.tag_table_map.end() || tag_iterator->first() == tag_iterator->second || is_tag_defined(data_iterator.defined_tags, first_component_table) || g_attribute_tag_map.find(first_component_table) != g_attribute_tag_map.end())
                 {
                     is_absolute_path_only = false;
                     break;
@@ -1025,31 +991,35 @@ void generate_table_subscription(
         {
             rewriter.InsertTextAfterToken(
                 g_current_rule_declaration->getLocation(),
-                "\nstatic const char gaia_rule_name[] = \"" + rule_name_log + "\";\n");
+                (Twine("\nstatic const char gaia_rule_name[] = \"") + rule_name_log + "\";\n").str());
         }
         if (is_anchor_generation_required)
         {
-            const auto& table_data = table_navigation_t::get_table_data();
+            const auto& table_data = GaiaCatalog::getCatalogTableData();
             auto anchor_table_data_itr = table_data.find(table);
 
             if (anchor_table_data_itr == table_data.end())
             {
                 return;
             }
-            string anchor_code = string("\nauto ")
-                                     .append(table)
-                                     .append(" = gaia::")
-                                     .append(db_namespace(anchor_table_data_itr->second.db_name))
-                                     .append(table)
-                                     .append("_t::get(context->record);\n")
-                                     .append("{\n");
+            SmallString<256> anchor_code;
+            (
+                Twine("\nauto ")
+                + table
+                + " = gaia::"
+                + db_namespace(anchor_table_data_itr->second.dbName)
+                + table
+                + "_t::get(context->record);\n"
+                + "{\n"
+            ).toVector(anchor_code);
+
             for (const auto& attribute_tag_iterator : g_attribute_tag_map)
             {
-                anchor_code.append("auto ")
-                    .append(attribute_tag_iterator.first)
-                    .append(" = ")
-                    .append(table)
-                    .append(";\n");
+                anchor_code.append("auto ");
+                anchor_code.append(attribute_tag_iterator.first());
+                anchor_code.append(" = ");
+                anchor_code.append(table);
+                anchor_code.append(";\n");
             }
             rewriter.InsertTextAfterToken(g_current_rule_declaration->getLocation(), anchor_code);
             rewriter.InsertTextBefore(g_current_rule_declaration->getEndLoc(), "\n}\n");
@@ -1103,42 +1073,40 @@ void generate_table_subscription(
             copy_rewriter.RemoveText(g_rule_attribute_source_range);
             rewriter.InsertTextBefore(
                 g_rule_attribute_source_range.getBegin(),
-                function_prologue + copy_rewriter.getRewrittenText(g_current_rule_declaration->getSourceRange()));
+                (function_prologue + copy_rewriter.getRewrittenText(g_current_rule_declaration->getSourceRange())).str());
         }
         else
         {
             rewriter.InsertTextBefore(
                 g_current_rule_declaration->getLocation(),
-                function_prologue + copy_rewriter.getRewrittenText(g_current_rule_declaration->getSourceRange()));
+                (function_prologue + copy_rewriter.getRewrittenText(g_current_rule_declaration->getSourceRange())).str());
         }
     }
 }
 
-void optimize_subscription(const string& table, int rule_count)
+void optimize_subscription(StringRef table, int rule_count)
 {
     // This is to reuse the same rule function and rule_binding_t
     // for the same table in case update and insert operation.
     if (g_insert_tables.find(table) != g_insert_tables.end())
     {
         string rule_name
-            = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
-        g_current_ruleset_subscription
-            .append(c_ident)
-            .append("gaia::rules::subscribe_rule(gaia::")
-            .append(db_namespace(table_navigation_t::get_table_data().find(table)->second.db_name))
-            .append(table)
-            .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,")
-            .append(rule_name)
-            .append("binding);\n");
+            = (Twine(g_current_ruleset) + "_" + g_current_rule_declaration->getName() + "_" + Twine(rule_count)).str();
+        g_current_ruleset_subscription.append(c_ident);
+        g_current_ruleset_subscription.append("gaia::rules::subscribe_rule(gaia::");
+        g_current_ruleset_subscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
+        g_current_ruleset_subscription.append(table);
+        g_current_ruleset_subscription.append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
+        g_current_ruleset_subscription.append(rule_name);
+        g_current_ruleset_subscription.append("binding);\n");
 
-        g_current_ruleset_unsubscription
-            .append(c_ident)
-            .append("gaia::rules::unsubscribe_rule(gaia::")
-            .append(db_namespace(table_navigation_t::get_table_data().find(table)->second.db_name))
-            .append(table)
-            .append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,")
-            .append(rule_name)
-            .append("binding);\n");
+        g_current_ruleset_unsubscription.append(c_ident);
+        g_current_ruleset_unsubscription.append("gaia::rules::unsubscribe_rule(gaia::");
+        g_current_ruleset_unsubscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
+        g_current_ruleset_unsubscription.append(table);
+        g_current_ruleset_unsubscription.append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
+        g_current_ruleset_unsubscription.append(rule_name);
+        g_current_ruleset_unsubscription.append("binding);\n");
 
         g_insert_tables.erase(table);
     }
@@ -1166,7 +1134,7 @@ bool has_multiple_anchors()
     // Handle the special case of on_update(table1, table2.field)
     if (g_active_fields.size() == 1
         && g_update_tables.size() == 1
-        && g_active_fields.find(*(g_update_tables.begin())) == g_active_fields.end())
+        && g_active_fields.find((g_update_tables.begin()->first())) == g_active_fields.end())
     {
         gaiat::diag().emit(g_last_rule_location, diag::err_multi_anchor_tables);
         return true;
@@ -1193,13 +1161,13 @@ void generate_rules(Rewriter& rewriter)
         return;
     }
     int rule_count = 1;
-    unordered_map<uint32_t, string> rule_line_numbers;
+    llvm::DenseMap<uint32_t, string> rule_line_numbers;
 
     // Optimize active fields by removing field subscriptions
     // if entire table was subscribed in rule prolog.
     for (const auto& table : g_update_tables)
     {
-        g_active_fields.erase(table);
+        g_active_fields.erase(table.first());
     }
 
     if (has_multiple_anchors())
@@ -1215,7 +1183,7 @@ void generate_rules(Rewriter& rewriter)
             return;
         }
 
-        string table = field_description.first;
+        StringRef table = field_description.first();
 
         if (field_description.second.empty())
         {
@@ -1224,36 +1192,32 @@ void generate_rules(Rewriter& rewriter)
             return;
         }
 
-        string field_subscription_code;
+        SmallString<256> field_subscription_code;
         string rule_name
-            = g_current_ruleset + "_" + g_current_rule_declaration->getName().str() + "_" + to_string(rule_count);
+            = (Twine(g_current_ruleset) + "_" + g_current_rule_declaration->getName() + "_" + Twine(rule_count)).str();
 
-        field_subscription_code
-            .append(c_ident)
-            .append(c_nolint_identifier_naming)
-            .append("\n")
-            .append(c_ident)
-            .append("gaia::common::field_position_list_t fields_")
-            .append(rule_name)
-            .append(";\n");
+        field_subscription_code.append(c_ident);
+        field_subscription_code.append(c_nolint_identifier_naming);
+        field_subscription_code.append("\n");
+        field_subscription_code.append(c_ident);
+        field_subscription_code.append("gaia::common::field_position_list_t fields_");
+        field_subscription_code.append(rule_name);
+        field_subscription_code.append(";\n");
 
-        auto fields = table_navigation_t::get_table_data().find(table)->second.field_data;
+        const auto& fields = GaiaCatalog::getCatalogTableData().find(table)->second.fieldData;
 
         for (const auto& field : field_description.second)
         {
-            if (fields.find(field) == fields.end())
+            const auto& field_iterator = fields.find(field.first());
+            if (field_iterator == fields.end())
             {
-                gaiat::diag().emit(diag::err_field_not_found) << field << table;
+                gaiat::diag().emit(diag::err_field_not_found) << field.first() << table;
                 g_is_generation_error = true;
                 return;
             }
-            field_subscription_code
-                .append(c_ident)
-                .append("fields_")
-                .append(rule_name)
-                .append(".push_back(")
-                .append(to_string(fields[field].position))
-                .append(");\n");
+            field_subscription_code.append(
+                (Twine(c_ident) + "fields_" + rule_name + ".push_back(" + Twine(field_iterator->second.position) + ");\n").str()
+            );
         }
 
         generate_table_subscription(table, field_subscription_code, rule_count, true, rule_line_numbers, rewriter);
@@ -1270,9 +1234,9 @@ void generate_rules(Rewriter& rewriter)
             return;
         }
 
-        generate_table_subscription(table, "", rule_count, true, rule_line_numbers, rewriter);
+        generate_table_subscription(table.first(), StringRef(), rule_count, true, rule_line_numbers, rewriter);
 
-        optimize_subscription(table, rule_count);
+        optimize_subscription(table.first(), rule_count);
 
         rule_count++;
     }
@@ -1284,7 +1248,7 @@ void generate_rules(Rewriter& rewriter)
             return;
         }
 
-        generate_table_subscription(table, "", rule_count, false, rule_line_numbers, rewriter);
+        generate_table_subscription(table.first(), StringRef(), rule_count, false, rule_line_numbers, rewriter);
         rule_count++;
     }
 }
@@ -1591,13 +1555,13 @@ void update_expression_explicit_path_data(
     {
         return;
     }
-    vector<explicit_path_data_t> path_data;
+    llvm::SmallVector<explicit_path_data_t, 8> path_data;
     SourceRange expression_source_range = get_expression_source_range(context, *node, source_range, rewriter);
     if (expression_source_range.isInvalid())
     {
         return;
     }
-    auto explicit_path_data_iterator = g_expression_explicit_path_data.find(expression_source_range);
+    const auto& explicit_path_data_iterator = g_expression_explicit_path_data.find(expression_source_range);
     for (auto& expression_explicit_path_data_iterator : g_expression_explicit_path_data)
     {
         if (is_range_contained_in_another_range(expression_explicit_path_data_iterator.first, expression_source_range))
@@ -1618,10 +1582,10 @@ void update_expression_explicit_path_data(
             }
             else
             {
-                string first_component = get_table_from_expression(data.path_components.front());
-                const auto tag_iterator = data.tag_table_map.find(first_component);
+                StringRef first_component = get_table_from_expression(data.path_components.front());
+                const auto& tag_iterator = data.tag_table_map.find(first_component);
                 if (tag_iterator != data.tag_table_map.end()
-                    && (tag_iterator->second != tag_iterator->first
+                    && (tag_iterator->second != tag_iterator->first()
                         || (explicit_path_data_iterator != g_expression_explicit_path_data.end()
                             && can_path_be_optimized(first_component, expression_explicit_path_data_iterator.second))))
                 {
@@ -1629,7 +1593,7 @@ void update_expression_explicit_path_data(
                 }
                 for (const auto& defined_tag_iterator : expression_explicit_path_data_iterator.second.front().defined_tags)
                 {
-                    data.tag_table_map[defined_tag_iterator.second] = defined_tag_iterator.first;
+                    data.tag_table_map[defined_tag_iterator.second] = defined_tag_iterator.first();
                     if (first_component == defined_tag_iterator.second)
                     {
                         data.skip_implicit_path_generation = true;
@@ -1653,13 +1617,13 @@ void update_expression_explicit_path_data(
 void update_expression_used_tables(
     ASTContext* context,
     const Stmt* node,
-    const string& table,
-    const string& variable_name,
+    StringRef table,
+    StringRef variable_name,
     const SourceRange& source_range,
     Rewriter& rewriter)
 {
     explicit_path_data_t path_data;
-    string table_name = get_table_from_expression(table);
+    StringRef table_name = get_table_from_expression(table);
     path_data.is_absolute_path = false;
     path_data.path_components.push_back(table);
     path_data.tag_table_map[variable_name] = table_name;
@@ -1682,8 +1646,8 @@ bool get_explicit_path_data(const Decl* decl, explicit_path_data_t& data, Source
     data.is_absolute_path = explicit_path_attribute->getPath().startswith("/") || explicit_path_attribute->getPath().startswith("@/");
     path_source_range.setBegin(SourceLocation::getFromRawEncoding(explicit_path_attribute->getPathStart()));
     path_source_range.setEnd(SourceLocation::getFromRawEncoding(explicit_path_attribute->getPathEnd()));
-    vector<string> path_components;
-    unordered_map<string, string> tag_map;
+    llvm::SmallVector<string, 8> path_components;
+    llvm::StringMap<string> tag_map;
     for (const auto& path_component_iterator : explicit_path_attribute->pathComponents())
     {
         data.path_components.push_back(path_component_iterator);
@@ -1703,7 +1667,7 @@ bool get_explicit_path_data(const Decl* decl, explicit_path_data_t& data, Source
         g_is_generation_error = true;
         return false;
     }
-    vector<string> tag_map_keys, tag_map_values, defined_tag_map_keys, defined_tag_map_values;
+    llvm::SmallVector<string, 8> tag_map_keys, tag_map_values, defined_tag_map_keys, defined_tag_map_values;
 
     for (const auto& tag_map_keys_iterator : explicit_path_tag_key_attribute->tagMapKeys())
     {
@@ -1740,7 +1704,7 @@ bool get_explicit_path_data(const Decl* decl, explicit_path_data_t& data, Source
 
     for (const auto& attribute_tag_map_iterator : g_attribute_tag_map)
     {
-        data.tag_table_map[attribute_tag_map_iterator.first] = attribute_tag_map_iterator.second;
+        data.tag_table_map[attribute_tag_map_iterator.first()] = attribute_tag_map_iterator.second;
     }
     return true;
 }
@@ -1749,14 +1713,14 @@ void update_used_dbs(const explicit_path_data_t& explicit_path_data)
 {
     for (const auto& component : explicit_path_data.path_components)
     {
-        string table_name = get_table_from_expression(component);
+        StringRef table_name = get_table_from_expression(component);
 
         auto tag_table_iterator = explicit_path_data.tag_table_map.find(table_name);
         if (tag_table_iterator != explicit_path_data.tag_table_map.end())
         {
             table_name = tag_table_iterator->second;
         }
-        g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
+        g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
     }
 }
 
@@ -1790,14 +1754,14 @@ public:
                 return;
             }
             table_name = get_table_name(decl);
-            field_name = decl->getName().str();
+            field_name = decl->getName();
             variable_name = expression->getNameInfo().getAsString();
             if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
             {
                 variable_name = table_name;
                 explicit_path_present = false;
                 expression_source_range = SourceRange(expression->getLocation(), expression->getEndLoc());
-                g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
+                g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
             }
             else
             {
@@ -1837,7 +1801,7 @@ public:
                         = SourceRange(
                             member_expression->getBeginLoc(),
                             member_expression->getEndLoc());
-                    g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
+                    g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
                 }
                 else
                 {
@@ -1877,7 +1841,7 @@ public:
         }
         if (expression_source_range.isValid())
         {
-            string replacement = variable_name + "." + field_name + "()";
+            string replacement = (Twine(variable_name) + "." + field_name + "()").str();
             for (auto& insert_data : g_insert_data)
             {
                 for (auto& insert_data_argument_range_iterator : insert_data.argument_replacement_map)
@@ -1889,7 +1853,7 @@ public:
                     }
                 }
             }
-            g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
+            g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
             m_rewriter.ReplaceText(expression_source_range, replacement);
             g_rewriter_history.push_back({expression_source_range, replacement, replace_text});
             auto offset
@@ -1995,7 +1959,7 @@ public:
             {
                 explicit_path_present = false;
                 set_source_range.setBegin(left_declaration_expression->getLocation());
-                g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
+                g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
             }
             else
             {
@@ -2034,7 +1998,7 @@ public:
             {
                 explicit_path_present = false;
                 set_source_range.setBegin(member_expression->getBeginLoc());
-                g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
+                g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
             }
             else
             {
@@ -2056,8 +2020,16 @@ public:
             }
         }
         tok::TokenKind token_kind;
-        string writer_variable = table_navigation_t::get_variable_name("writer", unordered_map<string, string>());
-        string replacement_text = "[&]() mutable {auto " + writer_variable + " = " + variable_name + ".writer(); " + writer_variable + "." + field_name;
+        string writer_variable = table_navigation_t::get_variable_name("writer", llvm::StringMap<string>());
+        string replacement_text = (
+            Twine("[&]() mutable {auto ")
+            + writer_variable
+            + " = "
+            + variable_name
+            + ".writer(); "
+            + writer_variable
+            + "."
+            + field_name).str();
 
         switch (op->getOpcode())
         {
@@ -2122,7 +2094,7 @@ public:
             return;
         }
 
-        replacement_text += convert_compound_binary_opcode(op);
+        replacement_text.append(convert_compound_binary_opcode(op));
 
         if (left_declaration_expression != nullptr)
         {
@@ -2140,7 +2112,14 @@ public:
         }
         m_rewriter.ReplaceText(set_source_range, replacement_text);
         g_rewriter_history.push_back({set_source_range, replacement_text, replace_text});
-        replacement_text = "; " + writer_variable + ".update_row(); return " + writer_variable + "." + field_name + ";}()";
+        replacement_text = (
+            Twine("; ")
+            + writer_variable
+            + ".update_row(); return "
+            + writer_variable
+            + "."
+            + field_name
+            + ";}()").str();
         m_rewriter.InsertTextAfterToken(op->getEndLoc(), replacement_text);
         g_rewriter_history.push_back({SourceRange(op->getEndLoc()), replacement_text, insert_text_after_token});
 
@@ -2169,7 +2148,6 @@ public:
 private:
     string convert_compound_binary_opcode(const BinaryOperator* op)
     {
-
         switch (op->getOpcode())
         {
         case BO_Assign:
@@ -2264,7 +2242,7 @@ public:
             {
                 variable_name = table_name;
                 explicit_path_present = false;
-                g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
+                g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
             }
             else
             {
@@ -2289,7 +2267,7 @@ public:
             if (!get_explicit_path_data(operator_declaration, explicit_path_data, operator_source_range))
             {
                 explicit_path_present = false;
-                g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
+                g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
             }
             else
             {
@@ -2298,25 +2276,25 @@ public:
                 update_used_dbs(explicit_path_data);
             }
         }
-        string writer_variable = table_navigation_t::get_variable_name("writer", unordered_map<string, string>());
+        string writer_variable = table_navigation_t::get_variable_name("writer", llvm::StringMap<string>());
         if (op->isPostfix())
         {
-            string temp_variable = table_navigation_t::get_variable_name("temp", unordered_map<string, string>());
+            string temp_variable = table_navigation_t::get_variable_name("temp", llvm::StringMap<string>());
             if (op->isIncrementOp())
             {
                 replace_string
-                    = "[&]() mutable {auto " + temp_variable + " = "
+                    = (Twine("[&]() mutable {auto ") + temp_variable + " = "
                     + variable_name + "." + field_name + "(); auto " + writer_variable + " = "
                     + variable_name + ".writer(); " + writer_variable + "." + field_name + "++; "
-                    + writer_variable + ".update_row(); return " + temp_variable + ";}()";
+                    + writer_variable + ".update_row(); return " + temp_variable + ";}()").str();
             }
             else if (op->isDecrementOp())
             {
                 replace_string
-                    = "[&]() mutable {auto " + temp_variable + " = "
+                    = (Twine("[&]() mutable {auto ") + temp_variable + " = "
                     + variable_name + "." + field_name + "(); auto " + writer_variable + " = "
                     + variable_name + ".writer(); " + writer_variable + "." + field_name + "--; "
-                    + writer_variable + ".update_row(); return " + temp_variable + ";}()";
+                    + writer_variable + ".update_row(); return " + temp_variable + ";}()").str();
             }
         }
         else
@@ -2324,18 +2302,18 @@ public:
             if (op->isIncrementOp())
             {
                 replace_string
-                    = "[&]() mutable {auto " + writer_variable + " = " + variable_name
+                    = (Twine("[&]() mutable {auto ") + writer_variable + " = " + variable_name
                     + ".writer(); ++ " + writer_variable + "." + field_name
                     + ";" + writer_variable + ".update_row(); return " + writer_variable
-                    + "." + field_name + ";}()";
+                    + "." + field_name + ";}()").str();
             }
             else if (op->isDecrementOp())
             {
                 replace_string
-                    = "[&]() mutable {auto " + writer_variable + " = " + variable_name
+                    = (Twine("[&]() mutable {auto ") + writer_variable + " = " + variable_name
                     + ".writer(); -- " + writer_variable + "." + field_name
                     + ";" + writer_variable + ".update_row(); return " + writer_variable
-                    + "." + field_name + ";}()";
+                    + "." + field_name + ";}()").str();
             }
         }
 
@@ -2576,12 +2554,17 @@ public:
 
         if (!g_current_ruleset.empty())
         {
-            g_generated_subscription_code
-                += "\nnamespace " + g_current_ruleset
-                + "{\nvoid subscribe_ruleset_" + g_current_ruleset
-                + "()\n{\n" + g_current_ruleset_subscription
-                + "}\nvoid unsubscribe_ruleset_" + g_current_ruleset
-                + "()\n{\n" + g_current_ruleset_unsubscription + "}\n}\n";
+            g_generated_subscription_code.append("\nnamespace ");
+            g_generated_subscription_code.append(g_current_ruleset);
+            g_generated_subscription_code.append("{\nvoid subscribe_ruleset_");
+            g_generated_subscription_code.append(g_current_ruleset);
+            g_generated_subscription_code.append("()\n{\n");
+            g_generated_subscription_code.append(g_current_ruleset_subscription);
+            g_generated_subscription_code.append("}\nvoid unsubscribe_ruleset_");
+            g_generated_subscription_code.append(g_current_ruleset);
+            g_generated_subscription_code.append("()\n{\n");
+            g_generated_subscription_code.append(g_current_ruleset_unsubscription);
+            g_generated_subscription_code.append("}\n}\n");
         }
         g_current_ruleset = ruleset_declaration->getName().str();
         g_current_ruleset_serial_group = get_serial_group(ruleset_declaration);
@@ -2604,35 +2587,38 @@ public:
         if (*(ruleset_declaration->decls_begin()) == nullptr)
         {
             // Empty ruleset so it doesn't make sense to process any possible attributes
+            string replace_string = (Twine("namespace ") + g_current_ruleset
+                    + "\n{\n} // namespace " + g_current_ruleset + "\n").str();
             m_rewriter.ReplaceText(
                 SourceRange(
                     ruleset_declaration->getBeginLoc(),
                     ruleset_declaration->getEndLoc()),
-                "namespace " + g_current_ruleset
-                    + "\n{\n} // namespace " + g_current_ruleset + "\n");
+                replace_string);
             g_rewriter_history.push_back(
                 {SourceRange(ruleset_declaration->getBeginLoc(), ruleset_declaration->getEndLoc()),
-                 "namespace " + g_current_ruleset + "\n{\n} // namespace " + g_current_ruleset + "\n",
+                 replace_string,
                  replace_text});
         }
         else
         {
+            string replace_start_string = (Twine("namespace ") + g_current_ruleset + "\n{\n").str();
+            string replace_end_string = (Twine("} // namespace ") + g_current_ruleset + "\n").str();
             // Replace ruleset declaration that may include attributes with namespace declaration
             m_rewriter.ReplaceText(
                 SourceRange(
                     ruleset_declaration->getBeginLoc(),
                     ruleset_declaration->decls_begin()->getBeginLoc().getLocWithOffset(c_declaration_to_ruleset_offset)),
-                "namespace " + g_current_ruleset + "\n{\n");
+                replace_start_string);
 
             // Replace closing brace with namespace comment.
-            m_rewriter.ReplaceText(SourceRange(ruleset_declaration->getEndLoc()), "} // namespace " + g_current_ruleset + "\n");
+            m_rewriter.ReplaceText(SourceRange(ruleset_declaration->getEndLoc()), replace_end_string);
 
             g_rewriter_history.push_back(
                 {SourceRange(ruleset_declaration->getBeginLoc(), ruleset_declaration->decls_begin()->getBeginLoc().getLocWithOffset(c_declaration_to_ruleset_offset)),
-                 "namespace " + g_current_ruleset + "\n{\n", replace_text});
+                 replace_start_string, replace_text});
             g_rewriter_history.push_back(
                 {SourceRange(ruleset_declaration->getEndLoc()),
-                 "} // namespace " + g_current_ruleset + "\n", replace_text});
+                 replace_end_string, replace_text});
         }
     }
 
@@ -2665,15 +2651,15 @@ public:
         {
             g_variable_declaration_location[variable_declaration->getSourceRange()] = variable_name;
             gaiat::diag().set_location(variable_declaration->getSourceRange().getBegin());
-            if (table_navigation_t::get_table_data().find(variable_name) != table_navigation_t::get_table_data().end())
+            if (GaiaCatalog::getCatalogTableData().find(variable_name) != GaiaCatalog::getCatalogTableData().end())
             {
                 gaiat::diag().emit(diag::warn_table_hidden) << variable_name;
                 return;
             }
 
-            for (auto table_data : table_navigation_t::get_table_data())
+            for (const auto& table_data : GaiaCatalog::getCatalogTableData())
             {
-                if (table_data.second.field_data.find(variable_name) != table_data.second.field_data.end())
+                if (table_data.second.fieldData.find(variable_name) != table_data.second.fieldData.end())
                 {
                     gaiat::diag().emit(diag::warn_field_hidden) << variable_name;
                     return;
@@ -2715,7 +2701,7 @@ public:
         if (ruleset_expression != nullptr)
         {
             expression_source_range = SourceRange(ruleset_expression->getBeginLoc(), ruleset_expression->getEndLoc());
-            replacement_text = "\"" + g_current_ruleset + "\"";
+            replacement_text = (Twine("\"") + g_current_ruleset + "\"").str();
         }
 
         if (rule_expression != nullptr)
@@ -2743,9 +2729,9 @@ public:
             g_rewriter_history.push_back(
                 {expression_source_range, replacement_text, replace_text});
 
-            for (auto& insert_data : g_insert_data)
+            for (const auto& insert_data : g_insert_data)
             {
-                for (auto& insert_data_argument_range_iterator : insert_data.argument_replacement_map)
+                for (auto insert_data_argument_range_iterator : insert_data.argument_replacement_map)
                 {
                     if (is_range_contained_in_another_range(expression_source_range, insert_data_argument_range_iterator.first))
                     {
@@ -2798,7 +2784,7 @@ public:
         {
             explicit_path_present = false;
             expression_source_range = SourceRange(expression->getLocation(), expression->getEndLoc());
-            g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
+            g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
         }
         else
         {
@@ -2960,7 +2946,7 @@ public:
         const ValueDecl* decl = expression_declaration->getDecl();
         insert_data.table_name = get_table_name(decl);
         // Parse insert call arguments to build name value map.
-        for (auto argument : expression->arguments())
+        for (const auto& argument : expression->arguments())
         {
             argument_start_location = get_previous_token_location(
                 get_previous_token_location(argument->getSourceRange().getBegin(), m_rewriter), m_rewriter);
@@ -3028,7 +3014,7 @@ public:
         table_name = get_table_name(decl);
         if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
         {
-            g_used_dbs.insert(table_navigation_t::get_table_data().find(table_name)->second.db_name);
+            g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
             explicit_path_present = false;
             expression_source_range.setBegin(expression->getLParenLoc().getLocWithOffset(1));
         }
@@ -3137,7 +3123,7 @@ public:
             auto break_label_iterator = g_break_label_map.find(statement_source_range);
             if (break_label_iterator == g_break_label_map.end())
             {
-                label_name = table_navigation_t::get_variable_name("break", unordered_map<string, string>());
+                label_name = table_navigation_t::get_variable_name("break", llvm::StringMap<string>());
                 g_break_label_map[statement_source_range] = label_name;
             }
             else
@@ -3150,7 +3136,7 @@ public:
             auto continue_label_iterator = g_continue_label_map.find(statement_source_range);
             if (continue_label_iterator == g_continue_label_map.end())
             {
-                label_name = table_navigation_t::get_variable_name("continue", unordered_map<string, string>());
+                label_name = table_navigation_t::get_variable_name("continue", llvm::StringMap<string>());
                 g_continue_label_map[statement_source_range] = label_name;
             }
             else
@@ -3162,7 +3148,7 @@ public:
         auto offset
             = Lexer::MeasureTokenLength(expression_source_range.getEnd(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
         expression_source_range.setEnd(expression_source_range.getEnd().getLocWithOffset(offset));
-        string replacement_string = "goto " + label_name;
+        string replacement_string = (Twine("goto ") + label_name).str();
         m_rewriter.ReplaceText(expression_source_range, replacement_string);
         g_rewriter_history.push_back({expression_source_range, replacement_string, replace_text});
     }
@@ -3202,7 +3188,7 @@ public:
 
         const auto* link_expr = result.Nodes.getNodeAs<MemberExpr>("tableFieldGet");
 
-        unordered_map<string, table_data_t> table_data = table_navigation_t::get_table_data();
+        const llvm::StringMap<CatalogTableData>& table_data = GaiaCatalog::getCatalogTableData();
 
         gaiat::diag().set_location(table_call->getLocation());
 
@@ -3213,7 +3199,7 @@ public:
             g_is_generation_error = true;
             return;
         }
-        table_data_t src_table_data = src_table_iter->second;
+        const CatalogTableData& src_table_data = src_table_iter->second;
 
         auto dest_table_iter = table_data.find(dest_table_name);
         if (dest_table_iter == table_data.end())
@@ -3222,7 +3208,6 @@ public:
             g_is_generation_error = true;
             return;
         }
-        table_data_t dest_table_data = dest_table_iter->second;
 
         // If the link_expr is not null this is a call in the form table.link.connect()
         // hence we don't need to look up the name. Otherwise, this is in the form
@@ -3236,11 +3221,11 @@ public:
             // Search what link connect src_table to dest_table.
             // We can assume that the link is unique because the check
             // has already been performed in SemaGaia.
-            for (const auto& link_data_pair : src_table_data.link_data)
+            for (const auto& link_data_pair : src_table_data.linkData)
             {
-                if (link_data_pair.second.target_table == dest_table_name)
+                if (link_data_pair.second.targetTable == dest_table_name)
                 {
-                    link_name = link_data_pair.first;
+                    link_name = link_data_pair.first();
                 }
             }
 
@@ -3255,15 +3240,13 @@ public:
             return;
         }
 
-        auto link_data_iter = src_table_data.link_data.find(link_name);
-        if (link_data_iter == src_table_data.link_data.end())
+        auto link_data_iter = src_table_data.linkData.find(link_name);
+        if (link_data_iter == src_table_data.linkData.end())
         {
             gaiat::diag().emit(diag::err_no_link) << src_table_name << link_name;
             g_is_generation_error = true;
             return;
         }
-
-        link_data_t link_data = link_data_iter->second;
 
         if (need_link_field)
         {
@@ -3623,7 +3606,7 @@ public:
         Rewriter& rewriter = *m_rewriter;
 
         // Always call the TextDiagnosticPrinter's EndSourceFile() method.
-        auto call_end_source_file = gaia::common::scope_guard::make_scope_guard(
+        auto call_end_source_file = ::gaia::common::scope_guard::make_scope_guard(
             [this] { TextDiagnosticPrinter::EndSourceFile(); });
 
         generate_rules(rewriter);
@@ -3632,12 +3615,22 @@ public:
             return;
         }
 
-        g_generated_subscription_code
-            += "namespace " + g_current_ruleset
-            + "{\nvoid subscribe_ruleset_" + g_current_ruleset + "()\n{\n" + g_current_ruleset_subscription + "}\n"
-            + "void unsubscribe_ruleset_" + g_current_ruleset + "()\n{\n" + g_current_ruleset_unsubscription + "}\n"
-            + "} // namespace " + g_current_ruleset + "\n"
-            + generate_general_subscription_code();
+        g_generated_subscription_code.append("namespace ");
+        g_generated_subscription_code.append(g_current_ruleset);
+        g_generated_subscription_code.append("{\nvoid subscribe_ruleset_");
+        g_generated_subscription_code.append(g_current_ruleset);
+        g_generated_subscription_code.append("()\n{\n");
+        g_generated_subscription_code.append(g_current_ruleset_subscription);
+        g_generated_subscription_code.append("}\n");
+        g_generated_subscription_code.append("void unsubscribe_ruleset_");
+        g_generated_subscription_code.append(g_current_ruleset);
+        g_generated_subscription_code.append("()\n{\n");
+        g_generated_subscription_code.append(g_current_ruleset_unsubscription);
+        g_generated_subscription_code.append("}\n");
+        g_generated_subscription_code.append("} // namespace ");
+        g_generated_subscription_code.append(g_current_ruleset);
+        g_generated_subscription_code.append("\n");
+        g_generated_subscription_code.append(generate_general_subscription_code());
 
         if (!m_rewriter->getSourceMgr().getDiagnostics().hasErrorOccurred() && !g_is_generation_error && !g_translation_engine_output_option.empty())
         {
@@ -3652,8 +3645,9 @@ public:
                 output_file << "#include \"gaia/events.hpp\"\n";
                 output_file << "#include \"gaia/rules/rules.hpp\"\n";
                 output_file << "\n";
-                for (const string& db : g_used_dbs)
+                for (const auto& db_iterator : g_used_dbs)
                 {
+                    const string& db = db_iterator.first();
                     if (db == catalog::c_empty_db_name)
                     {
                         output_file << "#include \"gaia.h\"\n";
@@ -3751,10 +3745,10 @@ int main(int argc, const char** argv)
 
     if (!g_instance_name.empty())
     {
-        gaia::db::config::session_options_t session_options = gaia::db::config::get_default_session_options();
+        ::gaia::db::config::session_options_t session_options = ::gaia::db::config::get_default_session_options();
         session_options.db_instance_name = g_instance_name.getValue();
         session_options.skip_catalog_integrity_check = false;
-        gaia::db::config::set_default_session_options(session_options);
+        ::gaia::db::config::set_default_session_options(session_options);
     }
 
     if (!compilation_database)

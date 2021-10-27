@@ -107,8 +107,7 @@ save_current_directory() {
     # Save the current directory so we can get back to it.
     if ! pushd . > "$TEMP_FILE" 2>&1;  then
         cat "$TEMP_FILE"
-        echo "Test script cannot save the current directory before proceeding with test execution."
-        complete_process 1
+        complete_process 1 "Test script cannot save the current directory before proceeding with test execution."
     fi
     DID_PUSHD=1
 }
@@ -123,15 +122,13 @@ create_results_directory() {
             # shellcheck disable=SC2115
             if ! rm -rf "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"/* > "$TEMP_FILE" 2>&1; then
                 cat "$TEMP_FILE"
-                echo "Test script cannot remove intermediate test results directory contents '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")' prior to test execution."
-                complete_process 1
+                complete_process 1 "Test script cannot remove intermediate test results directory contents '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")' prior to test execution."
             fi
         fi
         if [ -d "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY" ]; then
             if ! rmdir "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY" > "$TEMP_FILE" 2>&1; then
                 cat "$TEMP_FILE"
-                echo "Test script cannot remove intermediate test results directory '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")' prior to test execution."
-                complete_process 1
+                complete_process 1 "Test script cannot remove intermediate test results directory '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")' prior to test execution."
             fi
         fi
     fi

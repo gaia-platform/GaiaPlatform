@@ -645,7 +645,7 @@ StmtResult Parser::ParseLabeledStatement(ParsedAttributesWithRange &attrs) {
     }
   }
 
-  if (!Actions.ActOnStartLabel(IdentTok.getIdentifierInfo()->getName().str()))
+  if (!Actions.ActOnStartLabel(IdentTok.getIdentifierInfo()->getName()))
   {
     Diag(IdentTok.getLocation(), diag::err_incorrect_declarative_label_scope) << IdentTok.getIdentifierInfo()->getName();
     return StmtError();
@@ -2153,7 +2153,7 @@ StmtResult Parser::ParseContinueStatement() {
       SkipUntil(tok::semi, StopBeforeMatch);
       return StmtError();
     }
-    Actions.ActOnStartDeclarativeLabel(labelIdentifier->getName().str());
+    Actions.ActOnStartDeclarativeLabel(labelIdentifier->getName());
     auto statement = returnValue.getAs<ContinueStmt>();
     statement->setLabel(LD);
   }
@@ -2187,7 +2187,7 @@ StmtResult Parser::ParseBreakStatement() {
       SkipUntil(tok::semi, StopBeforeMatch);
       return StmtError();
     }
-    Actions.ActOnStartDeclarativeLabel(labelIdentifier->getName().str());
+    Actions.ActOnStartDeclarativeLabel(labelIdentifier->getName());
     auto statement = returnValue.getAs<BreakStmt>();
     statement->setLabel(LD);
   }

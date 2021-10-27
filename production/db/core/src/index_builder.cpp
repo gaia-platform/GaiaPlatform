@@ -191,8 +191,9 @@ void update_index_entry(
 
             // Index entries made by rolled back transactions or aborted transactions can be ignored,
             // We can also remove them, because we are already holding a lock.
+            bool is_aborted_operation = (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_aborted(commit_ts));
             if (transactions::txn_metadata_t::is_txn_terminated(begin_ts)
-                || (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_aborted(commit_ts)))
+                || is_aborted_operation)
             {
                 it_start = index_guard.get_index().erase(it_start);
                 continue;
@@ -202,12 +203,15 @@ void update_index_entry(
             // Updates that don't change the index key are harmless
             // and those that do change it are indicated as separate removals and insertions.
             // Hence, we only care about insertions and removals;
-            // The key exists if the last seen operation is not a committed removal.
-            // We ignore uncommitted removals, because if their transaction is aborted,
+            // The key exists if the last seen operation is not a committed removal
+            // or our own transaction's removal.
+            // We ignore uncommitted removals by other transactions,
+            // because if their transaction is aborted,
             // it would allow us to perform a duplicate insertion.
+            bool is_our_operation = (begin_ts == record.txn_id);
+            bool is_committed_operation = (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_committed(commit_ts));
             if (it_start->second.operation == index_record_operation_t::remove
-                && commit_ts != c_invalid_gaia_txn_id
-                && transactions::txn_metadata_t::is_txn_committed(commit_ts))
+                && (is_our_operation || is_committed_operation))
             {
                 has_found_duplicate_key = false;
             }
@@ -378,6 +382,24 @@ void index_builder_t::truncate_index_to_ts(common::gaia_id_t index_id, gaia_txn_
 void index_builder_t::update_indexes_from_logs(
     const txn_log_t& records, bool skip_catalog_integrity_check, bool allow_create_empty)
 {
+    // Clear the type_id_mapping cache (so it will be refreshed) if we find any
+    // table is created or dropped in the txn.
+    for (size_t i = 0; i < records.record_count; ++i)
+    {
+        const auto& log_record = records.log_records[i];
+        if ((log_record.operation == gaia_operation_t::remove || log_record.operation == gaia_operation_t::create)
+            && offset_to_ptr(
+                   log_record.operation == gaia_operation_t::remove
+                       ? log_record.old_offset
+                       : log_record.new_offset)
+                    ->type
+                == static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table))
+        {
+            type_id_mapping_t::instance().clear();
+            break;
+        }
+    }
+
     for (size_t i = 0; i < records.record_count; ++i)
     {
         auto& log_record = records.log_records[i];
@@ -392,12 +414,6 @@ void index_builder_t::update_indexes_from_logs(
         {
             obj = offset_to_ptr(log_record.new_offset);
             ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
-        }
-
-        // Flag the type_id_mapping cache to clear if any changes in the schema are detected.
-        if (obj->type == static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table))
-        {
-            type_id_mapping_t::instance().clear();
         }
 
         gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(obj->type);

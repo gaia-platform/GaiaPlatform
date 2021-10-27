@@ -192,7 +192,8 @@ gaia_id_t recovery_test::get_random_map_key(map<gaia_id_t, employee_copy_t> m)
 
 string recovery_test::generate_string(size_t length_in_bytes)
 {
-    auto randchar = []() -> char {
+    auto randchar = []() -> char
+    {
         const char charset[] = "0123456789"
                                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                "abcdefghijklmnopqrstuvwxyz";
@@ -617,7 +618,7 @@ TEST_F(recovery_test, reference_create_delete_test_new)
             else
             {
                 gaia_ptr_t child = gaia_ptr_t::open(child_id);
-                child.remove_parent_reference(parent_id, c_parent_doctor_offset);
+                child.remove_parent_reference(c_parent_doctor_offset);
             }
         }
         txn.commit();

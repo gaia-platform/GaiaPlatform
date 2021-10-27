@@ -99,9 +99,9 @@ To update the package, remove it and install the updated package:
 
 To build or run any solution that is based on the Gaia Platform, the Gaia server must be running .
 
-We recommend that you don't run gaia\_db\_server under the root user. As with any daemon process that is accessible to the outside, running the Database Server process as root, or any other account with special access rights, is a security risk. As best practice in production, run Gaia under a separate user account. This user account should only own the data that is managed by the server, and should not be used to run other daemons. For example, using the user `nobody` is not recommended.
+We recommend that you don't run gaia\_db\_server in production under the root user. As with any daemon process that is accessible to the outside, running the Database Server process as root, or any other privileged account, is a security risk. As a best practice in production, run Gaia under a separate user account. This user account should only own the data that is managed by the server, and should not be used to run other daemons. For example, using the user `nobody` is not recommended.
 
-To prevent a compromised server process from modifying the Gaia executables, the user account must not own the Gaia executable files.
+To prevent a compromised server process from modifying the Gaia executables, in production the user account should not own the Gaia executable files.
 
 Gaia server command line arguments:
 
@@ -112,20 +112,69 @@ Gaia server command line arguments:
 | --configuration-file-path \<config-file-name> | Specifies the location in which to store the Gaia configuration file.  |
 | --reinitialize-persistent-store | All previous changes to the database are deleted from persistent storage and will not be visible after the Database Server is started, Changes to the database made while the Database Server is running will be visible after it is restarted.  | 
 
+### Configuration settings
+
+#### Overcommit policy
+
+The Database Server can run normally with an overcommit policy value of 0 (heuristic overcommit), but might become unstable under rare conditions.
+
+To ensure stable performance under all conditions, we recommend changing the overcommit policy to 1 (always overcommit).
+
+To temporarily enable this policy, open a shell with root privileges and type the following command:
+
+```bash
+echo 1 > /proc/sys/vm/overcommit_memory
+```
+
+To permanently enable this policy:
+
+1. Open /etc/sysctl.conf in an editor with root privileges and add the line
+
+    vm.overcommit_memory=1
+
+2. Save the file, and in a shell with root privileges type
+
+    sysctl -p
+  
+#### Open file descriptor limit
+
+The Database Server requires a per-process open file descriptor limit of at least 65535.
+
+To temporarily set the minimum open file descriptor limit, open a shell with root privileges and type the following command:
+
+```bash
+  ulimit -n 65535
+```
+
+To permanently set the minimum open file descriptor limit:
+
+1. Open /etc/security/limits.conf in an editor with root privileges and add the following lines:
+    
+    ```
+    * soft nofile 65535
+    * hard nofile 65535
+    ```
+
+    **Note**: For enhanced security, replace the wild card '*' in these file entries with the user name of the account that is running the  Database Server.
+
+2. Save the file and start a new terminal session.
+
+### Starting the Gaia Database Server on a machine that supports systemd
+
 To start the server on a machine that supports systemd:
 
 ```bash
 sudo systemctl start gaia
 ```
 
-### Starting the Gaia server on Windows Subsystem for Linux (WSL)
+### Starting the Gaia Database Server on Windows Subsystem for Linux (WSL)
 
-When starting the Gaia server on WSL, use the --data-dir argument to specify the location in which to store the database. We recommend that you store it locally in ~/.local/gaia/db.
+When starting the Database Server on WSL, use the --data-dir argument to specify the location to store the database. We recommend that you create a separate database for each project.
 
-To start the server on Ubuntu and run it in the background on WSL2 (Gaia has not been tested on WSL1):
+To start the server on WSL2 running Ubuntu and run it in the background (Gaia has not been tested on WSL1):
 
 ```bash
-gaia_db_server --data-dir ~/.local/gaia/db &
+gaia_db_server --data-dir .<dbname> &
 ```
 
 ## Next Steps

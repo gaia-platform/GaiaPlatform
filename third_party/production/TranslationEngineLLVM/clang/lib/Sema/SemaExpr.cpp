@@ -5485,7 +5485,7 @@ ExprResult Sema::ActOnCallExpr(Scope *Scope, Expr *Fn, SourceLocation LParenLoc,
       return ExprError();
     }
 
-    const auto catalogTableData = getTableData(LParenLoc);
+    const auto& catalogTableData = getTableData();
     const auto catalogTableDataIterator = catalogTableData.find(tableName);
     if (catalogTableDataIterator == catalogTableData.end())
     {
@@ -5493,7 +5493,7 @@ ExprResult Sema::ActOnCallExpr(Scope *Scope, Expr *Fn, SourceLocation LParenLoc,
       return ExprError();
     }
     // Perform semantic check of parameters.
-    std::unordered_set<std::string> processed_parameters;
+    llvm::StringSet<> processed_parameters;
     for (unsigned i = 0; i != numberOfParameters; ++i)
     {
       const auto fieldDataIterator = catalogTableDataIterator->second.find(parameterNames[i]);

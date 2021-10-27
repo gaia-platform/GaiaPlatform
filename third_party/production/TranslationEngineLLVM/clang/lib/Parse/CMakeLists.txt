@@ -27,4 +27,6 @@ add_clang_library(clangParse
   clangBasic
   clangLex
   clangSema
+  gaia_system
   )
+target_include_directories(clangParse PRIVATE ${GAIA_INC})

@@ -212,14 +212,14 @@ public:
         m_message = message;
     }
 
-    static referential_integrity_violation drop_parent_table(
-        const std::string& parent_table,
-        const std::string& child_table)
+    static referential_integrity_violation drop_referenced_table(
+        const std::string& referenced_table,
+        const std::string& referencing_table)
     {
         std::stringstream message;
         message
-            << "Cannot drop table '" << parent_table
-            << "' because it is referenced by table '" << child_table << "'.";
+            << "Cannot drop table '" << referenced_table
+            << "' because it is referenced by table '" << referencing_table << "'.";
         return referential_integrity_violation{message.str()};
     }
 };
