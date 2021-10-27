@@ -107,6 +107,62 @@ public:
         txn.commit();
     }
 
+    void dump_db_json(FILE* object_log_file) override
+    {
+        begin_transaction();
+        fprintf(object_log_file,"{\n");
+
+        fprintf(object_log_file, "  \"stations\" : {");
+
+        bool is_first = true;
+        for (const station_t& i : station_t::list())
+        {
+            if (is_first)
+            {
+                is_first = false;
+            }
+            else
+            {
+                fprintf(object_log_file, ",\n");
+            }
+            fprintf(object_log_file, "  \"%hu\" : {\n", i.id());
+            fprintf(object_log_file, "    \"name\" : \"%s\"\n", g_station_name_map[i.id()]);
+            fprintf(object_log_file, "  }");
+        }
+
+        fprintf(object_log_file, "},\n  \"robots\" : {");
+
+        is_first = true;
+        for (const robot_t& i : robot_t::list())
+        {
+            if (is_first)
+            {
+                is_first = false;
+            }
+            else
+            {
+                fprintf(object_log_file, ",\n");
+            }
+            fprintf(object_log_file, "  \"%hu\" : {\n", i.id());
+            fprintf(object_log_file, "    \"station_id\" : %hd,\n", i.station_id());
+            fprintf(object_log_file, "    \"times_to_charging\" : %hd,\n", i.times_to_charging());
+            fprintf(object_log_file, "    \"target_times_to_charge\" : %hd\n", i.target_times_to_charge());
+            fprintf(object_log_file, "  }");
+        }
+
+        fprintf(object_log_file, "},\n  \"event_counts\" : {");
+
+        fprintf(object_log_file, "    \"bot_moving_to_station_event\" : %lu,\n", bot_moving_to_station_event_t::list().size());
+        fprintf(object_log_file, "    \"bot_arrived_event\" : %lu,\n", bot_arrived_event_t::list().size());
+        fprintf(object_log_file, "    \"payload_pick_up_event\" : %lu,\n", payload_pick_up_event_t::list().size());
+        fprintf(object_log_file, "    \"payload_drop_off_event\" : %lu\n", payload_drop_off_event_t::list().size());
+
+        fprintf(object_log_file, "}\n");
+
+        fprintf(object_log_file, "\n}\n");
+        commit_transaction();
+    }
+
     void setup_test_data(int required_iterations) override
     {
         auto robot_it = robot_t::list().where(robot_expr::id == c_sole_robot_id).begin();

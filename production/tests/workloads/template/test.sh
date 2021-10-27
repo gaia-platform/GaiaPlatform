@@ -390,9 +390,9 @@ execute_test_workflow() {
 
 
     # Make sure to calculate the runtime and store it in the `duration.json` file.
+    # Note: the Python Json reader cannot parse a floating point value that does not
+    #       have a `0` before it.  The `if` statement adds that required `0`.
     TEST_RUNTIME=$( echo "$TEST_END_MARK - $TEST_START_MARK" | bc -l )
-
-    echo "Test executed in $TEST_RUNTIME ms."
     if [[ "$TEST_RUNTIME" == .* ]] ; then
         TEST_RUNTIME=0$TEST_RUNTIME
     fi
@@ -409,11 +409,11 @@ execute_test_workflow() {
 
     # If there is an expected output file, figure out if the expected results and
     # the actual output match.
-    if [ -f "tests/$TEST_MODE/expected_output.json" ] && [ -f "$BUILD_DIRECTORY/output.json" ]; then
+    if [ -f "tests/$TEST_MODE/expected_output.json" ] && [ -f "$TEST_RESULTS_DIRECTORY/output.json" ]; then
         if [ "$VERBOSE_MODE" -ne 0 ]; then
             echo "Verifying expected results against actual results."
         fi
-        if ! diff -w "tests/$TEST_MODE/expected_output.json" "$BUILD_DIRECTORY/output.json" > "$TEST_RESULTS_DIRECTORY/expected.diff" 2>&1 ; then
+        if ! diff -w "tests/$TEST_MODE/expected_output.json" "$TEST_RESULTS_DIRECTORY/output.json" > "$TEST_RESULTS_DIRECTORY/expected.diff" 2>&1 ; then
             echo "Test results were not as expected."
             echo "Differences between expected and actual results located at: $(realpath "$TEST_RESULTS_DIRECTORY/expected.diff")"
             complete_process 6

@@ -1,0 +1,22 @@
+{
+  "stations" : {  "1" : {
+    "name" : "charging"
+  },
+  "2" : {
+    "name" : "outbound"
+  },
+  "3" : {
+    "name" : "inbound"
+  }},
+  "robots" : {  "1" : {
+    "station_id" : 1,
+    "times_to_charging" : 100,
+    "target_times_to_charge" : 100
+  }},
+  "event_counts" : {    "bot_moving_to_station_event" : 1,
+    "bot_arrived_event" : 0,
+    "payload_pick_up_event" : 0,
+    "payload_drop_off_event" : 0
+}
+
+}
