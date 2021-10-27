@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-#
 # Simple test suite to run the `smoke-time-only` with large step sizes.
 #
 # This test is specifically in place to determine how the platform scales

@@ -6,6 +6,7 @@
 #include "gaia_palletbox.h"
 #include "palletbox_constants.hpp"
 #include "simulation.hpp"
+#include "json.hpp"
 
 using namespace std;
 
@@ -17,6 +18,8 @@ using namespace gaia::simulation::exceptions;
 using namespace gaia::rules;
 
 using namespace gaia::palletbox;
+
+using json_t = nlohmann::json;
 
 typedef std::chrono::steady_clock my_clock;
 typedef my_clock::time_point my_time_point;
@@ -40,6 +43,8 @@ std::unordered_map<int, const char*> g_station_name_map = {
 
 class palletbox_simulation_t : public simulation_t
 {
+private:
+    static constexpr int c_default_json_indentation = 4;
 public:
     gaia_id_t insert_station(station_id_t station_id)
     {
@@ -107,59 +112,54 @@ public:
         txn.commit();
     }
 
+    json_t to_json(const station_t& station)
+    {
+        json_t json;
+        json["id"] = station.id();
+        json["name"] = g_station_name_map[station.id()];
+        return json;
+    }
+
+    static json_t to_json(const robot_t& robot)
+    {
+        json_t json;
+        json["id"] = robot.id();
+        json["station_id"] = robot.station_id();
+        json["times_to_charging"] = robot.times_to_charging();
+        json["target_times_to_charge"] = robot.target_times_to_charge();
+        return json;
+    }
+
+    static json_t to_json(const string& property_name, int property_value)
+    {
+        json_t json;
+        json[property_name] = property_value;
+        return json;
+    }
+
     void dump_db_json(FILE* object_log_file) override
     {
         begin_transaction();
-        fprintf(object_log_file,"{\n");
 
-        fprintf(object_log_file, "  \"stations\" : {");
-
-        bool is_first = true;
-        for (const station_t& i : station_t::list())
+        json_t json_document;
+        for (const station_t& station : station_t::list())
         {
-            if (is_first)
-            {
-                is_first = false;
-            }
-            else
-            {
-                fprintf(object_log_file, ",\n");
-            }
-            fprintf(object_log_file, "  \"%hu\" : {\n", i.id());
-            fprintf(object_log_file, "    \"name\" : \"%s\"\n", g_station_name_map[i.id()]);
-            fprintf(object_log_file, "  }");
+            json_document["stations"].push_back(to_json(station));
         }
-
-        fprintf(object_log_file, "},\n  \"robots\" : {");
-
-        is_first = true;
-        for (const robot_t& i : robot_t::list())
+        for (const robot_t& robot : robot_t::list())
         {
-            if (is_first)
-            {
-                is_first = false;
-            }
-            else
-            {
-                fprintf(object_log_file, ",\n");
-            }
-            fprintf(object_log_file, "  \"%hu\" : {\n", i.id());
-            fprintf(object_log_file, "    \"station_id\" : %hd,\n", i.station_id());
-            fprintf(object_log_file, "    \"times_to_charging\" : %hd,\n", i.times_to_charging());
-            fprintf(object_log_file, "    \"target_times_to_charge\" : %hd\n", i.target_times_to_charge());
-            fprintf(object_log_file, "  }");
+            json_document["robots"].push_back(to_json(robot));
         }
+        json_document["event_counts"].push_back(to_json(
+            "bot_moving_to_station_event", bot_moving_to_station_event_t::list().size()));
+        json_document["event_counts"].push_back(to_json(
+            "bot_arrived_event", bot_arrived_event_t::list().size()));
+        json_document["event_counts"].push_back(to_json(
+            "payload_pick_up_event", payload_pick_up_event_t::list().size()));
+        json_document["event_counts"].push_back(to_json(
+            "payload_drop_off_event", payload_drop_off_event_t::list().size()));
 
-        fprintf(object_log_file, "},\n  \"event_counts\" : {");
-
-        fprintf(object_log_file, "    \"bot_moving_to_station_event\" : %lu,\n", bot_moving_to_station_event_t::list().size());
-        fprintf(object_log_file, "    \"bot_arrived_event\" : %lu,\n", bot_arrived_event_t::list().size());
-        fprintf(object_log_file, "    \"payload_pick_up_event\" : %lu,\n", payload_pick_up_event_t::list().size());
-        fprintf(object_log_file, "    \"payload_drop_off_event\" : %lu\n", payload_drop_off_event_t::list().size());
-
-        fprintf(object_log_file, "}\n");
-
-        fprintf(object_log_file, "\n}\n");
+        fprintf(object_log_file, json_document.dump(c_default_json_indentation).c_str());
         commit_transaction();
     }
 
