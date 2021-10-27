@@ -254,7 +254,7 @@ void server_t::txn_begin(std::vector<int>& txn_log_fds_for_snapshot)
     ASSERT_INVARIANT(s_txn_id != c_invalid_gaia_txn_id, "Begin timestamp is invalid!");
 
     // Ensure that there are no undecided txns in our snapshot window.
-    gaia_txn_id_t pre_apply_watermark = get_watermark(watermark_t::pre_apply);
+    gaia_txn_id_t pre_apply_watermark = get_watermark(watermark_type_t::pre_apply);
     validate_txns_in_range(pre_apply_watermark + 1, s_txn_id);
 
     get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds_for_snapshot);
@@ -276,7 +276,7 @@ void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<
     // begin_ts, stopping either just before the saved watermark or at the first
     // commit_ts whose log fd has been invalidated. This avoids having our scan
     // race the concurrently advancing watermark.
-    gaia_txn_id_t post_apply_watermark = get_watermark(watermark_t::post_apply);
+    gaia_txn_id_t post_apply_watermark = get_watermark(watermark_type_t::post_apply);
     for (gaia_txn_id_t ts = begin_ts - 1; ts > post_apply_watermark; --ts)
     {
         if (txn_metadata_t::is_commit_ts(ts))
@@ -1990,7 +1990,7 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
 // NB: we use compare_exchange_weak() for the global update because we need to
 // retry anyway on concurrent updates, so tolerating spurious failures
 // requires no additional logic.
-bool server_t::advance_watermark(watermark_t watermark, gaia_txn_id_t ts)
+bool server_t::advance_watermark(watermark_type_t watermark, gaia_txn_id_t ts)
 {
     gaia_txn_id_t last_watermark_ts = get_watermark(watermark);
     do
@@ -2211,7 +2211,7 @@ void server_t::apply_txn_logs_to_shared_view()
 
     // Now get a snapshot of the pre-apply watermark,
     // for a lower bound on the scan.
-    gaia_txn_id_t pre_apply_watermark = get_watermark(watermark_t::pre_apply);
+    gaia_txn_id_t pre_apply_watermark = get_watermark(watermark_type_t::pre_apply);
 
     // Scan from the saved pre-apply watermark to the last known timestamp,
     // and apply all committed txn logs from the longest prefix of decided
@@ -2286,17 +2286,17 @@ void server_t::apply_txn_logs_to_shared_view()
         //
         // REVIEW: These loads could be relaxed, because a stale read could only
         // result in premature abort of the scan.
-        if (get_watermark(watermark_t::pre_apply) != prev_ts || get_watermark(watermark_t::post_apply) != prev_ts)
+        if (get_watermark(watermark_type_t::pre_apply) != prev_ts || get_watermark(watermark_type_t::post_apply) != prev_ts)
         {
             break;
         }
 
-        if (!advance_watermark(watermark_t::pre_apply, ts))
+        if (!advance_watermark(watermark_type_t::pre_apply, ts))
         {
             // If another thread has already advanced the watermark ahead of
             // this ts, we abort advancing it further.
             ASSERT_INVARIANT(
-                get_watermark(watermark_t::pre_apply) > pre_apply_watermark,
+                get_watermark(watermark_type_t::pre_apply) > pre_apply_watermark,
                 "The watermark must have advanced if advance_watermark() failed!");
 
             break;
@@ -2323,7 +2323,7 @@ void server_t::apply_txn_logs_to_shared_view()
         // Now we advance the post-apply watermark to catch up with the pre-apply watermark.
         // REVIEW: Because no other thread can concurrently advance the post-apply watermark,
         // we don't need a full CAS here.
-        bool has_advanced_watermark = advance_watermark(watermark_t::post_apply, ts);
+        bool has_advanced_watermark = advance_watermark(watermark_type_t::post_apply, ts);
 
         // No other thread should be able to advance the post-apply watermark,
         // because only one thread can advance the pre-apply watermark to this
@@ -2338,10 +2338,10 @@ void server_t::gc_applied_txn_logs()
     auto cleanup_fd = make_scope_guard([&]() { s_map_gc_chunks_to_versions.clear(); });
 
     // First get a snapshot of the post-apply watermark, for an upper bound on the scan.
-    gaia_txn_id_t post_apply_watermark = get_watermark(watermark_t::post_apply);
+    gaia_txn_id_t post_apply_watermark = get_watermark(watermark_type_t::post_apply);
 
     // Now get a snapshot of the post-GC watermark, for a lower bound on the scan.
-    gaia_txn_id_t post_gc_watermark = get_watermark(watermark_t::post_gc);
+    gaia_txn_id_t post_gc_watermark = get_watermark(watermark_type_t::post_gc);
 
     // Scan from the post-GC watermark to the post-apply watermark,
     // executing GC on any commit_ts if the log fd is valid (and the durable
@@ -2431,10 +2431,10 @@ void server_t::gc_applied_txn_logs()
 void server_t::update_txn_table_safe_truncation_point()
 {
     // First get a snapshot of the post-apply watermark, for an upper bound on the scan.
-    gaia_txn_id_t post_apply_watermark = get_watermark(watermark_t::post_apply);
+    gaia_txn_id_t post_apply_watermark = get_watermark(watermark_type_t::post_apply);
 
     // Now get a snapshot of the post-GC watermark, for a lower bound on the scan.
-    gaia_txn_id_t post_gc_watermark = get_watermark(watermark_t::post_gc);
+    gaia_txn_id_t post_gc_watermark = get_watermark(watermark_type_t::post_gc);
 
     // Scan from the post-GC watermark to the post-apply watermark,
     // advancing the post-GC watermark on any begin_ts, or any commit_ts that
@@ -2464,12 +2464,12 @@ void server_t::update_txn_table_safe_truncation_point()
             }
         }
 
-        if (!advance_watermark(watermark_t::post_gc, ts))
+        if (!advance_watermark(watermark_type_t::post_gc, ts))
         {
             // If another thread has already advanced the post-GC watermark
             // ahead of this ts, we abort advancing it further.
             ASSERT_INVARIANT(
-                get_watermark(watermark_t::post_gc) > post_gc_watermark,
+                get_watermark(watermark_type_t::post_gc) > post_gc_watermark,
                 "The watermark must have advanced if advance_watermark() failed!");
 
             break;

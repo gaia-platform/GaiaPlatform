@@ -182,25 +182,28 @@ private:
     // <= pre-apply watermark
     //    < commit timestamps of transactions not applied to shared view.
 
-    enum class watermark_t
+    enum class watermark_type_t
     {
         pre_apply,
         post_apply,
         post_gc,
-        member_count
+        // This should always be last.
+        count
     };
 
-    static inline std::array<std::atomic<gaia_txn_id_t>, common::get_enum_value(watermark_t::member_count)> s_watermarks{};
+    static inline std::array<std::atomic<gaia_txn_id_t>, common::get_enum_value(watermark_type_t::count)> s_watermarks{};
 
-    static inline gaia_txn_id_t get_watermark(watermark_t watermark)
+    static inline gaia_txn_id_t get_watermark(watermark_type_t watermark)
     {
         return s_watermarks[common::get_enum_value(watermark)].load();
     }
 
-    static inline std::atomic<gaia_txn_id_t>& get_watermark_entry(watermark_t watermark)
+    static inline std::atomic<gaia_txn_id_t>& get_watermark_entry(watermark_type_t watermark)
     {
         return s_watermarks[common::get_enum_value(watermark)];
     }
+
+    static bool advance_watermark(watermark_type_t watermark, gaia_txn_id_t ts);
 
 private:
     // A list of data mappings that we manage together.
@@ -325,8 +328,6 @@ private:
     static void gc_applied_txn_logs();
 
     static void update_txn_table_safe_truncation_point();
-
-    static bool advance_watermark(watermark_t watermark, gaia_txn_id_t ts);
 
     static gaia_txn_id_t submit_txn(gaia_txn_id_t begin_ts, int log_fd);
 
