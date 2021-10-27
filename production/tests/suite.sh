@@ -32,6 +32,13 @@ complete_process() {
         fi
     fi
 
+    if [ -n "$DB_SERVER_PID" ] ; then
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Killing started database server."
+        fi
+        kill "$DB_SERVER_PID"
+    fi
+
     if [ -n "$WORKLOAD_DIRECTORY" ] ; then
         if [ -f "$WORKLOAD_DIRECTORY/template.sh" ]; then
             if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -78,6 +85,8 @@ show_usage() {
     echo "  -l,--list           List all available suites for this project."
     echo "  -n,--no-stats       Do not display the statistics when the suite has completed."
     echo "  -j,--json           Display the statistics in JSON format."
+    echo "  -d,--database       Start a new instance of the database for the tests within the suite."
+    echo "  -p,--persistence    Start a new instance of the database with persistence enabled."
     echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
     echo "Arguments:"
@@ -119,6 +128,8 @@ parse_command_line() {
     LIST_MODE=0
     SHOW_STATS=1
     SHOW_JSON_STATS=0
+    START_DATABASE=0
+    START_DATABASE_WITH_PERSISTENCE=0
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
@@ -136,6 +147,15 @@ parse_command_line() {
         ;;
         -n|--no-stats)
             SHOW_STATS=0
+            shift
+        ;;
+        -d|--database)
+            START_DATABASE=1
+            shift
+        ;;
+        -p|--persistence)
+            START_DATABASE=1
+            START_DATABASE_WITH_PERSISTENCE=1
             shift
         ;;
         -v|--verbose)
@@ -202,6 +222,56 @@ clear_suite_output() {
         if ! mkdir "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY" > "$TEMP_FILE" 2>&1; then
             cat "$TEMP_FILE"
             complete_process 1 "Suite script cannot create suite results directory '$(realpath "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY")' prior to suite execution."
+        fi
+    fi
+}
+
+start_database_if_required() {
+    if [ "$START_DATABASE" -ne 0 ]; then
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Creating a new database instance for the test suite."
+        fi
+        SERVER_PID=$(pgrep "gaia_db_server")
+        if [[ -n $SERVER_PID ]] ; then
+            complete_process 1 "Test suite specified a new database, but one is already running. Stop that database before trying again."
+        fi
+
+        if [ -d "$SUITE_RESULTS_DIRECTORY/dbdir" ] ; then
+            if ! rm -rf "$SUITE_RESULTS_DIRECTORY/dbdir" > "$TEMP_FILE" 2>&1 ; then
+                cat $TEMP_FILE
+                complete_process 1 "Cannot remove the old database directory before starting the new database."
+            fi
+        fi
+
+        PERSISTENCE_FLAG="--persistence disabled"
+        if [ $START_DATABASE_WITH_PERSISTENCE -ne 0 ] ; then
+            if ! mkdir $SUITE_RESULTS_DIRECTORY/dbdir > "$TEMP_FILE" 2>&1 ; then
+                cat $TEMP_FILE
+                complete_process 1 "Cannot create the requested database directory."
+            fi
+
+            PERSISTENCE_FLAG="--persistence enabled --data-dir $SUITE_RESULTS_DIRECTORY/dbdir"
+        fi
+
+        gaia_db_server $PERSISTENCE_FLAG > "$SUITE_RESULTS_DIRECTORY/database.log" 2>&1 &
+        # shellcheck disable=SC2181
+        if [ $? -ne 0 ] ; then
+            cat "$SUITE_RESULTS_DIRECTORY/database.log"
+            complete_process 1 "Cannot start the requested database."
+        fi
+
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Pausing for 5 seconds before verifying that the new database is responsive."
+        fi
+        sleep 5
+        SERVER_PID=$(pgrep "gaia_db_server")
+        if [[ -z $SERVER_PID ]] ; then
+            cat "$SUITE_RESULTS_DIRECTORY/database.log"
+            complete_process 1 "Newly started database was not responsive.  Cannot continue the test suite without a database."
+        fi
+        DB_SERVER_PID=$SERVER_PID
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Creating a new database instance for the test suite."
         fi
     fi
 }
@@ -466,6 +536,7 @@ DID_PUSHD=0
 DID_PUSHD_FOR_BUILD=0
 DID_REPORT_START=0
 WORKLOAD_DIRECTORY=
+DB_SERVER_PID=
 
 # Parse any command line values.
 parse_command_line "$@"
@@ -484,6 +555,8 @@ start_process
 save_current_directory
 
 clear_suite_output
+
+start_database_if_required
 
 install_and_build_cleanly
 
