@@ -117,7 +117,7 @@ bool gaia_db_extract_initialize()
     return s_cache_initialized;
 }
 
-string gaia_db_extract(string database, string table, uint64_t start_after, uint32_t row_limit)
+static string dump_catalog()
 {
     stringstream catalog_dump;
     json_t json;
@@ -137,22 +137,60 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
         json["databases"].push_back(to_json(db));
     }
 
-    // If a database and table have been specified, move ahead to extract the row data.
-    if (database.size() == 0 || table.size() == 0)
+    commit_transaction();
+
+    catalog_dump << json.dump(c_default_json_indentation);
+    auto return_string = catalog_dump.str();
+    if (!return_string.compare("null"))
     {
-        commit_transaction();
-        catalog_dump << json.dump(c_default_json_indentation);
-        auto return_string = catalog_dump.str();
-        if (!return_string.compare("null"))
-        {
-            return "{}";
-        }
-        else
-        {
-            return return_string;
-        }
+        return "{}";
+    }
+    else
+    {
+        return return_string;
+    }
+}
+
+// Select the correct data_holder_t element from which to pull the field value.
+static bool add_field_value(json_t& row, const gaia_field_t& field_object, const data_holder_t& value)
+{
+    auto field_name = field_object.name();
+    switch (value.type)
+    {
+    case reflection::String:
+        row[field_name] = value.hold.string_value;
+        break;
+
+    case reflection::Float:
+    case reflection::Double:
+        row[field_name] = value.hold.float_value;
+        break;
+
+    // The remainder are integers.
+    case reflection::Bool:
+    case reflection::Byte:
+    case reflection::UByte:
+    case reflection::Short:
+    case reflection::UShort:
+    case reflection::Int:
+    case reflection::UInt:
+    case reflection::Long:
+    case reflection::ULong:
+        row[field_name] = value.hold.integer_value;
+        break;
+
+    default:
+        fprintf(stderr, "Unhandled data_holder_t type '%d'.\n", value.type);
+        return false;
     }
 
+    return true;
+}
+
+// Scan the database for rows within the database and table requested. Dump rows into JSON
+// format, potentially restricted by start_after and row_limit parameters.
+static string dump_rows(string database, string table, uint64_t start_after, uint32_t row_limit)
+{
     bool terminate = false;
     table_iterator_t table_iterator;
     stringstream row_dump;
@@ -160,83 +198,59 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
 
     if (!s_cache_initialized)
     {
-        fprintf(stderr, "API not initialized. Call gaia_db_extract_initialize first.\n");
+        fprintf(stderr, "API not initialized. Call gaia_db_extract_initialize() first.\n");
         return "{}";
     }
 
-    for (auto& json_databases : json["databases"])
+    begin_transaction();
+
+    // Locate the requested database.
+    for (const auto& database_object : gaia_database_t::list().where(gaia_database_expr::name == database))
     {
-        if (!json_databases["name"].get<string>().compare(database))
+        // Make sure the requested table is in this databaser..
+        for (const auto& table_object : database_object.gaia_tables().where(gaia_table_expr::name == table))
         {
-            for (auto& json_tables : json_databases["tables"])
+            gaia_type_t table_type = table_object.type();
+            if (!table_iterator.initialize_scan(table_type, start_after))
             {
-                if (!json_tables["name"].get<string>().compare(table))
+                terminate = true;
+                break;
+            }
+
+            // Top level of the JSON document, contains database and table names.
+            rows["database"] = database;
+            rows["table"] = table;
+
+            while (!table_iterator.has_scan_ended())
+            {
+                // Note that a row_limit of -1 means "unlimited", so it will never be 0.
+                if (row_limit-- == 0)
                 {
-                    gaia_type_t table_type = json_tables["type"].get<uint32_t>();
-                    if (!table_iterator.initialize_scan(table_type, start_after))
-                    {
-                        terminate = true;
-                        break;
-                    }
-                    rows["database"] = database;
-                    rows["table"] = table;
-                    while (!table_iterator.has_scan_ended())
-                    {
-                        // Note that a row_limit of -1 means "unlimited", so it will never be 0.
-                        if (row_limit-- == 0)
-                        {
-                            terminate = true;
-                            break;
-                        }
-                        json_t row;
-                        for (auto& field : json_tables["fields"])
-                        {
-                            auto value = table_iterator.extract_field_value(field["repeated_count"].get<uint16_t>(), field["position"].get<uint32_t>());
-                            auto field_type = field["type"].get<string>();
-                            auto field_name = field["name"].get<string>();
-                            row["row_id"] = table_iterator.gaia_id();
-                            switch (value.type)
-                            {
-                            case reflection::String:
-                                row[field_name] = value.hold.string_value;
-                                break;
-
-                            case reflection::Float:
-                            case reflection::Double:
-                                row[field_name] = value.hold.float_value;
-                                break;
-
-                            // The remainder are integers.
-                            case reflection::Bool:
-                            case reflection::Byte:
-                            case reflection::UByte:
-                            case reflection::Short:
-                            case reflection::UShort:
-                            case reflection::Int:
-                            case reflection::UInt:
-                            case reflection::Long:
-                            case reflection::ULong:
-                                row[field_name] = value.hold.integer_value;
-                                break;
-
-                            default:
-                                fprintf(stderr, "Unhandled data_holder_t type '%d'.\n", value.type);
-                                break;
-                            }
-                        }
-                        rows["rows"].push_back(row);
-                        table_iterator.scan_forward();
-                    }
-                    if (terminate)
-                    {
-                        break;
-                    }
+                    terminate = true;
+                    break;
                 }
+
+                json_t row;
+                for (const auto& field_object : table_object.gaia_fields())
+                {
+                    // Pull one field value out of the database and included it in the JSON row object.
+                    auto value = table_iterator.extract_field_value(field_object.repeated_count(), field_object.position());
+                    add_field_value(row, field_object, value);
+                }
+                row["row_id"] = table_iterator.gaia_id();
+                rows["rows"].push_back(row);
+
+                // Next row.
+                table_iterator.scan_forward();
             }
             if (terminate)
             {
                 break;
             }
+        }
+        if (terminate)
+        {
+            break;
         }
     }
 
@@ -251,6 +265,24 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
     else
     {
         return return_string;
+    }
+}
+
+string gaia_db_extract(string database, string table, uint64_t start_after, uint32_t row_limit)
+{
+    // Select the document. Either the catalog (no parameters) or table rows (database and table parameters).
+    if (database.size() == 0 && table.size() == 0)
+    {
+        return dump_catalog();
+    }
+    else if (database.size() > 0 && table.size() > 0)
+    {
+        return dump_rows(database, table, start_after, row_limit);
+    }
+    else
+    {
+        fprintf(stderr, "Must have both database name and table name to extract row data.\n");
+        return "{}";
     }
 }
 

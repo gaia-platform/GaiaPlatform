@@ -107,13 +107,6 @@ int main(int argc, char* argv[])
         }
     }
 
-    if ((database.size() && !table.size()) || (!database.size() && table.size()))
-    {
-        fprintf(stderr, "Must have both database name and table name to extract row data.\n");
-        cout << "{}" << endl;
-        exit(1);
-    }
-
     try
     {
         gaia::db::begin_session();
@@ -142,7 +135,7 @@ int main(int argc, char* argv[])
     }
     catch (gaia_exception& e)
     {
-        fprintf(stderr, "Failure generating JSON: '%s'\n", e.what());
+        fprintf(stderr, "Exception while generating JSON: '%s'\n", e.what());
     }
 
     gaia::db::end_session();
