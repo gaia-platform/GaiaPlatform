@@ -270,7 +270,7 @@ void delete_all_records()
     // }
 
     // The following is an approach that works to delete all the records:
-    for (auto& doctor = *doctor_t::list().begin();
+    for (auto doctor = *doctor_t::list().begin();
          doctor;
          doctor = *doctor_t::list().begin())
     {
@@ -775,7 +775,7 @@ void use_dac_object_across_transactions()
     PRINT_METHOD_NAME();
 
     // First transaction.
-    auto_transaction_t txn{false};
+    auto_transaction_t txn{auto_transaction_t::no_auto_begin};
     doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House", "house@md.com"));
     txn.commit();
 
@@ -800,21 +800,21 @@ void use_dac_object_across_transactions()
  */
 void clean_db()
 {
-    for (auto& doctor = *doctor_t::list().begin();
+    for (auto doctor = *doctor_t::list().begin();
          doctor; doctor = *doctor_t::list().begin())
     {
         doctor.patients().clear();
         doctor.delete_row();
     }
 
-    for (auto& patient = *patient_t::list().begin();
+    for (auto patient = *patient_t::list().begin();
          patient; patient = *patient_t::list().begin())
     {
         patient.address().disconnect();
         patient.delete_row();
     }
 
-    for (auto& address = *address_t::list().begin();
+    for (auto address = *address_t::list().begin();
          address; address = *address_t::list().begin())
     {
         address.delete_row();
@@ -825,9 +825,9 @@ int main()
 {
     gaia::system::initialize();
 
-    // The false params prevent to begin a new transaction
+    // The no_auto_begin params prevent to begin a new transaction
     // when the current one is committed.
-    gaia::direct_access::auto_transaction_t txn{false};
+    auto_transaction_t txn{auto_transaction_t::no_auto_begin};
 
     clean_db();
 

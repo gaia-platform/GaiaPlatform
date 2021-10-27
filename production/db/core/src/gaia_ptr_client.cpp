@@ -562,7 +562,7 @@ void gaia_ptr_t::auto_connect_to_parent(
             // record, we need to disconnect them.
             if (!has_connected)
             {
-                gaia_ptr_t child_ptr(child_id);
+                gaia_ptr_t child_ptr = gaia_ptr_t::open(child_id);
                 reference_offset_t parent_offset = relationship_view.parent_offset();
                 child_ptr.remove_parent_reference(parent_offset);
             }
