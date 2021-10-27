@@ -187,7 +187,6 @@ private:
         pre_apply,
         post_apply,
         post_gc,
-        pre_truncate,
         member_count
     };
 
