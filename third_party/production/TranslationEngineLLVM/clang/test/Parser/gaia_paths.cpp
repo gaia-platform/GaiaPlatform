@@ -104,7 +104,7 @@ ruleset test103
 ruleset test136
 {
     {
-        while (/incubator) // expected-error {{value of type 'incubator__type' is not contextually convertible to 'bool'}}
+        while (/incubator)
         {
         }
     }
@@ -139,7 +139,7 @@ ruleset test130
 ruleset test131
 {
     {
-        if (farmer->yield) // expected-error {{value of type 'yield__type' is not contextually convertible to 'bool'}}
+        if (farmer->yield)
         {}
     }
 }
