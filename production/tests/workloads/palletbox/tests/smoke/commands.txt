@@ -7,6 +7,8 @@
 #D
 # Turn off transaction mode for the pause.
 p
+# Initialize the system to test with 1 set of stations/bots
+i1
 # Wait 5 milliseconds to allow the turn on effects to finish.
 w5
 # Take 1000 steps.

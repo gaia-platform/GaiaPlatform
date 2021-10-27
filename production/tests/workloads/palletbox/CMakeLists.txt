@@ -34,6 +34,7 @@ translate_ruleset(RULESET_FILE ${PALLETBOX_RULESET})
 
 add_executable(palletbox
     palletbox.cpp
+    simulation.cpp
 )
 
 target_add_gaia_generated_sources(palletbox)

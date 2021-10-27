@@ -467,7 +467,6 @@ DID_PUSHD_FOR_BUILD=0
 DID_REPORT_START=0
 WORKLOAD_DIRECTORY=
 
-
 # Parse any command line values.
 parse_command_line "$@"
 

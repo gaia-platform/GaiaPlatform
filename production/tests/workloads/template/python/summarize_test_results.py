@@ -267,7 +267,6 @@ def __load_test_result_files(suite_test_directory, test_configuration_file):
 
 # pylint: enable=too-many-locals
 
-
 def __dump_results_dictionary(output_directory, full_test_results):
     """
     Dump the full_test_results dictionary as a JSON file.
