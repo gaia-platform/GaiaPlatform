@@ -43,7 +43,7 @@ target_include_directories(
     ${PROJECT_SOURCE_DIR}
   PRIVATE
     ${GAIA_INC})
-target_link_libraries(palletbox ${GAIA_LIB})
+target_link_libraries(palletbox gaia)
 
 #if(ENABLE_STACKTRACE)
 #    target_link_libraries(palletbox PRIVATE gaia_stack_trace)
