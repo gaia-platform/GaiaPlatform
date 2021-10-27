@@ -78,6 +78,10 @@ process_debug() {
     local COMMAND_FILE=$1
     local SCRIPT_STOP_PAUSE=$2
 
+    echo "---"
+    echo "Application Log"
+    echo "---"
+
     if ! "$EXECUTABLE_PATH" debug "$SCRIPT_STOP_PAUSE" < "$COMMAND_FILE" > "$JSON_OUTPUT"; then
         cat "$JSON_OUTPUT"
         echo "Execution of the executable $EXECUTABLE_PATH in debug mode failed."
@@ -87,6 +91,12 @@ process_debug() {
     tail -n 1 "$JSON_OUTPUT" > "$STOP_OUTPUT"
     head -n -1 "$JSON_OUTPUT" > $TEST_DIRECTORY/blah
     cp $TEST_DIRECTORY/blah "$JSON_OUTPUT"
+
+    echo "---"
+    echo "Application Standard Out"
+    echo "---"
+    cat "$JSON_OUTPUT"
+    echo "---"
 }
 
 # Process a debug command which executes a file containing commands

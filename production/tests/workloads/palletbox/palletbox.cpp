@@ -6,6 +6,7 @@
 #include "gaia_palletbox.h"
 #include "palletbox_constants.hpp"
 #include "simulation.hpp"
+#include "json.hpp"
 
 using namespace std;
 
@@ -17,6 +18,8 @@ using namespace gaia::simulation::exceptions;
 using namespace gaia::rules;
 
 using namespace gaia::palletbox;
+
+using json_t = nlohmann::json;
 
 typedef std::chrono::steady_clock my_clock;
 typedef my_clock::time_point my_time_point;
@@ -40,6 +43,8 @@ std::unordered_map<int, const char*> g_station_name_map = {
 
 class palletbox_simulation_t : public simulation_t
 {
+private:
+    static constexpr int c_default_json_indentation = 4;
 public:
     gaia_id_t insert_station(station_id_t station_id)
     {
@@ -105,6 +110,57 @@ public:
         auto pallet_bot = robot_t::get(insert_robot(c_sole_robot_id));
         charging_station.robots().connect(pallet_bot);
         txn.commit();
+    }
+
+    json_t to_json(const station_t& station)
+    {
+        json_t json;
+        json["id"] = station.id();
+        json["name"] = g_station_name_map[station.id()];
+        return json;
+    }
+
+    static json_t to_json(const robot_t& robot)
+    {
+        json_t json;
+        json["id"] = robot.id();
+        json["station_id"] = robot.station_id();
+        json["times_to_charging"] = robot.times_to_charging();
+        json["target_times_to_charge"] = robot.target_times_to_charge();
+        return json;
+    }
+
+    static json_t to_json(const string& property_name, int property_value)
+    {
+        json_t json;
+        json[property_name] = property_value;
+        return json;
+    }
+
+    void dump_db_json(FILE* object_log_file) override
+    {
+        begin_transaction();
+
+        json_t json_document;
+        for (const station_t& station : station_t::list())
+        {
+            json_document["stations"].push_back(to_json(station));
+        }
+        for (const robot_t& robot : robot_t::list())
+        {
+            json_document["robots"].push_back(to_json(robot));
+        }
+        json_document["event_counts"].push_back(to_json(
+            "bot_moving_to_station_event", bot_moving_to_station_event_t::list().size()));
+        json_document["event_counts"].push_back(to_json(
+            "bot_arrived_event", bot_arrived_event_t::list().size()));
+        json_document["event_counts"].push_back(to_json(
+            "payload_pick_up_event", payload_pick_up_event_t::list().size()));
+        json_document["event_counts"].push_back(to_json(
+            "payload_drop_off_event", payload_drop_off_event_t::list().size()));
+
+        fprintf(object_log_file, json_document.dump(c_default_json_indentation).c_str());
+        commit_transaction();
     }
 
     void setup_test_data(int required_iterations) override

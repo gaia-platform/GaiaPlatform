@@ -221,6 +221,9 @@ bool simulation_t::handle_main()
         case c_cmd_initialize:
             handle_initialize("");
             break;
+        case c_cmd_state:
+            dump_db_json(m_object_log_file);
+            break;
         default:
             printf("Wrong input: %c\n", m_command_input_line[0]);
             break;

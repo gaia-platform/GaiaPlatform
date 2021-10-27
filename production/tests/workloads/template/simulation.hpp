@@ -54,6 +54,7 @@ private:
     static constexpr char c_cmd_wait = 'w';
     static constexpr char c_cmd_test = 't';
     static constexpr char c_cmd_initialize = 'i';
+    static constexpr char c_cmd_state = 's';
 
     // Collected times of various points in the simulation.
     double m_explicit_wait_time_in_microseconds = 0.0;
