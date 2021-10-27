@@ -2499,19 +2499,30 @@ void server_t::truncate_txn_table()
         }
     }
 
-    // Now compute a safe truncation timestamp and attempt to advance the
-    // pre-truncate watermark.
-
     // Get a snapshot of the pre-truncate watermark before advancing it.
     gaia_txn_id_t prev_pre_truncate_watermark = get_watermark(watermark_t::pre_truncate);
 
+    // Compute a safe truncation timestamp.
     gaia_txn_id_t new_pre_truncate_watermark = get_safe_truncation_ts();
+
+    // Abort if the safe truncation timestamp does not exceed the current
+    // pre-truncate watermark.
+    // NB: It is expected that the safe truncation timestamp can be behind the
+    // pre-truncate watermark, because some published (but not fully reserved)
+    // safe_ts entries may have been behind the pre-truncate watermark when they
+    // were published (and will later fail validation).
+    if (new_pre_truncate_watermark <= prev_pre_truncate_watermark)
+    {
+        return;
+    }
+
+    // Try to advance the pre-truncate watermark.
     if (!advance_watermark(watermark_t::pre_truncate, new_pre_truncate_watermark))
     {
-        // Abort if another thread has already advanced the pre-truncate
-        // watermark ahead of our safe truncation timestamp.
+        // Abort if another thread has concurrently advanced the pre-truncate
+        // watermark, to avoid contention.
         ASSERT_INVARIANT(
-            get_watermark(watermark_t::pre_truncate) > new_pre_truncate_watermark,
+            get_watermark(watermark_t::pre_truncate) > prev_pre_truncate_watermark,
             "The watermark must have advanced if advance_watermark() failed!");
 
         return;
