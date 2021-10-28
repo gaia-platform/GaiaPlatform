@@ -15,14 +15,49 @@ using namespace gaia::common;
 using namespace gaia::tools::db_extract;
 using namespace std;
 
-constexpr char c_start_string[] = "--start-after";
-const int c_start_length = strlen(c_start_string);
-constexpr char c_row_limit_string[] = "--row-limit";
-const int c_row_limit_length = strlen(c_row_limit_string);
-constexpr char c_database_string[] = "--database";
-const int c_database_length = strlen(c_database_string);
-constexpr char c_table_string[] = "--table";
-const int c_table_length = strlen(c_table_string);
+constexpr char c_start_string[] = "start-after";
+constexpr char c_row_limit_string[] = "row-limit";
+constexpr char c_database_string[] = "database";
+constexpr char c_table_string[] = "table";
+
+// Command-line usage.
+static void usage()
+{
+    fprintf(stderr, "Usage: gaia_db_extract [--database=<dbname>] [--table=<tableneme>] [--start-after=ID] [--row-limit=N]\n");
+    fprintf(stderr, "  No parameters: dump catalog.\n");
+    fprintf(stderr, "  Else dump rows specified by database/table name, limited by start-after and row-limit.\n");
+}
+
+// Break a command-line parameter into its pieces.
+static bool parse_arg(int argc, char* argv[], int& arg, string& key, string& value)
+{
+    if (strncmp(argv[arg], "--", 2))
+    {
+        fprintf(stderr, "Incorrect command-line parameter: %s\n", argv[arg]);
+        return false;
+    }
+
+    key = string(argv[arg] + 2);
+    auto pos = key.find('=');
+    if (pos != string::npos)
+    {
+        // It's one argv with an equals sign.
+        value = key.substr(pos + 1);
+        key = key.substr(0, pos);
+    }
+    else
+    {
+        // It's two argv's, and the value is the next one.
+        if (++arg >= argc)
+        {
+            fprintf(stderr, "Missing a parameter value\n");
+            return false;
+        }
+        value = string(argv[arg]);
+    }
+
+    return true;
+}
 
 int main(int argc, char* argv[])
 {
@@ -33,78 +68,57 @@ int main(int argc, char* argv[])
 
     // Usage:
     //  gaia_db_extract --database=<dbmame> --table=<tablename> --start-after=ID --row-limit=N
-    //  when no database/table specified, dump catalog
+    //    When no database/table specified, dump catalog.
+    bool failed_command_line = false;
+    string key;
+    string value;
     for (auto i = 1; i < argc; i++)
     {
-        string arg(argv[i]);
-
-        if (!arg.compare(0, c_start_length, c_start_string))
+        if (!parse_arg(argc, argv, i, key, value))
         {
-            if (arg.length() == c_start_length)
-            {
-                start_after = atoi(argv[++i]);
-            }
-            else
-            {
-                // Allow for equals sign form (--start-after=12). One arg rather than two.
-                start_after = atoi(arg.substr(c_start_length + 1).c_str());
-            }
-            if (start_after < 1)
-            {
-                fprintf(stderr, "Illegal value for start_after. It must be 1 or greater\n");
-                cout << "{}" << endl;
-                exit(1);
-            }
-        }
-        else if (!arg.compare(0, c_row_limit_length, c_row_limit_string))
-        {
-            if (arg.length() == c_row_limit_length)
-            {
-                row_limit = atoi(argv[++i]);
-            }
-            else
-            {
-                // Allow for equals sign form (--row-limit=12). One arg rather than two.
-                row_limit = atoi(arg.substr(c_row_limit_length + 1).c_str());
-            }
-            if (row_limit < 1)
-            {
-                fprintf(stderr, "Illegal value for row_limit. It must be 1 or greater\n");
-                cout << "{}" << endl;
-                exit(1);
-            }
-        }
-        else if (!arg.compare(0, c_database_length, c_database_string))
-        {
-            if (arg.length() == c_database_length)
-            {
-                database = string(argv[++i]);
-            }
-            else
-            {
-                // Allow for equals sign form (--row-limit=12). One arg rather than two.
-                database = arg.substr(c_database_length + 1);
-            }
-        }
-        else if (!arg.compare(0, c_table_length, c_table_string))
-        {
-            if (arg.length() == c_table_length)
-            {
-                table = string(argv[++i]);
-            }
-            else
-            {
-                // Allow for equals sign form (--row-limit=12). One arg rather than two.
-                table = arg.substr(c_table_length + 1);
-            }
+            failed_command_line = true;
         }
         else
         {
-            fprintf(stderr, "Invalid command-row option: '%s'\n", argv[i]);
-            fprintf(stderr, "Usage: gaia_db_extract [--database=<dbname>] [--table=<tableneme>] [--start-after=ID] [--row-limit=N]\n");
-            cout << "{}" << endl;
-            exit(1);
+            if (!key.compare(c_start_string))
+            {
+                start_after = atoi(value.c_str());
+                if (start_after < 1)
+                {
+                    fprintf(stderr, "Illegal value for start_after. It must be 1 or greater\n");
+                    failed_command_line = true;
+                }
+            }
+            else if (!key.compare(c_row_limit_string))
+            {
+                row_limit = atoi(value.c_str());
+                if (row_limit < 1)
+                {
+                    fprintf(stderr, "Illegal value for row_limit. It must be 1 or greater\n");
+                    failed_command_line = true;
+                }
+            }
+            else if (!key.compare(c_database_string))
+            {
+                database = value;
+            }
+            else if (!key.compare(c_table_string))
+            {
+                table = value;
+            }
+            else
+            {
+                fprintf(stderr, "Invalid command-line option: '%s'\n", key.c_str());
+                failed_command_line = true;
+            }
         }
+    }
+
+    if (failed_command_line)
+    {
+        usage();
+        cout << "{}" << endl;
+        exit(EXIT_FAILURE);
     }
 
     try
@@ -113,9 +127,10 @@ int main(int argc, char* argv[])
     }
     catch (gaia_exception& e)
     {
+        // This is usually because there is no server running.
         fprintf(stderr, "Startup failure, exception: '%s'\n", e.what());
         cout << "{}" << endl;
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     // Return an empty JSON document on failure.
@@ -141,4 +156,6 @@ int main(int argc, char* argv[])
     gaia::db::end_session();
 
     cout << extracted_data << endl;
+
+    exit(EXIT_SUCCESS);
 }
