@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+// RUN: %gaiat %s --
 
 ruleset test1
 {
@@ -11,9 +11,6 @@ ruleset test1
     {
         if (incubator)
         {
-            farmer.acreage++;
         }
     }
 }
-
-// CHECK: value of type 'incubator__type' is not contextually convertible to 'bool'

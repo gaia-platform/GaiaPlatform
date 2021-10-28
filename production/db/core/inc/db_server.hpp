@@ -188,26 +188,29 @@ private:
     //    < commit timestamp of transaction partially applied to shared view
     // <= pre-apply watermark
     //    < commit timestamps of transactions not applied to shared view.
-    enum class watermark_t
+
+    enum class watermark_type_t
     {
         pre_apply,
         post_apply,
         post_gc,
         pre_truncate,
-        member_count
+        count
     };
 
-    static inline std::array<std::atomic<gaia_txn_id_t>, common::get_enum_value(watermark_t::member_count)> s_watermarks{};
+    static inline std::array<std::atomic<gaia_txn_id_t>, common::get_enum_value(watermark_type_t::count)> s_watermarks{};
 
-    static inline gaia_txn_id_t get_watermark(watermark_t watermark)
+    static inline gaia_txn_id_t get_watermark(watermark_type_t watermark)
     {
         return s_watermarks[common::get_enum_value(watermark)].load();
     }
 
-    static inline std::atomic<gaia_txn_id_t>& get_watermark_entry(watermark_t watermark)
+    static inline std::atomic<gaia_txn_id_t>& get_watermark_entry(watermark_type_t watermark)
     {
         return s_watermarks[common::get_enum_value(watermark)];
     }
+
+    static bool advance_watermark(watermark_type_t watermark, gaia_txn_id_t ts);
 
     // A "publication list" in which each session thread publishes a "safe
     // timestamp" that it needs to protect from txn table truncation. This is
@@ -389,8 +392,6 @@ private:
     static void gc_applied_txn_logs();
 
     static void truncate_txn_table();
-
-    static bool advance_watermark(watermark_t watermark, gaia_txn_id_t ts);
 
     static gaia_txn_id_t submit_txn(gaia_txn_id_t begin_ts, int log_fd);
 
@@ -605,7 +606,7 @@ private:
     class safe_watermark_t
     {
     public:
-        inline explicit safe_watermark_t(watermark_t watermark)
+        inline explicit safe_watermark_t(watermark_type_t watermark)
         {
             // Retry until we have a valid safe_ts for the current value of
             // the watermark.

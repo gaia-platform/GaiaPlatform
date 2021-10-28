@@ -18,4 +18,3 @@ o
 # Print out final state, just to keep things honest.
 s
 # end
-

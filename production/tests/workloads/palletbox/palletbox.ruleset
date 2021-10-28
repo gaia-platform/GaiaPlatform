@@ -3,12 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <atomic>
-#include <algorithm>
+#include "simulation.hpp"
 
-#include "gaia/logger.hpp"
+#include "palletbox_constants.hpp"
 
-#include "constants.hpp"
 #include "gaia_palletbox.h"
 
 using namespace std;
@@ -21,7 +19,7 @@ ruleset palletbox
 
         // After moving to a station, it will eventually get there.
         bot_arrived_event.insert(
-            timestamp: get_time_millis(),
+            timestamp: generate_unique_millisecond_timestamp(),
             station_id : station.id,
             robot_id: robot.id);
 
@@ -41,7 +39,7 @@ ruleset palletbox
 
         // Now that we have the pallet, move to outbound.
         bot_moving_to_station_event.insert(
-            timestamp: get_time_millis(),
+            timestamp: generate_unique_millisecond_timestamp(),
             station_id: (int)gaia::palletbox::station_id_t::outbound,
             robot_id: robot.id);
 
@@ -58,7 +56,7 @@ ruleset palletbox
 
         // Now that we have dropped the pallet, move to charging to await more orders.
         bot_moving_to_station_event.insert(
-            timestamp: get_time_millis(),
+            timestamp: generate_unique_millisecond_timestamp(),
             station_id: (int)gaia::palletbox::station_id_t::charging,
             robot_id: robot.id);
 
@@ -83,20 +81,20 @@ ruleset palletbox
                 times_to_charging = times_to_charging + 1;
                 if (times_to_charging <= target_times_to_charge) {
                     bot_moving_to_station_event.insert(
-                        timestamp: get_time_millis(),
+                        timestamp: generate_unique_millisecond_timestamp(),
                         station_id: (int)gaia::palletbox::station_id_t::inbound,
                         robot_id: robot.id);
                 }
                 break;
             case (int)gaia::palletbox::station_id_t::inbound:
                 payload_pick_up_event.insert(
-                    timestamp: get_time_millis(),
+                    timestamp: generate_unique_millisecond_timestamp(),
                     station_id: station.id,
                     robot_id: robot.id);
                 break;
             case (int)gaia::palletbox::station_id_t::outbound:
                 payload_drop_off_event.insert(
-                    timestamp: get_time_millis(),
+                    timestamp: generate_unique_millisecond_timestamp(),
                     station_id: station.id,
                     robot_id: robot.id);
                 break;
