@@ -8,6 +8,7 @@ namespace gaia
 namespace palletbox
 {
 
+// Constants for stations.
 enum class station_id_t
 {
     none,
@@ -16,9 +17,11 @@ enum class station_id_t
     inbound
 };
 
+static constexpr char c_sandbox_station_charging[] = "charging";
+static constexpr char c_sandbox_station_outbound[] = "outbound";
+static constexpr char c_sandbox_station_inbound[] = "inbound";
+
 extern std::unordered_map<int, const char*> g_station_name_map;
 
 } // namespace palletbox
 } // namespace gaia
-
-uint64_t get_time_millis();

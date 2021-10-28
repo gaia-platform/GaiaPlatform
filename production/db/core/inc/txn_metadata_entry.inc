@@ -180,7 +180,7 @@ txn_metadata_entry_t txn_metadata_entry_t::set_terminated()
 txn_metadata_entry_t txn_metadata_entry_t::set_decision(bool has_committed)
 {
     // The commit_ts metadata must be in state TXN_VALIDATING or TXN_DECIDED.
-    // We allow the latter to enable idempotent concurrent validation.
+    // (We allow the latter to enable idempotent concurrent validation.)
     ASSERT_PRECONDITION(
         is_validating() || is_decided(),
         "commit_ts metadata must be in validating or decided state!");
