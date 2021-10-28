@@ -191,7 +191,8 @@ void update_index_entry(
 
             // Index entries made by rolled back transactions or aborted transactions can be ignored,
             // We can also remove them, because we are already holding a lock.
-            bool is_aborted_operation = (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_aborted(commit_ts));
+            bool is_aborted_operation
+                = (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_aborted(commit_ts));
             if (transactions::txn_metadata_t::is_txn_terminated(begin_ts)
                 || is_aborted_operation)
             {
@@ -209,7 +210,8 @@ void update_index_entry(
             // because if their transaction is aborted,
             // it would allow us to perform a duplicate insertion.
             bool is_our_operation = (begin_ts == record.txn_id);
-            bool is_committed_operation = (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_committed(commit_ts));
+            bool is_committed_operation
+                = (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_committed(commit_ts));
             if (it_start->second.operation == index_record_operation_t::remove
                 && (is_our_operation || is_committed_operation))
             {
@@ -238,7 +240,8 @@ void update_index_entry(
     }
 }
 
-void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_record_t record, bool allow_create_empty)
+void index_builder_t::update_index(
+    gaia_id_t index_id, index_key_t&& key, index_record_t record, bool allow_create_empty)
 {
     ASSERT_PRECONDITION(get_indexes(), "Indexes are not initialized.");
 
@@ -270,7 +273,10 @@ void index_builder_t::update_index(gaia_id_t index_id, index_key_t&& key, index_
 }
 
 void index_builder_t::update_index(
-    gaia::common::gaia_id_t index_id, gaia_type_t type_id, const txn_log_t::log_record_t& log_record, bool allow_create_empty)
+    gaia::common::gaia_id_t index_id,
+    gaia_type_t type_id,
+    const txn_log_t::log_record_t& log_record,
+    bool allow_create_empty)
 {
     // Most operations expect an object located at new_offset,
     // so we'll try to get a reference to its payload.
