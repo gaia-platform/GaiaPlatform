@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <iostream>
+
 #include "simulation.hpp"
 
 using namespace std;
