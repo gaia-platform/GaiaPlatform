@@ -5,7 +5,6 @@
 
 #include "gaia_internal/db/index_builder.hpp"
 
-#include <iostream>
 #include <utility>
 
 #include "gaia/exceptions.hpp"
@@ -341,6 +340,9 @@ void index_builder_t::update_index(
             allow_create_empty);
     }
     break;
+    case gaia_operation_t::remove_for_drop:
+    case gaia_operation_t::unlink_for_drop:
+    // We should not handle these operations!
     default:
         ASSERT_UNREACHABLE("Cannot handle log type");
         return;
@@ -415,6 +417,18 @@ void index_builder_t::update_indexes_from_logs(
         {
             obj = offset_to_ptr(log_record.old_offset);
             ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
+        }
+        else if (
+            log_record.operation == gaia_operation_t::remove_for_drop
+            || log_record.operation == gaia_operation_t::unlink_for_drop)
+        {
+            // We do not need to update indexes if we are removing or unlinking data during a DROP.
+            // This is not just for performance but also correctness.
+            // This is because snapshotting will not reflect the state prior to DDL, resulting
+            // in "invalid_gaia_id" errors when attempting to look up the catalog for the
+            // DROPped table.
+
+            continue;
         }
         else
         {

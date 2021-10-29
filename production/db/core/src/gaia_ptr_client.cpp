@@ -43,10 +43,17 @@ namespace db
  * Client-side implementation of gaia_ptr_t here.
  */
 
-void gaia_ptr_t::reset()
+void gaia_ptr_t::reset(bool for_drop)
 {
     locators_t* locators = get_locators();
-    client_t::txn_log(m_locator, to_offset(), c_invalid_gaia_offset, gaia_operation_t::remove, to_ptr()->id);
+    if (for_drop)
+    {
+        client_t::txn_log(m_locator, to_offset(), c_invalid_gaia_offset, gaia_operation_t::remove_for_drop, to_ptr()->id);
+    }
+    else
+    {
+        client_t::txn_log(m_locator, to_offset(), c_invalid_gaia_offset, gaia_operation_t::remove, to_ptr()->id);
+    }
 
     // TODO[GAIAPLAT-445]:  We don't expose delete events.
     // if (client_t::is_valid_event(to_ptr()->type))
@@ -173,7 +180,7 @@ bool gaia_ptr_t::add_parent_reference(gaia_id_t parent_id, reference_offset_t pa
     return parent_ptr.add_child_reference(id(), child_relationship->first_child_offset);
 }
 
-bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset)
+bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t first_child_offset, bool for_drop)
 {
     gaia_type_t parent_type = type();
     const type_metadata_t& parent_metadata = type_registry_t::instance().get(parent_type);
@@ -259,7 +266,14 @@ bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
             prev_ptr.references()[relationship->next_child_offset]
                 = curr_ptr.references()[relationship->next_child_offset];
             WRITE_PROTECT(prev_ptr.to_offset());
-            client_t::txn_log(prev_ptr.m_locator, old_prev_offset, prev_ptr.to_offset(), gaia_operation_t::update);
+            if (for_drop)
+            {
+                client_t::txn_log(prev_ptr.m_locator, old_prev_offset, prev_ptr.to_offset(), gaia_operation_t::unlink_for_drop);
+            }
+            else
+            {
+                client_t::txn_log(prev_ptr.m_locator, old_prev_offset, prev_ptr.to_offset(), gaia_operation_t::update);
+            }
         }
 
         curr_ptr.references()[relationship->parent_offset] = c_invalid_gaia_id;
@@ -270,15 +284,29 @@ bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
     if (*this != child_ptr)
     {
         WRITE_PROTECT(child_ptr.to_offset());
-        client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
+        if (for_drop)
+        {
+            client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::unlink_for_drop);
+        }
+        else
+        {
+            client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
+        }
     }
 
     WRITE_PROTECT(to_offset());
-    client_t::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
+    if (for_drop)
+    {
+        client_t::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::unlink_for_drop);
+    }
+    else
+    {
+        client_t::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
+    }
     return true;
 }
 
-bool gaia_ptr_t::remove_parent_reference(reference_offset_t parent_offset)
+bool gaia_ptr_t::remove_parent_reference(reference_offset_t parent_offset, bool for_drop)
 {
     gaia_type_t child_type = type();
 
@@ -298,7 +326,7 @@ bool gaia_ptr_t::remove_parent_reference(reference_offset_t parent_offset)
     }
 
     // Remove reference.
-    return parent_ptr.remove_child_reference(id(), relationship->first_child_offset);
+    return parent_ptr.remove_child_reference(id(), relationship->first_child_offset, for_drop);
 }
 
 bool gaia_ptr_t::update_parent_reference(
@@ -439,7 +467,7 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t
     return obj;
 }
 
-void gaia_ptr_t::remove(gaia_ptr_t& object)
+void gaia_ptr_t::remove(gaia_ptr_t& object, bool for_drop)
 {
     if (!object)
     {
@@ -455,7 +483,7 @@ void gaia_ptr_t::remove(gaia_ptr_t& object)
             throw object_still_referenced(object.id(), object.type(), other_obj.id(), other_obj.type());
         }
     }
-    object.reset();
+    object.reset(for_drop);
 }
 
 void gaia_ptr_t::clone_no_txn()

@@ -69,7 +69,7 @@ public:
 
     // Removes the database record at the given pointer object. Throws
     // exceptions in case of referential integrity violation.
-    static void remove(gaia_ptr_t& object);
+    static void remove(gaia_ptr_t& object, bool for_drop = false);
 
     gaia_ptr_t& update_payload(size_t data_size, const void* data);
 
@@ -137,14 +137,14 @@ public:
      * @param child_id The id of the children to be removed.
      * @param first_child_offset The offset, in the references array, of the pointer to the first child.
      */
-    bool remove_child_reference(common::gaia_id_t child_id, common::reference_offset_t first_child_offset);
+    bool remove_child_reference(common::gaia_id_t child_id, common::reference_offset_t first_child_offset, bool for_drop = false);
 
     /**
      * Removes a parent reference from a child object at the given parent offset.
      *
      * @param parent_offset The offset, in the references array, of the pointer to the parent.
      */
-    bool remove_parent_reference(common::reference_offset_t parent_offset);
+    bool remove_parent_reference(common::reference_offset_t parent_offset, bool for_drop = false);
 
     /**
      * Update the parent reference with the given new_parent_id. If the this object does not
@@ -161,7 +161,7 @@ public:
     // Delete the database record at the pointer. This method will not check
     // referential integrity violation for the deletion. Use 'remove()' instead
     // if you want referential integrity to be respected.
-    void reset();
+    void reset(bool for_drop = false);
 
 protected:
     void allocate(size_t size);

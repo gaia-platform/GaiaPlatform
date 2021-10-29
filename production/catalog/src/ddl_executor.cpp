@@ -533,11 +533,13 @@ gaia_id_t ddl_executor_t::create_relationship(
 
 void ddl_executor_t::drop_relationship_no_ri(gaia_relationship_t& relationship)
 {
+    bool for_drop = true;
+
     // Clear all links in table records on both sides of the relationship. We do
     // this by disconnecting all child records from their parent.
     for (auto record : gaia_ptr_t::find_all_range(relationship.child().type()))
     {
-        record.remove_parent_reference(relationship.parent_offset());
+        record.remove_parent_reference(relationship.parent_offset(), for_drop);
     }
 
     // Unlink parent.
@@ -577,8 +579,6 @@ void ddl_executor_t::drop_relationship(const std::string& name, bool throw_unles
 
 void ddl_executor_t::drop_relationships_no_ri(gaia_id_t table_id)
 {
-    auto table_record = gaia_table_t::get(table_id);
-
     for (auto& relationship_id : list_parent_relationships(table_id))
     {
         auto relationship = gaia_relationship_t::get(relationship_id);
@@ -631,7 +631,8 @@ void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_int
     // Delete all data records of the table.
     for (gaia_ptr_t data_record : gaia_ptr_t::find_all_range(table_record.type()))
     {
-        data_record.reset();
+        bool for_drop = true;
+        data_record.reset(for_drop);
     }
 
     for (gaia_id_t field_id : list_fields(table_id))
