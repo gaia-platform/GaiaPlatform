@@ -69,7 +69,7 @@ public:
 
     // Removes the database record at the given pointer object. Throws
     // exceptions in case of referential integrity violation.
-    static void remove(gaia_ptr_t& object, bool for_drop = false);
+    static void remove(gaia_ptr_t& object);
 
     gaia_ptr_t& update_payload(size_t data_size, const void* data);
 

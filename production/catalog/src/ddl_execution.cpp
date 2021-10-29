@@ -290,7 +290,12 @@ void execute_create_statement_no_txn(
     if (create_stmt->type == ddl::create_type_t::create_table)
     {
         auto create_table_stmt = dynamic_cast<ddl::create_table_t*>(create_stmt);
-        executor.create_table(create_table_stmt->database, create_table_stmt->name, create_table_stmt->fields, throw_on_exist, create_stmt->auto_drop);
+        executor.create_table(
+            create_table_stmt->database,
+            create_table_stmt->name,
+            create_table_stmt->fields,
+            throw_on_exist,
+            create_stmt->auto_drop);
     }
     else if (create_stmt->type == ddl::create_type_t::create_database)
     {

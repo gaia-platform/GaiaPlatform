@@ -467,7 +467,7 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t
     return obj;
 }
 
-void gaia_ptr_t::remove(gaia_ptr_t& object, bool for_drop)
+void gaia_ptr_t::remove(gaia_ptr_t& object)
 {
     if (!object)
     {
@@ -483,7 +483,7 @@ void gaia_ptr_t::remove(gaia_ptr_t& object, bool for_drop)
             throw object_still_referenced(object.id(), object.type(), other_obj.id(), other_obj.type());
         }
     }
-    object.reset(for_drop);
+    object.reset();
 }
 
 void gaia_ptr_t::clone_no_txn()
