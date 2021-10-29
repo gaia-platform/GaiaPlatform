@@ -168,13 +168,20 @@ private:
     // eligible for GC. GC cannot be started for any committed txn until the
     // post-apply watermark has advanced to its commit_ts. The "post-GC"
     // watermark represents a lower bound on the latest commit_ts whose txn log
-    // could have had GC reclaim all its resources. The txn table cannot be
-    // safely truncated at any timestamp after the post-GC watermark.
+    // could have had GC reclaim all its resources. Finally, the "pre-truncate"
+    // watermark represents an (exclusive) upper bound on the timestamps whose
+    // metadata entries could have had their memory reclaimed (e.g., via
+    // zeroing, unmapping, or overwriting). Any timestamp whose metadata entry
+    // could potentially be dereferenced must be "reserved" via the "safe_ts"
+    // API to prevent the pre-truncate watermark from advancing past it and
+    // allowing its metadata entry to be reclaimed.
     //
     // The pre-apply watermark must either be equal to the post-apply watermark or greater by 1.
     //
     // Schematically:
-    //    commit timestamps of transactions completely garbage-collected
+    //    commit timestamps of transactions whose metadata entries have been reclaimed
+    //  < pre-truncate watermark
+    //    <= commit timestamps of transactions completely garbage-collected
     // <= post-GC watermark
     //    <= commit timestamps of transactions applied to shared view
     // <= post-apply watermark
@@ -187,6 +194,7 @@ private:
         pre_apply,
         post_apply,
         post_gc,
+        pre_truncate,
         // This should always be last.
         count
     };
@@ -204,6 +212,63 @@ private:
     }
 
     static bool advance_watermark(watermark_type_t watermark, gaia_txn_id_t ts);
+
+    // A "publication list" in which each session thread publishes a "safe
+    // timestamp" that it needs to protect from txn table truncation. This is
+    // used to find a safe upper bound at which to truncate the txn table.
+    //
+    // Each thread reserves 2 entries rather than 1, because it needs to
+    // atomically update its published entry. This requires speculatively
+    // publishing the new value while keeping the old value visible, so that the
+    // old value continues to be protected if the new value fails validation.
+    // Therefore we require 2 entries: one to hold the old value, and another to
+    // hold the new value until it either passes validation (and we invalidate
+    // the old value's entry), or fails validation (and we invalidate the new
+    // value's entry, reverting the published safe_ts for this thread to the old
+    // value).
+    static inline std::array<std::array<std::atomic<gaia_txn_id_t>, 2>, c_session_limit>
+        s_safe_ts_per_thread_entries{};
+
+    // The reserved status of each index into `s_safe_ts_per_thread_entries` is
+    // tracked in this bitmap. Before calling any safe_ts API functions, each
+    // thread must reserve an index by setting a cleared bit in this bitmap.
+    // When it is no longer using the safe_ts API (e.g., at session exit), each
+    // thread should clear the bit that it set.
+    static constexpr size_t c_safe_ts_reserved_indexes_bitmap_size_in_words{
+        c_session_limit / memory_manager::c_uint64_bit_count};
+
+    static inline std::array<std::atomic<uint64_t>, c_safe_ts_reserved_indexes_bitmap_size_in_words>
+        s_safe_ts_reserved_indexes_bitmap{};
+
+    static constexpr size_t c_invalid_safe_ts_index{std::size(s_safe_ts_per_thread_entries)};
+
+    // The current thread's index in `s_safe_ts_per_thread_entries`.
+    thread_local static inline size_t s_safe_ts_index{c_invalid_safe_ts_index};
+
+    // Reserves an index for the current thread in `s_safe_ts_per_thread_entries`.
+    static bool reserve_safe_ts_index();
+
+    // Releases the current thread's index in `s_safe_ts_per_thread_entries`.
+    static void release_safe_ts_index();
+
+    // Reserves a "safe timestamp" that protects its own and all subsequent
+    // entries in the txn table from memory reclamation.
+    // Any current "safe timestamp" value for this thread's entry will be
+    // atomically replaced by the new "safe timestamp" value.
+    // If the given timestamp cannot be reserved as "safe", then return false,
+    // otherwise true.
+    static bool reserve_safe_ts(gaia_txn_id_t safe_ts);
+
+    // Releases the current thread's "safe timestamp", allowing that timestamp's
+    // metadata entry (and subsequent entries) to be reclaimed.
+    // This method cannot fail or throw.
+    static void release_safe_ts();
+
+    // This method computes a "safe truncation timestamp" for the txn table,
+    // i.e., an (exclusive) upper bound below which the txn table can be safely
+    // truncated. The timestamp returned is guaranteed not to exceed any
+    // safe_ts that was reserved before this method was called.
+    static gaia_txn_id_t get_safe_truncation_ts();
 
 private:
     // A list of data mappings that we manage together.
@@ -327,7 +392,7 @@ private:
 
     static void gc_applied_txn_logs();
 
-    static void update_txn_table_safe_truncation_point();
+    static void truncate_txn_table();
 
     static gaia_txn_id_t submit_txn(gaia_txn_id_t begin_ts, int log_fd);
 
