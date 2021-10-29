@@ -7,9 +7,6 @@
 
 """
 Script to calculate the summary.json file for a suite of tests that were run.
-
-Copyright (c) Gaia Platform LLC
-All rights reserved.
 """
 
 import json
