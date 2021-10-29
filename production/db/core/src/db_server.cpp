@@ -848,6 +848,11 @@ void server_t::recover_db()
 
 gaia_txn_id_t server_t::begin_startup_txn()
 {
+    // Claim an index in the safe_ts array.
+    bool reservation_succeeded = reserve_safe_ts_index();
+    // The reservation must have succeeded because we are the first thread to
+    // reserve an index.
+    ASSERT_POSTCONDITION(reservation_succeeded, "The main thread cannot fail to reserve a safe_ts index!");
     s_txn_id = txn_metadata_t::register_begin_ts();
     return s_txn_id;
 }
@@ -882,6 +887,9 @@ void server_t::end_startup_txn()
     perform_maintenance();
 
     s_txn_id = c_invalid_gaia_txn_id;
+
+    // We no longer need to reserve a safe_ts index.
+    release_safe_ts_index();
 }
 
 // Create a thread-local snapshot from the shared locators.
@@ -2861,6 +2869,7 @@ bool server_t::reserve_safe_ts(gaia_txn_id_t safe_ts)
     size_t entry_index = 0;
     size_t valid_entry_count = 0;
     ssize_t last_invalid_entry_index = -1;
+    ssize_t valid_entry_index = -1;
     for (gaia_txn_id_t entry : entries)
     {
         if (entry != c_invalid_gaia_txn_id)
@@ -2877,6 +2886,12 @@ bool server_t::reserve_safe_ts(gaia_txn_id_t safe_ts)
         valid_entry_count <= 1 && last_invalid_entry_index >= 0,
         "At most one safe_ts entry for this thread should be valid!");
 
+    if (valid_entry_count > 0)
+    {
+        // The valid entry index is just the boolean complement of the invalid entry index.
+        valid_entry_index = last_invalid_entry_index ? 0 : 1;
+    }
+
     // Speculatively publish the new safe_ts in a currently invalid entry.
     entries[last_invalid_entry_index] = safe_ts;
 
@@ -2885,7 +2900,22 @@ bool server_t::reserve_safe_ts(gaia_txn_id_t safe_ts)
     // upper bound on the pre-truncate watermark, and the pre-truncate watermark
     // is an exclusive upper bound on the memory address range eligible for
     // reclaiming).
-    if (safe_ts < get_watermark(watermark_type_t::post_gc))
+    // Skip validation for a safe_ts that is atomically replacing a smaller
+    // previously reserved safe_ts. Even if the new safe_ts is behind the
+    // post-GC watermark, it cannot be behind the pre-truncate watermark,
+    // because the smaller previously reserved safe_ts prevents the pre-truncate
+    // watermark from advancing past the new safe_ts until the new safe_ts is
+    // observed by a scan. If both safe_ts values are published, then a
+    // concurrent scan will use the obsolete value, but that is benign: it can
+    // only cause a smaller-than-necessary safe truncation timestamp to be
+    // returned.
+    bool should_validate = true;
+    if (valid_entry_index >= 0)
+    {
+        should_validate = (safe_ts < entries[valid_entry_index]);
+    }
+
+    if (should_validate && safe_ts < get_watermark(watermark_type_t::post_gc))
     {
         // If validation fails, invalidate this entry to revert to the
         // previously published entry.
@@ -2894,10 +2924,8 @@ bool server_t::reserve_safe_ts(gaia_txn_id_t safe_ts)
     }
 
     // Invalidate any previously published entry.
-    if (valid_entry_count > 0)
+    if (valid_entry_index >= 0)
     {
-        // The valid entry index is just the boolean complement of the invalid entry index.
-        size_t valid_entry_index = last_invalid_entry_index ? 0 : 1;
         entries[valid_entry_index] = c_invalid_gaia_txn_id;
     }
 

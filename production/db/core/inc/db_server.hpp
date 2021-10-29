@@ -272,11 +272,12 @@ private:
 private:
     // A list of data mappings that we manage together.
     // The order of declarations must be the order of data_mapping_t::index_t values!
-    static inline constexpr data_mapping_t c_data_mappings[] = {
-        {data_mapping_t::index_t::locators, &s_shared_locators, c_gaia_mem_locators_prefix},
-        {data_mapping_t::index_t::counters, &s_shared_counters, c_gaia_mem_counters_prefix},
-        {data_mapping_t::index_t::data, &s_shared_data, c_gaia_mem_data_prefix},
-        {data_mapping_t::index_t::id_index, &s_shared_id_index, c_gaia_mem_id_index_prefix},
+    static inline constexpr data_mapping_t c_data_mappings[]
+        = {
+            {data_mapping_t::index_t::locators, &s_shared_locators, c_gaia_mem_locators_prefix},
+            {data_mapping_t::index_t::counters, &s_shared_counters, c_gaia_mem_counters_prefix},
+            {data_mapping_t::index_t::data, &s_shared_data, c_gaia_mem_data_prefix},
+            {data_mapping_t::index_t::id_index, &s_shared_id_index, c_gaia_mem_id_index_prefix},
     };
 
     // Function pointer type that executes side effects of a session state transition.
@@ -482,18 +483,19 @@ private:
     // post-GC watermark, regardless of which watermark an object of this class
     // logically protects.
     //
-    // The constructor pushes its "safe timestamp" onto a stack containing all
-    // safe_ts objects in a currently active scope. The minimum "safe timestamp"
-    // on the stack is recomputed, and if it has changed, the new minimum "safe
-    // timestamp" is published to the current thread's entry in the "safe
-    // timestamp entries" array.
+    // The constructor adds its timestamp to a thread-local set containing the
+    // timestamps of all currently active safe_ts_t instances owned by this
+    // thread. The minimum timestamp in the set is recomputed, and if it has
+    // changed, the constructor attempts to reserve the new minimum timestamp
+    // for this thread. If reservation fails, then the constructor throws a
+    // `safe_ts_failure` exception.
     //
-    // The destructor pops the "safe timestamp" at the top of the stack, causing
-    // the minimum "safe timestamp" on the stack to be recomputed. If it has
-    // changed, the new minimum "safe timestamp" is published to the current
-    // thread's entry in the "safe timestamp entries" array. If the stack is now
-    // empty, then the current "safe timestamp" is retracted and no replacement
-    // is published.
+    // The destructor removes the object's timestamp from the thread-local set,
+    // causing the minimum timestamp in the set to be recomputed. If it has
+    // changed, the new minimum timestamp is reserved for this thread.
+    // (Reservation cannot fail, because the previous minimum timestamp must be
+    // smaller than the new minimum timestamp, so it prevented the pre-truncate
+    // watermark from advancing beyond the new minimum timestamp.)
     class safe_ts_t
     {
     private:
@@ -502,12 +504,13 @@ private:
         // constructor/assignment operator.
         gaia_txn_id_t m_ts{c_invalid_gaia_txn_id};
 
-        // We keep this vector sorted for fast searches and add entries by
+        // We keep this vector sorted for fast searches. We add entries by
         // appending and remove entries by swapping them with the tail.
         thread_local static inline std::vector<gaia_txn_id_t> s_safe_ts_values{};
 
     public:
         inline explicit safe_ts_t(gaia_txn_id_t safe_ts)
+            : m_ts(safe_ts)
         {
             // If safe_ts is the minimum element in the safe_ts array, then
             // replace this thread's reserved safe_ts entry.
@@ -568,11 +571,15 @@ private:
             // safe_ts array.
             if (s_safe_ts_values.size() == 1)
             {
-                // Retract this thread's published safe_ts value.
+                // Release this thread's reserved safe_ts value.
                 gaia::db::server_t::release_safe_ts();
+                // Remove the last element from the safe_ts array.
+                s_safe_ts_values.pop_back();
                 return;
             }
 
+            // Save the current minimum safe_ts value.
+            gaia_txn_id_t prev_min_ts = s_safe_ts_values[0];
             // Because our safe_ts array is sorted, we can use binary search to
             // find the index of our safe_ts.
             auto iter = std::lower_bound(s_safe_ts_values.begin(), s_safe_ts_values.end(), m_ts);
@@ -586,8 +593,12 @@ private:
 
             // If the minimum safe_ts has changed, then we need to replace the
             // published safe_ts value.
-            if (s_safe_ts_values[0] > m_ts)
+            gaia_txn_id_t new_min_ts = s_safe_ts_values[0];
+            if (new_min_ts != prev_min_ts)
             {
+                ASSERT_INVARIANT(
+                    new_min_ts > prev_min_ts,
+                    "The new minimum safe_ts must be larger than the previous minimum safe_ts!");
                 bool reservation_succeeded = gaia::db::server_t::reserve_safe_ts(s_safe_ts_values[0]);
                 // The new minimum safe_ts was protected by the previous minimum
                 // safe_ts from falling behind the pre-truncate watermark, so
@@ -622,6 +633,10 @@ private:
                     // "safe timestamp" is never retracted.)
                     safe_ts_t safe_ts(watermark_ts);
                     m_safe_ts = std::move(safe_ts);
+                    // NB: It is legal to access safe_ts after moving from it,
+                    // because the standard specifies that "Moved-from objects
+                    // shall be placed in a valid but unspecified state."
+                    ASSERT_INVARIANT(safe_ts == c_invalid_gaia_txn_id, "safe_ts should have invalid timestamp after moving!");
                     break;
                 }
                 catch (const safe_ts_failure&)
