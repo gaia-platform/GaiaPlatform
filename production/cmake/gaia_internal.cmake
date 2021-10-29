@@ -161,15 +161,13 @@ endfunction()
 # - DDL_FILE: [optional] the path to the .ddl file.
 #     If not specified, the function generates the EDC code for the database
 #     specified by DATABASE_NAME.
-# - OUTPUT_DIR: [optional] directory where the header files will be generated.
-#     If not specified the default value is ${GAIA_GENERATED_CODE}/${DATABASE_NAME}
 # - LIB_NAME: [optional] the name of the generated target.
 #     If not specified the default value is edc_${DDL_NAME}.
 # - DATABASE_NAME: [optional] name of the database the headers are generated from.
 #     If not specified, the default database will be used.
 function(process_schema_internal)
   set(options "")
-  set(oneValueArgs DDL_FILE OUTPUT_DIR LIB_NAME DATABASE_NAME INSTANCE_NAME)
+  set(oneValueArgs DDL_FILE LIB_NAME DATABASE_NAME INSTANCE_NAME)
   set(multiValueArgs "")
   cmake_parse_arguments("ARG" "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
@@ -177,17 +175,15 @@ function(process_schema_internal)
     message(FATAL_ERROR "You must specify either the DDL_FILE or the DATABASE_NAME!")
   endif()
 
-  if(NOT DEFINED ARG_OUTPUT_DIR)
-    set(ARG_OUTPUT_DIR ${GAIA_GENERATED_CODE}/${ARG_DATABASE_NAME})
-    message(VERBOSE "OUTPUT_DIR not specified, defaulted to: ${ARG_OUTPUT_DIR}.")
-  endif()
+  set(ARG_OUTPUT_DIR ${GAIA_GENERATED_CODE}/direct_access/${ARG_DATABASE_NAME})
+  file(MAKE_DIRECTORY ${ARG_OUTPUT_DIR})
 
   message(VERBOSE "Adding target to generate EDC code for database ${ARG_DATABASE_NAME}...")
 
-  string(RANDOM GAIAC_INSTANCE_NAME)
+  string(RANDOM DB_INSTANCE_NAME)
 
   set(GAIAC_COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac)
-  set(GAIAC_ARGS "-t" "${GAIA_PROD_BUILD}/db/core" "-o" "${ARG_OUTPUT_DIR}" "-n" "${GAIAC_INSTANCE_NAME}" "-g")
+  set(GAIAC_ARGS "-t" "${GAIA_PROD_BUILD}/db/core" "-o" "${ARG_OUTPUT_DIR}" "-n" "${DB_INSTANCE_NAME}" "-g")
 
   if (DEFINED ARG_DDL_FILE)
     message(STATUS "Adding target to load schema from the DDL file ${ARG_DDL_FILE}...")
@@ -234,6 +230,98 @@ function(process_schema_internal)
   target_link_libraries(${ARG_LIB_NAME} PUBLIC gaia_direct)
 endfunction()
 
+# Creates a CMake target that translates the ruleset file specified by RULESET_FILE
+# and writes the translated rules as a cpp file.
+# The generated cpp file is written to the directory specified by OUTPUT_DIR with the
+# name ${RULESET_NAME}_ruleset.cpp, where RULESET_NAME is RULESET_FILE with no extension.
+#
+# This function tries to infer some of the gaiat parameters such as:
+# - The default C++ include path.
+# - The Gaia path.
+# - The C++ version.
+#
+# Args:
+# - RULESET_FILE: the path to the .ruleset file.
+# - LIB_NAME: [optional] the name of the generated target.
+#     If not specified the default value is ${RULESET_NAME}_ruleset.
+# - CLANG_PARAMS: [optional]: Additional parameters to pass to clang (invoked by gaiat)
+# - DEPENDS: [optional] an optional list of targets on which this task depends.
+#     Typically, the translation depends on the successful generation of the
+#     schema headers.
+#     If not specified, translation will depend on the targets listed in
+#     ${GAIA_DIRECT_ACCESS_GENERATION_TARGETS}
+function(translate_ruleset_internal)
+  set(options "")
+  set(oneValueArgs RULESET_FILE LIB_NAME TARGET_NAME EDC_INCLUDE EDC_LIB GAIAT_CMD)
+  set(multiValueArgs CLANG_PARAMS DEPENDS)
+  cmake_parse_arguments("ARG" "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  check_param(ARG_RULESET_FILE)
+
+  get_filename_component(RULESET_NAME ${ARG_RULESET_FILE} NAME)
+  string(REPLACE ".ruleset" "" RULESET_NAME ${RULESET_NAME})
+
+  set(ARG_OUTPUT_DIR ${GAIA_GENERATED_CODE}/rules/${RULESET_NAME})
+  file(MAKE_DIRECTORY ${ARG_OUTPUT_DIR})
+
+  set(RULESET_CPP_NAME ${RULESET_NAME}_ruleset.cpp)
+  set(RULESET_CPP_PATH ${ARG_OUTPUT_DIR}/${RULESET_CPP_NAME})
+
+  message(STATUS "Adding target for translating ruleset: ${ARG_RULESET_FILE} into ${RULESET_CPP_NAME}...")
+
+  string(RANDOM DB_INSTANCE_NAME)
+
+  set(GAIAT_INCLUDE_PATH "")
+
+  # Add implicit include directories
+  foreach(INCLUDE_PATH ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
+    # Have to use ; instead of space otherwise custom_command will try to escape it
+    string(APPEND GAIAT_INCLUDE_PATH "-I;${INCLUDE_PATH};")
+  endforeach()
+
+  # Add default Gaia path
+  string(APPEND GAIAT_INCLUDE_PATH "-I;${GAIA_INC};")
+
+  set(GAIAT_CMD "${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat")
+
+  add_custom_command(
+      COMMENT "Translating ${ARG_RULESET_FILE} into ${RULESET_CPP_NAME}..."
+      OUTPUT ${RULESET_CPP_PATH}
+      COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --persistence disabled --instance-name ${DB_INSTANCE_NAME} &
+      COMMAND sleep 1
+      COMMAND ${GAIAC_CMD} ${ARG_DDL_FILE} -n ${DB_INSTANCE_NAME}
+      COMMAND ${GAIAT_CMD} ${ARG_RULESET_FILE} -output ${RULESET_CPP_PATH} -n ${DB_INSTANCE_NAME} --
+        ${ARG_CLANG_PARAMS}
+        ${GAIAT_INCLUDE_PATH}
+        -I ${FLATBUFFERS_INC}
+        -I ${GAIA_SPDLOG_INC}
+        -I ${ARG_EDC_INCLUDE}
+        -std=c++${CMAKE_CXX_STANDARD}
+      COMMAND kill -9 `pgrep -f --i${DB_INSTANCE_NAME}`
+      COMMAND sleep 1
+      DEPENDS ${ARG_RULESET_FILE}
+      DEPENDS ${ARG_DEPENDS}
+      DEPENDS gaiat
+  )
+
+  if(NOT DEFINED ARG_LIB_NAME)
+    set(ARG_LIB_NAME "${RULESET_NAME}_ruleset")
+    message(VERBOSE "LIB_NAME not specified, using: ${ARG_LIB_NAME}.")
+  endif()
+
+  message(STATUS "ruleset lib name: ${ARG_LIB_NAME}")
+
+  add_library(${ARG_LIB_NAME}
+      ${RULESET_CPP_PATH})
+
+  configure_gaia_target(${ARG_LIB_NAME})
+  target_include_directories(${ARG_LIB_NAME} PRIVATE ${FLATBUFFERS_INC})
+  target_include_directories(${ARG_LIB_NAME} PRIVATE ${GAIA_INC})
+  target_include_directories(${ARG_LIB_NAME} PRIVATE ${ARG_EDC_INCLUDE})
+  target_link_libraries(${ARG_LIB_NAME} PUBLIC gaia_direct ${EDC_LIB})
+endfunction()
+
+
 # Stop CMake if the given parameter was not passed to the function.
 macro(check_param PARAM)
   if(NOT DEFINED ${PARAM})
@@ -274,63 +362,24 @@ function(add_gaia_sdk_gtest)
   check_param(ARG_TARGET_SOURCES)
   check_param(ARG_TARGET_INCLUDES)
 
-  set(EDC_INCLUDE "${GAIA_GENERATED_CODE}/${ARG_DATABASE_NAME}")
+  set(EDC_INCLUDE "${GAIA_GENERATED_CODE}/direct_access/${ARG_DATABASE_NAME}")
   set(EDC_LIBRARY "edc_${ARG_DATABASE_NAME}")
+  set(RULESET_LIBRRY "${ARG_TARGET_NAME}_shared")
   if (NOT DEFINED ARG_TARGET_LIBRARIES)
-    set(ARG_TARGET_LIBRARIES "rt;gaia_system;gaia_db_catalog_test;${EDC_LIBRARY}")
+    set(ARG_TARGET_LIBRARIES "rt;gaia_system;gaia_db_catalog_test;${EDC_LIBRARY};${RULESET_LIBRRY}")
   endif()
-
-  get_filename_component(RULESET_NAME ${ARG_RULESET_FILE} NAME)
-  string(REPLACE ".ruleset" "" RULESET_NAME ${RULESET_NAME})
-
-  set(RULESET_CPP_NAME ${RULESET_NAME}_ruleset.cpp)
-  set(RULESET_CPP_OUT ${GAIA_GENERATED_CODE}/${RULESET_CPP_NAME})
 
   set(GAIAC_CMD "${GAIA_PROD_BUILD}/catalog/gaiac/gaiac")
-  set(GAIAT_CMD "${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat")
 
-  add_custom_command(
-    COMMENT "Compiling ${RULESET_FILE}..."
-    OUTPUT ${RULESET_CPP_OUT}
-    COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --persistence disabled &
-    COMMAND sleep 1
-    COMMAND ${GAIAC_CMD} ${ARG_DDL_FILE}
-    COMMAND ${GAIAT_CMD} ${ARG_RULESET_FILE} -output ${RULESET_CPP_OUT} --
-      -I ${GAIA_INC}
-      -I ${FLATBUFFERS_INC}
-      -I ${GAIA_SPDLOG_INC}
-      -I ${EDC_INCLUDE}
-      -I /usr/include/clang/10/include/
-      -std=c++${CMAKE_CXX_STANDARD}
-    COMMAND pkill -f -KILL gaia_db_server &
-
-    # In some contexts, the next attempt to start gaia_db_server precedes this kill, leading
-    # to a build failure. A short sleep is currently fixing that, but may not be the
-    # correct long-term solution.
-    COMMAND sleep 1
-    DEPENDS ${GAIAC_CMD}
-    DEPENDS ${GAIAT_CMD}
-    DEPENDS ${ARG_DDL_FILE}
-    DEPENDS ${ARG_RULESET_FILE}
+  translate_ruleset_internal(
+      RULESET_FILE ${ARG_RULESET_FILE}
+      LIB_NAME "${RULESET_LIBRRY}"
+      EDC_INCLUDE ${EDC_INCLUDE}
+      EDC_LIBRARY ${EDC_LIBRARY}
   )
 
-  set(GENERATE_RULES_TARGET "generate_${ARG_TARGET_NAME}")
-
-  if(DEFINED ARG_PREVIOUS_TARGET_NAME)
-    add_custom_target(${GENERATE_RULES_TARGET} ALL
-      DEPENDS ${RULESET_CPP_OUT}
-      DEPENDS ${EDC_LIBRARY}
-      DEPENDS ${ARG_PREVIOUS_TARGET_NAME}
-    )
-  else()
-    add_custom_target(${GENERATE_RULES_TARGET} ALL
-      DEPENDS ${RULESET_CPP_OUT}
-      DEPENDS ${EDC_LIBRARY}
-    )
-  endif()
-
   add_gtest(${ARG_TARGET_NAME}
-    "${ARG_TARGET_SOURCES};${RULESET_CPP_OUT}"
+    "${ARG_TARGET_SOURCES};"
     "${ARG_TARGET_INCLUDES};${EDC_INCLUDE}"
     "${ARG_TARGET_LIBRARIES}"
     "${GENERATE_RULES_TARGET}"
