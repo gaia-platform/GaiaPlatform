@@ -290,7 +290,12 @@ void execute_create_statement_no_txn(
     if (create_stmt->type == ddl::create_type_t::create_table)
     {
         auto create_table_stmt = dynamic_cast<ddl::create_table_t*>(create_stmt);
-        executor.create_table(create_table_stmt->database, create_table_stmt->name, create_table_stmt->fields, throw_on_exist, create_stmt->auto_drop);
+        executor.create_table(
+            create_table_stmt->database,
+            create_table_stmt->name,
+            create_table_stmt->fields,
+            throw_on_exist,
+            create_stmt->auto_drop);
     }
     else if (create_stmt->type == ddl::create_type_t::create_database)
     {
@@ -387,13 +392,13 @@ void execute_create_list_statements(
     rearrange_create_list_statements(statements);
 
     ddl_executor_t& executor = ddl_executor_t::get();
+    direct_access::auto_transaction_t txn(false);
     for (auto& stmt : statements)
     {
-        direct_access::auto_transaction_t txn(false);
         auto create_stmt = dynamic_cast<ddl::create_statement_t*>(stmt.get());
         execute_create_statement_no_txn(executor, create_stmt);
-        txn.commit();
     }
+    txn.commit();
 }
 
 void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)

@@ -74,7 +74,7 @@ inline void client_t::txn_log(
 {
     ASSERT_PRECONDITION(s_log.is_set(), "Transaction log must be mapped!");
 
-    if (operation == gaia_operation_t::remove || operation == gaia_operation_t::remove_for_drop)
+    if (operation == gaia_operation_t::remove)
     {
         ASSERT_PRECONDITION(
             deleted_id != common::c_invalid_gaia_id && new_offset == c_invalid_gaia_offset,

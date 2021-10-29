@@ -123,7 +123,7 @@ void persistent_store_manager::prepare_wal_for_write(gaia::db::txn_log_t* log, c
     for (size_t i = 0; i < log->record_count; i++)
     {
         txn_log_t::log_record_t* lr = log->log_records + i;
-        if (lr->operation == gaia_operation_t::remove || lr->operation == gaia_operation_t::remove_for_drop)
+        if (lr->operation == gaia_operation_t::remove)
         {
             // Encode key to be deleted.
             string_writer_t key;
