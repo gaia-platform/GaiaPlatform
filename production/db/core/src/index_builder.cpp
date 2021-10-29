@@ -5,7 +5,7 @@
 
 #include "gaia_internal/db/index_builder.hpp"
 
-#include <iostream>
+#include <unordered_set>
 #include <utility>
 
 #include "gaia/exceptions.hpp"
@@ -390,6 +390,10 @@ void index_builder_t::update_indexes_from_logs(
 {
     // Clear the type_id_mapping cache (so it will be refreshed) if we find any
     // table is created or dropped in the txn.
+    // Keep track of dropped tables.
+    bool cleared_cache = false;
+    std::unordered_set<gaia_type_t> dropped_types;
+
     for (size_t i = 0; i < records.record_count; ++i)
     {
         const auto& log_record = records.log_records[i];
@@ -401,8 +405,17 @@ void index_builder_t::update_indexes_from_logs(
                     ->type
                 == static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table))
         {
-            type_id_mapping_t::instance().clear();
-            break;
+            if (!cleared_cache)
+            {
+                type_id_mapping_t::instance().clear();
+                cleared_cache = true;
+            }
+
+            if (log_record.operation == gaia_operation_t::remove)
+            {
+                auto table_view = table_view_t(offset_to_ptr(log_record.old_offset));
+                dropped_types.insert(table_view.table_type());
+            }
         }
     }
 
@@ -432,8 +445,11 @@ void index_builder_t::update_indexes_from_logs(
         }
 
         // System tables are not indexed.
+        // The operation is from a dropped table.
         // Skip if catalog verification disabled and type not found in the catalog.
-        if (is_system_object(obj->type) || (skip_catalog_integrity_check && type_record_id == c_invalid_gaia_id))
+        if (is_system_object(obj->type)
+            || dropped_types.find(obj->type) != dropped_types.end()
+            || (skip_catalog_integrity_check && type_record_id == c_invalid_gaia_id))
         {
             continue;
         }
