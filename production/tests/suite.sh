@@ -287,7 +287,7 @@ start_database_if_required() {
         SERVER_PID=$(pgrep "gaia_db_server")
         if [[ -z $SERVER_PID ]] ; then
             cat "$SUITE_RESULTS_DIRECTORY/database.log"
-            complete_process 1 "Newly started database service instance was not responsive.  Cannot continue the test suite without an active instance."
+            complete_process 1 "Newly started database service instance was not responsive.  Cannot continue the test suite without an active database instance."
         fi
         DB_SERVER_PID=$SERVER_PID
         if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -563,10 +563,10 @@ parse_command_line "$@"
 
 if [ $START_DATABASE -eq 0 ] ; then
     if [ $FORCE_DATABASE_RESTART -ne 0 ] ; then
-        complete_process 1 "Cannot force a database reset without requesting a database."
+        complete_process 1 "Cannot force a database reset without requesting to start a new database instance."
     fi
     if [ $START_DATABASE_WITH_PERSISTENCE -ne 0 ] ; then
-        complete_process 1 "Cannot activate database persistence without requesting a database."
+        complete_process 1 "Cannot activate database persistence without requesting to start a new database instance."
     fi
 fi
 
