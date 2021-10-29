@@ -2550,16 +2550,22 @@ void server_t::truncate_txn_table()
     char* new_page_start_address = get_txn_metadata_page_address_from_ts(new_pre_truncate_watermark);
     // Check for overflow.
     ASSERT_INVARIANT(
-        prev_page_start_address >= new_page_start_address,
+        prev_page_start_address <= new_page_start_address,
         "The new pre-truncate watermark must start on the same or later page than the previous pre-truncate watermark!");
     size_t pages_to_decommit_count = (new_page_start_address - prev_page_start_address) / c_page_size_in_bytes;
     if (pages_to_decommit_count > 0)
     {
-        // MADV_FREE seems like the best fit for our needs, since it allows the OS to lazily reclaim decommitted pages.
-        // If we move the txn table to a shared mapping (e.g. memfd), then we'll need to switch to MADV_REMOVE.
-        if (-1 == ::madvise(prev_page_start_address, pages_to_decommit_count * c_page_size_in_bytes, MADV_FREE))
+        // MADV_FREE seems like the best fit for our needs, since it allows the
+        // OS to lazily reclaim decommitted pages. (If we move the txn table to
+        // a shared mapping (e.g. memfd), then we'll need to switch to
+        // MADV_REMOVE.)
+        // REVIEW: MADV_FREE makes it impossible to monitor RSS usage, so use
+        // MADV_DONTNEED unless we actually need better performance.
+        // (See https://github.com/golang/go/issues/42330 for a discussion of
+        // these issues.)
+        if (-1 == ::madvise(prev_page_start_address, pages_to_decommit_count * c_page_size_in_bytes, MADV_DONTNEED))
         {
-            throw_system_error("madvise(MADV_FREE) failed!");
+            throw_system_error("madvise(MADV_DONTNEED) failed!");
         }
     }
 }
