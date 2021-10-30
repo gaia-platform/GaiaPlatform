@@ -147,7 +147,7 @@ protected:
     static edc_vector_t<T_type> to_edc_vector(const flatbuffers::Vector<T_type>* vector_ptr)
     {
         return edc_vector_t<T_type>(vector_ptr);
-    };
+    }
 };
 
 template <gaia::common::gaia_type_t container_type_id, typename T_gaia, typename T_fb, typename T_obj>
