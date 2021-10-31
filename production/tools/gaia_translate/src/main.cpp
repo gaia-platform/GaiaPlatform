@@ -3686,18 +3686,21 @@ public:
         m_rewriter.setSourceMgr(compiler.getSourceManager(), compiler.getLangOpts());
         g_diagnostic_consumer.set_rewriter(&m_rewriter);
 
-        DiagnosticsEngine* diagnostics_engine = new DiagnosticsEngine(compiler.getSourceManager().getDiagnostics().getDiagnosticIDs(),
-            &compiler.getSourceManager().getDiagnostics().getDiagnosticOptions(),
-            compiler.getSourceManager().getDiagnostics().getClient());
-        SourceManager* diagnostics_source_manager = new SourceManager(*diagnostics_engine, compiler.getFileManager(), false);
+        DiagnosticsEngine& compiler_diagnostic_engine = compiler.getSourceManager().getDiagnostics();
+        DiagnosticsEngine* diagnostics_engine = new DiagnosticsEngine(
+            compiler_diagnostic_engine.getDiagnosticIDs(),
+            &compiler_diagnostic_engine.getDiagnosticOptions(),
+            compiler_diagnostic_engine.getClient());
+        m_diagnostics_source_manager = std::make_unique<SourceManager>(*diagnostics_engine, compiler.getFileManager(), false);
 
-        g_diag_ptr = std::make_unique<diagnostic_context_t>(diagnostics_source_manager->getDiagnostics());
+        g_diag_ptr = std::make_unique<diagnostic_context_t>(m_diagnostics_source_manager->getDiagnostics());
         return std::unique_ptr<clang::ASTConsumer>(
             new translation_engine_consumer_t(&compiler.getASTContext(), m_rewriter));
     }
 
 private:
     Rewriter m_rewriter;
+    std::unique_ptr<SourceManager> m_diagnostics_source_manager;
 };
 
 int main(int argc, const char** argv)
