@@ -153,6 +153,15 @@ indexes_t::iterator index_builder_t::create_empty_index(const index_view_t& inde
     }
 }
 
+void index_builder_t::drop_index(const index_view_t& index_view)
+{
+    size_t dropped = get_indexes()->erase(index_view.id());
+    // We expect 0 or 1 index structures to be dropped here.
+    // It is possible for this value to be 0 if a created index is dropped, but it wasn't
+    // lazily created.
+    ASSERT_INVARIANT(dropped <= 1, "Unexpected number of index structures removed!");
+}
+
 template <typename T_index_type>
 void update_index_entry(
     base_index_t* base_index, bool is_unique, index_key_t&& key, index_record_t record)
@@ -440,14 +449,24 @@ void index_builder_t::update_indexes_from_logs(
             ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
         }
 
-        gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(obj->type);
-
-        // New index object.
+        // Maintenance on the in-memory index data structures.
         if (obj->type == static_cast<gaia_type_t>(catalog_table_type_t::gaia_index))
         {
             auto index_view = index_view_t(obj);
-            index::index_builder_t::create_empty_index(index_view);
+
+            if (log_record.operation == gaia_operation_t::create)
+            {
+                index::index_builder_t::create_empty_index(index_view);
+            }
+            else if (log_record.operation == gaia_operation_t::remove)
+            {
+                index::index_builder_t::drop_index(index_view);
+            }
+
+            continue;
         }
+
+        gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(obj->type);
 
         // System tables are not indexed.
         // The operation is from a dropped table.
