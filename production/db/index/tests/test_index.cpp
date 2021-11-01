@@ -283,7 +283,15 @@ TEST_F(index_test, unique_constraint_same_txn)
     auto_transaction_t txn;
     student_t::insert_row(student_id, "Alice", 21, 30, 3.75);
     student_t::insert_row(student_id, "Bob", 22, 28, 3.5);
-    EXPECT_THROW(txn.commit(), database_exception);
+    try
+    {
+        txn.commit();
+    }
+    catch (const database_exception& e)
+    {
+        ASSERT_EQ(0, strcmp("student", e.get_table_name()));
+        ASSERT_EQ(0, strcmp("student_student_id", e.get_index_name()));
+    }
 }
 
 TEST_F(index_test, unique_constraint_different_txn)
@@ -296,7 +304,7 @@ TEST_F(index_test, unique_constraint_different_txn)
 
     // Attempt to re-insert the same key - we should trigger the conflict.
     student_t::insert_row(student_id, "Bob", 22, 28, 3.5);
-    EXPECT_THROW(txn.commit(), database_exception);
+    ASSERT_THROW(txn.commit(), database_exception);
 }
 
 TEST_F(index_test, unique_constraint_update_record)
@@ -351,7 +359,7 @@ TEST_F(index_test, unique_constraint_rollback_transaction)
     // We should trigger the conflict and our transaction should be rolled back.
     student_t::insert_row(bob_student_id, "Bob", 22, 28, 3.5);
     student_t::insert_row(alice_student_id, "Charles", 22, 24, 3.25);
-    EXPECT_THROW(txn.commit(), database_exception);
+    ASSERT_THROW(txn.commit(), database_exception);
 
     // Attempt to insert the second key again.
     // We should succeed if the previous transaction was properly rolled back.
