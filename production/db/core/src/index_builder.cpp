@@ -385,13 +385,18 @@ void index_builder_t::truncate_index_to_ts(common::gaia_id_t index_id, gaia_txn_
     }
 }
 
+/*
+* This method performs index maintenance operations based on logs.
+* The order of operations in the index data structure is based on the same ordering as the logs.
+* As such, we rely on the logs being sorted by temporal order.
+*/
 void index_builder_t::update_indexes_from_logs(
     const txn_log_t& records, bool skip_catalog_integrity_check, bool allow_create_empty)
 {
     // Clear the type_id_mapping cache (so it will be refreshed) if we find any
     // table is created or dropped in the txn.
     // Keep track of dropped tables.
-    bool cleared_cache = false;
+    bool has_cleared_cache = false;
     std::unordered_set<gaia_type_t> dropped_types;
 
     for (size_t i = 0; i < records.record_count; ++i)
@@ -405,10 +410,10 @@ void index_builder_t::update_indexes_from_logs(
                     ->type
                 == static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table))
         {
-            if (!cleared_cache)
+            if (!has_cleared_cache)
             {
                 type_id_mapping_t::instance().clear();
-                cleared_cache = true;
+                has_cleared_cache = true;
             }
 
             if (log_record.operation == gaia_operation_t::remove)
