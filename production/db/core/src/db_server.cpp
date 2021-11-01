@@ -2825,34 +2825,23 @@ bool server_t::reserve_safe_ts(gaia_txn_id_t safe_ts)
     // single-threaded, we should not have two valid entries (any obsolete entry
     // should have been invalidated by a previous call to this method).
     auto& entries = s_safe_ts_per_thread_entries[s_safe_ts_index];
-    size_t entry_index = 0;
-    size_t valid_entry_count = 0;
-    ssize_t last_invalid_entry_index = -1;
-    ssize_t valid_entry_index = -1;
-    for (gaia_txn_id_t entry : entries)
+    std::array<bool, 2> is_entry_valid{};
+    for (size_t i = 0; i < entries.size(); ++i)
     {
-        if (entry != c_invalid_gaia_txn_id)
-        {
-            ++valid_entry_count;
-        }
-        else
-        {
-            last_invalid_entry_index = entry_index;
-        }
-        ++entry_index;
+        is_entry_valid[i] = (entries[i] != c_invalid_gaia_txn_id);
     }
     ASSERT_INVARIANT(
-        valid_entry_count <= 1 && last_invalid_entry_index >= 0,
+        !is_entry_valid[0] || !is_entry_valid[1],
         "At most one safe_ts entry for this thread should be valid!");
 
-    if (valid_entry_count > 0)
-    {
-        // The valid entry index is just the boolean complement of the invalid entry index.
-        valid_entry_index = last_invalid_entry_index ? 0 : 1;
-    }
+    // Is exactly one of the two entries valid?
+    bool has_valid_entry = (is_entry_valid[0] ^ is_entry_valid[1]);
+
+    // Arbitrarily pick the highest-indexed invalid entry.
+    size_t invalid_entry_index = is_entry_valid[1] ? 0 : 1;
 
     // Speculatively publish the new safe_ts in a currently invalid entry.
-    entries[last_invalid_entry_index] = safe_ts;
+    entries[invalid_entry_index] = safe_ts;
 
     // Validate that the new safe_ts does not lag the post-GC watermark
     // (equality is acceptable because the post-GC watermark is an inclusive
@@ -2869,8 +2858,10 @@ bool server_t::reserve_safe_ts(gaia_txn_id_t safe_ts)
     // only cause a smaller-than-necessary safe truncation timestamp to be
     // returned.
     bool should_validate = true;
-    if (valid_entry_index >= 0)
+    if (has_valid_entry)
     {
+        // The valid index must be the invalid index + 1 mod 2.
+        size_t valid_entry_index = invalid_entry_index ^ 1;
         should_validate = (safe_ts < entries[valid_entry_index]);
     }
 
@@ -2878,13 +2869,15 @@ bool server_t::reserve_safe_ts(gaia_txn_id_t safe_ts)
     {
         // If validation fails, invalidate this entry to revert to the
         // previously published entry.
-        entries[last_invalid_entry_index] = c_invalid_gaia_txn_id;
+        entries[invalid_entry_index] = c_invalid_gaia_txn_id;
         return false;
     }
 
     // Invalidate any previously published entry.
-    if (valid_entry_index >= 0)
+    if (has_valid_entry)
     {
+        // The valid index must be the invalid index + 1 mod 2.
+        size_t valid_entry_index = invalid_entry_index ^ 1;
         entries[valid_entry_index] = c_invalid_gaia_txn_id;
     }
 
@@ -2905,29 +2898,23 @@ void server_t::release_safe_ts()
     // entry of a safe_ts that failed validation, or the safe_ts check in the
     // truncation algorithm has a bug).
     auto& entries = s_safe_ts_per_thread_entries[s_safe_ts_index];
-    size_t entry_index = 0;
-    size_t valid_entry_count = 0;
-    ssize_t last_valid_entry_index = -1;
-    for (gaia_txn_id_t entry : entries)
+    std::array<bool, 2> is_entry_valid{};
+    for (size_t i = 0; i < entries.size(); ++i)
     {
         ASSERT_INVARIANT(
-            (entry == c_invalid_gaia_txn_id) || (entry >= get_watermark(watermark_type_t::pre_truncate)),
+            (entries[i] == c_invalid_gaia_txn_id) || (entries[i] >= get_watermark(watermark_type_t::pre_truncate)),
             "A reserved safe_ts entry cannot lag the pre-truncate watermark!");
 
-        if (entry != c_invalid_gaia_txn_id)
-        {
-            last_valid_entry_index = entry_index;
-            ++valid_entry_count;
-        }
-
-        ++entry_index;
+        is_entry_valid[i] = (entries[i] != c_invalid_gaia_txn_id);
     }
+
     ASSERT_INVARIANT(
-        valid_entry_count == 1 && last_valid_entry_index >= 0,
+        (is_entry_valid[0] ^ is_entry_valid[1]),
         "Exactly one safe_ts entry for this thread should be valid!");
 
     // Invalidate the previously published entry.
-    entries[last_valid_entry_index] = c_invalid_gaia_txn_id;
+    size_t valid_entry_index = is_entry_valid[0] ? 0 : 1;
+    entries[valid_entry_index] = c_invalid_gaia_txn_id;
 }
 
 gaia_txn_id_t server_t::get_safe_truncation_ts()
