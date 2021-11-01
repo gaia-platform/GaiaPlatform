@@ -473,13 +473,13 @@ void client_t::commit_transaction()
     ASSERT_INVARIANT(
         event == session_event_t::DECIDE_TXN_COMMIT
             || event == session_event_t::DECIDE_TXN_ABORT
-            || event == session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE,
+            || event == session_event_t::DECIDE_TXN_ROLLBACK_ERROR,
         c_message_unexpected_event_received);
 
     const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
     ASSERT_INVARIANT(
         txn_info->transaction_id() == s_txn_id
-            || event == session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE,
+            || event == session_event_t::DECIDE_TXN_ROLLBACK_ERROR,
         "Unexpected transaction id!");
 
     // Execute trigger only if rules engine is initialized.
@@ -500,9 +500,12 @@ void client_t::commit_transaction()
     }
     // Improving the communication of such errors to the client is tracked by:
     // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1232
-    else if (event == session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE)
+    else if (event == session_event_t::DECIDE_TXN_ROLLBACK_ERROR)
     {
-        throw index::unique_constraint_violation();
+        throw database_exception(
+            client_messenger.server_reply()->error_message()->c_str(),
+            client_messenger.server_reply()->error_table_name()->c_str(),
+            client_messenger.server_reply()->error_index_name()->c_str());
     }
 }
 

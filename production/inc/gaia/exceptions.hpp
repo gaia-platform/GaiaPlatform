@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <cstring>
+
 #include <sstream>
 
 #include "gaia/exception.hpp"
@@ -67,36 +69,61 @@ public:
     }
 };
 
-namespace index
-{
 /**
- * \addtogroup index
- * @{
+ * An exception class for database exceptions that should be communicated to the client.
  */
-
-/**
- * An exception class used to indicate the violation of a UNIQUE constraint.
- */
-class unique_constraint_violation : public common::gaia_exception
+class database_exception : public common::gaia_exception
 {
 public:
-    unique_constraint_violation()
+    explicit database_exception(
+        const char* error_message,
+        const char* error_table_name,
+        const char* error_index_name)
     {
-        m_message = "UNIQUE constraint violation.";
-    }
+        m_error_message = error_message;
+        m_table_name = error_table_name;
+        m_index_name = error_index_name;
 
-    explicit unique_constraint_violation(const char* index_name, const char* table_name)
-    {
         std::stringstream message;
         message
-            << "UNIQUE constraint violation for index '" << index_name
-            << "' of table '" << table_name << "'.";
+            << error_message
+            << "\nError context information:";
+
+        if (error_table_name && strlen(error_table_name) > 0)
+        {
+            message << "\n\tTable: '" << error_table_name << "'";
+        }
+
+        if (error_index_name && strlen(error_index_name) > 0)
+        {
+            message << "\n\tIndex: '" << error_index_name << "'";
+        }
+
+        message << "\n";
+
         m_message = message.str();
     }
-};
 
-/*@}*/
-} // namespace index
+    const char* get_message() const
+    {
+        return m_error_message;
+    }
+
+    const char* get_table_name() const
+    {
+        return m_table_name;
+    }
+
+    const char* get_index_name() const
+    {
+        return m_index_name;
+    }
+
+private:
+    const char* m_error_message;
+    const char* m_table_name;
+    const char* m_index_name;
+};
 
 /*@}*/
 } // namespace db

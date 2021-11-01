@@ -229,7 +229,8 @@ void server_t::handle_begin_txn(
     // number of log fds on the initial reply message.
     int log_fd = s_log.fd();
     FlatBufferBuilder builder;
-    build_server_reply(builder, session_event_t::BEGIN_TXN, old_state, new_state, s_txn_id, txn_log_fds_for_snapshot.size());
+    build_server_reply(
+        builder, session_event_t::BEGIN_TXN, old_state, new_state, s_txn_id, txn_log_fds_for_snapshot.size());
     send_msg_with_fds(s_session_socket, &log_fd, 1, builder.GetBufferPointer(), builder.GetSize());
 
     // Send all txn log fds to the client in an additional sequence of dummy messages.
@@ -357,13 +358,17 @@ void server_t::handle_commit_txn(
         bool success = txn_commit();
         decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
     }
-    catch (const index::unique_constraint_violation& e)
+    catch (const database_exception& e)
     {
-        // Rollback our transaction in case of constraint violations.
+        // Rollback our transaction in case of a server error.
         // This is because such failures happen in the early pre-commit phase.
         txn_rollback();
 
-        decision = session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE;
+        s_error_message = e.get_message();
+        s_error_table_name = e.get_table_name();
+        s_error_index_name = e.get_index_name();
+
+        decision = session_event_t::DECIDE_TXN_ROLLBACK_ERROR;
     }
 
     // Server-initiated state transition! (Any issues with reentrant handlers?)
@@ -376,7 +381,7 @@ void server_t::handle_decide_txn(
     ASSERT_PRECONDITION(
         event == session_event_t::DECIDE_TXN_COMMIT
             || event == session_event_t::DECIDE_TXN_ABORT
-            || event == session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE,
+            || event == session_event_t::DECIDE_TXN_ROLLBACK_ERROR,
         c_message_unexpected_event_received);
 
     ASSERT_PRECONDITION(
@@ -390,7 +395,9 @@ void server_t::handle_decide_txn(
     auto cleanup = make_scope_guard([&]() { s_txn_id = c_invalid_gaia_txn_id; });
 
     FlatBufferBuilder builder;
-    build_server_reply(builder, event, old_state, new_state, s_txn_id);
+    build_server_reply(
+        builder, event, old_state, new_state, s_txn_id, 0,
+        s_error_message.c_str(), s_error_table_name.c_str(), s_error_index_name.c_str());
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Update watermarks and perform associated maintenance tasks. This will
@@ -621,12 +628,16 @@ void server_t::build_server_reply(
     session_state_t old_state,
     session_state_t new_state,
     gaia_txn_id_t txn_id,
-    size_t log_fds_to_apply_count)
+    size_t log_fds_to_apply_count,
+    const char* error_message,
+    const char* error_table_name,
+    const char* error_index_name)
 {
     flatbuffers::Offset<server_reply_t> server_reply;
     const auto transaction_info = Createtransaction_info_t(builder, txn_id, log_fds_to_apply_count);
-    server_reply = Createserver_reply_t(
-        builder, event, old_state, new_state, reply_data_t::transaction_info, transaction_info.Union());
+    server_reply = Createserver_reply_tDirect(
+        builder, event, old_state, new_state, reply_data_t::transaction_info, transaction_info.Union(),
+        error_message, error_table_name, error_index_name);
     const auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
     builder.Finish(message);
 }

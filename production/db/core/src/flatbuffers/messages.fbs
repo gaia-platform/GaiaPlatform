@@ -22,7 +22,7 @@ enum session_event_t: uint8 {
     DECIDE_TXN_COMMIT,
     DECIDE_TXN_ABORT,
     REQUEST_STREAM,
-    DECIDE_TXN_ROLLBACK_UNIQUE,
+    DECIDE_TXN_ROLLBACK_ERROR,
 }
 
 // FlatBuffers doesn't allow scalar fields in a union.
@@ -86,6 +86,9 @@ table server_reply_t {
     old_state: session_state_t;
     new_state: session_state_t;
     data: reply_data_t;
+    error_message: string;
+    error_table_name: string;
+    error_index_name: string;
 }
 
 union any_message_t {
