@@ -510,9 +510,9 @@ void client_t::commit_transaction()
             "No error message was provided for a DECIDE_TXN_ROLLBACK_FOR_ERROR event!");
 
         // Determine which exception type the message corresponds to and re-throw the exception.
-        if (index::unique_constraint_exception::has_issued_message(error_message))
+        if (index::unique_constraint_violation::has_issued_message(error_message))
         {
-            throw index::unique_constraint_exception(error_message);
+            throw index::unique_constraint_violation(error_message);
         }
     }
 }

@@ -358,7 +358,7 @@ void server_t::handle_commit_txn(
         bool success = txn_commit();
         decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
     }
-    catch (const index::unique_constraint_exception& e)
+    catch (const index::unique_constraint_violation& e)
     {
         // Rollback our transaction in case of constraint violations.
         // This is because such failures happen in the early pre-commit phase.

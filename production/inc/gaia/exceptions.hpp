@@ -79,18 +79,18 @@ namespace index
 /**
  * An exception class used to indicate the violation of a UNIQUE constraint.
  */
-class unique_constraint_exception : public common::gaia_exception
+class unique_constraint_violation : public common::gaia_exception
 {
 public:
-    static constexpr char c_error_message[] = "UNIQUE constraint exception!";
+    static constexpr char c_error_message[] = "UNIQUE constraint violation!";
 
 public:
-    explicit unique_constraint_exception(const char* error_message)
+    explicit unique_constraint_violation(const char* error_message)
     {
         m_message = error_message;
     }
 
-    unique_constraint_exception(const char* error_table_name, const char* error_index_name)
+    unique_constraint_violation(const char* error_table_name, const char* error_index_name)
     {
         std::stringstream message;
         message
