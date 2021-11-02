@@ -23,16 +23,18 @@ endfunction()
 #
 function(configure_gaia_target TARGET)
   target_link_libraries(${TARGET} PUBLIC gaia_build_options)
-  # See https://cmake.org/cmake/help/latest/policy/CMP0063.html.
-  cmake_policy(SET CMP0063 NEW)
-  # This property sets the compiler option -fvisibility=hidden, so all symbols
-  # are "hidden" (i.e., not exported) from our shared library (libgaia.so).
-  # See https://gcc.gnu.org/wiki/Visibility.
-  set_target_properties(${TARGET} PROPERTIES CXX_VISIBILITY_PRESET hidden)
-  # This property sets the compiler option -fvisibility-inlines-hidden.
-  # "This causes all inlined class member functions to have hidden visibility"
-  # (https://gcc.gnu.org/wiki/Visibility).
-  set_target_properties(${TARGET} PROPERTIES VISIBILITY_INLINES_HIDDEN ON)
+  if(NOT EXPORT_SYMBOLS)
+    # See https://cmake.org/cmake/help/latest/policy/CMP0063.html.
+    cmake_policy(SET CMP0063 NEW)
+    # This property sets the compiler option -fvisibility=hidden, so all symbols
+    # are "hidden" (i.e., not exported) from our shared library (libgaia.so).
+    # See https://gcc.gnu.org/wiki/Visibility.
+    set_target_properties(${TARGET} PROPERTIES CXX_VISIBILITY_PRESET hidden)
+    # This property sets the compiler option -fvisibility-inlines-hidden.
+    # "This causes all inlined class member functions to have hidden visibility"
+    # (https://gcc.gnu.org/wiki/Visibility).
+    set_target_properties(${TARGET} PROPERTIES VISIBILITY_INLINES_HIDDEN ON)
+  endif(EXPORT_SYMBOLS)
 endfunction(configure_gaia_target)
 
 #

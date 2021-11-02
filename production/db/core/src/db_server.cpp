@@ -826,6 +826,9 @@ void server_t::recover_db()
         // in which case we need to recover from the original persistent image.
         if (!s_persistent_store)
         {
+            auto cleanup = make_scope_guard([]() { end_startup_txn(); });
+            begin_startup_txn();
+
             s_persistent_store = std::make_unique<gaia::db::persistent_store_manager>(get_counters(), s_server_conf.data_dir());
             if (s_server_conf.persistence_mode() == persistence_mode_t::e_reinitialized_on_startup)
             {
@@ -847,23 +850,21 @@ void server_t::recover_db()
 gaia_txn_id_t server_t::begin_startup_txn()
 {
     s_txn_id = txn_metadata_t::register_begin_ts();
+    s_log.create(gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
     return s_txn_id;
 }
 
 void server_t::end_startup_txn()
 {
-    // Use a local variable to ensure cleanup in case of an error.
-    mapped_log_t log;
-
-    log.create(gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
-
     // Update the log header with our begin timestamp and initialize it to empty.
-    log.data()->begin_ts = s_txn_id;
-    log.data()->record_count = 0;
+    s_log.data()->begin_ts = s_txn_id;
+    s_log.data()->record_count = 0;
 
     // Claim ownership of the log fd from the mapping object.
     // The empty log will be freed by a regular GC task.
-    int log_fd = log.unmap_truncate_seal_fd();
+    int log_fd = s_log.unmap_truncate_seal_fd();
+
+    auto cleanup_fd = make_scope_guard([&]() { close_fd(log_fd); });
 
     // Register this txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = txn_metadata_t::register_commit_ts(s_txn_id, log_fd);
@@ -878,6 +879,11 @@ void server_t::end_startup_txn()
     }
 
     perform_maintenance();
+
+    ASSERT_POSTCONDITION(txn_metadata_t::is_txn_gc_complete(commit_ts), "Transaction log should be garbage-collected!");
+
+    // At this point, cleanup has already occured and scope guard can be dismissed.
+    cleanup_fd.dismiss();
 
     s_txn_id = c_invalid_gaia_txn_id;
 }
