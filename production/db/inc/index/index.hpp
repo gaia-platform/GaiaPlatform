@@ -69,6 +69,7 @@ public:
 
     // Index structure maintenance.
     void insert_index_entry(index_key_t&& key, index_record_t record);
+    void remove_index_entry_with_offset(const index_key_t& key, gaia_offset_t offset);
 
     // Clear index structure.
     void clear() override;
@@ -84,7 +85,7 @@ protected:
 private:
     // Find physical key corresponding to a logical_key + record or return the end iterator.
     // Returns the iterator type of the underlying structure.
-    typename T_structure::iterator find_physical_key(index_key_t& key, index_record_t& record);
+    typename T_structure::iterator find_physical_key(const index_key_t& key, const index_record_t& record);
 };
 
 #include "index.inc"

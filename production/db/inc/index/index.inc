@@ -20,6 +20,24 @@ void index_t<T_structure, T_iterator>::insert_index_entry(index_key_t&& key, ind
     }
 }
 
+template <typename T_structure, typename T_iterator>
+void index_t<T_structure, T_iterator>::remove_index_entry_with_offset(const index_key_t& key, gaia_offset_t offset)
+{
+    std::lock_guard lock(m_index_lock);
+    for (auto it = m_data.find(key);
+         it != m_data.end() && it->first == key;)
+    {
+        if (it->second.offset == offset)
+        {
+            it = m_data.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+}
+
 // Clear index structure.
 template <typename T_structure, typename T_iterator>
 void index_t<T_structure, T_iterator>::clear()
@@ -45,7 +63,7 @@ std::shared_ptr<common::iterators::generator_t<index_record_t>> index_t<T_struct
 // Find physical key corresponding to a logical_key + record or return the end iterator.
 template <typename T_structure, typename T_iterator>
 typename T_structure::iterator index_t<T_structure, T_iterator>::find_physical_key(
-    index_key_t& key, index_record_t& record)
+    const index_key_t& key, const index_record_t& record)
 {
     for (auto it = m_data.find(key);
          it != m_data.end() && it->first == key;

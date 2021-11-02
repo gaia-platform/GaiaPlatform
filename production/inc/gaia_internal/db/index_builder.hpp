@@ -43,8 +43,8 @@ public:
     static index_key_t deserialize_key(common::gaia_id_t index_id, data_read_buffer_t& buffer);
 
     static void populate_index(common::gaia_id_t index_id, common::gaia_type_t type, gaia_locator_t locator);
-    static void truncate_index_to_ts(common::gaia_id_t index_id, gaia_txn_id_t commit_ts);
     static void update_indexes_from_logs(const txn_log_t& records, bool skip_catalog_integrity_check, bool allow_create_empty = false);
+    static void gc_indexes_from_logs(const txn_log_t& records, bool deallocate_new_offsets);
 
 private:
     static index_record_t make_record(gaia_locator_t locator, gaia_offset_t offset, index_record_operation_t operation);

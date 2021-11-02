@@ -30,34 +30,6 @@ namespace db
 namespace index
 {
 
-/*
-w - the writer guard for the index meant to be truncated.
-commit_ts - the cutoff timestamp below which we remove committed transactions (inclusive).
-*/
-template <class T_index>
-void truncate_index(index_writer_guard_t<T_index>& w, gaia_txn_id_t commit_ts)
-{
-    auto index = w.get_index();
-    auto it_next = index.begin();
-    auto it_end = index.end();
-
-    while (it_next != it_end)
-    {
-        auto it_current = it_next++;
-        auto ts = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(it_current->second.txn_id);
-
-        // Ignore invalid txn_ids, txn could be in-flight at the point of testing.
-        if (ts <= commit_ts && ts != c_invalid_gaia_txn_id)
-        {
-            // Only erase entry if each key contains at least one additional entry with the same key.
-            if (it_next != it_end && it_current->first == it_next->first)
-            {
-                it_next = index.erase(it_current);
-            }
-        }
-    }
-}
-
 index_key_t index_builder_t::make_key(gaia_id_t index_id, gaia_type_t type_id, const uint8_t* payload)
 {
     ASSERT_PRECONDITION(payload, "Cannot compute key on null payloads.");
@@ -226,7 +198,7 @@ void update_index_entry(
             {
                 has_found_duplicate_key = false;
             }
-            else if (it_start->second.operation == index_record_operation_t::insert)
+            else
             {
                 has_found_duplicate_key = true;
             }
@@ -365,35 +337,6 @@ void index_builder_t::populate_index(common::gaia_id_t index_id, common::gaia_ty
         make_record(locator, locator_to_offset(locator), index_record_operation_t::insert));
 }
 
-void index_builder_t::truncate_index_to_ts(common::gaia_id_t index_id, gaia_txn_id_t commit_ts)
-{
-    ASSERT_PRECONDITION(get_indexes(), "Indexes not initialized");
-    auto it = get_indexes()->find(index_id);
-
-    if (it == get_indexes()->end())
-    {
-        throw index_not_found(index_id);
-    }
-
-    switch (it->second->type())
-    {
-    case catalog::index_type_t::range:
-    {
-        auto index = static_cast<range_index_t*>(it->second.get());
-        auto w = index->get_writer();
-        truncate_index(w, commit_ts);
-    }
-    break;
-    case catalog::index_type_t::hash:
-    {
-        auto index = static_cast<hash_index_t*>(it->second.get());
-        auto w = index->get_writer();
-        truncate_index(w, commit_ts);
-    }
-    break;
-    }
-}
-
 /*
 * This method performs index maintenance operations based on logs.
 * The order of operations in the index data structure is based on the same ordering as the logs.
@@ -481,6 +424,70 @@ void index_builder_t::update_indexes_from_logs(
         for (const auto& index : catalog_core_t::list_indexes(type_record_id))
         {
             index::index_builder_t::update_index(index.id(), obj->type, log_record, allow_create_empty);
+        }
+    }
+}
+
+template <class T_index>
+void remove_entries_with_offset(base_index_t* base_index, db_object_t* obj, gaia_offset_t offset)
+{
+    auto index = static_cast<T_index*>(base_index);
+    auto key = index_builder_t::make_key(index->id(), obj->type, reinterpret_cast<const uint8_t*>(obj->data()));
+    index->remove_index_entry_with_offset(key, offset);
+}
+
+void index_builder_t::gc_indexes_from_logs(const txn_log_t& records, bool deallocate_new_offsets)
+{
+    for (size_t i = 0; i < records.record_count; ++i)
+    {
+        const auto& log_record = records.log_records[i];
+        gaia_offset_t offset = c_invalid_gaia_offset;
+        db_object_t* obj = nullptr;
+
+        // Find which offset to deallocate (new or old), if no action is needed, move on to the next log record.
+        if (deallocate_new_offsets && log_record.new_offset != c_invalid_gaia_offset)
+        {
+            offset = log_record.new_offset;
+            obj = offset_to_ptr(offset);
+            ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
+        }
+        else if (!deallocate_new_offsets && log_record.old_offset != c_invalid_gaia_offset)
+        {
+            offset = log_record.old_offset;
+            obj = offset_to_ptr(offset);
+            ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
+        }
+        else
+        {
+            continue;
+        }
+
+        gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(obj->type);
+
+        // Skip system objects.
+        // Skip unknown objects -- these are likely from dropped tables. We do not perform catalog
+        // verification in this method, verification should have been previously done in update_indexes_from_logs().
+        if (is_system_object(obj->type) || type_record_id == c_invalid_gaia_id)
+        {
+            continue;
+        }
+
+        for (const auto& index : catalog_core_t::list_indexes(type_record_id))
+        {
+            auto it = get_indexes()->find(index.id());
+
+            if (it != get_indexes()->end())
+            {
+                switch (it->second->type())
+                {
+                case catalog::index_type_t::range:
+                    remove_entries_with_offset<range_index_t>(it->second.get(), obj, offset);
+                    break;
+                case catalog::index_type_t::hash:
+                    remove_entries_with_offset<hash_index_t>(it->second.get(), obj, offset);
+                    break;
+                }
+            }
         }
     }
 }
