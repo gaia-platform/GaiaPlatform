@@ -880,7 +880,7 @@ void server_t::end_startup_txn()
 
     perform_maintenance();
 
-    ASSERT_POSTCONDITION(!s_log.is_set(), "Transaction log should be uninitialized!");
+    ASSERT_POSTCONDITION(txn_metadata_t::is_txn_gc_complete(commit_ts), "Transaction log should be garbage-collected!");
 
     // At this point, cleanup has already occured and scope guard can be dismissed.
     cleanup_fd.dismiss();
