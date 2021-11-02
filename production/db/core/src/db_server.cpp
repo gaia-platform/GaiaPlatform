@@ -367,7 +367,7 @@ void server_t::handle_commit_txn(
         // Save the error message so we can transmit it to the client.
         s_error_message = e.what();
 
-        decision = session_event_t::DECIDE_TXN_ROLLBACK_ERROR;
+        decision = session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR;
     }
 
     // Server-initiated state transition! (Any issues with reentrant handlers?)
@@ -380,7 +380,7 @@ void server_t::handle_decide_txn(
     ASSERT_PRECONDITION(
         event == session_event_t::DECIDE_TXN_COMMIT
             || event == session_event_t::DECIDE_TXN_ABORT
-            || event == session_event_t::DECIDE_TXN_ROLLBACK_ERROR,
+            || event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR,
         c_message_unexpected_event_received);
 
     ASSERT_PRECONDITION(
