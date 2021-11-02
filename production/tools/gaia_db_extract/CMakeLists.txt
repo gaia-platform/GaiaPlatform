@@ -9,6 +9,7 @@ project(gaia_db_extract)
 set(GAIA_DB_EXTRACT_INCLUDES
   ${FLATBUFFERS_INC}
   ${GAIA_REPO}/third_party/production/flatbuffers/include
+  ${GAIA_REPO}/third_party/production/json/json/single_include/nlohmann
   ${GAIA_REPO}/production/db/inc/memory_manager
   ${GAIA_REPO}/production/db/inc/payload_types
   ${GAIA_INC}
