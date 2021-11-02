@@ -9536,7 +9536,7 @@ def err_duplicate_parameter_name : Error<
 def err_duplicate_ruleset : Error<
   "Ruleset '%0' is defined more than once. Ruleset names must be unique.">;
 def err_edc_init : Error<
-  "Initialization of a declared variable with a direct access object is not supported.">;
+  "Initialization of a declared variable with a Direct Access object is not supported.">;
 def err_field_deprecated : Error<
   "Field '%0' of table '%1' is marked as deprecated in the catalog. "
   "Ensure that you are using the correct field in the catalog.">;
@@ -9549,7 +9549,7 @@ def err_incorrect_for_expression : Error<
   "An incorrect expression is used as a path in a 'for' statement. "
   "An expression in a 'for' statement must only iterate over a table.">;
 def err_incorrect_matched_expression : Error<
-  "Incorrect matched expression.">;  
+  "Incorrect matched expression.">;
 def err_incorrect_matched_operator : Error<
   "Incorrect matched operator.">;
 def err_incorrect_operator_code : Error<
