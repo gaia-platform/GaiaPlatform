@@ -358,15 +358,13 @@ void server_t::handle_commit_txn(
         bool success = txn_commit();
         decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
     }
-    catch (const database_exception& e)
+    catch (const index::unique_constraint_exception& e)
     {
         // Rollback our transaction in case of a server error.
         // This is because such failures happen in the early pre-commit phase.
         txn_rollback();
 
-        s_error_message = e.get_message();
-        s_error_table_name = e.get_table_name();
-        s_error_index_name = e.get_index_name();
+        s_error_message = e.what();
 
         decision = session_event_t::DECIDE_TXN_ROLLBACK_ERROR;
     }
@@ -396,8 +394,7 @@ void server_t::handle_decide_txn(
 
     FlatBufferBuilder builder;
     build_server_reply(
-        builder, event, old_state, new_state, s_txn_id, 0,
-        s_error_message.c_str(), s_error_table_name.c_str(), s_error_index_name.c_str());
+        builder, event, old_state, new_state, s_txn_id, 0, s_error_message.c_str());
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Update watermarks and perform associated maintenance tasks. This will
@@ -629,15 +626,13 @@ void server_t::build_server_reply(
     session_state_t new_state,
     gaia_txn_id_t txn_id,
     size_t log_fds_to_apply_count,
-    const char* error_message,
-    const char* error_table_name,
-    const char* error_index_name)
+    const char* error_message)
 {
     flatbuffers::Offset<server_reply_t> server_reply;
     const auto transaction_info = Createtransaction_info_t(builder, txn_id, log_fds_to_apply_count);
     server_reply = Createserver_reply_tDirect(
         builder, event, old_state, new_state, reply_data_t::transaction_info, transaction_info.Union(),
-        error_message, error_table_name, error_index_name);
+        error_message);
     const auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
     builder.Finish(message);
 }

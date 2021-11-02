@@ -69,61 +69,47 @@ public:
     }
 };
 
+namespace index
+{
 /**
- * An exception class for database exceptions that should be communicated to the client.
+ * \addtogroup index
+ * @{
  */
-class database_exception : public common::gaia_exception
+
+/**
+ * An exception class used to indicate the violation of a UNIQUE constraint.
+ */
+class unique_constraint_exception : public common::gaia_exception
 {
 public:
-    explicit database_exception(
-        const char* error_message,
-        const char* error_table_name,
-        const char* error_index_name)
-    {
-        m_error_message = error_message;
-        m_table_name = error_table_name;
-        m_index_name = error_index_name;
+    static constexpr char c_error_message[] = "UNIQUE constraint exception!";
 
+public:
+    explicit unique_constraint_exception(const char* error_message)
+    {
+        m_message = error_message;
+    }
+
+    unique_constraint_exception(const char* error_table_name, const char* error_index_name)
+    {
         std::stringstream message;
         message
-            << error_message
-            << "\nError context information:";
-
-        if (error_table_name && strlen(error_table_name) > 0)
-        {
-            message << "\n\tTable: '" << error_table_name << "'";
-        }
-
-        if (error_index_name && strlen(error_index_name) > 0)
-        {
-            message << "\n\tIndex: '" << error_index_name << "'";
-        }
-
-        message << "\n";
-
+            << c_error_message
+            << " The database has detected an attempt to insert a duplicate key in table: '"
+            << error_table_name << "', "
+            << " index: '" << error_index_name << "'.";
         m_message = message.str();
     }
 
-    const char* get_message() const
+    static bool has_issued_message(const char* error_message)
     {
-        return m_error_message;
+        return strlen(error_message) > strlen(c_error_message)
+            && strncmp(error_message, c_error_message, strlen(c_error_message)) == 0;
     }
-
-    const char* get_table_name() const
-    {
-        return m_table_name;
-    }
-
-    const char* get_index_name() const
-    {
-        return m_index_name;
-    }
-
-private:
-    const char* m_error_message;
-    const char* m_table_name;
-    const char* m_index_name;
 };
+
+/*@}*/
+} // namespace index
 
 /*@}*/
 } // namespace db

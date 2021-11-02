@@ -87,8 +87,6 @@ table server_reply_t {
     new_state: session_state_t;
     data: reply_data_t;
     error_message: string;
-    error_table_name: string;
-    error_index_name: string;
 }
 
 union any_message_t {
