@@ -102,6 +102,9 @@ data_holder_t table_iterator_t::extract_field_value(uint16_t repeated_count, siz
                     0,
                     position,
                     i);
+
+                // Stop the warning until this variable is used.
+                (void)value;
             }
         }
         else
