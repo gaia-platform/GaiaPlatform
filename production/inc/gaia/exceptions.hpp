@@ -101,6 +101,8 @@ public:
         m_message = message.str();
     }
 
+    // Checks whether the passed-in message corresponds to this exception type,
+    // i.e. it starts with our static error message.
     static bool has_issued_message(const char* error_message)
     {
         return strlen(error_message) > strlen(c_error_message)

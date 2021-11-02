@@ -360,10 +360,11 @@ void server_t::handle_commit_txn(
     }
     catch (const index::unique_constraint_exception& e)
     {
-        // Rollback our transaction in case of a server error.
+        // Rollback our transaction in case of constraint violations.
         // This is because such failures happen in the early pre-commit phase.
         txn_rollback();
 
+        // Save the error message so we can transmit it to the client.
         s_error_message = e.what();
 
         decision = session_event_t::DECIDE_TXN_ROLLBACK_ERROR;

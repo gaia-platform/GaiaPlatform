@@ -505,6 +505,10 @@ void client_t::commit_transaction()
         // Get error message from server.
         const char* error_message = client_messenger.server_reply()->error_message()->c_str();
 
+        ASSERT_PRECONDITION(
+            error_message != nullptr && strlen(error_message) > 0,
+            "No error message was provided for a DECIDE_TXN_ROLLBACK_ERROR event!");
+
         // Determine which exception type the message corresponds to and re-throw the exception.
         if (index::unique_constraint_exception::has_issued_message(error_message))
         {
