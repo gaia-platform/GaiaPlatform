@@ -23,18 +23,25 @@ constexpr char c_table_string[] = "table";
 // Command-line usage.
 static void usage()
 {
-    fprintf(stderr, "Usage: gaia_db_extract [--database=<dbname>] [--table=<tableneme>] [--start-after=ID] [--row-limit=N]\n");
-    fprintf(stderr, "  No parameters: dump catalog.\n");
-    fprintf(stderr, "  Else dump rows specified by database/table name, limited by start-after and row-limit.\n");
+    cerr << "Usage: gaia_db_extract [--" << c_database_string << "=<databasename>] [--" << c_table_string << "=<tableneme>] [--"
+         << c_start_string << "=ID] [--" << c_row_limit_string << "=N]" << endl;
+    cerr << "  No parameters: dump the catalog only." << endl;
+    cerr << "  Else dump rows specified by " << c_database_string << "/" << c_table_string << " name, limited by "
+         << c_start_string << " and " << c_row_limit_string << "." << endl;
+
+    // Print an empty JSON object when there is any kind of error.
+    cout << "{}" << endl;
+
+    exit(EXIT_FAILURE);
 }
 
 // Break a command-line parameter into its pieces.
-static bool parse_arg(int argc, char* argv[], int& arg, string& key, string& value)
+static void parse_arg(int argc, char* argv[], int& arg, string& key, string& value)
 {
     if (strncmp(argv[arg], "--", 2))
     {
-        fprintf(stderr, "Incorrect command-line parameter: %s\n", argv[arg]);
-        return false;
+        cerr << "Incorrect command-line parameter: " << argv[arg] << endl;
+        usage();
     }
 
     key = string(argv[arg] + 2);
@@ -50,13 +57,11 @@ static bool parse_arg(int argc, char* argv[], int& arg, string& key, string& val
         // It's two argv's, and the value is the next one.
         if (++arg >= argc)
         {
-            fprintf(stderr, "Missing a parameter value\n");
-            return false;
+            cerr << "Missing a parameter value." << endl;
+            usage();
         }
         value = string(argv[arg]);
     }
-
-    return true;
 }
 
 int main(int argc, char* argv[])
@@ -66,59 +71,44 @@ int main(int argc, char* argv[])
     string database;
     string table;
 
-    // Usage:
-    //  gaia_db_extract --database=<dbmame> --table=<tablename> --start-after=ID --row-limit=N
-    //    When no database/table specified, dump catalog.
-    bool failed_command_line = false;
     string key;
     string value;
     for (auto i = 1; i < argc; i++)
     {
-        if (!parse_arg(argc, argv, i, key, value))
+        // Get a parameter and value pair from the command-line.
+        parse_arg(argc, argv, i, key, value);
+
+        if (!key.compare(c_start_string))
         {
-            failed_command_line = true;
+            start_after = stoi(value);
+            if (start_after < 1)
+            {
+                cerr << "Illegal value for " << c_start_string << ". It must be 1 or greater." << endl;
+                usage();
+            }
+        }
+        else if (!key.compare(c_row_limit_string))
+        {
+            row_limit = stoi(value);
+            if (row_limit < 1)
+            {
+                cerr << "Illegal value for " << c_row_limit_string << ". It must be 1 or greater." << endl;
+                usage();
+            }
+        }
+        else if (!key.compare(c_database_string))
+        {
+            database = value;
+        }
+        else if (!key.compare(c_table_string))
+        {
+            table = value;
         }
         else
         {
-            if (!key.compare(c_start_string))
-            {
-                start_after = atoi(value.c_str());
-                if (start_after < 1)
-                {
-                    fprintf(stderr, "Illegal value for start_after. It must be 1 or greater\n");
-                    failed_command_line = true;
-                }
-            }
-            else if (!key.compare(c_row_limit_string))
-            {
-                row_limit = atoi(value.c_str());
-                if (row_limit < 1)
-                {
-                    fprintf(stderr, "Illegal value for row_limit. It must be 1 or greater\n");
-                    failed_command_line = true;
-                }
-            }
-            else if (!key.compare(c_database_string))
-            {
-                database = value;
-            }
-            else if (!key.compare(c_table_string))
-            {
-                table = value;
-            }
-            else
-            {
-                fprintf(stderr, "Invalid command-line option: '%s'\n", key.c_str());
-                failed_command_line = true;
-            }
+            cerr << "Invalid command-line option: '" << key << "'." << endl;
+            usage();
         }
-    }
-
-    if (failed_command_line)
-    {
-        usage();
-        cout << "{}" << endl;
-        exit(EXIT_FAILURE);
     }
 
     try
@@ -128,7 +118,7 @@ int main(int argc, char* argv[])
     catch (gaia_exception& e)
     {
         // This is usually because there is no server running.
-        fprintf(stderr, "Startup failure, exception: '%s'\n", e.what());
+        cerr << "Startup failure, exception: '" << e.what() << "'." << endl;
         cout << "{}" << endl;
         exit(EXIT_FAILURE);
     }
@@ -141,7 +131,7 @@ int main(int argc, char* argv[])
         // One-time preparation for scanning rows.
         if (!gaia_db_extract_initialize())
         {
-            fprintf(stderr, "Extraction API failed to initialize\n");
+            cerr << "Extraction API failed to initialize." << endl;
         }
         else
         {
@@ -150,7 +140,7 @@ int main(int argc, char* argv[])
     }
     catch (gaia_exception& e)
     {
-        fprintf(stderr, "Exception while generating JSON: '%s'\n", e.what());
+        cerr << "Exception while generating JSON: '" << e.what() << "'." << endl;
     }
 
     gaia::db::end_session();
