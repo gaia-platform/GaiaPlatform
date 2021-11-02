@@ -25,6 +25,8 @@ option(BUILD_GAIA_RELEASE "Build Gaia Release packages and binaries" OFF)
 
 option(ENABLE_SDK_TESTS "Build and execute ruleset translation tests" ON)
 
+option(EXPORT_SYMBOLS "Export symbols by default from shared libraries" OFF)
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
 else()
@@ -334,7 +336,10 @@ if(BUILD_GAIA_RELEASE)
 endif()
 
 # Query processors.
+# We want to export all global symbols from the FDW shared library.
+set(EXPORT_SYMBOLS ON)
 add_subdirectory(sql)
+set(EXPORT_SYMBOLS OFF)
 
 # SDK
 # Be sure to add the SDK directory after the sql directory because the package mechanism
