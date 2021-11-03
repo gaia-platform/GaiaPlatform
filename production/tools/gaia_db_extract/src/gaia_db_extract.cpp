@@ -62,7 +62,7 @@ static json_t to_json(gaia_table_t table)
     json["id"] = table.gaia_id();
     json["type"] = table.type();
 
-    for (auto field : table.gaia_fields())
+    for (const auto& field : table.gaia_fields())
     {
         json["fields"].push_back(to_json(field));
     }
@@ -77,7 +77,7 @@ static json_t to_json(gaia_database_t db)
 
     json["name"] = db.name();
 
-    for (auto table : db.gaia_tables())
+    for (const auto& table : db.gaia_tables())
     {
         json["tables"].push_back(to_json(table));
     }
@@ -86,7 +86,7 @@ static json_t to_json(gaia_database_t db)
 }
 
 // To make sure that gaia_db_extract() can issue a warning if not initialized.
-static bool s_cache_initialized = false;
+static bool g_cache_initialized = false;
 
 bool gaia_db_extract_initialize()
 {
@@ -113,8 +113,8 @@ bool gaia_db_extract_initialize()
 
     commit_transaction();
 
-    s_cache_initialized = true;
-    return s_cache_initialized;
+    g_cache_initialized = true;
+    return g_cache_initialized;
 }
 
 static string dump_catalog()
@@ -124,7 +124,7 @@ static string dump_catalog()
 
     begin_transaction();
 
-    for (auto db : gaia_database_t::list())
+    for (const auto& db : gaia_database_t::list())
     {
         // The nameless database is "default" for tables that are not in a named database, and
         // "catalog" is the name of the catalog database. If you don't want one or both of these
@@ -196,7 +196,7 @@ static string dump_rows(string database, string table, uint64_t start_after, uin
     stringstream row_dump;
     json_t rows = json_t{};
 
-    if (!s_cache_initialized)
+    if (!g_cache_initialized)
     {
         fprintf(stderr, "API not initialized. Call gaia_db_extract_initialize() first.\n");
         return "{}";

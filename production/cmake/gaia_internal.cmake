@@ -34,7 +34,7 @@ function(configure_gaia_target TARGET)
     # "This causes all inlined class member functions to have hidden visibility"
     # (https://gcc.gnu.org/wiki/Visibility).
     set_target_properties(${TARGET} PROPERTIES VISIBILITY_INLINES_HIDDEN ON)
-  endif(EXPORT_SYMBOLS)
+  endif(NOT EXPORT_SYMBOLS)
 endfunction(configure_gaia_target)
 
 #
