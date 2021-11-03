@@ -444,16 +444,17 @@ void client_t::rollback_transaction()
 
 // This method needs to be updated whenever a new pre_commit_validation_failure exception
 // is being introduced.
-pre_commit_validation_failure get_exception_from_message(const char* error_message)
+void throw_exception_from_message(const char* error_message)
 {
     // Check the error message against the known set of pre_commit_validation_failure error messages.
-    if (strlen(error_message) > strlen(index::unique_constraint_violation::c_error_message)
+    if (strlen(error_message) > strlen(index::unique_constraint_violation::c_error_description)
         && strncmp(
-            error_message,
-            index::unique_constraint_violation::c_error_message,
-            strlen(index::unique_constraint_violation::c_error_message)))
+               error_message,
+               index::unique_constraint_violation::c_error_description,
+               strlen(index::unique_constraint_violation::c_error_description))
+            == 0)
     {
-        return index::unique_constraint_violation(error_message);
+        throw index::unique_constraint_violation(error_message);
     }
     else
     {
@@ -528,13 +529,13 @@ void client_t::commit_transaction()
     else if (event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR)
     {
         // Get error information from server.
-        const char* error_message = client_messenger.server_reply()->error_message()->c_str();
+        const char* error_message = txn_info->error_message()->c_str();
 
         ASSERT_PRECONDITION(
             error_message != nullptr && strlen(error_message) > 0,
             "No error message was provided for a DECIDE_TXN_ROLLBACK_FOR_ERROR event!");
 
-        throw get_exception_from_message(error_message);
+        throw_exception_from_message(error_message);
     }
 }
 

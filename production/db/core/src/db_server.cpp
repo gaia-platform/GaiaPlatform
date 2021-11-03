@@ -635,11 +635,11 @@ void server_t::build_server_reply(
     const char* error_message)
 {
     flatbuffers::Offset<server_reply_t> server_reply;
-    const auto transaction_info = Createtransaction_info_t(builder, txn_id, log_fds_to_apply_count);
-    server_reply = Createserver_reply_tDirect(
+    const auto transaction_info = Createtransaction_info_tDirect(
+        builder, txn_id, log_fds_to_apply_count, error_message);
+    server_reply = Createserver_reply_t(
         builder, event, old_state, new_state,
-        reply_data_t::transaction_info, transaction_info.Union(),
-        error_message);
+        reply_data_t::transaction_info, transaction_info.Union());
     const auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
     builder.Finish(message);
 }

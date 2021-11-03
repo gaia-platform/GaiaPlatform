@@ -94,7 +94,7 @@ namespace index
 class unique_constraint_violation : public pre_commit_validation_failure
 {
 public:
-    static constexpr char c_error_message[] = "UNIQUE constraint violation!";
+    static constexpr char c_error_description[] = "UNIQUE constraint violation!";
 
 public:
     // This constructor should only be used on client side,
@@ -112,9 +112,8 @@ public:
     {
         std::stringstream message;
         message
-            << c_error_message
-            << " The database has detected an attempt to insert a duplicate key in table: '"
-            << error_table_name << "', "
+            << c_error_description
+            << " Cannot insert a duplicate key in table: '" << error_table_name << "', because of the unique constraint of "
             << " index: '" << error_index_name << "'.";
         m_message = message.str();
     }
