@@ -299,6 +299,7 @@ start_database_if_required() {
 # Based on the suite file, determine the workload directory.
 determine_workload_directory() {
 
+    WORKLOAD_NAME=
     WORKLOAD_DIRECTORY=
     # shellcheck disable=SC2016
     IFS=$'\r\n' GLOBIGNORE='*' command eval  'TEST_NAMES=($(cat $SUITE_FILE_NAME))'
@@ -322,6 +323,7 @@ determine_workload_directory() {
 
     # shellcheck disable=SC1001
     if [[ "$WORKLOAD_DIRECTORY" != *\/* ]] ; then
+        WORKLOAD_NAME="$WORKLOAD_DIRECTORY"
         WORKLOAD_DIRECTORY=$SCRIPTPATH/workloads/$WORKLOAD_DIRECTORY
     fi
 }
@@ -604,20 +606,23 @@ if ! ./python/summarize_suite_results.py "$SUITE_FILE_NAME"; then
 fi
 
 if [ $SHOW_STATS -ne 0 ] ; then
-    OUTPUT_FILE=$TEMP_FILE
-    STATS_FORMAT=
-    if [ $SHOW_JSON_STATS -ne 0 ] ; then
-        STATS_FORMAT="--format json"
-        OUTPUT_FILE=$SUITE_RESULTS_DIRECTORY/stats.json
-        broadcast_message "$SUITE_MODE" "Creating statistics file at '$(realpath "$OUTPUT_FILE")'."
-    fi
-
-    # shellcheck disable=SC2086
-    if ! ./python/summary_stats.py $STATS_FORMAT > $OUTPUT_FILE 2>&1 ; then
+    OUTPUT_FILE="$TEMP_FILE"
+    if ! ./python/summary_stats.py > $OUTPUT_FILE 2>&1 ; then
         cat $OUTPUT_FILE
         complete_process 1 "Displaying statistics for the suite failed."
     fi
-
+    if [ $SHOW_JSON_STATS -ne 0 ] ; then
+        OUTPUT_FILE=$SUITE_RESULTS_DIRECTORY/suite-stats.json
+        WORKLOAD_PARAMETER=
+        if [ -n "$WORKLOAD_NAME" ] ; then
+            WORKLOAD_PARAMETER="--workload $WORKLOAD_NAME"
+        fi
+        # shellcheck disable=SC2086
+        if ! ./python/summary_stats.py --format json $WORKLOAD_PARAMETER > $OUTPUT_FILE 2>&1 ; then
+            cat $OUTPUT_FILE
+            complete_process 1 "Displaying statistics for the suite failed."
+        fi
+    fi
     if [ $SHOW_JSON_STATS -eq 0 ] ; then
         cat $OUTPUT_FILE
     fi
