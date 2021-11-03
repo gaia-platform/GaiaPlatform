@@ -361,14 +361,12 @@ void server_t::handle_commit_txn(
         bool success = txn_commit();
         decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
     }
-    catch (const index::unique_constraint_violation& e)
+    catch (const pre_commit_validation_failure& e)
     {
-        // Rollback our transaction in case of constraint violations.
-        // This is because such failures happen in the early pre-commit phase.
+        // Rollback our transaction in case of pre-commit errors.
         txn_rollback();
 
         // Save the error message so we can transmit it to the client.
-        s_error_id = messages::server_error_t::UNIQUE_CONSTRAINT_VIOLATION;
         s_error_message = e.what();
 
         decision = session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR;
@@ -399,11 +397,10 @@ void server_t::handle_decide_txn(
 
     FlatBufferBuilder builder;
     build_server_reply(
-        builder, event, old_state, new_state, s_txn_id, 0, s_error_id, s_error_message.c_str());
+        builder, event, old_state, new_state, s_txn_id, 0, s_error_message.c_str());
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Clear error information.
-    s_error_id = server_error_t::NONE;
     s_error_message = c_empty_string;
 
     // Update watermarks and perform associated maintenance tasks. This will
@@ -635,24 +632,14 @@ void server_t::build_server_reply(
     session_state_t new_state,
     gaia_txn_id_t txn_id,
     size_t log_fds_to_apply_count,
-    server_error_t error_id,
     const char* error_message)
 {
     flatbuffers::Offset<server_reply_t> server_reply;
     const auto transaction_info = Createtransaction_info_t(builder, txn_id, log_fds_to_apply_count);
-    if (error_id == server_error_t::NONE)
-    {
-        server_reply = Createserver_reply_t(
-            builder, event, old_state, new_state,
-            reply_data_t::transaction_info, transaction_info.Union());
-    }
-    else
-    {
-        server_reply = Createserver_reply_tDirect(
-            builder, event, old_state, new_state,
-            reply_data_t::transaction_info, transaction_info.Union(),
-            error_id, error_message);
-    }
+    server_reply = Createserver_reply_tDirect(
+        builder, event, old_state, new_state,
+        reply_data_t::transaction_info, transaction_info.Union(),
+        error_message);
     const auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
     builder.Finish(message);
 }

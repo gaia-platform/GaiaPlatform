@@ -25,11 +25,6 @@ enum session_event_t: uint8 {
     DECIDE_TXN_ROLLBACK_FOR_ERROR,
 }
 
-enum server_error_t: uint8 {
-    NONE,
-    UNIQUE_CONSTRAINT_VIOLATION,
-}
-
 // FlatBuffers doesn't allow scalar fields in a union.
 table table_scan_info_t {
     type_id: uint64;
@@ -91,7 +86,6 @@ table server_reply_t {
     old_state: session_state_t;
     new_state: session_state_t;
     data: reply_data_t;
-    error_id: server_error_t;
     error_message: string;
 }
 

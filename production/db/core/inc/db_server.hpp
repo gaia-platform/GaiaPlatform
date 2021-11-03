@@ -157,7 +157,6 @@ private:
     // These thread objects are owned by the session thread that created them.
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
 
-    thread_local static inline messages::server_error_t s_error_id = messages::server_error_t::NONE;
     thread_local static inline std::string s_error_message = common::c_empty_string;
 
     // These global timestamp variables are "watermarks" that represent the
@@ -371,7 +370,6 @@ private:
         messages::session_state_t new_state,
         gaia_txn_id_t txn_id = 0,
         size_t log_fds_to_apply_count = 0,
-        messages::server_error_t error_id = messages::server_error_t::NONE,
         const char* error_message = "");
 
     static void clear_shared_memory();

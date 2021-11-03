@@ -442,6 +442,28 @@ void client_t::rollback_transaction()
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
+// This method needs to be updated whenever a new pre_commit_validation_failure exception
+// is being introduced.
+pre_commit_validation_failure get_exception_from_message(const char* error_message)
+{
+    // Check the error message against the known set of pre_commit_validation_failure error messages.
+    if (strlen(error_message) > strlen(index::unique_constraint_violation::c_error_message)
+        && strncmp(
+            error_message,
+            index::unique_constraint_violation::c_error_message,
+            strlen(index::unique_constraint_violation::c_error_message)))
+    {
+        return index::unique_constraint_violation(error_message);
+    }
+    else
+    {
+        std::stringstream message;
+        message
+            << "The server has reported an unexpected error message: '" << error_message << "'";
+        ASSERT_UNREACHABLE(message.str());
+    }
+}
+
 // This method returns void on a commit decision and throws on an abort decision.
 // It sends a message to the server containing the fd of this txn's log segment and
 // will block waiting for a reply from the server.
@@ -506,26 +528,13 @@ void client_t::commit_transaction()
     else if (event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR)
     {
         // Get error information from server.
-        server_error_t error_id = client_messenger.server_reply()->error_id();
         const char* error_message = client_messenger.server_reply()->error_message()->c_str();
-
-        ASSERT_PRECONDITION(
-            error_id != server_error_t::NONE,
-            "No error id was provided for a DECIDE_TXN_ROLLBACK_FOR_ERROR event!");
 
         ASSERT_PRECONDITION(
             error_message != nullptr && strlen(error_message) > 0,
             "No error message was provided for a DECIDE_TXN_ROLLBACK_FOR_ERROR event!");
 
-        // Determine which exception type the message corresponds to and re-throw the exception.
-        if (error_id == server_error_t::UNIQUE_CONSTRAINT_VIOLATION)
-        {
-            throw index::unique_constraint_violation(error_message);
-        }
-        else
-        {
-            ASSERT_UNREACHABLE("The server has thrown an unexpected exception!");
-        }
+        throw get_exception_from_message(error_message);
     }
 }
 

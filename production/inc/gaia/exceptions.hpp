@@ -69,6 +69,15 @@ public:
     }
 };
 
+/**
+ * A base exception class for any fatal pre-commit validation failure.
+ *
+ * Any expected pre-commit validation failure exception is expected to extend this class.
+ */
+class pre_commit_validation_failure : public common::gaia_exception
+{
+};
+
 namespace index
 {
 /**
@@ -78,8 +87,11 @@ namespace index
 
 /**
  * An exception class used to indicate the violation of a UNIQUE constraint.
+ *
+ * Extends pre_commit_validation_failure to indicate that this exception
+ * is expected to occur during the pre-commit processing of a transaction.
  */
-class unique_constraint_violation : public common::gaia_exception
+class unique_constraint_violation : public pre_commit_validation_failure
 {
 public:
     static constexpr char c_error_message[] = "UNIQUE constraint violation!";
