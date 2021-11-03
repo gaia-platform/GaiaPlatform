@@ -4,13 +4,10 @@
 #############################################
 
 #
-# Simple test suite with both of the standard smoke tests.
+# Simple test suite to run the `smoke-time-only-with-1k`.
 #
+# This test is specifically in place to quickly determine performance issues.
 
 workload mink
 
-smoke
-smoke-time-test
-#smoke-time-only
-#smoke-time-test repeat 3
-#smoke-time-only repeat 3
+smoke-time-only-with-10k repeat 3
