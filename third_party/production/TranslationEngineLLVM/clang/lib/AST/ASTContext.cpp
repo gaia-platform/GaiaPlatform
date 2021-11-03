@@ -1139,16 +1139,30 @@ TypedefDecl *ASTContext::getUInt128Decl() const {
 
 void ASTContext::cacheEDCType(const Type* type) const
 {
-  RecordDecl* record = type->getAsRecordDecl();
+  TagDecl* record = type->getAsTagDecl();
+
   if (record != nullptr)
   {
-    const IdentifierInfo* id = record->getIdentifier();
-    if (id)
+    const DeclContext* Ctx = record->getDeclContext();
+    while (Ctx)
     {
-      if (id->getName().endswith("_t"))
+      if (isa<NamedDecl>(Ctx))
       {
-        EDCTypesMap[id->getName()] = type;
+        if (const NamespaceDecl* ND = dyn_cast<NamespaceDecl>(Ctx))
+        {
+          if (!ND->isAnonymousNamespace())
+          {
+            if (ND->getName().equals("gaia"))
+            {
+              if (record->getName().endswith("_t"))
+              {
+                EDCTypesMap[record->getName()] = type;
+              }
+            }
+          }
+        }
       }
+      Ctx = Ctx->getParent();
     }
   }
 }

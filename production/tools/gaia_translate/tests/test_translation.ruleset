@@ -319,6 +319,18 @@ ruleset testE32
     }
 }
 
+// GAIAPLAT-1241
+ruleset testE33
+{
+    on_insert(incubator)
+    {
+        gaia_log::app().info("{} {} {} {}",
+            rule_context.ruleset_name,
+            rule_context.rule_name,
+            gaia::db::triggers::event_type_name(rule_context.event_type),
+            rule_context.gaia_type);
+    }
+}
 #if 0
 // This rule interferes with 'ruleset set' rules
 ruleset test15
