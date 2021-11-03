@@ -85,11 +85,17 @@ public:
     static constexpr char c_error_message[] = "UNIQUE constraint violation!";
 
 public:
+    // This constructor should only be used on client side,
+    // to re-throw the exception indicated by the server.
     explicit unique_constraint_violation(const char* error_message)
     {
         m_message = error_message;
     }
 
+    // A violation could be triggered by conflict with a non-committed transaction.
+    // If that transaction fails to commit, its record will not exist.
+    // This is why no record id is being provided in the message: because it may
+    // not correspond to any valid record at the time that the error is investigated.
     unique_constraint_violation(const char* error_table_name, const char* error_index_name)
     {
         std::stringstream message;
@@ -99,14 +105,6 @@ public:
             << error_table_name << "', "
             << " index: '" << error_index_name << "'.";
         m_message = message.str();
-    }
-
-    // Checks whether the passed-in message corresponds to this exception type,
-    // i.e. it starts with our static error message.
-    static bool has_issued_message(const char* error_message)
-    {
-        return strlen(error_message) > strlen(c_error_message)
-            && strncmp(error_message, c_error_message, strlen(c_error_message)) == 0;
     }
 };
 

@@ -114,7 +114,8 @@ client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::opt
                     gaia_offset_t offset = lr->new_offset;
 
                     ASSERT_INVARIANT(
-                        offset != c_invalid_gaia_offset, "An unexpected invalid object offset was found in the log record!");
+                        offset != c_invalid_gaia_offset,
+                        "An unexpected invalid object offset was found in the log record!");
 
                     db_object_t* db_object = offset_to_ptr(offset);
 
@@ -207,7 +208,9 @@ int client_t::get_session_socket(const std::string& socket_name)
 
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
-    ASSERT_INVARIANT(socket_name.size() <= sizeof(server_addr.sun_path) - 1, "Socket name '" + socket_name + "' is too long!");
+    ASSERT_INVARIANT(
+        socket_name.size() <= sizeof(server_addr.sun_path) - 1,
+        "Socket name '" + socket_name + "' is too long!");
 
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
@@ -502,17 +505,26 @@ void client_t::commit_transaction()
     // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1232
     else if (event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR)
     {
-        // Get error message from server.
+        // Get error information from server.
+        server_error_t error_id = client_messenger.server_reply()->error_id();
         const char* error_message = client_messenger.server_reply()->error_message()->c_str();
+
+        ASSERT_PRECONDITION(
+            error_id != server_error_t::NONE,
+            "No error id was provided for a DECIDE_TXN_ROLLBACK_FOR_ERROR event!");
 
         ASSERT_PRECONDITION(
             error_message != nullptr && strlen(error_message) > 0,
             "No error message was provided for a DECIDE_TXN_ROLLBACK_FOR_ERROR event!");
 
         // Determine which exception type the message corresponds to and re-throw the exception.
-        if (index::unique_constraint_violation::has_issued_message(error_message))
+        if (error_id == server_error_t::UNIQUE_CONSTRAINT_VIOLATION)
         {
             throw index::unique_constraint_violation(error_message);
+        }
+        else
+        {
+            ASSERT_UNREACHABLE("The server has thrown an unexpected exception!");
         }
     }
 }

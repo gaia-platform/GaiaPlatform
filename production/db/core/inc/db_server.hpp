@@ -157,7 +157,8 @@ private:
     // These thread objects are owned by the session thread that created them.
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
 
-    thread_local static inline std::string s_error_message = "";
+    thread_local static inline messages::server_error_t s_error_id = messages::server_error_t::NONE;
+    thread_local static inline std::string s_error_message = common::c_empty_string;
 
     // These global timestamp variables are "watermarks" that represent the
     // progress of various system functions with respect to transaction history.
@@ -206,26 +207,6 @@ private:
     // timestamps. See `watermark_type_t` for a full explanation.
     static inline std::array<std::atomic<gaia_txn_id_t>, common::get_enum_value(watermark_type_t::count)> s_watermarks{};
 
-    // Returns the current value of the given watermark.
-    static inline gaia_txn_id_t get_watermark(watermark_type_t watermark)
-    {
-        return s_watermarks[common::get_enum_value(watermark)].load();
-    }
-
-    // Returns a reference to the array entry of the given watermark.
-    static inline std::atomic<gaia_txn_id_t>& get_watermark_entry(watermark_type_t watermark)
-    {
-        return s_watermarks[common::get_enum_value(watermark)];
-    }
-
-    // Atomically advances the given watermark to the given timestamp, if the
-    // given timestamp is larger than the watermark's current value. It thus
-    // guarantees that the watermark is monotonically nondecreasing in time.
-    //
-    // Returns true if the watermark was advanced to the given value, false
-    // otherwise.
-    static bool advance_watermark(watermark_type_t watermark, gaia_txn_id_t ts);
-
     // A global array in which each session thread publishes a "safe timestamp"
     // that it needs to protect from memory reclamation. The minimum of all
     // published "safe timestamps" is an upper bound below which all txn
@@ -260,6 +241,27 @@ private:
 
     // The current thread's index in `s_safe_ts_per_thread_entries`.
     thread_local static inline size_t s_safe_ts_index{c_invalid_safe_ts_index};
+
+private:
+    // Returns the current value of the given watermark.
+    static inline gaia_txn_id_t get_watermark(watermark_type_t watermark)
+    {
+        return s_watermarks[common::get_enum_value(watermark)].load();
+    }
+
+    // Returns a reference to the array entry of the given watermark.
+    static inline std::atomic<gaia_txn_id_t>& get_watermark_entry(watermark_type_t watermark)
+    {
+        return s_watermarks[common::get_enum_value(watermark)];
+    }
+
+    // Atomically advances the given watermark to the given timestamp, if the
+    // given timestamp is larger than the watermark's current value. It thus
+    // guarantees that the watermark is monotonically nondecreasing in time.
+    //
+    // Returns true if the watermark was advanced to the given value, false
+    // otherwise.
+    static bool advance_watermark(watermark_type_t watermark, gaia_txn_id_t ts);
 
     // Reserves an index for the current thread in
     // `s_safe_ts_per_thread_entries`. The entries at this index are read-write
@@ -369,6 +371,7 @@ private:
         messages::session_state_t new_state,
         gaia_txn_id_t txn_id = 0,
         size_t log_fds_to_apply_count = 0,
+        messages::server_error_t error_id = messages::server_error_t::NONE,
         const char* error_message = "");
 
     static void clear_shared_memory();
@@ -405,12 +408,17 @@ private:
 
     template <typename T_element>
     static void stream_producer_handler(
-        int stream_socket, int cancel_eventfd, std::shared_ptr<common::iterators::generator_t<T_element>> generator_fn);
+        int stream_socket,
+        int cancel_eventfd,
+        std::shared_ptr<common::iterators::generator_t<T_element>> generator_fn);
 
     template <typename T_element>
-    static void start_stream_producer(int stream_socket, std::shared_ptr<common::iterators::generator_t<T_element>> generator);
+    static void start_stream_producer(
+        int stream_socket,
+        std::shared_ptr<common::iterators::generator_t<T_element>> generator);
 
-    static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> get_id_generator_for_type(common::gaia_type_t type);
+    static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> get_id_generator_for_type(
+        common::gaia_type_t type);
 
     static void get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds);
 
