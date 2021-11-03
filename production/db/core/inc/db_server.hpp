@@ -199,33 +199,49 @@ private:
         count
     };
 
+    // An array of monotonically nondecreasing timestamps, or "watermarks", that
+    // represent the progress of system maintenance tasks with respect to txn
+    // timestamps. See `watermark_type_t` for a full explanation.
     static inline std::array<std::atomic<gaia_txn_id_t>, common::get_enum_value(watermark_type_t::count)> s_watermarks{};
 
+    // Returns the current value of the given watermark.
     static inline gaia_txn_id_t get_watermark(watermark_type_t watermark)
     {
         return s_watermarks[common::get_enum_value(watermark)].load();
     }
 
+    // Returns a reference to the array entry of the given watermark.
     static inline std::atomic<gaia_txn_id_t>& get_watermark_entry(watermark_type_t watermark)
     {
         return s_watermarks[common::get_enum_value(watermark)];
     }
 
+    // Atomically advances the given watermark to the given timestamp, if the
+    // given timestamp is larger than the watermark's current value. It thus
+    // guarantees that the watermark is monotonically nondecreasing in time.
+    //
+    // Returns true if the watermark was advanced to the given value, false
+    // otherwise.
     static bool advance_watermark(watermark_type_t watermark, gaia_txn_id_t ts);
 
-    // A "publication list" in which each session thread publishes a "safe
-    // timestamp" that it needs to protect from txn table truncation. This is
-    // used to find a safe upper bound at which to truncate the txn table.
+    // A global array in which each session thread publishes a "safe timestamp"
+    // that it needs to protect from memory reclamation. The minimum of all
+    // published "safe timestamps" is an upper bound below which all txn
+    // metadata entries can be safely reclaimed.
     //
-    // Each thread reserves 2 entries rather than 1, because it needs to
-    // atomically update its published entry. This requires speculatively
-    // publishing the new value while keeping the old value visible, so that the
-    // old value continues to be protected if the new value fails validation.
-    // Therefore we require 2 entries: one to hold the old value, and another to
-    // hold the new value until it either passes validation (and we invalidate
-    // the old value's entry), or fails validation (and we invalidate the new
-    // value's entry, reverting the published safe_ts for this thread to the old
-    // value).
+    // Each thread maintains 2 publication entries rather than 1, in order to
+    // tolerate validation failures. See the reserve_safe_ts() implementation
+    // for a full explanation.
+    //
+    // Before using the safe_ts API, a thread must first reserve an index in
+    // this array using reserve_safe_ts_index(). When a thread is no longer
+    // using the safe_ts API (e.g., at session exit), it should call
+    // release_safe_ts_index() to make this index available for use by other
+    // threads.
+    //
+    // The only clients of the safe_ts API are expected to be session threads,
+    // so we only allocate enough entries for the maximum allowed number of
+    // session threads.
     static inline std::array<std::array<std::atomic<gaia_txn_id_t>, 2>, c_session_limit>
         s_safe_ts_per_thread_entries{};
 
@@ -234,40 +250,55 @@ private:
     // thread must reserve an index by setting a cleared bit in this bitmap.
     // When it is no longer using the safe_ts API (e.g., at session exit), each
     // thread should clear the bit that it set.
-    static constexpr size_t c_safe_ts_reserved_indexes_bitmap_size_in_words{
-        c_session_limit / memory_manager::c_uint64_bit_count};
-
-    static inline std::array<std::atomic<uint64_t>, c_safe_ts_reserved_indexes_bitmap_size_in_words>
+    static inline std::array<
+        std::atomic<uint64_t>, s_safe_ts_per_thread_entries.size() / memory_manager::c_uint64_bit_count>
         s_safe_ts_reserved_indexes_bitmap{};
 
-    static constexpr size_t c_invalid_safe_ts_index{std::size(s_safe_ts_per_thread_entries)};
+    static constexpr size_t c_invalid_safe_ts_index{s_safe_ts_per_thread_entries.size()};
 
     // The current thread's index in `s_safe_ts_per_thread_entries`.
     thread_local static inline size_t s_safe_ts_index{c_invalid_safe_ts_index};
 
-    // Reserves an index for the current thread in `s_safe_ts_per_thread_entries`.
+    // Reserves an index for the current thread in
+    // `s_safe_ts_per_thread_entries`. The entries at this index are read-write
+    // for the current thread and read-only for all other threads.
+    //
+    // Returns true if an index was successfully reserved, false otherwise.
     static bool reserve_safe_ts_index();
 
-    // Releases the current thread's index in `s_safe_ts_per_thread_entries`.
+    // Releases the current thread's index in `s_safe_ts_per_thread_entries`,
+    // allowing the entries at that index to be used by other threads.
+    //
+    // This method cannot fail or throw.
     static void release_safe_ts_index();
 
     // Reserves a "safe timestamp" that protects its own and all subsequent
-    // entries in the txn table from memory reclamation.
-    // Any current "safe timestamp" value for this thread's entry will be
+    // metadata entries from memory reclamation, by ensuring that the
+    // pre-truncate watermark can never advance past it until release_safe_ts()
+    // is called on that timestamp.
+    //
+    // Any previously reserved "safe timestamp" value for this thread will be
     // atomically replaced by the new "safe timestamp" value.
-    // If the given timestamp cannot be reserved as "safe", then return false,
-    // otherwise true.
+    //
+    // This operation can fail if post-publication validation fails. See the
+    // reserve_safe_ts() implementation for details.
+    //
+    // Returns true if the given timestamp was successfully reserved, false
+    // otherwise.
     static bool reserve_safe_ts(gaia_txn_id_t safe_ts);
 
-    // Releases the current thread's "safe timestamp", allowing that timestamp's
-    // metadata entry (and subsequent entries) to be reclaimed.
+    // Releases the current thread's "safe timestamp", allowing the pre-truncate
+    // watermark to advance past it, signaling to GC tasks that its metadata
+    // entry is eligible for reclamation.
+    //
     // This method cannot fail or throw.
     static void release_safe_ts();
 
-    // This method computes a "safe truncation timestamp" for the txn table,
-    // i.e., an (exclusive) upper bound below which the txn table can be safely
-    // truncated. The timestamp returned is guaranteed not to exceed any
-    // safe_ts that was reserved before this method was called.
+    // This method computes a "safe truncation timestamp", i.e., an (exclusive)
+    // upper bound below which all txn metadata entries can be safely reclaimed.
+    //
+    // The timestamp returned is guaranteed not to exceed any "safe timestamp"
+    // that was reserved before this method was called.
     static gaia_txn_id_t get_safe_truncation_ts();
 
 private:
