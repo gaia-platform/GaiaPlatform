@@ -62,12 +62,12 @@ ruleset test
             g_actuator_rule_called++;
         }
 
-        if ((const gaia::db::triggers::event_type_t)rule_context.event_type == gaia::db::triggers::event_type_t::row_insert)
+        if (rule_context.event_type == gaia::db::triggers::event_type_t::row_insert)
         {
             g_insert_called++;
         }
 
-        if ((const gaia::db::triggers::event_type_t)rule_context.event_type == gaia::db::triggers::event_type_t::row_update)
+        if (rule_context.event_type == gaia::db::triggers::event_type_t::row_update)
         {
             if (s.value > 5)
             {
@@ -320,6 +320,7 @@ ruleset testE32
 }
 
 // GAIAPLAT-1241
+// Make event_type field to be an actual event_type_t type when needed.
 ruleset testE33
 {
     on_insert(incubator)
