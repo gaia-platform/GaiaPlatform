@@ -5,7 +5,7 @@
 
 #include "gaia_internal/db/index_builder.hpp"
 
-#include <iostream>
+#include <unordered_set>
 #include <utility>
 
 #include "gaia/exceptions.hpp"
@@ -151,6 +151,15 @@ indexes_t::iterator index_builder_t::create_empty_index(const index_view_t& inde
             .first;
         break;
     }
+}
+
+void index_builder_t::drop_index(const index_view_t& index_view)
+{
+    size_t dropped = get_indexes()->erase(index_view.id());
+    // We expect 0 or 1 index structures to be dropped here.
+    // It is possible for this value to be 0 if a created index is dropped, but it wasn't
+    // lazily created.
+    ASSERT_INVARIANT(dropped <= 1, "Unexpected number of index structures removed!");
 }
 
 template <typename T_index_type>
@@ -385,11 +394,20 @@ void index_builder_t::truncate_index_to_ts(common::gaia_id_t index_id, gaia_txn_
     }
 }
 
+/*
+* This method performs index maintenance operations based on logs.
+* The order of operations in the index data structure is based on the same ordering as the logs.
+* As such, we rely on the logs being sorted by temporal order.
+*/
 void index_builder_t::update_indexes_from_logs(
     const txn_log_t& records, bool skip_catalog_integrity_check, bool allow_create_empty)
 {
     // Clear the type_id_mapping cache (so it will be refreshed) if we find any
     // table is created or dropped in the txn.
+    // Keep track of dropped tables.
+    bool has_cleared_cache = false;
+    std::unordered_set<gaia_type_t> dropped_types;
+
     for (size_t i = 0; i < records.record_count; ++i)
     {
         const auto& log_record = records.log_records[i];
@@ -401,8 +419,17 @@ void index_builder_t::update_indexes_from_logs(
                     ->type
                 == static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table))
         {
-            type_id_mapping_t::instance().clear();
-            break;
+            if (!has_cleared_cache)
+            {
+                type_id_mapping_t::instance().clear();
+                has_cleared_cache = true;
+            }
+
+            if (log_record.operation == gaia_operation_t::remove)
+            {
+                auto table_view = table_view_t(offset_to_ptr(log_record.old_offset));
+                dropped_types.insert(table_view.table_type());
+            }
         }
     }
 
@@ -422,18 +449,31 @@ void index_builder_t::update_indexes_from_logs(
             ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
         }
 
-        gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(obj->type);
-
-        // New index object.
+        // Maintenance on the in-memory index data structures.
         if (obj->type == static_cast<gaia_type_t>(catalog_table_type_t::gaia_index))
         {
             auto index_view = index_view_t(obj);
-            index::index_builder_t::create_empty_index(index_view);
+
+            if (log_record.operation == gaia_operation_t::create)
+            {
+                index::index_builder_t::create_empty_index(index_view);
+            }
+            else if (log_record.operation == gaia_operation_t::remove)
+            {
+                index::index_builder_t::drop_index(index_view);
+            }
+
+            continue;
         }
 
+        gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(obj->type);
+
         // System tables are not indexed.
+        // The operation is from a dropped table.
         // Skip if catalog verification disabled and type not found in the catalog.
-        if (is_system_object(obj->type) || (skip_catalog_integrity_check && type_record_id == c_invalid_gaia_id))
+        if (is_system_object(obj->type)
+            || dropped_types.find(obj->type) != dropped_types.end()
+            || (skip_catalog_integrity_check && type_record_id == c_invalid_gaia_id))
         {
             continue;
         }

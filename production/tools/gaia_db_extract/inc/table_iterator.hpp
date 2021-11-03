@@ -29,8 +29,8 @@ class table_iterator_t
 
 public:
     table_iterator_t()
+        : m_table_name(nullptr), m_container_id(0), m_current_record(0), m_current_payload(nullptr)
     {
-        m_current_payload = nullptr;
     }
 
     // Do not allow copies to be made;

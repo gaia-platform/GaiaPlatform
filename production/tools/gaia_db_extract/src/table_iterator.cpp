@@ -95,7 +95,7 @@ data_holder_t table_iterator_t::extract_field_value(uint16_t repeated_count, siz
 
             for (size_t i = 0; i < array_size; i++)
             {
-                auto value = get_field_array_element(
+                [[maybe_unused]] auto value = get_field_array_element(
                     m_container_id,
                     m_current_payload,
                     nullptr,

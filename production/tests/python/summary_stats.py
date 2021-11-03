@@ -45,6 +45,12 @@ def __process_command_line():
         default=__PLAIN_FORMAT,
         help="Format to use for the output.",
     )
+    parser.add_argument(
+        "--workload",
+        dest="workload_name",
+        action="store",
+        help="Workload that the test to sumarize falls under.",
+    )
     return parser.parse_args()
 
 
@@ -609,7 +615,7 @@ def __generate_plain_output(data_dictionary):
             next_data_item.generate_output()
 
 
-def __generate_json_output(data_dictionary):
+def __generate_json_output(data_dictionary, workload_name):
     """
     Specifically generate output that is in json for parsing.
     """
@@ -624,6 +630,7 @@ def __generate_json_output(data_dictionary):
             suite_data, None, suite_dictionary
         )
         suite_dictionary["test-type"] = test_type
+        suite_dictionary["workload-name"] = workload_name
 
         summary_data = {}
         suite_dictionary["summary"] = summary_data
@@ -649,7 +656,7 @@ def __process_script_action():
         data_dictionary = json.load(input_file)
 
     if args.output_format == __JSON_FORMAT:
-        __generate_json_output(data_dictionary)
+        __generate_json_output(data_dictionary, args.workload_name)
     else:
         __generate_plain_output(data_dictionary)
 

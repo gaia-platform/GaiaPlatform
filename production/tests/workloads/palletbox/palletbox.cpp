@@ -4,9 +4,9 @@
 /////////////////////////////////////////////
 
 #include "gaia_palletbox.h"
+#include "json.hpp"
 #include "palletbox_constants.hpp"
 #include "simulation.hpp"
-#include "json.hpp"
 
 using namespace std;
 
@@ -40,6 +40,7 @@ class palletbox_simulation_t : public simulation_t
 {
 private:
     static constexpr int c_default_json_indentation = 4;
+
 public:
     gaia_id_t insert_station(station_id_t station_id)
     {
