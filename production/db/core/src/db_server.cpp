@@ -229,7 +229,8 @@ void server_t::handle_begin_txn(
     // number of log fds on the initial reply message.
     int log_fd = s_log.fd();
     FlatBufferBuilder builder;
-    build_server_reply(builder, session_event_t::BEGIN_TXN, old_state, new_state, s_txn_id, txn_log_fds_for_snapshot.size());
+    build_server_reply(
+        builder, session_event_t::BEGIN_TXN, old_state, new_state, s_txn_id, txn_log_fds_for_snapshot.size());
     send_msg_with_fds(s_session_socket, &log_fd, 1, builder.GetBufferPointer(), builder.GetSize());
 
     // Send all txn log fds to the client in an additional sequence of dummy messages.
@@ -240,7 +241,8 @@ void server_t::handle_begin_txn(
     {
         size_t fds_to_send_count = std::min(c_max_fd_count, txn_log_fds_for_snapshot.size() - fds_sent_count);
         send_msg_with_fds(
-            s_session_socket, txn_log_fds_for_snapshot.data() + fds_sent_count, fds_to_send_count, msg_buf, sizeof(msg_buf));
+            s_session_socket, txn_log_fds_for_snapshot.data() + fds_sent_count, fds_to_send_count,
+            msg_buf, sizeof(msg_buf));
         fds_sent_count += fds_to_send_count;
     }
 }
@@ -261,7 +263,8 @@ void server_t::txn_begin(std::vector<int>& txn_log_fds_for_snapshot)
     get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds_for_snapshot);
 
     // Allocate the txn log fd on the server, for rollback-safety if the client session crashes.
-    s_log.create(gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
+    s_log.create(
+        gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
 
     // Update the log header with our begin timestamp and initialize it to empty.
     s_log.data()->begin_ts = s_txn_id;
@@ -357,13 +360,15 @@ void server_t::handle_commit_txn(
         bool success = txn_commit();
         decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
     }
-    catch (const index::unique_constraint_violation& e)
+    catch (const pre_commit_validation_failure& e)
     {
-        // Rollback our transaction in case of constraint violations.
-        // This is because such failures happen in the early pre-commit phase.
+        // Rollback our transaction in case of pre-commit errors.
         txn_rollback();
 
-        decision = session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE;
+        // Save the error message so we can transmit it to the client.
+        s_error_message = e.what();
+
+        decision = session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR;
     }
 
     // Server-initiated state transition! (Any issues with reentrant handlers?)
@@ -376,7 +381,7 @@ void server_t::handle_decide_txn(
     ASSERT_PRECONDITION(
         event == session_event_t::DECIDE_TXN_COMMIT
             || event == session_event_t::DECIDE_TXN_ABORT
-            || event == session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE,
+            || event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR,
         c_message_unexpected_event_received);
 
     ASSERT_PRECONDITION(
@@ -390,7 +395,17 @@ void server_t::handle_decide_txn(
     auto cleanup = make_scope_guard([&]() { s_txn_id = c_invalid_gaia_txn_id; });
 
     FlatBufferBuilder builder;
-    build_server_reply(builder, event, old_state, new_state, s_txn_id);
+    if (event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR)
+    {
+        build_server_reply(builder, event, old_state, new_state, s_error_message.c_str());
+
+        // Clear error information.
+        s_error_message = c_empty_string;
+    }
+    else
+    {
+        build_server_reply(builder, event, old_state, new_state, s_txn_id, 0);
+    }
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Update watermarks and perform associated maintenance tasks. This will
@@ -626,7 +641,24 @@ void server_t::build_server_reply(
     flatbuffers::Offset<server_reply_t> server_reply;
     const auto transaction_info = Createtransaction_info_t(builder, txn_id, log_fds_to_apply_count);
     server_reply = Createserver_reply_t(
-        builder, event, old_state, new_state, reply_data_t::transaction_info, transaction_info.Union());
+        builder, event, old_state, new_state,
+        reply_data_t::transaction_info, transaction_info.Union());
+    const auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
+    builder.Finish(message);
+}
+
+void server_t::build_server_reply(
+    FlatBufferBuilder& builder,
+    session_event_t event,
+    session_state_t old_state,
+    session_state_t new_state,
+    const char* error_message)
+{
+    flatbuffers::Offset<server_reply_t> server_reply;
+    const auto transaction_error = Createtransaction_error_tDirect(builder, error_message);
+    server_reply = Createserver_reply_t(
+        builder, event, old_state, new_state,
+        reply_data_t::transaction_error, transaction_error.Union());
     const auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
     builder.Finish(message);
 }
@@ -830,7 +862,8 @@ void server_t::recover_db()
             auto cleanup = make_scope_guard([]() { end_startup_txn(); });
             begin_startup_txn();
 
-            s_persistent_store = std::make_unique<gaia::db::persistent_store_manager>(get_counters(), s_server_conf.data_dir());
+            s_persistent_store = std::make_unique<gaia::db::persistent_store_manager>(
+                get_counters(), s_server_conf.data_dir());
             if (s_server_conf.persistence_mode() == persistence_mode_t::e_reinitialized_on_startup)
             {
                 s_persistent_store->destroy_persistent_store();
@@ -857,7 +890,8 @@ gaia_txn_id_t server_t::begin_startup_txn()
     // reserve an index.
     ASSERT_POSTCONDITION(reservation_succeeded, "The main thread cannot fail to reserve a safe_ts index!");
     s_txn_id = txn_metadata_t::register_begin_ts();
-    s_log.create(gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
+    s_log.create(
+        gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
     return s_txn_id;
 }
 
@@ -887,7 +921,9 @@ void server_t::end_startup_txn()
 
     perform_maintenance();
 
-    ASSERT_POSTCONDITION(txn_metadata_t::is_txn_gc_complete(commit_ts), "Transaction log should be garbage-collected!");
+    ASSERT_POSTCONDITION(
+        txn_metadata_t::is_txn_gc_complete(commit_ts),
+        "Transaction log should be garbage-collected!");
 
     // At this point, cleanup has already occured and scope guard can be dismissed.
     cleanup_fd.dismiss();
@@ -1398,7 +1434,8 @@ void server_t::session_handler(int session_socket)
                         "EPOLLERR, EPOLLHUP, EPOLLRDHUP flags should not be set!");
 
                     // Read client message with possible file descriptors.
-                    size_t bytes_read = recv_msg_with_fds(s_session_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
+                    size_t bytes_read = recv_msg_with_fds(
+                        s_session_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
                     // We shouldn't get EOF unless EPOLLRDHUP is set.
                     // REVIEW: it might be possible for the client to call shutdown(SHUT_WR)
                     // after we have already woken up on EPOLLIN, in which case we would
@@ -2318,7 +2355,8 @@ void server_t::apply_txn_logs_to_shared_view()
         //
         // REVIEW: These loads could be relaxed, because a stale read could only
         // result in premature abort of the scan.
-        if (get_watermark(watermark_type_t::pre_apply) != prev_ts || get_watermark(watermark_type_t::post_apply) != prev_ts)
+        if (get_watermark(watermark_type_t::pre_apply) != prev_ts
+            || get_watermark(watermark_type_t::post_apply) != prev_ts)
         {
             break;
         }
