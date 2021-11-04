@@ -1,5 +1,5 @@
 # JSON project
-This directory contains a single header file, json.hpp.
+This directory contains a single header file, `json.hpp`.
 It is part of a much larger project on github, `nlohmann/json`.
 This is the only file that we currently need.
 
