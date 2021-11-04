@@ -504,7 +504,7 @@ void client_t::commit_transaction()
 
     // We can only validate the transaction id if there was no error.
     // This is because the server will clear the transaction id
-    // much earlier than it constructs its response.
+    // much earlier than it constructs its reply.
     if (event != session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR)
     {
         const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
