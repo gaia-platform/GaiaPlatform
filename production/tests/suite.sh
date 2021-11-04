@@ -32,6 +32,13 @@ complete_process() {
         fi
     fi
 
+    if [ -n "$DB_SERVER_PID" ] ; then
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Killing started database server."
+        fi
+        kill "$DB_SERVER_PID"
+    fi
+
     if [ -n "$WORKLOAD_DIRECTORY" ] ; then
         if [ -f "$WORKLOAD_DIRECTORY/template.sh" ]; then
             if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -78,6 +85,9 @@ show_usage() {
     echo "  -l,--list           List all available suites for this project."
     echo "  -n,--no-stats       Do not display the statistics when the suite has completed."
     echo "  -j,--json           Display the statistics in JSON format."
+    echo "  -d,--database       Start a new instance of the database for the tests within the suite."
+    echo "  -p,--persistence    Enable persistence when starting a new instance of the database."
+    echo "  -f,--force-db-stop  Force any existing database to be stopped prior to starting a new database."
     echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
     echo "Arguments:"
@@ -119,6 +129,9 @@ parse_command_line() {
     LIST_MODE=0
     SHOW_STATS=1
     SHOW_JSON_STATS=0
+    START_DATABASE=0
+    FORCE_DATABASE_RESTART=0
+    START_DATABASE_WITH_PERSISTENCE=0
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
@@ -136,6 +149,19 @@ parse_command_line() {
         ;;
         -n|--no-stats)
             SHOW_STATS=0
+            shift
+        ;;
+        -d|--database)
+            START_DATABASE=1
+            shift
+        ;;
+        -p|--persistence)
+            START_DATABASE=1
+            START_DATABASE_WITH_PERSISTENCE=1
+            shift
+        ;;
+        -f|--force-db-stop)
+            FORCE_DATABASE_RESTART=1
             shift
         ;;
         -v|--verbose)
@@ -206,9 +232,74 @@ clear_suite_output() {
     fi
 }
 
+start_database_if_required() {
+    if [ "$START_DATABASE" -ne 0 ]; then
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Creating a new database service instance for the test suite."
+        fi
+        SERVER_PID=$(pgrep "gaia_db_server")
+        if [[ -n $SERVER_PID ]] ; then
+            if [ $FORCE_DATABASE_RESTART -eq 0 ] ; then
+                complete_process 1 "Test suite specified a new database service instance, but one is already running. Stop that instance before trying again."
+            fi
+
+            if ! kill "$SERVER_PID" ; then
+                complete_process 1 "Test suite failed to stop existing database service instance. Stop that instance manually before trying again."
+            fi
+            sleep 2
+            SERVER_PID=$(pgrep "gaia_db_server")
+            if [[ -n $SERVER_PID ]] ; then
+                complete_process 1 "Test suite verification of stopped database service instance failed. Stop that instance manually before trying again."
+            fi
+        fi
+
+        if [ -d "$SUITE_RESULTS_DIRECTORY/dbdir" ] ; then
+            if ! rm -rf "$SUITE_RESULTS_DIRECTORY/dbdir" > "$TEMP_FILE" 2>&1 ; then
+                cat "$TEMP_FILE"
+                complete_process 1 "Cannot remove the old database directory before starting the new database service instance."
+            fi
+        fi
+
+        PERSISTENCE_FLAG="--persistence disabled"
+        if [ $START_DATABASE_WITH_PERSISTENCE -ne 0 ] ; then
+            if ! mkdir "$SUITE_RESULTS_DIRECTORY/dbdir" > "$TEMP_FILE" 2>&1 ; then
+                cat "$TEMP_FILE"
+                complete_process 1 "Cannot create the requested database directory."
+            fi
+
+            PERSISTENCE_FLAG="--persistence enabled --data-dir $SUITE_RESULTS_DIRECTORY/dbdir"
+        fi
+
+        # shellcheck disable=SC2086
+        gaia_db_server $PERSISTENCE_FLAG > "$SUITE_RESULTS_DIRECTORY/database.log" 2>&1 &
+        # shellcheck disable=SC2181
+        if [ $? -ne 0 ] ; then
+            cat "$SUITE_RESULTS_DIRECTORY/database.log"
+            complete_process 1 "Cannot start the requested database service instance."
+        fi
+
+        # Five seconds is way more than enough for 95% of the cases, but may be needed in
+        # some cases with persistence.
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Pausing for 5 seconds before verifying that the new database service instance is responsive."
+        fi
+        sleep 5
+        SERVER_PID=$(pgrep "gaia_db_server")
+        if [[ -z $SERVER_PID ]] ; then
+            cat "$SUITE_RESULTS_DIRECTORY/database.log"
+            complete_process 1 "Newly started database service instance was not responsive.  Cannot continue the test suite without an active database instance."
+        fi
+        DB_SERVER_PID=$SERVER_PID
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Creating a new database service instance for the test suite."
+        fi
+    fi
+}
+
 # Based on the suite file, determine the workload directory.
 determine_workload_directory() {
 
+    WORKLOAD_NAME=
     WORKLOAD_DIRECTORY=
     # shellcheck disable=SC2016
     IFS=$'\r\n' GLOBIGNORE='*' command eval  'TEST_NAMES=($(cat $SUITE_FILE_NAME))'
@@ -232,6 +323,7 @@ determine_workload_directory() {
 
     # shellcheck disable=SC1001
     if [[ "$WORKLOAD_DIRECTORY" != *\/* ]] ; then
+        WORKLOAD_NAME="$WORKLOAD_DIRECTORY"
         WORKLOAD_DIRECTORY=$SCRIPTPATH/workloads/$WORKLOAD_DIRECTORY
     fi
 }
@@ -466,9 +558,19 @@ DID_PUSHD=0
 DID_PUSHD_FOR_BUILD=0
 DID_REPORT_START=0
 WORKLOAD_DIRECTORY=
+DB_SERVER_PID=
 
 # Parse any command line values.
 parse_command_line "$@"
+
+if [ $START_DATABASE -eq 0 ] ; then
+    if [ $FORCE_DATABASE_RESTART -ne 0 ] ; then
+        complete_process 1 "Cannot force a database reset without requesting to start a new database instance."
+    fi
+    if [ $START_DATABASE_WITH_PERSISTENCE -ne 0 ] ; then
+        complete_process 1 "Cannot activate database persistence without requesting to start a new database instance."
+    fi
+fi
 
 determine_workload_directory
 verify_workload_directory
@@ -484,6 +586,8 @@ start_process
 save_current_directory
 
 clear_suite_output
+
+start_database_if_required
 
 install_and_build_cleanly
 
@@ -502,20 +606,23 @@ if ! ./python/summarize_suite_results.py "$SUITE_FILE_NAME"; then
 fi
 
 if [ $SHOW_STATS -ne 0 ] ; then
-    OUTPUT_FILE=$TEMP_FILE
-    STATS_FORMAT=
-    if [ $SHOW_JSON_STATS -ne 0 ] ; then
-        STATS_FORMAT="--format json"
-        OUTPUT_FILE=$SUITE_RESULTS_DIRECTORY/stats.json
-        broadcast_message "$SUITE_MODE" "Creating statistics file at '$(realpath "$OUTPUT_FILE")'."
-    fi
-
-    # shellcheck disable=SC2086
-    if ! ./python/summary_stats.py $STATS_FORMAT > $OUTPUT_FILE 2>&1 ; then
+    OUTPUT_FILE="$TEMP_FILE"
+    if ! ./python/summary_stats.py > $OUTPUT_FILE 2>&1 ; then
         cat $OUTPUT_FILE
         complete_process 1 "Displaying statistics for the suite failed."
     fi
-
+    if [ $SHOW_JSON_STATS -ne 0 ] ; then
+        OUTPUT_FILE=$SUITE_RESULTS_DIRECTORY/suite-stats.json
+        WORKLOAD_PARAMETER=
+        if [ -n "$WORKLOAD_NAME" ] ; then
+            WORKLOAD_PARAMETER="--workload $WORKLOAD_NAME"
+        fi
+        # shellcheck disable=SC2086
+        if ! ./python/summary_stats.py --format json $WORKLOAD_PARAMETER > $OUTPUT_FILE 2>&1 ; then
+            cat $OUTPUT_FILE
+            complete_process 1 "Displaying statistics for the suite failed."
+        fi
+    fi
     if [ $SHOW_JSON_STATS -eq 0 ] ; then
         cat $OUTPUT_FILE
     fi

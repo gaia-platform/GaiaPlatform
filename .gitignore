@@ -64,3 +64,5 @@ production/tests/workloads/palletbox/python/generate_config.py
 production/coverage/output/*
 production/output/*
 production/coverage/coverage.json
+production/tests/workloads/palletbox/json.hpp
+production/tests/suites/*

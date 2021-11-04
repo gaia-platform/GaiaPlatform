@@ -34,6 +34,7 @@ class index_builder_t
 public:
     static bool index_exists(common::gaia_id_t index_id);
     static indexes_t::iterator create_empty_index(const index_view_t& index_view);
+    static void drop_index(const index_view_t& index_view);
     static void update_index(
         common::gaia_id_t index_id, common::gaia_type_t type_id, const txn_log_t::log_record_t& log_record, bool allow_create_empty = false);
 

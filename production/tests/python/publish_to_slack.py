@@ -7,9 +7,6 @@
 
 """
 Script to publish the supplied information to the #test channel on Slack.
-
-Copyright (c) Gaia Platform LLC
-All rights reserved.
 """
 
 import json

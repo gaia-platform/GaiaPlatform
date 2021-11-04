@@ -4,9 +4,9 @@
 /////////////////////////////////////////////
 
 #include "gaia_palletbox.h"
+#include "json.hpp"
 #include "palletbox_constants.hpp"
 #include "simulation.hpp"
-#include "json.hpp"
 
 using namespace std;
 
@@ -20,11 +20,6 @@ using namespace gaia::rules;
 using namespace gaia::palletbox;
 
 using json_t = nlohmann::json;
-
-typedef std::chrono::steady_clock my_clock;
-typedef my_clock::time_point my_time_point;
-typedef std::chrono::microseconds microseconds;
-typedef std::chrono::duration<double, std::micro> my_duration_in_microseconds;
 
 static constexpr int c_sole_robot_id = 1;
 
@@ -45,6 +40,7 @@ class palletbox_simulation_t : public simulation_t
 {
 private:
     static constexpr int c_default_json_indentation = 4;
+
 public:
     gaia_id_t insert_station(station_id_t station_id)
     {
@@ -159,7 +155,7 @@ public:
         json_document["event_counts"].push_back(to_json(
             "payload_drop_off_event", payload_drop_off_event_t::list().size()));
 
-        fprintf(object_log_file, json_document.dump(c_default_json_indentation).c_str());
+        fprintf(object_log_file, "%s", json_document.dump(c_default_json_indentation).c_str());
         commit_transaction();
     }
 

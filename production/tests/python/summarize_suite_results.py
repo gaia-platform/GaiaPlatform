@@ -7,9 +7,6 @@
 
 """
 Script to calculate the summary.json file for a suite of tests that were run.
-
-Copyright (c) Gaia Platform LLC
-All rights reserved.
 """
 
 import json
@@ -415,7 +412,7 @@ def __process_workload_properties_file(base_dir):
     config = configparser.ConfigParser()
     loaded_files = config.read(json_path)
     if not loaded_files:
-        return None, None, f"Cannot load property file '{json_path}'."
+        return None, None, None, f"Cannot load property file '{json_path}'."
 
     assert "Aggregations" in config
     aggregate_data = {}
@@ -426,7 +423,13 @@ def __process_workload_properties_file(base_dir):
     performance_legend_data = {}
     for key in config["PerformanceLegend"]:
         __translate_entry(performance_legend_data, config["PerformanceLegend"], key)
-    return aggregate_data, performance_legend_data, None
+
+    assert "XLegend" in config
+    x_legend_data = {}
+    for key in config["XLegend"]:
+        __translate_entry(x_legend_data, config["XLegend"], key)
+
+    return aggregate_data, performance_legend_data, x_legend_data, None
 
 
 def __process_configuration_file(base_dir, workload_specific_data):
@@ -622,6 +625,7 @@ def __summarize_repeated_tests(max_test, map_lines, map_line_index, source_info)
     (
         aggregate_data,
         performance_legend_data,
+        x_legend_data,
         configuration_error,
     ) = __process_workload_properties_file(base_dir)
 
@@ -635,7 +639,7 @@ def __summarize_repeated_tests(max_test, map_lines, map_line_index, source_info)
         map_line_index += max_test
         main_dictionary[PER_TEST_TITLE][RETURN_CODE_TITLE].append(3)
         main_dictionary[PER_TEST_TITLE][INVOKE_RETURN_CODE_TITLE].append(1)
-        return main_dictionary, map_line_index, None, configuration_error
+        return main_dictionary, map_line_index, None, None, configuration_error
 
     if aggregate_data:
         for aggregate_key in aggregate_data:
@@ -684,7 +688,13 @@ def __summarize_repeated_tests(max_test, map_lines, map_line_index, source_info)
 
         test_runs[recorded_name] = new_results
 
-    return main_dictionary, map_line_index, performance_legend_data, configuration_error
+    return (
+        main_dictionary,
+        map_line_index,
+        performance_legend_data,
+        x_legend_data,
+        configuration_error,
+    )
 
 
 # pylint: enable=too-many-locals
@@ -841,6 +851,7 @@ def __execute_suite_tests(suite_file, suite_file_lines, map_lines):
                 full_test_results[next_suite_test],
                 map_line_index,
                 performance_legend_data,
+                x_legend_data,
                 configuration_error,
             ) = __summarize_repeated_tests(
                 max_test, map_lines, map_line_index, source_info
@@ -849,6 +860,7 @@ def __execute_suite_tests(suite_file, suite_file_lines, map_lines):
                 full_test_results[next_suite_test][
                     "performance-legend"
                 ] = performance_legend_data
+                full_test_results[next_suite_test]["x-legend"] = x_legend_data
             map_line_index += 1
         else:
             suite_test_results_directory = map_lines[map_line_index].strip()
@@ -864,6 +876,7 @@ def __execute_suite_tests(suite_file, suite_file_lines, map_lines):
             (
                 _,
                 performance_legend_data,
+                x_legend_data,
                 configuration_error,
             ) = __process_workload_properties_file(suite_test_results_directory)
             if configuration_error:
@@ -872,6 +885,7 @@ def __execute_suite_tests(suite_file, suite_file_lines, map_lines):
             full_test_results[simple_results_name][
                 "performance-legend"
             ] = performance_legend_data
+            full_test_results[simple_results_name]["x-legend"] = x_legend_data
 
             map_line_index += 1
 

@@ -127,7 +127,9 @@ void edc_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>
 }
 template <gaia::common::gaia_type_t container_type_id, typename T_gaia, typename T_fb, typename T_obj>
 edc_object_t<container_type_id, T_gaia, T_fb, T_obj>::edc_object_t()
-    : edc_base_t(){};
+    : edc_base_t()
+{
+}
 
 template <gaia::common::gaia_type_t container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
 gaia::common::gaia_type_t edc_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::s_gaia_type
