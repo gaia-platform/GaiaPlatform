@@ -43,11 +43,13 @@ START_TRANSACTION_DURATION_TITLE = "start-transaction-sec"
 INSIDE_TRANSACTION_DURATION_TITLE = "inside-transaction-sec"
 END_TRANSACTION_DURATION_TITLE = "end-transaction-sec"
 UPDATE_ROW_DURATION_TITLE = "update-row-sec"
+CHECK_TIME_DURATION_TITLE = "check-time-microsec"
 
 AVG_START_TRANSACTION_DURATION_TITLE = "average-start-transaction-microsec"
 AVG_INSIDE_TRANSACTION_DURATION_TITLE = "average-inside-transaction-microsec"
 AVG_END_TRANSACTION_DURATION_TITLE = "average-end-transaction-microsec"
 AVG_UPDATE_ROW_DURATION_TITLE = "average-update-row-microsec"
+AVG_CHECK_TIME_DURATION_TITLE = "average-check-time-microsec"
 
 MEASURED_DURATION_TITLE = "measured-duration-sec"
 PER_MEASURED_DURATION_TITLE = "iteration-measured-duration-sec"
@@ -100,7 +102,8 @@ def __load_output_timing_files(base_dir):
         inside_transaction_data,
         end_transaction_data,
         update_row_data,
-    ) = (0.0, 0, 0.0, 0.0, None, 0.0, None, None, 0.0, 0.0, 0.0, 0.0)
+        check_time_data,
+    ) = (0.0, 0, 0.0, 0.0, None, 0.0, None, None, 0.0, 0.0, 0.0, 0.0, 0.0)
 
     json_path = os.path.join(base_dir, "output.delay")
     if os.path.exists(json_path):
@@ -110,6 +113,7 @@ def __load_output_timing_files(base_dir):
             iterations_data = data["iterations"]
             total_wait_data = data["total_wait_in_sec"]
             total_print_data = data["total_print_in_sec"]
+            check_time_data = data["check_time_in_sec"]
             if "t_pause_in_sec" in data:
                 t_pause_data = data["t_pause_in_sec"]
             if "t_requested_in_sec" in data:
@@ -140,6 +144,7 @@ def __load_output_timing_files(base_dir):
         inside_transaction_data,
         end_transaction_data,
         update_row_data,
+        check_time_data
     )
 
 
@@ -191,6 +196,7 @@ def __load_test_result_files(suite_test_directory, test_configuration_file):
         inside_transaction_data,
         end_transaction_data,
         update_row_data,
+        check_time_data
     ) = __load_output_timing_files(base_dir)
 
     new_results = {}
@@ -208,6 +214,7 @@ def __load_test_result_files(suite_test_directory, test_configuration_file):
     new_results[INSIDE_TRANSACTION_DURATION_TITLE] = inside_transaction_data
     new_results[END_TRANSACTION_DURATION_TITLE] = end_transaction_data
     new_results[UPDATE_ROW_DURATION_TITLE] = update_row_data
+    new_results[CHECK_TIME_DURATION_TITLE] = check_time_data
 
     if new_results[ITERATIONS_TITLE] > 0:
         new_results[AVG_START_TRANSACTION_DURATION_TITLE] = round(
@@ -229,6 +236,10 @@ def __load_test_result_files(suite_test_directory, test_configuration_file):
         )
         new_results[AVG_UPDATE_ROW_DURATION_TITLE] = round(
             update_row_data / float(new_results[ITERATIONS_TITLE]) * MICROSEC_PER_SEC,
+            DECIMALS_PLACES_IN_NANOSECONDS,
+        )
+        new_results[AVG_CHECK_TIME_DURATION_TITLE] = round(
+            check_time_data / float(new_results[ITERATIONS_TITLE]) * MICROSEC_PER_SEC,
             DECIMALS_PLACES_IN_NANOSECONDS,
         )
         new_results[AVG_WAIT_DURATION_TITLE] = round(
@@ -299,7 +310,9 @@ def __process_script_action():
         sys.exit(1)
     test_configuration_file = sys.argv[2]
 
-    results_dictionary = __load_test_result_files(test_results_directory, test_configuration_file)
+    results_dictionary = __load_test_result_files(
+        test_results_directory, test_configuration_file
+    )
     __dump_results_dictionary(test_results_directory, results_dictionary)
 
 

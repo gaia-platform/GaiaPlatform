@@ -26,7 +26,7 @@ export SOURCE_PATHS=("pingpong.cpp")
 
 export GENERATED_CONFIGURATION_FILE=("pingpong.conf")
 
-export TEMPLATE_PATH=("$SCRIPTPATH/template")
+export TEMPLATE_PATH=("$SCRIPTPATH/../template")
 
 # ----------------------------------------------------
 # Variables that are general to this group of scripts.
@@ -59,6 +59,19 @@ copy_extra_test_files() {
 }
 
 # -----------------------------------------------------------------
+# Functions to specify project specific information for build.sh.
+#
+# This is placed in this file to make the core scripts as agnostic
+# as possible for reuse.
+# -----------------------------------------------------------------
+
+# With everything else set up, do the heavy lifting of building the project.
+build_project() {
+    generate_makefile
+    invoke_makefile
+}
+
+# -----------------------------------------------------------------
 # Functions to specify how to process the command line with run.sh.
 #
 # This is placed in this file to make the core scripts as agnostic
@@ -66,6 +79,12 @@ copy_extra_test_files() {
 # -----------------------------------------------------------------
 
 export TEST_COMMAND_NAME="debug"
+
+# Any additional information to show about commands.
+show_usage_commands() {
+    echo ""
+    echo "  $TEST_COMMAND_NAME               Run the simulation in debug mode."
+}
 
 # Process a debug command which executes a file containing commands
 # and captures any output.  Normal assumption is that the output is
@@ -106,8 +125,4 @@ execute_commands() {
     else
         complete_process 1 "Command '${PARAMS[0]}' not known."
     fi
-}
-
-show_usage_commands() {
-    echo "Commands:"
 }
