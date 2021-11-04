@@ -15,7 +15,7 @@ using namespace gaia::common;
 using namespace gaia::tools::db_extract;
 using namespace std;
 
-constexpr char c_start_string[] = "start-after";
+constexpr char c_start_after_string[] = "start-after";
 constexpr char c_row_limit_string[] = "row-limit";
 constexpr char c_database_string[] = "database";
 constexpr char c_table_string[] = "table";
@@ -24,10 +24,10 @@ constexpr char c_table_string[] = "table";
 static void usage()
 {
     cerr << "Usage: gaia_db_extract [--" << c_database_string << "=<databasename>] [--" << c_table_string << "=<tableneme>] [--"
-         << c_start_string << "=ID] [--" << c_row_limit_string << "=N]" << endl;
+         << c_start_after_string << "=ID] [--" << c_row_limit_string << "=N]" << endl;
     cerr << "  No parameters: dump the catalog only." << endl;
     cerr << "  Else dump rows specified by " << c_database_string << "/" << c_table_string << " name, limited by "
-         << c_start_string << " and " << c_row_limit_string << "." << endl;
+         << c_start_after_string << " and " << c_row_limit_string << "." << endl;
 
     // Print an empty JSON object when there is any kind of error.
     cout << "{}" << endl;
@@ -78,12 +78,12 @@ int main(int argc, char* argv[])
         // Get a parameter and value pair from the command-line.
         parse_arg(argc, argv, i, key, value);
 
-        if (!key.compare(c_start_string))
+        if (!key.compare(c_start_after_string))
         {
             start_after = stoi(value);
             if (start_after < 1)
             {
-                cerr << "Illegal value for " << c_start_string << ". It must be 1 or greater." << endl;
+                cerr << "Illegal value for " << c_start_after_string << ". It must be 1 or greater." << endl;
                 usage();
             }
         }
