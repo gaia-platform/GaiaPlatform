@@ -264,8 +264,7 @@ void server_t::txn_begin(std::vector<int>& txn_log_fds_for_snapshot)
 
     // Allocate the txn log fd on the server, for rollback-safety if the client session crashes.
     s_log.create(
-        gaia_fmt::format("{}{}:{}",
-        c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
+        gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
 
     // Update the log header with our begin timestamp and initialize it to empty.
     s_log.data()->begin_ts = s_txn_id;
@@ -399,15 +398,15 @@ void server_t::handle_decide_txn(
     if (event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR)
     {
         build_server_reply(builder, event, old_state, new_state, s_error_message.c_str());
+
+        // Clear error information.
+        s_error_message = c_empty_string;
     }
     else
     {
         build_server_reply(builder, event, old_state, new_state, s_txn_id, 0);
     }
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
-
-    // Clear error information.
-    s_error_message = c_empty_string;
 
     // Update watermarks and perform associated maintenance tasks. This will
     // block new transactions on this session thread, but that is a feature, not
@@ -892,8 +891,7 @@ gaia_txn_id_t server_t::begin_startup_txn()
     ASSERT_POSTCONDITION(reservation_succeeded, "The main thread cannot fail to reserve a safe_ts index!");
     s_txn_id = txn_metadata_t::register_begin_ts();
     s_log.create(
-        gaia_fmt::format("{}{}:{}",
-        c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
+        gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
     return s_txn_id;
 }
 
