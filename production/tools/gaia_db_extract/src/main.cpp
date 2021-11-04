@@ -24,12 +24,12 @@ constexpr char c_table_string[] = "table";
 // Command-line usage.
 static void usage()
 {
-    cerr << "OVERVIEW: Produce JSON representation of catalog, or database rows:" << endl;
+    cerr << "OVERVIEW: Outputs a JSON representation of either the table schema, or selected rows within a database and table." << endl
+         << endl;
     cerr << "USAGE: gaia_db_extract [--" << c_help_string << "] [--" << c_database_string << "=<databasename> --" << c_table_string
          << "=<tablename> [--" << c_row_limit_string << "=N] [--" << c_start_after_string << "=ID]]" << endl
          << endl;
-    ;
-    cerr << "NO OPTIONS: extract catalog information only." << endl
+    cerr << "NO OPTIONS: extract table schema information only." << endl
          << endl;
     cerr << "OPTIONS TO EXTRACT ROWS:" << endl;
     cerr << "  --" << c_database_string << "=<databasename>    Required. Selects the database from which to extract rows." << endl;
