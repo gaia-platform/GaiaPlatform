@@ -24,6 +24,8 @@ This list should be maintained in alphabetical order, for easier lookup.
   * Apache: https://github.com/google/flatbuffers/blob/master/LICENSE.txt
 * fmt
   * MIT: https://github.com/fmtlib/fmt/blob/master/LICENSE.rst
+* json (json.hpp)
+  * MIT: https://github.com/nlohmann/json/blob/develop/LICENSE.MIT
 * libexplain
   * LGPL3: https://salsa.debian.org/debian/libexplain/-/blob/master/LICENSE
 * liburing
