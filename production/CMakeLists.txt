@@ -193,6 +193,9 @@ set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
 set(GAIA_SPDLOG "${DEPENDENCIES_INSTALL_PREFIX}/gaia_spdlog")
 set(GAIA_SPDLOG_INC "${GAIA_SPDLOG}/include")
 
+set(JSON "${GAIA_REPO}/third_party/production/json")
+set(JSON_INC "${JSON}/json/single_include/nlohmann")
+
 set(ROCKSDB "${GAIA_REPO}/third_party/production/rocksdb")
 set(ROCKSDB_INC "${ROCKSDB}/include")
 set(ROCKSDB_UTIL "${ROCKSDB}/util")
