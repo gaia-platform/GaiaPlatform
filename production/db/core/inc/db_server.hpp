@@ -368,9 +368,15 @@ private:
         messages::session_event_t event,
         messages::session_state_t old_state,
         messages::session_state_t new_state,
-        gaia_txn_id_t txn_id = 0,
-        size_t log_fds_to_apply_count = 0,
-        const char* error_message = "");
+        gaia_txn_id_t txn_id = c_invalid_gaia_txn_id,
+        size_t log_fds_to_apply_count = 0);
+
+    static void build_server_reply(
+        flatbuffers::FlatBufferBuilder& builder,
+        messages::session_event_t event,
+        messages::session_state_t old_state,
+        messages::session_state_t new_state,
+        const char* error_message);
 
     static void clear_shared_memory();
 

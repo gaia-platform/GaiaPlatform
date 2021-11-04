@@ -73,11 +73,15 @@ table client_request_t {
 table transaction_info_t {
     transaction_id: uint64;
     log_fds_to_apply_count: uint64;
+}
+
+table transaction_error_t {
     error_message: string;
 }
 
 union reply_data_t {
     transaction_info: transaction_info_t,
+    transaction_error: transaction_error_t,
 }
 
 table server_reply_t {

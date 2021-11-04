@@ -502,11 +502,14 @@ void client_t::commit_transaction()
             || event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR,
         c_message_unexpected_event_received);
 
-    const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
-    ASSERT_INVARIANT(
-        txn_info->transaction_id() == s_txn_id
-            || event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR,
-        "Unexpected transaction id!");
+    // We can only validate the transaction id if there was no error.
+    // This is because the server will clear the transaction id
+    // much earlier than it constructs its response.
+    if (event != session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR)
+    {
+        const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
+        ASSERT_INVARIANT(txn_info->transaction_id() == s_txn_id, "Unexpected transaction id!");
+    }
 
     // Execute trigger only if rules engine is initialized.
     if (s_txn_commit_trigger
@@ -529,7 +532,8 @@ void client_t::commit_transaction()
     else if (event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR)
     {
         // Get error information from server.
-        const char* error_message = txn_info->error_message()->c_str();
+        const transaction_error_t* txn_error = client_messenger.server_reply()->data_as_transaction_error();
+        const char* error_message = txn_error->error_message()->c_str();
 
         ASSERT_PRECONDITION(
             error_message != nullptr && strlen(error_message) > 0,

@@ -396,8 +396,14 @@ void server_t::handle_decide_txn(
     auto cleanup = make_scope_guard([&]() { s_txn_id = c_invalid_gaia_txn_id; });
 
     FlatBufferBuilder builder;
-    build_server_reply(
-        builder, event, old_state, new_state, s_txn_id, 0, s_error_message.c_str());
+    if (event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR)
+    {
+        build_server_reply(builder, event, old_state, new_state, s_error_message.c_str());
+    }
+    else
+    {
+        build_server_reply(builder, event, old_state, new_state, s_txn_id, 0);
+    }
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Clear error information.
@@ -631,15 +637,29 @@ void server_t::build_server_reply(
     session_state_t old_state,
     session_state_t new_state,
     gaia_txn_id_t txn_id,
-    size_t log_fds_to_apply_count,
-    const char* error_message)
+    size_t log_fds_to_apply_count)
 {
     flatbuffers::Offset<server_reply_t> server_reply;
-    const auto transaction_info = Createtransaction_info_tDirect(
-        builder, txn_id, log_fds_to_apply_count, error_message);
+    const auto transaction_info = Createtransaction_info_t(builder, txn_id, log_fds_to_apply_count);
     server_reply = Createserver_reply_t(
         builder, event, old_state, new_state,
         reply_data_t::transaction_info, transaction_info.Union());
+    const auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
+    builder.Finish(message);
+}
+
+void server_t::build_server_reply(
+    FlatBufferBuilder& builder,
+    session_event_t event,
+    session_state_t old_state,
+    session_state_t new_state,
+    const char* error_message)
+{
+    flatbuffers::Offset<server_reply_t> server_reply;
+    const auto transaction_error = Createtransaction_error_tDirect(builder, error_message);
+    server_reply = Createserver_reply_t(
+        builder, event, old_state, new_state,
+        reply_data_t::transaction_error, transaction_error.Union());
     const auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
     builder.Finish(message);
 }
