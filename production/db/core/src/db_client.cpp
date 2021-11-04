@@ -114,7 +114,8 @@ client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::opt
                     gaia_offset_t offset = lr->new_offset;
 
                     ASSERT_INVARIANT(
-                        offset != c_invalid_gaia_offset, "An unexpected invalid object offset was found in the log record!");
+                        offset != c_invalid_gaia_offset,
+                        "An unexpected invalid object offset was found in the log record!");
 
                     db_object_t* db_object = offset_to_ptr(offset);
 
@@ -207,7 +208,9 @@ int client_t::get_session_socket(const std::string& socket_name)
 
     // The socket name (minus its null terminator) needs to fit into the space
     // in the server address structure after the prefix null byte.
-    ASSERT_INVARIANT(socket_name.size() <= sizeof(server_addr.sun_path) - 1, "Socket name '" + socket_name + "' is too long!");
+    ASSERT_INVARIANT(
+        socket_name.size() <= sizeof(server_addr.sun_path) - 1,
+        "Socket name '" + socket_name + "' is too long!");
 
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
@@ -439,6 +442,29 @@ void client_t::rollback_transaction()
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 }
 
+// This method needs to be updated whenever a new pre_commit_validation_failure exception
+// is being introduced.
+void throw_exception_from_message(const char* error_message)
+{
+    // Check the error message against the known set of pre_commit_validation_failure error messages.
+    if (strlen(error_message) > strlen(index::unique_constraint_violation::c_error_description)
+        && strncmp(
+               error_message,
+               index::unique_constraint_violation::c_error_description,
+               strlen(index::unique_constraint_violation::c_error_description))
+            == 0)
+    {
+        throw index::unique_constraint_violation(error_message);
+    }
+    else
+    {
+        std::stringstream message;
+        message
+            << "The server has reported an unexpected error message: '" << error_message << "'";
+        ASSERT_UNREACHABLE(message.str());
+    }
+}
+
 // This method returns void on a commit decision and throws on an abort decision.
 // It sends a message to the server containing the fd of this txn's log segment and
 // will block waiting for a reply from the server.
@@ -473,14 +499,17 @@ void client_t::commit_transaction()
     ASSERT_INVARIANT(
         event == session_event_t::DECIDE_TXN_COMMIT
             || event == session_event_t::DECIDE_TXN_ABORT
-            || event == session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE,
+            || event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR,
         c_message_unexpected_event_received);
 
-    const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
-    ASSERT_INVARIANT(
-        txn_info->transaction_id() == s_txn_id
-            || event == session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE,
-        "Unexpected transaction id!");
+    // We can only validate the transaction id if there was no error.
+    // This is because the server will clear the transaction id
+    // much earlier than it constructs its reply.
+    if (event != session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR)
+    {
+        const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
+        ASSERT_INVARIANT(txn_info->transaction_id() == s_txn_id, "Unexpected transaction id!");
+    }
 
     // Execute trigger only if rules engine is initialized.
     if (s_txn_commit_trigger
@@ -500,9 +529,17 @@ void client_t::commit_transaction()
     }
     // Improving the communication of such errors to the client is tracked by:
     // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1232
-    else if (event == session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE)
+    else if (event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR)
     {
-        throw index::unique_constraint_violation();
+        // Get error information from server.
+        const transaction_error_t* txn_error = client_messenger.server_reply()->data_as_transaction_error();
+        const char* error_message = txn_error->error_message()->c_str();
+
+        ASSERT_PRECONDITION(
+            error_message != nullptr && strlen(error_message) > 0,
+            "No error message was provided for a DECIDE_TXN_ROLLBACK_FOR_ERROR event!");
+
+        throw_exception_from_message(error_message);
     }
 }
 

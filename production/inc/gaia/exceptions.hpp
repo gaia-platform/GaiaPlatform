@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <cstring>
+
 #include <sstream>
 
 #include "gaia/exception.hpp"
@@ -67,6 +69,15 @@ public:
     }
 };
 
+/**
+ * A base exception class for any fatal pre-commit validation failure.
+ *
+ * Any expected pre-commit validation failure exception is expected to extend this class.
+ */
+class pre_commit_validation_failure : public common::gaia_exception
+{
+};
+
 namespace index
 {
 /**
@@ -76,21 +87,34 @@ namespace index
 
 /**
  * An exception class used to indicate the violation of a UNIQUE constraint.
+ *
+ * Extends pre_commit_validation_failure to indicate that this exception
+ * is expected to occur during the pre-commit processing of a transaction.
  */
-class unique_constraint_violation : public common::gaia_exception
+class unique_constraint_violation : public pre_commit_validation_failure
 {
 public:
-    unique_constraint_violation()
+    static constexpr char c_error_description[] = "UNIQUE constraint violation!";
+
+public:
+    // This constructor should only be used on client side,
+    // to re-throw the exception indicated by the server.
+    explicit unique_constraint_violation(const char* error_message)
     {
-        m_message = "UNIQUE constraint violation.";
+        m_message = error_message;
     }
 
-    explicit unique_constraint_violation(const char* index_name, const char* table_name)
+    // A violation could be triggered by conflict with a non-committed transaction.
+    // If that transaction fails to commit, its record will not exist.
+    // This is why no record id is being provided in the message: because it may
+    // not correspond to any valid record at the time that the error is investigated.
+    unique_constraint_violation(const char* error_table_name, const char* error_index_name)
     {
         std::stringstream message;
         message
-            << "UNIQUE constraint violation for index '" << index_name
-            << "' of table '" << table_name << "'.";
+            << c_error_description
+            << " Cannot insert a duplicate key in table: '" << error_table_name << "', because of the unique constraint of "
+            << " index: '" << error_index_name << "'.";
         m_message = message.str();
     }
 };

@@ -26,6 +26,8 @@ namespace common
  * @{
  */
 
+constexpr char c_empty_string[] = "";
+
 /**
  * The type of a Gaia object identifier.
  */

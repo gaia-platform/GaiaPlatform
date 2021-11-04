@@ -501,7 +501,16 @@ QualType Sema::getRuleContextType(SourceLocation loc)
     // Insert fields.
     addField(&Context.Idents.get("ruleset_name"), Context.getPointerType((Context.CharTy.withConst()).withConst()), RD, loc);
     addField(&Context.Idents.get("rule_name"), Context.getPointerType((Context.CharTy.withConst()).withConst()), RD, loc);
-    addField(&Context.Idents.get("event_type"), Context.UnsignedIntTy.withConst(), RD, loc);
+
+    auto typeIterator = Context.getEDCTypes().find("event_type_t");
+    if (typeIterator != Context.getEDCTypes().end())
+    {
+        addField(&Context.Idents.get("event_type"), typeIterator->second->getLocallyUnqualifiedSingleStepDesugaredType().withConst(), RD, loc);
+    }
+    else
+    {
+        addField(&Context.Idents.get("event_type"), Context.UnsignedIntTy.withConst(), RD, loc);
+    }
     addField(&Context.Idents.get("gaia_type"), Context.UnsignedIntTy.withConst(), RD, loc);
 
     ActOnFinishCXXMemberSpecification(getCurScope(), loc, RD, loc, loc, attrs);
