@@ -948,7 +948,6 @@ void server_t::create_local_snapshot(bool apply_logs)
             s_txn_id != c_invalid_gaia_txn_id && txn_metadata_t::is_txn_active(s_txn_id),
             "create_local_snapshot() must be called from within an active transaction!");
         std::vector<int> txn_log_fds;
-
         get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds);
         auto cleanup_log_fds = make_scope_guard([&]() {
             // Close all the duplicated log fds in the buffer.
