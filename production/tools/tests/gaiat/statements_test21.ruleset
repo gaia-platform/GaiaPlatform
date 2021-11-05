@@ -1,0 +1,20 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+ruleset test58
+{
+    on_insert(test_table)
+    {
+        for (S:sensor)
+        {
+
+        }
+    }
+}
+
+// CHECK: Field 'test_table' was not found in the catalog.
+// GAIAPLAT-1301
