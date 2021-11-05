@@ -650,6 +650,11 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, StringRef targetTab
         }
     }
 
+    if (is_one_to_many)
+    {
+        addMethod(&Context.Idents.get("clear"), DeclSpec::TST_void, {}, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
+    }
+
     // The disconnect without arguments is available only for 1:1 relationships that have explicit link:
     //  person.mother.disconnect();
     if (!is_one_to_many && !sourceTableDecl->hasAttr<GaiaTableAttr>())
