@@ -35,9 +35,11 @@ static void usage()
     cerr << "  --" << c_database_string << "=<databasename>    Required. Selects the database from which to extract rows." << endl;
     cerr << "  --" << c_table_string << "=<tablename>          Required. Selects the table containing the rows being extracted." << endl;
     cerr << "  --" << c_row_limit_string << "=N                Optional. Limit the number of rows to N. Otherwise, extract all rows." << endl;
-    cerr << "  --" << c_start_after_string << "=ID             Optional. Assuming a block of rows has already been extracted, start this" << endl;
-    cerr << "                               block after the previous block, where ID is the \"row_id\" value of" << endl;
-    cerr << "                               the last row in the previous block. If absent, start from beginning." << endl;
+    cerr << "  --" << c_start_after_string << "=ID             Optional. Specifies the ID of the row that precedes the row at which" << endl;
+    cerr << "                               to start the extract. Typically this will be the last row of the" << endl;
+    cerr << "                               block that you just extracted. To extract rows from the database" << endl;
+    cerr << "                               in blocks, use this parameter in conjunction with row-limit." << endl;
+    cerr << "                               Omit this parameter to start from the beginning." << endl;
 
     // Print an empty JSON object when there is any kind of error.
     cout << "{}" << endl;
