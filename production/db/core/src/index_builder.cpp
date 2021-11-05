@@ -182,9 +182,6 @@ void update_index_entry(
             }
 
             // The list we iterate over reflects the order of operations.
-            // Updates that don't change the index key are harmless
-            // and those that do change it are indicated as separate removals and insertions.
-            // Hence, we only care about insertions and removals;
             // The key exists if the last seen operation is not a committed removal
             // or our own transaction's removal.
             // We ignore uncommitted removals by other transactions,
@@ -193,13 +190,20 @@ void update_index_entry(
             bool is_our_operation = (begin_ts == record.txn_id);
             bool is_committed_operation
                 = (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_committed(commit_ts));
-            if (it_start->second.operation == index_record_operation_t::remove
-                && (is_our_operation || is_committed_operation))
+            if (it_start->second.operation == index_record_operation_t::remove)
             {
-                has_found_duplicate_key = false;
+                // We ignore uncommitted removals by other transactions,
+                // because if their transaction is aborted,
+                // it would allow us to perform a duplicate insertion.
+                if (is_our_operation || is_committed_operation)
+                {
+                    has_found_duplicate_key = false;
+                }
             }
             else
             {
+                // Flag inserts and updates with the same key.
+                // Updates should be accounted for because the original inserts may have been garbage collected.
                 has_found_duplicate_key = true;
             }
 
