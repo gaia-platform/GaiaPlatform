@@ -9632,6 +9632,8 @@ def err_unknown_field : Error<
   "Field '%0' was not found in the catalog.">;
 def err_unknown_parameter_name : Error<
   "Parameter name '%0' is not found in the catalog.">;
+def err_unknown_field_or_table : Error<
+  "'%0' does not correspond to any table or field in the catalog.">;
 
 def note_table_reference : Note<
   "Table: '%0'.">;

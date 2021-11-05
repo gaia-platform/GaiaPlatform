@@ -21,7 +21,7 @@ ruleset test31
 
 ruleset test32
 {
-    on_update(tttt) // expected-error {{Field 'tttt' was not found in the catalog.}}
+    on_update(tttt) // expected-error {{'tttt' does not correspond to any table or field in the catalog.}}
     {
     }
 }
@@ -106,7 +106,7 @@ ruleset test54
 
 ruleset test55
 {
-    on_change(tttt) // expected-error {{Field 'tttt' was not found in the catalog.}}
+    on_change(tttt) // expected-error {{'tttt' does not correspond to any table or field in the catalog.}}
     {
     }
 }
@@ -190,7 +190,7 @@ ruleset test66
 
 ruleset test67
 {
-    on_insert(tttt) // expected-error {{Field 'tttt' was not found in the catalog.}}
+    on_insert(tttt) // expected-error {{'tttt' does not correspond to any table or field in the catalog.}}
     {
     }
 }
