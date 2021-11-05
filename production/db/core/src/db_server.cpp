@@ -847,7 +847,7 @@ void server_t::update_indexes_from_txn_log()
 
     create_local_snapshot(replay_logs);
     auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
-    index::index_builder_t::update_indexes_from_logs(*s_log.data(), s_server_conf.skip_catalog_integrity_checks());
+    index::index_builder_t::update_indexes_from_txn_log(*s_log.data(), s_server_conf.skip_catalog_integrity_checks());
 }
 
 void server_t::recover_db()
@@ -2122,7 +2122,7 @@ void server_t::gc_txn_log_from_fd(int log_fd, bool committed)
 
     // Remove in-memory index entries that might be referencing old txn_log data before actually
     // deallocating them!
-    index::index_builder_t::gc_indexes_from_logs(*txn_log.data(), deallocate_new_offsets);
+    index::index_builder_t::gc_indexes_from_txn_log(*txn_log.data(), deallocate_new_offsets);
     deallocate_txn_log(txn_log.data(), deallocate_new_offsets);
 }
 

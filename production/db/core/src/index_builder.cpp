@@ -342,7 +342,7 @@ void index_builder_t::populate_index(common::gaia_id_t index_id, common::gaia_ty
 * The order of operations in the index data structure is based on the same ordering as the logs.
 * As such, we rely on the logs being sorted by temporal order.
 */
-void index_builder_t::update_indexes_from_logs(
+void index_builder_t::update_indexes_from_txn_log(
     const txn_log_t& records, bool skip_catalog_integrity_check, bool allow_create_empty)
 {
     // Clear the type_id_mapping cache (so it will be refreshed) if we find any
@@ -436,37 +436,25 @@ void remove_entries_with_offset(base_index_t* base_index, db_object_t* obj, gaia
     index->remove_index_entry_with_offset(key, offset);
 }
 
-void index_builder_t::gc_indexes_from_logs(const txn_log_t& records, bool deallocate_new_offsets)
+void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool deallocate_new_offsets)
 {
     for (size_t i = 0; i < records.record_count; ++i)
     {
         const auto& log_record = records.log_records[i];
-        gaia_offset_t offset = c_invalid_gaia_offset;
-        db_object_t* obj = nullptr;
+        gaia_offset_t offset = deallocate_new_offsets ? log_record.new_offset : log_record.old_offset;
 
-        // Find which offset to deallocate (new or old), if no action is needed, move on to the next log record.
-        if (deallocate_new_offsets && log_record.new_offset != c_invalid_gaia_offset)
-        {
-            offset = log_record.new_offset;
-            obj = offset_to_ptr(offset);
-            ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
-        }
-        else if (!deallocate_new_offsets && log_record.old_offset != c_invalid_gaia_offset)
-        {
-            offset = log_record.old_offset;
-            obj = offset_to_ptr(offset);
-            ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
-        }
-        else
+        // If no action is needed, move on to the next log record.
+        if (offset == c_invalid_gaia_offset)
         {
             continue;
         }
 
+        db_object_t* obj = offset_to_ptr(offset);
         gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(obj->type);
 
         // Skip system objects.
         // Skip unknown objects -- these are likely from dropped tables. We do not perform catalog
-        // verification in this method, verification should have been previously done in update_indexes_from_logs().
+        // verification in this method, verification should have been previously done in update_indexes_from_txn_log().
         if (is_system_object(obj->type) || type_record_id == c_invalid_gaia_id)
         {
             continue;
