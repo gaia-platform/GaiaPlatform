@@ -2426,7 +2426,12 @@ void server_t::gc_applied_txn_logs()
         bool apply_logs = false;
         create_local_snapshot(apply_logs);
     }
-    auto cleanup_local_snapshot = make_scope_guard([=]() { if(manage_snapshot) s_local_snapshot_locators.close(); });
+    auto cleanup_local_snapshot = make_scope_guard([=]() {
+        if (manage_snapshot)
+        {
+            s_local_snapshot_locators.close();
+        }
+    });
 
     // Scan from the post-GC watermark to the post-apply watermark,
     // executing GC on any commit_ts if the log fd is valid (and the durable
@@ -2670,7 +2675,8 @@ void server_t::txn_rollback(bool client_disconnected)
     // Free any deallocated objects (don't bother for read-only txns).
     if (!is_log_empty)
     {
-        bool apply_logs = false; // perform_maintenance() should have already caught up the snapshot.
+        // perform_maintenance() should have already caught up the snapshot, we do not need to reapply the logs.
+        bool apply_logs = false;
         create_local_snapshot(apply_logs);
         auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
         gc_txn_log_from_fd(log_fd, false);

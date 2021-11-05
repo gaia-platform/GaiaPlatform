@@ -432,7 +432,7 @@ template <class T_index>
 void remove_entries_with_offset(base_index_t* base_index, db_object_t* obj, gaia_offset_t offset)
 {
     auto index = static_cast<T_index*>(base_index);
-    auto key = index_builder_t::make_key(index->id(), obj->type, reinterpret_cast<const uint8_t*>(obj->data()));
+    index_key_t key = index_builder_t::make_key(index->id(), obj->type, reinterpret_cast<const uint8_t*>(obj->data()));
     index->remove_index_entry_with_offset(key, offset);
 }
 
