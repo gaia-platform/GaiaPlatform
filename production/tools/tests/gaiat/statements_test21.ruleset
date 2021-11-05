@@ -16,5 +16,5 @@ ruleset test58
     }
 }
 
-// CHECK: Field 'test_table' was not found in the catalog.
+// CHECK: 'test_table' does not correspond to any table or field in the catalog.
 // GAIAPLAT-1301
