@@ -154,11 +154,15 @@ static string dump_catalog()
 // Select the correct data_holder_t element from which to pull the field value.
 static bool add_field_value(json_t& row, const gaia_field_t& field_object, const data_holder_t& value)
 {
+    // This cannot be on the stack because it is referenced soon.
+    static char s_null_string[] = "";
+
     auto field_name = field_object.name();
     switch (value.type)
     {
     case reflection::String:
-        row[field_name] = value.hold.string_value;
+        // Null is possible.
+        row[field_name] = value.hold.string_value == nullptr ? s_null_string : value.hold.string_value;
         break;
 
     case reflection::Float:
@@ -192,6 +196,7 @@ static bool add_field_value(json_t& row, const gaia_field_t& field_object, const
 static string dump_rows(string database, string table, uint64_t start_after, uint32_t row_limit)
 {
     bool terminate = false;
+    bool top_level_included = false;
     table_iterator_t table_iterator;
     stringstream row_dump;
     json_t rows = json_t{};
@@ -217,12 +222,16 @@ static string dump_rows(string database, string table, uint64_t start_after, uin
                 break;
             }
 
-            // Top level of the JSON document, contains database and table names.
-            rows["database"] = database;
-            rows["table"] = table;
-
             while (!table_iterator.has_scan_ended())
             {
+                if (!top_level_included)
+                {
+                    // Top level of the JSON document, contains database and table names.
+                    rows["database"] = database;
+                    rows["table"] = table;
+                    top_level_included = true;
+                }
+
                 // Note that a row_limit of -1 means "unlimited", so it will never be 0.
                 if (row_limit-- == 0)
                 {
@@ -277,7 +286,14 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
     }
     else if (database.size() > 0 && table.size() > 0)
     {
-        return dump_rows(database, table, start_after, row_limit);
+        if (row_limit != 0)
+        {
+            return dump_rows(database, table, start_after, row_limit);
+        }
+        else
+        {
+            return "{}";
+        }
     }
     else
     {
