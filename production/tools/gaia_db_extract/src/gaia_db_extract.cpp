@@ -143,7 +143,7 @@ static string dump_catalog()
     auto return_string = catalog_dump.str();
     if (!return_string.compare("null"))
     {
-        return "{}";
+        return c_empty_object;
     }
     else
     {
@@ -204,7 +204,7 @@ static string dump_rows(string database, string table, uint64_t start_after, uin
     if (!g_cache_initialized)
     {
         fprintf(stderr, "API not initialized. Call gaia_db_extract_initialize() first.\n");
-        return "{}";
+        return c_empty_object;
     }
 
     begin_transaction();
@@ -269,7 +269,7 @@ static string dump_rows(string database, string table, uint64_t start_after, uin
     auto return_string = rows.dump(c_default_json_indentation);
     if (!return_string.compare("null"))
     {
-        return "{}";
+        return c_empty_object;
     }
     else
     {
@@ -292,13 +292,13 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
         }
         else
         {
-            return "{}";
+            return c_empty_object;
         }
     }
     else
     {
         fprintf(stderr, "Must have both database name and table name to extract row data.\n");
-        return "{}";
+        return c_empty_object;
     }
 }
 

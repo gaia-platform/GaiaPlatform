@@ -143,7 +143,7 @@ TEST_F(gaia_db_extract_test, extract_catalog_rows)
     for (;;)
     {
         auto extracted_rows = gaia_db_extract("catalog", "gaia_field", row_id, 3);
-        if (!extracted_rows.compare("{}"))
+        if (!extracted_rows.compare(c_empty_object))
         {
             break;
         }

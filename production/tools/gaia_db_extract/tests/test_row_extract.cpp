@@ -73,7 +73,7 @@ protected:
         {
             // Produce the JSON string of this selection.
             auto extracted_rows = gaia_db_extract("addr_book", "employee", row_id, block_size);
-            if (!extracted_rows.compare("{}"))
+            if (!extracted_rows.compare(c_empty_object))
             {
                 break;
             }

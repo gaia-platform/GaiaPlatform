@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
             if (start_after < 1)
             {
                 fprintf(stderr, "Illegal value for start_after. It must be 1 or greater\n");
-                cout << "{}" << endl;
+                cout << c_empty_object << endl;
                 exit(1);
             }
         }
@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
             if (row_limit < 1)
             {
                 fprintf(stderr, "Illegal value for row_limit. It must be 1 or greater\n");
-                cout << "{}" << endl;
+                cout << c_empty_object << endl;
                 exit(1);
             }
         }
@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
         {
             fprintf(stderr, "Invalid command-row option: '%s'\n", argv[i]);
             fprintf(stderr, "Usage: gaia_db_extract [--database=<dbname>] [--table=<tableneme>] [--start-after=ID] [--row-limit=N]\n");
-            cout << "{}" << endl;
+            cout << c_empty_object << endl;
             exit(1);
         }
     }
@@ -114,12 +114,12 @@ int main(int argc, char* argv[])
     catch (gaia_exception& e)
     {
         fprintf(stderr, "Startup failure, exception: '%s'\n", e.what());
-        cout << "{}" << endl;
+        cout << c_empty_object << endl;
         exit(1);
     }
 
     // Return an empty JSON document on failure.
-    string extracted_data("{}");
+    string extracted_data(c_empty_object);
 
     try
     {
