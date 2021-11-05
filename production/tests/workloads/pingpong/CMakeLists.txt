@@ -34,6 +34,7 @@ translate_ruleset(RULESET_FILE ${MINK_RULESET})
 
 add_executable(pingpong
     pingpong.cpp
+    simulation.cpp
 )
 
 target_add_gaia_generated_sources(pingpong)

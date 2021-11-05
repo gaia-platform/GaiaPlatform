@@ -193,6 +193,16 @@ public:
         return times_to_charging == target_times_to_charge;
     }
 
+    my_duration_in_microseconds_t perform_single_step() override
+    {
+        return my_duration_in_microseconds_t(0);
+    }
+
+    bool has_step_completed(int timestamp, int initial_state_tracker) override
+    {
+        return true;
+    }
+
     long get_processing_timeout_in_microseconds() override
     {
         return simulation_t::get_processing_timeout_in_microseconds();

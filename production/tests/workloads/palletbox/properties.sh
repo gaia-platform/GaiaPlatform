@@ -93,14 +93,18 @@ process_debug() {
     local COMMAND_FILE=$1
     local SCRIPT_STOP_PAUSE=$2
 
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Executing the executable $EXECUTABLE_PATH in debug mode with input file: $(realpath "$COMMAND_FILE")"
+    fi
+
     echo "---"
     echo "Application Log"
     echo "---"
 
+    # Run the commands and produce a JSON output file.
     if ! "$EXECUTABLE_PATH" debug "$SCRIPT_STOP_PAUSE" < "$COMMAND_FILE" > "$JSON_OUTPUT"; then
         cat "$JSON_OUTPUT"
-        echo "Execution of the executable $EXECUTABLE_PATH in debug mode failed."
-        complete_process 1
+        complete_process 1 "Execution of the executable $EXECUTABLE_PATH in debug mode failed."
     fi
 
     tail -n 1 "$JSON_OUTPUT" > "$STOP_OUTPUT"
@@ -117,7 +121,6 @@ process_debug() {
 # Process a debug command which executes a file containing commands
 # and captures any output.  Normal assumption is that the output is
 # in the form of a JSON file.
-# Process the various commands.
 execute_commands() {
     DEBUG_END_PAUSE=$2
 

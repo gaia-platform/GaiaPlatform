@@ -9,4 +9,4 @@
 
 workload pingpong
 
-perf repeat 5
+perf repeat 3

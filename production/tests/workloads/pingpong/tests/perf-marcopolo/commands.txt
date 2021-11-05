@@ -4,13 +4,15 @@
 #############################################
 
 # Turn debug on
-D
+# D
 # Turn off transaction mode for the pause.
 # p
+i
 # Wait 5 milliseconds to allow the turn on effects to finish.
 w5
 # Take 1023 steps.
 o
-z50000
+t50000
 o
 # end
+s

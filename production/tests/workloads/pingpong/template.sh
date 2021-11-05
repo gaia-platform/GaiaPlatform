@@ -102,7 +102,8 @@ parse_command_line() {
 # Set up any global script variables.
 # shellcheck disable=SC2164
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-# shellcheck disable=SC1091 source=./properties.sh
+TEMPLATE_PATH="no-template-path"
+# shellcheck disable=SC1091,SC1090
 source "$SCRIPTPATH/properties.sh"
 
 # Set up any project based local script variables.
@@ -111,6 +112,11 @@ DID_PUSHD=0
 
 # Parse any command line values.
 parse_command_line "$@"
+
+# Make sure we have a template specified.
+if [ -z $TEMPLATE_PATH ] || [ $TEMPLATE_PATH == "no-template-path" ]; then
+    complete_process 1 "Variable TEMPLATE_PATH was not specified by project's 'properties.sh' file."
+fi
 
 # Clean entrance into the script.
 start_process
