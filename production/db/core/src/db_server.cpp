@@ -2603,13 +2603,6 @@ void server_t::truncate_txn_table()
 
 void server_t::txn_rollback(bool client_disconnected)
 {
-    // Set our txn status to TXN_TERMINATED.
-    // NB: this must be done before calling perform_maintenance()!
-    txn_metadata_t::set_active_txn_terminated(s_txn_id);
-
-    // Update watermarks and perform associated maintenance tasks.
-    perform_maintenance();
-
     // Directly free the final allocation recorded in chunk metadata if it is
     // absent from the txn log (due to a crashed session), and retire the chunk
     // owned by the client session when it crashed.
@@ -2675,12 +2668,18 @@ void server_t::txn_rollback(bool client_disconnected)
     // Free any deallocated objects (don't bother for read-only txns).
     if (!is_log_empty)
     {
-        // perform_maintenance() should have already caught up the snapshot, we do not need to reapply the logs.
-        bool apply_logs = false;
+        bool apply_logs = true;
         create_local_snapshot(apply_logs);
         auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
         gc_txn_log_from_fd(log_fd, false);
     }
+
+    // Set our txn status to TXN_TERMINATED.
+    // NB: this must be done before calling perform_maintenance()!
+    txn_metadata_t::set_active_txn_terminated(s_txn_id);
+
+    // Update watermarks and perform associated maintenance tasks.
+    perform_maintenance();
 
     // This session now has no active txn.
     s_txn_id = c_invalid_gaia_txn_id;
