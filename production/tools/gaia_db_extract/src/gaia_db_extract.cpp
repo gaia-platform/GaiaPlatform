@@ -154,15 +154,12 @@ static string dump_catalog()
 // Select the correct data_holder_t element from which to pull the field value.
 static bool add_field_value(json_t& row, const gaia_field_t& field_object, const data_holder_t& value)
 {
-    // This cannot be on the stack because it is referenced soon.
-    static char s_null_string[] = "";
-
     auto field_name = field_object.name();
     switch (value.type)
     {
     case reflection::String:
         // Null is possible.
-        row[field_name] = value.hold.string_value == nullptr ? s_null_string : value.hold.string_value;
+        row[field_name] = value.hold.string_value == nullptr ? c_empty_string : value.hold.string_value;
         break;
 
     case reflection::Float:
