@@ -800,7 +800,6 @@ ruleset test_disconnect_1_n
     {
         if (strcmp(course.course_id, "cou001") == 0)
         {
-
             course.registrations.clear();
         }
         else
