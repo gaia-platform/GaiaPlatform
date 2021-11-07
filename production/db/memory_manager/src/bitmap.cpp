@@ -43,29 +43,49 @@ size_t find_last_set_bit_in_word(uint64_t word)
     return last_set_bit_index_in_word;
 }
 
-void apply_mask_to_word(
-    uint64_t& word, uint64_t mask, bool set)
+bool apply_mask_to_word(
+    uint64_t& word, uint64_t mask, bool set, bool fail_if_present = false)
 {
+    if (fail_if_present)
+    {
+        // Fail if any of the bits in the mask are set/unset in the word.
+        if ((word & mask) != (set ? 0 : mask))
+        {
+            return false;
+        }
+    }
+
     // See: https://graphics.stanford.edu/~seander/bithacks.html#ConditionalSetOrClearBitsWithoutBranching
     word ^= (-set ^ word) & mask;
+    return true;
 }
 
-void apply_mask_to_word(
-    std::atomic<uint64_t>& word, uint64_t mask, bool set)
+bool apply_mask_to_word(
+    std::atomic<uint64_t>& word, uint64_t mask, bool set, bool fail_if_present = false)
 {
     uint64_t word_copy = word;
-    apply_mask_to_word(word_copy, mask, set);
+    if (!apply_mask_to_word(word_copy, mask, set, fail_if_present))
+    {
+        return false;
+    }
     word = word_copy;
+    return true;
 }
 
 bool try_apply_mask_to_word(
-    std::atomic<uint64_t>& word, uint64_t mask, bool set)
+    std::atomic<uint64_t>& word, uint64_t mask, bool set, bool fail_if_present = false)
 {
     // We read the word once, because other threads may be updating it.
     uint64_t old_word = word;
     uint64_t new_word = old_word;
 
-    apply_mask_to_word(new_word, mask, set);
+    // REVIEW: If callers need to distinguish between CAS failure and failure
+    // because some mask bits were set/unset in the word, then we need to revise
+    // this interface.
+    if (!apply_mask_to_word(new_word, mask, set, fail_if_present))
+    {
+        return false;
+    }
 
     return word.compare_exchange_strong(old_word, new_word);
 }
@@ -141,12 +161,12 @@ void safe_set_bit_value(
 }
 
 bool try_set_bit_value(
-    std::atomic<uint64_t>* bitmap, size_t bitmap_size_in_words, size_t bit_index, bool value)
+    std::atomic<uint64_t>* bitmap, size_t bitmap_size_in_words, size_t bit_index, bool value, bool fail_if_present)
 {
     std::atomic<uint64_t>* word = nullptr;
     uint64_t mask;
     find_bit_word_and_mask(bitmap, bitmap_size_in_words, bit_index, word, mask);
-    return try_apply_mask_to_word(*word, mask, value);
+    return try_apply_mask_to_word(*word, mask, value, fail_if_present);
 }
 
 void safe_set_bit_range_value(

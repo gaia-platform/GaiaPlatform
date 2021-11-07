@@ -119,7 +119,10 @@ void short_function(int a)
 
 void short_lambdas()
 {
-    auto l = [](int a) { a + 1; a + 2; };
+    auto l = [](int a) {
+        a + 1;
+        a + 2;
+    };
 
     std::vector<int> vec = {1, 2, 3};
 
