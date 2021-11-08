@@ -2762,12 +2762,12 @@ bool server_t::reserve_safe_ts_index()
         // Restart the scan if the bit was already set when we tried to set it,
         // because that means that another thread has already reserved this
         // index. We force try_set_bit_value() to fail in this case by passing
-        // fail_if_present=true.
-        bool fail_if_present = true;
+        // fail_if_already_set=true.
+        bool fail_if_already_set = true;
         if (memory_manager::try_set_bit_value(
                 s_safe_ts_reserved_indexes_bitmap.data(),
                 s_safe_ts_reserved_indexes_bitmap.size(),
-                reserved_index, true, fail_if_present))
+                reserved_index, true, fail_if_already_set))
         {
             break;
         }

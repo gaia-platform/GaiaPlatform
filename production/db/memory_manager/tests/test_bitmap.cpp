@@ -41,7 +41,7 @@ TEST(bitmap, set_bit_value_and_is_bit_set)
     }
 }
 
-TEST(bitmap, try_set_bit_value)
+TEST(bitmap, set_already_set_bit_value)
 {
     constexpr size_t c_bitmap_size_in_words = 3;
     std::atomic<uint64_t> bitmap[c_bitmap_size_in_words];
@@ -55,9 +55,9 @@ TEST(bitmap, try_set_bit_value)
         ASSERT_TRUE(success);
         ASSERT_EQ(true, is_bit_set(bitmap, c_bitmap_size_in_words, i));
         ASSERT_EQ(1, count_set_bits(bitmap, c_bitmap_size_in_words));
-        bool fail_if_present = true;
-        // try_set_bit_value() should fail if the bit is already set and fail_if_present=true.
-        success = try_set_bit_value(bitmap, c_bitmap_size_in_words, i, true, fail_if_present);
+        bool fail_if_already_set = true;
+        // try_set_bit_value() should fail if the bit is already set and fail_if_already_set=true.
+        success = try_set_bit_value(bitmap, c_bitmap_size_in_words, i, true, fail_if_already_set);
         ASSERT_FALSE(success);
         bitmap[i / c_uint64_bit_count] = 0;
     }
@@ -71,9 +71,9 @@ TEST(bitmap, try_set_bit_value)
         ASSERT_TRUE(success);
         ASSERT_EQ(false, is_bit_set(bitmap, c_bitmap_size_in_words, i));
         ASSERT_EQ(c_bitmap_size_in_words * c_uint64_bit_count - 1, count_set_bits(bitmap, c_bitmap_size_in_words));
-        bool fail_if_present = true;
-        // try_set_bit_value() should fail if the bit is already unset and fail_if_present=true.
-        success = try_set_bit_value(bitmap, c_bitmap_size_in_words, i, false, fail_if_present);
+        bool fail_if_already_set = true;
+        // try_set_bit_value() should fail if the bit is already unset and fail_if_already_set=true.
+        success = try_set_bit_value(bitmap, c_bitmap_size_in_words, i, false, fail_if_already_set);
         ASSERT_FALSE(success);
         bitmap[i / c_uint64_bit_count] = -1;
     }
