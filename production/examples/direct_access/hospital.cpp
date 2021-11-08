@@ -256,7 +256,7 @@ void delete_single_record_static()
  * Deleting the current record stops the iteration because the
  * next record cannot be found.
  */
-void delete_all_records_iter()
+void delete_all_records()
 {
     PRINT_METHOD_NAME();
 
@@ -819,7 +819,7 @@ int main()
     clean_db();
     delete_single_record();
     delete_single_record_static();
-    delete_all_records_iter();
+    delete_all_records();
     gaia_id_t doctor_id = create_one_to_many_relationship();
     traverse_one_to_many_relationship(doctor_id);
     delete_one_to_many_relationship_re(doctor_id);
