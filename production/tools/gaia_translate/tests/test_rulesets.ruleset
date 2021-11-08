@@ -60,7 +60,7 @@ ruleset test_tags
     // test_tags_code.basic_tags
     on_insert(R:registration)
     {
-        // Check common field references.
+        // Check value linked references.
         if (strcmp(R.reg_id, reg_id) != 0)
         {
             g_oninsert3_result = test_error_result_t::e_tag_field_mismatch;
