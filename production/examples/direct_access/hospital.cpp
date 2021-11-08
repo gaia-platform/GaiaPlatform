@@ -256,33 +256,6 @@ void delete_single_record_static()
  * Deleting the current record stops the iteration because the
  * next record cannot be found.
  */
-void delete_all_records()
-{
-    PRINT_METHOD_NAME();
-    doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House", "house@md.com"));
-    doctor_t dr_dorian = doctor_t::get(doctor_t::insert_row("Dr. Dorian", "dorian@md.com"));
-    doctor_t dr_reid = doctor_t::get(doctor_t::insert_row("Dr. Reid", "reid@md.com"));
-
-    // This approach doesn't work, it will remove only one element.
-    // for (auto& doctor : doctor_t::list())
-    // {
-    //     doctor.delete_row();
-    // }
-
-    // The following is an approach that works to delete all the records:
-    for (auto doctor = *doctor_t::list().begin();
-         doctor;
-         doctor = *doctor_t::list().begin())
-    {
-        doctor.delete_row();
-    }
-
-    gaia_log::app().info("Doctors count: {}", doctor_t::list().size());
-}
-
-/**
- * Another way to delete all of the records is to use an iterator.
- */
 void delete_all_records_iter()
 {
     PRINT_METHOD_NAME();
@@ -295,7 +268,7 @@ void delete_all_records_iter()
          doctor_it != doctor_t::list().end();)
     {
         auto next_doctor_it = doctor_it++;
-        (*next_doctor_it).delete_row();
+        next_doctor_it->delete_row();
     }
 
     gaia_log::app().info("Doctors count: {}", doctor_t::list().size());
@@ -800,24 +773,27 @@ void use_dac_object_across_transactions()
  */
 void clean_db()
 {
-    for (auto doctor = *doctor_t::list().begin();
-         doctor; doctor = *doctor_t::list().begin())
+    for (auto doctor_it = doctor_t::list().begin();
+         doctor_it != doctor_t::list().end();)
     {
-        doctor.patients().clear();
-        doctor.delete_row();
+        auto next_doctor_it = doctor_it++;
+        next_doctor_it->patients().clear();
+        next_doctor_it->delete_row();
     }
 
-    for (auto patient = *patient_t::list().begin();
-         patient; patient = *patient_t::list().begin())
+    for (auto patient_it = patient_t::list().begin();
+         patient_it != patient_t::list().end();)
     {
-        patient.address().disconnect();
-        patient.delete_row();
+        auto next_patient_it = patient_it++;
+        next_patient_it->address().disconnect();
+        next_patient_it->delete_row();
     }
 
-    for (auto address = *address_t::list().begin();
-         address; address = *address_t::list().begin())
+    for (auto address_it = address_t::list().begin();
+         address_it != address_t::list().end();)
     {
-        address.delete_row();
+        auto next_address_it = address_it++;
+        next_address_it->delete_row();
     }
 }
 
@@ -843,7 +819,6 @@ int main()
     clean_db();
     delete_single_record();
     delete_single_record_static();
-    delete_all_records();
     delete_all_records_iter();
     gaia_id_t doctor_id = create_one_to_many_relationship();
     traverse_one_to_many_relationship(doctor_id);
