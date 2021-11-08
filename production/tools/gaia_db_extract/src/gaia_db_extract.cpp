@@ -159,7 +159,7 @@ static bool add_field_value(json_t& row, const gaia_field_t& field_object, const
     {
     case reflection::String:
         // Null is possible.
-        row[field_name] = value.hold.string_value == nullptr ? c_empty_string : value.hold.string_value;
+        row[field_name] = (value.hold.string_value == nullptr) ? c_empty_string : value.hold.string_value;
         break;
 
     case reflection::Float:
@@ -193,7 +193,7 @@ static bool add_field_value(json_t& row, const gaia_field_t& field_object, const
 static string dump_rows(string database, string table, uint64_t start_after, uint32_t row_limit)
 {
     bool terminate = false;
-    bool top_level_included = false;
+    bool has_included_top_level = false;
     table_iterator_t table_iterator;
     stringstream row_dump;
     json_t rows = json_t{};
@@ -221,12 +221,12 @@ static string dump_rows(string database, string table, uint64_t start_after, uin
 
             while (!table_iterator.has_scan_ended())
             {
-                if (!top_level_included)
+                if (!has_included_top_level)
                 {
                     // Top level of the JSON document, contains database and table names.
                     rows["database"] = database;
                     rows["table"] = table;
-                    top_level_included = true;
+                    has_included_top_level = true;
                 }
 
                 // Note that a row_limit of -1 means "unlimited", so it will never be 0.

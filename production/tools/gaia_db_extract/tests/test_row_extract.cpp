@@ -27,6 +27,9 @@ using std::exception;
 using std::string;
 using std::thread;
 
+constexpr uint32_t c_one_K_rows = 1024;
+constexpr uint32_t c_just_a_few_rows = 7;
+
 class row_extract_test : public db_catalog_test_base_t
 {
 protected:
@@ -124,11 +127,11 @@ TEST_F(row_extract_test, read_blocks)
     // Try this with a number of permutations.
     test_with_different_sizes(100, 3);
 
-    // It is important to run this with > 1024 rows.
-    test_with_different_sizes(1025, 7);
-    test_with_different_sizes(0, 7);
-    test_with_different_sizes(7, 7);
-    test_with_different_sizes(7, 0);
-    test_with_different_sizes(7, c_row_limit_unlimited);
-    test_with_different_sizes(2049, c_row_limit_unlimited);
+    // It is important to run this with > c_one_K_rows.
+    test_with_different_sizes(c_one_K_rows + 1, c_just_a_few_rows);
+    test_with_different_sizes(0, c_just_a_few_rows);
+    test_with_different_sizes(c_just_a_few_rows, c_just_a_few_rows);
+    test_with_different_sizes(c_just_a_few_rows, 0);
+    test_with_different_sizes(c_just_a_few_rows, c_row_limit_unlimited);
+    test_with_different_sizes(c_one_K_rows + 25, c_row_limit_unlimited);
 }
