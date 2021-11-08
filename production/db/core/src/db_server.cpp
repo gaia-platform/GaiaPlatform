@@ -848,7 +848,7 @@ void server_t::update_indexes_from_txn_log()
 
     create_local_snapshot(replay_logs);
     auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
-    index::index_builder_t::update_indexes_from_logs(*s_log.data(), s_server_conf.skip_catalog_integrity_checks());
+    index::index_builder_t::update_indexes_from_txn_log(*s_log.data(), s_server_conf.skip_catalog_integrity_checks());
 }
 
 void server_t::recover_db()
@@ -2121,6 +2121,10 @@ void server_t::gc_txn_log_from_fd(int log_fd, bool committed)
     ASSERT_INVARIANT(txn_log.is_set(), "txn_log should be mapped when deallocating old offsets.");
 
     bool deallocate_new_offsets = !committed;
+
+    // Remove in-memory index entries that might be referencing old txn_log data before actually
+    // deallocating them!
+    index::index_builder_t::gc_indexes_from_txn_log(*txn_log.data(), deallocate_new_offsets);
     deallocate_txn_log(txn_log.data(), deallocate_new_offsets);
 }
 
@@ -2585,13 +2589,6 @@ void server_t::truncate_txn_table()
 
 void server_t::txn_rollback(bool client_disconnected)
 {
-    // Set our txn status to TXN_TERMINATED.
-    // NB: this must be done before calling perform_maintenance()!
-    txn_metadata_t::set_active_txn_terminated(s_txn_id);
-
-    // Update watermarks and perform associated maintenance tasks.
-    perform_maintenance();
-
     // Directly free the final allocation recorded in chunk metadata if it is
     // absent from the txn log (due to a crashed session), and retire the chunk
     // owned by the client session when it crashed.
@@ -2646,9 +2643,6 @@ void server_t::txn_rollback(bool client_disconnected)
         }
     }
 
-    // This session now has no active txn.
-    s_txn_id = c_invalid_gaia_txn_id;
-
     // Claim ownership of the log fd from the mapping object.
     bool is_log_empty = (s_log.data()->record_count == 0);
     int log_fd = s_log.unmap_truncate_seal_fd();
@@ -2662,6 +2656,16 @@ void server_t::txn_rollback(bool client_disconnected)
     {
         gc_txn_log_from_fd(log_fd, false);
     }
+
+    // Set our txn status to TXN_TERMINATED.
+    // NB: this must be done before calling perform_maintenance()!
+    txn_metadata_t::set_active_txn_terminated(s_txn_id);
+
+    // Update watermarks and perform associated maintenance tasks.
+    perform_maintenance();
+
+    // This session now has no active txn.
+    s_txn_id = c_invalid_gaia_txn_id;
 }
 
 void server_t::perform_pre_commit_work_for_txn()
