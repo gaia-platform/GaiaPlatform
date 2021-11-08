@@ -51,14 +51,22 @@ protected:
     {
         begin_transaction();
 
+#ifdef GAIAPLAT_1673
         // Clear out any existing rows.
+        for (auto employee = *employee_t::list().begin();
+             employee;
+             employee = *employee_t::list().begin())
+        {
+            employee.delete_row();
+        }
+#else
         for (auto employee_it = employee_t::list().begin();
              employee_it != employee_t::list().end();)
         {
             auto next_employee_it = employee_it++;
             (*next_employee_it).delete_row();
         }
-
+#endif
         // Create a bunch of employee rows.
         for (uint32_t i = 0; i < number_rows_inserted; i++)
         {
@@ -125,13 +133,13 @@ TEST_F(row_extract_test, read_blocks)
     ASSERT_TRUE(gaia_db_extract_initialize());
 
     // Try this with a number of permutations.
-    test_with_different_sizes(100, 3);
 
-    // It is important to run this with > c_one_K_rows.
-    test_with_different_sizes(c_one_K_rows + 1, c_just_a_few_rows);
+    test_with_different_sizes(100, 3);
     test_with_different_sizes(0, c_just_a_few_rows);
     test_with_different_sizes(c_just_a_few_rows, c_just_a_few_rows);
     test_with_different_sizes(c_just_a_few_rows, 0);
-    test_with_different_sizes(c_just_a_few_rows, c_row_limit_unlimited);
+    // It is important to run this with > c_one_K_rows.
+    test_with_different_sizes(c_one_K_rows + 1, c_just_a_few_rows);
     test_with_different_sizes(c_one_K_rows + 25, c_row_limit_unlimited);
+    test_with_different_sizes(c_just_a_few_rows, c_row_limit_unlimited);
 }
