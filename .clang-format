@@ -23,6 +23,10 @@ BreakConstructorInitializers: BeforeComma
 ConstructorInitializerIndentWidth: 4
 
 AllowShortFunctionsOnASingleLine: None
+# Merge lambda into a single line if argument of a function.
+AllowShortLambdasOnASingleLine: Inline
+# (clang-format-13) Align lambda body relative to the indentation level of the outer scope the lambda signature resides in.
+# LambdaBodyIndentation: OuterScope
 
 # If false, all arguments will either be all on the same line or will have one line each.
 BinPackArguments: true
