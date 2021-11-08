@@ -433,57 +433,41 @@ void index_builder_t::update_indexes_from_txn_log(
 }
 
 template <class T_index>
-void remove_entries_with_offset(base_index_t* base_index, db_object_t* obj, gaia_offset_t offset)
+void remove_entries_with_offsets(base_index_t* base_index, const std::unordered_set<gaia_offset_t>& offsets)
 {
     auto index = static_cast<T_index*>(base_index);
-    index_key_t key = index_builder_t::make_key(index->id(), obj->type, reinterpret_cast<const uint8_t*>(obj->data()));
-    index->remove_index_entry_with_offset(key, offset);
+    index->remove_index_entry_with_offsets(offsets);
 }
 
 void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool deallocate_new_offsets)
 {
+    std::unordered_set<gaia_offset_t> collected_offsets;
+
     for (size_t i = 0; i < records.record_count; ++i)
     {
         const auto& log_record = records.log_records[i];
         gaia_offset_t offset = deallocate_new_offsets ? log_record.new_offset : log_record.old_offset;
 
         // If no action is needed, move on to the next log record.
-        if (offset == c_invalid_gaia_offset)
+        if (offset != c_invalid_gaia_offset)
         {
-            continue;
+            collected_offsets.insert(offset);
         }
+    }
 
-        db_object_t* obj = offset_to_ptr(offset);
-        gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(obj->type);
-
-        // Skip system objects.
-        // Skip unknown objects -- these are likely from dropped tables. We do not perform catalog
-        // verification in this method, verification should have been previously done in update_indexes_from_txn_log().
-        if (is_system_object(obj->type) || type_record_id == c_invalid_gaia_id)
+    for (auto it : *get_indexes())
+    {
+        switch (it.second->type())
         {
-            continue;
-        }
-
-        for (const auto& index : catalog_core_t::list_indexes(type_record_id))
-        {
-            auto it = get_indexes()->find(index.id());
-
-            if (it != get_indexes()->end())
-            {
-                switch (it->second->type())
-                {
-                case catalog::index_type_t::range:
-                    remove_entries_with_offset<range_index_t>(it->second.get(), obj, offset);
-                    break;
-                case catalog::index_type_t::hash:
-                    remove_entries_with_offset<hash_index_t>(it->second.get(), obj, offset);
-                    break;
-                }
-            }
+        case catalog::index_type_t::range:
+            remove_entries_with_offsets<range_index_t>(it.second.get(), collected_offsets);
+            break;
+        case catalog::index_type_t::hash:
+            remove_entries_with_offsets<hash_index_t>(it.second.get(), collected_offsets);
+            break;
         }
     }
 }
-
 } // namespace index
 } // namespace db
 } // namespace gaia

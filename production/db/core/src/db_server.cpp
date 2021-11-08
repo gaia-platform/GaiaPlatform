@@ -2417,22 +2417,6 @@ void server_t::gc_applied_txn_logs()
     // Now get a snapshot of the post-GC watermark, for a lower bound on the scan.
     gaia_txn_id_t post_gc_watermark = get_watermark(watermark_type_t::post_gc);
 
-    // We create a local snapshot to allow for index key lookup when garbage collecting index entries
-    // if not already created. Since the logs should have already been previously applied in this path
-    // in perform_maintenance(), we do not need to reapply them for the local snapshot.
-    bool manage_snapshot = !s_local_snapshot_locators.is_set();
-    if (manage_snapshot)
-    {
-        bool apply_logs = false;
-        create_local_snapshot(apply_logs);
-    }
-    auto cleanup_local_snapshot = make_scope_guard([=]() {
-        if (manage_snapshot)
-        {
-            s_local_snapshot_locators.close();
-        }
-    });
-
     // Scan from the post-GC watermark to the post-apply watermark,
     // executing GC on any commit_ts if the log fd is valid (and the durable
     // flag is set if persistence is enabled). (If we fail to invalidate the log
@@ -2668,9 +2652,6 @@ void server_t::txn_rollback(bool client_disconnected)
     // Free any deallocated objects (don't bother for read-only txns).
     if (!is_log_empty)
     {
-        bool apply_logs = true;
-        create_local_snapshot(apply_logs);
-        auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
         gc_txn_log_from_fd(log_fd, false);
     }
 

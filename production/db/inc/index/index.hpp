@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <unordered_set>
+
 #include "gaia_internal/db/db_types.hpp"
 
 #include "base_index.hpp"
@@ -69,7 +71,7 @@ public:
 
     // Index structure maintenance.
     void insert_index_entry(index_key_t&& key, index_record_t record);
-    void remove_index_entry_with_offset(const index_key_t& key, gaia_offset_t offset);
+    void remove_index_entry_with_offsets(const std::unordered_set<gaia_offset_t>& offsets);
 
     // Clear index structure.
     void clear() override;
