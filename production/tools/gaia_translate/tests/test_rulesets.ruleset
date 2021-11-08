@@ -795,6 +795,19 @@ ruleset test_disconnect_1_n
 #endif
         }
     }
+
+    on_insert(course)
+    {
+        if (strcmp(course.course_id, "cou001") == 0)
+        {
+            course.registrations.clear();
+        }
+        else
+        {
+            // This doesn't work for the same reason as delete.
+
+        }
+    }
 };
 
 ruleset test_disconnect_1_1

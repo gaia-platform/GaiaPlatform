@@ -481,11 +481,11 @@ std::pair<int, int> server_t::get_stream_socket_pair()
 
     auto [client_socket, server_socket] = socket_pair;
     // We need to use the initializer + mutable hack to capture structured bindings in a lambda.
-    auto socket_cleanup = make_scope_guard([client_socket = client_socket,
-                                            server_socket = server_socket]() mutable {
-        close_fd(client_socket);
-        close_fd(server_socket);
-    });
+    auto socket_cleanup = make_scope_guard(
+        [client_socket = client_socket, server_socket = server_socket]() mutable {
+            close_fd(client_socket);
+            close_fd(server_socket);
+        });
 
     // Set server socket to be nonblocking, because we use it within an epoll loop.
     set_non_blocking(server_socket);
@@ -797,6 +797,7 @@ void server_t::init_indexes()
     }
 
     auto cleanup = make_scope_guard([]() { end_startup_txn(); });
+
     // Allocate new txn id for initializing indexes.
     begin_startup_txn();
 
@@ -1314,6 +1315,7 @@ void server_t::session_handler(int session_socket)
 
     auto safe_ts_index_cleanup = make_scope_guard([&]() {
         // Release this thread's index in the safe_ts array.
+        // (If reserve_safe_ts_index() succeeded, then the index must be valid.)
         release_safe_ts_index();
     });
 
@@ -2791,12 +2793,19 @@ bool server_t::reserve_safe_ts_index()
             return false;
         }
 
-        // If the CAS to set the bit fails, we need to retry the scan, even if
-        // the bit was still unset when the CAS failed.
+        // If the CAS to set the bit fails, restart the scan, even if the bit
+        // was still unset when the CAS failed (a failed CAS indicates
+        // contention and we should back off by restarting the scan).
+        //
+        // Restart the scan if the bit was already set when we tried to set it,
+        // because that means that another thread has already reserved this
+        // index. We force try_set_bit_value() to fail in this case by passing
+        // fail_if_already_set=true.
+        bool fail_if_already_set = true;
         if (memory_manager::try_set_bit_value(
                 s_safe_ts_reserved_indexes_bitmap.data(),
                 s_safe_ts_reserved_indexes_bitmap.size(),
-                reserved_index, true))
+                reserved_index, true, fail_if_already_set))
         {
             break;
         }
