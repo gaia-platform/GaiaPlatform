@@ -34,7 +34,6 @@
 
 #include "gaia_spdlog/fmt/fmt.h"
 
-#include "bitmap.hpp"
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
 #include "memory_helpers.hpp"
@@ -883,12 +882,6 @@ void server_t::recover_db()
 
 gaia_txn_id_t server_t::begin_startup_txn()
 {
-    // Reserve an index in the safe_ts array, so the main thread can execute
-    // post-commit maintenance tasks after the recovery txn commits.
-    bool reservation_succeeded = reserve_safe_ts_index();
-    // The reservation must have succeeded because we are the first thread to
-    // reserve an index.
-    ASSERT_POSTCONDITION(reservation_succeeded, "The main thread cannot fail to reserve a safe_ts index!");
     s_txn_id = txn_metadata_t::register_begin_ts();
     s_log.create(
         gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
@@ -929,10 +922,6 @@ void server_t::end_startup_txn()
     cleanup_fd.dismiss();
 
     s_txn_id = c_invalid_gaia_txn_id;
-
-    // The main thread no longer needs to perform any operations requiring a
-    // safe_ts index.
-    release_safe_ts_index();
 }
 
 // Create a thread-local snapshot from the shared locators.
@@ -1300,22 +1289,6 @@ void server_t::session_handler(int session_socket)
     // Initialize this thread's memory manager.
     bool initializing = false;
     init_memory_manager(initializing);
-
-    // Reserve an index in the safe_ts array. If this fails (because all indexes
-    // are currently claimed by sessions), then immediately close the socket, so
-    // the client throws a `peer_disconnected` exception and rethrows a
-    // `session_limit_exceeded` exception.
-    // REVIEW: When we have a way to marshal exceptions to the client, we should
-    // directly ensure that `session_limit_exceeded` is thrown in this case.
-    if (!reserve_safe_ts_index())
-    {
-        return;
-    }
-
-    auto safe_ts_index_cleanup = make_scope_guard([&]() {
-        // Release this thread's index in the safe_ts array.
-        release_safe_ts_index();
-    });
 
     // Set up epoll loop.
     int epoll_fd = ::epoll_create1(0);
@@ -2271,9 +2244,10 @@ void server_t::perform_maintenance()
     // to the post-apply watermark.
     gc_applied_txn_logs();
 
-    // Find a timestamp at which we can safely truncate the txn table.
-    // TODO: Actually reclaim memory from the truncated prefix of the txn table.
-    truncate_txn_table();
+    // Advance the post-GC watermark to the end of the longest prefix of
+    // committed txns whose resources have been completely reclaimed, to mark a
+    // safe point for truncating transaction history.
+    update_txn_table_safe_truncation_point();
 }
 
 void server_t::apply_txn_logs_to_shared_view()
@@ -2502,17 +2476,12 @@ void server_t::gc_applied_txn_logs()
     }
 }
 
-void server_t::truncate_txn_table()
+void server_t::update_txn_table_safe_truncation_point()
 {
-    // First catch up the post-GC watermark.
-    // Unlike log application, we don't try to perform GC and advance the
-    // post-GC watermark in a single scan, because log application is strictly
-    // sequential, while GC is sequentially initiated but concurrently executed.
-
-    // Get a snapshot of the post-apply watermark, for an upper bound on the scan.
+    // First get a snapshot of the post-apply watermark, for an upper bound on the scan.
     gaia_txn_id_t post_apply_watermark = get_watermark(watermark_type_t::post_apply);
 
-    // Get a snapshot of the post-GC watermark, for a lower bound on the scan.
+    // Now get a snapshot of the post-GC watermark, for a lower bound on the scan.
     gaia_txn_id_t post_gc_watermark = get_watermark(watermark_type_t::post_gc);
 
     // Scan from the post-GC watermark to the post-apply watermark,
@@ -2554,34 +2523,9 @@ void server_t::truncate_txn_table()
             break;
         }
 
-        // Get a snapshot of the pre-truncate watermark before advancing it.
-        gaia_txn_id_t prev_pre_truncate_watermark = get_watermark(watermark_type_t::pre_truncate);
-
-        // Compute a safe truncation timestamp.
-        gaia_txn_id_t new_pre_truncate_watermark = get_safe_truncation_ts();
-
-        // Abort if the safe truncation timestamp does not exceed the current
-        // pre-truncate watermark.
-        // NB: It is expected that the safe truncation timestamp can be behind the
-        // pre-truncate watermark, because some published (but not fully reserved)
-        // timestamps may have been behind the pre-truncate watermark when they
-        // were published (and will later fail validation).
-        if (new_pre_truncate_watermark <= prev_pre_truncate_watermark)
-        {
-            return;
-        }
-
-        // Try to advance the pre-truncate watermark.
-        if (!advance_watermark(watermark_type_t::pre_truncate, new_pre_truncate_watermark))
-        {
-            // Abort if another thread has concurrently advanced the pre-truncate
-            // watermark, to avoid contention.
-            ASSERT_INVARIANT(
-                get_watermark(watermark_type_t::pre_truncate) > prev_pre_truncate_watermark,
-                "The watermark must have advanced if advance_watermark() failed!");
-
-            return;
-        }
+        // There are no actions to take after advancing the post-GC watermark,
+        // because the post-GC watermark only exists to provide a safe lower
+        // bound for truncating transaction history.
     }
 }
 
@@ -2772,292 +2716,6 @@ bool server_t::txn_commit()
     }
 
     return is_committed;
-}
-
-bool server_t::reserve_safe_ts_index()
-{
-    ASSERT_PRECONDITION(
-        s_safe_ts_index == c_invalid_safe_ts_index,
-        "Expected this thread's safe_ts entry index to be invalid!");
-
-    // Try to set the first unset bit in the "free safe_ts indexes" bitmap.
-    size_t reserved_index = c_invalid_safe_ts_index;
-    while (true)
-    {
-        reserved_index = memory_manager::find_first_unset_bit(
-            s_safe_ts_reserved_indexes_bitmap.data(), s_safe_ts_reserved_indexes_bitmap.size());
-
-        // If our scan doesn't find any unset bits, immediately return failure
-        // rather than retrying the scan (otherwise this could lead to an
-        // infinite loop).
-        if (reserved_index == c_max_bit_index)
-        {
-            return false;
-        }
-
-        // If the CAS to set the bit fails, we need to retry the scan, even if
-        // the bit was still unset when the CAS failed.
-        if (memory_manager::try_set_bit_value(
-                s_safe_ts_reserved_indexes_bitmap.data(),
-                s_safe_ts_reserved_indexes_bitmap.size(),
-                reserved_index, true))
-        {
-            break;
-        }
-    }
-
-    // Set this thread's safe_ts entry index to the bit we set.
-    s_safe_ts_index = reserved_index;
-
-    return true;
-}
-
-void server_t::release_safe_ts_index()
-{
-    ASSERT_PRECONDITION(
-        s_safe_ts_index != c_invalid_safe_ts_index,
-        "Expected this thread's safe_ts entry index to be valid!");
-
-    ASSERT_PRECONDITION(
-        memory_manager::is_bit_set(
-            s_safe_ts_reserved_indexes_bitmap.data(),
-            s_safe_ts_reserved_indexes_bitmap.size(),
-            s_safe_ts_index),
-        "Expected the bit for this thread's safe_ts entry index to be set!");
-
-    // Invalidate both of this thread's safe_ts entries.
-    s_safe_ts_per_thread_entries[s_safe_ts_index][0] = c_invalid_gaia_txn_id;
-    s_safe_ts_per_thread_entries[s_safe_ts_index][1] = c_invalid_gaia_txn_id;
-
-    // Invalidate the thread-local copy of this entry's index before marking its
-    // index "free".
-    size_t safe_ts_index = s_safe_ts_index;
-    s_safe_ts_index = c_invalid_safe_ts_index;
-
-    // Clear the bit for this entry's index in the "free safe_ts indexes"
-    // bitmap.
-    memory_manager::safe_set_bit_value(
-        s_safe_ts_reserved_indexes_bitmap.data(),
-        s_safe_ts_reserved_indexes_bitmap.size(),
-        safe_ts_index, false);
-}
-
-bool server_t::reserve_safe_ts(gaia_txn_id_t safe_ts)
-{
-    ASSERT_PRECONDITION(
-        s_safe_ts_index != c_invalid_safe_ts_index,
-        "Expected this thread's safe_ts entry index to be valid!");
-
-    // The reservation of a "safe timestamp" is split into 2 steps:
-    // "publication" and "validation". Publication makes the reserved timestamp
-    // visible to all other threads (so it will be observed by a scan).
-    // Validation ensures that the reserving thread cannot use a timestamp that
-    // was published too late to avoid being overtaken by the pre-truncate
-    // watermark.
-    //
-    // NB: We need to maintain visibility of this thread's previous reserved
-    // timestamp in case validation fails. (We cannot just invalidate it before
-    // validation and then restore it after validation fails, because then it
-    // would not be visible to a concurrent scan.) We do that by maintaining
-    // *two* entries for each thread, and only invalidating the previous
-    // reserved timestamp after validation of the new reserved timestamp
-    // succeeds. An invalid entry will be ignored by the scan algorithm in its
-    // calculation of the minimum published timestamp. (If both entries are
-    // valid, then the scan algorithm will just take the minimum. If the minimum
-    // entry is obsolete, then the scan algorithm will just return a result that
-    // is more conservative--i.e. smaller--than necessary, but still correct.)
-    //
-    // Find the last invalid entry. Since the current thread has exclusive write
-    // access to these entries, we should not have two valid entries (any
-    // obsolete entry should have been invalidated by a previous call to this
-    // method).
-    auto& entries = s_safe_ts_per_thread_entries[s_safe_ts_index];
-    std::array<bool, s_safe_ts_per_thread_entries[0].size()> is_entry_valid{};
-    for (size_t i = 0; i < entries.size(); ++i)
-    {
-        is_entry_valid[i] = (entries[i] != c_invalid_gaia_txn_id);
-    }
-    ASSERT_INVARIANT(
-        !is_entry_valid[0] || !is_entry_valid[1],
-        "At most one safe_ts entry for this thread should be valid!");
-
-    // Is exactly one of the two entries valid?
-    bool has_valid_entry = (is_entry_valid[0] ^ is_entry_valid[1]);
-
-    // Arbitrarily pick the highest-indexed invalid entry.
-    size_t invalid_entry_index = is_entry_valid[1] ? 0 : 1;
-
-    // Speculatively publish the new safe_ts in a currently invalid entry.
-    entries[invalid_entry_index] = safe_ts;
-
-    // Validate that the new safe_ts does not lag the post-GC watermark
-    // (equality is acceptable because the post-GC watermark is an inclusive
-    // upper bound on the pre-truncate watermark, and the pre-truncate watermark
-    // is an exclusive upper bound on the memory address range eligible for
-    // reclaiming).
-    //
-    // An essential optimization (necessary for the safe_ts_t implementation):
-    // skip validation for a safe_ts that is replacing a smaller previously
-    // reserved safe_ts. Even if the new safe_ts is behind the post-GC
-    // watermark, it cannot be behind the pre-truncate watermark, because the
-    // smaller previously reserved safe_ts prevents the pre-truncate watermark
-    // from advancing past the new safe_ts until the new safe_ts is observed by
-    // a scan. If both safe_ts values are published, then a concurrent scan will
-    // use the obsolete value, but that is benign: it can only cause a
-    // smaller-than-necessary safe truncation timestamp to be returned.
-    bool should_validate = true;
-    if (has_valid_entry)
-    {
-        // The valid index must be the invalid index + 1 mod 2.
-        size_t valid_entry_index = invalid_entry_index ^ 1;
-        should_validate = (safe_ts < entries[valid_entry_index]);
-    }
-
-    if (should_validate && safe_ts < get_watermark(watermark_type_t::post_gc))
-    {
-        // If validation fails, invalidate this entry to revert to the
-        // previously published entry.
-        entries[invalid_entry_index] = c_invalid_gaia_txn_id;
-        return false;
-    }
-
-    // Invalidate any previously published entry.
-    if (has_valid_entry)
-    {
-        // The valid index must be the invalid index + 1 mod 2.
-        size_t valid_entry_index = invalid_entry_index ^ 1;
-        entries[valid_entry_index] = c_invalid_gaia_txn_id;
-    }
-
-    return true;
-}
-
-void server_t::release_safe_ts()
-{
-    ASSERT_PRECONDITION(
-        s_safe_ts_index != c_invalid_safe_ts_index,
-        "Expected this thread's safe_ts entry index to be valid!");
-
-    // Find the index of the last valid entry. Since the current thread has
-    // exclusive write access to these entries, and the contract is that this
-    // method should only be called after reserve_safe_ts() returns success, we
-    // should have exactly one valid entry. Also, any valid entry should be at
-    // least as large as the pre-truncate watermark (otherwise we either failed
-    // to invalidate the entry of a safe_ts that failed validation, or the scan
-    // algorithm is incorrect).
-    auto& entries = s_safe_ts_per_thread_entries[s_safe_ts_index];
-    std::array<bool, s_safe_ts_per_thread_entries[0].size()> is_entry_valid{};
-    for (size_t i = 0; i < entries.size(); ++i)
-    {
-        ASSERT_INVARIANT(
-            (entries[i] == c_invalid_gaia_txn_id) || (entries[i] >= get_watermark(watermark_type_t::pre_truncate)),
-            "A reserved safe_ts entry cannot lag the pre-truncate watermark!");
-
-        is_entry_valid[i] = (entries[i] != c_invalid_gaia_txn_id);
-    }
-
-    ASSERT_INVARIANT(
-        (is_entry_valid[0] ^ is_entry_valid[1]),
-        "Exactly one safe_ts entry for this thread should be valid!");
-
-    // Invalidate the previously published entry.
-    size_t valid_entry_index = is_entry_valid[0] ? 0 : 1;
-    entries[valid_entry_index] = c_invalid_gaia_txn_id;
-}
-
-gaia_txn_id_t server_t::get_safe_truncation_ts()
-{
-    // The algorithm (loosely based on Maged Michael's "Hazard Pointers: Safe
-    // Memory Reclamation for Lock-Free Objects"):
-    //
-    // 1. Take a snapshot of the post-GC watermark. This is an upper bound on
-    //    the "safe truncation timestamp" return value, and guarantees that the
-    //    "safe truncation timestamp" will not exceed any concurrently reserved
-    //    timestamp (which might not be visible to the scan).
-    // 2. Scan the "published timestamps" array and compute the minimum of all
-    //    valid timestamps observed.
-    // 3. Take the minimum of the "minimum observed published timestamp" and the
-    //    pre-scan snapshot of the post-GC watermark, and return that as the
-    //    "safe truncation timestamp". (Note that this timestamp may actually be
-    //    behind the current value of the pre-truncate watermark, but we won't
-    //    detect that until we fail to advance the pre-truncate watermark to
-    //    this timestamp. Any published timestamp that is already behind the
-    //    pre-truncate watermark will fail validation.)
-    //
-    // REVIEW: Need to specify this algorithm in a model-checkable spec language
-    // like TLA+.
-    //
-    // Proof of correctness (very informal):
-    //
-    // We wish to show that after reserve_safe_ts(safe_ts) has returned success,
-    // the pre-truncate watermark can never exceed safe_ts.
-    //
-    // First, we need to show that get_safe_truncation_ts() cannot return a
-    // timestamp greater than safe_ts. There are only two possible cases to
-    // consider: either (1) the scan of published timestamps observed safe_ts,
-    // or (2) it did not.
-    //
-    // 1. If safe_ts was observed by the scan, then we know that it is an upper
-    //    bound on the return value of get_safe_truncation_ts(), so we are done.
-    //
-    // 2. If safe_ts was not observed by the scan, then the pre-scan snapshot of
-    //    the post-GC watermark must have been taken before the validation-time
-    //    snapshot of the post-GC watermark (because validation happens after
-    //    publication, and the publication evidently did not happen before the
-    //    scan started). Because validation succeeded, safe_ts is at least as
-    //    large as the validation-time snapshot of the post-GC watermark, so
-    //    (because watermarks are monotonically nondecreasing) it must also be
-    //    at least as large as the pre-scan snapshot of the post-GC watermark.
-    //    Because the pre-scan snapshot of the post-GC watermark is an upper
-    //    bound on the return value of get_safe_truncation_ts(), safe_ts is as
-    //    well, and we are done.
-    //
-    // Given that safe_ts is an upper bound on the return value of
-    // get_safe_truncation_ts(), and the pre-truncate watermark can only be
-    // advanced to a return value of get_safe_truncation_ts(), it follows that
-    // safe_ts is always an upper bound on the pre-truncate watermark. QED.
-    //
-    // Schematically:
-    // "pre-truncate watermark"
-    // <= "pre-scan snapshot of post-GC watermark"
-    // <= "publication-time value of post-GC watermark"
-    // <= "validation-time snapshot of post-GC watermark"
-    // <= "published and validated timestamp"
-
-    // Take a snapshot of the post-GC watermark before the scan.
-    gaia_txn_id_t pre_scan_post_gc_watermark = get_watermark(watermark_type_t::post_gc);
-
-    // The post-GC watermark is an upper bound on the safe truncation timestamp.
-    gaia_txn_id_t safe_truncation_ts = pre_scan_post_gc_watermark;
-
-    // Scan the "published timestamps" array and compute the minimum of all
-    // published timestamps observed. Then return the minimum of that result and
-    // the pre-scan snapshot of the post-GC watermark.
-    //
-    // Note that a published timestamp may have already fallen behind the
-    // current pre-truncate watermark (which will make it fail validation). In
-    // that case, we will return a timestamp older than the current pre-truncate
-    // watermark. There is no need to try to prevent this, because
-    // advance_watermark() will fail, the current GC task will abort, and
-    // another thread will try to advance the pre-truncate watermark.
-    for (auto& entries : s_safe_ts_per_thread_entries)
-    {
-        for (gaia_txn_id_t entry : entries)
-        {
-            // Skip invalid entries.
-            if (entry == c_invalid_gaia_txn_id)
-            {
-                continue;
-            }
-
-            // Update the minimum safe_ts.
-            safe_truncation_ts = std::min(safe_truncation_ts, entry);
-        }
-    }
-
-    // Return the minimum of the pre-scan snapshot of the post-GC watermark and
-    // the smallest published timestamp that the scan observed.
-    return safe_truncation_ts;
 }
 
 static bool is_system_compatible()
