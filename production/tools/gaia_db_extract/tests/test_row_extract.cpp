@@ -39,18 +39,29 @@ protected:
     // Utility function that creates one named employee row.
     employee_t create_employee(const char* name)
     {
-        auto w = employee_writer();
-        w.name_first = name;
-        gaia_id_t id = w.insert_row();
+        auto employee_w = employee_writer();
+        employee_w.name_first = name;
+        gaia_id_t id = employee_w.insert_row();
         auto e = employee_t::get(id);
         EXPECT_STREQ(e.name_first(), name);
         return e;
     }
 
+    // This function is called with a variety of parameters. It begins by inserting the
+    // specified number of rows (type employee_t). Then it scans through the rows using
+    // the gaia_db_extract() function to produce the JSON representation of the row
+    // values. As it scans, it counts blocks and rows, verifying that the correct number
+    // are found.
     void test_with_different_sizes(uint32_t number_rows_inserted, uint32_t block_size)
     {
         begin_transaction();
 
+        // GAIAPLAT-1673 is a bug issue discovered by the 'true' section of the folloging ifdef.
+        // Every time .begin() is called, a new server thread is created, plus new sockets on
+        // client and server. Not only is this slower, but after 1024 rows, the following loop
+        // causes the warning "Stream socket error: 'Connection reset by peer'" to be printed
+        // for each deleted row. If this issue is corrected, define GAIAPLAT_1673 to run this
+        // test and verify the correction.
 #ifdef GAIAPLAT_1673
         // Clear out any existing rows.
         for (auto employee = *employee_t::list().begin();
@@ -60,6 +71,8 @@ protected:
             employee.delete_row();
         }
 #else
+        // This is the preferred method of iterating over an entire table to
+        // delete its rows.
         for (auto employee_it = employee_t::list().begin();
              employee_it != employee_t::list().end();)
         {
@@ -132,7 +145,9 @@ TEST_F(row_extract_test, read_blocks)
     // Initialization is needed when using reflection.
     ASSERT_TRUE(gaia_db_extract_initialize());
 
-    // Try this with a number of permutations.
+    // Try this with a number of permutations. The number of rows created goes from
+    // 0 to over 1K. The test will scan the created rows in blocks of varying sizes
+    // ranging from 0 to a few to unlimited.
 
     test_with_different_sizes(100, 3);
     test_with_different_sizes(0, c_just_a_few_rows);
