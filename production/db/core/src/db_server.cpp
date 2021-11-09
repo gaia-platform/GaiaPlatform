@@ -91,9 +91,9 @@ server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool aut
         txn_metadata_t::is_commit_ts(commit_ts),
         "You must initialize safe_fd_from_ts_t from a valid commit_ts!");
 
-    // If the log fd was invalidated, it is either closed or soon will
-    // be closed, and therefore we cannot use it. We return early if the
-    // fd has already been invalidated to avoid the dup(2) call.
+    // If the log fd was invalidated, it is either closed or soon will be
+    // closed, and therefore we cannot use it. We return early if the fd has
+    // already been invalidated to avoid the dup(2) call.
     int log_fd = txn_metadata_t::get_txn_log_fd(commit_ts);
     if (log_fd == -1)
     {
@@ -123,7 +123,8 @@ server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool aut
                 txn_metadata_t::get_txn_log_fd(commit_ts) == -1,
                 "log fd was closed without being invalidated!");
 
-            // We lost the race because the log fd was invalidated and closed after our check.
+            // We lost the race because the log fd was invalidated and closed
+            // after our check.
             throw invalid_log_fd(commit_ts);
         }
         else
@@ -132,9 +133,9 @@ server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool aut
         }
     }
 
-    // If we were able to duplicate the log fd, check to be sure it
-    // wasn't invalidated (and thus possibly closed and reused before
-    // the call to dup(2)), so we know we aren't reusing a closed fd.
+    // If we were able to duplicate the log fd, check to be sure it wasn't
+    // invalidated (and thus possibly closed and reused before the call to
+    // dup(2)), so we know we aren't reusing a closed fd.
     if (txn_metadata_t::get_txn_log_fd(commit_ts) == -1)
     {
         // If we got here, we must have a valid dup fd.
@@ -142,10 +143,9 @@ server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool aut
             common::is_fd_valid(m_local_log_fd),
             "fd should be valid if dup() succeeded!");
 
-        // We need to close the duplicated fd because the original fd
-        // might have been reused and we would leak it otherwise
-        // (because the destructor isn't called if the constructor
-        // throws).
+        // We need to close the duplicated fd because the original fd might have
+        // been reused and we would leak it otherwise (because the destructor
+        // isn't called if the constructor throws).
         common::close_fd(m_local_log_fd);
         throw invalid_log_fd(commit_ts);
     }
@@ -153,9 +153,9 @@ server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool aut
 
 server_t::safe_fd_from_ts_t::~safe_fd_from_ts_t()
 {
-    // Ensure we close the dup log fd. If the original log fd was closed
-    // already (indicated by get_txn_log_fd() returning -1), this will free
-    // the shared-memory object referenced by the fd.
+    // Ensure we close the dup log fd. If the original log fd was closed already
+    // (indicated by get_txn_log_fd() returning -1), this will free the
+    // shared-memory object referenced by the fd.
     if (m_auto_close_fd)
     {
         // If the constructor fails, this will handle an invalid fd (-1)
@@ -164,9 +164,116 @@ server_t::safe_fd_from_ts_t::~safe_fd_from_ts_t()
     }
 }
 
-int server_t::safe_fd_from_ts_t::get_fd() const
+server_t::safe_ts_t::safe_ts_t(gaia_txn_id_t safe_ts)
+    : m_ts(safe_ts)
 {
-    return m_local_log_fd;
+    // If safe_ts is the minimum element in the safe_ts array, then
+    // replace this thread's reserved safe_ts entry.
+    bool is_new_min_safe_ts = true;
+    if (!s_safe_ts_values.empty())
+    {
+        is_new_min_safe_ts = (safe_ts < s_safe_ts_values[0]);
+    }
+
+    if (is_new_min_safe_ts)
+    {
+        if (!gaia::db::server_t::reserve_safe_ts(safe_ts))
+        {
+            // Force the client to handle the validation failure.
+            throw safe_ts_failure();
+        }
+    }
+
+    // We have successfully reserved the new safe_ts if necessary, so
+    // add the new safe_ts to the sorted array of safe_ts values.
+    s_safe_ts_values.push_back(safe_ts);
+    std::sort(s_safe_ts_values.begin(), s_safe_ts_values.end());
+}
+
+server_t::safe_ts_t::~safe_ts_t()
+{
+    // A moved-from object has an invalid timestamp.
+    if (m_ts == c_invalid_gaia_txn_id)
+    {
+        return;
+    }
+
+    // The destructor cannot fail, so we need to ensure that all
+    // consistency conditions we already satisfied still hold.
+    ASSERT_INVARIANT(!s_safe_ts_values.empty(), "Expected safe_ts array to be non-empty!");
+
+    // First handle the case where our safe_ts was the only value in the
+    // safe_ts array.
+    if (s_safe_ts_values.size() == 1)
+    {
+        // Release this thread's reserved safe_ts value.
+        gaia::db::server_t::release_safe_ts();
+        // Remove the last element from the safe_ts array.
+        s_safe_ts_values.pop_back();
+        return;
+    }
+
+    // Save the current minimum safe_ts value.
+    gaia_txn_id_t prev_min_ts = s_safe_ts_values[0];
+    // Because our safe_ts array is sorted, we can use binary search to
+    // find the index of our safe_ts.
+    auto iter = std::lower_bound(s_safe_ts_values.begin(), s_safe_ts_values.end(), m_ts);
+    ASSERT_INVARIANT(*iter == m_ts, "Cannot find this timestamp in the safe_ts array!");
+    // Move the last element into our entry.
+    *iter = std::move(s_safe_ts_values.back());
+    // Remove the moved last element.
+    s_safe_ts_values.pop_back();
+    // Restore sorted order.
+    std::sort(s_safe_ts_values.begin(), s_safe_ts_values.end());
+
+    // If the minimum safe_ts has changed, then we need to replace the
+    // published safe_ts value.
+    gaia_txn_id_t new_min_ts = s_safe_ts_values[0];
+    if (new_min_ts != prev_min_ts)
+    {
+        ASSERT_INVARIANT(
+            new_min_ts > prev_min_ts,
+            "The new minimum safe_ts must be larger than the previous minimum safe_ts!");
+        bool reservation_succeeded = gaia::db::server_t::reserve_safe_ts(s_safe_ts_values[0]);
+        // The new minimum safe_ts was protected by the previous minimum
+        // safe_ts from falling behind the pre-truncate watermark, so
+        // its reservation must succeed.
+        ASSERT_INVARIANT(reservation_succeeded, "Reservation of new minimum safe_ts cannot fail!");
+    }
+}
+
+// The constructor reads the current value of the given watermark, and
+// initializes a safe_ts_t object to that value. If initialization fails, then
+// it retries after reading the value of the given watermark again.
+server_t::safe_watermark_t::safe_watermark_t(watermark_type_t watermark)
+{
+    // Retry until we have a valid safe_ts for the current value of
+    // the watermark.
+    while (true)
+    {
+        gaia_txn_id_t watermark_ts = get_watermark(watermark);
+        try
+        {
+            // First try to obtain a local safe_ts for the current value of the
+            // watermark. If the local safe_ts is successfully initialized, use
+            // it to initialize our member safe_ts. (Initialization cannot fail
+            // because the move assignment operator does not release the "safe
+            // timestamp" that was reserved in the local safe_ts's constructor.)
+            safe_ts_t safe_ts(watermark_ts);
+            m_safe_ts = std::move(safe_ts);
+            // NB: It is legal to access safe_ts after moving from it,
+            // because the standard specifies that "Moved-from objects
+            // shall be placed in a valid but unspecified state."
+            ASSERT_POSTCONDITION(
+                safe_ts == c_invalid_gaia_txn_id,
+                "safe_ts should have invalid timestamp after moving!");
+            break;
+        }
+        catch (const safe_ts_failure&)
+        {
+            continue;
+        }
+    }
 }
 
 void server_t::handle_connect(
@@ -253,11 +360,11 @@ void server_t::txn_begin(std::vector<int>& txn_log_fds_for_snapshot)
     s_txn_id = txn_metadata_t::register_begin_ts();
 
     // The begin_ts returned by register_begin_ts() should always be valid because it
-    // retries on concurrent invalidation.
+    // retries if it is concurrently sealed.
     ASSERT_INVARIANT(s_txn_id != c_invalid_gaia_txn_id, "Begin timestamp is invalid!");
 
     // Ensure that there are no undecided txns in our snapshot window.
-    gaia_txn_id_t pre_apply_watermark = get_watermark(watermark_type_t::pre_apply);
+    safe_watermark_t pre_apply_watermark(watermark_type_t::pre_apply);
     validate_txns_in_range(pre_apply_watermark + 1, s_txn_id);
 
     get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds_for_snapshot);
@@ -280,7 +387,7 @@ void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<
     // begin_ts, stopping either just before the saved watermark or at the first
     // commit_ts whose log fd has been invalidated. This avoids having our scan
     // race the concurrently advancing watermark.
-    gaia_txn_id_t post_apply_watermark = get_watermark(watermark_type_t::post_apply);
+    safe_watermark_t post_apply_watermark(watermark_type_t::post_apply);
     for (gaia_txn_id_t ts = begin_ts - 1; ts > post_apply_watermark; --ts)
     {
         if (txn_metadata_t::is_commit_ts(ts))
@@ -898,6 +1005,10 @@ gaia_txn_id_t server_t::begin_startup_txn()
 
 void server_t::end_startup_txn()
 {
+    // The main thread no longer needs to perform any operations requiring a
+    // safe_ts index.
+    auto cleanup_safe_ts_index = make_scope_guard([&]() { release_safe_ts_index(); });
+
     // Update the log header with our begin timestamp and initialize it to empty.
     s_log.data()->begin_ts = s_txn_id;
     s_log.data()->record_count = 0;
@@ -926,14 +1037,10 @@ void server_t::end_startup_txn()
         txn_metadata_t::is_txn_gc_complete(commit_ts),
         "Transaction log should be garbage-collected!");
 
-    // At this point, cleanup has already occured and scope guard can be dismissed.
+    // If we get here, then we know the log fd has already been GC'ed.
     cleanup_fd.dismiss();
 
     s_txn_id = c_invalid_gaia_txn_id;
-
-    // The main thread no longer needs to perform any operations requiring a
-    // safe_ts index.
-    release_safe_ts_index();
 }
 
 // Create a thread-local snapshot from the shared locators.
@@ -2286,7 +2393,7 @@ void server_t::apply_txn_logs_to_shared_view()
 
     // Now get a snapshot of the pre-apply watermark,
     // for a lower bound on the scan.
-    gaia_txn_id_t pre_apply_watermark = get_watermark(watermark_type_t::pre_apply);
+    safe_watermark_t pre_apply_watermark(watermark_type_t::pre_apply);
 
     // Scan from the saved pre-apply watermark to the last known timestamp,
     // and apply all committed txn logs from the longest prefix of decided
@@ -2414,10 +2521,10 @@ void server_t::gc_applied_txn_logs()
     auto cleanup_fd = make_scope_guard([&]() { s_map_gc_chunks_to_versions.clear(); });
 
     // First get a snapshot of the post-apply watermark, for an upper bound on the scan.
-    gaia_txn_id_t post_apply_watermark = get_watermark(watermark_type_t::post_apply);
+    safe_watermark_t post_apply_watermark(watermark_type_t::post_apply);
 
     // Now get a snapshot of the post-GC watermark, for a lower bound on the scan.
-    gaia_txn_id_t post_gc_watermark = get_watermark(watermark_type_t::post_gc);
+    safe_watermark_t post_gc_watermark(watermark_type_t::post_gc);
 
     // Scan from the post-GC watermark to the post-apply watermark,
     // executing GC on any commit_ts if the log fd is valid (and the durable
@@ -2512,10 +2619,10 @@ void server_t::truncate_txn_table()
     // sequential, while GC is sequentially initiated but concurrently executed.
 
     // Get a snapshot of the post-apply watermark, for an upper bound on the scan.
-    gaia_txn_id_t post_apply_watermark = get_watermark(watermark_type_t::post_apply);
+    safe_watermark_t post_apply_watermark(watermark_type_t::post_apply);
 
     // Get a snapshot of the post-GC watermark, for a lower bound on the scan.
-    gaia_txn_id_t post_gc_watermark = get_watermark(watermark_type_t::post_gc);
+    safe_watermark_t post_gc_watermark(watermark_type_t::post_gc);
 
     // Scan from the post-GC watermark to the post-apply watermark,
     // advancing the post-GC watermark on any begin_ts, or any commit_ts that
@@ -2726,6 +2833,11 @@ bool server_t::txn_commit()
     // From now on, the txn log should be immutable.
     // Claim ownership of the log fd from the mapping object.
     int log_fd = s_log.unmap_truncate_seal_fd();
+
+    // Obtain a safe_ts for our begin_ts, to prevent recursive validation from
+    // allowing the pre-truncate watermark to advance past our begin_ts.
+    // NB: This MUST be done before obtaining a commit_ts!
+    safe_ts_t safe_begin_ts(s_txn_id);
 
     // Register the committing txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = submit_txn(s_txn_id, log_fd);
