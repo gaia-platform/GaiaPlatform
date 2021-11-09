@@ -41,11 +41,15 @@
     ],
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 <<<<<<< HEAD:dev_tools/intellisense-vscode-ext/language-configurations/ruleset-language-configuration.json
   // Symbols that are auto closed when typing.
 =======
     // Symbols that are auto closed when typing
 >>>>>>> 355bf0f69 (Fixed comments):dev_tools/intellisense-vscode-ext/language-configuration.json
+=======
+    // Symbols that are auto closed when typing.
+>>>>>>> 735ce3b08 (spacing updates)
     "autoClosingPairs": [
         [
             "{",
@@ -68,6 +72,7 @@
             "'"
         ]
     ],
+<<<<<<< HEAD
 <<<<<<< HEAD:dev_tools/intellisense-vscode-ext/language-configurations/ruleset-language-configuration.json
   // Symbols that can be used to surround a selection.
 =======
@@ -185,6 +190,9 @@
 =======
   // Symbols that can be used to surround a selection.
 >>>>>>> f9229d4ae (updated comments)
+=======
+    // Symbols that can be used to surround a selection.
+>>>>>>> 735ce3b08 (spacing updates)
     "surroundingPairs": [
         [
             "{",
