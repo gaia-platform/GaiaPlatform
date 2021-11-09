@@ -7,14 +7,14 @@ The main goals of this workload are as follows:
 
 ## Description
 
-This workload provides for two scenarios: the ping-pong scenario and the marco polo scenario.
+This workload provides for two scenarios: the ping-pong scenario and the marco-polo scenario.
 
 The ping-pong scenario is very simple.
 The timestamp value is set on the single row in the `ping` table.
 A rule exists to respond to the setting of that row by setting the single row in the `pong` table.
 The monitoring of the scenario pauses until it can confirm that the `pong` table has been modified.
 
-The marco polo scenario is a small variation on the ping-pong scenario.
+The marco-polo scenario is a small variation on the ping-pong scenario.
 Instead of an external pause, this scenario keeps an internal count and a goal to race towards.
 The scenario is considered finished once the second table reports that it has achieved that goal.
 

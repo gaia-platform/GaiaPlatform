@@ -30,7 +30,7 @@ void simulation_t::toggle_measurement()
 {
     if (!m_is_measured_duration_timer_on)
     {
-        printf("Measure timer activated.\n");
+        printf("Measure timer has been activated.\n");
         m_is_measured_duration_timer_on = true;
         m_measured_duration_start_mark = my_clock_t::now();
     }
@@ -40,7 +40,7 @@ void simulation_t::toggle_measurement()
         m_is_measured_duration_timer_on = false;
         m_have_measurement = true;
         m_measured_duration_in_microseconds = measured_duration_end_mark - m_measured_duration_start_mark;
-        printf("Measure timer deactivated.\n");
+        printf("Measure timer has been deactivated.\n");
     }
 }
 
@@ -48,13 +48,13 @@ void simulation_t::toggle_debug_mode()
 {
     if (m_debug_log_file == nullptr)
     {
-        printf("Debug log activated.\n");
+        printf("Debug log has been activated.\n");
         m_debug_log_file = fopen("test-results/debug.log", "w");
     }
     else
     {
         fclose(m_debug_log_file);
-        printf("Debug log deactivated.\n");
+        printf("Debug log has been deactivated.\n");
     }
 }
 
@@ -62,12 +62,12 @@ void simulation_t::toggle_pause_mode()
 {
     if (m_use_transaction_wait)
     {
-        printf("Wait mode set to atomic.\n");
+        printf("Wait mode has been set to atomic.\n");
         m_use_transaction_wait = false;
     }
     else
     {
-        printf("Wait mode set to transaction.\n");
+        printf("Wait mode has been set to transaction.\n");
         m_use_transaction_wait = true;
     }
 }
@@ -497,23 +497,23 @@ void simulation_t::dump_exception_stack()
     const int maximum_stack_depth = 25;
     const int maximum_function_name_size = 256;
 
-    void* addrlist[maximum_stack_depth];
-    size_t addrlen = backtrace(addrlist, sizeof(addrlist) / sizeof(void*));
-    backtrace_symbols_fd(addrlist, addrlen, STDERR_FILENO);
+    void* address_list[maximum_stack_depth];
+    size_t address_length = backtrace(address_list, sizeof(address_list) / sizeof(void*));
+    backtrace_symbols_fd(address_list, address_length, STDERR_FILENO);
 
-    char** symbollist = backtrace_symbols(addrlist, addrlen);
+    char** symbol_list = backtrace_symbols(address_list, address_length);
 
-    size_t funcnamesize = maximum_function_name_size;
-    auto function_name = std::unique_ptr<char[]>(new char[funcnamesize]);
-    char* funcname = function_name.get();
+    size_t function_name_size = maximum_function_name_size;
+    auto function_name_buffer = std::unique_ptr<char[]>(new char[function_name_size]);
+    char* function_name = function_name_buffer.get();
 
-    for (size_t i = 1; i < addrlen; i++)
+    for (size_t i = 1; i < address_length; i++)
     {
         char *begin_name = nullptr, *begin_offset = nullptr, *end_offset = nullptr;
 
         // find parentheses and +address offset surrounding the mangled name:
         // ./module(function+0x15c) [0x8048a6d]
-        for (char* p = symbollist[i]; *p; ++p)
+        for (char* p = symbol_list[i]; *p; ++p)
         {
             if (*p == '(')
                 begin_name = p;
@@ -538,27 +538,27 @@ void simulation_t::dump_exception_stack()
             // __cxa_demangle():
 
             int status;
-            char* ret = abi::__cxa_demangle(begin_name, funcname, &funcnamesize, &status);
+            char* ret = abi::__cxa_demangle(begin_name, function_name, &function_name_size, &status);
             if (status == 0)
             {
-                funcname = ret; // use possibly realloc()-ed string
-                printf("  %s : %s+%s\n", symbollist[i], funcname, begin_offset);
+                function_name = ret; // use possibly realloc()-ed string
+                printf("  %s : %s+%s\n", symbol_list[i], function_name, begin_offset);
             }
             else
             {
                 // demangling failed. Output function name as a C function with
                 // no arguments.
-                printf("  %s : %s()+%s\n", symbollist[i], begin_name, begin_offset);
+                printf("  %s : %s()+%s\n", symbol_list[i], begin_name, begin_offset);
             }
         }
         else
         {
             // couldn't parse the line? print the whole line.
-            printf("  %s\n", symbollist[i]);
+            printf("  %s\n", symbol_list[i]);
         }
     }
     // NOLINTNEXTLINE(cppcoreguidelines-no-malloc)
-    free(symbollist);
+    free(symbol_list);
 }
 
 int simulation_t::main(int argc, const char** argv)

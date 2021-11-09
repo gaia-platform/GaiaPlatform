@@ -46,7 +46,7 @@ private:
     const int c_processing_pause_in_microseconds = 10;
     const int c_normal_wait_timeout_in_microseconds = 3000;
 
-    // Defaul timeout to use when waiting for actions to complete.
+    // Default timeout to use when waiting for actions to complete.
     const long c_default_processing_complete_timeout_in_microseconds = static_cast<long>(300 * c_microseconds_in_second);
 
     // Main menu commands.
