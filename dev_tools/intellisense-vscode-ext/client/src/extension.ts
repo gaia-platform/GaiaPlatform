@@ -1,12 +1,22 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 import { hover_info } from './hover_info';
-import { 
+import {
+    workspace,
     ExtensionContext,
     languages,
     Hover,
     MarkdownString
 } from 'vscode';
+
+import {
+    LanguageClient,
+    LanguageClientOptions,
+    ServerOptions,
+    TransportKind
+} from 'vscode-languageclient/node';
+
+let client: LanguageClient;
 
 function activate(context: ExtensionContext) {
 
