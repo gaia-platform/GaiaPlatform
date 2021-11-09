@@ -22,6 +22,36 @@ TEST(common, int_type)
     int_type_t<uint16_t> seven(7);
     int_type_t<uint16_t> nine(9);
 
+    EXPECT_TRUE(seven == seven);
+    EXPECT_FALSE(seven == nine);
+    EXPECT_TRUE(seven != nine);
+    EXPECT_TRUE(seven < nine);
+    EXPECT_FALSE(seven > nine);
+    EXPECT_TRUE(seven <= seven);
+    EXPECT_TRUE(nine >= nine);
+    EXPECT_TRUE(seven <= nine);
+    EXPECT_FALSE(seven >= nine);
+
+    EXPECT_TRUE(seven == 7);
+    EXPECT_FALSE(seven == 9);
+    EXPECT_TRUE(seven != 9);
+    EXPECT_TRUE(seven < 9);
+    EXPECT_FALSE(seven > 9);
+    EXPECT_TRUE(seven <= 7);
+    EXPECT_TRUE(nine >= 9);
+    EXPECT_TRUE(seven <= 9);
+    EXPECT_FALSE(seven >= 9);
+
+    EXPECT_TRUE(7 == seven);
+    EXPECT_FALSE(7 == nine);
+    EXPECT_TRUE(7 != nine);
+    EXPECT_TRUE(7 < nine);
+    EXPECT_FALSE(7 > nine);
+    EXPECT_TRUE(7 <= seven);
+    EXPECT_TRUE(9 >= nine);
+    EXPECT_TRUE(7 <= nine);
+    EXPECT_FALSE(7 >= nine);
+
     value = seven;
     EXPECT_EQ(7, value);
     value = nine;
@@ -41,9 +71,6 @@ TEST(common, int_type)
 
     value = modulo;
     EXPECT_EQ(2, value);
-
-    EXPECT_EQ(false, nine == seven);
-    EXPECT_EQ(true, nine != seven);
 
     int_type_t<uint16_t> max(-1);
 
