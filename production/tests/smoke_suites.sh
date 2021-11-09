@@ -16,7 +16,7 @@ SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 # shellcheck disable=SC2034
 SUITE_MODE="smoke-suites"
 # shellcheck disable=SC2034
-TEST_WORKLOADS=("smoke" "palletbox")
+TEST_WORKLOADS=("smoke" "palletbox" "pingpong" "marcopolo")
 
 # Invoke the actual execution of the suites.
 # shellcheck source=execute_suites.sh

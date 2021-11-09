@@ -22,7 +22,6 @@ start_process() {
         cat "$TEMP_FILE"
         complete_process 1 "Script cannot change to coverage directory before proceeding."
     fi
-
 }
 
 # Simple function to stop the process, including any cleanup.

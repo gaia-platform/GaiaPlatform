@@ -1,27 +1,27 @@
 {
     "marco_table": [
         {
-            "marco_count": 0,
-            "marco_limit": 0,
+            "marco_count": 1023,
+            "marco_limit": 1023,
             "name": "main"
         }
     ],
     "ping_table": [
         {
             "name": "main",
-            "step_timestamp": 1024
+            "step_timestamp": 0
         }
     ],
     "polo_table": [
         {
             "name": "main",
-            "polo_count": 0
+            "polo_count": 1022
         }
     ],
     "pong_table": [
         {
             "name": "main",
-            "rule_timestamp": 1024
+            "rule_timestamp": 0
         }
     ]
 }

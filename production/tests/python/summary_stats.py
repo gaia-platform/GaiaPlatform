@@ -309,8 +309,8 @@ def __add_new_sample_set(
     if compute_error:
         print(f"Processing error: {compute_error}")
         return
-    sample_dictionary = __traverse_path(suite_data, source_list_name)
 
+    sample_dictionary = __traverse_path(suite_data, source_list_name)
     if is_single_test_report:
         data_value = sample_dictionary
         if translation_factor:
@@ -325,10 +325,16 @@ def __add_new_sample_set(
     else:
         raw_measurements = []
         for index_in_data in passed_test_indices:
-            data_value = sample_dictionary[index_in_data]
+            scale = MeasuredScale.SECONDS
+            data_value = None
+            if 0 <= index_in_data < len(sample_dictionary):
+                data_value = sample_dictionary[index_in_data]
+            if not data_value:
+                data_value = 0.0
             if translation_factor:
                 data_value *= translation_factor
                 scale = translate_scale
+
             raw_measurements.append(MeasuredDuration(data_value, scale))
 
         measurements = sorted(raw_measurements, key=lambda x: x.value)
@@ -520,6 +526,7 @@ def __summarize_performance_basics(
         else:
             summary_data["passed-tests"] = len(passed_test_indices)
             summary_data["total-tests"] = len(return_code_data)
+
     return passed_test_indices
 
 
@@ -561,7 +568,7 @@ def __summarize_performance(
         if len(sample_title) > 1:
             sample_scale, _, _ = __compute_scale_info("-" + sample_title[1], None)
 
-        sample_data = None
+        sample_data = 0.0
         if summary_data:
             sample_data = {}
             summary_data[sample_title[0]] = sample_data

@@ -9,4 +9,4 @@
 
 workload pingpong
 
-smoke
+perf-marcopolo

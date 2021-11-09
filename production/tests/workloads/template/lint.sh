@@ -204,7 +204,11 @@ lint_c_plus_plus_code() {
         if [ "$VERBOSE_MODE" -ne 0 ]; then
             echo "Formatting C++ file: ${c_plus_plus_files[$FILE_INDEX]}"
         fi
-        if ! clang-format -i "${c_plus_plus_files[$FILE_INDEX]}" --style=file > "$TEMP_FILE" 2>&1; then
+        if [ "${c_plus_plus_files[$FILE_INDEX]}" == "./json.hpp" ] ; then
+            if [ "$VERBOSE_MODE" -ne 0 ]; then
+                echo "Skipping third-party header file."
+            fi
+        elif ! clang-format -i "${c_plus_plus_files[$FILE_INDEX]}" --style=file > "$TEMP_FILE" 2>&1; then
             cat "$TEMP_FILE"
             DID_FAIL=1
         fi
@@ -227,7 +231,11 @@ lint_c_plus_plus_code() {
         if [ "$VERBOSE_MODE" -ne 0 ]; then
             echo "Analyzing C++ file: ${c_plus_plus_files[$FILE_INDEX]}"
         fi
-        if ! clang-tidy --warnings-as-errors=* -p "build" -extra-arg="-std=c++17" "${c_plus_plus_files[$FILE_INDEX]}" -- -I/opt/gaia/include "-I$EDC_CHILD_DIRECTORY" > "$TEMP_FILE" 2>&1; then
+        if [ "${c_plus_plus_files[$FILE_INDEX]}" == "./json.hpp" ] ; then
+            if [ "$VERBOSE_MODE" -ne 0 ]; then
+                echo "Skipping third-party header file."
+            fi
+        elif ! clang-tidy --warnings-as-errors=* -p "build" -extra-arg="-std=c++17" "${c_plus_plus_files[$FILE_INDEX]}" -- -I/opt/gaia/include "-I$EDC_CHILD_DIRECTORY" > "$TEMP_FILE" 2>&1; then
             cat "$TEMP_FILE"
             DID_FAIL=1
         fi
