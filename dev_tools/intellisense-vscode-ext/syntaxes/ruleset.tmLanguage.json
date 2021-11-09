@@ -8,27 +8,31 @@
     "name": "ruleset",
     "fileTypes": [
 <<<<<<< HEAD
+<<<<<<< HEAD
     "ruleset"
+=======
+        "ruleset"
+>>>>>>> 2161f9829 (spacing updates)
     ],
     "patterns": [
         {
-        "include": "#keywords"
+            "include": "#keywords"
         },
         {
-        "include": "source.cpp"
+            "include": "source.cpp"
         }
     ],
     "repository": {
         "keywords": {
             "patterns": [
                 {
-                  "name": "keyword.other.cpp.ruleset",
-                  "match": "\\bruleset ([a-zA-Z0-9_.-]*)\\b",
-                  "captures": {
-                    "1": {
-                      "name": "support.class.cpp.ruleset"
+                    "name": "keyword.other.cpp.ruleset",
+                    "match": "\\bruleset ([a-zA-Z0-9_.-]*)\\b",
+                    "captures": {
+                        "1": {
+                            "name": "support.class.cpp.ruleset"
+                        }
                     }
-                  }
                 },
                 {
                     "name": "keyword.other.cpp.ruleset",
