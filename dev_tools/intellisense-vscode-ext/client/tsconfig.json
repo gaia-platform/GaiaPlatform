@@ -1,40 +1,20 @@
 {
-<<<<<<< HEAD
-<<<<<<< HEAD
     "compilerOptions": {
         "module": "commonjs",
         "target": "es6",
-        "lib": ["ES6"],
+        "lib": [
+            "ES6"
+        ],
         "outDir": "out",
         "rootDir": "src",
         "sourceMap": true,
         "resolveJsonModule": true,
         "allowJs": true
     },
-    "include": ["src"],
-=======
-	"compilerOptions": {
-		"module": "commonjs",
-		"target": "es6",
-=======
-    "compilerOptions": {
-        "module": "commonjs",
-        "target": "es6",
->>>>>>> c6f9fdaf5 (converted spacing back to spaces)
-        "lib": ["ES6"],
-        "outDir": "out",
-        "rootDir": "src",
-        "sourceMap": true,
-        "resolveJsonModule": true,
-<<<<<<< HEAD
-		"allowJs": true
-	},
-	"include": ["src"],
->>>>>>> bb9225043 (added typescript configs)
-=======
-        "allowJs": true
-    },
-    "include": ["src"],
->>>>>>> c6f9fdaf5 (converted spacing back to spaces)
-    "exclude": ["node_modules"]
+    "include": [
+        "src"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
 }
