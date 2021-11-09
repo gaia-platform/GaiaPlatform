@@ -3731,7 +3731,7 @@ int main(int argc, const char** argv)
 
     cl::PrintOptionValues();
 
-    if (g_help_option_alias)
+    if (g_help_option_alias || argc == 1)
     {
         // -help-list is omitted from the output because the categorized mode of PrintHelpMessage() behaves the same as -help-list.
         // This is the only way -h and -help differ.
