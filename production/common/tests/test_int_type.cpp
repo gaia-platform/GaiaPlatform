@@ -21,6 +21,13 @@ TEST(common, int_type)
     uint16_t value = zero;
     EXPECT_EQ(0, value);
 
+    // Equality.
+    value = seven;
+    EXPECT_EQ(7, value);
+    value = nine;
+    EXPECT_EQ(9, value);
+
+    // Comparisons.
     EXPECT_TRUE(seven == seven);
     EXPECT_FALSE(seven == nine);
     EXPECT_TRUE(seven != nine);
@@ -51,11 +58,7 @@ TEST(common, int_type)
     EXPECT_TRUE(7 <= nine);
     EXPECT_FALSE(7 >= nine);
 
-    value = seven;
-    EXPECT_EQ(7, value);
-    value = nine;
-    EXPECT_EQ(9, value);
-
+    // Addition.
     value = seven + nine;
     EXPECT_EQ(16, value);
 
@@ -67,6 +70,7 @@ TEST(common, int_type)
     value += 9;
     EXPECT_EQ(16, value);
 
+    // Multiplication.
     value = seven * nine;
     EXPECT_EQ(63, value);
 
@@ -78,6 +82,7 @@ TEST(common, int_type)
     value *= 9;
     EXPECT_EQ(63, value);
 
+    // Modulo.
     value = nine % seven;
     EXPECT_EQ(2, value);
 
@@ -89,6 +94,7 @@ TEST(common, int_type)
     value %= 7;
     EXPECT_EQ(2, value);
 
+    // Subtraction.
     value = nine - seven;
     EXPECT_EQ(2, value);
 
@@ -100,6 +106,7 @@ TEST(common, int_type)
     value -= 7;
     EXPECT_EQ(2, value);
 
+    // Division.
     value = nine / seven;
     EXPECT_EQ(1, value);
 
@@ -111,6 +118,7 @@ TEST(common, int_type)
     value /= 7;
     EXPECT_EQ(1, value);
 
+    // Maximum value.
     int_type_t<uint16_t> max(-1);
     value = max;
     EXPECT_EQ(numeric_limits<uint16_t>::max(), value);
