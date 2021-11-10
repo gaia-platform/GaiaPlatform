@@ -36,4 +36,4 @@ add_gtest(test_gaia_db_extract
 add_gtest(test_row_extract
   "tests/test_row_extract.cpp;src/gaia_db_extract.cpp;src/table_iterator.cpp"
   "${GAIA_DB_EXTRACT_TEST_INCLUDES}"
-  "rt;gaia_system;gaia_db_catalog_test;edc_addr_book")
+  "rt;gaia_system;gaia_db_catalog_test;edc_addr_book;edc_amr_swarm")
