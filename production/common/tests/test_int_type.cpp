@@ -12,13 +12,14 @@
 using namespace std;
 using namespace gaia::common;
 
-TEST(common, int_type)
+template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>>
+void test_int_type()
 {
-    constexpr int_type_t<uint16_t> zero;
-    constexpr int_type_t<uint16_t> seven(7);
-    constexpr int_type_t<uint16_t> nine(9);
+    constexpr int_type_t<T> zero;
+    constexpr int_type_t<T> seven(7);
+    constexpr int_type_t<T> nine(9);
 
-    uint16_t value = zero;
+    T value = zero;
     EXPECT_EQ(0, value);
 
     // Equality.
@@ -28,6 +29,11 @@ TEST(common, int_type)
     value = nine;
     EXPECT_EQ(9, value);
     EXPECT_EQ(9, nine.value());
+
+    // -1.
+    T expected_result = -1;
+    int_type_t<T> negative_one(-1);
+    EXPECT_EQ(expected_result, negative_one.value());
 
     // Comparisons.
     EXPECT_TRUE(seven == seven);
@@ -60,69 +66,83 @@ TEST(common, int_type)
     EXPECT_TRUE(7 <= nine);
     EXPECT_FALSE(7 >= nine);
 
-    int_type_t<uint16_t> result;
+    int_type_t<T> result;
 
     // Addition.
+    expected_result = 7 + 9;
     result = seven + nine;
-    EXPECT_EQ(16, result);
+    EXPECT_EQ(expected_result, result);
 
     result = seven;
     result += nine;
-    EXPECT_EQ(16, result);
+    EXPECT_EQ(expected_result, result);
 
     result = 7;
     result += 9;
-    EXPECT_EQ(16, result);
+    EXPECT_EQ(expected_result, result);
 
     // Multiplication.
+    expected_result = 7 * 9;
     result = seven * nine;
-    EXPECT_EQ(63, result);
+    EXPECT_EQ(expected_result, result);
 
     result = seven;
     result *= nine;
-    EXPECT_EQ(63, result);
+    EXPECT_EQ(expected_result, result);
 
     result = 7;
     result *= 9;
-    EXPECT_EQ(63, result);
+    EXPECT_EQ(expected_result, result);
 
     // Modulo.
+    expected_result = 9 % 7;
     result = nine % seven;
-    EXPECT_EQ(2, result);
+    EXPECT_EQ(expected_result, result);
 
     result = nine;
     result %= seven;
-    EXPECT_EQ(2, result);
+    EXPECT_EQ(expected_result, result);
 
     result = 9;
     result %= 7;
-    EXPECT_EQ(2, result);
+    EXPECT_EQ(expected_result, result);
 
     // Subtraction.
-    result = nine - seven;
-    EXPECT_EQ(2, result);
+    expected_result = 7 - 9;
+    result = seven - nine;
+    EXPECT_EQ(expected_result, result);
 
-    result = nine;
-    result -= seven;
-    EXPECT_EQ(2, result);
+    result = seven;
+    result -= nine;
+    EXPECT_EQ(expected_result, result);
 
-    result = 9;
-    result -= 7;
-    EXPECT_EQ(2, result);
+    result = 7;
+    result -= 9;
+    EXPECT_EQ(expected_result, result);
 
     // Division.
+    expected_result = 9 / 7;
     result = nine / seven;
-    EXPECT_EQ(1, result);
+    EXPECT_EQ(expected_result, result);
 
     result = nine;
     result /= seven;
-    EXPECT_EQ(1, result);
+    EXPECT_EQ(expected_result, result);
 
     result = 9;
     result /= 7;
-    EXPECT_EQ(1, result);
+    EXPECT_EQ(expected_result, result);
+}
 
-    // Maximum value.
-    int_type_t<uint16_t> max(-1);
-    EXPECT_EQ(numeric_limits<uint16_t>::max(), max.value());
+TEST(common, int_type)
+{
+    test_int_type<uint8_t>();
+    test_int_type<uint16_t>();
+    test_int_type<uint32_t>();
+    test_int_type<uint64_t>();
+
+    test_int_type<int8_t>();
+    test_int_type<int16_t>();
+    test_int_type<int32_t>();
+    test_int_type<int64_t>();
 }
