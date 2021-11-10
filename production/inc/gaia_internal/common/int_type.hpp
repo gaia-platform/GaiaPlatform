@@ -38,11 +38,20 @@ public:
         m_value = value;
     }
 
+    // This conversion operator will enable many direct operations with integers.
     operator T() const
     {
         return m_value;
     }
 
+    // For explicit retrieval of contained value.
+    T value() const
+    {
+        return m_value;
+    }
+
+    // For additional safety (so as to prevent the mixing of apples and oranges),
+    // all these operators will only allow operations with identical types.
     int_type_t& operator+=(const int_type_t& other)
     {
         this->m_value += other.m_value;

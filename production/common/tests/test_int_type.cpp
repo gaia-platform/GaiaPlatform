@@ -24,8 +24,10 @@ TEST(common, int_type)
     // Equality.
     value = seven;
     EXPECT_EQ(7, value);
+    EXPECT_EQ(7, seven.value());
     value = nine;
     EXPECT_EQ(9, value);
+    EXPECT_EQ(9, nine.value());
 
     // Comparisons.
     EXPECT_TRUE(seven == seven);
@@ -58,68 +60,69 @@ TEST(common, int_type)
     EXPECT_TRUE(7 <= nine);
     EXPECT_FALSE(7 >= nine);
 
+    int_type_t<uint16_t> result;
+
     // Addition.
-    value = seven + nine;
-    EXPECT_EQ(16, value);
+    result = seven + nine;
+    EXPECT_EQ(16, result);
 
-    value = seven;
-    value += nine;
-    EXPECT_EQ(16, value);
+    result = seven;
+    result += nine;
+    EXPECT_EQ(16, result);
 
-    value = 7;
-    value += 9;
-    EXPECT_EQ(16, value);
+    result = 7;
+    result += 9;
+    EXPECT_EQ(16, result);
 
     // Multiplication.
-    value = seven * nine;
-    EXPECT_EQ(63, value);
+    result = seven * nine;
+    EXPECT_EQ(63, result);
 
-    value = seven;
-    value *= nine;
-    EXPECT_EQ(63, value);
+    result = seven;
+    result *= nine;
+    EXPECT_EQ(63, result);
 
-    value = 7;
-    value *= 9;
-    EXPECT_EQ(63, value);
+    result = 7;
+    result *= 9;
+    EXPECT_EQ(63, result);
 
     // Modulo.
-    value = nine % seven;
-    EXPECT_EQ(2, value);
+    result = nine % seven;
+    EXPECT_EQ(2, result);
 
-    value = nine;
-    value %= seven;
-    EXPECT_EQ(2, value);
+    result = nine;
+    result %= seven;
+    EXPECT_EQ(2, result);
 
-    value = 9;
-    value %= 7;
-    EXPECT_EQ(2, value);
+    result = 9;
+    result %= 7;
+    EXPECT_EQ(2, result);
 
     // Subtraction.
-    value = nine - seven;
-    EXPECT_EQ(2, value);
+    result = nine - seven;
+    EXPECT_EQ(2, result);
 
-    value = nine;
-    value -= seven;
-    EXPECT_EQ(2, value);
+    result = nine;
+    result -= seven;
+    EXPECT_EQ(2, result);
 
-    value = 9;
-    value -= 7;
-    EXPECT_EQ(2, value);
+    result = 9;
+    result -= 7;
+    EXPECT_EQ(2, result);
 
     // Division.
-    value = nine / seven;
-    EXPECT_EQ(1, value);
+    result = nine / seven;
+    EXPECT_EQ(1, result);
 
-    value = nine;
-    value /= seven;
-    EXPECT_EQ(1, value);
+    result = nine;
+    result /= seven;
+    EXPECT_EQ(1, result);
 
-    value = 9;
-    value /= 7;
-    EXPECT_EQ(1, value);
+    result = 9;
+    result /= 7;
+    EXPECT_EQ(1, result);
 
     // Maximum value.
     int_type_t<uint16_t> max(-1);
-    value = max;
-    EXPECT_EQ(numeric_limits<uint16_t>::max(), value);
+    EXPECT_EQ(numeric_limits<uint16_t>::max(), max.value());
 }
