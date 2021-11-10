@@ -29,8 +29,8 @@ public:
         }
 
         hash_node_t* node = id_index->hash_nodes + (id % c_hash_buckets);
-        if (node->id == gaia::common::c_invalid_gaia_id
-            && __sync_bool_compare_and_swap(&node->id, gaia::common::c_invalid_gaia_id, id))
+        gaia::common::gaia_id_t expected_id = gaia::common::c_invalid_gaia_id;
+        if (node->id.compare_exchange_strong(expected_id, id))
         {
             return node;
         }
@@ -39,8 +39,6 @@ public:
 
         for (;;)
         {
-            __sync_synchronize();
-
             if (node->id == id)
             {
                 if (locator_exists(node->locator))
@@ -64,11 +62,12 @@ public:
                 ASSERT_INVARIANT(
                     id_index->hash_node_count + c_hash_buckets < c_max_locators,
                     "hash_node_count exceeds expected limits!");
-                new_node_idx = c_hash_buckets + __sync_fetch_and_add(&id_index->hash_node_count, 1);
+                new_node_idx = c_hash_buckets + id_index->hash_node_count++;
                 (id_index->hash_nodes + new_node_idx)->id = id;
             }
 
-            if (__sync_bool_compare_and_swap(&node->next_offset, 0, new_node_idx))
+            size_t expected_offset = 0;
+            if (node->next_offset.compare_exchange_strong(expected_offset, new_node_idx))
             {
                 return id_index->hash_nodes + new_node_idx;
             }
