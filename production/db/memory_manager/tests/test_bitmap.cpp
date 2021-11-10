@@ -41,6 +41,44 @@ TEST(bitmap, set_bit_value_and_is_bit_set)
     }
 }
 
+TEST(bitmap, set_already_set_bit_value)
+{
+    constexpr size_t c_bitmap_size_in_words = 3;
+    std::atomic<uint64_t> bitmap[c_bitmap_size_in_words];
+
+    // Start with an empty bitmap.
+    // Set each bit of the bitmap and verify that it was set and that only one bit was set.
+    bitmap[0] = bitmap[1] = bitmap[2] = 0;
+    for (size_t i = 0; i < c_bitmap_size_in_words * c_uint64_bit_count; ++i)
+    {
+        bool success = try_set_bit_value(bitmap, c_bitmap_size_in_words, i, true);
+        ASSERT_TRUE(success);
+        ASSERT_EQ(true, is_bit_set(bitmap, c_bitmap_size_in_words, i));
+        ASSERT_EQ(1, count_set_bits(bitmap, c_bitmap_size_in_words));
+        bool fail_if_already_set = true;
+        // try_set_bit_value() should fail if the bit is already set and fail_if_already_set=true.
+        success = try_set_bit_value(bitmap, c_bitmap_size_in_words, i, true, fail_if_already_set);
+        ASSERT_FALSE(success);
+        bitmap[i / c_uint64_bit_count] = 0;
+    }
+
+    // Start with a full bitmap.
+    // Unset each bit of the bitmap and verify that it was unset and that only one bit was unset.
+    bitmap[0] = bitmap[1] = bitmap[2] = -1;
+    for (size_t i = 0; i < c_bitmap_size_in_words * c_uint64_bit_count; ++i)
+    {
+        bool success = try_set_bit_value(bitmap, c_bitmap_size_in_words, i, false);
+        ASSERT_TRUE(success);
+        ASSERT_EQ(false, is_bit_set(bitmap, c_bitmap_size_in_words, i));
+        ASSERT_EQ(c_bitmap_size_in_words * c_uint64_bit_count - 1, count_set_bits(bitmap, c_bitmap_size_in_words));
+        bool fail_if_already_set = true;
+        // try_set_bit_value() should fail if the bit is already unset and fail_if_already_set=true.
+        success = try_set_bit_value(bitmap, c_bitmap_size_in_words, i, false, fail_if_already_set);
+        ASSERT_FALSE(success);
+        bitmap[i / c_uint64_bit_count] = -1;
+    }
+}
+
 TEST(bitmap, find_first_unset_bit)
 {
     constexpr size_t c_bitmap_size_in_words = 3;

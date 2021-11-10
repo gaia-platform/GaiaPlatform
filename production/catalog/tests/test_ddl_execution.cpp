@@ -400,7 +400,7 @@ create table t1(a1 int16 unique, c1 int32 unique, link1 references t2[] where t1
 create table t2(a2 int16, c2 int32, link2 references t1 where t1.c1 = t2.c2);
 )",
         // Forward reference 1:1 relationship with 'where' without 'using'.
-        // We have disabled 1:1 relationships using common fields (hybrid index).
+        // We have disabled 1:1 relationships using value linked references (hybrid index).
         R"(
 create table person (
  name string,

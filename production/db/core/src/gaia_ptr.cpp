@@ -60,11 +60,6 @@ gaia_ptr_t gaia_ptr_t::find_next(gaia_type_t type) const
     gaia::db::counters_t* counters = gaia::db::get_counters();
     gaia_ptr_t next_ptr = *this;
 
-    // We need an acquire barrier before reading `last_locator`. We can
-    // change this full barrier to an acquire barrier when we change to proper
-    // C++ atomic types.
-    __sync_synchronize();
-
     // Search for objects of this type within the range of used locators.
     while (++next_ptr.m_locator && next_ptr.m_locator <= counters->last_locator)
     {
@@ -72,7 +67,6 @@ gaia_ptr_t gaia_ptr_t::find_next(gaia_type_t type) const
         {
             return next_ptr;
         }
-        __sync_synchronize();
     }
 
     // Mark end of search.

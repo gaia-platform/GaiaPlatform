@@ -15,14 +15,73 @@ using namespace gaia::common;
 using namespace gaia::tools::db_extract;
 using namespace std;
 
-constexpr char c_start_string[] = "--start-after";
-const int c_start_length = strlen(c_start_string);
-constexpr char c_row_limit_string[] = "--row-limit";
-const int c_row_limit_length = strlen(c_row_limit_string);
-constexpr char c_database_string[] = "--database";
-const int c_database_length = strlen(c_database_string);
-constexpr char c_table_string[] = "--table";
-const int c_table_length = strlen(c_table_string);
+constexpr char c_start_after_string[] = "start-after";
+constexpr char c_row_limit_string[] = "row-limit";
+constexpr char c_help_string[] = "help";
+constexpr char c_database_string[] = "database";
+constexpr char c_table_string[] = "table";
+
+// Command-line usage.
+static void usage()
+{
+    cerr << "OVERVIEW: Outputs a JSON representation of either the table schema, or selected rows within a database and table." << endl
+         << endl;
+    cerr << "USAGE: gaia_db_extract [--" << c_help_string << "] [--" << c_database_string << "=<databasename> --" << c_table_string
+         << "=<tablename> [--" << c_row_limit_string << "=N] [--" << c_start_after_string << "=ID]]" << endl
+         << endl;
+    cerr << "NO OPTIONS: extract table schema information only." << endl
+         << endl;
+    cerr << "OPTIONS TO EXTRACT ROWS:" << endl;
+    cerr << "  --" << c_database_string << "=<databasename>    Required. Selects the database from which to extract rows." << endl;
+    cerr << "  --" << c_table_string << "=<tablename>          Required. Selects the table containing the rows being extracted." << endl;
+    cerr << "  --" << c_row_limit_string << "=N                Optional. Limit the number of rows to N. Otherwise, extract all rows." << endl;
+    cerr << "  --" << c_start_after_string << "=ID             Optional. Specifies the ID of the row that precedes the row at which" << endl;
+    cerr << "                               to start the extract. Typically this will be the last row of the" << endl;
+    cerr << "                               block that you just extracted. To extract rows from the database" << endl;
+    cerr << "                               in blocks, use this parameter in conjunction with row-limit." << endl;
+    cerr << "                               Omit this parameter to start from the beginning." << endl;
+
+    // Print an empty JSON object when there is any kind of error.
+    cout << "{}" << endl;
+
+    exit(EXIT_FAILURE);
+}
+
+// Break a command-line parameter into its pieces.
+static void parse_arg(int argc, char* argv[], int& arg, string& key, string& value)
+{
+    if (strncmp(argv[arg], "--", 2))
+    {
+        cerr << "Unrecognized parameter: " << argv[arg] << endl
+             << endl;
+        usage();
+    }
+
+    key = string(argv[arg] + 2);
+    if (!key.compare(c_help_string))
+    {
+        usage();
+    }
+
+    auto pos = key.find('=');
+    if (pos != string::npos)
+    {
+        // It's one argv with an equals sign.
+        value = key.substr(pos + 1);
+        key = key.substr(0, pos);
+    }
+    else
+    {
+        // It's two argv's, and the value is the next one.
+        if (++arg >= argc)
+        {
+            cerr << "Missing a parameter value." << endl
+                 << endl;
+            usage();
+        }
+        value = string(argv[arg]);
+    }
+}
 
 int main(int argc, char* argv[])
 {
@@ -31,79 +90,46 @@ int main(int argc, char* argv[])
     string database;
     string table;
 
-    // Usage:
-    //  gaia_db_extract --database=<dbmame> --table=<tablename> --start-after=ID --row-limit=N
-    //  when no database/table specified, dump catalog
+    string key;
+    string value;
     for (auto i = 1; i < argc; i++)
     {
-        string arg(argv[i]);
+        // Get a parameter and value pair from the command-line.
+        parse_arg(argc, argv, i, key, value);
 
-        if (!arg.compare(0, c_start_length, c_start_string))
+        if (!key.compare(c_start_after_string))
         {
-            if (arg.length() == c_start_length)
-            {
-                start_after = atoi(argv[++i]);
-            }
-            else
-            {
-                // Allow for equals sign form (--start-after=12). One arg rather than two.
-                start_after = atoi(arg.substr(c_start_length + 1).c_str());
-            }
+            start_after = stoi(value);
             if (start_after < 1)
             {
-                fprintf(stderr, "Illegal value for start_after. It must be 1 or greater\n");
-                cout << "{}" << endl;
-                exit(1);
+                cerr << "Illegal value for " << c_start_after_string << ". It must be 1 or greater." << endl
+                     << endl;
+                usage();
             }
         }
-        else if (!arg.compare(0, c_row_limit_length, c_row_limit_string))
+        else if (!key.compare(c_row_limit_string))
         {
-            if (arg.length() == c_row_limit_length)
-            {
-                row_limit = atoi(argv[++i]);
-            }
-            else
-            {
-                // Allow for equals sign form (--row-limit=12). One arg rather than two.
-                row_limit = atoi(arg.substr(c_row_limit_length + 1).c_str());
-            }
+            row_limit = stoi(value);
             if (row_limit < 1)
             {
-                fprintf(stderr, "Illegal value for row_limit. It must be 1 or greater\n");
-                cout << "{}" << endl;
-                exit(1);
+                cerr << "Illegal value for " << c_row_limit_string << ". It must be 1 or greater." << endl
+                     << endl;
+                usage();
             }
         }
-        else if (!arg.compare(0, c_database_length, c_database_string))
+        else if (!key.compare(c_database_string))
         {
-            if (arg.length() == c_database_length)
-            {
-                database = string(argv[++i]);
-            }
-            else
-            {
-                // Allow for equals sign form (--row-limit=12). One arg rather than two.
-                database = arg.substr(c_database_length + 1);
-            }
+            database = value;
         }
-        else if (!arg.compare(0, c_table_length, c_table_string))
+        else if (!key.compare(c_table_string))
         {
-            if (arg.length() == c_table_length)
-            {
-                table = string(argv[++i]);
-            }
-            else
-            {
-                // Allow for equals sign form (--row-limit=12). One arg rather than two.
-                table = arg.substr(c_table_length + 1);
-            }
+            table = value;
         }
         else
         {
-            fprintf(stderr, "Invalid command-row option: '%s'\n", argv[i]);
-            fprintf(stderr, "Usage: gaia_db_extract [--database=<dbname>] [--table=<tableneme>] [--start-after=ID] [--row-limit=N]\n");
-            cout << "{}" << endl;
-            exit(1);
+            cerr << "Unrecognized parameter: '" << key << "'." << endl
+                 << endl;
+            usage();
         }
     }
 
@@ -113,9 +139,10 @@ int main(int argc, char* argv[])
     }
     catch (gaia_exception& e)
     {
-        fprintf(stderr, "Startup failure, exception: '%s'\n", e.what());
+        // This is usually because there is no server running.
+        cerr << "Startup failure, exception: '" << e.what() << "'." << endl;
         cout << "{}" << endl;
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     // Return an empty JSON document on failure.
@@ -126,7 +153,7 @@ int main(int argc, char* argv[])
         // One-time preparation for scanning rows.
         if (!gaia_db_extract_initialize())
         {
-            fprintf(stderr, "Extraction API failed to initialize\n");
+            cerr << "Extraction API failed to initialize." << endl;
         }
         else
         {
@@ -135,10 +162,12 @@ int main(int argc, char* argv[])
     }
     catch (gaia_exception& e)
     {
-        fprintf(stderr, "Exception while generating JSON: '%s'\n", e.what());
+        cerr << "Exception while generating JSON: '" << e.what() << "'." << endl;
     }
 
     gaia::db::end_session();
 
     cout << extracted_data << endl;
+
+    exit(EXIT_SUCCESS);
 }
