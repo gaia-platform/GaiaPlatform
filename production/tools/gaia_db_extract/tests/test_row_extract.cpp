@@ -44,9 +44,9 @@ protected:
         auto employee_w = employee_writer();
         employee_w.name_first = name;
         gaia_id_t id = employee_w.insert_row();
-        auto e = employee_t::get(id);
-        EXPECT_STREQ(e.name_first(), name);
-        return e;
+        auto employee = employee_t::get(id);
+        EXPECT_STREQ(employee.name_first(), name);
+        return employee;
     }
 
     // This function is called with a variety of parameters. It begins by inserting the
