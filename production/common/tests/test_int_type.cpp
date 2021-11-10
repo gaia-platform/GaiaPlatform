@@ -7,7 +7,7 @@
 
 #include "gtest/gtest.h"
 
-#include "gaia_internal/common/int_type.hpp"
+#include "gaia/int_type.hpp"
 
 using namespace std;
 using namespace gaia::common;
