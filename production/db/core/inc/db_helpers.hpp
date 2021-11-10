@@ -31,22 +31,19 @@ namespace db
 inline common::gaia_id_t allocate_id()
 {
     counters_t* counters = gaia::db::get_counters();
-    common::gaia_id_t id = ++(counters->last_id);
-    return id;
+    return ++(counters->last_id);
 }
 
 inline common::gaia_type_t allocate_type()
 {
     counters_t* counters = gaia::db::get_counters();
-    common::gaia_type_t type = ++(counters->last_type_id);
-    return type;
+    return ++(counters->last_type_id);
 }
 
 inline gaia_txn_id_t allocate_txn_id()
 {
     counters_t* counters = gaia::db::get_counters();
-    gaia_txn_id_t txn_id = ++(counters->last_txn_id);
-    return txn_id;
+    return ++(counters->last_txn_id);
 }
 
 inline gaia_locator_t allocate_locator()
