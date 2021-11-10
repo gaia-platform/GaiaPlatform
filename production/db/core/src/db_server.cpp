@@ -2432,25 +2432,40 @@ void server_t::truncate_txn_table()
     // Get a snapshot of the post-GC watermark, for a lower bound on the scan.
     safe_watermark_t post_gc_watermark(watermark_type_t::post_gc);
 
-    // Scan from the post-GC watermark to the post-apply watermark,
-    // advancing the post-GC watermark on any begin_ts, or any commit_ts that
-    // has the TXN_GC_COMPLETE flag set. If TXN_GC_COMPLETE is unset on the
-    // current commit_ts, abort the scan.
+    // Scan from the post-GC watermark to the post-apply watermark, advancing
+    // the post-GC watermark to any commit_ts marked TXN_GC_COMPLETE, or any
+    // begin_ts unless it is marked TXN_SUBMITTED and its commit_ts is not
+    // marked TXN_GC_COMPLETE. (We need to preserve begin_ts entries for
+    // commit_ts entries that have not completed GC, in order to allow index
+    // entries to safely dereference a commit_ts entry from its begin_ts entry.)
+    // If the post-GC watermark cannot be advanced to the current timestamp,
+    // abort the scan.
     for (gaia_txn_id_t ts = post_gc_watermark + 1; ts <= post_apply_watermark; ++ts)
     {
         ASSERT_INVARIANT(
             !txn_metadata_t::is_uninitialized_ts(ts),
             "All uninitialized txn table entries should be sealed!");
 
-        ASSERT_INVARIANT(
-            !(txn_metadata_t::is_begin_ts(ts) && txn_metadata_t::is_txn_active(ts)),
-            "The watermark should not be advanced to an active begin_ts!");
+        if (txn_metadata_t::is_begin_ts(ts))
+        {
+            ASSERT_INVARIANT(
+                !txn_metadata_t::is_txn_active(ts),
+                "The pre-apply watermark should not be advanced to an active begin_ts!");
+
+            // We can only advance the post-GC watermark to a submitted begin_ts
+            // if its commit_ts is marked TXN_GC_COMPLETE.
+            if (txn_metadata_t::is_txn_submitted(ts)
+                && !txn_metadata_t::is_txn_gc_complete(txn_metadata_t::get_commit_ts_from_begin_ts(ts)))
+            {
+                break;
+            }
+        }
 
         if (txn_metadata_t::is_commit_ts(ts))
         {
             ASSERT_INVARIANT(
                 txn_metadata_t::is_txn_decided(ts),
-                "The watermark should not be advanced to an undecided commit_ts!");
+                "The pre-apply watermark should not be advanced to an undecided commit_ts!");
 
             // We can only advance the post-GC watermark to a commit_ts if it is
             // marked TXN_GC_COMPLETE.
