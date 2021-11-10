@@ -18,7 +18,7 @@ SUITE_MODE="smoke-suites"
 # shellcheck disable=SC2034
 TEST_WORKLOADS=("smoke" "palletbox" "pingpong" "marcopolo")
 # shellcheck disable=SC2034
-USE_PERSISTENT_DATABASE=0
+USE_PERSISTENT_DATABASE=1
 
 # Invoke the actual execution of the suites.
 # shellcheck source=execute_suites.sh

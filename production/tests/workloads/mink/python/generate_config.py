@@ -103,10 +103,10 @@ def read_stats_log_interval(data, stats_log_interval):
                 "Configuration source file's 'stats_log_interval' element was not an integer."
             )
             sys.exit(1)
-        elif stats_log_interval < 1 or stats_log_interval > 60:
+        elif stats_log_interval < 1 or stats_log_interval > 300:
             print(
                 "Configuration source file's 'stats_log_interval' element must be "
-                + "between (and including) 1 and 60."
+                + "between (and including) 1 and 300."
             )
             sys.exit(1)
     return stats_log_interval
