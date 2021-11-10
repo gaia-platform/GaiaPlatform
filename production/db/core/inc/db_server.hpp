@@ -25,6 +25,7 @@
 #include "memory_manager.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
+#include "txn_metadata.hpp"
 
 namespace gaia
 {
@@ -243,15 +244,15 @@ private:
 
 private:
     // Returns the current value of the given watermark.
-    static inline gaia_txn_id_t get_watermark(watermark_type_t watermark)
+    static inline gaia_txn_id_t get_watermark(watermark_type_t watermark_type)
     {
-        return s_watermarks[common::get_enum_value(watermark)].load();
+        return s_watermarks[common::get_enum_value(watermark_type)].load();
     }
 
     // Returns a reference to the array entry of the given watermark.
-    static inline std::atomic<gaia_txn_id_t>& get_watermark_entry(watermark_type_t watermark)
+    static inline std::atomic<gaia_txn_id_t>& get_watermark_entry(watermark_type_t watermark_type)
     {
-        return s_watermarks[common::get_enum_value(watermark)];
+        return s_watermarks[common::get_enum_value(watermark_type)];
     }
 
     // Atomically advances the given watermark to the given timestamp, if the
@@ -260,7 +261,7 @@ private:
     //
     // Returns true if the watermark was advanced to the given value, false
     // otherwise.
-    static bool advance_watermark(watermark_type_t watermark, gaia_txn_id_t ts);
+    static bool advance_watermark(watermark_type_t watermark_type, gaia_txn_id_t ts);
 
     // Reserves an index for the current thread in
     // `s_safe_ts_per_thread_entries`. The entries at this index are read-write
@@ -497,23 +498,19 @@ private:
     class safe_fd_from_ts_t
     {
     public:
-        explicit safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd = true);
+        inline explicit safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd = true);
 
         // The "rule of 3" doesn't apply here because we never pass this object
         // directly to a function; we always extract the safe fd value first.
         safe_fd_from_ts_t() = delete;
         safe_fd_from_ts_t(const safe_fd_from_ts_t&) = delete;
         safe_fd_from_ts_t& operator=(const safe_fd_from_ts_t&) = delete;
-
-        ~safe_fd_from_ts_t();
+        inline ~safe_fd_from_ts_t();
 
         // This is the only public API. Callers are expected to call this method on
         // a stack-constructed instance of the class before they pass an fd to a
         // function that does not expect it to be concurrently closed.
-        inline int get_fd() const
-        {
-            return m_local_log_fd;
-        }
+        inline int get_fd() const;
 
     private:
         int m_local_log_fd{-1};
@@ -549,27 +546,14 @@ private:
     class safe_ts_t
     {
     public:
-        explicit safe_ts_t(gaia_txn_id_t safe_ts);
-        ~safe_ts_t();
+        inline explicit safe_ts_t(gaia_txn_id_t safe_ts);
+        inline ~safe_ts_t();
         safe_ts_t() = default;
         safe_ts_t(const safe_ts_t&) = delete;
         safe_ts_t& operator=(const safe_ts_t&) = delete;
-
-        inline safe_ts_t(safe_ts_t&& other) noexcept
-            : m_ts(std::exchange(other.m_ts, c_invalid_gaia_txn_id))
-        {
-        }
-
-        inline safe_ts_t& operator=(safe_ts_t&& other) noexcept
-        {
-            this->m_ts = std::exchange(other.m_ts, c_invalid_gaia_txn_id);
-            return *this;
-        }
-
-        inline operator gaia_txn_id_t() const
-        {
-            return m_ts;
-        }
+        inline safe_ts_t(safe_ts_t&& other) noexcept;
+        inline safe_ts_t& operator=(safe_ts_t&& other) noexcept;
+        inline operator gaia_txn_id_t() const;
 
     private:
         // This member is logically immutable, but it cannot be `const` because
@@ -592,18 +576,14 @@ private:
     class safe_watermark_t
     {
     public:
-        explicit safe_watermark_t(watermark_type_t watermark);
+        inline explicit safe_watermark_t(watermark_type_t watermark);
         safe_watermark_t() = delete;
         ~safe_watermark_t() = default;
         safe_watermark_t(const safe_watermark_t&) = delete;
         safe_watermark_t& operator=(const safe_watermark_t&) = delete;
         safe_watermark_t(safe_watermark_t&&) = delete;
         safe_watermark_t& operator=(safe_watermark_t&&) = delete;
-
-        inline operator gaia_txn_id_t() const
-        {
-            return gaia_txn_id_t(m_safe_ts);
-        }
+        inline operator gaia_txn_id_t() const;
 
     private:
         // This member is logically immutable, but it cannot be `const`, because
