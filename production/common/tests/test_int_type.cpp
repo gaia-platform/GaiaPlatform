@@ -14,13 +14,12 @@ using namespace gaia::common;
 
 TEST(common, int_type)
 {
-    int_type_t<uint16_t> zero;
+    constexpr int_type_t<uint16_t> zero;
+    constexpr int_type_t<uint16_t> seven(7);
+    constexpr int_type_t<uint16_t> nine(9);
 
     uint16_t value = zero;
     EXPECT_EQ(0, value);
-
-    int_type_t<uint16_t> seven(7);
-    int_type_t<uint16_t> nine(9);
 
     EXPECT_TRUE(seven == seven);
     EXPECT_FALSE(seven == nine);
@@ -57,23 +56,62 @@ TEST(common, int_type)
     value = nine;
     EXPECT_EQ(9, value);
 
-    int_type_t<uint16_t> sum = seven + nine;
-
-    value = sum;
+    value = seven + nine;
     EXPECT_EQ(16, value);
 
-    int_type_t<uint16_t> product = seven * nine;
+    value = seven;
+    value += nine;
+    EXPECT_EQ(16, value);
 
-    value = product;
+    value = 7;
+    value += 9;
+    EXPECT_EQ(16, value);
+
+    value = seven * nine;
     EXPECT_EQ(63, value);
 
-    int_type_t<uint16_t> modulo = nine % seven;
+    value = seven;
+    value *= nine;
+    EXPECT_EQ(63, value);
 
-    value = modulo;
+    value = 7;
+    value *= 9;
+    EXPECT_EQ(63, value);
+
+    value = nine % seven;
     EXPECT_EQ(2, value);
 
-    int_type_t<uint16_t> max(-1);
+    value = nine;
+    value %= seven;
+    EXPECT_EQ(2, value);
 
+    value = 9;
+    value %= 7;
+    EXPECT_EQ(2, value);
+
+    value = nine - seven;
+    EXPECT_EQ(2, value);
+
+    value = nine;
+    value -= seven;
+    EXPECT_EQ(2, value);
+
+    value = 9;
+    value -= 7;
+    EXPECT_EQ(2, value);
+
+    value = nine / seven;
+    EXPECT_EQ(1, value);
+
+    value = nine;
+    value /= seven;
+    EXPECT_EQ(1, value);
+
+    value = 9;
+    value /= 7;
+    EXPECT_EQ(1, value);
+
+    int_type_t<uint16_t> max(-1);
     value = max;
-    EXPECT_EQ(numeric_limits<uint16_t>::max(), max);
+    EXPECT_EQ(numeric_limits<uint16_t>::max(), value);
 }
