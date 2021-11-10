@@ -19,6 +19,7 @@
 
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
+#include <sys/mman.h>
 
 #include "gaia/exceptions.hpp"
 
@@ -2154,30 +2155,15 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
 //    snapshot of the post-apply watermark. If the current entry is a begin_ts
 //    or a commit_ts with TXN_GC_COMPLETE set, we try to advance the post-GC
 //    watermark. If that fails (or the watermark cannot be advanced because the
-//    commit_ts has TXN_GC_COMPLETE unset), we abort the pass.
-//
-// TODO: Decommit physical pages backing the txn table for addresses preceding
-// the post-GC watermark (via madvise(MADV_FREE)).
-//
-// The post-GC watermark will be used to trim the txn table (but we can't just
-// read the current value and free all pages behind it, we need to avoid freeing
-// pages out from under threads that are advancing this watermark and have
-// possibly been preempted). A safe algorithm requires tracking the last
-// observed value of this watermark for each thread in a global table and
-// trimming the txn table up to the minimum of this global table (which can be
-// calculated from a non-atomic scan, because any thread's observed value can only
-// go forward). This means that a thread must register its observed value in the
-// global table every time it reads the post-GC watermark, and should clear its
-// entry when it's done with the observed value. (A subtler issue is that
-// reading the current watermark value and registering the read value in the
-// global table must be an atomic operation for the non-atomic minimum scan to
-// be correct, but no CPU has an atomic memory-to-memory copy operation. We can
-// work around this by just checking the current value of the watermark
-// immediately after writing its saved value to the global table. If they're the
-// same, then no other thread could have observed any non-atomicity in the copy
-// operation. If they differ, then we just repeat the sequence. Because this is a
-// very fast sequence of operations, retries should be infrequent, so livelock
-// shouldn't be an issue.)
+//    commit_ts has TXN_GC_COMPLETE unset), we abort the pass. If we complete
+//    this pass, then we calculate a "safe truncation timestamp" and attempt to
+//    advance the pre-truncate watermark to that timestamp. If we successfully
+//    advanced the pre-truncate watermark, then we calculate the number of pages
+//    between the previous pre-truncate watermark value and its new value; if
+//    this count exceeds zero then we decommit all such pages using madvise(2).
+//    (It is possible for multiple GC tasks to concurrently or repeatedly
+//    decommit the same pages, but madvise(2) is idempotent and
+//    concurrency-safe.)
 void server_t::perform_maintenance()
 {
     // Attempt to apply all txn logs to the shared view, from the last value of
@@ -2188,8 +2174,9 @@ void server_t::perform_maintenance()
     // to the post-apply watermark.
     gc_applied_txn_logs();
 
-    // Find a timestamp at which we can safely truncate the txn table.
-    // TODO: Actually reclaim memory from the truncated prefix of the txn table.
+    // Find a timestamp at which we can safely truncate the txn table, advance
+    // the pre-truncate watermark to that timestamp, and truncate the txn table
+    // at the highest page boundary less than the pre-truncate watermark.
     truncate_txn_table();
 }
 
@@ -2479,10 +2466,10 @@ void server_t::truncate_txn_table()
 
         // Abort if the safe truncation timestamp does not exceed the current
         // pre-truncate watermark.
-        // NB: It is expected that the safe truncation timestamp can be behind the
-        // pre-truncate watermark, because some published (but not fully reserved)
-        // timestamps may have been behind the pre-truncate watermark when they
-        // were published (and will later fail validation).
+        // NB: It is expected that the safe truncation timestamp can be behind
+        // the pre-truncate watermark, because some published (but not yet
+        // validated) timestamps may have been behind the pre-truncate watermark
+        // when they were published (and will later fail validation).
         if (new_pre_truncate_watermark <= prev_pre_truncate_watermark)
         {
             return;
@@ -2491,15 +2478,60 @@ void server_t::truncate_txn_table()
         // Try to advance the pre-truncate watermark.
         if (!advance_watermark(watermark_type_t::pre_truncate, new_pre_truncate_watermark))
         {
-            // Abort if another thread has concurrently advanced the pre-truncate
-            // watermark, to avoid contention.
+            // Abort if another thread has concurrently advanced the
+            // pre-truncate watermark, to avoid contention.
             ASSERT_INVARIANT(
                 get_watermark(watermark_type_t::pre_truncate) > prev_pre_truncate_watermark,
                 "The watermark must have advanced if advance_watermark() failed!");
 
             return;
         }
+
+        // We advanced the pre-truncate watermark, so actually truncate the txn
+        // table by decommitting its unused physical pages. Because this
+        // operation is concurrency-safe and idempotent, it can be done without
+        // mutual exclusion.
+        // REVIEW: The previous logic could also be used to safely advance the
+        // "head" pointer if the txn table were implemented as a circular
+        // buffer.
+
+        // Calculate the number of pages between the previously read pre-truncate
+        // watermark and our safe truncation timestamp. If the result exceeds zero,
+        // then decommit all such pages.
+        char* prev_page_start_address = get_txn_metadata_page_address_from_ts(prev_pre_truncate_watermark);
+        char* new_page_start_address = get_txn_metadata_page_address_from_ts(new_pre_truncate_watermark);
+
+        // Check for overflow.
+        ASSERT_INVARIANT(
+            prev_page_start_address <= new_page_start_address,
+            "The new pre-truncate watermark must start on the same or later page than the previous pre-truncate watermark!");
+
+        size_t pages_to_decommit_count = (new_page_start_address - prev_page_start_address) / c_page_size_in_bytes;
+        if (pages_to_decommit_count > 0)
+        {
+            // MADV_FREE seems like the best fit for our needs, since it allows
+            // the OS to lazily reclaim decommitted pages. (If we move the txn
+            // table to a shared mapping (e.g. memfd), then we'll need to switch
+            // to MADV_REMOVE.)
+            // REVIEW: MADV_FREE makes it impossible to monitor RSS usage, so
+            // use MADV_DONTNEED unless we actually need better performance.
+            // (See https://github.com/golang/go/issues/42330 for a discussion
+            // of these issues.)
+            if (-1 == ::madvise(prev_page_start_address, pages_to_decommit_count * c_page_size_in_bytes, MADV_DONTNEED))
+            {
+                throw_system_error("madvise(MADV_DONTNEED) failed!");
+            }
+        }
     }
+}
+
+char* server_t::get_txn_metadata_page_address_from_ts(gaia_txn_id_t ts)
+{
+    char* txn_metadata_map_base_address = txn_metadata_t::get_txn_metadata_map_base_address();
+    size_t ts_entry_byte_offset = ts * sizeof(txn_metadata_entry_t);
+    size_t ts_entry_page_byte_offset = (ts_entry_byte_offset / c_page_size_in_bytes) * c_page_size_in_bytes;
+    char* ts_entry_page_address = txn_metadata_map_base_address + ts_entry_page_byte_offset;
+    return ts_entry_page_address;
 }
 
 void server_t::txn_rollback(bool client_disconnected)
@@ -2643,7 +2675,10 @@ bool server_t::txn_commit()
     int log_fd = s_log.unmap_truncate_seal_fd();
 
     // Obtain a safe_ts for our begin_ts, to prevent recursive validation from
-    // allowing the pre-truncate watermark to advance past our begin_ts.
+    // allowing the pre-truncate watermark to advance past our begin_ts into the
+    // conflict window. This ensures that any thread (including recursive
+    // validators) can safely read any txn metadata within the conflict window
+    // of this txn, until the commit decision is returned to the client.
     // NB: This MUST be done before obtaining a commit_ts!
     safe_ts_t safe_begin_ts(s_txn_id);
 

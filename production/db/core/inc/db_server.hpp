@@ -473,6 +473,8 @@ private:
 
     static void deallocate_object(gaia_offset_t offset);
 
+    static char* get_txn_metadata_page_address_from_ts(gaia_txn_id_t ts);
+
     class invalid_log_fd : public common::gaia_exception
     {
     public:
