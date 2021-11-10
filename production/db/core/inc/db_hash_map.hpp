@@ -19,18 +19,18 @@ namespace db
 class db_hash_map
 {
 public:
-    static hash_node_t* insert(gaia::common::gaia_id_t id)
+    static hash_node_t* insert(common::gaia_id_t id)
     {
-        locators_t* locators = gaia::db::get_locators();
-        id_index_t* id_index = gaia::db::get_id_index();
+        locators_t* locators = get_locators();
+        id_index_t* id_index = get_id_index();
         if (locators == nullptr)
         {
             throw no_open_transaction();
         }
 
         hash_node_t* node = id_index->hash_nodes + (id % c_hash_buckets);
-        if (node->id == gaia::common::c_invalid_gaia_id
-            && __sync_bool_compare_and_swap(&node->id, gaia::common::c_invalid_gaia_id, id))
+        common::gaia_id_t expected_id = common::c_invalid_gaia_id;
+        if (node->id.compare_exchange_strong(expected_id, id))
         {
             return node;
         }
@@ -39,8 +39,6 @@ public:
 
         for (;;)
         {
-            __sync_synchronize();
-
             if (node->id == id)
             {
                 if (locator_exists(node->locator))
@@ -64,21 +62,22 @@ public:
                 ASSERT_INVARIANT(
                     id_index->hash_node_count + c_hash_buckets < c_max_locators,
                     "hash_node_count exceeds expected limits!");
-                new_node_idx = c_hash_buckets + __sync_fetch_and_add(&id_index->hash_node_count, 1);
+                new_node_idx = c_hash_buckets + id_index->hash_node_count++;
                 (id_index->hash_nodes + new_node_idx)->id = id;
             }
 
-            if (__sync_bool_compare_and_swap(&node->next_offset, 0, new_node_idx))
+            size_t expected_offset = 0;
+            if (node->next_offset.compare_exchange_strong(expected_offset, new_node_idx))
             {
                 return id_index->hash_nodes + new_node_idx;
             }
         }
     }
 
-    static gaia_locator_t find(gaia::common::gaia_id_t id)
+    static gaia_locator_t find(common::gaia_id_t id)
     {
-        locators_t* locators = gaia::db::get_locators();
-        id_index_t* id_index = gaia::db::get_id_index();
+        locators_t* locators = get_locators();
+        id_index_t* id_index = get_id_index();
         if (locators == nullptr)
         {
             throw no_open_transaction();
@@ -108,12 +107,12 @@ public:
         return c_invalid_gaia_locator;
     }
 
-    static void remove(gaia::common::gaia_id_t id)
+    static void remove(common::gaia_id_t id)
     {
-        id_index_t* id_index = gaia::db::get_id_index();
+        id_index_t* id_index = get_id_index();
         hash_node_t* node = id_index->hash_nodes + (id % c_hash_buckets);
 
-        while (node->id != gaia::common::c_invalid_gaia_id)
+        while (node->id != common::c_invalid_gaia_id)
         {
             if (node->id == id)
             {

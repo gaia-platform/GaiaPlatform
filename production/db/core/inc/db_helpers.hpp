@@ -31,39 +31,31 @@ namespace db
 inline common::gaia_id_t allocate_id()
 {
     counters_t* counters = gaia::db::get_counters();
-    common::gaia_id_t id = __sync_add_and_fetch(&counters->last_id, 1);
-    return id;
+    return ++(counters->last_id);
 }
 
 inline common::gaia_type_t allocate_type()
 {
     counters_t* counters = gaia::db::get_counters();
-    common::gaia_type_t type = __sync_add_and_fetch(&counters->last_type_id, 1);
-    return type;
+    return ++(counters->last_type_id);
 }
 
 inline gaia_txn_id_t allocate_txn_id()
 {
     counters_t* counters = gaia::db::get_counters();
-    gaia_txn_id_t txn_id = __sync_add_and_fetch(&counters->last_txn_id, 1);
-    return txn_id;
+    return ++(counters->last_txn_id);
 }
 
 inline gaia_locator_t allocate_locator()
 {
     counters_t* counters = gaia::db::get_counters();
 
-    // We need an acquire barrier before reading `last_locator`. We can
-    // change this full barrier to an acquire barrier when we change to proper
-    // C++ atomic types.
-    __sync_synchronize();
-
     if (counters->last_locator >= c_max_locators)
     {
         throw system_object_limit_exceeded();
     }
 
-    return __sync_add_and_fetch(&counters->last_locator, 1);
+    return ++(counters->last_locator);
 }
 
 inline void update_locator(gaia_locator_t locator, gaia_offset_t offset)
@@ -77,11 +69,6 @@ inline bool locator_exists(gaia_locator_t locator)
 {
     locators_t* locators = gaia::db::get_locators();
     counters_t* counters = gaia::db::get_counters();
-
-    // We need an acquire barrier before reading `last_locator`. We can
-    // change this full barrier to an acquire barrier when we change to proper
-    // C++ atomic types.
-    __sync_synchronize();
 
     return (locator != c_invalid_gaia_locator)
         && (locator <= counters->last_locator)

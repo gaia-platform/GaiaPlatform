@@ -191,10 +191,6 @@ void persistent_store_manager::recover()
     m_rdb_internal->handle_rdb_error(it->status());
     m_counters->last_id = max_id;
     m_counters->last_type_id = max_type_id;
-
-    // Ensure that other threads (with appropriate acquire barriers) immediately
-    // observe the changed value. (This could be changed to a release barrier.)
-    __sync_synchronize();
 }
 
 void persistent_store_manager::destroy_persistent_store()
