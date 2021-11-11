@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <type_traits>
+
 namespace gaia
 {
 /**
@@ -24,99 +26,41 @@ namespace common
  *
  * @tparam T The integer type used by this class.
  */
-template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>>
+template <typename T>
 class int_type_t
 {
 public:
-    constexpr int_type_t()
-    {
-        m_value = 0;
-    }
-
-    constexpr int_type_t(T value)
-    {
-        m_value = value;
-    }
+    constexpr int_type_t();
+    constexpr int_type_t(T value);
 
     // This conversion operator will enable many direct operations with integers.
-    operator T() const
-    {
-        return m_value;
-    }
+    operator T() const;
 
     // For explicit retrieval of contained value.
-    T value() const
-    {
-        return m_value;
-    }
+    constexpr T value() const;
 
     // For direct updating of contained value.
-    T* value_ptr()
-    {
-        return &m_value;
-    }
+    T* value_ptr();
 
     // For additional safety (so as to prevent the mixing of apples and oranges),
     // all these operators will only allow operations with identical types.
-    int_type_t& operator+=(const int_type_t& other)
-    {
-        this->m_value += other.m_value;
-        return *this;
-    }
+    int_type_t& operator+=(const int_type_t& other);
+    int_type_t& operator-=(const int_type_t& other);
+    int_type_t& operator*=(const int_type_t& other);
+    int_type_t& operator/=(const int_type_t& other);
+    int_type_t& operator%=(const int_type_t& other);
 
-    int_type_t& operator-=(const int_type_t& other)
-    {
-        this->m_value -= other.m_value;
-        return *this;
-    }
+    int_type_t& operator++();
+    int_type_t operator++(int);
 
-    int_type_t& operator*=(const int_type_t& other)
-    {
-        this->m_value *= other.m_value;
-        return *this;
-    }
-
-    int_type_t& operator/=(const int_type_t& other)
-    {
-        this->m_value /= other.m_value;
-        return *this;
-    }
-
-    int_type_t& operator%=(const int_type_t& other)
-    {
-        this->m_value %= other.m_value;
-        return *this;
-    }
-
-    int_type_t& operator++()
-    {
-        this->m_value += 1;
-        return *this;
-    }
-
-    int_type_t operator++(int)
-    {
-        int_type_t pre_value = *this;
-        this->m_value += 1;
-        return pre_value;
-    }
-
-    int_type_t& operator--()
-    {
-        this->m_value -= 1;
-        return *this;
-    }
-
-    int_type_t operator--(int)
-    {
-        int_type_t pre_value = *this;
-        this->m_value -= 1;
-        return pre_value;
-    }
+    int_type_t& operator--();
+    int_type_t operator--(int);
 
 protected:
     T m_value;
 };
+
+#include "int_type.inc"
 
 /*@}*/
 } // namespace common

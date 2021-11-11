@@ -36,6 +36,7 @@ constexpr char c_empty_string[] = "";
 class gaia_id_t : public int_type_t<uint64_t>
 {
 public:
+    // By default, we should initialize to an invalid value.
     constexpr gaia_id_t()
     {
         m_value = 0;
@@ -50,7 +51,11 @@ public:
 /**
  * The value of an invalid gaia_id_t.
  */
-constexpr gaia_id_t c_invalid_gaia_id = 0;
+constexpr gaia_id_t c_invalid_gaia_id;
+
+// This assertion ensures that the default type initialization
+// matches the value of the invalid constant.
+static_assert(c_invalid_gaia_id.value() == 0, "Invalid c_invalid_gaia_id initialization!");
 
 /**
  * The type of a Gaia type identifier.
