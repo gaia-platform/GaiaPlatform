@@ -29,7 +29,7 @@ public:
         }
 
         hash_node_t* node = id_index->hash_nodes + (id % c_hash_buckets);
-        common::gaia_id_t expected_id = common::c_invalid_gaia_id;
+        uint64_t expected_id = common::c_invalid_gaia_id;
         if (node->id.compare_exchange_strong(expected_id, id))
         {
             return node;
