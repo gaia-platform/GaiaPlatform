@@ -167,8 +167,8 @@ void update_index_entry(
                 = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(begin_ts);
 
             ASSERT_PRECONDITION(
-                transactions::txn_metadata_t::is_begin_ts(begin_ts),
-                "Transaction id in index key entry is not a begin timestamp!");
+                begin_ts == c_frozen_gaia_txn_id || transactions::txn_metadata_t::is_begin_ts(begin_ts),
+                "Transaction id in index key entry is not frozen or a begin timestamp!");
 
             // Index entries made by rolled back transactions or aborted transactions can be ignored,
             // We can also remove them, because we are already holding a lock.
