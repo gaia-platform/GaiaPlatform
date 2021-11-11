@@ -21,8 +21,8 @@ namespace common
  */
 
 /**
- * @brief This class is meant to help define type-safe custom integer-based types.
- * It should provide a type-safe alternative to using typedef.
+ * @brief This class defines a base class for type-safe custom integer-based types.
+ * It provides a type-safe alternative to using typedef.
  *
  * @tparam T The integer type used by this class.
  */

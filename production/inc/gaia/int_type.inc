@@ -5,14 +5,14 @@
 
 template <typename T>
 constexpr int_type_t<T>::int_type_t()
+    : m_value(0)
 {
-    m_value = 0;
 }
 
 template <typename T>
 constexpr int_type_t<T>::int_type_t(T value)
+    : m_value(value)
 {
-    m_value = value;
 }
 
 // This conversion operator will enable many direct operations with integers.

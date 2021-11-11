@@ -38,13 +38,13 @@ class gaia_id_t : public int_type_t<uint64_t>
 public:
     // By default, we should initialize to an invalid value.
     constexpr gaia_id_t()
+        : int_type_t<uint64_t>()
     {
-        m_value = 0;
     }
 
     constexpr gaia_id_t(uint64_t value)
+        : int_type_t<uint64_t>(value)
     {
-        m_value = value;
     }
 };
 
