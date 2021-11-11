@@ -180,6 +180,20 @@ private:
     static inline std::atomic<uint64_t>* s_txn_metadata_map{nullptr};
 };
 
+// Special ts values/masks.
+constexpr uint64_t c_txn_ts_frozen_shift{63ULL};
+constexpr uint64_t c_txn_ts_frozen_mask{1ULL << c_txn_ts_frozen_shift};
+
+constexpr gaia_txn_id_t is_frozen(gaia_txn_id_t txn_id)
+{
+    return (txn_id & c_txn_ts_frozen_mask) == c_txn_ts_frozen_mask;
+}
+
+constexpr gaia_txn_id_t set_txn_frozen(gaia_txn_id_t txn_id)
+{
+    return txn_id | c_txn_ts_frozen_mask;
+}
+
 #include "txn_metadata.inc"
 
 } // namespace transactions

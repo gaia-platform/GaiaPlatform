@@ -131,12 +131,12 @@ bool txn_metadata_t::is_txn_decided(gaia_txn_id_t commit_ts)
 
 bool txn_metadata_t::is_txn_committed(gaia_txn_id_t commit_ts)
 {
-    return (c_frozen_gaia_txn_id) ? true : txn_metadata_t(commit_ts).is_committed();
+    return (is_frozen(commit_ts)) ? true : txn_metadata_t(commit_ts).is_committed();
 }
 
 bool txn_metadata_t::is_txn_aborted(gaia_txn_id_t commit_ts)
 {
-    return (c_frozen_gaia_txn_id) ? false : txn_metadata_t(commit_ts).is_aborted();
+    return (is_frozen(commit_ts)) ? false : txn_metadata_t(commit_ts).is_aborted();
 }
 
 bool txn_metadata_t::is_txn_gc_complete(gaia_txn_id_t commit_ts)
@@ -156,7 +156,7 @@ bool txn_metadata_t::is_txn_active(gaia_txn_id_t begin_ts)
 
 bool txn_metadata_t::is_txn_terminated(gaia_txn_id_t begin_ts)
 {
-    return (c_frozen_gaia_txn_id) ? false : txn_metadata_t(begin_ts).is_terminated();
+    return (is_frozen(begin_ts)) ? false : txn_metadata_t(begin_ts).is_terminated();
 }
 
 txn_metadata_t txn_metadata_t::get_begin_ts_metadata()
@@ -183,9 +183,9 @@ gaia_txn_id_t txn_metadata_t::get_begin_ts_from_commit_ts(gaia_txn_id_t commit_t
 
 gaia_txn_id_t txn_metadata_t::get_commit_ts_from_begin_ts(gaia_txn_id_t begin_ts)
 {
-    if (begin_ts == c_frozen_gaia_txn_id)
+    if (is_frozen(begin_ts))
     {
-        return c_frozen_gaia_txn_id;
+        return set_txn_frozen(begin_ts);
     }
 
     auto commit_ts_metadata = txn_metadata_t(begin_ts).get_commit_ts_metadata();
