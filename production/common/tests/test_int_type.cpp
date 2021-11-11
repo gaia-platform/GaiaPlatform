@@ -167,7 +167,7 @@ void test_int_type()
 
     // Direct updating.
     data = nine;
-    (*data.value_ptr()) = seven.value();
+    data.value_ref() = seven.value();
     expected_result = seven;
     EXPECT_EQ(expected_result, data);
 }

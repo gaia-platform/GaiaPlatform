@@ -40,7 +40,7 @@ public:
     constexpr T value() const;
 
     // For direct updating of contained value.
-    T* value_ptr();
+    T& value_ref();
 
     // For additional safety (so as to prevent the mixing of apples and oranges),
     // all these operators will only allow operations with identical types.

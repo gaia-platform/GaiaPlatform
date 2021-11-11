@@ -97,7 +97,7 @@ PYBIND11_MODULE(gaia_db_pybind, m)
     register_exception<gaia::db::invalid_type>(m, "invalid_type");
 
     class_<gaia_id_t>(m, "gaia_id")
-        .def(init([](uint64_t i) { return new gaia_id_t(i); }));
+        .def(init([](uint64_t i) { return gaia_id_t(i); }));
 
     class_<gaia_ptr_t>(m, "gaia_ptr")
         .def_static(

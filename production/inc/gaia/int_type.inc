@@ -31,9 +31,9 @@ constexpr T int_type_t<T>::value() const
 
 // For direct updating of contained value.
 template <typename T>
-T* int_type_t<T>::value_ptr()
+T& int_type_t<T>::value_ref()
 {
-    return &m_value;
+    return m_value;
 }
 
 // For additional safety (so as to prevent the mixing of apples and oranges),
