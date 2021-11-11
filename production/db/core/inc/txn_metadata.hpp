@@ -184,14 +184,14 @@ private:
 constexpr uint64_t c_txn_ts_frozen_shift{63ULL};
 constexpr uint64_t c_txn_ts_frozen_mask{1ULL << c_txn_ts_frozen_shift};
 
-constexpr gaia_txn_id_t is_frozen(gaia_txn_id_t txn_id)
+constexpr gaia_txn_id_t is_frozen_ts(gaia_txn_id_t ts)
 {
-    return (txn_id & c_txn_ts_frozen_mask) == c_txn_ts_frozen_mask;
+    return (ts & c_txn_ts_frozen_mask) == c_txn_ts_frozen_mask;
 }
 
-constexpr gaia_txn_id_t set_txn_frozen(gaia_txn_id_t txn_id)
+constexpr gaia_txn_id_t set_ts_frozen(gaia_txn_id_t ts)
 {
-    return txn_id | c_txn_ts_frozen_mask;
+    return ts | c_txn_ts_frozen_mask;
 }
 
 #include "txn_metadata.inc"
