@@ -50,6 +50,12 @@ public:
         return m_value;
     }
 
+    // For direct updating of contained value.
+    T* value_ptr()
+    {
+        return &m_value;
+    }
+
     // For additional safety (so as to prevent the mixing of apples and oranges),
     // all these operators will only allow operations with identical types.
     int_type_t& operator+=(const int_type_t& other)
@@ -80,6 +86,32 @@ public:
     {
         this->m_value %= other.m_value;
         return *this;
+    }
+
+    int_type_t& operator++()
+    {
+        this->m_value += 1;
+        return *this;
+    }
+
+    int_type_t operator++(int)
+    {
+        int_type_t pre_value = *this;
+        this->m_value += 1;
+        return pre_value;
+    }
+
+    int_type_t& operator--()
+    {
+        this->m_value -= 1;
+        return *this;
+    }
+
+    int_type_t operator--(int)
+    {
+        int_type_t pre_value = *this;
+        this->m_value -= 1;
+        return pre_value;
     }
 
 protected:

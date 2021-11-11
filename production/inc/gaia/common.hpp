@@ -10,6 +10,8 @@
 #include <limits>
 #include <vector>
 
+#include "gaia/int_type.hpp"
+
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
 
@@ -31,7 +33,19 @@ constexpr char c_empty_string[] = "";
 /**
  * The type of a Gaia object identifier.
  */
-typedef uint64_t gaia_id_t;
+class gaia_id_t : public int_type_t<uint64_t>
+{
+public:
+    constexpr gaia_id_t()
+    {
+        m_value = 0;
+    }
+
+    constexpr gaia_id_t(uint64_t value)
+    {
+        m_value = value;
+    }
+};
 
 /**
  * The value of an invalid gaia_id_t.
@@ -117,6 +131,21 @@ constexpr char c_whitespace_chars[] = " \n\r\t\f\v";
 } // namespace common
 /*@}*/
 } // namespace gaia
+
+namespace std
+{
+
+// This enables gaia_id_t to be hashed and used as a key in maps.
+template <>
+struct hash<gaia::common::gaia_id_t>
+{
+    size_t operator()(const gaia::common::gaia_id_t& int_type) const noexcept
+    {
+        return std::hash<size_t>()(static_cast<size_t>(int_type.value()));
+    }
+};
+
+} // namespace std
 
 // Restore default hidden visibility for all symbols.
 #pragma GCC visibility pop
