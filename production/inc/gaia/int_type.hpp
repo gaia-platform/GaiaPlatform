@@ -26,7 +26,7 @@ namespace common
  *
  * @tparam T The integer type used by this class.
  */
-template <typename T>
+template <typename T, typename C = std::enable_if_t<std::is_integral<T>::value>>
 class int_type_t
 {
 public:
