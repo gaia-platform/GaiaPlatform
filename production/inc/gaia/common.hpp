@@ -48,6 +48,10 @@ public:
     }
 };
 
+static_assert(
+    sizeof(gaia_id_t) == sizeof(gaia_id_t::value_type),
+    "gaia_id_t has a different size than its underlying integer type!");
+
 /**
  * The value of an invalid gaia_id_t.
  */
