@@ -120,6 +120,11 @@ void rule_checker_t::check_fields(gaia_id_t id, const field_position_list_t& fie
         return;
     }
 
+    // Get the gaia_type_t corresponding to the id.
+    db::gaia_ptr_t gaia_ptr;
+    gaia_ptr.open(id);
+    gaia_type_t type = gaia_ptr.to_ptr()->type;
+
     gaia_table_t gaia_table = gaia_table_t::get(id);
     auto field_ids = list_fields(id);
 
@@ -140,7 +145,7 @@ void rule_checker_t::check_fields(gaia_id_t id, const field_position_list_t& fie
                 if (gaia_field.deprecated())
                 {
                     throw invalid_subscription(
-                        id, gaia_table.name(), requested_position, gaia_field.name(), gaia_field.deprecated());
+                        type, gaia_table.name(), requested_position, gaia_field.name(), gaia_field.deprecated());
                 }
                 found_requested_field = true;
                 break;
@@ -149,7 +154,7 @@ void rule_checker_t::check_fields(gaia_id_t id, const field_position_list_t& fie
 
         if (!found_requested_field)
         {
-            throw invalid_subscription(id, gaia_table.name(), requested_position);
+            throw invalid_subscription(type, gaia_table.name(), requested_position);
         }
     }
 }

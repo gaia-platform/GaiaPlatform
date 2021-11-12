@@ -36,7 +36,7 @@ namespace direct_access
  * for CRUD operations on the database.
  */
 
-template <gaia::common::gaia_type_t container_type_id, typename T_gaia, typename T_fb, typename T_obj>
+template <gaia::common::gaia_type_t::value_type container_type_id, typename T_gaia, typename T_fb, typename T_obj>
 class edc_writer_t;
 
 /**
@@ -47,7 +47,7 @@ class edc_writer_t;
  * @tparam T_fb the flatbuffer table type to be implemented
  * @tparam T_obj the mutable flatbuffer type to be implemented
  */
-template <gaia::common::gaia_type_t container_type_id, typename T_gaia, typename T_fb, typename T_obj>
+template <gaia::common::gaia_type_t::value_type container_type_id, typename T_gaia, typename T_fb, typename T_obj>
 class edc_object_t : public edc_base_t
 {
 public:
@@ -150,7 +150,7 @@ protected:
     }
 };
 
-template <gaia::common::gaia_type_t container_type_id, typename T_gaia, typename T_fb, typename T_obj>
+template <gaia::common::gaia_type_t::value_type container_type_id, typename T_gaia, typename T_fb, typename T_obj>
 class edc_writer_t : public T_obj, protected edc_db_t
 {
     friend edc_object_t<container_type_id, T_gaia, T_fb, T_obj>;

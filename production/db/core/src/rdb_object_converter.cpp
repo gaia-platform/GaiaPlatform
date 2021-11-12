@@ -68,7 +68,7 @@ db_object_t* gaia::db::persistence::decode_object(
     ASSERT_POSTCONDITION(key_reader.get_remaining_len_in_bytes() == 0, "Detected extra data when reading key!");
 
     // Read value.
-    value_reader.read_uint32(type);
+    value_reader.read_uint32(type.value_ref());
     value_reader.read_uint16(num_references);
     value_reader.read_uint16(size);
 
