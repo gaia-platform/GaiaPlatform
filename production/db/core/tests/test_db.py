@@ -11,10 +11,10 @@ begin_session();
 # First transaction - dump first 4 nodes (they must exist for catalog objects).
 begin_transaction();
 
-node1 = gaia_ptr.open(1);
-node2 = gaia_ptr.open(2);
-node3 = gaia_ptr.open(3);
-node4 = gaia_ptr.open(4);
+node1 = gaia_ptr.open(gaia_id(1));
+node2 = gaia_ptr.open(gaia_id(2));
+node3 = gaia_ptr.open(gaia_id(3));
+node4 = gaia_ptr.open(gaia_id(4));
 
 print_node(node1, False);
 print_node(node2, False);

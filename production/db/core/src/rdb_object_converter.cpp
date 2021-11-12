@@ -64,7 +64,7 @@ db_object_t* gaia::db::persistence::decode_object(
     gaia::db::persistence::string_reader_t value_reader(value);
 
     // Read key.
-    key_reader.read_uint64(id);
+    key_reader.read_uint64(id.value_ref());
     ASSERT_POSTCONDITION(key_reader.get_remaining_len_in_bytes() == 0, "Detected extra data when reading key!");
 
     // Read value.
@@ -76,7 +76,7 @@ db_object_t* gaia::db::persistence::decode_object(
     gaia_id_t refs[num_references];
     for (size_t i = 0; i < num_references; i++)
     {
-        value_reader.read_uint64(refs[i]);
+        value_reader.read_uint64(refs[i].value_ref());
     }
 
     auto data_size = size - num_references * sizeof(gaia_id_t);

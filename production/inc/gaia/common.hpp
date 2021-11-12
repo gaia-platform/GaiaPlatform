@@ -10,6 +10,8 @@
 #include <limits>
 #include <vector>
 
+#include "gaia/int_type.hpp"
+
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
 
@@ -31,12 +33,33 @@ constexpr char c_empty_string[] = "";
 /**
  * The type of a Gaia object identifier.
  */
-typedef uint64_t gaia_id_t;
+class gaia_id_t : public int_type_t<uint64_t>
+{
+public:
+    // By default, we should initialize to an invalid value.
+    constexpr gaia_id_t()
+        : int_type_t<uint64_t>()
+    {
+    }
+
+    constexpr gaia_id_t(uint64_t value)
+        : int_type_t<uint64_t>(value)
+    {
+    }
+};
+
+static_assert(
+    sizeof(gaia_id_t) == sizeof(gaia_id_t::value_type),
+    "gaia_id_t has a different size than its underlying integer type!");
 
 /**
  * The value of an invalid gaia_id_t.
  */
-constexpr gaia_id_t c_invalid_gaia_id = 0;
+constexpr gaia_id_t c_invalid_gaia_id;
+
+// This assertion ensures that the default type initialization
+// matches the value of the invalid constant.
+static_assert(c_invalid_gaia_id.value() == 0, "Invalid c_invalid_gaia_id initialization!");
 
 /**
  * The type of a Gaia type identifier.
@@ -117,6 +140,21 @@ constexpr char c_whitespace_chars[] = " \n\r\t\f\v";
 } // namespace common
 /*@}*/
 } // namespace gaia
+
+namespace std
+{
+
+// This enables gaia_id_t to be hashed and used as a key in maps.
+template <>
+struct hash<gaia::common::gaia_id_t>
+{
+    size_t operator()(const gaia::common::gaia_id_t& gaia_id) const noexcept
+    {
+        return std::hash<gaia::common::gaia_id_t::value_type>()(gaia_id.value());
+    }
+};
+
+} // namespace std
 
 // Restore default hidden visibility for all symbols.
 #pragma GCC visibility pop

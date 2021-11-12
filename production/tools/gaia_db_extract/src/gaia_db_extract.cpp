@@ -45,7 +45,7 @@ static json_t to_json(gaia_field_t field)
     json_t json;
 
     json["name"] = field.name();
-    json["id"] = field.gaia_id();
+    json["id"] = field.gaia_id().value();
     json["position"] = field.position();
     json["repeated_count"] = field.repeated_count();
     json["type"] = get_data_type_name(data_type_t(field.type()));
@@ -59,7 +59,7 @@ static json_t to_json(gaia_table_t table)
     json_t json;
 
     json["name"] = table.name();
-    json["id"] = table.gaia_id();
+    json["id"] = table.gaia_id().value();
     json["type"] = table.type();
 
     for (const auto& field : table.gaia_fields())
@@ -237,7 +237,7 @@ static string dump_rows(string database, string table, uint64_t start_after, uin
                     auto value = table_iterator.extract_field_value(field_object.repeated_count(), field_object.position());
                     add_field_value(row, field_object, value);
                 }
-                row["row_id"] = table_iterator.gaia_id();
+                row["row_id"] = table_iterator.gaia_id().value();
                 rows["rows"].push_back(row);
 
                 // Next row.

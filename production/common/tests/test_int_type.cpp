@@ -7,7 +7,7 @@
 
 #include "gtest/gtest.h"
 
-#include "gaia_internal/common/int_type.hpp"
+#include "gaia/int_type.hpp"
 
 using namespace std;
 using namespace gaia::common;
@@ -132,6 +132,44 @@ void test_int_type()
     result = 9;
     result /= 7;
     EXPECT_EQ(expected_result, result);
+
+    // Post-increment.
+    int_type_t<T> data = nine;
+    result = data++;
+    expected_result = 9;
+    EXPECT_EQ(expected_result, result);
+    expected_result++;
+    EXPECT_EQ(expected_result, data);
+
+    // Pre-increment.
+    data = nine;
+    result = ++data;
+    expected_result = 9;
+    ++expected_result;
+    EXPECT_EQ(expected_result, result);
+    EXPECT_EQ(expected_result, data);
+
+    // Post-decrement.
+    data = nine;
+    result = data--;
+    expected_result = 9;
+    EXPECT_EQ(expected_result, result);
+    expected_result--;
+    EXPECT_EQ(expected_result, data);
+
+    // Pre-decrement.
+    data = nine;
+    result = --data;
+    expected_result = 9;
+    --expected_result;
+    EXPECT_EQ(expected_result, result);
+    EXPECT_EQ(expected_result, data);
+
+    // Direct updating.
+    data = nine;
+    data.value_ref() = seven.value();
+    expected_result = seven;
+    EXPECT_EQ(expected_result, data);
 }
 
 TEST(common, int_type)

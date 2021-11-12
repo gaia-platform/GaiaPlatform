@@ -96,6 +96,9 @@ PYBIND11_MODULE(gaia_db_pybind, m)
     register_exception<gaia::db::object_too_large>(m, "object_too_large");
     register_exception<gaia::db::invalid_type>(m, "invalid_type");
 
+    class_<gaia_id_t>(m, "gaia_id")
+        .def(init([](uint64_t i) { return gaia_id_t(i); }));
+
     class_<gaia_ptr_t>(m, "gaia_ptr")
         .def_static(
             "create",

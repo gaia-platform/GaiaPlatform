@@ -165,7 +165,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("child_field_positions", data_type_t::e_uint16, 0));
         create_table_impl(
             c_catalog_db_name, "gaia_relationship", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_id_t>(catalog_table_type_t::gaia_relationship));
+            static_cast<gaia_type_t>(catalog_table_type_t::gaia_relationship));
         // create relationship gaia_catalog_relationship_parent (
         //     catalog.gaia_table.outgoing_relationships -> catalog.gaia_relationship[],
         //     catalog.gaia_relationship.parent -> catalog.gaia_table
@@ -938,7 +938,8 @@ void ddl_executor_t::switch_db_context(const string& db_name)
     m_db_context = db_name;
 }
 
-std::vector<gaia_id_t> ddl_executor_t::find_table_field_ids(gaia_id_t table_id, const std::vector<std::string>& field_names)
+std::vector<gaia_id_t> ddl_executor_t::find_table_field_ids(
+    gaia_id_t table_id, const std::vector<std::string>& field_names)
 {
     std::vector<gaia_id_t> field_ids;
 
@@ -1002,12 +1003,17 @@ gaia_id_t ddl_executor_t::create_index(
     }
 
     std::vector<gaia_id_t> index_field_ids = find_table_field_ids(table_id, field_names);
+    // This cast works because a gaia_id_t is a thin wrapper over uint64_t,
+    // but its success is not guaranteed by the language and is undefined behavior (UB).
+    // TODO: Replace reinterpret_cast with bit_cast when it becomes available.
+    std::vector<gaia_id_t::value_type>* index_field_id_values
+        = reinterpret_cast<std::vector<gaia_id_t::value_type>*>(&index_field_ids);
 
     gaia_id_t index_id = gaia_index_t::insert_row(
         index_name.c_str(),
         unique,
         static_cast<uint8_t>(type),
-        index_field_ids);
+        *index_field_id_values);
 
     gaia_table_t::get(table_id).gaia_indexes().insert(index_id);
 
