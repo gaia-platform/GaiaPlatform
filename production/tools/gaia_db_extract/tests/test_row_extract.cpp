@@ -85,8 +85,8 @@ protected:
         // Create a bunch of employee rows.
         for (uint32_t i = 0; i < number_rows_inserted; i++)
         {
-            string empl_name = "Mr. " + std::to_string(i);
-            create_employee(empl_name.c_str());
+            string name = "Mr. " + std::to_string(i);
+            create_employee(name.c_str());
         }
 
         commit_transaction();
@@ -95,7 +95,7 @@ protected:
         uint64_t row_id = c_start_at_first;
         int32_t row_count = 0;
         int32_t block_count = 0;
-        for (;;)
+        while (true)
         {
             // Produce the JSON string of this selection.
             auto extracted_rows = gaia_db_extract("addr_book", "employee", row_id, block_size);
@@ -113,6 +113,7 @@ protected:
                 ++row_count;
             }
         }
+
         if (block_size > 0)
         {
             if (number_rows_inserted > 0)
