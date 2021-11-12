@@ -32,14 +32,24 @@ class int_type_t
 public:
     using value_type = T;
 
-    constexpr int_type_t();
-    constexpr int_type_t(T value);
+    constexpr int_type_t()
+        : m_value(0)
+    {
+    }
+
+    constexpr int_type_t(T value)
+        : m_value(value)
+    {
+    }
 
     // This conversion operator will enable many direct operations with integers.
     operator T() const;
 
     // For explicit retrieval of contained value.
-    constexpr T value() const;
+    constexpr T value() const
+    {
+        return m_value;
+    }
 
     // For direct updating of contained value.
     T& value_ref();
@@ -61,8 +71,6 @@ public:
 protected:
     T m_value;
 };
-
-#include "int_type.inc"
 
 /*@}*/
 } // namespace common
