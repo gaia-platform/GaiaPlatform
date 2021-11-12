@@ -113,26 +113,6 @@ if ! rm -rf "$SCRIPTPATH/output"/* > "$TEMP_FILE" 2>&1; then
     complete_process 1 "Script cannot clean output directory before proceeding."
 fi
 
-
-if [ "$VERBOSE_MODE" -ne 0 ]; then
-    echo "Placing tooled 'gdev.cfg' file in root production directory."
-fi
-if ! diff "$SCRIPTPATH/../gdev.cfg" "$SCRIPTPATH/gdev.cfg" > "$TEMP_FILE" 2>&1; then
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Backing up existing gdev.cfg in the root production directory."
-    fi
-    cp "$SCRIPTPATH/../gdev.cfg" "$SCRIPTPATH/../gdev.cfg.old"
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Copying coverage gdev.cfg to the root production directory."
-    fi
-    cp "$SCRIPTPATH/gdev.cfg" "$SCRIPTPATH/../gdev.cfg"
-else
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Coverage gdev.cfg is already present in the root production directory."
-    fi
-fi
-
-
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Switching to the root production directory."
 fi
@@ -145,15 +125,7 @@ if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Executing coverage workflow in GCov container."
 fi
 
-gdev run --mounts ./coverage/output:output /source/production/coverage/gen_coverage.sh
-
-if [[ -f $SCRIPTPATH/../gdev.cfg.old ]]; then
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Restoring previous gdev.cfg file to root production directory."
-    fi
-    cp "$SCRIPTPATH/../gdev.cfg.old" "$SCRIPTPATH/../gdev.cfg"
-    rm "$SCRIPTPATH/../gdev.cfg.old"
-fi
+gdev run --cfg-enables Coverage --mounts ./coverage/output:output /source/production/coverage/gen_coverage.sh
 
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Setting proper permissions on output directory."

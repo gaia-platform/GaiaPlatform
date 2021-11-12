@@ -18,27 +18,25 @@ The remainder of this document will focus on #2:  building in your own local env
 For instructions on how to setup your environment, please see our *New Hire Guidelines* document on our GaiaPlatform wiki.
 
 ## Build Instructions
-Create a subfolder `GaiaPlatform/production/build` and then execute the following commands in it depending upon which set of targets you want to build:
+Create a build folder `BUILD_DIR` anywhere you like and then execute the following commands in it, depending on which set of targets you want to build:
 
 ### Core
 ```
-cmake ..
-make -j<number of CPUs>
+cmake -S GaiaPlatform/production -B $BUILD_DIR
+make -j $(nproc)
 ```
-If `CMAKE_BUILD_TYPE` is not specified on the command line, then by default we add compile and link flags to include debugging information.
+If `CMAKE_BUILD_TYPE` is not specified on the command line, then it is set to `Release` by default. We also default to compiler and linker options that generate enough debugging information to enable readable stack traces, even in `Release` builds.
 
 ### SDK
 ```
-cmake -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_RELEASE=ON ..
-make -j<number of CPUs>
+cmake -S GaiaPlatform/production -B $BUILD_DIR -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_SDK=ON
+make -j $(nproc)
 ```
 To install CPackDebHelper, you can follow the steps in the CPackDebHelper [gdev.cfg](https://github.com/gaia-platform/GaiaPlatform/blob/master/third_party/production/CPackDebHelper/gdev.cfg) file. Note that you can specify your own path to the CPackDebHelper `cmake` module depending upon where you install it.
 
-If `BUILD_GAIA_RELEASE` is set to `ON` then `CMAKE_BUILD_TYPE` will be set to `Release`. This is done by default because debug builds of LLVM take much longer than retail builds.  We've also seen some of our local dev machines run out of memory when attempting to do debug LLVM builds.
-
 #### Building the distribution packages
 
-After building the SDK, it becomes possible to also build the distribution packages. To do this, execute the following command in the `GaiaPlatform/production/build` folder:
+After building the SDK, you can also build the distribution packages. To do this, execute the following command in the `GaiaPlatform/production/build` folder:
 
 ```
 make package
@@ -47,10 +45,12 @@ make package
 After generating the packages, the Debian package can be installed by executing the following command, after making sure to update the referenced package version to match what was produced by the build:
 
 ```
-sudo apt install ./gaia-0.1.0_amd64.deb
+sudo apt install ./gaia-0.3.2_amd64.deb
 ```
 
-For uninstalling the package, execute:
+(Note that the leading `./` is necessary for `apt` to undrstand that this is a path to a file, not a package name.)
+
+To uninstall the package, execute:
 
 ```
 sudo apt remove gaia
@@ -58,23 +58,24 @@ sudo apt remove gaia
 
 ### LLVMTests
 ```
-cmake -DBUILD_GAIA_LLVM_TESTS=ON ..
-make -j<number of CPUs> check-all
+cmake -S GaiaPlatform/production -B $BUILD_DIR -DENABLE_SDK_TESTS=ON
+make -j $(nproc) check-all
 ```
-
-If `BUILD_GAIA_LLVM_TESTS` is set to `ON` then `CMAKE_BUILD_TYPE` will be set to `Release` as well.
 
 ### Other Flags
-Other CMake variables we use but are not required:
+Other CMake variables that we use but are not required:
 
 ```
-# Override the build type to Debug or Release.
-# If explicitly set to Debug, then address sanitizer will be enabled.
--DCMAKE_BUILD_TYPE=Debug|Release
+# Override the build type to Debug, Release, or RelWithDebInfo (i.e., release-level optimizations with additional debugging information).
+# If the build type is Debug, then AddressSanitizer, LeakSanitizer, and UndefinedBehaviorSanitizer will be enabled by default.
+-DCMAKE_BUILD_TYPE=Debug|Release|RelWithDebInfo
 
 # Get more info on CMake messages.
 --log-level=VERBOSE
 
 # Suppress CMake dev warnings.
 -Wno-dev
+
+# Enable verbose build output.
+-DCMAKE_VERBOSE_MAKEFILE=ON
 ```

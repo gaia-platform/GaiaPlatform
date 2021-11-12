@@ -243,7 +243,7 @@ elseif(CMAKE_COMPILER_IS_GNUCXX)
     "${CMAKE_CXX_FLAGS} -fsigned-char")
 
 elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-  if (BUILD_GAIA_RELEASE)
+  if (CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS
       "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wextra -Wno-unused-parameter")
     set(CMAKE_EXE_LINKER_FLAGS "-pthread")
