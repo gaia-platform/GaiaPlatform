@@ -146,7 +146,7 @@ struct hash<gaia::common::gaia_id_t>
 {
     size_t operator()(const gaia::common::gaia_id_t& gaia_id) const noexcept
     {
-        return std::hash<size_t>()(gaia_id.value());
+        return std::hash<gaia::common::gaia_id_t::value_type>()(gaia_id.value());
     }
 };
 
