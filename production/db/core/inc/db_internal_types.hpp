@@ -96,7 +96,7 @@ typedef std::atomic<gaia_offset_t> locators_t[c_max_locators + 1];
 struct hash_node_t
 {
     // To enable atomic operations, we use the base integer type instead of gaia_id_t.
-    std::atomic<uint64_t> id;
+    std::atomic<common::gaia_id_t::value_type> id;
     std::atomic<size_t> next_offset;
     std::atomic<gaia_locator_t> locator;
 };
@@ -171,7 +171,7 @@ struct counters_t
     // segment, and the OS automatically zeroes new pages.
     //
     // To enable atomic operations, we use the base integer type instead of gaia_id_t.
-    std::atomic<uint64_t> last_id;
+    std::atomic<common::gaia_id_t::value_type> last_id;
     std::atomic<common::gaia_type_t> last_type_id;
     std::atomic<gaia_txn_id_t> last_txn_id;
     std::atomic<gaia_locator_t> last_locator;

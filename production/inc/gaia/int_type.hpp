@@ -30,6 +30,8 @@ template <typename T>
 class int_type_t
 {
 public:
+    using value_type = T;
+
     constexpr int_type_t();
     constexpr int_type_t(T value);
 

@@ -1006,7 +1006,8 @@ gaia_id_t ddl_executor_t::create_index(
     // This cast works because a gaia_id_t is a thin wrapper over uint64_t,
     // but its success is not guaranteed by the language and is undefined behavior (UB).
     // TODO: Replace reinterpret_cast with bit_cast when it becomes available.
-    std::vector<uint64_t>* index_field_id_values = reinterpret_cast<std::vector<uint64_t>*>(&index_field_ids);
+    std::vector<gaia_id_t::value_type>* index_field_id_values
+        = reinterpret_cast<std::vector<gaia_id_t::value_type>*>(&index_field_ids);
 
     gaia_id_t index_id = gaia_index_t::insert_row(
         index_name.c_str(),
