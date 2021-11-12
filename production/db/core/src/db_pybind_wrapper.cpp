@@ -99,6 +99,9 @@ PYBIND11_MODULE(gaia_db_pybind, m)
     class_<gaia_id_t>(m, "gaia_id")
         .def(init([](uint64_t i) { return gaia_id_t(i); }));
 
+    class_<gaia_type_t>(m, "gaia_type")
+        .def(init([](uint32_t i) { return gaia_type_t(i); }));
+
     class_<gaia_ptr_t>(m, "gaia_ptr")
         .def_static(
             "create",

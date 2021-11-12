@@ -15,7 +15,7 @@ namespace common
 {
 
 constexpr gaia_type_t c_system_table_reserved_range = 4096;
-constexpr gaia_type_t c_system_table_reserved_range_end = std::numeric_limits<gaia_type_t>::max();
+constexpr gaia_type_t c_system_table_reserved_range_end = std::numeric_limits<gaia_type_t::value_type>::max();
 constexpr gaia_type_t c_system_table_reserved_range_start
     = c_system_table_reserved_range_end.value() - c_system_table_reserved_range.value() + 1;
 
