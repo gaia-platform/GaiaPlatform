@@ -144,9 +144,9 @@ namespace std
 template <>
 struct hash<gaia::common::gaia_id_t>
 {
-    size_t operator()(const gaia::common::gaia_id_t& int_type) const noexcept
+    size_t operator()(const gaia::common::gaia_id_t& gaia_id) const noexcept
     {
-        return std::hash<size_t>()(static_cast<size_t>(int_type.value()));
+        return std::hash<size_t>()(gaia_id.value());
     }
 };
 

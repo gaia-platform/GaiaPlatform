@@ -134,7 +134,9 @@ namespace db
 
 [[nodiscard]] const flatbuffers::Vector<common::gaia_id_t>* index_view_t::fields() const
 {
-    // This cast is safe because a gaia_id_t is just a wrapper over uint64_t.
+    // This cast works because a gaia_id_t is a thin wrapper over uint64_t,
+    // but its success is not guaranteed by the language and is undefined behavior (UB).
+    // TODO: Replace reinterpret_cast with bit_cast when it becomes available.
     return reinterpret_cast<const flatbuffers::Vector<common::gaia_id_t>*>(
         catalog::Getgaia_index(m_obj_ptr->data())->fields());
 }

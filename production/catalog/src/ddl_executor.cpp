@@ -1003,7 +1003,9 @@ gaia_id_t ddl_executor_t::create_index(
     }
 
     std::vector<gaia_id_t> index_field_ids = find_table_field_ids(table_id, field_names);
-    // This cast is safe because a gaia_id_t is just a wrapper over uint64_t.
+    // This cast works because a gaia_id_t is a thin wrapper over uint64_t,
+    // but its success is not guaranteed by the language and is undefined behavior (UB).
+    // TODO: Replace reinterpret_cast with bit_cast when it becomes available.
     std::vector<uint64_t>* index_field_id_values = reinterpret_cast<std::vector<uint64_t>*>(&index_field_ids);
 
     gaia_id_t index_id = gaia_index_t::insert_row(
