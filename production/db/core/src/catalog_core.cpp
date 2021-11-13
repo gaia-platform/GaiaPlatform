@@ -174,7 +174,7 @@ table_list_t
 catalog_core_t::list_tables()
 {
     auto gaia_ptr_iterator = table_generator_t(gaia_ptr_t::find_all_iterator(
-        static_cast<gaia_type_t>(catalog_table_type_t::gaia_table)));
+        static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_table)));
     return range_from_generator(gaia_ptr_iterator);
 }
 

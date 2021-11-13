@@ -142,8 +142,8 @@ TEST_F(db_client_test, creation_fail_for_invalid_type)
 {
     begin_transaction();
     {
-        const gaia_id_t c_invalid_id = 8888;
-        EXPECT_THROW(gaia_ptr_t::create(c_invalid_id, 0, 0), invalid_type);
+        const gaia_type_t c_invalid_type = 8888;
+        EXPECT_THROW(gaia_ptr_t::create(c_invalid_type, 0, 0), invalid_type);
     }
     commit_transaction();
 }

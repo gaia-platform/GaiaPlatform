@@ -72,7 +72,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
         create_table_impl(
             c_catalog_db_name, "gaia_database", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t>(catalog_table_type_t::gaia_database));
+            static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_database));
     }
     {
         // create table gaia_table (
@@ -90,7 +90,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("serialization_template", data_type_t::e_uint8, 0));
         create_table_impl(
             c_catalog_db_name, "gaia_table", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t>(catalog_table_type_t::gaia_table));
+            static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_table));
         // create relationship gaia_catalog_database_table (
         //     catalog.gaia_database.gaia_tables -> catalog.gaia_table[],
         //     catalog.gaia_table.database -> catalog.gaia_database
@@ -122,7 +122,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("unique", data_type_t::e_bool, 1));
         create_table_impl(
             c_catalog_db_name, "gaia_field", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t>(catalog_table_type_t::gaia_field));
+            static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_field));
         // create relationship gaia_catalog_table_field (
         //     catalog.gaia_table.gaia_fields -> catalog.gaia_field[],
         //     catalog.gaia_field.table -> catalog.gaia_table
@@ -165,7 +165,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("child_field_positions", data_type_t::e_uint16, 0));
         create_table_impl(
             c_catalog_db_name, "gaia_relationship", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t>(catalog_table_type_t::gaia_relationship));
+            static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_relationship));
         // create relationship gaia_catalog_relationship_parent (
         //     catalog.gaia_table.outgoing_relationships -> catalog.gaia_relationship[],
         //     catalog.gaia_relationship.parent -> catalog.gaia_table
@@ -203,7 +203,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("serial_stream", data_type_t::e_string, 1));
         create_table_impl(
             c_catalog_db_name, "gaia_ruleset", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t>(catalog_table_type_t::gaia_ruleset));
+            static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_ruleset));
     }
     {
         // create table gaia_rule (
@@ -213,7 +213,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
         create_table_impl(
             c_catalog_db_name, "gaia_rule", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t>(catalog_table_type_t::gaia_rule));
+            static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_rule));
         // create relationship gaia_catalog_ruleset_rule (
         //     catalog.gaia_ruleset.rules -> catalog.gaia_rule[],
         //     catalog.gaia_rule.ruleset -> catalog.gaia_ruleset
@@ -239,7 +239,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("fields", data_type_t::e_uint64, 0));
         create_table_impl(
             "catalog", "gaia_index", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t>(catalog_table_type_t::gaia_index));
+            static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_index));
 
         create_relationship(
             "gaia_catalog_table_index",
@@ -268,7 +268,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("rules_invoked", data_type_t::e_bool, 1));
         create_table_impl(
             c_event_log_db_name, "event_log", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t>(system_table_type_t::event_log));
+            static_cast<gaia_type_t::value_type>(system_table_type_t::event_log));
     }
 
     // Create the special empty database. Tables created without specifying a
@@ -856,7 +856,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
 
     gaia_type_t table_type
         = (fixed_type == c_invalid_gaia_type)
-        ? generate_table_type(in_context(db_name), table_name)
+        ? gaia_type_t(generate_table_type(in_context(db_name), table_name))
         : fixed_type;
 
     gaia_id_t table_id = gaia_table_t::insert_row(

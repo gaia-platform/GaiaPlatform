@@ -105,7 +105,7 @@ static string dump_node(gaia_ptr_t& node_ptr, bool references, bool payload, int
     size_t num_references = node_ptr.num_references();
     sprintf(
         g_longstring, "id=%016lx, type=%08x, payload=%04zx, references=%02zx\n",
-        node_ptr.id().value(), node_ptr.type(), node_ptr.data_size(), num_references);
+        node_ptr.id().value(), node_ptr.type().value(), node_ptr.data_size(), num_references);
     dump += g_longstring;
     if (--line_limit == 0)
     {

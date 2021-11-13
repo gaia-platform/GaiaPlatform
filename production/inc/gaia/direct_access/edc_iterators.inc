@@ -95,7 +95,7 @@ typename edc_iterator_t<T_class>::pointer edc_iterator_t<T_class>::operator->()
 //
 
 // The begin() method returns either the first element, or the first element that satisfies m_filter_fn.
-template <gaia::common::gaia_type_t container_type_id, typename T_class>
+template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class>
 edc_iterator_t<T_class> edc_container_t<container_type_id, T_class>::begin() const
 {
     std::shared_ptr<edc_base_iterator_state_t> iterator_state
@@ -124,20 +124,20 @@ edc_iterator_t<T_class> edc_container_t<container_type_id, T_class>::begin() con
 }
 
 // The where() method constructs a edc_container_t with a std::function to be used for filtering.
-template <gaia::common::gaia_type_t container_type_id, typename T_class>
+template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class>
 edc_container_t<container_type_id, T_class> edc_container_t<container_type_id, T_class>::where(
     std::function<bool(const T_class&)> filter_function)
 {
     return edc_container_t<container_type_id, T_class>(filter_function);
 }
 
-template <gaia::common::gaia_type_t container_type_id, typename T_class>
+template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class>
 edc_iterator_t<T_class> edc_container_t<container_type_id, T_class>::end() const
 {
     return edc_iterator_t<T_class>(gaia::common::c_invalid_gaia_id);
 }
 
-template <gaia::common::gaia_type_t container_type_id, typename T_class>
+template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class>
 size_t edc_container_t<container_type_id, T_class>::size() const
 {
     return std::distance(begin(), end());

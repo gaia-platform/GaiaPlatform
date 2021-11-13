@@ -28,7 +28,7 @@ commit_transaction();
 begin_transaction();
 
 print("Iterating through nodes of type 'database' (4294967291): ", flush = True);
-node_iter = gaia_ptr.find_first(4294967291);
+node_iter = gaia_ptr.find_first(gaia_type(4294967291));
 while node_iter.is_null() != True:
     print_node(node_iter, False);
     node_iter = node_iter.find_next();

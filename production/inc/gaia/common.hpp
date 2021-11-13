@@ -64,12 +64,33 @@ static_assert(c_invalid_gaia_id.value() == 0, "Invalid c_invalid_gaia_id initial
 /**
  * The type of a Gaia type identifier.
  */
-typedef uint32_t gaia_type_t;
+class gaia_type_t : public int_type_t<uint32_t>
+{
+public:
+    // By default, we should initialize to an invalid value.
+    constexpr gaia_type_t()
+        : int_type_t<uint32_t>()
+    {
+    }
+
+    constexpr gaia_type_t(uint32_t value)
+        : int_type_t<uint32_t>(value)
+    {
+    }
+};
+
+static_assert(
+    sizeof(gaia_type_t) == sizeof(gaia_type_t::value_type),
+    "gaia_type_t has a different size than its underlying integer type!");
 
 /**
  * The value of an invalid gaia_type_t.
  */
-constexpr gaia_type_t c_invalid_gaia_type = 0;
+constexpr gaia_type_t c_invalid_gaia_type;
+
+// This assertion ensures that the default type initialization
+// matches the value of the invalid constant.
+static_assert(c_invalid_gaia_type.value() == 0, "Invalid c_invalid_gaia_type initialization!");
 
 /**
  * Opaque handle to a gaia record;
@@ -151,6 +172,16 @@ struct hash<gaia::common::gaia_id_t>
     size_t operator()(const gaia::common::gaia_id_t& gaia_id) const noexcept
     {
         return std::hash<gaia::common::gaia_id_t::value_type>()(gaia_id.value());
+    }
+};
+
+// This enables gaia_type_t to be hashed and used as a key in maps.
+template <>
+struct hash<gaia::common::gaia_type_t>
+{
+    size_t operator()(const gaia::common::gaia_type_t& gaia_type) const noexcept
+    {
+        return std::hash<gaia::common::gaia_type_t::value_type>()(gaia_type.value());
     }
 };
 

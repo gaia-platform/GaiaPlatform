@@ -12,77 +12,77 @@ namespace gaia
 namespace common
 {
 
-template <typename T>
-int_type_t<T>::operator T() const
+template <typename T, typename C>
+int_type_t<T, C>::operator T() const
 {
     return m_value;
 }
 
-template <typename T>
-T& int_type_t<T>::value_ref()
+template <typename T, typename C>
+T& int_type_t<T, C>::value_ref()
 {
     return m_value;
 }
 
-template <typename T>
-int_type_t<T>& int_type_t<T>::operator+=(const int_type_t<T>& other)
+template <typename T, typename C>
+int_type_t<T, C>& int_type_t<T, C>::operator+=(const int_type_t<T, C>& other)
 {
     this->m_value += other.m_value;
     return *this;
 }
 
-template <typename T>
-int_type_t<T>& int_type_t<T>::operator-=(const int_type_t<T>& other)
+template <typename T, typename C>
+int_type_t<T, C>& int_type_t<T, C>::operator-=(const int_type_t<T, C>& other)
 {
     this->m_value -= other.m_value;
     return *this;
 }
 
-template <typename T>
-int_type_t<T>& int_type_t<T>::operator*=(const int_type_t<T>& other)
+template <typename T, typename C>
+int_type_t<T, C>& int_type_t<T, C>::operator*=(const int_type_t<T, C>& other)
 {
     this->m_value *= other.m_value;
     return *this;
 }
 
-template <typename T>
-int_type_t<T>& int_type_t<T>::operator/=(const int_type_t<T>& other)
+template <typename T, typename C>
+int_type_t<T, C>& int_type_t<T, C>::operator/=(const int_type_t<T, C>& other)
 {
     this->m_value /= other.m_value;
     return *this;
 }
 
-template <typename T>
-int_type_t<T>& int_type_t<T>::operator%=(const int_type_t<T>& other)
+template <typename T, typename C>
+int_type_t<T, C>& int_type_t<T, C>::operator%=(const int_type_t<T, C>& other)
 {
     this->m_value %= other.m_value;
     return *this;
 }
 
-template <typename T>
-int_type_t<T>& int_type_t<T>::operator++()
+template <typename T, typename C>
+int_type_t<T, C>& int_type_t<T, C>::operator++()
 {
     this->m_value += 1;
     return *this;
 }
 
-template <typename T>
-int_type_t<T> int_type_t<T>::operator++(int)
+template <typename T, typename C>
+int_type_t<T, C> int_type_t<T, C>::operator++(int)
 {
     int_type_t pre_value = *this;
     this->m_value += 1;
     return pre_value;
 }
 
-template <typename T>
-int_type_t<T>& int_type_t<T>::operator--()
+template <typename T, typename C>
+int_type_t<T, C>& int_type_t<T, C>::operator--()
 {
     this->m_value -= 1;
     return *this;
 }
 
-template <typename T>
-int_type_t<T> int_type_t<T>::operator--(int)
+template <typename T, typename C>
+int_type_t<T, C> int_type_t<T, C>::operator--(int)
 {
     int_type_t pre_value = *this;
     this->m_value -= 1;
