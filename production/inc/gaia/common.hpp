@@ -279,6 +279,16 @@ struct hash<gaia::common::gaia_handle_t>
     }
 };
 
+// This enables gaia_event_t to be hashed and used as a key in maps.
+template <>
+struct hash<gaia::common::gaia_event_t>
+{
+    size_t operator()(const gaia::common::gaia_event_t& gaia_event) const noexcept
+    {
+        return std::hash<gaia::common::gaia_event_t::value_type>()(gaia_event.value());
+    }
+};
+
 // This enables field_position_t to be hashed and used as a key in maps.
 template <>
 struct hash<gaia::common::field_position_t>
