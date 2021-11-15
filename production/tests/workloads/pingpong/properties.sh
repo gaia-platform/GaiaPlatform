@@ -26,7 +26,7 @@ export SOURCE_PATHS=("pingpong.cpp")
 
 export GENERATED_CONFIGURATION_FILE=("pingpong.conf")
 
-export TEMPLATE_PATH=("$SCRIPTPATH/template")
+export TEMPLATE_PATH=("$SCRIPTPATH/../template")
 
 # ----------------------------------------------------
 # Variables that are general to this group of scripts.
@@ -59,6 +59,19 @@ copy_extra_test_files() {
 }
 
 # -----------------------------------------------------------------
+# Functions to specify project specific information for build.sh.
+#
+# This is placed in this file to make the core scripts as agnostic
+# as possible for reuse.
+# -----------------------------------------------------------------
+
+# With everything else set up, do the heavy lifting of building the project.
+build_project() {
+    generate_makefile
+    invoke_makefile
+}
+
+# -----------------------------------------------------------------
 # Functions to specify how to process the command line with run.sh.
 #
 # This is placed in this file to make the core scripts as agnostic
@@ -67,36 +80,59 @@ copy_extra_test_files() {
 
 export TEST_COMMAND_NAME="debug"
 
+# Any additional information to show about commands.
+show_usage_commands() {
+    echo ""
+    echo "  $TEST_COMMAND_NAME               Run the simulation in debug mode."
+}
+
 # Process a debug command which executes a file containing commands
 # and captures any output.  Normal assumption is that the output is
 # in the form of a JSON file.
 process_debug() {
-    local DEBUG_COMMAND_FILE=$1
+    local COMMAND_FILE=$1
     local SCRIPT_STOP_PAUSE=$2
 
-    EXECUTE_OUTPUT=$TEST_RESULTS_DIRECTORY/execute.json
-
-    if [ -z "$DEBUG_COMMAND_FILE" ]
-    then
-        complete_process 1 "No debug file to execute supplied for command 'debug'."
-    fi
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Executing the executable $EXECUTABLE_NAME in debug mode with input file: $(realpath "$DEBUG_COMMAND_FILE")"
+        echo "Executing the executable $EXECUTABLE_PATH in debug mode with input file: $(realpath "$COMMAND_FILE")"
     fi
+
+    echo "---"
+    echo "Application Log"
+    echo "---"
 
     # Run the commands and produce a JSON output file.
-    if ! "$EXECUTABLE_PATH" debug "$SCRIPT_STOP_PAUSE" < "$DEBUG_COMMAND_FILE" > "$EXECUTE_OUTPUT"; then
-        cat $EXECUTE_OUTPUT
+    if ! "$EXECUTABLE_PATH" debug "$SCRIPT_STOP_PAUSE" < "$COMMAND_FILE" > "$JSON_OUTPUT" 2> "$JSON_ERROR"; then
+        cat "$JSON_OUTPUT"
         complete_process 1 "Execution of the executable $EXECUTABLE_PATH in debug mode failed."
     fi
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Executable output file located at: $(realpath "$EXECUTE_OUTPUT")"
-    fi
+
+    tail -n 1 "$JSON_OUTPUT" > "$STOP_OUTPUT"
+    head -n -1 "$JSON_OUTPUT" > $TEST_DIRECTORY/blah
+    cp $TEST_DIRECTORY/blah "$JSON_OUTPUT"
+
+    echo "---"
+    echo "Application Standard Out"
+    echo "---"
+    cat "$JSON_OUTPUT"
+    echo "---"
+
+    echo "---"
+    echo "Application Standard Error"
+    echo "---"
+    cat "$JSON_ERROR"
+    echo "---"
 }
 
-# Process the various commands.
+# Process a debug command which executes a file containing commands
+# and captures any output.  Normal assumption is that the output is
+# in the form of a JSON file.
 execute_commands() {
     DEBUG_END_PAUSE=$2
+
+    JSON_OUTPUT=$BUILD_DIRECTORY/output.json
+    JSON_ERROR=$BUILD_DIRECTORY/stderr.json
+    STOP_OUTPUT=$BUILD_DIRECTORY/output.delay
 
     if [[ "${PARAMS[0]}" == "$TEST_COMMAND_NAME" ]]; then
         process_debug "${PARAMS[1]}" "$DEBUG_END_PAUSE"
@@ -106,8 +142,4 @@ execute_commands() {
     else
         complete_process 1 "Command '${PARAMS[0]}' not known."
     fi
-}
-
-show_usage_commands() {
-    echo "Commands:"
 }

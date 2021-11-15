@@ -66,3 +66,14 @@ production/output/*
 production/coverage/coverage.json
 production/tests/workloads/palletbox/json.hpp
 production/tests/suites/*
+production/tests/workloads/pingpong/build.sh
+production/tests/workloads/pingpong/install.sh
+production/tests/workloads/pingpong/json.hpp
+production/tests/workloads/pingpong/lint.sh
+production/tests/workloads/pingpong/run.sh
+production/tests/workloads/pingpong/test.sh
+production/tests/workloads/pingpong/python/generate_config.py
+production/tests/workloads/pingpong/python/summarize_test_results.py
+production/tests/workloads/pingpong/simulation_exceptions.hpp
+production/tests/workloads/pingpong/simulation.cpp
+production/tests/workloads/pingpong/simulation.hpp

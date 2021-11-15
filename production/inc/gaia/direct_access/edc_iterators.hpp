@@ -32,7 +32,7 @@ namespace direct_access
  * linked lists called "sets".
  */
 
-template <gaia::common::gaia_type_t container_type_id, typename T_class>
+template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class>
 class edc_container_t;
 
 // C++17 compliant way when std::iterator is deprecated.
@@ -44,7 +44,7 @@ class edc_container_t;
 template <typename T_class>
 class edc_iterator_t : protected edc_db_t
 {
-    template <gaia::common::gaia_type_t container_type_id, typename T_whatever_class>
+    template <gaia::common::gaia_type_t::value_type container_type_id, typename T_whatever_class>
     friend class edc_container_t;
 
 public:
@@ -80,7 +80,7 @@ protected:
 //
 // @tparam container_type_id the type identifier of Extended Data Class
 // @tparam T_class the class of the Extended Data Class
-template <gaia::common::gaia_type_t container_type_id, typename T_class>
+template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class>
 class edc_container_t : protected edc_db_t
 {
 public:

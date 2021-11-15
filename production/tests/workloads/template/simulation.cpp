@@ -3,9 +3,12 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <iostream>
-
 #include "simulation.hpp"
+
+#include <cxxabi.h>
+#include <execinfo.h>
+
+#include <iostream>
 
 using namespace std;
 
@@ -16,6 +19,7 @@ using namespace gaia::direct_access;
 using namespace gaia::rules;
 
 atomic<uint64_t> g_timestamp{1};
+atomic<int> g_rule_1_tracker{0};
 
 uint64_t generate_unique_millisecond_timestamp()
 {
@@ -26,7 +30,7 @@ void simulation_t::toggle_measurement()
 {
     if (!m_is_measured_duration_timer_on)
     {
-        printf("Measure timer activated.\n");
+        printf("Measure timer has been activated.\n");
         m_is_measured_duration_timer_on = true;
         m_measured_duration_start_mark = my_clock_t::now();
     }
@@ -36,7 +40,7 @@ void simulation_t::toggle_measurement()
         m_is_measured_duration_timer_on = false;
         m_have_measurement = true;
         m_measured_duration_in_microseconds = measured_duration_end_mark - m_measured_duration_start_mark;
-        printf("Measure timer deactivated.\n");
+        printf("Measure timer has been deactivated.\n");
     }
 }
 
@@ -44,14 +48,33 @@ void simulation_t::toggle_debug_mode()
 {
     if (m_debug_log_file == nullptr)
     {
-        printf("Debug log activated.\n");
+        printf("Debug log has been activated.\n");
         m_debug_log_file = fopen("test-results/debug.log", "w");
     }
     else
     {
         fclose(m_debug_log_file);
-        printf("Debug log deactivated.\n");
+        printf("Debug log has been deactivated.\n");
     }
+}
+
+void simulation_t::toggle_pause_mode()
+{
+    if (m_use_transaction_wait)
+    {
+        printf("Wait mode has been set to atomic.\n");
+        m_use_transaction_wait = false;
+    }
+    else
+    {
+        printf("Wait mode has been set to transaction.\n");
+        m_use_transaction_wait = true;
+    }
+}
+
+bool simulation_t::get_use_transaction_wait()
+{
+    return m_use_transaction_wait;
 }
 
 long simulation_t::get_processing_timeout_in_microseconds()
@@ -77,14 +100,14 @@ void simulation_t::handle_test(const string& input)
 {
     int limit = stoi(input.substr(1, input.size() - 1));
 
-    my_time_point_t start_transaction_start_mark = my_clock_t::now();
-    auto_transaction_t txn(auto_transaction_t::no_auto_begin);
-    my_time_point_t inside_transaction_start_mark = my_clock_t::now();
-
     if (!m_has_database_been_initialized)
     {
         handle_initialize("");
     }
+
+    my_time_point_t start_transaction_start_mark = my_clock_t::now();
+    auto_transaction_t txn(auto_transaction_t::no_auto_begin);
+    my_time_point_t inside_transaction_start_mark = my_clock_t::now();
 
     setup_test_data(limit);
 
@@ -92,7 +115,7 @@ void simulation_t::handle_test(const string& input)
     txn.commit();
     my_time_point_t commit_transaction_end_mark = my_clock_t::now();
 
-    wait_for_processing_to_complete(false, get_processing_timeout_in_microseconds());
+    wait_for_test_processing_to_complete(false, get_processing_timeout_in_microseconds());
 
     my_duration_in_microseconds_t start_transaction_duration = inside_transaction_start_mark - start_transaction_start_mark;
     my_duration_in_microseconds_t inside_transaction_duration = inside_transaction_end_mark - inside_transaction_start_mark;
@@ -104,7 +127,7 @@ void simulation_t::handle_test(const string& input)
     m_number_of_test_iterations = limit;
 }
 
-void simulation_t::wait_for_processing_to_complete(bool is_explicit_pause, long timeout_in_microseconds)
+void simulation_t::wait_for_test_processing_to_complete(bool is_explicit_pause, long timeout_in_microseconds)
 {
     my_time_point_t end_sleep_start_mark = my_clock_t::now();
 
@@ -147,7 +170,7 @@ void simulation_t::wait_for_processing_to_complete(bool is_explicit_pause, long 
 
     if (current_no_delta_attempt == maximum_no_delta_attempts)
     {
-        printf("\nwait_for_processing_to_complete -- TIMEOUT!!!\n");
+        printf("\nwait_for_test_processing_to_complete -- TIMEOUT!!!\n");
     }
 
     if (is_explicit_pause)
@@ -201,6 +224,104 @@ bool simulation_t::read_input()
     return !cin.eof();
 }
 
+void simulation_t::simulation_step()
+{
+    my_time_point_t start_transaction_start_mark = my_clock_t::now();
+    auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+    my_time_point_t inside_transaction_start_mark = my_clock_t::now();
+
+    my_duration_in_microseconds_t update_duration = perform_single_step();
+    m_update_row_duration_in_microseconds += update_duration.count();
+
+    my_time_point_t inside_transaction_end_mark = my_clock_t::now();
+    tx.commit();
+    my_time_point_t commit_transaction_end_mark = my_clock_t::now();
+
+    my_duration_in_microseconds_t start_transaction_duration = inside_transaction_start_mark - start_transaction_start_mark;
+    my_duration_in_microseconds_t inside_transaction_duration = inside_transaction_end_mark - inside_transaction_start_mark;
+    my_duration_in_microseconds_t end_transaction_duration = commit_transaction_end_mark - inside_transaction_end_mark;
+    m_total_start_transaction_duration_in_microseconds += start_transaction_duration.count();
+    m_total_inside_transaction_duration_in_microseconds += inside_transaction_duration.count();
+    m_total_end_transaction_duration_in_microseconds += end_transaction_duration.count();
+}
+
+int simulation_t::wait_for_step_processing_to_complete(bool is_explicit_pause, int initial_state_tracker, int timeout_in_microseconds)
+{
+    my_time_point_t end_sleep_start_mark = my_clock_t::now();
+
+    const int maximum_no_delta_attempts = timeout_in_microseconds / c_processing_pause_in_microseconds;
+
+    int timestamp = g_timestamp;
+
+    char trace_buffer[c_rules_firing_update_buffer_length];
+    char update_trace_buffer[c_rules_firing_update_buffer_length];
+    unsigned long space_left = sizeof(update_trace_buffer);
+    char* start_pointer = update_trace_buffer;
+    int amount_written = 0;
+
+    int current_no_delta_attempt;
+
+    for (current_no_delta_attempt = 0;
+         current_no_delta_attempt < maximum_no_delta_attempts;
+         current_no_delta_attempt++)
+    {
+        my_time_point_t check_start_mark = my_clock_t::now();
+        bool have_completed = has_step_completed(timestamp, initial_state_tracker);
+        my_time_point_t check_end_mark = my_clock_t::now();
+        my_duration_in_microseconds_t ms_double = check_end_mark - check_start_mark;
+        m_check_time_in_microseconds += ms_double.count();
+
+        if (m_debug_log_file != nullptr)
+        {
+            int new_amount_written = snprintf(start_pointer, space_left, "%d,", static_cast<int>(have_completed));
+            space_left -= new_amount_written;
+            start_pointer += new_amount_written;
+            amount_written += new_amount_written;
+        }
+        if (have_completed)
+        {
+            break;
+        }
+        sleep_for(c_processing_pause_in_microseconds);
+    }
+    my_time_point_t end_sleep_end_mark = my_clock_t::now();
+    my_duration_in_microseconds_t ms_double = end_sleep_end_mark - end_sleep_start_mark;
+
+    if (current_no_delta_attempt == maximum_no_delta_attempts)
+    {
+        printf("\nwait_for_step_processing_to_complete -- TIMEOUT!!!\n");
+    }
+
+    if (is_explicit_pause)
+    {
+        m_explicit_wait_time_in_microseconds += ms_double.count();
+    }
+    else
+    {
+        m_total_wait_time_in_microseconds += ms_double.count();
+    }
+    if (m_debug_log_file != nullptr)
+    {
+        int new_amount_written = snprintf(trace_buffer, sizeof(trace_buffer), "%d,%.9f,%s\n", timestamp, ms_double.count(), update_trace_buffer);
+        fwrite(trace_buffer, 1, new_amount_written, m_debug_log_file);
+    }
+    return current_no_delta_attempt;
+}
+
+void simulation_t::handle_multiple_steps(const string& input)
+{
+    int limit = stoi(input.substr(1, input.size() - 1));
+    for (int i = 0; i < limit; i++)
+    {
+        int initial_state_tracker = g_rule_1_tracker;
+        g_timestamp++;
+        simulation_step();
+        wait_for_step_processing_to_complete(get_use_transaction_wait(), initial_state_tracker, c_normal_wait_timeout_in_microseconds);
+    }
+
+    m_number_of_test_iterations = limit;
+}
+
 bool simulation_t::handle_main()
 {
     if (!read_input())
@@ -212,10 +333,14 @@ bool simulation_t::handle_main()
     printf("Input: %s\n", m_command_input_line.c_str());
     if (m_command_input_line.size() == 1)
     {
+        printf("Processing single character input: %c\n", m_command_input_line[0]);
         switch (m_command_input_line[0])
         {
         case c_cmd_toggle_measurement:
             toggle_measurement();
+            break;
+        case c_cmd_toggle_pause_mode:
+            toggle_pause_mode();
             break;
         case c_cmd_toggle_debug_mode:
             toggle_debug_mode();
@@ -227,16 +352,13 @@ bool simulation_t::handle_main()
             dump_db_json(m_object_log_file);
             break;
         default:
-            printf("Wrong input: %c\n", m_command_input_line[0]);
+            printf("Wrong single character input: %c\n", m_command_input_line[0]);
             break;
         }
     }
-    else if (m_command_input_line.size() > 1
-        &&  (m_command_input_line[0] == c_cmd_wait
-            || m_command_input_line[0] == c_cmd_comment
-            || m_command_input_line[0] == c_cmd_test
-            || m_command_input_line[0] == c_cmd_initialize))
+    else if (m_command_input_line.size() > 1 && (m_command_input_line[0] == c_cmd_wait || m_command_input_line[0] == c_cmd_step_sim || m_command_input_line[0] == c_cmd_comment || m_command_input_line[0] == c_cmd_test || m_command_input_line[0] == c_cmd_initialize))
     {
+        printf("Processing multiple character input: %s\n", m_command_input_line.c_str());
         if (m_command_input_line[0] == c_cmd_wait)
         {
             handle_wait();
@@ -249,11 +371,24 @@ bool simulation_t::handle_main()
         {
             handle_initialize(m_command_input_line);
         }
+        else if (m_command_input_line[0] == c_cmd_step_sim)
+        {
+            handle_multiple_steps(m_command_input_line);
+        }
         else if (m_command_input_line[0] == c_cmd_test)
         {
             handle_test(m_command_input_line);
         }
+        else
+        {
+            printf("Wrong multiple character input: %s\n", m_command_input_line.c_str());
+        }
     }
+    else
+    {
+        printf("Wrong character input: %s\n", m_command_input_line.c_str());
+    }
+    printf("Command processed.\n");
     return true;
 }
 
@@ -357,6 +492,75 @@ int simulation_t::handle_command_line_arguments(int argc, const char** argv)
     return EXIT_SUCCESS;
 }
 
+void simulation_t::dump_exception_stack()
+{
+    const int maximum_stack_depth = 25;
+    const int maximum_function_name_size = 256;
+
+    void* address_list[maximum_stack_depth];
+    size_t address_length = backtrace(address_list, sizeof(address_list) / sizeof(void*));
+    backtrace_symbols_fd(address_list, address_length, STDERR_FILENO);
+
+    char** symbol_list = backtrace_symbols(address_list, address_length);
+
+    size_t function_name_size = maximum_function_name_size;
+    auto function_name_buffer = std::unique_ptr<char[]>(new char[function_name_size]);
+    char* function_name = function_name_buffer.get();
+
+    for (size_t i = 1; i < address_length; i++)
+    {
+        char *begin_name = nullptr, *begin_offset = nullptr, *end_offset = nullptr;
+
+        // find parentheses and +address offset surrounding the mangled name:
+        // ./module(function+0x15c) [0x8048a6d]
+        for (char* p = symbol_list[i]; *p; ++p)
+        {
+            if (*p == '(')
+                begin_name = p;
+            else if (*p == '+')
+                begin_offset = p;
+            else if (*p == ')' && begin_offset)
+            {
+                end_offset = p;
+                break;
+            }
+        }
+
+        if (begin_name && begin_offset && end_offset
+            && begin_name < begin_offset)
+        {
+            *begin_name++ = '\0';
+            *begin_offset++ = '\0';
+            *end_offset = '\0';
+
+            // mangled name is now in [begin_name, begin_offset) and caller
+            // offset in [begin_offset, end_offset). now apply
+            // __cxa_demangle():
+
+            int status;
+            char* ret = abi::__cxa_demangle(begin_name, function_name, &function_name_size, &status);
+            if (status == 0)
+            {
+                function_name = ret; // use possibly realloc()-ed string
+                printf("  %s : %s+%s\n", symbol_list[i], function_name, begin_offset);
+            }
+            else
+            {
+                // demangling failed. Output function name as a C function with
+                // no arguments.
+                printf("  %s : %s()+%s\n", symbol_list[i], begin_name, begin_offset);
+            }
+        }
+        else
+        {
+            // couldn't parse the line? print the whole line.
+            printf("  %s\n", symbol_list[i]);
+        }
+    }
+    // NOLINTNEXTLINE(cppcoreguidelines-no-malloc)
+    free(symbol_list);
+}
+
 int simulation_t::main(int argc, const char** argv)
 {
     int return_code = handle_command_line_arguments(argc, argv);
@@ -376,9 +580,20 @@ int simulation_t::main(int argc, const char** argv)
         }
         catch (std::exception& e)
         {
-            printf("Simulation caught an unhandled exception: %s\n", e.what());
+            printf("std complete\n");
+            printf("Simulation caught a exception: %s\n", e.what());
             close_open_log_files();
+            dump_exception_stack();
         }
+        catch (...)
+        {
+            printf("all complete\n");
+            std::exception_ptr p = std::current_exception();
+            printf("Simulation caught an unhandled exception: %s\n", (p ? p.__cxa_exception_type()->name() : "null"));
+            close_open_log_files();
+            dump_exception_stack();
+        }
+        printf("Processing complete\n");
     }
 
     return return_code;

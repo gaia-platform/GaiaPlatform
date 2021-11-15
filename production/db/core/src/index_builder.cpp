@@ -30,34 +30,6 @@ namespace db
 namespace index
 {
 
-/*
-w - the writer guard for the index meant to be truncated.
-commit_ts - the cutoff timestamp below which we remove committed transactions (inclusive).
-*/
-template <class T_index>
-void truncate_index(index_writer_guard_t<T_index>& w, gaia_txn_id_t commit_ts)
-{
-    auto index = w.get_index();
-    auto it_next = index.begin();
-    auto it_end = index.end();
-
-    while (it_next != it_end)
-    {
-        auto it_current = it_next++;
-        auto ts = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(it_current->second.txn_id);
-
-        // Ignore invalid txn_ids, txn could be in-flight at the point of testing.
-        if (ts <= commit_ts && ts != c_invalid_gaia_txn_id)
-        {
-            // Only erase entry if each key contains at least one additional entry with the same key.
-            if (it_next != it_end && it_current->first == it_next->first)
-            {
-                it_next = index.erase(it_current);
-            }
-        }
-    }
-}
-
 index_key_t index_builder_t::make_key(gaia_id_t index_id, gaia_type_t type_id, const uint8_t* payload)
 {
     ASSERT_PRECONDITION(payload, "Cannot compute key on null payloads.");
@@ -210,9 +182,6 @@ void update_index_entry(
             }
 
             // The list we iterate over reflects the order of operations.
-            // Updates that don't change the index key are harmless
-            // and those that do change it are indicated as separate removals and insertions.
-            // Hence, we only care about insertions and removals;
             // The key exists if the last seen operation is not a committed removal
             // or our own transaction's removal.
             // We ignore uncommitted removals by other transactions,
@@ -221,13 +190,20 @@ void update_index_entry(
             bool is_our_operation = (begin_ts == record.txn_id);
             bool is_committed_operation
                 = (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_committed(commit_ts));
-            if (it_start->second.operation == index_record_operation_t::remove
-                && (is_our_operation || is_committed_operation))
+            if (it_start->second.operation == index_record_operation_t::remove)
             {
-                has_found_duplicate_key = false;
+                // We ignore uncommitted removals by other transactions,
+                // because if their transaction is aborted,
+                // it would allow us to perform a duplicate insertion.
+                if (is_our_operation || is_committed_operation)
+                {
+                    has_found_duplicate_key = false;
+                }
             }
-            else if (it_start->second.operation == index_record_operation_t::insert)
+            else
             {
+                // Flag inserts and updates with the same key.
+                // Updates should be accounted for because the original inserts may have been garbage collected.
                 has_found_duplicate_key = true;
             }
 
@@ -365,41 +341,12 @@ void index_builder_t::populate_index(common::gaia_id_t index_id, common::gaia_ty
         make_record(locator, locator_to_offset(locator), index_record_operation_t::insert));
 }
 
-void index_builder_t::truncate_index_to_ts(common::gaia_id_t index_id, gaia_txn_id_t commit_ts)
-{
-    ASSERT_PRECONDITION(get_indexes(), "Indexes not initialized");
-    auto it = get_indexes()->find(index_id);
-
-    if (it == get_indexes()->end())
-    {
-        throw index_not_found(index_id);
-    }
-
-    switch (it->second->type())
-    {
-    case catalog::index_type_t::range:
-    {
-        auto index = static_cast<range_index_t*>(it->second.get());
-        auto w = index->get_writer();
-        truncate_index(w, commit_ts);
-    }
-    break;
-    case catalog::index_type_t::hash:
-    {
-        auto index = static_cast<hash_index_t*>(it->second.get());
-        auto w = index->get_writer();
-        truncate_index(w, commit_ts);
-    }
-    break;
-    }
-}
-
 /*
 * This method performs index maintenance operations based on logs.
 * The order of operations in the index data structure is based on the same ordering as the logs.
 * As such, we rely on the logs being sorted by temporal order.
 */
-void index_builder_t::update_indexes_from_logs(
+void index_builder_t::update_indexes_from_txn_log(
     const txn_log_t& records, bool skip_catalog_integrity_check, bool allow_create_empty)
 {
     // Clear the type_id_mapping cache (so it will be refreshed) if we find any
@@ -417,7 +364,7 @@ void index_builder_t::update_indexes_from_logs(
                        ? log_record.old_offset
                        : log_record.new_offset)
                     ->type
-                == static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table))
+                == static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_table))
         {
             if (!has_cleared_cache)
             {
@@ -450,7 +397,7 @@ void index_builder_t::update_indexes_from_logs(
         }
 
         // Maintenance on the in-memory index data structures.
-        if (obj->type == static_cast<gaia_type_t>(catalog_table_type_t::gaia_index))
+        if (obj->type == static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_index))
         {
             auto index_view = index_view_t(obj);
 
@@ -485,6 +432,42 @@ void index_builder_t::update_indexes_from_logs(
     }
 }
 
+template <class T_index>
+void remove_entries_with_offsets(base_index_t* base_index, const std::unordered_set<gaia_offset_t>& offsets)
+{
+    auto index = static_cast<T_index*>(base_index);
+    index->remove_index_entry_with_offsets(offsets);
+}
+
+void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool deallocate_new_offsets)
+{
+    std::unordered_set<gaia_offset_t> collected_offsets;
+
+    for (size_t i = 0; i < records.record_count; ++i)
+    {
+        const auto& log_record = records.log_records[i];
+        gaia_offset_t offset = deallocate_new_offsets ? log_record.new_offset : log_record.old_offset;
+
+        // If no action is needed, move on to the next log record.
+        if (offset != c_invalid_gaia_offset)
+        {
+            collected_offsets.insert(offset);
+        }
+    }
+
+    for (auto it : *get_indexes())
+    {
+        switch (it.second->type())
+        {
+        case catalog::index_type_t::range:
+            remove_entries_with_offsets<range_index_t>(it.second.get(), collected_offsets);
+            break;
+        case catalog::index_type_t::hash:
+            remove_entries_with_offsets<hash_index_t>(it.second.get(), collected_offsets);
+            break;
+        }
+    }
+}
 } // namespace index
 } // namespace db
 } // namespace gaia

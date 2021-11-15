@@ -1,0 +1,4 @@
+{
+    "thread_pool_count" : 1,
+    "stats_log_interval" : 15
+}

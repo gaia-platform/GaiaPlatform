@@ -95,9 +95,10 @@ typedef std::atomic<gaia_offset_t> locators_t[c_max_locators + 1];
 
 struct hash_node_t
 {
-    common::gaia_id_t id;
-    size_t next_offset;
-    gaia_locator_t locator;
+    // To enable atomic operations, we use the base integer type instead of gaia_id_t.
+    std::atomic<common::gaia_id_t::value_type> id;
+    std::atomic<size_t> next_offset;
+    std::atomic<gaia_locator_t> locator;
 };
 
 struct txn_log_t
@@ -168,10 +169,12 @@ struct counters_t
     // all these fields are initialized to 0, even though C++ doesn't guarantee
     // it, because this struct is constructed in a memory-mapped shared-memory
     // segment, and the OS automatically zeroes new pages.
-    common::gaia_id_t last_id;
-    common::gaia_type_t last_type_id;
-    gaia_txn_id_t last_txn_id;
-    gaia_locator_t last_locator;
+    //
+    // To enable atomic operations, we use the base integer types of each custom Gaia type.
+    std::atomic<common::gaia_id_t::value_type> last_id;
+    std::atomic<common::gaia_type_t::value_type> last_type_id;
+    std::atomic<gaia_txn_id_t> last_txn_id;
+    std::atomic<gaia_locator_t> last_locator;
 };
 
 struct data_t
