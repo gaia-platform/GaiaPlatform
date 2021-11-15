@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <limits>
 #include <type_traits>
 
 // Export all symbols declared in this file.
@@ -28,15 +29,19 @@ namespace common
  * It provides a type-safe alternative to using typedef.
  *
  * @tparam T The integer type used by this class.
+ * @tparam default_invalid_value The default invalid value to be used with this type.
+ * @tparam C A constraint on the types accepted for T.
  */
-template <typename T, typename C = std::enable_if_t<std::is_integral<T>::value>>
+template <typename T, T default_invalid_value, typename C = std::enable_if_t<std::is_integral<T>::value>>
 class int_type_t
 {
 public:
     using value_type = T;
 
+    static constexpr T c_default_invalid_value = default_invalid_value;
+
     constexpr int_type_t()
-        : m_value(0)
+        : m_value(default_invalid_value)
     {
     }
 

@@ -12,12 +12,12 @@
 using namespace std;
 using namespace gaia::common;
 
-template <typename T, typename = std::enable_if_t<std::is_integral<T>::value>>
+template <typename T>
 void test_int_type()
 {
-    constexpr int_type_t<T> zero;
-    constexpr int_type_t<T> seven(7);
-    constexpr int_type_t<T> nine(9);
+    constexpr int_type_t<T, 0> zero;
+    constexpr int_type_t<T, 0> seven(7);
+    constexpr int_type_t<T, 0> nine(9);
 
     T value = zero;
     EXPECT_EQ(0, value);
@@ -32,7 +32,7 @@ void test_int_type()
 
     // -1.
     T expected_result = -1;
-    int_type_t<T> negative_one(-1);
+    int_type_t<T, 0> negative_one(-1);
     EXPECT_EQ(expected_result, negative_one.value());
 
     // Comparisons.
@@ -66,7 +66,7 @@ void test_int_type()
     EXPECT_TRUE(7 <= nine);
     EXPECT_FALSE(7 >= nine);
 
-    int_type_t<T> result;
+    int_type_t<T, 0> result;
 
     // Addition.
     expected_result = 7 + 9;
@@ -134,7 +134,7 @@ void test_int_type()
     EXPECT_EQ(expected_result, result);
 
     // Post-increment.
-    int_type_t<T> data = nine;
+    int_type_t<T, 0> data = nine;
     result = data++;
     expected_result = 9;
     EXPECT_EQ(expected_result, result);
