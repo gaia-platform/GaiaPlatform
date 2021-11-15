@@ -512,6 +512,14 @@ gaia_id_t ddl_executor_t::create_relationship(
         }
     }
 
+    // These casts works because a field_position_t is a thin wrapper over uint16_t,
+    // but its success is not guaranteed by the language and is undefined behavior (UB).
+    // TODO: Replace reinterpret_cast with bit_cast when it becomes available.
+    std::vector<field_position_t::value_type>* parent_field_position_values
+        = reinterpret_cast<std::vector<field_position_t::value_type>*>(&parent_field_positions);
+    std::vector<field_position_t::value_type>* child_field_position_values
+        = reinterpret_cast<std::vector<field_position_t::value_type>*>(&child_field_positions);
+
     gaia_id_t relationship_id = gaia_relationship_t::insert_row(
         name.c_str(),
         to_parent_link_name,
@@ -522,8 +530,8 @@ gaia_id_t ddl_executor_t::create_relationship(
         first_child_offset,
         next_child_offset,
         parent_offset,
-        parent_field_positions,
-        child_field_positions);
+        *parent_field_position_values,
+        *child_field_position_values);
 
     gaia_table_t::get(parent_table_id).outgoing_relationships().insert(relationship_id);
     gaia_table_t::get(child_table_id).incoming_relationships().insert(relationship_id);
@@ -730,7 +738,7 @@ reference_offset_t ddl_executor_t::find_parent_available_offset(const gaia_table
     reference_offset_t max_offset = 0;
     for (const auto& relationship : relationships)
     {
-        max_offset = std::max(max_offset, relationship.first_child_offset());
+        max_offset = std::max(max_offset.value(), relationship.first_child_offset());
 
         ASSERT_INVARIANT(max_offset != c_invalid_reference_offset, "Invalid reference offset detected!");
     }
@@ -752,7 +760,7 @@ reference_offset_t ddl_executor_t::find_child_available_offset(const gaia_table_
     reference_offset_t max_offset = 0;
     for (const auto& relationship : relationships)
     {
-        max_offset = std::max({max_offset, relationship.next_child_offset(), relationship.parent_offset()});
+        max_offset = std::max({max_offset.value(), relationship.next_child_offset(), relationship.parent_offset()});
 
         ASSERT_INVARIANT(max_offset != c_invalid_reference_offset, "Invalid reference offset detected!");
     }
