@@ -91,14 +91,14 @@ constexpr size_t c_max_log_records = 1ULL << 20;
 // The first entry of the array is reserved for the invalid locator value 0.
 // The elements are atomic because reads and writes to shared memory need to be
 // synchronized across threads/processes.
-typedef std::atomic<gaia_offset_t> locators_t[c_max_locators + 1];
+typedef std::atomic<gaia_offset_t::value_type> locators_t[c_max_locators + 1];
 
 struct hash_node_t
 {
     // To enable atomic operations, we use the base integer type instead of gaia_id_t.
     std::atomic<common::gaia_id_t::value_type> id;
     std::atomic<size_t> next_offset;
-    std::atomic<gaia_locator_t> locator;
+    std::atomic<gaia_locator_t::value_type> locator;
 };
 
 struct txn_log_t
@@ -164,17 +164,15 @@ struct counters_t
     // intrinsics for mutating the counters. This is because the instructions
     // targeted by the intrinsics operate at the level of physical memory, not
     // virtual addresses.
-    // REVIEW: these fields should probably be changed to std::atomic<T> (and
-    // the explicit calls to atomic intrinsics replaced by atomic methods). NB:
-    // all these fields are initialized to 0, even though C++ doesn't guarantee
+    // NB: All these fields are initialized to 0, even though C++ doesn't guarantee
     // it, because this struct is constructed in a memory-mapped shared-memory
     // segment, and the OS automatically zeroes new pages.
     //
     // To enable atomic operations, we use the base integer types of each custom Gaia type.
     std::atomic<common::gaia_id_t::value_type> last_id;
     std::atomic<common::gaia_type_t::value_type> last_type_id;
-    std::atomic<gaia_txn_id_t> last_txn_id;
-    std::atomic<gaia_locator_t> last_locator;
+    std::atomic<gaia_txn_id_t::value_type> last_txn_id;
+    std::atomic<gaia_locator_t::value_type> last_locator;
 };
 
 struct data_t

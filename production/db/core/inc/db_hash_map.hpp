@@ -41,7 +41,7 @@ public:
         {
             if (node->id == id)
             {
-                if (locator_exists(node->locator))
+                if (locator_exists(node->locator.load()))
                 {
                     throw duplicate_id(id);
                 }
@@ -89,9 +89,9 @@ public:
         {
             if (node->id == id)
             {
-                if (locator_exists(node->locator))
+                if (locator_exists(node->locator.load()))
                 {
-                    return node->locator;
+                    return node->locator.load();
                 }
                 else
                 {

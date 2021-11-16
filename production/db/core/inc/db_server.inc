@@ -225,7 +225,7 @@ server_t::safe_watermark_t::safe_watermark_t(watermark_type_t watermark_type)
             // because the standard specifies that "Moved-from objects
             // shall be placed in a valid but unspecified state."
             ASSERT_POSTCONDITION(
-                safe_ts == c_invalid_gaia_txn_id,
+                static_cast<gaia_txn_id_t>(safe_ts) == c_invalid_gaia_txn_id,
                 "safe_ts should contain an invalid timestamp after moving!");
             break;
         }
