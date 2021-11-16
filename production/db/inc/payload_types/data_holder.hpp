@@ -15,6 +15,7 @@
 #include <flatbuffers/reflection.h>
 
 #include "gaia/exception.hpp"
+#include "gaia/int_type.hpp"
 
 #include "data_buffer.hpp"
 
@@ -26,7 +27,24 @@ namespace payload_types
 {
 
 // We are using std::size_t for no other reason than std::hash() does the same.
-typedef std::size_t data_hash_t;
+class data_hash_t : public common::int_type_t<size_t, 0>
+{
+public:
+    // By default, we should initialize to an invalid value.
+    constexpr data_hash_t()
+        : common::int_type_t<size_t, 0>()
+    {
+    }
+
+    constexpr data_hash_t(size_t value)
+        : common::int_type_t<size_t, 0>(value)
+    {
+    }
+};
+
+static_assert(
+    sizeof(data_hash_t) == sizeof(data_hash_t::value_type),
+    "data_hash_t has a different size than its underlying integer type!");
 
 class unboxing_error : public gaia::common::gaia_exception
 {
