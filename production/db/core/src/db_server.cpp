@@ -2990,9 +2990,9 @@ gaia_txn_id_t server_t::get_safe_truncation_ts()
     // watermark. There is no need to try to prevent this, because
     // advance_watermark() will fail, the current GC task will abort, and
     // another thread will try to advance the pre-truncate watermark.
-    for (const auto& entries : s_safe_ts_per_thread_entries)
+    for (const std::array<std::atomic<gaia_txn_id_t::value_type>, 2>& entries : s_safe_ts_per_thread_entries)
     {
-        for (const auto& entry : entries)
+        for (const std::atomic<gaia_txn_id_t::value_type>& entry : entries)
         {
             // Skip invalid entries.
             if (entry == c_invalid_gaia_txn_id)
