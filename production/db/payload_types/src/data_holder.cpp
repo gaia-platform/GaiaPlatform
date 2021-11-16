@@ -253,7 +253,7 @@ int data_holder_t::compare(const data_holder_t& other) const
     }
 }
 
-std::size_t data_holder_t::hash() const
+data_hash_t data_holder_t::hash() const
 {
     if (flatbuffers::IsInteger(type))
     {

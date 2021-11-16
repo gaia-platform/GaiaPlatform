@@ -89,7 +89,7 @@ const std::vector<gaia::db::payload_types::data_holder_t>& index_key_t::values()
 * Combine hash of all data holders in this key.
 * Repeatedly concatenate hash values and rehash.
 */
-std::size_t index_key_hash::operator()(index_key_t const& key) const
+gaia::db::payload_types::data_hash_t index_key_hash::operator()(index_key_t const& key) const
 {
     constexpr size_t c_hash_concat_buffer_elems = 2;
     constexpr size_t c_hash_seed = 0x9e3779b9;
