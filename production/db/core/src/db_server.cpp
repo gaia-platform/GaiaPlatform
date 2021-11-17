@@ -173,7 +173,7 @@ void server_t::txn_begin(std::vector<int>& txn_log_fds_for_snapshot)
 
     // Ensure that there are no undecided txns in our snapshot window.
     safe_watermark_t pre_apply_watermark(watermark_type_t::pre_apply);
-    validate_txns_in_range(pre_apply_watermark + 1, s_txn_id);
+    validate_txns_in_range(static_cast<gaia_txn_id_t>(pre_apply_watermark) + 1, s_txn_id);
 
     get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds_for_snapshot);
 
@@ -196,7 +196,7 @@ void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<
     // commit_ts whose log fd has been invalidated. This avoids having our scan
     // race the concurrently advancing watermark.
     safe_watermark_t post_apply_watermark(watermark_type_t::post_apply);
-    for (gaia_txn_id_t ts = begin_ts - 1; ts > post_apply_watermark; --ts)
+    for (gaia_txn_id_t ts = begin_ts - 1; ts > static_cast<gaia_txn_id_t>(post_apply_watermark); --ts)
     {
         if (txn_metadata_t::is_commit_ts(ts))
         {
@@ -598,7 +598,7 @@ void server_t::init_shared_memory()
     // Initialize watermarks.
     for (auto& elem : s_watermarks)
     {
-        std::atomic_init(&elem, c_invalid_gaia_txn_id);
+        std::atomic_init(&elem, c_invalid_gaia_txn_id.value());
     }
 
     // We may be reinitializing the server upon receiving a SIGHUP.
@@ -717,7 +717,7 @@ void server_t::init_indexes()
     begin_startup_txn();
 
     gaia_locator_t locator = c_invalid_gaia_locator;
-    gaia_locator_t last_locator = s_shared_counters.data()->last_locator;
+    gaia_locator_t last_locator = s_shared_counters.data()->last_locator.load();
 
     // Create initial index data structures.
     for (const auto& table : catalog_core_t::list_tables())
@@ -1989,7 +1989,7 @@ bool server_t::advance_watermark(watermark_type_t watermark_type, gaia_txn_id_t 
             return false;
         }
 
-    } while (!get_watermark_entry(watermark_type).compare_exchange_weak(last_watermark_ts, ts));
+    } while (!get_watermark_entry(watermark_type).compare_exchange_weak(last_watermark_ts.value_ref(), ts.value()));
 
     return true;
 }
@@ -2209,7 +2209,7 @@ void server_t::apply_txn_logs_to_shared_view()
     // txn. Advance the pre-apply watermark before applying the txn log
     // of a committed txn, and advance the post-apply watermark after
     // applying the txn log.
-    for (gaia_txn_id_t ts = pre_apply_watermark + 1; ts <= last_allocated_ts; ++ts)
+    for (gaia_txn_id_t ts = static_cast<gaia_txn_id_t>(pre_apply_watermark) + 1; ts <= last_allocated_ts; ++ts)
     {
         // We need to seal uninitialized entries as we go along, so that we
         // don't miss any active begin_ts or committed commit_ts entries.
@@ -2287,7 +2287,7 @@ void server_t::apply_txn_logs_to_shared_view()
             // If another thread has already advanced the watermark ahead of
             // this ts, we abort advancing it further.
             ASSERT_INVARIANT(
-                get_watermark(watermark_type_t::pre_apply) > pre_apply_watermark,
+                get_watermark(watermark_type_t::pre_apply) > static_cast<gaia_txn_id_t>(pre_apply_watermark),
                 "The watermark must have advanced if advance_watermark() failed!");
 
             break;
@@ -2339,7 +2339,10 @@ void server_t::gc_applied_txn_logs()
     // flag is set if persistence is enabled). (If we fail to invalidate the log
     // fd, we abort the scan to avoid contention.) When GC is complete, set the
     // TXN_GC_COMPLETE flag on the txn metadata and continue.
-    for (gaia_txn_id_t ts = post_gc_watermark + 1; ts <= post_apply_watermark; ++ts)
+    for (
+        gaia_txn_id_t ts = static_cast<gaia_txn_id_t>(post_gc_watermark) + 1;
+        ts <= static_cast<gaia_txn_id_t>(post_apply_watermark);
+        ++ts)
     {
         ASSERT_INVARIANT(
             !txn_metadata_t::is_uninitialized_ts(ts),
@@ -2440,7 +2443,10 @@ void server_t::truncate_txn_table()
     // entries to safely dereference a commit_ts entry from its begin_ts entry.)
     // If the post-GC watermark cannot be advanced to the current timestamp,
     // abort the scan.
-    for (gaia_txn_id_t ts = post_gc_watermark + 1; ts <= post_apply_watermark; ++ts)
+    for (
+        gaia_txn_id_t ts = static_cast<gaia_txn_id_t>(post_gc_watermark) + 1;
+        ts <= static_cast<gaia_txn_id_t>(post_apply_watermark);
+        ++ts)
     {
         ASSERT_INVARIANT(
             !txn_metadata_t::is_uninitialized_ts(ts),
@@ -2480,7 +2486,7 @@ void server_t::truncate_txn_table()
             // If another thread has already advanced the post-GC watermark
             // ahead of this ts, we abort advancing it further.
             ASSERT_INVARIANT(
-                get_watermark(watermark_type_t::post_gc) > post_gc_watermark,
+                get_watermark(watermark_type_t::post_gc) > static_cast<gaia_txn_id_t>(post_gc_watermark),
                 "The watermark must have advanced if advance_watermark() failed!");
 
             break;
@@ -2984,18 +2990,18 @@ gaia_txn_id_t server_t::get_safe_truncation_ts()
     // watermark. There is no need to try to prevent this, because
     // advance_watermark() will fail, the current GC task will abort, and
     // another thread will try to advance the pre-truncate watermark.
-    for (auto& entries : s_safe_ts_per_thread_entries)
+    for (const auto& per_thread_entries : s_safe_ts_per_thread_entries)
     {
-        for (gaia_txn_id_t entry : entries)
+        for (const auto& per_thread_entry : per_thread_entries)
         {
             // Skip invalid entries.
-            if (entry == c_invalid_gaia_txn_id)
+            if (per_thread_entry == c_invalid_gaia_txn_id)
             {
                 continue;
             }
 
             // Update the minimum safe_ts.
-            safe_truncation_ts = std::min(safe_truncation_ts, entry);
+            safe_truncation_ts = std::min(safe_truncation_ts.value(), per_thread_entry.load());
         }
     }
 
