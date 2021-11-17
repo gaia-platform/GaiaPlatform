@@ -167,7 +167,7 @@ void update_index_entry(
                 = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(begin_ts);
 
             ASSERT_PRECONDITION(
-                begin_ts == transactions::is_frozen_ts(begin_ts) || transactions::txn_metadata_t::is_begin_ts(begin_ts),
+                transactions::is_frozen_ts(begin_ts) || transactions::txn_metadata_t::is_begin_ts(begin_ts),
                 "Transaction id in index key entry is not frozen or a begin timestamp!");
 
             // Index entries made by rolled back transactions or aborted transactions can be ignored,
