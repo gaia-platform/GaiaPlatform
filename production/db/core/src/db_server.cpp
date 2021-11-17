@@ -598,7 +598,7 @@ void server_t::init_shared_memory()
     // Initialize watermarks.
     for (auto& elem : s_watermarks)
     {
-        std::atomic_init(&elem, c_invalid_gaia_txn_id);
+        std::atomic_init(&elem, c_invalid_gaia_txn_id.value());
     }
 
     // We may be reinitializing the server upon receiving a SIGHUP.
