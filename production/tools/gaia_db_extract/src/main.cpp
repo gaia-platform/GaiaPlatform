@@ -146,7 +146,7 @@ int main(int argc, char* argv[])
     }
 
     // Return an empty JSON document on failure.
-    string extracted_data("{}");
+    string extracted_data(c_empty_object);
 
     try
     {
