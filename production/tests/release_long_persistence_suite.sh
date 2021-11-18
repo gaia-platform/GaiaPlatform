@@ -14,11 +14,11 @@ SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 # are used within the sourced script.  To keep shellcheck happy, we disable them.
 
 # shellcheck disable=SC2034
-SUITE_MODE="smoke-suites"
+SUITE_MODE="long-persistence-perf-suites"
 # shellcheck disable=SC2034
-TEST_WORKLOADS=("smoke" "palletbox" "pingpong" "marcopolo")
+TEST_WORKLOADS=("largest-scale")
 # shellcheck disable=SC2034
-USE_PERSISTENT_DATABASE=0
+USE_PERSISTENT_DATABASE=1
 
 # Invoke the actual execution of the suites.
 # shellcheck source=execute_suites.sh

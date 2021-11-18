@@ -29,7 +29,7 @@ public:
         }
 
         hash_node_t* node = id_index->hash_nodes + (id % c_hash_buckets);
-        common::gaia_id_t expected_id = common::c_invalid_gaia_id;
+        common::gaia_id_t::value_type expected_id = common::c_invalid_gaia_id;
         if (node->id.compare_exchange_strong(expected_id, id))
         {
             return node;
@@ -41,7 +41,7 @@ public:
         {
             if (node->id == id)
             {
-                if (locator_exists(node->locator))
+                if (locator_exists(node->locator.load()))
                 {
                     throw duplicate_id(id);
                 }
@@ -89,9 +89,9 @@ public:
         {
             if (node->id == id)
             {
-                if (locator_exists(node->locator))
+                if (locator_exists(node->locator.load()))
                 {
-                    return node->locator;
+                    return node->locator.load();
                 }
                 else
                 {

@@ -528,7 +528,7 @@ void gaia_ptr_t::auto_connect_to_parent(
             // If yes, link the child record to the parent record.
             auto schema = catalog_core_t::get_table(child_type_id).binary_schema();
             auto field_value = payload_types::get_field_value(
-                child_type_id,
+                child_type,
                 child_payload,
                 schema->data(),
                 schema->size(),

@@ -139,8 +139,10 @@ void rule_checker_t::check_fields(gaia_id_t id, const field_position_list_t& fie
                 // should reinstate checking for active fields.
                 if (gaia_field.deprecated())
                 {
+                    // TODO: Pass-in correct value to exception constructor.
+                    // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1701
                     throw invalid_subscription(
-                        id, gaia_table.name(), requested_position, gaia_field.name(), gaia_field.deprecated());
+                        gaia_type_t(id.value()), gaia_table.name(), requested_position, gaia_field.name(), gaia_field.deprecated());
                 }
                 found_requested_field = true;
                 break;
@@ -149,7 +151,9 @@ void rule_checker_t::check_fields(gaia_id_t id, const field_position_list_t& fie
 
         if (!found_requested_field)
         {
-            throw invalid_subscription(id, gaia_table.name(), requested_position);
+            // TODO: Pass-in correct value to exception constructor.
+            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1701
+            throw invalid_subscription(gaia_type_t(id.value()), gaia_table.name(), requested_position);
         }
     }
 }

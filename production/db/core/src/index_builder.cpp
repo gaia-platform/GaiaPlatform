@@ -364,7 +364,7 @@ void index_builder_t::update_indexes_from_txn_log(
                        ? log_record.old_offset
                        : log_record.new_offset)
                     ->type
-                == static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table))
+                == static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_table))
         {
             if (!has_cleared_cache)
             {
@@ -397,7 +397,7 @@ void index_builder_t::update_indexes_from_txn_log(
         }
 
         // Maintenance on the in-memory index data structures.
-        if (obj->type == static_cast<gaia_type_t>(catalog_table_type_t::gaia_index))
+        if (obj->type == static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_index))
         {
             auto index_view = index_view_t(obj);
 
