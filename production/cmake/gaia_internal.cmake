@@ -4,7 +4,7 @@
 #############################################
 
 # The user must explicitly set a C++ standard version; to avoid confusion, we
-# will not fall back to a default version.
+# do not fall back to a default version.
 if(NOT CMAKE_CXX_STANDARD)
   message(FATAL_ERROR "CMAKE_CXX_STANDARD is not set!")
 endif()
