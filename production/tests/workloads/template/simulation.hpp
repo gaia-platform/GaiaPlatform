@@ -37,11 +37,11 @@ protected:
     typedef my_clock_t::time_point my_time_point_t;
     typedef std::chrono::duration<double, std::micro> my_duration_in_microseconds_t;
 
-private:
     // Used for conversions.
     const double c_milliseconds_in_second = 1000.0;
     const double c_microseconds_in_second = 1000000.0;
 
+private:
     // For any of the pauses, microseconds between checks
     const int c_processing_pause_in_microseconds = 10;
     const int c_normal_wait_timeout_in_microseconds = 3000;
@@ -122,7 +122,7 @@ private:
     void toggle_debug_mode();
     void toggle_pause_mode();
 
-    void wait_for_test_processing_to_complete(bool is_explicit_pause, long timeout_in_microseconds);
+    void wait_for_test_processing_to_complete(bool is_explicit_pause, long timeout_in_microseconds, long pause_in_microseconds);
 
     bool read_input();
     void close_open_log_files();
@@ -148,6 +148,9 @@ protected:
     //
     // Defaults to c_default_processing_complete_timeout_in_microseconds.
     virtual long get_processing_timeout_in_microseconds();
+
+    // Defaults to c_processing_pause_in_microseconds.
+    virtual long get_processing_pause_in_microseconds();
 
     // Dump the current state of the database, in JSON format, to the specified file.
     virtual void dump_db_json(FILE* object_log_file);

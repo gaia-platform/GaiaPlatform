@@ -1,7 +1,7 @@
 {
     "event_counts": [
         {
-            "bot_moving_to_station_event": 1
+            "bot_moving_to_station_event": 0
         },
         {
             "bot_arrived_event": 0

@@ -205,7 +205,12 @@ public:
 
     long get_processing_timeout_in_microseconds() override
     {
-        return simulation_t::get_processing_timeout_in_microseconds();
+        return static_cast<long>(30 * c_microseconds_in_second);
+    }
+
+    long get_processing_pause_in_microseconds() override
+    {
+        return static_cast<long>(10000);
     }
 
     string get_configuration_file_name() override

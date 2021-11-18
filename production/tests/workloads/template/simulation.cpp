@@ -82,6 +82,11 @@ long simulation_t::get_processing_timeout_in_microseconds()
     return c_default_processing_complete_timeout_in_microseconds;
 }
 
+long simulation_t::get_processing_pause_in_microseconds()
+{
+    return c_processing_pause_in_microseconds;
+}
+
 void simulation_t::dump_db_json(FILE* object_log_file)
 {
     begin_transaction();
@@ -115,7 +120,7 @@ void simulation_t::handle_test(const string& input)
     txn.commit();
     my_time_point_t commit_transaction_end_mark = my_clock_t::now();
 
-    wait_for_test_processing_to_complete(false, get_processing_timeout_in_microseconds());
+    wait_for_test_processing_to_complete(false, get_processing_timeout_in_microseconds(), get_processing_pause_in_microseconds());
 
     my_duration_in_microseconds_t start_transaction_duration = inside_transaction_start_mark - start_transaction_start_mark;
     my_duration_in_microseconds_t inside_transaction_duration = inside_transaction_end_mark - inside_transaction_start_mark;
@@ -127,12 +132,11 @@ void simulation_t::handle_test(const string& input)
     m_number_of_test_iterations = limit;
 }
 
-void simulation_t::wait_for_test_processing_to_complete(bool is_explicit_pause, long timeout_in_microseconds)
+void simulation_t::wait_for_test_processing_to_complete(bool is_explicit_pause, long timeout_in_microseconds, long pause_in_microseconds)
 {
     my_time_point_t end_sleep_start_mark = my_clock_t::now();
 
-    const long maximum_no_delta_attempts = timeout_in_microseconds / c_processing_pause_in_microseconds;
-
+    const long maximum_no_delta_attempts = timeout_in_microseconds / pause_in_microseconds;
     int timestamp = g_timestamp;
 
     char trace_buffer[c_rules_firing_update_buffer_length];
@@ -163,7 +167,7 @@ void simulation_t::wait_for_test_processing_to_complete(bool is_explicit_pause, 
         {
             break;
         }
-        sleep_for(c_processing_pause_in_microseconds);
+        sleep_for(pause_in_microseconds);
     }
     my_time_point_t end_sleep_end_mark = my_clock_t::now();
     my_duration_in_microseconds_t ms_double = end_sleep_end_mark - end_sleep_start_mark;

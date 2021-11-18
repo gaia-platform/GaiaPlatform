@@ -79,7 +79,7 @@ ruleset palletbox
             case (int)gaia::palletbox::station_id_t::charging:
                 gaia_log::app().info("times_to_charging: {}, target={}", times_to_charging, target_times_to_charge);
                 times_to_charging = times_to_charging + 1;
-                if (times_to_charging <= target_times_to_charge) {
+                if (times_to_charging < target_times_to_charge) {
                     bot_moving_to_station_event.insert(
                         timestamp: generate_unique_millisecond_timestamp(),
                         station_id: (int)gaia::palletbox::station_id_t::inbound,
