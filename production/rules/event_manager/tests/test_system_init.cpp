@@ -33,7 +33,7 @@ class system_init_test : public db_catalog_test_base_t
 {
 public:
     static constexpr char c_test_table[] = "system_init_test";
-    gaia_type_t add_table()
+    gaia_id_t add_table()
     {
         // Add a dummy type so that the event manager doesn't cry foul when subscribing a rule.
         ddl::field_def_list_t fields;

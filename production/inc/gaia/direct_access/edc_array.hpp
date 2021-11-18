@@ -48,7 +48,7 @@ public:
 
 private:
     // Make the edc_object_t a friend so it can call the private vector constructor.
-    template <gaia::common::gaia_type_t gaia_type, typename T_gaia, typename T_fb, typename T_obj>
+    template <gaia::common::gaia_type_t::value_type gaia_type, typename T_gaia, typename T_fb, typename T_obj>
     friend struct edc_object_t;
 
     explicit edc_vector_t(const flatbuffers::Vector<T_type>* vector_ptr)

@@ -80,7 +80,7 @@ inline gaia_offset_t locator_to_offset(gaia_locator_t locator)
     locators_t* locators = gaia::db::get_locators();
     return locator_exists(locator)
         ? (*locators)[locator].load()
-        : c_invalid_gaia_offset;
+        : c_invalid_gaia_offset.value();
 }
 
 inline db_object_t* offset_to_ptr(gaia_offset_t offset)
@@ -101,7 +101,7 @@ inline db_object_t* locator_to_ptr(gaia_locator_t locator)
 inline gaia_txn_id_t get_last_txn_id()
 {
     counters_t* counters = gaia::db::get_counters();
-    return counters->last_txn_id;
+    return counters->last_txn_id.load();
 }
 
 inline void apply_log_to_locators(locators_t* locators, txn_log_t* log)

@@ -134,7 +134,11 @@ namespace db
 
 [[nodiscard]] const flatbuffers::Vector<common::gaia_id_t>* index_view_t::fields() const
 {
-    return catalog::Getgaia_index(m_obj_ptr->data())->fields();
+    // This cast works because a gaia_id_t is a thin wrapper over uint64_t,
+    // but its success is not guaranteed by the language and is undefined behavior (UB).
+    // TODO: Replace reinterpret_cast with bit_cast when it becomes available.
+    return reinterpret_cast<const flatbuffers::Vector<common::gaia_id_t>*>(
+        catalog::Getgaia_index(m_obj_ptr->data())->fields());
 }
 
 [[nodiscard]] gaia_id_t index_view_t::table_id() const
@@ -169,7 +173,8 @@ std::optional<table_view_t> table_generator_t::operator()()
 table_list_t
 catalog_core_t::list_tables()
 {
-    auto gaia_ptr_iterator = table_generator_t(gaia_ptr_t::find_all_iterator(static_cast<gaia_type_t>(catalog_table_type_t::gaia_table)));
+    auto gaia_ptr_iterator = table_generator_t(gaia_ptr_t::find_all_iterator(
+        static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_table)));
     return range_from_generator(gaia_ptr_iterator);
 }
 
@@ -180,8 +185,7 @@ list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint
     auto obj_ptr = id_to_ptr(table_id);
     const gaia_id_t* references = obj_ptr->references();
     gaia_id_t first_obj_id = references[first_offset];
-    auto generator = [id = first_obj_id, next_offset]() mutable -> std::optional<T_catalog_obj_view>
-    {
+    auto generator = [id = first_obj_id, next_offset]() mutable -> std::optional<T_catalog_obj_view> {
         if (id == c_invalid_gaia_id)
         {
             return std::nullopt;

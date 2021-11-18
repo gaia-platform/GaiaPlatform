@@ -145,7 +145,7 @@ TEST_F(gaia_db_references_test, add_child_reference__invalid_relation_type_paren
 {
     begin_transaction();
 
-    constexpr reference_offset_t c_first_address_offset = c_parent_doctor_offset + 1;
+    constexpr reference_offset_t c_first_address_offset = c_parent_doctor_offset.value() + 1;
     constexpr reference_offset_t c_next_address_offset = 0;
     constexpr reference_offset_t c_parent_patient_offset = 1;
 
@@ -509,7 +509,7 @@ TEST_F(gaia_db_references_test, remove_child_reference__invalid_relation_type_pa
 {
     begin_transaction();
 
-    constexpr reference_offset_t c_first_address_offset = c_parent_doctor_offset + 1;
+    constexpr reference_offset_t c_first_address_offset = c_parent_doctor_offset.value() + 1;
     constexpr reference_offset_t c_next_address_offset = 0;
     constexpr reference_offset_t c_parent_patient_offset = 1;
 

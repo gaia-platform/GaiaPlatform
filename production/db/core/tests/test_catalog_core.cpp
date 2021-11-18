@@ -36,13 +36,13 @@ TEST_F(catalog_core_test, get_table)
 TEST_F(catalog_core_test, list_tables)
 {
     std::set<gaia_type_t> system_table_ids{
-        static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_field),
-        static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table),
-        static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_rule),
-        static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_ruleset),
-        static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_database),
-        static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_relationship),
-        static_cast<gaia_type_t>(system_table_type_t::event_log),
+        static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_field),
+        static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_table),
+        static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_rule),
+        static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_ruleset),
+        static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_database),
+        static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_relationship),
+        static_cast<gaia_type_t::value_type>(system_table_type_t::event_log),
     };
 
     gaia::catalog::initialize_catalog();

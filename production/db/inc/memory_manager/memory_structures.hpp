@@ -192,14 +192,14 @@ struct chunk_manager_metadata_t
     // be fine with uint16_t (so 14 bits for the version counter, assuming a
     // 2-bit chunk state). If surplus bytes in the chunk header become scarce,
     // we could revisit the size of chunk_version_t.
-    std::atomic<chunk_version_t> chunk_state_and_version;
+    std::atomic<chunk_version_t::value_type> chunk_state_and_version;
 
     static_assert(
         sizeof(chunk_state_and_version) == sizeof(uint64_t),
         "Expected chunk_state_and_version to occupy 8 bytes!");
 
     // Just in case chunk_version_t is smaller than a word.
-    static_assert(std::atomic<chunk_version_t>::is_always_lock_free);
+    static_assert(std::atomic<chunk_version_t::value_type>::is_always_lock_free);
 
     std::atomic<last_allocation_metadata_t> last_allocation_metadata{};
 
@@ -274,7 +274,7 @@ constexpr slot_offset_t c_first_slot_offset{
     sizeof(chunk_manager_metadata_t) / c_slot_size_in_bytes};
 
 constexpr slot_offset_t c_last_slot_offset{
-    std::numeric_limits<slot_offset_t>::max()};
+    std::numeric_limits<slot_offset_t::value_type>::max()};
 
 constexpr size_t c_chunk_data_pages_count{
     (c_chunk_size_in_bytes - sizeof(chunk_manager_metadata_t)) / c_page_size_in_bytes};
