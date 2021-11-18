@@ -25,5 +25,5 @@ t1023
 o
 x
 # Print out the final state.
-#w2
+#w2000
 #j
