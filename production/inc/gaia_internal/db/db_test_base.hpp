@@ -56,7 +56,7 @@ protected:
     {
         gaia_log::initialize({});
 
-        server_instance_config_t conf = server_instance_config_t::get_default();
+        server_instance_config_t conf = server_instance_config_t::get_new_instance_config();
         conf.skip_catalog_integrity_check = true;
         s_server_instance = server_instance_t(conf);
 

@@ -25,7 +25,7 @@ struct server_instance_config_t
     bool skip_catalog_integrity_check;
     std::string data_dir;
 
-    static server_instance_config_t get_default();
+    static server_instance_config_t get_new_instance_config();
 
     /**
      * Finds the server executable path. Throws an exception if
@@ -54,7 +54,7 @@ public:
     }
 
     server_instance_t()
-        : server_instance_t(server_instance_config_t::get_default())
+        : server_instance_t(server_instance_config_t::get_new_instance_config())
     {
     }
 

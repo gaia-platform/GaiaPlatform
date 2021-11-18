@@ -423,7 +423,7 @@ int main(int argc, char* argv[])
 
     if (path_to_db_server)
     {
-        server_instance_config_t server_conf = server_instance_config_t::get_default();
+        server_instance_config_t server_conf = server_instance_config_t::get_new_instance_config();
         server_conf.instance_name = instance_name;
         server_conf.server_exec_path = string(path_to_db_server) + "/" + string(c_db_server_exec_name);
 
@@ -437,8 +437,7 @@ int main(int argc, char* argv[])
     gaia::db::config::set_default_session_options(session_options);
 
     const auto server_cleanup = scope_guard::make_scope_guard(
-        [&server]()
-        {
+        [&server]() {
             if (server.is_initialized())
             {
                 server.stop();
@@ -449,8 +448,7 @@ int main(int argc, char* argv[])
     {
         gaia::db::begin_session();
         const auto session_cleanup = scope_guard::make_scope_guard(
-            []()
-            {
+            []() {
                 gaia::db::end_session();
             });
 
