@@ -15,11 +15,11 @@ SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 # we disable them.
 
 # shellcheck disable=SC2034
-SUITE_MODE="perf-suites"
+SUITE_MODE="smoke-suites"
 # shellcheck disable=SC2034
-TEST_WORKLOADS=("mink-perf" "small-scale" "palletbox-perf"  "pingpong-perf" "marcopolo-perf")
+TEST_WORKLOADS=("smoke" "palletbox" "pingpong" "marcopolo")
 # shellcheck disable=SC2034
-USE_PERSISTENT_DATABASE=0
+USE_PERSISTENT_DATABASE=1
 # shellcheck disable=SC2034
 USE_MEMORY_SAMPLING=0
 
