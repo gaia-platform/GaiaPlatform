@@ -17,7 +17,7 @@ namespace transactions
 constexpr uint64_t c_txn_ts_frozen_shift{63ULL};
 constexpr uint64_t c_txn_ts_frozen_mask{1ULL << c_txn_ts_frozen_shift};
 
-constexpr gaia_txn_id_t is_frozen_ts(gaia_txn_id_t ts)
+constexpr bool is_frozen_ts(gaia_txn_id_t ts)
 {
     return (ts & c_txn_ts_frozen_mask) == c_txn_ts_frozen_mask;
 }
