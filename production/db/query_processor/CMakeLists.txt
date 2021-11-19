@@ -21,8 +21,7 @@ set(GAIA_QP_PRIVATE_INCLUDES
   "${GAIA_REPO}/production/db/inc/payload_types"
   "${GAIA_REPO}/production/db/inc/index"
   "${GAIA_REPO}/production/db/inc/query_processor"
-  "${GAIA_PROD_BUILD}/db/core/generated"
-  "${FLATBUFFERS_INC}")
+  "${GAIA_PROD_BUILD}/db/core/generated")
 
 target_include_directories(gaia_qp PRIVATE ${GAIA_QP_PRIVATE_INCLUDES})
 

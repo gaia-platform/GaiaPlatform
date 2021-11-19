@@ -34,6 +34,7 @@ else()
 endif()
 
 include(GNUInstallDirs)
+include(ExternalProject)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
@@ -187,8 +188,9 @@ set(DEPENDENCIES_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/deps)
 set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
 set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
 
-set(FLATBUFFERS "${GAIA_REPO}/third_party/production/flatbuffers")
-set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
+set(FLATBUFFERS "${CMAKE_BINARY_DIR}/flatbuffers/src")
+set(FLATBUFFERS_INC "${DEPENDENCIES_INSTALL_PREFIX}/flatbuffers/include")
+set(FLATBUFFERS_BIN "${DEPENDENCIES_INSTALL_PREFIX}/flatbuffers/bin")
 
 set(GAIA_SPDLOG "${DEPENDENCIES_INSTALL_PREFIX}/gaia_spdlog")
 set(GAIA_SPDLOG_INC "${GAIA_SPDLOG}/include")
@@ -271,12 +273,6 @@ endif()
 set(DISABLE_WARNINGS ON CACHE BOOL "" FORCE)
 add_subdirectory(${ROCKSDB} rocksdb EXCLUDE_FROM_ALL)
 
-# Flatbuffers.
-set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-add_subdirectory(${FLATBUFFERS} flatbuffers)
-
-include(ExternalProject)
-
 # Backward.
 if(ENABLE_STACKTRACE)
   message(VERBOSE "ENABLE_STACKTRACE=${ENABLE_STACKTRACE}")
@@ -300,6 +296,8 @@ add_subdirectory("${GAIA_REPO}/third_party/production/gaia_spdlog_setup" gaia_sp
 add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
 # Googletest.
 add_subdirectory(${GOOGLE_TEST} googletest EXCLUDE_FROM_ALL)
+# Flatbuffers.
+add_subdirectory("${GAIA_REPO}/third_party/production/flatbuffers" flatbuffers EXCLUDE_FROM_ALL)
 
 # Setting clang-tidy here to avoid it being applied to flatbuffers, rocksdb etc...
 # TODO Maybe we could force each subproject to set this flag?

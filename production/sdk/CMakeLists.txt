@@ -28,7 +28,6 @@ install(TARGETS gaia DESTINATION ${CMAKE_INSTALL_LIBDIR})
 #
 set(SDK_TEST_INCLUDES
   ${GAIA_INC}
-  ${FLATBUFFERS_INC}
 )
 
 configure_file("${GAIA_CONFIG}" "${PROJECT_BINARY_DIR}/gaia.conf")

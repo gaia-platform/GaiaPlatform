@@ -27,6 +27,9 @@ void compare_file_content(const char* filename1, const char* filename2)
     flatbuffers::LoadFile(filename2, true, &content2);
 
     // Check that the contents are identical.
+    cout << content1 << endl;
+    cout << "-----" << endl;
+    cout << content2 << endl;
     ASSERT_EQ(content1.size(), content2.size());
     ASSERT_EQ(0, content1.compare(content2));
 }
@@ -43,7 +46,7 @@ TEST(flatbuffers, fbs_compilation)
 
     // Parse schema.
     bool result = parser.Parse(schema.c_str());
-    ASSERT_EQ(true, result);
+    ASSERT_TRUE(result);
 
     // Serialize schema definition.
     parser.Serialize();
@@ -54,7 +57,7 @@ TEST(flatbuffers, fbs_compilation)
         reinterpret_cast<char*>(parser.builder_.GetBufferPointer()),
         parser.builder_.GetSize(),
         true);
-    ASSERT_EQ(true, result);
+    ASSERT_TRUE(result);
 
     // Compare the content of the programmatically generated files
     // with that of the build generated files.

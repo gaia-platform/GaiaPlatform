@@ -7,7 +7,6 @@
 project(gaiac)
 
 set(GAIA_CATALOG_TOOL_INCLUDES
-  ${FLATBUFFERS_INC}
   ${GAIA_REPO}/production/catalog/inc
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_REPO}/production/db/core/inc

@@ -13,7 +13,6 @@ set(GAIA_SYSTEM_PUBLIC_INCLUDES
 message(VERBOSE "GAIA_SYSTEM_PUBLIC_INCLUDES=${GAIA_SYSTEM_PUBLIC_INCLUDES}")
 
 set(GAIA_SYSTEM_PRIVATE_INCLUDES
-  "${FLATBUFFERS_INC}"
   "${GAIA_REPO}/production/rules/event_manager/inc"
   "${GAIA_REPO}/production/db/inc/memory_manager"
   "${GAIA_REPO}/production/schemas/loader/inc"
