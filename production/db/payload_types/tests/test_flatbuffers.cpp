@@ -27,9 +27,6 @@ void compare_file_content(const char* filename1, const char* filename2)
     flatbuffers::LoadFile(filename2, true, &content2);
 
     // Check that the contents are identical.
-    cout << content1 << endl;
-    cout << "-----" << endl;
-    cout << content2 << endl;
     ASSERT_EQ(content1.size(), content2.size());
     ASSERT_EQ(0, content1.compare(content2));
 }
