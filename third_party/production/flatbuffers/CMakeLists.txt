@@ -24,5 +24,5 @@ ExternalProject_Add(flatbuffers_dependency
   BUILD_BYPRODUCTS
     ${FLATBUFFERS_INC}
     ${FLATBUFFERS}/src/code_generators.cpp
-    ${FLATBUFFERS}/src/code_generators.cpp
+    ${FLATBUFFERS}/src/idl_gen_cpp.cpp
 )
