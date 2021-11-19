@@ -18,6 +18,18 @@ cmake_minimum_required(VERSION 3.16)
 # - GAIA_DEFAULT_RULES_GENERATED_DIR: The translate_ruleset() function puts the generated rules code
 #     in this directory if the OUTPUT_DIR param is not specified.
 
+# The user must explicitly set a C++ standard version; to avoid confusion, we do not fall back to a default version.
+if(NOT CMAKE_CXX_STANDARD)
+  message(FATAL_ERROR "CMAKE_CXX_STANDARD is not set!")
+endif()
+
+if(CMAKE_CXX_STANDARD STREQUAL "98")
+  message(FATAL_ERROR "The Gaia Translation Engine requires at least C++11!")
+endif()
+
+# Do not fall back to earlier versions if the compiler doesn't support the standard version.
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 if(NOT DEFINED GAIA_ROOT)
   set(GAIA_ROOT "/opt/gaia")
 endif()
