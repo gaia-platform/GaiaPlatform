@@ -25,6 +25,15 @@ struct server_instance_config_t
     bool skip_catalog_integrity_check;
     std::string data_dir;
 
+    /**
+     * Builds a configuration for connecting to the default database instance.
+     */
+    static server_instance_config_t get_default_config();
+
+    /**
+     * Builds a configuration for connecting to a new server instance.
+     * This method will also generate the name of the new instance.
+     */
     static server_instance_config_t get_new_instance_config();
 
     /**

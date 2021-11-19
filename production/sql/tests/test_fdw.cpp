@@ -8,7 +8,6 @@
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/common/file.hpp"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
-#include "gaia_internal/db/gaia_db_internal.hpp"
 
 using namespace std;
 
@@ -27,10 +26,8 @@ protected:
         gaia_log::initialize({});
 
         // For these tests, we need to use the default database instance,
-        // because the FDW is aware of any other instances.
-        server_instance_config_t conf = server_instance_config_t::get_new_instance_config();
-        conf.instance_name = c_default_instance_name;
-
+        // because the FDW is unaware of any other instances.
+        server_instance_config_t conf = server_instance_config_t::get_default_config();
         config::set_default_session_options(config::get_default_session_options());
 
         s_server_instance = server_instance_t(conf);
