@@ -20,6 +20,20 @@ class fdw_test : public db_catalog_test_base_t
 protected:
     fdw_test()
         : db_catalog_test_base_t(){};
+
+    static void SetUpTestSuite()
+    {
+        gaia_log::initialize({});
+
+        // For these tests, we need to use the default database instance,
+        // because the FDW is unaware of any other instances.
+        server_instance_config_t conf = server_instance_config_t::get_default_config();
+        config::set_default_session_options(config::get_default_session_options());
+
+        s_server_instance = server_instance_t(conf);
+        s_server_instance.start();
+        s_server_instance.wait_for_init();
+    }
 };
 
 void verify_command_output(string command_filename)

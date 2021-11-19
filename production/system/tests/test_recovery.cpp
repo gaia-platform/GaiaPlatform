@@ -93,7 +93,7 @@ protected:
     {
         gaia_log::initialize({});
 
-        server_instance_config_t server_conf = server_instance_config_t::get_default();
+        server_instance_config_t server_conf = server_instance_config_t::get_new_instance_config();
         server_conf.disable_persistence = false;
         server_conf.data_dir = server_instance_config_t::generate_data_dir(server_conf.instance_name);
         s_server = server_instance_t{server_conf};
@@ -192,8 +192,7 @@ gaia_id_t recovery_test::get_random_map_key(map<gaia_id_t, employee_copy_t> m)
 
 string recovery_test::generate_string(size_t length_in_bytes)
 {
-    auto randchar = []() -> char
-    {
+    auto randchar = []() -> char {
         const char charset[] = "0123456789"
                                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                "abcdefghijklmnopqrstuvwxyz";

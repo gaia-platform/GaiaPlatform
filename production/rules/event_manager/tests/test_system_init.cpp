@@ -69,7 +69,7 @@ protected:
     {
         gaia_log::initialize({});
 
-        server_instance_config_t server_conf = server_instance_config_t::get_default();
+        server_instance_config_t server_conf = server_instance_config_t::get_new_instance_config();
         server_conf.instance_name = c_default_instance_name;
 
         s_server_instance = server_instance_t{server_conf};
