@@ -23,9 +23,8 @@ if(NOT CMAKE_CXX_STANDARD)
   message(FATAL_ERROR "CMAKE_CXX_STANDARD is not set!")
 endif()
 
-# The Gaia Translation Engine requires at least C++11.
 if(CMAKE_CXX_STANDARD STREQUAL "98")
-  message(FATAL_ERROR "CMAKE_CXX_STANDARD must be set to '11' or later!")
+  message(FATAL_ERROR "The Gaia Translation Engine requires at least C++11!")
 endif()
 
 # Do not fall back to earlier versions if the compiler doesn't support the standard version.
