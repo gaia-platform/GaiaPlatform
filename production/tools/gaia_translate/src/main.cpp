@@ -2120,10 +2120,17 @@ public:
             + "."
             + field_name
             + ";}()").str();
-        m_rewriter.InsertTextAfterToken(op->getEndLoc(), replacement_text);
-        g_rewriter_history.push_back({SourceRange(op->getEndLoc()), replacement_text, insert_text_after_token});
+        SourceLocation operator_end_location = op->getEndLoc();
+        SourceRange operator_source_range = get_statement_source_range(op, m_rewriter.getSourceMgr(),m_rewriter.getLangOpts());
+        if (operator_source_range.isValid() && operator_source_range.getEnd() < operator_end_location)
+        {
+            operator_end_location = operator_source_range.getEnd().getLocWithOffset(-2);
+        }
 
-        auto offset = Lexer::MeasureTokenLength(op->getEndLoc(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
+        m_rewriter.InsertTextAfterToken(operator_end_location, replacement_text);
+        g_rewriter_history.push_back({SourceRange(operator_end_location), replacement_text, insert_text_after_token});
+
+        auto offset = Lexer::MeasureTokenLength(operator_end_location, m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
         if (!explicit_path_present)
         {
             update_expression_used_tables(
@@ -2131,7 +2138,7 @@ public:
                 op,
                 table_name,
                 variable_name,
-                SourceRange(set_source_range.getBegin(), op->getEndLoc().getLocWithOffset(offset)),
+                SourceRange(set_source_range.getBegin(), operator_end_location.getLocWithOffset(offset)),
                 m_rewriter);
         }
         else
