@@ -184,15 +184,11 @@ message(VERBOSE "Gaia link options: ${gaia_link_options}")
 
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
 set(DEPENDENCIES_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/deps")
-get_filename_component(DEPENDENCIES_INSTALL_PREFIX ${DEPENDENCIES_INSTALL_PREFIX} ABSOLUTE)
-message(STATUS "Suupini: ${DEPENDENCIES_INSTALL_PREFIX}")
 
 set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
 set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
 
 set(FLATBUFFERS "${CMAKE_BINARY_DIR}/flatbuffers/src")
-get_filename_component(FLATBUFFERS ${FLATBUFFERS} ABSOLUTE)
-message(STATUS "Suupini: ${FLATBUFFERS}")
 set(FLATBUFFERS_INC "${DEPENDENCIES_INSTALL_PREFIX}/flatbuffers/include")
 set(FLATBUFFERS_BIN "${DEPENDENCIES_INSTALL_PREFIX}/flatbuffers/bin")
 
