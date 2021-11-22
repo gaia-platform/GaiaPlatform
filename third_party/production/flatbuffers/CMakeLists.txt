@@ -13,10 +13,6 @@ add_dependencies(flatbuffers flatbuffers_dependency)
 target_include_directories(flatbuffers SYSTEM INTERFACE ${FLATBUFFERS_INC})
 target_link_libraries(flatbuffers INTERFACE ${FLATBUFFERS_ROOT}/lib/libflatbuffers.a)
 
-add_library(flatbuffers_headers INTERFACE)
-add_dependencies(flatbuffers_headers flatbuffers_dependency)
-target_include_directories(flatbuffers SYSTEM INTERFACE ${FLATBUFFERS_INC})
-
 ExternalProject_Add(flatbuffers_dependency
   URL
     https://github.com/google/flatbuffers/archive/refs/tags/v${FLATBUFFERS_VERSION}.tar.gz
