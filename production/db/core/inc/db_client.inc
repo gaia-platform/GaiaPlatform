@@ -18,11 +18,6 @@ inline void client_t::set_commit_trigger(triggers::commit_trigger_fn trigger_fn)
     s_txn_commit_trigger = trigger_fn;
 }
 
-inline gaia_txn_id_t client_t::get_txn_id()
-{
-    return s_txn_id;
-}
-
 inline int client_t::get_session_socket_for_txn()
 {
     return s_session_socket;

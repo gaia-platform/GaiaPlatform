@@ -52,6 +52,7 @@ class client_t
     friend gaia::db::data_t* gaia::db::get_data();
     friend gaia::db::id_index_t* gaia::db::get_id_index();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
+    friend gaia_txn_id_t gaia::db::get_current_txn_id();
 
     friend class gaia::db::query_processor::db_client_proxy_t;
 
@@ -86,7 +87,6 @@ public:
     static void rollback_transaction();
     static void commit_transaction();
 
-    static inline gaia_txn_id_t get_txn_id();
     static inline int get_session_socket_for_txn();
 
     // This returns a generator object for gaia_ids of a given type.
