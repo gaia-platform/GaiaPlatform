@@ -368,7 +368,7 @@ void gaia_ptr_t::create_insert_trigger(gaia_type_t type, gaia_id_t id)
 {
     if (client_t::is_valid_event(type))
     {
-        client_t::s_events.emplace_back(event_type_t::row_insert, type, id, empty_position_list, get_txn_id());
+        client_t::s_events.emplace_back(event_type_t::row_insert, type, id, empty_position_list, get_current_txn_id());
     }
 }
 
@@ -614,7 +614,7 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
 
     if (client_t::is_valid_event(new_this->type))
     {
-        client_t::s_events.emplace_back(event_type_t::row_update, new_this->type, new_this->id, changed_fields, get_txn_id());
+        client_t::s_events.emplace_back(event_type_t::row_update, new_this->type, new_this->id, changed_fields, get_current_txn_id());
     }
 
     return *this;

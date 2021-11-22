@@ -242,7 +242,7 @@ void rule_thread_pool_t::invoke_rule_inner(invocation_t& invocation)
             // before an enqueued rule has been invoked.
             if (!m_rule_checker.is_valid_row(rule_invocation.record))
             {
-                gaia_log::rules().trace("invalid anchor row: rule '{}' was not invoked, src_txn:'{}', new_txn:'{}'", rule_id, rule_invocation.src_txn_id, gaia::db::get_txn_id());
+                gaia_log::rules().trace("invalid anchor row: rule '{}' was not invoked, src_txn:'{}', new_txn:'{}'", rule_id, rule_invocation.src_txn_id, gaia::db::get_current_txn_id());
 
                 // It is safe to exit early out of this routine. The transaction will clean up on
                 // exit of the function and there will be no pending rule invocations to process.
@@ -263,7 +263,7 @@ void rule_thread_pool_t::invoke_rule_inner(invocation_t& invocation)
 
             // Invoke the rule.
             auto fn_start = gaia::common::timer_t::get_time_point();
-            gaia_log::rules().trace("call:'{}', src_txn:'{}', new_txn:'{}'", rule_id, rule_invocation.src_txn_id, gaia::db::get_txn_id());
+            gaia_log::rules().trace("call:'{}', src_txn:'{}', new_txn:'{}'", rule_id, rule_invocation.src_txn_id, gaia::db::get_current_txn_id());
             rule_invocation.rule_fn(&context);
             gaia_log::rules().trace("return:'{}'", rule_id);
             m_stats_manager.compute_rule_execution_time(rule_id, fn_start);
