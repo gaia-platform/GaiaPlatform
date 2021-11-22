@@ -8,7 +8,6 @@
 #include <memory>
 
 #include "gaia/common.hpp"
-#include "gaia/exception.hpp"
 
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
@@ -130,58 +129,6 @@ public:
 private:
     common::gaia_id_t m_parent_id;
     common::reference_offset_t m_child_offset;
-};
-
-// Exception when get() argument does not match the class type.
-class invalid_object_type : public common::gaia_exception
-{
-public:
-    invalid_object_type(
-        common::gaia_id_t id,
-        common::gaia_type_t expected_type,
-        const char* expected_typename,
-        common::gaia_type_t actual_type);
-};
-
-// A child's parent pointer must match the parent record we have.
-class invalid_member : public common::gaia_exception
-{
-public:
-    invalid_member(
-        common::gaia_id_t id,
-        common::gaia_type_t parent,
-        const char* parent_type,
-        common::gaia_type_t child,
-        const char* child_name);
-};
-
-// When a child refers to a parent, but is not found in that parent's list.
-class inconsistent_list : public common::gaia_exception
-{
-public:
-    inconsistent_list(
-        common::gaia_id_t id,
-        const char* parent_type,
-        common::gaia_id_t child,
-        const char* child_name);
-};
-
-// To connect two objects, a gaia_id() is needed but not available until SE create is called during
-// the insert_row().
-class invalid_state : public common::gaia_exception
-{
-public:
-    invalid_state(
-        common::gaia_id_t parent_id,
-        common::gaia_id_t chile_id,
-        const char* child_type);
-};
-
-// An attempt has been made to insert a member that has already been inserted somewhere.
-class already_inserted : public common::gaia_exception
-{
-public:
-    already_inserted(common::gaia_id_t parent, const char* parent_type);
 };
 
 /*@}*/

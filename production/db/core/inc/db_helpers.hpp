@@ -7,9 +7,8 @@
 
 #include <unistd.h>
 
-#include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
-#include "gaia/exception.hpp"
+#include "gaia/exceptions.hpp"
 
 #include "gaia_internal/common/memory_allocation_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"

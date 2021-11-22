@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "gaia/direct_access/dac_base.hpp"
+#include "gaia/exceptions.hpp"
 
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)

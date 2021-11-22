@@ -6,6 +6,7 @@
 #include "gaia/direct_access/dac_base.hpp"
 
 #include "gaia/db/db.hpp"
+#include "gaia/exceptions.hpp"
 
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
