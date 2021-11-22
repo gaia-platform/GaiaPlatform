@@ -1,0 +1,54 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+// -*- mode: java -*- // Java mode works for emacs to edit flatbuffers.
+
+namespace AddrBook;
+
+table employee {
+    Gaia_Mgr_id: int64;
+    Gaia_FirstAddr_id: int64;
+    Gaia_FirstPhone_id: int64;
+    Gaia_FirstProvision_id: int64;
+    Gaia_FirstSalary_id: int64;
+
+    // employee fields
+    name_first: string;
+    name_last: string;
+    ssn: string;
+    hire_date: int64;
+    email: string;
+    web: string;
+}
+
+table address {
+    Gaia_NextAddr_id: int64;
+    Gaia_NextState_id: int64;
+
+    // address fields
+    street: string;
+    apt_suite: string;
+    city: string;
+    state: string;
+    postal: string;
+    country: string;
+    current: bool;
+}
+
+table phone {
+    Gaia_NextPhone_id: int64;
+
+    // phone fields
+    phone_number: string;
+    type: string;
+    primary: bool;
+}
+
+// Create a table without any string or vector fields.
+table birthdate {
+    year : uint;
+    month : ubyte;
+    day : ubyte;
+}
