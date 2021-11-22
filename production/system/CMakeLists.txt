@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(system)
 
 set(GAIA_SYSTEM_PUBLIC_INCLUDES

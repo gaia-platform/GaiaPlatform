@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(payload_types)
 set(GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 

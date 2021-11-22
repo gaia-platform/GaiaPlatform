@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(gaia_dump)
 
 set(GAIA_DUMP_INCLUDES

@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(core)
 
 set(GAIA_DB_CORE_PUBLIC_INCLUDES

@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(catalog_schema)
 
 string(RANDOM GAIAC_CATALOG_INSTANCE_NAME)

@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(index)
 
 set(GAIA_INDEX_INCLUDES

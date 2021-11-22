@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(gaiac)
 
 set(GAIA_CATALOG_TOOL_INCLUDES

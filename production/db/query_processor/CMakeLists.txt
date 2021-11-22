@@ -2,7 +2,6 @@
 # Copyright (c) Gaia Platform LLC. All rights reserved.
 # ##############################################################################
 
-# Set the project name.
 project(query_processor)
 
 # Build sources.

@@ -9,7 +9,6 @@ include(UseJava)
 
 enable_testing()
 
-# Set the project name.
 project(production VERSION 0.3.2)
 
 # Sets the pre-release version which will be appended to the

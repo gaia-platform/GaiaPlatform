@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(direct_access)
 
 set(GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES

@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(parser)
 
 file(MAKE_DIRECTORY ${GAIA_PARSER_GENERATED})

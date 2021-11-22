@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(tools)
 
 if(BUILD_GAIA_RELEASE)

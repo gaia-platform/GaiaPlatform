@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(common)
 
 set(GAIA_COMMON_INCLUDES
