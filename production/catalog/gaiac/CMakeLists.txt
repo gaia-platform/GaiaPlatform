@@ -18,6 +18,11 @@ set(GAIA_CATALOG_TOOL_INCLUDES
 
 message(VERBOSE "GAIA_CATALOG_TOOL_INCLUDES=${GAIA_CATALOG_TOOL_INCLUDES}")
 
+# These files is downloaded with ExternalProject_Add in third_party/production/flatbuffers.
+# CMake is not able to detect this dependency and fails at config time.
+# The GENERATED property makes cmake to skip the source check at config time.
+set_source_files_properties(${FLATBUFFERS}/src/idl_gen_cpp.cpp PROPERTIES GENERATED TRUE)
+set_source_files_properties(${FLATBUFFERS}/src/code_generators.cpp PROPERTIES GENERATED TRUE)
 add_executable(gaiac
   src/main.cpp
   src/command.cpp
@@ -26,7 +31,6 @@ add_executable(gaiac
 
 configure_gaia_target(gaiac)
 target_include_directories(gaiac PRIVATE ${GAIA_CATALOG_TOOL_INCLUDES})
-add_dependencies(gaiac gaia_db_server_exec)
 target_link_libraries(gaiac PRIVATE rt gaia_common gaia_catalog gaia_parser flatbuffers tabulate Threads::Threads)
 
 if(ENABLE_STACKTRACE)

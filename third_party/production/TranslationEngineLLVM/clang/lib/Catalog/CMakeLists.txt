@@ -1,13 +1,16 @@
-set(GAIA_CATALOG_INCLUDES
-  ${GAIA_INC}
-  ${FLATBUFFERS_INC}
-)
-
 add_clang_library(clangCatalog
   GaiaCatalog.cpp
   LINK_LIBS
-  gaia_system
-  clangFrontend
-  )
+    gaia_system
+    clangFrontend
+)
 
-target_include_directories(clangCatalog PRIVATE ${GAIA_CATALOG_INCLUDES})
+# For some unknown reason the the clangCatalog target is not able to transitively use the
+# headers that are defined as part of the flatuffers library. For this reason I have added the
+# an explicit dependency to the flatbuffers library (to wait for the headers to be downloaded)
+# and explicitly added the flatbuffers headers in the included directories.
+add_dependencies(clangCatalog flatbuffers)
+target_include_directories(clangCatalog PRIVATE
+  ${GAIA_INC}
+  ${FLATBUFFERS_INC}
+)

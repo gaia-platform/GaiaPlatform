@@ -35,7 +35,7 @@ add_custom_command(
     --schema
     -b ${PROJECT_SOURCE_DIR}/tests/test_record.fbs
   DEPENDS ${PROJECT_SOURCE_DIR}/tests/test_record.fbs
-  DEPENDS ${FLATBUFFERS_BIN}/flatc
+  DEPENDS flatc
   VERBATIM)
 add_custom_target(test_record_bfbs ALL DEPENDS ${PAYLOAD_TYPES_TESTS_GENERATED_OUTPUT}/test_record.bfbs)
 
@@ -47,7 +47,7 @@ add_custom_command(
     -b ${PROJECT_SOURCE_DIR}/tests/test_record.fbs
     ${PROJECT_SOURCE_DIR}/tests/test_record_data.json
   DEPENDS ${PROJECT_SOURCE_DIR}/tests/test_record_data.json
-  DEPENDS ${FLATBUFFERS_BIN}/flatc
+  DEPENDS flatc
   VERBATIM)
 add_custom_target(test_record_data_bin ALL DEPENDS ${PAYLOAD_TYPES_TESTS_GENERATED_OUTPUT}/test_record_data.bin)
 
@@ -58,7 +58,7 @@ add_custom_command(
   COMMAND ${FLATBUFFERS_BIN}/flatc
     --cpp -o ${GEN_DIR} ${PROJECT_SOURCE_DIR}/tests/test_serialization.fbs
   DEPENDS ${PROJECT_SOURCE_DIR}/tests/test_serialization.fbs
-  DEPENDS ${FLATBUFFERS_BIN}/flatc
+  DEPENDS flatc
   VERBATIM)
 
 add_custom_target(test_serialization_schema ALL DEPENDS ${GEN_DIR}/test_serialization_generated.h)

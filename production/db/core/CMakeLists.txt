@@ -53,7 +53,7 @@ foreach(FBS_SOURCE ${FBS_SOURCES})
     COMMAND cmake -E make_directory "${GEN_DIR}"
     COMMAND ${FLATBUFFERS_BIN}/flatc --cpp --scoped-enums -o "${GEN_DIR}" "${FBS_SOURCE}"
     DEPENDS "${FBS_SOURCE}"
-    DEPENDS ${FLATBUFFERS_BIN}/flatc
+    DEPENDS flatc
     VERBATIM)
 
   add_custom_target(${FBS_SOURCE_FILENAME} ALL DEPENDS "${GEN_DIR}/${GEN_HEADER}")

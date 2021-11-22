@@ -183,12 +183,16 @@ message(VERBOSE "Gaia compile options: ${gaia_compile_options}")
 message(VERBOSE "Gaia link options: ${gaia_link_options}")
 
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
-set(DEPENDENCIES_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/deps)
+set(DEPENDENCIES_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/deps")
+get_filename_component(DEPENDENCIES_INSTALL_PREFIX ${DEPENDENCIES_INSTALL_PREFIX} ABSOLUTE)
+message(STATUS "Suupini: ${DEPENDENCIES_INSTALL_PREFIX}")
 
 set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
 set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
 
 set(FLATBUFFERS "${CMAKE_BINARY_DIR}/flatbuffers/src")
+get_filename_component(FLATBUFFERS ${FLATBUFFERS} ABSOLUTE)
+message(STATUS "Suupini: ${FLATBUFFERS}")
 set(FLATBUFFERS_INC "${DEPENDENCIES_INSTALL_PREFIX}/flatbuffers/include")
 set(FLATBUFFERS_BIN "${DEPENDENCIES_INSTALL_PREFIX}/flatbuffers/bin")
 
@@ -269,6 +273,16 @@ endif()
 
 # External project dependencies.
 
+# Flatbuffers.
+add_subdirectory("${GAIA_REPO}/third_party/production/flatbuffers" flatbuffers)
+
+# If this add_executable is placed into third_party/production/flatbuffers/CMakeLists.txt
+# the rest of the project can't see it. This is the workaround I came up with, looking for a
+# cleaner solution.
+add_executable(flatc IMPORTED)
+set_target_properties(flatc PROPERTIES IMPORTED_LOCATION ${FLATBUFFERS_BIN}/flatc)
+add_dependencies(flatc flatbuffers_dependency)
+
 # Rocksdb.
 set(DISABLE_WARNINGS ON CACHE BOOL "" FORCE)
 add_subdirectory(${ROCKSDB} rocksdb EXCLUDE_FROM_ALL)
@@ -296,8 +310,6 @@ add_subdirectory("${GAIA_REPO}/third_party/production/gaia_spdlog_setup" gaia_sp
 add_subdirectory("${GAIA_REPO}/third_party/production/tabulate" tabulate)
 # Googletest.
 add_subdirectory(${GOOGLE_TEST} googletest EXCLUDE_FROM_ALL)
-# Flatbuffers.
-add_subdirectory("${GAIA_REPO}/third_party/production/flatbuffers" flatbuffers EXCLUDE_FROM_ALL)
 
 # Setting clang-tidy here to avoid it being applied to flatbuffers, rocksdb etc...
 # TODO Maybe we could force each subproject to set this flag?
