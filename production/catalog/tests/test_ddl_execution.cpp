@@ -7,6 +7,7 @@
 
 #include "gaia/direct_access/auto_transaction.hpp"
 
+#include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/ddl_execution.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
@@ -422,4 +423,20 @@ create table employee (
         ASSERT_NO_THROW(parser.parse_string(ddl));
         ASSERT_THROW(execute(parser.statements), invalid_field_map);
     }
+}
+
+TEST_F(ddl_execution_test, cross_db_relationship)
+{
+    string ddl =
+        R"(
+create database d1;
+create database d2;
+create table d1.t1(c1 int32);
+create table d2.t2(c2 int32);
+create relationship r (d1.t1.link2 -> d2.t2, d2.t2.link1 -> d1.t1);
+)";
+
+    ddl::parser_t parser;
+    ASSERT_NO_THROW(parser.parse_string(ddl));
+    ASSERT_THROW(execute(parser.statements), no_cross_db_relationship);
 }
