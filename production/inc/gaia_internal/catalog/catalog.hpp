@@ -253,6 +253,20 @@ public:
 };
 
 /**
+ * Thrown when creating a relationship between tables from different databases.
+ */
+class no_cross_db_relationship : public gaia::common::gaia_exception
+{
+public:
+    explicit no_cross_db_relationship(const std::string& name)
+    {
+        std::stringstream message;
+        message << "Cannot create the relationship '" << name << "' across databases.";
+        m_message = message.str();
+    }
+};
+
+/**
  * Thrown when the tables specified in the relationship definition do not match.
  */
 class tables_not_match : public gaia::common::gaia_exception
@@ -718,7 +732,7 @@ struct drop_statement_t : statement_t
 
 /**
  * Initialize the catalog.
-*/
+ */
 void initialize_catalog();
 
 /**
