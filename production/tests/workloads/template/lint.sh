@@ -164,21 +164,21 @@ build_project() {
     fi
 }
 
-find_edc_directory() {
+find_dac_directory() {
 
     # Look for any subdirectories and place them in the array.
-    EDC_CHILD_DIRECTORY=$SCRIPTPATH/build/gaia_generated/direct_access/
-    readarray -d '' subdirs < <(find "$EDC_CHILD_DIRECTORY" -maxdepth 1 -type d -name "*" -print0)
+    DAC_CHILD_DIRECTORY=$SCRIPTPATH/build/gaia_generated/direct_access/
+    readarray -d '' subdirs < <(find "$DAC_CHILD_DIRECTORY" -maxdepth 1 -type d -name "*" -print0)
 
     if [ ${#subdirs[@]} -ne 2 ] ; then
-        complete_process 1 "Generated EDC directory for the generated files not found."
+        complete_process 1 "Generated DAC directory for the generated files not found."
     fi
 
-    if [ "${subdirs[0]}" != "$EDC_CHILD_DIRECTORY" ] ; then
+    if [ "${subdirs[0]}" != "$DAC_CHILD_DIRECTORY" ] ; then
         complete_process 1 "Expected the base directory to be the first element."
     fi
 
-    EDC_CHILD_DIRECTORY=${subdirs[1]}
+    DAC_CHILD_DIRECTORY=${subdirs[1]}
 }
 
 # Lint the C++ code.
@@ -218,7 +218,7 @@ lint_c_plus_plus_code() {
         complete_process 1 "Formatting of one or more files failed."
     fi
 
-    find_edc_directory
+    find_dac_directory
 
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Analyzing the C++ parts of the $PROJECT_NAME project."
@@ -235,7 +235,7 @@ lint_c_plus_plus_code() {
             if [ "$VERBOSE_MODE" -ne 0 ]; then
                 echo "Skipping third-party header file."
             fi
-        elif ! clang-tidy --warnings-as-errors=* -p "build" -extra-arg="-std=c++17" "${c_plus_plus_files[$FILE_INDEX]}" -- -I/opt/gaia/include "-I$EDC_CHILD_DIRECTORY" > "$TEMP_FILE" 2>&1; then
+        elif ! clang-tidy --warnings-as-errors=* -p "build" -extra-arg="-std=c++17" "${c_plus_plus_files[$FILE_INDEX]}" -- -I/opt/gaia/include "-I$DAC_CHILD_DIRECTORY" > "$TEMP_FILE" 2>&1; then
             cat "$TEMP_FILE"
             DID_FAIL=1
         fi

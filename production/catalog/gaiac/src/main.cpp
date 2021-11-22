@@ -153,7 +153,7 @@ void generate_fbs_headers(const string& db_name, const string& output_path)
 }
 
 // From the database name and catalog contents, generate the Extended Data Class definition(s).
-void generate_edc_code(const string& db_name, const filesystem::path& output_path)
+void generate_dac_code(const string& db_name, const filesystem::path& output_path)
 {
     string base_name = "gaia" + (db_name.empty() ? "" : "_" + db_name);
 
@@ -163,20 +163,20 @@ void generate_edc_code(const string& db_name, const filesystem::path& output_pat
     filesystem::path cpp_path = output_path;
     cpp_path /= base_name + ".cpp";
 
-    ofstream edc_header(header_path);
-    ofstream edc_cpp(cpp_path);
+    ofstream dac_header(header_path);
+    ofstream dac_cpp(cpp_path);
     try
     {
-        edc_header << gaia::catalog::generate_edc_header(db_name) << endl;
-        edc_cpp << gaia::catalog::generate_edc_cpp(db_name, header_path.filename()) << endl;
+        dac_header << gaia::catalog::generate_dac_header(db_name) << endl;
+        dac_cpp << gaia::catalog::generate_dac_cpp(db_name, header_path.filename()) << endl;
     }
     catch (gaia::common::gaia_exception& e)
     {
         cerr << "WARNING - gaia_generate failed: '" << e.what() << "'." << endl;
     }
 
-    edc_header.close();
-    edc_cpp.close();
+    dac_header.close();
+    dac_cpp.close();
 }
 
 void generate_edc(const string& db_name, const filesystem::path& output_path)
@@ -201,7 +201,7 @@ void generate_edc(const string& db_name, const filesystem::path& output_path)
     }
 
     generate_fbs_headers(db_name, absolute_output_path);
-    generate_edc_code(db_name, absolute_output_path);
+    generate_dac_code(db_name, absolute_output_path);
 }
 
 // Check if a database name is valid.
@@ -467,7 +467,7 @@ int main(int argc, char* argv[])
 
             if (mode == operate_mode_t::generation)
             {
-                // Generate EDC code for the default database if no database is given.
+                // Generate DAC code for the default database if no database is given.
                 if (db_names.size() == 0)
                 {
                     db_names.emplace_back(c_empty_db_name);

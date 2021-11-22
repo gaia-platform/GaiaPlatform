@@ -13,7 +13,7 @@
 
 //
 // Contains the classes that generate the header & cpp code
-// for EDC.
+// for DAC.
 //
 // The methods that generate cpp are suffixed with _cpp, while
 // the methods that generate headers do not have any particular
@@ -28,13 +28,13 @@ namespace generate
 {
 
 /**
- * Handles the generation of an EDC compilation unit, which is defined as
- * the header and cpp containing all the EDC code for a given database.
+ * Handles the generation of a DAC compilation unit, which is defined as
+ * the header and cpp containing all the DAC code for a given database.
  */
-class edc_compilation_unit_writer_t
+class dac_compilation_unit_writer_t
 {
 public:
-    explicit edc_compilation_unit_writer_t(gaia_database_t database)
+    explicit dac_compilation_unit_writer_t(gaia_database_t database)
         : m_database{database} {};
 
     std::string write_header();
@@ -59,10 +59,10 @@ private:
 };
 
 /**
- * Handle the generation of a single EDC class header definition and
+ * Handle the generation of a single DAC class header definition and
  * CPP implementations.
  *
- * Note: this class is meant to be used by edc_compilation_unit_writer_t
+ * Note: this class is meant to be used by dac_compilation_unit_writer_t
  * and rely on the code it generates (eg. namespaces, offset constants, etc..).
  */
 class class_writer_t

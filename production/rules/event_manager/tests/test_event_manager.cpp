@@ -10,7 +10,7 @@
 
 #include <gtest/gtest.h>
 
-#include "gaia/direct_access/edc_base.hpp"
+#include "gaia/direct_access/dac_base.hpp"
 #include "gaia/rules/rules.hpp"
 
 #include "gaia_internal/db/db_catalog_test_base.hpp"
@@ -126,7 +126,7 @@ rule_context_checker_t g_context_checker;
  * Our test object that will serve as the
  * row context sent to table events.
  */
-class test_gaia_t : public edc_base_t
+class test_gaia_t : public dac_base_t
 {
 public:
     test_gaia_t()
@@ -135,7 +135,7 @@ public:
     }
 
     explicit test_gaia_t(gaia_id_t record)
-        : edc_base_t(), m_id(record)
+        : dac_base_t(), m_id(record)
     {
     }
 
@@ -157,7 +157,7 @@ typedef unique_ptr<test_gaia_t> test_gaia_ptr_t;
 
 // Only to test gaia type filters on the
 // list_subscribed_rules api.
-class test_gaia_other_t : public edc_base_t
+class test_gaia_other_t : public dac_base_t
 {
 public:
     test_gaia_other_t()
@@ -166,7 +166,7 @@ public:
     }
 
     explicit test_gaia_other_t(gaia_id_t record)
-        : edc_base_t(), m_id(record)
+        : dac_base_t(), m_id(record)
     {
     }
 

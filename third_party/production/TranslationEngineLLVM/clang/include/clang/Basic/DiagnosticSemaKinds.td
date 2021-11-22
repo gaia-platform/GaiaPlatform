@@ -9535,7 +9535,7 @@ def err_duplicate_parameter_name : Error<
   "Parameter name '%0' has already been used.">;
 def err_duplicate_ruleset : Error<
   "Ruleset '%0' is defined more than once. Ruleset names must be unique.">;
-def err_edc_init : Error<
+def err_dac_init : Error<
   "Initialization of a declared variable with a Direct Access object is not supported.">;
 def err_field_deprecated : Error<
   "Field '%0' of table '%1' is marked as deprecated in the catalog. "

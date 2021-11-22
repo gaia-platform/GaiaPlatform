@@ -8,7 +8,7 @@ set(GAIA "/opt/gaia")
 include(${GAIA}/cmake/gaia.cmake)
 set(GAIA_INC "${GAIA}/include")
 
-# --- Generate EDC from DDL---
+# --- Generate DAC from DDL---
 process_schema(
   DDL_FILE ${PING_PONG_DDL}
   DATABASE_NAME ping_pong

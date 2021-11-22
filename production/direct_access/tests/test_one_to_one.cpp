@@ -57,7 +57,7 @@ TEST_F(gaia_one_to_one_test, connect_with_id)
     ASSERT_FALSE(madeline_employee.person());
 }
 
-TEST_F(gaia_one_to_one_test, connect_with_edc_obj)
+TEST_F(gaia_one_to_one_test, connect_with_dac_obj)
 {
     auto_transaction_t txn;
 
