@@ -41,6 +41,7 @@ jobs:
           echo "3"
           mkdir -p ~/.local/bin && ln -s $GAIA_REPO/dev_tools/gdev/gdev.sh ~/.local/bin/gdev
           ls -la ~/.local/bin/gdev
+          export GAIA_REPO=/home/runner/work/GaiaPlatform/GaiaPlatform
           echo Before--$PATH
           # echo $PATH | grep $HOME/.local/bin || (echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc && source .bashrc)
           export PATH=$HOME/.local/bin:$PATH
