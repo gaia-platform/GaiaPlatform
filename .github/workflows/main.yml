@@ -46,7 +46,7 @@ jobs:
           # echo $PATH | grep $HOME/.local/bin || (echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc && source .bashrc)
           export PATH=$HOME/.local/bin:$PATH
           echo After--$PATH
-          /home/runner/.local/bin/gdev build
+          gdev build
       # - name: Sync With Repository
       #   run: pipenv sync
       # - name: Execute Tests
