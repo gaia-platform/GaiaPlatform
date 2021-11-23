@@ -159,20 +159,20 @@ function(gaia_compile_flatbuffers_schema_to_cpp SRC_FBS)
 endfunction()
 
 # Creates a CMake target that loads schema definition specified by DDL_FILE
-# into the Gaia database. It then generates the EDC code to access the
-# database programmatically, and build the EDC classes into a static library.
+# into the Gaia database. It then generates the DAC code to access the
+# database programmatically, and build the DAC classes into a static library.
 #
 # The generated file is written to: ${OUTPUT_FOLDER}/gaia_${DDL_NAME}.h
 # where DDL_NAME is DDL_FILE with no extension.
 #
 # Args:
 # - DDL_FILE: [optional] the path to the .ddl file.
-#     If not specified, the function generates the EDC code for the database
+#     If not specified, the function generates the DAC code for the database
 #     specified by DATABASE_NAME.
 # - OUTPUT_DIR: [optional] directory where the header files will be generated.
 #     If not specified the default value is ${GAIA_GENERATED_CODE}/${DATABASE_NAME}
 # - LIB_NAME: [optional] the name of the generated target.
-#     If not specified the default value is edc_${DDL_NAME}.
+#     If not specified the default value is dac_${DDL_NAME}.
 # - DATABASE_NAME: [optional] name of the database the headers are generated from.
 #     If not specified, the default database will be used.
 function(process_schema_internal)
@@ -190,7 +190,7 @@ function(process_schema_internal)
     message(VERBOSE "OUTPUT_DIR not specified, defaulted to: ${ARG_OUTPUT_DIR}.")
   endif()
 
-  message(VERBOSE "Adding target to generate EDC code for database ${ARG_DATABASE_NAME}...")
+  message(VERBOSE "Adding target to generate DAC code for database ${ARG_DATABASE_NAME}...")
 
   string(RANDOM GAIAC_INSTANCE_NAME)
 
@@ -203,21 +203,21 @@ function(process_schema_internal)
   endif()
 
   if(DEFINED ARG_DATABASE_NAME)
-    set(EDC_HEADER_FILE ${ARG_OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.h)
-    set(EDC_CPP_FILE ${ARG_OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.cpp)
-    message(STATUS "Adding target to generate EDC code for database ${ARG_DATABASE_NAME}...")
+    set(DAC_HEADER_FILE ${ARG_OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.h)
+    set(DAC_CPP_FILE ${ARG_OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.cpp)
+    message(STATUS "Adding target to generate DAC code for database ${ARG_DATABASE_NAME}...")
     list(PREPEND GAIAC_ARGS "-d" "${ARG_DATABASE_NAME}")
   else()
     # If the database name is not specified, we use the default database.
     message(STATUS "DATABASE_NAME not specified, using default.")
-    set(EDC_HEADER_FILE ${ARG_OUTPUT_DIR}/gaia.h)
-    set(EDC_CPP_FILE ${ARG_OUTPUT_DIR}/gaia.cpp)
+    set(DAC_HEADER_FILE ${ARG_OUTPUT_DIR}/gaia.h)
+    set(DAC_CPP_FILE ${ARG_OUTPUT_DIR}/gaia.cpp)
   endif()
 
   add_custom_command(
-    COMMENT "Generating EDC code..."
-    OUTPUT ${EDC_HEADER_FILE}
-    OUTPUT ${EDC_CPP_FILE}
+    COMMENT "Generating DAC code..."
+    OUTPUT ${DAC_HEADER_FILE}
+    OUTPUT ${DAC_CPP_FILE}
     COMMAND ${GAIAC_COMMAND} ${GAIAC_ARGS}
     DEPENDS ${ARG_DDL_FILE}
     DEPENDS gaiac
@@ -225,7 +225,7 @@ function(process_schema_internal)
 
   if(NOT DEFINED ARG_LIB_NAME)
     if (DEFINED ARG_DATABASE_NAME)
-      set(ARG_LIB_NAME "edc_${ARG_DATABASE_NAME}")
+      set(ARG_LIB_NAME "dac_${ARG_DATABASE_NAME}")
     else()
       set(ARG_LIB_NAME "edc")
     endif()
@@ -233,7 +233,7 @@ function(process_schema_internal)
   endif()
 
   add_library(${ARG_LIB_NAME}
-    ${EDC_CPP_FILE})
+    ${DAC_CPP_FILE})
 
   configure_gaia_target(${ARG_LIB_NAME})
   target_include_directories(${ARG_LIB_NAME} PUBLIC ${ARG_OUTPUT_DIR})
@@ -262,8 +262,8 @@ endmacro()
 #   by specifying a previous target.  This argument is optional
 # TARGET_SOURCES - semicolon delimited list of gtest sources
 # TARGET_INCLUDES - include list for gtest
-# [TARGET_LIBRARIES] - other libraries to link to excluding the EDC_LIBRARY.  If not specified
-#   the gtest will be linked to "rt;gaia_system;gaia_db_catalog_test;EDC_LIBRARY"
+# [TARGET_LIBRARIES] - other libraries to link to excluding the DAC_LIBRARY.  If not specified
+#   the gtest will be linked to "rt;gaia_system;gaia_db_catalog_test;DAC_LIBRARY"
 #
 # Outputs:
 #
@@ -282,10 +282,10 @@ function(add_gaia_sdk_gtest)
   check_param(ARG_TARGET_SOURCES)
   check_param(ARG_TARGET_INCLUDES)
 
-  set(EDC_INCLUDE "${GAIA_GENERATED_CODE}/${ARG_DATABASE_NAME}")
-  set(EDC_LIBRARY "edc_${ARG_DATABASE_NAME}")
+  set(DAC_INCLUDE "${GAIA_GENERATED_CODE}/${ARG_DATABASE_NAME}")
+  set(DAC_LIBRARY "dac_${ARG_DATABASE_NAME}")
   if (NOT DEFINED ARG_TARGET_LIBRARIES)
-    set(ARG_TARGET_LIBRARIES "rt;gaia_system;gaia_db_catalog_test;${EDC_LIBRARY}")
+    set(ARG_TARGET_LIBRARIES "rt;gaia_system;gaia_db_catalog_test;${DAC_LIBRARY}")
   endif()
 
   get_filename_component(RULESET_NAME ${ARG_RULESET_FILE} NAME)
@@ -307,7 +307,7 @@ function(add_gaia_sdk_gtest)
       -I ${GAIA_INC}
       -I ${FLATBUFFERS_INC}
       -I ${GAIA_SPDLOG_INC}
-      -I ${EDC_INCLUDE}
+      -I ${DAC_INCLUDE}
       -I /usr/include/clang/10/include/
       -std=c++${CMAKE_CXX_STANDARD}
     COMMAND pkill -f -KILL gaia_db_server &
@@ -327,19 +327,19 @@ function(add_gaia_sdk_gtest)
   if(DEFINED ARG_PREVIOUS_TARGET_NAME)
     add_custom_target(${GENERATE_RULES_TARGET} ALL
       DEPENDS ${RULESET_CPP_OUT}
-      DEPENDS ${EDC_LIBRARY}
+      DEPENDS ${DAC_LIBRARY}
       DEPENDS ${ARG_PREVIOUS_TARGET_NAME}
     )
   else()
     add_custom_target(${GENERATE_RULES_TARGET} ALL
       DEPENDS ${RULESET_CPP_OUT}
-      DEPENDS ${EDC_LIBRARY}
+      DEPENDS ${DAC_LIBRARY}
     )
   endif()
 
   add_gtest(${ARG_TARGET_NAME}
     "${ARG_TARGET_SOURCES};${RULESET_CPP_OUT}"
-    "${ARG_TARGET_INCLUDES};${EDC_INCLUDE}"
+    "${ARG_TARGET_INCLUDES};${DAC_INCLUDE}"
     "${ARG_TARGET_LIBRARIES}"
     "${GENERATE_RULES_TARGET}"
   )

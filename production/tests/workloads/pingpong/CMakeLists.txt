@@ -23,7 +23,7 @@ add_compile_options(-Wall -Wextra)
 set(MINK_DDL ${PROJECT_SOURCE_DIR}/pingpong.ddl)
 set(MINK_RULESET ${PROJECT_SOURCE_DIR}/pingpong.ruleset)
 
-# --- Generate EDC from DDL---
+# --- Generate DAC from DDL---
 process_schema(
   DDL_FILE ${MINK_DDL}
   DATABASE_NAME pingpong

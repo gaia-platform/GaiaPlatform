@@ -746,7 +746,7 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
                         }
                         else
                         {
-                            gaiat::diag().emit(diag::err_edc_init);
+                            gaiat::diag().emit(diag::err_dac_init);
                             g_is_generation_error = true;
                             return;
                         }
@@ -867,8 +867,8 @@ void generate_table_subscription(
             + rule_line_var
             + " = "
             + Twine(g_current_ruleset_rule_line_number)
-            + ";\n"
-        ).toVector(common_subscription_code);
+            + ";\n")
+            .toVector(common_subscription_code);
     }
 
     common_subscription_code.append(c_ident);
@@ -950,8 +950,8 @@ void generate_table_subscription(
         Twine("\n")
         + c_nolint_identifier_naming
         + "\nvoid "
-        + rule_name
-    ).toVector(function_prologue);
+        + rule_name)
+        .toVector(function_prologue);
     bool is_absolute_path_only = true;
     for (const auto& explicit_path_data_iterator : g_expression_explicit_path_data)
     {
@@ -1010,8 +1010,8 @@ void generate_table_subscription(
                 + db_namespace(anchor_table_data_itr->second.dbName)
                 + table
                 + "_t::get(context->record);\n"
-                + "{\n"
-            ).toVector(anchor_code);
+                + "{\n")
+                .toVector(anchor_code);
 
             for (const auto& attribute_tag_iterator : g_attribute_tag_map)
             {
@@ -1216,8 +1216,7 @@ void generate_rules(Rewriter& rewriter)
                 return;
             }
             field_subscription_code.append(
-                (Twine(c_ident) + "fields_" + rule_name + ".push_back(" + Twine(field_iterator->second.position) + ");\n").str()
-            );
+                (Twine(c_ident) + "fields_" + rule_name + ".push_back(" + Twine(field_iterator->second.position) + ");\n").str());
         }
 
         generate_table_subscription(table, field_subscription_code, rule_count, true, rule_line_numbers, rewriter);
@@ -2021,15 +2020,15 @@ public:
         }
         tok::TokenKind token_kind;
         string writer_variable = table_navigation_t::get_variable_name("writer", llvm::StringMap<string>());
-        string replacement_text = (
-            Twine("[&]() mutable {auto ")
-            + writer_variable
-            + " = "
-            + variable_name
-            + ".writer(); "
-            + writer_variable
-            + "."
-            + field_name).str();
+        string replacement_text = (Twine("[&]() mutable {auto ")
+                                   + writer_variable
+                                   + " = "
+                                   + variable_name
+                                   + ".writer(); "
+                                   + writer_variable
+                                   + "."
+                                   + field_name)
+                                      .str();
 
         switch (op->getOpcode())
         {
@@ -2112,14 +2111,14 @@ public:
         }
         m_rewriter.ReplaceText(set_source_range, replacement_text);
         g_rewriter_history.push_back({set_source_range, replacement_text, replace_text});
-        replacement_text = (
-            Twine("; ")
-            + writer_variable
-            + ".update_row(); return "
-            + writer_variable
-            + "."
-            + field_name
-            + ";}()").str();
+        replacement_text = (Twine("; ")
+                            + writer_variable
+                            + ".update_row(); return "
+                            + writer_variable
+                            + "."
+                            + field_name
+                            + ";}()")
+                               .str();
         m_rewriter.InsertTextAfterToken(op->getEndLoc(), replacement_text);
         g_rewriter_history.push_back({SourceRange(op->getEndLoc()), replacement_text, insert_text_after_token});
 
@@ -2284,17 +2283,19 @@ public:
             {
                 replace_string
                     = (Twine("[&]() mutable {auto ") + temp_variable + " = "
-                    + variable_name + "." + field_name + "(); auto " + writer_variable + " = "
-                    + variable_name + ".writer(); " + writer_variable + "." + field_name + "++; "
-                    + writer_variable + ".update_row(); return " + temp_variable + ";}()").str();
+                       + variable_name + "." + field_name + "(); auto " + writer_variable + " = "
+                       + variable_name + ".writer(); " + writer_variable + "." + field_name + "++; "
+                       + writer_variable + ".update_row(); return " + temp_variable + ";}()")
+                          .str();
             }
             else if (op->isDecrementOp())
             {
                 replace_string
                     = (Twine("[&]() mutable {auto ") + temp_variable + " = "
-                    + variable_name + "." + field_name + "(); auto " + writer_variable + " = "
-                    + variable_name + ".writer(); " + writer_variable + "." + field_name + "--; "
-                    + writer_variable + ".update_row(); return " + temp_variable + ";}()").str();
+                       + variable_name + "." + field_name + "(); auto " + writer_variable + " = "
+                       + variable_name + ".writer(); " + writer_variable + "." + field_name + "--; "
+                       + writer_variable + ".update_row(); return " + temp_variable + ";}()")
+                          .str();
             }
         }
         else
@@ -2303,17 +2304,19 @@ public:
             {
                 replace_string
                     = (Twine("[&]() mutable {auto ") + writer_variable + " = " + variable_name
-                    + ".writer(); ++ " + writer_variable + "." + field_name
-                    + ";" + writer_variable + ".update_row(); return " + writer_variable
-                    + "." + field_name + ";}()").str();
+                       + ".writer(); ++ " + writer_variable + "." + field_name
+                       + ";" + writer_variable + ".update_row(); return " + writer_variable
+                       + "." + field_name + ";}()")
+                          .str();
             }
             else if (op->isDecrementOp())
             {
                 replace_string
                     = (Twine("[&]() mutable {auto ") + writer_variable + " = " + variable_name
-                    + ".writer(); -- " + writer_variable + "." + field_name
-                    + ";" + writer_variable + ".update_row(); return " + writer_variable
-                    + "." + field_name + ";}()").str();
+                       + ".writer(); -- " + writer_variable + "." + field_name
+                       + ";" + writer_variable + ".update_row(); return " + writer_variable
+                       + "." + field_name + ";}()")
+                          .str();
             }
         }
 
@@ -2588,7 +2591,8 @@ public:
         {
             // Empty ruleset so it doesn't make sense to process any possible attributes
             string replace_string = (Twine("namespace ") + g_current_ruleset
-                    + "\n{\n} // namespace " + g_current_ruleset + "\n").str();
+                                     + "\n{\n} // namespace " + g_current_ruleset + "\n")
+                                        .str();
             m_rewriter.ReplaceText(
                 SourceRange(
                     ruleset_declaration->getBeginLoc(),

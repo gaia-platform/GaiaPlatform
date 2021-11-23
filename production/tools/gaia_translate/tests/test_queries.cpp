@@ -136,14 +136,14 @@ protected:
     {
         gaia::db::begin_transaction();
 
-        // These must be EDC objects. They have insert() methods.
+        // These must be DAC objects. They have insert() methods.
         student_1 = student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
         student_2 = student_t::get(student_t::insert_row("stu002", "Russell", 32, 4, 3.0));
         student_3 = student_t::get(student_t::insert_row("stu003", "Reuben", 26, 4, 3.0));
         student_4 = student_t::get(student_t::insert_row("stu004", "Rachael", 51, 4, 3.0));
         student_5 = student_t::get(student_t::insert_row("stu005", "Renee", 65, 4, 3.0));
 
-        // These must be EDC objects. They have insert() methods.
+        // These must be DAC objects. They have insert() methods.
         course_1 = course_t::get(course_t::insert_row("cou001", "math101", 3));
         course_2 = course_t::get(course_t::insert_row("cou002", "math201", 4));
         course_3 = course_t::get(course_t::insert_row("cou003", "eng101", 3));

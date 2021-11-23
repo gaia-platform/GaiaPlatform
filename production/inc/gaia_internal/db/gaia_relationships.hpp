@@ -61,7 +61,7 @@ struct relationship_t
 
 /**
  * Thrown when adding a reference to an offset that does not exist. It could surface the
- * user when a relationship is deleted at runtime, but the EDC classes are not up to
+ * user when a relationship is deleted at runtime, but the DAC classes are not up to
  * date with it.
  */
 class invalid_reference_offset : public gaia::common::gaia_exception
@@ -78,7 +78,7 @@ public:
 /**
  * Thrown when adding a reference to an offset that exists but the type of the object
  * that is being added is of the wrong type according to the relationship definition.
- * This can happen when the relationships are modified at runtime and the EDC classes
+ * This can happen when the relationships are modified at runtime and the DAC classes
  * are not up to date with it.
  */
 class invalid_relationship_type : public gaia::common::gaia_exception
@@ -99,7 +99,7 @@ public:
 
 /**
  * Thrown when adding more than one children to a one-to-one relationship.
- * This can happen when the relationships are modified at runtime and the EDC classes
+ * This can happen when the relationships are modified at runtime and the DAC classes
  * are not up to date with it.
  */
 class single_cardinality_violation : public gaia::common::gaia_exception
