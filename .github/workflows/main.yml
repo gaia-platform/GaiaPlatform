@@ -29,25 +29,28 @@ jobs:
         uses: dschep/install-pipenv-action@v1
         with:
           version: 2021.5.29
-      - name: X1
+      - name: Install Required Python Tools
         run: |
-          echo Set Repo Base
-          export GAIA_REPO=/home/runner/work/GaiaPlatform/GaiaPlatform
-
-          echo Start
           sudo apt-get update && sudo apt-get install -y python3-pip
           python3.8 -m pip install --user atools argcomplete
-
+      - name: Setup Environment
+        run: |
+          export GAIA_REPO=/home/runner/work/GaiaPlatform/GaiaPlatform
+      - name: X1
+        run: |
           echo "1"
           cat /etc/docker/daemon.json
           echo "2"
           cat ~/.docker/config.json
 
-          echo "3"
+          echo Setup Link to GDev
           mkdir -p ~/.local/bin && ln -s $GAIA_REPO/dev_tools/gdev/gdev.sh ~/.local/bin/gdev
           ls -la ~/.local/bin/gdev
-
           export PATH=$HOME/.local/bin:$PATH
+
+          echo "3"
+          pwd
+          ls -la
           gdev build
       # - name: Sync With Repository
       #   run: pipenv sync
