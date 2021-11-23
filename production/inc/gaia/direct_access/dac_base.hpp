@@ -28,7 +28,7 @@ namespace direct_access
  * \addtogroup Direct
  * @{
  *
- * Implementation of Extended Data Classes. This provides a direct access API
+ * Implementation of Direct Access Classes. This provides a direct access API
  * for CRUD operations on the database.
  */
 
@@ -66,7 +66,7 @@ protected:
 };
 
 /**
- * The dac_base_t class is a tag to mark extended data class objects as well as provide
+ * The dac_base_t class is a tag to mark direct access class objects as well as provide
  * non-template functionality.
  */
 class dac_base_t : protected dac_db_t

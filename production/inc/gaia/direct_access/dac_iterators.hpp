@@ -27,7 +27,7 @@ namespace direct_access
  * \addtogroup Direct
  * @{
  *
- * Implementation of Extended Data Classes. This provides a direct access API
+ * Implementation of Direct Access Classes. This provides a direct access API
  * for CRUD operations on the database, plus navigation between objects through
  * linked lists called "sets".
  */
@@ -40,7 +40,7 @@ class dac_container_t;
 // An dac_iterator_t contains the methods that satisfy an iterator interface.
 // Only used from dac_container_t template, which defines the begin(), where() and end().
 //
-// @tparam T_class the Extended Data Class
+// @tparam T_class the Direct Access Class
 template <typename T_class>
 class dac_iterator_t : protected dac_db_t
 {
@@ -76,10 +76,10 @@ protected:
     std::function<bool(const T_class&)> m_filter_fn;
 };
 
-// A dac_container_t is all objects of the same Extended Data Class in the database.
+// A dac_container_t is all objects of the same Direct Access Class in the database.
 //
-// @tparam container_type_id the type identifier of Extended Data Class
-// @tparam T_class the class of the Extended Data Class
+// @tparam container_type_id the type identifier of Direct Access Class
+// @tparam T_class the class of the Direct Access Class
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class>
 class dac_container_t : protected dac_db_t
 {
@@ -106,7 +106,7 @@ private:
 // linked list forming a "set" between a parent and multiple child instances of
 // a class.
 //
-// @tparam T_child the Extended Data Class that is in the child position in the set
+// @tparam T_child the Direct Access Class that is in the child position in the set
 template <typename T_child>
 class dac_set_iterator_t : protected dac_db_t
 {
@@ -147,7 +147,7 @@ private:
 // Constants have been generated to identify the particular slot assigned for
 // its role in a set.
 //
-// @tparam T_child the Extended Data Class that is in the child position in the set
+// @tparam T_child the Direct Access Class that is in the child position in the set
 template <typename T_child>
 class reference_chain_container_t : protected dac_db_t
 {

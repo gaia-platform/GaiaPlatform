@@ -20,7 +20,7 @@ constexpr gaia_type_t c_system_table_reserved_range_start
     = c_system_table_reserved_range_end.value() - c_system_table_reserved_range.value() + 1;
 
 // The order of these fields is relevant to the generated order of the catalog
-// table structs in the extended data classes (DAC) code. The child table
+// table structs in the direct access classes (DAC) code. The child table
 // referencing the parent table (child->parent) should come before the parent
 // table. In other words, the child table should have a larger id than the
 // parent table. This allows incomplete forward declaration of structs that

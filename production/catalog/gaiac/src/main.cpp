@@ -152,7 +152,7 @@ void generate_fbs_headers(const string& db_name, const string& output_path)
     };
 }
 
-// From the database name and catalog contents, generate the Extended Data Class definition(s).
+// From the database name and catalog contents, generate the Direct Access Class definition(s).
 void generate_dac_code(const string& db_name, const filesystem::path& output_path)
 {
     string base_name = "gaia" + (db_name.empty() ? "" : "_" + db_name);

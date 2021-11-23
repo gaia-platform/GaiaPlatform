@@ -32,7 +32,7 @@ namespace direct_access
  * \addtogroup Direct
  * @{
  *
- * Implementation of Extended Data Classes. This provides a direct access API
+ * Implementation of Direct Access Classes. This provides a direct access API
  * for CRUD operations on the database.
  */
 
@@ -83,7 +83,7 @@ public:
     static T_gaia get(gaia::common::gaia_id_t id);
 
     /**
-     * Delete the database object. This doesn't destroy the extended data class
+     * Delete the database object. This doesn't destroy the direct access class
      * object.
      */
     void delete_row();

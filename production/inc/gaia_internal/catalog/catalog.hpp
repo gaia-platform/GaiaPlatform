@@ -935,7 +935,7 @@ void drop_index(const std::string& name, bool throw_unless_exists = true);
 gaia::common::gaia_id_t find_db_id(const std::string& dbname);
 
 /**
- * Generate the Extended Data Classes header file.
+ * Generate the Direct Access Classes header file.
  *
  * @param dbname database name
  * @return generated source
@@ -943,7 +943,7 @@ gaia::common::gaia_id_t find_db_id(const std::string& dbname);
 std::string generate_dac_header(const std::string& dbname);
 
 /**
- * Generate the Extended Data Classes implementation file.
+ * Generate the Direct Access Classes implementation file.
  *
  * @param dbname database name
  * @param header_file_name name of the corresponding header to
