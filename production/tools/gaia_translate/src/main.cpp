@@ -61,7 +61,7 @@ cl::opt<bool> g_help_option_alias("h", cl::desc("Alias for -help"), cl::ValueDis
 // The number of source files is enforced manually instead of using llvm::cl parameters.
 cl::list<std::string> g_source_files(cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore, cl::cat(g_translation_engine_category));
 
-cl::opt<std::string> g_instance_name("n", cl::desc("DB instance name"), cl::Optional, cl::cat(g_translation_engine_category));
+cl::opt<std::string> g_instance_name("n", cl::desc("DB instance name"), cl::Optional, cl::Hidden, cl::cat(g_translation_engine_category));
 
 std::string g_current_ruleset;
 std::string g_current_ruleset_serial_group;
@@ -2118,11 +2118,18 @@ public:
                             + "."
                             + field_name
                             + ";}()")
-                               .str();
-        m_rewriter.InsertTextAfterToken(op->getEndLoc(), replacement_text);
-        g_rewriter_history.push_back({SourceRange(op->getEndLoc()), replacement_text, insert_text_after_token});
+                                .str();
+        SourceLocation operator_end_location = op->getEndLoc();
+        SourceRange operator_source_range = get_statement_source_range(op, m_rewriter.getSourceMgr(),m_rewriter.getLangOpts());
+        if (operator_source_range.isValid() && operator_source_range.getEnd() < operator_end_location)
+        {
+            operator_end_location = operator_source_range.getEnd().getLocWithOffset(-2);
+        }
 
-        auto offset = Lexer::MeasureTokenLength(op->getEndLoc(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
+        m_rewriter.InsertTextAfterToken(operator_end_location, replacement_text);
+        g_rewriter_history.push_back({SourceRange(operator_end_location), replacement_text, insert_text_after_token});
+
+        auto offset = Lexer::MeasureTokenLength(operator_end_location, m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
         if (!explicit_path_present)
         {
             update_expression_used_tables(
@@ -2130,7 +2137,7 @@ public:
                 op,
                 table_name,
                 variable_name,
-                SourceRange(set_source_range.getBegin(), op->getEndLoc().getLocWithOffset(offset)),
+                SourceRange(set_source_range.getBegin(), operator_end_location.getLocWithOffset(offset)),
                 m_rewriter);
         }
         else
