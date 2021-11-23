@@ -4,8 +4,6 @@ on:
   push:
     branches: [master]
     pull_request:
-  # schedule:
-  #   - cron: '0 0 * * *'  # daily at midnight
 
 jobs:
   scenario-tests:
@@ -31,6 +29,11 @@ jobs:
         uses: dschep/install-pipenv-action@v1
         with:
           version: 2021.5.29
+      - name: X1
+        run: |
+          echo Start
+          mkdir -p ~/.local/bin && ln -s $GAIA_REPO/dev_tools/gdev/gdev.sh ~/.local/bin/gdev
+          echo $PATH | grep $HOME/.local/bin || (echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc && source .bashrc)
       # - name: Sync With Repository
       #   run: pipenv sync
       # - name: Execute Tests
