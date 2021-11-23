@@ -11,6 +11,7 @@
 #include <sys/socket.h>
 
 #include "gaia/db/db.hpp"
+#include "gaia/exceptions.hpp"
 
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/mmap_helpers.hpp"

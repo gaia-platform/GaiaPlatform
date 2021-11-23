@@ -16,7 +16,6 @@
 
 namespace gaia
 {
-
 namespace direct_access
 {
 

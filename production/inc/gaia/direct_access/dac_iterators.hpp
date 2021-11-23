@@ -8,23 +8,21 @@
 #include <utility>
 
 #include "gaia/direct_access/dac_base.hpp"
+#include "gaia/exceptions.hpp"
 
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
 
 namespace gaia
 {
-
 /**
- * \addtogroup Gaia
+ * \addtogroup gaia
  * @{
  */
-
 namespace direct_access
 {
-
 /**
- * \addtogroup Direct
+ * \addtogroup direct_access
  * @{
  *
  * Implementation of Direct Access Classes. This provides a direct access API

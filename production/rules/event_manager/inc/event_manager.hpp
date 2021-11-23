@@ -13,7 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "gaia/rules/rules.hpp"
+#include "gaia/rules/exceptions.hpp"
 
 #include "gaia_internal/db/triggers.hpp"
 #include "gaia_internal/rules/rules_config.hpp"

@@ -8,7 +8,7 @@
 #include <optional>
 #include <shared_mutex>
 
-#include "gaia/common.hpp"
+#include "gaia/exceptions.hpp"
 
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/system_table_types.hpp"

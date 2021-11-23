@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "gaia/exceptions.hpp"
+
 #include "gaia_internal/common/retail_assert.hpp"
 
 #include "db_helpers.hpp"
