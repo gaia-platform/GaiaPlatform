@@ -6,7 +6,6 @@
 project(flatbuffers)
 
 set(FLATBUFFERS_VERSION "2.0.0")
-set(FLATBUFFERS_ROOT ${DEPENDENCIES_INSTALL_PREFIX}/flatbuffers)
 
 add_library(flatbuffers INTERFACE)
 add_dependencies(flatbuffers flatbuffers_dependency)
@@ -21,9 +20,9 @@ ExternalProject_Add(flatbuffers_dependency
   EXCLUDE_FROM_ALL
     TRUE
   PREFIX
-    flatbuffers
+    ${FLATBUFFERS_PREFIX}
   SOURCE_DIR
-    src
+    ${FLATBUFFERS_SOURCE_DIR}
   CMAKE_ARGS
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
     -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS}"
