@@ -2,8 +2,8 @@ name: Main
 
 on:
   push:
-    branches: [gha]
-  # pull_request:
+    branches: [master]
+    pull_request:
   # schedule:
   #   - cron: '0 0 * * *'  # daily at midnight
 
