@@ -31,21 +31,23 @@ jobs:
           version: 2021.5.29
       - name: X1
         run: |
+          echo Set Repo Base
+          export GAIA_REPO=/home/runner/work/GaiaPlatform/GaiaPlatform
+
           echo Start
           sudo apt-get update && sudo apt-get install -y python3-pip
           python3.8 -m pip install --user atools argcomplete
+
           echo "1"
           cat /etc/docker/daemon.json
           echo "2"
           cat ~/.docker/config.json
+
           echo "3"
           mkdir -p ~/.local/bin && ln -s $GAIA_REPO/dev_tools/gdev/gdev.sh ~/.local/bin/gdev
           ls -la ~/.local/bin/gdev
-          export GAIA_REPO=/home/runner/work/GaiaPlatform/GaiaPlatform
-          echo Before--$PATH
-          # echo $PATH | grep $HOME/.local/bin || (echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc && source .bashrc)
+
           export PATH=$HOME/.local/bin:$PATH
-          echo After--$PATH
           gdev build
       # - name: Sync With Repository
       #   run: pipenv sync
