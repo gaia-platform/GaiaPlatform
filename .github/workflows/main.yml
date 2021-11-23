@@ -12,10 +12,6 @@ jobs:
         python: [3.8]
         platform: [ubuntu-20.04]
     runs-on: ${{ matrix.platform }}
-    container:
-      image: ubuntu-20.04
-      options: --privileged
-      # https://github.com/actions/container-action/issues/2
     steps:
       # - name: Say Hello
       #   run: echo Hello World!
