@@ -45,7 +45,7 @@ jobs:
           echo "2"
           cat ~/.docker/config.json
           echo "3"
-          gdev build
+          /home/runner/.local/bin/gdev build
       # - name: Sync With Repository
       #   run: pipenv sync
       # - name: Execute Tests
