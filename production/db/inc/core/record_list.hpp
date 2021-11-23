@@ -13,7 +13,6 @@
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/queue.hpp"
 #include "gaia_internal/db/db_types.hpp"
-#include "gaia_internal/db/gaia_db_internal.hpp"
 
 namespace gaia
 {

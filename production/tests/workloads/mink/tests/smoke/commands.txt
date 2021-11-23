@@ -19,6 +19,8 @@ D
 w5
 # Take 1023 steps.
 o
-z1023
+Z1023
 o
 # end
+#w2000
+#j

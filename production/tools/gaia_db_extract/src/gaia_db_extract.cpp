@@ -143,7 +143,7 @@ static string dump_catalog()
     auto return_string = catalog_dump.str();
     if (!return_string.compare("null"))
     {
-        return "{}";
+        return c_empty_object;
     }
     else
     {
@@ -158,7 +158,8 @@ static bool add_field_value(json_t& row, const gaia_field_t& field_object, const
     switch (value.type)
     {
     case reflection::String:
-        row[field_name] = value.hold.string_value;
+        // Null is possible.
+        row[field_name] = (value.hold.string_value == nullptr) ? c_empty_string : value.hold.string_value;
         break;
 
     case reflection::Float:
@@ -192,6 +193,7 @@ static bool add_field_value(json_t& row, const gaia_field_t& field_object, const
 static string dump_rows(string database, string table, uint64_t start_after, uint32_t row_limit)
 {
     bool terminate = false;
+    bool has_included_top_level = false;
     table_iterator_t table_iterator;
     stringstream row_dump;
     json_t rows = json_t{};
@@ -199,7 +201,7 @@ static string dump_rows(string database, string table, uint64_t start_after, uin
     if (!g_cache_initialized)
     {
         fprintf(stderr, "API not initialized. Call gaia_db_extract_initialize() first.\n");
-        return "{}";
+        return c_empty_object;
     }
 
     begin_transaction();
@@ -217,12 +219,16 @@ static string dump_rows(string database, string table, uint64_t start_after, uin
                 break;
             }
 
-            // Top level of the JSON document, contains database and table names.
-            rows["database"] = database;
-            rows["table"] = table;
-
             while (!table_iterator.has_scan_ended())
             {
+                if (!has_included_top_level)
+                {
+                    // Top level of the JSON document, contains database and table names.
+                    rows["database"] = database;
+                    rows["table"] = table;
+                    has_included_top_level = true;
+                }
+
                 // Note that a row_limit of -1 means "unlimited", so it will never be 0.
                 if (row_limit-- == 0)
                 {
@@ -260,7 +266,7 @@ static string dump_rows(string database, string table, uint64_t start_after, uin
     auto return_string = rows.dump(c_default_json_indentation);
     if (!return_string.compare("null"))
     {
-        return "{}";
+        return c_empty_object;
     }
     else
     {
@@ -277,12 +283,19 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
     }
     else if (database.size() > 0 && table.size() > 0)
     {
-        return dump_rows(database, table, start_after, row_limit);
+        if (row_limit != 0)
+        {
+            return dump_rows(database, table, start_after, row_limit);
+        }
+        else
+        {
+            return c_empty_object;
+        }
     }
     else
     {
         fprintf(stderr, "Must have both database name and table name to extract row data.\n");
-        return "{}";
+        return c_empty_object;
     }
 }
 

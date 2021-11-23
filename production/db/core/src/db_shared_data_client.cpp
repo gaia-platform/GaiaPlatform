@@ -73,7 +73,7 @@ gaia::db::id_index_t* gaia::db::get_id_index()
 
 gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id()
 {
-    return gaia::db::client_t::get_txn_id();
+    return gaia::db::client_t::s_txn_id;
 }
 
 gaia::db::index::indexes_t* gaia::db::get_indexes()

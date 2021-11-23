@@ -43,7 +43,17 @@ namespace gaia
 namespace db
 {
 
-server_instance_config_t gaia::db::server_instance_config_t::get_default()
+server_instance_config_t gaia::db::server_instance_config_t::get_default_config()
+{
+    return server_instance_config_t{
+        .server_exec_path = find_server_path(),
+        .instance_name = c_default_instance_name,
+        .disable_persistence = true,
+        .skip_catalog_integrity_check = false,
+        .data_dir = ""};
+}
+
+server_instance_config_t gaia::db::server_instance_config_t::get_new_instance_config()
 {
     return server_instance_config_t{
         .server_exec_path = find_server_path(),

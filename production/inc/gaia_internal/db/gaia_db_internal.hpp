@@ -25,9 +25,9 @@ void set_commit_trigger(gaia::db::triggers::commit_trigger_fn trigger_fn);
 void clear_shared_memory();
 
 /**
- * Internal API for getting the begin_ts of the current txn.
- */
-gaia_txn_id_t get_txn_id();
+* Internal API for getting the begin_ts of the current txn.
+*/
+gaia_txn_id_t get_current_txn_id();
 
 // The name of the SE server binary.
 constexpr char c_db_server_exec_name[] = "gaia_db_server";

@@ -9,9 +9,9 @@
 
 #include "gaia/common.hpp"
 #include "gaia/direct_access/auto_transaction.hpp"
-#include "gaia/direct_access/edc_array.hpp"
-#include "gaia/direct_access/edc_base.hpp"
-#include "gaia/direct_access/edc_expressions.hpp"
+#include "gaia/direct_access/dac_array.hpp"
+#include "gaia/direct_access/dac_base.hpp"
+#include "gaia/direct_access/dac_expressions.hpp"
 #include "gaia/direct_access/nullable_string.hpp"
 
 // Export all symbols declared in this file.
@@ -32,15 +32,15 @@ namespace direct_access
  * \addtogroup Direct
  * @{
  *
- * Implementation of Extended Data Classes. This provides a direct access API
+ * Implementation of Direct Access Classes. This provides a direct access API
  * for CRUD operations on the database.
  */
 
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_gaia, typename T_fb, typename T_obj>
-class edc_writer_t;
+class dac_writer_t;
 
 /**
- * The edc_object_t that must be specialized to operate on a flatbuffer type.
+ * The dac_object_t that must be specialized to operate on a flatbuffer type.
  *
  * @tparam container_type_id an integer (gaia_type_t) uniquely identifying the flatbuffer table type
  * @tparam T_gaia the subclass type derived from this template
@@ -48,7 +48,7 @@ class edc_writer_t;
  * @tparam T_obj the mutable flatbuffer type to be implemented
  */
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_gaia, typename T_fb, typename T_obj>
-class edc_object_t : public edc_base_t
+class dac_object_t : public dac_base_t
 {
 public:
     /**
@@ -58,15 +58,15 @@ public:
     static gaia::common::gaia_type_t s_gaia_type;
 
 public:
-    edc_object_t();
+    dac_object_t();
 
     /**
      * Return a reference that is pre-populated with values from the row
      */
-    edc_writer_t<container_type_id, T_gaia, T_fb, T_obj> writer();
+    dac_writer_t<container_type_id, T_gaia, T_fb, T_obj> writer();
 
     /**
-     * This can be used when you are passed a edc_base_t
+     * This can be used when you are passed a dac_base_t
      * object and want to know the type at runtime.
      */
     gaia::common::gaia_type_t gaia_type() override
@@ -83,7 +83,7 @@ public:
     static T_gaia get(gaia::common::gaia_id_t id);
 
     /**
-     * Delete the database object. This doesn't destroy the extended data class
+     * Delete the database object. This doesn't destroy the direct access class
      * object.
      */
     void delete_row();
@@ -106,19 +106,19 @@ public:
     /**
      * Returns true if the both objects have same identity.
      */
-    bool operator==(const edc_object_t& other) const;
+    bool operator==(const dac_object_t& other) const;
 
     /**
      * Returns true if the objects do not have have same identity.
      */
-    bool operator!=(const edc_object_t& other) const;
+    bool operator!=(const dac_object_t& other) const;
 
 protected:
     /**
      * This constructor supports creating new objects from existing
      * objects in the database.  It is called by our get_object below.
      */
-    edc_object_t(gaia::common::gaia_id_t id);
+    dac_object_t(gaia::common::gaia_id_t id);
 
     /**
      * Insert a mutable flatbuffer into a newly created database object. This will be
@@ -135,28 +135,28 @@ protected:
      * Ensure the type requested by the gaia_id_t matches container_type_id. If the passed in
      * id does not exist in the database then return c_invalid_gaia_id.  If the id
      * does exist in the database and the type of the record matches then return the
-     * passed in id.  If the type does not match then throw an edc_invalid_object_type
+     * passed in id.  If the type does not match then throw an dac_invalid_object_type
      * exception.
      */
     static gaia::common::gaia_id_t verify_type(gaia::common::gaia_id_t id);
 
     /**
-     * Convert a flatbuffers::Vector to the corresponding edc_vector_t.
+     * Convert a flatbuffers::Vector to the corresponding dac_vector_t.
      */
     template <typename T_type>
-    static edc_vector_t<T_type> to_edc_vector(const flatbuffers::Vector<T_type>* vector_ptr)
+    static dac_vector_t<T_type> to_dac_vector(const flatbuffers::Vector<T_type>* vector_ptr)
     {
-        return edc_vector_t<T_type>(vector_ptr);
+        return dac_vector_t<T_type>(vector_ptr);
     }
 };
 
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_gaia, typename T_fb, typename T_obj>
-class edc_writer_t : public T_obj, protected edc_db_t
+class dac_writer_t : public T_obj, protected dac_db_t
 {
-    friend edc_object_t<container_type_id, T_gaia, T_fb, T_obj>;
+    friend dac_object_t<container_type_id, T_gaia, T_fb, T_obj>;
 
 public:
-    edc_writer_t() = default;
+    dac_writer_t() = default;
 
     /**
      * Insert the values in this new object into a newly created database object.
@@ -181,7 +181,7 @@ private:
 // Pick up our template implementation.  These still
 // need to be in the header so that template specializations
 // that are declared later will pick up the definitions.
-#include "gaia/direct_access/edc_object.inc"
+#include "gaia/direct_access/dac_object.inc"
 
 /*@}*/
 } // namespace direct_access

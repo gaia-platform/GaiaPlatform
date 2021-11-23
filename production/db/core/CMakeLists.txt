@@ -95,7 +95,7 @@ configure_gaia_target(gaia_db_client)
 target_include_directories(gaia_db_client PUBLIC ${GAIA_DB_CORE_PUBLIC_INCLUDES})
 target_include_directories(gaia_db_client PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES})
 target_link_libraries(gaia_db_client PUBLIC gaia_common)
-target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager gaia_qp edc_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager gaia_qp dac_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
 
 # Suppress spurious warnings about zero-initialized structs.
 target_compile_options(gaia_db_client PRIVATE -Wno-missing-field-initializers)
@@ -104,7 +104,7 @@ target_compile_options(gaia_db_client PRIVATE -Wno-missing-field-initializers)
 target_include_directories(gaia_db_client SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_db_client SYSTEM PRIVATE "${GEN_DIR}")
 target_link_libraries(gaia_db_client PUBLIC gaia_common)
-target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager gaia_index gaia_qp edc_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager gaia_index gaia_qp dac_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
 
 add_library(rocks_wrapper STATIC
   src/rdb_internal.cpp
@@ -274,7 +274,7 @@ add_gtest(test_env_instance_name tests/test_db_server_env.cpp "${GAIA_DB_CORE_TE
 add_gtest(test_multiple_server_instances
     tests/test_multiple_server_instances.cpp
     "${GEN_DIR};${GAIA_DB_CORE_TEST_INCLUDES}"
-    "gaia_common;gaia_db_client;gaia_direct;gaia_schema_loader;rt;edc_addr_book")
+    "gaia_common;gaia_db_client;gaia_direct;gaia_schema_loader;rt;dac_addr_book")
 
 add_gtest(test_relationships
   tests/test_relationships.cpp

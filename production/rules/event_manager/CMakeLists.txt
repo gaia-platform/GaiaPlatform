@@ -71,8 +71,8 @@ set(TEST_RULE_INTEGRATION_INCLUDES
 
 add_gtest(test_rule_integration
   "tests/test_rule_integration.cpp;tests/rules_test_helpers.cpp"
-  "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia_system;gaia_schema_loader;edc_addr_book")
+  "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia_system;gaia_schema_loader;dac_addr_book")
 
 add_gtest(test_rule_exceptions
   "tests/test_rule_exceptions.cpp;tests/rules_test_helpers.cpp"
-  "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia_system;gaia_schema_loader;edc_addr_book")
+  "${TEST_RULE_INTEGRATION_INCLUDES}" "rt;gaia_system;gaia_schema_loader;dac_addr_book")

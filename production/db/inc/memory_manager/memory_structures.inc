@@ -97,7 +97,7 @@ bool chunk_manager_metadata_t::apply_chunk_transition_from_version(
     chunk_version_t expected_token = shifted_expected_version | common::get_enum_value(expected_state);
     chunk_version_t desired_token = shifted_desired_version | common::get_enum_value(desired_state);
 
-    return chunk_state_and_version.compare_exchange_strong(expected_token, desired_token);
+    return chunk_state_and_version.compare_exchange_strong(expected_token.value_ref(), desired_token.value());
 }
 
 void chunk_manager_metadata_t::update_last_allocation_metadata(size_t allocation_size_in_slots)
