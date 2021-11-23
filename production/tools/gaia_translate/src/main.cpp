@@ -61,7 +61,7 @@ cl::opt<bool> g_help_option_alias("h", cl::desc("Alias for -help"), cl::ValueDis
 // The number of source files is enforced manually instead of using llvm::cl parameters.
 cl::list<std::string> g_source_files(cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore, cl::cat(g_translation_engine_category));
 
-cl::opt<std::string> g_instance_name("n", cl::desc("DB instance name"), cl::Optional, cl::cat(g_translation_engine_category));
+cl::opt<std::string> g_instance_name("n", cl::desc("DB instance name"), cl::Optional, cl::Hidden, cl::cat(g_translation_engine_category));
 
 std::string g_current_ruleset;
 std::string g_current_ruleset_serial_group;
@@ -746,7 +746,7 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
                         }
                         else
                         {
-                            gaiat::diag().emit(diag::err_edc_init);
+                            gaiat::diag().emit(diag::err_dac_init);
                             g_is_generation_error = true;
                             return;
                         }
@@ -867,8 +867,8 @@ void generate_table_subscription(
             + rule_line_var
             + " = "
             + Twine(g_current_ruleset_rule_line_number)
-            + ";\n"
-        ).toVector(common_subscription_code);
+            + ";\n")
+            .toVector(common_subscription_code);
     }
 
     common_subscription_code.append(c_ident);
@@ -950,8 +950,8 @@ void generate_table_subscription(
         Twine("\n")
         + c_nolint_identifier_naming
         + "\nvoid "
-        + rule_name
-    ).toVector(function_prologue);
+        + rule_name)
+        .toVector(function_prologue);
     bool is_absolute_path_only = true;
     for (const auto& explicit_path_data_iterator : g_expression_explicit_path_data)
     {
@@ -1010,8 +1010,8 @@ void generate_table_subscription(
                 + db_namespace(anchor_table_data_itr->second.dbName)
                 + table
                 + "_t::get(context->record);\n"
-                + "{\n"
-            ).toVector(anchor_code);
+                + "{\n")
+                .toVector(anchor_code);
 
             for (const auto& attribute_tag_iterator : g_attribute_tag_map)
             {
@@ -1216,8 +1216,7 @@ void generate_rules(Rewriter& rewriter)
                 return;
             }
             field_subscription_code.append(
-                (Twine(c_ident) + "fields_" + rule_name + ".push_back(" + Twine(field_iterator->second.position) + ");\n").str()
-            );
+                (Twine(c_ident) + "fields_" + rule_name + ".push_back(" + Twine(field_iterator->second.position) + ");\n").str());
         }
 
         generate_table_subscription(table, field_subscription_code, rule_count, true, rule_line_numbers, rewriter);
@@ -2021,15 +2020,15 @@ public:
         }
         tok::TokenKind token_kind;
         string writer_variable = table_navigation_t::get_variable_name("writer", llvm::StringMap<string>());
-        string replacement_text = (
-            Twine("[&]() mutable {auto ")
-            + writer_variable
-            + " = "
-            + variable_name
-            + ".writer(); "
-            + writer_variable
-            + "."
-            + field_name).str();
+        string replacement_text = (Twine("[&]() mutable {auto ")
+                                   + writer_variable
+                                   + " = "
+                                   + variable_name
+                                   + ".writer(); "
+                                   + writer_variable
+                                   + "."
+                                   + field_name)
+                                      .str();
 
         switch (op->getOpcode())
         {
@@ -2112,18 +2111,25 @@ public:
         }
         m_rewriter.ReplaceText(set_source_range, replacement_text);
         g_rewriter_history.push_back({set_source_range, replacement_text, replace_text});
-        replacement_text = (
-            Twine("; ")
-            + writer_variable
-            + ".update_row(); return "
-            + writer_variable
-            + "."
-            + field_name
-            + ";}()").str();
-        m_rewriter.InsertTextAfterToken(op->getEndLoc(), replacement_text);
-        g_rewriter_history.push_back({SourceRange(op->getEndLoc()), replacement_text, insert_text_after_token});
+        replacement_text = (Twine("; ")
+                            + writer_variable
+                            + ".update_row(); return "
+                            + writer_variable
+                            + "."
+                            + field_name
+                            + ";}()")
+                                .str();
+        SourceLocation operator_end_location = op->getEndLoc();
+        SourceRange operator_source_range = get_statement_source_range(op, m_rewriter.getSourceMgr(),m_rewriter.getLangOpts());
+        if (operator_source_range.isValid() && operator_source_range.getEnd() < operator_end_location)
+        {
+            operator_end_location = operator_source_range.getEnd().getLocWithOffset(-2);
+        }
 
-        auto offset = Lexer::MeasureTokenLength(op->getEndLoc(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
+        m_rewriter.InsertTextAfterToken(operator_end_location, replacement_text);
+        g_rewriter_history.push_back({SourceRange(operator_end_location), replacement_text, insert_text_after_token});
+
+        auto offset = Lexer::MeasureTokenLength(operator_end_location, m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
         if (!explicit_path_present)
         {
             update_expression_used_tables(
@@ -2131,7 +2137,7 @@ public:
                 op,
                 table_name,
                 variable_name,
-                SourceRange(set_source_range.getBegin(), op->getEndLoc().getLocWithOffset(offset)),
+                SourceRange(set_source_range.getBegin(), operator_end_location.getLocWithOffset(offset)),
                 m_rewriter);
         }
         else
@@ -2284,17 +2290,19 @@ public:
             {
                 replace_string
                     = (Twine("[&]() mutable {auto ") + temp_variable + " = "
-                    + variable_name + "." + field_name + "(); auto " + writer_variable + " = "
-                    + variable_name + ".writer(); " + writer_variable + "." + field_name + "++; "
-                    + writer_variable + ".update_row(); return " + temp_variable + ";}()").str();
+                       + variable_name + "." + field_name + "(); auto " + writer_variable + " = "
+                       + variable_name + ".writer(); " + writer_variable + "." + field_name + "++; "
+                       + writer_variable + ".update_row(); return " + temp_variable + ";}()")
+                          .str();
             }
             else if (op->isDecrementOp())
             {
                 replace_string
                     = (Twine("[&]() mutable {auto ") + temp_variable + " = "
-                    + variable_name + "." + field_name + "(); auto " + writer_variable + " = "
-                    + variable_name + ".writer(); " + writer_variable + "." + field_name + "--; "
-                    + writer_variable + ".update_row(); return " + temp_variable + ";}()").str();
+                       + variable_name + "." + field_name + "(); auto " + writer_variable + " = "
+                       + variable_name + ".writer(); " + writer_variable + "." + field_name + "--; "
+                       + writer_variable + ".update_row(); return " + temp_variable + ";}()")
+                          .str();
             }
         }
         else
@@ -2303,17 +2311,19 @@ public:
             {
                 replace_string
                     = (Twine("[&]() mutable {auto ") + writer_variable + " = " + variable_name
-                    + ".writer(); ++ " + writer_variable + "." + field_name
-                    + ";" + writer_variable + ".update_row(); return " + writer_variable
-                    + "." + field_name + ";}()").str();
+                       + ".writer(); ++ " + writer_variable + "." + field_name
+                       + ";" + writer_variable + ".update_row(); return " + writer_variable
+                       + "." + field_name + ";}()")
+                          .str();
             }
             else if (op->isDecrementOp())
             {
                 replace_string
                     = (Twine("[&]() mutable {auto ") + writer_variable + " = " + variable_name
-                    + ".writer(); -- " + writer_variable + "." + field_name
-                    + ";" + writer_variable + ".update_row(); return " + writer_variable
-                    + "." + field_name + ";}()").str();
+                       + ".writer(); -- " + writer_variable + "." + field_name
+                       + ";" + writer_variable + ".update_row(); return " + writer_variable
+                       + "." + field_name + ";}()")
+                          .str();
             }
         }
 
@@ -2588,7 +2598,8 @@ public:
         {
             // Empty ruleset so it doesn't make sense to process any possible attributes
             string replace_string = (Twine("namespace ") + g_current_ruleset
-                    + "\n{\n} // namespace " + g_current_ruleset + "\n").str();
+                                     + "\n{\n} // namespace " + g_current_ruleset + "\n")
+                                        .str();
             m_rewriter.ReplaceText(
                 SourceRange(
                     ruleset_declaration->getBeginLoc(),

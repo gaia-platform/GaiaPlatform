@@ -9,7 +9,7 @@
 
 #include <flatbuffers/flatbuffers.h>
 
-#include "gaia/direct_access/edc_object.hpp"
+#include "gaia/direct_access/dac_object.hpp"
 
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
@@ -22,10 +22,10 @@ namespace direct_access
 
 // A pimpl style wrapper class that encapsulates flatbuffers::Vector.
 template <typename T_type>
-class edc_vector_t
+class dac_vector_t
 {
 public:
-    edc_vector_t() = delete;
+    dac_vector_t() = delete;
 
     const T_type* data() const
     {
@@ -47,14 +47,14 @@ public:
     }
 
 private:
-    // Make the edc_object_t a friend so it can call the private vector constructor.
+    // Make the dac_object_t a friend so it can call the private vector constructor.
     template <gaia::common::gaia_type_t::value_type gaia_type, typename T_gaia, typename T_fb, typename T_obj>
-    friend struct edc_object_t;
+    friend struct dac_object_t;
 
-    explicit edc_vector_t(const flatbuffers::Vector<T_type>* vector_ptr)
+    explicit dac_vector_t(const flatbuffers::Vector<T_type>* vector_ptr)
         : m_vector(vector_ptr)
     {
-        static_assert(std::is_arithmetic<T_type>::value, "edc_vector_t only supports basic types!");
+        static_assert(std::is_arithmetic<T_type>::value, "dac_vector_t only supports basic types!");
     };
 
     const flatbuffers::Vector<T_type>* m_vector;

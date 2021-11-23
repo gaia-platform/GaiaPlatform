@@ -72,7 +72,7 @@ static const int64_t c_num_employee_addresses = 2;
  *  [plain]: avg:86178.28us min:80889.47us max:91281.46us
  *  ->expr is 5.07% faster
  *
- * Comparing 'EDC class ==' performance:
+ * Comparing 'DAC class ==' performance:
  *   [expr]: avg:126928.02us min:124232.26us max:133843.79us
  *  [plain]: avg:131983.32us min:129818.73us max:136030.87us
  *  ->expr is 3.83% faster
@@ -424,7 +424,7 @@ TEST_F(test_expressions_perf, object_eq)
         EXPECT_EQ(addresses.size(), c_num_employee_addresses);
     };
 
-    run_performance_test(expr_fn, plain_fn, "EDC class ==");
+    run_performance_test(expr_fn, plain_fn, "DAC class ==");
 
     txn.commit();
 }

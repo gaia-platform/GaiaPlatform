@@ -39,7 +39,7 @@ protected:
     }
 };
 
-TEST_F(gaia_one_to_many_test, connect_with_edc_obj)
+TEST_F(gaia_one_to_many_test, connect_with_dac_obj)
 {
     auto_transaction_t txn;
 

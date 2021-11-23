@@ -385,6 +385,11 @@ gaia_id_t ddl_executor_t::create_relationship(
         throw tables_not_match(name, link1.to_table, link2.from_table);
     }
 
+    if (gaia_table_t::get(link1_src_table_id).database() != gaia_table_t::get(link1_dest_table_id).database())
+    {
+        throw no_cross_db_relationship(name);
+    }
+
     if (link1.cardinality == relationship_cardinality_t::many
         && link2.cardinality == relationship_cardinality_t::many)
     {

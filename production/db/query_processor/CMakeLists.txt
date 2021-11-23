@@ -34,4 +34,4 @@ set(QP_TEST_INCLUDES
 )
 
 add_gtest(test_qp tests/test_index_scan.cpp
-      "${QP_TEST_INCLUDES}" "gaia_common;gaia_direct;gaia_db_catalog_test;gaia_payload_types;gaia_index;gaia_qp;edc_index_sandbox;flatbuffers")
+      "${QP_TEST_INCLUDES}" "gaia_common;gaia_direct;gaia_db_catalog_test;gaia_payload_types;gaia_index;gaia_qp;dac_index_sandbox;flatbuffers")

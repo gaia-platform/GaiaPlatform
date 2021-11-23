@@ -26,7 +26,7 @@ protected:
         : db_catalog_test_base_t("airport.ddl"){};
 };
 
-// Using the catalog manager's create_table(), create a catalog and an EDC header from that.
+// Using the catalog manager's create_table(), create a catalog and an DAC header from that.
 TEST_F(gaia_generate_test, use_create_table)
 {
     create_database("airport_test");
@@ -34,14 +34,14 @@ TEST_F(gaia_generate_test, use_create_table)
     fields.emplace_back(make_unique<ddl::data_field_def_t>("name", data_type_t::e_string, 1));
     create_table("airport_test", "airport", fields);
 
-    auto header_str = generate_edc_header("airport_test");
+    auto header_str = generate_dac_header("airport_test");
     EXPECT_NE(0, header_str.find("class airport_t"));
 
-    auto cpp_str = generate_edc_cpp("airport_test", "gaia_airport.h");
+    auto cpp_str = generate_dac_cpp("airport_test", "gaia_airport.h");
     EXPECT_NE(0, header_str.find("trip_segment_t::insert_row"));
 }
 
-// Start from Gaia DDL to create an EDC header.
+// Start from Gaia DDL to create an DAC header.
 TEST_F(gaia_generate_test, parse_ddl)
 {
     ddl::parser_t parser;
@@ -50,10 +50,10 @@ TEST_F(gaia_generate_test, parse_ddl)
     create_database("tmp_airport");
     execute(parser.statements);
 
-    auto header_str = generate_edc_header(c_empty_db_name);
+    auto header_str = generate_dac_header(c_empty_db_name);
     EXPECT_NE(0, header_str.find("class tmp_airport"));
 
-    auto cpp_str = generate_edc_cpp(c_empty_db_name, "gaia_airport.h");
+    auto cpp_str = generate_dac_cpp(c_empty_db_name, "gaia_airport.h");
     EXPECT_NE(0, header_str.find("tmp_airport::insert_row"));
 }
 

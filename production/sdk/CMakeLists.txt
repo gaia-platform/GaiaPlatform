@@ -34,8 +34,8 @@ set(SDK_TEST_INCLUDES
 configure_file("${GAIA_CONFIG}" "${PROJECT_BINARY_DIR}/gaia.conf")
 configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
 # Disabling test_sdk until we can remove the dependency on non-public methods exported from the SDK shared library.
-# add_gtest(test_sdk "tests/test_sdk.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;gaia_spdlog;edc_addr_book")
-add_gtest(test_sdk_no_init_rules "tests/test_sdk_no_init_rules.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;edc_addr_book")
+# add_gtest(test_sdk "tests/test_sdk.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;gaia_spdlog;dac_addr_book")
+add_gtest(test_sdk_no_init_rules "tests/test_sdk_no_init_rules.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;dac_addr_book")
 
 # Set CPack variables required for building a DEB/RPM package.
 #
