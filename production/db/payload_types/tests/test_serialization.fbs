@@ -4,3 +4,19 @@ table serialization
 {
     data: [byte];
 }
+
+
+table Doctor {
+    name:string;
+    age:int32 = 18;
+    patients:[Patient];
+}
+
+
+table Patient {
+    name:string (required);
+    age:int32 = null;
+    doctor:Doctor;
+}
+
+root_type Doctor;
