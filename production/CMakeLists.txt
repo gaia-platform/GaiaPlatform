@@ -14,7 +14,6 @@ include(UseJava)
 
 enable_testing()
 
-# Set the project name.
 project(production VERSION 0.3.2)
 
 # Sets the pre-release version which will be appended to the
@@ -39,6 +38,7 @@ else()
 endif()
 
 include(GNUInstallDirs)
+include(ExternalProject)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
@@ -183,13 +183,17 @@ message(VERBOSE "Gaia compile options: ${gaia_compile_options}")
 message(VERBOSE "Gaia link options: ${gaia_link_options}")
 
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
-set(DEPENDENCIES_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/deps)
+set(DEPENDENCIES_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/deps")
 
 set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
 set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
 
-set(FLATBUFFERS "${GAIA_REPO}/third_party/production/flatbuffers")
-set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
+set(FLATBUFFERS_ROOT ${DEPENDENCIES_INSTALL_PREFIX}/flatbuffers)
+set(FLATBUFFERS_PREFIX flatbuffers)
+set(FLATBUFFERS_SOURCE_DIR src)
+set(FLATBUFFERS_SOURCE "${CMAKE_BINARY_DIR}/flatbuffers/${FLATBUFFERS_SOURCE_DIR}")
+set(FLATBUFFERS_INC "${FLATBUFFERS_ROOT}/include")
+set(FLATBUFFERS_BIN "${FLATBUFFERS_ROOT}/bin")
 
 set(GAIA_SPDLOG "${DEPENDENCIES_INSTALL_PREFIX}/gaia_spdlog")
 set(GAIA_SPDLOG_INC "${GAIA_SPDLOG}/include")
@@ -268,15 +272,19 @@ endif()
 
 # External project dependencies.
 
+# Flatbuffers.
+add_subdirectory("${GAIA_REPO}/third_party/production/flatbuffers" flatbuffers)
+
+# If this add_executable is placed into third_party/production/flatbuffers/CMakeLists.txt
+# the rest of the project can't see it. This is the workaround I came up with, looking for a
+# cleaner solution.
+add_executable(flatc IMPORTED)
+set_target_properties(flatc PROPERTIES IMPORTED_LOCATION ${FLATBUFFERS_BIN}/flatc)
+add_dependencies(flatc flatbuffers_dependency)
+
 # Rocksdb.
 set(DISABLE_WARNINGS ON CACHE BOOL "" FORCE)
 add_subdirectory(${ROCKSDB} rocksdb EXCLUDE_FROM_ALL)
-
-# Flatbuffers.
-set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-add_subdirectory(${FLATBUFFERS} flatbuffers)
-
-include(ExternalProject)
 
 # Backward.
 if(ENABLE_STACKTRACE)

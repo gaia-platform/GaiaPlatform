@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(core)
 
 set(GAIA_DB_CORE_PUBLIC_INCLUDES
@@ -51,9 +50,9 @@ foreach(FBS_SOURCE ${FBS_SOURCES})
     COMMENT "Compiling ${FBS_SOURCE} with flatbuffers..."
     OUTPUT "${GEN_DIR}/${GEN_HEADER}"
     COMMAND cmake -E make_directory "${GEN_DIR}"
-    COMMAND flatc --cpp --scoped-enums -o "${GEN_DIR}" "${FBS_SOURCE}"
+    COMMAND ${FLATBUFFERS_BIN}/flatc --cpp --scoped-enums -o "${GEN_DIR}" "${FBS_SOURCE}"
     DEPENDS "${FBS_SOURCE}"
-    DEPENDS ${CMAKE_BINARY_DIR}/flatbuffers/flatc
+    DEPENDS flatc
     VERBATIM)
 
   add_custom_target(${FBS_SOURCE_FILENAME} ALL DEPENDS "${GEN_DIR}/${GEN_HEADER}")
@@ -188,7 +187,6 @@ set_target_properties(gaia_db_server_exec PROPERTIES OUTPUT_NAME gaia_db_server)
 target_include_directories(gaia_db_server_exec PRIVATE
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
   "${GAIA_DB_CORE_PRIVATE_INCLUDES}"
-  "${FLATBUFFERS_INC}"
   "${GEN_DIR}")
 target_link_libraries(gaia_db_server_exec PRIVATE gaia_db_server)
 if(ENABLE_STACKTRACE)
@@ -199,7 +197,6 @@ install(TARGETS gaia_db_server_exec DESTINATION ${CMAKE_INSTALL_BINDIR})
 set(GAIA_DB_CORE_TEST_INCLUDES
   ${GAIA_DB_CORE_PUBLIC_INCLUDES}
   ${GAIA_DB_CORE_PRIVATE_INCLUDES}
-  ${FLATBUFFERS_INC}
 )
 
 ###############################################
@@ -259,7 +256,6 @@ set(GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES
   ${GAIA_REPO}/production/schemas/repository/inc
   ${GAIA_REPO}/production/db/core/inc
   ${GAIA_REPO}/production/db/inc/memory_manager
-  ${FLATBUFFERS_INC}
 )
 
 add_library(gaia_db_catalog_test tests/db_catalog_test_base.cpp)
@@ -277,7 +273,7 @@ add_gtest(test_env_instance_name tests/test_db_server_env.cpp "${GAIA_DB_CORE_TE
 
 add_gtest(test_multiple_server_instances
     tests/test_multiple_server_instances.cpp
-    "${FLATBUFFERS_INC};${GEN_DIR};${GAIA_DB_CORE_TEST_INCLUDES}"
+    "${GEN_DIR};${GAIA_DB_CORE_TEST_INCLUDES}"
     "gaia_common;gaia_db_client;gaia_direct;gaia_schema_loader;rt;dac_addr_book")
 
 add_gtest(test_relationships

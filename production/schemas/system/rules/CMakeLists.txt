@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(rules_schema)
 
 string(RANDOM EVENT_LOG_INSTANCE_NAME)

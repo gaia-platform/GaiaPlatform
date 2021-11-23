@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(payload_types)
 set(GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
@@ -13,8 +12,7 @@ set(GAIA_PAYLOAD_TYPES_INCLUDES
   "${GAIA_REPO}/production/db/core/inc"
   "${GAIA_REPO}/production/db/inc/memory_manager"
   "${GAIA_REPO}/production/catalog/inc"
-  "${GEN_DIR}"
-  "${FLATBUFFERS_INC}")
+  "${GEN_DIR}")
 
 message(VERBOSE "GAIA_PAYLOAD_TYPES_INCLUDES=${GAIA_PAYLOAD_TYPES_INCLUDES}")
 
@@ -32,23 +30,23 @@ target_link_libraries(gaia_payload_types PRIVATE gaia_common flatbuffers)
 add_custom_command(
   COMMENT "Compiling test_record.fbs with flatbuffers..."
   OUTPUT ${PAYLOAD_TYPES_TESTS_GENERATED_OUTPUT}/test_record.bfbs
-  COMMAND flatc
+  COMMAND ${FLATBUFFERS_BIN}/flatc
     --schema
     -b ${PROJECT_SOURCE_DIR}/tests/test_record.fbs
   DEPENDS ${PROJECT_SOURCE_DIR}/tests/test_record.fbs
-  DEPENDS ${CMAKE_BINARY_DIR}/flatbuffers/flatc
+  DEPENDS flatc
   VERBATIM)
 add_custom_target(test_record_bfbs ALL DEPENDS ${PAYLOAD_TYPES_TESTS_GENERATED_OUTPUT}/test_record.bfbs)
 
 add_custom_command(
   COMMENT "Compiling test_record_data.json with flatbuffers..."
   OUTPUT ${PAYLOAD_TYPES_TESTS_GENERATED_OUTPUT}/test_record_data.bin
-  COMMAND flatc
+  COMMAND ${FLATBUFFERS_BIN}/flatc
     --force-defaults
     -b ${PROJECT_SOURCE_DIR}/tests/test_record.fbs
     ${PROJECT_SOURCE_DIR}/tests/test_record_data.json
   DEPENDS ${PROJECT_SOURCE_DIR}/tests/test_record_data.json
-  DEPENDS ${CMAKE_BINARY_DIR}/flatbuffers/flatc
+  DEPENDS flatc
   VERBATIM)
 add_custom_target(test_record_data_bin ALL DEPENDS ${PAYLOAD_TYPES_TESTS_GENERATED_OUTPUT}/test_record_data.bin)
 
@@ -56,10 +54,10 @@ add_custom_target(test_record_data_bin ALL DEPENDS ${PAYLOAD_TYPES_TESTS_GENERAT
 add_custom_command(
   COMMENT "Compiling test_record.fbs with flatbuffers..."
   OUTPUT ${GEN_DIR}/test_serialization_generated.h
-  COMMAND flatc
+  COMMAND ${FLATBUFFERS_BIN}/flatc
     --cpp -o ${GEN_DIR} ${PROJECT_SOURCE_DIR}/tests/test_serialization.fbs
   DEPENDS ${PROJECT_SOURCE_DIR}/tests/test_serialization.fbs
-  DEPENDS ${CMAKE_BINARY_DIR}/flatbuffers/flatc
+  DEPENDS flatc
   VERBATIM)
 
 add_custom_target(test_serialization_schema ALL DEPENDS ${GEN_DIR}/test_serialization_generated.h)
@@ -76,4 +74,4 @@ configure_file(tests/test_record.fbs . COPYONLY)
 configure_file(tests/test_record_data.json . COPYONLY)
 
 add_gtest(test_flatbuffers tests/test_flatbuffers.cpp "${GAIA_PAYLOAD_TYPES_INCLUDES}" "gaia_common;flatbuffers")
-add_dependencies(test_flatbuffers test_record_data_bin)
+add_dependencies(test_flatbuffers test_record_data_bin test_record_bfbs)

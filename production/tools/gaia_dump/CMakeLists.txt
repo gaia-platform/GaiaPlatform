@@ -3,11 +3,9 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(gaia_dump)
 
 set(GAIA_DUMP_INCLUDES
-  ${FLATBUFFERS_INC}
   ${GAIA_REPO}/production/db/core/src
   ${GAIA_PROD_BUILD}/catalog/parser/generated
   ${GAIA_REPO}/third_party/production/flatbuffers/include

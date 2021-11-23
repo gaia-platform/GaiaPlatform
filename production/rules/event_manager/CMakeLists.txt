@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(event_manager)
 
 set(GAIA_EVENT_MANAGER_PUBLIC_INCLUDES

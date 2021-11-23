@@ -9,7 +9,6 @@ set(TRANSLATION_ENGINE_INCLUDES
   ${GAIA_PROD_BUILD}/llvm/include
   ${GAIA_REPO}/production/catalog/catalog_manager/inc
   ${GAIA_INC}
-  ${FLATBUFFERS_INC}
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_PROD_BUILD}/catalog/parser/generated
   ${CMAKE_CURRENT_SOURCE_DIR}/inc
@@ -53,7 +52,6 @@ install(TARGETS gaiat DESTINATION ${CMAKE_INSTALL_BINDIR})
 if("$CACHE{ENABLE_SDK_TESTS}")
   set(TEST_INCLUDES
     ${GAIA_INC}
-    ${FLATBUFFERS_INC}
     ${GAIA_REPO}/production/tools/gaia_translate/tests
     ${GAIA_REPO}/production/rules/event_manager/inc
   )

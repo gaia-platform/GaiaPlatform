@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(gaia_db_extract)
 
 set(GAIA_DB_EXTRACT_TEST_INCLUDES
