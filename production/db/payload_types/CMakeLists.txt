@@ -55,7 +55,7 @@ add_custom_command(
   COMMENT "Compiling test_record.fbs with flatbuffers..."
   OUTPUT ${GEN_DIR}/test_serialization_generated.h
   COMMAND ${FLATBUFFERS_BIN}/flatc
-    --cpp -o ${GEN_DIR} ${PROJECT_SOURCE_DIR}/tests/test_serialization.fbs
+    --cpp --gen-object-api -o ${GEN_DIR} ${PROJECT_SOURCE_DIR}/tests/test_serialization.fbs
   DEPENDS ${PROJECT_SOURCE_DIR}/tests/test_serialization.fbs
   DEPENDS flatc
   VERBATIM)
