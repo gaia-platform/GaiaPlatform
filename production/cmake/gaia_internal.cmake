@@ -259,6 +259,7 @@ function(translate_ruleset_internal)
   check_param(ARG_RULESET_FILE)
 
   get_filename_component(RULESET_NAME ${ARG_RULESET_FILE} NAME)
+  get_filename_component(RULESET_DIR ${ARG_RULESET_FILE} DIRECTORY)
   string(REPLACE ".ruleset" "" RULESET_NAME ${RULESET_NAME})
 
   set(ARG_OUTPUT_DIR ${GAIA_GENERATED_CODE}/rules/${RULESET_NAME})
@@ -297,7 +298,7 @@ function(translate_ruleset_internal)
         -I ${GAIA_SPDLOG_INC}
         -I ${ARG_EDC_INCLUDE}
         -std=c++${CMAKE_CXX_STANDARD}
-      COMMAND kill -9 `pgrep -f --i${DB_INSTANCE_NAME}`
+      COMMAND kill -9 `pgrep --oldest --full ${DB_INSTANCE_NAME}`
       COMMAND sleep 1
       DEPENDS ${ARG_RULESET_FILE}
       DEPENDS ${ARG_DEPENDS}
@@ -318,6 +319,7 @@ function(translate_ruleset_internal)
   target_include_directories(${ARG_LIB_NAME} PRIVATE ${FLATBUFFERS_INC})
   target_include_directories(${ARG_LIB_NAME} PRIVATE ${GAIA_INC})
   target_include_directories(${ARG_LIB_NAME} PRIVATE ${ARG_EDC_INCLUDE})
+  target_include_directories(${ARG_LIB_NAME} PRIVATE ${RULESET_DIR})
   target_link_libraries(${ARG_LIB_NAME} PUBLIC gaia_direct ${EDC_LIB})
 endfunction()
 
