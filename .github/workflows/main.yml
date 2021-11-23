@@ -32,12 +32,6 @@ jobs:
       - name: X1
         run: |
           echo Start
-          mkdir -p ~/.local/bin && ln -s $GAIA_REPO/dev_tools/gdev/gdev.sh ~/.local/bin/gdev
-          ls -la ~/.local/bin/gdev
-          echo Before--$PATH
-          # echo $PATH | grep $HOME/.local/bin || (echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc && source .bashrc)
-          export PATH=$HOME/.local/bin:$PATH
-          echo After--$PATH
           sudo apt-get update && sudo apt-get install -y python3-pip
           python3.8 -m pip install --user atools argcomplete
           echo "1"
@@ -45,6 +39,12 @@ jobs:
           echo "2"
           cat ~/.docker/config.json
           echo "3"
+          mkdir -p ~/.local/bin && ln -s $GAIA_REPO/dev_tools/gdev/gdev.sh ~/.local/bin/gdev
+          ls -la ~/.local/bin/gdev
+          echo Before--$PATH
+          # echo $PATH | grep $HOME/.local/bin || (echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc && source .bashrc)
+          export PATH=$HOME/.local/bin:$PATH
+          echo After--$PATH
           /home/runner/.local/bin/gdev build
       # - name: Sync With Repository
       #   run: pipenv sync
