@@ -253,6 +253,20 @@ public:
 };
 
 /**
+ * Thrown when creating a relationship between tables from different databases.
+ */
+class no_cross_db_relationship : public gaia::common::gaia_exception
+{
+public:
+    explicit no_cross_db_relationship(const std::string& name)
+    {
+        std::stringstream message;
+        message << "Cannot create the relationship '" << name << "' across databases.";
+        m_message = message.str();
+    }
+};
+
+/**
  * Thrown when the tables specified in the relationship definition do not match.
  */
 class tables_not_match : public gaia::common::gaia_exception
@@ -718,7 +732,7 @@ struct drop_statement_t : statement_t
 
 /**
  * Initialize the catalog.
-*/
+ */
 void initialize_catalog();
 
 /**
@@ -935,22 +949,22 @@ void drop_index(const std::string& name, bool throw_unless_exists = true);
 gaia::common::gaia_id_t find_db_id(const std::string& dbname);
 
 /**
- * Generate the Extended Data Classes header file.
+ * Generate the Direct Access Classes header file.
  *
  * @param dbname database name
  * @return generated source
  */
-std::string generate_edc_header(const std::string& dbname);
+std::string generate_dac_header(const std::string& dbname);
 
 /**
- * Generate the Extended Data Classes implementation file.
+ * Generate the Direct Access Classes implementation file.
  *
  * @param dbname database name
  * @param header_file_name name of the corresponding header to
  *        include at the beginning of the file
  * @return generated source
  */
-std::string generate_edc_cpp(const std::string& dbname, const std::string& header_file_name);
+std::string generate_dac_cpp(const std::string& dbname, const std::string& header_file_name);
 
 /**
  * Generate FlatBuffers schema (fbs) for all catalog tables in a given database.

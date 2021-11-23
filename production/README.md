@@ -3,7 +3,7 @@ This is a folder for production code. Only code that is meant to be shipped shou
 
 ## Build Overview
 We have three main sets of targets we build:
-1. **Core** - this includes the core platform components:  catalog, database (client and server), rules engine, extended data classes, and associated tools.
+1. **Core** - this includes the core platform components:  catalog, database (client and server), rules engine, direct access classes, and associated tools.
 1. **SDK** - this includes everything in core plus: LLVM libraries, rules translation engine (gaiat), and definitions for building SDK deb and rpm packages.
 1. **LLVMTests** - this includes the LLVM test infrastructure for testing ruleset files as well as ruleset compilation tests.
 

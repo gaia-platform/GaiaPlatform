@@ -117,7 +117,7 @@ public:
  *
  * Note: this class assumes that the Catalog cannot change during the execution of
  * a Gaia application. Changing the Catalog leads to a system restart and a recompilation
- * of the EDC classes. This will change after 11/2020 release.
+ * of the DAC classes. This will change after 11/2020 release.
  */
 class type_registry_t
 {

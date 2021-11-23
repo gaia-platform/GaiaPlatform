@@ -18,7 +18,7 @@ set(GAIA_SYSTEM_PRIVATE_INCLUDES
   "${GAIA_REPO}/production/db/inc/memory_manager"
   "${GAIA_REPO}/production/schemas/loader/inc"
   "${GAIA_REPO}/production/db/core/inc"
-  "${GAIA_REPO}/production/db/core/tests/" # TODO remove once RI is supported in EDC
+  "${GAIA_REPO}/production/db/core/tests/" # TODO remove once RI is supported in DAC
   )
 
 message(VERBOSE "GAIA_SYSTEM_PRIVATE_INCLUDES=${GAIA_SYSTEM_PRIVATE_INCLUDES}")
@@ -40,7 +40,7 @@ set(TEST_GAIA_SYSTEM_INCLUDES
   ${GAIA_PARSER_GENERATED})
 
 add_gtest(test_gaia_system "tests/test_gaia_system.cpp"
-  "${TEST_GAIA_SYSTEM_INCLUDES}" "rt;gaia_system;gaia_schema_loader;edc_addr_book")
+  "${TEST_GAIA_SYSTEM_INCLUDES}" "rt;gaia_system;gaia_schema_loader;dac_addr_book")
 
 add_gtest(test_recovery "tests/test_recovery.cpp"
-    "${TEST_GAIA_SYSTEM_INCLUDES}" "rt;gaia_system;gaia_schema_loader;edc_addr_book")
+    "${TEST_GAIA_SYSTEM_INCLUDES}" "rt;gaia_system;gaia_schema_loader;dac_addr_book")

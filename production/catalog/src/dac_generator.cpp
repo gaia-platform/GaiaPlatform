@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "edc_generator.hpp"
+#include "dac_generator.hpp"
 
 #include <flatbuffers/code_generators.h>
 
@@ -21,7 +21,7 @@ namespace generate
 
 const std::string c_indentation_string("    ");
 
-std::string edc_compilation_unit_writer_t::write_header()
+std::string dac_compilation_unit_writer_t::write_header()
 {
     flatbuffers::CodeWriter code(c_indentation_string);
     code += generate_copyright();
@@ -43,7 +43,7 @@ std::string edc_compilation_unit_writer_t::write_header()
     return code.ToString();
 }
 
-std::string edc_compilation_unit_writer_t::write_cpp()
+std::string dac_compilation_unit_writer_t::write_cpp()
 {
     flatbuffers::CodeWriter code(c_indentation_string);
     code += generate_copyright();
@@ -59,14 +59,14 @@ std::string edc_compilation_unit_writer_t::write_cpp()
     code += generate_close_namespace();
     return code.ToString();
 }
-flatbuffers::CodeWriter edc_compilation_unit_writer_t::create_code_writer()
+flatbuffers::CodeWriter dac_compilation_unit_writer_t::create_code_writer()
 {
     flatbuffers::CodeWriter code(c_indentation_string);
     code.SetValue("DBNAME", m_database.database_name());
     return code;
 }
 
-std::string edc_compilation_unit_writer_t::generate_copyright()
+std::string dac_compilation_unit_writer_t::generate_copyright()
 {
     flatbuffers::CodeWriter code = create_code_writer();
     code += "/////////////////////////////////////////////";
@@ -80,7 +80,7 @@ std::string edc_compilation_unit_writer_t::generate_copyright()
     return code.ToString();
 }
 
-std::string edc_compilation_unit_writer_t::generate_open_header_guard()
+std::string dac_compilation_unit_writer_t::generate_open_header_guard()
 {
     flatbuffers::CodeWriter code = create_code_writer();
     code += "#ifndef GAIA_GENERATED_{{DBNAME}}_H_";
@@ -89,29 +89,29 @@ std::string edc_compilation_unit_writer_t::generate_open_header_guard()
     return code.ToString();
 }
 
-std::string edc_compilation_unit_writer_t::generate_close_header_guard()
+std::string dac_compilation_unit_writer_t::generate_close_header_guard()
 {
     flatbuffers::CodeWriter code = create_code_writer();
     code += "#endif  // GAIA_GENERATED_{{DBNAME}}_H_";
     return code.ToString();
 }
 
-std::string edc_compilation_unit_writer_t::generate_includes()
+std::string dac_compilation_unit_writer_t::generate_includes()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "#include <gaia/direct_access/edc_object.hpp>";
-    code += "#include <gaia/direct_access/edc_iterators.hpp>";
+    code += "#include <gaia/direct_access/dac_object.hpp>";
+    code += "#include <gaia/direct_access/dac_iterators.hpp>";
     code += "#include \"{{DBNAME}}_generated.h\"";
 
     return code.ToString();
 }
 
-std::string edc_compilation_unit_writer_t::generate_includes_cpp()
+std::string dac_compilation_unit_writer_t::generate_includes_cpp()
 {
-    return "#include \"{GENERATED_EDC_HEADER}\"\n";
+    return "#include \"{GENERATED_DAC_HEADER}\"\n";
 }
 
-std::string edc_compilation_unit_writer_t::generate_open_namespace()
+std::string dac_compilation_unit_writer_t::generate_open_namespace()
 {
     flatbuffers::CodeWriter code = create_code_writer();
     code += "namespace " + c_gaia_namespace + " {";
@@ -123,7 +123,7 @@ std::string edc_compilation_unit_writer_t::generate_open_namespace()
     return code.ToString();
 }
 
-std::string edc_compilation_unit_writer_t::generate_close_namespace()
+std::string dac_compilation_unit_writer_t::generate_close_namespace()
 {
     flatbuffers::CodeWriter code = create_code_writer();
     if (!m_database.is_default_database())
@@ -135,7 +135,7 @@ std::string edc_compilation_unit_writer_t::generate_close_namespace()
     return code.ToString();
 }
 
-std::string edc_compilation_unit_writer_t::generate_constants()
+std::string dac_compilation_unit_writer_t::generate_constants()
 {
     flatbuffers::CodeWriter code = create_code_writer();
     // A fixed constant is used for the flatbuffer builder constructor.
@@ -191,7 +191,7 @@ std::string edc_compilation_unit_writer_t::generate_constants()
     return code.ToString();
 }
 
-std::string edc_compilation_unit_writer_t::generate_forward_declarations()
+std::string dac_compilation_unit_writer_t::generate_forward_declarations()
 {
     flatbuffers::CodeWriter code = create_code_writer();
 
@@ -204,7 +204,7 @@ std::string edc_compilation_unit_writer_t::generate_forward_declarations()
     return str;
 }
 
-std::string edc_compilation_unit_writer_t::generate_ref_forward_declarations()
+std::string dac_compilation_unit_writer_t::generate_ref_forward_declarations()
 {
     flatbuffers::CodeWriter code = create_code_writer();
 
@@ -291,7 +291,7 @@ std::string class_writer_t::generate_class_section_comment_cpp()
 std::string class_writer_t::generate_writer()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "typedef gaia::direct_access::edc_writer_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, internal::{{TABLE_NAME}}T> "
+    code += "typedef gaia::direct_access::dac_writer_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, internal::{{TABLE_NAME}}T> "
             "{{TABLE_NAME}}_writer;";
     return code.ToString();
 }
@@ -299,7 +299,7 @@ std::string class_writer_t::generate_writer()
 std::string class_writer_t::generate_class_definition()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "class {{TABLE_NAME}}_t : public gaia::direct_access::edc_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, "
+    code += "class {{TABLE_NAME}}_t : public gaia::direct_access::dac_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, "
             "internal::{{TABLE_NAME}}, internal::{{TABLE_NAME}}T> {";
     return code.ToString();
 }
@@ -324,7 +324,7 @@ std::string class_writer_t::generate_list_types()
 std::string class_writer_t::generate_public_constructor()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "{{TABLE_NAME}}_t() : edc_object_t() {}";
+    code += "{{TABLE_NAME}}_t() : dac_object_t() {}";
     return code.ToString();
 }
 
@@ -359,7 +359,7 @@ std::string class_writer_t::generate_insert_cpp()
         code += field.field_name() + "\\";
     }
     code += "));";
-    code += "return edc_object_t::insert_row(b);";
+    code += "return dac_object_t::insert_row(b);";
     code.DecrementIdentLevel();
     code += "}";
     return code.ToString();
@@ -387,16 +387,16 @@ std::string class_writer_t::generate_gaia_typename_accessor_cpp()
 std::string class_writer_t::generate_list_accessor()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "static gaia::direct_access::edc_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t> list();";
+    code += "static gaia::direct_access::dac_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t> list();";
     return code.ToString();
 }
 
 std::string class_writer_t::generate_list_accessor_cpp()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "gaia::direct_access::edc_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t> {{TABLE_NAME}}_t::list() {";
+    code += "gaia::direct_access::dac_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t> {{TABLE_NAME}}_t::list() {";
     code.IncrementIdentLevel();
-    code += "return gaia::direct_access::edc_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t>();";
+    code += "return gaia::direct_access::dac_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t>();";
     code.DecrementIdentLevel();
     code += "}";
     return code.ToString();
@@ -558,7 +558,7 @@ std::string class_writer_t::generate_expressions()
 {
     flatbuffers::CodeWriter code = create_code_writer();
 
-    // Add EDC expressions and use a dummy template to emulate C++17 inline variable
+    // Add DAC expressions and use a dummy template to emulate C++17 inline variable
     // declarations with C++11 legal syntax.
     code += "template<class unused_t>";
     code += "struct expr_ {";
@@ -596,14 +596,14 @@ std::string class_writer_t::generate_expressions()
 std::string class_writer_t::generate_private_constructor()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "explicit {{TABLE_NAME}}_t(gaia::common::gaia_id_t id) : edc_object_t(id) {}";
+    code += "explicit {{TABLE_NAME}}_t(gaia::common::gaia_id_t id) : dac_object_t(id) {}";
     return code.ToString();
 }
 
 std::string class_writer_t::generate_friend_declarations()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "friend class edc_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, "
+    code += "friend class dac_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, "
             "internal::{{TABLE_NAME}}T>;";
     if (m_table.needs_reference_class())
     {
@@ -624,7 +624,7 @@ void class_writer_t::increment_indent()
 
 void class_writer_t::decrement_indent()
 {
-    ASSERT_PRECONDITION(m_indent_level > 0, "Indent level cannot be go negative.");
+    ASSERT_PRECONDITION(m_indent_level > 0, "Indent level cannot be negative.");
     m_indent_level--;
 }
 
@@ -685,7 +685,7 @@ std::string class_writer_t::generate_expr_instantiation_cpp()
 {
     flatbuffers::CodeWriter code = create_code_writer();
 
-    // Initialization of static EDC expressions. For C++11 compliance we are not using
+    // Initialization of static DAC expressions. For C++11 compliance we are not using
     // inline variables which are available in C++17.
     std::pair<std::string, std::string> expr_variable;
 
@@ -722,7 +722,7 @@ std::string class_writer_t::generate_ref_class()
 
     flatbuffers::CodeWriter code = create_code_writer();
 
-    code += "class {{TABLE_NAME}}_ref_t : public {{TABLE_NAME}}_t, direct_access::edc_base_reference_t {";
+    code += "class {{TABLE_NAME}}_ref_t : public {{TABLE_NAME}}_t, direct_access::dac_base_reference_t {";
     code += "public:";
     code.IncrementIdentLevel();
     code += "{{TABLE_NAME}}_ref_t() = delete;";
@@ -749,13 +749,13 @@ std::string class_writer_t::generate_ref_class_cpp()
     code += "{{TABLE_NAME}}_ref_t::{{TABLE_NAME}}_ref_t(gaia::common::gaia_id_t parent, "
             "gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset)";
     code.IncrementIdentLevel();
-    code += ": {{TABLE_NAME}}_t(child), direct_access::edc_base_reference_t(parent, child_offset) {}";
+    code += ": {{TABLE_NAME}}_t(child), direct_access::dac_base_reference_t(parent, child_offset) {}";
     code.DecrementIdentLevel();
 
     // disconnect()
     code += "bool {{TABLE_NAME}}_ref_t::disconnect() {";
     code.IncrementIdentLevel();
-    code += "if (edc_base_reference_t::disconnect(this->gaia_id())) {";
+    code += "if (dac_base_reference_t::disconnect(this->gaia_id())) {";
     code.IncrementIdentLevel();
     code += "this->set_record(gaia::common::c_invalid_gaia_id);";
     code += "return true;";
@@ -768,7 +768,7 @@ std::string class_writer_t::generate_ref_class_cpp()
     // connect(gaia_id_t)
     code += "bool {{TABLE_NAME}}_ref_t::connect(gaia::common::gaia_id_t id) {";
     code.IncrementIdentLevel();
-    code += "if (edc_base_reference_t::connect(this->gaia_id(), id)) {";
+    code += "if (dac_base_reference_t::connect(this->gaia_id(), id)) {";
     code.IncrementIdentLevel();
     code += "this->set_record(id);";
     code += "return true;";
@@ -778,7 +778,7 @@ std::string class_writer_t::generate_ref_class_cpp()
     code.DecrementIdentLevel();
     code += "}";
 
-    // connect(edc_class_ref_t)
+    // connect(dac_class_ref_t)
     code += "bool {{TABLE_NAME}}_ref_t::connect(const {{TABLE_NAME}}_t& object) {";
     code.IncrementIdentLevel();
     code += "return connect(object.gaia_id());";

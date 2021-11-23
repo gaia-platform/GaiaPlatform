@@ -76,7 +76,7 @@ public:
     bool is_string() const;
     bool is_vector() const;
 
-    // Generates code for static initialization of EDC expr variables for C++11 compliance.
+    // Generates code for static initialization of DAC expr variables for C++11 compliance.
     // pair.first = declaration
     // pair.second = initialization
     static std::pair<std::string, std::string> generate_expr_variable(

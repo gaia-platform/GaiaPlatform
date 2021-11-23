@@ -7,15 +7,15 @@
 project(catalog)
 
 # The catalog.cpp is generated. Look into schemas/system/catalog/CMakeLists.txt to re-generate the code.
-add_library(edc_catalog STATIC
+add_library(dac_catalog STATIC
     src/gaia_catalog.cpp
 )
 
-configure_gaia_target(edc_catalog)
-target_include_directories(edc_catalog PRIVATE ${GAIA_INC})
-target_include_directories(edc_catalog PRIVATE ${GAIA_INC}/gaia_internal/catalog)
-target_include_directories(edc_catalog PUBLIC ${FLATBUFFERS_INC})
-target_link_libraries(edc_catalog PUBLIC gaia_direct)
+configure_gaia_target(dac_catalog)
+target_include_directories(dac_catalog PRIVATE ${GAIA_INC})
+target_include_directories(dac_catalog PRIVATE ${GAIA_INC}/gaia_internal/catalog)
+target_include_directories(dac_catalog PUBLIC ${FLATBUFFERS_INC})
+target_link_libraries(dac_catalog PUBLIC gaia_direct)
 
 set(GAIA_CATALOG_PUBLIC_INCLUDES
   ${GAIA_INC}
@@ -44,19 +44,19 @@ add_library(gaia_catalog STATIC
   src/catalog.cpp
   src/catalog_facade.cpp
   src/gaiac_catalog_facade.cpp
-  src/edc_generator.cpp
+  src/dac_generator.cpp
   src/gaia_generate.cpp
   ${FLATBUFFERS}/src/code_generators.cpp)
 
 configure_gaia_target(gaia_catalog)
 target_include_directories(gaia_catalog PUBLIC ${GAIA_CATALOG_PUBLIC_INCLUDES})
 target_include_directories(gaia_catalog PRIVATE ${GAIA_CATALOG_PRIVATE_INCLUDES})
-target_link_libraries(gaia_catalog PRIVATE gaia_parser gaia_direct flatbuffers edc_catalog)
+target_link_libraries(gaia_catalog PRIVATE gaia_parser gaia_direct flatbuffers dac_catalog)
 
 add_gtest(test_ddl_executor
   "tests/test_ddl_executor.cpp"
   "${GAIA_CATALOG_PUBLIC_INCLUDES};${GAIA_CATALOG_PRIVATE_INCLUDES}"
-  "rt;gaia_system;gaia_catalog;gaia_db_catalog_test;edc_addr_book"
+  "rt;gaia_system;gaia_catalog;gaia_db_catalog_test;dac_addr_book"
   gaia_catalog)
 
 add_gtest(test_fbs_generation
@@ -93,7 +93,7 @@ add_gtest(test_ddl_execution
 add_gtest(test_gaiac_generation
     "tests/test_gaiac_generation.cpp"
     "${TEST_GAIA_EXECUTION_INCLUDES}"
-    "rt;gaia_system;gaia_db_catalog_test;edc_airport")
+    "rt;gaia_system;gaia_db_catalog_test;dac_airport")
 
 add_subdirectory(gaiac)
 add_subdirectory(parser)
