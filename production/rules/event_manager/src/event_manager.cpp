@@ -10,7 +10,7 @@
 #include <utility>
 #include <variant>
 
-#include "gaia/events.hpp"
+#include "gaia/db/events.hpp"
 
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/retail_assert.hpp"

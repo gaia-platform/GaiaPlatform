@@ -11,13 +11,13 @@
 namespace gaia
 {
 /**
- * \addtogroup Gaia
+ * \addtogroup gaia
  * @{
  */
 namespace system
 {
 /**
- * \addtogroup System
+ * \addtogroup system
  * @{
  *
  * Provides system wide facilities for the Gaia Platform

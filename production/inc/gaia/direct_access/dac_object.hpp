@@ -19,17 +19,14 @@
 
 namespace gaia
 {
-
 /**
- * \addtogroup Gaia
+ * \addtogroup gaia
  * @{
  */
-
 namespace direct_access
 {
-
 /**
- * \addtogroup Direct
+ * \addtogroup direct_access
  * @{
  *
  * Implementation of Direct Access Classes. This provides a direct access API

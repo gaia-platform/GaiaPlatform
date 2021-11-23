@@ -5,6 +5,8 @@
 
 #include "rule_checker.hpp"
 
+#include "gaia/rules/exceptions.hpp"
+
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/db/gaia_ptr.hpp"

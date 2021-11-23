@@ -15,17 +15,21 @@
 namespace gaia
 {
 /**
- * \addtogroup Gaia
+ * \addtogroup gaia
  * @{
  */
 namespace common
 {
 /**
- * \addtogroup Gaia
+ * \addtogroup common
  * @{
  */
 namespace logging
 {
+/**
+ * \addtogroup logging
+ * @{
+ */
 
 /**
  * Gaia logging API. Logging is performed via instances of logger_t.

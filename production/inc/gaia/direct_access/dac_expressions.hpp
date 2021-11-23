@@ -13,17 +13,14 @@
 
 namespace gaia
 {
-
 /**
- * \addtogroup Gaia
+ * \addtogroup gaia
  * @{
  */
-
 namespace direct_access
 {
-
 /**
- * \addtogroup Direct
+ * \addtogroup direct_access
  * @{
  *
  * API to build expressions to perform operations on DAC classes,

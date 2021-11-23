@@ -15,13 +15,13 @@
 namespace gaia
 {
 /**
- * \addtogroup Gaia
+ * \addtogroup gaia
  * @{
  */
 namespace db
 {
 /**
- * \addtogroup Db
+ * \addtogroup db
  * @{
  */
 
