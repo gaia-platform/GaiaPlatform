@@ -50,6 +50,7 @@ jobs:
           echo "2"
           cat ~/.docker/config.json
 
+          cd production
           gdev build --log-level=DEBUG
       # - name: Sync With Repository
       #   run: pipenv sync
