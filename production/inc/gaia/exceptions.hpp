@@ -358,55 +358,6 @@ public:
     explicit configuration_error(const char* filename);
 };
 
-/**
- * Thrown when a system call returns an error.
- */
-class system_error : public gaia_exception
-{
-public:
-    explicit system_error(const std::string& message, int error_code = 0)
-        : gaia_exception(message), m_error_code(error_code)
-    {
-    }
-
-    int get_errno() const
-    {
-        return m_error_code;
-    }
-
-private:
-    int m_error_code;
-};
-
-/**
- * Thrown when a read returns fewer bytes than expected.
- */
-class incomplete_read_error : public gaia_exception
-{
-public:
-    explicit incomplete_read_error(size_t expected_bytes_read, size_t actual_bytes_read)
-    {
-        std::stringstream message;
-        message
-            << "Expected to read " << expected_bytes_read
-            << " bytes, but actually read " << actual_bytes_read << " bytes.";
-        m_message = message.str();
-    }
-};
-
-/**
- * Thrown on either EPIPE/SIGPIPE caught from a write
- * or EOF returned from a read (where a 0-length read is impossible).
- */
-class peer_disconnected : public gaia_exception
-{
-public:
-    peer_disconnected()
-    {
-        m_message = "The socket peer is disconnected.";
-    }
-};
-
 namespace logging
 {
 /**

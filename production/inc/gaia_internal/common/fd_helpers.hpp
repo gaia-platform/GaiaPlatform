@@ -32,6 +32,22 @@ namespace gaia
 namespace common
 {
 
+/**
+ * Thrown when a read returns fewer bytes than expected.
+ */
+class incomplete_read_error : public gaia_exception
+{
+public:
+    explicit incomplete_read_error(size_t expected_bytes_read, size_t actual_bytes_read)
+    {
+        std::stringstream message;
+        message
+            << "Expected to read " << expected_bytes_read
+            << " bytes, but actually read " << actual_bytes_read << " bytes.";
+        m_message = message.str();
+    }
+};
+
 inline size_t get_fd_size(int fd)
 {
     struct stat st;
