@@ -337,9 +337,9 @@ ruleset testE33
 #define TEST 5.0
 ruleset test_define
 {
-    on_insert(sensor)
+    on_update(actuator.timestamp)
     {
-        sensor.value = TEST;
+        actuator.value = TEST;
         use_float(TEST);
     }
 }
