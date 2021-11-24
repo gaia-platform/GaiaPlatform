@@ -16,6 +16,7 @@
 #include <string>
 #include <thread>
 
+#include "gaia/rules/exceptions.hpp"
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
 
