@@ -6,15 +6,12 @@
 #include <atomic>
 #include <unistd.h>
 
-#include "gaia/events.hpp"
-
 #include "test_serial.hpp"
 
 std::atomic<int32_t> g_update_min_temp_called;
 std::atomic<int32_t> g_update_max_temp_called;
 std::atomic<int32_t> g_update_value_called;
 std::atomic<int32_t> g_update_timestamp_called;
-
 
 // On insert of an incubator, multiple it's min_temp by 4
 ruleset test_default_serial : serial_group()

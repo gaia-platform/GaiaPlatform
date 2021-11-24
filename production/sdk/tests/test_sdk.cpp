@@ -10,7 +10,7 @@
 
 #include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
-#include "gaia/events.hpp"
+#include "gaia/db/events.hpp"
 #include "gaia/exception.hpp"
 #include "gaia/logger.hpp"
 #include "gaia/rules/rules.hpp"

@@ -3,11 +3,11 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia/logger.hpp"
-#include "gaia/events.hpp"
-
 #include <atomic>
 #include <stdexcept>
+
+#include "gaia/logger.hpp"
+#include "gaia/rules/rules.hpp"
 
 std::atomic<int32_t> g_rule_called;
 std::atomic<int32_t> g_insert_called;
