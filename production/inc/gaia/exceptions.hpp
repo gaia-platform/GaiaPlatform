@@ -658,8 +658,8 @@ public:
 };
 
 /**
- * Thrown when adding a reference to an offset that does not exist. It could surface the
- * user when a relationship is deleted at runtime, but the DAC classes are not up to
+ * Thrown when adding a reference to an offset that does not exist. It could surface
+ * when a relationship is deleted at runtime, but the DAC classes are not up to
  * date with it.
  */
 class invalid_reference_offset : public gaia::common::gaia_exception
@@ -714,7 +714,7 @@ public:
 };
 
 /**
- * Thrown when the adding a child to a relationship that already contains it.
+ * Thrown when adding a child to a relationship that already contains it.
  */
 class child_already_referenced : public gaia::common::gaia_exception
 {
@@ -748,7 +748,7 @@ public:
 };
 
 /**
- * Thrown when any stack_allocator or memory_manager API returns an error.
+ * Thrown when failing to allocate more memory.
  */
 class memory_allocation_error : public gaia::common::gaia_exception
 {
