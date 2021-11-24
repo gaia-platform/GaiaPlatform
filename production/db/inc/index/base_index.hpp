@@ -38,17 +38,6 @@ public:
     }
 };
 
-class invalid_index_type : public common::gaia_exception
-{
-public:
-    explicit invalid_index_type()
-    {
-        std::stringstream message;
-        message << "Invalid index type. ";
-        m_message = message.str();
-    }
-};
-
 enum class index_record_operation_t : uint8_t
 {
     not_set,
