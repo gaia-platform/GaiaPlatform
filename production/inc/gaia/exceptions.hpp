@@ -42,7 +42,7 @@ public:
 };
 
 /**
- * Thrown when creating a database that already exists.
+ * Thrown when a database already exists with the specified name.
  */
 class db_already_exists : public gaia::common::gaia_exception
 {
@@ -50,13 +50,13 @@ public:
     explicit db_already_exists(const std::string& name)
     {
         std::stringstream message;
-        message << "The database '" << name << "' already exists.";
+        message << "A database with the name '" << name << "' already exists.";
         m_message = message.str();
     }
 };
 
 /**
- * Thrown when a specified database does not exists.
+ * Thrown when a specified database does not exist.
  */
 class db_not_exists : public gaia::common::gaia_exception
 {
@@ -70,7 +70,7 @@ public:
 };
 
 /**
- * Thrown when creating a table that already exists.
+ * Thrown when a table already exists with the specified name.
  */
 class table_already_exists : public gaia::common::gaia_exception
 {
@@ -78,13 +78,13 @@ public:
     explicit table_already_exists(const std::string& name)
     {
         std::stringstream message;
-        message << "The table '" << name << "' already exists.";
+        message << "A table with the name '" << name << "' already exists.";
         m_message = message.str();
     }
 };
 
 /**
- * Thrown when a specified table does not exists.
+ * Thrown when a specified table does not exist.
  */
 class table_not_exists : public gaia::common::gaia_exception
 {
@@ -112,7 +112,7 @@ public:
 };
 
 /**
- * Thrown when a specified field does not exists.
+ * Thrown when a specified field does not exist.
  */
 class field_not_exists : public gaia::common::gaia_exception
 {
@@ -158,7 +158,7 @@ public:
 };
 
 /**
- * Thrown when creating a relationship that already exists.
+ * Thrown when a relationship already exists with the specified name.
  */
 class relationship_already_exists : public gaia::common::gaia_exception
 {
@@ -166,13 +166,13 @@ public:
     explicit relationship_already_exists(const std::string& name)
     {
         std::stringstream message;
-        message << "The relationship '" << name << "' already exists.";
+        message << "A relationship with the name '" << name << "' already exists.";
         m_message = message.str();
     }
 };
 
 /**
- * Thrown when a relationship not exists.
+ * Thrown when a relationship does not exist.
  */
 class relationship_not_exists : public gaia::common::gaia_exception
 {
@@ -333,7 +333,7 @@ public:
     {
         std::stringstream message;
         message << "Cannot drop the table '" << name << "' because it still contains data. "
-                << "Please delete all records of the table before dropping it.";
+                << "Please delete all records in the table before dropping it.";
         m_message = message.str();
     }
 };
@@ -696,7 +696,7 @@ public:
 };
 
 /**
- * Thrown when adding more than one children to a one-to-one relationship.
+ * Thrown when adding more than one child to a one-to-one relationship.
  * This can happen when the relationships are modified at runtime and the DAC classes
  * are not up to date with it.
  */
