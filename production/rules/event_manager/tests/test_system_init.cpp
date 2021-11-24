@@ -8,8 +8,7 @@
 
 #include <gtest/gtest.h>
 
-#include "gaia/exceptions.hpp"
-#include "gaia/rules/exceptions.hpp"
+#include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
