@@ -407,6 +407,28 @@ public:
     }
 };
 
+namespace logging
+{
+/**
+ * \addtogroup logging
+ * @{
+ */
+
+/**
+ * Thrown on logging system failures.
+ */
+class logger_exception : public gaia_exception
+{
+public:
+    explicit logger_exception(const std::string& message)
+    {
+        m_message = message;
+    }
+};
+
+/*@}*/
+} // namespace logging
+
 /*@}*/
 } // namespace common
 
