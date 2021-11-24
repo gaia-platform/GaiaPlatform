@@ -70,6 +70,7 @@ gaia_id_t create_table(
     txn.commit();
     return id;
 }
+
 gaia_id_t create_relationship(
     const string& name,
     const ddl::link_def_t& link1,
