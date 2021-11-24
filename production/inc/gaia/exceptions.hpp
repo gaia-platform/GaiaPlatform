@@ -37,7 +37,7 @@ class forbidden_system_db_operation : public gaia::common::gaia_exception
 public:
     explicit forbidden_system_db_operation(const std::string& name)
     {
-        m_message = "Operations on the system database '" + name + "' are not allowed.";
+        m_message = "'" + name + "' is a system database. Operations on system databases are not allowed.";
     }
 };
 
@@ -120,7 +120,7 @@ public:
     explicit field_not_exists(const std::string& name)
     {
         std::stringstream message;
-        message << "The field \"" << name << "\" does not exist.";
+        message << "The field '" << name << "' does not exist.";
         m_message = message.str();
     }
 };
@@ -194,7 +194,8 @@ public:
     explicit no_cross_db_relationship(const std::string& name)
     {
         std::stringstream message;
-        message << "Cannot create the relationship '" << name << "' across databases.";
+        message << "'" + name
+                + "' defines a relationship across databases. Relationships across databases are not allowed";
         m_message = message.str();
     }
 };
@@ -211,8 +212,9 @@ public:
         const std::string& name2)
     {
         std::stringstream message;
-        message << "The table '" << name1 << "' does not match the table '" << name2 << "' "
-                << "in the relationship '" << relationship << "' definition.";
+        message
+            << "The table '" << name1 << "' does not match the table '" << name2 << "' "
+            << "in the relationship '" << relationship << "' definition.";
         m_message = message.str();
     }
 };
@@ -226,15 +228,17 @@ public:
     explicit many_to_many_not_supported(const std::string& relationship)
     {
         std::stringstream message;
-        message << "The many to many relationship defined in '" << relationship << "' is not supported.";
+        message << "'" + relationship
+                + "' defines a many-to-many relationship. Many-to-many relationships are not supported.";
         m_message = message.str();
     }
 
     explicit many_to_many_not_supported(const std::string& table1, const std::string& table2)
     {
         std::stringstream message;
-        message << "The many to many relationship defined "
-                << "in '" << table1 << "'  and '" << table2 << "' is not supported.";
+        message
+            << "The many-to-many relationship defined "
+            << "between '" << table1 << "'  and '" << table2 << "' is not supported.";
         m_message = message.str();
     }
 };
@@ -289,8 +293,9 @@ public:
     explicit ambiguous_reference_definition(const std::string& table, const std::string& ref_name)
     {
         std::stringstream message;
-        message << "The reference '" << ref_name << "' definition "
-                << "in table '" << table << "' has mutiple matching definitions.";
+        message
+            << "The reference '" << ref_name << "' definition "
+            << "in table '" << table << "' has mutiple matching definitions.";
         m_message = message.str();
     }
 };
@@ -304,8 +309,9 @@ public:
     explicit orphaned_reference_definition(const std::string& table, const std::string& ref_name)
     {
         std::stringstream message;
-        message << "The reference '" << ref_name << "' definition "
-                << "in table '" << table << "' has no matching definition.";
+        message
+            << "The reference '" << ref_name << "' definition "
+            << "in table '" << table << "' has no matching definition.";
         m_message = message.str();
     }
 };
@@ -332,8 +338,9 @@ public:
     explicit cannot_drop_table_with_data(const std::string& name)
     {
         std::stringstream message;
-        message << "Cannot drop the table '" << name << "' because it still contains data. "
-                << "Please delete all records in the table before dropping it.";
+        message
+            << "Cannot drop the table '" << name << "' because it still contains data. "
+            << "Please delete all records in the table before dropping it.";
         m_message = message.str();
     }
 };
@@ -690,10 +697,11 @@ public:
         gaia::common::gaia_id_t parent_id)
     {
         std::stringstream message;
-        message << "Impossible to remove child with id '" << child_id
-                << "' and type '" << child_type
-                << "' from parent with id '" << parent_id
-                << "' and type '" << parent_type << "'. The child has a different parent.";
+        message
+            << "Impossible to remove child with id '" << child_id
+            << "' and type '" << child_type
+            << "' from parent with id '" << parent_id
+            << "' and type '" << parent_type << "'. The child has a different parent.";
         m_message = message.str();
     }
 };
