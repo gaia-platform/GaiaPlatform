@@ -70,7 +70,14 @@ void GaiaCatalog::fillTableData()
                 continue;
             }
 
-            CatalogTableData table_data = catalogTableData[table.name()];
+            auto table_data_iterator = catalogTableData.find(table.name());
+            if (table_data_iterator == catalogTableData.end())
+            {
+                Diags.Report(diag::err_wrong_table_field) << field.name() << table.name();
+                catalogTableData.clear();
+                return;
+            }
+            CatalogTableData table_data = table_data_iterator->second;
             if (table_data.fieldData.find(field.name()) != table_data.fieldData.end())
             {
                 Diags.Report(diag::err_duplicate_field) << field.name();
@@ -150,4 +157,143 @@ void GaiaCatalog::ensureInitialization()
         fillTableData();
         isInitialized = true;
     }
+}
+
+// Auxilary function find topologically closest table.
+StringRef GaiaCatalog::getClosestTable(const llvm::StringMap<int>& table_distance)
+{
+    int min_distance = INT_MAX;
+    StringRef return_value;
+    for (const auto& d : table_distance)
+    {
+        if (d.second < min_distance)
+        {
+            min_distance = d.second;
+            return_value = d.first();
+        }
+    }
+
+    return return_value;
+}
+
+// Find shortest navigation path between 2 tables. If multiple shortest paths exist, return an error.
+bool GaiaCatalog::findNavigationPath(StringRef src, StringRef dst, SmallVector<string, 8>& current_path)
+{
+    if (src == dst)
+    {
+        return true;
+    }
+    const auto& table_data = getCatalogTableData();
+
+    IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+    TextDiagnosticPrinter *DiagClient = new TextDiagnosticPrinter(llvm::errs(), &*DiagOpts);
+
+    IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
+    DiagnosticsEngine Diags(DiagID, &*DiagOpts, DiagClient);
+
+    bool return_value = findNavigationPath(src, dst, current_path, table_data);
+    if (!return_value)
+    {
+        Diags.Report(diag::err_no_path) << src << dst;
+        return false;
+    }
+
+    const size_t path_length = current_path.size();
+    // Remove edges from the original shortest path and check if a shortest path with the same length can be found.
+    for (size_t path_index = 0; path_index < path_length - 1; ++path_index)
+    {
+        SmallVector<string, 8> path;
+        llvm::StringMap<CatalogTableData> graph_data(table_data);
+        const auto& edge_src = current_path[path_index];
+        const auto& edge_dst = current_path[path_index + 1];
+        const auto& graph_itr = graph_data.find(edge_src);
+
+        for (auto it = graph_itr->second.linkData.begin(); it != graph_itr->second.linkData.end();)
+        {
+            if (it->second.targetTable == edge_dst)
+            {
+                auto toErase = it;
+                graph_itr->second.linkData.erase(toErase);
+                ++it;
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        if (findNavigationPath(src, dst, path, graph_data))
+        {
+            if (path.size() == path_length)
+            {
+                Diags.Report(diag::err_multiple_shortest_paths) << src << dst;
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+// Find shortest navigation path between 2 tables.
+bool GaiaCatalog::findNavigationPath(StringRef src, StringRef dst, llvm::SmallVector<string, 8>& current_path, const llvm::StringMap<CatalogTableData>& graph_data)
+{
+    if (src == dst)
+    {
+        return true;
+    }
+
+    llvm::StringMap<int> table_distance;
+    llvm::StringMap<string> table_prev;
+    llvm::StringMap<string> table_navigation;
+
+    for (const auto& table_description : GaiaCatalog::getCatalogTableData())
+    {
+        table_distance[table_description.first()] = INT_MAX;
+    }
+    table_distance[src] = 0;
+
+    string closest_table;
+
+    while (closest_table != dst)
+    {
+        closest_table = getClosestTable(table_distance);
+        if (closest_table.empty())
+        {
+            return false;
+        }
+
+        if (closest_table == dst)
+        {
+            break;
+        }
+
+        int distance = table_distance[closest_table];
+
+        table_distance.erase(closest_table);
+
+        auto table_itr = graph_data.find(closest_table);
+        for (const auto& it : table_itr->second.linkData)
+        {
+            StringRef table_name = it.second.targetTable;
+            if (table_distance.find(table_name) != table_distance.end())
+            {
+                if (table_distance[table_name] > distance + 1)
+                {
+                    table_distance[table_name] = distance + 1;
+                    table_prev[table_name] = closest_table;
+                    table_navigation[table_name] = it.second.targetTable;
+                }
+            }
+        }
+    }
+
+    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+    StringRef tbl = dst;
+    while (table_prev[tbl] != "")
+    {
+        current_path.insert(current_path.begin(), table_navigation[tbl]);
+        tbl = table_prev[tbl];
+    }
+    return true;
 }
