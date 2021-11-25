@@ -5,8 +5,8 @@
 
 #pragma once
 
+#include "gaia/db/events.hpp"
 #include "gaia/exceptions.hpp"
-#include "gaia/rules/rules.hpp"
 
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
@@ -50,7 +50,7 @@ public:
 class duplicate_rule : public gaia::common::gaia_exception
 {
 public:
-    duplicate_rule(const rule_binding_t& binding, bool duplicate_key_found);
+    duplicate_rule(const char* ruleset_name, const char* rule_name, bool duplicate_key_found);
 };
 
 /**
@@ -77,7 +77,12 @@ public:
     // Field not found.
     invalid_subscription(common::gaia_type_t gaia_type, const char* table, uint16_t position);
     // Field not active or has been deprecated
-    invalid_subscription(common::gaia_type_t gaia_type, const char* table, uint16_t position, const char* field_name, bool is_deprecated);
+    invalid_subscription(
+        common::gaia_type_t gaia_type,
+        const char* table,
+        uint16_t position,
+        const char* field_name,
+        bool is_deprecated);
 };
 
 /**

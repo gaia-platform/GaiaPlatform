@@ -485,7 +485,7 @@ bool event_manager_t::add_rule(rule_list_t& rules, const rule_binding_t& binding
     const _rule_binding_t* rule_ptr = find_rule(binding);
     if (rule_ptr != nullptr && rule_ptr->rule != binding.rule)
     {
-        throw duplicate_rule(binding, true);
+        throw duplicate_rule(binding.ruleset_name, binding.rule_name, true);
     }
 
     // Do not allow the caller to bind the same rule to the same rule list.
@@ -494,7 +494,7 @@ bool event_manager_t::add_rule(rule_list_t& rules, const rule_binding_t& binding
     {
         if (rule == rule_ptr)
         {
-            throw duplicate_rule(binding, false);
+            throw duplicate_rule(binding.ruleset_name, binding.rule_name, false);
         }
     }
 

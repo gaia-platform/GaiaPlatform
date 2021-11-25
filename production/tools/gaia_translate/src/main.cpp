@@ -3652,9 +3652,7 @@ public:
             {
                 output_file << "#include <cstring>\n";
                 output_file << "\n";
-                output_file << "#include \"gaia/common.hpp\"\n";
-                output_file << "#include \"gaia/db/events.hpp\"\n";
-                output_file << "#include \"gaia/rules/exceptions.hpp\"\n";
+                output_file << "#include \"gaia/rules/rules.hpp\"\n";
                 output_file << "\n";
                 for (const auto& db_iterator : g_used_dbs)
                 {

@@ -25,17 +25,17 @@ invalid_rule_binding::invalid_rule_binding()
     m_message = "Invalid rule binding. Verify that the ruleset_name, rule_name, and rule are provided.";
 }
 
-duplicate_rule::duplicate_rule(const rule_binding_t& binding, bool duplicate_key_found)
+duplicate_rule::duplicate_rule(const char* ruleset_name, const char* rule_name, bool duplicate_key_found)
 {
     std::stringstream message;
     if (duplicate_key_found)
     {
-        message << binding.ruleset_name << "::" << binding.rule_name
+        message << ruleset_name << "::" << rule_name
                 << " was already subscribed with the same key but a different rule function.";
     }
     else
     {
-        message << binding.ruleset_name << "::" << binding.rule_name << " was already subscribed to the same rule list.";
+        message << ruleset_name << "::" << rule_name << " was already subscribed to the same rule list.";
     }
     m_message = message.str();
 }
