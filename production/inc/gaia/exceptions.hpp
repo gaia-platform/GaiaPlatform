@@ -259,8 +259,8 @@ class logger_exception : public gaia_exception
 {
 public:
     explicit logger_exception(const std::string& message)
+        : gaia_exception(message)
     {
-        m_message = message;
     }
 };
 

@@ -42,9 +42,9 @@ transaction_object_limit_exceeded::transaction_object_limit_exceeded()
 
 duplicate_id::duplicate_id(common::gaia_id_t id)
 {
-    std::stringstream strs;
-    strs << "An object with the same ID '" << id << "' already exists.";
-    m_message = strs.str();
+    std::stringstream message;
+    message << "An object with the same ID '" << id << "' already exists.";
+    m_message = message.str();
 }
 
 out_of_memory::out_of_memory()
@@ -160,17 +160,11 @@ invalid_child::invalid_child(
 namespace index
 {
 
-// This constructor should only be used on client side,
-// to re-throw the exception indicated by the server.
 unique_constraint_violation::unique_constraint_violation(const char* error_message)
 {
     m_message = error_message;
 }
 
-// A violation could be triggered by conflict with a non-committed transaction.
-// If that transaction fails to commit, its record will not exist.
-// This is why no record id is being provided in the message: because it may
-// not correspond to any valid record at the time that the error is investigated.
 unique_constraint_violation::unique_constraint_violation(const char* error_table_name, const char* error_index_name)
 {
     std::stringstream message;
