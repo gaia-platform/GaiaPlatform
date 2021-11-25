@@ -75,6 +75,7 @@ target_link_libraries(gaia_storage PRIVATE gaia_common)
 ###############################################
 add_library(gaia_db_client STATIC
   src/catalog_core.cpp
+  src/exceptions.cpp
   src/gaia_db.cpp
   src/gaia_ptr.cpp
   src/gaia_ptr_client.cpp
@@ -147,6 +148,7 @@ target_link_libraries(gaia_db_persistence PUBLIC rocksdb "${LIBURING_LIBRARY}")
 
 set(GAIA_DB_SERVER_SOURCES
   src/catalog_core.cpp
+  src/exceptions.cpp
   src/db_server.cpp
   src/db_shared_data_server.cpp
   src/gaia_ptr.cpp

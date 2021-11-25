@@ -35,10 +35,7 @@ namespace catalog
 class forbidden_system_db_operation : public gaia::common::gaia_exception
 {
 public:
-    explicit forbidden_system_db_operation(const std::string& name)
-    {
-        m_message = "'" + name + "' is a system database. Operations on system databases are not allowed.";
-    }
+    explicit forbidden_system_db_operation(const std::string& name);
 };
 
 /**
@@ -47,12 +44,7 @@ public:
 class db_already_exists : public gaia::common::gaia_exception
 {
 public:
-    explicit db_already_exists(const std::string& name)
-    {
-        std::stringstream message;
-        message << "A database with the name '" << name << "' already exists.";
-        m_message = message.str();
-    }
+    explicit db_already_exists(const std::string& name);
 };
 
 /**
@@ -61,12 +53,7 @@ public:
 class db_not_exists : public gaia::common::gaia_exception
 {
 public:
-    explicit db_not_exists(const std::string& name)
-    {
-        std::stringstream message;
-        message << "The database '" << name << "' does not exist.";
-        m_message = message.str();
-    }
+    explicit db_not_exists(const std::string& name);
 };
 
 /**
@@ -75,12 +62,7 @@ public:
 class table_already_exists : public gaia::common::gaia_exception
 {
 public:
-    explicit table_already_exists(const std::string& name)
-    {
-        std::stringstream message;
-        message << "A table with the name '" << name << "' already exists.";
-        m_message = message.str();
-    }
+    explicit table_already_exists(const std::string& name);
 };
 
 /**
@@ -89,12 +71,7 @@ public:
 class table_not_exists : public gaia::common::gaia_exception
 {
 public:
-    explicit table_not_exists(const std::string& name)
-    {
-        std::stringstream message;
-        message << "The table '" << name << "' does not exist.";
-        m_message = message.str();
-    }
+    explicit table_not_exists(const std::string& name);
 };
 
 /**
@@ -103,12 +80,7 @@ public:
 class duplicate_field : public gaia::common::gaia_exception
 {
 public:
-    explicit duplicate_field(const std::string& name)
-    {
-        std::stringstream message;
-        message << "The field '" << name << "' is specified more than once.";
-        m_message = message.str();
-    }
+    explicit duplicate_field(const std::string& name);
 };
 
 /**
@@ -117,12 +89,7 @@ public:
 class field_not_exists : public gaia::common::gaia_exception
 {
 public:
-    explicit field_not_exists(const std::string& name)
-    {
-        std::stringstream message;
-        message << "The field '" << name << "' does not exist.";
-        m_message = message.str();
-    }
+    explicit field_not_exists(const std::string& name);
 };
 
 /**
@@ -131,30 +98,17 @@ public:
 class max_reference_count_reached : public gaia::common::gaia_exception
 {
 public:
-    explicit max_reference_count_reached()
-    {
-        m_message = "Cannot add any more relationships because the maximum number of references has been reached!";
-    }
+    explicit max_reference_count_reached();
 };
 
 class referential_integrity_violation : public gaia::common::gaia_exception
 {
 public:
-    explicit referential_integrity_violation(const std::string& message)
-    {
-        m_message = message;
-    }
+    explicit referential_integrity_violation(const std::string& message);
 
     static referential_integrity_violation drop_referenced_table(
         const std::string& referenced_table,
-        const std::string& referencing_table)
-    {
-        std::stringstream message;
-        message
-            << "Cannot drop table '" << referenced_table
-            << "' because it is referenced by table '" << referencing_table << "'.";
-        return referential_integrity_violation{message.str()};
-    }
+        const std::string& referencing_table);
 };
 
 /**
@@ -163,12 +117,7 @@ public:
 class relationship_already_exists : public gaia::common::gaia_exception
 {
 public:
-    explicit relationship_already_exists(const std::string& name)
-    {
-        std::stringstream message;
-        message << "A relationship with the name '" << name << "' already exists.";
-        m_message = message.str();
-    }
+    explicit relationship_already_exists(const std::string& name);
 };
 
 /**
@@ -177,12 +126,7 @@ public:
 class relationship_not_exists : public gaia::common::gaia_exception
 {
 public:
-    explicit relationship_not_exists(const std::string& name)
-    {
-        std::stringstream message;
-        message << "The relationship '" << name << "' does not exist.";
-        m_message = message.str();
-    }
+    explicit relationship_not_exists(const std::string& name);
 };
 
 /**
@@ -191,13 +135,7 @@ public:
 class no_cross_db_relationship : public gaia::common::gaia_exception
 {
 public:
-    explicit no_cross_db_relationship(const std::string& name)
-    {
-        std::stringstream message;
-        message << "'" + name
-                + "' defines a relationship across databases. Relationships across databases are not allowed";
-        m_message = message.str();
-    }
+    explicit no_cross_db_relationship(const std::string& name);
 };
 
 /**
@@ -209,14 +147,7 @@ public:
     explicit tables_not_match(
         const std::string& relationship,
         const std::string& name1,
-        const std::string& name2)
-    {
-        std::stringstream message;
-        message
-            << "The table '" << name1 << "' does not match the table '" << name2 << "' "
-            << "in the relationship '" << relationship << "' definition.";
-        m_message = message.str();
-    }
+        const std::string& name2);
 };
 
 /**
@@ -225,22 +156,9 @@ public:
 class many_to_many_not_supported : public gaia::common::gaia_exception
 {
 public:
-    explicit many_to_many_not_supported(const std::string& relationship)
-    {
-        std::stringstream message;
-        message << "'" + relationship
-                + "' defines a many-to-many relationship. Many-to-many relationships are not supported.";
-        m_message = message.str();
-    }
+    explicit many_to_many_not_supported(const std::string& relationship);
 
-    explicit many_to_many_not_supported(const std::string& table1, const std::string& table2)
-    {
-        std::stringstream message;
-        message
-            << "The many-to-many relationship defined "
-            << "between '" << table1 << "'  and '" << table2 << "' is not supported.";
-        m_message = message.str();
-    }
+    explicit many_to_many_not_supported(const std::string& table1, const std::string& table2);
 };
 
 /**
@@ -249,12 +167,7 @@ public:
 class index_already_exists : public gaia::common::gaia_exception
 {
 public:
-    explicit index_already_exists(const std::string& name)
-    {
-        std::stringstream message;
-        message << "The index '" << name << "' already exists.";
-        m_message = message.str();
-    }
+    explicit index_already_exists(const std::string& name);
 };
 
 /**
@@ -263,12 +176,7 @@ public:
 class index_not_exists : public gaia::common::gaia_exception
 {
 public:
-    explicit index_not_exists(const std::string& name)
-    {
-        std::stringstream message;
-        message << "The index '" << name << "' does not exist.";
-        m_message = message.str();
-    }
+    explicit index_not_exists(const std::string& name);
 };
 
 /**
@@ -277,10 +185,7 @@ public:
 class invalid_field_map : public gaia::common::gaia_exception
 {
 public:
-    explicit invalid_field_map(const std::string& message)
-    {
-        m_message = message;
-    }
+    explicit invalid_field_map(const std::string& message);
 };
 
 /**
@@ -290,14 +195,7 @@ public:
 class ambiguous_reference_definition : public gaia::common::gaia_exception
 {
 public:
-    explicit ambiguous_reference_definition(const std::string& table, const std::string& ref_name)
-    {
-        std::stringstream message;
-        message
-            << "The reference '" << ref_name << "' definition "
-            << "in table '" << table << "' has mutiple matching definitions.";
-        m_message = message.str();
-    }
+    explicit ambiguous_reference_definition(const std::string& table, const std::string& ref_name);
 };
 
 /**
@@ -306,14 +204,7 @@ public:
 class orphaned_reference_definition : public gaia::common::gaia_exception
 {
 public:
-    explicit orphaned_reference_definition(const std::string& table, const std::string& ref_name)
-    {
-        std::stringstream message;
-        message
-            << "The reference '" << ref_name << "' definition "
-            << "in table '" << table << "' has no matching definition.";
-        m_message = message.str();
-    }
+    explicit orphaned_reference_definition(const std::string& table, const std::string& ref_name);
 };
 
 /**
@@ -322,11 +213,7 @@ public:
 class invalid_create_list : public gaia::common::gaia_exception
 {
 public:
-    explicit invalid_create_list(const std::string& message)
-    {
-        m_message = "Invalid create statment in a list: ";
-        m_message += message;
-    }
+    explicit invalid_create_list(const std::string& message);
 };
 
 /**
@@ -335,14 +222,7 @@ public:
 class cannot_drop_table_with_data : public gaia::common::gaia_exception
 {
 public:
-    explicit cannot_drop_table_with_data(const std::string& name)
-    {
-        std::stringstream message;
-        message
-            << "Cannot drop the table '" << name << "' because it still contains data. "
-            << "Please delete all records in the table before dropping it.";
-        m_message = message.str();
-    }
+    explicit cannot_drop_table_with_data(const std::string& name);
 };
 
 /*@}*/
@@ -405,10 +285,7 @@ namespace db
 class session_exists : public common::gaia_exception
 {
 public:
-    session_exists()
-    {
-        m_message = "Close the current session before opening a new one.";
-    }
+    session_exists();
 };
 
 /**
@@ -419,10 +296,7 @@ public:
 class no_open_session : public common::gaia_exception
 {
 public:
-    no_open_session()
-    {
-        m_message = "Open a session before performing data access.";
-    }
+    no_open_session();
 };
 
 /**
@@ -433,10 +307,7 @@ public:
 class transaction_in_progress : public common::gaia_exception
 {
 public:
-    transaction_in_progress()
-    {
-        m_message = "Commit or rollback the current transaction before opening a new transaction.";
-    }
+    transaction_in_progress();
 };
 
 /**
@@ -447,10 +318,7 @@ public:
 class no_open_transaction : public common::gaia_exception
 {
 public:
-    no_open_transaction()
-    {
-        m_message = "Open a transaction before performing data access.";
-    }
+    no_open_transaction();
 };
 
 /**
@@ -461,10 +329,7 @@ public:
 class transaction_update_conflict : public common::gaia_exception
 {
 public:
-    transaction_update_conflict()
-    {
-        m_message = "Transaction was aborted due to a conflict with another transaction.";
-    }
+    transaction_update_conflict();
 };
 
 /**
@@ -475,10 +340,7 @@ public:
 class transaction_object_limit_exceeded : public common::gaia_exception
 {
 public:
-    transaction_object_limit_exceeded()
-    {
-        m_message = "Transaction attempted to update too many objects.";
-    }
+    transaction_object_limit_exceeded();
 };
 
 /**
@@ -489,12 +351,7 @@ public:
 class duplicate_id : public common::gaia_exception
 {
 public:
-    explicit duplicate_id(common::gaia_id_t id)
-    {
-        std::stringstream strs;
-        strs << "An object with the same ID '" << id << "' already exists.";
-        m_message = strs.str();
-    }
+    explicit duplicate_id(common::gaia_id_t id);
 };
 
 /**
@@ -505,10 +362,7 @@ public:
 class out_of_memory : public common::gaia_exception
 {
 public:
-    out_of_memory()
-    {
-        m_message = "Out of memory.";
-    }
+    out_of_memory();
 };
 
 /**
@@ -519,10 +373,7 @@ public:
 class system_object_limit_exceeded : public common::gaia_exception
 {
 public:
-    system_object_limit_exceeded()
-    {
-        m_message = "System object limit exceeded.";
-    }
+    system_object_limit_exceeded();
 };
 
 /**
@@ -533,12 +384,7 @@ public:
 class invalid_object_id : public common::gaia_exception
 {
 public:
-    explicit invalid_object_id(common::gaia_id_t id)
-    {
-        std::stringstream strs;
-        strs << "Cannot find an object with ID '" << id << "'.";
-        m_message = strs.str();
-    }
+    explicit invalid_object_id(common::gaia_id_t id);
 };
 
 /**
@@ -551,15 +397,7 @@ class object_still_referenced : public common::gaia_exception
 public:
     object_still_referenced(
         common::gaia_id_t id, common::gaia_type_t object_type,
-        common::gaia_id_t other_id, common::gaia_type_t other_type)
-    {
-        std::stringstream msg;
-        msg
-            << "Cannot delete object with ID '" << id << "', type '" << object_type
-            << "', because it is still referenced by another object with ID '"
-            << other_id << "', type '" << other_type << "'";
-        m_message = msg.str();
-    }
+        common::gaia_id_t other_id, common::gaia_type_t other_type);
 };
 
 /**
@@ -570,12 +408,7 @@ public:
 class object_too_large : public common::gaia_exception
 {
 public:
-    object_too_large(size_t total_len, uint16_t max_len)
-    {
-        std::stringstream msg;
-        msg << "Object size " << total_len << " exceeds maximum size " << max_len << ".";
-        m_message = msg.str();
-    }
+    object_too_large(size_t total_len, uint16_t max_len);
 };
 
 /**
@@ -586,21 +419,9 @@ public:
 class invalid_type : public common::gaia_exception
 {
 public:
-    explicit invalid_type(common::gaia_type_t type)
-    {
-        std::stringstream msg;
-        msg << "The type '" << type << "' does not exist in the catalog.";
-        m_message = msg.str();
-    }
+    explicit invalid_type(common::gaia_type_t type);
 
-    invalid_type(common::gaia_id_t id, common::gaia_type_t type)
-    {
-        std::stringstream msg;
-        msg
-            << "Cannot create object with ID '" << id << "' and type '" << type
-            << "'. The type does not exist in the catalog.";
-        m_message = msg.str();
-    }
+    invalid_type(common::gaia_id_t id, common::gaia_type_t type);
 };
 
 /**
@@ -609,10 +430,7 @@ public:
 class session_limit_exceeded : public common::gaia_exception
 {
 public:
-    session_limit_exceeded()
-    {
-        m_message = "Server session limit exceeded.";
-    }
+    session_limit_exceeded();
 };
 
 /**
@@ -623,12 +441,7 @@ public:
 class invalid_reference_offset : public gaia::common::gaia_exception
 {
 public:
-    invalid_reference_offset(gaia::common::gaia_type_t type, gaia::common::reference_offset_t offset)
-    {
-        std::stringstream message;
-        message << "Gaia type '" << type << "' has no relationship for the offset '" << offset << "'.";
-        m_message = message.str();
-    }
+    invalid_reference_offset(gaia::common::gaia_type_t type, gaia::common::reference_offset_t offset);
 };
 
 /**
@@ -643,14 +456,7 @@ public:
     invalid_relationship_type(
         gaia::common::reference_offset_t offset,
         gaia::common::gaia_type_t expected_type,
-        gaia::common::gaia_type_t found_type)
-    {
-        std::stringstream message;
-        message
-            << "Relationship with offset '" << offset << "' requires type '" << expected_type
-            << "' but found type '" << found_type << "'.";
-        m_message = message.str();
-    }
+        gaia::common::gaia_type_t found_type);
 };
 
 /**
@@ -661,14 +467,7 @@ public:
 class single_cardinality_violation : public gaia::common::gaia_exception
 {
 public:
-    single_cardinality_violation(gaia::common::gaia_type_t type, gaia::common::reference_offset_t offset)
-    {
-        std::stringstream message;
-        message
-            << "Gaia type '" << type << "' has single cardinality for the relationship with offset '" << offset
-            << "', but multiple children are being added.";
-        m_message = message.str();
-    }
+    single_cardinality_violation(gaia::common::gaia_type_t type, gaia::common::reference_offset_t offset);
 };
 
 /**
@@ -677,14 +476,7 @@ public:
 class child_already_referenced : public gaia::common::gaia_exception
 {
 public:
-    child_already_referenced(gaia::common::gaia_type_t child_type, gaia::common::reference_offset_t offset)
-    {
-        std::stringstream message;
-        message
-            << "Gaia type '" << child_type
-            << "' already has a reference for the relationship with offset '" << offset << "'.";
-        m_message = message.str();
-    }
+    child_already_referenced(gaia::common::gaia_type_t child_type, gaia::common::reference_offset_t offset);
 };
 
 class invalid_child : public gaia::common::gaia_exception
@@ -694,16 +486,7 @@ public:
         gaia::common::gaia_type_t child_type,
         gaia::common::gaia_id_t child_id,
         gaia::common::gaia_type_t parent_type,
-        gaia::common::gaia_id_t parent_id)
-    {
-        std::stringstream message;
-        message
-            << "Impossible to remove child with id '" << child_id
-            << "' and type '" << child_type
-            << "' from parent with id '" << parent_id
-            << "' and type '" << parent_type << "'. The child has a different parent.";
-        m_message = message.str();
-    }
+        gaia::common::gaia_id_t parent_id);
 };
 
 /**
@@ -748,24 +531,13 @@ public:
 public:
     // This constructor should only be used on client side,
     // to re-throw the exception indicated by the server.
-    explicit unique_constraint_violation(const char* error_message)
-    {
-        m_message = error_message;
-    }
+    explicit unique_constraint_violation(const char* error_message);
 
     // A violation could be triggered by conflict with a non-committed transaction.
     // If that transaction fails to commit, its record will not exist.
     // This is why no record id is being provided in the message: because it may
     // not correspond to any valid record at the time that the error is investigated.
-    unique_constraint_violation(const char* error_table_name, const char* error_index_name)
-    {
-        std::stringstream message;
-        message
-            << c_error_description
-            << " Cannot insert a duplicate key in table: '" << error_table_name << "', because of the unique constraint of "
-            << " index: '" << error_index_name << "'.";
-        m_message = message.str();
-    }
+    unique_constraint_violation(const char* error_table_name, const char* error_index_name);
 };
 
 /*@}*/
