@@ -4627,6 +4627,11 @@ public:
   bool ValidateLabel(const LabelDecl *label);
   // Checks if an expression contains injected declarative references.
   bool IsExpressionInjected(const Expr* expression) const;
+  void ResetTableSearchContextStack() {searchContextStack.clear();}
+  void PushTableSearchContext(){searchContextStack.push_back(llvm::StringSet<>());}
+  void PopTableSearchContext(){if (!searchContextStack.empty()) searchContextStack.pop_back();}
+  void AddTableSearchAnchor(StringRef anchor){if (!searchContextStack.empty()) searchContextStack.back().insert(anchor);}
+
 private:
 
   // TODO we need to decide what style to use: PascalCase, camelCase, snake_case (we're using all of them now).
@@ -4676,6 +4681,7 @@ private:
     llvm::StringMap<std::string> tagMap;
   };
 
+  llvm::SmallVector<llvm::StringSet<>, 8> searchContextStack;
   llvm::StringSet<> labelsInProcess;
   llvm::StringSet<> declarativeLabelsInProcess;
 

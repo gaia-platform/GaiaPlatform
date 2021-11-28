@@ -703,6 +703,11 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
         return Context.VoidTy;
     }
 
+    if (IsInExtendedExplicitPathScope())
+    {
+        AddTableSearchAnchor(typeName);
+    }
+
     // Look for a previous declaration of this table. There are 3 cases:
     //  1. It finds nothing: defines the type it from scratch.
     //  2. It finds the forward declaration: proceed with the type definition.
@@ -941,6 +946,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
     }
 
     QualType retVal = Context.VoidTy;
+    llvm::StringMap<QualType> foundTables;
     for (const string& tableName : tables)
     {
         // Search if there is a match in the table fields.
@@ -961,48 +967,53 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
                 Diag(loc, diag::err_invalid_field_type) << fieldOrTagName;
                 return Context.VoidTy;
             }
-            if (retVal != Context.VoidTy)
-            {
-                Diag(loc, diag::err_duplicate_field) << fieldOrTagName;
-                return Context.VoidTy;
-            }
-
-            retVal = fieldDescription->second;
-            fieldTableName = tableName;
-        }
-        else
-        {
-            // Search if there is a match in the table links.
-            const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
-            const auto& links = catalogData.find(tableName)->second.linkData;
-
-            for (const auto& link : links)
-            {
-                const auto& linkData = link.second;
-
-                if (!linkData.isFromParent)
-                {
-                    continue;
-                }
-
-                if (link.first() == fieldOrTagName)
-                {
-                    if (retVal != Context.VoidTy)
-                    {
-                        Diag(loc, diag::err_duplicate_link) << fieldOrTagName;
-                        return Context.VoidTy;
-                    }
-
-                    retVal = getLinkType(link.first(), tableName, linkData.targetTable, linkData.cardinality == catalog::relationship_cardinality_t::many, loc);
-                    fieldTableName = tableName;
-                }
-            }
+            foundTables[tableName] = fieldDescription->second;
         }
     }
 
-    if (retVal == Context.VoidTy)
+    if (foundTables.empty())
     {
         Diag(loc, diag::err_unknown_field) << fieldOrTagName;
+        return Context.VoidTy;
+    }
+
+    if (foundTables.size() == 1)
+    {
+        fieldTableName = foundTables.begin()->first();
+        retVal = foundTables.begin()->second;
+    }
+    else
+    {
+        for (auto search_context_iterator = searchContextStack.rbegin();
+            search_context_iterator != searchContextStack.rend(); ++search_context_iterator)
+        {
+            for(auto table_iterator = foundTables.begin(); table_iterator != foundTables.end(); ++table_iterator)
+            {
+                if (search_context_iterator->find(table_iterator->first()) != search_context_iterator->end())
+                {
+                    if (retVal == Context.VoidTy)
+                    {
+                        fieldTableName =table_iterator->first();
+                        retVal = table_iterator->second;
+                    }
+                    else
+                    {
+                        Diag(loc, diag::err_duplicate_field) << fieldOrTagName;
+                        return Context.VoidTy;
+                    }
+                }
+            }
+        }
+        if (retVal == Context.VoidTy)
+        {
+            Diag(loc, diag::err_duplicate_field) << fieldOrTagName;
+            return Context.VoidTy;
+        }
+    }
+
+    if (IsInExtendedExplicitPathScope())
+    {
+        AddTableSearchAnchor(fieldTableName);
     }
 
     return retVal;
