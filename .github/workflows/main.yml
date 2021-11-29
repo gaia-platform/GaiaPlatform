@@ -89,7 +89,8 @@ jobs:
           cd $GAIA_REPO/third_party/production/cmake
           wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
           echo "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/kitware.list
-          sudo apt-get update DEBIAN_FRONTEND=noninteractive apt-get install -y cmake cmake-data
+          sudo apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y cmake cmake-data
           sudo apt-get clean
           sudo rm /etc/apt/sources.list.d/kitware.list >/dev/null
           sudo rm /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
