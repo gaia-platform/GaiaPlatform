@@ -91,9 +91,11 @@ jobs:
 /trusted.gpg.d/kitware.gpg >/dev/null
           echo "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/kitware.list
           apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y \
-              cmake \
-              cmake-data
+          DEBIAN_FRONTEND=noninteractive apt-get install -y cmake cmake-data
           apt-get clean
           rm /etc/apt/sources.list.d/kitware.list >/dev/null
           rm /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
+      - name: Done
+        run: |
+          echo "Done"
+      # - name: Sync With Repository
