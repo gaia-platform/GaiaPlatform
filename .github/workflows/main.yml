@@ -14,6 +14,13 @@ jobs:
     runs-on: ${{ matrix.platform }}
     env:
       GAIA_REPO: /home/runner/work/GaiaPlatform/GaiaPlatform
+      CC: /usr/bin/clang-10
+      CPP: /usr/bin/clang-cpp-10
+      CXX: /usr/bin/clang++-10
+      LDFLAGS: "-B/usr/lib/llvm-10/bin/ -fuse-ld=lld"
+      LANG: en_US.UTF-8
+      LC_CTYPE: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
     steps:
       # - name: Say Hello
       #   run: echo Hello World!
@@ -68,6 +75,19 @@ jobs:
         run: |
           cd $GAIA_REPO/third_party/production/bison
           wget http://ftp.gnu.org/gnu/bison/bison-3.5.tar.gz
+          cd $GAIA_REPO
+      - name: Execute Pre-Build Actions
+        run: |
+          cd $GAIA_REPO/production
+          update-alternatives --install "/usr/bin/clang-format" "clang-format" "/usr/bin/clang-format-10" 10
+          update-alternatives --install "/usr/bin/clang-tidy" "clang-tidy" "/usr/bin/clang-tidy-10" 10
+          echo "LD_PRELOAD = '$(clang-10 -print-file-name=libclang_rt.asan-$(uname -m).so)'" >> /etc/postgresql/12/main/environment
+          echo "ASAN_OPTIONS = 'detect_leaks=0'" >> /etc/postgresql/12/main/environment
+          mkdir -p /var/lib/gaia/db
+          cd $GAIA_REPO/third_party/production/cmake
+          update-alternatives --install "/usr/bin/clang" "clang" "/usr/bin/clang-10" 10
+          update-alternatives --install "/usr/bin/clang++" "clang++" "/usr/bin/clang++-10" 10
+          update-alternatives --install "/usr/bin/ld.lld" "ld.lld" "/usr/bin/ld.lld-10" 10
           cd $GAIA_REPO
       - name: X1
         run: |
