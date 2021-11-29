@@ -35,12 +35,15 @@ jobs:
       - name: Install Required Python Packages
         run: |
           python3.8 -m pip install --user atools argcomplete pytest
-      - name:
-        run: |
       - name: X1
         run: |
           echo "Setup Environment"
           export GAIA_REPO=/home/runner/work/GaiaPlatform/GaiaPlatform
+
+          echo "1"
+          cd
+          echo "2"
+          pwd
 
           echo Setup Link to Gdev
           mkdir -p ~/.local/bin && ln -s $GAIA_REPO/dev_tools/gdev/gdev.sh ~/.local/bin/gdev
