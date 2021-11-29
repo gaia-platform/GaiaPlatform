@@ -85,7 +85,8 @@ jobs:
           cd $GAIA_REPO/production
           sudo update-alternatives --install "/usr/bin/clang-format" "clang-format" "/usr/bin/clang-format-10" 10
           sudo update-alternatives --install "/usr/bin/clang-tidy" "clang-tidy" "/usr/bin/clang-tidy-10" 10
-          mkdir -p /var/lib/gaia/db
+          sudo mkdir -p /var/lib/gaia/db
+          sudo chmod -R 666 /var/lib/gaia/db
           cd $GAIA_REPO
       - name: X1
         run: |
