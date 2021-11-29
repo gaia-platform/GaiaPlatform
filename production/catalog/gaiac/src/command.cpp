@@ -146,7 +146,7 @@ void describe_database(const string& name)
     gaia_id_t db_id = find_db_id(name);
     if (db_id == c_invalid_gaia_id)
     {
-        throw db_not_exists(name);
+        throw db_does_not_exist(name);
     }
     {
         auto_transaction_t txn;
@@ -186,7 +186,7 @@ void describe_table(const string& name)
         }
         if (table_id == c_invalid_gaia_id)
         {
-            throw table_not_exists(name);
+            throw table_does_not_exist(name);
         }
         for (auto& field : gaia_table_t::get(table_id).gaia_fields())
         {
@@ -249,7 +249,7 @@ void generate_table_fbs(const string& name)
     }
     if (table_id == c_invalid_gaia_id)
     {
-        throw table_not_exists(name);
+        throw table_does_not_exist(name);
     }
     cout << generate_fbs(table_id) << endl;
     cout << flush;

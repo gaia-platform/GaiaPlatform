@@ -326,14 +326,14 @@ gaia_id_t ddl_executor_t::get_table_id(const std::string& db, const std::string&
     gaia_id_t db_id = find_db_id(db);
     if (db_id == c_invalid_gaia_id)
     {
-        throw db_not_exists(db);
+        throw db_does_not_exist(db);
     }
 
     // TODO: switch to index for fast lookup.
     auto table_iter = gaia_database_t::get(db_id).gaia_tables().where(gaia_table_expr::name == table).begin();
     if (table_iter->gaia_id() == c_invalid_gaia_id)
     {
-        throw table_not_exists(get_full_table_name(db, table));
+        throw table_does_not_exist(get_full_table_name(db, table));
     }
     else
     {
@@ -377,12 +377,12 @@ gaia_id_t ddl_executor_t::create_relationship(
 
     if (link1_src_table_id != link2_dest_table_id)
     {
-        throw tables_not_match(name, link1.from_table, link2.to_table);
+        throw relationship_tables_do_not_match(name, link1.from_table, link2.to_table);
     }
 
     if (link1_dest_table_id != link2_src_table_id)
     {
-        throw tables_not_match(name, link1.to_table, link2.from_table);
+        throw relationship_tables_do_not_match(name, link1.to_table, link2.from_table);
     }
 
     if (gaia_table_t::get(link1_src_table_id).database() != gaia_table_t::get(link1_dest_table_id).database())
@@ -580,7 +580,7 @@ void ddl_executor_t::drop_relationship(const std::string& name, bool throw_unles
     {
         if (throw_unless_exists)
         {
-            throw relationship_not_exists(name);
+            throw relationship_does_not_exist(name);
         }
         return;
     }
@@ -681,7 +681,7 @@ void ddl_executor_t::drop_database(const string& name, bool throw_unless_exists)
     {
         if (throw_unless_exists)
         {
-            throw db_not_exists(name);
+            throw db_does_not_exist(name);
         }
         return;
     }
@@ -706,7 +706,7 @@ void ddl_executor_t::drop_table(const string& db_name, const string& name, bool 
     {
         if (throw_unless_exists)
         {
-            throw db_not_exists(db_name);
+            throw db_does_not_exist(db_name);
         }
         return;
     }
@@ -717,7 +717,7 @@ void ddl_executor_t::drop_table(const string& db_name, const string& name, bool 
     {
         if (throw_unless_exists)
         {
-            throw table_not_exists(name);
+            throw table_does_not_exist(name);
         }
         return;
     }
@@ -812,7 +812,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
     gaia_id_t db_id = find_db_id(in_context(db_name));
     if (db_id == c_invalid_gaia_id)
     {
-        throw db_not_exists(db_name);
+        throw db_does_not_exist(db_name);
     }
 
     // TODO: switch to index for fast lookup.
@@ -945,7 +945,7 @@ void ddl_executor_t::switch_db_context(const string& db_name)
 {
     if (!db_name.empty() && find_db_id(db_name) == c_invalid_gaia_id)
     {
-        throw db_not_exists(db_name);
+        throw db_does_not_exist(db_name);
     }
 
     m_db_context = db_name;
@@ -967,7 +967,7 @@ std::vector<gaia_id_t> ddl_executor_t::find_table_field_ids(
     {
         if (table_fields.find(name) == table_fields.end())
         {
-            throw field_not_exists(name);
+            throw field_does_not_exist(name);
         }
         if (field_name_set.find(name) != field_name_set.end())
         {
@@ -1051,7 +1051,7 @@ void ddl_executor_t::drop_index(const std::string& name, bool throw_unless_exist
     {
         if (throw_unless_exists)
         {
-            throw index_not_exists(name);
+            throw index_does_not_exist(name);
         }
         return;
     }

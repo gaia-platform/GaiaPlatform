@@ -126,7 +126,7 @@ string generate_fbs(const string& db_name)
     gaia_id_t db_id = find_db_id(db_name);
     if (db_id == c_invalid_gaia_id)
     {
-        throw db_not_exists(db_name);
+        throw db_does_not_exist(db_name);
     }
     string fbs = generate_fbs_namespace(db_name);
     gaia::db::begin_transaction();

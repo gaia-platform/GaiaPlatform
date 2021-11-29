@@ -140,7 +140,7 @@ DROP TABLE IF EXISTS t2;
     }
 
     ASSERT_NO_THROW(parser.parse_string("DROP RELATIONSHIP r3;"));
-    ASSERT_THROW(execute(parser.statements), relationship_not_exists);
+    ASSERT_THROW(execute(parser.statements), relationship_does_not_exist);
 }
 
 TEST_F(ddl_execution_test, drop_index)
@@ -180,7 +180,7 @@ CREATE INDEX IF NOT EXISTS c_i ON t(c);
     }
 
     ASSERT_NO_THROW(parser.parse_string("DROP INDEX c_i;"));
-    ASSERT_THROW(execute(parser.statements), index_not_exists);
+    ASSERT_THROW(execute(parser.statements), index_does_not_exist);
 }
 
 TEST_F(ddl_execution_test, create_list)

@@ -19,7 +19,7 @@ gaia_database_t find_database(const std::string& db_name)
 
     if (database.begin() == database.end())
     {
-        throw db_not_exists(db_name);
+        throw db_does_not_exist(db_name);
     }
 
     return *database.begin();

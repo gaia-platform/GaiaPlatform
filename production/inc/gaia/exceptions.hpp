@@ -50,10 +50,10 @@ public:
 /**
  * Thrown when a specified database does not exist.
  */
-class db_not_exists : public gaia::common::gaia_exception
+class db_does_not_exist : public gaia::common::gaia_exception
 {
 public:
-    explicit db_not_exists(const std::string& name);
+    explicit db_does_not_exist(const std::string& name);
 };
 
 /**
@@ -68,10 +68,10 @@ public:
 /**
  * Thrown when a specified table does not exist.
  */
-class table_not_exists : public gaia::common::gaia_exception
+class table_does_not_exist : public gaia::common::gaia_exception
 {
 public:
-    explicit table_not_exists(const std::string& name);
+    explicit table_does_not_exist(const std::string& name);
 };
 
 /**
@@ -86,10 +86,10 @@ public:
 /**
  * Thrown when a specified field does not exist.
  */
-class field_not_exists : public gaia::common::gaia_exception
+class field_does_not_exist : public gaia::common::gaia_exception
 {
 public:
-    explicit field_not_exists(const std::string& name);
+    explicit field_does_not_exist(const std::string& name);
 };
 
 /**
@@ -123,10 +123,10 @@ public:
 /**
  * Thrown when a relationship does not exist.
  */
-class relationship_not_exists : public gaia::common::gaia_exception
+class relationship_does_not_exist : public gaia::common::gaia_exception
 {
 public:
-    explicit relationship_not_exists(const std::string& name);
+    explicit relationship_does_not_exist(const std::string& name);
 };
 
 /**
@@ -141,10 +141,10 @@ public:
 /**
  * Thrown when the tables specified in the relationship definition do not match.
  */
-class tables_not_match : public gaia::common::gaia_exception
+class relationship_tables_do_not_match : public gaia::common::gaia_exception
 {
 public:
-    explicit tables_not_match(
+    explicit relationship_tables_do_not_match(
         const std::string& relationship,
         const std::string& name1,
         const std::string& name2);
@@ -173,10 +173,10 @@ public:
 /**
  * Thrown when the index of the given name does not exists.
  */
-class index_not_exists : public gaia::common::gaia_exception
+class index_does_not_exist : public gaia::common::gaia_exception
 {
 public:
-    explicit index_not_exists(const std::string& name);
+    explicit index_does_not_exist(const std::string& name);
 };
 
 /**

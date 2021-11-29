@@ -433,7 +433,7 @@ void initialize_catalog();
  * Switch to the database.
  *
  * @param name database name
- * @throw db_not_exists
+ * @throw db_does_not_exist
  */
 void use_database(const std::string& name);
 
@@ -486,9 +486,9 @@ gaia::common::gaia_id_t create_table(const std::string& name, const ddl::field_d
  * @param table_name name of the table to be indexed
  * @param field_names name of the table fields to be indexed
  * @return id of the new index
- * @throw db_not_exists
- * @throw table_not_exists
- * @throw field_not_exists
+ * @throw db_does_not_exist
+ * @throw table_does_not_exist
+ * @throw field_does_not_exist
  * @throw duplicate_field
  */
 gaia::common::gaia_id_t create_index(
@@ -511,7 +511,7 @@ gaia::common::gaia_id_t create_index(
  * @param name database name
  * @param name table name
  * @param throw_unless_exists throw an execption unless the database exists
- * @throw table_not_exists
+ * @throw table_does_not_exist
  */
 void drop_database(const std::string& name, bool throw_unless_exists = true);
 
@@ -525,7 +525,7 @@ void drop_database(const std::string& name, bool throw_unless_exists = true);
  * @param db_name database name
  * @param name table name
  * @param throw_unless_exists throw an execption unless the table exists
- * @throw table_not_exists
+ * @throw table_does_not_exist
  */
 void drop_table(const std::string& db_name, const std::string& name, bool throw_unless_exists = true);
 
@@ -538,7 +538,7 @@ void drop_table(const std::string& db_name, const std::string& name, bool throw_
  *
  * @param name table name
  * @param throw_unless_exists throw an execption unless the table exists
- * @throw table_not_exists
+ * @throw table_does_not_exist
  */
 void drop_table(const std::string& name, bool throw_unless_exists = true);
 
@@ -621,7 +621,7 @@ gaia::common::gaia_id_t create_relationship(
  *
  * @param name of the relationship
  * @param throw_unless_exists throw an execption unless the relationship exists
- * @throw relationship_not_exists
+ * @throw relationship_does_not_exist
  */
 void drop_relationship(const std::string& name, bool throw_unless_exists = true);
 
@@ -630,7 +630,7 @@ void drop_relationship(const std::string& name, bool throw_unless_exists = true)
  *
  * @param name of the index
  * @param throw_unless_exists throw an execption unless the index exists
- * @throw index_not_exists
+ * @throw index_does_not_exist
  */
 void drop_index(const std::string& name, bool throw_unless_exists = true);
 

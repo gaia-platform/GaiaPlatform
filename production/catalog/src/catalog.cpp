@@ -30,7 +30,7 @@ db_already_exists::db_already_exists(const std::string& name)
     m_message = message.str();
 }
 
-db_not_exists::db_not_exists(const std::string& name)
+db_does_not_exist::db_does_not_exist(const std::string& name)
 {
     std::stringstream message;
     message << "The database '" << name << "' does not exist.";
@@ -44,7 +44,7 @@ table_already_exists::table_already_exists(const std::string& name)
     m_message = message.str();
 }
 
-table_not_exists::table_not_exists(const std::string& name)
+table_does_not_exist::table_does_not_exist(const std::string& name)
 {
     std::stringstream message;
     message << "The table '" << name << "' does not exist.";
@@ -58,7 +58,7 @@ duplicate_field::duplicate_field(const std::string& name)
     m_message = message.str();
 }
 
-field_not_exists::field_not_exists(const std::string& name)
+field_does_not_exist::field_does_not_exist(const std::string& name)
 {
     std::stringstream message;
     message << "The field '" << name << "' does not exist.";
@@ -93,7 +93,7 @@ relationship_already_exists::relationship_already_exists(const std::string& name
     m_message = message.str();
 }
 
-relationship_not_exists::relationship_not_exists(const std::string& name)
+relationship_does_not_exist::relationship_does_not_exist(const std::string& name)
 {
     std::stringstream message;
     message << "The relationship '" << name << "' does not exist.";
@@ -108,7 +108,7 @@ no_cross_db_relationship::no_cross_db_relationship(const std::string& name)
     m_message = message.str();
 }
 
-tables_not_match::tables_not_match(
+relationship_tables_do_not_match::relationship_tables_do_not_match(
     const std::string& relationship,
     const std::string& name1,
     const std::string& name2)
@@ -144,7 +144,7 @@ index_already_exists::index_already_exists(const std::string& name)
     m_message = message.str();
 }
 
-index_not_exists::index_not_exists(const std::string& name)
+index_does_not_exist::index_does_not_exist(const std::string& name)
 {
     std::stringstream message;
     message << "The index '" << name << "' does not exist.";
