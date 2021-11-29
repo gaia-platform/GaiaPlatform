@@ -7,11 +7,7 @@ on:
 
 jobs:
   scenario-tests:
-    strategy:
-      matrix:
-        python: [3.8]
-        platform: [ubuntu-20.04]
-    runs-on: ${{ matrix.platform }}
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: /home/runner/work/GaiaPlatform/GaiaPlatform
       CC: /usr/bin/clang-10
@@ -88,36 +84,16 @@ jobs:
           sudo mkdir -p /var/lib/gaia/db
           sudo chmod -R 666 /var/lib/gaia/db
           cd $GAIA_REPO
-      - name: X1
+      - name: /third_party/production/cmake
         run: |
-          echo "Setup Environment"
-          export GAIA_REPO=/home/runner/work/GaiaPlatform/GaiaPlatform
-
-          echo "1"
-          cd
-          echo "2"
-          pwd
-
-          echo Setup Link to Gdev
-          mkdir -p ~/.local/bin && ln -s $GAIA_REPO/dev_tools/gdev/gdev.sh ~/.local/bin/gdev
-          ls -la ~/.local/bin/gdev
-          export PATH=$HOME/.local/bin:$PATH
-
-          echo "1"
-          cat /etc/docker/daemon.json
-          echo "2"
-          cat ~/.docker/config.json
-
-          cd production
-          gdev build --log-level=DEBUG
-      # - name: Sync With Repository
-      #   run: pipenv sync
-      # - name: Execute Tests
-      #   run: pipenv run pytest --cov-fail-under=90 --cov --cov-branch --cov-report xml:report/coverage.xml --cov-report html:report/coverage
-      # - name: Report Coverage
-      #   uses: codecov/codecov-action@v1
-      #   if: github.event_name != 'schedule'
-      #   with:
-      #     file: ./report/coverage.xml
-      #     name: ${{ matrix.python }} - ${{ matrix.platform }}
-      #     fail_ci_if_error: true
+          cd $GAIA_REPO/third_party/production/cmake
+          wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt
+/trusted.gpg.d/kitware.gpg >/dev/null
+          echo "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/kitware.list
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y \
+              cmake \
+              cmake-data
+          apt-get clean
+          rm /etc/apt/sources.list.d/kitware.list >/dev/null
+          rm /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
