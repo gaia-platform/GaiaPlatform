@@ -1,18 +1,9 @@
 {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 37b293bde (Updated ddl and ruleset highlighting bug fixes)
     "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
     "scopeName": "source.cpp.ruleset",
     "name": "ruleset",
     "fileTypes": [
-<<<<<<< HEAD
-<<<<<<< HEAD
-    "ruleset"
-=======
         "ruleset"
->>>>>>> 2161f9829 (spacing updates)
     ],
     "patterns": [
         {
@@ -40,57 +31,5 @@
                 }
             ]
         }
-<<<<<<< HEAD
     }
 }
-=======
-  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-  "scopeName": "source.cpp.ruleset",
-  "name": "ruleset",
-  "fileTypes": [
-=======
->>>>>>> 37b293bde (Updated ddl and ruleset highlighting bug fixes)
-    "ruleset"
-    ],
-    "patterns": [
-        {
-        "include": "#keywords"
-        },
-        {
-        "include": "source.cpp"
-        }
-    ],
-    "repository": {
-        "keywords": {
-			"patterns": [
-				{
-					"name": "keyword.other.cpp.ruleset",
-					"match": "\\bruleset ([a-zA-Z0-9_.-]*)\\b",
-					"captures": {
-						"1": {
-							"name": "support.class.cpp.ruleset"
-						}
-					}
-				},
-                {
-                    "name": "keyword.other.cpp.ruleset",
-                    "match": "\\brule_context"
-                }
-			]
-		}
-<<<<<<< HEAD
-  }
-}
-<<<<<<< HEAD
->>>>>>> 360715b0a (Added .ddl textmate file)
-=======
->>>>>>> 5730b84a4 (Added spacing @ end of file)
-=======
-=======
->>>>>>> c6f9fdaf5 (converted spacing back to spaces)
-    }
-}
-<<<<<<< HEAD
->>>>>>> 37b293bde (Updated ddl and ruleset highlighting bug fixes)
-=======
->>>>>>> edc08136d (ruleset updates)
