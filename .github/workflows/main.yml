@@ -35,6 +35,33 @@ jobs:
       - name: Install Required Python Packages
         run: |
           python3.8 -m pip install --user atools argcomplete pytest
+      - name: Install Required Third Party Git Respitories
+        run: |
+          cd $GAIA_REPO/third_party/production/backward
+          git clone --depth 1 --branch v1.5 https://github.com/bombela/backward-cpp.git
+          rm -rf */.git
+          cd $GAIA_REPO/third_party/production/daemonize
+          git clone --depth 1 --branch release-1.7.8 https://github.com/bmc/daemonize.git
+          rm -rf */.git
+          cd $GAIA_REPO/third_party/production/libexplain
+          git clone --depth 1 --branch "debian/1.4.D001-10" https://salsa.debian.org/debian/libexplain
+          rm -rf */.git
+          cd $GAIA_REPO/third_party/production/pybind11
+          git clone --depth 1 --branch v2.5.0 https://github.com/pybind/pybind11.git
+          rm -rf */.git
+          cd $GAIA_REPO/third_party/production/cpptoml
+          git clone --depth 1 --branch v0.1.1 https://github.com/skystrife/cpptoml.git
+          rm -rf */.git
+          cd $GAIA_REPO/third_party/production/tabulate
+          git clone --depth 1 --branch v1.3 https://github.com/p-ranav/tabulate
+          rm -rf */.git
+          cd $GAIA_REPO/third_party/production/liburing
+          git clone --depth 1 --branch liburing-2.0 https://github.com/axboe/liburing.git
+          rm -rf */.git
+          cd $GAIA_REPO/third_party/production/CPackDebHelper
+          git clone --depth 1 https://github.com/ABruines/CPackDebHelper.git
+          rm -rf */.git
+          cd $GAIA_REPO
       - name: X1
         run: |
           echo "Setup Environment"
