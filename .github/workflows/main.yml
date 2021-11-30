@@ -66,12 +66,10 @@ jobs:
           cd $GAIA_REPO/third_party/production/CPackDebHelper
           git clone -c advice.detachedHead=false --depth 1 https://github.com/ABruines/CPackDebHelper.git
           rm -rf */.git
-          cd $GAIA_REPO
       - name: Install Required Third Party Web Packages
         run: |
           cd $GAIA_REPO/third_party/production/bison
           wget http://ftp.gnu.org/gnu/bison/bison-3.5.tar.gz
-          cd $GAIA_REPO
       - name: Execute Pre-Build Actions
         run: |
           cd $GAIA_REPO/third_party/production/cmake
@@ -100,8 +98,8 @@ jobs:
           sudo bash -c "./configure"
           sudo bash -c "make -j$(nproc)"
           sudo bash -c "make install"
-          cd ..
-          sudo bash -c "rm -rf *"
+      # cd ..
+      # sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/postgresql
         run: |
           cd $GAIA_REPO/third_party/production/postgresql
@@ -124,15 +122,15 @@ jobs:
           sudo bash -c "./configure"
           sudo bash -c "make -j$(nproc)"
           sudo bash -c "make install"
-          cd ..
-          sudo bash -c "rm -rf *"
+      # cd ..
+      # sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/backward
         run: |
           cd $GAIA_REPO/third_party/production/backward
           sudo bash -c "cmake backward-cpp"
           sudo bash -c "make -j$(nproc)"
           sudo bash -c "make install"
-# sudo bash -c "rm -rf *"
+      # sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/bison
         run: |
           cd $GAIA_REPO/third_party/production/bison
@@ -141,8 +139,8 @@ jobs:
           sudo bash -c "./configure"
           sudo bash -c "make -j$(nproc)"
           sudo bash -c "make install"
-          cd ..
-          sudo bash -c "rm -rf *"
+      # cd ..
+      # sudo bash -c "rm -rf *"
       # - name: $GAIA_REPO/third_party/production/pybind11
       #   run: |
       #     cd $GAIA_REPO/third_party/production/pybind11
@@ -159,7 +157,7 @@ jobs:
           sudo bash -c "rm -fr build/"
           sudo bash -c "cmake -H. -Bbuild  -DCMAKE_BUILD_TYPE=Release                    -DCPPTOML_BUILD_EXAMPLES=OFF                    -DENABLE_LIBCXX=OFF"
           sudo bash -c "cmake --build build --target install"
-          cd ..
+      # cd ..
       # sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/tabulate
         run: |
@@ -167,14 +165,14 @@ jobs:
           cd tabulate
           sudo bash -c "cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release"
           sudo bash -c "cmake --build build --target install"
-          cd ..
-          sudo bash -c "rm -rf *"
+      # cd ..
+      # sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/CPackDebHelper
         run: |
           cd $GAIA_REPO/third_party/production/CPackDebHelper
           sudo bash -c "mkdir -p /usr/local/lib/cmake/CPackDebHelper"
           sudo bash -c "cp CPackDebHelper/cmake/*.cmake /usr/local/lib/cmake/CPackDebHelper/"
-          sudo bash -c "rm -rf *"
+      # sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/libexplain
         run: |
           cd $GAIA_REPO/third_party/production/libexplain
@@ -183,8 +181,8 @@ jobs:
           sudo bash -c "CPPFLAGS='-fPIC' ./configure --prefix=/usr"
           sudo bash -c "make -j$(nproc)"
           sudo bash -c "make install"
-          cd ..
-          sudo bash -c "rm -rf *"
+      # cd ..
+      # sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/production
         run: |
           cd $GAIA_REPO/production
