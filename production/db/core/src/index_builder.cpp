@@ -93,7 +93,7 @@ index_record_t index_builder_t::make_record(
         operation != index_record_operation_t::not_set,
         "A valid operation should be set in each index record!");
 
-    return index_record_t{get_current_txn_id(), locator, offset, operation};
+    return index_record_t{get_current_txn_id(), locator, offset, operation, 0};
 }
 
 bool index_builder_t::index_exists(common::gaia_id_t index_id)
@@ -164,18 +164,21 @@ void update_index_entry(
         {
             gaia_txn_id_t begin_ts = it_start->second.txn_id;
             gaia_txn_id_t commit_ts
-                = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(begin_ts);
+                = (is_marked_committed(record)) ? c_invalid_gaia_txn_id : transactions::txn_metadata_t::get_commit_ts_from_begin_ts(begin_ts);
 
             ASSERT_PRECONDITION(
-                transactions::is_frozen_ts(begin_ts) || transactions::txn_metadata_t::is_begin_ts(begin_ts),
+                is_marked_committed(record) || transactions::txn_metadata_t::is_begin_ts(begin_ts),
                 "Transaction id in index key entry is not frozen or a begin timestamp!");
 
             // Index entries made by rolled back transactions or aborted transactions can be ignored,
             // We can also remove them, because we are already holding a lock.
             bool is_aborted_operation
-                = (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_aborted(commit_ts));
-            if (transactions::txn_metadata_t::is_txn_terminated(begin_ts)
-                || is_aborted_operation)
+                = !is_marked_committed(record)
+                && commit_ts != c_invalid_gaia_txn_id
+                && transactions::txn_metadata_t::is_txn_aborted(commit_ts);
+
+            if (is_aborted_operation
+                || transactions::txn_metadata_t::is_txn_terminated(begin_ts))
             {
                 it_start = index_guard.get_index().erase(it_start);
                 continue;
@@ -189,7 +192,9 @@ void update_index_entry(
             // it would allow us to perform a duplicate insertion.
             bool is_our_operation = (begin_ts == record.txn_id);
             bool is_committed_operation
-                = (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_committed(commit_ts));
+                = is_marked_committed(record)
+                || (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_committed(commit_ts));
+
             if (it_start->second.operation == index_record_operation_t::remove)
             {
                 // We ignore uncommitted removals by other transactions,
@@ -468,6 +473,30 @@ void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool dea
         }
     }
 }
+
+template <class T_index>
+void mark_index_entries_helper(base_index_t* base_index, gaia_txn_id_t txn_id)
+{
+    auto index = static_cast<T_index*>(base_index);
+    index->mark_index_entries_committed(txn_id);
+}
+
+void index_builder_t::mark_index_entries_committed(gaia_txn_id_t txn_id)
+{
+    for (auto it : *get_indexes())
+    {
+        switch (it.second->type())
+        {
+        case catalog::index_type_t::range:
+            mark_index_entries_helper<range_index_t>(it.second.get(), txn_id);
+            break;
+        case catalog::index_type_t::hash:
+            mark_index_entries_helper<hash_index_t>(it.second.get(), txn_id);
+            break;
+        }
+    }
+}
+
 } // namespace index
 } // namespace db
 } // namespace gaia

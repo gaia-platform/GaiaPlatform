@@ -15,7 +15,6 @@
 #include "gaia_internal/db/db_types.hpp"
 
 #include "txn_metadata_entry.hpp"
-#include "txn_special.hpp"
 
 namespace gaia
 {
