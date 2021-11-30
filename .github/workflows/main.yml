@@ -188,6 +188,18 @@ jobs:
       - name: $GAIA_REPO/production
         run: |
           cd $GAIA_REPO/production
+          echo "/home/runner/work"
+          ls -la /home/runner/work
+          echo "/home/runner/work/GaiaPlatform"
+          ls -la /home/runner/work/GaiaPlatform
+          echo "/home/runner/work/GaiaPlatform/GaiaPlatform"
+          ls -la /home/runner/work/GaiaPlatform/GaiaPlatform
+          echo "/home/runner/work/GaiaPlatform/GaiaPlatform/third_party"
+          ls -la /home/runner/work/GaiaPlatform/GaiaPlatform/third_party
+          echo "/home/runner/work/GaiaPlatform/GaiaPlatform/third_party/production"
+          ls -la /home/runner/work/GaiaPlatform/GaiaPlatform/third_party/production
+          echo "/home/runner/work/GaiaPlatform/GaiaPlatform/third_party/production/backward"
+          ls -la /home/runner/work/GaiaPlatform/GaiaPlatform/third_party/production/backward
           sudo bash -c "cmake     --log-level=VERBOSE -Wno-dev     -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper     -DBUILD_GAIA_RELEASE=ON     -G \"Unix Makefiles\" $GAIA_REPO/production"
           sudo bash -c "LSAN_OPTIONS=detect_leaks=0     make -j$(nproc)"
           cd /build/production/db/core
