@@ -83,18 +83,113 @@ jobs:
           sudo update-alternatives --install "/usr/bin/clang-tidy" "clang-tidy" "/usr/bin/clang-tidy-10" 10
           sudo mkdir -p /var/lib/gaia/db
           sudo chmod -R 666 /var/lib/gaia/db
-          cd $GAIA_REPO
       - name: $GAIA_REPO/third_party/production/cmake
         run: |
           cd $GAIA_REPO/third_party/production/cmake
-          wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
-          echo "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/kitware.list
-          sudo apt-get update
-          export DEBIAN_FRONTEND=noninteractive
-          sudo apt-get install -y cmake cmake-data
-          sudo apt-get clean
-          sudo rm /etc/apt/sources.list.d/kitware.list >/dev/null
-          sudo rm /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
+          sudo bash -c "wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null"
+          sudo bash -c "echo \"deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main\" | tee /etc/apt/sources.list.d/kitware.list"
+          sudo bash -c "apt-get update"
+          sudo bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y     cmake     cmake-data"
+          sudo bash -c "apt-get clean"
+          sudo bash -c "rm /etc/apt/sources.list.d/kitware.list >/dev/null"
+          sudo bash -c "rm /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null"
+      - name: $GAIA_REPO/third_party/production/daemonize
+        run: |
+          cd $GAIA_REPO/third_party/production/daemonize
+          sudo bash -c "cd daemonize"
+          sudo bash -c "./configure"
+          sudo bash -c "make -j$(nproc)"
+          sudo bash -c "make install"
+          sudo bash -c "cd .."
+          sudo bash -c "rm -rf *"
+      - name: $GAIA_REPO/third_party/production/daemonize
+        run: |
+          cd $GAIA_REPO/third_party/production/postgresql
+          sudo bash -c "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -"
+          sudo bash -c "echo \"deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main\" | tee /etc/apt/sources.list.d/pgdg.list"
+          sudo bash -c "apt-get update -y"
+          sudo bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y     postgresql-12     postgresql-12-dbgsym     postgresql-client-12     postgresql-client-12-dbgsym     postgresql-contrib-12     postgresql-server-dev-12"
+          sudo bash -c "apt-get clean"
+          sudo bash -c "rm /etc/apt/sources.list.d/pgdg.list"
+          sudo bash -c "python3 -m pip install psycopg2"
+          sudo bash -c "locale-gen en_US.UTF-8"
+          sudo bash -c "mkdir -p /etc/postgresql/ssl"
+          sudo bash -c "cp -p -R /etc/ssl/private /etc/postgresql/ssl"
+          sudo bash -c "sed -i \"s/\/etc\/ssl\/private/\/etc\/postgresql\/ssl\/private/g\" /etc/postgresql/12/main/postgresql.conf"
+          sudo bash -c "sed -i '/^local/ s/peer/trust/' /etc/postgresql/12/main/pg_hba.conf"
+      - name: $GAIA_REPO/third_party/production/liburing
+        run: |
+          cd $GAIA_REPO/third_party/production/liburing
+          sudo bash -c "cd liburing"
+          sudo bash -c "./configure"
+          sudo bash -c "make -j$(nproc)"
+          sudo bash -c "make install"
+          sudo bash -c "cd .."
+          sudo bash -c "rm -rf *"
+      - name: $GAIA_REPO/third_party/production/backward
+        run: |
+          cd $GAIA_REPO/third_party/production/backward
+          sudo bash -c "cmake backward-cpp"
+          sudo bash -c "make -j$(nproc)"
+          sudo bash -c "make install"
+          sudo bash -c "rm -rf *"
+      - name: $GAIA_REPO/third_party/production/bison
+        run: |
+          cd $GAIA_REPO/third_party/production/bison
+          sudo bash -c "tar -zxvf bison-3.5.tar.gz"
+          sudo bash -c "cd bison-3.5"
+          sudo bash -c "./configure"
+          sudo bash -c "make -j$(nproc)"
+          sudo bash -c "make install"
+          sudo bash -c "cd .."
+          sudo bash -c "rm -rf *"
+      - name: $GAIA_REPO/third_party/production/pybind11
+        run: |
+          cd $GAIA_REPO/third_party/production/pybind11
+          sudo bash -c "cmake pybind11"
+          sudo bash -c "make -j$(nproc)"
+          sudo bash -c "make install"
+          sudo bash -c "rm -rf *"
+      - name: $GAIA_REPO/third_party/production/cpptoml
+        run: |
+          cd $GAIA_REPO/third_party/production/cpptoml
+          sudo bash -c "cd cpptoml"
+          sudo bash -c "rm -fr build/"
+          sudo bash -c "cmake -H. -Bbuild  -DCMAKE_BUILD_TYPE=Release                    -DCPPTOML_BUILD_EXAMPLES=OFF                    -DENABLE_LIBCXX=OFF"
+          sudo bash -c "cmake --build build --target install"
+          sudo bash -c "cd .."
+          sudo bash -c "rm -rf *"
+      - name: $GAIA_REPO/third_party/production/tabulate
+        run: |
+          cd $GAIA_REPO/third_party/production/tabulate
+          sudo bash -c "cd tabulate"
+          sudo bash -c "cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release"
+          sudo bash -c "cmake --build build --target install"
+          sudo bash -c "cd .."
+          sudo bash -c "rm -rf *"
+      - name: $GAIA_REPO/third_party/production/CPackDebHelper
+        run: |
+          cd $GAIA_REPO/third_party/production/CPackDebHelper
+          sudo bash -c "mkdir -p /usr/local/lib/cmake/CPackDebHelper"
+          sudo bash -c "cp CPackDebHelper/cmake/*.cmake /usr/local/lib/cmake/CPackDebHelper/"
+          sudo bash -c "rm -rf *"
+      - name: $GAIA_REPO/third_party/production/libexplain
+        run: |
+          cd $GAIA_REPO/third_party/production/libexplain
+          sudo bash -c "cd libexplain"
+          sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
+          sudo bash -c "CPPFLAGS='-fPIC' ./configure --prefix=/usr"
+          sudo bash -c "make -j$(nproc)"
+          sudo bash -c "make install"
+          sudo bash -c "cd .."
+          sudo bash -c "rm -rf *"
+      - name: $GAIA_REPO/production
+        run: |
+          cd $GAIA_REPO/production
+          sudo bash -c "cmake     --log-level=VERBOSE -Wno-dev     -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper     -DBUILD_GAIA_RELEASE=ON     -G \"Unix Makefiles\" $GAIA_REPO/production"
+          sudo bash -c "LSAN_OPTIONS=detect_leaks=0     make -j$(nproc)"
+          sudo bash -c "cd $GAIA_REPO/production/db/core"
+          sudo bash -c "make install"
       - name: Done
         run: |
           echo "Done"
