@@ -143,15 +143,15 @@ jobs:
           sudo bash -c "make install"
           cd ..
           sudo bash -c "rm -rf *"
-      - name: $GAIA_REPO/third_party/production/pybind11
-        run: |
-          cd $GAIA_REPO/third_party/production/pybind11
-          /usr/bin/python3.8 -m pip install pytest
-          /usr/bin/python3.8 -c "import pytest; print(pytest.__version__)"
-          sudo bash -c "cmake pybind11"
-          sudo bash -c "make -j$(nproc)"
-          sudo bash -c "make install"
-          sudo bash -c "rm -rf *"
+      # - name: $GAIA_REPO/third_party/production/pybind11
+      #   run: |
+      #     cd $GAIA_REPO/third_party/production/pybind11
+      #     /usr/bin/python3.8 -m pip install pytest
+      #     /usr/bin/python3.8 -c "import pytest; print(pytest.__version__)"
+      #     sudo bash -c "cmake pybind11"
+      #     sudo bash -c "make -j$(nproc)"
+      #     sudo bash -c "make install"
+      #     sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/cpptoml
         run: |
           cd $GAIA_REPO/third_party/production/cpptoml
