@@ -152,7 +152,7 @@ index_does_not_exist_internal::index_does_not_exist_internal(const std::string& 
     m_message = message.str();
 }
 
-invalid_field_map_internal::invalid_field_map_internal(const std::string& message)
+invalid_relationship_field_internal::invalid_relationship_field_internal(const std::string& message)
 {
     m_message = message;
 }
@@ -179,15 +179,6 @@ invalid_create_list_internal::invalid_create_list_internal(const std::string& me
 {
     m_message = "Invalid create statment in a list: ";
     m_message += message;
-}
-
-cannot_drop_table_with_data_internal::cannot_drop_table_with_data_internal(const std::string& name)
-{
-    std::stringstream message;
-    message
-        << "Cannot drop the table '" << name << "' because it still contains data. "
-        << "Please delete all records in the table before dropping it.";
-    m_message = message.str();
 }
 
 inline void check_not_system_db(const string& name)

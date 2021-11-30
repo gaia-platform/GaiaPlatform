@@ -213,7 +213,7 @@ bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
 
     if (child_ptr.references()[relationship->parent_offset] != id())
     {
-        throw invalid_child_internal(child_ptr.type(), child_id, type(), id());
+        throw invalid_child_reference_internal(child_ptr.type(), child_id, type(), id());
     }
 
     // Clone parent and child objects for CoW updates.

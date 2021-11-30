@@ -40,7 +40,7 @@ transaction_object_limit_exceeded_internal::transaction_object_limit_exceeded_in
     m_message = "Transaction attempted to update too many objects.";
 }
 
-duplicate_id_internal::duplicate_id_internal(common::gaia_id_t id)
+duplicate_object_id_internal::duplicate_object_id_internal(common::gaia_id_t id)
 {
     std::stringstream message;
     message << "An object with the same ID '" << id << "' already exists.";
@@ -83,19 +83,32 @@ object_too_large_internal::object_too_large_internal(size_t total_len, uint16_t 
     m_message = message.str();
 }
 
-invalid_type_internal::invalid_type_internal(common::gaia_type_t type)
+invalid_object_type_internal::invalid_object_type_internal(common::gaia_type_t type)
 {
     std::stringstream message;
     message << "The type '" << type << "' does not exist in the catalog.";
     m_message = message.str();
 }
 
-invalid_type_internal::invalid_type_internal(common::gaia_id_t id, common::gaia_type_t type)
+invalid_object_type_internal::invalid_object_type_internal(common::gaia_id_t id, common::gaia_type_t type)
 {
     std::stringstream message;
     message
         << "Cannot create object with ID '" << id << "' and type '" << type
         << "'. The type does not exist in the catalog.";
+    m_message = message.str();
+}
+
+invalid_object_type_internal::invalid_object_type_internal(
+    common::gaia_id_t id,
+    common::gaia_type_t expected_type,
+    const char* expected_typename,
+    common::gaia_type_t actual_type)
+{
+    std::stringstream message;
+    message
+        << "Requesting Gaia type '" << expected_typename << "'('" << expected_type
+        << "'), but object identified by '" << id << "' is of type '" << actual_type << "'.";
     m_message = message.str();
 }
 
@@ -142,7 +155,7 @@ child_already_referenced_internal::child_already_referenced_internal(gaia::commo
     m_message = message.str();
 }
 
-invalid_child_internal::invalid_child_internal(
+invalid_child_reference_internal::invalid_child_reference_internal(
     gaia::common::gaia_type_t child_type,
     gaia::common::gaia_id_t child_id,
     gaia::common::gaia_type_t parent_type,
@@ -150,7 +163,7 @@ invalid_child_internal::invalid_child_internal(
 {
     std::stringstream message;
     message
-        << "Impossible to remove child with id '" << child_id
+        << "Cannot remove child with id '" << child_id
         << "' and type '" << child_type
         << "' from parent with id '" << parent_id
         << "' and type '" << parent_type << "'. The child has a different parent.";

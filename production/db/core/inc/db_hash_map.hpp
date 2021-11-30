@@ -44,7 +44,7 @@ public:
             {
                 if (locator_exists(node->locator.load()))
                 {
-                    throw duplicate_id_internal(id);
+                    throw duplicate_object_id_internal(id);
                 }
                 else
                 {

@@ -24,44 +24,12 @@ namespace direct_access
 //
 // Exception class implementations.
 //
-invalid_object_type_internal::invalid_object_type_internal(gaia_id_t id, gaia_type_t expected_type, const char* expected_typename, gaia_type_t actual_type)
-{
-    stringstream msg;
-    msg << "Requesting Gaia type '" << expected_typename << "'('" << expected_type
-        << "'), but object identified by '" << id << "' is of type '" << actual_type << "'.";
-    m_message = msg.str();
-}
-
-invalid_member_internal::invalid_member_internal(gaia_id_t id, gaia_type_t parent, const char* parent_type, gaia_type_t child, const char* child_name)
-{
-    stringstream msg;
-    msg << "Attempting to remove record with Gaia type '" << child_name << "'('" << child << "') from parent '" << id
-        << "' of type '" << parent_type << "'('" << parent << "'), but the record is not a member of such a relationship.";
-    m_message = msg.str();
-}
-
-inconsistent_list_internal::inconsistent_list_internal(gaia_id_t id, const char* parent_type, gaia_id_t child, const char* child_name)
-{
-    stringstream msg;
-    msg << "List is inconsistent; child points to parent '" << id << "' of type '" << parent_type << "', but child '"
-        << child << "' of type '" << child_name << "' is not in parent's list.";
-    m_message = msg.str();
-}
-
-invalid_state_internal::invalid_state_internal(gaia_id_t parent_id, gaia_id_t child_id, const char* child_type)
+invalid_object_state_internal::invalid_object_state_internal(gaia_id_t parent_id, gaia_id_t child_id, const char* child_type)
 {
     stringstream msg;
     msg << "Cannot insert an object of type '" << child_type
         << "' into the container. The parent id '" << parent_id << "' or the child id '"
         << child_id << "' is invalid.";
-    m_message = msg.str();
-}
-
-already_inserted_internal::already_inserted_internal(gaia_id_t parent, const char* parent_type)
-{
-    stringstream msg;
-    msg << "The object being inserted is a member of this same list type but has a different owner. "
-        << "The owner object type is '" << parent_type << "', and its ID is '" << parent << "'.";
     m_message = msg.str();
 }
 
@@ -207,12 +175,12 @@ void report_invalid_object_type(
     throw invalid_object_type_internal(id, expected_type, expected_typename, actual_type);
 }
 
-void report_invalid_state(
+void report_invalid_object_state(
     common::gaia_id_t parent_id,
     common::gaia_id_t child_id,
     const char* child_type)
 {
-    throw invalid_state_internal(parent_id, child_id, child_type);
+    throw invalid_object_state_internal(parent_id, child_id, child_type);
 }
 
 template <typename T_ptr>

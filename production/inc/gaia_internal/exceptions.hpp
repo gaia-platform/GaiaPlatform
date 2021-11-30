@@ -117,10 +117,10 @@ public:
     explicit index_does_not_exist_internal(const std::string& name);
 };
 
-class invalid_field_map_internal : public invalid_field_map
+class invalid_relationship_field_internal : public invalid_relationship_field
 {
 public:
-    explicit invalid_field_map_internal(const std::string& message);
+    explicit invalid_relationship_field_internal(const std::string& message);
 };
 
 class ambiguous_reference_definition_internal : public ambiguous_reference_definition
@@ -139,12 +139,6 @@ class invalid_create_list_internal : public invalid_create_list
 {
 public:
     explicit invalid_create_list_internal(const std::string& message);
-};
-
-class cannot_drop_table_with_data_internal : public cannot_drop_table_with_data
-{
-public:
-    explicit cannot_drop_table_with_data_internal(const std::string& name);
 };
 
 } // namespace catalog
@@ -209,10 +203,10 @@ public:
     transaction_object_limit_exceeded_internal();
 };
 
-class duplicate_id_internal : public duplicate_id
+class duplicate_object_id_internal : public duplicate_object_id
 {
 public:
-    explicit duplicate_id_internal(common::gaia_id_t id);
+    explicit duplicate_object_id_internal(common::gaia_id_t id);
 };
 
 class out_of_memory_internal : public out_of_memory
@@ -247,12 +241,18 @@ public:
     object_too_large_internal(size_t total_len, uint16_t max_len);
 };
 
-class invalid_type_internal : public invalid_type
+class invalid_object_type_internal : public invalid_object_type
 {
 public:
-    explicit invalid_type_internal(common::gaia_type_t type);
+    explicit invalid_object_type_internal(common::gaia_type_t type);
 
-    invalid_type_internal(common::gaia_id_t id, common::gaia_type_t type);
+    invalid_object_type_internal(common::gaia_id_t id, common::gaia_type_t type);
+
+    invalid_object_type_internal(
+        common::gaia_id_t id,
+        common::gaia_type_t expected_type,
+        const char* expected_typename,
+        common::gaia_type_t actual_type);
 };
 
 class session_limit_exceeded_internal : public session_limit_exceeded
@@ -288,10 +288,10 @@ public:
     child_already_referenced_internal(gaia::common::gaia_type_t child_type, gaia::common::reference_offset_t offset);
 };
 
-class invalid_child_internal : public invalid_child
+class invalid_child_reference_internal : public invalid_child_reference
 {
 public:
-    invalid_child_internal(
+    invalid_child_reference_internal(
         gaia::common::gaia_type_t child_type,
         gaia::common::gaia_id_t child_id,
         gaia::common::gaia_type_t parent_type,
@@ -331,50 +331,13 @@ public:
 namespace direct_access
 {
 
-class invalid_object_type_internal : public invalid_object_type
+class invalid_object_state_internal : public invalid_object_state
 {
 public:
-    invalid_object_type_internal(
-        common::gaia_id_t id,
-        common::gaia_type_t expected_type,
-        const char* expected_typename,
-        common::gaia_type_t actual_type);
-};
-
-class invalid_member_internal : public invalid_member
-{
-public:
-    invalid_member_internal(
-        common::gaia_id_t id,
-        common::gaia_type_t parent,
-        const char* parent_type,
-        common::gaia_type_t child,
-        const char* child_name);
-};
-
-class inconsistent_list_internal : public inconsistent_list
-{
-public:
-    inconsistent_list_internal(
-        common::gaia_id_t id,
-        const char* parent_type,
-        common::gaia_id_t child,
-        const char* child_name);
-};
-
-class invalid_state_internal : public invalid_state
-{
-public:
-    invalid_state_internal(
+    invalid_object_state_internal(
         common::gaia_id_t parent_id,
         common::gaia_id_t child_id,
         const char* child_type);
-};
-
-class already_inserted_internal : public already_inserted
-{
-public:
-    already_inserted_internal(common::gaia_id_t parent, const char* parent_type);
 };
 
 } // namespace direct_access

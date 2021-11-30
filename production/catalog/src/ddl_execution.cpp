@@ -109,7 +109,7 @@ void check_reference_field_maps(
         if (!((field_map1->first == field_map2->first && field_map1->second == field_map2->second)
               || (field_map1->first == field_map2->second && field_map1->second == field_map2->first)))
         {
-            throw invalid_field_map_internal(
+            throw invalid_relationship_field_internal(
                 "The matching reference definitions in table '" + table1 + "' and table '" + table2 + "'"
                 + " both contain WHERE clauses that do not match each other.");
         }
@@ -123,7 +123,7 @@ void check_reference_field_maps(
     if (!((field_map.first.table == table1 && field_map.second.table == table2)
           || (field_map.first.table == table2 && field_map.second.table == table1)))
     {
-        throw invalid_field_map_internal(
+        throw invalid_relationship_field_internal(
             "The WHERE clause for matching reference definitions in table '" + table1
             + "' and table '" + table2 + "'" + " must use a field from each table on opposite sides of '='.");
     }

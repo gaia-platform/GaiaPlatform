@@ -85,6 +85,9 @@ class max_reference_count_reached : public common::gaia_exception
 {
 };
 
+/**
+ * Thrown when a database operation would violate referential integrity.
+ */
 class referential_integrity_violation : public common::gaia_exception
 {
 };
@@ -139,9 +142,9 @@ class index_does_not_exist : public common::gaia_exception
 };
 
 /**
- * Thrown when the field map is invalid.
+ * Thrown when the fields used in a relationship are invalid.
  */
-class invalid_field_map : public common::gaia_exception
+class invalid_relationship_field : public common::gaia_exception
 {
 };
 
@@ -167,13 +170,6 @@ class invalid_create_list : public common::gaia_exception
 {
 };
 
-/**
- * Thrown when dropping a table that still has (user) data.
- */
-class cannot_drop_table_with_data : public common::gaia_exception
-{
-};
-
 /*@}*/
 } // namespace catalog
 
@@ -185,7 +181,7 @@ namespace common
  */
 
 /**
- * An exception class used to indicate invalid Gaia configuration settings.
+ * Thrown when an invalid Gaia configuration setting is detected.
  */
 class configuration_error : public gaia_exception
 {
@@ -221,7 +217,7 @@ namespace db
 /**
  * \brief A session already exists on this thread.
  *
- *  Only one session at a time can exist on a thread.
+ * Only one session at a time can exist on a thread.
  */
 class session_exists : public common::gaia_exception
 {
@@ -230,7 +226,7 @@ class session_exists : public common::gaia_exception
 /**
  * \brief No session exists on this thread.
  *
- *  A transaction can only be opened from a thread with an open session.
+ * A transaction can only be opened from a thread with an open session.
  */
 class no_open_session : public common::gaia_exception
 {
@@ -239,7 +235,7 @@ class no_open_session : public common::gaia_exception
 /**
  * \brief A transaction is already in progress in this session.
  *
- *  Only one transaction at a time can exist within a session.
+ * Only one transaction at a time can exist within a session.
  */
 class transaction_in_progress : public common::gaia_exception
 {
@@ -248,7 +244,7 @@ class transaction_in_progress : public common::gaia_exception
 /**
  * \brief No transaction is open in this session.
  *
- *  Data can only be accessed from an open transaction.
+ * Data can only be accessed from an open transaction.
  */
 class no_open_transaction : public common::gaia_exception
 {
@@ -257,7 +253,7 @@ class no_open_transaction : public common::gaia_exception
 /**
  * \brief The transaction conflicts with another transaction.
  *
- *  If two transactions modify the same data at the same time, one of them must abort.
+ * If two transactions modify the same data at the same time, one of them must abort.
  */
 class transaction_update_conflict : public common::gaia_exception
 {
@@ -266,7 +262,7 @@ class transaction_update_conflict : public common::gaia_exception
 /**
  * \brief The transaction attempted to update too many objects.
  *
- *  A transaction can create, update, or delete at most 2^20 objects.
+ * A transaction can create, update, or delete at most 2^20 objects.
  */
 class transaction_object_limit_exceeded : public common::gaia_exception
 {
@@ -275,16 +271,16 @@ class transaction_object_limit_exceeded : public common::gaia_exception
 /**
  * \brief The transaction attempted to create an object with an existing ID.
  *
- *  A transaction must create a new object using an ID that has not been assigned to another object.
+ * A transaction must create a new object using an ID that has not been assigned to another object.
  */
-class duplicate_id : public common::gaia_exception
+class duplicate_object_id : public common::gaia_exception
 {
 };
 
 /**
  * \brief The transaction tried to create more objects than fit into memory.
  *
- *  The memory used to store objects cannot exceed the configured physical memory limit.
+ * The memory used to store objects cannot exceed the configured physical memory limit.
  */
 class out_of_memory : public common::gaia_exception
 {
@@ -293,7 +289,7 @@ class out_of_memory : public common::gaia_exception
 /**
  * \brief The transaction tried to create more objects than are permitted in the system.
  *
- *  The system cannot contain more than 2^32 objects.
+ * The system cannot contain more than 2^32 objects.
  */
 class system_object_limit_exceeded : public common::gaia_exception
 {
@@ -302,7 +298,7 @@ class system_object_limit_exceeded : public common::gaia_exception
 /**
  * \brief The transaction referenced an object ID that does not exist.
  *
- *  An object can only reference existing objects.
+ * An object can only reference existing objects.
  */
 class invalid_object_id : public common::gaia_exception
 {
@@ -311,7 +307,7 @@ class invalid_object_id : public common::gaia_exception
 /**
  * \brief The transaction attempted to delete an object that is referenced by another object.
  *
- *  Objects that are still referenced by existing objects cannot be deleted.
+ * Objects that are still referenced by existing objects cannot be deleted.
  */
 class object_still_referenced : public common::gaia_exception
 {
@@ -320,23 +316,24 @@ class object_still_referenced : public common::gaia_exception
 /**
  * \brief The transaction attempted to create or update an object that is too large.
  *
- *  An object cannot be larger than 64 KB.
+ * An object cannot be larger than 64 KB.
  */
 class object_too_large : public common::gaia_exception
 {
 };
 
 /**
- * \brief The transaction attempted to create an object with an unknown type.
+ * \brief The transaction referenced an object type that does not exist
+ * or that does not match the expected type.
  *
- *  An object's type must exist in the catalog.
+ * An object's type must exist in the catalog or must match the expected object type.
  */
-class invalid_type : public common::gaia_exception
+class invalid_object_type : public common::gaia_exception
 {
 };
 
 /**
- * An exception class used to indicate that the Gaia server session limit has been exceeded.
+ * Thrown when the Gaia server session limit has been exceeded.
  */
 class session_limit_exceeded : public common::gaia_exception
 {
@@ -377,7 +374,10 @@ class child_already_referenced : public common::gaia_exception
 {
 };
 
-class invalid_child : public common::gaia_exception
+/**
+ * Thrown when the type of a child reference does not match the type of the parent.
+ */
+class invalid_child_reference : public common::gaia_exception
 {
 };
 
@@ -405,7 +405,7 @@ namespace index
  */
 
 /**
- * An exception class used to indicate the violation of a UNIQUE constraint.
+ * Thrown to indicate the violation of a UNIQUE constraint.
  *
  * Extends pre_commit_validation_failure to indicate that this exception
  * is expected to occur during the pre-commit processing of a transaction.
@@ -427,29 +427,10 @@ namespace direct_access
  * @{
  */
 
-// Exception when get() argument does not match the class type.
-class invalid_object_type : public common::gaia_exception
-{
-};
-
-// A child's parent pointer must match the parent record we have.
-class invalid_member : public common::gaia_exception
-{
-};
-
-// When a child refers to a parent, but is not found in that parent's list.
-class inconsistent_list : public common::gaia_exception
-{
-};
-
-// To connect two objects, a gaia_id() is needed but not available until SE create is called during
-// the insert_row().
-class invalid_state : public common::gaia_exception
-{
-};
-
-// An attempt has been made to insert a member that has already been inserted somewhere.
-class already_inserted : public common::gaia_exception
+/**
+ * Thrown when an object's internal state is not as expected.
+ */
+class invalid_object_state : public common::gaia_exception
 {
 };
 

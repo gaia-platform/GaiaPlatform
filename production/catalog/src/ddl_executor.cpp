@@ -452,14 +452,14 @@ gaia_id_t ddl_executor_t::create_relationship(
     {
         if (cardinality == relationship_cardinality_t::one)
         {
-            throw invalid_field_map_internal(
+            throw invalid_relationship_field_internal(
                 "Defining a 1:1 relationship using value linked references (between table '"
                 + link1.from_table + "' and table '" + link1.to_table + "') is not supported.");
         }
 
         if (field_map->first.fields.size() != 1 || field_map->second.fields.size() != 1)
         {
-            throw invalid_field_map_internal("Defining relationships using composite keys are not supported currently.");
+            throw invalid_relationship_field_internal("Defining relationships using composite keys are not supported currently.");
         }
         gaia_id_t first_table_id = get_table_id(in_context(field_map->first.database), field_map->first.table);
         gaia_id_t second_table_id = get_table_id(in_context(field_map->second.database), field_map->second.table);
@@ -477,7 +477,7 @@ gaia_id_t ddl_executor_t::create_relationship(
         }
         else
         {
-            throw invalid_field_map_internal("The field's table(s) do not match the tables of the relationship");
+            throw invalid_relationship_field_internal("The field's table(s) do not match the tables of the relationship");
         }
 
         // Parent side fields must be unique.
@@ -486,7 +486,7 @@ gaia_id_t ddl_executor_t::create_relationship(
             auto field = gaia_field_t::get(field_id);
             if (!field.unique())
             {
-                throw invalid_field_map_internal(
+                throw invalid_relationship_field_internal(
                     string("The field '") + field.name() + "' defined in table '" + field.table().name()
                     + "' is used to define a relationship and must be declared UNIQUE.");
             }
@@ -500,7 +500,7 @@ gaia_id_t ddl_executor_t::create_relationship(
                 auto field = gaia_field_t::get(field_id);
                 if (!field.unique())
                 {
-                    throw invalid_field_map_internal(
+                    throw invalid_relationship_field_internal(
                         string("The field '") + field.name() + "' defined in the table '" + field.table().name()
                         + "' is used to define a 1:1 relationship and must be declared UNIQUE.");
                 }

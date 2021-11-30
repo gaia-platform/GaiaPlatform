@@ -138,7 +138,7 @@ TEST_F(gaia_relationships_test, metadata_not_exists)
     const int c_non_existent_type = 1001;
     EXPECT_THROW(
         type_registry_t::instance().get(c_non_existent_type),
-        invalid_type);
+        invalid_object_type);
 
     commit_transaction();
 }

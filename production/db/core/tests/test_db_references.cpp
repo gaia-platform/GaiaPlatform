@@ -458,7 +458,7 @@ TEST_F(gaia_db_references_test, remove_child_reference__different_parent)
     // nothing should happen
     ASSERT_THROW(
         parent2.remove_child_reference(child.id(), c_next_patient_offset),
-        invalid_child);
+        invalid_child_reference);
 
     ASSERT_EQ(parent.references()[c_first_patient_offset], child.id());
     ASSERT_EQ(child.references()[c_parent_doctor_offset], parent.id());
