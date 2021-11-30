@@ -3,56 +3,56 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia/exceptions.hpp"
+#include "gaia_internal/exceptions.hpp"
 
 namespace gaia
 {
 namespace db
 {
 
-session_exists::session_exists()
+session_exists_internal::session_exists_internal()
 {
     m_message = "Close the current session before opening a new one.";
 }
 
-no_open_session::no_open_session()
+no_open_session_internal::no_open_session_internal()
 {
     m_message = "Open a session before performing data access.";
 }
 
-transaction_in_progress::transaction_in_progress()
+transaction_in_progress_internal::transaction_in_progress_internal()
 {
     m_message = "Commit or rollback the current transaction before opening a new transaction.";
 }
 
-no_open_transaction::no_open_transaction()
+no_open_transaction_internal::no_open_transaction_internal()
 {
     m_message = "Open a transaction before performing data access.";
 }
 
-transaction_update_conflict::transaction_update_conflict()
+transaction_update_conflict_internal::transaction_update_conflict_internal()
 {
     m_message = "Transaction was aborted due to a conflict with another transaction.";
 }
 
-transaction_object_limit_exceeded::transaction_object_limit_exceeded()
+transaction_object_limit_exceeded_internal::transaction_object_limit_exceeded_internal()
 {
     m_message = "Transaction attempted to update too many objects.";
 }
 
-duplicate_id::duplicate_id(common::gaia_id_t id)
+duplicate_id_internal::duplicate_id_internal(common::gaia_id_t id)
 {
     std::stringstream message;
     message << "An object with the same ID '" << id << "' already exists.";
     m_message = message.str();
 }
 
-out_of_memory::out_of_memory()
+out_of_memory_internal::out_of_memory_internal()
 {
     m_message = "Out of memory.";
 }
 
-system_object_limit_exceeded::system_object_limit_exceeded()
+system_object_limit_exceeded_internal::system_object_limit_exceeded_internal()
 {
     m_message = "System object limit exceeded.";
 }
@@ -64,7 +64,7 @@ invalid_object_id::invalid_object_id(common::gaia_id_t id)
     m_message = message.str();
 }
 
-object_still_referenced::object_still_referenced(
+object_still_referenced_internal::object_still_referenced_internal(
     common::gaia_id_t id, common::gaia_type_t object_type,
     common::gaia_id_t other_id, common::gaia_type_t other_type)
 {
@@ -76,21 +76,21 @@ object_still_referenced::object_still_referenced(
     m_message = message.str();
 }
 
-object_too_large::object_too_large(size_t total_len, uint16_t max_len)
+object_too_large_internal::object_too_large_internal(size_t total_len, uint16_t max_len)
 {
     std::stringstream message;
     message << "Object size " << total_len << " exceeds maximum size " << max_len << ".";
     m_message = message.str();
 }
 
-invalid_type::invalid_type(common::gaia_type_t type)
+invalid_type_internal::invalid_type_internal(common::gaia_type_t type)
 {
     std::stringstream message;
     message << "The type '" << type << "' does not exist in the catalog.";
     m_message = message.str();
 }
 
-invalid_type::invalid_type(common::gaia_id_t id, common::gaia_type_t type)
+invalid_type_internal::invalid_type_internal(common::gaia_id_t id, common::gaia_type_t type)
 {
     std::stringstream message;
     message
@@ -99,12 +99,12 @@ invalid_type::invalid_type(common::gaia_id_t id, common::gaia_type_t type)
     m_message = message.str();
 }
 
-session_limit_exceeded::session_limit_exceeded()
+session_limit_exceeded_internal::session_limit_exceeded_internal()
 {
     m_message = "Server session limit exceeded.";
 }
 
-invalid_reference_offset::invalid_reference_offset(
+invalid_reference_offset_internal::invalid_reference_offset_internal(
     gaia::common::gaia_type_t type, gaia::common::reference_offset_t offset)
 {
     std::stringstream message;
@@ -112,7 +112,7 @@ invalid_reference_offset::invalid_reference_offset(
     m_message = message.str();
 }
 
-invalid_relationship_type::invalid_relationship_type(
+invalid_relationship_type_internal::invalid_relationship_type_internal(
     gaia::common::reference_offset_t offset,
     gaia::common::gaia_type_t expected_type,
     gaia::common::gaia_type_t found_type)
@@ -124,7 +124,7 @@ invalid_relationship_type::invalid_relationship_type(
     m_message = message.str();
 }
 
-single_cardinality_violation::single_cardinality_violation(gaia::common::gaia_type_t type, gaia::common::reference_offset_t offset)
+single_cardinality_violation_internal::single_cardinality_violation_internal(gaia::common::gaia_type_t type, gaia::common::reference_offset_t offset)
 {
     std::stringstream message;
     message
@@ -133,7 +133,7 @@ single_cardinality_violation::single_cardinality_violation(gaia::common::gaia_ty
     m_message = message.str();
 }
 
-child_already_referenced::child_already_referenced(gaia::common::gaia_type_t child_type, gaia::common::reference_offset_t offset)
+child_already_referenced_internal::child_already_referenced_internal(gaia::common::gaia_type_t child_type, gaia::common::reference_offset_t offset)
 {
     std::stringstream message;
     message
@@ -142,7 +142,7 @@ child_already_referenced::child_already_referenced(gaia::common::gaia_type_t chi
     m_message = message.str();
 }
 
-invalid_child::invalid_child(
+invalid_child_internal::invalid_child_internal(
     gaia::common::gaia_type_t child_type,
     gaia::common::gaia_id_t child_id,
     gaia::common::gaia_type_t parent_type,
@@ -157,15 +157,20 @@ invalid_child::invalid_child(
     m_message = message.str();
 }
 
+memory_allocation_error_internal::memory_allocation_error_internal()
+{
+    m_message = "The Gaia database ran out of memory.";
+}
+
 namespace index
 {
 
-unique_constraint_violation::unique_constraint_violation(const char* error_message)
+unique_constraint_violation_internal::unique_constraint_violation_internal(const char* error_message)
 {
     m_message = error_message;
 }
 
-unique_constraint_violation::unique_constraint_violation(const char* error_table_name, const char* error_index_name)
+unique_constraint_violation_internal::unique_constraint_violation_internal(const char* error_table_name, const char* error_index_name)
 {
     std::stringstream message;
     message

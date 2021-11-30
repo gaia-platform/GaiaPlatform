@@ -6,10 +6,10 @@
 #include "gaia/direct_access/dac_base.hpp"
 
 #include "gaia/db/db.hpp"
-#include "gaia/exceptions.hpp"
 
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
+#include "gaia_internal/exceptions.hpp"
 
 using namespace gaia::db;
 using namespace std;
@@ -32,7 +32,7 @@ invalid_object_type::invalid_object_type(gaia_id_t id, gaia_type_t expected_type
     m_message = msg.str();
 }
 
-invalid_member::invalid_member(gaia_id_t id, gaia_type_t parent, const char* parent_type, gaia_type_t child, const char* child_name)
+invalid_member_internal::invalid_member_internal(gaia_id_t id, gaia_type_t parent, const char* parent_type, gaia_type_t child, const char* child_name)
 {
     stringstream msg;
     msg << "Attempting to remove record with Gaia type '" << child_name << "'('" << child << "') from parent '" << id
@@ -40,7 +40,7 @@ invalid_member::invalid_member(gaia_id_t id, gaia_type_t parent, const char* par
     m_message = msg.str();
 }
 
-inconsistent_list::inconsistent_list(gaia_id_t id, const char* parent_type, gaia_id_t child, const char* child_name)
+inconsistent_list_internal::inconsistent_list_internal(gaia_id_t id, const char* parent_type, gaia_id_t child, const char* child_name)
 {
     stringstream msg;
     msg << "List is inconsistent; child points to parent '" << id << "' of type '" << parent_type << "', but child '"
@@ -57,7 +57,7 @@ invalid_state::invalid_state(gaia_id_t parent_id, gaia_id_t child_id, const char
     m_message = msg.str();
 }
 
-already_inserted::already_inserted(gaia_id_t parent, const char* parent_type)
+already_inserted_internal::already_inserted_internal(gaia_id_t parent, const char* parent_type)
 {
     stringstream msg;
     msg << "The object being inserted is a member of this same list type but has a different owner. "

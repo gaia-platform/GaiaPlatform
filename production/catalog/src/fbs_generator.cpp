@@ -14,6 +14,7 @@
 
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/exceptions.hpp"
 
 using namespace gaia::common;
 
@@ -126,7 +127,7 @@ string generate_fbs(const string& db_name)
     gaia_id_t db_id = find_db_id(db_name);
     if (db_id == c_invalid_gaia_id)
     {
-        throw db_does_not_exist(db_name);
+        throw db_does_not_exist_internal(db_name);
     }
     string fbs = generate_fbs_namespace(db_name);
     gaia::db::begin_transaction();

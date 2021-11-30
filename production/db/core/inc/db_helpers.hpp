@@ -8,12 +8,12 @@
 #include <unistd.h>
 
 #include "gaia/db/db.hpp"
-#include "gaia/exceptions.hpp"
 
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
+#include "gaia_internal/exceptions.hpp"
 
 #include "chunk_manager.hpp"
 #include "db_internal_types.hpp"
@@ -50,7 +50,7 @@ inline gaia_locator_t allocate_locator()
 
     if (counters->last_locator >= c_max_locators)
     {
-        throw system_object_limit_exceeded();
+        throw system_object_limit_exceeded_internal();
     }
 
     return ++(counters->last_locator);
@@ -149,8 +149,7 @@ inline void allocate_object(
         memory_manager::chunk_offset_t new_chunk_offset = memory_manager->allocate_chunk();
         if (new_chunk_offset == memory_manager::c_invalid_chunk_offset)
         {
-            throw memory_allocation_error(
-                "Memory manager ran out of memory during call to allocate_chunk().");
+            throw memory_allocation_error_internal();
         }
 
         // Initialize the new chunk.

@@ -286,7 +286,7 @@ void client_t::begin_session(config::session_options_t session_options)
     }
     catch (const gaia::common::peer_disconnected&)
     {
-        throw session_limit_exceeded();
+        throw session_limit_exceeded_internal();
     }
 
     // Set up scope guards for the fds.
@@ -447,14 +447,14 @@ void client_t::rollback_transaction()
 void throw_exception_from_message(const char* error_message)
 {
     // Check the error message against the known set of pre_commit_validation_failure error messages.
-    if (strlen(error_message) > strlen(index::unique_constraint_violation::c_error_description)
+    if (strlen(error_message) > strlen(index::unique_constraint_violation_internal::c_error_description)
         && strncmp(
                error_message,
-               index::unique_constraint_violation::c_error_description,
-               strlen(index::unique_constraint_violation::c_error_description))
+               index::unique_constraint_violation_internal::c_error_description,
+               strlen(index::unique_constraint_violation_internal::c_error_description))
             == 0)
     {
-        throw index::unique_constraint_violation(error_message);
+        throw index::unique_constraint_violation_internal(error_message);
     }
     else
     {
@@ -521,11 +521,11 @@ void client_t::commit_transaction()
 
     // Throw an exception on server-side abort.
     // REVIEW: We could include the gaia_ids of conflicting objects in
-    // transaction_update_conflict
+    // transaction_update_conflict_internal
     // (https://gaiaplatform.atlassian.net/browse/GAIAPLAT-292).
     if (event == session_event_t::DECIDE_TXN_ABORT)
     {
-        throw transaction_update_conflict();
+        throw transaction_update_conflict_internal();
     }
     // Improving the communication of such errors to the client is tracked by:
     // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1232

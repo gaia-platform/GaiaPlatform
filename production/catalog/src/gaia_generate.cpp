@@ -5,6 +5,7 @@
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/exceptions.hpp"
 
 #include "dac_generator.hpp"
 
@@ -19,7 +20,7 @@ gaia_database_t find_database(const std::string& db_name)
 
     if (database.begin() == database.end())
     {
-        throw db_does_not_exist(db_name);
+        throw db_does_not_exist_internal(db_name);
     }
 
     return *database.begin();

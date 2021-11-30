@@ -5,9 +5,8 @@
 
 #pragma once
 
-#include "gaia/exceptions.hpp"
-
 #include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/exceptions.hpp"
 
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
@@ -27,7 +26,7 @@ public:
         id_index_t* id_index = get_id_index();
         if (locators == nullptr)
         {
-            throw no_open_transaction();
+            throw no_open_transaction_internal();
         }
 
         hash_node_t* node = id_index->hash_nodes + (id % c_hash_buckets);
@@ -45,7 +44,7 @@ public:
             {
                 if (locator_exists(node->locator.load()))
                 {
-                    throw duplicate_id(id);
+                    throw duplicate_id_internal(id);
                 }
                 else
                 {
@@ -82,7 +81,7 @@ public:
         id_index_t* id_index = get_id_index();
         if (locators == nullptr)
         {
-            throw no_open_transaction();
+            throw no_open_transaction_internal();
         }
 
         hash_node_t* node = id_index->hash_nodes + (id % c_hash_buckets);

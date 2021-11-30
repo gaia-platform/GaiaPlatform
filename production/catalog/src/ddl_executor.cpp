@@ -292,7 +292,7 @@ gaia_id_t ddl_executor_t::create_database(const string& name, bool throw_on_exis
         }
         else if (throw_on_exists)
         {
-            throw db_already_exists(name);
+            throw db_already_exists_internal(name);
         }
         else
         {
@@ -326,14 +326,14 @@ gaia_id_t ddl_executor_t::get_table_id(const std::string& db, const std::string&
     gaia_id_t db_id = find_db_id(db);
     if (db_id == c_invalid_gaia_id)
     {
-        throw db_does_not_exist(db);
+        throw db_does_not_exist_internal(db);
     }
 
     // TODO: switch to index for fast lookup.
     auto table_iter = gaia_database_t::get(db_id).gaia_tables().where(gaia_table_expr::name == table).begin();
     if (table_iter->gaia_id() == c_invalid_gaia_id)
     {
-        throw table_does_not_exist(get_full_table_name(db, table));
+        throw table_does_not_exist_internal(get_full_table_name(db, table));
     }
     else
     {
@@ -361,7 +361,7 @@ gaia_id_t ddl_executor_t::create_relationship(
         }
         else if (throw_on_exists)
         {
-            throw relationship_already_exists(name);
+            throw relationship_already_exists_internal(name);
         }
         else
         {
@@ -377,23 +377,23 @@ gaia_id_t ddl_executor_t::create_relationship(
 
     if (link1_src_table_id != link2_dest_table_id)
     {
-        throw relationship_tables_do_not_match(name, link1.from_table, link2.to_table);
+        throw relationship_tables_do_not_match_internal(name, link1.from_table, link2.to_table);
     }
 
     if (link1_dest_table_id != link2_src_table_id)
     {
-        throw relationship_tables_do_not_match(name, link1.to_table, link2.from_table);
+        throw relationship_tables_do_not_match_internal(name, link1.to_table, link2.from_table);
     }
 
     if (gaia_table_t::get(link1_src_table_id).database() != gaia_table_t::get(link1_dest_table_id).database())
     {
-        throw no_cross_db_relationship(name);
+        throw no_cross_db_relationship_internal(name);
     }
 
     if (link1.cardinality == relationship_cardinality_t::many
         && link2.cardinality == relationship_cardinality_t::many)
     {
-        throw many_to_many_not_supported(name);
+        throw many_to_many_not_supported_internal(name);
     }
 
     relationship_cardinality_t cardinality
@@ -452,14 +452,14 @@ gaia_id_t ddl_executor_t::create_relationship(
     {
         if (cardinality == relationship_cardinality_t::one)
         {
-            throw invalid_field_map(
+            throw invalid_field_map_internal(
                 "Defining a 1:1 relationship using value linked references (between table '"
                 + link1.from_table + "' and table '" + link1.to_table + "') is not supported.");
         }
 
         if (field_map->first.fields.size() != 1 || field_map->second.fields.size() != 1)
         {
-            throw invalid_field_map("Defining relationships using composite keys are not supported currently.");
+            throw invalid_field_map_internal("Defining relationships using composite keys are not supported currently.");
         }
         gaia_id_t first_table_id = get_table_id(in_context(field_map->first.database), field_map->first.table);
         gaia_id_t second_table_id = get_table_id(in_context(field_map->second.database), field_map->second.table);
@@ -477,7 +477,7 @@ gaia_id_t ddl_executor_t::create_relationship(
         }
         else
         {
-            throw invalid_field_map("The field's table(s) do not match the tables of the relationship");
+            throw invalid_field_map_internal("The field's table(s) do not match the tables of the relationship");
         }
 
         // Parent side fields must be unique.
@@ -486,7 +486,7 @@ gaia_id_t ddl_executor_t::create_relationship(
             auto field = gaia_field_t::get(field_id);
             if (!field.unique())
             {
-                throw invalid_field_map(
+                throw invalid_field_map_internal(
                     string("The field '") + field.name() + "' defined in table '" + field.table().name()
                     + "' is used to define a relationship and must be declared UNIQUE.");
             }
@@ -500,7 +500,7 @@ gaia_id_t ddl_executor_t::create_relationship(
                 auto field = gaia_field_t::get(field_id);
                 if (!field.unique())
                 {
-                    throw invalid_field_map(
+                    throw invalid_field_map_internal(
                         string("The field '") + field.name() + "' defined in the table '" + field.table().name()
                         + "' is used to define a 1:1 relationship and must be declared UNIQUE.");
                 }
@@ -580,7 +580,7 @@ void ddl_executor_t::drop_relationship(const std::string& name, bool throw_unles
     {
         if (throw_unless_exists)
         {
-            throw relationship_does_not_exist(name);
+            throw relationship_does_not_exist_internal(name);
         }
         return;
     }
@@ -618,7 +618,7 @@ void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_int
             auto relationship = gaia_relationship_t::get(relationship_id);
             if (relationship.child().gaia_id() != table_id)
             {
-                throw referential_integrity_violation::drop_referenced_table(
+                throw referential_integrity_violation_internal::drop_referenced_table(
                     table_record.name(),
                     relationship.child().name());
             }
@@ -629,7 +629,7 @@ void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_int
             auto relationship = gaia_relationship_t::get(relationship_id);
             if (relationship.parent().gaia_id() != table_id)
             {
-                throw referential_integrity_violation::drop_referenced_table(
+                throw referential_integrity_violation_internal::drop_referenced_table(
                     table_record.name(),
                     relationship.parent().name());
             }
@@ -681,7 +681,7 @@ void ddl_executor_t::drop_database(const string& name, bool throw_unless_exists)
     {
         if (throw_unless_exists)
         {
-            throw db_does_not_exist(name);
+            throw db_does_not_exist_internal(name);
         }
         return;
     }
@@ -706,7 +706,7 @@ void ddl_executor_t::drop_table(const string& db_name, const string& name, bool 
     {
         if (throw_unless_exists)
         {
-            throw db_does_not_exist(db_name);
+            throw db_does_not_exist_internal(db_name);
         }
         return;
     }
@@ -717,7 +717,7 @@ void ddl_executor_t::drop_table(const string& db_name, const string& name, bool 
     {
         if (throw_unless_exists)
         {
-            throw table_does_not_exist(name);
+            throw table_does_not_exist_internal(name);
         }
         return;
     }
@@ -729,7 +729,7 @@ void ddl_executor_t::validate_new_reference_offset(reference_offset_t reference_
 {
     if (reference_offset == c_invalid_reference_offset)
     {
-        throw max_reference_count_reached();
+        throw max_reference_count_reached_internal();
     }
 }
 
@@ -812,7 +812,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
     gaia_id_t db_id = find_db_id(in_context(db_name));
     if (db_id == c_invalid_gaia_id)
     {
-        throw db_does_not_exist(db_name);
+        throw db_does_not_exist_internal(db_name);
     }
 
     // TODO: switch to index for fast lookup.
@@ -825,7 +825,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
         }
         else if (throw_on_exists)
         {
-            throw table_already_exists(table_name);
+            throw table_already_exists_internal(table_name);
         }
         else
         {
@@ -858,7 +858,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
 
         if (field_names.find(field_name) != field_names.end())
         {
-            throw duplicate_field(field_name);
+            throw duplicate_field_internal(field_name);
         }
         field_names.insert(field_name);
     }
@@ -945,7 +945,7 @@ void ddl_executor_t::switch_db_context(const string& db_name)
 {
     if (!db_name.empty() && find_db_id(db_name) == c_invalid_gaia_id)
     {
-        throw db_does_not_exist(db_name);
+        throw db_does_not_exist_internal(db_name);
     }
 
     m_db_context = db_name;
@@ -967,11 +967,11 @@ std::vector<gaia_id_t> ddl_executor_t::find_table_field_ids(
     {
         if (table_fields.find(name) == table_fields.end())
         {
-            throw field_does_not_exist(name);
+            throw field_does_not_exist_internal(name);
         }
         if (field_name_set.find(name) != field_name_set.end())
         {
-            throw duplicate_field(name);
+            throw duplicate_field_internal(name);
         }
         else
         {
@@ -1006,7 +1006,7 @@ gaia_id_t ddl_executor_t::create_index(
             }
             else if (throw_on_exists)
             {
-                throw index_already_exists(index_name);
+                throw index_already_exists_internal(index_name);
             }
             else
             {
@@ -1051,7 +1051,7 @@ void ddl_executor_t::drop_index(const std::string& name, bool throw_unless_exist
     {
         if (throw_unless_exists)
         {
-            throw index_does_not_exist(name);
+            throw index_does_not_exist_internal(name);
         }
         return;
     }

@@ -655,7 +655,7 @@ void server_t::init_memory_manager(bool initializing)
         memory_manager::chunk_offset_t chunk_offset = s_memory_manager.allocate_chunk();
         if (chunk_offset == c_invalid_chunk_offset)
         {
-            throw memory_allocation_error("Memory manager ran out of memory during call to allocate_chunk().");
+            throw memory_allocation_error_internal();
         }
         s_chunk_manager.initialize(chunk_offset);
     }
@@ -1219,9 +1219,9 @@ void server_t::session_handler(int session_socket)
     // Reserve an index in the safe_ts array. If this fails (because all indexes
     // are currently claimed by sessions), then immediately close the socket, so
     // the client throws a `peer_disconnected` exception and rethrows a
-    // `session_limit_exceeded` exception.
+    // `session_limit_exceeded_internal` exception.
     // REVIEW: When we have a way to marshal exceptions to the client, we should
-    // directly ensure that `session_limit_exceeded` is thrown in this case.
+    // directly ensure that `session_limit_exceeded_internal` is thrown in this case.
     if (!reserve_safe_ts_index())
     {
         return;

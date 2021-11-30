@@ -9,6 +9,7 @@
 
 #include "gaia_internal/catalog/ddl_executor.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/exceptions.hpp"
 
 using namespace std;
 using namespace gaia::common;
@@ -18,64 +19,64 @@ namespace gaia
 namespace catalog
 {
 
-forbidden_system_db_operation::forbidden_system_db_operation(const std::string& name)
+forbidden_system_db_operation_internal::forbidden_system_db_operation_internal(const std::string& name)
 {
     m_message = "'" + name + "' is a system database. Operations on system databases are not allowed.";
 }
 
-db_already_exists::db_already_exists(const std::string& name)
+db_already_exists_internal::db_already_exists_internal(const std::string& name)
 {
     std::stringstream message;
     message << "A database with the name '" << name << "' already exists.";
     m_message = message.str();
 }
 
-db_does_not_exist::db_does_not_exist(const std::string& name)
+db_does_not_exist_internal::db_does_not_exist_internal(const std::string& name)
 {
     std::stringstream message;
     message << "The database '" << name << "' does not exist.";
     m_message = message.str();
 }
 
-table_already_exists::table_already_exists(const std::string& name)
+table_already_exists_internal::table_already_exists_internal(const std::string& name)
 {
     std::stringstream message;
     message << "A table with the name '" << name << "' already exists.";
     m_message = message.str();
 }
 
-table_does_not_exist::table_does_not_exist(const std::string& name)
+table_does_not_exist_internal::table_does_not_exist_internal(const std::string& name)
 {
     std::stringstream message;
     message << "The table '" << name << "' does not exist.";
     m_message = message.str();
 }
 
-duplicate_field::duplicate_field(const std::string& name)
+duplicate_field_internal::duplicate_field_internal(const std::string& name)
 {
     std::stringstream message;
     message << "The field '" << name << "' is specified more than once.";
     m_message = message.str();
 }
 
-field_does_not_exist::field_does_not_exist(const std::string& name)
+field_does_not_exist_internal::field_does_not_exist_internal(const std::string& name)
 {
     std::stringstream message;
     message << "The field '" << name << "' does not exist.";
     m_message = message.str();
 }
 
-max_reference_count_reached::max_reference_count_reached()
+max_reference_count_reached_internal::max_reference_count_reached_internal()
 {
     m_message = "Cannot add any more relationships because the maximum number of references has been reached!";
 }
 
-referential_integrity_violation::referential_integrity_violation(const std::string& message)
+referential_integrity_violation_internal::referential_integrity_violation_internal(const std::string& message)
 {
     m_message = message;
 }
 
-referential_integrity_violation referential_integrity_violation::drop_referenced_table(
+referential_integrity_violation_internal referential_integrity_violation_internal::drop_referenced_table(
     const std::string& referenced_table,
     const std::string& referencing_table)
 {
@@ -83,24 +84,24 @@ referential_integrity_violation referential_integrity_violation::drop_referenced
     message
         << "Cannot drop table '" << referenced_table
         << "' because it is referenced by table '" << referencing_table << "'.";
-    return referential_integrity_violation{message.str()};
+    return referential_integrity_violation_internal{message.str()};
 }
 
-relationship_already_exists::relationship_already_exists(const std::string& name)
+relationship_already_exists_internal::relationship_already_exists_internal(const std::string& name)
 {
     std::stringstream message;
     message << "A relationship with the name '" << name << "' already exists.";
     m_message = message.str();
 }
 
-relationship_does_not_exist::relationship_does_not_exist(const std::string& name)
+relationship_does_not_exist_internal::relationship_does_not_exist_internal(const std::string& name)
 {
     std::stringstream message;
     message << "The relationship '" << name << "' does not exist.";
     m_message = message.str();
 }
 
-no_cross_db_relationship::no_cross_db_relationship(const std::string& name)
+no_cross_db_relationship_internal::no_cross_db_relationship_internal(const std::string& name)
 {
     std::stringstream message;
     message << "'" + name
@@ -108,7 +109,7 @@ no_cross_db_relationship::no_cross_db_relationship(const std::string& name)
     m_message = message.str();
 }
 
-relationship_tables_do_not_match::relationship_tables_do_not_match(
+relationship_tables_do_not_match_internal::relationship_tables_do_not_match_internal(
     const std::string& relationship,
     const std::string& name1,
     const std::string& name2)
@@ -120,7 +121,7 @@ relationship_tables_do_not_match::relationship_tables_do_not_match(
     m_message = message.str();
 }
 
-many_to_many_not_supported::many_to_many_not_supported(const std::string& relationship)
+many_to_many_not_supported_internal::many_to_many_not_supported_internal(const std::string& relationship)
 {
     std::stringstream message;
     message << "'" + relationship
@@ -128,7 +129,7 @@ many_to_many_not_supported::many_to_many_not_supported(const std::string& relati
     m_message = message.str();
 }
 
-many_to_many_not_supported::many_to_many_not_supported(const std::string& table1, const std::string& table2)
+many_to_many_not_supported_internal::many_to_many_not_supported_internal(const std::string& table1, const std::string& table2)
 {
     std::stringstream message;
     message
@@ -137,26 +138,26 @@ many_to_many_not_supported::many_to_many_not_supported(const std::string& table1
     m_message = message.str();
 }
 
-index_already_exists::index_already_exists(const std::string& name)
+index_already_exists_internal::index_already_exists_internal(const std::string& name)
 {
     std::stringstream message;
     message << "The index '" << name << "' already exists.";
     m_message = message.str();
 }
 
-index_does_not_exist::index_does_not_exist(const std::string& name)
+index_does_not_exist_internal::index_does_not_exist_internal(const std::string& name)
 {
     std::stringstream message;
     message << "The index '" << name << "' does not exist.";
     m_message = message.str();
 }
 
-invalid_field_map::invalid_field_map(const std::string& message)
+invalid_field_map_internal::invalid_field_map_internal(const std::string& message)
 {
     m_message = message;
 }
 
-ambiguous_reference_definition::ambiguous_reference_definition(const std::string& table, const std::string& ref_name)
+ambiguous_reference_definition_internal::ambiguous_reference_definition_internal(const std::string& table, const std::string& ref_name)
 {
     std::stringstream message;
     message
@@ -165,7 +166,7 @@ ambiguous_reference_definition::ambiguous_reference_definition(const std::string
     m_message = message.str();
 }
 
-orphaned_reference_definition::orphaned_reference_definition(const std::string& table, const std::string& ref_name)
+orphaned_reference_definition_internal::orphaned_reference_definition_internal(const std::string& table, const std::string& ref_name)
 {
     std::stringstream message;
     message
@@ -174,13 +175,13 @@ orphaned_reference_definition::orphaned_reference_definition(const std::string& 
     m_message = message.str();
 }
 
-invalid_create_list::invalid_create_list(const std::string& message)
+invalid_create_list_internal::invalid_create_list_internal(const std::string& message)
 {
     m_message = "Invalid create statment in a list: ";
     m_message += message;
 }
 
-cannot_drop_table_with_data::cannot_drop_table_with_data(const std::string& name)
+cannot_drop_table_with_data_internal::cannot_drop_table_with_data_internal(const std::string& name)
 {
     std::stringstream message;
     message
@@ -193,7 +194,7 @@ inline void check_not_system_db(const string& name)
 {
     if (name == c_catalog_db_name || name == c_event_log_db_name)
     {
-        throw forbidden_system_db_operation(name);
+        throw forbidden_system_db_operation_internal(name);
     }
 }
 
