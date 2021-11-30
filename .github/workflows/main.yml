@@ -45,7 +45,7 @@ jobs:
           cd $GAIA_REPO/third_party/production/backward
           git clone -c advice.detachedHead=false --depth 1 --branch v1.5 https://github.com/bombela/backward-cpp.git
           rm -rf */.git
-          cd $GAIA_REPO/third_party/production/daemonize
+          cd $GAIA_REPO/third_party/production
           git clone -c advice.detachedHead=false --depth 1 --branch release-1.7.8 https://github.com/bmc/daemonize.git
           rm -rf */.git
           cd $GAIA_REPO/third_party/production/libexplain
@@ -102,7 +102,7 @@ jobs:
           sudo bash -c "make install"
           sudo bash -c "cd .."
           sudo bash -c "rm -rf *"
-      - name: $GAIA_REPO/third_party/production/daemonize
+      - name: $GAIA_REPO/third_party/production/postgresql
         run: |
           cd $GAIA_REPO/third_party/production/postgresql
           sudo bash -c "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -"
@@ -188,7 +188,7 @@ jobs:
           cd $GAIA_REPO/production
           sudo bash -c "cmake     --log-level=VERBOSE -Wno-dev     -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper     -DBUILD_GAIA_RELEASE=ON     -G \"Unix Makefiles\" $GAIA_REPO/production"
           sudo bash -c "LSAN_OPTIONS=detect_leaks=0     make -j$(nproc)"
-          sudo bash -c "cd $GAIA_REPO/production/db/core"
+          sudo bash -c "cd /build/production/db/core"
           sudo bash -c "make install"
       - name: Done
         run: |
