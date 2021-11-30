@@ -205,7 +205,7 @@ set(GAIA_DB_CORE_TEST_INCLUDES
 ###############################################
 # PyBind11 wrapper for database.
 ###############################################
-find_package(pybind11 REQUIRED)
+find_package(pybind11)
 
 if(Python3_FOUND AND pybind11_FOUND)
   pybind11_add_module(gaia_db_pybind src/db_pybind_wrapper.cpp)
