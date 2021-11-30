@@ -145,6 +145,7 @@ jobs:
           sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/pybind11
         run: |
+          /usr/bin/python3.8 -m pip install pytest
           cd $GAIA_REPO/third_party/production/pybind11
           sudo bash -c "cmake pybind11"
           sudo bash -c "make -j$(nproc)"
