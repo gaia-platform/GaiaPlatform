@@ -45,7 +45,7 @@ jobs:
           cd $GAIA_REPO/third_party/production/backward
           git clone -c advice.detachedHead=false --depth 1 --branch v1.5 https://github.com/bombela/backward-cpp.git
           rm -rf */.git
-          cd $GAIA_REPO/third_party/production
+          cd $GAIA_REPO/third_party/production/daemonize
           git clone -c advice.detachedHead=false --depth 1 --branch release-1.7.8 https://github.com/bmc/daemonize.git
           rm -rf */.git
           cd $GAIA_REPO/third_party/production/libexplain
@@ -96,11 +96,11 @@ jobs:
       - name: $GAIA_REPO/third_party/production/daemonize
         run: |
           cd $GAIA_REPO/third_party/production/daemonize
-          sudo bash -c "cd daemonize"
+          cd daemonize
           sudo bash -c "./configure"
           sudo bash -c "make -j$(nproc)"
           sudo bash -c "make install"
-          sudo bash -c "cd .."
+          cd ..
           sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/postgresql
         run: |
@@ -120,11 +120,11 @@ jobs:
       - name: $GAIA_REPO/third_party/production/liburing
         run: |
           cd $GAIA_REPO/third_party/production/liburing
-          sudo bash -c "cd liburing"
+          cd liburing
           sudo bash -c "./configure"
           sudo bash -c "make -j$(nproc)"
           sudo bash -c "make install"
-          sudo bash -c "cd .."
+          cd ..
           sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/backward
         run: |
@@ -137,11 +137,11 @@ jobs:
         run: |
           cd $GAIA_REPO/third_party/production/bison
           sudo bash -c "tar -zxvf bison-3.5.tar.gz"
-          sudo bash -c "cd bison-3.5"
+          cd bison-3.5
           sudo bash -c "./configure"
           sudo bash -c "make -j$(nproc)"
           sudo bash -c "make install"
-          sudo bash -c "cd .."
+          cd ..
           sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/pybind11
         run: |
@@ -153,19 +153,19 @@ jobs:
       - name: $GAIA_REPO/third_party/production/cpptoml
         run: |
           cd $GAIA_REPO/third_party/production/cpptoml
-          sudo bash -c "cd cpptoml"
+          cd cpptoml
           sudo bash -c "rm -fr build/"
           sudo bash -c "cmake -H. -Bbuild  -DCMAKE_BUILD_TYPE=Release                    -DCPPTOML_BUILD_EXAMPLES=OFF                    -DENABLE_LIBCXX=OFF"
           sudo bash -c "cmake --build build --target install"
-          sudo bash -c "cd .."
+          cd ..
           sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/tabulate
         run: |
           cd $GAIA_REPO/third_party/production/tabulate
-          sudo bash -c "cd tabulate"
+          cd tabulate
           sudo bash -c "cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release"
           sudo bash -c "cmake --build build --target install"
-          sudo bash -c "cd .."
+          cd ..
           sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/CPackDebHelper
         run: |
@@ -176,19 +176,19 @@ jobs:
       - name: $GAIA_REPO/third_party/production/libexplain
         run: |
           cd $GAIA_REPO/third_party/production/libexplain
-          sudo bash -c "cd libexplain"
+          cd libexplain
           sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
           sudo bash -c "CPPFLAGS='-fPIC' ./configure --prefix=/usr"
           sudo bash -c "make -j$(nproc)"
           sudo bash -c "make install"
-          sudo bash -c "cd .."
+          cd ..
           sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/production
         run: |
           cd $GAIA_REPO/production
           sudo bash -c "cmake     --log-level=VERBOSE -Wno-dev     -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper     -DBUILD_GAIA_RELEASE=ON     -G \"Unix Makefiles\" $GAIA_REPO/production"
           sudo bash -c "LSAN_OPTIONS=detect_leaks=0     make -j$(nproc)"
-          sudo bash -c "cd /build/production/db/core"
+          cd /build/production/db/core
           sudo bash -c "make install"
       - name: Done
         run: |
