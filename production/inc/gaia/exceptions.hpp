@@ -306,8 +306,6 @@ class system_object_limit_exceeded : public common::gaia_exception
  */
 class invalid_object_id : public common::gaia_exception
 {
-public:
-    explicit invalid_object_id(common::gaia_id_t id);
 };
 
 /**
@@ -432,12 +430,6 @@ namespace direct_access
 // Exception when get() argument does not match the class type.
 class invalid_object_type : public common::gaia_exception
 {
-public:
-    invalid_object_type(
-        common::gaia_id_t id,
-        common::gaia_type_t expected_type,
-        const char* expected_typename,
-        common::gaia_type_t actual_type);
 };
 
 // A child's parent pointer must match the parent record we have.
@@ -454,11 +446,6 @@ class inconsistent_list : public common::gaia_exception
 // the insert_row().
 class invalid_state : public common::gaia_exception
 {
-public:
-    invalid_state(
-        common::gaia_id_t parent_id,
-        common::gaia_id_t chile_id,
-        const char* child_type);
 };
 
 // An attempt has been made to insert a member that has already been inserted somewhere.

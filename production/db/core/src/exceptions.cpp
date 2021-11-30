@@ -57,7 +57,7 @@ system_object_limit_exceeded_internal::system_object_limit_exceeded_internal()
     m_message = "System object limit exceeded.";
 }
 
-invalid_object_id::invalid_object_id(common::gaia_id_t id)
+invalid_object_id_internal::invalid_object_id_internal(common::gaia_id_t id)
 {
     std::stringstream message;
     message << "Cannot find an object with ID '" << id << "'.";

@@ -227,6 +227,12 @@ public:
     system_object_limit_exceeded_internal();
 };
 
+class invalid_object_id_internal : public invalid_object_id
+{
+public:
+    explicit invalid_object_id_internal(common::gaia_id_t id);
+};
+
 class object_still_referenced_internal : public object_still_referenced
 {
 public:
@@ -325,6 +331,16 @@ public:
 namespace direct_access
 {
 
+class invalid_object_type_internal : public invalid_object_type
+{
+public:
+    invalid_object_type_internal(
+        common::gaia_id_t id,
+        common::gaia_type_t expected_type,
+        const char* expected_typename,
+        common::gaia_type_t actual_type);
+};
+
 class invalid_member_internal : public invalid_member
 {
 public:
@@ -344,6 +360,15 @@ public:
         const char* parent_type,
         common::gaia_id_t child,
         const char* child_name);
+};
+
+class invalid_state_internal : public invalid_state
+{
+public:
+    invalid_state_internal(
+        common::gaia_id_t parent_id,
+        common::gaia_id_t child_id,
+        const char* child_type);
 };
 
 class already_inserted_internal : public already_inserted

@@ -82,7 +82,7 @@ bool gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t firs
 
     if (!child_ptr)
     {
-        throw invalid_object_id(child_id);
+        throw invalid_object_id_internal(child_id);
     }
 
     if (relationship->parent_type != parent_type)
@@ -167,7 +167,7 @@ bool gaia_ptr_t::add_parent_reference(gaia_id_t parent_id, reference_offset_t pa
 
     if (!parent_ptr)
     {
-        throw invalid_object_id(parent_id);
+        throw invalid_object_id_internal(parent_id);
     }
 
     return parent_ptr.add_child_reference(id(), child_relationship->first_child_offset);
@@ -193,7 +193,7 @@ bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
 
     if (!child_ptr)
     {
-        throw invalid_object_id(child_id);
+        throw invalid_object_id_internal(child_id);
     }
 
     if (relationship->parent_type != parent_type)
@@ -320,7 +320,7 @@ bool gaia_ptr_t::update_parent_reference(
 
     if (!new_parent_ptr)
     {
-        throw invalid_object_id(new_parent_id);
+        throw invalid_object_id_internal(new_parent_id);
     }
 
     // TODO: this implementation will produce more garbage than necessary. Also, many of the RI methods

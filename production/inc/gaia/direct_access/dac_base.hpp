@@ -29,6 +29,20 @@ namespace direct_access
  */
 
 /**
+ * @brief For internal use only.
+ */
+void report_invalid_object_id(common::gaia_id_t id);
+void report_invalid_object_type(
+    common::gaia_id_t id,
+    common::gaia_type_t expected_type,
+    const char* expected_typename,
+    common::gaia_type_t actual_type);
+void report_invalid_state(
+    common::gaia_id_t parent_id,
+    common::gaia_id_t chile_id,
+    const char* child_type);
+
+/**
  * Used by iterator class to maintain state of an iteration.
  *
  * This is needed to ensure proper destruction of derived instances via the virtual destructor.
