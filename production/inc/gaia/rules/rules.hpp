@@ -254,14 +254,14 @@ public:
  * Initializes the rules engine.  Should only be called once
  * per process.
  *
- * @throw initialization_error_internal
+ * @throw initialization_error
  */
 void initialize_rules_engine();
 
 /**
  * Shutdown the rules engine.
  *
- * @throw initialization_error_internal
+ * @throw initialization_error
  */
 void shutdown_rules_engine();
 
@@ -275,9 +275,9 @@ void shutdown_rules_engine();
  * @param event_type read or write field event
  * @param fields the set of fields that will cause this rule to be fired if changed.
  * @param rule_binding caller-supplied rule information; this call will populate rule_name
- * @throw invalid_rule_binding_internal
- * @throw duplicate_rule_internal
- * @throw initialization_error_internal
+ * @throw invalid_rule_binding
+ * @throw duplicate_rule
+ * @throw initialization_error
  */
 void subscribe_rule(
     gaia::common::gaia_type_t gaia_type,
@@ -293,8 +293,8 @@ void subscribe_rule(
  * @param fields the set of columns to unsubscribe the rule from
  * @param rule_binding caller-supplied rule information
  * @return true if the rule was unsubscribed; false otherwise.
- * @throw invalid_rule_binding_internal
- * @throw initialization_error_internal
+ * @throw invalid_rule_binding
+ * @throw initialization_error
  */
 bool unsubscribe_rule(
     gaia::common::gaia_type_t gaia_type,
@@ -305,7 +305,7 @@ bool unsubscribe_rule(
 /**
  * Unsubscribes all rules that were subscribed from the system.  May be called
  * even if no rules have been subscribed.
- * @throw initialization_error_internal
+ * @throw initialization_error
  */
 void unsubscribe_rules();
 
@@ -320,7 +320,7 @@ void unsubscribe_rules();
  * @param field Filter by the field ordinal.
  * @param subscriptions Caller provided vector to hold the results.  This method will clear any existing
  *      entries before adding new ones.
- * @throw initialization_error_internal
+ * @throw initialization_error
  */
 void list_subscribed_rules(
     const char* ruleset_name,

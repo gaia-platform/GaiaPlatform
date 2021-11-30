@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "gaia/db/events.hpp"
 #include "gaia/rules/exceptions.hpp"
 
 namespace gaia

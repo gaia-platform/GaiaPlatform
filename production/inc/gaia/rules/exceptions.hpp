@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include "gaia/db/events.hpp"
 #include "gaia/exceptions.hpp"
 
 // Export all symbols declared in this file.
