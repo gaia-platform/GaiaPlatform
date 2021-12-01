@@ -74,12 +74,12 @@ struct index_record_t
     friend std::ostream& operator<<(std::ostream& os, const index_record_t& rec);
 };
 
-constexpr size_t c_index_record_packed_size(24);
+constexpr size_t c_index_record_packed_size{24};
 
 // We use this assert to check that the index record structure is packed optimally.
 static_assert(sizeof(index_record_t) == c_index_record_packed_size, "index_record_t size has changed unexpectedly!");
 
-// Flags for index record
+// Flags for index record.
 constexpr size_t c_mark_committed_shift{0};
 constexpr uint8_t c_mark_committed_mask{1 << c_mark_committed_shift};
 
