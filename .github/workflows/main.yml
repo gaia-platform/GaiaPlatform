@@ -142,30 +142,13 @@ jobs:
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
 
-      - name: pre-bison
-        run: |
-          cd $GAIA_REPO/third_party/production/bison
-          sha1sum bison-3.5.tar.gz > $GAIA_REPO/third_party/production/bison/hashfiles.txt
-      - uses: actions/cache@v2
-        id: cache-bison
-        with:
-          path: /home/runner/work/GaiaPlatform/GaiaPlatform/third-party/bison/
-          key: ${{ runner.os }}-bison-${{ hashFiles('third_party/production/bison/hashfiles.txt') }}
       - name: $GAIA_REPO/third_party/production/bison
-        env:
-          CACHE_HIT: ${{steps.cache-bison.outputs.cache-hit}}
         run: |
           cd $GAIA_REPO/third_party/production/bison
-        # echo "CACHE_HIT=$CACHE_HIT"
-        # if [[ "$CACHE_HIT" == 'true' ]]; then
-        #   echo "Using cached version of bison"
-        #   cd bison-3.5
-        # else
           sudo bash -c "tar -zxvf bison-3.5.tar.gz"
           cd bison-3.5
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
-        # fi
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
 
       # - name: $GAIA_REPO/third_party/production/pybind11
@@ -199,30 +182,13 @@ jobs:
           sudo bash -c "mkdir -p /usr/local/lib/cmake/CPackDebHelper"
           sudo bash -c "cp CPackDebHelper/cmake/*.cmake /usr/local/lib/cmake/CPackDebHelper/"
 
-      - name: pre-libexplain
-        run: |
-          cd $GAIA_REPO/third_party/production/libexplain
-          cd libexplain
-          find . -type f -print0  | xargs -0 sha1sum > $GAIA_REPO/third_party/production/libexplain/hashfiles.txt
-      - uses: actions/cache@v2
-        id: cache-libexplain
-        with:
-          path: /home/runner/work/GaiaPlatform/GaiaPlatform/third-party/libexplain/
-          key: ${{ runner.os }}-libexplain-${{ hashFiles('third_party/production/libexplain/hashfiles.txt') }}
       - name: $GAIA_REPO/third_party/production/libexplain
-        env:
-          CACHE_HIT: ${{steps.cache-libexplain.outputs.cache-hit}}
         run: |
           cd $GAIA_REPO/third_party/production/libexplain
           cd libexplain
-        # echo "CACHE_HIT=$CACHE_HIT"
-        # if [[ "$CACHE_HIT" == 'true' ]]; then
-        #   echo "Using cached version of libexplain"
-        # else
           sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure --prefix=/usr"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
-        # fi
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
 
   # - name: $GAIA_REPO/production
