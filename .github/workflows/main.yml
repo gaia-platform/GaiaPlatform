@@ -103,29 +103,12 @@ jobs:
           sudo bash -c "rm /etc/apt/sources.list.d/kitware.list >/dev/null"
           sudo bash -c "rm /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null"
 
-      - name: pre-daemonize
-        run: |
-          cd $GAIA_REPO/third_party/production/daemonize
-          cd daemonize
-          sha1sum ../gdev.cfg *.c *.h *.in install-sh > $GAIA_REPO/third_party/production/daemonize/hashfiles.txt
-      - uses: actions/cache@v2
-        id: cache-daemonize
-        with:
-          path: /home/runner/work/GaiaPlatform/GaiaPlatform/third-party/daemonize/
-          key: ${{ runner.os }}-daemonize-${{ hashFiles('third_party/production/daemonize/hashfiles.txt') }}
       - name: $GAIA_REPO/third_party/production/daemonize
-        env:
-          CACHE_HIT: ${{steps.cache-daemonize.outputs.cache-hit}}
         run: |
           cd $GAIA_REPO/third_party/production/daemonize
           cd daemonize
-        # echo "CACHE_HIT=$CACHE_HIT"
-        # if [[ "$CACHE_HIT" == 'true' ]]; then
-        #   echo "Using cached version of daemonize"
-        # else
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
-        # fi
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
 
       - name: $GAIA_REPO/third_party/production/postgresql
