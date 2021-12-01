@@ -33,7 +33,7 @@ std::optional<index_record_t> index_generator_t<T_structure>::operator()()
         index_record_t record = m_it->second;
         ++m_it;
 
-        if (is_marked_committed(record) || record.txn_id <= m_txn_id)
+        if (record.txn_id <= m_txn_id)
         {
             return record;
         }
