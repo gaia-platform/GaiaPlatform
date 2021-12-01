@@ -127,7 +127,9 @@ jobs:
       - name: pre-daemonize
         run: |
           cd $GAIA_REPO/third_party/production/daemonize
+          ls -la
           cd daemonize
+          ls -la
           sha1sum *.c *.h *.in Makefile > $GAIA_REPO/third_party/production/daemonize/hashfiles.txt
       - uses: actions/cache@v2
         id: cache-daemonize
