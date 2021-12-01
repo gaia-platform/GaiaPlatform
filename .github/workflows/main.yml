@@ -90,13 +90,13 @@ jobs:
           sudo update-alternatives --install "/usr/bin/clang-tidy" "clang-tidy" "/usr/bin/clang-tidy-10" 10
           sudo mkdir -p /var/lib/gaia/db
           sudo chmod -R 666 /var/lib/gaia/db
-      - uses: actions/cache@v2
-        id: cache-third-party
-        with:
-          path: /home/runner/work/GaiaPlatform/GaiaPlatform/third-party/  # what we cache: the folder
-          key: ${{ runner.os }}-third-party-${{ hashFiles('**') }}
-          restore-keys: |
-            ${{ runner.os }}-third-party-
+      # - uses: actions/cache@v2
+      #   id: cache-third-party
+      #   with:
+      #     path: /home/runner/work/GaiaPlatform/GaiaPlatform/third-party/  # what we cache: the folder
+      #     key: ${{ runner.os }}-third-party-${{ hashFiles('**') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-third-party-
       - uses: actions/cache@v2
         id: cache-build-directory
         with:
@@ -124,13 +124,20 @@ jobs:
           sudo bash -c "apt-get clean"
           sudo bash -c "rm /etc/apt/sources.list.d/kitware.list >/dev/null"
           sudo bash -c "rm /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null"
+      - uses: actions/cache@v2
+        id: cache-daemonize
+        with:
+          path: /home/runner/work/GaiaPlatform/GaiaPlatform/third-party/daemonize/
+          key: ${{ runner.os }}-daemonize-${{ hashFiles('**') }}
+          restore-keys: |
+            ${{ runner.os }}-daemonize-
       - name: $GAIA_REPO/third_party/production/daemonize
         run: |
           cd $GAIA_REPO/third_party/production/daemonize
           cd daemonize
           sudo bash -c "./configure"
-          sudo bash -c "VERBOSE=1 make -j$(nproc)"
-          sudo bash -c "VERBOSE=1 make install"
+          sudo bash -c "LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
+          sudo bash -c "LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
       # cd ..
       # sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/postgresql
@@ -153,16 +160,16 @@ jobs:
           cd $GAIA_REPO/third_party/production/liburing
           cd liburing
           sudo bash -c "./configure"
-          sudo bash -c "make -j$(nproc)"
-          sudo bash -c "make install"
+          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
+          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
       # cd ..
       # sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/backward
         run: |
           cd $GAIA_REPO/third_party/production/backward
           sudo bash -c "cmake backward-cpp"
-          sudo bash -c "VERBOSE=1 make -j$(nproc)"
-          sudo bash -c "VERBOSE=1 make install"
+          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
+          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
           fail
       # sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/bison
@@ -207,6 +214,13 @@ jobs:
           sudo bash -c "mkdir -p /usr/local/lib/cmake/CPackDebHelper"
           sudo bash -c "cp CPackDebHelper/cmake/*.cmake /usr/local/lib/cmake/CPackDebHelper/"
       # sudo bash -c "rm -rf *"
+      - uses: actions/cache@v2
+        id: cache-libexplain
+        with:
+          path: /home/runner/work/GaiaPlatform/GaiaPlatform/third-party/libexplain/
+          key: ${{ runner.os }}-libexplain-${{ hashFiles('**') }}
+          restore-keys: |
+            ${{ runner.os }}-libexplain-
       - name: $GAIA_REPO/third_party/production/libexplain
         run: |
           cd $GAIA_REPO/third_party/production/libexplain
@@ -217,13 +231,13 @@ jobs:
           sudo bash -c "make install"
       # cd ..
       # sudo bash -c "rm -rf *"
-      - name: $GAIA_REPO/production
-        run: |
-          sudo bash -c "cmake     --log-level=VERBOSE -Wno-dev     -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper     -DBUILD_GAIA_RELEASE=ON  -DCXX=$CXX -DCC=$CC  -G \"Unix Makefiles\" $GAIA_REPO/production"
-          sudo bash -c "cat CMakeCache.txt"
-          sudo bash -c "LSAN_OPTIONS=detect_leaks=0 VERBOSE=1     make -j$(nproc)"
-          cd /build/production/db/core
-          sudo bash -c "make install"
+    # - name: $GAIA_REPO/production
+    #   run: |
+    #     sudo bash -c "cmake     --log-level=VERBOSE -Wno-dev     -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper     -DBUILD_GAIA_RELEASE=ON  -DCXX=$CXX -DCC=$CC  -G \"Unix Makefiles\" $GAIA_REPO/production"
+    #     sudo bash -c "cat CMakeCache.txt"
+    #     sudo bash -c "LSAN_OPTIONS=detect_leaks=0 VERBOSE=1     make -j$(nproc)"
+    #     cd /build/production/db/core
+    #     sudo bash -c "make install"
       - name: Done
         run: |
           echo "Done"
