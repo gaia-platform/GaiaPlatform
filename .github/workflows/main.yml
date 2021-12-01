@@ -84,8 +84,8 @@ jobs:
       - name: blah
         run: |
           ls -la /usr/bin/c++
+          ls -la /etc/alternatives/c++
           env
-          fail
       - name: $GAIA_REPO/third_party/production/cmake
         run: |
           cd $GAIA_REPO/third_party/production/cmake
@@ -191,6 +191,7 @@ jobs:
       - name: $GAIA_REPO/production
         run: |
           sudo bash -c "cmake     --log-level=VERBOSE -Wno-dev     -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper     -DBUILD_GAIA_RELEASE=ON     -G \"Unix Makefiles\" $GAIA_REPO/production"
+          sudo bash -c "cat CMakeCache.txt"
           sudo bash -c "LSAN_OPTIONS=detect_leaks=0     make VERBOSE=1 -j$(nproc)"
           cd /build/production/db/core
           sudo bash -c "make install"
