@@ -168,7 +168,7 @@ void update_index_entry(
 
             ASSERT_PRECONDITION(
                 is_marked_committed(record) || transactions::txn_metadata_t::is_begin_ts(begin_ts),
-                "Transaction id in index key entry is not frozen or a begin timestamp!");
+                "Transaction id in index key entry is not marked committed or a begin timestamp!");
 
             // Index entries made by rolled back transactions or aborted transactions can be ignored,
             // We can also remove them, because we are already holding a lock.

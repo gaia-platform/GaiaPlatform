@@ -2521,7 +2521,7 @@ void server_t::truncate_txn_table()
             return;
         }
 
-        // Freeze any index entries before they are truncated.
+        // Mark any index entries committed before they are truncated.
         index::index_builder_t::mark_index_entries_committed(new_pre_truncate_watermark);
     }
 }
