@@ -72,7 +72,7 @@ public:
     // Index structure maintenance.
     void insert_index_entry(index_key_t&& key, index_record_t record);
     void remove_index_entry_with_offsets(const std::unordered_set<gaia_offset_t>& offsets);
-    void mark_index_entries_committed(gaia_txn_id_t txn_id);
+    void mark_entries_committed(gaia_txn_id_t txn_id);
 
     // Clear index structure.
     void clear() override;

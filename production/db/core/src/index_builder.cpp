@@ -478,7 +478,7 @@ template <class T_index>
 void mark_index_entries_helper(base_index_t* base_index, gaia_txn_id_t txn_id)
 {
     auto index = static_cast<T_index*>(base_index);
-    index->mark_index_entries_committed(txn_id);
+    index->mark_entries_committed(txn_id);
 }
 
 void index_builder_t::mark_index_entries_committed(gaia_txn_id_t txn_id)
