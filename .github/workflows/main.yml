@@ -124,17 +124,25 @@ jobs:
           sudo bash -c "apt-get clean"
           sudo bash -c "rm /etc/apt/sources.list.d/kitware.list >/dev/null"
           sudo bash -c "rm /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null"
+      - name: pre-daemonize
+        run: |
+          cd $GAIA_REPO/third_party/production/daemonize
+          cd daemonize
+          sha1sum *.c *.h *.in Makefile > $GAIA_REPO/third_party/production/daemonize/hashfiles.txt
       - uses: actions/cache@v2
         id: cache-daemonize
         with:
           path: /home/runner/work/GaiaPlatform/GaiaPlatform/third-party/daemonize/
-          key: ${{ runner.os }}-daemonize-
+          key: ${{ runner.os }}-daemonize-${{ hashFiles('third_party/production/daemonize/hashfiles.txt') }}
           restore-keys: |
             ${{ runner.os }}-daemonize-
       - name: $GAIA_REPO/third_party/production/daemonize
+        env:
+          CACHE_HIT: ${{steps.cache-boost.outputs.cache-hit}}
         run: |
           cd $GAIA_REPO/third_party/production/daemonize
           cd daemonize
+          echo "$CACHE_HIT"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
@@ -144,6 +152,13 @@ jobs:
       - name: $GAIA_REPO/third_party/production/postgresql
         run: |
           cd $GAIA_REPO/third_party/production/postgresql
+
+          echo "--"
+          export
+          echo "--"
+          env
+          echo "--"
+
           sudo bash -c "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -"
           sudo bash -c "echo \"deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main\" | tee /etc/apt/sources.list.d/pgdg.list"
           sudo bash -c "apt-get update -y"
@@ -156,6 +171,16 @@ jobs:
           sudo bash -c "cp -p -R /etc/ssl/private /etc/postgresql/ssl"
           sudo bash -c "sed -i \"s/\/etc\/ssl\/private/\/etc\/postgresql\/ssl\/private/g\" /etc/postgresql/12/main/postgresql.conf"
           sudo bash -c "sed -i '/^local/ s/peer/trust/' /etc/postgresql/12/main/pg_hba.conf"
+
+          echo "--"
+          export
+          echo "--"
+          env
+          echo "--"
+          ls -la usr/include/postgresql/12/server/postgres.h
+          echo "--"
+          ls -la usr/include/postgresql/12/server/
+          echo "--"
       - name: $GAIA_REPO/third_party/production/liburing
         run: |
           cd $GAIA_REPO/third_party/production/liburing
@@ -180,6 +205,10 @@ jobs:
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
+          ls -la usr/include/postgresql/12/server/postgres.h
+          echo "--"
+          ls -la usr/include/postgresql/12/server/
+          fail
       # cd ..
       # sudo bash -c "rm -rf *"
       # - name: $GAIA_REPO/third_party/production/pybind11
