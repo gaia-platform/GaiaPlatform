@@ -119,19 +119,26 @@ jobs:
           key: ${{ runner.os }}-daemonize-${{ hashFiles('third_party/production/daemonize/hashfiles.txt') }}
       - name: $GAIA_REPO/third_party/production/daemonize
         env:
-          CACHE_HIT: ${{steps.cache-boost.outputs.cache-hit}}
+          CACHE_HIT: ${{steps.cache-daemonize.outputs.cache-hit}}
         run: |
           cd $GAIA_REPO/third_party/production/daemonize
           cd daemonize
-          echo "$CACHE_HIT"
-          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure"
-          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
-          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
+          echo "CACHE_HIT=$CACHE_HIT"
+          if [[ "$CACHE_HIT" == 'true' ]]; then
+            echo "Using cached version of daemonize"
+          else
+            sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure"
+            sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
+            sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
+          fi
 
       # cd ..
       # sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/postgresql
         run: |
+
+          fail
+
           cd $GAIA_REPO/third_party/production/postgresql
 
           echo "--"
