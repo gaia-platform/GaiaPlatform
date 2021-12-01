@@ -41,13 +41,13 @@ void index_t<T_structure, T_iterator>::remove_index_entry_with_offsets(const std
 template <typename T_structure, typename T_iterator>
 void index_t<T_structure, T_iterator>::mark_entries_committed(gaia_txn_id_t txn_id)
 {
-    std::lock_guard lock(m_index_lock);
     for (auto it = m_data.begin(); it != m_data.end(); ++it)
     {
         auto& record = it->second;
 
         if (record.txn_id <= txn_id)
         {
+            std::lock_guard lock(m_index_lock);
             mark_committed(record);
         }
     }

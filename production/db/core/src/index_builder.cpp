@@ -195,6 +195,12 @@ void update_index_entry(
                 = is_marked_committed(it_start->second)
                 || (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_committed(commit_ts));
 
+            // Opportunistically mark a record as committed to skip metadata lookup next time.
+            if (is_committed_operation && !is_marked_committed(it_start->second))
+            {
+                mark_committed(it_start->second);
+            }
+
             if (it_start->second.operation == index_record_operation_t::remove)
             {
                 // We ignore uncommitted removals by other transactions,
@@ -485,14 +491,18 @@ void index_builder_t::mark_index_entries_committed(gaia_txn_id_t txn_id)
 {
     for (auto it : *get_indexes())
     {
-        switch (it.second->type())
+        // Optimization: only mark index entries committed for UNIQUE indexes, as we only look up the flags on that path.
+        if (it.second->is_unique())
         {
-        case catalog::index_type_t::range:
-            mark_index_entries_helper<range_index_t>(it.second.get(), txn_id);
-            break;
-        case catalog::index_type_t::hash:
-            mark_index_entries_helper<hash_index_t>(it.second.get(), txn_id);
-            break;
+            switch (it.second->type())
+            {
+            case catalog::index_type_t::range:
+                mark_index_entries_helper<range_index_t>(it.second.get(), txn_id);
+                break;
+            case catalog::index_type_t::hash:
+                mark_index_entries_helper<hash_index_t>(it.second.get(), txn_id);
+                break;
+            }
         }
     }
 }
