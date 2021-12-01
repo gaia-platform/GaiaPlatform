@@ -79,6 +79,7 @@ jobs:
           cd $GAIA_REPO/third_party/production/cmake
           sudo update-alternatives --install "/usr/bin/clang" "clang" "/usr/bin/clang-10" 10
           sudo update-alternatives --install "/usr/bin/clang++" "clang++" "/usr/bin/clang++-10" 10
+          sudo update-alternatives --install "/usr/bin/c++" "c++" "/usr/bin/clang++-10" 50
           sudo update-alternatives --install "/usr/bin/ld.lld" "ld.lld" "/usr/bin/ld.lld-10" 10
           cd $GAIA_REPO/production
           sudo update-alternatives --install "/usr/bin/clang-format" "clang-format" "/usr/bin/clang-format-10" 10
