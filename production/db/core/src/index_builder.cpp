@@ -164,16 +164,16 @@ void update_index_entry(
         {
             gaia_txn_id_t begin_ts = it_start->second.txn_id;
             gaia_txn_id_t commit_ts
-                = (is_marked_committed(record)) ? c_invalid_gaia_txn_id : transactions::txn_metadata_t::get_commit_ts_from_begin_ts(begin_ts);
+                = (is_marked_committed(it_start->second)) ? c_invalid_gaia_txn_id : transactions::txn_metadata_t::get_commit_ts_from_begin_ts(begin_ts);
 
             ASSERT_PRECONDITION(
-                is_marked_committed(record) || transactions::txn_metadata_t::is_begin_ts(begin_ts),
+                is_marked_committed(it_start->second) || transactions::txn_metadata_t::is_begin_ts(begin_ts),
                 "Transaction id in index key entry is not marked committed or a begin timestamp!");
 
             // Index entries made by rolled back transactions or aborted transactions can be ignored,
             // We can also remove them, because we are already holding a lock.
             bool is_aborted_operation
-                = !is_marked_committed(record)
+                = !is_marked_committed(it_start->second)
                 && commit_ts != c_invalid_gaia_txn_id
                 && transactions::txn_metadata_t::is_txn_aborted(commit_ts);
 
@@ -192,7 +192,7 @@ void update_index_entry(
             // it would allow us to perform a duplicate insertion.
             bool is_our_operation = (begin_ts == record.txn_id);
             bool is_committed_operation
-                = is_marked_committed(record)
+                = is_marked_committed(it_start->second)
                 || (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_committed(commit_ts));
 
             if (it_start->second.operation == index_record_operation_t::remove)
