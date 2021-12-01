@@ -81,6 +81,10 @@ jobs:
           sudo update-alternatives --install "/usr/bin/clang-tidy" "clang-tidy" "/usr/bin/clang-tidy-10" 10
           sudo mkdir -p /var/lib/gaia/db
           sudo chmod -R 666 /var/lib/gaia/db
+          update-alternatives -query clang
+          update-alternatives -query clang++
+          update-alternatives -query cc
+          update-alternatives -query c++
       - name: blah
         run: |
           echo "--/usr/bin/c..."
@@ -136,7 +140,7 @@ jobs:
       - name: $GAIA_REPO/third_party/production/backward
         run: |
           cd $GAIA_REPO/third_party/production/backward
-          sudo bash -c "cmake -DCXX=$CXX -DCC=$CC backward-cpp"
+          sudo bash -c "cmake backward-cpp"
           sudo bash -c "make -j$(nproc)"
           sudo bash -c "make install"
           fail
