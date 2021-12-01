@@ -81,10 +81,10 @@ jobs:
           sudo update-alternatives --install "/usr/bin/clang-tidy" "clang-tidy" "/usr/bin/clang-tidy-10" 10
           sudo mkdir -p /var/lib/gaia/db
           sudo chmod -R 666 /var/lib/gaia/db
-          update-alternatives -query clang
-          update-alternatives -query clang++
-          update-alternatives -query cc
-          update-alternatives -query c++
+          update-alternatives --query clang
+          update-alternatives --query clang++
+          update-alternatives --query cc
+          update-alternatives --query c++
       - name: blah
         run: |
           echo "--/usr/bin/c..."
