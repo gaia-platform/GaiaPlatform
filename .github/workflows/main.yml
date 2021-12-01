@@ -202,10 +202,8 @@ jobs:
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
-          ls -la usr/include/postgresql/12/server/postgres.h
           echo "--"
-          ls -la usr/include/postgresql/12/server/
-          fail
+          ls -la /usr/include/postgresql/12/server/
       # cd ..
       # sudo bash -c "rm -rf *"
       # - name: $GAIA_REPO/third_party/production/pybind11
