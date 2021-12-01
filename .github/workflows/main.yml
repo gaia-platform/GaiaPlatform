@@ -197,7 +197,7 @@ jobs:
         run: |
           echo "CXX=$CXX"
           echo "CMAKE_CXX_COMPILER=$CMAKE_CXX_COMPILER"
-          sudo bash -c "cmake     --log-level=VERBOSE -Wno-dev     -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper     -DBUILD_GAIA_RELEASE=ON     -G \"Unix Makefiles\" $GAIA_REPO/production"
+          sudo bash -c "cmake     --log-level=VERBOSE -Wno-dev     -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper     -DBUILD_GAIA_RELEASE=ON  -DCXX=$CXX -DCC=$CC  -G \"Unix Makefiles\" $GAIA_REPO/production"
           echo "CXX=$CXX"
           echo "CMAKE_CXX_COMPILER=$CMAKE_CXX_COMPILER"
           sudo bash -c "cat CMakeCache.txt"
