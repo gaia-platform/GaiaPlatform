@@ -127,17 +127,13 @@ jobs:
       - name: pre-daemonize
         run: |
           cd $GAIA_REPO/third_party/production/daemonize
-          ls -la
           cd daemonize
-          ls -la
-          sha1sum *.c *.h *.in Makefile > $GAIA_REPO/third_party/production/daemonize/hashfiles.txt
+          sha1sum ../gdev.cfg *.c *.h *.in install-sh > $GAIA_REPO/third_party/production/daemonize/hashfiles.txt
       - uses: actions/cache@v2
         id: cache-daemonize
         with:
           path: /home/runner/work/GaiaPlatform/GaiaPlatform/third-party/daemonize/
           key: ${{ runner.os }}-daemonize-${{ hashFiles('third_party/production/daemonize/hashfiles.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-daemonize-
       - name: $GAIA_REPO/third_party/production/daemonize
         env:
           CACHE_HIT: ${{steps.cache-boost.outputs.cache-hit}}
