@@ -83,6 +83,7 @@ jobs:
           sudo chmod -R 666 /var/lib/gaia/db
       - name: blah
         run: |
+          ls -la /usr/bin/c++
           env
           fail
       - name: $GAIA_REPO/third_party/production/cmake
