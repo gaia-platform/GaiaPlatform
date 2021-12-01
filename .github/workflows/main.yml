@@ -90,8 +90,9 @@ jobs:
           sudo update-alternatives --install "/usr/bin/clang-tidy" "clang-tidy" "/usr/bin/clang-tidy-10" 10
           sudo mkdir -p /var/lib/gaia/db
           sudo chmod -R 666 /var/lib/gaia/db
-      # - name: blah
-      #   run: |
+      - name: blah
+        run: |
+          echo "nproc = $(nproc)"
       #     echo "--/usr/bin/c..."
       #     ls -la /usr/bin/c*
       #     echo "--/usr/bin/c++"
@@ -146,8 +147,9 @@ jobs:
         run: |
           cd $GAIA_REPO/third_party/production/backward
           sudo bash -c "cmake backward-cpp"
-          sudo bash -c "make -j$(nproc)"
-          sudo bash -c "make install"
+          sudo bash -c "VERBOSE=1 make -j$(nproc)"
+          sudo bash -c "VERBOSE=1 make install"
+          fail
       # sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/bison
         run: |
@@ -205,7 +207,7 @@ jobs:
         run: |
           sudo bash -c "cmake     --log-level=VERBOSE -Wno-dev     -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper     -DBUILD_GAIA_RELEASE=ON  -DCXX=$CXX -DCC=$CC  -G \"Unix Makefiles\" $GAIA_REPO/production"
           sudo bash -c "cat CMakeCache.txt"
-          sudo bash -c "LSAN_OPTIONS=detect_leaks=0     make VERBOSE=1 -j$(nproc)"
+          sudo bash -c "LSAN_OPTIONS=detect_leaks=0 VERBOSE=1     make -j$(nproc)"
           cd /build/production/db/core
           sudo bash -c "make install"
       - name: Done
