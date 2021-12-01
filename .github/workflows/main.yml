@@ -162,8 +162,7 @@ jobs:
       - name: pre-bison
         run: |
           cd $GAIA_REPO/third_party/production/bison
-          cd daemonize
-          sha1sum tar -zxvf bison-3.5.tar.gz > $GAIA_REPO/third_party/production/bison/hashfiles.txt
+          sha1sum bison-3.5.tar.gz > $GAIA_REPO/third_party/production/bison/hashfiles.txt
       - uses: actions/cache@v2
         id: cache-bison
         with:
