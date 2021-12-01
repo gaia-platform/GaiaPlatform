@@ -175,6 +175,7 @@ jobs:
           echo "--"
           env
           echo "--"
+          echo "--"
           ls -la /usr/include/postgresql/12/server/
           echo "--"
       - name: $GAIA_REPO/third_party/production/liburing
