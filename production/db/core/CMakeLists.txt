@@ -13,16 +13,13 @@ set(GAIA_DB_CORE_PUBLIC_INCLUDES
 message(VERBOSE "GAIA_DB_CORE_PUBLIC_INCLUDES=${GAIA_DB_CORE_PUBLIC_INCLUDES}")
 
 set(GAIA_DB_CORE_PRIVATE_INCLUDES
-  "${GAIA_DB_INC}/core"
-  "${GAIA_DB_INC}/core/inc"
-  "${GAIA_DB_INC}/inc/memory_manager"
-  "${GAIA_REPO}/production/db/inc/memory_manager"
-  "${GAIA_DB_INC}/payload_types"
   "${GAIA_DB_INC}/index"
+  "${GAIA_DB_INC}/memory_manager"
+  "${GAIA_DB_INC}/payload_types"
+  "${GAIA_DB_INC}/query_processor"
   "${ROCKSDB_INC}"
   "${ROCKSDB_UTIL}"
   "${PROJECT_SOURCE_DIR}/inc"
-  "${GAIA_DB_INC}/query_processor"
   "${GAIA_SPDLOG_INC}"
 )
 
@@ -76,7 +73,7 @@ target_link_libraries(gaia_storage PRIVATE gaia_common)
 add_library(gaia_db_client STATIC
   src/catalog_core.cpp
   src/exceptions.cpp
-  src/gaia_db.cpp
+  src/db_client_api.cpp
   src/gaia_ptr.cpp
   src/gaia_ptr_client.cpp
   src/payload_diff.cpp
@@ -108,7 +105,7 @@ target_link_libraries(gaia_db_client PUBLIC gaia_common)
 target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager gaia_index gaia_qp dac_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
 
 add_library(rocks_wrapper STATIC
-  src/rdb_internal.cpp
+  src/rdb_wrapper.cpp
   src/rdb_object_converter.cpp
   src/persistent_store_manager.cpp)
 configure_gaia_target(rocks_wrapper)

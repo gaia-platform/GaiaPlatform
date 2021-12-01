@@ -10,7 +10,7 @@
 #include "gaia/exceptions.hpp"
 
 #include "gaia_internal/common/debug_logger.hpp"
-#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/logger.hpp"
 
 using namespace std;
 

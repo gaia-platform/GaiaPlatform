@@ -17,15 +17,15 @@ namespace gaia
 namespace db
 {
 
-class rdb_internal_t
+class rdb_wrapper_t
 {
 public:
-    rdb_internal_t(std::string dir, const rocksdb::WriteOptions& write_opts, rocksdb::TransactionDBOptions txn_opts)
+    rdb_wrapper_t(std::string dir, const rocksdb::WriteOptions& write_opts, rocksdb::TransactionDBOptions txn_opts)
         : m_txn_db(nullptr), m_data_dir(std::move(dir)), m_write_options(write_opts), m_txn_options(std::move(txn_opts))
     {
     }
 
-    ~rdb_internal_t()
+    ~rdb_wrapper_t()
     {
         close();
     }
