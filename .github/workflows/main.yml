@@ -90,13 +90,6 @@ jobs:
           sudo update-alternatives --install "/usr/bin/clang-tidy" "clang-tidy" "/usr/bin/clang-tidy-10" 10
           sudo mkdir -p /var/lib/gaia/db
           sudo chmod -R 666 /var/lib/gaia/db
-      # - uses: actions/cache@v2
-      #   id: cache-third-party
-      #   with:
-      #     path: /home/runner/work/GaiaPlatform/GaiaPlatform/third-party/  # what we cache: the folder
-      #     key: ${{ runner.os }}-third-party-${{ hashFiles('**') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-third-party-
       - uses: actions/cache@v2
         id: cache-build-directory
         with:
@@ -104,16 +97,6 @@ jobs:
           key: ${{ runner.os }}-build-${{ hashFiles('**') }}
           restore-keys: |
             ${{ runner.os }}-build-
-      - name: blah
-        run: |
-          echo "nproc = $(nproc)"
-      #     echo "--/usr/bin/c..."
-      #     ls -la /usr/bin/c*
-      #     echo "--/usr/bin/c++"
-      #     ls -la /usr/bin/c++
-      #     echo "--/etc/alternatives/c.."
-      #     ls -la /etc/alternatives/c*
-      #     env
       - name: $GAIA_REPO/third_party/production/cmake
         run: |
           cd $GAIA_REPO/third_party/production/cmake
