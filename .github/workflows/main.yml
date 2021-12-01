@@ -90,7 +90,6 @@ jobs:
           echo "--/etc/alternatives/c.."
           ls -la /etc/alternatives/c*
           env
-          fail
       - name: $GAIA_REPO/third_party/production/cmake
         run: |
           cd $GAIA_REPO/third_party/production/cmake
@@ -137,9 +136,10 @@ jobs:
       - name: $GAIA_REPO/third_party/production/backward
         run: |
           cd $GAIA_REPO/third_party/production/backward
-          sudo bash -c "cmake backward-cpp"
+          sudo bash -c "cmake -DCXX=$CXX -DCC=$CC backward-cpp"
           sudo bash -c "make -j$(nproc)"
           sudo bash -c "make install"
+          fail
       # sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/bison
         run: |
