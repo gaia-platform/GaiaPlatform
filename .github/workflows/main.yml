@@ -108,37 +108,37 @@ jobs:
           sudo bash -c "apt-get clean"
           sudo bash -c "rm /etc/apt/sources.list.d/kitware.list >/dev/null"
           sudo bash -c "rm /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null"
-      - name: $GAIA_REPO/third_party/production/daemonize
-        run: |
-          cd $GAIA_REPO/third_party/production/daemonize
-          cd daemonize
-          sudo bash -c "./configure"
-          sudo bash -c "make -j$(nproc)"
-          sudo bash -c "make install"
+    # - name: $GAIA_REPO/third_party/production/daemonize
+    #   run: |
+    #     cd $GAIA_REPO/third_party/production/daemonize
+    #     cd daemonize
+    #     sudo bash -c "./configure"
+    #     sudo bash -c "make -j$(nproc)"
+    #     sudo bash -c "make install"
       # cd ..
       # sudo bash -c "rm -rf *"
-      - name: $GAIA_REPO/third_party/production/postgresql
-        run: |
-          cd $GAIA_REPO/third_party/production/postgresql
-          sudo bash -c "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -"
-          sudo bash -c "echo \"deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main\" | tee /etc/apt/sources.list.d/pgdg.list"
-          sudo bash -c "apt-get update -y"
-          sudo bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y     postgresql-12     postgresql-12-dbgsym     postgresql-client-12     postgresql-client-12-dbgsym     postgresql-contrib-12     postgresql-server-dev-12"
-          sudo bash -c "apt-get clean"
-          sudo bash -c "rm /etc/apt/sources.list.d/pgdg.list"
-          sudo bash -c "python3 -m pip install psycopg2"
-          sudo bash -c "locale-gen en_US.UTF-8"
-          sudo bash -c "mkdir -p /etc/postgresql/ssl"
-          sudo bash -c "cp -p -R /etc/ssl/private /etc/postgresql/ssl"
-          sudo bash -c "sed -i \"s/\/etc\/ssl\/private/\/etc\/postgresql\/ssl\/private/g\" /etc/postgresql/12/main/postgresql.conf"
-          sudo bash -c "sed -i '/^local/ s/peer/trust/' /etc/postgresql/12/main/pg_hba.conf"
-      - name: $GAIA_REPO/third_party/production/liburing
-        run: |
-          cd $GAIA_REPO/third_party/production/liburing
-          cd liburing
-          sudo bash -c "./configure"
-          sudo bash -c "make -j$(nproc)"
-          sudo bash -c "make install"
+    # - name: $GAIA_REPO/third_party/production/postgresql
+    #   run: |
+    #     cd $GAIA_REPO/third_party/production/postgresql
+    #     sudo bash -c "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -"
+    #     sudo bash -c "echo \"deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main\" | tee /etc/apt/sources.list.d/pgdg.list"
+    #     sudo bash -c "apt-get update -y"
+    #     sudo bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y     postgresql-12     postgresql-12-dbgsym     postgresql-client-12     postgresql-client-12-dbgsym     postgresql-contrib-12     postgresql-server-dev-12"
+    #     sudo bash -c "apt-get clean"
+    #     sudo bash -c "rm /etc/apt/sources.list.d/pgdg.list"
+    #     sudo bash -c "python3 -m pip install psycopg2"
+    #     sudo bash -c "locale-gen en_US.UTF-8"
+    #     sudo bash -c "mkdir -p /etc/postgresql/ssl"
+    #     sudo bash -c "cp -p -R /etc/ssl/private /etc/postgresql/ssl"
+    #     sudo bash -c "sed -i \"s/\/etc\/ssl\/private/\/etc\/postgresql\/ssl\/private/g\" /etc/postgresql/12/main/postgresql.conf"
+    #     sudo bash -c "sed -i '/^local/ s/peer/trust/' /etc/postgresql/12/main/pg_hba.conf"
+    # - name: $GAIA_REPO/third_party/production/liburing
+    #   run: |
+    #     cd $GAIA_REPO/third_party/production/liburing
+    #     cd liburing
+    #     sudo bash -c "./configure"
+    #     sudo bash -c "make -j$(nproc)"
+    #     sudo bash -c "make install"
       # cd ..
       # sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/backward
