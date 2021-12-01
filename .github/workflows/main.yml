@@ -119,13 +119,13 @@ jobs:
         run: |
           cd $GAIA_REPO/third_party/production/daemonize
           cd daemonize
-          echo "CACHE_HIT=$CACHE_HIT"
-          if [[ "$CACHE_HIT" == 'true' ]]; then
-            echo "Using cached version of daemonize"
-          else
+        # echo "CACHE_HIT=$CACHE_HIT"
+        # if [[ "$CACHE_HIT" == 'true' ]]; then
+        #   echo "Using cached version of daemonize"
+        # else
             sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure"
             sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
-          fi
+        # fi
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
 
       - name: $GAIA_REPO/third_party/production/postgresql
@@ -173,16 +173,16 @@ jobs:
           CACHE_HIT: ${{steps.cache-bison.outputs.cache-hit}}
         run: |
           cd $GAIA_REPO/third_party/production/bison
-          echo "CACHE_HIT=$CACHE_HIT"
-          if [[ "$CACHE_HIT" == 'true' ]]; then
-            echo "Using cached version of bison"
-            cd bison-3.5
-          else
+        # echo "CACHE_HIT=$CACHE_HIT"
+        # if [[ "$CACHE_HIT" == 'true' ]]; then
+        #   echo "Using cached version of bison"
+        #   cd bison-3.5
+        # else
             sudo bash -c "tar -zxvf bison-3.5.tar.gz"
             cd bison-3.5
             sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure"
             sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
-          fi
+        # fi
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
 
       # - name: $GAIA_REPO/third_party/production/pybind11
@@ -232,14 +232,14 @@ jobs:
         run: |
           cd $GAIA_REPO/third_party/production/libexplain
           cd libexplain
-          echo "CACHE_HIT=$CACHE_HIT"
-          if [[ "$CACHE_HIT" == 'true' ]]; then
-            echo "Using cached version of libexplain"
-          else
+        # echo "CACHE_HIT=$CACHE_HIT"
+        # if [[ "$CACHE_HIT" == 'true' ]]; then
+        #   echo "Using cached version of libexplain"
+        # else
             sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
             sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure --prefix=/usr"
             sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
-          fi
+        # fi
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
 
   # - name: $GAIA_REPO/production
