@@ -31,8 +31,10 @@ constexpr size_t c_max_msg_size = 1 << 10;
 // will be templated on max fd count).
 constexpr size_t c_max_fd_count = 16;
 
-// We throw this exception on either EPIPE/SIGPIPE caught from a write
-// or EOF returned from a read (where a 0-length read is impossible).
+/**
+ * Thrown on either EPIPE/SIGPIPE caught from a write
+ * or EOF returned from a read (where a 0-length read is impossible).
+ */
 class peer_disconnected : public gaia_exception
 {
 public:

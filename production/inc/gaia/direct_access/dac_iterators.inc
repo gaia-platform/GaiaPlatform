@@ -274,7 +274,7 @@ void reference_chain_container_t<T_child>::insert(gaia::common::gaia_id_t child_
     // The gaia_id() will be zero if the row hasn't been inserted into the SE.
     if (child_id == gaia::common::c_invalid_gaia_id || m_parent_id == gaia::common::c_invalid_gaia_id)
     {
-        throw invalid_state(m_parent_id, child_id, T_child::gaia_typename());
+        report_invalid_object_state(m_parent_id, child_id, T_child::gaia_typename());
     }
 
     dac_db_t::insert_child_reference(m_parent_id, child_id, m_child_offset);
@@ -292,7 +292,7 @@ bool reference_chain_container_t<T_child>::connect(gaia::common::gaia_id_t child
     // The gaia_id() will be zero if the row hasn't been inserted into the SE.
     if (child_id == gaia::common::c_invalid_gaia_id || m_parent_id == gaia::common::c_invalid_gaia_id)
     {
-        throw invalid_state(m_parent_id, child_id, T_child::gaia_typename());
+        report_invalid_object_state(m_parent_id, child_id, T_child::gaia_typename());
     }
 
     return dac_db_t::insert_child_reference(m_parent_id, child_id, m_child_offset);

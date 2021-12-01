@@ -28,7 +28,7 @@ const T_flatbuffer* dac_object_t<container_type_id, T_class, T_flatbuffer, T_fla
 {
     if (!dac_base_t::exists())
     {
-        throw gaia::db::invalid_object_id(gaia::common::c_invalid_gaia_id);
+        report_invalid_object_id(gaia::common::c_invalid_gaia_id);
     }
     return flatbuffers::GetRoot<T_flatbuffer>(dac_base_t::data());
 }
@@ -58,7 +58,7 @@ gaia::common::gaia_id_t* dac_object_t<container_type_id, T_class, T_flatbuffer, 
 {
     if (!dac_base_t::exists())
     {
-        throw gaia::db::invalid_object_id(gaia::common::c_invalid_gaia_id);
+        report_invalid_object_id(gaia::common::c_invalid_gaia_id);
     }
     return dac_base_t::references();
 }
@@ -69,7 +69,7 @@ dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::wri
 {
     if (!dac_base_t::exists())
     {
-        throw gaia::db::invalid_object_id(gaia::common::c_invalid_gaia_id);
+        report_invalid_object_id(gaia::common::c_invalid_gaia_id);
     }
 
     auto writer = dac_writer_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>();
@@ -96,7 +96,7 @@ gaia::common::gaia_id_t dac_object_t<container_type_id, T_class, T_flatbuffer, T
     // Make sure the types match.
     if (target_type != T_class::s_gaia_type)
     {
-        throw invalid_object_type(id, T_class::s_gaia_type, T_class::gaia_typename(), target_type);
+        report_invalid_object_type(id, T_class::s_gaia_type, T_class::gaia_typename(), target_type);
     }
 
     return id;
@@ -114,7 +114,7 @@ void dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>
 {
     if (!dac_base_t::exists())
     {
-        throw gaia::db::invalid_object_id(gaia::common::c_invalid_gaia_id);
+        report_invalid_object_id(gaia::common::c_invalid_gaia_id);
     }
 
     delete_row(gaia_id());

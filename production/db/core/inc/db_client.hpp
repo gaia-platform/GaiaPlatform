@@ -11,7 +11,6 @@
 #include <sys/socket.h>
 
 #include "gaia/db/db.hpp"
-#include "gaia/exceptions.hpp"
 
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/mmap_helpers.hpp"
@@ -19,6 +18,7 @@
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/triggers.hpp"
+#include "gaia_internal/exceptions.hpp"
 
 #include "chunk_manager.hpp"
 #include "client_messenger.hpp"
@@ -42,12 +42,12 @@ class client_t
     friend class gaia_ptr_t;
 
     /**
-     * @throws no_open_transaction if there is no open transaction.
+     * @throws no_open_transaction_internal if there is no open transaction.
      */
     friend gaia::db::locators_t* gaia::db::get_locators();
 
     /**
-     * @throws no_open_session if there is no open session.
+     * @throws no_open_session_internal if there is no open session.
      */
     friend gaia::db::counters_t* gaia::db::get_counters();
     friend gaia::db::data_t* gaia::db::get_data();

@@ -128,6 +128,20 @@ private:
     common::reference_offset_t m_child_offset;
 };
 
+/**
+ * @brief For internal use only.
+ */
+void report_invalid_object_id(common::gaia_id_t id);
+void report_invalid_object_type(
+    common::gaia_id_t id,
+    common::gaia_type_t expected_type,
+    const char* expected_typename,
+    common::gaia_type_t actual_type);
+void report_invalid_object_state(
+    common::gaia_id_t parent_id,
+    common::gaia_id_t chile_id,
+    const char* child_type);
+
 /*@}*/
 } // namespace direct_access
 /*@}*/

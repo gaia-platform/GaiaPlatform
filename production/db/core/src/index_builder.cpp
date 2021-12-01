@@ -214,7 +214,7 @@ void update_index_entry(
         {
             auto index_view = index_view_t(id_to_ptr(index->id()));
             auto table_view = table_view_t(id_to_ptr(index_view.table_id()));
-            throw unique_constraint_violation(table_view.name(), index_view.name());
+            throw unique_constraint_violation_internal(table_view.name(), index_view.name());
         }
 
         index->insert_index_entry(std::move(key), record);

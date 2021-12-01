@@ -30,6 +30,7 @@
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
+#include "gaia_internal/rules/exceptions.hpp"
 
 #include "diagnostics.h"
 #include "table_navigation.h"
