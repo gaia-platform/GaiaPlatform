@@ -128,7 +128,7 @@ jobs:
         id: cache-daemonize
         with:
           path: /home/runner/work/GaiaPlatform/GaiaPlatform/third-party/daemonize/
-          key: ${{ runner.os }}-daemonize-${{ hashFiles('**') }}
+          key: ${{ runner.os }}-daemonize-
           restore-keys: |
             ${{ runner.os }}-daemonize-
       - name: $GAIA_REPO/third_party/production/daemonize
@@ -218,7 +218,7 @@ jobs:
         id: cache-libexplain
         with:
           path: /home/runner/work/GaiaPlatform/GaiaPlatform/third-party/libexplain/
-          key: ${{ runner.os }}-libexplain-${{ hashFiles('**') }}
+          key: ${{ runner.os }}-libexplain-
           restore-keys: |
             ${{ runner.os }}-libexplain-
       - name: $GAIA_REPO/third_party/production/libexplain
