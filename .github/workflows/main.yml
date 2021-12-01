@@ -22,28 +22,27 @@ jobs:
       LC_CTYPE: en_US.UTF-8
       LC_ALL: en_US.UTF-8
     steps:
-      # - name: Say Hello
-      #   run: echo Hello World!
-      # - name: Say Goodbye
-      #   run: |
-      #     echo Job Finished.
-      #     echo Goodbye!
       - name: Checkout Repository
         uses: actions/checkout@master
+
       - name: Setup Python 3.8
         uses: actions/setup-python@v1
         with:
           python-version: 3.8
+
       - name: Install PipEnv
         uses: dschep/install-pipenv-action@v1
         with:
           version: 2021.5.29
+
       - name: Install Required Applications
         run: |
           sudo apt-get update && sudo apt-get install -y clang-10 clang-format-10 clang-tidy-10 debhelper flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev rpm libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert python3 python3-dev python3-pip build-essential
+
       - name: Install Required Python Packages
         run: |
           python3.8 -m pip install --user atools argcomplete pytest
+
       - name: Install Required Third Party Git Repositories
         run: |
           cd $GAIA_REPO/third_party/production/backward
@@ -70,10 +69,12 @@ jobs:
           cd $GAIA_REPO/third_party/production/CPackDebHelper
           git clone -c advice.detachedHead=false --depth 1 https://github.com/ABruines/CPackDebHelper.git
           rm -rf */.git
+
       - name: Install Required Third Party Web Packages
         run: |
           cd $GAIA_REPO/third_party/production/bison
           wget http://ftp.gnu.org/gnu/bison/bison-3.5.tar.gz
+
       - name: Execute Pre-Build Actions
         run: |
           cd $GAIA_REPO/third_party/production/cmake
@@ -90,13 +91,7 @@ jobs:
           sudo update-alternatives --install "/usr/bin/clang-tidy" "clang-tidy" "/usr/bin/clang-tidy-10" 10
           sudo mkdir -p /var/lib/gaia/db
           sudo chmod -R 666 /var/lib/gaia/db
-      - uses: actions/cache@v2
-        id: cache-build-directory
-        with:
-          path: /build/  # what we cache: the folder
-          key: ${{ runner.os }}-build-${{ hashFiles('**') }}
-          restore-keys: |
-            ${{ runner.os }}-build-
+
       - name: $GAIA_REPO/third_party/production/cmake
         run: |
           cd $GAIA_REPO/third_party/production/cmake
@@ -107,6 +102,7 @@ jobs:
           sudo bash -c "apt-get clean"
           sudo bash -c "rm /etc/apt/sources.list.d/kitware.list >/dev/null"
           sudo bash -c "rm /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null"
+
       - name: pre-daemonize
         run: |
           cd $GAIA_REPO/third_party/production/daemonize
@@ -132,21 +128,9 @@ jobs:
             sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
           fi
 
-      # cd ..
-      # sudo bash -c "rm -rf *"
       - name: $GAIA_REPO/third_party/production/postgresql
         run: |
-
-          fail
-
           cd $GAIA_REPO/third_party/production/postgresql
-
-          echo "--"
-          export
-          echo "--"
-          env
-          echo "--"
-
           sudo bash -c "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -"
           sudo bash -c "echo \"deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main\" | tee /etc/apt/sources.list.d/pgdg.list"
           sudo bash -c "apt-get update -y"
@@ -160,14 +144,6 @@ jobs:
           sudo bash -c "sed -i \"s/\/etc\/ssl\/private/\/etc\/postgresql\/ssl\/private/g\" /etc/postgresql/12/main/postgresql.conf"
           sudo bash -c "sed -i '/^local/ s/peer/trust/' /etc/postgresql/12/main/pg_hba.conf"
 
-          echo "--"
-          export
-          echo "--"
-          env
-          echo "--"
-          echo "--"
-          ls -la /usr/include/postgresql/12/server/
-          echo "--"
       - name: $GAIA_REPO/third_party/production/liburing
         run: |
           cd $GAIA_REPO/third_party/production/liburing
@@ -175,27 +151,41 @@ jobs:
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
-      # cd ..
-      # sudo bash -c "rm -rf *"
+
       - name: $GAIA_REPO/third_party/production/backward
         run: |
           cd $GAIA_REPO/third_party/production/backward
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" cmake backward-cpp"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
-      # sudo bash -c "rm -rf *"
-      - name: $GAIA_REPO/third_party/production/bison
+
+      - name: pre-bison
         run: |
           cd $GAIA_REPO/third_party/production/bison
-          sudo bash -c "tar -zxvf bison-3.5.tar.gz"
-          cd bison-3.5
-          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure"
-          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
-          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
-          echo "--"
-          ls -la /usr/include/postgresql/12/server/
-      # cd ..
-      # sudo bash -c "rm -rf *"
+          cd daemonize
+          sha1sum tar -zxvf bison-3.5.tar.gz > $GAIA_REPO/third_party/production/bison/hashfiles.txt
+      - uses: actions/cache@v2
+        id: cache-bison
+        with:
+          path: /home/runner/work/GaiaPlatform/GaiaPlatform/third-party/bison/
+          key: ${{ runner.os }}-bison-${{ hashFiles('third_party/production/bison/hashfiles.txt') }}
+      - name: $GAIA_REPO/third_party/production/bison
+        env:
+          CACHE_HIT: ${{steps.cache-bison.outputs.cache-hit}}
+        run: |
+          echo "CACHE_HIT=$CACHE_HIT"
+          if [[ "$CACHE_HIT" == 'true' ]]; then
+            echo "Using cached version of bison"
+          else
+            cd $GAIA_REPO/third_party/production/bison
+            sudo bash -c "tar -zxvf bison-3.5.tar.gz"
+            cd bison-3.5
+            sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure"
+            sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
+            sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
+            echo "--"
+          fi
+
       # - name: $GAIA_REPO/third_party/production/pybind11
       #   run: |
       #     cd $GAIA_REPO/third_party/production/pybind11
@@ -205,6 +195,7 @@ jobs:
       #     sudo bash -c "make -j$(nproc)"
       #     sudo bash -c "make install"
       #     sudo bash -c "rm -rf *"
+
       - name: $GAIA_REPO/third_party/production/cpptoml
         run: |
           cd $GAIA_REPO/third_party/production/cpptoml
@@ -212,39 +203,46 @@ jobs:
           sudo bash -c "rm -fr build/"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" cmake -H. -Bbuild  -DCMAKE_BUILD_TYPE=Release                    -DCPPTOML_BUILD_EXAMPLES=OFF                    -DENABLE_LIBCXX=OFF"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" cmake --build build --target install"
-      # cd ..
-      # sudo bash -c "rm -rf *"
+
       - name: $GAIA_REPO/third_party/production/tabulate
         run: |
           cd $GAIA_REPO/third_party/production/tabulate
           cd tabulate
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" cmake --build build --target install"
-      # cd ..
-      # sudo bash -c "rm -rf *"
+
       - name: $GAIA_REPO/third_party/production/CPackDebHelper
         run: |
           cd $GAIA_REPO/third_party/production/CPackDebHelper
           sudo bash -c "mkdir -p /usr/local/lib/cmake/CPackDebHelper"
           sudo bash -c "cp CPackDebHelper/cmake/*.cmake /usr/local/lib/cmake/CPackDebHelper/"
-      # sudo bash -c "rm -rf *"
+
+      - name: pre-libexplain
+        run: |
+          cd $GAIA_REPO/third_party/production/libexplain
+          cd libexplain
+          find . -type f -print0  | xargs -0 sha1sum > $GAIA_REPO/third_party/production/libexplain/hashfiles.txt
       - uses: actions/cache@v2
         id: cache-libexplain
         with:
           path: /home/runner/work/GaiaPlatform/GaiaPlatform/third-party/libexplain/
-          key: ${{ runner.os }}-libexplain-
-          restore-keys: |
-            ${{ runner.os }}-libexplain-
+          key: ${{ runner.os }}-libexplain-${{ hashFiles('third_party/production/libexplain/hashfiles.txt') }}
       - name: $GAIA_REPO/third_party/production/libexplain
+        env:
+          CACHE_HIT: ${{steps.cache-libexplain.outputs.cache-hit}}
         run: |
           cd $GAIA_REPO/third_party/production/libexplain
           cd libexplain
-          sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
-          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure --prefix=/usr"
-          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
-          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
-      # cd ..
-      # sudo bash -c "rm -rf *"
+          echo "CACHE_HIT=$CACHE_HIT"
+          if [[ "$CACHE_HIT" == 'true' ]]; then
+            echo "Using cached version of libexplain"
+          else
+            sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
+            sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure --prefix=/usr"
+            sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
+            sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
+          fi
+
   # - name: $GAIA_REPO/production
   #   run: |
   #     sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" cmake --log-level=VERBOSE -Wno-dev -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_RELEASE=ON  -G \"Unix Makefiles\" $GAIA_REPO/production"
