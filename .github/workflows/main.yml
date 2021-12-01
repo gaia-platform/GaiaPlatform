@@ -87,9 +87,10 @@ jobs:
           ls -la /usr/bin/c*
           echo "--/usr/bin/c++"
           ls -la /usr/bin/c++
-          echo "--/etc/alternatives/c++"
-          ls -la /etc/alternatives/c++
+          echo "--/etc/alternatives/c.."
+          ls -la /etc/alternatives/c*
           env
+          fail
       - name: $GAIA_REPO/third_party/production/cmake
         run: |
           cd $GAIA_REPO/third_party/production/cmake
