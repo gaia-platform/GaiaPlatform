@@ -8,7 +8,6 @@
 #include "gaia/rules/exceptions.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
-#include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/db/gaia_ptr.hpp"
 #include "gaia_internal/rules/exceptions.hpp"
 
@@ -98,14 +97,13 @@ void rule_checker_t::check_catalog(gaia_type_t type, const field_position_list_t
     {
         return;
     }
+
     auto_transaction_t txn;
-    // Find the id of the table defining gaia_type.
     for (const auto& table : catalog::gaia_table_t::list())
     {
-        // The gaia_id() of the gaia_table_t is the type id.
         if (type == table.type())
         {
-            check_fields(table.gaia_id(), field_list);
+            check_fields(table, field_list);
             return;
         }
     }
@@ -116,15 +114,14 @@ void rule_checker_t::check_catalog(gaia_type_t type, const field_position_list_t
 
 // This function assumes that a transaction has been started and that the table
 // type exists in the catalog.
-void rule_checker_t::check_fields(gaia_id_t id, const field_position_list_t& field_list)
+void rule_checker_t::check_fields(const catalog::gaia_table_t& gaia_table, const field_position_list_t& field_list)
 {
     if (0 == field_list.size())
     {
         return;
     }
 
-    gaia_table_t gaia_table = gaia_table_t::get(id);
-    auto field_ids = list_fields(id);
+    auto field_ids = list_fields(gaia_table.gaia_id());
 
     // Walk through all the requested fields and check them against
     // the catalog fields.  Make sure the field exists, is not deprecated
@@ -142,10 +139,9 @@ void rule_checker_t::check_fields(gaia_id_t id, const field_position_list_t& fie
                 // should reinstate checking for active fields.
                 if (gaia_field.deprecated())
                 {
-                    // TODO: Pass-in correct value to exception constructor.
-                    // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1701
                     throw invalid_subscription_internal(
-                        gaia_type_t(id.value()), gaia_table.name(), requested_position, gaia_field.name(), gaia_field.deprecated());
+                        gaia_table.type(), gaia_table.name(), requested_position, gaia_field.name(),
+                        gaia_field.deprecated());
                 }
                 found_requested_field = true;
                 break;
@@ -154,9 +150,7 @@ void rule_checker_t::check_fields(gaia_id_t id, const field_position_list_t& fie
 
         if (!found_requested_field)
         {
-            // TODO: Pass-in correct value to exception constructor.
-            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1701
-            throw invalid_subscription_internal(gaia_type_t(id.value()), gaia_table.name(), requested_position);
+            throw invalid_subscription_internal(gaia_table.type(), gaia_table.name(), requested_position);
         }
     }
 }
