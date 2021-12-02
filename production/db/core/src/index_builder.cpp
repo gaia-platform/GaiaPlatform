@@ -481,7 +481,7 @@ void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool dea
 }
 
 template <class T_index>
-void mark_index_entries_helper(base_index_t* base_index, gaia_txn_id_t txn_id)
+void mark_index_entries(base_index_t* base_index, gaia_txn_id_t txn_id)
 {
     auto index = static_cast<T_index*>(base_index);
     index->mark_entries_committed(txn_id);
@@ -497,10 +497,10 @@ void index_builder_t::mark_index_entries_committed(gaia_txn_id_t txn_id)
             switch (it.second->type())
             {
             case catalog::index_type_t::range:
-                mark_index_entries_helper<range_index_t>(it.second.get(), txn_id);
+                mark_index_entries<range_index_t>(it.second.get(), txn_id);
                 break;
             case catalog::index_type_t::hash:
-                mark_index_entries_helper<hash_index_t>(it.second.get(), txn_id);
+                mark_index_entries<hash_index_t>(it.second.get(), txn_id);
                 break;
             }
         }
