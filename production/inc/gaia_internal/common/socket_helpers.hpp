@@ -21,18 +21,20 @@ namespace gaia
 namespace common
 {
 
-// 1K oughta be enough for anybody...
-constexpr size_t c_max_msg_size = 1 << 10;
+// This is exactly 1 page (4KB).
+// On Linux, Unix domain socket datagrams must reside in contiguous physical memory, so sending a
+// datagram larger than 1 page could fail if the OS cannot allocate enough contiguous physical
+// pages.
+// See https://stackoverflow.com/questions/4729315/what-is-the-max-size-of-af-unix-datagram-message-in-linux.
+constexpr size_t c_max_msg_size_in_bytes{1 << 12};
 
-// This is the value of SCM_MAX_FD according to the manpage for unix(7).
-// constexpr size_t c_max_fd_count = 253;
+// This could be up to 253 (the value of SCM_MAX_FD according to the manpage for unix(7)), but we
+// set it to a reasonable value for a stack buffer.
+// TODO: Add max fd count template parameter to socket helper functions.
+constexpr size_t c_max_fd_count{16};
 
-// Set to a reasonable value for a stack buffer (eventually helper functions
-// will be templated on max fd count).
-constexpr size_t c_max_fd_count = 16;
-
-// We throw this exception on either EPIPE/SIGPIPE caught from a write
-// or EOF returned from a read (where a 0-length read is impossible).
+// We throw this exception when either EPIPE or ECONNRESET is returned by a read or write, or EOF
+// returned from a read (where a 0-length read is impossible).
 class peer_disconnected : public gaia_exception
 {
 public:
@@ -138,7 +140,14 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
         "sendmsg() should never return a negative value except for -1.");
     if (bytes_written_or_error == -1)
     {
-        if (errno == EPIPE)
+        // On Linux, apparently a socket write should trigger ECONNRESET only
+        // when the peer has closed its end of the socket, there is still
+        // pending outgoing data in the writer's socket buffer, and the socket
+        // is a TCP socket, but we assume this could happen for Unix domain
+        // sockets as well, given that the exact behavior is undocumented and
+        // therefore could change.
+        // See https://stackoverflow.com/questions/2974021/what-does-econnreset-mean-in-the-context-of-an-af-local-socket.
+        if (errno == EPIPE || errno == ECONNRESET)
         {
             throw peer_disconnected();
         }
@@ -197,6 +206,14 @@ inline size_t recv_msg_with_fds(
         "recvmsg() should never return a negative value except for -1.");
     if (bytes_read == -1)
     {
+        // On Linux, apparently a read on a Unix domain socket can trigger
+        // ECONNRESET if the peer has closed its end of the socket and there is
+        // still pending outgoing data in the reader's socket buffer.
+        // See https://stackoverflow.com/questions/2974021/what-does-econnreset-mean-in-the-context-of-an-af-local-socket.
+        if (errno == ECONNRESET)
+        {
+            throw peer_disconnected();
+        }
         throw_system_error("recvmsg() failed!");
     }
     else if (bytes_read == 0)

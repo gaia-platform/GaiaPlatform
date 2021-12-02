@@ -286,7 +286,7 @@ void server_t::handle_commit_txn(
         decision = session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR;
     }
 
-    // Server-initiated state transition! (Any issues with reentrant handlers?)
+    // REVIEW: This is the only reentrant transition handler, and the only server-side state transition.
     apply_transition(decision, nullptr, nullptr, 0);
 }
 
@@ -1299,7 +1299,7 @@ void server_t::session_handler(int session_socket)
         const void* event_data = nullptr;
 
         // Buffer used to send and receive all message data.
-        uint8_t msg_buf[c_max_msg_size]{0};
+        uint8_t msg_buf[c_max_msg_size_in_bytes]{0};
 
         // Buffer used to receive file descriptors.
         int fd_buf[c_max_fd_count] = {-1};
@@ -1411,8 +1411,9 @@ void server_t::stream_producer_handler(
     int stream_socket, int cancel_eventfd, std::shared_ptr<generator_t<T_element>> generator_fn)
 {
     auto socket_cleanup = make_scope_guard([&]() {
-        // We can rely on close_fd() to perform the equivalent of shutdown(SHUT_RDWR),
-        // because we hold the only fd pointing to this socket.
+        // We can rely on close_fd() to perform the
+        // equivalent of shutdown(SHUT_RDWR), because we hold
+        // the only fd pointing to this socket.
         close_fd(stream_socket);
     });
 
@@ -1524,65 +1525,81 @@ void server_t::stream_producer_handler(
                         ++gen_it;
                     }
 
-                    // We need to send any pending data in the buffer, followed by EOF
-                    // if we reached end of iteration. We let the client decide when to
-                    // close the socket, because their next read may be arbitrarily delayed
-                    // (and they may still have pending data).
+                    // We need to send any pending data in the buffer, followed by EOF if we reached
+                    // end of iteration. We let the client decide when to close the socket, because
+                    // their next read may be arbitrarily delayed (and they may still have pending
+                    // data).
 
                     // First send any remaining data in the buffer.
                     if (batch_buffer.size() > 0)
                     {
-                        // To simplify client state management by allowing the client to
-                        // dequeue entries in FIFO order using std::vector.pop_back(),
-                        // we reverse the order of entries in the buffer.
+                        // To simplify client state management by allowing the client to dequeue
+                        // entries in FIFO order using std::vector.pop_back(), we reverse the order
+                        // of entries in the buffer.
                         std::reverse(std::begin(batch_buffer), std::end(batch_buffer));
 
-                        // We don't want to handle signals, so set
-                        // MSG_NOSIGNAL to convert SIGPIPE to EPIPE.
-                        ssize_t bytes_written = ::send(
-                            stream_socket, batch_buffer.data(), batch_buffer.size() * sizeof(T_element),
-                            MSG_NOSIGNAL);
-
-                        if (bytes_written == -1)
+                        // We don't want to handle signals, so set MSG_NOSIGNAL to convert SIGPIPE
+                        // to EPIPE.
+                        if (-1 == ::send(stream_socket, batch_buffer.data(), batch_buffer.size() * sizeof(T_element), MSG_NOSIGNAL))
                         {
-                            // It should never happen that the socket is no longer writable
-                            // after we receive EPOLLOUT, because we are the only writer and
-                            // the receive buffer is always large enough for a batch.
-                            ASSERT_INVARIANT(errno != EAGAIN && errno != EWOULDBLOCK, c_message_unexpected_errno_value);
-                            // Log the error and break out of the poll loop.
-                            std::cerr << "Stream socket error: '" << ::strerror(errno) << "'." << std::endl;
+                            // Break out of the poll loop on any write error.
                             producer_shutdown = true;
+
+                            // It should never happen that the socket is no longer writable after we
+                            // receive EPOLLOUT, because we are the only writer and the receive
+                            // buffer is always large enough for a batch.
+                            ASSERT_INVARIANT(errno != EAGAIN && errno != EWOULDBLOCK, c_message_unexpected_errno_value);
+
+                            // There is a race between the client reading its pending datagram and
+                            // triggering an EPOLLOUT notification, and then closing its socket and
+                            // triggering an EPOLLHUP notification. We might receive EPIPE or
+                            // ECONNRESET from the preceding write if we haven't yet processed the
+                            // EPOLLHUP notification. This doesn't indicate an error condition on
+                            // the client side, so we don't log socket errors in this case. Even if
+                            // the write failed because the client-side session thread crashed, we
+                            // will detect and handle that condition in the server-side session
+                            // thread.
+                            //
+                            // REVIEW: We could avoid setting the producer_shutdown flag in this
+                            // case and wait for an EPOLLHUP notification in the next loop
+                            // iteration. We exit immediately for now because 1) we aren't doing
+                            // nontrivial cleanup on receiving EPOLLHUP (just setting the
+                            // producer_shutdown flag), and 2) expecting an EPOLLHUP notification to
+                            // always be delivered even after receiving EPIPE or ECONNRESET seems
+                            // like a fragile assumption (we could validate this assumption with a
+                            // test program, but again this is undocumented behavior and therefore
+                            // subject to change).
+                            if (errno != EPIPE && errno != ECONNRESET)
+                            {
+                                std::cerr << "Stream socket error: '" << ::strerror(errno) << "'." << std::endl;
+                            }
                         }
                         else
                         {
-                            // We successfully wrote to the socket, so clear the buffer.
-                            // (Partial writes are impossible with datagram sockets.)
-                            // The standard is somewhat unclear, but apparently clear() will
-                            // not change the capacity in any recent implementation of the
-                            // standard library (https://cplusplus.github.io/LWG/issue1102).
+                            // We successfully wrote to the socket, so clear the buffer. (Partial
+                            // writes are impossible with datagram sockets.) The standard is
+                            // somewhat unclear, but apparently clear() will not change the capacity
+                            // in any recent implementation of the standard library
+                            // (https://cplusplus.github.io/LWG/issue1102).
                             batch_buffer.clear();
                         }
                     }
 
-                    // If we reached end of iteration, send EOF to client.
-                    // (We still need to wait for the client to close their socket,
-                    // because they may still have unread data, so we don't set the
-                    // producer_shutdown flag.)
+                    // If we reached end of iteration, send EOF to client. (We still need to
+                    // wait for the client to close their socket, because they may still have
+                    // unread data, so we don't set the producer_shutdown flag.)
                     if (!gen_it)
                     {
                         ::shutdown(stream_socket, SHUT_WR);
-                        // Unintuitively, after we call shutdown(SHUT_WR), the
-                        // socket is always writable, because a write will never
-                        // block, but any write will return EPIPE. Therefore, we
-                        // unregister the socket for writable notifications
-                        // after we call shutdown(SHUT_WR). We should now only
-                        // be notified (with EPOLLHUP/EPOLLERR) when the client
-                        // closes the socket, so we can close our end of the
-                        // socket and terminate the thread.
+                        // Unintuitively, after we call shutdown(SHUT_WR), the socket is always
+                        // writable, because a write will never block, but any write will return
+                        // EPIPE. Therefore, we unregister the socket for writable notifications
+                        // after we call shutdown(SHUT_WR). We should now only be notified (with
+                        // EPOLLHUP/EPOLLERR) when the client closes the socket, so we can close
+                        // our end of the socket and terminate the thread.
                         epoll_event ev{};
-                        // We're only interested in EPOLLHUP/EPOLLERR
-                        // notifications, and we don't need to register for
-                        // those.
+                        // We're only interested in EPOLLHUP/EPOLLERR notifications, and we
+                        // don't need to register for those.
                         ev.events = 0;
                         ev.data.fd = stream_socket;
                         if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_MOD, stream_socket, &ev))
