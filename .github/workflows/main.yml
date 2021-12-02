@@ -151,7 +151,7 @@ jobs:
           pg_config --includedir
           pg_config --includedir-server
           ls -la /usr/lib/postgresql/
-          rm -rf /usr/lib/postgresql/14
+          sudo rm -rf /usr/lib/postgresql/14
           ls -la /usr/lib/postgresql/
           pg_config --includedir-server
 
