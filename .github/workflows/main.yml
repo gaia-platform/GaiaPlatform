@@ -105,30 +105,55 @@ jobs:
 
       - name: $GAIA_REPO/third_party/production/daemonize
         run: |
-          echo "cd $GAIA_REPO/third_party/production/daemonize" > daemonize.sh
-          echo "cd daemonize" >> daemonize.sh
-          echo "CC=\"$CC\" CPP=\"$CPP\" CXX=\"$CXX\" LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure" >> daemonize.sh
-          echo "CC=\"$CC\" CPP=\"$CPP\" CXX=\"$CXX\" LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)" >> daemonize.sh
-          echo "CC=\"$CC\" CPP=\"$CPP\" CXX=\"$CXX\" LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install" >> daemonize.sh
+          cd $GAIA_REPO/third_party/production/daemonize
+          echo "cd daemonize || exit 1" >> daemonize.sh
+          echo "env > start.env || exit 1" >> daemonize.sh
+          echo "export > start.export || exit 1" >> daemonize.sh
+          echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" CPPFLAGS='-fPIC' ./configure || exit 1" >> daemonize.sh
+          echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" VERBOSE=1 make -j$(nproc) || exit 1" >> daemonize.sh
+          echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" VERBOSE=1 make install || exit 1" >> daemonize.sh
+          echo "env > end.env || exit 1" >> daemonize.sh
+          echo "export > end.export || exit 1" >> daemonize.sh
+          echo "echo Differences in ENV follow: || exit 1" >> daemonize.sh
+          echo "diff start.env end.env || exit 1" >> daemonize.sh
+          echo "echo Differences in EXPORT follow: || exit 1" >> daemonize.sh
+          echo "diff start.export end.export || exit 1" >> daemonize.sh
           chmod +x daemonize.sh
           sudo ./daemonize.sh
-          fail
 
       - name: $GAIA_REPO/third_party/production/postgresql
         run: |
           cd $GAIA_REPO/third_party/production/postgresql
-          sudo bash -c "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -"
-          sudo bash -c "echo \"deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main\" | tee /etc/apt/sources.list.d/pgdg.list"
-          sudo bash -c "apt-get update -y"
-          sudo bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y     postgresql-12     postgresql-12-dbgsym     postgresql-client-12     postgresql-client-12-dbgsym     postgresql-contrib-12     postgresql-server-dev-12"
-          sudo bash -c "apt-get clean"
-          sudo bash -c "rm /etc/apt/sources.list.d/pgdg.list"
-          sudo bash -c "python3 -m pip install psycopg2"
-          sudo bash -c "locale-gen en_US.UTF-8"
-          sudo bash -c "mkdir -p /etc/postgresql/ssl"
-          sudo bash -c "cp -p -R /etc/ssl/private /etc/postgresql/ssl"
-          sudo bash -c "sed -i \"s/\/etc\/ssl\/private/\/etc\/postgresql\/ssl\/private/g\" /etc/postgresql/12/main/postgresql.conf"
-          sudo bash -c "sed -i '/^local/ s/peer/trust/' /etc/postgresql/12/main/pg_hba.conf"
+          echo "env > start.env || exit 1" > postgresql.sh
+          echo "export > start.export || exit 1" >> postgresql.sh
+          echo "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - || exit 1" >> postgresql.sh
+          echo "echo \"deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main\" | tee /etc/apt/sources.list.d/pgdg.list || exit 1" >> postgresql.sh
+          echo "apt-get update -y || exit 1" >> postgresql.sh
+          echo "DEBIAN_FRONTEND=noninteractive apt-get install -y     postgresql-12     postgresql-12-dbgsym     postgresql-client-12     postgresql-client-12-dbgsym     postgresql-contrib-12     postgresql-server-dev-12 || exit 1" >> postgresql.sh
+          echo "apt-get clean || exit 1" >> postgresql.sh
+          echo "rm /etc/apt/sources.list.d/pgdg.list || exit 1" >> postgresql.sh
+          echo "python3 -m pip install psycopg2 || exit 1" >> postgresql.sh
+          echo "locale-gen en_US.UTF-8 || exit 1" >> postgresql.sh
+          echo "mkdir -p /etc/postgresql/ssl || exit 1" >> postgresql.sh
+          echo "cp -p -R /etc/ssl/private /etc/postgresql/ssl || exit 1" >> postgresql.sh
+          echo "sed -i \"s/\/etc\/ssl\/private/\/etc\/postgresql\/ssl\/private/g\" /etc/postgresql/12/main/postgresql.conf || exit 1" >> postgresql.sh
+          echo "sed -i '/^local/ s/peer/trust/' /etc/postgresql/12/main/pg_hba.conf || exit 1" >> postgresql.sh
+          echo "env > end.env || exit 1" >> postgresql.sh
+          echo "export > end.export || exit 1" >> postgresql.sh
+          echo "echo Differences in ENV follow: || exit 1" >> postgresql.sh
+          echo "diff start.env end.env || exit 1" >> postgresql.sh
+          echo "echo Differences in EXPORT follow: || exit 1" >> postgresql.sh
+          echo "diff start.export end.export || exit 1" >> postgresql.sh
+          chmod +x postgresql.sh
+          sudo ./postgresql.sh
+
+          which pg_config
+          pg_config --includedir
+          pg_config --includedir-server
+          ls -la /usr/lib/postgresql/
+          sudo rm -rf /usr/lib/postgresql/14
+          ls -la /usr/lib/postgresql/
+          pg_config --includedir-server
 
       - name: $GAIA_REPO/third_party/production/liburing
         run: |
@@ -196,12 +221,22 @@ jobs:
 
       - name: $GAIA_REPO/production
         run: |
-          ls -la /usr/include/postgresql/12/server/postgres.h
-          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" cmake --log-level=VERBOSE -Wno-dev -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_RELEASE=ON  -G \"Unix Makefiles\" $GAIA_REPO/production"
-          sudo bash -c "cat CMakeCache.txt"
-  #     sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" LSAN_OPTIONS=detect_leaks=0 VERBOSE=1 make -j$(nproc)"
-  #     cd /build/production/db/core
-  #     sudo bash -c "make install"
+          apt list | grep postgres
+
+          echo "ls -la /usr/include/postgresql/12/server/postgres.h || exit 1" > production.sh
+          echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake --log-level=VERBOSE -Wno-dev -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_RELEASE=ON  -G \"Unix Makefiles\" $GAIA_REPO/production || exit 1" >> production.sh
+          echo "cat CMakeCache.txt || exit 1" >> production.sh
+          echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" LSAN_OPTIONS=detect_leaks=0 VERBOSE=1 make -j$(nproc) || exit 1" >> production.sh
+          echo "cd /build/production/db/core || exit 1" >> production.sh
+          echo "make install || exit 1" >> production.sh
+          chmod +x production.sh
+          sudo ./production.sh
+
+      - name: Upload Build Directory
+        uses: actions/upload-artifact@v2
+        with:
+          name: Build
+          path: /build
       - name: Upload CMakeCache.txt
         uses: actions/upload-artifact@v2
         with:
