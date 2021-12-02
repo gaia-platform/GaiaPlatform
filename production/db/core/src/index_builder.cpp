@@ -164,7 +164,9 @@ void update_index_entry(
         {
             gaia_txn_id_t begin_ts = it_start->second.txn_id;
             gaia_txn_id_t commit_ts
-                = (is_marked_committed(it_start->second)) ? c_invalid_gaia_txn_id : transactions::txn_metadata_t::get_commit_ts_from_begin_ts(begin_ts);
+                = (is_marked_committed(it_start->second))
+                ? c_invalid_gaia_txn_id
+                : transactions::txn_metadata_t::get_commit_ts_from_begin_ts(begin_ts);
 
             ASSERT_PRECONDITION(
                 is_marked_committed(it_start->second) || transactions::txn_metadata_t::is_begin_ts(begin_ts),
@@ -178,7 +180,8 @@ void update_index_entry(
                 && transactions::txn_metadata_t::is_txn_aborted(commit_ts);
 
             if (is_aborted_operation
-                || transactions::txn_metadata_t::is_txn_terminated(begin_ts))
+                || (!is_marked_committed(it_start->second)
+                    && transactions::txn_metadata_t::is_txn_terminated(begin_ts)))
             {
                 it_start = index_guard.get_index().erase(it_start);
                 continue;
@@ -196,7 +199,7 @@ void update_index_entry(
                 || (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_committed(commit_ts));
 
             // Opportunistically mark a record as committed to skip metadata lookup next time.
-            if (is_committed_operation && !is_marked_committed(it_start->second))
+            if (is_committed_operation)
             {
                 mark_committed(it_start->second);
             }
