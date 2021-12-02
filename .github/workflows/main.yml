@@ -105,17 +105,19 @@ jobs:
 
       - name: $GAIA_REPO/third_party/production/daemonize
         run: |
-          echo "cd $GAIA_REPO/third_party/production/daemonize" > daemonize.sh
-          echo "cd daemonize" >> daemonize.sh
-          echo "env > start.env" >> daemonize.sh
-          echo "export > start.export" >> daemonize.sh
+          cd $GAIA_REPO/third_party/production/daemonize
+          echo "cd daemonize || exit 1" >> daemonize.sh
+          echo "env > start.env || exit 1" >> daemonize.sh
+          echo "export > start.export || exit 1" >> daemonize.sh
           echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" CPPFLAGS='-fPIC' ./configure || exit 1" >> daemonize.sh
           echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" VERBOSE=1 make -j$(nproc) || exit 1" >> daemonize.sh
           echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" VERBOSE=1 make install || exit 1" >> daemonize.sh
-          echo "env > end.env" >> daemonize.sh
-          echo "export > end.export" >> daemonize.sh
-          echo "diff start.env end.env" >> daemonize.sh
-          echo "diff start.export end.export" >> daemonize.sh
+          echo "env > end.env || exit 1" >> daemonize.sh
+          echo "export > end.export || exit 1" >> daemonize.sh
+          echo "echo diff env || exit 1" >> daemonize.sh
+          echo "diff start.env end.env || exit 1" >> daemonize.sh
+          echo "echo diff export || exit 1" >> daemonize.sh
+          echo "diff start.export end.export || exit 1" >> daemonize.sh
           chmod +x daemonize.sh
           sudo ./daemonize.sh
           fail
