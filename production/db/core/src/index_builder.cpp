@@ -55,7 +55,7 @@ index_key_t index_builder_t::make_key(gaia_id_t index_id, gaia_type_t type_id, c
     return index_key;
 }
 
-void index_builder_t::serialize_key(const index_key_t& key, data_write_buffer_t& buffer)
+void index_builder_t::serialize_key(const index_key_t& key, payload_types::data_write_buffer_t& buffer)
 {
     for (const payload_types::data_holder_t& key_value : key.values())
     {
@@ -63,7 +63,7 @@ void index_builder_t::serialize_key(const index_key_t& key, data_write_buffer_t&
     }
 }
 
-index_key_t index_builder_t::deserialize_key(common::gaia_id_t index_id, data_read_buffer_t& buffer)
+index_key_t index_builder_t::deserialize_key(common::gaia_id_t index_id, payload_types::data_read_buffer_t& buffer)
 {
     ASSERT_PRECONDITION(index_id != c_invalid_gaia_id, "Invalid gaia id.");
 

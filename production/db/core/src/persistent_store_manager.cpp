@@ -15,8 +15,8 @@
 
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
-#include "rdb_internal.hpp"
 #include "rdb_object_converter.hpp"
+#include "rdb_wrapper.hpp"
 
 using namespace std;
 
@@ -32,7 +32,7 @@ persistent_store_manager::persistent_store_manager(
     rocksdb::WriteOptions write_options{};
     write_options.sync = true;
     rocksdb::TransactionDBOptions transaction_db_options{};
-    m_rdb_internal = make_unique<gaia::db::rdb_internal_t>(m_data_dir_path, write_options, transaction_db_options);
+    m_rdb_wrapper = make_unique<gaia::db::rdb_wrapper_t>(m_data_dir_path, write_options, transaction_db_options);
 }
 
 persistent_store_manager::~persistent_store_manager()
@@ -88,29 +88,29 @@ void persistent_store_manager::open()
     init_options.min_write_buffer_number_to_merge = c_min_write_buffer_number_to_merge;
     init_options.wal_recovery_mode = c_wal_recovery_mode;
 
-    m_rdb_internal->open_txn_db(init_options, options);
+    m_rdb_wrapper->open_txn_db(init_options, options);
 }
 
 void persistent_store_manager::close()
 {
-    m_rdb_internal->close();
+    m_rdb_wrapper->close();
 }
 
 void persistent_store_manager::append_wal_commit_marker(const std::string& txn_name)
 {
-    m_rdb_internal->commit(txn_name);
+    m_rdb_wrapper->commit(txn_name);
 }
 
 std::string persistent_store_manager::begin_txn(gaia_txn_id_t txn_id)
 {
     rocksdb::WriteOptions write_options{};
     rocksdb::TransactionOptions txn_options{};
-    return m_rdb_internal->begin_txn(write_options, txn_options, txn_id);
+    return m_rdb_wrapper->begin_txn(write_options, txn_options, txn_id);
 }
 
 void persistent_store_manager::append_wal_rollback_marker(const std::string& txn_name)
 {
-    m_rdb_internal->rollback(txn_name);
+    m_rdb_wrapper->rollback(txn_name);
 }
 
 void persistent_store_manager::prepare_wal_for_write(gaia::db::txn_log_t* log, const std::string& txn_name)
@@ -119,7 +119,7 @@ void persistent_store_manager::prepare_wal_for_write(gaia::db::txn_log_t* log, c
     // The key_count variable represents the number of puts + deletes.
     size_t key_count = 0;
     // Obtain RocksDB transaction object.
-    rocksdb::Transaction* txn = m_rdb_internal->get_txn_by_name(txn_name);
+    rocksdb::Transaction* txn = m_rdb_wrapper->get_txn_by_name(txn_name);
     for (size_t i = 0; i < log->record_count; i++)
     {
         txn_log_t::log_record_t* lr = log->log_records + i;
@@ -152,7 +152,7 @@ void persistent_store_manager::prepare_wal_for_write(gaia::db::txn_log_t* log, c
     }
     // Ensure that keys were inserted into the RocksDB transaction object.
     ASSERT_POSTCONDITION(key_count == log->record_count, "Count of inserted objects differs from log count!");
-    m_rdb_internal->prepare_wal_for_write(txn);
+    m_rdb_wrapper->prepare_wal_for_write(txn);
 }
 
 /**
@@ -170,7 +170,7 @@ void persistent_store_manager::prepare_wal_for_write(gaia::db::txn_log_t* log, c
  */
 void persistent_store_manager::recover()
 {
-    auto it = std::unique_ptr<rocksdb::Iterator>(m_rdb_internal->get_iterator());
+    auto it = std::unique_ptr<rocksdb::Iterator>(m_rdb_wrapper->get_iterator());
     gaia_id_t max_id = 0;
     gaia_type_t max_type_id = 0;
 
@@ -188,12 +188,12 @@ void persistent_store_manager::recover()
         }
     }
     // Check for any errors found during the scan
-    m_rdb_internal->handle_rdb_error(it->status());
+    m_rdb_wrapper->handle_rdb_error(it->status());
     m_counters->last_id = max_id;
     m_counters->last_type_id = max_type_id;
 }
 
 void persistent_store_manager::destroy_persistent_store()
 {
-    m_rdb_internal->destroy_persistent_store();
+    m_rdb_wrapper->destroy_persistent_store();
 }

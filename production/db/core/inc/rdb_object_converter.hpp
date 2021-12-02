@@ -13,9 +13,9 @@
 
 #include <rocksdb/slice.h>
 
-#include "gaia_internal/common/persistent_store_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_object.hpp"
+#include "gaia_internal/db/persistent_store_error.hpp"
 
 /**
  * This file assumes big-endian architectures aren't supported which is why all encoding & decoding
