@@ -147,6 +147,11 @@ jobs:
           chmod +x postgresql.sh
           sudo ./postgresql.sh
 
+          which pg_config
+          pg_config --includedir
+          pg_config --includedir-server
+          fail
+
       - name: $GAIA_REPO/third_party/production/liburing
         run: |
           cd $GAIA_REPO/third_party/production/liburing
