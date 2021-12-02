@@ -199,6 +199,11 @@ jobs:
   #     sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" LSAN_OPTIONS=detect_leaks=0 VERBOSE=1 make -j$(nproc)"
   #     cd /build/production/db/core
   #     sudo bash -c "make install"
+      - name: Upload CMakeCache.txt
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debug
+          path: CMakeCache.txt
       - name: Done
         run: |
           echo "Done"
