@@ -114,9 +114,9 @@ jobs:
           echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" VERBOSE=1 make install || exit 1" >> daemonize.sh
           echo "env > end.env || exit 1" >> daemonize.sh
           echo "export > end.export || exit 1" >> daemonize.sh
-          echo "echo diff env || exit 1" >> daemonize.sh
+          echo "echo Differences in ENV follow: || exit 1" >> daemonize.sh
           echo "diff start.env end.env || exit 1" >> daemonize.sh
-          echo "echo diff export || exit 1" >> daemonize.sh
+          echo "echo Differences in EXPORT follow: || exit 1" >> daemonize.sh
           echo "diff start.export end.export || exit 1" >> daemonize.sh
           chmod +x daemonize.sh
           sudo ./daemonize.sh
@@ -140,13 +140,12 @@ jobs:
           echo "sed -i '/^local/ s/peer/trust/' /etc/postgresql/12/main/pg_hba.conf || exit 1" >> postgresql.sh
           echo "env > end.env || exit 1" >> postgresql.sh
           echo "export > end.export || exit 1" >> postgresql.sh
-          echo "echo diff env || exit 1" >> postgresql.sh
+          echo "echo Differences in ENV follow: || exit 1" >> postgresql.sh
           echo "diff start.env end.env || exit 1" >> postgresql.sh
-          echo "echo diff export || exit 1" >> postgresql.sh
+          echo "echo Differences in EXPORT follow: || exit 1" >> postgresql.sh
           echo "diff start.export end.export || exit 1" >> postgresql.sh
           chmod +x postgresql.sh
           sudo ./postgresql.sh
-          fail
 
       - name: $GAIA_REPO/third_party/production/liburing
         run: |
@@ -214,12 +213,15 @@ jobs:
 
       - name: $GAIA_REPO/production
         run: |
-          ls -la /usr/include/postgresql/12/server/postgres.h
-          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" cmake --log-level=VERBOSE -Wno-dev -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_RELEASE=ON  -G \"Unix Makefiles\" $GAIA_REPO/production"
-          sudo bash -c "cat CMakeCache.txt"
-  #     sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" LSAN_OPTIONS=detect_leaks=0 VERBOSE=1 make -j$(nproc)"
-  #     cd /build/production/db/core
-  #     sudo bash -c "make install"
+          echo "ls -la /usr/include/postgresql/12/server/postgres.h || exit 1" > production.sh
+          echo "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" cmake --log-level=VERBOSE -Wno-dev -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_RELEASE=ON  -G \"Unix Makefiles\" $GAIA_REPO/production || exit 1" >> production.sh
+          echo "cat CMakeCache.txt || exit 1" >> production.sh
+          echo "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" LSAN_OPTIONS=detect_leaks=0 VERBOSE=1 make -j$(nproc) || exit 1" >> production.sh
+          echo "cd /build/production/db/core || exit 1" >> production.sh
+          echo "make install || exit 1" >> production.sh
+          chmod +x production.sh
+          sudo ./production.sh
+
       - name: Upload CMakeCache.txt
         uses: actions/upload-artifact@v2
         with:
