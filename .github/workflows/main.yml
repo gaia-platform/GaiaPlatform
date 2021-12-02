@@ -221,17 +221,15 @@ jobs:
 
       - name: $GAIA_REPO/production
         run: |
-          apt list | grep postgres
-
-          echo "ls -la /usr/include/postgresql/12/server/postgres.h || exit 1" > production.sh
           echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake --log-level=VERBOSE -Wno-dev -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_RELEASE=ON  -G \"Unix Makefiles\" $GAIA_REPO/production || exit 1" >> production.sh
           echo "cat CMakeCache.txt || exit 1" >> production.sh
           echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" LSAN_OPTIONS=detect_leaks=0 VERBOSE=1 make -j$(nproc) || exit 1" >> production.sh
+          find . -name gaia_db_server
           echo "cd /build/production/db/core"
           echo "make install"
           chmod +x production.sh
           sudo ./production.sh
-          ls -laR /home/runner/work/
+          ls -la /home/runner/work/
 
       - name: Upload Build Directory
         uses: actions/upload-artifact@v2
