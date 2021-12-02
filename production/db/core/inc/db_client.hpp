@@ -18,6 +18,7 @@
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/triggers.hpp"
+#include "gaia_internal/exceptions.hpp"
 
 #include "chunk_manager.hpp"
 #include "client_messenger.hpp"
@@ -41,17 +42,18 @@ class client_t
     friend class gaia_ptr_t;
 
     /**
-     * @throws no_open_transaction if there is no open transaction.
+     * @throws no_open_transaction_internal if there is no open transaction.
      */
     friend gaia::db::locators_t* gaia::db::get_locators();
 
     /**
-     * @throws no_open_session if there is no open session.
+     * @throws no_open_session_internal if there is no open session.
      */
     friend gaia::db::counters_t* gaia::db::get_counters();
     friend gaia::db::data_t* gaia::db::get_data();
     friend gaia::db::id_index_t* gaia::db::get_id_index();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
+    friend gaia_txn_id_t gaia::db::get_current_txn_id();
 
     friend class gaia::db::query_processor::db_client_proxy_t;
 
@@ -86,7 +88,6 @@ public:
     static void rollback_transaction();
     static void commit_transaction();
 
-    static inline gaia_txn_id_t get_txn_id();
     static inline int get_session_socket_for_txn();
 
     // This returns a generator object for gaia_ids of a given type.

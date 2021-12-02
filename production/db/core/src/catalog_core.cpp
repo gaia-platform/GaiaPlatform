@@ -6,17 +6,12 @@
 #include "gaia_internal/db/catalog_core.hpp"
 
 #include <optional>
-#include <sstream>
-#include <string>
-#include <vector>
 
 #include "gaia/common.hpp"
 
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
-#include "gaia_internal/db/db_types.hpp"
 
-#include "db_helpers.hpp"
 #include "db_object_helpers.hpp"
 #include "gaia_field_generated.h"
 #include "gaia_index_generated.h"

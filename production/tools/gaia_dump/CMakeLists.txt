@@ -3,11 +3,9 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(gaia_dump)
 
 set(GAIA_DUMP_INCLUDES
-  ${FLATBUFFERS_INC}
   ${GAIA_REPO}/production/db/core/src
   ${GAIA_PROD_BUILD}/catalog/parser/generated
   ${GAIA_REPO}/third_party/production/flatbuffers/include
@@ -27,4 +25,4 @@ target_link_libraries(gaia_dump PRIVATE rt gaia_catalog gaia_parser gaia_db_clie
 add_gtest(test_gaia_dump
   "tests/test_gaia_dump.cpp;src/gaia_dump.cpp"
   "${GAIA_DUMP_INCLUDES}"
-  "rt;gaia_system;gaia_catalog;gaia_parser;edc_airport")
+  "rt;gaia_system;gaia_catalog;gaia_parser;dac_airport")

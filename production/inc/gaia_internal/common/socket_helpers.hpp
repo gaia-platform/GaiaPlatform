@@ -33,8 +33,10 @@ constexpr size_t c_max_msg_size_in_bytes{1 << 12};
 // TODO: Add max fd count template parameter to socket helper functions.
 constexpr size_t c_max_fd_count{16};
 
-// We throw this exception when either EPIPE or ECONNRESET is returned by a read or write, or EOF
-// returned from a read (where a 0-length read is impossible).
+/**
+ * Thrown on either EPIPE or ECONNRESET returned from a write
+ * or EOF returned from a read (where a 0-length read is impossible).
+ */
 class peer_disconnected : public gaia_exception
 {
 public:

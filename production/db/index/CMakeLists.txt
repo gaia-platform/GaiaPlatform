@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(index)
 
 set(GAIA_INDEX_INCLUDES
@@ -31,4 +30,4 @@ set (INDEX_TEST_INCLUDES
 
 # Tests.
 
-add_gtest(test_index tests/test_index.cpp "${INDEX_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;gaia_common;gaia_payload_types;gaia_index;edc_prerequisites")
+add_gtest(test_index tests/test_index.cpp "${INDEX_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;gaia_common;gaia_payload_types;gaia_index;dac_prerequisites")

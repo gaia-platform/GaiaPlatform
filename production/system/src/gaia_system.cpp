@@ -6,8 +6,6 @@
 #include <cpptoml.h>
 
 #include "gaia/db/db.hpp"
-#include "gaia/exception.hpp"
-#include "gaia/exceptions.hpp"
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
 
@@ -16,6 +14,7 @@
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
+#include "gaia_internal/exceptions.hpp"
 #include "gaia_internal/rules/rules_config.hpp"
 
 using namespace std;
@@ -33,7 +32,7 @@ void gaia::system::initialize(const char* gaia_config_file, const char* logger_c
     string gaia_config_str = get_conf_file_path(gaia_config_file, c_default_conf_file_name);
     if (gaia_config_file && gaia_config_str.empty())
     {
-        throw configuration_error(gaia_config_file);
+        throw configuration_error_internal(gaia_config_file);
     }
 
     string logger_config_str = get_conf_file_path(logger_config_file, c_default_logger_conf_file_name);
@@ -41,7 +40,7 @@ void gaia::system::initialize(const char* gaia_config_file, const char* logger_c
     // subsystem to adjust (or not).
     if (logger_config_file && logger_config_str.empty())
     {
-        throw configuration_error(logger_config_file);
+        throw configuration_error_internal(logger_config_file);
     }
 
     if (!gaia_config_str.empty())

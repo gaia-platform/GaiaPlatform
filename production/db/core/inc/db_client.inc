@@ -18,11 +18,6 @@ inline void client_t::set_commit_trigger(triggers::commit_trigger_fn trigger_fn)
     s_txn_commit_trigger = trigger_fn;
 }
 
-inline gaia_txn_id_t client_t::get_txn_id()
-{
-    return s_txn_id;
-}
-
 inline int client_t::get_session_socket_for_txn()
 {
     return s_session_socket;
@@ -37,7 +32,7 @@ inline void client_t::verify_txn_active()
 {
     if (!is_transaction_open())
     {
-        throw no_open_transaction();
+        throw no_open_transaction_internal();
     }
 }
 
@@ -45,7 +40,7 @@ inline void client_t::verify_no_txn()
 {
     if (is_transaction_open())
     {
-        throw transaction_in_progress();
+        throw transaction_in_progress_internal();
     }
 }
 
@@ -53,7 +48,7 @@ inline void client_t::verify_session_active()
 {
     if (s_session_socket == -1)
     {
-        throw no_open_session();
+        throw no_open_session_internal();
     }
 }
 
@@ -61,7 +56,7 @@ inline void client_t::verify_no_session()
 {
     if (s_session_socket != -1)
     {
-        throw session_exists();
+        throw session_exists_internal();
     }
 }
 
@@ -84,7 +79,7 @@ inline void client_t::txn_log(
     // We never allocate more than `c_max_log_records` records in the log.
     if (s_log.data()->record_count == c_max_log_records)
     {
-        throw transaction_object_limit_exceeded();
+        throw transaction_object_limit_exceeded_internal();
     }
 
     // Initialize the new record and increment the record count.

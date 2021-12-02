@@ -10,7 +10,7 @@ gaia::db::locators_t* gaia::db::get_locators()
 {
     if (!gaia::db::client_t::s_private_locators.is_set())
     {
-        throw no_open_transaction();
+        throw no_open_transaction_internal();
     }
 
     // REVIEW: Callers of this method should probably never be able to observe
@@ -37,7 +37,7 @@ gaia::db::counters_t* gaia::db::get_counters()
 
     if (!gaia::db::client_t::s_shared_counters.is_set())
     {
-        throw no_open_session();
+        throw no_open_session_internal();
     }
 
     return gaia::db::client_t::s_shared_counters.data();
@@ -51,7 +51,7 @@ gaia::db::data_t* gaia::db::get_data()
 
     if (!gaia::db::client_t::s_shared_data.is_set())
     {
-        throw no_open_session();
+        throw no_open_session_internal();
     }
 
     return gaia::db::client_t::s_shared_data.data();
@@ -65,7 +65,7 @@ gaia::db::id_index_t* gaia::db::get_id_index()
 
     if (!gaia::db::client_t::s_shared_id_index.is_set())
     {
-        throw no_open_session();
+        throw no_open_session_internal();
     }
 
     return gaia::db::client_t::s_shared_id_index.data();
@@ -73,7 +73,7 @@ gaia::db::id_index_t* gaia::db::get_id_index()
 
 gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id()
 {
-    return gaia::db::client_t::get_txn_id();
+    return gaia::db::client_t::s_txn_id;
 }
 
 gaia::db::index::indexes_t* gaia::db::get_indexes()

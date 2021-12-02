@@ -10,13 +10,14 @@
 #include <utility>
 #include <variant>
 
-#include "gaia/events.hpp"
+#include "gaia/db/events.hpp"
 
 #include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/timer.hpp"
 #include "gaia_internal/db/gaia_db_internal.hpp"
 #include "gaia_internal/db/triggers.hpp"
+#include "gaia_internal/rules/exceptions.hpp"
 
 #include "rule_stats_manager.hpp"
 
@@ -50,7 +51,7 @@ event_manager_t& event_manager_t::get(bool require_initialized)
     // Throw an error if the instance must be initialized before retrieving the instance.
     if (require_initialized && !s_instance.m_is_initialized)
     {
-        throw initialization_error();
+        throw initialization_error_internal();
     }
 
     return s_instance;
@@ -246,8 +247,16 @@ void event_manager_t::check_subscription(event_type_t event_type, const field_po
     {
         if (fields.size() > 0)
         {
-            throw invalid_subscription(event_type, "The field list must be empty.");
+            throw invalid_subscription_internal(event_type, "The field list must be empty.");
         }
+    }
+}
+
+void event_manager_t::check_rule_binding(const rule_binding_t& binding)
+{
+    if (nullptr == binding.rule || nullptr == binding.rule_name || nullptr == binding.ruleset_name)
+    {
+        throw invalid_rule_binding_internal();
     }
 }
 
@@ -485,7 +494,7 @@ bool event_manager_t::add_rule(rule_list_t& rules, const rule_binding_t& binding
     const _rule_binding_t* rule_ptr = find_rule(binding);
     if (rule_ptr != nullptr && rule_ptr->rule != binding.rule)
     {
-        throw duplicate_rule(binding, true);
+        throw duplicate_rule_internal(binding.ruleset_name, binding.rule_name, true);
     }
 
     // Do not allow the caller to bind the same rule to the same rule list.
@@ -494,7 +503,7 @@ bool event_manager_t::add_rule(rule_list_t& rules, const rule_binding_t& binding
     {
         if (rule == rule_ptr)
         {
-            throw duplicate_rule(binding, false);
+            throw duplicate_rule_internal(binding.ruleset_name, binding.rule_name, false);
         }
     }
 

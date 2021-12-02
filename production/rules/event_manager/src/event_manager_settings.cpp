@@ -5,10 +5,20 @@
 
 #include "event_manager_settings.hpp"
 
-#include "gaia/exceptions.hpp"
 #include "gaia/rules/rules.hpp"
 
 using namespace std;
+
+class configuration_error_internal : public gaia::common::configuration_error
+{
+public:
+    explicit configuration_error_internal(const char* key, int value)
+    {
+        std::stringstream message;
+        message << "Invalid value '" << value << "' provided for setting '" << key << "'.";
+        m_message = message.str();
+    }
+};
 
 void gaia::rules::event_manager_settings_t::parse_rules_config(
     shared_ptr<cpptoml::table>& root_config,
@@ -31,7 +41,7 @@ void gaia::rules::event_manager_settings_t::parse_rules_config(
         int32_t thread_count = *thread_count_setting;
         if (thread_count == 0)
         {
-            throw gaia::common::configuration_error(event_manager_settings_t::c_thread_count_key, thread_count);
+            throw configuration_error_internal(event_manager_settings_t::c_thread_count_key, thread_count);
         }
 
         if (thread_count == -1)

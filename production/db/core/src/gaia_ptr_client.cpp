@@ -73,7 +73,7 @@ bool gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t firs
 
     if (!relationship)
     {
-        throw invalid_reference_offset(parent_type, first_child_offset);
+        throw invalid_reference_offset_internal(parent_type, first_child_offset);
     }
 
     // Check types.
@@ -82,17 +82,17 @@ bool gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t firs
 
     if (!child_ptr)
     {
-        throw invalid_object_id(child_id);
+        throw invalid_object_id_internal(child_id);
     }
 
     if (relationship->parent_type != parent_type)
     {
-        throw invalid_relationship_type(first_child_offset, relationship->parent_type, parent_type);
+        throw invalid_relationship_type_internal(first_child_offset, relationship->parent_type, parent_type);
     }
 
     if (relationship->child_type != child_ptr.type())
     {
-        throw invalid_relationship_type(first_child_offset, relationship->child_type, child_ptr.type());
+        throw invalid_relationship_type_internal(first_child_offset, relationship->child_type, child_ptr.type());
     }
 
     // Check cardinality.
@@ -103,7 +103,7 @@ bool gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t firs
         // If the relationship is one-to-one, we fail.
         if (relationship->cardinality == cardinality_t::one)
         {
-            throw single_cardinality_violation(parent_type, first_child_offset);
+            throw single_cardinality_violation_internal(parent_type, first_child_offset);
         }
     }
 
@@ -117,7 +117,7 @@ bool gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t firs
         {
             return false;
         }
-        throw child_already_referenced(child_ptr.type(), relationship->parent_offset);
+        throw child_already_referenced_internal(child_ptr.type(), relationship->parent_offset);
     }
 
     // Clone parent and child objects for CoW updates.
@@ -160,14 +160,14 @@ bool gaia_ptr_t::add_parent_reference(gaia_id_t parent_id, reference_offset_t pa
 
     if (!child_relationship)
     {
-        throw invalid_reference_offset(child_type, parent_offset);
+        throw invalid_reference_offset_internal(child_type, parent_offset);
     }
 
     auto parent_ptr = gaia_ptr_t::open(parent_id);
 
     if (!parent_ptr)
     {
-        throw invalid_object_id(parent_id);
+        throw invalid_object_id_internal(parent_id);
     }
 
     return parent_ptr.add_child_reference(id(), child_relationship->first_child_offset);
@@ -181,7 +181,7 @@ bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
 
     if (!relationship)
     {
-        throw invalid_reference_offset(parent_type, first_child_offset);
+        throw invalid_reference_offset_internal(parent_type, first_child_offset);
     }
 
     // Check types.
@@ -193,17 +193,17 @@ bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
 
     if (!child_ptr)
     {
-        throw invalid_object_id(child_id);
+        throw invalid_object_id_internal(child_id);
     }
 
     if (relationship->parent_type != parent_type)
     {
-        throw invalid_relationship_type(first_child_offset, parent_type, relationship->parent_type);
+        throw invalid_relationship_type_internal(first_child_offset, parent_type, relationship->parent_type);
     }
 
     if (relationship->child_type != child_ptr.type())
     {
-        throw invalid_relationship_type(first_child_offset, child_ptr.type(), relationship->child_type);
+        throw invalid_relationship_type_internal(first_child_offset, child_ptr.type(), relationship->child_type);
     }
 
     if (child_ptr.references()[relationship->parent_offset] == c_invalid_gaia_id)
@@ -213,7 +213,7 @@ bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
 
     if (child_ptr.references()[relationship->parent_offset] != id())
     {
-        throw invalid_child(child_ptr.type(), child_id, type(), id());
+        throw invalid_child_reference_internal(child_ptr.type(), child_id, type(), id());
     }
 
     // Clone parent and child objects for CoW updates.
@@ -287,7 +287,7 @@ bool gaia_ptr_t::remove_parent_reference(reference_offset_t parent_offset)
 
     if (!relationship)
     {
-        throw invalid_reference_offset(child_type, parent_offset);
+        throw invalid_reference_offset_internal(child_type, parent_offset);
     }
 
     auto parent_ptr = gaia_ptr_t::open(this->references()[parent_offset]);
@@ -313,14 +313,14 @@ bool gaia_ptr_t::update_parent_reference(
 
     if (!relationship)
     {
-        throw invalid_reference_offset(child_type, parent_offset);
+        throw invalid_reference_offset_internal(child_type, parent_offset);
     }
 
     auto new_parent_ptr = gaia_ptr_t::open(new_parent_id);
 
     if (!new_parent_ptr)
     {
-        throw invalid_object_id(new_parent_id);
+        throw invalid_object_id_internal(new_parent_id);
     }
 
     // TODO: this implementation will produce more garbage than necessary. Also, many of the RI methods
@@ -334,7 +334,7 @@ bool gaia_ptr_t::update_parent_reference(
         // If the relationship is one-to-one we fail.
         if (relationship->cardinality == cardinality_t::one)
         {
-            throw single_cardinality_violation(new_parent_ptr.type(), relationship->first_child_offset);
+            throw single_cardinality_violation_internal(new_parent_ptr.type(), relationship->first_child_offset);
         }
     }
 
@@ -368,7 +368,7 @@ void gaia_ptr_t::create_insert_trigger(gaia_type_t type, gaia_id_t id)
 {
     if (client_t::is_valid_event(type))
     {
-        client_t::s_events.emplace_back(event_type_t::row_insert, type, id, empty_position_list, get_txn_id());
+        client_t::s_events.emplace_back(event_type_t::row_insert, type, id, empty_position_list, get_current_txn_id());
     }
 }
 
@@ -396,7 +396,7 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t
     size_t total_payload_size = data_size + references_size;
     if (total_payload_size > c_db_object_max_payload_size)
     {
-        throw object_too_large(total_payload_size, c_db_object_max_payload_size);
+        throw object_too_large_internal(total_payload_size, c_db_object_max_payload_size);
     }
 
     // TODO: this constructor allows creating a gaia_ptr_t in an invalid state;
@@ -452,7 +452,7 @@ void gaia_ptr_t::remove(gaia_ptr_t& object)
         if (references[i] != c_invalid_gaia_id)
         {
             auto other_obj = gaia_ptr_t::open(references[i]);
-            throw object_still_referenced(object.id(), object.type(), other_obj.id(), other_obj.type());
+            throw object_still_referenced_internal(object.id(), object.type(), other_obj.id(), other_obj.type());
         }
     }
     object.reset();
@@ -579,7 +579,7 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
     size_t total_payload_size = data_size + references_size;
     if (total_payload_size > c_db_object_max_payload_size)
     {
-        throw object_too_large(total_payload_size, c_db_object_max_payload_size);
+        throw object_too_large_internal(total_payload_size, c_db_object_max_payload_size);
     }
 
     // Updates m_locator to point to the new object.
@@ -614,7 +614,7 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
 
     if (client_t::is_valid_event(new_this->type))
     {
-        client_t::s_events.emplace_back(event_type_t::row_update, new_this->type, new_this->id, changed_fields, get_txn_id());
+        client_t::s_events.emplace_back(event_type_t::row_update, new_this->type, new_this->id, changed_fields, get_current_txn_id());
     }
 
     return *this;

@@ -8,6 +8,8 @@
 #include <bitset>
 #include <iostream>
 
+#include "gaia/exceptions.hpp"
+
 #include "gaia_internal/common/mmap_helpers.hpp"
 
 #include "db_helpers.hpp"
