@@ -151,7 +151,9 @@ jobs:
           pg_config --includedir
           pg_config --includedir-server
           ls -la /usr/lib/postgresql/
-          fail
+          rm -rf /usr/lib/postgresql/14
+          ls -la /usr/lib/postgresql/
+          pg_config --includedir-server
 
       - name: $GAIA_REPO/third_party/production/liburing
         run: |

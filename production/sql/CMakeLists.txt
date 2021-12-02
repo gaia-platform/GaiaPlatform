@@ -57,7 +57,7 @@ if(NOT DEFINED LIB_INSTALL_DIR)
 endif()
 
 # Build sources.
-#add_subdirectory(src)
+add_subdirectory(src)
 
 # Add tests.
-#add_subdirectory(tests)
+add_subdirectory(tests)
