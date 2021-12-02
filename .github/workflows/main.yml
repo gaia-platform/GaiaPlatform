@@ -92,6 +92,9 @@ jobs:
           sudo mkdir -p /var/lib/gaia/db
           sudo chmod -R 666 /var/lib/gaia/db
 
+          apt list | grep postgres
+          fail
+
       - name: $GAIA_REPO/third_party/production/cmake
         run: |
           cd $GAIA_REPO/third_party/production/cmake
@@ -214,14 +217,19 @@ jobs:
       - name: $GAIA_REPO/production
         run: |
           echo "ls -la /usr/include/postgresql/12/server/postgres.h || exit 1" > production.sh
-          echo "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" cmake --log-level=VERBOSE -Wno-dev -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_RELEASE=ON  -G \"Unix Makefiles\" $GAIA_REPO/production || exit 1" >> production.sh
+          echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake --log-level=VERBOSE -Wno-dev -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_RELEASE=ON  -G \"Unix Makefiles\" $GAIA_REPO/production || exit 1" >> production.sh
           echo "cat CMakeCache.txt || exit 1" >> production.sh
-          echo "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" LSAN_OPTIONS=detect_leaks=0 VERBOSE=1 make -j$(nproc) || exit 1" >> production.sh
+          echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" LSAN_OPTIONS=detect_leaks=0 VERBOSE=1 make -j$(nproc) || exit 1" >> production.sh
           echo "cd /build/production/db/core || exit 1" >> production.sh
           echo "make install || exit 1" >> production.sh
           chmod +x production.sh
           sudo ./production.sh
 
+      - name: Upload Build Directory
+        uses: actions/upload-artifact@v2
+        with:
+          name: Build
+          path: /build
       - name: Upload CMakeCache.txt
         uses: actions/upload-artifact@v2
         with:
