@@ -109,9 +109,9 @@ jobs:
           echo "cd daemonize" >> daemonize.sh
           echo "env > start.env" >> daemonize.sh
           echo "export > start.export" >> daemonize.sh
-          echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=$LDFLAGS CPPFLAGS='-fPIC' ./configure" >> daemonize.sh
-          echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=$LDFLAGS VERBOSE=1 make -j$(nproc)" >> daemonize.sh
-          echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=$LDFLAGS VERBOSE=1 make install" >> daemonize.sh
+          echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\"" CPPFLAGS='-fPIC' ./configure || exit 1" >> daemonize.sh
+          echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=$LDFLAGS VERBOSE=1 make -j$(nproc) || exit 1" >> daemonize.sh
+          echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=$LDFLAGS VERBOSE=1 make install || exit 1" >> daemonize.sh
           echo "env > end.env" >> daemonize.sh
           echo "export > end.export" >> daemonize.sh
           echo "diff start.env end.env" >> daemonize.sh
