@@ -229,9 +229,9 @@ jobs:
           echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" LSAN_OPTIONS=detect_leaks=0 VERBOSE=1 make -j$(nproc) || exit 1" >> production.sh
           echo "cd /build/production/db/core"
           echo "make install"
-          ls -laR /home/runner/work/
           chmod +x production.sh
           sudo ./production.sh
+          ls -laR /home/runner/work/
 
       - name: Upload Build Directory
         uses: actions/upload-artifact@v2
