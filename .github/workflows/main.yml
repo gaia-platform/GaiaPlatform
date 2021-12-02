@@ -150,6 +150,7 @@ jobs:
           which pg_config
           pg_config --includedir
           pg_config --includedir-server
+          ls -la /usr/lib/postgresql/
           fail
 
       - name: $GAIA_REPO/third_party/production/liburing
