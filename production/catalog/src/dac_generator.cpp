@@ -5,6 +5,8 @@
 
 #include "dac_generator.hpp"
 
+#include <string>
+
 #include <flatbuffers/code_generators.h>
 
 #include "gaia_internal/catalog/catalog.hpp"
@@ -153,22 +155,22 @@ std::string dac_compilation_unit_writer_t::generate_constants()
         // This map is used to place the constants ordered by offset.
         // There is no practical reason besides making the code easier to read.
         // The '//' in the end of each line prevents the new line to be created.
-        std::map<int, std::string> table_constants;
+        std::map<uint16_t, std::string> table_constants;
 
         for (const auto& incoming_link : table.incoming_links())
         {
             gaiac_incoming_link_facade_t link{incoming_link};
             flatbuffers::CodeWriter const_code = create_code_writer();
             const_code.SetValue("PARENT_OFFSET", link.parent_offset());
-            const_code.SetValue("PARENT_OFFSET_VALUE", link.parent_offset_value());
-            const_code += "constexpr int {{PARENT_OFFSET}} = {{PARENT_OFFSET_VALUE}};\\";
-            table_constants.insert({std::stoi(link.parent_offset_value()), const_code.ToString()});
+            const_code.SetValue("PARENT_OFFSET_VALUE", std::to_string(link.parent_offset_value()));
+            const_code += "constexpr common::reference_offset_t {{PARENT_OFFSET}} = {{PARENT_OFFSET_VALUE}};\\";
+            table_constants.insert({link.parent_offset_value(), const_code.ToString()});
 
             const_code.Clear();
             const_code.SetValue("NEXT_OFFSET", link.next_offset());
-            const_code.SetValue("NEXT_OFFSET_VALUE", link.next_offset_value());
-            const_code += "constexpr int {{NEXT_OFFSET}} = {{NEXT_OFFSET_VALUE}};\\";
-            table_constants.insert({std::stoi(link.next_offset_value()), const_code.ToString()});
+            const_code.SetValue("NEXT_OFFSET_VALUE", std::to_string(link.next_offset_value()));
+            const_code += "constexpr common::reference_offset_t {{NEXT_OFFSET}} = {{NEXT_OFFSET_VALUE}};\\";
+            table_constants.insert({link.next_offset_value(), const_code.ToString()});
         }
 
         for (const auto& outgoing_link : table.outgoing_links())
@@ -176,9 +178,9 @@ std::string dac_compilation_unit_writer_t::generate_constants()
             gaiac_outgoing_link_facade_t link{outgoing_link};
             flatbuffers::CodeWriter const_code = create_code_writer();
             const_code.SetValue("FIRST_OFFSET", link.first_offset());
-            const_code.SetValue("FIRST_OFFSET_VALUE", link.first_offset_value());
-            const_code += "constexpr int {{FIRST_OFFSET}} = {{FIRST_OFFSET_VALUE}};\\";
-            table_constants.insert({std::stoi(link.first_offset_value()), const_code.ToString()});
+            const_code.SetValue("FIRST_OFFSET_VALUE", std::to_string(link.first_offset_value()));
+            const_code += "constexpr common::reference_offset_t {{FIRST_OFFSET}} = {{FIRST_OFFSET_VALUE}};\\";
+            table_constants.insert({link.first_offset_value(), const_code.ToString()});
         }
 
         for (auto& constant_pair : table_constants)
@@ -676,7 +678,7 @@ std::string class_writer_t::generate_expr_namespace()
         code += "static auto& {{FIELD_NAME}} = {{TABLE_NAME}}_t::expr::{{FIELD_NAME}};";
     }
     code.DecrementIdentLevel();
-    code += "}";
+    code += "} // {{TABLE_NAME}}_expr";
 
     return code.ToString();
 }
