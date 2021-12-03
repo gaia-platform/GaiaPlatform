@@ -1409,12 +1409,9 @@ template <typename T_element>
 void server_t::stream_producer_handler(
     int stream_socket, int cancel_eventfd, std::shared_ptr<generator_t<T_element>> generator_fn)
 {
-    auto socket_cleanup = make_scope_guard([&]() {
-        // We can rely on close_fd() to perform the
-        // equivalent of shutdown(SHUT_RDWR), because we hold
-        // the only fd pointing to this socket.
-        close_fd(stream_socket);
-    });
+    // We can rely on close_fd() to perform the equivalent of shutdown(SHUT_RDWR), because we
+    // hold the only fd pointing to this socket.
+    auto socket_cleanup = make_scope_guard([&]() { close_fd(stream_socket); });
 
     // Verify that the socket is the correct type for the semantics we assume.
     check_socket_type(stream_socket, SOCK_SEQPACKET);
@@ -1524,10 +1521,10 @@ void server_t::stream_producer_handler(
                         ++gen_it;
                     }
 
-                    // We need to send any pending data in the buffer, followed by EOF if we reached
-                    // end of iteration. We let the client decide when to close the socket, because
-                    // their next read may be arbitrarily delayed (and they may still have pending
-                    // data).
+                    // We need to send any pending data in the buffer, followed by EOF if we
+                    // exhausted the iterator. We let the client decide when to close the socket,
+                    // because their next read may be arbitrarily delayed (and they may still have
+                    // pending data).
 
                     // First send any remaining data in the buffer.
                     if (batch_buffer.size() > 0)
@@ -1584,9 +1581,9 @@ void server_t::stream_producer_handler(
                         }
                     }
 
-                    // If we reached end of iteration, send EOF to client. (We still need to
-                    // wait for the client to close their socket, because they may still have
-                    // unread data, so we don't set the producer_shutdown flag.)
+                    // If we exhausted the iterator, send EOF to client. (We still need to wait for
+                    // the client to close their socket, because they may still have unread data, so
+                    // we don't set the producer_shutdown flag.)
                     if (!gen_it)
                     {
                         ::shutdown(stream_socket, SHUT_WR);
