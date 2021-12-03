@@ -293,10 +293,10 @@ jobs:
           sudo bash -c "mkdir -p /source/production"
           sudo bash -c "cp -a $GAIA_REPO/production/. /source/production/"
 
-          echo find . -name /source
-          sudo find . -name /source
-          echo find . -name /build
-          sudo find . -name /build
+          echo find /source -name .git
+          sudo find /source -name .git
+          echo find /build -name .git
+          sudo find /build -name .git
 
           echo "du - source"
           sudo bash -c "du -h -d1 /source"
@@ -328,11 +328,18 @@ jobs:
           echo "du - build"
           sudo bash -c "du -h -d1 /build"
 
-      - name: Upload Build Directory
+      - name: Upload CMakeOutput.log
+        if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: data
-          path: /home/runner/work/GaiaPlatform/data
+          name: CMakeOutput.log
+          path: /build/production/CMakeFiles/CMakeOutput.log
+      - name: Upload CMakeError.log
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: CMakeError.log
+          path: /build/production/CMakeFiles/CMakeError.log
       - name: Done
         run: |
           echo "Done"
