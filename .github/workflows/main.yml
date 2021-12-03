@@ -219,80 +219,80 @@ jobs:
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
 
-      - name: blahhhhhh
+      - name: Create /source and /build directories.
         run: |
 
           sudo bash -c "mkdir -p /build/third_party/production/cmake"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/cmake/ /build/third_party/production/cmake/"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/cmake/. /build/third_party/production/cmake/"
           sudo bash -c "mkdir -p /source/production/cmake"
-          sudo bash -c "cp -a $GAIA_REPO/production/cmake/ /source/production/cmake/"
+          sudo bash -c "cp -a $GAIA_REPO/production/cmake/. /source/production/cmake/"
 
           sudo bash -c "mkdir -p /source/production/sql/src"
-          sudo bash -c "cp -a $GAIA_REPO/production/sql/src/ /source/production/sql/src/"
+          sudo bash -c "cp -a $GAIA_REPO/production/sql/src/. /source/production/sql/src/"
           sudo bash -c "mkdir -p /source/production/sql"
-          sudo bash -c "cp -a $GAIA_REPO/production/sql/ /source/production/sql/"
+          sudo bash -c "cp -a $GAIA_REPO/production/sql/. /source/production/sql/"
 
           sudo bash -c "mkdir -p /build/third_party/production/backward"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/backward/ /build/third_party/production/backward/"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/backward/. /build/third_party/production/backward/"
 
           sudo bash -c "mkdir -p /build/third_party/production/bison"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/bison/ /build/third_party/production/bison/"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/bison/. /build/third_party/production/bison/"
 
           sudo bash -c "mkdir -p /build/third_party/production/daemonize"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/daemonize/ /build/third_party/production/daemonize/"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/daemonize/. /build/third_party/production/daemonize/"
 
           sudo bash -c "mkdir -p /source/third_party/production/flatbuffers"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/flatbuffers/ /source/third_party/production/flatbuffers/"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/flatbuffers/. /source/third_party/production/flatbuffers/"
 
           sudo bash -c "mkdir -p /source/third_party/production/googletest"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/googletest/ /source/third_party/production/googletest/"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/googletest/. /source/third_party/production/googletest/"
 
           sudo bash -c "mkdir -p /build/third_party/production/libexplain"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/libexplain/ /build/third_party/production/libexplain/"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/libexplain/. /build/third_party/production/libexplain/"
 
           sudo bash -c "mkdir -p /source/third_party/production/json"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/json/ /source/third_party/production/json/"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/json/. /source/third_party/production/json/"
 
           sudo bash -c "mkdir -p /build/third_party/production/libexplain"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/libexplain/ /build/third_party/production/libexplain/"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/libexplain/. /build/third_party/production/libexplain/"
 
           sudo bash -c "mkdir -p /build/third_party/production/postgresql"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/postgresql/ /build/third_party/production/postgresql/"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/postgresql/. /build/third_party/production/postgresql/"
 
           sudo bash -c "mkdir -p /source/third_party/production/rocksdb"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/rocksdb/ /source/third_party/production/rocksdb/"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/rocksdb/. /source/third_party/production/rocksdb/"
 
           sudo bash -c "mkdir -p /build/third_party/production/cpptoml"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/cpptoml/ /build/third_party/production/cpptoml/"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/cpptoml/. /build/third_party/production/cpptoml/"
 
           sudo bash -c "mkdir -p /build/third_party/production/tabulate"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/tabulate/ /build/third_party/production/tabulate/"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/tabulate/. /build/third_party/production/tabulate/"
 
           sudo bash -c "mkdir -p /build/third_party/production/liburing"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/liburing/ /build/third_party/production/liburing/"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/liburing/. /build/third_party/production/liburing/"
 
           sudo bash -c "mkdir -p /source/third_party/bundle/gaia_spdlog"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/bundle/gaia_spdlog/ /source/third_party/bundle/gaia_spdlog/"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/bundle/gaia_spdlog/. /source/third_party/bundle/gaia_spdlog/"
           sudo bash -c "mkdir -p /source/third_party/bundle/gaia_spdlog_setup"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/bundle/gaia_spdlog_setup/ /source/third_party/bundle/gaia_spdlog_setup/"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/bundle/gaia_spdlog_setup/. /source/third_party/bundle/gaia_spdlog_setup/"
 
           sudo bash -c "mkdir -p /source/third_party/production/gaia_spdlog"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/gaia_spdlog/ /source/third_party/production/gaia_spdlog/"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/gaia_spdlog/. /source/third_party/production/gaia_spdlog/"
           sudo bash -c "mkdir -p /source/third_party/production/gaia_spdlog_setup"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/gaia_spdlog_setup/ /source/third_party/production/gaia_spdlog_setup/"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/gaia_spdlog_setup/. /source/third_party/production/gaia_spdlog_setup/"
 
           sudo bash -c "mkdir -p /source/dev_tools/hooks"
-          sudo bash -c "cp -a $GAIA_REPO/dev_tools/hooks/ /source/dev_tools/hooks/"
+          sudo bash -c "cp -a $GAIA_REPO/dev_tools/hooks/. /source/dev_tools/hooks/"
 
           sudo bash -c "mkdir -p /source/production"
-          sudo bash -c "cp -a $GAIA_REPO/production/ /source/production/"
+          sudo bash -c "cp -a $GAIA_REPO/production/. /source/production/"
 
           echo "du - source"
           sudo bash -c "du -h -d1 /source"
           echo "du - build"
           sudo bash -c "du -h -d1 /build"
 
-      - name: $GAIA_REPO/production
+      - name: Build
         run: |
           echo "mkdir -p /build/production || exit 1" >> production.sh
           echo "cd /build/production || exit 1" >> production.sh
