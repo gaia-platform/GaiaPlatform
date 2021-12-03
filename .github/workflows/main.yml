@@ -281,6 +281,11 @@ jobs:
           sudo bash -c "mkdir -p /source/third_party/production/gaia_spdlog_setup"
           sudo bash -c "cp -a $GAIA_REPO/third_party/production/gaia_spdlog_setup/. /source/third_party/production/gaia_spdlog_setup/"
 
+          sudo bash -c "mkdir -p /source/third_party/production/TranslationEngineLLVM"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/TranslationEngineLLVM/. /source/third_party/production/TranslationEngineLLVM/"
+          sudo bash -c "mkdir -p /source/third_party/production/CPackDebHelper"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/CPackDebHelper/. /source/third_party/production/CPackDebHelper/"
+
           sudo bash -c "mkdir -p /source/dev_tools/hooks"
           sudo bash -c "cp -a $GAIA_REPO/dev_tools/hooks/. /source/dev_tools/hooks/"
 
