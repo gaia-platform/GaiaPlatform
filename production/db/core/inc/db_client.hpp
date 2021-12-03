@@ -78,7 +78,7 @@ public:
      */
     static inline void set_commit_trigger(triggers::commit_trigger_fn trigger_fn);
 
-    // This test-only function is exported from gaia_db_internal.hpp.
+    // This test-only function is exported from gaia_internal/db/db.hpp.
     static void clear_shared_memory();
 
     // These public functions are exported from and documented in db.hpp.

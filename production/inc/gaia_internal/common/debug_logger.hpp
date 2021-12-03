@@ -10,7 +10,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/logger.hpp"
 
 namespace gaia
 {

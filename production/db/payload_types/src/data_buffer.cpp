@@ -11,6 +11,9 @@ namespace gaia
 {
 namespace db
 {
+namespace payload_types
+{
+
 data_write_buffer_t::data_write_buffer_t(flatbuffers::FlatBufferBuilder& builder)
     : m_buffer(), m_builder(builder)
 {
@@ -39,5 +42,6 @@ serialization_output_t data_write_buffer_t::output()
     return m_builder.CreateVector(m_buffer);
 }
 
+} // namespace payload_types
 } // namespace db
 } // namespace gaia

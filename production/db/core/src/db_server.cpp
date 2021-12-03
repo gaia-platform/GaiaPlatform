@@ -27,8 +27,8 @@
 #include "gaia_internal/common/socket_helpers.hpp"
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_object.hpp"
-#include "gaia_internal/db/gaia_db_internal.hpp"
 #include "gaia_internal/db/index_builder.hpp"
 
 #include "gaia_spdlog/fmt/fmt.h"
@@ -470,13 +470,13 @@ void server_t::handle_request_stream(
                 if (query_type == index_query_t::index_point_read_query_t)
                 {
                     auto query = request_data->query_as_index_point_read_query_t();
-                    auto key_buffer = data_read_buffer_t(*(query->key()));
+                    auto key_buffer = payload_types::data_read_buffer_t(*(query->key()));
                     key = index::index_builder_t::deserialize_key(index_id, key_buffer);
                 }
                 else
                 {
                     auto query = request_data->query_as_index_equal_range_query_t();
-                    auto key_buffer = data_read_buffer_t(*(query->key()));
+                    auto key_buffer = payload_types::data_read_buffer_t(*(query->key()));
                     key = index::index_builder_t::deserialize_key(index_id, key_buffer);
                 }
             }
