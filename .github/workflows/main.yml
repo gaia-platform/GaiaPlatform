@@ -10,7 +10,7 @@ on:
       - jack/gha
 
 jobs:
-  scenario-tests:
+  build:
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: /home/runner/work/GaiaPlatform/GaiaPlatform
@@ -209,6 +209,7 @@ jobs:
           cd $GAIA_REPO/third_party/production/CPackDebHelper
           sudo bash -c "mkdir -p /usr/local/lib/cmake/CPackDebHelper"
           sudo bash -c "cp CPackDebHelper/cmake/*.cmake /usr/local/lib/cmake/CPackDebHelper/"
+          sudo bash -c "rm -rf *"
 
       - name: $GAIA_REPO/third_party/production/libexplain
         run: |
@@ -219,29 +220,119 @@ jobs:
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
 
-      - name: $GAIA_REPO/production
+      - name: Create /source and /build directories.
         run: |
-          apt list | grep postgres
 
-          echo "ls -la /usr/include/postgresql/12/server/postgres.h || exit 1" > production.sh
-          echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake --log-level=VERBOSE -Wno-dev -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_RELEASE=ON  -G \"Unix Makefiles\" $GAIA_REPO/production || exit 1" >> production.sh
+          sudo bash -c "mkdir -p /build/third_party/production/cmake"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/cmake/. /build/third_party/production/cmake/"
+          sudo bash -c "mkdir -p /source/production/cmake"
+          sudo bash -c "cp -a $GAIA_REPO/production/cmake/. /source/production/cmake/"
+
+          sudo bash -c "mkdir -p /source/production/sql/src"
+          sudo bash -c "cp -a $GAIA_REPO/production/sql/src/. /source/production/sql/src/"
+          sudo bash -c "mkdir -p /source/production/sql"
+          sudo bash -c "cp -a $GAIA_REPO/production/sql/. /source/production/sql/"
+
+          sudo bash -c "mkdir -p /build/third_party/production/backward"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/backward/. /build/third_party/production/backward/"
+
+          sudo bash -c "mkdir -p /build/third_party/production/bison"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/bison/. /build/third_party/production/bison/"
+
+          sudo bash -c "mkdir -p /build/third_party/production/daemonize"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/daemonize/. /build/third_party/production/daemonize/"
+
+          sudo bash -c "mkdir -p /source/third_party/production/flatbuffers"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/flatbuffers/. /source/third_party/production/flatbuffers/"
+
+          sudo bash -c "mkdir -p /source/third_party/production/googletest"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/googletest/. /source/third_party/production/googletest/"
+
+          sudo bash -c "mkdir -p /build/third_party/production/libexplain"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/libexplain/. /build/third_party/production/libexplain/"
+
+          sudo bash -c "mkdir -p /source/third_party/production/json"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/json/. /source/third_party/production/json/"
+
+          sudo bash -c "mkdir -p /build/third_party/production/libexplain"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/libexplain/. /build/third_party/production/libexplain/"
+
+          sudo bash -c "mkdir -p /build/third_party/production/postgresql"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/postgresql/. /build/third_party/production/postgresql/"
+
+          sudo bash -c "mkdir -p /source/third_party/production/rocksdb"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/rocksdb/. /source/third_party/production/rocksdb/"
+
+          sudo bash -c "mkdir -p /build/third_party/production/cpptoml"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/cpptoml/. /build/third_party/production/cpptoml/"
+
+          sudo bash -c "mkdir -p /build/third_party/production/tabulate"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/tabulate/. /build/third_party/production/tabulate/"
+
+          sudo bash -c "mkdir -p /build/third_party/production/liburing"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/liburing/. /build/third_party/production/liburing/"
+
+          sudo bash -c "mkdir -p /source/third_party/bundle/gaia_spdlog"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/bundle/gaia_spdlog/. /source/third_party/bundle/gaia_spdlog/"
+          sudo bash -c "mkdir -p /source/third_party/bundle/gaia_spdlog_setup"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/bundle/gaia_spdlog_setup/. /source/third_party/bundle/gaia_spdlog_setup/"
+
+          sudo bash -c "mkdir -p /source/third_party/production/gaia_spdlog"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/gaia_spdlog/. /source/third_party/production/gaia_spdlog/"
+          sudo bash -c "mkdir -p /source/third_party/production/gaia_spdlog_setup"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/gaia_spdlog_setup/. /source/third_party/production/gaia_spdlog_setup/"
+
+          sudo bash -c "mkdir -p /source/third_party/production/TranslationEngineLLVM"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/TranslationEngineLLVM/. /source/third_party/production/TranslationEngineLLVM/"
+          sudo bash -c "mkdir -p /source/third_party/production/CPackDebHelper"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/CPackDebHelper/. /source/third_party/production/CPackDebHelper/"
+
+          sudo bash -c "mkdir -p /source/dev_tools/hooks"
+          sudo bash -c "cp -a $GAIA_REPO/dev_tools/hooks/. /source/dev_tools/hooks/"
+
+          sudo bash -c "mkdir -p /source/production"
+          sudo bash -c "cp -a $GAIA_REPO/production/. /source/production/"
+
+          echo find . -name /source
+          sudo find . -name /source
+          echo find . -name /build
+          sudo find . -name /build
+
+          echo "du - source"
+          sudo bash -c "du -h -d1 /source"
+          echo "du - build"
+          sudo bash -c "du -h -d1 /build"
+
+      - name: Build
+        run: |
+          echo "mkdir -p /build/production || exit 1" >> production.sh
+          echo "cd /build/production || exit 1" >> production.sh
+          echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake --log-level=VERBOSE -Wno-dev -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_RELEASE=ON  -G \"Unix Makefiles\" /source/production || exit 1" >> production.sh
           echo "cat CMakeCache.txt || exit 1" >> production.sh
           echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" LSAN_OPTIONS=detect_leaks=0 VERBOSE=1 make -j$(nproc) || exit 1" >> production.sh
-      # echo "cd /build/production/db/core || exit 1" >> production.sh
-      # echo "make install || exit 1" >> production.sh
+          echo "cd /build/production/db/core"
+          echo "make install"
           chmod +x production.sh
           sudo ./production.sh
+          echo ls -la /build/production/db/core
+          sudo ls -la /build/production/db/core
+          echo pwd
+          pwd
+          echo find . -name gaia_db_server
+          sudo find . -name gaia_db_server
+          echo chmod 755 -R /home/runner/work/GaiaPlatform
+          sudo chmod 755 -R /home/runner/work/GaiaPlatform
+
+          echo "du - source"
+          sudo bash -c "du -h -d1 /source"
+          echo "du - build"
+          sudo bash -c "du -h -d1 /build"
 
       - name: Upload Build Directory
         uses: actions/upload-artifact@v2
         with:
-          name: Build
-          path: /home/runner/work/
-      - name: Upload CMakeCache.txt
-        uses: actions/upload-artifact@v2
-        with:
-          name: Debug
-          path: CMakeCache.txt
+          name: data
+          path: /home/runner/work/GaiaPlatform/data
       - name: Done
         run: |
           echo "Done"
