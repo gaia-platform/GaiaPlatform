@@ -2521,7 +2521,9 @@ void server_t::truncate_txn_table()
             return;
         }
 
-        // Mark any index entries committed before they are truncated.
+        // Mark any index entries as committed before the metadata is truncated.
+        // At this point, all aborted/terminated index entries before the pre-truncate watermark
+        // should have been garbage collected.
         index::index_builder_t::mark_index_entries_committed(new_pre_truncate_watermark);
     }
 }

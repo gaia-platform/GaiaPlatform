@@ -47,7 +47,7 @@ void index_t<T_structure, T_iterator>::mark_entries_committed(gaia_txn_id_t txn_
 
         if (record.txn_id <= txn_id)
         {
-            // This should is ideally be atomic, but the records stop becoming copyable.
+            // This should ideally be atomic, but the records stop becoming copyable.
             std::lock_guard lock(m_index_lock);
             mark_committed(record);
         }

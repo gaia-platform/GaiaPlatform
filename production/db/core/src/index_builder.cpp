@@ -172,12 +172,13 @@ void update_index_entry(
                 is_marked_committed(it_start->second) || transactions::txn_metadata_t::is_begin_ts(begin_ts),
                 "Transaction id in index key entry is not marked committed or a begin timestamp!");
 
-            // Index entries made by rolled back transactions or aborted transactions can be ignored,
-            // We can also remove them, because we are already holding a lock.
             bool is_aborted_operation
                 = !is_marked_committed(it_start->second)
                 && commit_ts != c_invalid_gaia_txn_id
                 && transactions::txn_metadata_t::is_txn_aborted(commit_ts);
+
+            // Index entries made by rolled back transactions or aborted transactions can be ignored,
+            // We can also remove them, because we are already holding a lock.
 
             if (is_aborted_operation
                 || (!is_marked_committed(it_start->second)
