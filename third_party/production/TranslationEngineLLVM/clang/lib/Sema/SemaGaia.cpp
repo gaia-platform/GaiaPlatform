@@ -1250,6 +1250,44 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
     {
         return nullptr;
     }
+
+    bool skipTopSearchContext = !IsInExtendedExplicitPathScope();
+    string anchorTable;
+    for (auto search_context_iterator = searchContextStack.rbegin();
+            search_context_iterator != searchContextStack.rend(); ++search_context_iterator)
+    {
+        if (!skipTopSearchContext)
+        {
+            skipTopSearchContext = true;
+            continue;
+        }
+
+        int pathLength = INT_MAX;
+        for (auto anchor_table_iterator = search_context_iterator->begin();
+            anchor_table_iterator != search_context_iterator->end(); ++anchor_table_iterator)
+        {
+            llvm::SmallVector<string, 8> path;
+            // Find topographically shortest path between anchor table and destination table.
+            if (gaia::catalog::GaiaCatalog::findNavigationPath(anchor_table_iterator->first(), fieldTableName, path, false))
+            {
+                if(path.size() < pathLength)
+                {
+                    pathLength = path.size();
+                    anchorTable = anchor_table_iterator->first();
+                }
+                else if (pathLength == path.size())
+                {
+                    anchorTable = "";
+                }
+            }
+            path.clear();
+        }
+        if (!anchorTable.empty())
+        {
+            break;
+        }
+    }
+
     DeclContext* context = getCurFunctionDecl();
     VarDecl* varDecl = VarDecl::Create(Context, context, loc, loc, II, qualType, Context.getTrivialTypeSourceInfo(qualType, loc), SC_None);
     varDecl->setLexicalDeclContext(context);
@@ -1260,6 +1298,11 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
 
     SourceLocation startLocation, endLocation;
     std::string path;
+
+    if (!anchorTable.empty())
+    {
+        varDecl->addAttr(GaiaAnchorTableAttr::CreateImplicit(Context,  &Context.Idents.get(anchorTable)));
+    }
 
     if (GetExplicitPathData(loc, startLocation, endLocation, path))
     {

@@ -3280,3 +3280,10 @@ def GaiaExplicitPathDefinedTagValues : Attr {
   let Documentation = [Undocumented];
   let Args = [VariadicStringArgument<"tagMapValues">];
 }
+
+def GaiaAnchorTable : Attr {
+  let Spellings = [Keyword<"gaiaAnchorTable">];
+  let Subjects = SubjectList<[Record]>;
+  let Documentation = [Undocumented];
+  let Args = [IdentifierArgument<"anchor">];
+}

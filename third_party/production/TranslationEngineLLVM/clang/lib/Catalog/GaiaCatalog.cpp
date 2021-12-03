@@ -177,8 +177,13 @@ StringRef GaiaCatalog::getClosestTable(const llvm::StringMap<int>& table_distanc
 }
 
 // Find shortest navigation path between 2 tables. If multiple shortest paths exist, return an error.
-bool GaiaCatalog::findNavigationPath(StringRef src, StringRef dst, SmallVector<string, 8>& current_path)
+bool GaiaCatalog::findNavigationPath(StringRef src, StringRef dst, SmallVector<string, 8>& current_path, bool reportErrors)
 {
+    if (src.empty() || dst.empty())
+    {
+        return false;
+    }
+
     if (src == dst)
     {
         return true;
@@ -194,7 +199,10 @@ bool GaiaCatalog::findNavigationPath(StringRef src, StringRef dst, SmallVector<s
     bool return_value = findNavigationPath(src, dst, current_path, table_data);
     if (!return_value)
     {
-        Diags.Report(diag::err_no_path) << src << dst;
+        if (reportErrors)
+        {
+            Diags.Report(diag::err_no_path) << src << dst;
+        }
         return false;
     }
 
@@ -226,7 +234,10 @@ bool GaiaCatalog::findNavigationPath(StringRef src, StringRef dst, SmallVector<s
         {
             if (path.size() == path_length)
             {
-                Diags.Report(diag::err_multiple_shortest_paths) << src << dst;
+                if (reportErrors)
+                {
+                    Diags.Report(diag::err_multiple_shortest_paths) << src << dst;
+                }
                 return false;
             }
         }
@@ -247,7 +258,7 @@ bool GaiaCatalog::findNavigationPath(StringRef src, StringRef dst, llvm::SmallVe
     llvm::StringMap<string> table_prev;
     llvm::StringMap<string> table_navigation;
 
-    for (const auto& table_description : GaiaCatalog::getCatalogTableData())
+    for (const auto& table_description : graph_data)
     {
         table_distance[table_description.first()] = INT_MAX;
     }

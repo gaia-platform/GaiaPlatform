@@ -266,17 +266,12 @@ bool Parser::ParseRuleSubscriptionAttributes(ParsedAttributesWithRange &attrs,
                     ConsumeToken();
                     StringRef tableName = Tok.getIdentifierInfo()->getName();
                     table += tableName;
-                    Actions.AddTableSearchAnchor(tableName);
                 }
                 else
                 {
                     Diag(Tok, diag::err_expected) << tok::identifier;
                     return false;
                 }
-            }
-            else
-            {
-                Actions.AddTableSearchAnchor(table);
             }
 
             if (NextToken().is(tok::period))
