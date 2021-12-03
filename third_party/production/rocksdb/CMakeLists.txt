@@ -143,8 +143,6 @@ endif()
 string(TIMESTAMP TS "%Y/%m/%d %H:%M:%S" UTC)
 set(GIT_DATE_TIME "${TS}" CACHE STRING "the time we first built rocksdb")
 
-find_package(Git)
-
 set(GIT_SHA 0)
 
 string(REGEX REPLACE "[^0-9a-f]+" "" GIT_SHA "${GIT_SHA}")
