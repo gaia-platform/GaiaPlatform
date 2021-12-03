@@ -209,6 +209,7 @@ jobs:
           cd $GAIA_REPO/third_party/production/CPackDebHelper
           sudo bash -c "mkdir -p /usr/local/lib/cmake/CPackDebHelper"
           sudo bash -c "cp CPackDebHelper/cmake/*.cmake /usr/local/lib/cmake/CPackDebHelper/"
+          sudo bash -c "rm -rf *"
 
       - name: $GAIA_REPO/third_party/production/libexplain
         run: |
@@ -291,6 +292,11 @@ jobs:
 
           sudo bash -c "mkdir -p /source/production"
           sudo bash -c "cp -a $GAIA_REPO/production/. /source/production/"
+
+          echo find . -name /source
+          sudo find . -name /source
+          echo find . -name /build
+          sudo find . -name /build
 
           echo "du - source"
           sudo bash -c "du -h -d1 /source"
