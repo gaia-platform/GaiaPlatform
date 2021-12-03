@@ -8,11 +8,10 @@
 #include <optional>
 #include <shared_mutex>
 
-#include "gaia/common.hpp"
-
-#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/logger.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
+#include "gaia_internal/exceptions.hpp"
 
 #include "type_id_mapping.hpp"
 
@@ -104,13 +103,13 @@ void type_registry_t::init()
     // The type registry is initialized before ddl_executor at runtime upon database startup.
     // The following initialization step is needed before we have a proper runtime bootstrap of the catalog.
     // TODO: runtime bootstrap of the catalog.
-    auto database = static_cast<gaia_type_t>(catalog_table_type_t::gaia_database);
-    auto table = static_cast<gaia_type_t>(catalog_table_type_t::gaia_table);
-    auto field = static_cast<gaia_type_t>(catalog_table_type_t::gaia_field);
-    auto relationship = static_cast<gaia_type_t>(catalog_table_type_t::gaia_relationship);
-    auto rule = static_cast<gaia_type_t>(catalog_table_type_t::gaia_rule);
-    auto ruleset = static_cast<gaia_type_t>(catalog_table_type_t::gaia_ruleset);
-    auto index = static_cast<gaia_type_t>(catalog_table_type_t::gaia_index);
+    auto database = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_database);
+    auto table = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_table);
+    auto field = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_field);
+    auto relationship = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_relationship);
+    auto rule = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_rule);
+    auto ruleset = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_ruleset);
+    auto index = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_index);
 
     auto db_table_relationship = std::make_shared<relationship_t>(relationship_t{
         .parent_type = database,
@@ -259,7 +258,7 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
     gaia_id_t record_id = get_record_id(type);
     if (record_id == c_invalid_gaia_id)
     {
-        throw invalid_type(type);
+        throw invalid_object_type_internal(type);
     }
     auto& metadata = get_or_create_no_lock(type);
 

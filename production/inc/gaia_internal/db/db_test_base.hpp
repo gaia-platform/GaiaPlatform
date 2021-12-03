@@ -18,7 +18,7 @@
 
 #include "gaia/db/db.hpp"
 
-#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/logger.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
@@ -56,7 +56,7 @@ protected:
     {
         gaia_log::initialize({});
 
-        server_instance_config_t conf = server_instance_config_t::get_default();
+        server_instance_config_t conf = server_instance_config_t::get_new_instance_config();
         conf.skip_catalog_integrity_check = true;
         s_server_instance = server_instance_t(conf);
 

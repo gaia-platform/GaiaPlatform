@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(memory_manager)
 
 set(GAIA_MEMORY_MANAGER_INCLUDES

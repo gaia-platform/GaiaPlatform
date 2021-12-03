@@ -5,7 +5,6 @@
 
 cmake_minimum_required(VERSION 3.16)
 
-# Set the project name.
 project(palletbox)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -23,7 +22,7 @@ add_compile_options(-Wall -Wextra)
 set(PALLETBOX_DDL ${PROJECT_SOURCE_DIR}/palletbox.ddl)
 set(PALLETBOX_RULESET ${PROJECT_SOURCE_DIR}/palletbox.ruleset)
 
-# --- Generate EDC from DDL---
+# --- Generate DAC from DDL---
 process_schema(
   DDL_FILE ${PALLETBOX_DDL}
   DATABASE_NAME palletbox

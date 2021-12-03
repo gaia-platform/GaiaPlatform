@@ -3,7 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia/events.hpp"
+#include "gaia/db/events.hpp"
 
 #include "gaia_internal/common/retail_assert.hpp"
 

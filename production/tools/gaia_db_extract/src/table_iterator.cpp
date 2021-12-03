@@ -9,7 +9,7 @@
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
-#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/logger.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
 
 #include "reflection.hpp"
@@ -74,7 +74,10 @@ bool table_iterator_t::initialize_scan(gaia_type_t container_id, gaia_id_t start
     }
     catch (const exception& e)
     {
-        fprintf(stderr, "Failed initializing table scan. Table: '%s', container id: '%u'. Exception: '%s'.\n", get_table_name(), m_container_id, e.what());
+        fprintf(
+            stderr,
+            "Failed initializing table scan. Table: '%s', container id: '%u'. Exception: '%s'.\n",
+            get_table_name(), m_container_id.value(), e.what());
     }
     return false;
 }
@@ -114,7 +117,7 @@ data_holder_t table_iterator_t::extract_field_value(uint16_t repeated_count, siz
         fprintf(
             stderr,
             "Failed reading field value. Table: '%s', container id: '%u', field index: '%ld'. Exception: '%s'.\n",
-            get_table_name(), m_container_id, position, e.what());
+            get_table_name(), m_container_id.value(), position, e.what());
     }
 
     return data_holder_t{};
@@ -138,7 +141,7 @@ bool table_iterator_t::scan_forward()
         fprintf(
             stderr,
             "Failed iterating to next record. Table id: '%s', container id: '%u'. Exception: '%s'.\n",
-            get_table_name(), m_container_id, e.what());
+            get_table_name(), m_container_id.value(), e.what());
     }
     return false;
 }

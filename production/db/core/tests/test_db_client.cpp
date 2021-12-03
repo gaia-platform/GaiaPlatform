@@ -11,7 +11,6 @@
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/db/db_test_base.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
-#include "gaia_internal/db/type_metadata.hpp"
 
 #include "type_id_mapping.hpp"
 
@@ -142,8 +141,8 @@ TEST_F(db_client_test, creation_fail_for_invalid_type)
 {
     begin_transaction();
     {
-        const gaia_id_t c_invalid_id = 8888;
-        EXPECT_THROW(gaia_ptr_t::create(c_invalid_id, 0, 0), invalid_type);
+        const gaia_type_t c_invalid_type = 8888;
+        EXPECT_THROW(gaia_ptr_t::create(c_invalid_type, 0, 0), invalid_object_type);
     }
     commit_transaction();
 }

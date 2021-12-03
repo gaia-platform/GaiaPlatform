@@ -2,7 +2,6 @@
 # Copyright (c) Gaia Platform LLC. All rights reserved.
 # ##############################################################################
 
-# Set the project name.
 project(query_processor)
 
 # Build sources.
@@ -21,8 +20,7 @@ set(GAIA_QP_PRIVATE_INCLUDES
   "${GAIA_REPO}/production/db/inc/payload_types"
   "${GAIA_REPO}/production/db/inc/index"
   "${GAIA_REPO}/production/db/inc/query_processor"
-  "${GAIA_PROD_BUILD}/db/core/generated"
-  "${FLATBUFFERS_INC}")
+  "${GAIA_PROD_BUILD}/db/core/generated")
 
 target_include_directories(gaia_qp PRIVATE ${GAIA_QP_PRIVATE_INCLUDES})
 
@@ -34,4 +32,4 @@ set(QP_TEST_INCLUDES
 )
 
 add_gtest(test_qp tests/test_index_scan.cpp
-      "${QP_TEST_INCLUDES}" "gaia_common;gaia_direct;gaia_db_catalog_test;gaia_payload_types;gaia_index;gaia_qp;edc_index_sandbox;flatbuffers")
+      "${QP_TEST_INCLUDES}" "gaia_common;gaia_direct;gaia_db_catalog_test;gaia_payload_types;gaia_index;gaia_qp;dac_index_sandbox;flatbuffers")

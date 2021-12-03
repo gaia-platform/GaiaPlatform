@@ -1044,7 +1044,7 @@ ruleset test66
     }
 }
 
-// TESTCASE: support initialization of declared variable with EDC object
+// TESTCASE: support initialization of declared variable with DAC object
 // GAIAPLAT-966 (fixed)
 ruleset test67
 {

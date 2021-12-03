@@ -600,7 +600,7 @@ TEST_F(gaia_references_test, scan_past_end)
     EXPECT_EQ(a == e1.addresses().end(), true);
 }
 
-// Attempt to insert two EDC objects in separate thread.
+// Attempt to insert two DAC objects in separate thread.
 void insert_object(bool committed, employee_t e1, address_t a1)
 {
     begin_session();
@@ -613,7 +613,7 @@ void insert_object(bool committed, employee_t e1, address_t a1)
         else
         {
             // Nothing is committed yet.
-            EXPECT_THROW(e1.addresses().insert(a1), edc_invalid_state);
+            EXPECT_THROW(e1.addresses().insert(a1), invalid_object_state);
         }
     }
     commit_transaction();
@@ -639,7 +639,7 @@ void insert_addressee(bool committed, gaia_id_t eid1, gaia_id_t aid1, gaia_id_t 
         }
         else
         {
-            EXPECT_THROW(e1.addresses().insert(a1), edc_invalid_state);
+            EXPECT_THROW(e1.addresses().insert(a1), invalid_object_state);
         }
     }
     commit_transaction();
@@ -769,7 +769,7 @@ TEST_F(gaia_references_test, thread_inserts)
     EXPECT_EQ(count, 3);
 }
 
-// Testing the arrow dereference operator->() in edc_set_iterator_t.
+// Testing the arrow dereference operator->() in dac_set_iterator_t.
 TEST_F(gaia_references_test, set_iter_arrow_deref)
 {
     const char* emp_name = "Phillip";
@@ -925,7 +925,7 @@ TEST_F(gaia_references_test, test_clear)
     commit_transaction();
 }
 
-TEST_F(gaia_references_test, test_edc_container_size)
+TEST_F(gaia_references_test, test_dac_container_size)
 {
     begin_transaction();
 

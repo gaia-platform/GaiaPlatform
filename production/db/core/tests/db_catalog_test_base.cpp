@@ -5,8 +5,6 @@
 
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
-#include "gaia_internal/catalog/ddl_executor.hpp"
-
 #include "schema_loader.hpp"
 #include "type_id_mapping.hpp"
 

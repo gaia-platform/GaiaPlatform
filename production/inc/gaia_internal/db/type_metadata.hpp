@@ -88,28 +88,6 @@ private:
     void mark_as_initialized();
 };
 
-class duplicate_metadata : public gaia::common::gaia_exception
-{
-public:
-    explicit duplicate_metadata(const gaia::common::gaia_type_t type)
-    {
-        std::stringstream message;
-        message << "Metadata already existent for Gaia type '" << type << "'.";
-        m_message = message.str();
-    }
-};
-
-class metadata_not_found : public gaia::common::gaia_exception
-{
-public:
-    explicit metadata_not_found(const gaia::common::gaia_type_t type)
-    {
-        std::stringstream message;
-        message << "Metadata does not exist for Gaia type '" << type << "'.";
-        m_message = message.str();
-    }
-};
-
 /**
  * Creates and maintains the instances of type_metadata_t and manages their lifecycle.
  * Instances of type_metadata_t are lazily created the first time the corresponding
@@ -117,7 +95,7 @@ public:
  *
  * Note: this class assumes that the Catalog cannot change during the execution of
  * a Gaia application. Changing the Catalog leads to a system restart and a recompilation
- * of the EDC classes. This will change after 11/2020 release.
+ * of the DAC classes. This will change after 11/2020 release.
  */
 class type_registry_t
 {

@@ -205,7 +205,7 @@ private:
     // An array of monotonically nondecreasing timestamps, or "watermarks", that
     // represent the progress of system maintenance tasks with respect to txn
     // timestamps. See `watermark_type_t` for a full explanation.
-    static inline std::array<std::atomic<gaia_txn_id_t>, common::get_enum_value(watermark_type_t::count)> s_watermarks{};
+    static inline std::array<std::atomic<gaia_txn_id_t::value_type>, common::get_enum_value(watermark_type_t::count)> s_watermarks{};
 
     // A global array in which each session thread publishes a "safe timestamp"
     // that it needs to protect from memory reclamation. The minimum of all
@@ -225,7 +225,7 @@ private:
     // The only clients of the safe_ts API are expected to be session threads,
     // so we only allocate enough entries for the maximum allowed number of
     // session threads.
-    static inline std::array<std::array<std::atomic<gaia_txn_id_t>, 2>, c_session_limit>
+    static inline std::array<std::array<std::atomic<gaia_txn_id_t::value_type>, 2>, c_session_limit>
         s_safe_ts_per_thread_entries{};
 
     // The reserved status of each index into `s_safe_ts_per_thread_entries` is
@@ -250,7 +250,7 @@ private:
     }
 
     // Returns a reference to the array entry of the given watermark.
-    static inline std::atomic<gaia_txn_id_t>& get_watermark_entry(watermark_type_t watermark_type)
+    static inline std::atomic<gaia_txn_id_t::value_type>& get_watermark_entry(watermark_type_t watermark_type)
     {
         return s_watermarks[common::get_enum_value(watermark_type)];
     }

@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(db)
 
 set(GAIA_DB_INC "${PROJECT_SOURCE_DIR}/inc")

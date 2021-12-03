@@ -22,6 +22,7 @@ namespace db
 {
 namespace persistence
 {
+
 enum class decision_type_t : uint8_t
 {
     undecided = 0,
@@ -37,8 +38,33 @@ struct decision_entry_t
 
 // Pair of log file sequence number and file fd.
 typedef std::vector<decision_entry_t> decision_list_t;
-typedef size_t file_sequence_t;
-file_sequence_t c_invalid_file_sequence_number = 0;
+
+class file_sequence_t : public common::int_type_t<size_t, 0>
+{
+public:
+    // By default, we should initialize to an invalid value.
+    constexpr file_sequence_t()
+        : common::int_type_t<size_t, 0>()
+    {
+    }
+
+    constexpr file_sequence_t(size_t value)
+        : common::int_type_t<size_t, 0>(value)
+    {
+    }
+};
+
+static_assert(
+    sizeof(file_sequence_t) == sizeof(file_sequence_t::value_type),
+    "file_sequence_t has a different size than its underlying integer type!");
+
+constexpr file_sequence_t c_invalid_file_sequence_number;
+
+// This assertion ensures that the default type initialization
+// matches the value of the invalid constant.
+static_assert(
+    c_invalid_file_sequence_number.value() == file_sequence_t::c_default_invalid_value,
+    "Invalid c_invalid_file_sequence_number initialization!");
 
 struct log_file_info_t
 {

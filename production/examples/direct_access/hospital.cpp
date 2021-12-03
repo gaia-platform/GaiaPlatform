@@ -103,7 +103,7 @@ void update_record()
     patient_t john = patient_t::get(id);
     gaia_log::app().info("Patient name is: {}", john.name());
 
-    // Obtain the writer object for na existing record.
+    // Obtain the writer object for an existing record.
     patient_writer john_w = john.writer();
     john_w.name = "Jane";
     john_w.height = 178;

@@ -73,6 +73,10 @@ public:
     void insert_index_entry(index_key_t&& key, index_record_t record);
     void remove_index_entry_with_offsets(const std::unordered_set<gaia_offset_t>& offsets);
 
+    // This method will mark all entries below a specified txn_id as committed.
+    // This must only be called once all aborted/terminated index entries below the txn_id are garbage collected.
+    void mark_entries_committed(gaia_txn_id_t txn_id);
+
     // Clear index structure.
     void clear() override;
 

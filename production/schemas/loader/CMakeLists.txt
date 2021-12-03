@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(schema_loader)
 
 set(GAIA_SCHEMA_LOADER_PUBLIC_INCLUDES

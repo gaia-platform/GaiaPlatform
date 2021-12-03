@@ -55,7 +55,7 @@ index_key_t index_builder_t::make_key(gaia_id_t index_id, gaia_type_t type_id, c
     return index_key;
 }
 
-void index_builder_t::serialize_key(const index_key_t& key, data_write_buffer_t& buffer)
+void index_builder_t::serialize_key(const index_key_t& key, payload_types::data_write_buffer_t& buffer)
 {
     for (const payload_types::data_holder_t& key_value : key.values())
     {
@@ -63,7 +63,7 @@ void index_builder_t::serialize_key(const index_key_t& key, data_write_buffer_t&
     }
 }
 
-index_key_t index_builder_t::deserialize_key(common::gaia_id_t index_id, data_read_buffer_t& buffer)
+index_key_t index_builder_t::deserialize_key(common::gaia_id_t index_id, payload_types::data_read_buffer_t& buffer)
 {
     ASSERT_PRECONDITION(index_id != c_invalid_gaia_id, "Invalid gaia id.");
 
@@ -93,7 +93,7 @@ index_record_t index_builder_t::make_record(
         operation != index_record_operation_t::not_set,
         "A valid operation should be set in each index record!");
 
-    return index_record_t{get_current_txn_id(), locator, offset, operation};
+    return index_record_t{get_current_txn_id(), locator, offset, operation, 0};
 }
 
 bool index_builder_t::index_exists(common::gaia_id_t index_id)
@@ -164,18 +164,25 @@ void update_index_entry(
         {
             gaia_txn_id_t begin_ts = it_start->second.txn_id;
             gaia_txn_id_t commit_ts
-                = transactions::txn_metadata_t::get_commit_ts_from_begin_ts(begin_ts);
+                = (is_marked_committed(it_start->second))
+                ? c_invalid_gaia_txn_id
+                : transactions::txn_metadata_t::get_commit_ts_from_begin_ts(begin_ts);
 
             ASSERT_PRECONDITION(
-                transactions::txn_metadata_t::is_begin_ts(begin_ts),
-                "Transaction id in index key entry is not a begin timestamp!");
+                is_marked_committed(it_start->second) || transactions::txn_metadata_t::is_begin_ts(begin_ts),
+                "Transaction id in index key entry is not marked committed or a begin timestamp!");
+
+            bool is_aborted_operation
+                = !is_marked_committed(it_start->second)
+                && commit_ts != c_invalid_gaia_txn_id
+                && transactions::txn_metadata_t::is_txn_aborted(commit_ts);
 
             // Index entries made by rolled back transactions or aborted transactions can be ignored,
             // We can also remove them, because we are already holding a lock.
-            bool is_aborted_operation
-                = (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_aborted(commit_ts));
-            if (transactions::txn_metadata_t::is_txn_terminated(begin_ts)
-                || is_aborted_operation)
+
+            if (is_aborted_operation
+                || (!is_marked_committed(it_start->second)
+                    && transactions::txn_metadata_t::is_txn_terminated(begin_ts)))
             {
                 it_start = index_guard.get_index().erase(it_start);
                 continue;
@@ -189,7 +196,15 @@ void update_index_entry(
             // it would allow us to perform a duplicate insertion.
             bool is_our_operation = (begin_ts == record.txn_id);
             bool is_committed_operation
-                = (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_committed(commit_ts));
+                = is_marked_committed(it_start->second)
+                || (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_committed(commit_ts));
+
+            // Opportunistically mark a record as committed to skip metadata lookup next time.
+            if (is_committed_operation)
+            {
+                mark_committed(it_start->second);
+            }
+
             if (it_start->second.operation == index_record_operation_t::remove)
             {
                 // We ignore uncommitted removals by other transactions,
@@ -214,7 +229,7 @@ void update_index_entry(
         {
             auto index_view = index_view_t(id_to_ptr(index->id()));
             auto table_view = table_view_t(id_to_ptr(index_view.table_id()));
-            throw unique_constraint_violation(table_view.name(), index_view.name());
+            throw unique_constraint_violation_internal(table_view.name(), index_view.name());
         }
 
         index->insert_index_entry(std::move(key), record);
@@ -364,7 +379,7 @@ void index_builder_t::update_indexes_from_txn_log(
                        ? log_record.old_offset
                        : log_record.new_offset)
                     ->type
-                == static_cast<gaia_type_t>(system_table_type_t::catalog_gaia_table))
+                == static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_table))
         {
             if (!has_cleared_cache)
             {
@@ -397,7 +412,7 @@ void index_builder_t::update_indexes_from_txn_log(
         }
 
         // Maintenance on the in-memory index data structures.
-        if (obj->type == static_cast<gaia_type_t>(catalog_table_type_t::gaia_index))
+        if (obj->type == static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_index))
         {
             auto index_view = index_view_t(obj);
 
@@ -468,6 +483,34 @@ void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool dea
         }
     }
 }
+
+template <class T_index>
+void mark_index_entries(base_index_t* base_index, gaia_txn_id_t txn_id)
+{
+    auto index = static_cast<T_index*>(base_index);
+    index->mark_entries_committed(txn_id);
+}
+
+void index_builder_t::mark_index_entries_committed(gaia_txn_id_t txn_id)
+{
+    for (auto it : *get_indexes())
+    {
+        // Optimization: only mark index entries committed for UNIQUE indexes, as we only look up the flags on that path.
+        if (it.second->is_unique())
+        {
+            switch (it.second->type())
+            {
+            case catalog::index_type_t::range:
+                mark_index_entries<range_index_t>(it.second.get(), txn_id);
+                break;
+            case catalog::index_type_t::hash:
+                mark_index_entries<hash_index_t>(it.second.get(), txn_id);
+                break;
+            }
+        }
+    }
+}
+
 } // namespace index
 } // namespace db
 } // namespace gaia

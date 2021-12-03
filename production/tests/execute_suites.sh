@@ -136,6 +136,10 @@ execute_suites() {
         echo "Environment variable 'TEST_WORKLOADS' must be set prior to calling this function."
         exit 1
     fi
+    if [ -z "$USE_PERSISTENT_DATABASE" ] ; then
+        echo "Environment variable 'USE_PERSISTENT_DATABASE' must be set prior to calling this function."
+        exit 1
+    fi
 
     # Set up any project based local script variables.
     TEMP_FILE=/tmp/$SUITE_MODE.suite.tmp
@@ -166,7 +170,19 @@ execute_suites() {
         if [ "$VERBOSE_MODE" -ne 0 ]; then
             echo "Executing workload: ${TEST_WORKLOADS[$WORKLOAD_INDEX]}"
         fi
-        if ! "$SCRIPTPATH/suite.sh" -j -d "${TEST_WORKLOADS[$WORKLOAD_INDEX]}" > "$TEMP_FILE" 2>&1; then
+
+        if [ "$USE_PERSISTENT_DATABASE" -ne 0 ] ; then
+            FG="--persistence"
+            if [ "$VERBOSE_MODE" -ne 0 ]; then
+                echo "  using a persistent database."
+            fi
+        else
+            FG=
+            if [ "$VERBOSE_MODE" -ne 0 ]; then
+                echo "  using a non-persistent database."
+            fi
+        fi
+        if ! "$SCRIPTPATH/suite.sh" --json --database "$FG" "${TEST_WORKLOADS[$WORKLOAD_INDEX]}" > "$TEMP_FILE" 2>&1; then
             cat "$TEMP_FILE"
             DID_FAIL=1
         fi

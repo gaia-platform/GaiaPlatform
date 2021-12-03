@@ -17,12 +17,12 @@
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/ddl_execution.hpp"
 #include "gaia_internal/common/gaia_version.hpp"
-#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/logger.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/system_error.hpp"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/db_server_instance.hpp"
-#include "gaia_internal/db/gaia_db_internal.hpp"
 
 #include "command.hpp"
 #include "gaia_parser.hpp"
@@ -152,8 +152,8 @@ void generate_fbs_headers(const string& db_name, const string& output_path)
     };
 }
 
-// From the database name and catalog contents, generate the Extended Data Class definition(s).
-void generate_edc_code(const string& db_name, const filesystem::path& output_path)
+// From the database name and catalog contents, generate the Direct Access Class definition(s).
+void generate_dac_code(const string& db_name, const filesystem::path& output_path)
 {
     string base_name = "gaia" + (db_name.empty() ? "" : "_" + db_name);
 
@@ -163,20 +163,20 @@ void generate_edc_code(const string& db_name, const filesystem::path& output_pat
     filesystem::path cpp_path = output_path;
     cpp_path /= base_name + ".cpp";
 
-    ofstream edc_header(header_path);
-    ofstream edc_cpp(cpp_path);
+    ofstream dac_header(header_path);
+    ofstream dac_cpp(cpp_path);
     try
     {
-        edc_header << gaia::catalog::generate_edc_header(db_name) << endl;
-        edc_cpp << gaia::catalog::generate_edc_cpp(db_name, header_path.filename()) << endl;
+        dac_header << gaia::catalog::generate_dac_header(db_name) << endl;
+        dac_cpp << gaia::catalog::generate_dac_cpp(db_name, header_path.filename()) << endl;
     }
     catch (gaia::common::gaia_exception& e)
     {
         cerr << "WARNING - gaia_generate failed: '" << e.what() << "'." << endl;
     }
 
-    edc_header.close();
-    edc_cpp.close();
+    dac_header.close();
+    dac_cpp.close();
 }
 
 void generate_edc(const string& db_name, const filesystem::path& output_path)
@@ -201,7 +201,7 @@ void generate_edc(const string& db_name, const filesystem::path& output_path)
     }
 
     generate_fbs_headers(db_name, absolute_output_path);
-    generate_edc_code(db_name, absolute_output_path);
+    generate_dac_code(db_name, absolute_output_path);
 }
 
 // Check if a database name is valid.
@@ -423,7 +423,7 @@ int main(int argc, char* argv[])
 
     if (path_to_db_server)
     {
-        server_instance_config_t server_conf = server_instance_config_t::get_default();
+        server_instance_config_t server_conf = server_instance_config_t::get_new_instance_config();
         server_conf.instance_name = instance_name;
         server_conf.server_exec_path = string(path_to_db_server) + "/" + string(c_db_server_exec_name);
 
@@ -437,8 +437,7 @@ int main(int argc, char* argv[])
     gaia::db::config::set_default_session_options(session_options);
 
     const auto server_cleanup = scope_guard::make_scope_guard(
-        [&server]()
-        {
+        [&server]() {
             if (server.is_initialized())
             {
                 server.stop();
@@ -449,8 +448,7 @@ int main(int argc, char* argv[])
     {
         gaia::db::begin_session();
         const auto session_cleanup = scope_guard::make_scope_guard(
-            []()
-            {
+            []() {
                 gaia::db::end_session();
             });
 
@@ -469,7 +467,7 @@ int main(int argc, char* argv[])
 
             if (mode == operate_mode_t::generation)
             {
-                // Generate EDC code for the default database if no database is given.
+                // Generate DAC code for the default database if no database is given.
                 if (db_names.size() == 0)
                 {
                     db_names.emplace_back(c_empty_db_name);

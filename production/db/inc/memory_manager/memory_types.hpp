@@ -43,8 +43,32 @@ constexpr size_t c_page_size_in_bytes = 4096;
 // in 64B units, relative to the base address of the data segment.
 // Because chunks start with a metadata block, we use 0 to represent an invalid
 // slot offset.
-typedef uint16_t slot_offset_t;
-constexpr slot_offset_t c_invalid_slot_offset = 0;
+class slot_offset_t : public common::int_type_t<uint16_t, 0>
+{
+public:
+    // By default, we should initialize to an invalid value.
+    constexpr slot_offset_t()
+        : common::int_type_t<uint16_t, 0>()
+    {
+    }
+
+    constexpr slot_offset_t(uint16_t value)
+        : common::int_type_t<uint16_t, 0>(value)
+    {
+    }
+};
+
+static_assert(
+    sizeof(slot_offset_t) == sizeof(slot_offset_t::value_type),
+    "slot_offset_t has a different size than its underlying integer type!");
+
+constexpr slot_offset_t c_invalid_slot_offset;
+
+// This assertion ensures that the default type initialization
+// matches the value of the invalid constant.
+static_assert(
+    c_invalid_slot_offset.value() == slot_offset_t::c_default_invalid_value,
+    "Invalid c_invalid_slot_offset initialization!");
 
 // For representing chunk offsets within a range of memory.
 // The total number of 4MB chunks in 256GB memory can be represented using a
@@ -53,17 +77,65 @@ constexpr slot_offset_t c_invalid_slot_offset = 0;
 // base address of the data segment.
 // Because memory starts with a metadata block, we use 0 to represent an invalid
 // chunk offset.
-typedef uint16_t chunk_offset_t;
-constexpr chunk_offset_t c_invalid_chunk_offset = 0;
+class chunk_offset_t : public common::int_type_t<uint16_t, 0>
+{
+public:
+    // By default, we should initialize to an invalid value.
+    constexpr chunk_offset_t()
+        : common::int_type_t<uint16_t, 0>()
+    {
+    }
+
+    constexpr chunk_offset_t(uint16_t value)
+        : common::int_type_t<uint16_t, 0>(value)
+    {
+    }
+};
+
+static_assert(
+    sizeof(chunk_offset_t) == sizeof(chunk_offset_t::value_type),
+    "chunk_offset_t has a different size than its underlying integer type!");
+
+constexpr chunk_offset_t c_invalid_chunk_offset;
+
+// This assertion ensures that the default type initialization
+// matches the value of the invalid constant.
+static_assert(
+    c_invalid_chunk_offset.value() == chunk_offset_t::c_default_invalid_value,
+    "Invalid c_invalid_chunk_offset initialization!");
 
 // A 62-bit sequential version counter (in the high bits) concatenated with the
 // 2-bit chunk state (in the low bits).
-typedef uint64_t chunk_version_t;
-constexpr chunk_version_t c_invalid_chunk_version = 0;
+class chunk_version_t : public common::int_type_t<uint64_t, 0>
+{
+public:
+    // By default, we should initialize to an invalid value.
+    constexpr chunk_version_t()
+        : common::int_type_t<uint64_t, 0>()
+    {
+    }
+
+    constexpr chunk_version_t(uint64_t value)
+        : common::int_type_t<uint64_t, 0>(value)
+    {
+    }
+};
+
+static_assert(
+    sizeof(chunk_version_t) == sizeof(chunk_version_t::value_type),
+    "chunk_version_t has a different size than its underlying integer type!");
+
+constexpr chunk_version_t c_invalid_chunk_version;
+
+// This assertion ensures that the default type initialization
+// matches the value of the invalid constant.
+static_assert(
+    c_invalid_chunk_version.value() == chunk_version_t::c_default_invalid_value,
+    "Invalid c_invalid_chunk_version initialization!");
 
 // These states must all fit into 2 bits. The underlying type is compatible with
 // the type of the chunk version counter, so they can be combined without casts.
-enum class chunk_state_t : chunk_version_t
+enum class chunk_state_t : chunk_version_t::value_type
 {
     empty = 0b00,
     in_use = 0b01,
@@ -107,3 +179,18 @@ static_assert(
 } // namespace memory_manager
 } // namespace db
 } // namespace gaia
+
+namespace std
+{
+
+// This enables chunk_offset_t to be hashed and used as a key in maps.
+template <>
+struct hash<gaia::db::memory_manager::chunk_offset_t>
+{
+    size_t operator()(const gaia::db::memory_manager::chunk_offset_t& chunk_offset) const noexcept
+    {
+        return std::hash<gaia::db::memory_manager::chunk_offset_t::value_type>()(chunk_offset.value());
+    }
+};
+
+} // namespace std

@@ -13,7 +13,7 @@
 #include "gaia/db/db.hpp"
 #include "gaia/logger.hpp"
 
-#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/logger.hpp"
 #include "gaia_internal/common/timer.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/db_server_instance.hpp"

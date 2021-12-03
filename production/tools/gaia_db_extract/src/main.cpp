@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "gaia/db/db.hpp"
+#include "gaia/exceptions.hpp"
 
 #include "gaia_db_extract.hpp"
 
@@ -146,7 +147,7 @@ int main(int argc, char* argv[])
     }
 
     // Return an empty JSON document on failure.
-    string extracted_data("{}");
+    string extracted_data(c_empty_object);
 
     try
     {

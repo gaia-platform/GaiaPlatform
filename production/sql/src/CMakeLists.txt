@@ -27,6 +27,7 @@ set_target_properties(
 
 target_include_directories(gaia_fdw PRIVATE "${PROJECT_SOURCE_DIR}/inc")
 target_include_directories(gaia_fdw PRIVATE "${GAIA_INC}")
+target_include_directories(gaia_fdw PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_fdw SYSTEM PRIVATE "${PGSQL_INCLUDEDIR_SERVER}")
 
 target_link_libraries(gaia_fdw PRIVATE gaia_db_client)

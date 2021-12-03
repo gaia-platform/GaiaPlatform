@@ -17,6 +17,7 @@ namespace db_extract
 
 constexpr uint64_t c_start_at_first = 0;
 constexpr uint32_t c_row_limit_unlimited = -1;
+constexpr char c_empty_object[] = "{}";
 
 /**
  * Initialize the type cache before extracting row data.

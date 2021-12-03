@@ -8,14 +8,13 @@
 
 #include <gtest/gtest.h>
 
-#include "gaia/exceptions.hpp"
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
-#include "gaia_internal/db/gaia_db_internal.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -33,7 +32,7 @@ class system_init_test : public db_catalog_test_base_t
 {
 public:
     static constexpr char c_test_table[] = "system_init_test";
-    gaia_type_t add_table()
+    gaia_id_t add_table()
     {
         // Add a dummy type so that the event manager doesn't cry foul when subscribing a rule.
         ddl::field_def_list_t fields;
@@ -69,7 +68,7 @@ protected:
     {
         gaia_log::initialize({});
 
-        server_instance_config_t server_conf = server_instance_config_t::get_default();
+        server_instance_config_t server_conf = server_instance_config_t::get_new_instance_config();
         server_conf.instance_name = c_default_instance_name;
 
         s_server_instance = server_instance_t{server_conf};
