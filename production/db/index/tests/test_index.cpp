@@ -29,7 +29,7 @@ index_record_t create_index_record()
 {
     thread_local static gaia::db::gaia_locator_t locator = 0;
     locator++;
-    return {c_fake_txn_id, locator, c_fake_offset, index_record_operation_t::insert};
+    return {c_fake_txn_id, locator, c_fake_offset, index_record_operation_t::insert, 0};
 }
 
 TEST(index, empty_range_index)

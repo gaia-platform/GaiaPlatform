@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include <atomic>
 #include <functional>
 #include <memory>
@@ -56,12 +58,29 @@ struct index_record_t
     gaia::db::gaia_locator_t locator;
     gaia::db::gaia_offset_t offset;
     index_record_operation_t operation;
+    uint8_t flags;
 
     friend std::ostream& operator<<(std::ostream& os, const index_record_t& rec);
 };
 
+constexpr size_t c_index_record_packed_size{24};
+
 // We use this assert to check that the index record structure is packed optimally.
-static_assert(sizeof(index_record_t) == 24, "index_record_t size has changed unexpectedly!");
+static_assert(sizeof(index_record_t) == c_index_record_packed_size, "index_record_t size has changed unexpectedly!");
+
+// Flags for index record.
+constexpr size_t c_mark_committed_shift{0};
+constexpr uint8_t c_mark_committed_mask{1 << c_mark_committed_shift};
+
+constexpr bool is_marked_committed(const index_record_t& record)
+{
+    return (record.flags & c_mark_committed_mask) == c_mark_committed_mask;
+}
+
+constexpr void mark_committed(index_record_t& record)
+{
+    record.flags |= c_mark_committed_mask;
+}
 
 class index_key_t;
 
