@@ -8,12 +8,9 @@
 #include <optional>
 #include <shared_mutex>
 
-#include "gaia/common.hpp"
-
 #include "gaia_internal/common/logger.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
-#include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/exceptions.hpp"
 
 #include "type_id_mapping.hpp"
@@ -200,23 +197,6 @@ void type_registry_t::init()
     auto& index_metadata = get_or_create_no_lock(index);
     index_metadata.add_child_relationship(table_index_relationship);
     index_metadata.mark_as_initialized();
-
-    // Reference anchor is a special type whose reference layout does not follow
-    // other database nodes. It has no relationship with other tables, but has
-    // three reference slots. We add a null relationship to the type registry,
-    // so it can still be recognized.
-    auto ref_anchor = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_ref_anchor);
-    auto null_relationship = std::make_shared<relationship_t>(relationship_t{
-        .parent_type = c_invalid_gaia_type,
-        .child_type = c_invalid_gaia_type,
-        .first_child_offset = c_invalid_reference_offset,
-        .next_child_offset = c_invalid_reference_offset,
-        .parent_offset = c_invalid_reference_offset,
-        .cardinality = cardinality_t::many,
-        .parent_required = false});
-    auto& ref_anchor_metadata = get_or_create_no_lock(ref_anchor);
-    ref_anchor_metadata.add_child_relationship(null_relationship);
-    ref_anchor_metadata.mark_as_initialized();
 }
 
 gaia_id_t type_registry_t::get_record_id(gaia_type_t type)
