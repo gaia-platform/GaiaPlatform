@@ -1,8 +1,4 @@
 {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 61587b10c (Spacing fixes)
     "comments": {
         // Symbol used for single line comment.
         "lineComment": "--",
@@ -12,15 +8,7 @@
             "*/"
         ]
     },
-<<<<<<< HEAD
-<<<<<<< HEAD
     // Symbols used as brackets.
-=======
-    // Symbols used as brackets
->>>>>>> 61587b10c (Spacing fixes)
-=======
-    // Symbols used as brackets.
->>>>>>> f9229d4ae (updated comments)
     "brackets": [
         [
             "{",
@@ -34,7 +22,6 @@
             "(",
             ")"
         ]
-<<<<<<< HEAD
     ],
     // Symbols that are auto closed when typing.
     "autoClosingPairs": [
@@ -83,104 +70,3 @@
         ]
     ]
 }
-=======
-  "comments": {
-    // Symbol used for single line comment.
-    "lineComment": "--",
-    // Symbols used for starting and ending a block comment.
-    "blockComment": [
-			"/*",
-			"*/"
-    ]
-  },
-  // Symbols used as brackets
-  "brackets": [
-    [
-			"{",
-			"}"
-    ],
-    [
-			"[",
-			"]"
-    ],
-    [
-			"(",
-			")"
-    ]
-  ],
-  // Symbols that are auto closed when typing
-  "autoClosingPairs": [
-    [
-			"{",
-			"}"
-    ],
-    [
-			"[",
-			"]"
-    ],
-    [
-			"(",
-			")"
-=======
->>>>>>> 61587b10c (Spacing fixes)
-    ],
-    // Symbols that are auto closed when typing.
-    "autoClosingPairs": [
-        [
-            "{",
-            "}"
-        ],
-        [
-            "[",
-            "]"
-        ],
-    [
-            "(",
-            ")"
-        ],
-        [
-            "\"",
-            "\""
-        ],
-        [
-            "'",
-            "'"
-        ]
-    ],
-    // Symbols that can be used to surround a selection.
-    "surroundingPairs": [
-        [
-            "{",
-            "}"
-        ],
-        [
-            "[",
-            "]"
-        ],
-        [
-            "(",
-            ")"
-        ],
-        [
-            "\"",
-            "\""
-        ],
-        [
-            "'",
-            "'"
-        ]
-    ]
-<<<<<<< HEAD
-<<<<<<< HEAD
-  ]
-}
-<<<<<<< HEAD
->>>>>>> f181836a9 (Added language configuration directory)
-=======
->>>>>>> f61105079 (Added spacing @ end of file)
-=======
-}
->>>>>>> 61587b10c (Spacing fixes)
-=======
-}
->>>>>>> 4b95ae945 (updated ddl keywords)

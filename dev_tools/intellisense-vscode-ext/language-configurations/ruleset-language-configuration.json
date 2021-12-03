@@ -1,8 +1,4 @@
 {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> c6f9fdaf5 (converted spacing back to spaces)
     "comments": {
         // Symbol used for single line comment.
         "lineComment": "//",
@@ -12,19 +8,7 @@
             "*/"
         ]
     },
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD:dev_tools/intellisense-vscode-ext/language-configurations/ruleset-language-configuration.json
     // Symbols used as brackets.
-=======
-    // Symbols used as brackets
->>>>>>> 355bf0f69 (Fixed comments):dev_tools/intellisense-vscode-ext/language-configuration.json
-=======
-    // Symbols used as brackets
->>>>>>> c6f9fdaf5 (converted spacing back to spaces)
-=======
-    // Symbols used as brackets.
->>>>>>> f9229d4ae (updated comments)
     "brackets": [
         [
             "{",
@@ -39,17 +23,7 @@
             ")"
         ]
     ],
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD:dev_tools/intellisense-vscode-ext/language-configurations/ruleset-language-configuration.json
-  // Symbols that are auto closed when typing.
-=======
-    // Symbols that are auto closed when typing
->>>>>>> 355bf0f69 (Fixed comments):dev_tools/intellisense-vscode-ext/language-configuration.json
-=======
     // Symbols that are auto closed when typing.
->>>>>>> 735ce3b08 (spacing updates)
     "autoClosingPairs": [
         [
             "{",
@@ -72,127 +46,7 @@
             "'"
         ]
     ],
-<<<<<<< HEAD
-<<<<<<< HEAD:dev_tools/intellisense-vscode-ext/language-configurations/ruleset-language-configuration.json
-  // Symbols that can be used to surround a selection.
-=======
-    // Symbols that can be used to surround a selection
->>>>>>> 355bf0f69 (Fixed comments):dev_tools/intellisense-vscode-ext/language-configuration.json
-    "surroundingPairs": [
-        [
-            "{",
-            "}"
-        ],
-        [
-            "[",
-            "]"
-        ],
-        [
-            "(",
-            ")"
-        ],
-        [
-            "\"",
-            "\""
-        ],
-        [
-            "'",
-            "'"
-        ]
-    ]
-}
-=======
-	"comments": {
-		// Symbol used for single line comment.
-		"lineComment": "//",
-		// Symbols used for starting and ending a block comment.
-		"blockComment": [
-			"/*",
-			"*/"
-		]
-	},
-	// Symbols used as brackets
-	"brackets": [
-		[
-			"{",
-			"}"
-		],
-		[
-			"[",
-			"]"
-		],
-		[
-			"(",
-			")"
-		]
-	],
-=======
->>>>>>> c6f9fdaf5 (converted spacing back to spaces)
-  // Symbols that are auto closed when typing
-=======
-  // Symbols that are auto closed when typing.
->>>>>>> f9229d4ae (updated comments)
-    "autoClosingPairs": [
-        [
-            "{",
-            "}"
-        ],
-        [
-            "[",
-            "]"
-        ],
-        [
-            "(",
-            ")"
-        ],
-        [
-            "\"",
-            "\""
-        ],
-        [
-            "'",
-            "'"
-        ]
-    ],
-<<<<<<< HEAD
-  // Symbols that can be used to surround a selection
-<<<<<<< HEAD
-	"surroundingPairs": [
-		[
-			"{",
-			"}"
-		],
-		[
-			"[",
-			"]"
-		],
-		[
-			"(",
-			")"
-		],
-		[
-			"\"",
-			"\""
-		],
-		[
-			"'",
-			"'"
-		]
-	]
-<<<<<<< HEAD
-}
-<<<<<<< HEAD
->>>>>>> f181836a9 (Added language configuration directory)
-=======
->>>>>>> b22598e58 (Added spacing @ end of file)
-=======
-=======
-=======
-  // Symbols that can be used to surround a selection.
->>>>>>> f9229d4ae (updated comments)
-=======
     // Symbols that can be used to surround a selection.
->>>>>>> 735ce3b08 (spacing updates)
     "surroundingPairs": [
         [
             "{",
@@ -215,6 +69,4 @@
             "'"
         ]
     ]
->>>>>>> c6f9fdaf5 (converted spacing back to spaces)
 }
->>>>>>> 61587b10c (Spacing fixes)

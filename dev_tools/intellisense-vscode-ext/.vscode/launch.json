@@ -1,14 +1,6 @@
 // A launch configuration that launches the extension inside a new window.
 {
-<<<<<<< HEAD
-<<<<<<< HEAD
     "version": "0.2.0",
-=======
-	"version": "0.2.0",
->>>>>>> f5e7deb54 (vscode extension config)
-=======
-    "version": "0.2.0",
->>>>>>> c6f9fdaf5 (converted spacing back to spaces)
     "configurations": [
         {
             "name": "Launch Client",
@@ -19,12 +11,4 @@
             ]
         }
     ]
-<<<<<<< HEAD
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> f5e7deb54 (vscode extension config)
-=======
-}
->>>>>>> 9fa7a34e6 (fixed new lines)

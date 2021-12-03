@@ -1,16 +1,4 @@
 {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    "#inc": {
-        "prefix": "#inc",
-        "body": ["#include "],
-        "description": "snippet for #include"
-    },
-
->>>>>>> b34786591 (snippets for ruleset files)
-=======
->>>>>>> f51f28446 (snippets only specific to rulesets)
     "ruleset": {
         "prefix": "rul",
         "body": [
@@ -49,8 +37,6 @@
         "description": "snippet for on_change"
     },
     "using": {
-<<<<<<< HEAD
-<<<<<<< HEAD
         "prefix": "using",
         "body": [
             "using namespace $0"
@@ -118,61 +104,3 @@
         "description": "snippet for else-if"
     }
 }
-<<<<<<< HEAD
-=======
-      "prefix": "using",
-      "body": ["using namespace $0"],
-      "description": "snippet for using namespace"
-=======
-        "prefix": "using",
-        "body": ["using namespace $0"],
-        "description": "snippet for using namespace"
->>>>>>> 16f40822d (spacing)
-    },
-  
-    "for loop": {
-        "prefix": "for",
-        "body": ["for ($1)", "{", "\t$0", "}"],
-        "description": "snippet for a for loop"
-    },
-  
-    "do": {
-        "prefix": "do",
-        "body": ["do", "{", "\t$0", "} while($1);\n"],
-        "description": "snippet for a do...while loop"
-    },
-  
-    "while": {
-        "prefix": "while",
-        "body": ["while ($1)", "{", "\t$0", "}\n"],
-        "description": "snippet for a while loop"
-    },
-  
-    "if": {
-        "prefix": "if",
-        "body": ["if ($1)","{", "\t$0", "}"],
-        "description": "snippet for an if statement"
-    },
-  
-    "else": {
-        "prefix": "else",
-        "body": ["else", "{", "\t$0", "}\n"],
-        "description": "snippet for else"
-    },
-  
-    "else if": {
-        "prefix": "else if",
-        "body": ["else if ($1)", "{", "\t$0", "}"],
-        "description": "snippet for else-if"
-    }
-  }
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> b34786591 (snippets for ruleset files)
-=======
-  
->>>>>>> c6f9fdaf5 (converted spacing back to spaces)
-=======
->>>>>>> 16f40822d (spacing)
-=======
->>>>>>> f51f28446 (snippets only specific to rulesets)

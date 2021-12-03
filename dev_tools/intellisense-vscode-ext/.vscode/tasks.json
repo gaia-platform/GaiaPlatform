@@ -1,8 +1,4 @@
 {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> c6f9fdaf5 (converted spacing back to spaces)
     "version": "2.0.0",
     "tasks": [
         {
@@ -34,44 +30,4 @@
             ]
         }
     ]
-<<<<<<< HEAD
 }
-=======
-	"version": "2.0.0",
-	"tasks": [
-		{
-			"type": "npm",
-			"script": "compile",
-			"group": "build",
-			"presentation": {
-				"panel": "dedicated",
-				"reveal": "never"
-			},
-			"problemMatcher": [
-				"$tsc"
-			]
-		},
-		{
-			"type": "npm",
-			"script": "watch",
-			"isBackground": true,
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"presentation": {
-				"panel": "dedicated",
-				"reveal": "never"
-			},
-			"problemMatcher": [
-				"$tsc-watch"
-			]
-		}
-	]
-=======
->>>>>>> c6f9fdaf5 (converted spacing back to spaces)
-}
-<<<<<<< HEAD
->>>>>>> f5e7deb54 (vscode extension config)
-=======
->>>>>>> 9fa7a34e6 (fixed new lines)

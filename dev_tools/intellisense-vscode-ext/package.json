@@ -1,21 +1,7 @@
 {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
     "name": "gaia-platform",
     "displayName": "Gaia Platform Intellisense",
     "description": "Intellisense for Gaia Platform",
-=======
-    "name": "GaiaPlatform",
-    "displayName": "GaiaPlatform-Syntax-Highlighting",
-    "description": "Syntax Highlighting for GaiaPlatform",
->>>>>>> 9b436a6f0 (Changed all Gaia references to GaiaPlatform)
-=======
-    "name": "gaia-platform",
-    "displayName": "Gaia Platform Intellisense",
-    "description": "Intellisense for Gaia Platform",
->>>>>>> c6f9fdaf5 (converted spacing back to spaces)
     "version": "0.0.1",
     "engines": {
         "vscode": "^1.59.0"
@@ -31,10 +17,6 @@
     "contributes": {
         "languages": [
             {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> c6f9fdaf5 (converted spacing back to spaces)
                 "id": "ruleset",
                 "aliases": [
                     "ruleset"
@@ -51,27 +33,12 @@
                 ],
                 "extensions": [
                     ".ddl"
-<<<<<<< HEAD
-=======
-                "id": "GaiaPlatform",
-                "aliases": [
-                    "GaiaPlatform"
-                ],
-                "extensions": [
-                    ".ruleset"
->>>>>>> 9b436a6f0 (Changed all Gaia references to GaiaPlatform)
-=======
->>>>>>> c6f9fdaf5 (converted spacing back to spaces)
                 ],
                 "configuration": "./language-configurations/ddl-language-configuration.json"
             }
         ],
         "grammars": [
             {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> c6f9fdaf5 (converted spacing back to spaces)
                 "language": "ruleset",
                 "scopeName": "source.cpp.ruleset",
                 "path": "./syntaxes/ruleset.tmLanguage.json",
@@ -93,15 +60,6 @@
             {
                 "language": "ddl",
                 "path": "./snippets/ddl.json"
-<<<<<<< HEAD
-=======
-                "language": "GaiaPlatform",
-                "scopeName": "source.cpp.GaiaPlatform",
-                "path": "./syntaxes/GaiaPlatform.tmLanguage.json",
-                "embeddedLanguages": {
-					"meta.preprocessor.macro.contents": "cpp"
-				}
->>>>>>> 9b436a6f0 (Changed all Gaia references to GaiaPlatform)
             }
         ]
     },
@@ -115,95 +73,3 @@
         "typescript": "^4.4.2"
     }
 }
-=======
-	"name": "GaiaPlatform",
-	"displayName": "GaiaPlatform-Syntax-Highlighting",
-	"description": "Syntax Highlighting for GaiaPlatform",
-=======
-	"name": "gaia-platform",
-	"displayName": "Gaia Platform Intellisense",
-	"description": "Intellisense for Gaia Platform",
->>>>>>> 0507bb04d (Spacing fixes)
-	"version": "0.0.1",
-	"engines": {
-		"vscode": "^1.59.0"
-	},
-	"categories": [
-		"Programming Languages"
-	],
-	"activationEvents": [
-		"onLanguage:ruleset",
-		"onLanguage:ddl"
-	],
-	"main": "./client/out/extension",
-	"contributes": {
-		"languages": [
-			{
-				"id": "ruleset",
-				"aliases": [
-					"ruleset"
-				],
-				"extensions": [
-					".ruleset"
-				],
-				"configuration": "./language-configurations/ruleset-language-configuration.json"
-			},
-			{
-				"id": "ddl",
-				"aliases": [
-					"ddl"
-				],
-				"extensions": [
-					".ddl"
-				],
-				"configuration": "./language-configurations/ddl-language-configuration.json"
-			}
-		],
-		"grammars": [
-			{
-				"language": "ruleset",
-				"scopeName": "source.cpp.ruleset",
-				"path": "./syntaxes/ruleset.tmLanguage.json",
-				"embeddedLanguages": {
-					"meta.preprocessor.macro.contents": "cpp"
-				}
-			},
-			{
-				"language": "ddl",
-				"scopeName": "source.ddl",
-				"path": "./syntaxes/ddl.tmLanguage.json"
-			}
-		],
-		"snippets": [
-			{
-				"language": "ruleset",
-				"path": "./snippets/ruleset.json"
-			},
-			{
-				"language": "ddl",
-				"path": "./snippets/ddl.json"
-			}
-		]
-	},
-=======
-            }
-        ]
-    },
->>>>>>> c6f9fdaf5 (converted spacing back to spaces)
-    "scripts": {
-        "vscode:prepublish": "npm run compile",
-        "compile": "tsc -b",
-        "watch": "tsc -b -w"
-    },
-    "devDependencies": {
-        "@types/node": "^16.7.4",
-        "typescript": "^4.4.2"
-    }
-}
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> bae195833 (Added .ddl language settings)
-=======
->>>>>>> 6aeac18cd (Fixed nits)
-=======
->>>>>>> a2dec6ae4 (updated dependencies and added scripts)

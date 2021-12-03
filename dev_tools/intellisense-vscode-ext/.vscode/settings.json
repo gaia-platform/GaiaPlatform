@@ -1,31 +1,9 @@
 {
-<<<<<<< HEAD
-<<<<<<< HEAD
     "typescript.tsc.autoDetect": "off",
     "typescript.preferences.quoteStyle": "single",
     "editor.codeActionsOnSave": {
         "source.fixAll.eslint": true
-<<<<<<< HEAD
     },
     "editor.detectIndentation": false,
     "editor.insertSpaces": true
 }
-=======
-	"editor.insertSpaces": false,
-	"typescript.tsc.autoDetect": "off",
-=======
-    "typescript.tsc.autoDetect": "off",
->>>>>>> 06051b345 (fixed settings)
-	"typescript.preferences.quoteStyle": "single",
-	"editor.codeActionsOnSave": {
-		"source.fixAll.eslint": true
-=======
->>>>>>> c6f9fdaf5 (converted spacing back to spaces)
-    },
-    "editor.detectIndentation": false,
-    "editor.insertSpaces": true
-}
-<<<<<<< HEAD
->>>>>>> f5e7deb54 (vscode extension config)
-=======
->>>>>>> 9fa7a34e6 (fixed new lines)
