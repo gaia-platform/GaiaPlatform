@@ -238,14 +238,23 @@ jobs:
           sudo ls -la /home/runner/work
           echo ls -la /home/runner/work/GaiaPlatform
           sudo ls -la /home/runner/work/GaiaPlatform
+          echo ls -la /home/runner/work/GaiaPlatform/GaiaPlatform
+          sudo ls -la /home/runner/work/GaiaPlatform/GaiaPlatform
+          echo ls -la /home/runner/work/GaiaPlatform/GaiaPlatform/production
+          sudo ls -la /home/runner/work/GaiaPlatform/GaiaPlatform/production
+          echo ls -la /home/runner/work/GaiaPlatform/GaiaPlatform/production/db
+          sudo ls -la /home/runner/work/GaiaPlatform/GaiaPlatform/production/db
+          echo ls -la /home/runner/work/GaiaPlatform/GaiaPlatform/production/db/core
+          sudo ls -la /home/runner/work/GaiaPlatform/GaiaPlatform/production/db/core
           echo find . -name gaia_db_server
           sudo find . -name gaia_db_server
+          sudo chown -R /home/runner/work/GaiaPlatform
 
       - name: Upload Build Directory
         uses: actions/upload-artifact@v2
         with:
           name: Build
-          path: /home/runner/work/
+          path: /home/runner/work/GaiaPlatform
       - name: Upload CMakeCache.txt
         uses: actions/upload-artifact@v2
         with:
