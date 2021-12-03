@@ -235,6 +235,8 @@ jobs:
 
           sudo bash -c "mkdir -p /build/third_party/production/backward"
           sudo bash -c "cp -a $GAIA_REPO/third_party/production/backward/. /build/third_party/production/backward/"
+          sudo bash -c "mkdir -p /source/third_party/production/backward"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/backward/. /source/third_party/production/backward/"
 
           sudo bash -c "mkdir -p /build/third_party/production/bison"
           sudo bash -c "cp -a $GAIA_REPO/third_party/production/bison/. /build/third_party/production/bison/"
@@ -265,9 +267,13 @@ jobs:
 
           sudo bash -c "mkdir -p /build/third_party/production/cpptoml"
           sudo bash -c "cp -a $GAIA_REPO/third_party/production/cpptoml/. /build/third_party/production/cpptoml/"
+          sudo bash -c "mkdir -p /source/third_party/production/cpptoml"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/cpptoml/. /source/third_party/production/cpptoml/"
 
           sudo bash -c "mkdir -p /build/third_party/production/tabulate"
           sudo bash -c "cp -a $GAIA_REPO/third_party/production/tabulate/. /build/third_party/production/tabulate/"
+          sudo bash -c "mkdir -p /source/third_party/production/tabulate"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/tabulate/. /source/third_party/production/tabulate/"
 
           sudo bash -c "mkdir -p /build/third_party/production/liburing"
           sudo bash -c "cp -a $GAIA_REPO/third_party/production/liburing/. /build/third_party/production/liburing/"
