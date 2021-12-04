@@ -84,6 +84,8 @@ private:
     std::unordered_map<gaia::common::reference_offset_t, std::shared_ptr<relationship_t>> m_parent_relationships;
     std::unordered_map<gaia::common::reference_offset_t, std::shared_ptr<relationship_t>> m_child_relationships;
 
+    common::reference_offset_t m_num_references{0};
+
     bool is_initialized();
     void mark_as_initialized();
 };

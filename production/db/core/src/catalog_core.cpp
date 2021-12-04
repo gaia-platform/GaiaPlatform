@@ -86,6 +86,11 @@ namespace db
     return catalog::Getgaia_relationship(m_obj_ptr->data())->next_child_offset();
 }
 
+[[nodiscard]] reference_offset_t relationship_view_t::prev_child_offset() const
+{
+    return catalog::Getgaia_relationship(m_obj_ptr->data())->prev_child_offset();
+}
+
 [[nodiscard]] reference_offset_t relationship_view_t::parent_offset() const
 {
     return catalog::Getgaia_relationship(m_obj_ptr->data())->parent_offset();
@@ -180,7 +185,8 @@ list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint
     auto obj_ptr = id_to_ptr(table_id);
     const gaia_id_t* references = obj_ptr->references();
     gaia_id_t first_obj_id = references[first_offset];
-    auto generator = [id = first_obj_id, next_offset]() mutable -> std::optional<T_catalog_obj_view> {
+    auto generator = [id = first_obj_id, next_offset]() mutable -> std::optional<T_catalog_obj_view>
+    {
         if (id == c_invalid_gaia_id)
         {
             return std::nullopt;
