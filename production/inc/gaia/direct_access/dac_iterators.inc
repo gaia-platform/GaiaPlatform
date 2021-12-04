@@ -390,7 +390,7 @@ reference_anchor_chain_container_t<T_child>::where(std::function<bool(const T_ch
 template <typename T_child>
 dac_set_iterator_t<T_child> reference_anchor_chain_container_t<T_child>::end() const
 {
-    return dac_set_iterator_t<T_child>(m_anchor_id, m_first_child_offset);
+    return dac_set_iterator_t<T_child>(gaia::common::c_invalid_gaia_id, common::c_invalid_reference_offset);
 }
 
 template <typename T_child>

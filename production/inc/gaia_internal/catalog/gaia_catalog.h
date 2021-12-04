@@ -202,7 +202,7 @@ class gaia_relationship_t : public gaia::direct_access::dac_object_t<c_gaia_type
 public:
     gaia_relationship_t() : dac_object_t() {}
     static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(const char* name, const char* to_parent_link_name, const char* to_child_link_name, uint8_t cardinality, bool parent_required, bool deprecated, uint16_t first_child_offset, uint16_t next_child_offset, uint16_t parent_offset, const std::vector<uint16_t>& parent_field_positions, const std::vector<uint16_t>& child_field_positions);
+    static gaia::common::gaia_id_t insert_row(const char* name, const char* to_parent_link_name, const char* to_child_link_name, uint8_t cardinality, bool parent_required, bool deprecated, uint16_t first_child_offset, uint16_t next_child_offset, uint16_t prev_child_offset, uint16_t parent_offset, const std::vector<uint16_t>& parent_field_positions, const std::vector<uint16_t>& child_field_positions);
     static gaia::direct_access::dac_container_t<c_gaia_type_gaia_relationship, gaia_relationship_t> list();
     const char* name() const;
     const char* to_parent_link_name() const;
@@ -212,6 +212,7 @@ public:
     bool deprecated() const;
     uint16_t first_child_offset() const;
     uint16_t next_child_offset() const;
+    uint16_t prev_child_offset() const;
     uint16_t parent_offset() const;
     gaia::direct_access::dac_vector_t<uint16_t> parent_field_positions() const;
     gaia::direct_access::dac_vector_t<uint16_t> child_field_positions() const;
@@ -229,6 +230,7 @@ public:
         static gaia::direct_access::expression_t<gaia_relationship_t, bool> deprecated;
         static gaia::direct_access::expression_t<gaia_relationship_t, uint16_t> first_child_offset;
         static gaia::direct_access::expression_t<gaia_relationship_t, uint16_t> next_child_offset;
+        static gaia::direct_access::expression_t<gaia_relationship_t, uint16_t> prev_child_offset;
         static gaia::direct_access::expression_t<gaia_relationship_t, uint16_t> parent_offset;
         static gaia::direct_access::expression_t<gaia_relationship_t, gaia::direct_access::dac_vector_t<uint16_t>> parent_field_positions;
         static gaia::direct_access::expression_t<gaia_relationship_t, gaia::direct_access::dac_vector_t<uint16_t>> child_field_positions;
@@ -250,6 +252,7 @@ namespace gaia_relationship_expr {
     static auto& deprecated = gaia_relationship_t::expr::deprecated;
     static auto& first_child_offset = gaia_relationship_t::expr::first_child_offset;
     static auto& next_child_offset = gaia_relationship_t::expr::next_child_offset;
+    static auto& prev_child_offset = gaia_relationship_t::expr::prev_child_offset;
     static auto& parent_offset = gaia_relationship_t::expr::parent_offset;
     static auto& parent_field_positions = gaia_relationship_t::expr::parent_field_positions;
     static auto& child_field_positions = gaia_relationship_t::expr::child_field_positions;
@@ -266,6 +269,7 @@ template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, 
 template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, bool> gaia_relationship_t::expr_<unused_t>::deprecated{&gaia_relationship_t::deprecated};
 template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, uint16_t> gaia_relationship_t::expr_<unused_t>::first_child_offset{&gaia_relationship_t::first_child_offset};
 template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, uint16_t> gaia_relationship_t::expr_<unused_t>::next_child_offset{&gaia_relationship_t::next_child_offset};
+template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, uint16_t> gaia_relationship_t::expr_<unused_t>::prev_child_offset{&gaia_relationship_t::prev_child_offset};
 template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, uint16_t> gaia_relationship_t::expr_<unused_t>::parent_offset{&gaia_relationship_t::parent_offset};
 template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, gaia::direct_access::dac_vector_t<uint16_t>> gaia_relationship_t::expr_<unused_t>::parent_field_positions{&gaia_relationship_t::parent_field_positions};
 template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, gaia::direct_access::dac_vector_t<uint16_t>> gaia_relationship_t::expr_<unused_t>::child_field_positions{&gaia_relationship_t::child_field_positions};

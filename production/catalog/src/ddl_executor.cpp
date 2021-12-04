@@ -143,6 +143,7 @@ void ddl_executor_t::bootstrap_catalog()
         //     deprecated bool,
         //     first_child_offset uint16,
         //     next_child_offset uint16,
+        //     prev_child_offset uint16,
         //     parent_offset uint16,
         //     parent_field_positions uint16[],
         //     child_field_positions uint16[],
@@ -154,15 +155,13 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("cardinality", data_type_t::e_uint8, 1));
         fields.emplace_back(make_unique<data_field_def_t>("parent_required", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("deprecated", data_type_t::e_bool, 1));
-        // See gaia::db::relationship_t for more details about relationships.
-        // (parent)-[first_child_offset]->(child)
         fields.emplace_back(make_unique<data_field_def_t>("first_child_offset", data_type_t::e_uint16, 1));
-        // (child)-[next_child_offset]->(child)
         fields.emplace_back(make_unique<data_field_def_t>("next_child_offset", data_type_t::e_uint16, 1));
-        // (child)-[parent_offset]->(parent)
+        fields.emplace_back(make_unique<data_field_def_t>("prev_child_offset", data_type_t::e_uint16, 1));
         fields.emplace_back(make_unique<data_field_def_t>("parent_offset", data_type_t::e_uint16, 1));
         fields.emplace_back(make_unique<data_field_def_t>("parent_field_positions", data_type_t::e_uint16, 0));
         fields.emplace_back(make_unique<data_field_def_t>("child_field_positions", data_type_t::e_uint16, 0));
+        // See gaia::db::relationship_t for more details about relationships.
         create_table_impl(
             c_catalog_db_name, "gaia_relationship", fields, is_system, throw_on_exists, auto_drop,
             static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_relationship));
@@ -520,9 +519,9 @@ gaia_id_t ddl_executor_t::create_relationship(
     // These casts works because a field_position_t is a thin wrapper over uint16_t,
     // but its success is not guaranteed by the language and is undefined behavior (UB).
     // TODO: Replace reinterpret_cast with bit_cast when it becomes available.
-    std::vector<field_position_t::value_type>* parent_field_position_values
+    auto* parent_field_position_values
         = reinterpret_cast<std::vector<field_position_t::value_type>*>(&parent_field_positions);
-    std::vector<field_position_t::value_type>* child_field_position_values
+    auto* child_field_position_values
         = reinterpret_cast<std::vector<field_position_t::value_type>*>(&child_field_positions);
 
     gaia_id_t relationship_id = gaia_relationship_t::insert_row(
@@ -534,6 +533,7 @@ gaia_id_t ddl_executor_t::create_relationship(
         is_deprecated,
         first_child_offset,
         next_child_offset,
+        c_invalid_reference_offset,
         parent_offset,
         *parent_field_position_values,
         *child_field_position_values);
