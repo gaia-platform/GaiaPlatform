@@ -4636,7 +4636,7 @@ private:
 
   // TODO we need to decide what style to use: PascalCase, camelCase, snake_case (we're using all of them now).
   NamedDecl *injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, const std::string &explicitPath);
-  std::string ParseExplicitPath(StringRef pathString, SourceLocation loc);
+  std::string ParseExplicitPath(StringRef pathString, SourceLocation loc, StringRef& firstComponent);
   QualType getFieldType (const std::string& fieldOrTagName, SourceLocation loc);
   bool findFieldType (const std::string& fieldOrTagName, SourceLocation loc);
   QualType getTableType (StringRef tableName, SourceLocation loc);

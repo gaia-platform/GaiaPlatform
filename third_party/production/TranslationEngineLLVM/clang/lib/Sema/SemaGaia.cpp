@@ -139,13 +139,14 @@ bool Sema::doesPathIncludesTags(const SmallVector<std::string, 8>& path, SourceL
     return false;
 }
 
-std::string Sema::ParseExplicitPath(StringRef pathString, SourceLocation loc)
+std::string Sema::ParseExplicitPath(StringRef pathString, SourceLocation loc, StringRef& firstComponent)
 {
+    bool isFirstComponentProcessed = false;
     size_t searchStartPosition = 0;
     llvm::StringMap<string> tagMap;
     SmallVector<string, 8> path;
     bool is_absolute = pathString.front() == '/';
-    if (pathString.front() == '/' || pathString.front() == '@')
+    if (is_absolute || pathString.front() == '@')
     {
         searchStartPosition = 1;
     }
@@ -196,6 +197,11 @@ std::string Sema::ParseExplicitPath(StringRef pathString, SourceLocation loc)
             }
             path.push_back(table);
             searchStartPosition = arrowPosition + 2;
+            if (!isFirstComponentProcessed)
+            {
+                isFirstComponentProcessed = true;
+                firstComponent = getTableFromExpression(table);
+            }
         }
 
         tagPosition = pathString.find(':', searchStartPosition);
@@ -212,6 +218,11 @@ std::string Sema::ParseExplicitPath(StringRef pathString, SourceLocation loc)
         tagMap[tag] = getTableFromExpression(table);
     }
     path.push_back(table);
+
+    if (firstComponent.empty())
+    {
+        firstComponent = getTableFromExpression(table);
+    }
 
     // If explicit path has one component only, this component will be checked at later stage
     // Therefore there is no need to perform more checks here.
@@ -1230,8 +1241,9 @@ llvm::StringMap<std::string> Sema::getTagMapping(const DeclContext* context, Sou
 NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc, const string& explicitPath)
 {
     QualType qualType = Context.VoidTy;
+    StringRef firstComponent;
 
-    string table = ParseExplicitPath(explicitPath, loc);
+    string table = ParseExplicitPath(explicitPath, loc, firstComponent);
     if (!table.empty())
     {
         size_t dot_position = table.find('.');
@@ -1251,40 +1263,49 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
         return nullptr;
     }
 
-    bool skipTopSearchContext = !IsInExtendedExplicitPathScope();
-    string anchorTable;
-    for (auto search_context_iterator = searchContextStack.rbegin();
-            search_context_iterator != searchContextStack.rend(); ++search_context_iterator)
+    if (firstComponent.empty())
     {
-        if (!skipTopSearchContext)
-        {
-            skipTopSearchContext = true;
-            continue;
-        }
+        firstComponent = fieldTableName;
+    }
 
-        int pathLength = INT_MAX;
-        for (auto anchor_table_iterator = search_context_iterator->begin();
-            anchor_table_iterator != search_context_iterator->end(); ++anchor_table_iterator)
+    const llvm::StringMap<std::string>& tagMapping = getTagMapping(getCurFunctionDecl(), loc);
+
+    StringRef anchorTable;
+    if (explicitPath.front() != '/' && explicitPath.rfind("@/") != 0 && tagMapping.find(firstComponent) == tagMapping.end())
+    {
+        bool skipTopSearchContext = !IsInExtendedExplicitPathScope();
+        for (auto search_context_iterator = searchContextStack.rbegin();
+            search_context_iterator != searchContextStack.rend(); ++search_context_iterator)
         {
-            llvm::SmallVector<string, 8> path;
-            // Find topographically shortest path between anchor table and destination table.
-            if (gaia::catalog::GaiaCatalog::findNavigationPath(anchor_table_iterator->first(), fieldTableName, path, false))
+            if (!skipTopSearchContext)
             {
-                if(path.size() < pathLength)
+                skipTopSearchContext = true;
+                continue;
+            }
+
+            int pathLength = INT_MAX;
+            for (auto anchor_table_iterator = search_context_iterator->begin();
+                anchor_table_iterator != search_context_iterator->end(); ++anchor_table_iterator)
+            {
+                llvm::SmallVector<string, 8> path;
+                // Find topographically shortest path between anchor table and destination table.
+                if (gaia::catalog::GaiaCatalog::findNavigationPath(anchor_table_iterator->first(), firstComponent, path, false))
                 {
-                    pathLength = path.size();
-                    anchorTable = anchor_table_iterator->first();
-                }
-                else if (pathLength == path.size())
-                {
-                    anchorTable = "";
+                    if(path.size() < pathLength)
+                    {
+                        pathLength = path.size();
+                        anchorTable = anchor_table_iterator->first();
+                    }
+                    else if (pathLength == path.size())
+                    {
+                        anchorTable = StringRef();
+                    }
                 }
             }
-            path.clear();
-        }
-        if (!anchorTable.empty())
-        {
-            break;
+            if (!anchorTable.empty())
+            {
+                break;
+            }
         }
     }
 
