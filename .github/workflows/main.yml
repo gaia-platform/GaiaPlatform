@@ -86,16 +86,6 @@ jobs:
           sudo update-alternatives --install "/usr/bin/c++" "c++" "$CXX" 50
           sudo update-alternatives --install "/usr/bin/cpp" "cpp" "$CPP" 50
 
-          cd $GAIA_REPO/production
-          sudo update-alternatives --install "/usr/bin/clang-format" "clang-format" "/usr/bin/clang-format-10" 10
-          sudo update-alternatives --install "/usr/bin/clang-tidy" "clang-tidy" "/usr/bin/clang-tidy-10" 10
-
-          echo "LD_PRELOAD = '$(clang-10 -print-file-name=libclang_rt.asan-$(uname -m).so)'" >> /etc/postgresql/12/main/environment
-          echo "ASAN_OPTIONS = 'detect_leaks=0'" >> /etc/postgresql/12/main/environment
-
-          sudo mkdir -p /var/lib/gaia/db
-          sudo chmod -R 666 /var/lib/gaia/db
-
       - name: $GAIA_REPO/third_party/production/cmake
         run: |
           cd $GAIA_REPO/third_party/production/cmake
@@ -223,6 +213,18 @@ jobs:
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure --prefix=/usr"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
+
+      - name: Execute Pre-Build Actions
+        run: |
+          cd $GAIA_REPO/production
+          sudo update-alternatives --install "/usr/bin/clang-format" "clang-format" "/usr/bin/clang-format-10" 10
+          sudo update-alternatives --install "/usr/bin/clang-tidy" "clang-tidy" "/usr/bin/clang-tidy-10" 10
+
+          echo "LD_PRELOAD = '$(clang-10 -print-file-name=libclang_rt.asan-$(uname -m).so)'" >> /etc/postgresql/12/main/environment
+          echo "ASAN_OPTIONS = 'detect_leaks=0'" >> /etc/postgresql/12/main/environment
+
+          sudo mkdir -p /var/lib/gaia/db
+          sudo chmod -R 666 /var/lib/gaia/db
 
       - name: Create /source and /build directories.
         run: |
