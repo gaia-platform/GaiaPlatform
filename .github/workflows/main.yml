@@ -220,6 +220,7 @@ jobs:
           sudo update-alternatives --install "/usr/bin/clang-format" "clang-format" "/usr/bin/clang-format-10" 10
           sudo update-alternatives --install "/usr/bin/clang-tidy" "clang-tidy" "/usr/bin/clang-tidy-10" 10
 
+          sudo mkdir -p /etc/postgresql/12/main
           sudo echo "LD_PRELOAD = '$(clang-10 -print-file-name=libclang_rt.asan-$(uname -m).so)'" >> /etc/postgresql/12/main/environment
           sudo echo "ASAN_OPTIONS = 'detect_leaks=0'" >> /etc/postgresql/12/main/environment
 
