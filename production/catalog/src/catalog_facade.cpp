@@ -309,6 +309,15 @@ std::string link_facade_t::to_table() const
     return m_relationship.parent().name();
 }
 
+bool link_facade_t::is_value_linked() const
+{
+    // This should never happen unless there are some catalog or DDL parsing bugs.
+    ASSERT_INVARIANT(
+        m_relationship.parent_field_positions().size() == m_relationship.child_field_positions().size(),
+        "Invalid field settings for the value linked relationship.");
+    return m_relationship.parent_field_positions().size() > 0;
+}
+
 bool link_facade_t::is_single_cardinality() const
 {
     return !m_is_from_parent || is_one_to_one();

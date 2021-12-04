@@ -82,6 +82,7 @@ struct relationship_view_t : catalog_db_object_view_t
     [[nodiscard]] common::reference_offset_t parent_offset() const;
     [[nodiscard]] const flatbuffers::Vector<uint16_t>* parent_field_positions() const;
     [[nodiscard]] const flatbuffers::Vector<uint16_t>* child_field_positions() const;
+    [[nodiscard]] bool is_value_linked() const;
 };
 
 struct index_view_t : catalog_db_object_view_t

@@ -116,6 +116,15 @@ namespace db
     return catalog::Getgaia_relationship(m_obj_ptr->data())->child_field_positions();
 }
 
+[[nodiscard]] bool relationship_view_t::is_value_linked() const
+{
+    // This should never happen unless there are some catalog or DDL parsing bugs.
+    ASSERT_PRECONDITION(
+        child_field_positions()->size() == parent_field_positions()->size(),
+        "Invalid field settings for the value linked relationship.");
+    return parent_field_positions()->size() > 0;
+}
+
 [[nodiscard]] const char* index_view_t::name() const
 {
     return catalog::Getgaia_index(m_obj_ptr->data())->name()->c_str();

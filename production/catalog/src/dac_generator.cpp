@@ -171,6 +171,15 @@ std::string dac_compilation_unit_writer_t::generate_constants()
             const_code.SetValue("NEXT_OFFSET_VALUE", std::to_string(link.next_offset_value()));
             const_code += "constexpr common::reference_offset_t {{NEXT_OFFSET}} = {{NEXT_OFFSET_VALUE}};\\";
             table_constants.insert({link.next_offset_value(), const_code.ToString()});
+
+            if (incoming_link.is_value_linked())
+            {
+                const_code.Clear();
+                const_code.SetValue("PREV_OFFSET", link.prev_offset());
+                const_code.SetValue("PREV_OFFSET_VALUE", std::to_string(link.prev_offset_value()));
+                const_code += "constexpr common::reference_offset_t {{PREV_OFFSET}} = {{PREV_OFFSET_VALUE}};\\";
+                table_constants.insert({link.prev_offset_value(), const_code.ToString()});
+            }
         }
 
         for (const auto& outgoing_link : table.outgoing_links())

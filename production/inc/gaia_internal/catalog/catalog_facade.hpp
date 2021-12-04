@@ -103,6 +103,8 @@ public:
     bool is_single_cardinality() const;
     bool is_multiple_cardinality() const;
 
+    bool is_value_linked() const;
+
 protected:
     gaia::catalog::gaia_relationship_t m_relationship;
     bool m_is_from_parent;

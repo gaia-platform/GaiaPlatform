@@ -40,6 +40,16 @@ uint16_t gaiac_incoming_link_facade_t::next_offset_value() const
     return m_relationship.next_child_offset();
 }
 
+std::string gaiac_incoming_link_facade_t::prev_offset() const
+{
+    return "c_" + from_table() + "_prev_" + field_name();
+}
+
+uint16_t gaiac_incoming_link_facade_t::prev_offset_value() const
+{
+    return m_relationship.prev_child_offset();
+}
+
 //
 // gaiac_outgoing_link_facade_t
 //

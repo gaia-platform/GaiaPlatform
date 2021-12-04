@@ -273,7 +273,7 @@ static std::shared_ptr<relationship_t> create_relationship(relationship_view_t r
         .parent_offset = relationship.parent_offset(),
         .cardinality = cardinality_t::many,
         .parent_required = false,
-        .value_linked = false});
+        .value_linked = relationship.is_value_linked()});
 }
 
 type_metadata_t& type_registry_t::create(gaia_type_t type)

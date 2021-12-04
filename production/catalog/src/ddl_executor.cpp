@@ -769,7 +769,10 @@ reference_offset_t ddl_executor_t::find_child_available_offset(const gaia_table_
     reference_offset_t max_offset = 0;
     for (const auto& relationship : relationships)
     {
-        max_offset = std::max({max_offset.value(), relationship.next_child_offset(), relationship.parent_offset()});
+        max_offset = std::max(
+            {max_offset.value(),
+             relationship.prev_child_offset() == c_invalid_reference_offset ? relationship.next_child_offset() : relationship.prev_child_offset(),
+             relationship.parent_offset()});
 
         ASSERT_INVARIANT(max_offset != c_invalid_reference_offset, "Invalid reference offset detected!");
     }
