@@ -45,11 +45,6 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 include(gaia_internal)
 include(GoogleTest)
 
-# Ensure Debug builds have the DEBUG macro defined.
-# REVIEW: This should really be `add_compile_definitions($<$<CONFIG:Debug>:DEBUG>)`,
-# but that makes it harder to pass to `ExternalProject_Add()`.
-add_compile_options("$<$<CONFIG:Debug>:-DDEBUG>")
-
 # Check that PIE flags are actually passed to the linker.
 # This ensures that our executables are ASLR-compatible.
 include(CheckPIESupported)
@@ -80,6 +75,8 @@ endif(CCACHE_FOUND)
 # Default compiler/linker flags for Gaia targets.
 add_library(gaia_build_options INTERFACE)
 target_compile_options(gaia_build_options INTERFACE -Wall -Wextra -ftime-trace)
+# Ensure Debug builds have the DEBUG macro defined.
+target_compile_definitions(gaia_build_options INTERFACE $<$<CONFIG:Debug>:DEBUG>)
 
 # LLVM and CLANG specific options.
 if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
