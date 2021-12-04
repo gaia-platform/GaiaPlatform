@@ -441,6 +441,7 @@ gaia_id_t ddl_executor_t::create_relationship(
     reference_offset_t parent_offset = child_available_offset;
     reference_offset_t next_child_offset = child_available_offset + 1;
     validate_new_reference_offset(next_child_offset);
+    reference_offset_t prev_child_offset = c_invalid_reference_offset;
 
     bool is_parent_required = false;
     bool is_deprecated = false;
@@ -514,6 +515,9 @@ gaia_id_t ddl_executor_t::create_relationship(
         {
             child_field_positions.push_back(gaia_field_t::get(field_id).position());
         }
+
+        prev_child_offset = next_child_offset + 1;
+        validate_new_reference_offset(prev_child_offset);
     }
 
     // These casts works because a field_position_t is a thin wrapper over uint16_t,
@@ -533,7 +537,7 @@ gaia_id_t ddl_executor_t::create_relationship(
         is_deprecated,
         first_child_offset,
         next_child_offset,
-        c_invalid_reference_offset,
+        prev_child_offset,
         parent_offset,
         *parent_field_position_values,
         *child_field_position_values);
