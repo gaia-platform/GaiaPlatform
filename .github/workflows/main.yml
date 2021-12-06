@@ -37,11 +37,11 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y clang-10 clang-format-10 clang-tidy-10 debhelper flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev rpm libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert python3 python3-dev python3-pip build-essential
+          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 debhelper flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev rpm libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
 
       - name: Install Required Python Packages
         run: |
-          python3.8 -m pip install --user atools argcomplete pytest
+          python3.8 -m pip install --user atools argcomplete
 
       - name: Install Required Third Party Git Repositories
         run: |
@@ -53,9 +53,6 @@ jobs:
           rm -rf */.git
           cd $GAIA_REPO/third_party/production/libexplain
           git clone -c advice.detachedHead=false --depth 1 --branch "debian/1.4.D001-10" https://salsa.debian.org/debian/libexplain
-          rm -rf */.git
-          cd $GAIA_REPO/third_party/production/pybind11
-          git clone -c advice.detachedHead=false --depth 1 --branch v2.5.0 https://github.com/pybind/pybind11.git
           rm -rf */.git
           cd $GAIA_REPO/third_party/production/cpptoml
           git clone -c advice.detachedHead=false --depth 1 --branch v0.1.1 https://github.com/skystrife/cpptoml.git
@@ -75,17 +72,17 @@ jobs:
           cd $GAIA_REPO/third_party/production/bison
           wget http://ftp.gnu.org/gnu/bison/bison-3.5.tar.gz
 
-      - name: Execute Pre-Build Actions
+      - name: Pre-Build third_party/production/cmake
         run: |
           cd $GAIA_REPO/third_party/production/cmake
-          sudo update-alternatives --install "/usr/bin/clang" "clang" "/usr/bin/clang-10" 10
-          sudo update-alternatives --install "/usr/bin/clang++" "clang++" "/usr/bin/clang++-10" 10
-          sudo update-alternatives --install "/usr/bin/ld.lld" "ld.lld" "/usr/bin/ld.lld-10" 10
-          sudo update-alternatives --install "/usr/bin/cc" "cc" "$CC" 50
-          sudo update-alternatives --install "/usr/bin/c++" "c++" "$CXX" 50
-          sudo update-alternatives --install "/usr/bin/cpp" "cpp" "$CPP" 50
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang\" \"clang\" \"/usr/bin/clang-10\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang++\" \"clang++\" \"/usr/bin/clang++-10\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/ld.lld\" \"ld.lld\" \"/usr/bin/ld.lld-10\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/cc\" \"cc\" \"$CC\" 50"
+          sudo bash -c "update-alternatives --install \"/usr/bin/c++\" \"c++\" \"$CXX\" 50"
+          sudo bash -c "update-alternatives --install \"/usr/bin/cpp\" \"cpp\" \"$CPP\" 50"
 
-      - name: $GAIA_REPO/third_party/production/cmake
+      - name: Build third_party/production/cmake
         run: |
           cd $GAIA_REPO/third_party/production/cmake
           sudo bash -c "wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null"
@@ -96,29 +93,19 @@ jobs:
           sudo bash -c "rm /etc/apt/sources.list.d/kitware.list >/dev/null"
           sudo bash -c "rm /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null"
 
-      - name: $GAIA_REPO/third_party/production/daemonize
+      - name: Build third_party/production/daemonize
         run: |
           cd $GAIA_REPO/third_party/production/daemonize
           echo "cd daemonize || exit 1" >> daemonize.sh
-          echo "env > start.env || exit 1" >> daemonize.sh
-          echo "export > start.export || exit 1" >> daemonize.sh
           echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" CPPFLAGS='-fPIC' ./configure || exit 1" >> daemonize.sh
           echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" VERBOSE=1 make -j$(nproc) || exit 1" >> daemonize.sh
           echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" VERBOSE=1 make install || exit 1" >> daemonize.sh
-          echo "env > end.env || exit 1" >> daemonize.sh
-          echo "export > end.export || exit 1" >> daemonize.sh
-          echo "echo Differences in ENV follow: || exit 1" >> daemonize.sh
-          echo "diff start.env end.env || exit 1" >> daemonize.sh
-          echo "echo Differences in EXPORT follow: || exit 1" >> daemonize.sh
-          echo "diff start.export end.export || exit 1" >> daemonize.sh
           chmod +x daemonize.sh
           sudo ./daemonize.sh
 
       - name: $GAIA_REPO/third_party/production/postgresql
         run: |
           cd $GAIA_REPO/third_party/production/postgresql
-          echo "env > start.env || exit 1" > postgresql.sh
-          echo "export > start.export || exit 1" >> postgresql.sh
           echo "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - || exit 1" >> postgresql.sh
           echo "echo \"deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main\" | tee /etc/apt/sources.list.d/pgdg.list || exit 1" >> postgresql.sh
           echo "apt-get update -y || exit 1" >> postgresql.sh
@@ -131,12 +118,6 @@ jobs:
           echo "cp -p -R /etc/ssl/private /etc/postgresql/ssl || exit 1" >> postgresql.sh
           echo "sed -i \"s/\/etc\/ssl\/private/\/etc\/postgresql\/ssl\/private/g\" /etc/postgresql/12/main/postgresql.conf || exit 1" >> postgresql.sh
           echo "sed -i '/^local/ s/peer/trust/' /etc/postgresql/12/main/pg_hba.conf || exit 1" >> postgresql.sh
-          echo "env > end.env || exit 1" >> postgresql.sh
-          echo "export > end.export || exit 1" >> postgresql.sh
-          echo "echo Differences in ENV follow: || exit 1" >> postgresql.sh
-          echo "diff start.env end.env || exit 1" >> postgresql.sh
-          echo "echo Differences in EXPORT follow: || exit 1" >> postgresql.sh
-          echo "diff start.export end.export || exit 1" >> postgresql.sh
           chmod +x postgresql.sh
           sudo ./postgresql.sh
 
@@ -171,16 +152,6 @@ jobs:
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
-
-      # - name: $GAIA_REPO/third_party/production/pybind11
-      #   run: |
-      #     cd $GAIA_REPO/third_party/production/pybind11
-      #     /usr/bin/python3.8 -m pip install pytest
-      #     /usr/bin/python3.8 -c "import pytest; print(pytest.__version__)"
-      #     sudo bash -c "cmake pybind11"
-      #     sudo bash -c "make -j$(nproc)"
-      #     sudo bash -c "make install"
-      #     sudo bash -c "rm -rf *"
 
       - name: $GAIA_REPO/third_party/production/cpptoml
         run: |
@@ -315,7 +286,7 @@ jobs:
           echo "du - build"
           sudo bash -c "du -h -d1 /build"
 
-      - name: Build
+      - name: Build production
         run: |
           echo "mkdir -p /build/production || exit 1" >> production.sh
           echo "cd /build/production || exit 1" >> production.sh
@@ -372,4 +343,3 @@ jobs:
       - name: Done
         run: |
           echo "Done"
-      # - name: Sync With Repository
