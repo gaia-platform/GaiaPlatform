@@ -96,12 +96,12 @@ jobs:
       - name: Build third_party/production/daemonize
         run: |
           cd $GAIA_REPO/third_party/production/daemonize
-          echo "cd daemonize || exit 1" >> daemonize.sh
-          echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" CPPFLAGS='-fPIC' ./configure || exit 1" >> daemonize.sh
-          echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" VERBOSE=1 make -j$(nproc) || exit 1" >> daemonize.sh
-          echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" VERBOSE=1 make install || exit 1" >> daemonize.sh
-          chmod +x daemonize.sh
-          sudo ./daemonize.sh
+          cd daemonize
+          sudo bash -c "./configure"
+          sudo bash -c "make -j$(nproc)"
+          sudo bash -c "make install"
+          cd ..
+          sudo bash -c "rm -rf *"
 
       - name: $GAIA_REPO/third_party/production/postgresql
         run: |
