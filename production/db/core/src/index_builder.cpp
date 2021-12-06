@@ -484,11 +484,13 @@ void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool dea
             auto obj = offset_to_ptr(offset);
 
             // We do not index system objects, so we can move on.
-            if (!is_system_object(obj->type))
+            if (is_system_object(obj->type))
             {
-                collected_offsets.insert(offset);
-                offset_types.insert(obj->type);
+                continue;
             }
+
+            collected_offsets.insert(offset);
+            offset_types.insert(obj->type);
         }
     }
 
