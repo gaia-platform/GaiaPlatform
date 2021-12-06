@@ -22,6 +22,13 @@ endif()
 # way to handle generator expressions. For now, we don't use add_compile_definitions() in our
 # top-level CMakeLists.txt, for just this reason.
 
+# Check that there are no COMPILE_DEFINITIONS in this scope.
+get_property(FLATBUFFERS_COMPILE_DEFINITIONS DIRECTORY PROPERTY COMPILE_DEFINITIONS)
+list(LENGTH FLATBUFFERS_COMPILE_DEFINITIONS FLATBUFFERS_COMPILE_DEFINITIONS_COUNT)
+if(FLATBUFFERS_COMPILE_DEFINITIONS_COUNT GREATER 0)
+  message(FATAL_ERROR "Global compile definitions detected, aborting configuration: ${FLATBUFFERS_COMPILE_DEFINITIONS}")
+endif()
+
 get_property(FLATBUFFERS_COMPILE_OPTIONS DIRECTORY PROPERTY COMPILE_OPTIONS)
 string(REPLACE ";" " " FLATBUFFERS_COMPILE_OPTIONS "${FLATBUFFERS_COMPILE_OPTIONS}")
 
