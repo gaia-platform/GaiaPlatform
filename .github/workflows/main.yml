@@ -231,6 +231,9 @@ jobs:
           sudo bash -c "mkdir -p /source/third_party/production/json"
           sudo bash -c "cp -a $GAIA_REPO/third_party/production/json/. /source/third_party/production/json/"
 
+          sudo bash -c "mkdir -p /build/third_party/production/libexplain"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/libexplain/. /build/third_party/production/libexplain/"
+
           sudo bash -c "mkdir -p /build/third_party/production/postgresql"
           sudo bash -c "cp -a $GAIA_REPO/third_party/production/postgresql/. /build/third_party/production/postgresql/"
 
