@@ -15,13 +15,13 @@ SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 # we disable them.
 
 # shellcheck disable=SC2034
-SUITE_MODE="perf-suites"
+SUITE_MODE="long-persistence-perf-suites"
 # shellcheck disable=SC2034
-TEST_WORKLOADS=("mink-perf" "small-scale" "palletbox-perf"  "pingpong-perf" "marcopolo-perf")
+TEST_WORKLOADS=("largest-scale")
 # shellcheck disable=SC2034
 USE_PERSISTENT_DATABASE=0
 # shellcheck disable=SC2034
-USE_MEMORY_SAMPLING=0
+USE_MEMORY_SAMPLING=1
 
 # Invoke the actual execution of the suites.
 # shellcheck source=execute_suites.sh
