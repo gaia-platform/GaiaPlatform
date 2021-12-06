@@ -713,27 +713,37 @@ ruleset test_connect_1_n
     on_insert(student)
     {
         auto r1 = registration.insert(reg_id: "reg001");
+#ifdef TEST_FAILURES // GAIAPLAT-1207
         student.connect(r1);
         student.registrations.connect(r1);
+#endif
 
         for(/r2:registration)
         {
+#ifdef TEST_FAILURES // GAIAPLAT-1207
             student.connect(r2);
             student.registrations.connect(r2);
+#endif
         }
 
         gaia::prerequisites::registration_t r3 = registration.insert(reg_id: "reg002");
+#ifdef TEST_FAILURES // GAIAPLAT-1207
         student.registrations.connect(r3);
         student.connect(r3);
+#endif
 
         gaia::prerequisites::registration_writer w;
         w.reg_id = "reg003";
         gaia::prerequisites::registration_t r4 = gaia::prerequisites::registration_t::get(w.insert_row());
+#ifdef TEST_FAILURES // GAIAPLAT-1207
         student.connect(r4);
         student.registrations.connect(r4);
+#endif
 
+#ifdef TEST_FAILURES // GAIAPLAT-1207
         student.connect(registration.insert(reg_id: "reg004"));
         student.registrations.connect(registration.insert(reg_id: "reg005"));
+#endif
     }
 };
 
@@ -765,7 +775,9 @@ ruleset test_disconnect_1_n
         {
             for(/r:registration)
             {
+#ifdef TEST_FAILURES // GAIAPLAT-1207
                 student.disconnect(r);
+#endif
             }
         }
         else
@@ -784,7 +796,9 @@ ruleset test_disconnect_1_n
         {
             for (/r:registration)
             {
+#ifdef TEST_FAILURES // GAIAPLAT-1207
                 course.registrations.disconnect(r);
+#endif
             }
         }
         else
@@ -800,7 +814,9 @@ ruleset test_disconnect_1_n
     {
         if (strcmp(course.course_id, "cou001") == 0)
         {
+#ifdef TEST_FAILURES // GAIAPLAT-1207
             course.registrations.clear();
+#endif
         }
         else
         {

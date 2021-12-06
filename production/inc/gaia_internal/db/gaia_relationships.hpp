@@ -28,12 +28,13 @@ enum class cardinality_t
 /**
  * TODO: Create sub-classes for different types of relationships.
  *
- * A relationship describes the logical connection between two Gaia types, whose
+ * A relationship describes the logical connection between two Gaia types whose
  * direct access classes have methods to allow objects of the given type to
  * visit the other object in the relationship directly.
-
- * To facilitate the efficient traversal of objects in relationships, database
- * will allocate reference slots for each relationship the object is in.
+ *
+ * To facilitate efficient traversal of objects in relationships, database will
+ * allocate reference slots (in the object header before the data payload) for
+ * each relationship the object is in.
  *
  * The objects in a relationship can form two different typologies from the
  * references that connect them: one with an anchor node and one without.

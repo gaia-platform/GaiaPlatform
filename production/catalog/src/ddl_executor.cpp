@@ -506,6 +506,33 @@ gaia_id_t ddl_executor_t::create_relationship(
                 }
             }
         }
+        else
+        {
+            // For 1:N relationships, we need to create an index on the fields
+            // of the child side if they are not already indexed.
+            bool index_exists = false;
+            for (const gaia_index_t& index : gaia_table_t::get(child_table_id).gaia_indexes())
+            {
+                if (index.fields().size() != child_field_ids.size())
+                {
+                    continue;
+                }
+                for (size_t i = 0; i < child_field_ids.size(); i++)
+                {
+                    if (child_field_ids[i] != index.fields()[i])
+                    {
+                        continue;
+                    }
+                }
+                index_exists = true;
+            }
+            if (!index_exists)
+            {
+                bool is_unique_index = false;
+                index_type_t index_type = index_type_t::range;
+                create_index(name, is_unique_index, index_type, child_table_id, child_field_ids);
+            }
+        }
 
         for (gaia_id_t field_id : parent_field_ids)
         {
@@ -1023,11 +1050,21 @@ gaia_id_t ddl_executor_t::create_index(
     }
 
     std::vector<gaia_id_t> index_field_ids = find_table_field_ids(table_id, field_names);
+    return create_index(index_name, unique, type, table_id, index_field_ids);
+}
+
+gaia_id_t ddl_executor_t::create_index(
+    const std::string& index_name,
+    bool unique,
+    index_type_t type,
+    gaia_id_t table_id,
+    const std::vector<gaia_id_t>& field_ids)
+{
     // This cast works because a gaia_id_t is a thin wrapper over uint64_t,
     // but its success is not guaranteed by the language and is undefined behavior (UB).
     // TODO: Replace reinterpret_cast with bit_cast when it becomes available.
-    std::vector<gaia_id_t::value_type>* index_field_id_values
-        = reinterpret_cast<std::vector<gaia_id_t::value_type>*>(&index_field_ids);
+    auto* index_field_id_values
+        = reinterpret_cast<const std::vector<gaia_id_t::value_type>*>(&field_ids);
 
     gaia_id_t index_id = gaia_index_t::insert_row(
         index_name.c_str(),
@@ -1040,9 +1077,9 @@ gaia_id_t ddl_executor_t::create_index(
     // Creating an unique index on a single field automatically makes the field
     // unique. Do nothing for multiple-field index creation because we do not
     // support unique constraints for composite keys at the moment.
-    if (unique && index_field_ids.size() == 1)
+    if (unique && field_ids.size() == 1)
     {
-        auto field_writer = gaia_field_t::get(index_field_ids.front()).writer();
+        auto field_writer = gaia_field_t::get(field_ids.front()).writer();
         field_writer.unique = true;
         field_writer.update_row();
     }

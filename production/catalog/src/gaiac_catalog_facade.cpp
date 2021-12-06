@@ -72,6 +72,11 @@ std::string gaiac_outgoing_link_facade_t::next_offset() const
     return "c_" + to_table() + "_next_" + m_relationship.to_parent_link_name();
 }
 
+std::string gaiac_outgoing_link_facade_t::prev_offset() const
+{
+    return "c_" + to_table() + "_prev_" + m_relationship.to_parent_link_name();
+}
+
 } // namespace generate
 } // namespace catalog
 } // namespace gaia
