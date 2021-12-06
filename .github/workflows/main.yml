@@ -108,37 +108,39 @@ jobs:
           cd $GAIA_REPO/third_party/production/postgresql
           sudo bash -c "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -"
           sudo bash -c "echo \"deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main\" | tee /etc/apt/sources.list.d/pgdg.list"
-          sudo bash -c  "apt-get update -y"
-          sudo bash -c  "DEBIAN_FRONTEND=noninteractive apt-get install -y     postgresql-12     postgresql-12-dbgsym     postgresql-client-12     postgresql-client-12-dbgsym     postgresql-contrib-12     postgresql-server-dev-12"
-          sudo bash -c  "apt-get clean"
-          sudo bash -c  "rm /etc/apt/sources.list.d/pgdg.list"
-          sudo bash -c  "python3 -m pip install psycopg2"
-          sudo bash -c  "locale-gen en_US.UTF-8"
-          sudo bash -c  "mkdir -p /etc/postgresql/ssl"
-          sudo bash -c  "cp -p -R /etc/ssl/private /etc/postgresql/ssl"
-          sudo bash -c  "sed -i \"s/\/etc\/ssl\/private/\/etc\/postgresql\/ssl\/private/g\" /etc/postgresql/12/main/postgresql.conf"
-          sudo bash -c  "sed -i '/^local/ s/peer/trust/' /etc/postgresql/12/main/pg_hba.conf"
+          sudo bash -c "apt-get update -y"
+          sudo bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y     postgresql-12     postgresql-12-dbgsym     postgresql-client-12     postgresql-client-12-dbgsym     postgresql-contrib-12     postgresql-server-dev-12"
+          sudo bash -c "apt-get clean"
+          sudo bash -c "rm /etc/apt/sources.list.d/pgdg.list"
+          sudo bash -c "python3 -m pip install psycopg2"
+          sudo bash -c "locale-gen en_US.UTF-8"
+          sudo bash -c "mkdir -p /etc/postgresql/ssl"
+          sudo bash -c "cp -p -R /etc/ssl/private /etc/postgresql/ssl"
+          sudo bash -c "sed -i \"s/\/etc\/ssl\/private/\/etc\/postgresql\/ssl\/private/g\" /etc/postgresql/12/main/postgresql.conf"
+          sudo bash -c "sed -i '/^local/ s/peer/trust/' /etc/postgresql/12/main/pg_hba.conf"
+          sudo bash -c "pg_config --includedir-server"
+          sudo bash -c "ls -la /usr/lib/postgresql/"
+          sudo bash -c "rm -rf /usr/lib/postgresql/14"
+          sudo bash -c "ls -la /usr/lib/postgresql/"
+          sudo bash -c "pg_config --includedir-server"
 
-          pg_config --includedir-server
-          ls -la /usr/lib/postgresql/
-          sudo rm -rf /usr/lib/postgresql/14
-          ls -la /usr/lib/postgresql/
-          pg_config --includedir-server
-
-      - name: $GAIA_REPO/third_party/production/liburing
+      - name: Build third_party/production/liburing
         run: |
           cd $GAIA_REPO/third_party/production/liburing
           cd liburing
-          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure"
-          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
-          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
+          sudo bash -c "./configure"
+          sudo bash -c "make -j$(nproc)"
+          sudo bash -c "make install"
+          cd ..
+          sudo bash -c "rm -rf *"
 
-      - name: $GAIA_REPO/third_party/production/backward
+      - name: Build third_party/production/backward
         run: |
           cd $GAIA_REPO/third_party/production/backward
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" cmake backward-cpp"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
+          sudo bash -c "rm -rf *"
 
       - name: $GAIA_REPO/third_party/production/bison
         run: |
