@@ -345,13 +345,27 @@ jobs:
           name: CMakeError.log
           path: /build/production/CMakeFiles/CMakeError.log
 
-      - name: Tests?
+      - name: Tests
         run: |
           echo "cd /build/production/db/core || exit 1" > install.sh
           echo "make install || exit 1" >> install.sh
+          echo "cd /build/production || exit 1" > install.sh
           echo "ctest || exit 1" >> install.sh
           chmod +x install.sh
           sudo ./install.sh
+
+      - name: Generate Package
+        run: |
+          cd /build/production
+          sudo bash -c "make preinstall"
+          sudo bash -c "cpack -G DEB"
+          ls -la /build/production/gaia-0.3.2_amd64.deb
+
+      - name: Upload Package
+        uses: actions/upload-artifact@v2
+        with:
+          name: CMakeError.log
+          path: /build/production/gaia-0.3.2_amd64.deb
 
       - name: Done
         run: |
