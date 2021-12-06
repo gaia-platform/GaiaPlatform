@@ -425,15 +425,15 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t
         ASSERT_INVARIANT(data_size == 0, "Null payload with non-zero payload size!");
     }
 
-    WRITE_PROTECT(obj.to_offset());
-    client_t::txn_log(locator, c_invalid_gaia_offset, obj.to_offset(), gaia_operation_t::create);
-
     auto_connect_to_parent(
         id,
         type,
         // NOLINTNEXTLINE: cppcoreguidelines-pro-type-const-cast
         const_cast<gaia_id_t*>(obj_ptr->references()),
         reinterpret_cast<const uint8_t*>(obj_ptr->data()));
+
+    WRITE_PROTECT(obj.to_offset());
+    client_t::txn_log(locator, c_invalid_gaia_offset, obj.to_offset(), gaia_operation_t::create);
 
     obj.create_insert_trigger(type, id);
     return obj;
