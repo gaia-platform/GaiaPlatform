@@ -81,7 +81,6 @@ jobs:
           sudo update-alternatives --install "/usr/bin/clang" "clang" "/usr/bin/clang-10" 10
           sudo update-alternatives --install "/usr/bin/clang++" "clang++" "/usr/bin/clang++-10" 10
           sudo update-alternatives --install "/usr/bin/ld.lld" "ld.lld" "/usr/bin/ld.lld-10" 10
-
           sudo update-alternatives --install "/usr/bin/cc" "cc" "$CC" 50
           sudo update-alternatives --install "/usr/bin/c++" "c++" "$CXX" 50
           sudo update-alternatives --install "/usr/bin/cpp" "cpp" "$CPP" 50
@@ -332,18 +331,14 @@ jobs:
           echo "du - build"
           sudo bash -c "du -h -d1 /build"
 
-      - name: Upload CMakeOutput.log
+      - name: Upload CMake Logs
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: CMakeOutput.log
-          path: /build/production/CMakeFiles/CMakeOutput.log
-      - name: Upload CMakeError.log
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: CMakeError.log
-          path: /build/production/CMakeFiles/CMakeError.log
+          name: CMake Logs
+          path: |
+            /build/production/CMakeFiles/CMakeOutput.log
+            /build/production/CMakeFiles/CMakeError.log
 
       - name: Tests
         run: |
@@ -357,8 +352,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: LastTest.log
-          path: /build/production/Testing/Temporary/LastTest.log
+          name: CTest Logs
+          path: |
+            /build/production/Testing/Temporary/LastTest.log
 
       - name: Generate Package
         run: |
@@ -370,7 +366,7 @@ jobs:
       - name: Upload Package
         uses: actions/upload-artifact@v2
         with:
-          name: CMakeError.log
+          name: Debian Install Package
           path: /build/production/gaia-0.3.2_amd64.deb
 
       - name: Done
