@@ -9,6 +9,13 @@ template <typename T_structure, typename T_iterator>
 void index_t<T_structure, T_iterator>::insert_index_entry(index_key_t&& key, index_record_t record)
 {
     std::lock_guard lock(m_index_lock);
+
+    // Update the last updated txn id if necessary.
+    if (m_last_updated_txn_id < record.txn_id)
+    {
+        m_last_updated_txn_id = record.txn_id;
+    }
+
     auto old_it = find_physical_key(key, record);
     if (old_it != m_data.end())
     {
@@ -22,9 +29,16 @@ void index_t<T_structure, T_iterator>::insert_index_entry(index_key_t&& key, ind
 }
 
 template <typename T_structure, typename T_iterator>
-void index_t<T_structure, T_iterator>::remove_index_entry_with_offsets(const std::unordered_set<gaia_offset_t>& offsets)
+void index_t<T_structure, T_iterator>::remove_index_entry_with_offsets(const std::unordered_set<gaia_offset_t>& offsets, gaia_txn_id_t gc_txn_id)
 {
     std::lock_guard lock(m_index_lock);
+
+    if (m_last_updated_txn_id < gc_txn_id)
+    {
+        // Nothing to do here.
+        return;
+    }
+
     for (auto it = m_data.begin(); it != m_data.end();)
     {
         if (offsets.find(it->second.offset) != offsets.end())
@@ -41,6 +55,15 @@ void index_t<T_structure, T_iterator>::remove_index_entry_with_offsets(const std
 template <typename T_structure, typename T_iterator>
 void index_t<T_structure, T_iterator>::mark_entries_committed(gaia_txn_id_t txn_id)
 {
+    {
+        std::lock_guard lock(m_index_lock);
+        if (m_last_updated_txn_id < m_last_mark_committed_txn_id)
+        {
+            // Nothing to do here.
+            return;
+        }
+    }
+
     for (auto it = m_data.begin(); it != m_data.end(); ++it)
     {
         auto& record = it->second;
@@ -52,6 +75,14 @@ void index_t<T_structure, T_iterator>::mark_entries_committed(gaia_txn_id_t txn_
             mark_committed(record);
         }
     }
+
+    {
+        std::lock_guard lock(m_index_lock);
+        if (m_last_mark_committed_txn_id < txn_id)
+        {
+            m_last_mark_committed_txn_id = txn_id;
+        }
+    }
 }
 
 // Clear index structure.
@@ -60,6 +91,8 @@ void index_t<T_structure, T_iterator>::clear()
 {
     std::lock_guard lock(m_index_lock);
     m_data.clear();
+    m_last_updated_txn_id = c_invalid_gaia_txn_id;
+    m_last_mark_committed_txn_id = c_invalid_gaia_txn_id;
 }
 
 // RAII class for bulk index maintenance operations.

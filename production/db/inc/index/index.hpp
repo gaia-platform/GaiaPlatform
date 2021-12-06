@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <atomic>
 #include <unordered_set>
 
 #include "gaia_internal/db/db_types.hpp"
@@ -71,7 +72,7 @@ public:
 
     // Index structure maintenance.
     void insert_index_entry(index_key_t&& key, index_record_t record);
-    void remove_index_entry_with_offsets(const std::unordered_set<gaia_offset_t>& offsets);
+    void remove_index_entry_with_offsets(const std::unordered_set<gaia_offset_t>& offsets, gaia_txn_id_t gc_txn_id);
 
     // This method will mark all entries below a specified txn_id as committed.
     // This must only be called once all aborted/terminated index entries below the txn_id are garbage collected.
@@ -89,6 +90,9 @@ protected:
     T_structure m_data;
 
 private:
+    gaia_txn_id_t m_last_updated_txn_id;
+    gaia_txn_id_t m_last_mark_committed_txn_id;
+
     // Find physical key corresponding to a logical_key + record or return the end iterator.
     // Returns the iterator type of the underlying structure.
     typename T_structure::iterator find_physical_key(const index_key_t& key, const index_record_t& record);
