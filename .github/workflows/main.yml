@@ -349,9 +349,9 @@ jobs:
         run: |
           echo "cd /build/production/db/core || exit 1" > install.sh
           echo "make install || exit 1" >> install.sh
+          echo "ctest || exit 1" >> install.sh
           chmod +x install.sh
           sudo ./install.sh
-          ctest
 
       - name: Done
         run: |
