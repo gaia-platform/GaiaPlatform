@@ -353,6 +353,12 @@ jobs:
           echo "ctest || exit 1" >> install.sh
           chmod +x install.sh
           sudo ./install.sh
+      - name: Upload LastTest.log
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: LastTest.log
+          path: /build/production/Testing/Temporary/LastTest.log
 
       - name: Generate Package
         run: |
