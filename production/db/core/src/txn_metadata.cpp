@@ -113,6 +113,12 @@ bool txn_metadata_t::is_txn_metadata_map_initialized()
     return (s_txn_metadata_map != nullptr);
 }
 
+char* txn_metadata_t::get_txn_metadata_map_base_address()
+{
+    ASSERT_PRECONDITION(is_txn_metadata_map_initialized(), "Txn metadata map is uninitialized!");
+    return reinterpret_cast<char*>(s_txn_metadata_map);
+}
+
 // This method allocates a new begin_ts and initializes its metadata in the txn
 // table.
 gaia_txn_id_t txn_metadata_t::register_begin_ts()

@@ -196,15 +196,6 @@ private:
     explicit logger_t(const std::string& logger_name);
 };
 
-class logger_exception_t : public gaia_exception
-{
-public:
-    explicit logger_exception_t(const std::string& message)
-    {
-        m_message = message;
-    }
-};
-
 /**
  * Logger to be used in the application layer.
  */

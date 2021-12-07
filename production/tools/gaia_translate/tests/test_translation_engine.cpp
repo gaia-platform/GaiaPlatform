@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-#include "gaia/rules/exceptions.hpp"
+#include "gaia/rules/rules.hpp"
 
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 #include "gaia_internal/rules/rules_test_helpers.hpp"

@@ -123,6 +123,8 @@ std::ostream& operator<<(std::ostream& os, const index_record_t& record)
        << record.offset
        << " operation: "
        << get_enum_value(record.operation)
+       << " flags: "
+       << record.flags
        << "]";
     return os;
 }

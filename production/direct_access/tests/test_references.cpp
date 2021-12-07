@@ -613,7 +613,7 @@ void insert_object(bool committed, employee_t e1, address_t a1)
         else
         {
             // Nothing is committed yet.
-            EXPECT_THROW(e1.addresses().insert(a1), invalid_state);
+            EXPECT_THROW(e1.addresses().insert(a1), invalid_object_state);
         }
     }
     commit_transaction();
@@ -639,7 +639,7 @@ void insert_addressee(bool committed, gaia_id_t eid1, gaia_id_t aid1, gaia_id_t 
         }
         else
         {
-            EXPECT_THROW(e1.addresses().insert(a1), invalid_state);
+            EXPECT_THROW(e1.addresses().insert(a1), invalid_object_state);
         }
     }
     commit_transaction();

@@ -11,10 +11,9 @@
 #include <string>
 #include <vector>
 
-#include "gaia/common.hpp"
 #include "gaia/db/events.hpp"
 #include "gaia/direct_access/auto_transaction.hpp"
-#include "gaia/exception.hpp"
+#include "gaia/rules/exceptions.hpp"
 
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)

@@ -6,10 +6,10 @@
 #include "gaia/direct_access/dac_base.hpp"
 
 #include "gaia/db/db.hpp"
-#include "gaia/exceptions.hpp"
 
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
+#include "gaia_internal/exceptions.hpp"
 
 using namespace gaia::db;
 using namespace std;
@@ -24,44 +24,12 @@ namespace direct_access
 //
 // Exception class implementations.
 //
-invalid_object_type::invalid_object_type(gaia_id_t id, gaia_type_t expected_type, const char* expected_typename, gaia_type_t actual_type)
-{
-    stringstream msg;
-    msg << "Requesting Gaia type '" << expected_typename << "'('" << expected_type
-        << "'), but object identified by '" << id << "' is of type '" << actual_type << "'.";
-    m_message = msg.str();
-}
-
-invalid_member::invalid_member(gaia_id_t id, gaia_type_t parent, const char* parent_type, gaia_type_t child, const char* child_name)
-{
-    stringstream msg;
-    msg << "Attempting to remove record with Gaia type '" << child_name << "'('" << child << "') from parent '" << id
-        << "' of type '" << parent_type << "'('" << parent << "'), but the record is not a member of such a relationship.";
-    m_message = msg.str();
-}
-
-inconsistent_list::inconsistent_list(gaia_id_t id, const char* parent_type, gaia_id_t child, const char* child_name)
-{
-    stringstream msg;
-    msg << "List is inconsistent; child points to parent '" << id << "' of type '" << parent_type << "', but child '"
-        << child << "' of type '" << child_name << "' is not in parent's list.";
-    m_message = msg.str();
-}
-
-invalid_state::invalid_state(gaia_id_t parent_id, gaia_id_t child_id, const char* child_type)
+invalid_object_state_internal::invalid_object_state_internal(gaia_id_t parent_id, gaia_id_t child_id, const char* child_type)
 {
     stringstream msg;
     msg << "Cannot insert an object of type '" << child_type
         << "' into the container. The parent id '" << parent_id << "' or the child id '"
         << child_id << "' is invalid.";
-    m_message = msg.str();
-}
-
-already_inserted::already_inserted(gaia_id_t parent, const char* parent_type)
-{
-    stringstream msg;
-    msg << "The object being inserted is a member of this same list type but has a different owner. "
-        << "The owner object type is '" << parent_type << "', and its ID is '" << parent << "'.";
     m_message = msg.str();
 }
 
@@ -149,7 +117,7 @@ void dac_db_t::delete_row(gaia_id_t id)
     gaia_ptr_t gaia_ptr = gaia_ptr_t::open(id);
     if (!gaia_ptr)
     {
-        throw invalid_object_id(id);
+        throw invalid_object_id_internal(id);
     }
 
     gaia_ptr_t::remove(gaia_ptr);
@@ -160,7 +128,7 @@ void dac_db_t::update(gaia_id_t id, size_t data_size, const void* data)
     gaia_ptr_t gaia_ptr = gaia_ptr_t::open(id);
     if (!gaia_ptr)
     {
-        throw invalid_object_id(id);
+        throw invalid_object_id_internal(id);
     }
     gaia_ptr.update_payload(data_size, data);
 }
@@ -170,7 +138,7 @@ bool dac_db_t::insert_child_reference(gaia_id_t parent_id, gaia_id_t child_id, c
     gaia_ptr_t parent = gaia_ptr_t::open(parent_id);
     if (!parent)
     {
-        throw invalid_object_id(parent_id);
+        throw invalid_object_id_internal(parent_id);
     }
 
     return parent.add_child_reference(child_id, child_slot);
@@ -181,7 +149,7 @@ bool dac_db_t::remove_child_reference(gaia_id_t parent_id, gaia_id_t child_id, c
     gaia_ptr_t parent = gaia_ptr_t::open(parent_id);
     if (!parent)
     {
-        throw invalid_object_id(parent_id);
+        throw invalid_object_id_internal(parent_id);
     }
 
     return parent.remove_child_reference(child_id, child_slot);
@@ -192,6 +160,28 @@ bool dac_db_t::remove_child_reference(gaia_id_t parent_id, gaia_id_t child_id, c
 //
 
 static_assert(sizeof(gaia_handle_t) == sizeof(gaia_ptr_t));
+
+void report_invalid_object_id(common::gaia_id_t id)
+{
+    throw invalid_object_id_internal(id);
+}
+
+void report_invalid_object_type(
+    common::gaia_id_t id,
+    common::gaia_type_t expected_type,
+    const char* expected_typename,
+    common::gaia_type_t actual_type)
+{
+    throw invalid_object_type_internal(id, expected_type, expected_typename, actual_type);
+}
+
+void report_invalid_object_state(
+    common::gaia_id_t parent_id,
+    common::gaia_id_t child_id,
+    const char* child_type)
+{
+    throw invalid_object_state_internal(parent_id, child_id, child_type);
+}
 
 template <typename T_ptr>
 constexpr T_ptr* dac_base_t::to_ptr()

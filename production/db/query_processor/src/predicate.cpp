@@ -58,7 +58,7 @@ gaia::db::messages::index_query_t index_point_read_predicate_t::query_type() con
 
 serialized_index_query_t index_point_read_predicate_t::as_query(flatbuffers::FlatBufferBuilder& builder) const
 {
-    data_write_buffer_t buffer(builder);
+    payload_types::data_write_buffer_t buffer(builder);
     index::index_builder_t::serialize_key(m_key, buffer);
     auto output = buffer.output();
 
@@ -84,7 +84,7 @@ gaia::db::messages::index_query_t index_equal_range_predicate_t::query_type() co
 
 serialized_index_query_t index_equal_range_predicate_t::as_query(flatbuffers::FlatBufferBuilder& builder) const
 {
-    data_write_buffer_t buffer(builder);
+    payload_types::data_write_buffer_t buffer(builder);
     index::index_builder_t::serialize_key(m_key, buffer);
     auto output = buffer.output();
 

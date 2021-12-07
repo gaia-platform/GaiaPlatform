@@ -8,11 +8,10 @@
 #include <optional>
 #include <shared_mutex>
 
-#include "gaia/exceptions.hpp"
-
-#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/logger.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
+#include "gaia_internal/exceptions.hpp"
 
 #include "type_id_mapping.hpp"
 
@@ -259,7 +258,7 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
     gaia_id_t record_id = get_record_id(type);
     if (record_id == c_invalid_gaia_id)
     {
-        throw invalid_type(type);
+        throw invalid_object_type_internal(type);
     }
     auto& metadata = get_or_create_no_lock(type);
 

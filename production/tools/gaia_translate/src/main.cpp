@@ -28,8 +28,9 @@
 
 #include "gaia_internal/common/gaia_version.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
-#include "gaia_internal/db/gaia_db_internal.hpp"
+#include "gaia_internal/rules/exceptions.hpp"
 
 #include "diagnostics.h"
 #include "table_navigation.h"
@@ -3652,9 +3653,7 @@ public:
             {
                 output_file << "#include <cstring>\n";
                 output_file << "\n";
-                output_file << "#include \"gaia/common.hpp\"\n";
-                output_file << "#include \"gaia/db/events.hpp\"\n";
-                output_file << "#include \"gaia/rules/exceptions.hpp\"\n";
+                output_file << "#include \"gaia/rules/rules.hpp\"\n";
                 output_file << "\n";
                 for (const auto& db_iterator : g_used_dbs)
                 {

@@ -77,7 +77,7 @@ protected:
     int m_socket = -1;
     int m_received_fds[common::c_max_fd_count]{-1};
     size_t m_count_received_fds = 0;
-    uint8_t m_message_buffer[common::c_max_msg_size]{0};
+    uint8_t m_message_buffer[common::c_max_msg_size_in_bytes]{0};
     const messages::server_reply_t* m_server_reply = nullptr;
 };
 

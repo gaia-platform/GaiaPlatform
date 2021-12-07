@@ -13,8 +13,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "gaia/rules/exceptions.hpp"
-
 #include "gaia_internal/db/triggers.hpp"
 #include "gaia_internal/rules/rules_config.hpp"
 #include "gaia_internal/rules/rules_test_helpers.hpp"
@@ -183,14 +181,7 @@ private:
         std::chrono::steady_clock::time_point& start_time,
         std::shared_ptr<rule_thread_pool_t::serial_group_t>& serial_group);
     void check_subscription(db::triggers::event_type_t event_type, const common::field_position_list_t& fields);
-    static inline void check_rule_binding(const rule_binding_t& binding)
-    {
-        if (nullptr == binding.rule || nullptr == binding.rule_name || nullptr == binding.ruleset_name)
-        {
-            throw invalid_rule_binding();
-        }
-    }
-    static bool is_valid_rule_binding(const rules::rule_binding_t& binding);
+    static void check_rule_binding(const rule_binding_t& binding);
     static void add_subscriptions(
         rules::subscription_list_t& subscriptions,
         const rule_list_t& rules,

@@ -214,12 +214,12 @@ TEST_F(sdk_test, db_exceptions)
     test_exception<gaia::db::no_open_transaction>();
     test_exception<gaia::db::transaction_update_conflict>();
     test_exception<gaia::db::transaction_object_limit_exceeded>();
-    test_exception<gaia::db::duplicate_id>(gaia::common::c_invalid_gaia_id);
+    test_exception<gaia::db::duplicate_object_id>(gaia::common::c_invalid_gaia_id);
     test_exception<gaia::db::out_of_memory>();
     test_exception<gaia::db::invalid_object_id>(gaia::common::c_invalid_gaia_id);
     test_exception<gaia::db::object_still_referenced>(
         gaia::common::c_invalid_gaia_id, employee_t::s_gaia_type,
         gaia::common::c_invalid_gaia_id, employee_t::s_gaia_type);
     test_exception<gaia::db::object_too_large>(100, 100);
-    test_exception<gaia::db::invalid_type>(employee_t::s_gaia_type);
+    test_exception<gaia::db::invalid_object_type>(employee_t::s_gaia_type);
 }

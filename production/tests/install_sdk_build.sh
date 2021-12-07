@@ -42,6 +42,7 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags] new_debian_install_file"
     echo "Flags:"
+    echo "  -s,--show                   Show the path to the last DEB package that was installed."
     echo "  -v,--verbose                Display detailed information during execution."
     echo "  -h,--help                   Display this help text."
     echo "Parameters:"
@@ -54,9 +55,14 @@ show_usage() {
 # Parse the command line.
 parse_command_line() {
     VERBOSE_MODE=0
+    SHOW_MODE=0
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
+        -s|--show)
+            SHOW_MODE=1
+            shift
+        ;;
         -v|--verbose)
             VERBOSE_MODE=1
             shift
@@ -130,11 +136,16 @@ TEMP_FILE=/tmp/intall_sdk.db.tmp
 # Parse any command line values.
 parse_command_line "$@"
 
-verify_install_file
-
-
 # Clean entrance into the script.
 start_process
+
+if [ $SHOW_MODE -ne 0 ] ; then
+    echo "Installed DEB pacakage as follows:"
+    cat /opt/gaia/installed.txt
+    complete_process 0
+fi
+
+verify_install_file
 
 # Stop any installed `gaia` service that is running.
 if ! ./reset_database.sh --stop --database ; then

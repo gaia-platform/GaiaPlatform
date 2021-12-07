@@ -7,6 +7,8 @@
 
 #include "gaia/rules/rules.hpp"
 
+#include "gaia_internal/catalog/gaia_catalog.h"
+
 namespace gaia
 {
 namespace rules
@@ -48,7 +50,7 @@ public:
     bool is_valid_row(common::gaia_id_t row_id);
 
 private:
-    void check_fields(common::gaia_id_t id, const common::field_position_list_t& field_list);
+    void check_fields(const catalog::gaia_table_t& table, const common::field_position_list_t& field_list);
 
 private:
     bool m_enable_catalog_checks;

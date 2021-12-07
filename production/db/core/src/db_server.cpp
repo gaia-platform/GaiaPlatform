@@ -19,17 +19,17 @@
 
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
+#include <sys/mman.h>
 
 #include "gaia/exceptions.hpp"
 
-#include "gaia_internal/common/memory_allocation_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/socket_helpers.hpp"
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_object.hpp"
-#include "gaia_internal/db/gaia_db_internal.hpp"
 #include "gaia_internal/db/index_builder.hpp"
 
 #include "gaia_spdlog/fmt/fmt.h"
@@ -286,7 +286,7 @@ void server_t::handle_commit_txn(
         decision = session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR;
     }
 
-    // Server-initiated state transition! (Any issues with reentrant handlers?)
+    // REVIEW: This is the only reentrant transition handler, and the only server-side state transition.
     apply_transition(decision, nullptr, nullptr, 0);
 }
 
@@ -471,13 +471,13 @@ void server_t::handle_request_stream(
                 if (query_type == index_query_t::index_point_read_query_t)
                 {
                     auto query = request_data->query_as_index_point_read_query_t();
-                    auto key_buffer = data_read_buffer_t(*(query->key()));
+                    auto key_buffer = payload_types::data_read_buffer_t(*(query->key()));
                     key = index::index_builder_t::deserialize_key(index_id, key_buffer);
                 }
                 else
                 {
                     auto query = request_data->query_as_index_equal_range_query_t();
-                    auto key_buffer = data_read_buffer_t(*(query->key()));
+                    auto key_buffer = payload_types::data_read_buffer_t(*(query->key()));
                     key = index::index_builder_t::deserialize_key(index_id, key_buffer);
                 }
             }
@@ -656,7 +656,7 @@ void server_t::init_memory_manager(bool initializing)
         memory_manager::chunk_offset_t chunk_offset = s_memory_manager.allocate_chunk();
         if (chunk_offset == c_invalid_chunk_offset)
         {
-            throw memory_allocation_error("Memory manager ran out of memory during call to allocate_chunk().");
+            throw memory_allocation_error_internal();
         }
         s_chunk_manager.initialize(chunk_offset);
     }
@@ -1220,9 +1220,9 @@ void server_t::session_handler(int session_socket)
     // Reserve an index in the safe_ts array. If this fails (because all indexes
     // are currently claimed by sessions), then immediately close the socket, so
     // the client throws a `peer_disconnected` exception and rethrows a
-    // `session_limit_exceeded` exception.
+    // `session_limit_exceeded_internal` exception.
     // REVIEW: When we have a way to marshal exceptions to the client, we should
-    // directly ensure that `session_limit_exceeded` is thrown in this case.
+    // directly ensure that `session_limit_exceeded_internal` is thrown in this case.
     if (!reserve_safe_ts_index())
     {
         return;
@@ -1299,7 +1299,7 @@ void server_t::session_handler(int session_socket)
         const void* event_data = nullptr;
 
         // Buffer used to send and receive all message data.
-        uint8_t msg_buf[c_max_msg_size]{0};
+        uint8_t msg_buf[c_max_msg_size_in_bytes]{0};
 
         // Buffer used to receive file descriptors.
         int fd_buf[c_max_fd_count] = {-1};
@@ -1410,11 +1410,9 @@ template <typename T_element>
 void server_t::stream_producer_handler(
     int stream_socket, int cancel_eventfd, std::shared_ptr<generator_t<T_element>> generator_fn)
 {
-    auto socket_cleanup = make_scope_guard([&]() {
-        // We can rely on close_fd() to perform the equivalent of shutdown(SHUT_RDWR),
-        // because we hold the only fd pointing to this socket.
-        close_fd(stream_socket);
-    });
+    // We can rely on close_fd() to perform the equivalent of shutdown(SHUT_RDWR), because we
+    // hold the only fd pointing to this socket.
+    auto socket_cleanup = make_scope_guard([&]() { close_fd(stream_socket); });
 
     // Verify that the socket is the correct type for the semantics we assume.
     check_socket_type(stream_socket, SOCK_SEQPACKET);
@@ -1524,65 +1522,81 @@ void server_t::stream_producer_handler(
                         ++gen_it;
                     }
 
-                    // We need to send any pending data in the buffer, followed by EOF
-                    // if we reached end of iteration. We let the client decide when to
-                    // close the socket, because their next read may be arbitrarily delayed
-                    // (and they may still have pending data).
+                    // We need to send any pending data in the buffer, followed by EOF if we
+                    // exhausted the iterator. We let the client decide when to close the socket,
+                    // because their next read may be arbitrarily delayed (and they may still have
+                    // pending data).
 
                     // First send any remaining data in the buffer.
                     if (batch_buffer.size() > 0)
                     {
-                        // To simplify client state management by allowing the client to
-                        // dequeue entries in FIFO order using std::vector.pop_back(),
-                        // we reverse the order of entries in the buffer.
+                        // To simplify client state management by allowing the client to dequeue
+                        // entries in FIFO order using std::vector.pop_back(), we reverse the order
+                        // of entries in the buffer.
                         std::reverse(std::begin(batch_buffer), std::end(batch_buffer));
 
-                        // We don't want to handle signals, so set
-                        // MSG_NOSIGNAL to convert SIGPIPE to EPIPE.
-                        ssize_t bytes_written = ::send(
-                            stream_socket, batch_buffer.data(), batch_buffer.size() * sizeof(T_element),
-                            MSG_NOSIGNAL);
-
-                        if (bytes_written == -1)
+                        // We don't want to handle signals, so set MSG_NOSIGNAL to convert SIGPIPE
+                        // to EPIPE.
+                        if (-1 == ::send(stream_socket, batch_buffer.data(), batch_buffer.size() * sizeof(T_element), MSG_NOSIGNAL))
                         {
-                            // It should never happen that the socket is no longer writable
-                            // after we receive EPOLLOUT, because we are the only writer and
-                            // the receive buffer is always large enough for a batch.
-                            ASSERT_INVARIANT(errno != EAGAIN && errno != EWOULDBLOCK, c_message_unexpected_errno_value);
-                            // Log the error and break out of the poll loop.
-                            std::cerr << "Stream socket error: '" << ::strerror(errno) << "'." << std::endl;
+                            // Break out of the poll loop on any write error.
                             producer_shutdown = true;
+
+                            // It should never happen that the socket is no longer writable after we
+                            // receive EPOLLOUT, because we are the only writer and the receive
+                            // buffer is always large enough for a batch.
+                            ASSERT_INVARIANT(errno != EAGAIN && errno != EWOULDBLOCK, c_message_unexpected_errno_value);
+
+                            // There is a race between the client reading its pending datagram and
+                            // triggering an EPOLLOUT notification, and then closing its socket and
+                            // triggering an EPOLLHUP notification. We might receive EPIPE or
+                            // ECONNRESET from the preceding write if we haven't yet processed the
+                            // EPOLLHUP notification. This doesn't indicate an error condition on
+                            // the client side, so we don't log socket errors in this case. Even if
+                            // the write failed because the client-side session thread crashed, we
+                            // will detect and handle that condition in the server-side session
+                            // thread.
+                            //
+                            // REVIEW: We could avoid setting the producer_shutdown flag in this
+                            // case and wait for an EPOLLHUP notification in the next loop
+                            // iteration. We exit immediately for now because 1) we aren't doing
+                            // nontrivial cleanup on receiving EPOLLHUP (just setting the
+                            // producer_shutdown flag), and 2) expecting an EPOLLHUP notification to
+                            // always be delivered even after receiving EPIPE or ECONNRESET seems
+                            // like a fragile assumption (we could validate this assumption with a
+                            // test program, but again this is undocumented behavior and therefore
+                            // subject to change).
+                            if (errno != EPIPE && errno != ECONNRESET)
+                            {
+                                std::cerr << "Stream socket error: '" << ::strerror(errno) << "'." << std::endl;
+                            }
                         }
                         else
                         {
-                            // We successfully wrote to the socket, so clear the buffer.
-                            // (Partial writes are impossible with datagram sockets.)
-                            // The standard is somewhat unclear, but apparently clear() will
-                            // not change the capacity in any recent implementation of the
-                            // standard library (https://cplusplus.github.io/LWG/issue1102).
+                            // We successfully wrote to the socket, so clear the buffer. (Partial
+                            // writes are impossible with datagram sockets.) The standard is
+                            // somewhat unclear, but apparently clear() will not change the capacity
+                            // in any recent implementation of the standard library
+                            // (https://cplusplus.github.io/LWG/issue1102).
                             batch_buffer.clear();
                         }
                     }
 
-                    // If we reached end of iteration, send EOF to client.
-                    // (We still need to wait for the client to close their socket,
-                    // because they may still have unread data, so we don't set the
-                    // producer_shutdown flag.)
+                    // If we exhausted the iterator, send EOF to client. (We still need to wait for
+                    // the client to close their socket, because they may still have unread data, so
+                    // we don't set the producer_shutdown flag.)
                     if (!gen_it)
                     {
                         ::shutdown(stream_socket, SHUT_WR);
-                        // Unintuitively, after we call shutdown(SHUT_WR), the
-                        // socket is always writable, because a write will never
-                        // block, but any write will return EPIPE. Therefore, we
-                        // unregister the socket for writable notifications
-                        // after we call shutdown(SHUT_WR). We should now only
-                        // be notified (with EPOLLHUP/EPOLLERR) when the client
-                        // closes the socket, so we can close our end of the
-                        // socket and terminate the thread.
+                        // Unintuitively, after we call shutdown(SHUT_WR), the socket is always
+                        // writable, because a write will never block, but any write will return
+                        // EPIPE. Therefore, we unregister the socket for writable notifications
+                        // after we call shutdown(SHUT_WR). We should now only be notified (with
+                        // EPOLLHUP/EPOLLERR) when the client closes the socket, so we can close
+                        // our end of the socket and terminate the thread.
                         epoll_event ev{};
-                        // We're only interested in EPOLLHUP/EPOLLERR
-                        // notifications, and we don't need to register for
-                        // those.
+                        // We're only interested in EPOLLHUP/EPOLLERR notifications, and we
+                        // don't need to register for those.
                         ev.events = 0;
                         ev.data.fd = stream_socket;
                         if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_MOD, stream_socket, &ev))
@@ -2154,30 +2168,15 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
 //    snapshot of the post-apply watermark. If the current entry is a begin_ts
 //    or a commit_ts with TXN_GC_COMPLETE set, we try to advance the post-GC
 //    watermark. If that fails (or the watermark cannot be advanced because the
-//    commit_ts has TXN_GC_COMPLETE unset), we abort the pass.
-//
-// TODO: Decommit physical pages backing the txn table for addresses preceding
-// the post-GC watermark (via madvise(MADV_FREE)).
-//
-// The post-GC watermark will be used to trim the txn table (but we can't just
-// read the current value and free all pages behind it, we need to avoid freeing
-// pages out from under threads that are advancing this watermark and have
-// possibly been preempted). A safe algorithm requires tracking the last
-// observed value of this watermark for each thread in a global table and
-// trimming the txn table up to the minimum of this global table (which can be
-// calculated from a non-atomic scan, because any thread's observed value can only
-// go forward). This means that a thread must register its observed value in the
-// global table every time it reads the post-GC watermark, and should clear its
-// entry when it's done with the observed value. (A subtler issue is that
-// reading the current watermark value and registering the read value in the
-// global table must be an atomic operation for the non-atomic minimum scan to
-// be correct, but no CPU has an atomic memory-to-memory copy operation. We can
-// work around this by just checking the current value of the watermark
-// immediately after writing its saved value to the global table. If they're the
-// same, then no other thread could have observed any non-atomicity in the copy
-// operation. If they differ, then we just repeat the sequence. Because this is a
-// very fast sequence of operations, retries should be infrequent, so livelock
-// shouldn't be an issue.)
+//    commit_ts has TXN_GC_COMPLETE unset), we abort the pass. If we complete
+//    this pass, then we calculate a "safe truncation timestamp" and attempt to
+//    advance the pre-truncate watermark to that timestamp. If we successfully
+//    advanced the pre-truncate watermark, then we calculate the number of pages
+//    between the previous pre-truncate watermark value and its new value; if
+//    this count exceeds zero then we decommit all such pages using madvise(2).
+//    (It is possible for multiple GC tasks to concurrently or repeatedly
+//    decommit the same pages, but madvise(2) is idempotent and
+//    concurrency-safe.)
 void server_t::perform_maintenance()
 {
     // Attempt to apply all txn logs to the shared view, from the last value of
@@ -2188,8 +2187,9 @@ void server_t::perform_maintenance()
     // to the post-apply watermark.
     gc_applied_txn_logs();
 
-    // Find a timestamp at which we can safely truncate the txn table.
-    // TODO: Actually reclaim memory from the truncated prefix of the txn table.
+    // Find a timestamp at which we can safely truncate the txn table, advance
+    // the pre-truncate watermark to that timestamp, and truncate the txn table
+    // at the highest page boundary less than the pre-truncate watermark.
     truncate_txn_table();
 }
 
@@ -2500,10 +2500,10 @@ void server_t::truncate_txn_table()
 
         // Abort if the safe truncation timestamp does not exceed the current
         // pre-truncate watermark.
-        // NB: It is expected that the safe truncation timestamp can be behind the
-        // pre-truncate watermark, because some published (but not fully reserved)
-        // timestamps may have been behind the pre-truncate watermark when they
-        // were published (and will later fail validation).
+        // NB: It is expected that the safe truncation timestamp can be behind
+        // the pre-truncate watermark, because some published (but not yet
+        // validated) timestamps may have been behind the pre-truncate watermark
+        // when they were published (and will later fail validation).
         if (new_pre_truncate_watermark <= prev_pre_truncate_watermark)
         {
             return;
@@ -2512,15 +2512,65 @@ void server_t::truncate_txn_table()
         // Try to advance the pre-truncate watermark.
         if (!advance_watermark(watermark_type_t::pre_truncate, new_pre_truncate_watermark))
         {
-            // Abort if another thread has concurrently advanced the pre-truncate
-            // watermark, to avoid contention.
+            // Abort if another thread has concurrently advanced the
+            // pre-truncate watermark, to avoid contention.
             ASSERT_INVARIANT(
                 get_watermark(watermark_type_t::pre_truncate) > prev_pre_truncate_watermark,
                 "The watermark must have advanced if advance_watermark() failed!");
 
             return;
         }
+
+        // Mark any index entries as committed before the metadata is truncated. At this point, all
+        // aborted/terminated index entries before the pre-truncate watermark should have been
+        // garbage collected.
+        index::index_builder_t::mark_index_entries_committed(new_pre_truncate_watermark);
+
+        // We advanced the pre-truncate watermark, so actually truncate the txn
+        // table by decommitting its unused physical pages. Because this
+        // operation is concurrency-safe and idempotent, it can be done without
+        // mutual exclusion.
+        // REVIEW: The previous logic could also be used to safely advance the
+        // "head" pointer if the txn table were implemented as a circular
+        // buffer.
+
+        // Calculate the number of pages between the previously read pre-truncate
+        // watermark and our safe truncation timestamp. If the result exceeds zero,
+        // then decommit all such pages.
+        char* prev_page_start_address = get_txn_metadata_page_address_from_ts(prev_pre_truncate_watermark);
+        char* new_page_start_address = get_txn_metadata_page_address_from_ts(new_pre_truncate_watermark);
+
+        // Check for overflow.
+        ASSERT_INVARIANT(
+            prev_page_start_address <= new_page_start_address,
+            "The new pre-truncate watermark must start on the same or later page than the previous pre-truncate watermark!");
+
+        size_t pages_to_decommit_count = (new_page_start_address - prev_page_start_address) / c_page_size_in_bytes;
+        if (pages_to_decommit_count > 0)
+        {
+            // MADV_FREE seems like the best fit for our needs, since it allows
+            // the OS to lazily reclaim decommitted pages. (If we move the txn
+            // table to a shared mapping (e.g. memfd), then we'll need to switch
+            // to MADV_REMOVE.)
+            // REVIEW: MADV_FREE makes it impossible to monitor RSS usage, so
+            // use MADV_DONTNEED unless we actually need better performance.
+            // (See https://github.com/golang/go/issues/42330 for a discussion
+            // of these issues.)
+            if (-1 == ::madvise(prev_page_start_address, pages_to_decommit_count * c_page_size_in_bytes, MADV_DONTNEED))
+            {
+                throw_system_error("madvise(MADV_DONTNEED) failed!");
+            }
+        }
     }
+}
+
+char* server_t::get_txn_metadata_page_address_from_ts(gaia_txn_id_t ts)
+{
+    char* txn_metadata_map_base_address = txn_metadata_t::get_txn_metadata_map_base_address();
+    size_t ts_entry_byte_offset = ts * sizeof(txn_metadata_entry_t);
+    size_t ts_entry_page_byte_offset = (ts_entry_byte_offset / c_page_size_in_bytes) * c_page_size_in_bytes;
+    char* ts_entry_page_address = txn_metadata_map_base_address + ts_entry_page_byte_offset;
+    return ts_entry_page_address;
 }
 
 void server_t::txn_rollback(bool client_disconnected)
@@ -2664,7 +2714,10 @@ bool server_t::txn_commit()
     int log_fd = s_log.unmap_truncate_seal_fd();
 
     // Obtain a safe_ts for our begin_ts, to prevent recursive validation from
-    // allowing the pre-truncate watermark to advance past our begin_ts.
+    // allowing the pre-truncate watermark to advance past our begin_ts into the
+    // conflict window. This ensures that any thread (including recursive
+    // validators) can safely read any txn metadata within the conflict window
+    // of this txn, until the commit decision is returned to the client.
     // NB: This MUST be done before obtaining a commit_ts!
     safe_ts_t safe_begin_ts(s_txn_id);
 
