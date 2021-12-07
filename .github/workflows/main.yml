@@ -131,8 +131,6 @@ jobs:
           sudo bash -c "./configure"
           sudo bash -c "make -j$(nproc)"
           sudo bash -c "make install"
-          cd ..
-          sudo bash -c "rm -rf *"
 
       - name: Build third_party/production/backward
         run: |
@@ -140,7 +138,6 @@ jobs:
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" cmake backward-cpp"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
           sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
-          sudo bash -c "rm -rf *"
 
       - name: $GAIA_REPO/third_party/production/bison
         run: |
@@ -230,9 +227,6 @@ jobs:
 
           sudo bash -c "mkdir -p /source/third_party/production/json"
           sudo bash -c "cp -a $GAIA_REPO/third_party/production/json/. /source/third_party/production/json/"
-
-          sudo bash -c "mkdir -p /build/third_party/production/libexplain"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/libexplain/. /build/third_party/production/libexplain/"
 
           sudo bash -c "mkdir -p /build/third_party/production/postgresql"
           sudo bash -c "cp -a $GAIA_REPO/third_party/production/postgresql/. /build/third_party/production/postgresql/"
