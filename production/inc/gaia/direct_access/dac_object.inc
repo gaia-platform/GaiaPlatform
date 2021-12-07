@@ -81,16 +81,20 @@ dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::wri
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
 T_class dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::get(gaia::common::gaia_id_t id)
 {
-    return T_class(verify_type(id));
+    // Ignore validation result; if the identifier is not valid,
+    // we will just return a default object instance.
+    verify_type(id);
+    return T_class(id);
 }
 
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-gaia::common::gaia_id_t dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::verify_type(gaia::common::gaia_id_t id)
+bool dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::verify_type(
+    gaia::common::gaia_id_t id)
 {
     gaia::common::gaia_type_t target_type = gaia::common::c_invalid_gaia_type;
     if (!dac_base_t::get_type(id, target_type))
     {
-        return gaia::common::c_invalid_gaia_id;
+        return false;
     }
 
     // Make sure the types match.
@@ -99,7 +103,7 @@ gaia::common::gaia_id_t dac_object_t<container_type_id, T_class, T_flatbuffer, T
         report_invalid_object_type(id, T_class::s_gaia_type, T_class::gaia_typename(), target_type);
     }
 
-    return id;
+    return true;
 }
 
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
@@ -121,10 +125,16 @@ void dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>
 }
 
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-void dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::delete_row(gaia::common::gaia_id_t id)
+void dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::delete_row(
+    gaia::common::gaia_id_t id)
 {
-    dac_base_t::delete_row(verify_type(id));
+    if (!verify_type(id))
+    {
+        report_invalid_object_id(id);
+    }
+    dac_base_t::delete_row(id);
 }
+
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_gaia, typename T_fb, typename T_obj>
 dac_object_t<container_type_id, T_gaia, T_fb, T_obj>::dac_object_t()
     : dac_base_t()
