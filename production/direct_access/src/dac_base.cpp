@@ -24,13 +24,19 @@ namespace direct_access
 //
 // Exception class implementations.
 //
+invalid_object_state_internal::invalid_object_state_internal()
+{
+    m_message = "An operation was attempted on an object that does not exist.";
+}
+
 invalid_object_state_internal::invalid_object_state_internal(gaia_id_t parent_id, gaia_id_t child_id, const char* child_type)
 {
-    stringstream msg;
-    msg << "Cannot insert an object of type '" << child_type
+    stringstream message;
+    message
+        << "Cannot insert an object of type '" << child_type
         << "' into the container. The parent id '" << parent_id << "' or the child id '"
         << child_id << "' is invalid.";
-    m_message = msg.str();
+    m_message = message.str();
 }
 
 //
@@ -173,6 +179,11 @@ void report_invalid_object_type(
     common::gaia_type_t actual_type)
 {
     throw invalid_object_type_internal(id, expected_type, expected_typename, actual_type);
+}
+
+void report_invalid_object_state()
+{
+    throw invalid_object_state_internal();
 }
 
 void report_invalid_object_state(

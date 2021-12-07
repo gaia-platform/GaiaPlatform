@@ -365,7 +365,7 @@ TEST_F(dac_object_test, read_back_id)
     // Delete this object with original and modified fields
     e.delete_row();
     // Can't access data of a deleted row
-    EXPECT_THROW(e.name_first(), invalid_object_id);
+    EXPECT_THROW(e.name_first(), invalid_object_state);
 }
 
 TEST_F(dac_object_test, new_del_field_ref)
@@ -376,10 +376,10 @@ TEST_F(dac_object_test, new_del_field_ref)
     auto e = employee_t::get(employee_writer().insert_row());
     e.delete_row();
     // can't access data from a deleted row
-    EXPECT_THROW(e.name_first(), invalid_object_id);
+    EXPECT_THROW(e.name_first(), invalid_object_state);
 
     // Can't get a writer from a deleted row either
-    EXPECT_THROW(e.writer(), invalid_object_id);
+    EXPECT_THROW(e.writer(), invalid_object_state);
 
     commit_transaction();
 }
@@ -390,7 +390,7 @@ TEST_F(dac_object_test, new_del_update)
     begin_transaction();
     auto e = create_employee("Hector");
     e.delete_row();
-    EXPECT_THROW(e.writer().update_row(), invalid_object_id);
+    EXPECT_THROW(e.writer().update_row(), invalid_object_state);
     commit_transaction();
 }
 
@@ -402,7 +402,7 @@ TEST_F(dac_object_test, found_del_ins)
     auto e = create_employee("Hector");
     auto writer = e.writer();
     e.delete_row();
-    EXPECT_THROW(e.writer(), invalid_object_id);
+    EXPECT_THROW(e.writer(), invalid_object_state);
     // We got the writer before we deleted the row.
     // We can't update the row but we can insert a new one.
     auto eid = writer.insert_row();
@@ -453,7 +453,7 @@ TEST_F(dac_object_test, new_del_del)
     // The first delete succeeds.
     e.delete_row();
     // The second one should throw.
-    EXPECT_THROW(e.delete_row(), invalid_object_id);
+    EXPECT_THROW(e.delete_row(), invalid_object_state);
     commit_transaction();
 }
 
@@ -701,7 +701,7 @@ TEST_F(dac_object_test, thread_delete)
     begin_transaction();
     {
         // Now this should fail.
-        EXPECT_THROW(employee_t::get(g_inserted_id).name_first(), invalid_object_id);
+        EXPECT_THROW(employee_t::get(g_inserted_id).name_first(), invalid_object_state);
     }
     commit_transaction();
 }
@@ -737,7 +737,7 @@ TEST_F(dac_object_test, thread_insert_update_delete)
     begin_transaction();
     {
         // Deleted row2.
-        EXPECT_THROW(employee_t::get(row2_id).name_first(), invalid_object_id);
+        EXPECT_THROW(employee_t::get(row2_id).name_first(), invalid_object_state);
         // Inserted a new row
         EXPECT_STREQ(employee_t::get(g_inserted_id).name_first(), g_insert);
         // Updated row1.
@@ -777,7 +777,7 @@ void employee_func_ref(const employee_t& e, const char* first_name)
         }
         else
         {
-            EXPECT_THROW(e.name_first(), invalid_object_id);
+            EXPECT_THROW(e.name_first(), invalid_object_state);
         }
     }
     commit_transaction();
@@ -794,7 +794,7 @@ void employee_func_val(employee_t e, const char* first_name)
         }
         else
         {
-            EXPECT_THROW(e.name_first(), invalid_object_id);
+            EXPECT_THROW(e.name_first(), invalid_object_state);
         }
     }
     commit_transaction();
@@ -814,11 +814,11 @@ TEST_F(dac_object_test, default_construction)
 
     begin_transaction();
     {
-        EXPECT_THROW(e.name_first(), invalid_object_id);
-        EXPECT_THROW(a.owner(), invalid_object_id);
-        EXPECT_THROW(e.manager(), invalid_object_id);
-        EXPECT_THROW(e.writer(), invalid_object_id);
-        EXPECT_THROW(e.delete_row(), invalid_object_id);
+        EXPECT_THROW(e.name_first(), invalid_object_state);
+        EXPECT_THROW(a.owner(), invalid_object_state);
+        EXPECT_THROW(e.manager(), invalid_object_state);
+        EXPECT_THROW(e.writer(), invalid_object_state);
+        EXPECT_THROW(e.delete_row(), invalid_object_state);
         ASSERT_EQ(e.addresses().begin(), e.addresses().end());
 
         e = create_employee("Windsor");

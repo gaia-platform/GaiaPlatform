@@ -28,7 +28,7 @@ const T_flatbuffer* dac_object_t<container_type_id, T_class, T_flatbuffer, T_fla
 {
     if (!dac_base_t::exists())
     {
-        report_invalid_object_id(gaia::common::c_invalid_gaia_id);
+        report_invalid_object_state();
     }
     return flatbuffers::GetRoot<T_flatbuffer>(dac_base_t::data());
 }
@@ -58,7 +58,7 @@ gaia::common::gaia_id_t* dac_object_t<container_type_id, T_class, T_flatbuffer, 
 {
     if (!dac_base_t::exists())
     {
-        report_invalid_object_id(gaia::common::c_invalid_gaia_id);
+        report_invalid_object_state();
     }
     return dac_base_t::references();
 }
@@ -69,7 +69,7 @@ dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::wri
 {
     if (!dac_base_t::exists())
     {
-        report_invalid_object_id(gaia::common::c_invalid_gaia_id);
+        report_invalid_object_state();
     }
 
     auto writer = dac_writer_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>();
@@ -118,7 +118,7 @@ void dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>
 {
     if (!dac_base_t::exists())
     {
-        report_invalid_object_id(gaia::common::c_invalid_gaia_id);
+        report_invalid_object_state();
     }
 
     delete_row(gaia_id());

@@ -137,6 +137,7 @@ void report_invalid_object_type(
     common::gaia_type_t expected_type,
     const char* expected_typename,
     common::gaia_type_t actual_type);
+void report_invalid_object_state();
 void report_invalid_object_state(
     common::gaia_id_t parent_id,
     common::gaia_id_t chile_id,
