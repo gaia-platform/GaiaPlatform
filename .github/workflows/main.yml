@@ -279,7 +279,7 @@ jobs:
 
       - name: Generate Package
         run: |
-          sudo bash -c "cd /build/production"
+          cd /build/production
           sudo bash -c "make preinstall"
           sudo bash -c "cpack -G DEB -R \"$GAIA_VERSION-$GITHUB_RUN_ID\""
           sudo bash -c "ls -la /build/production/*.deb"
