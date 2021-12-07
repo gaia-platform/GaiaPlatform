@@ -56,6 +56,15 @@ employee_t create_employee(const char* name)
 // ================================
 
 // Create, write & read, one row
+TEST_F(dac_object_test, get_non_existent_id)
+{
+    begin_transaction();
+    auto e = employee_t::get(1111111);
+    EXPECT_FALSE(e);
+    rollback_transaction();
+}
+
+// Create, write & read, one row
 TEST_F(dac_object_test, create_employee)
 {
     begin_transaction();
