@@ -139,14 +139,16 @@ jobs:
           sudo bash -c "make -j$(nproc)"
           sudo bash -c "make install"
 
-      - name: $GAIA_REPO/third_party/production/bison
+      - name: Build third_party/production/bison
         run: |
           cd $GAIA_REPO/third_party/production/bison
           sudo bash -c "tar -zxvf bison-3.5.tar.gz"
           cd bison-3.5
-          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" CPPFLAGS='-fPIC' ./configure"
-          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make -j$(nproc)"
-          sudo bash -c "CC=/usr/bin/clang-10 CPP=/usr/bin/clang-cpp-10 CXX=/usr/bin/clang++-10 LDFLAGS=\"-B/usr/lib/llvm-10/bin/ -fuse-ld=lld\" VERBOSE=1 make install"
+          sudo bash -c "./configure"
+          sudo bash -c "make -j$(nproc)"
+          sudo bash -c "make install"
+          cd ..
+          sudo bash -c "rm -rf *"
 
       - name: $GAIA_REPO/third_party/production/cpptoml
         run: |
