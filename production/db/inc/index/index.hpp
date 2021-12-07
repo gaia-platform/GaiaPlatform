@@ -57,8 +57,8 @@ template <typename T_structure, typename T_iterator>
 class index_t : public base_index_t
 {
 public:
-    index_t(gaia::common::gaia_id_t index_id, catalog::index_type_t index_type, bool is_unique)
-        : base_index_t(index_id, index_type, is_unique)
+    index_t(gaia::common::gaia_id_t index_id, catalog::index_type_t index_type, common::gaia_type_t table_type, bool is_unique)
+        : base_index_t(index_id, index_type, table_type, is_unique)
     {
     }
     ~index_t() override = default;
