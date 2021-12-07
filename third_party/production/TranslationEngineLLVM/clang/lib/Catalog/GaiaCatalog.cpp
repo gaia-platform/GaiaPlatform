@@ -160,24 +160,26 @@ void GaiaCatalog::ensureInitialization()
 }
 
 // Auxilary function find topologically closest table.
-StringRef GaiaCatalog::getClosestTable(const llvm::StringMap<int>& table_distance)
+StringRef GaiaCatalog::getClosestTable(const llvm::StringMap<int>& tableDistance)
 {
-    int min_distance = INT_MAX;
-    StringRef return_value;
-    for (const auto& d : table_distance)
+    int minDistance = INT_MAX;
+    StringRef closestTable;
+    for (const auto& distanceIterator : tableDistance)
     {
-        if (d.second < min_distance)
+        if (distanceIterator.second < minDistance)
         {
-            min_distance = d.second;
-            return_value = d.first();
+            minDistance = distanceIterator.second;
+            closestTable = distanceIterator.first();
         }
     }
 
-    return return_value;
+    return closestTable;
 }
 
-// Find shortest navigation path between 2 tables. If multiple shortest paths exist, return an error.
-bool GaiaCatalog::findNavigationPath(StringRef src, StringRef dst, SmallVector<string, 8>& current_path, bool reportErrors)
+// Find shortest navigation path between 2 tables. If no path between tables exist or multiple shortest paths exist, return false.
+// The shortest path is returned through path parameter passed by reference
+// If reportError is true, report errors, otherwise silently return false.
+bool GaiaCatalog::findNavigationPath(StringRef src, StringRef dst, SmallVector<string, 8>& path, bool reportErrors)
 {
     if (src.empty() || dst.empty())
     {
@@ -188,55 +190,54 @@ bool GaiaCatalog::findNavigationPath(StringRef src, StringRef dst, SmallVector<s
     {
         return true;
     }
-    const auto& table_data = getCatalogTableData();
+    const auto& tableData = getCatalogTableData();
 
-    IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
-    TextDiagnosticPrinter *DiagClient = new TextDiagnosticPrinter(llvm::errs(), &*DiagOpts);
+    IntrusiveRefCntPtr<DiagnosticOptions> diagOpts = new DiagnosticOptions();
+    TextDiagnosticPrinter *diagClient = new TextDiagnosticPrinter(llvm::errs(), &*diagOpts);
 
-    IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
-    DiagnosticsEngine Diags(DiagID, &*DiagOpts, DiagClient);
+    IntrusiveRefCntPtr<DiagnosticIDs> diagID(new DiagnosticIDs());
+    DiagnosticsEngine diags(diagID, &*diagOpts, diagClient);
 
-    bool return_value = findNavigationPath(src, dst, current_path, table_data);
-    if (!return_value)
+    if (!findNavigationPath(src, dst, path, tableData))
     {
         if (reportErrors)
         {
-            Diags.Report(diag::err_no_path) << src << dst;
+            diags.Report(diag::err_no_path) << src << dst;
         }
         return false;
     }
 
-    const size_t path_length = current_path.size();
+    const size_t pathLength = path.size();
     // Remove edges from the original shortest path and check if a shortest path with the same length can be found.
-    for (size_t path_index = 0; path_index < path_length - 1; ++path_index)
+    for (size_t pathIndex = 0; pathIndex < pathIndex - 1; ++pathIndex)
     {
-        SmallVector<string, 8> path;
-        llvm::StringMap<CatalogTableData> graph_data(table_data);
-        const auto& edge_src = current_path[path_index];
-        const auto& edge_dst = current_path[path_index + 1];
-        const auto& graph_itr = graph_data.find(edge_src);
+        SmallVector<string, 8> tempPath;
+        llvm::StringMap<CatalogTableData> graphData(tableData);
+        const auto& edgeSrc = path[pathIndex];
+        const auto& edgeDst = path[pathIndex + 1];
+        const auto& graphIterator = graphData.find(edgeSrc);
 
-        for (auto it = graph_itr->second.linkData.begin(); it != graph_itr->second.linkData.end();)
+        for (auto linkIterator = graphIterator->second.linkData.begin(); linkIterator != graphIterator->second.linkData.end();)
         {
-            if (it->second.targetTable == edge_dst)
+            if (linkIterator->second.targetTable == edgeDst)
             {
-                auto toErase = it;
-                graph_itr->second.linkData.erase(toErase);
-                ++it;
+                auto toErase = linkIterator;
+                graphIterator->second.linkData.erase(toErase);
+                ++linkIterator;
             }
             else
             {
-                ++it;
+                ++linkIterator;
             }
         }
 
-        if (findNavigationPath(src, dst, path, graph_data))
+        if (findNavigationPath(src, dst, tempPath, graphData))
         {
-            if (path.size() == path_length)
+            if (tempPath.size() == pathLength)
             {
                 if (reportErrors)
                 {
-                    Diags.Report(diag::err_multiple_shortest_paths) << src << dst;
+                    diags.Report(diag::err_multiple_shortest_paths) << src << dst;
                 }
                 return false;
             }
@@ -247,53 +248,53 @@ bool GaiaCatalog::findNavigationPath(StringRef src, StringRef dst, SmallVector<s
 }
 
 // Find shortest navigation path between 2 tables.
-bool GaiaCatalog::findNavigationPath(StringRef src, StringRef dst, llvm::SmallVector<string, 8>& current_path, const llvm::StringMap<CatalogTableData>& graph_data)
+bool GaiaCatalog::findNavigationPath(StringRef src, StringRef dst, llvm::SmallVector<string, 8>& path, const llvm::StringMap<CatalogTableData>& graphData)
 {
     if (src == dst)
     {
         return true;
     }
 
-    llvm::StringMap<int> table_distance;
-    llvm::StringMap<string> table_prev;
-    llvm::StringMap<string> table_navigation;
+    llvm::StringMap<int> tableDistance;
+    llvm::StringMap<string> previousTable;
+    llvm::StringMap<string> tableNavigation;
 
-    for (const auto& table_description : graph_data)
+    for (const auto& graphDataIterator : graphData)
     {
-        table_distance[table_description.first()] = INT_MAX;
+        tableDistance[graphDataIterator.first()] = INT_MAX;
     }
-    table_distance[src] = 0;
+    tableDistance[src] = 0;
 
-    string closest_table;
+    string closestTable;
 
-    while (closest_table != dst)
+    while (closestTable != dst)
     {
-        closest_table = getClosestTable(table_distance);
-        if (closest_table.empty())
+        closestTable = getClosestTable(tableDistance);
+        if (closestTable.empty())
         {
             return false;
         }
 
-        if (closest_table == dst)
+        if (closestTable == dst)
         {
             break;
         }
 
-        int distance = table_distance[closest_table];
+        int distance = tableDistance[closestTable];
 
-        table_distance.erase(closest_table);
+        tableDistance.erase(closestTable);
 
-        auto table_itr = graph_data.find(closest_table);
-        for (const auto& it : table_itr->second.linkData)
+        auto tableIterator = graphData.find(closestTable);
+        for (const auto& linkIterator : tableIterator->second.linkData)
         {
-            StringRef table_name = it.second.targetTable;
-            if (table_distance.find(table_name) != table_distance.end())
+            StringRef tableName = linkIterator.second.targetTable;
+            if (tableDistance.find(tableName) != tableDistance.end())
             {
-                if (table_distance[table_name] > distance + 1)
+                if (tableDistance[tableName] > distance + 1)
                 {
-                    table_distance[table_name] = distance + 1;
-                    table_prev[table_name] = closest_table;
-                    table_navigation[table_name] = it.second.targetTable;
+                    tableDistance[tableName] = distance + 1;
+                    previousTable[tableName] = closestTable;
+                    tableNavigation[tableName] = linkIterator.second.targetTable;
                 }
             }
         }
@@ -301,10 +302,12 @@ bool GaiaCatalog::findNavigationPath(StringRef src, StringRef dst, llvm::SmallVe
 
     // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
     StringRef tbl = dst;
-    while (table_prev[tbl] != "")
+    auto previousTableIterator = previousTable.find(tbl);
+    while (previousTableIterator != previousTable.end())
     {
-        current_path.insert(current_path.begin(), table_navigation[tbl]);
-        tbl = table_prev[tbl];
+        path.insert(path.begin(), tableNavigation[tbl]);
+        tbl = previousTableIterator->second;;
+        previousTableIterator = previousTable.find(tbl);
     }
     return true;
 }
