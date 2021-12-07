@@ -9530,7 +9530,7 @@ def err_duplicate_field : Error<
   "than one table. You can also restrict the list of tables to search by "
   "specifying them in the ruleset 'tables' attribute.">;
 def err_wrong_table_field : Error<
-  "Table '%1' for the field '%0' does not exist in the catalog."
+  "Field '%0' is defined in table '%1' that does not exist in the catalog."
   "Ensure that the catalog is in consistent state.">;
 def err_duplicate_link : Error<
   "Duplicate link '%0'.">;
