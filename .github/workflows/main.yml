@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: /home/runner/work/GaiaPlatform/GaiaPlatform
+      GAIA_VERSION: 0.3.2
       CC: /usr/bin/clang-10
       CPP: /usr/bin/clang-cpp-10
       CXX: /usr/bin/clang++-10
@@ -240,18 +241,16 @@ jobs:
           sudo bash -c "mkdir -p /source/production"
           sudo bash -c "cp -a $GAIA_REPO/production/. /source/production/"
 
-      - name: Execute Pre-Build Actions
+      - name: Pre-Build production
         run: |
           cd $GAIA_REPO/production
-          sudo update-alternatives --install "/usr/bin/clang-format" "clang-format" "/usr/bin/clang-format-10" 10
-          sudo update-alternatives --install "/usr/bin/clang-tidy" "clang-tidy" "/usr/bin/clang-tidy-10" 10
-
-          sudo mkdir -p /etc/postgresql/12/main
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang-format\" \"clang-format\" \"/usr/bin/clang-format-10\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang-tidy\" \"clang-tidy\" \"/usr/bin/clang-tidy-10\" 10"
+          sudo bash -c "mkdir -p /etc/postgresql/12/main"
           sudo bash -c "echo \"LD_PRELOAD = '$(clang-10 -print-file-name=libclang_rt.asan-$(uname -m).so)'\" >> /etc/postgresql/12/main/environment"
           sudo bash -c "echo \"ASAN_OPTIONS = 'detect_leaks=0'\" >> /etc/postgresql/12/main/environment"
-
-          sudo mkdir -p /var/lib/gaia/db
-          sudo chmod -R 666 /var/lib/gaia/db
+          sudo bash -c "mkdir -p /var/lib/gaia/db"
+          sudo bash -c "chmod -R 666 /var/lib/gaia/db"
 
       - name: Build production
         run: |
@@ -280,16 +279,16 @@ jobs:
 
       - name: Generate Package
         run: |
-          cd /build/production
+          sudo bash -c "cd /build/production"
           sudo bash -c "make preinstall"
-          sudo bash -c "cpack -G DEB -R "0.3.2"
-          ls -la /build/production/gaia-0.3.2_amd64.deb
+          sudo bash -c "cpack -G DEB -R \"$GAIA_VERSION-$GITHUB_RUN_ID\""
+          sudo bash -c "ls -la /build/production/*.deb"
 
       - name: Upload Package
         uses: actions/upload-artifact@v2
         with:
           name: Debian Install Package
-          path: /build/production/gaia-0.3.2_amd64.deb
+          path: /build/production/gaia-${{ env.GAIA_VERSION }}-${{ env.GITHUB_RUN_ID }}_amd64.deb
 
       - name: Upload CMake Logs
         if: always()
