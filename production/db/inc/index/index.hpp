@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include <atomic>
 #include <unordered_set>
 
 #include "gaia_internal/db/db_types.hpp"
