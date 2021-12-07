@@ -9,7 +9,7 @@
 
 #include <functional>
 
-#include "gaia/common.hpp"
+#include "gaia/int_type.hpp"
 
 namespace gaia
 {
@@ -78,10 +78,6 @@ public:
 static_assert(
     sizeof(gaia_locator_t) == sizeof(gaia_locator_t::value_type),
     "gaia_locator_t has a different size than its underlying integer type!");
-
-static_assert(
-    sizeof(gaia_locator_t) <= sizeof(common::gaia_handle_t),
-    "The size of gaia_handle_t is too small to hold a gaia_locator_t value!");
 
 /**
  * The value of an invalid gaia_locator.
