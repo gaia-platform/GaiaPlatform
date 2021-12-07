@@ -83,7 +83,8 @@ T_class dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_obje
 {
     // Ignore validation result; if the identifier is not valid,
     // we will just return a default object instance.
-    return verify_type(id) ? T_class(id) : T_class(gaia::common::c_invalid_gaia_id);
+    verify_type(id);
+    return T_class(id);
 }
 
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
