@@ -5,8 +5,9 @@
 
 #include "gaia_internal/db/index_builder.hpp"
 
-#include <unordered_set>
+#include <array>
 #include <utility>
+#include <vector>
 
 #include "gaia/exceptions.hpp"
 
@@ -381,7 +382,7 @@ void index_builder_t::update_indexes_from_txn_log(
     // table is created or dropped in the txn.
     // Keep track of dropped tables.
     bool has_cleared_cache = false;
-    std::unordered_set<gaia_type_t> dropped_types;
+    std::vector<gaia_type_t> dropped_types;
 
     for (size_t i = 0; i < records.record_count; ++i)
     {
@@ -403,7 +404,7 @@ void index_builder_t::update_indexes_from_txn_log(
             if (log_record.operation == gaia_operation_t::remove)
             {
                 auto table_view = table_view_t(offset_to_ptr(log_record.old_offset));
-                dropped_types.insert(table_view.table_type());
+                dropped_types.push_back(table_view.table_type());
             }
         }
     }
@@ -448,7 +449,7 @@ void index_builder_t::update_indexes_from_txn_log(
         // The operation is from a dropped table.
         // Skip if catalog verification disabled and type not found in the catalog.
         if (is_system_object(obj->type)
-            || dropped_types.find(obj->type) != dropped_types.end()
+            || std::find(dropped_types.begin(), dropped_types.end(), obj->type) != dropped_types.end()
             || (skip_catalog_integrity_check && type_record_id == c_invalid_gaia_id))
         {
             continue;
@@ -462,7 +463,7 @@ void index_builder_t::update_indexes_from_txn_log(
 }
 
 template <class T_index>
-void remove_entries_with_offsets(base_index_t* base_index, const std::unordered_set<gaia_offset_t>& offsets, gaia_txn_id_t txn_id)
+void remove_entries_with_offsets(base_index_t* base_index, const std::array<gaia_offset_t, c_offset_buffer_size>& offsets, gaia_txn_id_t txn_id)
 {
     auto index = static_cast<T_index*>(base_index);
     index->remove_index_entry_with_offsets(offsets, txn_id);
@@ -470,54 +471,70 @@ void remove_entries_with_offsets(base_index_t* base_index, const std::unordered_
 
 void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool deallocate_new_offsets)
 {
-    std::unordered_set<gaia_offset_t> collected_offsets;
-    std::unordered_set<gaia_type_t> offset_types;
-
-    for (size_t i = 0; i < records.record_count; ++i)
+    for (size_t records_iterator = 0; records_iterator < records.record_count;)
     {
-        const auto& log_record = records.log_records[i];
-        gaia_offset_t offset = deallocate_new_offsets ? log_record.new_offset : log_record.old_offset;
+        std::array<gaia_offset_t, c_offset_buffer_size> collected_offsets;
+        std::array<gaia_type_t, c_offset_buffer_size> offset_types;
 
-        // If no action is needed, move on to the next log record.
-        if (offset != c_invalid_gaia_offset)
+        // Fill the offset buffer for garbage collection.
+        for (size_t buffer_iterator = 0; buffer_iterator < c_offset_buffer_size;)
         {
-            auto obj = offset_to_ptr(offset);
+            // No more records to process! Break.
+            if (records_iterator >= records.record_count)
+            {
+                break;
+            }
 
-            // We do not index system objects, so we can move on.
-            if (is_system_object(obj->type))
+            const auto& log_record = records.log_records[records_iterator];
+
+            gaia_offset_t offset = deallocate_new_offsets ? log_record.new_offset : log_record.old_offset;
+
+            // If no action is needed, move on to the next log record.
+            if (offset != c_invalid_gaia_offset)
+            {
+                auto obj = offset_to_ptr(offset);
+
+                // We do not index system objects, so we can move on.
+                if (is_system_object(obj->type))
+                {
+                    ++records_iterator;
+                    continue;
+                }
+
+                // Add the offset to the buffers.
+                collected_offsets[buffer_iterator] = offset;
+                offset_types[buffer_iterator] = (obj->type);
+                ++buffer_iterator;
+            }
+            ++records_iterator;
+        }
+
+        // No offsets to garbage collect.
+        if (collected_offsets.empty())
+        {
+            return;
+        }
+
+        // Garbage collect the offsets.
+        for (auto it : *get_indexes())
+        {
+            gaia_type_t indexed_type = it.second->table_type();
+
+            // This index does not contain any of the deleted offsets.
+            if (std::find(offset_types.begin(), offset_types.end(), indexed_type) == offset_types.end())
             {
                 continue;
             }
 
-            collected_offsets.insert(offset);
-            offset_types.insert(obj->type);
-        }
-    }
-
-    // Nothing to do here.
-    if (collected_offsets.size() == 0)
-    {
-        return;
-    }
-
-    for (auto it : *get_indexes())
-    {
-        gaia_type_t indexed_type = it.second->table_type();
-
-        // This index does not contain any of the deleted offsets.
-        if (offset_types.find(indexed_type) == offset_types.end())
-        {
-            continue;
-        }
-
-        switch (it.second->type())
-        {
-        case catalog::index_type_t::range:
-            remove_entries_with_offsets<range_index_t>(it.second.get(), collected_offsets, records.begin_ts);
-            break;
-        case catalog::index_type_t::hash:
-            remove_entries_with_offsets<hash_index_t>(it.second.get(), collected_offsets, records.begin_ts);
-            break;
+            switch (it.second->type())
+            {
+            case catalog::index_type_t::range:
+                remove_entries_with_offsets<range_index_t>(it.second.get(), collected_offsets, records.begin_ts);
+                break;
+            case catalog::index_type_t::hash:
+                remove_entries_with_offsets<hash_index_t>(it.second.get(), collected_offsets, records.begin_ts);
+                break;
+            }
         }
     }
 }

@@ -5,7 +5,8 @@
 
 #pragma once
 
-#include <unordered_set>
+#include <array>
+#include <vector>
 
 #include "gaia_internal/db/db_types.hpp"
 
@@ -48,6 +49,8 @@ private:
     T_structure& m_data;
 };
 
+constexpr size_t c_offset_buffer_size = 32;
+
 /**
  * Abstract in-memory index type:
  * T_structure is the underlying backing data structure of the index.
@@ -71,7 +74,7 @@ public:
 
     // Index structure maintenance.
     void insert_index_entry(index_key_t&& key, index_record_t record);
-    void remove_index_entry_with_offsets(const std::unordered_set<gaia_offset_t>& offsets, gaia_txn_id_t gc_txn_id);
+    void remove_index_entry_with_offsets(const std::array<gaia_offset_t, c_offset_buffer_size>& offsets, gaia_txn_id_t gc_txn_id);
 
     // This method will mark all entries below a specified txn_id as committed.
     // This must only be called after all aborted/terminated index entries below the txn_id are garbage collected.
