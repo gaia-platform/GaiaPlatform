@@ -11,7 +11,7 @@ void index_t<T_structure, T_iterator>::insert_index_entry(index_key_t&& key, ind
     std::lock_guard lock(m_index_lock);
 
     // Update the last updated txn id if necessary.
-    if (m_last_updated_txn_id < record.txn_id)
+    if (record.txn_id > m_last_updated_txn_id)
     {
         m_last_updated_txn_id = record.txn_id;
     }
@@ -33,9 +33,10 @@ void index_t<T_structure, T_iterator>::remove_index_entry_with_offsets(const std
 {
     std::lock_guard lock(m_index_lock);
 
-    if (m_last_updated_txn_id < gc_txn_id)
+    if (gc_txn_id > m_last_updated_txn_id)
     {
-        // Nothing to do here.
+        // Nothing to do here. We have not made any updates to this index past the gc point, so the offsets associated with
+        // the gc_txn_id do not exist in this index.
         return;
     }
 
@@ -53,13 +54,17 @@ void index_t<T_structure, T_iterator>::remove_index_entry_with_offsets(const std
 }
 
 template <typename T_structure, typename T_iterator>
-void index_t<T_structure, T_iterator>::mark_entries_committed(gaia_txn_id_t txn_id)
+void index_t<T_structure, T_iterator>::mark_entries_committed(gaia_txn_id_t metadata_truncation_txn_id)
 {
     {
         std::lock_guard lock(m_index_lock);
-        if (m_last_updated_txn_id < m_last_mark_committed_txn_id)
+        if (m_last_mark_committed_txn_id >= m_last_updated_txn_id)
         {
-            // Nothing to do here.
+            // Nothing to do here. All index entries have already been marked and we have not modified the index since.
+            //
+            // It is unsafe to check m_last_updated_txn_id against the metadata truncation id since metadata_truncation_txn_id can advance
+            // ahead of the last mark committed point without updating the index. This situation leads to required lookups
+            // on truncated metadata on the next index lookup.
             return;
         }
     }
@@ -68,7 +73,7 @@ void index_t<T_structure, T_iterator>::mark_entries_committed(gaia_txn_id_t txn_
     {
         auto& record = it->second;
 
-        if (record.txn_id <= txn_id)
+        if (record.txn_id <= metadata_truncation_txn_id)
         {
             // This should ideally be atomic, but the records stop becoming copyable.
             std::lock_guard lock(m_index_lock);
@@ -78,9 +83,9 @@ void index_t<T_structure, T_iterator>::mark_entries_committed(gaia_txn_id_t txn_
 
     {
         std::lock_guard lock(m_index_lock);
-        if (m_last_mark_committed_txn_id < txn_id)
+        if (metadata_truncation_txn_id > m_last_mark_committed_txn_id)
         {
-            m_last_mark_committed_txn_id = txn_id;
+            m_last_mark_committed_txn_id = metadata_truncation_txn_id;
         }
     }
 }

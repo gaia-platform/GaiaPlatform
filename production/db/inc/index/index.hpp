@@ -75,7 +75,7 @@ public:
 
     // This method will mark all entries below a specified txn_id as committed.
     // This must only be called once all aborted/terminated index entries below the txn_id are garbage collected.
-    void mark_entries_committed(gaia_txn_id_t txn_id);
+    void mark_entries_committed(gaia_txn_id_t metadata_truncation_txn_id);
 
     // Clear index structure.
     void clear() override;
@@ -89,12 +89,16 @@ protected:
     T_structure m_data;
 
 private:
-    gaia_txn_id_t m_last_updated_txn_id;
-    gaia_txn_id_t m_last_mark_committed_txn_id;
-
     // Find physical key corresponding to a logical_key + record or return the end iterator.
     // Returns the iterator type of the underlying structure.
     typename T_structure::iterator find_physical_key(const index_key_t& key, const index_record_t& record);
+
+    // The following txn_ids are internal markers to determine if any work needs to be done for garbage collection.
+    //
+    // last_updated_txn_id - txn_id where the last index is updated/modified.
+    // last_mark_committed_txn_id - the txn_id below which all index entries have been mark committed.
+    gaia_txn_id_t m_last_updated_txn_id;
+    gaia_txn_id_t m_last_mark_committed_txn_id;
 };
 
 #include "index.inc"
