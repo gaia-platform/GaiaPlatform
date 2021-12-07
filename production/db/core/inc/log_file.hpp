@@ -34,12 +34,12 @@ public:
     /**
      * Obtain offset to write the next log record at.
      */
-    size_t get_current_offset();
+    file_offset_t get_current_offset();
 
     /**
      * Get remaining space in persistent log file.
      */
-    size_t get_remaining_bytes_count(size_t record_size);
+    size_t get_bytes_remaining_after_append(size_t record_size);
 
     /**
      * Allocate space in persistent log file.
@@ -47,6 +47,11 @@ public:
     void allocate(size_t size);
 
     int get_file_fd();
+
+    /**
+     * Obtain sequence number for the file.
+     */
+    file_sequence_t get_file_sequence();
 
 private:
     size_t m_file_size;
