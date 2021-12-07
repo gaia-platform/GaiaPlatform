@@ -24,11 +24,13 @@ __section_name_web = "[web]"
 __section_name_pre_run = "[pre_run]"
 __section_name_run = "[run]"
 __section_name_copy = "[copy]"
+__section_name_artifacts = "[artifacts]"
 
-__valid_section_names = [__section_name_apt, __section_name_gaia, __section_name_pip, __section_name_pre_run, __section_name_run, __section_name_git, __section_name_web, __section_name_env, __section_name_copy]
+__valid_section_names = [__section_name_apt, __section_name_gaia, __section_name_pip, __section_name_pre_run, __section_name_run, __section_name_git, __section_name_web, __section_name_env, __section_name_copy, __section_name_artifacts]
 
 __available_sections = [ __section_name_apt[1:-1], __section_name_pip[1:-1], __section_name_git[1:-1],
-    __section_name_env[1:-1], __section_name_web[1:-1], __section_name_pre_run[1:-1], __section_name_run[1:-1], __section_name_copy[1:-1]]
+    __section_name_env[1:-1], __section_name_web[1:-1], __section_name_pre_run[1:-1], __section_name_run[1:-1], __section_name_copy[1:-1],
+    __section_name_artifacts[1:-1]]
 
 __available_options = ["GaiaRelease", "ubuntu:20.04"]
 
@@ -442,6 +444,24 @@ def __print_pre_production_copy_section(collected_file_sections, base_config_fil
                 print(f"sudo bash -c \"mkdir -p /source{relative_config_file_path}\"")
                 print(f"sudo bash -c \"cp -a {__gaia_repository_env_path}{relative_config_file_path}/. /source{relative_config_file_path}/\"")
 
+def __print_artifacts_section(section_text_pairs):
+
+    xxx = """
+      - name: Upload {name}
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: {name}
+          path: |
+            /build/production/CMakeFiles/CMakeOutput.log
+"""
+
+    last_x = None
+    for i in section_text_pairs:
+        gh = i[1].split("=", 1)
+        print(xxx.replace("{name}", gh[0]))
+
+
 def process_script_action():
     """
     Process the posting of the message.
@@ -467,6 +487,8 @@ def process_script_action():
         __print_web_results(section_text_pairs, configuration_root_directory)
     elif __section_name_copy == specific_section_name:
         __print_pre_production_copy_section(collected_file_sections, base_config_file, args, configuration_root_directory)
+    elif __section_name_artifacts == specific_section_name:
+        __print_artifacts_section(section_text_pairs)
     else:
         assert __section_name_run == specific_section_name or __section_name_pre_run == specific_section_name
         __print_run_and_pre_run_results(section_text_pairs, configuration_root_directory, dependency_graph)
