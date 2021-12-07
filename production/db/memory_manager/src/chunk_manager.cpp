@@ -91,21 +91,7 @@ gaia_offset_t chunk_manager_t::allocate(
         get_state() == chunk_state_t::in_use,
         "Objects can only be allocated from a chunk in the IN_USE state!");
 
-    ASSERT_PRECONDITION(allocation_size_in_bytes > 0, "Requested allocation size cannot be 0!");
-
-    // Check before converting to slot units to avoid overflow.
-    ASSERT_PRECONDITION(
-        allocation_size_in_bytes <= (c_max_allocation_size_in_slots * c_slot_size_in_bytes),
-        "Requested allocation size exceeds maximum allocation size of 64KB!");
-
-    // Calculate allocation size in slot units.
-#ifdef DEBUG
-    // Round up allocation to a page so we can mprotect() it.
-    size_t allocation_size_in_pages = (allocation_size_in_bytes + c_page_size_in_bytes - 1) / c_page_size_in_bytes;
-    size_t allocation_size_in_slots = allocation_size_in_pages * (c_page_size_in_bytes / c_slot_size_in_bytes);
-#else
-    size_t allocation_size_in_slots = (allocation_size_in_bytes + c_slot_size_in_bytes - 1) / c_slot_size_in_bytes;
-#endif
+    size_t allocation_size_in_slots = calculate_allocation_size_in_slots(allocation_size_in_bytes);
 
     // Ensure that the new allocation doesn't overflow the chunk.
     if (m_metadata->min_unallocated_slot_offset() + allocation_size_in_slots > c_last_slot_offset)

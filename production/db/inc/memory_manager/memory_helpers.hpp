@@ -27,6 +27,8 @@ inline gaia_offset_t offset_from_chunk_and_slot(
 
 inline void* page_address_from_offset(gaia_offset_t offset);
 
+inline size_t calculate_allocation_size_in_slots(size_t allocation_size_in_bytes);
+
 // Converts a slot offset to its bitmap index.
 inline size_t slot_to_bit_index(slot_offset_t slot_offset);
 

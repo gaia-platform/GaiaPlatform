@@ -23,6 +23,27 @@ slot_offset_t slot_from_offset(gaia_offset_t offset)
     return static_cast<slot_offset_t>(offset & mask);
 }
 
+size_t calculate_allocation_size_in_slots(size_t allocation_size_in_bytes)
+{
+    ASSERT_PRECONDITION(allocation_size_in_bytes > 0, "Requested allocation size cannot be 0!");
+
+    // Check before converting to slot units to avoid overflow.
+    ASSERT_PRECONDITION(
+        allocation_size_in_bytes <= (c_max_allocation_size_in_slots * c_slot_size_in_bytes),
+        "Requested allocation size exceeds maximum allocation size of 64KB!");
+
+    // Calculate allocation size in slot units.
+#ifdef DEBUG
+    // Round up allocation to a page so we can mprotect() it.
+    size_t allocation_size_in_pages = (allocation_size_in_bytes + c_page_size_in_bytes - 1) / c_page_size_in_bytes;
+    size_t allocation_size_in_slots = allocation_size_in_pages * (c_page_size_in_bytes / c_slot_size_in_bytes);
+#else
+    size_t allocation_size_in_slots = (allocation_size_in_bytes + c_slot_size_in_bytes - 1) / c_slot_size_in_bytes;
+#endif
+
+    return allocation_size_in_slots;
+}
+
 gaia_offset_t offset_from_chunk_and_slot(
     chunk_offset_t chunk_offset, slot_offset_t slot_offset)
 {
