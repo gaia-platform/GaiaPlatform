@@ -148,9 +148,9 @@ void access_invalid_record()
     {
         gaia_log::app().info("Patient name: {}", john.name());
     }
-    catch (gaia::direct_access::invalid_object_state& ex)
+    catch (gaia::direct_access::invalid_object_state& e)
     {
-        gaia_log::app().info("As expected, attempting to access an invalid object raised the following exception: '{}'.", ex.what());
+        gaia_log::app().info("As expected, attempting to access an invalid object raised the following exception: '{}'.", e.what());
     }
 }
 
@@ -339,18 +339,18 @@ void delete_one_to_many_relationship_re(gaia_id_t doctor_id)
     {
         doctor.delete_row();
     }
-    catch (const gaia::db::object_still_referenced& ex)
+    catch (const gaia::db::object_still_referenced& e)
     {
-        gaia_log::app().info("As expected, deleting the doctor record raised the following exception '{}'.", ex.what());
+        gaia_log::app().info("As expected, deleting the doctor record raised the following exception '{}'.", e.what());
     }
 
     try
     {
         patient.delete_row();
     }
-    catch (const gaia::db::object_still_referenced& ex)
+    catch (const gaia::db::object_still_referenced& e)
     {
-        gaia_log::app().info("As expected, deleting the patient record raised the following exception '{}'.", ex.what());
+        gaia_log::app().info("As expected, deleting the patient record raised the following exception '{}'.", e.what());
     }
 }
 
@@ -474,18 +474,18 @@ void delete_one_to_one_relationship_re(gaia_id_t patient_id)
     {
         patient.delete_row();
     }
-    catch (const gaia::db::object_still_referenced& ex)
+    catch (const gaia::db::object_still_referenced& e)
     {
-        gaia_log::app().info("As expected, deleting the patient record raised the following exception '{}'.", ex.what());
+        gaia_log::app().info("As expected, deleting the patient record raised the following exception '{}'.", e.what());
     }
 
     try
     {
         address.delete_row();
     }
-    catch (const gaia::db::object_still_referenced& ex)
+    catch (const gaia::db::object_still_referenced& e)
     {
-        gaia_log::app().info("As expected, deleting the address record raised the following exception '{}'.", ex.what());
+        gaia_log::app().info("As expected, deleting the address record raised the following exception '{}'.", e.what());
     }
 }
 
@@ -756,9 +756,9 @@ void use_dac_object_across_transactions()
         // Outside a transaction.
         dr_house.name();
     }
-    catch (const gaia::db::no_open_transaction& ex)
+    catch (const gaia::db::no_open_transaction& e)
     {
-        gaia_log::app().info("As expected, you cannot access a record outside of a transaction: '{}'", ex.what());
+        gaia_log::app().info("As expected, you cannot access a record outside of a transaction: '{}'", e.what());
     }
 
     // Second transaction.
