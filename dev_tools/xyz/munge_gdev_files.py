@@ -5,7 +5,6 @@
 # All rights reserved.
 #############################################
 
-from logging import fatal
 import sys
 import pathlib
 import os
