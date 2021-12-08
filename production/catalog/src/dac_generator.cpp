@@ -500,7 +500,14 @@ std::string class_writer_t::generate_incoming_links_accessors_cpp()
 
         code += "{{PARENT_TABLE}}_t {{TABLE_NAME}}_t::{{FIELD_NAME}}() const {";
         code.IncrementIdentLevel();
-        code += "gaia::common::gaia_id_t id = this->references()[{{PARENT_OFFSET}}];";
+        if (incoming_link.is_value_linked())
+        {
+            code += "gaia::common::gaia_id_t id = dac_db_t::get_reference(this->references()[{{PARENT_OFFSET}}], gaia::common::c_ref_anchor_parent_offset);";
+        }
+        else
+        {
+            code += "gaia::common::gaia_id_t id = this->references()[{{PARENT_OFFSET}}];";
+        }
         code += "return (id == gaia::common::c_invalid_gaia_id) ? {{PARENT_TABLE}}_t() : {{PARENT_TABLE}}_t::get(id);";
         code.DecrementIdentLevel();
         code += "}";
@@ -556,7 +563,7 @@ std::string class_writer_t::generate_outgoing_links_accessors_cpp()
             {
                 code += "{{TABLE_NAME}}_t::{{FIELD_NAME}}_list_t {{TABLE_NAME}}_t::{{FIELD_NAME}}() const {";
                 code.IncrementIdentLevel();
-                code += "return {{TABLE_NAME}}_t::{{FIELD_NAME}}_list_t(gaia_id(), {{NEXT_OFFSET}}, {{PREV_OFFSET}});";
+                code += "return {{TABLE_NAME}}_t::{{FIELD_NAME}}_list_t(this->references()[{{FIRST_OFFSET}}], {{NEXT_OFFSET}}, {{PREV_OFFSET}});";
                 code.DecrementIdentLevel();
                 code += "}";
             }

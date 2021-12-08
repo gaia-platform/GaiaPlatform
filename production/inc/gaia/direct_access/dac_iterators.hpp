@@ -235,7 +235,6 @@ public:
 private:
     gaia::common::gaia_id_t m_anchor_id{gaia::common::c_invalid_gaia_id};
     std::function<bool(const T_child&)> m_filter_fn{};
-    static constexpr common::reference_offset_t m_first_child_offset = 1;
     common::reference_offset_t m_next_offset;
     common::reference_offset_t m_prev_offset;
 };

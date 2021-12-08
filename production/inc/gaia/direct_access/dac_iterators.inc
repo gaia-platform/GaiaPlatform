@@ -361,8 +361,8 @@ size_t reference_chain_container_t<T_child>::size() const
 template <typename T_child>
 dac_set_iterator_t<T_child> reference_anchor_chain_container_t<T_child>::begin() const
 {
-    gaia::common::gaia_id_t id = dac_db_t::get_reference(m_anchor_id, m_first_child_offset);
-    while (id != m_anchor_id)
+    gaia::common::gaia_id_t id = dac_db_t::get_reference(m_anchor_id, gaia::common::c_ref_anchor_first_child_offset);
+    while (id != gaia::common::c_invalid_gaia_id)
     {
         if (m_filter_fn)
         {

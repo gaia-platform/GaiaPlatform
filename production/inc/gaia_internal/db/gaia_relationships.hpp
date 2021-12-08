@@ -5,10 +5,7 @@
 
 #pragma once
 
-#include <sstream>
-
 #include "gaia/common.hpp"
-#include "gaia/exception.hpp"
 
 namespace gaia
 {
@@ -41,16 +38,15 @@ enum class cardinality_t
  *
  * A reference chain without a anchor node will look like the following graph.
  *
- *          +----------+
- *          v          |
- *         +----+     +----+     +----+     +----+
- *      +> | P  | --> | C1 | --> | C2 | --> | C3 |
- *      |  +----+     +----+     +----+     +----+
- *      |    ^                     |          |
- *      |    +---------------------+          |
- *      |                                     |
- *      |                                     |
- *      +-------------------------------------+
+ *   +---------------------------------------+
+ *   |                                       |
+ *   |  +-----------------------+            |
+ *   |  |                       |            |
+ *   v  v                       |            |
+ *  +----+  <--  +----+       +----+       +----+
+ *  | P  |  -->  | C1 |  -->  | C2 |  -->  | C3 |
+ *  +----+       +----+       +----+       +----+
+ *
  *
  * In the above graph, P is a parent node; C1, C2, and C3 are child nodes. A
  * parent node has one reference at the 'first_child_offset' slot pointing to
@@ -60,20 +56,14 @@ enum class cardinality_t
  *
  * A reference chain with anchor node will look like the following graph.
  *
- *              +------------------------------------+
- *              |                                    |
- *              |                                    |
- *              |    +--------------------+          |
- *              v    v                    |          |
- *  +----+     +--------+     +----+     +----+     +----+
- *  | P  | --> |        | --> |    | --> |    | --> |    |
- *  +----+     |        |     |    |     |    |     |    |
- *    ^        |        |     |    |     |    |     |    |
- *    +------- |   A    | <-- | C1 | <-- | C2 | <-- | C3 |
- *             |        |     |    |     |    |     |    |
- *             |        |     |    |     |    |     |    |
- *             |        | <-- |    |     |    |     |    |
- *             +--------+     +----+     +----+     +----+
+ *                +---------------------------------------+
+ *                |                                       |
+ *                |  +-----------------------+            |
+ *                |  |                       |            |
+ *                v  v                       |            |
+ *  +----+  -->  +----+  <--  +----+       +----+       +----+
+ *  | P  |  <--  | A  |  -->  | C1 |  -->  | C2 |  -->  | C3 |
+ *  +----+       +----+       +----+  <--  +----+  <--  +----+
  *
  * In the above graph, P is a parent node; A is an anchor node; C1, C2, and C3
  * are child nodes. A parent node has one reference at the 'first_child_offset'

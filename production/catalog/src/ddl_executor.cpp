@@ -508,8 +508,8 @@ gaia_id_t ddl_executor_t::create_relationship(
         }
         else
         {
-            // For 1:N relationships, we need to create an index on the fields
-            // of the child side if they are not already indexed.
+            // For 1:N relationships, we need to create a value index on the
+            // fields of the child side if they are not already indexed.
             bool index_exists = false;
             for (const gaia_index_t& index : gaia_table_t::get(child_table_id).gaia_indexes())
             {
@@ -517,14 +517,20 @@ gaia_id_t ddl_executor_t::create_relationship(
                 {
                     continue;
                 }
+                bool fields_match = true;
                 for (size_t i = 0; i < child_field_ids.size(); i++)
                 {
                     if (child_field_ids[i] != index.fields()[i])
                     {
-                        continue;
+                        fields_match = false;
+                        break;
                     }
                 }
-                index_exists = true;
+                if (fields_match)
+                {
+                    index_exists = true;
+                    break;
+                }
             }
             if (!index_exists)
             {

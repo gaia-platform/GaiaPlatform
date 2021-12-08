@@ -208,6 +208,11 @@ static_assert(
  */
 constexpr reference_offset_t c_invalid_reference_offset;
 
+// The offset of the parent reference in anchor node.
+constexpr common::reference_offset_t c_ref_anchor_parent_offset = 0;
+// The offset of the first child reference in anchor node.
+constexpr common::reference_offset_t c_ref_anchor_first_child_offset = 1;
+
 // This assertion ensures that the default type initialization
 // matches the value of the invalid constant.
 static_assert(

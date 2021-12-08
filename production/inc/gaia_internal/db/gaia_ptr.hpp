@@ -23,9 +23,9 @@ namespace db
 {
 
 /**
-* gaia_ptr_t is implemented differently on the server and client-side.
-* See their respective cpp files for differences.
-*/
+ * gaia_ptr_t is implemented differently on the server and client-side.
+ * See their respective cpp files for differences.
+ */
 class gaia_ptr_t
 {
 public:
@@ -171,6 +171,17 @@ protected:
     gaia_ptr_t find_next(common::gaia_type_t type) const;
 
 private:
+    static gaia_ptr_t create_ref_anchor(
+        common::gaia_id_t parent_id,
+        common::gaia_id_t first_child_id);
+
+    static gaia_ptr_t create_no_txn(
+        common::gaia_id_t id,
+        common::gaia_type_t type,
+        common::reference_offset_t num_refs,
+        size_t data_size,
+        const void* data);
+
     void clone_no_txn();
 
     void create_insert_trigger(common::gaia_type_t type, common::gaia_id_t id);
@@ -185,27 +196,37 @@ private:
         common::reference_offset_t parent_offset);
 
     /**
-     * Try to auto connect a record to matching parent side record(s).
+     * Try to auto connect a record to matching record(s).
      *
-     * @param child_id The record id
-     * @param child_type The record type
-     * @param child_type The record id of the child table type
-     * @param child_references The record references
+     * @param id The record id
+     * @param type The record type
+     * @param type The record id of the table type
+     * @param references The record references
      * @param candidate_fields The list of candidate fields' positions.
      */
-    static void auto_connect_to_parent(
-        common::gaia_id_t child_id,
-        common::gaia_type_t child_type,
-        common::gaia_id_t child_type_id,
-        common::gaia_id_t* child_references,
-        const uint8_t* child_payload,
+    static void auto_connect(
+        common::gaia_id_t id,
+        common::gaia_type_t type,
+        common::gaia_id_t type_id,
+        common::gaia_id_t* references,
+        const uint8_t* payload,
         const common::field_position_list_t& candidate_fields);
 
-    static void auto_connect_to_parent(
-        common::gaia_id_t child_id,
-        common::gaia_type_t child_type,
-        common::gaia_id_t* child_references,
-        const uint8_t* child_payload);
+    static void auto_connect(
+        common::gaia_id_t id,
+        common::gaia_type_t type,
+        common::gaia_id_t* references,
+        const uint8_t* payload);
+
+    gaia_ptr_t set_reference(common::reference_offset_t offset, common::gaia_id_t id);
+
+    static common::gaia_id_t find_using_index(
+        const uint8_t* payload,
+        common::field_position_t field_position,
+        common::gaia_type_t type,
+        common::gaia_id_t type_id,
+        common::gaia_id_t indexed_table_id,
+        common::field_position_t indexed_field_position);
 
 private:
     gaia_locator_t m_locator{c_invalid_gaia_locator};
