@@ -39,6 +39,8 @@ configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
 configure_file("${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl" "${PROJECT_BINARY_DIR}/addr_book.ddl") 
 
 add_gtest(test_sdk "tests/test_sdk.cpp;${GAIA_PROD_BUILD}/gaia_generated/addr_book/gaia_addr_book.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia")
+set_source_files_properties(${GAIA_PROD_BUILD}/gaia_generated/addr_book/gaia_addr_book.cpp PROPERTIES GENERATED 1)
+
 add_gtest(test_sdk_no_init_rules "tests/test_sdk_no_init_rules.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;dac_addr_book")
 
 # Set CPack variables required for building a DEB/RPM package.
