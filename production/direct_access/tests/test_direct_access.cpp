@@ -52,17 +52,30 @@ employee_t create_employee(const char* name)
     return e;
 }
 
-// Test on objects created by new()
-// ================================
+// Test invalid object instances
+// =============================
 
-// Create, write & read, one row
-TEST_F(dac_object_test, get_non_existent_id)
+TEST_F(dac_object_test, invalid_instances)
 {
     begin_transaction();
-    auto e = employee_t::get(1111111);
+
+    // A default instance should be invalid.
+    employee_t e;
     EXPECT_FALSE(e);
+
+    // Operations on the invalid instance should throw invalid_object_state.
+    EXPECT_THROW(e.name_first(), invalid_object_state);
+    EXPECT_THROW(e.delete_row(), invalid_object_state);
+
+    // Attempting to get a non-existing object should throw invalid_object_id.
+    EXPECT_THROW(employee_t::get(c_invalid_gaia_id), invalid_object_id);
+    EXPECT_THROW(employee_t::get(1111111), invalid_object_id);
+
     rollback_transaction();
 }
+
+// Test on objects created by new()
+// ================================
 
 // Create, write & read, one row
 TEST_F(dac_object_test, create_employee)
@@ -511,8 +524,7 @@ TEST_F(dac_object_test, auto_txn_rollback)
     }
     // Transaction was rolled back
     auto_transaction_t txn;
-    employee_t e = employee_t::get(id);
-    EXPECT_FALSE(e);
+    EXPECT_THROW(employee_t::get(id), invalid_object_id);
 }
 
 TEST_F(dac_object_test, writer_value_ref)
@@ -701,7 +713,7 @@ TEST_F(dac_object_test, thread_delete)
     begin_transaction();
     {
         // Now this should fail.
-        EXPECT_THROW(employee_t::get(g_inserted_id).name_first(), invalid_object_state);
+        EXPECT_THROW(employee_t::get(g_inserted_id).name_first(), invalid_object_id);
     }
     commit_transaction();
 }
@@ -737,7 +749,7 @@ TEST_F(dac_object_test, thread_insert_update_delete)
     begin_transaction();
     {
         // Deleted row2.
-        EXPECT_THROW(employee_t::get(row2_id).name_first(), invalid_object_state);
+        EXPECT_THROW(employee_t::get(row2_id).name_first(), invalid_object_id);
         // Inserted a new row
         EXPECT_STREQ(employee_t::get(g_inserted_id).name_first(), g_insert);
         // Updated row1.

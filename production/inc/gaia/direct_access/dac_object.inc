@@ -79,22 +79,13 @@ dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::wri
 }
 
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-T_class dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::get(gaia::common::gaia_id_t id)
-{
-    // Ignore validation result; if the identifier is not valid,
-    // we will just return a default object instance.
-    verify_type(id);
-    return T_class(id);
-}
-
-template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-bool dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::verify_type(
+void dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::verify_type(
     gaia::common::gaia_id_t id)
 {
     gaia::common::gaia_type_t target_type = gaia::common::c_invalid_gaia_type;
     if (!dac_base_t::get_type(id, target_type))
     {
-        return false;
+        report_invalid_object_id(id);
     }
 
     // Make sure the types match.
@@ -102,8 +93,13 @@ bool dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>
     {
         report_invalid_object_type(id, T_class::s_gaia_type, T_class::gaia_typename(), target_type);
     }
+}
 
-    return true;
+template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
+T_class dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::get(gaia::common::gaia_id_t id)
+{
+    verify_type(id);
+    return T_class(id);
 }
 
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
@@ -128,10 +124,7 @@ template <gaia::common::gaia_type_t::value_type container_type_id, typename T_cl
 void dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::delete_row(
     gaia::common::gaia_id_t id)
 {
-    if (!verify_type(id))
-    {
-        report_invalid_object_id(id);
-    }
+    verify_type(id);
     dac_base_t::delete_row(id);
 }
 

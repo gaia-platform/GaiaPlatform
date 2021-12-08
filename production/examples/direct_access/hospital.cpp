@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 
 #include <gaia/db/db.hpp>
+#include <gaia/exceptions.hpp>
 #include <gaia/logger.hpp>
 #include <gaia/system.hpp>
 
@@ -122,13 +123,12 @@ void lookup_invalid_record()
 {
     PRINT_METHOD_NAME();
 
-    patient_t john = patient_t::get(gaia::common::c_invalid_gaia_id);
-
-    if (john)
+    try
     {
-        throw std::runtime_error("The patient is expected to evaluate to false.");
+        patient_t john = patient_t::get(gaia::common::c_invalid_gaia_id);
+        throw std::runtime_error("patient_t::get(gaia::common::c_invalid_gaia_id) should have failed with an exception.");
     }
-    else
+    catch (const gaia::db::invalid_object_id& e)
     {
         gaia_log::app().info("Cannot find patient with id: {}", gaia::common::c_invalid_gaia_id);
     }
@@ -142,13 +142,13 @@ void access_invalid_record()
 {
     PRINT_METHOD_NAME();
 
-    patient_t john = patient_t::get(gaia::common::c_invalid_gaia_id);
+    patient_t john;
 
     try
     {
         gaia_log::app().info("Patient name: {}", john.name());
     }
-    catch (gaia::db::invalid_object_id& ex)
+    catch (gaia::direct_access::invalid_object_state& ex)
     {
         gaia_log::app().info("As expected, attempting to access an invalid object raised the following exception: '{}'.", ex.what());
     }
@@ -237,13 +237,12 @@ void delete_single_record_static()
 
     doctor_t::delete_row(dr_house_id);
 
-    doctor_t dr_house = doctor_t::get(dr_house_id);
-
-    if (dr_house)
+    try
     {
+        doctor_t dr_house = doctor_t::get(dr_house_id);
         throw std::runtime_error("The doctor is expected to be invalid after deletion.");
     }
-    else
+    catch (const gaia::db::invalid_object_id& e)
     {
         gaia_log::app().info("The record has been deleted");
     }

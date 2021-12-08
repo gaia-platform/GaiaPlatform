@@ -108,6 +108,11 @@ bool dac_db_t::get_type(gaia_id_t id, gaia_type_t& type)
 gaia_id_t dac_db_t::get_reference(gaia_id_t id, common::reference_offset_t slot)
 {
     gaia_ptr_t gaia_ptr = gaia_ptr_t::open(id);
+    if (!gaia_ptr)
+    {
+        throw invalid_object_id_internal(id);
+    }
+
     return gaia_ptr.references()[slot];
 }
 
