@@ -13,7 +13,7 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     env:
-      GAIA_REPO: /home/runner/work/GaiaPlatform/GaiaPlatform
+      GAIA_REPO: ${{ github.workflow }}
       GAIA_VERSION: 0.3.2
       CC: /usr/bin/clang-10
       CPP: /usr/bin/clang-cpp-10
