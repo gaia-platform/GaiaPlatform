@@ -46,6 +46,8 @@ jobs:
 
       - name: Install Required Third Party Git Repositories
         run: |
+          env
+          export
           cd $GAIA_REPO/third_party/production/backward
           git clone -c advice.detachedHead=false --depth 1 --branch v1.5 https://github.com/bombela/backward-cpp.git
           rm -rf */.git
