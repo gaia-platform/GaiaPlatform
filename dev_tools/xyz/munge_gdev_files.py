@@ -7,7 +7,6 @@
 
 from logging import fatal
 import sys
-import io
 import pathlib
 import os
 import json
