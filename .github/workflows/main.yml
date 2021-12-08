@@ -280,11 +280,10 @@ jobs:
       - name: Generate Package
         run: |
           cd /build/production
-          env
-          export
           sudo bash -c "make preinstall"
           echo "${{ env.GAIA_VERSION }}-${{ github.run_id }}"
           sudo bash -c "cpack -G DEB -R \"${{ env.GAIA_VERSION }}-${{ github.run_id }}\""
+          sudo bash -c "cp gaia-0.3.2_amd64.deb gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb"
           sudo bash -c "ls -la /build/production/*.deb"
 
       - name: Upload Package
