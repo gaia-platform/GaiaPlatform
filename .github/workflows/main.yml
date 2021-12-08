@@ -260,8 +260,6 @@ jobs:
           cd /build/production
           sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake --log-level=VERBOSE -Wno-dev -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_RELEASE=ON  -G \"Unix Makefiles\" /source/production"
           sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" LSAN_OPTIONS=detect_leaks=0 VERBOSE=1 make -j$(nproc)"
-          sudo bash -c "chmod 755 -R /home/runner/work/GaiaPlatform"
-          sudo bash -c "chmod 755 -R /home/runner/work/GaiaPlatform"
 
       - name: Tests
         run: |
