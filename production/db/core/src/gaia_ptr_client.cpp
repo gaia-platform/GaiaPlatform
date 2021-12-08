@@ -415,7 +415,7 @@ gaia_ptr_t gaia_ptr_t::create_ref_anchor(gaia_id_t parent_id, gaia_id_t first_ch
     gaia_ptr_t obj = create_no_txn(
         generate_id(),
         static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_ref_anchor),
-        2,
+        c_ref_anchor_ref_num,
         0,
         nullptr);
     obj.references()[c_ref_anchor_parent_offset] = parent_id;

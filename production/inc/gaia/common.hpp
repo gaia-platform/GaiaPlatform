@@ -42,6 +42,7 @@ public:
     {
     }
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     constexpr gaia_id_t(uint64_t value)
         : int_type_t<uint64_t, 0>(value)
     {
@@ -75,6 +76,7 @@ public:
     {
     }
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     constexpr gaia_type_t(uint32_t value)
         : int_type_t<uint32_t, 0>(value)
     {
@@ -108,6 +110,7 @@ public:
     {
     }
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     constexpr gaia_handle_t(uint64_t value)
         : int_type_t<uint64_t, 0>(value)
     {
@@ -130,6 +133,7 @@ public:
     {
     }
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     constexpr gaia_event_t(uint8_t value)
         : int_type_t<uint8_t, 0>(value)
     {
@@ -152,6 +156,7 @@ public:
     {
     }
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     constexpr field_position_t(uint16_t value)
         : int_type_t<uint16_t, std::numeric_limits<uint16_t>::max()>(value)
     {
@@ -193,6 +198,7 @@ public:
     {
     }
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     constexpr reference_offset_t(uint16_t value)
         : int_type_t<uint16_t, std::numeric_limits<uint16_t>::max()>(value)
     {
@@ -208,10 +214,12 @@ static_assert(
  */
 constexpr reference_offset_t c_invalid_reference_offset;
 
-// The offset of the parent reference in anchor node.
-constexpr common::reference_offset_t c_ref_anchor_parent_offset = 0;
-// The offset of the first child reference in anchor node.
-constexpr common::reference_offset_t c_ref_anchor_first_child_offset = 1;
+// The offset of the parent reference in an anchor node.
+constexpr common::reference_offset_t c_ref_anchor_parent_offset{0};
+// The offset of the first child reference in an anchor node.
+constexpr common::reference_offset_t c_ref_anchor_first_child_offset{1};
+// Total number of reference slots in an anchor node.
+constexpr common::reference_offset_t c_ref_anchor_ref_num{2};
 
 // This assertion ensures that the default type initialization
 // matches the value of the invalid constant.
