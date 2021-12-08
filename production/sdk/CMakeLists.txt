@@ -31,6 +31,7 @@ install(TARGETS gaia DESTINATION ${CMAKE_INSTALL_LIBDIR})
 set(SDK_TEST_INCLUDES
   ${GAIA_INC}
   ${GAIA_PROD_BUILD}/deps/gaia_spdlog/include
+  ${GAIA_PROD_BUILD}/deps/flatbuffers/include
   ${GAIA_PROD_BUILD}/gaia_generated/addr_book
 )
 
