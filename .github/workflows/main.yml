@@ -254,34 +254,24 @@ jobs:
 
       - name: Build production
         run: |
-          echo "mkdir -p /build/production || exit 1" >> production.sh
-          echo "cd /build/production || exit 1" >> production.sh
-          echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake --log-level=VERBOSE -Wno-dev -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_RELEASE=ON  -G \"Unix Makefiles\" /source/production || exit 1" >> production.sh
-          echo "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" LSAN_OPTIONS=detect_leaks=0 VERBOSE=1 make -j$(nproc) || exit 1" >> production.sh
-          chmod +x production.sh
-          sudo ./production.sh
-          echo chmod 755 -R /home/runner/work/GaiaPlatform
-          sudo chmod 755 -R /home/runner/work/GaiaPlatform
-
-          echo "du - source"
-          sudo bash -c "du -h -d1 /source"
-          echo "du - build"
-          sudo bash -c "du -h -d1 /build"
+          sudo bash -c "mkdir -p /build/production"
+          cd /build/production
+          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake --log-level=VERBOSE -Wno-dev -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_RELEASE=ON  -G \"Unix Makefiles\" /source/production"
+          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" LSAN_OPTIONS=detect_leaks=0 VERBOSE=1 make -j$(nproc)"
+          sudo bash -c "chmod 755 -R /home/runner/work/GaiaPlatform"
+          sudo bash -c "chmod 755 -R /home/runner/work/GaiaPlatform"
 
       - name: Tests
         run: |
-          echo "cd /build/production/db/core || exit 1" > install.sh
-          echo "make install || exit 1" >> install.sh
-          echo "cd /build/production || exit 1" > install.sh
-          echo "ctest || exit 1" >> install.sh
-          chmod +x install.sh
-          sudo ./install.sh
+          cd /build/production/db/core
+          sudo bash -c "make install"
+          cd /build/production
+          sudo bash -c "ctest"
 
       - name: Generate Package
         run: |
           cd /build/production
           sudo bash -c "make preinstall"
-          echo "${{ env.GAIA_VERSION }}-${{ github.run_id }}"
           sudo bash -c "cpack -G DEB -R \"${{ env.GAIA_VERSION }}-${{ github.run_id }}\""
           sudo bash -c "cp gaia-0.3.2_amd64.deb gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb"
           sudo bash -c "ls -la /build/production/*.deb"

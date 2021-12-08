@@ -33,10 +33,10 @@ const float c_g_incubator_max_temperature = 102.0;
 const int c_g_expected_sensor_value = 6;
 const int c_g_expected_actuator_value = 1000;
 
-class translation_engine_test : public db_catalog_test_base_t
+class DISABLED_translation_engine_test : public db_catalog_test_base_t
 {
 public:
-    translation_engine_test()
+    DISABLED_translation_engine_test()
         : db_catalog_test_base_t("incubator.ddl"){};
 
     gaia_id_t insert_incubator(const char* name, float min_temp, float max_temp)
@@ -72,14 +72,13 @@ protected:
     }
 };
 
-TEST_F(translation_engine_test, subscribe_invalid_ruleset)
+TEST_F(DISABLED_translation_engine_test, subscribe_invalid_ruleset)
 {
     EXPECT_THROW(subscribe_ruleset("bogus"), ruleset_not_found);
     EXPECT_THROW(unsubscribe_ruleset("bogus"), ruleset_not_found);
 }
 
-/*
-TEST_F(translation_engine_test, subscribe_valid_ruleset)
+TEST_F(DISABLED_translation_engine_test, subscribe_valid_ruleset)
 {
     init_storage();
 
@@ -183,7 +182,7 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
 }
 
 
-TEST_F(translation_engine_test, test_navigation_looping)
+TEST_F(DISABLED_translation_engine_test, test_navigation_looping)
 {
     init_storage();
 
@@ -207,4 +206,3 @@ TEST_F(translation_engine_test, test_navigation_looping)
 
     EXPECT_EQ(g_rule_navigation_loop_count, 8);
 }
-*/
