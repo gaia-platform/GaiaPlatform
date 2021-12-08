@@ -46,8 +46,6 @@ jobs:
 
       - name: Install Required Third Party Git Repositories
         run: |
-          env
-          export
           cd $GAIA_REPO/third_party/production/backward
           git clone -c advice.detachedHead=false --depth 1 --branch v1.5 https://github.com/bombela/backward-cpp.git
           rm -rf */.git
@@ -256,6 +254,7 @@ jobs:
 
       - name: Build production
         run: |
+          cd $GAIA_REPO/production
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
           sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake --log-level=VERBOSE -Wno-dev -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_RELEASE=ON  -G \"Unix Makefiles\" /source/production"
