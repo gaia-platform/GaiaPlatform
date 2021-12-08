@@ -21,6 +21,7 @@
 #include "gaia_internal/common/generator_iterator.hpp"
 
 #include "db_internal_types.hpp"
+#include "log_io.hpp"
 #include "mapped_data.hpp"
 #include "memory_manager.hpp"
 #include "messages_generated.h"
@@ -114,6 +115,12 @@ public:
 private:
     static inline server_config_t s_server_conf{};
 
+    // TODO: Delete this once recovery/checkpointing implementation is in.
+    static inline bool c_use_gaia_log_implementation = false;
+
+    // TODO: Make configurable.
+    static constexpr int64_t c_txn_group_timeout_us = 100;
+
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t c_stream_batch_size{1ULL << 10};
 
@@ -128,6 +135,15 @@ private:
     static inline int s_server_shutdown_eventfd = -1;
     static inline int s_listening_socket = -1;
 
+    // Signals the log writer thread to persist txn updates.
+    static inline int s_signal_log_write_eventfd = -1;
+
+    // Signals the log writer thread to persist txn decisions.
+    static inline int s_signal_decision_eventfd = -1;
+
+    // Signals the checkpointing thread to merge log file updates into the LSM store.
+    static inline int s_signal_checkpoint_log_eventfd = -1;
+
     // These thread objects are owned by the client dispatch thread.
     static inline std::vector<std::thread> s_session_threads{};
 
@@ -137,6 +153,7 @@ private:
     static inline mapped_data_t<id_index_t> s_shared_id_index{};
     static inline index::indexes_t s_global_indexes{};
     static inline std::unique_ptr<persistent_store_manager> s_persistent_store{};
+    static inline std::unique_ptr<persistence::log_handler_t> s_log_handler{};
 
     // These fields have transaction lifetime.
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
@@ -154,6 +171,11 @@ private:
     thread_local static inline messages::session_state_t s_session_state = messages::session_state_t::DISCONNECTED;
     thread_local static inline bool s_session_shutdown = false;
     thread_local static inline int s_session_shutdown_eventfd = -1;
+
+    thread_local static inline int s_session_decision_eventfd = -1;
+
+    // Signal to persistence thread that a batch is ready to be validated.
+    static inline int s_validate_persistence_batch_eventfd = -1;
 
     // These thread objects are owned by the session thread that created them.
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
@@ -241,6 +263,12 @@ private:
 
     // The current thread's index in `s_safe_ts_per_thread_entries`.
     thread_local static inline size_t s_safe_ts_index{c_invalid_safe_ts_index};
+
+    // Keep track of the last txn that has been submitted to the async_disk_writer.
+    static inline std::atomic<gaia_txn_id_t> s_last_queued_commit_ts_upper_bound = c_invalid_gaia_txn_id;
+
+    // Keep a track of undecided txns submitted to the async_disk_writer.
+    static inline std::set<gaia_txn_id_t> s_seen_and_undecided_txn_set{};
 
 private:
     // Returns the current value of the given watermark.
@@ -408,6 +436,14 @@ private:
     static bool authenticate_client_socket(int socket);
 
     static void client_dispatch_handler(const std::string& socket_name);
+
+    static void log_writer_handler();
+
+    static void write_to_persistent_log(int64_t txn_group_timeout_us, bool sync_writes = false);
+
+    static void recover_persistent_log();
+
+    static void flush_all_pending_writes();
 
     static void session_handler(int session_socket);
 

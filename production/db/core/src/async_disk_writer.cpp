@@ -32,13 +32,13 @@ namespace db
 namespace persistence
 {
 
-async_disk_writer_t::async_disk_writer_t(int validate_flush_efd, int signal_checkpoint_efd)
+async_disk_writer_t::async_disk_writer_t(int validate_flush_eventfd, int signal_checkpoint_eventfd)
 {
-    ASSERT_PRECONDITION(validate_flush_efd >= 0, "Invalid validate flush eventfd");
-    ASSERT_PRECONDITION(signal_checkpoint_efd >= 0, "Invalid signal checkpoint eventfd");
+    ASSERT_PRECONDITION(validate_flush_eventfd >= 0, "Invalid validate flush eventfd");
+    ASSERT_PRECONDITION(signal_checkpoint_eventfd >= 0, "Invalid signal checkpoint eventfd");
 
-    m_validate_flush_eventfd = validate_flush_efd;
-    m_signal_checkpoint_eventfd = signal_checkpoint_efd;
+    m_validate_flush_eventfd = validate_flush_eventfd;
+    m_signal_checkpoint_eventfd = signal_checkpoint_eventfd;
 
     // Used to block new writes to disk when a batch is already getting flushed.
     s_flush_eventfd = eventfd(1, 0);
@@ -51,6 +51,15 @@ async_disk_writer_t::async_disk_writer_t(int validate_flush_efd, int signal_chec
 
 void async_disk_writer_t::open(size_t batch_size)
 {
+    if (!m_in_progress_batch)
+    {
+        m_in_progress_batch = std::make_unique<async_write_batch_t>();
+    }
+    if (!m_in_flight_batch)
+    {
+        m_in_flight_batch = std::make_unique<async_write_batch_t>();
+    }
+
     m_in_progress_batch->setup(batch_size);
     m_in_flight_batch->setup(batch_size);
 }
@@ -76,9 +85,9 @@ void async_disk_writer_t::throw_error(std::string err_msg, int err, uint64_t use
     throw_system_error(ss.str(), err);
 }
 
-void async_disk_writer_t::map_commit_ts_to_session_decision_eventfd(gaia_txn_id_t commit_ts, int session_decision_fd)
+void async_disk_writer_t::map_commit_ts_to_session_decision_eventfd(gaia_txn_id_t commit_ts, int session_decision_eventfd)
 {
-    m_ts_to_session_decision_eventfd_map.insert(std::pair(commit_ts, session_decision_fd));
+    m_ts_to_session_decision_eventfd_map.insert(std::pair(commit_ts, session_decision_eventfd));
 }
 
 void async_disk_writer_t::add_decisions_to_batch(const decision_list_t& decisions)
@@ -132,8 +141,19 @@ void async_disk_writer_t::submit_and_swap_in_progress_batch(int file_fd, bool sh
     // Block on any pending disk flushes.
     eventfd_read(s_flush_eventfd, &event_counter);
 
-    // Perform any maintenance on the in_flight batch.
-    perform_post_completion_maintenance();
+    // m_validate_flush_eventfd might already be consumed by the caller.
+    uint64_t val;
+    ssize_t bytes_read = ::read(m_validate_flush_eventfd, &val, sizeof(val));
+    if (bytes_read == -1)
+    {
+        ASSERT_INVARIANT(errno == EAGAIN, "");
+    }
+    else
+    {
+        // Before submitting the next batch perform any maintenance on the in_flight batch.
+        perform_post_completion_maintenance();
+    }
+
     finish_and_submit_batch(file_fd, should_wait_for_completion);
 }
 
@@ -158,8 +178,8 @@ void async_disk_writer_t::finish_and_submit_batch(int file_fd, bool should_wait_
     m_in_progress_batch->add_fdatasync_op_to_batch(file_fd, get_enum_value(uring_op_t::fdatasync), IOSQE_IO_LINK);
 
     // Signal eventfd's as part of batch.
-    m_in_progress_batch->add_pwritev_op_to_batch(static_cast<void*>(&c_default_iov), 1, s_flush_eventfd, 0, get_enum_value(uring_op_t::pwritev_eventfd_flush), IOSQE_IO_LINK);
-    m_in_progress_batch->add_pwritev_op_to_batch(static_cast<void*>(&c_default_iov), 1, m_validate_flush_eventfd, 0, get_enum_value(uring_op_t::pwritev_eventfd_validate), IOSQE_IO_DRAIN);
+    m_in_progress_batch->add_pwritev_op_to_batch(&c_default_iov, 1, m_validate_flush_eventfd, 0, get_enum_value(uring_op_t::pwritev_eventfd_validate), IOSQE_IO_DRAIN);
+    m_in_progress_batch->add_pwritev_op_to_batch(&c_default_iov, 1, s_flush_eventfd, 0, get_enum_value(uring_op_t::pwritev_eventfd_flush), IOSQE_IO_LINK);
 
     swap_batches();
     auto flushed_batch_size = m_in_flight_batch->get_unsubmitted_entries_count();
