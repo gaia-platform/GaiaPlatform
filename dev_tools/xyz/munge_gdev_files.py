@@ -25,23 +25,50 @@ __section_name_pre_run = "[pre_run]"
 __section_name_run = "[run]"
 __section_name_copy = "[copy]"
 __section_name_artifacts = "[artifacts]"
+__section_name_package = "[package]"
+__section_name_tests = "[tests]"
 
-__valid_section_names = [__section_name_apt, __section_name_gaia, __section_name_pip, __section_name_pre_run, __section_name_run, __section_name_git, __section_name_web, __section_name_env, __section_name_copy, __section_name_artifacts]
+__valid_section_names = [__section_name_apt, __section_name_pip,
+    __section_name_pre_run, __section_name_run, __section_name_git, __section_name_web,
+    __section_name_env, __section_name_copy, __section_name_artifacts, __section_name_package, __section_name_tests]
+__available_sections = []
 
-__available_sections = [ __section_name_apt[1:-1], __section_name_pip[1:-1], __section_name_git[1:-1],
-    __section_name_env[1:-1], __section_name_web[1:-1], __section_name_pre_run[1:-1], __section_name_run[1:-1], __section_name_copy[1:-1],
-    __section_name_artifacts[1:-1]]
+__available_options = ["GaiaRelease", "ubuntu:20.04", "CI_GitHub"]
 
-__available_options = ["GaiaRelease", "ubuntu:20.04"]
 
 source_dir_regex = r"source_dir\(\'([^']+)\'\)"
 enable_if_regex = r"enable_if\(\'([^']+)\'\)"
 enable_if_not_regex = r"enable_if_not\(\'([^']+)\'\)"
 enable_if_any_regex = r"enable_if_any\(\'([^']+)\'(?:\s*\,\s*\'([^']+)\')?(?:\s*\,\s*\'([^']+)\')?\)"
 
+
 __comment_line_start_character = "#"
 __build_configuration_file_name = "gdev.cfg"
 __gaia_repository_env_path = "$GAIA_REPO"
+__source_directory_path = "/source"
+
+__publish_artifacts_task_header = """
+      - name: Upload {name}
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: {name}
+          path: |"""
+
+__package_template = """
+      - name: Generate Package
+        run: |
+{lines}
+
+      - name: Upload Package
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian Install Package
+          path: {path}"""
+
+def __init():
+    for i in __valid_section_names:
+        __available_sections.append(i[1:-1])
 
 def __valid_options(argument):
     """
@@ -116,7 +143,7 @@ def __handle_conditional_line(next_line):
 def __handle_new_section(next_line, loaded_sections, line_conditional):
     scan_error = None
 
-    if next_line not in __valid_section_names:
+    if next_line not in __valid_section_names and next_line != __section_name_gaia:
         scan_error = f"Unrecognized section name '{next_line}'."
         return None, None, scan_error
     section_conditional = line_conditional
@@ -292,7 +319,7 @@ def __collect_specified_section_text_pairs(specific_section_name, base_config_fi
                     match_result = re.match(source_dir_regex, next_spec[1])
                     if not match_result:
                         sys.exit(1)
-                    adjusted_path = os.path.join(__gaia_repository_env_path, match_result.groups()[0])
+                    adjusted_path = os.path.join(__source_directory_path, match_result.groups()[0])
                     origin_spec_pair = (next_project_dependency, adjusted_path)
                     collected_text_pairs.append(origin_spec_pair)
                 else:
@@ -357,7 +384,7 @@ def __build_ordered_dependency_list(dependency_graph):
 
     return ordered_dependencies
 
-def __xx(section_text_pairs, configuration_root_directory):
+def __calculate_lines_per_section(section_text_pairs, configuration_root_directory):
     current_directory = None
     total_line = ""
 
@@ -387,7 +414,7 @@ def __xx(section_text_pairs, configuration_root_directory):
     return lines_per_section
 
 def __print_run_and_pre_run_results(section_text_pairs, configuration_root_directory, dependency_graph):
-    lines_per_section =__xx(section_text_pairs, configuration_root_directory)
+    lines_per_section =__calculate_lines_per_section(section_text_pairs, configuration_root_directory)
 
     ordered_dependencies = __build_ordered_dependency_list(dependency_graph)
 
@@ -426,7 +453,7 @@ def __print_pre_production_copy_section(collected_file_sections, base_config_fil
                         continue
                     if section_entry == "build":
                         copy_to_build = True
-                    elif section_entry == "source":
+                    elif section_entry == __source_directory_path[1:]:
                         copy_to_source = True
                     else:
                         print(f"Section {__section_name_copy} entry of '{section_entry}' not supported.")
@@ -441,31 +468,52 @@ def __print_pre_production_copy_section(collected_file_sections, base_config_fil
                 print(f"sudo bash -c \"mkdir -p /build{relative_config_file_path}\"")
                 print(f"sudo bash -c \"cp -a {__gaia_repository_env_path}{relative_config_file_path}/. /build{relative_config_file_path}/\"")
             if copy_to_source:
-                print(f"sudo bash -c \"mkdir -p /source{relative_config_file_path}\"")
-                print(f"sudo bash -c \"cp -a {__gaia_repository_env_path}{relative_config_file_path}/. /source{relative_config_file_path}/\"")
+                print(f"sudo bash -c \"mkdir -p {__source_directory_path}{relative_config_file_path}\"")
+                print(f"sudo bash -c \"cp -a {__gaia_repository_env_path}{relative_config_file_path}/. {__source_directory_path}{relative_config_file_path}/\"")
 
 def __print_artifacts_section(section_text_pairs):
 
-    xxx = """
-      - name: Upload {name}
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: {name}
-          path: |
-            /build/production/CMakeFiles/CMakeOutput.log
-"""
+    last_artifact_name = None
+    for next_text_pair in section_text_pairs:
+        split_artifact_data = next_text_pair[1].split("=", 1)
+        if split_artifact_data[0] != last_artifact_name:
+            print(__publish_artifacts_task_header.replace("{name}", split_artifact_data[0]))
+            last_artifact_name = split_artifact_data[0]
+        print("            " + split_artifact_data[1])
 
-    last_x = None
-    for i in section_text_pairs:
-        gh = i[1].split("=", 1)
-        print(xxx.replace("{name}", gh[0]))
+def __print_package_section(section_text_pairs):
+    assert len(section_text_pairs) >= 2
+    section_first_line = section_text_pairs[0][1]
+    assert section_first_line.startswith("produces:")
+    package_path = section_first_line[len("produces:"):]
+    package_lines = []
+    for next_line_pair_index in range(1, len(section_text_pairs)):
+        next_line = section_text_pairs[next_line_pair_index][1]
+        if next_line.startswith("cd "):
+            current_section_line = next_line
+        else:
+            current_section_line = "sudo bash -c \"" + next_line.replace("\"", "\\\"") + "\""
+        package_lines.append("          " + current_section_line)
 
+    print(__package_template
+        .replace("{lines}", "\n".join(package_lines))
+        .replace("{path}", package_path)
+        )
+
+def __print_tests_section(section_text_pairs):
+    for next_line_pair_index in range(0, len(section_text_pairs)):
+        next_line = section_text_pairs[next_line_pair_index][1]
+        if next_line.startswith("cd "):
+            current_section_line = next_line
+        else:
+            current_section_line = "sudo bash -c \"" + next_line.replace("\"", "\\\"") + "\""
+        print("          " + current_section_line)
 
 def process_script_action():
     """
     Process the posting of the message.
     """
+    __init()
     args = __process_command_line()
     collected_file_sections, base_config_file, configuration_root_directory = __initialize(args)
 
@@ -489,6 +537,10 @@ def process_script_action():
         __print_pre_production_copy_section(collected_file_sections, base_config_file, args, configuration_root_directory)
     elif __section_name_artifacts == specific_section_name:
         __print_artifacts_section(section_text_pairs)
+    elif __section_name_package == specific_section_name:
+        __print_package_section(section_text_pairs)
+    elif __section_name_tests == specific_section_name:
+        __print_tests_section(section_text_pairs)
     else:
         assert __section_name_run == specific_section_name or __section_name_pre_run == specific_section_name
         __print_run_and_pre_run_results(section_text_pairs, configuration_root_directory, dependency_graph)

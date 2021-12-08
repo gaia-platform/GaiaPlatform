@@ -10,7 +10,7 @@ import sys
 import time
 import subprocess
 
-__available_options = ["GaiaRelease", "ubuntu:20.04"]
+__available_options = ["GaiaRelease", "ubuntu:20.04", "CI_GitHub"]
 
 __file_prefix = """name: Main
 
@@ -68,44 +68,10 @@ __section_6 = """
         run: |"""
 
 __section_7 = """
-      - name: Upload CMake Logs
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: CMake Logs
-          path: |
-            /build/production/CMakeFiles/CMakeOutput.log
-            /build/production/CMakeFiles/CMakeError.log
-
       - name: Tests
-        run: |
-          echo "cd /build/production/db/core || exit 1" > install.sh
-          echo "make install || exit 1" >> install.sh
-          echo "cd /build/production || exit 1" > install.sh
-          echo "ctest || exit 1" >> install.sh
-          chmod +x install.sh
-          sudo ./install.sh
-      - name: Upload LastTest.log
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: CTest Logs
-          path: |
-            /build/production/Testing/Temporary/LastTest.log
+        run: |"""
 
-      - name: Generate Package
-        run: |
-          cd /build/production
-          sudo bash -c "make preinstall"
-          sudo bash -c "cpack -G DEB"
-          ls -la /build/production/gaia-0.3.2_amd64.deb
-
-      - name: Upload Package
-        uses: actions/upload-artifact@v2
-        with:
-          name: Debian Install Package
-          path: /build/production/gaia-0.3.2_amd64.deb
-
+__section_end = """
       - name: Done
         run: |
           echo "Done"
@@ -228,6 +194,24 @@ def process_script_action():
     # print("outp: " + str(copy_outp))
     assert code == 0, f"Error getting generated copy({code}): {errp}"
 
+    cmds = ["./munge_gdev_files.py", "--section", "artifacts"]
+    cmds.extend(cmd_options)
+    code, artifacts_outp, errp = __execute_script(cmds)
+    # print("outp: " + str(artifacts_outp))
+    assert code == 0, f"Error getting generated artifacts({code}): {errp}"
+
+    cmds = ["./munge_gdev_files.py", "--section", "tests"]
+    cmds.extend(cmd_options)
+    code, tests_outp, errp = __execute_script(cmds)
+    # print("outp: " + str(tests_outp))
+    assert code == 0, f"Error getting generated package({code}): {errp}"
+
+    cmds = ["./munge_gdev_files.py", "--section", "package"]
+    cmds.extend(cmd_options)
+    code, package_outp, errp = __execute_script(cmds)
+    # print("outp: " + str(package_outp))
+    assert code == 0, f"Error getting generated package({code}): {errp}"
+
     cmds = ["./munge_gdev_files.py", "--section", "pre_run"]
     cmds.extend(cmd_options)
     code, prerun_outp, errp = __execute_script(cmds)
@@ -280,5 +264,15 @@ def process_script_action():
             print("          " + i, end="")
 
     print(__section_7)
+    for i in tests_outp:
+        print(i, end="")
+
+    for i in package_outp:
+        print(i, end="")
+
+    for i in artifacts_outp:
+        print(i, end="")
+
+    print(__section_end)
 
 sys.exit(process_script_action())
