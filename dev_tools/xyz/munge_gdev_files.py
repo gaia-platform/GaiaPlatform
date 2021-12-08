@@ -23,11 +23,14 @@ __section_name_env = "[env]"
 __section_name_web = "[web]"
 __section_name_pre_run = "[pre_run]"
 __section_name_run = "[run]"
+__section_name_copy = "[copy]"
+__section_name_artifacts = "[artifacts]"
 
-__valid_section_names = [__section_name_apt, __section_name_gaia, __section_name_pip, __section_name_pre_run, "[run]", __section_name_git, __section_name_web, __section_name_env]
+__valid_section_names = [__section_name_apt, __section_name_gaia, __section_name_pip, __section_name_pre_run, __section_name_run, __section_name_git, __section_name_web, __section_name_env, __section_name_copy, __section_name_artifacts]
 
-__available_sections = [ __section_name_apt[1:-1], __section_name_pip[:1:-1], __section_name_git[1:-1],
-    __section_name_env[1:-1], __section_name_web[1:-1], __section_name_pre_run[1:-1], __section_name_run[1:-1]]
+__available_sections = [ __section_name_apt[1:-1], __section_name_pip[1:-1], __section_name_git[1:-1],
+    __section_name_env[1:-1], __section_name_web[1:-1], __section_name_pre_run[1:-1], __section_name_run[1:-1], __section_name_copy[1:-1],
+    __section_name_artifacts[1:-1]]
 
 __available_options = ["GaiaRelease", "ubuntu:20.04"]
 
@@ -36,10 +39,9 @@ enable_if_regex = r"enable_if\(\'([^']+)\'\)"
 enable_if_not_regex = r"enable_if_not\(\'([^']+)\'\)"
 enable_if_any_regex = r"enable_if_any\(\'([^']+)\'(?:\s*\,\s*\'([^']+)\')?(?:\s*\,\s*\'([^']+)\')?\)"
 
-
 __comment_line_start_character = "#"
 __build_configuration_file_name = "gdev.cfg"
-
+__gaia_repository_env_path = "$GAIA_REPO"
 
 def __valid_options(argument):
     """
@@ -290,7 +292,8 @@ def __collect_specified_section_text_pairs(specific_section_name, base_config_fi
                     match_result = re.match(source_dir_regex, next_spec[1])
                     if not match_result:
                         sys.exit(1)
-                    origin_spec_pair = (next_project_dependency, "$GAIA_REPO/" + match_result.groups()[0])
+                    adjusted_path = os.path.join(__gaia_repository_env_path, match_result.groups()[0])
+                    origin_spec_pair = (next_project_dependency, adjusted_path)
                     collected_text_pairs.append(origin_spec_pair)
                 else:
                     if __does_meet_project_requirements(next_spec[1], args.options):
@@ -307,7 +310,7 @@ def __print_apt_and_pip_results(section_text_pairs):
 def __print_git_results(section_text_pairs, configuration_root_directory):
 
     for next_pair in section_text_pairs:
-        project_directory = os.path.dirname(next_pair[0].replace(configuration_root_directory, "$GAIA_REPO"))
+        project_directory = os.path.dirname(next_pair[0].replace(configuration_root_directory, __gaia_repository_env_path))
         print("cd " + project_directory)
         print("git clone -c advice.detachedHead=false --depth 1 " + next_pair[1])
         print("rm -rf */.git")
@@ -322,7 +325,7 @@ def __print_env_results(section_text_pairs):
 def __print_web_results(section_text_pairs, configuration_root_directory):
 
     for next_pair in section_text_pairs:
-        project_directory = os.path.dirname(next_pair[0].replace(configuration_root_directory, "$GAIA_REPO"))
+        project_directory = os.path.dirname(next_pair[0].replace(configuration_root_directory, __gaia_repository_env_path))
         print("cd " + project_directory)
         print("wget " + next_pair[1])
 
@@ -365,7 +368,7 @@ def __xx(section_text_pairs, configuration_root_directory):
             current_section_line = lines_per_section[next_pair[0]]
         else:
             lines_per_section[next_pair[0]] = ""
-        project_directory = os.path.dirname(next_pair[0].replace(configuration_root_directory, "$GAIA_REPO"))
+        project_directory = os.path.dirname(next_pair[0].replace(configuration_root_directory, __gaia_repository_env_path))
         if current_directory != next_pair[0]:
             current_section_line += "\ncd " + project_directory + "\n"
             current_directory = next_pair[0]
@@ -387,11 +390,77 @@ def __print_run_and_pre_run_results(section_text_pairs, configuration_root_direc
     lines_per_section =__xx(section_text_pairs, configuration_root_directory)
 
     ordered_dependencies = __build_ordered_dependency_list(dependency_graph)
-    print("ordered_dependencies=" + str(ordered_dependencies))
 
     for i in ordered_dependencies:
         if i in lines_per_section:
             print(lines_per_section[i])
+
+def __depth_first_visit_project_directories(collected_file_sections, current_config_file, args, configuration_root_directory, visited_project_directories):
+    current_configuration_sections = collected_file_sections[current_config_file]
+    if __section_name_gaia in current_configuration_sections:
+        this_gaia_section = current_configuration_sections[__section_name_gaia]
+        for next_project_directory in this_gaia_section:
+            if __does_meet_project_requirements(next_project_directory[1], args.options):
+                sub_project_directory = os.path.join(configuration_root_directory, next_project_directory[0])
+                if sub_project_directory not in visited_project_directories:
+                    sub_project_config_file = os.path.join(sub_project_directory, __build_configuration_file_name)
+                    __depth_first_visit_project_directories(collected_file_sections, sub_project_config_file, args, configuration_root_directory, visited_project_directories)
+                    visited_project_directories.append(sub_project_directory)
+
+def __print_pre_production_copy_section(collected_file_sections, base_config_file, args, configuration_root_directory):
+        visited_project_directories = []
+        __depth_first_visit_project_directories(collected_file_sections, base_config_file, args, configuration_root_directory, visited_project_directories)
+        visited_project_directories.append(os.path.dirname(base_config_file))
+        for next_visited_directory in visited_project_directories:
+            visisted_directory_config_file = os.path.join(next_visited_directory, __build_configuration_file_name)
+            current_sections = collected_file_sections[visisted_directory_config_file]
+            assert visisted_directory_config_file.startswith(configuration_root_directory)
+            relative_config_file_path = visisted_directory_config_file[len(configuration_root_directory):-(len(__build_configuration_file_name) + 1)]
+
+            copy_to_build = False
+            copy_to_source = False
+            if __section_name_copy in current_sections:
+                for copy_section_entry in current_sections[__section_name_copy]:
+                    section_entry = copy_section_entry[0].strip()
+                    if not section_entry:
+                        continue
+                    if section_entry == "build":
+                        copy_to_build = True
+                    elif section_entry == "source":
+                        copy_to_source = True
+                    else:
+                        print(f"Section {__section_name_copy} entry of '{section_entry}' not supported.")
+                        sys.exit(1)
+            else:
+                if __section_name_run in current_sections:
+                    copy_to_build = True
+                else:
+                    copy_to_source = True
+
+            if copy_to_build:
+                print(f"sudo bash -c \"mkdir -p /build{relative_config_file_path}\"")
+                print(f"sudo bash -c \"cp -a {__gaia_repository_env_path}{relative_config_file_path}/. /build{relative_config_file_path}/\"")
+            if copy_to_source:
+                print(f"sudo bash -c \"mkdir -p /source{relative_config_file_path}\"")
+                print(f"sudo bash -c \"cp -a {__gaia_repository_env_path}{relative_config_file_path}/. /source{relative_config_file_path}/\"")
+
+def __print_artifacts_section(section_text_pairs):
+
+    xxx = """
+      - name: Upload {name}
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: {name}
+          path: |
+            /build/production/CMakeFiles/CMakeOutput.log
+"""
+
+    last_x = None
+    for i in section_text_pairs:
+        gh = i[1].split("=", 1)
+        print(xxx.replace("{name}", gh[0]))
+
 
 def process_script_action():
     """
@@ -416,14 +485,10 @@ def process_script_action():
         __print_env_results(section_text_pairs)
     elif __section_name_web == specific_section_name:
         __print_web_results(section_text_pairs, configuration_root_directory)
-    # elif __section_name_pre_run == specific_section_name:
-    #     gh = None
-    #     for i in xx:
-    #         fg = os.path.dirname(i[0].replace(configuration_root_directory, "$GAIA_REPO"))
-    #         if gh != i[0]:
-    #             print("cd " + fg)
-    #             gh = i[0]
-    #         print(str(i[1]))
+    elif __section_name_copy == specific_section_name:
+        __print_pre_production_copy_section(collected_file_sections, base_config_file, args, configuration_root_directory)
+    elif __section_name_artifacts == specific_section_name:
+        __print_artifacts_section(section_text_pairs)
     else:
         assert __section_name_run == specific_section_name or __section_name_pre_run == specific_section_name
         __print_run_and_pre_run_results(section_text_pairs, configuration_root_directory, dependency_graph)
