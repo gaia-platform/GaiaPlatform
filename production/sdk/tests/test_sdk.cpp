@@ -3,20 +3,17 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-// Do not include event_manager.hpp to ensure that
-// we don't have a dependency on the internal implementation.
+// Do not include any internal headers to insert that
+// we don't have a dependency on any internal implementation.
 
 #include <gtest/gtest.h>
 
 #include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
 #include "gaia/db/events.hpp"
-#include "gaia/exception.hpp"
 #include "gaia/logger.hpp"
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
-
-#include "gaia_internal/catalog/catalog.hpp"
 
 #include "gaia_addr_book.h"
 
@@ -38,12 +35,9 @@ class sdk_test : public ::testing::Test
 protected:
     void SetUp() override
     {
+        // Load the schema in the database in a "public way"
+        system("../catalog/gaiac/gaiac addr_book.ddl");
         gaia::system::initialize("./gaia.conf", "./gaia_log.conf");
-
-        // Force a s_gaia_type creation in the Catalog (assumes that the Catalog is empty and the
-        // first created table will get ID 1 which is the ID of employee_t table).
-        // ATM we do not expose an API to load DDL data into the Catalog.
-        gaia::catalog::create_table("", "test_table", gaia::catalog::ddl::field_def_list_t(), false);
     }
 
     void TearDown() override
@@ -68,6 +62,8 @@ void rule_1(const rule_context_t* ctx)
     }
 }
 
+// Note that we have an internal wait_for_rule function
+// but since it is not public, we can't use it here.
 // Wait for a rule to be executed for up to 1 second.
 void wait_for_rule(std::atomic_bool& rule_guard)
 {
@@ -94,7 +90,7 @@ void test_exception(T_args... args)
         thrown = true;
     }
 
-    ASSERT_TRUE(thrown) << "An exception should have ben thrown";
+    ASSERT_TRUE(thrown) << "An exception should have been thrown";
 }
 
 TEST_F(sdk_test, auto_txn)
@@ -163,12 +159,9 @@ TEST_F(sdk_test, rule_list)
 TEST_F(sdk_test, rule_exceptions)
 {
     test_exception<invalid_rule_binding>();
-
-    rule_binding_t binding("ruleset", "rulename", rule_1);
-    test_exception<duplicate_rule>(binding, true);
-
+    test_exception<duplicate_rule>();
     test_exception<initialization_error>();
-    test_exception<invalid_subscription>(employee_t::s_gaia_type);
+    test_exception<invalid_subscription>();
 }
 
 TEST_F(sdk_test, gaia_logger)
@@ -214,12 +207,10 @@ TEST_F(sdk_test, db_exceptions)
     test_exception<gaia::db::no_open_transaction>();
     test_exception<gaia::db::transaction_update_conflict>();
     test_exception<gaia::db::transaction_object_limit_exceeded>();
-    test_exception<gaia::db::duplicate_object_id>(gaia::common::c_invalid_gaia_id);
+    test_exception<gaia::db::duplicate_object_id>();
     test_exception<gaia::db::out_of_memory>();
-    test_exception<gaia::db::invalid_object_id>(gaia::common::c_invalid_gaia_id);
-    test_exception<gaia::db::object_still_referenced>(
-        gaia::common::c_invalid_gaia_id, employee_t::s_gaia_type,
-        gaia::common::c_invalid_gaia_id, employee_t::s_gaia_type);
-    test_exception<gaia::db::object_too_large>(100, 100);
-    test_exception<gaia::db::invalid_object_type>(employee_t::s_gaia_type);
+    test_exception<gaia::db::invalid_object_id>();
+    test_exception<gaia::db::object_still_referenced>();
+    test_exception<gaia::db::object_too_large>();
+    test_exception<gaia::db::invalid_object_type>();
 }

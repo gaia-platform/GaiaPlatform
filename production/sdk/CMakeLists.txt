@@ -24,16 +24,21 @@ target_link_libraries(gaia PRIVATE
 install(TARGETS gaia DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 #
-# Ensure this test only includes public headers and links to the gaia shared library.
+# Ensure this test only includes public headers and links to the gaia shared library
+# Emulate what an SDK user does as closely as possible minus gaiat functionality for
+# a production only (non-gaia release) build.
 #
 set(SDK_TEST_INCLUDES
   ${GAIA_INC}
+  ${GAIA_PROD_BUILD}/deps/gaia_spdlog/include
+  ${GAIA_PROD_BUILD}/gaia_generated/addr_book
 )
 
 configure_file("${GAIA_CONFIG}" "${PROJECT_BINARY_DIR}/gaia.conf")
 configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
-# Disabling test_sdk until we can remove the dependency on non-public methods exported from the SDK shared library.
-# add_gtest(test_sdk "tests/test_sdk.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;gaia_spdlog;dac_addr_book")
+configure_file("${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl" "${PROJECT_BINARY_DIR}/addr_book.ddl") 
+
+add_gtest(test_sdk "tests/test_sdk.cpp;${GAIA_PROD_BUILD}/gaia_generated/addr_book/gaia_addr_book.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia")
 add_gtest(test_sdk_no_init_rules "tests/test_sdk_no_init_rules.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;dac_addr_book")
 
 # Set CPack variables required for building a DEB/RPM package.
