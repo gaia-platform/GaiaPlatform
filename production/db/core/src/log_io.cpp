@@ -21,7 +21,6 @@
 
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
-#include "gaia_internal/common/write_ahead_log_error.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include <gaia_internal/common/mmap_helpers.hpp>
 
@@ -66,7 +65,6 @@ log_handler_t::log_handler_t(const std::string& wal_dir_path)
 void log_handler_t::open_for_writes(int validate_flushed_batch_eventfd, int signal_checkpoint_eventfd)
 {
     ASSERT_PRECONDITION(validate_flushed_batch_eventfd != -1, "Eventfd to signal post flush maintenance operations invalid!");
-    ASSERT_PRECONDITION(signal_checkpoint_eventfd != -1, "Eventfd to signal checkpointing of log file is invalid!");
     ASSERT_INVARIANT(s_dir_fd != -1, "Unable to open data directory for persistent log writes.");
 
     // Create new log file every time the log_writer gets initialized.

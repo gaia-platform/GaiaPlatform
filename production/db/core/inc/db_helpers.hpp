@@ -132,6 +132,11 @@ inline void allocate_object(
     gaia_offset_t object_offset = chunk_manager->allocate(size + c_db_object_header_size);
     if (object_offset == c_invalid_gaia_offset)
     {
+        if (gaia::db::get_mapped_log()->data()->chunk_count == c_max_chunks_per_txn)
+        {
+            throw memory_allocation_error_internal("Maximum number of chunks for this transaction has been reached.");
+        }
+
         if (chunk_manager->initialized())
         {
             // The current chunk is out of memory, so retire it and allocate a new chunk.
@@ -158,6 +163,9 @@ inline void allocate_object(
         // Before we allocate, persist current chunk ID in txn log, for access
         // on the server in case we crash.
         gaia::db::get_mapped_log()->data()->current_chunk = new_chunk_offset;
+
+        auto& chunk = gaia::db::get_mapped_log()->data()->chunks[gaia::db::get_mapped_log()->data()->chunk_count++];
+        chunk = static_cast<size_t>(new_chunk_offset);
 
         // Allocate from new chunk.
         object_offset = chunk_manager->allocate(size + c_db_object_header_size);

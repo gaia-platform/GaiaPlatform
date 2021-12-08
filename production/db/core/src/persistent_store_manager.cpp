@@ -9,12 +9,15 @@
 
 #include <rocksdb/db.h>
 
+#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
+#include "log_io.hpp"
+#include "persistence_types.hpp"
 #include "rdb_object_converter.hpp"
 #include "rdb_wrapper.hpp"
 

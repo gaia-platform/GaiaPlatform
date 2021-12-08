@@ -14,6 +14,7 @@
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
 #include "db_shared_data.hpp"
+#include "log_io.hpp"
 #include "rdb_wrapper.hpp"
 
 // This file provides gaia specific functionality to persist writes to & read from
@@ -81,6 +82,10 @@ public:
      * Destroy the persistent store.
      */
     void destroy_persistent_store();
+
+    void init_log(const std::string& data_dir, const int validate_persistence_batch_eventfd);
+
+    void reset_log();
 
 private:
     gaia::db::counters_t* m_counters = nullptr;
