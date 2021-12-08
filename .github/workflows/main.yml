@@ -283,14 +283,15 @@ jobs:
           env
           export
           sudo bash -c "make preinstall"
-          sudo bash -c "cpack -G DEB -R \"$GAIA_VERSION-$GITHUB_RUN_ID\""
+          echo "${{ env.GAIA_VERSION }}-${{ github.run_id }}"
+          sudo bash -c "cpack -G DEB -R \"${{ env.GAIA_VERSION }}-${{ github.run_id }}\""
           sudo bash -c "ls -la /build/production/*.deb"
 
       - name: Upload Package
         uses: actions/upload-artifact@v2
         with:
           name: Debian Install Package
-          path: /build/production/gaia-${{ env.GAIA_VERSION }}-${{ env.GITHUB_RUN_ID }}_amd64.deb
+          path: /build/production/gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb
 
       - name: Upload CMake Logs
         if: always()
