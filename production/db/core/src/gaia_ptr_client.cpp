@@ -676,12 +676,42 @@ void gaia_ptr_t::auto_connect(
                     next_child.set_reference(relationship_view.prev_child_offset(), id);
                 }
             }
-
-            // Create an anchor node for the child node if it does not have one.
-            if (references[relationship_view.parent_offset()] == c_invalid_gaia_id)
+            else
             {
-                gaia_ptr_t anchor = gaia_ptr_t::create_ref_anchor(c_invalid_gaia_id, id);
-                references[relationship_view.parent_offset()] = anchor.id();
+                // Check if the field value exists in any child node using the index on the child table (this table).
+                gaia_id_t child_id = find_using_index(
+                    payload,
+                    field_position,
+                    type,
+                    type_id,
+                    relationship_view.child_table_id(),
+                    relationship_view.child_field_positions()->Get(0));
+                if (child_id != c_invalid_gaia_id)
+                {
+                    // We have found some child node with the same linked field
+                    // value. Insert the node to the existing anchor chain.
+                    auto child = gaia_ptr_t::open(child_id);
+                    gaia_id_t anchor_id = child.references()[relationship_view.parent_offset()];
+                    auto anchor = gaia_ptr_t::open(anchor_id);
+                    references[relationship_view.parent_offset()] = anchor_id;
+                    references[relationship_view.next_child_offset()] = anchor.references()[c_ref_anchor_first_child_offset];
+
+                    anchor.set_reference(c_ref_anchor_first_child_offset, id);
+
+                    if (references[relationship_view.next_child_offset()] != c_invalid_gaia_id)
+                    {
+                        auto next_child = gaia_ptr_t::open(references[relationship_view.next_child_offset()]);
+                        next_child.set_reference(relationship_view.prev_child_offset(), id);
+                    }
+                }
+                else if (references[relationship_view.parent_offset()] == c_invalid_gaia_id)
+                {
+                    // This child has no matching parent or other child of the
+                    // same field value. Create an anchor node for the child to
+                    // form an anchor chain of itself.
+                    gaia_ptr_t anchor = gaia_ptr_t::create_ref_anchor(c_invalid_gaia_id, id);
+                    references[relationship_view.parent_offset()] = anchor.id();
+                }
             }
         }
     }
