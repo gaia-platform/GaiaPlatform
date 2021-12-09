@@ -334,6 +334,8 @@ namespace direct_access
 class invalid_object_state_internal : public invalid_object_state
 {
 public:
+    invalid_object_state_internal();
+
     invalid_object_state_internal(
         common::gaia_id_t parent_id,
         common::gaia_id_t child_id,

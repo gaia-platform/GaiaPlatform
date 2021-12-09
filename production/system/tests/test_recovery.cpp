@@ -415,7 +415,7 @@ void recovery_test::ensure_uncommitted_value_absent_on_restart_and_commit_new_tx
     s_server.restart();
     begin_session();
     begin_transaction();
-    ASSERT_FALSE(employee_t::get(id));
+    ASSERT_THROW(employee_t::get(id), invalid_object_id);
     // Check logging + commit path functional.
     auto e2 = generate_employee_record();
     id = e2.gaia_id();
@@ -440,7 +440,7 @@ void recovery_test::ensure_uncommitted_value_absent_on_restart_and_rollback_new_
     s_server.restart();
     begin_session();
     begin_transaction();
-    ASSERT_FALSE(employee_t::get(id));
+    ASSERT_THROW(employee_t::get(id), invalid_object_id);
     // Check logging + rollback functional.
     auto e2 = generate_employee_record();
     id = e2.gaia_id();

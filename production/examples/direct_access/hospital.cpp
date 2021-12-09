@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 
 #include <gaia/db/db.hpp>
+#include <gaia/exceptions.hpp>
 #include <gaia/logger.hpp>
 #include <gaia/system.hpp>
 
@@ -85,7 +86,7 @@ void array_type_fields()
     auto analysis_results = john.analysis_results();
 
     // To iterate the array you can use a normal for loop.
-    for (int i = 0; i < analysis_results.size(); i++)
+    for (size_t i = 0; i < analysis_results.size(); i++)
     {
         gaia_log::app().info(" - {}", analysis_results[i]);
     }
@@ -122,13 +123,12 @@ void lookup_invalid_record()
 {
     PRINT_METHOD_NAME();
 
-    patient_t john = patient_t::get(gaia::common::c_invalid_gaia_id);
-
-    if (john)
+    try
     {
-        throw std::runtime_error("The patient is expected to evaluate to false.");
+        patient_t john = patient_t::get(gaia::common::c_invalid_gaia_id);
+        throw std::runtime_error("patient_t::get(gaia::common::c_invalid_gaia_id) should have failed with an exception.");
     }
-    else
+    catch (const gaia::db::invalid_object_id& e)
     {
         gaia_log::app().info("Cannot find patient with id: {}", gaia::common::c_invalid_gaia_id);
     }
@@ -142,15 +142,15 @@ void access_invalid_record()
 {
     PRINT_METHOD_NAME();
 
-    patient_t john = patient_t::get(gaia::common::c_invalid_gaia_id);
+    patient_t john;
 
     try
     {
         gaia_log::app().info("Patient name: {}", john.name());
     }
-    catch (gaia::db::invalid_object_id& ex)
+    catch (gaia::direct_access::invalid_object_state& e)
     {
-        gaia_log::app().info("As expected, attempting to access an invalid object raised the following exception: '{}'.", ex.what());
+        gaia_log::app().info("As expected, attempting to access an invalid object raised the following exception: '{}'.", e.what());
     }
 }
 
@@ -237,13 +237,12 @@ void delete_single_record_static()
 
     doctor_t::delete_row(dr_house_id);
 
-    doctor_t dr_house = doctor_t::get(dr_house_id);
-
-    if (dr_house)
+    try
     {
+        doctor_t dr_house = doctor_t::get(dr_house_id);
         throw std::runtime_error("The doctor is expected to be invalid after deletion.");
     }
-    else
+    catch (const gaia::db::invalid_object_id& e)
     {
         gaia_log::app().info("The record has been deleted");
     }
@@ -340,18 +339,18 @@ void delete_one_to_many_relationship_re(gaia_id_t doctor_id)
     {
         doctor.delete_row();
     }
-    catch (const gaia::db::object_still_referenced& ex)
+    catch (const gaia::db::object_still_referenced& e)
     {
-        gaia_log::app().info("As expected, deleting the doctor record raised the following exception '{}'.", ex.what());
+        gaia_log::app().info("As expected, deleting the doctor record raised the following exception '{}'.", e.what());
     }
 
     try
     {
         patient.delete_row();
     }
-    catch (const gaia::db::object_still_referenced& ex)
+    catch (const gaia::db::object_still_referenced& e)
     {
-        gaia_log::app().info("As expected, deleting the patient record raised the following exception '{}'.", ex.what());
+        gaia_log::app().info("As expected, deleting the patient record raised the following exception '{}'.", e.what());
     }
 }
 
@@ -475,18 +474,18 @@ void delete_one_to_one_relationship_re(gaia_id_t patient_id)
     {
         patient.delete_row();
     }
-    catch (const gaia::db::object_still_referenced& ex)
+    catch (const gaia::db::object_still_referenced& e)
     {
-        gaia_log::app().info("As expected, deleting the patient record raised the following exception '{}'.", ex.what());
+        gaia_log::app().info("As expected, deleting the patient record raised the following exception '{}'.", e.what());
     }
 
     try
     {
         address.delete_row();
     }
-    catch (const gaia::db::object_still_referenced& ex)
+    catch (const gaia::db::object_still_referenced& e)
     {
-        gaia_log::app().info("As expected, deleting the address record raised the following exception '{}'.", ex.what());
+        gaia_log::app().info("As expected, deleting the address record raised the following exception '{}'.", e.what());
     }
 }
 
@@ -757,9 +756,9 @@ void use_dac_object_across_transactions()
         // Outside a transaction.
         dr_house.name();
     }
-    catch (const gaia::db::no_open_transaction& ex)
+    catch (const gaia::db::no_open_transaction& e)
     {
-        gaia_log::app().info("As expected, you cannot access a record outside of a transaction: '{}'", ex.what());
+        gaia_log::app().info("As expected, you cannot access a record outside of a transaction: '{}'", e.what());
     }
 
     // Second transaction.
