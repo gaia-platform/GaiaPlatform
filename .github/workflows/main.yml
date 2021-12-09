@@ -318,16 +318,18 @@ jobs:
         with:
           version: 2021.5.29
 
-      - name: Upload Debian install
-        uses: actions/upload-artifact@v2
+      - name: Download Debian install
+        uses: actions/download-artifact@v2
         with:
           name: Debian Install Package
-          path: ${{ github.workspace }}/production/tests/gaia_amd64.deb
+          path: ${{ github.workspace }}/production/tests/packages
       - name: Tests
         run: |
           cd ${{ github.workspace }}/production/tests
 
-          ./install_sdk_build.sh gaia_amd64.deb
+          ls -la packages
+          echo "--$(find packages -name gaia*)"
+          ./install_sdk_build.sh $(find packages -name gaia*)
           ./reset_database.sh --stop --database
 
           pipenv sync
