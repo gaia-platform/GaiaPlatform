@@ -86,7 +86,7 @@ void array_type_fields()
     auto analysis_results = john.analysis_results();
 
     // To iterate the array you can use a normal for loop.
-    for (int i = 0; i < analysis_results.size(); i++)
+    for (size_t i = 0; i < analysis_results.size(); i++)
     {
         gaia_log::app().info(" - {}", analysis_results[i]);
     }
