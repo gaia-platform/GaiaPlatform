@@ -483,7 +483,8 @@ std::string class_writer_t::generate_incoming_links_accessors_cpp()
 
         code += "{{PARENT_TABLE}}_t {{TABLE_NAME}}_t::{{FIELD_NAME}}() const {";
         code.IncrementIdentLevel();
-        code += "return {{PARENT_TABLE}}_t::get(this->references()[{{PARENT_OFFSET}}]);";
+        code += "gaia::common::gaia_id_t id = this->references()[{{PARENT_OFFSET}}];";
+        code += "return (id == gaia::common::c_invalid_gaia_id) ? {{PARENT_TABLE}}_t() : {{PARENT_TABLE}}_t::get(id);";
         code.DecrementIdentLevel();
         code += "}";
     }

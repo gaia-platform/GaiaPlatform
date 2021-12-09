@@ -211,6 +211,14 @@ private:
     gaia_locator_t m_locator{c_invalid_gaia_locator};
 };
 
+static_assert(
+    sizeof(gaia_ptr_t) == sizeof(gaia_locator_t),
+    "gaia_ptr_t shouldn't contain more than a gaia_locator_t value!");
+
+static_assert(
+    sizeof(gaia_ptr_t) <= sizeof(common::gaia_handle_t),
+    "The size of gaia_handle_t is too small to hold a gaia_ptr_t value!");
+
 class gaia_ptr_generator_t : public common::iterators::generator_t<gaia_ptr_t>
 {
 public:

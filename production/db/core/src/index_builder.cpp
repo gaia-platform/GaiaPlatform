@@ -462,10 +462,10 @@ void index_builder_t::update_indexes_from_txn_log(
 }
 
 template <class T_index>
-void remove_entries_with_offsets(base_index_t* base_index, const std::unordered_set<gaia_offset_t>& offsets)
+void remove_entries_with_offsets(base_index_t* base_index, const std::unordered_set<gaia_offset_t>& offsets, gaia_txn_id_t txn_id)
 {
     auto index = static_cast<T_index*>(base_index);
-    index->remove_index_entry_with_offsets(offsets);
+    index->remove_index_entry_with_offsets(offsets, txn_id);
 }
 
 void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool deallocate_new_offsets)
@@ -513,10 +513,10 @@ void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool dea
         switch (it.second->type())
         {
         case catalog::index_type_t::range:
-            remove_entries_with_offsets<range_index_t>(it.second.get(), collected_offsets);
+            remove_entries_with_offsets<range_index_t>(it.second.get(), collected_offsets, records.begin_ts);
             break;
         case catalog::index_type_t::hash:
-            remove_entries_with_offsets<hash_index_t>(it.second.get(), collected_offsets);
+            remove_entries_with_offsets<hash_index_t>(it.second.get(), collected_offsets, records.begin_ts);
             break;
         }
     }
