@@ -10,7 +10,7 @@ on:
       - jack/gha
 
 jobs:
-  build:
+  release_build:
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -301,4 +301,42 @@ jobs:
       - name: Done
         run: |
           echo "Done"
+  integration_1:
+    runs-on: ubuntu-20.04
+    needs: release_build
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
 
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - name: Install PipEnv
+        uses: dschep/install-pipenv-action@v1
+        with:
+          version: 2021.5.29
+
+      - name: Upload Debian install
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian Install Package
+          path: ${{ github.workspace }}/production/tests/gaia_amd64.deb
+      - name: Tests
+        run: |
+          cd ${{ github.workspace }}/production/tests
+
+          ./install_sdk_build.sh gaia_amd64.deb
+          ./reset_database.sh --stop --database
+
+          pipenv sync
+          pipenv lock
+          ./smoke_suites.sh
+      - name: Upload Suite Logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: Suite Logs
+          path: |
+            /production/tests/suites
