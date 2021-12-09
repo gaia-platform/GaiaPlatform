@@ -37,14 +37,14 @@ else()
   option(ENABLE_CLANG_TIDY "Enable clang tidy" OFF)
 endif()
 
-# Sets the Gaia build architecture which is the SDL target architecture.
-# For simplicity we do not support cross compiling yet.
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "(amd64)|(AMD64)|(x86_64)|(X86_64)")
+# Sets the Gaia build architecture which is the SDK target architecture.
+# For simplicity we do not support cross-compiling yet.
+if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "amd64|AMD64|x86_64|X86_64")
   set(GAIA_BUILD_ARCH "amd64")
-elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "(arm64)|(ARM64)|(aarch64)|(AARCH64)")
+elseif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm64|ARM64|aarch64|AARCH64")
   set(GAIA_BUILD_ARCH "arm64")
 else()
-  message(FATAL_ERROR "Unrecognised architecture: ${CMAKE_SYSTEM_PROCESSOR}")
+  message(FATAL_ERROR "Unrecognised architecture: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 endif()
 
 message(STATUS "GAIA_BUILD_ARCH: ${GAIA_BUILD_ARCH}")
