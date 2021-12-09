@@ -471,21 +471,21 @@ void remove_entries_with_offsets(base_index_t* base_index, const std::array<gaia
 
 void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool deallocate_new_offsets)
 {
-    for (size_t records_iterator = 0; records_iterator < records.record_count;)
+    for (size_t records_index = 0; records_index < records.record_count;)
     {
         std::array<gaia_offset_t, c_offset_buffer_size> collected_offsets;
         std::array<gaia_type_t, c_offset_buffer_size> offset_types;
 
         // Fill the offset buffer for garbage collection.
-        for (size_t buffer_iterator = 0; buffer_iterator < c_offset_buffer_size;)
+        for (size_t buffer_index = 0; buffer_index < c_offset_buffer_size;)
         {
             // No more records to process! Break.
-            if (records_iterator >= records.record_count)
+            if (records_index >= records.record_count)
             {
                 break;
             }
 
-            const auto& log_record = records.log_records[records_iterator];
+            const auto& log_record = records.log_records[records_index];
 
             gaia_offset_t offset = deallocate_new_offsets ? log_record.new_offset : log_record.old_offset;
 
@@ -497,16 +497,16 @@ void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool dea
                 // We do not index system objects, so we can move on.
                 if (is_system_object(obj->type))
                 {
-                    ++records_iterator;
+                    ++records_index;
                     continue;
                 }
 
                 // Add the offset to the buffers.
-                collected_offsets[buffer_iterator] = offset;
-                offset_types[buffer_iterator] = (obj->type);
-                ++buffer_iterator;
+                collected_offsets[buffer_index] = offset;
+                offset_types[buffer_index] = (obj->type);
+                ++buffer_index;
             }
-            ++records_iterator;
+            ++records_index;
         }
 
         // No offsets to garbage collect.
