@@ -79,6 +79,7 @@ __gdev_artifacts_item_separator = "="
 __build_configuration_file_name = "gdev.cfg"
 __gaia_repository_env_path = "$GAIA_REPO"
 __source_directory_path = "/source"
+__build_directory_path = "/build"
 
 def __init():
     """
@@ -588,8 +589,8 @@ def __print_pre_production_copy_section(collected_file_sections, base_config_fil
         copy_to_build,copy_to_source = __calculate_directories_to_copy_to(current_sections)
 
         if copy_to_build:
-            print(f"sudo bash -c \"mkdir -p /build{relative_config_file_path}\"")
-            print(f"sudo bash -c \"cp -a {__gaia_repository_env_path}{relative_config_file_path}/. /build{relative_config_file_path}/\"")
+            print(f"sudo bash -c \"mkdir -p {__build_directory_path}{relative_config_file_path}\"")
+            print(f"sudo bash -c \"cp -a {__gaia_repository_env_path}{relative_config_file_path}/. {__build_directory_path}{relative_config_file_path}/\"")
         if copy_to_source:
             print(f"sudo bash -c \"mkdir -p {__source_directory_path}{relative_config_file_path}\"")
             print(f"sudo bash -c \"cp -a {__gaia_repository_env_path}{relative_config_file_path}/. {__source_directory_path}{relative_config_file_path}/\"")

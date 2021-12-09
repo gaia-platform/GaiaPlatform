@@ -82,6 +82,9 @@ __copy_section = """
         run: |"""
 
 def __execute_script(command_list):
+    """
+    Execute a remote program, returning when it is done.
+    """
     with subprocess.Popen(
         command_list,
         stdout=subprocess.PIPE,
@@ -130,7 +133,7 @@ def __process_command_line():
     )
     return parser.parse_args()
 
-def foobar(prerun_outp):
+def __create_build_map_and_ordered_list(prerun_outp):
     current_section = None
     build_map = {}
     ordered_build_list = []
@@ -143,6 +146,16 @@ def foobar(prerun_outp):
             build_map[current_section].append(i)
     return build_map, ordered_build_list
 
+def __collect_lines_for_section(section_name, section_long_name, cmd_options, show_debug_output=False):
+
+    cmds = ["./munge_gdev_files.py", "--section", section_name]
+    cmds.extend(cmd_options)
+    code, env_outp, errp = __execute_script(cmds)
+    if show_debug_output:
+        print(f"output for {section_long_name}: {env_outp}")
+    assert code == 0, f"Error getting generated {section_long_name}({code}): {errp}"
+    return env_outp
+
 def process_script_action():
     """
     Process the posting of the message.
@@ -154,99 +167,52 @@ def process_script_action():
         cmd_options.append("--option")
         cmd_options.append(i)
 
-    cmds = ["./munge_gdev_files.py", "--section", "env"]
-    cmds.extend(cmd_options)
-    code, env_outp, errp = __execute_script(cmds)
-    #print("outp: " + str(env_outp))
-    assert code == 0, f"Error getting generated environment({code}): {errp}"
+    # Run the munge script to create each part of the file.
+    env_outp = __collect_lines_for_section("env", "environment", cmd_options)
+    apt_outp = __collect_lines_for_section("apt", "apt", cmd_options)
+    pip_outp = __collect_lines_for_section("pip", "pip", cmd_options)
+    git_outp = __collect_lines_for_section("git", "git", cmd_options)
+    web_outp = __collect_lines_for_section("web", "web", cmd_options)
+    copy_outp = __collect_lines_for_section("copy", "copy", cmd_options)
+    artifacts_outp = __collect_lines_for_section("artifacts", "artifacts", cmd_options)
+    tests_outp = __collect_lines_for_section("tests", "tests", cmd_options)
+    package_outp = __collect_lines_for_section("package", "package", cmd_options)
+    prerun_outp = __collect_lines_for_section("pre_run", "pre_run", cmd_options)
+    run_outp = __collect_lines_for_section("run", "run", cmd_options)
 
-    cmds = ["./munge_gdev_files.py", "--section", "apt"]
-    cmds.extend(cmd_options)
-    code, apt_outp, errp = __execute_script(cmds)
-    # print("outp: " + str(apt_outp))
-    assert code == 0, f"Error getting generated apt({code}): {errp}"
+    # A small amount of adjustments to the input.
     assert len(apt_outp) == 1
     apt_outp = apt_outp[0].strip()
-
-    cmds = ["./munge_gdev_files.py", "--section", "pip"]
-    cmds.extend(cmd_options)
-    code, pip_outp, errp = __execute_script(cmds)
-    # print("outp: " + str(pip_outp))
-    assert code == 0, f"Error getting generated pip({code}): {errp}"
     assert len(pip_outp) == 1
     pip_outp = pip_outp[0].strip()
+    prerun_build_map, _ = __create_build_map_and_ordered_list(prerun_outp)
+    run_build_map, run_ordered_build_list = __create_build_map_and_ordered_list(run_outp)
 
-    cmds = ["./munge_gdev_files.py", "--section", "git"]
-    cmds.extend(cmd_options)
-    code, git_outp, errp = __execute_script(cmds)
-    # print("outp: " + str(git_outp))
-    assert code == 0, f"Error getting generated git({code}): {errp}"
-
-    cmds = ["./munge_gdev_files.py", "--section", "web"]
-    cmds.extend(cmd_options)
-    code, web_outp, errp = __execute_script(cmds)
-    # print("outp: " + str(git_outp))
-    assert code == 0, f"Error getting generated web({code}): {errp}"
-
-    cmds = ["./munge_gdev_files.py", "--section", "copy"]
-    cmds.extend(cmd_options)
-    code, copy_outp, errp = __execute_script(cmds)
-    # print("outp: " + str(copy_outp))
-    assert code == 0, f"Error getting generated copy({code}): {errp}"
-
-    cmds = ["./munge_gdev_files.py", "--section", "artifacts"]
-    cmds.extend(cmd_options)
-    code, artifacts_outp, errp = __execute_script(cmds)
-    # print("outp: " + str(artifacts_outp))
-    assert code == 0, f"Error getting generated artifacts({code}): {errp}"
-
-    cmds = ["./munge_gdev_files.py", "--section", "tests"]
-    cmds.extend(cmd_options)
-    code, tests_outp, errp = __execute_script(cmds)
-    # print("outp: " + str(tests_outp))
-    assert code == 0, f"Error getting generated package({code}): {errp}"
-
-    cmds = ["./munge_gdev_files.py", "--section", "package"]
-    cmds.extend(cmd_options)
-    code, package_outp, errp = __execute_script(cmds)
-    # print("outp: " + str(package_outp))
-    assert code == 0, f"Error getting generated package({code}): {errp}"
-
-    cmds = ["./munge_gdev_files.py", "--section", "pre_run"]
-    cmds.extend(cmd_options)
-    code, prerun_outp, errp = __execute_script(cmds)
-    # print("outp: " + str(prerun_outp))
-    assert code == 0, f"Error getting generated prerun_outp({code}): {errp}"
-
-    prerun_build_map, _ = foobar(prerun_outp)
-    # print(str(prerun_build_map))
-    # assert False
-
-    cmds = ["./munge_gdev_files.py", "--section", "run"]
-    cmds.extend(cmd_options)
-    code, run_outp, errp = __execute_script(cmds)
-    # print("outp: " + str(run_outp))
-    assert code == 0, f"Error getting generated run_outp({code}): {errp}"
-
-    run_build_map, run_ordered_build_list = foobar(run_outp)
-    # print("outp: " + str(run_ordered_build_list))
-    #print("outp: " + str(build_map))
-
+    # Up to the jobs.build.env section
     print("---")
     print(__file_prefix)
     for i in env_outp:
         print("      " + i, end="")
+
+    # Start of steps to `Install Required Applications`
     print(__section_1, end="")
     print(apt_outp)
+
+    # `Install Required Python Packages`
     print(__section_2, end="")
     print(pip_outp)
+
+    # `Install Required Third Party Git Repositories`
     print(__section_3)
     for i in git_outp:
         print("          " + i, end="")
+
+    # `Install Required Third Party Web Packages`
     print(__section_4)
     for i in web_outp:
         print("          " + i, end="")
 
+    # Each of the subproject sections, up to `Build production``
     for next_section_cd in run_ordered_build_list:
 
         if run_ordered_build_list[-1] == next_section_cd:
@@ -263,16 +229,20 @@ def process_script_action():
         for i in run_build_map[next_section_cd]:
             print("          " + i, end="")
 
+    # `Tests`
     print(__section_7)
     for i in tests_outp:
         print(i, end="")
 
+    # `Generate Package`
     for i in package_outp:
         print(i, end="")
 
+    # `Upload *`
     for i in artifacts_outp:
         print(i, end="")
 
+    # Done
     print(__section_end)
 
 sys.exit(process_script_action())
