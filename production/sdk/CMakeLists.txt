@@ -36,12 +36,11 @@ configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
 # add_gtest(test_sdk "tests/test_sdk.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;gaia_spdlog;dac_addr_book")
 add_gtest(test_sdk_no_init_rules "tests/test_sdk_no_init_rules.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;dac_addr_book")
 
-# Set CPack variables required for building a DEB/RPM package.
+# Set CPack variables required for building a DEB package.
 #
 # See:
 # https://cmake.org/cmake/help/v3.17/module/CPack.html#variables-common-to-all-cpack-generators
 # https://cmake.org/cmake/help/v3.17/cpack_gen/deb.html#variables-specific-to-cpack-debian-deb-generator
-# https://cmake.org/cmake/help/v3.17/cpack_gen/rpm.html#variables-specific-to-cpack-rpm-generator
 #
 set(CPACK_PACKAGE_CONTACT "info@gaiaplatform.io")
 set(CPACK_PACKAGE_VENDOR "Gaia Platform")
@@ -92,18 +91,6 @@ set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
 set(CPACK_DEBIAN_PACKAGE_SECTION "custom")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 
-# RPM specific section.
-#
-set(CPACK_RPM_PACKAGE_ARCHITECTURE ${GAIA_BUILD_ARCH})
-set(CPACK_RPM_PACKAGE_DESCRIPTION ${CPACK_PACKAGE_DESCRIPTION})
-set(CPACK_RPM_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}.rpm)
-set(CPACK_RPM_PACKAGE_REQUIRES "llvm-toolset-clang >= 10.0.1, llvm-toolset-lld >= 10.0.1, libcxx-devel >= 10.0.1, libcxxabi-devel >= 10.0.1")
-
-
-# Note: set this variable to use a custom RPM spec file.
-# ATM the file does not work. https://gaiaplatform.atlassian.net/browse/GAIAPLAT-592
-# set(CPACK_RPM_USER_BINARY_SPECFILE ${PROJECT_SOURCE_DIR}/rpm/gaia.spec)
-
 # Set CPackDebHelper variables:
 #
 # The directory that contains the files listed in CPACK_DEBHELPER_INPUT.
@@ -128,9 +115,6 @@ set(CPACK_DEBHELPER_RUN
 set(CPACK_DEBHELPER_GENCONTROL ON)
 # Run the debhelpers in verbose mode.
 set(CPACK_DEBHELPER_VERBOSE ON)
-
-# Build rpm
-set(CPACK_GENERATOR "RPM")
 
 if((BUILD_GAIA_RELEASE) AND (NOT BUILD_GAIA_LLVM_TESTS))
   # Load the CPackDebHelper module, this will:
