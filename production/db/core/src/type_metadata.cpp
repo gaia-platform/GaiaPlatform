@@ -59,7 +59,7 @@ void type_metadata_t::add_parent_relationship(const std::shared_ptr<relationship
     std::unique_lock lock(m_metadata_lock);
 
     m_parent_relationships.insert({relationship->first_child_offset, relationship});
-    m_num_references += 1;
+    m_reference_count += 1;
 }
 
 void type_metadata_t::add_child_relationship(const std::shared_ptr<relationship_t>& relationship)
@@ -75,11 +75,11 @@ void type_metadata_t::add_child_relationship(const std::shared_ptr<relationship_
 
     if (relationship->value_linked)
     {
-        m_num_references += c_value_linked_rel_num_ref_slots;
+        m_reference_count += c_value_linked_rel_num_ref_slots;
     }
     else
     {
-        m_num_references += c_num_ref_slots;
+        m_reference_count += c_num_ref_slots;
     }
 }
 
@@ -91,7 +91,7 @@ gaia_type_t type_metadata_t::get_type() const
 reference_offset_t type_metadata_t::num_references() const
 {
     std::shared_lock lock(m_metadata_lock);
-    return m_num_references;
+    return m_reference_count;
 }
 
 bool type_metadata_t::is_initialized()

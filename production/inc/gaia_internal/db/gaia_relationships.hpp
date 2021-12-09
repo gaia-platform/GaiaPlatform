@@ -49,7 +49,6 @@ enum class cardinality_t
  *  | P  |  -->  | C1 |  -->  | C2 |  -->  | C3 |
  *  +----+       +----+       +----+       +----+
  *
- *
  * In the above graph, P is a parent node; C1, C2, and C3 are child nodes. A
  * parent node has one reference at the 'first_child_offset' slot pointing to
  * the first child node in the list. Each child node has two references: one at
