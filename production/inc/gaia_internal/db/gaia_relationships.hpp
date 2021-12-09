@@ -23,8 +23,6 @@ enum class cardinality_t
 };
 
 /**
- * TODO: Create sub-classes for different types of relationships.
- *
  * A relationship describes the logical connection between two Gaia types whose
  * direct access classes have methods to to allow objects of one type to
  * directly visit the objects of the other type in the relationship.
@@ -76,6 +74,7 @@ enum class cardinality_t
  * previous node in the list; one at the 'parent_offset' slot pointing to the
  * anchor node.
  *
+ * TODO: GAIAPLAT-1769 Replace reference chains with anchor chains.
  */
 struct relationship_t
 {

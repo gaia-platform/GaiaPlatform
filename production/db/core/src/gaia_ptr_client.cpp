@@ -552,7 +552,7 @@ void gaia_ptr_t::auto_connect(
             // node participated in on the parent side.
             //
             // If the node already has some child nodes, disconnect all existing
-            // children by disconecting the children's reference anchor.
+            // children by detaching the children's reference anchor.
             if (references[relationship_view.first_child_offset()] != c_invalid_gaia_id)
             {
                 auto parent_anchor = gaia_ptr_t::open(references[relationship_view.first_child_offset()]);
@@ -661,13 +661,12 @@ void gaia_ptr_t::auto_connect(
             {
                 // We have found the parent node with the field value. Link the
                 // child node to the parent node by connecting the child to the
-                // anchor chain.
+                // parent's child anchor node.
                 auto parent = gaia_ptr_t::open(parent_id);
                 gaia_id_t anchor_id = parent.references()[relationship_view.first_child_offset()];
                 auto anchor = gaia_ptr_t::open(anchor_id);
                 references[relationship_view.parent_offset()] = anchor_id;
                 references[relationship_view.next_child_offset()] = anchor.references()[c_ref_anchor_first_child_offset];
-                references[relationship_view.prev_child_offset()] = c_invalid_gaia_id;
 
                 anchor.set_reference(c_ref_anchor_first_child_offset, id);
 

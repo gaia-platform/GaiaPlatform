@@ -220,6 +220,18 @@ private:
 
     gaia_ptr_t set_reference(common::reference_offset_t offset, common::gaia_id_t id);
 
+    /**
+     * Try to find a record in an indexed table (using the index) that matches
+     * the field value in the given data payload.
+     *
+     * @param payload The data payload
+     * @param field_position The field position of the payload
+     * @param type The type of the given data payload
+     * @param type_id The table id of the given type
+     * @param indexed_table_id The table to find from
+     * @param indexed_field_position The indexed field of the target table
+     * @return id of the found record; 'c_invalid_gaia_id' if not found
+     */
     static common::gaia_id_t find_using_index(
         const uint8_t* payload,
         common::field_position_t field_position,
