@@ -3,8 +3,9 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-// Do not include any internal headers to insert that
-// we don't have a dependency on any internal implementation.
+// Do not include any internal headers to ensure that
+// the code included in this file doesn't have a dependency
+// on non-public APIs.
 
 #include <gtest/gtest.h>
 
