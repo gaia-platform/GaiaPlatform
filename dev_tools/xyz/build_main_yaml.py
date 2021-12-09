@@ -10,7 +10,7 @@ import sys
 import time
 import subprocess
 
-__available_options = ["GaiaRelease", "ubuntu:20.04", "CI_GitHub"]
+__available_options = ["GaiaRelease", "ubuntu:20.04", "ubuntu:18.04", "CI_GitHub", "Debug", "GaiaLLVMTests"]
 
 __file_prefix = """name: Main
 
