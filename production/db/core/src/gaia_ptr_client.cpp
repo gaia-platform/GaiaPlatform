@@ -508,8 +508,6 @@ void gaia_ptr_t::auto_connect(
     // These tables will not be available during bootstrap when they are being
     // populated themselves. We can skip all system tables safely as no system
     // tables use the auto connection feature.
-    //
-    // Anchor nodes are of the system type so it will be skipped as intended.
     if (type >= c_system_table_reserved_range_start)
     {
         return;

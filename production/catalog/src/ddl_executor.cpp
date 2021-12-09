@@ -1060,7 +1060,7 @@ gaia_id_t ddl_executor_t::create_index(
 }
 
 gaia_id_t ddl_executor_t::create_index(
-    const std::string& index_name,
+    const std::string& name,
     bool unique,
     index_type_t type,
     gaia_id_t table_id,
@@ -1069,14 +1069,14 @@ gaia_id_t ddl_executor_t::create_index(
     // This cast works because a gaia_id_t is a thin wrapper over uint64_t,
     // but its success is not guaranteed by the language and is undefined behavior (UB).
     // TODO: Replace reinterpret_cast with bit_cast when it becomes available.
-    auto* index_field_id_values
+    auto* field_id_values
         = reinterpret_cast<const std::vector<gaia_id_t::value_type>*>(&field_ids);
 
     gaia_id_t index_id = gaia_index_t::insert_row(
-        index_name.c_str(),
+        name.c_str(),
         unique,
         static_cast<uint8_t>(type),
-        *index_field_id_values);
+        *field_id_values);
 
     gaia_table_t::get(table_id).gaia_indexes().insert(index_id);
 

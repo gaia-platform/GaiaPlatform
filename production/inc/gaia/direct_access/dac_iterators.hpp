@@ -192,8 +192,8 @@ private:
     common::reference_offset_t m_next_offset;
 };
 
-// The reference chain container used in value linked relationship. It differs
-// with the reference chain container above in the following ways:
+// The reference chain container used in value-linked relationships. It differs
+// from the reference chain container above in the following ways:
 //
 // - The front of the child list is an anchor node that points to the parent node.
 //

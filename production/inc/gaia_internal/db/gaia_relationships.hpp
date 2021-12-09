@@ -26,17 +26,19 @@ enum class cardinality_t
  * TODO: Create sub-classes for different types of relationships.
  *
  * A relationship describes the logical connection between two Gaia types whose
- * direct access classes have methods to allow objects of the given type to
- * visit the other object in the relationship directly.
+ * direct access classes have methods to to allow objects of one type to
+ * directly visit the objects of the other type in the relationship.
  *
- * To facilitate efficient traversal of objects in relationships, database will
- * allocate reference slots (in the object header before the data payload) for
- * each relationship the object is in.
+ * To facilitate efficient traversal of objects in relationships, the database
+ * will allocate reference slots (in the object header before the data payload)
+ * for each relationship the object is in.
  *
- * The objects in a relationship can form two different typologies from the
- * references that connect them: one with an anchor node and one without.
+ * The objects in a relationship can form two different topologies from the
+ * references that connect them: one without an anchor node and one with an
+ * anchor node. The connected data structures are called reference chain and
+ * reference anchor chain respectively.
  *
- * A reference chain without a anchor node will look like the following graph.
+ * A reference chain will look like the following graph.
  *
  *   +---------------------------------------+
  *   |                                       |
@@ -54,7 +56,7 @@ enum class cardinality_t
  * the 'next_child_offset' slot pointing to the next child in the list; another
  * at the 'parent_offset' slot pointing to the parent node.
  *
- * A reference chain with anchor node will look like the following graph.
+ * A reference anchor chain will look like the following graph.
  *
  *                +---------------------------------------+
  *                |                                       |

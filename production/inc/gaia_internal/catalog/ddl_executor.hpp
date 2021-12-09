@@ -105,7 +105,7 @@ private:
         gaia::common::gaia_type_t type = gaia::common::c_invalid_gaia_type);
 
     gaia::common::gaia_id_t create_index(
-        const std::string& index_name,
+        const std::string& name,
         bool unique,
         index_type_t type,
         common::gaia_id_t table_id,

@@ -88,7 +88,7 @@ constexpr char c_expected_table[] = "{"
                                     "\"type\": 3905506732"
                                     "}";
 
-// TODO: This test is unstable as IDs are not guranteed to be the same.
+// TODO: This test is unstable as IDs are not guaranteed to be the same.
 // Compare a JSON-formatted query result to a known good result. Use a JSON
 // comparison method that is white-space and ordering independent.
 TEST_F(gaia_db_extract_test, DISABLED_extract_catalog)
