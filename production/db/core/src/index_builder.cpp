@@ -514,6 +514,7 @@ void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool dea
             gaia_type_t indexed_type = it.second->table_type();
 
             // This index does not contain any of the deleted offsets.
+            // Skip the expensive remove_entries_with_offsets operation.
             if (std::find(offset_types.begin(), offset_types.end(), indexed_type) == offset_types.end())
             {
                 continue;
