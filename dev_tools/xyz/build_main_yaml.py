@@ -5,14 +5,26 @@
 # All rights reserved.
 #############################################
 
+"""
+Module to take the components of the various GDev.cfg files and put them
+together to form the main.yaml for our build.
+"""
+
 import argparse
 import sys
 import time
 import subprocess
 
-__available_options = ["GaiaRelease", "ubuntu:20.04", "ubuntu:18.04", "CI_GitHub", "Debug", "GaiaLLVMTests"]
+__available_options = [
+    "GaiaRelease",
+    "ubuntu:20.04",
+    "ubuntu:18.04",
+    "CI_GitHub",
+    "Debug",
+    "GaiaLLVMTests",
+]
 
-__file_prefix = """name: Main
+__FILE_PREFIX = """name: Main
 
 on:
   push:
@@ -28,7 +40,7 @@ jobs:
     runs-on: ubuntu-20.04
     env:"""
 
-__section_1 = """    steps:
+__STEPS_PREFIX_AND_APT_SECTION_HEADER = """    steps:
       - name: Checkout Repository
         uses: actions/checkout@master
 
@@ -46,40 +58,41 @@ __section_1 = """    steps:
         run: |
           sudo apt-get update && sudo apt-get install -y """
 
-__section_2 = """
+__PIP_SECTION_HEADER = """
       - name: Install Required Python Packages
         run: |
           python3.8 -m pip install --user atools argcomplete"""
 
-__section_3 = """
+__GIT_SECTION_HEADER = """
       - name: Install Required Third Party Git Repositories
         run: |"""
 
-__section_4 = """
+__WEB_SECTION_HEADER = """
       - name: Install Required Third Party Web Packages
         run: |"""
 
-__section_5 = """
+__PREBUILD_SECTION_HEADER_TEMPLATE = """
       - name: Pre-Build {section}
         run: |"""
 
-__section_6 = """
+__BUILD_SECTION_HEADER_TEMPLATE = """
       - name: Build {section}
         run: |"""
 
-__section_7 = """
+__TESTS_SECTION_HEADER = """
       - name: Tests
         run: |"""
 
-__section_end = """
+__SECTION_SUFFIX = """
       - name: Done
         run: |
           echo "Done"
 """
 
-__copy_section = """
+__COPY_SECTION_HEADER = """
       - name: Create /source and /build directories.
         run: |"""
+
 
 def __execute_script(command_list):
     """
@@ -101,6 +114,7 @@ def __execute_script(command_list):
         error_lines = process.stderr.readlines()
         return return_code, out_lines, error_lines
 
+
 def __valid_options(argument):
     """
     Function to help argparse limit the valid options that are supported.
@@ -108,6 +122,7 @@ def __valid_options(argument):
     if argument in __available_options:
         return argument
     raise ValueError(f"Value '{argument}' is not a valid option.")
+
 
 def __process_command_line():
     """
@@ -133,6 +148,7 @@ def __process_command_line():
     )
     return parser.parse_args()
 
+
 def __create_build_map_and_ordered_list(prerun_outp):
     current_section = None
     build_map = {}
@@ -146,7 +162,10 @@ def __create_build_map_and_ordered_list(prerun_outp):
             build_map[current_section].append(i)
     return build_map, ordered_build_list
 
-def __collect_lines_for_section(section_name, section_long_name, cmd_options, show_debug_output=False):
+
+def __collect_lines_for_section(
+    section_name, section_long_name, cmd_options, show_debug_output=False
+):
 
     cmds = ["./munge_gdev_files.py", "--section", section_name]
     cmds.extend(cmd_options)
@@ -155,6 +174,57 @@ def __collect_lines_for_section(section_name, section_long_name, cmd_options, sh
         print(f"output for {section_long_name}: {env_outp}")
     assert code == 0, f"Error getting generated {section_long_name}({code}): {errp}"
     return env_outp
+
+
+def __print_formatted_lines(source_output_line_list, indent=""):
+    for i in source_output_line_list:
+        print(indent + i, end="")
+
+
+__ENVIRONMENT_SECTION = "env"
+__APT_SECTION = "apt"
+__PIP_SECTION = "pip"
+__GIT_SECTION = "git"
+__WEB_SECTION = "web"
+__COPY_SECTION = "copy"
+__ARTIFACTS_SECTION = "artifacts"
+__TESTS_SECTION = "tests"
+__PACKAGE_SECTION = "package"
+
+
+def __calculate_section_lines(cmd_options):
+    section_line_map = {}
+
+    section_line_map[__ENVIRONMENT_SECTION] = __collect_lines_for_section(
+        __ENVIRONMENT_SECTION, "environment", cmd_options
+    )
+    section_line_map[__APT_SECTION] = __collect_lines_for_section(
+        __APT_SECTION, "apt", cmd_options
+    )
+    section_line_map[__PIP_SECTION] = __collect_lines_for_section(
+        __PIP_SECTION, "pip", cmd_options
+    )
+    section_line_map[__GIT_SECTION] = __collect_lines_for_section(
+        __GIT_SECTION, "git", cmd_options
+    )
+    section_line_map[__WEB_SECTION] = __collect_lines_for_section(
+        __WEB_SECTION, "web", cmd_options
+    )
+    section_line_map[__COPY_SECTION] = __collect_lines_for_section(
+        __COPY_SECTION, "copy", cmd_options
+    )
+    section_line_map[__ARTIFACTS_SECTION] = __collect_lines_for_section(
+        __ARTIFACTS_SECTION, "artifacts", cmd_options
+    )
+    section_line_map[__TESTS_SECTION] = __collect_lines_for_section(
+        __TESTS_SECTION, "tests", cmd_options
+    )
+    section_line_map[__PACKAGE_SECTION] = __collect_lines_for_section(
+        __PACKAGE_SECTION, "package", cmd_options
+    )
+
+    return section_line_map
+
 
 def process_script_action():
     """
@@ -167,82 +237,79 @@ def process_script_action():
         cmd_options.append("--option")
         cmd_options.append(i)
 
+    section_line_map = __calculate_section_lines(cmd_options)
+
     # Run the munge script to create each part of the file.
-    env_outp = __collect_lines_for_section("env", "environment", cmd_options)
-    apt_outp = __collect_lines_for_section("apt", "apt", cmd_options)
-    pip_outp = __collect_lines_for_section("pip", "pip", cmd_options)
-    git_outp = __collect_lines_for_section("git", "git", cmd_options)
-    web_outp = __collect_lines_for_section("web", "web", cmd_options)
-    copy_outp = __collect_lines_for_section("copy", "copy", cmd_options)
-    artifacts_outp = __collect_lines_for_section("artifacts", "artifacts", cmd_options)
-    tests_outp = __collect_lines_for_section("tests", "tests", cmd_options)
-    package_outp = __collect_lines_for_section("package", "package", cmd_options)
     prerun_outp = __collect_lines_for_section("pre_run", "pre_run", cmd_options)
     run_outp = __collect_lines_for_section("run", "run", cmd_options)
 
     # A small amount of adjustments to the input.
-    assert len(apt_outp) == 1
-    apt_outp = apt_outp[0].strip()
-    assert len(pip_outp) == 1
-    pip_outp = pip_outp[0].strip()
+    assert len(section_line_map[__APT_SECTION]) == 1
+    apt_outp = section_line_map[__APT_SECTION][0].strip()
+
+    assert len(section_line_map[__PIP_SECTION]) == 1
+    pip_outp = section_line_map[__PIP_SECTION][0].strip()
+
     prerun_build_map, _ = __create_build_map_and_ordered_list(prerun_outp)
-    run_build_map, run_ordered_build_list = __create_build_map_and_ordered_list(run_outp)
+    run_build_map, run_ordered_build_list = __create_build_map_and_ordered_list(
+        run_outp
+    )
 
     # Up to the jobs.build.env section
     print("---")
-    print(__file_prefix)
-    for i in env_outp:
-        print("      " + i, end="")
+    print(__FILE_PREFIX)
+    __print_formatted_lines(section_line_map[__ENVIRONMENT_SECTION], indent="      ")
 
     # Start of steps to `Install Required Applications`
-    print(__section_1, end="")
+    print(__STEPS_PREFIX_AND_APT_SECTION_HEADER, end="")
     print(apt_outp)
 
     # `Install Required Python Packages`
-    print(__section_2, end="")
+    print(__PIP_SECTION_HEADER, end="")
     print(pip_outp)
 
     # `Install Required Third Party Git Repositories`
-    print(__section_3)
-    for i in git_outp:
-        print("          " + i, end="")
+    print(__GIT_SECTION_HEADER)
+    __print_formatted_lines(section_line_map[__GIT_SECTION], indent="          ")
 
     # `Install Required Third Party Web Packages`
-    print(__section_4)
-    for i in web_outp:
-        print("          " + i, end="")
+    print(__WEB_SECTION_HEADER)
+    __print_formatted_lines(section_line_map[__WEB_SECTION], indent="          ")
 
     # Each of the subproject sections, up to `Build production``
     for next_section_cd in run_ordered_build_list:
 
         if run_ordered_build_list[-1] == next_section_cd:
-            print(__copy_section)
-            for i in copy_outp:
-                print("          " + i, end="")
+            print(__COPY_SECTION_HEADER)
+            __print_formatted_lines(
+                section_line_map[__COPY_SECTION], indent="          "
+            )
 
-        proper_section_name = next_section_cd[len("cd $GAIA_REPO/"):].strip()
+        proper_section_name = next_section_cd[len("cd $GAIA_REPO/") :].strip()
         if next_section_cd in prerun_build_map:
-            print(__section_5.replace("{section}", proper_section_name))
-            for i in prerun_build_map[next_section_cd]:
-                print("          " + i, end="")
-        print(__section_6.replace("{section}", proper_section_name))
-        for i in run_build_map[next_section_cd]:
-            print("          " + i, end="")
+            print(
+                __PREBUILD_SECTION_HEADER_TEMPLATE.replace(
+                    "{section}", proper_section_name
+                )
+            )
+            __print_formatted_lines(
+                prerun_build_map[next_section_cd], indent="          "
+            )
+        print(__BUILD_SECTION_HEADER_TEMPLATE.replace("{section}", proper_section_name))
+        __print_formatted_lines(run_build_map[next_section_cd], indent="          ")
 
     # `Tests`
-    print(__section_7)
-    for i in tests_outp:
-        print(i, end="")
+    print(__TESTS_SECTION_HEADER)
+    __print_formatted_lines(section_line_map[__TESTS_SECTION])
 
     # `Generate Package`
-    for i in package_outp:
-        print(i, end="")
+    __print_formatted_lines(section_line_map[__PACKAGE_SECTION])
 
     # `Upload *`
-    for i in artifacts_outp:
-        print(i, end="")
+    __print_formatted_lines(section_line_map[__ARTIFACTS_SECTION])
 
     # Done
-    print(__section_end)
+    print(__SECTION_SUFFIX)
+
 
 sys.exit(process_script_action())
