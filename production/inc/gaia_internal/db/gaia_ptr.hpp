@@ -218,6 +218,26 @@ private:
         common::gaia_id_t* references,
         const uint8_t* payload);
 
+    // Helper method to perform auto connection for a given field in the node on
+    // the parent side of a relationship.
+    static void parent_side_auto_connect(
+        common::gaia_id_t id,
+        common::gaia_type_t type,
+        common::gaia_id_t type_id,
+        common::gaia_id_t* references,
+        const uint8_t* payload,
+        common::field_position_t field_position);
+
+    // Helper method to perform auto connection for a given field in the node on
+    // the child side of a relationship.
+    static void child_side_auto_connect(
+        common::gaia_id_t id,
+        common::gaia_type_t type,
+        common::gaia_id_t type_id,
+        common::gaia_id_t* references,
+        const uint8_t* payload,
+        common::field_position_t field_position);
+
     gaia_ptr_t set_reference(common::reference_offset_t offset, common::gaia_id_t id);
 
     /**

@@ -603,6 +603,201 @@ void gaia_ptr_t::auto_connect(
     auto_connect(id, type, table_id, references, payload, candidate_fields);
 }
 
+void gaia_ptr_t::parent_side_auto_connect(
+    gaia_id_t id,
+    gaia_type_t type,
+    gaia_id_t type_id,
+    gaia_id_t* references,
+    const uint8_t* payload,
+    field_position_t field_position)
+{
+    // Check if the given field is used in establishing a relationship where the
+    // field's table is on the parent side.
+    for (auto relationship_view : catalog_core_t::list_relationship_from(type_id))
+    {
+        if (relationship_view.parent_field_positions()->size() != 1
+            || relationship_view.parent_field_positions()->Get(0) != field_position)
+        {
+            continue;
+        }
+
+        // At this point, we have found the value-linked relationship the
+        // node participated in on the parent side.
+        //
+        // If the node already has some child nodes, disconnect all existing
+        // children by detaching the children's reference anchor.
+        if (references[relationship_view.first_child_offset()] != c_invalid_gaia_id)
+        {
+            auto parent_anchor = gaia_ptr_t::open(references[relationship_view.first_child_offset()]);
+            if (parent_anchor.references()[c_ref_anchor_first_child_offset] != c_invalid_gaia_id)
+            {
+                parent_anchor.set_reference(c_ref_anchor_parent_offset, c_invalid_gaia_id);
+                references[relationship_view.first_child_offset()] = c_invalid_gaia_id;
+            }
+        }
+
+        // Check if the field value exists in any child node using the index on the child table.
+        gaia_id_t child_id = find_using_index(
+            payload,
+            field_position,
+            type,
+            type_id,
+            relationship_view.child_table_id(),
+            relationship_view.child_field_positions()->Get(0));
+
+        if (child_id != c_invalid_gaia_id)
+        {
+            // We have found the child with the field value. Link the child
+            // node(s) to the parent node by connecting the child's
+            // reference anchor to the parent.
+            auto child = gaia_ptr_t::open(child_id);
+            gaia_id_t anchor_id = child.references()[relationship_view.parent_offset()];
+            references[relationship_view.first_child_offset()] = anchor_id;
+
+            auto anchor = gaia_ptr_t::open(anchor_id);
+            anchor.set_reference(c_ref_anchor_parent_offset, id);
+        }
+
+        // Create an anchor node for the parent node if it does not already
+        // exist for the field's value.
+        if (references[relationship_view.first_child_offset()] == c_invalid_gaia_id)
+        {
+            gaia_ptr_t anchor = gaia_ptr_t::create_ref_anchor(id, c_invalid_gaia_id);
+            references[relationship_view.first_child_offset()] = anchor.id();
+        }
+    }
+}
+
+void gaia_ptr_t::child_side_auto_connect(
+    gaia_id_t id,
+    gaia_type_t type,
+    gaia_id_t type_id,
+    gaia_id_t* references,
+    const uint8_t* payload,
+    field_position_t field_position)
+{
+
+    // Check if the given field is used in establishing a relationship where the
+    // field's table is on the child side.
+    for (auto relationship_view : catalog_core_t::list_relationship_to(type_id))
+    {
+        if (relationship_view.child_field_positions()->size() != 1
+            || relationship_view.child_field_positions()->Get(0) != field_position)
+        {
+            continue;
+        }
+
+        // At this point, we have found the value-linked relationship the
+        // node participated in on the child side.
+        //
+        // Disconnect the node from its existing reference chain.
+        if (references[relationship_view.next_child_offset()] != c_invalid_gaia_id)
+        {
+            // Update the next child if exists.
+            auto next_child = gaia_ptr_t::open(references[relationship_view.next_child_offset()]);
+            next_child.set_reference(relationship_view.prev_child_offset(), references[relationship_view.prev_child_offset()]);
+        }
+        if (references[relationship_view.prev_child_offset()] != c_invalid_gaia_id)
+        {
+            // Update the previous child if exists.
+            auto prev_child = gaia_ptr_t::open(references[relationship_view.prev_child_offset()]);
+            prev_child.set_reference(relationship_view.next_child_offset(), references[relationship_view.next_child_offset()]);
+        }
+        else if (references[relationship_view.parent_offset()] != c_invalid_gaia_id)
+        {
+            // This is the first child because previous node does not exist.
+            bool anchor_deleted = false;
+            if (references[relationship_view.next_child_offset()] == c_invalid_gaia_id)
+            {
+                // This is the only child because next node does not exist.
+                auto anchor = gaia_ptr_t::open(references[relationship_view.parent_offset()]);
+                if (anchor.references()[c_ref_anchor_parent_offset] == c_invalid_gaia_id)
+                {
+                    // Delete the anchor node if it is not connected to some parent node.
+                    anchor.reset();
+                    anchor_deleted = true;
+                }
+            }
+
+            // Disconnect the (first) child from the anchor if it is not deleted in previous step.
+            if (!anchor_deleted)
+            {
+                auto anchor = gaia_ptr_t::open(references[relationship_view.parent_offset()]);
+                anchor.set_reference(c_ref_anchor_first_child_offset, references[relationship_view.next_child_offset()]);
+            }
+        }
+        references[relationship_view.prev_child_offset()] = c_invalid_gaia_id;
+        references[relationship_view.next_child_offset()] = c_invalid_gaia_id;
+        references[relationship_view.parent_offset()] = c_invalid_gaia_id;
+
+        // Check if the field value exists in any parent node using the index on the parent table.
+        gaia_id_t parent_id = find_using_index(
+            payload,
+            field_position,
+            type,
+            type_id,
+            relationship_view.parent_table_id(),
+            relationship_view.parent_field_positions()->Get(0));
+
+        if (parent_id != c_invalid_gaia_id)
+        {
+            // We have found the parent node with the field value. Link the
+            // child node to the parent node by connecting the child to the
+            // parent's child anchor node.
+            auto parent = gaia_ptr_t::open(parent_id);
+            gaia_id_t anchor_id = parent.references()[relationship_view.first_child_offset()];
+            auto anchor = gaia_ptr_t::open(anchor_id);
+            references[relationship_view.parent_offset()] = anchor_id;
+            references[relationship_view.next_child_offset()] = anchor.references()[c_ref_anchor_first_child_offset];
+
+            anchor.set_reference(c_ref_anchor_first_child_offset, id);
+
+            if (references[relationship_view.next_child_offset()] != c_invalid_gaia_id)
+            {
+                auto next_child = gaia_ptr_t::open(references[relationship_view.next_child_offset()]);
+                next_child.set_reference(relationship_view.prev_child_offset(), id);
+            }
+        }
+        else
+        {
+            // Check if the field value exists in any child node using the index on the child table (this table).
+            gaia_id_t child_id = find_using_index(
+                payload,
+                field_position,
+                type,
+                type_id,
+                relationship_view.child_table_id(),
+                relationship_view.child_field_positions()->Get(0));
+            if (child_id != c_invalid_gaia_id)
+            {
+                // We have found some child node with the same linked field
+                // value. Insert the node to the existing anchor chain.
+                auto child = gaia_ptr_t::open(child_id);
+                gaia_id_t anchor_id = child.references()[relationship_view.parent_offset()];
+                auto anchor = gaia_ptr_t::open(anchor_id);
+                references[relationship_view.parent_offset()] = anchor_id;
+                references[relationship_view.next_child_offset()] = anchor.references()[c_ref_anchor_first_child_offset];
+
+                anchor.set_reference(c_ref_anchor_first_child_offset, id);
+
+                if (references[relationship_view.next_child_offset()] != c_invalid_gaia_id)
+                {
+                    auto next_child = gaia_ptr_t::open(references[relationship_view.next_child_offset()]);
+                    next_child.set_reference(relationship_view.prev_child_offset(), id);
+                }
+            }
+            else if (references[relationship_view.parent_offset()] == c_invalid_gaia_id)
+            {
+                // This child has no matching parent or other child of the
+                // same field value. Create an anchor node for the child to
+                // form an anchor chain of itself.
+                gaia_ptr_t anchor = gaia_ptr_t::create_ref_anchor(c_invalid_gaia_id, id);
+                references[relationship_view.parent_offset()] = anchor.id();
+            }
+        }
+    }
+}
+
 void gaia_ptr_t::auto_connect(
     gaia_id_t id,
     gaia_type_t type,
@@ -619,183 +814,8 @@ void gaia_ptr_t::auto_connect(
 
     for (auto field_position : candidate_fields)
     {
-        // Parent side auto connection. For every field, check if the field is
-        // used in establishing a relationship where the field's table is on the
-        // parent side.
-        for (auto relationship_view : catalog_core_t::list_relationship_from(type_id))
-        {
-            if (relationship_view.parent_field_positions()->size() != 1
-                || relationship_view.parent_field_positions()->Get(0) != field_position)
-            {
-                continue;
-            }
-
-            // At this point, we have found the value linked relationship the
-            // node participated in on the parent side.
-            //
-            // If the node already has some child nodes, disconnect all existing
-            // children by detaching the children's reference anchor.
-            if (references[relationship_view.first_child_offset()] != c_invalid_gaia_id)
-            {
-                auto parent_anchor = gaia_ptr_t::open(references[relationship_view.first_child_offset()]);
-                if (parent_anchor.references()[c_ref_anchor_first_child_offset] != c_invalid_gaia_id)
-                {
-                    parent_anchor.set_reference(c_ref_anchor_parent_offset, c_invalid_gaia_id);
-                    references[relationship_view.first_child_offset()] = c_invalid_gaia_id;
-                }
-            }
-
-            // Check if the field value exists in any child node using the index on the child table.
-            gaia_id_t child_id = find_using_index(
-                payload,
-                field_position,
-                type,
-                type_id,
-                relationship_view.child_table_id(),
-                relationship_view.child_field_positions()->Get(0));
-
-            if (child_id != c_invalid_gaia_id)
-            {
-                // We have found the child with the field value. Link the child
-                // node(s) to the parent node by connecting the child's
-                // reference anchor to the parent.
-                auto child = gaia_ptr_t::open(child_id);
-                gaia_id_t anchor_id = child.references()[relationship_view.parent_offset()];
-                references[relationship_view.first_child_offset()] = anchor_id;
-
-                auto anchor = gaia_ptr_t::open(anchor_id);
-                anchor.set_reference(c_ref_anchor_parent_offset, id);
-            }
-
-            // Create an anchor node for the parent node if it does not already
-            // exist for the field's value.
-            if (references[relationship_view.first_child_offset()] == c_invalid_gaia_id)
-            {
-                gaia_ptr_t anchor = gaia_ptr_t::create_ref_anchor(id, c_invalid_gaia_id);
-                references[relationship_view.first_child_offset()] = anchor.id();
-            }
-        }
-
-        // Child side auto connection. For every field, check if the field is
-        // used in establishing a relationship where the field's table is on the
-        // child side.
-        for (auto relationship_view : catalog_core_t::list_relationship_to(type_id))
-        {
-            if (relationship_view.child_field_positions()->size() != 1
-                || relationship_view.child_field_positions()->Get(0) != field_position)
-            {
-                continue;
-            }
-
-            // At this point, we have found the value linked relationship the
-            // node participated in on the child side.
-            //
-            // Disconnect the node from its existing reference chain.
-            if (references[relationship_view.next_child_offset()] != c_invalid_gaia_id)
-            {
-                // Update the next child if exists.
-                auto next_child = gaia_ptr_t::open(references[relationship_view.next_child_offset()]);
-                next_child.set_reference(relationship_view.prev_child_offset(), references[relationship_view.prev_child_offset()]);
-            }
-            if (references[relationship_view.prev_child_offset()] != c_invalid_gaia_id)
-            {
-                // Update the previous child if exists.
-                auto prev_child = gaia_ptr_t::open(references[relationship_view.prev_child_offset()]);
-                prev_child.set_reference(relationship_view.next_child_offset(), references[relationship_view.next_child_offset()]);
-            }
-            else if (references[relationship_view.parent_offset()] != c_invalid_gaia_id)
-            {
-                // This is the first child because previous node does not exist.
-                bool anchor_deleted = false;
-                if (references[relationship_view.next_child_offset()] == c_invalid_gaia_id)
-                {
-                    // This is the only child because next node does not exist.
-                    auto anchor = gaia_ptr_t::open(references[relationship_view.parent_offset()]);
-                    if (anchor.references()[c_ref_anchor_parent_offset] == c_invalid_gaia_id)
-                    {
-                        // Delete the anchor node if it is not connected to some parent node.
-                        anchor.reset();
-                        anchor_deleted = true;
-                    }
-                }
-
-                // Disconnect the (first) child from the anchor if it is not deleted in previous step.
-                if (!anchor_deleted)
-                {
-                    auto anchor = gaia_ptr_t::open(references[relationship_view.parent_offset()]);
-                    anchor.set_reference(c_ref_anchor_first_child_offset, references[relationship_view.next_child_offset()]);
-                }
-            }
-            references[relationship_view.prev_child_offset()] = c_invalid_gaia_id;
-            references[relationship_view.next_child_offset()] = c_invalid_gaia_id;
-            references[relationship_view.parent_offset()] = c_invalid_gaia_id;
-
-            // Check if the field value exists in any parent node using the index on the parent table.
-            gaia_id_t parent_id = find_using_index(
-                payload,
-                field_position,
-                type,
-                type_id,
-                relationship_view.parent_table_id(),
-                relationship_view.parent_field_positions()->Get(0));
-
-            if (parent_id != c_invalid_gaia_id)
-            {
-                // We have found the parent node with the field value. Link the
-                // child node to the parent node by connecting the child to the
-                // parent's child anchor node.
-                auto parent = gaia_ptr_t::open(parent_id);
-                gaia_id_t anchor_id = parent.references()[relationship_view.first_child_offset()];
-                auto anchor = gaia_ptr_t::open(anchor_id);
-                references[relationship_view.parent_offset()] = anchor_id;
-                references[relationship_view.next_child_offset()] = anchor.references()[c_ref_anchor_first_child_offset];
-
-                anchor.set_reference(c_ref_anchor_first_child_offset, id);
-
-                if (references[relationship_view.next_child_offset()] != c_invalid_gaia_id)
-                {
-                    auto next_child = gaia_ptr_t::open(references[relationship_view.next_child_offset()]);
-                    next_child.set_reference(relationship_view.prev_child_offset(), id);
-                }
-            }
-            else
-            {
-                // Check if the field value exists in any child node using the index on the child table (this table).
-                gaia_id_t child_id = find_using_index(
-                    payload,
-                    field_position,
-                    type,
-                    type_id,
-                    relationship_view.child_table_id(),
-                    relationship_view.child_field_positions()->Get(0));
-                if (child_id != c_invalid_gaia_id)
-                {
-                    // We have found some child node with the same linked field
-                    // value. Insert the node to the existing anchor chain.
-                    auto child = gaia_ptr_t::open(child_id);
-                    gaia_id_t anchor_id = child.references()[relationship_view.parent_offset()];
-                    auto anchor = gaia_ptr_t::open(anchor_id);
-                    references[relationship_view.parent_offset()] = anchor_id;
-                    references[relationship_view.next_child_offset()] = anchor.references()[c_ref_anchor_first_child_offset];
-
-                    anchor.set_reference(c_ref_anchor_first_child_offset, id);
-
-                    if (references[relationship_view.next_child_offset()] != c_invalid_gaia_id)
-                    {
-                        auto next_child = gaia_ptr_t::open(references[relationship_view.next_child_offset()]);
-                        next_child.set_reference(relationship_view.prev_child_offset(), id);
-                    }
-                }
-                else if (references[relationship_view.parent_offset()] == c_invalid_gaia_id)
-                {
-                    // This child has no matching parent or other child of the
-                    // same field value. Create an anchor node for the child to
-                    // form an anchor chain of itself.
-                    gaia_ptr_t anchor = gaia_ptr_t::create_ref_anchor(c_invalid_gaia_id, id);
-                    references[relationship_view.parent_offset()] = anchor.id();
-                }
-            }
-        }
+        parent_side_auto_connect(id, type, type_id, references, payload, field_position);
+        child_side_auto_connect(id, type, type_id, references, payload, field_position);
     }
 }
 
@@ -821,7 +841,8 @@ gaia_id_t gaia_ptr_t::find_using_index(
     gaia_id_t indexed_table_type_id = type_id_mapping_t::instance().get_record_id(indexed_table_type);
 
     gaia_id_t index_id = catalog_core_t::find_index(indexed_table_type_id, indexed_field_position);
-    ASSERT_INVARIANT(index_id != c_invalid_gaia_id, "Cannot find value index for the table.");
+    // Callers need to ensure the table has an index on the field to search.
+    ASSERT_PRECONDITION(index_id != c_invalid_gaia_id, "Cannot find value index for the table.");
 
     auto schema = catalog_core_t::get_table(type_id).binary_schema();
     auto field_value = payload_types::get_field_value(
