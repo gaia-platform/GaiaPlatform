@@ -12,82 +12,92 @@ namespace gaia
 namespace common
 {
 
-template <typename T, T default_invalid_value, typename C>
-int_type_t<T, default_invalid_value, C>::operator T() const
+template <typename T_type, T_type default_invalid_value, typename T_type_constraint>
+int_type_t<T_type, default_invalid_value, T_type_constraint>::operator T_type() const
 {
     return m_value;
 }
 
-template <typename T, T default_invalid_value, typename C>
-T& int_type_t<T, default_invalid_value, C>::value_ref()
+template <typename T_type, T_type default_invalid_value, typename T_type_constraint>
+T_type&
+int_type_t<T_type, default_invalid_value, T_type_constraint>::value_ref()
 {
     return m_value;
 }
 
-template <typename T, T default_invalid_value, typename C>
-int_type_t<T, default_invalid_value, C>& int_type_t<T, default_invalid_value, C>::operator+=(
-    const int_type_t<T, default_invalid_value, C>& other)
+template <typename T_type, T_type default_invalid_value, typename T_type_constraint>
+int_type_t<T_type, default_invalid_value, T_type_constraint>&
+int_type_t<T_type, default_invalid_value, T_type_constraint>::operator+=(
+    const int_type_t<T_type, default_invalid_value, T_type_constraint>& other)
 {
     this->m_value += other.m_value;
     return *this;
 }
 
-template <typename T, T default_invalid_value, typename C>
-int_type_t<T, default_invalid_value, C>& int_type_t<T, default_invalid_value, C>::operator-=(
-    const int_type_t<T, default_invalid_value, C>& other)
+template <typename T_type, T_type default_invalid_value, typename T_type_constraint>
+int_type_t<T_type, default_invalid_value, T_type_constraint>&
+int_type_t<T_type, default_invalid_value, T_type_constraint>::operator-=(
+    const int_type_t<T_type, default_invalid_value, T_type_constraint>& other)
 {
     this->m_value -= other.m_value;
     return *this;
 }
 
-template <typename T, T default_invalid_value, typename C>
-int_type_t<T, default_invalid_value, C>& int_type_t<T, default_invalid_value, C>::operator*=(
-    const int_type_t<T, default_invalid_value, C>& other)
+template <typename T_type, T_type default_invalid_value, typename T_type_constraint>
+int_type_t<T_type, default_invalid_value, T_type_constraint>&
+int_type_t<T_type, default_invalid_value, T_type_constraint>::operator*=(
+    const int_type_t<T_type, default_invalid_value, T_type_constraint>& other)
 {
     this->m_value *= other.m_value;
     return *this;
 }
 
-template <typename T, T default_invalid_value, typename C>
-int_type_t<T, default_invalid_value, C>& int_type_t<T, default_invalid_value, C>::operator/=(
-    const int_type_t<T, default_invalid_value, C>& other)
+template <typename T_type, T_type default_invalid_value, typename T_type_constraint>
+int_type_t<T_type, default_invalid_value, T_type_constraint>&
+int_type_t<T_type, default_invalid_value, T_type_constraint>::operator/=(
+    const int_type_t<T_type, default_invalid_value, T_type_constraint>& other)
 {
     this->m_value /= other.m_value;
     return *this;
 }
 
-template <typename T, T default_invalid_value, typename C>
-int_type_t<T, default_invalid_value, C>& int_type_t<T, default_invalid_value, C>::operator%=(
-    const int_type_t<T, default_invalid_value, C>& other)
+template <typename T_type, T_type default_invalid_value, typename T_type_constraint>
+int_type_t<T_type, default_invalid_value, T_type_constraint>&
+int_type_t<T_type, default_invalid_value, T_type_constraint>::operator%=(
+    const int_type_t<T_type, default_invalid_value, T_type_constraint>& other)
 {
     this->m_value %= other.m_value;
     return *this;
 }
 
-template <typename T, T default_invalid_value, typename C>
-int_type_t<T, default_invalid_value, C>& int_type_t<T, default_invalid_value, C>::operator++()
+template <typename T_type, T_type default_invalid_value, typename T_type_constraint>
+int_type_t<T_type, default_invalid_value, T_type_constraint>&
+int_type_t<T_type, default_invalid_value, T_type_constraint>::operator++()
 {
     this->m_value += 1;
     return *this;
 }
 
-template <typename T, T default_invalid_value, typename C>
-int_type_t<T, default_invalid_value, C> int_type_t<T, default_invalid_value, C>::operator++(int)
+template <typename T_type, T_type default_invalid_value, typename T_type_constraint>
+int_type_t<T_type, default_invalid_value, T_type_constraint>
+int_type_t<T_type, default_invalid_value, T_type_constraint>::operator++(int)
 {
     int_type_t pre_value = *this;
     this->m_value += 1;
     return pre_value;
 }
 
-template <typename T, T default_invalid_value, typename C>
-int_type_t<T, default_invalid_value, C>& int_type_t<T, default_invalid_value, C>::operator--()
+template <typename T_type, T_type default_invalid_value, typename T_type_constraint>
+int_type_t<T_type, default_invalid_value, T_type_constraint>&
+int_type_t<T_type, default_invalid_value, T_type_constraint>::operator--()
 {
     this->m_value -= 1;
     return *this;
 }
 
-template <typename T, T default_invalid_value, typename C>
-int_type_t<T, default_invalid_value, C> int_type_t<T, default_invalid_value, C>::operator--(int)
+template <typename T_type, T_type default_invalid_value, typename T_type_constraint>
+int_type_t<T_type, default_invalid_value, T_type_constraint>
+int_type_t<T_type, default_invalid_value, T_type_constraint>::operator--(int)
 {
     int_type_t pre_value = *this;
     this->m_value -= 1;
