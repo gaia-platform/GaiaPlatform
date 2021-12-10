@@ -471,12 +471,64 @@ void gaia_ptr_t::remove(gaia_ptr_t& object)
     }
 
     const gaia_id_t* references = object.references();
+
     for (reference_offset_t i = 0; i < object.num_references(); i++)
     {
         if (references[i] != c_invalid_gaia_id)
         {
             auto other_obj = gaia_ptr_t::open(references[i]);
-            throw object_still_referenced_internal(object.id(), object.type(), other_obj.id(), other_obj.type());
+
+            gaia_id_t referenced_obj_id = other_obj.id();
+
+            if (other_obj.type() == static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_ref_anchor))
+            {
+                if (other_obj.references()[c_ref_anchor_parent_offset] == object.id())
+                {
+                    // This is a parent node in the relationship because the
+                    // anchor node's parent reference is pointing to it.
+                    if (other_obj.references()[c_ref_anchor_first_child_offset] == c_invalid_gaia_id)
+                    {
+                        // There is no child left. We can delete the linked
+                        // anchor node safely.
+                        continue;
+                    }
+                    referenced_obj_id = other_obj.references()[c_ref_anchor_first_child_offset];
+                }
+                else if (other_obj.references()[c_ref_anchor_first_child_offset] == object.id())
+                {
+                    // This is a child node in the relationship because the
+                    // anchor node's first child reference is pointing to it.
+                    if (other_obj.references()[c_ref_anchor_parent_offset] == c_invalid_gaia_id
+                        && object.references()[i + 1] == c_invalid_gaia_id)
+                    {
+                        // there is no parent or other child left. We can delete
+                        // the linked anchor node safely.
+                        continue;
+                    }
+
+                    if (other_obj.references()[c_ref_anchor_parent_offset] != c_invalid_gaia_id)
+                    {
+                        referenced_obj_id = other_obj.references()[c_ref_anchor_parent_offset];
+                    }
+                    else if (object.references()[i + 1] == c_invalid_gaia_id)
+                    {
+                        referenced_obj_id = object.references()[i + 1];
+                    }
+                }
+            }
+
+            throw object_still_referenced_internal(object.id(), object.type(), referenced_obj_id, gaia_ptr_t::open(referenced_obj_id).type());
+        }
+    }
+
+    // If there are any remaining linked anchor nodes, they can be deleted
+    // safely according to the check we have performed before.
+    for (reference_offset_t i = 0; i < object.num_references(); i++)
+    {
+        if (references[i] != c_invalid_gaia_id)
+        {
+            auto anchor = gaia_ptr_t::open(references[i]);
+            anchor.reset();
         }
     }
     object.reset();
