@@ -200,6 +200,9 @@ private:
 // - Each child node has a link to the anchor node instead of the parent node.
 //
 // - Each child node has a back link to the previous node.
+//
+// - No manual connection methods like 'connect()' or 'disconnect()'.
+//
 template <typename T_child>
 class reference_anchor_chain_container_t : protected dac_db_t
 {
