@@ -329,7 +329,7 @@ jobs:
 
           ls -la packages
           echo "--$(find packages -name gaia*)"
-          sudo ./install_sdk_build.sh --verbose $(find packages -name gaia*)
+          sudo apt --assume-yes install $(find packages -name gaia*)
           sudo ./reset_database.sh --verbose --stop --database
 
           pipenv sync
