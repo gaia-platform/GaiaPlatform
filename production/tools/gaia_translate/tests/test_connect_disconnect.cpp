@@ -42,7 +42,7 @@ protected:
     }
 };
 
-TEST_F(test_connect_disconnect, test_connect_1_1)
+TEST_F(test_connect_disconnect, test_connect_1_n)
 {
     gaia::rules::subscribe_ruleset("test_connect_1_n");
 
@@ -71,7 +71,7 @@ TEST_F(test_connect_disconnect, test_connect_1_1)
     gaia::db::commit_transaction();
 }
 
-TEST_F(test_connect_disconnect, test_connect_1_n)
+TEST_F(test_connect_disconnect, test_connect_1_1)
 {
     gaia::rules::subscribe_ruleset("test_connect_1_1");
 
@@ -99,48 +99,34 @@ TEST_F(test_connect_disconnect, test_disconnect_1_n)
 {
     gaia::rules::subscribe_ruleset("test_disconnect_1_n");
 
-    // Create the registrations
-    gaia::db::begin_transaction();
-    gaia_id_t reg001 = registration_t::insert_row("reg001", nullptr, nullptr, c_status_eligible, c_grade_c);
-    gaia_id_t reg002 = registration_t::insert_row("reg002", nullptr, nullptr, c_status_eligible, c_grade_c);
-    gaia::db::commit_transaction();
-
     gaia::db::begin_transaction();
     student_t student_1 = student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
-#ifdef TEST_FAILURES // GAIAPLAT-1207
-    student_1.registrations().insert(reg001);
-    student_1.registrations().insert(reg002);
-#endif
+    registration_t::insert_row("reg001", "stu001", nullptr, c_status_eligible, c_grade_c);
+    registration_t::insert_row("reg002", "stu001", nullptr, c_status_eligible, c_grade_c);
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();
 
     gaia::db::begin_transaction();
     student_t student_2 = student_t::get(student_t::insert_row("stu002", "Hazel", 45, 4, 3.0));
-#ifdef TEST_FAILURES // GAIAPLAT-1207
-    student_2.registrations().insert(reg001);
-    student_2.registrations().insert(reg002);
-#endif
+    registration_t::insert_row("reg003", "stu002", nullptr, c_status_eligible, c_grade_c);
+    registration_t::insert_row("reg004", "stu002", nullptr, c_status_eligible, c_grade_c);
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();
 
     gaia::db::begin_transaction();
     course_t course_1 = course_t::get(course_t::insert_row("cou001", "math101", 8));
-#ifdef TEST_FAILURES // GAIAPLAT-1207
-    course_1.registrations().insert(reg001);
-    course_1.registrations().insert(reg002);
-#endif
+    registration_t::insert_row("reg005", nullptr, "cou001", c_status_eligible, c_grade_c);
+    registration_t::insert_row("reg006", nullptr, "cou001", c_status_eligible, c_grade_c);
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();
 
     gaia::db::begin_transaction();
     course_t course_2 = course_t::get(course_t::insert_row("cou002", "math102", 8));
-#ifdef TEST_FAILURES // GAIAPLAT-1207
-    course_2.registrations().insert(reg001);
-    course_2.registrations().insert(reg002);
-#endif
+    registration_t::insert_row("reg007", nullptr, "cou002", c_status_eligible, c_grade_c);
+    registration_t::insert_row("reg008", nullptr, "cou002", c_status_eligible, c_grade_c);
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();

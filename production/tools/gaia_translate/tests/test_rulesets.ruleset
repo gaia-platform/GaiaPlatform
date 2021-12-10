@@ -712,38 +712,22 @@ ruleset test_connect_1_n
 {
     on_insert(student)
     {
-        auto r1 = registration.insert(reg_id: "reg001");
-#ifdef TEST_FAILURES // GAIAPLAT-1207
-        student.connect(r1);
-        student.registrations.connect(r1);
-#endif
+        auto r1 = registration.insert(reg_id: "reg001", student_id: student.student_id);
 
-        for(/r2:registration)
+        for(/r:registration)
         {
-#ifdef TEST_FAILURES // GAIAPLAT-1207
-            student.connect(r2);
-            student.registrations.connect(r2);
-#endif
+            r.student_id = student.student_id;
         }
 
-        gaia::prerequisites::registration_t r3 = registration.insert(reg_id: "reg002");
-#ifdef TEST_FAILURES // GAIAPLAT-1207
-        student.registrations.connect(r3);
-        student.connect(r3);
-#endif
+        gaia::prerequisites::registration_t r2 = registration.insert(reg_id: "reg002", student_id: student.student_id);
 
         gaia::prerequisites::registration_writer w;
         w.reg_id = "reg003";
-        gaia::prerequisites::registration_t r4 = gaia::prerequisites::registration_t::get(w.insert_row());
-#ifdef TEST_FAILURES // GAIAPLAT-1207
-        student.connect(r4);
-        student.registrations.connect(r4);
-#endif
+        w.student_id = student.student_id;
+        w.insert_row();
 
-#ifdef TEST_FAILURES // GAIAPLAT-1207
-        student.connect(registration.insert(reg_id: "reg004"));
-        student.registrations.connect(registration.insert(reg_id: "reg005"));
-#endif
+        registration.insert(reg_id: "reg004", student_id: student.student_id);
+        registration.insert(reg_id: "reg005", student_id: student.student_id);
     }
 };
 
@@ -775,9 +759,7 @@ ruleset test_disconnect_1_n
         {
             for(/r:registration)
             {
-#ifdef TEST_FAILURES // GAIAPLAT-1207
-                student.disconnect(r);
-#endif
+                r.student_id = nullptr;
             }
         }
         else
@@ -796,9 +778,7 @@ ruleset test_disconnect_1_n
         {
             for (/r:registration)
             {
-#ifdef TEST_FAILURES // GAIAPLAT-1207
-                course.registrations.disconnect(r);
-#endif
+                r.course_id = nullptr;
             }
         }
         else
