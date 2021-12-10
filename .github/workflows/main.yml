@@ -10,10 +10,10 @@ on:
       - jack/gha
 
 jobs:
-  build:
+  release_build:
     runs-on: ubuntu-20.04
     env:
-      GAIA_REPO: /home/runner/work/GaiaPlatform/GaiaPlatform
+      GAIA_REPO: ${{ github.workspace }}
       GAIA_VERSION: 0.3.2
       CC: /usr/bin/clang-10
       CPP: /usr/bin/clang-cpp-10
@@ -254,12 +254,11 @@ jobs:
 
       - name: Build production
         run: |
+          cd $GAIA_REPO/production
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
           sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake --log-level=VERBOSE -Wno-dev -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_RELEASE=ON  -G \"Unix Makefiles\" /source/production"
-          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" LSAN_OPTIONS=detect_leaks=0 VERBOSE=1 make -j$(nproc)"
-          sudo bash -c "chmod 755 -R /home/runner/work/GaiaPlatform"
-          sudo bash -c "chmod 755 -R /home/runner/work/GaiaPlatform"
+          sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1     make -j$(nproc)"
 
       - name: Tests
         run: |
@@ -302,4 +301,44 @@ jobs:
       - name: Done
         run: |
           echo "Done"
+  integration_1:
+    runs-on: ubuntu-20.04
+    needs: release_build
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
 
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - name: Install PipEnv
+        uses: dschep/install-pipenv-action@v1
+        with:
+          version: 2021.5.29
+
+      - name: Download Debian install
+        uses: actions/download-artifact@v2
+        with:
+          name: Debian Install Package
+          path: ${{ github.workspace }}/production/tests/packages
+      - name: Tests
+        run: |
+          cd ${{ github.workspace }}/production/tests
+
+          ls -la packages
+          echo "--$(find packages -name gaia*)"
+          sudo apt --assume-yes install $(find packages -name gaia*)
+          sudo ./reset_database.sh --verbose --stop --database
+
+          pipenv sync
+          pipenv lock
+          ./smoke_suites.sh
+      - name: Upload Suite Logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: Suite Logs
+          path: |
+            /production/tests/suites
