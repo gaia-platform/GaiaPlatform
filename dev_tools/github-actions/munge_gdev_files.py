@@ -367,7 +367,7 @@ def __does_meet_project_options(conditional_to_evaluate, active_options):
     if not conditional_to_evaluate:
         return True
 
-    provided_options_set = set(active_options)
+    provided_options_set = set(active_options) if active_options else set()
     match_result = re.match(__ENABLE_IF_ANY_REGEX, conditional_to_evaluate)
     if match_result:
         matched_groups_set = set(match_result.groups())
@@ -835,7 +835,9 @@ def process_script_action():
     if args.show_raw:
         print(json.dumps(collected_file_sections, indent=2))
         return 0
-    assert args.section
+    if not args.section:
+        print("Either the --raw argument or a --section argument must be specified.")
+        return 1
 
     specific_section_name = (
         __GDEV_NEW_SECTION_START_CHARACTER
