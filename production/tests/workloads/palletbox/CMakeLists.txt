@@ -14,7 +14,8 @@ set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
-include("/opt/gaia/cmake/gaia.cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_INSTALL_PREFIX}/cmake" "/opt/gaia/cmake")
+include(gaia)
 
 # Default compiler/linker flags.
 add_compile_options(-Wall -Wextra)
