@@ -247,12 +247,12 @@ jobs:
           sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev /source/production"
           sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1     make -j$(nproc)"
 
-      - name: Tests
+      - name: Unit Tests
         run: |
           cd /build/production/db/core
           sudo bash -c "make install"
           cd /build/production
-          sudo bash -c "ctest -T Test"
+          sudo bash -c "ctest"
 
       - name: Upload CMake Logs
         if: always()
