@@ -163,6 +163,28 @@ static_assert(
     "field_position_t has a different size than its underlying integer type!");
 
 /**
+ * The repeated_count of a field in a Gaia field.
+ */
+class repeated_count_t : public int_type_t<uint16_t, std::numeric_limits<uint16_t>::max()>
+{
+public:
+    // By default, we should initialize to an invalid value.
+    constexpr repeated_count_t()
+        : int_type_t<uint16_t, std::numeric_limits<uint16_t>::max()>()
+    {
+    }
+
+    constexpr repeated_count_t(uint16_t value)
+        : int_type_t<uint16_t, std::numeric_limits<uint16_t>::max()>(value)
+    {
+    }
+};
+
+static_assert(
+    sizeof(repeated_count_t) == sizeof(repeated_count_t::value_type),
+    "repeated_count_t has a different size than its underlying integer type!");
+
+/**
  * The value of an invalid field_position_t.
  */
 constexpr field_position_t c_invalid_field_position;

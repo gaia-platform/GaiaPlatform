@@ -46,6 +46,8 @@ namespace catalog
 // existing object. The two conditions are mutually exclusive.
 static constexpr char c_assert_throw_and_auto_drop[]
     = "Cannot auto drop and skip on exists at the same time.";
+static constexpr char c_empty_hash[] = "";
+static constexpr char c_empty_type_name[] = "";
 
 ddl_executor_t::ddl_executor_t()
 {
@@ -67,9 +69,13 @@ void ddl_executor_t::bootstrap_catalog()
     bool throw_on_exists = false;
     bool auto_drop = false;
     {
-        // create table gaia_database (name string);
+        // create table gaia_database (
+        //     name string,
+        //     hash string
+        // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("hash", data_type_t::e_string, 1));
         create_table_impl(
             c_catalog_db_name, "gaia_database", fields, is_system, throw_on_exists, auto_drop,
             static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_database));
@@ -81,6 +87,8 @@ void ddl_executor_t::bootstrap_catalog()
         //     is_system bool,
         //     binary_schema uint8[],
         //     serialization_template uint8[],
+        //     hash string,
+        //     type_name string,
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
@@ -88,6 +96,8 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("is_system", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("binary_schema", data_type_t::e_uint8, 0));
         fields.emplace_back(make_unique<data_field_def_t>("serialization_template", data_type_t::e_uint8, 0));
+        fields.emplace_back(make_unique<data_field_def_t>("hash", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("type_name", data_type_t::e_string, 1));
         create_table_impl(
             c_catalog_db_name, "gaia_table", fields, is_system, throw_on_exists, auto_drop,
             static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_table));
@@ -111,6 +121,7 @@ void ddl_executor_t::bootstrap_catalog()
         //     deprecated bool,
         //     active bool,
         //     unique bool,
+        //     hash string,
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
@@ -120,6 +131,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("deprecated", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("active", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("unique", data_type_t::e_bool, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("hash", data_type_t::e_string, 1));
         create_table_impl(
             c_catalog_db_name, "gaia_field", fields, is_system, throw_on_exists, auto_drop,
             static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_field));
@@ -136,6 +148,7 @@ void ddl_executor_t::bootstrap_catalog()
     }
     {
         // create table gaia_relationship (
+        //     name string,
         //     to_parent_link_name string,
         //     to_child_link_name string,
         //     cardinality uint8,
@@ -146,6 +159,7 @@ void ddl_executor_t::bootstrap_catalog()
         //     parent_offset uint16,
         //     parent_field_positions uint16[],
         //     child_field_positions uint16[],
+        //     hash string,
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
@@ -163,6 +177,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("parent_offset", data_type_t::e_uint16, 1));
         fields.emplace_back(make_unique<data_field_def_t>("parent_field_positions", data_type_t::e_uint16, 0));
         fields.emplace_back(make_unique<data_field_def_t>("child_field_positions", data_type_t::e_uint16, 0));
+        fields.emplace_back(make_unique<data_field_def_t>("hash", data_type_t::e_string, 1));
         create_table_impl(
             c_catalog_db_name, "gaia_relationship", fields, is_system, throw_on_exists, auto_drop,
             static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_relationship));
@@ -190,16 +205,10 @@ void ddl_executor_t::bootstrap_catalog()
     {
         // create table gaia_ruleset (
         //     name string,
-        //     active_on_startup bool,
-        //     table_ids uint64[],
-        //     source_location string,
         //     serial_stream string,
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("active_on_startup", data_type_t::e_bool, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("table_ids", data_type_t::e_uint64, 0));
-        fields.emplace_back(make_unique<data_field_def_t>("source_location", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("serial_stream", data_type_t::e_string, 1));
         create_table_impl(
             c_catalog_db_name, "gaia_ruleset", fields, is_system, throw_on_exists, auto_drop,
@@ -215,7 +224,7 @@ void ddl_executor_t::bootstrap_catalog()
             c_catalog_db_name, "gaia_rule", fields, is_system, throw_on_exists, auto_drop,
             static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_rule));
         // create relationship gaia_catalog_ruleset_rule (
-        //     catalog.gaia_ruleset.rules -> catalog.gaia_rule[],
+        //     catalog.gaia_ruleset.gaia_rules -> catalog.gaia_rule[],
         //     catalog.gaia_rule.ruleset -> catalog.gaia_ruleset
         // );
         create_relationship(
@@ -241,10 +250,199 @@ void ddl_executor_t::bootstrap_catalog()
             "catalog", "gaia_index", fields, is_system, throw_on_exists, auto_drop,
             static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_index));
 
+        // create relationship gaia_catalog_table_index (
+        //     catalog.gaia_table.gaia_indexes -> catalog.gaia_index[],
+        //     catalog.gaia_index.table -> catalog.gaia_table
+        // );
         create_relationship(
             "gaia_catalog_table_index",
             {c_catalog_db_name, "gaia_table", "gaia_indexes", "catalog", "gaia_index", relationship_cardinality_t::many},
             {c_catalog_db_name, "gaia_index", "table", "catalog", "gaia_table", relationship_cardinality_t::one},
+            std::nullopt,
+            false);
+    }
+    {
+        // create table gaia_application (
+        //     name string,
+        // );
+        field_def_list_t fields;
+        fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
+        create_table_impl(
+            c_catalog_db_name, "gaia_application", fields, is_system, throw_on_exists, auto_drop,
+            static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_application));
+    }
+    {
+        // create table app_database (
+        // );
+        field_def_list_t fields;
+        create_table_impl(
+            c_catalog_db_name, "app_database", fields, is_system, throw_on_exists, auto_drop,
+            static_cast<gaia_type_t::value_type>(catalog_table_type_t::app_database));
+        // create relationship gaia_catalog_application_database (
+        //     catalog.gaia_application.app_databases -> catalog.app_database[],
+        //     catalog.app_database.application -> catalog.gaia_application
+        // );
+        create_relationship(
+            "gaia_catalog_application_database",
+            {c_catalog_db_name, "gaia_application", "app_databases", "catalog", "app_database", relationship_cardinality_t::many},
+            {c_catalog_db_name, "app_database", "application", "catalog", "gaia_application", relationship_cardinality_t::one},
+            std::nullopt,
+            false);
+        // create relationship gaia_catalog_database_application (
+        //     catalog.gaia_database.app_databases -> catalog.app_database[],
+        //     catalog.app_database.database -> catalog.gaia_database
+        // );
+        create_relationship(
+            "gaia_catalog_database_application",
+            {c_catalog_db_name, "gaia_database", "app_databases", "catalog", "app_database", relationship_cardinality_t::many},
+            {c_catalog_db_name, "app_database", "database", "catalog", "gaia_database", relationship_cardinality_t::one},
+            std::nullopt,
+            false);
+    }
+    {
+        // create table app_ruleset (
+        //     active_on_startup bool,
+        // );
+        field_def_list_t fields;
+        fields.emplace_back(make_unique<data_field_def_t>("active_on_startup", data_type_t::e_bool, 1));
+        create_table_impl(
+            c_catalog_db_name, "app_ruleset", fields, is_system, throw_on_exists, auto_drop,
+            static_cast<gaia_type_t::value_type>(catalog_table_type_t::app_ruleset));
+        // create relationship gaia_catalog_application_ruleset (
+        //     catalog.gaia_application.app_rulesets -> catalog.app_rulesets[],
+        //     catalog.app_ruleset.application -> catalog.gaia_application
+        // );
+        create_relationship(
+            "gaia_catalog_application_ruleset",
+            {c_catalog_db_name, "gaia_application", "app_rulesets", "catalog", "app_ruleset", relationship_cardinality_t::many},
+            {c_catalog_db_name, "app_ruleset", "application", "catalog", "gaia_application", relationship_cardinality_t::one},
+            std::nullopt,
+            false);
+        // create relationship gaia_catalog_ruleset_application (
+        //     catalog.gaia_ruleset.app_rulesets -> catalog.app_rulesets[],
+        //     catalog.app_ruleset.ruleset -> catalog.gaia_ruleset
+        // );
+        create_relationship(
+            "gaia_catalog_ruleset_application",
+            {c_catalog_db_name, "gaia_ruleset", "app_rulesets", "catalog", "app_ruleset", relationship_cardinality_t::many},
+            {c_catalog_db_name, "app_ruleset", "ruleset", "catalog", "gaia_ruleset", relationship_cardinality_t::one},
+            std::nullopt,
+            false);
+    }
+    {
+        // create table ruleset_database (
+        // );
+        field_def_list_t fields;
+        create_table_impl(
+            c_catalog_db_name, "ruleset_database", fields, is_system, throw_on_exists, auto_drop,
+            static_cast<gaia_type_t::value_type>(catalog_table_type_t::ruleset_database));
+        // create relationship gaia_catalog_database_ruleset (
+        //     catalog.gaia_database.ruleset_databases -> catalog.ruleset_database[],
+        //     catalog.ruleset_database.database -> catalog.gaia_database
+        // );
+        create_relationship(
+            "gaia_catalog_database_ruleset",
+            {c_catalog_db_name, "gaia_database", "ruleset_databases", "catalog", "ruleset_database", relationship_cardinality_t::many},
+            {c_catalog_db_name, "ruleset_database", "database", "catalog", "gaia_database", relationship_cardinality_t::one},
+            std::nullopt,
+            false);
+        // create relationship gaia_catalog_ruleset_database (
+        //     catalog.gaia_database.ruleset_databases -> catalog.ruleset_database[],
+        //     catalog.ruleset_database.ruleset -> catalog.gaia_ruleset
+        // );
+        create_relationship(
+            "gaia_catalog_ruleset_database",
+            {c_catalog_db_name, "gaia_ruleset", "ruleset_databases", "catalog", "ruleset_database", relationship_cardinality_t::many},
+            {c_catalog_db_name, "ruleset_database", "ruleset", "catalog", "gaia_ruleset", relationship_cardinality_t::one},
+            std::nullopt,
+            false);
+    }
+    {
+        // create table rule_table (
+        // );
+        field_def_list_t fields;
+        fields.emplace_back(make_unique<data_field_def_t>("type", data_type_t::e_uint8, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("anchor", data_type_t::e_bool, 1));
+        create_table_impl(
+            c_catalog_db_name, "rule_table", fields, is_system, throw_on_exists, auto_drop,
+            static_cast<gaia_type_t::value_type>(catalog_table_type_t::rule_table));
+        // create relationship gaia_catalog_rule_table (
+        //     catalog.gaia_rule.rule_tables -> catalog.rule_table[],
+        //     catalog.rule_table.rule -> catalog.gaia_rule
+        // );
+        create_relationship(
+            "gaia_catalog_rule_table",
+            {c_catalog_db_name, "gaia_rule", "rule_tables", "catalog", "rule_table", relationship_cardinality_t::many},
+            {c_catalog_db_name, "rule_table", "rule", "catalog", "gaia_rule", relationship_cardinality_t::one},
+            std::nullopt,
+            false);
+        // create relationship gaia_catalog_table_rule (
+        //     catalog.gaia_table.rule_tables -> catalog.rule_table[],
+        //     catalog.rule_table.table -> catalog.gaia_table
+        // );
+        create_relationship(
+            "gaia_catalog_table_rule",
+            {c_catalog_db_name, "gaia_table", "rule_tables", "catalog", "rule_table", relationship_cardinality_t::many},
+            {c_catalog_db_name, "rule_table", "table", "catalog", "gaia_table", relationship_cardinality_t::one},
+            std::nullopt,
+            false);
+    }
+    {
+        // create table rule_field (
+        // );
+        field_def_list_t fields;
+        fields.emplace_back(make_unique<data_field_def_t>("type", data_type_t::e_uint8, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("active", data_type_t::e_bool, 1));
+        create_table_impl(
+            c_catalog_db_name, "rule_field", fields, is_system, throw_on_exists, auto_drop,
+            static_cast<gaia_type_t::value_type>(catalog_table_type_t::rule_field));
+        // create relationship gaia_catalog_rule_field (
+        //     catalog.gaia_rule.rule_fields -> catalog.rule_field[],
+        //     catalog.rule_field.rule -> catalog.gaia_rule
+        // );
+        create_relationship(
+            "gaia_catalog_rule_field",
+            {c_catalog_db_name, "gaia_rule", "rule_fields", "catalog", "rule_field", relationship_cardinality_t::many},
+            {c_catalog_db_name, "rule_field", "rule", "catalog", "gaia_rule", relationship_cardinality_t::one},
+            std::nullopt,
+            false);
+        // create relationship gaia_catalog_field_rule (
+        //     catalog.gaia_field.rule_tables -> catalog.rule_table[],
+        //     catalog.rule_table.field -> catalog.gaia_field
+        // );
+        create_relationship(
+            "gaia_catalog_field_rule",
+            {c_catalog_db_name, "gaia_field", "rule_fields", "catalog", "rule_field", relationship_cardinality_t::many},
+            {c_catalog_db_name, "rule_field", "field", "catalog", "gaia_field", relationship_cardinality_t::one},
+            std::nullopt,
+            false);
+    }
+    {
+        // create table rule_relationship (
+        // );
+        field_def_list_t fields;
+        fields.emplace_back(make_unique<data_field_def_t>("type", data_type_t::e_uint8, 1));
+        create_table_impl(
+            c_catalog_db_name, "rule_relationship", fields, is_system, throw_on_exists, auto_drop,
+            static_cast<gaia_type_t::value_type>(catalog_table_type_t::rule_relationship));
+        // create relationship gaia_catalog_rule_relationship (
+        //     catalog.gaia_rule.rule_relationships -> catalog.rule_relationship[],
+        //     catalog.rule_relationship.rule -> catalog.gaia_rule
+        // );
+        create_relationship(
+            "gaia_catalog_rule_relationship",
+            {c_catalog_db_name, "gaia_rule", "rule_relationships", "catalog", "rule_relationship", relationship_cardinality_t::many},
+            {c_catalog_db_name, "rule_relationship", "rule", "catalog", "gaia_rule", relationship_cardinality_t::one},
+            std::nullopt,
+            false);
+        // create relationship gaia_catalog_relationship_rule (
+        //     catalog.gaia_relationship.rule_relationships -> catalog.rule_relationship[],
+        //     catalog.rule_relationship.relationship -> catalog.gaia_relationship
+        // );
+        create_relationship(
+            "gaia_catalog_relationship_rule",
+            {c_catalog_db_name, "gaia_relationship", "rule_relationships", "catalog", "rule_relationship", relationship_cardinality_t::many},
+            {c_catalog_db_name, "rule_relationship", "relationship", "catalog", "gaia_relationship", relationship_cardinality_t::one},
             std::nullopt,
             false);
     }
@@ -302,7 +500,7 @@ gaia_id_t ddl_executor_t::create_database(const string& name, bool throw_on_exis
 
     gaia_log::catalog().debug("Creating database '{}'", name);
 
-    gaia_id_t id = gaia_database_t::insert_row(name.c_str());
+    gaia_id_t id = gaia_database_t::insert_row(name.c_str(), c_empty_hash);
 
     gaia_log::catalog().debug("Created database '{}', id:'{}'", name, id);
 
@@ -536,7 +734,8 @@ gaia_id_t ddl_executor_t::create_relationship(
         next_child_offset,
         parent_offset,
         *parent_field_position_values,
-        *child_field_position_values);
+        *child_field_position_values,
+        c_empty_hash);
 
     gaia_table_t::get(parent_table_id).outgoing_relationships().insert(relationship_id);
     gaia_table_t::get(child_table_id).incoming_relationships().insert(relationship_id);
@@ -874,6 +1073,8 @@ gaia_id_t ddl_executor_t::create_table_impl(
 
     gaia_id_t table_id = gaia_table_t::insert_row(
         table_name.c_str(),
+        c_empty_hash,
+        c_empty_type_name,
         table_type,
         is_system,
         bfbs,
@@ -900,7 +1101,8 @@ gaia_id_t ddl_executor_t::create_table_impl(
             data_field_position,
             false,
             data_field->active,
-            data_field->unique);
+            data_field->unique,
+            c_empty_hash);
         // Connect the field to the table it belongs to.
         gaia_table_t::get(table_id).gaia_fields().insert(field_id);
         // Create an unique range index for the unique field.
