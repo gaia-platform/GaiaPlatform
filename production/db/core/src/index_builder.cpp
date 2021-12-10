@@ -478,6 +478,7 @@ void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool dea
         std::array<gaia_type_t, c_offset_buffer_size> offset_types;
 
         // Fill the offset buffer for garbage collection.
+        // Exit the loop when we either have run out of records to process or the offsets buffer is full.
         for (size_t buffer_index = 0; buffer_index < c_offset_buffer_size && records_index < records.record_count; ++records_index)
         {
             const auto& log_record = records.log_records[records_index];
@@ -495,21 +496,23 @@ void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool dea
                     continue;
                 }
 
-                // Add the offset to the buffers.
+                // Add the offset to the buffers and advance the buffer index.
                 collected_offsets[buffer_index] = offset;
                 offset_types[buffer_index] = (obj->type);
                 ++buffer_index;
             }
         }
 
-        // No offsets to garbage collect.
+        // When we reach this point, either we have 1) run out of records to iterate over or 2) the offsets buffer is now considered full.
+        // We know that 2) is false when the offsets buffer is empty and there is no garbage to collect.
+        // Therefore we can safely return here.
         if (collected_offsets.empty())
         {
             return;
         }
 
-        // Garbage collect the offsets.
-        for (auto it : *get_indexes())
+        // Garbage collect the offsets in the buffer.
+        for (const auto& it : *get_indexes())
         {
             gaia_type_t indexed_type = it.second->table_type();
 
@@ -542,7 +545,7 @@ void mark_index_entries(base_index_t* base_index, gaia_txn_id_t txn_id)
 
 void index_builder_t::mark_index_entries_committed(gaia_txn_id_t txn_id)
 {
-    for (auto it : *get_indexes())
+    for (const auto& it : *get_indexes())
     {
         // Optimization: only mark index entries committed for UNIQUE indexes, as we only look up the flags on that path.
         if (it.second->is_unique())
