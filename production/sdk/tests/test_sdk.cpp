@@ -257,7 +257,7 @@ TEST_F(sdk_test, db_exceptions)
 // Direct access exceptions.
 TEST_F(sdk_test, direct_access_exceptions)
 {
-    test_exception<gaia::direct_access::invalid_object_state>;
+    test_exception<gaia::direct_access::invalid_object_state>();
 }
 
 // Rule exceptions.
