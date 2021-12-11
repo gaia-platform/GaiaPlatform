@@ -192,6 +192,56 @@ private:
     common::reference_offset_t m_next_offset;
 };
 
+// The reference chain container used in value-linked relationships. It differs
+// from the reference chain container above in the following ways:
+//
+// - The front of the child list is an anchor node that points to the parent node.
+//
+// - Each child node has a link to the anchor node instead of the parent node.
+//
+// - Each child node has a back link to the previous node.
+//
+// - No manual connection methods like 'connect()' or 'disconnect()'.
+//
+template <typename T_child>
+class reference_anchor_chain_container_t : protected dac_db_t
+{
+public:
+    explicit reference_anchor_chain_container_t(
+        gaia::common::gaia_id_t anchor,
+        std::function<bool(const T_child&)> filter_function,
+        common::reference_offset_t next_offset,
+        common::reference_offset_t prev_offset)
+        : m_anchor_id(anchor)
+        , m_filter_fn(filter_function)
+        , m_next_offset(next_offset)
+        , m_prev_offset(prev_offset){};
+
+    explicit reference_anchor_chain_container_t(
+        gaia::common::gaia_id_t anchor,
+        common::reference_offset_t next_offset,
+        common::reference_offset_t prev_offset)
+        : m_anchor_id(anchor)
+        , m_next_offset(next_offset)
+        , m_prev_offset(prev_offset){};
+
+    reference_anchor_chain_container_t(const reference_anchor_chain_container_t&) = default;
+    reference_anchor_chain_container_t& operator=(const reference_anchor_chain_container_t&) = default;
+
+    dac_set_iterator_t<T_child> begin() const;
+    dac_set_iterator_t<T_child> end() const;
+
+    size_t size() const;
+
+    reference_anchor_chain_container_t<T_child> where(std::function<bool(const T_child&)>) const;
+
+private:
+    gaia::common::gaia_id_t m_anchor_id{gaia::common::c_invalid_gaia_id};
+    std::function<bool(const T_child&)> m_filter_fn{};
+    common::reference_offset_t m_next_offset;
+    common::reference_offset_t m_prev_offset;
+};
+
 // Pick up our template implementation. These still need to be in the header so
 // that template specializations that are declared later will pick up the
 // definitions.
