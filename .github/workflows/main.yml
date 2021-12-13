@@ -52,7 +52,6 @@ jobs:
 
           echo "Executing Clang-Tidy on Production Tree"
           sudo bash -c "$GAIA_REPO/dev_tools/hooks/clang-tidy.sh $GAIA_REPO"
-          exit 1
           sudo bash -c "$GAIA_REPO/dev_tools/hooks/pre-commit"
   build:
     runs-on: ubuntu-20.04
