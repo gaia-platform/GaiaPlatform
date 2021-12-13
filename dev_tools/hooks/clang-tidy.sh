@@ -7,7 +7,8 @@
 # being found.
 TEMP_FILE=$(mktemp /tmp/clang-tidy.XXXXXXXXX)
 
-find "$GAIA_REPO/production" -name '*.h' -o -name '*.cpp' | grep -v tests | xargs clang-tidy | grep -v 'file not found' | grep -v '#include' > "$TEMP_FILE"
+echo "Scanning all .h and .cpp files under $1/production with clang-tidy."
+find "$1/production" -name '*.h' -o -name '*.cpp' | grep -v tests | xargs clang-tidy | grep -v 'file not found' | grep -v '#include' > "$TEMP_FILE"
 cat "$TEMP_FILE"
 
 if grep -q "error:" "$TEMP_FILE"; then
