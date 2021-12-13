@@ -64,8 +64,8 @@ public:
     size_t size() const;
 
 private:
-    std::array<gaia_offset_t, c_offset_buffer_size> m_offsets;
-    std::array<common::gaia_type_t, c_offset_buffer_size> m_offset_types;
+    std::array<gaia_offset_t, c_offset_buffer_size> m_offsets = {};
+    std::array<common::gaia_type_t, c_offset_buffer_size> m_offset_types = {};
     size_t m_size = 0;
 };
 

@@ -14,7 +14,7 @@ namespace index
 
 bool index_offset_buffer_t::has_offset(gaia_offset_t offset) const
 {
-    return std::find(m_offsets.cbegin(), m_offsets.cend(), offset) != m_offsets.cend();
+    return std::find(m_offsets.cbegin(), m_offsets.cbegin() + m_size, offset) != m_offsets.cend();
 }
 
 bool index_offset_buffer_t::has_type(common::gaia_type_t type) const
@@ -29,7 +29,7 @@ size_t index_offset_buffer_t::size() const
 
 bool index_offset_buffer_t::empty() const
 {
-    return m_offsets.empty();
+    return m_size == 0;
 }
 
 void index_offset_buffer_t::insert(gaia_offset_t offset, common::gaia_type_t type)
