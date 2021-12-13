@@ -7,7 +7,6 @@
 
 #include <array>
 #include <utility>
-#include <vector>
 
 #include "gaia/exceptions.hpp"
 
@@ -463,7 +462,7 @@ void index_builder_t::update_indexes_from_txn_log(
 }
 
 template <class T_index>
-void remove_entries_with_offsets(base_index_t* base_index, const std::array<gaia_offset_t, c_offset_buffer_size>& offsets, gaia_txn_id_t txn_id)
+void remove_entries_with_offsets(base_index_t* base_index, const index_offset_buffer_t& offsets, gaia_txn_id_t txn_id)
 {
     auto index = static_cast<T_index*>(base_index);
     index->remove_index_entry_with_offsets(offsets, txn_id);
@@ -474,12 +473,10 @@ void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool dea
     size_t records_index = 0;
     while (records_index < records.record_count)
     {
-        std::array<gaia_offset_t, c_offset_buffer_size> collected_offsets;
-        std::array<gaia_type_t, c_offset_buffer_size> offset_types;
-
+        index_offset_buffer_t collected_offsets;
         // Fill the offset buffer for garbage collection.
         // Exit the loop when we either have run out of records to process or the offsets buffer is full.
-        for (size_t buffer_index = 0; buffer_index < c_offset_buffer_size && records_index < records.record_count; ++records_index)
+        for (; collected_offsets.size() < c_offset_buffer_size && records_index < records.record_count; ++records_index)
         {
             const auto& log_record = records.log_records[records_index];
 
@@ -497,9 +494,7 @@ void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool dea
                 }
 
                 // Add the offset to the buffers and advance the buffer index.
-                collected_offsets[buffer_index] = offset;
-                offset_types[buffer_index] = (obj->type);
-                ++buffer_index;
+                collected_offsets.insert(offset, obj->type);
             }
         }
 
@@ -518,7 +513,7 @@ void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool dea
 
             // This index does not contain any of the deleted offsets.
             // Skip the expensive remove_entries_with_offsets operation.
-            if (std::find(offset_types.begin(), offset_types.end(), indexed_type) == offset_types.end())
+            if (!collected_offsets.has_type(indexed_type))
             {
                 continue;
             }

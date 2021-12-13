@@ -6,7 +6,6 @@
 #pragma once
 
 #include <array>
-#include <vector>
 
 #include "gaia_internal/db/db_types.hpp"
 
@@ -51,6 +50,25 @@ private:
 
 constexpr size_t c_offset_buffer_size = 32;
 
+/*
+* Buffer storing data for garbage collecting offsets.
+*/
+
+class index_offset_buffer_t
+{
+public:
+    void insert(gaia_offset_t offset, common::gaia_type_t type);
+    bool has_offset(gaia_offset_t offset) const;
+    bool has_type(common::gaia_type_t type) const;
+    bool empty() const;
+    size_t size() const;
+
+private:
+    std::array<gaia_offset_t, c_offset_buffer_size> m_offsets;
+    std::array<common::gaia_type_t, c_offset_buffer_size> m_offset_types;
+    size_t m_size = 0;
+};
+
 /**
  * Abstract in-memory index type:
  * T_structure is the underlying backing data structure of the index.
@@ -74,7 +92,7 @@ public:
 
     // Index structure maintenance.
     void insert_index_entry(index_key_t&& key, index_record_t record);
-    void remove_index_entry_with_offsets(const std::array<gaia_offset_t, c_offset_buffer_size>& offsets, gaia_txn_id_t gc_txn_id);
+    void remove_index_entry_with_offsets(const index_offset_buffer_t& offsets, gaia_txn_id_t gc_txn_id);
 
     // This method will mark all entries below a specified txn_id as committed.
     // This must only be called after all aborted/terminated index entries below the txn_id are garbage collected.
