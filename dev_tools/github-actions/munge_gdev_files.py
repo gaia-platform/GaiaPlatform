@@ -789,10 +789,16 @@ def __print_package_section(section_text_pairs):
     """
     Print the script lines associated with creating a package.
 
+    Note that this section is an optional section, so it is valid to
+    have no data here at all.
+
     Note that the first line must begin with the 'produces:' prefix
     to specify the name of the file that will be produced by the packaging
     command.
     """
+    if not section_text_pairs:
+        return
+
     assert len(section_text_pairs) >= 2
     section_first_line = section_text_pairs[0][1]
     assert section_first_line.startswith(__GDEV_PACKAGE_PRODUCES_PREFIX)

@@ -80,7 +80,7 @@ __BUILD_SECTION_HEADER_TEMPLATE = """
         run: |"""
 
 __TESTS_SECTION_HEADER = """
-      - name: Tests
+      - name: Unit Tests
         run: |"""
 
 __SECTION_SUFFIX = """
