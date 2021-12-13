@@ -7,6 +7,7 @@
 
 #include <array>
 #include <utility>
+#include <vector>
 
 #include "gaia/exceptions.hpp"
 
