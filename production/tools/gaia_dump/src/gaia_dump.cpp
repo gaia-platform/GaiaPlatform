@@ -163,7 +163,7 @@ string gaia_dump(gaia_id_t low, gaia_id_t high, bool payload, bool references, b
     {
         try
         {
-            auto node_ptr = gaia_ptr_t::open(id);
+            auto node_ptr = gaia_ptr_t::from_gaia_id(id);
             if (node_ptr)
             {
                 // If 'catalog' is true, don't check the catalog range.

@@ -26,7 +26,13 @@ gaia_id_t gaia_ptr_t::generate_id()
     return allocate_id();
 }
 
-gaia_ptr_t gaia_ptr_t::open(
+gaia_ptr_t gaia_ptr_t::from_locator(
+    gaia_locator_t locator)
+{
+    return gaia_ptr_t(locator);
+}
+
+gaia_ptr_t gaia_ptr_t::from_gaia_id(
     common::gaia_id_t id)
 {
     return gaia_ptr_t(db_hash_map::find(id));
@@ -84,7 +90,7 @@ std::optional<gaia_ptr_t> gaia_ptr_generator_t::operator()()
     std::optional<gaia_id_t> id_opt;
     while ((id_opt = (*m_id_generator)()))
     {
-        gaia_ptr_t gaia_ptr = gaia_ptr_t::open(*id_opt);
+        gaia_ptr_t gaia_ptr = gaia_ptr_t::from_gaia_id(*id_opt);
         if (gaia_ptr)
         {
             return gaia_ptr;
