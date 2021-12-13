@@ -367,7 +367,7 @@ def __does_meet_project_options(conditional_to_evaluate, active_options):
     if not conditional_to_evaluate:
         return True
 
-    provided_options_set = set(active_options)
+    provided_options_set = set(active_options) if active_options else set()
     match_result = re.match(__ENABLE_IF_ANY_REGEX, conditional_to_evaluate)
     if match_result:
         matched_groups_set = set(match_result.groups())
@@ -789,10 +789,16 @@ def __print_package_section(section_text_pairs):
     """
     Print the script lines associated with creating a package.
 
+    Note that this section is an optional section, so it is valid to
+    have no data here at all.
+
     Note that the first line must begin with the 'produces:' prefix
     to specify the name of the file that will be produced by the packaging
     command.
     """
+    if not section_text_pairs:
+        return
+
     assert len(section_text_pairs) >= 2
     section_first_line = section_text_pairs[0][1]
     assert section_first_line.startswith(__GDEV_PACKAGE_PRODUCES_PREFIX)
@@ -835,7 +841,9 @@ def process_script_action():
     if args.show_raw:
         print(json.dumps(collected_file_sections, indent=2))
         return 0
-    assert args.section
+    if not args.section:
+        print("Either the --raw argument or a --section argument must be specified.")
+        return 1
 
     specific_section_name = (
         __GDEV_NEW_SECTION_START_CHARACTER

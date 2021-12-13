@@ -1,3 +1,4 @@
+---
 name: Main
 
 on:
@@ -10,7 +11,7 @@ on:
       - jack/gha
 
 jobs:
-  release_build:
+  lint:
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -38,7 +39,50 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 debhelper flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev rpm libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+
+      - name: Install Required Python Packages
+        run: |
+          python3.8 -m pip install --user atools argcomplete
+
+      - name: Lint
+        run: |
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang-format\" \"clang-format\" \"/usr/bin/clang-format-10\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang-tidy\" \"clang-tidy\" \"/usr/bin/clang-tidy-10\" 10"
+
+          echo "Executing Clang-Tidy on Production Tree"
+          sudo bash -c "$GAIA_REPO/dev_tools/hooks/clang-tidy.sh $GAIA_REPO"
+          sudo bash -c "$GAIA_REPO/dev_tools/hooks/pre-commit"
+  build:
+    runs-on: ubuntu-20.04
+    needs: lint
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+      GAIA_VERSION: 0.3.2
+      CC: /usr/bin/clang-10
+      CPP: /usr/bin/clang-cpp-10
+      CXX: /usr/bin/clang++-10
+      LDFLAGS: "-B/usr/lib/llvm-10/bin/ -fuse-ld=lld"
+      LANG: en_US.UTF-8
+      LC_CTYPE: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - name: Install PipEnv
+        uses: dschep/install-pipenv-action@v1
+        with:
+          version: 2021.5.29
+
+      - name: Install Required Applications
+        run: |
+          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
 
       - name: Install Required Python Packages
         run: |
@@ -63,9 +107,6 @@ jobs:
           rm -rf */.git
           cd $GAIA_REPO/third_party/production/liburing
           git clone -c advice.detachedHead=false --depth 1 --branch liburing-2.0 https://github.com/axboe/liburing.git
-          rm -rf */.git
-          cd $GAIA_REPO/third_party/production/CPackDebHelper
-          git clone -c advice.detachedHead=false --depth 1 https://github.com/ABruines/CPackDebHelper.git
           rm -rf */.git
 
       - name: Install Required Third Party Web Packages
@@ -166,13 +207,6 @@ jobs:
           sudo bash -c "cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release"
           sudo bash -c "cmake --build build --target install"
 
-      - name: Build third_party/production/CPackDebHelper
-        run: |
-          cd $GAIA_REPO/third_party/production/CPackDebHelper
-          sudo bash -c "mkdir -p /usr/local/lib/cmake/CPackDebHelper"
-          sudo bash -c "cp CPackDebHelper/cmake/*.cmake /usr/local/lib/cmake/CPackDebHelper/"
-          sudo bash -c "rm -rf *"
-
       - name: Build third_party/production/libexplain
         run: |
           cd $GAIA_REPO/third_party/production/libexplain
@@ -232,10 +266,6 @@ jobs:
           sudo bash -c "cp -a $GAIA_REPO/third_party/production/gaia_spdlog/. /source/third_party/production/gaia_spdlog/"
           sudo bash -c "mkdir -p /source/third_party/production/gaia_spdlog_setup"
           sudo bash -c "cp -a $GAIA_REPO/third_party/production/gaia_spdlog_setup/. /source/third_party/production/gaia_spdlog_setup/"
-          sudo bash -c "mkdir -p /source/third_party/production/TranslationEngineLLVM"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/TranslationEngineLLVM/. /source/third_party/production/TranslationEngineLLVM/"
-          sudo bash -c "mkdir -p /source/third_party/production/CPackDebHelper"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/CPackDebHelper/. /source/third_party/production/CPackDebHelper/"
           sudo bash -c "mkdir -p /source/dev_tools/hooks"
           sudo bash -c "cp -a $GAIA_REPO/dev_tools/hooks/. /source/dev_tools/hooks/"
           sudo bash -c "mkdir -p /source/production"
@@ -257,29 +287,15 @@ jobs:
           cd $GAIA_REPO/production
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
-          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake --log-level=VERBOSE -Wno-dev -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_RELEASE=ON  -G \"Unix Makefiles\" /source/production"
+          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev /source/production"
           sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1     make -j$(nproc)"
 
-      - name: Tests
+      - name: Unit Tests
         run: |
           cd /build/production/db/core
           sudo bash -c "make install"
           cd /build/production
           sudo bash -c "ctest"
-
-      - name: Generate Package
-        run: |
-          cd /build/production
-          sudo bash -c "make preinstall"
-          sudo bash -c "cpack -G DEB -R \"${{ env.GAIA_VERSION }}-${{ github.run_id }}\""
-          sudo bash -c "cp gaia-0.3.2_amd64.deb gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb"
-          sudo bash -c "ls -la /build/production/*.deb"
-
-      - name: Upload Package
-        uses: actions/upload-artifact@v2
-        with:
-          name: Debian Install Package
-          path: /build/production/gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb
 
       - name: Upload CMake Logs
         if: always()
@@ -301,44 +317,4 @@ jobs:
       - name: Done
         run: |
           echo "Done"
-  integration_1:
-    runs-on: ubuntu-20.04
-    needs: release_build
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@master
 
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v1
-        with:
-          python-version: 3.8
-
-      - name: Install PipEnv
-        uses: dschep/install-pipenv-action@v1
-        with:
-          version: 2021.5.29
-
-      - name: Download Debian install
-        uses: actions/download-artifact@v2
-        with:
-          name: Debian Install Package
-          path: ${{ github.workspace }}/production/tests/packages
-      - name: Tests
-        run: |
-          cd ${{ github.workspace }}/production/tests
-
-          ls -la packages
-          echo "--$(find packages -name gaia*)"
-          sudo apt --assume-yes install $(find packages -name gaia*)
-          sudo ./reset_database.sh --verbose --stop --database
-
-          pipenv sync
-          pipenv lock
-          ./smoke_suites.sh
-      - name: Upload Suite Logs
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: Suite Logs
-          path: |
-            /production/tests/suites
