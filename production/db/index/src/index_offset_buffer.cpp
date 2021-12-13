@@ -14,12 +14,14 @@ namespace index
 
 bool index_offset_buffer_t::has_offset(gaia_offset_t offset) const
 {
-    return std::find(m_offsets.cbegin(), m_offsets.cbegin() + m_size, offset) != m_offsets.cend();
+    return std::find(m_offsets.cbegin(), m_offsets.cbegin() + m_size, offset)
+        != m_offsets.cbegin() + m_size;
 }
 
 bool index_offset_buffer_t::has_type(common::gaia_type_t type) const
 {
-    return std::find(m_offset_types.cbegin(), m_offset_types.cend(), type) != m_offset_types.cend();
+    return std::find(m_offset_types.cbegin(), m_offset_types.cbegin() + m_size, type)
+        != m_offset_types.cbegin() + m_size;
 }
 
 size_t index_offset_buffer_t::size() const

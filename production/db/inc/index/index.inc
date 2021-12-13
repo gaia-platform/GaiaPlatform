@@ -41,8 +41,7 @@ void index_t<T_structure, T_iterator>::remove_index_entry_with_offsets(const ind
 
     for (auto it = m_data.begin(); it != m_data.end();)
     {
-        if (it->second.txn_id <= gc_txn_id
-            && offsets.has_offset(it->second.offset))
+        if (it->second.txn_id <= gc_txn_id && offsets.has_offset(it->second.offset))
         {
             it = m_data.erase(it);
         }

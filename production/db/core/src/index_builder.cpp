@@ -476,7 +476,7 @@ void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool dea
         index_offset_buffer_t collected_offsets;
         // Fill the offset buffer for garbage collection.
         // Exit the loop when we either have run out of records to process or the offsets buffer is full.
-        for (; collected_offsets.size() < c_offset_buffer_size && records_index < records.record_count; ++records_index)
+        for (; records_index < records.record_count && collected_offsets.size() < c_offset_buffer_size; ++records_index)
         {
             const auto& log_record = records.log_records[records_index];
 
