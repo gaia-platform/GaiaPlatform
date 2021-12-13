@@ -51,7 +51,7 @@ jobs:
           sudo bash -c "update-alternatives --install \"/usr/bin/clang-tidy\" \"clang-tidy\" \"/usr/bin/clang-tidy-10\" 10"
 
           cat $GAIA_REPO/.clang-tidy
-          sudo bash -c "find . -name '*.h' -o -name '*.cpp' | xargs clang-tidy --config=$GAIA_REPO/.clang-tidy"
+          sudo bash -c "find $GAIA_REPO/production -name '*.h' -o -name '*.cpp' | xargs clang-tidy --config=$GAIA_REPO/.clang-tidy"
           sudo bash -c "$GAIA_REPO/dev_tools/hooks/pre-commit"
   build:
     runs-on: ubuntu-20.04
