@@ -50,6 +50,7 @@ jobs:
           sudo bash -c "update-alternatives --install \"/usr/bin/clang-format\" \"clang-format\" \"/usr/bin/clang-format-10\" 10"
           sudo bash -c "update-alternatives --install \"/usr/bin/clang-tidy\" \"clang-tidy\" \"/usr/bin/clang-tidy-10\" 10"
 
+          cat $GAIA_REPO/.clang-tidy
           sudo bash -c "find . -name '*.h' -o -name '*.cpp' | xargs clang-tidy --config-file=$GAIA_REPO/.clang-tidy"
           sudo bash -c "$GAIA_REPO/dev_tools/hooks/pre-commit"
   build:
