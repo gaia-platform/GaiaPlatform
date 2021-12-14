@@ -70,7 +70,14 @@ void GaiaCatalog::fillTableData()
                 continue;
             }
 
-            CatalogTableData table_data = catalogTableData[table.name()];
+            auto table_data_iterator = catalogTableData.find(table.name());
+            if (table_data_iterator == catalogTableData.end())
+            {
+                Diags.Report(diag::err_wrong_table_field) << field.name() << table.name();
+                catalogTableData.clear();
+                return;
+            }
+            CatalogTableData table_data = table_data_iterator->second;
             if (table_data.fieldData.find(field.name()) != table_data.fieldData.end())
             {
                 Diags.Report(diag::err_duplicate_field) << field.name();
@@ -150,4 +157,157 @@ void GaiaCatalog::ensureInitialization()
         fillTableData();
         isInitialized = true;
     }
+}
+
+// Auxilary function find topologically closest table.
+StringRef GaiaCatalog::getClosestTable(const llvm::StringMap<int>& tableDistance)
+{
+    int minDistance = INT_MAX;
+    StringRef closestTable;
+    for (const auto& distanceIterator : tableDistance)
+    {
+        if (distanceIterator.second < minDistance)
+        {
+            minDistance = distanceIterator.second;
+            closestTable = distanceIterator.first();
+        }
+    }
+
+    return closestTable;
+}
+
+// Find shortest navigation path between 2 tables. If no path between tables exist or multiple shortest paths exist, return false.
+// The shortest path is returned through path parameter passed by reference
+// If reportError is true, report errors, otherwise silently return false.
+bool GaiaCatalog::findNavigationPath(StringRef src, StringRef dst, SmallVector<string, 8>& path, bool reportErrors)
+{
+    if (src.empty() || dst.empty())
+    {
+        return false;
+    }
+
+    if (src == dst)
+    {
+        return true;
+    }
+    const auto& tableData = getCatalogTableData();
+
+    IntrusiveRefCntPtr<DiagnosticOptions> diagOpts = new DiagnosticOptions();
+    // diagClient is passed to diags object below that takes full ownership.
+    TextDiagnosticPrinter *diagClient = new TextDiagnosticPrinter(llvm::errs(), &*diagOpts);
+    IntrusiveRefCntPtr<DiagnosticIDs> diagID(new DiagnosticIDs());
+    DiagnosticsEngine diags(diagID, &*diagOpts, diagClient);
+
+    if (!findNavigationPath(src, dst, path, tableData))
+    {
+        if (reportErrors)
+        {
+            diags.Report(diag::err_no_path) << src << dst;
+        }
+        return false;
+    }
+
+    const size_t pathLength = path.size();
+    // Remove edges from the original shortest path and check if a shortest path with the same length can be found.
+    for (size_t pathIndex = 0; pathIndex < pathIndex - 1; ++pathIndex)
+    {
+        SmallVector<string, 8> tempPath;
+        llvm::StringMap<CatalogTableData> graphData(tableData);
+        const auto& edgeSrc = path[pathIndex];
+        const auto& edgeDst = path[pathIndex + 1];
+        const auto& graphIterator = graphData.find(edgeSrc);
+
+        for (auto linkIterator = graphIterator->second.linkData.begin(); linkIterator != graphIterator->second.linkData.end();)
+        {
+            if (linkIterator->second.targetTable == edgeDst)
+            {
+                auto toErase = linkIterator;
+                graphIterator->second.linkData.erase(toErase);
+                ++linkIterator;
+            }
+            else
+            {
+                ++linkIterator;
+            }
+        }
+
+        if (findNavigationPath(src, dst, tempPath, graphData))
+        {
+            if (tempPath.size() == pathLength)
+            {
+                if (reportErrors)
+                {
+                    diags.Report(diag::err_multiple_shortest_paths) << src << dst;
+                }
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+// Find shortest navigation path between 2 tables.
+bool GaiaCatalog::findNavigationPath(StringRef src, StringRef dst, llvm::SmallVector<string, 8>& path, const llvm::StringMap<CatalogTableData>& graphData)
+{
+    if (src == dst)
+    {
+        return true;
+    }
+
+    llvm::StringMap<int> tableDistance;
+    llvm::StringMap<string> previousTable;
+    llvm::StringMap<string> tableNavigation;
+
+    for (const auto& graphDataIterator : graphData)
+    {
+        tableDistance[graphDataIterator.first()] = INT_MAX;
+    }
+    tableDistance[src] = 0;
+
+    string closestTable;
+
+    while (closestTable != dst)
+    {
+        closestTable = getClosestTable(tableDistance);
+        if (closestTable.empty())
+        {
+            return false;
+        }
+
+        if (closestTable == dst)
+        {
+            break;
+        }
+
+        int distance = tableDistance[closestTable];
+
+        tableDistance.erase(closestTable);
+
+        auto tableIterator = graphData.find(closestTable);
+        for (const auto& linkIterator : tableIterator->second.linkData)
+        {
+            StringRef tableName = linkIterator.second.targetTable;
+            if (tableDistance.find(tableName) != tableDistance.end())
+            {
+                if (tableDistance[tableName] > distance + 1)
+                {
+                    tableDistance[tableName] = distance + 1;
+                    previousTable[tableName] = closestTable;
+                    tableNavigation[tableName] = linkIterator.second.targetTable;
+                }
+            }
+        }
+    }
+
+    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+    StringRef tbl = dst;
+    auto previousTableIterator = previousTable.find(tbl);
+    while (previousTableIterator != previousTable.end())
+    {
+        path.insert(path.begin(), tableNavigation[tbl]);
+        tbl = previousTableIterator->second;;
+        previousTableIterator = previousTable.find(tbl);
+    }
+    return true;
 }

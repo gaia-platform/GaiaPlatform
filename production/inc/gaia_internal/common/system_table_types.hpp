@@ -41,6 +41,7 @@ enum class catalog_table_type_t : gaia_type_t::value_type
     rule_table = ruleset_database - 1,
     rule_field = rule_table - 1,
     rule_relationship = rule_field - 1,
+    gaia_ref_anchor = rule_relationship - 1,
 };
 
 enum class system_table_type_t : gaia_type_t::value_type
@@ -59,6 +60,7 @@ enum class system_table_type_t : gaia_type_t::value_type
     catalog_rule_table = static_cast<gaia_type_t::value_type>(catalog_table_type_t::rule_table),
     catalog_rule_field = static_cast<gaia_type_t::value_type>(catalog_table_type_t::rule_field),
     catalog_rule_relationship = static_cast<gaia_type_t::value_type>(catalog_table_type_t::rule_relationship),
+    catalog_gaia_ref_anchor = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_ref_anchor),
     // Assign constant IDs to other system tables starting from lower end of the reserved range.
     event_log = c_system_table_reserved_range_start.value(),
 };

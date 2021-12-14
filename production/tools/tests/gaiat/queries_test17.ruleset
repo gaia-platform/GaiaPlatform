@@ -9,7 +9,10 @@ ruleset test79
 {
     on_insert(incubator)
     {
-        actuator.value += value/2;
+        if (sensor.value + actuator.value > 10)
+        {
+            actuator.value += value/2;
+        }
     }
 }
 

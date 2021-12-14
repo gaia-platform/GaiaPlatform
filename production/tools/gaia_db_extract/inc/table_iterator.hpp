@@ -29,7 +29,10 @@ class table_iterator_t
 
 public:
     table_iterator_t()
-        : m_table_name(nullptr), m_container_id(0), m_current_record(0), m_current_payload(nullptr)
+        : m_table_name(nullptr)
+        , m_container_id(0)
+        , m_current_record(db::gaia_ptr_t::from_locator(db::c_invalid_gaia_locator))
+        , m_current_payload(nullptr)
     {
     }
 

@@ -37,6 +37,18 @@ else()
   option(ENABLE_CLANG_TIDY "Enable clang tidy" OFF)
 endif()
 
+# Sets the Gaia build architecture which is the SDK target architecture.
+# For simplicity we do not support cross-compiling yet.
+if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "amd64|AMD64|x86_64|X86_64")
+  set(GAIA_BUILD_ARCH "amd64")
+elseif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm64|ARM64|aarch64|AARCH64")
+  set(GAIA_BUILD_ARCH "arm64")
+else()
+  message(FATAL_ERROR "Unrecognised architecture: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+endif()
+
+message(STATUS "GAIA_BUILD_ARCH: ${GAIA_BUILD_ARCH}")
+
 include(GNUInstallDirs)
 include(ExternalProject)
 
@@ -44,11 +56,6 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
 include(gaia_internal)
 include(GoogleTest)
-
-# Ensure Debug builds have the DEBUG macro defined.
-# REVIEW: This should really be `add_compile_definitions($<$<CONFIG:Debug>:DEBUG>)`,
-# but that makes it harder to pass to `ExternalProject_Add()`.
-add_compile_options("$<$<CONFIG:Debug>:-DDEBUG>")
 
 # Check that PIE flags are actually passed to the linker.
 # This ensures that our executables are ASLR-compatible.
@@ -80,6 +87,8 @@ endif(CCACHE_FOUND)
 # Default compiler/linker flags for Gaia targets.
 add_library(gaia_build_options INTERFACE)
 target_compile_options(gaia_build_options INTERFACE -Wall -Wextra -ftime-trace)
+# Ensure Debug builds have the DEBUG macro defined.
+target_compile_definitions(gaia_build_options INTERFACE $<$<CONFIG:Debug>:DEBUG>)
 
 # LLVM and CLANG specific options.
 if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)

@@ -87,6 +87,7 @@ struct relationship_view_t : catalog_db_object_view_t
     [[nodiscard]] bool deprecated() const;
     [[nodiscard]] common::reference_offset_t first_child_offset() const;
     [[nodiscard]] common::reference_offset_t next_child_offset() const;
+    [[nodiscard]] common::reference_offset_t prev_child_offset() const;
     [[nodiscard]] common::reference_offset_t parent_offset() const;
     [[nodiscard]] const flatbuffers::Vector<uint16_t>* parent_field_positions() const;
     [[nodiscard]] const flatbuffers::Vector<uint16_t>* child_field_positions() const;
@@ -94,6 +95,7 @@ struct relationship_view_t : catalog_db_object_view_t
     // Not in DDL?
     [[nodiscard]] common::gaia_id_t parent_table_id() const;
     [[nodiscard]] common::gaia_id_t child_table_id() const;
+    [[nodiscard]] bool is_value_linked() const;
 };
 
 struct index_view_t : catalog_db_object_view_t

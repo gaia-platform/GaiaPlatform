@@ -171,6 +171,15 @@ std::string dac_compilation_unit_writer_t::generate_constants()
             const_code.SetValue("NEXT_OFFSET_VALUE", std::to_string(link.next_offset_value()));
             const_code += "constexpr common::reference_offset_t {{NEXT_OFFSET}} = {{NEXT_OFFSET_VALUE}};\\";
             table_constants.insert({link.next_offset_value(), const_code.ToString()});
+
+            if (incoming_link.is_value_linked())
+            {
+                const_code.Clear();
+                const_code.SetValue("PREV_OFFSET", link.prev_offset());
+                const_code.SetValue("PREV_OFFSET_VALUE", std::to_string(link.prev_offset_value()));
+                const_code += "constexpr common::reference_offset_t {{PREV_OFFSET}} = {{PREV_OFFSET_VALUE}};\\";
+                table_constants.insert({link.prev_offset_value(), const_code.ToString()});
+            }
         }
 
         for (const auto& outgoing_link : table.outgoing_links())
@@ -316,8 +325,16 @@ std::string class_writer_t::generate_list_types()
 
         if (link.is_multiple_cardinality())
         {
-            code += "typedef gaia::direct_access::reference_chain_container_t<{{CHILD_TABLE}}_t> "
-                    "{{FIELD_NAME}}_list_t;";
+            if (link.is_value_linked())
+            {
+                code += "typedef gaia::direct_access::reference_anchor_chain_container_t<{{CHILD_TABLE}}_t> "
+                        "{{FIELD_NAME}}_list_t;";
+            }
+            else
+            {
+                code += "typedef gaia::direct_access::reference_chain_container_t<{{CHILD_TABLE}}_t> "
+                        "{{FIELD_NAME}}_list_t;";
+            }
         }
     }
     return code.ToString();
@@ -483,7 +500,15 @@ std::string class_writer_t::generate_incoming_links_accessors_cpp()
 
         code += "{{PARENT_TABLE}}_t {{TABLE_NAME}}_t::{{FIELD_NAME}}() const {";
         code.IncrementIdentLevel();
-        code += "return {{PARENT_TABLE}}_t::get(this->references()[{{PARENT_OFFSET}}]);";
+        if (incoming_link.is_value_linked())
+        {
+            code += "gaia::common::gaia_id_t id = dac_db_t::get_reference(this->references()[{{PARENT_OFFSET}}], gaia::common::c_ref_anchor_parent_offset);";
+        }
+        else
+        {
+            code += "gaia::common::gaia_id_t id = this->references()[{{PARENT_OFFSET}}];";
+        }
+        code += "return (id == gaia::common::c_invalid_gaia_id) ? {{PARENT_TABLE}}_t() : {{PARENT_TABLE}}_t::get(id);";
         code.DecrementIdentLevel();
         code += "}";
     }
@@ -530,14 +555,26 @@ std::string class_writer_t::generate_outgoing_links_accessors_cpp()
         code.SetValue("FIELD_NAME", link.field_name());
         code.SetValue("FIRST_OFFSET", link.first_offset());
         code.SetValue("NEXT_OFFSET", link.next_offset());
+        code.SetValue("PREV_OFFSET", link.prev_offset());
 
         if (link.is_multiple_cardinality())
         {
-            code += "{{TABLE_NAME}}_t::{{FIELD_NAME}}_list_t {{TABLE_NAME}}_t::{{FIELD_NAME}}() const {";
-            code.IncrementIdentLevel();
-            code += "return {{TABLE_NAME}}_t::{{FIELD_NAME}}_list_t(gaia_id(), {{FIRST_OFFSET}}, {{NEXT_OFFSET}});";
-            code.DecrementIdentLevel();
-            code += "}";
+            if (link.is_value_linked())
+            {
+                code += "{{TABLE_NAME}}_t::{{FIELD_NAME}}_list_t {{TABLE_NAME}}_t::{{FIELD_NAME}}() const {";
+                code.IncrementIdentLevel();
+                code += "return {{TABLE_NAME}}_t::{{FIELD_NAME}}_list_t(this->references()[{{FIRST_OFFSET}}], {{NEXT_OFFSET}}, {{PREV_OFFSET}});";
+                code.DecrementIdentLevel();
+                code += "}";
+            }
+            else
+            {
+                code += "{{TABLE_NAME}}_t::{{FIELD_NAME}}_list_t {{TABLE_NAME}}_t::{{FIELD_NAME}}() const {";
+                code.IncrementIdentLevel();
+                code += "return {{TABLE_NAME}}_t::{{FIELD_NAME}}_list_t(gaia_id(), {{FIRST_OFFSET}}, {{NEXT_OFFSET}});";
+                code.DecrementIdentLevel();
+                code += "}";
+            }
         }
         else if (link.is_single_cardinality())
         {

@@ -87,14 +87,16 @@ class index_key_t;
 class base_index_t
 {
 public:
-    base_index_t(gaia::common::gaia_id_t index_id, catalog::index_type_t index_type, bool is_unique)
-        : m_index_id(index_id), m_index_type(index_type), m_is_unique(is_unique)
+    base_index_t(gaia::common::gaia_id_t index_id, catalog::index_type_t index_type, common::gaia_type_t table_type, bool is_unique)
+        : m_index_id(index_id), m_index_type(index_type), m_table_type(table_type), m_is_unique(is_unique)
     {
     }
+
     virtual ~base_index_t() = default;
 
     gaia::common::gaia_id_t id() const;
     catalog::index_type_t type() const;
+    gaia::common::gaia_type_t table_type() const;
     bool is_unique() const;
 
     std::recursive_mutex& get_lock() const;
@@ -108,6 +110,7 @@ public:
 protected:
     gaia::common::gaia_id_t m_index_id;
     catalog::index_type_t m_index_type;
+    gaia::common::gaia_type_t m_table_type;
     bool m_is_unique;
 
     // Recursive_mutex is used here because shared_mutex cannot be unlocked multiple times on the same thread.

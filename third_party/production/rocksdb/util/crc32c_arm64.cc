@@ -8,9 +8,14 @@
 #if defined(__linux__) && defined(HAVE_ARM64_CRC)
 
 #include <asm/hwcap.h>
+#ifdef ROCKSDB_AUXV_GETAUXVAL_PRESENT
 #include <sys/auxv.h>
+#endif
 #ifndef HWCAP_CRC32
 #define HWCAP_CRC32 (1 << 7)
+#endif
+#ifndef HWCAP_PMULL
+#define HWCAP_PMULL (1 << 4)
 #endif
 
 #ifdef HAVE_ARM64_CRYPTO
@@ -33,9 +38,24 @@
   } while (0)
 #endif
 
+extern bool pmull_runtime_flag;
+
 uint32_t crc32c_runtime_check(void) {
+#ifdef ROCKSDB_AUXV_GETAUXVAL_PRESENT
   uint64_t auxv = getauxval(AT_HWCAP);
   return (auxv & HWCAP_CRC32) != 0;
+#else
+  return 0;
+#endif
+}
+
+bool crc32c_pmull_runtime_check(void) {
+#ifdef ROCKSDB_AUXV_GETAUXVAL_PRESENT
+  uint64_t auxv = getauxval(AT_HWCAP);
+  return (auxv & HWCAP_PMULL) != 0;
+#else
+  return false;
+#endif
 }
 
 uint32_t crc32c_arm64(uint32_t crc, unsigned char const *data,
@@ -44,6 +64,14 @@ uint32_t crc32c_arm64(uint32_t crc, unsigned char const *data,
   const uint64_t *buf64 = (uint64_t *)data;
   int length = (int)len;
   crc ^= 0xffffffff;
+
+  /*
+   * Pmull runtime check here.
+   * Raspberry Pi supports crc32 but doesn't support pmull.
+   * Skip Crc32c Parallel computation if no crypto extension available.
+   */
+  if (pmull_runtime_flag) {
+/* Macro (HAVE_ARM64_CRYPTO) is used for compiling check  */
 
 #ifdef HAVE_ARM64_CRYPTO
 /* Crc32c Parallel computation
@@ -100,6 +128,8 @@ uint32_t crc32c_arm64(uint32_t crc, unsigned char const *data,
 
   if (length == 0) return crc ^ (0xffffffffU);
 #endif
+  }  // if Pmull runtime check here
+
   buf8 = (const uint8_t *)buf64;
   while (length >= 8) {
     crc = crc32c_u64(crc, *(const uint64_t *)buf8);

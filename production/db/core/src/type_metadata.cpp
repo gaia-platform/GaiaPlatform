@@ -22,9 +22,6 @@ namespace gaia
 namespace db
 {
 
-// Child relationship contains 2 pointer for every relationship.
-constexpr std::size_t c_child_relation_num_ptrs = 2;
-
 /*
  * type_metadata_t
  */
@@ -62,6 +59,7 @@ void type_metadata_t::add_parent_relationship(const std::shared_ptr<relationship
     std::unique_lock lock(m_metadata_lock);
 
     m_parent_relationships.insert({relationship->first_child_offset, relationship});
+    m_reference_count += 1;
 }
 
 void type_metadata_t::add_child_relationship(const std::shared_ptr<relationship_t>& relationship)
@@ -69,6 +67,20 @@ void type_metadata_t::add_child_relationship(const std::shared_ptr<relationship_
     std::unique_lock lock(m_metadata_lock);
 
     m_child_relationships.insert({relationship->parent_offset, relationship});
+
+    // A child node contains 2 ref slots for every relationship.
+    constexpr std::size_t c_num_ref_slots = 2;
+    // A child node contains 3 ref slots for every value linked relationship.
+    constexpr std::size_t c_value_linked_rel_num_ref_slots = 3;
+
+    if (relationship->value_linked)
+    {
+        m_reference_count += c_value_linked_rel_num_ref_slots;
+    }
+    else
+    {
+        m_reference_count += c_num_ref_slots;
+    }
 }
 
 gaia_type_t type_metadata_t::get_type() const
@@ -79,8 +91,7 @@ gaia_type_t type_metadata_t::get_type() const
 reference_offset_t type_metadata_t::num_references() const
 {
     std::shared_lock lock(m_metadata_lock);
-
-    return m_parent_relationships.size() + (c_child_relation_num_ptrs * m_child_relationships.size());
+    return m_reference_count;
 }
 
 bool type_metadata_t::is_initialized()
@@ -123,54 +134,66 @@ void type_registry_t::init()
         .child_type = gaia_table,
         .first_child_offset = catalog_core_t::c_gaia_database_first_gaia_tables,
         .next_child_offset = catalog_core_t::c_gaia_table_next_database,
+        .prev_child_offset = c_invalid_reference_offset,
         .parent_offset = catalog_core_t::c_gaia_table_parent_database,
         .cardinality = cardinality_t::many,
-        .parent_required = false});
+        .parent_required = false,
+        .value_linked = false});
 
     auto gaia_table_gaia_field = std::make_shared<relationship_t>(relationship_t{
         .parent_type = gaia_table,
         .child_type = gaia_field,
         .first_child_offset = catalog_core_t::c_gaia_table_first_gaia_fields,
         .next_child_offset = catalog_core_t::c_gaia_field_next_table,
+        .prev_child_offset = c_invalid_reference_offset,
         .parent_offset = catalog_core_t::c_gaia_field_parent_table,
         .cardinality = cardinality_t::many,
-        .parent_required = false});
+        .parent_required = false,
+        .value_linked = false});
 
     auto gaia_table_gaia_relationship_parent = std::make_shared<relationship_t>(relationship_t{
         .parent_type = gaia_table,
         .child_type = gaia_relationship,
         .first_child_offset = catalog_core_t::c_gaia_table_first_outgoing_relationships,
         .next_child_offset = catalog_core_t::c_gaia_relationship_next_parent,
+        .prev_child_offset = c_invalid_reference_offset,
         .parent_offset = catalog_core_t::c_gaia_relationship_parent_parent,
         .cardinality = cardinality_t::many,
-        .parent_required = false});
+        .parent_required = false,
+        .value_linked = false});
 
     auto gaia_table_gaia_relationship_child = std::make_shared<relationship_t>(relationship_t{
         .parent_type = gaia_table,
         .child_type = gaia_relationship,
         .first_child_offset = catalog_core_t::c_gaia_table_first_incoming_relationships,
         .next_child_offset = catalog_core_t::c_gaia_relationship_next_child,
+        .prev_child_offset = c_invalid_reference_offset,
         .parent_offset = catalog_core_t::c_gaia_relationship_parent_child,
         .cardinality = cardinality_t::many,
-        .parent_required = false});
+        .parent_required = false,
+        .value_linked = false});
 
     auto gaia_ruleset_gaia_rule = std::make_shared<relationship_t>(relationship_t{
         .parent_type = gaia_ruleset,
         .child_type = gaia_rule,
         .first_child_offset = catalog_core_t::c_gaia_ruleset_first_gaia_rules,
         .next_child_offset = catalog_core_t::c_gaia_rule_next_ruleset,
+        .prev_child_offset = c_invalid_reference_offset,
         .parent_offset = catalog_core_t::c_gaia_rule_parent_ruleset,
         .cardinality = cardinality_t::many,
-        .parent_required = false});
+        .parent_required = false,
+        .value_linked = false});
 
     auto gaia_table_gaia_index = std::make_shared<relationship_t>(relationship_t{
         .parent_type = gaia_table,
         .child_type = gaia_index,
         .first_child_offset = catalog_core_t::c_gaia_table_first_gaia_indexes,
         .next_child_offset = catalog_core_t::c_gaia_index_next_table,
+        .prev_child_offset = c_invalid_reference_offset,
         .parent_offset = catalog_core_t::c_gaia_index_parent_table,
         .cardinality = cardinality_t::many,
-        .parent_required = false});
+        .parent_required = false,
+        .value_linked = false});
 
     auto gaia_rule_rule_relationship = std::make_shared<relationship_t>(relationship_t{
         .parent_type = gaia_rule,
@@ -179,106 +202,129 @@ void type_registry_t::init()
         .next_child_offset = catalog_core_t::c_rule_relationship_next_rule,
         .parent_offset = catalog_core_t::c_rule_relationship_parent_rule,
         .cardinality = cardinality_t::many,
-        .parent_required = false});
+        .parent_required = false,
+        .value_linked = false});
 
     auto gaia_database_app_database = std::make_shared<relationship_t>(relationship_t{
         .parent_type = gaia_database,
         .child_type = app_database,
         .first_child_offset = catalog_core_t::c_gaia_database_first_app_databases,
         .next_child_offset = catalog_core_t::c_app_database_next_database,
+        .prev_child_offset = c_invalid_reference_offset,
         .parent_offset = catalog_core_t::c_app_database_parent_database,
         .cardinality = cardinality_t::many,
-        .parent_required = false});
+        .parent_required = false,
+        .value_linked = false});
 
     auto gaia_database_ruleset_database = std::make_shared<relationship_t>(relationship_t{
         .parent_type = gaia_database,
         .child_type = ruleset_database,
         .first_child_offset = catalog_core_t::c_gaia_database_first_ruleset_databases,
         .next_child_offset = catalog_core_t::c_ruleset_database_next_database,
+        .prev_child_offset = c_invalid_reference_offset,
         .parent_offset = catalog_core_t::c_ruleset_database_parent_database,
         .cardinality = cardinality_t::many,
-        .parent_required = false});
+        .parent_required = false,
+        .value_linked = false});
 
     auto gaia_application_app_database = std::make_shared<relationship_t>(relationship_t{
         .parent_type = gaia_application,
         .child_type = app_database,
         .first_child_offset = catalog_core_t::c_gaia_application_first_app_databases,
         .next_child_offset = catalog_core_t::c_app_database_next_application,
+        .prev_child_offset = c_invalid_reference_offset,
         .parent_offset = catalog_core_t::c_app_database_parent_application,
         .cardinality = cardinality_t::many,
-        .parent_required = false});
+        .parent_required = false,
+        .value_linked = false});
 
     auto gaia_application_app_ruleset = std::make_shared<relationship_t>(relationship_t{
         .parent_type = gaia_application,
         .child_type = app_ruleset,
         .first_child_offset = catalog_core_t::c_gaia_application_first_app_rulesets,
         .next_child_offset = catalog_core_t::c_app_ruleset_next_application,
+        .prev_child_offset = c_invalid_reference_offset,
         .parent_offset = catalog_core_t::c_app_ruleset_parent_application,
         .cardinality = cardinality_t::many,
-        .parent_required = false});
+        .parent_required = false,
+        .value_linked = false});
 
     auto gaia_ruleset_ruleset_database = std::make_shared<relationship_t>(relationship_t{
         .parent_type = gaia_ruleset,
         .child_type = ruleset_database,
         .first_child_offset = catalog_core_t::c_gaia_ruleset_first_ruleset_databases,
         .next_child_offset = catalog_core_t::c_ruleset_database_next_ruleset,
+        .prev_child_offset = c_invalid_reference_offset,
         .parent_offset = catalog_core_t::c_ruleset_database_parent_ruleset,
         .cardinality = cardinality_t::many,
-        .parent_required = false});
+        .parent_required = false,
+        .value_linked = false});
 
     auto gaia_ruleset_app_ruleset = std::make_shared<relationship_t>(relationship_t{
         .parent_type = gaia_ruleset,
         .child_type = app_ruleset,
         .first_child_offset = catalog_core_t::c_gaia_ruleset_first_app_rulesets,
         .next_child_offset = catalog_core_t::c_app_ruleset_next_ruleset,
+        .prev_child_offset = c_invalid_reference_offset,
         .parent_offset = catalog_core_t::c_app_ruleset_parent_ruleset,
         .cardinality = cardinality_t::many,
-        .parent_required = false});
+        .parent_required = false,
+        .value_linked = false});
 
     auto gaia_table_rule_table = std::make_shared<relationship_t>(relationship_t{
         .parent_type = gaia_table,
         .child_type = rule_table,
         .first_child_offset = catalog_core_t::c_gaia_table_first_rule_tables,
         .next_child_offset = catalog_core_t::c_rule_table_next_table,
+        .prev_child_offset = c_invalid_reference_offset,
         .parent_offset = catalog_core_t::c_rule_table_parent_table,
         .cardinality = cardinality_t::many,
-        .parent_required = false});
+        .parent_required = false,
+        .value_linked = false});
 
     auto gaia_rule_rule_table = std::make_shared<relationship_t>(relationship_t{
         .parent_type = gaia_rule,
         .child_type = rule_table,
         .first_child_offset = catalog_core_t::c_gaia_rule_first_rule_tables,
         .next_child_offset = catalog_core_t::c_rule_table_next_rule,
+        .prev_child_offset = c_invalid_reference_offset,
         .parent_offset = catalog_core_t::c_rule_table_parent_rule,
         .cardinality = cardinality_t::many,
-        .parent_required = false});
+        .parent_required = false,
+        .value_linked = false});
 
     auto gaia_rule_rule_field = std::make_shared<relationship_t>(relationship_t{
         .parent_type = gaia_rule,
         .child_type = rule_field,
         .first_child_offset = catalog_core_t::c_gaia_rule_first_rule_fields,
         .next_child_offset = catalog_core_t::c_rule_field_next_rule,
+        .prev_child_offset = c_invalid_reference_offset,
         .parent_offset = catalog_core_t::c_rule_field_parent_rule,
         .cardinality = cardinality_t::many,
-        .parent_required = false});
+        .parent_required = false,
+        .value_linked = false});
 
     auto gaia_field_rule_field = std::make_shared<relationship_t>(relationship_t{
         .parent_type = gaia_field,
         .child_type = rule_field,
         .first_child_offset = catalog_core_t::c_gaia_field_first_rule_fields,
         .next_child_offset = catalog_core_t::c_rule_field_next_field,
+        .prev_child_offset = c_invalid_reference_offset,
         .parent_offset = catalog_core_t::c_rule_field_parent_field,
         .cardinality = cardinality_t::many,
-        .parent_required = false});
+        .parent_required = false,
+        .value_linked = false});
 
     auto gaia_relationship_rule_relationship = std::make_shared<relationship_t>(relationship_t{
         .parent_type = gaia_relationship,
         .child_type = rule_relationship,
         .first_child_offset = catalog_core_t::c_gaia_relationship_first_rule_relationships,
         .next_child_offset = catalog_core_t::c_rule_relationship_next_relationship,
+        .prev_child_offset = c_invalid_reference_offset,
         .parent_offset = catalog_core_t::c_rule_relationship_parent_relationship,
         .cardinality = cardinality_t::many,
-        .parent_required = false});
+        .parent_required = false,
+        .value_linked = false});
 
     auto& gaia_database_metadata = get_or_create_no_lock(gaia_database);
     gaia_database_metadata.add_parent_relationship(gaia_database_gaia_table);
@@ -406,9 +452,11 @@ static std::shared_ptr<relationship_t> create_relationship(relationship_view_t r
         .child_type = child_table_type,
         .first_child_offset = relationship.first_child_offset(),
         .next_child_offset = relationship.next_child_offset(),
+        .prev_child_offset = relationship.prev_child_offset(),
         .parent_offset = relationship.parent_offset(),
         .cardinality = cardinality_t::many,
-        .parent_required = false});
+        .parent_required = false,
+        .value_linked = relationship.is_value_linked()});
 }
 
 type_metadata_t& type_registry_t::create(gaia_type_t type)

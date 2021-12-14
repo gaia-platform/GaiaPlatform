@@ -66,16 +66,6 @@ namespace db
     return catalog::Getgaia_relationship(m_obj_ptr->data())->name()->c_str();
 }
 
-[[nodiscard]] const char* relationship_view_t::to_child_link_name() const
-{
-    return catalog::Getgaia_relationship(m_obj_ptr->data())->to_child_link_name()->c_str();
-}
-
-[[nodiscard]] const char* relationship_view_t::to_parent_link_name() const
-{
-    return catalog::Getgaia_relationship(m_obj_ptr->data())->to_parent_link_name()->c_str();
-}
-
 [[nodiscard]] reference_offset_t relationship_view_t::first_child_offset() const
 {
     return catalog::Getgaia_relationship(m_obj_ptr->data())->first_child_offset();
@@ -84,6 +74,11 @@ namespace db
 [[nodiscard]] reference_offset_t relationship_view_t::next_child_offset() const
 {
     return catalog::Getgaia_relationship(m_obj_ptr->data())->next_child_offset();
+}
+
+[[nodiscard]] reference_offset_t relationship_view_t::prev_child_offset() const
+{
+    return catalog::Getgaia_relationship(m_obj_ptr->data())->prev_child_offset();
 }
 
 [[nodiscard]] reference_offset_t relationship_view_t::parent_offset() const
@@ -109,6 +104,15 @@ namespace db
 [[nodiscard]] const flatbuffers::Vector<uint16_t>* relationship_view_t::child_field_positions() const
 {
     return catalog::Getgaia_relationship(m_obj_ptr->data())->child_field_positions();
+}
+
+[[nodiscard]] bool relationship_view_t::is_value_linked() const
+{
+    // This should never happen unless there are some catalog or DDL parsing bugs.
+    ASSERT_PRECONDITION(
+        child_field_positions()->size() == parent_field_positions()->size(),
+        "Invalid field settings for the value linked relationship.");
+    return parent_field_positions()->size() > 0;
 }
 
 [[nodiscard]] const char* index_view_t::name() const

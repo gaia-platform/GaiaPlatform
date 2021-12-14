@@ -24,24 +24,31 @@ target_link_libraries(gaia PRIVATE
 install(TARGETS gaia DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 #
-# Ensure this test only includes public headers and links to the gaia shared library.
+# Ensure this test only includes public headers and links to the gaia shared library
+# Emulate what an SDK user does as closely as possible minus gaiat functionality for
+# a production only (non-gaia release) build.
 #
 set(SDK_TEST_INCLUDES
   ${GAIA_INC}
+  ${GAIA_PROD_BUILD}/deps/gaia_spdlog/include
+  ${GAIA_PROD_BUILD}/deps/flatbuffers/include
+  ${GAIA_PROD_BUILD}/gaia_generated/addr_book
 )
 
 configure_file("${GAIA_CONFIG}" "${PROJECT_BINARY_DIR}/gaia.conf")
 configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
-# Disabling test_sdk until we can remove the dependency on non-public methods exported from the SDK shared library.
-# add_gtest(test_sdk "tests/test_sdk.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;gaia_spdlog;dac_addr_book")
+configure_file("${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl" "${PROJECT_BINARY_DIR}/addr_book.ddl") 
+
+add_gtest(test_sdk "tests/test_sdk.cpp;${GAIA_PROD_BUILD}/gaia_generated/addr_book/gaia_addr_book.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia")
+set_source_files_properties(${GAIA_PROD_BUILD}/gaia_generated/addr_book/gaia_addr_book.cpp PROPERTIES GENERATED 1)
+
 add_gtest(test_sdk_no_init_rules "tests/test_sdk_no_init_rules.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;dac_addr_book")
 
-# Set CPack variables required for building a DEB/RPM package.
+# Set CPack variables required for building a DEB package.
 #
 # See:
 # https://cmake.org/cmake/help/v3.17/module/CPack.html#variables-common-to-all-cpack-generators
 # https://cmake.org/cmake/help/v3.17/cpack_gen/deb.html#variables-specific-to-cpack-debian-deb-generator
-# https://cmake.org/cmake/help/v3.17/cpack_gen/rpm.html#variables-specific-to-cpack-rpm-generator
 #
 set(CPACK_PACKAGE_CONTACT "info@gaiaplatform.io")
 set(CPACK_PACKAGE_VENDOR "Gaia Platform")
@@ -56,7 +63,7 @@ set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSIO
 
 # DEB specific section.
 #
-set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE amd64)
+set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${GAIA_BUILD_ARCH})
 set(CPACK_DEBIAN_PACKAGE_DESCRIPTION ${CPACK_PACKAGE_DESCRIPTION})
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER ${CPACK_PACKAGE_CONTACT})
 set(CPACK_DEBIAN_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}.deb)
@@ -92,18 +99,6 @@ set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
 set(CPACK_DEBIAN_PACKAGE_SECTION "custom")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 
-# RPM specific section.
-#
-set(CPACK_RPM_PACKAGE_ARCHITECTURE amd64)
-set(CPACK_RPM_PACKAGE_DESCRIPTION ${CPACK_PACKAGE_DESCRIPTION})
-set(CPACK_RPM_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}.rpm)
-set(CPACK_RPM_PACKAGE_REQUIRES "llvm-toolset-clang >= 10.0.1, llvm-toolset-lld >= 10.0.1, libcxx-devel >= 10.0.1, libcxxabi-devel >= 10.0.1")
-
-
-# Note: set this variable to use a custom RPM spec file.
-# ATM the file does not work. https://gaiaplatform.atlassian.net/browse/GAIAPLAT-592
-# set(CPACK_RPM_USER_BINARY_SPECFILE ${PROJECT_SOURCE_DIR}/rpm/gaia.spec)
-
 # Set CPackDebHelper variables:
 #
 # The directory that contains the files listed in CPACK_DEBHELPER_INPUT.
@@ -128,9 +123,6 @@ set(CPACK_DEBHELPER_RUN
 set(CPACK_DEBHELPER_GENCONTROL ON)
 # Run the debhelpers in verbose mode.
 set(CPACK_DEBHELPER_VERBOSE ON)
-
-# Build rpm
-set(CPACK_GENERATOR "RPM")
 
 if((BUILD_GAIA_RELEASE) AND (NOT BUILD_GAIA_LLVM_TESTS))
   # Load the CPackDebHelper module, this will:

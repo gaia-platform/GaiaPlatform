@@ -129,13 +129,13 @@ protected:
     const T_fb* row() const;
 
     /**
-     * Ensure the type requested by the gaia_id_t matches container_type_id. If the passed in
-     * id does not exist in the database then return c_invalid_gaia_id.  If the id
-     * does exist in the database and the type of the record matches then return the
-     * passed in id.  If the type does not match then throw an invalid_object_type
-     * exception.
+     * Verify that the type requested by the gaia_id_t matches container_type_id.
+     * If the passed in id does not exist in the database,
+     * then throw an invalid_object_id exception.
+     * If the type does not match container_type_id,
+     * then throw an invalid_object_type exception.
      */
-    static gaia::common::gaia_id_t verify_type(gaia::common::gaia_id_t id);
+    static void verify_type(gaia::common::gaia_id_t id);
 
     /**
      * Convert a flatbuffers::Vector to the corresponding dac_vector_t.

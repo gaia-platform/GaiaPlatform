@@ -156,6 +156,7 @@ void ddl_executor_t::bootstrap_catalog()
         //     deprecated bool,
         //     first_child_offset uint16,
         //     next_child_offset uint16,
+        //     prev_child_offset uint16,
         //     parent_offset uint16,
         //     parent_field_positions uint16[],
         //     child_field_positions uint16[],
@@ -168,16 +169,14 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("cardinality", data_type_t::e_uint8, 1));
         fields.emplace_back(make_unique<data_field_def_t>("parent_required", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("deprecated", data_type_t::e_bool, 1));
-        // See gaia::db::relationship_t for more details about relationships.
-        // (parent)-[first_child_offset]->(child)
         fields.emplace_back(make_unique<data_field_def_t>("first_child_offset", data_type_t::e_uint16, 1));
-        // (child)-[next_child_offset]->(child)
         fields.emplace_back(make_unique<data_field_def_t>("next_child_offset", data_type_t::e_uint16, 1));
-        // (child)-[parent_offset]->(parent)
+        fields.emplace_back(make_unique<data_field_def_t>("prev_child_offset", data_type_t::e_uint16, 1));
         fields.emplace_back(make_unique<data_field_def_t>("parent_offset", data_type_t::e_uint16, 1));
         fields.emplace_back(make_unique<data_field_def_t>("parent_field_positions", data_type_t::e_uint16, 0));
         fields.emplace_back(make_unique<data_field_def_t>("child_field_positions", data_type_t::e_uint16, 0));
         fields.emplace_back(make_unique<data_field_def_t>("hash", data_type_t::e_string, 1));
+        // See gaia::db::relationship_t for more details about relationships.
         create_table_impl(
             c_catalog_db_name, "gaia_relationship", fields, is_system, throw_on_exists, auto_drop,
             static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_relationship));
@@ -640,6 +639,7 @@ gaia_id_t ddl_executor_t::create_relationship(
     reference_offset_t parent_offset = child_available_offset;
     reference_offset_t next_child_offset = child_available_offset + 1;
     validate_new_reference_offset(next_child_offset);
+    reference_offset_t prev_child_offset = c_invalid_reference_offset;
 
     bool is_parent_required = false;
     bool is_deprecated = false;
@@ -704,6 +704,39 @@ gaia_id_t ddl_executor_t::create_relationship(
                 }
             }
         }
+        else
+        {
+            // For 1:N relationships, we need to create a value index on the
+            // fields of the child side if they are not already indexed.
+            bool index_exists = false;
+            for (const gaia_index_t& index : gaia_table_t::get(child_table_id).gaia_indexes())
+            {
+                if (index.fields().size() != child_field_ids.size())
+                {
+                    continue;
+                }
+                bool fields_match = true;
+                for (size_t i = 0; i < child_field_ids.size(); i++)
+                {
+                    if (child_field_ids[i] != index.fields()[i])
+                    {
+                        fields_match = false;
+                        break;
+                    }
+                }
+                if (fields_match)
+                {
+                    index_exists = true;
+                    break;
+                }
+            }
+            if (!index_exists)
+            {
+                bool is_unique_index = false;
+                index_type_t index_type = index_type_t::range;
+                create_index(name, is_unique_index, index_type, child_table_id, child_field_ids);
+            }
+        }
 
         for (gaia_id_t field_id : parent_field_ids)
         {
@@ -713,14 +746,17 @@ gaia_id_t ddl_executor_t::create_relationship(
         {
             child_field_positions.push_back(gaia_field_t::get(field_id).position());
         }
+
+        prev_child_offset = next_child_offset + 1;
+        validate_new_reference_offset(prev_child_offset);
     }
 
     // These casts works because a field_position_t is a thin wrapper over uint16_t,
     // but its success is not guaranteed by the language and is undefined behavior (UB).
     // TODO: Replace reinterpret_cast with bit_cast when it becomes available.
-    std::vector<field_position_t::value_type>* parent_field_position_values
+    auto* parent_field_position_values
         = reinterpret_cast<std::vector<field_position_t::value_type>*>(&parent_field_positions);
-    std::vector<field_position_t::value_type>* child_field_position_values
+    auto* child_field_position_values
         = reinterpret_cast<std::vector<field_position_t::value_type>*>(&child_field_positions);
 
     gaia_id_t relationship_id = gaia_relationship_t::insert_row(
@@ -732,6 +768,7 @@ gaia_id_t ddl_executor_t::create_relationship(
         is_deprecated,
         first_child_offset,
         next_child_offset,
+        prev_child_offset,
         parent_offset,
         *parent_field_position_values,
         *child_field_position_values,
@@ -964,7 +1001,10 @@ reference_offset_t ddl_executor_t::find_child_available_offset(const gaia_table_
     reference_offset_t max_offset = 0;
     for (const auto& relationship : relationships)
     {
-        max_offset = std::max({max_offset.value(), relationship.next_child_offset(), relationship.parent_offset()});
+        max_offset = std::max(
+            {max_offset.value(),
+             relationship.prev_child_offset() == c_invalid_reference_offset ? relationship.next_child_offset() : relationship.prev_child_offset(),
+             relationship.parent_offset()});
 
         ASSERT_INVARIANT(max_offset != c_invalid_reference_offset, "Invalid reference offset detected!");
     }
@@ -1218,26 +1258,36 @@ gaia_id_t ddl_executor_t::create_index(
     }
 
     std::vector<gaia_id_t> index_field_ids = find_table_field_ids(table_id, field_names);
+    return create_index(index_name, unique, type, table_id, index_field_ids);
+}
+
+gaia_id_t ddl_executor_t::create_index(
+    const std::string& name,
+    bool unique,
+    index_type_t type,
+    gaia_id_t table_id,
+    const std::vector<gaia_id_t>& field_ids)
+{
     // This cast works because a gaia_id_t is a thin wrapper over uint64_t,
     // but its success is not guaranteed by the language and is undefined behavior (UB).
     // TODO: Replace reinterpret_cast with bit_cast when it becomes available.
-    std::vector<gaia_id_t::value_type>* index_field_id_values
-        = reinterpret_cast<std::vector<gaia_id_t::value_type>*>(&index_field_ids);
+    auto* field_id_values
+        = reinterpret_cast<const std::vector<gaia_id_t::value_type>*>(&field_ids);
 
     gaia_id_t index_id = gaia_index_t::insert_row(
-        index_name.c_str(),
+        name.c_str(),
         unique,
         static_cast<uint8_t>(type),
-        *index_field_id_values);
+        *field_id_values);
 
     gaia_table_t::get(table_id).gaia_indexes().insert(index_id);
 
     // Creating an unique index on a single field automatically makes the field
     // unique. Do nothing for multiple-field index creation because we do not
     // support unique constraints for composite keys at the moment.
-    if (unique && index_field_ids.size() == 1)
+    if (unique && field_ids.size() == 1)
     {
-        auto field_writer = gaia_field_t::get(index_field_ids.front()).writer();
+        auto field_writer = gaia_field_t::get(field_ids.front()).writer();
         field_writer.unique = true;
         field_writer.update_row();
     }

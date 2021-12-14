@@ -52,11 +52,20 @@ def __read_source_json(args, next_directory_name):
         print(f"Suite stats file '{suite_stats_file}' does not exist.")
         return 1
 
+    suite_memory_file = os.path.join(
+        args.source_directory, next_directory_name, "memory.json"
+    )
+
     with open(suite_summary_file) as input_file:
         data_dictionary = json.load(input_file)
     with open(suite_stats_file) as input_file:
         stats_dictionary = json.load(input_file)
-    return data_dictionary, stats_dictionary
+
+    memory_dictionary = None
+    if os.path.exists(suite_memory_file):
+        with open(suite_memory_file) as input_file:
+            memory_dictionary = json.load(input_file)
+    return data_dictionary, stats_dictionary, memory_dictionary
 
 
 def __process_peformance_result(
@@ -90,16 +99,39 @@ def __process_integration_result(
             failed_integration_tests.append(next_directory_name + "." + next_test_name)
 
 
-# pylint: disable=too-many-arguments)
+def __handle_memory_if_present(memory_dictionary, suite_output_dictionary):
+    if memory_dictionary:
+        memory_summary = {}
+        suite_output_dictionary["memory"] = memory_summary
+        for application_name in memory_dictionary["samples"]:
+            memory_summary[application_name] = {}
+            min_value = -1
+            max_value = -1
+            for next_timestamp in memory_dictionary["samples"][application_name]:
+                total_memory_value = memory_dictionary["samples"][application_name][
+                    next_timestamp
+                ]["total"]
+                if min_value == -1:
+                    min_value = max_value = float(total_memory_value)
+                else:
+                    min_value = min(float(total_memory_value), min_value)
+                    max_value = max(float(total_memory_value), max_value)
+            memory_summary[application_name]["max"] = max_value
+            memory_summary[application_name]["min"] = min_value
+
+
+# pylint: disable=too-many-arguments, too-many-locals
 def __process_suite_results(
     data_dictionary,
     stats_dictionary,
+    memory_dictionary,
     next_directory_name,
     total_performance_tests,
     total_integration_tests,
     failed_integration_tests,
 ):
     suite_output_dictionary = {}
+    suite_output_dictionary["tests"] = {}
     for next_test_name in data_dictionary:
         if "configuration" in data_dictionary[next_test_name]:
             thread_count = data_dictionary[next_test_name]["configuration"][
@@ -169,11 +201,14 @@ def __process_suite_results(
                 is_list_measurement,
             )
 
-        suite_output_dictionary[next_test_name] = test_output_dictionary
+        suite_output_dictionary["tests"][next_test_name] = test_output_dictionary
+
+    __handle_memory_if_present(memory_dictionary, suite_output_dictionary)
+
     return suite_output_dictionary, total_performance_tests, total_integration_tests
 
 
-# pylint: enable=too-many-arguments)
+# pylint: enable=too-many-arguments, too-many-locals
 
 
 def __process_script_action():
@@ -200,7 +235,7 @@ def __process_script_action():
         if os.path.isdir(os.path.join(args.source_directory, file_name))
     ]
     for next_directory_name in only_directories:
-        data_dictionary, stats_dictionary = __read_source_json(
+        data_dictionary, stats_dictionary, memory_dictionary = __read_source_json(
             args, next_directory_name
         )
 
@@ -211,6 +246,7 @@ def __process_script_action():
         ) = __process_suite_results(
             data_dictionary,
             stats_dictionary,
+            memory_dictionary,
             next_directory_name,
             total_performance_tests,
             total_integration_tests,

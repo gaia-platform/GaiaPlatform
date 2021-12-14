@@ -39,7 +39,7 @@ protected:
 
         for (int i = c_lower_id_range; i < c_higher_id_range; i++)
         {
-            auto invalid_obj = gaia_ptr_t::open(i);
+            auto invalid_obj = gaia_ptr_t::from_gaia_id(i);
 
             if (!invalid_obj)
             {
@@ -626,12 +626,13 @@ void insert_addressee(bool committed, gaia_id_t eid1, gaia_id_t aid1, gaia_id_t 
     begin_session();
     begin_transaction();
     {
-        auto e1 = employee_t::get(eid1);
-        auto a1 = address_t::get(aid1);
-        auto a2 = address_t::get(aid2);
-        auto a3 = address_t::get(aid3);
         if (committed)
         {
+            auto e1 = employee_t::get(eid1);
+            auto a1 = address_t::get(aid1);
+            auto a2 = address_t::get(aid2);
+            auto a3 = address_t::get(aid3);
+
             // Note this first insert has already been done. This is no-op.
             e1.addresses().insert(a1);
             e1.addresses().insert(a2);
@@ -639,7 +640,10 @@ void insert_addressee(bool committed, gaia_id_t eid1, gaia_id_t aid1, gaia_id_t 
         }
         else
         {
-            EXPECT_THROW(e1.addresses().insert(a1), invalid_object_state);
+            EXPECT_THROW(employee_t::get(eid1), invalid_object_id);
+            EXPECT_THROW(address_t::get(aid1), invalid_object_id);
+            EXPECT_THROW(address_t::get(aid2), invalid_object_id);
+            EXPECT_THROW(address_t::get(aid3), invalid_object_id);
         }
     }
     commit_transaction();
