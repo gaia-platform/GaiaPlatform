@@ -138,6 +138,7 @@ class Dependency:
             parser.add_argument(
                 '--base-image',
                 default=base_image_default,
+                choices=['ubuntu:18.04', 'ubuntu:20.04'],
                 help=f'Base image for build. Default: "{base_image_default}"'
             )
             cfg_enables_default = []
@@ -146,6 +147,7 @@ class Dependency:
                 default=cfg_enables_default,
                 action=Once,
                 nargs='+',
+                choices=['Debug', 'GaiaRelease', 'GaiaLLVMTests'],
                 help=(
                     f'Enable lines in gdev.cfg files gated by `enable_if`, `enable_if_any`, and'
                     f' `enable_if_all` functions. Default: "{cfg_enables_default}"'
