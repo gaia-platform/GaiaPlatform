@@ -177,12 +177,20 @@ for file in $(find production | grep -E "^(production|demo).*(\.hpp|\.cpp|\.inc)
         clang-format -i -output-replacements-xml "$file" | grep "<replacement " >/dev/null
         if [ $? -ne 1 ]; then
 
-            echo "Clang-format mismatch for file $file"
             if [ $FIX_MODE -ne 0 ]; then
+                echo "Clang-format mismatch for file $file"
                 echo "  Formatting file and staging file to git."
                 clang-format -i "$file"
                 git add "$file"
             else
+                echo ""
+                echo "Clang-format mismatch for file $file"
+                echo "---"
+                cp "$file" test.cpp
+                clang-format -i test.cpp
+                diff "$file" test.cpp
+                rm test.cpp
+                echo "---"
                 did_any_fail=1
             fi
         fi
