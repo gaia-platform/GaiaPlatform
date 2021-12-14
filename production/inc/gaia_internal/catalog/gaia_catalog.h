@@ -20,59 +20,59 @@ namespace catalog {
 constexpr int c_flatbuffer_builder_size = 128;
 
 // Constants contained in the rule_relationship object.
-constexpr uint32_t c_gaia_type_rule_relationship = 56u;
+constexpr uint32_t c_gaia_type_rule_relationship = 4294967286u;
 constexpr common::reference_offset_t c_rule_relationship_parent_rule = 0;
 constexpr common::reference_offset_t c_rule_relationship_next_rule = 1;
 constexpr common::reference_offset_t c_rule_relationship_parent_relationship = 2;
 constexpr common::reference_offset_t c_rule_relationship_next_relationship = 3;
 
 // Constants contained in the rule_field object.
-constexpr uint32_t c_gaia_type_rule_field = 56u;
+constexpr uint32_t c_gaia_type_rule_field = 4294967287u;
 constexpr common::reference_offset_t c_rule_field_parent_rule = 0;
 constexpr common::reference_offset_t c_rule_field_next_rule = 1;
 constexpr common::reference_offset_t c_rule_field_parent_field = 2;
 constexpr common::reference_offset_t c_rule_field_next_field = 3;
 
 // Constants contained in the rule_table object.
-constexpr uint32_t c_gaia_type_rule_table = 56u;
+constexpr uint32_t c_gaia_type_rule_table = 4294967288u;
 constexpr common::reference_offset_t c_rule_table_parent_rule = 0;
 constexpr common::reference_offset_t c_rule_table_next_rule = 1;
 constexpr common::reference_offset_t c_rule_table_parent_table = 2;
 constexpr common::reference_offset_t c_rule_table_next_table = 3;
 
 // Constants contained in the ruleset_database object.
-constexpr uint32_t c_gaia_type_ruleset_database = 48u;
+constexpr uint32_t c_gaia_type_ruleset_database = 4294967289u;
 constexpr common::reference_offset_t c_ruleset_database_parent_database = 0;
 constexpr common::reference_offset_t c_ruleset_database_next_database = 1;
 constexpr common::reference_offset_t c_ruleset_database_parent_ruleset = 2;
 constexpr common::reference_offset_t c_ruleset_database_next_ruleset = 3;
 
 // Constants contained in the app_ruleset object.
-constexpr uint32_t c_gaia_type_app_ruleset = 56u;
+constexpr uint32_t c_gaia_type_app_ruleset = 4294967290u;
 constexpr common::reference_offset_t c_app_ruleset_parent_application = 0;
 constexpr common::reference_offset_t c_app_ruleset_next_application = 1;
 constexpr common::reference_offset_t c_app_ruleset_parent_ruleset = 2;
 constexpr common::reference_offset_t c_app_ruleset_next_ruleset = 3;
 
 // Constants contained in the app_database object.
-constexpr uint32_t c_gaia_type_app_database = 48u;
+constexpr uint32_t c_gaia_type_app_database = 4294967287u;
 constexpr common::reference_offset_t c_app_database_parent_application = 0;
 constexpr common::reference_offset_t c_app_database_next_application = 1;
 constexpr common::reference_offset_t c_app_database_parent_database = 2;
 constexpr common::reference_offset_t c_app_database_next_database = 3;
 
 // Constants contained in the gaia_application object.
-constexpr uint32_t c_gaia_type_gaia_application = 64u;
+constexpr uint32_t c_gaia_type_gaia_application = 4294967288u;
 constexpr common::reference_offset_t c_gaia_application_first_app_databases = 0;
 constexpr common::reference_offset_t c_gaia_application_first_app_rulesets = 1;
 
 // Constants contained in the gaia_index object.
-constexpr uint32_t c_gaia_type_gaia_index = 92u;
+constexpr uint32_t c_gaia_type_gaia_index = 4294967289u;
 constexpr common::reference_offset_t c_gaia_index_parent_table = 0;
 constexpr common::reference_offset_t c_gaia_index_next_table = 1;
 
 // Constants contained in the gaia_rule object.
-constexpr uint32_t c_gaia_type_gaia_rule = 64u;
+constexpr uint32_t c_gaia_type_gaia_rule = 4294967293u;
 constexpr common::reference_offset_t c_gaia_rule_parent_ruleset = 0;
 constexpr common::reference_offset_t c_gaia_rule_next_ruleset = 1;
 constexpr common::reference_offset_t c_gaia_rule_first_rule_tables = 2;
@@ -80,13 +80,13 @@ constexpr common::reference_offset_t c_gaia_rule_first_rule_fields = 3;
 constexpr common::reference_offset_t c_gaia_rule_first_rule_relationships = 4;
 
 // Constants contained in the gaia_ruleset object.
-constexpr uint32_t c_gaia_type_gaia_ruleset = 76u;
+constexpr uint32_t c_gaia_type_gaia_ruleset = 4294967292u;
 constexpr common::reference_offset_t c_gaia_ruleset_first_gaia_rules = 0;
 constexpr common::reference_offset_t c_gaia_ruleset_first_app_rulesets = 1;
 constexpr common::reference_offset_t c_gaia_ruleset_first_ruleset_databases = 2;
 
 // Constants contained in the gaia_relationship object.
-constexpr uint32_t c_gaia_type_gaia_relationship = 156u;
+constexpr uint32_t c_gaia_type_gaia_relationship = 4294967290u;
 constexpr common::reference_offset_t c_gaia_relationship_parent_parent = 0;
 constexpr common::reference_offset_t c_gaia_relationship_next_parent = 1;
 constexpr common::reference_offset_t c_gaia_relationship_parent_child = 2;
@@ -94,13 +94,13 @@ constexpr common::reference_offset_t c_gaia_relationship_next_child = 3;
 constexpr common::reference_offset_t c_gaia_relationship_first_rule_relationships = 4;
 
 // Constants contained in the gaia_field object.
-constexpr uint32_t c_gaia_type_gaia_field = 96u;
+constexpr uint32_t c_gaia_type_gaia_field = 4294967295u;
 constexpr common::reference_offset_t c_gaia_field_parent_table = 0;
 constexpr common::reference_offset_t c_gaia_field_next_table = 1;
 constexpr common::reference_offset_t c_gaia_field_first_rule_fields = 2;
 
 // Constants contained in the gaia_table object.
-constexpr uint32_t c_gaia_type_gaia_table = 132u;
+constexpr uint32_t c_gaia_type_gaia_table = 4294967294u;
 constexpr common::reference_offset_t c_gaia_table_parent_database = 0;
 constexpr common::reference_offset_t c_gaia_table_next_database = 1;
 constexpr common::reference_offset_t c_gaia_table_first_gaia_fields = 2;
@@ -110,7 +110,7 @@ constexpr common::reference_offset_t c_gaia_table_first_gaia_indexes = 5;
 constexpr common::reference_offset_t c_gaia_table_first_rule_tables = 6;
 
 // Constants contained in the gaia_database object.
-constexpr uint32_t c_gaia_type_gaia_database = 76u;
+constexpr uint32_t c_gaia_type_gaia_database = 4294967291u;
 constexpr common::reference_offset_t c_gaia_database_first_gaia_tables = 0;
 constexpr common::reference_offset_t c_gaia_database_first_app_databases = 1;
 constexpr common::reference_offset_t c_gaia_database_first_ruleset_databases = 2;
@@ -697,15 +697,15 @@ public:
     typedef gaia::direct_access::reference_chain_container_t<gaia_field_t> gaia_fields_list_t;
     gaia_table_t() : dac_object_t() {}
     static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(const char* name, const char* hash, const char* type_name, uint32_t type, bool is_system, const std::vector<uint8_t>& binary_schema, const std::vector<uint8_t>& serialization_template);
+    static gaia::common::gaia_id_t insert_row(const char* name, uint32_t type, bool is_system, const std::vector<uint8_t>& binary_schema, const std::vector<uint8_t>& serialization_template, const char* hash, const char* type_name);
     static gaia::direct_access::dac_container_t<c_gaia_type_gaia_table, gaia_table_t> list();
     const char* name() const;
-    const char* hash() const;
-    const char* type_name() const;
     uint32_t type() const;
     bool is_system() const;
     gaia::direct_access::dac_vector_t<uint8_t> binary_schema() const;
     gaia::direct_access::dac_vector_t<uint8_t> serialization_template() const;
+    const char* hash() const;
+    const char* type_name() const;
     gaia_database_t database() const;
     rule_tables_list_t rule_tables() const;
     gaia_indexes_list_t gaia_indexes() const;
@@ -717,12 +717,12 @@ public:
     struct expr_ {
         static gaia::direct_access::expression_t<gaia_table_t, gaia::common::gaia_id_t> gaia_id;
         static gaia::direct_access::expression_t<gaia_table_t, const char*> name;
-        static gaia::direct_access::expression_t<gaia_table_t, const char*> hash;
-        static gaia::direct_access::expression_t<gaia_table_t, const char*> type_name;
         static gaia::direct_access::expression_t<gaia_table_t, uint32_t> type;
         static gaia::direct_access::expression_t<gaia_table_t, bool> is_system;
         static gaia::direct_access::expression_t<gaia_table_t, gaia::direct_access::dac_vector_t<uint8_t>> binary_schema;
         static gaia::direct_access::expression_t<gaia_table_t, gaia::direct_access::dac_vector_t<uint8_t>> serialization_template;
+        static gaia::direct_access::expression_t<gaia_table_t, const char*> hash;
+        static gaia::direct_access::expression_t<gaia_table_t, const char*> type_name;
         static gaia::direct_access::expression_t<gaia_table_t, gaia_database_t> database;
         static gaia::direct_access::expression_t<gaia_table_t, gaia_table_t::rule_tables_list_t> rule_tables;
         static gaia::direct_access::expression_t<gaia_table_t, gaia_table_t::gaia_indexes_list_t> gaia_indexes;
@@ -738,12 +738,12 @@ private:
 namespace gaia_table_expr {
     static auto& gaia_id = gaia_table_t::expr::gaia_id;
     static auto& name = gaia_table_t::expr::name;
-    static auto& hash = gaia_table_t::expr::hash;
-    static auto& type_name = gaia_table_t::expr::type_name;
     static auto& type = gaia_table_t::expr::type;
     static auto& is_system = gaia_table_t::expr::is_system;
     static auto& binary_schema = gaia_table_t::expr::binary_schema;
     static auto& serialization_template = gaia_table_t::expr::serialization_template;
+    static auto& hash = gaia_table_t::expr::hash;
+    static auto& type_name = gaia_table_t::expr::type_name;
     static auto& database = gaia_table_t::expr::database;
     static auto& rule_tables = gaia_table_t::expr::rule_tables;
     static auto& gaia_indexes = gaia_table_t::expr::gaia_indexes;
@@ -754,12 +754,12 @@ namespace gaia_table_expr {
 
 template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, gaia::common::gaia_id_t> gaia_table_t::expr_<unused_t>::gaia_id{&gaia_table_t::gaia_id};
 template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, const char*> gaia_table_t::expr_<unused_t>::name{&gaia_table_t::name};
-template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, const char*> gaia_table_t::expr_<unused_t>::hash{&gaia_table_t::hash};
-template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, const char*> gaia_table_t::expr_<unused_t>::type_name{&gaia_table_t::type_name};
 template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, uint32_t> gaia_table_t::expr_<unused_t>::type{&gaia_table_t::type};
 template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, bool> gaia_table_t::expr_<unused_t>::is_system{&gaia_table_t::is_system};
 template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, gaia::direct_access::dac_vector_t<uint8_t>> gaia_table_t::expr_<unused_t>::binary_schema{&gaia_table_t::binary_schema};
 template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, gaia::direct_access::dac_vector_t<uint8_t>> gaia_table_t::expr_<unused_t>::serialization_template{&gaia_table_t::serialization_template};
+template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, const char*> gaia_table_t::expr_<unused_t>::hash{&gaia_table_t::hash};
+template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, const char*> gaia_table_t::expr_<unused_t>::type_name{&gaia_table_t::type_name};
 template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, gaia_database_t> gaia_table_t::expr_<unused_t>::database{&gaia_table_t::database};
 template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, gaia_table_t::rule_tables_list_t> gaia_table_t::expr_<unused_t>::rule_tables{&gaia_table_t::rule_tables};
 template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, gaia_table_t::gaia_indexes_list_t> gaia_table_t::expr_<unused_t>::gaia_indexes{&gaia_table_t::gaia_indexes};

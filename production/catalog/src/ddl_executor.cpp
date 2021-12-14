@@ -1007,7 +1007,6 @@ gaia_id_t ddl_executor_t::create_table_impl(
     gaia_type_t fixed_type)
 {
     ASSERT_PRECONDITION(throw_on_exists || !auto_drop, c_assert_throw_and_auto_drop);
-
     gaia_id_t db_id = find_db_id(in_context(db_name));
     if (db_id == c_invalid_gaia_id)
     {
@@ -1073,12 +1072,12 @@ gaia_id_t ddl_executor_t::create_table_impl(
 
     gaia_id_t table_id = gaia_table_t::insert_row(
         table_name.c_str(),
-        c_empty_hash,
-        c_empty_type_name,
         table_type,
         is_system,
         bfbs,
-        bin);
+        bin,
+        c_empty_hash,
+        c_empty_type_name);
 
     gaia_log::catalog().debug("Created table '{}', type:'{}', id:'{}'", table_name, table_type, table_id);
 
@@ -1103,6 +1102,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
             data_field->active,
             data_field->unique,
             c_empty_hash);
+
         // Connect the field to the table it belongs to.
         gaia_table_t::get(table_id).gaia_fields().insert(field_id);
         // Create an unique range index for the unique field.

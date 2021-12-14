@@ -394,9 +394,9 @@ const char* gaia_table_t::gaia_typename() {
     static const char* gaia_typename = "gaia_table_t";
     return gaia_typename;
 }
-gaia::common::gaia_id_t gaia_table_t::insert_row(const char* name, const char* hash, const char* type_name, uint32_t type, bool is_system, const std::vector<uint8_t>& binary_schema, const std::vector<uint8_t>& serialization_template) {
+gaia::common::gaia_id_t gaia_table_t::insert_row(const char* name, uint32_t type, bool is_system, const std::vector<uint8_t>& binary_schema, const std::vector<uint8_t>& serialization_template, const char* hash, const char* type_name) {
     flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-    b.Finish(internal::Creategaia_tableDirect(b, name, hash, type_name, type, is_system, &binary_schema, &serialization_template));
+    b.Finish(internal::Creategaia_tableDirect(b, name, type, is_system, &binary_schema, &serialization_template, hash, type_name));
     return dac_object_t::insert_row(b);
 }
 gaia::direct_access::dac_container_t<c_gaia_type_gaia_table, gaia_table_t> gaia_table_t::list() {
@@ -404,12 +404,6 @@ gaia::direct_access::dac_container_t<c_gaia_type_gaia_table, gaia_table_t> gaia_
 }
 const char* gaia_table_t::name() const {
     return GET_STR(name);
-}
-const char* gaia_table_t::hash() const {
-    return GET_STR(hash);
-}
-const char* gaia_table_t::type_name() const {
-    return GET_STR(type_name);
 }
 uint32_t gaia_table_t::type() const {
     return GET(type);
@@ -422,6 +416,12 @@ gaia::direct_access::dac_vector_t<uint8_t> gaia_table_t::binary_schema() const {
 }
 gaia::direct_access::dac_vector_t<uint8_t> gaia_table_t::serialization_template() const {
     return GET_ARRAY(serialization_template);
+}
+const char* gaia_table_t::hash() const {
+    return GET_STR(hash);
+}
+const char* gaia_table_t::type_name() const {
+    return GET_STR(type_name);
 }
 gaia_database_t gaia_table_t::database() const {
     return gaia_database_t::get(this->references()[c_gaia_table_parent_database]);
