@@ -1,8 +1,8 @@
 # Direct Access Multithread Demo
-A demo of the Gaia Direct Access API usage in a multithreaded application.
+Demonstrates usage of the Gaia Direct Access API in a multithreaded application.
 
 ## Build Instructions
-These instructions assume you have installed the SDK and have installed the `clang` and `cmake` tools.  See the SDK User's Guide for instructions on how to do this.
+These instructions assume you have installed the SDK and have installed the SDK and the `clang` and `cmake` tools.  See the SDK User's Guide for instructions
 
 1. To preserve the initial state of the sample code, copy the source files to a new directory.
     ```shell
@@ -21,7 +21,7 @@ These instructions assume you have installed the SDK and have installed the `cla
 
 # Running the Demo
 
-To run the `counter` binary from the build directory use the following command:
+To run the `counter` binary from the build directory, use the following command:
 
 ```shell
 ./counter

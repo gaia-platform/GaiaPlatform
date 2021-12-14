@@ -5,6 +5,7 @@
 
 #include <chrono>
 
+#include <random>
 #include <thread>
 #include <vector>
 
@@ -23,15 +24,15 @@ using gaia::direct_access::auto_transaction_t;
 ///
 /// Direct Access API multithreading example.
 ///
-/// This examples shows how to use the direct access API in
-/// a multi-threaded application, and how to deal with transaction
+/// Demonstrates usage of the Gaia Direct Access API in a
+/// multithreaded application and how to deal with transaction
 /// update conflicts.
 ///
 
 /**
  * Run concurrently by multiple threads, increases the counter
  * value by 1. This is likely to cause a transaction_update_conflict
- * which is handled by a naive exponential backoff strategy.
+ * which is handled by exponential backoff with full jitter strategy.
  *
  * @param counter_id The id of the record to be updated.
  */
@@ -40,21 +41,27 @@ void increase_count_worker(gaia::common::gaia_id_t counter_id)
     // Every thread must begin a new session.
     gaia::db::begin_session();
 
-    // Exponential backoff params.
+    // Exponential backoff parameters.
     constexpr int c_max_retries = 5;
     int retries = 0;
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
 
     while (true)
     {
         try
         {
             // Tries increasing the counter value by 1.
-            gaia::db::begin_transaction();
+            auto_transaction_t txn;
             counter_t counter = counter_t::get(counter_id);
             counter_writer counter_w = counter.writer();
             counter_w.count++;
             counter_w.update_row();
-            gaia::db::commit_transaction();
+            txn.commit();
+
+            // The thread exists as soon as the transaction is
+            // successfully committed.
             break;
         }
         catch (const gaia::db::transaction_update_conflict& e)
@@ -65,14 +72,17 @@ void increase_count_worker(gaia::common::gaia_id_t counter_id)
             {
                 // Stop the execution if the transaction cannot be completed
                 // within c_max_retries attempts.
+                gaia::db::end_session();
                 throw e;
             }
 
             gaia_log::app().info("A transaction update conflict has occurred!");
 
-            // Wait some time before retrying the update transaction.
+            // Wait an exponentially increasing time before retrying
+            // the update transaction.
             int sleep_millis = (1 << retries) * 10;
-            std::this_thread::sleep_for(std::chrono::milliseconds(sleep_millis));
+            std::uniform_int_distribution<int> dist(0, sleep_millis - 1);
+            std::this_thread::sleep_for(std::chrono::milliseconds(dist(gen)));
             retries++;
         }
     }
