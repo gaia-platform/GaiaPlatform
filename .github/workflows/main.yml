@@ -26,18 +26,9 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: Install PipEnv
-        uses: dschep/install-pipenv-action@v1
-        with:
-          version: 2021.5.29
-
       - name: Install Required Applications
         run: |
           sudo apt-get update && sudo apt-get install -y clang-format-10 flatbuffers-compiler
-
-      - name: Install Required Python Packages
-        run: |
-          python3.8 -m pip install --user atools argcomplete
 
       - name: Lint
         run: |
@@ -67,18 +58,9 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: Install PipEnv
-        uses: dschep/install-pipenv-action@v1
-        with:
-          version: 2021.5.29
-
       - name: Install Required Applications
         run: |
           sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
-
-      - name: Install Required Python Packages
-        run: |
-          python3.8 -m pip install --user atools argcomplete
 
       - name: Install Required Third Party Git Repositories
         run: |
