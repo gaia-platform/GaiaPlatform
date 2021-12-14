@@ -209,7 +209,7 @@ bool GaiaCatalog::findNavigationPath(StringRef src, StringRef dst, SmallVector<s
 
     const size_t pathLength = path.size();
     // Remove edges from the original shortest path and check if a shortest path with the same length can be found.
-    for (size_t pathIndex = 0; pathIndex < pathIndex - 1; ++pathIndex)
+    for (size_t pathIndex = 0; pathIndex < pathLength - 1; ++pathIndex)
     {
         SmallVector<string, 8> tempPath;
         llvm::StringMap<CatalogTableData> graphData(tableData);
