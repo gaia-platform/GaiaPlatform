@@ -181,7 +181,8 @@ int data_holder_t::compare(const data_holder_t& other) const
         {
             return (hold.integer_value == other.hold.integer_value)
                 ? 0
-                : (hold.integer_value > other.hold.integer_value) ? 1 : -1;
+                : (hold.integer_value > other.hold.integer_value) ? 1
+                                                                  : -1;
         }
         else
         {
