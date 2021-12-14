@@ -1,7 +1,8 @@
 # PYTHON_ARGCOMPLETE_OK
 
 from __future__ import annotations
-from argparse import ArgumentParser, REMAINDER
+import argparse
+from argparse import ArgumentParser
 from asyncio import gather
 from dataclasses import dataclass
 from importlib import import_module
@@ -17,6 +18,14 @@ from gdev.custom.pathlib import Path
 from gdev.options import Options, Mount
 from gdev.third_party.atools import memoize, memoize_db
 from gdev.third_party.argcomplete import autocomplete, FilesCompleter
+
+
+class Once(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        if hasattr(self, 'seen'):
+            raise argparse.ArgumentError(self, 'Option may be specified only once!')
+        setattr(self, 'seen', True)
+        setattr(namespace, self.dest, values)
 
 
 @dataclass(frozen=True)
@@ -122,8 +131,8 @@ class Dependency:
         def add_flags(parser: ArgumentParser) -> None:
             parser.add_argument(
                 'args',
-                nargs=REMAINDER,
-                help=f'Args to be forwarded on to docker run, if applicable.'
+                nargs=argparse.REMAINDER,
+                help=f'Arguments to be forwarded to `docker run`, if applicable.'
             )
             base_image_default = 'ubuntu:20.04'
             parser.add_argument(
@@ -135,7 +144,8 @@ class Dependency:
             parser.add_argument(
                 '--cfg-enables',
                 default=cfg_enables_default,
-                nargs='*',
+                action=Once,
+                nargs='+',
                 help=(
                     f'Enable lines in gdev.cfg files gated by `enable_if`, `enable_if_any`, and'
                     f' `enable_if_all` functions. Default: "{cfg_enables_default}"'
@@ -157,7 +167,8 @@ class Dependency:
             parser.add_argument(
                 '--mixins',
                 default=mixins_default,
-                nargs='*',
+                action=Once,
+                nargs='+',
                 choices=sorted([
                     directory.name
                     for directory in Path.mixin().iterdir()
@@ -173,7 +184,8 @@ class Dependency:
             parser.add_argument(
                 '--mounts',
                 default=[],
-                nargs=1,
+                action=Once,
+                nargs='+',
                 help=(
                     f'<host_path>:<container_path> mounts to be created (or if already created,'
                     f' resumed) during `docker run`. Paths may be specified as relative paths.'
@@ -197,7 +209,8 @@ class Dependency:
             parser.add_argument(
                 '-p', '--ports',
                 default=ports_default,
-                nargs='*',
+                action=Once,
+                nargs='+',
                 type=int,
                 help=f'Ports to expose in underlying docker container. Default: "{ports_default}"'
             )
