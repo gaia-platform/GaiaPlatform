@@ -103,13 +103,12 @@ parse_command_line "$@"
 # Clean entrance into the script.
 start_process
 
-echo "Grabbing additional packages."
+echo "Installing additional packages: lcov nano zip unzip"
 apt -y update
-apt-get install -y lcov nano
+apt-get install -y lcov nano zip unzip
 
-pushd /build/production/output
-rm -rf *
-popd
+rm -rf /build/production/output
+mkdir /build/production/output
 
 echo "Setting baseline state"
 lcov \
@@ -147,7 +146,6 @@ lcov \
     -r /build/production/coverage.total \
     "/build/production/generated/*" \
     "/build/production/*/*" \
-    "*/CMakeCCompilerId.c" \
     "/source/production/generated/*" \
     "/source/production/parser/generated/*" \
     "/source/production/catalog/parser/tests/*" \
@@ -163,7 +161,6 @@ lcov \
     "/source/production/sdk/tests/*" \
     "/source/production/system/tests/*" \
     "/source/production/tools/gaia_dump/tests/*" \
-    "*/CMakeCXXCompilerId.cpp" \
     -o /build/production/coverage.filter \
     > /build/production/output/filter.log
 
