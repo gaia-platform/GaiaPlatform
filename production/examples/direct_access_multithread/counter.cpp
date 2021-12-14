@@ -71,7 +71,7 @@ void increase_count_worker(gaia::common::gaia_id_t counter_id)
             gaia_log::app().info("A transaction update conflict has occurred!");
 
             // Wait some time before retrying the update transaction.
-            int sleep_millis = static_cast<int>(pow(2, retries)) * 10;
+            int sleep_millis = (1 << retries) * 10;
             std::this_thread::sleep_for(std::chrono::milliseconds(sleep_millis));
             retries++;
         }
@@ -89,10 +89,10 @@ int main()
     gaia_id_t counter_id = counter_t::insert_row(0);
     gaia::db::commit_transaction();
 
-    // Starts 3 worker threads all updating the same counter.
+    // Starts 5 worker threads all updating the same counter.
     // You can try increasing this number and see how the
     // behavior change.
-    constexpr int num_workers = 100;
+    constexpr int num_workers = 5;
     std::vector<std::thread> workers;
     workers.reserve(num_workers);
 
