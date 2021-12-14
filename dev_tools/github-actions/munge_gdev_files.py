@@ -51,7 +51,7 @@ __valid_section_names = [
 ]
 __available_sections = []
 
-__available_options = ["GaiaRelease", "ubuntu:20.04", "CI_GitHub"]
+__available_options = ["GaiaRelease", "ubuntu:20.04", "CI_GitHub", "Lint"]
 
 # Regular expressions that we support within {} constructs.
 __SOURCE_DIR_REGEX = r"source_dir\(\'([^']+)\'\)"
@@ -59,6 +59,9 @@ __ENABLE_IF_REGEX = r"enable_if\(\'([^']+)\'\)"
 __ENABLE_IF_NOT_REGEX = r"enable_if_not\(\'([^']+)\'\)"
 __ENABLE_IF_ANY_REGEX = (
     r"enable_if_any\(\'([^']+)\'(?:\s*\,\s*\'([^']+)\')?(?:\s*\,\s*\'([^']+)\')?\)"
+)
+__ENABLE_IF_NONE_REGEX = (
+    r"enable_if_none\(\'([^']+)\'(?:\s*\,\s*\'([^']+)\')?(?:\s*\,\s*\'([^']+)\')?\)"
 )
 
 # Templates to use for various task sections.
@@ -372,6 +375,11 @@ def __does_meet_project_options(conditional_to_evaluate, active_options):
     if match_result:
         matched_groups_set = set(match_result.groups())
         return bool(matched_groups_set.intersection(provided_options_set))
+
+    match_result = re.match(__ENABLE_IF_NONE_REGEX, conditional_to_evaluate)
+    if match_result:
+        matched_groups_set = set(match_result.groups())
+        return not bool(matched_groups_set.intersection(provided_options_set))
 
     match_result = re.match(__ENABLE_IF_REGEX, conditional_to_evaluate)
     if match_result:

@@ -18,8 +18,9 @@ import subprocess
 __available_options = [
     "GaiaRelease",
     "ubuntu:20.04",
-    "ubuntu:18.04",
     "CI_GitHub",
+    "Lint",
+    "ubuntu:18.04",
     "Debug",
     "GaiaLLVMTests",
 ]
@@ -27,8 +28,7 @@ __available_options = [
 __JOB_PREFIX = """
   {name}:
     runs-on: ubuntu-20.04
-    needs: {needs}
-    env:"""
+    {needs}env:"""
 
 __STEPS_PREFIX_AND_APT_SECTION_HEADER = """    steps:
       - name: Checkout Repository
@@ -194,6 +194,15 @@ __ARTIFACTS_SECTION = "artifacts"
 __TESTS_SECTION = "tests"
 __PACKAGE_SECTION = "package"
 
+def __create_job_start_text(args):
+    needs_text = ""
+    if args.required_jobs:
+        for next_job in args.required_jobs:
+            if needs_text:
+                needs_text += ", "
+            needs_text += next_job
+        needs_text = "needs: " + needs_text + "\n    "
+    return __JOB_PREFIX.replace("{needs}", needs_text).replace("{name}", args.job_name)
 
 def __calculate_section_lines(cmd_options):
     section_line_map = {}
@@ -258,9 +267,8 @@ def process_script_action():
         run_outp
     )
 
-    # Up to the jobs.build.env section
-    print(__JOB_PREFIX.replace("{name}", args.job_name))
-    required_jobs
+    # Create the header for this particular job.
+    print(__create_job_start_text(args))
     __print_formatted_lines(section_line_map[__ENVIRONMENT_SECTION], indent="      ")
 
     # Start of steps to `Install Required Applications`
@@ -269,15 +277,18 @@ def process_script_action():
 
     # `Install Required Python Packages`
     print(__PIP_SECTION_HEADER, end="")
-    print(pip_outp)
+    if pip_outp:
+        print(" " + pip_outp)
 
     # `Install Required Third Party Git Repositories`
-    print(__GIT_SECTION_HEADER)
-    __print_formatted_lines(section_line_map[__GIT_SECTION], indent="          ")
+    if section_line_map[__GIT_SECTION]:
+        print(__GIT_SECTION_HEADER)
+        __print_formatted_lines(section_line_map[__GIT_SECTION], indent="          ")
 
     # `Install Required Third Party Web Packages`
-    print(__WEB_SECTION_HEADER)
-    __print_formatted_lines(section_line_map[__WEB_SECTION], indent="          ")
+    if section_line_map[__WEB_SECTION]:
+        print(__WEB_SECTION_HEADER)
+        __print_formatted_lines(section_line_map[__WEB_SECTION], indent="          ")
 
     # Each of the subproject sections, up to `Build production``
     for next_section_cd in run_ordered_build_list:
