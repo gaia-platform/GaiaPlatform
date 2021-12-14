@@ -3,12 +3,13 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "data_holder.hpp"
+
 #include <functional>
 #include <string_view>
 
 #include "gaia_internal/common/retail_assert.hpp"
 
-#include "data_holder.hpp"
 #include "field_access.hpp"
 
 using namespace gaia::common;

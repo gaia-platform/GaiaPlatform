@@ -186,12 +186,12 @@ for file in $(find production | grep -E "^(production|demo).*(\.hpp|\.cpp|\.inc)
                 echo ""
                 echo "Clang-format mismatch for file $file"
                 echo "---"
-                clang-format -i -output-replacements-xml "$file"
-                echo "---"
                 cp "$file" test.cpp
                 clang-format -i test.cpp
                 diff --report-identical-files "$file" test.cpp
                 rm test.cpp
+                echo "---RAW"
+                clang-format -i -output-replacements-xml "$file"
                 echo "---"
                 did_any_fail=1
             fi
