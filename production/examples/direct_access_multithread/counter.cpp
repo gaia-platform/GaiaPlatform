@@ -34,6 +34,9 @@ using gaia::direct_access::auto_transaction_t;
  * value by 1. This is likely to cause a transaction_update_conflict
  * which is handled by exponential backoff with full jitter strategy.
  *
+ * More info about retires, backoff, adn jitter can be found here:
+ * https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/
+ *
  * @param counter_id The id of the record to be updated.
  */
 void increase_count_worker(gaia::common::gaia_id_t counter_id)
