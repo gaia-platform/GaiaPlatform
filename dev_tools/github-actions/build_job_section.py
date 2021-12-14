@@ -24,20 +24,10 @@ __available_options = [
     "GaiaLLVMTests",
 ]
 
-__FILE_PREFIX = """name: Main
-
-on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
-      - jack/gha
-
-jobs:
-  build:
+__JOB_PREFIX = """
+  {name}:
     runs-on: ubuntu-20.04
+    needs: {needs}
     env:"""
 
 __STEPS_PREFIX_AND_APT_SECTION_HEADER = """    steps:
@@ -139,12 +129,25 @@ def __process_command_line():
         help="Directory to root the configuration search in.",
     )
     parser.add_argument(
+        "--job-name",
+        dest="job_name",
+        action="store",
+        required=True,
+        help="Name to give the job being created.",
+    )
+    parser.add_argument(
         "--option",
         dest="options",
         action="append",
         help="Specify an option to use.",
         type=__valid_options,
         choices=__available_options,
+    )
+    parser.add_argument(
+        "--requires",
+        dest="required_jobs",
+        action="append",
+        help="Specify the name of another job that this job depends on.",
     )
     return parser.parse_args()
 
@@ -256,8 +259,8 @@ def process_script_action():
     )
 
     # Up to the jobs.build.env section
-    print("---")
-    print(__FILE_PREFIX)
+    print(__JOB_PREFIX.replace("{name}", args.job_name))
+    required_jobs
     __print_formatted_lines(section_line_map[__ENVIRONMENT_SECTION], indent="      ")
 
     # Start of steps to `Install Required Applications`
