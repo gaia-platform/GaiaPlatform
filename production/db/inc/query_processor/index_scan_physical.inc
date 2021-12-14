@@ -145,7 +145,7 @@ template <typename T_index, typename T_index_iterator>
 db::index::index_key_t index_scan_physical_t<T_index, T_index_iterator>::record_to_key(const db::index::index_record_t& record) const
 {
     auto obj = db::locator_to_ptr(record.locator);
-    return db::index::index_builder_t::make_key(m_index_id, obj->type, reinterpret_cast<const uint8_t*>(obj->data()));
+    return db::index::index_builder_t::make_key(m_index, reinterpret_cast<const uint8_t*>(obj->data()));
 }
 
 template <typename T_index, typename T_index_iterator>

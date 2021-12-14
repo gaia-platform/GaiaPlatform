@@ -12,16 +12,14 @@ namespace db
 namespace index
 {
 
-bool index_offset_buffer_t::has_offset(gaia_offset_t offset) const
+gaia_offset_t index_offset_buffer_t::get_offset(size_t index) const
 {
-    return std::find(m_offsets.cbegin(), m_offsets.cbegin() + m_size, offset)
-        != m_offsets.cbegin() + m_size;
+    return m_offsets[index].first;
 }
 
-bool index_offset_buffer_t::has_type(common::gaia_type_t type) const
+common::gaia_type_t index_offset_buffer_t::get_type(size_t index) const
 {
-    return std::find(m_offset_types.cbegin(), m_offset_types.cbegin() + m_size, type)
-        != m_offset_types.cbegin() + m_size;
+    return m_offsets[index].second;
 }
 
 size_t index_offset_buffer_t::size() const
@@ -36,8 +34,7 @@ bool index_offset_buffer_t::empty() const
 
 void index_offset_buffer_t::insert(gaia_offset_t offset, common::gaia_type_t type)
 {
-    m_offsets[m_size] = offset;
-    m_offset_types[m_size] = type;
+    m_offsets[m_size] = std::make_pair<gaia_offset_t, common::gaia_type_t>(std::move(offset), std::move(type));
     ++m_size;
 }
 } // namespace index

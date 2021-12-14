@@ -28,8 +28,8 @@ using range_index_iterator_t = index_iterator_t<range_type_t, range_type_t::cons
 class range_index_t : public index_t<range_type_t, range_index_iterator_t>
 {
 public:
-    range_index_t(gaia::common::gaia_id_t index_id, common::gaia_type_t table_type, bool is_unique = false)
-        : index_t(index_id, catalog::index_type_t::range, table_type, is_unique)
+    range_index_t(gaia::common::gaia_id_t index_id, index_key_schema_t key_schema, bool is_unique = false)
+        : index_t(index_id, catalog::index_type_t::range, key_schema, is_unique)
     {
     }
     ~range_index_t() = default;
