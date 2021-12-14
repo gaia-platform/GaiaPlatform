@@ -182,7 +182,8 @@ int data_holder_t::compare(const data_holder_t& other) const
         {
             return (hold.integer_value == other.hold.integer_value)
                 ? 0
-                : (hold.integer_value > other.hold.integer_value) ? 1 : -1;
+                : (hold.integer_value > other.hold.integer_value) ? 1
+                                                                  : -1;
         }
         else
         {
@@ -194,14 +195,16 @@ int data_holder_t::compare(const data_holder_t& other) const
             auto unsigned_integer_value = reinterpret_cast<const uint64_t*>(&hold.integer_value);
             auto other_unsigned_integer_value = reinterpret_cast<const uint64_t*>(&other.hold.integer_value);
 
-            return (*unsigned_integer_value > *other_unsigned_integer_value) ? 1 : -1;
+            return (*unsigned_integer_value > *other_unsigned_integer_value) ? 1
+                                                                             : -1;
         }
     }
     else if (flatbuffers::IsFloat(type))
     {
         return (hold.float_value == other.hold.float_value)
             ? 0
-            : (hold.float_value > other.hold.float_value) ? 1 : -1;
+            : (hold.float_value > other.hold.float_value) ? 1
+                                                          : -1;
     }
     else if (type == reflection::String)
     {

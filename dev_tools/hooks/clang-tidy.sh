@@ -11,10 +11,10 @@ echo "Scanning all .h and .cpp files under $1/production with clang-tidy."
 find "$1/production" -name '*.h' -o -name '*.cpp' | grep -v tests | xargs clang-tidy | grep -v 'file not found' | grep -v '#include' > "$TEMP_FILE"
 cat "$TEMP_FILE"
 
-if grep -q "error:" "$TEMP_FILE"; then
+if grep -Fq "error:" "$TEMP_FILE" ; then
   echo "One or more clang-tidy errors occurred when scanning the project."
   exit 1
-elif grep -q "error:" "$TEMP_FILE"; then
+elif grep -Fq "warning:" "$TEMP_FILE" ; then
   echo "One or more clang-tidy warnings occurred when scanning the project."
   exit 2
 else

@@ -51,8 +51,9 @@ jobs:
           sudo bash -c "update-alternatives --install \"/usr/bin/clang-tidy\" \"clang-tidy\" \"/usr/bin/clang-tidy-10\" 10"
 
           echo "Executing Clang-Tidy on Production Tree"
-          sudo bash -c "$GAIA_REPO/dev_tools/hooks/clang-tidy.sh $GAIA_REPO"
-          sudo bash -c "$GAIA_REPO/dev_tools/hooks/pre-commit"
+          sudo bash -c "echo $GAIA_REPO/dev_tools/hooks/clang-tidy.sh $GAIA_REPO"
+          echo "Executing Clang-Format on Production Tree"
+          sudo bash -c "$GAIA_REPO/dev_tools/hooks/clang-format.sh"
   build:
     runs-on: ubuntu-20.04
     needs: lint

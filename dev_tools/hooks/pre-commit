@@ -3,7 +3,7 @@
 # TODO: check for clang-format version.
 
 # Allows us to read user input below, assigns stdin to keyboard
-exec </dev/tty
+#exec </dev/tty
 
 # check if clang-format is installed.
 if ! command -v clang-format &>/dev/null; then
