@@ -198,5 +198,11 @@ install(FILES ${GAIA_REPO}/production/examples/direct_access/hospital.cpp DESTIN
 install(FILES ${GAIA_REPO}/production/examples/direct_access/CMakeLists.txt DESTINATION examples/direct_access)
 install(FILES ${GAIA_REPO}/production/examples/direct_access/README.md DESTINATION examples/direct_access)
 
+# Place direct_access example
+install(FILES ${GAIA_REPO}/production/examples/direct_access_multithread/counter.ddl DESTINATION examples/direct_access_multithread)
+install(FILES ${GAIA_REPO}/production/examples/direct_access_multithread/counter.cpp DESTINATION examples/direct_access_multithread)
+install(FILES ${GAIA_REPO}/production/examples/direct_access_multithread/CMakeLists.txt DESTINATION examples/direct_access_multithread)
+install(FILES ${GAIA_REPO}/production/examples/direct_access_multithread/README.md DESTINATION examples/direct_access_multithread)
+
 # Place license files.
 install(FILES ${GAIA_REPO}/production/licenses/LICENSE.third-party.txt DESTINATION .)

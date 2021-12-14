@@ -17,7 +17,7 @@ These instructions assume you have installed the SDK and have installed the `cla
     cmake ..
     make
     ```
-3. The output of the build is the 'incubator' executable.
+3. The output of the build is the `hospital` executable.
 
 # Running the Demo
 
