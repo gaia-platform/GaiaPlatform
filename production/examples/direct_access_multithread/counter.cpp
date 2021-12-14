@@ -34,7 +34,7 @@ using gaia::direct_access::auto_transaction_t;
  * value by 1. This is likely to cause a transaction_update_conflict
  * which is handled by exponential backoff with full jitter strategy.
  *
- * More info about retires, backoff, adn jitter can be found here:
+ * More info about retries, backoff, and jitter can be found here:
  * https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/
  *
  * @param counter_id The id of the record to be updated.
@@ -76,7 +76,7 @@ void increase_count_worker(gaia::common::gaia_id_t counter_id)
                 // Stop the execution if the transaction cannot be completed
                 // within c_max_retries attempts.
                 gaia::db::end_session();
-                throw e;
+                throw;
             }
 
             gaia_log::app().info("A transaction update conflict has occurred!");
@@ -107,7 +107,6 @@ int main()
     // behavior change.
     constexpr int num_workers = 5;
     std::vector<std::thread> workers;
-    workers.reserve(num_workers);
 
     for (int i = 0; i < num_workers; i++)
     {
