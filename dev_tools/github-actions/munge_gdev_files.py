@@ -26,8 +26,11 @@ __SECTION_NAME_PIP = "[pip]"
 __SECTION_NAME_GIT = "[git]"
 __SECTION_NAME_ENV = "[env]"
 __SECTION_NAME_WEB = "[web]"
+
 __SECTION_NAME_PRE_RUN = "[pre_run]"
 __SECTION_NAME_RUN = "[run]"
+__SECTION_NAME_PRE_LINT = "[pre_lint]"
+__SECTION_NAME_LINT = "[lint]"
 
 # These sections are only used by GitHub Actions.
 __SECTION_NAME_COPY = "[copy]"
@@ -39,8 +42,6 @@ __SECTION_NAME_TESTS = "[tests]"
 __valid_section_names = [
     __SECTION_NAME_APT,
     __SECTION_NAME_PIP,
-    __SECTION_NAME_PRE_RUN,
-    __SECTION_NAME_RUN,
     __SECTION_NAME_GIT,
     __SECTION_NAME_WEB,
     __SECTION_NAME_ENV,
@@ -48,6 +49,10 @@ __valid_section_names = [
     __SECTION_NAME_ARTIFACTS,
     __SECTION_NAME_PACKAGE,
     __SECTION_NAME_TESTS,
+    __SECTION_NAME_PRE_RUN,
+    __SECTION_NAME_RUN,
+    __SECTION_NAME_PRE_LINT,
+    __SECTION_NAME_LINT,
 ]
 __available_sections = []
 
@@ -709,7 +714,7 @@ def __calculate_directories_to_copy_to(current_sections):
                 copy_to_build = True
             elif section_entry == __SOURCE_DIRECTORY_PATH[1:]:
                 copy_to_source = True
-            else:
+            elif section_entry != "none":
                 print(
                     f"Section {__SECTION_NAME_COPY} entry of '{section_entry}' not supported."
                 )
@@ -771,7 +776,6 @@ def __print_pre_production_copy_section(
                 f'sudo bash -c "cp -a {__GAIA_REPOSITORY_ENV_PATH}{relative_config_file_path}/.'
                 + f' {__SOURCE_DIRECTORY_PATH}{relative_config_file_path}/"'
             )
-
 
 def __print_artifacts_section(section_text_pairs):
     """
@@ -875,12 +879,13 @@ def process_script_action():
     elif __SECTION_NAME_WEB == specific_section_name:
         __print_web_results(section_text_pairs, configuration_root_directory)
     elif __SECTION_NAME_COPY == specific_section_name:
-        __print_pre_production_copy_section(
-            collected_file_sections,
-            base_config_file,
-            args,
-            configuration_root_directory,
-        )
+        if "Lint" not in args.options:
+            __print_pre_production_copy_section(
+                collected_file_sections,
+                base_config_file,
+                args,
+                configuration_root_directory,
+            )
     elif __SECTION_NAME_ARTIFACTS == specific_section_name:
         __print_artifacts_section(section_text_pairs)
     elif __SECTION_NAME_PACKAGE == specific_section_name:
@@ -888,7 +893,7 @@ def process_script_action():
     elif __SECTION_NAME_TESTS == specific_section_name:
         __print_tests_section(section_text_pairs)
     else:
-        assert specific_section_name in (__SECTION_NAME_RUN, __SECTION_NAME_PRE_RUN)
+        assert specific_section_name in (__SECTION_NAME_RUN, __SECTION_NAME_PRE_RUN, __SECTION_NAME_LINT, __SECTION_NAME_PRE_LINT)
         __print_run_and_pre_run_results(
             section_text_pairs, configuration_root_directory, dependency_graph
         )
