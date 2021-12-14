@@ -31,10 +31,11 @@ class gaia_ptr_t
 public:
     gaia_ptr_t() = default;
 
-    inline explicit gaia_ptr_t(gaia_locator_t locator)
-        : m_locator(locator)
-    {
-    }
+    static gaia_ptr_t from_locator(
+        gaia_locator_t locator);
+
+    static gaia_ptr_t from_gaia_id(
+        common::gaia_id_t id);
 
     inline bool operator==(const gaia_ptr_t& other) const;
     inline bool operator!=(const gaia_ptr_t& other) const;
@@ -63,9 +64,6 @@ public:
         common::reference_offset_t num_refs,
         size_t data_size,
         const void* data);
-
-    static gaia_ptr_t open(
-        common::gaia_id_t id);
 
     // Removes the database record at the given pointer object. Throws
     // exceptions in case of referential integrity violation.
@@ -262,6 +260,11 @@ private:
 
 private:
     gaia_locator_t m_locator{c_invalid_gaia_locator};
+
+    inline explicit gaia_ptr_t(gaia_locator_t locator)
+        : m_locator(locator)
+    {
+    }
 };
 
 static_assert(

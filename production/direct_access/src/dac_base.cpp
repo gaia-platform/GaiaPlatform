@@ -95,7 +95,7 @@ bool dac_db_t::advance_iterator(std::shared_ptr<dac_base_iterator_state_t> itera
 // Otherwise, returns false.
 bool dac_db_t::get_type(gaia_id_t id, gaia_type_t& type)
 {
-    gaia_ptr_t gaia_ptr = gaia_ptr_t::open(id);
+    gaia_ptr_t gaia_ptr = gaia_ptr_t::from_gaia_id(id);
     if (gaia_ptr)
     {
         type = gaia_ptr.type();
@@ -107,7 +107,7 @@ bool dac_db_t::get_type(gaia_id_t id, gaia_type_t& type)
 
 gaia_id_t dac_db_t::get_reference(gaia_id_t id, common::reference_offset_t slot)
 {
-    gaia_ptr_t gaia_ptr = gaia_ptr_t::open(id);
+    gaia_ptr_t gaia_ptr = gaia_ptr_t::from_gaia_id(id);
     if (!gaia_ptr)
     {
         throw invalid_object_id_internal(id);
@@ -125,7 +125,7 @@ gaia_id_t dac_db_t::insert(gaia_type_t container, size_t data_size, const void* 
 
 void dac_db_t::delete_row(gaia_id_t id)
 {
-    gaia_ptr_t gaia_ptr = gaia_ptr_t::open(id);
+    gaia_ptr_t gaia_ptr = gaia_ptr_t::from_gaia_id(id);
     if (!gaia_ptr)
     {
         throw invalid_object_id_internal(id);
@@ -136,7 +136,7 @@ void dac_db_t::delete_row(gaia_id_t id)
 
 void dac_db_t::update(gaia_id_t id, size_t data_size, const void* data)
 {
-    gaia_ptr_t gaia_ptr = gaia_ptr_t::open(id);
+    gaia_ptr_t gaia_ptr = gaia_ptr_t::from_gaia_id(id);
     if (!gaia_ptr)
     {
         throw invalid_object_id_internal(id);
@@ -146,7 +146,7 @@ void dac_db_t::update(gaia_id_t id, size_t data_size, const void* data)
 
 bool dac_db_t::insert_child_reference(gaia_id_t parent_id, gaia_id_t child_id, common::reference_offset_t child_slot)
 {
-    gaia_ptr_t parent = gaia_ptr_t::open(parent_id);
+    gaia_ptr_t parent = gaia_ptr_t::from_gaia_id(parent_id);
     if (!parent)
     {
         throw invalid_object_id_internal(parent_id);
@@ -157,7 +157,7 @@ bool dac_db_t::insert_child_reference(gaia_id_t parent_id, gaia_id_t child_id, c
 
 bool dac_db_t::remove_child_reference(gaia_id_t parent_id, gaia_id_t child_id, common::reference_offset_t child_slot)
 {
-    gaia_ptr_t parent = gaia_ptr_t::open(parent_id);
+    gaia_ptr_t parent = gaia_ptr_t::from_gaia_id(parent_id);
     if (!parent)
     {
         throw invalid_object_id_internal(parent_id);
@@ -217,7 +217,7 @@ template const gaia_ptr_t* dac_base_t::to_const_ptr() const;
 
 dac_base_t::dac_base_t(gaia_id_t id)
 {
-    *(to_ptr<gaia_ptr_t>()) = gaia_ptr_t::open(id);
+    *(to_ptr<gaia_ptr_t>()) = gaia_ptr_t::from_gaia_id(id);
 }
 
 gaia_id_t dac_base_t::gaia_id() const
@@ -253,7 +253,7 @@ gaia_id_t* dac_base_t::references() const
 
 void dac_base_t::set_record(common::gaia_id_t new_id)
 {
-    *(to_ptr<gaia_ptr_t>()) = gaia_ptr_t::open(new_id);
+    *(to_ptr<gaia_ptr_t>()) = gaia_ptr_t::from_gaia_id(new_id);
 }
 
 //
