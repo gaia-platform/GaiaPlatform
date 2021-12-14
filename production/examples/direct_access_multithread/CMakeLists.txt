@@ -23,7 +23,7 @@ process_schema(
 )
 
 add_executable(counter
-    counter.cpp
+  counter.cpp
 )
 
 target_add_gaia_generated_sources(counter)
