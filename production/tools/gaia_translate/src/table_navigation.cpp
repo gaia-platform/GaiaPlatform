@@ -103,7 +103,14 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(llv
             {
                 if (!path_data.skip_implicit_path_generation)
                 {
-                    return_value = generate_navigation_code(anchor_table, path_data.used_tables, path_data.tag_table_map, last_variable_name);
+                    if (path_data.anchor_table.empty())
+                    {
+                        return_value = generate_navigation_code(anchor_table, anchor_table, path_data.used_tables, path_data.tag_table_map, last_variable_name);
+                    }
+                    else
+                    {
+                        return_value = generate_navigation_code(path_data.anchor_table, path_data.anchor_variable, path_data.used_tables, path_data.tag_table_map, last_variable_name);
+                    }
                 }
             }
             first_component = false;
@@ -125,7 +132,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(llv
 
 // Function that generates  code to navigate between anchor table and set of tables and return more data about the generated path.
 navigation_code_data_t table_navigation_t::generate_navigation_code(
-    llvm::StringRef anchor_table, const llvm::StringSet<>& tables, const llvm::StringMap<string>& tags, string& last_variable_name)
+    llvm::StringRef anchor_table, llvm::StringRef anchor_variable, const llvm::StringSet<>& tables, const llvm::StringMap<string>& tags, string& last_variable_name)
 {
     navigation_code_data_t return_value;
     const auto& table_data =GaiaCatalog::getCatalogTableData();
@@ -163,7 +170,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
         return_value.prefix.append("\n{\nauto ");
         return_value.prefix.append(variable_name);
         return_value.prefix.append(" = ");
-        return_value.prefix.append(anchor_table_name);
+        return_value.prefix.append(anchor_variable);
         return_value.prefix.append(";\n");
     }
     else

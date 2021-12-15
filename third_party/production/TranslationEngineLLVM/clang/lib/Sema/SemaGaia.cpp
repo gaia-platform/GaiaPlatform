@@ -716,7 +716,28 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
 
     if (IsInExtendedExplicitPathScope())
     {
-        AddTableSearchAnchor(typeName);
+        const auto& pathDataIterator = explicitPathData.find(loc);
+        if (pathDataIterator != explicitPathData.end())
+        {
+            StringRef anchorVariable = typeName;
+            const auto& definedTagIterator = extendedExplicitPathTagMapping.find(loc);
+            if (definedTagIterator != extendedExplicitPathTagMapping.end())
+            {
+                for (const auto& tagIterator : definedTagIterator->second)
+                {
+                    if (tagIterator.second == typeName)
+                    {
+                        anchorVariable = tagIterator.first();
+                        break;
+                    }
+                }
+            }
+
+            if (typeName != anchorVariable || pathDataIterator->second.path.size() == 1)
+            {
+                AddTableSearchAnchor(typeName, anchorVariable);
+            }
+        }
     }
 
     // Look for a previous declaration of this table. There are 3 cases:
@@ -901,7 +922,8 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
 
     // Check if the fieldOrTagName is a reference to a table or to a tag.
     const auto& tagMappingIterator = tagMapping.find(fieldOrTagName);
-    if (tableData.find(fieldOrTagName) != tableData.end() || tagMappingIterator != tagMapping.end())
+    const auto& tableDataIterator = tableData.find(fieldOrTagName);
+    if (tableDataIterator != tableData.end() || tagMappingIterator != tagMapping.end())
     {
         for (const auto& iterator : tableData)
         {
@@ -913,7 +935,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
             }
         }
 
-        if (tableData.find(fieldOrTagName) != tableData.end())
+        if (tableDataIterator != tableData.end())
         {
             return getTableType(fieldOrTagName, loc);
         }
@@ -1024,7 +1046,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
 
     if (IsInExtendedExplicitPathScope())
     {
-        AddTableSearchAnchor(fieldTableName);
+        AddTableSearchAnchor(fieldTableName, fieldTableName);
     }
 
     return result;
@@ -1034,12 +1056,11 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
 // is the name of a field in the database.
 bool Sema::findFieldType(const std::string& fieldOrTagName, SourceLocation loc)
 {
-    bool result = false;
 
     const llvm::StringMap<llvm::StringMap<QualType>>& tableData = getTableData();
     if (tableData.empty())
     {
-        return result;
+        return false;
     }
 
     DeclContext* context = getCurFunctionDecl();
@@ -1083,7 +1104,7 @@ bool Sema::findFieldType(const std::string& fieldOrTagName, SourceLocation loc)
         const auto& tableDescription = tableData.find(tableName);
         if (tableDescription == tableData.end())
         {
-            break;
+            return false;
         }
         const auto& fieldDescription = tableDescription->second.find(fieldOrTagName);
 
@@ -1092,14 +1113,13 @@ bool Sema::findFieldType(const std::string& fieldOrTagName, SourceLocation loc)
             if (fieldDescription->second->isVoidType())
             {
                 Diag(loc, diag::err_invalid_field_type) << fieldOrTagName;
-                break;
+                return false;
             }
-            result = true;
-            break;
+            return true;
         }
     }
 
-    return result;
+    return false;
 }
 
 static bool parseTaggedAttribute(StringRef attribute, StringRef& table, StringRef& tag)
@@ -1271,8 +1291,18 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
     const llvm::StringMap<std::string>& tagMapping = getTagMapping(getCurFunctionDecl(), loc);
 
     StringRef anchorTable;
-    if (explicitPath.front() != '/' && explicitPath.rfind("@/") != 0 && tagMapping.find(firstComponent) == tagMapping.end())
+    StringRef anchorVariable;
+    if (explicitPath.front() != '/'
+        && explicitPath.rfind("@/") != 0
+        && tagMapping.find(firstComponent) == tagMapping.end()
+        && !searchContextStack.empty())
     {
+        // Check if first component is a field. It should be the only component in the path.
+        const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+        if (catalogData.find(firstComponent) == catalogData.end())
+        {
+            firstComponent = fieldTableName;
+        }
         bool skipTopSearchContext = !IsInExtendedExplicitPathScope();
         for (auto searchContextIterator = searchContextStack.rbegin();
             searchContextIterator != searchContextStack.rend(); ++searchContextIterator)
@@ -1283,18 +1313,30 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
                 continue;
             }
 
+            if (searchContextIterator->empty())
+            {
+                continue;
+            }
+
             int pathLength = INT_MAX;
             for (auto anchorTableIterator = searchContextIterator->begin();
                 anchorTableIterator != searchContextIterator->end(); ++anchorTableIterator)
             {
                 llvm::SmallVector<string, 8> path;
+                StringRef source_table = anchorTableIterator->first();
+                const auto& tagIterator = tagMapping.find(source_table);
+                if (tagIterator != tagMapping.end())
+                {
+                    source_table = tagIterator->second;
+                }
                 // Find topographically shortest path between anchor table and destination table.
-                if (gaia::catalog::GaiaCatalog::findNavigationPath(anchorTableIterator->first(), firstComponent, path, false))
+                if (gaia::catalog::GaiaCatalog::findNavigationPath(source_table, firstComponent, path, false))
                 {
                     if (path.size() < pathLength)
                     {
                         pathLength = path.size();
                         anchorTable = anchorTableIterator->first();
+                        anchorVariable = anchorTableIterator->second;
                     }
                     else if (pathLength == path.size())
                     {
@@ -1322,7 +1364,7 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
 
     if (!anchorTable.empty())
     {
-        varDecl->addAttr(GaiaAnchorTableAttr::CreateImplicit(Context,  &Context.Idents.get(anchorTable)));
+        varDecl->addAttr(GaiaAnchorAttr::CreateImplicit(Context,  &Context.Idents.get(anchorTable), &Context.Idents.get(anchorVariable)));
     }
 
     if (GetExplicitPathData(loc, startLocation, endLocation, path))
