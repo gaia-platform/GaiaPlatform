@@ -268,7 +268,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
         create_table_impl(
             c_catalog_db_name, "gaia_application", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_application));
+            static_cast<gaia_type_t::value_type>(system_table_type_t::gaia_application));
     }
     {
         // create table app_database (
@@ -276,7 +276,7 @@ void ddl_executor_t::bootstrap_catalog()
         field_def_list_t fields;
         create_table_impl(
             c_catalog_db_name, "app_database", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t::value_type>(catalog_table_type_t::app_database));
+            static_cast<gaia_type_t::value_type>(system_table_type_t::app_database));
         // create relationship gaia_catalog_application_database (
         //     catalog.gaia_application.app_databases -> catalog.app_database[],
         //     catalog.app_database.application -> catalog.gaia_application
@@ -306,7 +306,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("active_on_startup", data_type_t::e_bool, 1));
         create_table_impl(
             c_catalog_db_name, "app_ruleset", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t::value_type>(catalog_table_type_t::app_ruleset));
+            static_cast<gaia_type_t::value_type>(system_table_type_t::app_ruleset));
         // create relationship gaia_catalog_application_ruleset (
         //     catalog.gaia_application.app_rulesets -> catalog.app_rulesets[],
         //     catalog.app_ruleset.application -> catalog.gaia_application
@@ -334,7 +334,7 @@ void ddl_executor_t::bootstrap_catalog()
         field_def_list_t fields;
         create_table_impl(
             c_catalog_db_name, "ruleset_database", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t::value_type>(catalog_table_type_t::ruleset_database));
+            static_cast<gaia_type_t::value_type>(system_table_type_t::ruleset_database));
         // create relationship gaia_catalog_database_ruleset (
         //     catalog.gaia_database.ruleset_databases -> catalog.ruleset_database[],
         //     catalog.ruleset_database.database -> catalog.gaia_database
@@ -364,7 +364,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("anchor", data_type_t::e_bool, 1));
         create_table_impl(
             c_catalog_db_name, "rule_table", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t::value_type>(catalog_table_type_t::rule_table));
+            static_cast<gaia_type_t::value_type>(system_table_type_t::rule_table));
         // create relationship gaia_catalog_rule_table (
         //     catalog.gaia_rule.rule_tables -> catalog.rule_table[],
         //     catalog.rule_table.rule -> catalog.gaia_rule
@@ -394,7 +394,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("active", data_type_t::e_bool, 1));
         create_table_impl(
             c_catalog_db_name, "rule_field", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t::value_type>(catalog_table_type_t::rule_field));
+            static_cast<gaia_type_t::value_type>(system_table_type_t::rule_field));
         // create relationship gaia_catalog_rule_field (
         //     catalog.gaia_rule.rule_fields -> catalog.rule_field[],
         //     catalog.rule_field.rule -> catalog.gaia_rule
@@ -423,7 +423,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("type", data_type_t::e_uint8, 1));
         create_table_impl(
             c_catalog_db_name, "rule_relationship", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t::value_type>(catalog_table_type_t::rule_relationship));
+            static_cast<gaia_type_t::value_type>(system_table_type_t::rule_relationship));
         // create relationship gaia_catalog_rule_relationship (
         //     catalog.gaia_rule.rule_relationships -> catalog.rule_relationship[],
         //     catalog.rule_relationship.rule -> catalog.gaia_rule

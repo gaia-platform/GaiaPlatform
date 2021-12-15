@@ -34,14 +34,7 @@ enum class catalog_table_type_t : gaia_type_t::value_type
     gaia_database = gaia_ruleset - 1,
     gaia_relationship = gaia_database - 1,
     gaia_index = gaia_relationship - 1,
-    gaia_application = gaia_index - 1,
-    app_database = gaia_application - 1,
-    app_ruleset = gaia_database - 1,
-    ruleset_database = app_ruleset - 1,
-    rule_table = ruleset_database - 1,
-    rule_field = rule_table - 1,
-    rule_relationship = rule_field - 1,
-    gaia_ref_anchor = rule_relationship - 1,
+    gaia_ref_anchor = gaia_index - 1,
 };
 
 enum class system_table_type_t : gaia_type_t::value_type
@@ -53,16 +46,17 @@ enum class system_table_type_t : gaia_type_t::value_type
     catalog_gaia_database = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_database),
     catalog_gaia_relationship = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_relationship),
     catalog_gaia_index = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_index),
-    catalog_gaia_application = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_application),
-    catalog_app_database = static_cast<gaia_type_t::value_type>(catalog_table_type_t::app_database),
-    catalog_app_ruleset = static_cast<gaia_type_t::value_type>(catalog_table_type_t::app_ruleset),
-    catalog_ruleset_database = static_cast<gaia_type_t::value_type>(catalog_table_type_t::ruleset_database),
-    catalog_rule_table = static_cast<gaia_type_t::value_type>(catalog_table_type_t::rule_table),
-    catalog_rule_field = static_cast<gaia_type_t::value_type>(catalog_table_type_t::rule_field),
-    catalog_rule_relationship = static_cast<gaia_type_t::value_type>(catalog_table_type_t::rule_relationship),
     catalog_gaia_ref_anchor = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_ref_anchor),
+
     // Assign constant IDs to other system tables starting from lower end of the reserved range.
     event_log = c_system_table_reserved_range_start.value(),
+    gaia_application = event_log,
+    app_database = gaia_application + 1,
+    app_ruleset = app_database + 1,
+    ruleset_database = app_ruleset + 1,
+    rule_table = ruleset_database + 1,
+    rule_field = rule_table + 1,
+    rule_relationship = rule_field + 1,
 };
 
 inline bool is_system_object(gaia_type_t type)
