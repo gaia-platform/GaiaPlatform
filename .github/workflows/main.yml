@@ -17,6 +17,7 @@ jobs:
     env:
       GAIA_REPO: ${{ github.workspace }}
       GAIA_VERSION: 0.3.2
+      GAIA_PRE_RELEASE: beta
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -47,6 +48,7 @@ jobs:
     env:
       GAIA_REPO: ${{ github.workspace }}
       GAIA_VERSION: 0.3.2
+      GAIA_PRE_RELEASE: beta
       CC: /usr/bin/clang-10
       CPP: /usr/bin/clang-cpp-10
       CXX: /usr/bin/clang++-10
@@ -312,6 +314,7 @@ jobs:
     env:
       GAIA_REPO: ${{ github.workspace }}
       GAIA_VERSION: 0.3.2
+      GAIA_PRE_RELEASE: beta
       CC: /usr/bin/clang-10
       CPP: /usr/bin/clang-cpp-10
       CXX: /usr/bin/clang++-10
