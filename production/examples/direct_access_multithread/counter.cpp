@@ -43,7 +43,7 @@ void increase_count_worker(gaia::common::gaia_id_t counter_id)
 
     try
     {
-        // Tries increasing the counter value by 1.
+        // Attempts to increase the counter value by 1.
         auto_transaction_t txn;
         counter_t counter = counter_t::get(counter_id);
         counter_writer counter_w = counter.writer();
@@ -53,8 +53,8 @@ void increase_count_worker(gaia::common::gaia_id_t counter_id)
     }
     catch (const gaia::db::transaction_update_conflict& e)
     {
-        // If a transaction_update_conflict is thrown then the counter hasn't been increased.
-        // Here we simply print a log message, however, you should recover from this
+        // In this example, for simplicity, we print a log message.
+        // In a production environment, you should recover from this
         // failure in accordance with your application requirements.
         gaia_log::app().info("A transaction update conflict has occurred!");
     }
@@ -71,13 +71,13 @@ int main()
     gaia_id_t counter_id = counter_t::insert_row(0);
     gaia::db::commit_transaction();
 
-    // Starts 5 worker threads all updating the same counter.
+    // Starts 5 worker threads that all update the same counter.
     // You can try increasing this number and see how the
-    // behavior change.
-    constexpr int num_workers = 10;
+    // behavior changes.
+    constexpr size_t num_workers = 10;
     std::vector<std::thread> workers;
 
-    for (int i = 0; i < num_workers; i++)
+    for (size_t i = 0; i < num_workers; i++)
     {
         workers.emplace_back(increase_count_worker, counter_id);
     }

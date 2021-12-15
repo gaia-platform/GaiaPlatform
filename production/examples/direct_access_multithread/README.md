@@ -2,7 +2,7 @@
 Demonstrates usage of the Gaia Direct Access API in a multithreaded application.
 
 ## Build Instructions
-These instructions assume you have installed the SDK and the `clang` and `cmake` tools.  See the SDK User's Guide for instructions.
+These instructions assume that you have installed the Gaia SDK, Clang, and CMake. For information on installing the SDK and tools, see the Gaia SDK README.md.
 
 1. To preserve the initial state of the sample code, copy the source files to a new directory.
     ```shell
