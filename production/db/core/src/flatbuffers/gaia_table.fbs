@@ -1,11 +1,11 @@
 namespace gaia.db.catalog;
 table gaia_table {
     name:string;
+    hash:string;
+    type_name:string;
     type:uint32;
     is_system:bool;
     binary_schema:[uint8];
     serialization_template:[uint8];
-    hash:string;
-    type_name:string;
 }
 root_type gaia_table;

@@ -1,6 +1,7 @@
 namespace gaia.db.catalog;
 table gaia_relationship {
     name:string;
+    hash:string;
     to_parent_link_name:string;
     to_child_link_name:string;
     cardinality:uint8;
@@ -12,6 +13,5 @@ table gaia_relationship {
     parent_offset:uint16;
     parent_field_positions:[uint16];
     child_field_positions:[uint16];
-    hash:string;
 }
 root_type gaia_relationship;
