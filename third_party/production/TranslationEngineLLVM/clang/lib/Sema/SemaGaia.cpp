@@ -1289,13 +1289,30 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
     }
 
     const llvm::StringMap<std::string>& tagMapping = getTagMapping(getCurFunctionDecl(), loc);
+    bool isReferenceDefined = false;
+    for (const auto& searchContextStackIterator : searchContextStack)
+    {
+        for (const auto& searchContextIterator : searchContextStackIterator)
+        {
+            if (searchContextIterator.second == firstComponent)
+            {
+                isReferenceDefined = true;
+                break;
+            }
+        }
+        if (isReferenceDefined)
+        {
+            break;
+        }
+    }
 
     StringRef anchorTable;
     StringRef anchorVariable;
     if (explicitPath.front() != '/'
         && explicitPath.rfind("@/") != 0
         && tagMapping.find(firstComponent) == tagMapping.end()
-        && !searchContextStack.empty())
+        && !searchContextStack.empty()
+        && !isReferenceDefined)
     {
         // Check if first component is a field. It should be the only component in the path.
         const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
