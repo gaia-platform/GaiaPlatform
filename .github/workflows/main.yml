@@ -590,3 +590,27 @@ jobs:
           name: CTest Logs
           path: |
             /build/production/Testing/Temporary/LastTest.log
+  XXX:
+    runs-on: ubuntu-20.04
+    needs: SDK
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+      GAIA_VERSION: 0.3.2
+      CC: /usr/bin/clang-10
+      CPP: /usr/bin/clang-cpp-10
+      CXX: /usr/bin/clang++-10
+      LDFLAGS: "-B/usr/lib/llvm-10/bin/ -fuse-ld=lld"
+      LANG: en_US.UTF-8
+      LC_CTYPE: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+      - name: Download Package
+        uses: actions/download-artifact@v2
+        with:
+          name: Debian Install Package
+          path: ${{ github.workspace }}/download
+      - name: Display structure of downloaded files
+        run: ls -la
+        working-directory: ${{ github.workspace }}/download
