@@ -5,10 +5,14 @@
 # All rights reserved.
 #############################################
 
+"""
+Module to create a job header for a GitHub Actions file.
+"""
+
 import sys
 import argparse
 
-__job_header = """---
+__JOB_HEADER = """---
 name: Main
 
 on:
@@ -22,6 +26,7 @@ on:
 
 jobs:"""
 
+
 def __process_command_line():
     """
     Process the arguments on the command line.
@@ -31,13 +36,14 @@ def __process_command_line():
     )
     return parser.parse_args()
 
+
 def process_script_action():
     """
     Process the creation of the header for the new GitHub Actions yaml file.
     """
     _ = __process_command_line()
 
-    print(__job_header)
+    print(__JOB_HEADER)
 
 
 sys.exit(process_script_action())

@@ -601,19 +601,42 @@ jobs:
       LC_ALL: en_US.UTF-8
       DEBIAN_FRONTEND: noninteractive
     steps:
+
       - name: Checkout Repository
         uses: actions/checkout@master
-      - name: Download Package
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - name: Download Debian Install Package
         uses: actions/download-artifact@v2
         with:
           name: Debian Install Package
-          path: ${{ github.workspace }}/download
-      - name: Display structure of downloaded files
-        run: ls -la
-        working-directory: ${{ github.workspace }}/download
-      - name: bob
+          path: ${{ github.workspace }}/production/tests/packages
+
+      - name: Tests
         working-directory: ${{ github.workspace }}/download
         run: |
-          find . -name gaia-*_amd64.deb
-          echo "apt-get update && sudo apt-get install -y \"$(find . -name gaia-*_amd64.deb)\""
-          sudo bash -c "apt-get update && sudo apt-get install -y \"$(find . -name gaia-*_amd64.deb)\""
+          cd ${{ github.workspace }}/production/tests
+          echo "1---"
+          sudo ls -la packages
+          echo "2---"
+          sudo echo "--$(find packages -name gaia*)"
+          echo "3---"
+          sudo apt --assume-yes install $(find packages -name gaia*)
+          echo "4---"
+          sudo ./reset_database.sh --verbose --stop --database
+          echo "5---"
+
+          pipenv sync
+          pipenv lock
+          ./smoke_suites.sh
+      - name: Upload Suite Logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: Suite Logs
+          path: |
+            /production/tests/suites

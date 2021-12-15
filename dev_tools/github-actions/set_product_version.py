@@ -5,6 +5,11 @@
 # All rights reserved.
 #############################################
 
+"""
+Module to replace the version information in the `gaia_version.hpp.in` file with
+the information provided by GitHub when executing the actions.
+"""
+
 import argparse
 import sys
 import pathlib
@@ -57,6 +62,7 @@ def __process_command_line():
     )
     return parser.parse_args()
 
+
 def __munge_individual_line(line_to_parse, replacement_map, output_file_list):
     """
     Given a line read in from the file, replace any strings that are enclosed within
@@ -67,14 +73,19 @@ def __munge_individual_line(line_to_parse, replacement_map, output_file_list):
     if start_index != -1:
         end_index = line_to_parse.find(__REPLACE_BOUNDARY_CHARACTER, start_index + 1)
         if end_index != -1:
-            middle_part = line_to_parse[start_index:end_index+1]
+            middle_part = line_to_parse[start_index : end_index + 1]
             if middle_part not in replacement_map:
                 print(f"Replacement text '{middle_part}' not found.")
                 sys.exit(1)
             new_middle_part = replacement_map[middle_part]
-            line_to_parse = (line_to_parse[:start_index] + new_middle_part + line_to_parse[end_index+1:])
+            line_to_parse = (
+                line_to_parse[:start_index]
+                + new_middle_part
+                + line_to_parse[end_index + 1 :]
+            )
 
     output_file_list.append(line_to_parse)
+
 
 def __create_replacement_map(args):
     """
@@ -85,7 +96,9 @@ def __create_replacement_map(args):
     gaia_version_regex = r"^([0-9]+)\.([0-9]+)\.([0-9]+)$"
     match_result = re.match(gaia_version_regex, args.gaia_version)
     if not match_result:
-        print(f"Supplied version number '{args.gaia_version}' is not a valid 3-part version number.")
+        print(
+            f"Supplied version number '{args.gaia_version}' is not a valid 3-part version number."
+        )
         return 1
 
     replacement_map = {}
@@ -93,7 +106,9 @@ def __create_replacement_map(args):
     replacement_map["@production_VERSION_MINOR@"] = match_result.groups()[1]
     replacement_map["@production_VERSION_PATCH@"] = match_result.groups()[2]
 
-    replacement_map["@PRE_RELEASE_IDENTIFIER@"] = args.gaia_pre_release if args.gaia_pre_release else ""
+    replacement_map["@PRE_RELEASE_IDENTIFIER@"] = (
+        args.gaia_pre_release if args.gaia_pre_release else ""
+    )
 
     replacement_map["@BUILD_NUMBER@"] = args.build_number
 
@@ -103,6 +118,7 @@ def __create_replacement_map(args):
     replacement_map["@IS_CI_BUILD@"] = "true"
     return replacement_map
 
+
 def process_script_action():
     """
     Process the posting of the message.
@@ -111,10 +127,14 @@ def process_script_action():
 
     # Make sure that we have a valid directory.
     if not os.path.exists(args.configuration_directory):
-        print(f"Specified root directory {args.configuration_directory} does not exist.")
+        print(
+            f"Specified root directory {args.configuration_directory} does not exist."
+        )
         return 1
     if not os.path.isdir(args.configuration_directory):
-        print(f"Specified root directory {args.configuration_directory} is not a directory.")
+        print(
+            f"Specified root directory {args.configuration_directory} is not a directory."
+        )
         return 1
 
     replacement_map = __create_replacement_map(args)
@@ -130,6 +150,7 @@ def process_script_action():
         print("\n".join(output_lines))
     else:
         hpp_path.write_text("\n".join(output_lines))
+    return 0
 
 
 sys.exit(process_script_action())

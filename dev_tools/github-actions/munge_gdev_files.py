@@ -777,6 +777,7 @@ def __print_pre_production_copy_section(
                 + f' {__SOURCE_DIRECTORY_PATH}{relative_config_file_path}/"'
             )
 
+
 def __print_artifacts_section(section_text_pairs):
     """
     Print the information from the artifacts section of the main gdev.cfg.
@@ -893,7 +894,12 @@ def process_script_action():
     elif __SECTION_NAME_TESTS == specific_section_name:
         __print_tests_section(section_text_pairs)
     else:
-        assert specific_section_name in (__SECTION_NAME_RUN, __SECTION_NAME_PRE_RUN, __SECTION_NAME_LINT, __SECTION_NAME_PRE_LINT)
+        assert specific_section_name in (
+            __SECTION_NAME_RUN,
+            __SECTION_NAME_PRE_RUN,
+            __SECTION_NAME_LINT,
+            __SECTION_NAME_PRE_LINT,
+        )
         __print_run_and_pre_run_results(
             section_text_pairs, configuration_root_directory, dependency_graph
         )
