@@ -204,13 +204,9 @@ jobs:
           cd $GAIA_REPO/third_party/production/libexplain
           cd libexplain
           echo "CACHE_HIT=$CACHE_HIT"
-          if [[ "$CACHE_HIT" == 'true' ]]; then
-            echo "Using cached version of libexplain"
-          else
-            sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
-            sudo bash -c "CPPFLAGS='-fPIC' ./configure --prefix=/usr"
-            sudo bash -c "make -j$(nproc)"
-          fi
+          sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
+          sudo bash -c "CPPFLAGS='-fPIC' ./configure --prefix=/usr"
+          sudo bash -c "make -j$(nproc)"
           sudo bash -c "make install"
 
       - name: Create /source and /build directories.
