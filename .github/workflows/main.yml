@@ -214,7 +214,6 @@ jobs:
           sudo bash -c "make install"
           cd ..
           sudo bash -c "rm -rf *"
-          exit 1
 
       - name: Create /source and /build directories.
         run: |
