@@ -159,9 +159,8 @@ excluded_files=(
 )
 
 # Runs clang-format only on files that:
-# 1. Are in the index (git add)
-# 2. Are in the production/ directory
-# 3. End with .hpp/.cpp/etc..
+# - Are in the production/ directory
+# - End with .hpp/.cpp/etc..
 did_any_fail=0
 for file in $(find production | grep -E "^(production|demo).*(\.hpp|\.cpp|\.inc)$|^\.clang-format$"); do
     format_file=true
