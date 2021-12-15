@@ -31,6 +31,10 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y clang-format-10 flatbuffers-compiler
 
+      - name: Install Required Python Packages
+        run: |
+          python3.8 -m pip install --user pre-commit
+
       - name: Pre-Lint production
         run: |
           cd $GAIA_REPO/production
@@ -41,6 +45,9 @@ jobs:
           cd $GAIA_REPO/production
           sudo bash -c "echo \"Executing Clang-Format on Production Tree\""
           sudo bash -c "$GAIA_REPO/dev_tools/hooks/clang-format.sh"
+      - uses: pre-commit/action@v2.0.3
+        with:
+          extra_args: --all-files
 
   Core:
     runs-on: ubuntu-20.04
