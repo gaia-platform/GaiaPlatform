@@ -634,7 +634,7 @@ jobs:
           path: ${{ github.workspace }}/production/tests/packages
 
       - name: Tests
-        working-directory: ${{ github.workspace }}/download
+        working-directory: ${{ github.workspace }}
         run: |
           cd ${{ github.workspace }}/production/tests
           echo "1---"
