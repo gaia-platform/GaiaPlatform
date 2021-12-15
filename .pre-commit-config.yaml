@@ -5,12 +5,16 @@ repos:
   rev: v4.0.1
   hooks:
     - id: check-merge-conflict
+      exclude: ^third_party/
     - id: check-yaml
+      exclude: ^third_party/
 - repo: https://github.com/Lucas-C/pre-commit-hooks
   rev: v1.1.10
   hooks:
     - id: forbid-crlf
+      exclude: ^third_party/
     - id: forbid-tabs
+      exclude: ^third_party/
 
 - repo: https://github.com/pocc/pre-commit-hooks
   rev: master

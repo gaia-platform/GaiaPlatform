@@ -45,6 +45,13 @@ jobs:
           cd $GAIA_REPO/production
           sudo bash -c "echo \"Executing Clang-Format on Production Tree\""
           sudo bash -c "$GAIA_REPO/dev_tools/hooks/clang-format.sh"
+
+      - name: set PY
+        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
       - uses: pre-commit/action@v2.0.3
         with:
           extra_args: --all-files
