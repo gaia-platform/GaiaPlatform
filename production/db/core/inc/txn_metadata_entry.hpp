@@ -104,9 +104,9 @@ private:
 
     static constexpr uint64_t c_txn_metadata_bits{64ULL};
 
-    // Because we restrict all fds to 16 bits, this is the largest possible value
-    // in that range, which we reserve to indicate an invalidated fd (i.e., one
-    // which was claimed for deallocation by a maintenance thread).
+    // Because we restrict all fds to 16 bits, this is the largest possible
+    // value in that range, which we reserve to indicate an invalidated fd
+    // (i.e., one which was claimed for deallocation by a maintenance thread).
     static constexpr uint16_t c_invalid_txn_log_fd_bits{std::numeric_limits<uint16_t>::max()};
 
     // Transaction status flags.
@@ -137,7 +137,7 @@ private:
     static constexpr uint64_t c_txn_status_aborted{0b110ULL};
 
     // Transaction GC status values.
-    // These only apply to a commit_ts metadata.
+    // These only apply to a commit_ts metadata entry.
     // We don't need TXN_GC_ELIGIBLE or TXN_GC_INITIATED flags, because any txn
     // behind the post-apply watermark (and with TXN_PERSISTENCE_COMPLETE set if
     // persistence is enabled) is eligible for GC, and an invalidated log fd
@@ -161,7 +161,9 @@ private:
     // GC flags because a txn might be made durable before or after being
     // applied to the shared view, and we don't want one to block on the other.
     // However, a committed txn's redo versions cannot be reclaimed until it has
-    // been marked durable. If persistence is disabled, this flag is unused.
+    // been marked durable (because they might be concurrently read for
+    // persistence to the write-ahead log). If persistence is disabled, this
+    // flag is unused.
     static constexpr uint64_t c_txn_persistence_flags_bits{1ULL};
     static constexpr uint64_t c_txn_persistence_flags_shift{
         (c_txn_metadata_bits - c_txn_persistence_flags_bits)
@@ -191,22 +193,37 @@ private:
         ((1ULL << c_txn_log_fd_bits) - 1) << c_txn_log_fd_shift};
 
     // Linked txn timestamp embedded in the txn metadata. For a commit_ts
-    // metadata, this is its associated begin_ts, and for a begin_ts metadata, this is
-    // its associated commit_ts. A commit_ts metadata always contains its linked
-    // begin_ts, but a begin_ts metadata may not be updated with its linked
-    // commit_ts until after the associated commit_ts metadata has been created.
+    // metadata, this is its associated begin_ts, and for a begin_ts metadata,
+    // this is its associated commit_ts. A commit_ts metadata always contains
+    // its linked begin_ts, but a begin_ts metadata may not be updated with its
+    // linked commit_ts until after the associated commit_ts metadata has been
+    // created.
     //
     // REVIEW: We could save at least 10 bits (conservatively) if we replaced
-    // the linked timestamp with its delta from the metadata's timestamp (the delta
-    // for a linked begin_ts would be implicitly negative). 32 bits should be
-    // more than we would ever need, and 16 bits could suffice if we enforced
+    // the linked timestamp with its delta from the metadata's timestamp (the
+    // delta for a linked begin_ts would be implicitly negative). 32 bits should
+    // be more than we would ever need, and 16 bits could suffice if we enforced
     // limits on the "age" of an active txn (e.g., if we aborted txns whose
     // begin_ts was > 2^16 older than the last allocated timestamp). We might
     // want to enforce an age limit anyway, of course, to avoid unbounded
     // garbage accumulation (which consumes memory, open fds, and other
     // resources, and also increases txn begin latency, although it doesn't
     // affect read/write latency, because we don't use version chains).
+
+#if DEBUG
+    // We use 32-bit timestamps in Debug builds (and therefore 32GB rather than
+    // 32TB for the txn metadata segment), because TSan can't handle huge VM
+    // reservations. Per the above estimates, this would allow the server to run
+    // for 2-3 days at 10K TPS. This shouldn't be a concern for Debug builds,
+    // which are not intended for production. (The ASan thread creation limit of
+    // 2^32 should be hit long before then anyway.)
+    //
+    // REVIEW (GAIAPLAT-1577): We should be able to revert this restriction when
+    // we move the txn metadata to a fixed-size circular buffer.
+    static constexpr uint64_t c_txn_ts_bits{32ULL};
+#else
     static constexpr uint64_t c_txn_ts_bits{42ULL};
+#endif
     static constexpr uint64_t c_txn_ts_shift{0ULL};
     static constexpr uint64_t c_txn_ts_mask{((1ULL << c_txn_ts_bits) - 1) << c_txn_ts_shift};
 
