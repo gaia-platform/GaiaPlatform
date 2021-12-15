@@ -59,7 +59,9 @@ void index_builder_t::serialize_key(const index_key_t& key, payload_types::data_
 {
     for (const payload_types::data_holder_t& key_value : key.values())
     {
-        key_value.serialize(buffer);
+        // TODO: Until this information is available in the catalog, this will have to do!
+        bool nullable = (key_value.type == reflection::String || key_value.type == reflection::Vector);
+        key_value.serialize(buffer, nullable);
     }
 }
 
@@ -78,7 +80,9 @@ index_key_t index_builder_t::deserialize_key(common::gaia_id_t index_id, payload
     for (auto field_id : fields)
     {
         data_type_t type = field_view_t(id_to_ptr(field_id)).data_type();
-        index_key.insert(payload_types::data_holder_t(buffer, convert_to_reflection_type(type)));
+        // TODO: Until this information is available in the catalog, this will have to do!
+        bool nullable = type == common::data_type_t::e_string;
+        index_key.insert(payload_types::data_holder_t(buffer, convert_to_reflection_type(type), nullable));
     }
 
     return index_key;

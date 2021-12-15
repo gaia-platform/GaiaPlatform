@@ -26,26 +26,36 @@ data_holder_t::data_holder_t()
     clear();
 }
 
+data_holder_t::data_holder_t(reflection::BaseType reflection_type, std::nullptr_t)
+{
+    is_null = true;
+    type = reflection_type;
+}
+
 data_holder_t::data_holder_t(float value)
 {
+    is_null = false;
     type = reflection::Float;
     hold.float_value = value;
 }
 
 data_holder_t::data_holder_t(double value)
 {
+    is_null = false;
     type = reflection::Double;
     hold.float_value = value;
 }
 
 data_holder_t::data_holder_t(const char* value)
 {
+    is_null = (value == nullptr);
     type = reflection::String;
     hold.string_value = value;
 }
 
 data_holder_t::data_holder_t(const char* value, std::size_t len)
 {
+    is_null = (value == nullptr);
     type = reflection::Vector;
     hold.vector_value = {value, len};
 }
@@ -53,6 +63,19 @@ data_holder_t::data_holder_t(const char* value, std::size_t len)
 data_holder_t::data_holder_t(data_read_buffer_t& buffer, reflection::BaseType type)
 {
     this->type = type;
+
+    if (nullable)
+    {
+        buffer >> is_null;
+        if (is_null)
+        {
+            return;
+        }
+    }
+    else
+    {
+        is_null = false;
+    }
 
     if (flatbuffers::IsInteger(type))
     {
@@ -102,6 +125,11 @@ data_holder_t::operator uint64_t() const
     {
         throw unboxing_error("Unbox failed: type needs to be unsigned integer.");
     }
+    else if (is_null)
+    {
+        throw unboxing_error("Unbox failed: cannot unbox null to uint64_t.");
+    }
+
     auto integer_ptr = reinterpret_cast<const uint64_t*>(&hold.integer_value);
     return *integer_ptr;
 }
@@ -112,6 +140,11 @@ data_holder_t::operator int64_t() const
     {
         throw unboxing_error("Unbox failed: type needs to be signed integer.");
     }
+    else if (is_null)
+    {
+        throw unboxing_error("Unbox failed: cannot unbox null to int64_t.");
+    }
+
     return hold.integer_value;
 }
 
@@ -121,6 +154,11 @@ data_holder_t::operator uint32_t() const
     {
         throw unboxing_error("Unbox failed: type needs to be unsigned integer.");
     }
+    else if (is_null)
+    {
+        throw unboxing_error("Unbox failed: cannot unbox null to uint32_t.");
+    }
+
     auto integer_ptr = reinterpret_cast<const uint64_t*>(&hold.integer_value);
     return static_cast<uint32_t>(*integer_ptr);
 }
@@ -131,6 +169,11 @@ data_holder_t::operator int32_t() const
     {
         throw unboxing_error("Unbox failed: type needs to be signed integer.");
     }
+    else if (is_null)
+    {
+        throw unboxing_error("Unbox failed: cannot unbox null to int32_t.");
+    }
+
     return static_cast<int32_t>(hold.integer_value);
 }
 
@@ -140,6 +183,11 @@ data_holder_t::operator float() const
     {
         throw unboxing_error("Unbox failed: type needs to be float.");
     }
+    else if (is_null)
+    {
+        throw unboxing_error("Unbox failed: cannot unbox null to float.");
+    }
+
     return static_cast<float>(hold.float_value);
 }
 
@@ -149,6 +197,11 @@ data_holder_t::operator double() const
     {
         throw unboxing_error("Unbox failed: type needs to be float.");
     }
+    else if (is_null)
+    {
+        throw unboxing_error("Unbox failed: cannot unbox null to double.");
+    }
+
     return hold.float_value;
 }
 
@@ -170,11 +223,21 @@ void data_holder_t::clear()
 {
     type = reflection::None;
     hold.integer_value = 0;
+    is_null = true;
 }
 
 int data_holder_t::compare(const data_holder_t& other) const
 {
     ASSERT_PRECONDITION(type == other.type, "data_holder_t::compare() was called for different types.");
+
+    if (is_null && other.is_null)
+    {
+        return 0;
+    }
+    else if (is_null != other.is_null)
+    {
+        return (is_null) ? -1 : 1;
+    }
 
     if (flatbuffers::IsInteger(type))
     {
@@ -205,47 +268,25 @@ int data_holder_t::compare(const data_holder_t& other) const
     }
     else if (type == reflection::String)
     {
-        if (hold.string_value == nullptr && other.hold.string_value == nullptr)
-        {
-            return 0;
-        }
-        else if (hold.string_value == nullptr || other.hold.string_value == nullptr)
-        {
-            return (hold.string_value == nullptr) ? -1 : 1;
-        }
-        else
-        {
-            return strcmp(hold.string_value, other.hold.string_value);
-        }
+        return strcmp(hold.string_value, other.hold.string_value);
     }
     else if (type == reflection::Vector)
     {
-        if (hold.vector_value.data() == nullptr && other.hold.vector_value.data() == nullptr)
-        {
-            return 0;
-        }
-        else if (hold.vector_value.data() == nullptr || other.hold.vector_value.data() == nullptr)
-        {
-            return (hold.vector_value.data() == nullptr) ? -1 : 1;
-        }
-        else
-        {
-            // Perform lexicographic compare. This treats vectors as BLOBs, allowing vector
-            // to be compared regardless of length.
-            //
-            // This means APIs using compare() cannot perform introspection, but this provides a path
-            // for generic code to handle Vector types.
+        // Perform lexicographic compare. This treats vectors as BLOBs, allowing vector
+        // to be compared regardless of length.
+        //
+        // This means APIs using compare() cannot perform introspection, but this provides a path
+        // for generic code to handle Vector types.
 
-            size_t len = std::min(other.hold.vector_value.size(), hold.vector_value.size());
-            int cmp = memcmp(hold.vector_value.data(), other.hold.vector_value.data(), len);
+        size_t len = std::min(other.hold.vector_value.size(), hold.vector_value.size());
+        int cmp = memcmp(hold.vector_value.data(), other.hold.vector_value.data(), len);
 
-            if (cmp == 0 && hold.vector_value.size() != other.hold.vector_value.size())
-            {
-                return (hold.vector_value.size() < other.hold.vector_value.size()) ? -1 : 1;
-            }
-
-            return cmp;
+        if (cmp == 0 && hold.vector_value.size() != other.hold.vector_value.size())
+        {
+            return (hold.vector_value.size() < other.hold.vector_value.size()) ? -1 : 1;
         }
+
+        return cmp;
     }
     else
     {
@@ -255,6 +296,11 @@ int data_holder_t::compare(const data_holder_t& other) const
 
 data_hash_t data_holder_t::hash() const
 {
+    if (is_null)
+    {
+        return c_null_dataholder_hash;
+    }
+
     if (flatbuffers::IsInteger(type))
     {
         return std::hash<int64_t>{}(hold.integer_value);
@@ -265,25 +311,12 @@ data_hash_t data_holder_t::hash() const
     }
     else if (type == reflection::String)
     {
-        if (hold.string_value == nullptr)
-        {
-            return 0;
-        }
-        else
-        {
-            return std::hash<std::string_view>{}(hold.string_value);
-        }
+
+        return std::hash<std::string_view>{}(hold.string_value);
     }
     else if (type == reflection::Vector)
     {
-        if (hold.vector_value.data() == nullptr)
-        {
-            return 0;
-        }
-        else
-        {
-            return std::hash<std::string_view>{}(hold.vector_value);
-        }
+        return std::hash<std::string_view>{}(hold.vector_value);
     }
     else
     {
@@ -293,44 +326,45 @@ data_hash_t data_holder_t::hash() const
 
 void data_holder_t::serialize(data_write_buffer_t& buffer) const
 {
+    if (is_null)
+    {
+        ASSERT_PRECONDITION(nullable, "Attempting to serialize a null value without nullable.");
+    }
+
+    if (nullable)
+    {
+        buffer << is_null;
+        if (is_null)
+        {
+            return;
+        }
+    }
+
     if (flatbuffers::IsInteger(type))
     {
-        buffer << hold.integer_value;
+        if (!is_null)
+        {
+            buffer << hold.integer_value;
+        }
     }
     else if (flatbuffers::IsFloat(type))
     {
-        buffer << hold.float_value;
+        if (!is_null)
+        {
+            buffer << hold.float_value;
+        }
     }
     else if (type == reflection::String)
     {
-        size_t length;
-        if (hold.string_value == nullptr)
-        {
-            length = 0;
-            buffer << length;
-        }
-        else
-        {
-            length = strlen(hold.string_value) + 1; // +1 for null terminator
-            buffer << length;
-            buffer.write(hold.string_value, length);
-        }
+        size_t length = strlen(hold.string_value) + 1; // +1 for null terminator
+        buffer << length;
+        buffer.write(hold.string_value, length);
     }
     else if (type == reflection::Vector)
     {
-        size_t length;
-
-        if (hold.vector_value.data() == nullptr)
-        {
-            length = 0;
-            buffer << length;
-        }
-        else
-        {
-            length = hold.vector_value.size();
-            buffer << length;
-            buffer.write(hold.vector_value.data(), length);
-        }
+        size_t length = hold.vector_value.size();
+        buffer << length;
+        buffer.write(hold.vector_value.data(), length);
     }
     else
     {
@@ -340,7 +374,11 @@ void data_holder_t::serialize(data_write_buffer_t& buffer) const
 
 std::ostream& operator<<(std::ostream& os, const data_holder_t& data)
 {
-    if (flatbuffers::IsInteger(data.type))
+    if (data.is_null)
+    {
+        os << "(null)";
+    }
+    else if (flatbuffers::IsInteger(data.type))
     {
         if (is_signed_integer(data.type))
         {
