@@ -272,6 +272,7 @@ jobs:
           sudo bash -c "echo \"ASAN_OPTIONS = 'detect_leaks=0'\" >> /etc/postgresql/12/main/environment"
           sudo bash -c "mkdir -p /var/lib/gaia/db"
           sudo bash -c "chmod -R 666 /var/lib/gaia/db"
+          sudo $GAIA_REPO/dev_tools/github-actions/set_product_version.py --directory "$GAIA_REPO" --version "$GAIA_VERSION" --pre-release "$GAIA_PRE_RELEASE" --build-number "${{ github.run_id }}"
 
       - name: Build production
         run: |
@@ -538,6 +539,7 @@ jobs:
           sudo bash -c "echo \"ASAN_OPTIONS = 'detect_leaks=0'\" >> /etc/postgresql/12/main/environment"
           sudo bash -c "mkdir -p /var/lib/gaia/db"
           sudo bash -c "chmod -R 666 /var/lib/gaia/db"
+          sudo $GAIA_REPO/dev_tools/github-actions/set_product_version.py --directory "$GAIA_REPO" --version "$GAIA_VERSION" --pre-release "$GAIA_PRE_RELEASE" --build-number "${{ github.run_id }}"
 
       - name: Build production
         run: |
@@ -610,6 +612,8 @@ jobs:
         run: ls -la
         working-directory: ${{ github.workspace }}/download
       - name: bob
+        working-directory: ${{ github.workspace }}/download
         run: |
-          find download -name gaia-*_amd64.deb
-          sudo bash -c "apt-get update && sudo apt-get install -y $(find download -name gaia-*_amd64.deb)"
+          find . -name gaia-*_amd64.deb
+          echo "apt-get update && sudo apt-get install -y \"$(find . -name gaia-*_amd64.deb)\""
+          sudo bash -c "apt-get update && sudo apt-get install -y \"$(find . -name gaia-*_amd64.deb)\""
