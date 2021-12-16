@@ -215,8 +215,8 @@ jobs:
       - uses: actions/cache@v2
         id: cache-libexplain
         with:
-          path: ${{ github.workspace }}/third-party/production/libexplain/
-          key: ${{ runner.os }}-libexplain2-${{ hashFiles('third_party/production/libexplain/hashfiles.txt') }}
+          path: ${{ github.workspace }}/third-party/production/libexplain
+          key: ${{ runner.os }}-libexplain3-${{ hashFiles('third_party/production/libexplain/hashfiles.txt') }}
 
       - name: Build third_party/production/libexplain
         env:
@@ -229,11 +229,10 @@ jobs:
           ls -l
           if [[ "$CACHE_HIT" == 'true' ]]; then
             echo "using cache"
-          else
-            sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
-            sudo bash -c "CPPFLAGS='-fPIC' ./configure --prefix=/usr"
-            sudo bash -c "make -j$(nproc)"
           fi
+          sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
+          sudo bash -c "CPPFLAGS='-fPIC' ./configure --prefix=/usr"
+          sudo bash -c "make -j$(nproc)"
           pwd
           ls -l
       - name: Install third_party/production/libexplain
