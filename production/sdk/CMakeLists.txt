@@ -173,6 +173,10 @@ install(FILES ${GAIA_REPO}/production/gaia_log.conf DESTINATION ${CMAKE_INSTALL_
 # Place cmake functions
 install(FILES ${GAIA_REPO}/production/cmake/gaia.cmake DESTINATION cmake/)
 
+# Place Examples README and License
+install(FILES ${GAIA_REPO}/production/examples/LICENSE.txt DESTINATION examples/LICENSE.txt)
+install(FILES ${GAIA_REPO}/production/examples/README.md DESTINATION examples/README.md)
+
 # Place hello example.
 install(FILES ${GAIA_REPO}/production/examples/hello/README.md DESTINATION examples/hello)
 install(FILES ${GAIA_REPO}/production/examples/hello/hello.ddl DESTINATION examples/hello)
