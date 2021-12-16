@@ -646,6 +646,11 @@ jobs:
         with:
           python-version: 3.8
 
+      - name: Install PipEnv
+        uses: dschep/install-pipenv-action@v1
+        with:
+          version: 2021.5.29
+
       - name: Download Debian Install Package
         uses: actions/download-artifact@v2
         with:
@@ -656,17 +661,9 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           cd ${{ github.workspace }}/production/tests/packages
-          echo "1---"
-          sudo ls -la .
-          echo "2---"
-          sudo echo "--$(find . -name gaia*)"
-          echo "3---"
-          echo "apt --assume-yes install \"$(find . -name gaia*)\""
           sudo apt --assume-yes install "$(find . -name gaia*)"
-          echo "4---"
           cd ${{ github.workspace }}/production/tests
           sudo ./reset_database.sh --verbose --stop --database
-          echo "5---"
 
           pipenv sync
           pipenv lock
