@@ -226,11 +226,15 @@ jobs:
           echo "CACHE_HIT=$CACHE_HIT"
           pwd
           ls -l
-          sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
-          sudo bash -c "CPPFLAGS='-fPIC' ./configure --prefix=/usr"
-          sudo bash -c "make -j$(nproc)"
-          pwd
-          ls -l
+          if [[ "$CACHE_HIT" == 'true' ]]; then
+            echo "using cache"
+          else
+            sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
+            sudo bash -c "CPPFLAGS='-fPIC' ./configure --prefix=/usr"
+            sudo bash -c "make -j$(nproc)"
+            pwd
+            ls -l
+          fi
       - name: Install third_party/production/libexplain
         run : |
           cd $GAIA_REPO/third_party/production/libexplain
