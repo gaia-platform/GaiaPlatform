@@ -239,7 +239,7 @@ jobs:
         id: cache-libexplain
         with:
           path: ${{ steps.precache-libexplain.outputs.dir }}
-          key: ${{ runner.os }}-libexplain7-${{ hashFiles('third_party/production/libexplain/hashfiles.txt') }}
+          key: ${{ runner.os }}-libexplain8-${{ hashFiles('third_party/production/libexplain/hashfiles.txt') }}
 
       - name: Build third_party/production/libexplain
         env:
