@@ -211,11 +211,12 @@ jobs:
           cd $GAIA_REPO/third_party/production/libexplain
           cd libexplain
           find . -type f -print0  | xargs -0 sha1sum > $GAIA_REPO/third_party/production/libexplain/hashfiles.txt
+
       - uses: actions/cache@v2
         id: cache-libexplain
         with:
           path: ${{ github.workspace }}/third-party/production/libexplain/
-          key: ${{ runner.os }}-libexplain-${{ hashFiles('third_party/production/libexplain/hashfiles.txt') }}
+          key: ${{ runner.os }}-libexplain2-${{ hashFiles('third_party/production/libexplain/hashfiles.txt') }}
 
       - name: Build third_party/production/libexplain
         env:
