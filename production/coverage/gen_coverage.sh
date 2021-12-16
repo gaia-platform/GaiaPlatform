@@ -90,8 +90,6 @@ parse_command_line() {
 }
 
 # Set up any global script variables.
-# shellcheck disable=SC2164
-SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
 # Set up any project based local script variables.
 TEMP_FILE=/tmp/blah.tmp
@@ -107,9 +105,9 @@ echo "Grabbing additional packages."
 apt -y update
 apt-get install -y lcov nano
 
-pushd /build/production/output
-rm -rf *
-popd
+pushd /build/production/output || exit
+rm -rf ./*
+popd || exit
 
 echo "Setting baseline state"
 lcov \
