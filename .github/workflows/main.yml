@@ -228,6 +228,7 @@ jobs:
           sudo bash -c "cmake --build build --target install"
 
       - name: pre-XX
+        id: precache-libexplain
         run: |
           cd $GAIA_REPO/third_party/production/libexplain
           cd libexplain
@@ -237,7 +238,7 @@ jobs:
       - uses: actions/cache@v2
         id: cache-libexplain
         with:
-          path: ${{ steps.pip-cache.outputs.dir }}
+          path: ${{ steps.precache-libexplain.outputs.dir }}
           key: ${{ runner.os }}-libexplain6-${{ hashFiles('third_party/production/libexplain/hashfiles.txt') }}
 
       - name: Build third_party/production/libexplain
@@ -688,8 +689,6 @@ jobs:
           cd ${{ github.workspace }}/production/tests
           sudo ./reset_database.sh --verbose --stop --database
 
-          pipenv sync
-          pipenv lock
           ./smoke_suites.sh
       - name: Upload Suite Logs
         if: always()
