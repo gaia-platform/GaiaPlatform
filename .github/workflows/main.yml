@@ -20,7 +20,7 @@ jobs:
       GAIA_PRE_RELEASE: beta
     steps:
       - id: file_changes
-        uses: trilom/file-changes-action@v1.2.3
+        uses: trilom/file-changes-action@v1.2.4
       - name: test
         run: |
           echo "Files:"
