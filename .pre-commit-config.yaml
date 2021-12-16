@@ -34,7 +34,7 @@ repos:
     - id: shellcheck
       exclude: ^(data|scratch|third_party)/
     - id: script-must-have-extension
-      exclude: ^(data|scratch|third_party)/
+      exclude: ^(((data|scratch|third_party)/)|dev_tools/hooks/pre-commit)
       types: [shell, executable]
 
 # - repo: https://github.com/psf/black
