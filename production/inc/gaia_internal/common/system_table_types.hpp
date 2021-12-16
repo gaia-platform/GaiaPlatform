@@ -50,7 +50,7 @@ enum class system_table_type_t : gaia_type_t::value_type
 
     // Assign constant IDs to other system tables starting from lower end of the reserved range.
     event_log = c_system_table_reserved_range_start.value(),
-    gaia_application = event_log,
+    gaia_application = event_log + 1,
     app_database = gaia_application + 1,
     app_ruleset = app_database + 1,
     ruleset_database = app_ruleset + 1,

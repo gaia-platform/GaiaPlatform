@@ -150,13 +150,12 @@ If there are any references added or removed in catalog schema, the `type_regist
 * Start by only making necessary catalog schema changes to `bootstrap_catalog()`.
   * Add the table type and its ID to [system_table_types.hpp](../inc/gaia_internal/common/system_table_types.hpp).
   * (Optionally) update the `type_registry_t::init()` method when there are reference changes.
-  * (Optionally) update the `.fbs` files in `production/db/core/src/flatbuffers` to correspond with any changes made in `bootstrap_catalog()`.
+  * (Optionally) update the `catalog_core.hpp`, `catalog_core.cpp` and `.fbs` files in `production/db/core/src/flatbuffers` to correspond with any changes made in `bootstrap_catalog()`.
 * Build, then execute `gaiac --db-name catalog --generate` (you may need to start the server).
 * Copy generated header files:
   * `gaia_catalog.h` to `production/inc/gaia_internal/catalog/`.
   * `catalog_generated.h` to `production/inc/gaia_internal/catalog/`.
   * `gaia_catalog.cpp` to `production/catalog/src/`.
-* (Optionally) update `catalog_core.hpp` when necessary.
 * Now make changes that leverage the schema changes.
 * Build again.
 
