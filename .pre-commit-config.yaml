@@ -28,12 +28,12 @@ repos:
 #     - id: cpplint
 #     - id: include-what-you-use
 
-# - repo: https://github.com/jumanjihouse/pre-commit-hooks
-#   rev: master
-#   hooks:
-#     - id: script-must-have-extension
-#       types: [shell, executable]
-#     - id: shellcheck
+- repo: https://github.com/jumanjihouse/pre-commit-hooks
+  rev: master
+  hooks:
+    - id: script-must-have-extension
+      types: [shell, executable]
+    - id: shellcheck
 
 # - repo: https://github.com/psf/black
 #   rev: 21.7b0
