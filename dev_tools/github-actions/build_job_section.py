@@ -72,6 +72,21 @@ __COPY_SECTION_HEADER = """
       - name: Create /source and /build directories.
         run: |"""
 
+__LINT_SECTION_SUFFIX = """
+      - name: Set Cache Key for Pre-Commit Checks
+        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
+
+      - name: Apply Pre-Commit Checks Cache
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Execute Pre-Commit Checks
+        uses: pre-commit/action@v2.0.3
+        with:
+          extra_args: --all-files"""
+
 
 def __execute_script(command_list):
     """
@@ -330,6 +345,9 @@ def process_script_action():
 
         # `Generate Package`
         __print_formatted_lines(section_line_map[__PACKAGE_SECTION])
+
+    if args.action == "lint":
+        print(__LINT_SECTION_SUFFIX)
 
     # `Upload *`
     __print_formatted_lines(section_line_map[__ARTIFACTS_SECTION])
