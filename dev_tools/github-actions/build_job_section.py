@@ -171,7 +171,9 @@ def __collect_lines_for_section(
     code, env_outp, errp = __execute_script(cmds)
     if show_debug_output:
         print(f"output for {section_long_name}: {env_outp}")
-    assert code == 0, f"Error getting generated {section_long_name}({code}): {env_outp}{errp}"
+    assert (
+        code == 0
+    ), f"Error getting generated {section_long_name}({code}): {env_outp}{errp}"
     return env_outp
 
 
@@ -190,6 +192,7 @@ __ARTIFACTS_SECTION = "artifacts"
 __TESTS_SECTION = "tests"
 __PACKAGE_SECTION = "package"
 
+
 def __create_job_start_text(args):
     needs_text = ""
     if args.required_jobs:
@@ -199,6 +202,7 @@ def __create_job_start_text(args):
             needs_text += next_job
         needs_text = "needs: " + needs_text + "\n    "
     return __JOB_PREFIX.replace("{needs}", needs_text).replace("{name}", args.job_name)
+
 
 def __calculate_section_lines(cmd_options):
     section_line_map = {}
@@ -248,7 +252,9 @@ def process_script_action():
     section_line_map = __calculate_section_lines(cmd_options)
 
     # Run the munge script to create each part of the file.
-    prerun_outp = __collect_lines_for_section("pre_" + args.action, "pre_" + args.action, cmd_options)
+    prerun_outp = __collect_lines_for_section(
+        "pre_" + args.action, "pre_" + args.action, cmd_options
+    )
     run_outp = __collect_lines_for_section(args.action, args.action, cmd_options)
 
     # A small amount of adjustments to the input.
@@ -289,31 +295,36 @@ def process_script_action():
     # Each of the subproject sections, up to `Build production``
     for next_section_cd in run_ordered_build_list:
 
-        if run_ordered_build_list[-1] == next_section_cd and section_line_map[__COPY_SECTION]:
+        if (
+            run_ordered_build_list[-1] == next_section_cd
+            and section_line_map[__COPY_SECTION]
+        ):
             print(__COPY_SECTION_HEADER)
             __print_formatted_lines(
                 section_line_map[__COPY_SECTION], indent="          "
             )
 
-        xx = "Build" if args.action == "run" else args.action.capitalize()
+        action_title = "Build" if args.action == "run" else args.action.capitalize()
 
         proper_section_name = next_section_cd[len("cd $GAIA_REPO/") :].strip()
         if next_section_cd in prerun_build_map:
             print(
-                __PREBUILD_SECTION_HEADER_TEMPLATE.\
-                    replace("{action}", xx).\
-                    replace("{section}", proper_section_name)
+                __PREBUILD_SECTION_HEADER_TEMPLATE.replace(
+                    "{action}", action_title
+                ).replace("{section}", proper_section_name)
             )
             __print_formatted_lines(
                 prerun_build_map[next_section_cd], indent="          "
             )
-        print(__BUILD_SECTION_HEADER_TEMPLATE.\
-            replace("{action}", xx).\
-            replace("{section}", proper_section_name))
+        print(
+            __BUILD_SECTION_HEADER_TEMPLATE.replace("{action}", action_title).replace(
+                "{section}", proper_section_name
+            )
+        )
         __print_formatted_lines(run_build_map[next_section_cd], indent="          ")
 
     # `Tests`
-    if "run" == args.action:
+    if args.action == "run":
         print(__TESTS_SECTION_HEADER)
         __print_formatted_lines(section_line_map[__TESTS_SECTION])
 
@@ -322,7 +333,6 @@ def process_script_action():
 
     # `Upload *`
     __print_formatted_lines(section_line_map[__ARTIFACTS_SECTION])
-
 
 
 sys.exit(process_script_action())

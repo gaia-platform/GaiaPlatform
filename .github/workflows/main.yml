@@ -17,6 +17,7 @@ jobs:
     env:
       GAIA_REPO: ${{ github.workspace }}
       GAIA_VERSION: 0.3.2
+      GAIA_PRE_RELEASE: beta
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -30,6 +31,10 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y clang-format-10 flatbuffers-compiler
 
+      - name: Install Required Python Packages
+        run: |
+          python3.8 -m pip install --user pre-commit
+
       - name: Pre-Lint production
         run: |
           cd $GAIA_REPO/production
@@ -41,12 +46,23 @@ jobs:
           sudo bash -c "echo \"Executing Clang-Format on Production Tree\""
           sudo bash -c "$GAIA_REPO/dev_tools/hooks/clang-format.sh"
 
+      - name: set PY
+        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+      - uses: pre-commit/action@v2.0.3
+        with:
+          extra_args: --all-files
+
   Core:
     runs-on: ubuntu-20.04
     needs: Lint
     env:
       GAIA_REPO: ${{ github.workspace }}
       GAIA_VERSION: 0.3.2
+      GAIA_PRE_RELEASE: beta
       CC: /usr/bin/clang-10
       CPP: /usr/bin/clang-cpp-10
       CXX: /usr/bin/clang++-10
@@ -272,6 +288,7 @@ jobs:
           sudo bash -c "echo \"ASAN_OPTIONS = 'detect_leaks=0'\" >> /etc/postgresql/12/main/environment"
           sudo bash -c "mkdir -p /var/lib/gaia/db"
           sudo bash -c "chmod -R 666 /var/lib/gaia/db"
+          sudo $GAIA_REPO/dev_tools/github-actions/set_product_version.py --directory "$GAIA_REPO" --version "$GAIA_VERSION" --pre-release "$GAIA_PRE_RELEASE" --build-number "${{ github.run_id }}"
 
       - name: Build production
         run: |
@@ -311,6 +328,7 @@ jobs:
     env:
       GAIA_REPO: ${{ github.workspace }}
       GAIA_VERSION: 0.3.2
+      GAIA_PRE_RELEASE: beta
       CC: /usr/bin/clang-10
       CPP: /usr/bin/clang-cpp-10
       CXX: /usr/bin/clang++-10
@@ -538,6 +556,7 @@ jobs:
           sudo bash -c "echo \"ASAN_OPTIONS = 'detect_leaks=0'\" >> /etc/postgresql/12/main/environment"
           sudo bash -c "mkdir -p /var/lib/gaia/db"
           sudo bash -c "chmod -R 666 /var/lib/gaia/db"
+          sudo $GAIA_REPO/dev_tools/github-actions/set_product_version.py --directory "$GAIA_REPO" --version "$GAIA_VERSION" --pre-release "$GAIA_PRE_RELEASE" --build-number "${{ github.run_id }}"
 
       - name: Build production
         run: |
@@ -597,14 +616,44 @@ jobs:
       LANG: en_US.UTF-8
       LC_CTYPE: en_US.UTF-8
       LC_ALL: en_US.UTF-8
+      DEBIAN_FRONTEND: noninteractive
     steps:
+
       - name: Checkout Repository
         uses: actions/checkout@master
-      - name: Download Package
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - name: Download Debian Install Package
         uses: actions/download-artifact@v2
         with:
           name: Debian Install Package
-          path: ${{ github.workspace }}/download
-      - name: Display structure of downloaded files
-        run: ls -la
-        working-directory: ${{ github.workspace }}/download
+          path: ${{ github.workspace }}/production/tests/packages
+
+      - name: Tests
+        working-directory: ${{ github.workspace }}
+        run: |
+          cd ${{ github.workspace }}/production/tests
+          echo "1---"
+          sudo ls -la packages
+          echo "2---"
+          sudo echo "--$(find packages -name gaia*)"
+          echo "3---"
+          sudo apt --assume-yes install $(find packages -name gaia*)
+          echo "4---"
+          sudo ./reset_database.sh --verbose --stop --database
+          echo "5---"
+
+          pipenv sync
+          pipenv lock
+          ./smoke_suites.sh
+      - name: Upload Suite Logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: Suite Logs
+          path: |
+            /production/tests/suites

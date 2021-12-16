@@ -30,7 +30,7 @@ export LDFLAGS="-B/usr/lib/llvm-10/bin/ -fuse-ld=lld"
 
 ## Download the Gaia SDK
 
-The Gaia SDK is delivered as a Debian software package (DEB): 
+The Gaia SDK is delivered as a Debian software package (DEB):
 
 gaia-x.y.z_amd64.deb
 
@@ -107,10 +107,10 @@ Gaia server command line arguments:
 
 | Option  | Description  |
 |---|---|
-| --persistence \<mode> | If not specified, the default mode is enabled.<br>The data location is specified with --data-dir.<br>- <enabled>: Persist data [default].<br>- <disabled>: Do not persist any data.<br>- <disabled-after-recovery>: Load data from the datastore and disable persistence.  | 
+| --persistence \<mode> | If not specified, the default mode is enabled.<br>The data location is specified with --data-dir.<br>- <enabled>: Persist data [default].<br>- <disabled>: Do not persist any data.<br>- <disabled-after-recovery>: Load data from the datastore and disable persistence.  |
 | --data-dir \<database-folder-path> | Specifies the location in which to store the database.  |
 | --configuration-file-path \<config-file-name> | Specifies the location in which to store the Gaia configuration file.  |
-| --reinitialize-persistent-store | All previous changes to the database are deleted from persistent storage and will not be visible after the Database Server is started, Changes to the database made while the Database Server is running will be visible after it is restarted.  | 
+| --reinitialize-persistent-store | All previous changes to the database are deleted from persistent storage and will not be visible after the Database Server is started, Changes to the database made while the Database Server is running will be visible after it is restarted.  |
 
 ### Configuration settings
 
@@ -135,7 +135,7 @@ To permanently enable this policy:
 2. Save the file, and in a shell with root privileges type
 
     sysctl -p
-  
+
 #### Open file descriptor limit
 
 The Database Server requires a per-process open file descriptor limit of at least 65535.
@@ -149,7 +149,7 @@ To temporarily set the minimum open file descriptor limit, open a shell with roo
 To permanently set the minimum open file descriptor limit:
 
 1. Open /etc/security/limits.conf in an editor with root privileges and add the following lines:
-    
+
     ```
     * soft nofile 65535
     * hard nofile 65535
