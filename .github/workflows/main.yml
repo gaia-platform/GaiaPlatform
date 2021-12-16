@@ -229,10 +229,11 @@ jobs:
           ls -l
           if [[ "$CACHE_HIT" == 'true' ]]; then
             echo "using cache"
+          else
+            sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
+            sudo bash -c "CPPFLAGS='-fPIC' ./configure --prefix=/usr"
+            sudo bash -c "make -j$(nproc)"
           fi
-          sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
-          sudo bash -c "CPPFLAGS='-fPIC' ./configure --prefix=/usr"
-          sudo bash -c "make -j$(nproc)"
           pwd
           ls -l
       - name: Install third_party/production/libexplain
