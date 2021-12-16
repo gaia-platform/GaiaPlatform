@@ -31,11 +31,11 @@ repos:
 - repo: https://github.com/jumanjihouse/pre-commit-hooks
   rev: master
   hooks:
-    - id: script-must-have-extension
-      exclude: ^(data|scratch|third_party)/
-      types: [shell, executable]
     - id: shellcheck
       exclude: ^(data|scratch|third_party)/
+    - id: script-must-have-extension
+      exclude: ^(((data|scratch|third_party)/)|dev_tools/hooks/pre-commit)
+      types: [shell, executable]
 
 # - repo: https://github.com/psf/black
 #   rev: 21.7b0
@@ -46,7 +46,12 @@ repos:
 #   rev: 4.0.1
 #   hooks:
 #     - id: flake8
+#       exclude: ^((data|scratch|third_party)|dev_tools/gdev)/
+#       args:
+#         - --ignore=E203,E501,W503
 # - repo: https://github.com/PyCQA/pylint
 #   rev: v2.11.1
 #   hooks:
 #     - id: pylint
+#       exclude: ^((data|scratch|third_party)|dev_tools/gdev|production/tools/tests/gaiat)/
+#       args: [--disable=R0801]
