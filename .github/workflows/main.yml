@@ -46,13 +46,17 @@ jobs:
           sudo bash -c "echo \"Executing Clang-Format on Production Tree\""
           sudo bash -c "$GAIA_REPO/dev_tools/hooks/clang-format.sh"
 
-      - name: set PY
+      - name: Set Cache Key for Pre-Commit
         run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
-      - uses: actions/cache@v1
+
+      - name: Pre-Commit Cache
+        uses: actions/cache@v1
         with:
           path: ~/.cache/pre-commit
           key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
-      - uses: pre-commit/action@v2.0.3
+
+      - name: Pre-Commit Checks
+        uses: pre-commit/action@v2.0.3
         with:
           extra_args: --all-files
 
@@ -636,14 +640,16 @@ jobs:
       - name: Tests
         working-directory: ${{ github.workspace }}
         run: |
-          cd ${{ github.workspace }}/production/tests
+          cd ${{ github.workspace }}/production/tests/packages
           echo "1---"
-          sudo ls -la packages
+          sudo ls -la .
           echo "2---"
-          sudo echo "--$(find packages -name gaia*)"
+          sudo echo "--$(find . -name gaia*)"
           echo "3---"
-          sudo apt --assume-yes install $(find packages -name gaia*)
+          echo "apt --assume-yes install \"$(find . -name gaia*)\""
+          sudo apt --assume-yes install "$(find . -name gaia*)"
           echo "4---"
+          cd ${{ github.workspace }}/production/tests
           sudo ./reset_database.sh --verbose --stop --database
           echo "5---"
 
