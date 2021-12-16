@@ -19,6 +19,27 @@ jobs:
       GAIA_VERSION: 0.3.2
       GAIA_PRE_RELEASE: beta
     steps:
+      - id: file_changes
+        uses: trilom/file-changes-action@v1.2.4
+      - name: test
+        run: |
+          echo "Files:"
+          cat $HOME/files.json
+          echo "Files Modified:"
+          cat $HOME/files_modified.json
+          echo "Files Added:"
+          cat $HOME/files_added.json
+          echo "Files Removed:"
+          cat $HOME/files_removed.json
+          echo "Files:"
+          echo '${{ steps.file_changes.outputs.files}}'
+          echo "Files Modified:"
+          echo '${{ steps.file_changes.outputs.files_modified}}'
+          echo "Files Added:"
+          echo '${{ steps.file_changes.outputs.files_added}}'
+          echo "Files Removed:"
+          echo '${{ steps.file_changes.outputs.files_removed}}'
+
       - name: Checkout Repository
         uses: actions/checkout@master
 
@@ -46,16 +67,16 @@ jobs:
           sudo bash -c "echo \"Executing Clang-Format on Production Tree\""
           sudo bash -c "$GAIA_REPO/dev_tools/hooks/clang-format.sh"
 
-      - name: Set Cache Key for Pre-Commit
+      - name: Set Cache Key for Pre-Commit Checks
         run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
 
-      - name: Pre-Commit Cache
+      - name: Apply Pre-Commit Checks Cache
         uses: actions/cache@v1
         with:
           path: ~/.cache/pre-commit
           key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
 
-      - name: Pre-Commit Checks
+      - name: Execute Pre-Commit Checks
         uses: pre-commit/action@v2.0.3
         with:
           extra_args: --all-files
@@ -207,15 +228,18 @@ jobs:
           sudo bash -c "cmake --build build --target install"
 
       - name: pre-XX
+        id: precache-libexplain
         run: |
           cd $GAIA_REPO/third_party/production/libexplain
           cd libexplain
           find . -type f -print0  | xargs -0 sha1sum > $GAIA_REPO/third_party/production/libexplain/hashfiles.txt
+          echo "::set-output name=dir::$(cat $GAIA_REPO/third_party/production/libexplain/github_actions_cache_dirs.txt)"
+
       - uses: actions/cache@v2
         id: cache-libexplain
         with:
-          path: ${{ github.workspace }}/third-party/production/libexplain/
-          key: ${{ runner.os }}-libexplain-${{ hashFiles('third_party/production/libexplain/hashfiles.txt') }}
+          path: ${{ steps.precache-libexplain.outputs.dir }}
+          key: ${{ runner.os }}-libexplain7-${{ hashFiles('third_party/production/libexplain/hashfiles.txt') }}
 
       - name: Build third_party/production/libexplain
         env:
@@ -232,14 +256,19 @@ jobs:
             sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
             sudo bash -c "CPPFLAGS='-fPIC' ./configure --prefix=/usr"
             sudo bash -c "make -j$(nproc)"
-            pwd
-            ls -l
           fi
+          pwd
+          ls -l
       - name: Install third_party/production/libexplain
         run : |
           cd $GAIA_REPO/third_party/production/libexplain
           cd libexplain
+          pwd
+          ls -l
           sudo bash -c "make install"
+          pwd
+          ls -l
+          find $GAIA_REPO/third_party/production/libexplain -type d -print
 
       - name: Create /source and /build directories.
         run: |
@@ -643,6 +672,11 @@ jobs:
         with:
           python-version: 3.8
 
+      - name: Install PipEnv
+        uses: dschep/install-pipenv-action@v1
+        with:
+          version: 2021.5.29
+
       - name: Download Debian Install Package
         uses: actions/download-artifact@v2
         with:
@@ -653,20 +687,10 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           cd ${{ github.workspace }}/production/tests/packages
-          echo "1---"
-          sudo ls -la .
-          echo "2---"
-          sudo echo "--$(find . -name gaia*)"
-          echo "3---"
-          echo "apt --assume-yes install \"$(find . -name gaia*)\""
           sudo apt --assume-yes install "$(find . -name gaia*)"
-          echo "4---"
           cd ${{ github.workspace }}/production/tests
           sudo ./reset_database.sh --verbose --stop --database
-          echo "5---"
 
-          pipenv sync
-          pipenv lock
           ./smoke_suites.sh
       - name: Upload Suite Logs
         if: always()
