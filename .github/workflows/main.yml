@@ -224,13 +224,18 @@ jobs:
           cd $GAIA_REPO/third_party/production/libexplain
           cd libexplain
           echo "CACHE_HIT=$CACHE_HIT"
+          pwd
+          ls -l
           sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
           sudo bash -c "CPPFLAGS='-fPIC' ./configure --prefix=/usr"
           sudo bash -c "make -j$(nproc)"
           pwd
           ls -l
+      - name: Install third_party/production/libexplain
+        run : |
+          cd $GAIA_REPO/third_party/production/libexplain
+          cd libexplain
           sudo bash -c "make install"
-          fail
 
       - name: Create /source and /build directories.
         run: |
