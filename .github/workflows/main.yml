@@ -227,7 +227,7 @@ jobs:
           sudo bash -c "cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release"
           sudo bash -c "cmake --build build --target install"
 
-      - name: pre-XX
+      - name: pre-libexplain
         id: precache-libexplain
         run: |
           cd $GAIA_REPO/third_party/production/libexplain
