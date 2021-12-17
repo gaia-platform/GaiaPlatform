@@ -6,3 +6,6 @@ third_party/production/libexplain/libexplain/libexplain
 third_party/production/libexplain/libexplain/libexplain/.libs
 third_party/production/libexplain/libexplain/man/man1
 third_party/production/libexplain/libexplain/man/man3
+third_party/production/libexplain/libexplain/bin
+third_party/production/libexplain/libexplain/bin/.libs
+third_party/production/libexplain/libexplain/bin/.libs/explain
