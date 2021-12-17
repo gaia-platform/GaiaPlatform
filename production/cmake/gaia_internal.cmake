@@ -77,7 +77,9 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
     add_dependencies(${TARGET} ${ARGV4})
   endif()
 
-  target_include_directories(${TARGET} PRIVATE ${INCLUDES} ${GOOGLE_TEST_INC})
+  # REVIEW: We don't currently expose a way to mark passed include dirs as
+  # SYSTEM (to suppress warnings), so we just treat all of them as such.
+  target_include_directories(${TARGET} SYSTEM PRIVATE ${INCLUDES} ${GOOGLE_TEST_INC})
   if("${ARGV5}")
     set(GTEST_LIB "gtest")
   else()
@@ -93,6 +95,17 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
     set(ENV "${ARGV6}")
   else()
     set(ENV "")
+  endif()
+
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    # Suppress ASan warnings from exception destructors in libc++.
+    # REVIEW (GAIAPLAT-1828): spdlog and cpptoml show up in the ASan stack
+    # trace, and both are unconditionally built with libstdc++, so this is
+    # likely an ABI incompatibility with libc++.
+    # NB: This overwrites any previous value of ENV, but apparently we're not
+    # using ENV for anything, and I couldn't get concatenation of NAME=VALUE
+    # env var pairs to work with ASan. This is just a temporary hack anyway.
+    set(ENV "ASAN_OPTIONS=alloc_dealloc_mismatch=0")
   endif()
 
   configure_gaia_target(${TARGET})
@@ -308,7 +321,9 @@ function(add_gaia_sdk_gtest)
       -I ${FLATBUFFERS_INC}
       -I ${GAIA_SPDLOG_INC}
       -I ${DAC_INCLUDE}
-      -I /usr/include/clang/10/include/
+      -stdlib=$<IF:$<CONFIG:Debug>,libc++,libstdc++>
+      $<IF:$<CONFIG:Debug>,/usr/lib/llvm-13/include/c++/v1/,/usr/include/c++/9/>
+      -I /usr/include/clang/13/include/
       -std=c++${CMAKE_CXX_STANDARD}
     COMMAND pkill -f -KILL gaia_db_server &
 
