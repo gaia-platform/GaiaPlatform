@@ -310,6 +310,14 @@ function(add_gaia_sdk_gtest)
   set(GAIAC_CMD "${GAIA_PROD_BUILD}/catalog/gaiac/gaiac")
   set(GAIAT_CMD "${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat")
 
+  # Unlike clang, gaiat isn't smart enough to know where system include dirs are
+  # for intrinsics and stdlib headers, so we need to define them explicitly.
+  # Since our internal builds target only Ubuntu 20.04, we assume that the
+  # default version (9) of libstdc++ is installed.
+  set(CLANG_INCLUDE_DIR "/usr/include/clang/13/include/")
+  set(LIBCXX_INCLUDE_DIR "/usr/lib/llvm-13/include/c++/v1/")
+  set(LIBSTDCXX_INCLUDE_DIR "/usr/include/c++/9/")
+
   add_custom_command(
     COMMENT "Compiling ${RULESET_FILE}..."
     OUTPUT ${RULESET_CPP_OUT}
@@ -322,8 +330,8 @@ function(add_gaia_sdk_gtest)
       -I ${GAIA_SPDLOG_INC}
       -I ${DAC_INCLUDE}
       -stdlib=$<IF:$<CONFIG:Debug>,libc++,libstdc++>
-      $<IF:$<CONFIG:Debug>,/usr/lib/llvm-13/include/c++/v1/,/usr/include/c++/9/>
-      -I /usr/include/clang/13/include/
+      -I $<IF:$<CONFIG:Debug>,${LIBCXX_INCLUDE_DIR},${LIBSTDCXX_INCLUDE_DIR}>
+      -I ${CLANG_INCLUDE_DIR} 
       -std=c++${CMAKE_CXX_STANDARD}
     COMMAND pkill -f -KILL gaia_db_server &
 
