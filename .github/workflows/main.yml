@@ -238,7 +238,7 @@ jobs:
         id: cache-libexplain
         with:
           path: ${{ steps.precache-libexplain.outputs.dir }}
-          key: ${{ runner.os }}-libexplain9-${{ hashFiles('third_party/production/libexplain/hashfiles.txt') }}
+          key: ${{ runner.os }}-libexplain10-${{ hashFiles('third_party/production/libexplain/hashfiles.txt') }}
 
       - name: Build third_party/production/libexplain
         env:
@@ -263,7 +263,7 @@ jobs:
           cd libexplain
           pwd
           ls -l
-          sudo bash -c "make install -d"
+          sudo bash -c "make install"
           pwd
           ls -l
           find $GAIA_REPO/third_party/production/libexplain -type d -print
