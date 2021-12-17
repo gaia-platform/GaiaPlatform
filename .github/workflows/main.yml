@@ -231,7 +231,6 @@ jobs:
         id: precache-libexplain
         run: |
           cd $GAIA_REPO/third_party/production/libexplain
-          cd libexplain
           find . -type f -print0  | xargs -0 sha1sum > $GAIA_REPO/third_party/production/libexplain/hashfiles.txt
           echo "::set-output name=dir::$(cat $GAIA_REPO/third_party/production/libexplain/github_actions_cache_dirs.txt)"
 
@@ -239,7 +238,7 @@ jobs:
         id: cache-libexplain
         with:
           path: ${{ steps.precache-libexplain.outputs.dir }}
-          key: ${{ runner.os }}-libexplain8-${{ hashFiles('third_party/production/libexplain/hashfiles.txt') }}
+          key: ${{ runner.os }}-libexplain9-${{ hashFiles('third_party/production/libexplain/hashfiles.txt') }}
 
       - name: Build third_party/production/libexplain
         env:
