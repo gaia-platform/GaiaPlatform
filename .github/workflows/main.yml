@@ -263,7 +263,7 @@ jobs:
           cd libexplain
           pwd
           ls -l
-          sudo bash -c "make install"
+          sudo bash -c "make install -d"
           pwd
           ls -l
           find $GAIA_REPO/third_party/production/libexplain -type d -print
