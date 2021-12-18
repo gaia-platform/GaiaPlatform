@@ -1,12 +1,12 @@
 namespace gaia.db.catalog;
 table gaia_field {
     name:string;
-    hash:string;
     type:uint8;
     repeated_count:uint16;
     position:uint16;
     deprecated:bool;
     active:bool;
     unique:bool;
+    hash:string;
 }
 root_type gaia_field;
