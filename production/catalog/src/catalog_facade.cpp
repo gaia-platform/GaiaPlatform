@@ -66,7 +66,7 @@ std::string table_facade_t::table_type() const
 
 std::string table_facade_t::class_name() const
 {
-    return std::string(m_table.name()) + "_t";
+    return std::string(m_table.name()) + "QQQ" + c_class_suffix;
 }
 
 std::vector<field_facade_t> table_facade_t::fields() const
@@ -228,15 +228,15 @@ bool field_facade_t::is_vector() const
 
 std::pair<std::string, std::string> field_facade_t::generate_expr_variable() const
 {
-    return generate_expr_variable(table_name(), field_type(), field_name());
+    return generate_expr_variable(table_type_name(), field_type(), field_name());
 }
 
-std::string field_facade_t::table_name() const
+std::string field_facade_t::table_type_name() const
 {
-    return m_field.table().name();
+    return std::string(m_field.table().name()) + "QQQ" + c_class_suffix;
 }
 
-std::pair<std::string, std::string> field_facade_t::generate_expr_variable(const std::string& table, const std::string& type, const std::string& field)
+std::pair<std::string, std::string> field_facade_t::generate_expr_variable(const std::string& class_name, const std::string& type, const std::string& field)
 {
     std::string expr_decl;
     std::string expr_init;
@@ -244,8 +244,8 @@ std::pair<std::string, std::string> field_facade_t::generate_expr_variable(const
 
     // Example:  gaia::direct_access::expression_t<employee_t, int64_t>
     type_decl.append("gaia::direct_access::expression_t<");
-    type_decl.append(table);
-    type_decl.append("_t, ");
+    type_decl.append(class_name);
+    type_decl.append(", ");
     type_decl.append(type);
     type_decl.append(">");
 
@@ -261,12 +261,12 @@ std::pair<std::string, std::string> field_facade_t::generate_expr_variable(const
     expr_init.append("template<class unused_t> ");
     expr_init.append(type_decl);
     expr_init.append(" ");
-    expr_init.append(table);
-    expr_init.append("_t::expr_<unused_t>::");
+    expr_init.append(class_name);
+    expr_init.append("::expr_<unused_t>::");
     expr_init.append(field);
     expr_init.append("{&");
-    expr_init.append(table);
-    expr_init.append("_t::");
+    expr_init.append(class_name);
+    expr_init.append("::");
     expr_init.append(field);
     expr_init.append("};");
 
@@ -300,6 +300,15 @@ std::string link_facade_t::from_table() const
     return m_relationship.child().name();
 }
 
+std::string link_facade_t::from_class_name() const
+{
+    if (m_is_from_parent)
+    {
+        return std::string(m_relationship.parent().name()) + "QQQ" + c_class_suffix;
+    }
+    return std::string(m_relationship.child().name()) + "QQQ" + c_class_suffix;
+}
+
 std::string link_facade_t::to_table() const
 {
     if (m_is_from_parent)
@@ -307,6 +316,15 @@ std::string link_facade_t::to_table() const
         return m_relationship.child().name();
     }
     return m_relationship.parent().name();
+}
+
+std::string link_facade_t::to_class_name() const
+{
+    if (m_is_from_parent)
+    {
+        return std::string(m_relationship.child().name()) + "QQQ" + c_class_suffix;
+    }
+    return std::string(m_relationship.parent().name()) + "QQQ" + c_class_suffix;
 }
 
 bool link_facade_t::is_value_linked() const
@@ -344,8 +362,8 @@ std::string link_facade_t::target_type() const
         std::string type;
         if (is_multiple_cardinality())
         {
-            type.append(from_table());
-            type.append("_t::");
+            type.append(from_class_name());
+            type.append("::");
             type.append(field_name());
             type.append("_list_t");
         }
@@ -365,7 +383,6 @@ std::string link_facade_t::target_type() const
     {
         std::string type;
         type.append(to_table());
-        type.append("_t");
         return type;
     }
 }

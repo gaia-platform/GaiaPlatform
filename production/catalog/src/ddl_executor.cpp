@@ -47,7 +47,6 @@ namespace catalog
 static constexpr char c_assert_throw_and_auto_drop[]
     = "Cannot auto drop and skip on exists at the same time.";
 static constexpr char c_empty_hash[] = "";
-static constexpr char c_empty_type_name[] = "";
 
 ddl_executor_t::ddl_executor_t()
 {
@@ -1110,10 +1109,14 @@ gaia_id_t ddl_executor_t::create_table_impl(
         ? gaia_type_t(generate_table_type(in_context(db_name), table_name))
         : fixed_type;
 
+    // The current convention for naming the DAC classes is to add a suffix of "_t"
+    // to the table type.
+    string type_name = table_name + "QQQ_t";
+
     gaia_id_t table_id = gaia_table_t::insert_row(
         table_name.c_str(),
         c_empty_hash,
-        c_empty_type_name,
+        type_name.c_str(),
         table_type,
         is_system,
         bfbs,
