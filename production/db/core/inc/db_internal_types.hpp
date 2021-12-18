@@ -69,13 +69,30 @@ constexpr char c_gaia_mem_id_index_prefix[] = "gaia_mem_id_index_";
 constexpr char c_gaia_mem_txn_log_prefix[] = "gaia_mem_txn_log_";
 constexpr char c_gaia_internal_txn_log_prefix[] = "gaia_internal_txn_log_";
 
+#if DEBUG
+// We set the maximum number of locators to 2^29 in Debug builds, which reduces
+// the data segment size from 256GB to 32GB. This seems small enough to avoid
+// ENOMEM errors when mapping the data segment under TSan. Because our chunk
+// address space is unchanged (still 2^16 4MB chunks), we could now segfault if
+// we allocate too many chunks! However, given that we still have room for 1
+// minimum-sized (64B) object version per locator, this is unlikely, so it's
+// probably acceptable for Debug builds (since they're not intended to be used
+// in production). If we do encounter this issue, then we can add explicit
+// checks to chunk allocation: we just need to define a new constant like
+// constexpr size_t c_max_chunks = sizeof(data_t) / c_chunk_size_in_bytes;
+// However, this would introduce a circular dependency between the memory
+// manager headers and this header (which probably indicates excessive
+// modularization).
+constexpr size_t c_max_locators = (1ULL << 29) - 1;
+#else
 // We allow as many locators as the number of 64B objects (the minimum size)
-// that will fit into 256GB, or 2^38 / 2^6 = 2^32. We also need to account for
-// the fact that offsets are 32 bits, and that the first entry of the locators
-// array must be reserved, so we subtract 1.
+// that will fit into the data segment size of 256GB, or 2^38 / 2^6 = 2^32. We
+// also need to account for the fact that offsets are 32 bits, and that the
+// first entry of the locators array must be reserved, so we subtract 1.
 constexpr size_t c_max_locators = (1ULL << 32) - 1;
+#endif
 
-// With 2^32 objects, 2^20 hash buckets bounds the average hash chain length to
+// With 2^32 locators, 2^20 hash buckets bounds the average hash chain length to
 // 2^12. This is still prohibitive overhead for traversal on each reference
 // lookup (given that each node traversal is effectively random-access), but we
 // should be able to solve this by storing locators directly in each object's
