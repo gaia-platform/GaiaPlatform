@@ -19,7 +19,7 @@ To install CMake, run the following command:
 sudo apt-get install cmake
 ```
 
-To build Gaia exmamples using CMake and make tools, specify the Clang compiler by setting the following variables in your environment:
+To build Gaia examples using CMake and make tools, specify the Clang compiler by setting the following variables in your environment:
 
 ```bash
 export CC=/usr/bin/clang-10
