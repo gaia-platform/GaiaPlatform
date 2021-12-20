@@ -60,11 +60,11 @@ data_holder_t::data_holder_t(const char* value, std::size_t len)
     hold.vector_value = {value, len};
 }
 
-data_holder_t::data_holder_t(data_read_buffer_t& buffer, reflection::BaseType type)
+data_holder_t::data_holder_t(data_read_buffer_t& buffer, reflection::BaseType type, bool optional)
 {
     this->type = type;
 
-    if (nullable)
+    if (optional)
     {
         buffer >> is_null;
         if (is_null)
@@ -324,14 +324,14 @@ data_hash_t data_holder_t::hash() const
     }
 }
 
-void data_holder_t::serialize(data_write_buffer_t& buffer) const
+void data_holder_t::serialize(data_write_buffer_t& buffer, bool optional) const
 {
     if (is_null)
     {
-        ASSERT_PRECONDITION(nullable, "Attempting to serialize a null value without nullable.");
+        ASSERT_PRECONDITION(optional, "Attempting to serialize a null value without optional.");
     }
 
-    if (nullable)
+    if (optional)
     {
         buffer << is_null;
         if (is_null)

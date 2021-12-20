@@ -88,7 +88,7 @@ struct data_holder_t
     data_holder_t();
     data_holder_t(const data_holder_t&) = default;
     data_holder_t(data_holder_t&&) = default;
-    data_holder_t(data_read_buffer_t& buffer, reflection::BaseType type, bool nullable);
+    data_holder_t(data_read_buffer_t& buffer, reflection::BaseType type, bool optional);
     data_holder_t(reflection::BaseType reflection_type, std::nullptr_t);
 
     // Convenience ctors to allow implicit conversion from native types.
@@ -116,7 +116,7 @@ struct data_holder_t
     int compare(const data_holder_t& other) const;
     data_hash_t hash() const;
 
-    void serialize(data_write_buffer_t& buffer, bool nullable) const;
+    void serialize(data_write_buffer_t& buffer, bool optional) const;
 
     // Convenience implicit conversions to native types.
     operator int32_t() const;
