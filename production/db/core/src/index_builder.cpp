@@ -336,10 +336,11 @@ void index_builder_t::populate_index(common::gaia_id_t index_id, gaia_locator_t 
 
     auto it = get_indexes()->find(index_id);
     ASSERT_INVARIANT(it != get_indexes()->end(), "Index structure could not be found.");
+    db_index_t index = it->second;
 
     update_index(
-        it->second,
-        make_key(it->second, payload),
+        index,
+        make_key(index, payload),
         make_record(locator, locator_to_offset(locator), index_record_operation_t::insert));
 }
 
