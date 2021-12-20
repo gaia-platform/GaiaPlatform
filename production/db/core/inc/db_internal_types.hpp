@@ -69,14 +69,14 @@ constexpr char c_gaia_mem_id_index_prefix[] = "gaia_mem_id_index_";
 constexpr char c_gaia_mem_txn_log_prefix[] = "gaia_mem_txn_log_";
 constexpr char c_gaia_internal_txn_log_prefix[] = "gaia_internal_txn_log_";
 
-#if DEBUG
-// We set the maximum number of locators to 2^29 in Debug builds, which reduces
+#if __has_feature(thread_sanitizer)
+// We set the maximum number of locators to 2^29 in TSan builds, which reduces
 // the data segment size from 256GB to 32GB. This seems small enough to avoid
 // ENOMEM errors when mapping the data segment under TSan. Because our chunk
 // address space is unchanged (still 2^16 4MB chunks), we could now segfault if
 // we allocate too many chunks! However, given that we still have room for 1
 // minimum-sized (64B) object version per locator, this is unlikely, so it's
-// probably acceptable for Debug builds (since they're not intended to be used
+// probably acceptable for TSan builds (since they're not intended to be used
 // in production). If we do encounter this issue, then we can add explicit
 // checks to chunk allocation: we just need to define a new constant like
 // constexpr size_t c_max_chunks = sizeof(data_t) / c_chunk_size_in_bytes;

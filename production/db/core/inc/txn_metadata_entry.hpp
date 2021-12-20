@@ -210,13 +210,12 @@ private:
     // resources, and also increases txn begin latency, although it doesn't
     // affect read/write latency, because we don't use version chains).
 
-#if DEBUG
-    // We use 32-bit timestamps in Debug builds (and therefore 32GB rather than
+#if __has_feature(thread_sanitizer)
+    // We use 32-bit timestamps in TSan builds (and therefore 32GB rather than
     // 32TB for the txn metadata segment), because TSan can't handle huge VM
     // reservations. Per the above estimates, this would allow the server to run
-    // for 2-3 days at 10K TPS. This shouldn't be a concern for Debug builds,
-    // which are not intended for production. (The ASan thread creation limit of
-    // 2^32 should be hit long before then anyway.)
+    // for 2-3 days at 10K TPS. This shouldn't be a concern for TSan builds,
+    // which are not intended for production.
     //
     // REVIEW (GAIAPLAT-1577): We should be able to revert this restriction when
     // we move the txn metadata to a fixed-size circular buffer.
