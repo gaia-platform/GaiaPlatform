@@ -107,6 +107,10 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(llv
                     {
                         return_value = generate_navigation_code(anchor_table, anchor_table, path_data.used_tables, path_data.tag_table_map, last_variable_name);
                     }
+                    else if (path_data.anchor_variable.empty())
+                    {
+                        return_value = generate_navigation_code(path_data.anchor_table, path_data.anchor_table, path_data.used_tables, path_data.tag_table_map, last_variable_name);
+                    }
                     else
                     {
                         return_value = generate_navigation_code(path_data.anchor_table, path_data.anchor_variable, path_data.used_tables, path_data.tag_table_map, last_variable_name);
@@ -165,7 +169,8 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
     {
         variable_name = last_variable_name;
     }
-    if (variable_name != anchor_table_name)
+
+    if (variable_name != anchor_table_name || variable_name != anchor_variable)
     {
         return_value.prefix.append("\n{\nauto ");
         return_value.prefix.append(variable_name);
@@ -178,7 +183,6 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
         return_value.prefix = "\n{\n";
     }
     return_value.postfix = "\n}\n";
-
     if (tables.size() == 1 && table_name == anchor_table_name)
     {
         return return_value;

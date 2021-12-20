@@ -1578,6 +1578,18 @@ void update_expression_explicit_path_data(
     {
         if (is_range_contained_in_another_range(expression_explicit_path_data_iterator.first, expression_source_range))
         {
+            if (data.anchor_variable.empty())
+            {
+                for (const auto& path_expression_explicit_path_data_iterator : expression_explicit_path_data_iterator.second)
+                {
+                    if (path_expression_explicit_path_data_iterator.is_anchor
+                        && get_table_from_expression(path_expression_explicit_path_data_iterator.path_components.back()) == data.anchor_table)
+                    {
+                        data.anchor_variable = path_expression_explicit_path_data_iterator.variable_name;
+                    }
+                }
+            }
+
             if (!is_expression_from_body(context, *node))
             {
                 if (is_path_segment_contained_in_another_path(expression_explicit_path_data_iterator.second, data))
@@ -1602,17 +1614,6 @@ void update_expression_explicit_path_data(
                             && can_path_be_optimized(first_component, expression_explicit_path_data_iterator.second))))
                 {
                     data.skip_implicit_path_generation = true;
-                }
-
-                for (const auto& path_expression_explicit_path_data_iterator : expression_explicit_path_data_iterator.second)
-                {
-                    if (data.path_components.size() == 1 && path_expression_explicit_path_data_iterator.path_components.size() == 1
-                        && first_component == get_table_from_expression(path_expression_explicit_path_data_iterator.path_components.front())
-                        && tag_iterator != data.tag_table_map.end() && tag_iterator->second == tag_iterator->first()
-                        && can_path_be_optimized(first_component, expression_explicit_path_data_iterator.second))
-                    {
-                        data.skip_implicit_path_generation = true;
-                    }
                 }
 
                 for (const auto& defined_tag_iterator : expression_explicit_path_data_iterator.second.front().defined_tags)
@@ -1652,6 +1653,7 @@ void update_expression_used_tables(
     const SourceRange& source_range,
     StringRef anchor_table,
     StringRef anchor_variable,
+    bool is_anchor,
     Rewriter& rewriter)
 {
     explicit_path_data_t path_data;
@@ -1663,6 +1665,7 @@ void update_expression_used_tables(
     path_data.variable_name = variable_name;
     path_data.anchor_table = anchor_table;
     path_data.anchor_variable = anchor_variable;
+    path_data.is_anchor = is_anchor;
     update_expression_explicit_path_data(context, node, path_data, source_range, rewriter);
 }
 
@@ -1779,6 +1782,7 @@ public:
         string variable_name;
         StringRef anchor_table;
         StringRef anchor_variable;
+        bool is_anchor = false;
         SourceRange expression_source_range;
         explicit_path_data_t explicit_path_data;
         bool explicit_path_present = true;
@@ -1795,6 +1799,7 @@ public:
             {
                 anchor_table = anchor_attribute->getAnchorTable()->getName();
                 anchor_variable = anchor_attribute->getAnchorVariable()->getName();
+                is_anchor = anchor_attribute->getIsAnchor();
             }
 
             table_name = get_table_name(decl);
@@ -1815,6 +1820,7 @@ public:
                 expression_source_range.setEnd(expression->getEndLoc());
                 explicit_path_data.anchor_table = anchor_table;
                 explicit_path_data.anchor_variable = anchor_variable;
+                explicit_path_data.is_anchor = is_anchor;
             }
             if (decl->hasAttr<GaiaFieldValueAttr>())
             {
@@ -1845,6 +1851,7 @@ public:
                 {
                     anchor_table = anchor_attribute->getAnchorTable()->getName();
                     anchor_variable = anchor_attribute->getAnchorVariable()->getName();
+                    is_anchor = anchor_attribute->getIsAnchor();
                 }
 
                 if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
@@ -1864,6 +1871,7 @@ public:
                     expression_source_range.setEnd(member_expression->getEndLoc());
                     explicit_path_data.anchor_table = anchor_table;
                     explicit_path_data.anchor_variable = anchor_variable;
+                    explicit_path_data.is_anchor = is_anchor;
                 }
 
                 if (decl->hasAttr<GaiaFieldValueAttr>())
@@ -1925,6 +1933,7 @@ public:
                     SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)),
                     anchor_table,
                     anchor_variable,
+                    is_anchor,
                     m_rewriter);
                 update_expression_used_tables(
                     result.Context,
@@ -1934,6 +1943,7 @@ public:
                     SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)),
                     anchor_table,
                     anchor_variable,
+                    is_anchor,
                     m_rewriter);
             }
             else
@@ -1999,6 +2009,7 @@ public:
         string variable_name;
         StringRef anchor_table;
         StringRef anchor_variable;
+        bool is_anchor = false;
         SourceRange set_source_range;
         if (left_declaration_expression == nullptr && member_expression == nullptr)
         {
@@ -2021,6 +2032,7 @@ public:
             {
                 anchor_table = anchor_attribute->getAnchorTable()->getName();
                 anchor_variable = anchor_attribute->getAnchorVariable()->getName();
+                is_anchor = anchor_attribute->getIsAnchor();
             }
 
             if (!get_explicit_path_data(operator_declaration, explicit_path_data, set_source_range))
@@ -2036,6 +2048,7 @@ public:
                 update_used_dbs(explicit_path_data);
                 explicit_path_data.anchor_table = anchor_table;
                 explicit_path_data.anchor_variable = anchor_variable;
+                explicit_path_data.is_anchor = is_anchor;
 
             }
             if (operator_declaration->hasAttr<GaiaFieldValueAttr>())
@@ -2069,6 +2082,7 @@ public:
             {
                 anchor_table = anchor_attribute->getAnchorTable()->getName();
                 anchor_variable = anchor_attribute->getAnchorVariable()->getName();
+                is_anchor = anchor_attribute->getIsAnchor();
             }
 
             if (!get_explicit_path_data(decl, explicit_path_data, set_source_range))
@@ -2084,6 +2098,7 @@ public:
                 update_used_dbs(explicit_path_data);
                 explicit_path_data.anchor_table = anchor_table;
                 explicit_path_data.anchor_variable = anchor_variable;
+                explicit_path_data.is_anchor = is_anchor;
             }
             if (decl->hasAttr<GaiaFieldValueAttr>())
             {
@@ -2220,6 +2235,7 @@ public:
                 SourceRange(set_source_range.getBegin(), operator_end_location.getLocWithOffset(offset)),
                 anchor_table,
                 anchor_variable,
+                is_anchor,
                 m_rewriter);
         }
         else
@@ -2315,6 +2331,7 @@ public:
         string variable_name;
         StringRef anchor_table;
         StringRef anchor_variable;
+        bool is_anchor = false;
         SourceRange operator_source_range;
 
         if (declaration_expression != nullptr)
@@ -2333,6 +2350,7 @@ public:
             {
                 anchor_table = anchor_attribute->getAnchorTable()->getName();
                 anchor_variable = anchor_attribute->getAnchorVariable()->getName();
+                is_anchor = anchor_attribute->getIsAnchor();
             }
             if (!get_explicit_path_data(operator_declaration, explicit_path_data, operator_source_range))
             {
@@ -2347,6 +2365,7 @@ public:
                 update_used_dbs(explicit_path_data);
                 explicit_path_data.anchor_table = anchor_table;
                 explicit_path_data.anchor_variable = anchor_variable;
+                explicit_path_data.is_anchor = is_anchor;
             }
         }
         else
@@ -2367,6 +2386,7 @@ public:
             {
                 anchor_table = anchor_attribute->getAnchorTable()->getName();
                 anchor_variable = anchor_attribute->getAnchorVariable()->getName();
+                is_anchor = anchor_attribute->getIsAnchor();
             }
             if (!get_explicit_path_data(operator_declaration, explicit_path_data, operator_source_range))
             {
@@ -2380,6 +2400,7 @@ public:
                 update_used_dbs(explicit_path_data);
                 explicit_path_data.anchor_table = anchor_table;
                 explicit_path_data.anchor_variable = anchor_variable;
+                explicit_path_data.is_anchor = is_anchor;
             }
         }
         string writer_variable = table_navigation_t::get_variable_name("writer", llvm::StringMap<string>());
@@ -2457,6 +2478,7 @@ public:
                 SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(offset)),
                 anchor_table,
                 anchor_variable,
+                is_anchor,
                 m_rewriter);
         }
         else
@@ -2888,6 +2910,7 @@ public:
         string variable_name;
         StringRef anchor_table;
         StringRef anchor_variable;
+        bool is_anchor = false;
         const ValueDecl* decl = expression->getDecl();
         if (!decl->getType()->isStructureType())
         {
@@ -2901,6 +2924,7 @@ public:
         {
             anchor_table = anchor_attribute->getAnchorTable()->getName();
             anchor_variable = anchor_attribute->getAnchorVariable()->getName();
+            is_anchor = anchor_attribute->getIsAnchor();
         }
 
         if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
@@ -2918,6 +2942,7 @@ public:
                 = SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(-1));
             explicit_path_data.anchor_table = anchor_table;
             explicit_path_data.anchor_variable = anchor_variable;
+            explicit_path_data.is_anchor = is_anchor;
         }
 
         if (decl->hasAttr<GaiaFieldValueAttr>())
@@ -2970,6 +2995,7 @@ public:
                     SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)),
                     anchor_table,
                     anchor_variable,
+                    is_anchor,
                     m_rewriter);
             }
         }
@@ -3129,6 +3155,7 @@ public:
         bool explicit_path_present = true;
         StringRef anchor_table;
         StringRef anchor_variable;
+        bool is_anchor = false;
 
         gaiat::diag().set_location(expression->getBeginLoc());
 
@@ -3147,6 +3174,7 @@ public:
         {
             anchor_table = anchor_attribute->getAnchorTable()->getName();
             anchor_variable = anchor_attribute->getAnchorVariable()->getName();
+            is_anchor = anchor_attribute->getIsAnchor();
         }
 
         if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
@@ -3162,6 +3190,7 @@ public:
             update_used_dbs(explicit_path_data);
             explicit_path_data.anchor_table = anchor_table;
             explicit_path_data.anchor_variable = anchor_variable;
+            explicit_path_data.is_anchor = is_anchor;
         }
         expression_source_range.setEnd(expression->getRParenLoc().getLocWithOffset(-1));
 
@@ -3186,6 +3215,7 @@ public:
                     expression_source_range,
                     anchor_table,
                     anchor_variable,
+                    is_anchor,
                     m_rewriter);
             }
         }

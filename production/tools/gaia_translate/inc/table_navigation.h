@@ -43,6 +43,7 @@ struct explicit_path_data_t
     // Anchor table to implement meta-rule 3.
     string anchor_table;
     string anchor_variable;
+    bool is_anchor{false};
 };
 
 struct navigation_code_data_t

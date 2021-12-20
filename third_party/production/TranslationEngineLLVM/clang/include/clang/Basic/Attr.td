@@ -3285,5 +3285,5 @@ def GaiaAnchor : Attr {
   let Spellings = [Keyword<"gaiaAnchor">];
   let Subjects = SubjectList<[Record]>;
   let Documentation = [Undocumented];
-  let Args = [IdentifierArgument<"anchorTable">, IdentifierArgument<"anchorVariable">];
+  let Args = [IdentifierArgument<"anchorTable">, IdentifierArgument<"anchorVariable">, BoolArgument<"isAnchor">];
 }

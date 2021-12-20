@@ -737,6 +737,10 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
             {
                 AddTableSearchAnchor(typeName, anchorVariable);
             }
+            else
+            {
+                AddTableSearchAnchor(typeName, StringRef());
+            }
         }
     }
 
@@ -1381,7 +1385,10 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
 
     if (!anchorTable.empty())
     {
-        varDecl->addAttr(GaiaAnchorAttr::CreateImplicit(Context,  &Context.Idents.get(anchorTable), &Context.Idents.get(anchorVariable)));
+        varDecl->addAttr(GaiaAnchorAttr::CreateImplicit(Context,
+            &Context.Idents.get(anchorTable),
+            &Context.Idents.get(anchorVariable),
+            IsInExtendedExplicitPathScope()));
     }
 
     if (GetExplicitPathData(loc, startLocation, endLocation, path))
