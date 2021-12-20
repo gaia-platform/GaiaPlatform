@@ -19,27 +19,6 @@ jobs:
       GAIA_VERSION: 0.3.2
       GAIA_PRE_RELEASE: beta
     steps:
-      - id: file_changes
-        uses: trilom/file-changes-action@v1.2.4
-      - name: test
-        run: |
-          echo "Files:"
-          cat $HOME/files.json
-          echo "Files Modified:"
-          cat $HOME/files_modified.json
-          echo "Files Added:"
-          cat $HOME/files_added.json
-          echo "Files Removed:"
-          cat $HOME/files_removed.json
-          echo "Files:"
-          echo '${{ steps.file_changes.outputs.files}}'
-          echo "Files Modified:"
-          echo '${{ steps.file_changes.outputs.files_modified}}'
-          echo "Files Added:"
-          echo '${{ steps.file_changes.outputs.files_added}}'
-          echo "Files Removed:"
-          echo '${{ steps.file_changes.outputs.files_removed}}'
-
       - name: Checkout Repository
         uses: actions/checkout@master
 
@@ -585,8 +564,8 @@ jobs:
           cd $GAIA_REPO/production
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
-          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper     -DBUILD_GAIA_RELEASE=ON     -G \"Unix Makefiles\" /source/production"
-          sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1     make -j$(nproc)"
+          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DENABLE_CLANG_TIDY=ON     -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper     -DBUILD_GAIA_RELEASE=ON     -G \"Unix Makefiles\" /source/production"
+          sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1     make -j$(nproc) 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
 
       - name: Unit Tests
         run: |
@@ -606,7 +585,7 @@ jobs:
       - name: Upload Package
         uses: actions/upload-artifact@v2
         with:
-          name: SDK Debian Install Package
+          name: Debian Install Package
           path: /build/production/gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb
 
       - name: Upload CMake Logs
@@ -618,6 +597,15 @@ jobs:
             /build/production/CMakeFiles/CMakeOutput.log
             /build/production/CMakeFiles/CMakeError.log
 
+      - name: Upload Make Logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: SDK Make Logs
+          path: |
+            /build/production/make-out.log
+            /build/production/make-err.log
+
       - name: Upload CTest Logs
         if: always()
         uses: actions/upload-artifact@v2
@@ -626,7 +614,7 @@ jobs:
           path: |
             /build/production/Testing/Temporary/LastTest.log
 
-  integration:
+  Integration:
     runs-on: ubuntu-20.04
     needs: SDK
 
@@ -659,11 +647,59 @@ jobs:
           cd ${{ github.workspace }}/production/tests
           sudo ./reset_database.sh --verbose --stop --database
 
+          cd ${{ github.workspace }}/production/tests
           sudo bash -c "./smoke_suites.sh"
-      - name: Upload Suite Logs
+
+      - name: Upload Logs
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: Suite Logs
+          name: Integration Suite Logs
           path: |
             ${{ github.workspace }}/production/tests/suites
+
+
+  Samples:
+    runs-on: ubuntu-20.04
+    needs: SDK
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - name: Install PipEnv
+        uses: dschep/install-pipenv-action@v1
+        with:
+          version: 2021.5.29
+
+      - name: Download Debian Install Package
+        uses: actions/download-artifact@v2
+        with:
+          name: SDK Debian Install Package
+          path: ${{ github.workspace }}/production/tests/packages
+
+      - name: Tests
+        working-directory: ${{ github.workspace }}
+        run: |
+          cd ${{ github.workspace }}/production/tests/packages
+          sudo apt --assume-yes install "$(find . -name gaia*)"
+          cd ${{ github.workspace }}/production/tests
+          sudo ./reset_database.sh --verbose --stop --database
+
+          cd ${{ github.workspace }}/dev_tools/sdk/test
+          sudo bash -c "./build_sdk_samples.sh > test.log"
+
+      - name: Upload Logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: Samples Test Logs
+          path: |
+            ${{ github.workspace }}/dev_tools/sdk/test/test.log
+
