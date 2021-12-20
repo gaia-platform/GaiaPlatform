@@ -178,10 +178,10 @@ def __create_build_map_and_ordered_list(prerun_outp):
 
 
 def __collect_lines_for_section(
-    section_name, section_long_name, cmd_options, show_debug_output=False
+    section_name, section_long_name, cmd_options, job_name, show_debug_output=False
 ):
 
-    cmds = ["./munge_gdev_files.py", "--section", section_name]
+    cmds = ["./munge_gdev_files.py", "--section", section_name, "--job-name", job_name]
     cmds.extend(cmd_options)
     code, env_outp, errp = __execute_script(cmds)
     if show_debug_output:
@@ -219,35 +219,35 @@ def __create_job_start_text(args):
     return __JOB_PREFIX.replace("{needs}", needs_text).replace("{name}", args.job_name)
 
 
-def __calculate_section_lines(cmd_options):
+def __calculate_section_lines(cmd_options, job_name):
     section_line_map = {}
 
     section_line_map[__ENVIRONMENT_SECTION] = __collect_lines_for_section(
-        __ENVIRONMENT_SECTION, "environment", cmd_options
+        __ENVIRONMENT_SECTION, "environment", cmd_options, job_name
     )
     section_line_map[__APT_SECTION] = __collect_lines_for_section(
-        __APT_SECTION, "apt", cmd_options
+        __APT_SECTION, "apt", cmd_options, job_name
     )
     section_line_map[__PIP_SECTION] = __collect_lines_for_section(
-        __PIP_SECTION, "pip", cmd_options
+        __PIP_SECTION, "pip", cmd_options, job_name
     )
     section_line_map[__GIT_SECTION] = __collect_lines_for_section(
-        __GIT_SECTION, "git", cmd_options
+        __GIT_SECTION, "git", cmd_options, job_name
     )
     section_line_map[__WEB_SECTION] = __collect_lines_for_section(
-        __WEB_SECTION, "web", cmd_options
+        __WEB_SECTION, "web", cmd_options, job_name
     )
     section_line_map[__COPY_SECTION] = __collect_lines_for_section(
-        __COPY_SECTION, "copy", cmd_options
+        __COPY_SECTION, "copy", cmd_options, job_name
     )
     section_line_map[__ARTIFACTS_SECTION] = __collect_lines_for_section(
-        __ARTIFACTS_SECTION, "artifacts", cmd_options
+        __ARTIFACTS_SECTION, "artifacts", cmd_options, job_name
     )
     section_line_map[__TESTS_SECTION] = __collect_lines_for_section(
-        __TESTS_SECTION, "tests", cmd_options
+        __TESTS_SECTION, "tests", cmd_options, job_name
     )
     section_line_map[__PACKAGE_SECTION] = __collect_lines_for_section(
-        __PACKAGE_SECTION, "package", cmd_options
+        __PACKAGE_SECTION, "package", cmd_options, job_name
     )
 
     return section_line_map
@@ -264,13 +264,13 @@ def process_script_action():
         cmd_options.append("--option")
         cmd_options.append(i)
 
-    section_line_map = __calculate_section_lines(cmd_options)
+    section_line_map = __calculate_section_lines(cmd_options, args.job_name)
 
     # Run the munge script to create each part of the file.
     prerun_outp = __collect_lines_for_section(
-        "pre_" + args.action, "pre_" + args.action, cmd_options
+        "pre_" + args.action, "pre_" + args.action, cmd_options, args.job_name
     )
-    run_outp = __collect_lines_for_section(args.action, args.action, cmd_options)
+    run_outp = __collect_lines_for_section(args.action, args.action, cmd_options, args.job_name)
 
     # A small amount of adjustments to the input.
     assert len(section_line_map[__APT_SECTION]) == 1
@@ -331,6 +331,9 @@ def process_script_action():
             __print_formatted_lines(
                 prerun_build_map[next_section_cd], indent="          "
             )
+        # if args.action == "run" and run_ordered_build_list[-1] == next_section_cd:
+        #     print(">>" + str(run_build_map[next_section_cd]))
+        #     sys.exit(1)
         print(
             __BUILD_SECTION_HEADER_TEMPLATE.replace("{action}", action_title).replace(
                 "{section}", proper_section_name

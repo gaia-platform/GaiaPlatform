@@ -75,7 +75,7 @@ __PUBLISH_ARTIFACTS_TASK_TEMPLATE = """
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: {name}
+          name: {job} {name}
           path: |"""
 
 __PACKAGE_TASK_TEMPLATE = """
@@ -169,6 +169,13 @@ def __process_command_line():
         help="Specify a section to output the collected results for.",
         type=__valid_sections,
         choices=__available_sections,
+    )
+    parser.add_argument(
+        "--job-name",
+        dest="job_name",
+        action="store",
+        required=True,
+        help="Name to give the job being created.",
     )
     parser.add_argument(
         "--verbose",
@@ -778,7 +785,7 @@ def __print_pre_production_copy_section(
             )
 
 
-def __print_artifacts_section(section_text_pairs):
+def __print_artifacts_section(section_text_pairs, job_name):
     """
     Print the information from the artifacts section of the main gdev.cfg.
     """
@@ -792,7 +799,7 @@ def __print_artifacts_section(section_text_pairs):
             print(
                 __PUBLISH_ARTIFACTS_TASK_TEMPLATE.replace(
                     "{name}", split_artifact_data[0]
-                )
+                ).replace("{job}", job_name)
             )
             last_artifact_name = split_artifact_data[0]
         print("            " + split_artifact_data[1])
@@ -888,7 +895,7 @@ def process_script_action():
                 configuration_root_directory,
             )
     elif __SECTION_NAME_ARTIFACTS == specific_section_name:
-        __print_artifacts_section(section_text_pairs)
+        __print_artifacts_section(section_text_pairs, args.job_name)
     elif __SECTION_NAME_PACKAGE == specific_section_name:
         __print_package_section(section_text_pairs)
     elif __SECTION_NAME_TESTS == specific_section_name:

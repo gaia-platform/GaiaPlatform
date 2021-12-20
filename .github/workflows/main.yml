@@ -331,15 +331,15 @@ jobs:
           sudo bash -c "echo \"ASAN_OPTIONS = 'detect_leaks=0'\" >> /etc/postgresql/12/main/environment"
           sudo bash -c "mkdir -p /var/lib/gaia/db"
           sudo bash -c "chmod -R 666 /var/lib/gaia/db"
-          sudo $GAIA_REPO/dev_tools/github-actions/set_product_version.py --directory "$GAIA_REPO" --version "$GAIA_VERSION" --pre-release "$GAIA_PRE_RELEASE" --build-number "${{ github.run_id }}"
+          sudo bash -c "$GAIA_REPO/dev_tools/github-actions/set_product_version.py --directory \"$GAIA_REPO\" --version \"$GAIA_VERSION\" --pre-release \"$GAIA_PRE_RELEASE\" --build-number \"${{ github.run_id }}\""
 
       - name: Build production
         run: |
           cd $GAIA_REPO/production
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
-          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev /source/production"
-          sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1     make -j$(nproc)"
+          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DENABLE_CLANG_TIDY=ON /source/production"
+          sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1     make -j$(nproc) | tee /build/production/make.log"
 
       - name: Unit Tests
         run: |
@@ -352,16 +352,24 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: CMake Logs
+          name: Core CMake Logs
           path: |
             /build/production/CMakeFiles/CMakeOutput.log
             /build/production/CMakeFiles/CMakeError.log
+
+      - name: Upload Make Logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: Core Make Logs
+          path: |
+            /build/production/make.log
 
       - name: Upload CTest Logs
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: CTest Logs
+          name: Core CTest Logs
           path: |
             /build/production/Testing/Temporary/LastTest.log
 
@@ -599,7 +607,7 @@ jobs:
           sudo bash -c "echo \"ASAN_OPTIONS = 'detect_leaks=0'\" >> /etc/postgresql/12/main/environment"
           sudo bash -c "mkdir -p /var/lib/gaia/db"
           sudo bash -c "chmod -R 666 /var/lib/gaia/db"
-          sudo $GAIA_REPO/dev_tools/github-actions/set_product_version.py --directory "$GAIA_REPO" --version "$GAIA_VERSION" --pre-release "$GAIA_PRE_RELEASE" --build-number "${{ github.run_id }}"
+          sudo bash -c "$GAIA_REPO/dev_tools/github-actions/set_product_version.py --directory \"$GAIA_REPO\" --version \"$GAIA_VERSION\" --pre-release \"$GAIA_PRE_RELEASE\" --build-number \"${{ github.run_id }}\""
 
       - name: Build production
         run: |
@@ -627,14 +635,14 @@ jobs:
       - name: Upload Package
         uses: actions/upload-artifact@v2
         with:
-          name: Debian Install Package
+          name: SDK Debian Install Package
           path: /build/production/gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb
 
       - name: Upload CMake Logs
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: CMake Logs
+          name: SDK CMake Logs
           path: |
             /build/production/CMakeFiles/CMakeOutput.log
             /build/production/CMakeFiles/CMakeError.log
@@ -643,7 +651,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: CTest Logs
+          name: SDK CTest Logs
           path: |
             /build/production/Testing/Temporary/LastTest.log
   XXX:
