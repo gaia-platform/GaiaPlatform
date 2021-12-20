@@ -227,46 +227,16 @@ jobs:
           sudo bash -c "cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release"
           sudo bash -c "cmake --build build --target install"
 
-      - name: pre-libexplain
-        id: precache-libexplain
-        run: |
-          cd $GAIA_REPO/third_party/production/libexplain
-          find . -type f -print0  | xargs -0 sha1sum > $GAIA_REPO/third_party/production/libexplain/hashfiles.txt
-          echo "::set-output name=dir::$(cat $GAIA_REPO/third_party/production/libexplain/github_actions_cache_dirs.txt)"
-
-      - uses: actions/cache@v2
-        id: cache-libexplain
-        with:
-          path: ${{ steps.precache-libexplain.outputs.dir }}
-          key: ${{ runner.os }}-libexplain10-${{ hashFiles('third_party/production/libexplain/hashfiles.txt') }}
-
       - name: Build third_party/production/libexplain
-        env:
-          CACHE_HIT: ${{steps.cache-libexplain.outputs.cache-hit}}
         run: |
           cd $GAIA_REPO/third_party/production/libexplain
           cd libexplain
-          echo "CACHE_HIT=$CACHE_HIT"
-          pwd
-          ls -l
-          if [[ "$CACHE_HIT" == 'true' ]]; then
-            echo "Using cache"
-          else
-            sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
-            sudo bash -c "CPPFLAGS='-fPIC' ./configure --prefix=/usr"
-            sudo bash -c "make -j$(nproc)"
-            find . -type d -print
-          fi
-      - name: Install third_party/production/libexplain
-        run : |
-          cd $GAIA_REPO/third_party/production/libexplain
-          cd libexplain
-          pwd
-          ls -l
+          sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
+          sudo bash -c "CPPFLAGS='-fPIC' ./configure --prefix=/usr"
+          sudo bash -c "make -j$(nproc)"
           sudo bash -c "make install"
-          pwd
-          ls -l
-          find $GAIA_REPO/third_party/production/libexplain -type d -print
+          cd ..
+          sudo bash -c "rm -rf *"
 
       - name: Create /source and /build directories.
         run: |
@@ -655,20 +625,11 @@ jobs:
           name: SDK CTest Logs
           path: |
             /build/production/Testing/Temporary/LastTest.log
-  XXX:
+
+  integration:
     runs-on: ubuntu-20.04
     needs: SDK
-    env:
-      GAIA_REPO: ${{ github.workspace }}
-      GAIA_VERSION: 0.3.2
-      CC: /usr/bin/clang-10
-      CPP: /usr/bin/clang-cpp-10
-      CXX: /usr/bin/clang++-10
-      LDFLAGS: "-B/usr/lib/llvm-10/bin/ -fuse-ld=lld"
-      LANG: en_US.UTF-8
-      LC_CTYPE: en_US.UTF-8
-      LC_ALL: en_US.UTF-8
-      DEBIAN_FRONTEND: noninteractive
+
     steps:
 
       - name: Checkout Repository
@@ -687,7 +648,7 @@ jobs:
       - name: Download Debian Install Package
         uses: actions/download-artifact@v2
         with:
-          name: Debian Install Package
+          name: SDK Debian Install Package
           path: ${{ github.workspace }}/production/tests/packages
 
       - name: Tests
@@ -698,7 +659,7 @@ jobs:
           cd ${{ github.workspace }}/production/tests
           sudo ./reset_database.sh --verbose --stop --database
 
-          ./smoke_suites.sh
+          sudo bash -c "./smoke_suites.sh"
       - name: Upload Suite Logs
         if: always()
         uses: actions/upload-artifact@v2
