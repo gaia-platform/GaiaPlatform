@@ -339,7 +339,7 @@ jobs:
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
           sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DENABLE_CLANG_TIDY=ON /source/production"
-          sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1     make -j$(nproc) | tee /build/production/make.log"
+          sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1     make -j$(nproc) 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
 
       - name: Unit Tests
         run: |
@@ -363,7 +363,8 @@ jobs:
         with:
           name: Core Make Logs
           path: |
-            /build/production/make.log
+            /build/production/make-out.log
+            /build/production/make-err.log
 
       - name: Upload CTest Logs
         if: always()
