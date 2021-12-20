@@ -28,7 +28,7 @@ void index_t<T_structure, T_iterator>::insert_index_entry(index_key_t&& key, ind
 }
 
 template <typename T_structure, typename T_iterator>
-void index_t<T_structure, T_iterator>::remove_index_entry_with_offsets(const index_offset_buffer_t& offsets, gaia_txn_id_t gc_txn_id)
+void index_t<T_structure, T_iterator>::remove_index_entry_with_offset(const index_key_t& key, gaia_offset_t offset, gaia_txn_id_t gc_txn_id)
 {
     std::lock_guard lock(m_index_lock);
 
@@ -39,9 +39,11 @@ void index_t<T_structure, T_iterator>::remove_index_entry_with_offsets(const ind
         return;
     }
 
-    for (auto it = m_data.begin(); it != m_data.end();)
+    auto range = m_data.equal_range(key);
+
+    for (auto& it = range.first; it != range.second;)
     {
-        if (it->second.txn_id <= gc_txn_id && offsets.has_offset(it->second.offset))
+        if (it->second.offset == offset)
         {
             it = m_data.erase(it);
         }
