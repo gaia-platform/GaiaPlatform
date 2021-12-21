@@ -37,6 +37,7 @@ __SECTION_NAME_COPY = "[copy]"
 __SECTION_NAME_ARTIFACTS = "[artifacts]"
 __SECTION_NAME_PACKAGE = "[package]"
 __SECTION_NAME_TESTS = "[tests]"
+__SECTION_NAME_INSTALLS = "[installs]"
 
 # Lists of available object so we can validate at the command line.
 __valid_section_names = [
@@ -49,6 +50,7 @@ __valid_section_names = [
     __SECTION_NAME_ARTIFACTS,
     __SECTION_NAME_PACKAGE,
     __SECTION_NAME_TESTS,
+    __SECTION_NAME_INSTALLS,
     __SECTION_NAME_PRE_RUN,
     __SECTION_NAME_RUN,
     __SECTION_NAME_PRE_LINT,
@@ -75,7 +77,7 @@ __PUBLISH_ARTIFACTS_TASK_TEMPLATE = """
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: {name}
+          name: {job} {name}
           path: |"""
 
 __PACKAGE_TASK_TEMPLATE = """
@@ -129,7 +131,7 @@ def __valid_sections(argument):
     """
     Function to help argparse limit the valid sections that are supported.
     """
-    if argument in __available_sections:
+    if argument in __available_sections or argument.startswith("install:"):
         return argument
     raise ValueError(f"Value '{argument}' is not a valid section name.")
 
@@ -168,7 +170,14 @@ def __process_command_line():
         action="store",
         help="Specify a section to output the collected results for.",
         type=__valid_sections,
-        choices=__available_sections,
+        #choices=__available_sections,
+    )
+    parser.add_argument(
+        "--job-name",
+        dest="job_name",
+        action="store",
+        required=True,
+        help="Name to give the job being created.",
     )
     parser.add_argument(
         "--verbose",
@@ -210,7 +219,7 @@ def __handle_new_section(next_line, loaded_sections, line_conditional):
     """
     scan_error = None
 
-    if next_line not in __valid_section_names and next_line != __SECTION_NAME_GAIA:
+    if next_line not in __valid_section_names and next_line != __SECTION_NAME_GAIA and not next_line.startswith("[install:"):
         scan_error = f"Unrecognized section name '{next_line}'."
         return None, None, scan_error
     section_conditional = line_conditional
@@ -778,7 +787,7 @@ def __print_pre_production_copy_section(
             )
 
 
-def __print_artifacts_section(section_text_pairs):
+def __print_artifacts_section(section_text_pairs, job_name):
     """
     Print the information from the artifacts section of the main gdev.cfg.
     """
@@ -792,7 +801,7 @@ def __print_artifacts_section(section_text_pairs):
             print(
                 __PUBLISH_ARTIFACTS_TASK_TEMPLATE.replace(
                     "{name}", split_artifact_data[0]
-                )
+                ).replace("{job}", job_name)
             )
             last_artifact_name = split_artifact_data[0]
         print("            " + split_artifact_data[1])
@@ -837,6 +846,16 @@ def __print_tests_section(section_text_pairs):
         next_line = next_line_pair[1]
         print(__adjust_script_lines_for_sudo(next_line))
 
+
+def __print_installs_section(section_text_pairs):
+    for next_line_pair in section_text_pairs:
+        next_line = next_line_pair[1]
+        print(next_line)
+
+def __print_specific_installs_section(section_text_pairs):
+    for next_line_pair in section_text_pairs:
+        next_line = next_line_pair[1]
+        print(__adjust_script_lines_for_sudo(next_line))
 
 def process_script_action():
     """
@@ -888,11 +907,15 @@ def process_script_action():
                 configuration_root_directory,
             )
     elif __SECTION_NAME_ARTIFACTS == specific_section_name:
-        __print_artifacts_section(section_text_pairs)
+        __print_artifacts_section(section_text_pairs, args.job_name)
     elif __SECTION_NAME_PACKAGE == specific_section_name:
         __print_package_section(section_text_pairs)
     elif __SECTION_NAME_TESTS == specific_section_name:
         __print_tests_section(section_text_pairs)
+    elif __SECTION_NAME_INSTALLS == specific_section_name:
+        __print_installs_section(section_text_pairs)
+    elif specific_section_name.startswith("[install:"):
+        __print_specific_installs_section(section_text_pairs)
     else:
         assert specific_section_name in (
             __SECTION_NAME_RUN,
