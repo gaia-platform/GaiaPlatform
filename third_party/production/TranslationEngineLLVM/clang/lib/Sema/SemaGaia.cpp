@@ -713,7 +713,6 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
         Diag(loc, diag::err_table_not_found) << typeName;
         return Context.VoidTy;
     }
-
     if (IsInExtendedExplicitPathScope())
     {
         const auto& pathDataIterator = explicitPathData.find(loc);
@@ -741,6 +740,10 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
             {
                 AddTableSearchAnchor(typeName, StringRef());
             }
+        }
+        else
+        {
+            AddTableSearchAnchor(typeName, StringRef());
         }
     }
 
@@ -1291,7 +1294,6 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
     {
         firstComponent = fieldTableName;
     }
-
     const llvm::StringMap<std::string>& tagMapping = getTagMapping(getCurFunctionDecl(), loc);
     bool isReferenceDefined = false;
     for (const auto& searchContextStackIterator : searchContextStack)
