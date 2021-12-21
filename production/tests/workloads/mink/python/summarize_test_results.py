@@ -301,7 +301,9 @@ def __process_script_action():
         sys.exit(1)
     test_configuration_file = sys.argv[2]
 
-    results_dictionary = __load_test_result_files(test_results_directory, test_configuration_file)
+    results_dictionary = __load_test_result_files(
+        test_results_directory, test_configuration_file
+    )
     __dump_results_dictionary(test_results_directory, results_dictionary)
 
 

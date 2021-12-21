@@ -163,7 +163,9 @@ def process_script_action():
     thread_count_value, stats_log_interval = load_configuration_values_from_json_file(
         args
     )
-    write_templated_output(args.output_file_name, thread_count_value, stats_log_interval)
+    write_templated_output(
+        args.output_file_name, thread_count_value, stats_log_interval
+    )
     print(str(stats_log_interval))
 
 

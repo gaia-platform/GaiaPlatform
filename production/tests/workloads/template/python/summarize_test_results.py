@@ -144,7 +144,7 @@ def __load_output_timing_files(base_dir):
         inside_transaction_data,
         end_transaction_data,
         update_row_data,
-        check_time_data
+        check_time_data,
     )
 
 
@@ -196,7 +196,7 @@ def __load_test_result_files(suite_test_directory, test_configuration_file):
         inside_transaction_data,
         end_transaction_data,
         update_row_data,
-        check_time_data
+        check_time_data,
     ) = __load_output_timing_files(base_dir)
 
     new_results = {}
@@ -277,6 +277,7 @@ def __load_test_result_files(suite_test_directory, test_configuration_file):
 
 
 # pylint: enable=too-many-locals
+
 
 def __dump_results_dictionary(output_directory, full_test_results):
     """
