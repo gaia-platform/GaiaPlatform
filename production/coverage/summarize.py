@@ -15,6 +15,7 @@ import sys
 
 __BASE_DIR = "output"
 
+__DEFAULT_FILE_ENCODING = "utf-8"
 
 def read_coverage_log_file(relative_file_name):
     """
@@ -22,7 +23,7 @@ def read_coverage_log_file(relative_file_name):
     of the information contained within that file.
     """
     log_path = os.path.join(__BASE_DIR, relative_file_name)
-    with open(log_path) as input_file:
+    with open(log_path, encoding=__DEFAULT_FILE_ENCODING) as input_file:
         filter_file_lines = input_file.readlines()
 
     local_coverage_dictionary = {}

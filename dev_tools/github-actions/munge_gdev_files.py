@@ -119,6 +119,8 @@ __GAIA_REPOSITORY_ENV_PATH = "$GAIA_REPO"
 __SOURCE_DIRECTORY_PATH = "/source"
 __BUILD_DIRECTORY_PATH = "/build"
 
+__DEFAULT_FILE_ENCODING = "utf-8"
+
 
 def __init():
     """
@@ -277,7 +279,11 @@ def __load_gdev_cfg(file_to_load):
         None,
     )
 
-    lines_in_text_file = pathlib.Path(file_to_load).read_text().split("\n")
+    lines_in_text_file = (
+        pathlib.Path(file_to_load)
+        .read_text(encoding=__DEFAULT_FILE_ENCODING)
+        .split("\n")
+    )
     for next_line in lines_in_text_file:
         if (
             next_line.strip().startswith(__COMMENT_LINE_START_CHARACTER)
