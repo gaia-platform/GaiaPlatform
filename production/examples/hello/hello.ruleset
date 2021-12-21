@@ -33,4 +33,3 @@ ruleset hello_ruleset
         cout << endl << greetings.greeting << endl;
     }
 }
-add_gaia_sdk_gtest
