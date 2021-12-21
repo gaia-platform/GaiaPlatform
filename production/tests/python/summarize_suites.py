@@ -220,7 +220,9 @@ def __process_script_action():
         )
         full_output_dictionary[next_directory_name] = suite_output_dictionary
     if args.output_file_name:
-        with open(args.output_file_name, "wt", encoding=__DEFAULT_FILE_ENCODING) as write_file:
+        with open(
+            args.output_file_name, "wt", encoding=__DEFAULT_FILE_ENCODING
+        ) as write_file:
             json.dump(full_output_dictionary, write_file, indent=4)
     else:
         print(json.dumps(full_output_dictionary, indent=4))
