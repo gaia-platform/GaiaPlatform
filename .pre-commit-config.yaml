@@ -34,11 +34,11 @@ repos:
       exclude: ^(((data|scratch|third_party)/)|dev_tools/hooks/pre-commit)
       types: [shell, executable]
 
-# - repo: https://github.com/psf/black
-#   rev: 21.7b0
-#   hooks:
-#     - id: black
-#       args: [--diff]
+- repo: https://github.com/psf/black
+  rev: 21.7b0
+  hooks:
+    - id: black
+      args: [--diff]
 # - repo: https://github.com/PyCQA/flake8
 #   rev: 4.0.1
 #   hooks:
