@@ -25,6 +25,22 @@ __available_options = [
     "GaiaLLVMTests",
 ]
 
+__ENVIRONMENT_SECTION = "env"
+__APT_SECTION = "apt"
+__PIP_SECTION = "pip"
+__GIT_SECTION = "git"
+__WEB_SECTION = "web"
+__COPY_SECTION = "copy"
+__ARTIFACTS_SECTION = "artifacts"
+__TESTS_SECTION = "tests"
+__PACKAGE_SECTION = "package"
+
+
+__RUN_ACTION = "run"
+__LINT_ACTION = "lint"
+__INSTALL_ACTION_PREFIX = "install:"
+
+
 __JOB_PREFIX = """
   {name}:
     runs-on: ubuntu-20.04
@@ -86,6 +102,45 @@ __LINT_SECTION_SUFFIX = """
         uses: pre-commit/action@v2.0.3
         with:
           extra_args: --all-files"""
+
+__INSTALL_SECTION_HEADER = """    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - name: Install PipEnv
+        uses: dschep/install-pipenv-action@v1
+        with:
+          version: 2021.5.29
+
+      - name: Download Debian Install Package
+        uses: actions/download-artifact@v2
+        with:
+          name: SDK Debian Install Package
+          path: ${{ github.workspace }}/production/tests/packages
+
+      - name: Tests
+        working-directory: ${{ github.workspace }}
+        run: |
+          cd ${{ github.workspace }}/production/tests/packages
+          sudo apt --assume-yes install "$(find . -name gaia*)"
+          cd ${{ github.workspace }}/production/tests
+          sudo ./reset_database.sh --verbose --stop --database
+"""
+
+__INSTALL_SECTION_UPLOAD_TEMPLATE = """
+      - name: Upload Logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: {name}
+          path: |
+            {path}"""
 
 
 def __execute_script(command_list):
@@ -156,7 +211,7 @@ def __process_command_line():
     parser.add_argument(
         "--action",
         dest="action",
-        default="run",
+        default=__RUN_ACTION,
         action="store",
         help="action to undertake",
     )
@@ -171,13 +226,13 @@ def __create_build_map_and_ordered_list(prerun_outp):
     current_section = None
     build_map = {}
     ordered_build_list = []
-    for i in prerun_outp:
-        if i.startswith("cd $GAIA_REPO/"):
-            current_section = i
-            ordered_build_list.append(i)
+    for next_line in prerun_outp:
+        if next_line.startswith("cd $GAIA_REPO/"):
+            current_section = next_line
+            ordered_build_list.append(next_line)
             build_map[current_section] = []
-        if current_section and i.strip():
-            build_map[current_section].append(i)
+        if current_section and next_line.strip():
+            build_map[current_section].append(next_line)
     return build_map, ordered_build_list
 
 
@@ -197,19 +252,8 @@ def __collect_lines_for_section(
 
 
 def __print_formatted_lines(source_output_line_list, indent=""):
-    for i in source_output_line_list:
-        print(indent + i, end="")
-
-
-__ENVIRONMENT_SECTION = "env"
-__APT_SECTION = "apt"
-__PIP_SECTION = "pip"
-__GIT_SECTION = "git"
-__WEB_SECTION = "web"
-__COPY_SECTION = "copy"
-__ARTIFACTS_SECTION = "artifacts"
-__TESTS_SECTION = "tests"
-__PACKAGE_SECTION = "package"
+    for next_line in source_output_line_list:
+        print(indent + next_line, end="")
 
 
 def __create_job_start_text(args, is_normal_action):
@@ -225,7 +269,11 @@ def __create_job_start_text(args, is_normal_action):
             needs_text += "\n    "
         else:
             needs_text += "\n"
-    return __JOB_PREFIX.replace("{needs}", needs_text).replace("{name}", args.job_name).replace("{env}", env_text)
+    return (
+        __JOB_PREFIX.replace("{needs}", needs_text)
+        .replace("{name}", args.job_name)
+        .replace("{env}", env_text)
+    )
 
 
 def __calculate_section_lines(cmd_options, job_name):
@@ -262,6 +310,91 @@ def __calculate_section_lines(cmd_options, job_name):
     return section_line_map
 
 
+def __install(run_outp, action):
+
+    assert action.startswith(__INSTALL_ACTION_PREFIX)
+    action = action[len(__INSTALL_ACTION_PREFIX) :]
+
+    upload_items = []
+    for next_line in run_outp:
+        if next_line.startswith(":"):
+            split_next_line = next_line[1:].split("=")
+            upload_items.append(split_next_line)
+        else:
+            print(next_line, end="")
+    for next_item_pair in upload_items:
+        artifact_name = action + " " + next_item_pair[0]
+        print(
+            __INSTALL_SECTION_UPLOAD_TEMPLATE.replace("{name}", artifact_name).replace(
+                "{path}", next_item_pair[1]
+            )
+        )
+
+
+def __print_normal_prefix_lines(section_line_map, apt_outp, pip_outp):
+
+    __print_formatted_lines(section_line_map[__ENVIRONMENT_SECTION], indent="      ")
+
+    # Start of steps to `Install Required Applications`
+    print(__STEPS_PREFIX_AND_APT_SECTION_HEADER, end="")
+    print(apt_outp)
+
+    # `Install Required Python Packages`
+    if pip_outp:
+        print(__PIP_SECTION_HEADER, end="")
+        print(" " + pip_outp)
+
+    # `Install Required Third Party Git Repositories`
+    if section_line_map[__GIT_SECTION]:
+        print(__GIT_SECTION_HEADER)
+        __print_formatted_lines(section_line_map[__GIT_SECTION], indent="          ")
+
+    # `Install Required Third Party Web Packages`
+    if section_line_map[__WEB_SECTION]:
+        print(__WEB_SECTION_HEADER)
+        __print_formatted_lines(section_line_map[__WEB_SECTION], indent="          ")
+
+
+# pylint: disable=too-many-arguments
+def __print_next_section_core(
+    args,
+    next_section_cd,
+    section_line_map,
+    run_ordered_build_list,
+    prerun_build_map,
+    run_build_map,
+):
+    if (
+        run_ordered_build_list[-1] == next_section_cd
+        and section_line_map[__COPY_SECTION]
+    ):
+        print(__COPY_SECTION_HEADER)
+        __print_formatted_lines(section_line_map[__COPY_SECTION], indent="          ")
+
+    action_title = "Build" if args.action == __RUN_ACTION else args.action.capitalize()
+
+    proper_section_name = next_section_cd[len("cd $GAIA_REPO/") :].strip()
+    if prerun_build_map:
+        if next_section_cd in prerun_build_map:
+            print(
+                __PREBUILD_SECTION_HEADER_TEMPLATE.replace(
+                    "{action}", action_title
+                ).replace("{section}", proper_section_name)
+            )
+            __print_formatted_lines(
+                prerun_build_map[next_section_cd], indent="          "
+            )
+    print(
+        __BUILD_SECTION_HEADER_TEMPLATE.replace("{action}", action_title).replace(
+            "{section}", proper_section_name
+        )
+    )
+    __print_formatted_lines(run_build_map[next_section_cd], indent="          ")
+
+
+# pylint: enable=too-many-arguments
+
+
 def process_script_action():
     """
     Process the posting of the message.
@@ -269,21 +402,23 @@ def process_script_action():
     args = __process_command_line()
 
     cmd_options = ["--directory", args.configuration_directory]
-    for i in args.options:
+    for next_option in args.options:
         cmd_options.append("--option")
-        cmd_options.append(i)
+        cmd_options.append(next_option)
 
     section_line_map = __calculate_section_lines(cmd_options, args.job_name)
 
     # Run the munge script to create each part of the file.
-    is_install_action = args.action.startswith("install:")
+    is_install_action = args.action.startswith(__INSTALL_ACTION_PREFIX)
     if is_install_action:
         prerun_outp = None
     else:
         prerun_outp = __collect_lines_for_section(
             "pre_" + args.action, "pre_" + args.action, cmd_options, args.job_name
         )
-    run_outp = __collect_lines_for_section(args.action, args.action, cmd_options, args.job_name)
+    run_outp = __collect_lines_for_section(
+        args.action, args.action, cmd_options, args.job_name
+    )
 
     # A small amount of adjustments to the input.
     assert len(section_line_map[__APT_SECTION]) == 1
@@ -297,107 +432,35 @@ def process_script_action():
         run_outp
     )
 
-    __xx = """    steps:
-
-      - name: Checkout Repository
-        uses: actions/checkout@master
-
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v1
-        with:
-          python-version: 3.8
-
-      - name: Install PipEnv
-        uses: dschep/install-pipenv-action@v1
-        with:
-          version: 2021.5.29
-
-      - name: Download Debian Install Package
-        uses: actions/download-artifact@v2
-        with:
-          name: SDK Debian Install Package
-          path: ${{ github.workspace }}/production/tests/packages
-
-      - name: Tests
-        working-directory: ${{ github.workspace }}
-        run: |
-          cd ${{ github.workspace }}/production/tests/packages
-          sudo apt --assume-yes install "$(find . -name gaia*)"
-          cd ${{ github.workspace }}/production/tests
-          sudo ./reset_database.sh --verbose --stop --database
-"""
     # Create the header for this particular job.
     print(__create_job_start_text(args, not is_install_action))
     if is_install_action:
-        print(__xx)
+        print(__INSTALL_SECTION_HEADER)
     else:
-        __print_formatted_lines(section_line_map[__ENVIRONMENT_SECTION], indent="      ")
-
-        # Start of steps to `Install Required Applications`
-        print(__STEPS_PREFIX_AND_APT_SECTION_HEADER, end="")
-        print(apt_outp)
-
-        # `Install Required Python Packages`
-        if pip_outp:
-            print(__PIP_SECTION_HEADER, end="")
-            print(" " + pip_outp)
-
-        # `Install Required Third Party Git Repositories`
-        if section_line_map[__GIT_SECTION]:
-            print(__GIT_SECTION_HEADER)
-            __print_formatted_lines(section_line_map[__GIT_SECTION], indent="          ")
-
-        # `Install Required Third Party Web Packages`
-        if section_line_map[__WEB_SECTION]:
-            print(__WEB_SECTION_HEADER)
-            __print_formatted_lines(section_line_map[__WEB_SECTION], indent="          ")
+        __print_normal_prefix_lines(section_line_map, apt_outp, pip_outp)
 
     # Each of the subproject sections, up to `Build production``
     for next_section_cd in run_ordered_build_list:
-
-        if (
-            run_ordered_build_list[-1] == next_section_cd
-            and section_line_map[__COPY_SECTION]
-        ):
-            print(__COPY_SECTION_HEADER)
-            __print_formatted_lines(
-                section_line_map[__COPY_SECTION], indent="          "
-            )
-
-        action_title = "Build" if args.action == "run" else args.action.capitalize()
-
-        proper_section_name = next_section_cd[len("cd $GAIA_REPO/") :].strip()
-        if prerun_build_map:
-            if next_section_cd in prerun_build_map:
-                print(
-                    __PREBUILD_SECTION_HEADER_TEMPLATE.replace(
-                        "{action}", action_title
-                    ).replace("{section}", proper_section_name)
-                )
-                __print_formatted_lines(
-                    prerun_build_map[next_section_cd], indent="          "
-                )
-        # if args.action == "run" and run_ordered_build_list[-1] == next_section_cd:
-        #     print(">>" + str(run_build_map[next_section_cd]))
-        #     sys.exit(1)
-        print(
-            __BUILD_SECTION_HEADER_TEMPLATE.replace("{action}", action_title).replace(
-                "{section}", proper_section_name
-            )
+        __print_next_section_core(
+            args,
+            next_section_cd,
+            section_line_map,
+            run_ordered_build_list,
+            prerun_build_map,
+            run_build_map,
         )
-        __print_formatted_lines(run_build_map[next_section_cd], indent="          ")
 
     # `Tests`
-    if args.action == "run":
+    if args.action == __RUN_ACTION:
         print(__TESTS_SECTION_HEADER)
         __print_formatted_lines(section_line_map[__TESTS_SECTION])
 
         # `Generate Package`
         __print_formatted_lines(section_line_map[__PACKAGE_SECTION])
-    elif args.action == "lint":
+    elif args.action == __LINT_ACTION:
         print(__LINT_SECTION_SUFFIX)
     elif is_install_action:
-        __print_formatted_lines(run_outp)
+        __install(run_outp, args.action)
 
     if not is_install_action:
         # `Upload *`

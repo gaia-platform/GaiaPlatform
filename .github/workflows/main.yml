@@ -614,6 +614,537 @@ jobs:
           path: |
             /build/production/Testing/Temporary/LastTest.log
 
+  Debug SDK:
+    runs-on: ubuntu-20.04
+    needs: Core
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+      GAIA_VERSION: 0.3.2
+      GAIA_PRE_RELEASE: beta
+      CC: /usr/bin/clang-10
+      CPP: /usr/bin/clang-cpp-10
+      CXX: /usr/bin/clang++-10
+      LDFLAGS: "-B/usr/lib/llvm-10/bin/ -fuse-ld=lld"
+      LANG: en_US.UTF-8
+      LC_CTYPE: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - name: Install Required Applications
+        run: |
+          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+
+      - name: Install Required Third Party Git Repositories
+        run: |
+          cd $GAIA_REPO/third_party/production/backward
+          git clone -c advice.detachedHead=false --depth 1 --branch v1.5 https://github.com/bombela/backward-cpp.git
+          rm -rf */.git
+          cd $GAIA_REPO/third_party/production/daemonize
+          git clone -c advice.detachedHead=false --depth 1 --branch release-1.7.8 https://github.com/bmc/daemonize.git
+          rm -rf */.git
+          cd $GAIA_REPO/third_party/production/libexplain
+          git clone -c advice.detachedHead=false --depth 1 --branch "debian/1.4.D001-10" https://salsa.debian.org/debian/libexplain
+          rm -rf */.git
+          cd $GAIA_REPO/third_party/production/cpptoml
+          git clone -c advice.detachedHead=false --depth 1 --branch v0.1.1 https://github.com/skystrife/cpptoml.git
+          rm -rf */.git
+          cd $GAIA_REPO/third_party/production/tabulate
+          git clone -c advice.detachedHead=false --depth 1 --branch v1.3 https://github.com/p-ranav/tabulate
+          rm -rf */.git
+          cd $GAIA_REPO/third_party/production/liburing
+          git clone -c advice.detachedHead=false --depth 1 --branch liburing-2.0 https://github.com/axboe/liburing.git
+          rm -rf */.git
+
+      - name: Install Required Third Party Web Packages
+        run: |
+          cd $GAIA_REPO/third_party/production/bison
+          wget http://ftp.gnu.org/gnu/bison/bison-3.5.tar.gz
+
+      - name: Pre-Build third_party/production/cmake
+        run: |
+          cd $GAIA_REPO/third_party/production/cmake
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang\" \"clang\" \"/usr/bin/clang-10\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang++\" \"clang++\" \"/usr/bin/clang++-10\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/ld.lld\" \"ld.lld\" \"/usr/bin/ld.lld-10\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/cc\" \"cc\" \"$CC\" 50"
+          sudo bash -c "update-alternatives --install \"/usr/bin/c++\" \"c++\" \"$CXX\" 50"
+          sudo bash -c "update-alternatives --install \"/usr/bin/cpp\" \"cpp\" \"$CPP\" 50"
+
+      - name: Build third_party/production/cmake
+        run: |
+          cd $GAIA_REPO/third_party/production/cmake
+          sudo bash -c "wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null"
+          sudo bash -c "echo \"deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main\" | tee /etc/apt/sources.list.d/kitware.list"
+          sudo bash -c "apt-get update"
+          sudo bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y     cmake     cmake-data"
+          sudo bash -c "apt-get clean"
+          sudo bash -c "rm /etc/apt/sources.list.d/kitware.list >/dev/null"
+          sudo bash -c "rm /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null"
+
+      - name: Build third_party/production/daemonize
+        run: |
+          cd $GAIA_REPO/third_party/production/daemonize
+          cd daemonize
+          sudo bash -c "./configure"
+          sudo bash -c "make -j$(nproc)"
+          sudo bash -c "make install"
+          cd ..
+          sudo bash -c "rm -rf *"
+
+      - name: Build third_party/production/postgresql
+        run: |
+          cd $GAIA_REPO/third_party/production/postgresql
+          sudo bash -c "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -"
+          sudo bash -c "echo \"deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main\" | tee /etc/apt/sources.list.d/pgdg.list"
+          sudo bash -c "apt-get update -y"
+          sudo bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y     postgresql-12     postgresql-12-dbgsym     postgresql-client-12     postgresql-client-12-dbgsym     postgresql-contrib-12     postgresql-server-dev-12"
+          sudo bash -c "apt-get clean"
+          sudo bash -c "rm /etc/apt/sources.list.d/pgdg.list"
+          sudo bash -c "python3 -m pip install psycopg2"
+          sudo bash -c "locale-gen en_US.UTF-8"
+          sudo bash -c "mkdir -p /etc/postgresql/ssl"
+          sudo bash -c "cp -p -R /etc/ssl/private /etc/postgresql/ssl"
+          sudo bash -c "sed -i \"s/\/etc\/ssl\/private/\/etc\/postgresql\/ssl\/private/g\" /etc/postgresql/12/main/postgresql.conf"
+          sudo bash -c "sed -i '/^local/ s/peer/trust/' /etc/postgresql/12/main/pg_hba.conf"
+          sudo bash -c "pg_config --includedir-server"
+          sudo bash -c "ls -la /usr/lib/postgresql/"
+          sudo bash -c "rm -rf /usr/lib/postgresql/14"
+          sudo bash -c "ls -la /usr/lib/postgresql/"
+          sudo bash -c "pg_config --includedir-server"
+
+      - name: Build third_party/production/liburing
+        run: |
+          cd $GAIA_REPO/third_party/production/liburing
+          cd liburing
+          sudo bash -c "./configure"
+          sudo bash -c "make -j$(nproc)"
+          sudo bash -c "make install"
+
+      - name: Build third_party/production/backward
+        run: |
+          cd $GAIA_REPO/third_party/production/backward
+          sudo bash -c "cmake backward-cpp"
+          sudo bash -c "make -j$(nproc)"
+          sudo bash -c "make install"
+
+      - name: Build third_party/production/bison
+        run: |
+          cd $GAIA_REPO/third_party/production/bison
+          sudo bash -c "tar -zxvf bison-3.5.tar.gz"
+          cd bison-3.5
+          sudo bash -c "./configure"
+          sudo bash -c "make -j$(nproc)"
+          sudo bash -c "make install"
+          cd ..
+          sudo bash -c "rm -rf *"
+
+      - name: Build third_party/production/cpptoml
+        run: |
+          cd $GAIA_REPO/third_party/production/cpptoml
+          cd cpptoml
+          sudo bash -c "rm -fr build/"
+          sudo bash -c "cmake -H. -Bbuild  -DCMAKE_BUILD_TYPE=Release                    -DCPPTOML_BUILD_EXAMPLES=OFF                    -DENABLE_LIBCXX=OFF"
+          sudo bash -c "cmake --build build --target install"
+
+      - name: Build third_party/production/tabulate
+        run: |
+          cd $GAIA_REPO/third_party/production/tabulate
+          cd tabulate
+          sudo bash -c "cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release"
+          sudo bash -c "cmake --build build --target install"
+
+      - name: Build third_party/production/libexplain
+        run: |
+          cd $GAIA_REPO/third_party/production/libexplain
+          cd libexplain
+          sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
+          sudo bash -c "CPPFLAGS='-fPIC' ./configure --prefix=/usr"
+          sudo bash -c "make -j$(nproc)"
+          sudo bash -c "make install"
+          cd ..
+          sudo bash -c "rm -rf *"
+
+      - name: Create /source and /build directories.
+        run: |
+          sudo bash -c "mkdir -p /build/third_party/production/cmake"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/cmake/. /build/third_party/production/cmake/"
+          sudo bash -c "mkdir -p /source/production/cmake"
+          sudo bash -c "cp -a $GAIA_REPO/production/cmake/. /source/production/cmake/"
+          sudo bash -c "mkdir -p /source/production/sql/src"
+          sudo bash -c "cp -a $GAIA_REPO/production/sql/src/. /source/production/sql/src/"
+          sudo bash -c "mkdir -p /source/production/sql"
+          sudo bash -c "cp -a $GAIA_REPO/production/sql/. /source/production/sql/"
+          sudo bash -c "mkdir -p /build/third_party/production/backward"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/backward/. /build/third_party/production/backward/"
+          sudo bash -c "mkdir -p /source/third_party/production/backward"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/backward/. /source/third_party/production/backward/"
+          sudo bash -c "mkdir -p /build/third_party/production/bison"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/bison/. /build/third_party/production/bison/"
+          sudo bash -c "mkdir -p /build/third_party/production/daemonize"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/daemonize/. /build/third_party/production/daemonize/"
+          sudo bash -c "mkdir -p /source/third_party/production/flatbuffers"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/flatbuffers/. /source/third_party/production/flatbuffers/"
+          sudo bash -c "mkdir -p /source/third_party/production/googletest"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/googletest/. /source/third_party/production/googletest/"
+          sudo bash -c "mkdir -p /build/third_party/production/libexplain"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/libexplain/. /build/third_party/production/libexplain/"
+          sudo bash -c "mkdir -p /source/third_party/production/json"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/json/. /source/third_party/production/json/"
+          sudo bash -c "mkdir -p /build/third_party/production/postgresql"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/postgresql/. /build/third_party/production/postgresql/"
+          sudo bash -c "mkdir -p /source/third_party/production/rocksdb"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/rocksdb/. /source/third_party/production/rocksdb/"
+          sudo bash -c "mkdir -p /build/third_party/production/cpptoml"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/cpptoml/. /build/third_party/production/cpptoml/"
+          sudo bash -c "mkdir -p /source/third_party/production/cpptoml"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/cpptoml/. /source/third_party/production/cpptoml/"
+          sudo bash -c "mkdir -p /build/third_party/production/tabulate"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/tabulate/. /build/third_party/production/tabulate/"
+          sudo bash -c "mkdir -p /source/third_party/production/tabulate"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/tabulate/. /source/third_party/production/tabulate/"
+          sudo bash -c "mkdir -p /build/third_party/production/liburing"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/liburing/. /build/third_party/production/liburing/"
+          sudo bash -c "mkdir -p /source/third_party/bundle/gaia_spdlog"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/bundle/gaia_spdlog/. /source/third_party/bundle/gaia_spdlog/"
+          sudo bash -c "mkdir -p /source/third_party/bundle/gaia_spdlog_setup"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/bundle/gaia_spdlog_setup/. /source/third_party/bundle/gaia_spdlog_setup/"
+          sudo bash -c "mkdir -p /source/third_party/production/gaia_spdlog"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/gaia_spdlog/. /source/third_party/production/gaia_spdlog/"
+          sudo bash -c "mkdir -p /source/third_party/production/gaia_spdlog_setup"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/gaia_spdlog_setup/. /source/third_party/production/gaia_spdlog_setup/"
+          sudo bash -c "mkdir -p /source/dev_tools/hooks"
+          sudo bash -c "cp -a $GAIA_REPO/dev_tools/hooks/. /source/dev_tools/hooks/"
+          sudo bash -c "mkdir -p /source/production"
+          sudo bash -c "cp -a $GAIA_REPO/production/. /source/production/"
+
+      - name: Pre-Build production
+        run: |
+          cd $GAIA_REPO/production
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang-format\" \"clang-format\" \"/usr/bin/clang-format-10\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang-tidy\" \"clang-tidy\" \"/usr/bin/clang-tidy-10\" 10"
+          sudo bash -c "mkdir -p /etc/postgresql/12/main"
+          sudo bash -c "echo \"LD_PRELOAD = '$(clang-10 -print-file-name=libclang_rt.asan-$(uname -m).so)'\" >> /etc/postgresql/12/main/environment"
+          sudo bash -c "echo \"ASAN_OPTIONS = 'detect_leaks=0'\" >> /etc/postgresql/12/main/environment"
+          sudo bash -c "mkdir -p /var/lib/gaia/db"
+          sudo bash -c "chmod -R 666 /var/lib/gaia/db"
+          sudo bash -c "$GAIA_REPO/dev_tools/github-actions/set_product_version.py --directory \"$GAIA_REPO\" --version \"$GAIA_VERSION\" --pre-release \"$GAIA_PRE_RELEASE\" --build-number \"${{ github.run_id }}\""
+
+      - name: Build production
+        run: |
+          cd $GAIA_REPO/production
+          sudo bash -c "mkdir -p /build/production"
+          cd /build/production
+          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DENABLE_CLANG_TIDY=ON     -DCMAKE_BUILD_TYPE=Debug     -G \"Unix Makefiles\" /source/production"
+          sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1     make -j$(nproc) 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
+
+      - name: Unit Tests
+        run: |
+          cd /build/production/db/core
+          sudo bash -c "make install"
+          cd /build/production
+          sudo bash -c "ctest"
+
+      - name: Upload CMake Logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debug SDK CMake Logs
+          path: |
+            /build/production/CMakeFiles/CMakeOutput.log
+            /build/production/CMakeFiles/CMakeError.log
+
+      - name: Upload Make Logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debug SDK Make Logs
+          path: |
+            /build/production/make-out.log
+            /build/production/make-err.log
+
+      - name: Upload CTest Logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debug SDK CTest Logs
+          path: |
+            /build/production/Testing/Temporary/LastTest.log
+
+  LLVM Tests:
+    runs-on: ubuntu-20.04
+    needs: Core
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+      GAIA_VERSION: 0.3.2
+      GAIA_PRE_RELEASE: beta
+      CC: /usr/bin/clang-10
+      CPP: /usr/bin/clang-cpp-10
+      CXX: /usr/bin/clang++-10
+      LDFLAGS: "-B/usr/lib/llvm-10/bin/ -fuse-ld=lld"
+      LANG: en_US.UTF-8
+      LC_CTYPE: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - name: Install Required Applications
+        run: |
+          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+
+      - name: Install Required Python Packages
+        run: |
+          python3.8 -m pip install --user psutil
+
+      - name: Install Required Third Party Git Repositories
+        run: |
+          cd $GAIA_REPO/third_party/production/backward
+          git clone -c advice.detachedHead=false --depth 1 --branch v1.5 https://github.com/bombela/backward-cpp.git
+          rm -rf */.git
+          cd $GAIA_REPO/third_party/production/daemonize
+          git clone -c advice.detachedHead=false --depth 1 --branch release-1.7.8 https://github.com/bmc/daemonize.git
+          rm -rf */.git
+          cd $GAIA_REPO/third_party/production/libexplain
+          git clone -c advice.detachedHead=false --depth 1 --branch "debian/1.4.D001-10" https://salsa.debian.org/debian/libexplain
+          rm -rf */.git
+          cd $GAIA_REPO/third_party/production/cpptoml
+          git clone -c advice.detachedHead=false --depth 1 --branch v0.1.1 https://github.com/skystrife/cpptoml.git
+          rm -rf */.git
+          cd $GAIA_REPO/third_party/production/tabulate
+          git clone -c advice.detachedHead=false --depth 1 --branch v1.3 https://github.com/p-ranav/tabulate
+          rm -rf */.git
+          cd $GAIA_REPO/third_party/production/liburing
+          git clone -c advice.detachedHead=false --depth 1 --branch liburing-2.0 https://github.com/axboe/liburing.git
+          rm -rf */.git
+
+      - name: Install Required Third Party Web Packages
+        run: |
+          cd $GAIA_REPO/third_party/production/bison
+          wget http://ftp.gnu.org/gnu/bison/bison-3.5.tar.gz
+
+      - name: Pre-Build third_party/production/cmake
+        run: |
+          cd $GAIA_REPO/third_party/production/cmake
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang\" \"clang\" \"/usr/bin/clang-10\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang++\" \"clang++\" \"/usr/bin/clang++-10\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/ld.lld\" \"ld.lld\" \"/usr/bin/ld.lld-10\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/cc\" \"cc\" \"$CC\" 50"
+          sudo bash -c "update-alternatives --install \"/usr/bin/c++\" \"c++\" \"$CXX\" 50"
+          sudo bash -c "update-alternatives --install \"/usr/bin/cpp\" \"cpp\" \"$CPP\" 50"
+
+      - name: Build third_party/production/cmake
+        run: |
+          cd $GAIA_REPO/third_party/production/cmake
+          sudo bash -c "wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null"
+          sudo bash -c "echo \"deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main\" | tee /etc/apt/sources.list.d/kitware.list"
+          sudo bash -c "apt-get update"
+          sudo bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y     cmake     cmake-data"
+          sudo bash -c "apt-get clean"
+          sudo bash -c "rm /etc/apt/sources.list.d/kitware.list >/dev/null"
+          sudo bash -c "rm /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null"
+
+      - name: Build third_party/production/daemonize
+        run: |
+          cd $GAIA_REPO/third_party/production/daemonize
+          cd daemonize
+          sudo bash -c "./configure"
+          sudo bash -c "make -j$(nproc)"
+          sudo bash -c "make install"
+          cd ..
+          sudo bash -c "rm -rf *"
+
+      - name: Build third_party/production/postgresql
+        run: |
+          cd $GAIA_REPO/third_party/production/postgresql
+          sudo bash -c "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -"
+          sudo bash -c "echo \"deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main\" | tee /etc/apt/sources.list.d/pgdg.list"
+          sudo bash -c "apt-get update -y"
+          sudo bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y     postgresql-12     postgresql-12-dbgsym     postgresql-client-12     postgresql-client-12-dbgsym     postgresql-contrib-12     postgresql-server-dev-12"
+          sudo bash -c "apt-get clean"
+          sudo bash -c "rm /etc/apt/sources.list.d/pgdg.list"
+          sudo bash -c "python3 -m pip install psycopg2"
+          sudo bash -c "locale-gen en_US.UTF-8"
+          sudo bash -c "mkdir -p /etc/postgresql/ssl"
+          sudo bash -c "cp -p -R /etc/ssl/private /etc/postgresql/ssl"
+          sudo bash -c "sed -i \"s/\/etc\/ssl\/private/\/etc\/postgresql\/ssl\/private/g\" /etc/postgresql/12/main/postgresql.conf"
+          sudo bash -c "sed -i '/^local/ s/peer/trust/' /etc/postgresql/12/main/pg_hba.conf"
+          sudo bash -c "pg_config --includedir-server"
+          sudo bash -c "ls -la /usr/lib/postgresql/"
+          sudo bash -c "rm -rf /usr/lib/postgresql/14"
+          sudo bash -c "ls -la /usr/lib/postgresql/"
+          sudo bash -c "pg_config --includedir-server"
+
+      - name: Build third_party/production/liburing
+        run: |
+          cd $GAIA_REPO/third_party/production/liburing
+          cd liburing
+          sudo bash -c "./configure"
+          sudo bash -c "make -j$(nproc)"
+          sudo bash -c "make install"
+
+      - name: Build third_party/production/backward
+        run: |
+          cd $GAIA_REPO/third_party/production/backward
+          sudo bash -c "cmake backward-cpp"
+          sudo bash -c "make -j$(nproc)"
+          sudo bash -c "make install"
+
+      - name: Build third_party/production/bison
+        run: |
+          cd $GAIA_REPO/third_party/production/bison
+          sudo bash -c "tar -zxvf bison-3.5.tar.gz"
+          cd bison-3.5
+          sudo bash -c "./configure"
+          sudo bash -c "make -j$(nproc)"
+          sudo bash -c "make install"
+          cd ..
+          sudo bash -c "rm -rf *"
+
+      - name: Build third_party/production/cpptoml
+        run: |
+          cd $GAIA_REPO/third_party/production/cpptoml
+          cd cpptoml
+          sudo bash -c "rm -fr build/"
+          sudo bash -c "cmake -H. -Bbuild  -DCMAKE_BUILD_TYPE=Release                    -DCPPTOML_BUILD_EXAMPLES=OFF                    -DENABLE_LIBCXX=OFF"
+          sudo bash -c "cmake --build build --target install"
+
+      - name: Build third_party/production/tabulate
+        run: |
+          cd $GAIA_REPO/third_party/production/tabulate
+          cd tabulate
+          sudo bash -c "cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release"
+          sudo bash -c "cmake --build build --target install"
+
+      - name: Build third_party/production/libexplain
+        run: |
+          cd $GAIA_REPO/third_party/production/libexplain
+          cd libexplain
+          sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
+          sudo bash -c "CPPFLAGS='-fPIC' ./configure --prefix=/usr"
+          sudo bash -c "make -j$(nproc)"
+          sudo bash -c "make install"
+          cd ..
+          sudo bash -c "rm -rf *"
+
+      - name: Create /source and /build directories.
+        run: |
+          sudo bash -c "mkdir -p /build/third_party/production/cmake"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/cmake/. /build/third_party/production/cmake/"
+          sudo bash -c "mkdir -p /source/production/cmake"
+          sudo bash -c "cp -a $GAIA_REPO/production/cmake/. /source/production/cmake/"
+          sudo bash -c "mkdir -p /source/production/sql/src"
+          sudo bash -c "cp -a $GAIA_REPO/production/sql/src/. /source/production/sql/src/"
+          sudo bash -c "mkdir -p /source/production/sql"
+          sudo bash -c "cp -a $GAIA_REPO/production/sql/. /source/production/sql/"
+          sudo bash -c "mkdir -p /build/third_party/production/backward"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/backward/. /build/third_party/production/backward/"
+          sudo bash -c "mkdir -p /source/third_party/production/backward"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/backward/. /source/third_party/production/backward/"
+          sudo bash -c "mkdir -p /build/third_party/production/bison"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/bison/. /build/third_party/production/bison/"
+          sudo bash -c "mkdir -p /build/third_party/production/daemonize"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/daemonize/. /build/third_party/production/daemonize/"
+          sudo bash -c "mkdir -p /source/third_party/production/flatbuffers"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/flatbuffers/. /source/third_party/production/flatbuffers/"
+          sudo bash -c "mkdir -p /source/third_party/production/googletest"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/googletest/. /source/third_party/production/googletest/"
+          sudo bash -c "mkdir -p /build/third_party/production/libexplain"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/libexplain/. /build/third_party/production/libexplain/"
+          sudo bash -c "mkdir -p /source/third_party/production/json"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/json/. /source/third_party/production/json/"
+          sudo bash -c "mkdir -p /build/third_party/production/postgresql"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/postgresql/. /build/third_party/production/postgresql/"
+          sudo bash -c "mkdir -p /source/third_party/production/rocksdb"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/rocksdb/. /source/third_party/production/rocksdb/"
+          sudo bash -c "mkdir -p /build/third_party/production/cpptoml"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/cpptoml/. /build/third_party/production/cpptoml/"
+          sudo bash -c "mkdir -p /source/third_party/production/cpptoml"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/cpptoml/. /source/third_party/production/cpptoml/"
+          sudo bash -c "mkdir -p /build/third_party/production/tabulate"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/tabulate/. /build/third_party/production/tabulate/"
+          sudo bash -c "mkdir -p /source/third_party/production/tabulate"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/tabulate/. /source/third_party/production/tabulate/"
+          sudo bash -c "mkdir -p /build/third_party/production/liburing"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/liburing/. /build/third_party/production/liburing/"
+          sudo bash -c "mkdir -p /source/third_party/bundle/gaia_spdlog"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/bundle/gaia_spdlog/. /source/third_party/bundle/gaia_spdlog/"
+          sudo bash -c "mkdir -p /source/third_party/bundle/gaia_spdlog_setup"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/bundle/gaia_spdlog_setup/. /source/third_party/bundle/gaia_spdlog_setup/"
+          sudo bash -c "mkdir -p /source/third_party/production/gaia_spdlog"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/gaia_spdlog/. /source/third_party/production/gaia_spdlog/"
+          sudo bash -c "mkdir -p /source/third_party/production/gaia_spdlog_setup"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/gaia_spdlog_setup/. /source/third_party/production/gaia_spdlog_setup/"
+          sudo bash -c "mkdir -p /source/third_party/production/TranslationEngineLLVM"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/TranslationEngineLLVM/. /source/third_party/production/TranslationEngineLLVM/"
+          sudo bash -c "mkdir -p /source/dev_tools/hooks"
+          sudo bash -c "cp -a $GAIA_REPO/dev_tools/hooks/. /source/dev_tools/hooks/"
+          sudo bash -c "mkdir -p /source/production"
+          sudo bash -c "cp -a $GAIA_REPO/production/. /source/production/"
+
+      - name: Pre-Build production
+        run: |
+          cd $GAIA_REPO/production
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang-format\" \"clang-format\" \"/usr/bin/clang-format-10\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang-tidy\" \"clang-tidy\" \"/usr/bin/clang-tidy-10\" 10"
+          sudo bash -c "mkdir -p /etc/postgresql/12/main"
+          sudo bash -c "echo \"LD_PRELOAD = '$(clang-10 -print-file-name=libclang_rt.asan-$(uname -m).so)'\" >> /etc/postgresql/12/main/environment"
+          sudo bash -c "echo \"ASAN_OPTIONS = 'detect_leaks=0'\" >> /etc/postgresql/12/main/environment"
+          sudo bash -c "mkdir -p /var/lib/gaia/db"
+          sudo bash -c "chmod -R 666 /var/lib/gaia/db"
+          sudo bash -c "$GAIA_REPO/dev_tools/github-actions/set_product_version.py --directory \"$GAIA_REPO\" --version \"$GAIA_VERSION\" --pre-release \"$GAIA_PRE_RELEASE\" --build-number \"${{ github.run_id }}\""
+
+      - name: Build production
+        run: |
+          cd $GAIA_REPO/production
+          sudo bash -c "mkdir -p /build/production"
+          cd /build/production
+          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DENABLE_CLANG_TIDY=ON     -DBUILD_GAIA_LLVM_TESTS=ON     -DBUILD_GAIA_RELEASE=ON     -G \"Unix Makefiles\" /source/production"
+          sudo bash -c "    VERBOSE=1     make -j$(nproc) 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
+          sudo bash -c "LSAN_OPTIONS=detect_leaks=0     make -j$(nproc) check-all 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
+
+      - name: Unit Tests
+        run: |
+          cd /build/production
+          sudo bash -c "ctest"
+
+      - name: Upload CMake Logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: LLVM Tests CMake Logs
+          path: |
+            /build/production/CMakeFiles/CMakeOutput.log
+            /build/production/CMakeFiles/CMakeError.log
+
+      - name: Upload Make Logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: LLVM Tests Make Logs
+          path: |
+            /build/production/make-out.log
+            /build/production/make-err.log
+
+      - name: Upload CTest Logs
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: LLVM Tests CTest Logs
+          path: |
+            /build/production/Testing/Temporary/LastTest.log
+
   Integration:
     runs-on: ubuntu-20.04
     needs: SDK

@@ -39,6 +39,10 @@ __SECTION_NAME_PACKAGE = "[package]"
 __SECTION_NAME_TESTS = "[tests]"
 __SECTION_NAME_INSTALLS = "[installs]"
 
+# Special section prefix.
+
+__SECTION_NAME_INSTALL_PREFIX = "[install:"
+
 # Lists of available object so we can validate at the command line.
 __valid_section_names = [
     __SECTION_NAME_APT,
@@ -58,7 +62,7 @@ __valid_section_names = [
 ]
 __available_sections = []
 
-__available_options = ["GaiaRelease", "ubuntu:20.04", "CI_GitHub", "Lint"]
+__available_options = ["GaiaRelease", "Debug", "GaiaLLVMTests", "ubuntu:20.04", "CI_GitHub", "Lint"]
 
 # Regular expressions that we support within {} constructs.
 __SOURCE_DIR_REGEX = r"source_dir\(\'([^']+)\'\)"
@@ -88,7 +92,7 @@ __PACKAGE_TASK_TEMPLATE = """
       - name: Upload Package
         uses: actions/upload-artifact@v2
         with:
-          name: Debian Install Package
+          name: {job} Debian Install Package
           path: {path}"""
 
 # Other Constants
@@ -114,8 +118,8 @@ def __init():
     Instead of duplicating the __valid_section_names and __available_sections
     variables, just fix them up here.
     """
-    for i in __valid_section_names:
-        __available_sections.append(i[1:-1])
+    for next_section_name in __valid_section_names:
+        __available_sections.append(next_section_name[1:-1])
 
 
 def __valid_options(argument):
@@ -131,7 +135,9 @@ def __valid_sections(argument):
     """
     Function to help argparse limit the valid sections that are supported.
     """
-    if argument in __available_sections or argument.startswith("install:"):
+    if argument in __available_sections or argument.startswith(
+        __SECTION_NAME_INSTALL_PREFIX[1:]
+    ):
         return argument
     raise ValueError(f"Value '{argument}' is not a valid section name.")
 
@@ -170,7 +176,7 @@ def __process_command_line():
         action="store",
         help="Specify a section to output the collected results for.",
         type=__valid_sections,
-        #choices=__available_sections,
+        # choices=__available_sections,
     )
     parser.add_argument(
         "--job-name",
@@ -219,7 +225,11 @@ def __handle_new_section(next_line, loaded_sections, line_conditional):
     """
     scan_error = None
 
-    if next_line not in __valid_section_names and next_line != __SECTION_NAME_GAIA and not next_line.startswith("[install:"):
+    if (
+        next_line not in __valid_section_names
+        and next_line != __SECTION_NAME_GAIA
+        and not next_line.startswith(__SECTION_NAME_INSTALL_PREFIX)
+    ):
         scan_error = f"Unrecognized section name '{next_line}'."
         return None, None, scan_error
     section_conditional = line_conditional
@@ -807,7 +817,7 @@ def __print_artifacts_section(section_text_pairs, job_name):
         print("            " + split_artifact_data[1])
 
 
-def __print_package_section(section_text_pairs):
+def __print_package_section(section_text_pairs, job_name):
     """
     Print the script lines associated with creating a package.
 
@@ -831,9 +841,9 @@ def __print_package_section(section_text_pairs):
         package_lines.append(__adjust_script_lines_for_sudo(next_line))
 
     print(
-        __PACKAGE_TASK_TEMPLATE.replace("{lines}", "\n".join(package_lines)).replace(
-            "{path}", package_path
-        )
+        __PACKAGE_TASK_TEMPLATE.replace("{lines}", "\n".join(package_lines))
+        .replace("{path}", package_path)
+        .replace("{job}", job_name)
     )
 
 
@@ -848,15 +858,31 @@ def __print_tests_section(section_text_pairs):
 
 
 def __print_installs_section(section_text_pairs):
+    """
+    Print the scripts lines from the [installs] section.  Note that this
+    is primarily used as a guide to figure out which [install:xxx] section
+    are to be used.
+    """
     for next_line_pair in section_text_pairs:
         next_line = next_line_pair[1]
         print(next_line)
 
+
 def __print_specific_installs_section(section_text_pairs):
+    """
+    Print the scripts line associated with a specific [install:xxx] section.
+    Note that lines starting with ':' are passed as is because the other
+    scripts will interpret them.
+    """
     for next_line_pair in section_text_pairs:
         next_line = next_line_pair[1]
-        print(__adjust_script_lines_for_sudo(next_line))
+        if next_line.startswith(":"):
+            print(next_line)
+        else:
+            print(__adjust_script_lines_for_sudo(next_line))
 
+
+# pylint: disable=too-many-branches
 def process_script_action():
     """
     Process the request to provide aggregated information on a specific section
@@ -909,12 +935,12 @@ def process_script_action():
     elif __SECTION_NAME_ARTIFACTS == specific_section_name:
         __print_artifacts_section(section_text_pairs, args.job_name)
     elif __SECTION_NAME_PACKAGE == specific_section_name:
-        __print_package_section(section_text_pairs)
+        __print_package_section(section_text_pairs, args.job_name)
     elif __SECTION_NAME_TESTS == specific_section_name:
         __print_tests_section(section_text_pairs)
     elif __SECTION_NAME_INSTALLS == specific_section_name:
         __print_installs_section(section_text_pairs)
-    elif specific_section_name.startswith("[install:"):
+    elif specific_section_name.startswith(__SECTION_NAME_INSTALL_PREFIX):
         __print_specific_installs_section(section_text_pairs)
     else:
         assert specific_section_name in (
@@ -928,6 +954,9 @@ def process_script_action():
         )
 
     return 0
+
+
+# pylint: enable=too-many-branches
 
 
 sys.exit(process_script_action())

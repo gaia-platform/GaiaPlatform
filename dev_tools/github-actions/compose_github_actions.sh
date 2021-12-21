@@ -32,6 +32,9 @@ complete_process() {
     if [ -f "$TEMP_FILE" ]; then
         rm "$TEMP_FILE"
     fi
+    if [ -f "$OTHER_TEMP_FILE" ]; then
+        rm "$OTHER_TEMP_FILE"
+    fi
 
     # Restore the current directory.
     if [ "$DID_PUSHD" -eq 1 ]; then
@@ -98,6 +101,7 @@ SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
 # Set up any project based local script variables.
 TEMP_FILE=$(mktemp /tmp/compose_github_actions.XXXXXXXXX)
+OTHER_TEMP_FILE=$(mktemp /tmp/compose_github_actions.XXXXXXXXX)
 
 # Set up any local script variables.
 DESTINATION_WORKFLOW_FILE=../../.github/workflows/main.yml
@@ -158,4 +162,54 @@ if ! ./build_job_section.py \
 fi
 cat "$TEMP_FILE" >> "$DESTINATION_WORKFLOW_FILE"
 
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Creating the Debug SDK job for the Workflow file."
+fi
+if ! ./build_job_section.py \
+    --job-name "Debug SDK" \
+    --requires "Core" \
+    --directory ../../production \
+    --option Debug --option ubuntu:20.04 --option CI_GitHub > "$TEMP_FILE" ; then
+    cat "$TEMP_FILE"
+    complete_process 1 "Error creating the Debug SDK job for the Workflow file."
+fi
+cat "$TEMP_FILE" >> "$DESTINATION_WORKFLOW_FILE"
+
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Creating the LLVM Tests job for the Workflow file."
+fi
+if ! ./build_job_section.py \
+    --job-name "LLVM Tests" \
+    --requires "Core" \
+    --directory ../../production \
+    --option GaiaLLVMTests --option ubuntu:20.04 --option CI_GitHub > "$TEMP_FILE" ; then
+    cat "$TEMP_FILE"
+    complete_process 1 "Error creating the LLVM Tests job for the Workflow file."
+fi
+cat "$TEMP_FILE" >> "$DESTINATION_WORKFLOW_FILE"
+
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Generating list of actions to take with a newly installed build artifact."
+fi
+if ! ./munge_gdev_files.py --directory ../../production  --section installs --job-name x > "$OTHER_TEMP_FILE" ; then
+    cat "$OTHER_TEMP_FILE"
+    complete_process 1 "Error generating the list of actions to take with the build artifact."
+fi
+
+while IFS="" read -r ACTION || [ -n "$ACTION" ]
+do
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Generating job '$ACTION'."
+    fi
+    if ! ./build_job_section.py \
+        --job-name "$ACTION" \
+        --requires "SDK" \
+        --directory ../../production \
+        --option ubuntu:20.04 \
+        --action "install:$ACTION" > "$TEMP_FILE" ; then
+        cat "$TEMP_FILE"
+        complete_process 1 "Error generating job '$ACTION'."
+    fi
+    cat "$TEMP_FILE" >> "$DESTINATION_WORKFLOW_FILE"
+done < "$OTHER_TEMP_FILE"
 complete_process 0
