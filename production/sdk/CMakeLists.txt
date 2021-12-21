@@ -29,9 +29,11 @@ install(TARGETS gaia DESTINATION ${CMAKE_INSTALL_LIBDIR})
 # a production only (non-gaia release) build.
 #
 set(SDK_TEST_INCLUDES
-  ${GAIA_INC}
+  # REVIEW: the first 2 includes shouldn't be necessary because they're exported
+  # by INTERFACE targets.
   ${GAIA_PROD_BUILD}/deps/gaia_spdlog/include
   ${GAIA_PROD_BUILD}/deps/flatbuffers/include
+  ${GAIA_INC}
   ${GAIA_PROD_BUILD}/gaia_generated/addr_book
 )
 

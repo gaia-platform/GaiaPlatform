@@ -77,7 +77,9 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
     add_dependencies(${TARGET} ${ARGV4})
   endif()
 
-  target_include_directories(${TARGET} PRIVATE ${INCLUDES} ${GOOGLE_TEST_INC})
+  # REVIEW: We don't currently expose a way to mark passed include dirs as
+  # SYSTEM (to suppress warnings), so we just treat all of them as such.
+  target_include_directories(${TARGET} SYSTEM PRIVATE ${INCLUDES} ${GOOGLE_TEST_INC})
   if("${ARGV5}")
     set(GTEST_LIB "gtest")
   else()
@@ -93,6 +95,17 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
     set(ENV "${ARGV6}")
   else()
     set(ENV "")
+  endif()
+
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    # Suppress ASan warnings from exception destructors in libc++.
+    # REVIEW (GAIAPLAT-1828): spdlog and cpptoml show up in the ASan stack
+    # trace, and both are unconditionally built with libstdc++, so this is
+    # likely an ABI incompatibility with libc++.
+    # NB: This overwrites any previous value of ENV, but apparently we're not
+    # using ENV for anything, and I couldn't get concatenation of NAME=VALUE
+    # env var pairs to work with ASan. This is just a temporary hack anyway.
+    set(ENV "ASAN_OPTIONS=alloc_dealloc_mismatch=0")
   endif()
 
   configure_gaia_target(${TARGET})
@@ -297,6 +310,14 @@ function(add_gaia_sdk_gtest)
   set(GAIAC_CMD "${GAIA_PROD_BUILD}/catalog/gaiac/gaiac")
   set(GAIAT_CMD "${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat")
 
+  # Unlike clang, gaiat isn't smart enough to know where system include dirs are
+  # for intrinsics and stdlib headers, so we need to define them explicitly.
+  # Since our internal builds target only Ubuntu 20.04, we assume that the
+  # default version (9) of libstdc++ is installed.
+  set(CLANG_INCLUDE_DIR "/usr/include/clang/13/include/")
+  set(LIBCXX_INCLUDE_DIR "/usr/lib/llvm-13/include/c++/v1/")
+  set(LIBSTDCXX_INCLUDE_DIR "/usr/include/c++/9/")
+
   add_custom_command(
     COMMENT "Compiling ${RULESET_FILE}..."
     OUTPUT ${RULESET_CPP_OUT}
@@ -308,7 +329,9 @@ function(add_gaia_sdk_gtest)
       -I ${FLATBUFFERS_INC}
       -I ${GAIA_SPDLOG_INC}
       -I ${DAC_INCLUDE}
-      -I /usr/include/clang/10/include/
+      -stdlib=$<IF:$<CONFIG:Debug>,libc++,libstdc++>
+      -I $<IF:$<CONFIG:Debug>,${LIBCXX_INCLUDE_DIR},${LIBSTDCXX_INCLUDE_DIR}>
+      -I ${CLANG_INCLUDE_DIR} 
       -std=c++${CMAKE_CXX_STANDARD}
     COMMAND pkill -f -KILL gaia_db_server &
 

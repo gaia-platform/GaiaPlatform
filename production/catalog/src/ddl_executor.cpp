@@ -86,17 +86,15 @@ void ddl_executor_t::bootstrap_catalog()
         //     is_system bool,
         //     binary_schema uint8[],
         //     serialization_template uint8[],
-        //     hash string,
-        //     type_name string,
+        //     hash string
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("hash", data_type_t::e_string, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("type_name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("type", data_type_t::e_uint32, 1));
         fields.emplace_back(make_unique<data_field_def_t>("is_system", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("binary_schema", data_type_t::e_uint8, 0));
         fields.emplace_back(make_unique<data_field_def_t>("serialization_template", data_type_t::e_uint8, 0));
+        fields.emplace_back(make_unique<data_field_def_t>("hash", data_type_t::e_string, 1));
         create_table_impl(
             c_catalog_db_name, "gaia_table", fields, is_system, throw_on_exists, auto_drop,
             static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_table));
@@ -124,13 +122,13 @@ void ddl_executor_t::bootstrap_catalog()
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("hash", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("type", data_type_t::e_uint8, 1));
         fields.emplace_back(make_unique<data_field_def_t>("repeated_count", data_type_t::e_uint16, 1));
         fields.emplace_back(make_unique<data_field_def_t>("position", data_type_t::e_uint16, 1));
         fields.emplace_back(make_unique<data_field_def_t>("deprecated", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("active", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("unique", data_type_t::e_bool, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("hash", data_type_t::e_string, 1));
         create_table_impl(
             c_catalog_db_name, "gaia_field", fields, is_system, throw_on_exists, auto_drop,
             static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_field));
@@ -163,7 +161,6 @@ void ddl_executor_t::bootstrap_catalog()
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("hash", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("to_parent_link_name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("to_child_link_name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("cardinality", data_type_t::e_uint8, 1));
@@ -175,6 +172,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("parent_offset", data_type_t::e_uint16, 1));
         fields.emplace_back(make_unique<data_field_def_t>("parent_field_positions", data_type_t::e_uint16, 0));
         fields.emplace_back(make_unique<data_field_def_t>("child_field_positions", data_type_t::e_uint16, 0));
+        fields.emplace_back(make_unique<data_field_def_t>("hash", data_type_t::e_string, 1));
         // See gaia::db::relationship_t for more details about relationships.
         create_table_impl(
             c_catalog_db_name, "gaia_relationship", fields, is_system, throw_on_exists, auto_drop,
@@ -760,7 +758,6 @@ gaia_id_t ddl_executor_t::create_relationship(
 
     gaia_id_t relationship_id = gaia_relationship_t::insert_row(
         name.c_str(),
-        c_empty_hash,
         to_parent_link_name,
         to_child_link_name,
         static_cast<uint8_t>(cardinality),
@@ -771,7 +768,8 @@ gaia_id_t ddl_executor_t::create_relationship(
         prev_child_offset,
         parent_offset,
         *parent_field_position_values,
-        *child_field_position_values);
+        *child_field_position_values,
+        c_empty_hash);
 
     gaia_table_t::get(parent_table_id).outgoing_relationships().insert(relationship_id);
     gaia_table_t::get(child_table_id).incoming_relationships().insert(relationship_id);
@@ -1109,18 +1107,13 @@ gaia_id_t ddl_executor_t::create_table_impl(
         ? gaia_type_t(generate_table_type(in_context(db_name), table_name))
         : fixed_type;
 
-    // The current convention for naming the DAC classes is to add a suffix of "_t"
-    // to the table type.
-    string type_name = table_name + "QQQ_t";
-
     gaia_id_t table_id = gaia_table_t::insert_row(
         table_name.c_str(),
-        c_empty_hash,
-        type_name.c_str(),
         table_type,
         is_system,
         bfbs,
-        bin);
+        bin,
+        c_empty_hash);
 
     gaia_log::catalog().debug("Created table '{}', type:'{}', id:'{}'", table_name, table_type, table_id);
 
@@ -1138,13 +1131,13 @@ gaia_id_t ddl_executor_t::create_table_impl(
         const data_field_def_t* data_field = dynamic_cast<data_field_def_t*>(field.get());
         gaia_id_t field_id = gaia_field_t::insert_row(
             field->name.c_str(),
-            c_empty_hash,
             static_cast<uint8_t>(data_field->data_type),
             data_field->length,
             data_field_position,
             false,
             data_field->active,
-            data_field->unique);
+            data_field->unique,
+            c_empty_hash);
 
         // Connect the field to the table it belongs to.
         gaia_table_t::get(table_id).gaia_fields().insert(field_id);
