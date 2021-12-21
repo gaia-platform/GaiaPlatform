@@ -287,7 +287,7 @@ jobs:
           cd $GAIA_REPO/production
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
-          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DENABLE_CLANG_TIDY=ON /source/production"
+          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON /source/production"
           sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1     make -j$(nproc) 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
 
       - name: Unit Tests
@@ -564,7 +564,7 @@ jobs:
           cd $GAIA_REPO/production
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
-          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DENABLE_CLANG_TIDY=ON     -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper     -DBUILD_GAIA_RELEASE=ON     -G \"Unix Makefiles\" /source/production"
+          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper     -DBUILD_GAIA_RELEASE=ON     -G \"Unix Makefiles\" /source/production"
           sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1     make -j$(nproc) 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
 
       - name: Unit Tests
@@ -614,7 +614,7 @@ jobs:
           path: |
             /build/production/Testing/Temporary/LastTest.log
 
-  Debug_SDK:
+  Debug_Core:
     runs-on: ubuntu-20.04
     needs: Core
     env:
@@ -841,7 +841,7 @@ jobs:
           cd $GAIA_REPO/production
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
-          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DENABLE_CLANG_TIDY=ON     -DCMAKE_BUILD_TYPE=Debug     -G \"Unix Makefiles\" /source/production"
+          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DCMAKE_BUILD_TYPE=Debug     -G \"Unix Makefiles\" /source/production"
           sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1     make -j$(nproc) 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
 
       - name: Unit Tests
@@ -855,7 +855,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: Debug_SDK CMake Logs
+          name: Debug_Core CMake Logs
           path: |
             /build/production/CMakeFiles/CMakeOutput.log
             /build/production/CMakeFiles/CMakeError.log
@@ -864,7 +864,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: Debug_SDK Make Logs
+          name: Debug_Core Make Logs
           path: |
             /build/production/make-out.log
             /build/production/make-err.log
@@ -873,7 +873,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: Debug_SDK CTest Logs
+          name: Debug_Core CTest Logs
           path: |
             /build/production/Testing/Temporary/LastTest.log
 
@@ -1110,7 +1110,7 @@ jobs:
           cd $GAIA_REPO/production
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
-          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DENABLE_CLANG_TIDY=ON     -DBUILD_GAIA_LLVM_TESTS=ON     -DBUILD_GAIA_RELEASE=ON     -G \"Unix Makefiles\" /source/production"
+          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DBUILD_GAIA_LLVM_TESTS=ON     -DBUILD_GAIA_RELEASE=ON     -G \"Unix Makefiles\" /source/production"
           sudo bash -c "    VERBOSE=1     make -j$(nproc) 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
           sudo bash -c "LSAN_OPTIONS=detect_leaks=0     make -j$(nproc) check-all 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
 

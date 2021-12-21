@@ -166,7 +166,7 @@ if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Creating the Debug SDK job for the Workflow file."
 fi
 if ! ./build_job_section.py \
-    --job-name "Debug_SDK" \
+    --job-name "Debug_Core" \
     --requires "Core" \
     --directory ../../production \
     --option Debug --option ubuntu:20.04 --option CI_GitHub > "$TEMP_FILE" ; then
