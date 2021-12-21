@@ -803,7 +803,9 @@ def __dump_results_dictionary(full_test_results):
     """
     Dump the full_test_results dictionary as a JSON file.
     """
-    with open(f"{SUITE_DIRECTORY}summary.json", "w", encoding=__DEFAULT_FILE_ENCODING) as write_file:
+    with open(
+        f"{SUITE_DIRECTORY}summary.json", "w", encoding=__DEFAULT_FILE_ENCODING
+    ) as write_file:
         json.dump(full_test_results, write_file, indent=4)
 
 

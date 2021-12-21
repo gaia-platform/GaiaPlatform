@@ -17,6 +17,7 @@ __BASE_DIR = "output"
 
 __DEFAULT_FILE_ENCODING = "utf-8"
 
+
 def read_coverage_log_file(relative_file_name):
     """
     Read the coverage log file and construct a dictionary with a summary
