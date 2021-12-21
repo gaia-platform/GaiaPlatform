@@ -176,11 +176,11 @@ private:
     static constexpr uint64_t c_txn_persistence_complete{0b1ULL};
 
     // This is a placeholder for the single (currently) reserved bit in the txn
-    // metadata.
+    // metadata format.
     static constexpr uint64_t c_txn_reserved_flags_bits{1ULL};
 
     // Txn log fd embedded in the txn metadata.
-    // This is only present in a commit_ts metadata.
+    // This is only present in a commit_ts metadata entry.
     // NB: we assume that any fd will be < 2^16 - 1!
     static constexpr uint64_t c_txn_log_fd_bits{16ULL};
     static constexpr uint64_t c_txn_log_fd_shift{
@@ -192,15 +192,14 @@ private:
     static constexpr uint64_t c_txn_log_fd_mask{
         ((1ULL << c_txn_log_fd_bits) - 1) << c_txn_log_fd_shift};
 
-    // Linked txn timestamp embedded in the txn metadata. For a commit_ts
-    // metadata, this is its associated begin_ts, and for a begin_ts metadata,
-    // this is its associated commit_ts. A commit_ts metadata always contains
-    // its linked begin_ts, but a begin_ts metadata may not be updated with its
-    // linked commit_ts until after the associated commit_ts metadata has been
-    // created.
+    // Linked txn timestamp embedded in a txn metadata entry. For a commit_ts
+    // entry, this is its associated begin_ts, and for a begin_ts entry, this is
+    // its associated commit_ts. A commit_ts entry always contains its linked
+    // begin_ts, but a begin_ts entry may not be updated with its linked
+    // commit_ts until after the associated commit_ts entry has been created.
     //
     // REVIEW: We could save at least 10 bits (conservatively) if we replaced
-    // the linked timestamp with its delta from the metadata's timestamp (the
+    // the linked timestamp with its delta from the metadata entry's timestamp (the
     // delta for a linked begin_ts would be implicitly negative). 32 bits should
     // be more than we would ever need, and 16 bits could suffice if we enforced
     // limits on the "age" of an active txn (e.g., if we aborted txns whose
