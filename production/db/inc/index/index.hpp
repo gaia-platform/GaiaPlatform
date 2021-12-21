@@ -5,7 +5,8 @@
 
 #pragma once
 
-#include <unordered_set>
+#include <array>
+#include <utility>
 
 #include "gaia_internal/db/db_types.hpp"
 
@@ -48,6 +49,26 @@ private:
     T_structure& m_data;
 };
 
+constexpr size_t c_offset_buffer_size = 32;
+
+/*
+* Buffer storing data for garbage collecting offsets.
+*/
+
+class index_offset_buffer_t
+{
+public:
+    void insert(gaia_offset_t offset, common::gaia_type_t type);
+    gaia_offset_t get_offset(size_t index) const;
+    common::gaia_type_t get_type(size_t index) const;
+    bool empty() const;
+    size_t size() const;
+
+private:
+    std::array<std::pair<gaia_offset_t, common::gaia_type_t>, c_offset_buffer_size> m_offsets = {};
+    size_t m_size = 0;
+};
+
 /**
  * Abstract in-memory index type:
  * T_structure is the underlying backing data structure of the index.
@@ -57,8 +78,8 @@ template <typename T_structure, typename T_iterator>
 class index_t : public base_index_t
 {
 public:
-    index_t(gaia::common::gaia_id_t index_id, catalog::index_type_t index_type, common::gaia_type_t table_type, bool is_unique)
-        : base_index_t(index_id, index_type, table_type, is_unique)
+    index_t(gaia::common::gaia_id_t index_id, catalog::index_type_t index_type, index_key_schema_t key_schema, bool is_unique)
+        : base_index_t(index_id, index_type, key_schema, is_unique)
     {
     }
     ~index_t() override = default;
@@ -71,7 +92,7 @@ public:
 
     // Index structure maintenance.
     void insert_index_entry(index_key_t&& key, index_record_t record);
-    void remove_index_entry_with_offsets(const std::unordered_set<gaia_offset_t>& offsets, gaia_txn_id_t gc_txn_id);
+    void remove_index_entry_with_offset(const index_key_t& key, gaia_offset_t offset, gaia_txn_id_t gc_txn_id);
 
     // This method will mark all entries below a specified txn_id as committed.
     // This must only be called after all aborted/terminated index entries below the txn_id are garbage collected.

@@ -175,16 +175,21 @@ install(FILES ${GAIA_REPO}/production/gaia_log.conf DESTINATION ${CMAKE_INSTALL_
 # Place cmake functions
 install(FILES ${GAIA_REPO}/production/cmake/gaia.cmake DESTINATION cmake/)
 
+# Place Examples README and License
+install(FILES ${GAIA_REPO}/production/examples/LICENSE.txt DESTINATION examples)
+install(FILES ${GAIA_REPO}/production/examples/README.md DESTINATION examples)
+
 # Place hello example.
 install(FILES ${GAIA_REPO}/production/examples/hello/README.md DESTINATION examples/hello)
 install(FILES ${GAIA_REPO}/production/examples/hello/hello.ddl DESTINATION examples/hello)
 install(FILES ${GAIA_REPO}/production/examples/hello/hello.ruleset DESTINATION examples/hello)
 install(FILES ${GAIA_REPO}/production/examples/hello/hello.cpp DESTINATION examples/hello)
-install(FILES ${GAIA_REPO}/production/examples/hello/setup.sql DESTINATION examples/hello)
-install(PROGRAMS ${GAIA_REPO}/production/examples/hello/setup.sh DESTINATION examples/hello)
 install(PROGRAMS ${GAIA_REPO}/production/examples/hello/build.sh DESTINATION examples/hello)
 install(PROGRAMS ${GAIA_REPO}/production/examples/hello/run.sh DESTINATION examples/hello)
 install(FILES ${GAIA_REPO}/production/examples/hello/CMakeLists.txt DESTINATION examples/hello)
+# Disabling FDW related files until we officially support it.
+#install(FILES ${GAIA_REPO}/production/examples/hello/setup.sql DESTINATION examples/hello)
+#install(PROGRAMS ${GAIA_REPO}/production/examples/hello/setup.sh DESTINATION examples/hello)
 
 # Place incubator example.
 install(FILES ${GAIA_REPO}/production/examples/incubator/incubator.ddl DESTINATION examples/incubator)

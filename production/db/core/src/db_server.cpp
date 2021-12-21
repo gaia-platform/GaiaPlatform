@@ -751,7 +751,7 @@ void server_t::init_indexes()
 
         for (const auto& index : catalog_core_t::list_indexes(type_record_id))
         {
-            index::index_builder_t::populate_index(index.id(), obj->type, locator);
+            index::index_builder_t::populate_index(index.id(), locator);
         }
     }
 }
