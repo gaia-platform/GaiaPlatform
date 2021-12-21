@@ -312,11 +312,20 @@ function(add_gaia_sdk_gtest)
 
   # Unlike clang, gaiat isn't smart enough to know where system include dirs are
   # for intrinsics and stdlib headers, so we need to define them explicitly.
-  # Since our internal builds target only Ubuntu 20.04, we assume that the
-  # default version (9) of libstdc++ is installed.
-  set(CLANG_INCLUDE_DIR "/usr/include/clang/13/include/")
-  set(LIBCXX_INCLUDE_DIR "/usr/lib/llvm-13/include/c++/v1/")
-  set(LIBSTDCXX_INCLUDE_DIR "/usr/include/c++/9/")
+  set(GAIAT_INCLUDE_PATH "")
+
+  # We use libc++ in debug and its header must be manually included.
+  # Note: the order of inclusion is relevant and libc++ headers must be
+  # defined first when libc++ is used.
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(LIBCXX_INCLUDE_DIR "/usr/lib/llvm-13/include/c++/v1/")
+    string(APPEND GAIAT_INCLUDE_PATH "-I;${LIBCXX_INCLUDE_DIR};")
+  endif()
+
+  foreach(INCLUDE_PATH ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
+    # Have to use ; instead of space otherwise custom_command will try to escape it
+    string(APPEND GAIAT_INCLUDE_PATH "-I;${INCLUDE_PATH};")
+  endforeach()
 
   add_custom_command(
     COMMENT "Compiling ${RULESET_FILE}..."
@@ -329,9 +338,8 @@ function(add_gaia_sdk_gtest)
       -I ${FLATBUFFERS_INC}
       -I ${GAIA_SPDLOG_INC}
       -I ${DAC_INCLUDE}
+      -I ${GAIAT_INCLUDE_PATH}
       -stdlib=$<IF:$<CONFIG:Debug>,libc++,libstdc++>
-      -I $<IF:$<CONFIG:Debug>,${LIBCXX_INCLUDE_DIR},${LIBSTDCXX_INCLUDE_DIR}>
-      -I ${CLANG_INCLUDE_DIR} 
       -std=c++${CMAKE_CXX_STANDARD}
     COMMAND pkill -f -KILL gaia_db_server &
 
