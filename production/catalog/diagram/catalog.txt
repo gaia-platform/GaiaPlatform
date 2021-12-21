@@ -30,6 +30,7 @@ object gaia_relationship {
   deprecated : bool
   first_child_offset : uint16
   next_child_offset : uint16
+  prev_child_offset : uint16
   parent_offset : uint16
   parent_field_positions : uint16[]
   child_field_positions : uint16[]
