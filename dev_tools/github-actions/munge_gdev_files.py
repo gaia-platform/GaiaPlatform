@@ -62,7 +62,14 @@ __valid_section_names = [
 ]
 __available_sections = []
 
-__available_options = ["GaiaRelease", "Debug", "GaiaLLVMTests", "ubuntu:20.04", "CI_GitHub", "Lint"]
+__available_options = [
+    "GaiaRelease",
+    "Debug",
+    "GaiaLLVMTests",
+    "ubuntu:20.04",
+    "CI_GitHub",
+    "Lint",
+]
 
 # Regular expressions that we support within {} constructs.
 __SOURCE_DIR_REGEX = r"source_dir\(\'([^']+)\'\)"
