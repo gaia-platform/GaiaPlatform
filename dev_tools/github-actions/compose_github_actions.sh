@@ -166,7 +166,7 @@ if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Creating the Debug SDK job for the Workflow file."
 fi
 if ! ./build_job_section.py \
-    --job-name "Debug SDK" \
+    --job-name "Debug_SDK" \
     --requires "Core" \
     --directory ../../production \
     --option Debug --option ubuntu:20.04 --option CI_GitHub > "$TEMP_FILE" ; then
@@ -179,7 +179,7 @@ if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Creating the LLVM Tests job for the Workflow file."
 fi
 if ! ./build_job_section.py \
-    --job-name "LLVM Tests" \
+    --job-name "LLVM_Tests" \
     --requires "Core" \
     --directory ../../production \
     --option GaiaLLVMTests --option ubuntu:20.04 --option CI_GitHub > "$TEMP_FILE" ; then

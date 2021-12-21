@@ -614,7 +614,7 @@ jobs:
           path: |
             /build/production/Testing/Temporary/LastTest.log
 
-  Debug SDK:
+  Debug_SDK:
     runs-on: ubuntu-20.04
     needs: Core
     env:
@@ -855,7 +855,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: Debug SDK CMake Logs
+          name: Debug_SDK CMake Logs
           path: |
             /build/production/CMakeFiles/CMakeOutput.log
             /build/production/CMakeFiles/CMakeError.log
@@ -864,7 +864,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: Debug SDK Make Logs
+          name: Debug_SDK Make Logs
           path: |
             /build/production/make-out.log
             /build/production/make-err.log
@@ -873,11 +873,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: Debug SDK CTest Logs
+          name: Debug_SDK CTest Logs
           path: |
             /build/production/Testing/Temporary/LastTest.log
 
-  LLVM Tests:
+  LLVM_Tests:
     runs-on: ubuntu-20.04
     needs: Core
     env:
@@ -1123,7 +1123,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: LLVM Tests CMake Logs
+          name: LLVM_Tests CMake Logs
           path: |
             /build/production/CMakeFiles/CMakeOutput.log
             /build/production/CMakeFiles/CMakeError.log
@@ -1132,7 +1132,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: LLVM Tests Make Logs
+          name: LLVM_Tests Make Logs
           path: |
             /build/production/make-out.log
             /build/production/make-err.log
@@ -1141,7 +1141,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: LLVM Tests CTest Logs
+          name: LLVM_Tests CTest Logs
           path: |
             /build/production/Testing/Temporary/LastTest.log
 
