@@ -66,59 +66,6 @@ private:
     size_t m_count{0};
 };
 
-void print_payload(std::ostream& o, size_t size, const char* payload)
-{
-    if (size)
-    {
-        o << " Payload: ";
-    }
-
-    for (size_t i = 0; i < size; i++)
-    {
-        if ('\\' == payload[i])
-        {
-            o << "\\\\";
-        }
-        else if (isprint(payload[i]))
-        {
-            o << payload[i];
-        }
-        else
-        {
-            o << "\\x" << std::setw(2) << std::setfill('0') << std::hex << short(payload[i]) << std::dec;
-        }
-    }
-}
-
-void print_node(const gaia_ptr_t& node, bool indent = false)
-{
-    if (!node)
-    {
-        return;
-    }
-
-    std::cerr << std::endl;
-
-    if (indent)
-    {
-        std::cerr << "  ";
-    }
-
-    std::cerr
-        << "Node id:"
-        << node.id() << ", type:"
-        << node.type();
-
-    print_payload(std::cerr, node.data_size(), node.data());
-
-    if (indent)
-    {
-        return;
-    }
-
-    std::cerr << std::endl;
-}
-
 /**
  * Google test fixture object.  This class is used by each
  * test case below.  SetUp() is called before each test is run
@@ -131,7 +78,6 @@ public:
     static constexpr char c_odd_value[] = "pong";
 
     // Initialized to false state.
-    // static inline std::atomic_flag s_should_exit{};
     static inline std::atomic<bool> s_should_exit{};
     static_assert(std::atomic<bool>::is_always_lock_free);
 
@@ -210,6 +156,7 @@ public:
             // Pick the alternating value to update.
             size_t new_size = (local_txn_count & 1) ? sizeof(c_odd_value) : sizeof(c_even_value);
             const char* new_value = (local_txn_count & 1) ? c_odd_value : c_even_value;
+
             // Commit the update.
             begin_transaction();
             {
@@ -245,8 +192,6 @@ TEST_F(db_concurrent_client_test, test_concurrent_update_throughput)
         std::vector<std::thread> worker_threads{};
         for (size_t worker_id = 0; worker_id < num_workers; ++worker_id)
         {
-            // worker_threads.emplace_back(&db_concurrent_client_test::worker, worker_id, m_object_ids[worker_id]);
-            // std::thread t(&db_concurrent_client_test::worker, worker_id, m_object_ids[worker_id]);
             worker_threads.emplace_back(std::thread([=] { worker(m_object_ids[worker_id]); }));
         }
 
