@@ -18,11 +18,9 @@
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/timer.hpp"
-#include "gaia_internal/db/db_test_base.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 
 #include "db_helpers.hpp"
-#include "type_id_mapping.hpp"
 
 using namespace gaia::db;
 using namespace gaia::common;
@@ -71,7 +69,7 @@ private:
  * test case below.  SetUp() is called before each test is run
  * and TearDown() is called after each test case is done.
  */
-class db_concurrent_client_test : public db_test_base_t
+class db_concurrent_client_test : public ::testing::Test
 {
 public:
     static constexpr char c_even_value[] = "ping";
@@ -122,22 +120,27 @@ public:
 
     void init_data(size_t num_workers)
     {
-        m_object_ids.clear();
-
-        // Create a new DB type.
-        m_object_type = allocate_type();
-
-        // Create a new ID for each DB object we create.
-        for (size_t worker_id = 0; worker_id < num_workers; ++worker_id)
+        begin_session();
         {
-            m_object_ids.push_back(allocate_id().value());
+            m_object_ids.clear();
+
+            // Create a new DB type.
+            m_object_type = allocate_type();
+
+            // Create a new ID for each DB object we create.
+            for (size_t worker_id = 0; worker_id < num_workers; ++worker_id)
+            {
+                m_object_ids.push_back(allocate_id().value());
+            }
         }
+        end_session();
     }
 
     void worker(gaia_id_t::value_type object_id)
     {
         begin_session();
         const auto session_cleanup = scope_guard::make_scope_guard([]() { end_session(); });
+
         // Initialize this worker's local object reference.
         begin_transaction();
         auto obj = gaia_ptr_t::create(
