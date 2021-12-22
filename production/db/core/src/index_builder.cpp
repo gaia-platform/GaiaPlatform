@@ -383,6 +383,7 @@ void index_builder_t::update_indexes_from_txn_log(
         }
     }
 
+    gaia_operation_t last_index_operation = gaia_operation_t::not_set;
     for (size_t i = 0; i < records.record_count; ++i)
     {
         auto& log_record = records.log_records[i];
@@ -408,12 +409,14 @@ void index_builder_t::update_indexes_from_txn_log(
             {
                 index::index_builder_t::drop_index(index_view);
             }
-            // We only create the empty index after the update operation because it is finally linked to the parent.
-            else if (log_record.operation == gaia_operation_t::update)
+            // We only create the empty index after the post-create update operation because it is finally linked to the parent.
+            else if (log_record.operation == gaia_operation_t::update && last_index_operation == gaia_operation_t::create)
             {
                 index::index_builder_t::create_empty_index(index_view, skip_catalog_integrity_check);
             }
 
+            // Keep track of the last index operation in this txn.
+            last_index_operation = log_record.operation;
             continue;
         }
 
