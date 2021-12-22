@@ -377,18 +377,20 @@ gaia_ptr_t gaia_ptr_t::create(gaia_type_t type, size_t data_size, const void* da
 {
     gaia_id_t id = gaia_ptr_t::generate_id();
 
-    const type_metadata_t& metadata = type_registry_t::instance().get(type);
-    reference_offset_t num_references = metadata.num_references();
+    // const type_metadata_t& metadata = type_registry_t::instance().get(type);
+    // reference_offset_t num_references = metadata.num_references();
 
-    return create(id, type, num_references, data_size, data);
+    // return create(id, type, num_references, data_size, data);
+    return create(id, type, 0, data_size, data);
 }
 
 gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, size_t data_size, const void* data)
 {
-    const type_metadata_t& metadata = type_registry_t::instance().get(type);
-    reference_offset_t num_references = metadata.num_references();
+    // const type_metadata_t& metadata = type_registry_t::instance().get(type);
+    // reference_offset_t num_references = metadata.num_references();
 
-    return create(id, type, num_references, data_size, data);
+    // return create(id, type, num_references, data_size, data);
+    return create(id, type, 0, data_size, data);
 }
 
 gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t num_references, size_t data_size, const void* data)
@@ -396,17 +398,17 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t
     gaia_ptr_t obj = create_no_txn(id, type, num_references, data_size, data);
     db_object_t* obj_ptr = obj.to_ptr();
 
-    auto_connect(
-        id,
-        type,
-        // NOLINTNEXTLINE: cppcoreguidelines-pro-type-const-cast
-        const_cast<gaia_id_t*>(obj_ptr->references()),
-        reinterpret_cast<const uint8_t*>(obj_ptr->data()));
+    // auto_connect(
+    //     id,
+    //     type,
+    //     // NOLINTNEXTLINE: cppcoreguidelines-pro-type-const-cast
+    //     const_cast<gaia_id_t*>(obj_ptr->references()),
+    //     reinterpret_cast<const uint8_t*>(obj_ptr->data()));
 
     WRITE_PROTECT(obj.to_offset());
     client_t::txn_log(obj.m_locator, c_invalid_gaia_offset, obj.to_offset(), gaia_operation_t::create);
 
-    obj.create_insert_trigger(type, id);
+    // obj.create_insert_trigger(type, id);
     return obj;
 }
 
@@ -889,26 +891,26 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
     new_this->num_references = old_this->num_references;
     memcpy(new_this->payload + references_size, data, data_size);
 
-    auto new_data = reinterpret_cast<const uint8_t*>(data);
-    auto old_data = reinterpret_cast<const uint8_t*>(old_this->payload);
-    const uint8_t* old_data_payload = old_data + references_size;
-    field_position_list_t changed_fields = compute_payload_diff(new_this->type, old_data_payload, new_data);
+    // auto new_data = reinterpret_cast<const uint8_t*>(data);
+    // auto old_data = reinterpret_cast<const uint8_t*>(old_this->payload);
+    // const uint8_t* old_data_payload = old_data + references_size;
+    // field_position_list_t changed_fields = compute_payload_diff(new_this->type, old_data_payload, new_data);
 
-    auto_connect(
-        id(),
-        type(),
-        type_id_mapping_t::instance().get_record_id(type()),
-        references(),
-        new_data,
-        changed_fields);
+    // auto_connect(
+    //     id(),
+    //     type(),
+    //     type_id_mapping_t::instance().get_record_id(type()),
+    //     references(),
+    //     new_data,
+    //     changed_fields);
 
     WRITE_PROTECT(to_offset());
     client_t::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
 
-    if (client_t::is_valid_event(new_this->type))
-    {
-        client_t::s_events.emplace_back(event_type_t::row_update, new_this->type, new_this->id, changed_fields, get_current_txn_id());
-    }
+    // if (client_t::is_valid_event(new_this->type))
+    // {
+    //     client_t::s_events.emplace_back(event_type_t::row_update, new_this->type, new_this->id, changed_fields, get_current_txn_id());
+    // }
 
     return *this;
 }
