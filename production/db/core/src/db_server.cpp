@@ -431,6 +431,7 @@ void server_t::handle_request_stream(
     {
     case request_data_t::table_scan:
     {
+        ASSERT_UNREACHABLE("table_scan");
         auto type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
 
         start_stream_producer(server_socket, get_id_generator_for_type(type));
@@ -439,6 +440,7 @@ void server_t::handle_request_stream(
     }
     case request_data_t::index_scan:
     {
+        ASSERT_UNREACHABLE("index_scan");
         auto request_data = request->data_as_index_scan();
         auto index_id = static_cast<gaia_id_t>(request_data->index_id());
         auto txn_id = static_cast<gaia_txn_id_t>(request_data->txn_id());
@@ -648,7 +650,7 @@ void server_t::init_shared_memory()
     recover_db();
 
     // Initialize indexes.
-    init_indexes();
+    // init_indexes();
 
     // Done with local snapshot.
     s_local_snapshot_locators.close();
@@ -2003,7 +2005,7 @@ void server_t::gc_txn_log_from_offset(log_offset_t log_offset, bool is_committed
 
     // Remove index entries that might be referencing obsolete versions before
     // actually deallocating them.
-    index::index_builder_t::gc_indexes_from_txn_log(txn_log, deallocate_new_offsets);
+    // index::index_builder_t::gc_indexes_from_txn_log(txn_log, deallocate_new_offsets);
     deallocate_txn_log(txn_log, deallocate_new_offsets);
 }
 
@@ -2499,7 +2501,7 @@ void server_t::truncate_txn_table()
         // Mark any index entries as committed before the metadata is truncated. At this point, all
         // aborted/terminated index entries before the pre-truncate watermark should have been
         // garbage collected.
-        index::index_builder_t::mark_index_entries_committed(new_pre_truncate_watermark);
+        // index::index_builder_t::mark_index_entries_committed(new_pre_truncate_watermark);
 
         // We advanced the pre-truncate watermark, so actually truncate the txn
         // table by decommitting its unused physical pages. Because this
@@ -2631,7 +2633,7 @@ void server_t::sort_log()
 bool server_t::txn_commit()
 {
     // Perform pre-commit work.
-    perform_pre_commit_work_for_txn();
+    // perform_pre_commit_work_for_txn();
 
     // Before registering the log, sort by locator for fast conflict detection.
     sort_log();
