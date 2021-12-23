@@ -704,7 +704,7 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
         {
             continue_label = continue_label_iterator->second;
         }
-        for (auto data_iterator = explicit_path_data_iterator.second.rbegin(); data_iterator != explicit_path_data_iterator.second.rend(); data_iterator++)
+        for (auto data_iterator = explicit_path_data_iterator.second.rbegin(); data_iterator != explicit_path_data_iterator.second.rend(); ++data_iterator)
         {
             StringRef anchor_table_name = get_table_name(
                 get_table_from_expression(anchor_table), data_iterator->tag_table_map);
@@ -810,11 +810,11 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
             //...............Navigation code for x
             // l1_break:
 
-            if (!break_label.empty() && &(*data_iterator) == &explicit_path_data_iterator.second.back())
+            if (!break_label.empty() && data_iterator + 1 == explicit_path_data_iterator.second.rend())
             {
                 navigation_code.postfix += (Twine("\n") + break_label + ":;\n").str();
             }
-            if (!continue_label.empty() && &(*data_iterator) == &explicit_path_data_iterator.second.back())
+            if (!continue_label.empty() && data_iterator + 1 == explicit_path_data_iterator.second.rend())
             {
                 navigation_code.postfix = (Twine("\n") + continue_label + ":;\n" + navigation_code.postfix).str();
             }
