@@ -57,7 +57,7 @@ class GenAbcCfg(Dependency, ABC):
                     'enable_if_any': lambda *enables:
                         '' if set(enables) & cfg_enables
                         else f'# enable by setting any of "{set(enables)}": ',
-                    'enable_if_not_any': lambda *enables:
+                    'enable_if_none': lambda *enables:
                         '' if not (set(enables) & cfg_enables)
                         else f'# enable by not setting any of "{set(enables)}": ',
                     'enable_if_all': lambda *enables:
