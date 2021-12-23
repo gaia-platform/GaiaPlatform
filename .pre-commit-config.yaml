@@ -20,6 +20,7 @@ repos:
   rev: master
   hooks:
     - id: include-what-you-use
+      exclude: ^(data|scratch|third_party)/
 
 #     - id: oclint
 #     - id: uncrustify
