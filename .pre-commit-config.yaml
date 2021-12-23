@@ -16,14 +16,15 @@ repos:
     - id: forbid-tabs
       exclude: ^(data|scratch|third_party)/
 
-# - repo: https://github.com/pocc/pre-commit-hooks
-#   rev: master
-#   hooks:
+- repo: https://github.com/pocc/pre-commit-hooks
+  rev: master
+  hooks:
+    - id: include-what-you-use
+
 #     - id: oclint
 #     - id: uncrustify
 #     - id: cppcheck
 #     - id: cpplint
-#     - id: include-what-you-use
 
 - repo: https://github.com/jumanjihouse/pre-commit-hooks
   rev: master

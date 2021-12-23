@@ -1120,7 +1120,7 @@ jobs:
           cd /build/production
           sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DBUILD_GAIA_LLVM_TESTS=ON     -DBUILD_GAIA_RELEASE=ON     -G \"Unix Makefiles\" /source/production"
           sudo bash -c "    VERBOSE=1 make -j$(nproc) 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
-          sudo bash -c "LSAN_OPTIONS=detect_leaks=0     make -j$(nproc) check-all 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
+          sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1 make -j$(nproc) check-all 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
 
       - name: Unit Tests
         run: |
