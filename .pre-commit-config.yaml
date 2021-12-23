@@ -23,7 +23,9 @@ repos:
       exclude: ^(data|scratch|third_party)/
     - id: cpplint
       exclude: ^(data|scratch|third_party)/
-
+      args:
+        - --linelength=120
+        - --filter=-whitespace
 #     - id: oclint
 #     - id: uncrustify
 #     - id: cppcheck
