@@ -3182,6 +3182,7 @@ public:
             g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
             explicit_path_present = false;
             expression_source_range.setBegin(expression->getLParenLoc().getLocWithOffset(1));
+            variable_name = table_name;
         }
         else
         {
