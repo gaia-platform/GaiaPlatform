@@ -21,11 +21,12 @@ repos:
   hooks:
     - id: include-what-you-use
       exclude: ^(data|scratch|third_party)/
+    - id: cpplint
+      exclude: ^(data|scratch|third_party)/
 
 #     - id: oclint
 #     - id: uncrustify
 #     - id: cppcheck
-#     - id: cpplint
 
 - repo: https://github.com/jumanjihouse/pre-commit-hooks
   rev: master
