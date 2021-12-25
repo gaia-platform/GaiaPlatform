@@ -31,6 +31,8 @@ option(ENABLE_SDK_TESTS "Build and execute ruleset translation tests" ON)
 
 option(EXPORT_SYMBOLS "Export symbols by default from shared libraries" OFF)
 
+option(DISABLE_ASSERTS "Disable assertions" OFF)
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
 else()
@@ -89,6 +91,10 @@ add_library(gaia_build_options INTERFACE)
 target_compile_options(gaia_build_options INTERFACE -Wall -Wextra -ftime-trace)
 # Ensure Debug builds have the DEBUG macro defined.
 target_compile_definitions(gaia_build_options INTERFACE $<$<CONFIG:Debug>:DEBUG>)
+# Propagate the DISABLE_ASSERTS option to a macro definition.
+target_compile_definitions(gaia_build_options INTERFACE $<$<BOOL:${DISABLE_ASSERTS}>:DISABLE_ASSERTS>)
+# Disabling asserts will produce bogus unused variable warnings.
+target_compile_options(gaia_build_options INTERFACE $<$<BOOL:${DISABLE_ASSERTS}>:-Wno-unused-parameter -Wno-unused-lambda-capture -Wno-unused-variable -Wno-unused-but-set-variable>)
 
 # LLVM and CLANG specific options.
 if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
