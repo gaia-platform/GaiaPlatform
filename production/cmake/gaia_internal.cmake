@@ -28,7 +28,8 @@ endfunction()
 # gaia_build_options), so we need to set them directly on the target.
 #
 function(configure_gaia_target TARGET)
-  target_link_libraries(${TARGET} PUBLIC gaia_build_options)
+  # Keep this dependency PRIVATE to avoid leaking Gaia build options into all dependent targets.
+  target_link_libraries(${TARGET} PRIVATE gaia_build_options)
   if(NOT EXPORT_SYMBOLS)
     # See https://cmake.org/cmake/help/latest/policy/CMP0063.html.
     cmake_policy(SET CMP0063 NEW)
