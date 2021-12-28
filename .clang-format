@@ -3,7 +3,29 @@ UseCRLF: false
 UseTab: Never
 IndentWidth: 4
 ColumnLimit: 0
-BreakBeforeBraces: Allman
+# The following configuration encodes the BreakBeforeBraces Allman style
+# but for BeforeLambdaBody to allows one-liner lambdas.
+# See discussion here about customizing BreakBeforeBraces: https://reviews.llvm.org/D94906#2505095
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel:  true
+  AfterClass:      true
+  AfterControlStatement: Always
+  AfterEnum:       true
+  AfterFunction:   true
+  AfterNamespace:  true
+  AfterObjCDeclaration: true
+  AfterStruct:     true
+  AfterUnion:      true
+  AfterExternBlock: true
+  BeforeCatch:     true
+  BeforeElse:      true
+  BeforeLambdaBody: false
+  BeforeWhile:     false
+  IndentBraces:    false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
 
 # Force pointers to the type for C++.
 DerivePointerAlignment: false
