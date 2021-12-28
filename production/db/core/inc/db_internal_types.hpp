@@ -127,7 +127,6 @@ struct txn_log_t
         gaia_locator_t locator;
         gaia_offset_t old_offset;
         gaia_offset_t new_offset;
-        common::gaia_id_t deleted_id;
         gaia_operation_t operation;
 
         friend std::ostream& operator<<(std::ostream& os, const log_record_t& lr)
@@ -138,8 +137,6 @@ struct txn_log_t
                << lr.old_offset
                << "\tnew_offset: "
                << lr.new_offset
-               << "\tdeleted_id: "
-               << lr.deleted_id
                << "\toperation: "
                << lr.operation
                << std::endl;

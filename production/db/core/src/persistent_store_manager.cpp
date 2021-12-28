@@ -127,7 +127,11 @@ void persistent_store_manager::prepare_wal_for_write(gaia::db::txn_log_t* log, c
         {
             // Encode key to be deleted.
             string_writer_t key;
-            key.write_uint64(lr->deleted_id);
+            ASSERT_INVARIANT(
+                lr->old_offset != c_invalid_gaia_offset,
+                "Invalid offset for deleted object!");
+            db_object_t* obj = offset_to_ptr(lr->old_offset);
+            key.write_uint64(obj->id);
             txn->Delete(key.to_slice());
             key_count++;
         }

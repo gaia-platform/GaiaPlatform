@@ -167,10 +167,7 @@ private:
         gaia_locator_t locator,
         gaia_offset_t old_offset,
         gaia_offset_t new_offset,
-        gaia_operation_t operation,
-        // `deleted_id` is required to keep track of deleted keys which will be propagated to the persistent layer.
-        // Memory for other operations will be unused. An alternative would be to keep a separate log for deleted keys only.
-        common::gaia_id_t deleted_id = common::c_invalid_gaia_id);
+        gaia_operation_t operation);
 };
 
 #include "db_client.inc"

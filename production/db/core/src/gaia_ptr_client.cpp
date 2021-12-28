@@ -47,7 +47,7 @@ namespace db
 void gaia_ptr_t::reset()
 {
     locators_t* locators = get_locators();
-    client_t::txn_log(m_locator, to_offset(), c_invalid_gaia_offset, gaia_operation_t::remove, to_ptr()->id);
+    client_t::txn_log(m_locator, to_offset(), c_invalid_gaia_offset, gaia_operation_t::remove);
 
     // TODO[GAIAPLAT-445]:  We don't expose delete events.
     // if (client_t::is_valid_event(to_ptr()->type))
