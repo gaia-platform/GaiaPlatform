@@ -70,8 +70,7 @@ void client_messenger_t::receive_server_reply(
     }
     else if (m_count_received_fds != expected_count_received_fds)
     {
-        ASSERT_INVARIANT(
-            m_count_received_fds == expected_count_received_fds,
+        ASSERT_UNREACHABLE(
             gaia_fmt::format(
                 "Expected {} fds, but received {} fds!",
                 expected_count_received_fds, m_count_received_fds)

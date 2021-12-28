@@ -19,7 +19,7 @@ retail_assertion_failure::retail_assertion_failure(const std::string& message)
 {
 }
 
-void retail_assert_do_not_call_directly(const char* message, const char* file, size_t line, const char* function)
+void throw_retail_assertion_failure(const char* message, const char* file, size_t line, const char* function)
 {
     throw retail_assertion_failure(
         gaia_fmt::format("Assertion failed in {}::{}(): line {}: {}", file, function, line, message));

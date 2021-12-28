@@ -43,10 +43,10 @@ namespace common
 #ifdef DISABLE_ASSERT_PRECONDITION
 #define ASSERT_PRECONDITION(c, m)
 #else
-#define ASSERT_PRECONDITION(c, m)                                                          \
-    if (!static_cast<bool>(c))                                                             \
-    {                                                                                      \
-        gaia::common::retail_assert_do_not_call_directly(m, __FILE__, __LINE__, __func__); \
+#define ASSERT_PRECONDITION(c, m)                                                      \
+    if (!static_cast<bool>(c))                                                         \
+    {                                                                                  \
+        gaia::common::throw_retail_assertion_failure(m, __FILE__, __LINE__, __func__); \
     }
 #endif
 
@@ -58,10 +58,10 @@ namespace common
 #ifdef DISABLE_ASSERT_INVARIANT
 #define ASSERT_INVARIANT(c, m)
 #else
-#define ASSERT_INVARIANT(c, m)                                                             \
-    if (!static_cast<bool>(c))                                                             \
-    {                                                                                      \
-        gaia::common::retail_assert_do_not_call_directly(m, __FILE__, __LINE__, __func__); \
+#define ASSERT_INVARIANT(c, m)                                                         \
+    if (!static_cast<bool>(c))                                                         \
+    {                                                                                  \
+        gaia::common::throw_retail_assertion_failure(m, __FILE__, __LINE__, __func__); \
     }
 #endif
 
@@ -72,10 +72,10 @@ namespace common
 #ifdef DISABLE_ASSERT_POSTCONDITION
 #define ASSERT_POSTCONDITION(c, m)
 #else
-#define ASSERT_POSTCONDITION(c, m)                                                         \
-    if (!static_cast<bool>(c))                                                             \
-    {                                                                                      \
-        gaia::common::retail_assert_do_not_call_directly(m, __FILE__, __LINE__, __func__); \
+#define ASSERT_POSTCONDITION(c, m)                                                     \
+    if (!static_cast<bool>(c))                                                         \
+    {                                                                                  \
+        gaia::common::throw_retail_assertion_failure(m, __FILE__, __LINE__, __func__); \
     }
 #endif
 
@@ -83,7 +83,7 @@ namespace common
 //
 // Because ASSERT_UNREACHABLE results in an unconditional failure,
 // there should never be a need to disable such an assert - even for debugging purposes.
-#define ASSERT_UNREACHABLE(m) gaia::common::retail_assert_do_not_call_directly(m, __FILE__, __LINE__, __func__)
+#define ASSERT_UNREACHABLE(m) gaia::common::throw_retail_assertion_failure(m, __FILE__, __LINE__, __func__)
 
 /**
  * Thrown when a retail assert check has failed.
@@ -101,10 +101,10 @@ public:
  * This function should only be called through the various assert macros,
  * so that it gets passed the correct information about the point of call.
  *
- * By accepting a 'const char *' the user is reminded that string copy
- * should be avoided.
+ * The message parameter is typed const char * to encourage passing string
+ * literals rather than dynamically allocated strings.
  */
-void retail_assert_do_not_call_directly(
+void throw_retail_assertion_failure(
     const char* message, const char* file, size_t line, const char* function);
 
 /*@}*/
