@@ -44,7 +44,7 @@ namespace common
 #define ASSERT_PRECONDITION(c, m)
 #else
 #define ASSERT_PRECONDITION(c, m)                                                      \
-    if (!static_cast<bool>(c))                                                         \
+    if (__builtin_expect(!static_cast<bool>(c), 0))                                    \
     {                                                                                  \
         gaia::common::throw_retail_assertion_failure(m, __FILE__, __LINE__, __func__); \
     }
@@ -59,7 +59,7 @@ namespace common
 #define ASSERT_INVARIANT(c, m)
 #else
 #define ASSERT_INVARIANT(c, m)                                                         \
-    if (!static_cast<bool>(c))                                                         \
+    if (__builtin_expect(!static_cast<bool>(c), 0))                                    \
     {                                                                                  \
         gaia::common::throw_retail_assertion_failure(m, __FILE__, __LINE__, __func__); \
     }
@@ -73,7 +73,7 @@ namespace common
 #define ASSERT_POSTCONDITION(c, m)
 #else
 #define ASSERT_POSTCONDITION(c, m)                                                     \
-    if (!static_cast<bool>(c))                                                         \
+    if (__builtin_expect(!static_cast<bool>(c), 0))                                    \
     {                                                                                  \
         gaia::common::throw_retail_assertion_failure(m, __FILE__, __LINE__, __func__); \
     }
