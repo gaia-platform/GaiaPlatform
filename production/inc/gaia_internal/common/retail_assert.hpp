@@ -5,9 +5,6 @@
 
 #pragma once
 
-#include <sstream>
-#include <string>
-
 #include "gaia/exception.hpp"
 
 namespace gaia
@@ -31,6 +28,10 @@ namespace common
 //
 // A way to disable these ASSERTs (via corresponding defines) is provided mainly as a mechanism
 // for determining if they contribute any negative execution impact.
+//
+// The ASSERT message is wrapped within an if that is evaluated only if the condition is false.
+// For this reason is optimal to put string concatenation within the ASSERT, eg.
+// ASSERT_PRECONDITION(gaia_fmt::format("Message {}", 123).c_str());
 
 // ASSERT_PRECONDITION is meant for validating conditions that should hold when a function is called.
 //
@@ -42,7 +43,11 @@ namespace common
 #ifdef DISABLE_ASSERT_PRECONDITION
 #define ASSERT_PRECONDITION(c, m)
 #else
-#define ASSERT_PRECONDITION(c, m) gaia::common::retail_assert_do_not_call_directly(static_cast<bool>(c), m, __FILE__, __LINE__, __func__)
+#define ASSERT_PRECONDITION(c, m)                                                          \
+    if (!static_cast<bool>(c))                                                             \
+    {                                                                                      \
+        gaia::common::retail_assert_do_not_call_directly(m, __FILE__, __LINE__, __func__); \
+    }
 #endif
 
 // ASSERT_INVARIANT is meant for validating conditions that should hold internally,
@@ -53,7 +58,11 @@ namespace common
 #ifdef DISABLE_ASSERT_INVARIANT
 #define ASSERT_INVARIANT(c, m)
 #else
-#define ASSERT_INVARIANT(c, m) gaia::common::retail_assert_do_not_call_directly(static_cast<bool>(c), m, __FILE__, __LINE__, __func__)
+#define ASSERT_INVARIANT(c, m)                                                             \
+    if (!static_cast<bool>(c))                                                             \
+    {                                                                                      \
+        gaia::common::retail_assert_do_not_call_directly(m, __FILE__, __LINE__, __func__); \
+    }
 #endif
 
 // ASSERT_POSTCONDITION is meant for validating conditions that should hold after a function
@@ -63,14 +72,18 @@ namespace common
 #ifdef DISABLE_ASSERT_POSTCONDITION
 #define ASSERT_POSTCONDITION(c, m)
 #else
-#define ASSERT_POSTCONDITION(c, m) gaia::common::retail_assert_do_not_call_directly(static_cast<bool>(c), m, __FILE__, __LINE__, __func__)
+#define ASSERT_POSTCONDITION(c, m)                                                         \
+    if (!static_cast<bool>(c))                                                             \
+    {                                                                                      \
+        gaia::common::retail_assert_do_not_call_directly(m, __FILE__, __LINE__, __func__); \
+    }
 #endif
 
 // ASSERT_UNREACHABLE is meant for validating that a section of code can never be reached.
 //
 // Because ASSERT_UNREACHABLE results in an unconditional failure,
 // there should never be a need to disable such an assert - even for debugging purposes.
-#define ASSERT_UNREACHABLE(m) gaia::common::retail_assert_do_not_call_directly(false, m, __FILE__, __LINE__, __func__)
+#define ASSERT_UNREACHABLE(m) gaia::common::retail_assert_do_not_call_directly(m, __FILE__, __LINE__, __func__)
 
 /**
  * Thrown when a retail assert check has failed.
@@ -78,10 +91,7 @@ namespace common
 class retail_assertion_failure : public gaia_exception
 {
 public:
-    explicit retail_assertion_failure(const std::string& message)
-        : gaia_exception(message)
-    {
-    }
+    explicit retail_assertion_failure(const std::string& message);
 };
 
 /**
@@ -90,17 +100,12 @@ public:
  *
  * This function should only be called through the various assert macros,
  * so that it gets passed the correct information about the point of call.
+ *
+ * By accepting a 'const char *' the user is reminded that string copy
+ * should be avoided.
  */
-inline void retail_assert_do_not_call_directly(
-    bool condition, const std::string& message, const char* file, size_t line, const char* function)
-{
-    if (!condition)
-    {
-        std::stringstream message_stream;
-        message_stream << "Assertion failed in " << file << "::" << function << "(): line " << line << ": " << message;
-        throw retail_assertion_failure(message_stream.str());
-    }
-}
+void retail_assert_do_not_call_directly(
+    const char* message, const char* file, size_t line, const char* function);
 
 /*@}*/
 } // namespace common

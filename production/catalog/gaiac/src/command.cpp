@@ -14,6 +14,8 @@
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/exceptions.hpp"
 
+#include <gaia_spdlog/fmt/fmt.h>
+
 #include "fbs_generator.hpp"
 
 using namespace std;
@@ -88,8 +90,10 @@ void list_tables(const regex& re)
 {
     list_catalog_obj<gaia_table_t>(
         {c_database_title, c_name_title, c_id_title, c_type_title},
-        [&re](gaia_table_t& t) -> bool { return regex_match(t.name(), re); },
-        [](gaia_table_t& t) -> row_t {
+        [&re](gaia_table_t& t) -> bool
+        { return regex_match(t.name(), re); },
+        [](gaia_table_t& t) -> row_t
+        {
             return {t.database().name(), t.name(), to_string(t.gaia_id()), to_string(t.type())};
         });
 }
@@ -97,8 +101,10 @@ void list_tables(const regex& re)
 void list_databases(const regex& re)
 {
     list_catalog_obj<gaia_database_t>(
-        {c_name_title, c_id_title}, [&re](gaia_database_t& d) -> bool { return regex_match(d.name(), re); },
-        [](gaia_database_t& d) -> row_t {
+        {c_name_title, c_id_title}, [&re](gaia_database_t& d) -> bool
+        { return regex_match(d.name(), re); },
+        [](gaia_database_t& d) -> row_t
+        {
             return {d.name(), to_string(d.gaia_id())};
         });
 }
@@ -107,10 +113,12 @@ void list_fields(const regex& re)
 {
     list_catalog_obj<gaia_field_t>(
         {c_table_title, c_name_title, c_type_title, c_repeated_count_title, c_position_title, c_id_title},
-        [&re](gaia_field_t& f) -> bool {
+        [&re](gaia_field_t& f) -> bool
+        {
             return regex_match(f.name(), re);
         },
-        [](gaia_field_t& f) -> row_t {
+        [](gaia_field_t& f) -> row_t
+        {
             return {
                 f.table().name(),
                 f.name(),
@@ -125,10 +133,12 @@ void list_relationships(const regex& re)
 {
     list_catalog_obj<gaia_relationship_t>(
         {c_name_title, c_parent_title, c_child_title, c_id_title},
-        [&re](gaia_relationship_t& r) -> bool {
+        [&re](gaia_relationship_t& r) -> bool
+        {
             return regex_match(r.name(), re);
         },
-        [](gaia_relationship_t& r) -> row_t {
+        [](gaia_relationship_t& r) -> row_t
+        {
             stringstream parent, child;
             parent << r.parent().name() << " (" << r.to_parent_link_name() << ")";
             child << r.child().name() << " (" << r.to_child_link_name() << ")";
@@ -453,7 +463,7 @@ bool handle_meta_command(const string& cmd)
     ASSERT_PRECONDITION(!cmd.empty(), "Meta command should not be empty.");
     ASSERT_PRECONDITION(
         cmd[c_cmd_prefix_index] == c_command_prefix,
-        "Meta command should start with a '" + string(1, c_command_prefix) + "'.");
+        gaia_fmt::format("Meta command should start with a '{}'.", c_command_prefix).c_str());
 
     if (cmd.length() < c_cmd_minimum_length)
     {

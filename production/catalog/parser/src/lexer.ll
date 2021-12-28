@@ -15,7 +15,11 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <sstream>
+#include <gaia_spdlog/fmt/fmt.h>
 #include "gaia_parser.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/scope_guard.hpp"
 #include "yy_parser.hpp"
 %}
 
@@ -124,6 +128,52 @@ make_NUMBER(const std::string &s, const yy::parser::location_type& loc)
         throw gaia::catalog::ddl::parsing_error(loc, "The integer " + s + " is out of range.");
     }
     return yy::parser::make_NUMBER ((int) n, loc);
+}
+
+gaia::catalog::ddl::parsing_error::parsing_error(const std::string& message)
+{
+    m_message = message;
+}
+
+gaia::catalog::ddl::parsing_error::parsing_error(const yy::parser::location_type& parser_location, const std::string& message)
+{
+    std::stringstream message_stream;
+    message_stream << "Parsing error at location " << parser_location << ": " << message;
+    m_message = message_stream.str();
+}
+
+void gaia::catalog::ddl::parser_t::parse(const std::string& filename)
+{
+    m_file = filename;
+    location.initialize(&m_file);
+    scan_begin();
+    const auto finish_scan = common::scope_guard::make_scope_guard([this]() { scan_end(); });
+
+    yy::parser parse(*this);
+    parse.set_debug_level(trace_parsing);
+    int parsing_result = parse();
+
+    // All parsing errors should be thrown as the 'parsing_error' exception.
+    // Any violation below means there are unhandled parsing errors.
+    ASSERT_POSTCONDITION(
+        parsing_result == EXIT_SUCCESS,
+        gaia_fmt::format("Failed to handle parsing errors in the DDL file '{}'.", filename).c_str());
+}
+
+void gaia::catalog::ddl::parser_t::parse_string(const std::string& str)
+{
+    scan_string_begin(str);
+    const auto finish_scan_string = common::scope_guard::make_scope_guard([this]() { scan_string_end(); });
+
+    yy::parser parse(*this);
+    parse.set_debug_level(trace_parsing);
+    int parsing_result = parse();
+
+    // All parsing errors should be thrown as the 'parsing_error' exception.
+    // Any violation below means there are unhandled parsing errors.
+    ASSERT_POSTCONDITION(
+        parsing_result == EXIT_SUCCESS,
+        gaia_fmt::format("Failed to handle parsing errors in the line: '{}'.", str).c_str());
 }
 
 void gaia::catalog::ddl::parser_t::scan_begin()

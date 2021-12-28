@@ -5,9 +5,9 @@
 
 #include "client_messenger.hpp"
 
-#include <sstream>
-
 #include "gaia/common.hpp"
+
+#include <gaia_spdlog/fmt/fmt.h>
 
 using namespace gaia::common;
 using namespace gaia::db::messages;
@@ -70,11 +70,12 @@ void client_messenger_t::receive_server_reply(
     }
     else if (m_count_received_fds != expected_count_received_fds)
     {
-        std::stringstream message_stream;
-        message_stream
-            << "Expected " << expected_count_received_fds
-            << " fds, but received " << m_count_received_fds << " fds!";
-        ASSERT_INVARIANT(m_count_received_fds == expected_count_received_fds, message_stream.str());
+        ASSERT_INVARIANT(
+            m_count_received_fds == expected_count_received_fds,
+            gaia_fmt::format(
+                "Expected {} fds, but received {} fds!",
+                expected_count_received_fds, m_count_received_fds)
+                .c_str());
     }
 
     for (size_t index_fd = 0; index_fd < m_count_received_fds; index_fd++)
@@ -82,9 +83,9 @@ void client_messenger_t::receive_server_reply(
         int current_fd = m_received_fds[index_fd];
         if (current_fd == -1)
         {
-            std::stringstream message_stream;
-            message_stream << "The fd received at index " << index_fd << " is invalid!";
-            ASSERT_INVARIANT(current_fd != -1, message_stream.str());
+            ASSERT_INVARIANT(
+                current_fd != -1,
+                gaia_fmt::format("The fd received at index {} is invalid!", index_fd).c_str());
         }
     }
 }

@@ -127,15 +127,15 @@ void server_t::handle_begin_txn(
     // REVIEW: we could make this a session thread-local to avoid dynamic
     // allocation per txn.
     std::vector<int> txn_log_fds_for_snapshot;
-    auto cleanup_txn_log_fds_for_snapshot = make_scope_guard([&]() {
+    auto cleanup_txn_log_fds_for_snapshot = make_scope_guard([&]()
+                                                             {
         // Close all the duplicated log fds in the buffer.
         for (int& fd : txn_log_fds_for_snapshot)
         {
             // Each log fd should still be valid.
             ASSERT_INVARIANT(is_fd_valid(fd), "Invalid fd!");
             close_fd(fd);
-        }
-    });
+        } });
     txn_begin(txn_log_fds_for_snapshot);
 
     // Send the reply message to the client, with the number of txn log fds to
@@ -307,7 +307,8 @@ void server_t::handle_decide_txn(
     // returned, but we don't close the log fd (even for an abort decision),
     // because GC needs the log in order to properly deallocate all allocations
     // made by this txn when they become obsolete.
-    auto cleanup = make_scope_guard([&]() { s_txn_id = c_invalid_gaia_txn_id; });
+    auto cleanup = make_scope_guard([&]()
+                                    { s_txn_id = c_invalid_gaia_txn_id; });
 
     FlatBufferBuilder builder;
     if (event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR)
@@ -397,7 +398,8 @@ std::pair<int, int> server_t::get_stream_socket_pair()
     auto [client_socket, server_socket] = socket_pair;
     // We need to use the initializer + mutable hack to capture structured bindings in a lambda.
     auto socket_cleanup = make_scope_guard(
-        [client_socket = client_socket, server_socket = server_socket]() mutable {
+        [client_socket = client_socket, server_socket = server_socket]() mutable
+        {
             close_fd(client_socket);
             close_fd(server_socket);
         });
@@ -428,8 +430,10 @@ void server_t::handle_request_stream(
     // The client socket should unconditionally be closed on exit because it's
     // duplicated when passed to the client and we no longer need it on the
     // server.
-    auto client_socket_cleanup = make_scope_guard([&]() { close_fd(client_socket); });
-    auto server_socket_cleanup = make_scope_guard([&]() { close_fd(server_socket); });
+    auto client_socket_cleanup = make_scope_guard([&]()
+                                                  { close_fd(client_socket); });
+    auto server_socket_cleanup = make_scope_guard([&]()
+                                                  { close_fd(server_socket); });
 
     auto request = static_cast<const client_request_t*>(event_data);
 
@@ -466,7 +470,8 @@ void server_t::handle_request_stream(
                 // Create local snapshot to query catalog for key serialization schema.
                 bool apply_logs = true;
                 create_local_snapshot(apply_logs);
-                auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
+                auto cleanup_local_snapshot = make_scope_guard([]()
+                                                               { s_local_snapshot_locators.close(); });
 
                 if (query_type == index_query_t::index_point_read_query_t)
                 {
@@ -605,7 +610,8 @@ void server_t::init_shared_memory()
     clear_shared_memory();
 
     // Clear all shared memory if an exception is thrown.
-    auto cleanup_memory = make_scope_guard([]() { clear_shared_memory(); });
+    auto cleanup_memory = make_scope_guard([]()
+                                           { clear_shared_memory(); });
 
     // Validate shared memory mapping definitions and assert that mappings are not made yet.
     data_mapping_t::validate(c_data_mappings, std::size(c_data_mappings));
@@ -711,7 +717,8 @@ void server_t::init_indexes()
         return;
     }
 
-    auto cleanup = make_scope_guard([]() { end_startup_txn(); });
+    auto cleanup = make_scope_guard([]()
+                                    { end_startup_txn(); });
 
     // Allocate new txn id for initializing indexes.
     begin_startup_txn();
@@ -762,7 +769,8 @@ void server_t::update_indexes_from_txn_log()
     bool replay_logs = true;
 
     create_local_snapshot(replay_logs);
-    auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
+    auto cleanup_local_snapshot = make_scope_guard([]()
+                                                   { s_local_snapshot_locators.close(); });
     index::index_builder_t::update_indexes_from_txn_log(*s_log.data(), s_server_conf.skip_catalog_integrity_checks());
 }
 
@@ -775,7 +783,8 @@ void server_t::recover_db()
         // in which case we need to recover from the original persistent image.
         if (!s_persistent_store)
         {
-            auto cleanup = make_scope_guard([]() { end_startup_txn(); });
+            auto cleanup = make_scope_guard([]()
+                                            { end_startup_txn(); });
             begin_startup_txn();
 
             s_persistent_store = std::make_unique<gaia::db::persistent_store_manager>(
@@ -815,7 +824,8 @@ void server_t::end_startup_txn()
 {
     // The main thread no longer needs to perform any operations requiring a
     // safe_ts index.
-    auto cleanup_safe_ts_index = make_scope_guard([&]() { release_safe_ts_index(); });
+    auto cleanup_safe_ts_index = make_scope_guard([&]()
+                                                  { release_safe_ts_index(); });
 
     // Update the log header with our begin timestamp and initialize it to empty.
     s_log.data()->begin_ts = s_txn_id;
@@ -825,7 +835,8 @@ void server_t::end_startup_txn()
     // The empty log will be freed by a regular GC task.
     int log_fd = s_log.unmap_truncate_seal_fd();
 
-    auto cleanup_fd = make_scope_guard([&]() { close_fd(log_fd); });
+    auto cleanup_fd = make_scope_guard([&]()
+                                       { close_fd(log_fd); });
 
     // Register this txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = txn_metadata_t::register_commit_ts(s_txn_id, log_fd);
@@ -865,15 +876,15 @@ void server_t::create_local_snapshot(bool apply_logs)
             "create_local_snapshot() must be called from within an active transaction!");
         std::vector<int> txn_log_fds;
         get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds);
-        auto cleanup_log_fds = make_scope_guard([&]() {
+        auto cleanup_log_fds = make_scope_guard([&]()
+                                                {
             // Close all the duplicated log fds in the buffer.
             for (auto& fd : txn_log_fds)
             {
                 // Each log fd should still be valid.
                 ASSERT_INVARIANT(is_fd_valid(fd), "Invalid fd!");
                 close_fd(fd);
-            }
-        });
+            } });
 
         // Open a private locator mmap for the current thread.
         s_local_snapshot_locators.open(s_shared_locators.fd(), manage_fd, is_shared);
@@ -942,7 +953,8 @@ void server_t::init_listening_socket(const std::string& socket_name)
     {
         throw_system_error("Socket creation failed!");
     }
-    auto socket_cleanup = make_scope_guard([&]() { close_fd(listening_socket); });
+    auto socket_cleanup = make_scope_guard([&]()
+                                           { close_fd(listening_socket); });
 
     // Initialize the socket address structure.
     sockaddr_un server_addr{};
@@ -952,7 +964,7 @@ void server_t::init_listening_socket(const std::string& socket_name)
     // in the server address structure after the prefix null byte.
     ASSERT_INVARIANT(
         socket_name.size() <= sizeof(server_addr.sun_path) - 1,
-        "Socket name '" + socket_name + "' is too long!");
+        gaia_fmt::format("Socket name '{}' is too long!", socket_name).c_str());
 
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
@@ -1074,15 +1086,15 @@ static void reap_exited_threads(std::vector<std::thread>& threads)
 void server_t::client_dispatch_handler(const std::string& socket_name)
 {
     // Register session cleanup handler first, so we can execute it last.
-    auto session_cleanup = make_scope_guard([]() {
+    auto session_cleanup = make_scope_guard([]()
+                                            {
         for (auto& thread : s_session_threads)
         {
             ASSERT_INVARIANT(thread.joinable(), c_message_thread_must_be_joinable);
             thread.join();
         }
         // All session threads have been joined, so they can be destroyed.
-        s_session_threads.clear();
-    });
+        s_session_threads.clear(); });
 
     // Start listening for incoming client connections.
     init_listening_socket(socket_name);
@@ -1090,7 +1102,8 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
     // so no new sessions can be established while we wait for all session
     // threads to exit (we assume they received the same server shutdown
     // notification that we did).
-    auto listener_cleanup = make_scope_guard([&]() { close_fd(s_listening_socket); });
+    auto listener_cleanup = make_scope_guard([&]()
+                                             { close_fd(s_listening_socket); });
 
     // Set up the epoll loop.
     int epoll_fd = ::epoll_create1(0);
@@ -1103,7 +1116,8 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
     // connections that arrive before the listening socket is closed will
     // receive ECONNRESET rather than ECONNREFUSED. This is perhaps unfortunate
     // but shouldn't really matter in practice.
-    auto epoll_cleanup = make_scope_guard([&]() { close_fd(epoll_fd); });
+    auto epoll_cleanup = make_scope_guard([&]()
+                                          { close_fd(epoll_fd); });
     int registered_fds[] = {s_listening_socket, s_server_shutdown_eventfd};
     for (int registered_fd : registered_fds)
     {
@@ -1202,7 +1216,8 @@ void server_t::session_handler(int session_socket)
     // Set up session socket.
     s_session_shutdown = false;
     s_session_socket = session_socket;
-    auto socket_cleanup = make_scope_guard([&]() {
+    auto socket_cleanup = make_scope_guard([&]()
+                                           {
         // We can rely on close_fd() to perform the equivalent of
         // shutdown(SHUT_RDWR), because we hold the only fd pointing to this
         // socket. That should allow the client to read EOF if they're in a
@@ -1210,8 +1225,7 @@ void server_t::session_handler(int session_socket)
         // socket after we've closed our end, they'll receive EPIPE.) We don't
         // want to try to read any pending data from the client, because we're
         // trying to shut down as quickly as possible.
-        close_fd(s_session_socket);
-    });
+        close_fd(s_session_socket); });
 
     // Initialize this thread's memory manager.
     bool initializing = false;
@@ -1228,11 +1242,11 @@ void server_t::session_handler(int session_socket)
         return;
     }
 
-    auto safe_ts_index_cleanup = make_scope_guard([&]() {
+    auto safe_ts_index_cleanup = make_scope_guard([&]()
+                                                  {
         // Release this thread's index in the safe_ts array.
         // (If reserve_safe_ts_index() succeeded, then the index must be valid.)
-        release_safe_ts_index();
-    });
+        release_safe_ts_index(); });
 
     // Set up epoll loop.
     int epoll_fd = ::epoll_create1(0);
@@ -1240,7 +1254,8 @@ void server_t::session_handler(int session_socket)
     {
         throw_system_error(c_message_epoll_create1_failed);
     }
-    auto epoll_cleanup = make_scope_guard([&]() { close_fd(epoll_fd); });
+    auto epoll_cleanup = make_scope_guard([&]()
+                                          { close_fd(epoll_fd); });
 
     int fds[] = {s_session_socket, s_server_shutdown_eventfd};
     for (int fd : fds)
@@ -1258,7 +1273,8 @@ void server_t::session_handler(int session_socket)
 
     // Event to signal session-owned threads to terminate.
     s_session_shutdown_eventfd = make_eventfd();
-    auto owned_threads_cleanup = make_scope_guard([]() {
+    auto owned_threads_cleanup = make_scope_guard([]()
+                                                  {
         // Signal all session-owned threads to terminate.
         signal_eventfd_multiple_threads(s_session_shutdown_eventfd);
 
@@ -1274,8 +1290,7 @@ void server_t::session_handler(int session_socket)
 
         // All session-owned threads have received the session shutdown
         // notification, so we can close the eventfd.
-        close_fd(s_session_shutdown_eventfd);
-    });
+        close_fd(s_session_shutdown_eventfd); });
 
     // Enter epoll loop.
     while (!s_session_shutdown)
@@ -1412,7 +1427,8 @@ void server_t::stream_producer_handler(
 {
     // We can rely on close_fd() to perform the equivalent of shutdown(SHUT_RDWR), because we
     // hold the only fd pointing to this socket.
-    auto socket_cleanup = make_scope_guard([&]() { close_fd(stream_socket); });
+    auto socket_cleanup = make_scope_guard([&]()
+                                           { close_fd(stream_socket); });
 
     // Verify that the socket is the correct type for the semantics we assume.
     check_socket_type(stream_socket, SOCK_SEQPACKET);
@@ -1425,7 +1441,8 @@ void server_t::stream_producer_handler(
     {
         throw_system_error(c_message_epoll_create1_failed);
     }
-    auto epoll_cleanup = make_scope_guard([&]() { close_fd(epoll_fd); });
+    auto epoll_cleanup = make_scope_guard([&]()
+                                          { close_fd(epoll_fd); });
 
     // We poll for write availability of the stream socket in level-triggered mode,
     // and only write at most one buffer of data before polling again, to avoid read
@@ -2326,7 +2343,8 @@ void server_t::apply_txn_logs_to_shared_view()
 void server_t::gc_applied_txn_logs()
 {
     // Ensure we clean up our cached chunk IDs when we exit this task.
-    auto cleanup_fd = make_scope_guard([&]() { s_map_gc_chunks_to_versions.clear(); });
+    auto cleanup_fd = make_scope_guard([&]()
+                                       { s_map_gc_chunks_to_versions.clear(); });
 
     // First get a snapshot of the post-apply watermark, for an upper bound on the scan.
     safe_watermark_t post_apply_watermark(watermark_type_t::post_apply);
@@ -2386,7 +2404,8 @@ void server_t::gc_applied_txn_logs()
 
             // Because we invalidated the log fd, we now hold the only accessible
             // copy of the fd, so we need to ensure it is closed.
-            auto cleanup_fd = make_scope_guard([&]() { close_fd(log_fd); });
+            auto cleanup_fd = make_scope_guard([&]()
+                                               { close_fd(log_fd); });
 
             // If the txn committed, we deallocate only undo versions, because the
             // redo versions may still be visible after the txn has fallen
@@ -2635,7 +2654,8 @@ void server_t::txn_rollback(bool client_disconnected)
 
     // We need to unconditionally close the log fd because we're not registering
     // it in a txn metadata entry, so it won't be closed by GC.
-    auto cleanup_log_fd = make_scope_guard([&]() { close_fd(log_fd); });
+    auto cleanup_log_fd = make_scope_guard([&]()
+                                           { close_fd(log_fd); });
 
     // Free any deallocated objects (don't bother for read-only txns).
     if (!is_log_empty)
@@ -2693,7 +2713,8 @@ void server_t::sort_log()
     std::stable_sort(
         &s_log.data()->log_records[0],
         &s_log.data()->log_records[s_log.data()->record_count],
-        [](const txn_log_t::log_record_t& lhs, const txn_log_t::log_record_t& rhs) {
+        [](const txn_log_t::log_record_t& lhs, const txn_log_t::log_record_t& rhs)
+        {
             return lhs.locator < rhs.locator;
         });
 }
@@ -3217,14 +3238,14 @@ void server_t::run(server_config_t server_conf)
     {
         // Create eventfd shutdown event.
         s_server_shutdown_eventfd = make_eventfd();
-        auto cleanup_shutdown_eventfd = make_scope_guard([]() {
+        auto cleanup_shutdown_eventfd = make_scope_guard([]()
+                                                         {
             // We can't close this fd until all readers and writers have exited.
             // The only readers are the client dispatch thread and the session
             // threads, and the only writer is the signal handler thread. All
             // these threads must have exited before we exit this scope and this
             // handler executes.
-            close_fd(s_server_shutdown_eventfd);
-        });
+            close_fd(s_server_shutdown_eventfd); });
 
         // Block handled signals in this thread and subsequently spawned threads.
         sigset_t handled_signals = mask_signals();
