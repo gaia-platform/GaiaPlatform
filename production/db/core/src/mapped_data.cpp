@@ -86,12 +86,15 @@ int mapped_log_t::unmap_truncate_seal_fd()
 
     common::truncate_fd(this->m_fd, actual_log_size);
 
+    // TSan doesn't like memfd sealing.
+#if !__has_feature(thread_sanitizer)
     // Seal the txn log memfd to prevent writes and resizing.
     if (-1 == ::fcntl(this->m_fd, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE))
     {
         common::throw_system_error(
             "fcntl(F_ADD_SEALS) failed in mapped_log_t::unmap_truncate_seal_fd()!");
     }
+#endif
 
     // We give up our ownership of the log fd, although it is still valid.
     int fd = this->m_fd;

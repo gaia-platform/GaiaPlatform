@@ -98,7 +98,7 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
     set(ENV "")
   endif()
 
-  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  if("$CACHE{SANITIZER}" STREQUAL "ASAN")
     # Suppress ASan warnings from exception destructors in libc++.
     # REVIEW (GAIAPLAT-1828): spdlog and cpptoml show up in the ASan stack
     # trace, and both are unconditionally built with libstdc++, so this is
@@ -107,6 +107,12 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
     # using ENV for anything, and I couldn't get concatenation of NAME=VALUE
     # env var pairs to work with ASan. This is just a temporary hack anyway.
     set(ENV "ASAN_OPTIONS=alloc_dealloc_mismatch=0")
+  endif()
+
+  if("$CACHE{SANITIZER}" STREQUAL "TSAN")
+    # NB: This overwrites any previous value of ENV, but apparently we're not
+    # using ENV for anything.
+    set(ENV "TSAN_OPTIONS=suppressions=${GAIA_REPO}/.tsan-suppressions")
   endif()
 
   configure_gaia_target(${TARGET})

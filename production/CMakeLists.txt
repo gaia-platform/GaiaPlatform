@@ -142,7 +142,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
 
     # Explicitly list all legal values for SANITIZER.
     # (This will eventually include ASAN, MSAN, TSAN.)
-    set_property(CACHE SANITIZER PROPERTY STRINGS "ASAN" "NONE")
+    set_property(CACHE SANITIZER PROPERTY STRINGS "ASAN" "TSAN" "NONE")
   endif()
 
   if(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
@@ -190,6 +190,12 @@ if(DEFINED CACHE{SANITIZER})
     # (They are compatible so we have no separate option for UBSan.)
     target_compile_options(gaia_build_options INTERFACE -fsanitize=undefined)
     target_link_options(gaia_build_options INTERFACE -fsanitize=undefined)
+  endif()
+
+  if("$CACHE{SANITIZER}" STREQUAL "TSAN")
+    # Add TSan flags only to Gaia targets to avoid compatibility issues with other libraries.
+    target_compile_options(gaia_build_options INTERFACE -fsanitize=thread)
+    target_link_options(gaia_build_options INTERFACE -fsanitize=thread)
   endif()
 endif()
 
