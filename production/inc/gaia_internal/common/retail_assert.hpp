@@ -33,6 +33,12 @@ namespace common
 // For this reason is optimal to put string concatenation within the ASSERT, eg.
 // ASSERT_PRECONDITION(gaia_fmt::format("Message {}", 123).c_str());
 
+#ifdef DISABLE_ASSERTS
+#define DISABLE_ASSERT_PRECONDITION
+#define DISABLE_ASSERT_INVARIANT
+#define DISABLE_ASSERT_POSTCONDITION
+#endif
+
 // ASSERT_PRECONDITION is meant for validating conditions that should hold when a function is called.
 //
 // This should be used to validate that internal functions are called with the correct parameters
