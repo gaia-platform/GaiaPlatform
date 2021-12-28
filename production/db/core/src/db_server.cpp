@@ -2579,9 +2579,9 @@ void server_t::txn_rollback(bool client_disconnected)
     // owned by the client session when it crashed.
     if (client_disconnected)
     {
-        // TODO[GAIAPLAT-1490]: Implement this logic correctly by moving current
-        // chunk into shared session state. For now, chunks owned by a crashed
-        // session will never be retired (and therefore can never be
+        // TODO[GAIAPLAT-1490]: Implement this logic correctly by tracking the
+        // current chunk ID in shared session state. For now, chunks owned by a
+        // crashed session will never be retired (and therefore can never be
         // reallocated). Deallocation of object versions in these orphaned
         // chunks will still succeed, though, so GC correctness is unaffected.
     }
