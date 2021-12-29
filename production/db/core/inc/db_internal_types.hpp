@@ -127,7 +127,6 @@ struct txn_log_t
         gaia_locator_t locator;
         gaia_offset_t old_offset;
         gaia_offset_t new_offset;
-        gaia_operation_t operation;
 
         friend std::ostream& operator<<(std::ostream& os, const log_record_t& lr)
         {
@@ -138,9 +137,31 @@ struct txn_log_t
                << "\tnew_offset: "
                << lr.new_offset
                << "\toperation: "
-               << lr.operation
+               << lr.operation()
                << std::endl;
             return os;
+        }
+
+        inline gaia_operation_t operation() const
+        {
+            bool old_offset_valid = (old_offset != c_invalid_gaia_offset);
+            bool new_offset_valid = (new_offset != c_invalid_gaia_offset);
+            if (old_offset_valid && new_offset_valid)
+            {
+                return gaia_operation_t::update;
+            }
+            else if (!old_offset_valid && new_offset_valid)
+            {
+                return gaia_operation_t::create;
+            }
+            else if (old_offset_valid && !new_offset_valid)
+            {
+                return gaia_operation_t::remove;
+            }
+            else
+            {
+                ASSERT_UNREACHABLE("At least one offset in a log record must be valid!");
+            }
         }
     };
 

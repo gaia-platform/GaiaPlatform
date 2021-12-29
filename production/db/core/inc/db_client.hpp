@@ -166,8 +166,7 @@ private:
     static inline void txn_log(
         gaia_locator_t locator,
         gaia_offset_t old_offset,
-        gaia_offset_t new_offset,
-        gaia_operation_t operation);
+        gaia_offset_t new_offset);
 };
 
 #include "db_client.inc"

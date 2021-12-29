@@ -63,17 +63,9 @@ inline void client_t::verify_no_session()
 inline void client_t::txn_log(
     gaia_locator_t locator,
     gaia_offset_t old_offset,
-    gaia_offset_t new_offset,
-    gaia_operation_t operation)
+    gaia_offset_t new_offset)
 {
     ASSERT_PRECONDITION(s_log.is_set(), "Transaction log must be mapped!");
-
-    if (operation == gaia_operation_t::remove)
-    {
-        ASSERT_PRECONDITION(
-            old_offset != c_invalid_gaia_offset && new_offset == c_invalid_gaia_offset,
-            "A delete operation must have a valid old version offset! and an invalid new version offset!");
-    }
 
     // We never allocate more than `c_max_log_records` records in the log.
     if (s_log.data()->record_count == c_max_log_records)
@@ -86,7 +78,6 @@ inline void client_t::txn_log(
     lr.locator = locator;
     lr.old_offset = old_offset;
     lr.new_offset = new_offset;
-    lr.operation = operation;
 }
 
 // This generator wraps a socket which reads a stream of values of `T_element_type` from the server.
