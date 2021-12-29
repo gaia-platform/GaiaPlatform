@@ -4,12 +4,13 @@
 /////////////////////////////////////////////
 
 #include <algorithm>
-#include <sstream>
 #include <string>
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/retail_assert.hpp"
+
+#include <gaia_spdlog/fmt/fmt.h>
 
 using namespace std;
 using namespace gaia::common;
@@ -35,9 +36,8 @@ static string generate_fdw_ddl_field(const string& name, const string& type, int
     }
     else
     {
-        stringstream message;
-        message << "Unexpected fixed size array definition in " << __func__ << "!";
-        ASSERT_UNREACHABLE(message.str());
+        ASSERT_UNREACHABLE(
+            gaia_fmt::format("Unexpected fixed size array definition in {}!", __func__).c_str());
         // The compiler thinks we can still get here despite the fact that
         // ASSERT_UNREACHABLE will unconditionally interrupt execution.
         // So we'll use a builtin function to tell the compiler that we know better.
@@ -82,7 +82,10 @@ string get_fdw_data_type_name(data_type_t data_type)
         message
             << "Unhandled data_type_t value '" << static_cast<int>(data_type)
             << "' in get_fdw_data_type_name()!";
-        ASSERT_UNREACHABLE(message.str());
+        ASSERT_UNREACHABLE(
+            gaia_fmt::format(
+                "Unhandled data_type_t value '{}' in get_fdw_data_type_name()!", static_cast<int>(data_type))
+                .c_str());
     }
 }
 

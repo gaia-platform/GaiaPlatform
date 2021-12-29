@@ -951,7 +951,7 @@ void server_t::init_listening_socket(const std::string& socket_name)
     // in the server address structure after the prefix null byte.
     ASSERT_INVARIANT(
         socket_name.size() <= sizeof(server_addr.sun_path) - 1,
-        "Socket name '" + socket_name + "' is too long!");
+        gaia_fmt::format("Socket name '{}' is too long!", socket_name).c_str());
 
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
