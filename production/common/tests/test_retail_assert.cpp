@@ -41,11 +41,12 @@ TEST(common, retail_assert)
 
 using g_timer_t = gaia::common::timer_t;
 
-TEST(common, retail_assert2)
+TEST(common, DISABLED_retail_assert_performance)
 {
+    constexpr size_t c_condition = 10000;
     std::random_device dev;
     std::mt19937_64 rng(dev());
-    std::uniform_int_distribution<int32_t> dist(0, 10000);
+    std::uniform_int_distribution<int32_t> dist(0, c_condition);
 
     constexpr size_t c_num_samples = 1000000;
     int32_t numbers[c_num_samples];
@@ -56,13 +57,12 @@ TEST(common, retail_assert2)
     }
 
     auto start = g_timer_t::get_time_point();
-    const char* suppini = "aaaaaaaa";
 
     for (int number : numbers)
     {
         try
         {
-            ASSERT_PRECONDITION(number >= 0, suppini);
+            ASSERT_PRECONDITION(number >= 0, gaia_fmt::format("Concatenating a string {}", number).c_str());
         }
         catch (retail_assertion_failure& ex)
         {
