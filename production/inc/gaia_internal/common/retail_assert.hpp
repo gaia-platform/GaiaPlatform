@@ -5,6 +5,9 @@
 
 #pragma once
 
+#include <sstream>
+#include <string>
+
 #include "gaia/exception.hpp"
 
 namespace gaia
@@ -97,7 +100,10 @@ namespace common
 class retail_assertion_failure : public gaia_exception
 {
 public:
-    explicit retail_assertion_failure(const std::string& message);
+    explicit retail_assertion_failure(const std::string& message)
+        : gaia_exception(message)
+    {
+    }
 };
 
 /**
@@ -110,8 +116,13 @@ public:
  * The message parameter is typed const char * to encourage passing string
  * literals rather than dynamically allocated strings.
  */
-void throw_retail_assertion_failure(
-    const char* message, const char* file, size_t line, const char* function);
+inline void throw_retail_assertion_failure(
+    const char* message, const char* file, size_t line, const char* function)
+{
+    std::stringstream message_stream;
+    message_stream << "Assertion failed in " << file << "::" << function << "(): line " << line << ": " << message;
+    throw retail_assertion_failure(message_stream.str());
+}
 
 /*@}*/
 } // namespace common

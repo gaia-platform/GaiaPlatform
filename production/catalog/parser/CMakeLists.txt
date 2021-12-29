@@ -32,10 +32,10 @@ add_library(gaia_parser STATIC
 
 configure_gaia_target(gaia_parser)
 target_include_directories(gaia_parser PRIVATE ${GAIA_PARSER_INCLUDES})
-target_link_libraries(gaia_parser PRIVATE gaia_catalog gaia_common)
+target_link_libraries(gaia_parser PRIVATE gaia_catalog)
 
 set(DDL_PARSER_TEST_SOURCES
   tests/test_ddl_parser.cpp
   ${FLEX_lexer_OUTPUTS}
   ${BISON_parser_OUTPUTS})
-add_gtest(test_ddl_parser "${DDL_PARSER_TEST_SOURCES}" "${GAIA_PARSER_INCLUDES}" "gaia_common")
+add_gtest(test_ddl_parser "${DDL_PARSER_TEST_SOURCES}" "${GAIA_PARSER_INCLUDES}" "")
