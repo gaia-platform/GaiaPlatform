@@ -134,7 +134,8 @@ void server_t::handle_begin_txn(
             // Each log fd should still be valid.
             ASSERT_INVARIANT(is_fd_valid(fd), "Invalid fd!");
             close_fd(fd);
-        } });
+        }
+    });
     txn_begin(txn_log_fds_for_snapshot);
 
     // Send the reply message to the client, with the number of txn log fds to
@@ -870,7 +871,8 @@ void server_t::create_local_snapshot(bool apply_logs)
                 // Each log fd should still be valid.
                 ASSERT_INVARIANT(is_fd_valid(fd), "Invalid fd!");
                 close_fd(fd);
-            } });
+            }
+        });
 
         // Open a private locator mmap for the current thread.
         s_local_snapshot_locators.open(s_shared_locators.fd(), manage_fd, is_shared);
@@ -1078,7 +1080,8 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
             thread.join();
         }
         // All session threads have been joined, so they can be destroyed.
-        s_session_threads.clear(); });
+        s_session_threads.clear();
+    });
 
     // Start listening for incoming client connections.
     init_listening_socket(socket_name);
@@ -1206,7 +1209,8 @@ void server_t::session_handler(int session_socket)
         // socket after we've closed our end, they'll receive EPIPE.) We don't
         // want to try to read any pending data from the client, because we're
         // trying to shut down as quickly as possible.
-        close_fd(s_session_socket); });
+        close_fd(s_session_socket);
+    });
 
     // Initialize this thread's memory manager.
     bool initializing = false;
@@ -1226,7 +1230,8 @@ void server_t::session_handler(int session_socket)
     auto safe_ts_index_cleanup = make_scope_guard([&]() {
         // Release this thread's index in the safe_ts array.
         // (If reserve_safe_ts_index() succeeded, then the index must be valid.)
-        release_safe_ts_index(); });
+        release_safe_ts_index();
+    });
 
     // Set up epoll loop.
     int epoll_fd = ::epoll_create1(0);
@@ -1268,7 +1273,8 @@ void server_t::session_handler(int session_socket)
 
         // All session-owned threads have received the session shutdown
         // notification, so we can close the eventfd.
-        close_fd(s_session_shutdown_eventfd); });
+        close_fd(s_session_shutdown_eventfd);
+    });
 
     // Enter epoll loop.
     while (!s_session_shutdown)
@@ -3174,7 +3180,8 @@ void server_t::run(server_config_t server_conf)
             // threads, and the only writer is the signal handler thread. All
             // these threads must have exited before we exit this scope and this
             // handler executes.
-            close_fd(s_server_shutdown_eventfd); });
+            close_fd(s_server_shutdown_eventfd);
+        });
 
         // Block handled signals in this thread and subsequently spawned threads.
         sigset_t handled_signals = mask_signals();
