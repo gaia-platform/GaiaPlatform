@@ -2037,17 +2037,17 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
 
         // If we're gc-ing the old version of an object that is being deleted,
         // then request the deletion of its locator from the corresponding record list.
-        if (!deallocate_new_offsets && !log_record->new_offset.is_valid())
-        {
-            // Get the old object data to extract its type.
-            db_object_t* db_object = offset_to_ptr(log_record->old_offset);
+        // if (!deallocate_new_offsets && !log_record->new_offset.is_valid())
+        // {
+        //     // Get the old object data to extract its type.
+        //     db_object_t* db_object = offset_to_ptr(log_record->old_offset);
 
-            // Retrieve the record_list_t instance corresponding to the type.
-            std::shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(db_object->type);
+        //     // Retrieve the record_list_t instance corresponding to the type.
+        //     std::shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(db_object->type);
 
-            // Request the deletion of the record corresponding to the object.
-            record_list->request_deletion(log_record->locator);
-        }
+        //     // Request the deletion of the record corresponding to the object.
+        //     record_list->request_deletion(log_record->locator);
+        // }
 
         if (offset_to_free.is_valid())
         {
@@ -2611,7 +2611,7 @@ void server_t::perform_pre_commit_work_for_txn()
         }
     }
 
-    update_indexes_from_txn_log();
+    // update_indexes_from_txn_log();
 }
 
 // Sort all txn log records by locator. This enables us to use fast binary
