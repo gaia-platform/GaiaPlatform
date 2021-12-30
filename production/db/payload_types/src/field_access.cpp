@@ -19,8 +19,8 @@ namespace db
 namespace payload_types
 {
 
-static const string c_message_attempt_to_set_value_of_incorrect_type = "Attempt to set value of incorrect type";
-static const string c_message_array_index_out_of_bounds = "Attempt to index array is out-of-bounds.";
+static constexpr char c_message_attempt_to_set_value_of_incorrect_type[] = "Attempt to set value of incorrect type";
+static constexpr char c_message_array_index_out_of_bounds[] = "Attempt to index array is out-of-bounds.";
 
 invalid_schema::invalid_schema()
 {
