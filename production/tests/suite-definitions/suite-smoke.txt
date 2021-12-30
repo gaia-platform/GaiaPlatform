@@ -11,6 +11,6 @@ workload mink
 
 smoke
 smoke-time-test
-smoke-time-only
+#smoke-time-only
 #smoke-time-test repeat 3
 #smoke-time-only repeat 3

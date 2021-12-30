@@ -3,13 +3,11 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(memory_manager)
 
 set(GAIA_MEMORY_MANAGER_INCLUDES
   "${GAIA_INC}"
   "${GAIA_DB_INC}/memory_manager"
-  "${GAIA_DB_INC}/index"
   "${GAIA_REPO}/production/db/core/inc")
 
 message(VERBOSE "GAIA_MEMORY_MANAGER_INCLUDES=${GAIA_MEMORY_MANAGER_INCLUDES}")

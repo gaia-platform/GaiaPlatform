@@ -103,7 +103,9 @@ static string dump_node(gaia_ptr_t& node_ptr, bool references, bool payload, int
 {
     string dump;
     size_t num_references = node_ptr.num_references();
-    sprintf(g_longstring, "id=%016lx, type=%08x, payload=%04zx, references=%02zx\n", node_ptr.id(), node_ptr.type(), node_ptr.data_size(), num_references);
+    sprintf(
+        g_longstring, "id=%016lx, type=%08x, payload=%04zx, references=%02zx\n",
+        node_ptr.id().value(), node_ptr.type().value(), node_ptr.data_size(), num_references);
     dump += g_longstring;
     if (--line_limit == 0)
     {
@@ -114,7 +116,7 @@ static string dump_node(gaia_ptr_t& node_ptr, bool references, bool payload, int
         auto references = node_ptr.references();
         for (size_t i = 0; i < num_references; i++)
         {
-            sprintf(g_longstring, "      %02zx: %016lx\n", i, references[i]);
+            sprintf(g_longstring, "      %02zx: %016lx\n", i, references[i].value());
             dump += g_longstring;
             if (--line_limit == 0)
             {
@@ -161,7 +163,7 @@ string gaia_dump(gaia_id_t low, gaia_id_t high, bool payload, bool references, b
     {
         try
         {
-            auto node_ptr = gaia_ptr_t::open(id);
+            auto node_ptr = gaia_ptr_t::from_gaia_id(id);
             if (node_ptr)
             {
                 // If 'catalog' is true, don't check the catalog range.

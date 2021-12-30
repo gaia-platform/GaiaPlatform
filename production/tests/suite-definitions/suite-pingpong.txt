@@ -9,7 +9,4 @@
 
 workload pingpong
 
-smoke repeat 3
-smoke-transaction repeat 3
-perf repeat 5
-perf-transaction repeat 5
+smoke

@@ -5,7 +5,6 @@
 
 #include <iostream>
 
-#include "gaia_internal/common/logger_internal.hpp"
 #include "gaia_internal/common/logger_manager.hpp"
 #include "gaia_internal/common/logger_spdlog.hpp"
 

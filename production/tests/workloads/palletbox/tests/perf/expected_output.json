@@ -1,0 +1,38 @@
+{
+    "event_counts": [
+        {
+            "bot_moving_to_station_event": 1
+        },
+        {
+            "bot_arrived_event": 0
+        },
+        {
+            "payload_pick_up_event": 0
+        },
+        {
+            "payload_drop_off_event": 0
+        }
+    ],
+    "robots": [
+        {
+            "id": 1,
+            "station_id": 1,
+            "target_times_to_charge": 1000,
+            "times_to_charging": 1000
+        }
+    ],
+    "stations": [
+        {
+            "id": 1,
+            "name": "charging"
+        },
+        {
+            "id": 2,
+            "name": "outbound"
+        },
+        {
+            "id": 3,
+            "name": "inbound"
+        }
+    ]
+}

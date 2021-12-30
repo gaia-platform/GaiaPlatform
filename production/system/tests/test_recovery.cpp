@@ -17,7 +17,7 @@
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/ddl_executor.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
-#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/logger.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/db_server_instance.hpp"
 
@@ -93,7 +93,7 @@ protected:
     {
         gaia_log::initialize({});
 
-        server_instance_config_t server_conf = server_instance_config_t::get_default();
+        server_instance_config_t server_conf = server_instance_config_t::get_new_instance_config();
         server_conf.disable_persistence = false;
         server_conf.data_dir = server_instance_config_t::generate_data_dir(server_conf.instance_name);
         s_server = server_instance_t{server_conf};
@@ -192,8 +192,7 @@ gaia_id_t recovery_test::get_random_map_key(map<gaia_id_t, employee_copy_t> m)
 
 string recovery_test::generate_string(size_t length_in_bytes)
 {
-    auto randchar = []() -> char
-    {
+    auto randchar = []() -> char {
         const char charset[] = "0123456789"
                                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                "abcdefghijklmnopqrstuvwxyz";
@@ -416,7 +415,7 @@ void recovery_test::ensure_uncommitted_value_absent_on_restart_and_commit_new_tx
     s_server.restart();
     begin_session();
     begin_transaction();
-    ASSERT_FALSE(employee_t::get(id));
+    ASSERT_THROW(employee_t::get(id), invalid_object_id);
     // Check logging + commit path functional.
     auto e2 = generate_employee_record();
     id = e2.gaia_id();
@@ -441,7 +440,7 @@ void recovery_test::ensure_uncommitted_value_absent_on_restart_and_rollback_new_
     s_server.restart();
     begin_session();
     begin_transaction();
-    ASSERT_FALSE(employee_t::get(id));
+    ASSERT_THROW(employee_t::get(id), invalid_object_id);
     // Check logging + rollback functional.
     auto e2 = generate_employee_record();
     id = e2.gaia_id();
@@ -586,19 +585,19 @@ TEST_F(recovery_test, reference_create_delete_test_new)
         auto_transaction_t txn;
 
         // Get the parent.
-        gaia_ptr_t parent = gaia_ptr_t::open(parent_id);
+        gaia_ptr_t parent = gaia_ptr_t::from_gaia_id(parent_id);
         // Make sure address cannot be deleted upon recovery.
         ASSERT_THROW(gaia_ptr_t::remove(parent), object_still_referenced);
 
         // Find the children.
-        gaia_ptr_t first_child = gaia_ptr_t::open(parent.references()[c_first_patient_offset]);
+        gaia_ptr_t first_child = gaia_ptr_t::from_gaia_id(parent.references()[c_first_patient_offset]);
         children_ids.push_back(first_child.id());
-        gaia_ptr_t next_child = gaia_ptr_t::open(first_child.references()[c_next_patient_offset]);
+        gaia_ptr_t next_child = gaia_ptr_t::from_gaia_id(first_child.references()[c_next_patient_offset]);
 
         while (next_child)
         {
             children_ids.push_back(next_child.id());
-            next_child = gaia_ptr_t::open(next_child.references()[c_next_patient_offset]);
+            next_child = gaia_ptr_t::from_gaia_id(next_child.references()[c_next_patient_offset]);
         }
 
         // Ensure parent has all the children
@@ -617,7 +616,7 @@ TEST_F(recovery_test, reference_create_delete_test_new)
             }
             else
             {
-                gaia_ptr_t child = gaia_ptr_t::open(child_id);
+                gaia_ptr_t child = gaia_ptr_t::from_gaia_id(child_id);
                 child.remove_parent_reference(c_parent_doctor_offset);
             }
         }
@@ -632,7 +631,7 @@ TEST_F(recovery_test, reference_create_delete_test_new)
         auto_transaction_t txn;
 
         // Get the parent.
-        gaia_ptr_t parent = gaia_ptr_t::open(parent_id);
+        gaia_ptr_t parent = gaia_ptr_t::from_gaia_id(parent_id);
 
         // Ensure the parent does not have children
         ASSERT_EQ(c_invalid_gaia_id, parent.references()[c_first_patient_offset]);
@@ -683,7 +682,7 @@ TEST_F(recovery_test, reference_update_test_new)
         new_parent_id = new_parent.id();
 
         // Get the child
-        gaia_ptr_t child = gaia_ptr_t::open(child_id);
+        gaia_ptr_t child = gaia_ptr_t::from_gaia_id(child_id);
         child.update_parent_reference(new_parent_id, c_parent_doctor_offset);
 
         txn.commit();
@@ -696,9 +695,9 @@ TEST_F(recovery_test, reference_update_test_new)
     {
         auto_transaction_t txn;
 
-        gaia_ptr_t parent = gaia_ptr_t::open(parent_id);
-        gaia_ptr_t child = gaia_ptr_t::open(child_id);
-        gaia_ptr_t new_parent = gaia_ptr_t::open(new_parent_id);
+        gaia_ptr_t parent = gaia_ptr_t::from_gaia_id(parent_id);
+        gaia_ptr_t child = gaia_ptr_t::from_gaia_id(child_id);
+        gaia_ptr_t new_parent = gaia_ptr_t::from_gaia_id(new_parent_id);
 
         ASSERT_EQ(c_invalid_gaia_id, parent.references()[c_first_patient_offset]);
         ASSERT_EQ(new_parent_id, child.references()[c_parent_doctor_offset]);

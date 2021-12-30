@@ -60,7 +60,7 @@ ruleset test_tags
     // test_tags_code.basic_tags
     on_insert(R:registration)
     {
-        // Check common field references.
+        // Check value linked references.
         if (strcmp(R.reg_id, reg_id) != 0)
         {
             g_oninsert3_result = test_error_result_t::e_tag_field_mismatch;
@@ -712,28 +712,22 @@ ruleset test_connect_1_n
 {
     on_insert(student)
     {
-        auto r1 = registration.insert(reg_id: "reg001");
-        student.connect(r1);
-        student.registrations.connect(r1);
+        auto r1 = registration.insert(reg_id: "reg001", student_id: student.student_id);
 
-        for(/r2:registration)
+        for(/r:registration)
         {
-            student.connect(r2);
-            student.registrations.connect(r2);
+            r.student_id = student.student_id;
         }
 
-        gaia::prerequisites::registration_t r3 = registration.insert(reg_id: "reg002");
-        student.registrations.connect(r3);
-        student.connect(r3);
+        gaia::prerequisites::registration_t r2 = registration.insert(reg_id: "reg002", student_id: student.student_id);
 
         gaia::prerequisites::registration_writer w;
         w.reg_id = "reg003";
-        gaia::prerequisites::registration_t r4 = gaia::prerequisites::registration_t::get(w.insert_row());
-        student.connect(r4);
-        student.registrations.connect(r4);
+        w.student_id = student.student_id;
+        w.insert_row();
 
-        student.connect(registration.insert(reg_id: "reg004"));
-        student.registrations.connect(registration.insert(reg_id: "reg005"));
+        registration.insert(reg_id: "reg004", student_id: student.student_id);
+        registration.insert(reg_id: "reg005", student_id: student.student_id);
     }
 };
 
@@ -765,7 +759,7 @@ ruleset test_disconnect_1_n
         {
             for(/r:registration)
             {
-                student.disconnect(r);
+                r.student_id = nullptr;
             }
         }
         else
@@ -784,7 +778,7 @@ ruleset test_disconnect_1_n
         {
             for (/r:registration)
             {
-                course.registrations.disconnect(r);
+                r.course_id = nullptr;
             }
         }
         else

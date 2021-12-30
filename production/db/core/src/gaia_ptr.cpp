@@ -26,7 +26,13 @@ gaia_id_t gaia_ptr_t::generate_id()
     return allocate_id();
 }
 
-gaia_ptr_t gaia_ptr_t::open(
+gaia_ptr_t gaia_ptr_t::from_locator(
+    gaia_locator_t locator)
+{
+    return gaia_ptr_t(locator);
+}
+
+gaia_ptr_t gaia_ptr_t::from_gaia_id(
     common::gaia_id_t id)
 {
     return gaia_ptr_t(db_hash_map::find(id));
@@ -60,11 +66,6 @@ gaia_ptr_t gaia_ptr_t::find_next(gaia_type_t type) const
     gaia::db::counters_t* counters = gaia::db::get_counters();
     gaia_ptr_t next_ptr = *this;
 
-    // We need an acquire barrier before reading `last_locator`. We can
-    // change this full barrier to an acquire barrier when we change to proper
-    // C++ atomic types.
-    __sync_synchronize();
-
     // Search for objects of this type within the range of used locators.
     while (++next_ptr.m_locator && next_ptr.m_locator <= counters->last_locator)
     {
@@ -72,7 +73,6 @@ gaia_ptr_t gaia_ptr_t::find_next(gaia_type_t type) const
         {
             return next_ptr;
         }
-        __sync_synchronize();
     }
 
     // Mark end of search.
@@ -90,7 +90,7 @@ std::optional<gaia_ptr_t> gaia_ptr_generator_t::operator()()
     std::optional<gaia_id_t> id_opt;
     while ((id_opt = (*m_id_generator)()))
     {
-        gaia_ptr_t gaia_ptr = gaia_ptr_t::open(*id_opt);
+        gaia_ptr_t gaia_ptr = gaia_ptr_t::from_gaia_id(*id_opt);
         if (gaia_ptr)
         {
             return gaia_ptr;

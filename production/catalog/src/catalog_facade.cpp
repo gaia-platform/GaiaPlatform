@@ -203,7 +203,7 @@ std::string field_facade_t::field_type(bool is_function_parameter) const
         }
         else
         {
-            type_str = "gaia::direct_access::edc_vector_t<" + type_str + ">";
+            type_str = "gaia::direct_access::dac_vector_t<" + type_str + ">";
         }
     }
     else if (m_field.repeated_count() > 1)
@@ -307,6 +307,12 @@ std::string link_facade_t::to_table() const
         return m_relationship.child().name();
     }
     return m_relationship.parent().name();
+}
+
+bool link_facade_t::is_value_linked() const
+{
+    return (!m_relationship.parent_field_positions().is_null())
+        && m_relationship.parent_field_positions().size() > 0;
 }
 
 bool link_facade_t::is_single_cardinality() const

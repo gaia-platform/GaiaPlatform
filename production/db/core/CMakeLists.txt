@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(core)
 
 set(GAIA_DB_CORE_PUBLIC_INCLUDES
@@ -14,16 +13,13 @@ set(GAIA_DB_CORE_PUBLIC_INCLUDES
 message(VERBOSE "GAIA_DB_CORE_PUBLIC_INCLUDES=${GAIA_DB_CORE_PUBLIC_INCLUDES}")
 
 set(GAIA_DB_CORE_PRIVATE_INCLUDES
-  "${GAIA_DB_INC}/core"
-  "${GAIA_DB_INC}/core/inc"
-  "${GAIA_DB_INC}/inc/memory_manager"
-  "${GAIA_REPO}/production/db/inc/memory_manager"
-  "${GAIA_DB_INC}/payload_types"
   "${GAIA_DB_INC}/index"
+  "${GAIA_DB_INC}/memory_manager"
+  "${GAIA_DB_INC}/payload_types"
+  "${GAIA_DB_INC}/query_processor"
   "${ROCKSDB_INC}"
   "${ROCKSDB_UTIL}"
   "${PROJECT_SOURCE_DIR}/inc"
-  "${GAIA_DB_INC}/query_processor"
   "${GAIA_SPDLOG_INC}"
 )
 
@@ -51,9 +47,9 @@ foreach(FBS_SOURCE ${FBS_SOURCES})
     COMMENT "Compiling ${FBS_SOURCE} with flatbuffers..."
     OUTPUT "${GEN_DIR}/${GEN_HEADER}"
     COMMAND cmake -E make_directory "${GEN_DIR}"
-    COMMAND flatc --cpp --scoped-enums -o "${GEN_DIR}" "${FBS_SOURCE}"
+    COMMAND ${FLATBUFFERS_BIN}/flatc --cpp --scoped-enums -o "${GEN_DIR}" "${FBS_SOURCE}"
     DEPENDS "${FBS_SOURCE}"
-    DEPENDS ${CMAKE_BINARY_DIR}/flatbuffers/flatc
+    DEPENDS flatc
     VERBATIM)
 
   add_custom_target(${FBS_SOURCE_FILENAME} ALL DEPENDS "${GEN_DIR}/${GEN_HEADER}")
@@ -76,7 +72,8 @@ target_link_libraries(gaia_storage PRIVATE gaia_common)
 ###############################################
 add_library(gaia_db_client STATIC
   src/catalog_core.cpp
-  src/gaia_db.cpp
+  src/exceptions.cpp
+  src/db_client_api.cpp
   src/gaia_ptr.cpp
   src/gaia_ptr_client.cpp
   src/payload_diff.cpp
@@ -96,7 +93,7 @@ configure_gaia_target(gaia_db_client)
 target_include_directories(gaia_db_client PUBLIC ${GAIA_DB_CORE_PUBLIC_INCLUDES})
 target_include_directories(gaia_db_client PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES})
 target_link_libraries(gaia_db_client PUBLIC gaia_common)
-target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager gaia_qp edc_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager gaia_qp dac_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
 
 # Suppress spurious warnings about zero-initialized structs.
 target_compile_options(gaia_db_client PRIVATE -Wno-missing-field-initializers)
@@ -105,10 +102,10 @@ target_compile_options(gaia_db_client PRIVATE -Wno-missing-field-initializers)
 target_include_directories(gaia_db_client SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_db_client SYSTEM PRIVATE "${GEN_DIR}")
 target_link_libraries(gaia_db_client PUBLIC gaia_common)
-target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager gaia_index gaia_qp edc_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager gaia_index gaia_qp dac_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
 
 add_library(rocks_wrapper STATIC
-  src/rdb_internal.cpp
+  src/rdb_wrapper.cpp
   src/rdb_object_converter.cpp
   src/persistent_store_manager.cpp)
 configure_gaia_target(rocks_wrapper)
@@ -148,6 +145,7 @@ target_link_libraries(gaia_db_persistence PUBLIC rocksdb "${LIBURING_LIBRARY}")
 
 set(GAIA_DB_SERVER_SOURCES
   src/catalog_core.cpp
+  src/exceptions.cpp
   src/db_server.cpp
   src/db_shared_data_server.cpp
   src/gaia_ptr.cpp
@@ -188,7 +186,6 @@ set_target_properties(gaia_db_server_exec PROPERTIES OUTPUT_NAME gaia_db_server)
 target_include_directories(gaia_db_server_exec PRIVATE
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
   "${GAIA_DB_CORE_PRIVATE_INCLUDES}"
-  "${FLATBUFFERS_INC}"
   "${GEN_DIR}")
 target_link_libraries(gaia_db_server_exec PRIVATE gaia_db_server)
 if(ENABLE_STACKTRACE)
@@ -199,7 +196,6 @@ install(TARGETS gaia_db_server_exec DESTINATION ${CMAKE_INSTALL_BINDIR})
 set(GAIA_DB_CORE_TEST_INCLUDES
   ${GAIA_DB_CORE_PUBLIC_INCLUDES}
   ${GAIA_DB_CORE_PRIVATE_INCLUDES}
-  ${FLATBUFFERS_INC}
 )
 
 ###############################################
@@ -259,7 +255,6 @@ set(GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES
   ${GAIA_REPO}/production/schemas/repository/inc
   ${GAIA_REPO}/production/db/core/inc
   ${GAIA_REPO}/production/db/inc/memory_manager
-  ${FLATBUFFERS_INC}
 )
 
 add_library(gaia_db_catalog_test tests/db_catalog_test_base.cpp)
@@ -277,8 +272,8 @@ add_gtest(test_env_instance_name tests/test_db_server_env.cpp "${GAIA_DB_CORE_TE
 
 add_gtest(test_multiple_server_instances
     tests/test_multiple_server_instances.cpp
-    "${FLATBUFFERS_INC};${GEN_DIR};${GAIA_DB_CORE_TEST_INCLUDES}"
-    "gaia_common;gaia_db_client;gaia_direct;gaia_schema_loader;rt;edc_addr_book")
+    "${GEN_DIR};${GAIA_DB_CORE_TEST_INCLUDES}"
+    "gaia_common;gaia_db_client;gaia_direct;gaia_schema_loader;rt;dac_addr_book")
 
 add_gtest(test_relationships
   tests/test_relationships.cpp

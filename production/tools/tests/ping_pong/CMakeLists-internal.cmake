@@ -6,7 +6,7 @@
 configure_file("${GAIA_CONFIG}" "${PROJECT_BINARY_DIR}/gaia.conf")
 configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
 
-# --- Generate EDC from DDL---
+# --- Generate DAC from DDL---
 process_schema(
   DDL_FILE ${PING_PONG_DDL}
   DATABASE_NAME ping_pong

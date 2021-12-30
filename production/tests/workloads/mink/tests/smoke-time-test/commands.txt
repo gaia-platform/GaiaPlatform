@@ -16,7 +16,7 @@ m
 # Set up pause, anything less than 1000 microseconds has too much noise.
 T1500
 # Request dump of the datastore after every step.
-U
+#U
 # Wait 5 milliseconds to allow the turn on effects to finish.
 w5
 # Take 1023 steps.
@@ -25,5 +25,5 @@ t1023
 o
 x
 # Print out the final state.
-#w2
+#w2000
 #j

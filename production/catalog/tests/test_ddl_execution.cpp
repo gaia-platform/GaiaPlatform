@@ -7,6 +7,7 @@
 
 #include "gaia/direct_access/auto_transaction.hpp"
 
+#include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/ddl_execution.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
@@ -139,7 +140,7 @@ DROP TABLE IF EXISTS t2;
     }
 
     ASSERT_NO_THROW(parser.parse_string("DROP RELATIONSHIP r3;"));
-    ASSERT_THROW(execute(parser.statements), relationship_not_exists);
+    ASSERT_THROW(execute(parser.statements), relationship_does_not_exist);
 }
 
 TEST_F(ddl_execution_test, drop_index)
@@ -179,7 +180,7 @@ CREATE INDEX IF NOT EXISTS c_i ON t(c);
     }
 
     ASSERT_NO_THROW(parser.parse_string("DROP INDEX c_i;"));
-    ASSERT_THROW(execute(parser.statements), index_not_exists);
+    ASSERT_THROW(execute(parser.statements), index_does_not_exist);
 }
 
 TEST_F(ddl_execution_test, create_list)
@@ -376,7 +377,7 @@ create table t2(c2 int32, link2a references t1, link2b references t1);
     ASSERT_THROW(execute(parser.statements), orphaned_reference_definition);
 }
 
-TEST_F(ddl_execution_test, invalid_field_map)
+TEST_F(ddl_execution_test, invalid_relationship_field)
 {
     array ddls{
         // Incorrect table names in where clause.
@@ -400,7 +401,7 @@ create table t1(a1 int16 unique, c1 int32 unique, link1 references t2[] where t1
 create table t2(a2 int16, c2 int32, link2 references t1 where t1.c1 = t2.c2);
 )",
         // Forward reference 1:1 relationship with 'where' without 'using'.
-        // We have disabled 1:1 relationships using common fields (hybrid index).
+        // We have disabled 1:1 relationships using value linked references (hybrid index).
         R"(
 create table person (
  name string,
@@ -420,6 +421,22 @@ create table employee (
     {
         ddl::parser_t parser;
         ASSERT_NO_THROW(parser.parse_string(ddl));
-        ASSERT_THROW(execute(parser.statements), invalid_field_map);
+        ASSERT_THROW(execute(parser.statements), invalid_relationship_field);
     }
+}
+
+TEST_F(ddl_execution_test, cross_db_relationship)
+{
+    string ddl =
+        R"(
+create database d1;
+create database d2;
+create table d1.t1(c1 int32);
+create table d2.t2(c2 int32);
+create relationship r (d1.t1.link2 -> d2.t2, d2.t2.link1 -> d1.t1);
+)";
+
+    ddl::parser_t parser;
+    ASSERT_NO_THROW(parser.parse_string(ddl));
+    ASSERT_THROW(execute(parser.statements), no_cross_db_relationship);
 }

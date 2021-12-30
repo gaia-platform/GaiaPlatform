@@ -3,11 +3,11 @@ This is a folder for production code. Only code that is meant to be shipped shou
 
 ## Build Overview
 We have three main sets of targets we build:
-1. **Core** - this includes the core platform components:  catalog, database (client and server), rules engine, extended data classes, and associated tools.
+1. **Core** - this includes the core platform components:  catalog, database (client and server), rules engine, direct access classes, and associated tools.
 1. **SDK** - this includes everything in core plus: LLVM libraries, rules translation engine (gaiat), and definitions for building SDK deb and rpm packages.
 1. **LLVMTests** - this includes the LLVM test infrastructure for testing ruleset files as well as ruleset compilation tests.
 
-Because building LLVM takes much longer than just building Core, we do not build it by default.  However, the SDK does have dependencies on core headers.  If you are changing headers for the catalog, database, or direct access components, it is wise to build the entire SDK to verify that you haven't broken the SDK build.
+Because building LLVM takes much longer than just building Core, we do not build it by default.  However, the SDK does have dependencies on core headers.  If you are changing headers for the catalog, database, or Direct Access components, it is wise to build the entire SDK to verify that you haven't broken the SDK build.
 
 We have two ways to build the configurations listed above:
 1. Using docker and our `gdev` tool: this is what our TeamCity Continuous Integration servers use to build and run tests in a consistent "approved" environment.

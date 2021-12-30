@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(test_schemas)
 
 process_schema_internal(
@@ -27,5 +26,5 @@ process_schema_internal(
 process_schema_internal(
     DDL_FILE "${PROJECT_SOURCE_DIR}/amr_swarm/amr_swarm.ddl"
     DATABASE_NAME amr_swarm)
-
-process_schema_internal(DDL_FILE "${PROJECT_SOURCE_DIR}/default/no_db.ddl")
+process_schema_internal(
+    DDL_FILE "${PROJECT_SOURCE_DIR}/default/no_db.ddl")

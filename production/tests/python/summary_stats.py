@@ -7,9 +7,6 @@
 
 """
 Script to translate a test's output.json file into a output.csv file.
-
-Copyright (c) Gaia Platform LLC
-All rights reserved.
 """
 
 import json
@@ -47,6 +44,12 @@ def __process_command_line():
         type=__check_output_format,
         default=__PLAIN_FORMAT,
         help="Format to use for the output.",
+    )
+    parser.add_argument(
+        "--workload",
+        dest="workload_name",
+        action="store",
+        help="Workload that the test to sumarize falls under.",
     )
     return parser.parse_args()
 
@@ -306,8 +309,8 @@ def __add_new_sample_set(
     if compute_error:
         print(f"Processing error: {compute_error}")
         return
-    sample_dictionary = __traverse_path(suite_data, source_list_name)
 
+    sample_dictionary = __traverse_path(suite_data, source_list_name)
     if is_single_test_report:
         data_value = sample_dictionary
         if translation_factor:
@@ -322,10 +325,16 @@ def __add_new_sample_set(
     else:
         raw_measurements = []
         for index_in_data in passed_test_indices:
-            data_value = sample_dictionary[index_in_data]
+            scale = MeasuredScale.SECONDS
+            data_value = None
+            if 0 <= index_in_data < len(sample_dictionary):
+                data_value = sample_dictionary[index_in_data]
+            if not data_value:
+                data_value = 0.0
             if translation_factor:
                 data_value *= translation_factor
                 scale = translate_scale
+
             raw_measurements.append(MeasuredDuration(data_value, scale))
 
         measurements = sorted(raw_measurements, key=lambda x: x.value)
@@ -517,6 +526,7 @@ def __summarize_performance_basics(
         else:
             summary_data["passed-tests"] = len(passed_test_indices)
             summary_data["total-tests"] = len(return_code_data)
+
     return passed_test_indices
 
 
@@ -558,7 +568,7 @@ def __summarize_performance(
         if len(sample_title) > 1:
             sample_scale, _, _ = __compute_scale_info("-" + sample_title[1], None)
 
-        sample_data = None
+        sample_data = 0.0
         if summary_data:
             sample_data = {}
             summary_data[sample_title[0]] = sample_data
@@ -612,7 +622,7 @@ def __generate_plain_output(data_dictionary):
             next_data_item.generate_output()
 
 
-def __generate_json_output(data_dictionary):
+def __generate_json_output(data_dictionary, workload_name):
     """
     Specifically generate output that is in json for parsing.
     """
@@ -627,6 +637,7 @@ def __generate_json_output(data_dictionary):
             suite_data, None, suite_dictionary
         )
         suite_dictionary["test-type"] = test_type
+        suite_dictionary["workload-name"] = workload_name
 
         summary_data = {}
         suite_dictionary["summary"] = summary_data
@@ -652,7 +663,7 @@ def __process_script_action():
         data_dictionary = json.load(input_file)
 
     if args.output_format == __JSON_FORMAT:
-        __generate_json_output(data_dictionary)
+        __generate_json_output(data_dictionary, args.workload_name)
     else:
         __generate_plain_output(data_dictionary)
 

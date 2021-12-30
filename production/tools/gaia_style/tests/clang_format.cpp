@@ -100,7 +100,7 @@ double class_name_t::method_with_many_arguments(
 void short_statements()
 {
     int a = 3;
-    //NOLINTNEXTLINE
+    // NOLINTNEXTLINE
     if (true)
     {
         a = 4;
@@ -119,7 +119,10 @@ void short_function(int a)
 
 void short_lambdas()
 {
-    auto l = [](int a) { a + 1; a + 2; };
+    auto l = [](int a) {
+        a + 1;
+        a + 2;
+    };
 
     std::vector<int> vec = {1, 2, 3};
 
@@ -155,8 +158,8 @@ void braced_style()
 
 int no_space_after_c_cast()
 {
-    double var = 3.14; //NOLINT
-    return (int)var; //NOLINT
+    double var = 3.14; // NOLINT
+    return (int)var; // NOLINT
 }
 
 bool space_after_not()

@@ -100,7 +100,6 @@ string generate_json(gaia_id_t table_id)
     stringstream json_string_stream;
     json_string_stream << "{";
 
-    gaia_table_t table = gaia_table_t::get(table_id);
     bool has_output_first_field = false;
     for (gaia_id_t field_id : list_fields(table_id))
     {

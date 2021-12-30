@@ -4,6 +4,7 @@ lint.sh
 run.sh
 test.sh
 simulation.hpp
+json.hpp
 simulation.cpp
 simulation_exceptions.hpp
 python/generate_config.py

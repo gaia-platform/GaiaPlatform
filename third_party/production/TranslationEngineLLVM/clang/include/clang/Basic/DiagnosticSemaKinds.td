@@ -9529,14 +9529,17 @@ def err_duplicate_field : Error<
   "table name (table.field) to disambiguate field names that occur in more "
   "than one table. You can also restrict the list of tables to search by "
   "specifying them in the ruleset 'tables' attribute.">;
+def err_wrong_table_field : Error<
+  "Field '%0' is defined in table '%1', which does not exist in the catalog."
+  "Ensure that the catalog is in consistent state.">;
 def err_duplicate_link : Error<
   "Duplicate link '%0'.">;
 def err_duplicate_parameter_name : Error<
   "Parameter name '%0' has already been used.">;
 def err_duplicate_ruleset : Error<
   "Ruleset '%0' is defined more than once. Ruleset names must be unique.">;
-def err_edc_init : Error<
-  "Initialization of a declared variable with a direct access object is not supported.">;
+def err_dac_init : Error<
+  "Initialization of a declared variable with a Direct Access object is not supported.">;
 def err_field_deprecated : Error<
   "Field '%0' of table '%1' is marked as deprecated in the catalog. "
   "Ensure that you are using the correct field in the catalog.">;
@@ -9549,7 +9552,7 @@ def err_incorrect_for_expression : Error<
   "An incorrect expression is used as a path in a 'for' statement. "
   "An expression in a 'for' statement must only iterate over a table.">;
 def err_incorrect_matched_expression : Error<
-  "Incorrect matched expression.">;  
+  "Incorrect matched expression.">;
 def err_incorrect_matched_operator : Error<
   "Incorrect matched operator.">;
 def err_incorrect_operator_code : Error<
@@ -9632,6 +9635,8 @@ def err_unknown_field : Error<
   "Field '%0' was not found in the catalog.">;
 def err_unknown_parameter_name : Error<
   "Parameter name '%0' is not found in the catalog.">;
+def err_unknown_field_or_table : Error<
+  "'%0' does not correspond to any table or field in the catalog.">;
 
 def note_table_reference : Note<
   "Table: '%0'.">;

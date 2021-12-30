@@ -9,7 +9,7 @@
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
-#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/logger.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
 
 #include "field_access.hpp"
@@ -1025,7 +1025,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
         }
         else if (modify_operation_type == modify_operation_type_t::update)
         {
-            record = gaia_ptr_t::open(gaia_id);
+            record = gaia_ptr_t::from_gaia_id(gaia_id);
 
             // Only update payload if it has changed.
             if (record.data_size() != m_current_payload->size()
@@ -1153,7 +1153,7 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
 {
     try
     {
-        auto record = gaia_ptr_t::open(gaia_id);
+        auto record = gaia_ptr_t::from_gaia_id(gaia_id);
         if (!record)
         {
             ereport(

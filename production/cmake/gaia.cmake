@@ -13,10 +13,22 @@ cmake_minimum_required(VERSION 3.16)
 # - GAIA_LIB: Automatically set by CMake if libgaia.so is found.
 # - GAIA_GAIAC_CMD: The gaiac command. Default: ${GAIA_BIN}/gaiac.
 # - GAIA_GAIAT_CMD: The gaiat command. Default: ${GAIA_BIN}/gaiat.
-# - GAIA_DEFAULT_DIRECT_ACCESS_GENERATED_DIR: The process_schema() function puts the generated direct access code
+# - GAIA_DEFAULT_DIRECT_ACCESS_GENERATED_DIR: The process_schema() function puts the generated Direct Access code
 #     in this directory if the OUTPUT_DIR param is not specified.
 # - GAIA_DEFAULT_RULES_GENERATED_DIR: The translate_ruleset() function puts the generated rules code
 #     in this directory if the OUTPUT_DIR param is not specified.
+
+# The user must explicitly set a C++ standard version; to avoid confusion, we do not fall back to a default version.
+if(NOT CMAKE_CXX_STANDARD)
+  message(FATAL_ERROR "CMAKE_CXX_STANDARD is not set!")
+endif()
+
+if(CMAKE_CXX_STANDARD STREQUAL "98")
+  message(FATAL_ERROR "The Gaia Translation Engine requires at least C++11!")
+endif()
+
+# Do not fall back to earlier versions if the compiler doesn't support the standard version.
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(NOT DEFINED GAIA_ROOT)
   set(GAIA_ROOT "/opt/gaia")
@@ -42,13 +54,9 @@ if(NOT DEFINED GAIA_GAIAT_CMD)
   set(GAIA_GAIAT_CMD "${GAIA_BIN}/gaiat")
 endif()
 
-find_library(GAIA_LIB gaia)
+find_library(GAIA_LIB gaia PATHS ${GAIA_LIB_DIR})
 if(NOT GAIA_LIB)
-  if(NOT EXISTS ${GAIA_LIB_DIR}/libgaia.so)
-    message(FATAL_ERROR "${GAIA_LIB_DIR}/libgaia.so not found")
-  endif()
-  add_library(gaia SHARED IMPORTED GLOBAL)
-  set_target_properties(gaia PROPERTIES IMPORTED_LOCATION ${GAIA_LIB_DIR}/libgaia.so)
+  message(FATAL_ERROR "Gaia library is not found!")
 endif()
 
 if(NOT DEFINED GAIA_DEFAULT_DIRECT_ACCESS_GENERATED_DIR)
@@ -230,7 +238,7 @@ function(translate_ruleset)
 
   if(NOT DEFINED ARG_DEPENDS)
     set(ARG_DEPENDS ${GAIA_DIRECT_ACCESS_GENERATION_TARGETS})
-    # This prevents adding the direct access custom targets to the
+    # This prevents adding the Direct Access custom targets to the
     # user target within target_add_gaia_generated_sources().
     set(GAIA_DIRECT_ACCESS_GENERATION_TARGETS "")
   endif()
@@ -262,14 +270,14 @@ endfunction()
 # This function depends on the output of the process_schema() and
 # translate_ruleset() functions.
 function(target_add_gaia_generated_sources TARGET_NAME)
-  # Adds direct access .h header directories
+  # Adds Direct Access .h header directories
   foreach(HEADER_FILE ${GAIA_DIRECT_ACCESS_GENERATED_HEADERS})
     get_filename_component(HEADER_DIR ${HEADER_FILE} DIRECTORY)
     message(STATUS "Adding headers ${HEADER_DIR} to target ${TARGET_NAME}...")
     target_include_directories(${TARGET_NAME} PUBLIC ${HEADER_DIR})
   endforeach()
 
-  # Adds direct access .cpp files
+  # Adds Direct Access .cpp files
   foreach(CPP_FILE ${GAIA_DIRECT_ACCESS_GENERATED_CPP})
     message(STATUS "Adding source ${CPP_FILE} to target ${TARGET_NAME}...")
     target_sources(${TARGET_NAME} PRIVATE ${CPP_FILE})

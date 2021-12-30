@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(rules)
 
 set(GAIA_RULES_INC "${PROJECT_SOURCE_DIR}/inc")

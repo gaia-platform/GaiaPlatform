@@ -6,8 +6,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
+#include "gaia/exceptions.hpp"
 #include "gaia/system.hpp"
 
 #include "gaia_internal/db/gaia_ptr.hpp"
@@ -89,12 +89,18 @@ PYBIND11_MODULE(gaia_db_pybind, m)
     register_exception<gaia::db::no_open_transaction>(m, "transaction_not_open");
     register_exception<gaia::db::transaction_update_conflict>(m, "transaction_update_conflict");
     register_exception<gaia::db::transaction_object_limit_exceeded>(m, "transaction_object_limit_exceeded");
-    register_exception<gaia::db::duplicate_id>(m, "duplicate_id");
+    register_exception<gaia::db::duplicate_object_id>(m, "duplicate_object_id");
     register_exception<gaia::db::out_of_memory>(m, "out_of_memory");
     register_exception<gaia::db::invalid_object_id>(m, "invalid_object_id");
     register_exception<gaia::db::object_still_referenced>(m, "object_still_referenced");
     register_exception<gaia::db::object_too_large>(m, "object_too_large");
-    register_exception<gaia::db::invalid_type>(m, "invalid_type");
+    register_exception<gaia::db::invalid_object_type>(m, "invalid_object_type");
+
+    class_<gaia_id_t>(m, "gaia_id")
+        .def(init([](uint64_t i) { return gaia_id_t(i); }));
+
+    class_<gaia_type_t>(m, "gaia_type")
+        .def(init([](uint32_t i) { return gaia_type_t(i); }));
 
     class_<gaia_ptr_t>(m, "gaia_ptr")
         .def_static(
@@ -106,7 +112,7 @@ PYBIND11_MODULE(gaia_db_pybind, m)
         .def_static(
             "create",
             static_cast<gaia_ptr_t (*)(gaia_id_t, gaia_type_t, reference_offset_t, size_t, const void*)>(&gaia_ptr_t::create))
-        .def_static("open", &gaia_ptr_t::open)
+        .def_static("from_gaia_id", &gaia_ptr_t::from_gaia_id)
         .def_static("find_first", &gaia_ptr_t::find_first)
         .def_static("remove", &gaia_ptr_t::remove)
         .def("is_null", &gaia_ptr_t::is_null)

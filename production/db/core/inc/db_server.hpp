@@ -25,6 +25,7 @@
 #include "memory_manager.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
+#include "txn_metadata.hpp"
 
 namespace gaia
 {
@@ -157,6 +158,8 @@ private:
     // These thread objects are owned by the session thread that created them.
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
 
+    thread_local static inline std::string s_error_message = common::c_empty_string;
+
     // These global timestamp variables are "watermarks" that represent the
     // progress of various system functions with respect to transaction history.
     // The "pre-apply" watermark represents an upper bound on the latest
@@ -168,22 +171,139 @@ private:
     // eligible for GC. GC cannot be started for any committed txn until the
     // post-apply watermark has advanced to its commit_ts. The "post-GC"
     // watermark represents a lower bound on the latest commit_ts whose txn log
-    // could have had GC reclaim all its resources. The txn table cannot be
-    // safely truncated at any timestamp after the post-GC watermark.
+    // could have had GC reclaim all its resources. Finally, the "pre-truncate"
+    // watermark represents an (exclusive) upper bound on the timestamps whose
+    // metadata entries could have had their memory reclaimed (e.g., via
+    // zeroing, unmapping, or overwriting). Any timestamp whose metadata entry
+    // could potentially be dereferenced must be "reserved" via the "safe_ts"
+    // API to prevent the pre-truncate watermark from advancing past it and
+    // allowing its metadata entry to be reclaimed.
     //
     // The pre-apply watermark must either be equal to the post-apply watermark or greater by 1.
     //
     // Schematically:
-    //    commit timestamps of transactions completely garbage-collected
+    //    commit timestamps of transactions whose metadata entries have been reclaimed
+    //  < pre-truncate watermark
+    //    <= commit timestamps of transactions completely garbage-collected
     // <= post-GC watermark
     //    <= commit timestamps of transactions applied to shared view
     // <= post-apply watermark
     //    < commit timestamp of transaction partially applied to shared view
     // <= pre-apply watermark
     //    < commit timestamps of transactions not applied to shared view.
-    static inline std::atomic<gaia_txn_id_t> s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
-    static inline std::atomic<gaia_txn_id_t> s_last_applied_commit_ts_lower_bound = c_invalid_gaia_txn_id;
-    static inline std::atomic<gaia_txn_id_t> s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
+
+    enum class watermark_type_t
+    {
+        pre_apply,
+        post_apply,
+        post_gc,
+        pre_truncate,
+        // This should always be last.
+        count
+    };
+
+    // An array of monotonically nondecreasing timestamps, or "watermarks", that
+    // represent the progress of system maintenance tasks with respect to txn
+    // timestamps. See `watermark_type_t` for a full explanation.
+    static inline std::array<std::atomic<gaia_txn_id_t::value_type>, common::get_enum_value(watermark_type_t::count)> s_watermarks{};
+
+    // A global array in which each session thread publishes a "safe timestamp"
+    // that it needs to protect from memory reclamation. The minimum of all
+    // published "safe timestamps" is an upper bound below which all txn
+    // metadata entries can be safely reclaimed.
+    //
+    // Each thread maintains 2 publication entries rather than 1, in order to
+    // tolerate validation failures. See the reserve_safe_ts() implementation
+    // for a full explanation.
+    //
+    // Before using the safe_ts API, a thread must first reserve an index in
+    // this array using reserve_safe_ts_index(). When a thread is no longer
+    // using the safe_ts API (e.g., at session exit), it should call
+    // release_safe_ts_index() to make this index available for use by other
+    // threads.
+    //
+    // The only clients of the safe_ts API are expected to be session threads,
+    // so we only allocate enough entries for the maximum allowed number of
+    // session threads.
+    static inline std::array<std::array<std::atomic<gaia_txn_id_t::value_type>, 2>, c_session_limit>
+        s_safe_ts_per_thread_entries{};
+
+    // The reserved status of each index into `s_safe_ts_per_thread_entries` is
+    // tracked in this bitmap. Before calling any safe_ts API functions, each
+    // thread must reserve an index by setting a cleared bit in this bitmap.
+    // When it is no longer using the safe_ts API (e.g., at session exit), each
+    // thread should clear the bit that it set.
+    static inline std::array<
+        std::atomic<uint64_t>, s_safe_ts_per_thread_entries.size() / memory_manager::c_uint64_bit_count>
+        s_safe_ts_reserved_indexes_bitmap{};
+
+    static constexpr size_t c_invalid_safe_ts_index{s_safe_ts_per_thread_entries.size()};
+
+    // The current thread's index in `s_safe_ts_per_thread_entries`.
+    thread_local static inline size_t s_safe_ts_index{c_invalid_safe_ts_index};
+
+private:
+    // Returns the current value of the given watermark.
+    static inline gaia_txn_id_t get_watermark(watermark_type_t watermark_type)
+    {
+        return s_watermarks[common::get_enum_value(watermark_type)].load();
+    }
+
+    // Returns a reference to the array entry of the given watermark.
+    static inline std::atomic<gaia_txn_id_t::value_type>& get_watermark_entry(watermark_type_t watermark_type)
+    {
+        return s_watermarks[common::get_enum_value(watermark_type)];
+    }
+
+    // Atomically advances the given watermark to the given timestamp, if the
+    // given timestamp is larger than the watermark's current value. It thus
+    // guarantees that the watermark is monotonically nondecreasing in time.
+    //
+    // Returns true if the watermark was advanced to the given value, false
+    // otherwise.
+    static bool advance_watermark(watermark_type_t watermark_type, gaia_txn_id_t ts);
+
+    // Reserves an index for the current thread in
+    // `s_safe_ts_per_thread_entries`. The entries at this index are read-write
+    // for the current thread and read-only for all other threads.
+    //
+    // Returns true if an index was successfully reserved, false otherwise.
+    static bool reserve_safe_ts_index();
+
+    // Releases the current thread's index in `s_safe_ts_per_thread_entries`,
+    // allowing the entries at that index to be used by other threads.
+    //
+    // This method cannot fail or throw.
+    static void release_safe_ts_index();
+
+    // Reserves a "safe timestamp" that protects its own and all subsequent
+    // metadata entries from memory reclamation, by ensuring that the
+    // pre-truncate watermark can never advance past it until release_safe_ts()
+    // is called on that timestamp.
+    //
+    // Any previously reserved "safe timestamp" value for this thread will be
+    // atomically replaced by the new "safe timestamp" value.
+    //
+    // This operation can fail if post-publication validation fails. See the
+    // reserve_safe_ts() implementation for details.
+    //
+    // Returns true if the given timestamp was successfully reserved, false
+    // otherwise.
+    static bool reserve_safe_ts(gaia_txn_id_t safe_ts);
+
+    // Releases the current thread's "safe timestamp", allowing the pre-truncate
+    // watermark to advance past it, signaling to GC tasks that its metadata
+    // entry is eligible for reclamation.
+    //
+    // This method cannot fail or throw.
+    static void release_safe_ts();
+
+    // This method computes a "safe truncation timestamp", i.e., an (exclusive)
+    // upper bound below which all txn metadata entries can be safely reclaimed.
+    //
+    // The timestamp returned is guaranteed not to exceed any "safe timestamp"
+    // that was reserved before this method was called.
+    static gaia_txn_id_t get_safe_truncation_ts();
 
 private:
     // A list of data mappings that we manage together.
@@ -237,7 +357,7 @@ private:
         {messages::session_state_t::TXN_IN_PROGRESS, messages::session_event_t::COMMIT_TXN, {messages::session_state_t::TXN_COMMITTING, handle_commit_txn}},
         {messages::session_state_t::TXN_COMMITTING, messages::session_event_t::DECIDE_TXN_COMMIT, {messages::session_state_t::CONNECTED, handle_decide_txn}},
         {messages::session_state_t::TXN_COMMITTING, messages::session_event_t::DECIDE_TXN_ABORT, {messages::session_state_t::CONNECTED, handle_decide_txn}},
-        {messages::session_state_t::TXN_COMMITTING, messages::session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE, {messages::session_state_t::CONNECTED, handle_decide_txn}},
+        {messages::session_state_t::TXN_COMMITTING, messages::session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR, {messages::session_state_t::CONNECTED, handle_decide_txn}},
         {messages::session_state_t::ANY, messages::session_event_t::SERVER_SHUTDOWN, {messages::session_state_t::DISCONNECTED, handle_server_shutdown}},
         {messages::session_state_t::ANY, messages::session_event_t::REQUEST_STREAM, {messages::session_state_t::ANY, handle_request_stream}},
     };
@@ -249,8 +369,15 @@ private:
         messages::session_event_t event,
         messages::session_state_t old_state,
         messages::session_state_t new_state,
-        gaia_txn_id_t txn_id = 0,
+        gaia_txn_id_t txn_id = c_invalid_gaia_txn_id,
         size_t log_fds_to_apply_count = 0);
+
+    static void build_server_reply(
+        flatbuffers::FlatBufferBuilder& builder,
+        messages::session_event_t event,
+        messages::session_state_t old_state,
+        messages::session_state_t new_state,
+        const char* error_message);
 
     static void clear_shared_memory();
 
@@ -266,6 +393,8 @@ private:
     // Update in-memory indexes based on the txn log.
     static void update_indexes_from_txn_log();
 
+    // TODO: Remove the apply_logs flag, because a snapshot can't be used
+    // correctly without first applying txn logs up to its begin timestamp.
     static void create_local_snapshot(bool apply_logs);
 
     static void recover_db();
@@ -286,12 +415,17 @@ private:
 
     template <typename T_element>
     static void stream_producer_handler(
-        int stream_socket, int cancel_eventfd, std::shared_ptr<common::iterators::generator_t<T_element>> generator_fn);
+        int stream_socket,
+        int cancel_eventfd,
+        std::shared_ptr<common::iterators::generator_t<T_element>> generator_fn);
 
     template <typename T_element>
-    static void start_stream_producer(int stream_socket, std::shared_ptr<common::iterators::generator_t<T_element>> generator);
+    static void start_stream_producer(
+        int stream_socket,
+        std::shared_ptr<common::iterators::generator_t<T_element>> generator);
 
-    static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> get_id_generator_for_type(common::gaia_type_t type);
+    static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> get_id_generator_for_type(
+        common::gaia_type_t type);
 
     static void get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds);
 
@@ -307,9 +441,7 @@ private:
 
     static void gc_applied_txn_logs();
 
-    static void update_txn_table_safe_truncation_point();
-
-    static bool advance_watermark(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts);
+    static void truncate_txn_table();
 
     static gaia_txn_id_t submit_txn(gaia_txn_id_t begin_ts, int log_fd);
 
@@ -341,6 +473,8 @@ private:
 
     static void deallocate_object(gaia_offset_t offset);
 
+    static char* get_txn_metadata_page_address_from_ts(gaia_txn_id_t ts);
+
     class invalid_log_fd : public common::gaia_exception
     {
     public:
@@ -366,24 +500,97 @@ private:
     class safe_fd_from_ts_t
     {
     public:
-        explicit safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd = true);
+        inline explicit safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd = true);
 
         // The "rule of 3" doesn't apply here because we never pass this object
         // directly to a function; we always extract the safe fd value first.
         safe_fd_from_ts_t() = delete;
         safe_fd_from_ts_t(const safe_fd_from_ts_t&) = delete;
         safe_fd_from_ts_t& operator=(const safe_fd_from_ts_t&) = delete;
-
-        ~safe_fd_from_ts_t();
+        inline ~safe_fd_from_ts_t();
 
         // This is the only public API. Callers are expected to call this method on
         // a stack-constructed instance of the class before they pass an fd to a
         // function that does not expect it to be concurrently closed.
-        int get_fd() const;
+        inline int get_fd() const;
 
     private:
         int m_local_log_fd{-1};
         bool m_auto_close_fd{true};
+    };
+
+    class safe_ts_failure : public common::gaia_exception
+    {
+    };
+
+    // This class enables client code that is scanning a range of txn metadata
+    // to prevent any of that metadata's memory from being reclaimed during the
+    // scan. The client constructs a safe_ts_t object using the timestamp at the
+    // left endpoint of the scan interval, which will prevent the pre-truncate
+    // watermark from advancing past that timestamp until the safe_ts_t object
+    // exits its scope, ensuring that all txn metadata at or after that "safe
+    // timestamp" is protected from memory reclamation for the duration of the
+    // scan.
+    //
+    // The constructor adds its timestamp argument to a thread-local set
+    // containing the timestamps of all currently active safe_ts_t instances
+    // owned by this thread. The minimum timestamp in the set is recomputed, and
+    // if it has changed, the constructor attempts to reserve the new minimum
+    // timestamp for this thread. If reservation fails, then the constructor
+    // throws a `safe_ts_failure` exception.
+    //
+    // The destructor removes the object's timestamp from the thread-local set,
+    // causing the minimum timestamp in the set to be recomputed. If it has
+    // changed, the new minimum timestamp is reserved for this thread.
+    // (Reservation cannot fail, because the previous minimum timestamp must be
+    // smaller than the new minimum timestamp, so the pre-truncate watermark
+    // could not have advanced beyond the new minimum timestamp.)
+    class safe_ts_t
+    {
+    public:
+        inline explicit safe_ts_t(gaia_txn_id_t safe_ts);
+        inline ~safe_ts_t();
+        safe_ts_t() = default;
+        safe_ts_t(const safe_ts_t&) = delete;
+        safe_ts_t& operator=(const safe_ts_t&) = delete;
+        inline safe_ts_t(safe_ts_t&& other) noexcept;
+        inline safe_ts_t& operator=(safe_ts_t&& other) noexcept;
+        inline operator gaia_txn_id_t() const;
+
+    private:
+        // This member is logically immutable, but it cannot be `const` because
+        // it needs to be set to an invalid value by the move
+        // constructor/assignment operator.
+        gaia_txn_id_t m_ts{c_invalid_gaia_txn_id};
+
+        // We keep this vector sorted for fast searches. We add entries by
+        // appending them and remove entries by swapping them with the tail.
+        thread_local static inline std::vector<gaia_txn_id_t> s_safe_ts_values{};
+    };
+
+    // This class can be used in place of safe_ts_t, when the "safe timestamp"
+    // value is just the current value of a watermark. Unlike the safe_ts_t
+    // class, this class's constructor cannot fail, so clients do not need to
+    // handle exceptions from initialization failure. It should be preferred to
+    // safe_ts_t for protecting a range of txn metadata during a scan, whenever
+    // the left endpoint of the scan interval is just the current value of a
+    // watermark.
+    class safe_watermark_t
+    {
+    public:
+        inline explicit safe_watermark_t(watermark_type_t watermark);
+        safe_watermark_t() = delete;
+        ~safe_watermark_t() = default;
+        safe_watermark_t(const safe_watermark_t&) = delete;
+        safe_watermark_t& operator=(const safe_watermark_t&) = delete;
+        safe_watermark_t(safe_watermark_t&&) = delete;
+        safe_watermark_t& operator=(safe_watermark_t&&) = delete;
+        inline operator gaia_txn_id_t() const;
+
+    private:
+        // This member is logically immutable, but it cannot be `const`, because
+        // the constructor needs to move a local variable into it.
+        safe_ts_t m_safe_ts;
     };
 };
 

@@ -10,10 +10,8 @@
 #include <string>
 #include <unordered_map>
 
-#include "gaia/exception.hpp"
-
 #include "gaia_internal/common/debug_logger.hpp"
-#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/exceptions.hpp"
 
 namespace gaia
 {
@@ -118,7 +116,7 @@ private:
     static void create_log_dir_if_not_exists(const char* log_file_path);
     static void uninitialized_failure()
     {
-        throw logger_exception_t("Logger sub-system not initialized!");
+        throw logger_exception_internal();
     }
 
     // Allow debug code to override the loggers.

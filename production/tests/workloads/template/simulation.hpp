@@ -13,7 +13,6 @@
 
 #include <algorithm>
 #include <atomic>
-#include <iostream>
 #include <string>
 #include <thread>
 
@@ -24,6 +23,8 @@
 #include "simulation_exceptions.hpp"
 
 uint64_t generate_unique_millisecond_timestamp();
+extern std::atomic<uint64_t> g_timestamp;
+extern std::atomic<int> g_rule_1_tracker;
 
 class simulation_t
 {
@@ -31,19 +32,21 @@ public:
     // Main entry point.
     int main(int argc, const char** argv);
 
-private:
+protected:
     typedef std::chrono::steady_clock my_clock_t;
     typedef my_clock_t::time_point my_time_point_t;
     typedef std::chrono::duration<double, std::micro> my_duration_in_microseconds_t;
 
+private:
     // Used for conversions.
     const double c_milliseconds_in_second = 1000.0;
     const double c_microseconds_in_second = 1000000.0;
 
     // For any of the pauses, microseconds between checks
     const int c_processing_pause_in_microseconds = 10;
+    const int c_normal_wait_timeout_in_microseconds = 3000;
 
-    // Defaul timeout to use when waiting for actions to complete.
+    // Default timeout to use when waiting for actions to complete.
     const long c_default_processing_complete_timeout_in_microseconds = static_cast<long>(300 * c_microseconds_in_second);
 
     // Main menu commands.
@@ -54,6 +57,8 @@ private:
     static constexpr char c_cmd_wait = 'w';
     static constexpr char c_cmd_test = 't';
     static constexpr char c_cmd_initialize = 'i';
+    static constexpr char c_cmd_state = 's';
+    static constexpr char c_cmd_step_sim = 'z';
 
     // Collected times of various points in the simulation.
     double m_explicit_wait_time_in_microseconds = 0.0;
@@ -109,11 +114,15 @@ private:
     // to do it.
     bool m_has_database_been_initialized = false;
 
+    // The pause mode, either a transaction based wait or an atomic based wait.
+    bool m_use_transaction_wait = true;
+
 private:
     void toggle_measurement();
     void toggle_debug_mode();
+    void toggle_pause_mode();
 
-    void wait_for_processing_to_complete(bool is_explicit_pause, long timeout_in_microseconds);
+    void wait_for_test_processing_to_complete(bool is_explicit_pause, long timeout_in_microseconds);
 
     bool read_input();
     void close_open_log_files();
@@ -127,8 +136,14 @@ private:
     int handle_command_line_arguments(int argc, const char** argv);
 
     int run_simulation();
+    void dump_exception_stack();
+    void handle_multiple_steps(const std::string& input);
+    void simulation_step();
+    int wait_for_step_processing_to_complete(bool is_explicit_pause, int initial_state_tracker, int timeout_in_microseconds);
 
 protected:
+    bool get_use_transaction_wait();
+
     // Number of microseconds to wait before declaring the test dead.
     //
     // Defaults to c_default_processing_complete_timeout_in_microseconds.
@@ -160,4 +175,10 @@ protected:
     // most likely involve opening a transaction, searching for a given object or
     // objects in the database, and checking to see if they are in their final state.
     virtual bool has_test_completed() = 0;
+
+    // For single step tests, perform a single step.
+    virtual my_duration_in_microseconds_t perform_single_step() = 0;
+
+    // For single step tests, note when that single step has completed.
+    virtual bool has_step_completed(int timestamp, int initial_state_tracker) = 0;
 };

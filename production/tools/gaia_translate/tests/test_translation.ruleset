@@ -3,11 +3,11 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia/logger.hpp"
-#include "gaia/events.hpp"
-
 #include <atomic>
 #include <stdexcept>
+
+#include "gaia/logger.hpp"
+#include "gaia/rules/rules.hpp"
 
 std::atomic<int32_t> g_rule_called;
 std::atomic<int32_t> g_insert_called;
@@ -62,12 +62,12 @@ ruleset test
             g_actuator_rule_called++;
         }
 
-        if ((const gaia::db::triggers::event_type_t)rule_context.event_type == gaia::db::triggers::event_type_t::row_insert)
+        if (rule_context.event_type == gaia::db::triggers::event_type_t::row_insert)
         {
             g_insert_called++;
         }
 
-        if ((const gaia::db::triggers::event_type_t)rule_context.event_type == gaia::db::triggers::event_type_t::row_update)
+        if (rule_context.event_type == gaia::db::triggers::event_type_t::row_update)
         {
             if (s.value > 5)
             {
@@ -316,6 +316,31 @@ ruleset testE32
             {
             }
         }
+    }
+}
+
+// GAIAPLAT-1241
+// Make event_type field to be an actual event_type_t type when needed.
+ruleset testE33
+{
+    on_insert(incubator)
+    {
+        gaia_log::app().info("{} {} {} {}",
+            rule_context.ruleset_name,
+            rule_context.rule_name,
+            gaia::db::triggers::event_type_name(rule_context.event_type),
+            rule_context.gaia_type);
+    }
+}
+
+// GAIAPLAT-1730
+#define TEST 5.0
+ruleset test_define
+{
+    on_update(actuator.timestamp)
+    {
+        actuator.value = TEST;
+        use_float(TEST);
     }
 }
 

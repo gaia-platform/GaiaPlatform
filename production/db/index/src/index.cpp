@@ -22,6 +22,14 @@ namespace db
 namespace index
 {
 
+index_key_t::index_key_t(const index_key_schema_t& key_schema, const uint8_t* payload)
+{
+    for (field_position_t pos : key_schema.field_positions)
+    {
+        insert(payload_types::get_field_value(key_schema.table_type, payload, key_schema.binary_schema->data(), key_schema.binary_schema->size(), pos));
+    }
+}
+
 int index_key_t::compare(const index_key_t& other) const
 {
     ASSERT_PRECONDITION(
@@ -89,7 +97,7 @@ const std::vector<gaia::db::payload_types::data_holder_t>& index_key_t::values()
 * Combine hash of all data holders in this key.
 * Repeatedly concatenate hash values and rehash.
 */
-std::size_t index_key_hash::operator()(index_key_t const& key) const
+gaia::db::payload_types::data_hash_t index_key_hash::operator()(index_key_t const& key) const
 {
     constexpr size_t c_hash_concat_buffer_elems = 2;
     constexpr size_t c_hash_seed = 0x9e3779b9;
@@ -123,6 +131,8 @@ std::ostream& operator<<(std::ostream& os, const index_record_t& record)
        << record.offset
        << " operation: "
        << get_enum_value(record.operation)
+       << " flags: "
+       << record.flags
        << "]";
     return os;
 }

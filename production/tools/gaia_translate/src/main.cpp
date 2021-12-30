@@ -28,8 +28,9 @@
 
 #include "gaia_internal/common/gaia_version.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
-#include "gaia_internal/db/gaia_db_internal.hpp"
+#include "gaia_internal/rules/exceptions.hpp"
 
 #include "diagnostics.h"
 #include "table_navigation.h"
@@ -61,7 +62,7 @@ cl::opt<bool> g_help_option_alias("h", cl::desc("Alias for -help"), cl::ValueDis
 // The number of source files is enforced manually instead of using llvm::cl parameters.
 cl::list<std::string> g_source_files(cl::Positional, cl::desc("<sourceFile>"), cl::ZeroOrMore, cl::cat(g_translation_engine_category));
 
-cl::opt<std::string> g_instance_name("n", cl::desc("DB instance name"), cl::Optional, cl::cat(g_translation_engine_category));
+cl::opt<std::string> g_instance_name("n", cl::desc("DB instance name"), cl::Optional, cl::Hidden, cl::cat(g_translation_engine_category));
 
 std::string g_current_ruleset;
 std::string g_current_ruleset_serial_group;
@@ -746,7 +747,7 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
                         }
                         else
                         {
-                            gaiat::diag().emit(diag::err_edc_init);
+                            gaiat::diag().emit(diag::err_dac_init);
                             g_is_generation_error = true;
                             return;
                         }
@@ -2119,10 +2120,17 @@ public:
                             + field_name
                             + ";}()")
                                .str();
-        m_rewriter.InsertTextAfterToken(op->getEndLoc(), replacement_text);
-        g_rewriter_history.push_back({SourceRange(op->getEndLoc()), replacement_text, insert_text_after_token});
+        SourceLocation operator_end_location = op->getEndLoc();
+        SourceRange operator_source_range = get_statement_source_range(op, m_rewriter.getSourceMgr(), m_rewriter.getLangOpts());
+        if (operator_source_range.isValid() && operator_source_range.getEnd() < operator_end_location)
+        {
+            operator_end_location = operator_source_range.getEnd().getLocWithOffset(-2);
+        }
 
-        auto offset = Lexer::MeasureTokenLength(op->getEndLoc(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
+        m_rewriter.InsertTextAfterToken(operator_end_location, replacement_text);
+        g_rewriter_history.push_back({SourceRange(operator_end_location), replacement_text, insert_text_after_token});
+
+        auto offset = Lexer::MeasureTokenLength(operator_end_location, m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
         if (!explicit_path_present)
         {
             update_expression_used_tables(
@@ -2130,7 +2138,7 @@ public:
                 op,
                 table_name,
                 variable_name,
-                SourceRange(set_source_range.getBegin(), op->getEndLoc().getLocWithOffset(offset)),
+                SourceRange(set_source_range.getBegin(), operator_end_location.getLocWithOffset(offset)),
                 m_rewriter);
         }
         else
@@ -3645,8 +3653,6 @@ public:
             {
                 output_file << "#include <cstring>\n";
                 output_file << "\n";
-                output_file << "#include \"gaia/common.hpp\"\n";
-                output_file << "#include \"gaia/events.hpp\"\n";
                 output_file << "#include \"gaia/rules/rules.hpp\"\n";
                 output_file << "\n";
                 for (const auto& db_iterator : g_used_dbs)
@@ -3689,13 +3695,24 @@ public:
     {
         m_rewriter.setSourceMgr(compiler.getSourceManager(), compiler.getLangOpts());
         g_diagnostic_consumer.set_rewriter(&m_rewriter);
-        g_diag_ptr = std::make_unique<diagnostic_context_t>(compiler.getSourceManager().getDiagnostics());
+
+        DiagnosticsEngine& compiler_diagnostic_engine = compiler.getSourceManager().getDiagnostics();
+        m_diagnostics_engine = std::make_unique<DiagnosticsEngine>(
+            compiler_diagnostic_engine.getDiagnosticIDs(),
+            &compiler_diagnostic_engine.getDiagnosticOptions(),
+            compiler_diagnostic_engine.getClient(),
+            false);
+        m_diagnostics_source_manager = std::make_unique<SourceManager>(*m_diagnostics_engine, compiler.getFileManager(), false);
+
+        g_diag_ptr = std::make_unique<diagnostic_context_t>(m_diagnostics_source_manager->getDiagnostics());
         return std::unique_ptr<clang::ASTConsumer>(
             new translation_engine_consumer_t(&compiler.getASTContext(), m_rewriter));
     }
 
 private:
     Rewriter m_rewriter;
+    std::unique_ptr<SourceManager> m_diagnostics_source_manager;
+    std::unique_ptr<DiagnosticsEngine> m_diagnostics_engine;
 };
 
 int main(int argc, const char** argv)
@@ -3724,7 +3741,7 @@ int main(int argc, const char** argv)
 
     cl::PrintOptionValues();
 
-    if (g_help_option_alias)
+    if (g_help_option_alias || argc == 1)
     {
         // -help-list is omitted from the output because the categorized mode of PrintHelpMessage() behaves the same as -help-list.
         // This is the only way -h and -help differ.
@@ -3749,7 +3766,6 @@ int main(int argc, const char** argv)
 
     if (!g_instance_name.empty())
     {
-        llvm::errs() << "Using session name: " << g_instance_name.getValue() << "\n";
         ::gaia::db::config::session_options_t session_options = ::gaia::db::config::get_default_session_options();
         session_options.db_instance_name = g_instance_name.getValue();
         session_options.skip_catalog_integrity_check = false;

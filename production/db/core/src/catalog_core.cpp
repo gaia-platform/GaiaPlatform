@@ -6,17 +6,12 @@
 #include "gaia_internal/db/catalog_core.hpp"
 
 #include <optional>
-#include <sstream>
-#include <string>
-#include <vector>
 
 #include "gaia/common.hpp"
 
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
-#include "gaia_internal/db/db_types.hpp"
 
-#include "db_helpers.hpp"
 #include "db_object_helpers.hpp"
 #include "gaia_field_generated.h"
 #include "gaia_index_generated.h"
@@ -71,14 +66,14 @@ namespace db
     return catalog::Getgaia_relationship(m_obj_ptr->data())->name()->c_str();
 }
 
-[[nodiscard]] const char* relationship_view_t::to_child_name() const
+[[nodiscard]] const char* relationship_view_t::to_parent_link_name() const
 {
-    return catalog::Getgaia_relationship(m_obj_ptr->data())->to_child_name()->c_str();
+    return catalog::Getgaia_relationship(m_obj_ptr->data())->to_parent_link_name()->c_str();
 }
 
-[[nodiscard]] const char* relationship_view_t::to_parent_name() const
+[[nodiscard]] const char* relationship_view_t::to_child_link_name() const
 {
-    return catalog::Getgaia_relationship(m_obj_ptr->data())->to_parent_name()->c_str();
+    return catalog::Getgaia_relationship(m_obj_ptr->data())->to_child_link_name()->c_str();
 }
 
 [[nodiscard]] reference_offset_t relationship_view_t::first_child_offset() const
@@ -89,6 +84,11 @@ namespace db
 [[nodiscard]] reference_offset_t relationship_view_t::next_child_offset() const
 {
     return catalog::Getgaia_relationship(m_obj_ptr->data())->next_child_offset();
+}
+
+[[nodiscard]] reference_offset_t relationship_view_t::prev_child_offset() const
+{
+    return catalog::Getgaia_relationship(m_obj_ptr->data())->prev_child_offset();
 }
 
 [[nodiscard]] reference_offset_t relationship_view_t::parent_offset() const
@@ -116,6 +116,11 @@ namespace db
     return catalog::Getgaia_relationship(m_obj_ptr->data())->child_field_positions();
 }
 
+[[nodiscard]] bool relationship_view_t::is_value_linked() const
+{
+    return parent_field_positions() != nullptr && parent_field_positions()->size() > 0;
+}
+
 [[nodiscard]] const char* index_view_t::name() const
 {
     return catalog::Getgaia_index(m_obj_ptr->data())->name()->c_str();
@@ -134,7 +139,11 @@ namespace db
 
 [[nodiscard]] const flatbuffers::Vector<common::gaia_id_t>* index_view_t::fields() const
 {
-    return catalog::Getgaia_index(m_obj_ptr->data())->fields();
+    // This cast works because a gaia_id_t is a thin wrapper over uint64_t,
+    // but its success is not guaranteed by the language and is undefined behavior (UB).
+    // TODO: Replace reinterpret_cast with bit_cast when it becomes available.
+    return reinterpret_cast<const flatbuffers::Vector<common::gaia_id_t>*>(
+        catalog::Getgaia_index(m_obj_ptr->data())->fields());
 }
 
 [[nodiscard]] gaia_id_t index_view_t::table_id() const
@@ -169,7 +178,8 @@ std::optional<table_view_t> table_generator_t::operator()()
 table_list_t
 catalog_core_t::list_tables()
 {
-    auto gaia_ptr_iterator = table_generator_t(gaia_ptr_t::find_all_iterator(static_cast<gaia_type_t>(catalog_table_type_t::gaia_table)));
+    auto gaia_ptr_iterator = table_generator_t(gaia_ptr_t::find_all_iterator(
+        static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_table)));
     return range_from_generator(gaia_ptr_iterator);
 }
 

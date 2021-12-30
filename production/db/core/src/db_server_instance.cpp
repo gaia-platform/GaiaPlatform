@@ -23,12 +23,12 @@
 #include "gaia/db/db.hpp"
 
 #include "gaia_internal/common/config.hpp"
-#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/logger.hpp"
 #include "gaia_internal/common/random.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_error.hpp"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
-#include "gaia_internal/db/gaia_db_internal.hpp"
 
 #include "gaia_spdlog/fmt/fmt.h"
 
@@ -43,7 +43,17 @@ namespace gaia
 namespace db
 {
 
-server_instance_config_t gaia::db::server_instance_config_t::get_default()
+server_instance_config_t gaia::db::server_instance_config_t::get_default_config()
+{
+    return server_instance_config_t{
+        .server_exec_path = find_server_path(),
+        .instance_name = c_default_instance_name,
+        .disable_persistence = true,
+        .skip_catalog_integrity_check = false,
+        .data_dir = ""};
+}
+
+server_instance_config_t gaia::db::server_instance_config_t::get_new_instance_config()
 {
     return server_instance_config_t{
         .server_exec_path = find_server_path(),

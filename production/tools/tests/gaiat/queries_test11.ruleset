@@ -17,4 +17,4 @@ ruleset test43
     }
 }
 
-// CHECK: Initialization of a declared variable with a direct access object is not supported.
+// CHECK: Initialization of a declared variable with a Direct Access object is not supported.

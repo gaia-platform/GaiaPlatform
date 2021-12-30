@@ -4,7 +4,8 @@
 #############################################
 
 # Turn debug on.
-D
+# D
+i
 # Turn off transaction mode for the pause.
 p
 # Wait 5 milliseconds to allow the turn on effects to finish.
@@ -14,3 +15,5 @@ o
 z1023
 o
 # end
+w1000
+s

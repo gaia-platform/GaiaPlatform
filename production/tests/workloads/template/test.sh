@@ -21,7 +21,7 @@ complete_process() {
         echo "$COMPLETE_REASON"
     fi
 
-    if [ "$SCRIPT_RETURN_CODE" -ne 2 ]; then
+    if [ "$SCRIPT_RETURN_CODE" -ne 2 ] && [ "$SCRIPT_RETURN_CODE" -ne 4 ] ; then
         copy_test_output
 
         exec_summarize_test_results "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"
@@ -157,9 +157,32 @@ parse_command_line() {
     if [[ ! "${PARAMS[0]}" == "" ]]; then
         TEST_MODE=${PARAMS[0]}
     fi
+
+    verify_test_directory_exists
+}
+
+# Before getting to far, validate that the test directory exists
+# and has the required files.
+verify_test_directory_exists() {
+    local DID_FAIL=0
+
     TEST_SOURCE_DIRECTORY=$SCRIPTPATH/tests/$TEST_MODE
-    if [ ! -f "$TEST_SOURCE_DIRECTORY/commands.txt" ]; then
-        complete_process 1 "Test mode directory '$(realpath "$TEST_SOURCE_DIRECTORY")' does not contain a 'commands.txt' file."
+    if [ ! -d "$TEST_SOURCE_DIRECTORY" ]; then
+        echo "Test mode directory '$(realpath "$TEST_SOURCE_DIRECTORY")' does not exist."
+        DID_FAIL=1
+    elif [ ! -f "$TEST_SOURCE_DIRECTORY/commands.txt" ]; then
+        echo "Test mode directory '$(realpath "$TEST_SOURCE_DIRECTORY")' does not contain a 'commands.txt' file."
+        DID_FAIL=1
+    fi
+    if [ $DID_FAIL -ne 0 ]; then
+        if [ "$(ls -A "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")" ] ; then
+            # shellcheck disable=SC2115
+            if ! rm -rf "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY"/* > "$TEMP_FILE" 2>&1; then
+                cat "$TEMP_FILE"
+                echo "Intermediate test results directory '$(realpath "$SCRIPTPATH/$TEST_RESULTS_DIRECTORY")' could not be reset."
+            fi
+        fi
+        complete_process 4
     fi
 }
 
@@ -388,17 +411,17 @@ execute_test_workflow() {
 
     echo " { \"return-code\" : $DID_FAIL }" > "$TEST_RESULTS_DIRECTORY/return_code.json"
 
-
     # Make sure to calculate the runtime and store it in the `duration.json` file.
+    # Note: the Python Json reader cannot parse a floating point value that does not
+    #       have a `0` before it.  The `if` statement adds that required `0`.
     TEST_RUNTIME=$( echo "$TEST_END_MARK - $TEST_START_MARK" | bc -l )
-
-    echo "Test executed in $TEST_RUNTIME ms."
     if [[ "$TEST_RUNTIME" == .* ]] ; then
         TEST_RUNTIME=0$TEST_RUNTIME
     fi
 
     echo "Test executed in $TEST_RUNTIME ms."
     echo " { \"duration\" : $TEST_RUNTIME }" > "$TEST_RESULTS_DIRECTORY/duration.json"
+
     if [ "$DID_FAIL" -ne 0 ]; then
         if [ "$VERY_VERBOSE_MODE" -eq 0 ]; then
             cat "$TEMP_FILE"
@@ -409,11 +432,11 @@ execute_test_workflow() {
 
     # If there is an expected output file, figure out if the expected results and
     # the actual output match.
-    if [ -f "tests/$TEST_MODE/expected_output.json" ] && [ -f "$BUILD_DIRECTORY/output.json" ]; then
+    if [ -f "tests/$TEST_MODE/expected_output.json" ] && [ -f "$TEST_RESULTS_DIRECTORY/output.json" ]; then
         if [ "$VERBOSE_MODE" -ne 0 ]; then
             echo "Verifying expected results against actual results."
         fi
-        if ! diff -w "tests/$TEST_MODE/expected_output.json" "$BUILD_DIRECTORY/output.json" > "$TEST_RESULTS_DIRECTORY/expected.diff" 2>&1 ; then
+        if ! diff -w "tests/$TEST_MODE/expected_output.json" "$TEST_RESULTS_DIRECTORY/output.json" > "$TEST_RESULTS_DIRECTORY/expected.diff" 2>&1 ; then
             echo "Test results were not as expected."
             echo "Differences between expected and actual results located at: $(realpath "$TEST_RESULTS_DIRECTORY/expected.diff")"
             complete_process 6

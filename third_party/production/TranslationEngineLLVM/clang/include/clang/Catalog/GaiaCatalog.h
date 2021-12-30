@@ -53,10 +53,13 @@ public:
         ensureInitialization();
         return catalogTableData;
     }
+    static bool findNavigationPath(llvm::StringRef src, llvm::StringRef dst, llvm::SmallVector<string, 8>& currentPath, bool reportErrors = true);
 
 private:
     static void ensureInitialization();
     static void fillTableData();
+    static bool findNavigationPath(llvm::StringRef src, llvm::StringRef dst, llvm::SmallVector<string, 8>& currentPath, const llvm::StringMap<clang::gaia::catalog::CatalogTableData>& graphData);
+    static llvm::StringRef getClosestTable(const llvm::StringMap<int>& tableDistance);
     static bool isInitialized;
     static llvm::StringMap<CatalogTableData> catalogTableData;
 };

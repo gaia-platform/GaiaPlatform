@@ -19,21 +19,22 @@
 
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
+#include <sys/mman.h>
 
 #include "gaia/exceptions.hpp"
 
-#include "gaia_internal/common/memory_allocation_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/socket_helpers.hpp"
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_object.hpp"
-#include "gaia_internal/db/gaia_db_internal.hpp"
 #include "gaia_internal/db/index_builder.hpp"
 
 #include "gaia_spdlog/fmt/fmt.h"
 
+#include "bitmap.hpp"
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
 #include "memory_helpers.hpp"
@@ -82,91 +83,6 @@ static constexpr char c_message_validating_txn_should_have_been_validated[]
 static constexpr char c_message_preceding_txn_should_have_been_validated[]
     = "A transaction with commit timestamp preceding this transaction's begin timestamp is undecided!";
 static constexpr char c_message_unexpected_query_type[] = "Unexpected query type!";
-
-server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd)
-    : m_auto_close_fd(auto_close_fd)
-{
-    ASSERT_PRECONDITION(
-        txn_metadata_t::is_commit_ts(commit_ts),
-        "You must initialize safe_fd_from_ts_t from a valid commit_ts!");
-
-    // If the log fd was invalidated, it is either closed or soon will
-    // be closed, and therefore we cannot use it. We return early if the
-    // fd has already been invalidated to avoid the dup(2) call.
-    int log_fd = txn_metadata_t::get_txn_log_fd(commit_ts);
-    if (log_fd == -1)
-    {
-        throw invalid_log_fd(commit_ts);
-    }
-
-    // To avoid races from the log fd being closed out from under us by a
-    // concurrent updater, we first dup(2) the fd, and then if the dup was
-    // successful, test the log fd entry again to ensure we aren't reusing a
-    // closed log fd. If the log fd was invalidated, then we need to close our
-    // dup fd and return false.
-    try
-    {
-        m_local_log_fd = common::duplicate_fd(log_fd);
-    }
-    catch (const common::system_error& e)
-    {
-        // The log fd was already closed by another thread (after being
-        // invalidated).
-        // NB: This does not handle the case of the log fd being closed and then
-        // reused before our dup(2) call. That case is handled below, where we
-        // check for invalidation.
-        if (e.get_errno() == EBADF)
-        {
-            // The log fd must have been invalidated before it was closed.
-            ASSERT_INVARIANT(
-                txn_metadata_t::get_txn_log_fd(commit_ts) == -1,
-                "log fd was closed without being invalidated!");
-
-            // We lost the race because the log fd was invalidated and closed after our check.
-            throw invalid_log_fd(commit_ts);
-        }
-        else
-        {
-            throw;
-        }
-    }
-
-    // If we were able to duplicate the log fd, check to be sure it
-    // wasn't invalidated (and thus possibly closed and reused before
-    // the call to dup(2)), so we know we aren't reusing a closed fd.
-    if (txn_metadata_t::get_txn_log_fd(commit_ts) == -1)
-    {
-        // If we got here, we must have a valid dup fd.
-        ASSERT_INVARIANT(
-            common::is_fd_valid(m_local_log_fd),
-            "fd should be valid if dup() succeeded!");
-
-        // We need to close the duplicated fd because the original fd
-        // might have been reused and we would leak it otherwise
-        // (because the destructor isn't called if the constructor
-        // throws).
-        common::close_fd(m_local_log_fd);
-        throw invalid_log_fd(commit_ts);
-    }
-}
-
-server_t::safe_fd_from_ts_t::~safe_fd_from_ts_t()
-{
-    // Ensure we close the dup log fd. If the original log fd was closed
-    // already (indicated by get_txn_log_fd() returning -1), this will free
-    // the shared-memory object referenced by the fd.
-    if (m_auto_close_fd)
-    {
-        // If the constructor fails, this will handle an invalid fd (-1)
-        // correctly.
-        common::close_fd(m_local_log_fd);
-    }
-}
-
-int server_t::safe_fd_from_ts_t::get_fd() const
-{
-    return m_local_log_fd;
-}
 
 void server_t::handle_connect(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
@@ -228,7 +144,8 @@ void server_t::handle_begin_txn(
     // number of log fds on the initial reply message.
     int log_fd = s_log.fd();
     FlatBufferBuilder builder;
-    build_server_reply(builder, session_event_t::BEGIN_TXN, old_state, new_state, s_txn_id, txn_log_fds_for_snapshot.size());
+    build_server_reply(
+        builder, session_event_t::BEGIN_TXN, old_state, new_state, s_txn_id, txn_log_fds_for_snapshot.size());
     send_msg_with_fds(s_session_socket, &log_fd, 1, builder.GetBufferPointer(), builder.GetSize());
 
     // Send all txn log fds to the client in an additional sequence of dummy messages.
@@ -239,7 +156,8 @@ void server_t::handle_begin_txn(
     {
         size_t fds_to_send_count = std::min(c_max_fd_count, txn_log_fds_for_snapshot.size() - fds_sent_count);
         send_msg_with_fds(
-            s_session_socket, txn_log_fds_for_snapshot.data() + fds_sent_count, fds_to_send_count, msg_buf, sizeof(msg_buf));
+            s_session_socket, txn_log_fds_for_snapshot.data() + fds_sent_count, fds_to_send_count,
+            msg_buf, sizeof(msg_buf));
         fds_sent_count += fds_to_send_count;
     }
 }
@@ -250,20 +168,21 @@ void server_t::txn_begin(std::vector<int>& txn_log_fds_for_snapshot)
     s_txn_id = txn_metadata_t::register_begin_ts();
 
     // The begin_ts returned by register_begin_ts() should always be valid because it
-    // retries on concurrent invalidation.
+    // retries if it is concurrently sealed.
     ASSERT_INVARIANT(s_txn_id != c_invalid_gaia_txn_id, "Begin timestamp is invalid!");
 
     // Ensure that there are no undecided txns in our snapshot window.
-    validate_txns_in_range(s_last_applied_commit_ts_upper_bound + 1, s_txn_id);
+    safe_watermark_t pre_apply_watermark(watermark_type_t::pre_apply);
+    validate_txns_in_range(static_cast<gaia_txn_id_t>(pre_apply_watermark) + 1, s_txn_id);
 
     get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds_for_snapshot);
 
     // Allocate the txn log fd on the server, for rollback-safety if the client session crashes.
-    s_log.create(gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
+    s_log.create(
+        gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
 
     // Update the log header with our begin timestamp and initialize it to empty.
     s_log.data()->begin_ts = s_txn_id;
-    s_log.data()->current_chunk = c_invalid_chunk_offset;
     s_log.data()->record_count = 0;
 }
 
@@ -275,8 +194,8 @@ void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<
     // begin_ts, stopping either just before the saved watermark or at the first
     // commit_ts whose log fd has been invalidated. This avoids having our scan
     // race the concurrently advancing watermark.
-    gaia_txn_id_t last_known_applied_commit_ts = s_last_applied_commit_ts_lower_bound;
-    for (gaia_txn_id_t ts = begin_ts - 1; ts > last_known_applied_commit_ts; --ts)
+    safe_watermark_t post_apply_watermark(watermark_type_t::post_apply);
+    for (gaia_txn_id_t ts = begin_ts - 1; ts > static_cast<gaia_txn_id_t>(post_apply_watermark); --ts)
     {
         if (txn_metadata_t::is_commit_ts(ts))
         {
@@ -355,16 +274,18 @@ void server_t::handle_commit_txn(
         bool success = txn_commit();
         decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
     }
-    catch (const index::unique_constraint_violation& e)
+    catch (const pre_commit_validation_failure& e)
     {
-        // Rollback our transaction in case of constraint violations.
-        // This is because such failures happen in the early pre-commit phase.
+        // Rollback our transaction in case of pre-commit errors.
         txn_rollback();
 
-        decision = session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE;
+        // Save the error message so we can transmit it to the client.
+        s_error_message = e.what();
+
+        decision = session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR;
     }
 
-    // Server-initiated state transition! (Any issues with reentrant handlers?)
+    // REVIEW: This is the only reentrant transition handler, and the only server-side state transition.
     apply_transition(decision, nullptr, nullptr, 0);
 }
 
@@ -374,7 +295,7 @@ void server_t::handle_decide_txn(
     ASSERT_PRECONDITION(
         event == session_event_t::DECIDE_TXN_COMMIT
             || event == session_event_t::DECIDE_TXN_ABORT
-            || event == session_event_t::DECIDE_TXN_ROLLBACK_UNIQUE,
+            || event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR,
         c_message_unexpected_event_received);
 
     ASSERT_PRECONDITION(
@@ -385,12 +306,20 @@ void server_t::handle_decide_txn(
     // returned, but we don't close the log fd (even for an abort decision),
     // because GC needs the log in order to properly deallocate all allocations
     // made by this txn when they become obsolete.
-    auto cleanup = make_scope_guard([&]() {
-        s_txn_id = c_invalid_gaia_txn_id;
-    });
+    auto cleanup = make_scope_guard([&]() { s_txn_id = c_invalid_gaia_txn_id; });
 
     FlatBufferBuilder builder;
-    build_server_reply(builder, event, old_state, new_state, s_txn_id);
+    if (event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR)
+    {
+        build_server_reply(builder, event, old_state, new_state, s_error_message.c_str());
+
+        // Clear error information.
+        s_error_message = c_empty_string;
+    }
+    else
+    {
+        build_server_reply(builder, event, old_state, new_state, s_txn_id, 0);
+    }
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
     // Update watermarks and perform associated maintenance tasks. This will
@@ -466,11 +395,11 @@ std::pair<int, int> server_t::get_stream_socket_pair()
 
     auto [client_socket, server_socket] = socket_pair;
     // We need to use the initializer + mutable hack to capture structured bindings in a lambda.
-    auto socket_cleanup = make_scope_guard([client_socket = client_socket,
-                                            server_socket = server_socket]() mutable {
-        close_fd(client_socket);
-        close_fd(server_socket);
-    });
+    auto socket_cleanup = make_scope_guard(
+        [client_socket = client_socket, server_socket = server_socket]() mutable {
+            close_fd(client_socket);
+            close_fd(server_socket);
+        });
 
     // Set server socket to be nonblocking, because we use it within an epoll loop.
     set_non_blocking(server_socket);
@@ -498,12 +427,8 @@ void server_t::handle_request_stream(
     // The client socket should unconditionally be closed on exit because it's
     // duplicated when passed to the client and we no longer need it on the
     // server.
-    auto client_socket_cleanup = make_scope_guard([&]() {
-        close_fd(client_socket);
-    });
-    auto server_socket_cleanup = make_scope_guard([&]() {
-        close_fd(server_socket);
-    });
+    auto client_socket_cleanup = make_scope_guard([&]() { close_fd(client_socket); });
+    auto server_socket_cleanup = make_scope_guard([&]() { close_fd(server_socket); });
 
     auto request = static_cast<const client_request_t*>(event_data);
 
@@ -545,13 +470,13 @@ void server_t::handle_request_stream(
                 if (query_type == index_query_t::index_point_read_query_t)
                 {
                     auto query = request_data->query_as_index_point_read_query_t();
-                    auto key_buffer = data_read_buffer_t(*(query->key()));
+                    auto key_buffer = payload_types::data_read_buffer_t(*(query->key()));
                     key = index::index_builder_t::deserialize_key(index_id, key_buffer);
                 }
                 else
                 {
                     auto query = request_data->query_as_index_equal_range_query_t();
-                    auto key_buffer = data_read_buffer_t(*(query->key()));
+                    auto key_buffer = payload_types::data_read_buffer_t(*(query->key()));
                     key = index::index_builder_t::deserialize_key(index_id, key_buffer);
                 }
             }
@@ -630,7 +555,24 @@ void server_t::build_server_reply(
     flatbuffers::Offset<server_reply_t> server_reply;
     const auto transaction_info = Createtransaction_info_t(builder, txn_id, log_fds_to_apply_count);
     server_reply = Createserver_reply_t(
-        builder, event, old_state, new_state, reply_data_t::transaction_info, transaction_info.Union());
+        builder, event, old_state, new_state,
+        reply_data_t::transaction_info, transaction_info.Union());
+    const auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
+    builder.Finish(message);
+}
+
+void server_t::build_server_reply(
+    FlatBufferBuilder& builder,
+    session_event_t event,
+    session_state_t old_state,
+    session_state_t new_state,
+    const char* error_message)
+{
+    flatbuffers::Offset<server_reply_t> server_reply;
+    const auto transaction_error = Createtransaction_error_tDirect(builder, error_message);
+    server_reply = Createserver_reply_t(
+        builder, event, old_state, new_state,
+        reply_data_t::transaction_error, transaction_error.Union());
     const auto message = Createmessage_t(builder, any_message_t::reply, server_reply.Union());
     builder.Finish(message);
 }
@@ -653,9 +595,10 @@ void server_t::init_shared_memory()
     txn_metadata_t::init_txn_metadata_map();
 
     // Initialize watermarks.
-    s_last_applied_commit_ts_upper_bound = c_invalid_gaia_txn_id;
-    s_last_applied_commit_ts_lower_bound = c_invalid_gaia_txn_id;
-    s_last_freed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
+    for (auto& elem : s_watermarks)
+    {
+        std::atomic_init(&elem, c_invalid_gaia_txn_id.value());
+    }
 
     // We may be reinitializing the server upon receiving a SIGHUP.
     clear_shared_memory();
@@ -712,7 +655,7 @@ void server_t::init_memory_manager(bool initializing)
         memory_manager::chunk_offset_t chunk_offset = s_memory_manager.allocate_chunk();
         if (chunk_offset == c_invalid_chunk_offset)
         {
-            throw memory_allocation_error("Memory manager ran out of memory during call to allocate_chunk().");
+            throw memory_allocation_error_internal();
         }
         s_chunk_manager.initialize(chunk_offset);
     }
@@ -768,11 +711,12 @@ void server_t::init_indexes()
     }
 
     auto cleanup = make_scope_guard([]() { end_startup_txn(); });
+
     // Allocate new txn id for initializing indexes.
     begin_startup_txn();
 
     gaia_locator_t locator = c_invalid_gaia_locator;
-    gaia_locator_t last_locator = s_shared_counters.data()->last_locator;
+    gaia_locator_t last_locator = s_shared_counters.data()->last_locator.load();
 
     // Create initial index data structures.
     for (const auto& table : catalog_core_t::list_tables())
@@ -806,7 +750,7 @@ void server_t::init_indexes()
 
         for (const auto& index : catalog_core_t::list_indexes(type_record_id))
         {
-            index::index_builder_t::populate_index(index.id(), obj->type, locator);
+            index::index_builder_t::populate_index(index.id(), locator);
         }
     }
 }
@@ -818,7 +762,7 @@ void server_t::update_indexes_from_txn_log()
 
     create_local_snapshot(replay_logs);
     auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
-    index::index_builder_t::update_indexes_from_logs(*s_log.data(), s_server_conf.skip_catalog_integrity_checks());
+    index::index_builder_t::update_indexes_from_txn_log(*s_log.data(), s_server_conf.skip_catalog_integrity_checks());
 }
 
 void server_t::recover_db()
@@ -830,7 +774,11 @@ void server_t::recover_db()
         // in which case we need to recover from the original persistent image.
         if (!s_persistent_store)
         {
-            s_persistent_store = std::make_unique<gaia::db::persistent_store_manager>(get_counters(), s_server_conf.data_dir());
+            auto cleanup = make_scope_guard([]() { end_startup_txn(); });
+            begin_startup_txn();
+
+            s_persistent_store = std::make_unique<gaia::db::persistent_store_manager>(
+                get_counters(), s_server_conf.data_dir());
             if (s_server_conf.persistence_mode() == persistence_mode_t::e_reinitialized_on_startup)
             {
                 s_persistent_store->destroy_persistent_store();
@@ -850,24 +798,33 @@ void server_t::recover_db()
 
 gaia_txn_id_t server_t::begin_startup_txn()
 {
+    // Reserve an index in the safe_ts array, so the main thread can execute
+    // post-commit maintenance tasks after the recovery txn commits.
+    bool reservation_succeeded = reserve_safe_ts_index();
+    // The reservation must have succeeded because we are the first thread to
+    // reserve an index.
+    ASSERT_POSTCONDITION(reservation_succeeded, "The main thread cannot fail to reserve a safe_ts index!");
     s_txn_id = txn_metadata_t::register_begin_ts();
+    s_log.create(
+        gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
     return s_txn_id;
 }
 
 void server_t::end_startup_txn()
 {
-    // Use a local variable to ensure cleanup in case of an error.
-    mapped_log_t log;
-
-    log.create(gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
+    // The main thread no longer needs to perform any operations requiring a
+    // safe_ts index.
+    auto cleanup_safe_ts_index = make_scope_guard([&]() { release_safe_ts_index(); });
 
     // Update the log header with our begin timestamp and initialize it to empty.
-    log.data()->begin_ts = s_txn_id;
-    log.data()->record_count = 0;
+    s_log.data()->begin_ts = s_txn_id;
+    s_log.data()->record_count = 0;
 
     // Claim ownership of the log fd from the mapping object.
     // The empty log will be freed by a regular GC task.
-    int log_fd = log.unmap_truncate_seal_fd();
+    int log_fd = s_log.unmap_truncate_seal_fd();
+
+    auto cleanup_fd = make_scope_guard([&]() { close_fd(log_fd); });
 
     // Register this txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = txn_metadata_t::register_commit_ts(s_txn_id, log_fd);
@@ -882,6 +839,13 @@ void server_t::end_startup_txn()
     }
 
     perform_maintenance();
+
+    ASSERT_POSTCONDITION(
+        txn_metadata_t::is_txn_gc_complete(commit_ts),
+        "Transaction log should be garbage-collected!");
+
+    // If we get here, then we know the log fd has already been GC'ed.
+    cleanup_fd.dismiss();
 
     s_txn_id = c_invalid_gaia_txn_id;
 }
@@ -1053,11 +1017,11 @@ bool server_t::authenticate_client_socket(int socket)
 // truncate the last element), so the whole scan with removals is O(n).
 static void reap_exited_threads(std::vector<std::thread>& threads)
 {
-    for (auto iter = threads.begin(); iter != threads.end();)
+    for (auto it = threads.begin(); it != threads.end();)
     {
         // Test if the thread has already exited (this is possible with the
         // pthreads API but not with the std::thread API).
-        auto handle = iter->native_handle();
+        auto handle = it->native_handle();
 
         // pthread_kill(0) returns 0 if the thread is still running, and ESRCH
         // otherwise (unless it has already been detached or joined, in which
@@ -1083,18 +1047,18 @@ static void reap_exited_threads(std::vector<std::thread>& threads)
         if (error == 0)
         {
             // The thread is still running, so do nothing.
-            ++iter;
+            ++it;
         }
         else if (error == ESRCH)
         {
             // If this thread has already exited, then join it and deallocate
             // its object to release both memory and thread-related system
             // resources.
-            ASSERT_INVARIANT(iter->joinable(), c_message_thread_must_be_joinable);
-            iter->join();
+            ASSERT_INVARIANT(it->joinable(), c_message_thread_must_be_joinable);
+            it->join();
 
             // Move the last element into the current entry.
-            *iter = std::move(threads.back());
+            *it = std::move(threads.back());
             threads.pop_back();
         }
         else
@@ -1125,9 +1089,7 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
     // so no new sessions can be established while we wait for all session
     // threads to exit (we assume they received the same server shutdown
     // notification that we did).
-    auto listener_cleanup = make_scope_guard([&]() {
-        close_fd(s_listening_socket);
-    });
+    auto listener_cleanup = make_scope_guard([&]() { close_fd(s_listening_socket); });
 
     // Set up the epoll loop.
     int epoll_fd = ::epoll_create1(0);
@@ -1254,6 +1216,23 @@ void server_t::session_handler(int session_socket)
     bool initializing = false;
     init_memory_manager(initializing);
 
+    // Reserve an index in the safe_ts array. If this fails (because all indexes
+    // are currently claimed by sessions), then immediately close the socket, so
+    // the client throws a `peer_disconnected` exception and rethrows a
+    // `session_limit_exceeded_internal` exception.
+    // REVIEW: When we have a way to marshal exceptions to the client, we should
+    // directly ensure that `session_limit_exceeded_internal` is thrown in this case.
+    if (!reserve_safe_ts_index())
+    {
+        return;
+    }
+
+    auto safe_ts_index_cleanup = make_scope_guard([&]() {
+        // Release this thread's index in the safe_ts array.
+        // (If reserve_safe_ts_index() succeeded, then the index must be valid.)
+        release_safe_ts_index();
+    });
+
     // Set up epoll loop.
     int epoll_fd = ::epoll_create1(0);
     if (epoll_fd == -1)
@@ -1319,7 +1298,7 @@ void server_t::session_handler(int session_socket)
         const void* event_data = nullptr;
 
         // Buffer used to send and receive all message data.
-        uint8_t msg_buf[c_max_msg_size]{0};
+        uint8_t msg_buf[c_max_msg_size_in_bytes]{0};
 
         // Buffer used to receive file descriptors.
         int fd_buf[c_max_fd_count] = {-1};
@@ -1371,7 +1350,8 @@ void server_t::session_handler(int session_socket)
                         "EPOLLERR, EPOLLHUP, EPOLLRDHUP flags should not be set!");
 
                     // Read client message with possible file descriptors.
-                    size_t bytes_read = recv_msg_with_fds(s_session_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
+                    size_t bytes_read = recv_msg_with_fds(
+                        s_session_socket, fd_buf, &fd_buf_size, msg_buf, sizeof(msg_buf));
                     // We shouldn't get EOF unless EPOLLRDHUP is set.
                     // REVIEW: it might be possible for the client to call shutdown(SHUT_WR)
                     // after we have already woken up on EPOLLIN, in which case we would
@@ -1429,11 +1409,9 @@ template <typename T_element>
 void server_t::stream_producer_handler(
     int stream_socket, int cancel_eventfd, std::shared_ptr<generator_t<T_element>> generator_fn)
 {
-    auto socket_cleanup = make_scope_guard([&]() {
-        // We can rely on close_fd() to perform the equivalent of shutdown(SHUT_RDWR),
-        // because we hold the only fd pointing to this socket.
-        close_fd(stream_socket);
-    });
+    // We can rely on close_fd() to perform the equivalent of shutdown(SHUT_RDWR), because we
+    // hold the only fd pointing to this socket.
+    auto socket_cleanup = make_scope_guard([&]() { close_fd(stream_socket); });
 
     // Verify that the socket is the correct type for the semantics we assume.
     check_socket_type(stream_socket, SOCK_SEQPACKET);
@@ -1477,7 +1455,7 @@ void server_t::stream_producer_handler(
     // We need to call reserve() rather than the "sized" constructor to avoid changing size().
     batch_buffer.reserve(c_stream_batch_size);
 
-    auto gen_iter = generator_iterator_t<T_element>(std::move(generator_fn));
+    auto gen_it = generator_iterator_t<T_element>(std::move(generator_fn));
 
     while (!producer_shutdown)
     {
@@ -1521,7 +1499,7 @@ void server_t::stream_producer_handler(
                 else if (ev.events & EPOLLHUP)
                 {
                     // This flag is unmaskable, so we don't need to register for it.
-                    // We shold get this when the client has closed its end of the socket.
+                    // We should get this when the client has closed its end of the socket.
                     ASSERT_INVARIANT(!(ev.events & EPOLLERR), c_message_epollerr_flag_should_not_be_set);
                     producer_shutdown = true;
                 }
@@ -1536,72 +1514,88 @@ void server_t::stream_producer_handler(
                         "EPOLLERR and EPOLLHUP flags should not be set!");
 
                     // Write to the send buffer until we exhaust either the iterator or the buffer free space.
-                    while (gen_iter && (batch_buffer.size() < c_stream_batch_size))
+                    while (gen_it && (batch_buffer.size() < c_stream_batch_size))
                     {
-                        T_element next_val = *gen_iter;
+                        T_element next_val = *gen_it;
                         batch_buffer.push_back(next_val);
-                        ++gen_iter;
+                        ++gen_it;
                     }
 
-                    // We need to send any pending data in the buffer, followed by EOF
-                    // if we reached end of iteration. We let the client decide when to
-                    // close the socket, because their next read may be arbitrarily delayed
-                    // (and they may still have pending data).
+                    // We need to send any pending data in the buffer, followed by EOF if we
+                    // exhausted the iterator. We let the client decide when to close the socket,
+                    // because their next read may be arbitrarily delayed (and they may still have
+                    // pending data).
 
                     // First send any remaining data in the buffer.
                     if (batch_buffer.size() > 0)
                     {
-                        // To simplify client state management by allowing the client to
-                        // dequeue entries in FIFO order using std::vector.pop_back(),
-                        // we reverse the order of entries in the buffer.
+                        // To simplify client state management by allowing the client to dequeue
+                        // entries in FIFO order using std::vector.pop_back(), we reverse the order
+                        // of entries in the buffer.
                         std::reverse(std::begin(batch_buffer), std::end(batch_buffer));
 
-                        // We don't want to handle signals, so set
-                        // MSG_NOSIGNAL to convert SIGPIPE to EPIPE.
-                        ssize_t bytes_written = ::send(
-                            stream_socket, batch_buffer.data(), batch_buffer.size() * sizeof(T_element),
-                            MSG_NOSIGNAL);
-
-                        if (bytes_written == -1)
+                        // We don't want to handle signals, so set MSG_NOSIGNAL to convert SIGPIPE
+                        // to EPIPE.
+                        if (-1 == ::send(stream_socket, batch_buffer.data(), batch_buffer.size() * sizeof(T_element), MSG_NOSIGNAL))
                         {
-                            // It should never happen that the socket is no longer writable
-                            // after we receive EPOLLOUT, because we are the only writer and
-                            // the receive buffer is always large enough for a batch.
-                            ASSERT_INVARIANT(errno != EAGAIN && errno != EWOULDBLOCK, c_message_unexpected_errno_value);
-                            // Log the error and break out of the poll loop.
-                            std::cerr << "Stream socket error: '" << ::strerror(errno) << "'." << std::endl;
+                            // Break out of the poll loop on any write error.
                             producer_shutdown = true;
+
+                            // It should never happen that the socket is no longer writable after we
+                            // receive EPOLLOUT, because we are the only writer and the receive
+                            // buffer is always large enough for a batch.
+                            ASSERT_INVARIANT(errno != EAGAIN && errno != EWOULDBLOCK, c_message_unexpected_errno_value);
+
+                            // There is a race between the client reading its pending datagram and
+                            // triggering an EPOLLOUT notification, and then closing its socket and
+                            // triggering an EPOLLHUP notification. We might receive EPIPE or
+                            // ECONNRESET from the preceding write if we haven't yet processed the
+                            // EPOLLHUP notification. This doesn't indicate an error condition on
+                            // the client side, so we don't log socket errors in this case. Even if
+                            // the write failed because the client-side session thread crashed, we
+                            // will detect and handle that condition in the server-side session
+                            // thread.
+                            //
+                            // REVIEW: We could avoid setting the producer_shutdown flag in this
+                            // case and wait for an EPOLLHUP notification in the next loop
+                            // iteration. We exit immediately for now because 1) we aren't doing
+                            // nontrivial cleanup on receiving EPOLLHUP (just setting the
+                            // producer_shutdown flag), and 2) expecting an EPOLLHUP notification to
+                            // always be delivered even after receiving EPIPE or ECONNRESET seems
+                            // like a fragile assumption (we could validate this assumption with a
+                            // test program, but again this is undocumented behavior and therefore
+                            // subject to change).
+                            if (errno != EPIPE && errno != ECONNRESET)
+                            {
+                                std::cerr << "Stream socket error: '" << ::strerror(errno) << "'." << std::endl;
+                            }
                         }
                         else
                         {
-                            // We successfully wrote to the socket, so clear the buffer.
-                            // (Partial writes are impossible with datagram sockets.)
-                            // The standard is somewhat unclear, but apparently clear() will
-                            // not change the capacity in any recent implementation of the
-                            // standard library (https://cplusplus.github.io/LWG/issue1102).
+                            // We successfully wrote to the socket, so clear the buffer. (Partial
+                            // writes are impossible with datagram sockets.) The standard is
+                            // somewhat unclear, but apparently clear() will not change the capacity
+                            // in any recent implementation of the standard library
+                            // (https://cplusplus.github.io/LWG/issue1102).
                             batch_buffer.clear();
                         }
                     }
 
-                    // If we reached end of iteration, send EOF to client.
-                    // (We still need to wait for the client to close their socket,
-                    // because they may still have unread data, so we don't set the
-                    // producer_shutdown flag.)
-                    if (!gen_iter)
+                    // If we exhausted the iterator, send EOF to client. (We still need to wait for
+                    // the client to close their socket, because they may still have unread data, so
+                    // we don't set the producer_shutdown flag.)
+                    if (!gen_it)
                     {
                         ::shutdown(stream_socket, SHUT_WR);
-                        // Unintuitively, after we call shutdown(SHUT_WR), the
-                        // socket is always writable, because a write will never
-                        // block, but any write will return EPIPE. Therefore, we
-                        // unregister the socket for writable notifications
-                        // after we call shutdown(SHUT_WR). We should now only
-                        // be notified (with EPOLLHUP/EPOLLERR) when the client
-                        // closes the socket, so we can close our end of the
-                        // socket and terminate the thread.
+                        // Unintuitively, after we call shutdown(SHUT_WR), the socket is always
+                        // writable, because a write will never block, but any write will return
+                        // EPIPE. Therefore, we unregister the socket for writable notifications
+                        // after we call shutdown(SHUT_WR). We should now only be notified (with
+                        // EPOLLHUP/EPOLLERR) when the client closes the socket, so we can close
+                        // our end of the socket and terminate the thread.
                         epoll_event ev{};
-                        // We're only interested in EPOLLHUP/EPOLLERR
-                        // notifications, and we don't need to register for
-                        // those.
+                        // We're only interested in EPOLLHUP/EPOLLERR notifications, and we
+                        // don't need to register for those.
                         ev.events = 0;
                         ev.data.fd = stream_socket;
                         if (-1 == ::epoll_ctl(epoll_fd, EPOLL_CTL_MOD, stream_socket, &ev))
@@ -1996,9 +1990,9 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
 // NB: we use compare_exchange_weak() for the global update because we need to
 // retry anyway on concurrent updates, so tolerating spurious failures
 // requires no additional logic.
-bool server_t::advance_watermark(std::atomic<gaia_txn_id_t>& watermark, gaia_txn_id_t ts)
+bool server_t::advance_watermark(watermark_type_t watermark_type, gaia_txn_id_t ts)
 {
-    gaia_txn_id_t last_watermark_ts = watermark;
+    gaia_txn_id_t last_watermark_ts = get_watermark(watermark_type);
     do
     {
         // NB: last_watermark_ts is an inout argument holding the previous value
@@ -2008,7 +2002,7 @@ bool server_t::advance_watermark(std::atomic<gaia_txn_id_t>& watermark, gaia_txn
             return false;
         }
 
-    } while (!watermark.compare_exchange_weak(last_watermark_ts, ts));
+    } while (!get_watermark_entry(watermark_type).compare_exchange_weak(last_watermark_ts.value_ref(), ts.value()));
 
     return true;
 }
@@ -2055,6 +2049,10 @@ void server_t::gc_txn_log_from_fd(int log_fd, bool committed)
     ASSERT_INVARIANT(txn_log.is_set(), "txn_log should be mapped when deallocating old offsets.");
 
     bool deallocate_new_offsets = !committed;
+
+    // Remove in-memory index entries that might be referencing old txn_log data before actually
+    // deallocating them!
+    index::index_builder_t::gc_indexes_from_txn_log(*txn_log.data(), deallocate_new_offsets);
     deallocate_txn_log(txn_log.data(), deallocate_new_offsets);
 }
 
@@ -2169,30 +2167,15 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
 //    snapshot of the post-apply watermark. If the current entry is a begin_ts
 //    or a commit_ts with TXN_GC_COMPLETE set, we try to advance the post-GC
 //    watermark. If that fails (or the watermark cannot be advanced because the
-//    commit_ts has TXN_GC_COMPLETE unset), we abort the pass.
-//
-// TODO: Decommit physical pages backing the txn table for addresses preceding
-// the post-GC watermark (via madvise(MADV_FREE)).
-//
-// The post-GC watermark will be used to trim the txn table (but we can't just
-// read the current value and free all pages behind it, we need to avoid freeing
-// pages out from under threads that are advancing this watermark and have
-// possibly been preempted). A safe algorithm requires tracking the last
-// observed value of this watermark for each thread in a global table and
-// trimming the txn table up to the minimum of this global table (which can be
-// calculated from a non-atomic scan, because any thread's observed value can only
-// go forward). This means that a thread must register its observed value in the
-// global table every time it reads the post-GC watermark, and should clear its
-// entry when it's done with the observed value. (A subtler issue is that
-// reading the current watermark value and registering the read value in the
-// global table must be an atomic operation for the non-atomic minimum scan to
-// be correct, but no CPU has an atomic memory-to-memory copy operation. We can
-// work around this by just checking the current value of the watermark
-// immediately after writing its saved value to the global table. If they're the
-// same, then no other thread could have observed any non-atomicity in the copy
-// operation. If they differ, then we just repeat the sequence. Because this is a
-// very fast sequence of operations, retries should be infrequent, so livelock
-// shouldn't be an issue.)
+//    commit_ts has TXN_GC_COMPLETE unset), we abort the pass. If we complete
+//    this pass, then we calculate a "safe truncation timestamp" and attempt to
+//    advance the pre-truncate watermark to that timestamp. If we successfully
+//    advanced the pre-truncate watermark, then we calculate the number of pages
+//    between the previous pre-truncate watermark value and its new value; if
+//    this count exceeds zero then we decommit all such pages using madvise(2).
+//    (It is possible for multiple GC tasks to concurrently or repeatedly
+//    decommit the same pages, but madvise(2) is idempotent and
+//    concurrency-safe.)
 void server_t::perform_maintenance()
 {
     // Attempt to apply all txn logs to the shared view, from the last value of
@@ -2203,10 +2186,10 @@ void server_t::perform_maintenance()
     // to the post-apply watermark.
     gc_applied_txn_logs();
 
-    // Advance the post-GC watermark to the end of the longest prefix of
-    // committed txns whose resources have been completely reclaimed, to mark a
-    // safe point for truncating transaction history.
-    update_txn_table_safe_truncation_point();
+    // Find a timestamp at which we can safely truncate the txn table, advance
+    // the pre-truncate watermark to that timestamp, and truncate the txn table
+    // at the highest page boundary less than the pre-truncate watermark.
+    truncate_txn_table();
 }
 
 void server_t::apply_txn_logs_to_shared_view()
@@ -2215,9 +2198,9 @@ void server_t::apply_txn_logs_to_shared_view()
     // the scan (we don't know yet if this is a begin_ts or commit_ts).
     gaia_txn_id_t last_allocated_ts = get_last_txn_id();
 
-    // Now get a snapshot of the last_applied_commit_ts_upper_bound watermark,
+    // Now get a snapshot of the pre-apply watermark,
     // for a lower bound on the scan.
-    gaia_txn_id_t last_applied_commit_ts_upper_bound = s_last_applied_commit_ts_upper_bound;
+    safe_watermark_t pre_apply_watermark(watermark_type_t::pre_apply);
 
     // Scan from the saved pre-apply watermark to the last known timestamp,
     // and apply all committed txn logs from the longest prefix of decided
@@ -2225,7 +2208,7 @@ void server_t::apply_txn_logs_to_shared_view()
     // txn. Advance the pre-apply watermark before applying the txn log
     // of a committed txn, and advance the post-apply watermark after
     // applying the txn log.
-    for (gaia_txn_id_t ts = last_applied_commit_ts_upper_bound + 1; ts <= last_allocated_ts; ++ts)
+    for (gaia_txn_id_t ts = static_cast<gaia_txn_id_t>(pre_apply_watermark) + 1; ts <= last_allocated_ts; ++ts)
     {
         // We need to seal uninitialized entries as we go along, so that we
         // don't miss any active begin_ts or committed commit_ts entries.
@@ -2292,17 +2275,18 @@ void server_t::apply_txn_logs_to_shared_view()
         //
         // REVIEW: These loads could be relaxed, because a stale read could only
         // result in premature abort of the scan.
-        if (s_last_applied_commit_ts_upper_bound != prev_ts || s_last_applied_commit_ts_lower_bound != prev_ts)
+        if (get_watermark(watermark_type_t::pre_apply) != prev_ts
+            || get_watermark(watermark_type_t::post_apply) != prev_ts)
         {
             break;
         }
 
-        if (!advance_watermark(s_last_applied_commit_ts_upper_bound, ts))
+        if (!advance_watermark(watermark_type_t::pre_apply, ts))
         {
             // If another thread has already advanced the watermark ahead of
             // this ts, we abort advancing it further.
             ASSERT_INVARIANT(
-                s_last_applied_commit_ts_upper_bound > last_applied_commit_ts_upper_bound,
+                get_watermark(watermark_type_t::pre_apply) > static_cast<gaia_txn_id_t>(pre_apply_watermark),
                 "The watermark must have advanced if advance_watermark() failed!");
 
             break;
@@ -2329,7 +2313,7 @@ void server_t::apply_txn_logs_to_shared_view()
         // Now we advance the post-apply watermark to catch up with the pre-apply watermark.
         // REVIEW: Because no other thread can concurrently advance the post-apply watermark,
         // we don't need a full CAS here.
-        bool has_advanced_watermark = advance_watermark(s_last_applied_commit_ts_lower_bound, ts);
+        bool has_advanced_watermark = advance_watermark(watermark_type_t::post_apply, ts);
 
         // No other thread should be able to advance the post-apply watermark,
         // because only one thread can advance the pre-apply watermark to this
@@ -2344,17 +2328,20 @@ void server_t::gc_applied_txn_logs()
     auto cleanup_fd = make_scope_guard([&]() { s_map_gc_chunks_to_versions.clear(); });
 
     // First get a snapshot of the post-apply watermark, for an upper bound on the scan.
-    gaia_txn_id_t last_applied_commit_ts_lower_bound = s_last_applied_commit_ts_lower_bound;
+    safe_watermark_t post_apply_watermark(watermark_type_t::post_apply);
 
     // Now get a snapshot of the post-GC watermark, for a lower bound on the scan.
-    gaia_txn_id_t last_freed_commit_ts_lower_bound = s_last_freed_commit_ts_lower_bound;
+    safe_watermark_t post_gc_watermark(watermark_type_t::post_gc);
 
     // Scan from the post-GC watermark to the post-apply watermark,
     // executing GC on any commit_ts if the log fd is valid (and the durable
     // flag is set if persistence is enabled). (If we fail to invalidate the log
     // fd, we abort the scan to avoid contention.) When GC is complete, set the
     // TXN_GC_COMPLETE flag on the txn metadata and continue.
-    for (gaia_txn_id_t ts = last_freed_commit_ts_lower_bound + 1; ts <= last_applied_commit_ts_lower_bound; ++ts)
+    for (
+        gaia_txn_id_t ts = static_cast<gaia_txn_id_t>(post_gc_watermark) + 1;
+        ts <= static_cast<gaia_txn_id_t>(post_apply_watermark);
+        ++ts)
     {
         ASSERT_INVARIANT(
             !txn_metadata_t::is_uninitialized_ts(ts),
@@ -2434,33 +2421,56 @@ void server_t::gc_applied_txn_logs()
     }
 }
 
-void server_t::update_txn_table_safe_truncation_point()
+void server_t::truncate_txn_table()
 {
-    // First get a snapshot of the post-apply watermark, for an upper bound on the scan.
-    gaia_txn_id_t last_applied_commit_ts_lower_bound = s_last_applied_commit_ts_lower_bound;
+    // First catch up the post-GC watermark.
+    // Unlike log application, we don't try to perform GC and advance the
+    // post-GC watermark in a single scan, because log application is strictly
+    // sequential, while GC is sequentially initiated but concurrently executed.
 
-    // Now get a snapshot of the post-GC watermark, for a lower bound on the scan.
-    gaia_txn_id_t last_freed_commit_ts_lower_bound = s_last_freed_commit_ts_lower_bound;
+    // Get a snapshot of the post-apply watermark, for an upper bound on the scan.
+    safe_watermark_t post_apply_watermark(watermark_type_t::post_apply);
 
-    // Scan from the post-GC watermark to the post-apply watermark,
-    // advancing the post-GC watermark on any begin_ts, or any commit_ts that
-    // has the TXN_GC_COMPLETE flag set. If TXN_GC_COMPLETE is unset on the
-    // current commit_ts, abort the scan.
-    for (gaia_txn_id_t ts = last_freed_commit_ts_lower_bound + 1; ts <= last_applied_commit_ts_lower_bound; ++ts)
+    // Get a snapshot of the post-GC watermark, for a lower bound on the scan.
+    safe_watermark_t post_gc_watermark(watermark_type_t::post_gc);
+
+    // Scan from the post-GC watermark to the post-apply watermark, advancing
+    // the post-GC watermark to any commit_ts marked TXN_GC_COMPLETE, or any
+    // begin_ts unless it is marked TXN_SUBMITTED and its commit_ts is not
+    // marked TXN_GC_COMPLETE. (We need to preserve begin_ts entries for
+    // commit_ts entries that have not completed GC, in order to allow index
+    // entries to safely dereference a commit_ts entry from its begin_ts entry.)
+    // If the post-GC watermark cannot be advanced to the current timestamp,
+    // abort the scan.
+    for (
+        gaia_txn_id_t ts = static_cast<gaia_txn_id_t>(post_gc_watermark) + 1;
+        ts <= static_cast<gaia_txn_id_t>(post_apply_watermark);
+        ++ts)
     {
         ASSERT_INVARIANT(
             !txn_metadata_t::is_uninitialized_ts(ts),
             "All uninitialized txn table entries should be sealed!");
 
-        ASSERT_INVARIANT(
-            !(txn_metadata_t::is_begin_ts(ts) && txn_metadata_t::is_txn_active(ts)),
-            "The watermark should not be advanced to an active begin_ts!");
+        if (txn_metadata_t::is_begin_ts(ts))
+        {
+            ASSERT_INVARIANT(
+                !txn_metadata_t::is_txn_active(ts),
+                "The pre-apply watermark should not be advanced to an active begin_ts!");
+
+            // We can only advance the post-GC watermark to a submitted begin_ts
+            // if its commit_ts is marked TXN_GC_COMPLETE.
+            if (txn_metadata_t::is_txn_submitted(ts)
+                && !txn_metadata_t::is_txn_gc_complete(txn_metadata_t::get_commit_ts_from_begin_ts(ts)))
+            {
+                break;
+            }
+        }
 
         if (txn_metadata_t::is_commit_ts(ts))
         {
             ASSERT_INVARIANT(
                 txn_metadata_t::is_txn_decided(ts),
-                "The watermark should not be advanced to an undecided commit_ts!");
+                "The pre-apply watermark should not be advanced to an undecided commit_ts!");
 
             // We can only advance the post-GC watermark to a commit_ts if it is
             // marked TXN_GC_COMPLETE.
@@ -2470,88 +2480,111 @@ void server_t::update_txn_table_safe_truncation_point()
             }
         }
 
-        if (!advance_watermark(s_last_freed_commit_ts_lower_bound, ts))
+        if (!advance_watermark(watermark_type_t::post_gc, ts))
         {
             // If another thread has already advanced the post-GC watermark
             // ahead of this ts, we abort advancing it further.
             ASSERT_INVARIANT(
-                s_last_freed_commit_ts_lower_bound > last_freed_commit_ts_lower_bound,
+                get_watermark(watermark_type_t::post_gc) > static_cast<gaia_txn_id_t>(post_gc_watermark),
                 "The watermark must have advanced if advance_watermark() failed!");
 
             break;
         }
 
-        // There are no actions to take after advancing the post-GC watermark,
-        // because the post-GC watermark only exists to provide a safe lower
-        // bound for truncating transaction history.
+        // Get a snapshot of the pre-truncate watermark before advancing it.
+        gaia_txn_id_t prev_pre_truncate_watermark = get_watermark(watermark_type_t::pre_truncate);
+
+        // Compute a safe truncation timestamp.
+        gaia_txn_id_t new_pre_truncate_watermark = get_safe_truncation_ts();
+
+        // Abort if the safe truncation timestamp does not exceed the current
+        // pre-truncate watermark.
+        // NB: It is expected that the safe truncation timestamp can be behind
+        // the pre-truncate watermark, because some published (but not yet
+        // validated) timestamps may have been behind the pre-truncate watermark
+        // when they were published (and will later fail validation).
+        if (new_pre_truncate_watermark <= prev_pre_truncate_watermark)
+        {
+            return;
+        }
+
+        // Try to advance the pre-truncate watermark.
+        if (!advance_watermark(watermark_type_t::pre_truncate, new_pre_truncate_watermark))
+        {
+            // Abort if another thread has concurrently advanced the
+            // pre-truncate watermark, to avoid contention.
+            ASSERT_INVARIANT(
+                get_watermark(watermark_type_t::pre_truncate) > prev_pre_truncate_watermark,
+                "The watermark must have advanced if advance_watermark() failed!");
+
+            return;
+        }
+
+        // Mark any index entries as committed before the metadata is truncated. At this point, all
+        // aborted/terminated index entries before the pre-truncate watermark should have been
+        // garbage collected.
+        index::index_builder_t::mark_index_entries_committed(new_pre_truncate_watermark);
+
+        // We advanced the pre-truncate watermark, so actually truncate the txn
+        // table by decommitting its unused physical pages. Because this
+        // operation is concurrency-safe and idempotent, it can be done without
+        // mutual exclusion.
+        // REVIEW: The previous logic could also be used to safely advance the
+        // "head" pointer if the txn table were implemented as a circular
+        // buffer.
+
+        // Calculate the number of pages between the previously read pre-truncate
+        // watermark and our safe truncation timestamp. If the result exceeds zero,
+        // then decommit all such pages.
+        char* prev_page_start_address = get_txn_metadata_page_address_from_ts(prev_pre_truncate_watermark);
+        char* new_page_start_address = get_txn_metadata_page_address_from_ts(new_pre_truncate_watermark);
+
+        // Check for overflow.
+        ASSERT_INVARIANT(
+            prev_page_start_address <= new_page_start_address,
+            "The new pre-truncate watermark must start on the same or later page than the previous pre-truncate watermark!");
+
+        size_t pages_to_decommit_count = (new_page_start_address - prev_page_start_address) / c_page_size_in_bytes;
+        if (pages_to_decommit_count > 0)
+        {
+            // MADV_FREE seems like the best fit for our needs, since it allows
+            // the OS to lazily reclaim decommitted pages. (If we move the txn
+            // table to a shared mapping (e.g. memfd), then we'll need to switch
+            // to MADV_REMOVE.)
+            // REVIEW: MADV_FREE makes it impossible to monitor RSS usage, so
+            // use MADV_DONTNEED unless we actually need better performance.
+            // (See https://github.com/golang/go/issues/42330 for a discussion
+            // of these issues.)
+            if (-1 == ::madvise(prev_page_start_address, pages_to_decommit_count * c_page_size_in_bytes, MADV_DONTNEED))
+            {
+                throw_system_error("madvise(MADV_DONTNEED) failed!");
+            }
+        }
     }
+}
+
+char* server_t::get_txn_metadata_page_address_from_ts(gaia_txn_id_t ts)
+{
+    char* txn_metadata_map_base_address = txn_metadata_t::get_txn_metadata_map_base_address();
+    size_t ts_entry_byte_offset = ts * sizeof(txn_metadata_entry_t);
+    size_t ts_entry_page_byte_offset = (ts_entry_byte_offset / c_page_size_in_bytes) * c_page_size_in_bytes;
+    char* ts_entry_page_address = txn_metadata_map_base_address + ts_entry_page_byte_offset;
+    return ts_entry_page_address;
 }
 
 void server_t::txn_rollback(bool client_disconnected)
 {
-    // Set our txn status to TXN_TERMINATED.
-    // NB: this must be done before calling perform_maintenance()!
-    txn_metadata_t::set_active_txn_terminated(s_txn_id);
-
-    // Update watermarks and perform associated maintenance tasks.
-    perform_maintenance();
-
     // Directly free the final allocation recorded in chunk metadata if it is
     // absent from the txn log (due to a crashed session), and retire the chunk
     // owned by the client session when it crashed.
     if (client_disconnected)
     {
-        // Load the crashed session's chunk, so we can directly free the final
-        // allocation if necessary.
-        // BUG (GAIAPLAT-1489): this will only work if we're inside a txn when
-        // the session crashes. Otherwise, we'll leak the chunk and it wil be
-        // orphaned forever (unless we had some GC process for orphaned chunks).
-        memory_manager::chunk_offset_t chunk_offset = s_log.data()->current_chunk;
-        if (chunk_offset != c_invalid_chunk_offset)
-        {
-            s_chunk_manager.load(chunk_offset);
-
-            // Get final allocation from chunk metadata, so we can check to be sure
-            // it's present in our txn log.
-            gaia_offset_t last_allocated_offset = s_chunk_manager.last_allocated_offset();
-
-            // If we haven't logged the final allocation, then deallocate it directly.
-            if (last_allocated_offset != c_invalid_gaia_offset)
-            {
-                bool is_log_empty = (s_log.data()->record_count == 0);
-
-                // If we have no log records, but we do have a final allocation, then deallocate it directly.
-                bool should_deallocate_directly = is_log_empty;
-
-                // If we do have a non-empty log, then check if the final record matches the final allocation.
-                // if (!is_log_empty)
-                // {
-                // BUG (GAIAPLAT-1490): I removed the original logic here
-                // because it was incorrect. We can afford to leak the final
-                // allocation when a session crashes in the middle of a txn
-                // for now, until we implement this properly.
-                // }
-
-                if (should_deallocate_directly)
-                {
-                    s_chunk_manager.deallocate(last_allocated_offset);
-                }
-            }
-
-            // Get the session's chunk version for safe deallocation.
-            memory_manager::chunk_version_t version = s_chunk_manager.get_version();
-
-            // Now retire the chunk.
-            s_chunk_manager.retire_chunk(version);
-
-            // We don't strictly need this since the session thread is about to exit,
-            // but it's good hygiene to clear unused thread-locals.
-            s_chunk_manager.release();
-        }
+        // TODO[GAIAPLAT-1490]: Implement this logic correctly by tracking the
+        // current chunk ID in shared session state. For now, chunks owned by a
+        // crashed session will never be retired (and therefore can never be
+        // reallocated). Deallocation of object versions in these orphaned
+        // chunks will still succeed, though, so GC correctness is unaffected.
     }
-
-    // This session now has no active txn.
-    s_txn_id = c_invalid_gaia_txn_id;
 
     // Claim ownership of the log fd from the mapping object.
     bool is_log_empty = (s_log.data()->record_count == 0);
@@ -2559,15 +2592,23 @@ void server_t::txn_rollback(bool client_disconnected)
 
     // We need to unconditionally close the log fd because we're not registering
     // it in a txn metadata entry, so it won't be closed by GC.
-    auto cleanup_log_fd = make_scope_guard([&]() {
-        close_fd(log_fd);
-    });
+    auto cleanup_log_fd = make_scope_guard([&]() { close_fd(log_fd); });
 
     // Free any deallocated objects (don't bother for read-only txns).
     if (!is_log_empty)
     {
         gc_txn_log_from_fd(log_fd, false);
     }
+
+    // Set our txn status to TXN_TERMINATED.
+    // NB: this must be done before calling perform_maintenance()!
+    txn_metadata_t::set_active_txn_terminated(s_txn_id);
+
+    // Update watermarks and perform associated maintenance tasks.
+    perform_maintenance();
+
+    // This session now has no active txn.
+    s_txn_id = c_invalid_gaia_txn_id;
 }
 
 void server_t::perform_pre_commit_work_for_txn()
@@ -2598,15 +2639,14 @@ void server_t::perform_pre_commit_work_for_txn()
     update_indexes_from_txn_log();
 }
 
-// Sort all txn log records, by locator as primary key, and by offset as
-// secondary key. This enables us to use fast binary search and binary merge
-// algorithms for conflict detection.
+// Sort all txn log records by locator. This enables us to use fast binary
+// search and binary merge algorithms for conflict detection.
 void server_t::sort_log()
 {
     ASSERT_PRECONDITION(s_log.is_set(), c_message_uninitialized_log_fd);
 
-    // We use stable_sort() to preserve the order of multiple updates to the
-    // same locator.
+    // We use stable_sort() to preserve the temporal order of multiple updates
+    // to the same locator.
     std::stable_sort(
         &s_log.data()->log_records[0],
         &s_log.data()->log_records[s_log.data()->record_count],
@@ -2629,6 +2669,14 @@ bool server_t::txn_commit()
     // From now on, the txn log should be immutable.
     // Claim ownership of the log fd from the mapping object.
     int log_fd = s_log.unmap_truncate_seal_fd();
+
+    // Obtain a safe_ts for our begin_ts, to prevent recursive validation from
+    // allowing the pre-truncate watermark to advance past our begin_ts into the
+    // conflict window. This ensures that any thread (including recursive
+    // validators) can safely read any txn metadata within the conflict window
+    // of this txn, until the commit decision is returned to the client.
+    // NB: This MUST be done before obtaining a commit_ts!
+    safe_ts_t safe_begin_ts(s_txn_id);
 
     // Register the committing txn under a new commit timestamp.
     gaia_txn_id_t commit_ts = submit_txn(s_txn_id, log_fd);
@@ -2677,6 +2725,299 @@ bool server_t::txn_commit()
     }
 
     return is_committed;
+}
+
+bool server_t::reserve_safe_ts_index()
+{
+    ASSERT_PRECONDITION(
+        s_safe_ts_index == c_invalid_safe_ts_index,
+        "Expected this thread's safe_ts entry index to be invalid!");
+
+    // Try to set the first unset bit in the "free safe_ts indexes" bitmap.
+    size_t reserved_index = c_invalid_safe_ts_index;
+    while (true)
+    {
+        reserved_index = memory_manager::find_first_unset_bit(
+            s_safe_ts_reserved_indexes_bitmap.data(), s_safe_ts_reserved_indexes_bitmap.size());
+
+        // If our scan doesn't find any unset bits, immediately return failure
+        // rather than retrying the scan (otherwise this could lead to an
+        // infinite loop).
+        if (reserved_index == c_max_bit_index)
+        {
+            return false;
+        }
+
+        // If the CAS to set the bit fails, restart the scan, even if the bit
+        // was still unset when the CAS failed (a failed CAS indicates
+        // contention and we should back off by restarting the scan).
+        //
+        // Restart the scan if the bit was already set when we tried to set it,
+        // because that means that another thread has already reserved this
+        // index. We force try_set_bit_value() to fail in this case by passing
+        // fail_if_already_set=true.
+        bool fail_if_already_set = true;
+        if (memory_manager::try_set_bit_value(
+                s_safe_ts_reserved_indexes_bitmap.data(),
+                s_safe_ts_reserved_indexes_bitmap.size(),
+                reserved_index, true, fail_if_already_set))
+        {
+            break;
+        }
+    }
+
+    // Set this thread's safe_ts entry index to the bit we set.
+    s_safe_ts_index = reserved_index;
+
+    return true;
+}
+
+void server_t::release_safe_ts_index()
+{
+    ASSERT_PRECONDITION(
+        s_safe_ts_index != c_invalid_safe_ts_index,
+        "Expected this thread's safe_ts entry index to be valid!");
+
+    ASSERT_PRECONDITION(
+        memory_manager::is_bit_set(
+            s_safe_ts_reserved_indexes_bitmap.data(),
+            s_safe_ts_reserved_indexes_bitmap.size(),
+            s_safe_ts_index),
+        "Expected the bit for this thread's safe_ts entry index to be set!");
+
+    // Invalidate both of this thread's safe_ts entries.
+    s_safe_ts_per_thread_entries[s_safe_ts_index][0] = c_invalid_gaia_txn_id;
+    s_safe_ts_per_thread_entries[s_safe_ts_index][1] = c_invalid_gaia_txn_id;
+
+    // Invalidate the thread-local copy of this entry's index before marking its
+    // index "free".
+    size_t safe_ts_index = s_safe_ts_index;
+    s_safe_ts_index = c_invalid_safe_ts_index;
+
+    // Clear the bit for this entry's index in the "free safe_ts indexes"
+    // bitmap.
+    memory_manager::safe_set_bit_value(
+        s_safe_ts_reserved_indexes_bitmap.data(),
+        s_safe_ts_reserved_indexes_bitmap.size(),
+        safe_ts_index, false);
+}
+
+bool server_t::reserve_safe_ts(gaia_txn_id_t safe_ts)
+{
+    ASSERT_PRECONDITION(
+        s_safe_ts_index != c_invalid_safe_ts_index,
+        "Expected this thread's safe_ts entry index to be valid!");
+
+    // The reservation of a "safe timestamp" is split into 2 steps:
+    // "publication" and "validation". Publication makes the reserved timestamp
+    // visible to all other threads (so it will be observed by a scan).
+    // Validation ensures that the reserving thread cannot use a timestamp that
+    // was published too late to avoid being overtaken by the pre-truncate
+    // watermark.
+    //
+    // NB: We need to maintain visibility of this thread's previous reserved
+    // timestamp in case validation fails. (We cannot just invalidate it before
+    // validation and then restore it after validation fails, because then it
+    // would not be visible to a concurrent scan.) We do that by maintaining
+    // *two* entries for each thread, and only invalidating the previous
+    // reserved timestamp after validation of the new reserved timestamp
+    // succeeds. An invalid entry will be ignored by the scan algorithm in its
+    // calculation of the minimum published timestamp. (If both entries are
+    // valid, then the scan algorithm will just take the minimum. If the minimum
+    // entry is obsolete, then the scan algorithm will just return a result that
+    // is more conservative--i.e. smaller--than necessary, but still correct.)
+    //
+    // Find the last invalid entry. Since the current thread has exclusive write
+    // access to these entries, we should not have two valid entries (any
+    // obsolete entry should have been invalidated by a previous call to this
+    // method).
+    auto& entries = s_safe_ts_per_thread_entries[s_safe_ts_index];
+    std::array<bool, s_safe_ts_per_thread_entries[0].size()> is_entry_valid{};
+    for (size_t i = 0; i < entries.size(); ++i)
+    {
+        is_entry_valid[i] = (entries[i] != c_invalid_gaia_txn_id);
+    }
+    ASSERT_INVARIANT(
+        !is_entry_valid[0] || !is_entry_valid[1],
+        "At most one safe_ts entry for this thread should be valid!");
+
+    // Is exactly one of the two entries valid?
+    bool has_valid_entry = (is_entry_valid[0] ^ is_entry_valid[1]);
+
+    // Arbitrarily pick the highest-indexed invalid entry.
+    size_t invalid_entry_index = is_entry_valid[1] ? 0 : 1;
+
+    // Speculatively publish the new safe_ts in a currently invalid entry.
+    entries[invalid_entry_index] = safe_ts;
+
+    // Validate that the new safe_ts does not lag the post-GC watermark
+    // (equality is acceptable because the post-GC watermark is an inclusive
+    // upper bound on the pre-truncate watermark, and the pre-truncate watermark
+    // is an exclusive upper bound on the memory address range eligible for
+    // reclaiming).
+    //
+    // An essential optimization (necessary for the safe_ts_t implementation):
+    // skip validation for a safe_ts that is replacing a smaller previously
+    // reserved safe_ts. Even if the new safe_ts is behind the post-GC
+    // watermark, it cannot be behind the pre-truncate watermark, because the
+    // smaller previously reserved safe_ts prevents the pre-truncate watermark
+    // from advancing past the new safe_ts until the new safe_ts is observed by
+    // a scan. If both safe_ts values are published, then a concurrent scan will
+    // use the obsolete value, but that is benign: it can only cause a
+    // smaller-than-necessary safe truncation timestamp to be returned.
+    bool should_validate = true;
+    if (has_valid_entry)
+    {
+        // The valid index must be the invalid index + 1 mod 2.
+        size_t valid_entry_index = invalid_entry_index ^ 1;
+        should_validate = (safe_ts < entries[valid_entry_index]);
+    }
+
+    if (should_validate && safe_ts < get_watermark(watermark_type_t::post_gc))
+    {
+        // If validation fails, invalidate this entry to revert to the
+        // previously published entry.
+        entries[invalid_entry_index] = c_invalid_gaia_txn_id;
+        return false;
+    }
+
+    // Invalidate any previously published entry.
+    if (has_valid_entry)
+    {
+        // The valid index must be the invalid index + 1 mod 2.
+        size_t valid_entry_index = invalid_entry_index ^ 1;
+        entries[valid_entry_index] = c_invalid_gaia_txn_id;
+    }
+
+    return true;
+}
+
+void server_t::release_safe_ts()
+{
+    ASSERT_PRECONDITION(
+        s_safe_ts_index != c_invalid_safe_ts_index,
+        "Expected this thread's safe_ts entry index to be valid!");
+
+    // Find the index of the last valid entry. Since the current thread has
+    // exclusive write access to these entries, and the contract is that this
+    // method should only be called after reserve_safe_ts() returns success, we
+    // should have exactly one valid entry. Also, any valid entry should be at
+    // least as large as the pre-truncate watermark (otherwise we either failed
+    // to invalidate the entry of a safe_ts that failed validation, or the scan
+    // algorithm is incorrect).
+    auto& entries = s_safe_ts_per_thread_entries[s_safe_ts_index];
+    std::array<bool, s_safe_ts_per_thread_entries[0].size()> is_entry_valid{};
+    for (size_t i = 0; i < entries.size(); ++i)
+    {
+        ASSERT_INVARIANT(
+            (entries[i] == c_invalid_gaia_txn_id) || (entries[i] >= get_watermark(watermark_type_t::pre_truncate)),
+            "A reserved safe_ts entry cannot lag the pre-truncate watermark!");
+
+        is_entry_valid[i] = (entries[i] != c_invalid_gaia_txn_id);
+    }
+
+    ASSERT_INVARIANT(
+        (is_entry_valid[0] ^ is_entry_valid[1]),
+        "Exactly one safe_ts entry for this thread should be valid!");
+
+    // Invalidate the previously published entry.
+    size_t valid_entry_index = is_entry_valid[0] ? 0 : 1;
+    entries[valid_entry_index] = c_invalid_gaia_txn_id;
+}
+
+gaia_txn_id_t server_t::get_safe_truncation_ts()
+{
+    // The algorithm (loosely based on Maged Michael's "Hazard Pointers: Safe
+    // Memory Reclamation for Lock-Free Objects"):
+    //
+    // 1. Take a snapshot of the post-GC watermark. This is an upper bound on
+    //    the "safe truncation timestamp" return value, and guarantees that the
+    //    "safe truncation timestamp" will not exceed any concurrently reserved
+    //    timestamp (which might not be visible to the scan).
+    // 2. Scan the "published timestamps" array and compute the minimum of all
+    //    valid timestamps observed.
+    // 3. Take the minimum of the "minimum observed published timestamp" and the
+    //    pre-scan snapshot of the post-GC watermark, and return that as the
+    //    "safe truncation timestamp". (Note that this timestamp may actually be
+    //    behind the current value of the pre-truncate watermark, but we won't
+    //    detect that until we fail to advance the pre-truncate watermark to
+    //    this timestamp. Any published timestamp that is already behind the
+    //    pre-truncate watermark will fail validation.)
+    //
+    // REVIEW: Need to specify this algorithm in a model-checkable spec language
+    // like TLA+.
+    //
+    // Proof of correctness (very informal):
+    //
+    // We wish to show that after reserve_safe_ts(safe_ts) has returned success,
+    // the pre-truncate watermark can never exceed safe_ts.
+    //
+    // First, we need to show that get_safe_truncation_ts() cannot return a
+    // timestamp greater than safe_ts. There are only two possible cases to
+    // consider: either (1) the scan of published timestamps observed safe_ts,
+    // or (2) it did not.
+    //
+    // 1. If safe_ts was observed by the scan, then we know that it is an upper
+    //    bound on the return value of get_safe_truncation_ts(), so we are done.
+    //
+    // 2. If safe_ts was not observed by the scan, then the pre-scan snapshot of
+    //    the post-GC watermark must have been taken before the validation-time
+    //    snapshot of the post-GC watermark (because validation happens after
+    //    publication, and the publication evidently did not happen before the
+    //    scan started). Because validation succeeded, safe_ts is at least as
+    //    large as the validation-time snapshot of the post-GC watermark, so
+    //    (because watermarks are monotonically nondecreasing) it must also be
+    //    at least as large as the pre-scan snapshot of the post-GC watermark.
+    //    Because the pre-scan snapshot of the post-GC watermark is an upper
+    //    bound on the return value of get_safe_truncation_ts(), safe_ts is as
+    //    well, and we are done.
+    //
+    // Given that safe_ts is an upper bound on the return value of
+    // get_safe_truncation_ts(), and the pre-truncate watermark can only be
+    // advanced to a return value of get_safe_truncation_ts(), it follows that
+    // safe_ts is always an upper bound on the pre-truncate watermark. QED.
+    //
+    // Schematically:
+    // "pre-truncate watermark"
+    // <= "pre-scan snapshot of post-GC watermark"
+    // <= "publication-time value of post-GC watermark"
+    // <= "validation-time snapshot of post-GC watermark"
+    // <= "published and validated timestamp"
+
+    // Take a snapshot of the post-GC watermark before the scan.
+    gaia_txn_id_t pre_scan_post_gc_watermark = get_watermark(watermark_type_t::post_gc);
+
+    // The post-GC watermark is an upper bound on the safe truncation timestamp.
+    gaia_txn_id_t safe_truncation_ts = pre_scan_post_gc_watermark;
+
+    // Scan the "published timestamps" array and compute the minimum of all
+    // published timestamps observed. Then return the minimum of that result and
+    // the pre-scan snapshot of the post-GC watermark.
+    //
+    // Note that a published timestamp may have already fallen behind the
+    // current pre-truncate watermark (which will make it fail validation). In
+    // that case, we will return a timestamp older than the current pre-truncate
+    // watermark. There is no need to try to prevent this, because
+    // advance_watermark() will fail, the current GC task will abort, and
+    // another thread will try to advance the pre-truncate watermark.
+    for (const auto& per_thread_entries : s_safe_ts_per_thread_entries)
+    {
+        for (const auto& per_thread_entry : per_thread_entries)
+        {
+            // Skip invalid entries.
+            if (per_thread_entry == c_invalid_gaia_txn_id)
+            {
+                continue;
+            }
+
+            // Update the minimum safe_ts.
+            safe_truncation_ts = std::min(safe_truncation_ts.value(), per_thread_entry.load());
+        }
+    }
+
+    // Return the minimum of the pre-scan snapshot of the post-GC watermark and
+    // the smallest published timestamp that the scan observed.
+    return safe_truncation_ts;
 }
 
 static bool is_system_compatible()

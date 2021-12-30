@@ -28,13 +28,14 @@ constexpr gaia::db::gaia_offset_t c_fake_offset = 0;
 index_record_t create_index_record()
 {
     thread_local static gaia::db::gaia_locator_t locator = 0;
-
-    return {c_fake_txn_id, locator++, c_fake_offset, index_record_operation_t::insert};
+    locator++;
+    return {c_fake_txn_id, locator, c_fake_offset, index_record_operation_t::insert, 0};
 }
 
 TEST(index, empty_range_index)
 {
-    range_index_t range_index(0);
+    index_key_schema_t schema;
+    range_index_t range_index(0, schema);
     size_t count = 0;
 
     for (auto it = range_index.begin(); it != range_index.end(); it++)
@@ -47,7 +48,8 @@ TEST(index, empty_range_index)
 
 TEST(index, empty_hash_index)
 {
-    hash_index_t hash_index(0);
+    index_key_schema_t schema;
+    hash_index_t hash_index(0, schema);
     size_t count = 0;
     for (auto it = hash_index.begin(); it != hash_index.end(); it++)
     {
@@ -58,7 +60,8 @@ TEST(index, empty_hash_index)
 
 TEST(index, one_record_hash_index)
 {
-    hash_index_t hash_index(0);
+    index_key_schema_t schema;
+    hash_index_t hash_index(0, schema);
     size_t count = 0;
 
     hash_index.insert_index_entry(index_key_t(0), index_record_t(create_index_record()));
@@ -74,7 +77,8 @@ TEST(index, one_record_hash_index)
 
 TEST(index, one_record_range_index)
 {
-    range_index_t range_index(0);
+    index_key_schema_t schema;
+    range_index_t range_index(0, schema);
     size_t count = 0;
 
     range_index.insert_index_entry(index_key_t(0), index_record_t(create_index_record()));
@@ -90,7 +94,8 @@ TEST(index, one_record_range_index)
 
 TEST(index, single_key_multi_record_hash_index)
 {
-    hash_index_t hash_index(0);
+    index_key_schema_t schema;
+    hash_index_t hash_index(0, schema);
     size_t count = 0;
 
     hash_index.insert_index_entry(index_key_t(0), index_record_t(create_index_record()));
@@ -108,7 +113,8 @@ TEST(index, single_key_multi_record_hash_index)
 
 TEST(index, single_key_multi_record_range_index)
 {
-    range_index_t range_index(0);
+    index_key_schema_t schema;
+    range_index_t range_index(0, schema);
     size_t count = 0;
 
     range_index.insert_index_entry(index_key_t(0), index_record_t(create_index_record()));
@@ -126,7 +132,8 @@ TEST(index, single_key_multi_record_range_index)
 
 TEST(index, multi_key_multi_record_hash_index)
 {
-    hash_index_t hash_index(0);
+    index_key_schema_t schema;
+    hash_index_t hash_index(0, schema);
     size_t count = 0;
 
     hash_index.insert_index_entry(index_key_t(0), index_record_t(create_index_record()));
@@ -146,7 +153,8 @@ TEST(index, multi_key_multi_record_hash_index)
 
 TEST(index, multi_key_multi_record_range_index)
 {
-    range_index_t range_index(0);
+    index_key_schema_t schema;
+    range_index_t range_index(0, schema);
     size_t count = 0;
 
     range_index.insert_index_entry(index_key_t(0), index_record_t(create_index_record()));
@@ -167,8 +175,9 @@ TEST(index, multi_key_multi_record_range_index)
 // Simulate index updates for range index
 TEST(index, range_update_test)
 {
+    index_key_schema_t schema;
     index_record_t to_update = create_index_record();
-    range_index_t range_index(0);
+    range_index_t range_index(0, schema);
     size_t count = 0;
 
     range_index.insert_index_entry(index_key_t(0), to_update);
@@ -190,7 +199,8 @@ TEST(index, range_update_test)
 TEST(index, hash_update_test)
 {
     index_record_t to_update = create_index_record();
-    hash_index_t hash_index(0);
+    index_key_schema_t schema;
+    hash_index_t hash_index(0, schema);
     size_t count = 0;
 
     hash_index.insert_index_entry(index_key_t(0), to_update);
@@ -210,7 +220,8 @@ TEST(index, hash_update_test)
 
 TEST(index, eq_range_hash_index)
 {
-    hash_index_t hash_index(0);
+    index_key_schema_t schema;
+    hash_index_t hash_index(0, schema);
     size_t count = 0;
 
     hash_index.insert_index_entry(index_key_t(0), index_record_t(create_index_record()));
@@ -232,7 +243,8 @@ TEST(index, eq_range_hash_index)
 
 TEST(index, eq_range_range_index)
 {
-    range_index_t range_index(0);
+    index_key_schema_t schema;
+    range_index_t range_index(0, schema);
     size_t count = 0;
 
     range_index.insert_index_entry(index_key_t(0), index_record_t(create_index_record()));
@@ -283,7 +295,7 @@ TEST_F(index_test, unique_constraint_same_txn)
     auto_transaction_t txn;
     student_t::insert_row(student_id, "Alice", 21, 30, 3.75);
     student_t::insert_row(student_id, "Bob", 22, 28, 3.5);
-    EXPECT_THROW(txn.commit(), unique_constraint_violation);
+    ASSERT_THROW(txn.commit(), unique_constraint_violation);
 }
 
 TEST_F(index_test, unique_constraint_different_txn)
@@ -296,7 +308,7 @@ TEST_F(index_test, unique_constraint_different_txn)
 
     // Attempt to re-insert the same key - we should trigger the conflict.
     student_t::insert_row(student_id, "Bob", 22, 28, 3.5);
-    EXPECT_THROW(txn.commit(), unique_constraint_violation);
+    ASSERT_THROW(txn.commit(), unique_constraint_violation);
 }
 
 TEST_F(index_test, unique_constraint_update_record)
@@ -351,7 +363,7 @@ TEST_F(index_test, unique_constraint_rollback_transaction)
     // We should trigger the conflict and our transaction should be rolled back.
     student_t::insert_row(bob_student_id, "Bob", 22, 28, 3.5);
     student_t::insert_row(alice_student_id, "Charles", 22, 24, 3.25);
-    EXPECT_THROW(txn.commit(), unique_constraint_violation);
+    ASSERT_THROW(txn.commit(), unique_constraint_violation);
 
     // Attempt to insert the second key again.
     // We should succeed if the previous transaction was properly rolled back.

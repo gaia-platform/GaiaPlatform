@@ -2025,7 +2025,7 @@ static void handleRulesetTableAttr(Sema &S, Decl *D, const ParsedAttr &AL)
       return;
     }
     IdentifierLoc *tableArg = AL.getArgAsIdent(ArgNo);
-    if (tableData.find(tableArg->Ident->getName().str()) == tableData.end())
+    if (tableData.find(tableArg->Ident->getName()) == tableData.end())
     {
       S.Diag(AL.getLoc(), diag::err_table_not_found)
         << tableArg->Ident->getName();
@@ -2138,6 +2138,7 @@ static bool validateRuleAttribute(StringRef attribute,
         << field;
       return false;
     }
+    S.AddTableSearchAnchor(table);
     return true;
   }
 
@@ -2153,6 +2154,7 @@ static bool validateRuleAttribute(StringRef attribute,
     }
 
     bool returnValue = false;
+    StringRef fieldTable;
     for (const auto& table : tableData)
     {
       if (table.second.find(attribute) != table.second.end())
@@ -2163,12 +2165,17 @@ static bool validateRuleAttribute(StringRef attribute,
           return false;
         }
         returnValue = true;
+        fieldTable = table.first();
       }
     }
     if (!returnValue)
     {
-      S.Diag(AL.getLoc(), diag::err_unknown_field)
+      S.Diag(AL.getLoc(), diag::err_unknown_field_or_table)
         << attribute;
+    }
+    else
+    {
+      S.AddTableSearchAnchor(fieldTable);
     }
     return returnValue;
   }
@@ -2181,6 +2188,7 @@ static bool validateRuleAttribute(StringRef attribute,
       return false;
     }
   }
+  S.AddTableSearchAnchor(attribute);
 
   return true;
 }

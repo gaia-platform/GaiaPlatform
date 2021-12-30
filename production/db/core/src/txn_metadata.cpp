@@ -8,6 +8,8 @@
 #include <bitset>
 #include <iostream>
 
+#include "gaia/exceptions.hpp"
+
 #include "gaia_internal/common/mmap_helpers.hpp"
 
 #include "db_helpers.hpp"
@@ -111,6 +113,12 @@ bool txn_metadata_t::is_txn_metadata_map_initialized()
     return (s_txn_metadata_map != nullptr);
 }
 
+char* txn_metadata_t::get_txn_metadata_map_base_address()
+{
+    ASSERT_PRECONDITION(is_txn_metadata_map_initialized(), "Txn metadata map is uninitialized!");
+    return reinterpret_cast<char*>(s_txn_metadata_map);
+}
+
 // This method allocates a new begin_ts and initializes its metadata in the txn
 // table.
 gaia_txn_id_t txn_metadata_t::register_begin_ts()
@@ -120,7 +128,7 @@ gaia_txn_id_t txn_metadata_t::register_begin_ts()
 
     // Loop until we successfully install a newly allocated begin_ts in the txn
     // table. (We're possibly racing another beginning or committing txn that
-    // could invalidate our begin_ts metadata before we install it.)
+    // could seal our begin_ts metadata entry before we install it.)
     // Technically, there is no bound on the number of iterations until success,
     // so this is not wait-free, but in practice conflicts should be very rare.
     while (true)
@@ -161,7 +169,7 @@ gaia_txn_id_t txn_metadata_t::register_commit_ts(gaia_txn_id_t begin_ts, int log
 
     // Loop until we successfully install a newly allocated commit_ts in the txn
     // table. (We're possibly racing another beginning or committing txn that
-    // could invalidate our commit_ts metadata before we install it.)
+    // could seal our commit_ts metadata entry before we install it.)
     // Technically, there is no bound on the number of iterations until success,
     // so this is not wait-free, but in practice conflicts should be very rare.
     while (true)
