@@ -183,7 +183,6 @@ void server_t::txn_begin(std::vector<int>& txn_log_fds_for_snapshot)
 
     // Update the log header with our begin timestamp and initialize it to empty.
     s_log.data()->begin_ts = s_txn_id;
-    s_log.data()->current_chunk = c_invalid_chunk_offset;
     s_log.data()->record_count = 0;
 }
 
@@ -954,7 +953,7 @@ void server_t::init_listening_socket(const std::string& socket_name)
     // in the server address structure after the prefix null byte.
     ASSERT_INVARIANT(
         socket_name.size() <= sizeof(server_addr.sun_path) - 1,
-        "Socket name '" + socket_name + "' is too long!");
+        gaia_fmt::format("Socket name '{}' is too long!", socket_name).c_str());
 
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
@@ -2582,53 +2581,11 @@ void server_t::txn_rollback(bool client_disconnected)
     // owned by the client session when it crashed.
     if (client_disconnected)
     {
-        // Load the crashed session's chunk, so we can directly free the final
-        // allocation if necessary.
-        // BUG (GAIAPLAT-1489): this will only work if we're inside a txn when
-        // the session crashes. Otherwise, we'll leak the chunk and it will be
-        // orphaned forever (unless we somehow GC orphaned chunks).
-        memory_manager::chunk_offset_t chunk_offset = s_log.data()->current_chunk;
-        if (chunk_offset != c_invalid_chunk_offset)
-        {
-            s_chunk_manager.load(chunk_offset);
-
-            // Get final allocation from chunk metadata, so we can check to be sure
-            // it's present in our txn log.
-            gaia_offset_t last_allocated_offset = s_chunk_manager.last_allocated_offset();
-
-            // If we haven't logged the final allocation, then deallocate it directly.
-            if (last_allocated_offset != c_invalid_gaia_offset)
-            {
-                bool is_log_empty = (s_log.data()->record_count == 0);
-
-                // If we have no log records, but we do have a final allocation, then deallocate it directly.
-                bool should_deallocate_directly = is_log_empty;
-
-                // If we do have a non-empty log, then check if the final record matches the final allocation.
-                // if (!is_log_empty)
-                // {
-                // BUG (GAIAPLAT-1490): I removed the original logic here
-                // because it was incorrect. We can afford to leak the final
-                // allocation when a session crashes in the middle of a txn
-                // for now, until we implement this properly.
-                // }
-
-                if (should_deallocate_directly)
-                {
-                    s_chunk_manager.deallocate(last_allocated_offset);
-                }
-            }
-
-            // Get the session's chunk version for safe deallocation.
-            memory_manager::chunk_version_t version = s_chunk_manager.get_version();
-
-            // Now retire the chunk.
-            s_chunk_manager.retire_chunk(version);
-
-            // We don't strictly need this since the session thread is about to exit,
-            // but it's good hygiene to clear unused thread-locals.
-            s_chunk_manager.release();
-        }
+        // TODO[GAIAPLAT-1490]: Implement this logic correctly by tracking the
+        // current chunk ID in shared session state. For now, chunks owned by a
+        // crashed session will never be retired (and therefore can never be
+        // reallocated). Deallocation of object versions in these orphaned
+        // chunks will still succeed, though, so GC correctness is unaffected.
     }
 
     // Claim ownership of the log fd from the mapping object.

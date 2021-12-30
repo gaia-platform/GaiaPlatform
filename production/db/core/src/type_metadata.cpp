@@ -118,8 +118,6 @@ void type_registry_t::init()
     auto table = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_table);
     auto field = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_field);
     auto relationship = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_relationship);
-    auto rule = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_rule);
-    auto ruleset = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_ruleset);
     auto index = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_index);
 
     auto db_table_relationship = std::make_shared<relationship_t>(relationship_t{
@@ -166,17 +164,6 @@ void type_registry_t::init()
         .parent_required = false,
         .value_linked = false});
 
-    auto ruleset_rule_relationship = std::make_shared<relationship_t>(relationship_t{
-        .parent_type = ruleset,
-        .child_type = rule,
-        .first_child_offset = catalog_core_t::c_gaia_ruleset_first_gaia_rule_offset,
-        .next_child_offset = catalog_core_t::c_gaia_rule_next_gaia_rule_offset,
-        .prev_child_offset = c_invalid_reference_offset,
-        .parent_offset = catalog_core_t::c_gaia_rule_parent_gaia_ruleset_offset,
-        .cardinality = cardinality_t::many,
-        .parent_required = false,
-        .value_linked = false});
-
     auto table_index_relationship = std::make_shared<relationship_t>(relationship_t{
         .parent_type = table,
         .child_type = index,
@@ -208,14 +195,6 @@ void type_registry_t::init()
     relationship_metadata.add_child_relationship(relationship_parent_table_relationship);
     relationship_metadata.add_child_relationship(relationship_child_table_relationship);
     relationship_metadata.mark_as_initialized();
-
-    auto& ruleset_metadata = get_or_create_no_lock(ruleset);
-    ruleset_metadata.add_parent_relationship(ruleset_rule_relationship);
-    ruleset_metadata.mark_as_initialized();
-
-    auto& rule_metadata = get_or_create_no_lock(rule);
-    rule_metadata.add_child_relationship(ruleset_rule_relationship);
-    rule_metadata.mark_as_initialized();
 
     auto& index_metadata = get_or_create_no_lock(index);
     index_metadata.add_child_relationship(table_index_relationship);

@@ -28,7 +28,8 @@ endfunction()
 # gaia_build_options), so we need to set them directly on the target.
 #
 function(configure_gaia_target TARGET)
-  target_link_libraries(${TARGET} PUBLIC gaia_build_options)
+  # Keep this dependency PRIVATE to avoid leaking Gaia build options into all dependent targets.
+  target_link_libraries(${TARGET} PRIVATE gaia_build_options)
   if(NOT EXPORT_SYMBOLS)
     # See https://cmake.org/cmake/help/latest/policy/CMP0063.html.
     cmake_policy(SET CMP0063 NEW)
@@ -97,7 +98,7 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
     set(ENV "")
   endif()
 
-  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  if("$CACHE{SANITIZER}" STREQUAL "ASAN")
     # Suppress ASan warnings from exception destructors in libc++.
     # REVIEW (GAIAPLAT-1828): spdlog and cpptoml show up in the ASan stack
     # trace, and both are unconditionally built with libstdc++, so this is
@@ -106,6 +107,12 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
     # using ENV for anything, and I couldn't get concatenation of NAME=VALUE
     # env var pairs to work with ASan. This is just a temporary hack anyway.
     set(ENV "ASAN_OPTIONS=alloc_dealloc_mismatch=0")
+  endif()
+
+  if("$CACHE{SANITIZER}" STREQUAL "TSAN")
+    # NB: This overwrites any previous value of ENV, but apparently we're not
+    # using ENV for anything.
+    set(ENV "TSAN_OPTIONS=suppressions=${GAIA_REPO}/.tsan-suppressions")
   endif()
 
   configure_gaia_target(${TARGET})
@@ -312,11 +319,20 @@ function(add_gaia_sdk_gtest)
 
   # Unlike clang, gaiat isn't smart enough to know where system include dirs are
   # for intrinsics and stdlib headers, so we need to define them explicitly.
-  # Since our internal builds target only Ubuntu 20.04, we assume that the
-  # default version (9) of libstdc++ is installed.
-  set(CLANG_INCLUDE_DIR "/usr/include/clang/13/include/")
-  set(LIBCXX_INCLUDE_DIR "/usr/lib/llvm-13/include/c++/v1/")
-  set(LIBSTDCXX_INCLUDE_DIR "/usr/include/c++/9/")
+  set(GAIAT_INCLUDE_PATH "")
+
+  # We use libc++ in debug and its header must be manually included.
+  # Note: the order of inclusion is relevant and libc++ headers must be
+  # defined first when libc++ is used.
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(LIBCXX_INCLUDE_DIR "/usr/lib/llvm-13/include/c++/v1/")
+    string(APPEND GAIAT_INCLUDE_PATH "-I;${LIBCXX_INCLUDE_DIR};")
+  endif()
+
+  foreach(INCLUDE_PATH ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
+    # Have to use ; instead of space otherwise custom_command will try to escape it
+    string(APPEND GAIAT_INCLUDE_PATH "-I;${INCLUDE_PATH};")
+  endforeach()
 
   add_custom_command(
     COMMENT "Compiling ${RULESET_FILE}..."
@@ -329,9 +345,8 @@ function(add_gaia_sdk_gtest)
       -I ${FLATBUFFERS_INC}
       -I ${GAIA_SPDLOG_INC}
       -I ${DAC_INCLUDE}
+      -I ${GAIAT_INCLUDE_PATH}
       -stdlib=$<IF:$<CONFIG:Debug>,libc++,libstdc++>
-      -I $<IF:$<CONFIG:Debug>,${LIBCXX_INCLUDE_DIR},${LIBSTDCXX_INCLUDE_DIR}>
-      -I ${CLANG_INCLUDE_DIR} 
       -std=c++${CMAKE_CXX_STANDARD}
     COMMAND pkill -f -KILL gaia_db_server &
 
