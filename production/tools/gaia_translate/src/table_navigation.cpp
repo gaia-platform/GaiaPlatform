@@ -16,7 +16,6 @@
 #include "diagnostics.h"
 #include "table_navigation.h"
 
-
 using namespace std;
 using namespace clang;
 using namespace ::gaia::translation;
@@ -53,16 +52,28 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(llv
         {
             table = path_component;
         }
-
-        if (path_component == path_data.path_components.back() && !path_data.variable_name.empty())
+        if (path_data.skip_implicit_path_generation
+            && path_component == path_data.path_components.front()
+            && (
+                table == path_data.anchor_variable
+                || (table ==path_data.anchor_table
+                    && path_data.tag_table_map.find(table) == path_data.tag_table_map.end())))
+        {
+            last_variable_name = path_data.anchor_variable;
+            auto tag_iterator = path_data.tag_table_map.find(last_variable_name);
+            if (tag_iterator != path_data.tag_table_map.end())
+            {
+                table = tag_iterator->second;
+            }
+        }
+        else if (path_component == path_data.path_components.back() && !path_data.variable_name.empty())
         {
             last_variable_name = path_data.variable_name;
         }
         else
         {
             last_variable_name = get_variable_name(table, path_data.tag_table_map);
-
-            if (last_variable_name != table)
+            if (table != last_variable_name)
             {
                 // Path component is not a tag defined earlier. Check if it is a tag defined in the path
                 auto defined_tag_iterator = path_data.defined_tags.find(table);

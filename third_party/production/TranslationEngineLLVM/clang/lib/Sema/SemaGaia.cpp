@@ -715,36 +715,21 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
     }
     if (IsInExtendedExplicitPathScope())
     {
-        const auto& pathDataIterator = explicitPathData.find(loc);
-        if (pathDataIterator != explicitPathData.end())
+        StringRef anchorVariable = typeName;
+
+        const auto& definedTagIterator = extendedExplicitPathTagMapping.find(loc);
+        if (definedTagIterator != extendedExplicitPathTagMapping.end())
         {
-            StringRef anchorVariable = typeName;
-            const auto& definedTagIterator = extendedExplicitPathTagMapping.find(loc);
-            if (definedTagIterator != extendedExplicitPathTagMapping.end())
+            for (const auto& tagIterator : definedTagIterator->second)
             {
-                for (const auto& tagIterator : definedTagIterator->second)
+                if (tagIterator.second == typeName)
                 {
-                    if (tagIterator.second == typeName)
-                    {
-                        anchorVariable = tagIterator.first();
-                        break;
-                    }
+                    anchorVariable = tagIterator.first();
+                    break;
                 }
             }
-
-            if (typeName != anchorVariable || pathDataIterator->second.path.size() == 1)
-            {
-                AddTableSearchAnchor(typeName, anchorVariable);
-            }
-            else
-            {
-                AddTableSearchAnchor(typeName, StringRef());
-            }
         }
-        else
-        {
-            AddTableSearchAnchor(typeName, StringRef());
-        }
+        AddTableSearchAnchor(typeName, anchorVariable);
     }
 
     // Look for a previous declaration of this table. There are 3 cases:
@@ -1296,80 +1281,109 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
     }
     const llvm::StringMap<std::string>& tagMapping = getTagMapping(getCurFunctionDecl(), loc);
     bool isReferenceDefined = false;
-    for (const auto& searchContextStackIterator : searchContextStack)
-    {
-        for (const auto& searchContextIterator : searchContextStackIterator)
-        {
-            if (searchContextIterator.second == firstComponent)
-            {
-                isReferenceDefined = true;
-                break;
-            }
-        }
-        if (isReferenceDefined)
-        {
-            break;
-        }
-    }
-
     StringRef anchorTable;
     StringRef anchorVariable;
-    if (explicitPath.front() != '/'
-        && explicitPath.rfind("@/") != 0
-        && tagMapping.find(firstComponent) == tagMapping.end()
-        && !searchContextStack.empty()
-        && !isReferenceDefined)
+    if (explicitPath.front() != '/' && explicitPath.rfind("@/") != 0 && !searchContextStack.empty())
     {
-        // Check if first component is a field. It should be the only component in the path.
-        const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
-        if (catalogData.find(firstComponent) == catalogData.end())
+        bool isFirstComponentTagged = false;
+        for (const auto& tagIterator : tagMapping)
         {
-            firstComponent = fieldTableName;
-        }
-        bool skipTopSearchContext = !IsInExtendedExplicitPathScope();
-        for (auto searchContextIterator = searchContextStack.rbegin();
-            searchContextIterator != searchContextStack.rend(); ++searchContextIterator)
-        {
-            if (!skipTopSearchContext)
+            if (tagIterator.second == firstComponent)
             {
-                skipTopSearchContext = true;
-                continue;
-            }
-
-            if (searchContextIterator->empty())
-            {
-                continue;
-            }
-
-            int pathLength = INT_MAX;
-            for (auto anchorTableIterator = searchContextIterator->begin();
-                anchorTableIterator != searchContextIterator->end(); ++anchorTableIterator)
-            {
-                llvm::SmallVector<string, 8> path;
-                StringRef source_table = anchorTableIterator->first();
-                const auto& tagIterator = tagMapping.find(source_table);
-                if (tagIterator != tagMapping.end())
-                {
-                    source_table = tagIterator->second;
-                }
-                // Find topographically shortest path between anchor table and destination table.
-                if (gaia::catalog::GaiaCatalog::findNavigationPath(source_table, firstComponent, path, false))
-                {
-                    if (path.size() < pathLength)
-                    {
-                        pathLength = path.size();
-                        anchorTable = anchorTableIterator->first();
-                        anchorVariable = anchorTableIterator->second;
-                    }
-                    else if (pathLength == path.size())
-                    {
-                        anchorTable = StringRef();
-                    }
-                }
-            }
-            if (!anchorTable.empty())
-            {
+                isFirstComponentTagged = true;
                 break;
+            }
+        }
+
+        if (!isFirstComponentTagged)
+        {
+            bool isFirstComponentTagDefinition = false;
+            const auto& definedTagIterator = extendedExplicitPathTagMapping.find(loc);
+            if (definedTagIterator != extendedExplicitPathTagMapping.end())
+            {
+                for (const auto& tagIterator : definedTagIterator->second)
+                {
+                    if (tagIterator.second == firstComponent)
+                    {
+                        isFirstComponentTagDefinition = true;
+                        break;
+                    }
+                }
+            }
+
+            bool isAnchorFound = false;
+
+            // Check if first component is a field. It should be the only component in the path.
+            const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+            StringRef firstComponentTable = firstComponent;
+            if (catalogData.find(firstComponentTable) == catalogData.end())
+            {
+                firstComponentTable = fieldTableName;
+            }
+            bool skipTopSearchContext = !IsInExtendedExplicitPathScope();
+            for (auto searchContextIterator = searchContextStack.rbegin();
+                searchContextIterator != searchContextStack.rend(); ++searchContextIterator)
+            {
+                if (!skipTopSearchContext)
+                {
+                    skipTopSearchContext = true;
+                    continue;
+                }
+
+                if (searchContextIterator->empty())
+                {
+                    continue;
+                }
+
+                int pathLength = INT_MAX;
+                for (auto anchorTableIterator = searchContextIterator->begin();
+                    anchorTableIterator != searchContextIterator->end(); ++anchorTableIterator)
+                {
+                    if (!isReferenceDefined && !isFirstComponentTagDefinition)
+                    {
+                        if (anchorTableIterator->second == firstComponent)
+                        {
+                            anchorTable = anchorTableIterator->first();
+                            anchorVariable = anchorTableIterator->second;
+                            isReferenceDefined = true;
+                            break;
+                        }
+                    }
+
+                    if (!isAnchorFound && !isReferenceDefined)
+                    {
+                        llvm::SmallVector<string, 8> path;
+                        StringRef source_table = anchorTableIterator->first();
+                        const auto& tagIterator = tagMapping.find(source_table);
+                        if (tagIterator != tagMapping.end())
+                        {
+                            source_table = tagIterator->second;
+                        }
+                        // Find topographically shortest path between anchor table and destination table.
+                        if (gaia::catalog::GaiaCatalog::findNavigationPath(source_table, firstComponentTable, path, false))
+                        {
+                            if (path.size() < pathLength)
+                            {
+                                pathLength = path.size();
+                                anchorTable = anchorTableIterator->first();
+                                anchorVariable = anchorTableIterator->second;
+                            }
+                            else if (pathLength == path.size())
+                            {
+                                anchorTable = StringRef();
+                            }
+                        }
+                    }
+                }
+
+                if (isReferenceDefined)
+                {
+                    break;
+                }
+                else if (!anchorTable.empty())
+                {
+                    isAnchorFound = true;
+                }
             }
         }
     }
@@ -1390,7 +1404,8 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
         varDecl->addAttr(GaiaAnchorAttr::CreateImplicit(Context,
             &Context.Idents.get(anchorTable),
             &Context.Idents.get(anchorVariable),
-            IsInExtendedExplicitPathScope()));
+            IsInExtendedExplicitPathScope(),
+            isReferenceDefined));
     }
 
     if (GetExplicitPathData(loc, startLocation, endLocation, path))

@@ -1578,7 +1578,7 @@ void update_expression_explicit_path_data(
     {
         if (is_range_contained_in_another_range(expression_explicit_path_data_iterator.first, expression_source_range))
         {
-            if (data.anchor_variable.empty())
+            if (data.anchor_variable == data.anchor_table)
             {
                 for (const auto& path_expression_explicit_path_data_iterator : expression_explicit_path_data_iterator.second)
                 {
@@ -1586,6 +1586,10 @@ void update_expression_explicit_path_data(
                         && get_table_from_expression(path_expression_explicit_path_data_iterator.path_components.back()) == data.anchor_table)
                     {
                         data.anchor_variable = path_expression_explicit_path_data_iterator.variable_name;
+                        if(data.skip_implicit_path_generation && path_expression_explicit_path_data_iterator.variable_name != data.variable_name)
+                        {
+                            data.skip_implicit_path_generation = false;
+                        }
                     }
                 }
             }
@@ -1654,6 +1658,7 @@ void update_expression_used_tables(
     StringRef anchor_table,
     StringRef anchor_variable,
     bool is_anchor,
+    bool skip_implicit_generation,
     Rewriter& rewriter)
 {
     explicit_path_data_t path_data;
@@ -1666,6 +1671,7 @@ void update_expression_used_tables(
     path_data.anchor_table = anchor_table;
     path_data.anchor_variable = anchor_variable;
     path_data.is_anchor = is_anchor;
+    path_data.skip_implicit_path_generation = skip_implicit_generation;
     update_expression_explicit_path_data(context, node, path_data, source_range, rewriter);
 }
 
@@ -1783,6 +1789,7 @@ public:
         StringRef anchor_table;
         StringRef anchor_variable;
         bool is_anchor = false;
+        bool skip_implicit_navigation = false;
         SourceRange expression_source_range;
         explicit_path_data_t explicit_path_data;
         bool explicit_path_present = true;
@@ -1800,6 +1807,7 @@ public:
                 anchor_table = anchor_attribute->getAnchorTable()->getName();
                 anchor_variable = anchor_attribute->getAnchorVariable()->getName();
                 is_anchor = anchor_attribute->getIsAnchor();
+                skip_implicit_navigation = anchor_attribute->getIsDefined();
             }
 
             table_name = get_table_name(decl);
@@ -1821,6 +1829,7 @@ public:
                 explicit_path_data.anchor_table = anchor_table;
                 explicit_path_data.anchor_variable = anchor_variable;
                 explicit_path_data.is_anchor = is_anchor;
+                explicit_path_data.skip_implicit_path_generation = skip_implicit_navigation;
             }
             if (decl->hasAttr<GaiaFieldValueAttr>())
             {
@@ -1852,6 +1861,7 @@ public:
                     anchor_table = anchor_attribute->getAnchorTable()->getName();
                     anchor_variable = anchor_attribute->getAnchorVariable()->getName();
                     is_anchor = anchor_attribute->getIsAnchor();
+                    skip_implicit_navigation = anchor_attribute->getIsDefined();
                 }
 
                 if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
@@ -1872,6 +1882,7 @@ public:
                     explicit_path_data.anchor_table = anchor_table;
                     explicit_path_data.anchor_variable = anchor_variable;
                     explicit_path_data.is_anchor = is_anchor;
+                    explicit_path_data.skip_implicit_path_generation = skip_implicit_navigation;
                 }
 
                 if (decl->hasAttr<GaiaFieldValueAttr>())
@@ -1934,6 +1945,7 @@ public:
                     anchor_table,
                     anchor_variable,
                     is_anchor,
+                    skip_implicit_navigation,
                     m_rewriter);
                 update_expression_used_tables(
                     result.Context,
@@ -1944,6 +1956,7 @@ public:
                     anchor_table,
                     anchor_variable,
                     is_anchor,
+                    skip_implicit_navigation,
                     m_rewriter);
             }
             else
@@ -2010,6 +2023,7 @@ public:
         StringRef anchor_table;
         StringRef anchor_variable;
         bool is_anchor = false;
+        bool skip_implicit_navigation = false;
         SourceRange set_source_range;
         if (left_declaration_expression == nullptr && member_expression == nullptr)
         {
@@ -2033,6 +2047,7 @@ public:
                 anchor_table = anchor_attribute->getAnchorTable()->getName();
                 anchor_variable = anchor_attribute->getAnchorVariable()->getName();
                 is_anchor = anchor_attribute->getIsAnchor();
+                skip_implicit_navigation = anchor_attribute->getIsDefined();
             }
 
             if (!get_explicit_path_data(operator_declaration, explicit_path_data, set_source_range))
@@ -2049,6 +2064,7 @@ public:
                 explicit_path_data.anchor_table = anchor_table;
                 explicit_path_data.anchor_variable = anchor_variable;
                 explicit_path_data.is_anchor = is_anchor;
+                explicit_path_data.skip_implicit_path_generation = skip_implicit_navigation;
 
             }
             if (operator_declaration->hasAttr<GaiaFieldValueAttr>())
@@ -2083,6 +2099,7 @@ public:
                 anchor_table = anchor_attribute->getAnchorTable()->getName();
                 anchor_variable = anchor_attribute->getAnchorVariable()->getName();
                 is_anchor = anchor_attribute->getIsAnchor();
+                skip_implicit_navigation = anchor_attribute->getIsDefined();
             }
 
             if (!get_explicit_path_data(decl, explicit_path_data, set_source_range))
@@ -2099,6 +2116,7 @@ public:
                 explicit_path_data.anchor_table = anchor_table;
                 explicit_path_data.anchor_variable = anchor_variable;
                 explicit_path_data.is_anchor = is_anchor;
+                explicit_path_data.skip_implicit_path_generation = skip_implicit_navigation;
             }
             if (decl->hasAttr<GaiaFieldValueAttr>())
             {
@@ -2236,6 +2254,7 @@ public:
                 anchor_table,
                 anchor_variable,
                 is_anchor,
+                skip_implicit_navigation,
                 m_rewriter);
         }
         else
@@ -2332,6 +2351,7 @@ public:
         StringRef anchor_table;
         StringRef anchor_variable;
         bool is_anchor = false;
+        bool skip_implicit_navigation = false;
         SourceRange operator_source_range;
 
         if (declaration_expression != nullptr)
@@ -2351,6 +2371,7 @@ public:
                 anchor_table = anchor_attribute->getAnchorTable()->getName();
                 anchor_variable = anchor_attribute->getAnchorVariable()->getName();
                 is_anchor = anchor_attribute->getIsAnchor();
+                skip_implicit_navigation = anchor_attribute->getIsDefined();
             }
             if (!get_explicit_path_data(operator_declaration, explicit_path_data, operator_source_range))
             {
@@ -2366,6 +2387,7 @@ public:
                 explicit_path_data.anchor_table = anchor_table;
                 explicit_path_data.anchor_variable = anchor_variable;
                 explicit_path_data.is_anchor = is_anchor;
+                explicit_path_data.skip_implicit_path_generation = skip_implicit_navigation;
             }
         }
         else
@@ -2387,6 +2409,7 @@ public:
                 anchor_table = anchor_attribute->getAnchorTable()->getName();
                 anchor_variable = anchor_attribute->getAnchorVariable()->getName();
                 is_anchor = anchor_attribute->getIsAnchor();
+                skip_implicit_navigation = anchor_attribute->getIsDefined();
             }
             if (!get_explicit_path_data(operator_declaration, explicit_path_data, operator_source_range))
             {
@@ -2401,6 +2424,7 @@ public:
                 explicit_path_data.anchor_table = anchor_table;
                 explicit_path_data.anchor_variable = anchor_variable;
                 explicit_path_data.is_anchor = is_anchor;
+                explicit_path_data.skip_implicit_path_generation = skip_implicit_navigation;
             }
         }
         string writer_variable = table_navigation_t::get_variable_name("writer", llvm::StringMap<string>());
@@ -2479,6 +2503,7 @@ public:
                 anchor_table,
                 anchor_variable,
                 is_anchor,
+                skip_implicit_navigation,
                 m_rewriter);
         }
         else
@@ -2911,6 +2936,7 @@ public:
         StringRef anchor_table;
         StringRef anchor_variable;
         bool is_anchor = false;
+        bool skip_implicit_navigation = false;
         const ValueDecl* decl = expression->getDecl();
         if (!decl->getType()->isStructureType())
         {
@@ -2925,6 +2951,7 @@ public:
             anchor_table = anchor_attribute->getAnchorTable()->getName();
             anchor_variable = anchor_attribute->getAnchorVariable()->getName();
             is_anchor = anchor_attribute->getIsAnchor();
+            skip_implicit_navigation = anchor_attribute->getIsDefined();
         }
 
         if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
@@ -2943,6 +2970,7 @@ public:
             explicit_path_data.anchor_table = anchor_table;
             explicit_path_data.anchor_variable = anchor_variable;
             explicit_path_data.is_anchor = is_anchor;
+            explicit_path_data.skip_implicit_path_generation = skip_implicit_navigation;
         }
 
         if (decl->hasAttr<GaiaFieldValueAttr>())
@@ -2996,6 +3024,7 @@ public:
                     anchor_table,
                     anchor_variable,
                     is_anchor,
+                    skip_implicit_navigation,
                     m_rewriter);
             }
         }
@@ -3156,6 +3185,7 @@ public:
         StringRef anchor_table;
         StringRef anchor_variable;
         bool is_anchor = false;
+        bool skip_implicit_navigation = false;
 
         gaiat::diag().set_location(expression->getBeginLoc());
 
@@ -3175,6 +3205,7 @@ public:
             anchor_table = anchor_attribute->getAnchorTable()->getName();
             anchor_variable = anchor_attribute->getAnchorVariable()->getName();
             is_anchor = anchor_attribute->getIsAnchor();
+            skip_implicit_navigation = anchor_attribute->getIsDefined();
         }
 
         if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
@@ -3192,6 +3223,7 @@ public:
             explicit_path_data.anchor_table = anchor_table;
             explicit_path_data.anchor_variable = anchor_variable;
             explicit_path_data.is_anchor = is_anchor;
+            explicit_path_data.skip_implicit_path_generation = skip_implicit_navigation;
         }
         expression_source_range.setEnd(expression->getRParenLoc().getLocWithOffset(-1));
 
@@ -3217,6 +3249,7 @@ public:
                     anchor_table,
                     anchor_variable,
                     is_anchor,
+                    skip_implicit_navigation,
                     m_rewriter);
             }
         }
