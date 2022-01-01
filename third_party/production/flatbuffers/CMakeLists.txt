@@ -70,5 +70,3 @@ ExternalProject_Add(flatbuffers_dependency
     ${FLATBUFFERS_BIN}/flatc
     ${FLATBUFFERS_LIB}/libflatbuffers.a
 )
-
-message(STATUS "Suppini ${FLATBUFFERS_BIN}/libflatbuffers.a")
