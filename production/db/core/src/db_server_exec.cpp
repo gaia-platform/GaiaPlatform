@@ -26,6 +26,7 @@ static constexpr char c_config_file_param[] = "--config-file";
 static constexpr char c_persistence_param[] = "--persistence";
 static constexpr char c_reset_data_store_param[] = "--reset-data-store";
 static constexpr char c_skip_catalog_integrity_param[] = "--skip-catalog-integrity-checks";
+static constexpr char c_daemon_param[] = "--daemon";
 
 static constexpr char c_persistence_enabled_mode[] = "enabled";
 static constexpr char c_persistence_disabled_mode[] = "disabled";
@@ -47,6 +48,8 @@ static void usage()
            "                                disable persistence.\n"
            "  --data-dir <data_dir>       Specifies the directory in which to create the data store.\n"
            "  --reset-data-store          Deletes the data in the data store.\n"
+           "  --daemon                    Detach the server from the controlling terminal and run in the\n"
+           "                              background as a system daemon.\n"
 #ifdef DEBUG
            "  --instance-name <db_instance_name>   Specify the database instance name.\n"
            "                                       If not specified, will use "
@@ -252,6 +255,7 @@ static server_config_t process_command_line(int argc, char* argv[])
     std::string data_dir;
     std::string conf_file_path;
     bool testing = false;
+    bool daemon = false;
 
     // TODO argument parsing needs refactoring. ATM it is unclear:
     //  - what arguments are optional/mandatory
@@ -297,6 +301,10 @@ static server_config_t process_command_line(int argc, char* argv[])
         {
             testing = true;
         }
+        else if ((strcmp(argv[i], c_daemon_param) == 0))
+        {
+            daemon = true;
+        }
         else
         {
             std::cerr
@@ -306,6 +314,20 @@ static server_config_t process_command_line(int argc, char* argv[])
                 << std::endl;
             usage();
             std::exit(1);
+        }
+    }
+
+    if (daemon)
+    {
+        std::cerr << "Detaching from terminal and running in background..." << std::endl;
+
+        if (::daemon(true, true) < 0)
+        {
+            gaia::common::throw_system_error("An error occurred while daemonizing gaia_db_server!");
+        }
+        else
+        {
+            std::cerr << "Running as daemon!" << std::endl;
         }
     }
 
