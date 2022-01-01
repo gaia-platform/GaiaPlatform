@@ -337,7 +337,7 @@ function(add_gaia_sdk_gtest)
   add_custom_command(
     COMMENT "Compiling ${RULESET_FILE}..."
     OUTPUT ${RULESET_CPP_OUT}
-    COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --persistence disabled &
+    COMMAND daemonize ${GAIA_PROD_BUILD}/db/core/gaia_db_server --persistence disabled --instance-name ${DB_INSTANCE_NAME}
     COMMAND sleep 1
     COMMAND ${GAIAC_CMD} ${ARG_DDL_FILE}
     COMMAND ${GAIAT_CMD} ${ARG_RULESET_FILE} -output ${RULESET_CPP_OUT} --
@@ -348,7 +348,7 @@ function(add_gaia_sdk_gtest)
       -I ${GAIAT_INCLUDE_PATH}
       -stdlib=$<IF:$<CONFIG:Debug>,libc++,libstdc++>
       -std=c++${CMAKE_CXX_STANDARD}
-    COMMAND pkill -f -KILL gaia_db_server &
+      COMMAND kill -9 `pgrep --list-full --exact gaia_db_server`
 
     # In some contexts, the next attempt to start gaia_db_server precedes this kill, leading
     # to a build failure. A short sleep is currently fixing that, but may not be the
