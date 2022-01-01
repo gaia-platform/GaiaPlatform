@@ -19,53 +19,6 @@ namespace catalog {
 // The initial size of the flatbuffer builder buffer.
 constexpr int c_flatbuffer_builder_size = 128;
 
-// Constants contained in the rule_relationship object.
-constexpr uint32_t c_gaia_type_rule_relationship = 4294963207u;
-constexpr common::reference_offset_t c_rule_relationship_parent_rule = 0;
-constexpr common::reference_offset_t c_rule_relationship_next_rule = 1;
-constexpr common::reference_offset_t c_rule_relationship_parent_relationship = 2;
-constexpr common::reference_offset_t c_rule_relationship_next_relationship = 3;
-
-// Constants contained in the rule_field object.
-constexpr uint32_t c_gaia_type_rule_field = 4294963206u;
-constexpr common::reference_offset_t c_rule_field_parent_rule = 0;
-constexpr common::reference_offset_t c_rule_field_next_rule = 1;
-constexpr common::reference_offset_t c_rule_field_parent_field = 2;
-constexpr common::reference_offset_t c_rule_field_next_field = 3;
-
-// Constants contained in the rule_table object.
-constexpr uint32_t c_gaia_type_rule_table = 4294963205u;
-constexpr common::reference_offset_t c_rule_table_parent_rule = 0;
-constexpr common::reference_offset_t c_rule_table_next_rule = 1;
-constexpr common::reference_offset_t c_rule_table_parent_table = 2;
-constexpr common::reference_offset_t c_rule_table_next_table = 3;
-
-// Constants contained in the ruleset_database object.
-constexpr uint32_t c_gaia_type_ruleset_database = 4294963204u;
-constexpr common::reference_offset_t c_ruleset_database_parent_database = 0;
-constexpr common::reference_offset_t c_ruleset_database_next_database = 1;
-constexpr common::reference_offset_t c_ruleset_database_parent_ruleset = 2;
-constexpr common::reference_offset_t c_ruleset_database_next_ruleset = 3;
-
-// Constants contained in the app_ruleset object.
-constexpr uint32_t c_gaia_type_app_ruleset = 4294963203u;
-constexpr common::reference_offset_t c_app_ruleset_parent_application = 0;
-constexpr common::reference_offset_t c_app_ruleset_next_application = 1;
-constexpr common::reference_offset_t c_app_ruleset_parent_ruleset = 2;
-constexpr common::reference_offset_t c_app_ruleset_next_ruleset = 3;
-
-// Constants contained in the app_database object.
-constexpr uint32_t c_gaia_type_app_database = 4294963202u;
-constexpr common::reference_offset_t c_app_database_parent_application = 0;
-constexpr common::reference_offset_t c_app_database_next_application = 1;
-constexpr common::reference_offset_t c_app_database_parent_database = 2;
-constexpr common::reference_offset_t c_app_database_next_database = 3;
-
-// Constants contained in the gaia_application object.
-constexpr uint32_t c_gaia_type_gaia_application = 4294963201u;
-constexpr common::reference_offset_t c_gaia_application_first_app_databases = 0;
-constexpr common::reference_offset_t c_gaia_application_first_app_rulesets = 1;
-
 // Constants contained in the gaia_index object.
 constexpr uint32_t c_gaia_type_gaia_index = 4294967289u;
 constexpr common::reference_offset_t c_gaia_index_parent_table = 0;
@@ -75,15 +28,10 @@ constexpr common::reference_offset_t c_gaia_index_next_table = 1;
 constexpr uint32_t c_gaia_type_gaia_rule = 4294967293u;
 constexpr common::reference_offset_t c_gaia_rule_parent_ruleset = 0;
 constexpr common::reference_offset_t c_gaia_rule_next_ruleset = 1;
-constexpr common::reference_offset_t c_gaia_rule_first_rule_tables = 2;
-constexpr common::reference_offset_t c_gaia_rule_first_rule_fields = 3;
-constexpr common::reference_offset_t c_gaia_rule_first_rule_relationships = 4;
 
 // Constants contained in the gaia_ruleset object.
 constexpr uint32_t c_gaia_type_gaia_ruleset = 4294967292u;
 constexpr common::reference_offset_t c_gaia_ruleset_first_gaia_rules = 0;
-constexpr common::reference_offset_t c_gaia_ruleset_first_app_rulesets = 1;
-constexpr common::reference_offset_t c_gaia_ruleset_first_ruleset_databases = 2;
 
 // Constants contained in the gaia_relationship object.
 constexpr uint32_t c_gaia_type_gaia_relationship = 4294967290u;
@@ -91,13 +39,11 @@ constexpr common::reference_offset_t c_gaia_relationship_parent_parent = 0;
 constexpr common::reference_offset_t c_gaia_relationship_next_parent = 1;
 constexpr common::reference_offset_t c_gaia_relationship_parent_child = 2;
 constexpr common::reference_offset_t c_gaia_relationship_next_child = 3;
-constexpr common::reference_offset_t c_gaia_relationship_first_rule_relationships = 4;
 
 // Constants contained in the gaia_field object.
 constexpr uint32_t c_gaia_type_gaia_field = 4294967295u;
 constexpr common::reference_offset_t c_gaia_field_parent_table = 0;
 constexpr common::reference_offset_t c_gaia_field_next_table = 1;
-constexpr common::reference_offset_t c_gaia_field_first_rule_fields = 2;
 
 // Constants contained in the gaia_table object.
 constexpr uint32_t c_gaia_type_gaia_table = 4294967294u;
@@ -107,22 +53,12 @@ constexpr common::reference_offset_t c_gaia_table_first_gaia_fields = 2;
 constexpr common::reference_offset_t c_gaia_table_first_outgoing_relationships = 3;
 constexpr common::reference_offset_t c_gaia_table_first_incoming_relationships = 4;
 constexpr common::reference_offset_t c_gaia_table_first_gaia_indexes = 5;
-constexpr common::reference_offset_t c_gaia_table_first_rule_tables = 6;
 
 // Constants contained in the gaia_database object.
 constexpr uint32_t c_gaia_type_gaia_database = 4294967291u;
 constexpr common::reference_offset_t c_gaia_database_first_gaia_tables = 0;
-constexpr common::reference_offset_t c_gaia_database_first_app_databases = 1;
-constexpr common::reference_offset_t c_gaia_database_first_ruleset_databases = 2;
 
 
-class rule_relationship_t;
-class rule_field_t;
-class rule_table_t;
-class ruleset_database_t;
-class app_ruleset_t;
-class app_database_t;
-class gaia_application_t;
 class gaia_index_t;
 class gaia_rule_t;
 class gaia_ruleset_t;
@@ -130,267 +66,6 @@ class gaia_relationship_t;
 class gaia_field_t;
 class gaia_table_t;
 class gaia_database_t;
-
-
-typedef gaia::direct_access::dac_writer_t<c_gaia_type_rule_relationship, rule_relationship_t, internal::rule_relationship, internal::rule_relationshipT> rule_relationship_writer;
-class rule_relationship_t : public gaia::direct_access::dac_object_t<c_gaia_type_rule_relationship, rule_relationship_t, internal::rule_relationship, internal::rule_relationshipT> {
-    friend class dac_object_t<c_gaia_type_rule_relationship, rule_relationship_t, internal::rule_relationship, internal::rule_relationshipT>;
-public:
-    rule_relationship_t() : dac_object_t() {}
-    static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(uint8_t type);
-    static gaia::direct_access::dac_container_t<c_gaia_type_rule_relationship, rule_relationship_t> list();
-    uint8_t type() const;
-    gaia_relationship_t relationship() const;
-    gaia_rule_t rule() const;
-
-    template<class unused_t>
-    struct expr_ {
-        static gaia::direct_access::expression_t<rule_relationship_t, gaia::common::gaia_id_t> gaia_id;
-        static gaia::direct_access::expression_t<rule_relationship_t, uint8_t> type;
-        static gaia::direct_access::expression_t<rule_relationship_t, gaia_relationship_t> relationship;
-        static gaia::direct_access::expression_t<rule_relationship_t, gaia_rule_t> rule;
-    };
-    using expr = expr_<void>;
-private:
-    explicit rule_relationship_t(gaia::common::gaia_id_t id) : dac_object_t(id) {}
-};
-
-namespace rule_relationship_expr {
-    static auto& gaia_id = rule_relationship_t::expr::gaia_id;
-    static auto& type = rule_relationship_t::expr::type;
-    static auto& relationship = rule_relationship_t::expr::relationship;
-    static auto& rule = rule_relationship_t::expr::rule;
-} // rule_relationship_expr
-
-template<class unused_t> gaia::direct_access::expression_t<rule_relationship_t, gaia::common::gaia_id_t> rule_relationship_t::expr_<unused_t>::gaia_id{&rule_relationship_t::gaia_id};
-template<class unused_t> gaia::direct_access::expression_t<rule_relationship_t, uint8_t> rule_relationship_t::expr_<unused_t>::type{&rule_relationship_t::type};
-template<class unused_t> gaia::direct_access::expression_t<rule_relationship_t, gaia_relationship_t> rule_relationship_t::expr_<unused_t>::relationship{&rule_relationship_t::relationship};
-template<class unused_t> gaia::direct_access::expression_t<rule_relationship_t, gaia_rule_t> rule_relationship_t::expr_<unused_t>::rule{&rule_relationship_t::rule};
-
-
-typedef gaia::direct_access::dac_writer_t<c_gaia_type_rule_field, rule_field_t, internal::rule_field, internal::rule_fieldT> rule_field_writer;
-class rule_field_t : public gaia::direct_access::dac_object_t<c_gaia_type_rule_field, rule_field_t, internal::rule_field, internal::rule_fieldT> {
-    friend class dac_object_t<c_gaia_type_rule_field, rule_field_t, internal::rule_field, internal::rule_fieldT>;
-public:
-    rule_field_t() : dac_object_t() {}
-    static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(uint8_t type, bool active);
-    static gaia::direct_access::dac_container_t<c_gaia_type_rule_field, rule_field_t> list();
-    uint8_t type() const;
-    bool active() const;
-    gaia_field_t field() const;
-    gaia_rule_t rule() const;
-
-    template<class unused_t>
-    struct expr_ {
-        static gaia::direct_access::expression_t<rule_field_t, gaia::common::gaia_id_t> gaia_id;
-        static gaia::direct_access::expression_t<rule_field_t, uint8_t> type;
-        static gaia::direct_access::expression_t<rule_field_t, bool> active;
-        static gaia::direct_access::expression_t<rule_field_t, gaia_field_t> field;
-        static gaia::direct_access::expression_t<rule_field_t, gaia_rule_t> rule;
-    };
-    using expr = expr_<void>;
-private:
-    explicit rule_field_t(gaia::common::gaia_id_t id) : dac_object_t(id) {}
-};
-
-namespace rule_field_expr {
-    static auto& gaia_id = rule_field_t::expr::gaia_id;
-    static auto& type = rule_field_t::expr::type;
-    static auto& active = rule_field_t::expr::active;
-    static auto& field = rule_field_t::expr::field;
-    static auto& rule = rule_field_t::expr::rule;
-} // rule_field_expr
-
-template<class unused_t> gaia::direct_access::expression_t<rule_field_t, gaia::common::gaia_id_t> rule_field_t::expr_<unused_t>::gaia_id{&rule_field_t::gaia_id};
-template<class unused_t> gaia::direct_access::expression_t<rule_field_t, uint8_t> rule_field_t::expr_<unused_t>::type{&rule_field_t::type};
-template<class unused_t> gaia::direct_access::expression_t<rule_field_t, bool> rule_field_t::expr_<unused_t>::active{&rule_field_t::active};
-template<class unused_t> gaia::direct_access::expression_t<rule_field_t, gaia_field_t> rule_field_t::expr_<unused_t>::field{&rule_field_t::field};
-template<class unused_t> gaia::direct_access::expression_t<rule_field_t, gaia_rule_t> rule_field_t::expr_<unused_t>::rule{&rule_field_t::rule};
-
-
-typedef gaia::direct_access::dac_writer_t<c_gaia_type_rule_table, rule_table_t, internal::rule_table, internal::rule_tableT> rule_table_writer;
-class rule_table_t : public gaia::direct_access::dac_object_t<c_gaia_type_rule_table, rule_table_t, internal::rule_table, internal::rule_tableT> {
-    friend class dac_object_t<c_gaia_type_rule_table, rule_table_t, internal::rule_table, internal::rule_tableT>;
-public:
-    rule_table_t() : dac_object_t() {}
-    static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(uint8_t type, bool anchor);
-    static gaia::direct_access::dac_container_t<c_gaia_type_rule_table, rule_table_t> list();
-    uint8_t type() const;
-    bool anchor() const;
-    gaia_table_t table() const;
-    gaia_rule_t rule() const;
-
-    template<class unused_t>
-    struct expr_ {
-        static gaia::direct_access::expression_t<rule_table_t, gaia::common::gaia_id_t> gaia_id;
-        static gaia::direct_access::expression_t<rule_table_t, uint8_t> type;
-        static gaia::direct_access::expression_t<rule_table_t, bool> anchor;
-        static gaia::direct_access::expression_t<rule_table_t, gaia_table_t> table;
-        static gaia::direct_access::expression_t<rule_table_t, gaia_rule_t> rule;
-    };
-    using expr = expr_<void>;
-private:
-    explicit rule_table_t(gaia::common::gaia_id_t id) : dac_object_t(id) {}
-};
-
-namespace rule_table_expr {
-    static auto& gaia_id = rule_table_t::expr::gaia_id;
-    static auto& type = rule_table_t::expr::type;
-    static auto& anchor = rule_table_t::expr::anchor;
-    static auto& table = rule_table_t::expr::table;
-    static auto& rule = rule_table_t::expr::rule;
-} // rule_table_expr
-
-template<class unused_t> gaia::direct_access::expression_t<rule_table_t, gaia::common::gaia_id_t> rule_table_t::expr_<unused_t>::gaia_id{&rule_table_t::gaia_id};
-template<class unused_t> gaia::direct_access::expression_t<rule_table_t, uint8_t> rule_table_t::expr_<unused_t>::type{&rule_table_t::type};
-template<class unused_t> gaia::direct_access::expression_t<rule_table_t, bool> rule_table_t::expr_<unused_t>::anchor{&rule_table_t::anchor};
-template<class unused_t> gaia::direct_access::expression_t<rule_table_t, gaia_table_t> rule_table_t::expr_<unused_t>::table{&rule_table_t::table};
-template<class unused_t> gaia::direct_access::expression_t<rule_table_t, gaia_rule_t> rule_table_t::expr_<unused_t>::rule{&rule_table_t::rule};
-
-
-typedef gaia::direct_access::dac_writer_t<c_gaia_type_ruleset_database, ruleset_database_t, internal::ruleset_database, internal::ruleset_databaseT> ruleset_database_writer;
-class ruleset_database_t : public gaia::direct_access::dac_object_t<c_gaia_type_ruleset_database, ruleset_database_t, internal::ruleset_database, internal::ruleset_databaseT> {
-    friend class dac_object_t<c_gaia_type_ruleset_database, ruleset_database_t, internal::ruleset_database, internal::ruleset_databaseT>;
-public:
-    ruleset_database_t() : dac_object_t() {}
-    static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row();
-    static gaia::direct_access::dac_container_t<c_gaia_type_ruleset_database, ruleset_database_t> list();
-    gaia_ruleset_t ruleset() const;
-    gaia_database_t database() const;
-
-    template<class unused_t>
-    struct expr_ {
-        static gaia::direct_access::expression_t<ruleset_database_t, gaia::common::gaia_id_t> gaia_id;
-        static gaia::direct_access::expression_t<ruleset_database_t, gaia_ruleset_t> ruleset;
-        static gaia::direct_access::expression_t<ruleset_database_t, gaia_database_t> database;
-    };
-    using expr = expr_<void>;
-private:
-    explicit ruleset_database_t(gaia::common::gaia_id_t id) : dac_object_t(id) {}
-};
-
-namespace ruleset_database_expr {
-    static auto& gaia_id = ruleset_database_t::expr::gaia_id;
-    static auto& ruleset = ruleset_database_t::expr::ruleset;
-    static auto& database = ruleset_database_t::expr::database;
-} // ruleset_database_expr
-
-template<class unused_t> gaia::direct_access::expression_t<ruleset_database_t, gaia::common::gaia_id_t> ruleset_database_t::expr_<unused_t>::gaia_id{&ruleset_database_t::gaia_id};
-template<class unused_t> gaia::direct_access::expression_t<ruleset_database_t, gaia_ruleset_t> ruleset_database_t::expr_<unused_t>::ruleset{&ruleset_database_t::ruleset};
-template<class unused_t> gaia::direct_access::expression_t<ruleset_database_t, gaia_database_t> ruleset_database_t::expr_<unused_t>::database{&ruleset_database_t::database};
-
-
-typedef gaia::direct_access::dac_writer_t<c_gaia_type_app_ruleset, app_ruleset_t, internal::app_ruleset, internal::app_rulesetT> app_ruleset_writer;
-class app_ruleset_t : public gaia::direct_access::dac_object_t<c_gaia_type_app_ruleset, app_ruleset_t, internal::app_ruleset, internal::app_rulesetT> {
-    friend class dac_object_t<c_gaia_type_app_ruleset, app_ruleset_t, internal::app_ruleset, internal::app_rulesetT>;
-public:
-    app_ruleset_t() : dac_object_t() {}
-    static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(bool active_on_startup);
-    static gaia::direct_access::dac_container_t<c_gaia_type_app_ruleset, app_ruleset_t> list();
-    bool active_on_startup() const;
-    gaia_ruleset_t ruleset() const;
-    gaia_application_t application() const;
-
-    template<class unused_t>
-    struct expr_ {
-        static gaia::direct_access::expression_t<app_ruleset_t, gaia::common::gaia_id_t> gaia_id;
-        static gaia::direct_access::expression_t<app_ruleset_t, bool> active_on_startup;
-        static gaia::direct_access::expression_t<app_ruleset_t, gaia_ruleset_t> ruleset;
-        static gaia::direct_access::expression_t<app_ruleset_t, gaia_application_t> application;
-    };
-    using expr = expr_<void>;
-private:
-    explicit app_ruleset_t(gaia::common::gaia_id_t id) : dac_object_t(id) {}
-};
-
-namespace app_ruleset_expr {
-    static auto& gaia_id = app_ruleset_t::expr::gaia_id;
-    static auto& active_on_startup = app_ruleset_t::expr::active_on_startup;
-    static auto& ruleset = app_ruleset_t::expr::ruleset;
-    static auto& application = app_ruleset_t::expr::application;
-} // app_ruleset_expr
-
-template<class unused_t> gaia::direct_access::expression_t<app_ruleset_t, gaia::common::gaia_id_t> app_ruleset_t::expr_<unused_t>::gaia_id{&app_ruleset_t::gaia_id};
-template<class unused_t> gaia::direct_access::expression_t<app_ruleset_t, bool> app_ruleset_t::expr_<unused_t>::active_on_startup{&app_ruleset_t::active_on_startup};
-template<class unused_t> gaia::direct_access::expression_t<app_ruleset_t, gaia_ruleset_t> app_ruleset_t::expr_<unused_t>::ruleset{&app_ruleset_t::ruleset};
-template<class unused_t> gaia::direct_access::expression_t<app_ruleset_t, gaia_application_t> app_ruleset_t::expr_<unused_t>::application{&app_ruleset_t::application};
-
-
-typedef gaia::direct_access::dac_writer_t<c_gaia_type_app_database, app_database_t, internal::app_database, internal::app_databaseT> app_database_writer;
-class app_database_t : public gaia::direct_access::dac_object_t<c_gaia_type_app_database, app_database_t, internal::app_database, internal::app_databaseT> {
-    friend class dac_object_t<c_gaia_type_app_database, app_database_t, internal::app_database, internal::app_databaseT>;
-public:
-    app_database_t() : dac_object_t() {}
-    static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row();
-    static gaia::direct_access::dac_container_t<c_gaia_type_app_database, app_database_t> list();
-    gaia_database_t database() const;
-    gaia_application_t application() const;
-
-    template<class unused_t>
-    struct expr_ {
-        static gaia::direct_access::expression_t<app_database_t, gaia::common::gaia_id_t> gaia_id;
-        static gaia::direct_access::expression_t<app_database_t, gaia_database_t> database;
-        static gaia::direct_access::expression_t<app_database_t, gaia_application_t> application;
-    };
-    using expr = expr_<void>;
-private:
-    explicit app_database_t(gaia::common::gaia_id_t id) : dac_object_t(id) {}
-};
-
-namespace app_database_expr {
-    static auto& gaia_id = app_database_t::expr::gaia_id;
-    static auto& database = app_database_t::expr::database;
-    static auto& application = app_database_t::expr::application;
-} // app_database_expr
-
-template<class unused_t> gaia::direct_access::expression_t<app_database_t, gaia::common::gaia_id_t> app_database_t::expr_<unused_t>::gaia_id{&app_database_t::gaia_id};
-template<class unused_t> gaia::direct_access::expression_t<app_database_t, gaia_database_t> app_database_t::expr_<unused_t>::database{&app_database_t::database};
-template<class unused_t> gaia::direct_access::expression_t<app_database_t, gaia_application_t> app_database_t::expr_<unused_t>::application{&app_database_t::application};
-
-
-typedef gaia::direct_access::dac_writer_t<c_gaia_type_gaia_application, gaia_application_t, internal::gaia_application, internal::gaia_applicationT> gaia_application_writer;
-class gaia_application_t : public gaia::direct_access::dac_object_t<c_gaia_type_gaia_application, gaia_application_t, internal::gaia_application, internal::gaia_applicationT> {
-    friend class dac_object_t<c_gaia_type_gaia_application, gaia_application_t, internal::gaia_application, internal::gaia_applicationT>;
-public:
-    typedef gaia::direct_access::reference_chain_container_t<app_ruleset_t> app_rulesets_list_t;
-    typedef gaia::direct_access::reference_chain_container_t<app_database_t> app_databases_list_t;
-    gaia_application_t() : dac_object_t() {}
-    static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(const char* name);
-    static gaia::direct_access::dac_container_t<c_gaia_type_gaia_application, gaia_application_t> list();
-    const char* name() const;
-    app_rulesets_list_t app_rulesets() const;
-    app_databases_list_t app_databases() const;
-
-    template<class unused_t>
-    struct expr_ {
-        static gaia::direct_access::expression_t<gaia_application_t, gaia::common::gaia_id_t> gaia_id;
-        static gaia::direct_access::expression_t<gaia_application_t, const char*> name;
-        static gaia::direct_access::expression_t<gaia_application_t, gaia_application_t::app_rulesets_list_t> app_rulesets;
-        static gaia::direct_access::expression_t<gaia_application_t, gaia_application_t::app_databases_list_t> app_databases;
-    };
-    using expr = expr_<void>;
-private:
-    explicit gaia_application_t(gaia::common::gaia_id_t id) : dac_object_t(id) {}
-};
-
-namespace gaia_application_expr {
-    static auto& gaia_id = gaia_application_t::expr::gaia_id;
-    static auto& name = gaia_application_t::expr::name;
-    static auto& app_rulesets = gaia_application_t::expr::app_rulesets;
-    static auto& app_databases = gaia_application_t::expr::app_databases;
-} // gaia_application_expr
-
-template<class unused_t> gaia::direct_access::expression_t<gaia_application_t, gaia::common::gaia_id_t> gaia_application_t::expr_<unused_t>::gaia_id{&gaia_application_t::gaia_id};
-template<class unused_t> gaia::direct_access::expression_t<gaia_application_t, const char*> gaia_application_t::expr_<unused_t>::name{&gaia_application_t::name};
-template<class unused_t> gaia::direct_access::expression_t<gaia_application_t, gaia_application_t::app_rulesets_list_t> gaia_application_t::expr_<unused_t>::app_rulesets{&gaia_application_t::app_rulesets};
-template<class unused_t> gaia::direct_access::expression_t<gaia_application_t, gaia_application_t::app_databases_list_t> gaia_application_t::expr_<unused_t>::app_databases{&gaia_application_t::app_databases};
 
 
 typedef gaia::direct_access::dac_writer_t<c_gaia_type_gaia_index, gaia_index_t, internal::gaia_index, internal::gaia_indexT> gaia_index_writer;
@@ -442,27 +117,18 @@ typedef gaia::direct_access::dac_writer_t<c_gaia_type_gaia_rule, gaia_rule_t, in
 class gaia_rule_t : public gaia::direct_access::dac_object_t<c_gaia_type_gaia_rule, gaia_rule_t, internal::gaia_rule, internal::gaia_ruleT> {
     friend class dac_object_t<c_gaia_type_gaia_rule, gaia_rule_t, internal::gaia_rule, internal::gaia_ruleT>;
 public:
-    typedef gaia::direct_access::reference_chain_container_t<rule_relationship_t> rule_relationships_list_t;
-    typedef gaia::direct_access::reference_chain_container_t<rule_field_t> rule_fields_list_t;
-    typedef gaia::direct_access::reference_chain_container_t<rule_table_t> rule_tables_list_t;
     gaia_rule_t() : dac_object_t() {}
     static const char* gaia_typename();
     static gaia::common::gaia_id_t insert_row(const char* name);
     static gaia::direct_access::dac_container_t<c_gaia_type_gaia_rule, gaia_rule_t> list();
     const char* name() const;
     gaia_ruleset_t ruleset() const;
-    rule_relationships_list_t rule_relationships() const;
-    rule_fields_list_t rule_fields() const;
-    rule_tables_list_t rule_tables() const;
 
     template<class unused_t>
     struct expr_ {
         static gaia::direct_access::expression_t<gaia_rule_t, gaia::common::gaia_id_t> gaia_id;
         static gaia::direct_access::expression_t<gaia_rule_t, const char*> name;
         static gaia::direct_access::expression_t<gaia_rule_t, gaia_ruleset_t> ruleset;
-        static gaia::direct_access::expression_t<gaia_rule_t, gaia_rule_t::rule_relationships_list_t> rule_relationships;
-        static gaia::direct_access::expression_t<gaia_rule_t, gaia_rule_t::rule_fields_list_t> rule_fields;
-        static gaia::direct_access::expression_t<gaia_rule_t, gaia_rule_t::rule_tables_list_t> rule_tables;
     };
     using expr = expr_<void>;
 private:
@@ -473,43 +139,37 @@ namespace gaia_rule_expr {
     static auto& gaia_id = gaia_rule_t::expr::gaia_id;
     static auto& name = gaia_rule_t::expr::name;
     static auto& ruleset = gaia_rule_t::expr::ruleset;
-    static auto& rule_relationships = gaia_rule_t::expr::rule_relationships;
-    static auto& rule_fields = gaia_rule_t::expr::rule_fields;
-    static auto& rule_tables = gaia_rule_t::expr::rule_tables;
 } // gaia_rule_expr
 
 template<class unused_t> gaia::direct_access::expression_t<gaia_rule_t, gaia::common::gaia_id_t> gaia_rule_t::expr_<unused_t>::gaia_id{&gaia_rule_t::gaia_id};
 template<class unused_t> gaia::direct_access::expression_t<gaia_rule_t, const char*> gaia_rule_t::expr_<unused_t>::name{&gaia_rule_t::name};
 template<class unused_t> gaia::direct_access::expression_t<gaia_rule_t, gaia_ruleset_t> gaia_rule_t::expr_<unused_t>::ruleset{&gaia_rule_t::ruleset};
-template<class unused_t> gaia::direct_access::expression_t<gaia_rule_t, gaia_rule_t::rule_relationships_list_t> gaia_rule_t::expr_<unused_t>::rule_relationships{&gaia_rule_t::rule_relationships};
-template<class unused_t> gaia::direct_access::expression_t<gaia_rule_t, gaia_rule_t::rule_fields_list_t> gaia_rule_t::expr_<unused_t>::rule_fields{&gaia_rule_t::rule_fields};
-template<class unused_t> gaia::direct_access::expression_t<gaia_rule_t, gaia_rule_t::rule_tables_list_t> gaia_rule_t::expr_<unused_t>::rule_tables{&gaia_rule_t::rule_tables};
 
 
 typedef gaia::direct_access::dac_writer_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t, internal::gaia_ruleset, internal::gaia_rulesetT> gaia_ruleset_writer;
 class gaia_ruleset_t : public gaia::direct_access::dac_object_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t, internal::gaia_ruleset, internal::gaia_rulesetT> {
     friend class dac_object_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t, internal::gaia_ruleset, internal::gaia_rulesetT>;
 public:
-    typedef gaia::direct_access::reference_chain_container_t<ruleset_database_t> ruleset_databases_list_t;
-    typedef gaia::direct_access::reference_chain_container_t<app_ruleset_t> app_rulesets_list_t;
     typedef gaia::direct_access::reference_chain_container_t<gaia_rule_t> gaia_rules_list_t;
     gaia_ruleset_t() : dac_object_t() {}
     static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(const char* name, const char* serial_stream);
+    static gaia::common::gaia_id_t insert_row(const char* name, bool active_on_startup, const std::vector<uint64_t>& table_ids, const char* source_location, const char* serial_stream);
     static gaia::direct_access::dac_container_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t> list();
     const char* name() const;
+    bool active_on_startup() const;
+    gaia::direct_access::dac_vector_t<uint64_t> table_ids() const;
+    const char* source_location() const;
     const char* serial_stream() const;
-    ruleset_databases_list_t ruleset_databases() const;
-    app_rulesets_list_t app_rulesets() const;
     gaia_rules_list_t gaia_rules() const;
 
     template<class unused_t>
     struct expr_ {
         static gaia::direct_access::expression_t<gaia_ruleset_t, gaia::common::gaia_id_t> gaia_id;
         static gaia::direct_access::expression_t<gaia_ruleset_t, const char*> name;
+        static gaia::direct_access::expression_t<gaia_ruleset_t, bool> active_on_startup;
+        static gaia::direct_access::expression_t<gaia_ruleset_t, gaia::direct_access::dac_vector_t<uint64_t>> table_ids;
+        static gaia::direct_access::expression_t<gaia_ruleset_t, const char*> source_location;
         static gaia::direct_access::expression_t<gaia_ruleset_t, const char*> serial_stream;
-        static gaia::direct_access::expression_t<gaia_ruleset_t, gaia_ruleset_t::ruleset_databases_list_t> ruleset_databases;
-        static gaia::direct_access::expression_t<gaia_ruleset_t, gaia_ruleset_t::app_rulesets_list_t> app_rulesets;
         static gaia::direct_access::expression_t<gaia_ruleset_t, gaia_ruleset_t::gaia_rules_list_t> gaia_rules;
     };
     using expr = expr_<void>;
@@ -520,17 +180,19 @@ private:
 namespace gaia_ruleset_expr {
     static auto& gaia_id = gaia_ruleset_t::expr::gaia_id;
     static auto& name = gaia_ruleset_t::expr::name;
+    static auto& active_on_startup = gaia_ruleset_t::expr::active_on_startup;
+    static auto& table_ids = gaia_ruleset_t::expr::table_ids;
+    static auto& source_location = gaia_ruleset_t::expr::source_location;
     static auto& serial_stream = gaia_ruleset_t::expr::serial_stream;
-    static auto& ruleset_databases = gaia_ruleset_t::expr::ruleset_databases;
-    static auto& app_rulesets = gaia_ruleset_t::expr::app_rulesets;
     static auto& gaia_rules = gaia_ruleset_t::expr::gaia_rules;
 } // gaia_ruleset_expr
 
 template<class unused_t> gaia::direct_access::expression_t<gaia_ruleset_t, gaia::common::gaia_id_t> gaia_ruleset_t::expr_<unused_t>::gaia_id{&gaia_ruleset_t::gaia_id};
 template<class unused_t> gaia::direct_access::expression_t<gaia_ruleset_t, const char*> gaia_ruleset_t::expr_<unused_t>::name{&gaia_ruleset_t::name};
+template<class unused_t> gaia::direct_access::expression_t<gaia_ruleset_t, bool> gaia_ruleset_t::expr_<unused_t>::active_on_startup{&gaia_ruleset_t::active_on_startup};
+template<class unused_t> gaia::direct_access::expression_t<gaia_ruleset_t, gaia::direct_access::dac_vector_t<uint64_t>> gaia_ruleset_t::expr_<unused_t>::table_ids{&gaia_ruleset_t::table_ids};
+template<class unused_t> gaia::direct_access::expression_t<gaia_ruleset_t, const char*> gaia_ruleset_t::expr_<unused_t>::source_location{&gaia_ruleset_t::source_location};
 template<class unused_t> gaia::direct_access::expression_t<gaia_ruleset_t, const char*> gaia_ruleset_t::expr_<unused_t>::serial_stream{&gaia_ruleset_t::serial_stream};
-template<class unused_t> gaia::direct_access::expression_t<gaia_ruleset_t, gaia_ruleset_t::ruleset_databases_list_t> gaia_ruleset_t::expr_<unused_t>::ruleset_databases{&gaia_ruleset_t::ruleset_databases};
-template<class unused_t> gaia::direct_access::expression_t<gaia_ruleset_t, gaia_ruleset_t::app_rulesets_list_t> gaia_ruleset_t::expr_<unused_t>::app_rulesets{&gaia_ruleset_t::app_rulesets};
 template<class unused_t> gaia::direct_access::expression_t<gaia_ruleset_t, gaia_ruleset_t::gaia_rules_list_t> gaia_ruleset_t::expr_<unused_t>::gaia_rules{&gaia_ruleset_t::gaia_rules};
 
 
@@ -538,10 +200,9 @@ typedef gaia::direct_access::dac_writer_t<c_gaia_type_gaia_relationship, gaia_re
 class gaia_relationship_t : public gaia::direct_access::dac_object_t<c_gaia_type_gaia_relationship, gaia_relationship_t, internal::gaia_relationship, internal::gaia_relationshipT> {
     friend class dac_object_t<c_gaia_type_gaia_relationship, gaia_relationship_t, internal::gaia_relationship, internal::gaia_relationshipT>;
 public:
-    typedef gaia::direct_access::reference_chain_container_t<rule_relationship_t> rule_relationships_list_t;
     gaia_relationship_t() : dac_object_t() {}
     static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(const char* name, const char* to_parent_link_name, const char* to_child_link_name, uint8_t cardinality, bool parent_required, bool deprecated, uint16_t first_child_offset, uint16_t next_child_offset, uint16_t prev_child_offset, uint16_t parent_offset, const std::vector<uint16_t>& parent_field_positions, const std::vector<uint16_t>& child_field_positions, const char* hash);
+    static gaia::common::gaia_id_t insert_row(const char* name, const char* to_parent_link_name, const char* to_child_link_name, uint8_t cardinality, bool parent_required, bool deprecated, uint16_t first_child_offset, uint16_t next_child_offset, uint16_t prev_child_offset, uint16_t parent_offset, const std::vector<uint16_t>& parent_field_positions, const std::vector<uint16_t>& child_field_positions);
     static gaia::direct_access::dac_container_t<c_gaia_type_gaia_relationship, gaia_relationship_t> list();
     const char* name() const;
     const char* to_parent_link_name() const;
@@ -555,10 +216,8 @@ public:
     uint16_t parent_offset() const;
     gaia::direct_access::dac_vector_t<uint16_t> parent_field_positions() const;
     gaia::direct_access::dac_vector_t<uint16_t> child_field_positions() const;
-    const char* hash() const;
     gaia_table_t child() const;
     gaia_table_t parent() const;
-    rule_relationships_list_t rule_relationships() const;
 
     template<class unused_t>
     struct expr_ {
@@ -575,10 +234,8 @@ public:
         static gaia::direct_access::expression_t<gaia_relationship_t, uint16_t> parent_offset;
         static gaia::direct_access::expression_t<gaia_relationship_t, gaia::direct_access::dac_vector_t<uint16_t>> parent_field_positions;
         static gaia::direct_access::expression_t<gaia_relationship_t, gaia::direct_access::dac_vector_t<uint16_t>> child_field_positions;
-        static gaia::direct_access::expression_t<gaia_relationship_t, const char*> hash;
         static gaia::direct_access::expression_t<gaia_relationship_t, gaia_table_t> child;
         static gaia::direct_access::expression_t<gaia_relationship_t, gaia_table_t> parent;
-        static gaia::direct_access::expression_t<gaia_relationship_t, gaia_relationship_t::rule_relationships_list_t> rule_relationships;
     };
     using expr = expr_<void>;
 private:
@@ -599,10 +256,8 @@ namespace gaia_relationship_expr {
     static auto& parent_offset = gaia_relationship_t::expr::parent_offset;
     static auto& parent_field_positions = gaia_relationship_t::expr::parent_field_positions;
     static auto& child_field_positions = gaia_relationship_t::expr::child_field_positions;
-    static auto& hash = gaia_relationship_t::expr::hash;
     static auto& child = gaia_relationship_t::expr::child;
     static auto& parent = gaia_relationship_t::expr::parent;
-    static auto& rule_relationships = gaia_relationship_t::expr::rule_relationships;
 } // gaia_relationship_expr
 
 template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, gaia::common::gaia_id_t> gaia_relationship_t::expr_<unused_t>::gaia_id{&gaia_relationship_t::gaia_id};
@@ -618,20 +273,17 @@ template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, 
 template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, uint16_t> gaia_relationship_t::expr_<unused_t>::parent_offset{&gaia_relationship_t::parent_offset};
 template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, gaia::direct_access::dac_vector_t<uint16_t>> gaia_relationship_t::expr_<unused_t>::parent_field_positions{&gaia_relationship_t::parent_field_positions};
 template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, gaia::direct_access::dac_vector_t<uint16_t>> gaia_relationship_t::expr_<unused_t>::child_field_positions{&gaia_relationship_t::child_field_positions};
-template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, const char*> gaia_relationship_t::expr_<unused_t>::hash{&gaia_relationship_t::hash};
 template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, gaia_table_t> gaia_relationship_t::expr_<unused_t>::child{&gaia_relationship_t::child};
 template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, gaia_table_t> gaia_relationship_t::expr_<unused_t>::parent{&gaia_relationship_t::parent};
-template<class unused_t> gaia::direct_access::expression_t<gaia_relationship_t, gaia_relationship_t::rule_relationships_list_t> gaia_relationship_t::expr_<unused_t>::rule_relationships{&gaia_relationship_t::rule_relationships};
 
 
 typedef gaia::direct_access::dac_writer_t<c_gaia_type_gaia_field, gaia_field_t, internal::gaia_field, internal::gaia_fieldT> gaia_field_writer;
 class gaia_field_t : public gaia::direct_access::dac_object_t<c_gaia_type_gaia_field, gaia_field_t, internal::gaia_field, internal::gaia_fieldT> {
     friend class dac_object_t<c_gaia_type_gaia_field, gaia_field_t, internal::gaia_field, internal::gaia_fieldT>;
 public:
-    typedef gaia::direct_access::reference_chain_container_t<rule_field_t> rule_fields_list_t;
     gaia_field_t() : dac_object_t() {}
     static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(const char* name, uint8_t type, uint16_t repeated_count, uint16_t position, bool deprecated, bool active, bool unique, const char* hash);
+    static gaia::common::gaia_id_t insert_row(const char* name, uint8_t type, uint16_t repeated_count, uint16_t position, bool deprecated, bool active, bool unique);
     static gaia::direct_access::dac_container_t<c_gaia_type_gaia_field, gaia_field_t> list();
     const char* name() const;
     uint8_t type() const;
@@ -640,9 +292,7 @@ public:
     bool deprecated() const;
     bool active() const;
     bool unique() const;
-    const char* hash() const;
     gaia_table_t table() const;
-    rule_fields_list_t rule_fields() const;
 
     template<class unused_t>
     struct expr_ {
@@ -654,9 +304,7 @@ public:
         static gaia::direct_access::expression_t<gaia_field_t, bool> deprecated;
         static gaia::direct_access::expression_t<gaia_field_t, bool> active;
         static gaia::direct_access::expression_t<gaia_field_t, bool> unique;
-        static gaia::direct_access::expression_t<gaia_field_t, const char*> hash;
         static gaia::direct_access::expression_t<gaia_field_t, gaia_table_t> table;
-        static gaia::direct_access::expression_t<gaia_field_t, gaia_field_t::rule_fields_list_t> rule_fields;
     };
     using expr = expr_<void>;
 private:
@@ -672,9 +320,7 @@ namespace gaia_field_expr {
     static auto& deprecated = gaia_field_t::expr::deprecated;
     static auto& active = gaia_field_t::expr::active;
     static auto& unique = gaia_field_t::expr::unique;
-    static auto& hash = gaia_field_t::expr::hash;
     static auto& table = gaia_field_t::expr::table;
-    static auto& rule_fields = gaia_field_t::expr::rule_fields;
 } // gaia_field_expr
 
 template<class unused_t> gaia::direct_access::expression_t<gaia_field_t, gaia::common::gaia_id_t> gaia_field_t::expr_<unused_t>::gaia_id{&gaia_field_t::gaia_id};
@@ -685,32 +331,27 @@ template<class unused_t> gaia::direct_access::expression_t<gaia_field_t, uint16_
 template<class unused_t> gaia::direct_access::expression_t<gaia_field_t, bool> gaia_field_t::expr_<unused_t>::deprecated{&gaia_field_t::deprecated};
 template<class unused_t> gaia::direct_access::expression_t<gaia_field_t, bool> gaia_field_t::expr_<unused_t>::active{&gaia_field_t::active};
 template<class unused_t> gaia::direct_access::expression_t<gaia_field_t, bool> gaia_field_t::expr_<unused_t>::unique{&gaia_field_t::unique};
-template<class unused_t> gaia::direct_access::expression_t<gaia_field_t, const char*> gaia_field_t::expr_<unused_t>::hash{&gaia_field_t::hash};
 template<class unused_t> gaia::direct_access::expression_t<gaia_field_t, gaia_table_t> gaia_field_t::expr_<unused_t>::table{&gaia_field_t::table};
-template<class unused_t> gaia::direct_access::expression_t<gaia_field_t, gaia_field_t::rule_fields_list_t> gaia_field_t::expr_<unused_t>::rule_fields{&gaia_field_t::rule_fields};
 
 
 typedef gaia::direct_access::dac_writer_t<c_gaia_type_gaia_table, gaia_table_t, internal::gaia_table, internal::gaia_tableT> gaia_table_writer;
 class gaia_table_t : public gaia::direct_access::dac_object_t<c_gaia_type_gaia_table, gaia_table_t, internal::gaia_table, internal::gaia_tableT> {
     friend class dac_object_t<c_gaia_type_gaia_table, gaia_table_t, internal::gaia_table, internal::gaia_tableT>;
 public:
-    typedef gaia::direct_access::reference_chain_container_t<rule_table_t> rule_tables_list_t;
     typedef gaia::direct_access::reference_chain_container_t<gaia_index_t> gaia_indexes_list_t;
     typedef gaia::direct_access::reference_chain_container_t<gaia_relationship_t> incoming_relationships_list_t;
     typedef gaia::direct_access::reference_chain_container_t<gaia_relationship_t> outgoing_relationships_list_t;
     typedef gaia::direct_access::reference_chain_container_t<gaia_field_t> gaia_fields_list_t;
     gaia_table_t() : dac_object_t() {}
     static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(const char* name, uint32_t type, bool is_system, const std::vector<uint8_t>& binary_schema, const std::vector<uint8_t>& serialization_template, const char* hash);
+    static gaia::common::gaia_id_t insert_row(const char* name, uint32_t type, bool is_system, const std::vector<uint8_t>& binary_schema, const std::vector<uint8_t>& serialization_template);
     static gaia::direct_access::dac_container_t<c_gaia_type_gaia_table, gaia_table_t> list();
     const char* name() const;
     uint32_t type() const;
     bool is_system() const;
     gaia::direct_access::dac_vector_t<uint8_t> binary_schema() const;
     gaia::direct_access::dac_vector_t<uint8_t> serialization_template() const;
-    const char* hash() const;
     gaia_database_t database() const;
-    rule_tables_list_t rule_tables() const;
     gaia_indexes_list_t gaia_indexes() const;
     incoming_relationships_list_t incoming_relationships() const;
     outgoing_relationships_list_t outgoing_relationships() const;
@@ -724,9 +365,7 @@ public:
         static gaia::direct_access::expression_t<gaia_table_t, bool> is_system;
         static gaia::direct_access::expression_t<gaia_table_t, gaia::direct_access::dac_vector_t<uint8_t>> binary_schema;
         static gaia::direct_access::expression_t<gaia_table_t, gaia::direct_access::dac_vector_t<uint8_t>> serialization_template;
-        static gaia::direct_access::expression_t<gaia_table_t, const char*> hash;
         static gaia::direct_access::expression_t<gaia_table_t, gaia_database_t> database;
-        static gaia::direct_access::expression_t<gaia_table_t, gaia_table_t::rule_tables_list_t> rule_tables;
         static gaia::direct_access::expression_t<gaia_table_t, gaia_table_t::gaia_indexes_list_t> gaia_indexes;
         static gaia::direct_access::expression_t<gaia_table_t, gaia_table_t::incoming_relationships_list_t> incoming_relationships;
         static gaia::direct_access::expression_t<gaia_table_t, gaia_table_t::outgoing_relationships_list_t> outgoing_relationships;
@@ -744,9 +383,7 @@ namespace gaia_table_expr {
     static auto& is_system = gaia_table_t::expr::is_system;
     static auto& binary_schema = gaia_table_t::expr::binary_schema;
     static auto& serialization_template = gaia_table_t::expr::serialization_template;
-    static auto& hash = gaia_table_t::expr::hash;
     static auto& database = gaia_table_t::expr::database;
-    static auto& rule_tables = gaia_table_t::expr::rule_tables;
     static auto& gaia_indexes = gaia_table_t::expr::gaia_indexes;
     static auto& incoming_relationships = gaia_table_t::expr::incoming_relationships;
     static auto& outgoing_relationships = gaia_table_t::expr::outgoing_relationships;
@@ -759,9 +396,7 @@ template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, uint32_
 template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, bool> gaia_table_t::expr_<unused_t>::is_system{&gaia_table_t::is_system};
 template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, gaia::direct_access::dac_vector_t<uint8_t>> gaia_table_t::expr_<unused_t>::binary_schema{&gaia_table_t::binary_schema};
 template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, gaia::direct_access::dac_vector_t<uint8_t>> gaia_table_t::expr_<unused_t>::serialization_template{&gaia_table_t::serialization_template};
-template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, const char*> gaia_table_t::expr_<unused_t>::hash{&gaia_table_t::hash};
 template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, gaia_database_t> gaia_table_t::expr_<unused_t>::database{&gaia_table_t::database};
-template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, gaia_table_t::rule_tables_list_t> gaia_table_t::expr_<unused_t>::rule_tables{&gaia_table_t::rule_tables};
 template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, gaia_table_t::gaia_indexes_list_t> gaia_table_t::expr_<unused_t>::gaia_indexes{&gaia_table_t::gaia_indexes};
 template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, gaia_table_t::incoming_relationships_list_t> gaia_table_t::expr_<unused_t>::incoming_relationships{&gaia_table_t::incoming_relationships};
 template<class unused_t> gaia::direct_access::expression_t<gaia_table_t, gaia_table_t::outgoing_relationships_list_t> gaia_table_t::expr_<unused_t>::outgoing_relationships{&gaia_table_t::outgoing_relationships};
@@ -772,26 +407,18 @@ typedef gaia::direct_access::dac_writer_t<c_gaia_type_gaia_database, gaia_databa
 class gaia_database_t : public gaia::direct_access::dac_object_t<c_gaia_type_gaia_database, gaia_database_t, internal::gaia_database, internal::gaia_databaseT> {
     friend class dac_object_t<c_gaia_type_gaia_database, gaia_database_t, internal::gaia_database, internal::gaia_databaseT>;
 public:
-    typedef gaia::direct_access::reference_chain_container_t<ruleset_database_t> ruleset_databases_list_t;
-    typedef gaia::direct_access::reference_chain_container_t<app_database_t> app_databases_list_t;
     typedef gaia::direct_access::reference_chain_container_t<gaia_table_t> gaia_tables_list_t;
     gaia_database_t() : dac_object_t() {}
     static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(const char* name, const char* hash);
+    static gaia::common::gaia_id_t insert_row(const char* name);
     static gaia::direct_access::dac_container_t<c_gaia_type_gaia_database, gaia_database_t> list();
     const char* name() const;
-    const char* hash() const;
-    ruleset_databases_list_t ruleset_databases() const;
-    app_databases_list_t app_databases() const;
     gaia_tables_list_t gaia_tables() const;
 
     template<class unused_t>
     struct expr_ {
         static gaia::direct_access::expression_t<gaia_database_t, gaia::common::gaia_id_t> gaia_id;
         static gaia::direct_access::expression_t<gaia_database_t, const char*> name;
-        static gaia::direct_access::expression_t<gaia_database_t, const char*> hash;
-        static gaia::direct_access::expression_t<gaia_database_t, gaia_database_t::ruleset_databases_list_t> ruleset_databases;
-        static gaia::direct_access::expression_t<gaia_database_t, gaia_database_t::app_databases_list_t> app_databases;
         static gaia::direct_access::expression_t<gaia_database_t, gaia_database_t::gaia_tables_list_t> gaia_tables;
     };
     using expr = expr_<void>;
@@ -802,17 +429,11 @@ private:
 namespace gaia_database_expr {
     static auto& gaia_id = gaia_database_t::expr::gaia_id;
     static auto& name = gaia_database_t::expr::name;
-    static auto& hash = gaia_database_t::expr::hash;
-    static auto& ruleset_databases = gaia_database_t::expr::ruleset_databases;
-    static auto& app_databases = gaia_database_t::expr::app_databases;
     static auto& gaia_tables = gaia_database_t::expr::gaia_tables;
 } // gaia_database_expr
 
 template<class unused_t> gaia::direct_access::expression_t<gaia_database_t, gaia::common::gaia_id_t> gaia_database_t::expr_<unused_t>::gaia_id{&gaia_database_t::gaia_id};
 template<class unused_t> gaia::direct_access::expression_t<gaia_database_t, const char*> gaia_database_t::expr_<unused_t>::name{&gaia_database_t::name};
-template<class unused_t> gaia::direct_access::expression_t<gaia_database_t, const char*> gaia_database_t::expr_<unused_t>::hash{&gaia_database_t::hash};
-template<class unused_t> gaia::direct_access::expression_t<gaia_database_t, gaia_database_t::ruleset_databases_list_t> gaia_database_t::expr_<unused_t>::ruleset_databases{&gaia_database_t::ruleset_databases};
-template<class unused_t> gaia::direct_access::expression_t<gaia_database_t, gaia_database_t::app_databases_list_t> gaia_database_t::expr_<unused_t>::app_databases{&gaia_database_t::app_databases};
 template<class unused_t> gaia::direct_access::expression_t<gaia_database_t, gaia_database_t::gaia_tables_list_t> gaia_database_t::expr_<unused_t>::gaia_tables{&gaia_database_t::gaia_tables};
 
 
