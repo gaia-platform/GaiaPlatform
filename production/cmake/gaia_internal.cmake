@@ -322,7 +322,7 @@ function(add_gaia_sdk_gtest)
   set(GAIAT_INCLUDE_PATH "")
 
   # We use libc++ in debug and its header must be manually included.
-  # Note: the order of inclusion is relevant and libc++ headers must be
+  # Note: the order of inclusion is r elevant and libc++ headers must be
   # defined first when libc++ is used.
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(LIBCXX_INCLUDE_DIR "/usr/lib/llvm-13/include/c++/v1/")
@@ -337,7 +337,7 @@ function(add_gaia_sdk_gtest)
   add_custom_command(
     COMMENT "Compiling ${RULESET_FILE}..."
     OUTPUT ${RULESET_CPP_OUT}
-    COMMAND daemonize ${GAIA_PROD_BUILD}/db/core/gaia_db_server --persistence disabled --instance-name ${DB_INSTANCE_NAME}
+    COMMAND daemonize ${GAIA_PROD_BUILD}/db/core/gaia_db_server --persistence disabled
     COMMAND sleep 1
     COMMAND ${GAIAC_CMD} ${ARG_DDL_FILE}
     COMMAND ${GAIAT_CMD} ${ARG_RULESET_FILE} -output ${RULESET_CPP_OUT} --
@@ -348,7 +348,7 @@ function(add_gaia_sdk_gtest)
       -I ${GAIAT_INCLUDE_PATH}
       -stdlib=$<IF:$<CONFIG:Debug>,libc++,libstdc++>
       -std=c++${CMAKE_CXX_STANDARD}
-      COMMAND kill -9 `pgrep --list-full --exact gaia_db_server`
+    COMMAND kill -9 `pgrep --exact gaia_db_server`
 
     # In some contexts, the next attempt to start gaia_db_server precedes this kill, leading
     # to a build failure. A short sleep is currently fixing that, but may not be the
