@@ -347,20 +347,18 @@ function(translate_ruleset_internal)
   add_custom_command(
       COMMENT "Translating ${ARG_RULESET_FILE} into ${RULESET_CPP_NAME}..."
       OUTPUT ${RULESET_CPP_PATH}
-      COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --persistence disabled --instance-name ${DB_INSTANCE_NAME} &
+      COMMAND daemonize ${GAIA_PROD_BUILD}/db/core/gaia_db_server --persistence disabled --instance-name ${DB_INSTANCE_NAME}
       COMMAND sleep 1
       COMMAND ${GAIAC_CMD} ${DDL_FILE} -n ${DB_INSTANCE_NAME}
       COMMAND ${GAIAT_CMD} ${ARG_RULESET_FILE} -output ${RULESET_CPP_PATH} -n ${DB_INSTANCE_NAME} --
-      -I ${GAIA_INC}
-      -I ${FLATBUFFERS_INC}
-      -I ${GAIA_SPDLOG_INC}
-      -I ${GAIAT_INCLUDE_PATH}
-      -stdlib=$<IF:$<CONFIG:Debug>,libc++,libstdc++>
-      -std=c++${CMAKE_CXX_STANDARD}
-      # Kill gaia_db_server by matching the instance name. --oldest is necessary to prevent
-      # pgrep from matching itself. The idea is that the PID of gaia_db_server should start
-      # earlier than pgrep hence having a lower PID.
-      COMMAND kill -9 `pgrep --oldest --full ${DB_INSTANCE_NAME}`
+        -I ${GAIA_INC}
+        -I ${FLATBUFFERS_INC}
+        -I ${GAIA_SPDLOG_INC}
+        -I ${GAIAT_INCLUDE_PATH}
+        -stdlib=$<IF:$<CONFIG:Debug>,libc++,libstdc++>
+        -std=c++${CMAKE_CXX_STANDARD}
+      # Kill gaia_db_server by matching the instance name.
+      COMMAND kill -9 `pgrep --list-full --exact gaia_db_server | grep ${DB_INSTANCE_NAME} | cut -d' ' -f1`
 
       # In some contexts, the next attempt to start gaia_db_server precedes this kill, leading
       # to a build failure. A short sleep is currently fixing that, but may not be the
