@@ -10,7 +10,8 @@
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
 
-#include "data_holder.hpp"
+#include <gaia_spdlog/fmt/fmt.h>
+
 #include "field_access.hpp"
 #include "type_id_mapping.hpp"
 
@@ -36,7 +37,7 @@ field_position_list_t compute_payload_diff(
     // data corruption bug(s).
     ASSERT_INVARIANT(
         type_record_id != c_invalid_gaia_id,
-        "The type '" + std::to_string(type_id) + "' does not exist in the catalog for payload diff!");
+        gaia_fmt::format("The type '{}' does not exist in the catalog for payload diff!", type_id).c_str());
 
     auto schema = catalog_core_t::get_table(type_record_id).binary_schema();
 
