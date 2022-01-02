@@ -272,7 +272,8 @@ void client_t::begin_session(config::session_options_t session_options)
     // authentication is currently disabled in the server).
     try
     {
-        client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 4);
+        client_messenger.send_and_receive(
+            s_session_socket, nullptr, 0, builder, static_cast<size_t>(data_mapping_t::index_t::count_mappings));
     }
     catch (const gaia::common::peer_disconnected&)
     {

@@ -72,8 +72,8 @@ struct relationship_view_t : catalog_db_object_view_t
 
     using catalog_db_object_view_t::catalog_db_object_view_t;
     [[nodiscard]] const char* name() const;
-    [[nodiscard]] const char* to_parent_link_name() const;
-    [[nodiscard]] const char* to_child_link_name() const;
+    [[nodiscard]] const char* to_parent_name() const;
+    [[nodiscard]] const char* to_child_name() const;
     [[nodiscard]] common::gaia_id_t parent_table_id() const;
     [[nodiscard]] common::gaia_id_t child_table_id() const;
     [[nodiscard]] common::reference_offset_t first_child_offset() const;
