@@ -43,7 +43,10 @@ inline db_object_t* create_object(
     {
         memcpy(obj_ptr->payload, reinterpret_cast<const uint8_t*>(refs), ref_len);
     }
-    memcpy(obj_ptr->payload + ref_len, obj_data, obj_data_size);
+    if (obj_data_size > 0)
+    {
+        memcpy(obj_ptr->payload + ref_len, obj_data, obj_data_size);
+    }
     return obj_ptr;
 }
 
@@ -60,7 +63,10 @@ inline db_object_t* create_object(
     obj_ptr->type = type;
     obj_ptr->num_references = num_refs;
     obj_ptr->payload_size = obj_data_size;
-    memcpy(obj_ptr->payload, obj_data, obj_data_size);
+    if (obj_data_size > 0)
+    {
+        memcpy(obj_ptr->payload, obj_data, obj_data_size);
+    }
     return obj_ptr;
 }
 

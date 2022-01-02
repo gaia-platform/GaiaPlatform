@@ -57,7 +57,7 @@ typedef void (*commit_trigger_fn)(const trigger_event_list_t&);
 /**
  * Use this constant to specify that no fields are needed when generating trigger_event_t.
  */
-const common::field_position_list_t empty_position_list = {};
+const common::field_position_list_t c_empty_position_list = {};
 
 } // namespace triggers
 } // namespace db

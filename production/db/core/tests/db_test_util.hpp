@@ -16,8 +16,9 @@ namespace gaia::db::test
 // Doctor --> Patient
 // This relationship is used in most relationship/references tests.
 constexpr common::reference_offset_t c_first_patient_offset = 0;
-constexpr common::reference_offset_t c_next_patient_offset = 0;
-constexpr common::reference_offset_t c_parent_doctor_offset = 1;
+constexpr common::reference_offset_t c_parent_doctor_offset = 0;
+constexpr common::reference_offset_t c_next_patient_offset = 1;
+constexpr common::reference_offset_t c_prev_patient_offset = 2;
 constexpr common::reference_offset_t c_non_existent_offset = 1024;
 
 /**
@@ -66,6 +67,12 @@ public:
         return *this;
     }
 
+    relationship_builder_t prev_child_offset(common::reference_offset_t prev_child_offset)
+    {
+        this->m_prev_child_offset = prev_child_offset;
+        return *this;
+    }
+
     relationship_builder_t parent_offset(common::reference_offset_t parent_offset)
     {
         this->m_parent_offset = parent_offset;
@@ -96,6 +103,7 @@ public:
             .child_type = this->m_child_type,
             .first_child_offset = this->m_first_child_offset,
             .next_child_offset = this->m_next_child_offset,
+            .prev_child_offset = this->m_prev_child_offset,
             .parent_offset = this->m_parent_offset,
             .cardinality = this->m_cardinality,
             .parent_required = this->m_parent_required});
@@ -119,12 +127,13 @@ private:
     bool m_parent_required = false;
     common::reference_offset_t m_first_child_offset = c_first_patient_offset;
     common::reference_offset_t m_next_child_offset = c_next_patient_offset;
+    common::reference_offset_t m_prev_child_offset = c_prev_patient_offset;
     common::reference_offset_t m_parent_offset = c_parent_doctor_offset;
 };
 
 gaia_ptr_t create_object(common::gaia_type_t type, std::string payload)
 {
-    return gaia_ptr_t::create(type, payload.size(), payload.data());
+    return gaia_ptr::create(type, payload.size(), payload.data());
 }
 
 void clean_type_registry()

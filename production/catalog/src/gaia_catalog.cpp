@@ -12,6 +12,22 @@ namespace gaia {
 namespace catalog {
 
 //
+// Implementation of class gaia_ref_anchor_t.
+//
+
+const char* gaia_ref_anchor_t::gaia_typename() {
+    static const char* gaia_typename = "gaia_ref_anchor_t";
+    return gaia_typename;
+}
+gaia::common::gaia_id_t gaia_ref_anchor_t::insert_row() {
+    flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
+    b.Finish(internal::Creategaia_ref_anchor(b));
+    return dac_object_t::insert_row(b);
+}
+gaia::direct_access::dac_container_t<c_gaia_type_gaia_ref_anchor, gaia_ref_anchor_t> gaia_ref_anchor_t::list() {
+    return gaia::direct_access::dac_container_t<c_gaia_type_gaia_ref_anchor, gaia_ref_anchor_t>();
+}
+//
 // Implementation of class gaia_index_t.
 //
 
@@ -40,7 +56,11 @@ gaia::direct_access::dac_vector_t<uint64_t> gaia_index_t::fields() const {
     return GET_ARRAY(fields);
 }
 gaia_table_t gaia_index_t::table() const {
-    gaia::common::gaia_id_t id = this->references()[c_gaia_index_parent_table];
+    gaia::common::gaia_id_t anchor_id = this->references()[c_gaia_index_parent_table];
+    if (anchor_id == gaia::common::c_invalid_gaia_id) {
+        return gaia_table_t();
+    }
+    gaia::common::gaia_id_t id = dac_db_t::get_reference(anchor_id, gaia::common::c_ref_anchor_parent_offset);
     return (id == gaia::common::c_invalid_gaia_id) ? gaia_table_t() : gaia_table_t::get(id);
 }
 //
@@ -63,7 +83,11 @@ const char* gaia_rule_t::name() const {
     return GET_STR(name);
 }
 gaia_ruleset_t gaia_rule_t::ruleset() const {
-    gaia::common::gaia_id_t id = this->references()[c_gaia_rule_parent_ruleset];
+    gaia::common::gaia_id_t anchor_id = this->references()[c_gaia_rule_parent_ruleset];
+    if (anchor_id == gaia::common::c_invalid_gaia_id) {
+        return gaia_ruleset_t();
+    }
+    gaia::common::gaia_id_t id = dac_db_t::get_reference(anchor_id, gaia::common::c_ref_anchor_parent_offset);
     return (id == gaia::common::c_invalid_gaia_id) ? gaia_ruleset_t() : gaia_ruleset_t::get(id);
 }
 //
@@ -153,11 +177,19 @@ gaia::direct_access::dac_vector_t<uint16_t> gaia_relationship_t::child_field_pos
     return GET_ARRAY(child_field_positions);
 }
 gaia_table_t gaia_relationship_t::child() const {
-    gaia::common::gaia_id_t id = this->references()[c_gaia_relationship_parent_child];
+    gaia::common::gaia_id_t anchor_id = this->references()[c_gaia_relationship_parent_child];
+    if (anchor_id == gaia::common::c_invalid_gaia_id) {
+        return gaia_table_t();
+    }
+    gaia::common::gaia_id_t id = dac_db_t::get_reference(anchor_id, gaia::common::c_ref_anchor_parent_offset);
     return (id == gaia::common::c_invalid_gaia_id) ? gaia_table_t() : gaia_table_t::get(id);
 }
 gaia_table_t gaia_relationship_t::parent() const {
-    gaia::common::gaia_id_t id = this->references()[c_gaia_relationship_parent_parent];
+    gaia::common::gaia_id_t anchor_id = this->references()[c_gaia_relationship_parent_parent];
+    if (anchor_id == gaia::common::c_invalid_gaia_id) {
+        return gaia_table_t();
+    }
+    gaia::common::gaia_id_t id = dac_db_t::get_reference(anchor_id, gaia::common::c_ref_anchor_parent_offset);
     return (id == gaia::common::c_invalid_gaia_id) ? gaia_table_t() : gaia_table_t::get(id);
 }
 //
@@ -198,7 +230,11 @@ bool gaia_field_t::unique() const {
     return GET(unique);
 }
 gaia_table_t gaia_field_t::table() const {
-    gaia::common::gaia_id_t id = this->references()[c_gaia_field_parent_table];
+    gaia::common::gaia_id_t anchor_id = this->references()[c_gaia_field_parent_table];
+    if (anchor_id == gaia::common::c_invalid_gaia_id) {
+        return gaia_table_t();
+    }
+    gaia::common::gaia_id_t id = dac_db_t::get_reference(anchor_id, gaia::common::c_ref_anchor_parent_offset);
     return (id == gaia::common::c_invalid_gaia_id) ? gaia_table_t() : gaia_table_t::get(id);
 }
 //
@@ -233,7 +269,11 @@ gaia::direct_access::dac_vector_t<uint8_t> gaia_table_t::serialization_template(
     return GET_ARRAY(serialization_template);
 }
 gaia_database_t gaia_table_t::database() const {
-    gaia::common::gaia_id_t id = this->references()[c_gaia_table_parent_database];
+    gaia::common::gaia_id_t anchor_id = this->references()[c_gaia_table_parent_database];
+    if (anchor_id == gaia::common::c_invalid_gaia_id) {
+        return gaia_database_t();
+    }
+    gaia::common::gaia_id_t id = dac_db_t::get_reference(anchor_id, gaia::common::c_ref_anchor_parent_offset);
     return (id == gaia::common::c_invalid_gaia_id) ? gaia_database_t() : gaia_database_t::get(id);
 }
 gaia_table_t::gaia_indexes_list_t gaia_table_t::gaia_indexes() const {
