@@ -36,7 +36,7 @@ public:
     static indexes_t::iterator create_empty_index(const index_view_t& index_view, bool skip_catalog_integrity_check = false);
     static void drop_index(const index_view_t& index_view);
     static void update_index(
-        db_index_t index, const txn_log_t::log_record_t& log_record);
+        db_index_t index, const log_record_t& log_record);
 
     static index_key_t make_key(db_index_t index, const uint8_t* payload);
     static void serialize_key(const index_key_t& key, payload_types::data_write_buffer_t& buffer);

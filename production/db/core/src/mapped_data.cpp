@@ -22,7 +22,7 @@ void mapped_log_t::create(const char* name)
         common::throw_system_error("memfd_create() failed in mapped_log_t::create()!");
     }
 
-    this->m_mapped_data_size = c_initial_log_size;
+    this->m_mapped_data_size = c_txn_log_size;
 
     common::truncate_fd(this->m_fd, this->m_mapped_data_size);
 

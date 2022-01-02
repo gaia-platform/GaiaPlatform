@@ -100,7 +100,7 @@ client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::opt
         {
             while (log_index < s_log.data()->record_count)
             {
-                txn_log_t::log_record_t* lr = &(s_log.data()->log_records[log_index++]);
+                log_record_t* lr = &(s_log.data()->log_records[log_index++]);
 
                 // Look for insertions of objects of the given data type and return their gaia_id.
                 if (lr->old_offset == c_invalid_gaia_offset)

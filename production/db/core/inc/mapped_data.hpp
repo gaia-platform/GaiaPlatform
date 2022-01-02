@@ -145,6 +145,7 @@ struct data_mapping_t
         locators,
         counters,
         data,
+        logs,
         id_index,
 
         // This must be kept the last enum value.

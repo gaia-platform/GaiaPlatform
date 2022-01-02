@@ -63,6 +63,7 @@ inline std::ostream& operator<<(std::ostream& os, const gaia_operation_t& o)
 constexpr char c_gaia_mem_locators_prefix[] = "gaia_mem_locators_";
 constexpr char c_gaia_mem_counters_prefix[] = "gaia_mem_counters_";
 constexpr char c_gaia_mem_data_prefix[] = "gaia_mem_data_";
+constexpr char c_gaia_mem_logs_prefix[] = "gaia_mem_logs_";
 constexpr char c_gaia_mem_id_index_prefix[] = "gaia_mem_id_index_";
 
 constexpr char c_gaia_mem_txn_log_prefix[] = "gaia_mem_txn_log_";
@@ -82,13 +83,13 @@ constexpr char c_gaia_internal_txn_log_prefix[] = "gaia_internal_txn_log_";
 // However, this would introduce a circular dependency between the memory
 // manager headers and this header (which probably indicates excessive
 // modularization).
-constexpr size_t c_max_locators = (1ULL << 29) - 1;
+constexpr size_t c_max_locators{(1ULL << 29) - 1};
 #else
 // We allow as many locators as the number of 64B objects (the minimum size)
-// that will fit into the data segment size of 256GB, or 2^38 / 2^6 = 2^32. We
-// also need to account for the fact that offsets are 32 bits, and that the
-// first entry of the locators array must be reserved, so we subtract 1.
-constexpr size_t c_max_locators = (1ULL << 32) - 1;
+// that will fit into the data segment size of 256GB, or 2^38 / 2^6 = 2^32. The
+// first entry of the locators array must be reserved for the invalid locator
+// value, so we subtract 1.
+constexpr size_t c_max_locators{(1ULL << 32) - 1};
 #endif
 
 // With 2^32 locators, 2^20 hash buckets bounds the average hash chain length to
@@ -97,10 +98,7 @@ constexpr size_t c_max_locators = (1ULL << 32) - 1;
 // should be able to solve this by storing locators directly in each object's
 // references array rather than gaia_ids. Other expensive index lookups could be
 // similarly optimized by substituting locators for gaia_ids.
-constexpr size_t c_hash_buckets = 1ULL << 20;
-
-// This is arbitrary, but we need to keep txn logs to a reasonable size.
-constexpr size_t c_max_log_records = 1ULL << 20;
+constexpr size_t c_hash_buckets{1ULL << 20};
 
 // This is an array of offsets in the data segment corresponding to object
 // versions, where each array index is referred to as a "locator."
@@ -117,53 +115,77 @@ struct hash_node_t
     std::atomic<gaia_locator_t::value_type> locator;
 };
 
+struct log_record_t
+{
+    gaia_locator_t locator;
+    gaia_offset_t old_offset;
+    gaia_offset_t new_offset;
+
+    friend std::ostream& operator<<(std::ostream& os, const log_record_t& lr)
+    {
+        os << "locator: "
+           << lr.locator
+           << "\told_offset: "
+           << lr.old_offset
+           << "\tnew_offset: "
+           << lr.new_offset
+           << "\toperation: "
+           << lr.operation()
+           << std::endl;
+        return os;
+    }
+
+    inline gaia_operation_t operation() const
+    {
+        bool old_offset_valid = (old_offset != c_invalid_gaia_offset);
+        bool new_offset_valid = (new_offset != c_invalid_gaia_offset);
+        if (old_offset_valid && new_offset_valid)
+        {
+            return gaia_operation_t::update;
+        }
+        else if (!old_offset_valid && new_offset_valid)
+        {
+            return gaia_operation_t::create;
+        }
+        else if (old_offset_valid && !new_offset_valid)
+        {
+            return gaia_operation_t::remove;
+        }
+        else
+        {
+            ASSERT_UNREACHABLE("At least one offset in a log record must be valid!");
+        }
+    }
+};
+
+// We can reference at most 2^16 logs from the 16 bits available in a txn
+// metadata entry, and we must reserve the value 0 for an invalid log offset.
+constexpr size_t c_max_logs{(1ULL << 16) - 1};
+
+// The total size of a txn log in shared memory.
+// We need to allow as many log records as the maximum number of live object
+// versions, and each log record occupies 16 bytes.
+constexpr size_t c_txn_log_size{((c_max_locators + 1) * sizeof(log_record_t)) / (c_max_logs + 1)};
+
+// We want to ensure that the txn log header size never changes accidentally.
+constexpr size_t c_txn_log_header_size = 16;
+
+// We need to ensure that the log header size is a multiple of the log record size, for alignment.
+static_assert(
+    (c_txn_log_header_size >= sizeof(log_record_t))
+        && (c_txn_log_header_size % sizeof(log_record_t) == 0),
+    "Header size must be multiple of record size!");
+
+// There can be at most 2^32 live versions in the data segment, and we can have
+// at most 2^16 logs, so each log can contain at most 2^16 records, minus the
+// number of record slots occupied by the log header.
+constexpr size_t c_max_log_records{((c_max_locators + 1) / (c_max_logs + 1)) - (c_txn_log_header_size / sizeof(log_record_t))};
+
 struct txn_log_t
 {
+    // This header should be a multiple of 16 bytes.
     gaia_txn_id_t begin_ts;
     size_t record_count;
-
-    struct log_record_t
-    {
-        gaia_locator_t locator;
-        gaia_offset_t old_offset;
-        gaia_offset_t new_offset;
-
-        friend std::ostream& operator<<(std::ostream& os, const log_record_t& lr)
-        {
-            os << "locator: "
-               << lr.locator
-               << "\told_offset: "
-               << lr.old_offset
-               << "\tnew_offset: "
-               << lr.new_offset
-               << "\toperation: "
-               << lr.operation()
-               << std::endl;
-            return os;
-        }
-
-        inline gaia_operation_t operation() const
-        {
-            bool old_offset_valid = (old_offset != c_invalid_gaia_offset);
-            bool new_offset_valid = (new_offset != c_invalid_gaia_offset);
-            if (old_offset_valid && new_offset_valid)
-            {
-                return gaia_operation_t::update;
-            }
-            else if (!old_offset_valid && new_offset_valid)
-            {
-                return gaia_operation_t::create;
-            }
-            else if (old_offset_valid && !new_offset_valid)
-            {
-                return gaia_operation_t::remove;
-            }
-            else
-            {
-                ASSERT_UNREACHABLE("At least one offset in a log record must be valid!");
-            }
-        }
-    };
 
     log_record_t log_records[c_max_log_records];
 
@@ -179,13 +201,18 @@ struct txn_log_t
         return os;
     }
 
+    // TODO: delete this after client integration
     inline size_t size()
     {
-        return sizeof(txn_log_t) + (sizeof(txn_log_t::log_record_t) * record_count);
+        return sizeof(txn_log_t);
     }
 };
 
-constexpr size_t c_initial_log_size = sizeof(txn_log_t) + (sizeof(txn_log_t::log_record_t) * c_max_log_records);
+// The txn log header size may change in the future, but we want to explicitly
+// assert that it is the expected size to catch any inadvertent changes.
+static_assert(c_txn_log_header_size == offsetof(txn_log_t, log_records), "Txn log header size must be 16 bytes!");
+
+static_assert(c_txn_log_size == sizeof(txn_log_t), "Txn log size must be 1MB!");
 
 struct counters_t
 {
@@ -214,6 +241,47 @@ struct data_t
     // The first entry of the array is reserved for the invalid offset value 0.
     aligned_storage_for_t<db_object_t> objects[c_max_locators + 1];
 };
+
+// Represents txn logs as offsets within the "log segment" of shared memory.
+// We can fit 2^16 1MB txn logs into 64GB of memory, so txn log offsets can be
+// represented as 16-bit integers. A log_offset_t value is just the offset of a
+// txn log object in 1MB units, relative to the base address of the log segment.
+// We use 0 to represent an invalid log offset (so the first log offset is unused).
+class log_offset_t : public common::int_type_t<uint16_t, 0>
+{
+public:
+    // By default, we should initialize to an invalid value.
+    constexpr log_offset_t()
+        : common::int_type_t<uint16_t, 0>()
+    {
+    }
+
+    constexpr log_offset_t(uint16_t value)
+        : common::int_type_t<uint16_t, 0>(value)
+    {
+    }
+};
+
+static_assert(
+    sizeof(log_offset_t) == sizeof(log_offset_t::value_type),
+    "log_offset_t has a different size than its underlying integer type!");
+
+constexpr log_offset_t c_invalid_log_offset;
+
+// This assertion ensures that the default type initialization
+// matches the value of the invalid constant.
+static_assert(
+    c_invalid_log_offset.value() == log_offset_t::c_default_invalid_value,
+    "Invalid c_invalid_log_offset initialization!");
+
+// The first valid log offset (1) immediately follows the invalid log offset (0).
+constexpr log_offset_t c_first_log_offset{1};
+constexpr log_offset_t c_last_log_offset{c_max_logs};
+
+// This is an array with 2^16 elements ("logs"), each holding 2^16 16-byte entries ("records").
+// The first element is unused because we need to reserve offset 0 for the "invalid log offset" value.
+// (This wastes only 1MB of virtual memory, which is inconsequential.)
+typedef txn_log_t logs_t[c_max_logs + 1];
 
 // This is a shared-memory hash table mapping gaia_id keys to locator values. We
 // need a hash table node for each locator (to store the gaia_id key and the

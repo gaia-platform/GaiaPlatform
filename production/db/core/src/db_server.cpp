@@ -617,6 +617,8 @@ void server_t::init_shared_memory()
     //
     // s_shared_data uses (64B) * c_max_locators = 256GB of virtual address space.
     //
+    // s_shared_logs uses (16B) * c_max_locators = 64GB of virtual address space.
+    //
     // s_shared_id_index uses (32B) * c_max_locators = 128GB of virtual address space
     // (assuming 4-byte alignment). We could eventually shrink this to
     // 4B/locator (assuming 4-byte locators), or 16GB, if we can assume that
@@ -626,6 +628,15 @@ void server_t::init_shared_memory()
 
     bool initializing = true;
     init_memory_manager(initializing);
+
+    // Initialize txn log structures.
+
+    // Start log allocations at the first valid offset.
+    s_next_unused_log_offset = c_first_log_offset;
+    // Mark all log offsets as initially unallocated.
+    std::fill(std::begin(s_allocated_log_offsets_bitmap), std::end(s_allocated_log_offsets_bitmap), 0);
+    // Mark the invalid offset as allocated.
+    safe_set_bit_value(s_allocated_log_offsets_bitmap.data(), s_allocated_log_offsets_bitmap.size(), c_invalid_log_offset, true);
 
     // Create snapshot for db recovery and index population.
     bool apply_logs = false;
@@ -1708,8 +1719,8 @@ bool server_t::txn_logs_conflict(int log_fd1, int log_fd2)
     size_t log1_idx = 0, log2_idx = 0;
     while (log1_idx < log1.data()->record_count && log2_idx < log2.data()->record_count)
     {
-        txn_log_t::log_record_t* lr1 = log1.data()->log_records + log1_idx;
-        txn_log_t::log_record_t* lr2 = log2.data()->log_records + log2_idx;
+        log_record_t* lr1 = log1.data()->log_records + log1_idx;
+        log_record_t* lr2 = log2.data()->log_records + log2_idx;
 
         if (lr1->locator == lr2->locator)
         {
@@ -2618,7 +2629,7 @@ void server_t::perform_pre_commit_work_for_txn()
     // Process the txn log to update record lists.
     for (size_t i = 0; i < s_log.data()->record_count; ++i)
     {
-        txn_log_t::log_record_t* lr = &(s_log.data()->log_records[i]);
+        log_record_t* lr = &(s_log.data()->log_records[i]);
 
         // In case of insertions, we want to update the record list for the object's type.
         // We do this after updating the shared locator view, so we can access the new object's data.
@@ -2650,7 +2661,7 @@ void server_t::sort_log()
     std::stable_sort(
         &s_log.data()->log_records[0],
         &s_log.data()->log_records[s_log.data()->record_count],
-        [](const txn_log_t::log_record_t& lhs, const txn_log_t::log_record_t& rhs) {
+        [](const log_record_t& lhs, const log_record_t& rhs) {
             return lhs.locator < rhs.locator;
         });
 }
@@ -3018,6 +3029,99 @@ gaia_txn_id_t server_t::get_safe_truncation_ts()
     // Return the minimum of the pre-scan snapshot of the post-GC watermark and
     // the smallest published timestamp that the scan observed.
     return safe_truncation_ts;
+}
+
+log_offset_t server_t::allocate_used_log_offset()
+{
+    // Starting from the first valid offset, scan for the first unallocated
+    // offset, up to a snapshot of s_next_unused_log_offset. If we fail to claim
+    // an unallocated offset, restart the scan. (If we fail to find or claim any
+    // reused offsets, then the caller can allocate a new offset from unused
+    // memory.) Since s_next_unused_log_offset can be concurrently advanced, and
+    // offsets can also be deallocated behind our scan pointer, this search is
+    // best-effort; we could miss an offset deallocated concurrently with our
+    // scan.
+    size_t first_unused_offset = s_next_unused_log_offset;
+
+    // If we're out of unused offsets, set the exclusive upper bound of the
+    // bitmap scan to just past the end of the bitmap.
+    if (first_unused_offset > c_last_log_offset)
+    {
+        first_unused_offset = c_last_log_offset + 1;
+    }
+
+    while (true)
+    {
+        size_t found_index = find_first_unset_bit(
+            s_allocated_log_offsets_bitmap.data(),
+            s_allocated_log_offsets_bitmap.size(),
+            first_unused_offset);
+
+        if (found_index == c_max_bit_index)
+        {
+            break;
+        }
+
+        ASSERT_INVARIANT(
+            found_index >= c_first_log_offset
+                && found_index <= c_last_log_offset,
+            "Index returned by find_first_unset_bit() is outside expected range!");
+
+        return static_cast<log_offset_t>(found_index);
+    }
+
+    return c_invalid_log_offset;
+}
+
+log_offset_t server_t::allocate_unused_log_offset()
+{
+    // We claim the next available unused offset, and keep trying until we succeed.
+    // (This is not wait-free, but conflicts should be rare.)
+    while (true)
+    {
+        // Get the next available unused offset.
+        size_t next_offset = s_next_unused_log_offset++;
+
+        // If we've run out of log space, return the invalid offset.
+        if (next_offset > c_last_log_offset)
+        {
+            return c_invalid_log_offset;
+        }
+
+        // At this point, we know that next_offset is a valid log_offset_t.
+        ASSERT_INVARIANT(
+            next_offset >= c_first_log_offset
+                && next_offset <= c_last_log_offset,
+            "next_offset is out of range!");
+
+        return static_cast<log_offset_t>(next_offset);
+    }
+}
+
+// REVIEW: Under most workloads, only a few txn log offsets will ever be in use,
+// so concurrent log offset allocations will contend on just 1 or 2 words in the
+// allocated log offset bitmap. We could reduce contention by forcing
+// allocations to use more of the available offset space. OTOH, the current
+// implementation ensures that readers only need to scan a few words to find an
+// unused offset, and it minimizes minor page faults and TLB misses. We could
+// re-evaluate this reader/writer tradeoff if contention proves to be an issue.
+log_offset_t server_t::allocate_log_offset()
+{
+    // First try to reuse a deallocated offset.
+    log_offset_t allocated_offset = allocate_used_log_offset();
+
+    // If no deallocated offset is available, then allocate the next unused offset.
+    if (allocated_offset == c_invalid_log_offset)
+    {
+        allocated_offset = allocate_unused_log_offset();
+    }
+
+    // At this point, we must either have a valid offset, or we have run out of log space.
+    ASSERT_INVARIANT(
+        (allocated_offset != c_invalid_log_offset) || (s_next_unused_log_offset > c_last_log_offset),
+        "Log offset allocation cannot fail unless log space is exhausted!");
+
+    return allocated_offset;
 }
 
 static bool is_system_compatible()

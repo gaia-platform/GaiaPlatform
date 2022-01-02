@@ -46,6 +46,7 @@ struct alignas(gaia::db::memory_manager::c_allocation_alignment) db_object_t
 
     // This contains an array of zero or more references (gaia_id_t), followed by
     // a serialized flatbuffer object.
+    // Flexible array members are not standardized, but are supported by both gcc and clang.
     char payload[];
 
     [[nodiscard]] const char* data() const

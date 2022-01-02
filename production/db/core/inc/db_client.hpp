@@ -114,6 +114,7 @@ private:
 
     thread_local static inline mapped_data_t<counters_t> s_shared_counters;
     thread_local static inline mapped_data_t<data_t> s_shared_data;
+    thread_local static inline mapped_data_t<logs_t> s_shared_logs;
     thread_local static inline mapped_data_t<id_index_t> s_shared_id_index;
 
     thread_local static inline int s_session_socket = -1;
@@ -124,6 +125,7 @@ private:
         {data_mapping_t::index_t::locators, &s_private_locators, c_gaia_mem_locators_prefix},
         {data_mapping_t::index_t::counters, &s_shared_counters, c_gaia_mem_counters_prefix},
         {data_mapping_t::index_t::data, &s_shared_data, c_gaia_mem_data_prefix},
+        {data_mapping_t::index_t::logs, &s_shared_logs, c_gaia_mem_logs_prefix},
         {data_mapping_t::index_t::id_index, &s_shared_id_index, c_gaia_mem_id_index_prefix},
     };
 

@@ -263,7 +263,7 @@ void index_builder_t::update_index(
 
 void index_builder_t::update_index(
     db_index_t index,
-    const txn_log_t::log_record_t& log_record)
+    const log_record_t& log_record)
 {
     // Most operations expect an object located at new_offset,
     // so we'll try to get a reference to its payload.
@@ -345,10 +345,10 @@ void index_builder_t::populate_index(common::gaia_id_t index_id, gaia_locator_t 
 }
 
 /*
-* This method performs index maintenance operations based on logs.
-* The order of operations in the index data structure is based on the same ordering as the logs.
-* As such, we rely on the logs being sorted by temporal order.
-*/
+ * This method performs index maintenance operations based on logs.
+ * The order of operations in the index data structure is based on the same ordering as the logs.
+ * As such, we rely on the logs being sorted by temporal order.
+ */
 void index_builder_t::update_indexes_from_txn_log(
     const txn_log_t& records, bool skip_catalog_integrity_check, bool allow_create_empty)
 {
