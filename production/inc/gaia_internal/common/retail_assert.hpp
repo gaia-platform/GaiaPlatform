@@ -92,7 +92,8 @@ namespace common
 //
 // Because ASSERT_UNREACHABLE results in an unconditional failure,
 // there should never be a need to disable such an assert - even for debugging purposes.
-#define ASSERT_UNREACHABLE(m) gaia::common::throw_retail_assertion_failure(m, __FILE__, __LINE__, __func__)
+#define ASSERT_UNREACHABLE(m) \
+    gaia::common::throw_retail_assertion_failure(m, __FILE__, __LINE__, __func__)
 
 /**
  * Thrown when a retail assert check has failed.
@@ -116,7 +117,7 @@ public:
  * The message parameter is typed const char * to encourage passing string
  * literals rather than dynamically allocated strings.
  */
-inline void throw_retail_assertion_failure(
+__attribute__((noreturn)) inline void throw_retail_assertion_failure(
     const char* message, const char* file, size_t line, const char* function)
 {
     std::stringstream message_stream;
