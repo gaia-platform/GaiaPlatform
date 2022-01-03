@@ -40,6 +40,15 @@ gaia::db::data_t* gaia::db::get_data()
     return gaia::db::server_t::s_shared_data.data();
 }
 
+gaia::db::logs_t* gaia::db::get_logs()
+{
+    // Since we don't use this accessor in the server itself, we can assert that
+    // it is always non-null (since callers should never be able to see it in
+    // its null state, i.e., with the data segment unmapped).
+    ASSERT_PRECONDITION(gaia::db::server_t::s_shared_logs.is_set(), "Server logs segment is unmapped!");
+    return gaia::db::server_t::s_shared_logs.data();
+}
+
 gaia::db::id_index_t* gaia::db::get_id_index()
 {
     // Since we don't use this accessor in the server itself, we can assert that
@@ -72,4 +81,13 @@ gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager()
 gaia::db::mapped_log_t* gaia::db::get_mapped_log()
 {
     return &gaia::db::server_t::s_log;
+}
+
+gaia::db::txn_log_t* gaia::db::get_txn_log()
+{
+    ASSERT_PRECONDITION(
+        gaia::db::server_t::s_txn_log_offset != gaia::db::c_invalid_log_offset,
+        "Txn log offset is invalid!");
+    gaia::db::logs_t* logs = gaia::db::get_logs();
+    return logs[gaia::db::server_t::s_txn_log_offset];
 }

@@ -96,7 +96,7 @@ void server_t::handle_connect(
 
     // We need to reply to the client with the fds for the data/locator segments.
     FlatBufferBuilder builder;
-    build_server_reply(builder, session_event_t::CONNECT, old_state, new_state);
+    build_server_reply_info(builder, session_event_t::CONNECT, old_state, new_state);
 
     // Collect fds.
     int fd_list[static_cast<size_t>(data_mapping_t::index_t::count_mappings)];
@@ -120,9 +120,9 @@ void server_t::handle_begin_txn(
         old_state == session_state_t::CONNECTED && new_state == session_state_t::TXN_IN_PROGRESS,
         c_message_current_event_is_inconsistent_with_state_transition);
 
-    ASSERT_PRECONDITION(s_txn_id == c_invalid_gaia_txn_id, "Transaction begin timestamp should be uninitialized!");
-
+    ASSERT_PRECONDITION(s_txn_id == c_invalid_gaia_txn_id, "Transaction begin timestamp should be invalid!");
     ASSERT_PRECONDITION(!s_log.is_set(), "Transaction log should be uninitialized!");
+    ASSERT_PRECONDITION(s_txn_log_offset == c_invalid_log_offset, "Transaction log offset should be invalid!");
 
     // REVIEW: we could make this a session thread-local to avoid dynamic
     // allocation per txn.
@@ -138,14 +138,18 @@ void server_t::handle_begin_txn(
     });
     txn_begin(txn_log_fds_for_snapshot);
 
+    ASSERT_POSTCONDITION(s_txn_id != c_invalid_gaia_txn_id, "Transaction begin timestamp should be valid!");
+    ASSERT_POSTCONDITION(s_log.is_set(), "Transaction log should be initialized!");
+    ASSERT_POSTCONDITION(s_txn_log_offset != c_invalid_log_offset, "Transaction log offset should be valid!");
+
     // Send the reply message to the client, with the number of txn log fds to
     // be sent later.
     // REVIEW: We could optimize the fast path by piggybacking some small fixed
     // number of log fds on the initial reply message.
     int log_fd = s_log.fd();
     FlatBufferBuilder builder;
-    build_server_reply(
-        builder, session_event_t::BEGIN_TXN, old_state, new_state, s_txn_id, txn_log_fds_for_snapshot.size());
+    build_server_reply_info(
+        builder, session_event_t::BEGIN_TXN, old_state, new_state, s_txn_id, s_txn_log_offset, txn_log_fds_for_snapshot.size());
     send_msg_with_fds(s_session_socket, &log_fd, 1, builder.GetBufferPointer(), builder.GetSize());
 
     // Send all txn log fds to the client in an additional sequence of dummy messages.
@@ -177,13 +181,33 @@ void server_t::txn_begin(std::vector<int>& txn_log_fds_for_snapshot)
 
     get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds_for_snapshot);
 
-    // Allocate the txn log fd on the server, for rollback-safety if the client session crashes.
-    s_log.create(
-        gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
+    // OLD
+    {
+        // Allocate the txn log fd on the server, for rollback-safety if the client session crashes.
+        s_log.create(
+            gaia_fmt::format("{}{}:{}", c_gaia_internal_txn_log_prefix, s_server_conf.instance_name(), s_txn_id).c_str());
 
-    // Update the log header with our begin timestamp and initialize it to empty.
-    s_log.data()->begin_ts = s_txn_id;
-    s_log.data()->record_count = 0;
+        // Update the log header with our begin timestamp and initialize it to empty.
+        s_log.data()->begin_ts = s_txn_id;
+        s_log.data()->record_count = 0;
+    }
+    // OLD
+
+    // NEW
+    {
+        // Allocate the txn log offset on the server, for rollback-safety if the client session crashes.
+        s_txn_log_offset = allocate_log_offset();
+        if (s_txn_log_offset == c_invalid_log_offset)
+        {
+            throw transaction_object_limit_exceeded_internal();
+        }
+
+        // Update the log header with our begin timestamp and initialize it to empty.
+        txn_log_t* txn_log = gaia::db::get_txn_log();
+        txn_log->begin_ts = s_txn_id;
+        txn_log->record_count = 0;
+    }
+    // NEW
 }
 
 void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds)
@@ -306,19 +330,22 @@ void server_t::handle_decide_txn(
     // returned, but we don't close the log fd (even for an abort decision),
     // because GC needs the log in order to properly deallocate all allocations
     // made by this txn when they become obsolete.
-    auto cleanup = make_scope_guard([&]() { s_txn_id = c_invalid_gaia_txn_id; });
+    auto cleanup = make_scope_guard([&]() {
+        s_txn_id = c_invalid_gaia_txn_id;
+        s_txn_log_offset = c_invalid_log_offset;
+    });
 
     FlatBufferBuilder builder;
     if (event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR)
     {
-        build_server_reply(builder, event, old_state, new_state, s_error_message.c_str());
+        build_server_reply_error(builder, event, old_state, new_state, s_error_message.c_str());
 
         // Clear error information.
         s_error_message = c_empty_string;
     }
     else
     {
-        build_server_reply(builder, event, old_state, new_state, s_txn_id, 0);
+        build_server_reply_info(builder, event, old_state, new_state, s_txn_id, s_txn_log_offset, 0);
     }
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
@@ -499,7 +526,7 @@ void server_t::handle_request_stream(
     // Any exceptions after this point will close the server socket, ensuring the producer thread terminates.
     // However, its destructor will not run until the session thread exits and joins the producer thread.
     FlatBufferBuilder builder;
-    build_server_reply(builder, event, old_state, new_state);
+    build_server_reply_info(builder, event, old_state, new_state);
     send_msg_with_fds(s_session_socket, &client_socket, 1, builder.GetBufferPointer(), builder.GetSize());
 }
 
@@ -544,16 +571,17 @@ void server_t::apply_transition(session_event_t event, const void* event_data, i
         + "'.");
 }
 
-void server_t::build_server_reply(
+void server_t::build_server_reply_info(
     FlatBufferBuilder& builder,
     session_event_t event,
     session_state_t old_state,
     session_state_t new_state,
     gaia_txn_id_t txn_id,
+    log_offset_t txn_log_offset,
     size_t log_fds_to_apply_count)
 {
     flatbuffers::Offset<server_reply_t> server_reply;
-    const auto transaction_info = Createtransaction_info_t(builder, txn_id, log_fds_to_apply_count);
+    const auto transaction_info = Createtransaction_info_t(builder, txn_id, txn_log_offset, log_fds_to_apply_count);
     server_reply = Createserver_reply_t(
         builder, event, old_state, new_state,
         reply_data_t::transaction_info, transaction_info.Union());
@@ -561,7 +589,7 @@ void server_t::build_server_reply(
     builder.Finish(message);
 }
 
-void server_t::build_server_reply(
+void server_t::build_server_reply_error(
     FlatBufferBuilder& builder,
     session_event_t event,
     session_state_t old_state,
@@ -629,7 +657,7 @@ void server_t::init_shared_memory()
     bool initializing = true;
     init_memory_manager(initializing);
 
-    // Initialize txn log structures.
+    // Initialize txn log allocation metadata structures.
 
     // Start log allocations at the first valid offset.
     s_next_unused_log_offset = c_first_log_offset;
@@ -1787,16 +1815,6 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
     //    In either case, we set the decided state in our commit timestamp metadata
     //    and return the commit decision to the client.
     //
-    // REVIEW: Possible optimization for conflict detection, because mmap() is so
-    // expensive: store compact signatures in the txn log (either sorted
-    // fingerprint sequence or bloom filter, at beginning or end of file), read
-    // the signatures with pread(2), and test against signatures in committing
-    // txn's log. Only mmap() the txn log if a possible conflict is indicated.
-    //
-    // REVIEW: A simpler and possibly more important optimization: use the
-    // existing mapped view of the committing txn's log instead of mapping it
-    // again on every conflict check.
-    //
     // REVIEW: Possible optimization (in the original version but removed in the
     // current code for simplicity): find the latest undecided txn which
     // conflicts with our write set. Any undecided txns later than this don't
@@ -1807,6 +1825,8 @@ bool server_t::validate_txn(gaia_txn_id_t commit_ts)
 
     // Because we make multiple passes over the conflict window, we need to track
     // committed txns that have already been tested for conflicts.
+    // REVIEW: This codepath is latency-sensitive enough that we may want to avoid
+    // dynamic allocation (we could probably just use linear search in an array).
     std::unordered_set<gaia_txn_id_t> committed_txns_tested_for_conflicts;
 
     // Iterate over all txns in conflict window, and test all committed txns for
@@ -2620,6 +2640,7 @@ void server_t::txn_rollback(bool client_disconnected)
 
     // This session now has no active txn.
     s_txn_id = c_invalid_gaia_txn_id;
+    s_txn_log_offset = c_invalid_log_offset;
 }
 
 void server_t::perform_pre_commit_work_for_txn()
@@ -3031,6 +3052,14 @@ gaia_txn_id_t server_t::get_safe_truncation_ts()
     return safe_truncation_ts;
 }
 
+bool server_t::is_log_offset_allocated(log_offset_t offset)
+{
+    return is_bit_set(
+        s_allocated_log_offsets_bitmap.data(),
+        s_allocated_log_offsets_bitmap.size(),
+        static_cast<size_t>(offset));
+}
+
 log_offset_t server_t::allocate_used_log_offset()
 {
     // Starting from the first valid offset, scan for the first unallocated
@@ -3045,32 +3074,53 @@ log_offset_t server_t::allocate_used_log_offset()
 
     // If we're out of unused offsets, set the exclusive upper bound of the
     // bitmap scan to just past the end of the bitmap.
-    if (first_unused_offset > c_last_log_offset)
+    if (first_unused_offset > c_last_log_offset.value())
     {
-        first_unused_offset = c_last_log_offset + 1;
+        first_unused_offset = c_last_log_offset.value() + 1;
     }
 
+    // Try to set the first unset bit in the "allocated log offsets" bitmap.
+    log_offset_t allocated_offset = c_invalid_log_offset;
     while (true)
     {
-        size_t found_index = find_first_unset_bit(
+        size_t first_unallocated_index = find_first_unset_bit(
             s_allocated_log_offsets_bitmap.data(),
             s_allocated_log_offsets_bitmap.size(),
             first_unused_offset);
 
-        if (found_index == c_max_bit_index)
+        // If our scan doesn't find any unset bits, immediately return failure
+        // rather than retrying the scan (otherwise this could lead to an
+        // infinite loop).
+        if (first_unallocated_index == c_max_bit_index)
         {
             break;
         }
 
         ASSERT_INVARIANT(
-            found_index >= c_first_log_offset
-                && found_index <= c_last_log_offset,
+            first_unallocated_index >= c_first_log_offset.value()
+                && first_unallocated_index <= c_last_log_offset.value(),
             "Index returned by find_first_unset_bit() is outside expected range!");
 
-        return static_cast<log_offset_t>(found_index);
+        // If the CAS to set the bit fails, restart the scan, even if the bit
+        // was still unset when the CAS failed (a failed CAS indicates
+        // contention and we should back off by restarting the scan).
+        //
+        // Restart the scan if the bit was already set when we tried to set it,
+        // because that means that another thread has already allocated this
+        // offset. We force try_set_bit_value() to fail in this case by passing
+        // fail_if_already_set=true.
+        bool fail_if_already_set = true;
+        if (memory_manager::try_set_bit_value(
+                s_allocated_log_offsets_bitmap.data(),
+                s_allocated_log_offsets_bitmap.size(),
+                first_unallocated_index, true, fail_if_already_set))
+        {
+            allocated_offset = static_cast<log_offset_t>(first_unallocated_index);
+            break;
+        }
     }
 
-    return c_invalid_log_offset;
+    return allocated_offset;
 }
 
 log_offset_t server_t::allocate_unused_log_offset()
@@ -3083,18 +3133,34 @@ log_offset_t server_t::allocate_unused_log_offset()
         size_t next_offset = s_next_unused_log_offset++;
 
         // If we've run out of log space, return the invalid offset.
-        if (next_offset > c_last_log_offset)
+        if (next_offset > c_last_log_offset.value())
         {
             return c_invalid_log_offset;
         }
 
         // At this point, we know that next_offset is a valid log_offset_t.
         ASSERT_INVARIANT(
-            next_offset >= c_first_log_offset
-                && next_offset <= c_last_log_offset,
+            next_offset >= c_first_log_offset.value()
+                && next_offset <= c_last_log_offset.value(),
             "next_offset is out of range!");
 
-        return static_cast<log_offset_t>(next_offset);
+        // If the CAS to set the bit fails, try the next available unused
+        // offset, even if the bit was still unset when the CAS failed (a failed
+        // CAS indicates contention and we should back off by restarting the
+        // scan).
+        //
+        // Retry if the bit was already set when we tried to set it,
+        // because that means that another thread has already allocated this
+        // offset. We force try_set_bit_value() to fail in this case by passing
+        // fail_if_already_set=true.
+        bool fail_if_already_set = true;
+        if (memory_manager::try_set_bit_value(
+                s_allocated_log_offsets_bitmap.data(),
+                s_allocated_log_offsets_bitmap.size(),
+                next_offset, true, fail_if_already_set))
+        {
+            return static_cast<log_offset_t>(next_offset);
+        }
     }
 }
 
@@ -3122,6 +3188,17 @@ log_offset_t server_t::allocate_log_offset()
         "Log offset allocation cannot fail unless log space is exhausted!");
 
     return allocated_offset;
+}
+
+void server_t::deallocate_log_offset(log_offset_t offset)
+{
+    ASSERT_PRECONDITION(
+        is_log_offset_allocated(offset), "Cannot deallocate unallocated log offset!");
+
+    memory_manager::safe_set_bit_value(
+        s_allocated_log_offsets_bitmap.data(),
+        s_allocated_log_offsets_bitmap.size(),
+        static_cast<size_t>(offset), false);
 }
 
 static bool is_system_compatible()

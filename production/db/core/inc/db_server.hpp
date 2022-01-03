@@ -93,11 +93,14 @@ class server_t
     friend gaia::db::locators_t* gaia::db::get_locators_for_allocator();
     friend gaia::db::counters_t* gaia::db::get_counters();
     friend gaia::db::data_t* gaia::db::get_data();
+    friend gaia::db::logs_t* gaia::db::get_logs();
     friend gaia::db::id_index_t* gaia::db::get_id_index();
-    friend gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
+    friend gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id();
+    friend gaia::db::txn_log_t* gaia::db::get_txn_log();
 
 public:
+    // FIXME: I think all these fields can be made private by making their consumers friend functions of this class.
     // This needs to be public to be accessible from gaia::db::get_memory_manager().
     // This field has session lifetime.
     thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
@@ -143,6 +146,7 @@ private:
 
     // These fields have transaction lifetime.
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
+    thread_local static inline log_offset_t s_txn_log_offset = c_invalid_log_offset;
 
     // Local snapshot. This is a private copy of locators for server-side transactions.
     thread_local static inline mapped_data_t<locators_t> s_local_snapshot_locators{};
@@ -323,9 +327,15 @@ private:
     // that was reserved before this method was called.
     static gaia_txn_id_t get_safe_truncation_ts();
 
+    // Returns true if the given log offset is allocated, false otherwise.
+    static bool is_log_offset_allocated(log_offset_t offset);
+
     // Allocates the first unallocated log offset, returning the invalid log
     // offset if no unallocated offset is available.
     static log_offset_t allocate_log_offset();
+
+    // Deallocates the given log offset.
+    static void deallocate_log_offset(log_offset_t offset);
 
     // Allocates the first used log offset.
     static log_offset_t allocate_used_log_offset();
@@ -393,15 +403,16 @@ private:
 
     static void apply_transition(messages::session_event_t event, const void* event_data, int* fds, size_t fd_count);
 
-    static void build_server_reply(
+    static void build_server_reply_info(
         flatbuffers::FlatBufferBuilder& builder,
         messages::session_event_t event,
         messages::session_state_t old_state,
         messages::session_state_t new_state,
         gaia_txn_id_t txn_id = c_invalid_gaia_txn_id,
+        log_offset_t txn_log_offset = c_invalid_log_offset,
         size_t log_fds_to_apply_count = 0);
 
-    static void build_server_reply(
+    static void build_server_reply_error(
         flatbuffers::FlatBufferBuilder& builder,
         messages::session_event_t event,
         messages::session_state_t old_state,

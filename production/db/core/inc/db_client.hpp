@@ -51,13 +51,16 @@ class client_t
      */
     friend gaia::db::counters_t* gaia::db::get_counters();
     friend gaia::db::data_t* gaia::db::get_data();
+    friend gaia::db::logs_t* gaia::db::get_logs();
     friend gaia::db::id_index_t* gaia::db::get_id_index();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
     friend gaia_txn_id_t gaia::db::get_current_txn_id();
+    friend gaia::db::txn_log_t* gaia::db::get_txn_log();
 
     friend class gaia::db::query_processor::db_client_proxy_t;
 
 public:
+    // FIXME: I think all these fields can be made private by making their consumers friend functions of this class.
     // This needs to be public to be accessible from gaia::db::get_memory_manager().
     // This field has session lifetime.
     thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
@@ -103,6 +106,7 @@ public:
 private:
     // These fields have transaction lifetime.
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
+    thread_local static inline log_offset_t s_txn_log_offset = c_invalid_log_offset;
 
     thread_local static inline mapped_data_t<locators_t> s_private_locators;
     thread_local static inline gaia::db::index::indexes_t s_local_indexes{};

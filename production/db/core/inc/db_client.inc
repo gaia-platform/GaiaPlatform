@@ -65,19 +65,39 @@ inline void client_t::txn_log(
     gaia_offset_t old_offset,
     gaia_offset_t new_offset)
 {
-    ASSERT_PRECONDITION(s_log.is_set(), "Transaction log must be mapped!");
-
-    // We never allocate more than `c_max_log_records` records in the log.
-    if (s_log.data()->record_count == c_max_log_records)
+    // OLD
     {
-        throw transaction_object_limit_exceeded_internal();
-    }
+        ASSERT_PRECONDITION(s_log.is_set(), "Transaction log must be mapped!");
 
-    // Initialize the new record and increment the record count.
-    auto& lr = s_log.data()->log_records[s_log.data()->record_count++];
-    lr.locator = locator;
-    lr.old_offset = old_offset;
-    lr.new_offset = new_offset;
+        // We never allocate more than `c_max_log_records` records in the log.
+        if (s_log.data()->record_count == c_max_log_records)
+        {
+            throw transaction_object_limit_exceeded_internal();
+        }
+
+        // Initialize the new record and increment the record count.
+        auto& lr = s_log.data()->log_records[s_log.data()->record_count++];
+        lr.locator = locator;
+        lr.old_offset = old_offset;
+        lr.new_offset = new_offset;
+    }
+    // OLD
+
+    // NEW
+    {
+        txn_log_t* txn_log = get_txn_log();
+        if (txn_log->record_count == c_max_log_records)
+        {
+            throw transaction_object_limit_exceeded_internal();
+        }
+
+        // Initialize the new record and increment the record count.
+        auto& lr = txn_log->log_records[txn_log->record_count++];
+        lr.locator = locator;
+        lr.old_offset = old_offset;
+        lr.new_offset = new_offset;
+    }
+    // NEW
 }
 
 // This generator wraps a socket which reads a stream of values of `T_element_type` from the server.
