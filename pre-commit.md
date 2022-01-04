@@ -3,6 +3,10 @@
 As part of our move to GitHub Actions, we added various checks and balances to our CI environment.
 This effort is partially to ensure that we follow every coding guideline and do so in a way that is non-obtrusive.
 
+## XXX
+
+- cppcheck
+
 ## Pre Commit Checks
 
 The checks in the following section are executed using the [Pre-Commit framework](https://pre-commit.com/) and the `.pre-commit-config.yaml` file.
@@ -51,6 +55,7 @@ Scripts are being used for test automation and CI building.
 
 - verify that the current `main.yml` is the latest version
   - any changes in `gdev.cfg` files should be reflected in changes to the `main.yml` file
+  - for documentation on how the `main.yml` is put together, [check here](https://github.com/gaia-platform/GaiaPlatform/dev_tools/github-actions/README.md)
 
 ### C++ Files
 
