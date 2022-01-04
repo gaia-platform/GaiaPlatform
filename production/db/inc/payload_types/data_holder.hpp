@@ -42,6 +42,9 @@ public:
     }
 };
 
+// Dataholders with null values hash to this value.
+constexpr size_t c_null_dataholder_hash = 0;
+
 static_assert(
     sizeof(data_hash_t) == sizeof(data_hash_t::value_type),
     "data_hash_t has a different size than its underlying integer type!");
