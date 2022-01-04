@@ -19,7 +19,7 @@ endif()
 set(__get_git_version INCLUDED)
 
 function(get_git_version var)
-    if(GIT_EXECUTABLE)
+  if(GIT_EXECUTABLE)
       execute_process(COMMAND ${GIT_EXECUTABLE} describe --match "v[0-9]*.[0-9]*.[0-9]*" --abbrev=8
           WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
           RESULT_VARIABLE status
@@ -45,9 +45,9 @@ function(get_git_version var)
       if (${GIT_DIRTY})
           set(GIT_VERSION "${GIT_VERSION}-dirty")
       endif()
-    else()
-        set(GIT_VERSION "v0.0.0")
-    endif()
+  else()
+      set(GIT_VERSION "v0.0.0")
+  endif()
 
   message(STATUS "git Version: ${GIT_VERSION}")
   set(${var} ${GIT_VERSION} PARENT_SCOPE)
