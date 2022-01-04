@@ -77,14 +77,14 @@ void client_messenger_t::receive_server_reply(
                 .c_str());
     }
 
-    for (size_t index_fd = 0; index_fd < m_count_received_fds; index_fd++)
+    for (size_t fd_index = 0; fd_index < m_count_received_fds; fd_index++)
     {
-        int current_fd = m_received_fds[index_fd];
+        int current_fd = m_received_fds[fd_index];
         if (current_fd == -1)
         {
             ASSERT_INVARIANT(
                 current_fd != -1,
-                gaia_fmt::format("The fd received at index {} is invalid!", index_fd).c_str());
+                gaia_fmt::format("The fd received at index {} is invalid!", fd_index).c_str());
         }
     }
 }
@@ -101,13 +101,13 @@ void client_messenger_t::clear()
     m_server_reply = nullptr;
 }
 
-int client_messenger_t::received_fd(size_t index_fd)
+int client_messenger_t::received_fd(size_t fd_index)
 {
     ASSERT_PRECONDITION(
-        index_fd < m_count_received_fds,
+        fd_index < m_count_received_fds,
         "Attempt to access fd is outside the bounds of the fd array!");
 
-    return m_received_fds[index_fd];
+    return m_received_fds[fd_index];
 }
 
 } // namespace db
