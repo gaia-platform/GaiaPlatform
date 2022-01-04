@@ -88,6 +88,6 @@ gaia::db::txn_log_t* gaia::db::get_txn_log()
     ASSERT_PRECONDITION(
         gaia::db::server_t::s_txn_log_offset != gaia::db::c_invalid_log_offset,
         "Txn log offset is invalid!");
-    gaia::db::logs_t* logs = gaia::db::get_logs();
-    return logs[gaia::db::server_t::s_txn_log_offset];
+    gaia::db::logs_t* logs = gaia::db::server_t::s_shared_logs.data();
+    return &((*logs)[gaia::db::server_t::s_txn_log_offset]);
 }

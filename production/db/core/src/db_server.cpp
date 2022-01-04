@@ -3074,9 +3074,9 @@ log_offset_t server_t::allocate_used_log_offset()
 
     // If we're out of unused offsets, set the exclusive upper bound of the
     // bitmap scan to just past the end of the bitmap.
-    if (first_unused_offset > c_last_log_offset.value())
+    if (first_unused_offset > c_last_log_offset)
     {
-        first_unused_offset = c_last_log_offset.value() + 1;
+        first_unused_offset = c_last_log_offset + 1;
     }
 
     // Try to set the first unset bit in the "allocated log offsets" bitmap.
@@ -3097,8 +3097,8 @@ log_offset_t server_t::allocate_used_log_offset()
         }
 
         ASSERT_INVARIANT(
-            first_unallocated_index >= c_first_log_offset.value()
-                && first_unallocated_index <= c_last_log_offset.value(),
+            first_unallocated_index >= c_first_log_offset
+                && first_unallocated_index <= c_last_log_offset,
             "Index returned by find_first_unset_bit() is outside expected range!");
 
         // If the CAS to set the bit fails, restart the scan, even if the bit
@@ -3133,15 +3133,15 @@ log_offset_t server_t::allocate_unused_log_offset()
         size_t next_offset = s_next_unused_log_offset++;
 
         // If we've run out of log space, return the invalid offset.
-        if (next_offset > c_last_log_offset.value())
+        if (next_offset > c_last_log_offset)
         {
             return c_invalid_log_offset;
         }
 
         // At this point, we know that next_offset is a valid log_offset_t.
         ASSERT_INVARIANT(
-            next_offset >= c_first_log_offset.value()
-                && next_offset <= c_last_log_offset.value(),
+            next_offset >= c_first_log_offset
+                && next_offset <= c_last_log_offset,
             "next_offset is out of range!");
 
         // If the CAS to set the bit fails, try the next available unused
