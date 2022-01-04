@@ -64,7 +64,7 @@ inline std::string get_fd_name(int fd)
     // Now get decimal representation of fd.
     std::snprintf(fd_str_value.data(), fd_str_value.size(), fd_fmt, fd);
     int proc_dir_fd = open("/proc/self/fd/", 0);
-    if (proc_dir_fd < 0)
+    if (proc_dir_fd == -1)
     {
         throw_system_error("open(\"/proc/self/fd/\") failed!");
     }
