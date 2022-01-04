@@ -202,10 +202,10 @@ class GenAbcBuild(Dependency, ABC):
             # Allow cloning repos with ssh.
             f' --ssh default'
 
-            f''' --cache-from {','.join([
-                f'{self.options.registry}/{base_build_name}:latest'
-                for base_build_name in await self.get_base_build_names()
-            ])}'''
+            # f''' --cache-from {','.join([
+            #     f'{self.options.registry}/{base_build_name}:latest'
+            #     for base_build_name in await self.get_base_build_names()
+            # ])}'''
 
             f' {Path.repo()}'
         )

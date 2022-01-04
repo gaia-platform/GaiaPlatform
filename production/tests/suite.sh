@@ -139,10 +139,6 @@ parse_command_line() {
             LIST_MODE=1
             shift
         ;;
-        -s|--slack)
-            SLACK_MODE=1
-            shift
-        ;;
         -j|--json)
             SHOW_JSON_STATS=1
             shift

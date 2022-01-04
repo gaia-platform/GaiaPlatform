@@ -3,7 +3,7 @@
 # TODO: check for clang-format version.
 
 # Allows us to read user input below, assigns stdin to keyboard
-exec </dev/tty
+#exec </dev/tty
 
 # check if clang-format is installed.
 if ! command -v clang-format &>/dev/null; then
@@ -51,6 +51,7 @@ for file in $(git --no-pager diff --cached --name-only | grep -E "^(production|d
 
     # If the content of the file is the same as master, do not run the formatter.
     # The file is likely to be the result of a merge.
+    # shellcheck disable=SC2086
     if [[ -z "$(git --no-pager diff origin/master -- $file)" ]]; then
         echo "Skip formatting file, likely coming from merge: $file"
         continue

@@ -32,10 +32,14 @@ option(ENABLE_SDK_TESTS "Build and execute ruleset translation tests" ON)
 
 option(EXPORT_SYMBOLS "Export symbols by default from shared libraries" OFF)
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
-else()
-  option(ENABLE_CLANG_TIDY "Enable clang tidy" OFF)
+option(ENABLE_CLANG_TIDY "Enable Clang-Tidy to be specified externally")
+
+if (NOT ENABLE_CLANG_TIDY)
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
+  else()
+    option(ENABLE_CLANG_TIDY "Enable clang tidy" OFF)
+  endif()
 endif()
 
 include(GNUInstallDirs)
@@ -136,6 +140,8 @@ else()
   # Set the maximum optimization level for release builds.
   target_compile_options(gaia_build_options INTERFACE -O3)
 endif()
+
+set(CMAKE_CXX_CPPCHECK "cppcheck")
 
 # Sanitizer-specific compiler/linker flags.
 if(DEFINED CACHE{SANITIZER})

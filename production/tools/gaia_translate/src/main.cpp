@@ -2118,9 +2118,9 @@ public:
                             + "."
                             + field_name
                             + ";}()")
-                                .str();
+                               .str();
         SourceLocation operator_end_location = op->getEndLoc();
-        SourceRange operator_source_range = get_statement_source_range(op, m_rewriter.getSourceMgr(),m_rewriter.getLangOpts());
+        SourceRange operator_source_range = get_statement_source_range(op, m_rewriter.getSourceMgr(), m_rewriter.getLangOpts());
         if (operator_source_range.isValid() && operator_source_range.getEnd() < operator_end_location)
         {
             operator_end_location = operator_source_range.getEnd().getLocWithOffset(-2);
