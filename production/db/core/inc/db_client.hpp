@@ -45,7 +45,6 @@ class client_t
      * @throws no_open_transaction_internal if there is no open transaction.
      */
     friend gaia::db::locators_t* gaia::db::get_locators();
-    friend gaia::db::mapped_log_t* get_mapped_log();
     friend gaia_txn_id_t gaia::db::get_current_txn_id();
     friend gaia::db::txn_log_t* gaia::db::get_txn_log();
 
@@ -114,6 +113,9 @@ private:
     thread_local static inline mapped_data_t<data_t> s_shared_data;
     thread_local static inline mapped_data_t<logs_t> s_shared_logs;
     thread_local static inline mapped_data_t<id_index_t> s_shared_id_index;
+
+    thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
+    thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
 
     thread_local static inline int s_session_socket = -1;
 
