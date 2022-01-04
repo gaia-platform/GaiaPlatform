@@ -88,12 +88,12 @@ TEST(payload_types, null_serialization_test)
     nullstring.is_null = true;
     nullstring.hold.string_value = nullptr;
 
-    ASSERT_TRUE(verify_serialization(nullstring));
+    ASSERT_TRUE(verify_serialization(nullstring, true));
 
     data_holder_t nullvector;
     nullvector.type = reflection::Vector;
     nullvector.is_null = true;
     nullvector.hold.vector_value = {nullptr, 0};
 
-    ASSERT_TRUE(verify_serialization(nullvector));
+    ASSERT_TRUE(verify_serialization(nullvector, true));
 }
