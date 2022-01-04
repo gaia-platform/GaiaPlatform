@@ -74,9 +74,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 
 # Read the git tags to determine the project version
-#include(GetGitVersion)
-#get_git_version(GIT_VERSION)
-set(GIT_VERSION "0.1.2")
+include(GetGitVersion)
+get_git_version(GIT_VERSION)
 
 # Tell the user what versions we are using
 string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+" VERSION ${GIT_VERSION})
