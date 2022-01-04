@@ -364,7 +364,7 @@ private:
 
     static void apply_transition(messages::session_event_t event, const void* event_data, int* fds, size_t fd_count);
 
-    static void build_server_reply(
+    static void build_server_reply_info(
         flatbuffers::FlatBufferBuilder& builder,
         messages::session_event_t event,
         messages::session_state_t old_state,
@@ -372,7 +372,7 @@ private:
         gaia_txn_id_t txn_id = c_invalid_gaia_txn_id,
         size_t log_fds_to_apply_count = 0);
 
-    static void build_server_reply(
+    static void build_server_reply_error(
         flatbuffers::FlatBufferBuilder& builder,
         messages::session_event_t event,
         messages::session_state_t old_state,
