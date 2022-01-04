@@ -142,4 +142,14 @@ if("$CACHE{ENABLE_SDK_TESTS}")
     TARGET_SOURCES "tests/test_amr_swarm.cpp;tests/bot_commands.cpp;${RULES_TEST_HELPERS}"
     TARGET_INCLUDES "${TEST_INCLUDES}"
   )
+
+  add_gaia_sdk_gtest(
+    TARGET_NAME "test_meta_rule_3_ruleset"
+    DDL_FILE "${DDL_PREFIX}/prerequisites/prerequisites.ddl"
+    RULESET_FILE "${RULESET_PREFIX}/test_metarule3.ruleset"
+    DATABASE_NAME "prerequisites"
+    PREVIOUS_TARGET_NAME "test_amr_swarm_ruleset"
+    TARGET_SOURCES "tests/test_metarule3.cpp;${RULES_TEST_HELPERS}"
+    TARGET_INCLUDES "${TEST_INCLUDES}"
+  )
 endif()

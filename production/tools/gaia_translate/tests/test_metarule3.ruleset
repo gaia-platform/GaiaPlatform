@@ -1,0 +1,37 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+int g_total_hours = 0;
+int g_high_grade_hours = 0;
+int g_low_grade_hours = 0;
+
+ruleset test_meta_rule_3
+{
+    on_insert(student)
+    {
+        g_total_hours = 0.0;
+        g_total_hours += course.hours;
+    }
+
+    on_insert(student)
+    {
+        g_high_grade_hours = 0.0;
+        if (student.registrations->registration.grade >= 3)
+        {
+            g_high_grade_hours += course.hours;
+        }
+    }
+
+    on_insert(student)
+    {
+        g_low_grade_hours = 0.0;
+        if (registration.grade < 3)
+        {
+            g_low_grade_hours += course.hours;
+        }
+    }
+
+
+}
