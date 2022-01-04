@@ -83,11 +83,13 @@ struct data_holder_t
 {
     reflection::BaseType type;
     value_holder_t hold;
+    bool is_null;
 
     data_holder_t();
     data_holder_t(const data_holder_t&) = default;
     data_holder_t(data_holder_t&&) = default;
-    data_holder_t(data_read_buffer_t& buffer, reflection::BaseType type);
+    data_holder_t(data_read_buffer_t& buffer, reflection::BaseType type, bool optional);
+    data_holder_t(reflection::BaseType reflection_type, std::nullptr_t);
 
     // Convenience ctors to allow implicit conversion from native types.
     template <typename T>
@@ -95,12 +97,14 @@ struct data_holder_t
     {
         type = reflection::Int;
         hold.integer_value = value;
+        is_null = false;
     }
     template <typename T>
     data_holder_t(T value, typename std::enable_if_t<std::is_integral_v<T> && !std::is_signed_v<T>>* = nullptr)
     {
         type = reflection::UInt;
         hold.integer_value = value;
+        is_null = false;
     }
     data_holder_t(float value);
     data_holder_t(double value);
@@ -112,7 +116,7 @@ struct data_holder_t
     int compare(const data_holder_t& other) const;
     data_hash_t hash() const;
 
-    void serialize(data_write_buffer_t& buffer) const;
+    void serialize(data_write_buffer_t& buffer, bool optional) const;
 
     // Convenience implicit conversions to native types.
     operator int32_t() const;
