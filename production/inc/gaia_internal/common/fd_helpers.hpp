@@ -10,6 +10,7 @@
 
 #include <ostream>
 #include <stdexcept>
+#include <vector>
 
 #include <libexplain/close.h>
 #include <libexplain/dup.h>
@@ -47,6 +48,26 @@ public:
         m_message = message.str();
     }
 };
+
+// This should only be used for debugging, where the overhead of std::string and
+// std::vector is irrelevant.
+inline std::string get_fd_name(int fd)
+{
+    if (fd < 0)
+    {
+        return std::string("invalid");
+    }
+    const char fd_fmt[] = "%d";
+    // First get size of decimal representation of fd.
+    int fd_str_size = std::snprintf(nullptr, 0, fd_fmt, fd);
+    std::vector<char> fd_str_value(fd_str_size + 1); // +1 for null terminator
+    // Now get decimal representation of fd.
+    std::snprintf(fd_str_value.data(), fd_str_value.size(), fd_fmt, fd);
+    int proc_dir_fd = open("/proc/self/fd/", 0);
+    char fd_name[255];
+    ::readlinkat(proc_dir_fd, fd_str_value.data(), fd_name, sizeof(fd_name));
+    return std::string(fd_name);
+}
 
 inline size_t get_fd_size(int fd)
 {
