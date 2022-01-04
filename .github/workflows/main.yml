@@ -87,7 +87,7 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
 
       - name: Install Required Third Party Git Repositories
         run: |
@@ -360,7 +360,7 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 debhelper flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev rpm libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 debhelper rpm flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
 
       - name: Install Required Third Party Git Repositories
         run: |
@@ -661,7 +661,7 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
 
       - name: Install Required Third Party Git Repositories
         run: |
@@ -934,7 +934,7 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
 
       - name: Install Required Python Packages
         run: |
