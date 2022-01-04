@@ -64,8 +64,15 @@ inline std::string get_fd_name(int fd)
     // Now get decimal representation of fd.
     std::snprintf(fd_str_value.data(), fd_str_value.size(), fd_fmt, fd);
     int proc_dir_fd = open("/proc/self/fd/", 0);
-    char fd_name[255];
-    ::readlinkat(proc_dir_fd, fd_str_value.data(), fd_name, sizeof(fd_name));
+    if (proc_dir_fd < 0)
+    {
+        throw_system_error("open(\"/proc/self/fd/\") failed!");
+    }
+    char fd_name[255] = {0}; // readlinkat() won't null-terminate the name
+    if (-1 == ::readlinkat(proc_dir_fd, fd_str_value.data(), fd_name, sizeof(fd_name)))
+    {
+        throw_system_error("readlinkat() failed!");
+    }
     return std::string(fd_name);
 }
 
