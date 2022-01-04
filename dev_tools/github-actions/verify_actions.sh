@@ -110,7 +110,7 @@ save_current_directory
 cd "$SCRIPTPATH" || exit
 
 ./compose_github_actions.sh -v -o test-script
-if ! diff test-script ../../.github/workflows/main.yml > $TEMP_FILE ; then
+if ! diff test-script ../../.github/workflows/main.yml > "$TEMP_FILE" ; then
 
     echo "Differences between generated file and currently committed file are as follows:"
     cat "$TEMP_FILE"
