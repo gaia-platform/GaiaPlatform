@@ -204,6 +204,9 @@ data_holder_t convert_to_data_holder(const Datum& value, data_type_t value_type)
              errhint("Unhandled data_type_t '%d'.", value_type)));
     }
 
+    // TODO: this code needs to be restructured for null support.
+    data_holder.is_null = false;
+
     switch (value_type)
     {
     case data_type_t::e_bool:

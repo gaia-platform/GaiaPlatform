@@ -294,12 +294,15 @@ data_holder_t get_field_value(
     // Read field value according to its type.
     data_holder_t result;
     result.type = field->type()->base_type();
+
     if (flatbuffers::IsInteger(field->type()->base_type()))
     {
+        result.is_null = false;
         result.hold.integer_value = flatbuffers::GetAnyFieldI(*root_table, *field);
     }
     else if (flatbuffers::IsFloat(field->type()->base_type()))
     {
+        result.is_null = false;
         result.hold.float_value = flatbuffers::GetAnyFieldF(*root_table, *field);
     }
     else if (field->type()->base_type() == reflection::String)
@@ -309,6 +312,7 @@ data_holder_t get_field_value(
         // For null strings, the field_value will come back as nullptr,
         // so just set the string_value to nullptr as well.
         result.hold.string_value = (field_value == nullptr) ? nullptr : field_value->c_str();
+        result.is_null = (field_value == nullptr);
     }
     else
     {
@@ -546,11 +550,13 @@ data_holder_t get_field_array_element(
     {
         result.hold.integer_value = flatbuffers::GetAnyVectorElemI(
             field_value, field->type()->element(), array_index);
+        result.is_null = false;
     }
     else if (flatbuffers::IsFloat(field->type()->element()))
     {
         result.hold.float_value = flatbuffers::GetAnyVectorElemF(
             field_value, field->type()->element(), array_index);
+        result.is_null = false;
     }
     else if (field->type()->element() == reflection::String)
     {
@@ -564,6 +570,7 @@ data_holder_t get_field_array_element(
         }
 
         result.hold.string_value = field_element_value->c_str();
+        result.is_null = false;
     }
     else
     {

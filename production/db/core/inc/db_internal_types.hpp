@@ -137,17 +137,17 @@ struct log_record_t
 
     inline gaia_operation_t operation() const
     {
-        bool old_offset_valid = (old_offset != c_invalid_gaia_offset);
-        bool new_offset_valid = (new_offset != c_invalid_gaia_offset);
-        if (old_offset_valid && new_offset_valid)
+        bool is_old_offset_valid = (old_offset != c_invalid_gaia_offset);
+        bool is_new_offset_valid = (new_offset != c_invalid_gaia_offset);
+        if (is_old_offset_valid && is_new_offset_valid)
         {
             return gaia_operation_t::update;
         }
-        else if (!old_offset_valid && new_offset_valid)
+        else if (!is_old_offset_valid && is_new_offset_valid)
         {
             return gaia_operation_t::create;
         }
-        else if (old_offset_valid && !new_offset_valid)
+        else if (is_old_offset_valid && !is_new_offset_valid)
         {
             return gaia_operation_t::remove;
         }
