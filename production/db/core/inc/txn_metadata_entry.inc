@@ -21,13 +21,13 @@ uint64_t txn_metadata_entry_t::get_word()
 void txn_metadata_entry_t::check_ts_size(gaia_txn_id_t ts)
 {
     ASSERT_PRECONDITION(
-        ts < (1ULL << c_txn_ts_bits),
+        ts < (1ULL << c_txn_ts_bit_width),
         "Timestamp values must fit in 42 bits!");
 }
 
 constexpr size_t txn_metadata_entry_t::get_max_ts_count()
 {
-    return (1ULL << c_txn_ts_bits);
+    return (1ULL << c_txn_ts_bit_width);
 }
 
 txn_metadata_entry_t txn_metadata_entry_t::uninitialized_value()
@@ -145,7 +145,7 @@ int txn_metadata_entry_t::get_log_fd()
     uint16_t fd = (m_word & c_txn_log_fd_mask) >> c_txn_log_fd_shift;
 
     // If the log fd is invalidated, then return an invalid fd value (-1).
-    return (fd != c_invalid_txn_log_fd_bits) ? static_cast<int>(fd) : -1;
+    return (fd != c_invalid_txn_log_fd_bit_pattern) ? static_cast<int>(fd) : -1;
 }
 
 txn_metadata_entry_t txn_metadata_entry_t::invalidate_log_fd()
@@ -244,7 +244,7 @@ const char* txn_metadata_entry_t::status_to_str()
 std::string txn_metadata_entry_t::dump_metadata()
 {
     std::stringstream str;
-    std::bitset<c_txn_metadata_bits> metadata_bits{m_word};
+    std::bitset<c_txn_metadata_bit_width> metadata_bits{m_word};
 
     str << "Transaction metadata bits: " << metadata_bits << std::endl;
 
