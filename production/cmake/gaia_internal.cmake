@@ -74,7 +74,7 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
 
   add_executable(${TARGET} ${SOURCES})
 
-  if (NOT ("${ARGV4}" STREQUAL ""))
+  if(NOT ("${ARGV4}" STREQUAL ""))
     add_dependencies(${TARGET} ${ARGV4})
   endif()
 
@@ -122,7 +122,7 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
 endfunction(add_gtest)
 
 #
-# Gaia specific flatc helpers for generating headers
+# Gaia specific flatc helpers for generating headers.
 #
 function(gaia_register_generated_output file_name)
   get_property(tmp GLOBAL PROPERTY FBS_GENERATED_OUTPUTS)
@@ -149,7 +149,7 @@ function(gaia_compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT OUTPUT_DIR)
     OUTPUT ${OUTPUT_DIR}/${GEN_HEADER}
     COMMAND "${GAIA_PROD_BUILD}/flatbuffers/flatc"
     --cpp --gen-mutable --gen-object-api --reflect-names
-    --cpp-ptr-type flatbuffers::unique_ptr # Used to test with C++98 STLs
+    --cpp-ptr-type flatbuffers::unique_ptr # Used to test with C++98 STLs.
     --cpp-str-type gaia::direct_access::nullable_string_t
     --cpp-str-flex-ctor
     --gaiacpp
@@ -164,11 +164,11 @@ function(gaia_compile_flatbuffers_schema_to_cpp_opt SRC_FBS OPT OUTPUT_DIR)
   gaia_register_generated_output(${OUTPUT_DIR}/${GEN_HEADER})
 endfunction()
 
-# Gaia specific flatc helpers for generating headers
-# Optional parameter [OUTPUT_DIR], default is ${CMAKE_CURRENT_SOURCE_DIR}
+# Gaia specific flatc helpers for generating headers.
+# Optional parameter [OUTPUT_DIR], default is ${CMAKE_CURRENT_SOURCE_DIR}.
 function(gaia_compile_flatbuffers_schema_to_cpp SRC_FBS)
   # message(STATUS "ARGV1=${ARGV1}")
-  if (NOT ("${ARGV1}" STREQUAL ""))
+  if(NOT ("${ARGV1}" STREQUAL ""))
     set(OUTPUT_DIR "${ARGV1}")
   else()
     set(OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -203,34 +203,34 @@ function(process_schema_internal)
     message(FATAL_ERROR "You must specify either the DDL_FILE or the DATABASE_NAME!")
   endif()
 
-  set(ARG_OUTPUT_DIR ${GAIA_GENERATED_CODE}/direct_access/${ARG_DATABASE_NAME})
-  file(MAKE_DIRECTORY ${ARG_OUTPUT_DIR})
+  set(OUTPUT_DIR ${GAIA_GENERATED_CODE}/direct_access/${ARG_DATABASE_NAME})
+  file(MAKE_DIRECTORY ${OUTPUT_DIR})
 
   string(RANDOM DB_INSTANCE_NAME)
 
   set(GAIAC_COMMAND ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac)
-  set(GAIAC_ARGS "-t" "${GAIA_PROD_BUILD}/db/core" "-o" "${ARG_OUTPUT_DIR}" "-n" "${DB_INSTANCE_NAME}" "-g")
+  set(GAIAC_ARGS "-t" "${GAIA_PROD_BUILD}/db/core" "-o" "${OUTPUT_DIR}" "-n" "${DB_INSTANCE_NAME}" "-g")
 
-  if (DEFINED ARG_DDL_FILE)
+  if(DEFINED ARG_DDL_FILE)
     message(STATUS "Loading schema from the DDL file ${ARG_DDL_FILE}...")
     list(APPEND GAIAC_ARGS ${ARG_DDL_FILE})
   endif()
 
   if(DEFINED ARG_DATABASE_NAME)
-    set(DAC_HEADER_FILE ${ARG_OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.h)
-    set(DAC_CPP_FILE ${ARG_OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.cpp)
+    set(DAC_HEADER_FILE ${OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.h)
+    set(DAC_CPP_FILE ${OUTPUT_DIR}/gaia_${ARG_DATABASE_NAME}.cpp)
     message(STATUS "Generating DAC code for database ${ARG_DATABASE_NAME}...")
     list(PREPEND GAIAC_ARGS "-d" "${ARG_DATABASE_NAME}")
   else()
     # If the database name is not specified, we use the default database.
     message(STATUS "DATABASE_NAME not specified, using default.")
-    set(DAC_HEADER_FILE ${ARG_OUTPUT_DIR}/gaia.h)
-    set(DAC_CPP_FILE ${ARG_OUTPUT_DIR}/gaia.cpp)
+    set(DAC_HEADER_FILE ${OUTPUT_DIR}/gaia.h)
+    set(DAC_CPP_FILE ${OUTPUT_DIR}/gaia.cpp)
     message(VERBOSE "Generating DAC code for the default database...")
   endif()
 
   add_custom_command(
-    COMMENT "Generating DAC code in ${ARG_OUTPUT_DIR}..."
+    COMMENT "Generating DAC code in ${OUTPUT_DIR}..."
     OUTPUT ${DAC_HEADER_FILE}
     OUTPUT ${DAC_CPP_FILE}
     COMMAND ${GAIAC_COMMAND} ${GAIAC_ARGS}
@@ -239,7 +239,7 @@ function(process_schema_internal)
   )
 
   if(NOT DEFINED ARG_LIB_NAME)
-    if (DEFINED ARG_DATABASE_NAME)
+    if(DEFINED ARG_DATABASE_NAME)
       set(ARG_LIB_NAME "dac_${ARG_DATABASE_NAME}")
     else()
       set(ARG_LIB_NAME "dac")
@@ -251,13 +251,13 @@ function(process_schema_internal)
     ${DAC_CPP_FILE})
 
   configure_gaia_target(${ARG_LIB_NAME})
-  target_include_directories(${ARG_LIB_NAME} PUBLIC ${ARG_OUTPUT_DIR})
+  target_include_directories(${ARG_LIB_NAME} PUBLIC ${OUTPUT_DIR})
   target_include_directories(${ARG_LIB_NAME} PUBLIC ${FLATBUFFERS_INC})
   target_include_directories(${ARG_LIB_NAME} PRIVATE ${GAIA_INC})
   target_link_libraries(${ARG_LIB_NAME} PUBLIC gaia_direct)
 
-  # Add the DDL arg file
-  if (DEFINED ARG_DDL_FILE)
+  # Add the DDL arg file.
+  if(DEFINED ARG_DDL_FILE)
     get_filename_component(DDL_FILE_ABSOLUTE_PATH ${ARG_DDL_FILE} ABSOLUTE)
     set_target_properties(${ARG_LIB_NAME} PROPERTIES DDL_FILE ${DDL_FILE_ABSOLUTE_PATH})
   endif()
@@ -294,26 +294,15 @@ function(translate_ruleset_internal)
   get_filename_component(RULESET_NAME ${ARG_RULESET_FILE} NAME)
   string(REPLACE ".ruleset" "" RULESET_NAME ${RULESET_NAME})
 
-  set(ARG_OUTPUT_DIR ${GAIA_GENERATED_CODE}/rules/${RULESET_NAME})
-  file(MAKE_DIRECTORY ${ARG_OUTPUT_DIR})
+  set(OUTPUT_DIR ${GAIA_GENERATED_CODE}/rules/${RULESET_NAME})
+  file(MAKE_DIRECTORY ${OUTPUT_DIR})
 
   set(RULESET_CPP_NAME ${RULESET_NAME}_ruleset.cpp)
-  set(RULESET_CPP_PATH ${ARG_OUTPUT_DIR}/${RULESET_CPP_NAME})
+  set(RULESET_CPP_PATH ${OUTPUT_DIR}/${RULESET_CPP_NAME})
 
   message(STATUS "Translating ruleset: ${ARG_RULESET_FILE} into ${RULESET_CPP_NAME}...")
 
   string(RANDOM DB_INSTANCE_NAME)
-
-  set(GAIAT_INCLUDE_PATH "")
-
-  # Add implicit include directories
-  foreach(INCLUDE_PATH ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
-    # Have to use ; instead of space otherwise custom_command will try to escape it
-    string(APPEND GAIAT_INCLUDE_PATH "-I;${INCLUDE_PATH};")
-  endforeach()
-
-  # Add default Gaia path
-  string(APPEND GAIAT_INCLUDE_PATH "-I;${GAIA_INC};")
 
   set(GAIAT_CMD "${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat")
   set(GAIAC_CMD ${GAIA_PROD_BUILD}/catalog/gaiac/gaiac)
@@ -322,18 +311,20 @@ function(translate_ruleset_internal)
   # for intrinsics and stdlib headers, so we need to define them explicitly.
   set(GAIAT_INCLUDE_PATH "")
 
+  # Add implicit include directories.
+  foreach(INCLUDE_PATH ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
+    # Have to use ; instead of space otherwise custom_command will try to escape it.
+    string(APPEND GAIAT_INCLUDE_PATH "-I;${INCLUDE_PATH};")
+  endforeach()
+
   # We use libc++ in debug and its header must be manually included.
   # Note: the order of inclusion is relevant and libc++ headers must be
   # defined first when libc++ is used.
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(LIBCXX_INCLUDE_DIR "/usr/lib/llvm-13/include/c++/v1/")
-    # Have to use ; instead of space otherwise custom_command will try to escape it
+    # Have to use ; instead of space otherwise custom_command will try to escape it.
     string(APPEND GAIAT_INCLUDE_PATH "-I;${LIBCXX_INCLUDE_DIR};")
   endif()
-
-  foreach(INCLUDE_PATH ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
-    string(APPEND GAIAT_INCLUDE_PATH "-I;${INCLUDE_PATH};")
-  endforeach()
 
   # Get the include directories from the DAC_LIBRARY target.
   get_target_property(DAC_INCLUDE ${ARG_DAC_LIBRARY} INCLUDE_DIRECTORIES)
@@ -342,32 +333,33 @@ function(translate_ruleset_internal)
     string(APPEND GAIAT_INCLUDE_PATH "-I;${INCLUDE_PATH};")
   endforeach()
 
+  # Get the DDL File from the DAC_LIBRARY target.
   get_target_property(DDL_FILE ${ARG_DAC_LIBRARY} DDL_FILE)
 
   add_custom_command(
-      COMMENT "Translating ${ARG_RULESET_FILE} into ${RULESET_CPP_NAME}..."
-      OUTPUT ${RULESET_CPP_PATH}
-      COMMAND daemonize ${GAIA_PROD_BUILD}/db/core/gaia_db_server --persistence disabled --instance-name ${DB_INSTANCE_NAME}
-      COMMAND sleep 1
-      COMMAND ${GAIAC_CMD} ${DDL_FILE} -n ${DB_INSTANCE_NAME}
-      COMMAND ${GAIAT_CMD} ${ARG_RULESET_FILE} -output ${RULESET_CPP_PATH} -n ${DB_INSTANCE_NAME} --
+    COMMENT "Translating ${ARG_RULESET_FILE} into ${RULESET_CPP_NAME}..."
+    OUTPUT ${RULESET_CPP_PATH}
+    COMMAND daemonize ${GAIA_PROD_BUILD}/db/core/gaia_db_server --persistence disabled --instance-name ${DB_INSTANCE_NAME}
+    COMMAND sleep 1
+    COMMAND ${GAIAC_CMD} ${DDL_FILE} -n ${DB_INSTANCE_NAME}
+    COMMAND ${GAIAT_CMD} ${ARG_RULESET_FILE} -output ${RULESET_CPP_PATH} -n ${DB_INSTANCE_NAME} --
       -I ${GAIA_INC}
       -I ${FLATBUFFERS_INC}
       -I ${GAIA_SPDLOG_INC}
       -I ${GAIAT_INCLUDE_PATH}
       -stdlib=$<IF:$<CONFIG:Debug>,libc++,libstdc++>
       -std=c++${CMAKE_CXX_STANDARD}
-      # Kill gaia_db_server by matching the instance name.
-      COMMAND kill -KILL `pgrep --list-full --exact gaia_db_server | grep ${DB_INSTANCE_NAME} | cut -d' ' -f1`
+    # Kill gaia_db_server by matching the instance name.
+    COMMAND kill -KILL `pgrep --list-full --exact gaia_db_server | grep ${DB_INSTANCE_NAME} | cut -d' ' -f1`
 
-      # In some contexts, the next attempt to start gaia_db_server precedes this kill, leading
-      # to a build failure. A short sleep is currently fixing that, but may not be the
-      # correct long-term solution.
-      COMMAND sleep 1
-      DEPENDS ${GAIAC_CMD}
-      DEPENDS ${GAIAT_CMD}
-      DEPENDS ${ARG_DAC_LIBRARY}
-      DEPENDS ${ARG_RULESET_FILE}
+    # In some contexts, the next attempt to start gaia_db_server precedes this kill, leading
+    # to a build failure. A short sleep is currently fixing that, but may not be the
+    # correct long-term solution.
+    COMMAND sleep 1
+    DEPENDS ${GAIAC_CMD}
+    DEPENDS ${GAIAT_CMD}
+    DEPENDS ${ARG_DAC_LIBRARY}
+    DEPENDS ${ARG_RULESET_FILE}
   )
 
   if(NOT DEFINED ARG_LIB_NAME)
@@ -376,7 +368,7 @@ function(translate_ruleset_internal)
   endif()
 
   add_library(${ARG_LIB_NAME}
-      ${RULESET_CPP_PATH})
+    ${RULESET_CPP_PATH})
 
   configure_gaia_target(${ARG_LIB_NAME})
   target_include_directories(${ARG_LIB_NAME} PRIVATE ${FLATBUFFERS_INC})
