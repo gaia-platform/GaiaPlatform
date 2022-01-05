@@ -3,7 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-
 #include "gaia_internal/db/catalog_core.hpp"
 
 #include <optional>
@@ -18,7 +17,6 @@
 #include "gaia_index_generated.h"
 #include "gaia_relationship_generated.h"
 #include "gaia_table_generated.h"
-
 
 using namespace gaia::common;
 using namespace gaia::common::iterators;
