@@ -109,8 +109,10 @@ PACKAGES=(
     zip
     unzip
 )
+# shellcheck disable=SC2145
 echo "Installing additional packages: ${PACKAGES[@]}"
 apt -y update
+# shellcheck disable=SC2068
 apt-get install -y ${PACKAGES[@]}
 
 pushd /build/production/output || exit

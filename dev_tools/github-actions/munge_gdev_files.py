@@ -493,6 +493,7 @@ def __calculate_project_dependencies(
     return project_dependencies, dependency_graph
 
 
+# pylint: disable=too-many-arguments, too-many-locals
 def __collect_specified_section_text_pairs(
     specific_section_name,
     alternate_section_name,
@@ -513,7 +514,7 @@ def __collect_specified_section_text_pairs(
     for next_project_dependency in project_dependencies:
 
         test_section_name = specific_section_name
-        if not test_section_name in collected_file_sections[next_project_dependency]:
+        if test_section_name not in collected_file_sections[next_project_dependency]:
             test_section_name = alternate_section_name
 
         if test_section_name in collected_file_sections[next_project_dependency]:
@@ -535,6 +536,9 @@ def __collect_specified_section_text_pairs(
                         origin_spec_pair = (next_project_dependency, next_spec[0])
                         collected_text_pairs.append(origin_spec_pair)
     return collected_text_pairs, dependency_graph
+
+
+# pylint: enable=too-many-arguments, too-many-locals
 
 
 def __adjust_script_lines_for_sudo(next_line):
