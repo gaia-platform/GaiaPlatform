@@ -3,12 +3,11 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia_internal/db/catalog_core.hpp"
-
 #include <optional>
 
 #include "gaia/common.hpp"
 
+#include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 
@@ -190,8 +189,7 @@ list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint
     auto obj_ptr = id_to_ptr(table_id);
     const gaia_id_t* references = obj_ptr->references();
     gaia_id_t first_obj_id = references[first_offset];
-    auto generator = [id = first_obj_id, next_offset]() mutable -> std::optional<T_catalog_obj_view>
-    {
+    auto generator = [id = first_obj_id, next_offset]() mutable -> std::optional<T_catalog_obj_view> {
         if (id == c_invalid_gaia_id)
         {
             return std::nullopt;
