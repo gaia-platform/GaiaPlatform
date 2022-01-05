@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "gaia/common.hpp"
-#include "gaia/events.hpp"
+#include "gaia/db/events.hpp"
 
 #include "gaia_internal/db/db_types.hpp"
 

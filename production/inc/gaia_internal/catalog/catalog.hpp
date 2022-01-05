@@ -9,7 +9,6 @@
 #include <memory>
 #include <optional>
 #include <set>
-#include <sstream>
 #include <string>
 #include <utility>
 #include <variant>
@@ -97,312 +96,6 @@ enum class relationship_cardinality_t : uint8_t
 {
     one,
     many,
-};
-
-class forbidden_system_db_operation : public gaia::common::gaia_exception
-{
-public:
-    explicit forbidden_system_db_operation(const std::string& name)
-    {
-        m_message = "Operations on the system database '" + name + "' are not allowed.";
-    }
-};
-
-/**
- * Thrown when creating a database that already exists.
- */
-class db_already_exists : public gaia::common::gaia_exception
-{
-public:
-    explicit db_already_exists(const std::string& name)
-    {
-        std::stringstream message;
-        message << "The database '" << name << "' already exists.";
-        m_message = message.str();
-    }
-};
-
-/**
- * Thrown when a specified database does not exists.
- */
-class db_not_exists : public gaia::common::gaia_exception
-{
-public:
-    explicit db_not_exists(const std::string& name)
-    {
-        std::stringstream message;
-        message << "The database '" << name << "' does not exist.";
-        m_message = message.str();
-    }
-};
-
-/**
- * Thrown when creating a table that already exists.
- */
-class table_already_exists : public gaia::common::gaia_exception
-{
-public:
-    explicit table_already_exists(const std::string& name)
-    {
-        std::stringstream message;
-        message << "The table '" << name << "' already exists.";
-        m_message = message.str();
-    }
-};
-
-/**
- * Thrown when a specified table does not exists.
- */
-class table_not_exists : public gaia::common::gaia_exception
-{
-public:
-    explicit table_not_exists(const std::string& name)
-    {
-        std::stringstream message;
-        message << "The table '" << name << "' does not exist.";
-        m_message = message.str();
-    }
-};
-
-/**
- * Thrown when a specified field does not exists.
- */
-class field_not_exists : public gaia::common::gaia_exception
-{
-public:
-    explicit field_not_exists(const std::string& name)
-    {
-        std::stringstream message;
-        message << "The field \"" << name << "\" does not exist.";
-        m_message = message.str();
-    }
-};
-
-/**
- * Thrown when a field is specified more than once.
- */
-class duplicate_field : public gaia::common::gaia_exception
-{
-public:
-    explicit duplicate_field(const std::string& name)
-    {
-        std::stringstream message;
-        message << "The field '" << name << "' is specified more than once.";
-        m_message = message.str();
-    }
-};
-
-/**
- * Thrown when the maximum number of references has been reached for a type.
- */
-class max_reference_count_reached : public gaia::common::gaia_exception
-{
-public:
-    explicit max_reference_count_reached()
-    {
-        m_message = "Cannot add any more relationships because the maximum number of references has been reached!";
-    }
-};
-
-class referential_integrity_violation : public gaia::common::gaia_exception
-{
-public:
-    explicit referential_integrity_violation(const std::string& message)
-    {
-        m_message = message;
-    }
-
-    static referential_integrity_violation drop_referenced_table(
-        const std::string& referenced_table,
-        const std::string& referencing_table)
-    {
-        std::stringstream message;
-        message
-            << "Cannot drop table '" << referenced_table
-            << "' because it is referenced by table '" << referencing_table << "'.";
-        return referential_integrity_violation{message.str()};
-    }
-};
-
-/**
- * Thrown when creating a relationship that already exists.
- */
-class relationship_already_exists : public gaia::common::gaia_exception
-{
-public:
-    explicit relationship_already_exists(const std::string& name)
-    {
-        std::stringstream message;
-        message << "The relationship '" << name << "' already exists.";
-        m_message = message.str();
-    }
-};
-
-/**
- * Thrown when a relationship not exists.
- */
-class relationship_not_exists : public gaia::common::gaia_exception
-{
-public:
-    explicit relationship_not_exists(const std::string& name)
-    {
-        std::stringstream message;
-        message << "The relationship '" << name << "' does not exist.";
-        m_message = message.str();
-    }
-};
-
-/**
- * Thrown when creating a relationship between tables from different databases.
- */
-class no_cross_db_relationship : public gaia::common::gaia_exception
-{
-public:
-    explicit no_cross_db_relationship(const std::string& name)
-    {
-        std::stringstream message;
-        message << "Cannot create the relationship '" << name << "' across databases.";
-        m_message = message.str();
-    }
-};
-
-/**
- * Thrown when the tables specified in the relationship definition do not match.
- */
-class tables_not_match : public gaia::common::gaia_exception
-{
-public:
-    explicit tables_not_match(
-        const std::string& relationship,
-        const std::string& name1,
-        const std::string& name2)
-    {
-        std::stringstream message;
-        message << "The table '" << name1 << "' does not match the table '" << name2 << "' "
-                << "in the relationship '" << relationship << "' definition.";
-        m_message = message.str();
-    }
-};
-
-/**
- * Thrown when trying to create a many-to-many relationship.
- */
-class many_to_many_not_supported : public gaia::common::gaia_exception
-{
-public:
-    explicit many_to_many_not_supported(const std::string& relationship)
-    {
-        std::stringstream message;
-        message << "The many to many relationship defined in '" << relationship << "' is not supported.";
-        m_message = message.str();
-    }
-
-    explicit many_to_many_not_supported(const std::string& table1, const std::string& table2)
-    {
-        std::stringstream message;
-        message << "The many to many relationship defined "
-                << "in '" << table1 << "'  and '" << table2 << "' is not supported.";
-        m_message = message.str();
-    }
-};
-
-/**
- * Thrown when creating an index that already exists.
- */
-class index_already_exists : public gaia::common::gaia_exception
-{
-public:
-    explicit index_already_exists(const std::string& name)
-    {
-        std::stringstream message;
-        message << "The index '" << name << "' already exists.";
-        m_message = message.str();
-    }
-};
-
-/**
- * Thrown when the index of the given name does not exists.
- */
-class index_not_exists : public gaia::common::gaia_exception
-{
-public:
-    explicit index_not_exists(const std::string& name)
-    {
-        std::stringstream message;
-        message << "The index '" << name << "' does not exist.";
-        m_message = message.str();
-    }
-};
-
-/**
- * Thrown when the field map is invalid.
- */
-class invalid_field_map : public gaia::common::gaia_exception
-{
-public:
-    explicit invalid_field_map(const std::string& message)
-    {
-        m_message = message;
-    }
-};
-
-/**
- * Thrown when the `references` definition can match multiple `references`
- * definitions elsewhere.
- */
-class ambiguous_reference_definition : public gaia::common::gaia_exception
-{
-public:
-    explicit ambiguous_reference_definition(const std::string& table, const std::string& ref_name)
-    {
-        std::stringstream message;
-        message << "The reference '" << ref_name << "' definition "
-                << "in table '" << table << "' has mutiple matching definitions.";
-        m_message = message.str();
-    }
-};
-
-/**
- * Thrown when the `references` definition does not have a matching definition.
- */
-class orphaned_reference_definition : public gaia::common::gaia_exception
-{
-public:
-    explicit orphaned_reference_definition(const std::string& table, const std::string& ref_name)
-    {
-        std::stringstream message;
-        message << "The reference '" << ref_name << "' definition "
-                << "in table '" << table << "' has no matching definition.";
-        m_message = message.str();
-    }
-};
-
-/**
- * Thrown when the create list is invalid.
- */
-class invalid_create_list : public gaia::common::gaia_exception
-{
-public:
-    explicit invalid_create_list(const std::string& message)
-    {
-        m_message = "Invalid create statment in a list: ";
-        m_message += message;
-    }
-};
-
-/**
- * Thrown when dropping a table that still has (user) data.
- */
-class cannot_drop_table_with_data : public gaia::common::gaia_exception
-{
-public:
-    explicit cannot_drop_table_with_data(const std::string& name)
-    {
-        std::stringstream message;
-        message << "Cannot drop the table '" << name << "' because it still contains data. "
-                << "Please delete all records of the table before dropping it.";
-        m_message = message.str();
-    }
 };
 
 namespace ddl
@@ -739,7 +432,7 @@ void initialize_catalog();
  * Switch to the database.
  *
  * @param name database name
- * @throw db_not_exists
+ * @throw db_does_not_exist_internal
  */
 void use_database(const std::string& name);
 
@@ -748,7 +441,7 @@ void use_database(const std::string& name);
  *
  * @param name database name
  * @return id of the new database
- * @throw db_already_exists
+ * @throw db_already_exists_internal
  */
 gaia::common::gaia_id_t create_database(
     const std::string& name,
@@ -762,7 +455,7 @@ gaia::common::gaia_id_t create_database(
  * @param name table name
  * @param fields fields of the table
  * @return id of the new table
- * @throw table_already_exists
+ * @throw table_already_exists_internal
  */
 gaia::common::gaia_id_t
 create_table(
@@ -778,7 +471,7 @@ create_table(
  * @param name table name
  * @param fields fields of the table
  * @return id of the new table
- * @throw table_already_exists
+ * @throw table_already_exists_internal
  */
 gaia::common::gaia_id_t create_table(const std::string& name, const ddl::field_def_list_t& fields);
 
@@ -792,10 +485,10 @@ gaia::common::gaia_id_t create_table(const std::string& name, const ddl::field_d
  * @param table_name name of the table to be indexed
  * @param field_names name of the table fields to be indexed
  * @return id of the new index
- * @throw db_not_exists
- * @throw table_not_exists
- * @throw field_not_exists
- * @throw duplicate_field
+ * @throw db_does_not_exist_internal
+ * @throw table_does_not_exist_internal
+ * @throw field_does_not_exist_internal
+ * @throw duplicate_field_internal
  */
 gaia::common::gaia_id_t create_index(
     const std::string& index_name,
@@ -817,7 +510,7 @@ gaia::common::gaia_id_t create_index(
  * @param name database name
  * @param name table name
  * @param throw_unless_exists throw an execption unless the database exists
- * @throw table_not_exists
+ * @throw table_does_not_exist_internal
  */
 void drop_database(const std::string& name, bool throw_unless_exists = true);
 
@@ -831,7 +524,7 @@ void drop_database(const std::string& name, bool throw_unless_exists = true);
  * @param db_name database name
  * @param name table name
  * @param throw_unless_exists throw an execption unless the table exists
- * @throw table_not_exists
+ * @throw table_does_not_exist_internal
  */
 void drop_table(const std::string& db_name, const std::string& name, bool throw_unless_exists = true);
 
@@ -844,7 +537,7 @@ void drop_table(const std::string& db_name, const std::string& name, bool throw_
  *
  * @param name table name
  * @param throw_unless_exists throw an execption unless the table exists
- * @throw table_not_exists
+ * @throw table_does_not_exist_internal
  */
 void drop_table(const std::string& name, bool throw_unless_exists = true);
 
@@ -927,7 +620,7 @@ gaia::common::gaia_id_t create_relationship(
  *
  * @param name of the relationship
  * @param throw_unless_exists throw an execption unless the relationship exists
- * @throw relationship_not_exists
+ * @throw relationship_does_not_exist_internal
  */
 void drop_relationship(const std::string& name, bool throw_unless_exists = true);
 
@@ -936,7 +629,7 @@ void drop_relationship(const std::string& name, bool throw_unless_exists = true)
  *
  * @param name of the index
  * @param throw_unless_exists throw an execption unless the index exists
- * @throw index_not_exists
+ * @throw index_does_not_exist_internal
  */
 void drop_index(const std::string& name, bool throw_unless_exists = true);
 

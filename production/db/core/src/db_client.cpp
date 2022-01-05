@@ -5,8 +5,6 @@
 
 #include "db_client.hpp"
 
-#include <unistd.h>
-
 #include <functional>
 #include <optional>
 #include <thread>
@@ -16,16 +14,12 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#include "gaia/exceptions.hpp"
-
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/socket_helpers.hpp"
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
-
-#include "gaia_spdlog/fmt/fmt.h"
 
 #include "client_messenger.hpp"
 #include "db_helpers.hpp"
@@ -55,9 +49,7 @@ std::shared_ptr<int> client_t::get_id_cursor_socket_for_type(gaia_type_t type)
     client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 1);
 
     int stream_socket = client_messenger.received_fd(client_messenger_t::c_index_stream_socket);
-    auto cleanup_stream_socket = make_scope_guard([&]() {
-        close_fd(stream_socket);
-    });
+    auto cleanup_stream_socket = make_scope_guard([&]() { close_fd(stream_socket); });
 
     const session_event_t event = client_messenger.server_reply()->event();
     ASSERT_INVARIANT(event == session_event_t::REQUEST_STREAM, c_message_unexpected_event_received);
@@ -70,7 +62,9 @@ std::shared_ptr<int> client_t::get_id_cursor_socket_for_type(gaia_type_t type)
     // same effect with an RAII wrapper, but it would need to have copy rather
     // than move semantics, since the socket is captured by a lambda that must
     // be copyable (since it is coerced to std::function).
-    std::shared_ptr<int> stream_socket_ptr(new int{stream_socket}, [](int* fd_ptr) { close_fd(*fd_ptr); delete fd_ptr; });
+    std::shared_ptr<int> stream_socket_ptr(new int{stream_socket}, [](int* fd_ptr) {
+        close_fd(*fd_ptr);
+        delete fd_ptr; });
 
     // Both our explicit new() and the shared_ptr constructor dynamically allocate
     // memory, so we might need to clean up the socket if either fails.
@@ -199,9 +193,7 @@ int client_t::get_session_socket(const std::string& socket_name)
         throw_system_error("Socket creation failed!");
     }
 
-    auto cleanup_session_socket = make_scope_guard([&]() {
-        close_fd(session_socket);
-    });
+    auto cleanup_session_socket = make_scope_guard([&]() { close_fd(session_socket); });
 
     sockaddr_un server_addr{};
     server_addr.sun_family = AF_UNIX;
@@ -210,7 +202,7 @@ int client_t::get_session_socket(const std::string& socket_name)
     // in the server address structure after the prefix null byte.
     ASSERT_INVARIANT(
         socket_name.size() <= sizeof(server_addr.sun_path) - 1,
-        "Socket name '" + socket_name + "' is too long!");
+        gaia_fmt::format("Socket name '{}' is too long!", socket_name).c_str());
 
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
@@ -240,7 +232,7 @@ int client_t::get_session_socket(const std::string& socket_name)
 // when the server closes the session (e.g., if the server process shuts down).
 // Throwing an asynchronous exception on the session thread may not be possible,
 // and would be difficult to handle properly even if it were possible.
-// In any case, send_msg_with_fds()/recv_msg_with_fds() already throw a
+// In any case, send_msg_with_fds()/recv_msg_with_fds() already throws a
 // peer_disconnected exception when the other end of the socket is closed.
 void client_t::begin_session(config::session_options_t session_options)
 {
@@ -265,9 +257,7 @@ void client_t::begin_session(config::session_options_t session_options)
     // for the data and locator shared memory segment fds.
     s_session_socket = get_session_socket(s_session_options.db_instance_name);
 
-    auto cleanup_session_socket = make_scope_guard([&]() {
-        close_fd(s_session_socket);
-    });
+    auto cleanup_session_socket = make_scope_guard([&]() { close_fd(s_session_socket); });
 
     // Send the server the connection request.
     FlatBufferBuilder builder;
@@ -282,20 +272,19 @@ void client_t::begin_session(config::session_options_t session_options)
     // authentication is currently disabled in the server).
     try
     {
-        client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 4);
+        client_messenger.send_and_receive(
+            s_session_socket, nullptr, 0, builder, static_cast<size_t>(data_mapping_t::index_t::count_mappings));
     }
     catch (const gaia::common::peer_disconnected&)
     {
-        throw session_limit_exceeded();
+        throw session_limit_exceeded_internal();
     }
 
     // Set up scope guards for the fds.
     // The locators fd needs to be kept around, so its scope guard will be dismissed at the end of this scope.
     // The other fds are not needed, so they'll get their own scope guard to clean them up.
     int fd_locators = client_messenger.received_fd(static_cast<size_t>(data_mapping_t::index_t::locators));
-    auto cleanup_fd_locators = make_scope_guard([&]() {
-        close_fd(fd_locators);
-    });
+    auto cleanup_fd_locators = make_scope_guard([&]() { close_fd(fd_locators); });
     auto cleanup_fd_others = make_scope_guard([&]() {
         for (auto data_mapping : s_data_mappings)
         {
@@ -304,22 +293,22 @@ void client_t::begin_session(config::session_options_t session_options)
                 int fd = client_messenger.received_fd(static_cast<size_t>(data_mapping.mapping_index));
                 close_fd(fd);
             }
-        }
-    });
+        } });
 
     session_event_t event = client_messenger.server_reply()->event();
     ASSERT_INVARIANT(event == session_event_t::CONNECT, c_message_unexpected_event_received);
 
     // Set up the shared-memory mappings.
     // The locators mapping will be performed manually, so skip its information in the mapping table.
-    size_t index_fd = 0;
+    size_t fd_index = 0;
     for (auto data_mapping : s_data_mappings)
     {
         if (data_mapping.mapping_index != data_mapping_t::index_t::locators)
         {
-            data_mapping.open(client_messenger.received_fd(index_fd));
+            int fd = client_messenger.received_fd(fd_index);
+            data_mapping.open(fd);
         }
-        ++index_fd;
+        ++fd_index;
     }
 
     // Set up the private locator segment fd.
@@ -367,9 +356,7 @@ void client_t::begin_transaction()
     bool manage_fd = false;
     bool is_shared = false;
     s_private_locators.open(s_fd_locators, manage_fd, is_shared);
-    auto cleanup_private_locators = make_scope_guard([&]() {
-        s_private_locators.close();
-    });
+    auto cleanup_private_locators = make_scope_guard([&]() { s_private_locators.close(); });
 
     // Send a TXN_BEGIN request to the server and receive a new txn ID,
     // the fd of a new txn log, and txn log fds for all committed txns within
@@ -382,9 +369,7 @@ void client_t::begin_transaction()
     int log_fd = client_messenger.received_fd(client_messenger_t::c_index_txn_log_fd);
     // We can unconditionally close the log fd, because the memory mapping owns
     // an implicit reference to the memfd object.
-    auto cleanup_log_fd = make_scope_guard([&]() {
-        close_fd(log_fd);
-    });
+    auto cleanup_log_fd = make_scope_guard([&]() { close_fd(log_fd); });
 
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
     const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
@@ -447,21 +432,21 @@ void client_t::rollback_transaction()
 void throw_exception_from_message(const char* error_message)
 {
     // Check the error message against the known set of pre_commit_validation_failure error messages.
-    if (strlen(error_message) > strlen(index::unique_constraint_violation::c_error_description)
+    if (strlen(error_message) > strlen(index::unique_constraint_violation_internal::c_error_description)
         && strncmp(
                error_message,
-               index::unique_constraint_violation::c_error_description,
-               strlen(index::unique_constraint_violation::c_error_description))
+               index::unique_constraint_violation_internal::c_error_description,
+               strlen(index::unique_constraint_violation_internal::c_error_description))
             == 0)
     {
-        throw index::unique_constraint_violation(error_message);
+        throw index::unique_constraint_violation_internal(error_message);
     }
     else
     {
-        std::stringstream message;
-        message
-            << "The server has reported an unexpected error message: '" << error_message << "'";
-        ASSERT_UNREACHABLE(message.str());
+        ASSERT_UNREACHABLE(
+            gaia_fmt::format(
+                "The server has reported an unexpected error message: '{}'", error_message)
+                .c_str());
     }
 }
 
@@ -521,11 +506,11 @@ void client_t::commit_transaction()
 
     // Throw an exception on server-side abort.
     // REVIEW: We could include the gaia_ids of conflicting objects in
-    // transaction_update_conflict
+    // transaction_update_conflict_internal
     // (https://gaiaplatform.atlassian.net/browse/GAIAPLAT-292).
     if (event == session_event_t::DECIDE_TXN_ABORT)
     {
-        throw transaction_update_conflict();
+        throw transaction_update_conflict_internal();
     }
     // Improving the communication of such errors to the client is tracked by:
     // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1232

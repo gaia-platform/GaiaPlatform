@@ -35,6 +35,8 @@ public:
 
     static bool is_txn_metadata_map_initialized();
 
+    static char* get_txn_metadata_map_base_address();
+
 public:
     inline explicit txn_metadata_t(gaia_txn_id_t ts);
     txn_metadata_t(const txn_metadata_t&) = default;

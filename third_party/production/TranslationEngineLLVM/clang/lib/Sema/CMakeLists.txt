@@ -9,11 +9,6 @@ if (MSVC)
   set_source_files_properties(SemaTemplate.cpp PROPERTIES COMPILE_FLAGS /bigobj)
 endif()
 
-set(GAIA_CATALOG_INCLUDES
-  ${GAIA_INC}
-  ${FLATBUFFERS_INC}
-)
-
 add_clang_library(clangSema
   AnalysisBasedWarnings.cpp
   CodeCompleteConsumer.cpp
@@ -72,4 +67,12 @@ add_clang_library(clangSema
   clangCatalog
   )
 
-target_include_directories(clangSema PRIVATE ${GAIA_CATALOG_INCLUDES})
+# For some unknown reason the clangSema target is not able to transitively use the
+# headers that are defined as part of the flatuffers library. For this reason we have added
+# an explicit dependency to the flatbuffers library (to wait for the headers to be downloaded)
+# and explicitly added the flatbuffers headers in the included directories.
+add_dependencies(clangSema flatbuffers)
+target_include_directories(clangSema PRIVATE
+  ${GAIA_INC}
+  ${FLATBUFFERS_INC}
+)

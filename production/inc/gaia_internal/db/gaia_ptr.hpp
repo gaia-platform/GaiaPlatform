@@ -23,18 +23,19 @@ namespace db
 {
 
 /**
-* gaia_ptr_t is implemented differently on the server and client-side.
-* See their respective cpp files for differences.
-*/
+ * gaia_ptr_t is implemented differently on the server and client-side.
+ * See their respective cpp files for differences.
+ */
 class gaia_ptr_t
 {
 public:
     gaia_ptr_t() = default;
 
-    inline explicit gaia_ptr_t(gaia_locator_t locator)
-        : m_locator(locator)
-    {
-    }
+    static gaia_ptr_t from_locator(
+        gaia_locator_t locator);
+
+    static gaia_ptr_t from_gaia_id(
+        common::gaia_id_t id);
 
     inline bool operator==(const gaia_ptr_t& other) const;
     inline bool operator!=(const gaia_ptr_t& other) const;
@@ -63,9 +64,6 @@ public:
         common::reference_offset_t num_refs,
         size_t data_size,
         const void* data);
-
-    static gaia_ptr_t open(
-        common::gaia_id_t id);
 
     // Removes the database record at the given pointer object. Throws
     // exceptions in case of referential integrity violation.
@@ -171,6 +169,17 @@ protected:
     gaia_ptr_t find_next(common::gaia_type_t type) const;
 
 private:
+    static gaia_ptr_t create_ref_anchor(
+        common::gaia_id_t parent_id,
+        common::gaia_id_t first_child_id);
+
+    static gaia_ptr_t create_no_txn(
+        common::gaia_id_t id,
+        common::gaia_type_t type,
+        common::reference_offset_t num_refs,
+        size_t data_size,
+        const void* data);
+
     void clone_no_txn();
 
     void create_insert_trigger(common::gaia_type_t type, common::gaia_id_t id);
@@ -185,31 +194,86 @@ private:
         common::reference_offset_t parent_offset);
 
     /**
-     * Try to auto connect a record to matching parent side record(s).
+     * Try to auto connect a record to matching record(s).
      *
-     * @param child_id The record id
-     * @param child_type The record type
-     * @param child_type The record id of the child table type
-     * @param child_references The record references
+     * @param id The record id
+     * @param type The record type
+     * @param type The record id of the table type
+     * @param references The record references
      * @param candidate_fields The list of candidate fields' positions.
      */
-    static void auto_connect_to_parent(
-        common::gaia_id_t child_id,
-        common::gaia_type_t child_type,
-        common::gaia_id_t child_type_id,
-        common::gaia_id_t* child_references,
-        const uint8_t* child_payload,
+    static void auto_connect(
+        common::gaia_id_t id,
+        common::gaia_type_t type,
+        common::gaia_id_t type_id,
+        common::gaia_id_t* references,
+        const uint8_t* payload,
         const common::field_position_list_t& candidate_fields);
 
-    static void auto_connect_to_parent(
-        common::gaia_id_t child_id,
-        common::gaia_type_t child_type,
-        common::gaia_id_t* child_references,
-        const uint8_t* child_payload);
+    static void auto_connect(
+        common::gaia_id_t id,
+        common::gaia_type_t type,
+        common::gaia_id_t* references,
+        const uint8_t* payload);
+
+    // Helper method to perform auto connection for a given field in the node on
+    // the parent side of a relationship.
+    static void parent_side_auto_connect(
+        common::gaia_id_t id,
+        common::gaia_type_t type,
+        common::gaia_id_t type_id,
+        common::gaia_id_t* references,
+        const uint8_t* payload,
+        common::field_position_t field_position);
+
+    // Helper method to perform auto connection for a given field in the node on
+    // the child side of a relationship.
+    static void child_side_auto_connect(
+        common::gaia_id_t id,
+        common::gaia_type_t type,
+        common::gaia_id_t type_id,
+        common::gaia_id_t* references,
+        const uint8_t* payload,
+        common::field_position_t field_position);
+
+    gaia_ptr_t set_reference(common::reference_offset_t offset, common::gaia_id_t id);
+
+    /**
+     * Try to find a record in an indexed table (using the index) that matches
+     * the field value in the given data payload.
+     *
+     * @param payload The data payload
+     * @param field_position The field position of the payload
+     * @param type The type of the given data payload
+     * @param type_id The table id of the given type
+     * @param indexed_table_id The table to find from
+     * @param indexed_field_position The indexed field of the target table
+     * @return id of the found record; 'c_invalid_gaia_id' if not found
+     */
+    static common::gaia_id_t find_using_index(
+        const uint8_t* payload,
+        common::field_position_t field_position,
+        common::gaia_type_t type,
+        common::gaia_id_t type_id,
+        common::gaia_id_t indexed_table_id,
+        common::field_position_t indexed_field_position);
 
 private:
     gaia_locator_t m_locator{c_invalid_gaia_locator};
+
+    inline explicit gaia_ptr_t(gaia_locator_t locator)
+        : m_locator(locator)
+    {
+    }
 };
+
+static_assert(
+    sizeof(gaia_ptr_t) == sizeof(gaia_locator_t),
+    "gaia_ptr_t shouldn't contain more than a gaia_locator_t value!");
+
+static_assert(
+    sizeof(gaia_ptr_t) <= sizeof(common::gaia_handle_t),
+    "The size of gaia_handle_t is too small to hold a gaia_ptr_t value!");
 
 class gaia_ptr_generator_t : public common::iterators::generator_t<gaia_ptr_t>
 {

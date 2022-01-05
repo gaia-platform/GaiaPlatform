@@ -6,8 +6,8 @@
 #exec </dev/tty
 
 # check if clang-format is installed.
-if ! command -v clang-format &>/dev/null; then
-    echo "Please install clang-format 10.0"
+if ! command -v clang-format-13 &>/dev/null; then
+    echo "Please install clang-format 13.0"
     exit 1
 fi
 
@@ -66,16 +66,16 @@ for file in $(git --no-pager diff --cached --name-only | grep -E "^(production|d
 
     # If .clang-format has been changed, formats clang_format.cpp/hpp to show the outcome.
     if echo "$file" | grep -qE "(\.clang-format)$"; then
-        clang-format -i "production/tools/gaia_style/tests/clang_format.cpp"
+        clang-format-13 -i "production/tools/gaia_style/tests/clang_format.cpp"
         git add "production/tools/gaia_style/tests/clang_format.cpp"
-        clang-format -i "production/tools/gaia_style/tests/clang_format.hpp"
+        clang-format-13 -i "production/tools/gaia_style/tests/clang_format.hpp"
         git add "production/tools/gaia_style/tests/clang_format.hpp"
         format_file=false
     fi
 
     if [ "$format_file" = "true" ]; then
         echo "Formatting file: $file"
-        clang-format -i "$file"
+        clang-format-13 -i "$file"
         git add "$file"
     fi
 done

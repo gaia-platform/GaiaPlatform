@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(catalog)
 
 # The catalog.cpp is generated. Look into schemas/system/catalog/CMakeLists.txt to re-generate the code.
@@ -28,12 +27,16 @@ set(GAIA_CATALOG_PRIVATE_INCLUDES
   ${GAIA_REPO}/production/db/inc/memory_manager
   ${GAIA_REPO}/production/db/inc/index
   ${GAIA_PROD_BUILD}/catalog/parser/generated
-  ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
   ${PROJECT_SOURCE_DIR}/parser/inc
 )
 
 message(VERBOSE "GAIA_CATALOG_PRIVATE_INCLUDES=${GAIA_CATALOG_PRIVATE_INCLUDES}")
+
+# These files is downloaded with ExternalProject_Add in third_party/production/flatbuffers.
+# CMake is not able to detect this dependency and fails at config time.
+# The GENERATED property makes cmake to skip the source check at config time.
+set_source_files_properties(${FLATBUFFERS_SRC}/src/code_generators.cpp PROPERTIES GENERATED TRUE)
 
 add_library(gaia_catalog STATIC
   src/ddl_execution.cpp
@@ -46,12 +49,13 @@ add_library(gaia_catalog STATIC
   src/gaiac_catalog_facade.cpp
   src/dac_generator.cpp
   src/gaia_generate.cpp
-  ${FLATBUFFERS}/src/code_generators.cpp)
+  ${FLATBUFFERS_SRC}/src/code_generators.cpp)
 
 configure_gaia_target(gaia_catalog)
 target_include_directories(gaia_catalog PUBLIC ${GAIA_CATALOG_PUBLIC_INCLUDES})
 target_include_directories(gaia_catalog PRIVATE ${GAIA_CATALOG_PRIVATE_INCLUDES})
-target_link_libraries(gaia_catalog PRIVATE gaia_parser gaia_direct flatbuffers dac_catalog)
+target_link_libraries(gaia_catalog PRIVATE gaia_parser gaia_direct flatbuffers)
+target_link_libraries(gaia_catalog PUBLIC dac_catalog)
 
 add_gtest(test_ddl_executor
   "tests/test_ddl_executor.cpp"

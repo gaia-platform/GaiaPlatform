@@ -9529,6 +9529,9 @@ def err_duplicate_field : Error<
   "table name (table.field) to disambiguate field names that occur in more "
   "than one table. You can also restrict the list of tables to search by "
   "specifying them in the ruleset 'tables' attribute.">;
+def err_wrong_table_field : Error<
+  "Field '%0' is defined in table '%1', which does not exist in the catalog."
+  "Ensure that the catalog is in consistent state.">;
 def err_duplicate_link : Error<
   "Duplicate link '%0'.">;
 def err_duplicate_parameter_name : Error<

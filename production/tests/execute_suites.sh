@@ -140,6 +140,10 @@ execute_suites() {
         echo "Environment variable 'USE_PERSISTENT_DATABASE' must be set prior to calling this function."
         exit 1
     fi
+    if [ -z "$USE_MEMORY_SAMPLING" ] ; then
+        echo "Environment variable 'USE_MEMORY_SAMPLING' must be set prior to calling this function."
+        exit 1
+    fi
 
     # Set up any project based local script variables.
     TEMP_FILE=/tmp/$SUITE_MODE.suite.tmp
@@ -172,17 +176,22 @@ execute_suites() {
         fi
 
         if [ "$USE_PERSISTENT_DATABASE" -ne 0 ] ; then
-            FG="--persistence"
+            PERSISTENCE_FLAG="--persistence"
             if [ "$VERBOSE_MODE" -ne 0 ]; then
                 echo "  using a persistent database."
             fi
         else
-            FG=
+            PERSISTENCE_FLAG=
             if [ "$VERBOSE_MODE" -ne 0 ]; then
                 echo "  using a non-persistent database."
             fi
         fi
-        if ! "$SCRIPTPATH/suite.sh" --json --database "$FG" "${TEST_WORKLOADS[$WORKLOAD_INDEX]}" > "$TEMP_FILE" 2>&1; then
+        MEMORY_FLAG=
+        if [ "$USE_MEMORY_SAMPLING" -ne 0 ] ; then
+            MEMORY_FLAG="--memory"
+        fi
+        # shellcheck disable=SC2086
+        if ! "$SCRIPTPATH/suite.sh" --verbose --json --database $PERSISTENCE_FLAG $MEMORY_FLAG "${TEST_WORKLOADS[$WORKLOAD_INDEX]}" > "$TEMP_FILE" 2>&1; then
             cat "$TEMP_FILE"
             DID_FAIL=1
         fi

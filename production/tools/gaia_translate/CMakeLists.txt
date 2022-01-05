@@ -1,15 +1,16 @@
 enable_testing()
 project(gaiat VERSION 0.0.0)
 
-set(TRANSLATION_ENGINE_INCLUDES
+set(TRANSLATION_ENGINE_SYSTEM_INCLUDES
   ${GAIA_REPO}/third_party/production/TranslationEngineLLVM/clang/include
   ${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm/include
+)
+
+set(TRANSLATION_ENGINE_PROJECT_INCLUDES
   ${GAIA_PROD_BUILD}/llvm/include
   ${GAIA_PROD_BUILD}/llvm/tools/clang/include
-  ${GAIA_PROD_BUILD}/llvm/include
   ${GAIA_REPO}/production/catalog/catalog_manager/inc
   ${GAIA_INC}
-  ${FLATBUFFERS_INC}
   ${GAIA_REPO}/production/catalog/parser/inc
   ${GAIA_PROD_BUILD}/catalog/parser/generated
   ${CMAKE_CURRENT_SOURCE_DIR}/inc
@@ -27,7 +28,8 @@ link_directories(
 
 add_executable(gaiat ${GAIAT_SRCS})
 configure_gaia_target(gaiat)
-target_include_directories(gaiat PRIVATE ${TRANSLATION_ENGINE_INCLUDES})
+target_include_directories(gaiat SYSTEM PRIVATE ${TRANSLATION_ENGINE_SYSTEM_INCLUDES})
+target_include_directories(gaiat PRIVATE ${TRANSLATION_ENGINE_PROJECT_INCLUDES})
 add_dependencies(gaiat gaia_db_server_exec)
 target_link_libraries(gaiat
   PRIVATE
@@ -53,7 +55,6 @@ install(TARGETS gaiat DESTINATION ${CMAKE_INSTALL_BINDIR})
 if("$CACHE{ENABLE_SDK_TESTS}")
   set(TEST_INCLUDES
     ${GAIA_INC}
-    ${FLATBUFFERS_INC}
     ${GAIA_REPO}/production/tools/gaia_translate/tests
     ${GAIA_REPO}/production/rules/event_manager/inc
   )

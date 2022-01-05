@@ -7,7 +7,7 @@
 
 ruleset test79
 {
-    on_insert(sensor)
+    on_insert(incubator)
     {
         actuator.value += value/2;
     }

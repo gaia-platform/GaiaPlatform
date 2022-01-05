@@ -14,17 +14,14 @@
 
 namespace gaia
 {
-
 /**
- * \addtogroup Gaia
+ * \addtogroup gaia
  * @{
  */
-
 namespace direct_access
 {
-
 /**
- * \addtogroup Direct
+ * \addtogroup direct_access
  * @{
  *
  * Provides a RAII object for exception safe handling of transactions.

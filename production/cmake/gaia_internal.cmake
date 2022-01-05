@@ -28,7 +28,8 @@ endfunction()
 # gaia_build_options), so we need to set them directly on the target.
 #
 function(configure_gaia_target TARGET)
-  target_link_libraries(${TARGET} PUBLIC gaia_build_options)
+  # Keep this dependency PRIVATE to avoid leaking Gaia build options into all dependent targets.
+  target_link_libraries(${TARGET} PRIVATE gaia_build_options)
   if(NOT EXPORT_SYMBOLS)
     # See https://cmake.org/cmake/help/latest/policy/CMP0063.html.
     cmake_policy(SET CMP0063 NEW)
@@ -77,7 +78,9 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
     add_dependencies(${TARGET} ${ARGV4})
   endif()
 
-  target_include_directories(${TARGET} PRIVATE ${INCLUDES} ${GOOGLE_TEST_INC})
+  # REVIEW: We don't currently expose a way to mark passed include dirs as
+  # SYSTEM (to suppress warnings), so we just treat all of them as such.
+  target_include_directories(${TARGET} SYSTEM PRIVATE ${INCLUDES} ${GOOGLE_TEST_INC})
   if("${ARGV5}")
     set(GTEST_LIB "gtest")
   else()
@@ -93,6 +96,23 @@ function(add_gtest TARGET SOURCES INCLUDES LIBRARIES)
     set(ENV "${ARGV6}")
   else()
     set(ENV "")
+  endif()
+
+  if("$CACHE{SANITIZER}" STREQUAL "ASAN")
+    # Suppress ASan warnings from exception destructors in libc++.
+    # REVIEW (GAIAPLAT-1828): spdlog and cpptoml show up in the ASan stack
+    # trace, and both are unconditionally built with libstdc++, so this is
+    # likely an ABI incompatibility with libc++.
+    # NB: This overwrites any previous value of ENV, but apparently we're not
+    # using ENV for anything, and I couldn't get concatenation of NAME=VALUE
+    # env var pairs to work with ASan. This is just a temporary hack anyway.
+    set(ENV "ASAN_OPTIONS=alloc_dealloc_mismatch=0")
+  endif()
+
+  if("$CACHE{SANITIZER}" STREQUAL "TSAN")
+    # NB: This overwrites any previous value of ENV, but apparently we're not
+    # using ENV for anything.
+    set(ENV "TSAN_OPTIONS=suppressions=${GAIA_REPO}/.tsan-suppressions")
   endif()
 
   configure_gaia_target(${TARGET})
@@ -297,10 +317,27 @@ function(add_gaia_sdk_gtest)
   set(GAIAC_CMD "${GAIA_PROD_BUILD}/catalog/gaiac/gaiac")
   set(GAIAT_CMD "${GAIA_PROD_BUILD}/tools/gaia_translate/gaiat")
 
+  # Unlike clang, gaiat isn't smart enough to know where system include dirs are
+  # for intrinsics and stdlib headers, so we need to define them explicitly.
+  set(GAIAT_INCLUDE_PATH "")
+
+  # We use libc++ in debug and its header must be manually included.
+  # Note: the order of inclusion is relevant and libc++ headers must be
+  # defined first when libc++ is used.
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(LIBCXX_INCLUDE_DIR "/usr/lib/llvm-13/include/c++/v1/")
+    string(APPEND GAIAT_INCLUDE_PATH "-I;${LIBCXX_INCLUDE_DIR};")
+  endif()
+
+  foreach(INCLUDE_PATH ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
+    # Have to use ; instead of space otherwise custom_command will try to escape it
+    string(APPEND GAIAT_INCLUDE_PATH "-I;${INCLUDE_PATH};")
+  endforeach()
+
   add_custom_command(
     COMMENT "Compiling ${RULESET_FILE}..."
     OUTPUT ${RULESET_CPP_OUT}
-    COMMAND ${GAIA_PROD_BUILD}/db/core/gaia_db_server --persistence disabled &
+    COMMAND daemonize ${GAIA_PROD_BUILD}/db/core/gaia_db_server --persistence disabled
     COMMAND sleep 1
     COMMAND ${GAIAC_CMD} ${ARG_DDL_FILE}
     COMMAND ${GAIAT_CMD} ${ARG_RULESET_FILE} -output ${RULESET_CPP_OUT} --
@@ -308,9 +345,10 @@ function(add_gaia_sdk_gtest)
       -I ${FLATBUFFERS_INC}
       -I ${GAIA_SPDLOG_INC}
       -I ${DAC_INCLUDE}
-      -I /usr/include/clang/10/include/
+      -I ${GAIAT_INCLUDE_PATH}
+      -stdlib=$<IF:$<CONFIG:Debug>,libc++,libstdc++>
       -std=c++${CMAKE_CXX_STANDARD}
-    COMMAND pkill -f -KILL gaia_db_server &
+    COMMAND pkill -KILL --exact gaia_db_server
 
     # In some contexts, the next attempt to start gaia_db_server precedes this kill, leading
     # to a build failure. A short sleep is currently fixing that, but may not be the

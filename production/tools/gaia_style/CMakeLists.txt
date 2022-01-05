@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(gaia_style)
 
 set(GAIA_STYLE_INCLUDES

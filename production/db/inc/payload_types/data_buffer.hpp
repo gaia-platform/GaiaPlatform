@@ -16,6 +16,8 @@ namespace gaia
 {
 namespace db
 {
+namespace payload_types
+{
 
 // byte type in flatbuffers translates to int8_t.
 using serialization_byte_t = int8_t;
@@ -63,5 +65,6 @@ private:
 
 #include "data_buffer.inc"
 
+} // namespace payload_types
 } // namespace db
 } // namespace gaia

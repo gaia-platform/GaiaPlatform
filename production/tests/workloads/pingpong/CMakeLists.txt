@@ -5,7 +5,6 @@
 
 cmake_minimum_required(VERSION 3.16)
 
-# Set the project name.
 project(pingpong)
 
 set(CMAKE_CXX_STANDARD 17)

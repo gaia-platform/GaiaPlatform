@@ -9,7 +9,7 @@
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
-#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/logger.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
 
 #include "reflection.hpp"
@@ -46,7 +46,7 @@ bool table_iterator_t::initialize_scan(gaia_type_t container_id, gaia_id_t start
     {
         if (start_after != 0)
         {
-            m_current_record = gaia_ptr_t::open(start_after);
+            m_current_record = gaia_ptr_t::from_gaia_id(start_after);
             if (m_current_record.type() != container_id)
             {
                 fprintf(stderr, "Starting row is not correct type.\n");

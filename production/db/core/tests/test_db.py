@@ -3,39 +3,39 @@
 # All rights reserved.
 #############################################
 
-from gaia_db_pybind import *;
+from gaia_db_pybind import *
 
 # Start session.
-begin_session();
+begin_session()
 
 # First transaction - dump first 4 nodes (they must exist for catalog objects).
-begin_transaction();
+begin_transaction()
 
-node1 = gaia_ptr.open(gaia_id(1));
-node2 = gaia_ptr.open(gaia_id(2));
-node3 = gaia_ptr.open(gaia_id(3));
-node4 = gaia_ptr.open(gaia_id(4));
+node1 = gaia_ptr.from_gaia_id(gaia_id(1))
+node2 = gaia_ptr.from_gaia_id(gaia_id(2))
+node3 = gaia_ptr.from_gaia_id(gaia_id(3))
+node4 = gaia_ptr.from_gaia_id(gaia_id(4))
 
-print_node(node1, False);
-print_node(node2, False);
-print_node(node3, False);
-print_node(node4, False);
-print ('');
+print_node(node1, False)
+print_node(node2, False)
+print_node(node3, False)
+print_node(node4, False)
+print ('')
 
-commit_transaction();
+commit_transaction()
 
 # Second transaction - iterate through nodes of type 'database'.
-begin_transaction();
+begin_transaction()
 
-print("Iterating through nodes of type 'database' (4294967291): ", flush = True);
-node_iter = gaia_ptr.find_first(gaia_type(4294967291));
+print("Iterating through nodes of type 'database' (4294967291): ", flush = True)
+node_iter = gaia_ptr.find_first(gaia_type(4294967291))
 while node_iter.is_null() != True:
-    print_node(node_iter, False);
-    node_iter = node_iter.find_next();
-print ('');
+    print_node(node_iter, False)
+    node_iter = node_iter.find_next()
+print ('')
 
-commit_transaction();
+commit_transaction()
 
-end_session();
+end_session()
 
-print ('All tests passed!');
+print ('All tests passed!')

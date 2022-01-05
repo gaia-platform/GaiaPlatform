@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "gaia/db/db.hpp"
+#include "gaia/exceptions.hpp"
 
 #include "gaia_db_extract.hpp"
 

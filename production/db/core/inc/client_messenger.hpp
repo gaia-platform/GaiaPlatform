@@ -18,10 +18,10 @@ namespace gaia
 namespace db
 {
 
-static const std::string c_message_unexpected_event_received = "Unexpected event received!";
-static const std::string c_message_stream_socket_is_invalid = "Stream socket is invalid!";
-static const std::string c_message_unexpected_datagram_size = "Unexpected datagram size!";
-static const std::string c_message_empty_batch_buffer_detected = "Empty batch buffer detected!";
+static constexpr char c_message_unexpected_event_received[] = "Unexpected event received!";
+static constexpr char c_message_stream_socket_is_invalid[] = "Stream socket is invalid!";
+static constexpr char c_message_unexpected_datagram_size[] = "Unexpected datagram size!";
+static constexpr char c_message_empty_batch_buffer_detected[] = "Empty batch buffer detected!";
 
 // Instances of this class are used by the client to communicate with the server.
 //
@@ -61,7 +61,7 @@ public:
         return m_count_received_fds;
     }
 
-    int received_fd(size_t index_fd);
+    int received_fd(size_t fd_index);
 
     inline const messages::server_reply_t* server_reply()
     {
@@ -77,7 +77,7 @@ protected:
     int m_socket = -1;
     int m_received_fds[common::c_max_fd_count]{-1};
     size_t m_count_received_fds = 0;
-    uint8_t m_message_buffer[common::c_max_msg_size]{0};
+    uint8_t m_message_buffer[common::c_max_msg_size_in_bytes]{0};
     const messages::server_reply_t* m_server_reply = nullptr;
 };
 
