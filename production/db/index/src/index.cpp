@@ -88,6 +88,18 @@ std::size_t index_key_t::size() const
     return m_key_values.size();
 }
 
+bool index_key_t::is_null() const
+{
+    for (const auto& value : m_key_values)
+    {
+        if (!value.is_null)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 const std::vector<gaia::db::payload_types::data_holder_t>& index_key_t::values() const
 {
     return m_key_values;
@@ -110,7 +122,6 @@ gaia::db::payload_types::data_hash_t index_key_hash::operator()(index_key_t cons
     {
         hash_concat[0] = prev_hash;
         hash_concat[1] = data.hash();
-
         prev_hash = std::hash<std::string_view>{}(hash_view);
     }
 
