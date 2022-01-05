@@ -96,7 +96,7 @@ void server_t::handle_connect(
 
     // We need to reply to the client with the fds for the data/locator segments.
     FlatBufferBuilder builder;
-    build_server_reply(builder, session_event_t::CONNECT, old_state, new_state);
+    build_server_reply_info(builder, session_event_t::CONNECT, old_state, new_state);
 
     // Collect fds.
     int fd_list[static_cast<size_t>(data_mapping_t::index_t::count_mappings)];
@@ -144,7 +144,7 @@ void server_t::handle_begin_txn(
     // number of log fds on the initial reply message.
     int log_fd = s_log.fd();
     FlatBufferBuilder builder;
-    build_server_reply(
+    build_server_reply_info(
         builder, session_event_t::BEGIN_TXN, old_state, new_state, s_txn_id, txn_log_fds_for_snapshot.size());
     send_msg_with_fds(s_session_socket, &log_fd, 1, builder.GetBufferPointer(), builder.GetSize());
 
@@ -311,14 +311,14 @@ void server_t::handle_decide_txn(
     FlatBufferBuilder builder;
     if (event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR)
     {
-        build_server_reply(builder, event, old_state, new_state, s_error_message.c_str());
+        build_server_reply_error(builder, event, old_state, new_state, s_error_message.c_str());
 
         // Clear error information.
         s_error_message = c_empty_string;
     }
     else
     {
-        build_server_reply(builder, event, old_state, new_state, s_txn_id, 0);
+        build_server_reply_info(builder, event, old_state, new_state, s_txn_id, 0);
     }
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
@@ -499,7 +499,7 @@ void server_t::handle_request_stream(
     // Any exceptions after this point will close the server socket, ensuring the producer thread terminates.
     // However, its destructor will not run until the session thread exits and joins the producer thread.
     FlatBufferBuilder builder;
-    build_server_reply(builder, event, old_state, new_state);
+    build_server_reply_info(builder, event, old_state, new_state);
     send_msg_with_fds(s_session_socket, &client_socket, 1, builder.GetBufferPointer(), builder.GetSize());
 }
 
@@ -544,7 +544,7 @@ void server_t::apply_transition(session_event_t event, const void* event_data, i
         + "'.");
 }
 
-void server_t::build_server_reply(
+void server_t::build_server_reply_info(
     FlatBufferBuilder& builder,
     session_event_t event,
     session_state_t old_state,
@@ -561,7 +561,7 @@ void server_t::build_server_reply(
     builder.Finish(message);
 }
 
-void server_t::build_server_reply(
+void server_t::build_server_reply_error(
     FlatBufferBuilder& builder,
     session_event_t event,
     session_state_t old_state,
