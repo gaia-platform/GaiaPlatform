@@ -3,19 +3,22 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+
+#include "gaia_internal/db/catalog_core.hpp"
+
 #include <optional>
 
 #include "gaia/common.hpp"
 
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
-#include "gaia_internal/db/catalog_core.hpp"
 
 #include "db_object_helpers.hpp"
 #include "gaia_field_generated.h"
 #include "gaia_index_generated.h"
 #include "gaia_relationship_generated.h"
 #include "gaia_table_generated.h"
+
 
 using namespace gaia::common;
 using namespace gaia::common::iterators;
