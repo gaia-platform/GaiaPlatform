@@ -39,16 +39,6 @@ jobs:
         run: |
           python3.8 -m pip install --user pre-commit
 
-      - name: Pre-Lint third_party/production/cmake
-        run: |
-          cd $GAIA_REPO/third_party/production/cmake
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang\" \"clang\" \"/usr/bin/clang-13\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang++\" \"clang++\" \"/usr/bin/clang++-13\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/ld.lld\" \"ld.lld\" \"/usr/bin/ld.lld-13\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/cc\" \"cc\" \"$CC\" 50"
-          sudo bash -c "update-alternatives --install \"/usr/bin/c++\" \"c++\" \"$CXX\" 50"
-          sudo bash -c "update-alternatives --install \"/usr/bin/cpp\" \"cpp\" \"$CPP\" 50"
-
       - name: Lint third_party/production/cmake
         run: |
           cd $GAIA_REPO/third_party/production/cmake
@@ -67,6 +57,12 @@ jobs:
           sudo bash -c "rm /etc/apt/sources.list.d/llvm.list >/dev/null"
           sudo bash -c "update-alternatives --install \"/usr/bin/clang-format\" \"clang-format\" \"/usr/bin/clang-format-13\" 10"
           sudo bash -c "update-alternatives --install \"/usr/bin/clang-tidy\" \"clang-tidy\" \"/usr/bin/clang-tidy-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang\" \"clang\" \"/usr/bin/clang-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang++\" \"clang++\" \"/usr/bin/clang++-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/ld.lld\" \"ld.lld\" \"/usr/bin/ld.lld-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/cc\" \"cc\" \"$CC\" 50"
+          sudo bash -c "update-alternatives --install \"/usr/bin/c++\" \"c++\" \"$CXX\" 50"
+          sudo bash -c "update-alternatives --install \"/usr/bin/cpp\" \"cpp\" \"$CPP\" 50"
 
       - name: Create /source and /build directories.
         run: |
@@ -157,16 +153,6 @@ jobs:
           cd $GAIA_REPO/third_party/production/bison
           wget http://ftp.gnu.org/gnu/bison/bison-3.5.tar.gz
 
-      - name: Pre-Build third_party/production/cmake
-        run: |
-          cd $GAIA_REPO/third_party/production/cmake
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang\" \"clang\" \"/usr/bin/clang-13\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang++\" \"clang++\" \"/usr/bin/clang++-13\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/ld.lld\" \"ld.lld\" \"/usr/bin/ld.lld-13\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/cc\" \"cc\" \"$CC\" 50"
-          sudo bash -c "update-alternatives --install \"/usr/bin/c++\" \"c++\" \"$CXX\" 50"
-          sudo bash -c "update-alternatives --install \"/usr/bin/cpp\" \"cpp\" \"$CPP\" 50"
-
       - name: Build third_party/production/cmake
         run: |
           cd $GAIA_REPO/third_party/production/cmake
@@ -185,6 +171,12 @@ jobs:
           sudo bash -c "rm /etc/apt/sources.list.d/llvm.list >/dev/null"
           sudo bash -c "update-alternatives --install \"/usr/bin/clang-format\" \"clang-format\" \"/usr/bin/clang-format-13\" 10"
           sudo bash -c "update-alternatives --install \"/usr/bin/clang-tidy\" \"clang-tidy\" \"/usr/bin/clang-tidy-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang\" \"clang\" \"/usr/bin/clang-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang++\" \"clang++\" \"/usr/bin/clang++-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/ld.lld\" \"ld.lld\" \"/usr/bin/ld.lld-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/cc\" \"cc\" \"$CC\" 50"
+          sudo bash -c "update-alternatives --install \"/usr/bin/c++\" \"c++\" \"$CXX\" 50"
+          sudo bash -c "update-alternatives --install \"/usr/bin/cpp\" \"cpp\" \"$CPP\" 50"
 
       - name: Build third_party/production/daemonize
         run: |
@@ -439,16 +431,6 @@ jobs:
           cd $GAIA_REPO/third_party/production/bison
           wget http://ftp.gnu.org/gnu/bison/bison-3.5.tar.gz
 
-      - name: Pre-Build third_party/production/cmake
-        run: |
-          cd $GAIA_REPO/third_party/production/cmake
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang\" \"clang\" \"/usr/bin/clang-13\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang++\" \"clang++\" \"/usr/bin/clang++-13\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/ld.lld\" \"ld.lld\" \"/usr/bin/ld.lld-13\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/cc\" \"cc\" \"$CC\" 50"
-          sudo bash -c "update-alternatives --install \"/usr/bin/c++\" \"c++\" \"$CXX\" 50"
-          sudo bash -c "update-alternatives --install \"/usr/bin/cpp\" \"cpp\" \"$CPP\" 50"
-
       - name: Build third_party/production/cmake
         run: |
           cd $GAIA_REPO/third_party/production/cmake
@@ -467,6 +449,12 @@ jobs:
           sudo bash -c "rm /etc/apt/sources.list.d/llvm.list >/dev/null"
           sudo bash -c "update-alternatives --install \"/usr/bin/clang-format\" \"clang-format\" \"/usr/bin/clang-format-13\" 10"
           sudo bash -c "update-alternatives --install \"/usr/bin/clang-tidy\" \"clang-tidy\" \"/usr/bin/clang-tidy-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang\" \"clang\" \"/usr/bin/clang-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang++\" \"clang++\" \"/usr/bin/clang++-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/ld.lld\" \"ld.lld\" \"/usr/bin/ld.lld-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/cc\" \"cc\" \"$CC\" 50"
+          sudo bash -c "update-alternatives --install \"/usr/bin/c++\" \"c++\" \"$CXX\" 50"
+          sudo bash -c "update-alternatives --install \"/usr/bin/cpp\" \"cpp\" \"$CPP\" 50"
 
       - name: Build third_party/production/daemonize
         run: |
@@ -743,16 +731,6 @@ jobs:
           cd $GAIA_REPO/third_party/production/bison
           wget http://ftp.gnu.org/gnu/bison/bison-3.5.tar.gz
 
-      - name: Pre-Build third_party/production/cmake
-        run: |
-          cd $GAIA_REPO/third_party/production/cmake
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang\" \"clang\" \"/usr/bin/clang-13\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang++\" \"clang++\" \"/usr/bin/clang++-13\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/ld.lld\" \"ld.lld\" \"/usr/bin/ld.lld-13\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/cc\" \"cc\" \"$CC\" 50"
-          sudo bash -c "update-alternatives --install \"/usr/bin/c++\" \"c++\" \"$CXX\" 50"
-          sudo bash -c "update-alternatives --install \"/usr/bin/cpp\" \"cpp\" \"$CPP\" 50"
-
       - name: Build third_party/production/cmake
         run: |
           cd $GAIA_REPO/third_party/production/cmake
@@ -771,6 +749,12 @@ jobs:
           sudo bash -c "rm /etc/apt/sources.list.d/llvm.list >/dev/null"
           sudo bash -c "update-alternatives --install \"/usr/bin/clang-format\" \"clang-format\" \"/usr/bin/clang-format-13\" 10"
           sudo bash -c "update-alternatives --install \"/usr/bin/clang-tidy\" \"clang-tidy\" \"/usr/bin/clang-tidy-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang\" \"clang\" \"/usr/bin/clang-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang++\" \"clang++\" \"/usr/bin/clang++-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/ld.lld\" \"ld.lld\" \"/usr/bin/ld.lld-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/cc\" \"cc\" \"$CC\" 50"
+          sudo bash -c "update-alternatives --install \"/usr/bin/c++\" \"c++\" \"$CXX\" 50"
+          sudo bash -c "update-alternatives --install \"/usr/bin/cpp\" \"cpp\" \"$CPP\" 50"
 
       - name: Build third_party/production/daemonize
         run: |
@@ -1026,16 +1010,6 @@ jobs:
           cd $GAIA_REPO/third_party/production/bison
           wget http://ftp.gnu.org/gnu/bison/bison-3.5.tar.gz
 
-      - name: Pre-Build third_party/production/cmake
-        run: |
-          cd $GAIA_REPO/third_party/production/cmake
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang\" \"clang\" \"/usr/bin/clang-13\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang++\" \"clang++\" \"/usr/bin/clang++-13\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/ld.lld\" \"ld.lld\" \"/usr/bin/ld.lld-13\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/cc\" \"cc\" \"$CC\" 50"
-          sudo bash -c "update-alternatives --install \"/usr/bin/c++\" \"c++\" \"$CXX\" 50"
-          sudo bash -c "update-alternatives --install \"/usr/bin/cpp\" \"cpp\" \"$CPP\" 50"
-
       - name: Build third_party/production/cmake
         run: |
           cd $GAIA_REPO/third_party/production/cmake
@@ -1054,6 +1028,12 @@ jobs:
           sudo bash -c "rm /etc/apt/sources.list.d/llvm.list >/dev/null"
           sudo bash -c "update-alternatives --install \"/usr/bin/clang-format\" \"clang-format\" \"/usr/bin/clang-format-13\" 10"
           sudo bash -c "update-alternatives --install \"/usr/bin/clang-tidy\" \"clang-tidy\" \"/usr/bin/clang-tidy-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang\" \"clang\" \"/usr/bin/clang-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang++\" \"clang++\" \"/usr/bin/clang++-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/ld.lld\" \"ld.lld\" \"/usr/bin/ld.lld-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/cc\" \"cc\" \"$CC\" 50"
+          sudo bash -c "update-alternatives --install \"/usr/bin/c++\" \"c++\" \"$CXX\" 50"
+          sudo bash -c "update-alternatives --install \"/usr/bin/cpp\" \"cpp\" \"$CPP\" 50"
 
       - name: Build third_party/production/daemonize
         run: |
