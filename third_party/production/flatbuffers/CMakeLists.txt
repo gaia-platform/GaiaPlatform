@@ -49,10 +49,8 @@ ExternalProject_Add(flatbuffers_dependency
     SHA256=9ddb9031798f4f8754d00fca2f1a68ecf9d0f83dfac7239af1311e4fd9a565c4
   EXCLUDE_FROM_ALL
     TRUE
-  PREFIX
-    ${FLATBUFFERS_PREFIX}
   SOURCE_DIR
-    ${FLATBUFFERS_SOURCE_DIR}
+    ${FLATBUFFERS_SRC}
   CMAKE_ARGS
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
@@ -67,6 +65,8 @@ ExternalProject_Add(flatbuffers_dependency
     -DCMAKE_INSTALL_PREFIX:PATH=${FLATBUFFERS_ROOT}
   BUILD_BYPRODUCTS
     ${FLATBUFFERS_INC}
-    ${FLATBUFFERS}/src/idl_gen_cpp.cpp
+    ${FLATBUFFERS_SRC}/src/idl_gen_cpp.cpp
+    ${FLATBUFFERS_SRC}/src/code_generators.cpp
     ${FLATBUFFERS_BIN}/flatc
+    ${FLATBUFFERS_LIB}/libflatbuffers.a
 )

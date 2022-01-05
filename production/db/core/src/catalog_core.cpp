@@ -66,14 +66,14 @@ namespace db
     return catalog::Getgaia_relationship(m_obj_ptr->data())->name()->c_str();
 }
 
-[[nodiscard]] const char* relationship_view_t::to_parent_link_name() const
+[[nodiscard]] const char* relationship_view_t::to_child_name() const
 {
-    return catalog::Getgaia_relationship(m_obj_ptr->data())->to_parent_link_name()->c_str();
+    return catalog::Getgaia_relationship(m_obj_ptr->data())->to_child_name()->c_str();
 }
 
-[[nodiscard]] const char* relationship_view_t::to_child_link_name() const
+[[nodiscard]] const char* relationship_view_t::to_parent_name() const
 {
-    return catalog::Getgaia_relationship(m_obj_ptr->data())->to_child_link_name()->c_str();
+    return catalog::Getgaia_relationship(m_obj_ptr->data())->to_parent_name()->c_str();
 }
 
 [[nodiscard]] reference_offset_t relationship_view_t::first_child_offset() const

@@ -281,6 +281,21 @@ TEST(index, key_hash_test)
     ASSERT_NE(index_key_hash{}(zero_key), index_key_hash{}(double_zero_key));
 }
 
+TEST(index, key_comparator_test)
+{
+    // Primitive equality test.
+    index_key_t k1(1);
+    index_key_t k2(1);
+
+    ASSERT_EQ(k1, k2);
+
+    // Compound equality test.
+    index_key_t k3(1, 1);
+    index_key_t k4(1, 1);
+
+    ASSERT_EQ(k3, k4);
+}
+
 class index_test : public db_catalog_test_base_t
 {
 protected:

@@ -45,6 +45,8 @@ class client_t
      * @throws no_open_transaction_internal if there is no open transaction.
      */
     friend gaia::db::locators_t* gaia::db::get_locators();
+    friend gaia_txn_id_t gaia::db::get_current_txn_id();
+    friend gaia::db::mapped_log_t* get_mapped_log();
 
     /**
      * @throws no_open_session_internal if there is no open session.
@@ -53,20 +55,10 @@ class client_t
     friend gaia::db::data_t* gaia::db::get_data();
     friend gaia::db::id_index_t* gaia::db::get_id_index();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
-    friend gaia_txn_id_t gaia::db::get_current_txn_id();
+    friend gaia::db::memory_manager::memory_manager_t* gaia::db::get_memory_manager();
+    friend gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager();
 
     friend class gaia::db::query_processor::db_client_proxy_t;
-
-public:
-    // This needs to be public to be accessible from gaia::db::get_memory_manager().
-    // This field has session lifetime.
-    thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
-    // This needs to be public to be accessible from gaia::db::get_chunk_manager().
-    // This field has session lifetime.
-    thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
-    // This needs to be public to be accessible from gaia::db::get_mapped_log().
-    // This field has transaction lifetime.
-    thread_local static inline mapped_log_t s_log{};
 
 public:
     static inline bool is_session_open();
@@ -103,6 +95,7 @@ public:
 private:
     // These fields have transaction lifetime.
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
+    thread_local static inline mapped_log_t s_log{};
 
     thread_local static inline mapped_data_t<locators_t> s_private_locators;
     thread_local static inline gaia::db::index::indexes_t s_local_indexes{};
@@ -115,6 +108,9 @@ private:
     thread_local static inline mapped_data_t<counters_t> s_shared_counters;
     thread_local static inline mapped_data_t<data_t> s_shared_data;
     thread_local static inline mapped_data_t<id_index_t> s_shared_id_index;
+
+    thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
+    thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
 
     thread_local static inline int s_session_socket = -1;
 

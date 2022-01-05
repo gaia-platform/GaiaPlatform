@@ -5,6 +5,5 @@ table gaia_table {
     is_system:bool;
     binary_schema:[uint8];
     serialization_template:[uint8];
-    hash:string;
 }
 root_type gaia_table;

@@ -164,7 +164,6 @@ int main(int argc, char* argv[])
     catch (gaia_exception& e)
     {
         cerr << "Exception while generating JSON: '" << e.what() << "'." << endl;
-        gaia::db::rollback_transaction();
     }
 
     gaia::db::end_session();
