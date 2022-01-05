@@ -26,9 +26,6 @@ extern int g_total_hours;
 extern int g_high_grade_hours;
 extern int g_low_grade_hours;
 
-/**
- * Ensure that is possible to intermix cpp code with declarative code.
- */
 class test_metarule3 : public db_catalog_test_base_t
 {
 public:
