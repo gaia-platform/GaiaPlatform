@@ -274,7 +274,7 @@ void index_builder_t::update_index(
     auto obj = offset_to_ptr(log_record.new_offset);
     auto payload = (obj) ? reinterpret_cast<const uint8_t*>(obj->data()) : nullptr;
 
-    switch (log_record.operation)
+    switch (log_record.operation())
     {
     case gaia_operation_t::create:
         index_builder_t::update_index(
@@ -365,9 +365,9 @@ void index_builder_t::update_indexes_from_txn_log(
     for (size_t i = 0; i < records.record_count; ++i)
     {
         const auto& log_record = records.log_records[i];
-        if ((log_record.operation == gaia_operation_t::remove || log_record.operation == gaia_operation_t::create)
+        if ((log_record.operation() == gaia_operation_t::remove || log_record.operation() == gaia_operation_t::create)
             && offset_to_ptr(
-                   log_record.operation == gaia_operation_t::remove
+                   log_record.operation() == gaia_operation_t::remove
                        ? log_record.old_offset
                        : log_record.new_offset)
                     ->type
@@ -379,7 +379,7 @@ void index_builder_t::update_indexes_from_txn_log(
                 has_cleared_cache = true;
             }
 
-            if (log_record.operation == gaia_operation_t::remove)
+            if (log_record.operation() == gaia_operation_t::remove)
             {
                 auto table_view = table_view_t(offset_to_ptr(log_record.old_offset));
                 dropped_types.push_back(table_view.table_type());
@@ -393,7 +393,7 @@ void index_builder_t::update_indexes_from_txn_log(
         auto& log_record = records.log_records[i];
         db_object_t* obj = nullptr;
 
-        if (log_record.operation == gaia_operation_t::remove)
+        if (log_record.operation() == gaia_operation_t::remove)
         {
             obj = offset_to_ptr(log_record.old_offset);
             ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
@@ -409,18 +409,18 @@ void index_builder_t::update_indexes_from_txn_log(
         {
             auto index_view = index_view_t(obj);
 
-            if (log_record.operation == gaia_operation_t::remove)
+            if (log_record.operation() == gaia_operation_t::remove)
             {
                 index::index_builder_t::drop_index(index_view);
             }
             // We only create the empty index after the post-create update operation because it is finally linked to the parent.
-            else if (log_record.operation == gaia_operation_t::update && last_index_operation == gaia_operation_t::create)
+            else if (log_record.operation() == gaia_operation_t::update && last_index_operation == gaia_operation_t::create)
             {
                 index::index_builder_t::create_empty_index(index_view, skip_catalog_integrity_check);
             }
 
             // Keep track of the last index operation in this txn.
-            last_index_operation = log_record.operation;
+            last_index_operation = log_record.operation();
             continue;
         }
 
