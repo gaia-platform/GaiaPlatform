@@ -163,6 +163,6 @@ bool rule_checker_t::is_valid_row(gaia::common::gaia_id_t row_id)
         return true;
     }
 
-    gaia::db::gaia_ptr_t row_ptr = gaia::db::gaia_ptr_t::open(row_id);
+    gaia::db::gaia_ptr_t row_ptr = gaia::db::gaia_ptr_t::from_gaia_id(row_id);
     return static_cast<bool>(row_ptr);
 }

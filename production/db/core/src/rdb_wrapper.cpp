@@ -25,7 +25,7 @@ namespace gaia
 namespace db
 {
 
-static const std::string c_message_rocksdb_not_initialized = "RocksDB database is not initialized.";
+static constexpr char c_message_rocksdb_not_initialized[] = "RocksDB database is not initialized.";
 
 void rdb_wrapper_t::open_txn_db(const rocksdb::Options& init_options, const rocksdb::TransactionDBOptions& opts)
 {

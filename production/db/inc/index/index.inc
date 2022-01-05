@@ -4,7 +4,6 @@
 /////////////////////////////////////////////
 
 // Index structure maintenance.
-
 template <typename T_structure, typename T_iterator>
 void index_t<T_structure, T_iterator>::insert_index_entry(index_key_t&& key, index_record_t record)
 {
@@ -29,7 +28,7 @@ void index_t<T_structure, T_iterator>::insert_index_entry(index_key_t&& key, ind
 }
 
 template <typename T_structure, typename T_iterator>
-void index_t<T_structure, T_iterator>::remove_index_entry_with_offsets(const std::unordered_set<gaia_offset_t>& offsets, gaia_txn_id_t gc_txn_id)
+void index_t<T_structure, T_iterator>::remove_index_entry_with_offset(const index_key_t& key, gaia_offset_t offset, gaia_txn_id_t gc_txn_id)
 {
     std::lock_guard lock(m_index_lock);
 
@@ -40,9 +39,11 @@ void index_t<T_structure, T_iterator>::remove_index_entry_with_offsets(const std
         return;
     }
 
-    for (auto it = m_data.begin(); it != m_data.end();)
+    auto range = m_data.equal_range(key);
+
+    for (auto& it = range.first; it != range.second;)
     {
-        if (offsets.find(it->second.offset) != offsets.end())
+        if (it->second.offset == offset)
         {
             it = m_data.erase(it);
         }

@@ -41,7 +41,9 @@ TEST(payload_types, type_holder_string)
 
     value.type = other_value.type = reflection::String;
     value.hold.string_value = "Alice";
+    value.is_null = false;
     other_value.hold.string_value = "Alyssa";
+    other_value.is_null = false;
 
     ASSERT_TRUE(value.compare(other_value) < 0);
     ASSERT_TRUE(other_value.compare(value) > 0);
@@ -55,7 +57,9 @@ TEST(payload_types, type_holder_vector)
 
     value.type = other_value.type = reflection::Vector;
     value.hold.vector_value = "Aloha";
+    value.is_null = false;
     other_value.hold.vector_value = "Hello";
+    other_value.is_null = false;
 
     ASSERT_TRUE(value.compare(other_value) < 0);
     ASSERT_TRUE(other_value.compare(value) > 0);
@@ -82,7 +86,9 @@ TEST(payload_types, type_holder_signed_integer)
     // Test signed comparison.
     value.type = other_value.type = reflection::Int;
     value.hold.integer_value = c_negated_integer_value;
+    value.is_null = false;
     other_value.hold.integer_value = c_integer_value;
+    other_value.is_null = false;
 
     ASSERT_EQ(-1, value.compare(other_value));
     ASSERT_EQ(1, other_value.compare(value));
@@ -97,7 +103,9 @@ TEST(payload_types, type_holder_unsigned_integer)
     // Test unsigned comparison.
     value.type = other_value.type = reflection::UInt;
     value.hold.integer_value = c_negated_integer_value;
+    value.is_null = false;
     other_value.hold.integer_value = c_integer_value;
+    other_value.is_null = false;
 
     ASSERT_EQ(1, value.compare(other_value));
     ASSERT_EQ(-1, other_value.compare(value));
@@ -110,8 +118,10 @@ TEST(payload_types, type_holder_float)
     data_holder_t other_value;
 
     value.type = other_value.type = reflection::Float;
+    value.is_null = false;
     value.hold.float_value = c_float_value;
     other_value.hold.float_value = c_another_float_value;
+    other_value.is_null = false;
 
     ASSERT_EQ(-1, value.compare(other_value));
     ASSERT_EQ(1, other_value.compare(value));
@@ -176,4 +186,15 @@ TEST(payload_types, type_holder_box_unbox_string)
     const char* str = value;
 
     ASSERT_TRUE(strcmp(str, "Hello") == 0);
+}
+
+TEST(payload_types, type_holder_null_empty_string_hash_compare)
+{
+    data_holder_t value = "";
+    data_holder_t nullstring;
+    nullstring.type = reflection::String;
+    nullstring.is_null = true;
+    nullstring.hold.string_value = nullptr;
+
+    ASSERT_TRUE(value.hash() != nullstring.hash());
 }

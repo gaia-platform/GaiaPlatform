@@ -106,9 +106,9 @@ const char* gaia_relationship_t::gaia_typename() {
     static const char* gaia_typename = "gaia_relationship_t";
     return gaia_typename;
 }
-gaia::common::gaia_id_t gaia_relationship_t::insert_row(const char* name, const char* to_parent_link_name, const char* to_child_link_name, uint8_t cardinality, bool parent_required, bool deprecated, uint16_t first_child_offset, uint16_t next_child_offset, uint16_t parent_offset, const std::vector<uint16_t>& parent_field_positions, const std::vector<uint16_t>& child_field_positions) {
+gaia::common::gaia_id_t gaia_relationship_t::insert_row(const char* name, const char* to_parent_link_name, const char* to_child_link_name, uint8_t cardinality, bool parent_required, bool deprecated, uint16_t first_child_offset, uint16_t next_child_offset, uint16_t prev_child_offset, uint16_t parent_offset, const std::vector<uint16_t>& parent_field_positions, const std::vector<uint16_t>& child_field_positions) {
     flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-    b.Finish(internal::Creategaia_relationshipDirect(b, name, to_parent_link_name, to_child_link_name, cardinality, parent_required, deprecated, first_child_offset, next_child_offset, parent_offset, &parent_field_positions, &child_field_positions));
+    b.Finish(internal::Creategaia_relationshipDirect(b, name, to_parent_link_name, to_child_link_name, cardinality, parent_required, deprecated, first_child_offset, next_child_offset, prev_child_offset, parent_offset, &parent_field_positions, &child_field_positions));
     return dac_object_t::insert_row(b);
 }
 gaia::direct_access::dac_container_t<c_gaia_type_gaia_relationship, gaia_relationship_t> gaia_relationship_t::list() {
@@ -137,6 +137,9 @@ uint16_t gaia_relationship_t::first_child_offset() const {
 }
 uint16_t gaia_relationship_t::next_child_offset() const {
     return GET(next_child_offset);
+}
+uint16_t gaia_relationship_t::prev_child_offset() const {
+    return GET(prev_child_offset);
 }
 uint16_t gaia_relationship_t::parent_offset() const {
     return GET(parent_offset);

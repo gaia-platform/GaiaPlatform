@@ -155,10 +155,6 @@ inline void allocate_object(
         // Initialize the new chunk.
         chunk_manager->initialize(new_chunk_offset);
 
-        // Before we allocate, persist current chunk ID in txn log, for access
-        // on the server in case we crash.
-        gaia::db::get_mapped_log()->data()->current_chunk = new_chunk_offset;
-
         // Allocate from new chunk.
         object_offset = chunk_manager->allocate(size + c_db_object_header_size);
     }
