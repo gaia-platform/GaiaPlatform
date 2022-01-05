@@ -24,7 +24,12 @@ catalog::index_type_t base_index_t::type() const
 
 common::gaia_type_t base_index_t::table_type() const
 {
-    return m_table_type;
+    return m_key_schema.table_type;
+}
+
+const index_key_schema_t& base_index_t::key_schema() const
+{
+    return m_key_schema;
 }
 
 bool base_index_t::is_unique() const

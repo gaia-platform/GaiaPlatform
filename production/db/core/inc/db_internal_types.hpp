@@ -19,7 +19,6 @@
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
-#include "base_index.hpp"
 #include "memory_types.hpp"
 
 namespace gaia
@@ -69,13 +68,30 @@ constexpr char c_gaia_mem_id_index_prefix[] = "gaia_mem_id_index_";
 constexpr char c_gaia_mem_txn_log_prefix[] = "gaia_mem_txn_log_";
 constexpr char c_gaia_internal_txn_log_prefix[] = "gaia_internal_txn_log_";
 
+#if __has_feature(thread_sanitizer)
+// We set the maximum number of locators to 2^29 in TSan builds, which reduces
+// the data segment size from 256GB to 32GB. This seems small enough to avoid
+// ENOMEM errors when mapping the data segment under TSan. Because our chunk
+// address space is unchanged (still 2^16 4MB chunks), we could now segfault if
+// we allocate too many chunks! However, given that we still have room for 1
+// minimum-sized (64B) object version per locator, this is unlikely, so it's
+// probably acceptable for TSan builds (since they're not intended to be used
+// in production). If we do encounter this issue, then we can add explicit
+// checks to chunk allocation: we just need to define a new constant like
+// constexpr size_t c_max_chunks = sizeof(data_t) / c_chunk_size_in_bytes;
+// However, this would introduce a circular dependency between the memory
+// manager headers and this header (which probably indicates excessive
+// modularization).
+constexpr size_t c_max_locators = (1ULL << 29) - 1;
+#else
 // We allow as many locators as the number of 64B objects (the minimum size)
-// that will fit into 256GB, or 2^38 / 2^6 = 2^32. We also need to account for
-// the fact that offsets are 32 bits, and that the first entry of the locators
-// array must be reserved, so we subtract 1.
+// that will fit into the data segment size of 256GB, or 2^38 / 2^6 = 2^32. We
+// also need to account for the fact that offsets are 32 bits, and that the
+// first entry of the locators array must be reserved, so we subtract 1.
 constexpr size_t c_max_locators = (1ULL << 32) - 1;
+#endif
 
-// With 2^32 objects, 2^20 hash buckets bounds the average hash chain length to
+// With 2^32 locators, 2^20 hash buckets bounds the average hash chain length to
 // 2^12. This is still prohibitive overhead for traversal on each reference
 // lookup (given that each node traversal is effectively random-access), but we
 // should be able to solve this by storing locators directly in each object's
@@ -104,9 +120,6 @@ struct hash_node_t
 struct txn_log_t
 {
     gaia_txn_id_t begin_ts;
-    // The current chunk doesn't strictly need to be stored here; this is just a
-    // convenient place for shared state between the client and server.
-    memory_manager::chunk_offset_t current_chunk;
     size_t record_count;
 
     struct log_record_t
@@ -114,8 +127,6 @@ struct txn_log_t
         gaia_locator_t locator;
         gaia_offset_t old_offset;
         gaia_offset_t new_offset;
-        common::gaia_id_t deleted_id;
-        gaia_operation_t operation;
 
         friend std::ostream& operator<<(std::ostream& os, const log_record_t& lr)
         {
@@ -125,12 +136,32 @@ struct txn_log_t
                << lr.old_offset
                << "\tnew_offset: "
                << lr.new_offset
-               << "\tdeleted_id: "
-               << lr.deleted_id
                << "\toperation: "
-               << lr.operation
+               << lr.operation()
                << std::endl;
             return os;
+        }
+
+        inline gaia_operation_t operation() const
+        {
+            bool is_old_offset_valid = (old_offset != c_invalid_gaia_offset);
+            bool is_new_offset_valid = (new_offset != c_invalid_gaia_offset);
+            if (is_old_offset_valid && is_new_offset_valid)
+            {
+                return gaia_operation_t::update;
+            }
+            else if (!is_old_offset_valid && is_new_offset_valid)
+            {
+                return gaia_operation_t::create;
+            }
+            else if (is_old_offset_valid && !is_new_offset_valid)
+            {
+                return gaia_operation_t::remove;
+            }
+            else
+            {
+                ASSERT_UNREACHABLE("At least one offset in a log record must be valid!");
+            }
         }
     };
 
@@ -139,7 +170,6 @@ struct txn_log_t
     friend std::ostream& operator<<(std::ostream& os, const txn_log_t& l)
     {
         os << "begin_ts: " << l.begin_ts << std::endl;
-        os << "current_chunk: " << l.current_chunk << std::endl;
         os << "record_count: " << l.record_count << std::endl;
         for (size_t i = 0; i < l.record_count; ++i)
         {
@@ -197,7 +227,7 @@ struct id_index_t
 // These are types meant to access index types from the client/server.
 namespace index
 {
-
+class base_index_t;
 typedef std::shared_ptr<base_index_t> db_index_t;
 typedef std::unordered_map<common::gaia_id_t, db_index_t> indexes_t;
 

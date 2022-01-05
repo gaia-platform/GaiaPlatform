@@ -150,14 +150,14 @@ TEST_F(db_client_test, creation_fail_for_invalid_type)
 TEST_F(db_client_test, gaia_ptr_no_transaction_fail)
 {
     begin_transaction();
-    gaia_ptr_t node1 = gaia_ptr_t::open(node1_id);
+    gaia_ptr_t node1 = gaia_ptr_t::from_gaia_id(node1_id);
     commit_transaction();
 
     // Create with existent type fail
     EXPECT_THROW(gaia_ptr_t::create(type1, 0, ""), no_open_transaction);
     EXPECT_THROW(gaia_ptr_t::create(99999, type1, 0, ""), no_open_transaction);
     EXPECT_THROW(gaia_ptr_t::create(99999, type1, 5, 0, ""), no_open_transaction);
-    EXPECT_THROW(gaia_ptr_t::open(node1_id), no_open_transaction);
+    EXPECT_THROW(gaia_ptr_t::from_gaia_id(node1_id), no_open_transaction);
     EXPECT_THROW(node1.id(), no_open_transaction);
     EXPECT_THROW(node1.type(), no_open_transaction);
     EXPECT_THROW(node1.data_size(), no_open_transaction);
@@ -179,7 +179,7 @@ TEST_F(db_client_test, gaia_ptr_no_transaction_fail)
     //    EXPECT_THROW(gaia_ptr_t::create(type3, 0, 0), transaction_not_open);
     //    EXPECT_THROW(gaia_ptr_t::create(99999, type3, 0, 0), transaction_not_open);
     //    EXPECT_THROW(gaia_ptr_t::create(99999, type3, 5, 0, 0), transaction_not_open);
-    //    EXPECT_THROW(gaia_ptr_t::open(99999), transaction_not_open);
+    //    EXPECT_THROW(gaia_ptr_t::from_gaia_id(99999), transaction_not_open);
 }
 
 TEST_F(db_client_test, read_data)
@@ -188,10 +188,10 @@ TEST_F(db_client_test, read_data)
     {
         std::cerr << std::endl;
         std::cerr << "*** Update payload and verify" << std::endl;
-        gaia_ptr_t node1 = gaia_ptr_t::open(node1_id);
-        gaia_ptr_t node2 = gaia_ptr_t::open(node2_id);
-        gaia_ptr_t node3 = gaia_ptr_t::open(node3_id);
-        gaia_ptr_t node4 = gaia_ptr_t::open(node4_id);
+        gaia_ptr_t node1 = gaia_ptr_t::from_gaia_id(node1_id);
+        gaia_ptr_t node2 = gaia_ptr_t::from_gaia_id(node2_id);
+        gaia_ptr_t node3 = gaia_ptr_t::from_gaia_id(node3_id);
+        gaia_ptr_t node4 = gaia_ptr_t::from_gaia_id(node4_id);
         print_node(node1);
         print_node(node2);
         print_node(node3);
@@ -211,7 +211,7 @@ TEST_F(db_client_test, update_payload)
     {
         std::cerr << std::endl;
         std::cerr << "*** Update payload and verify" << std::endl;
-        gaia_ptr_t node1 = gaia_ptr_t::open(node1_id);
+        gaia_ptr_t node1 = gaia_ptr_t::from_gaia_id(node1_id);
         print_node(node1);
         node1.update_payload(strlen(payload), payload);
         print_node(node1);
@@ -223,7 +223,7 @@ TEST_F(db_client_test, update_payload)
     {
         std::cerr << std::endl;
         std::cerr << "*** Reload data and verify update" << std::endl;
-        gaia_ptr_t node1 = gaia_ptr_t::open(node1_id);
+        gaia_ptr_t node1 = gaia_ptr_t::from_gaia_id(node1_id);
         print_node(node1);
         EXPECT_STREQ(node1.data(), payload);
     }
@@ -237,7 +237,7 @@ TEST_F(db_client_test, update_payload_rollback)
     {
         std::cerr << std::endl;
         std::cerr << "*** Update payload and verify" << std::endl;
-        gaia_ptr_t node1 = gaia_ptr_t::open(node1_id);
+        gaia_ptr_t node1 = gaia_ptr_t::from_gaia_id(node1_id);
         print_node(node1);
         node1.update_payload(strlen(payload), payload);
         print_node(node1);
@@ -249,7 +249,7 @@ TEST_F(db_client_test, update_payload_rollback)
     {
         std::cerr << std::endl;
         std::cerr << "*** Reload data and verify update" << std::endl;
-        gaia_ptr_t node1 = gaia_ptr_t::open(node1_id);
+        gaia_ptr_t node1 = gaia_ptr_t::from_gaia_id(node1_id);
         print_node(node1);
         EXPECT_EQ(node1.data(), nullptr);
     }

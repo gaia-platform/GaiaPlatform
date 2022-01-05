@@ -204,6 +204,9 @@ data_holder_t convert_to_data_holder(const Datum& value, data_type_t value_type)
              errhint("Unhandled data_type_t '%d'.", value_type)));
     }
 
+    // TODO: this code needs to be restructured for null support.
+    data_holder.is_null = false;
+
     switch (value_type)
     {
     case data_type_t::e_bool:
@@ -1025,7 +1028,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
         }
         else if (modify_operation_type == modify_operation_type_t::update)
         {
-            record = gaia_ptr_t::open(gaia_id);
+            record = gaia_ptr_t::from_gaia_id(gaia_id);
 
             // Only update payload if it has changed.
             if (record.data_size() != m_current_payload->size()
@@ -1153,7 +1156,7 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
 {
     try
     {
-        auto record = gaia_ptr_t::open(gaia_id);
+        auto record = gaia_ptr_t::from_gaia_id(gaia_id);
         if (!record)
         {
             ereport(
