@@ -23,19 +23,19 @@ protected:
     gaia_one_to_many_test()
         : db_catalog_test_base_t(std::string("addr_book.ddl")){};
 
-    employee_t insert_employee(const std::string& name, const std::string& surname)
+    employee_waynetype insert_employee(const std::string& name, const std::string& surname)
     {
         employee_writer ew;
         ew.name_first = name.c_str();
         ew.name_last = surname.c_str();
-        return employee_t::get(ew.insert_row());
+        return employee_waynetype::get(ew.insert_row());
     }
 
-    address_t insert_address(const std::string& city)
+    address_waynetype insert_address(const std::string& city)
     {
         address_writer aw;
         aw.city = city.c_str();
-        return address_t::get(aw.insert_row());
+        return address_waynetype::get(aw.insert_row());
     }
 };
 

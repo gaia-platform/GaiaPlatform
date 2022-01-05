@@ -34,7 +34,7 @@ int count_rows()
 {
     // Primary method for scanning objects:
     int count = 0;
-    for (auto e : employee_t::list())
+    for (auto e : employee_waynetype::list())
     {
         ++count;
     }
@@ -42,12 +42,12 @@ int count_rows()
 }
 
 // Utility function that creates one named employee row.
-employee_t create_employee(const char* name)
+employee_waynetype create_employee(const char* name)
 {
     auto w = employee_writer();
     w.name_first = name;
     gaia_id_t id = w.insert_row();
-    auto e = employee_t::get(id);
+    auto e = employee_waynetype::get(id);
     EXPECT_STREQ(e.name_first(), name);
     return e;
 }
@@ -60,7 +60,7 @@ TEST_F(dac_object_test, invalid_instances)
     begin_transaction();
 
     // A default instance should be invalid.
-    employee_t e;
+    employee_waynetype e;
     EXPECT_FALSE(e);
 
     // Operations on the invalid instance should throw invalid_object_state.
@@ -68,8 +68,8 @@ TEST_F(dac_object_test, invalid_instances)
     EXPECT_THROW(e.delete_row(), invalid_object_state);
 
     // Attempting to get a non-existing object should throw invalid_object_id.
-    EXPECT_THROW(employee_t::get(c_invalid_gaia_id), invalid_object_id);
-    EXPECT_THROW(employee_t::get(1111111), invalid_object_id);
+    EXPECT_THROW(employee_waynetype::get(c_invalid_gaia_id), invalid_object_id);
+    EXPECT_THROW(employee_waynetype::get(1111111), invalid_object_id);
 
     rollback_transaction();
 }
@@ -115,7 +115,7 @@ TEST_F(dac_object_test, net_set_get)
     auto_transaction_t txn;
     auto eid = w.insert_row();
     EXPECT_STREQ(w.name_last.c_str(), "Smith");
-    auto employee = employee_t::get(eid);
+    auto employee = employee_waynetype::get(eid);
     EXPECT_STREQ(w.name_last.c_str(), employee.name_last());
 }
 
@@ -133,7 +133,7 @@ TEST_F(dac_object_test, new_insert_get)
 {
     begin_transaction();
 
-    auto e = employee_t::get(employee_writer().insert_row());
+    auto e = employee_waynetype::get(employee_writer().insert_row());
     auto name = e.name_first();
     auto hire_date = e.hire_date();
 
@@ -160,12 +160,12 @@ TEST_F(dac_object_test, new_get)
 TEST_F(dac_object_test, existing_insert_field)
 {
     begin_transaction();
-    auto e = employee_t::get(employee_writer().insert_row());
+    auto e = employee_waynetype::get(employee_writer().insert_row());
     auto writer = e.writer();
 
     // This creates a new row.
     auto eid = writer.insert_row();
-    EXPECT_NE(e.gaia_id(), employee_t::get(eid).gaia_id());
+    EXPECT_NE(e.gaia_id(), employee_waynetype::get(eid).gaia_id());
     commit_transaction();
 }
 
@@ -181,7 +181,7 @@ TEST_F(dac_object_test, read_back_scan)
     commit_transaction();
 
     begin_transaction();
-    auto i = employee_t::list().begin();
+    auto i = employee_waynetype::list().begin();
     auto e = *i;
     EXPECT_EQ(eid, e.gaia_id());
     EXPECT_STREQ("Howard", e.name_first());
@@ -199,7 +199,7 @@ void update_read_back(bool update_flag)
     create_employee("Henry");
     txn.commit();
 
-    auto i = employee_t::list().begin();
+    auto i = employee_waynetype::list().begin();
     auto e = *i;
     auto w = e.writer();
     w.name_first = "Herald";
@@ -220,7 +220,7 @@ void update_read_back(bool update_flag)
     }
     txn.commit();
 
-    i = employee_t::list().begin();
+    i = employee_waynetype::list().begin();
     e = *i;
     if (update_flag)
     {
@@ -277,7 +277,7 @@ TEST_F(dac_object_test, new_delete_insert)
 TEST_F(dac_object_test, no_txn)
 {
     EXPECT_THROW(create_employee("Harold"), no_open_transaction);
-    // NOTE: the employee_t object is leaked here
+    // NOTE: the employee_waynetype object is leaked here
 }
 
 // Scan beyond the end of the iterator.
@@ -286,17 +286,17 @@ TEST_F(dac_object_test, scan_past_end)
     auto_transaction_t txn;
     create_employee("Hvitserk");
     int count = 0;
-    auto e = employee_t::list().begin();
-    while (e != employee_t::list().end())
+    auto e = employee_waynetype::list().begin();
+    while (e != employee_waynetype::list().end())
     {
         count++;
         e++;
     }
     EXPECT_EQ(count, 1);
     e++;
-    EXPECT_EQ(e == employee_t::list().end(), true);
+    EXPECT_EQ(e == employee_waynetype::list().end(), true);
     e++;
-    EXPECT_EQ(e == employee_t::list().end(), true);
+    EXPECT_EQ(e == employee_waynetype::list().end(), true);
 }
 
 // Test pre/post increment of iterator.
@@ -306,16 +306,16 @@ TEST_F(dac_object_test, pre_post_iterator)
     create_employee("Hvitserk");
     create_employee("Hubert");
     create_employee("Humphrey");
-    auto e = employee_t::list().begin();
+    auto e = employee_waynetype::list().begin();
     EXPECT_STREQ((*e).name_first(), "Hvitserk");
     EXPECT_STREQ((*e++).name_first(), "Hvitserk");
     EXPECT_STREQ((*e).name_first(), "Hubert");
     EXPECT_STREQ((*++e).name_first(), "Humphrey");
     EXPECT_STREQ((*e).name_first(), "Humphrey");
     e++;
-    EXPECT_EQ(e == employee_t::list().end(), true);
+    EXPECT_EQ(e == employee_waynetype::list().end(), true);
     ++e;
-    EXPECT_EQ(e == employee_t::list().end(), true);
+    EXPECT_EQ(e == employee_waynetype::list().end(), true);
 }
 
 // Create row, try getting row from wrong type
@@ -328,14 +328,14 @@ TEST_F(dac_object_test, read_wrong_type)
     begin_transaction();
     try
     {
-        auto a = address_t::get(eid);
+        auto a = address_waynetype::get(eid);
     }
     catch (const exception& e)
     {
         string what = string(e.what());
-        EXPECT_EQ(what.find("Requesting Gaia type 'address_t'") != string::npos, true);
+        EXPECT_EQ(what.find("Requesting Gaia type 'address_waynetype'") != string::npos, true);
     }
-    EXPECT_THROW(address_t::get(eid), invalid_object_type);
+    EXPECT_THROW(address_waynetype::get(eid), invalid_object_type);
     commit_transaction();
 }
 
@@ -346,7 +346,7 @@ TEST_F(dac_object_test, delete_wrong_type)
     commit_transaction();
 
     begin_transaction();
-    EXPECT_THROW(address_t::delete_row(eid), invalid_object_type);
+    EXPECT_THROW(address_waynetype::delete_row(eid), invalid_object_type);
     commit_transaction();
 }
 
@@ -359,9 +359,9 @@ TEST_F(dac_object_test, read_back_id)
 
     txn.commit();
 
-    auto e = employee_t::get(eid);
+    auto e = employee_waynetype::get(eid);
     EXPECT_STREQ("Howard", e.name_first());
-    e = employee_t::get(eid2);
+    e = employee_waynetype::get(eid2);
     EXPECT_STREQ("Henry", e.name_first());
     // Change the field and verify that original value is intact
     auto writer = e.writer();
@@ -386,7 +386,7 @@ TEST_F(dac_object_test, new_del_field_ref)
     // create GAIA-64 scenario
     begin_transaction();
 
-    auto e = employee_t::get(employee_writer().insert_row());
+    auto e = employee_waynetype::get(employee_writer().insert_row());
     e.delete_row();
     // can't access data from a deleted row
     EXPECT_THROW(e.name_first(), invalid_object_state);
@@ -422,7 +422,7 @@ TEST_F(dac_object_test, found_del_ins)
     commit_transaction();
 
     begin_transaction();
-    e = employee_t::get(eid);
+    e = employee_waynetype::get(eid);
     e.writer().name_first = "Hudson";
     commit_transaction();
 }
@@ -435,7 +435,7 @@ TEST_F(dac_object_test, found_del_update)
     commit_transaction();
 
     begin_transaction();
-    auto e = employee_t::get(eid);
+    auto e = employee_waynetype::get(eid);
     auto w = e.writer();
     e.delete_row();
     EXPECT_THROW(w.update_row(), invalid_object_id);
@@ -451,10 +451,10 @@ TEST_F(dac_object_test, found_del_update)
 // writer.insert_row();
 
 // Simplified model doesn't allow this because you
-// you cannot create a new employee_t() and the
-// employee_t::writer method returns an employee_writer
-// not an employee_t object.  The update and delete
-// methods require a reference to an employee_t object
+// you cannot create a new employee_waynetype() and the
+// employee_waynetype::writer method returns an employee_writer
+// not an employee_waynetype object.  The update and delete
+// methods require a reference to an employee_waynetype object
 // and not a writer object.  The insert method
 // only takes a writer object.
 
@@ -478,7 +478,7 @@ TEST_F(dac_object_test, auto_txn_begin)
 
     auto writer = employee_writer();
     writer.name_last = "Hawkins";
-    employee_t e = employee_t::get(writer.insert_row());
+    employee_waynetype e = employee_waynetype::get(writer.insert_row());
     txn.commit();
 
     EXPECT_STREQ(e.name_last(), "Hawkins");
@@ -499,7 +499,7 @@ TEST_F(dac_object_test, auto_txn)
     auto writer = employee_writer();
 
     writer.name_last = "Hawkins";
-    employee_t e = employee_t::get(writer.insert_row());
+    employee_waynetype e = employee_waynetype::get(writer.insert_row());
     txn.commit();
 
     // Expect an exception since we're not in a transaction
@@ -524,7 +524,7 @@ TEST_F(dac_object_test, auto_txn_rollback)
     }
     // Transaction was rolled back
     auto_transaction_t txn;
-    EXPECT_THROW(employee_t::get(id), invalid_object_id);
+    EXPECT_THROW(employee_waynetype::get(id), invalid_object_id);
 }
 
 TEST_F(dac_object_test, writer_value_ref)
@@ -532,7 +532,7 @@ TEST_F(dac_object_test, writer_value_ref)
     begin_transaction();
     employee_writer w1 = employee_writer();
     w1.name_last = "Gretzky";
-    employee_t e = employee_t::get(w1.insert_row());
+    employee_waynetype e = employee_waynetype::get(w1.insert_row());
     commit_transaction();
 
     begin_transaction();
@@ -558,7 +558,7 @@ void insert_thread(bool new_thread)
 
     begin_transaction();
     {
-        g_inserted_id = employee_t::insert_row(g_insert, nullptr, nullptr, 0, nullptr, nullptr);
+        g_inserted_id = employee_waynetype::insert_row(g_insert, nullptr, nullptr, 0, nullptr, nullptr);
     }
     commit_transaction();
 
@@ -574,7 +574,7 @@ void update_thread(gaia_id_t id)
     begin_session();
     begin_transaction();
     {
-        employee_t e = employee_t::get(id);
+        employee_waynetype e = employee_waynetype::get(id);
         employee_writer w = e.writer();
         w.name_first = g_update;
         w.update_row();
@@ -588,7 +588,7 @@ void delete_thread(gaia_id_t id)
     begin_session();
     begin_transaction();
     {
-        employee_t::delete_row(id);
+        employee_waynetype::delete_row(id);
     }
     commit_transaction();
     end_session();
@@ -602,7 +602,7 @@ TEST_F(dac_object_test, thread_insert)
     t.join();
     begin_transaction();
     {
-        employee_t e = employee_t::get(g_inserted_id);
+        employee_waynetype e = employee_waynetype::get(g_inserted_id);
         EXPECT_STREQ(e.name_first(), g_insert);
     }
     commit_transaction();
@@ -615,7 +615,7 @@ TEST_F(dac_object_test, thread_update)
     insert_thread(false);
 
     begin_transaction();
-    employee_t e = employee_t::get(g_inserted_id);
+    employee_waynetype e = employee_waynetype::get(g_inserted_id);
     EXPECT_STREQ(e.name_first(), g_insert);
 
     // Update the same record in a different transaction and commit.
@@ -644,7 +644,7 @@ TEST_F(dac_object_test, thread_update_conflict)
         thread t = thread(update_thread, g_inserted_id);
         t.join();
 
-        employee_writer w = employee_t::get(g_inserted_id).writer();
+        employee_writer w = employee_waynetype::get(g_inserted_id).writer();
         w.name_first = "Violation";
         w.update_row();
     }
@@ -654,7 +654,7 @@ TEST_F(dac_object_test, thread_update_conflict)
     {
         // Actual value here is g_update, which shows that my update never
         // went through.
-        EXPECT_STREQ(employee_t::get(g_inserted_id).name_first(), g_update);
+        EXPECT_STREQ(employee_waynetype::get(g_inserted_id).name_first(), g_update);
     }
     commit_transaction();
 }
@@ -666,8 +666,8 @@ TEST_F(dac_object_test, thread_update_other_row)
 
     begin_transaction();
     {
-        row1_id = employee_t::insert_row(g_insert, nullptr, nullptr, 0, nullptr, nullptr);
-        row2_id = employee_t::insert_row(g_insert, nullptr, nullptr, 0, nullptr, nullptr);
+        row1_id = employee_waynetype::insert_row(g_insert, nullptr, nullptr, 0, nullptr, nullptr);
+        row2_id = employee_waynetype::insert_row(g_insert, nullptr, nullptr, 0, nullptr, nullptr);
     }
     commit_transaction();
 
@@ -677,7 +677,7 @@ TEST_F(dac_object_test, thread_update_other_row)
         thread t = thread(update_thread, row1_id);
         t.join();
 
-        employee_writer w = employee_t::get(row2_id).writer();
+        employee_writer w = employee_waynetype::get(row2_id).writer();
         w.name_first = "No Violation";
         w.update_row();
     }
@@ -687,8 +687,8 @@ TEST_F(dac_object_test, thread_update_other_row)
     {
         // Row 1 should have been updated by the update thread.
         // Row 2 should have been updated by this thread.
-        EXPECT_STREQ(employee_t::get(row1_id).name_first(), g_update);
-        EXPECT_STREQ(employee_t::get(row2_id).name_first(), "No Violation");
+        EXPECT_STREQ(employee_waynetype::get(row1_id).name_first(), g_update);
+        EXPECT_STREQ(employee_waynetype::get(row2_id).name_first(), "No Violation");
     }
     commit_transaction();
 }
@@ -706,14 +706,14 @@ TEST_F(dac_object_test, thread_delete)
 
         // The change should not be visible in our transaction and
         // we should be able to access the record just fine.
-        EXPECT_STREQ(employee_t::get(g_inserted_id).name_first(), g_insert);
+        EXPECT_STREQ(employee_waynetype::get(g_inserted_id).name_first(), g_insert);
     }
     commit_transaction();
 
     begin_transaction();
     {
         // Now this should fail.
-        EXPECT_THROW(employee_t::get(g_inserted_id).name_first(), invalid_object_id);
+        EXPECT_THROW(employee_waynetype::get(g_inserted_id).name_first(), invalid_object_id);
     }
     commit_transaction();
 }
@@ -728,8 +728,8 @@ TEST_F(dac_object_test, thread_insert_update_delete)
 
     begin_transaction();
     {
-        row1_id = employee_t::insert_row(local, nullptr, nullptr, 0, nullptr, nullptr);
-        row2_id = employee_t::insert_row("Red Shirt", nullptr, nullptr, 0, nullptr, nullptr);
+        row1_id = employee_waynetype::insert_row(local, nullptr, nullptr, 0, nullptr, nullptr);
+        row2_id = employee_waynetype::insert_row("Red Shirt", nullptr, nullptr, 0, nullptr, nullptr);
     }
     commit_transaction();
 
@@ -741,19 +741,19 @@ TEST_F(dac_object_test, thread_insert_update_delete)
         t1.join();
         t2.join();
         t3.join();
-        EXPECT_STREQ(employee_t::get(row1_id).name_first(), local);
-        EXPECT_STREQ(employee_t::get(row2_id).name_first(), "Red Shirt");
+        EXPECT_STREQ(employee_waynetype::get(row1_id).name_first(), local);
+        EXPECT_STREQ(employee_waynetype::get(row2_id).name_first(), "Red Shirt");
     }
     commit_transaction();
 
     begin_transaction();
     {
         // Deleted row2.
-        EXPECT_THROW(employee_t::get(row2_id).name_first(), invalid_object_id);
+        EXPECT_THROW(employee_waynetype::get(row2_id).name_first(), invalid_object_id);
         // Inserted a new row
-        EXPECT_STREQ(employee_t::get(g_inserted_id).name_first(), g_insert);
+        EXPECT_STREQ(employee_waynetype::get(g_inserted_id).name_first(), g_insert);
         // Updated row1.
-        EXPECT_STREQ(employee_t::get(row1_id).name_first(), g_update);
+        EXPECT_STREQ(employee_waynetype::get(row1_id).name_first(), g_update);
     }
     commit_transaction();
 };
@@ -764,7 +764,7 @@ TEST_F(dac_object_test, thread_delete_conflict)
     insert_thread(false);
     begin_transaction();
     {
-        employee_t::delete_row(g_inserted_id);
+        employee_waynetype::delete_row(g_inserted_id);
         thread t1 = thread(delete_thread, g_inserted_id);
         t1.join();
     }
@@ -773,13 +773,13 @@ TEST_F(dac_object_test, thread_delete_conflict)
     begin_transaction();
     {
         // Expect the row to be deleted so another attempt to delete should fail.
-        EXPECT_THROW(employee_t::delete_row(g_inserted_id), invalid_object_id);
+        EXPECT_THROW(employee_waynetype::delete_row(g_inserted_id), invalid_object_id);
     }
     commit_transaction();
 };
 
 // Pass by reference.
-void employee_func_ref(const employee_t& e, const char* first_name)
+void employee_func_ref(const employee_waynetype& e, const char* first_name)
 {
     begin_transaction();
     {
@@ -796,7 +796,7 @@ void employee_func_ref(const employee_t& e, const char* first_name)
 }
 
 // Pass by value, ensures copy constructor does the right thing.
-void employee_func_val(employee_t e, const char* first_name)
+void employee_func_val(employee_waynetype e, const char* first_name)
 {
     begin_transaction();
     {
@@ -818,8 +818,8 @@ TEST_F(dac_object_test, default_construction)
     // you can't do anything with.  However, now you can
     // set a variable to it later in the function, use it as
     // a member of a class, etc.
-    employee_t e;
-    address_t a;
+    employee_waynetype e;
+    address_waynetype a;
 
     employee_func_ref(e, nullptr);
     employee_func_val(e, nullptr);
@@ -857,7 +857,7 @@ TEST_F(dac_object_test, iter_arrow_deref)
     create_employee(emp_name);
     txn.commit();
 
-    dac_iterator_t<employee_t> emp_iter = employee_t::list().begin();
+    dac_iterator_t<employee_waynetype> emp_iter = employee_waynetype::list().begin();
     EXPECT_STREQ(emp_iter->name_first(), emp_name);
 }
 
@@ -865,10 +865,9 @@ TEST_F(dac_object_test, iter_arrow_deref)
 int count_names(size_t name_length)
 {
     int count = 0;
-    auto name_length_list = employee_t::list()
-                                .where([&](const employee_t& e) {
-                                    return strlen(e.name_first()) == name_length;
-                                });
+    auto name_length_list = employee_waynetype::list()
+                                .where([&](const employee_waynetype& e)
+                                       { return strlen(e.name_first()) == name_length; });
     for (const auto& e : name_length_list)
     {
         EXPECT_EQ(strlen(e.name_first()), name_length);
@@ -898,11 +897,11 @@ TEST_F(dac_object_test, list_filter)
     EXPECT_EQ(count_names(8), 2);
 
     // Filter for names ending in 'y'.
-    auto names_ending_with_y = employee_t::list()
-                                   .where([&](const employee_t& e) {
+    auto names_ending_with_y = employee_waynetype::list()
+                                   .where([&](const employee_waynetype& e)
+                                          {
                                        const char* first_name = e.name_first();
-                                       return first_name[strlen(first_name) - 1] == 'y';
-                                   });
+                                       return first_name[strlen(first_name) - 1] == 'y'; });
 
     for (const auto& e : names_ending_with_y)
     {
@@ -920,10 +919,10 @@ TEST_F(dac_object_test, array_insert)
 
     auto_transaction_t txn;
     const std::vector<int32_t> sales_by_quarter{q1_sales, q2_sales, q3_sales};
-    gaia_id_t id = customer_t::insert_row(customer_name, sales_by_quarter);
+    gaia_id_t id = customer_waynetype::insert_row(customer_name, sales_by_quarter);
     txn.commit();
 
-    auto c = customer_t::get(id);
+    auto c = customer_waynetype::get(id);
     EXPECT_TRUE(std::equal(sales_by_quarter.begin(), sales_by_quarter.end(), c.sales_by_quarter().data()));
 }
 
@@ -941,7 +940,7 @@ TEST_F(dac_object_test, array_writer)
     gaia_id_t id = w.insert_row();
     txn.commit();
 
-    auto c = customer_t::get(id);
+    auto c = customer_waynetype::get(id);
     EXPECT_STREQ(c.name(), customer_name);
     EXPECT_EQ(c.sales_by_quarter()[0], q1_sales);
     EXPECT_EQ(c.sales_by_quarter()[1], q2_sales);
@@ -951,7 +950,7 @@ TEST_F(dac_object_test, array_writer)
     w.update_row();
     txn.commit();
 
-    EXPECT_EQ(customer_t::get(id).sales_by_quarter()[2], q3_sales);
+    EXPECT_EQ(customer_waynetype::get(id).sales_by_quarter()[2], q3_sales);
 }
 
 // TESTCASE: Delete rows accessed through a list() iterator.
@@ -960,21 +959,21 @@ TEST_F(dac_object_test, array_writer)
 TEST_F(dac_object_test, delete_row_in_loop)
 {
     auto_transaction_t txn;
-    phone_t::insert_row("206", "Y", true);
-    phone_t::insert_row("425", "Y", true);
+    phone_waynetype::insert_row("206", "Y", true);
+    phone_waynetype::insert_row("425", "Y", true);
 
     int count = 0;
 
     // The following code will not work because of the iterator implementation.
 #if 0
-    for (auto p : phone_t::list())
+    for (auto p : phone_waynetype::list())
     {
         p.delete_row();
         count++;
     }
 #endif
     // This form of iteration should work.
-    for (auto p = phone_t::list().begin(); p != phone_t::list().end();)
+    for (auto p = phone_waynetype::list().begin(); p != phone_waynetype::list().end();)
     {
         auto pp = p++;
         (*pp).delete_row();

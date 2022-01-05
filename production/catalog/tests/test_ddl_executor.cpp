@@ -39,7 +39,8 @@ gaia_relationship_t find_relationship(
 
     auto it = std::find_if(
         out_relationships.begin(), out_relationships.end(),
-        [&](gaia_relationship_t& relationship) {
+        [&](gaia_relationship_t& relationship)
+        {
             return relationship.to_child_link_name() == field_name;
         });
 
@@ -52,7 +53,8 @@ gaia_relationship_t find_relationship(
 
     it = std::find_if(
         in_relationships.begin(), in_relationships.end(),
-        [&](gaia_relationship_t& relationship) {
+        [&](gaia_relationship_t& relationship)
+        {
             return relationship.to_parent_link_name() == field_name;
         });
 
@@ -302,7 +304,7 @@ TEST_F(ddl_executor_test, drop_table_with_data)
     w.name = "Customer 2";
     w.insert_row();
 
-    EXPECT_EQ(gaia::addr_book::customer_t::list().size(), 2);
+    EXPECT_EQ(gaia::addr_book::customer_waynetype::list().size(), 2);
     commit_transaction();
 
     ASSERT_NO_THROW(drop_table("addr_book", "customer", true));
@@ -313,7 +315,7 @@ TEST_F(ddl_executor_test, drop_table_with_data)
     // indeed erased).
     // TODO: Switch to other methods for testing after GAIAPLAT-1623.
     begin_transaction();
-    EXPECT_EQ(gaia::addr_book::customer_t::list().size(), 0);
+    EXPECT_EQ(gaia::addr_book::customer_waynetype::list().size(), 0);
     commit_transaction();
 }
 
@@ -591,7 +593,8 @@ TEST_F(ddl_executor_test, list_indexes)
         gaia_table_t::get(table_id).gaia_fields().begin(),
         gaia_table_t::get(table_id).gaia_fields().end(),
         back_inserter(unique_settings),
-        [](const auto& field) -> bool { return field.unique(); });
+        [](const auto& field) -> bool
+        { return field.unique(); });
 
     vector<bool> expected_unique_settings{true, false, false};
     ASSERT_EQ(unique_settings, expected_unique_settings);
@@ -618,11 +621,11 @@ TEST_F(ddl_executor_test, drop_relationship_with_data)
     address_writer.country = "United States";
     gaia_id_t schrute_farm_id = address_writer.insert_row();
 
-    gaia::addr_book::employee_t::get(schrute_id).addresses().connect(schrute_farm_id);
-    gaia::addr_book::employee_t::get(scott_id).reportees().connect(schrute_id);
+    gaia::addr_book::employee_waynetype::get(schrute_id).addresses().connect(schrute_farm_id);
+    gaia::addr_book::employee_waynetype::get(scott_id).reportees().connect(schrute_id);
 
-    EXPECT_EQ(gaia::addr_book::employee_t::get(schrute_id).manager().gaia_id(), scott_id);
-    EXPECT_EQ(gaia::addr_book::address_t::get(schrute_farm_id).owner().gaia_id(), schrute_id);
+    EXPECT_EQ(gaia::addr_book::employee_waynetype::get(schrute_id).manager().gaia_id(), scott_id);
+    EXPECT_EQ(gaia::addr_book::address_waynetype::get(schrute_farm_id).owner().gaia_id(), schrute_id);
 
     commit_transaction();
 
@@ -636,9 +639,9 @@ TEST_F(ddl_executor_test, drop_relationship_with_data)
     // TODO: Switch to other methods for testing after GAIAPLAT-1623.
     begin_transaction();
 
-    EXPECT_EQ(gaia::addr_book::employee_t::get(schrute_id).manager().gaia_id(), c_invalid_gaia_id);
-    EXPECT_EQ(gaia::addr_book::employee_t::get(scott_id).reportees().size(), 0);
-    EXPECT_EQ(gaia::addr_book::employee_t::get(schrute_id).addresses().size(), 0);
+    EXPECT_EQ(gaia::addr_book::employee_waynetype::get(schrute_id).manager().gaia_id(), c_invalid_gaia_id);
+    EXPECT_EQ(gaia::addr_book::employee_waynetype::get(scott_id).reportees().size(), 0);
+    EXPECT_EQ(gaia::addr_book::employee_waynetype::get(schrute_id).addresses().size(), 0);
 
     commit_transaction();
 }

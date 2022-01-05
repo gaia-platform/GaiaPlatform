@@ -95,7 +95,7 @@ TEST_F(test_tags_code, oninsert)
 
     // Creating a record should fire on_insert and on_change, but not on_update.
     gaia::db::begin_transaction();
-    auto student = student_t::get(student_t::insert_row("stu001", "Warren", 66, 3, 2.9));
+    auto student = student_waynetype::get(student_waynetype::insert_row("stu001", "Warren", 66, 3, 2.9));
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();
@@ -125,7 +125,7 @@ TEST_F(test_tags_code, oninsert)
 TEST_F(test_tags_code, onchange)
 {
     gaia::db::begin_transaction();
-    auto student = student_t::get(student_t::insert_row("stu001", "Warren", 66, 3, 2.9));
+    auto student = student_waynetype::get(student_waynetype::insert_row("stu001", "Warren", 66, 3, 2.9));
     gaia::db::commit_transaction();
 
     // Use the first set of rules.
@@ -168,7 +168,7 @@ TEST_F(test_tags_code, onchange)
 TEST_F(test_tags_code, onupdate)
 {
     gaia::db::begin_transaction();
-    auto student = student_t::get(student_t::insert_row("stu001", "Warren", 66, 3, 2.9));
+    auto student = student_waynetype::get(student_waynetype::insert_row("stu001", "Warren", 66, 3, 2.9));
     gaia::db::commit_transaction();
 
     // Use the first set of rules.
@@ -219,11 +219,11 @@ TEST_F(test_tags_code, multi_inserts)
     gaia::rules::subscribe_ruleset("test_tags");
 
     gaia::db::begin_transaction();
-    student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
-    student_t::get(student_t::insert_row("stu002", "Russell", 32, 4, 3.0));
-    student_t::get(student_t::insert_row("stu003", "Reuben", 26, 4, 3.0));
-    student_t::get(student_t::insert_row("stu004", "Rachael", 51, 4, 3.0));
-    student_t::get(student_t::insert_row("stu005", "Renee", 65, 4, 3.0));
+    student_waynetype::get(student_waynetype::insert_row("stu001", "Richard", 45, 4, 3.0));
+    student_waynetype::get(student_waynetype::insert_row("stu002", "Russell", 32, 4, 3.0));
+    student_waynetype::get(student_waynetype::insert_row("stu003", "Reuben", 26, 4, 3.0));
+    student_waynetype::get(student_waynetype::insert_row("stu004", "Rachael", 51, 4, 3.0));
+    student_waynetype::get(student_waynetype::insert_row("stu005", "Renee", 65, 4, 3.0));
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();
@@ -238,7 +238,7 @@ TEST_F(test_tags_code, basic_tags)
     gaia::rules::subscribe_ruleset("test_tags");
 
     gaia::db::begin_transaction();
-    registration_t::insert_row("reg00H", nullptr, nullptr, c_status_pending, c_grade_none);
+    registration_waynetype::insert_row("reg00H", nullptr, nullptr, c_status_pending, c_grade_none);
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();

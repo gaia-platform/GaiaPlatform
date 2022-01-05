@@ -124,7 +124,7 @@ gaia_id_t insert_incubator(const char* name, float min_temp, float max_temp)
     return w.insert_row();
 }
 
-void restore_sensor(sensor_t& sensor, float min_temp)
+void restore_sensor(sensor_waynetype& sensor, float min_temp)
 {
     sensor_writer w = sensor.writer();
     w.timestamp = 0;
@@ -132,7 +132,7 @@ void restore_sensor(sensor_t& sensor, float min_temp)
     w.update_row();
 }
 
-void restore_actuator(actuator_t& actuator)
+void restore_actuator(actuator_waynetype& actuator)
 {
     actuator_writer w = actuator.writer();
     w.timestamp = 0;
@@ -140,7 +140,7 @@ void restore_actuator(actuator_t& actuator)
     w.update_row();
 }
 
-void restore_incubator(incubator_t& incubator, float min_temp, float max_temp)
+void restore_incubator(incubator_waynetype& incubator, float min_temp, float max_temp)
 {
     incubator_writer w = incubator.writer();
     w.is_on = false;
@@ -161,7 +161,7 @@ void restore_incubator(incubator_t& incubator, float min_temp, float max_temp)
 
 void restore_default_values()
 {
-    for (auto& incubator : incubator_t::list())
+    for (auto& incubator : incubator_waynetype::list())
     {
         float min_temp, max_temp;
         if (strcmp(incubator.name(), c_chicken) == 0)
@@ -184,7 +184,7 @@ void init_storage()
 
     // If we already have inserted an incubator then our storage has already been
     // initialized.  Re-initialize the database to default values.
-    if (incubator_t::list().size())
+    if (incubator_waynetype::list().size())
     {
         restore_default_values();
         tx.commit();
@@ -192,19 +192,19 @@ void init_storage()
     }
 
     // Chicken Incubator: 2 sensors, 1 fan
-    auto incubator = incubator_t::get(
+    auto incubator = incubator_waynetype::get(
         insert_incubator(c_chicken, c_chicken_min, c_chicken_max));
     incubator.sensors().insert(
-        sensor_t::insert_row(c_sensor_a, 0, c_chicken_min));
+        sensor_waynetype::insert_row(c_sensor_a, 0, c_chicken_min));
     incubator.sensors().insert(
-        sensor_t::insert_row(c_sensor_c, 0, c_chicken_min));
-    incubator.actuators().insert(actuator_t::insert_row(c_actuator_a, 0, 0.0));
+        sensor_waynetype::insert_row(c_sensor_c, 0, c_chicken_min));
+    incubator.actuators().insert(actuator_waynetype::insert_row(c_actuator_a, 0, 0.0));
 
     // Puppy Incubator: 1 sensor, 2 fans
-    incubator = incubator_t::get(insert_incubator(c_puppy, c_puppy_min, c_puppy_max));
-    incubator.sensors().insert(sensor_t::insert_row(c_sensor_b, 0, c_puppy_min));
-    incubator.actuators().insert(actuator_t::insert_row(c_actuator_b, 0, 0.0));
-    incubator.actuators().insert(actuator_t::insert_row(c_actuator_c, 0, 0.0));
+    incubator = incubator_waynetype::get(insert_incubator(c_puppy, c_puppy_min, c_puppy_max));
+    incubator.sensors().insert(sensor_waynetype::insert_row(c_sensor_b, 0, c_puppy_min));
+    incubator.actuators().insert(actuator_waynetype::insert_row(c_actuator_b, 0, 0.0));
+    incubator.actuators().insert(actuator_waynetype::insert_row(c_actuator_c, 0, 0.0));
 
     tx.commit();
 }
@@ -213,7 +213,7 @@ void dump_db()
 {
     begin_transaction();
     printf("\n");
-    for (const gaia::mink::incubator_t& i : incubator_t::list())
+    for (const gaia::mink::incubator_waynetype& i : incubator_waynetype::list())
     {
         printf("-----------------------------------------\n");
         printf("%-8s|power: %-3s|min: %5.1lf|max: %5.1lf\n", i.name(), i.is_on() ? "ON" : "OFF", i.min_temp(), i.max_temp());
@@ -238,7 +238,7 @@ void dump_db_json()
     begin_transaction();
     printf("{\n");
     bool is_first = true;
-    for (const gaia::mink::incubator_t& i : incubator_t::list())
+    for (const gaia::mink::incubator_waynetype& i : incubator_waynetype::list())
     {
         if (is_first)
         {
@@ -350,7 +350,7 @@ float calc_new_temp(float curr_temp, float fan_speed)
 void set_power(bool is_on)
 {
     auto_transaction_t tx(auto_transaction_t::no_auto_begin);
-    for (auto i : incubator_t::list())
+    for (auto i : incubator_waynetype::list())
     {
         auto w = i.writer();
         w.is_on = is_on;
@@ -370,7 +370,7 @@ void simulation_step()
     float fan_b = 0.0;
     float fan_c = 0.0;
 
-    for (const auto& a : actuator_t::list())
+    for (const auto& a : actuator_waynetype::list())
     {
         if (strcmp(a.name(), c_actuator_a) == 0)
         {
@@ -386,7 +386,7 @@ void simulation_step()
         }
     }
 
-    for (auto s : sensor_t::list())
+    for (auto s : sensor_waynetype::list())
     {
         sensor_writer w = s.writer();
         if (strcmp(s.name(), c_sensor_a) == 0)
@@ -929,7 +929,7 @@ public:
     void get_incubator(const char* name)
     {
         begin_transaction();
-        for (const auto& incubator : incubator_t::list())
+        for (const auto& incubator : incubator_waynetype::list())
         {
             if (strcmp(incubator.name(), name) == 0)
             {
@@ -1196,7 +1196,7 @@ private:
         settings
     };
     string m_input;
-    incubator_t m_current_incubator;
+    incubator_waynetype m_current_incubator;
     const char* m_current_incubator_name;
     thread m_simulation_thread[1];
     menu_t m_current_menu = menu_t::main;
@@ -1206,7 +1206,7 @@ void measure_time_slices()
 {
     const int slices_to_measure = 500;
 
-    //std::this_thread::sleep_for(microseconds(c_processing_pause_in_microseconds));
+    // std::this_thread::sleep_for(microseconds(c_processing_pause_in_microseconds));
     my_time_point end_sleep_start_mark = my_clock::now();
     for (int i = 0; i < slices_to_measure; i++)
     {

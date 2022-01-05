@@ -54,15 +54,15 @@ public:
 
         // Initialize rules after loading the catalog.
         rule_binding_t m_rule1{"ruleset1_name", "rule1_name", rule1};
-        subscribe_rule(employee_t::s_gaia_type, event_type_t::row_insert, empty_fields, m_rule1);
+        subscribe_rule(employee_waynetype::s_gaia_type, event_type_t::row_insert, empty_fields, m_rule1);
 
-        //TODO[GAIAPLAT-445]: We don't expose deleted row events
-        //subscribe_rule(employee_t::s_gaia_type, event_type_t::row_delete, empty_fields, m_rule1);
+        // TODO[GAIAPLAT-445]: We don't expose deleted row events
+        // subscribe_rule(employee_waynetype::s_gaia_type, event_type_t::row_delete, empty_fields, m_rule1);
 
         field_position_list_t fields;
         // We only have 1 field in this test.
         fields.emplace_back(0);
-        subscribe_rule(employee_t::s_gaia_type, event_type_t::row_update, fields, m_rule1);
+        subscribe_rule(employee_waynetype::s_gaia_type, event_type_t::row_update, fields, m_rule1);
     }
 
     static void TearDownTestSuite()
@@ -99,7 +99,7 @@ void perform_transactions(uint32_t count_transactions, uint32_t crud_events_per_
         employee_writer w;
         w.name_first = "name";
         gaia_id_t id = w.insert_row();
-        auto e = employee_t::get(id);
+        auto e = employee_waynetype::get(id);
 
         // Update row.
         w = e.writer();
@@ -108,7 +108,7 @@ void perform_transactions(uint32_t count_transactions, uint32_t crud_events_per_
 
         // [GAIAPLAT-1205]:  We now do not fire an event if
         // the anchor row has been deleted.
-        // employee_t::delete_row(id);
+        // employee_waynetype::delete_row(id);
         gaia::db::commit_transaction();
 
         // We should get crud_events_per_txn per commit.  Wait for them.

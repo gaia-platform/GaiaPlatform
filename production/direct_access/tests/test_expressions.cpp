@@ -36,11 +36,11 @@ public:
         : db_catalog_test_base_t("addr_book.ddl"){};
 
 protected:
-    address_t seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee;
-    employee_t simone, dax, bill, laurentiu, wayne, yiwen, mihir, tobin;
-    phone_t landline, mobile;
-    customer_t hooli, pied_piper;
-    internet_contract_t simone_att, bill_comcast;
+    address_waynetype seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee;
+    employee_waynetype simone, dax, bill, laurentiu, wayne, yiwen, mihir, tobin;
+    phone_waynetype landline, mobile;
+    customer_waynetype hooli, pied_piper;
+    internet_contract_waynetype simone_att, bill_comcast;
     const vector<int32_t> hooli_sales{3, 1, 4, 1, 5};
     const vector<int32_t> pied_piper_sales{1, 1, 2, 3, 5};
 
@@ -80,7 +80,7 @@ protected:
         commit_transaction();
     }
 
-    employee_t create_employee(const string& name, const string& last_name, const string& email, int64_t hire_date, address_t& address)
+    employee_waynetype create_employee(const string& name, const string& last_name, const string& email, int64_t hire_date, address_waynetype& address)
     {
         auto employee_w = employee_writer();
         employee_w.name_first = name;
@@ -88,42 +88,42 @@ protected:
         employee_w.email = email;
         employee_w.hire_date = hire_date;
         gaia_id_t id = employee_w.insert_row();
-        employee_t employee = employee_t::get(id);
+        employee_waynetype employee = employee_waynetype::get(id);
 
         employee.addresses().insert(address);
 
         return employee;
     }
 
-    address_t create_address(const string& city, const string& state)
+    address_waynetype create_address(const string& city, const string& state)
     {
         auto address_w = address_writer();
         address_w.city = city;
         address_w.state = state;
-        return address_t::get(address_w.insert_row());
+        return address_waynetype::get(address_w.insert_row());
     }
 
-    phone_t create_phone(const string& number, const string& type, address_t& address)
+    phone_waynetype create_phone(const string& number, const string& type, address_waynetype& address)
     {
         phone_writer writer;
         writer.phone_number = number;
         writer.type = type;
-        phone_t phone = phone_t::get(writer.insert_row());
+        phone_waynetype phone = phone_waynetype::get(writer.insert_row());
 
         address.phones().insert(phone);
 
         return phone;
     }
 
-    customer_t create_customer(const char* name, const std::vector<int32_t>& sales_by_quarter)
+    customer_waynetype create_customer(const char* name, const std::vector<int32_t>& sales_by_quarter)
     {
-        return customer_t::get(customer_t::insert_row(name, sales_by_quarter));
+        return customer_waynetype::get(customer_waynetype::insert_row(name, sales_by_quarter));
     }
 
-    internet_contract_t create_internet_contract(const char* provider, address_t address, employee_t owner)
+    internet_contract_waynetype create_internet_contract(const char* provider, address_waynetype address, employee_waynetype owner)
     {
-        internet_contract_t internet_contract = internet_contract_t::get(
-            internet_contract_t::insert_row(provider));
+        internet_contract_waynetype internet_contract = internet_contract_waynetype::get(
+            internet_contract_waynetype::insert_row(provider));
 
         address.internet_contract().connect(internet_contract);
         owner.internet_contract().connect(internet_contract);
@@ -181,13 +181,13 @@ TEST_F(test_expressions, gaia_id_ed)
     auto_transaction_t txn;
 
     assert_contains(
-        employee_t::list()
-            .where(employee_t::expr::gaia_id == yiwen.gaia_id()),
+        employee_waynetype::list()
+            .where(employee_waynetype::expr::gaia_id == yiwen.gaia_id()),
         yiwen);
 
     assert_empty(
-        employee_t::list()
-            .where(employee_t::expr::gaia_id == seattle.gaia_id()));
+        employee_waynetype::list()
+            .where(employee_waynetype::expr::gaia_id == seattle.gaia_id()));
 }
 
 TEST_F(test_expressions, int64_eq)
@@ -195,12 +195,12 @@ TEST_F(test_expressions, int64_eq)
     auto_transaction_t txn;
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date == date(2020, 5, 10)),
         yiwen);
 
     assert_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date == date(2050, 5, 10)));
 }
 
@@ -209,12 +209,12 @@ TEST_F(test_expressions, int64_ne)
     auto_transaction_t txn;
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date != date(2020, 5, 10)),
         {simone, mihir, laurentiu, tobin, wayne, bill, dax});
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date != date(2050, 5, 10)),
         {simone, mihir, yiwen, laurentiu, tobin, wayne, bill, dax});
 }
@@ -224,12 +224,12 @@ TEST_F(test_expressions, int64_gt)
     auto_transaction_t txn;
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date > date(2020, 5, 10)),
         {simone, mihir});
 
     assert_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date > date(2050, 5, 10)));
 }
 
@@ -238,12 +238,12 @@ TEST_F(test_expressions, int64_gteq)
     auto_transaction_t txn;
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date >= date(2020, 5, 10)),
         {simone, mihir, yiwen});
 
     assert_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date >= date(2050, 5, 10)));
 }
 
@@ -252,12 +252,12 @@ TEST_F(test_expressions, int64_lt)
     auto_transaction_t txn;
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date < date(2020, 5, 10)),
         {laurentiu, tobin, wayne, bill, dax});
 
     assert_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date < date(1902, 5, 10)));
 }
 
@@ -266,12 +266,12 @@ TEST_F(test_expressions, int64_lteq)
     auto_transaction_t txn;
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date <= date(2020, 5, 10)),
         {yiwen, laurentiu, tobin, wayne, bill, dax});
 
     assert_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date <= date(1902, 5, 10)));
 }
 
@@ -280,27 +280,27 @@ TEST_F(test_expressions, string_eq)
     auto_transaction_t txn;
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(name_first == "Simone"),
         simone);
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(name_first == std::string("Simone")),
         simone);
 
     const char* surname = "Hawkins";
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(name_last == surname),
         dax);
 
     assert_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where(name_first == "simone"));
 
     assert_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where(name_first == "Olbudio"));
 }
 
@@ -309,23 +309,23 @@ TEST_F(test_expressions, string_ne)
     auto_transaction_t txn;
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(name_first != "Simone"),
         {dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(name_first != std::string("Simone")),
         {dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
 
     const char* surname = "Hawkins";
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(name_last != surname),
         {simone, bill, laurentiu, wayne, yiwen, mihir, tobin});
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(name_first != "Olbudio"),
         {simone, dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
 }
@@ -335,22 +335,22 @@ TEST_F(test_expressions, object_eq)
     auto_transaction_t txn;
 
     assert_contains(
-        address_t::list()
+        address_waynetype::list()
             .where(owner == yiwen),
         seattle);
 
     auto employee_writer = gaia::addr_book::employee_writer();
     employee_writer.name_first = "Zack";
     employee_writer.name_last = "Nolan";
-    auto zack = employee_t::get(employee_writer.insert_row());
+    auto zack = employee_waynetype::get(employee_writer.insert_row());
 
     assert_empty(
-        address_t::list()
+        address_waynetype::list()
             .where(owner == zack));
 
     assert_empty(
-        address_t::list()
-            .where(owner == employee_t()));
+        address_waynetype::list()
+            .where(owner == employee_waynetype()));
 }
 
 TEST_F(test_expressions, object_ne)
@@ -358,23 +358,23 @@ TEST_F(test_expressions, object_ne)
     auto_transaction_t txn;
 
     assert_contains(
-        address_t::list()
+        address_waynetype::list()
             .where(owner != yiwen),
         {aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
 
     auto employee_writer = gaia::addr_book::employee_writer();
     employee_writer.name_first = "Zack";
     employee_writer.name_last = "Nolan";
-    auto zack = employee_t::get(employee_writer.insert_row());
+    auto zack = employee_waynetype::get(employee_writer.insert_row());
 
     assert_contains(
-        address_t::list()
+        address_waynetype::list()
             .where(owner != zack),
         {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
 
     assert_contains(
-        address_t::list()
-            .where(owner != employee_t()),
+        address_waynetype::list()
+            .where(owner != employee_waynetype()),
         {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
 }
 
@@ -382,21 +382,21 @@ TEST_F(test_expressions, or_predicate)
 {
     auto_transaction_t txn;
 
-    auto employees = employee_t::list().where(
+    auto employees = employee_waynetype::list().where(
         name_first == "Wayne"
         || name_first == "Bill"
         || name_first == "Cristofor");
 
     assert_contains(employees, {wayne, bill});
 
-    employees = employee_t::list().where(
+    employees = employee_waynetype::list().where(
         hire_date <= date(2020, 1, 10)
         || hire_date >= date(2020, 5, 31)
         || name_last == "Cristofor");
 
     assert_contains(employees, {dax, bill, wayne, laurentiu, simone, mihir});
 
-    employees = employee_t::list().where(
+    employees = employee_waynetype::list().where(
         hire_date <= date(1991, 1, 1)
         || hire_date >= date(2036, 2, 7));
 
@@ -408,17 +408,17 @@ TEST_F(test_expressions, and_expr)
     auto_transaction_t txn;
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(name_first == "Wayne" && name_last == "Warren"),
         wayne);
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date >= date(2019, 11, 20) && name_last == "Clinton"),
         bill);
 
     assert_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date <= date(2021, 1, 1) && hire_date >= date(2036, 2, 7)));
 }
 
@@ -427,17 +427,17 @@ TEST_F(test_expressions, not_expr)
     auto_transaction_t txn;
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(!(name_first == "Wayne") && !(name_last == "Warren")),
         {simone, dax, bill, laurentiu, yiwen, mihir, tobin});
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(!(hire_date >= date(2020, 1, 1))),
         {bill, dax});
 
     assert_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where(!(hire_date > date(2001, 1, 1))));
 }
 
@@ -446,17 +446,17 @@ TEST_F(test_expressions, mix_boolean_expr)
     auto_transaction_t txn;
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where((name_first == "Wayne" && name_last == "Warren") && hire_date < date(2036, 2, 7)),
         wayne);
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where((name_first == "Wayne" && name_last == "Warren") || (hire_date > date(2036, 2, 7) || hire_date == date(2019, 11, 15))),
         {wayne, dax});
 
     assert_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where((name_first == "Wayne" && name_last == "Warren") && (hire_date > date(2036, 2, 7))));
 }
 
@@ -465,13 +465,13 @@ TEST_F(test_expressions, container_contains_predicate)
     auto_transaction_t txn;
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(addresses
                        .contains(address_expr::state == "WA")),
         {dax, wayne, tobin, laurentiu, yiwen, mihir});
 
     assert_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where(addresses
                        .contains(address_expr::state == "CA")));
 }
@@ -481,14 +481,14 @@ TEST_F(test_expressions, container_contains_object)
     auto_transaction_t txn;
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(addresses
                        .contains(bellevue)),
         {laurentiu});
 
     auto marzabotto = create_address("Marzabotto", "IT");
 
-    assert_empty(employee_t::list().where(addresses.contains(marzabotto)));
+    assert_empty(employee_waynetype::list().where(addresses.contains(marzabotto)));
 }
 
 TEST_F(test_expressions, nested_container)
@@ -496,8 +496,8 @@ TEST_F(test_expressions, nested_container)
     auto_transaction_t txn;
 
     assert_contains(
-        employee_t::list().where(
-            addresses.contains((address_expr::state == "WA" || address_expr::state == "FL") && address_t::expr::phones.contains(phone_expr::type == "landline"))),
+        employee_waynetype::list().where(
+            addresses.contains((address_expr::state == "WA" || address_expr::state == "FL") && address_waynetype::expr::phones.contains(phone_expr::type == "landline"))),
         {dax});
 }
 
@@ -506,13 +506,13 @@ TEST_F(test_expressions, container_empty)
     auto_transaction_t txn;
 
     assert_contains(
-        address_t::list()
+        address_waynetype::list()
             // phone_list is ambiguous, need full qualification.
             .where(address_expr::phones.empty()),
         {seattle, tyngsborough, puyallup, renton, bellevue, redmond});
 
     assert_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where(addresses.empty()));
 }
 
@@ -521,17 +521,17 @@ TEST_F(test_expressions, container_count)
     auto_transaction_t txn;
 
     assert_contains(
-        address_t::list()
+        address_waynetype::list()
             .where(address_expr::phones.count() == 0),
         {seattle, tyngsborough, puyallup, renton, bellevue, redmond});
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(addresses.count() >= 1),
         {simone, dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
 
     assert_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where(addresses.count() > 10));
 }
 
@@ -539,22 +539,25 @@ TEST_F(test_expressions, array)
 {
     auto_transaction_t txn;
     assert_contains(
-        customer_t::list().where(
-            [this](const auto& c) {
+        customer_waynetype::list().where(
+            [this](const auto& c)
+            {
                 return equal(pied_piper_sales.begin(), pied_piper_sales.end(), c.sales_by_quarter().data());
             }),
         pied_piper);
 
     assert_contains(
-        customer_t::list().where(
-            [this](const auto& c) {
+        customer_waynetype::list().where(
+            [this](const auto& c)
+            {
                 return c.sales_by_quarter()[3] == hooli_sales[3];
             }),
         hooli);
 
     assert_empty(
-        customer_t::list().where(
-            [](const auto& c) {
+        customer_waynetype::list().where(
+            [](const auto& c)
+            {
                 return c.sales_by_quarter()[0] == -1;
             }));
 }
@@ -564,12 +567,12 @@ TEST_F(test_expressions, one_to_one)
     auto_transaction_t txn;
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(employee_expr::internet_contract == simone_att),
         simone);
 
     assert_contains(
-        internet_contract_t::list()
+        internet_contract_waynetype::list()
             .where(internet_contract_expr::owner == bill),
         bill_comcast);
 }

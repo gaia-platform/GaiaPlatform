@@ -124,8 +124,8 @@ public:
     void init_storage()
     {
         gaia::db::begin_transaction();
-        gaia::barn_storage::incubator_t::insert_row("TestIncubator", c_g_incubator_min_temperature, c_g_incubator_max_temperature);
-        gaia::barn_storage::sensor_t::insert_row("TestSensor", c_g_sensor_timestamp, c_g_sensor_value);
+        gaia::barn_storage::incubator_waynetype::insert_row("TestIncubator", c_g_incubator_min_temperature, c_g_incubator_max_temperature);
+        gaia::barn_storage::sensor_waynetype::insert_row("TestSensor", c_g_sensor_timestamp, c_g_sensor_value);
         gaia::db::commit_transaction();
     }
 
@@ -165,13 +165,13 @@ public:
 
         gaia::db::begin_transaction();
 
-        for (const auto& i : gaia::barn_storage::incubator_t::list())
+        for (const auto& i : gaia::barn_storage::incubator_waynetype::list())
         {
             EXPECT_EQ(i.max_temp(), expected_max_temp);
             EXPECT_EQ(i.min_temp(), expected_min_temp);
         }
 
-        for (const auto& s : gaia::barn_storage::sensor_t::list())
+        for (const auto& s : gaia::barn_storage::sensor_waynetype::list())
         {
             EXPECT_EQ(s.value(), expected_value);
             EXPECT_EQ(s.timestamp(), expected_timestamp);

@@ -27,7 +27,7 @@ namespace catalog
 namespace generate
 {
 
-constexpr char c_class_suffix[] = "_t";
+constexpr char c_class_suffix[] = "_waynetype";
 
 class table_facade_t;
 class field_facade_t;

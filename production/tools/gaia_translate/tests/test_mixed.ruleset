@@ -14,36 +14,38 @@ using namespace gaia::barn_storage;
 
 extern int g_test_mixed_value;
 
-void f(gaia::barn_storage::incubator_t i)
+void f(gaia::barn_storage::incubator_waynetype i)
 {
-    i.sensors().insert(sensor_t::insert_row("TestSensor1", 0, 0.0));
-    i.actuators().insert(actuator_t::insert_row("TestActuator1", 0, 0.0));
+    i.sensors().insert(sensor_waynetype::insert_row("TestSensor1", 0, 0.0));
+    i.actuators().insert(actuator_waynetype::insert_row("TestActuator1", 0, 0.0));
 }
 
-void f1(const gaia::barn_storage::incubator_t& i)
+void f1(const gaia::barn_storage::incubator_waynetype& i)
 {
-    i.sensors().insert(sensor_t::insert_row("TestSensor2", 0, 0.0));
-    i.actuators().insert(actuator_t::insert_row("TestActuator2", 0, 0.0));
+    i.sensors().insert(sensor_waynetype::insert_row("TestSensor2", 0, 0.0));
+    i.actuators().insert(actuator_waynetype::insert_row("TestActuator2", 0, 0.0));
 }
 
-void f2(gaia::barn_storage::incubator_t& i)
+void f2(gaia::barn_storage::incubator_waynetype& i)
 {
-    i.sensors().insert(sensor_t::insert_row("TestSensor3", 0, 0.0));
-    i.actuators().insert(actuator_t::insert_row("TestActuator3", 0, 0.0));
+    i.sensors().insert(sensor_waynetype::insert_row("TestSensor3", 0, 0.0));
+    i.actuators().insert(actuator_waynetype::insert_row("TestActuator3", 0, 0.0));
 }
 
 ruleset test_mixed
 {
     on_insert(i:incubator)
     {
+#if 0
         f(incubator);
         f1(incubator);
         f2(incubator);
         f(i);
         f1(i);
         f2(i);
-        gaia::barn_storage::incubator_t ii = i;
-        gaia::barn_storage::incubator_t iii = incubator;
+        gaia::barn_storage::incubator_waynetype ii = i;
+        gaia::barn_storage::incubator_waynetype iii = incubator;
+#endif
     }
 
     // If the sensor was deleted, this rule will not be fired.

@@ -33,27 +33,27 @@ using namespace gaia::common;
 using namespace gaia::addr_book;
 
 // Utility function that creates one named employee row provided the writer.
-employee_t insert_employee(employee_writer& writer, const char* name_first)
+employee_waynetype insert_employee(employee_writer& writer, const char* name_first)
 {
     writer.name_first = name_first;
-    return employee_t::get(writer.insert_row());
+    return employee_waynetype::get(writer.insert_row());
 }
 
 // Utility function that creates one address row provided the writer.
-address_t insert_address(address_writer& writer, const char* street, const char* city)
+address_waynetype insert_address(address_writer& writer, const char* street, const char* city)
 {
     writer.street = street;
     writer.city = city;
-    return address_t::get(writer.insert_row());
+    return address_waynetype::get(writer.insert_row());
 }
 
 // Utility function that creates one named employee row.
-employee_t create_employee(const char* name)
+employee_waynetype create_employee(const char* name)
 {
     auto w = employee_writer();
     w.name_first = name;
     gaia_id_t id = w.insert_row();
-    auto e = employee_t::get(id);
+    auto e = employee_waynetype::get(id);
     EXPECT_STREQ(e.name_first(), name);
     return e;
 }
@@ -179,7 +179,7 @@ TEST_F(gaia_multi_process_test, multi_process_inserts)
         // Scan through all resulting rows.
         // See if all objects exist.
         begin_transaction();
-        auto employee_iterator = employee_t::list().begin();
+        auto employee_iterator = employee_waynetype::list().begin();
         auto employee = *employee_iterator;
         EXPECT_STREQ(employee.name_first(), "Howard");
         employee = *(++employee_iterator);
@@ -211,7 +211,7 @@ TEST_F(gaia_multi_process_test, multi_process_inserts)
         // Scan through all resulting rows.
         // See if all objects exist.
         begin_transaction();
-        employee_iterator = employee_t::list().begin();
+        employee_iterator = employee_waynetype::list().begin();
         employee = *employee_iterator;
         EXPECT_STREQ(employee.name_first(), "Howard");
         employee = *(++employee_iterator);
@@ -334,14 +334,14 @@ TEST_F(gaia_multi_process_test, multi_process_aborts)
         // Scan through all resulting rows.
         // See if all objects exist.
         begin_transaction();
-        auto empl_iterator = employee_t::list().begin();
+        auto empl_iterator = employee_waynetype::list().begin();
         ++empl_iterator;
         empl_iterator++;
         // Make sure we have hit the end of the list.
         EXPECT_STREQ((*empl_iterator).name_first(), "Hank");
         empl_iterator++;
-        EXPECT_EQ(true, empl_iterator == employee_t::list().end());
-        EXPECT_EQ(empl_iterator, employee_t::list().end());
+        EXPECT_EQ(true, empl_iterator == employee_waynetype::list().end());
+        EXPECT_EQ(empl_iterator, employee_waynetype::list().end());
         commit_transaction();
 
         // EXCHANGE 2: concurrent transactions.
@@ -365,7 +365,7 @@ TEST_F(gaia_multi_process_test, multi_process_aborts)
         // Scan through all resulting rows.
         // See if all objects exist.
         begin_transaction();
-        empl_iterator = employee_t::list().begin();
+        empl_iterator = employee_waynetype::list().begin();
         auto employee = *empl_iterator;
         employee = *(++empl_iterator);
         employee = *(++empl_iterator);
@@ -522,7 +522,7 @@ TEST_F(gaia_multi_process_test, multi_process_conflict)
         {
             begin_transaction();
             // Locate the employee object.
-            auto e1 = *(employee_t::list().begin());
+            auto e1 = *(employee_waynetype::list().begin());
             address_writer address_w;
             auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
             e1.addresses().insert(a1);
@@ -620,7 +620,7 @@ TEST_F(gaia_multi_process_test, multi_process_commit)
         {
             begin_transaction();
             // Locate the employee object.
-            auto e1 = *(employee_t::list().begin());
+            auto e1 = *(employee_waynetype::list().begin());
             address_writer address_w;
             auto a1 = insert_address(address_w, "430 S. 41st St.", "Boulder");
             e1.addresses().insert(a1);

@@ -146,6 +146,7 @@ std::string Sema::ParseExplicitPath(StringRef pathString, SourceLocation loc, St
     llvm::StringMap<string> tagMap;
     SmallVector<string, 8> path;
     bool is_absolute = pathString.front() == '/';
+fprintf(stderr, "pathString='%s'\n", pathString);
     if (is_absolute || pathString.front() == '@')
     {
         searchStartPosition = 1;
@@ -599,11 +600,13 @@ TagDecl* Sema::lookupEDCClass(StringRef className)
     //  ....
 
     auto typeIterator = Context.getEDCTypes().find(className);
+fprintf(stderr, "className=%s, ", className);
     if (typeIterator != Context.getEDCTypes().end())
     {
+fprintf(stderr, "map=%s\n", typeIterator->second);
         return llvm::cast_or_null<TagDecl>(typeIterator->second->getAsRecordDecl());
     }
-
+fprintf(stderr, "NOT FOUND\n");
     return nullptr;
 }
 
@@ -630,12 +633,11 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, StringRef targetTab
 
     targetTypes.push_back(implicitTargetTypeDecl);
 
-    // TODO [GAIAPLAT-1168] We should not statically build the EDC type, bust ask the Catalog for it.
-    // Lookup the EDC class type (table_t)
-    llvm::SmallString<20> edcTableTypeName = targetTableName;
-    edcTableTypeName += "_t";
-    TagDecl* edcTargetTypeDecl = lookupEDCClass(edcTableTypeName);
-
+    // TODO [GAIAPLAT-1168] We should not statically build the EDC type, must ask the Catalog for it.
+    // Lookup the EDC class type.
+    auto edcClassName = ::gaia::catalog::generate::gaiat_table_facade_t::class_name(targetTableName);
+    // llvm::SmallString<20> edcTableTypeName = edcClassName;
+    TagDecl* edcTargetTypeDecl = lookupEDCClass(edcClassName);
     if (edcTargetTypeDecl)
     {
         targetTypes.push_back(edcTargetTypeDecl);
@@ -776,8 +778,7 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
 
     // Adds a conversion function from the generated table type (table__type)
     // to the EDC type (table_t).
-    llvm::SmallString<20> edcClassName = typeName;
-    edcClassName += "_t";
+    auto edcClassName = ::gaia::catalog::generate::gaiat_table_facade_t::class_name(typeName.c_str());
     TagDecl* edcType = lookupEDCClass(edcClassName);
     if (edcType != nullptr)
     {
@@ -1243,6 +1244,7 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
     QualType qualType = Context.VoidTy;
     StringRef firstComponent;
 
+fprintf(stderr, "explicitPath='%s'\n", explicitPath.c_str());
     string table = ParseExplicitPath(explicitPath, loc, firstComponent);
     if (!table.empty())
     {

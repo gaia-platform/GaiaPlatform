@@ -20,6 +20,7 @@ set(GAIAT_SRCS
   src/diagnostics.cpp
   src/main.cpp
   src/table_navigation.cpp
+  src/gaiat_catalog_facade.cpp
 )
 
 link_directories(

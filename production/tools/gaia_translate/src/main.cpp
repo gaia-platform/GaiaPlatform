@@ -26,6 +26,7 @@
 #include <llvm/ADT/Twine.h>
 #pragma clang diagnostic pop
 
+#include "gaia_internal/catalog/gaiat_catalog_facade.hpp"
 #include "gaia_internal/common/gaia_version.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/db/db.hpp"
@@ -44,6 +45,7 @@ using namespace clang::ast_matchers;
 using namespace ::gaia;
 using namespace ::gaia::common;
 using namespace ::gaia::translation;
+using namespace ::gaia::catalog::generate;
 using namespace clang::gaia::catalog;
 
 cl::OptionCategory g_translation_engine_category("Translation engine options");
@@ -615,8 +617,9 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
     {
         llvm::SmallString<32> class_qualification_string = StringRef("gaia::");
         class_qualification_string.append(db_namespace(GaiaCatalog::getCatalogTableData().find(insert_data.table_name)->second.dbName));
-        class_qualification_string.append(insert_data.table_name);
-        class_qualification_string.append("_t::");
+        string class_name = gaiat_table_facade_t::class_name(insert_data.table_name);
+        class_qualification_string.append(class_name);
+        class_qualification_string.append("::");
         llvm::SmallString<64> replacement_string = class_qualification_string.str();
         replacement_string.append("get(");
         replacement_string.append(class_qualification_string);
@@ -733,7 +736,7 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
                                 data_iterator->path_components.front()),
                             data_iterator->tag_table_map);
 
-                        //Check if a declaration has table references that is not an anchor table.
+                        // Check if a declaration has table references that is not an anchor table.
                         if ((!insert_table.empty() && insert_table == table_name)
                             || (data_iterator->path_components.size() == 1
                                 && table_name == anchor_table_name && !data_iterator->is_absolute_path))
@@ -836,6 +839,7 @@ void generate_table_subscription(
     Rewriter& rewriter)
 {
     llvm::SmallString<256> common_subscription_code;
+    string class_name = gaiat_table_facade_t::class_name(table);
     if (GaiaCatalog::getCatalogTableData().find(table) == GaiaCatalog::getCatalogTableData().end())
     {
         gaiat::diag().emit(diag::err_table_not_found) << table;
@@ -900,16 +904,16 @@ void generate_table_subscription(
         g_current_ruleset_subscription.append(c_ident);
         g_current_ruleset_subscription.append("gaia::rules::subscribe_rule(gaia::");
         g_current_ruleset_subscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
-        g_current_ruleset_subscription.append(table);
+        g_current_ruleset_subscription.append(class_name);
         if (subscribe_update)
         {
             g_current_ruleset_subscription.append(
-                "_t::s_gaia_type, gaia::db::triggers::event_type_t::row_update, gaia::rules::empty_fields,");
+                "::s_gaia_type, gaia::db::triggers::event_type_t::row_update, gaia::rules::empty_fields,");
         }
         else
         {
             g_current_ruleset_subscription.append(
-                "_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
+                "::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
         }
         g_current_ruleset_subscription.append(rule_name);
         g_current_ruleset_subscription.append("binding);\n");
@@ -917,8 +921,8 @@ void generate_table_subscription(
         g_current_ruleset_unsubscription.append(c_ident);
         g_current_ruleset_unsubscription.append("gaia::rules::unsubscribe_rule(gaia::");
         g_current_ruleset_unsubscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
-        g_current_ruleset_unsubscription.append(table);
-        g_current_ruleset_unsubscription.append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
+        g_current_ruleset_unsubscription.append(class_name);
+        g_current_ruleset_unsubscription.append("::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
         g_current_ruleset_unsubscription.append(rule_name);
         g_current_ruleset_unsubscription.append("binding);\n");
     }
@@ -928,8 +932,8 @@ void generate_table_subscription(
         g_current_ruleset_subscription.append(c_ident);
         g_current_ruleset_subscription.append("gaia::rules::subscribe_rule(gaia::");
         g_current_ruleset_subscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
-        g_current_ruleset_subscription.append(table);
-        g_current_ruleset_subscription.append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_update, fields_");
+        g_current_ruleset_subscription.append(class_name);
+        g_current_ruleset_subscription.append("::s_gaia_type, gaia::db::triggers::event_type_t::row_update, fields_");
         g_current_ruleset_subscription.append(rule_name);
         g_current_ruleset_subscription.append(",");
         g_current_ruleset_subscription.append(rule_name);
@@ -938,8 +942,8 @@ void generate_table_subscription(
         g_current_ruleset_unsubscription.append(c_ident);
         g_current_ruleset_unsubscription.append("gaia::rules::unsubscribe_rule(gaia::");
         g_current_ruleset_unsubscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
-        g_current_ruleset_unsubscription.append(table);
-        g_current_ruleset_unsubscription.append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_update, fields_");
+        g_current_ruleset_unsubscription.append(class_name);
+        g_current_ruleset_unsubscription.append("::s_gaia_type, gaia::db::triggers::event_type_t::row_update, fields_");
         g_current_ruleset_unsubscription.append(rule_name);
         g_current_ruleset_unsubscription.append(",");
         g_current_ruleset_unsubscription.append(rule_name);
@@ -1009,8 +1013,8 @@ void generate_table_subscription(
                 + table
                 + " = gaia::"
                 + db_namespace(anchor_table_data_itr->second.dbName)
-                + table
-                + "_t::get(context->record);\n"
+                + class_name
+                + "::get(context->record);\n"
                 + "{\n")
                 .toVector(anchor_code);
 
@@ -1087,6 +1091,7 @@ void generate_table_subscription(
 
 void optimize_subscription(StringRef table, int rule_count)
 {
+    string class_name = gaiat_table_facade_t::class_name(table);
     // This is to reuse the same rule function and rule_binding_t
     // for the same table in case update and insert operation.
     if (g_insert_tables.find(table) != g_insert_tables.end())
@@ -1096,16 +1101,16 @@ void optimize_subscription(StringRef table, int rule_count)
         g_current_ruleset_subscription.append(c_ident);
         g_current_ruleset_subscription.append("gaia::rules::subscribe_rule(gaia::");
         g_current_ruleset_subscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
-        g_current_ruleset_subscription.append(table);
-        g_current_ruleset_subscription.append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
+        g_current_ruleset_subscription.append(class_name);
+        g_current_ruleset_subscription.append("::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
         g_current_ruleset_subscription.append(rule_name);
         g_current_ruleset_subscription.append("binding);\n");
 
         g_current_ruleset_unsubscription.append(c_ident);
         g_current_ruleset_unsubscription.append("gaia::rules::unsubscribe_rule(gaia::");
         g_current_ruleset_unsubscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
-        g_current_ruleset_unsubscription.append(table);
-        g_current_ruleset_unsubscription.append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
+        g_current_ruleset_unsubscription.append(class_name);
+        g_current_ruleset_unsubscription.append("::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
         g_current_ruleset_unsubscription.append(rule_name);
         g_current_ruleset_unsubscription.append("binding);\n");
 
@@ -2970,9 +2975,12 @@ public:
             // Trim the argument name of whitespaces.
             argument_name.erase(
                 argument_name.begin(),
-                find_if(argument_name.begin(), argument_name.end(), [](unsigned char ch) { return !isspace(ch); }));
+                find_if(argument_name.begin(), argument_name.end(), [](unsigned char ch)
+                        { return !isspace(ch); }));
             argument_name.erase(
-                find_if(argument_name.rbegin(), argument_name.rend(), [](unsigned char ch) { return !isspace(ch); }).base(),
+                find_if(argument_name.rbegin(), argument_name.rend(), [](unsigned char ch)
+                        { return !isspace(ch); })
+                    .base(),
                 argument_name.end());
             insert_data.argument_map[argument_name] = argument->getSourceRange();
             insert_data.argument_replacement_map[argument->getSourceRange()] = m_rewriter.getRewrittenText(argument->getSourceRange());
@@ -3606,26 +3614,14 @@ public:
 
     void EndSourceFile() override
     {
-        if (g_is_generation_error)
-        {
-            return;
-        }
-
-        if (!g_translation_engine_output_option.empty())
-        {
-            std::remove(g_translation_engine_output_option.c_str());
-        }
         Rewriter& rewriter = *m_rewriter;
 
         // Always call the TextDiagnosticPrinter's EndSourceFile() method.
         auto call_end_source_file = ::gaia::common::scope_guard::make_scope_guard(
-            [this] { TextDiagnosticPrinter::EndSourceFile(); });
+            [this]
+            { TextDiagnosticPrinter::EndSourceFile(); });
 
         generate_rules(rewriter);
-        if (g_is_generation_error)
-        {
-            return;
-        }
 
         g_generated_subscription_code.append("namespace ");
         g_generated_subscription_code.append(g_current_ruleset);
@@ -3644,7 +3640,6 @@ public:
         g_generated_subscription_code.append("\n");
         g_generated_subscription_code.append(generate_general_subscription_code());
 
-        if (!m_rewriter->getSourceMgr().getDiagnostics().hasErrorOccurred() && !g_is_generation_error && !g_translation_engine_output_option.empty())
         {
             std::error_code error_code;
             llvm::raw_fd_ostream output_file(g_translation_engine_output_option, error_code, llvm::sys::fs::F_None);

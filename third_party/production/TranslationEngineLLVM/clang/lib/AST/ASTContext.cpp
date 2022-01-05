@@ -1154,7 +1154,7 @@ void ASTContext::cacheEDCType(const Type* type) const
           {
             if (ND->getName().equals("gaia"))
             {
-              if (record->getName().endswith("_t"))
+              if (record->getName().endswith("_t") || record->getName().endswith("_waynetype"))
               {
                 EDCTypesMap[record->getName()] = type;
               }

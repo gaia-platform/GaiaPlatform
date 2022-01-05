@@ -34,8 +34,8 @@ TEST_F(gaia_one_to_one_test, connect_with_id)
 {
     auto_transaction_t txn;
 
-    auto madeline_person = create<person_t>("Madeline", "Clark");
-    auto madeline_employee = create<employee_t>("Gaia Platform LLC");
+    auto madeline_person = create<person_waynetype>("Madeline", "Clark");
+    auto madeline_employee = create<employee_waynetype>("Gaia Platform LLC");
 
     ASSERT_FALSE(madeline_person.employee());
     ASSERT_FALSE(madeline_employee.person());
@@ -61,8 +61,8 @@ TEST_F(gaia_one_to_one_test, connect_with_dac_obj)
 {
     auto_transaction_t txn;
 
-    auto madeline_person = create<person_t>("Madeline", "Clark");
-    auto madeline_employee = create<employee_t>("Gaia Platform LLC");
+    auto madeline_person = create<person_waynetype>("Madeline", "Clark");
+    auto madeline_employee = create<employee_waynetype>("Gaia Platform LLC");
 
     ASSERT_FALSE(madeline_person.employee());
     ASSERT_FALSE(madeline_employee.person());
@@ -88,12 +88,12 @@ TEST_F(gaia_one_to_one_test, multiple_disconnect_same_obj_succeed)
 {
     auto_transaction_t txn;
 
-    auto madeline_person = create<person_t>("Madeline", "Clark");
+    auto madeline_person = create<person_waynetype>("Madeline", "Clark");
 
     madeline_person.employee().disconnect();
     ASSERT_FALSE(madeline_person.employee());
 
-    auto madeline_employee = create<employee_t>("Gaia Platform LLC");
+    auto madeline_employee = create<employee_waynetype>("Gaia Platform LLC");
     madeline_person.employee().connect(madeline_employee);
 
     ASSERT_TRUE(madeline_person.employee().disconnect());
@@ -112,9 +112,9 @@ TEST_F(gaia_one_to_one_test, multiple_connect_same_objects_succeed)
 {
     auto_transaction_t txn;
 
-    auto madeline_person = create<person_t>("Madeline", "Clark");
-    auto madeline_employee1 = create<employee_t>("Gaia Platform LLC");
-    auto madeline_employee2 = create<employee_t>("Bazza LLC");
+    auto madeline_person = create<person_waynetype>("Madeline", "Clark");
+    auto madeline_employee1 = create<employee_waynetype>("Gaia Platform LLC");
+    auto madeline_employee2 = create<employee_waynetype>("Bazza LLC");
 
     ASSERT_TRUE(madeline_person.employee().connect(madeline_employee1));
     ASSERT_FALSE(madeline_person.employee().connect(madeline_employee1));
@@ -142,10 +142,10 @@ TEST_F(gaia_one_to_one_test, multiple_connect_different_objects_fail)
 {
     auto_transaction_t txn;
 
-    auto madeline_person = create<person_t>("Madeline", "Clark");
-    auto john_person = create<person_t>("John", "Doe");
+    auto madeline_person = create<person_waynetype>("Madeline", "Clark");
+    auto john_person = create<person_waynetype>("John", "Doe");
 
-    auto madeline_employee1 = create<employee_t>("Gaia Platform LLC");
+    auto madeline_employee1 = create<employee_waynetype>("Gaia Platform LLC");
 
     ASSERT_TRUE(madeline_person.employee().connect(madeline_employee1));
 
@@ -158,8 +158,8 @@ TEST_F(gaia_one_to_one_test, test_out_of_sync_reference)
 {
     auto_transaction_t txn;
 
-    auto madeline_person = create<person_t>("Madeline", "Clark");
-    auto madeline_employee1 = create<employee_t>("Gaia Platform LLC");
+    auto madeline_person = create<person_waynetype>("Madeline", "Clark");
+    auto madeline_employee1 = create<employee_waynetype>("Gaia Platform LLC");
 
     auto employee = madeline_person.employee();
 
@@ -173,8 +173,8 @@ TEST_F(gaia_one_to_one_test, connect_wrong_type_fail)
 {
     auto_transaction_t txn;
 
-    auto madeline_person = create<person_t>("Madeline", "Clark");
-    auto john_person = create<person_t>("John", "Doe");
+    auto madeline_person = create<person_waynetype>("Madeline", "Clark");
+    auto john_person = create<person_waynetype>("John", "Doe");
 
     EXPECT_THROW(
         madeline_person.employee().connect(john_person.gaia_id()),
@@ -185,9 +185,9 @@ TEST_F(gaia_one_to_one_test, connect_wrong_id_fail)
 {
     auto_transaction_t txn;
 
-    auto madeline_person = create<person_t>("Madeline", "Clark");
+    auto madeline_person = create<person_waynetype>("Madeline", "Clark");
 
-    employee_t empty_employee;
+    employee_waynetype empty_employee;
 
     EXPECT_THROW(
         madeline_person.employee().connect(empty_employee),
@@ -198,8 +198,8 @@ TEST_F(gaia_one_to_one_test, connect_self_relationship)
 {
     auto_transaction_t txn;
 
-    auto madeline_person = create<person_t>("Madeline", "Clark");
-    auto john_person = create<person_t>("John", "Doe");
+    auto madeline_person = create<person_waynetype>("Madeline", "Clark");
+    auto john_person = create<person_waynetype>("John", "Doe");
 
     madeline_person.husband().connect(john_person);
 
@@ -228,14 +228,14 @@ TEST_F(gaia_one_to_one_test, connect_multiple_relationship)
 {
     auto_transaction_t txn;
 
-    auto madeline_person = create<person_t>("Madeline", "Clark");
-    auto john_person = create<person_t>("John", "Doe");
+    auto madeline_person = create<person_waynetype>("Madeline", "Clark");
+    auto john_person = create<person_waynetype>("John", "Doe");
 
-    auto madeline_employee = create<employee_t>("Gaia Platform LLC");
-    auto john_employee = create<employee_t>("Bazza LLC");
+    auto madeline_employee = create<employee_waynetype>("Gaia Platform LLC");
+    auto john_employee = create<employee_waynetype>("Bazza LLC");
 
-    auto madeline_student = create<student_t>("UNIBO");
-    auto john_student = create<student_t>("Bocconi");
+    auto madeline_student = create<student_waynetype>("UNIBO");
+    auto john_student = create<student_waynetype>("Bocconi");
 
     madeline_person.employee().connect(madeline_employee);
     madeline_person.student().connect(madeline_student);

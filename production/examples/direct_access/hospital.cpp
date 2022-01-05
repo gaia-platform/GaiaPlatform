@@ -38,7 +38,7 @@ void create_record_insert()
 
     // The insert_row() method has one argument for each column
     // in the doctor table.
-    gaia_id_t id = doctor_t::insert_row("Dr. House");
+    gaia_id_t id = doctor_waynetype::insert_row("Dr. House");
 
     gaia_log::app().info("Created doctor with ID: {}", id);
 }
@@ -62,15 +62,15 @@ void create_record_writer()
 }
 
 /**
- * Lookup an patient_t record using the static get(gaia_id_t) method.
+ * Lookup an patient_waynetype record using the static get(gaia_id_t) method.
  */
 void lookup_record_get()
 {
     PRINT_METHOD_NAME();
 
-    gaia_id_t id = patient_t::insert_row("John", 175, false, {});
+    gaia_id_t id = patient_waynetype::insert_row("John", 175, false, {});
 
-    patient_t john = patient_t::get(id);
+    patient_waynetype john = patient_waynetype::get(id);
     gaia_log::app().info("Patient name: {}", john.name());
 }
 
@@ -81,8 +81,8 @@ void array_type_fields()
 {
     PRINT_METHOD_NAME();
 
-    patient_t john = patient_t::get(
-        patient_t::insert_row("John", 175, false, {1.0, 0.9, 3.1, 0.8}));
+    patient_waynetype john = patient_waynetype::get(
+        patient_waynetype::insert_row("John", 175, false, {1.0, 0.9, 3.1, 0.8}));
 
     gaia_log::app().info("{}'s analysis results are:", john.name());
 
@@ -102,9 +102,9 @@ void update_record()
 {
     PRINT_METHOD_NAME();
 
-    gaia_id_t id = patient_t::insert_row("John", 175, false, {});
+    gaia_id_t id = patient_waynetype::insert_row("John", 175, false, {});
 
-    patient_t john = patient_t::get(id);
+    patient_waynetype john = patient_waynetype::get(id);
     gaia_log::app().info("Patient name is: {}", john.name());
 
     // Obtain the writer object for an existing record.
@@ -129,8 +129,8 @@ void lookup_invalid_record()
     try
     {
         // A failure will happen for every id that does not map to an existing object.
-        patient_t john = patient_t::get(gaia::common::c_invalid_gaia_id);
-        throw std::runtime_error("patient_t::get(gaia::common::c_invalid_gaia_id) should have failed with an exception.");
+        patient_waynetype john = patient_waynetype::get(gaia::common::c_invalid_gaia_id);
+        throw std::runtime_error("patient_waynetype::get(gaia::common::c_invalid_gaia_id) should have failed with an exception.");
     }
     catch (const gaia::db::invalid_object_id& e)
     {
@@ -146,7 +146,7 @@ void access_invalid_record()
 {
     PRINT_METHOD_NAME();
 
-    patient_t john;
+    patient_waynetype john;
 
     try
     {
@@ -166,10 +166,10 @@ void compare_records()
 {
     PRINT_METHOD_NAME();
 
-    gaia_id_t id = doctor_t::insert_row("Dr. Reid");
+    gaia_id_t id = doctor_waynetype::insert_row("Dr. Reid");
 
-    doctor_t dr_house_1 = doctor_t::get(id);
-    doctor_t dr_house_2 = doctor_t::get(id);
+    doctor_waynetype dr_house_1 = doctor_waynetype::get(id);
+    doctor_waynetype dr_house_2 = doctor_waynetype::get(id);
 
     if (dr_house_1 == dr_house_2)
     {
@@ -180,7 +180,7 @@ void compare_records()
         throw std::runtime_error("The records are expected to be equal.");
     }
 
-    doctor_t dr_dorian = doctor_t::get(doctor_t::insert_row("Dr. Dorian"));
+    doctor_waynetype dr_dorian = doctor_waynetype::get(doctor_waynetype::insert_row("Dr. Dorian"));
 
     if (dr_dorian == dr_house_2)
     {
@@ -200,7 +200,7 @@ void list_all_patients()
 {
     PRINT_METHOD_NAME();
 
-    for (auto& patient : patient_t::list())
+    for (auto& patient : patient_waynetype::list())
     {
         gaia_log::app().info(
             "Patient name:{}, height:{} is_active:{}", patient.name(), patient.height(), patient.is_active());
@@ -214,7 +214,7 @@ void delete_single_record()
 {
     PRINT_METHOD_NAME();
 
-    doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House"));
+    doctor_waynetype dr_house = doctor_waynetype::get(doctor_waynetype::insert_row("Dr. House"));
 
     dr_house.delete_row();
 
@@ -237,13 +237,13 @@ void delete_single_record_static()
 {
     PRINT_METHOD_NAME();
 
-    gaia_id_t dr_house_id = doctor_t::insert_row("Dr. House");
+    gaia_id_t dr_house_id = doctor_waynetype::insert_row("Dr. House");
 
-    doctor_t::delete_row(dr_house_id);
+    doctor_waynetype::delete_row(dr_house_id);
 
     try
     {
-        doctor_t dr_house = doctor_t::get(dr_house_id);
+        doctor_waynetype dr_house = doctor_waynetype::get(dr_house_id);
         throw std::runtime_error("The doctor is expected to be invalid after deletion.");
     }
     catch (const gaia::db::invalid_object_id& e)
@@ -263,18 +263,18 @@ void delete_all_records()
 {
     PRINT_METHOD_NAME();
 
-    doctor_t::insert_row("Dr. House");
-    doctor_t::insert_row("Dr. Dorian");
-    doctor_t::insert_row("Dr. Reid");
+    doctor_waynetype::insert_row("Dr. House");
+    doctor_waynetype::insert_row("Dr. Dorian");
+    doctor_waynetype::insert_row("Dr. Reid");
 
-    for (auto doctor_it = doctor_t::list().begin();
-         doctor_it != doctor_t::list().end();)
+    for (auto doctor_it = doctor_waynetype::list().begin();
+         doctor_it != doctor_waynetype::list().end();)
     {
         auto next_doctor_it = doctor_it++;
         next_doctor_it->delete_row();
     }
 
-    gaia_log::app().info("Doctors count: {}", doctor_t::list().size());
+    gaia_log::app().info("Doctors count: {}", doctor_waynetype::list().size());
 }
 
 /**
@@ -284,13 +284,13 @@ void delete_all_records()
  */
 gaia_id_t create_one_to_many_relationship()
 {
-    doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House"));
+    doctor_waynetype dr_house = doctor_waynetype::get(doctor_waynetype::insert_row("Dr. House"));
 
-    patient_t jane = patient_t::get(patient_t::insert_row("Jane", 183, true, {}));
-    patient_t jack = patient_t::get(patient_t::insert_row("Jack", 176, false, {}));
-    gaia_id_t john_id = patient_t::insert_row("John", 175, false, {});
+    patient_waynetype jane = patient_waynetype::get(patient_waynetype::insert_row("Jane", 183, true, {}));
+    patient_waynetype jack = patient_waynetype::get(patient_waynetype::insert_row("Jack", 176, false, {}));
+    gaia_id_t john_id = patient_waynetype::insert_row("John", 175, false, {});
 
-    // Type safe insert (accepts instances of patient_t).
+    // Type safe insert (accepts instances of patient_waynetype).
     dr_house.patients().insert(jane);
     dr_house.patients().insert(jack);
 
@@ -310,9 +310,9 @@ void traverse_one_to_many_relationship(gaia_id_t doctor_id)
 {
     PRINT_METHOD_NAME();
 
-    doctor_t doctor = doctor_t::get(doctor_id);
+    doctor_waynetype doctor = doctor_waynetype::get(doctor_id);
 
-    // doctor.patients() returns a container of patient_t.
+    // doctor.patients() returns a container of patient_waynetype.
     // The container is compatible with CPP STL containers.
     for (auto& patient : doctor.patients())
     {
@@ -334,10 +334,10 @@ void delete_one_to_many_relationship_re(gaia_id_t doctor_id)
 {
     PRINT_METHOD_NAME();
 
-    doctor_t doctor = doctor_t::get(doctor_id);
+    doctor_waynetype doctor = doctor_waynetype::get(doctor_id);
 
     // Pick one of the doctor's patients.
-    patient_t patient = *(doctor.patients().begin());
+    patient_waynetype patient = *(doctor.patients().begin());
 
     try
     {
@@ -368,10 +368,10 @@ void delete_one_to_many_relationship(gaia_id_t doctor_id)
 {
     PRINT_METHOD_NAME();
 
-    doctor_t doctor = doctor_t::get(doctor_id);
+    doctor_waynetype doctor = doctor_waynetype::get(doctor_id);
 
     // Pick one of the doctor's patients.
-    patient_t patient = *(doctor.patients().begin());
+    patient_waynetype patient = *(doctor.patients().begin());
 
     // You can unlink a single element (there are still 2 connected).
     doctor.patients().remove(patient);
@@ -397,12 +397,12 @@ void delete_one_to_many_relationship_erase()
 
     gaia_id_t doctor_id = create_one_to_many_relationship();
 
-    doctor_t doctor = doctor_t::get(doctor_id);
+    doctor_waynetype doctor = doctor_waynetype::get(doctor_id);
     auto doctor_patients = doctor.patients();
 
     for (auto patient_it = doctor_patients.begin(); patient_it != doctor_patients.end();)
     {
-        patient_t patient = *patient_it;
+        patient_waynetype patient = *patient_it;
         patient_it = doctor_patients.erase(patient_it);
         patient.delete_row();
     }
@@ -420,11 +420,11 @@ gaia_id_t create_one_to_one_relationship()
 {
     PRINT_METHOD_NAME();
 
-    patient_t jane = patient_t::get(patient_t::insert_row("Jane", 183, true, {}));
-    address_t amsterdam = address_t::get(address_t::insert_row("Tuinstraat", "Amsterdam"));
+    patient_waynetype jane = patient_waynetype::get(patient_waynetype::insert_row("Jane", 183, true, {}));
+    address_waynetype amsterdam = address_waynetype::get(address_waynetype::insert_row("Tuinstraat", "Amsterdam"));
 
     // The address() method returns an address_ref_t which is a subclass of
-    // address_t that exposes the connect()/disconnect() methods to set/unset
+    // address_waynetype that exposes the connect()/disconnect() methods to set/unset
     // the reference.
     jane.address().connect(amsterdam);
 
@@ -441,14 +441,14 @@ void traverse_one_to_one_relationship(gaia_id_t patient_id)
 {
     PRINT_METHOD_NAME();
 
-    patient_t patient = patient_t::get(patient_id);
+    patient_waynetype patient = patient_waynetype::get(patient_id);
     // Actually returns address_ref_t which being a subclass of
-    // address_t can be assigned to address_t.
-    address_t address = patient.address(); // NOLINT(cppcoreguidelines-slicing)
+    // address_waynetype can be assigned to address_waynetype.
+    address_waynetype address = patient.address(); // NOLINT(cppcoreguidelines-slicing)
 
     gaia_log::app().info("City {}", address.city());
 
-    // Note: address.patient() returns a patient_t and not a patient_ref_t.
+    // Note: address.patient() returns a patient_waynetype and not a patient_ref_t.
     // This means you can set/unset the reference only from the patient side:
     //
     // You can do: patient.address().connect(...)
@@ -471,7 +471,7 @@ void delete_one_to_one_relationship_re(gaia_id_t patient_id)
 {
     PRINT_METHOD_NAME();
 
-    patient_t patient = patient_t::get(patient_id);
+    patient_waynetype patient = patient_waynetype::get(patient_id);
     address_ref_t address = patient.address();
 
     try
@@ -502,7 +502,7 @@ void delete_one_to_one_relationship(gaia_id_t patient_id)
 {
     PRINT_METHOD_NAME();
 
-    patient_t patient = patient_t::get(patient_id);
+    patient_waynetype patient = patient_waynetype::get(patient_id);
     address_ref_t address = patient.address(); // NOLINT(cppcoreguidelines-slicing)
 
     patient.address().disconnect();
@@ -516,20 +516,20 @@ void delete_one_to_one_relationship(gaia_id_t patient_id)
  */
 void create_filter_data()
 {
-    doctor_t dr_dorian = doctor_t::get(doctor_t::insert_row("Dr. Dorian"));
-    doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House"));
+    doctor_waynetype dr_dorian = doctor_waynetype::get(doctor_waynetype::insert_row("Dr. Dorian"));
+    doctor_waynetype dr_house = doctor_waynetype::get(doctor_waynetype::insert_row("Dr. House"));
 
-    patient_t jane = patient_t::get(patient_t::insert_row("Jane", 183, true, {}));
-    patient_t jack = patient_t::get(patient_t::insert_row("Jack", 176, false, {}));
-    patient_t john = patient_t::get(patient_t::insert_row("John", 165, false, {}));
+    patient_waynetype jane = patient_waynetype::get(patient_waynetype::insert_row("Jane", 183, true, {}));
+    patient_waynetype jack = patient_waynetype::get(patient_waynetype::insert_row("Jack", 176, false, {}));
+    patient_waynetype john = patient_waynetype::get(patient_waynetype::insert_row("John", 165, false, {}));
 
     dr_dorian.patients().insert(jane);
     dr_house.patients().insert(jack);
     dr_house.patients().insert(john);
 
-    address_t seattle = address_t::get(address_t::insert_row("4th Ave", "Seattle"));
-    address_t bellevue = address_t::get(address_t::insert_row("8th Street", "Bellevue"));
-    address_t amsterdam = address_t::get(address_t::insert_row("Tuinstraat", "Amsterdam"));
+    address_waynetype seattle = address_waynetype::get(address_waynetype::insert_row("4th Ave", "Seattle"));
+    address_waynetype bellevue = address_waynetype::get(address_waynetype::insert_row("8th Street", "Bellevue"));
+    address_waynetype amsterdam = address_waynetype::get(address_waynetype::insert_row("Tuinstraat", "Amsterdam"));
 
     jane.address().connect(seattle);
     jack.address().connect(bellevue);
@@ -550,8 +550,9 @@ void filter_lambda()
     // Find all the doctors whose name is "Dr. House".
     // using a lambda to express a predicate.
     // The result is a gaia container.
-    auto doctors = doctor_t::list().where(
-        [](const doctor_t& doctor) { return strcmp(doctor.name(), "Dr. House") == 0; });
+    auto doctors = doctor_waynetype::list().where(
+        [](const doctor_waynetype& doctor)
+        { return strcmp(doctor.name(), "Dr. House") == 0; });
 
     if (doctors.begin() == doctors.end())
     {
@@ -559,17 +560,18 @@ void filter_lambda()
     }
 
     // Takes the first item in the container (there should be only one match).
-    doctor_t dr_house = *doctors.begin();
+    doctor_waynetype dr_house = *doctors.begin();
 
     auto patients = dr_house.patients().where(
-        [](const patient_t& patient) { return strcmp(patient.name(), "Jack") == 0; });
+        [](const patient_waynetype& patient)
+        { return strcmp(patient.name(), "Jack") == 0; });
 
     if (patients.begin() == patients.end())
     {
         throw std::runtime_error("No patients found!");
     }
 
-    patient_t jack = *patients.begin();
+    patient_waynetype jack = *patients.begin();
 
     gaia_log::app().info("{} has patient {}", dr_house.name(), jack.name());
 }
@@ -579,7 +581,7 @@ void filter_lambda()
  * an API to create predicates for the all the class fields.
  *
  * This API is under the T_class_expr namespace (eg. doctor_expr for
- * doctor_t class).
+ * doctor_waynetype class).
  *
  * The API provides the == and != operators for string (const char*
  * and std::string).
@@ -588,8 +590,8 @@ void filter_gaia_predicates_strings()
 {
     PRINT_METHOD_NAME();
 
-    // The doctor_expr namespace is generated along with the doctor_t class.
-    auto doctors = doctor_t::list().where(doctor_expr::name == "Dr. House");
+    // The doctor_expr namespace is generated along with the doctor_waynetype class.
+    auto doctors = doctor_waynetype::list().where(doctor_expr::name == "Dr. House");
 
     if (doctors.begin() == doctors.end())
     {
@@ -597,11 +599,11 @@ void filter_gaia_predicates_strings()
     }
 
     // Assuming there is only one result.
-    doctor_t dr_house = *doctors.begin();
+    doctor_waynetype dr_house = *doctors.begin();
 
     auto patients = dr_house.patients().where(patient_expr::name != "John");
 
-    for (patient_t& patient : patients)
+    for (patient_waynetype& patient : patients)
     {
         gaia_log::app().info("{} has patient {}", dr_house.name(), patient.name());
     }
@@ -614,10 +616,10 @@ void filter_gaia_predicates_numbers()
 {
     PRINT_METHOD_NAME();
 
-    auto active_patients = patient_t::list().where(patient_expr::is_active == true);
+    auto active_patients = patient_waynetype::list().where(patient_expr::is_active == true);
     gaia_log::app().info("There are {} active patients", active_patients.size());
 
-    auto higher_than_160 = patient_t::list().where(patient_expr::height >= 160);
+    auto higher_than_160 = patient_waynetype::list().where(patient_expr::height >= 160);
     gaia_log::app().info("There are {} patients higher than 160", higher_than_160.size());
 }
 
@@ -629,7 +631,7 @@ void filter_gaia_predicates_containers()
     PRINT_METHOD_NAME();
 
     // Contains with expression.
-    auto jacks_doctor_container = doctor_t::list().where(
+    auto jacks_doctor_container = doctor_waynetype::list().where(
         doctor_expr::patients.contains(
             patient_expr::name == "Jack"));
 
@@ -637,25 +639,25 @@ void filter_gaia_predicates_containers()
     gaia_log::app().info("Jack's doctor is {}", jacks_doctor.name());
 
     // Contains with constant.
-    auto jane = *(patient_t::list().where(patient_expr::name == "Jane").begin());
+    auto jane = *(patient_waynetype::list().where(patient_expr::name == "Jane").begin());
 
-    auto janes_doctor_container = doctor_t::list().where(
+    auto janes_doctor_container = doctor_waynetype::list().where(
         doctor_expr::patients.contains(jane));
 
     auto janes_doctor = *janes_doctor_container.begin();
     gaia_log::app().info("Jane's doctor is {}", janes_doctor.name());
 
-    auto doctors_with_no_patients = doctor_t::list().where(doctor_expr::patients.empty());
+    auto doctors_with_no_patients = doctor_waynetype::list().where(doctor_expr::patients.empty());
 
     if (doctors_with_no_patients.begin() == doctors_with_no_patients.end())
     {
         gaia_log::app().info("All the doctors have at least one patient");
     }
 
-    auto doctors_with_patients = doctor_t::list().where(
+    auto doctors_with_patients = doctor_waynetype::list().where(
         doctor_expr::patients.count() >= 1);
 
-    for (doctor_t& doctor : doctors_with_patients)
+    for (doctor_waynetype& doctor : doctors_with_patients)
     {
         gaia_log::app().info("{} has at least one patient", doctor.name());
     }
@@ -674,7 +676,7 @@ void use_dac_object_across_transactions()
 
     // First transaction.
     auto_transaction_t txn{auto_transaction_t::no_auto_begin};
-    doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House"));
+    doctor_waynetype dr_house = doctor_waynetype::get(doctor_waynetype::insert_row("Dr. House"));
     txn.commit();
 
     try
@@ -698,24 +700,24 @@ void use_dac_object_across_transactions()
  */
 void clean_db()
 {
-    for (auto doctor_it = doctor_t::list().begin();
-         doctor_it != doctor_t::list().end();)
+    for (auto doctor_it = doctor_waynetype::list().begin();
+         doctor_it != doctor_waynetype::list().end();)
     {
         auto next_doctor_it = doctor_it++;
         next_doctor_it->patients().clear();
         next_doctor_it->delete_row();
     }
 
-    for (auto patient_it = patient_t::list().begin();
-         patient_it != patient_t::list().end();)
+    for (auto patient_it = patient_waynetype::list().begin();
+         patient_it != patient_waynetype::list().end();)
     {
         auto next_patient_it = patient_it++;
         next_patient_it->address().disconnect();
         next_patient_it->delete_row();
     }
 
-    for (auto address_it = address_t::list().begin();
-         address_it != address_t::list().end();)
+    for (auto address_it = address_waynetype::list().begin();
+         address_it != address_waynetype::list().end();)
     {
         auto next_address_it = address_it++;
         next_address_it->delete_row();

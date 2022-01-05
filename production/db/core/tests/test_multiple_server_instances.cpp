@@ -104,7 +104,7 @@ public:
         session_options.db_instance_name = m_instance_name;
 
         // TODO re-enable once we have multi instance support.
-        //begin_session(session_options);
+        // begin_session(session_options);
 
         uint32_t num_employees = 0;
 
@@ -114,7 +114,7 @@ public:
         while (num_employees == 0)
         {
             begin_transaction();
-            num_employees = employee_t::list().size();
+            num_employees = employee_waynetype::list().size();
 
             if (num_employees == 0)
             {

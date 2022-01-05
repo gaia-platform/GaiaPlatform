@@ -29,68 +29,68 @@ TEST_F(auto_connect_test, child_insert_connect)
 {
     const int32_t flight_number = 1701;
     auto_transaction_t txn;
-    flight_t::insert_row(flight_number - 1, {});
-    gaia_id_t flight_id = flight_t::insert_row(flight_number, {});
-    flight_t::insert_row(flight_number + 1, {});
-    flight_t::insert_row(flight_number + 2, {});
+    flight_waynetype::insert_row(flight_number - 1, {});
+    gaia_id_t flight_id = flight_waynetype::insert_row(flight_number, {});
+    flight_waynetype::insert_row(flight_number + 1, {});
+    flight_waynetype::insert_row(flight_number + 2, {});
     txn.commit();
 
-    ASSERT_EQ(flight_t::get(flight_id).return_passengers().size(), 0);
+    ASSERT_EQ(flight_waynetype::get(flight_id).return_passengers().size(), 0);
 
-    gaia_id_t passenger_id = passenger_t::insert_row("Spock", "Vulcan", flight_number);
+    gaia_id_t passenger_id = passenger_waynetype::insert_row("Spock", "Vulcan", flight_number);
     txn.commit();
 
-    ASSERT_EQ(flight_t::get(flight_id).return_passengers().size(), 1);
-    ASSERT_EQ(flight_t::get(flight_id).return_passengers().begin()->gaia_id(), passenger_id);
-    ASSERT_EQ(passenger_t::get(passenger_id).return_flight().gaia_id(), flight_id);
+    ASSERT_EQ(flight_waynetype::get(flight_id).return_passengers().size(), 1);
+    ASSERT_EQ(flight_waynetype::get(flight_id).return_passengers().begin()->gaia_id(), passenger_id);
+    ASSERT_EQ(passenger_waynetype::get(passenger_id).return_flight().gaia_id(), flight_id);
 
-    passenger_id = passenger_t::insert_row("James", "Kirk", flight_number);
+    passenger_id = passenger_waynetype::insert_row("James", "Kirk", flight_number);
     txn.commit();
 
-    ASSERT_EQ(flight_t::get(flight_id).return_passengers().size(), 2);
-    ASSERT_EQ(passenger_t::get(passenger_id).return_flight().gaia_id(), flight_id);
+    ASSERT_EQ(flight_waynetype::get(flight_id).return_passengers().size(), 2);
+    ASSERT_EQ(passenger_waynetype::get(passenger_id).return_flight().gaia_id(), flight_id);
 }
 
 TEST_F(auto_connect_test, child_update_connect)
 {
     const int32_t flight_number = 1701;
     auto_transaction_t txn;
-    gaia_id_t passenger_id = passenger_t::insert_row("Spock", "Vulcan", 0);
-    gaia_id_t flight_id = flight_t::insert_row(flight_number, {});
+    gaia_id_t passenger_id = passenger_waynetype::insert_row("Spock", "Vulcan", 0);
+    gaia_id_t flight_id = flight_waynetype::insert_row(flight_number, {});
     txn.commit();
 
-    ASSERT_EQ(flight_t::get(flight_id).return_passengers().size(), 0);
-    ASSERT_EQ(passenger_t::get(passenger_id).return_flight().gaia_id(), c_invalid_gaia_id);
+    ASSERT_EQ(flight_waynetype::get(flight_id).return_passengers().size(), 0);
+    ASSERT_EQ(passenger_waynetype::get(passenger_id).return_flight().gaia_id(), c_invalid_gaia_id);
 
-    auto passenger_writer = passenger_t::get(passenger_id).writer();
+    auto passenger_writer = passenger_waynetype::get(passenger_id).writer();
     passenger_writer.return_flight_number = flight_number;
     passenger_writer.update_row();
     txn.commit();
 
-    ASSERT_EQ(flight_t::get(flight_id).return_passengers().size(), 1);
-    ASSERT_EQ(flight_t::get(flight_id).return_passengers().begin()->gaia_id(), passenger_id);
-    ASSERT_EQ(passenger_t::get(passenger_id).return_flight().gaia_id(), flight_id);
+    ASSERT_EQ(flight_waynetype::get(flight_id).return_passengers().size(), 1);
+    ASSERT_EQ(flight_waynetype::get(flight_id).return_passengers().begin()->gaia_id(), passenger_id);
+    ASSERT_EQ(passenger_waynetype::get(passenger_id).return_flight().gaia_id(), flight_id);
 }
 
 TEST_F(auto_connect_test, child_update_disconnect)
 {
     const int32_t flight_number = 1701;
     auto_transaction_t txn;
-    gaia_id_t flight_id = flight_t::insert_row(flight_number, {});
-    gaia_id_t passenger_id = passenger_t::insert_row("Spock", "Vulcan", flight_number);
+    gaia_id_t flight_id = flight_waynetype::insert_row(flight_number, {});
+    gaia_id_t passenger_id = passenger_waynetype::insert_row("Spock", "Vulcan", flight_number);
     txn.commit();
 
-    ASSERT_EQ(flight_t::get(flight_id).return_passengers().size(), 1);
-    ASSERT_EQ(flight_t::get(flight_id).return_passengers().begin()->gaia_id(), passenger_id);
-    ASSERT_EQ(passenger_t::get(passenger_id).return_flight().gaia_id(), flight_id);
+    ASSERT_EQ(flight_waynetype::get(flight_id).return_passengers().size(), 1);
+    ASSERT_EQ(flight_waynetype::get(flight_id).return_passengers().begin()->gaia_id(), passenger_id);
+    ASSERT_EQ(passenger_waynetype::get(passenger_id).return_flight().gaia_id(), flight_id);
 
-    auto passenger_writer = passenger_t::get(passenger_id).writer();
+    auto passenger_writer = passenger_waynetype::get(passenger_id).writer();
     passenger_writer.return_flight_number = 0;
     passenger_writer.update_row();
     txn.commit();
 
-    ASSERT_EQ(flight_t::get(flight_id).return_passengers().size(), 0);
-    ASSERT_EQ(passenger_t::get(passenger_id).return_flight().gaia_id(), c_invalid_gaia_id);
+    ASSERT_EQ(flight_waynetype::get(flight_id).return_passengers().size(), 0);
+    ASSERT_EQ(passenger_waynetype::get(passenger_id).return_flight().gaia_id(), c_invalid_gaia_id);
 }
 
 TEST_F(auto_connect_test, child_update_reconnect)
@@ -100,45 +100,45 @@ TEST_F(auto_connect_test, child_update_reconnect)
 
     auto_transaction_t txn;
 
-    gaia_id_t enterprise_flight_id = flight_t::insert_row(enterprise_flight_number, {});
-    gaia_id_t voyager_flight_id = flight_t::insert_row(voyager_flight_number, {});
+    gaia_id_t enterprise_flight_id = flight_waynetype::insert_row(enterprise_flight_number, {});
+    gaia_id_t voyager_flight_id = flight_waynetype::insert_row(voyager_flight_number, {});
     txn.commit();
 
-    gaia_id_t passenger_id = passenger_t::insert_row("Spock", "Vulcan", enterprise_flight_number);
+    gaia_id_t passenger_id = passenger_waynetype::insert_row("Spock", "Vulcan", enterprise_flight_number);
     txn.commit();
 
-    ASSERT_EQ(flight_t::get(voyager_flight_id).return_passengers().size(), 0);
-    ASSERT_EQ(flight_t::get(enterprise_flight_id).return_passengers().size(), 1);
-    ASSERT_EQ(flight_t::get(enterprise_flight_id).return_passengers().begin()->gaia_id(), passenger_id);
-    ASSERT_EQ(passenger_t::get(passenger_id).return_flight().gaia_id(), enterprise_flight_id);
+    ASSERT_EQ(flight_waynetype::get(voyager_flight_id).return_passengers().size(), 0);
+    ASSERT_EQ(flight_waynetype::get(enterprise_flight_id).return_passengers().size(), 1);
+    ASSERT_EQ(flight_waynetype::get(enterprise_flight_id).return_passengers().begin()->gaia_id(), passenger_id);
+    ASSERT_EQ(passenger_waynetype::get(passenger_id).return_flight().gaia_id(), enterprise_flight_id);
 
-    auto passenger_writer = passenger_t::get(passenger_id).writer();
+    auto passenger_writer = passenger_waynetype::get(passenger_id).writer();
     passenger_writer.return_flight_number = voyager_flight_number;
     passenger_writer.update_row();
     txn.commit();
 
-    ASSERT_EQ(flight_t::get(enterprise_flight_id).return_passengers().size(), 0);
-    ASSERT_EQ(flight_t::get(voyager_flight_id).return_passengers().size(), 1);
-    ASSERT_EQ(flight_t::get(voyager_flight_id).return_passengers().begin()->gaia_id(), passenger_id);
-    ASSERT_EQ(passenger_t::get(passenger_id).return_flight().gaia_id(), voyager_flight_id);
+    ASSERT_EQ(flight_waynetype::get(enterprise_flight_id).return_passengers().size(), 0);
+    ASSERT_EQ(flight_waynetype::get(voyager_flight_id).return_passengers().size(), 1);
+    ASSERT_EQ(flight_waynetype::get(voyager_flight_id).return_passengers().begin()->gaia_id(), passenger_id);
+    ASSERT_EQ(passenger_waynetype::get(passenger_id).return_flight().gaia_id(), voyager_flight_id);
 }
 
 TEST_F(auto_connect_test, parent_insert_connect)
 {
     const int32_t flight_number = 1701;
     auto_transaction_t txn;
-    gaia_id_t spock_id = passenger_t::insert_row("Spock", "Vulcan", flight_number);
-    gaia_id_t kirk_id = passenger_t::insert_row("James", "Kirk", flight_number);
+    gaia_id_t spock_id = passenger_waynetype::insert_row("Spock", "Vulcan", flight_number);
+    gaia_id_t kirk_id = passenger_waynetype::insert_row("James", "Kirk", flight_number);
     txn.commit();
 
-    gaia_id_t flight_id = flight_t::insert_row(flight_number, {});
+    gaia_id_t flight_id = flight_waynetype::insert_row(flight_number, {});
     txn.commit();
 
     std::set<gaia_id_t> passenger_ids{spock_id, kirk_id};
 
-    ASSERT_EQ(flight_t::get(flight_id).return_passengers().size(), 2);
+    ASSERT_EQ(flight_waynetype::get(flight_id).return_passengers().size(), 2);
     std::set<gaia_id_t> return_passenger_ids;
-    for (const auto& return_passenger : flight_t::get(flight_id).return_passengers())
+    for (const auto& return_passenger : flight_waynetype::get(flight_id).return_passengers())
     {
         return_passenger_ids.insert(return_passenger.gaia_id());
     }
@@ -149,23 +149,23 @@ TEST_F(auto_connect_test, parent_update_disconnect)
 {
     const int32_t flight_number = 1701;
     auto_transaction_t txn;
-    gaia_id_t flight_id = flight_t::insert_row(flight_number, {});
-    gaia_id_t spock_id = passenger_t::insert_row("Spock", "Vulcan", flight_number);
-    gaia_id_t kirk_id = passenger_t::insert_row("James", "Kirk", flight_number);
+    gaia_id_t flight_id = flight_waynetype::insert_row(flight_number, {});
+    gaia_id_t spock_id = passenger_waynetype::insert_row("Spock", "Vulcan", flight_number);
+    gaia_id_t kirk_id = passenger_waynetype::insert_row("James", "Kirk", flight_number);
     txn.commit();
 
-    ASSERT_EQ(flight_t::get(flight_id).return_passengers().size(), 2);
-    ASSERT_EQ(passenger_t::get(spock_id).return_flight().gaia_id(), flight_id);
-    ASSERT_EQ(passenger_t::get(kirk_id).return_flight().gaia_id(), flight_id);
+    ASSERT_EQ(flight_waynetype::get(flight_id).return_passengers().size(), 2);
+    ASSERT_EQ(passenger_waynetype::get(spock_id).return_flight().gaia_id(), flight_id);
+    ASSERT_EQ(passenger_waynetype::get(kirk_id).return_flight().gaia_id(), flight_id);
 
-    auto flight_writer = flight_t::get(flight_id).writer();
+    auto flight_writer = flight_waynetype::get(flight_id).writer();
     flight_writer.number = 0;
     flight_writer.update_row();
     txn.commit();
 
-    ASSERT_EQ(flight_t::get(flight_id).return_passengers().size(), 0);
-    ASSERT_EQ(passenger_t::get(spock_id).return_flight_number(), flight_number);
-    ASSERT_EQ(passenger_t::get(kirk_id).return_flight_number(), flight_number);
+    ASSERT_EQ(flight_waynetype::get(flight_id).return_passengers().size(), 0);
+    ASSERT_EQ(passenger_waynetype::get(spock_id).return_flight_number(), flight_number);
+    ASSERT_EQ(passenger_waynetype::get(kirk_id).return_flight_number(), flight_number);
 }
 
 TEST_F(auto_connect_test, parent_update_reconnect)
@@ -175,27 +175,27 @@ TEST_F(auto_connect_test, parent_update_reconnect)
 
     auto_transaction_t txn;
 
-    gaia_id_t flight_id = flight_t::insert_row(old_flight_number, {});
+    gaia_id_t flight_id = flight_waynetype::insert_row(old_flight_number, {});
     txn.commit();
 
-    gaia_id_t spock_id = passenger_t::insert_row("Spock", "Vulcan", new_flight_number);
-    gaia_id_t kirk_id = passenger_t::insert_row("James", "Kirk", new_flight_number);
+    gaia_id_t spock_id = passenger_waynetype::insert_row("Spock", "Vulcan", new_flight_number);
+    gaia_id_t kirk_id = passenger_waynetype::insert_row("James", "Kirk", new_flight_number);
     txn.commit();
 
-    ASSERT_EQ(passenger_t::get(spock_id).return_flight().gaia_id(), c_invalid_gaia_id);
-    ASSERT_EQ(passenger_t::get(kirk_id).return_flight().gaia_id(), c_invalid_gaia_id);
-    ASSERT_EQ(flight_t::get(flight_id).return_passengers().size(), 0);
+    ASSERT_EQ(passenger_waynetype::get(spock_id).return_flight().gaia_id(), c_invalid_gaia_id);
+    ASSERT_EQ(passenger_waynetype::get(kirk_id).return_flight().gaia_id(), c_invalid_gaia_id);
+    ASSERT_EQ(flight_waynetype::get(flight_id).return_passengers().size(), 0);
 
-    auto flight_writer = flight_t::get(flight_id).writer();
+    auto flight_writer = flight_waynetype::get(flight_id).writer();
     flight_writer.number = new_flight_number;
     flight_writer.update_row();
     txn.commit();
 
     std::set<gaia_id_t> passenger_ids{spock_id, kirk_id};
 
-    ASSERT_EQ(flight_t::get(flight_id).return_passengers().size(), 2);
+    ASSERT_EQ(flight_waynetype::get(flight_id).return_passengers().size(), 2);
     std::set<gaia_id_t> return_passenger_ids;
-    for (const auto& return_passenger : flight_t::get(flight_id).return_passengers())
+    for (const auto& return_passenger : flight_waynetype::get(flight_id).return_passengers())
     {
         return_passenger_ids.insert(return_passenger.gaia_id());
     }

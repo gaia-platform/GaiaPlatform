@@ -39,18 +39,18 @@ protected:
         : db_catalog_test_base_t(string("addr_book.ddl")){};
 
     // Utility function that creates one named employee row.
-    employee_t create_employee(const char* name)
+    employee_waynetype create_employee(const char* name)
     {
         auto employee_w = employee_writer();
         employee_w.name_first = name;
         gaia_id_t id = employee_w.insert_row();
-        auto employee = employee_t::get(id);
+        auto employee = employee_waynetype::get(id);
         EXPECT_STREQ(employee.name_first(), name);
         return employee;
     }
 
     // This function is called with a variety of parameters. It begins by inserting the
-    // specified number of rows (type employee_t). Then it scans through the rows using
+    // specified number of rows (type employee_waynetype). Then it scans through the rows using
     // the gaia_db_extract() function to produce the JSON representation of the row
     // values. As it scans, it counts blocks and rows, verifying that the correct number
     // are found.
@@ -66,17 +66,17 @@ protected:
         // test and verify the correction.
 #ifdef GAIAPLAT_1673
         // Clear out any existing rows.
-        for (auto employee = *employee_t::list().begin();
+        for (auto employee = *employee_waynetype::list().begin();
              employee;
-             employee = *employee_t::list().begin())
+             employee = *employee_waynetype::list().begin())
         {
             employee.delete_row();
         }
 #else
         // This is the preferred method of iterating over an entire table to
         // delete its rows.
-        for (auto employee_it = employee_t::list().begin();
-             employee_it != employee_t::list().end();)
+        for (auto employee_it = employee_waynetype::list().begin();
+             employee_it != employee_waynetype::list().end();)
         {
             auto next_employee_it = employee_it++;
             (*next_employee_it).delete_row();
@@ -186,7 +186,7 @@ TEST_F(row_field_values_test, verify_field_values)
     // Initialization is needed when using reflection.
     ASSERT_TRUE(gaia_db_extract_initialize());
 
-    // Using configuration_t.
+    // Using configuration_waynetype.
     {
         begin_transaction();
 
@@ -199,8 +199,8 @@ TEST_F(row_field_values_test, verify_field_values)
         constexpr uint8_t c_uint8_2 = 12;
         constexpr uint8_t c_uint8_3 = 255;
         constexpr uint8_t c_uint8_4 = 6;
-        configuration_t::insert_row(c_double_1, c_double_2, c_uint8_1, c_uint8_2);
-        configuration_t::insert_row(c_double_3, c_double_4, c_uint8_3, c_uint8_4);
+        configuration_waynetype::insert_row(c_double_1, c_double_2, c_uint8_1, c_uint8_2);
+        configuration_waynetype::insert_row(c_double_3, c_double_4, c_uint8_3, c_uint8_4);
 
         commit_transaction();
 
@@ -237,7 +237,7 @@ TEST_F(row_field_values_test, verify_field_values)
         EXPECT_EQ(number_of_widget_bots, c_uint8_4);
     }
 
-    // Using robot_t.
+    // Using robot_waynetype.
     {
         begin_transaction();
 
@@ -251,8 +251,8 @@ TEST_F(row_field_values_test, verify_field_values)
         constexpr uint8_t c_uint8_2 = 101;
         constexpr uint16_t c_uint16_3 = 12000;
         constexpr uint16_t c_uint16_4 = 12001;
-        robot_t::insert_row(c_uint16_1, c_string_1, c_float_1, false, true, true, c_uint8_1, c_uint16_3);
-        robot_t::insert_row(c_uint16_2, c_string_1, c_float_2, true, false, true, c_uint8_2, c_uint16_4);
+        robot_waynetype::insert_row(c_uint16_1, c_string_1, c_float_1, false, true, true, c_uint8_1, c_uint16_3);
+        robot_waynetype::insert_row(c_uint16_2, c_string_1, c_float_2, true, false, true, c_uint8_2, c_uint16_4);
 
         commit_transaction();
 

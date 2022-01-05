@@ -59,7 +59,7 @@ TEST_F(test_index_scan, verify_cardinality)
 
     size_t count = 0;
 
-    for (const auto& obj : gaia::index_sandbox::sandbox_t::list())
+    for (const auto& obj : gaia::index_sandbox::sandbox_waynetype::list())
     {
         (void)obj;
         count++;
@@ -67,7 +67,7 @@ TEST_F(test_index_scan, verify_cardinality)
 
     EXPECT_TRUE(count == c_num_initial_rows);
 
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_waynetype::s_gaia_type);
 
     for (const auto& idx : catalog_core_t::list_indexes(type_record_id))
     {
@@ -89,7 +89,7 @@ TEST_F(test_index_scan, verify_cardinality_empty)
 {
     auto_transaction_t txn;
 
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::empty_t::s_gaia_type);
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::empty_waynetype::s_gaia_type);
 
     for (const auto& index : catalog_core_t::list_indexes(type_record_id))
     {
@@ -112,7 +112,7 @@ TEST_F(test_index_scan, test_limits)
 
     size_t limit = c_query_limit_rows;
 
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_waynetype::s_gaia_type);
 
     for (const auto& idx : catalog_core_t::list_indexes(type_record_id))
     {
@@ -165,7 +165,7 @@ TEST_F(test_index_scan, test_limits)
 TEST_F(test_index_scan, query_single_match)
 {
     // Lookup index_id for integer field.
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_waynetype::s_gaia_type);
     gaia_id_t range_index_id = c_invalid_gaia_id;
     gaia_id_t hash_index_id = c_invalid_gaia_id;
 
@@ -242,7 +242,7 @@ TEST_F(test_index_scan, query_single_match)
 TEST_F(test_index_scan, query_multi_match)
 {
     // Lookup index_id for integer field.
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_waynetype::s_gaia_type);
     gaia_id_t range_index_id = c_invalid_gaia_id;
     gaia_id_t hash_index_id = c_invalid_gaia_id;
 
@@ -316,7 +316,7 @@ TEST_F(test_index_scan, query_multi_match)
 TEST_F(test_index_scan, query_local_modify_no_match)
 {
     // Lookup index_id for integer field.
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_waynetype::s_gaia_type);
     gaia_id_t range_index_id = c_invalid_gaia_id;
     gaia_id_t hash_index_id = c_invalid_gaia_id;
 
@@ -398,7 +398,7 @@ TEST_F(test_index_scan, query_local_modify_no_match)
 TEST_F(test_index_scan, query_local_modify_match)
 {
     // Lookup index_id for integer field.
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_waynetype::s_gaia_type);
     gaia_id_t range_index_id = c_invalid_gaia_id;
     gaia_id_t hash_index_id = c_invalid_gaia_id;
 
@@ -480,7 +480,7 @@ TEST_F(test_index_scan, query_local_modify_match)
 TEST_F(test_index_scan, query_no_match)
 {
     // Lookup index_id for integer field.
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_waynetype::s_gaia_type);
     gaia_id_t range_index_id = c_invalid_gaia_id;
     gaia_id_t hash_index_id = c_invalid_gaia_id;
 
@@ -563,7 +563,7 @@ TEST_F(test_index_scan, rollback_txn)
 
     // Rollback operation should not be visible to scans.
     gaia::db::begin_transaction();
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_waynetype::s_gaia_type);
 
     for (const auto& idx : catalog_core_t::list_indexes(type_record_id))
     {
@@ -592,7 +592,7 @@ TEST_F(test_index_scan, insert_followed_by_delete)
     to_delete = w.insert_row();
 
     // Insert should be visible.
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_waynetype::s_gaia_type);
 
     for (const auto& idx : catalog_core_t::list_indexes(type_record_id))
     {
@@ -609,7 +609,7 @@ TEST_F(test_index_scan, insert_followed_by_delete)
     gaia::db::commit_transaction();
 
     gaia::db::begin_transaction();
-    gaia::index_sandbox::sandbox_t::get(to_delete).delete_row();
+    gaia::index_sandbox::sandbox_waynetype::get(to_delete).delete_row();
 
     // Delete in effect.
     for (const auto& idx : catalog_core_t::list_indexes(type_record_id))
@@ -641,7 +641,7 @@ TEST_F(test_index_scan, multi_insert_followed_by_delete)
     to_delete3 = w.insert_row();
 
     // Insert should be visible.
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_waynetype::s_gaia_type);
 
     for (const auto& idx : catalog_core_t::list_indexes(type_record_id))
     {
@@ -658,9 +658,9 @@ TEST_F(test_index_scan, multi_insert_followed_by_delete)
     gaia::db::commit_transaction();
 
     gaia::db::begin_transaction();
-    gaia::index_sandbox::sandbox_t::get(to_delete).delete_row();
-    gaia::index_sandbox::sandbox_t::get(to_delete2).delete_row();
-    gaia::index_sandbox::sandbox_t::get(to_delete3).delete_row();
+    gaia::index_sandbox::sandbox_waynetype::get(to_delete).delete_row();
+    gaia::index_sandbox::sandbox_waynetype::get(to_delete2).delete_row();
+    gaia::index_sandbox::sandbox_waynetype::get(to_delete3).delete_row();
 
     // Delete in effect.
     for (const auto& idx : catalog_core_t::list_indexes(type_record_id))

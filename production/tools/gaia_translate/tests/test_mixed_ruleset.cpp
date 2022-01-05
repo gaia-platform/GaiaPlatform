@@ -54,8 +54,8 @@ TEST_F(test_mixed_code, subscribe_valid_ruleset)
 {
     gaia::db::begin_transaction();
 
-    auto incubator = incubator_t::get(
-        incubator_t::insert_row(
+    auto incubator = incubator_waynetype::get(
+        incubator_waynetype::insert_row(
             "TestIncubator",
             c_g_incubator_min_temperature,
             c_g_incubator_max_temperature));
@@ -66,15 +66,13 @@ TEST_F(test_mixed_code, subscribe_valid_ruleset)
 
     gaia::db::begin_transaction();
 
-    const auto sensors = sensor_t::list().where([](const sensor_t& s) {
-        return strcmp(s.name(), "TestSensor1") == 0;
-    });
+    const auto sensors = sensor_waynetype::list().where([](const sensor_waynetype& s)
+                                                        { return strcmp(s.name(), "TestSensor1") == 0; });
 
     ASSERT_EQ(2, std::distance(sensors.begin(), sensors.end()));
 
-    const auto actuators = actuator_t::list().where([](const actuator_t& s) {
-        return strcmp(s.name(), "TestActuator1") == 0;
-    });
+    const auto actuators = actuator_waynetype::list().where([](const actuator_waynetype& s)
+                                                            { return strcmp(s.name(), "TestActuator1") == 0; });
 
     ASSERT_EQ(2, std::distance(sensors.begin(), sensors.end()));
 
@@ -86,7 +84,7 @@ TEST_F(test_mixed_code, insert_delete_row)
 {
     gaia::db::begin_transaction();
 
-    auto sensor = sensor_t::get(sensor_t::insert_row("TestSensor", 20210708, 98.6));
+    auto sensor = sensor_waynetype::get(sensor_waynetype::insert_row("TestSensor", 20210708, 98.6));
     sensor.delete_row();
 
     g_test_mixed_value = 0;

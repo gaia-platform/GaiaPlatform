@@ -52,14 +52,14 @@ protected:
             + to_string(c_lower_id_range) + " - " + to_string(c_higher_id_range));
     }
 
-    employee_t insert_records(size_t count)
+    employee_waynetype insert_records(size_t count)
     {
         employee_writer employee_writer;
         address_writer address_writer;
 
         employee_writer.name_first = "Many";
         employee_writer.name_last = "Addresses";
-        employee_t employee = employee_t::get(employee_writer.insert_row());
+        employee_waynetype employee = employee_waynetype::get(employee_writer.insert_row());
 
         for (size_t i = 0; i < count; i++)
         {
@@ -71,19 +71,19 @@ protected:
         return employee;
     }
 
-    employee_t insert_employee(const std::string& name)
+    employee_waynetype insert_employee(const std::string& name)
     {
         employee_writer ew;
         ew.name_first = name.c_str();
-        return employee_t::get(ew.insert_row());
+        return employee_waynetype::get(ew.insert_row());
     }
 
-    address_t insert_address(const std::string& street, const std::string& city)
+    address_waynetype insert_address(const std::string& street, const std::string& city)
     {
         address_writer aw;
         aw.city = city.c_str();
         aw.street = street.c_str();
-        return address_t::get(aw.insert_row());
+        return address_waynetype::get(aw.insert_row());
     }
 };
 
@@ -96,11 +96,11 @@ TEST_F(gaia_references_test, insert_remove)
     // Connect two inserted rows.
     employee_writer ew;
     ew.name_first = "Hidalgo";
-    employee_t e3 = employee_t::get(ew.insert_row());
+    employee_waynetype e3 = employee_waynetype::get(ew.insert_row());
 
     address_writer aw;
     aw.city = "Houston";
-    address_t a3 = address_t::get(aw.insert_row());
+    address_waynetype a3 = address_waynetype::get(aw.insert_row());
 
     e3.addresses().insert(a3);
 
@@ -116,8 +116,8 @@ TEST_F(gaia_references_test, connect_disconnect)
     begin_transaction();
 
     // Connect two inserted rows.
-    employee_t e1 = insert_employee("Hidalgo");
-    address_t a1 = insert_address("2400 4th Ave", "Houston");
+    employee_waynetype e1 = insert_employee("Hidalgo");
+    address_waynetype a1 = insert_address("2400 4th Ave", "Houston");
     e1.addresses().connect(a1);
     EXPECT_EQ(e1.addresses().size(), 1);
 
@@ -134,7 +134,7 @@ TEST_F(gaia_references_test, insert_remove_id_member)
     // Connect two inserted rows.
     employee_writer ew;
     ew.name_first = "Hidalgo";
-    employee_t e3 = employee_t::get(ew.insert_row());
+    employee_waynetype e3 = employee_waynetype::get(ew.insert_row());
 
     address_writer aw;
     aw.city = "Houston";
@@ -154,9 +154,9 @@ TEST_F(gaia_references_test, insert_remove_id_member)
     gaia_id_t invalid_id = find_invalid_id();
 
     e3.addresses().remove(aid3);
-    address_t::delete_row(aid3);
+    address_waynetype::delete_row(aid3);
     e3.delete_row();
-    EXPECT_THROW(address_t::delete_row(invalid_id), invalid_object_id);
+    EXPECT_THROW(address_waynetype::delete_row(invalid_id), invalid_object_id);
     commit_transaction();
 }
 
@@ -165,8 +165,8 @@ TEST_F(gaia_references_test, connect_disconnect_id_member)
     begin_transaction();
 
     // Connect two inserted rows.
-    employee_t e1 = insert_employee("Hidalgo");
-    address_t a1 = insert_address("2400 4th Ave", "Houston");
+    employee_waynetype e1 = insert_employee("Hidalgo");
+    address_waynetype a1 = insert_address("2400 4th Ave", "Houston");
     e1.addresses().connect(a1.gaia_id());
     EXPECT_EQ(e1.addresses().size(), 1);
 
@@ -175,7 +175,7 @@ TEST_F(gaia_references_test, connect_disconnect_id_member)
     commit_transaction();
 }
 
-employee_t create_hierarchy()
+employee_waynetype create_hierarchy()
 {
     const int hire_date = 20200530;
     const int count_addresses = 200;
@@ -183,26 +183,26 @@ employee_t create_hierarchy()
     const int addr_size = 6;
     const int phone_size = 5;
     auto employee
-        = employee_t::get(employee_t::insert_row("Heidi", "Humphry", "555-22-4444", hire_date, "heidi@gmail.com", ""));
+        = employee_waynetype::get(employee_waynetype::insert_row("Heidi", "Humphry", "555-22-4444", hire_date, "heidi@gmail.com", ""));
     for (int i = 0; i < count_addresses; i++)
     {
         char addr_string[addr_size];
         sprintf(addr_string, "%d", i);
-        auto address = address_t::get(
-            address_t::insert_row(addr_string, addr_string, addr_string, addr_string, addr_string, addr_string, true));
+        auto address = address_waynetype::get(
+            address_waynetype::insert_row(addr_string, addr_string, addr_string, addr_string, addr_string, addr_string, true));
         employee.addresses().insert(address);
         for (int j = 0; j < count_phones; j++)
         {
             char phone_string[phone_size];
             sprintf(phone_string, "%d", j);
-            auto phone = phone_t::get(phone_t::insert_row(phone_string, phone_string, true));
+            auto phone = phone_waynetype::get(phone_waynetype::insert_row(phone_string, phone_string, true));
             address.phones().insert(phone);
         }
     }
     return employee;
 }
 
-int scan_hierarchy(employee_t& eptr)
+int scan_hierarchy(employee_waynetype& eptr)
 {
     int count = 1;
     for (const auto& aptr : eptr.addresses())
@@ -219,7 +219,7 @@ int scan_hierarchy(employee_t& eptr)
     return count;
 }
 
-bool bounce_hierarchy(employee_t& eptr)
+bool bounce_hierarchy(employee_waynetype& eptr)
 {
     // Take a subset of the hierarchy and travel to the bottom. From the bottom, travel back
     // up, verifying the results on the way.
@@ -245,46 +245,46 @@ bool bounce_hierarchy(employee_t& eptr)
     return true;
 }
 
-bool delete_hierarchy(employee_t& employee_to_delete)
+bool delete_hierarchy(employee_waynetype& employee_waynetypeo_delete)
 {
     int count_addressee = 1;
     while (count_addressee >= 1)
     {
         count_addressee = 0;
-        // As long as there is at least one address_t, continue
-        address_t address_to_delete;
-        for (auto& address : employee_to_delete.addresses())
+        // As long as there is at least one address_waynetype, continue
+        address_waynetype address_waynetypeo_delete;
+        for (auto& address : employee_waynetypeo_delete.addresses())
         {
             ++count_addressee;
-            address_to_delete = address;
+            address_waynetypeo_delete = address;
             // Repeat: delete the last phone until all are deleted
             int count_phones = 1;
             while (count_phones >= 1)
             {
                 count_phones = 0;
 
-                phone_t phone_to_delete;
+                phone_waynetype phone_waynetypeo_delete;
                 for (const auto& phone : address.phones())
                 {
                     ++count_phones;
-                    phone_to_delete = phone;
+                    phone_waynetypeo_delete = phone;
                 }
 
                 if (count_phones)
                 {
-                    address.phones().remove(phone_to_delete);
-                    phone_to_delete.delete_row();
+                    address.phones().remove(phone_waynetypeo_delete);
+                    phone_waynetypeo_delete.delete_row();
                 }
             }
         }
         if (count_addressee)
         {
-            employee_to_delete.addresses().remove(address_to_delete);
-            address_to_delete.delete_row();
+            employee_waynetypeo_delete.addresses().remove(address_waynetypeo_delete);
+            address_waynetypeo_delete.delete_row();
         }
     }
 
-    employee_to_delete.delete_row();
+    employee_waynetypeo_delete.delete_row();
     return true;
 }
 
@@ -303,7 +303,7 @@ int count_type()
 string first_employee()
 {
     const char* name = nullptr;
-    for (auto const& row : employee_t::list())
+    for (auto const& row : employee_waynetype::list())
     {
         name = row.name_first();
     }
@@ -315,14 +315,14 @@ int all_addressee()
     int count = 0;
     const int addr_size = 6;
     char addr_string[addr_size];
-    for (auto const& address : address_t::list())
+    for (auto const& address : address_waynetype::list())
     {
         sprintf(addr_string, "%d", count);
         EXPECT_STREQ(addr_string, address.city());
         count++;
     }
     int i = 0;
-    for (auto it = address_t::list().begin(); it != address_t::list().end(); ++it)
+    for (auto it = address_waynetype::list().begin(); it != address_waynetype::list().end(); ++it)
     {
         sprintf(addr_string, "%d", i);
         EXPECT_STREQ(addr_string, (*it).city());
@@ -352,9 +352,9 @@ TEST_F(gaia_references_test, connect_scan)
     EXPECT_EQ(bounce_hierarchy(eptr), true);
 
     // Count the rows.
-    EXPECT_EQ(count_type<employee_t>(), 1);
-    EXPECT_EQ(count_type<address_t>(), 200);
-    EXPECT_EQ(count_type<phone_t>(), 4000);
+    EXPECT_EQ(count_type<employee_waynetype>(), 1);
+    EXPECT_EQ(count_type<address_waynetype>(), 200);
+    EXPECT_EQ(count_type<phone_waynetype>(), 4000);
 
     // Scan through some rows.
     EXPECT_EQ(first_employee(), "Heidi");
@@ -367,7 +367,7 @@ TEST_F(gaia_references_test, connect_scan)
     commit_transaction();
 }
 
-void scan_manages(std::vector<string>& employee_vector, employee_t& e)
+void scan_manages(std::vector<string>& employee_vector, employee_waynetype& e)
 {
     employee_vector.emplace_back(e.name_first());
     for (auto eptr : e.reportees())
@@ -376,12 +376,12 @@ void scan_manages(std::vector<string>& employee_vector, employee_t& e)
     }
 }
 
-// Test recursive scanning, employee_t to employee_t through manages relationship.
+// Test recursive scanning, employee_waynetype to employee_waynetype through manages relationship.
 TEST_F(gaia_references_test, recursive_scan)
 {
     begin_transaction();
 
-    // The "manages" set is employee_t to employee_t.
+    // The "manages" set is employee_waynetype to employee_waynetype.
     // This test will create, then walk through a management hierarchy.
     // Horace
     //    Henry
@@ -443,9 +443,9 @@ TEST_F(gaia_references_test, connect_to_ids)
     txn.commit();
 
     // Generate the object from the ids.
-    employee_t e1 = employee_t::get(eid1);
-    address_t a1 = address_t::get(aid1);
-    address_t a2 = address_t::get(aid2);
+    employee_waynetype e1 = employee_waynetype::get(eid1);
+    address_waynetype a1 = address_waynetype::get(aid1);
+    address_waynetype a2 = address_waynetype::get(aid2);
     e1.addresses().insert(a1);
     e1.addresses().insert(a2);
 }
@@ -601,7 +601,7 @@ TEST_F(gaia_references_test, scan_past_end)
 }
 
 // Attempt to insert two DAC objects in separate thread.
-void insert_object(bool committed, employee_t e1, address_t a1)
+void insert_object(bool committed, employee_waynetype e1, address_waynetype a1)
 {
     begin_session();
     begin_transaction();
@@ -628,10 +628,10 @@ void insert_addressee(bool committed, gaia_id_t eid1, gaia_id_t aid1, gaia_id_t 
     {
         if (committed)
         {
-            auto e1 = employee_t::get(eid1);
-            auto a1 = address_t::get(aid1);
-            auto a2 = address_t::get(aid2);
-            auto a3 = address_t::get(aid3);
+            auto e1 = employee_waynetype::get(eid1);
+            auto a1 = address_waynetype::get(aid1);
+            auto a2 = address_waynetype::get(aid2);
+            auto a3 = address_waynetype::get(aid3);
 
             // Note this first insert has already been done. This is no-op.
             e1.addresses().insert(a1);
@@ -640,31 +640,31 @@ void insert_addressee(bool committed, gaia_id_t eid1, gaia_id_t aid1, gaia_id_t 
         }
         else
         {
-            EXPECT_THROW(employee_t::get(eid1), invalid_object_id);
-            EXPECT_THROW(address_t::get(aid1), invalid_object_id);
-            EXPECT_THROW(address_t::get(aid2), invalid_object_id);
-            EXPECT_THROW(address_t::get(aid3), invalid_object_id);
+            EXPECT_THROW(employee_waynetype::get(eid1), invalid_object_id);
+            EXPECT_THROW(address_waynetype::get(aid1), invalid_object_id);
+            EXPECT_THROW(address_waynetype::get(aid2), invalid_object_id);
+            EXPECT_THROW(address_waynetype::get(aid3), invalid_object_id);
         }
     }
     commit_transaction();
     end_session();
 }
 
-// Connect and scan a many-to-many relationships through phone_t.
+// Connect and scan a many-to-many relationships through phone_waynetype.
 TEST_F(gaia_references_test, m_to_n_connections)
 {
     auto_transaction_t txn;
 
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-    auto e1 = employee_t::get(employee_t::insert_row("Hubert", "Humphrey", "XXX", 1902, "", ""));
+    auto e1 = employee_waynetype::get(employee_waynetype::insert_row("Hubert", "Humphrey", "XXX", 1902, "", ""));
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-    auto e2 = employee_t::get(employee_t::insert_row("Howard", "Hughs", "YYY", 1895, "", ""));
-    auto a1 = address_t::get(address_t::insert_row("1233", "", "Bot Hell", "98099", "AW", "USA", false));
-    auto a2 = address_t::get(address_t::insert_row("11111", "", "LandofKirk", "89088", "OW", "USA", false));
-    auto p1 = phone_t::get(phone_t::insert_row("303", "H", false));
-    auto p2 = phone_t::get(phone_t::insert_row("303", "M", false));
-    auto p3 = phone_t::get(phone_t::insert_row("206", "H", false));
-    auto p4 = phone_t::get(phone_t::insert_row("206", "M", false));
+    auto e2 = employee_waynetype::get(employee_waynetype::insert_row("Howard", "Hughs", "YYY", 1895, "", ""));
+    auto a1 = address_waynetype::get(address_waynetype::insert_row("1233", "", "Bot Hell", "98099", "AW", "USA", false));
+    auto a2 = address_waynetype::get(address_waynetype::insert_row("11111", "", "LandofKirk", "89088", "OW", "USA", false));
+    auto p1 = phone_waynetype::get(phone_waynetype::insert_row("303", "H", false));
+    auto p2 = phone_waynetype::get(phone_waynetype::insert_row("303", "M", false));
+    auto p3 = phone_waynetype::get(phone_waynetype::insert_row("206", "H", false));
+    auto p4 = phone_waynetype::get(phone_waynetype::insert_row("206", "M", false));
     e1.phones().insert(p1);
     e1.phones().insert(p2);
     e2.phones().insert(p3);
@@ -782,7 +782,7 @@ TEST_F(gaia_references_test, set_iter_arrow_deref)
 
     employee_writer emp_writer;
     emp_writer.name_first = emp_name;
-    employee_t employee = employee_t::get(emp_writer.insert_row());
+    employee_waynetype employee = employee_waynetype::get(emp_writer.insert_row());
 
     address_writer addr_writer;
     addr_writer.city = addr_city;
@@ -795,7 +795,7 @@ TEST_F(gaia_references_test, set_iter_arrow_deref)
 }
 
 // Return true if an employee name includes an 'o'.
-bool filter_function(const employee_t& e)
+bool filter_function(const employee_waynetype& e)
 {
     string name(e.name_first());
 
@@ -823,7 +823,8 @@ TEST_F(gaia_references_test, set_filter)
     size_t name_length = 5;
     int count = 0;
     auto name_length_list = e_mgr.reportees()
-                                .where([&name_length](const employee_t& e) { return strlen(e.name_first()) == name_length; });
+                                .where([&name_length](const employee_waynetype& e)
+                                       { return strlen(e.name_first()) == name_length; });
     for (const auto& e : name_length_list)
     {
         EXPECT_EQ(strlen(e.name_first()), name_length);
@@ -856,10 +857,10 @@ TEST_F(gaia_references_test, test_remove)
     begin_transaction();
     const size_t c_num_addresses = 10;
 
-    employee_t employee = insert_records(c_num_addresses);
+    employee_waynetype employee = insert_records(c_num_addresses);
     auto addr_list = employee.addresses();
 
-    for (const address_t& addr : addr_list)
+    for (const address_waynetype& addr : addr_list)
     {
         addr_list.remove(addr);
     }
@@ -883,7 +884,7 @@ TEST_F(gaia_references_test, test_erase)
     begin_transaction();
     const size_t c_num_addresses = 10;
 
-    employee_t employee = insert_records(c_num_addresses);
+    employee_waynetype employee = insert_records(c_num_addresses);
     auto addr_list = employee.addresses();
 
     for (auto addr_it = addr_list.begin(); addr_it != addr_list.end();)
@@ -901,7 +902,7 @@ TEST_F(gaia_references_test, test_erase_invalid_child)
     begin_transaction();
     const size_t c_num_addresses = 10;
 
-    employee_t employee = insert_records(c_num_addresses);
+    employee_waynetype employee = insert_records(c_num_addresses);
     auto addr_list = employee.addresses();
 
     EXPECT_THROW(addr_list.erase(addr_list.end()), invalid_object_id);
@@ -916,7 +917,7 @@ TEST_F(gaia_references_test, test_clear)
     begin_transaction();
     const size_t c_num_addresses = 10;
 
-    employee_t employee = insert_records(c_num_addresses);
+    employee_waynetype employee = insert_records(c_num_addresses);
     auto addr_list = employee.addresses();
 
     addr_list.clear();
@@ -933,7 +934,7 @@ TEST_F(gaia_references_test, test_dac_container_size)
 {
     begin_transaction();
 
-    ASSERT_EQ(0, employee_t::list().size());
+    ASSERT_EQ(0, employee_waynetype::list().size());
 
     const size_t c_num_employees = 11;
     const size_t c_num_addresses = 1;
@@ -943,7 +944,7 @@ TEST_F(gaia_references_test, test_dac_container_size)
         insert_records(c_num_addresses);
     }
 
-    ASSERT_EQ(c_num_employees, employee_t::list().size());
+    ASSERT_EQ(c_num_employees, employee_waynetype::list().size());
 
     commit_transaction();
 }
@@ -952,7 +953,7 @@ TEST_F(gaia_references_test, test_refernece_container_size)
 {
     begin_transaction();
 
-    employee_t employee = insert_records(0);
+    employee_waynetype employee = insert_records(0);
 
     ASSERT_EQ(0, employee.addresses().size());
 
@@ -982,11 +983,11 @@ TEST_F(gaia_references_test, test_temporary_object)
     // Connect two inserted rows.
     employee_writer ew;
     ew.name_first = "Hidalgo";
-    employee_t emp = employee_t::get(ew.insert_row());
+    employee_waynetype emp = employee_waynetype::get(ew.insert_row());
 
     // Ensure that we can pass a temporary object to the insert method.
     // Regression test for: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1167
-    emp.addresses().insert(address_t::get(address_t::insert_row("", "", "", "", "", "", true)));
+    emp.addresses().insert(address_waynetype::get(address_waynetype::insert_row("", "", "", "", "", "", true)));
 
     commit_transaction();
 }

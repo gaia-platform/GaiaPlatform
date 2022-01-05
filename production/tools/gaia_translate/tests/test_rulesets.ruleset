@@ -531,7 +531,7 @@ ruleset test_compile
     // GAIAPLAT-1311 (fixed)
     on_insert(registration)
     {
-        gaia::prerequisites::student_t studdy;
+        gaia::prerequisites::student_waynetype studdy;
         if (/S:student.age > 12 && strcmp(S->parents.name_father, student.student_id) == 0)
         {
             studdy = S;
@@ -675,9 +675,9 @@ ruleset test_insert_delete_2
     // GAIAPLAT-1250
     on_insert(E:enrollment_log)
     {
-        gaia::prerequisites::student_t S
+        gaia::prerequisites::student_waynetype S
             = student.insert(student_id: E.log_student_id, surname: E.log_surname, age: E.log_age);
-        gaia::prerequisites::course_t C
+        gaia::prerequisites::course_waynetype C
             = course.insert(course_id: E.log_course_id, name: E.log_name, hours: E.log_hours);
         registration.insert(reg_id: E.log_reg_id, student_id: E.log_student_id, course_id: E.log_course_id);
     }
@@ -719,7 +719,7 @@ ruleset test_connect_1_n
             r.student_id = student.student_id;
         }
 
-        gaia::prerequisites::registration_t r2 = registration.insert(reg_id: "reg002", student_id: student.student_id);
+        gaia::prerequisites::registration_waynetype r2 = registration.insert(reg_id: "reg002", student_id: student.student_id);
 
         gaia::prerequisites::registration_writer w;
         w.reg_id = "reg003";
@@ -745,7 +745,7 @@ ruleset test_connect_1_1
             gaia::prerequisites::parents_writer w;
             w.name_father = "John";
             w.name_mother = "Jane";
-            auto p = gaia::prerequisites::parents_t::get(w.insert_row());
+            auto p = gaia::prerequisites::parents_waynetype::get(w.insert_row());
             student.parents.connect(p);
         }
     }

@@ -62,11 +62,11 @@ bool compare_relationships(const relationship_t& lhs, const relationship_t& rhs)
 TEST_F(gaia_relationships_test, metadata_init)
 {
     const string db{"company"};
-    const string employee_table{"employee"};
+    const string employee_waynetypeable{"employee"};
     const string address_table{"address"};
 
     gaia::catalog::create_database(db);
-    gaia_id_t employee_table_id = gaia::catalog::create_table(db, employee_table, {});
+    gaia_id_t employee_waynetypeable_id = gaia::catalog::create_table(db, employee_waynetypeable, {});
 
     gaia::catalog::create_relationship(
         "company_manages",
@@ -93,13 +93,13 @@ TEST_F(gaia_relationships_test, metadata_init)
     const reference_offset_t c_address_next_address = 1;
 
     begin_transaction();
-    gaia_type_t employee_type = gaia::catalog::gaia_table_t::get(employee_table_id).type();
+    gaia_type_t employee_waynetypeype = gaia::catalog::gaia_table_t::get(employee_waynetypeable_id).type();
     gaia_type_t address_type = gaia::catalog::gaia_table_t::get(address_table_id).type();
 
     // type_registry_t::get() lazily initialize the metadata. It is important to NOT
     // call get() on address_type immediately to ensure that type_registry_t can
     // fetch both parent and child relationships without "touching" both types.
-    const type_metadata_t& employee_meta = type_registry_t::instance().get(employee_type);
+    const type_metadata_t& employee_meta = type_registry_t::instance().get(employee_waynetypeype);
 
     // employee -[manages] -> employee
     optional<relationship_t> employee_employee_relationship1 = employee_meta.find_child_relationship(c_employee_parent_employee);

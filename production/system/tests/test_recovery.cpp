@@ -73,7 +73,7 @@ public:
 
     static void modify_data();
 
-    static employee_t generate_employee_record();
+    static employee_waynetype generate_employee_record();
 
     static void load_data(uint64_t total_size_bytes, bool kill_server_during_load);
 
@@ -154,7 +154,7 @@ void recovery_test::validate_data()
 {
     size_t count = 0;
     begin_transaction();
-    for (auto employee : employee_t::list())
+    for (auto employee : employee_waynetype::list())
     {
         auto it = s_employee_map.find(employee.gaia_id());
 
@@ -192,7 +192,8 @@ gaia_id_t recovery_test::get_random_map_key(map<gaia_id_t, employee_copy_t> m)
 
 string recovery_test::generate_string(size_t length_in_bytes)
 {
-    auto randchar = []() -> char {
+    auto randchar = []() -> char
+    {
         const char charset[] = "0123456789"
                                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                "abcdefghijklmnopqrstuvwxyz";
@@ -212,7 +213,7 @@ void recovery_test::modify_data()
     {
         begin_transaction();
         auto to_update = s_employee_map.find(get_random_map_key(s_employee_map));
-        employee_t e1 = employee_t::get(to_update->first);
+        employee_waynetype e1 = employee_waynetype::get(to_update->first);
         auto w1 = e1.writer();
         auto name_first = generate_string(c_field_size_bytes);
         w1.name_first = name_first;
@@ -230,14 +231,14 @@ void recovery_test::modify_data()
     {
         s_employee_map.erase(id);
         begin_transaction();
-        auto e = employee_t::get(id);
+        auto e = employee_waynetype::get(id);
         e.delete_row();
         commit_transaction();
     }
 }
 
 // Method will generate an employee record of size 128 * 5 + 8 (648) bytes.
-employee_t recovery_test::generate_employee_record()
+employee_waynetype recovery_test::generate_employee_record()
 {
     auto w = employee_writer();
     w.name_first = generate_string(c_field_size_bytes);
@@ -248,7 +249,7 @@ employee_t recovery_test::generate_employee_record()
     w.web = generate_string(c_field_size_bytes);
 
     gaia_id_t id = w.insert_row();
-    return employee_t::get(id);
+    return employee_waynetype::get(id);
 }
 
 void recovery_test::load_data(uint64_t total_size_bytes, bool kill_server_during_load)
@@ -307,7 +308,7 @@ int recovery_test::get_count()
 {
     int total_count = 0;
     begin_transaction();
-    for (auto employee : employee_t::list())
+    for (auto employee : employee_waynetype::list())
     {
         total_count++;
     }
@@ -323,7 +324,7 @@ void recovery_test::delete_all(int initial_record_count)
 
     // Cache entries to delete.
     std::set<gaia_id_t> to_delete;
-    for (auto employee : employee_t::list())
+    for (auto employee : employee_waynetype::list())
     {
         total_count++;
         to_delete.insert(employee.gaia_id());
@@ -339,7 +340,7 @@ void recovery_test::delete_all(int initial_record_count)
         auto to_delete_copy = to_delete;
         for (gaia_id_t id : to_delete_copy)
         {
-            auto e = employee_t::get(id);
+            auto e = employee_waynetype::get(id);
             try
             {
                 e.delete_row();
@@ -415,13 +416,13 @@ void recovery_test::ensure_uncommitted_value_absent_on_restart_and_commit_new_tx
     s_server.restart();
     begin_session();
     begin_transaction();
-    ASSERT_THROW(employee_t::get(id), invalid_object_id);
+    ASSERT_THROW(employee_waynetype::get(id), invalid_object_id);
     // Check logging + commit path functional.
     auto e2 = generate_employee_record();
     id = e2.gaia_id();
     auto name_first = e2.name_first();
-    ASSERT_EQ(employee_t::get(id).gaia_id(), id);
-    ASSERT_STREQ(employee_t::get(id).name_first(), name_first);
+    ASSERT_EQ(employee_waynetype::get(id).gaia_id(), id);
+    ASSERT_STREQ(employee_waynetype::get(id).name_first(), name_first);
     commit_transaction();
     end_session();
 }
@@ -440,13 +441,13 @@ void recovery_test::ensure_uncommitted_value_absent_on_restart_and_rollback_new_
     s_server.restart();
     begin_session();
     begin_transaction();
-    ASSERT_THROW(employee_t::get(id), invalid_object_id);
+    ASSERT_THROW(employee_waynetype::get(id), invalid_object_id);
     // Check logging + rollback functional.
     auto e2 = generate_employee_record();
     id = e2.gaia_id();
     auto name_first = e2.name_first();
-    ASSERT_EQ(employee_t::get(id).gaia_id(), id);
-    ASSERT_STREQ(employee_t::get(id).name_first(), name_first);
+    ASSERT_EQ(employee_waynetype::get(id).gaia_id(), id);
+    ASSERT_STREQ(employee_waynetype::get(id).name_first(), name_first);
     rollback_transaction();
     end_session();
 }
@@ -496,7 +497,7 @@ TEST_F(recovery_test, reference_update_test)
         auto_transaction_t txn;
         for (gaia_id_t phone_id : phone_ids)
         {
-            address_t::get(address_id).phones().insert(phone_id);
+            address_waynetype::get(address_id).phones().insert(phone_id);
         }
         txn.commit();
     }
@@ -508,8 +509,8 @@ TEST_F(recovery_test, reference_update_test)
     {
         auto_transaction_t txn;
         // Make sure address cannot be deleted upon recovery.
-        ASSERT_THROW(address_t::get(address_id).delete_row(), object_still_referenced);
-        for (auto const& phone : address_t::get(address_id).phones())
+        ASSERT_THROW(address_waynetype::get(address_id).delete_row(), object_still_referenced);
+        for (auto const& phone : address_waynetype::get(address_id).phones())
         {
             recovered_phone_ids.insert(phone.gaia_id());
         }
@@ -519,7 +520,7 @@ TEST_F(recovery_test, reference_update_test)
         // Delete links between the phone records and the address record.
         for (gaia_id_t phone_id : recovered_phone_ids)
         {
-            address_t::get(address_id).phones().remove(phone_id);
+            address_waynetype::get(address_id).phones().remove(phone_id);
         }
         txn.commit();
     }
@@ -528,7 +529,7 @@ TEST_F(recovery_test, reference_update_test)
     s_server.restart();
     begin_session();
     begin_transaction();
-    auto phone_list = address_t::get(address_id).phones();
+    auto phone_list = address_waynetype::get(address_id).phones();
     // Make sure the references are deleted on recovery.
     ASSERT_EQ(phone_list.begin(), phone_list.end());
     commit_transaction();
