@@ -50,6 +50,7 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
+    echo "  -o,--output         Redirect output to a specific file."
     echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
     echo ""
@@ -60,9 +61,19 @@ show_usage() {
 # Parse the command line.
 parse_command_line() {
     VERBOSE_MODE=0
+    ALTERNATE_OUTPUT_PATH=
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
+        -o|--output)
+            if [ -z "$2" ] ; then
+                echo "Error: Argument $1 must be followed by a path to a file." >&2
+                show_usage
+            fi
+            ALTERNATE_OUTPUT_PATH=$2
+            shift
+            shift
+        ;;
         -v|--verbose)
             VERBOSE_MODE=1
             shift
@@ -103,11 +114,14 @@ SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 TEMP_FILE=$(mktemp /tmp/compose_github_actions.XXXXXXXXX)
 OTHER_TEMP_FILE=$(mktemp /tmp/compose_github_actions.XXXXXXXXX)
 
-# Set up any local script variables.
-DESTINATION_WORKFLOW_FILE=../../.github/workflows/main.yml
-
 # Parse any command line values.
 parse_command_line "$@"
+
+# Set up any local script variables based on command line options.
+DESTINATION_WORKFLOW_FILE=$ALTERNATE_OUTPUT_PATH
+if [ -z "$DESTINATION_WORKFLOW_FILE" ] ; then
+    DESTINATION_WORKFLOW_FILE=../../.github/workflows/main.yml
+fi
 
 # Clean entrance into the script.
 start_process

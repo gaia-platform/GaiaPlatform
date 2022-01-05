@@ -141,6 +141,8 @@ else()
   target_compile_options(gaia_build_options INTERFACE -O3)
 endif()
 
+set(CMAKE_CXX_CPPCHECK "cppcheck")
+
 # Sanitizer-specific compiler/linker flags.
 if(DEFINED CACHE{SANITIZER})
   message(VERBOSE "Sanitizer=$CACHE{SANITIZER}")

@@ -29,7 +29,7 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y clang-format-10 flatbuffers-compiler iwyu
+          sudo apt-get update && sudo apt-get install -y clang-format-10 flatbuffers-compiler
 
       - name: Install Required Python Packages
         run: |
@@ -85,7 +85,7 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
 
       - name: Install Required Third Party Git Repositories
         run: |
@@ -289,7 +289,7 @@ jobs:
           cd $GAIA_REPO/production
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
-          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON /source/production"
+          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON /source/production"
           sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1 make -j$(nproc) 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
 
       - name: Unit Tests
@@ -325,6 +325,14 @@ jobs:
           path: |
             /build/production/Testing/Temporary/LastTest.log
 
+      - name: Upload compile
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: Core compile
+          path: |
+            /build/production/compile_commands.json
+
   SDK:
     runs-on: ubuntu-20.04
     needs: Core
@@ -350,7 +358,7 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 debhelper flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev rpm libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 debhelper rpm flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
 
       - name: Install Required Third Party Git Repositories
         run: |
@@ -568,7 +576,7 @@ jobs:
           cd $GAIA_REPO/production
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
-          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper     -DBUILD_GAIA_RELEASE=ON     -G \"Unix Makefiles\" /source/production"
+          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON     -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper     -DBUILD_GAIA_RELEASE=ON     -G \"Unix Makefiles\" /source/production"
           sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1 make -j$(nproc) 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
 
       - name: Unit Tests
@@ -618,6 +626,14 @@ jobs:
           path: |
             /build/production/Testing/Temporary/LastTest.log
 
+      - name: Upload compile
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: SDK compile
+          path: |
+            /build/production/compile_commands.json
+
   Debug_Core:
     runs-on: ubuntu-20.04
     needs: Core
@@ -643,7 +659,7 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
 
       - name: Install Required Third Party Git Repositories
         run: |
@@ -847,7 +863,7 @@ jobs:
           cd $GAIA_REPO/production
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
-          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DCMAKE_BUILD_TYPE=Debug     -G \"Unix Makefiles\" /source/production"
+          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON     -DCMAKE_BUILD_TYPE=Debug     -G \"Unix Makefiles\" /source/production"
           sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1 make -j$(nproc) 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
 
       - name: Unit Tests
@@ -883,6 +899,14 @@ jobs:
           path: |
             /build/production/Testing/Temporary/LastTest.log
 
+      - name: Upload compile
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debug_Core compile
+          path: |
+            /build/production/compile_commands.json
+
   LLVM_Tests:
     runs-on: ubuntu-20.04
     needs: Core
@@ -908,11 +932,16 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
 
       - name: Install Required Python Packages
         run: |
           python3.8 -m pip install --user psutil
+          python3.8 -m pip install psutil
+          python3 -m pip install --user psutil
+          python3 -m pip install psutil
+          python -m pip install --user psutil
+          python -m pip install psutil
 
       - name: Install Required Third Party Git Repositories
         run: |
@@ -1118,7 +1147,7 @@ jobs:
           cd $GAIA_REPO/production
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
-          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DBUILD_GAIA_LLVM_TESTS=ON     -DBUILD_GAIA_RELEASE=ON     -G \"Unix Makefiles\" /source/production"
+          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON     -DBUILD_GAIA_LLVM_TESTS=ON     -DBUILD_GAIA_RELEASE=ON     -G \"Unix Makefiles\" /source/production"
           sudo bash -c "    VERBOSE=1 make -j$(nproc) 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
           sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1 make -j$(nproc) check-all 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
 
@@ -1152,6 +1181,14 @@ jobs:
           name: LLVM_Tests CTest Logs
           path: |
             /build/production/Testing/Temporary/LastTest.log
+
+      - name: Upload compile
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: LLVM_Tests compile
+          path: |
+            /build/production/compile_commands.json
 
   Integration:
     runs-on: ubuntu-20.04
