@@ -300,14 +300,15 @@ void client_t::begin_session(config::session_options_t session_options)
 
     // Set up the shared-memory mappings.
     // The locators mapping will be performed manually, so skip its information in the mapping table.
-    size_t index_fd = 0;
+    size_t fd_index = 0;
     for (auto data_mapping : s_data_mappings)
     {
         if (data_mapping.mapping_index != data_mapping_t::index_t::locators)
         {
-            data_mapping.open(client_messenger.received_fd(index_fd));
+            int fd = client_messenger.received_fd(fd_index);
+            data_mapping.open(fd);
         }
-        ++index_fd;
+        ++fd_index;
     }
 
     // Set up the private locator segment fd.

@@ -61,7 +61,7 @@ public:
         return m_count_received_fds;
     }
 
-    int received_fd(size_t index_fd);
+    int received_fd(size_t fd_index);
 
     inline const messages::server_reply_t* server_reply()
     {

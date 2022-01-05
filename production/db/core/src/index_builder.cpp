@@ -42,7 +42,9 @@ void index_builder_t::serialize_key(const index_key_t& key, payload_types::data_
 {
     for (const payload_types::data_holder_t& key_value : key.values())
     {
-        key_value.serialize(buffer);
+        // TODO: This will have to do until catalog information is available!
+        bool optional = (key_value.type == reflection::String || key_value.type == reflection::Vector);
+        key_value.serialize(buffer, optional);
     }
 }
 
@@ -61,7 +63,9 @@ index_key_t index_builder_t::deserialize_key(common::gaia_id_t index_id, payload
     for (auto field_id : fields)
     {
         data_type_t type = field_view_t(id_to_ptr(field_id)).data_type();
-        index_key.insert(payload_types::data_holder_t(buffer, convert_to_reflection_type(type)));
+        // TODO: Until this information is available in the catalog, this will have to do!
+        bool optional = type == common::data_type_t::e_string;
+        index_key.insert(payload_types::data_holder_t(buffer, convert_to_reflection_type(type), optional));
     }
 
     return index_key;
@@ -270,7 +274,7 @@ void index_builder_t::update_index(
     auto obj = offset_to_ptr(log_record.new_offset);
     auto payload = (obj) ? reinterpret_cast<const uint8_t*>(obj->data()) : nullptr;
 
-    switch (log_record.operation)
+    switch (log_record.operation())
     {
     case gaia_operation_t::create:
         index_builder_t::update_index(
@@ -361,9 +365,9 @@ void index_builder_t::update_indexes_from_txn_log(
     for (size_t i = 0; i < records.record_count; ++i)
     {
         const auto& log_record = records.log_records[i];
-        if ((log_record.operation == gaia_operation_t::remove || log_record.operation == gaia_operation_t::create)
+        if ((log_record.operation() == gaia_operation_t::remove || log_record.operation() == gaia_operation_t::create)
             && offset_to_ptr(
-                   log_record.operation == gaia_operation_t::remove
+                   log_record.operation() == gaia_operation_t::remove
                        ? log_record.old_offset
                        : log_record.new_offset)
                     ->type
@@ -375,7 +379,7 @@ void index_builder_t::update_indexes_from_txn_log(
                 has_cleared_cache = true;
             }
 
-            if (log_record.operation == gaia_operation_t::remove)
+            if (log_record.operation() == gaia_operation_t::remove)
             {
                 auto table_view = table_view_t(offset_to_ptr(log_record.old_offset));
                 dropped_types.push_back(table_view.table_type());
@@ -389,7 +393,7 @@ void index_builder_t::update_indexes_from_txn_log(
         auto& log_record = records.log_records[i];
         db_object_t* obj = nullptr;
 
-        if (log_record.operation == gaia_operation_t::remove)
+        if (log_record.operation() == gaia_operation_t::remove)
         {
             obj = offset_to_ptr(log_record.old_offset);
             ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
@@ -405,18 +409,18 @@ void index_builder_t::update_indexes_from_txn_log(
         {
             auto index_view = index_view_t(obj);
 
-            if (log_record.operation == gaia_operation_t::remove)
+            if (log_record.operation() == gaia_operation_t::remove)
             {
                 index::index_builder_t::drop_index(index_view);
             }
             // We only create the empty index after the post-create update operation because it is finally linked to the parent.
-            else if (log_record.operation == gaia_operation_t::update && last_index_operation == gaia_operation_t::create)
+            else if (log_record.operation() == gaia_operation_t::update && last_index_operation == gaia_operation_t::create)
             {
                 index::index_builder_t::create_empty_index(index_view, skip_catalog_integrity_check);
             }
 
             // Keep track of the last index operation in this txn.
-            last_index_operation = log_record.operation;
+            last_index_operation = log_record.operation();
             continue;
         }
 

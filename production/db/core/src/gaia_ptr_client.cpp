@@ -47,7 +47,7 @@ namespace db
 void gaia_ptr_t::reset()
 {
     locators_t* locators = get_locators();
-    client_t::txn_log(m_locator, to_offset(), c_invalid_gaia_offset, gaia_operation_t::remove, to_ptr()->id);
+    client_t::txn_log(m_locator, to_offset(), c_invalid_gaia_offset);
 
     // TODO[GAIAPLAT-445]:  We don't expose delete events.
     // if (client_t::is_valid_event(to_ptr()->type))
@@ -144,11 +144,11 @@ bool gaia_ptr_t::add_child_reference(gaia_id_t child_id, reference_offset_t firs
     if (*this != child_ptr)
     {
         WRITE_PROTECT(child_ptr.to_offset());
-        client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
+        client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset());
     }
 
     WRITE_PROTECT(to_offset());
-    client_t::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
+    client_t::txn_log(m_locator, old_parent_offset, to_offset());
     return true;
 }
 
@@ -260,7 +260,7 @@ bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
             prev_ptr.references()[relationship->next_child_offset]
                 = curr_ptr.references()[relationship->next_child_offset];
             WRITE_PROTECT(prev_ptr.to_offset());
-            client_t::txn_log(prev_ptr.m_locator, old_prev_offset, prev_ptr.to_offset(), gaia_operation_t::update);
+            client_t::txn_log(prev_ptr.m_locator, old_prev_offset, prev_ptr.to_offset());
         }
 
         curr_ptr.references()[relationship->parent_offset] = c_invalid_gaia_id;
@@ -271,11 +271,11 @@ bool gaia_ptr_t::remove_child_reference(gaia_id_t child_id, reference_offset_t f
     if (*this != child_ptr)
     {
         WRITE_PROTECT(child_ptr.to_offset());
-        client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset(), gaia_operation_t::update);
+        client_t::txn_log(child_ptr.m_locator, old_child_offset, child_ptr.to_offset());
     }
 
     WRITE_PROTECT(to_offset());
-    client_t::txn_log(m_locator, old_parent_offset, to_offset(), gaia_operation_t::update);
+    client_t::txn_log(m_locator, old_parent_offset, to_offset());
     return true;
 }
 
@@ -404,7 +404,7 @@ gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t
         reinterpret_cast<const uint8_t*>(obj_ptr->data()));
 
     WRITE_PROTECT(obj.to_offset());
-    client_t::txn_log(obj.m_locator, c_invalid_gaia_offset, obj.to_offset(), gaia_operation_t::create);
+    client_t::txn_log(obj.m_locator, c_invalid_gaia_offset, obj.to_offset());
 
     obj.create_insert_trigger(type, id);
     return obj;
@@ -421,7 +421,7 @@ gaia_ptr_t gaia_ptr_t::create_ref_anchor(gaia_id_t parent_id, gaia_id_t first_ch
     obj.references()[c_ref_anchor_parent_offset] = parent_id;
     obj.references()[c_ref_anchor_first_child_offset] = first_child_id;
     WRITE_PROTECT(obj.to_offset());
-    client_t::txn_log(obj.m_locator, c_invalid_gaia_offset, obj.to_offset(), gaia_operation_t::create);
+    client_t::txn_log(obj.m_locator, c_invalid_gaia_offset, obj.to_offset());
     return obj;
 }
 
@@ -825,7 +825,7 @@ gaia_ptr_t gaia_ptr_t::set_reference(reference_offset_t offset, gaia_id_t id)
     clone_no_txn();
     references()[offset] = id;
     WRITE_PROTECT(to_offset());
-    client_t::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
+    client_t::txn_log(m_locator, old_offset, to_offset());
     return *this;
 }
 
@@ -903,7 +903,7 @@ gaia_ptr_t& gaia_ptr_t::update_payload(size_t data_size, const void* data)
         changed_fields);
 
     WRITE_PROTECT(to_offset());
-    client_t::txn_log(m_locator, old_offset, to_offset(), gaia_operation_t::update);
+    client_t::txn_log(m_locator, old_offset, to_offset());
 
     if (client_t::is_valid_event(new_this->type))
     {
