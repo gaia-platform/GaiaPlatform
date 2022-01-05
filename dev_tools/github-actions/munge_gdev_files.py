@@ -495,6 +495,7 @@ def __calculate_project_dependencies(
 
 def __collect_specified_section_text_pairs(
     specific_section_name,
+    alternate_section_name,
     base_config_file,
     collected_file_sections,
     configuration_root_directory,
@@ -510,9 +511,14 @@ def __collect_specified_section_text_pairs(
         base_config_file, collected_file_sections, configuration_root_directory, args
     )
     for next_project_dependency in project_dependencies:
-        if specific_section_name in collected_file_sections[next_project_dependency]:
+
+        test_section_name = specific_section_name
+        if not test_section_name in collected_file_sections[next_project_dependency]:
+            test_section_name = alternate_section_name
+
+        if test_section_name in collected_file_sections[next_project_dependency]:
             spec_dependencies = collected_file_sections[next_project_dependency][
-                specific_section_name
+                test_section_name
             ]
             for next_spec in spec_dependencies:
                 if next_spec[1] and next_spec[1].startswith("source_dir("):
@@ -921,8 +927,16 @@ def process_script_action():
         + args.section
         + __GDEV_NEW_SECTION_END_CHARACTER
     )
+    if specific_section_name == __SECTION_NAME_PRE_LINT:
+        alternate_section_name = __SECTION_NAME_PRE_RUN
+    elif specific_section_name == __SECTION_NAME_LINT:
+        alternate_section_name = __SECTION_NAME_RUN
+    else:
+        alternate_section_name = None
+
     section_text_pairs, dependency_graph = __collect_specified_section_text_pairs(
         specific_section_name,
+        alternate_section_name,
         base_config_file,
         collected_file_sections,
         configuration_root_directory,
@@ -938,13 +952,12 @@ def process_script_action():
     elif __SECTION_NAME_WEB == specific_section_name:
         __print_web_results(section_text_pairs, configuration_root_directory)
     elif __SECTION_NAME_COPY == specific_section_name:
-        if "Lint" not in args.options:
-            __print_pre_production_copy_section(
-                collected_file_sections,
-                base_config_file,
-                args,
-                configuration_root_directory,
-            )
+        __print_pre_production_copy_section(
+            collected_file_sections,
+            base_config_file,
+            args,
+            configuration_root_directory,
+        )
     elif __SECTION_NAME_ARTIFACTS == specific_section_name:
         __print_artifacts_section(section_text_pairs, args.job_name)
     elif __SECTION_NAME_PACKAGE == specific_section_name:

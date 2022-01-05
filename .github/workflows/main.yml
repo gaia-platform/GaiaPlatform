@@ -18,6 +18,10 @@ jobs:
       GAIA_REPO: ${{ github.workspace }}
       GAIA_VERSION: 0.3.2
       GAIA_PRE_RELEASE: beta
+      CC: /usr/bin/clang-13
+      CPP: /usr/bin/clang-cpp-13
+      CXX: /usr/bin/clang++-13
+      LDFLAGS: "-B/usr/lib/llvm-13/bin/ -fuse-ld=lld"
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -29,11 +33,49 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y flatbuffers-compiler
+          sudo apt-get update && sudo apt-get install -y flatbuffers-compiler apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget
 
       - name: Install Required Python Packages
         run: |
           python3.8 -m pip install --user pre-commit
+
+      - name: Pre-Lint third_party/production/cmake
+        run: |
+          cd $GAIA_REPO/third_party/production/cmake
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang\" \"clang\" \"/usr/bin/clang-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang++\" \"clang++\" \"/usr/bin/clang++-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/ld.lld\" \"ld.lld\" \"/usr/bin/ld.lld-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/cc\" \"cc\" \"$CC\" 50"
+          sudo bash -c "update-alternatives --install \"/usr/bin/c++\" \"c++\" \"$CXX\" 50"
+          sudo bash -c "update-alternatives --install \"/usr/bin/cpp\" \"cpp\" \"$CPP\" 50"
+
+      - name: Lint third_party/production/cmake
+        run: |
+          cd $GAIA_REPO/third_party/production/cmake
+          sudo bash -c "wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null"
+          sudo bash -c "echo \"deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main\" | tee /etc/apt/sources.list.d/kitware.list"
+          sudo bash -c "apt-get update"
+          sudo bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y     cmake     cmake-data"
+          sudo bash -c "apt-get clean"
+          sudo bash -c "rm /etc/apt/sources.list.d/kitware.list >/dev/null"
+          sudo bash -c "rm /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null"
+          sudo bash -c "wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -"
+          sudo bash -c "echo \"deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-13 main\" | tee /etc/apt/sources.list.d/llvm.list"
+          sudo bash -c "apt-get update"
+          sudo bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y     clang-13     clang-format-13     clang-tidy-13     lld-13     libc++-13-dev     libc++abi-13-dev"
+          sudo bash -c "apt-get clean"
+          sudo bash -c "rm /etc/apt/sources.list.d/llvm.list >/dev/null"
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang-format\" \"clang-format\" \"/usr/bin/clang-format-13\" 10"
+          sudo bash -c "update-alternatives --install \"/usr/bin/clang-tidy\" \"clang-tidy\" \"/usr/bin/clang-tidy-13\" 10"
+
+      - name: Create /source and /build directories.
+        run: |
+          sudo bash -c "mkdir -p /build/third_party/production/cmake"
+          sudo bash -c "cp -a $GAIA_REPO/third_party/production/cmake/. /build/third_party/production/cmake/"
+          sudo bash -c "mkdir -p /source/production/cmake"
+          sudo bash -c "cp -a $GAIA_REPO/production/cmake/. /source/production/cmake/"
+          sudo bash -c "mkdir -p /source/production"
+          sudo bash -c "cp -a $GAIA_REPO/production/. /source/production/"
 
       - name: Pre-Lint production
         run: |
@@ -87,7 +129,7 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y clang-format-13 clang-tidy-13 flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+          sudo apt-get update && sudo apt-get install -y flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
 
       - name: Install Required Third Party Git Repositories
         run: |
@@ -283,8 +325,6 @@ jobs:
       - name: Pre-Build production
         run: |
           cd $GAIA_REPO/production
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang-format\" \"clang-format\" \"/usr/bin/clang-format-13\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang-tidy\" \"clang-tidy\" \"/usr/bin/clang-tidy-13\" 10"
           sudo bash -c "update-alternatives --install \"/usr/bin/python\" \"python\" \"/usr/bin/python3.8\" 10"
           sudo bash -c "update-alternatives --install \"/usr/bin/python3\" \"python3\" \"/usr/bin/python3.8\" 10"
           sudo bash -c "mkdir -p /etc/postgresql/12/main"
@@ -368,7 +408,7 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y clang-format-13 clang-tidy-13 debhelper rpm flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+          sudo apt-get update && sudo apt-get install -y debhelper rpm flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
 
       - name: Install Required Third Party Git Repositories
         run: |
@@ -578,8 +618,6 @@ jobs:
       - name: Pre-Build production
         run: |
           cd $GAIA_REPO/production
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang-format\" \"clang-format\" \"/usr/bin/clang-format-13\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang-tidy\" \"clang-tidy\" \"/usr/bin/clang-tidy-13\" 10"
           sudo bash -c "update-alternatives --install \"/usr/bin/python\" \"python\" \"/usr/bin/python3.8\" 10"
           sudo bash -c "update-alternatives --install \"/usr/bin/python3\" \"python3\" \"/usr/bin/python3.8\" 10"
           sudo bash -c "mkdir -p /etc/postgresql/12/main"
@@ -677,7 +715,7 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y clang-format-13 clang-tidy-13 flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+          sudo apt-get update && sudo apt-get install -y flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
 
       - name: Install Required Third Party Git Repositories
         run: |
@@ -873,8 +911,6 @@ jobs:
       - name: Pre-Build production
         run: |
           cd $GAIA_REPO/production
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang-format\" \"clang-format\" \"/usr/bin/clang-format-13\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang-tidy\" \"clang-tidy\" \"/usr/bin/clang-tidy-13\" 10"
           sudo bash -c "update-alternatives --install \"/usr/bin/python\" \"python\" \"/usr/bin/python3.8\" 10"
           sudo bash -c "update-alternatives --install \"/usr/bin/python3\" \"python3\" \"/usr/bin/python3.8\" 10"
           sudo bash -c "mkdir -p /etc/postgresql/12/main"
@@ -958,7 +994,7 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y clang-format-13 clang-tidy-13 flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+          sudo apt-get update && sudo apt-get install -y flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
 
       - name: Install Required Python Packages
         run: |
@@ -1160,8 +1196,6 @@ jobs:
       - name: Pre-Build production
         run: |
           cd $GAIA_REPO/production
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang-format\" \"clang-format\" \"/usr/bin/clang-format-13\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang-tidy\" \"clang-tidy\" \"/usr/bin/clang-tidy-13\" 10"
           sudo bash -c "update-alternatives --install \"/usr/bin/python\" \"python\" \"/usr/bin/python3.8\" 10"
           sudo bash -c "update-alternatives --install \"/usr/bin/python3\" \"python3\" \"/usr/bin/python3.8\" 10"
           sudo bash -c "mkdir -p /etc/postgresql/12/main"
