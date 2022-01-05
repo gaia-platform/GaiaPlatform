@@ -142,7 +142,7 @@ std::string dac_compilation_unit_writer_t::generate_constants()
     flatbuffers::CodeWriter code = create_code_writer();
     // A fixed constant is used for the flatbuffer builder constructor.
     code += "// The initial size of the flatbuffer builder buffer.";
-    code += "constexpr int c_flatbuffer_builder_size = 128;";
+    code += "constexpr size_t c_flatbuffer_builder_size = 128;";
     code += "";
 
     for (const table_facade_t& table : m_database.tables())
