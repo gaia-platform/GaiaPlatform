@@ -156,8 +156,11 @@ void update_index_entry(
     // If the index has UNIQUE constraint, then we need to prevent inserting duplicate values.
     // We need this check only for insertions.
     // Our checks also require access to txn_metadata_t, so they can only be performed on the server.
+    //
+    // We also skip the checks for NULL keys.
     if (is_unique
         && record.operation == index_record_operation_t::insert
+        && !key.is_null()
         && transactions::txn_metadata_t::is_txn_metadata_map_initialized())
     {
         // BULK lock to avoid race condition where two different txns can insert the same value.

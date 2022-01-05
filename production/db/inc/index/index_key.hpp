@@ -65,6 +65,7 @@ public:
 
     const std::vector<gaia::db::payload_types::data_holder_t>& values() const;
     size_t size() const;
+    bool is_null() const;
 
 private:
     int compare(const index_key_t& other) const;
