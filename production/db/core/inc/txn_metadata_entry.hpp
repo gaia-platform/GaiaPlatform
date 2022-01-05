@@ -102,7 +102,7 @@ private:
     //
     // txn_status (3) | gc_status (1) | persistence_status (1) | reserved (1) | log_fd (16) | linked_timestamp (42)
 
-    static constexpr size_t c_txn_metadata_bit_width{64ULL};
+    static constexpr size_t c_txn_metadata_bit_width{64};
 
     // Because we restrict all fds to 16 bits, this is the largest possible
     // value in that range, which we reserve to indicate an invalidated fd
@@ -110,7 +110,7 @@ private:
     static constexpr uint16_t c_invalid_txn_log_fd_bit_pattern{std::numeric_limits<uint16_t>::max()};
 
     // Transaction status flags.
-    static constexpr size_t c_txn_status_flags_bit_width{3ULL};
+    static constexpr size_t c_txn_status_flags_bit_width{3};
     static constexpr size_t c_txn_status_flags_shift{c_txn_metadata_bit_width - c_txn_status_flags_bit_width};
     static constexpr uint64_t c_txn_status_flags_mask{
         ((1ULL << c_txn_status_flags_bit_width) - 1) << c_txn_status_flags_shift};
@@ -142,7 +142,7 @@ private:
     // behind the post-apply watermark (and with TXN_PERSISTENCE_COMPLETE set if
     // persistence is enabled) is eligible for GC, and an invalidated log fd
     // indicates that GC is in progress.
-    static constexpr size_t c_txn_gc_flags_bit_width{1ULL};
+    static constexpr size_t c_txn_gc_flags_bit_width{1};
     static constexpr size_t c_txn_gc_flags_shift{
         (c_txn_metadata_bit_width - c_txn_gc_flags_bit_width) - c_txn_status_flags_bit_width};
     static constexpr uint64_t c_txn_gc_flags_mask{
@@ -164,7 +164,7 @@ private:
     // been marked durable (because they might be concurrently read for
     // persistence to the write-ahead log). If persistence is disabled, this
     // flag is unused.
-    static constexpr size_t c_txn_persistence_flags_bit_width{1ULL};
+    static constexpr size_t c_txn_persistence_flags_bit_width{1};
     static constexpr size_t c_txn_persistence_flags_shift{
         (c_txn_metadata_bit_width - c_txn_persistence_flags_bit_width)
         - (c_txn_status_flags_bit_width + c_txn_gc_flags_bit_width)};
@@ -177,12 +177,12 @@ private:
 
     // This is a placeholder for the single (currently) reserved bit in the txn
     // metadata format.
-    static constexpr size_t c_txn_reserved_flags_bit_width{1ULL};
+    static constexpr size_t c_txn_reserved_flags_bit_width{1};
 
     // Txn log fd embedded in the txn metadata.
     // This is only present in a commit_ts metadata entry.
     // NB: we assume that any fd will be < 2^16 - 1!
-    static constexpr size_t c_txn_log_fd_bit_width{16ULL};
+    static constexpr size_t c_txn_log_fd_bit_width{16};
     static constexpr size_t c_txn_log_fd_shift{
         (c_txn_metadata_bit_width - c_txn_log_fd_bit_width)
         - (c_txn_status_flags_bit_width
@@ -218,11 +218,11 @@ private:
     //
     // REVIEW (GAIAPLAT-1577): We should be able to revert this restriction when
     // we move the txn metadata to a fixed-size circular buffer.
-    static constexpr size_t c_txn_ts_bit_width{32ULL};
+    static constexpr size_t c_txn_ts_bit_width{32};
 #else
-    static constexpr size_t c_txn_ts_bit_width{42ULL};
+    static constexpr size_t c_txn_ts_bit_width{42};
 #endif
-    static constexpr size_t c_txn_ts_shift{0ULL};
+    static constexpr size_t c_txn_ts_shift{0};
     static constexpr uint64_t c_txn_ts_mask{((1ULL << c_txn_ts_bit_width) - 1) << c_txn_ts_shift};
 
     // Transaction metadata special values.
