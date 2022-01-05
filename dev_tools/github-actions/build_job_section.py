@@ -242,12 +242,13 @@ def __collect_lines_for_section(
 
     cmds = ["./munge_gdev_files.py", "--section", section_name, "--job-name", job_name]
     cmds.extend(cmd_options)
+    raw_command = " ".join(cmds)
     code, env_outp, errp = __execute_script(cmds)
     if show_debug_output:
         print(f"output for {section_long_name}: {env_outp}")
     assert (
         code == 0
-    ), f"Error getting generated {section_long_name}({code}): {env_outp}{errp}"
+    ), f"Error getting generated {section_long_name}({code}): {raw_command}\n{env_outp}{errp}"
     return env_outp
 
 
