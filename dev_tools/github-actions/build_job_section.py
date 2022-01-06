@@ -46,7 +46,16 @@ __JOB_PREFIX = """
     runs-on: ubuntu-20.04
     {needs}{env}"""
 
+# More on the Slack action here: https://github.com/marketplace/actions/action-slack
 __STEPS_PREFIX_AND_APT_SECTION_HEADER = """    steps:
+      - name: Setup Slack Reporting
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       - name: Checkout Repository
         uses: actions/checkout@master
 
@@ -59,10 +68,11 @@ __STEPS_PREFIX_AND_APT_SECTION_HEADER = """    steps:
         run: |
           sudo apt-get update && sudo apt-get install -y """
 
-__PIP_SECTION_HEADER = """
+__PIP_SECTION_HEADER_TEMPLATE = """
       - name: Install Required Python Packages
         run: |
-          python3.8 -m pip install --user"""
+          python3.8 -m pip install {pip}
+          python3 -m pip install {pip}"""
 
 __GIT_SECTION_HEADER = """
       - name: Install Required Third Party Git Repositories
@@ -342,8 +352,7 @@ def __print_normal_prefix_lines(section_line_map, apt_outp, pip_outp):
 
     # `Install Required Python Packages`
     if pip_outp:
-        print(__PIP_SECTION_HEADER, end="")
-        print(" " + pip_outp)
+        print(__PIP_SECTION_HEADER_TEMPLATE.replace("{pip}", pip_outp))
 
     # `Install Required Third Party Git Repositories`
     if section_line_map[__GIT_SECTION]:

@@ -23,6 +23,14 @@ jobs:
       CXX: /usr/bin/clang++-13
       LDFLAGS: "-B/usr/lib/llvm-13/bin/ -fuse-ld=lld"
     steps:
+      - name: Setup Slack Reporting
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       - name: Checkout Repository
         uses: actions/checkout@master
 
@@ -37,7 +45,8 @@ jobs:
 
       - name: Install Required Python Packages
         run: |
-          python3.8 -m pip install --user pre-commit
+          python3.8 -m pip install pre-commit
+          python3 -m pip install pre-commit
 
       - name: Lint third_party/production/cmake
         run: |
@@ -115,6 +124,14 @@ jobs:
       LC_CTYPE: en_US.UTF-8
       LC_ALL: en_US.UTF-8
     steps:
+      - name: Setup Slack Reporting
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       - name: Checkout Repository
         uses: actions/checkout@master
 
@@ -390,6 +407,14 @@ jobs:
       LC_CTYPE: en_US.UTF-8
       LC_ALL: en_US.UTF-8
     steps:
+      - name: Setup Slack Reporting
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       - name: Checkout Repository
         uses: actions/checkout@master
 
@@ -693,6 +718,14 @@ jobs:
       LC_CTYPE: en_US.UTF-8
       LC_ALL: en_US.UTF-8
     steps:
+      - name: Setup Slack Reporting
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       - name: Checkout Repository
         uses: actions/checkout@master
 
@@ -968,6 +1001,14 @@ jobs:
       LC_CTYPE: en_US.UTF-8
       LC_ALL: en_US.UTF-8
     steps:
+      - name: Setup Slack Reporting
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       - name: Checkout Repository
         uses: actions/checkout@master
 
@@ -982,7 +1023,8 @@ jobs:
 
       - name: Install Required Python Packages
         run: |
-          python3.8 -m pip install --user psutil
+          python3.8 -m pip install psutil
+          python3 -m pip install psutil
 
       - name: Install Required Third Party Git Repositories
         run: |
