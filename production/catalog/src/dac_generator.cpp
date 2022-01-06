@@ -150,7 +150,7 @@ std::string dac_compilation_unit_writer_t::generate_constants()
         code.SetValue("TABLE_NAME", table.table_name());
         code.SetValue("TABLE_TYPE", table.table_type());
         code += "// Constants contained in the {{TABLE_NAME}} object.";
-        code += "constexpr uint32_t c_gaia_type_{{TABLE_NAME}} = {{TABLE_TYPE}}u;";
+        code += "constexpr common::gaia_type_t c_gaia_type_{{TABLE_NAME}} = {{TABLE_TYPE}}u;";
 
         // This map is used to place the constants ordered by offset.
         // There is no practical reason besides making the code easier to read.
