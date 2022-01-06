@@ -348,8 +348,7 @@ jobs:
 
       - name: Unit Tests
         run: |
-          cd /build/production/db/core
-          sudo bash -c "make install"
+          sudo bash -c "ninja install db/core/all"
           cd /build/production
           sudo bash -c "ctest"
 
@@ -648,8 +647,7 @@ jobs:
 
       - name: Unit Tests
         run: |
-          cd /build/production/db/core
-          sudo bash -c "make install"
+          sudo bash -c "ninja install db/core/all"
           cd /build/production
           sudo bash -c "ctest"
 
@@ -948,8 +946,7 @@ jobs:
 
       - name: Unit Tests
         run: |
-          cd /build/production/db/core
-          sudo bash -c "make install"
+          sudo bash -c "ninja install db/core/all"
           cd /build/production
           sudo bash -c "ctest"
 
