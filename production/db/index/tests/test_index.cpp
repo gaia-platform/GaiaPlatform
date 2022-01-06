@@ -281,6 +281,26 @@ TEST(index, key_hash_test)
     ASSERT_NE(index_key_hash{}(zero_key), index_key_hash{}(double_zero_key));
 }
 
+TEST(index, null_key_hash_test)
+{
+    // Check keys with nulls in in a key hash are distributed differently.
+    data_holder_t value = 1;
+    data_holder_t null_value(reflection::Int, nullptr);
+
+    index_key_t k1(value, null_value);
+    index_key_t k2(null_value, value);
+
+    ASSERT_NE(index_key_hash{}(k1), index_key_hash{}(k2));
+
+    // Check keys with different number of nulls are distributed differently.
+    index_key_t one_null(null_value);
+    index_key_t two_null(null_value, null_value);
+
+    ASSERT_NE(index_key_hash{}(one_null), index_key_hash{}(two_null));
+    ASSERT_TRUE(one_null.is_null());
+    ASSERT_TRUE(two_null.is_null());
+}
+
 TEST(index, key_comparator_test)
 {
     // Primitive equality test.

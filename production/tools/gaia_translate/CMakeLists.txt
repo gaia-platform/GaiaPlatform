@@ -63,86 +63,76 @@ if("$CACHE{ENABLE_SDK_TESTS}")
   set(RULESET_PREFIX "${GAIA_REPO}/production/tools/gaia_translate/tests")
   set(RULES_TEST_HELPERS "${GAIA_REPO}/production/rules/event_manager/tests/rules_test_helpers.cpp")
 
-  # Smoke test for basic ruleset translation functionality
-  add_gaia_sdk_gtest(
-    TARGET_NAME "test_translation_engine"
-    DDL_FILE "${DDL_PREFIX}/incubator/incubator.ddl"
-    RULESET_FILE "${RULESET_PREFIX}/test_translation.ruleset"
-    DATABASE_NAME "barn_storage"
-    TARGET_SOURCES "tests/test_translation_engine.cpp;${RULES_TEST_HELPERS}"
-    TARGET_INCLUDES "${TEST_INCLUDES}"
+  translate_ruleset_internal(
+    RULESET_FILE ${RULESET_PREFIX}/test_translation.ruleset
+    DAC_LIBRARY dac_barn_storage
   )
+
+  translate_ruleset_internal(
+    RULESET_FILE ${RULESET_PREFIX}/test_mixed.ruleset
+    DAC_LIBRARY dac_barn_storage
+  )
+
+  translate_ruleset_internal(
+    RULESET_FILE ${RULESET_PREFIX}/test_serial.ruleset
+    CLANG_PARAMS -I${CMAKE_CURRENT_SOURCE_DIR}/tests
+    DAC_LIBRARY dac_barn_storage
+  )
+  target_include_directories(test_serial_ruleset PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+
+  translate_ruleset_internal(
+    RULESET_FILE ${RULESET_PREFIX}/test_rulesets.ruleset
+    DAC_LIBRARY dac_prerequisites
+  )
+  target_include_directories(test_rulesets_ruleset PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+
+  translate_ruleset_internal(
+    RULESET_FILE ${RULESET_PREFIX}/test_amr_swarm.ruleset
+    DAC_LIBRARY dac_amr_swarm
+  )
+  target_include_directories(test_amr_swarm_ruleset PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+
+  # Smoke test for basic ruleset translation functionality
+  add_gtest(test_translation_engine
+    "tests/test_translation_engine.cpp;${RULES_TEST_HELPERS}"
+    "${TEST_INCLUDES}"
+    "rt;gaia_system;gaia_db_catalog_test;test_translation_ruleset")
 
   # Test declarative code mixed with cpp
-  add_gaia_sdk_gtest(
-    TARGET_NAME "test_mixed_ruleset"
-    DDL_FILE "${DDL_PREFIX}/incubator/incubator.ddl"
-    RULESET_FILE "${RULESET_PREFIX}/test_mixed.ruleset"
-    DATABASE_NAME "barn_storage"
-    PREVIOUS_TARGET_NAME "test_translation_engine"
-    TARGET_SOURCES "tests/test_mixed_ruleset.cpp;${RULES_TEST_HELPERS}"
-    TARGET_INCLUDES "${TEST_INCLUDES}"
-  )
+  add_gtest(test_mixed
+    "tests/test_mixed_ruleset.cpp;${RULES_TEST_HELPERS}"
+    "${TEST_INCLUDES}"
+    "rt;gaia_system;gaia_db_catalog_test;test_mixed_ruleset")
 
   # Test serial_group attribute
-  add_gaia_sdk_gtest(
-    TARGET_NAME "test_serial"
-    DDL_FILE "${DDL_PREFIX}/incubator/incubator.ddl"
-    RULESET_FILE "${RULESET_PREFIX}/test_serial.ruleset"
-    DATABASE_NAME "barn_storage"
-    PREVIOUS_TARGET_NAME "test_mixed_ruleset"
-    TARGET_SOURCES "tests/test_serial.cpp;${RULES_TEST_HELPERS}"
-    TARGET_INCLUDES "${TEST_INCLUDES}"
-  )
+  add_gtest(test_serial
+    "tests/test_serial.cpp;${RULES_TEST_HELPERS}"
+    "${TEST_INCLUDES}"
+    "rt;gaia_system;gaia_db_catalog_test;test_serial_ruleset")
 
   # Test Preview extensions to Declarative Language
-  add_gaia_sdk_gtest(
-    TARGET_NAME "test_tags_ruleset"
-    DDL_FILE "${DDL_PREFIX}/prerequisites/prerequisites.ddl"
-    RULESET_FILE "${RULESET_PREFIX}/test_rulesets.ruleset"
-    DATABASE_NAME "prerequisites"
-    PREVIOUS_TARGET_NAME "test_serial"
-    TARGET_SOURCES "tests/test_tags.cpp;${RULES_TEST_HELPERS}"
-    TARGET_INCLUDES "${TEST_INCLUDES}"
-  )
+  add_gtest(test_tags_ruleset
+    "tests/test_tags.cpp;${RULES_TEST_HELPERS}"
+    "${TEST_INCLUDES}"
+    "rt;gaia_system;gaia_db_catalog_test;test_rulesets_ruleset")
 
-  add_gaia_sdk_gtest(
-    TARGET_NAME "test_queries_ruleset"
-    DDL_FILE "${DDL_PREFIX}/prerequisites/prerequisites.ddl"
-    RULESET_FILE "${RULESET_PREFIX}/test_rulesets.ruleset"
-    DATABASE_NAME "prerequisites"
-    PREVIOUS_TARGET_NAME "test_tags_ruleset"
-    TARGET_SOURCES "tests/test_queries.cpp;${RULES_TEST_HELPERS}"
-    TARGET_INCLUDES "${TEST_INCLUDES}"
-  )
+  add_gtest(test_queries_ruleset
+    "tests/test_queries.cpp;${RULES_TEST_HELPERS}"
+    "${TEST_INCLUDES}"
+    "rt;gaia_system;gaia_db_catalog_test;test_rulesets_ruleset")
 
-  add_gaia_sdk_gtest(
-    TARGET_NAME "test_insert_delete_ruleset"
-    DDL_FILE "${DDL_PREFIX}/prerequisites/prerequisites.ddl"
-    RULESET_FILE "${RULESET_PREFIX}/test_rulesets.ruleset"
-    DATABASE_NAME "prerequisites"
-    PREVIOUS_TARGET_NAME "test_queries_ruleset"
-    TARGET_SOURCES "tests/test_insert_delete.cpp;${RULES_TEST_HELPERS}"
-    TARGET_INCLUDES "${TEST_INCLUDES}"
-  )
+  add_gtest(test_insert_delete_ruleset
+    "tests/test_insert_delete.cpp;${RULES_TEST_HELPERS}"
+    "${TEST_INCLUDES}"
+    "rt;gaia_system;gaia_db_catalog_test;test_rulesets_ruleset")
 
-  add_gaia_sdk_gtest(
-    TARGET_NAME "test_connect_disconnect_ruleset"
-    DDL_FILE "${DDL_PREFIX}/prerequisites/prerequisites.ddl"
-    RULESET_FILE "${RULESET_PREFIX}/test_rulesets.ruleset"
-    DATABASE_NAME "prerequisites"
-    PREVIOUS_TARGET_NAME "test_insert_delete_ruleset"
-    TARGET_SOURCES "tests/test_connect_disconnect.cpp;${RULES_TEST_HELPERS}"
-    TARGET_INCLUDES "${TEST_INCLUDES}"
-  )
+  add_gtest(test_connect_disconnect_ruleset
+    "tests/test_connect_disconnect.cpp;${RULES_TEST_HELPERS}"
+    "${TEST_INCLUDES}"
+    "rt;gaia_system;gaia_db_catalog_test;test_rulesets_ruleset")
 
-  add_gaia_sdk_gtest(
-    TARGET_NAME "test_amr_swarm_ruleset"
-    DDL_FILE "${DDL_PREFIX}/amr_swarm/amr_swarm.ddl"
-    RULESET_FILE "${RULESET_PREFIX}/test_amr_swarm.ruleset"
-    DATABASE_NAME "amr_swarm"
-    PREVIOUS_TARGET_NAME "test_connect_disconnect_ruleset"
-    TARGET_SOURCES "tests/test_amr_swarm.cpp;tests/bot_commands.cpp;${RULES_TEST_HELPERS}"
-    TARGET_INCLUDES "${TEST_INCLUDES}"
-  )
+  add_gtest(test_amr_swarm
+    "tests/test_amr_swarm.cpp;tests/bot_commands.cpp;${RULES_TEST_HELPERS}"
+    "${TEST_INCLUDES}"
+    "rt;gaia_system;gaia_db_catalog_test;test_amr_swarm_ruleset")
 endif()
