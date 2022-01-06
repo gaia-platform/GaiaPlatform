@@ -63,7 +63,7 @@ __STEPS_PREFIX_AND_APT_SECTION_HEADER = """    steps:
         uses: actions/checkout@master
 
       - name: Setup Python 3.8
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.8
 
@@ -122,7 +122,7 @@ __INSTALL_SECTION_HEADER = """    steps:
         uses: actions/checkout@master
 
       - name: Setup Python 3.8
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.8
 

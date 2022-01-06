@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@master
 
       - name: Setup Python 3.8
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.8
 
@@ -130,7 +130,7 @@ jobs:
         uses: actions/checkout@master
 
       - name: Setup Python 3.8
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.8
 
@@ -414,7 +414,7 @@ jobs:
         uses: actions/checkout@master
 
       - name: Setup Python 3.8
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.8
 
@@ -652,9 +652,8 @@ jobs:
       - name: Generate Package
         run: |
           cd /build/production
-          sudo bash -c "make preinstall"
-          sudo bash -c "cpack -G DEB -R \"${{ env.GAIA_VERSION }}-${{ github.run_id }}\""
-          sudo bash -c "cp gaia-0.3.2_amd64.deb gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb"
+          sudo bash -c "ninja package"
+          sudo bash -c "cp gaia-${{ env.GAIA_VERSION }}_amd64.deb gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb"
           sudo bash -c "ls -la /build/production/*.deb"
 
       - name: Upload Package
@@ -726,7 +725,7 @@ jobs:
         uses: actions/checkout@master
 
       - name: Setup Python 3.8
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.8
 
@@ -1010,7 +1009,7 @@ jobs:
         uses: actions/checkout@master
 
       - name: Setup Python 3.8
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.8
 
@@ -1291,7 +1290,7 @@ jobs:
         uses: actions/checkout@master
 
       - name: Setup Python 3.8
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.8
 
@@ -1346,7 +1345,7 @@ jobs:
         uses: actions/checkout@master
 
       - name: Setup Python 3.8
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.8
 
