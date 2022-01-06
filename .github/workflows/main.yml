@@ -41,7 +41,7 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y flatbuffers-compiler apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget
+          sudo apt-get update && sudo apt-get install -y flatbuffers-compiler apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget ninja-build
 
       - name: Install Required Python Packages
         run: |
@@ -142,7 +142,7 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+          sudo apt-get update && sudo apt-get install -y flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget ninja-build build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
 
       - name: Install Required Third Party Git Repositories
         run: |
@@ -237,9 +237,9 @@ jobs:
       - name: Build third_party/production/backward
         run: |
           cd $GAIA_REPO/third_party/production/backward
-          sudo bash -c "cmake backward-cpp"
-          sudo bash -c "make -j$(nproc)"
-          sudo bash -c "make install"
+          sudo bash -c "cmake -G \"Ninja\" backward-cpp"
+          sudo bash -c "ninja"
+          sudo bash -c "ninja install"
 
       - name: Build third_party/production/bison
         run: |
@@ -348,8 +348,9 @@ jobs:
           cd $GAIA_REPO/production
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
-          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON /source/production"
-          sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1 make -j$(nproc) 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
+          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     -G \"Ninja\"     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON /source/production"
+          sudo bash -c "LSAN_OPTIONS=detect_leaks=0 ASAN_OPTIONS=detect_leaks=0     ninja 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
+          sudo bash -c "    ninja check-all 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
 
       - name: Unit Tests
         run: |
@@ -425,7 +426,7 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y debhelper rpm flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+          sudo apt-get update && sudo apt-get install -y debhelper rpm flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget ninja-build build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
 
       - name: Install Required Third Party Git Repositories
         run: |
@@ -523,9 +524,9 @@ jobs:
       - name: Build third_party/production/backward
         run: |
           cd $GAIA_REPO/third_party/production/backward
-          sudo bash -c "cmake backward-cpp"
-          sudo bash -c "make -j$(nproc)"
-          sudo bash -c "make install"
+          sudo bash -c "cmake -G \"Ninja\" backward-cpp"
+          sudo bash -c "ninja"
+          sudo bash -c "ninja install"
 
       - name: Build third_party/production/bison
         run: |
@@ -645,8 +646,9 @@ jobs:
           cd $GAIA_REPO/production
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
-          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON     -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper     -DBUILD_GAIA_RELEASE=ON     -G \"Unix Makefiles\" /source/production"
-          sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1 make -j$(nproc) 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
+          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     -G \"Ninja\"     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON     -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper     -DBUILD_GAIA_RELEASE=ON /source/production"
+          sudo bash -c "LSAN_OPTIONS=detect_leaks=0 ASAN_OPTIONS=detect_leaks=0     ninja 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
+          sudo bash -c "    ninja check-all 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
 
       - name: Unit Tests
         run: |
@@ -736,7 +738,7 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+          sudo apt-get update && sudo apt-get install -y flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget ninja-build build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
 
       - name: Install Required Third Party Git Repositories
         run: |
@@ -831,9 +833,9 @@ jobs:
       - name: Build third_party/production/backward
         run: |
           cd $GAIA_REPO/third_party/production/backward
-          sudo bash -c "cmake backward-cpp"
-          sudo bash -c "make -j$(nproc)"
-          sudo bash -c "make install"
+          sudo bash -c "cmake -G \"Ninja\" backward-cpp"
+          sudo bash -c "ninja"
+          sudo bash -c "ninja install"
 
       - name: Build third_party/production/bison
         run: |
@@ -942,8 +944,9 @@ jobs:
           cd $GAIA_REPO/production
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
-          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON     -DCMAKE_BUILD_TYPE=Debug     -G \"Unix Makefiles\" /source/production"
-          sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1 make -j$(nproc) 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
+          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     -G \"Ninja\"     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON     -DCMAKE_BUILD_TYPE=Debug /source/production"
+          sudo bash -c "LSAN_OPTIONS=detect_leaks=0 ASAN_OPTIONS=detect_leaks=0     ninja 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
+          sudo bash -c "    ninja check-all 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
 
       - name: Unit Tests
         run: |
@@ -1019,7 +1022,7 @@ jobs:
 
       - name: Install Required Applications
         run: |
-          sudo apt-get update && sudo apt-get install -y flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+          sudo apt-get update && sudo apt-get install -y flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev cppcheck libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget ninja-build build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
 
       - name: Install Required Python Packages
         run: |
@@ -1119,9 +1122,9 @@ jobs:
       - name: Build third_party/production/backward
         run: |
           cd $GAIA_REPO/third_party/production/backward
-          sudo bash -c "cmake backward-cpp"
-          sudo bash -c "make -j$(nproc)"
-          sudo bash -c "make install"
+          sudo bash -c "cmake -G \"Ninja\" backward-cpp"
+          sudo bash -c "ninja"
+          sudo bash -c "ninja install"
 
       - name: Build third_party/production/bison
         run: |
@@ -1232,9 +1235,9 @@ jobs:
           cd $GAIA_REPO/production
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
-          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON     -DBUILD_GAIA_LLVM_TESTS=ON     -DBUILD_GAIA_RELEASE=ON     -G \"Unix Makefiles\" /source/production"
-          sudo bash -c "    VERBOSE=1 make -j$(nproc) 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
-          sudo bash -c "LSAN_OPTIONS=detect_leaks=0     VERBOSE=1 make -j$(nproc) check-all 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
+          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     -G \"Ninja\"     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON     -DBUILD_GAIA_LLVM_TESTS=ON     -DBUILD_GAIA_RELEASE=ON /source/production"
+          sudo bash -c "    ninja 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
+          sudo bash -c "LSAN_OPTIONS=detect_leaks=0 ASAN_OPTIONS=detect_leaks=0     ninja check-all 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
 
       - name: Unit Tests
         run: |
