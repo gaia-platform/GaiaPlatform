@@ -17,7 +17,7 @@ namespace gaia {
 namespace catalog {
 
 // The initial size of the flatbuffer builder buffer.
-constexpr int c_flatbuffer_builder_size = 128;
+constexpr size_t c_flatbuffer_builder_size = 128;
 
 // Constants contained in the gaia_index object.
 constexpr uint32_t c_gaia_type_gaia_index = 4294967289u;
