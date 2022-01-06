@@ -82,8 +82,6 @@ jobs:
       - name: Lint production
         run: |
           cd $GAIA_REPO/production
-          sudo bash -c "echo \"Verifying Actions\""
-          sudo bash -c "$GAIA_REPO/dev_tools/github-actions/verify_actions.sh"
           sudo bash -c "echo \"Executing Clang-Format on Production Tree\""
           sudo bash -c "$GAIA_REPO/dev_tools/hooks/clang-format.sh"
 
@@ -112,7 +110,7 @@ jobs:
 
 
   Core:
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     needs: Lint
     env:
       GAIA_REPO: ${{ github.workspace }}
