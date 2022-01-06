@@ -34,18 +34,18 @@ set(SDK_TEST_INCLUDES
   ${GAIA_PROD_BUILD}/deps/gaia_spdlog/include
   ${GAIA_PROD_BUILD}/deps/flatbuffers/include
   ${GAIA_INC}
-  ${GAIA_PROD_BUILD}/gaia_generated/addr_book
+  ${GAIA_GENERATED_CODE}/direct_access/addr_book
 )
 
 configure_file("${GAIA_CONFIG}" "${PROJECT_BINARY_DIR}/gaia.conf")
 configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
 configure_file("${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl" "${PROJECT_BINARY_DIR}/addr_book.ddl") 
 
-add_gtest(test_sdk "tests/test_sdk.cpp;${GAIA_PROD_BUILD}/gaia_generated/addr_book/gaia_addr_book.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia")
+add_gtest(test_sdk "tests/test_sdk.cpp;${GAIA_GENERATED_CODE}/direct_access/addr_book/gaia_addr_book.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia")
 # We don't want to link against dac_addr_book to keep the test as close as possible to customers' environment.
 # Though we want to ensure that the DAC headers have been generated before building the test.
 add_dependencies(test_sdk dac_addr_book)
-set_source_files_properties(${GAIA_PROD_BUILD}/gaia_generated/addr_book/gaia_addr_book.cpp PROPERTIES GENERATED 1)
+set_source_files_properties(${GAIA_GENERATED_CODE}/direct_access/addr_book/gaia_addr_book.cpp PROPERTIES GENERATED 1)
 
 add_gtest(test_sdk_no_init_rules "tests/test_sdk_no_init_rules.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;dac_addr_book")
 
