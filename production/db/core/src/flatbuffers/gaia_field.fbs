@@ -6,7 +6,5 @@ table gaia_field {
     position:uint16;
     deprecated:bool;
     active:bool;
-    unique:bool;
-    hash:string;
 }
 root_type gaia_field;

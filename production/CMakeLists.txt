@@ -31,6 +31,8 @@ option(ENABLE_SDK_TESTS "Build and execute ruleset translation tests" ON)
 
 option(EXPORT_SYMBOLS "Export symbols by default from shared libraries" OFF)
 
+option(DISABLE_ASSERTS "Disable assertions" OFF)
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
 else()
@@ -89,6 +91,10 @@ add_library(gaia_build_options INTERFACE)
 target_compile_options(gaia_build_options INTERFACE -Wall -Wextra -ftime-trace)
 # Ensure Debug builds have the DEBUG macro defined.
 target_compile_definitions(gaia_build_options INTERFACE $<$<CONFIG:Debug>:DEBUG>)
+# Propagate the DISABLE_ASSERTS option to a macro definition.
+target_compile_definitions(gaia_build_options INTERFACE $<$<BOOL:${DISABLE_ASSERTS}>:DISABLE_ASSERTS>)
+# Disabling asserts will produce bogus unused variable warnings.
+target_compile_options(gaia_build_options INTERFACE $<$<BOOL:${DISABLE_ASSERTS}>:-Wno-unused-parameter -Wno-unused-lambda-capture -Wno-unused-variable -Wno-unused-but-set-variable>)
 
 # LLVM and CLANG specific options.
 if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
@@ -136,7 +142,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
 
     # Explicitly list all legal values for SANITIZER.
     # (This will eventually include ASAN, MSAN, TSAN.)
-    set_property(CACHE SANITIZER PROPERTY STRINGS "ASAN" "NONE")
+    set_property(CACHE SANITIZER PROPERTY STRINGS "ASAN" "TSAN" "NONE")
   endif()
 
   if(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
@@ -185,6 +191,12 @@ if(DEFINED CACHE{SANITIZER})
     target_compile_options(gaia_build_options INTERFACE -fsanitize=undefined)
     target_link_options(gaia_build_options INTERFACE -fsanitize=undefined)
   endif()
+
+  if("$CACHE{SANITIZER}" STREQUAL "TSAN")
+    # Add TSan flags only to Gaia targets to avoid compatibility issues with other libraries.
+    target_compile_options(gaia_build_options INTERFACE -fsanitize=thread)
+    target_link_options(gaia_build_options INTERFACE -fsanitize=thread)
+  endif()
 endif()
 
 message(STATUS "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
@@ -200,11 +212,10 @@ set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
 set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
 
 set(FLATBUFFERS_ROOT ${DEPENDENCIES_INSTALL_PREFIX}/flatbuffers)
-set(FLATBUFFERS_PREFIX flatbuffers)
-set(FLATBUFFERS_SOURCE_DIR src)
-set(FLATBUFFERS_SOURCE "${CMAKE_BINARY_DIR}/flatbuffers/${FLATBUFFERS_SOURCE_DIR}")
+set(FLATBUFFERS_SRC "${FLATBUFFERS_ROOT}/src")
 set(FLATBUFFERS_INC "${FLATBUFFERS_ROOT}/include")
 set(FLATBUFFERS_BIN "${FLATBUFFERS_ROOT}/bin")
+set(FLATBUFFERS_LIB "${FLATBUFFERS_ROOT}/lib")
 
 set(GAIA_SPDLOG "${DEPENDENCIES_INSTALL_PREFIX}/gaia_spdlog")
 set(GAIA_SPDLOG_INC "${GAIA_SPDLOG}/include")

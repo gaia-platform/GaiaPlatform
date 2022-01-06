@@ -49,7 +49,7 @@ static json_t to_json(gaia_field_t field)
     json["position"] = field.position();
     json["repeated_count"] = field.repeated_count();
     json["type"] = get_data_type_name(data_type_t(field.type()));
-    json["hash"] = field.hash();
+    // json["hash"] = field.hash();
 
     return json;
 }
@@ -61,7 +61,7 @@ static json_t to_json(gaia_table_t table)
 
     json["name"] = table.name();
     json["id"] = table.gaia_id().value();
-    json["hash"] = table.hash();
+    // json["hash"] = table.hash();
     json["type"] = table.type();
 
     for (const auto& field : table.gaia_fields())
@@ -78,7 +78,7 @@ static json_t to_json(gaia_database_t db)
     json_t json;
 
     json["name"] = db.name();
-    json["hash"] = db.hash();
+    // json["hash"] = db.hash();
 
     for (const auto& table : db.gaia_tables())
     {
