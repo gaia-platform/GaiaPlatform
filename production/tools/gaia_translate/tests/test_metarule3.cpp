@@ -74,4 +74,14 @@ TEST_F(test_metarule3, test_meta_rule_3)
     ASSERT_EQ(g_total_hours, 18);
     ASSERT_EQ(g_high_grade_hours, 6);
     ASSERT_EQ(g_low_grade_hours, 12);
+
+
+    gaia::db::begin_transaction();
+    auto sw = student.writer();
+    sw.age = 30;
+    sw.update_row();
+    gaia::db::commit_transaction();
+
+    ASSERT_EQ(g_high_grade_hours, 6);
+    ASSERT_EQ(g_low_grade_hours, 12);
 }
