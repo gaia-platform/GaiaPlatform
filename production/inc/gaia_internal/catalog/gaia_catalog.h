@@ -20,33 +20,33 @@ namespace catalog {
 constexpr size_t c_flatbuffer_builder_size = 128;
 
 // Constants contained in the gaia_index object.
-constexpr uint32_t c_gaia_type_gaia_index = 4294967289u;
+constexpr common::gaia_type_t::value_type c_gaia_type_gaia_index = 4294967289u;
 constexpr common::reference_offset_t c_gaia_index_parent_table = 0;
 constexpr common::reference_offset_t c_gaia_index_next_table = 1;
 
 // Constants contained in the gaia_rule object.
-constexpr uint32_t c_gaia_type_gaia_rule = 4294967293u;
+constexpr common::gaia_type_t::value_type c_gaia_type_gaia_rule = 4294967293u;
 constexpr common::reference_offset_t c_gaia_rule_parent_ruleset = 0;
 constexpr common::reference_offset_t c_gaia_rule_next_ruleset = 1;
 
 // Constants contained in the gaia_ruleset object.
-constexpr uint32_t c_gaia_type_gaia_ruleset = 4294967292u;
+constexpr common::gaia_type_t::value_type c_gaia_type_gaia_ruleset = 4294967292u;
 constexpr common::reference_offset_t c_gaia_ruleset_first_gaia_rules = 0;
 
 // Constants contained in the gaia_relationship object.
-constexpr uint32_t c_gaia_type_gaia_relationship = 4294967290u;
+constexpr common::gaia_type_t::value_type c_gaia_type_gaia_relationship = 4294967290u;
 constexpr common::reference_offset_t c_gaia_relationship_parent_parent = 0;
 constexpr common::reference_offset_t c_gaia_relationship_next_parent = 1;
 constexpr common::reference_offset_t c_gaia_relationship_parent_child = 2;
 constexpr common::reference_offset_t c_gaia_relationship_next_child = 3;
 
 // Constants contained in the gaia_field object.
-constexpr uint32_t c_gaia_type_gaia_field = 4294967295u;
+constexpr common::gaia_type_t::value_type c_gaia_type_gaia_field = 4294967295u;
 constexpr common::reference_offset_t c_gaia_field_parent_table = 0;
 constexpr common::reference_offset_t c_gaia_field_next_table = 1;
 
 // Constants contained in the gaia_table object.
-constexpr uint32_t c_gaia_type_gaia_table = 4294967294u;
+constexpr common::gaia_type_t::value_type c_gaia_type_gaia_table = 4294967294u;
 constexpr common::reference_offset_t c_gaia_table_parent_database = 0;
 constexpr common::reference_offset_t c_gaia_table_next_database = 1;
 constexpr common::reference_offset_t c_gaia_table_first_gaia_fields = 2;
@@ -55,7 +55,7 @@ constexpr common::reference_offset_t c_gaia_table_first_incoming_relationships =
 constexpr common::reference_offset_t c_gaia_table_first_gaia_indexes = 5;
 
 // Constants contained in the gaia_database object.
-constexpr uint32_t c_gaia_type_gaia_database = 4294967291u;
+constexpr common::gaia_type_t::value_type c_gaia_type_gaia_database = 4294967291u;
 constexpr common::reference_offset_t c_gaia_database_first_gaia_tables = 0;
 
 
