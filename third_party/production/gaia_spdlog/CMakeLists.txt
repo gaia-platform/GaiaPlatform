@@ -6,8 +6,6 @@ target_link_libraries(gaia_spdlog INTERFACE ${GAIA_SPDLOG_ROOT}/lib/libgaia_spdl
 # Uses the local gaia_spdlog sources to build the static library.
 # REVIEW: The build fails for some reason unless we specify -DCMAKE_BUILD_TYPE=Release.
 
-message(STATUS "Suppini ${CCACHE_FOUND}")
-
 ExternalProject_Add(spdlog_dependency
   SOURCE_DIR
     ${GAIA_REPO}/third_party/bundle/gaia_spdlog
