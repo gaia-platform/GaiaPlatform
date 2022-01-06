@@ -52,7 +52,7 @@ add_custom_target(test_record_data_bin ALL DEPENDS ${PAYLOAD_TYPES_TESTS_GENERAT
 
 # Generate flatbuffers files required by test_serializaton.
 add_custom_command(
-  COMMENT "Compiling test_record.fbs with flatbuffers..."
+  COMMENT "Compiling test_serialization.fbs with flatbuffers..."
   OUTPUT ${GEN_DIR}/test_serialization_generated.h
   COMMAND ${FLATBUFFERS_BIN}/flatc
     --cpp -o ${GEN_DIR} ${PROJECT_SOURCE_DIR}/tests/test_serialization.fbs

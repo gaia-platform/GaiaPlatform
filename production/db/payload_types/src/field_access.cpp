@@ -311,8 +311,8 @@ data_holder_t get_field_value(
 
         // For null strings, the field_value will come back as nullptr,
         // so just set the string_value to nullptr as well.
-        result.hold.string_value = (field_value == nullptr) ? nullptr : field_value->c_str();
         result.is_null = (field_value == nullptr);
+        result.hold.string_value = (field_value == nullptr) ? nullptr : field_value->c_str();
     }
     else
     {
@@ -548,15 +548,15 @@ data_holder_t get_field_array_element(
     result.type = field->type()->element();
     if (flatbuffers::IsInteger(field->type()->element()))
     {
+        result.is_null = false;
         result.hold.integer_value = flatbuffers::GetAnyVectorElemI(
             field_value, field->type()->element(), array_index);
-        result.is_null = false;
     }
     else if (flatbuffers::IsFloat(field->type()->element()))
     {
+        result.is_null = false;
         result.hold.float_value = flatbuffers::GetAnyVectorElemF(
             field_value, field->type()->element(), array_index);
-        result.is_null = false;
     }
     else if (field->type()->element() == reflection::String)
     {
@@ -569,8 +569,8 @@ data_holder_t get_field_array_element(
             throw invalid_serialized_data();
         }
 
-        result.hold.string_value = field_element_value->c_str();
         result.is_null = false;
+        result.hold.string_value = field_element_value->c_str();
     }
     else
     {
