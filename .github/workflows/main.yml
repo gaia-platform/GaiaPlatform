@@ -23,14 +23,6 @@ jobs:
       CXX: /usr/bin/clang++-13
       LDFLAGS: "-B/usr/lib/llvm-13/bin/ -fuse-ld=lld"
     steps:
-      - name: Setup Slack Reporting
-        uses: 8398a7/action-slack@v3
-        if: always()
-        with:
-          status: ${{ job.status }}
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       - name: Checkout Repository
         uses: actions/checkout@master
 
@@ -109,6 +101,16 @@ jobs:
         with:
           extra_args: --all-files
 
+      - name: Report Job Status To Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+
   Core:
     runs-on: ubuntu-20.04
     needs: Lint
@@ -124,14 +126,6 @@ jobs:
       LC_CTYPE: en_US.UTF-8
       LC_ALL: en_US.UTF-8
     steps:
-      - name: Setup Slack Reporting
-        uses: 8398a7/action-slack@v3
-        if: always()
-        with:
-          status: ${{ job.status }}
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       - name: Checkout Repository
         uses: actions/checkout@master
 
@@ -393,6 +387,16 @@ jobs:
           path: |
             /build/production/compile_commands.json
 
+      - name: Report Job Status To Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+
   SDK:
     runs-on: ubuntu-20.04
     needs: Core
@@ -408,14 +412,6 @@ jobs:
       LC_CTYPE: en_US.UTF-8
       LC_ALL: en_US.UTF-8
     steps:
-      - name: Setup Slack Reporting
-        uses: 8398a7/action-slack@v3
-        if: always()
-        with:
-          status: ${{ job.status }}
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       - name: Checkout Repository
         uses: actions/checkout@master
 
@@ -705,6 +701,16 @@ jobs:
           path: |
             /build/production/compile_commands.json
 
+      - name: Report Job Status To Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+
   Debug_Core:
     runs-on: ubuntu-20.04
     needs: Core
@@ -720,14 +726,6 @@ jobs:
       LC_CTYPE: en_US.UTF-8
       LC_ALL: en_US.UTF-8
     steps:
-      - name: Setup Slack Reporting
-        uses: 8398a7/action-slack@v3
-        if: always()
-        with:
-          status: ${{ job.status }}
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       - name: Checkout Repository
         uses: actions/checkout@master
 
@@ -989,6 +987,16 @@ jobs:
           path: |
             /build/production/compile_commands.json
 
+      - name: Report Job Status To Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+
   LLVM_Tests:
     runs-on: ubuntu-20.04
     needs: Core
@@ -1004,14 +1012,6 @@ jobs:
       LC_CTYPE: en_US.UTF-8
       LC_ALL: en_US.UTF-8
     steps:
-      - name: Setup Slack Reporting
-        uses: 8398a7/action-slack@v3
-        if: always()
-        with:
-          status: ${{ job.status }}
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       - name: Checkout Repository
         uses: actions/checkout@master
 
@@ -1278,6 +1278,16 @@ jobs:
           path: |
             /build/production/compile_commands.json
 
+      - name: Report Job Status To Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+
   Integration:
     runs-on: ubuntu-20.04
     needs: SDK
@@ -1323,6 +1333,16 @@ jobs:
             ${{ github.workspace }}/production/tests/suites
 
 
+      - name: Report Job Status To Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+
   Samples:
     runs-on: ubuntu-20.04
     needs: SDK
@@ -1366,4 +1386,14 @@ jobs:
           name: Samples Test Logs
           path: |
             ${{ github.workspace }}/dev_tools/sdk/test/test.log
+
+
+      - name: Report Job Status To Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 

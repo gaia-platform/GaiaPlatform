@@ -46,9 +46,8 @@ __JOB_PREFIX = """
     runs-on: ubuntu-20.04
     {needs}{env}"""
 
-# More on the Slack action here: https://github.com/marketplace/actions/action-slack
-__STEPS_PREFIX_AND_APT_SECTION_HEADER = """    steps:
-      - name: Setup Slack Reporting
+__SLACK_SUFFIX = """
+      - name: Report Job Status To Slack
         uses: 8398a7/action-slack@v3
         if: always()
         with:
@@ -56,6 +55,10 @@ __STEPS_PREFIX_AND_APT_SECTION_HEADER = """    steps:
           fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+"""
+
+# More on the Slack action here: https://github.com/marketplace/actions/action-slack
+__STEPS_PREFIX_AND_APT_SECTION_HEADER = """    steps:
       - name: Checkout Repository
         uses: actions/checkout@master
 
@@ -475,6 +478,7 @@ def process_script_action():
     if not is_install_action:
         # `Upload *`
         __print_formatted_lines(section_line_map[__ARTIFACTS_SECTION])
+    print(__SLACK_SUFFIX)
 
 
 sys.exit(process_script_action())
