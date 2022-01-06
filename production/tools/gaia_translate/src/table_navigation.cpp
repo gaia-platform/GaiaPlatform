@@ -54,9 +54,8 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(llv
         }
         if (path_data.skip_implicit_path_generation
             && path_component == path_data.path_components.front()
-            && (
-                table == path_data.anchor_variable
-                || (table ==path_data.anchor_table
+            && (table == path_data.anchor_variable
+                || (table == path_data.anchor_table
                     && path_data.tag_table_map.find(table) == path_data.tag_table_map.end())))
         {
             last_variable_name = path_data.anchor_variable;

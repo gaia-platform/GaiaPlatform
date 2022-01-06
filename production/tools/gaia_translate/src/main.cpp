@@ -1586,7 +1586,7 @@ void update_expression_explicit_path_data(
                         && get_table_from_expression(path_expression_explicit_path_data_iterator.path_components.back()) == data.anchor_table)
                     {
                         data.anchor_variable = path_expression_explicit_path_data_iterator.variable_name;
-                        if(data.skip_implicit_path_generation && path_expression_explicit_path_data_iterator.variable_name != data.variable_name)
+                        if (data.skip_implicit_path_generation && path_expression_explicit_path_data_iterator.variable_name != data.variable_name)
                         {
                             data.skip_implicit_path_generation = false;
                         }
@@ -2065,7 +2065,6 @@ public:
                 explicit_path_data.anchor_variable = anchor_variable;
                 explicit_path_data.is_anchor = is_anchor;
                 explicit_path_data.skip_implicit_path_generation = skip_implicit_navigation;
-
             }
             if (operator_declaration->hasAttr<GaiaFieldValueAttr>())
             {
