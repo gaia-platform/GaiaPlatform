@@ -343,13 +343,12 @@ jobs:
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
           sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     -G \"Ninja\"     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON /source/production"
-          sudo bash -c "LSAN_OPTIONS=detect_leaks=0 ASAN_OPTIONS=detect_leaks=0     ninja 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
-          sudo bash -c "    ninja check-all 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
+          sudo bash -c "ASAN_OPTIONS=detect_leaks=0 ninja      1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)     ;"
 
       - name: Unit Tests
         run: |
-          sudo bash -c "ninja install db/core/all"
           cd /build/production
+          sudo bash -c "ninja install db/core/all"
           sudo bash -c "ctest"
 
       - name: Upload CMake Logs
@@ -642,13 +641,12 @@ jobs:
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
           sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     -G \"Ninja\"     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON     -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper     -DBUILD_GAIA_RELEASE=ON /source/production"
-          sudo bash -c "LSAN_OPTIONS=detect_leaks=0 ASAN_OPTIONS=detect_leaks=0     ninja 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
-          sudo bash -c "    ninja check-all 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
+          sudo bash -c "ASAN_OPTIONS=detect_leaks=0 ninja      1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)     ;"
 
       - name: Unit Tests
         run: |
-          sudo bash -c "ninja install db/core/all"
           cd /build/production
+          sudo bash -c "ninja install db/core/all"
           sudo bash -c "ctest"
 
       - name: Generate Package
@@ -941,13 +939,12 @@ jobs:
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
           sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     -G \"Ninja\"     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON     -DCMAKE_BUILD_TYPE=Debug /source/production"
-          sudo bash -c "LSAN_OPTIONS=detect_leaks=0 ASAN_OPTIONS=detect_leaks=0     ninja 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
-          sudo bash -c "    ninja check-all 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
+          sudo bash -c "ASAN_OPTIONS=detect_leaks=0 ninja      1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)     ;"
 
       - name: Unit Tests
         run: |
-          sudo bash -c "ninja install db/core/all"
           cd /build/production
+          sudo bash -c "ninja install db/core/all"
           sudo bash -c "ctest"
 
       - name: Upload CMake Logs
@@ -1233,8 +1230,7 @@ jobs:
           sudo bash -c "mkdir -p /build/production"
           cd /build/production
           sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake     -G \"Ninja\"     --log-level=VERBOSE -Wno-dev     -DGIT_HEAD_HASH=$GITHUB_SHA -DGIT_MASTER_HASH=not-found     -DENABLE_CLANG_TIDY=ON     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON     -DBUILD_GAIA_LLVM_TESTS=ON     -DBUILD_GAIA_RELEASE=ON /source/production"
-          sudo bash -c "    ninja 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
-          sudo bash -c "LSAN_OPTIONS=detect_leaks=0 ASAN_OPTIONS=detect_leaks=0     ninja check-all 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)"
+          sudo bash -c "ASAN_OPTIONS=detect_leaks=0 ninja      check-all      1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)     ;"
 
       - name: Unit Tests
         run: |
