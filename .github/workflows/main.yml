@@ -13,7 +13,7 @@ on:
 jobs:
 
   Lint:
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
       GAIA_VERSION: 0.3.2
@@ -61,7 +61,7 @@ jobs:
           extra_args: --all-files
 
   Core:
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     needs: Lint
     env:
       GAIA_REPO: ${{ github.workspace }}
