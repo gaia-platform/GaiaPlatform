@@ -96,7 +96,7 @@ if("$CACHE{ENABLE_SDK_TESTS}")
     RULESET_FILE ${RULESET_PREFIX}/test_metarule3.ruleset
     DAC_LIBRARY dac_prerequisites
   )
-  target_include_directories(test_meta_rule_3_ruleset PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+  target_include_directories(test_metarule3_ruleset PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
 
 
@@ -144,8 +144,8 @@ if("$CACHE{ENABLE_SDK_TESTS}")
     "${TEST_INCLUDES}"
     "rt;gaia_system;gaia_db_catalog_test;test_amr_swarm_ruleset")
 
-    add_gtest(test_meta_rule_3
+    add_gtest(test_metarule3
       "tests/test_metarule3.cpp;${RULES_TEST_HELPERS}"
       "${TEST_INCLUDES}"
-      "rt;gaia_system;gaia_db_catalog_test;test_meta_rule_3_ruleset")
+      "rt;gaia_system;gaia_db_catalog_test;test_metarule3_ruleset")
 endif()
