@@ -92,6 +92,14 @@ if("$CACHE{ENABLE_SDK_TESTS}")
   )
   target_include_directories(test_amr_swarm_ruleset PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
+  translate_ruleset_internal(
+    RULESET_FILE ${RULESET_PREFIX}/test_metarule3.ruleset
+    DAC_LIBRARY dac_prerequisites
+  )
+  target_include_directories(test_metarule3_ruleset PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+
+
+
   # Smoke test for basic ruleset translation functionality
   add_gtest(test_translation_engine
     "tests/test_translation_engine.cpp;${RULES_TEST_HELPERS}"
@@ -135,4 +143,9 @@ if("$CACHE{ENABLE_SDK_TESTS}")
     "tests/test_amr_swarm.cpp;tests/bot_commands.cpp;${RULES_TEST_HELPERS}"
     "${TEST_INCLUDES}"
     "rt;gaia_system;gaia_db_catalog_test;test_amr_swarm_ruleset")
+
+    add_gtest(test_metarule3
+      "tests/test_metarule3.cpp;${RULES_TEST_HELPERS}"
+      "${TEST_INCLUDES}"
+      "rt;gaia_system;gaia_db_catalog_test;test_metarule3_ruleset")
 endif()
