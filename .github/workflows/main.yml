@@ -27,4 +27,5 @@ jobs:
 
       - name: XXX
         run: |
+          cd $GAIA_REPO/production
           $GAIA_REPO/dev_tools/gdev/gdev.sh build
