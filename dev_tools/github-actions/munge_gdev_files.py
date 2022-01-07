@@ -102,7 +102,6 @@ __PACKAGE_TASK_TEMPLATE = """
           name: {job} Debian Install Package
           path: {path}"""
 
-
 # Other Constants
 __COMMENT_LINE_START_CHARACTER = "#"
 __GDEV_NEW_SECTION_START_CHARACTER = "["
