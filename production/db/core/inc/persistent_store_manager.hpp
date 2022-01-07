@@ -14,11 +14,11 @@
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
 #include "db_shared_data.hpp"
-#include "rdb_internal.hpp"
+#include "rdb_wrapper.hpp"
 
 // This file provides gaia specific functionality to persist writes to & read from
 // RocksDB during recovery.
-// This file will be called by the database and leverages the simple RocksDB internal library (rdb_internal.hpp)
+// This file will be called by the database and leverages the simple RocksDB wrapper library (rdb_wrapper.hpp)
 namespace gaia
 {
 namespace db
@@ -84,7 +84,7 @@ public:
 
 private:
     gaia::db::counters_t* m_counters = nullptr;
-    std::unique_ptr<gaia::db::rdb_internal_t> m_rdb_internal;
+    std::unique_ptr<gaia::db::rdb_wrapper_t> m_rdb_wrapper;
     std::string m_data_dir_path;
 };
 

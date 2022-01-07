@@ -9,6 +9,7 @@
 
 #include "gaia_internal/catalog/ddl_executor.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/exceptions.hpp"
 
 using namespace std;
 using namespace gaia::common;
@@ -18,11 +19,173 @@ namespace gaia
 namespace catalog
 {
 
+forbidden_system_db_operation_internal::forbidden_system_db_operation_internal(const std::string& name)
+{
+    m_message = "'" + name + "' is a system database. Operations on system databases are not allowed.";
+}
+
+db_already_exists_internal::db_already_exists_internal(const std::string& name)
+{
+    std::stringstream message;
+    message << "A database with the name '" << name << "' already exists.";
+    m_message = message.str();
+}
+
+db_does_not_exist_internal::db_does_not_exist_internal(const std::string& name)
+{
+    std::stringstream message;
+    message << "The database '" << name << "' does not exist.";
+    m_message = message.str();
+}
+
+table_already_exists_internal::table_already_exists_internal(const std::string& name)
+{
+    std::stringstream message;
+    message << "A table with the name '" << name << "' already exists.";
+    m_message = message.str();
+}
+
+table_does_not_exist_internal::table_does_not_exist_internal(const std::string& name)
+{
+    std::stringstream message;
+    message << "The table '" << name << "' does not exist.";
+    m_message = message.str();
+}
+
+duplicate_field_internal::duplicate_field_internal(const std::string& name)
+{
+    std::stringstream message;
+    message << "The field '" << name << "' is specified more than once.";
+    m_message = message.str();
+}
+
+field_does_not_exist_internal::field_does_not_exist_internal(const std::string& name)
+{
+    std::stringstream message;
+    message << "The field '" << name << "' does not exist.";
+    m_message = message.str();
+}
+
+max_reference_count_reached_internal::max_reference_count_reached_internal()
+{
+    m_message = "Cannot add any more relationships because the maximum number of references has been reached!";
+}
+
+referential_integrity_violation_internal::referential_integrity_violation_internal(const std::string& message)
+{
+    m_message = message;
+}
+
+referential_integrity_violation_internal referential_integrity_violation_internal::drop_referenced_table(
+    const std::string& referenced_table,
+    const std::string& referencing_table)
+{
+    std::stringstream message;
+    message
+        << "Cannot drop table '" << referenced_table
+        << "' because it is referenced by table '" << referencing_table << "'.";
+    return referential_integrity_violation_internal{message.str()};
+}
+
+relationship_already_exists_internal::relationship_already_exists_internal(const std::string& name)
+{
+    std::stringstream message;
+    message << "A relationship with the name '" << name << "' already exists.";
+    m_message = message.str();
+}
+
+relationship_does_not_exist_internal::relationship_does_not_exist_internal(const std::string& name)
+{
+    std::stringstream message;
+    message << "The relationship '" << name << "' does not exist.";
+    m_message = message.str();
+}
+
+no_cross_db_relationship_internal::no_cross_db_relationship_internal(const std::string& name)
+{
+    std::stringstream message;
+    message << "'" + name
+            + "' defines a relationship across databases. Relationships across databases are not allowed";
+    m_message = message.str();
+}
+
+relationship_tables_do_not_match_internal::relationship_tables_do_not_match_internal(
+    const std::string& relationship,
+    const std::string& name1,
+    const std::string& name2)
+{
+    std::stringstream message;
+    message
+        << "The table '" << name1 << "' does not match the table '" << name2 << "' "
+        << "in the relationship '" << relationship << "' definition.";
+    m_message = message.str();
+}
+
+many_to_many_not_supported_internal::many_to_many_not_supported_internal(const std::string& relationship)
+{
+    std::stringstream message;
+    message << "'" + relationship
+            + "' defines a many-to-many relationship. Many-to-many relationships are not supported.";
+    m_message = message.str();
+}
+
+many_to_many_not_supported_internal::many_to_many_not_supported_internal(const std::string& table1, const std::string& table2)
+{
+    std::stringstream message;
+    message
+        << "The many-to-many relationship defined "
+        << "between '" << table1 << "'  and '" << table2 << "' is not supported.";
+    m_message = message.str();
+}
+
+index_already_exists_internal::index_already_exists_internal(const std::string& name)
+{
+    std::stringstream message;
+    message << "The index '" << name << "' already exists.";
+    m_message = message.str();
+}
+
+index_does_not_exist_internal::index_does_not_exist_internal(const std::string& name)
+{
+    std::stringstream message;
+    message << "The index '" << name << "' does not exist.";
+    m_message = message.str();
+}
+
+invalid_relationship_field_internal::invalid_relationship_field_internal(const std::string& message)
+{
+    m_message = message;
+}
+
+ambiguous_reference_definition_internal::ambiguous_reference_definition_internal(const std::string& table, const std::string& ref_name)
+{
+    std::stringstream message;
+    message
+        << "The reference '" << ref_name << "' definition "
+        << "in table '" << table << "' has mutiple matching definitions.";
+    m_message = message.str();
+}
+
+orphaned_reference_definition_internal::orphaned_reference_definition_internal(const std::string& table, const std::string& ref_name)
+{
+    std::stringstream message;
+    message
+        << "The reference '" << ref_name << "' definition "
+        << "in table '" << table << "' has no matching definition.";
+    m_message = message.str();
+}
+
+invalid_create_list_internal::invalid_create_list_internal(const std::string& message)
+{
+    m_message = "Invalid create statment in a list: ";
+    m_message += message;
+}
+
 inline void check_not_system_db(const string& name)
 {
     if (name == c_catalog_db_name || name == c_event_log_db_name)
     {
-        throw forbidden_system_db_operation(name);
+        throw forbidden_system_db_operation_internal(name);
     }
 }
 
@@ -70,6 +233,7 @@ gaia_id_t create_table(
     txn.commit();
     return id;
 }
+
 gaia_id_t create_relationship(
     const string& name,
     const ddl::link_def_t& link1,

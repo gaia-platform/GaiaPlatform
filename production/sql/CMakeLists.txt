@@ -2,7 +2,6 @@
 # Copyright (c) Gaia Platform LLC. All rights reserved.
 # ##############################################################################
 
-# Set the project name.
 project(sql)
 
 # Use existence of pg_config as a proxy for Postgres being installed.

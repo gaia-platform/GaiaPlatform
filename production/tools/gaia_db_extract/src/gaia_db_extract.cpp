@@ -9,7 +9,7 @@
 #include <memory>
 #include <vector>
 
-#include "gaia/db/db.hpp"
+#include "gaia/exceptions.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"

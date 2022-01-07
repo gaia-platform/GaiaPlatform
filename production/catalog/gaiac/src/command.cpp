@@ -12,6 +12,9 @@
 
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/exceptions.hpp"
+
+#include <gaia_spdlog/fmt/fmt.h>
 
 #include "fbs_generator.hpp"
 
@@ -146,7 +149,7 @@ void describe_database(const string& name)
     gaia_id_t db_id = find_db_id(name);
     if (db_id == c_invalid_gaia_id)
     {
-        throw db_not_exists(name);
+        throw db_does_not_exist_internal(name);
     }
     {
         auto_transaction_t txn;
@@ -186,7 +189,7 @@ void describe_table(const string& name)
         }
         if (table_id == c_invalid_gaia_id)
         {
-            throw table_not_exists(name);
+            throw table_does_not_exist_internal(name);
         }
         for (auto& field : gaia_table_t::get(table_id).gaia_fields())
         {
@@ -249,7 +252,7 @@ void generate_table_fbs(const string& name)
     }
     if (table_id == c_invalid_gaia_id)
     {
-        throw table_not_exists(name);
+        throw table_does_not_exist_internal(name);
     }
     cout << generate_fbs(table_id) << endl;
     cout << flush;
@@ -452,7 +455,7 @@ bool handle_meta_command(const string& cmd)
     ASSERT_PRECONDITION(!cmd.empty(), "Meta command should not be empty.");
     ASSERT_PRECONDITION(
         cmd[c_cmd_prefix_index] == c_command_prefix,
-        "Meta command should start with a '" + string(1, c_command_prefix) + "'.");
+        gaia_fmt::format("Meta command should start with a '{}'.", c_command_prefix).c_str());
 
     if (cmd.length() < c_cmd_minimum_length)
     {

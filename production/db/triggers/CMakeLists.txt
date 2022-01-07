@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(triggers)
 
 set(GAIA_TRIGGERS_INCLUDES

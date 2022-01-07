@@ -3,14 +3,12 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(parser)
 
 file(MAKE_DIRECTORY ${GAIA_PARSER_GENERATED})
 
 set(GAIA_PARSER_INCLUDES
   ${GAIA_INC}
-  ${FLATBUFFERS_INC}
   ${PROJECT_SOURCE_DIR}/inc
   ${GAIA_PARSER_GENERATED}
 )

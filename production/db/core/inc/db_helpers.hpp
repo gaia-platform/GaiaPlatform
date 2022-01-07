@@ -7,15 +7,13 @@
 
 #include <unistd.h>
 
-#include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
-#include "gaia/exception.hpp"
 
-#include "gaia_internal/common/memory_allocation_error.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
-#include "gaia_internal/db/gaia_db_internal.hpp"
+#include "gaia_internal/exceptions.hpp"
 
 #include "chunk_manager.hpp"
 #include "db_internal_types.hpp"
@@ -52,7 +50,7 @@ inline gaia_locator_t allocate_locator()
 
     if (counters->last_locator >= c_max_locators)
     {
-        throw system_object_limit_exceeded();
+        throw system_object_limit_exceeded_internal();
     }
 
     return ++(counters->last_locator);
@@ -151,16 +149,11 @@ inline void allocate_object(
         memory_manager::chunk_offset_t new_chunk_offset = memory_manager->allocate_chunk();
         if (new_chunk_offset == memory_manager::c_invalid_chunk_offset)
         {
-            throw memory_allocation_error(
-                "Memory manager ran out of memory during call to allocate_chunk().");
+            throw memory_allocation_error_internal();
         }
 
         // Initialize the new chunk.
         chunk_manager->initialize(new_chunk_offset);
-
-        // Before we allocate, persist current chunk ID in txn log, for access
-        // on the server in case we crash.
-        gaia::db::get_mapped_log()->data()->current_chunk = new_chunk_offset;
 
         // Allocate from new chunk.
         object_offset = chunk_manager->allocate(size + c_db_object_header_size);

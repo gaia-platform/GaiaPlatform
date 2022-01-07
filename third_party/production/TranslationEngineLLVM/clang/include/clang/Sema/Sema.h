@@ -4627,11 +4627,16 @@ public:
   bool ValidateLabel(const LabelDecl *label);
   // Checks if an expression contains injected declarative references.
   bool IsExpressionInjected(const Expr* expression) const;
+  void ResetTableSearchContextStack() {searchContextStack.clear();}
+  void PushTableSearchContext(){searchContextStack.push_back(llvm::StringMap<std::string>());}
+  void PopTableSearchContext(){if (!searchContextStack.empty()) searchContextStack.pop_back();}
+  void AddTableSearchAnchor(StringRef anchor, StringRef variable){if (!searchContextStack.empty()) searchContextStack.back()[anchor] = variable;}
+
 private:
 
   // TODO we need to decide what style to use: PascalCase, camelCase, snake_case (we're using all of them now).
   NamedDecl *injectVariableDefinition(IdentifierInfo *II, SourceLocation loc, const std::string &explicitPath);
-  std::string ParseExplicitPath(StringRef pathString, SourceLocation loc);
+  std::string ParseExplicitPath(StringRef pathString, SourceLocation loc, StringRef& firstComponent);
   QualType getFieldType (const std::string& fieldOrTagName, SourceLocation loc);
   bool findFieldType (const std::string& fieldOrTagName, SourceLocation loc);
   QualType getTableType (StringRef tableName, SourceLocation loc);
@@ -4676,6 +4681,7 @@ private:
     llvm::StringMap<std::string> tagMap;
   };
 
+  llvm::SmallVector<llvm::StringMap<std::string>, 8> searchContextStack;
   llvm::StringSet<> labelsInProcess;
   llvm::StringSet<> declarativeLabelsInProcess;
 

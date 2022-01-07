@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "gaia/events.hpp"
+#include "gaia/db/events.hpp"
 #include "gaia/logger.hpp"
 #include "gaia/rules/rules.hpp"
 

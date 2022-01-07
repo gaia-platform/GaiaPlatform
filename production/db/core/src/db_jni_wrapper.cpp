@@ -94,7 +94,7 @@ jboolean update_payload(
             return false;
         }
 
-        gaia_ptr_t t = gaia_ptr_t::open(id);
+        gaia_ptr_t t = gaia_ptr_t::from_gaia_id(id);
         if (t)
         {
             t.update_payload(payload_holder.size(), payload_holder.bytes());
@@ -113,7 +113,7 @@ jboolean remove(jlong id)
 {
     try
     {
-        gaia_ptr_t t = gaia_ptr_t::open(id);
+        gaia_ptr_t t = gaia_ptr_t::from_gaia_id(id);
         if (t)
         {
             gaia_ptr_t::remove(t);
@@ -144,7 +144,7 @@ jlong find_first(jlong type)
 
 jlong find_next(jlong id)
 {
-    gaia_ptr_t t = gaia_ptr_t::open(id);
+    gaia_ptr_t t = gaia_ptr_t::from_gaia_id(id);
     if (!t)
     {
         return NULL;
@@ -161,7 +161,7 @@ jlong find_next(jlong id)
 
 jlong get_type(jlong id)
 {
-    gaia_ptr_t t = gaia_ptr_t::open(id);
+    gaia_ptr_t t = gaia_ptr_t::from_gaia_id(id);
     if (!t)
     {
         return NULL;
@@ -172,7 +172,7 @@ jlong get_type(jlong id)
 
 jbyteArray get_payload(JNIEnv* env, jlong id)
 {
-    gaia_ptr_t t = gaia_ptr_t::open(id);
+    gaia_ptr_t t = gaia_ptr_t::from_gaia_id(id);
     if (!t || t.data_size() == 0)
     {
         // NOLINTNEXTLINE(modernize-use-nullptr)

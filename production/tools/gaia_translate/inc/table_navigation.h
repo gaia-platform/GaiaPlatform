@@ -40,6 +40,10 @@ struct explicit_path_data_t
     llvm::StringMap<string> defined_tags;
     string variable_name;
     bool skip_implicit_path_generation{false};
+    // Anchor table to implement meta-rule 3.
+    string anchor_table;
+    string anchor_variable;
+    bool is_anchor{false};
 };
 
 struct navigation_code_data_t
@@ -59,17 +63,7 @@ public:
     static llvm::SmallVector<string, 16> get_table_fields(llvm::StringRef table);
 
 private:
-    struct navigation_data_t
-    {
-        string table_name;
-        string linking_field;
-    };
-
-private:
-    static llvm::StringRef get_closest_table(const llvm::StringMap<int>& table_distance);
-    static bool find_navigation_path(llvm::StringRef src, llvm::StringRef dst, llvm::SmallVector<navigation_data_t, 8>& current_path);
-    static bool find_navigation_path(llvm::StringRef src, llvm::StringRef dst, llvm::SmallVector<navigation_data_t, 8>& current_path, const llvm::StringMap<clang::gaia::catalog::CatalogTableData>& graph_data);
-    static navigation_code_data_t generate_navigation_code(llvm::StringRef anchor_table, const llvm::StringSet<>& tables, const llvm::StringMap<string>& tags, string& last_table);
+    static navigation_code_data_t generate_navigation_code(llvm::StringRef anchor_table, llvm::StringRef anchor_variable, const llvm::StringSet<>& tables, const llvm::StringMap<string>& tags, string& last_table);
     static bool generate_navigation_step(llvm::StringRef source_table, llvm::StringRef source_field, llvm::StringRef destination_table, llvm::StringRef source_variable_name, llvm::StringRef variable_name, navigation_code_data_t& navigation_data);
 };
 } // namespace translation

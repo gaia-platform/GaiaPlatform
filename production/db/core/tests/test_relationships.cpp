@@ -52,9 +52,11 @@ bool compare_relationships(const relationship_t& lhs, const relationship_t& rhs)
         && lhs.child_type == rhs.child_type
         && lhs.first_child_offset == rhs.first_child_offset
         && lhs.next_child_offset == rhs.next_child_offset
+        && lhs.prev_child_offset == rhs.prev_child_offset
         && lhs.parent_offset == rhs.parent_offset
         && lhs.cardinality == rhs.cardinality
-        && lhs.parent_required == rhs.parent_required;
+        && lhs.parent_required == rhs.parent_required
+        && lhs.value_linked == rhs.value_linked;
 }
 
 TEST_F(gaia_relationships_test, metadata_init)
@@ -138,7 +140,7 @@ TEST_F(gaia_relationships_test, metadata_not_exists)
     const int c_non_existent_type = 1001;
     EXPECT_THROW(
         type_registry_t::instance().get(c_non_existent_type),
-        invalid_type);
+        invalid_object_type);
 
     commit_transaction();
 }

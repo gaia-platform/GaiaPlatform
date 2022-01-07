@@ -50,17 +50,17 @@ ruleset amr_swarm_ruleset
         }
     }
 
-    on_insert(bot_arrived_at_charging_station_event)
+    on_insert(E:bot_arrived_at_charging_station_event)
     {
         // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1461 (fixed)
         // This created invalid C++ code.
         for (/C:configuration)
         {
-            if (C.main_pallet_bot->robot.id == R:robot.id)
+            if (C.main_pallet_bot->robot.id == E->R:robot.id)
             {
                 temp_main_pallet_bot = R;
             }
-            else if (C.left_widget_bot->robot.id == RR:robot.id)
+            else if (C.left_widget_bot->robot.id == E->RR:robot.id)
             {
                 temp_left_widget_bot = RR;
             }
@@ -1280,7 +1280,7 @@ ruleset amr_swarm_ruleset
             // Note that if this bot is set, then by definition there are 2 bots and
             // this bot is there to take care of the PL End->Outbound path, and nothing
             // else.
-            else if (right_widget_bot && (robot.id == right_widget_bot.id()))
+            else if (right_widget_bot && (bot_is_charged_event->robot.id == right_widget_bot.id()))
             {
                 if (/ S
                     : station.id == (int)stations::Pl_end)
@@ -1306,7 +1306,7 @@ ruleset amr_swarm_ruleset
                 // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1430 (fixed)
                 // else if (C.main_pallet_bot->R:robot.id == robot.id) {
             }
-            else if (temp_main_pallet_bot.id() == robot.id)
+            else if (temp_main_pallet_bot.id() == bot_is_charged_event->robot.id)
             {
                 move_pallet_bot_to_inbound_task.insert(timestamp
                                                        : get_time_millis());

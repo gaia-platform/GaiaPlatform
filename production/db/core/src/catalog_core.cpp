@@ -6,17 +6,12 @@
 #include "gaia_internal/db/catalog_core.hpp"
 
 #include <optional>
-#include <sstream>
-#include <string>
-#include <vector>
 
 #include "gaia/common.hpp"
 
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
-#include "gaia_internal/db/db_types.hpp"
 
-#include "db_helpers.hpp"
 #include "db_object_helpers.hpp"
 #include "gaia_field_generated.h"
 #include "gaia_index_generated.h"
@@ -91,6 +86,11 @@ namespace db
     return catalog::Getgaia_relationship(m_obj_ptr->data())->next_child_offset();
 }
 
+[[nodiscard]] reference_offset_t relationship_view_t::prev_child_offset() const
+{
+    return catalog::Getgaia_relationship(m_obj_ptr->data())->prev_child_offset();
+}
+
 [[nodiscard]] reference_offset_t relationship_view_t::parent_offset() const
 {
     return catalog::Getgaia_relationship(m_obj_ptr->data())->parent_offset();
@@ -114,6 +114,11 @@ namespace db
 [[nodiscard]] const flatbuffers::Vector<uint16_t>* relationship_view_t::child_field_positions() const
 {
     return catalog::Getgaia_relationship(m_obj_ptr->data())->child_field_positions();
+}
+
+[[nodiscard]] bool relationship_view_t::is_value_linked() const
+{
+    return parent_field_positions() != nullptr && parent_field_positions()->size() > 0;
 }
 
 [[nodiscard]] const char* index_view_t::name() const

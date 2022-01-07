@@ -101,9 +101,19 @@ parse_command_line "$@"
 # Clean entrance into the script.
 start_process
 
-echo "Grabbing additional packages."
+PACKAGES=(
+    # We need this for llvm-cov.
+    llvm-10
+    lcov
+    nano
+    zip
+    unzip
+)
+# shellcheck disable=SC2145
+echo "Installing additional packages: ${PACKAGES[@]}"
 apt -y update
-apt-get install -y lcov nano
+# shellcheck disable=SC2068
+apt-get install -y ${PACKAGES[@]}
 
 pushd /build/production/output || exit
 rm -rf ./*
@@ -145,7 +155,6 @@ lcov \
     -r /build/production/coverage.total \
     "/build/production/generated/*" \
     "/build/production/*/*" \
-    "*/CMakeCCompilerId.c" \
     "/source/production/generated/*" \
     "/source/production/parser/generated/*" \
     "/source/production/catalog/parser/tests/*" \
@@ -161,7 +170,6 @@ lcov \
     "/source/production/sdk/tests/*" \
     "/source/production/system/tests/*" \
     "/source/production/tools/gaia_dump/tests/*" \
-    "*/CMakeCXXCompilerId.cpp" \
     -o /build/production/coverage.filter \
     > /build/production/output/filter.log
 

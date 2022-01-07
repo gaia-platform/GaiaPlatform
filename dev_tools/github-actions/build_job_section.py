@@ -46,12 +46,24 @@ __JOB_PREFIX = """
     runs-on: ubuntu-20.04
     {needs}{env}"""
 
+__SLACK_SUFFIX = """
+      - name: Report Job Status To Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+"""
+
+# More on the Slack action here: https://github.com/marketplace/actions/action-slack
 __STEPS_PREFIX_AND_APT_SECTION_HEADER = """    steps:
       - name: Checkout Repository
         uses: actions/checkout@master
 
       - name: Setup Python 3.8
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.8
 
@@ -59,10 +71,11 @@ __STEPS_PREFIX_AND_APT_SECTION_HEADER = """    steps:
         run: |
           sudo apt-get update && sudo apt-get install -y """
 
-__PIP_SECTION_HEADER = """
+__PIP_SECTION_HEADER_TEMPLATE = """
       - name: Install Required Python Packages
         run: |
-          python3.8 -m pip install --user"""
+          python3.8 -m pip install {pip}
+          python3 -m pip install {pip}"""
 
 __GIT_SECTION_HEADER = """
       - name: Install Required Third Party Git Repositories
@@ -109,7 +122,7 @@ __INSTALL_SECTION_HEADER = """    steps:
         uses: actions/checkout@master
 
       - name: Setup Python 3.8
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.8
 
@@ -242,12 +255,13 @@ def __collect_lines_for_section(
 
     cmds = ["./munge_gdev_files.py", "--section", section_name, "--job-name", job_name]
     cmds.extend(cmd_options)
+    raw_command = " ".join(cmds)
     code, env_outp, errp = __execute_script(cmds)
     if show_debug_output:
         print(f"output for {section_long_name}: {env_outp}")
     assert (
         code == 0
-    ), f"Error getting generated {section_long_name}({code}): {env_outp}{errp}"
+    ), f"Error getting generated {section_long_name}({code}): {raw_command}\n{env_outp}{errp}"
     return env_outp
 
 
@@ -341,8 +355,7 @@ def __print_normal_prefix_lines(section_line_map, apt_outp, pip_outp):
 
     # `Install Required Python Packages`
     if pip_outp:
-        print(__PIP_SECTION_HEADER, end="")
-        print(" " + pip_outp)
+        print(__PIP_SECTION_HEADER_TEMPLATE.replace("{pip}", pip_outp))
 
     # `Install Required Third Party Git Repositories`
     if section_line_map[__GIT_SECTION]:
@@ -465,6 +478,7 @@ def process_script_action():
     if not is_install_action:
         # `Upload *`
         __print_formatted_lines(section_line_map[__ARTIFACTS_SECTION])
+    print(__SLACK_SUFFIX)
 
 
 sys.exit(process_script_action())

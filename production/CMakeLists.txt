@@ -14,8 +14,7 @@ include(UseJava)
 
 enable_testing()
 
-# Set the project name.
-project(production VERSION 0.3.2)
+project(production VERSION 0.3.3)
 
 # Sets the pre-release version which will be appended to the
 # product version: 0.1.0-alpha.
@@ -32,6 +31,8 @@ option(ENABLE_SDK_TESTS "Build and execute ruleset translation tests" ON)
 
 option(EXPORT_SYMBOLS "Export symbols by default from shared libraries" OFF)
 
+option(DISABLE_ASSERTS "Disable assertions" OFF)
+
 option(ENABLE_CLANG_TIDY "Enable Clang-Tidy to be specified externally")
 
 if (NOT ENABLE_CLANG_TIDY)
@@ -42,15 +43,25 @@ if (NOT ENABLE_CLANG_TIDY)
   endif()
 endif()
 
+# Sets the Gaia build architecture which is the SDK target architecture.
+# For simplicity we do not support cross-compiling yet.
+if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "amd64|AMD64|x86_64|X86_64")
+  set(GAIA_BUILD_ARCH "amd64")
+elseif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm64|ARM64|aarch64|AARCH64")
+  set(GAIA_BUILD_ARCH "arm64")
+else()
+  message(FATAL_ERROR "Unrecognised architecture: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+endif()
+
+message(STATUS "GAIA_BUILD_ARCH: ${GAIA_BUILD_ARCH}")
+
 include(GNUInstallDirs)
+include(ExternalProject)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
 include(gaia_internal)
 include(GoogleTest)
-
-# Ensure Debug builds have the DEBUG macro defined.
-add_compile_options("$<$<CONFIG:Debug>:-DDEBUG>")
 
 # Check that PIE flags are actually passed to the linker.
 # This ensures that our executables are ASLR-compatible.
@@ -64,7 +75,7 @@ endif()
 # POSITION_INDEPENDENT_CODE is set.
 cmake_policy(SET CMP0083 NEW)
 # Our shared libraries and executables must all be ASLR-compatible.
-set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Set some global variables.
 get_repo_root(${PROJECT_SOURCE_DIR} GAIA_REPO)
@@ -76,12 +87,18 @@ endif()
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+  set_property(GLOBAL PROPERTY CMAKE_CXX_COMPILER_LAUNCHER ccache)
 endif(CCACHE_FOUND)
 
 # Default compiler/linker flags for Gaia targets.
 add_library(gaia_build_options INTERFACE)
 target_compile_options(gaia_build_options INTERFACE -Wall -Wextra -ftime-trace)
+# Ensure Debug builds have the DEBUG macro defined.
+target_compile_definitions(gaia_build_options INTERFACE $<$<CONFIG:Debug>:DEBUG>)
+# Propagate the DISABLE_ASSERTS option to a macro definition.
+target_compile_definitions(gaia_build_options INTERFACE $<$<BOOL:${DISABLE_ASSERTS}>:DISABLE_ASSERTS>)
+# Disabling asserts will produce bogus unused variable warnings.
+target_compile_options(gaia_build_options INTERFACE $<$<BOOL:${DISABLE_ASSERTS}>:-Wno-unused-parameter -Wno-unused-lambda-capture -Wno-unused-variable -Wno-unused-but-set-variable>)
 
 # LLVM and CLANG specific options.
 if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
@@ -129,7 +146,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
 
     # Explicitly list all legal values for SANITIZER.
     # (This will eventually include ASAN, MSAN, TSAN.)
-    set_property(CACHE SANITIZER PROPERTY STRINGS "ASAN")
+    set_property(CACHE SANITIZER PROPERTY STRINGS "ASAN" "TSAN" "NONE")
   endif()
 
   if(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
@@ -180,6 +197,12 @@ if(DEFINED CACHE{SANITIZER})
     target_compile_options(gaia_build_options INTERFACE -fsanitize=undefined)
     target_link_options(gaia_build_options INTERFACE -fsanitize=undefined)
   endif()
+
+  if("$CACHE{SANITIZER}" STREQUAL "TSAN")
+    # Add TSan flags only to Gaia targets to avoid compatibility issues with other libraries.
+    target_compile_options(gaia_build_options INTERFACE -fsanitize=thread)
+    target_link_options(gaia_build_options INTERFACE -fsanitize=thread)
+  endif()
 endif()
 
 message(STATUS "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
@@ -189,13 +212,16 @@ message(VERBOSE "Gaia compile options: ${gaia_compile_options}")
 message(VERBOSE "Gaia link options: ${gaia_link_options}")
 
 set(GAIA_INC "${PROJECT_SOURCE_DIR}/inc")
-set(DEPENDENCIES_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/deps)
+set(DEPENDENCIES_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/deps")
 
 set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
 set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
 
-set(FLATBUFFERS "${GAIA_REPO}/third_party/production/flatbuffers")
-set(FLATBUFFERS_INC "${FLATBUFFERS}/include")
+set(FLATBUFFERS_ROOT ${DEPENDENCIES_INSTALL_PREFIX}/flatbuffers)
+set(FLATBUFFERS_SRC "${FLATBUFFERS_ROOT}/src")
+set(FLATBUFFERS_INC "${FLATBUFFERS_ROOT}/include")
+set(FLATBUFFERS_BIN "${FLATBUFFERS_ROOT}/bin")
+set(FLATBUFFERS_LIB "${FLATBUFFERS_ROOT}/lib")
 
 set(GAIA_SPDLOG "${DEPENDENCIES_INSTALL_PREFIX}/gaia_spdlog")
 set(GAIA_SPDLOG_INC "${GAIA_SPDLOG}/include")
@@ -274,17 +300,7 @@ endif()
 
 # External project dependencies.
 
-# Rocksdb.
-set(DISABLE_WARNINGS ON CACHE BOOL "" FORCE)
-add_subdirectory(${ROCKSDB} rocksdb EXCLUDE_FROM_ALL)
-
-# Flatbuffers.
-set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-add_subdirectory(${FLATBUFFERS} flatbuffers)
-
-include(ExternalProject)
-
-# Backward.
+# Backward (this needs to come first because it changes build options for subsequent dependencies).
 if(ENABLE_STACKTRACE)
   message(VERBOSE "ENABLE_STACKTRACE=${ENABLE_STACKTRACE}")
   add_subdirectory("${GAIA_REPO}/third_party/production/backward" backward)
@@ -297,6 +313,21 @@ if(ENABLE_STACKTRACE)
   endif()
   target_link_libraries(gaia_stack_trace INTERFACE backward)
 endif()
+
+# Flatbuffers.
+add_subdirectory("${GAIA_REPO}/third_party/production/flatbuffers" flatbuffers)
+
+# If this add_executable is placed into third_party/production/flatbuffers/CMakeLists.txt
+# the rest of the project can't see it. This is the workaround I came up with, looking for a
+# cleaner solution.
+add_executable(flatc IMPORTED)
+set_target_properties(flatc PROPERTIES IMPORTED_LOCATION ${FLATBUFFERS_BIN}/flatc)
+add_dependencies(flatc flatbuffers_dependency)
+
+# Rocksdb.
+set(DISABLE_WARNINGS ON CACHE BOOL "" FORCE)
+add_subdirectory(${ROCKSDB} rocksdb EXCLUDE_FROM_ALL)
+
 # Cpptoml.
 add_subdirectory("${GAIA_REPO}/third_party/production/cpptoml" cpptoml)
 # Spdlog.

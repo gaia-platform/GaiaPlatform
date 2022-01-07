@@ -19,8 +19,8 @@ namespace db
 namespace payload_types
 {
 
-static const string c_message_attempt_to_set_value_of_incorrect_type = "Attempt to set value of incorrect type";
-static const string c_message_array_index_out_of_bounds = "Attempt to index array is out-of-bounds.";
+static constexpr char c_message_attempt_to_set_value_of_incorrect_type[] = "Attempt to set value of incorrect type";
+static constexpr char c_message_array_index_out_of_bounds[] = "Attempt to index array is out-of-bounds.";
 
 invalid_schema::invalid_schema()
 {
@@ -294,12 +294,15 @@ data_holder_t get_field_value(
     // Read field value according to its type.
     data_holder_t result;
     result.type = field->type()->base_type();
+
     if (flatbuffers::IsInteger(field->type()->base_type()))
     {
+        result.is_null = false;
         result.hold.integer_value = flatbuffers::GetAnyFieldI(*root_table, *field);
     }
     else if (flatbuffers::IsFloat(field->type()->base_type()))
     {
+        result.is_null = false;
         result.hold.float_value = flatbuffers::GetAnyFieldF(*root_table, *field);
     }
     else if (field->type()->base_type() == reflection::String)
@@ -308,6 +311,7 @@ data_holder_t get_field_value(
 
         // For null strings, the field_value will come back as nullptr,
         // so just set the string_value to nullptr as well.
+        result.is_null = (field_value == nullptr);
         result.hold.string_value = (field_value == nullptr) ? nullptr : field_value->c_str();
     }
     else
@@ -544,11 +548,13 @@ data_holder_t get_field_array_element(
     result.type = field->type()->element();
     if (flatbuffers::IsInteger(field->type()->element()))
     {
+        result.is_null = false;
         result.hold.integer_value = flatbuffers::GetAnyVectorElemI(
             field_value, field->type()->element(), array_index);
     }
     else if (flatbuffers::IsFloat(field->type()->element()))
     {
+        result.is_null = false;
         result.hold.float_value = flatbuffers::GetAnyVectorElemF(
             field_value, field->type()->element(), array_index);
     }
@@ -563,6 +569,7 @@ data_holder_t get_field_array_element(
             throw invalid_serialized_data();
         }
 
+        result.is_null = false;
         result.hold.string_value = field_element_value->c_str();
     }
     else

@@ -43,7 +43,7 @@ TEST(flatbuffers, fbs_compilation)
 
     // Parse schema.
     bool result = parser.Parse(schema.c_str());
-    ASSERT_EQ(true, result);
+    ASSERT_TRUE(result);
 
     // Serialize schema definition.
     parser.Serialize();
@@ -54,7 +54,7 @@ TEST(flatbuffers, fbs_compilation)
         reinterpret_cast<char*>(parser.builder_.GetBufferPointer()),
         parser.builder_.GetSize(),
         true);
-    ASSERT_EQ(true, result);
+    ASSERT_TRUE(result);
 
     // Compare the content of the programmatically generated files
     // with that of the build generated files.

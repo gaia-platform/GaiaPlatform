@@ -13,22 +13,18 @@
 #include <iostream>
 #include <thread>
 
-#include <libexplain/execve.h>
-#include <libexplain/fork.h>
-#include <libexplain/kill.h>
-#include <libexplain/waitpid.h>
 #include <sys/prctl.h>
 #include <sys/wait.h>
 
 #include "gaia/db/db.hpp"
 
 #include "gaia_internal/common/config.hpp"
-#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/logger.hpp"
 #include "gaia_internal/common/random.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_error.hpp"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
-#include "gaia_internal/db/gaia_db_internal.hpp"
 
 #include "gaia_spdlog/fmt/fmt.h"
 
@@ -83,7 +79,7 @@ fs::path server_instance_config_t::find_server_path()
         //  This logic (find_server_path) is only for testing and should be decoupled from
         //  the server_instance_t.
         //  https://gaiaplatform.atlassian.net/browse/GAIAPLAT-960
-        return fs::path();
+        return {};
     }
 
     return db_exec_path;
@@ -140,8 +136,7 @@ void server_instance_t::start(bool wait_for_init)
 
     if (m_server_pid < 0)
     {
-        const char* reason = ::explain_fork();
-        common::throw_system_error(reason);
+        common::throw_system_error("fork() failed!");
     }
     else if (m_server_pid == 0)
     {
@@ -156,9 +151,7 @@ void server_instance_t::start(bool wait_for_init)
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
         if (-1 == ::execve(command[0], const_cast<char**>(command.data()), nullptr))
         {
-            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-            const char* reason = ::explain_execve(command[0], const_cast<char**>(command.data()), nullptr);
-            common::throw_system_error(reason);
+            common::throw_system_error("execve() failed while executing gaia_db_server!");
         }
     }
 
@@ -179,8 +172,7 @@ void server_instance_t::stop()
 
     if (::kill(m_server_pid, SIGKILL) == -1)
     {
-        const char* reason = ::explain_kill(m_server_pid, SIGKILL);
-        gaia::common::throw_system_error(reason);
+        gaia::common::throw_system_error("kill() failed while sending SIGKILL to gaia_db_server!");
     }
 
     // Wait for the termination, this should be almost immediate
@@ -190,8 +182,7 @@ void server_instance_t::stop()
 
     if (return_pid == -1)
     {
-        const char* reason = ::explain_waitpid(return_pid, &status, 0);
-        gaia::common::throw_system_error(reason);
+        gaia::common::throw_system_error("waitpid() failed while waiting for gaia_db_server!");
     }
     else if (return_pid == 0)
     {
@@ -318,6 +309,11 @@ bool server_instance_t::is_initialized()
 std::vector<const char*> server_instance_t::get_server_command_and_argument()
 {
     std::vector<const char*> strings;
+
+    if (m_conf.server_exec_path.empty())
+    {
+        throw common::gaia_exception("Impossible to find gaia_db_server executable!");
+    }
 
     strings.push_back(m_conf.server_exec_path.c_str());
     strings.push_back("--instance-name");

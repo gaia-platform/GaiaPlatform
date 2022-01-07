@@ -51,8 +51,7 @@ public:
     std::optional<relationship_t> find_child_relationship(gaia::common::reference_offset_t parent_offset) const;
 
     /**
-     * The number of references this type has both as parent and child.
-     * Note: child references count 2X, since 2 pointers are necessary to express them.
+     * The total number of references this type has.
      */
     gaia::common::reference_offset_t num_references() const;
 
@@ -84,30 +83,11 @@ private:
     std::unordered_map<gaia::common::reference_offset_t, std::shared_ptr<relationship_t>> m_parent_relationships;
     std::unordered_map<gaia::common::reference_offset_t, std::shared_ptr<relationship_t>> m_child_relationships;
 
+    // The total number of reference slots this type has.
+    common::reference_offset_t m_reference_count{0};
+
     bool is_initialized();
     void mark_as_initialized();
-};
-
-class duplicate_metadata : public gaia::common::gaia_exception
-{
-public:
-    explicit duplicate_metadata(const gaia::common::gaia_type_t type)
-    {
-        std::stringstream message;
-        message << "Metadata already existent for Gaia type '" << type << "'.";
-        m_message = message.str();
-    }
-};
-
-class metadata_not_found : public gaia::common::gaia_exception
-{
-public:
-    explicit metadata_not_found(const gaia::common::gaia_type_t type)
-    {
-        std::stringstream message;
-        message << "Metadata does not exist for Gaia type '" << type << "'.";
-        m_message = message.str();
-    }
 };
 
 /**
