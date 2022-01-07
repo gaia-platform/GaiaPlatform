@@ -184,7 +184,6 @@ TEST_F(db__query_processor__index_scan__test, query_single_match)
         for (const gaia::common::gaia_id_t field_id : *index.fields())
         {
             const auto& field = field_view_t(gaia::db::id_to_ptr(field_id));
-            if (field.data_type() == data_type_t::e_int32 && !field.optional() && index.type() == index_type_t::range)
             {
                 range_index_id = index.id();
                 break;
@@ -561,7 +560,7 @@ TEST_F(db__query_processor__index_scan__test, query_local_modify_match)
     gaia::db::rollback_transaction();
 }
 
-TEST_F(db__query_processor__index_scan__test, query_range)
+TEST_F(test_index_scan, query_rang_inclusive)
 {
     // Lookup index_id for integer field.
     gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
@@ -570,11 +569,11 @@ TEST_F(db__query_processor__index_scan__test, query_range)
 
     gaia::db::begin_transaction();
 
-    for (const auto& index : catalog_core_t::list_indexes(type_record_id))
+    for (const index_view_t& index : catalog_core_t::list_indexes(type_record_id))
     {
-        for (const auto& field_id : *index.fields())
+        for (const gaia::common::gaia_id_t field_id : *index.fields())
         {
-            const auto& field = field_view_t(gaia::db::id_to_ptr(field_id));
+            const auto field = field_view_t(gaia::db::id_to_ptr(field_id));
             if (field.data_type() == data_type_t::e_int32 && index.type() == index_type_t::range)
             {
                 range_index_id = index.id();
@@ -588,22 +587,18 @@ TEST_F(db__query_processor__index_scan__test, query_range)
         }
     }
 
-    EXPECT_TRUE(range_index_id != c_invalid_gaia_id && hash_index_id != c_invalid_gaia_id);
+    EXPECT_TRUE(range_index_id != c_invalid_gaia_id);
+    EXPECT_TRUE(hash_index_id != c_invalid_gaia_id);
 
     auto lower_key = std::make_optional<index_key_t>(1);
     auto upper_key = std::make_optional<index_key_t>(5);
     size_t num_results = 0;
-    bool inclusive = true;
+    bool is_inclusive = true;
 
-    auto lower_bound_inclusive = range_bound_t(lower_key, inclusive);
-    auto upper_bound_inclusive = range_bound_t(upper_key, inclusive);
+    auto lower_bound_inclusive = range_bound_t(lower_key, is_inclusive);
+    auto upper_bound_inclusive = range_bound_t(upper_key, is_inclusive);
 
-    inclusive = false;
-
-    auto lower_bound_exclusive = range_bound_t(lower_key, inclusive);
-    auto upper_bound_exclusive = range_bound_t(upper_key, inclusive);
-
-    auto null_bound = range_bound_t(std::nullopt, inclusive);
+    auto null_bound = range_bound_t(std::nullopt, is_inclusive);
 
     auto range_predicate
         = std::make_shared<index_range_predicate_t>(range_index_id, lower_bound_inclusive, upper_bound_inclusive);
@@ -615,17 +610,6 @@ TEST_F(db__query_processor__index_scan__test, query_range)
     }
 
     EXPECT_EQ(num_results, c_num_inclusive_rows);
-
-    num_results = 0;
-    range_predicate
-        = std::make_shared<index_range_predicate_t>(range_index_id, lower_bound_exclusive, upper_bound_exclusive);
-    for (const auto& scan : index_scan_t(range_index_id, range_predicate))
-    {
-        (void)scan;
-        ++num_results;
-    }
-
-    EXPECT_EQ(num_results, c_num_exclusive_rows);
 
     num_results = 0;
     range_predicate
@@ -659,6 +643,93 @@ TEST_F(db__query_processor__index_scan__test, query_range)
     }
 
     EXPECT_EQ(num_results, c_num_inclusive_rows + 1);
+
+    gaia::db::rollback_transaction();
+}
+
+TEST_F(test_index_scan, query_range_exclusive)
+{
+    // Lookup index_id for integer field.
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t range_index_id = c_invalid_gaia_id;
+    gaia_id_t hash_index_id = c_invalid_gaia_id;
+
+    gaia::db::begin_transaction();
+
+    for (const index_view_t& index : catalog_core_t::list_indexes(type_record_id))
+    {
+        for (const gaia::common::gaia_id_t field_id : *index.fields())
+        {
+            const auto field = field_view_t(gaia::db::id_to_ptr(field_id));
+            if (field.data_type() == data_type_t::e_int32 && index.type() == index_type_t::range)
+            {
+                range_index_id = index.id();
+                break;
+            }
+            else if (field.data_type() == data_type_t::e_int32 && index.type() == index_type_t::hash)
+            {
+                hash_index_id = index.id();
+                break;
+            }
+        }
+    }
+
+    EXPECT_TRUE(range_index_id != c_invalid_gaia_id);
+    EXPECT_TRUE(hash_index_id != c_invalid_gaia_id);
+
+    auto lower_key = std::make_optional<index_key_t>(1);
+    auto upper_key = std::make_optional<index_key_t>(5);
+
+    bool is_inclusive = false;
+
+    auto lower_bound_exclusive = range_bound_t(lower_key, is_inclusive);
+    auto upper_bound_exclusive = range_bound_t(upper_key, is_inclusive);
+
+    auto null_bound = range_bound_t(std::nullopt, is_inclusive);
+
+    size_t num_results = 0;
+    auto range_predicate
+        = std::make_shared<index_range_predicate_t>(range_index_id, lower_bound_exclusive, upper_bound_exclusive);
+    for (const auto& scan : index_scan_t(range_index_id, range_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, c_num_exclusive_rows);
+
+    num_results = 0;
+    range_predicate
+        = std::make_shared<index_range_predicate_t>(range_index_id, null_bound, null_bound);
+    for (const auto& scan : index_scan_t(range_index_id, range_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, c_num_initial_rows);
+
+    range_predicate
+        = std::make_shared<index_range_predicate_t>(hash_index_id, null_bound, null_bound);
+    ASSERT_THROW(index_scan_t(hash_index_id, range_predicate).begin(), index_operation_not_supported);
+
+    auto w = gaia::index_sandbox::sandbox_writer();
+    w.str = "";
+    w.f = 21.0;
+    w.i = 5;
+    w.insert_row();
+
+    range_predicate
+        = std::make_shared<index_range_predicate_t>(range_index_id, lower_bound_exclusive, upper_bound_exclusive);
+
+    num_results = 0;
+    for (const auto& scan : index_scan_t(range_index_id, range_predicate))
+    {
+        (void)scan;
+        ++num_results;
+    }
+
+    EXPECT_EQ(num_results, c_num_exclusive_rows);
 
     gaia::db::rollback_transaction();
 }

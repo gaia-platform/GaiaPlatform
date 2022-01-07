@@ -22,7 +22,8 @@ std::pair<T_index_iterator, T_index_iterator> compute_range_iterators(T_index*, 
 }
 
 template <>
-std::pair<db::index::range_index_iterator_t, db::index::range_index_iterator_t> compute_range_iterators(db::index::range_index_t* index, index_range_predicate_t& predicate)
+std::pair<db::index::range_index_iterator_t, db::index::range_index_iterator_t>
+compute_range_iterators(db::index::range_index_t* index, index_range_predicate_t& predicate)
 {
     std::pair<db::index::range_index_iterator_t, db::index::range_index_iterator_t> result;
 
@@ -93,11 +94,11 @@ void index_scan_physical_t<T_index, T_index_iterator>::init()
         m_local_it_end = static_cast<T_index*>(m_index.get())->end();
     }
 
-    auto rec_generator = scan_generator_t::get_record_generator_for_index(m_index_id, db_client_proxy_t::get_current_txn_id(), m_predicate);
+    auto record_generator = scan_generator_t::get_record_generator_for_index(m_index_id, db_client_proxy_t::get_current_txn_id(), m_predicate);
 
     // Only return visible records from remote.
     m_remote_it = remote_scan_iterator_t(
-        rec_generator,
+        record_generator,
         is_visible);
 
     // Advance local iterator to first visible record.

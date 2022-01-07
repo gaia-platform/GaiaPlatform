@@ -100,8 +100,8 @@ const index::index_key_t& index_point_read_predicate_t::key() const
     return m_key;
 }
 
-range_bound_t::range_bound_t(std::optional<index::index_key_t> index_key, bool inclusive)
-    : m_key(index_key), m_inclusive(inclusive)
+range_bound_t::range_bound_t(std::optional<index::index_key_t> index_key, bool is_inclusive)
+    : m_key(index_key), m_inclusive(is_inclusive)
 {
 }
 
@@ -109,7 +109,7 @@ const std::optional<index::index_key_t>& range_bound_t::key() const
 {
     return m_key;
 }
-bool range_bound_t::inclusive() const
+bool range_bound_t::is_inclusive() const
 {
     return m_inclusive;
 }
@@ -136,23 +136,23 @@ gaia::db::messages::index_query_t index_range_predicate_t::query_type() const
 
 serialized_index_query_t index_range_predicate_t::as_query(flatbuffers::FlatBufferBuilder& builder) const
 {
-    payload_types::serialization_output_t lower = 0;
-    payload_types::serialization_output_t upper = 0;
+    payload_types::serialization_output_t lower_bound = 0;
+    payload_types::serialization_output_t upper_bound = 0;
 
     payload_types::data_write_buffer_t buffer(builder);
     if (m_lower_bound.key())
     {
         index::index_builder_t::serialize_key(*m_lower_bound.key(), buffer);
-        lower = buffer.output();
+        lower_bound = buffer.output();
     }
 
     if (m_upper_bound.key())
     {
         index::index_builder_t::serialize_key(*m_upper_bound.key(), buffer);
-        upper = buffer.output();
+        upper_bound = buffer.output();
     }
 
-    auto query = messages::Createindex_range_query_t(builder, lower, upper);
+    auto query = messages::Createindex_range_query_t(builder, lower_bound, upper_bound);
 
     return query.Union();
 }
@@ -166,12 +166,12 @@ bool index_range_predicate_t::filter(const gaia_ptr_t& ptr) const
     auto key = index::index_builder_t::make_key(index, reinterpret_cast<const uint8_t*>(ptr.data()));
 
     // Filter out the equal values if bounds are not inclusive.
-    if (m_lower_bound.key() && !m_lower_bound.inclusive() && *m_lower_bound.key() == key)
+    if (m_lower_bound.key() && !m_lower_bound.is_inclusive() && *m_lower_bound.key() == key)
     {
         return false;
     }
 
-    if (m_upper_bound.key() && !m_upper_bound.inclusive() && *m_upper_bound.key() == key)
+    if (m_upper_bound.key() && !m_upper_bound.is_inclusive() && *m_upper_bound.key() == key)
     {
         return false;
     }

@@ -544,15 +544,15 @@ void server_t::handle_request_stream(
             if (query->lower_bound_key())
             {
                 auto lower_bound_key_buffer = payload_types::data_read_buffer_t(*(query->lower_bound_key()));
-                auto deserialized = index::index_builder_t::deserialize_key(index_id, lower_bound_key_buffer);
-                lower_bound_key.emplace(std::move(deserialized));
+                index::index_key_t deserialized_key = index::index_builder_t::deserialize_key(index_id, lower_bound_key_buffer);
+                lower_bound_key.emplace(std::move(deserialized_key));
             }
 
             if (query->upper_bound_key())
             {
                 auto upper_bound_key_buffer = payload_types::data_read_buffer_t(*(query->upper_bound_key()));
-                auto deserialized = index::index_builder_t::deserialize_key(index_id, upper_bound_key_buffer);
-                upper_bound_key.emplace(std::move(deserialized));
+                index::index_key_t deserialized_key = index::index_builder_t::deserialize_key(index_id, upper_bound_key_buffer);
+                upper_bound_key.emplace(std::move(deserialized_key));
             }
             auto range_index = static_cast<index::range_index_t*>(index.get());
             start_stream_producer(server_socket, range_index->range_generator(txn_id, lower_bound_key, upper_bound_key));

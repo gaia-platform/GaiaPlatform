@@ -100,9 +100,9 @@ private:
 class range_bound_t
 {
 public:
-    range_bound_t(std::optional<index::index_key_t> index_key, bool inclusive);
+    range_bound_t(std::optional<index::index_key_t> index_key, bool is_inclusive);
     const std::optional<index::index_key_t>& key() const;
-    bool inclusive() const;
+    bool is_inclusive() const;
 
 private:
     std::optional<index::index_key_t> m_key;

@@ -73,8 +73,8 @@ std::shared_ptr<common::iterators::generator_t<index_record_t>> range_index_t::r
 {
     std::lock_guard<std::recursive_mutex> lock(m_index_lock);
 
-    auto lower_iter = (lower_bound.has_value()) ? m_data.lower_bound(*lower_bound) : m_data.begin();
-    auto upper_iter = (upper_bound.has_value()) ? m_data.upper_bound(*upper_bound) : m_data.end();
+    range_type_t::const_iterator lower_iter = (lower_bound.has_value()) ? m_data.lower_bound(*lower_bound) : m_data.cbegin();
+    range_type_t::const_iterator upper_iter = (upper_bound.has_value()) ? m_data.upper_bound(*upper_bound) : m_data.cend();
 
     return std::make_shared<index_generator_t<range_type_t>>(get_lock(), lower_iter, upper_iter, txn_id);
 }
