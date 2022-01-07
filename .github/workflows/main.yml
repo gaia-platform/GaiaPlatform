@@ -25,7 +25,6 @@ jobs:
         with:
           python-version: 3.8
 
-      - uses: webfactory/ssh-agent@v0.5.4
       - name: XXX
         run: |
           $GAIA_REPO/dev_tools/gdev/gdev.sh build
