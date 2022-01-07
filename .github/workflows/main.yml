@@ -25,7 +25,15 @@ jobs:
         with:
           python-version: 3.8
 
+      - name: Setup SSH Keys and known_hosts
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+#                    ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
       - name: XXX
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
           cd $GAIA_REPO/production
           $GAIA_REPO/dev_tools/gdev/gdev.sh build
