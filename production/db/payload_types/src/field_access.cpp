@@ -193,10 +193,6 @@ void get_table_field_array_information(
     }
 
     field_value = GetFieldAnyV(*root_table, *field);
-    if (field_value == nullptr)
-    {
-        throw invalid_serialized_data();
-    }
 }
 
 bool are_field_values_equal(
@@ -317,13 +313,19 @@ data_holder_t get_field_value(
 
     if (flatbuffers::IsInteger(field->type()->base_type()))
     {
-        result.is_null = false;
-        result.hold.integer_value = flatbuffers::GetAnyFieldI(*root_table, *field);
+        result.is_null = (root_table->GetAddressOf(field->offset()) == nullptr);
+        if (!result.is_null)
+        {
+            result.hold.integer_value = flatbuffers::GetAnyFieldI(*root_table, *field);
+        }
     }
     else if (flatbuffers::IsFloat(field->type()->base_type()))
     {
-        result.is_null = false;
-        result.hold.float_value = flatbuffers::GetAnyFieldF(*root_table, *field);
+        result.is_null = (root_table->GetAddressOf(field->offset()) == nullptr);
+        if (!result.is_null)
+        {
+            result.hold.float_value = flatbuffers::GetAnyFieldF(*root_table, *field);
+        }
     }
     else if (field->type()->base_type() == reflection::String)
     {
@@ -332,7 +334,10 @@ data_holder_t get_field_value(
         // For null strings, the field_value will come back as nullptr,
         // so just set the string_value to nullptr as well.
         result.is_null = (field_value == nullptr);
-        result.hold.string_value = (field_value == nullptr) ? nullptr : field_value->c_str();
+        if (!result.is_null)
+        {
+            result.hold.string_value = field_value->c_str();
+        }
     }
     else
     {
@@ -469,7 +474,15 @@ size_t get_field_array_size(
         type_id, serialized_data, binary_schema, binary_schema_size, field_position,
         root_table, auto_type_information, local_type_information, field, field_value);
 
-    return field_value->size();
+    if (field_value == nullptr)
+    {
+        return -1;
+    }
+    else
+    {
+        // Note: size() returns a uint32_t, rather than a size_t.
+        return field_value->size();
+    }
 }
 
 void set_field_array_size(
