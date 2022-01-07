@@ -61,7 +61,7 @@ constexpr size_t c_index_new_credit_amount = 1;
 constexpr double c_new_credit_amount = 39900000.89;
 constexpr size_t c_new_count_credit_amounts = 2;
 
-constexpr float c_default_value_for_missing_float_field = 7.7;
+// constexpr float c_default_value_for_missing_float_field = 7.7;
 
 enum field
 {
