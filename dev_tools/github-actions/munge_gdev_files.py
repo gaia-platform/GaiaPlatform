@@ -253,7 +253,7 @@ def __calculate_conditional(
 ):
     """
     With the multiple types of conditionals that can be applied, figure out which one has
-    dominance, and return it.  The loosest of these is the following_conditional variable
+    dominance, and return it.  The weakest of these is the following_conditional variable
     which is reset with each line.
     """
 
