@@ -340,6 +340,7 @@ ruleset test_define
     on_update(actuator.timestamp)
     {
         actuator.value = TEST;
+        incubator->actuator.value = TEST;
         use_float(TEST);
     }
 }

@@ -2263,7 +2263,7 @@ public:
                 result.Context,
                 op,
                 explicit_path_data,
-                SourceRange(set_source_range.getBegin(), op->getEndLoc().getLocWithOffset(offset)),
+                SourceRange(set_source_range.getBegin(), operator_end_location.getLocWithOffset(offset)),
                 m_rewriter);
         }
     }
