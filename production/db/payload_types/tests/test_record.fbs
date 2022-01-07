@@ -12,6 +12,8 @@ table test_record
   sleeve_cost:float64;
   monthly_sleeve_insurance:float32;
   last_yearly_top_credit_amounts:[float64];
+  absent_int_field:int32;
+  absent_string_field:string;
 }
 
 root_type test_record;

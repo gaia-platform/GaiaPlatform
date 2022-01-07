@@ -73,6 +73,8 @@ enum field
     sleeve_cost,
     monthly_sleeve_insurance,
     last_yearly_top_credit_amounts,
+    absent_int_field,
+    absent_string_field,
 
     // Keep this entry last and add any new entry above.
     count_fields
@@ -81,8 +83,8 @@ enum field
 void get_fields_data(
     file_loader_t& data_loader,
     file_loader_t& schema_loader,
-    bool pass_schema = false,
-    bool check_new_values = false)
+    bool pass_schema,
+    bool check_new_values)
 {
     data_holder_t first_name = get_field_value(
         c_type_id,
@@ -285,6 +287,33 @@ void get_fields_data(
         }
     }
 
+    data_holder_t absent_int_field = get_field_value(
+        c_type_id,
+        data_loader.get_data(),
+        pass_schema ? schema_loader.get_data() : nullptr,
+        pass_schema ? schema_loader.get_data_length() : 0,
+        field::absent_int_field);
+    if (absent_int_field.is_null)
+    {
+        cout << "\tabsent_int_field = null" << endl;
+    }
+    else
+    {
+        cout << "\tabsent_int_field = " << absent_int_field.hold.integer_value << endl;
+    }
+    ASSERT_EQ(absent_int_field.type, reflection::Int);
+
+    data_holder_t absent_string_field = get_field_value(
+        c_type_id,
+        data_loader.get_data(),
+        pass_schema ? schema_loader.get_data() : nullptr,
+        pass_schema ? schema_loader.get_data_length() : 0,
+        field::absent_string_field);
+    cout
+        << "\tabsent_string_field = "
+        << (absent_string_field.is_null ? "null" : absent_string_field.hold.string_value) << endl;
+    ASSERT_EQ(absent_string_field.type, reflection::String);
+
     // A few quick equality checks.
     ASSERT_TRUE(are_field_values_equal(
         c_type_id,
@@ -311,7 +340,7 @@ void get_fields_data(
         field::known_aliases));
 }
 
-void process_flatbuffers_data(bool access_fields = false)
+void process_flatbuffers_data(bool access_fields)
 {
     // Load binary flatbuffers schema.
     file_loader_t schema_loader;
@@ -343,9 +372,13 @@ void process_flatbuffers_data(bool access_fields = false)
 
         // Access fields using cache information.
         // Schema information is not passed to the get_field_value() calls.
+        bool pass_schema = false;
+        bool check_new_values = false;
         get_fields_data(
             data_loader,
-            schema_loader);
+            schema_loader,
+            pass_schema,
+            check_new_values);
     }
 
     // Remove type information from type cache.
@@ -358,10 +391,13 @@ void process_flatbuffers_data(bool access_fields = false)
 
         // Pass schema information to the get_field_value() calls,
         // because cache is empty.
+        bool pass_schema = true;
+        bool check_new_values = false;
         get_fields_data(
             data_loader,
             schema_loader,
-            true);
+            pass_schema,
+            check_new_values);
     }
 
     cout << endl;
@@ -372,12 +408,14 @@ void process_flatbuffers_data(bool access_fields = false)
 
 TEST(payload_types, payload_type_cache)
 {
-    process_flatbuffers_data();
+    bool access_fields = false;
+    process_flatbuffers_data(access_fields);
 }
 
 TEST(payload_types, field_access)
 {
-    process_flatbuffers_data(true);
+    bool access_fields = true;
+    process_flatbuffers_data(access_fields);
 }
 
 void update_flatbuffers_data()
@@ -596,11 +634,13 @@ void update_flatbuffers_data()
     // Validate data.
     ASSERT_EQ(true, verify_data_schema(data_loader.get_data(), data_loader.get_data_length(), schema_loader.get_data()));
 
+    bool pass_schema = false;
+    bool check_new_values = true;
     get_fields_data(
         data_loader,
         schema_loader,
-        false,
-        true);
+        pass_schema,
+        check_new_values);
 
     cout << endl;
 
