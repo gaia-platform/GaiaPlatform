@@ -3,27 +3,27 @@
     "scopeName": "source.cpp.ruleset",
     "name": "ruleset",
     "fileTypes": [
-    "ruleset"
+        "ruleset"
     ],
     "patterns": [
         {
-        "include": "#keywords"
+            "include": "#keywords"
         },
         {
-        "include": "source.cpp"
+            "include": "source.cpp"
         }
     ],
     "repository": {
         "keywords": {
             "patterns": [
                 {
-                  "name": "keyword.other.cpp.ruleset",
-                  "match": "\\bruleset ([a-zA-Z0-9_.-]*)\\b",
-                  "captures": {
-                    "1": {
-                      "name": "support.class.cpp.ruleset"
+                    "name": "keyword.other.cpp.ruleset",
+                    "match": "\\bruleset ([a-zA-Z0-9_.-]*)\\b",
+                    "captures": {
+                        "1": {
+                            "name": "support.class.cpp.ruleset"
+                        }
                     }
-                  }
                 },
                 {
                     "name": "keyword.other.cpp.ruleset",
