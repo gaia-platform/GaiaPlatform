@@ -36,4 +36,9 @@ jobs:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
           cd $GAIA_REPO/production
+          docker images
           $GAIA_REPO/dev_tools/gdev/gdev.sh build
+          docker images
+          docker tag production__run:latest ghcr.io/gaia-platform/core:latest
+          docker images
+          docker push ghcr.io/gaia-platform/core:latest
