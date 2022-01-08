@@ -225,17 +225,37 @@ bool are_field_values_equal(
     // Compare field values according to their type.
     if (flatbuffers::IsInteger(field->type()->base_type()))
     {
-        int64_t first_value = flatbuffers::GetAnyFieldI(*first_root_table, *field);
-        int64_t second_value = flatbuffers::GetAnyFieldI(*second_root_table, *field);
+        bool is_first_value_null = (first_root_table->GetAddressOf(field->offset()) == nullptr);
+        bool is_second_value_null = (second_root_table->GetAddressOf(field->offset()) == nullptr);
 
-        return first_value == second_value;
+        if (is_first_value_null || is_second_value_null)
+        {
+            return is_first_value_null && is_second_value_null;
+        }
+        else
+        {
+            int64_t first_value = flatbuffers::GetAnyFieldI(*first_root_table, *field);
+            int64_t second_value = flatbuffers::GetAnyFieldI(*second_root_table, *field);
+
+            return first_value == second_value;
+        }
     }
     else if (flatbuffers::IsFloat(field->type()->base_type()))
     {
-        double first_value = flatbuffers::GetAnyFieldF(*first_root_table, *field);
-        double second_value = flatbuffers::GetAnyFieldF(*second_root_table, *field);
+        bool is_first_value_null = (first_root_table->GetAddressOf(field->offset()) == nullptr);
+        bool is_second_value_null = (second_root_table->GetAddressOf(field->offset()) == nullptr);
 
-        return first_value == second_value;
+        if (is_first_value_null || is_second_value_null)
+        {
+            return is_first_value_null && is_second_value_null;
+        }
+        else
+        {
+            double first_value = flatbuffers::GetAnyFieldF(*first_root_table, *field);
+            double second_value = flatbuffers::GetAnyFieldF(*second_root_table, *field);
+
+            return first_value == second_value;
+        }
     }
     else if (field->type()->base_type() == reflection::String)
     {
