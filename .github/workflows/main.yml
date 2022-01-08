@@ -64,8 +64,5 @@ jobs:
 
       - name: Rename Image and Publish
         run: |
-          docker images
-          docker tag production__run:latest ghcr.io/gaia-platform/dev-base:latest
-          docker images
           docker push ghcr.io/gaia-platform/dev-base:latest
 #         https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
