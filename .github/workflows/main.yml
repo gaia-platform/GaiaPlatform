@@ -51,8 +51,8 @@ jobs:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
           cd $GAIA_REPO/production
-#          $GAIA_REPO/dev_tools/gdev/gdev.sh build
           docker buildx build -f foo -t mytag --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
+#          $GAIA_REPO/dev_tools/gdev/gdev.sh build
 
       - name: Rename Image and Publish
         run: |
