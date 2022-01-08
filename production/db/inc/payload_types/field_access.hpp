@@ -151,7 +151,7 @@ std::vector<uint8_t> set_field_value(
     const data_holder_t& value);
 
 // Get the size of an array-type field.
-// This will return -1/size_t_max if the array field is null.
+// This will return -1/MAX(size_t) if the array field is null.
 size_t get_field_array_size(
     gaia::common::gaia_type_t type_id,
     const uint8_t* serialized_data,
