@@ -44,7 +44,7 @@ jobs:
 
       - name: XXXX
         run: |
-          echo "docker pull ghcr.io/gaia-platform/core:latest"
+          docker pull ghcr.io/gaia-platform/dev-base:latest
 
       - name: Build Docker Image Using GDev.sh
         env:
