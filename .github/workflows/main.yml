@@ -51,21 +51,21 @@ jobs:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
           cd $GAIA_REPO/production
-          docker buildx build -f foo -t mytag --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
+          docker buildx build -f foo -t ghcr.io/gaia-platform/dev-base:latest --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
 #          $GAIA_REPO/dev_tools/gdev/gdev.sh build
 
       - name: Rename Image and Publish
         run: |
           docker images
           pip install docker-squash
-          export IMAGE_NAME=mytag
-          docker-squash -f $(($(docker history $IMAGE_NAME | wc -l | xargs)-1)) -t ${IMAGE_NAME}:squashed $IMAGE_NAME
+          export IMAGE_NAME=ghcr.io/gaia-platform/dev-base:latest
+          echo "docker-squash -f $(($(docker history $IMAGE_NAME | wc -l | xargs)-1)) -t ${IMAGE_NAME}:squashed $IMAGE_NAME"
           docker images
 
-      # - name: Rename Image and Publish
-      #   run: |
-      #     docker images
-      #     docker tag production__run:latest ghcr.io/gaia-platform/core:latest
-      #     docker images
-      #     docker push ghcr.io/gaia-platform/core:latest
+      - name: Rename Image and Publish
+        run: |
+          docker images
+          docker tag production__run:latest ghcr.io/gaia-platform/dev-base:latest
+          docker images
+          docker push ghcr.io/gaia-platform/dev-base:latest
 #         https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
