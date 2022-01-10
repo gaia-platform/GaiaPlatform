@@ -66,3 +66,40 @@ jobs:
         run: |
           docker push ghcr.io/gaia-platform/dev-base:latest
 #         https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
+
+  Lint:
+    runs-on: ghcr.io/gaia-platform/dev-base:latest
+    needs: Third-Party
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install Required Python Packages
+        run: |
+          python3.8 -m pip install pre-commit
+          python3 -m pip install pre-commit
+      - name: XXX
+        run: |
+          cd $GAIA_REPO/production
+          sudo bash -c "echo \"Executing Clang-Format on Production Tree\""
+          sudo bash -c "$GAIA_REPO/dev_tools/hooks/clang-format.sh"
+
+      - name: Set Cache Key for Pre-Commit Checks
+        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
+
+      - name: Apply Pre-Commit Checks Cache
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Execute Pre-Commit Checks
+        uses: pre-commit/action@v2.0.3
+        with:
+          extra_args: --all-files
