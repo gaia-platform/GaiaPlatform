@@ -105,3 +105,17 @@ jobs:
         run: |
           cd $GAIA_REPO/production
           pre-commit run --all-files
+  Core:
+    runs-on: ubuntu-20.04
+    needs: Lint
+    steps:
+      - name: XXXX
+        run: |
+          docker pull ghcr.io/gaia-platform/dev-base:latest
+
+      - name: Build Docker Image Using GDev.sh
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          cd $GAIA_REPO/production
+          docker buildx build -f bar -t ghcr.io/gaia-platform/dev-base:latest --cache-from ghcr.io/gaia-platform/dev-base:latest --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
