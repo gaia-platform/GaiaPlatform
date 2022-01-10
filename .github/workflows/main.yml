@@ -109,6 +109,24 @@ jobs:
     runs-on: ubuntu-20.04
     needs: Lint
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Setup SSH Keys and known_hosts
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+
+      - name: Log in to registry as GitHub
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
       - name: XXXX
         run: |
           docker pull ghcr.io/gaia-platform/dev-base:latest
