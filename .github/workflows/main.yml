@@ -108,6 +108,8 @@ jobs:
   Core:
     runs-on: ubuntu-20.04
     needs: Lint
+    env:
+      GAIA_REPO: ${{ github.workspace }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
