@@ -12,7 +12,7 @@ on:
 
 jobs:
 
-  Lint:
+  Third-Party:
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
