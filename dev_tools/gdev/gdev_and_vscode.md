@@ -24,7 +24,7 @@ Open a terminal (not in VS Code) and run:
 cd GaiaPlatform/production
 gdev run --mixins git
 ```
-You can add any of your other `gdev run` flags, but we need `git` in there so the VS Code Server can use it.
+You can add any of your other `gdev run` flags, but we need `git` in there so the VS Code Server can use it (your `git` credentials are forwarded to the container so you can run `git` commands inside).
 
 Keep this terminal open for now.
 
