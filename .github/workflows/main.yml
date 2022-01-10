@@ -104,4 +104,4 @@ jobs:
       - name: Execute Pre-Commit Checks
         run: |
           cd $GAIA_REPO/production
-          pre-commit --all-files
+          pre-commit run --all-files
