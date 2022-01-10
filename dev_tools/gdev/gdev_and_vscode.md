@@ -7,7 +7,6 @@ These steps are for developers who already set everything up and just want to re
 - In a terminal (not in VS Code):
 	```bash
 	cd GaiaPlatform/production
-	gdev build --mixins git
 	gdev run --mixins git
 	```
 - Leave that terminal open and open VS Code.
@@ -23,15 +22,16 @@ Attached container configurations can be edited with `F1` -> **Remote-Containers
 Open a terminal (not in VS Code) and run:
 ```bash
 cd GaiaPlatform/production
-gdev build --mixins git
 gdev run --mixins git
 ```
-You can add any of your other `gdev build` or `gdev run` flags, but we need `git` in there so the VS Code Server can use it. Keep this terminal open for now.
+You can add any of your other `gdev run` flags, but we need `git` in there so the VS Code Server can use it.
+
+Keep this terminal open for now.
 
 Open VS Code and install the [Remote - Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension. In the Command Palette (`F1`), run **Remote-Containers: Attach to Running Container...** and select the container that `gdev run` just started.
 
 We need to configure how we attach to these containers in the future. In the Command Palette, run **Remote-Containers: Open Container Configuration File** and copy-paste the following into the JSON file that opens:
-```json
+```javascript
 {
 	// Default path to open when attaching to a new container.
 	"workspaceFolder": "/source",
@@ -47,9 +47,9 @@ We need to configure how we attach to these containers in the future. In the Com
 }
 ```
 
-Add your other extensions to the `extensions` list. You can find more settings in the [Attached container configuration reference](https://code.visualstudio.com/docs/remote/devcontainerjson-reference#_attached-container-configuration-reference). We are only using the "attached container" subset of **Remote - Containers** features instead of the "devcontainer" features because `gdev` uses BuildKit steps that devcontainers do not yet support.
+Add your other extensions to the `extensions` list. You can find more settings in the [Attached container configuration reference](https://code.visualstudio.com/docs/remote/devcontainerjson-reference#_attached-container-configuration-reference). We are only using the "attached container" subset of **Remote - Containers** features instead of the [devcontainer](https://code.visualstudio.com/docs/remote/containers) features because `gdev` uses BuildKit steps that devcontainers do not yet support. Devcontainers expose more [configuration options](https://code.visualstudio.com/docs/remote/devcontainerjson-reference) for their containers, but the **Remote - Containers** extension handles building and running them (instead of the user).
 
-Attached container configuration files are located in `~/.config/Code/User/globalStorage/ms-vscode-remote.remote-containers/imageConfigs` (locally, not in containers). When VS Code attaches to a Docker container, it auto-selects the configuration file that matches the container image's name.
+Attached container configuration files are located in `~/.config/Code/User/globalStorage/ms-vscode-remote.remote-containers/imageConfigs` (locally, not in containers). These files are automatically named after the images they were attached to. When VS Code attaches to a Docker container, it auto-selects the configuration file that matches the container image's name.
 
 Close VS Code. Go back to the terminal with `gdev run` in it and exit then re-run the container:
 ```bash
@@ -69,7 +69,7 @@ VS Code's C++ Intellisense needs to know where to look for files that come from 
 If you don't already have the `GaiaPlatform/.vscode/c_cpp_properties.json` file, create it. You can also open the Command Palette (`F1`) and select **C/C++: Edit Configurations (UI/JSON)**.
 
 Here is a sample configuration:
-```json
+```javascript
 {
     "configurations": [
         {
