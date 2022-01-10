@@ -199,7 +199,7 @@ outputs are made available while building production.
     <repo_root>, e.g.  `production`, `third_party/production/cmake`.  Dependencies may have a
     `gdev.cfg` file to define build rules. Any such build rules from gaia dependencies will be built
     before the current build rule and the source code and build output will be available to the
-    current build target. The the source directory of the dependency relative to <repo_root> will be
+    current build target. The source directory of the dependency relative to <repo_root> will be
     available in the image.  One dependency per line.
 * `[git]`
     List of git repos to clone into the build folder of the Docker image. One dependency per line.
