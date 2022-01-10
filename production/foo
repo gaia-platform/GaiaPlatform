@@ -465,8 +465,12 @@ ENV GAIA_PRE_RELEASE=beta
 WORKDIR /build/production
 RUN echo "LD_PRELOAD = '$(clang-10 -print-file-name=libclang_rt.asan-$(uname -m).so)'" >> /etc/postgresql/12/main/environment \
     && echo "ASAN_OPTIONS = 'detect_leaks=0'" >> /etc/postgresql/12/main/environment \
-    && mkdir -p /var/lib/gaia/db \
-    && python3.8 -m pip install pre-commit \
+    && mkdir -p /var/lib/gaia/db
+
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y git \
+    && apt-get clean
+RUN python3.8 -m pip install pre-commit \
     && python3 -m pip install pre-commit
 ENTRYPOINT [ "/bin/bash" ]
 
