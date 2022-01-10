@@ -102,6 +102,6 @@ jobs:
           key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
 
       - name: Execute Pre-Commit Checks
-        uses: pre-commit/action@v2.0.3
-        with:
-          extra_args: --all-files
+        run: |
+          cd $GAIA_REPO/production
+          pre-commit --all-files
