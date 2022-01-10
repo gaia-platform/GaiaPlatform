@@ -90,7 +90,7 @@ jobs:
         run: |
           cd $GAIA_REPO/production
           echo "Executing Clang-Format on Production Tree"
-          $GAIA_REPO/dev_tools/hooks/clang-format.sh
+          echo "$GAIA_REPO/dev_tools/hooks/clang-format.sh"
 
       - name: Set Cache Key for Pre-Commit Checks
         run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
