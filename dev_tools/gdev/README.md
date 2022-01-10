@@ -348,6 +348,9 @@ TODO
 ## Multi-stage build and merge process
 TODO
 
+## VS Code support
+Read [gdev_and_vscode.md](gdev_and_vscode.md) to learn to attach VS Code to a running `gdev` container.
+
 # Examples
 
 ## enable_if and enable_if_not
