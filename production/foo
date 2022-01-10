@@ -468,7 +468,7 @@ RUN echo "LD_PRELOAD = '$(clang-10 -print-file-name=libclang_rt.asan-$(uname -m)
     && mkdir -p /var/lib/gaia/db
 
 RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y git \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y git shellcheck \
     && apt-get clean
 RUN python3.8 -m pip install pre-commit \
     && python3 -m pip install pre-commit
