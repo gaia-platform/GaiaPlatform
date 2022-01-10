@@ -465,7 +465,9 @@ ENV GAIA_PRE_RELEASE=beta
 WORKDIR /build/production
 RUN echo "LD_PRELOAD = '$(clang-10 -print-file-name=libclang_rt.asan-$(uname -m).so)'" >> /etc/postgresql/12/main/environment \
     && echo "ASAN_OPTIONS = 'detect_leaks=0'" >> /etc/postgresql/12/main/environment \
-    && mkdir -p /var/lib/gaia/db
+    && mkdir -p /var/lib/gaia/db \
+    && python3.8 -m pip install pre-commit \
+    && python3 -m pip install pre-commit
 ENTRYPOINT [ "/bin/bash" ]
 
 # GenRunDockerfile(production)
