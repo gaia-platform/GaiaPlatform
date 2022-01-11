@@ -5,11 +5,16 @@
 # All rights reserved.
 #############################################
 
+"""
+Simple module to copy only those lines that occur before a given line.
+"""
+
 import sys
 import argparse
 import pathlib
 
 __DEFAULT_FILE_ENCODING = "utf-8"
+
 
 def __process_command_line():
     """
@@ -41,24 +46,25 @@ def __process_command_line():
     )
     return parser.parse_args()
 
+
 def process_script_action():
     """
     Process the posting of the message.
     """
     args = __process_command_line()
 
-    
-    # output_path
-    # stop-line
     lines_in_text_file = (
         pathlib.Path(args.input_path)
         .read_text(encoding=__DEFAULT_FILE_ENCODING)
         .split("\n")
     )
-    with pathlib.Path(args.output_path).open(mode='w', encoding=__DEFAULT_FILE_ENCODING) as f:
+    with pathlib.Path(args.output_path).open(
+        mode="w", encoding=__DEFAULT_FILE_ENCODING
+    ) as output_file:
         for next_line in lines_in_text_file:
             if next_line == args.stop_line:
                 break
-            f.write(next_line + "\n")
+            output_file.write(next_line + "\n")
+
 
 sys.exit(process_script_action())
