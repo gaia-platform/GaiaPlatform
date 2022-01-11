@@ -16,6 +16,7 @@ jobs:
     env:
       GAIA_REPO: ${{ github.workspace }}
       SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+      DEV_IMAGE: ghcr.io/gaia-platform/dev-base:latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -29,14 +30,14 @@ jobs:
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull ghcr.io/gaia-platform/dev-base:latest
+          docker pull $DEV_IMAGE
 
       - name: Build Docker Image
-        env:
-          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
           cd $GAIA_REPO/production
-          docker buildx build -f foo -t ghcr.io/gaia-platform/dev-base:latest --cache-from ghcr.io/gaia-platform/dev-base:latest --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
+          gdev dockerfile > raw_dockerfile
+          $GAIA_REPO/dev_tools/github-actions/copy_until_line.py --input-file raw_dockerfile --output-file third_party_dockerfile --stop-line "# GenRunDockerfile(production)"
+          docker buildx build -f third_party_dockerfile -t $DEV_IMAGE --cache-from $DEV_IMAGE --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
 #          $GAIA_REPO/dev_tools/gdev/gdev.sh build
 
       - name: Rename Image and Publish
@@ -121,9 +122,9 @@ jobs:
         run: |
           cd $GAIA_REPO/production
           docker run \
-            --rm --init -it --entrypoint /bin/bash --platform linux/amd64 \
+            --rm --init -t --entrypoint /bin/bash --platform linux/amd64 \
             xxx \
-            /source/dev_tools/github-actions/bob.sh --job-name "$GITHUB_JOB"
+            bash -c "/source/dev_tools/github-actions/bob.sh --job-name $GITHUB_JOB"
 
 # --mount type=volume,dst={mount.container_path},volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device={mount.host_path} \
 
