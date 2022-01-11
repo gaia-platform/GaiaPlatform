@@ -51,7 +51,6 @@ show_usage() {
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
     echo "  -j,--job-name       GitHub Actions job that this script is being invoked from."
-    echo "  -o,--output         Redirect output to a specific file."
     echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
     echo ""
@@ -66,15 +65,6 @@ parse_command_line() {
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
-        -o|--output)
-            if [ -z "$2" ] ; then
-                echo "Error: Argument $1 must be followed by a path to a file." >&2
-                show_usage
-            fi
-            ALTERNATE_OUTPUT_PATH=$2
-            shift
-            shift
-        ;;
         -j|--job-name)
             if [ -z "$2" ] ; then
                 echo "Error: Argument $1 must be followed by the name of a job." >&2
@@ -102,7 +92,7 @@ parse_command_line() {
     esac
     done
 
-    if [ -z $JOB_NAME ] ; then
+    if [ -z "$JOB_NAME" ] ; then
         echo "Error: Argument -j/--job-name is required" >&2
         show_usage
     fi

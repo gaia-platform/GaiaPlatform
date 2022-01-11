@@ -11,11 +11,11 @@ on:
       - jack/gha
 
 jobs:
-
   Third-Party:
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
+      SSH_AUTH_SOCK: /tmp/ssh_agent.sock
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -25,25 +25,10 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: Setup SSH Keys and known_hosts
-        env:
-          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+      - name: Pull Latest Dev-Core Image
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-# We do not need this as we are currently logging in using the github actor.
-#         ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
-
-#         https://www.webfactory.de/blog/use-ssh-key-for-private-repositories-in-github-actions
-#         If we do need to export, https://github.com/webfactory/ssh-agent might be better.
-#         Combined with https://github.com/marketplace/actions/install-ssh-key ?
-
-      - name: Log in to registry as GitHub
-        run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-#         https://docs.github.com/en/packages/managing-github-packages-using-github-actions-workflows/publishing-and-installing-a-package-with-github-actions#upgrading-a-workflow-that-accesses-ghcrio
-
-      - name: XXXX
-        run: |
           docker pull ghcr.io/gaia-platform/dev-base:latest
 
       - name: Build Docker Image
