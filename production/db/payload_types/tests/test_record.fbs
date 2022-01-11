@@ -13,7 +13,6 @@ table test_record
   monthly_sleeve_insurance:float32;
   last_yearly_top_credit_amounts:[float64];
   missing_int_field:int32;
-  missing_float_field_with_default:float = 7.7;
   missing_string_field:string;
   missing_int_array_field:[int16];
 }

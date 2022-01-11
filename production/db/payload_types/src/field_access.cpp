@@ -331,8 +331,7 @@ data_holder_t get_field_value(
     {
         const flatbuffers::String* field_value = flatbuffers::GetFieldS(*root_table, *field);
 
-        // For null strings, the field_value will come back as nullptr,
-        // so just set the string_value to nullptr as well.
+        // For null strings, the field_value will come back as nullptr.
         result.is_null = (field_value == nullptr);
         if (!result.is_null)
         {
@@ -476,7 +475,7 @@ size_t get_field_array_size(
 
     if (field_value == nullptr)
     {
-        return -1;
+        return std::numeric_limits<size_t>::max();
     }
     else
     {
