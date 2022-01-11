@@ -44,6 +44,7 @@ FROM apt_base AS production__apt
 WORKDIR /build/production
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        git \
         debhelper \
         rpm \
         flatbuffers-compiler \
@@ -424,6 +425,29 @@ RUN cd liburing \
     && rm -rf *
 ENTRYPOINT [ "/bin/bash" ]
 
+# GenGitDockerfile(third_party/production/CPackDebHelper)
+FROM git_base AS third_party__production__cpackdebhelper__git
+WORKDIR /build/third_party/production/CPackDebHelper
+RUN git clone --depth 1 https://github.com/ABruines/CPackDebHelper.git \
+    && rm -rf */.git \
+    && apt-get remove --autoremove -y git
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenRunDockerfile(third_party/production/CPackDebHelper)
+FROM base AS third_party__production__cpackdebhelper__run
+COPY --from=third_party__production__cmake__run / /
+COPY --from=third_party__production__cpackdebhelper__git / /
+# GenEnvDockerfile(third_party/production/cmake)
+ENV CC=/usr/bin/clang-13
+ENV CPP=/usr/bin/clang-cpp-13
+ENV CXX=/usr/bin/clang++-13
+ENV LDFLAGS="-B/usr/lib/llvm-13/bin/ -fuse-ld=lld"
+WORKDIR /build/third_party/production/CPackDebHelper
+RUN mkdir -p /usr/local/lib/cmake/CPackDebHelper \
+    && cp CPackDebHelper/cmake/*.cmake /usr/local/lib/cmake/CPackDebHelper/ \
+    && rm -rf *
+ENTRYPOINT [ "/bin/bash" ]
+
 # GenPipDockerfile(production)
 FROM pip_base AS production__pip
 WORKDIR /build/production
@@ -456,6 +480,7 @@ COPY third_party/bundle/gaia_spdlog /source/third_party/bundle/gaia_spdlog
 COPY third_party/bundle/gaia_spdlog_setup /source/third_party/bundle/gaia_spdlog_setup
 COPY third_party/production/gaia_spdlog /source/third_party/production/gaia_spdlog
 COPY third_party/production/gaia_spdlog_setup /source/third_party/production/gaia_spdlog_setup
+COPY --from=third_party__production__cpackdebhelper__run / /
 COPY dev_tools/hooks /source/dev_tools/hooks
 COPY --from=production__pip / /
 COPY production /source/production
