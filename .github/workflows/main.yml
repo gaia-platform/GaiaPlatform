@@ -46,7 +46,7 @@ jobs:
         run: |
           docker pull ghcr.io/gaia-platform/dev-base:latest
 
-      - name: Build Docker Image Using GDev.sh
+      - name: Build Docker Image
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
@@ -119,23 +119,46 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: Setup SSH Keys and known_hosts
+      - name: Pull Latest Dev-Core Image
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-
-      - name: Log in to registry as GitHub
-        run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: XXXX
-        run: |
           docker pull ghcr.io/gaia-platform/dev-base:latest
 
-      - name: Build Docker Image Using GDev.sh
+      - name: Build Docker Image
+        run: |
+          cd $GAIA_REPO/production
+          docker buildx build -f bar -t xxx --cache-from ghcr.io/gaia-platform/dev-base:latest --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
+
+  SDK:
+    runs-on: ubuntu-20.04
+    needs: Core
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install Python Packages
+        run: |
+          python3.8 -m pip install --user atools argcomplete
+
+      - name: Pull Latest Dev-Core Image
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker pull ghcr.io/gaia-platform/dev-base:latest
+
+      - name: Build Docker Image
+        run: |
           cd $GAIA_REPO/production
-          docker buildx build -f bar -t ghcr.io/gaia-platform/dev-base:latest --cache-from ghcr.io/gaia-platform/dev-base:latest --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
+          docker buildx build -f bar -t xxx --cache-from ghcr.io/gaia-platform/dev-base:latest --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
