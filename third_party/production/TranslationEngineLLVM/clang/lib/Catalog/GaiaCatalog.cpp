@@ -211,12 +211,6 @@ bool GaiaCatalog::findNavigationPath(StringRef src, StringRef dst, SmallVector<s
     }
     const auto& tableData = getCatalogTableData();
 
-    //IntrusiveRefCntPtr<DiagnosticOptions> diagOpts = new DiagnosticOptions();
-    // diagClient is passed to diags object below that takes full ownership.
-    //TextDiagnosticPrinter *diagClient = new TextDiagnosticPrinter(llvm::errs(), &*diagOpts);
-    //IntrusiveRefCntPtr<DiagnosticIDs> diagID(new DiagnosticIDs());
-    //DiagnosticsEngine diags(diagID, &*diagOpts, diagClient);
-
     if (!findNavigationPath(src, dst, path, tableData))
     {
         if (reportErrors)
