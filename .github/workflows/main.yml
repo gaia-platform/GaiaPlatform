@@ -38,7 +38,7 @@ jobs:
         run: |
           cd $GAIA_REPO/production
           sudo df -h
-          echo "pip install atools argcomplete"
+          pip install atools argcomplete
           sudo df -h
           $GAIA_REPO/dev_tools/gdev/gdev.sh dockerfile > $GAIA_REPO/production/raw_dockerfile
           $GAIA_REPO/dev_tools/github-actions/copy_until_line.py --input-file $GAIA_REPO/production/raw_dockerfile --output-file $GAIA_REPO/production/third_party_dockerfile --stop-line "# GenRunDockerfile(production)"
