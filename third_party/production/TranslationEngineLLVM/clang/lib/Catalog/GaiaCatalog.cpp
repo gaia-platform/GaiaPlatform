@@ -65,6 +65,13 @@ void GaiaCatalog::fillTableData()
                 return;
             }
 
+            if (field.repeated_count() > 1)
+            {
+                Diags.Report(diag::err_incorrect_repeated_count) << field.name();
+                catalogTableData.clear();
+                return;
+            }
+
             if (table.is_system())
             {
                 continue;
@@ -88,6 +95,7 @@ void GaiaCatalog::fillTableData()
             field_data.isActive = field.active();
             field_data.position = field.position();
             field_data.isDeprecated = field.deprecated();
+            field_data.isArray = field.repeated_count() == 0;
             field_data.fieldType = static_cast<data_type_t>(field.type());
             table_data.dbName = table.database().name();
             table_data.fieldData[field.name()] = field_data;
