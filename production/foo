@@ -44,11 +44,14 @@ FROM apt_base AS production__apt
 WORKDIR /build/production
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        debhelper \
+        rpm \
         flatbuffers-compiler \
         libcap-dev \
         openjdk-8-jdk \
         python3-dev \
         cppcheck \
+        shellcheck \
     && apt-get clean
 ENTRYPOINT [ "/bin/bash" ]
 
@@ -199,7 +202,6 @@ ENTRYPOINT [ "/bin/bash" ]
 FROM base AS third_party__production__daemonize__run
 COPY --from=third_party__production__daemonize__apt / /
 COPY --from=third_party__production__daemonize__git / /
-COPY third_party/production/daemonize /source/third_party/production/daemonize
 WORKDIR /build/third_party/production/daemonize
 RUN cd daemonize \
     && ./configure \
@@ -236,7 +238,6 @@ FROM base AS third_party__production__libexplain__run
 COPY --from=third_party__production__libexplain__apt / /
 COPY --from=third_party__production__bison__run / /
 COPY --from=third_party__production__libexplain__git / /
-COPY third_party/production/libexplain /source/third_party/production/libexplain
 # GenEnvDockerfile(third_party/production/cmake)
 ENV CC=/usr/bin/clang-13
 ENV CPP=/usr/bin/clang-cpp-13
@@ -423,6 +424,13 @@ RUN cd liburing \
     && rm -rf *
 ENTRYPOINT [ "/bin/bash" ]
 
+# GenPipDockerfile(production)
+FROM pip_base AS production__pip
+WORKDIR /build/production
+RUN python3 -m pip install pre-commit \
+    && apt-get remove --autoremove -y python3-pip
+ENTRYPOINT [ "/bin/bash" ]
+
 # GenPreRunDockerfile(production)
 FROM base AS production__pre_run
 COPY --from=production__apt / /
@@ -449,6 +457,7 @@ COPY third_party/bundle/gaia_spdlog_setup /source/third_party/bundle/gaia_spdlog
 COPY third_party/production/gaia_spdlog /source/third_party/production/gaia_spdlog
 COPY third_party/production/gaia_spdlog_setup /source/third_party/production/gaia_spdlog_setup
 COPY dev_tools/hooks /source/dev_tools/hooks
+COPY --from=production__pip / /
 COPY production /source/production
 # GenEnvDockerfile(third_party/production/cmake)
 ENV CC=/usr/bin/clang-13
@@ -466,39 +475,6 @@ WORKDIR /build/production
 RUN echo "LD_PRELOAD = '$(clang-10 -print-file-name=libclang_rt.asan-$(uname -m).so)'" >> /etc/postgresql/12/main/environment \
     && echo "ASAN_OPTIONS = 'detect_leaks=0'" >> /etc/postgresql/12/main/environment \
     && mkdir -p /var/lib/gaia/db
-
-RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y git shellcheck \
-    && apt-get clean
-RUN python3.8 -m pip install pre-commit \
-    && python3 -m pip install pre-commit
 ENTRYPOINT [ "/bin/bash" ]
 
 # GenRunDockerfile(production)
-# FROM base AS production__run
-# COPY --from=production__pre_run / /
-
-# GenEnvDockerfile(third_party/production/cmake)
-# ENV CC=/usr/bin/clang-13
-# ENV CPP=/usr/bin/clang-cpp-13
-# ENV CXX=/usr/bin/clang++-13
-# ENV LDFLAGS="-B/usr/lib/llvm-13/bin/ -fuse-ld=lld"
-
-# GenEnvDockerfile(third_party/production/postgresql)
-# ENV LANG=en_US.UTF-8
-# ENV LC_CTYPE=en_US.UTF-8
-# ENV LC_ALL=en_US.UTF-8
-
-# GenEnvDockerfile(production)
-# ENV GAIA_VERSION=0.3.3
-# ENV GAIA_PRE_RELEASE=beta
-# WORKDIR /build/production
-# RUN cd /build/production \
-#     && CC=$CC CPP=$CPP CXX=$CXX LDFLAGS="$LDFLAGS" \
-#     cmake \
-#         -G "Ninja" \
-#         --log-level=VERBOSE -Wno-dev \
-#         /source/production \
-#     && bash -c "ASAN_OPTIONS=detect_leaks=0 ninja 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)" \
-#     && ninja install db/core/all
-# ENTRYPOINT [ "/bin/bash" ]

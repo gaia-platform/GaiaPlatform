@@ -1,18 +1,494 @@
-# GenRunDockerfile(production)
-FROM ghcr.io/gaia-platform/dev-base:latest AS production__run
-# COPY --from=production__pre_run / /
+#syntax=docker/dockerfile-upstream:master-experimental
 
+# Static definition of base stages.
+FROM ubuntu:20.04 AS base
+RUN groupadd -r -g 101 messagebus \
+    && groupadd -r -g 102 postgres \
+    && groupadd -r -g 103 ssh \
+    && groupadd -r -g 104 ssl-cert \
+    && groupadd -r -g 105 systemd-timesync \
+    && groupadd -r -g 106 systemd-journal \
+    && groupadd -r -g 107 systemd-network \
+    && groupadd -r -g 108 systemd-resolve \
+    && useradd messagebus -l -r -u 101 -g 101 \
+    && useradd postgres -l -r -u 102 -g 102 -G ssl-cert \
+    && useradd systemd-timesync -l -r -u 103 -g 105 -d /run/systemd \
+        -s /usr/sbin/nologin \
+    && useradd systemd-network -l -r -u 104 -g 107 -d /run/systemd \
+        -s /usr/sbin/nologin \
+    && useradd systemd-resolve -l -r -u 105 -g 108 -d /run/systemd \
+        -s /usr/sbin/nologin \
+    && useradd sshd -l -r -u 106 -d /run/sshd -s /usr/sbin/nologin
+
+FROM base AS apt_base
+RUN echo "APT::Acquire::Retries \"5\";" > /etc/apt/apt.conf.d/80-retries \
+    && apt-get update
+
+FROM apt_base AS git_base
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y git \
+    && apt-get clean
+
+FROM apt_base AS pip_base
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y python3-pip \
+    && apt-get clean
+
+FROM apt_base AS web_base
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y wget \
+    && apt-get clean
+
+# GenAptDockerfile(production)
+FROM apt_base AS production__apt
+WORKDIR /build/production
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        debhelper \
+        rpm \
+        flatbuffers-compiler \
+        libcap-dev \
+        openjdk-8-jdk \
+        python3-dev \
+        cppcheck \
+        shellcheck \
+    && apt-get clean
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenAptDockerfile(third_party/production/cmake)
+FROM apt_base AS third_party__production__cmake__apt
+WORKDIR /build/third_party/production/cmake
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        apt-transport-https \
+        ca-certificates \
+        gnupg \
+        lsb-release \
+        software-properties-common \
+        wget \
+        ninja-build \
+    && apt-get clean
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenRunDockerfile(third_party/production/cmake)
+FROM base AS third_party__production__cmake__run
+COPY --from=third_party__production__cmake__apt / /
 # GenEnvDockerfile(third_party/production/cmake)
 ENV CC=/usr/bin/clang-13
 ENV CPP=/usr/bin/clang-cpp-13
 ENV CXX=/usr/bin/clang++-13
 ENV LDFLAGS="-B/usr/lib/llvm-13/bin/ -fuse-ld=lld"
+WORKDIR /build/third_party/production/cmake
+RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null \
+    && echo "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/kitware.list \
+    && apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        cmake \
+        cmake-data \
+    && apt-get clean \
+    && rm /etc/apt/sources.list.d/kitware.list >/dev/null \
+    && rm /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null \
+    && wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - \
+    && echo "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-13 main" | tee /etc/apt/sources.list.d/llvm.list \
+    && apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        clang-13 \
+        clang-format-13 \
+        clang-tidy-13 \
+        lld-13 \
+        libc++-13-dev \
+        libc++abi-13-dev \
+    && apt-get clean \
+    && rm /etc/apt/sources.list.d/llvm.list >/dev/null \
+    && update-alternatives --install "/usr/bin/clang-format" "clang-format" "/usr/bin/clang-format-13" 10 \
+    && update-alternatives --install "/usr/bin/clang-tidy" "clang-tidy" "/usr/bin/clang-tidy-13" 10 \
+    && update-alternatives --install "/usr/bin/clang" "clang" "/usr/bin/clang-13" 10 \
+    && update-alternatives --install "/usr/bin/clang++" "clang++" "/usr/bin/clang++-13" 10 \
+    && update-alternatives --install "/usr/bin/ld.lld" "ld.lld" "/usr/bin/ld.lld-13" 10
+ENTRYPOINT [ "/bin/bash" ]
 
+# GenAptDockerfile(third_party/production/backward)
+FROM apt_base AS third_party__production__backward__apt
+WORKDIR /build/third_party/production/backward
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        libelf-dev \
+        libdwarf-dev \
+        zlib1g-dev \
+    && apt-get clean
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenGitDockerfile(third_party/production/backward)
+FROM git_base AS third_party__production__backward__git
+WORKDIR /build/third_party/production/backward
+RUN git clone --depth 1 --branch v1.5 https://github.com/bombela/backward-cpp.git \
+    && rm -rf */.git \
+    && apt-get remove --autoremove -y git
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenRunDockerfile(third_party/production/backward)
+FROM base AS third_party__production__backward__run
+COPY --from=third_party__production__backward__apt / /
+COPY --from=third_party__production__cmake__run / /
+COPY --from=third_party__production__backward__git / /
+COPY third_party/production/backward /source/third_party/production/backward
+# GenEnvDockerfile(third_party/production/cmake)
+ENV CC=/usr/bin/clang-13
+ENV CPP=/usr/bin/clang-cpp-13
+ENV CXX=/usr/bin/clang++-13
+ENV LDFLAGS="-B/usr/lib/llvm-13/bin/ -fuse-ld=lld"
+WORKDIR /build/third_party/production/backward
+RUN cmake -G "Ninja" backward-cpp \
+    && ninja \
+    && ninja install \
+    && rm -rf *
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenAptDockerfile(third_party/production/bison)
+FROM apt_base AS third_party__production__bison__apt
+WORKDIR /build/third_party/production/bison
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        flex \
+        m4 \
+    && apt-get clean
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenWebDockerfile(third_party/production/bison)
+FROM web_base AS third_party__production__bison__web
+WORKDIR /build/third_party/production/bison
+RUN wget http://ftp.gnu.org/gnu/bison/bison-3.5.tar.gz \
+    && apt-get remove --autoremove -y wget
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenRunDockerfile(third_party/production/bison)
+FROM base AS third_party__production__bison__run
+COPY --from=third_party__production__bison__apt / /
+COPY --from=third_party__production__cmake__run / /
+COPY --from=third_party__production__bison__web / /
+# GenEnvDockerfile(third_party/production/cmake)
+ENV CC=/usr/bin/clang-13
+ENV CPP=/usr/bin/clang-cpp-13
+ENV CXX=/usr/bin/clang++-13
+ENV LDFLAGS="-B/usr/lib/llvm-13/bin/ -fuse-ld=lld"
+WORKDIR /build/third_party/production/bison
+RUN tar -zxvf bison-3.5.tar.gz \
+    && cd bison-3.5 \
+    && ./configure \
+    && make -j$(nproc) \
+    && make install \
+    && cd .. \
+    && rm -rf *
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenAptDockerfile(third_party/production/daemonize)
+FROM apt_base AS third_party__production__daemonize__apt
+WORKDIR /build/third_party/production/daemonize
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        build-essential \
+    && apt-get clean
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenGitDockerfile(third_party/production/daemonize)
+FROM git_base AS third_party__production__daemonize__git
+WORKDIR /build/third_party/production/daemonize
+RUN git clone --depth 1 --branch release-1.7.8 https://github.com/bmc/daemonize.git \
+    && rm -rf */.git \
+    && apt-get remove --autoremove -y git
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenRunDockerfile(third_party/production/daemonize)
+FROM base AS third_party__production__daemonize__run
+COPY --from=third_party__production__daemonize__apt / /
+COPY --from=third_party__production__daemonize__git / /
+WORKDIR /build/third_party/production/daemonize
+RUN cd daemonize \
+    && ./configure \
+    && make -j$(nproc) \
+    && make install \
+    && cd .. \
+    && rm -rf *
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenAptDockerfile(third_party/production/libexplain)
+FROM apt_base AS third_party__production__libexplain__apt
+WORKDIR /build/third_party/production/libexplain
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        libacl1-dev \
+        libcap-dev \
+        lsof \
+        groff \
+        libtool-bin \
+        quilt \
+    && apt-get clean
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenGitDockerfile(third_party/production/libexplain)
+FROM git_base AS third_party__production__libexplain__git
+WORKDIR /build/third_party/production/libexplain
+RUN git clone --depth 1 --branch "debian/1.4.D001-10" https://salsa.debian.org/debian/libexplain \
+    && rm -rf */.git \
+    && apt-get remove --autoremove -y git
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenRunDockerfile(third_party/production/libexplain)
+FROM base AS third_party__production__libexplain__run
+COPY --from=third_party__production__libexplain__apt / /
+COPY --from=third_party__production__bison__run / /
+COPY --from=third_party__production__libexplain__git / /
+# GenEnvDockerfile(third_party/production/cmake)
+ENV CC=/usr/bin/clang-13
+ENV CPP=/usr/bin/clang-cpp-13
+ENV CXX=/usr/bin/clang++-13
+ENV LDFLAGS="-B/usr/lib/llvm-13/bin/ -fuse-ld=lld"
+WORKDIR /build/third_party/production/libexplain
+RUN cd libexplain \
+    && QUILT_PATCHES=debian/patches quilt push -a \
+    && CPPFLAGS='-fPIC' ./configure --prefix=/usr \
+    && make -j$(nproc) \
+    && make install
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenAptDockerfile(third_party/production/postgresql)
+FROM apt_base AS third_party__production__postgresql__apt
+WORKDIR /build/third_party/production/postgresql
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        ca-certificates \
+        curl \
+        gnupg \
+        libpq-dev \
+        locales \
+        lsb-release \
+        python3-pip \
+        ssl-cert \
+    && apt-get clean
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenRunDockerfile(third_party/production/postgresql)
+FROM base AS third_party__production__postgresql__run
+COPY --from=third_party__production__postgresql__apt / /
 # GenEnvDockerfile(third_party/production/postgresql)
 ENV LANG=en_US.UTF-8
 ENV LC_CTYPE=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
+WORKDIR /build/third_party/production/postgresql
+RUN curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
+    && echo "deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main" | tee /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update -y \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        postgresql-12 \
+        postgresql-12-dbgsym \
+        postgresql-client-12 \
+        postgresql-client-12-dbgsym \
+        postgresql-contrib-12 \
+        postgresql-server-dev-12 \
+    && apt-get clean \
+    && rm /etc/apt/sources.list.d/pgdg.list \
+    && python3 -m pip install psycopg2 \
+    && locale-gen en_US.UTF-8 \
+    && mkdir -p /etc/postgresql/ssl \
+    && cp -p -R /etc/ssl/private /etc/postgresql/ssl \
+    && sed -i "s/\/etc\/ssl\/private/\/etc\/postgresql\/ssl\/private/g" /etc/postgresql/12/main/postgresql.conf \
+    && sed -i '/^local/ s/peer/trust/' /etc/postgresql/12/main/pg_hba.conf
+ENTRYPOINT [ "/bin/bash" ]
 
+# GenAptDockerfile(third_party/production/pybind11)
+FROM apt_base AS third_party__production__pybind11__apt
+WORKDIR /build/third_party/production/pybind11
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        python3 \
+        python3-dev \
+        python3-pip \
+    && apt-get clean
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenGitDockerfile(third_party/production/pybind11)
+FROM git_base AS third_party__production__pybind11__git
+WORKDIR /build/third_party/production/pybind11
+RUN git clone --depth 1 --branch v2.5.0 https://github.com/pybind/pybind11.git \
+    && rm -rf */.git \
+    && apt-get remove --autoremove -y git
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenPipDockerfile(third_party/production/pybind11)
+FROM pip_base AS third_party__production__pybind11__pip
+WORKDIR /build/third_party/production/pybind11
+RUN python3 -m pip install pytest \
+    && apt-get remove --autoremove -y python3-pip
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenRunDockerfile(third_party/production/pybind11)
+FROM base AS third_party__production__pybind11__run
+COPY --from=third_party__production__pybind11__apt / /
+COPY --from=third_party__production__cmake__run / /
+COPY --from=third_party__production__pybind11__git / /
+COPY --from=third_party__production__pybind11__pip / /
+# GenEnvDockerfile(third_party/production/cmake)
+ENV CC=/usr/bin/clang-13
+ENV CPP=/usr/bin/clang-cpp-13
+ENV CXX=/usr/bin/clang++-13
+ENV LDFLAGS="-B/usr/lib/llvm-13/bin/ -fuse-ld=lld"
+WORKDIR /build/third_party/production/pybind11
+RUN cmake -G "Ninja" pybind11 \
+    && ninja \
+    && ninja install \
+    && rm -rf *
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenGitDockerfile(third_party/production/cpptoml)
+FROM git_base AS third_party__production__cpptoml__git
+WORKDIR /build/third_party/production/cpptoml
+RUN git clone --depth 1 --branch v0.1.1 https://github.com/skystrife/cpptoml.git \
+    && rm -rf */.git \
+    && apt-get remove --autoremove -y git
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenRunDockerfile(third_party/production/cpptoml)
+FROM base AS third_party__production__cpptoml__run
+COPY --from=third_party__production__cmake__run / /
+COPY --from=third_party__production__cpptoml__git / /
+COPY third_party/production/cpptoml /source/third_party/production/cpptoml
+# GenEnvDockerfile(third_party/production/cmake)
+ENV CC=/usr/bin/clang-13
+ENV CPP=/usr/bin/clang-cpp-13
+ENV CXX=/usr/bin/clang++-13
+ENV LDFLAGS="-B/usr/lib/llvm-13/bin/ -fuse-ld=lld"
+WORKDIR /build/third_party/production/cpptoml
+RUN cd cpptoml \
+    && rm -fr build/ \
+    && cmake -H. -Bbuild  -DCMAKE_BUILD_TYPE=Release \
+                       -DCPPTOML_BUILD_EXAMPLES=OFF \
+                       -DENABLE_LIBCXX=OFF \
+    && cmake --build build --target install \
+    && cd .. \
+    && rm -rf *
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenGitDockerfile(third_party/production/tabulate)
+FROM git_base AS third_party__production__tabulate__git
+WORKDIR /build/third_party/production/tabulate
+RUN git clone --depth 1 --branch v1.3 https://github.com/p-ranav/tabulate \
+    && rm -rf */.git \
+    && apt-get remove --autoremove -y git
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenRunDockerfile(third_party/production/tabulate)
+FROM base AS third_party__production__tabulate__run
+COPY --from=third_party__production__cmake__run / /
+COPY --from=third_party__production__tabulate__git / /
+COPY third_party/production/tabulate /source/third_party/production/tabulate
+# GenEnvDockerfile(third_party/production/cmake)
+ENV CC=/usr/bin/clang-13
+ENV CPP=/usr/bin/clang-cpp-13
+ENV CXX=/usr/bin/clang++-13
+ENV LDFLAGS="-B/usr/lib/llvm-13/bin/ -fuse-ld=lld"
+WORKDIR /build/third_party/production/tabulate
+RUN cd tabulate \
+    && cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build build --target install \
+    && cd .. \
+    && rm -rf *
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenAptDockerfile(third_party/production/liburing)
+FROM apt_base AS third_party__production__liburing__apt
+WORKDIR /build/third_party/production/liburing
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        build-essential \
+    && apt-get clean
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenGitDockerfile(third_party/production/liburing)
+FROM git_base AS third_party__production__liburing__git
+WORKDIR /build/third_party/production/liburing
+RUN git clone --depth 1 --branch liburing-2.0 https://github.com/axboe/liburing.git \
+    && rm -rf */.git \
+    && apt-get remove --autoremove -y git
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenRunDockerfile(third_party/production/liburing)
+FROM base AS third_party__production__liburing__run
+COPY --from=third_party__production__liburing__apt / /
+COPY --from=third_party__production__liburing__git / /
+WORKDIR /build/third_party/production/liburing
+RUN cd liburing \
+    && ./configure \
+    && make -j$(nproc) \
+    && make install \
+    && cd .. \
+    && rm -rf *
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenPipDockerfile(production)
+FROM pip_base AS production__pip
+WORKDIR /build/production
+RUN python3 -m pip install pre-commit \
+    && apt-get remove --autoremove -y python3-pip
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenPreRunDockerfile(production)
+FROM base AS production__pre_run
+COPY --from=production__apt / /
+COPY --from=third_party__production__cmake__run / /
+COPY production/cmake /source/production/cmake
+COPY production/sql/src /source/production/sql/src
+COPY production/sql /source/production/sql
+COPY --from=third_party__production__backward__run / /
+COPY --from=third_party__production__bison__run / /
+COPY --from=third_party__production__cmake__run / /
+COPY --from=third_party__production__daemonize__run / /
+COPY third_party/production/flatbuffers /source/third_party/production/flatbuffers
+COPY third_party/production/googletest /source/third_party/production/googletest
+COPY --from=third_party__production__libexplain__run / /
+COPY third_party/production/json /source/third_party/production/json
+COPY --from=third_party__production__postgresql__run / /
+COPY --from=third_party__production__pybind11__run / /
+COPY third_party/production/rocksdb /source/third_party/production/rocksdb
+COPY --from=third_party__production__cpptoml__run / /
+COPY --from=third_party__production__tabulate__run / /
+COPY --from=third_party__production__liburing__run / /
+COPY third_party/bundle/gaia_spdlog /source/third_party/bundle/gaia_spdlog
+COPY third_party/bundle/gaia_spdlog_setup /source/third_party/bundle/gaia_spdlog_setup
+COPY third_party/production/gaia_spdlog /source/third_party/production/gaia_spdlog
+COPY third_party/production/gaia_spdlog_setup /source/third_party/production/gaia_spdlog_setup
+COPY dev_tools/hooks /source/dev_tools/hooks
+COPY --from=production__pip / /
+COPY production /source/production
+# GenEnvDockerfile(third_party/production/cmake)
+ENV CC=/usr/bin/clang-13
+ENV CPP=/usr/bin/clang-cpp-13
+ENV CXX=/usr/bin/clang++-13
+ENV LDFLAGS="-B/usr/lib/llvm-13/bin/ -fuse-ld=lld"
+# GenEnvDockerfile(third_party/production/postgresql)
+ENV LANG=en_US.UTF-8
+ENV LC_CTYPE=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+# GenEnvDockerfile(production)
+ENV GAIA_VERSION=0.3.3
+ENV GAIA_PRE_RELEASE=beta
+WORKDIR /build/production
+RUN echo "LD_PRELOAD = '$(clang-10 -print-file-name=libclang_rt.asan-$(uname -m).so)'" >> /etc/postgresql/12/main/environment \
+    && echo "ASAN_OPTIONS = 'detect_leaks=0'" >> /etc/postgresql/12/main/environment \
+    && mkdir -p /var/lib/gaia/db
+ENTRYPOINT [ "/bin/bash" ]
+
+# GenRunDockerfile(production)
+FROM base AS production__run
+COPY --from=production__pre_run / /
+# GenEnvDockerfile(third_party/production/cmake)
+ENV CC=/usr/bin/clang-13
+ENV CPP=/usr/bin/clang-cpp-13
+ENV CXX=/usr/bin/clang++-13
+ENV LDFLAGS="-B/usr/lib/llvm-13/bin/ -fuse-ld=lld"
+# GenEnvDockerfile(third_party/production/postgresql)
+ENV LANG=en_US.UTF-8
+ENV LC_CTYPE=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
 # GenEnvDockerfile(production)
 ENV GAIA_VERSION=0.3.3
 ENV GAIA_PRE_RELEASE=beta
