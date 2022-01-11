@@ -9647,6 +9647,9 @@ def note_field_reference : Note<
 def note_link_reference : Note<
   "Link: '%0.%1'.">;
 
+def warn_expression_length : Warning<
+  "Expression has length '%0'. This may lead to incorrect rule translation.">,
+  InGroup<GaiaExtensions>;
 def warn_field_hidden : Warning<
   "Local variable '%0' hides a database field with the same name. "
   "Rename your local variable so that it doesn't conflict with an "
