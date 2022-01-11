@@ -60,7 +60,6 @@ show_usage() {
 # Parse the command line.
 parse_command_line() {
     VERBOSE_MODE=0
-    ALTERNATE_OUTPUT_PATH=
     JOB_NAME=
     PARAMS=()
     while (( "$#" )); do
