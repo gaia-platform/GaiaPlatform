@@ -64,7 +64,7 @@ public:
         // Any violation below means there are unhandled parsing errors.
         ASSERT_POSTCONDITION(
             parsing_result == EXIT_SUCCESS,
-            "Failed to handle parsing errors in the DDL file '" + filename + "'.");
+            ("Failed to handle parsing errors in the DDL file '" + filename + "'.").c_str());
     };
 
     void parse_string(const std::string& str)
@@ -80,7 +80,7 @@ public:
         // Any violation below means there are unhandled parsing errors.
         ASSERT_POSTCONDITION(
             parsing_result == EXIT_SUCCESS,
-            "Failed to handle parsing errors in the line: '" + str + "'.");
+            ("Failed to handle parsing errors in the line: '" + str + "'.").c_str());
     }
 
     yy::location location;

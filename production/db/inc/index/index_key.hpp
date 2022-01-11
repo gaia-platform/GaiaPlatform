@@ -5,8 +5,14 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include <ostream>
 #include <vector>
+
+#include <flatbuffers/reflection.h>
+
+#include "gaia/common.hpp"
 
 #include "data_holder.hpp"
 
@@ -18,6 +24,17 @@ namespace index
 {
 
 /**
+ * Schema required to compute index keys from a binary payload.
+ **/
+
+struct index_key_schema_t
+{
+    common::gaia_type_t table_type;
+    const flatbuffers::Vector<uint8_t>* binary_schema;
+    common::field_position_list_t field_positions;
+};
+
+/**
 * Reflection based logical key for the index.
 */
 class index_key_t
@@ -27,6 +44,7 @@ class index_key_t
 
 public:
     index_key_t() = default;
+    index_key_t(const index_key_schema_t& key_schema, const uint8_t* payload);
 
     template <typename... T_keys>
     index_key_t(T_keys... keys);
@@ -47,6 +65,7 @@ public:
 
     const std::vector<gaia::db::payload_types::data_holder_t>& values() const;
     size_t size() const;
+    bool is_null() const;
 
 private:
     int compare(const index_key_t& other) const;
