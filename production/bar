@@ -296,50 +296,6 @@ RUN curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
     && sed -i '/^local/ s/peer/trust/' /etc/postgresql/12/main/pg_hba.conf
 ENTRYPOINT [ "/bin/bash" ]
 
-# GenAptDockerfile(third_party/production/pybind11)
-FROM apt_base AS third_party__production__pybind11__apt
-WORKDIR /build/third_party/production/pybind11
-RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-        python3 \
-        python3-dev \
-        python3-pip \
-    && apt-get clean
-ENTRYPOINT [ "/bin/bash" ]
-
-# GenGitDockerfile(third_party/production/pybind11)
-FROM git_base AS third_party__production__pybind11__git
-WORKDIR /build/third_party/production/pybind11
-RUN git clone --depth 1 --branch v2.5.0 https://github.com/pybind/pybind11.git \
-    && rm -rf */.git \
-    && apt-get remove --autoremove -y git
-ENTRYPOINT [ "/bin/bash" ]
-
-# GenPipDockerfile(third_party/production/pybind11)
-FROM pip_base AS third_party__production__pybind11__pip
-WORKDIR /build/third_party/production/pybind11
-RUN python3 -m pip install pytest \
-    && apt-get remove --autoremove -y python3-pip
-ENTRYPOINT [ "/bin/bash" ]
-
-# GenRunDockerfile(third_party/production/pybind11)
-FROM base AS third_party__production__pybind11__run
-COPY --from=third_party__production__pybind11__apt / /
-COPY --from=third_party__production__cmake__run / /
-COPY --from=third_party__production__pybind11__git / /
-COPY --from=third_party__production__pybind11__pip / /
-# GenEnvDockerfile(third_party/production/cmake)
-ENV CC=/usr/bin/clang-13
-ENV CPP=/usr/bin/clang-cpp-13
-ENV CXX=/usr/bin/clang++-13
-ENV LDFLAGS="-B/usr/lib/llvm-13/bin/ -fuse-ld=lld"
-WORKDIR /build/third_party/production/pybind11
-RUN cmake -G "Ninja" pybind11 \
-    && ninja \
-    && ninja install \
-    && rm -rf *
-ENTRYPOINT [ "/bin/bash" ]
-
 # GenGitDockerfile(third_party/production/cpptoml)
 FROM git_base AS third_party__production__cpptoml__git
 WORKDIR /build/third_party/production/cpptoml
@@ -471,7 +427,6 @@ COPY third_party/production/googletest /source/third_party/production/googletest
 COPY --from=third_party__production__libexplain__run / /
 COPY third_party/production/json /source/third_party/production/json
 COPY --from=third_party__production__postgresql__run / /
-COPY --from=third_party__production__pybind11__run / /
 COPY third_party/production/rocksdb /source/third_party/production/rocksdb
 COPY --from=third_party__production__cpptoml__run / /
 COPY --from=third_party__production__tabulate__run / /
