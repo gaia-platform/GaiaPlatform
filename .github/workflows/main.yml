@@ -35,7 +35,7 @@ jobs:
       - name: Build Docker Image
         run: |
           cd $GAIA_REPO/production
-          gdev dockerfile > raw_dockerfile
+          $GAIA_REPO/dev_tools/gdev/gdev.sh dockerfile > raw_dockerfile
           $GAIA_REPO/dev_tools/github-actions/copy_until_line.py --input-file raw_dockerfile --output-file third_party_dockerfile --stop-line "# GenRunDockerfile(production)"
           docker buildx build -f third_party_dockerfile -t $DEV_IMAGE --cache-from $DEV_IMAGE --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
 #          $GAIA_REPO/dev_tools/gdev/gdev.sh build
