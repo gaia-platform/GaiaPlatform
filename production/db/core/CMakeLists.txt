@@ -76,6 +76,7 @@ add_library(gaia_db_client STATIC
   src/db_client_api.cpp
   src/gaia_ptr.cpp
   src/gaia_ptr_client.cpp
+  src/gaia_ptr_api.cpp
   src/payload_diff.cpp
   src/client_messenger.cpp
   src/mapped_data.cpp

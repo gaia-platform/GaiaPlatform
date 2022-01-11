@@ -7,6 +7,8 @@
 
 #include <sstream>
 
+#include "gaia/common.hpp"
+
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/logger.hpp"
@@ -721,13 +723,22 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
                          reference_offset, get_table_name())));
             }
 
-            gaia_id_t reference_id = m_current_record.references()[reference_offset];
-            field_value.value = UInt64GetDatum(reference_id);
-
-            // If the reference id is invalid, surface the value as NULL.
-            if (reference_id == c_invalid_gaia_id)
+            gaia_id_t anchor_id = m_current_record.references()[reference_offset];
+            if (anchor_id == c_invalid_gaia_id)
             {
+                field_value.value = UInt64GetDatum(c_invalid_gaia_id);
                 field_value.isnull = true;
+            }
+            else
+            {
+                gaia_id_t reference_id = gaia_ptr_t::from_gaia_id(anchor_id).references()[c_ref_anchor_parent_offset];
+                field_value.value = UInt64GetDatum(reference_id);
+
+                // If the reference id is invalid, surface the value as NULL.
+                if (reference_id == c_invalid_gaia_id)
+                {
+                    field_value.isnull = true;
+                }
             }
         }
         else if (m_fields[field_index].repeated_count != 1)
@@ -1024,7 +1035,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
         gaia_ptr_t record;
         if (modify_operation_type == modify_operation_type_t::insert)
         {
-            record = gaia_ptr_t::create(gaia_id, m_container_id, m_current_payload->size(), m_current_payload->data());
+            record = gaia_ptr::create(gaia_id, m_container_id, m_current_payload->size(), m_current_payload->data());
         }
         else if (modify_operation_type == modify_operation_type_t::update)
         {
@@ -1034,7 +1045,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
             if (record.data_size() != m_current_payload->size()
                 || memcmp(record.data(), m_current_payload->data(), record.data_size()) != 0)
             {
-                record.update_payload(m_current_payload->size(), m_current_payload->data());
+                gaia_ptr::update_payload(record, m_current_payload->size(), m_current_payload->data());
             }
         }
         else
@@ -1080,7 +1091,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
                 }
 
                 // If the existing reference was valid, we need to remove it.
-                record.remove_parent_reference(reference_offset);
+                gaia_ptr::remove_from_reference_container(gaia_id, reference_offset);
             }
             else
             {
@@ -1105,7 +1116,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
                 }
 
                 // Update the reference to the new value.
-                record.update_parent_reference(new_reference_id, reference_offset);
+                gaia_ptr::update_parent_reference(record, new_reference_id, reference_offset);
             }
         }
 
@@ -1169,7 +1180,7 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
             return false;
         }
 
-        gaia_ptr_t::remove(record);
+        gaia_ptr::remove(record);
 
         return true;
     }
