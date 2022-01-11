@@ -159,16 +159,15 @@ NullableDatum convert_to_nullable_datum(const data_holder_t& value)
 {
     NullableDatum nullable_datum{};
     nullable_datum.value = 0;
-    nullable_datum.isnull = false;
+    nullable_datum.isnull = value.is_null;
+
+    if (value.is_null)
+    {
+        return nullable_datum;
+    }
 
     if (value.type == reflection::String)
     {
-        if (value.hold.string_value == nullptr)
-        {
-            nullable_datum.isnull = true;
-            return nullable_datum;
-        }
-
         size_t string_length = strlen(value.hold.string_value);
         size_t pg_text_length = string_length + VARHDRSZ;
         text* pg_text = reinterpret_cast<text*>(palloc(pg_text_length));
@@ -192,6 +191,7 @@ NullableDatum convert_to_nullable_datum(const data_holder_t& value)
 data_holder_t convert_to_data_holder(const Datum& value, data_type_t value_type)
 {
     data_holder_t data_holder;
+    data_holder.is_null = false;
 
     try
     {
@@ -205,9 +205,6 @@ data_holder_t convert_to_data_holder(const Datum& value, data_type_t value_type)
              errmsg(c_message_fdw_internal_error, __func__),
              errhint("Unhandled data_type_t '%d'.", value_type)));
     }
-
-    // TODO: this code needs to be restructured for null support.
-    data_holder.is_null = false;
 
     switch (value_type)
     {
@@ -752,27 +749,34 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
                 0,
                 m_fields[field_index].position);
 
-            ArrayBuildState* state = initArrayResult(element_type, CurrentMemoryContext, true);
-
-            for (size_t i = 0; i < array_size; i++)
+            if (array_size == std::numeric_limits<size_t>::max())
             {
-                data_holder_t value = get_field_array_element(
-                    m_container_id,
-                    m_current_payload,
-                    nullptr,
-                    0,
-                    m_fields[field_index].position,
-                    i);
-
-                accumArrayResult(
-                    state,
-                    convert_to_datum(value),
-                    false,
-                    element_type,
-                    CurrentMemoryContext);
+                field_value.isnull = true;
             }
+            else
+            {
+                ArrayBuildState* state = initArrayResult(element_type, CurrentMemoryContext, true);
 
-            field_value.value = makeArrayResult(state, CurrentMemoryContext);
+                for (size_t i = 0; i < array_size; i++)
+                {
+                    data_holder_t value = get_field_array_element(
+                        m_container_id,
+                        m_current_payload,
+                        nullptr,
+                        0,
+                        m_fields[field_index].position,
+                        i);
+
+                    accumArrayResult(
+                        state,
+                        convert_to_datum(value),
+                        false,
+                        element_type,
+                        CurrentMemoryContext);
+                }
+
+                field_value.value = makeArrayResult(state, CurrentMemoryContext);
+            }
         }
         else
         {
@@ -892,8 +896,7 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
     if (field_value.isnull && !m_fields[field_index].is_reference)
     {
         // For now, in the case of regular field updates,
-        // we don't have a way to represent NULL for scalar types
-        // and reflection API does not support setting nullptr strings either.
+        // the reflection API does not support setting nullptr values,
         // so we'll process NULL by doing nothing,
         // which will result in fields getting set to default values.
         return;
@@ -953,7 +956,7 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
             ArrayType* pg_array = DatumGetArrayTypeP(field_value.value);
 
-            // PostgreSQL supports setting array element value to NULL even for
+            // PostgreSQL supports setting array element values to NULL even for
             // scalar types. It will be difficult for us to implement the
             // feature because both std::vector and flatbuffers::vector do not
             // support it. Do not allow this behavior at the moment.
