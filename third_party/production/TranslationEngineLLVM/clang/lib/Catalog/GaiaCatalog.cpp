@@ -13,8 +13,19 @@ using namespace clang;
 using namespace clang::gaia::catalog;
 using namespace ::gaia::catalog;
 
-bool GaiaCatalog::isInitialized = false;
-llvm::StringMap<CatalogTableData> GaiaCatalog::catalogTableData;
+std::unique_ptr<GaiaCatalog> clang::gaia::catalog::g_catalog_ptr;
+
+const llvm::StringMap<CatalogTableData>& clang::gaia::catalog::getCatalogTableData()
+{
+    assert(g_catalog_ptr && "Must set the catalog instance before accessing the catalog!");
+    return g_catalog_ptr->getCatalogTableData();
+}
+
+bool clang::gaia::catalog::findNavigationPath(llvm::StringRef src, llvm::StringRef dst, llvm::SmallVector<string, 8>& currentPath, bool reportErrors)
+{
+    assert(g_catalog_ptr && "Must set the catalog instance before accessing the catalog!");
+    return g_catalog_ptr->findNavigationPath(src, dst, currentPath, reportErrors);
+}
 
 class db_monitor_t
 {
@@ -32,15 +43,20 @@ class db_monitor_t
         }
 };
 
+GaiaCatalog::GaiaCatalog(DiagnosticsEngine& diags)
+: m_isInitialized(false), m_diags(diags)
+{
+}
+
+const llvm::StringMap<CatalogTableData>& GaiaCatalog::getCatalogTableData()
+{
+    ensureInitialization();
+    return m_catalogTableData;
+}
 
 // Fill internal data from catalog.
 void GaiaCatalog::fillTableData()
 {
-    IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
-    TextDiagnosticPrinter *DiagClient = new TextDiagnosticPrinter(llvm::errs(), &*DiagOpts);
-
-    IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
-    DiagnosticsEngine Diags(DiagID, &*DiagOpts, DiagClient);
     try
     {
         db_monitor_t monitor;
@@ -51,7 +67,7 @@ void GaiaCatalog::fillTableData()
                 continue;
             }
             CatalogTableData table_data;
-            catalogTableData[table.name()] = table_data;
+            m_catalogTableData[table.name()] = table_data;
         }
 
         for (const auto& field : gaia_field_t::list())
@@ -60,8 +76,8 @@ void GaiaCatalog::fillTableData()
             if (!table)
             {
                 // TODO: Add better message. How does this happen?
-                Diags.Report(diag::err_incorrect_table) << field.name();
-                catalogTableData.clear();
+                m_diags.Report(diag::err_incorrect_table) << field.name();
+                m_catalogTableData.clear();
                 return;
             }
 
@@ -70,18 +86,18 @@ void GaiaCatalog::fillTableData()
                 continue;
             }
 
-            auto table_data_iterator = catalogTableData.find(table.name());
-            if (table_data_iterator == catalogTableData.end())
+            auto table_data_iterator = m_catalogTableData.find(table.name());
+            if (table_data_iterator == m_catalogTableData.end())
             {
-                Diags.Report(diag::err_wrong_table_field) << field.name() << table.name();
-                catalogTableData.clear();
+                m_diags.Report(diag::err_wrong_table_field) << field.name() << table.name();
+                m_catalogTableData.clear();
                 return;
             }
             CatalogTableData table_data = table_data_iterator->second;
             if (table_data.fieldData.find(field.name()) != table_data.fieldData.end())
             {
-                Diags.Report(diag::err_duplicate_field) << field.name();
-                catalogTableData.clear();
+                m_diags.Report(diag::err_duplicate_field) << field.name();
+                m_catalogTableData.clear();
                 return;
             }
             CatalogFieldData field_data;
@@ -91,7 +107,7 @@ void GaiaCatalog::fillTableData()
             field_data.fieldType = static_cast<data_type_t>(field.type());
             table_data.dbName = table.database().name();
             table_data.fieldData[field.name()] = field_data;
-            catalogTableData[table.name()] = table_data;
+            m_catalogTableData[table.name()] = table_data;
         }
 
         for (const auto& relationship : gaia_relationship_t::list())
@@ -100,8 +116,8 @@ void GaiaCatalog::fillTableData()
             if (!child_table)
             {
                 // TODO:  what is the action a user can take?
-                Diags.Report(diag::err_invalid_child_table) << relationship.name();
-                catalogTableData.clear();
+                m_diags.Report(diag::err_invalid_child_table) << relationship.name();
+                m_catalogTableData.clear();
                 return;
             }
 
@@ -114,8 +130,8 @@ void GaiaCatalog::fillTableData()
             if (!parent_table)
             {
                 // TODO:  what is the action a user can take?
-                Diags.Report(diag::err_invalid_parent_table) << relationship.name();
-                catalogTableData.clear();
+                m_diags.Report(diag::err_invalid_parent_table) << relationship.name();
+                m_catalogTableData.clear();
                 return;
             }
 
@@ -138,24 +154,27 @@ void GaiaCatalog::fillTableData()
                 false
             };
 
-            catalogTableData[parent_table.name()].linkData[relationship.to_child_link_name()] = to_child_link;
-            catalogTableData[child_table.name()].linkData[relationship.to_parent_link_name()] = to_parent_link;
+            m_catalogTableData[parent_table.name()].linkData[relationship.to_child_link_name()] = to_child_link;
+            m_catalogTableData[child_table.name()].linkData[relationship.to_parent_link_name()] = to_parent_link;
         }
     }
     catch (const exception& e)
     {
-        Diags.Report(diag::err_catalog_exception) << e.what();
-        catalogTableData.clear();
+        // REVIEW:  I have no marked this exception as fatal.  If we can encounter catalog exceptions that should not be
+        // fatal then we need to make different exception classes and handle the non-fatal ones differently than the fatal
+        // ones.
+        m_diags.Report(diag::err_catalog_exception) << e.what();
+        m_catalogTableData.clear();
         return;
     }
 }
 
 void GaiaCatalog::ensureInitialization()
 {
-    if (!isInitialized)
+    if (!m_isInitialized)
     {
         fillTableData();
-        isInitialized = true;
+        m_isInitialized = true;
     }
 }
 
@@ -192,17 +211,17 @@ bool GaiaCatalog::findNavigationPath(StringRef src, StringRef dst, SmallVector<s
     }
     const auto& tableData = getCatalogTableData();
 
-    IntrusiveRefCntPtr<DiagnosticOptions> diagOpts = new DiagnosticOptions();
+    //IntrusiveRefCntPtr<DiagnosticOptions> diagOpts = new DiagnosticOptions();
     // diagClient is passed to diags object below that takes full ownership.
-    TextDiagnosticPrinter *diagClient = new TextDiagnosticPrinter(llvm::errs(), &*diagOpts);
-    IntrusiveRefCntPtr<DiagnosticIDs> diagID(new DiagnosticIDs());
-    DiagnosticsEngine diags(diagID, &*diagOpts, diagClient);
+    //TextDiagnosticPrinter *diagClient = new TextDiagnosticPrinter(llvm::errs(), &*diagOpts);
+    //IntrusiveRefCntPtr<DiagnosticIDs> diagID(new DiagnosticIDs());
+    //DiagnosticsEngine diags(diagID, &*diagOpts, diagClient);
 
     if (!findNavigationPath(src, dst, path, tableData))
     {
         if (reportErrors)
         {
-            diags.Report(diag::err_no_path) << src << dst;
+            m_diags.Report(diag::err_no_path) << src << dst;
         }
         return false;
     }
@@ -237,7 +256,7 @@ bool GaiaCatalog::findNavigationPath(StringRef src, StringRef dst, SmallVector<s
             {
                 if (reportErrors)
                 {
-                    diags.Report(diag::err_multiple_shortest_paths) << src << dst;
+                    m_diags.Report(diag::err_multiple_shortest_paths) << src << dst;
                 }
                 return false;
             }

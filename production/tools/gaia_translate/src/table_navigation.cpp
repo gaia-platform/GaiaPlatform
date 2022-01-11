@@ -29,7 +29,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(llv
 {
     string last_variable_name;
     navigation_code_data_t return_value;
-    const auto& table_data = GaiaCatalog::getCatalogTableData();
+    const auto& table_data = getCatalogTableData();
     if (table_data.empty() || path_data.path_components.empty())
     {
         return navigation_code_data_t();
@@ -54,9 +54,8 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(llv
         }
         if (path_data.skip_implicit_path_generation
             && path_component == path_data.path_components.front()
-            && (
-                table == path_data.anchor_variable
-                || (table ==path_data.anchor_table
+            && (table == path_data.anchor_variable
+                || (table == path_data.anchor_table
                     && path_data.tag_table_map.find(table) == path_data.tag_table_map.end())))
         {
             last_variable_name = path_data.anchor_variable;
@@ -150,7 +149,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
     llvm::StringRef anchor_table, llvm::StringRef anchor_variable, const llvm::StringSet<>& tables, const llvm::StringMap<string>& tags, string& last_variable_name)
 {
     navigation_code_data_t return_value;
-    const auto& table_data =GaiaCatalog::getCatalogTableData();
+    const auto& table_data = getCatalogTableData();
     if (table_data.empty() || tables.empty())
     {
         return navigation_code_data_t();
@@ -252,7 +251,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
         {
             llvm::SmallVector<string, 8> path;
             // Find topographically shortest path between anchor table and destination table.
-            if (GaiaCatalog::findNavigationPath(anchor_table_name, table_name, path))
+            if (findNavigationPath(anchor_table_name, table_name, path))
             {
                 string source_table = variable_name;
                 string source_table_type = anchor_table_name;
@@ -314,7 +313,7 @@ string table_navigation_t::get_variable_name(StringRef variable, const llvm::Str
 // Function that generates a single navigation step code.
 bool table_navigation_t::generate_navigation_step(StringRef source_table, StringRef source_field, StringRef destination_table, StringRef source_variable_name, StringRef variable_name, navigation_code_data_t& navigation_data)
 {
-    auto table_itr = GaiaCatalog::getCatalogTableData().find(source_table);
+    auto table_itr = getCatalogTableData().find(source_table);
 
     bool is_1_relationship = false, is_n_relationship = false;
 
@@ -395,7 +394,7 @@ bool table_navigation_t::generate_navigation_step(StringRef source_table, String
 llvm::SmallVector<string, 16> table_navigation_t::get_table_fields(StringRef table)
 {
     llvm::SmallVector<string, 16> return_value;
-    const auto& table_data = GaiaCatalog::getCatalogTableData();
+    const auto& table_data = getCatalogTableData();
     if (table_data.empty())
     {
         return return_value;
