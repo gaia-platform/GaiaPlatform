@@ -503,3 +503,27 @@ RUN echo "LD_PRELOAD = '$(clang-10 -print-file-name=libclang_rt.asan-$(uname -m)
 ENTRYPOINT [ "/bin/bash" ]
 
 # GenRunDockerfile(production)
+FROM base AS production__run
+COPY --from=production__pre_run / /
+# GenEnvDockerfile(third_party/production/cmake)
+ENV CC=/usr/bin/clang-13
+ENV CPP=/usr/bin/clang-cpp-13
+ENV CXX=/usr/bin/clang++-13
+ENV LDFLAGS="-B/usr/lib/llvm-13/bin/ -fuse-ld=lld"
+# GenEnvDockerfile(third_party/production/postgresql)
+ENV LANG=en_US.UTF-8
+ENV LC_CTYPE=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+# GenEnvDockerfile(production)
+ENV GAIA_VERSION=0.3.3
+ENV GAIA_PRE_RELEASE=beta
+WORKDIR /build/production
+RUN cd /build/production \
+    && CC=$CC CPP=$CPP CXX=$CXX LDFLAGS="$LDFLAGS" \
+    cmake \
+        -G "Ninja" \
+        --log-level=VERBOSE -Wno-dev \
+        /source/production \
+    && bash -c "ASAN_OPTIONS=detect_leaks=0 ninja 1> >(tee /build/production/make-out.log) 2> >(tee /build/production/make-err.log >&2)" \
+    && ninja install db/core/all
+ENTRYPOINT [ "/bin/bash" ]
