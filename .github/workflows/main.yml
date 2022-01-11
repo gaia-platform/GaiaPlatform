@@ -132,13 +132,13 @@ jobs:
           docker buildx build -f bar \
             -t xxx --cache-from ghcr.io/gaia-platform/dev-base:latest --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
 
-      - name: Run Docker Images
+      - name: Run Docker Image And Post-Build Script
         run: |
           cd $GAIA_REPO/production
-# docker run \
-#   --rm --init -it --entrypoint /bin/bash --platform linux/amd64 \
-#   xxx \
-#   $GITHUB_JOB
+          docker run \
+            --rm --init -it --entrypoint /bin/bash --platform linux/amd64 \
+            xxx \
+            /source/dev_tools/github-actions/bob.sh --job-name "$GITHUB_JOB"
 
 # --mount type=volume,dst={mount.container_path},volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device={mount.host_path} \
 
