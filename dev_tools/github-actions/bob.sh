@@ -130,7 +130,7 @@ cd /build/production || exit
 
 if [ "$JOB_NAME" == "Core" ] ; then
     ls -la /build/output
-    if ! ctest 2>&1 tee /build/output/ctest.log; then
+    if ! ctest 2>&1 | tee /build/output/ctest.log; then
         complete_process 1 "Unit tests failed to complete successfully."
     fi
     ls -la /build/output

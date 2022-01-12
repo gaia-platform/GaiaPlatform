@@ -143,12 +143,13 @@ else
     complete_process 1 "Cannot build docker image for job named '$JOB_NAME'."
 fi
 
-mkdir -p /build/output
+mkdir -p "$GAIA_REPO/build/output"
 
-cd "$GAIA_REPO/production" || exit
 pip install atools argcomplete
+
 "$GAIA_REPO/dev_tools/gdev/gdev.sh" dockerfile > "$GAIA_REPO/production/dockerfile"
-cp "$GAIA_REPO/production/dockerfile" /build/output
+cp "$GAIA_REPO/production/dockerfile" "$GAIA_REPO/build/output"
+
 docker buildx build \
     -f "$GAIA_REPO/production/dockerfile" \
     -t build_image \
@@ -159,7 +160,7 @@ docker buildx build \
     --shm-size 1gb \
     --ssh default \
     --compress \
-    ..
+    "$GAIA_REPO/production"
 
 complete_process 0
 
