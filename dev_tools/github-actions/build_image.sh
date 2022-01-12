@@ -161,7 +161,7 @@ docker buildx build \
     --shm-size 1gb \
     --ssh default \
     --compress \
-    "$GAIA_REPO/production"
+    "$GAIA_REPO"
 
 complete_process 0
 

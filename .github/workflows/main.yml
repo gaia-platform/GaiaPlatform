@@ -47,7 +47,7 @@ jobs:
           name: Third-Party Docker Files
           path: |
             ${{ github.workspace }}/production/raw_dockerfile
-            ${{ github.workspace }}/production/third_party_dockerfile
+            ${{ github.workspace }}/production/dockerfile
       
       - name: Rename Image and Publish
         run: |
