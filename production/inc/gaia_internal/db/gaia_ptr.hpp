@@ -24,12 +24,11 @@ namespace db
 {
 
 /**
- * gaia_ptr_t is implemented differently on the server and client-side.
- * See their respective cpp files for differences.
+ * 'gaia_ptr_t' is implemented differently on the server and client-side. See
+ * their respective cpp files for differences.
  *
- * NOTE: All methods in this class will not check for referential integrity,
- * create triggers, or make auto connection w.r.t payload value changes. Use
- * methods in 'gaia_ptr_op' if those higher level functionalities are needed.
+ * Please avoid adding catalog dependent components to this class directly. For
+ * higher level funtionalities, add separate functions or classes.
  */
 class gaia_ptr_t
 {
@@ -53,8 +52,8 @@ public:
 
     static common::gaia_id_t generate_id();
 
-    // TODO This should be private but it is still used in some code paths
-    //  that could be painful to update.
+    // NOTE: This method is only used for testing. Please use
+    // 'gaia_ptr::create(...)' in user facing code path.
     static gaia_ptr_t create(
         common::gaia_id_t id,
         common::gaia_type_t type,
@@ -62,6 +61,8 @@ public:
         size_t data_size,
         const void* data);
 
+    // NOTE: This method is only used for testing. Please use
+    // 'gaia_ptr::update_payload(...)' in user facing code path.
     void update_payload(size_t data_size, const void* data);
 
     static gaia_ptr_t find_first(common::gaia_type_t type);

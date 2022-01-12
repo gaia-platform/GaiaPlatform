@@ -21,7 +21,7 @@ using namespace gaia::db;
 using namespace gaia::db::test;
 using namespace gaia::common;
 
-class gaia_db_references_test : public db_test_base_t
+class gaia_ptr_api_test : public db_test_base_t
 {
     void SetUp() override
     {
@@ -54,7 +54,7 @@ protected:
     gaia_type_t address_type;
 };
 
-TEST_F(gaia_db_references_test, no_txn_fail)
+TEST_F(gaia_ptr_api_test, no_txn_fail)
 {
     begin_transaction();
     gaia_ptr_t node = gaia_ptr::create(doctor_type, 0, nullptr);
@@ -70,7 +70,7 @@ TEST_F(gaia_db_references_test, no_txn_fail)
     EXPECT_THROW(gaia_ptr::update_parent_reference(node.id(), 1, 2), no_open_transaction);
 }
 
-TEST_F(gaia_db_references_test, creation_fail_for_invalid_type)
+TEST_F(gaia_ptr_api_test, creation_fail_for_invalid_type)
 {
     begin_transaction();
     {
@@ -80,7 +80,7 @@ TEST_F(gaia_db_references_test, creation_fail_for_invalid_type)
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, add_child_reference__one_to_one)
+TEST_F(gaia_ptr_api_test, add_child_reference__one_to_one)
 {
     begin_transaction();
 
@@ -105,7 +105,7 @@ TEST_F(gaia_db_references_test, add_child_reference__one_to_one)
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, add_child_reference__one_to_many)
+TEST_F(gaia_ptr_api_test, add_child_reference__one_to_many)
 {
     begin_transaction();
 
@@ -135,7 +135,7 @@ TEST_F(gaia_db_references_test, add_child_reference__one_to_many)
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, add_child_reference__single_cardinality_violation)
+TEST_F(gaia_ptr_api_test, add_child_reference__single_cardinality_violation)
 {
     begin_transaction();
 
@@ -157,7 +157,7 @@ TEST_F(gaia_db_references_test, add_child_reference__single_cardinality_violatio
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, add_child_reference__invalid_relation_offset)
+TEST_F(gaia_ptr_api_test, add_child_reference__invalid_relation_offset)
 {
     begin_transaction();
 
@@ -176,7 +176,7 @@ TEST_F(gaia_db_references_test, add_child_reference__invalid_relation_offset)
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, add_child_reference__invalid_relation_type_parent)
+TEST_F(gaia_ptr_api_test, add_child_reference__invalid_relation_type_parent)
 {
     begin_transaction();
 
@@ -209,7 +209,7 @@ TEST_F(gaia_db_references_test, add_child_reference__invalid_relation_type_paren
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, add_child_reference__invalid_relation_type_child)
+TEST_F(gaia_ptr_api_test, add_child_reference__invalid_relation_type_child)
 {
     begin_transaction();
 
@@ -228,7 +228,7 @@ TEST_F(gaia_db_references_test, add_child_reference__invalid_relation_type_child
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, add_child_reference__child_already_in_relation)
+TEST_F(gaia_ptr_api_test, add_child_reference__child_already_in_relation)
 {
     begin_transaction();
 
@@ -258,7 +258,7 @@ TEST_F(gaia_db_references_test, add_child_reference__child_already_in_relation)
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, add_child_reference__invalid_object_id)
+TEST_F(gaia_ptr_api_test, add_child_reference__invalid_object_id)
 {
     begin_transaction();
 
@@ -276,7 +276,7 @@ TEST_F(gaia_db_references_test, add_child_reference__invalid_object_id)
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, remove_child_reference__one_to_one)
+TEST_F(gaia_ptr_api_test, remove_child_reference__one_to_one)
 {
     begin_transaction();
 
@@ -306,7 +306,7 @@ TEST_F(gaia_db_references_test, remove_child_reference__one_to_one)
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, remove_child_reference__many_to_many_from_back)
+TEST_F(gaia_ptr_api_test, remove_child_reference__many_to_many_from_back)
 {
     begin_transaction();
 
@@ -353,7 +353,7 @@ TEST_F(gaia_db_references_test, remove_child_reference__many_to_many_from_back)
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, remove_child_reference__many_to_many_from_head)
+TEST_F(gaia_ptr_api_test, remove_child_reference__many_to_many_from_head)
 {
     begin_transaction();
 
@@ -397,7 +397,7 @@ TEST_F(gaia_db_references_test, remove_child_reference__many_to_many_from_head)
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, remove_child_reference__different_child)
+TEST_F(gaia_ptr_api_test, remove_child_reference__different_child)
 {
     begin_transaction();
 
@@ -424,7 +424,7 @@ TEST_F(gaia_db_references_test, remove_child_reference__different_child)
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, remove_child_reference__different_parent)
+TEST_F(gaia_ptr_api_test, remove_child_reference__different_parent)
 {
     begin_transaction();
 
@@ -454,7 +454,7 @@ TEST_F(gaia_db_references_test, remove_child_reference__different_parent)
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, remove_child_reference__invalid_relation_offset)
+TEST_F(gaia_ptr_api_test, remove_child_reference__invalid_relation_offset)
 {
     begin_transaction();
 
@@ -474,7 +474,7 @@ TEST_F(gaia_db_references_test, remove_child_reference__invalid_relation_offset)
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, remove_child_reference__invalid_object_id)
+TEST_F(gaia_ptr_api_test, remove_child_reference__invalid_object_id)
 {
     begin_transaction();
 
@@ -492,7 +492,7 @@ TEST_F(gaia_db_references_test, remove_child_reference__invalid_object_id)
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, remove_child_reference__invalid_relation_type_parent)
+TEST_F(gaia_ptr_api_test, remove_child_reference__invalid_relation_type_parent)
 {
     begin_transaction();
 
@@ -525,7 +525,7 @@ TEST_F(gaia_db_references_test, remove_child_reference__invalid_relation_type_pa
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, remove_child_reference__invalid_relation_type_child)
+TEST_F(gaia_ptr_api_test, remove_child_reference__invalid_relation_type_child)
 {
     begin_transaction();
 
@@ -544,7 +544,7 @@ TEST_F(gaia_db_references_test, remove_child_reference__invalid_relation_type_ch
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, remove_parent_reference__one_to_one)
+TEST_F(gaia_ptr_api_test, remove_parent_reference__one_to_one)
 {
     begin_transaction();
 
@@ -574,7 +574,7 @@ TEST_F(gaia_db_references_test, remove_parent_reference__one_to_one)
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, update_parent_reference__parent_exists)
+TEST_F(gaia_ptr_api_test, update_parent_reference__parent_exists)
 {
     begin_transaction();
 
@@ -603,7 +603,7 @@ TEST_F(gaia_db_references_test, update_parent_reference__parent_exists)
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, update_parent_reference__parent_not_exists)
+TEST_F(gaia_ptr_api_test, update_parent_reference__parent_not_exists)
 {
     begin_transaction();
 
@@ -628,7 +628,7 @@ TEST_F(gaia_db_references_test, update_parent_reference__parent_not_exists)
     commit_transaction();
 }
 
-TEST_F(gaia_db_references_test, update_parent_reference__single_cardinality_violation)
+TEST_F(gaia_ptr_api_test, update_parent_reference__single_cardinality_violation)
 {
     begin_transaction();
 
