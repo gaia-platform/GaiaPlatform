@@ -62,6 +62,8 @@ constexpr size_t c_index_new_credit_amount = 1;
 constexpr double c_new_credit_amount = 39900000.89;
 constexpr size_t c_new_count_credit_amounts = 2;
 
+constexpr float c_default_value_for_float_field = 7.7;
+
 enum field
 {
     first_name,
@@ -74,6 +76,7 @@ enum field
     sleeve_cost,
     monthly_sleeve_insurance,
     last_yearly_top_credit_amounts,
+    float_field_with_default_value,
     missing_int_field,
     missing_string_field,
     missing_int_array_field,
@@ -288,6 +291,17 @@ void get_fields_data(
             ASSERT_TRUE(credit_amount.hold.float_value <= c_last_yearly_top_credit_amounts[i] + 1);
         }
     }
+
+    data_holder_t float_field_with_default_value = get_field_value(
+        c_type_id,
+        data_loader.get_data(),
+        pass_schema ? schema_loader.get_data() : nullptr,
+        pass_schema ? schema_loader.get_data_length() : 0,
+        field::float_field_with_default_value);
+    ASSERT_EQ(float_field_with_default_value.type, reflection::Float);
+    ASSERT_FALSE(float_field_with_default_value.is_null);
+    ASSERT_EQ(c_default_value_for_float_field, float_field_with_default_value.hold.float_value);
+    cout << "\tfloat_field_with_default_value = " << float_field_with_default_value.hold.float_value << endl;
 
     data_holder_t missing_int_field = get_field_value(
         c_type_id,
