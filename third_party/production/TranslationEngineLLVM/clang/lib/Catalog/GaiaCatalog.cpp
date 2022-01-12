@@ -34,8 +34,6 @@ GaiaCatalog& getCatalogInstance()
     {
         static std::unique_ptr<DiagnosticsEngine> s_diags_ptr;
 
-        // Otherwise, create our own diagnostics engine here and create the catalog
-        // instance around this diagnostics engine instance.
         IntrusiveRefCntPtr<DiagnosticOptions> diagOpts = new DiagnosticOptions();
         TextDiagnosticPrinter *diagClient = new TextDiagnosticPrinter(llvm::errs(), &*diagOpts);
         IntrusiveRefCntPtr<DiagnosticIDs> diagID(new DiagnosticIDs());
