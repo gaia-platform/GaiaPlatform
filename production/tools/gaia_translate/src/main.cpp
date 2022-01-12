@@ -3899,7 +3899,7 @@ public:
         // Ensure we are using the same compiler diagnostics engine from any exception code thrown by
         // the catalog or translation engine code.
         g_diag_ptr = std::make_unique<diagnostic_context_t>(compiler_diagnostic_engine);
-        createCatalogInstance(compiler_diagnostic_engine);
+        GaiaCatalog::create(compiler_diagnostic_engine);
 
         return std::unique_ptr<clang::ASTConsumer>(
             new translation_engine_consumer_t(&compiler.getASTContext(), m_rewriter));

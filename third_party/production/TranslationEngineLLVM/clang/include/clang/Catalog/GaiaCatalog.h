@@ -48,6 +48,10 @@ struct CatalogTableData
 class GaiaCatalog
 {
 public:
+    static void create(clang::DiagnosticsEngine& diag);
+    static GaiaCatalog& get();
+
+public:
     GaiaCatalog() = delete;
     GaiaCatalog(clang::DiagnosticsEngine& diag_engine);
     const llvm::StringMap<CatalogTableData>& getCatalogTableData();
@@ -59,13 +63,15 @@ private:
     bool findNavigationPath(llvm::StringRef src, llvm::StringRef dst, llvm::SmallVector<string, 8>& currentPath, const llvm::StringMap<clang::gaia::catalog::CatalogTableData>& graphData);
     llvm::StringRef getClosestTable(const llvm::StringMap<int>& tableDistance);
 
+private:
+    static std::unique_ptr<GaiaCatalog> s_catalog_ptr;
+
+private:
     bool m_isInitialized;
     llvm::StringMap<CatalogTableData> m_catalogTableData;
     DiagnosticsEngine& m_diags;
 };
 
-// Convenience wrappers to get the catalog instance and then access the catalog data.
-void createCatalogInstance(clang::DiagnosticsEngine& diags);
 const llvm::StringMap<CatalogTableData>& getCatalogTableData();
 bool findNavigationPath(llvm::StringRef src, llvm::StringRef dst, llvm::SmallVector<string, 8>& currentPath, bool reportErrors = true);
 

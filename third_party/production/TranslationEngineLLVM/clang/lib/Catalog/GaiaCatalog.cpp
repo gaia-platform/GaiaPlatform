@@ -15,46 +15,6 @@ using namespace clang;
 using namespace clang::gaia::catalog;
 using namespace ::gaia::catalog;
 
-static std::unique_ptr<GaiaCatalog> s_catalog_ptr;
-
-// This is called either by gaiat (our main use case) or by
-// getCatalogInstance() below when we are running clang standalone with
-// gaia extensions enabled for the LLVM parser tests.
-void clang::gaia::catalog::createCatalogInstance(clang::DiagnosticsEngine& diag)
-{
-    s_catalog_ptr = std::make_unique<GaiaCatalog>(diag);
-}
-
-GaiaCatalog& getCatalogInstance()
-{
-    // If running under gaiat, s_catalog_ptr will be setup with the DiagnosticsEngine from the compiler
-    // instance that gaiat creates. Otherwise lazily create a DiagnosticEngine here and wrap a 
-    // catalog instance around it.
-    if (!s_catalog_ptr)
-    {
-        static std::unique_ptr<DiagnosticsEngine> s_diags_ptr;
-
-        IntrusiveRefCntPtr<DiagnosticOptions> diagOpts = new DiagnosticOptions();
-        TextDiagnosticPrinter *diagClient = new TextDiagnosticPrinter(llvm::errs(), &*diagOpts);
-        IntrusiveRefCntPtr<DiagnosticIDs> diagID(new DiagnosticIDs());
-
-        s_diags_ptr = std::make_unique<clang::DiagnosticsEngine>(diagID, &*diagOpts, diagClient);
-        createCatalogInstance(*(s_diags_ptr.get()));
-    }
-
-    return *(s_catalog_ptr.get());
-}
-
-const llvm::StringMap<CatalogTableData>& clang::gaia::catalog::getCatalogTableData()
-{
-    return getCatalogInstance().getCatalogTableData();
-}
-
-bool clang::gaia::catalog::findNavigationPath(llvm::StringRef src, llvm::StringRef dst, llvm::SmallVector<string, 8>& currentPath, bool reportErrors)
-{
-    return getCatalogInstance().findNavigationPath(src, dst, currentPath, reportErrors);
-}
-
 class db_monitor_t
 {
     public:
@@ -70,6 +30,46 @@ class db_monitor_t
             ::gaia::db::end_session();
         }
 };
+
+const llvm::StringMap<CatalogTableData>& clang::gaia::catalog::getCatalogTableData()
+{
+    return GaiaCatalog::get().getCatalogTableData();
+}
+
+bool clang::gaia::catalog::findNavigationPath(llvm::StringRef src, llvm::StringRef dst, llvm::SmallVector<string, 8>& currentPath, bool reportErrors)
+{
+    return GaiaCatalog::get().findNavigationPath(src, dst, currentPath, reportErrors);
+}
+
+std::unique_ptr<GaiaCatalog> GaiaCatalog::s_catalog_ptr;
+
+// This is called either by gaiat (our main use case) or by
+// getCatalogInstance() below when we are running clang standalone with
+// gaia extensions enabled for the LLVM parser tests.
+void GaiaCatalog::create(clang::DiagnosticsEngine& diag)
+{
+    s_catalog_ptr = std::make_unique<GaiaCatalog>(diag);
+}
+
+GaiaCatalog& GaiaCatalog::get()
+{
+    // If running under gaiat, s_catalog_ptr will be setup with the DiagnosticsEngine from the compiler
+    // instance that gaiat creates. Otherwise lazily create a DiagnosticEngine here and wrap a 
+    // catalog instance around it.
+    if (!s_catalog_ptr)
+    {
+        static std::unique_ptr<DiagnosticsEngine> s_diags_ptr;
+
+        IntrusiveRefCntPtr<DiagnosticOptions> diagOpts = new DiagnosticOptions();
+        TextDiagnosticPrinter *diagClient = new TextDiagnosticPrinter(llvm::errs(), &*diagOpts);
+        IntrusiveRefCntPtr<DiagnosticIDs> diagID(new DiagnosticIDs());
+
+        s_diags_ptr = std::make_unique<clang::DiagnosticsEngine>(diagID, &*diagOpts, diagClient);
+        create(*(s_diags_ptr.get()));
+    }
+
+    return *(s_catalog_ptr.get());
+}
 
 GaiaCatalog::GaiaCatalog(DiagnosticsEngine& diags)
 : m_isInitialized(false), m_diags(diags)
