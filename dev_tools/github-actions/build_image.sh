@@ -47,6 +47,7 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
+    echo "  -b,--base-image     Optional base image to use as a cache for the new image."
     echo "  -r,--repo-path      Base path of the repository to generate from."
     echo "  -j,--job-name       GitHub Actions job that this script is being invoked from."
     echo "  -v,--verbose        Display detailed information during execution."
@@ -60,15 +61,16 @@ parse_command_line() {
     VERBOSE_MODE=0
     JOB_NAME=
     GAIA_REPO=
+    BASE_IMAGE=
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
-        -r|--repo-path)
+        -b|--base-image)
             if [ -z "$2" ] ; then
-                echo "Error: Argument $1 must be followed by the path to the repository." >&2
+                echo "Error: Argument $1 must be followed by the name of an image." >&2
                 show_usage
             fi
-            GAIA_REPO=$2
+            BASE_IMAGE=$2
             shift
             shift
         ;;
@@ -78,6 +80,15 @@ parse_command_line() {
                 show_usage
             fi
             JOB_NAME=$2
+            shift
+            shift
+        ;;
+        -r|--repo-path)
+            if [ -z "$2" ] ; then
+                echo "Error: Argument $1 must be followed by the path to the repository." >&2
+                show_usage
+            fi
+            GAIA_REPO=$2
             shift
             shift
         ;;
@@ -163,10 +174,15 @@ fi
 
 # Execute `docker buildx build` to create a dockerfile.
 # Note that using `buildx` will use multiple cores for the build, where possible.
+if [ -n "$BASE_IMAGE" ] ; then
+    BASE_IMAGE="--cache-from $BASE_IMAGE"
+fi
+
+# shellcheck disable=SC2086
 if ! docker buildx build \
     -f "$GAIA_REPO/production/dockerfile" \
     -t build_image \
-    --cache-from ghcr.io/gaia-platform/dev-base:latest \
+    $BASE_IMAGE \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
     --platform linux/amd64 \
     --shm-size 1gb \

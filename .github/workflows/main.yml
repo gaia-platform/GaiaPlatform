@@ -14,6 +14,7 @@ jobs:
   Third-Party:
     runs-on: ubuntu-20.04
     env:
+      GAIA_VERSION: 0.3.3
       GAIA_REPO: ${{ github.workspace }}
       SSH_AUTH_SOCK: /tmp/ssh_agent.sock
       DEV_IMAGE: ghcr.io/gaia-platform/dev-base:latest
@@ -51,7 +52,7 @@ jobs:
       
       - name: Rename Image and Publish
         run: |
-          docker push ghcr.io/gaia-platform/dev-base:latest
+          docker push $DEV_IMAGE
 
   Lint:
     runs-on: ubuntu-20.04
@@ -95,8 +96,10 @@ jobs:
     runs-on: ubuntu-20.04
     needs: Lint
     env:
+      GAIA_VERSION: 0.3.3
       GAIA_REPO: ${{ github.workspace }}
       SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+      DEV_IMAGE: ghcr.io/gaia-platform/dev-base:latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -110,11 +113,11 @@ jobs:
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull ghcr.io/gaia-platform/dev-base:latest
+          docker pull $DEV_IMAGE
 
       - name: Build Docker Image
         run: |
-          $GAIA_REPO/dev_tools/github-actions/build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO
+          $GAIA_REPO/dev_tools/github-actions/build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --base-image $DEV_IMAGE
 
       - name: Run Docker Image And Post-Build Script
         run: |
@@ -132,8 +135,10 @@ jobs:
     runs-on: ubuntu-20.04
     needs: Core
     env:
+      GAIA_VERSION: 0.3.3
       GAIA_REPO: ${{ github.workspace }}
       SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+      DEV_IMAGE: ghcr.io/gaia-platform/dev-base:latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -147,11 +152,11 @@ jobs:
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull ghcr.io/gaia-platform/dev-base:latest
+          docker pull $DEV_IMAGE
 
       - name: Build Docker Image
         run: |
-          $GAIA_REPO/dev_tools/github-actions/build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO
+          $GAIA_REPO/dev_tools/github-actions/build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --base-image $DEV_IMAGE
 
       - name: Run Docker Image And Post-Build Script
         run: |
