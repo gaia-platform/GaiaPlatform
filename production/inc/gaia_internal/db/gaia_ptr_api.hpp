@@ -17,9 +17,12 @@ namespace db
 class gaia_ptr_t;
 
 /*
- * This namespace provides 'gaia_ptr_t' operations that include functionalities
- * like referential integrity check and value linked relationship auto
- * connection that require the type metadata and the catalog.
+ * This namespace provides 'gaia_ptr_t' operations that include higher level
+ * functionalities like referential integrity check and value linked
+ * relationship auto connection.
+ *
+ * The current boundary of high and low regarding 'gaia_ptr' is drawn at usage
+ * of catalog and type metadata.
  */
 namespace gaia_ptr
 {
