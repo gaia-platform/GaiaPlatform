@@ -37,8 +37,9 @@ jobs:
           cd $GAIA_REPO/production
           pip install atools argcomplete
           $GAIA_REPO/dev_tools/gdev/gdev.sh dockerfile > $GAIA_REPO/production/raw_dockerfile
-          $GAIA_REPO/dev_tools/github-actions/copy_until_line.py --input-file $GAIA_REPO/production/raw_dockerfile --output-file $GAIA_REPO/production/third_party_dockerfile --stop-line "# GenRunDockerfile(production)"
-          docker buildx build -f $GAIA_REPO/production/third_party_dockerfile -t $DEV_IMAGE --cache-from $DEV_IMAGE --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
+          $GAIA_REPO/dev_tools/github-actions/copy_until_line.py --input-file $GAIA_REPO/production/raw_dockerfile --output-file $GAIA_REPO/production/dockerfile --stop-line "# GenRunDockerfile(production)"
+          docker buildx build -f $GAIA_REPO/production/dockerfile -t $DEV_IMAGE --cache-from $DEV_IMAGE --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
+
       - name: Upload Intermediate Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -131,9 +132,9 @@ jobs:
         run: |
           cd $GAIA_REPO/production
           mkdir -p $GAIA_REPO/build/output
-          docker run --rm --init -t --platform linux/amd64 core_image \
+          docker run --rm --init -t --platform linux/amd64 \
             --mount type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$GAIA_REPO/build/output \
-            /source/dev_tools/github-actions/bob.sh --job-name $GITHUB_JOB
+            core_image /source/dev_tools/github-actions/bob.sh --job-name $GITHUB_JOB
 
       - name: Upload Output Files
         if: always()
