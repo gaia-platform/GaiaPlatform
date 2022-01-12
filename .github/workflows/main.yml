@@ -114,27 +114,17 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          cd $GAIA_REPO/production
-          pip install atools argcomplete
-          $GAIA_REPO/dev_tools/gdev/gdev.sh dockerfile > $GAIA_REPO/production/dockerfile
-          docker buildx build -f $GAIA_REPO/production/dockerfile \
-            -t core_image --cache-from ghcr.io/gaia-platform/dev-base:latest --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
-
-      - name: Upload Intermediate Files
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: Core Docker Files
-          path: |
-            ${{ github.workspace }}/production/dockerfile
+          $GAIA_REPO/dev_tools/github-actions/build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO
 
       - name: Run Docker Image And Post-Build Script
         run: |
           cd $GAIA_REPO/production
           mkdir -p $GAIA_REPO/build/output
+          ls -la $GAIA_REPO/build/output
           docker run --rm --init -t --platform linux/amd64 \
             --mount type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$GAIA_REPO/build/output \
-            core_image /source/dev_tools/github-actions/bob.sh --job-name $GITHUB_JOB
+            build_image /source/dev_tools/github-actions/bob.sh --job-name $GITHUB_JOB
+          ls -la $GAIA_REPO/build/output
 
       - name: Upload Output Files
         if: always()

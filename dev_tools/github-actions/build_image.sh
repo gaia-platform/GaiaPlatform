@@ -8,7 +8,7 @@
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Creating the GitHub Actions files for the project..."
+        echo "Building the docker image..."
     fi
 }
 
@@ -22,18 +22,15 @@ complete_process() {
     fi
 
     if [ "$SCRIPT_RETURN_CODE" -ne 0 ]; then
-        echo "Creating the GitHub Actions files failed."
+        echo "Building the docker image failed."
     else
         if [ "$VERBOSE_MODE" -ne 0 ]; then
-            echo "Creating the GitHub Actions files succeeded."
+            echo "Building the docker image succeeded."
         fi
     fi
 
     if [ -f "$TEMP_FILE" ]; then
         rm "$TEMP_FILE"
-    fi
-    if [ -f "$OTHER_TEMP_FILE" ]; then
-        rm "$OTHER_TEMP_FILE"
     fi
 
     # Restore the current directory.
@@ -50,6 +47,7 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
+    echo "  -r,--repo-path      Base path of the repository to generate from."
     echo "  -j,--job-name       GitHub Actions job that this script is being invoked from."
     echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
@@ -61,9 +59,19 @@ show_usage() {
 parse_command_line() {
     VERBOSE_MODE=0
     JOB_NAME=
+    GAIA_REPO=
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
+        -r|--repo-path)
+            if [ -z "$2" ] ; then
+                echo "Error: Argument $1 must be followed by the path to the repository." >&2
+                show_usage
+            fi
+            GAIA_REPO=$2
+            shift
+            shift
+        ;;
         -j|--job-name)
             if [ -z "$2" ] ; then
                 echo "Error: Argument $1 must be followed by the name of a job." >&2
@@ -91,6 +99,10 @@ parse_command_line() {
     esac
     done
 
+    if [ -z "$GAIA_REPO" ] ; then
+        echo "Error: Argument -r/--repo-path is required" >&2
+        show_usage
+    fi
     if [ -z "$JOB_NAME" ] ; then
         echo "Error: Argument -j/--job-name is required" >&2
         show_usage
@@ -115,7 +127,7 @@ save_current_directory() {
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
 # Set up any project based local script variables.
-TEMP_FILE=$(mktemp /tmp/bob.XXXXXXXXX)
+TEMP_FILE=$(mktemp /tmp/build_image.XXXXXXXXX)
 
 # Parse any command line values.
 parse_command_line "$@"
@@ -123,18 +135,32 @@ parse_command_line "$@"
 # Clean entrance into the script.
 start_process
 save_current_directory
-cd "$SCRIPTPATH" || exit
+
+CONFIGURATION_OPTIONS=
+if [ "$JOB_NAME" == "Core" ] ; then
+    CONFIGURATION_OPTIONS=--cfg-enables ubuntu:20.04
+else
+    complete_process 1 "Cannot build docker image for job named '$JOB_NAME'."
+fi
 
 mkdir -p /build/output
 cd /build/production || exit
 
-if [ "$JOB_NAME" == "Core" ] ; then
-    ls -la /build/output
-    if ! ctest 2>&1 tee /build/output/ctest.log; then
-        complete_process 1 "Unit tests failed to complete successfully."
-    fi
-    ls -la /build/output
-fi
+
+cd $GAIA_REPO/production
+pip install atools argcomplete
+$GAIA_REPO/dev_tools/gdev/gdev.sh dockerfile > $GAIA_REPO/production/dockerfile
+docker buildx build \
+    -f $GAIA_REPO/production/dockerfile \
+    -t build_image \
+    $CONFIGURATION_OPTIONS \
+    --cache-from ghcr.io/gaia-platform/dev-base:latest \
+    --build-arg BUILDKIT_INLINE_CACHE=1 \
+    --platform linux/amd64 \
+    --shm-size 1gb \
+    --ssh default \
+    --compress \
+    ..
 
 complete_process 0
 
