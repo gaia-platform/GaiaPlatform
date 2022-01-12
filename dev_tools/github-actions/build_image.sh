@@ -147,14 +147,14 @@ mkdir -p "$GAIA_REPO/build/output"
 
 pip install atools argcomplete
 
-"$GAIA_REPO/dev_tools/gdev/gdev.sh" dockerfile > "$GAIA_REPO/production/dockerfile"
+cd "$GAIA_REPO/production"
+# shellcheck disable=SC2086
+"$GAIA_REPO/dev_tools/gdev/gdev.sh" dockerfile $CONFIGURATION_OPTIONS > "$GAIA_REPO/production/dockerfile"
 cp "$GAIA_REPO/production/dockerfile" "$GAIA_REPO/build/output"
 
-# shellcheck disable=SC2086
 docker buildx build \
     -f "$GAIA_REPO/production/dockerfile" \
     -t build_image \
-    $CONFIGURATION_OPTIONS \
     --cache-from ghcr.io/gaia-platform/dev-base:latest \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
     --platform linux/amd64 \
