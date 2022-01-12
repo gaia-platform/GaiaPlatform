@@ -9516,6 +9516,8 @@ def err_argument_type_mismatch : Error<
 def err_argument_type_not_supported : Error<
   "Type '%0' is not supported.">;
 def err_catalog_exception : Error<
+  "An exception has occurred while processing the catalog: '%0'.">;
+def err_catalog_exception_fatal : Error<
   "An exception has occurred while processing the catalog: '%0'.">, DefaultFatal;
 def err_declarative_label_does_not_exist : Error<
   "Declarative label does not exist.">;

@@ -8,6 +8,8 @@
 #include "clang/Frontend/TextDiagnosticPrinter.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include "gaia_internal/common/system_error.hpp"
+
 using namespace std;
 using namespace clang;
 using namespace clang::gaia::catalog;
@@ -178,15 +180,21 @@ void GaiaCatalog::fillTableData()
             m_catalogTableData[child_table.name()].linkData[relationship.to_parent_link_name()] = to_parent_link;
         }
     }
+    catch (const ::gaia::common::system_error& e)
+    {
+        // [GAIAPLAT-1725] Mark a system error as fatal.  For example, if we can't connect
+        // to the database, then emit a fatal error.  There is no point in continuing to emit other
+        // errors once hit a system exception.  Fatal errors suppress subsequent diagnostics.
+        m_diags.Report(diag::err_catalog_exception_fatal) << e.what();
+        m_catalogTableData.clear();
+    }
     catch (const exception& e)
     {
-        // REVIEW:  I have no marked this exception as fatal.  If we can encounter catalog exceptions that should not be
-        // fatal then we need to make different exception classes and handle the non-fatal ones differently than the fatal
-        // ones.
         m_diags.Report(diag::err_catalog_exception) << e.what();
         m_catalogTableData.clear();
-        return;
     }
+
+    return;
 }
 
 void GaiaCatalog::ensureInitialization()
