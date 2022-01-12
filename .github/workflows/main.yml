@@ -130,7 +130,7 @@ jobs:
 
   SDK:
     runs-on: ubuntu-20.04
-    needs: Lint
+    needs: Core
     env:
       GAIA_REPO: ${{ github.workspace }}
       SSH_AUTH_SOCK: /tmp/ssh_agent.sock
