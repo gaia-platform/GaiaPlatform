@@ -111,8 +111,8 @@ TEST_F(json_generation_test, generate_bin_default)
 {
     string schema{"namespace test_defaults; table test_record { prefix:uint64; data:int64 = 15; suffix:uint64; } root_type test_record;"};
 
-    string json_with_default_data{"{ prefix: 12302652060373662634, data:15, suffix: 12302652060373662634 }"};
-    string json_with_data{"{ prefix: 12302652060373662634, data:31, suffix: 12302652060373662634 }"};
+    string json_with_default_data{"{ prefix: 12302652060373662634, data: 15, suffix: 12302652060373662634 }"};
+    string json_with_data{"{ prefix: 12302652060373662634, data: 31, suffix: 12302652060373662634 }"};
     string json_without_data{"{ prefix: 12302652060373662634, suffix: 12302652060373662634 }"};
 
     vector<uint8_t> serialization_for_default_data_present = generate_bin(schema, json_with_default_data);
