@@ -50,16 +50,7 @@ jobs:
       
       - name: Rename Image and Publish
         run: |
-          docker images
-          pip install docker-squash
-          export IMAGE_NAME=ghcr.io/gaia-platform/dev-base:latest
-          echo "docker-squash -f $(($(docker history $IMAGE_NAME | wc -l | xargs)-1)) -t ${IMAGE_NAME}:squashed $IMAGE_NAME"
-          docker images
-
-      - name: Rename Image and Publish
-        run: |
           docker push ghcr.io/gaia-platform/dev-base:latest
-#         https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
 
   Lint:
     runs-on: ubuntu-20.04
@@ -139,11 +130,18 @@ jobs:
       - name: Run Docker Image And Post-Build Script
         run: |
           cd $GAIA_REPO/production
+          mkdir -p $GAIA_REPO/build/output
           docker run --rm --init -t --platform linux/amd64 core_image \
+            --mount type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$GAIA_REPO/build/output \
             /source/dev_tools/github-actions/bob.sh --job-name $GITHUB_JOB
 
-# /bin/bash -c "/source/dev_tools/github-actions/bob.sh --job-name $GITHUB_JOB"
-# --mount type=volume,dst={mount.container_path},volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device={mount.host_path} \
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: Core Output Files
+          path: |
+            ${{ github.workspace }}/build/output
 
   SDK:
     runs-on: ubuntu-20.04

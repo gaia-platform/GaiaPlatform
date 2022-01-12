@@ -125,7 +125,14 @@ start_process
 save_current_directory
 cd "$SCRIPTPATH" || exit
 
-echo "JOB-NAME: $JOB_NAME"
+mkdir -p /build/output
+cd /build/production
+
+if [ "$JOB_NAME" == "Core"] ; then
+    if ! ctest 2>&1 tee /build/output/ctest.log; then
+        complete_process 1 "Unit tests failed to complete successfully."
+    fi
+fi
 
 complete_process 0
 
