@@ -67,7 +67,7 @@ protected:
     explicit dac_iterator_t(std::shared_ptr<dac_base_iterator_state_t> iterator_state);
     explicit dac_iterator_t(
         std::shared_ptr<dac_base_iterator_state_t> iterator_state,
-        std::function<bool(const T_class&)> filter_function);
+        const std::function<bool(const T_class&)>& filter_function);
     explicit dac_iterator_t(gaia::common::gaia_id_t id);
 
 protected:
@@ -85,7 +85,7 @@ class dac_container_t : protected dac_db_t
 {
 public:
     // This constructor will be used by the where() method to create a filtered container.
-    explicit dac_container_t(std::function<bool(const T_class&)> filter_function)
+    explicit dac_container_t(const std::function<bool(const T_class&)>& filter_function)
         : m_filter_fn(filter_function){};
 
     dac_container_t() = default;
@@ -95,7 +95,7 @@ public:
 
     size_t size() const;
 
-    static dac_container_t<container_type_id, T_class> where(std::function<bool(const T_class&)>);
+    static dac_container_t<container_type_id, T_class> where(const std::function<bool(const T_class&)>&);
 
 private:
     std::function<bool(const T_class&)> m_filter_fn;
@@ -118,7 +118,7 @@ public:
     using iterator_category = std::forward_iterator_tag;
 
     explicit dac_set_iterator_t(gaia::common::gaia_id_t id, common::reference_offset_t next_offset);
-    explicit dac_set_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_child&)> filter_function, common::reference_offset_t next_offset);
+    explicit dac_set_iterator_t(gaia::common::gaia_id_t id, const std::function<bool(const T_child&)>& filter_function, common::reference_offset_t next_offset);
     dac_set_iterator_t() = default;
 
     reference operator*();
@@ -141,7 +141,7 @@ public:
     explicit value_linked_reference_container_t(
         gaia::common::gaia_id_t anchor_id,
         common::reference_offset_t anchor_offset,
-        std::function<bool(const T_child&)> filter_function)
+        const std::function<bool(const T_child&)>& filter_function)
         : m_anchor_id(anchor_id), m_anchor_offset(anchor_offset), m_filter_fn(filter_function)
     {
     }
@@ -161,7 +161,7 @@ public:
 
     size_t size() const;
 
-    value_linked_reference_container_t<T_child> where(std::function<bool(const T_child&)> filter_function) const;
+    value_linked_reference_container_t<T_child> where(const std::function<bool(const T_child&)>& filter_function) const;
 
 private:
     gaia::common::gaia_id_t m_anchor_id{gaia::common::c_invalid_gaia_id};
@@ -175,7 +175,7 @@ class reference_container_t : protected dac_db_t
 public:
     explicit reference_container_t(
         gaia::common::gaia_id_t parent,
-        std::function<bool(const T_child&)> filter_function,
+        const std::function<bool(const T_child&)>& filter_function,
         common::reference_offset_t child_offset,
         common::reference_offset_t next_offset)
         : m_parent_id(parent)
@@ -211,7 +211,7 @@ public:
     bool disconnect(const T_child& child_edc);
     void clear();
 
-    reference_container_t<T_child> where(std::function<bool(const T_child&)>) const;
+    reference_container_t<T_child> where(const std::function<bool(const T_child&)>&) const;
 
 private:
     gaia::common::gaia_id_t m_parent_id{gaia::common::c_invalid_gaia_id};
