@@ -123,8 +123,18 @@ jobs:
       - name: Build Docker Image
         run: |
           cd $GAIA_REPO/production
-          docker buildx build -f bar \
+          pip install atools argcomplete
+          $GAIA_REPO/dev_tools/gdev/gdev.sh dockerfile > $GAIA_REPO/production/dockerfile
+          docker buildx build -f $GAIA_REPO/production/dockerfile \
             -t core_image --cache-from ghcr.io/gaia-platform/dev-base:latest --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
+
+      - name: Upload Intermediate Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: Core Docker Files
+          path: |
+            ${{ github.workspace }}/production/dockerfile
 
       - name: Run Docker Image And Post-Build Script
         run: |
