@@ -138,7 +138,7 @@ save_current_directory
 
 CONFIGURATION_OPTIONS=
 if [ "$JOB_NAME" == "Core" ] ; then
-    CONFIGURATION_OPTIONS=--cfg-enables ubuntu:20.04
+    CONFIGURATION_OPTIONS="--cfg-enables ubuntu:20.04"
 else
     complete_process 1 "Cannot build docker image for job named '$JOB_NAME'."
 fi
