@@ -129,8 +129,8 @@ jobs:
       - name: Run Docker Image And Post-Build Script
         run: |
           cd $GAIA_REPO/production
-          docker run --rm --init -t --entrypoint /bin/bash --platform linux/amd64 xxx \
-            /bin/bash -c "echo Done"
+          docker run --rm --init -t --platform linux/amd64 xxx \
+            /usr/bin/bash -c "echo Done"
 
 # /bin/bash -c "/source/dev_tools/github-actions/bob.sh --job-name $GITHUB_JOB"
 # --mount type=volume,dst={mount.container_path},volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device={mount.host_path} \
