@@ -135,6 +135,8 @@ save_current_directory
 CONFIGURATION_OPTIONS=
 if [ "$JOB_NAME" == "Core" ] ; then
     CONFIGURATION_OPTIONS="--cfg-enables ubuntu:20.04"
+elif [ "$JOB_NAME" == "SDK" ] ; then
+    CONFIGURATION_OPTIONS="--cfg-enables ubuntu:20.04 --cfg-enables GaiaRelease"
 else
     complete_process 1 "Cannot build docker image for job named '$JOB_NAME'."
 fi

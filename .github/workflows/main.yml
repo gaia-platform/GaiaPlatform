@@ -118,7 +118,7 @@ jobs:
 
       - name: Run Docker Image And Post-Build Script
         run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO
+          $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --gaia-version $GAIA_VERSION
 
       - name: Upload Output Files
         if: always()
@@ -130,7 +130,7 @@ jobs:
 
   SDK:
     runs-on: ubuntu-20.04
-    needs: Core
+    needs: Lint
     env:
       GAIA_REPO: ${{ github.workspace }}
       SSH_AUTH_SOCK: /tmp/ssh_agent.sock
@@ -143,10 +143,6 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: Install Python Packages
-        run: |
-          python3.8 -m pip install --user atools argcomplete
-
       - name: Pull Latest Dev-Core Image
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
@@ -155,5 +151,23 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          cd $GAIA_REPO/production
-          docker buildx build -f baz -t xxx --cache-from ghcr.io/gaia-platform/dev-base:latest --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
+          $GAIA_REPO/dev_tools/github-actions/build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO
+
+      - name: Run Docker Image And Post-Build Script
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --gaia-version $GAIA_VERSION
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: Core Output Files
+          path: |
+            ${{ github.workspace }}/build/output
+
+      - name: Upload Logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: SDK Install Package
+          path: |
+            ${{ github.workspace }}/build/package

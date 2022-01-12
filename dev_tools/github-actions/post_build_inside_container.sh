@@ -50,6 +50,7 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
+    echo "  -g,--gaia-version   Version associate with the build."
     echo "  -j,--job-name       GitHub Actions job that this script is being invoked from."
     echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
@@ -61,6 +62,7 @@ show_usage() {
 parse_command_line() {
     VERBOSE_MODE=0
     JOB_NAME=
+    GAIA_VERSION=
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
@@ -70,6 +72,15 @@ parse_command_line() {
                 show_usage
             fi
             JOB_NAME=$2
+            shift
+            shift
+        ;;
+        -g|--gaia-version)
+            if [ -z "$2" ] ; then
+                echo "Error: Argument $1 must be followed by the version of Gaia being built." >&2
+                show_usage
+            fi
+            GAIA_VERSION=$2
             shift
             shift
         ;;
@@ -93,6 +104,10 @@ parse_command_line() {
 
     if [ -z "$JOB_NAME" ] ; then
         echo "Error: Argument -j/--job-name is required" >&2
+        show_usage
+    fi
+    if [ -z "$GAIA_VERSION" ] ; then
+        echo "Error: Argument -g/--gaia-version is required" >&2
         show_usage
     fi
 }
@@ -121,6 +136,7 @@ start_process
 save_current_directory
 
 mkdir -p /build/output
+mkdir -p /build/package
 cd /build/production || exit
 
 if [ "$JOB_NAME" == "Core" ] ; then
@@ -129,6 +145,10 @@ if [ "$JOB_NAME" == "Core" ] ; then
         complete_process 1 "Unit tests failed to complete successfully."
     fi
     ls -la /build/output
+elif [ "$JOB_NAME" == "SDK" ] ; then
+    #cp gaia-${{ env.GAIA_VERSION }}_amd64.deb gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb
+    cp gaia-${{ env.GAIA_VERSION }}_amd64.deb /build/package/gaia-${{ env.GAIA_VERSION }}_amd64.deb
+    ls -la /build/package/*.deb
 fi
 
 complete_process 0

@@ -47,8 +47,9 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
-    echo "  -r,--repo-path      Base path of the repository to generate from."
+    echo "  -g,--gaia-version   Version associate with the build."
     echo "  -j,--job-name       GitHub Actions job that this script is being invoked from."
+    echo "  -r,--repo-path      Base path of the repository to generate from."
     echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
     echo ""
@@ -60,6 +61,7 @@ parse_command_line() {
     VERBOSE_MODE=0
     JOB_NAME=
     GAIA_REPO=
+    GAIA_VERSION=
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
@@ -69,6 +71,15 @@ parse_command_line() {
                 show_usage
             fi
             GAIA_REPO=$2
+            shift
+            shift
+        ;;
+        -g|--gaia-version)
+            if [ -z "$2" ] ; then
+                echo "Error: Argument $1 must be followed by the version of Gaia being built." >&2
+                show_usage
+            fi
+            GAIA_VERSION=$2
             shift
             shift
         ;;
@@ -101,6 +112,10 @@ parse_command_line() {
 
     if [ -z "$GAIA_REPO" ] ; then
         echo "Error: Argument -r/--repo-path is required" >&2
+        show_usage
+    fi
+    if [ -z "$GAIA_VERSION" ] ; then
+        echo "Error: Argument -g/--gaia-version is required" >&2
         show_usage
     fi
     if [ -z "$JOB_NAME" ] ; then
@@ -151,7 +166,7 @@ if ! docker run \
     --platform linux/amd64 \
     --mount "type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$GAIA_REPO/build/output" \
     build_image \
-    /source/dev_tools/github-actions/post_build_inside_container.sh --job-name "$JOB_NAME" ; then
+    /source/dev_tools/github-actions/post_build_inside_container.sh --job-name "$JOB_NAME" --gaia-version "$GAIA_VERSION" ; then
     complete_process 1 "Docker post-build script for job '$JOB_NAME' failed."
 fi
 ls -la "$GAIA_REPO/build/output"
