@@ -118,13 +118,7 @@ jobs:
 
       - name: Run Docker Image And Post-Build Script
         run: |
-          cd $GAIA_REPO/production
-          mkdir -p $GAIA_REPO/build/output
-          ls -la $GAIA_REPO/build/output
-          docker run --rm --init -t --platform linux/amd64 \
-            --mount type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$GAIA_REPO/build/output \
-            build_image /source/dev_tools/github-actions/bob.sh --job-name $GITHUB_JOB
-          ls -la $GAIA_REPO/build/output
+          $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO
 
       - name: Upload Output Files
         if: always()

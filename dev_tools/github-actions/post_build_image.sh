@@ -122,6 +122,10 @@ save_current_directory() {
     DID_PUSHD=1
 }
 
+# Set up any global script variables.
+# shellcheck disable=SC2164
+# SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+
 # Set up any project based local script variables.
 TEMP_FILE=$(mktemp /tmp/build_image.XXXXXXXXX)
 
@@ -132,47 +136,25 @@ parse_command_line "$@"
 start_process
 save_current_directory
 
-CONFIGURATION_OPTIONS=
-if [ "$JOB_NAME" == "Core" ] ; then
-    CONFIGURATION_OPTIONS="--cfg-enables ubuntu:20.04"
-else
-    complete_process 1 "Cannot build docker image for job named '$JOB_NAME'."
-fi
+cd "$GAIA_REPO/production" || exit
 
 # Ensure we have a predicatable place to place output that we want to expose.
 if ! mkdir -p "$GAIA_REPO/build/output" ; then
     complete_process 1 "Unable to create an output directory for '$JOB_NAME'."
 fi
 
-# Execute GDev to produce a dockerfile with the specified configuration options.
-cd "$GAIA_REPO/production" || exit
-if ! pip install atools argcomplete ; then
-    complete_process 1 "Unable to install Python packages required to build dockerfile for '$JOB_NAME'."
-fi
-# shellcheck disable=SC2086
-if ! "$GAIA_REPO/dev_tools/gdev/gdev.sh" dockerfile $CONFIGURATION_OPTIONS > "$GAIA_REPO/production/dockerfile" ; then
-    complete_process 1 "Creation of dockerfile for job '$JOB_NAME' failed."
-fi
-
-# Copy that dockerfile to our output directory for later debugging, if needed.
-if ! cp "$GAIA_REPO/production/dockerfile" "$GAIA_REPO/build/output" ; then
-    complete_process 1 "Copy of dockerfile for job '$JOB_NAME' failed."
-fi
-
-# Execute `docker buildx build` to create a dockerfile.
-# Note that using `buildx` will use multiple cores for the build, where possible.
-if ! docker buildx build \
-    -f "$GAIA_REPO/production/dockerfile" \
-    -t build_image \
-    --cache-from ghcr.io/gaia-platform/dev-base:latest \
-    --build-arg BUILDKIT_INLINE_CACHE=1 \
+ls -la $GAIA_REPO/build/output
+if ! docker run \
+    --rm \
+    --init \
+    -t \
     --platform linux/amd64 \
-    --shm-size 1gb \
-    --ssh default \
-    --compress \
-    "$GAIA_REPO" ; then
-    complete_process 1 "Docker build for job '$JOB_NAME' failed."
+    --mount type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$GAIA_REPO/build/output \
+    build_image \
+    /source/dev_tools/github-actions/post_build_inside_container.sh --job-name $JOB_NAME ; then
+    complete_process 1 "Docker post-build script for job '$JOB_NAME' failed."
 fi
+ls -la $GAIA_REPO/build/output
 
 complete_process 0
 

@@ -110,12 +110,8 @@ save_current_directory() {
     DID_PUSHD=1
 }
 
-# Set up any global script variables.
-# shellcheck disable=SC2164
-SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-
 # Set up any project based local script variables.
-TEMP_FILE=$(mktemp /tmp/bob.XXXXXXXXX)
+TEMP_FILE=$(mktemp /tmp/post_build_inside.XXXXXXXXX)
 
 # Parse any command line values.
 parse_command_line "$@"
@@ -123,7 +119,6 @@ parse_command_line "$@"
 # Clean entrance into the script.
 start_process
 save_current_directory
-cd "$SCRIPTPATH" || exit
 
 mkdir -p /build/output
 cd /build/production || exit
