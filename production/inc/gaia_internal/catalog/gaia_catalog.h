@@ -13,8 +13,10 @@
 #include <gaia/direct_access/dac_iterators.hpp>
 #include "catalog_generated.h"
 
-namespace gaia {
-namespace catalog {
+namespace gaia
+{
+namespace catalog
+{
 
 // The initial size of the flatbuffer builder buffer.
 constexpr size_t c_flatbuffer_builder_size = 128;
