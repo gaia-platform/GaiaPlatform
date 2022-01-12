@@ -143,18 +143,18 @@ if ! mkdir -p "$GAIA_REPO/build/output" ; then
     complete_process 1 "Unable to create an output directory for '$JOB_NAME'."
 fi
 
-ls -la $GAIA_REPO/build/output
+ls -la "$GAIA_REPO/build/output"
 if ! docker run \
     --rm \
     --init \
     -t \
     --platform linux/amd64 \
-    --mount type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$GAIA_REPO/build/output \
+    --mount "type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$GAIA_REPO/build/output" \
     build_image \
-    /source/dev_tools/github-actions/post_build_inside_container.sh --job-name $JOB_NAME ; then
+    /source/dev_tools/github-actions/post_build_inside_container.sh --job-name "$JOB_NAME" ; then
     complete_process 1 "Docker post-build script for job '$JOB_NAME' failed."
 fi
-ls -la $GAIA_REPO/build/output
+ls -la "$GAIA_REPO/build/output"
 
 complete_process 0
 
