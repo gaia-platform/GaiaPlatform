@@ -147,7 +147,7 @@ if [ "$JOB_NAME" == "Core" ] ; then
     ls -la /build/output
 elif [ "$JOB_NAME" == "SDK" ] ; then
     #cp gaia-${{ env.GAIA_VERSION }}_amd64.deb gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb
-    cp gaia-${{ env.GAIA_VERSION }}_amd64.deb /build/package/gaia-${{ env.GAIA_VERSION }}_amd64.deb
+    cp "gaia-${GAIA_VERSION}_amd64.deb" "/build/package/gaia-${GAIA_VERSION}_amd64.deb"
     ls -la /build/package/*.deb
 fi
 
