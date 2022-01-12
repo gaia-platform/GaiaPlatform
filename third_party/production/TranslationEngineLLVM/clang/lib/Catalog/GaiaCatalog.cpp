@@ -41,11 +41,16 @@ bool clang::gaia::catalog::findNavigationPath(llvm::StringRef src, llvm::StringR
     return GaiaCatalog::get().findNavigationPath(src, dst, currentPath, reportErrors);
 }
 
+// This pointer is filled in either by gaiat invoking GaiaCatalog::create() (our main use case)
+// or by get() below when we are running clang standalone with gaia extensions enabled for the 
+// LLVM parser tests.
+// 
+// The create() and get() methods are not intended to be called concurrently.
+// If multi-threaded use of these APIs becomes a use-case then we'll need to
+// add synchronization around the initialization of this catalog instance pointer.
 std::unique_ptr<GaiaCatalog> GaiaCatalog::s_catalog_ptr;
 
-// This is called either by gaiat (our main use case) or by
-// getCatalogInstance() below when we are running clang standalone with
-// gaia extensions enabled for the LLVM parser tests.
+
 void GaiaCatalog::create(clang::DiagnosticsEngine& diag)
 {
     s_catalog_ptr = std::make_unique<GaiaCatalog>(diag);
