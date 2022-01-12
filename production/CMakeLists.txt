@@ -33,6 +33,8 @@ option(EXPORT_SYMBOLS "Export symbols by default from shared libraries" OFF)
 
 option(DISABLE_ASSERTS "Disable assertions" OFF)
 
+option(DISABLE_CCACHE "Disable ccache unconditionally" OFF)
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
 else()
@@ -82,9 +84,9 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 find_program(CCACHE_FOUND ccache)
-if(CCACHE_FOUND)
+if(CCACHE_FOUND AND NOT DISABLE_CCACHE)
   set_property(GLOBAL PROPERTY CMAKE_CXX_COMPILER_LAUNCHER ccache)
-endif(CCACHE_FOUND)
+endif()
 
 # Default compiler/linker flags for Gaia targets.
 add_library(gaia_build_options INTERFACE)
