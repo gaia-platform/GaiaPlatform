@@ -15,14 +15,22 @@ using namespace clang;
 using namespace clang::gaia::catalog;
 using namespace ::gaia::catalog;
 
-std::unique_ptr<GaiaCatalog> clang::gaia::catalog::g_catalog_ptr;
+static std::unique_ptr<GaiaCatalog> s_catalog_ptr;
+
+// This is called either by gaiat (our main use case) or by
+// getCatalogInstance() below when we are running clang standalone with
+// gaia extensions enabled for the LLVM parser tests.
+void clang::gaia::catalog::createCatalogInstance(clang::DiagnosticsEngine& diag)
+{
+    s_catalog_ptr = std::make_unique<GaiaCatalog>(diag);
+}
 
 GaiaCatalog& getCatalogInstance()
 {
-    // If running under gaiat, g_catalog_ptr will be setup with the DiagnosticsEngine from the compiler
-    // instance that gaiat creates. Otherwise (just running clang with gaia extensions for testing, for example)
-    // lazily create a DiagnosticEngine here and wrap a catalog instance around it.
-    if (!g_catalog_ptr)
+    // If running under gaiat, s_catalog_ptr will be setup with the DiagnosticsEngine from the compiler
+    // instance that gaiat creates. Otherwise lazily create a DiagnosticEngine here and wrap a 
+    // catalog instance around it.
+    if (!s_catalog_ptr)
     {
         static std::unique_ptr<DiagnosticsEngine> s_diags_ptr;
 
@@ -32,11 +40,11 @@ GaiaCatalog& getCatalogInstance()
         TextDiagnosticPrinter *diagClient = new TextDiagnosticPrinter(llvm::errs(), &*diagOpts);
         IntrusiveRefCntPtr<DiagnosticIDs> diagID(new DiagnosticIDs());
 
-        s_diags_ptr = std::make_unique<DiagnosticsEngine>(diagID, &*diagOpts, diagClient);
-        g_catalog_ptr = std::make_unique<GaiaCatalog>(*(s_diags_ptr.get()));
+        s_diags_ptr = std::make_unique<clang::DiagnosticsEngine>(diagID, &*diagOpts, diagClient);
+        createCatalogInstance(*(s_diags_ptr.get()));
     }
 
-    return *(g_catalog_ptr.get());
+    return *(s_catalog_ptr.get());
 }
 
 const llvm::StringMap<CatalogTableData>& clang::gaia::catalog::getCatalogTableData()

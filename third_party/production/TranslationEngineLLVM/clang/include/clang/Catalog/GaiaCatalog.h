@@ -65,9 +65,9 @@ private:
 };
 
 // Convenience wrappers to get the catalog instance and then access the catalog data.
+void createCatalogInstance(clang::DiagnosticsEngine& diags);
 const llvm::StringMap<CatalogTableData>& getCatalogTableData();
 bool findNavigationPath(llvm::StringRef src, llvm::StringRef dst, llvm::SmallVector<string, 8>& currentPath, bool reportErrors = true);
-extern std::unique_ptr<GaiaCatalog> g_catalog_ptr;
 
 } // namespace catalog
 } // namespace gaia
