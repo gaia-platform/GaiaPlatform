@@ -150,6 +150,7 @@ pip install atools argcomplete
 "$GAIA_REPO/dev_tools/gdev/gdev.sh" dockerfile > "$GAIA_REPO/production/dockerfile"
 cp "$GAIA_REPO/production/dockerfile" "$GAIA_REPO/build/output"
 
+# shellcheck disable=SC2086
 docker buildx build \
     -f "$GAIA_REPO/production/dockerfile" \
     -t build_image \
