@@ -124,7 +124,7 @@ save_current_directory() {
 
 # Set up any global script variables.
 # shellcheck disable=SC2164
-SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+# SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
 # Set up any project based local script variables.
 TEMP_FILE=$(mktemp /tmp/build_image.XXXXXXXXX)
@@ -144,14 +144,13 @@ else
 fi
 
 mkdir -p /build/output
-cd /build/production || exit
 
-
-cd $GAIA_REPO/production
+cd "$GAIA_REPO/production" || exit
 pip install atools argcomplete
-$GAIA_REPO/dev_tools/gdev/gdev.sh dockerfile > $GAIA_REPO/production/dockerfile
+"$GAIA_REPO/dev_tools/gdev/gdev.sh" dockerfile > "$GAIA_REPO/production/dockerfile"
+cp "$GAIA_REPO/production/dockerfile" /build/output
 docker buildx build \
-    -f $GAIA_REPO/production/dockerfile \
+    -f "$GAIA_REPO/production/dockerfile" \
     -t build_image \
     $CONFIGURATION_OPTIONS \
     --cache-from ghcr.io/gaia-platform/dev-base:latest \
