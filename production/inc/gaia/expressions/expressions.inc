@@ -16,7 +16,7 @@ bool expression_decorator_t<T_class>::operator()(const T_class& obj) const
 }
 
 template <typename T_class>
-expression_decorator_t<T_class> expression_decorator_t<T_class>::operator||(expr_predicate_t<T_class> other_predicate)
+expression_decorator_t<T_class> expression_decorator_t<T_class>::operator||(dac_predicate_t<T_class> other_predicate)
 {
     return expression_decorator_t<T_class>(
         [other_predicate = other_predicate, predicate_fn = m_predicate_fn](const T_class& e) {
@@ -25,7 +25,7 @@ expression_decorator_t<T_class> expression_decorator_t<T_class>::operator||(expr
 }
 
 template <typename T_class>
-expression_decorator_t<T_class> expression_decorator_t<T_class>::operator&&(expr_predicate_t<T_class> other_predicate)
+expression_decorator_t<T_class> expression_decorator_t<T_class>::operator&&(dac_predicate_t<T_class> other_predicate)
 {
     return expression_decorator_t<T_class>(
         [other_predicate = other_predicate, predicate_fn = m_predicate_fn](const T_class& e) {

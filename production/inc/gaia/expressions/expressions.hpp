@@ -62,7 +62,7 @@ using member_accessor_fn_t = std::function<T_return(const T_class&)>;
  * Predicate on classes (T_class).
  */
 template <typename T_class>
-using expr_predicate_t = std::function<bool(const T_class&)>;
+using dac_predicate_t = std::function<bool(const T_class&)>;
 
 /**
  * Access data within DAC classes. Data can be accessed via member_accessor_ptr_t
@@ -97,19 +97,19 @@ template <typename T_class>
 class expression_decorator_t
 {
 public:
-    explicit expression_decorator_t(expr_predicate_t<T_class> predicate_fn)
+    explicit expression_decorator_t(dac_predicate_t<T_class> predicate_fn)
         : m_predicate_fn(predicate_fn){};
 
     bool operator()(const T_class& obj) const;
 
-    expression_decorator_t operator||(expr_predicate_t<T_class> other_predicate);
+    expression_decorator_t operator||(dac_predicate_t<T_class> other_predicate);
 
-    expression_decorator_t operator&&(expr_predicate_t<T_class> other_filter);
+    expression_decorator_t operator&&(dac_predicate_t<T_class> other_filter);
 
     expression_decorator_t operator!();
 
 private:
-    expr_predicate_t<T_class> m_predicate_fn;
+    dac_predicate_t<T_class> m_predicate_fn;
 };
 
 /**
