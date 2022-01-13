@@ -87,7 +87,7 @@ jobs:
         run: |
           cd $GAIA_REPO/production
           echo "Executing Clang-Format on Production Tree"
-          echo "$GAIA_REPO/dev_tools/hooks/clang-format.sh"
+          $GAIA_REPO/dev_tools/hooks/clang-format.sh
 
       - name: Set Cache Key for Pre-Commit Checks
         run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
@@ -170,7 +170,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: SDK Output Files
+          name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
 
@@ -213,7 +213,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: Debug_Core Output Files
+          name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
 
@@ -249,7 +249,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: LLVM_Tests Output Files
+          name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
 
@@ -287,7 +287,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: X1 Output Files
+          name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/production/tests/suites
   X2:
@@ -325,6 +325,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: X2 Output Files
+          name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/dev_tools/sdk/test/test.log

@@ -121,7 +121,7 @@ cd ../.. || exit
 
 # check if clang-format is installed.
 if ! command -v clang-format &>/dev/null; then
-    complete_process 1 "Please install clang-format 10.0 and try again."
+    complete_process 1 "Please install clang-format and try again."
 fi
 
 #### 1. check for forbidden patterns in header files ####
@@ -173,7 +173,7 @@ for file in $(find production | grep -E "^(production|demo).*(\.hpp|\.cpp|\.inc)
     done
 
     if [ "$format_file" = "true" ]; then
-        clang-format -i -output-replacements-xml "$file" | grep "<replacement " >/dev/null
+        clang-format -i /clang-format -style=file -output-replacements-xml "$file" | grep "<replacement " >/dev/null
         if [ $? -ne 1 ]; then
 
             if [ $FIX_MODE -ne 0 ]; then
