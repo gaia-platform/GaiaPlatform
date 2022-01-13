@@ -331,7 +331,11 @@ jobs:
 
   Final:
     runs-on: ubuntu-20.04
-    needs: X1, X2, Debug_Core, LLVM_Tests
+    needs:
+      - X1
+      - X2
+      - Debug_Core
+      - LLVM_Tests
     steps:
       - name: Download Debian Install Package
         run: |
