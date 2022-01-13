@@ -135,24 +135,25 @@ parse_command_line "$@"
 start_process
 save_current_directory
 
-mkdir -p /build/output
-mkdir -p /build/package
 cd /build/production || exit
 
+mkdir -p /build/output
 cp /build/production/*.log /build/output
 
 ## PER JOB CONFIGURATION ##
 
 if [ "$JOB_NAME" == "Core" ] ; then
-    ls -la /build/output
     if ! ctest 2>&1 | tee /build/output/ctest.log; then
         complete_process 1 "Unit tests failed to complete successfully."
     fi
-    ls -la /build/output
+
 elif [ "$JOB_NAME" == "SDK" ] ; then
     #cp gaia-${{ env.GAIA_VERSION }}_amd64.deb gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb
     cp "gaia-${GAIA_VERSION}_amd64.deb" "/build/package/gaia-${GAIA_VERSION}_amd64.deb"
     ls -la /build/package/*.deb
+
+    mkdir -p /build/output/package
+    cp /build/package/*.deb /build/output/package
 fi
 
 ## PER JOB CONFIGURATION ##

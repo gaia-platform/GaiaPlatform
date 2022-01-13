@@ -76,14 +76,10 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.8
+
       - name: Install Required Python Packages
         run: |
           python3 -m pip install pre-commit
-      - name: XXX
-        run: |
-          cd $GAIA_REPO/production
-          echo "Executing Clang-Format on Production Tree"
-          echo "$GAIA_REPO/dev_tools/hooks/clang-format.sh"
 
       - name: Set Cache Key for Pre-Commit Checks
         run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
@@ -98,6 +94,7 @@ jobs:
         run: |
           cd $GAIA_REPO/production
           pre-commit run --all-files
+
       - name: Report Job Status To Slack
         uses: 8398a7/action-slack@v3
         if: always()
@@ -239,6 +236,7 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
+
       - name: Report Job Status To Slack
         uses: 8398a7/action-slack@v3
         if: always()
@@ -283,6 +281,7 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
+
       - name: Report Job Status To Slack
         uses: 8398a7/action-slack@v3
         if: always()
@@ -317,10 +316,9 @@ jobs:
         run: |
           cd ${{ github.workspace }}/production/tests/packages
           sudo apt --assume-yes install "$(find . -name gaia*)"
-          cd ${{ github.workspace }}/production/tests
-          sudo ./reset_database.sh --verbose --stop --database
           
-          ./smoke_suites.sh
+          sudo ${{ github.workspace }}/production/tests/reset_database.sh --verbose --stop --database
+          ${{ github.workspace }}/production/tests/smoke_suites.sh
 
       - name: Upload Output Files
         if: always()
@@ -329,6 +327,7 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/production/tests/suites
+
       - name: Report Job Status To Slack
         uses: 8398a7/action-slack@v3
         if: always()
@@ -362,8 +361,8 @@ jobs:
         run: |
           cd ${{ github.workspace }}/production/tests/packages
           sudo apt --assume-yes install "$(find . -name gaia*)"
-          cd ${{ github.workspace }}/production/tests
-          sudo ./reset_database.sh --verbose --stop --database
+
+          sudo ${{ github.workspace }}/production/tests/reset_database.sh --verbose --stop --database
 
           cd ${{ github.workspace }}/dev_tools/sdk/test
           ./build_sdk_samples.sh > test.log
