@@ -56,15 +56,14 @@ jobs:
         run: |
           docker push $DEV_IMAGE
 
-# - name: Report Job Status To Slack
-#   uses: 8398a7/action-slack@v3
-#   if: always()
-#   with:
-#     status: ${{ job.status }}
-#     fields: ${{ env.SLACK_STATUS_FIELDS }}
-#   env:
-#     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
+      - name: Report Job Status To Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: ${{ env.SLACK_STATUS_FIELDS }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   Lint:
     runs-on: ubuntu-20.04
     needs: Third-Party
@@ -102,6 +101,14 @@ jobs:
         run: |
           cd $GAIA_REPO/production
           pre-commit run --all-files
+      - name: Report Job Status To Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: ${{ env.SLACK_STATUS_FIELDS }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   Core:
     runs-on: ubuntu-20.04
     needs: Lint
@@ -137,6 +144,15 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
+      
+      - name: Report Job Status To Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: ${{ env.SLACK_STATUS_FIELDS }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   SDK:
     runs-on: ubuntu-20.04
@@ -180,6 +196,14 @@ jobs:
           name: SDK Install Package
           path: |
             ${{ github.workspace }}/build/output/package
+      - name: Report Job Status To Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: ${{ env.SLACK_STATUS_FIELDS }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   Debug_Core:
     runs-on: ubuntu-20.04
@@ -216,6 +240,14 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
+      - name: Report Job Status To Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: ${{ env.SLACK_STATUS_FIELDS }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   LLVM_Tests:
     runs-on: ubuntu-20.04
@@ -252,6 +284,14 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
+      - name: Report Job Status To Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: ${{ env.SLACK_STATUS_FIELDS }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   X1:
     runs-on: ubuntu-20.04
@@ -290,6 +330,14 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/production/tests/suites
+      - name: Report Job Status To Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: ${{ env.SLACK_STATUS_FIELDS }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   X2:
     runs-on: ubuntu-20.04
     needs: SDK
@@ -329,22 +377,29 @@ jobs:
           path: |
             ${{ github.workspace }}/dev_tools/sdk/test/test.log
 
+      - name: Report Job Status To Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: ${{ env.SLACK_STATUS_FIELDS }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   Final:
     runs-on: ubuntu-20.04
     needs:
       - X1
       - X2
       - Debug_Core
-      - LLVM_Tests
     steps:
       - name: Download Debian Install Package
         run: |
           echo "Done"
-# - name: Report Job Status To Slack
-#   uses: 8398a7/action-slack@v3
-#   if: always()
-#   with:
-#     status: ${{ job.status }}
-#     fields: ${{ env.SLACK_STATUS_FIELDS }}
-#   env:
-#     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Report Job Status To Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: ${{ env.SLACK_STATUS_FIELDS }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
