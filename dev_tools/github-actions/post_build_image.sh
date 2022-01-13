@@ -128,18 +128,14 @@ parse_command_line() {
 # directory at the end of the script.
 save_current_directory() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Saving current directory prior to linting."
+        echo "Saving current directory prior to execution."
     fi
     if ! pushd . >"$TEMP_FILE" 2>&1;  then
         cat "$TEMP_FILE"
-        complete_process 1 "Lint script cannot save the current directory before proceeding."
+        complete_process 1 "Script cannot save the current directory before proceeding."
     fi
     DID_PUSHD=1
 }
-
-# Set up any global script variables.
-# shellcheck disable=SC2164
-# SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
 # Set up any project based local script variables.
 TEMP_FILE=$(mktemp /tmp/build_image.XXXXXXXXX)
@@ -158,7 +154,9 @@ if ! mkdir -p "$GAIA_REPO/build/output" ; then
     complete_process 1 "Unable to create an output directory for '$JOB_NAME'."
 fi
 
+echo "--pre-inside--"
 ls -la "$GAIA_REPO/build/output"
+echo "--pre-inside--"
 if ! docker run \
     --rm \
     --init \
@@ -169,7 +167,9 @@ if ! docker run \
     /source/dev_tools/github-actions/post_build_inside_container.sh --job-name "$JOB_NAME" --gaia-version "$GAIA_VERSION" ; then
     complete_process 1 "Docker post-build script for job '$JOB_NAME' failed."
 fi
+echo "--post-inside--"
 ls -la "$GAIA_REPO/build/output"
+echo "--post-inside--"
 
 complete_process 0
 

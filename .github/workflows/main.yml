@@ -104,10 +104,10 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   Core:
-    runs-on: ubuntu-20.04
     needs:
       - Lint
       - Third-Party
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -129,7 +129,7 @@ jobs:
         run: |
           $GAIA_REPO/dev_tools/github-actions/build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --base-image $DEV_IMAGE
 
-      - name: Run Docker Image And Post-Build Script
+      - name: Run Unit Tests
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --gaia-version $GAIA_VERSION
 
@@ -151,8 +151,8 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   SDK:
+    needs: Third-Party
     runs-on: ubuntu-20.04
-    needs: Core
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -202,8 +202,8 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   Debug_Core:
-    runs-on: ubuntu-20.04
     needs: Core
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -247,8 +247,9 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   LLVM_Tests:
-    runs-on: ubuntu-20.04
     needs: Core
+    if: ${{ false }}
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -292,8 +293,8 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   X1:
-    runs-on: ubuntu-20.04
     needs: SDK
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -314,11 +315,7 @@ jobs:
       - name: Tests
         working-directory: ${{ github.workspace }}
         run: |
-          cd ${{ github.workspace }}/production/tests/packages
-          sudo apt --assume-yes install "$(find . -name gaia*)"
-          
-          sudo ${{ github.workspace }}/production/tests/reset_database.sh --verbose --stop --database
-          ${{ github.workspace }}/production/tests/smoke_suites.sh
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
 
       - name: Upload Output Files
         if: always()
@@ -326,7 +323,7 @@ jobs:
         with:
           name: ${{github.job}} Output Files
           path: |
-            ${{ github.workspace }}/production/tests/suites
+            ${{ github.workspace }}/production/tests/results
 
       - name: Report Job Status To Slack
         uses: 8398a7/action-slack@v3
@@ -337,8 +334,8 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   X2:
-    runs-on: ubuntu-20.04
     needs: SDK
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -384,12 +381,12 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   Final:
-    runs-on: ubuntu-20.04
-    if: always()
     needs:
       - X1
       - X2
       - Debug_Core
+    runs-on: ubuntu-20.04
+    if: always()
     steps:
       - uses: technote-space/workflow-conclusion-action@v2
 

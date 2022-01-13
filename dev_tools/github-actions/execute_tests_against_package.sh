@@ -8,7 +8,7 @@
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Executing tasks inside of the built Gaia image..."
+        echo "Running tests against the provided docker Debian package..."
     fi
 }
 
@@ -22,10 +22,10 @@ complete_process() {
     fi
 
     if [ "$SCRIPT_RETURN_CODE" -ne 0 ]; then
-        echo "Executing tasks inside of the Gaia image failed."
+        echo "Running the tests against the package failed."
     else
         if [ "$VERBOSE_MODE" -ne 0 ]; then
-            echo "Executing tasks inside of the Gaia image succeeded."
+            echo "Running the tests against the package succeeded."
         fi
     fi
 
@@ -47,8 +47,8 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
-    echo "  -g,--gaia-version   Version associate with the build."
     echo "  -j,--job-name       GitHub Actions job that this script is being invoked from."
+    echo "  -r,--repo-path      Base path of the repository to generate from."
     echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
     echo ""
@@ -59,10 +59,20 @@ show_usage() {
 parse_command_line() {
     VERBOSE_MODE=0
     JOB_NAME=
-    GAIA_VERSION=
+    GAIA_REPO=
+    PACKAGE_PATH=
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
+        -r|--repo-path)
+            if [ -z "$2" ] ; then
+                echo "Error: Argument $1 must be followed by the path to the repository." >&2
+                show_usage
+            fi
+            GAIA_REPO=$2
+            shift
+            shift
+        ;;
         -j|--job-name)
             if [ -z "$2" ] ; then
                 echo "Error: Argument $1 must be followed by the name of a job." >&2
@@ -72,12 +82,12 @@ parse_command_line() {
             shift
             shift
         ;;
-        -g|--gaia-version)
+        -p|--package)
             if [ -z "$2" ] ; then
-                echo "Error: Argument $1 must be followed by the version of Gaia being built." >&2
+                echo "Error: Argument $1 must be followed by the path to the package." >&2
                 show_usage
             fi
-            GAIA_VERSION=$2
+            PACKAGE_PATH=$2
             shift
             shift
         ;;
@@ -99,12 +109,16 @@ parse_command_line() {
     esac
     done
 
-    if [ -z "$JOB_NAME" ] ; then
-        echo "Error: Argument -j/--job-name is required" >&2
+    if [ -z "$GAIA_REPO" ] ; then
+        echo "Error: Argument -r/--repo-path is required" >&2
         show_usage
     fi
-    if [ -z "$GAIA_VERSION" ] ; then
-        echo "Error: Argument -g/--gaia-version is required" >&2
+    if [ -z "$PACKAGE_PATH" ] ; then
+        echo "Error: Argument -p/--package is required" >&2
+        show_usage
+    fi
+    if [ -z "$JOB_NAME" ] ; then
+        echo "Error: Argument -j/--job-name is required" >&2
         show_usage
     fi
 }
@@ -123,7 +137,7 @@ save_current_directory() {
 }
 
 # Set up any project based local script variables.
-TEMP_FILE=$(mktemp /tmp/post_build_inside.XXXXXXXXX)
+TEMP_FILE=$(mktemp /tmp/execute_tests_against_package.XXXXXXXXX)
 
 # Parse any command line values.
 parse_command_line "$@"
@@ -132,32 +146,24 @@ parse_command_line "$@"
 start_process
 save_current_directory
 
-cd /build/production || exit
+# Ensure we have a predicatable place to place output that we want to expose.
+if ! mkdir -p "$GAIA_REPO/build/output" ; then
+    complete_process 1 "Unable to create an output directory for '$JOB_NAME'."
+fi
 
-mkdir -p /build/output
-cp /build/production/*.log /build/output
+cd "$PACKAGE_PATH" || exit
+# shellcheck disable=SC2061
+sudo apt --assume-yes install "$(find . -name gaia*)"
 
 ## PER JOB CONFIGURATION ##
 
-if [ "$JOB_NAME" == "Core" ] ; then
-    if ! ctest 2>&1 | tee /build/output/ctest.log; then
-        complete_process 1 "Unit tests failed to complete successfully."
-    fi
+if [ "$JOB_NAME" == "X1" ] ; then
 
-elif [ "$JOB_NAME" == "SDK" ] ; then
-    echo "--inside-pre--"
-    ls -laR /build/output
-    echo "--inside-pre--"
-    ls -la /build/package/
-    echo "--inside-pre--"
+    sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop --database
+    "$GAIA_REPO/production/tests/smoke_suites.sh"
 
-    #cp gaia-${{ env.GAIA_VERSION }}_amd64.deb gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb
-    mkdir -p /build/output/package
-    cp /build/package/"gaia-${GAIA_VERSION}_amd64.deb" "/build/output/package/gaia-${GAIA_VERSION}_amd64.deb"
-
-    echo "--inside-post--"
-    ls -laR /build/output
-    echo "--inside-post--"
+    mkdir "$GAIA_REPO/production/tests/results"
+    cp -a "$GAIA_REPO/production/tests/suites" "$GAIA_REPO/production/tests/results"
 fi
 
 ## PER JOB CONFIGURATION ##
