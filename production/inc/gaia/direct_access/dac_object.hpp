@@ -10,9 +10,9 @@
 #include "gaia/direct_access/auto_transaction.hpp"
 #include "gaia/direct_access/dac_array.hpp"
 #include "gaia/direct_access/dac_base.hpp"
-#include "gaia/direct_access/dac_expressions.hpp"
 #include "gaia/direct_access/nullable_string.hpp"
 #include "gaia/exceptions.hpp"
+#include "gaia/expressions/expressions.hpp"
 
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)

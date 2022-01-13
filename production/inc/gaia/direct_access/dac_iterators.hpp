@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <functional>
 #include <utility>
 
 #include "gaia/common.hpp"
