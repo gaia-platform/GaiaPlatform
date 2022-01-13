@@ -66,11 +66,8 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   Lint:
     runs-on: ubuntu-20.04
-    needs: Third-Party
     env:
       GAIA_REPO: ${{ github.workspace }}
-# container:
-#   image: ghcr.io/gaia-platform/dev-base:latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
