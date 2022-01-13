@@ -45,13 +45,13 @@ public:
     {
     }
 
-    constexpr int_type_t(T_type value)
+    constexpr int_type_t(T_type value) // NOLINT(google-explicit-constructor)
         : m_value(value)
     {
     }
 
     // This conversion operator will enable many direct operations with integers.
-    operator T_type() const;
+    operator T_type() const; // NOLINT(google-explicit-constructor)
 
     // For explicit retrieval of contained value.
     constexpr T_type value() const
