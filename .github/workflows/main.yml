@@ -13,6 +13,7 @@ env:
   GAIA_VERSION: 0.3.3
   SSH_AUTH_SOCK: /tmp/ssh_agent.sock
   DEV_IMAGE: ghcr.io/gaia-platform/dev-base:latest
+  SLACK_STATUS_FIELDS: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest
 
 jobs:
   Third-Party:
@@ -54,6 +55,15 @@ jobs:
       - name: Rename Image and Publish
         run: |
           docker push $DEV_IMAGE
+
+# - name: Report Job Status To Slack
+#   uses: 8398a7/action-slack@v3
+#   if: always()
+#   with:
+#     status: ${{ job.status }}
+#     fields: ${{ env.SLACK_STATUS_FIELDS }}
+#   env:
+#     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   Lint:
     runs-on: ubuntu-20.04
