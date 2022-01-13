@@ -68,6 +68,8 @@ jobs:
   Lint:
     runs-on: ubuntu-20.04
     needs: Third-Party
+    env:
+      GAIA_REPO: ${{ github.workspace }}
     container:
       image: ghcr.io/gaia-platform/dev-base:latest
     steps:
