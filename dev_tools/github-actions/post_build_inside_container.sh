@@ -139,6 +139,8 @@ mkdir -p /build/output
 mkdir -p /build/package
 cd /build/production || exit
 
+cp /build/production/*.log /build/output
+
 ## PER JOB CONFIGURATION ##
 
 if [ "$JOB_NAME" == "Core" ] ; then
