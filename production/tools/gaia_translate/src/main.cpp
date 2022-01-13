@@ -376,7 +376,7 @@ bool is_path_segment_contained_in_another_path(
 
 void validate_table_data()
 {
-    if (GaiaCatalog::getCatalogTableData().empty())
+    if (getCatalogTableData().empty())
     {
         g_is_generation_error = true;
         return;
@@ -525,10 +525,10 @@ bool parse_attribute(StringRef attribute, string& table, string& field, string& 
     }
     validate_table_data();
 
-    if (GaiaCatalog::getCatalogTableData().find(tagless_attribute) == GaiaCatalog::getCatalogTableData().end())
+    if (getCatalogTableData().find(tagless_attribute) == getCatalogTableData().end())
     {
         // Might be a field.
-        for (const auto& tbl : GaiaCatalog::getCatalogTableData())
+        for (const auto& tbl : getCatalogTableData())
         {
             if (tbl.second.fieldData.find(tagless_attribute) != tbl.second.fieldData.end())
             {
@@ -562,14 +562,14 @@ bool validate_and_add_active_field(StringRef table_name, StringRef field_name, b
         return false;
     }
 
-    if (GaiaCatalog::getCatalogTableData().find(table_name) == GaiaCatalog::getCatalogTableData().end())
+    if (getCatalogTableData().find(table_name) == getCatalogTableData().end())
     {
         gaiat::diag().emit(diag::err_table_not_found) << table_name;
         g_is_generation_error = true;
         return false;
     }
 
-    const auto& fields = GaiaCatalog::getCatalogTableData().find(table_name)->second.fieldData;
+    const auto& fields = getCatalogTableData().find(table_name)->second.fieldData;
     const auto& field_iterator = fields.find(field_name);
     if (field_iterator == fields.end())
     {
@@ -626,7 +626,7 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
     for (auto& insert_data : g_insert_data)
     {
         llvm::SmallString<32> class_qualification_string = StringRef("gaia::");
-        class_qualification_string.append(db_namespace(GaiaCatalog::getCatalogTableData().find(insert_data.table_name)->second.dbName));
+        class_qualification_string.append(db_namespace(getCatalogTableData().find(insert_data.table_name)->second.dbName));
         class_qualification_string.append(insert_data.table_name);
         class_qualification_string.append("_t::");
         llvm::SmallString<64> replacement_string = class_qualification_string.str();
@@ -634,7 +634,7 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
         replacement_string.append(class_qualification_string);
         replacement_string.append("insert_row(");
         llvm::SmallVector<string, 16> function_arguments = table_navigation_t::get_table_fields(insert_data.table_name);
-        const auto& table_data_iterator = GaiaCatalog::getCatalogTableData().find(insert_data.table_name);
+        const auto& table_data_iterator = getCatalogTableData().find(insert_data.table_name);
         // Generate call arguments.
         for (const auto& call_argument : function_arguments)
         {
@@ -745,7 +745,7 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
                                 data_iterator->path_components.front()),
                             data_iterator->tag_table_map);
 
-                        //Check if a declaration has table references that is not an anchor table.
+                        // Check if a declaration has table references that is not an anchor table.
                         if ((!insert_table.empty() && insert_table == table_name)
                             || (data_iterator->path_components.size() == 1
                                 && table_name == anchor_table_name && !data_iterator->is_absolute_path))
@@ -848,7 +848,7 @@ void generate_table_subscription(
     Rewriter& rewriter)
 {
     llvm::SmallString<256> common_subscription_code;
-    if (GaiaCatalog::getCatalogTableData().find(table) == GaiaCatalog::getCatalogTableData().end())
+    if (getCatalogTableData().find(table) == getCatalogTableData().end())
     {
         gaiat::diag().emit(diag::err_table_not_found) << table;
         g_is_generation_error = true;
@@ -911,7 +911,7 @@ void generate_table_subscription(
     {
         g_current_ruleset_subscription.append(c_ident);
         g_current_ruleset_subscription.append("gaia::rules::subscribe_rule(gaia::");
-        g_current_ruleset_subscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
+        g_current_ruleset_subscription.append(db_namespace(getCatalogTableData().find(table)->second.dbName));
         g_current_ruleset_subscription.append(table);
         if (subscribe_update)
         {
@@ -928,7 +928,7 @@ void generate_table_subscription(
 
         g_current_ruleset_unsubscription.append(c_ident);
         g_current_ruleset_unsubscription.append("gaia::rules::unsubscribe_rule(gaia::");
-        g_current_ruleset_unsubscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
+        g_current_ruleset_unsubscription.append(db_namespace(getCatalogTableData().find(table)->second.dbName));
         g_current_ruleset_unsubscription.append(table);
         g_current_ruleset_unsubscription.append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
         g_current_ruleset_unsubscription.append(rule_name);
@@ -939,7 +939,7 @@ void generate_table_subscription(
         g_current_ruleset_subscription.append(field_subscription_code);
         g_current_ruleset_subscription.append(c_ident);
         g_current_ruleset_subscription.append("gaia::rules::subscribe_rule(gaia::");
-        g_current_ruleset_subscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
+        g_current_ruleset_subscription.append(db_namespace(getCatalogTableData().find(table)->second.dbName));
         g_current_ruleset_subscription.append(table);
         g_current_ruleset_subscription.append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_update, fields_");
         g_current_ruleset_subscription.append(rule_name);
@@ -949,7 +949,7 @@ void generate_table_subscription(
         g_current_ruleset_unsubscription.append(field_subscription_code);
         g_current_ruleset_unsubscription.append(c_ident);
         g_current_ruleset_unsubscription.append("gaia::rules::unsubscribe_rule(gaia::");
-        g_current_ruleset_unsubscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
+        g_current_ruleset_unsubscription.append(db_namespace(getCatalogTableData().find(table)->second.dbName));
         g_current_ruleset_unsubscription.append(table);
         g_current_ruleset_unsubscription.append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_update, fields_");
         g_current_ruleset_unsubscription.append(rule_name);
@@ -1008,7 +1008,7 @@ void generate_table_subscription(
         }
         if (is_anchor_generation_required)
         {
-            const auto& table_data = GaiaCatalog::getCatalogTableData();
+            const auto& table_data = getCatalogTableData();
             auto anchor_table_data_itr = table_data.find(table);
 
             if (anchor_table_data_itr == table_data.end())
@@ -1107,7 +1107,7 @@ void optimize_subscription(StringRef table, int rule_count)
             = (Twine(g_current_ruleset) + "_" + g_current_rule_declaration->getName() + "_" + Twine(rule_count)).str();
         g_current_ruleset_subscription.append(c_ident);
         g_current_ruleset_subscription.append("gaia::rules::subscribe_rule(gaia::");
-        g_current_ruleset_subscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
+        g_current_ruleset_subscription.append(db_namespace(getCatalogTableData().find(table)->second.dbName));
         g_current_ruleset_subscription.append(table);
         g_current_ruleset_subscription.append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
         g_current_ruleset_subscription.append(rule_name);
@@ -1115,7 +1115,7 @@ void optimize_subscription(StringRef table, int rule_count)
 
         g_current_ruleset_unsubscription.append(c_ident);
         g_current_ruleset_unsubscription.append("gaia::rules::unsubscribe_rule(gaia::");
-        g_current_ruleset_unsubscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
+        g_current_ruleset_unsubscription.append(db_namespace(getCatalogTableData().find(table)->second.dbName));
         g_current_ruleset_unsubscription.append(table);
         g_current_ruleset_unsubscription.append("_t::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
         g_current_ruleset_unsubscription.append(rule_name);
@@ -1217,7 +1217,7 @@ void generate_rules(Rewriter& rewriter)
         field_subscription_code.append(rule_name);
         field_subscription_code.append(";\n");
 
-        const auto& fields = GaiaCatalog::getCatalogTableData().find(table)->second.fieldData;
+        const auto& fields = getCatalogTableData().find(table)->second.fieldData;
 
         for (const auto& field : field_description.second)
         {
@@ -1586,7 +1586,7 @@ void update_expression_explicit_path_data(
                         && get_table_from_expression(path_expression_explicit_path_data_iterator.path_components.back()) == data.anchor_table)
                     {
                         data.anchor_variable = path_expression_explicit_path_data_iterator.variable_name;
-                        if(data.skip_implicit_path_generation && path_expression_explicit_path_data_iterator.variable_name != data.variable_name)
+                        if (data.skip_implicit_path_generation && path_expression_explicit_path_data_iterator.variable_name != data.variable_name)
                         {
                             data.skip_implicit_path_generation = false;
                         }
@@ -1763,7 +1763,7 @@ void update_used_dbs(const explicit_path_data_t& explicit_path_data)
         {
             table_name = tag_table_iterator->second;
         }
-        g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
+        g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
     }
 }
 
@@ -1818,7 +1818,7 @@ public:
                 variable_name = table_name;
                 explicit_path_present = false;
                 expression_source_range = SourceRange(expression->getLocation(), expression->getEndLoc());
-                g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
+                g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
             }
             else
             {
@@ -1871,7 +1871,7 @@ public:
                         = SourceRange(
                             member_expression->getBeginLoc(),
                             member_expression->getEndLoc());
-                    g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
+                    g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
                 }
                 else
                 {
@@ -1927,7 +1927,7 @@ public:
                     }
                 }
             }
-            g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
+            g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
             m_rewriter.ReplaceText(expression_source_range, replacement);
             g_rewriter_history.push_back({expression_source_range, replacement, replace_text});
             auto offset
@@ -2054,7 +2054,7 @@ public:
             {
                 explicit_path_present = false;
                 set_source_range.setBegin(left_declaration_expression->getLocation());
-                g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
+                g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
             }
             else
             {
@@ -2065,7 +2065,6 @@ public:
                 explicit_path_data.anchor_variable = anchor_variable;
                 explicit_path_data.is_anchor = is_anchor;
                 explicit_path_data.skip_implicit_path_generation = skip_implicit_navigation;
-
             }
             if (operator_declaration->hasAttr<GaiaFieldValueAttr>())
             {
@@ -2106,7 +2105,7 @@ public:
             {
                 explicit_path_present = false;
                 set_source_range.setBegin(member_expression->getBeginLoc());
-                g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
+                g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
             }
             else
             {
@@ -2377,7 +2376,7 @@ public:
             {
                 variable_name = table_name;
                 explicit_path_present = false;
-                g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
+                g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
             }
             else
             {
@@ -2414,7 +2413,7 @@ public:
             if (!get_explicit_path_data(operator_declaration, explicit_path_data, operator_source_range))
             {
                 explicit_path_present = false;
-                g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
+                g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
             }
             else
             {
@@ -2811,13 +2810,13 @@ public:
         {
             g_variable_declaration_location[variable_declaration->getSourceRange()] = variable_name;
             gaiat::diag().set_location(variable_declaration->getSourceRange().getBegin());
-            if (GaiaCatalog::getCatalogTableData().find(variable_name) != GaiaCatalog::getCatalogTableData().end())
+            if (getCatalogTableData().find(variable_name) != getCatalogTableData().end())
             {
                 gaiat::diag().emit(diag::warn_table_hidden) << variable_name;
                 return;
             }
 
-            for (const auto& table_data : GaiaCatalog::getCatalogTableData())
+            for (const auto& table_data : getCatalogTableData())
             {
                 if (table_data.second.fieldData.find(variable_name) != table_data.second.fieldData.end())
                 {
@@ -2958,7 +2957,7 @@ public:
         {
             explicit_path_present = false;
             expression_source_range = SourceRange(expression->getLocation(), expression->getEndLoc());
-            g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
+            g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
         }
         else
         {
@@ -3210,7 +3209,7 @@ public:
 
         if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
         {
-            g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
+            g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
             explicit_path_present = false;
             expression_source_range.setBegin(expression->getLParenLoc().getLocWithOffset(1));
             variable_name = table_name;
@@ -3393,7 +3392,7 @@ public:
 
         const auto* link_expr = result.Nodes.getNodeAs<MemberExpr>("tableFieldGet");
 
-        const llvm::StringMap<CatalogTableData>& table_data = GaiaCatalog::getCatalogTableData();
+        const llvm::StringMap<CatalogTableData>& table_data = getCatalogTableData();
 
         gaiat::diag().set_location(table_call->getLocation());
 
@@ -3897,7 +3896,11 @@ public:
             false);
         m_diagnostics_source_manager = std::make_unique<SourceManager>(*m_diagnostics_engine, compiler.getFileManager(), false);
 
-        g_diag_ptr = std::make_unique<diagnostic_context_t>(m_diagnostics_source_manager->getDiagnostics());
+        // Ensure we are using the same compiler diagnostics engine from any exception code thrown by
+        // the catalog or translation engine code.
+        g_diag_ptr = std::make_unique<diagnostic_context_t>(compiler_diagnostic_engine);
+        GaiaCatalog::create(compiler_diagnostic_engine);
+
         return std::unique_ptr<clang::ASTConsumer>(
             new translation_engine_consumer_t(&compiler.getASTContext(), m_rewriter));
     }
