@@ -25,8 +25,7 @@ repos:
         - --Werror
         - --style=file
         - -i
-      exclude: ^(((data|scratch|third_party)/)|production/tests/workloads/template/json.hpp)
-
+      exclude: ^(production/tests/workloads/template/json.hpp|production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h)
 # Waiting on https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1848 and https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1849
 # - repo: https://github.com/pocc/pre-commit-hooks
 #   rev: master

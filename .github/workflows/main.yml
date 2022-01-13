@@ -401,4 +401,4 @@ jobs:
           fields: ${{ env.SLACK_STATUS_FIELDS }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        if: env.WORKFLOW_CONCLUSION == 'failure' # notify only if failure
+# if: env.WORKFLOW_CONCLUSION == 'failure' # notify only if failure
