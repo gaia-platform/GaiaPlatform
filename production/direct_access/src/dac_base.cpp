@@ -140,12 +140,12 @@ void dac_db_t::update(gaia_id_t id, size_t data_size, const void* data)
     gaia_ptr::update_payload(id, data_size, data);
 }
 
-bool dac_db_t::insert_into_anchor_chain(gaia_id_t parent_id, gaia_id_t id, common::reference_offset_t anchor_slot)
+bool dac_db_t::insert_into_reference_container(gaia_id_t parent_id, gaia_id_t id, common::reference_offset_t anchor_slot)
 {
     return gaia_ptr::insert_into_reference_container(parent_id, id, anchor_slot);
 }
 
-bool dac_db_t::remove_from_anchor_chain(gaia_id_t parent_id, gaia_id_t id, common::reference_offset_t anchor_slot)
+bool dac_db_t::remove_from_reference_container(gaia_id_t parent_id, gaia_id_t id, common::reference_offset_t anchor_slot)
 {
     return gaia_ptr::remove_from_reference_container(parent_id, id, anchor_slot);
 }
@@ -255,7 +255,7 @@ bool dac_base_reference_t::connect(gaia_id_t old_id, gaia::common::gaia_id_t new
         return false;
     }
     dac_base_reference_t::disconnect(old_id);
-    dac_db_t::insert_into_anchor_chain(m_parent_id, new_id, m_child_offset);
+    dac_db_t::insert_into_reference_container(m_parent_id, new_id, m_child_offset);
     return true;
 }
 
@@ -265,7 +265,7 @@ bool dac_base_reference_t::disconnect(gaia_id_t id)
     {
         return false;
     }
-    dac_db_t::remove_from_anchor_chain(m_parent_id, id, m_child_offset);
+    dac_db_t::remove_from_reference_container(m_parent_id, id, m_child_offset);
     return true;
 }
 
