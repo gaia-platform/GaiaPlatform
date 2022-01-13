@@ -139,6 +139,8 @@ mkdir -p /build/output
 mkdir -p /build/package
 cd /build/production || exit
 
+## PER JOB CONFIGURATION ##
+
 if [ "$JOB_NAME" == "Core" ] ; then
     ls -la /build/output
     if ! ctest 2>&1 | tee /build/output/ctest.log; then
@@ -150,6 +152,8 @@ elif [ "$JOB_NAME" == "SDK" ] ; then
     cp "gaia-${GAIA_VERSION}_amd64.deb" "/build/package/gaia-${GAIA_VERSION}_amd64.deb"
     ls -la /build/package/*.deb
 fi
+
+## PER JOB CONFIGURATION ##
 
 complete_process 0
 

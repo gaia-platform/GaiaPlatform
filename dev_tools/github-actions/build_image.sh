@@ -143,14 +143,22 @@ parse_command_line "$@"
 start_process
 save_current_directory
 
+## PER JOB CONFIGURATION ##
+
 CONFIGURATION_OPTIONS=
 if [ "$JOB_NAME" == "Core" ] ; then
     CONFIGURATION_OPTIONS="--cfg-enables ubuntu:20.04"
+elif [ "$JOB_NAME" == "Debug_Core" ] ; then
+    CONFIGURATION_OPTIONS="--cfg-enables ubuntu:20.04 --cfg-enables Debug"
 elif [ "$JOB_NAME" == "SDK" ] ; then
     CONFIGURATION_OPTIONS="--cfg-enables ubuntu:20.04 --cfg-enables GaiaRelease"
+elif [ "$JOB_NAME" == "LLVM_Tests" ] ; then
+    CONFIGURATION_OPTIONS="--cfg-enables ubuntu:20.04 --cfg-enables GaiaLLVMTests"
 else
     complete_process 1 "Cannot build docker image for job named '$JOB_NAME'."
 fi
+
+## PER JOB CONFIGURATION ##
 
 # Ensure we have a predicatable place to place output that we want to expose.
 if ! mkdir -p "$GAIA_REPO/build/output" ; then

@@ -9,15 +9,16 @@ on:
     branches:
       - master
       - jack/gha
+env:
+  GAIA_VERSION: 0.3.3
+  SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+  DEV_IMAGE: ghcr.io/gaia-platform/dev-base:latest
 
 jobs:
   Third-Party:
     runs-on: ubuntu-20.04
     env:
-      GAIA_VERSION: 0.3.3
       GAIA_REPO: ${{ github.workspace }}
-      SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-      DEV_IMAGE: ghcr.io/gaia-platform/dev-base:latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -59,8 +60,6 @@ jobs:
     needs: Third-Party
     container:
       image: ghcr.io/gaia-platform/dev-base:latest
-    env:
-      GAIA_REPO: ${{ github.workspace }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -96,10 +95,7 @@ jobs:
     runs-on: ubuntu-20.04
     needs: Lint
     env:
-      GAIA_VERSION: 0.3.3
       GAIA_REPO: ${{ github.workspace }}
-      SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-      DEV_IMAGE: ghcr.io/gaia-platform/dev-base:latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -135,10 +131,7 @@ jobs:
     runs-on: ubuntu-20.04
     needs: Core
     env:
-      GAIA_VERSION: 0.3.3
       GAIA_REPO: ${{ github.workspace }}
-      SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-      DEV_IMAGE: ghcr.io/gaia-platform/dev-base:latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -166,13 +159,161 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: Core Output Files
+          name: SDK Output Files
           path: |
             ${{ github.workspace }}/build/output
 
-      - name: Upload Logs
+      - name: Upload Install Package
         uses: actions/upload-artifact@v2
         with:
           name: SDK Install Package
           path: |
             ${{ github.workspace }}/build/package
+
+  Debug_Core:
+    runs-on: ubuntu-20.04
+    needs: Core
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Pull Latest Dev-Core Image
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker pull $DEV_IMAGE
+
+      - name: Build Docker Image
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --base-image $DEV_IMAGE
+
+      - name: Run Docker Image And Post-Build Script
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --gaia-version $GAIA_VERSION
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debug_Core Output Files
+          path: |
+            ${{ github.workspace }}/build/output
+
+  LLVM_Tests:
+    runs-on: ubuntu-20.04
+    needs: Core
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Pull Latest Dev-Core Image
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker pull $DEV_IMAGE
+
+      - name: Build Docker Image
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --base-image $DEV_IMAGE
+
+      - name: Run Docker Image And Post-Build Script
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --gaia-version $GAIA_VERSION
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: LLVM_Tests Output Files
+          path: |
+            ${{ github.workspace }}/build/output
+
+  X1:
+    runs-on: ubuntu-20.04
+    needs: SDK
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Download Debian Install Package
+        uses: actions/download-artifact@v2
+        with:
+          name: SDK Install Package
+          path: ${{ github.workspace }}/production/tests/packages
+
+      - name: Tests
+        working-directory: ${{ github.workspace }}
+        run: |
+          cd ${{ github.workspace }}/production/tests/packages
+          sudo apt --assume-yes install "$(find . -name gaia*)"
+          cd ${{ github.workspace }}/production/tests
+          sudo ./reset_database.sh --verbose --stop --database
+          
+          ./smoke_suites.sh
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: X1 Output Files
+          path: |
+            ${{ github.workspace }}/production/tests/suites
+  X2:
+    runs-on: ubuntu-20.04
+    needs: SDK
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Download Debian Install Package
+        uses: actions/download-artifact@v2
+        with:
+          name: SDK Install Package
+          path: ${{ github.workspace }}/production/tests/packages
+
+      - name: Tests
+        working-directory: ${{ github.workspace }}
+        run: |
+          cd ${{ github.workspace }}/production/tests/packages
+          sudo apt --assume-yes install "$(find . -name gaia*)"
+          cd ${{ github.workspace }}/production/tests
+          sudo ./reset_database.sh --verbose --stop --database
+
+          cd ${{ github.workspace }}/dev_tools/sdk/test
+          ./build_sdk_samples.sh > test.log
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: X2 Output Files
+          path: |
+            ${{ github.workspace }}/dev_tools/sdk/test/test.log
