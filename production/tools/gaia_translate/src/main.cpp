@@ -745,7 +745,7 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
                                 data_iterator->path_components.front()),
                             data_iterator->tag_table_map);
 
-                        //Check if a declaration has table references that is not an anchor table.
+                        // Check if a declaration has table references that is not an anchor table.
                         if ((!insert_table.empty() && insert_table == table_name)
                             || (data_iterator->path_components.size() == 1
                                 && table_name == anchor_table_name && !data_iterator->is_absolute_path))

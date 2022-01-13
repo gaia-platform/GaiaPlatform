@@ -391,7 +391,7 @@ struct rule_decl_t
  * transaction_rollback: rule3, rule4
  */
 static const rule_decl_t c_rule_decl[] = {
-    //TODO[GAIAPLAT-445] We don't expose deleted row events
+    // TODO[GAIAPLAT-445] We don't expose deleted row events
     // {{c_ruleset1_name, c_rule1_name, test_gaia_t::s_gaia_type, event_type_t::row_delete, 0, 1}, rule1},
     // {{c_ruleset1_name, c_rule2_name, test_gaia_t::s_gaia_type, event_type_t::row_delete, 0, 2}, rule2},
     {{c_ruleset1_name, c_rule2_name, test_gaia_t::s_gaia_type, event_type_t::row_insert, 0, 2}, rule2},
@@ -984,7 +984,7 @@ TEST_F(event_manager_test, unsubscribe_rule_not_found)
     // Try to remove the rule from the other table events that we didn't register the rule on.
     EXPECT_EQ(false, unsubscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_insert, empty_fields, rb));
     // TODO[GAIAPLAT-445] We don't expose deleted row events
-    //EXPECT_EQ(false, unsubscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_delete, empty_fields, rb));
+    // EXPECT_EQ(false, unsubscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_delete, empty_fields, rb));
 
     // Try to remove the rule from a type that we didn't register the rule on
     EXPECT_EQ(false, unsubscribe_rule(test_gaia_other_t::s_gaia_type, event_type_t::row_update, empty_fields, rb));

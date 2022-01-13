@@ -70,8 +70,8 @@ jobs:
     needs: Third-Party
     env:
       GAIA_REPO: ${{ github.workspace }}
-    container:
-      image: ghcr.io/gaia-platform/dev-base:latest
+# container:
+#   image: ghcr.io/gaia-platform/dev-base:latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -328,3 +328,19 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/dev_tools/sdk/test/test.log
+
+  Final:
+    runs-on: ubuntu-20.04
+    needs: X1, X2, Debug_Core, LLVM_Tests
+    steps:
+      - name: Download Debian Install Package
+        run: |
+          echo "Done"
+# - name: Report Job Status To Slack
+#   uses: 8398a7/action-slack@v3
+#   if: always()
+#   with:
+#     status: ${{ job.status }}
+#     fields: ${{ env.SLACK_STATUS_FIELDS }}
+#   env:
+#     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
