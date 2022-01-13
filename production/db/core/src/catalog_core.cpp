@@ -190,8 +190,7 @@ list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint
     auto obj_ptr = id_to_ptr(table_id);
     const gaia_id_t* references = obj_ptr->references();
     gaia_id_t first_obj_id = references[first_offset];
-    auto generator = [id = first_obj_id, next_offset]() mutable -> std::optional<T_catalog_obj_view>
-    {
+    auto generator = [id = first_obj_id, next_offset]() mutable -> std::optional<T_catalog_obj_view> {
         if (id == c_invalid_gaia_id)
         {
             return std::nullopt;
@@ -207,31 +206,31 @@ list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint
 field_list_t catalog_core_t::list_fields(gaia_id_t table_id)
 {
     return list_catalog_obj_reference_chain<field_view_t>(
-        table_id, c_gaia_table_first_gaia_field_offset, c_gaia_field_next_gaia_field_offset);
+        table_id, c_gaia_table_first_gaia_fields, c_gaia_field_next_table);
 }
 
 relationship_list_t catalog_core_t::list_relationship_from(gaia_id_t table_id)
 {
     return list_catalog_obj_reference_chain<relationship_view_t>(
         table_id,
-        c_gaia_table_first_parent_gaia_relationship_offset,
-        c_gaia_relationship_next_parent_gaia_relationship_offset);
+        c_gaia_table_first_outgoing_relationships,
+        c_gaia_relationship_next_parent);
 }
 
 relationship_list_t catalog_core_t::list_relationship_to(gaia_id_t table_id)
 {
     return list_catalog_obj_reference_chain<relationship_view_t>(
         table_id,
-        c_gaia_table_first_child_gaia_relationship_offset,
-        c_gaia_relationship_next_child_gaia_relationship_offset);
+        c_gaia_table_first_incoming_relationships,
+        c_gaia_relationship_next_child);
 }
 
 index_list_t catalog_core_t::list_indexes(gaia_id_t table_id)
 {
     return list_catalog_obj_reference_chain<index_view_t>(
         table_id,
-        c_gaia_table_first_gaia_index_offset,
-        c_gaia_index_next_gaia_index_offset);
+        c_gaia_table_first_gaia_indexes,
+        c_gaia_index_next_table);
 }
 
 gaia_id_t catalog_core_t::find_index(gaia_id_t table_id, field_position_t field_position)
