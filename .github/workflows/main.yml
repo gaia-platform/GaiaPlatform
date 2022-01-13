@@ -47,7 +47,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: Third-Party Docker Files
+          name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/production/raw_dockerfile
             ${{ github.workspace }}/production/dockerfile
@@ -82,7 +82,6 @@ jobs:
           python-version: 3.8
       - name: Install Required Python Packages
         run: |
-          python3.8 -m pip install pre-commit
           python3 -m pip install pre-commit
       - name: XXX
         run: |
@@ -135,7 +134,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: Core Output Files
+          name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
 
