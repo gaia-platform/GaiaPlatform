@@ -111,7 +111,9 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   Core:
     runs-on: ubuntu-20.04
-    needs: Lint
+    needs:
+      - Lint
+      - Third-Party
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
