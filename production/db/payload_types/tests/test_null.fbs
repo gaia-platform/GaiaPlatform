@@ -1,0 +1,8 @@
+namespace test_null;
+
+table Doctor {
+    name:string;
+    age:int32;
+}
+
+root_type Doctor;

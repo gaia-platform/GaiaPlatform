@@ -105,7 +105,7 @@ using namespace std;
 TEST(payload_types, null_stuff)
 {
     flatbuffers::FlatBufferBuilder fbb_doctor;
-    DoctorBuilder db = DoctorBuilder(fbb_doctor);
+    auto db = DoctorBuilder(fbb_doctor);
     db.add_name(fbb_doctor.CreateString("Suppini"));
     auto doc_ptr = db.Finish();
     fbb_doctor.Finish(doc_ptr);
@@ -117,11 +117,11 @@ TEST(payload_types, null_stuff)
     cout << "age: " << doctor->age() << endl;
 
     flatbuffers::FlatBufferBuilder fbb_patient;
-    PatientBuilder pb = PatientBuilder(fbb_patient);
+    auto pb = PatientBuilder(fbb_patient);
     auto pat_ptr = pb.Finish();
     fbb_patient.Finish(pat_ptr);
 
-    const Patient* patient = flatbuffers::GetRoot<Patient>(fbb_patient.GetBufferPointer());
+    const auto* patient = flatbuffers::GetRoot<Patient>(fbb_patient.GetBufferPointer());
     cout << "Patient-----" << endl;
     cout << "name: " << patient->name() << endl;
     cout << "age: " << patient->age().value_or(-1) << endl;
