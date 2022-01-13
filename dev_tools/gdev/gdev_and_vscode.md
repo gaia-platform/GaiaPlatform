@@ -95,3 +95,21 @@ Whenever IntelliSense fails to find a file, add its include directory to `includ
 
 - Dependencies such as `flatbuffers` have their include files in the `/build` directory.
 - While `${workspaceFolder}/**` recursively searches all include paths in the repo, directories such as `TranslationEngineLLVM` may contain too many files for the searcher and will require additional include paths.
+
+## SSH into a remote `gdev` container
+Running a `gdev` container on a remote server can speed up builds if you develop on an underpowered laptop. You'll need to install the VS Code [Remote - SSH](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) extension.
+
+Open a terminal and SSH into your server. As per the previous steps, run:
+```bash
+cd GaiaPlatform/production
+gdev run --mixins git
+```
+Keep this terminal open to keep the `gdev` container running on your server.
+
+In the Command Palette (`F1`), run **Remote - SSH: Connect to Host...** and select your server's SSH profile. If your profile does not appear, read the VS Code documentation for [adding a new host](https://code.visualstudio.com/docs/remote/ssh#_remember-hosts-and-advanced-settings).
+
+When connecting to your server for the first time, VS Code will install the VS Code Server in the background. That will not require additional system administration tasks.
+
+Once connected to your server, follow the previous steps (such as **Remote-Containers: Attach to Running Container...**) that attach VS Code to a running container.
+
+The green Remote Window Indicator in the bottom-left of VS Code tells you which container or remote SSH server you are connected to. You can select it and pick **Close Remote Connection** to exit.
