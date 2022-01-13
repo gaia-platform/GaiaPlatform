@@ -5,6 +5,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <limits>
 
 #include <gtest/gtest.h>
 
@@ -61,6 +62,8 @@ constexpr size_t c_index_new_credit_amount = 1;
 constexpr double c_new_credit_amount = 39900000.89;
 constexpr size_t c_new_count_credit_amounts = 2;
 
+constexpr float c_default_value_for_float_field = 7.7;
+
 enum field
 {
     first_name,
@@ -73,6 +76,10 @@ enum field
     sleeve_cost,
     monthly_sleeve_insurance,
     last_yearly_top_credit_amounts,
+    float_field_with_default_value,
+    missing_int_field,
+    missing_string_field,
+    missing_int_array_field,
 
     // Keep this entry last and add any new entry above.
     count_fields
@@ -81,8 +88,8 @@ enum field
 void get_fields_data(
     file_loader_t& data_loader,
     file_loader_t& schema_loader,
-    bool pass_schema = false,
-    bool check_new_values = false)
+    bool pass_schema,
+    bool check_new_values)
 {
     data_holder_t first_name = get_field_value(
         c_type_id,
@@ -285,6 +292,47 @@ void get_fields_data(
         }
     }
 
+    data_holder_t float_field_with_default_value = get_field_value(
+        c_type_id,
+        data_loader.get_data(),
+        pass_schema ? schema_loader.get_data() : nullptr,
+        pass_schema ? schema_loader.get_data_length() : 0,
+        field::float_field_with_default_value);
+    ASSERT_EQ(float_field_with_default_value.type, reflection::Float);
+    ASSERT_FALSE(float_field_with_default_value.is_null);
+    ASSERT_EQ(c_default_value_for_float_field, float_field_with_default_value.hold.float_value);
+    cout << "\tfloat_field_with_default_value = " << float_field_with_default_value.hold.float_value << endl;
+
+    data_holder_t missing_int_field = get_field_value(
+        c_type_id,
+        data_loader.get_data(),
+        pass_schema ? schema_loader.get_data() : nullptr,
+        pass_schema ? schema_loader.get_data_length() : 0,
+        field::missing_int_field);
+    ASSERT_EQ(missing_int_field.type, reflection::Int);
+    ASSERT_TRUE(missing_int_field.is_null);
+    cout << "\tmissing_int_field = null" << endl;
+
+    data_holder_t missing_string_field = get_field_value(
+        c_type_id,
+        data_loader.get_data(),
+        pass_schema ? schema_loader.get_data() : nullptr,
+        pass_schema ? schema_loader.get_data_length() : 0,
+        field::missing_string_field);
+    ASSERT_EQ(missing_string_field.type, reflection::String);
+    ASSERT_TRUE(missing_string_field.is_null);
+    cout << "\tmissing_string_field = null" << endl;
+
+    size_t count_missing_int_array_field = get_field_array_size(
+        c_type_id,
+        data_loader.get_data(),
+        pass_schema ? schema_loader.get_data() : nullptr,
+        pass_schema ? schema_loader.get_data_length() : 0,
+        field::missing_int_array_field);
+    ASSERT_EQ(std::numeric_limits<size_t>::max(), count_missing_int_array_field);
+    cout << "\tcount_missing_int_array_field = " << count_missing_int_array_field << endl;
+    cout << "\tmissing_int_array_field = null" << endl;
+
     // A few quick equality checks.
     ASSERT_TRUE(are_field_values_equal(
         c_type_id,
@@ -311,7 +359,7 @@ void get_fields_data(
         field::known_aliases));
 }
 
-void process_flatbuffers_data(bool access_fields = false)
+void process_flatbuffers_data(bool access_fields)
 {
     // Load binary flatbuffers schema.
     file_loader_t schema_loader;
@@ -343,9 +391,13 @@ void process_flatbuffers_data(bool access_fields = false)
 
         // Access fields using cache information.
         // Schema information is not passed to the get_field_value() calls.
+        bool pass_schema = false;
+        bool check_new_values = false;
         get_fields_data(
             data_loader,
-            schema_loader);
+            schema_loader,
+            pass_schema,
+            check_new_values);
     }
 
     // Remove type information from type cache.
@@ -358,10 +410,13 @@ void process_flatbuffers_data(bool access_fields = false)
 
         // Pass schema information to the get_field_value() calls,
         // because cache is empty.
+        bool pass_schema = true;
+        bool check_new_values = false;
         get_fields_data(
             data_loader,
             schema_loader,
-            true);
+            pass_schema,
+            check_new_values);
     }
 
     cout << endl;
@@ -372,12 +427,14 @@ void process_flatbuffers_data(bool access_fields = false)
 
 TEST(payload_types, payload_type_cache)
 {
-    process_flatbuffers_data();
+    bool access_fields = false;
+    process_flatbuffers_data(access_fields);
 }
 
 TEST(payload_types, field_access)
 {
-    process_flatbuffers_data(true);
+    bool access_fields = true;
+    process_flatbuffers_data(access_fields);
 }
 
 void update_flatbuffers_data()
@@ -596,11 +653,13 @@ void update_flatbuffers_data()
     // Validate data.
     ASSERT_EQ(true, verify_data_schema(data_loader.get_data(), data_loader.get_data_length(), schema_loader.get_data()));
 
+    bool pass_schema = false;
+    bool check_new_values = true;
     get_fields_data(
         data_loader,
         schema_loader,
-        false,
-        true);
+        pass_schema,
+        check_new_values);
 
     cout << endl;
 

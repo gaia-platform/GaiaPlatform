@@ -168,11 +168,11 @@ vector<uint8_t> generate_bin(const string& fbs, const string& json)
     flatbuffers::Parser parser(options);
 
     bool parsing_result = parser.Parse(fbs.c_str());
-    ASSERT_PRECONDITION(
+    ASSERT_INVARIANT(
         parsing_result == true, gaia_fmt::format("Invalid FlatBuffers schema: {}", parser.error_).c_str());
 
     parsing_result = parser.Parse(json.c_str());
-    ASSERT_PRECONDITION(
+    ASSERT_INVARIANT(
         parsing_result == true, gaia_fmt::format("Invalid FlatBuffers JSON: {}", parser.error_).c_str());
 
     return {

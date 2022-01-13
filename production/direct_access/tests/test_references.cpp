@@ -613,7 +613,7 @@ void insert_object(bool committed, employee_t e1, address_t a1)
         else
         {
             // Nothing is committed yet.
-            EXPECT_THROW(e1.addresses().insert(a1), invalid_object_state);
+            EXPECT_THROW(e1.addresses().insert(a1), invalid_object_id);
         }
     }
     commit_transaction();

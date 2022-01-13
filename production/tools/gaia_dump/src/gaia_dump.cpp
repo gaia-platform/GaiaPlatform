@@ -167,7 +167,7 @@ string gaia_dump(gaia_id_t low, gaia_id_t high, bool payload, bool references, b
             if (node_ptr)
             {
                 // If 'catalog' is true, don't check the catalog range.
-                if (catalog || node_ptr.type() < c_system_table_reserved_range_start)
+                if (catalog || !is_system_object(node_ptr.type()))
                 {
                     if (type_in(node_ptr.type(), type_vec))
                     {
