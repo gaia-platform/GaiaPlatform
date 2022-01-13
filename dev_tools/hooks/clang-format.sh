@@ -173,6 +173,7 @@ for file in $(find production | grep -E "^(production|demo).*(\.hpp|\.cpp|\.inc)
     done
 
     if [ "$format_file" = "true" ]; then
+        echo "--$file--"
         clang-format -i /clang-format -style=file -output-replacements-xml "$file" | grep "<replacement " >/dev/null
         if [ $? -ne 1 ]; then
 
@@ -195,6 +196,7 @@ for file in $(find production | grep -E "^(production|demo).*(\.hpp|\.cpp|\.inc)
                 did_any_fail=1
             fi
         fi
+        echo "--$file--"
     fi
 done
 
