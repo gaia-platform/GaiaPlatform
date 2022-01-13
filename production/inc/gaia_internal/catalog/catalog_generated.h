@@ -547,6 +547,7 @@ struct gaia_fieldT : public flatbuffers::NativeTable {
   bool deprecated = false;
   bool active = false;
   bool unique = false;
+  bool optional = false;
 };
 
 struct gaia_field FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -559,7 +560,8 @@ struct gaia_field FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_POSITION = 10,
     VT_DEPRECATED = 12,
     VT_ACTIVE = 14,
-    VT_UNIQUE = 16
+    VT_UNIQUE = 16,
+    VT_OPTIONAL = 18
   };
   const flatbuffers::String *name() const {
     return GetPointer<const flatbuffers::String *>(VT_NAME);
@@ -582,6 +584,9 @@ struct gaia_field FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   bool unique() const {
     return GetField<uint8_t>(VT_UNIQUE, 0) != 0;
   }
+  bool optional() const {
+    return GetField<uint8_t>(VT_OPTIONAL, 0) != 0;
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_NAME) &&
@@ -592,6 +597,7 @@ struct gaia_field FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_DEPRECATED) &&
            VerifyField<uint8_t>(verifier, VT_ACTIVE) &&
            VerifyField<uint8_t>(verifier, VT_UNIQUE) &&
+           VerifyField<uint8_t>(verifier, VT_OPTIONAL) &&
            verifier.EndTable();
   }
   gaia_fieldT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -624,6 +630,9 @@ struct gaia_fieldBuilder {
   void add_unique(bool unique) {
     fbb_.AddElement<uint8_t>(gaia_field::VT_UNIQUE, static_cast<uint8_t>(unique), 0);
   }
+  void add_optional(bool optional) {
+    fbb_.AddElement<uint8_t>(gaia_field::VT_OPTIONAL, static_cast<uint8_t>(optional), 0);
+  }
   explicit gaia_fieldBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -643,11 +652,13 @@ inline flatbuffers::Offset<gaia_field> Creategaia_field(
     uint16_t position = 0,
     bool deprecated = false,
     bool active = false,
-    bool unique = false) {
+    bool unique = false,
+    bool optional = false) {
   gaia_fieldBuilder builder_(_fbb);
   builder_.add_name(name);
   builder_.add_position(position);
   builder_.add_repeated_count(repeated_count);
+  builder_.add_optional(optional);
   builder_.add_unique(unique);
   builder_.add_active(active);
   builder_.add_deprecated(deprecated);
@@ -663,7 +674,8 @@ inline flatbuffers::Offset<gaia_field> Creategaia_fieldDirect(
     uint16_t position = 0,
     bool deprecated = false,
     bool active = false,
-    bool unique = false) {
+    bool unique = false,
+    bool optional = false) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
   return gaia::catalog::internal::Creategaia_field(
       _fbb,
@@ -673,7 +685,8 @@ inline flatbuffers::Offset<gaia_field> Creategaia_fieldDirect(
       position,
       deprecated,
       active,
-      unique);
+      unique,
+      optional);
 }
 
 flatbuffers::Offset<gaia_field> Creategaia_field(flatbuffers::FlatBufferBuilder &_fbb, const gaia_fieldT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -1032,6 +1045,7 @@ inline void gaia_field::UnPackTo(gaia_fieldT *_o, const flatbuffers::resolver_fu
   { auto _e = deprecated(); _o->deprecated = _e; }
   { auto _e = active(); _o->active = _e; }
   { auto _e = unique(); _o->unique = _e; }
+  { auto _e = optional(); _o->optional = _e; }
 }
 
 inline flatbuffers::Offset<gaia_field> gaia_field::Pack(flatbuffers::FlatBufferBuilder &_fbb, const gaia_fieldT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -1049,6 +1063,7 @@ inline flatbuffers::Offset<gaia_field> Creategaia_field(flatbuffers::FlatBufferB
   auto _deprecated = _o->deprecated;
   auto _active = _o->active;
   auto _unique = _o->unique;
+  auto _optional = _o->optional;
   return gaia::catalog::internal::Creategaia_field(
       _fbb,
       _name,
@@ -1057,7 +1072,8 @@ inline flatbuffers::Offset<gaia_field> Creategaia_field(flatbuffers::FlatBufferB
       _position,
       _deprecated,
       _active,
-      _unique);
+      _unique,
+      _optional);
 }
 
 inline gaia_tableT *gaia_table::UnPack(const flatbuffers::resolver_function_t *_resolver) const {

@@ -10,10 +10,11 @@
 #include <string>
 
 #include <flatbuffers/idl.h>
-#include <flatbuffers/util.h>
 
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/retail_assert.hpp"
+
+#include "gaia_spdlog/fmt/fmt.h"
 
 using namespace std;
 using namespace gaia::common;
@@ -28,11 +29,11 @@ constexpr char c_default_integer_value[] = "0";
 constexpr char c_default_float_value[] = "0.0";
 constexpr char c_default_string_value[] = "\"\"";
 
-static string generate_json_field(const string& name, const string& default_type_value, int count)
+static string generate_json_field(const string& name, const string& default_type_value, int count, bool optional)
 {
     if (count == 1)
     {
-        return name + ":" + default_type_value;
+        return name + ":" + (optional ? "null" : default_type_value);
     }
     else if (count == 0)
     {
@@ -90,7 +91,7 @@ static string generate_json_field(const gaia_field_t& field)
 {
     string name(field.name());
     string default_type_value = get_data_type_default_value(static_cast<data_type_t>(field.type()));
-    return generate_json_field(name, default_type_value, field.repeated_count());
+    return generate_json_field(name, default_type_value, field.repeated_count(), field.optional());
 }
 
 string generate_json(gaia_id_t table_id)
@@ -146,7 +147,7 @@ string generate_json(const ddl::field_def_list_t& fields)
         const ddl::data_field_def_t* data_field = dynamic_cast<ddl::data_field_def_t*>(field.get());
 
         string field_json = generate_json_field(
-            data_field->name, get_data_type_default_value(data_field->data_type), data_field->length);
+            data_field->name, get_data_type_default_value(data_field->data_type), data_field->length, data_field->optional);
 
         json_string_stream
             << endl
@@ -167,14 +168,16 @@ vector<uint8_t> generate_bin(const string& fbs, const string& json)
     flatbuffers::Parser parser(options);
 
     bool parsing_result = parser.Parse(fbs.c_str());
-    ASSERT_PRECONDITION(parsing_result == true, "Invalid FlatBuffers schema!");
+    ASSERT_PRECONDITION(
+        parsing_result == true, gaia_fmt::format("Invalid FlatBuffers schema: {}", parser.error_).c_str());
 
     parsing_result = parser.Parse(json.c_str());
-    ASSERT_PRECONDITION(parsing_result == true, "Invalid FlatBuffers JSON!");
+    ASSERT_PRECONDITION(
+        parsing_result == true, gaia_fmt::format("Invalid FlatBuffers JSON: {}", parser.error_).c_str());
 
-    return vector(
+    return {
         parser.builder_.GetBufferPointer(),
-        parser.builder_.GetBufferPointer() + parser.builder_.GetSize());
+        parser.builder_.GetBufferPointer() + parser.builder_.GetSize()};
 }
 
 } // namespace catalog

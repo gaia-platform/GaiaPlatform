@@ -168,9 +168,9 @@ const char* gaia_field_t::gaia_typename() {
     static const char* gaia_typename = "gaia_field_t";
     return gaia_typename;
 }
-gaia::common::gaia_id_t gaia_field_t::insert_row(const char* name, uint8_t type, uint16_t repeated_count, uint16_t position, bool deprecated, bool active, bool unique) {
+gaia::common::gaia_id_t gaia_field_t::insert_row(const char* name, uint8_t type, uint16_t repeated_count, uint16_t position, bool deprecated, bool active, bool unique, bool optional) {
     flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-    b.Finish(internal::Creategaia_fieldDirect(b, name, type, repeated_count, position, deprecated, active, unique));
+    b.Finish(internal::Creategaia_fieldDirect(b, name, type, repeated_count, position, deprecated, active, unique, optional));
     return dac_object_t::insert_row(b);
 }
 gaia::direct_access::dac_container_t<c_gaia_type_gaia_field, gaia_field_t> gaia_field_t::list() {
@@ -196,6 +196,9 @@ bool gaia_field_t::active() const {
 }
 bool gaia_field_t::unique() const {
     return GET(unique);
+}
+bool gaia_field_t::optional() const {
+    return GET(optional);
 }
 gaia_table_t gaia_field_t::table() const {
     gaia::common::gaia_id_t id = this->references()[c_gaia_field_parent_table];

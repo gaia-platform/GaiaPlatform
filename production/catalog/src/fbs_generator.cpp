@@ -10,7 +10,6 @@
 #include <string>
 
 #include <flatbuffers/idl.h>
-#include <flatbuffers/util.h>
 
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/retail_assert.hpp"
@@ -43,27 +42,38 @@ static string generate_fbs_namespace(const string& db_name)
     }
 }
 
-static string generate_fbs_field(const string& name, const string& type, int count)
+static string generate_fbs_field(const string& name, const string& type, int repeated_count, bool optional)
 {
-    if (count == 1)
+    std::stringstream ss;
+    ss << name;
+
+    if (repeated_count == 1)
     {
-        return name + ":" + type;
+        ss << ":" + type;
     }
-    else if (count == 0)
+    else if (repeated_count == 0)
     {
-        return name + ":[" + type + "]";
+        ss << ":[" + type + "]";
     }
     else
     {
-        return name + ":[" + type + ":" + to_string(count) + "]";
+        ss << ":[" + type + ":" + to_string(repeated_count) + "]";
     }
+
+    // TODO this will fail for non-scalar values, and for now it's acceptable.
+    if (optional)
+    {
+        ss << "=null";
+    }
+
+    return ss.str();
 }
 
 static string generate_fbs_field(const gaia_field_t& field)
 {
     string name{field.name()};
     string type{get_data_type_name(static_cast<data_type_t>(field.type()))};
-    return generate_fbs_field(name, type, field.repeated_count());
+    return generate_fbs_field(name, type, field.repeated_count(), field.optional());
 }
 
 string get_data_type_name(data_type_t data_type)
@@ -157,7 +167,7 @@ string generate_fbs(const string& db_name, const string& table_name, const ddl::
         }
         const ddl::data_field_def_t* data_field = dynamic_cast<ddl::data_field_def_t*>(field.get());
         string field_fbs = generate_fbs_field(
-            data_field->name, get_data_type_name(data_field->data_type), data_field->length);
+            data_field->name, get_data_type_name(data_field->data_type), data_field->length, data_field->optional);
         fbs += field_fbs + ";";
     }
     fbs += "}";
@@ -171,9 +181,9 @@ std::vector<uint8_t> generate_bfbs(const string& fbs)
     bool parsing_result = fbs_parser.Parse(fbs.c_str());
     ASSERT_PRECONDITION(parsing_result == true, "Invalid FlatBuffers schema!");
     fbs_parser.Serialize();
-    return std::vector<uint8_t>(
+    return {
         fbs_parser.builder_.GetBufferPointer(),
-        fbs_parser.builder_.GetBufferPointer() + fbs_parser.builder_.GetSize());
+        fbs_parser.builder_.GetBufferPointer() + fbs_parser.builder_.GetSize()};
 }
 
 } // namespace catalog

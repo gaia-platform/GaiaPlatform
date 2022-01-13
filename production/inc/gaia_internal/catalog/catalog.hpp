@@ -193,8 +193,8 @@ struct base_field_def_t
 
 struct data_field_def_t : base_field_def_t
 {
-    data_field_def_t(std::string name, data_type_t type, uint16_t length)
-        : base_field_def_t(name, field_type_t::data), data_type(type), length(length)
+    data_field_def_t(std::string name, data_type_t type, uint16_t length, bool optional = false)
+        : base_field_def_t(name, field_type_t::data), data_type(type), length(length), optional(optional)
     {
     }
 
@@ -230,6 +230,10 @@ struct data_field_def_t : base_field_def_t
     bool active = false;
 
     bool unique = false;
+
+    // TODO: we don't have a way to define optional in the DDL yet,
+    //  hence all the fields are non-optional by default.
+    bool optional = false;
 };
 
 using composite_name_t = std::pair<std::string, std::string>;
