@@ -29,7 +29,7 @@ namespace translation
 
 // Used to satisfy clang-tidy: cppcoreguidelines-avoid-magic-numbers
 // Unfortunately, specifying readability-magic-numbers.IgnorePowersOf2IntegerValues
-// in our .clang-tidy file was not sufficient to prevent the warnings.
+// in our .clang-tidy file was not sufficient to suppress these warnings.
 constexpr unsigned int c_size_8 = 8;
 constexpr unsigned int c_size_16 = 16;
 constexpr unsigned int c_size_32 = 32;

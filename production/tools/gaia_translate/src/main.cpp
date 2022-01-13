@@ -151,11 +151,9 @@ static void print_version(raw_ostream& stream)
     stream << c_copyright << "\n";
 }
 
-// Do a safe narrowing conversion from unsigned to signed to get address
-// clang-tidy narrowing conversion warnings. Original behavior was just cast.
+// Do a safe conversion from unsigned to signed to address clang-tidy
+// narrowing conversion warnings. Note that the original behavior was just cast.
 // Now we'll emit a warning if the length cannot be safely casted to an int.
-// This condition should only occur for lenghts > ~2GB so assert in debug
-// to see if things are actually sane.
 int uint_to_int(SourceLocation location, unsigned int token_length)
 {
     assert(token_length <= INT_MAX && "Cannot safely narrow unsigned int to int");
