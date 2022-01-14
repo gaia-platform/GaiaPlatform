@@ -149,7 +149,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
     llvm::StringRef anchor_table, llvm::StringRef anchor_variable, const llvm::StringSet<>& tables, const llvm::StringMap<string>& tags, string& last_variable_name)
 {
     navigation_code_data_t return_value;
-    const auto& table_data = GaiaCatalog::getCatalogTableData();
+    const auto& table_data = getCatalogTableData();
     if (table_data.empty() || tables.empty())
     {
         return {};
