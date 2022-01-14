@@ -19,6 +19,54 @@ namespace gaia
 namespace direct_access
 {
 
+template <typename T_class>
+class dac_vector_iterator_t
+{
+public:
+    dac_vector_iterator_t()
+        : m_iterator_data(nullptr), m_index(0)
+    {
+    }
+
+    explicit dac_vector_iterator_t(const T_class* iterator_data, uint32_t index)
+        : m_iterator_data(iterator_data), m_index(index)
+    {
+    }
+
+    dac_vector_iterator_t<T_class>& operator++()
+    {
+        ++m_index;
+        return *this;
+    }
+    dac_vector_iterator_t<T_class> operator++(int)
+    {
+        dac_vector_iterator_t<T_class> temp = *this;
+        ++*this;
+        return temp;
+    }
+    bool operator==(const dac_vector_iterator_t& rhs) const
+    {
+        return m_iterator_data == rhs.m_iterator_data && m_index == rhs.m_index;
+    }
+    bool operator!=(const dac_vector_iterator_t& rhs) const
+    {
+        return m_iterator_data != rhs.m_iterator_data || m_index != rhs.m_index;
+    }
+
+    const T_class& operator*() const
+    {
+        return *(m_iterator_data + m_index);
+    }
+
+    const T_class* operator->() const
+    {
+        return m_iterator_data + m_index;
+    }
+
+protected:
+    const T_class* m_iterator_data;
+    uint32_t m_index;
+};
 // A pimpl style wrapper class that encapsulates flatbuffers::Vector.
 template <typename T_type>
 class dac_vector_t
@@ -28,11 +76,20 @@ public:
 
     const T_type* data() const
     {
+        if (is_null())
+        {
+            return nullptr;
+        }
         return m_vector->data();
     }
 
     uint32_t size() const
     {
+        if (is_null())
+        {
+            return 0;
+        }
+
         return m_vector->size();
     }
 
@@ -48,6 +105,25 @@ public:
     T_type operator[](uint32_t i) const
     {
         return (*m_vector)[i];
+    }
+
+    operator std::vector<T_type>() const
+    {
+        if (is_null())
+        {
+            return std::vector<T_type>();
+        }
+        return std::vector<T_type>(data(), data() + size());
+    }
+
+    dac_vector_iterator_t<T_type> begin() const
+    {
+        return dac_vector_iterator_t<T_type>(data(), 0);
+    }
+
+    dac_vector_iterator_t<T_type> end() const
+    {
+        return dac_vector_iterator_t<T_type>(data(), size());
     }
 
 private:
