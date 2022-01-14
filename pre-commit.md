@@ -27,6 +27,12 @@ Note that `pre-commit` is also implemented as part of our GitHub Actions workflo
   - since we are all developing on Ubuntu, none of our files should have the Windows end of line sequence
 
 ### C++ Files
+
+- check with `clang-format`
+  - ensure that every c++ file adheres to our formatting standards
+- check with `clang-tidy`
+  - enables the `ENABLE_CLANG_TIDY` flag for CMake during the GitHub Action builds
+  - due to include file requirements, this is part of the builds
 - (ON DECK) check with `cpplint` (includes `include-what-you-use`)
   - look for well known issues and prevent them
   - waiting on https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1848 and https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1849
@@ -48,19 +54,3 @@ Scripts are being used for test automation and CI building.
   - ensure that every Python file adheres to the standard Python formatting
 - check with `Flake8` and `PyLint`
   - ensure that scripts all follow best practices
-
-## GitHub Actions Checks
-
-### Generic Checks
-
-- verify that the current `main.yml` is the latest version
-  - any changes in `gdev.cfg` files should be reflected in changes to the `main.yml` file
-  - for documentation on how the `main.yml` is put together, [check here](https://github.com/gaia-platform/GaiaPlatform/dev_tools/github-actions/README.md)
-
-### C++ Files
-
-- check with `clang-format`
-  - ensure that every c++ file adheres to our formatting standards
-  - plans are to roll this into the pre-commit checks
-- check with `clang-tidy`
-  - enables the `ENABLE_CLANG_TIDY` flag for CMake during the GitHub Action builds
