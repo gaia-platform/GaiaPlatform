@@ -8,6 +8,14 @@
 
 database vlr_example
 
-table person (
-    name string
+table parent (
+    id uint32 unique,
+    children references child[]
+)
+
+table child (
+    id uint32 unique,
+    parent_id uint32,
+    parent references parent
+        where child.parent_id = parent.id
 )
