@@ -292,7 +292,7 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-  X1:
+  Integration_Smoke:
     needs: SDK
     runs-on: ubuntu-20.04
     env:
@@ -333,7 +333,50 @@ jobs:
           fields: ${{ env.SLACK_STATUS_FIELDS }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-  X2:
+
+  Integration_Smoke_Persistence:
+    needs: SDK
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Download Debian Install Package
+        uses: actions/download-artifact@v2
+        with:
+          name: SDK Install Package
+          path: ${{ github.workspace }}/production/tests/packages
+
+      - name: Tests
+        working-directory: ${{ github.workspace }}
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/production/tests/results
+
+      - name: Report Job Status To Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: ${{ env.SLACK_STATUS_FIELDS }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  Integration_Samples:
     needs: SDK
     runs-on: ubuntu-20.04
     env:
@@ -377,8 +420,9 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   Final:
     needs:
-      - X1
-      - X2
+      - Integration_Smoke
+      - Integration_Smoke_Persistence
+      - Integration_Samples
       - Debug_Core
     runs-on: ubuntu-20.04
     if: always()
