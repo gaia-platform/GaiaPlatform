@@ -31,7 +31,8 @@ public:
     {
     }
 
-    constexpr gaia_txn_id_t(uint64_t value) // NOLINT(google-explicit-constructor)
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    constexpr gaia_txn_id_t(uint64_t value)
         : common::int_type_t<uint64_t, 0>(value)
     {
     }
@@ -69,7 +70,8 @@ public:
     {
     }
 
-    constexpr gaia_locator_t(uint64_t value) // NOLINT(google-explicit-constructor)
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    constexpr gaia_locator_t(uint64_t value)
         : common::int_type_t<uint64_t, 0>(value)
     {
     }
@@ -111,7 +113,8 @@ public:
     {
     }
 
-    constexpr gaia_offset_t(uint32_t value) // NOLINT(google-explicit-constructor)
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    constexpr gaia_offset_t(uint32_t value)
         : common::int_type_t<uint32_t, 0>(value)
     {
     }

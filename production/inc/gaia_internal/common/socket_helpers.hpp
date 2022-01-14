@@ -118,6 +118,7 @@ inline size_t send_msg_with_fds(int sock, const int* fds, size_t fd_count, void*
         msg.msg_control = control.buf;
         msg.msg_controllen = CMSG_SPACE(sizeof(int) * fd_count);
         cmsghdr* cmsg = CMSG_FIRSTHDR(&msg); // NOLINT (macro expansion)
+        ASSERT_INVARIANT(cmsg != nullptr, "cmsg is expected to be != null!")
         cmsg->cmsg_len = CMSG_LEN(sizeof(int) * fd_count);
         cmsg->cmsg_level = SOL_SOCKET;
         cmsg->cmsg_type = SCM_RIGHTS;
