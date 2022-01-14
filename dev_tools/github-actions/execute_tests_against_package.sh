@@ -147,7 +147,7 @@ start_process
 save_current_directory
 
 # Ensure we have a predicatable place to place output that we want to expose.
-if ! mkdir -p "$GAIA_REPO/build/output" ; then
+if ! mkdir -p "$GAIA_REPO/production/tests/results" ; then
     complete_process 1 "Unable to create an output directory for '$JOB_NAME'."
 fi
 
@@ -160,10 +160,16 @@ sudo apt --assume-yes install "$(find . -name gaia*)"
 if [ "$JOB_NAME" == "X1" ] ; then
 
     sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop --database
-    "$GAIA_REPO/production/tests/smoke_suites.sh"
 
-    mkdir "$GAIA_REPO/production/tests/results"
+    "$GAIA_REPO/production/tests/smoke_suites.sh"
     cp -a "$GAIA_REPO/production/tests/suites" "$GAIA_REPO/production/tests/results"
+
+elif [ "$JOB_NAME" == "X2" ] ; then
+
+    sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop --database
+
+    cd "$GAIA_REPO/dev_tools/sdk/test" || exit
+    ./build_sdk_samples.sh > "$GAIA_REPO/production/tests/results/test.log"
 fi
 
 ## PER JOB CONFIGURATION ##

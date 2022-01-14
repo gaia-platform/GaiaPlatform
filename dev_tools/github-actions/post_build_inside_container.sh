@@ -153,7 +153,7 @@ elif [ "$JOB_NAME" == "SDK" ] ; then
 
     #cp gaia-${{ env.GAIA_VERSION }}_amd64.deb gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb
     mkdir -p /build/output/package
-    cp /build/package/"gaia-${GAIA_VERSION}_amd64.deb" "/build/output/package/gaia-${GAIA_VERSION}_amd64.deb"
+    cp /build/production/"gaia-${GAIA_VERSION}_amd64.deb" "/build/output/package/gaia-${GAIA_VERSION}_amd64.deb"
 
     echo "--inside-post--"
     ls -laR /build/output

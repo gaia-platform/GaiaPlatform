@@ -356,13 +356,8 @@ jobs:
       - name: Tests
         working-directory: ${{ github.workspace }}
         run: |
-          cd ${{ github.workspace }}/production/tests/packages
-          sudo apt --assume-yes install "$(find . -name gaia*)"
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
 
-          sudo ${{ github.workspace }}/production/tests/reset_database.sh --verbose --stop --database
-
-          cd ${{ github.workspace }}/dev_tools/sdk/test
-          ./build_sdk_samples.sh > test.log
 
       - name: Upload Output Files
         if: always()
@@ -370,7 +365,7 @@ jobs:
         with:
           name: ${{github.job}} Output Files
           path: |
-            ${{ github.workspace }}/dev_tools/sdk/test/test.log
+            ${{ github.workspace }}/production/tests/results
 
       - name: Report Job Status To Slack
         uses: 8398a7/action-slack@v3
