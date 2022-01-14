@@ -12,19 +12,23 @@ project(vlr_example)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# We need pthreads support.
+# We need pthreads.
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
 set(GAIA_ROOT "/usr/local")
-
 include("/usr/local/cmake/gaia.cmake")
 
-# --- Generate Direct Access classes from DDL---
+# Generate Direct Access classes from the DDL schema.
 process_schema(
   DDL_FILE ${PROJECT_SOURCE_DIR}/vlr_example.ddl
   DATABASE_NAME vlr_example
+)
+
+# Translate the ruleset into C++.
+translate_ruleset(
+  RULESET_FILE ${PROJECT_SOURCE_DIR}/vlr_example.ruleset
 )
 
 add_executable(vlr_example

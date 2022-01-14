@@ -1,0 +1,22 @@
+/////////////////////////////////////////////
+// Copyright (c) 2021 Gaia Platform LLC
+//
+// Use of this source code is governed by an MIT-style
+// license that can be found in the LICENSE.txt file
+// or at https://opensource.org/licenses/MIT.
+/////////////////////////////////////////////
+
+#include <gaia/logger.hpp>
+
+ruleset hello_ruleset
+{
+    on_insert(parent)
+    {
+        gaia_log::app().info("Inserted a parent, ID {}", parent.id);
+    }
+
+    on_insert(child)
+    {
+        gaia_log::app().info("Inserted a child, ID {}, with parent ID {}", child.id, parent.id);
+    }
+}
