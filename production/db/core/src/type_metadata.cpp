@@ -127,19 +127,18 @@ void type_registry_t::init()
     auto ruleset_database = static_cast<gaia_type_t::value_type>(system_table_type_t::ruleset_database);
     auto rule_table = static_cast<gaia_type_t::value_type>(system_table_type_t::rule_table);
     auto rule_field = static_cast<gaia_type_t::value_type>(system_table_type_t::rule_field);
-    auto rule_relationship = static_cast<gaia_type_t::value_type>(system_table_type_t::rule_relationship)
+    auto rule_relationship = static_cast<gaia_type_t::value_type>(system_table_type_t::rule_relationship);
 
-        /* 1 */ auto gaia_database_gaia_table_relationship
-        = std::make_shared<relationship_t>(relationship_t{
-            .parent_type = gaia_database,
-            .child_type = gaia_table,
-            .first_child_offset = catalog_core_t::c_gaia_database_first_gaia_tables,
-            .next_child_offset = catalog_core_t::c_gaia_table_next_database,
-            .prev_child_offset = c_invalid_reference_offset,
-            .parent_offset = catalog_core_t::c_gaia_table_parent_database,
-            .cardinality = cardinality_t::many,
-            .parent_required = false,
-            .value_linked = false});
+    /* 1 */ auto gaia_database_gaia_table_relationship = std::make_shared<relationship_t>(relationship_t{
+        .parent_type = gaia_database,
+        .child_type = gaia_table,
+        .first_child_offset = catalog_core_t::c_gaia_database_first_gaia_tables,
+        .next_child_offset = catalog_core_t::c_gaia_table_next_database,
+        .prev_child_offset = c_invalid_reference_offset,
+        .parent_offset = catalog_core_t::c_gaia_table_parent_database,
+        .cardinality = cardinality_t::many,
+        .parent_required = false,
+        .value_linked = false});
 
     /* 2 */ auto gaia_table_gaia_field_relationship = std::make_shared<relationship_t>(relationship_t{
         .parent_type = gaia_table,
@@ -380,7 +379,7 @@ void type_registry_t::init()
     rule_metadata.mark_as_initialized();
 
     auto& index_metadata = get_or_create_no_lock(gaia_index);
-    index_metadata.add_child_relationship(gaia_table_gaia_index_relationship);
+    /* 6 */ index_metadata.add_child_relationship(gaia_table_gaia_index_relationship);
     index_metadata.mark_as_initialized();
 
     auto& application_metadata = get_or_create_no_lock(gaia_application);
