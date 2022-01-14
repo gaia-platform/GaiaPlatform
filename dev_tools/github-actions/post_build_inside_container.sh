@@ -145,19 +145,10 @@ if [ "$JOB_NAME" == "Core" ] ; then
     fi
 
 elif [ "$JOB_NAME" == "SDK" ] ; then
-    echo "--inside-pre--"
-    ls -laR /build/output
-    echo "--inside-pre--"
-    ls -la /build/package/
-    echo "--inside-pre--"
-
     #cp gaia-${{ env.GAIA_VERSION }}_amd64.deb gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb
     mkdir -p /build/output/package
     cp /build/production/"gaia-${GAIA_VERSION}_amd64.deb" "/build/output/package/gaia-${GAIA_VERSION}_amd64.deb"
 
-    echo "--inside-post--"
-    ls -laR /build/output
-    echo "--inside-post--"
 fi
 
 ## PER JOB CONFIGURATION ##
