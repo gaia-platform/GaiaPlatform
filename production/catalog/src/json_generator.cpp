@@ -167,10 +167,10 @@ vector<uint8_t> generate_bin(const string& fbs, const string& json)
     flatbuffers::Parser parser(options);
 
     bool parsing_result = parser.Parse(fbs.c_str());
-    ASSERT_PRECONDITION(parsing_result == true, "Invalid FlatBuffers schema!");
+    ASSERT_INVARIANT(parsing_result == true, "Invalid FlatBuffers schema!");
 
     parsing_result = parser.Parse(json.c_str());
-    ASSERT_PRECONDITION(parsing_result == true, "Invalid FlatBuffers JSON!");
+    ASSERT_INVARIANT(parsing_result == true, "Invalid FlatBuffers JSON!");
 
     return vector(
         parser.builder_.GetBufferPointer(),

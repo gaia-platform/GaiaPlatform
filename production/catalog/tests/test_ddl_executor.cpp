@@ -439,6 +439,7 @@ TEST_F(ddl_executor_test, create_relationships)
     ASSERT_EQ(uint8_t{0}, clinic_to_doctor_relationship.first_child_offset()); // clinic
     ASSERT_EQ(uint8_t{0}, clinic_to_doctor_relationship.parent_offset()); // doctor
     ASSERT_EQ(uint8_t{1}, clinic_to_doctor_relationship.next_child_offset()); // doctor
+    ASSERT_EQ(uint8_t{2}, clinic_to_doctor_relationship.prev_child_offset()); // doctor
 
     // check
     // (doctor) 1 -[patients]-> N (patient)
@@ -454,9 +455,10 @@ TEST_F(ddl_executor_test, create_relationships)
 
     ASSERT_STREQ("patients", doctor_to_patient_relationship.to_child_link_name());
     ASSERT_STREQ("doctor", doctor_to_patient_relationship.to_parent_link_name());
-    ASSERT_EQ(uint8_t{2}, doctor_to_patient_relationship.first_child_offset()); // doctor
+    ASSERT_EQ(uint8_t{3}, doctor_to_patient_relationship.first_child_offset()); // doctor
     ASSERT_EQ(uint8_t{0}, doctor_to_patient_relationship.parent_offset()); // patient
     ASSERT_EQ(uint8_t{1}, doctor_to_patient_relationship.next_child_offset()); // patient
+    ASSERT_EQ(uint8_t{2}, doctor_to_patient_relationship.prev_child_offset()); // patient
 
     // check
     // (clinic) 1 -[patients]-> (patient)
@@ -473,8 +475,9 @@ TEST_F(ddl_executor_test, create_relationships)
     ASSERT_STREQ("patients", clinic_to_patient_relationship.to_child_link_name());
     ASSERT_STREQ("clinic", clinic_to_patient_relationship.to_parent_link_name());
     ASSERT_EQ(uint8_t{1}, clinic_to_patient_relationship.first_child_offset()); // clinic
-    ASSERT_EQ(uint8_t{2}, clinic_to_patient_relationship.parent_offset()); // patient
-    ASSERT_EQ(uint8_t{3}, clinic_to_patient_relationship.next_child_offset()); // patient
+    ASSERT_EQ(uint8_t{3}, clinic_to_patient_relationship.parent_offset()); // patient
+    ASSERT_EQ(uint8_t{4}, clinic_to_patient_relationship.next_child_offset()); // patient
+    ASSERT_EQ(uint8_t{5}, clinic_to_patient_relationship.prev_child_offset()); // patient
     txn.commit();
 }
 

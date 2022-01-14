@@ -46,10 +46,6 @@ public:
     friend inline bool operator==(txn_metadata_entry_t a, txn_metadata_entry_t b);
     friend inline bool operator!=(txn_metadata_entry_t a, txn_metadata_entry_t b);
 
-private:
-    const uint64_t m_word;
-
-public:
     inline uint64_t get_word();
 
     static inline void check_ts_size(gaia_txn_id_t ts);
@@ -232,6 +228,9 @@ private:
 
     // The first 3 bits of this value do not correspond to any valid txn status value.
     static constexpr uint64_t c_value_sealed{0b101ULL << c_txn_status_flags_shift};
+
+private:
+    const uint64_t m_word;
 };
 
 #include "txn_metadata_entry.inc"

@@ -15,6 +15,7 @@ set(GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES
   ${GAIA_INC}/internal/common
   ${GAIA_INC}/internal/db
   ${GAIA_REPO}/production/db/inc/memory_manager
+  ${GAIA_REPO}/production/db/inc/expressions
   ${PROJECT_SOURCE_DIR}
 )
 

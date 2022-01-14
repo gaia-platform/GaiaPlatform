@@ -43,7 +43,7 @@ void index_builder_t::serialize_key(const index_key_t& key, payload_types::data_
     for (const payload_types::data_holder_t& key_value : key.values())
     {
         // TODO: This will have to do until catalog information is available!
-        bool optional = (key_value.type == reflection::String || key_value.type == reflection::Vector);
+        bool optional = true;
         key_value.serialize(buffer, optional);
     }
 }
@@ -64,7 +64,7 @@ index_key_t index_builder_t::deserialize_key(common::gaia_id_t index_id, payload
     {
         data_type_t type = field_view_t(id_to_ptr(field_id)).data_type();
         // TODO: Until this information is available in the catalog, this will have to do!
-        bool optional = type == common::data_type_t::e_string;
+        bool optional = true;
         index_key.insert(payload_types::data_holder_t(buffer, convert_to_reflection_type(type), optional));
     }
 
@@ -408,7 +408,7 @@ void index_builder_t::update_indexes_from_txn_log(
         }
 
         // Maintenance on the in-memory index data structures.
-        if (obj->type == static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_index))
+        if (obj->type == static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_index))
         {
             auto index_view = index_view_t(obj);
 

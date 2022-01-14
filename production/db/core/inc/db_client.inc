@@ -25,7 +25,7 @@ inline int client_t::get_session_socket_for_txn()
 
 inline bool client_t::is_valid_event(common::gaia_type_t type)
 {
-    return (s_txn_commit_trigger && type < common::c_system_table_reserved_range_start);
+    return (s_txn_commit_trigger && !is_system_object(type));
 }
 
 inline void client_t::verify_txn_active()
