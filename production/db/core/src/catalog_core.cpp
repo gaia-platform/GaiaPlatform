@@ -25,6 +25,8 @@ namespace gaia
 {
 namespace db
 {
+namespace catalog_core
+{
 
 [[nodiscard]] const char* field_view_t::name() const
 {
@@ -157,7 +159,7 @@ namespace db
     return anchor_ptr->references()[c_ref_anchor_parent_offset];
 }
 
-table_view_t catalog_core_t::get_table(gaia_id_t table_id)
+table_view_t get_table(gaia_id_t table_id)
 {
     return table_view_t{id_to_ptr(table_id)};
 }
@@ -181,8 +183,7 @@ std::optional<table_view_t> table_generator_t::operator()()
     return std::nullopt;
 }
 
-table_list_t
-catalog_core_t::list_tables()
+table_list_t list_tables()
 {
     auto gaia_ptr_iterator = table_generator_t(gaia_ptr_t::find_all_iterator(
         static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_table)));
@@ -215,13 +216,13 @@ list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint
     return range_from_generator(generator);
 }
 
-field_list_t catalog_core_t::list_fields(gaia_id_t table_id)
+field_list_t list_fields(gaia_id_t table_id)
 {
     return list_catalog_obj_reference_chain<field_view_t>(
         table_id, c_gaia_table_first_gaia_field_offset, c_gaia_field_next_gaia_field_offset);
 }
 
-relationship_list_t catalog_core_t::list_relationship_from(gaia_id_t table_id)
+relationship_list_t list_relationship_from(gaia_id_t table_id)
 {
     return list_catalog_obj_reference_chain<relationship_view_t>(
         table_id,
@@ -229,7 +230,7 @@ relationship_list_t catalog_core_t::list_relationship_from(gaia_id_t table_id)
         c_gaia_relationship_next_parent_gaia_relationship_offset);
 }
 
-relationship_list_t catalog_core_t::list_relationship_to(gaia_id_t table_id)
+relationship_list_t list_relationship_to(gaia_id_t table_id)
 {
     return list_catalog_obj_reference_chain<relationship_view_t>(
         table_id,
@@ -237,7 +238,7 @@ relationship_list_t catalog_core_t::list_relationship_to(gaia_id_t table_id)
         c_gaia_relationship_next_child_gaia_relationship_offset);
 }
 
-index_list_t catalog_core_t::list_indexes(gaia_id_t table_id)
+index_list_t list_indexes(gaia_id_t table_id)
 {
     return list_catalog_obj_reference_chain<index_view_t>(
         table_id,
@@ -245,9 +246,9 @@ index_list_t catalog_core_t::list_indexes(gaia_id_t table_id)
         c_gaia_index_next_gaia_index_offset);
 }
 
-gaia_id_t catalog_core_t::find_index(gaia_id_t table_id, field_position_t field_position)
+gaia_id_t find_index(gaia_id_t table_id, field_position_t field_position)
 {
-    for (const auto& index : catalog_core_t::list_indexes(table_id))
+    for (const auto& index : list_indexes(table_id))
     {
         const field_view_t first_field_of_index(id_to_ptr(index.fields()->Get(0)));
         if (first_field_of_index.position() == field_position)
@@ -258,5 +259,6 @@ gaia_id_t catalog_core_t::find_index(gaia_id_t table_id, field_position_t field_
     return c_invalid_gaia_id;
 }
 
+} // namespace catalog_core
 } // namespace db
 } // namespace gaia
