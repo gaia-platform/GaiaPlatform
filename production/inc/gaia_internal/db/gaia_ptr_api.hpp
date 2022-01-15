@@ -17,7 +17,7 @@ namespace db
 class gaia_ptr_t;
 
 /*
- * his namespace provides 'gaia_ptr_t' operations that include higher level
+ * This namespace provides 'gaia_ptr_t' operations that include higher level
  * functionality like referential integrity checks and value-linked relationship
  * auto-connection. The low-level 'gaia_ptr_t' API excludes all usage of catalog
  * and type metadata.
