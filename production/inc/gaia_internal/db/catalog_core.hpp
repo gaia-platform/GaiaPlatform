@@ -24,6 +24,8 @@ namespace gaia
 {
 namespace db
 {
+namespace catalog_core
+{
 
 struct catalog_db_object_view_t
 {
@@ -102,74 +104,69 @@ using table_list_t = common::iterators::generator_range_t<table_view_t>;
 using relationship_list_t = common::iterators::generator_range_t<relationship_view_t>;
 using index_list_t = common::iterators::generator_range_t<index_view_t>;
 
-struct catalog_core_t
-{
-    // Constants for reference slots in catalog records.
-    // They need to be updated when the corresponding catalog table definition change.
-    //
-    // The ref slot in gaia_field pointing to the gaia_table.
-    static constexpr common::reference_offset_t c_gaia_field_parent_gaia_table_offset = 0;
-    // The ref slot in gaia_field pointing to the next gaia_field.
-    static constexpr common::reference_offset_t c_gaia_field_next_gaia_field_offset = 1;
-    // The ref slot in gaia_field pointing to the prev gaia_field.
-    static constexpr common::reference_offset_t c_gaia_field_prev_gaia_field_offset = 2;
-    //
-    // The ref slot in gaia_table pointing to the parent gaia_database.
-    static constexpr common::reference_offset_t c_gaia_table_parent_gaia_database_offset = 0;
-    // The ref slot in gaia_table pointing to the next gaia_table.
-    static constexpr common::reference_offset_t c_gaia_table_next_gaia_table_offset = 1;
-    // The ref slot in gaia_table pointing to the prev gaia_table.
-    static constexpr common::reference_offset_t c_gaia_table_prev_gaia_table_offset = 2;
-    // The ref slot in gaia_table pointing to the first gaia_field.
-    static constexpr common::reference_offset_t c_gaia_table_first_gaia_field_offset = 3;
-    // The ref slot in gaia_table pointing to the first parent gaia_relationship.
-    static constexpr common::reference_offset_t c_gaia_table_first_parent_gaia_relationship_offset = 4;
-    // The ref slot in gaia_table pointing to the first child gaia_relationship.
-    static constexpr common::reference_offset_t c_gaia_table_first_child_gaia_relationship_offset = 5;
-    // The ref slot in gaia_table pointing to the first gaia_index.
-    static constexpr common::reference_offset_t c_gaia_table_first_gaia_index_offset = 6;
-    //
-    // The ref slot in gaia_relationship pointing to the parent gaia_table.
-    static constexpr common::reference_offset_t c_gaia_relationship_parent_parent_gaia_table_offset = 0;
-    // The ref slot in gaia_relationship pointing to the next parent gaia_relationship.
-    static constexpr common::reference_offset_t c_gaia_relationship_next_parent_gaia_relationship_offset = 1;
-    // The ref slot in gaia_relationship pointing to the prev parent gaia_relationship.
-    static constexpr common::reference_offset_t c_gaia_relationship_prev_parent_gaia_relationship_offset = 2;
-    // The ref slot in gaia_relationship pointing to the parent child gaia_relationship.
-    static constexpr common::reference_offset_t c_gaia_relationship_parent_child_gaia_table_offset = 3;
-    // The ref slot in gaia_relationship pointing to the next child gaia_relationship.
-    static constexpr common::reference_offset_t c_gaia_relationship_next_child_gaia_relationship_offset = 4;
-    // The ref slot in gaia_relationship pointing to the prev child gaia_relationship.
-    static constexpr common::reference_offset_t c_gaia_relationship_prev_child_gaia_relationship_offset = 5;
-    //
-    // The ref slot in gaia_database pointing to the first gaia_table.
-    static constexpr common::reference_offset_t c_gaia_database_first_gaia_table_offset = 0;
-    //
-    // The ref slot in gaia_index pointing to the parent gaia_table.
-    static constexpr common::reference_offset_t c_gaia_index_parent_gaia_table_offset = 0;
-    // The ref slot in gaia_index pointing to the next gaia_index.
-    static constexpr common::reference_offset_t c_gaia_index_next_gaia_index_offset = 1;
-    // The ref slot in gaia_index pointing to the prev gaia_index.
-    static constexpr common::reference_offset_t c_gaia_index_prev_gaia_index_offset = 2;
+// Constants for reference slots in catalog records.
+// They need to be updated when the corresponding catalog table definition change.
+//
+// The ref slot in gaia_field pointing to the gaia_table.
+constexpr common::reference_offset_t c_gaia_field_parent_gaia_table_offset = 0;
+// The ref slot in gaia_field pointing to the next gaia_field.
+constexpr common::reference_offset_t c_gaia_field_next_gaia_field_offset = 1;
+// The ref slot in gaia_field pointing to the prev gaia_field.
+constexpr common::reference_offset_t c_gaia_field_prev_gaia_field_offset = 2;
+//
+// The ref slot in gaia_table pointing to the parent gaia_database.
+constexpr common::reference_offset_t c_gaia_table_parent_gaia_database_offset = 0;
+// The ref slot in gaia_table pointing to the next gaia_table.
+constexpr common::reference_offset_t c_gaia_table_next_gaia_table_offset = 1;
+// The ref slot in gaia_table pointing to the prev gaia_table.
+constexpr common::reference_offset_t c_gaia_table_prev_gaia_table_offset = 2;
+// The ref slot in gaia_table pointing to the first gaia_field.
+constexpr common::reference_offset_t c_gaia_table_first_gaia_field_offset = 3;
+// The ref slot in gaia_table pointing to the first parent gaia_relationship.
+constexpr common::reference_offset_t c_gaia_table_first_parent_gaia_relationship_offset = 4;
+// The ref slot in gaia_table pointing to the first child gaia_relationship.
+constexpr common::reference_offset_t c_gaia_table_first_child_gaia_relationship_offset = 5;
+// The ref slot in gaia_table pointing to the first gaia_index.
+constexpr common::reference_offset_t c_gaia_table_first_gaia_index_offset = 6;
+//
+// The ref slot in gaia_relationship pointing to the parent gaia_table.
+constexpr common::reference_offset_t c_gaia_relationship_parent_parent_gaia_table_offset = 0;
+// The ref slot in gaia_relationship pointing to the next parent gaia_relationship.
+constexpr common::reference_offset_t c_gaia_relationship_next_parent_gaia_relationship_offset = 1;
+// The ref slot in gaia_relationship pointing to the prev parent gaia_relationship.
+constexpr common::reference_offset_t c_gaia_relationship_prev_parent_gaia_relationship_offset = 2;
+// The ref slot in gaia_relationship pointing to the parent child gaia_relationship.
+constexpr common::reference_offset_t c_gaia_relationship_parent_child_gaia_table_offset = 3;
+// The ref slot in gaia_relationship pointing to the next child gaia_relationship.
+constexpr common::reference_offset_t c_gaia_relationship_next_child_gaia_relationship_offset = 4;
+// The ref slot in gaia_relationship pointing to the prev child gaia_relationship.
+constexpr common::reference_offset_t c_gaia_relationship_prev_child_gaia_relationship_offset = 5;
+//
+// The ref slot in gaia_database pointing to the first gaia_table.
+constexpr common::reference_offset_t c_gaia_database_first_gaia_table_offset = 0;
+//
+// The ref slot in gaia_index pointing to the parent gaia_table.
+constexpr common::reference_offset_t c_gaia_index_parent_gaia_table_offset = 0;
+// The ref slot in gaia_index pointing to the next gaia_index.
+constexpr common::reference_offset_t c_gaia_index_next_gaia_index_offset = 1;
+// The ref slot in gaia_index pointing to the prev gaia_index.
+constexpr common::reference_offset_t c_gaia_index_prev_gaia_index_offset = 2;
 
-    [[nodiscard]] static inline const db_object_t* get_db_object_ptr(common::gaia_id_t);
+table_view_t get_table(common::gaia_id_t table_id);
+table_list_t list_tables();
+field_list_t list_fields(common::gaia_id_t table_id);
 
-    static table_view_t get_table(common::gaia_id_t table_id);
-    static table_list_t list_tables();
-    static field_list_t list_fields(common::gaia_id_t table_id);
+// List all the relationship(s) originating from the given table.
+relationship_list_t list_relationship_from(common::gaia_id_t table_id);
+// List all the relationship(s) pointing to the given table.
+relationship_list_t list_relationship_to(common::gaia_id_t table_id);
 
-    // List all the relationship(s) originating from the given table.
-    static relationship_list_t list_relationship_from(common::gaia_id_t table_id);
-    // List all the relationship(s) pointing to the given table.
-    static relationship_list_t list_relationship_to(common::gaia_id_t table_id);
+index_list_t list_indexes(common::gaia_id_t table_id);
 
-    static index_list_t list_indexes(common::gaia_id_t table_id);
-
-    // TODO: Decide if the method belongs to catalog_core or index headers.
-    // Helper method to find an index for a given table and field. Return
-    // invalid_gaia_id if cannot find index (for the field).
-    static common::gaia_id_t find_index(common::gaia_id_t table_id, common::field_position_t field_position);
-};
+// TODO: Decide if the method belongs to catalog_core or index headers.
+// Helper method to find an index for a given table and field. Return
+// invalid_gaia_id if cannot find index (for the field).
+common::gaia_id_t find_index(common::gaia_id_t table_id, common::field_position_t field_position);
 
 class table_generator_t : public common::iterators::generator_t<table_view_t>
 {
@@ -182,5 +179,6 @@ private:
     common::iterators::generator_iterator_t<gaia_ptr_t> m_gaia_ptr_iterator;
 };
 
+} // namespace catalog_core
 } // namespace db
 } // namespace gaia
