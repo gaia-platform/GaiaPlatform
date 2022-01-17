@@ -994,7 +994,7 @@ TEST_F(gaia_references_test, test_temporary_object)
     commit_transaction();
 }
 
-TEST_F(gaia_references_test, test_delete_child)
+TEST_F(gaia_references_test, test_delete_referenced_child)
 {
     auto_transaction_t txn;
 
@@ -1020,7 +1020,7 @@ TEST_F(gaia_references_test, test_delete_child)
     ASSERT_EQ(employee.addresses().begin()->gaia_id(), addr.gaia_id());
 }
 
-TEST_F(gaia_references_test, test_delete_parent)
+TEST_F(gaia_references_test, test_delete_referenced_parent)
 {
     auto_transaction_t txn;
 
@@ -1032,26 +1032,6 @@ TEST_F(gaia_references_test, test_delete_parent)
     txn.commit();
 
     ASSERT_THROW(employee.delete_row(), object_still_referenced);
-    txn.commit();
-
-    ASSERT_NO_THROW(employee.delete_row(true));
-    txn.commit();
-
-    for (const auto& addr : addresses)
-    {
-        ASSERT_FALSE(addr.owner());
-    }
-}
-
-TEST_F(gaia_references_test, test_force_delete_and_reconnect)
-{
-    auto_transaction_t txn;
-
-    constexpr size_t c_num_addresses = 10;
-    employee_t employee = insert_records(c_num_addresses);
-
-    std::array<address_t, c_num_addresses> addresses;
-    std::copy(employee.addresses().begin(), employee.addresses().end(), addresses.begin());
     txn.commit();
 
     ASSERT_NO_THROW(employee.delete_row(true));
