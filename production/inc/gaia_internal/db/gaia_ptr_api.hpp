@@ -36,7 +36,7 @@ gaia_ptr_t create(
     size_t data_size,
     const void* data);
 
-void remove(gaia_ptr_t& object);
+void remove(gaia_ptr_t& object, bool force = false);
 
 void update_payload(common::gaia_id_t id, size_t data_size, const void* data);
 void update_payload(gaia_ptr_t& obj, size_t data_size, const void* data);

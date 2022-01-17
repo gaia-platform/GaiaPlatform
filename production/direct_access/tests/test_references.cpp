@@ -7,6 +7,9 @@
 
 #include "gtest/gtest.h"
 
+#include <gaia/direct_access/auto_transaction.hpp>
+#include <gaia/exceptions.hpp>
+
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 #include "gaia_internal/db/gaia_relationships.hpp"
@@ -989,4 +992,88 @@ TEST_F(gaia_references_test, test_temporary_object)
     emp.addresses().insert(address_t::get(address_t::insert_row("", "", "", "", "", "", true)));
 
     commit_transaction();
+}
+
+TEST_F(gaia_references_test, test_delete_child)
+{
+    auto_transaction_t txn;
+
+    const size_t c_num_addresses = 10;
+    employee_t employee = insert_records(c_num_addresses);
+    txn.commit();
+
+    size_t count = 0;
+    for (auto addr = employee.addresses().begin(); addr != employee.addresses().end();)
+    {
+        auto prev = addr++;
+        ASSERT_NO_THROW(prev->delete_row());
+        count++;
+    }
+    ASSERT_EQ(count, c_num_addresses);
+    txn.commit();
+
+    ASSERT_EQ(employee.addresses().size(), 0);
+    address_t addr = insert_address("2400 4th Ave", "Houston");
+    employee.addresses().connect(addr);
+    txn.commit();
+
+    ASSERT_EQ(employee.addresses().begin()->gaia_id(), addr.gaia_id());
+}
+
+TEST_F(gaia_references_test, test_delete_parent)
+{
+    auto_transaction_t txn;
+
+    const size_t c_num_addresses = 10;
+    employee_t employee = insert_records(c_num_addresses);
+
+    std::array<address_t, c_num_addresses> addresses;
+    std::copy(employee.addresses().begin(), employee.addresses().end(), addresses.begin());
+    txn.commit();
+
+    ASSERT_THROW(employee.delete_row(), object_still_referenced);
+    txn.commit();
+
+    ASSERT_NO_THROW(employee.delete_row(true));
+    txn.commit();
+
+    for (const auto& addr : addresses)
+    {
+        ASSERT_FALSE(addr.owner());
+    }
+}
+
+TEST_F(gaia_references_test, test_force_delete_and_reconnect)
+{
+    auto_transaction_t txn;
+
+    constexpr size_t c_num_addresses = 10;
+    employee_t employee = insert_records(c_num_addresses);
+
+    std::array<address_t, c_num_addresses> addresses;
+    std::copy(employee.addresses().begin(), employee.addresses().end(), addresses.begin());
+    txn.commit();
+
+    ASSERT_NO_THROW(employee.delete_row(true));
+    txn.commit();
+
+    employee_t employee1 = insert_employee("e1");
+    employee_t employee2 = insert_employee("e2");
+    size_t count = 0;
+    for (const auto& addr : addresses)
+    {
+        ASSERT_FALSE(addr.owner());
+        if (++count % 2 == 0)
+        {
+            employee1.addresses().connect(addr);
+        }
+        else
+        {
+            employee2.addresses().connect(addr);
+        }
+    }
+    txn.commit();
+
+    ASSERT_EQ(employee1.addresses().size(), c_num_addresses / 2);
+    ASSERT_EQ(employee2.addresses().size(), c_num_addresses / 2);
 }

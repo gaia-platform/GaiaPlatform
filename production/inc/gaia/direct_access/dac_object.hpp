@@ -83,12 +83,12 @@ public:
      * Delete the database object. This doesn't destroy the direct access class
      * object.
      */
-    void delete_row();
+    void delete_row(bool force = false);
 
     /**
      * Delete the database object specified by the id.
      */
-    static void delete_row(gaia::common::gaia_id_t id);
+    static void delete_row(gaia::common::gaia_id_t id, bool force = false);
 
     /**
      * Get the array of pointers to related objects.
