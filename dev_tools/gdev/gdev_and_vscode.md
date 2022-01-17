@@ -5,10 +5,10 @@ VS Code can attach to running `gdev` Docker containers and run the VS Code Serve
 These steps are for developers who already set everything up and just want to remember how to start VS Code + `gdev` up again.
 
 - In a terminal (not in VS Code):
-	```bash
-	cd GaiaPlatform/production
-	gdev run --mixins git
-	```
+    ```bash
+    cd GaiaPlatform/production
+    gdev run --mixins git
+    ```
 - Leave that terminal open and open VS Code.
 - Press `F1`, select **Remote-Containers: Attach to Running Container...** and pick the `gdev` container (it will have a random name).
   - If it shows a popup error about not finding a running container, select **Choose Container**.
@@ -33,17 +33,17 @@ Open VS Code and install the [Remote - Containers](https://marketplace.visualstu
 We need to configure how we attach to these containers in the future. In the Command Palette, run **Remote-Containers: Open Container Configuration File** and copy-paste the following into the JSON file that opens:
 ```javascript
 {
-	// Default path to open when attaching to a new container.
-	"workspaceFolder": "/source",
+    // Default path to open when attaching to a new container.
+    "workspaceFolder": "/source",
   
-	// An array of extension IDs that specify the extensions to
-	// install inside the container when you first attach to it.
-	"extensions": [
-		"ms-azuretools.vscode-docker",
-		"ms-vscode.cpptools",
+    // An array of extension IDs that specify the extensions to
+    // install inside the container when you first attach to it.
+    "extensions": [
+        "ms-azuretools.vscode-docker",
+        "ms-vscode.cpptools",
         "ms-vscode.cmake-tools",
-		"twxs.cmake"
-	],
+        "twxs.cmake"
+    ],
 }
 ```
 
