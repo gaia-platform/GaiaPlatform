@@ -70,8 +70,8 @@ namespace logging
 class internal_logger_t;
 
 /**
-  * Gaia Logger API.
-  */
+* Gaia Logger API.
+*/
 class logger_t
 {
     friend class internal_logger_t;
