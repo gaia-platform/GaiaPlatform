@@ -35,7 +35,7 @@ PointerAlignment: Left
 AccessModifierOffset: -4
 
 # From clang-format-11 there are more fine grained options for this setting.
-AlignOperands: false
+AlignOperands: AlignAfterOperator
 BreakBeforeBinaryOperators: All
 BreakBeforeTernaryOperators: true
 
