@@ -93,8 +93,8 @@ double class_name_t::method_with_many_arguments(
 {
     // breaks before binary operator
     return arg1
-         + arg2
-         + arg3 + arg4; // NOLINT
+        + arg2
+        + arg3 + arg4; // NOLINT
 }
 
 void short_statements()
@@ -180,11 +180,11 @@ int binary_operator()
         = var1 + var2 + var3;
 
     int result3 = var1
-                + var2 + var3;
+        + var2 + var3;
 
     return result1
-         + result2
-         + result3;
+        + result2
+        + result3;
 }
 
 int ternary_operator()
@@ -198,17 +198,17 @@ int ternary_operator()
                                 : var2;
 
     int result3 = (var1 > var2)
-                    ? var1
-                    : var2;
+        ? var1
+        : var2;
 
     int result4
         = (var1 > var2)
-            ? var1
-            : var2;
+        ? var1
+        : var2;
 
     return result1 < result2
-             ? result3
-             : result4;
+        ? result3
+        : result4;
 }
 
 void pure_anarchy()
