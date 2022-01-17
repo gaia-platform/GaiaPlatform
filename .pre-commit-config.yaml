@@ -17,15 +17,16 @@ repos:
     - id: forbid-crlf
     - id: forbid-tabs
 
-- repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: v13.0.0
-  hooks:
-    - id: clang-format
-      args:
-        - --Werror
-        - --style=file
-        - -i
-      exclude: ^(production/tests/workloads/template/json.hpp|production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h)
+# - repo: https://github.com/pre-commit/mirrors-clang-format
+#   rev: v13.0.0
+#   hooks:
+#     - id: clang-format
+#       args:
+#         - --Werror
+#         - --style=file
+#         - -i
+#       exclude: ^(production/tests/workloads/template/json.hpp|production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h)
+
 # Waiting on https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1848 and https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1849
 # - repo: https://github.com/pocc/pre-commit-hooks
 #   rev: master
