@@ -77,4 +77,3 @@ production/tests/workloads/pingpong/python/summarize_test_results.py
 production/tests/workloads/pingpong/simulation_exceptions.hpp
 production/tests/workloads/pingpong/simulation.cpp
 production/tests/workloads/pingpong/simulation.hpp
-dev_tools/github-actions/test-script

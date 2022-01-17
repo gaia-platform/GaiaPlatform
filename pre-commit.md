@@ -6,6 +6,7 @@ This effort is partially to ensure that we follow every coding guideline and do 
 ## XXX
 
 - cppcheck
+  - tried and rejected
 
 ## Pre Commit Checks
 

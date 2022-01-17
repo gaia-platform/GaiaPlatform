@@ -13,7 +13,6 @@ env:
   GAIA_VERSION: 0.3.3
   SSH_AUTH_SOCK: /tmp/ssh_agent.sock
   DEV_IMAGE: ghcr.io/gaia-platform/dev-base:latest
-  SLACK_STATUS_FIELDS: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest
 
 jobs:
   Third-Party:
@@ -95,14 +94,6 @@ jobs:
           cd $GAIA_REPO/production
           pre-commit run --all-files
 
-      - name: Report Job Status To Slack
-        uses: 8398a7/action-slack@v3
-        if: always()
-        with:
-          status: ${{ job.status }}
-          fields: ${{ env.SLACK_STATUS_FIELDS }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   Core:
     needs:
       - Lint
@@ -141,15 +132,6 @@ jobs:
           path: |
             ${{ github.workspace }}/build/output
       
-      - name: Report Job Status To Slack
-        uses: 8398a7/action-slack@v3
-        if: always()
-        with:
-          status: ${{ job.status }}
-          fields: ${{ env.SLACK_STATUS_FIELDS }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
   SDK:
     needs: Third-Party
     runs-on: ubuntu-20.04
@@ -174,7 +156,7 @@ jobs:
         run: |
           $GAIA_REPO/dev_tools/github-actions/build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --base-image $DEV_IMAGE
 
-      - name: Run Docker Image And Post-Build Script
+      - name: Run Unit Tests
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --gaia-version $GAIA_VERSION
 
@@ -192,14 +174,6 @@ jobs:
           name: SDK Install Package
           path: |
             ${{ github.workspace }}/build/output/package
-      - name: Report Job Status To Slack
-        uses: 8398a7/action-slack@v3
-        if: always()
-        with:
-          status: ${{ job.status }}
-          fields: ${{ env.SLACK_STATUS_FIELDS }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   Debug_Core:
     needs: Core
@@ -225,7 +199,7 @@ jobs:
         run: |
           $GAIA_REPO/dev_tools/github-actions/build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --base-image $DEV_IMAGE
 
-      - name: Run Docker Image And Post-Build Script
+      - name: Run Unit Tests
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --gaia-version $GAIA_VERSION
 
@@ -236,15 +210,6 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
-
-      - name: Report Job Status To Slack
-        uses: 8398a7/action-slack@v3
-        if: always()
-        with:
-          status: ${{ job.status }}
-          fields: ${{ env.SLACK_STATUS_FIELDS }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   LLVM_Tests:
     needs: Core
@@ -283,15 +248,6 @@ jobs:
           path: |
             ${{ github.workspace }}/build/output
 
-      - name: Report Job Status To Slack
-        uses: 8398a7/action-slack@v3
-        if: always()
-        with:
-          status: ${{ job.status }}
-          fields: ${{ env.SLACK_STATUS_FIELDS }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
   Integration_Smoke:
     needs: SDK
     runs-on: ubuntu-20.04
@@ -325,15 +281,6 @@ jobs:
           path: |
             ${{ github.workspace }}/production/tests/results
 
-      - name: Report Job Status To Slack
-        uses: 8398a7/action-slack@v3
-        if: always()
-        with:
-          status: ${{ job.status }}
-          fields: ${{ env.SLACK_STATUS_FIELDS }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
   Integration_Smoke_Persistence:
     needs: SDK
     runs-on: ubuntu-20.04
@@ -366,15 +313,6 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/production/tests/results
-
-      - name: Report Job Status To Slack
-        uses: 8398a7/action-slack@v3
-        if: always()
-        with:
-          status: ${{ job.status }}
-          fields: ${{ env.SLACK_STATUS_FIELDS }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   Integration_Samples:
     needs: SDK
@@ -410,14 +348,6 @@ jobs:
           path: |
             ${{ github.workspace }}/production/tests/results
 
-      - name: Report Job Status To Slack
-        uses: 8398a7/action-slack@v3
-        if: always()
-        with:
-          status: ${{ job.status }}
-          fields: ${{ env.SLACK_STATUS_FIELDS }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   Final:
     needs:
       - Integration_Smoke
@@ -429,11 +359,6 @@ jobs:
     steps:
       - uses: technote-space/workflow-conclusion-action@v2
 
-      - uses: 8398a7/action-slack@v3
-        with:
-          # status: ${{ env.WORKFLOW_CONCLUSION }} # neutral, success, skipped, cancelled, timed_out, action_required, failure
-          status: ${{ env.WORKFLOW_CONCLUSION }}
-          fields: ${{ env.SLACK_STATUS_FIELDS }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-# if: env.WORKFLOW_CONCLUSION == 'failure' # notify only if failure
+      - name: Results
+        run: |
+          echo "Build Workflow: ${{ env.WORKFLOW_CONCLUSION }}"

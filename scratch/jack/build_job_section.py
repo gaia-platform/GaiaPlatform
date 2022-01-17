@@ -16,7 +16,7 @@ import time
 import subprocess
 
 __available_options = [
-    "GaiaRelease",
+    "GaiaSDK",
     "ubuntu:20.04",
     "CI_GitHub",
     "Lint",

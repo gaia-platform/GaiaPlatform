@@ -29,7 +29,7 @@ This conditional simply checks to see if that single option is present and evalu
 The second conditional is the negation of that, the `{enable_if_not('option')}` conditional, evaluating to true if the option is not present.
 The third conditional is the multiple version of the `enable_if` conditional, the `enable_if_any` conditional.
 The `enable_if_any` conditional accepts between 1 and 3 options to trigger on, each option surround with apostrophes and separated from other options by a single comma character.
-To balance this, the `enable_if_none` is the final conditional.
+To balance this, the `enable_if_not_any` is the final conditional.
 This conditional is constructed like the `enable_if_any` conditional, but only triggers if none of the options are met.
 
 ### Location Matters
@@ -58,7 +58,7 @@ Because of the line continuation character at the end of the first line, the `Ga
 In addition, a conditional can be applied to an entire section:
 
 ```
-{enable_if('GaiaRelease')}[package]
+{enable_if('GaiaSDK')}[package]
 produces:/build/production/gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb
 cd /build/production
 ```
@@ -113,7 +113,7 @@ By loading the information in the Gdev files in this manner, we are able to prop
 To specify each option, the `--option` parameter is used.
 The options are stored in the `__available_options` variable and are currently:
 
-- `GaiaRelease`
+- `GaiaSDK`
 - `ubuntu:20.04`
 - `CI_GitHub`
 

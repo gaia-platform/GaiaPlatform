@@ -147,13 +147,13 @@ save_current_directory
 
 CONFIGURATION_OPTIONS=
 if [ "$JOB_NAME" == "Core" ] ; then
-    CONFIGURATION_OPTIONS="--cfg-enables ubuntu:20.04"
+    CONFIGURATION_OPTIONS="--cfg-enables CI_GitHub"
 elif [ "$JOB_NAME" == "Debug_Core" ] ; then
-    CONFIGURATION_OPTIONS="--cfg-enables ubuntu:20.04 --cfg-enables Debug"
+    CONFIGURATION_OPTIONS="--cfg-enables CI_GitHub --cfg-enables Debug"
 elif [ "$JOB_NAME" == "SDK" ] ; then
-    CONFIGURATION_OPTIONS="--cfg-enables ubuntu:20.04 --cfg-enables GaiaRelease"
+    CONFIGURATION_OPTIONS="--cfg-enables CI_GitHub --cfg-enables GaiaSDK"
 elif [ "$JOB_NAME" == "LLVM_Tests" ] ; then
-    CONFIGURATION_OPTIONS="--cfg-enables ubuntu:20.04 --cfg-enables GaiaLLVMTests"
+    CONFIGURATION_OPTIONS="--cfg-enables CI_GitHub --cfg-enables GaiaLLVMTests"
 else
     complete_process 1 "Cannot build docker image for job named '$JOB_NAME'."
 fi

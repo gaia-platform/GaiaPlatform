@@ -74,7 +74,7 @@ extern "C" void unsubscribe_ruleset(const char* ruleset_name);
  * The caller supplies a rule_binding to subscribe/unsubscribe rules to/from events.
  * The caller must supply the ruleset_name, rule_name, and the function pointer for the rule.
  * The ruleset_name and the rule_name must uniquely identify the rule.
- */
+  */
 struct rule_binding_t
 {
     rule_binding_t()

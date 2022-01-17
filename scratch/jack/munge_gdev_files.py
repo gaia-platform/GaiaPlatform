@@ -63,7 +63,7 @@ __valid_section_names = [
 __available_sections = []
 
 __available_options = [
-    "GaiaRelease",
+    "GaiaSDK",
     "Debug",
     "GaiaLLVMTests",
     "ubuntu:20.04",
@@ -79,7 +79,7 @@ __ENABLE_IF_ANY_REGEX = (
     r"enable_if_any\(\'([^']+)\'(?:\s*\,\s*\'([^']+)\')?(?:\s*\,\s*\'([^']+)\')?\)"
 )
 __ENABLE_IF_NONE_REGEX = (
-    r"enable_if_none\(\'([^']+)\'(?:\s*\,\s*\'([^']+)\')?(?:\s*\,\s*\'([^']+)\')?\)"
+    r"enable_if_not_any\(\'([^']+)\'(?:\s*\,\s*\'([^']+)\')?(?:\s*\,\s*\'([^']+)\')?\)"
 )
 
 # Templates to use for various task sections.

@@ -12,7 +12,7 @@
 #include <vector>
 
 /**
- * Utility class that given a schema file name (eg. "addr_book.ddl") search for it into a set of
+ * Utility class that given a schema file name (eg. "addr_book.ddl") search for it into a set of 
  * predefined folders, and loads its content into the Catalog.
  */
 class schema_loader_t

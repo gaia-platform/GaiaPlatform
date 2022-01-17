@@ -154,9 +154,6 @@ if ! mkdir -p "$GAIA_REPO/build/output" ; then
     complete_process 1 "Unable to create an output directory for '$JOB_NAME'."
 fi
 
-echo "--pre-inside--"
-ls -la "$GAIA_REPO/build/output"
-echo "--pre-inside--"
 if ! docker run \
     --rm \
     --init \
@@ -167,9 +164,6 @@ if ! docker run \
     /source/dev_tools/github-actions/post_build_inside_container.sh --job-name "$JOB_NAME" --gaia-version "$GAIA_VERSION" ; then
     complete_process 1 "Docker post-build script for job '$JOB_NAME' failed."
 fi
-echo "--post-inside--"
-ls -la "$GAIA_REPO/build/output"
-echo "--post-inside--"
 
 complete_process 0
 

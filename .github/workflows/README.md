@@ -1,11 +1,12 @@
 # GitHub Actions
 
-**PLEASE READ THROUGH THIS FILE COMPLETELY BEFORE MAKING ANY CHANGES**
+**PLEASE READ THROUGH THIS FILE COMPLETELY BEFORE MAKING ANY CHANGES TO THE MAIN.YML FILE**
 
 ## Prerequisites
 
 - Understanding of the [GDev System](../../dev_tools/gdev/README.md)
 - Understanding of [GitHub Actions](https://docs.github.com/en/actions)
+- A good [cheat sheet](https://github.github.io/actions-cheat-sheet/actions-cheat-sheet.pdf) on GitHub Actions
 
 ## Design Goals
 
@@ -39,21 +40,30 @@ Any specialization of jobs for different environments is done within the docker 
 
 ### Environment Variables
 
-These are set in each job to ensure a stable environment is available:
+These are set in each job to ensure a stable environment is available at the workflow level:
 
 ```YAML
-    env:
-      GAIA_REPO: ${{ github.workspace }}
-      SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-      DEV_IMAGE: ghcr.io/gaia-platform/dev-base:latest
+env:
+  GAIA_VERSION: 0.3.3
+  SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+  DEV_IMAGE: ghcr.io/gaia-platform/dev-base:latest
+  SLACK_STATUS_FIELDS: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest
+```
+
+and the job level:
+
+```YAML
+env:
+  GAIA_REPO: ${{ github.workspace }}
 ```
 
 | Name | Description |
 | --- | --- |
 | `GAIA_REPO` | where the workspace is within the workspace provided by GHA |
+| `GAIA_VERSION` | version of the product being built |
 | `SSH_AUTH_SOCK` | needed for docker related commands issued within the scripts |
 | `DEV_IMAGE` | image to use as a base/cache for the other images to be built |
-
+| `SLACK_STATUS_FIELDS` | job fields to broadcast to slack |
 
 ### Steps Prefix
 
@@ -71,9 +81,15 @@ Therefore, the `steps` section for each job always starts with the following pre
           python-version: 3.8
 ```
 
+These two actions are very important, as they set up to foundation of each job.
+The first action does a `git checkout` of the code belonging to the branch that was triggered on.
+The checkout is performed to the `$GAIA_REPO` or `${{ github.workspace }}` directory.
+The second action ensures that the current version of Python 3.8 is installed to the image.
+This is required as the `gdev.sh` infrastructure is written in Python, and has been fully tested against Python 3.8.
+
 ### Docker Setup And Pulling the Dev-Base Image
 
-The next task for each of the jobs is to setup for interaction with Docker and to pull the latest
+The next task for each of the jobs is to setup for interaction with Docker and to pull the latest version from GitHub's image store:
 
 ```YAML
       - name: Pull Latest Dev-Core Image
@@ -82,6 +98,8 @@ The next task for each of the jobs is to setup for interaction with Docker and t
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker pull ghcr.io/gaia-platform/dev-base:latest
 ```
+
+
 ## `Third-Party` Job
 
 This job is a special job because it creates a new image for the dev-base.

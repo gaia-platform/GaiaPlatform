@@ -170,7 +170,7 @@ if ! ./build_job_section.py \
     --job-name "SDK" \
     --requires "Core" \
     --directory ../../production \
-    --option GaiaRelease --option ubuntu:20.04 --option CI_GitHub > "$TEMP_FILE" ; then
+    --option GaiaSDK --option ubuntu:20.04 --option CI_GitHub > "$TEMP_FILE" ; then
     cat "$TEMP_FILE"
     complete_process 1 "Error creating the SDK job for the Workflow file."
 fi

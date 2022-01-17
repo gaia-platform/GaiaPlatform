@@ -1206,7 +1206,7 @@ void measure_time_slices()
 {
     const int slices_to_measure = 500;
 
-    // std::this_thread::sleep_for(microseconds(c_processing_pause_in_microseconds));
+    //std::this_thread::sleep_for(microseconds(c_processing_pause_in_microseconds));
     my_time_point end_sleep_start_mark = my_clock::now();
     for (int i = 0; i < slices_to_measure; i++)
     {

@@ -139,12 +139,13 @@ cp /build/production/*.log /build/output
 
 ## PER JOB CONFIGURATION ##
 
-if [ "$JOB_NAME" == "Core" ] ; then
+if [ "$JOB_NAME" == "Core" ] || [ "$JOB_NAME" == "Debug_Core" ] || [ "$JOB_NAME" == "SDK" ]; then
     if ! ctest 2>&1 | tee /build/output/ctest.log; then
         complete_process 1 "Unit tests failed to complete successfully."
     fi
+fi
 
-elif [ "$JOB_NAME" == "SDK" ] ; then
+if [ "$JOB_NAME" == "SDK" ] ; then
     #cp gaia-${{ env.GAIA_VERSION }}_amd64.deb gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb
     mkdir -p /build/output/package
     cp /build/production/"gaia-${GAIA_VERSION}_amd64.deb" "/build/output/package/gaia-${GAIA_VERSION}_amd64.deb"

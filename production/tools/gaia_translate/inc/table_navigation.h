@@ -9,11 +9,14 @@
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
+#include <clang/Catalog/GaiaCatalog.h>
+#include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/StringSet.h"
 #include <clang/Catalog/GaiaCatalog.h>
 #pragma clang diagnostic pop
 
+#include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 

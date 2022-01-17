@@ -104,7 +104,7 @@ public:
         session_options.db_instance_name = m_instance_name;
 
         // TODO re-enable once we have multi instance support.
-        // begin_session(session_options);
+        //begin_session(session_options);
 
         uint32_t num_employees = 0;
 
