@@ -41,13 +41,14 @@ private:
     type_id_mapping_t()
         : m_is_initialized(std::make_unique<std::once_flag>()){};
 
+    void init_type_map();
+
+private:
     std::unique_ptr<std::once_flag> m_is_initialized;
     std::shared_mutex m_lock;
 
     // Mapping between ids of the gaia_table records and the corresponding type ID.
     std::unordered_map<common::gaia_type_t, common::gaia_id_t> m_type_map;
-
-    void init_type_map();
 };
 
 } // namespace db

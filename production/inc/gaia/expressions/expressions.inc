@@ -177,7 +177,7 @@ expression_decorator_t<T_class> expression_t<T_class, T_return>::empty()
 template <typename T_class, typename T_return>
 expression_t<T_class, int64_t> expression_t<T_class, T_return>::count()
 {
-    auto count_accessor = direct_access::member_accessor_t<T_class, int64_t>{
+    auto count_accessor = expressions::member_accessor_t<T_class, int64_t>{
         [member_accessor = m_member_accessor](const T_class& obj) {
             auto container = member_accessor(obj);
             return std::distance(container.begin(), container.end());

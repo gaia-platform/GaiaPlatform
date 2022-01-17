@@ -30,6 +30,16 @@ namespace gaia
 namespace translation
 {
 
+// Used to satisfy clang-tidy: cppcoreguidelines-avoid-magic-numbers
+// Unfortunately, specifying readability-magic-numbers.IgnorePowersOf2IntegerValues
+// in our .clang-tidy file was not sufficient to suppress these warnings.
+constexpr unsigned int c_size_8 = 8;
+constexpr unsigned int c_size_16 = 16;
+constexpr unsigned int c_size_32 = 32;
+constexpr unsigned int c_size_64 = 64;
+constexpr unsigned int c_size_256 = 256;
+constexpr unsigned int c_size_512 = 512;
+
 struct explicit_path_data_t
 {
     explicit_path_data_t() = default;
