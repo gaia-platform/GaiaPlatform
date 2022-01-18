@@ -1,73 +1,14 @@
 # The Catalog Bootstrap Process
 
-Core catalog types are `gaia_database`, `gaia_table`, `gaia_field`, `gaia_relationship` and `gaia_index`. Currently, `gaia_index` is not used during the process of bootstrapping the catalog. However, it may be used during DDL processing because a scheme defines an index.
+NOTE: These are raw notes, not updated for recent merges and incomplete. They will be organized and completed before a final PR merge.
+
+Core catalog types are `gaia_database`, `gaia_table`, `gaia_field`, `gaia_relationship`, `gaia_ref_anchor` and `gaia_index`. Currently, `gaia_index` is not used during the process of bootstrapping the catalog. However, it may be used during DDL processing because a scheme defines an index.
 
 ## `initialize_catalog()`
 
 The catalog initialization function is called by `gaiac` and `gaia::system::initialize()`.
 
-`initialize_catalog()` creates a singleton `ddl_executor_t` object, which calls `boostrap_catalog()` in its constructor. The `ddl_executor_t` object contains (among others) the public methods `create_database()`, `create_table()`, `create_relationships()` and `create_index()`. Private methods, used in `bootstrap_catalog()`, are also in the object, named `create_table_impl()` and `create_index()`. Each of these methods will call the respective DAC `insert_row()` method to create the `gaia_database`, `gaia_table`, `gaia_relationship` or `gaia_index` rows constituting the catalog, which is shown in today's form (January 2022) below:
-
-| id | type | name |
-| -- | ---- | ---- |
-| 0000001 | gaia_database | name |
-| 0000002 | gaia_table | gaia_database |
-| 0000003 | gaia_field | name |
-| 0000004 | gaia_table | gaia_table |
-| 0000005 | gaia_field | name |
-| 0000006 | gaia_field | type |
-| 0000007 | gaia_field | is_system |
-| 0000008 | gaia_field | binary_schema |
-| 0000009 | gaia_field | serialization_template |
-| 000000a | gaia_relationship | gaia_catalog_database_table (gaia_database -> gaia_table) |
-| 000000b | gaia_table | gaia_field |
-| 000000c | gaia_field | name |
-| 000000d | gaia_field | type |
-| 000000e | gaia_field | repeated_count |
-| 000000f | gaia_field | position |
-| 0000010 | gaia_field | deprecated |
-| 0000011 | gaia_field | active |
-| 0000012 | gaia_field | unique |
-| 0000013 | gaia_relationship | gaia_catalog_table_field (gaia_table -> gaia_field) |
-| 0000014 | gaia_table | gaia_relationship |
-| 0000015 | gaia_field | name |
-| 0000016 | gaia_field | to_parent_link_name |
-| 0000017 | gaia_field | to_child_link_name |
-| 0000018 | gaia_field | cardinality |
-| 0000019 | gaia_field | parent_required |
-| 000001a | gaia_field | deprecated |
-| 000001b | gaia_field | first_child_offset |
-| 000001c | gaia_field | next_child_offset |
-| 000001d | gaia_field | prev_child_offset |
-| 000001e | gaia_field | parent_offset |
-| 000001f | gaia_field | parent_field_positions |
-| 0000020 | gaia_field | child_field_positions |
-| 0000021 | gaia_relationship | gaia_catalog_relationship_parent (gaia_table -> gaia_relationship) |
-| 0000022 | gaia_relationship | gaia_catalog_relationship_child (gaia_table -> gaia_relationship) |
-| 0000023 | gaia_table | gaia_ruleset |
-| 0000024 | gaia_field | name |
-| 0000025 | gaia_field | active_on_startup |
-| 0000026 | gaia_field | table_ids |
-| 0000027 | gaia_field | source_location |
-| 0000028 | gaia_field | serial_stream |
-| 0000029 | gaia_table | gaia_rule |
-| 000002a | gaia_field | name |
-| 000002b | gaia_relationship | gaia_catalog_ruleset_rule (gaia_ruleset -> gaia_rule) |
-| 000002c | gaia_table | gaiaindex |
-| 000002d | gaia_field | name |
-| 000002e | gaia_field | unique |
-| 000002f | gaia_field | type |
-| 0000030 | gaia_field | fields |
-| 0000031 | gaia_relationship | gaia_catalog_table_index (gaia_table -> gaia_index) |
-| 0000032 | gaia_database | event_log |
-| 0000033 | gaia_table | event_log |
-| 0000034 | gaia_field | event_type |
-| 0000035 | gaia_field | type_id |
-| 0000036 | gaia_field | record_id |
-| 0000037 | gaia_field | column_id |
-| 0000038 | gaia_field | timestamp |
-| 0000039 | gaia_field | rules_invoked |
-| 000003a | gaia_database | (empty database) |
+`initialize_catalog()` creates a singleton `ddl_executor_t` object, which calls `boostrap_catalog()` in its constructor. The `ddl_executor_t` object contains (among others) the public methods `create_database()`, `create_table()`, `create_relationships()` and `create_index()`. Private methods, used in `bootstrap_catalog()`, are also in the object, named `create_table_impl()` and `create_index()`. Each of these methods will call the respective DAC `insert_row()` method to create the `gaia_database`, `gaia_table`, `gaia_relationship` or `gaia_index` rows constituting the catalog.
 
 The DAC definitions for the core catalog types are in `gaia_catalog.h`, which is stored in the project and usable by any procedural code that performs catalog manipulation.
 
