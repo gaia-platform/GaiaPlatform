@@ -8,15 +8,19 @@
 
 #include <gaia/logger.hpp>
 
-ruleset hello_ruleset
+ruleset vlr_rules
 {
-    on_insert(parent)
+    on_update(P:person.floor_num)
     {
-        gaia_log::app().info("Inserted a parent, ID {}", parent.id);
-    }
-
-    on_insert(child)
-    {
-        gaia_log::app().info("Inserted a child, ID {}, with parent ID {}", child.id, parent.id);
+        gaia_log::app().info("{} has arrived at: {}", P.name, P->floor.department);
+        
+        for (P->floor->Other:person)
+        {
+            if (P.name != Other.name)
+            {
+                gaia_log::app().info("{} says: Hi, {}!", Other.name, P.name);
+            }
+        }
+        gaia_log::app().info("---");
     }
 }
