@@ -143,7 +143,7 @@ save_current_directory
 CONFIGURATION_OPTIONS=
 for i in "${CONFIG[@]}"
 do
-	CONFIGURATION_OPTIONS="$CONFIGURATION_OPTIONS --cfg-enables $i"
+    CONFIGURATION_OPTIONS="$CONFIGURATION_OPTIONS --cfg-enables $i"
 done
 
 # Ensure we have a predicatable place to place output that we want to expose.
