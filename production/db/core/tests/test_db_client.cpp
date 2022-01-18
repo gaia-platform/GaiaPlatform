@@ -6,17 +6,16 @@
 #include <gtest/gtest.h>
 
 #include "gaia/db/db.hpp"
+#include "gaia/exceptions.hpp"
 
-#include "gaia_internal/catalog/catalog.hpp"
-#include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/db/db_test_base.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 
-#include "type_id_mapping.hpp"
-
 using namespace gaia::db;
 using namespace gaia::common;
-using namespace gaia::catalog;
+
+// NOTE: This test is used to test lower level DB client and 'gaia_ptr_t' APIs.
+// Try to avoid adding higher level components like catalog to the test.
 
 // duplicated from production/db/core/inc/db_server.hpp
 constexpr size_t c_stream_batch_size = 1 << 10;
@@ -89,23 +88,20 @@ private:
         node3_id = gaia_ptr_t::generate_id();
         node4_id = gaia_ptr_t::generate_id();
 
-        gaia_id_t type1_table_id = create_table("test1", {});
-        gaia_id_t type2_table_id = create_table("test2", {});
-
         begin_transaction();
         {
-            type1 = gaia_table_t::get(type1_table_id).type();
-            type2 = gaia_table_t::get(type2_table_id).type();
+            type1 = 1;
+            type2 = 2;
 
             std::cerr << std::endl;
             std::cerr << "*** create test nodes" << std::endl;
-            gaia_ptr_t node1 = gaia_ptr_t::create(node1_id, type1, 0, nullptr);
+            gaia_ptr_t node1 = gaia_ptr_t::create(node1_id, type1, 0, 0, nullptr);
             print_node(node1);
-            gaia_ptr_t node2 = gaia_ptr_t::create(node2_id, type1, 0, nullptr);
+            gaia_ptr_t node2 = gaia_ptr_t::create(node2_id, type1, 0, 0, nullptr);
             print_node(node2);
-            gaia_ptr_t node3 = gaia_ptr_t::create(node3_id, type2, 0, nullptr);
+            gaia_ptr_t node3 = gaia_ptr_t::create(node3_id, type2, 0, 0, nullptr);
             print_node(node3);
-            gaia_ptr_t node4 = gaia_ptr_t::create(node4_id, type2, 0, nullptr);
+            gaia_ptr_t node4 = gaia_ptr_t::create(node4_id, type2, 0, 0, nullptr);
             print_node(node4);
         }
         commit_transaction();
@@ -137,16 +133,6 @@ TEST_F(db_client_test, early_session_termination)
     rollback_transaction();
 }
 
-TEST_F(db_client_test, creation_fail_for_invalid_type)
-{
-    begin_transaction();
-    {
-        const gaia_type_t c_invalid_type = 8888;
-        EXPECT_THROW(gaia_ptr_t::create(c_invalid_type, 0, 0), invalid_object_type);
-    }
-    commit_transaction();
-}
-
 TEST_F(db_client_test, gaia_ptr_no_transaction_fail)
 {
     begin_transaction();
@@ -154,8 +140,6 @@ TEST_F(db_client_test, gaia_ptr_no_transaction_fail)
     commit_transaction();
 
     // Create with existent type fail
-    EXPECT_THROW(gaia_ptr_t::create(type1, 0, ""), no_open_transaction);
-    EXPECT_THROW(gaia_ptr_t::create(99999, type1, 0, ""), no_open_transaction);
     EXPECT_THROW(gaia_ptr_t::create(99999, type1, 5, 0, ""), no_open_transaction);
     EXPECT_THROW(gaia_ptr_t::from_gaia_id(node1_id), no_open_transaction);
     EXPECT_THROW(node1.id(), no_open_transaction);
@@ -164,22 +148,6 @@ TEST_F(db_client_test, gaia_ptr_no_transaction_fail)
     EXPECT_THROW(node1.references(), no_open_transaction);
     EXPECT_THROW(node1.find_next(), no_open_transaction);
     EXPECT_THROW(node1.update_payload(0, ""), no_open_transaction);
-    EXPECT_THROW(node1.add_child_reference(1, 2), no_open_transaction);
-    EXPECT_THROW(node1.add_parent_reference(1, 2), no_open_transaction);
-    EXPECT_THROW(node1.remove_child_reference(1, 2), no_open_transaction);
-    EXPECT_THROW(node1.remove_parent_reference(2), no_open_transaction);
-    EXPECT_THROW(node1.update_parent_reference(1, 2), no_open_transaction);
-    EXPECT_THROW(gaia_ptr_t::remove(node1), no_open_transaction);
-
-    // Test with non existent type
-    // TODO there is a bug in GNU libstdc that will the type_id_mapping hang if the initialization
-    //  throws an exception and call_once is called again. Disabling the tests for now.
-    //  see type_id_mapping_t for more details.
-    //    gaia_type_t type3 = 3;
-    //    EXPECT_THROW(gaia_ptr_t::create(type3, 0, 0), transaction_not_open);
-    //    EXPECT_THROW(gaia_ptr_t::create(99999, type3, 0, 0), transaction_not_open);
-    //    EXPECT_THROW(gaia_ptr_t::create(99999, type3, 5, 0, 0), transaction_not_open);
-    //    EXPECT_THROW(gaia_ptr_t::from_gaia_id(99999), transaction_not_open);
 }
 
 TEST_F(db_client_test, read_data)
@@ -289,87 +257,67 @@ TEST_F(db_client_test, iterate_type)
     commit_transaction();
 }
 
+constexpr gaia_type_t c_first_iterate_test_type = 4;
 constexpr size_t c_buffer_size_exact = c_stream_batch_size;
 constexpr size_t c_buffer_size_exact_multiple = c_stream_batch_size * 2;
 constexpr size_t c_buffer_size_inexact_multiple = c_stream_batch_size * 2 + 3;
 constexpr size_t c_buffer_size_minus_one = c_stream_batch_size - 1;
 constexpr size_t c_buffer_size_plus_one = c_stream_batch_size + 1;
 
-constexpr int c_total_test_types = 7;
-std::array<gaia_type_t, c_total_test_types> g_test_types;
-
 void iterate_test_create_nodes()
 {
-    std::vector<gaia_id_t> table_ids;
-    for (size_t i = 0; i < c_total_test_types; i++)
-    {
-        gaia_id_t id = create_table("test_table" + std::to_string(i), {});
-        table_ids.push_back(id);
-    }
-
-    // Reset cache otherwise it will not load.
-    type_id_mapping_t::instance().clear();
-
-    begin_transaction();
-    for (size_t i = 0; i < c_total_test_types; i++)
-    {
-        g_test_types[i] = gaia_table_t::get(table_ids[i]).type();
-    }
-
     std::cerr << "*** Creating nodes for cursor test..." << std::endl;
 
-    size_t test_type_index = 1;
-
     // Create objects for iterator test.
+    //
     // "One node" test.
-    gaia_ptr_t::create(gaia_ptr_t::generate_id(), g_test_types[test_type_index], 0, nullptr);
+    gaia_type_t next_type = c_first_iterate_test_type;
+    gaia_ptr_t::create(gaia_ptr_t::generate_id(), next_type, 0, 0, nullptr);
 
-    test_type_index++;
     // "Exact buffer size" test.
+    ++next_type;
     for (size_t i = 0; i < c_buffer_size_exact; i++)
     {
-        gaia_ptr_t::create(gaia_ptr_t::generate_id(), g_test_types[test_type_index], 0, nullptr);
+        gaia_ptr_t::create(gaia_ptr_t::generate_id(), next_type, 0, 0, nullptr);
     }
 
-    test_type_index++;
     // "Exact multiple of buffer size" test
+    ++next_type;
     for (size_t i = 0; i < c_buffer_size_exact_multiple; i++)
     {
-        gaia_ptr_t::create(gaia_ptr_t::generate_id(), g_test_types[test_type_index], 0, nullptr);
+        gaia_ptr_t::create(gaia_ptr_t::generate_id(), next_type, 0, 0, nullptr);
     }
 
-    test_type_index++;
     // "Inexact multiple of buffer size" test
+    ++next_type;
     for (size_t i = 0; i < c_buffer_size_inexact_multiple; i++)
     {
-        gaia_ptr_t::create(gaia_ptr_t::generate_id(), g_test_types[test_type_index], 0, nullptr);
+        gaia_ptr_t::create(gaia_ptr_t::generate_id(), next_type, 0, 0, nullptr);
     }
 
-    test_type_index++;
     // "One less than buffer size" test
+    ++next_type;
     for (size_t i = 0; i < c_buffer_size_minus_one; i++)
     {
-        gaia_ptr_t::create(gaia_ptr_t::generate_id(), g_test_types[test_type_index], 0, nullptr);
+        gaia_ptr_t::create(gaia_ptr_t::generate_id(), next_type, 0, 0, nullptr);
     }
 
-    test_type_index++;
     // "One more than buffer size" test
+    ++next_type;
     for (size_t i = 0; i < c_buffer_size_plus_one; i++)
     {
-        gaia_ptr_t::create(gaia_ptr_t::generate_id(), g_test_types[test_type_index], 0, nullptr);
+        gaia_ptr_t::create(gaia_ptr_t::generate_id(), next_type, 0, 0, nullptr);
     }
-    commit_transaction();
 }
 
 void iterate_test_validate_iterations()
 {
     size_t count, expected_count;
 
-    size_t test_type_index = 0;
-
     std::cerr << std::endl;
+
     std::cerr << "*** Iterating over empty type:" << std::endl;
-    gaia_type_t type = g_test_types[test_type_index];
+    gaia_type_t type = c_first_iterate_test_type - 1;
     count = 0;
     expected_count = 0;
     for (auto node : gaia_ptr_t::find_all_range(type))
@@ -381,7 +329,7 @@ void iterate_test_validate_iterations()
 
     std::cerr << std::endl;
     std::cerr << "*** Iterating over one node in type:" << std::endl;
-    type = g_test_types[++test_type_index];
+    type = c_first_iterate_test_type;
     count = 0;
     expected_count = 1;
     for (auto node : gaia_ptr_t::find_all_range(type))
@@ -393,7 +341,7 @@ void iterate_test_validate_iterations()
 
     std::cerr << std::endl;
     std::cerr << "*** Iterating over nodes with exact buffer size:" << std::endl;
-    type = g_test_types[++test_type_index];
+    ++type;
     count = 0;
     expected_count = c_buffer_size_exact;
     for (auto node : gaia_ptr_t::find_all_range(type))
@@ -405,7 +353,7 @@ void iterate_test_validate_iterations()
 
     std::cerr << std::endl;
     std::cerr << "*** Iterating over nodes with exact multiple of buffer size:" << std::endl;
-    type = g_test_types[++test_type_index];
+    ++type;
     count = 0;
     expected_count = c_buffer_size_exact_multiple;
     for (auto node : gaia_ptr_t::find_all_range(type))
@@ -417,7 +365,7 @@ void iterate_test_validate_iterations()
 
     std::cerr << std::endl;
     std::cerr << "*** Iterating over nodes with inexact multiple of buffer size:" << std::endl;
-    type = g_test_types[++test_type_index];
+    ++type;
     count = 0;
     expected_count = c_buffer_size_inexact_multiple;
     for (auto node : gaia_ptr_t::find_all_range(type))
@@ -429,7 +377,7 @@ void iterate_test_validate_iterations()
 
     std::cerr << std::endl;
     std::cerr << "*** Iterating over nodes with one less than buffer size:" << std::endl;
-    type = g_test_types[++test_type_index];
+    ++type;
     count = 0;
     expected_count = c_buffer_size_minus_one;
     for (auto node : gaia_ptr_t::find_all_range(type))
@@ -441,7 +389,7 @@ void iterate_test_validate_iterations()
 
     std::cerr << std::endl;
     std::cerr << "*** Iterating over nodes with one more than buffer size:" << std::endl;
-    type = g_test_types[++test_type_index];
+    ++type;
     count = 0;
     expected_count = c_buffer_size_plus_one;
     for (auto node : gaia_ptr_t::find_all_range(type))
@@ -457,7 +405,11 @@ void iterate_test_validate_iterations()
 TEST_F(db_client_test, iterate_type_cursor_separate_txn)
 {
     // Test that we can see additions across transactions.
-    iterate_test_create_nodes();
+    begin_transaction();
+    {
+        iterate_test_create_nodes();
+    }
+    commit_transaction();
 
     begin_transaction();
     {
@@ -468,11 +420,10 @@ TEST_F(db_client_test, iterate_type_cursor_separate_txn)
 
 TEST_F(db_client_test, iterate_type_cursor_same_txn)
 {
-    iterate_test_create_nodes();
-
     // Test that we can see additions in the transaction that made them.
     begin_transaction();
     {
+        iterate_test_create_nodes();
         iterate_test_validate_iterations();
     }
     commit_transaction();
@@ -489,7 +440,7 @@ TEST_F(db_client_test, iterate_type_delete)
         EXPECT_EQ(node_iter.id(), node1_id);
         std::cerr << std::endl;
         std::cerr << "*** Preparing to delete first node of type 1:" << std::endl;
-        gaia_ptr_t::remove(node_iter);
+        node_iter.reset();
         std::cerr << "*** Iterating over nodes of type 1 after delete:" << std::endl;
         node_iter = gaia_ptr_t::find_first(type1);
         print_node(node_iter);

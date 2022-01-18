@@ -194,7 +194,7 @@ TEST_F(gaia_catalog_types_test, /* 5 */ gaia_ruleset_gaia_rule)
     commit_transaction();
 }
 
-TEST_F(gaia_catalog_types_test, /* 6 */ gaia_table_gaia_index)
+TEST_F(gaia_catalog_types_test, /* 6 */ DISABLED_gaia_table_gaia_index)
 {
     begin_transaction();
     // gaia_table

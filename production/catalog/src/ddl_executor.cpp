@@ -77,7 +77,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("hash", data_type_t::e_string, 1));
         create_table_impl(
             c_catalog_db_name, "gaia_database", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_database));
+            static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_database));
     }
     {
         // create table gaia_table (
@@ -97,7 +97,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("hash", data_type_t::e_string, 1));
         create_table_impl(
             c_catalog_db_name, "gaia_table", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_table));
+            static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_table));
         // create relationship gaia_catalog_database_table (
         //     catalog.gaia_database.gaia_tables -> catalog.gaia_table[],
         //     catalog.gaia_table.database -> catalog.gaia_database
@@ -131,7 +131,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("hash", data_type_t::e_string, 1));
         create_table_impl(
             c_catalog_db_name, "gaia_field", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_field));
+            static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_field));
         // create relationship gaia_catalog_table_field (
         //     catalog.gaia_table.gaia_fields -> catalog.gaia_field[],
         //     catalog.gaia_field.table -> catalog.gaia_table
@@ -176,7 +176,7 @@ void ddl_executor_t::bootstrap_catalog()
         // See gaia::db::relationship_t for more details about relationships.
         create_table_impl(
             c_catalog_db_name, "gaia_relationship", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_relationship));
+            static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_relationship));
         // create relationship gaia_catalog_relationship_parent (
         //     catalog.gaia_table.outgoing_relationships -> catalog.gaia_relationship[],
         //     catalog.gaia_relationship.parent -> catalog.gaia_table
@@ -208,7 +208,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("serial_stream", data_type_t::e_string, 1));
         create_table_impl(
             c_catalog_db_name, "gaia_ruleset", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_ruleset));
+            static_cast<gaia_type_t::value_type>(system_table_type_t::gaia_ruleset));
     }
     {
         // create table gaia_rule (
@@ -218,7 +218,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
         create_table_impl(
             c_catalog_db_name, "gaia_rule", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_rule));
+            static_cast<gaia_type_t::value_type>(system_table_type_t::gaia_rule));
         // create relationship gaia_catalog_ruleset_rule (
         //     catalog.gaia_ruleset.gaia_rules -> catalog.gaia_rule[],
         //     catalog.gaia_rule.ruleset -> catalog.gaia_ruleset
@@ -244,7 +244,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("fields", data_type_t::e_uint64, 0));
         create_table_impl(
             "catalog", "gaia_index", fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_index));
+            static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_index));
 
         // create relationship gaia_catalog_table_index (
         //     catalog.gaia_table.gaia_indexes -> catalog.gaia_index[],
@@ -442,6 +442,12 @@ void ddl_executor_t::bootstrap_catalog()
             std::nullopt,
             false);
     }
+    {
+        field_def_list_t fields;
+        create_table_impl(
+            "catalog", "gaia_ref_anchor", fields, is_system, throw_on_exists, auto_drop,
+            static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_ref_anchor));
+    }
 
     create_database(c_event_log_db_name, false);
     {
@@ -634,9 +640,10 @@ gaia_id_t ddl_executor_t::create_relationship(
     reference_offset_t first_child_offset = parent_available_offset;
 
     reference_offset_t parent_offset = child_available_offset;
-    reference_offset_t next_child_offset = child_available_offset + 1;
+    reference_offset_t next_child_offset = parent_offset + 1;
     validate_new_reference_offset(next_child_offset);
-    reference_offset_t prev_child_offset = c_invalid_reference_offset;
+    reference_offset_t prev_child_offset = next_child_offset + 1;
+    validate_new_reference_offset(prev_child_offset);
 
     bool is_parent_required = false;
     bool is_deprecated = false;
@@ -743,9 +750,6 @@ gaia_id_t ddl_executor_t::create_relationship(
         {
             child_field_positions.push_back(gaia_field_t::get(field_id).position());
         }
-
-        prev_child_offset = next_child_offset + 1;
-        validate_new_reference_offset(prev_child_offset);
     }
 
     // These casts works because a field_position_t is a thin wrapper over uint16_t,
@@ -783,7 +787,7 @@ void ddl_executor_t::drop_relationship_no_ri(gaia_relationship_t& relationship)
     // this by disconnecting all child records from their parent.
     for (auto record : gaia_ptr_t::find_all_range(relationship.child().type()))
     {
-        record.remove_parent_reference(relationship.parent_offset());
+        gaia_ptr::remove_from_reference_container(record, relationship.parent_offset());
     }
 
     // Unlink parent.
@@ -1000,7 +1004,7 @@ reference_offset_t ddl_executor_t::find_child_available_offset(const gaia_table_
     {
         max_offset = std::max(
             {max_offset.value(),
-             relationship.prev_child_offset() == c_invalid_reference_offset ? relationship.next_child_offset() : relationship.prev_child_offset(),
+             relationship.prev_child_offset(),
              relationship.parent_offset()});
 
         ASSERT_INVARIANT(max_offset != c_invalid_reference_offset, "Invalid reference offset detected!");

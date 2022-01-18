@@ -13,18 +13,25 @@
 
 namespace gaia
 {
+
+// Forward declarations to avoid circular dependencies.
+namespace direct_access
+{
+class dac_base_t;
+}
+
 /**
  * \addtogroup gaia
  * @{
  */
-namespace direct_access
+namespace expressions
 {
 /**
- * \addtogroup direct_access
+ * \addtogroup expressions
  * @{
  *
  * API to build expressions to perform operations on DAC classes,
- * such as filtering. An example of expression is: name == "Jhon".
+ * such as filtering. An example of expression is: name == "John".
  */
 
 /**
@@ -52,7 +59,7 @@ template <typename T_class, typename T_return>
 using member_accessor_fn_t = std::function<T_return(const T_class&)>;
 
 /**
- * Predicate on DAC classes (T_class).
+ * Predicate on classes (T_class).
  */
 template <typename T_class>
 using dac_predicate_t = std::function<bool(const T_class&)>;
@@ -166,7 +173,7 @@ public:
     template <typename T_value>
     expression_decorator_t<T_class> contains(expression_decorator_t<T_value> predicate);
 
-    template <typename T_value, typename = std::enable_if<std::is_base_of<dac_base_t, T_value>::value>>
+    template <typename T_value, typename = std::enable_if<std::is_base_of<direct_access::dac_base_t, T_value>::value>>
     expression_decorator_t<T_class> contains(const T_value& object);
 
     expression_decorator_t<T_class> empty();
@@ -180,10 +187,10 @@ private:
 // Pick up our template implementation.  These still
 // need to be in the header so that template specializations
 // that are declared later will pick up the definitions.
-#include "dac_expressions.inc"
+#include "expressions.inc"
 
 /*@}*/
-} // namespace direct_access
+} // namespace expressions
 /*@}*/
 } // namespace gaia
 

@@ -408,7 +408,7 @@ void index_builder_t::update_indexes_from_txn_log(
         }
 
         // Maintenance on the in-memory index data structures.
-        if (obj->type == static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_index))
+        if (obj->type == static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_index))
         {
             auto index_view = index_view_t(obj);
 

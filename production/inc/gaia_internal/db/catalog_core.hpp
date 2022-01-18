@@ -68,7 +68,7 @@ struct table_view_t : catalog_db_object_view_t
 struct relationship_view_t : catalog_db_object_view_t
 {
     static constexpr common::reference_offset_t c_parent_gaia_table_ref_offset = 0;
-    static constexpr common::reference_offset_t c_child_gaia_table_ref_offset = 2;
+    static constexpr common::reference_offset_t c_child_gaia_table_ref_offset = 3;
 
     using catalog_db_object_view_t::catalog_db_object_view_t;
     [[nodiscard]] const char* name() const;
@@ -110,14 +110,17 @@ struct catalog_core_t
     // The gaia_field reference slots:
     //    parent gaia_table
     //    next gaia_field
+    //    pref gaia_field
     //    first rule_field
     static constexpr common::reference_offset_t c_gaia_field_parent_table = 0;
     static constexpr common::reference_offset_t c_gaia_field_next_table = 1;
-    static constexpr common::reference_offset_t c_gaia_field_first_rule_fields = 2;
+    static constexpr common::reference_offset_t c_gaia_field_prev_table = 2;
+    static constexpr common::reference_offset_t c_gaia_field_first_rule_fields = 3;
     //
     // The gaia_table reference slots:
     //    parent gaia_database
     //    next gaia_table
+    //    prev gaia_table
     //    first gaia_field
     //    first gaia_relationship (outgoing)
     //    first gaia_relationship (incoming)
@@ -125,23 +128,28 @@ struct catalog_core_t
     //    first rule_table
     static constexpr common::reference_offset_t c_gaia_table_parent_database = 0;
     static constexpr common::reference_offset_t c_gaia_table_next_database = 1;
-    static constexpr common::reference_offset_t c_gaia_table_first_gaia_fields = 2;
-    static constexpr common::reference_offset_t c_gaia_table_first_outgoing_relationships = 3;
-    static constexpr common::reference_offset_t c_gaia_table_first_incoming_relationships = 4;
-    static constexpr common::reference_offset_t c_gaia_table_first_gaia_indexes = 5;
-    static constexpr common::reference_offset_t c_gaia_table_first_rule_tables = 6;
+    static constexpr common::reference_offset_t c_gaia_table_prev_database = 2;
+    static constexpr common::reference_offset_t c_gaia_table_first_gaia_fields = 3;
+    static constexpr common::reference_offset_t c_gaia_table_first_outgoing_relationships = 4;
+    static constexpr common::reference_offset_t c_gaia_table_first_incoming_relationships = 5;
+    static constexpr common::reference_offset_t c_gaia_table_first_gaia_indexes = 6;
+    static constexpr common::reference_offset_t c_gaia_table_first_rule_tables = 7;
     //
     // The gaia_relationship reference slots:
     //    parent gaia_table (outgoing)
     //    next gaia_relationship (outgoing)
+    //    prev gaia_relationship (outgoing)
     //    parent gaia_relationship (incoming)
     //    next gaia_relationship (incoming)
+    //    prev gaia_relationship (incoming)
     //    first rule_relationship
     static constexpr common::reference_offset_t c_gaia_relationship_parent_parent = 0;
     static constexpr common::reference_offset_t c_gaia_relationship_next_parent = 1;
-    static constexpr common::reference_offset_t c_gaia_relationship_parent_child = 2;
-    static constexpr common::reference_offset_t c_gaia_relationship_next_child = 3;
-    static constexpr common::reference_offset_t c_gaia_relationship_first_rule_relationships = 4;
+    static constexpr common::reference_offset_t c_gaia_relationship_prev_parent = 2;
+    static constexpr common::reference_offset_t c_gaia_relationship_parent_child = 3;
+    static constexpr common::reference_offset_t c_gaia_relationship_next_child = 4;
+    static constexpr common::reference_offset_t c_gaia_relationship_prev_child = 5;
+    static constexpr common::reference_offset_t c_gaia_relationship_first_rule_relationships = 6;
     //
     // The gaia_database reference slots:
     //    first gaia_table
@@ -162,80 +170,108 @@ struct catalog_core_t
     // The gaia_rule reference slots:
     //    parent gaia_ruleset
     //    next gaia_rule
+    //    prev gaia_rule
     //    first rule_table
     //    first rule_field
     //    first rule_relationship
     static constexpr common::reference_offset_t c_gaia_rule_parent_ruleset = 0;
     static constexpr common::reference_offset_t c_gaia_rule_next_ruleset = 1;
-    static constexpr common::reference_offset_t c_gaia_rule_first_rule_tables = 2;
-    static constexpr common::reference_offset_t c_gaia_rule_first_rule_fields = 3;
-    static constexpr common::reference_offset_t c_gaia_rule_first_rule_relationships = 4;
+    static constexpr common::reference_offset_t c_gaia_rule_prev_ruleset = 2;
+    static constexpr common::reference_offset_t c_gaia_rule_first_rule_tables = 3;
+    static constexpr common::reference_offset_t c_gaia_rule_first_rule_fields = 4;
+    static constexpr common::reference_offset_t c_gaia_rule_first_rule_relationships = 5;
     //
     // The gaia_index reference slots:
     //    parent gaia_table
     //    next gaia_index
+    //    prev gaia_index
     static constexpr common::reference_offset_t c_gaia_index_parent_table = 0;
     static constexpr common::reference_offset_t c_gaia_index_next_table = 1;
+    static constexpr common::reference_offset_t c_gaia_index_prev_table = 2;
 
     // The rule_relationship reference slots:
     //    parent gaia_rule
     //    next rule_relationship
+    //    prev rule_relationship
     //    parent gaia_relationship
     //    next rule_relationship
+    //    prev rule_relationship
     static constexpr common::reference_offset_t c_rule_relationship_parent_rule = 0;
     static constexpr common::reference_offset_t c_rule_relationship_next_rule = 1;
-    static constexpr common::reference_offset_t c_rule_relationship_parent_relationship = 2;
-    static constexpr common::reference_offset_t c_rule_relationship_next_relationship = 3;
+    static constexpr common::reference_offset_t c_rule_relationship_prev_rule = 2;
+    static constexpr common::reference_offset_t c_rule_relationship_parent_relationship = 3;
+    static constexpr common::reference_offset_t c_rule_relationship_next_relationship = 4;
+    static constexpr common::reference_offset_t c_rule_relationship_prev_relationship = 5;
 
     // The rule_field reference slots:
     //    parent gaia_rule
     //    next rule_field
+    //    prev rule_field
     //    parent gaia_field
     //    next rule_field
+    //    prev rule_field
     static constexpr common::reference_offset_t c_rule_field_parent_rule = 0;
     static constexpr common::reference_offset_t c_rule_field_next_rule = 1;
-    static constexpr common::reference_offset_t c_rule_field_parent_field = 2;
-    static constexpr common::reference_offset_t c_rule_field_next_field = 3;
+    static constexpr common::reference_offset_t c_rule_field_prev_rule = 2;
+    static constexpr common::reference_offset_t c_rule_field_parent_field = 3;
+    static constexpr common::reference_offset_t c_rule_field_next_field = 4;
+    static constexpr common::reference_offset_t c_rule_field_prev_field = 5;
 
     // The rule_table reference slots:
     //    parent gaia_rule
     //    next rule_table
+    //    prev rule_table
     //    parent gaia_table
     //    next rule_table
+    //    prev rule_table
     static constexpr common::reference_offset_t c_rule_table_parent_rule = 0;
     static constexpr common::reference_offset_t c_rule_table_next_rule = 1;
-    static constexpr common::reference_offset_t c_rule_table_parent_table = 2;
-    static constexpr common::reference_offset_t c_rule_table_next_table = 3;
+    static constexpr common::reference_offset_t c_rule_table_prev_rule = 2;
+    static constexpr common::reference_offset_t c_rule_table_parent_table = 3;
+    static constexpr common::reference_offset_t c_rule_table_next_table = 4;
+    static constexpr common::reference_offset_t c_rule_table_prev_table = 5;
 
     // The ruleset_database reference slots:
     //    parent gaia_database
     //    next ruleset_database
+    //    prev ruleset_database
     //    parent gaia_ruleset
     //    next ruleset_database
+    //    prev ruleset_database
     static constexpr common::reference_offset_t c_ruleset_database_parent_database = 0;
     static constexpr common::reference_offset_t c_ruleset_database_next_database = 1;
-    static constexpr common::reference_offset_t c_ruleset_database_parent_ruleset = 2;
-    static constexpr common::reference_offset_t c_ruleset_database_next_ruleset = 3;
+    static constexpr common::reference_offset_t c_ruleset_database_prev_database = 2;
+    static constexpr common::reference_offset_t c_ruleset_database_parent_ruleset = 3;
+    static constexpr common::reference_offset_t c_ruleset_database_next_ruleset = 4;
+    static constexpr common::reference_offset_t c_ruleset_database_prev_ruleset = 5;
 
     // The app_ruleset reference slots:
     //    parent gaia_application
     //    next app_ruleset
+    //    prev app_ruleset
     //    parent gaia_ruleset
     //    next app_ruleset
+    //    prev app_ruleset
     static constexpr common::reference_offset_t c_app_ruleset_parent_application = 0;
     static constexpr common::reference_offset_t c_app_ruleset_next_application = 1;
-    static constexpr common::reference_offset_t c_app_ruleset_parent_ruleset = 2;
-    static constexpr common::reference_offset_t c_app_ruleset_next_ruleset = 3;
+    static constexpr common::reference_offset_t c_app_ruleset_prev_application = 2;
+    static constexpr common::reference_offset_t c_app_ruleset_parent_ruleset = 3;
+    static constexpr common::reference_offset_t c_app_ruleset_next_ruleset = 4;
+    static constexpr common::reference_offset_t c_app_ruleset_prev_ruleset = 5;
 
     // The app_database reference slots:
     //    parent gaia_application
     //    next app_database
+    //    prev app_database
     //    parent gaia_database
     //    next app_database
+    //    prev app_database
     static constexpr common::reference_offset_t c_app_database_parent_application = 0;
     static constexpr common::reference_offset_t c_app_database_next_application = 1;
-    static constexpr common::reference_offset_t c_app_database_parent_database = 2;
-    static constexpr common::reference_offset_t c_app_database_next_database = 3;
+    static constexpr common::reference_offset_t c_app_database_prev_application = 2;
+    static constexpr common::reference_offset_t c_app_database_parent_database = 3;
+    static constexpr common::reference_offset_t c_app_database_next_database = 4;
+    static constexpr common::reference_offset_t c_app_database_prev_database = 5;
 
     // The gaia_application reference slots:
     //    first app_database

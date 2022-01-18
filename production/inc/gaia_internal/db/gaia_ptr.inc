@@ -33,6 +33,11 @@ bool gaia_ptr_t::is_null() const
     return m_locator == c_invalid_gaia_locator;
 }
 
+bool gaia_ptr_t::is_ref_anchor() const
+{
+    return is(static_cast<common::gaia_type_t::value_type>(common::system_table_type_t::catalog_gaia_ref_anchor));
+}
+
 common::gaia_id_t gaia_ptr_t::id() const
 {
     return to_ptr() ? to_ptr()->id : common::c_invalid_gaia_id;

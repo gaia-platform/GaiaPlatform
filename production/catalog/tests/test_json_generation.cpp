@@ -106,3 +106,22 @@ TEST_F(json_generation_test, generate_bin)
 
     ASSERT_TRUE(flatbuffers::Verify(*schema, *root_type, serialized_data, serialized_data_size));
 }
+
+TEST_F(json_generation_test, generate_bin_default)
+{
+    string schema{"namespace test_defaults; table test_record { prefix:uint64; data:int64 = 15; suffix:uint64; } root_type test_record;"};
+
+    string json_with_default_data{"{ prefix: 12302652060373662634, data: 15, suffix: 12302652060373662634 }"};
+    string json_with_data{"{ prefix: 12302652060373662634, data: 31, suffix: 12302652060373662634 }"};
+    string json_without_data{"{ prefix: 12302652060373662634, suffix: 12302652060373662634 }"};
+
+    vector<uint8_t> serialization_for_default_data_present = generate_bin(schema, json_with_default_data);
+    vector<uint8_t> serialization_for_data_present = generate_bin(schema, json_with_data);
+    vector<uint8_t> serialization_for_data_absent = generate_bin(schema, json_without_data);
+
+    // We enable force_defaults setting, so the default data should get serialized just as the non-default data.
+    ASSERT_EQ(serialization_for_default_data_present.size(), serialization_for_data_present.size());
+
+    // Missing data does not get serialized even with force_defaults turned on.
+    ASSERT_GT(serialization_for_data_present.size(), serialization_for_data_absent.size());
+}

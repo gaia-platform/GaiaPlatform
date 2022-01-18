@@ -12,6 +12,10 @@ namespace gaia {
 namespace catalog {
 namespace internal {
 
+struct gaia_ref_anchor;
+struct gaia_ref_anchorBuilder;
+struct gaia_ref_anchorT;
+
 struct rule_relationship;
 struct rule_relationshipBuilder;
 struct rule_relationshipT;
@@ -67,6 +71,45 @@ struct gaia_tableT;
 struct gaia_database;
 struct gaia_databaseBuilder;
 struct gaia_databaseT;
+
+struct gaia_ref_anchorT : public flatbuffers::NativeTable {
+  typedef gaia_ref_anchor TableType;
+};
+
+struct gaia_ref_anchor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef gaia_ref_anchorT NativeTableType;
+  typedef gaia_ref_anchorBuilder Builder;
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           verifier.EndTable();
+  }
+  gaia_ref_anchorT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(gaia_ref_anchorT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<gaia_ref_anchor> Pack(flatbuffers::FlatBufferBuilder &_fbb, const gaia_ref_anchorT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct gaia_ref_anchorBuilder {
+  typedef gaia_ref_anchor Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  explicit gaia_ref_anchorBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  flatbuffers::Offset<gaia_ref_anchor> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<gaia_ref_anchor>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<gaia_ref_anchor> Creategaia_ref_anchor(
+    flatbuffers::FlatBufferBuilder &_fbb) {
+  gaia_ref_anchorBuilder builder_(_fbb);
+  return builder_.Finish();
+}
+
+flatbuffers::Offset<gaia_ref_anchor> Creategaia_ref_anchor(flatbuffers::FlatBufferBuilder &_fbb, const gaia_ref_anchorT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
 struct rule_relationshipT : public flatbuffers::NativeTable {
   typedef rule_relationship TableType;
@@ -1272,6 +1315,29 @@ inline flatbuffers::Offset<gaia_database> Creategaia_databaseDirect(
 }
 
 flatbuffers::Offset<gaia_database> Creategaia_database(flatbuffers::FlatBufferBuilder &_fbb, const gaia_databaseT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+inline gaia_ref_anchorT *gaia_ref_anchor::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = std::unique_ptr<gaia_ref_anchorT>(new gaia_ref_anchorT());
+  UnPackTo(_o.get(), _resolver);
+  return _o.release();
+}
+
+inline void gaia_ref_anchor::UnPackTo(gaia_ref_anchorT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+}
+
+inline flatbuffers::Offset<gaia_ref_anchor> gaia_ref_anchor::Pack(flatbuffers::FlatBufferBuilder &_fbb, const gaia_ref_anchorT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return Creategaia_ref_anchor(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<gaia_ref_anchor> Creategaia_ref_anchor(flatbuffers::FlatBufferBuilder &_fbb, const gaia_ref_anchorT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const gaia_ref_anchorT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  return gaia::catalog::internal::Creategaia_ref_anchor(
+      _fbb);
+}
 
 inline rule_relationshipT *rule_relationship::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = std::unique_ptr<rule_relationshipT>(new rule_relationshipT());

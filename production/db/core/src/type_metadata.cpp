@@ -67,20 +67,7 @@ void type_metadata_t::add_child_relationship(const std::shared_ptr<relationship_
     std::unique_lock lock(m_metadata_lock);
 
     m_child_relationships.insert({relationship->parent_offset, relationship});
-
-    // A child node contains 2 ref slots for every relationship.
-    constexpr std::size_t c_num_ref_slots = 2;
-    // A child node contains 3 ref slots for every value linked relationship.
-    constexpr std::size_t c_value_linked_rel_num_ref_slots = 3;
-
-    if (relationship->value_linked)
-    {
-        m_reference_count += c_value_linked_rel_num_ref_slots;
-    }
-    else
-    {
-        m_reference_count += c_num_ref_slots;
-    }
+    m_reference_count += 3;
 }
 
 gaia_type_t type_metadata_t::get_type() const
@@ -114,13 +101,13 @@ void type_registry_t::init()
     // The type registry is initialized before ddl_executor at runtime upon database startup.
     // The following initialization step is needed before we have a proper runtime bootstrap of the catalog.
     // TODO: runtime bootstrap of the catalog.
-    auto gaia_database = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_database);
-    auto gaia_table = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_table);
-    auto gaia_field = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_field);
-    auto gaia_relationship = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_relationship);
-    auto gaia_rule = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_rule);
-    auto gaia_ruleset = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_ruleset);
-    auto gaia_index = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_index);
+    auto gaia_database = static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_database);
+    auto gaia_table = static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_table);
+    auto gaia_field = static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_field);
+    auto gaia_relationship = static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_relationship);
+    auto gaia_rule = static_cast<gaia_type_t::value_type>(system_table_type_t::gaia_rule);
+    auto gaia_ruleset = static_cast<gaia_type_t::value_type>(system_table_type_t::gaia_ruleset);
+    auto gaia_index = static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_index);
     auto gaia_application = static_cast<gaia_type_t::value_type>(system_table_type_t::gaia_application);
     auto app_database = static_cast<gaia_type_t::value_type>(system_table_type_t::app_database);
     auto app_ruleset = static_cast<gaia_type_t::value_type>(system_table_type_t::app_ruleset);
@@ -134,7 +121,7 @@ void type_registry_t::init()
         .child_type = gaia_table,
         .first_child_offset = catalog_core_t::c_gaia_database_first_gaia_tables,
         .next_child_offset = catalog_core_t::c_gaia_table_next_database,
-        .prev_child_offset = c_invalid_reference_offset,
+        .prev_child_offset = catalog_core_t::c_gaia_table_prev_database,
         .parent_offset = catalog_core_t::c_gaia_table_parent_database,
         .cardinality = cardinality_t::many,
         .parent_required = false,
@@ -145,7 +132,7 @@ void type_registry_t::init()
         .child_type = gaia_field,
         .first_child_offset = catalog_core_t::c_gaia_table_first_gaia_fields,
         .next_child_offset = catalog_core_t::c_gaia_field_next_table,
-        .prev_child_offset = c_invalid_reference_offset,
+        .prev_child_offset = catalog_core_t::c_gaia_field_prev_table,
         .parent_offset = catalog_core_t::c_gaia_field_parent_table,
         .cardinality = cardinality_t::many,
         .parent_required = false,
@@ -156,7 +143,7 @@ void type_registry_t::init()
         .child_type = gaia_relationship,
         .first_child_offset = catalog_core_t::c_gaia_table_first_outgoing_relationships,
         .next_child_offset = catalog_core_t::c_gaia_relationship_next_parent,
-        .prev_child_offset = c_invalid_reference_offset,
+        .prev_child_offset = catalog_core_t::c_gaia_relationship_prev_parent,
         .parent_offset = catalog_core_t::c_gaia_relationship_parent_parent,
         .cardinality = cardinality_t::many,
         .parent_required = false,
@@ -167,30 +154,30 @@ void type_registry_t::init()
         .child_type = gaia_relationship,
         .first_child_offset = catalog_core_t::c_gaia_table_first_incoming_relationships,
         .next_child_offset = catalog_core_t::c_gaia_relationship_next_child,
-        .prev_child_offset = c_invalid_reference_offset,
+        .prev_child_offset = catalog_core_t::c_gaia_relationship_prev_child,
         .parent_offset = catalog_core_t::c_gaia_relationship_parent_child,
         .cardinality = cardinality_t::many,
         .parent_required = false,
         .value_linked = false});
 
-    /* 5 */ auto gaia_ruleset_gaia_rule_relationship = std::make_shared<relationship_t>(relationship_t{
-        .parent_type = gaia_ruleset,
-        .child_type = gaia_rule,
-        .first_child_offset = catalog_core_t::c_gaia_ruleset_first_gaia_rules,
-        .next_child_offset = catalog_core_t::c_gaia_rule_next_ruleset,
-        .prev_child_offset = c_invalid_reference_offset,
-        .parent_offset = catalog_core_t::c_gaia_rule_parent_ruleset,
-        .cardinality = cardinality_t::many,
-        .parent_required = false,
-        .value_linked = false});
-
-    /* 6 */ auto gaia_table_gaia_index_relationship = std::make_shared<relationship_t>(relationship_t{
+    /* 5 */ auto gaia_table_gaia_index_relationship = std::make_shared<relationship_t>(relationship_t{
         .parent_type = gaia_table,
         .child_type = gaia_index,
         .first_child_offset = catalog_core_t::c_gaia_table_first_gaia_indexes,
         .next_child_offset = catalog_core_t::c_gaia_index_next_table,
-        .prev_child_offset = c_invalid_reference_offset,
+        .prev_child_offset = catalog_core_t::c_gaia_index_prev_table,
         .parent_offset = catalog_core_t::c_gaia_index_parent_table,
+        .cardinality = cardinality_t::many,
+        .parent_required = false,
+        .value_linked = false});
+
+    /* 6 */ auto gaia_ruleset_gaia_rule_relationship = std::make_shared<relationship_t>(relationship_t{
+        .parent_type = gaia_ruleset,
+        .child_type = gaia_rule,
+        .first_child_offset = catalog_core_t::c_gaia_ruleset_first_gaia_rules,
+        .next_child_offset = catalog_core_t::c_gaia_rule_next_ruleset,
+        .prev_child_offset = catalog_core_t::c_gaia_rule_prev_ruleset,
+        .parent_offset = catalog_core_t::c_gaia_rule_parent_ruleset,
         .cardinality = cardinality_t::many,
         .parent_required = false,
         .value_linked = false});
@@ -200,7 +187,7 @@ void type_registry_t::init()
         .child_type = rule_relationship,
         .first_child_offset = catalog_core_t::c_gaia_rule_first_rule_relationships,
         .next_child_offset = catalog_core_t::c_rule_relationship_next_rule,
-        .prev_child_offset = c_invalid_reference_offset,
+        .prev_child_offset = catalog_core_t::c_rule_relationship_prev_rule,
         .parent_offset = catalog_core_t::c_rule_relationship_parent_rule,
         .cardinality = cardinality_t::many,
         .parent_required = false,
@@ -211,7 +198,7 @@ void type_registry_t::init()
         .child_type = app_database,
         .first_child_offset = catalog_core_t::c_gaia_database_first_app_databases,
         .next_child_offset = catalog_core_t::c_app_database_next_database,
-        .prev_child_offset = c_invalid_reference_offset,
+        .prev_child_offset = catalog_core_t::c_app_database_prev_database,
         .parent_offset = catalog_core_t::c_app_database_parent_database,
         .cardinality = cardinality_t::many,
         .parent_required = false,
@@ -222,7 +209,7 @@ void type_registry_t::init()
         .child_type = ruleset_database,
         .first_child_offset = catalog_core_t::c_gaia_database_first_ruleset_databases,
         .next_child_offset = catalog_core_t::c_ruleset_database_next_database,
-        .prev_child_offset = c_invalid_reference_offset,
+        .prev_child_offset = catalog_core_t::c_ruleset_database_prev_database,
         .parent_offset = catalog_core_t::c_ruleset_database_parent_database,
         .cardinality = cardinality_t::many,
         .parent_required = false,
@@ -233,7 +220,7 @@ void type_registry_t::init()
         .child_type = app_database,
         .first_child_offset = catalog_core_t::c_gaia_application_first_app_databases,
         .next_child_offset = catalog_core_t::c_app_database_next_application,
-        .prev_child_offset = c_invalid_reference_offset,
+        .prev_child_offset = catalog_core_t::c_app_database_prev_application,
         .parent_offset = catalog_core_t::c_app_database_parent_application,
         .cardinality = cardinality_t::many,
         .parent_required = false,
@@ -244,7 +231,7 @@ void type_registry_t::init()
         .child_type = app_ruleset,
         .first_child_offset = catalog_core_t::c_gaia_application_first_app_rulesets,
         .next_child_offset = catalog_core_t::c_app_ruleset_next_application,
-        .prev_child_offset = c_invalid_reference_offset,
+        .prev_child_offset = catalog_core_t::c_app_ruleset_prev_application,
         .parent_offset = catalog_core_t::c_app_ruleset_parent_application,
         .cardinality = cardinality_t::many,
         .parent_required = false,
@@ -255,7 +242,7 @@ void type_registry_t::init()
         .child_type = ruleset_database,
         .first_child_offset = catalog_core_t::c_gaia_ruleset_first_ruleset_databases,
         .next_child_offset = catalog_core_t::c_ruleset_database_next_ruleset,
-        .prev_child_offset = c_invalid_reference_offset,
+        .prev_child_offset = catalog_core_t::c_ruleset_database_prev_ruleset,
         .parent_offset = catalog_core_t::c_ruleset_database_parent_ruleset,
         .cardinality = cardinality_t::many,
         .parent_required = false,
@@ -266,7 +253,7 @@ void type_registry_t::init()
         .child_type = app_ruleset,
         .first_child_offset = catalog_core_t::c_gaia_ruleset_first_app_rulesets,
         .next_child_offset = catalog_core_t::c_app_ruleset_next_ruleset,
-        .prev_child_offset = c_invalid_reference_offset,
+        .prev_child_offset = catalog_core_t::c_app_ruleset_prev_ruleset,
         .parent_offset = catalog_core_t::c_app_ruleset_parent_ruleset,
         .cardinality = cardinality_t::many,
         .parent_required = false,
@@ -277,7 +264,7 @@ void type_registry_t::init()
         .child_type = rule_table,
         .first_child_offset = catalog_core_t::c_gaia_table_first_rule_tables,
         .next_child_offset = catalog_core_t::c_rule_table_next_table,
-        .prev_child_offset = c_invalid_reference_offset,
+        .prev_child_offset = catalog_core_t::c_rule_table_prev_table,
         .parent_offset = catalog_core_t::c_rule_table_parent_table,
         .cardinality = cardinality_t::many,
         .parent_required = false,
@@ -288,7 +275,7 @@ void type_registry_t::init()
         .child_type = rule_table,
         .first_child_offset = catalog_core_t::c_gaia_rule_first_rule_tables,
         .next_child_offset = catalog_core_t::c_rule_table_next_rule,
-        .prev_child_offset = c_invalid_reference_offset,
+        .prev_child_offset = catalog_core_t::c_rule_table_prev_rule,
         .parent_offset = catalog_core_t::c_rule_table_parent_rule,
         .cardinality = cardinality_t::many,
         .parent_required = false,
@@ -299,7 +286,7 @@ void type_registry_t::init()
         .child_type = rule_field,
         .first_child_offset = catalog_core_t::c_gaia_rule_first_rule_fields,
         .next_child_offset = catalog_core_t::c_rule_field_next_rule,
-        .prev_child_offset = c_invalid_reference_offset,
+        .prev_child_offset = catalog_core_t::c_rule_field_prev_rule,
         .parent_offset = catalog_core_t::c_rule_field_parent_rule,
         .cardinality = cardinality_t::many,
         .parent_required = false,
@@ -310,7 +297,7 @@ void type_registry_t::init()
         .child_type = rule_field,
         .first_child_offset = catalog_core_t::c_gaia_field_first_rule_fields,
         .next_child_offset = catalog_core_t::c_rule_field_next_field,
-        .prev_child_offset = c_invalid_reference_offset,
+        .prev_child_offset = catalog_core_t::c_rule_field_prev_field,
         .parent_offset = catalog_core_t::c_rule_field_parent_field,
         .cardinality = cardinality_t::many,
         .parent_required = false,
@@ -321,24 +308,12 @@ void type_registry_t::init()
         .child_type = rule_relationship,
         .first_child_offset = catalog_core_t::c_gaia_relationship_first_rule_relationships,
         .next_child_offset = catalog_core_t::c_rule_relationship_next_relationship,
-        .prev_child_offset = c_invalid_reference_offset,
+        .prev_child_offset = catalog_core_t::c_rule_relationship_prev_relationship,
         .parent_offset = catalog_core_t::c_rule_relationship_parent_relationship,
         .cardinality = cardinality_t::many,
         .parent_required = false,
         .value_linked = false});
-#if 0
 
-    /* NN */auto type1_type2_relationship = std::make_shared<relationship_t>(relationship_t{
-        .parent_type = type1,
-        .child_type = type2,
-        .first_child_offset = catalog_core_t::c_type1_first_type2s,
-        .next_child_offset = catalog_core_t::c_type2_next_parentT,
-        .prev_child_offset = c_invalid_reference_offset,
-        .parent_offset = catalog_core_t::c_type2_parent_parentT,
-        .cardinality = cardinality_t::many,
-        .parent_required = false,
-        .value_linked = false});
-#endif
     auto& db_metadata = get_or_create_no_lock(gaia_database);
     /* 1 */ db_metadata.add_parent_relationship(gaia_database_gaia_table_relationship);
     /* 8 */ db_metadata.add_parent_relationship(gaia_database_app_database_relationship);
@@ -348,9 +323,9 @@ void type_registry_t::init()
     auto& table_metadata = get_or_create_no_lock(gaia_table);
     /* 1 */ table_metadata.add_child_relationship(gaia_database_gaia_table_relationship);
     /* 2 */ table_metadata.add_parent_relationship(gaia_table_gaia_field_relationship);
-    /* 3 */ table_metadata.add_parent_relationship(gaia_table_gaia_relationship_parent_relationship);
     /* 4 */ table_metadata.add_parent_relationship(gaia_table_gaia_relationship_child_relationship);
-    /* 6 */ table_metadata.add_parent_relationship(gaia_table_gaia_index_relationship);
+    /* 3 */ table_metadata.add_parent_relationship(gaia_table_gaia_relationship_parent_relationship);
+    /* 5 */ table_metadata.add_parent_relationship(gaia_table_gaia_index_relationship);
     /* 14 */ table_metadata.add_parent_relationship(gaia_table_rule_table_relationship);
     table_metadata.mark_as_initialized();
 
@@ -366,20 +341,20 @@ void type_registry_t::init()
     relationship_metadata.mark_as_initialized();
 
     auto& ruleset_metadata = get_or_create_no_lock(gaia_ruleset);
-    /* 5 */ ruleset_metadata.add_parent_relationship(gaia_ruleset_gaia_rule_relationship);
-    /* 12 */ ruleset_metadata.add_parent_relationship(gaia_ruleset_ruleset_database_relationship);
+    /* 6 */ ruleset_metadata.add_parent_relationship(gaia_ruleset_gaia_rule_relationship);
     /* 13 */ ruleset_metadata.add_parent_relationship(gaia_ruleset_app_ruleset_relationship);
+    /* 12 */ ruleset_metadata.add_parent_relationship(gaia_ruleset_ruleset_database_relationship);
     ruleset_metadata.mark_as_initialized();
 
     auto& rule_metadata = get_or_create_no_lock(gaia_rule);
-    /* 5 */ rule_metadata.add_child_relationship(gaia_ruleset_gaia_rule_relationship);
+    /* 6 */ rule_metadata.add_child_relationship(gaia_ruleset_gaia_rule_relationship);
     /* 7 */ rule_metadata.add_parent_relationship(gaia_rule_rule_relationship_relationship);
     /* 14 */ rule_metadata.add_parent_relationship(gaia_rule_rule_table_relationship);
     /* 16 */ rule_metadata.add_parent_relationship(gaia_rule_rule_field_relationship);
     rule_metadata.mark_as_initialized();
 
     auto& index_metadata = get_or_create_no_lock(gaia_index);
-    /* 6 */ index_metadata.add_child_relationship(gaia_table_gaia_index_relationship);
+    /* 5 */ index_metadata.add_child_relationship(gaia_table_gaia_index_relationship);
     index_metadata.mark_as_initialized();
 
     auto& application_metadata = get_or_create_no_lock(gaia_application);
