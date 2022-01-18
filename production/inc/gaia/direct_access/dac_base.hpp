@@ -55,7 +55,7 @@ protected:
     static common::gaia_id_t get_reference(common::gaia_id_t id, common::reference_offset_t slot);
     static common::gaia_id_t insert(common::gaia_type_t container, size_t data_size, const void* data);
     static void update(common::gaia_id_t id, size_t data_size, const void* data);
-    static void delete_row(common::gaia_id_t id);
+    static void delete_row(common::gaia_id_t id, bool force = false);
     static bool get_type(common::gaia_id_t id, common::gaia_type_t& type);
 
     static bool insert_into_reference_container(common::gaia_id_t parent_id, common::gaia_id_t id, common::reference_offset_t anchor_slot);
