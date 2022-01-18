@@ -187,4 +187,3 @@ if ! docker buildx build \
 fi
 
 complete_process 0
-

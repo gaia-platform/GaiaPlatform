@@ -3,11 +3,6 @@
 As part of our move to GitHub Actions, we added various checks and balances to our CI environment.
 This effort is partially to ensure that we follow every coding guideline and do so in a way that is non-obtrusive.
 
-## XXX
-
-- cppcheck
-  - tried and rejected
-
 ## Pre Commit Checks
 
 The checks in the following section are executed using the [Pre-Commit framework](https://pre-commit.com/) and the `.pre-commit-config.yaml` file.
@@ -34,9 +29,6 @@ Note that `pre-commit` is also implemented as part of our GitHub Actions workflo
 - check with `clang-tidy`
   - enables the `ENABLE_CLANG_TIDY` flag for CMake during the GitHub Action builds
   - due to include file requirements, this is part of the builds
-- (ON DECK) check with `cpplint` (includes `include-what-you-use`)
-  - look for well known issues and prevent them
-  - waiting on https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1848 and https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1849
 - (ON DECK) check with `oclint`
   - have heard good things about this from online forums
 
@@ -55,3 +47,11 @@ Scripts are being used for test automation and CI building.
   - ensure that every Python file adheres to the standard Python formatting
 - check with `Flake8` and `PyLint`
   - ensure that scripts all follow best practices
+
+## Tried and Rejected Scans
+
+- `cppcheck`
+  - team did not feel there was enough benefit for the false positives that were being reported
+- `cpplint` (includes `include-what-you-use`)
+  - look for well known issues and prevent them
+  - waiting on https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1848 and https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1849
