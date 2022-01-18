@@ -8,14 +8,15 @@
 
 database vlr_example
 
-table parent (
-    id uint32 unique,
-    children references child[]
+table floor (
+    num int32 unique,
+    department string,
+    people references person[]
 )
 
-table child (
-    id uint32 unique,
-    parent_id uint32,
-    parent references parent
-        where child.parent_id = parent.id
+table person (
+    name string,
+    floor_num int32,
+    floor references floor
+        where person.floor_num = floor.num
 )

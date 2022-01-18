@@ -32,7 +32,7 @@ translate_ruleset(
 )
 
 add_executable(vlr_example
-    vlr_example.cpp
+  vlr_example.cpp
 )
 
 target_add_gaia_generated_sources(vlr_example)

@@ -20,22 +20,31 @@ using gaia::direct_access::auto_transaction_t;
 
 // We cannot delete records (yet) from a Value-Linked Relationship
 // without first disconnecting the records by changing the value of a linked field.
-// We implicitly agree to never use the maximum value of uint32_t as a parent ID,
-// so to disconnect children from parents, we set their parent IDs to this value.
-const uint32_t unused_parent_id = std::numeric_limits<uint32_t>::max();
+// We implicitly agree to never use int's maximum value as a floor number,
+// so to disconnect people from floors, we set their floor numbers to this value.
+const int unused_floor_num = std::numeric_limits<int>::max();
 
-const uint32_t parent_id = 1;
+person_t bill;
 
-void insert_parent_and_children()
+void insert_floors_and_people()
 {
     auto_transaction_t txn{auto_transaction_t::no_auto_begin};
 
     try
     {
-        parent_t::insert_row(parent_id);
-        child_t::insert_row(1, parent_id);
-        child_t::insert_row(2, parent_id);
-        child_t::insert_row(3, parent_id);
+        floor_t::insert_row(0, "Lobby");
+        floor_t::insert_row(1, "Sales");
+        floor_t::insert_row(2, "Engineering");
+        floor_t::insert_row(3, "Admin");
+
+        bill = person_t::get(person_t::insert_row("Bill", 0));
+        person_t::insert_row("Todd", 1);
+        person_t::insert_row("Jane", 1);
+        person_t::insert_row("John", 2);
+        person_t::insert_row("Sarah", 2);
+        person_t::insert_row("Ned", 2);
+        person_t::insert_row("Dave", 3);
+
         txn.commit();
     }
     catch (gaia::db::index::unique_constraint_violation& uniqueness_violated)
@@ -44,32 +53,50 @@ void insert_parent_and_children()
     }
 }
 
-void delete_all_records_in_db()
+void delete_all_floors_and_people()
 {
     auto_transaction_t txn{auto_transaction_t::no_auto_begin};
 
-    for (auto parent = *parent_t::list().begin(); parent; parent = *parent_t::list().begin())
+    for (auto floor = *floor_t::list().begin(); floor; floor = *floor_t::list().begin())
     {
-        auto parent_w = parent.writer();
-        // Implicitly disconnect the parent from its children by changing its ID
-        // to an unused parent ID.
-        parent_w.id = unused_parent_id;
-        parent_w.update_row();
-        parent.delete_row();
+        auto floor_w = floor.writer();
+        // Implicitly disconnect the floor from the people by changing its number
+        // to an unused floor number.
+        floor_w.num = unused_floor_num;
+        floor_w.update_row();
+        floor.delete_row();
     }
 
-    for (auto child = *child_t::list().begin(); child; child = *child_t::list().begin())
+    for (auto person = *person_t::list().begin(); person; person = *person_t::list().begin())
     {
-        child.delete_row();
+        person.delete_row();
     }
+    txn.commit();
+}
+
+void move_around_floors()
+{
+    auto_transaction_t txn{};
+    person_writer bill_w = bill.writer();
+
+    for (int i = 0; i < 3; ++i)
+    {
+        bill_w.floor_num++;
+        bill_w.update_row();
+        txn.commit();
+    }
+
+    bill_w.floor_num = 0;
+    bill_w.update_row();
     txn.commit();
 }
 
 int main()
 {
     gaia::system::initialize();
-    delete_all_records_in_db();
+    delete_all_floors_and_people();
 
-    insert_parent_and_children();
+    insert_floors_and_people();
+    move_around_floors();
     gaia::system::shutdown();
 }
