@@ -1047,7 +1047,7 @@ TEST_F(gaia_references_test, test_delete_referenced_parent)
     txn.commit();
 
     // Referenced parent object in explicit 1:N relationships can still be
-    // deleted usin the force option.
+    // deleted using the force option.
     ASSERT_NO_THROW(employee.delete_row(true));
     txn.commit();
 

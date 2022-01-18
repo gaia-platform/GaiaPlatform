@@ -220,9 +220,12 @@ TEST_F(auto_connect_test, delete_parent)
     ASSERT_EQ(passenger_t::get(spock_id).return_flight().gaia_id(), flight_id);
     ASSERT_EQ(passenger_t::get(kirk_id).return_flight().gaia_id(), flight_id);
 
+    // A referenced parent object in a value linked relationship can be deleted
+    // without the 'force' option.
     ASSERT_NO_THROW(flight_t::delete_row(flight_id));
     txn.commit();
 
+    // The (previously auto) connected objects will be disconnected as a result.
     ASSERT_FALSE(passenger_t::get(spock_id).return_flight());
     ASSERT_FALSE(passenger_t::get(kirk_id).return_flight());
     txn.commit();
@@ -240,6 +243,8 @@ TEST_F(auto_connect_test, delete_parent)
     kirk_writer.update_row();
     txn.commit();
 
+    // The disconnected objects can and will be auto-connected to new parent
+    // object(s) if the linked field values match.
     ASSERT_EQ(passenger_t::get(spock_id).return_flight().gaia_id(), flight_id);
     ASSERT_EQ(passenger_t::get(kirk_id).return_flight().gaia_id(), flight_id);
 }
