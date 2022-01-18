@@ -8,7 +8,9 @@ on:
   pull_request:
     branches:
       - master
-      - jack/gha
+  pull_request_target:
+    branches:
+      - master
 env:
   GAIA_VERSION: 0.3.3
   SSH_AUTH_SOCK: /tmp/ssh_agent.sock

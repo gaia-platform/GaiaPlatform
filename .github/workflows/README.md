@@ -27,6 +27,10 @@ For example, executing the `Third-Party`, `Lint`, and `Core` jobs before any oth
 That statement is partially based on the compilation of all third-party packages and the linting of the entire project before any part of the main project is touched.
 The other half of that statement is based on experience and observation that most of the failures occur during the build phase or the unit test phase, both which are encapsulated in the `Core` build job.
 
+From Dax:
+
+> I organized it that way so that non-gaiat developers could have a separate build job and not require compiling LLVM. This makes the build core build job run more quickly than sdk. So, doing the quick stuff first makes sense. I'm just nitpicking in saying that they don't "provide significant coverage" per se.
+
 ## Information Relevant to All(Most Steps)
 
 The `Lint` job is special, and is covered in its own section below.
