@@ -138,7 +138,9 @@ jobs:
             ${{ github.workspace }}/build/output
       
   SDK:
-    needs: Third-Party
+    needs:
+      - Lint
+      - Third-Party
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
