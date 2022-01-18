@@ -82,24 +82,24 @@ public:
     /**
      * Delete the database object.
      *
-     * If the object is explicitly connected to some object(s) on the child side
-     * of some 1:N relationship, the deletion will fail.
+     * If the object is explicitly connected to object(s) on the child side of a
+     * 1:N relationship, the deletion fails.
      *
-     * The 'force' option can be used to delete the object in such case, under
-     * which condition all child objects will be disconnected from the
-     * force-deleted object as a result.
+     * Use the 'force' option to delete the object in these cases. When you
+     * force the deletion of the object, all child objects are disconnected from
+     * the object.
      */
     void delete_row(bool force = false);
 
     /**
      * Delete the database object specified by the id.
      *
-     * If the object is explicitly connected to some object(s) on the child side
-     * of some 1:N relationship, the deletion will fail.
+     * If the object is explicitly connected to object(s) on the child side of a
+     * 1:N relationship, the deletion fails.
      *
-     * The 'force' option can be used to delete the object in such case, under
-     * which condition all child objects will be disconnected from the
-     * force-deleted object as a result.
+     * Use the 'force' option to delete the object in these cases. When you
+     * force the deletion of the object, all child objects are disconnected from
+     * the object.
      */
     static void delete_row(gaia::common::gaia_id_t id, bool force = false);
 
