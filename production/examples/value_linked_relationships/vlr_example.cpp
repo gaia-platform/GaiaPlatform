@@ -24,20 +24,20 @@ using gaia::direct_access::auto_transaction_t;
 // so to disconnect people from floors, we set their floor numbers to this value.
 const int unused_floor_num = std::numeric_limits<int>::max();
 
-person_t bill;
-
 void insert_floors_and_people()
 {
     auto_transaction_t txn{auto_transaction_t::no_auto_begin};
 
     try
     {
+        // Floors inserted with their numbers and department names.
         floor_t::insert_row(0, "Lobby");
         floor_t::insert_row(1, "Sales");
         floor_t::insert_row(2, "Engineering");
         floor_t::insert_row(3, "Admin");
 
-        bill = person_t::get(person_t::insert_row("Bill", 0));
+        // Insert people at certain floors. Bill starts at floor 0: the lobby.
+        person_t::insert_row("Bill", 0);
         person_t::insert_row("Todd", 1);
         person_t::insert_row("Jane", 1);
         person_t::insert_row("John", 2);
@@ -77,15 +77,22 @@ void delete_all_floors_and_people()
 void move_around_floors()
 {
     auto_transaction_t txn{};
+    // Retrieve the "person" record corresponding to Bill and get his writer
+    // to update his record values.
+    person_t bill = *(person_t::list().where(person_expr::name == "Bill").begin());
     person_writer bill_w = bill.writer();
 
+    // Move Bill up a floor three times.
     for (int i = 0; i < 3; ++i)
     {
+        // Changing his floor is as easy as incrementing floor_num.
+        // With VLRs, this automatically
         bill_w.floor_num++;
         bill_w.update_row();
         txn.commit();
     }
 
+    // Move him back down to the lobby.
     bill_w.floor_num = 0;
     bill_w.update_row();
     txn.commit();
@@ -94,6 +101,7 @@ void move_around_floors()
 int main()
 {
     gaia::system::initialize();
+    // Delete the "floor" and "person" records to start with a clean database.
     delete_all_floors_and_people();
 
     insert_floors_and_people();
