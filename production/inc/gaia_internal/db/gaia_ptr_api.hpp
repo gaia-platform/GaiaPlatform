@@ -18,9 +18,9 @@ class gaia_ptr_t;
 
 /*
  * This namespace provides 'gaia_ptr_t' operations that include higher level
- * functionalities like referential integrity check and value linked
- * relationship auto connection. The low-level 'gaia_ptr_t' API excludes all
- * usage of catalog and type metadata.
+ * functionality like referential integrity checks and value-linked relationship
+ * auto-connection. The low-level 'gaia_ptr_t' API excludes all usage of catalog
+ * and type metadata.
  */
 namespace gaia_ptr
 {

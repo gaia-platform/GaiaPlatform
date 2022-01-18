@@ -339,7 +339,7 @@ bool reference_container_t<T_child>::connect(gaia::common::gaia_id_t id)
     {
         report_invalid_object_id(id);
     }
-    return dac_db_t::insert_into_anchor_chain(m_parent_id, id, m_child_offset);
+    return dac_db_t::insert_into_reference_container(m_parent_id, id, m_child_offset);
 }
 
 template <typename T_child>
@@ -363,7 +363,7 @@ void reference_container_t<T_child>::remove(const T_child& child)
 template <typename T_child>
 bool reference_container_t<T_child>::disconnect(gaia::common::gaia_id_t id)
 {
-    return dac_db_t::remove_from_anchor_chain(m_parent_id, id, m_child_offset);
+    return dac_db_t::remove_from_reference_container(m_parent_id, id, m_child_offset);
 }
 
 template <typename T_child>

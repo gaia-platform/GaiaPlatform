@@ -41,14 +41,14 @@ gaia_id_t find_using_index(
     gaia_id_t indexed_table_id,
     field_position_t indexed_field_position)
 {
-    gaia_type_t indexed_table_type = catalog_core_t::get_table(indexed_table_id).table_type();
+    gaia_type_t indexed_table_type = catalog_core::get_table(indexed_table_id).table_type();
     gaia_id_t indexed_table_type_id = type_id_mapping_t::instance().get_record_id(indexed_table_type);
 
-    gaia_id_t index_id = catalog_core_t::find_index(indexed_table_type_id, indexed_field_position);
+    gaia_id_t index_id = catalog_core::find_index(indexed_table_type_id, indexed_field_position);
     // Callers need to ensure the table has an index on the field to search.
     ASSERT_PRECONDITION(index_id != c_invalid_gaia_id, "Cannot find value index for the table.");
 
-    auto schema = catalog_core_t::get_table(type_id).binary_schema();
+    auto schema = catalog_core::get_table(type_id).binary_schema();
     auto field_value = payload_types::get_field_value(
         type,
         payload,
@@ -77,7 +77,7 @@ void parent_side_auto_connect(
 {
     // Check if the given field is used in establishing a relationship where the
     // field's table is on the parent side.
-    for (auto relationship_view : catalog_core_t::list_relationship_from(type_id))
+    for (auto relationship_view : catalog_core::list_relationship_from(type_id))
     {
         if (relationship_view.parent_field_positions()->size() != 1
             || relationship_view.parent_field_positions()->Get(0) != field_position)
@@ -143,7 +143,7 @@ void child_side_auto_connect(
 
     // Check if the given field is used in establishing a relationship where the
     // field's table is on the child side.
-    for (auto relationship_view : catalog_core_t::list_relationship_to(type_id))
+    for (auto relationship_view : catalog_core::list_relationship_to(type_id))
     {
         if (relationship_view.child_field_positions()->size() != 1
             || relationship_view.child_field_positions()->Get(0) != field_position)
@@ -305,7 +305,7 @@ void auto_connect(
     }
     field_position_list_t candidate_fields;
     gaia_id_t table_id = type_id_mapping_t::instance().get_record_id(type);
-    for (auto field_view : catalog_core_t::list_fields(table_id))
+    for (auto field_view : catalog_core::list_fields(table_id))
     {
         candidate_fields.push_back(field_view.position());
     }

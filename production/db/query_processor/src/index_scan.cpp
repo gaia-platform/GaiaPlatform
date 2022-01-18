@@ -143,7 +143,7 @@ base_index_scan_physical_t::open(common::gaia_id_t index_id, std::shared_ptr<ind
             throw db::index::index_not_found(index_id);
         }
 
-        auto index_view = db::index_view_t(view_ptr);
+        auto index_view = catalog_core::index_view_t(view_ptr);
         it = db::index::index_builder_t::create_empty_index(index_view);
     }
     auto index = it->second;
