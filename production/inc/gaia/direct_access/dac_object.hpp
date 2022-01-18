@@ -80,13 +80,20 @@ public:
     static T_gaia get(gaia::common::gaia_id_t id);
 
     /**
-     * Delete the database object. This doesn't destroy the direct access class
-     * object.
+     * Delete the database object. If the object is explicitly connected to some
+     * object(s) on the child side of some 1:N relationship, the deletion will
+     * fail. The 'force' option can be used to delete the object in such case,
+     * under which condition all child objects will be disconnected from the
+     * force deleted object as a result.
      */
     void delete_row(bool force = false);
 
     /**
-     * Delete the database object specified by the id.
+     * Delete the database object specified by the id. If the object is
+     * explicitly connected to some object(s) on the child side of some 1:N
+     * relationship, the deletion will fail. The 'force' option can be used to
+     * delete the object in such case, under which condition all child objects
+     * will be disconnected from the force deleted object as a result.
      */
     static void delete_row(gaia::common::gaia_id_t id, bool force = false);
 

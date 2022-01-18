@@ -1006,8 +1006,17 @@ TEST_F(gaia_references_test, test_delete_referenced_child)
     for (auto addr = employee.addresses().begin(); addr != employee.addresses().end();)
     {
         auto prev = addr++;
-        ASSERT_NO_THROW(prev->delete_row());
-        count++;
+        if (++count % 2 == 0)
+        {
+            // Referenced child objects can be deleted.
+            ASSERT_NO_THROW(prev->delete_row());
+        }
+        else
+        {
+            // The 'force' delete option is not needed here. We use force
+            // deletion for test completeness.
+            ASSERT_NO_THROW(prev->delete_row(true));
+        }
     }
     ASSERT_EQ(count, c_num_addresses);
     txn.commit();
@@ -1018,6 +1027,7 @@ TEST_F(gaia_references_test, test_delete_referenced_child)
     txn.commit();
 
     ASSERT_EQ(employee.addresses().begin()->gaia_id(), addr.gaia_id());
+    ASSERT_NO_THROW(addr.delete_row());
 }
 
 TEST_F(gaia_references_test, test_delete_referenced_parent)
@@ -1031,9 +1041,13 @@ TEST_F(gaia_references_test, test_delete_referenced_parent)
     std::copy(employee.addresses().begin(), employee.addresses().end(), addresses.begin());
     txn.commit();
 
+    // Referenced parent object in an explicit 1:N relationships cannot be
+    // deleted without the force option.
     ASSERT_THROW(employee.delete_row(), object_still_referenced);
     txn.commit();
 
+    // Referenced parent object in explicit 1:N relationships can still be
+    // deleted usin the force option.
     ASSERT_NO_THROW(employee.delete_row(true));
     txn.commit();
 
@@ -1042,10 +1056,12 @@ TEST_F(gaia_references_test, test_delete_referenced_parent)
     size_t count = 0;
     for (const auto& addr : addresses)
     {
+        // All child objects will be disconnected from the force deleted parent
+        // object. They can still be connected to other objects.
         ASSERT_FALSE(addr.owner());
         if (++count % 2 == 0)
         {
-            employee1.addresses().connect(addr);
+            employee1.addresses().insert(addr);
         }
         else
         {
