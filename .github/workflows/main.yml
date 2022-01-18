@@ -118,11 +118,16 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          $GAIA_REPO/dev_tools/github-actions/build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --base-image $DEV_IMAGE
+          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
+              --repo-path $GAIA_REPO \
+              --base-image $DEV_IMAGE
 
       - name: Run Unit Tests
         run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --gaia-version $GAIA_VERSION
+          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
+            --repo-path $GAIA_REPO \
+            --gaia-version $GAIA_VERSION \
+            --action unit_tests
 
       - name: Upload Output Files
         if: always()
@@ -154,11 +159,24 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          $GAIA_REPO/dev_tools/github-actions/build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --base-image $DEV_IMAGE
+          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
+              --repo-path $GAIA_REPO \
+              --base-image $DEV_IMAGE \
+              --cfg-enables GaiaSDK
 
       - name: Run Unit Tests
         run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --gaia-version $GAIA_VERSION
+          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
+            --repo-path $GAIA_REPO \
+            --gaia-version $GAIA_VERSION \
+            --action unit_tests
+
+      - name: Publish Debian Package
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
+            --repo-path $GAIA_REPO \
+            --gaia-version $GAIA_VERSION \
+            --action publish_package
 
       - name: Upload Output Files
         if: always()
@@ -197,11 +215,17 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          $GAIA_REPO/dev_tools/github-actions/build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --base-image $DEV_IMAGE
+          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
+              --repo-path $GAIA_REPO \
+              --base-image $DEV_IMAGE \
+              --cfg-enables Debug
 
       - name: Run Unit Tests
         run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --gaia-version $GAIA_VERSION
+          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
+            --repo-path $GAIA_REPO \
+            --gaia-version $GAIA_VERSION \
+            --action unit_tests
 
       - name: Upload Output Files
         if: always()
@@ -234,7 +258,10 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          $GAIA_REPO/dev_tools/github-actions/build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --base-image $DEV_IMAGE
+          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
+              --repo-path $GAIA_REPO \
+              --base-image $DEV_IMAGE \
+              --cfg-enables GaiaLLVMTests
 
       - name: Run Docker Image And Post-Build Script
         run: |

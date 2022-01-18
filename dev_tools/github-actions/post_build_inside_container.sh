@@ -47,8 +47,8 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
+    echo "  -a,--action         Action to execute inside of the container."
     echo "  -g,--gaia-version   Version associate with the build."
-    echo "  -j,--job-name       GitHub Actions job that this script is being invoked from."
     echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
     echo ""
@@ -58,17 +58,17 @@ show_usage() {
 # Parse the command line.
 parse_command_line() {
     VERBOSE_MODE=0
-    JOB_NAME=
+    ACTION_NAME=
     GAIA_VERSION=
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
-        -j|--job-name)
+        -a|--action)
             if [ -z "$2" ] ; then
-                echo "Error: Argument $1 must be followed by the name of a job." >&2
+                echo "Error: Argument $1 must be followed by the name of the action." >&2
                 show_usage
             fi
-            JOB_NAME=$2
+            ACTION_NAME=$2
             shift
             shift
         ;;
@@ -99,8 +99,8 @@ parse_command_line() {
     esac
     done
 
-    if [ -z "$JOB_NAME" ] ; then
-        echo "Error: Argument -j/--job-name is required" >&2
+    if [ -z "$ACTION_NAME" ] ; then
+        echo "Error: Argument -a/--action is required" >&2
         show_usage
     fi
     if [ -z "$GAIA_VERSION" ] ; then
@@ -137,22 +137,17 @@ cd /build/production || exit
 mkdir -p /build/output
 cp /build/production/*.log /build/output
 
-## PER JOB CONFIGURATION ##
-
-if [ "$JOB_NAME" == "Core" ] || [ "$JOB_NAME" == "Debug_Core" ] || [ "$JOB_NAME" == "SDK" ]; then
+if [ "$ACTION_NAME" == "unit_tests" ] ; then
     if ! ctest 2>&1 | tee /build/output/ctest.log; then
         complete_process 1 "Unit tests failed to complete successfully."
     fi
-fi
-
-if [ "$JOB_NAME" == "SDK" ] ; then
+elif [ "$ACTION_NAME" == "publish_package" ] ; then
     #cp gaia-${{ env.GAIA_VERSION }}_amd64.deb gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb
     mkdir -p /build/output/package
     cp /build/production/"gaia-${GAIA_VERSION}_amd64.deb" "/build/output/package/gaia-${GAIA_VERSION}_amd64.deb"
-
+else
+    complete_process 1 "Action '$ACTION_NAME' is not known."
 fi
-
-## PER JOB CONFIGURATION ##
 
 complete_process 0
 

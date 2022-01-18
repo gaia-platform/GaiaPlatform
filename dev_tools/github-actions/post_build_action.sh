@@ -8,7 +8,7 @@
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Building the docker image..."
+        echo "Executing the post build action..."
     fi
 }
 
@@ -22,10 +22,10 @@ complete_process() {
     fi
 
     if [ "$SCRIPT_RETURN_CODE" -ne 0 ]; then
-        echo "Building the docker image failed."
+        echo "Executing the post build action failed."
     else
         if [ "$VERBOSE_MODE" -ne 0 ]; then
-            echo "Building the docker image succeeded."
+            echo "Executing the post build action succeeded."
         fi
     fi
 
@@ -47,8 +47,8 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
+    echo "  -a,--action         Action to execute inside of the container."
     echo "  -g,--gaia-version   Version associate with the build."
-    echo "  -j,--job-name       GitHub Actions job that this script is being invoked from."
     echo "  -r,--repo-path      Base path of the repository to generate from."
     echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
@@ -59,12 +59,21 @@ show_usage() {
 # Parse the command line.
 parse_command_line() {
     VERBOSE_MODE=0
-    JOB_NAME=
+    ACTION_NAME=
     GAIA_REPO=
     GAIA_VERSION=
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
+        -a|--action)
+            if [ -z "$2" ] ; then
+                echo "Error: Argument $1 must be followed by the name of the action." >&2
+                show_usage
+            fi
+            ACTION_NAME=$2
+            shift
+            shift
+        ;;
         -r|--repo-path)
             if [ -z "$2" ] ; then
                 echo "Error: Argument $1 must be followed by the path to the repository." >&2
@@ -80,15 +89,6 @@ parse_command_line() {
                 show_usage
             fi
             GAIA_VERSION=$2
-            shift
-            shift
-        ;;
-        -j|--job-name)
-            if [ -z "$2" ] ; then
-                echo "Error: Argument $1 must be followed by the name of a job." >&2
-                show_usage
-            fi
-            JOB_NAME=$2
             shift
             shift
         ;;
@@ -118,8 +118,8 @@ parse_command_line() {
         echo "Error: Argument -g/--gaia-version is required" >&2
         show_usage
     fi
-    if [ -z "$JOB_NAME" ] ; then
-        echo "Error: Argument -j/--job-name is required" >&2
+    if [ -z "$ACTION_NAME" ] ; then
+        echo "Error: Argument -a/--action is required" >&2
         show_usage
     fi
 }
@@ -151,7 +151,7 @@ cd "$GAIA_REPO/production" || exit
 
 # Ensure we have a predicatable place to place output that we want to expose.
 if ! mkdir -p "$GAIA_REPO/build/output" ; then
-    complete_process 1 "Unable to create an output directory for '$JOB_NAME'."
+    complete_process 1 "Unable to create an output directory to capture the results."
 fi
 
 if ! docker run \
@@ -161,8 +161,8 @@ if ! docker run \
     --platform linux/amd64 \
     --mount "type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$GAIA_REPO/build/output" \
     build_image \
-    /source/dev_tools/github-actions/post_build_inside_container.sh --job-name "$JOB_NAME" --gaia-version "$GAIA_VERSION" ; then
-    complete_process 1 "Docker post-build script for job '$JOB_NAME' failed."
+    /source/dev_tools/github-actions/post_build_inside_container.sh --action "$ACTION_NAME" --gaia-version "$GAIA_VERSION" ; then
+    complete_process 1 "Docker post-build script failed."
 fi
 
 complete_process 0

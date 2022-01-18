@@ -48,8 +48,8 @@ show_usage() {
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
     echo "  -b,--base-image     Optional base image to use as a cache for the new image."
+    echo "  -c,--cfg-enables"
     echo "  -r,--repo-path      Base path of the repository to generate from."
-    echo "  -j,--job-name       GitHub Actions job that this script is being invoked from."
     echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
     echo ""
@@ -59,9 +59,9 @@ show_usage() {
 # Parse the command line.
 parse_command_line() {
     VERBOSE_MODE=0
-    JOB_NAME=
     GAIA_REPO=
     BASE_IMAGE=
+    CONFIG=("CI_GitHub")
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
@@ -74,12 +74,12 @@ parse_command_line() {
             shift
             shift
         ;;
-        -j|--job-name)
+        -c|--cfg-enables)
             if [ -z "$2" ] ; then
-                echo "Error: Argument $1 must be followed by the name of a job." >&2
+                echo "Error: Argument $1 must be followed by the name of a configuration." >&2
                 show_usage
             fi
-            JOB_NAME=$2
+            CONFIG+=("$2")
             shift
             shift
         ;;
@@ -114,10 +114,6 @@ parse_command_line() {
         echo "Error: Argument -r/--repo-path is required" >&2
         show_usage
     fi
-    if [ -z "$JOB_NAME" ] ; then
-        echo "Error: Argument -j/--job-name is required" >&2
-        show_usage
-    fi
 }
 
 # Save the current directory when starting the script, so we can go back to that
@@ -143,22 +139,12 @@ parse_command_line "$@"
 start_process
 save_current_directory
 
-## PER JOB CONFIGURATION ##
-
+# Translate the configuration options into command line options for gdev.
 CONFIGURATION_OPTIONS=
-if [ "$JOB_NAME" == "Core" ] ; then
-    CONFIGURATION_OPTIONS="--cfg-enables CI_GitHub"
-elif [ "$JOB_NAME" == "Debug_Core" ] ; then
-    CONFIGURATION_OPTIONS="--cfg-enables CI_GitHub --cfg-enables Debug"
-elif [ "$JOB_NAME" == "SDK" ] ; then
-    CONFIGURATION_OPTIONS="--cfg-enables CI_GitHub --cfg-enables GaiaSDK"
-elif [ "$JOB_NAME" == "LLVM_Tests" ] ; then
-    CONFIGURATION_OPTIONS="--cfg-enables CI_GitHub --cfg-enables GaiaLLVMTests"
-else
-    complete_process 1 "Cannot build docker image for job named '$JOB_NAME'."
-fi
-
-## PER JOB CONFIGURATION ##
+for i in "${CONFIG[@]}"
+do
+	CONFIGURATION_OPTIONS="$CONFIGURATION_OPTIONS --cfg-enables $i"
+done
 
 # Ensure we have a predicatable place to place output that we want to expose.
 if ! mkdir -p "$GAIA_REPO/build/output" ; then
