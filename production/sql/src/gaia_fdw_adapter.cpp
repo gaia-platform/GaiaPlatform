@@ -261,7 +261,7 @@ void adapter_t::initialize_caches()
         s_map_table_name_to_ids.size() == 0,
         "s_map_table_name_to_ids has been initialized already!");
 
-    for (auto table_view : catalog_core_t::list_tables())
+    for (auto table_view : catalog_core::list_tables())
     {
         elog(
             DEBUG1, "Loading metadata information for table `%s' with type '%ld' and id '%ld'...",
@@ -454,7 +454,7 @@ List* adapter_t::get_ddl_command_list(const char* server_name)
 
         gaia::db::begin_transaction();
 
-        for (auto table_view : catalog_core_t::list_tables())
+        for (auto table_view : catalog_core::list_tables())
         {
             // Generate DDL statement for current table and log it.
             string ddl_formatted_statement = gaia::catalog::generate_fdw_ddl(table_view.id(), server_name);

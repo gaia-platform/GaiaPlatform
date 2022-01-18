@@ -39,9 +39,9 @@ field_position_list_t compute_payload_diff(
         type_record_id != c_invalid_gaia_id,
         gaia_fmt::format("The type '{}' does not exist in the catalog for payload diff!", type_id).c_str());
 
-    auto schema = catalog_core_t::get_table(type_record_id).binary_schema();
+    auto schema = catalog_core::get_table(type_record_id).binary_schema();
 
-    for (const auto& field_view : catalog_core_t::list_fields(type_record_id))
+    for (const auto& field_view : catalog_core::list_fields(type_record_id))
     {
         field_position_t field_position = field_view.position();
 

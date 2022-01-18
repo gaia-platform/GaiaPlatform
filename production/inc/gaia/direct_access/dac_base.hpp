@@ -58,8 +58,8 @@ protected:
     static void delete_row(common::gaia_id_t id);
     static bool get_type(common::gaia_id_t id, common::gaia_type_t& type);
 
-    static bool insert_into_anchor_chain(common::gaia_id_t parent_id, common::gaia_id_t id, common::reference_offset_t anchor_slot);
-    static bool remove_from_anchor_chain(common::gaia_id_t parent_id, common::gaia_id_t id, common::reference_offset_t anchor_slot);
+    static bool insert_into_reference_container(common::gaia_id_t parent_id, common::gaia_id_t id, common::reference_offset_t anchor_slot);
+    static bool remove_from_reference_container(common::gaia_id_t parent_id, common::gaia_id_t id, common::reference_offset_t anchor_slot);
 };
 
 /**
