@@ -48,7 +48,7 @@ function(get_git_version var)
   else()
       set(GIT_VERSION "v0.0.0")
   endif()
-  
+
   message("-- git Version: ${GIT_VERSION}")
   set(${var} ${GIT_VERSION} PARENT_SCOPE)
 endfunction()
