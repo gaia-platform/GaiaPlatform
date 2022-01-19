@@ -166,4 +166,3 @@ if ! docker run \
 fi
 
 complete_process 0
-

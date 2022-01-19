@@ -462,5 +462,3 @@ gaia_database_t::gaia_tables_list_t gaia_database_t::gaia_tables() const
 
 }  // namespace catalog
 }  // namespace gaia
-
-
