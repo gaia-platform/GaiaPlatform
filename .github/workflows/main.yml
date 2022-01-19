@@ -21,8 +21,6 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
-    permissions:
-      packages: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master

@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 #include <gaia/common.hpp>
+#include <gaia/exceptions.hpp>
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
@@ -77,6 +78,70 @@ TEST_F(gaia_ptr_api_test, creation_fail_for_invalid_type)
         const gaia_type_t c_invalid_type = 8888;
         EXPECT_THROW(gaia_ptr::create(c_invalid_type, 0, nullptr), invalid_object_type);
     }
+    commit_transaction();
+}
+
+TEST_F(gaia_ptr_api_test, delete__one_to_many)
+{
+    begin_transaction();
+    relationship_builder_t::one_to_many()
+        .parent(doctor_type)
+        .child(patient_type)
+        .create_relationship();
+
+    gaia_ptr_t parent = create_object(doctor_type, "Dr. House");
+    gaia_ptr_t child = create_object(patient_type, "John Doe");
+
+    gaia_ptr::insert_into_reference_container(parent, child.id(), c_first_patient_offset);
+    commit_transaction();
+
+    begin_transaction();
+    ASSERT_THROW(gaia_ptr::remove(parent), object_still_referenced);
+    commit_transaction();
+
+    begin_transaction();
+    ASSERT_NO_THROW(gaia_ptr::remove(child));
+    ASSERT_NO_THROW(gaia_ptr::remove(parent));
+    commit_transaction();
+}
+
+TEST_F(gaia_ptr_api_test, force_delete__one_to_many)
+{
+    begin_transaction();
+    relationship_builder_t::one_to_many()
+        .parent(doctor_type)
+        .child(patient_type)
+        .create_relationship();
+
+    gaia_ptr_t parent = create_object(doctor_type, "Dr. House");
+    gaia_ptr_t child = create_object(patient_type, "John Doe");
+
+    gaia_ptr::insert_into_reference_container(parent, child.id(), c_first_patient_offset);
+    commit_transaction();
+
+    begin_transaction();
+    ASSERT_NO_THROW(gaia_ptr::remove(parent, true));
+    ASSERT_NO_THROW(gaia_ptr::remove(child));
+    commit_transaction();
+}
+
+TEST_F(gaia_ptr_api_test, delete__one_to_one)
+{
+    begin_transaction();
+    relationship_builder_t::one_to_one()
+        .parent(doctor_type)
+        .child(patient_type)
+        .create_relationship();
+
+    gaia_ptr_t parent = create_object(doctor_type, "Dr. House");
+    gaia_ptr_t child = create_object(patient_type, "John Doe");
+
+    gaia_ptr::insert_into_reference_container(parent, child.id(), c_first_patient_offset);
+    commit_transaction();
+
+    begin_transaction();
+    ASSERT_NO_THROW(gaia_ptr::remove(parent));
+    ASSERT_NO_THROW(gaia_ptr::remove(child));
     commit_transaction();
 }
 
