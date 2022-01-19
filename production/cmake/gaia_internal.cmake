@@ -336,7 +336,7 @@ function(translate_ruleset_internal)
     COMMAND sleep 1
     COMMAND ${GAIAC_CMD} ${DDL_FILE} -n ${DB_INSTANCE_NAME}
     COMMAND ${GAIAT_CMD} ${ARG_RULESET_FILE} -output ${RULESET_CPP_PATH} -n ${DB_INSTANCE_NAME} --
-      # This variable already contains the leading -I. 
+      # This variable already contains the leading -I.
       ${GAIAT_INCLUDE_PATH}
       -I ${GAIA_SPDLOG_INC}
       -stdlib=$<IF:$<CONFIG:Debug>,libc++,libstdc++>

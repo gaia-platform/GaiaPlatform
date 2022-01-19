@@ -156,7 +156,7 @@ However, that caching is like the game of [Jenga](https://en.wikipedia.org/wiki/
 Once an instruction dictates the creation of a new layer instead of reusing a cached layer, the cache cannot be used for any new layers.
 Note that there are some *weird* exceptions to that rule, but unless you are very good at understanding Docker, it is best not to think of them.
 
-Why is this important?  
+Why is this important?
 
 With very few exceptions, the subprojects and source code that is built in the Dockerfiles before the line:
 

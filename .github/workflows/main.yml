@@ -52,7 +52,7 @@ jobs:
           path: |
             ${{ github.workspace }}/production/raw_dockerfile
             ${{ github.workspace }}/production/dockerfile
-      
+
       - name: Rename Image and Publish
         run: |
           docker push $DEV_IMAGE
@@ -138,7 +138,7 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
-      
+
   SDK:
     needs:
       - Lint
