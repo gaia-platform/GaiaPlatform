@@ -35,7 +35,7 @@ We need to configure how we attach to these containers in the future. In the Com
 {
     // Default path to open when attaching to a new container.
     "workspaceFolder": "/source",
-  
+
     // An array of extension IDs that specify the extensions to
     // install inside the container when you first attach to it.
     "extensions": [
