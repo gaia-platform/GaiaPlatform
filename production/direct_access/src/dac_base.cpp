@@ -124,7 +124,7 @@ gaia_id_t dac_db_t::insert(gaia_type_t container, size_t data_size, const void* 
     return id;
 }
 
-void dac_db_t::delete_row(gaia_id_t id)
+void dac_db_t::delete_row(gaia_id_t id, bool force)
 {
     gaia_ptr_t gaia_ptr = gaia_ptr_t::from_gaia_id(id);
     if (!gaia_ptr)
@@ -132,7 +132,7 @@ void dac_db_t::delete_row(gaia_id_t id)
         throw invalid_object_id_internal(id);
     }
 
-    gaia_ptr::remove(gaia_ptr);
+    gaia_ptr::remove(gaia_ptr, force);
 }
 
 void dac_db_t::update(gaia_id_t id, size_t data_size, const void* data)
