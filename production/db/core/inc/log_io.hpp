@@ -87,6 +87,33 @@ public:
      */
     void register_commit_ts_for_session_notification(gaia_txn_id_t commit_ts, int session_decision_eventfd);
 
+    /**
+     * Entry point to start recovery procedure from gaia log files. Checkpointing reuses the same function.
+     */
+    void recover_from_persistent_log(
+        gaia_txn_id_t& last_checkpointed_commit_ts,
+        uint64_t& last_processed_log_seq,
+        uint64_t max_log_seq_to_process,
+        recovery_mode_t mode);
+
+    /**
+     * Destroy all log files with sequence number lesser than or equal to max_log_seq_to_delete.
+     */
+    void destroy_persistent_log(uint64_t max_log_seq_to_delete);
+
+    /**
+     * Register persistent store create/delete APIs. Rework to call persistent store APIs directly?
+     */
+    void register_write_to_persistent_store_fn(std::function<void(db_recovered_object_t&)> write_obj_fn);
+    void register_remove_from_persistent_store_fn(std::function<void(gaia::common::gaia_id_t)> remove_obj_fn);
+
+    /**
+     * Set the log sequence counter.
+     */
+    void set_persistent_log_sequence(uint64_t log_seq);
+
+    size_t get_remaining_txns_to_checkpoint_count();
+
 private:
     // TODO: Make log file size configurable.
     static constexpr uint64_t c_file_size = 4 * 1024 * 1024;
@@ -102,6 +129,32 @@ private:
     std::unique_ptr<log_file_t> m_current_file;
 
     std::unique_ptr<async_disk_writer_t> m_async_disk_writer;
+
+    // Map txn commit_ts to location of log record header during recovery.
+    // This index is maintained on a per log file basis. Before moving to the next file
+    // we assert that this index is empty as all txns have been processed.
+    // Note that the recovery implementation proceeds in increasing log file order.
+    std::map<gaia_txn_id_t, uint8_t*> txn_index;
+
+    // This map contains the current set of txns that are being processed (by either recovery or checkpointing)
+    // Txns are processed one decision record at a time; a single decision record may contain
+    // multiple txns.
+    std::map<gaia_txn_id_t, decision_type_t> decision_index;
+
+    gaia_txn_id_t m_max_decided_commit_ts;
+
+    std::function<void(db_recovered_object_t&)> write_to_persistent_store_fn;
+    std::function<void(gaia::common::gaia_id_t)> remove_from_persistent_store_fn;
+
+    // Recovery & Checkpointing APIs
+    size_t update_cursor(struct record_iterator_t* it);
+    size_t validate_recovered_record_crc(struct record_iterator_t* it);
+    void map_log_file(struct record_iterator_t* it, int file_fd, recovery_mode_t recovery_mode);
+    void unmap_file(void* start, size_t size);
+    bool is_remaining_file_empty(uint8_t* start, uint8_t* end);
+    void write_log_record_to_persistent_store(read_record_t* record);
+    void write_records(record_iterator_t* it, gaia_txn_id_t& last_checkpointed_commit_ts);
+    bool write_log_file_to_persistent_store(gaia_txn_id_t& last_checkpointed_commit_ts, record_iterator_t& it);
 };
 
 } // namespace persistence

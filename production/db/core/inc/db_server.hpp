@@ -152,7 +152,7 @@ private:
     static inline mapped_data_t<data_t> s_shared_data{};
     static inline mapped_data_t<id_index_t> s_shared_id_index{};
     static inline index::indexes_t s_global_indexes{};
-    static inline std::unique_ptr<persistent_store_manager> s_persistent_store{};
+    static inline std::unique_ptr<persistence::persistent_store_manager> s_persistent_store{};
     static inline std::unique_ptr<persistence::log_handler_t> s_log_handler{};
 
     // These fields have transaction lifetime.
@@ -266,6 +266,8 @@ private:
 
     // Keep track of the last txn that has been submitted to the async_disk_writer.
     static inline std::atomic<gaia_txn_id_t> s_last_queued_commit_ts_upper_bound = c_invalid_gaia_txn_id;
+
+    static inline gaia_txn_id_t s_last_checkpointed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
 
     // Keep a track of undecided txns submitted to the async_disk_writer.
     static inline std::set<gaia_txn_id_t> s_seen_and_undecided_txn_set{};
@@ -442,6 +444,8 @@ private:
     static void write_to_persistent_log(int64_t txn_group_timeout_us, bool sync_writes = false);
 
     static void recover_persistent_log();
+
+    static void checkpoint_handler();
 
     static void flush_all_pending_writes();
 

@@ -24,6 +24,8 @@ namespace gaia
 {
 namespace db
 {
+namespace persistence
+{
 
 class persistent_store_manager
 {
@@ -87,11 +89,48 @@ public:
 
     void reset_log();
 
+    /**
+     * This API is only used during checkpointing & recovery.
+     */
+    void put(gaia::db::db_recovered_object_t& object);
+
+    /**
+     * This API is only used during checkpointing & recovery.
+     */
+    void remove(gaia::common::gaia_id_t id_to_remove);
+
+    /**
+     * Flush rocksdb memory buffer to disk as an SST file. 
+     * The rocksdb memtable is used to hold writes before writing them to an SST file.
+     * The alternative is the RocksDB SSTFileWriter. Both options require reserving memory to stage writes in
+     * the SST format before writing to disk.
+     * Additionally, in RocksDB, each column family has an individual set of 
+     * SST files and the memtable. Thus, writing to multiple column families will require maintaining multiple SSTFileWriter objects. 
+     * All of this is handled by the memtable already.
+     * Note that the memtable is only written to during log checkpointing.  
+     */
+    void flush();
+
+    /**
+     * Get value of a custom key. Used to retain a gaia counter across restarts.
+     */
+    uint64_t get_value(const std::string& key);
+
+    /**
+     * Update custom key's value. Used to retain gaia counter across restarts.
+     */
+    void update_value(const std::string& key, uint64_t value_to_write);
+
+    static constexpr char c_data_dir_command_flag[] = "--data-dir";
+    static constexpr char c_persistent_store_dir_name[] = "/data";
+    static const std::string c_last_processed_log_num_key;
+
 private:
     gaia::db::counters_t* m_counters = nullptr;
-    std::unique_ptr<gaia::db::rdb_wrapper_t> m_rdb_wrapper;
+    std::unique_ptr<gaia::db::persistence::rdb_wrapper_t> m_rdb_wrapper;
     std::string m_data_dir_path;
 };
 
+} // namespace persistence
 } // namespace db
 } // namespace gaia

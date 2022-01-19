@@ -19,40 +19,79 @@ namespace gaia
 {
 namespace db
 {
+namespace persistence
+{
 
-/**
- * Format:
- * Key: id (uint64)
- * Value: type, reference_count, payload_size, payload
- */
-void gaia::db::persistence::encode_object(
-    const db_object_t* gaia_object,
+void encode_object_base(
+    common::gaia_id_t id,
+    common::gaia_type_t type,
+    gaia::common::reference_offset_t num_references,
+    uint16_t payload_size,
+    const gaia::common::gaia_id_t* references,
+    const char* payload,
     gaia::db::persistence::string_writer_t& key,
     gaia::db::persistence::string_writer_t& value)
 {
     // Create key.
-    key.write_uint64(gaia_object->id);
+    key.write_uint64(id);
 
     // Create value.
-    value.write_uint32(gaia_object->type);
-    value.write_uint16(gaia_object->num_references);
-    value.write_uint16(gaia_object->payload_size);
+    value.write_uint32(type);
+    value.write_uint16(num_references);
+    value.write_uint16(payload_size);
 
-    auto reference_arr_ptr = gaia_object->references();
-    for (int i = 0; i < gaia_object->num_references; i++)
+    auto reference_arr_ptr = references;
+    for (int i = 0; i < num_references; i++)
     {
         // Encode all references.
         value.write_uint64(*reference_arr_ptr);
         reference_arr_ptr++;
     }
 
-    size_t references_size = gaia_object->num_references * sizeof(gaia_id_t);
-    size_t data_size = gaia_object->payload_size - references_size;
-    const char* data_ptr = gaia_object->payload + references_size;
+    size_t references_size = num_references * sizeof(gaia_id_t);
+    size_t data_size = payload_size - references_size;
+    const char* data_ptr = payload + references_size;
     value.write(data_ptr, data_size);
 }
 
-db_object_t* gaia::db::persistence::decode_object(
+/**
+ * Format:
+ * Key: id (uint64)
+ * Value: type, reference_count, payload_size, payload
+ */
+void encode_object(
+    const db_object_t* gaia_object,
+    gaia::db::persistence::string_writer_t& key,
+    gaia::db::persistence::string_writer_t& value)
+{
+    encode_object_base(
+        gaia_object->id,
+        gaia_object->type,
+        gaia_object->num_references,
+        gaia_object->payload_size,
+        gaia_object->references(),
+        gaia_object->payload,
+        key,
+        value);
+}
+
+void encode_checkpointed_object(
+    const db_recovered_object_t* gaia_object,
+    string_writer_t& key,
+    string_writer_t& value)
+{
+    encode_object_base(
+        gaia_object->id,
+        gaia_object->type,
+        gaia_object->num_references,
+        gaia_object->payload_size,
+        gaia_object->references(),
+        gaia_object->payload,
+        key,
+        value);
+}
+
+db_object_t* decode_object(
     const rocksdb::Slice& key,
     const rocksdb::Slice& value)
 {
@@ -94,5 +133,6 @@ db_object_t* gaia::db::persistence::decode_object(
     return db_object;
 }
 
+} // namespace persistence
 } // namespace db
 } // namespace gaia
