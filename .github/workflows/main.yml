@@ -32,7 +32,9 @@ jobs:
 
       - name: Pull Latest Dev-Core Image
         run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          if [ -z "$SSH_AUTH_SOCK" ] ; then
+             ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          fi
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker pull $DEV_IMAGE
 
