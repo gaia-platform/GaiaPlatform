@@ -169,6 +169,11 @@ public:
     }
 };
 
+void encode_checkpointed_object(
+    const db_recovered_object_t* gaia_object,
+    string_writer_t& key,
+    string_writer_t& value);
+
 void encode_object(
     const db_object_t* gaia_object,
     string_writer_t& key,

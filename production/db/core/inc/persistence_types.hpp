@@ -23,6 +23,45 @@ namespace db
 namespace persistence
 {
 
+enum class recovery_mode_t : uint8_t
+{
+    not_set = 0x0,
+
+    // Does not tolerate any IO failure when reading a log file; any
+    // IO error is treated as unrecoverable.
+    // This mode is used when checkpointing log writes to RocksDB.
+    checkpoint = 0x1,
+
+    // Stop recovery on first IO error. Database will always start and will try to recover as much
+    // committed data from the log as possible.
+    // Updates are logged one batch as a time; Persistent batch IO is validated
+    // first before marking any txn in the batch as durable (and returning a commit decision to the user);
+    // Thus ignore any txn after the last seen decision timestamp before encountering IO error.
+    finish_on_first_error = 0x2,
+
+    // Skip log recovery. Database always starts.
+    skip_log_recovery = 0x3,
+};
+
+struct read_record_t
+{
+    struct record_header_t header;
+    unsigned char payload[];
+};
+
+struct record_iterator_t
+{
+    unsigned char* cursor;
+    unsigned char* end;
+    unsigned char* stop_at;
+    unsigned char* begin;
+    void* mapped;
+    size_t map_size;
+    int file_fd;
+    recovery_mode_t recovery_mode;
+    bool halt_recovery;
+};
+
 enum class record_type_t : uint8_t
 {
     not_set = 0x0,
