@@ -49,9 +49,8 @@ static const char c_copyright[] = "Copyright (c) Gaia Platform LLC";
 
 // This is a command line error that can occur before we even get the
 // LLVM diagnostic sub-system.
-static const char c_err_multiple_ruleset_files[] =
-    "The Translation Engine does not support more than one source ruleset file. "
-    "Combine your rulesets into a single ruleset file.\n";
+static const char c_err_multiple_ruleset_files[] = "The Translation Engine does not support more than one source ruleset file. "
+                                                   "Combine your rulesets into a single ruleset file.\n";
 
 // Helper class to emit LLVM diagnostics.
 class diagnostic_context_t
@@ -59,7 +58,7 @@ class diagnostic_context_t
 public:
     diagnostic_context_t() = delete;
     diagnostic_context_t(clang::DiagnosticsEngine& diag_engine)
-    : m_diag_engine(diag_engine)
+        : m_diag_engine(diag_engine)
     {
     }
 

@@ -21,8 +21,8 @@ using hash_type_t = std::unordered_multimap<index_key_t, index_record_t, index_k
 using hash_index_iterator_t = index_iterator_t<hash_type_t, hash_type_t::const_iterator>;
 
 /**
-* Actual hash index implementation.
-*/
+ * Actual hash index implementation.
+ */
 
 class hash_index_t : public index_t<hash_type_t, hash_index_iterator_t>
 {
