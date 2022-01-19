@@ -31,6 +31,7 @@ public:
     {
     }
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     constexpr gaia_txn_id_t(uint64_t value)
         : common::int_type_t<uint64_t, 0>(value)
     {
@@ -69,6 +70,7 @@ public:
     {
     }
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     constexpr gaia_locator_t(uint64_t value)
         : common::int_type_t<uint64_t, 0>(value)
     {
@@ -111,6 +113,7 @@ public:
     {
     }
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     constexpr gaia_offset_t(uint32_t value)
         : common::int_type_t<uint32_t, 0>(value)
     {

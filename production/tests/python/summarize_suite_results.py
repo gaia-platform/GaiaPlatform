@@ -15,6 +15,8 @@ import os
 import re
 import configparser
 
+__DEFAULT_FILE_ENCODING = "utf-8"
+
 SUITE_DIRECTORY = "suite-results/"
 
 TEST_PROPERTIES_FILE = "test.properties"
@@ -322,7 +324,7 @@ def __process_rules_engine_logs(base_dir):
     if not os.path.exists(log_path):
         return None
 
-    with open(log_path) as input_file:
+    with open(log_path, encoding=__DEFAULT_FILE_ENCODING) as input_file:
         log_file_lines = input_file.readlines()
 
     exception_lines = []
@@ -345,7 +347,7 @@ def __process_rules_engine_stats(base_dir):
     log_path = os.path.join(base_dir, "gaia_stats.log")
     if not os.path.exists(log_path):
         return None
-    with open(log_path) as input_file:
+    with open(log_path, encoding=__DEFAULT_FILE_ENCODING) as input_file:
         log_file_lines = input_file.readlines()
 
     try:
@@ -459,7 +461,7 @@ def __process_configuration_file(base_dir, workload_specific_data):
 
 def __load_properties(filepath, separator="=", comment_prefix="#"):
     loaded_properties = {}
-    with open(filepath, "rt") as properties_file:
+    with open(filepath, "rt", encoding=__DEFAULT_FILE_ENCODING) as properties_file:
         for next_line in properties_file:
             next_line = next_line.strip()
             if next_line and not next_line.startswith(comment_prefix):
@@ -488,7 +490,7 @@ def __load_test_summary(base_dir):
     Load a test summary file, one that is specific to the test that was exectuted.
     """
     json_path = os.path.join(base_dir, "test-summary.json")
-    with open(json_path) as input_file:
+    with open(json_path, encoding=__DEFAULT_FILE_ENCODING) as input_file:
         data = json.load(input_file)
 
     if "return-code" not in data:
@@ -508,7 +510,7 @@ def __load_simple_result_files(base_dir):
     """
 
     json_path = os.path.join(base_dir, "return_code2.json")
-    with open(json_path) as input_file:
+    with open(json_path, encoding=__DEFAULT_FILE_ENCODING) as input_file:
         data = json.load(input_file)
         return_code_data = data[RETURN_CODE_TITLE]
 
@@ -781,7 +783,7 @@ def __load_scenario_file():
         print(f"Suite file '{suite_file_name}' must exist and not be a directory.")
         sys.exit(1)
 
-    with open(suite_file_name) as suite_file:
+    with open(suite_file_name, encoding=__DEFAULT_FILE_ENCODING) as suite_file:
         suite_file_lines = suite_file.readlines()
     return suite_file_name, suite_file_lines
 
@@ -792,7 +794,7 @@ def __load_execution_map_file():
     """
 
     execution_map_file_name = f"{SUITE_DIRECTORY}map.txt"
-    with open(execution_map_file_name) as suite_file:
+    with open(execution_map_file_name, encoding=__DEFAULT_FILE_ENCODING) as suite_file:
         map_file_lines = suite_file.readlines()
     return map_file_lines
 
@@ -801,7 +803,9 @@ def __dump_results_dictionary(full_test_results):
     """
     Dump the full_test_results dictionary as a JSON file.
     """
-    with open(f"{SUITE_DIRECTORY}summary.json", "w") as write_file:
+    with open(
+        f"{SUITE_DIRECTORY}summary.json", "w", encoding=__DEFAULT_FILE_ENCODING
+    ) as write_file:
         json.dump(full_test_results, write_file, indent=4)
 
 

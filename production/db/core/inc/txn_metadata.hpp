@@ -35,6 +35,8 @@ public:
 
     static bool is_txn_metadata_map_initialized();
 
+    static char* get_txn_metadata_map_base_address();
+
 public:
     inline explicit txn_metadata_t(gaia_txn_id_t ts);
     txn_metadata_t(const txn_metadata_t&) = default;
@@ -131,9 +133,6 @@ private:
         txn_metadata_entry_t expected_value, txn_metadata_entry_t desired_value);
 
 private:
-    const gaia_txn_id_t m_ts;
-
-private:
     // This is an effectively infinite array of timestamp entries, indexed by
     // the txn timestamp counter and containing metadata for every txn that has
     // been submitted to the system.
@@ -178,6 +177,9 @@ private:
     // metadata. (We could store the array offset instead, but that would be
     // dangerous when we approach wraparound.)
     static inline std::atomic<uint64_t>* s_txn_metadata_map{nullptr};
+
+private:
+    const gaia_txn_id_t m_ts;
 };
 
 #include "txn_metadata.inc"

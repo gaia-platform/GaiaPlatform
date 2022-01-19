@@ -61,17 +61,17 @@ protected:
     // Row 3 is an individual rule stats row (c_individual_stats_format).
     static constexpr uint8_t c_max_rule_id_len = 30;
     static constexpr uint8_t c_thread_load_len = 17; // length of [thread load: ...] excluding the percentage
-    static constexpr uint8_t c_max_row_len = 120;
+    static constexpr uint8_t c_max_row_len = 150;
     static constexpr uint8_t c_count_int_columns = 6;
     static constexpr uint8_t c_count_float_columns = 4;
-    static constexpr uint8_t c_int_width = 6;
+    static constexpr uint8_t c_int_width = 10;
     static constexpr uint8_t c_float_width = 13; // includes len(' ms')
 
     static const char c_truncate_char = '~';
     static constexpr uint8_t c_thread_load_padding = c_max_rule_id_len - c_thread_load_len;
-    static constexpr char c_header_format[] = "{:->{}}{: >6}{: >6}{: >6}{: >6}{: >6}{: >6}{: >13}{: >13}{: >13}{: >13}";
-    static constexpr char c_individual_stats_format[] = "{: <{}}{:6}{:6}{:6}{:6}{:6}{:6}{:10.2f} ms{:10.2f} ms{:10.2f} ms{:10.2f} ms";
-    static constexpr char c_cumulative_stats_format[] = "[{}{:{}.2f} %]{:6}{:6}{:6}{:6}{:6}{:6}{:10.2f} ms{:10.2f} ms{:10.2f} ms{:10.2f} ms";
+    static constexpr char c_header_format[] = "{:->{}}{: >10}{: >10}{: >10}{: >10}{: >10}{: >10}{: >13}{: >13}{: >13}{: >13}";
+    static constexpr char c_individual_stats_format[] = "{: <{}}{:10}{:10}{:10}{:10}{:10}{:10}{:10.2f} ms{:10.2f} ms{:10.2f} ms{:10.2f} ms";
+    static constexpr char c_cumulative_stats_format[] = "[{}{:{}.2f} %]{:10}{:10}{:10}{:10}{:10}{:10}{:10.2f} ms{:10.2f} ms{:10.2f} ms{:10.2f} ms";
 
     static constexpr char c_thread_load[] = "thread load: ";
 

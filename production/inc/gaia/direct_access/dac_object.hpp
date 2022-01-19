@@ -7,29 +7,26 @@
 
 #include <flatbuffers/flatbuffers.h>
 
-#include "gaia/common.hpp"
 #include "gaia/direct_access/auto_transaction.hpp"
 #include "gaia/direct_access/dac_array.hpp"
 #include "gaia/direct_access/dac_base.hpp"
-#include "gaia/direct_access/dac_expressions.hpp"
 #include "gaia/direct_access/nullable_string.hpp"
+#include "gaia/exceptions.hpp"
+#include "gaia/expressions/expressions.hpp"
 
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
 
 namespace gaia
 {
-
 /**
- * \addtogroup Gaia
+ * \addtogroup gaia
  * @{
  */
-
 namespace direct_access
 {
-
 /**
- * \addtogroup Direct
+ * \addtogroup direct_access
  * @{
  *
  * Implementation of Direct Access Classes. This provides a direct access API
@@ -83,15 +80,28 @@ public:
     static T_gaia get(gaia::common::gaia_id_t id);
 
     /**
-     * Delete the database object. This doesn't destroy the direct access class
-     * object.
+     * Delete the database object.
+     *
+     * If the object is explicitly connected to object(s) on the child side of a
+     * 1:N relationship, the deletion fails.
+     *
+     * Use the 'force' option to delete the object in these cases. When you
+     * force the deletion of the object, all child objects are disconnected from
+     * the object.
      */
-    void delete_row();
+    void delete_row(bool force = false);
 
     /**
      * Delete the database object specified by the id.
+     *
+     * If the object is explicitly connected to object(s) on the child side of a
+     * 1:N relationship, the deletion fails.
+     *
+     * Use the 'force' option to delete the object in these cases. When you
+     * force the deletion of the object, all child objects are disconnected from
+     * the object.
      */
-    static void delete_row(gaia::common::gaia_id_t id);
+    static void delete_row(gaia::common::gaia_id_t id, bool force = false);
 
     /**
      * Get the array of pointers to related objects.
@@ -132,13 +142,13 @@ protected:
     const T_fb* row() const;
 
     /**
-     * Ensure the type requested by the gaia_id_t matches container_type_id. If the passed in
-     * id does not exist in the database then return c_invalid_gaia_id.  If the id
-     * does exist in the database and the type of the record matches then return the
-     * passed in id.  If the type does not match then throw an dac_invalid_object_type
-     * exception.
+     * Verify that the type requested by the gaia_id_t matches container_type_id.
+     * If the passed in id does not exist in the database,
+     * then throw an invalid_object_id exception.
+     * If the type does not match container_type_id,
+     * then throw an invalid_object_type exception.
      */
-    static gaia::common::gaia_id_t verify_type(gaia::common::gaia_id_t id);
+    static void verify_type(gaia::common::gaia_id_t id);
 
     /**
      * Convert a flatbuffers::Vector to the corresponding dac_vector_t.

@@ -7,8 +7,10 @@
 
 #include <gtest/gtest.h>
 
+#include "gaia/exceptions.hpp"
+
 #include "gaia_internal/common/debug_logger.hpp"
-#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/logger.hpp"
 
 using namespace std;
 
@@ -18,12 +20,12 @@ static constexpr int64_t c_int_msg = 1234;
 
 void verify_uninitialized_loggers()
 {
-    EXPECT_THROW(gaia_log::sys(), gaia_log::logger_exception_t);
-    EXPECT_THROW(gaia_log::db(), gaia_log::logger_exception_t);
-    EXPECT_THROW(gaia_log::rules(), gaia_log::logger_exception_t);
-    EXPECT_THROW(gaia_log::rules_stats(), gaia_log::logger_exception_t);
-    EXPECT_THROW(gaia_log::catalog(), gaia_log::logger_exception_t);
-    EXPECT_THROW(gaia_log::app(), gaia_log::logger_exception_t);
+    EXPECT_THROW(gaia_log::sys(), gaia_log::logger_exception);
+    EXPECT_THROW(gaia_log::db(), gaia_log::logger_exception);
+    EXPECT_THROW(gaia_log::rules(), gaia_log::logger_exception);
+    EXPECT_THROW(gaia_log::rules_stats(), gaia_log::logger_exception);
+    EXPECT_THROW(gaia_log::catalog(), gaia_log::logger_exception);
+    EXPECT_THROW(gaia_log::app(), gaia_log::logger_exception);
 }
 
 TEST(logger_test, logger_api)

@@ -1,11 +1,13 @@
 #############################################
-# Copyright (c) Gaia Platform LLC
-# All rights reserved.
+# Copyright (c) 2021 Gaia Platform LLC
+#
+# Use of this source code is governed by an MIT-style
+# license that can be found in the LICENSE.txt file
+# or at https://opensource.org/licenses/MIT.
 #############################################
 
 cmake_minimum_required(VERSION 3.16)
 
-# Set the project name.
 project(hello)
 
 set(CMAKE_CXX_STANDARD 17)

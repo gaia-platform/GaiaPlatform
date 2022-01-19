@@ -52,9 +52,11 @@ bool compare_relationships(const relationship_t& lhs, const relationship_t& rhs)
         && lhs.child_type == rhs.child_type
         && lhs.first_child_offset == rhs.first_child_offset
         && lhs.next_child_offset == rhs.next_child_offset
+        && lhs.prev_child_offset == rhs.prev_child_offset
         && lhs.parent_offset == rhs.parent_offset
         && lhs.cardinality == rhs.cardinality
-        && lhs.parent_required == rhs.parent_required;
+        && lhs.parent_required == rhs.parent_required
+        && lhs.value_linked == rhs.value_linked;
 }
 
 TEST_F(gaia_relationships_test, metadata_init)
@@ -75,8 +77,9 @@ TEST_F(gaia_relationships_test, metadata_init)
     // Expected pointers layout for employee type.
     const reference_offset_t c_employee_first_employee = 0;
     const reference_offset_t c_employee_parent_employee = 1;
-    const reference_offset_t c_employee_child_employee = 2;
-    const reference_offset_t c_employee_first_address = 3;
+    const reference_offset_t c_employee_next_child_employee = 2;
+    const reference_offset_t c_employee_prev_child_employee = 3;
+    const reference_offset_t c_employee_first_address = 4;
 
     gaia_id_t address_table_id = gaia::catalog::create_table(db, address_table, {});
 
@@ -104,13 +107,15 @@ TEST_F(gaia_relationships_test, metadata_init)
     ASSERT_TRUE(employee_employee_relationship1.has_value());
     ASSERT_EQ(c_employee_first_employee, employee_employee_relationship1->first_child_offset);
     ASSERT_EQ(c_employee_parent_employee, employee_employee_relationship1->parent_offset);
-    ASSERT_EQ(c_employee_child_employee, employee_employee_relationship1->next_child_offset);
+    ASSERT_EQ(c_employee_next_child_employee, employee_employee_relationship1->next_child_offset);
+    ASSERT_EQ(c_employee_prev_child_employee, employee_employee_relationship1->prev_child_offset);
 
     optional<relationship_t> employee_employee_relationship2 = employee_meta.find_parent_relationship(c_employee_first_employee);
     ASSERT_TRUE(employee_employee_relationship2.has_value());
     ASSERT_EQ(c_employee_first_employee, employee_employee_relationship2->first_child_offset);
     ASSERT_EQ(c_employee_parent_employee, employee_employee_relationship2->parent_offset);
-    ASSERT_EQ(c_employee_child_employee, employee_employee_relationship2->next_child_offset);
+    ASSERT_EQ(c_employee_next_child_employee, employee_employee_relationship2->next_child_offset);
+    ASSERT_EQ(c_employee_prev_child_employee, employee_employee_relationship2->prev_child_offset);
 
     // employee -[address]-> address
     optional<relationship_t> employee_address_relationship1 = employee_meta.find_parent_relationship(c_employee_first_address);
@@ -138,7 +143,7 @@ TEST_F(gaia_relationships_test, metadata_not_exists)
     const int c_non_existent_type = 1001;
     EXPECT_THROW(
         type_registry_t::instance().get(c_non_existent_type),
-        invalid_type);
+        invalid_object_type);
 
     commit_transaction();
 }
@@ -159,7 +164,7 @@ TEST_F(gaia_relationships_test, metadata_one_to_many)
     ASSERT_EQ(child.get_type(), patient_table_type);
 
     ASSERT_EQ(parent.num_references(), 1);
-    ASSERT_EQ(child.num_references(), 2);
+    ASSERT_EQ(child.num_references(), 3);
 
     auto parent_rel = parent.find_parent_relationship(c_first_patient_offset);
     ASSERT_TRUE(parent_rel.has_value());
@@ -195,7 +200,7 @@ TEST_F(gaia_relationships_test, metadata_one_to_one)
     ASSERT_EQ(child.get_type(), patient_table_type);
 
     ASSERT_EQ(parent.num_references(), 1);
-    ASSERT_EQ(child.num_references(), 2);
+    ASSERT_EQ(child.num_references(), 3);
 
     auto parent_rel = parent.find_parent_relationship(c_first_patient_offset);
     ASSERT_TRUE(parent_rel.has_value());

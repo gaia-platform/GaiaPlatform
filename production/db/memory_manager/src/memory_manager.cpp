@@ -99,7 +99,7 @@ chunk_offset_t memory_manager_t::allocate_unused_chunk()
                 && next_chunk_offset <= c_last_chunk_offset,
             "next_chunk_offset is out of range!");
 
-        chunk_offset_t allocated_chunk_offset = static_cast<chunk_offset_t>(next_chunk_offset);
+        auto allocated_chunk_offset = static_cast<chunk_offset_t>(next_chunk_offset);
 
         // Now try to claim this chunk.
         chunk_manager_t chunk_manager;

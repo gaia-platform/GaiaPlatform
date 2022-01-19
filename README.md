@@ -18,20 +18,18 @@ The `GAIA_REPO` environment variable is used to refer to the root of the project
 export GAIA_REPO=<path_to_your_repoes>/GaiaPlatform
 ```
 
-This repository is meant to be built with `clang-10`. To ensure `clang-10` use, add the following lines to your `.bashrc`:
+This repository is meant to be built with `clang-13`. To ensure `clang-13` use, add the following lines to your `.bashrc`:
 
 ```bash
-export CC=/usr/bin/clang-10
-export CPP=/usr/bin/clang-cpp-10
-export CXX=/usr/bin/clang++-10
+export CC=/usr/bin/clang-13
+export CPP=/usr/bin/clang-cpp-13
+export CXX=/usr/bin/clang++-13
 ```
 
-(As an aside, the upgrade from `clang-8` to `clang-10` was not driven because we needed features in `clang-10` but rather because the default clang version installed with `apt get install clang` on Ubuntu 20 will install version 10. If you need to continue to build with `clang-8` then that should work just fine.  Please be advised, however, that our TeamCity CI job for Ubuntu 20 will use `clang-10` to build the product that we ship.)
-
-The build system expects the LLVM linker `ld.lld` to be present in your `PATH` and to resolve to the `ld.lld-10` executable. You can ensure this by installing the `lld-10` package on Debian-derived systems (such as Ubuntu) and adding the following line to your `.bashrc`:
+The build system expects the LLVM linker `ld.lld` to be present in your `PATH` and to resolve to the `ld.lld-13` executable. You can ensure this by installing the `lld-13` package on Debian-derived systems (such as Ubuntu) and adding the following line to your `.bashrc`:
 
 ```
-export LDFLAGS="-B/usr/lib/llvm-10/bin/ -fuse-ld=lld"
+export LDFLAGS="-B/usr/lib/llvm-13/bin/ -fuse-ld=lld"
 ```
 
 ## Folder structuring
@@ -56,12 +54,12 @@ The following folder structure is recommended for C++ projects:
 ## Formatter and Linter
 
 ### Formatter
-`clang-format` is invoked on each commit as a git pre-commit hook. The pre-commit is automatically installed by `cmake`. The `clang-format` version in use is `10.0`.
+`clang-format` is invoked on each commit as a git pre-commit hook. The pre-commit is automatically installed by `cmake`. The `clang-format` version in use is `13`.
 
 Note: `clang-format` reorders the includes which could break the build. There are ways to avoid it. Please read: https://stackoverflow.com/questions/37927553/can-clang-format-break-my-code.
 
 ### Linter
-`clang-tidy` is integrated with `cmake` and is invoked on each build. At the moment, it will only print the warnings in the compiler output. `clang-tidy` is not enforced, which means that warnings do not lead to build failures, keep in mind though, that this is the desired behavior in the long term. Do your best to reduce the number of warnings by either fixing them or by updating the rules in the `.clang-tidy` file. The `clang-tidy` version in use is `10.0`.
+`clang-tidy` is integrated with `cmake` and is invoked on each build. At the moment, it will only print the warnings in the compiler output. `clang-tidy` is not enforced, which means that warnings do not lead to build failures, keep in mind though, that this is the desired behavior in the long term. Do your best to reduce the number of warnings by either fixing them or by updating the rules in the `.clang-tidy` file. The `clang-tidy` version in use is `13`.
 
 ## Copyright notes
 
@@ -99,7 +97,7 @@ As an alternative to `gdev`, you can compile the project locally. The disadvanta
 Start with the `[apt]` section in [production gdev.cfg](production/gdev.cfg). Install all the packages with `apt install`:
 
 ```bash
-sudo apt install clang-format-10 clang-tidy-10 debhelper ...
+sudo apt install clang-format-13 clang-tidy-13 debhelper ...
 ```
 
 Then move to the `$GAIA_REPO/third_party/production/` folder and follow the instructions in the `gdev.cfg` file within each subdirectory:
@@ -205,7 +203,7 @@ When we are ready to release a new version of Gaia this is the process to follow
    ```shell
    git add -u
    git commit -m "Bump Gaia version to 0.3.0-beta"
-   git branch --set-upstream-to origin gaia-release-0.3.0-beta
+   git push --set-upstream origin gaia-release-0.3.0-beta
    # Create a PR to push the change into master.
    ```
 6. Create a tag reflecting the new version:

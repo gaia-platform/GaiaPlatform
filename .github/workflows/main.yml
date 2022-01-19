@@ -1,3 +1,4 @@
+---
 name: Main
 
 on:
@@ -7,299 +8,388 @@ on:
   pull_request:
     branches:
       - master
-      - jack/gha
+  pull_request_target:
+    branches:
+      - master
+env:
+  GAIA_VERSION: 0.3.3
+  SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+  DEV_IMAGE: ghcr.io/gaia-platform/dev-base-gaia-platform:latest
 
 jobs:
-  build:
+  Third-Party:
     runs-on: ubuntu-20.04
     env:
-      GAIA_REPO: /home/runner/work/GaiaPlatform/GaiaPlatform
-      GAIA_VERSION: 0.3.2
-      CC: /usr/bin/clang-10
-      CPP: /usr/bin/clang-cpp-10
-      CXX: /usr/bin/clang++-10
-      LDFLAGS: "-B/usr/lib/llvm-10/bin/ -fuse-ld=lld"
-      LANG: en_US.UTF-8
-      LC_CTYPE: en_US.UTF-8
-      LC_ALL: en_US.UTF-8
+      GAIA_REPO: ${{ github.workspace }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
 
       - name: Setup Python 3.8
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: 3.8
 
-      - name: Install PipEnv
-        uses: dschep/install-pipenv-action@v1
-        with:
-          version: 2021.5.29
-
-      - name: Install Required Applications
+      - name: Pull Latest Dev-Core Image
         run: |
-          sudo apt-get update && sudo apt-get install -y clang-format-10 clang-tidy-10 debhelper flatbuffers-compiler libcap-dev openjdk-8-jdk python3-dev rpm libelf-dev libdwarf-dev zlib1g-dev flex m4 apt-transport-https ca-certificates gnupg lsb-release software-properties-common wget clang-10 libc++-10-dev libc++abi-10-dev lld-10 build-essential libacl1-dev libcap-dev lsof groff libtool-bin quilt ca-certificates curl gnupg libpq-dev locales lsb-release python3-pip ssl-cert build-essential
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          #docker pull $DEV_IMAGE
+
+      - name: Build Docker Image
+        run: |
+          cd $GAIA_REPO/production
+          pip install atools argcomplete
+          $GAIA_REPO/dev_tools/gdev/gdev.sh dockerfile > $GAIA_REPO/production/raw_dockerfile
+          $GAIA_REPO/dev_tools/github-actions/copy_until_line.py --input-file $GAIA_REPO/production/raw_dockerfile --output-file $GAIA_REPO/production/dockerfile --stop-line "# GenRunDockerfile(production)"
+          docker buildx build -f $GAIA_REPO/production/dockerfile -t $DEV_IMAGE --cache-from $DEV_IMAGE --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
+
+      - name: Upload Intermediate Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/production/raw_dockerfile
+            ${{ github.workspace }}/production/dockerfile
+      
+      - name: Rename Image and Publish
+        run: |
+          docker push $DEV_IMAGE
+
+      - name: Report Job Status To Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: ${{ env.SLACK_STATUS_FIELDS }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+  Lint:
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
 
       - name: Install Required Python Packages
         run: |
-          python3.8 -m pip install --user atools argcomplete
+          python3 -m pip install pre-commit
 
-      - name: Install Required Third Party Git Repositories
-        run: |
-          cd $GAIA_REPO/third_party/production/backward
-          git clone -c advice.detachedHead=false --depth 1 --branch v1.5 https://github.com/bombela/backward-cpp.git
-          rm -rf */.git
-          cd $GAIA_REPO/third_party/production/daemonize
-          git clone -c advice.detachedHead=false --depth 1 --branch release-1.7.8 https://github.com/bmc/daemonize.git
-          rm -rf */.git
-          cd $GAIA_REPO/third_party/production/libexplain
-          git clone -c advice.detachedHead=false --depth 1 --branch "debian/1.4.D001-10" https://salsa.debian.org/debian/libexplain
-          rm -rf */.git
-          cd $GAIA_REPO/third_party/production/cpptoml
-          git clone -c advice.detachedHead=false --depth 1 --branch v0.1.1 https://github.com/skystrife/cpptoml.git
-          rm -rf */.git
-          cd $GAIA_REPO/third_party/production/tabulate
-          git clone -c advice.detachedHead=false --depth 1 --branch v1.3 https://github.com/p-ranav/tabulate
-          rm -rf */.git
-          cd $GAIA_REPO/third_party/production/liburing
-          git clone -c advice.detachedHead=false --depth 1 --branch liburing-2.0 https://github.com/axboe/liburing.git
-          rm -rf */.git
-          cd $GAIA_REPO/third_party/production/CPackDebHelper
-          git clone -c advice.detachedHead=false --depth 1 https://github.com/ABruines/CPackDebHelper.git
-          rm -rf */.git
+      - name: Set Cache Key for Pre-Commit Checks
+        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
 
-      - name: Install Required Third Party Web Packages
-        run: |
-          cd $GAIA_REPO/third_party/production/bison
-          wget http://ftp.gnu.org/gnu/bison/bison-3.5.tar.gz
+      - name: Apply Pre-Commit Checks Cache
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
 
-      - name: Pre-Build third_party/production/cmake
-        run: |
-          cd $GAIA_REPO/third_party/production/cmake
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang\" \"clang\" \"/usr/bin/clang-10\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang++\" \"clang++\" \"/usr/bin/clang++-10\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/ld.lld\" \"ld.lld\" \"/usr/bin/ld.lld-10\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/cc\" \"cc\" \"$CC\" 50"
-          sudo bash -c "update-alternatives --install \"/usr/bin/c++\" \"c++\" \"$CXX\" 50"
-          sudo bash -c "update-alternatives --install \"/usr/bin/cpp\" \"cpp\" \"$CPP\" 50"
-
-      - name: Build third_party/production/cmake
-        run: |
-          cd $GAIA_REPO/third_party/production/cmake
-          sudo bash -c "wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null"
-          sudo bash -c "echo \"deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main\" | tee /etc/apt/sources.list.d/kitware.list"
-          sudo bash -c "apt-get update"
-          sudo bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y     cmake     cmake-data"
-          sudo bash -c "apt-get clean"
-          sudo bash -c "rm /etc/apt/sources.list.d/kitware.list >/dev/null"
-          sudo bash -c "rm /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null"
-
-      - name: Build third_party/production/daemonize
-        run: |
-          cd $GAIA_REPO/third_party/production/daemonize
-          cd daemonize
-          sudo bash -c "./configure"
-          sudo bash -c "make -j$(nproc)"
-          sudo bash -c "make install"
-          cd ..
-          sudo bash -c "rm -rf *"
-
-      - name: Build third_party/production/postgresql
-        run: |
-          cd $GAIA_REPO/third_party/production/postgresql
-          sudo bash -c "curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -"
-          sudo bash -c "echo \"deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main\" | tee /etc/apt/sources.list.d/pgdg.list"
-          sudo bash -c "apt-get update -y"
-          sudo bash -c "DEBIAN_FRONTEND=noninteractive apt-get install -y     postgresql-12     postgresql-12-dbgsym     postgresql-client-12     postgresql-client-12-dbgsym     postgresql-contrib-12     postgresql-server-dev-12"
-          sudo bash -c "apt-get clean"
-          sudo bash -c "rm /etc/apt/sources.list.d/pgdg.list"
-          sudo bash -c "python3 -m pip install psycopg2"
-          sudo bash -c "locale-gen en_US.UTF-8"
-          sudo bash -c "mkdir -p /etc/postgresql/ssl"
-          sudo bash -c "cp -p -R /etc/ssl/private /etc/postgresql/ssl"
-          sudo bash -c "sed -i \"s/\/etc\/ssl\/private/\/etc\/postgresql\/ssl\/private/g\" /etc/postgresql/12/main/postgresql.conf"
-          sudo bash -c "sed -i '/^local/ s/peer/trust/' /etc/postgresql/12/main/pg_hba.conf"
-          sudo bash -c "pg_config --includedir-server"
-          sudo bash -c "ls -la /usr/lib/postgresql/"
-          sudo bash -c "rm -rf /usr/lib/postgresql/14"
-          sudo bash -c "ls -la /usr/lib/postgresql/"
-          sudo bash -c "pg_config --includedir-server"
-
-      - name: Build third_party/production/liburing
-        run: |
-          cd $GAIA_REPO/third_party/production/liburing
-          cd liburing
-          sudo bash -c "./configure"
-          sudo bash -c "make -j$(nproc)"
-          sudo bash -c "make install"
-
-      - name: Build third_party/production/backward
-        run: |
-          cd $GAIA_REPO/third_party/production/backward
-          sudo bash -c "cmake backward-cpp"
-          sudo bash -c "make -j$(nproc)"
-          sudo bash -c "make install"
-
-      - name: Build third_party/production/bison
-        run: |
-          cd $GAIA_REPO/third_party/production/bison
-          sudo bash -c "tar -zxvf bison-3.5.tar.gz"
-          cd bison-3.5
-          sudo bash -c "./configure"
-          sudo bash -c "make -j$(nproc)"
-          sudo bash -c "make install"
-          cd ..
-          sudo bash -c "rm -rf *"
-
-      - name: Build third_party/production/cpptoml
-        run: |
-          cd $GAIA_REPO/third_party/production/cpptoml
-          cd cpptoml
-          sudo bash -c "rm -fr build/"
-          sudo bash -c "cmake -H. -Bbuild  -DCMAKE_BUILD_TYPE=Release                    -DCPPTOML_BUILD_EXAMPLES=OFF                    -DENABLE_LIBCXX=OFF"
-          sudo bash -c "cmake --build build --target install"
-
-      - name: Build third_party/production/tabulate
-        run: |
-          cd $GAIA_REPO/third_party/production/tabulate
-          cd tabulate
-          sudo bash -c "cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release"
-          sudo bash -c "cmake --build build --target install"
-
-      - name: Build third_party/production/CPackDebHelper
-        run: |
-          cd $GAIA_REPO/third_party/production/CPackDebHelper
-          sudo bash -c "mkdir -p /usr/local/lib/cmake/CPackDebHelper"
-          sudo bash -c "cp CPackDebHelper/cmake/*.cmake /usr/local/lib/cmake/CPackDebHelper/"
-          sudo bash -c "rm -rf *"
-
-      - name: Build third_party/production/libexplain
-        run: |
-          cd $GAIA_REPO/third_party/production/libexplain
-          cd libexplain
-          sudo bash -c "QUILT_PATCHES=debian/patches quilt push -a"
-          sudo bash -c "CPPFLAGS='-fPIC' ./configure --prefix=/usr"
-          sudo bash -c "make -j$(nproc)"
-          sudo bash -c "make install"
-          cd ..
-          sudo bash -c "rm -rf *"
-
-      - name: Create /source and /build directories.
-        run: |
-          sudo bash -c "mkdir -p /build/third_party/production/cmake"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/cmake/. /build/third_party/production/cmake/"
-          sudo bash -c "mkdir -p /source/production/cmake"
-          sudo bash -c "cp -a $GAIA_REPO/production/cmake/. /source/production/cmake/"
-          sudo bash -c "mkdir -p /source/production/sql/src"
-          sudo bash -c "cp -a $GAIA_REPO/production/sql/src/. /source/production/sql/src/"
-          sudo bash -c "mkdir -p /source/production/sql"
-          sudo bash -c "cp -a $GAIA_REPO/production/sql/. /source/production/sql/"
-          sudo bash -c "mkdir -p /build/third_party/production/backward"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/backward/. /build/third_party/production/backward/"
-          sudo bash -c "mkdir -p /source/third_party/production/backward"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/backward/. /source/third_party/production/backward/"
-          sudo bash -c "mkdir -p /build/third_party/production/bison"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/bison/. /build/third_party/production/bison/"
-          sudo bash -c "mkdir -p /build/third_party/production/daemonize"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/daemonize/. /build/third_party/production/daemonize/"
-          sudo bash -c "mkdir -p /source/third_party/production/flatbuffers"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/flatbuffers/. /source/third_party/production/flatbuffers/"
-          sudo bash -c "mkdir -p /source/third_party/production/googletest"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/googletest/. /source/third_party/production/googletest/"
-          sudo bash -c "mkdir -p /build/third_party/production/libexplain"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/libexplain/. /build/third_party/production/libexplain/"
-          sudo bash -c "mkdir -p /source/third_party/production/json"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/json/. /source/third_party/production/json/"
-          sudo bash -c "mkdir -p /build/third_party/production/postgresql"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/postgresql/. /build/third_party/production/postgresql/"
-          sudo bash -c "mkdir -p /source/third_party/production/rocksdb"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/rocksdb/. /source/third_party/production/rocksdb/"
-          sudo bash -c "mkdir -p /build/third_party/production/cpptoml"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/cpptoml/. /build/third_party/production/cpptoml/"
-          sudo bash -c "mkdir -p /source/third_party/production/cpptoml"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/cpptoml/. /source/third_party/production/cpptoml/"
-          sudo bash -c "mkdir -p /build/third_party/production/tabulate"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/tabulate/. /build/third_party/production/tabulate/"
-          sudo bash -c "mkdir -p /source/third_party/production/tabulate"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/tabulate/. /source/third_party/production/tabulate/"
-          sudo bash -c "mkdir -p /build/third_party/production/liburing"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/liburing/. /build/third_party/production/liburing/"
-          sudo bash -c "mkdir -p /source/third_party/bundle/gaia_spdlog"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/bundle/gaia_spdlog/. /source/third_party/bundle/gaia_spdlog/"
-          sudo bash -c "mkdir -p /source/third_party/bundle/gaia_spdlog_setup"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/bundle/gaia_spdlog_setup/. /source/third_party/bundle/gaia_spdlog_setup/"
-          sudo bash -c "mkdir -p /source/third_party/production/gaia_spdlog"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/gaia_spdlog/. /source/third_party/production/gaia_spdlog/"
-          sudo bash -c "mkdir -p /source/third_party/production/gaia_spdlog_setup"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/gaia_spdlog_setup/. /source/third_party/production/gaia_spdlog_setup/"
-          sudo bash -c "mkdir -p /source/third_party/production/TranslationEngineLLVM"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/TranslationEngineLLVM/. /source/third_party/production/TranslationEngineLLVM/"
-          sudo bash -c "mkdir -p /source/third_party/production/CPackDebHelper"
-          sudo bash -c "cp -a $GAIA_REPO/third_party/production/CPackDebHelper/. /source/third_party/production/CPackDebHelper/"
-          sudo bash -c "mkdir -p /source/dev_tools/hooks"
-          sudo bash -c "cp -a $GAIA_REPO/dev_tools/hooks/. /source/dev_tools/hooks/"
-          sudo bash -c "mkdir -p /source/production"
-          sudo bash -c "cp -a $GAIA_REPO/production/. /source/production/"
-
-      - name: Pre-Build production
+      - name: Execute Pre-Commit Checks
         run: |
           cd $GAIA_REPO/production
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang-format\" \"clang-format\" \"/usr/bin/clang-format-10\" 10"
-          sudo bash -c "update-alternatives --install \"/usr/bin/clang-tidy\" \"clang-tidy\" \"/usr/bin/clang-tidy-10\" 10"
-          sudo bash -c "mkdir -p /etc/postgresql/12/main"
-          sudo bash -c "echo \"LD_PRELOAD = '$(clang-10 -print-file-name=libclang_rt.asan-$(uname -m).so)'\" >> /etc/postgresql/12/main/environment"
-          sudo bash -c "echo \"ASAN_OPTIONS = 'detect_leaks=0'\" >> /etc/postgresql/12/main/environment"
-          sudo bash -c "mkdir -p /var/lib/gaia/db"
-          sudo bash -c "chmod -R 666 /var/lib/gaia/db"
+          pre-commit run --all-files
 
-      - name: Build production
+  Core:
+    needs:
+      - Lint
+      - Third-Party
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Pull Latest Dev-Core Image
         run: |
-          sudo bash -c "mkdir -p /build/production"
-          cd /build/production
-          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" cmake --log-level=VERBOSE -Wno-dev -DCMAKE_MODULE_PATH=/usr/local/lib/cmake/CPackDebHelper -DBUILD_GAIA_RELEASE=ON  -G \"Unix Makefiles\" /source/production"
-          sudo bash -c "CC=$CC CPP=$CPP CXX=$CXX LDFLAGS=\"$LDFLAGS\" LSAN_OPTIONS=detect_leaks=0 VERBOSE=1 make -j$(nproc)"
-          sudo bash -c "chmod 755 -R /home/runner/work/GaiaPlatform"
-          sudo bash -c "chmod 755 -R /home/runner/work/GaiaPlatform"
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker pull $DEV_IMAGE
+
+      - name: Build Docker Image
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
+              --repo-path $GAIA_REPO \
+              --base-image $DEV_IMAGE
+
+      - name: Run Unit Tests
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
+            --repo-path $GAIA_REPO \
+            --gaia-version $GAIA_VERSION \
+            --action unit_tests
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/build/output
+      
+  SDK:
+    needs:
+      - Lint
+      - Third-Party
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Pull Latest Dev-Core Image
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker pull $DEV_IMAGE
+
+      - name: Build Docker Image
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
+              --repo-path $GAIA_REPO \
+              --base-image $DEV_IMAGE \
+              --cfg-enables GaiaSDK
+
+      - name: Run Unit Tests
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
+            --repo-path $GAIA_REPO \
+            --gaia-version $GAIA_VERSION \
+            --action unit_tests
+
+      - name: Publish Debian Package
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
+            --repo-path $GAIA_REPO \
+            --gaia-version $GAIA_VERSION \
+            --action publish_package
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/build/output
+
+      - name: Upload Install Package
+        uses: actions/upload-artifact@v2
+        with:
+          name: SDK Install Package
+          path: |
+            ${{ github.workspace }}/build/output/package
+
+  Debug_Core:
+    needs: Core
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Pull Latest Dev-Core Image
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker pull $DEV_IMAGE
+
+      - name: Build Docker Image
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
+              --repo-path $GAIA_REPO \
+              --base-image $DEV_IMAGE \
+              --cfg-enables Debug
+
+      - name: Run Unit Tests
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
+            --repo-path $GAIA_REPO \
+            --gaia-version $GAIA_VERSION \
+            --action unit_tests
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/build/output
+
+  LLVM_Tests:
+    needs: Core
+    if: ${{ false }}
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Pull Latest Dev-Core Image
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker pull $DEV_IMAGE
+
+      - name: Build Docker Image
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
+              --repo-path $GAIA_REPO \
+              --base-image $DEV_IMAGE \
+              --cfg-enables GaiaLLVMTests
+
+      - name: Run Docker Image And Post-Build Script
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --gaia-version $GAIA_VERSION
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/build/output
+
+  Integration_Smoke:
+    needs: SDK
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Download Debian Install Package
+        uses: actions/download-artifact@v2
+        with:
+          name: SDK Install Package
+          path: ${{ github.workspace }}/production/tests/packages
 
       - name: Tests
+        working-directory: ${{ github.workspace }}
         run: |
-          cd /build/production/db/core
-          sudo bash -c "make install"
-          cd /build/production
-          sudo bash -c "ctest"
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
 
-      - name: Generate Package
-        run: |
-          cd /build/production
-          sudo bash -c "make preinstall"
-          sudo bash -c "cpack -G DEB -R \"${{ env.GAIA_VERSION }}-${{ github.run_id }}\""
-          sudo bash -c "cp gaia-0.3.2_amd64.deb gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb"
-          sudo bash -c "ls -la /build/production/*.deb"
-
-      - name: Upload Package
-        uses: actions/upload-artifact@v2
-        with:
-          name: Debian Install Package
-          path: /build/production/gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb
-
-      - name: Upload CMake Logs
+      - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: CMake Logs
+          name: ${{github.job}} Output Files
           path: |
-            /build/production/CMakeFiles/CMakeOutput.log
-            /build/production/CMakeFiles/CMakeError.log
+            ${{ github.workspace }}/production/tests/results
 
-      - name: Upload CTest Logs
+  Integration_Smoke_Persistence:
+    needs: SDK
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Download Debian Install Package
+        uses: actions/download-artifact@v2
+        with:
+          name: SDK Install Package
+          path: ${{ github.workspace }}/production/tests/packages
+
+      - name: Tests
+        working-directory: ${{ github.workspace }}
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
+
+      - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: CTest Logs
+          name: ${{github.job}} Output Files
           path: |
-            /build/production/Testing/Temporary/LastTest.log
+            ${{ github.workspace }}/production/tests/results
 
-      - name: Done
+  Integration_Samples:
+    needs: SDK
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Download Debian Install Package
+        uses: actions/download-artifact@v2
+        with:
+          name: SDK Install Package
+          path: ${{ github.workspace }}/production/tests/packages
+
+      - name: Tests
+        working-directory: ${{ github.workspace }}
         run: |
-          echo "Done"
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
 
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/production/tests/results
+
+  Final:
+    needs:
+      - Integration_Smoke
+      - Integration_Smoke_Persistence
+      - Integration_Samples
+      - Debug_Core
+    runs-on: ubuntu-20.04
+    if: always()
+    steps:
+      - uses: technote-space/workflow-conclusion-action@v2
+
+      - name: Results
+        run: |
+          echo "Build Workflow: ${{ env.WORKFLOW_CONCLUSION }}"

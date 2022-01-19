@@ -7,9 +7,11 @@
 
 #include <cstring>
 
-#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia/exceptions.hpp"
+
+#include "gaia_internal/common/logger.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
-#include "gaia_internal/db/gaia_db_internal.hpp"
+#include "gaia_internal/db/db.hpp"
 
 using namespace std;
 

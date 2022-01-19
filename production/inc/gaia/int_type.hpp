@@ -14,13 +14,13 @@
 namespace gaia
 {
 /**
- * \addtogroup Gaia
+ * \addtogroup gaia
  * @{
  */
 namespace common
 {
 /**
- * \addtogroup Common
+ * \addtogroup common
  * @{
  */
 
@@ -28,39 +28,41 @@ namespace common
  * @brief This class defines a base class for type-safe custom integer-based types.
  * It provides a type-safe alternative to using typedef.
  *
- * @tparam T The integer type used by this class.
+ * @tparam T_type The integer type used by this class.
  * @tparam default_invalid_value The default invalid value to be used with this type.
- * @tparam C A constraint on the types accepted for T.
+ * @tparam T_type_constraint A constraint on the types accepted for T_type.
  */
-template <typename T, T default_invalid_value, typename C = std::enable_if_t<std::is_integral<T>::value>>
+template <typename T_type, T_type default_invalid_value, typename T_type_constraint = std::enable_if_t<std::is_integral<T_type>::value>>
 class int_type_t
 {
 public:
-    using value_type = T;
+    using value_type = T_type;
 
-    static constexpr T c_default_invalid_value = default_invalid_value;
+    static constexpr T_type c_default_invalid_value = default_invalid_value;
 
     constexpr int_type_t()
         : m_value(default_invalid_value)
     {
     }
 
-    constexpr int_type_t(T value)
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    constexpr int_type_t(T_type value)
         : m_value(value)
     {
     }
 
     // This conversion operator will enable many direct operations with integers.
-    operator T() const;
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    operator T_type() const;
 
     // For explicit retrieval of contained value.
-    constexpr T value() const
+    constexpr T_type value() const
     {
         return m_value;
     }
 
     // For direct updating of contained value.
-    T& value_ref();
+    T_type& value_ref();
 
     // For additional safety (so as to prevent the mixing of apples and oranges),
     // all these operators will only allow operations with identical types.
@@ -77,7 +79,7 @@ public:
     int_type_t operator--(int);
 
 protected:
-    T m_value;
+    T_type m_value;
 };
 
 /*@}*/

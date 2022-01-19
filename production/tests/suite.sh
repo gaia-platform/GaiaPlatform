@@ -32,12 +32,7 @@ complete_process() {
         fi
     fi
 
-    if [ -n "$DB_SERVER_PID" ] ; then
-        if [ "$VERBOSE_MODE" -ne 0 ]; then
-            echo "Killing started database server."
-        fi
-        kill "$DB_SERVER_PID"
-    fi
+    kill_database_if_was_started
 
     if [ -n "$WORKLOAD_DIRECTORY" ] ; then
         if [ -f "$WORKLOAD_DIRECTORY/template.sh" ]; then
@@ -54,7 +49,7 @@ complete_process() {
 
     if [ "$DID_REPORT_START" -ne 0 ] ; then
         if [ "$SLACK_MODE" -ne 0 ] ; then
-            ./python/publish_to_slack.py message "$SUITE_MODE" "$COMPLETE_MESSAGE"
+            "$SCRIPTPATH/python/publish_to_slack.py" message "$SUITE_MODE" "$COMPLETE_MESSAGE"
             if [ -n "$COMPLETE_REASON" ] ; then
                 ./python/publish_to_slack.py message "$SUITE_MODE" "Failure reason: $COMPLETE_REASON"
             fi
@@ -87,6 +82,7 @@ show_usage() {
     echo "  -j,--json           Display the statistics in JSON format."
     echo "  -d,--database       Start a new instance of the database for the tests within the suite."
     echo "  -p,--persistence    Enable persistence when starting a new instance of the database."
+    echo "  -m,--memory         Track memory usage for associated applications."
     echo "  -f,--force-db-stop  Force any existing database to be stopped prior to starting a new database."
     echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
@@ -103,7 +99,7 @@ broadcast_message() {
 
     echo "$2"
     if [ "$SLACK_MODE" -ne 0 ] ; then
-        ./python/publish_to_slack.py message "$title" "$message"
+        "$SCRIPTPATH/python/publish_to_slack.py" message "$title" "$message"
     fi
 }
 
@@ -130,6 +126,7 @@ parse_command_line() {
     SHOW_STATS=1
     SHOW_JSON_STATS=0
     START_DATABASE=0
+    TRACK_MEMORY=0
     FORCE_DATABASE_RESTART=0
     START_DATABASE_WITH_PERSISTENCE=0
     PARAMS=()
@@ -139,16 +136,16 @@ parse_command_line() {
             LIST_MODE=1
             shift
         ;;
-        -s|--slack)
-            SLACK_MODE=1
-            shift
-        ;;
         -j|--json)
             SHOW_JSON_STATS=1
             shift
         ;;
         -n|--no-stats)
             SHOW_STATS=0
+            shift
+        ;;
+        -m|--memory)
+            TRACK_MEMORY=1
             shift
         ;;
         -d|--database)
@@ -217,6 +214,9 @@ clear_suite_output() {
     fi
 
     if [ -d "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY" ]; then
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Clearing test-results directory '$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY'."
+        fi
         if [ "$(ls -A "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY")" ] ; then
             # shellcheck disable=SC2115
             if ! rm -rf "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY"/* > "$TEMP_FILE" 2>&1; then
@@ -225,10 +225,24 @@ clear_suite_output() {
             fi
         fi
     else
-        if ! mkdir "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY" > "$TEMP_FILE" 2>&1; then
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Creating test-results directory '$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY'."
+        fi
+        if ! mkdir -p "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY" > "$TEMP_FILE" 2>&1; then
             cat "$TEMP_FILE"
             complete_process 1 "Suite script cannot create suite results directory '$(realpath "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY")' prior to suite execution."
         fi
+    fi
+}
+
+kill_database_if_was_started() {
+
+    if [ -n "$DB_SERVER_PID" ] ; then
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Killing started database server."
+        fi
+        kill "$DB_SERVER_PID"
+        DB_SERVER_PID=
     fi
 }
 
@@ -237,8 +251,12 @@ start_database_if_required() {
         if [ "$VERBOSE_MODE" -ne 0 ]; then
             echo "Creating a new database service instance for the test suite."
         fi
+
         SERVER_PID=$(pgrep "gaia_db_server")
         if [[ -n $SERVER_PID ]] ; then
+            if [ "$VERBOSE_MODE" -ne 0 ]; then
+                echo "Stopping currently executing database instance."
+            fi
             if [ $FORCE_DATABASE_RESTART -eq 0 ] ; then
                 complete_process 1 "Test suite specified a new database service instance, but one is already running. Stop that instance before trying again."
             fi
@@ -253,8 +271,11 @@ start_database_if_required() {
             fi
         fi
 
-        if [ -d "$SUITE_RESULTS_DIRECTORY/dbdir" ] ; then
-            if ! rm -rf "$SUITE_RESULTS_DIRECTORY/dbdir" > "$TEMP_FILE" 2>&1 ; then
+        if [ -d "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/dbdir" ] ; then
+            if [ "$VERBOSE_MODE" -ne 0 ]; then
+                echo "Removing old database directory."
+            fi
+            if ! rm -rf "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/dbdir" > "$TEMP_FILE" 2>&1 ; then
                 cat "$TEMP_FILE"
                 complete_process 1 "Cannot remove the old database directory before starting the new database service instance."
             fi
@@ -262,19 +283,25 @@ start_database_if_required() {
 
         PERSISTENCE_FLAG="--persistence disabled"
         if [ $START_DATABASE_WITH_PERSISTENCE -ne 0 ] ; then
-            if ! mkdir "$SUITE_RESULTS_DIRECTORY/dbdir" > "$TEMP_FILE" 2>&1 ; then
+            if [ "$VERBOSE_MODE" -ne 0 ]; then
+                echo "Creating new database directory."
+            fi
+            if ! mkdir "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/dbdir" > "$TEMP_FILE" 2>&1 ; then
                 cat "$TEMP_FILE"
                 complete_process 1 "Cannot create the requested database directory."
             fi
 
-            PERSISTENCE_FLAG="--persistence enabled --data-dir $SUITE_RESULTS_DIRECTORY/dbdir"
+            PERSISTENCE_FLAG="--persistence enabled --data-dir $SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/dbdir"
         fi
 
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Starting new database instance as a background process."
+        fi
         # shellcheck disable=SC2086
-        gaia_db_server $PERSISTENCE_FLAG > "$SUITE_RESULTS_DIRECTORY/database.log" 2>&1 &
+        gaia_db_server $PERSISTENCE_FLAG > "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/database.log" 2>&1 &
         # shellcheck disable=SC2181
         if [ $? -ne 0 ] ; then
-            cat "$SUITE_RESULTS_DIRECTORY/database.log"
+            cat "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/database.log"
             complete_process 1 "Cannot start the requested database service instance."
         fi
 
@@ -283,16 +310,26 @@ start_database_if_required() {
         if [ "$VERBOSE_MODE" -ne 0 ]; then
             echo "Pausing for 5 seconds before verifying that the new database service instance is responsive."
         fi
+        DB_SERVER_PID=$(pgrep "gaia_db_server")
         sleep 5
+        DB_SERVER_PID=
         SERVER_PID=$(pgrep "gaia_db_server")
         if [[ -z $SERVER_PID ]] ; then
-            cat "$SUITE_RESULTS_DIRECTORY/database.log"
+            echo "Active processes"
+            echo "----"
+            ps
+            echo "----"
+            cat "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/database.log"
             complete_process 1 "Newly started database service instance was not responsive.  Cannot continue the test suite without an active database instance."
         fi
         DB_SERVER_PID=$SERVER_PID
         if [ "$VERBOSE_MODE" -ne 0 ]; then
-            echo "Creating a new database service instance for the test suite."
+            echo "Created a new database service instance for the test suite."
         fi
+
+        # Make sure that we register a trap handler to be able to kill the database
+        # if the suite stops.
+        trap kill_database_if_was_started EXIT
     fi
 }
 
@@ -525,11 +562,29 @@ execute_suite_test() {
         echo "Suite $NEXT_TEST_NAME" >> "$EXECUTE_MAP_FILE"
         for (( TEST_NUMBER=1; TEST_NUMBER<=NUMBER_OF_REPEATS; TEST_NUMBER++ ))
           do
+            if [ $TRACK_MEMORY -ne 0 ] ; then
+                CURRENT_TIMESTAMP=$(python3 -c 'import time; print(int(time.time()))')
+                echo "$CURRENT_TIMESTAMP - Starting suite test: $NEXT_TEST_NAME" >> "$MEMORY_INDEX_FILE"
+            fi
             execute_single_test "$NEXT_TEST_NAME" "$TEST_NUMBER"
+            if [ $TRACK_MEMORY -ne 0 ] ; then
+                CURRENT_TIMESTAMP=$(python3 -c 'import time; print(int(time.time()))')
+                echo "$CURRENT_TIMESTAMP - Completed suite test: $NEXT_TEST_NAME" >> "$MEMORY_INDEX_FILE"
+                sleep 1
+            fi
           done
         echo "EndSuite $NEXT_TEST_NAME" >> "$EXECUTE_MAP_FILE"
     else
+        if [ $TRACK_MEMORY -ne 0 ] ; then
+            CURRENT_TIMESTAMP=$(python3 -c 'import time; print(int(time.time()))')
+            echo "$CURRENT_TIMESTAMP - Starting suite test: $NEXT_TEST_NAME" >> "$MEMORY_INDEX_FILE"
+        fi
         execute_single_test "$NEXT_TEST_NAME"
+        if [ $TRACK_MEMORY -ne 0 ] ; then
+            CURRENT_TIMESTAMP=$(python3 -c 'import time; print(int(time.time()))')
+            echo "$CURRENT_TIMESTAMP - Completed suite test: $NEXT_TEST_NAME" >> "$MEMORY_INDEX_FILE"
+            sleep 1
+        fi
     fi
 }
 
@@ -578,7 +633,8 @@ verify_workload_directory
 # Reset this after the command line, now that we know what the selected
 # SUITE_MODE is.
 TEMP_FILE=/tmp/$SUITE_MODE.suite.tmp
-
+MEMORY_LOG_FILE=$SUITE_RESULTS_DIRECTORY/memory.log
+MEMORY_INDEX_FILE=$SUITE_RESULTS_DIRECTORY/memory-index.log
 
 # Clean entrance into the script.
 start_process
@@ -588,6 +644,15 @@ save_current_directory
 clear_suite_output
 
 start_database_if_required
+
+if [ $TRACK_MEMORY -ne 0 ] ; then
+    "$SCRIPTPATH/python/scan_memory.py"  > "$MEMORY_LOG_FILE" 2>&1 &
+    # shellcheck disable=SC2181
+    if [ $? -ne 0 ] ; then
+        cat "$MEMORY_LOG_FILE"
+        complete_process 1 "Cannot start the database memory monitoring."
+    fi
+fi
 
 install_and_build_cleanly
 
@@ -600,14 +665,23 @@ for NEXT_TEST_NAME in "${TEST_NAMES[@]}"; do
     execute_suite_test "$NEXT_TEST_NAME"
 done
 
+kill_database_if_was_started
+
+if [ $TRACK_MEMORY -ne 0 ] ; then
+    echo "" >> "$MEMORY_INDEX_FILE"
+    if ! "$SCRIPTPATH/python/summarize_memory_logs.py" --log-file "$MEMORY_LOG_FILE" --index-file "$MEMORY_INDEX_FILE" --output "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/memory.json" ; then
+        complete_process 1 "Summarizing the memory logs failed."
+    fi
+fi
+
 broadcast_message "$SUITE_MODE" "Testing of the test suite completed.  Summarizing suite results."
-if ! ./python/summarize_suite_results.py "$SUITE_FILE_NAME"; then
+if ! "$SCRIPTPATH/python/summarize_suite_results.py" "$SUITE_FILE_NAME"; then
     complete_process 1 "Summarizing the results failed."
 fi
 
 if [ $SHOW_STATS -ne 0 ] ; then
     OUTPUT_FILE="$TEMP_FILE"
-    if ! ./python/summary_stats.py > $OUTPUT_FILE 2>&1 ; then
+    if ! "$SCRIPTPATH/python/summary_stats.py" > $OUTPUT_FILE 2>&1 ; then
         cat $OUTPUT_FILE
         complete_process 1 "Displaying statistics for the suite failed."
     fi
@@ -618,7 +692,7 @@ if [ $SHOW_STATS -ne 0 ] ; then
             WORKLOAD_PARAMETER="--workload $WORKLOAD_NAME"
         fi
         # shellcheck disable=SC2086
-        if ! ./python/summary_stats.py --format json $WORKLOAD_PARAMETER > $OUTPUT_FILE 2>&1 ; then
+        if ! $SCRIPTPATH/python/summary_stats.py --format json $WORKLOAD_PARAMETER > $OUTPUT_FILE 2>&1 ; then
             cat $OUTPUT_FILE
             complete_process 1 "Displaying statistics for the suite failed."
         fi
@@ -629,7 +703,7 @@ if [ $SHOW_STATS -ne 0 ] ; then
 fi
 
 if [ $SLACK_MODE -ne 0 ] ; then
-    ./python/publish_to_slack.py attachment "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/summary.json" "application/json"
+    "$SCRIPTPATH/python/publish_to_slack.py attachment" "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/summary.json" "application/json"
 fi
 
 # If we get here, we have a clean exit from the script.

@@ -10,15 +10,18 @@ SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
 # Set up any project based local script variables.
 #
-# Note that these three variables, SUITE_MODE, TEST_WORKLOADS, and USE_PERSISTENT_DATABASE
-# are used within the sourced script.  To keep shellcheck happy, we disable them.
+# Note that these four variables, SUITE_MODE, TEST_WORKLOADS, USE_PERSISTENT_DATABASE,
+# and USE_MEMORY_SAMPLING are used within the sourced script.  To keep shellcheck happy,
+# we disable them.
 
 # shellcheck disable=SC2034
 SUITE_MODE="smoke-suites"
 # shellcheck disable=SC2034
-TEST_WORKLOADS=("smoke" "palletbox" "pingpong" "marcopolo")
+TEST_WORKLOADS=("smoke" "pingpong" "marcopolo")
 # shellcheck disable=SC2034
 USE_PERSISTENT_DATABASE=1
+# shellcheck disable=SC2034
+USE_MEMORY_SAMPLING=0
 
 # Invoke the actual execution of the suites.
 # shellcheck source=execute_suites.sh

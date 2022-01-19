@@ -15,17 +15,21 @@
 namespace gaia
 {
 /**
- * \addtogroup Gaia
+ * \addtogroup gaia
  * @{
  */
 namespace common
 {
 /**
- * \addtogroup Gaia
+ * \addtogroup common
  * @{
  */
 namespace logging
 {
+/**
+ * \addtogroup logging
+ * @{
+ */
 
 /**
  * Gaia logging API. Logging is performed via instances of logger_t.
@@ -190,15 +194,6 @@ private:
      * exists it is reused. Otherwise a new logger is created.
      */
     explicit logger_t(const std::string& logger_name);
-};
-
-class logger_exception_t : public gaia_exception
-{
-public:
-    explicit logger_exception_t(const std::string& message)
-    {
-        m_message = message;
-    }
 };
 
 /**

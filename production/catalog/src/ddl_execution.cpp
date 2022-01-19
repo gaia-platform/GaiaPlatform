@@ -15,6 +15,7 @@
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/ddl_executor.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/exceptions.hpp"
 
 #include "gaia_parser.hpp"
 
@@ -108,7 +109,7 @@ void check_reference_field_maps(
         if (!((field_map1->first == field_map2->first && field_map1->second == field_map2->second)
               || (field_map1->first == field_map2->second && field_map1->second == field_map2->first)))
         {
-            throw invalid_field_map(
+            throw invalid_relationship_field_internal(
                 "The matching reference definitions in table '" + table1 + "' and table '" + table2 + "'"
                 + " both contain WHERE clauses that do not match each other.");
         }
@@ -122,7 +123,7 @@ void check_reference_field_maps(
     if (!((field_map.first.table == table1 && field_map.second.table == table2)
           || (field_map.first.table == table2 && field_map.second.table == table1)))
     {
-        throw invalid_field_map(
+        throw invalid_relationship_field_internal(
             "The WHERE clause for matching reference definitions in table '" + table1
             + "' and table '" + table2 + "'" + " must use a field from each table on opposite sides of '='.");
     }
@@ -206,14 +207,14 @@ void convert_references_to_relationships(
                     // reference. This tells us the previously matched reference
                     // is an ambiguous definition. Report it (instead of other
                     // candidates) as ambiguous because it appears earlier.
-                    throw ambiguous_reference_definition(ref->table, matching_iter->second->name);
+                    throw ambiguous_reference_definition_internal(ref->table, matching_iter->second->name);
                 }
             }
 
             // We cannot find any matching references for this definition.
             if (matching_iter == table_refs.end())
             {
-                throw orphaned_reference_definition(create_table->name, ref->name);
+                throw orphaned_reference_definition_internal(create_table->name, ref->name);
             }
 
             // Create a standalone `create relationship` definition by combining
@@ -225,7 +226,7 @@ void convert_references_to_relationships(
             if (matching_ref->cardinality == relationship_cardinality_t::many
                 && ref->cardinality == relationship_cardinality_t::many)
             {
-                throw many_to_many_not_supported(ref->table, matching_ref->table);
+                throw many_to_many_not_supported_internal(ref->table, matching_ref->table);
             }
 
             check_reference_field_maps(matching_ref->field_map, ref->field_map, ref->table, matching_ref->table);
@@ -267,7 +268,7 @@ void convert_references_to_relationships(
     // There are references left unmatched. Report the first seen one.
     if (table_refs.size() > 0)
     {
-        throw orphaned_reference_definition(table_refs.begin()->first, table_refs.begin()->second->name);
+        throw orphaned_reference_definition_internal(table_refs.begin()->first, table_refs.begin()->second->name);
     }
 
     // Append the new relationship definition(s) to the statement list.
@@ -343,7 +344,7 @@ void sanity_check_create_list_statements(
             auto create_table = dynamic_cast<ddl::create_table_t*>(stmt.get());
             if (!create_table->database.empty())
             {
-                throw invalid_create_list(
+                throw invalid_create_list_internal(
                     "CREATE TABLE " + create_table->name
                     + " definition cannot specify a database.");
             }
@@ -353,7 +354,7 @@ void sanity_check_create_list_statements(
             auto create_index = dynamic_cast<ddl::create_index_t*>(stmt.get());
             if (!create_index->database.empty())
             {
-                throw invalid_create_list(
+                throw invalid_create_list_internal(
                     "CREATE INDEX " + create_index->name
                     + " definition cannot specify a database.");
             }
@@ -366,7 +367,7 @@ void sanity_check_create_list_statements(
                 || !create_relationship->relationship.first.to_database.empty()
                 || !create_relationship->relationship.second.to_database.empty())
             {
-                throw invalid_create_list(
+                throw invalid_create_list_internal(
                     "CREATE RELATIONSHIP " + create_relationship->name
                     + " definition cannot specify a database in the link(s).");
             }
@@ -374,7 +375,7 @@ void sanity_check_create_list_statements(
                 && (!create_relationship->field_map->first.database.empty()
                     || !create_relationship->field_map->second.database.empty()))
             {
-                throw invalid_create_list(
+                throw invalid_create_list_internal(
                     "CREATE RELATIONSHIP " + create_relationship->name
                     + " definition cannot specify a database in the field(s).");
             }

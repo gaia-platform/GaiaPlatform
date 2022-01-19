@@ -1,0 +1,63 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+int g_total_hours = 0;
+int g_high_grade_hours = 0;
+int g_low_grade_hours = 0;
+
+ruleset test_meta_rule_3
+{
+    // Calculate total number of course hours for a student.
+    // Student is an anchor for course.hours
+    on_insert(student)
+    {
+        g_total_hours = 0.0;
+        g_total_hours += course.hours;
+    }
+
+    // Calculate number of course hours for student where registration has grade greater than 3.
+    // Registration is a new anchor for course.hours
+    on_insert(student)
+    {
+        g_high_grade_hours = 0.0;
+        if (student.registrations->registration.grade >= 3)
+        {
+            g_high_grade_hours += course.hours;
+        }
+    }
+
+    // Calculate number of course hours for student where registration has grade less than 3.
+    // Registration is a new anchor for course.hours
+    on_insert(student)
+    {
+        g_low_grade_hours = 0.0;
+        if (registration.grade < 3)
+        {
+            g_low_grade_hours += course.hours;
+        }
+    }
+
+    // Calculate number of course hours for student where registration has grade greater than 3.
+    // Registration is a new anchor for course.hours
+    on_update(student.age)
+    {
+        g_high_grade_hours = 0.0;
+        if (student.registrations->registration.grade >= 3 && student.age > 10)
+        {
+            g_high_grade_hours += course.hours;
+        }
+    }
+
+    // Calculate number of course hours for student where registration has grade less than 3.
+    // Registration is a new anchor for course.hours
+    on_update(student.age)
+    {
+        g_low_grade_hours = 0.0;
+        if (registration.grade < 3 && student.age > 10)
+        {
+            g_low_grade_hours += course.hours;
+        }
+    }
+}

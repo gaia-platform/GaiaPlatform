@@ -8,6 +8,8 @@
 #include <bitset>
 #include <iostream>
 
+#include "gaia/exceptions.hpp"
+
 #include "gaia_internal/common/mmap_helpers.hpp"
 
 #include "db_helpers.hpp"
@@ -109,6 +111,12 @@ void txn_metadata_t::init_txn_metadata_map()
 bool txn_metadata_t::is_txn_metadata_map_initialized()
 {
     return (s_txn_metadata_map != nullptr);
+}
+
+char* txn_metadata_t::get_txn_metadata_map_base_address()
+{
+    ASSERT_PRECONDITION(is_txn_metadata_map_initialized(), "Txn metadata map is uninitialized!");
+    return reinterpret_cast<char*>(s_txn_metadata_map);
 }
 
 // This method allocates a new begin_ts and initializes its metadata in the txn

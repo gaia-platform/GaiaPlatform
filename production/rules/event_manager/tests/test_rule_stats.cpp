@@ -12,7 +12,7 @@
 #include <gtest/gtest.h>
 
 #include "gaia_internal/common/debug_logger.hpp"
-#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/logger.hpp"
 
 #include "gaia_spdlog/sinks/ostream_sink.h"
 

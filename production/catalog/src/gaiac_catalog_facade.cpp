@@ -24,9 +24,9 @@ std::string gaiac_incoming_link_facade_t::parent_offset() const
     return "c_" + from_table() + "_parent_" + field_name();
 }
 
-std::string gaiac_incoming_link_facade_t::parent_offset_value() const
+uint16_t gaiac_incoming_link_facade_t::parent_offset_value() const
 {
-    return std::to_string(m_relationship.parent_offset());
+    return m_relationship.parent_offset();
 }
 
 std::string gaiac_incoming_link_facade_t::next_offset() const
@@ -35,9 +35,19 @@ std::string gaiac_incoming_link_facade_t::next_offset() const
     return "c_" + from_table() + "_next_" + field_name();
 }
 
-std::string gaiac_incoming_link_facade_t::next_offset_value() const
+uint16_t gaiac_incoming_link_facade_t::next_offset_value() const
 {
-    return std::to_string(m_relationship.next_child_offset());
+    return m_relationship.next_child_offset();
+}
+
+std::string gaiac_incoming_link_facade_t::prev_offset() const
+{
+    return "c_" + from_table() + "_prev_" + field_name();
+}
+
+uint16_t gaiac_incoming_link_facade_t::prev_offset_value() const
+{
+    return m_relationship.prev_child_offset();
 }
 
 //
@@ -52,14 +62,29 @@ std::string gaiac_outgoing_link_facade_t::first_offset() const
     return "c_" + from_table() + "_first_" + field_name();
 }
 
-std::string gaiac_outgoing_link_facade_t::first_offset_value() const
+uint16_t gaiac_outgoing_link_facade_t::first_offset_value() const
 {
-    return std::to_string(m_relationship.first_child_offset());
+    return m_relationship.first_child_offset();
+}
+
+std::string gaiac_outgoing_link_facade_t::parent_offset() const
+{
+    return "c_" + to_table() + "_parent_" + m_relationship.to_parent_link_name();
+}
+
+uint16_t gaiac_outgoing_link_facade_t::parent_offset_value() const
+{
+    return m_relationship.parent_offset();
 }
 
 std::string gaiac_outgoing_link_facade_t::next_offset() const
 {
     return "c_" + to_table() + "_next_" + m_relationship.to_parent_link_name();
+}
+
+std::string gaiac_outgoing_link_facade_t::prev_offset() const
+{
+    return "c_" + to_table() + "_prev_" + m_relationship.to_parent_link_name();
 }
 
 } // namespace generate

@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 
 #include "gaia/direct_access/auto_transaction.hpp"
+#include "gaia/exceptions.hpp"
 
 #include "gaia_internal/db/db_test_base.hpp"
 

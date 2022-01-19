@@ -467,7 +467,8 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
     }
 }
 
-TEST_F(rule_integration_test, test_two_rules)
+// https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1781
+TEST_F(rule_integration_test, DISABLED_test_two_rules)
 {
     subscribe_update();
     subscribe_insert();

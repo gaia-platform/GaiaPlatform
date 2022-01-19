@@ -48,18 +48,33 @@ struct CatalogTableData
 class GaiaCatalog
 {
 public:
-    static const llvm::StringMap<CatalogTableData>& getCatalogTableData()
-    {
-        ensureInitialization();
-        return catalogTableData;
-    }
+    static void create(clang::DiagnosticsEngine& diag);
+    static GaiaCatalog& get();
+
+public:
+    GaiaCatalog() = delete;
+    GaiaCatalog(clang::DiagnosticsEngine& diag_engine);
+    const llvm::StringMap<CatalogTableData>& getCatalogTableData();
+    bool findNavigationPath(llvm::StringRef src, llvm::StringRef dst, llvm::SmallVector<string, 8>& currentPath, bool reportErrors);
 
 private:
-    static void ensureInitialization();
-    static void fillTableData();
-    static bool isInitialized;
-    static llvm::StringMap<CatalogTableData> catalogTableData;
+    void ensureInitialization();
+    void fillTableData();
+    bool findNavigationPath(llvm::StringRef src, llvm::StringRef dst, llvm::SmallVector<string, 8>& currentPath, const llvm::StringMap<clang::gaia::catalog::CatalogTableData>& graphData);
+    llvm::StringRef getClosestTable(const llvm::StringMap<int>& tableDistance);
+
+private:
+    static std::unique_ptr<GaiaCatalog> s_catalog_ptr;
+
+private:
+    bool m_isInitialized;
+    llvm::StringMap<CatalogTableData> m_catalogTableData;
+    DiagnosticsEngine& m_diags;
 };
+
+const llvm::StringMap<CatalogTableData>& getCatalogTableData();
+bool findNavigationPath(llvm::StringRef src, llvm::StringRef dst, llvm::SmallVector<string, 8>& currentPath, bool reportErrors = true);
+
 } // namespace catalog
 } // namespace gaia
 } // namespace clang

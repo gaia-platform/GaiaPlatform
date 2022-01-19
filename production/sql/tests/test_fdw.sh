@@ -29,7 +29,7 @@ else
     chmod 755 "$TMP_DIR"
     pushd "$DATA_DIR"
     for f in *gz; do
-        gzip -dkc < $f > "$TMP_DIR/${f%%.gz}"
+        gzip -dkc < "$f" > "$TMP_DIR/${f%%.gz}"
     done
     popd
 

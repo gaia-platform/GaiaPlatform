@@ -39,8 +39,7 @@ gaia_relationship_t find_relationship(
 
     auto it = std::find_if(
         out_relationships.begin(), out_relationships.end(),
-        [&](gaia_relationship_t& relationship)
-        {
+        [&](gaia_relationship_t& relationship) {
             return relationship.to_child_link_name() == field_name;
         });
 
@@ -53,8 +52,7 @@ gaia_relationship_t find_relationship(
 
     it = std::find_if(
         in_relationships.begin(), in_relationships.end(),
-        [&](gaia_relationship_t& relationship)
-        {
+        [&](gaia_relationship_t& relationship) {
             return relationship.to_parent_link_name() == field_name;
         });
 
@@ -209,8 +207,7 @@ TEST_F(ddl_executor_test, drop_table)
     drop_table(test_table_name);
     {
         auto_transaction_t txn;
-        auto table = gaia_table_t::get(table_id);
-        EXPECT_FALSE(table);
+        EXPECT_THROW(gaia_table_t::get(table_id), invalid_object_id);
         txn.commit();
     }
 }
@@ -221,7 +218,7 @@ TEST_F(ddl_executor_test, drop_table_not_exist)
 
     EXPECT_NO_THROW(drop_table(test_table_name, false));
 
-    EXPECT_THROW(drop_table(test_table_name), table_not_exists);
+    EXPECT_THROW(drop_table(test_table_name), table_does_not_exist);
 }
 
 TEST_F(ddl_executor_test, drop_table_with_self_reference)
@@ -240,8 +237,7 @@ TEST_F(ddl_executor_test, drop_table_with_self_reference)
     drop_table(test_table_name);
     {
         auto_transaction_t txn;
-        auto table = gaia_table_t::get(table_id);
-        EXPECT_FALSE(table);
+        EXPECT_THROW(gaia_table_t::get(table_id), invalid_object_id);
         txn.commit();
     }
 }
@@ -351,9 +347,9 @@ TEST_F(ddl_executor_test, drop_database)
     drop_database(test_db_name);
     {
         auto_transaction_t txn;
-        EXPECT_FALSE(gaia_table_t::get(self_ref_table_id));
-        EXPECT_FALSE(gaia_table_t::get(test_table_id));
-        EXPECT_FALSE(gaia_database_t::get(db_id));
+        EXPECT_THROW(gaia_table_t::get(self_ref_table_id), invalid_object_id);
+        EXPECT_THROW(gaia_table_t::get(test_table_id), invalid_object_id);
+        EXPECT_THROW(gaia_database_t::get(db_id), invalid_object_id);
         txn.commit();
     }
 }
@@ -443,6 +439,7 @@ TEST_F(ddl_executor_test, create_relationships)
     ASSERT_EQ(uint8_t{0}, clinic_to_doctor_relationship.first_child_offset()); // clinic
     ASSERT_EQ(uint8_t{0}, clinic_to_doctor_relationship.parent_offset()); // doctor
     ASSERT_EQ(uint8_t{1}, clinic_to_doctor_relationship.next_child_offset()); // doctor
+    ASSERT_EQ(uint8_t{2}, clinic_to_doctor_relationship.prev_child_offset()); // doctor
 
     // check
     // (doctor) 1 -[patients]-> N (patient)
@@ -458,9 +455,10 @@ TEST_F(ddl_executor_test, create_relationships)
 
     ASSERT_STREQ("patients", doctor_to_patient_relationship.to_child_link_name());
     ASSERT_STREQ("doctor", doctor_to_patient_relationship.to_parent_link_name());
-    ASSERT_EQ(uint8_t{2}, doctor_to_patient_relationship.first_child_offset()); // doctor
+    ASSERT_EQ(uint8_t{3}, doctor_to_patient_relationship.first_child_offset()); // doctor
     ASSERT_EQ(uint8_t{0}, doctor_to_patient_relationship.parent_offset()); // patient
     ASSERT_EQ(uint8_t{1}, doctor_to_patient_relationship.next_child_offset()); // patient
+    ASSERT_EQ(uint8_t{2}, doctor_to_patient_relationship.prev_child_offset()); // patient
 
     // check
     // (clinic) 1 -[patients]-> (patient)
@@ -477,8 +475,9 @@ TEST_F(ddl_executor_test, create_relationships)
     ASSERT_STREQ("patients", clinic_to_patient_relationship.to_child_link_name());
     ASSERT_STREQ("clinic", clinic_to_patient_relationship.to_parent_link_name());
     ASSERT_EQ(uint8_t{1}, clinic_to_patient_relationship.first_child_offset()); // clinic
-    ASSERT_EQ(uint8_t{2}, clinic_to_patient_relationship.parent_offset()); // patient
-    ASSERT_EQ(uint8_t{3}, clinic_to_patient_relationship.next_child_offset()); // patient
+    ASSERT_EQ(uint8_t{3}, clinic_to_patient_relationship.parent_offset()); // patient
+    ASSERT_EQ(uint8_t{4}, clinic_to_patient_relationship.next_child_offset()); // patient
+    ASSERT_EQ(uint8_t{5}, clinic_to_patient_relationship.prev_child_offset()); // patient
     txn.commit();
 }
 
@@ -595,8 +594,7 @@ TEST_F(ddl_executor_test, list_indexes)
         gaia_table_t::get(table_id).gaia_fields().begin(),
         gaia_table_t::get(table_id).gaia_fields().end(),
         back_inserter(unique_settings),
-        [](const auto& field) -> bool
-        { return field.unique(); });
+        [](const auto& field) -> bool { return field.unique(); });
 
     vector<bool> expected_unique_settings{true, false, false};
     ASSERT_EQ(unique_settings, expected_unique_settings);

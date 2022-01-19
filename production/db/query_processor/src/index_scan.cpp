@@ -50,13 +50,13 @@ index_scan_iterator_t::index_scan_iterator_t(gaia::common::gaia_id_t index_id, s
     else
     {
         // This will result in the index scan init() method being called.
-        auto ptr = db::gaia_ptr_t(m_scan_impl->locator());
+        auto ptr = db::gaia_ptr_t::from_locator(m_scan_impl->locator());
 
         // Advance scan to next row passing our filters.
         while (!m_scan_state.should_return_row(ptr))
         {
             m_scan_impl->next_visible_locator();
-            ptr = db::gaia_ptr_t(m_scan_impl->locator());
+            ptr = db::gaia_ptr_t::from_locator(m_scan_impl->locator());
         }
         m_gaia_ptr = ptr;
     }
@@ -71,13 +71,13 @@ index_scan_iterator_t index_scan_iterator_t::operator++()
     else
     {
         m_scan_impl->next_visible_locator();
-        auto ptr = db::gaia_ptr_t(m_scan_impl->locator());
+        auto ptr = db::gaia_ptr_t::from_locator(m_scan_impl->locator());
 
         // Advance scan to next row passing our filters.
         while (!m_scan_state.should_return_row(ptr))
         {
             m_scan_impl->next_visible_locator();
-            ptr = db::gaia_ptr_t(m_scan_impl->locator());
+            ptr = db::gaia_ptr_t::from_locator(m_scan_impl->locator());
         }
 
         m_gaia_ptr = ptr;
@@ -143,7 +143,7 @@ base_index_scan_physical_t::open(common::gaia_id_t index_id, std::shared_ptr<ind
             throw db::index::index_not_found(index_id);
         }
 
-        auto index_view = db::index_view_t(view_ptr);
+        auto index_view = catalog_core::index_view_t(view_ptr);
         it = db::index::index_builder_t::create_empty_index(index_view);
     }
     auto index = it->second;

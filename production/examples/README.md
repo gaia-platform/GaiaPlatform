@@ -1,4 +1,7 @@
-# examples
-This is a folder for examples that ship with production code.
+# Examples
+This folder contains examples of Gaia code.
 
-Each of these examples may have custom building steps. Check their respective instructions for details.
+Check the README of the example for any custom build steps and usage details.
+
+# License
+See the LICENSE.txt file and any additional license information attached to each sample.

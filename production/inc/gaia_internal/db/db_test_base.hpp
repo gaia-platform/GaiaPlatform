@@ -18,7 +18,7 @@
 
 #include "gaia/db/db.hpp"
 
-#include "gaia_internal/common/logger_internal.hpp"
+#include "gaia_internal/common/logger.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
@@ -73,7 +73,7 @@ protected:
 
     // Since ctest always launches each gtest in a new process, there is no point
     // to defining separate SetUpTestSuite/TearDownTestSuite methods.  However, tests
-    // that need to do one-time initialization when running outside of ctest
+    // that need to do one-time initialization when running outside ctest
     // can provide SetUpTestSuite/TearDownTestSuite methods and call reset_server()
     // themselves.  These tests should also override SetUp() and TearDown()
     // methods to ensure that the server isn't reset for every test case.

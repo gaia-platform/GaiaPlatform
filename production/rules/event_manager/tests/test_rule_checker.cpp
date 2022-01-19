@@ -143,8 +143,13 @@ TEST_F(rule_checker_test, field_not_found)
     rule_checker_t rule_checker;
     field_position_list_t fields;
     fields.emplace_back(field);
-    const char* message = "Field (position: 1000) was not found in table";
-    verify_exception(message, [&]() { rule_checker.check_catalog(g_table_type, fields); });
+
+    // Verify the entire message
+    std::stringstream message;
+    message << "Field (position: " << field << ") was not found in table 'Sensors' (type: '"
+            << g_table_type << "').";
+
+    verify_exception(message.str().c_str(), [&]() { rule_checker.check_catalog(g_table_type, fields); });
 }
 
 TEST_F(rule_checker_test, active_field)
@@ -172,10 +177,14 @@ TEST_F(rule_checker_test, deprecated_field)
 {
     rule_checker_t rule_checker;
     field_position_list_t fields;
-    fields.emplace_back(g_field_positions["deprecated"]);
-    const char* message = "deprecated";
+    field_position_t position = g_field_positions["deprecated"];
+    fields.emplace_back(position);
 
-    verify_exception(message, [&]() { rule_checker.check_catalog(g_table_type, fields); });
+    // Verify the entire message
+    std::stringstream message;
+    message << "Field 'deprecated' (position: " << position << ") in table 'Sensors' (type: '"
+            << g_table_type << "') is deprecated.";
+    verify_exception(message.str().c_str(), [&]() { rule_checker.check_catalog(g_table_type, fields); });
 }
 
 TEST_F(rule_checker_test, multiple_valid_fields)

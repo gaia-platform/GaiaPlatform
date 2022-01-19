@@ -1,6 +1,5 @@
 build.sh
 install.sh
-lint.sh
 run.sh
 test.sh
 simulation.hpp

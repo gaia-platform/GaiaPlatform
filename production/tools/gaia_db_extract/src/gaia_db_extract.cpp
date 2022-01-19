@@ -9,7 +9,7 @@
 #include <memory>
 #include <vector>
 
-#include "gaia/db/db.hpp"
+#include "gaia/exceptions.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
@@ -92,7 +92,7 @@ bool gaia_db_extract_initialize()
 {
     begin_transaction();
 
-    for (auto table_view : catalog_core_t::list_tables())
+    for (auto table_view : catalog_core::list_tables())
     {
         string table_name(table_view.name());
 

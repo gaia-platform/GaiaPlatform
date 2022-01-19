@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-# Set the project name.
 project(index)
 
 set(GAIA_INDEX_INCLUDES
@@ -19,7 +18,8 @@ add_library(gaia_index STATIC
   src/base_index.cpp
   src/index.cpp
   src/hash_index.cpp
-  src/range_index.cpp)
+  src/range_index.cpp
+  src/index_offset_buffer.cpp)
 configure_gaia_target(gaia_index)
 target_include_directories(gaia_index PUBLIC ${GAIA_INDEX_INCLUDES})
 target_link_libraries(gaia_index PRIVATE gaia_common gaia_payload_types)

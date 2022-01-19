@@ -16,9 +16,20 @@ common::gaia_id_t base_index_t::id() const
 {
     return m_index_id;
 }
+
 catalog::index_type_t base_index_t::type() const
 {
     return m_index_type;
+}
+
+common::gaia_type_t base_index_t::table_type() const
+{
+    return m_key_schema.table_type;
+}
+
+const index_key_schema_t& base_index_t::key_schema() const
+{
+    return m_key_schema;
 }
 
 bool base_index_t::is_unique() const

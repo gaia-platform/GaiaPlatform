@@ -140,7 +140,7 @@ DROP TABLE IF EXISTS t2;
     }
 
     ASSERT_NO_THROW(parser.parse_string("DROP RELATIONSHIP r3;"));
-    ASSERT_THROW(execute(parser.statements), relationship_not_exists);
+    ASSERT_THROW(execute(parser.statements), relationship_does_not_exist);
 }
 
 TEST_F(ddl_execution_test, drop_index)
@@ -180,7 +180,7 @@ CREATE INDEX IF NOT EXISTS c_i ON t(c);
     }
 
     ASSERT_NO_THROW(parser.parse_string("DROP INDEX c_i;"));
-    ASSERT_THROW(execute(parser.statements), index_not_exists);
+    ASSERT_THROW(execute(parser.statements), index_does_not_exist);
 }
 
 TEST_F(ddl_execution_test, create_list)
@@ -377,7 +377,7 @@ create table t2(c2 int32, link2a references t1, link2b references t1);
     ASSERT_THROW(execute(parser.statements), orphaned_reference_definition);
 }
 
-TEST_F(ddl_execution_test, invalid_field_map)
+TEST_F(ddl_execution_test, invalid_relationship_field)
 {
     array ddls{
         // Incorrect table names in where clause.
@@ -421,7 +421,7 @@ create table employee (
     {
         ddl::parser_t parser;
         ASSERT_NO_THROW(parser.parse_string(ddl));
-        ASSERT_THROW(execute(parser.statements), invalid_field_map);
+        ASSERT_THROW(execute(parser.statements), invalid_relationship_field);
     }
 }
 

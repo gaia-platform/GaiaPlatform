@@ -52,6 +52,28 @@ employee_t create_employee(const char* name)
     return e;
 }
 
+// Test invalid object instances
+// =============================
+
+TEST_F(dac_object_test, invalid_instances)
+{
+    begin_transaction();
+
+    // A default instance should be invalid.
+    employee_t e;
+    EXPECT_FALSE(e);
+
+    // Operations on the invalid instance should throw invalid_object_state.
+    EXPECT_THROW(e.name_first(), invalid_object_state);
+    EXPECT_THROW(e.delete_row(), invalid_object_state);
+
+    // Attempting to get a non-existing object should throw invalid_object_id.
+    EXPECT_THROW(employee_t::get(c_invalid_gaia_id), invalid_object_id);
+    EXPECT_THROW(employee_t::get(1111111), invalid_object_id);
+
+    rollback_transaction();
+}
+
 // Test on objects created by new()
 // ================================
 
@@ -356,7 +378,7 @@ TEST_F(dac_object_test, read_back_id)
     // Delete this object with original and modified fields
     e.delete_row();
     // Can't access data of a deleted row
-    EXPECT_THROW(e.name_first(), invalid_object_id);
+    EXPECT_THROW(e.name_first(), invalid_object_state);
 }
 
 TEST_F(dac_object_test, new_del_field_ref)
@@ -367,10 +389,10 @@ TEST_F(dac_object_test, new_del_field_ref)
     auto e = employee_t::get(employee_writer().insert_row());
     e.delete_row();
     // can't access data from a deleted row
-    EXPECT_THROW(e.name_first(), invalid_object_id);
+    EXPECT_THROW(e.name_first(), invalid_object_state);
 
     // Can't get a writer from a deleted row either
-    EXPECT_THROW(e.writer(), invalid_object_id);
+    EXPECT_THROW(e.writer(), invalid_object_state);
 
     commit_transaction();
 }
@@ -381,7 +403,7 @@ TEST_F(dac_object_test, new_del_update)
     begin_transaction();
     auto e = create_employee("Hector");
     e.delete_row();
-    EXPECT_THROW(e.writer().update_row(), invalid_object_id);
+    EXPECT_THROW(e.writer().update_row(), invalid_object_state);
     commit_transaction();
 }
 
@@ -393,7 +415,7 @@ TEST_F(dac_object_test, found_del_ins)
     auto e = create_employee("Hector");
     auto writer = e.writer();
     e.delete_row();
-    EXPECT_THROW(e.writer(), invalid_object_id);
+    EXPECT_THROW(e.writer(), invalid_object_state);
     // We got the writer before we deleted the row.
     // We can't update the row but we can insert a new one.
     auto eid = writer.insert_row();
@@ -444,7 +466,7 @@ TEST_F(dac_object_test, new_del_del)
     // The first delete succeeds.
     e.delete_row();
     // The second one should throw.
-    EXPECT_THROW(e.delete_row(), invalid_object_id);
+    EXPECT_THROW(e.delete_row(), invalid_object_state);
     commit_transaction();
 }
 
@@ -502,8 +524,7 @@ TEST_F(dac_object_test, auto_txn_rollback)
     }
     // Transaction was rolled back
     auto_transaction_t txn;
-    employee_t e = employee_t::get(id);
-    EXPECT_FALSE(e);
+    EXPECT_THROW(employee_t::get(id), invalid_object_id);
 }
 
 TEST_F(dac_object_test, writer_value_ref)
@@ -768,7 +789,7 @@ void employee_func_ref(const employee_t& e, const char* first_name)
         }
         else
         {
-            EXPECT_THROW(e.name_first(), invalid_object_id);
+            EXPECT_THROW(e.name_first(), invalid_object_state);
         }
     }
     commit_transaction();
@@ -785,7 +806,7 @@ void employee_func_val(employee_t e, const char* first_name)
         }
         else
         {
-            EXPECT_THROW(e.name_first(), invalid_object_id);
+            EXPECT_THROW(e.name_first(), invalid_object_state);
         }
     }
     commit_transaction();
@@ -805,11 +826,11 @@ TEST_F(dac_object_test, default_construction)
 
     begin_transaction();
     {
-        EXPECT_THROW(e.name_first(), invalid_object_id);
-        EXPECT_THROW(a.owner(), invalid_object_id);
-        EXPECT_THROW(e.manager(), invalid_object_id);
-        EXPECT_THROW(e.writer(), invalid_object_id);
-        EXPECT_THROW(e.delete_row(), invalid_object_id);
+        EXPECT_THROW(e.name_first(), invalid_object_state);
+        EXPECT_THROW(a.owner(), invalid_object_state);
+        EXPECT_THROW(e.manager(), invalid_object_state);
+        EXPECT_THROW(e.writer(), invalid_object_state);
+        EXPECT_THROW(e.delete_row(), invalid_object_state);
         ASSERT_EQ(e.addresses().begin(), e.addresses().end());
 
         e = create_employee("Windsor");

@@ -17,7 +17,7 @@ start_process() {
     fi
     DID_PUSHD=1
 
-    if ! cd $SCRIPTPATH >"$TEMP_FILE" 2>&1; then
+    if ! cd "$SCRIPTPATH" >"$TEMP_FILE" 2>&1; then
         cat "$TEMP_FILE"
         complete_process 1 "Script cannot change to coverage directory before proceeding."
     fi
@@ -60,7 +60,6 @@ show_usage() {
     echo "  -v,--verbose                Show lots of information while executing the project."
     echo "  -h,--help                   Display this help text."
     echo ""
-    show_usage_commands
     exit 1
 }
 
@@ -113,26 +112,6 @@ if ! rm -rf "$SCRIPTPATH/output"/* > "$TEMP_FILE" 2>&1; then
     complete_process 1 "Script cannot clean output directory before proceeding."
 fi
 
-
-if [ "$VERBOSE_MODE" -ne 0 ]; then
-    echo "Placing tooled 'gdev.cfg' file in root production directory."
-fi
-if ! diff "$SCRIPTPATH/../gdev.cfg" "$SCRIPTPATH/gdev.cfg" > "$TEMP_FILE" 2>&1; then
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Backing up existing gdev.cfg in the root production directory."
-    fi
-    cp "$SCRIPTPATH/../gdev.cfg" "$SCRIPTPATH/../gdev.cfg.old"
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Copying coverage gdev.cfg to the root production directory."
-    fi
-    cp "$SCRIPTPATH/gdev.cfg" "$SCRIPTPATH/../gdev.cfg"
-else
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Coverage gdev.cfg is already present in the root production directory."
-    fi
-fi
-
-
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Switching to the root production directory."
 fi
@@ -145,15 +124,9 @@ if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Executing coverage workflow in GCov container."
 fi
 
-gdev run --mounts ./coverage/output:output /source/production/coverage/gen_coverage.sh
-
-if [[ -f $SCRIPTPATH/../gdev.cfg.old ]]; then
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Restoring previous gdev.cfg file to root production directory."
-    fi
-    cp "$SCRIPTPATH/../gdev.cfg.old" "$SCRIPTPATH/../gdev.cfg"
-    rm "$SCRIPTPATH/../gdev.cfg.old"
-fi
+REPO_ROOT_DIR=$(git rev-parse --show-toplevel)
+GDEV_WRAPPER="${REPO_ROOT_DIR}/dev_tools/gdev/gdev.sh"
+"${GDEV_WRAPPER}" run --cfg-enables Coverage --mounts ./coverage/output:output /source/production/coverage/gen_coverage.sh
 
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Setting proper permissions on output directory."
@@ -169,12 +142,12 @@ if ! cd "$SCRIPTPATH" > "$TEMP_FILE" 2>&1; then
 fi
 
 if [ "$VERBOSE_MODE" -ne 0 ]; then
-    echo "Creating coverage.json file from converage output."
+    echo "Creating coverage.json file from coverage output."
 fi
 ./summarize.py > "$SCRIPTPATH/output/coverage.json"
 
 if [ "$VERBOSE_MODE" -ne 0 ]; then
-    echo "Creating coverage.zip file from converage output."
+    echo "Creating coverage.zip file from coverage output."
 fi
 zip -r "$SCRIPTPATH/output/coverage.zip" "$SCRIPTPATH/output"
 

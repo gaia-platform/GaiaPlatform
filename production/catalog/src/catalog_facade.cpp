@@ -242,14 +242,14 @@ std::pair<std::string, std::string> field_facade_t::generate_expr_variable(const
     std::string expr_init;
     std::string type_decl;
 
-    // Example:  gaia::direct_access::expression_t<employee_t, int64_t>
-    type_decl.append("gaia::direct_access::expression_t<");
+    // Example:  gaia::expressions::expression_t<employee_t, int64_t>
+    type_decl.append("gaia::expressions::expression_t<");
     type_decl.append(table);
     type_decl.append("_t, ");
     type_decl.append(type);
     type_decl.append(">");
 
-    // Example:  static gaia::direct_access::expression_t<employee_t, int64_t> hire_date;
+    // Example:  static gaia::expressions::expression_t<employee_t, int64_t> hire_date;
     expr_decl.append("static ");
     expr_decl.append(type_decl);
     expr_decl.append(" ");
@@ -257,7 +257,7 @@ std::pair<std::string, std::string> field_facade_t::generate_expr_variable(const
     expr_decl.append(";");
 
     // Example:  template<class unused_t>
-    // gaia::direct_access::expression_t<employee_t, int64_t> employee_t::expr_<unused_t>::hire_date{&employee_t::hire_date};
+    // gaia::expressions::expression_t<employee_t, int64_t> employee_t::expr_<unused_t>::hire_date{&employee_t::hire_date};
     expr_init.append("template<class unused_t> ");
     expr_init.append(type_decl);
     expr_init.append(" ");
@@ -307,6 +307,12 @@ std::string link_facade_t::to_table() const
         return m_relationship.child().name();
     }
     return m_relationship.parent().name();
+}
+
+bool link_facade_t::is_value_linked() const
+{
+    return (!m_relationship.parent_field_positions().is_null())
+        && m_relationship.parent_field_positions().size() > 0;
 }
 
 bool link_facade_t::is_single_cardinality() const
