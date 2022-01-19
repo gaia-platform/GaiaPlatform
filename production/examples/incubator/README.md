@@ -1,6 +1,8 @@
 # Incubator Demo
 A demo of a rule-based system for controlling the temperature of two incubators.
 
+For additional information about the Incubator Demo, see [Gaia incubator example](https://gaia-platform.github.io/gaia-platform-docs.io/articles/tutorials/gaia-incubator-example.html) in the Gaia developer documentation.
+
 ## Build Instructions
 These instructions assume you have installed the SDK and have installed the *clang* and *cmake* tools.  See the SDK User's Guide for instructions on how to do this.
 
