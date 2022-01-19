@@ -236,6 +236,7 @@ function(process_schema_internal)
     COMMAND ${GAIAC_COMMAND} ${GAIAC_ARGS}
     DEPENDS ${ARG_DDL_FILE}
     DEPENDS gaiac
+    DEPENDS gaia_db_server_exec
   )
 
   if(NOT DEFINED ARG_LIB_NAME)
