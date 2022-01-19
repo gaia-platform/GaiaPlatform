@@ -32,6 +32,7 @@ jobs:
 
       - name: Pull Latest Dev-Core Image
         run: |
+          echo "Setting up SSH socket for Docker."
           if [ -z "$SSH_AUTH_SOCK" ] ; then
              ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           fi
