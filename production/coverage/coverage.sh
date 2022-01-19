@@ -17,7 +17,7 @@ start_process() {
     fi
     DID_PUSHD=1
 
-    if ! cd $SCRIPTPATH >"$TEMP_FILE" 2>&1; then
+    if ! cd "$SCRIPTPATH" >"$TEMP_FILE" 2>&1; then
         cat "$TEMP_FILE"
         complete_process 1 "Script cannot change to coverage directory before proceeding."
     fi
