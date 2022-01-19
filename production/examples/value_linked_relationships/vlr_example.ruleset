@@ -10,16 +10,15 @@
 
 ruleset vlr_rules
 {
-    on_update(P:person.floor_num)
+    on_update(floor_num)
     {
-        gaia_log::app().info("{} has arrived at: {}", P.name, P->floor.department);
+        gaia_log::app().info("{} has arrived at: {}", name, person->floor.department);
         
-        for (P->floor->Other:person)
+        auto me = name;
+        
+        if (0 != strcmp(me, person->floor->person.name))
         {
-            if (P.name != Other.name)
-            {
-                gaia_log::app().info("{} says: Hi, {}!", Other.name, P.name);
-            }
+            gaia_log::app().info("{} says: Hi, {}!", name, me);
         }
         gaia_log::app().info("---");
     }
