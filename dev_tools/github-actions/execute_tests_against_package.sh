@@ -194,4 +194,3 @@ fi
 ## PER JOB CONFIGURATION ##
 
 complete_process 0
-

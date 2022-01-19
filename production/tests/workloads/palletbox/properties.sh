@@ -136,4 +136,3 @@ execute_commands() {
         complete_process 1 "Command '${PARAMS[0]}' not known."
     fi
 }
-
