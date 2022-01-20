@@ -31,7 +31,7 @@ enum class cardinality_t
  * will allocate reference slots (in the object header before the data payload)
  * for each relationship the object is in.
  *
- * The objects in a relationship form a strucutre from the references that
+ * The objects in a relationship form a structure from the references that
  * connect them. The connected data structures are called reference containers
  * which look like the following graph.
  *

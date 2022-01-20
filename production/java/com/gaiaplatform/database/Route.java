@@ -96,4 +96,3 @@ public final class Route extends Table {
     public Route get(Route obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
   }
 }
-

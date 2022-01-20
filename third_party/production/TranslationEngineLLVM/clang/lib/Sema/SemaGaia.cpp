@@ -321,7 +321,7 @@ std::string Sema::ParseExplicitPath(StringRef pathString, SourceLocation loc, St
 
             if (!previousTable.empty())
             {
-                const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+                const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::getCatalogTableData();
                 const auto& relatedTablesIterator = catalogData.find(previousTable);
 
                 if (relatedTablesIterator == catalogData.end() || relatedTablesIterator->second.linkData.empty())
@@ -382,7 +382,7 @@ std::string Sema::ParseExplicitPath(StringRef pathString, SourceLocation loc, St
 llvm::StringMap<llvm::StringMap<QualType>> Sema::getTableData()
 {
     llvm::StringMap<llvm::StringMap<QualType>> result;
-    const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+    const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::getCatalogTableData();
 
     for (const auto& catalogDataItem : catalogData)
     {
@@ -400,7 +400,7 @@ llvm::StringMap<llvm::StringMap<QualType>> Sema::getTableData()
 llvm::StringSet<> Sema::getCatalogTableList()
 {
     llvm::StringSet<> result;
-    const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+    const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::getCatalogTableData();
 
     for (const auto& catalogDataItem : catalogData)
     {
@@ -835,7 +835,7 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
         addField(&Context.Idents.get(fieldName), fieldType, RD, loc);
     }
 
-    const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+    const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::getCatalogTableData();
     const auto& links = catalogData.find(typeName)->second.linkData;
 
     // For every relationship target table we count how many links
@@ -1314,7 +1314,7 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
             bool isAnchorFound = false;
 
             // Check if first component is a field. It should be the only component in the path.
-            const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+            const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::getCatalogTableData();
             StringRef firstComponentTable = firstComponent;
             if (catalogData.find(firstComponentTable) == catalogData.end())
             {
@@ -1360,7 +1360,7 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
                             source_table = tagIterator->second;
                         }
                         // Find topographically shortest path between anchor table and destination table.
-                        if (gaia::catalog::GaiaCatalog::findNavigationPath(source_table, firstComponentTable, path, false))
+                        if (gaia::catalog::findNavigationPath(source_table, firstComponentTable, path, false))
                         {
                             if (path.size() < pathLength)
                             {

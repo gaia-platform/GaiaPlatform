@@ -18,9 +18,9 @@ class gaia_ptr_t;
 
 /*
  * This namespace provides 'gaia_ptr_t' operations that include higher level
- * functionalities like referential integrity check and value linked
- * relationship auto connection. The low-level 'gaia_ptr_t' API excludes all
- * usage of catalog and type metadata.
+ * functionality like referential integrity checks and value-linked relationship
+ * auto-connection. The low-level 'gaia_ptr_t' API excludes all usage of catalog
+ * and type metadata.
  */
 namespace gaia_ptr
 {
@@ -36,7 +36,7 @@ gaia_ptr_t create(
     size_t data_size,
     const void* data);
 
-void remove(gaia_ptr_t& object);
+void remove(gaia_ptr_t& object, bool force = false);
 
 void update_payload(common::gaia_id_t id, size_t data_size, const void* data);
 void update_payload(gaia_ptr_t& obj, size_t data_size, const void* data);

@@ -9,7 +9,7 @@ This is the introductory example for Gaia Platform.
 ## Build Instructions
 These instructions assume that you have installed the Gaia SDK, *Clang*, and *CMake*. For information on installing the SDK and tools, see the Gaia SDK [README.md](../../sdk/README.md).
 
-1. To preserve the initial state of the sample code, copy the source files to a new directory: 
+1. To preserve the initial state of the sample code, copy the source files to a new directory:
 
     ```bash
     mkdir hello_sample
