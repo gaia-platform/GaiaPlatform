@@ -8,4 +8,3 @@ class GenGitRun(GenAbcRun):
     def build(self) -> GenAbcBuild:
         from .build import GenGitBuild
         return GenGitBuild(self.options)
-

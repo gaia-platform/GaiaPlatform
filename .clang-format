@@ -35,7 +35,7 @@ PointerAlignment: Left
 AccessModifierOffset: -4
 
 # From clang-format-11 there are more fine grained options for this setting.
-AlignOperands: false
+AlignOperands: DontAlign
 BreakBeforeBinaryOperators: All
 BreakBeforeTernaryOperators: true
 
@@ -91,12 +91,9 @@ IncludeCategories:
   - Regex: 'liburing'
     Priority: 10
     SortPriority: 13
-  - Regex: 'postgres'
+  - Regex: 'json\.hpp'
     Priority: 10
     SortPriority: 14
-  - Regex: 'pg_'
-    Priority: 10
-    SortPriority: 15
   # C system headers.
   - Regex: '^<.*\.h>'
     Priority: 1

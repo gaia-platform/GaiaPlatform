@@ -15,9 +15,9 @@ The project can be run in two modes:
 
 # Internal Usage
 
-1. Set `BUILD_PING_PONG_TEST=ON` in Cmake. 
+1. Set `BUILD_PING_PONG_TEST=ON` in Cmake.
 1. Run `gaia_db_server` with persistence. Currently, it has to be run manually.
-1. Build.   
+1. Build.
 1. Run `./ping_pong [num_workers]`. `num_workers` is optional, if not specified the Main runs with 1 worker.
 
 Note: to increase the chance of seeing problems, increase the Main worker threads or the rules engine threads. Note that running the application in Debug, reduces the frequency of problems.

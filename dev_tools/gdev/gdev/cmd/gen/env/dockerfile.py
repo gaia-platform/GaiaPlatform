@@ -24,4 +24,3 @@ class GenEnvDockerfile(GenAbcDockerfile):
         self.log.debug(f'{input_dockerfiles}')
 
         return input_dockerfiles
-

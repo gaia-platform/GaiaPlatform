@@ -3,7 +3,7 @@ This contents of this folder run a sanity check on the SDK debian package built 
 
 The check is done by creating a clean `Ubuntu 20.04` image, installing the SDK, building the samples, and running them.  If any step fails in this process then Teamcity will flag the job as failed.
 
-A TeamCity `SDK` job triggers on successful build of **ProductionGaiaRelase_gdev**. 
+A TeamCity `SDK` job triggers on successful build of **ProductionGaiaRelase_gdev**.
 
 The SDK jobs have an artifact dependency on the `gaia-0.2.1_amd64.deb` file produced by the appropriate build.  This artifact is then copied into the docker image for testing.
 

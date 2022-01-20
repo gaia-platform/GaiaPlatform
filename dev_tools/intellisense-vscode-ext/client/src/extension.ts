@@ -1,5 +1,5 @@
 import { hover_info } from './hover_info';
-import { 
+import {
     ExtensionContext,
     languages,
     Hover,
