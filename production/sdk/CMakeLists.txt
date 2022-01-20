@@ -129,7 +129,7 @@ set(CPACK_DEBHELPER_GENCONTROL ON)
 # Run the debhelpers in verbose mode.
 set(CPACK_DEBHELPER_VERBOSE ON)
 
-if((BUILD_GAIA_RELEASE) AND (NOT BUILD_GAIA_LLVM_TESTS))
+if((BUILD_GAIA_SDK) AND (NOT BUILD_GAIA_LLVM_TESTS))
   # Load the CPackDebHelper module, this will:
   #   - Add "DEB" to the CPACK_GENERATOR variable.
   #   - Parse the files in CPACK_DEBHELPER_INPUT with configure_file().

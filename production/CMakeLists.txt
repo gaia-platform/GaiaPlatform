@@ -25,7 +25,7 @@ option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
 
 option(ENABLE_STACKTRACE "Enable stack traces" ON)
 
-option(BUILD_GAIA_RELEASE "Build Gaia Release packages and binaries" OFF)
+option(BUILD_GAIA_SDK "Build Gaia Release packages and binaries" OFF)
 
 option(ENABLE_SDK_TESTS "Build and execute ruleset translation tests" ON)
 
@@ -103,7 +103,7 @@ target_compile_definitions(gaia_build_options INTERFACE $<$<BOOL:${DISABLE_ASSER
 target_compile_options(gaia_build_options INTERFACE $<$<BOOL:${DISABLE_ASSERTS}>:-Wno-unused-parameter -Wno-unused-lambda-capture -Wno-unused-variable -Wno-unused-but-set-variable>)
 
 # LLVM and CLANG specific options.
-if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
+if(BUILD_GAIA_SDK OR BUILD_GAIA_LLVM_TESTS)
   set(LLVM_ENABLE_WARNINGS OFF CACHE BOOL "")
   set(CLANG_BUILD_TOOLS OFF CACHE BOOL "")
   set(LLVM_BUILD_TOOLS OFF CACHE BOOL "")
@@ -367,7 +367,7 @@ add_subdirectory(schemas)
 # Tools.
 add_subdirectory(tools)
 
-if(BUILD_GAIA_RELEASE)
+if(BUILD_GAIA_SDK)
   unset(CMAKE_CXX_CLANG_TIDY)
   add_subdirectory("${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm" llvm EXCLUDE_FROM_ALL)
   if(ENABLE_CLANG_TIDY)
