@@ -2,15 +2,15 @@
 name: Main
 
 on:
+  push:
+    branches:
+      - master
   pull_request:
     branches:
       - master
     types:
       - opened
       - reopened
-  push:
-    branches:
-      - master
 env:
   GAIA_VERSION: 0.3.3
   SSH_AUTH_SOCK: /tmp/ssh_agent.sock
