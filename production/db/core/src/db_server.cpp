@@ -288,7 +288,6 @@ void server_t::recover_persistent_log()
 
                 // Get last processed log.
                 auto last_processed_log_seq = s_persistent_store->get_value(gaia::db::persistence::persistent_store_manager::c_last_processed_log_num_key);
-                std::cout << "RECOVERED LOG SEQ = " << last_processed_log_seq << std::endl;
 
                 // Recover only the first time this method gets called.
                 gaia_txn_id_t last_checkpointed_commit_ts = 0;
@@ -1097,7 +1096,6 @@ void server_t::checkpoint_handler()
 
         // Process all existing log files.
         uint64_t last_processed_log_seq = 0;
-        std::cout << "CHECKPOINT BEGIN" << std::endl;
         s_log_handler->recover_from_persistent_log(
             s_last_checkpointed_commit_ts_lower_bound,
             last_processed_log_seq,
@@ -1109,13 +1107,9 @@ void server_t::checkpoint_handler()
         // Flush persistent store buffer to disk.
         s_persistent_store->flush();
 
-        std::cout << "CHECKPOINT DONE" << std::endl;
-
         ASSERT_INVARIANT(max_log_seq_to_checkpoint > last_deleted_log_seq, "Log files cannot be deleted out of order");
         s_log_handler->destroy_persistent_log(last_processed_log_seq);
         last_deleted_log_seq = max_log_seq_to_checkpoint;
-
-        std::cout << "LOG with sequence number destroyed = " << last_processed_log_seq << std::endl;
     }
 }
 

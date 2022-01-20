@@ -134,7 +134,7 @@ private:
     // This index is maintained on a per log file basis. Before moving to the next file
     // we assert that this index is empty as all txns have been processed.
     // Note that the recovery implementation proceeds in increasing log file order.
-    std::map<gaia_txn_id_t, uint8_t*> txn_index;
+    std::map<gaia_txn_id_t, unsigned char*> txn_index;
 
     // This map contains the current set of txns that are being processed (by either recovery or checkpointing)
     // Txns are processed one decision record at a time; a single decision record may contain
@@ -151,7 +151,7 @@ private:
     size_t validate_recovered_record_crc(struct record_iterator_t* it);
     void map_log_file(struct record_iterator_t* it, int file_fd, recovery_mode_t recovery_mode);
     void unmap_file(void* start, size_t size);
-    bool is_remaining_file_empty(uint8_t* start, uint8_t* end);
+    bool is_remaining_file_empty(unsigned char* start, unsigned char* end);
     void write_log_record_to_persistent_store(read_record_t* record);
     void write_records(record_iterator_t* it, gaia_txn_id_t& last_checkpointed_commit_ts);
     bool write_log_file_to_persistent_store(gaia_txn_id_t& last_checkpointed_commit_ts, record_iterator_t& it);

@@ -208,9 +208,6 @@ void persistent_store_manager::recover()
     m_rdb_wrapper->handle_rdb_error(it->status());
     m_counters->last_id = max_id;
     m_counters->last_type_id = max_type_id;
-
-    // We don't persist txn id across restarts.
-    m_counters->last_txn_id = c_invalid_gaia_txn_id;
 }
 
 void persistent_store_manager::destroy_persistent_store()

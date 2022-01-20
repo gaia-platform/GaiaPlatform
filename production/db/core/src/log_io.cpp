@@ -363,18 +363,14 @@ void log_handler_t::recover_from_persistent_log(
     // 'last_checkpointed_commit_ts' and will reset this field to zero.
     // We don't persist txn ids across restarts.
     m_max_decided_commit_ts = last_checkpointed_commit_ts;
-    std::cout << "Recovering from persistent log." << std::endl;
     // Scan all files and read log records starting from the highest numbered file.
     std::vector<uint64_t> log_files;
     for (const auto& file : std::filesystem::directory_iterator(s_wal_dir_path))
     {
         ASSERT_INVARIANT(file.is_regular_file(), "Only expecting files in persistent log directory.");
         // The file name is just the log sequence number.
-        std::cout << std::stoi(file.path().filename()) << std::endl;
         log_files.push_back(std::stoi(file.path().filename()));
     }
-
-    std::cout << "TOTAL LOG FILES = " << log_files.size();
 
     // Sort files in ascending order by file name.
     sort(log_files.begin(), log_files.end());
@@ -407,7 +403,6 @@ void log_handler_t::recover_from_persistent_log(
         // Ignore already processed files.
         if (file_seq <= last_processed_log_seq)
         {
-            std::cout << "Skipping sequence = " << file_seq << std::endl;
             continue;
         }
 
@@ -495,18 +490,6 @@ bool log_handler_t::write_log_file_to_persistent_store(gaia_txn_id_t& last_check
 
 void log_handler_t::write_log_record_to_persistent_store(read_record_t* record)
 {
-    if (record->header.record_type != record_type_t::txn)
-    {
-        if (record->header.record_type == record_type_t::decision)
-        {
-            std::cout << "RECORD TYPE WHEN WRITING TO PERSISTENT STORE = DEC" << std::endl;
-        }
-        else
-        {
-            std::cout << "RECORD TYPE WHEN WRITING TO PERSISTENT STORE = NOT SET" << std::endl;
-        }
-    }
-
     ASSERT_PRECONDITION(record->header.record_type == record_type_t::txn, "Expected transaction record.");
 
     auto payload_ptr = reinterpret_cast<unsigned char*>(record->payload);
@@ -514,7 +497,6 @@ void log_handler_t::write_log_record_to_persistent_store(read_record_t* record)
     auto end_ptr = reinterpret_cast<unsigned char*>(record) + record->header.payload_size;
     auto deleted_ids_ptr = end_ptr - (sizeof(common::gaia_id_t) * record->header.deleted_object_count);
 
-    std::cout << "======= WRITING RECORD WITH TS ======= " << record->header.txn_commit_ts << " AND SIZE = " << record->header.payload_size << std::endl;
     while (payload_ptr < deleted_ids_ptr)
     {
         auto obj_ptr = reinterpret_cast<db_recovered_object_t*>(payload_ptr);
@@ -528,10 +510,6 @@ void log_handler_t::write_log_record_to_persistent_store(read_record_t* record)
 
         size_t allocation_size = memory_manager::calculate_allocation_size_in_slots(requested_size) * c_slot_size_in_bytes;
 
-        std::cout << "object size " << obj_ptr->payload_size << std::endl;
-        std::cout << "RECORD OFFSET IN CHUNK = " << payload_ptr - start_ptr << " AND ALLOC SIZE = " << allocation_size << " AND PAYLOAD SIZE = " << requested_size << std::endl;
-
-        // ASSERT_INVARIANT(payload_ptr + allocation_size < deleted_ids_ptr, "Object size cannot overflow outside txn record.");
         payload_ptr += allocation_size;
     }
 
@@ -590,7 +568,6 @@ void log_handler_t::write_records(record_iterator_t* it, gaia_txn_id_t& last_che
             // Iterare decisions.
             for (auto decision_it = decision_index.cbegin(); decision_it != decision_index.cend();)
             {
-                std::cout << "COMMIT TS FOR DEC IS = " << decision_it->first << std::endl;
                 ASSERT_INVARIANT(txn_index.count(decision_it->first) > 0, "Transaction record should be written before the decision record.");
 
                 auto txn_it = txn_index.find(decision_it->first);
@@ -606,7 +583,6 @@ void log_handler_t::write_records(record_iterator_t* it, gaia_txn_id_t& last_che
 
                 // Update 'last_checkpointed_commit_ts' in memory so it can later be written to persistent store.
                 last_checkpointed_commit_ts = std::max(last_checkpointed_commit_ts, decision_it->first);
-                std::cout << "Erasing decision = " << decision_it->first << std::endl;
                 txn_it = txn_index.erase(txn_it);
                 decision_it = decision_index.erase(decision_it);
             }
@@ -648,18 +624,9 @@ size_t log_handler_t::update_cursor(struct record_iterator_t* it)
 size_t log_handler_t::validate_recovered_record_crc(struct record_iterator_t* it)
 {
     auto destination = reinterpret_cast<read_record_t*>(it->cursor);
-    std::cout << "RECOVERY: CURSOR = " << it->cursor - it->begin << std::endl;
 
-    if (destination->header.payload_size == 0)
-    {
-        std::cout << "CRC = " << destination->header.crc << std::endl;
-        std::cout << "PAYLOAD SIZE = " << destination->header.payload_size << std::endl;
-        std::cout << "COMMIT TS = " << destination->header.txn_commit_ts << std::endl;
-        std::cout << "halt here " << std::endl;
-    }
     if (destination->header.crc == 0)
     {
-        std::cout << "halt here 2" << std::endl;
         if (is_remaining_file_empty(it->cursor, it->end))
         {
             // Stop processing the current log file.
@@ -667,7 +634,6 @@ size_t log_handler_t::validate_recovered_record_crc(struct record_iterator_t* it
             return 0;
         }
 
-        std::cout << "HEADER CRC zero." << std::endl;
         if (it->recovery_mode == recovery_mode_t::checkpoint)
         {
             throw std::runtime_error("Log record has empty checksum value!");
@@ -700,7 +666,6 @@ size_t log_handler_t::validate_recovered_record_crc(struct record_iterator_t* it
 
     if (crc != expected_crc)
     {
-        std::cout << "CRC mismatch." << std::endl;
         if (it->recovery_mode == recovery_mode_t::checkpoint)
         {
             throw std::runtime_error("Record checksum match failed!");

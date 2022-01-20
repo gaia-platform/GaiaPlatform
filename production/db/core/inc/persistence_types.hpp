@@ -38,6 +38,9 @@ enum class recovery_mode_t : uint8_t
     // first before marking any txn in the batch as durable (and returning a commit decision to the user);
     // Thus ignore any txn after the last seen decision timestamp before encountering IO error.
     finish_on_first_error = 0x2,
+
+    // TODO: Already supported by 'checkpoint' option, but make this option visible to customer along with 'finish_on_first_error'
+    kill_on_first_error = 0x3,
 };
 
 enum class record_type_t : uint8_t
