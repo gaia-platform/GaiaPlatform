@@ -13,9 +13,9 @@ ruleset vlr_rules
     on_update(floor_num)
     {
         gaia_log::app().info("{} has arrived at: {}", name, person->floor.department);
-        
+
         auto me = name;
-        
+
         if (0 != strcmp(me, person->floor->person.name))
         {
             gaia_log::app().info("{} says: Hi, {}!", name, me);
