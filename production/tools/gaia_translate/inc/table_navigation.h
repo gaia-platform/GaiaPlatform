@@ -9,8 +9,8 @@
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringSet.h"
+#include <llvm/ADT/SmallString.h>
+#include <llvm/ADT/StringSet.h>
 #include <clang/Catalog/GaiaCatalog.h>
 #pragma clang diagnostic pop
 
