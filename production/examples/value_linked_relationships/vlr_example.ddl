@@ -17,6 +17,8 @@ table floor (
 table person (
     name string,
     floor_num int32,
+    -- Create a 1-to-N Value-Linked Relationship between a floor (1) and a person (N)
+    -- that matches floor numbers.
     floor references floor
         where person.floor_num = floor.num
 )

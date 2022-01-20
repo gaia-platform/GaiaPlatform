@@ -18,7 +18,11 @@
 using namespace gaia::vlr_example;
 using gaia::direct_access::auto_transaction_t;
 
-void reset_database_to_clean_slate()
+/**
+ * Deletes all records from all tables.
+ * We want to start this app with a consistent blank slate every time.
+ */
+void delete_all_records_from_tables()
 {
     auto_transaction_t txn{auto_transaction_t::no_auto_begin};
 
@@ -33,16 +37,23 @@ void reset_database_to_clean_slate()
     txn.commit();
 }
 
+/**
+ * An example of using Value-Linked Relationships when updating fields in
+ * a record, which automatically reconnects it to related records.
+ * It starts by inserting all the necessary records.
+ */
 void vlr_example_usage()
 {
     auto_transaction_t txn{};
+
     // Floors inserted with their numbers and department names.
     floor_t::insert_row(0, "Lobby");
     floor_t::insert_row(1, "Sales");
     floor_t::insert_row(2, "Engineering");
     floor_t::insert_row(3, "Admin");
+
     // Insert people at certain floors. Bill starts at floor 0: the lobby.
-    person_t bill = person_t::get(person_t::insert_row("Bill", 0));
+    person_t person = person_t::get(person_t::insert_row("Bill", 0));
     person_t::insert_row("Todd", 1);
     person_t::insert_row("Jane", 1);
     person_t::insert_row("John", 2);
@@ -51,30 +62,31 @@ void vlr_example_usage()
     person_t::insert_row("Dave", 3);
     txn.commit();
 
-    // We need a writer to change Bill's field values.
-    person_writer bill_w = bill.writer();
+    // We need a writer to change a person's field values.
+    person_writer person_w = person.writer();
 
-    // Move Bill up a floor three times.
+    // Move the person up a floor three times.
     for (int i = 0; i < 3; ++i)
     {
         // Changing his floor is as easy as incrementing floor_num.
-        // With VLRs, this automatically reconnects Bill to the correct floor.
-        bill_w.floor_num++;
-        bill_w.update_row();
+        // With VLRs, this automatically reconnects the person to the next floor.
+        person_w.floor_num++;
+        person_w.update_row();
         txn.commit();
     }
 
-    // Move him back down to the lobby.
-    bill_w.floor_num = 0;
-    bill_w.update_row();
+    // Move them back down to the lobby.
+    person_w.floor_num = 0;
+    person_w.update_row();
     txn.commit();
 }
 
 int main()
 {
     gaia::system::initialize();
-    reset_database_to_clean_slate();
+    delete_all_records_from_tables();
 
     vlr_example_usage();
+
     gaia::system::shutdown();
 }
