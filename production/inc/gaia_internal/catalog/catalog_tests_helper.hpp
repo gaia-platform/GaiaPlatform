@@ -24,6 +24,10 @@ using gaia::catalog::ddl::field_def_list_t;
 class table_builder_t
 {
 public:
+    static constexpr bool c_optional = true;
+    static constexpr bool c_non_optional = false;
+
+public:
     static table_builder_t new_table(const std::string& table_name)
     {
         auto builder = table_builder_t();

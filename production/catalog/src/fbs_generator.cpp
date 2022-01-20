@@ -42,38 +42,27 @@ static string generate_fbs_namespace(const string& db_name)
     }
 }
 
-static string generate_fbs_field(const string& name, const string& type, int repeated_count, bool optional)
+static string generate_fbs_field(const string& name, const string& type, int count)
 {
-    std::stringstream ss;
-    ss << name;
-
-    if (repeated_count == 1)
+    if (count == 1)
     {
-        ss << ":" + type;
+        return name + ":" + type;
     }
-    else if (repeated_count == 0)
+    else if (count == 0)
     {
-        ss << ":[" + type + "]";
+        return name + ":[" + type + "]";
     }
     else
     {
-        ss << ":[" + type + ":" + to_string(repeated_count) + "]";
+        return name + ":[" + type + ":" + to_string(count) + "]";
     }
-
-    // TODO this will fail for non-scalar values, and for now it's acceptable.
-    if (optional)
-    {
-        ss << "=null";
-    }
-
-    return ss.str();
 }
 
 static string generate_fbs_field(const gaia_field_t& field)
 {
     string name{field.name()};
     string type{get_data_type_name(static_cast<data_type_t>(field.type()))};
-    return generate_fbs_field(name, type, field.repeated_count(), field.optional());
+    return generate_fbs_field(name, type, field.repeated_count());
 }
 
 string get_data_type_name(data_type_t data_type)
@@ -167,7 +156,7 @@ string generate_fbs(const string& db_name, const string& table_name, const ddl::
         }
         const ddl::data_field_def_t* data_field = dynamic_cast<ddl::data_field_def_t*>(field.get());
         string field_fbs = generate_fbs_field(
-            data_field->name, get_data_type_name(data_field->data_type), data_field->length, data_field->optional);
+            data_field->name, get_data_type_name(data_field->data_type), data_field->length);
         fbs += field_fbs + ";";
     }
     fbs += "}";

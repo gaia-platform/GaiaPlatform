@@ -15,9 +15,9 @@
 #include "gaia/direct_access/auto_transaction.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
+#include "gaia_internal/catalog/catalog_tests_helper.hpp"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
-#include "catalog_tests_helper.hpp"
 #include "gaia_addr_book.h"
 
 using namespace std;

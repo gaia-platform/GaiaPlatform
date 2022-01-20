@@ -285,3 +285,9 @@ add_gtest(test_catalog_core
   tests/test_catalog_core.cpp
   "${FLATBUFFERS_INC};${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_INC}"
   "gaia_common;gaia_db_client;gaia_catalog")
+
+
+add_gtest(test_optional_scalars
+  "tests/test_optional_scalars.cpp"
+  "${GAIA_DB_CORE_TEST_INCLUDES};"
+  "rt;gaia_system;gaia_db_catalog_test")

@@ -910,7 +910,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
 
     string fbs{generate_fbs(in_context(db_name), table_name, fields)};
     const std::vector<uint8_t> bfbs = generate_bfbs(fbs);
-    const std::vector<uint8_t> bin;
+    const std::vector<uint8_t> bin = generate_bin(fbs, generate_json(fields));
 
     gaia_type_t table_type
         = (fixed_type == c_invalid_gaia_type)

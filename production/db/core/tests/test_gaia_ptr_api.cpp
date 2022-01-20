@@ -11,7 +11,6 @@
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/db/db_test_base.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
-#include "gaia_internal/db/type_metadata.hpp"
 
 #include "db_test_util.hpp"
 
