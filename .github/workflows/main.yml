@@ -113,7 +113,7 @@ jobs:
     needs:
       - Lint
       - Third-Party
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -127,7 +127,10 @@ jobs:
 
       - name: Pull Latest Dev-Core Image
         run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          if [[ ! "${{ runner.name }}" =~ ^builder.* ]] ; then
+            echo "Setting up SSH socket for Docker."
+            ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          fi
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker pull $DEV_IMAGE
 

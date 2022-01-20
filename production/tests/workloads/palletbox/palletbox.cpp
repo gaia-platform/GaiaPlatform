@@ -3,8 +3,9 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia_palletbox.h"
 #include "json.hpp"
+
+#include "gaia_palletbox.h"
 #include "palletbox_constants.hpp"
 #include "simulation.hpp"
 

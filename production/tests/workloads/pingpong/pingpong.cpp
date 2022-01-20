@@ -3,8 +3,9 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia_pingpong.h"
 #include "json.hpp"
+
+#include "gaia_pingpong.h"
 #include "simulation.hpp"
 
 using namespace std;
