@@ -22,10 +22,10 @@ jobs:
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
-      - id: skip_check
-        uses: fkirc/skip-duplicate-actions@master
-        with:
-          concurrent_skipping: 'same_content'
+# - id: skip_check
+#   uses: fkirc/skip-duplicate-actions@master
+#   with:
+#     concurrent_skipping: 'same_content'
       - name: Checkout Repository
         uses: actions/checkout@master
 
@@ -36,8 +36,10 @@ jobs:
 
       - name: Pull Latest Dev-Core Image
         run: |
-          echo "Setting up SSH socket for Docker."
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          if [[ ! "${{ runner.name }}" =~ ^builder.* ]] ; then
+            echo "Setting up SSH socket for Docker."
+            ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          fi
           echo "Logging in to Docker as submitter of action."
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           echo "Pulling $DEV_IMAGE from GitHub's Docker repository."
