@@ -63,7 +63,7 @@ TEST_F(gaia_db_extract_test, extract_catalog)
         {
             for (const auto& json_tables : json_databases["tables"])
             {
-                for (auto& json_fields : json_tables["fields"])
+                for (const auto& json_fields : json_tables["fields"])
                 {
                     if (!json_fields["name"].get<string>().compare("larger_value"))
                     {
