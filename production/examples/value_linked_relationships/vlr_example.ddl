@@ -8,17 +8,20 @@
 
 database vlr_example
 
-table floor (
+-- Levels in a multi-story building.
+table level (
     num int32 unique,
     department string,
+    -- Since a Value-Linked Relationship will be made from people to a level,
+    -- we also need a reference back from a level to people.
     people references person[]
 )
 
 table person (
     name string,
-    floor_num int32,
-    -- Create a 1-to-N Value-Linked Relationship between a floor (1) and a person (N)
-    -- that matches floor numbers.
-    floor references floor
-        where person.floor_num = floor.num
+    level_num int32,
+    -- Create a 1-to-N VLR between a level (1) and a person (N)
+    -- that matches level numbers.
+    current_level references level
+        where person.level_num = level.num
 )
