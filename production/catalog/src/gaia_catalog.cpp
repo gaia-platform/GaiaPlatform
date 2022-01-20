@@ -295,7 +295,7 @@ const char* gaia_field_t::gaia_typename()
 gaia::common::gaia_id_t gaia_field_t::insert_row(const char* name, uint8_t type, uint16_t repeated_count, uint16_t position, bool deprecated, bool active, bool unique, bool optional)
 {
     flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-    b.Finish(internal::Creategaia_fieldDirect(b, name, type, repeated_count, position, deprecated, active, unique, optional));
+    b.Finish(internal::Creategaia_fieldDirect(b, name, type, repeated_count, position, deprecated, active, unique));
     return dac_object_t::insert_row(b);
 }
 
@@ -337,11 +337,6 @@ bool gaia_field_t::active() const
 bool gaia_field_t::unique() const
 {
     return GET(unique);
-}
-
-bool gaia_field_t::optional() const
-{
-    return GET(optional);
 }
 
 gaia_table_t gaia_field_t::table() const
