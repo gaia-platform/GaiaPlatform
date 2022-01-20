@@ -1,7 +1,11 @@
 # Incubator Demo
+
 A demo of a rule-based system for controlling the temperature of two incubators.
 
+For additional information about the Incubator Demo, see [Gaia incubator example](https://gaia-platform.github.io/gaia-platform-docs.io/articles/tutorials/gaia-incubator-example.html) in the Gaia developer documentation.
+
 ## Build Instructions
+
 These instructions assume you have installed the SDK and have installed the *clang* and *cmake* tools.  See the SDK User's Guide for instructions on how to do this.
 
 1. To preserve the initial state of the sample code, copy the source files to a new directory.
@@ -117,14 +121,18 @@ Happy Incubating!
 The following are some common errors that can occur when you try to run the demo.
 
 ## No output when using /show
+
 ### Problem
+
 Running `incubator /show` before running `incubator /sim` for the first time results in no output.  This just means that there is no data loaded into the database for the incubator, sensor, and actuator tables.
 ```
 $ ./incubator show
 
 $
 ```
+
 ### Solution
+
 Run `incubator /sim` at least once to load the simulation in the database.
 ```
 $ ./incubator sim
@@ -147,22 +155,29 @@ development or presentation of this demo.
 main> q
 Exiting...
 ```
+
 ## Connection refuesd
+
 ### Problem
+
 The database has not been started yet.
 ```
 terminate called after throwing an instance of 'gaia::common::system_error'
   what():  connect failed - Connection refused
 Aborted
 ```
+
 ### Solution
+
 To start the database, restart the gaia service.  For example:
 ```
 systemctl restart gaia
 ```
 
 ## Table (type : N) was not found in the catalog
+
 ### Problem
+
 The catalog does not have the incubator schema loaded and therefore couldn't find the incubator types.
 ```
 terminate called after throwing an instance of 'gaia::rules::invalid_subscription'
@@ -170,6 +185,7 @@ terminate called after throwing an instance of 'gaia::rules::invalid_subscriptio
 Aborted
 ```
 ### Solution
+
 Do a clean build of your project to load the incubator schema into the database catalog and re-generate headers based on this schema.
 ```
 make clean
