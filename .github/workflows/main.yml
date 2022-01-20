@@ -130,13 +130,20 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: Pull Latest Dev-Core Image
-        run: |
-          if [[ ! "${{ runner.name }}" =~ ^builder.* ]] ; then
+      - name: Prepare Docker
+        run : |
+          if [[ "${{ runner.name }}" =~ ^builder.* ]] ; then
+            docker system prune --force
+          else
             echo "Setting up SSH socket for Docker."
             ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           fi
+          echo "Logging in to Docker as submitter of action."
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Pull Latest Dev-Core Image
+        run: |
+          echo "Pulling $DEV_IMAGE from GitHub's Docker repository."
           docker pull $DEV_IMAGE
 
       - name: Build Docker Image
@@ -164,7 +171,7 @@ jobs:
     needs:
       - Lint
       - Third-Party
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -176,10 +183,20 @@ jobs:
         with:
           python-version: 3.8
 
+      - name: Prepare Docker
+        run : |
+          if [[ "${{ runner.name }}" =~ ^builder.* ]] ; then
+            docker system prune --force
+          else
+            echo "Setting up SSH socket for Docker."
+            ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          fi
+          echo "Logging in to Docker as submitter of action."
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
       - name: Pull Latest Dev-Core Image
         run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          echo "Pulling $DEV_IMAGE from GitHub's Docker repository."
           docker pull $DEV_IMAGE
 
       - name: Build Docker Image
@@ -220,7 +237,7 @@ jobs:
 
   Debug_Core:
     needs: Core
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -232,10 +249,20 @@ jobs:
         with:
           python-version: 3.8
 
+      - name: Prepare Docker
+        run : |
+          if [[ "${{ runner.name }}" =~ ^builder.* ]] ; then
+            docker system prune --force
+          else
+            echo "Setting up SSH socket for Docker."
+            ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          fi
+          echo "Logging in to Docker as submitter of action."
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
       - name: Pull Latest Dev-Core Image
         run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          echo "Pulling $DEV_IMAGE from GitHub's Docker repository."
           docker pull $DEV_IMAGE
 
       - name: Build Docker Image
@@ -263,7 +290,7 @@ jobs:
   LLVM_Tests:
     needs: Core
     if: ${{ false }}
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -275,10 +302,20 @@ jobs:
         with:
           python-version: 3.8
 
+      - name: Prepare Docker
+        run : |
+          if [[ "${{ runner.name }}" =~ ^builder.* ]] ; then
+            docker system prune --force
+          else
+            echo "Setting up SSH socket for Docker."
+            ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          fi
+          echo "Logging in to Docker as submitter of action."
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
       - name: Pull Latest Dev-Core Image
         run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          echo "Pulling $DEV_IMAGE from GitHub's Docker repository."
           docker pull $DEV_IMAGE
 
       - name: Build Docker Image
