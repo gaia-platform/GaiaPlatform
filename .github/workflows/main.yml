@@ -2,13 +2,7 @@
 name: Main
 
 on:
-  push:
-    branches:
-      - master
   pull_request:
-    branches:
-      - master
-  pull_request_target:
     branches:
       - master
 env:
@@ -33,18 +27,22 @@ jobs:
       - name: Pull Latest Dev-Core Image
         run: |
           echo "Setting up SSH socket for Docker."
-          if [ -z "$SSH_AUTH_SOCK" ] ; then
-             ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          fi
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          echo "Logging in to Docker as submitter of action."
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          echo "Pulling $DEV_IMAGE from GitHub's Docker repository."
           docker pull $DEV_IMAGE
 
       - name: Build Docker Image
         run: |
+          echo "Installing Python packages required by GDev."
           cd $GAIA_REPO/production
           pip install atools argcomplete
+          echo "Creating Raw Dockerfile. NOTE: If this fails, check `raw_dockerfile` in published artifact."
           $GAIA_REPO/dev_tools/gdev/gdev.sh dockerfile > $GAIA_REPO/production/raw_dockerfile
+          echo "Creating Third-Party dockerfile from `raw_dockerfile`."
           $GAIA_REPO/dev_tools/github-actions/copy_until_line.py --input-file $GAIA_REPO/production/raw_dockerfile --output-file $GAIA_REPO/production/dockerfile --stop-line "# GenRunDockerfile(production)"
+          echo "Building Third-Party dockerfile."
           docker buildx build -f $GAIA_REPO/production/dockerfile -t $DEV_IMAGE --cache-from $DEV_IMAGE --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
 
       - name: Upload Intermediate Files
