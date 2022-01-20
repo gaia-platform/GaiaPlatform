@@ -8,9 +8,9 @@ on:
   pull_request:
     branches:
       - master
-    types:
-      - opened
-      - reopened
+# types:
+#   - opened
+#   - reopened
 env:
   GAIA_VERSION: 0.3.3
   SSH_AUTH_SOCK: /tmp/ssh_agent.sock
