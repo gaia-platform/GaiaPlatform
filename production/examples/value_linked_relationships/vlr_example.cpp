@@ -6,11 +6,6 @@
 // or at https://opensource.org/licenses/MIT.
 /////////////////////////////////////////////
 
-#include <limits>
-
-#include <gaia/db/db.hpp>
-#include <gaia/exceptions.hpp>
-#include <gaia/logger.hpp>
 #include <gaia/system.hpp>
 
 #include "gaia_vlr_example.h"
