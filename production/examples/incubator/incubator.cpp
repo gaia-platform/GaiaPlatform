@@ -117,7 +117,7 @@ void restore_default_values()
 
 void init_storage()
 {
-    auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+    auto_transaction_t tx(auto_transaction_t::no_auto_restart);
 
     // If we already have inserted an incubator then our storage has already been
     // initialized.  Re-initialize the database to default values.
@@ -196,7 +196,7 @@ float calc_new_temp(float curr_temp, float fan_speed)
 
 void set_power(bool is_on)
 {
-    auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+    auto_transaction_t tx(auto_transaction_t::no_auto_restart);
     for (auto i : incubator_t::list())
     {
         auto w = i.writer();
@@ -216,7 +216,7 @@ void simulation()
     {
         std::this_thread::sleep_for(std::chrono::seconds(1));
 
-        auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+        auto_transaction_t tx(auto_transaction_t::no_auto_restart);
 
         float new_temp = 0.0;
         float fan_a = 0.0;
