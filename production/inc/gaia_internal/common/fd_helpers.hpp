@@ -238,5 +238,20 @@ inline int make_nonblocking_eventfd()
     return eventfd;
 }
 
+/**
+ * Create an eventfd without any special flags.
+ */
+inline int make_blocking_eventfd()
+{
+    int eventfd = ::eventfd(0, 0);
+    if (eventfd == -1)
+    {
+        int err = errno;
+        const char* reason = ::explain_eventfd(0, 0);
+        throw system_error(reason, err);
+    }
+    return eventfd;
+}
+
 } // namespace common
 } // namespace gaia
