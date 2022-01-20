@@ -5,6 +5,9 @@ on:
   pull_request:
     branches:
       - master
+    types:
+      - opened
+      - reopened
   push:
     branches:
       - master
@@ -19,6 +22,10 @@ jobs:
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@master
+        with:
+          concurrent_skipping: 'same_content'
       - name: Checkout Repository
         uses: actions/checkout@master
 
