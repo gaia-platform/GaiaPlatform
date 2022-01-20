@@ -25,9 +25,9 @@ void delete_all_records_from_tables()
     {
         person.delete_row();
     }
-    for (auto floor = *floor_t::list().begin(); floor; floor = *floor_t::list().begin())
+    for (auto level = *level_t::list().begin(); level; level = *level_t::list().begin())
     {
-        floor.delete_row();
+        level.delete_row();
     }
     txn.commit();
 }
@@ -41,13 +41,13 @@ void vlr_example_usage()
 {
     auto_transaction_t txn{};
 
-    // Floors inserted with their numbers and department names.
-    floor_t::insert_row(0, "Lobby");
-    floor_t::insert_row(1, "Sales");
-    floor_t::insert_row(2, "Engineering");
-    floor_t::insert_row(3, "Admin");
+    // Levels inserted with their numbers and department names.
+    level_t::insert_row(0, "Lobby");
+    level_t::insert_row(1, "Sales");
+    level_t::insert_row(2, "Engineering");
+    level_t::insert_row(3, "Admin");
 
-    // Insert people at certain floors. Bill starts at floor 0: the lobby.
+    // Insert people at certain levels. Bill starts at level 0: the lobby.
     person_t person = person_t::get(person_t::insert_row("Bill", 0));
     person_t::insert_row("Todd", 1);
     person_t::insert_row("Jane", 1);
@@ -60,18 +60,18 @@ void vlr_example_usage()
     // We need a writer to change a person's field values.
     person_writer person_w = person.writer();
 
-    // Move the person up a floor three times.
+    // Move the person up a level three times.
     for (int i = 0; i < 3; ++i)
     {
-        // Changing his floor is as easy as incrementing floor_num.
-        // With VLRs, this automatically reconnects the person to the next floor.
-        person_w.floor_num++;
+        // Changing their level is as easy as incrementing level_num.
+        // With VLRs, this automatically reconnects the person to the next level.
+        person_w.level_num++;
         person_w.update_row();
         txn.commit();
     }
 
     // Move them back down to the lobby.
-    person_w.floor_num = 0;
+    person_w.level_num = 0;
     person_w.update_row();
     txn.commit();
 }
