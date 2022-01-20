@@ -26,7 +26,7 @@ install(TARGETS gaia DESTINATION ${CMAKE_INSTALL_LIBDIR})
 #
 # Ensure this test only includes public headers and links to the gaia shared library
 # Emulate what an SDK user does as closely as possible minus gaiat functionality for
-# a production only (non-gaia release) build.
+# a production only (non-gaia SDK) build.
 #
 set(SDK_TEST_INCLUDES
   # REVIEW: the first 2 includes shouldn't be necessary because they're exported

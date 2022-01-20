@@ -25,7 +25,7 @@ option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
 
 option(ENABLE_STACKTRACE "Enable stack traces" ON)
 
-option(BUILD_GAIA_SDK "Build Gaia Release packages and binaries" OFF)
+option(BUILD_GAIA_SDK "Build Gaia SDK packages and binaries" OFF)
 
 option(ENABLE_SDK_TESTS "Build and execute ruleset translation tests" ON)
 
