@@ -171,6 +171,7 @@ vector<uint8_t> generate_bin(const string& fbs, const string& json)
     parsing_result = parser.Parse(json.c_str());
     ASSERT_INVARIANT(parsing_result == true, "Invalid FlatBuffers JSON!");
 
+    // Use the std::vector (begin, end) iterator constructor.
     return {
         parser.builder_.GetBufferPointer(),
         parser.builder_.GetBufferPointer() + parser.builder_.GetSize()};

@@ -170,6 +170,8 @@ std::vector<uint8_t> generate_bfbs(const string& fbs)
     bool parsing_result = fbs_parser.Parse(fbs.c_str());
     ASSERT_PRECONDITION(parsing_result == true, "Invalid FlatBuffers schema!");
     fbs_parser.Serialize();
+
+    // Use the std::vector (begin, end) iterator constructor.
     return {
         fbs_parser.builder_.GetBufferPointer(),
         fbs_parser.builder_.GetBufferPointer() + fbs_parser.builder_.GetSize()};
