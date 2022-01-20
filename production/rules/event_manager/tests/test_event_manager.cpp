@@ -104,7 +104,7 @@ public:
     auto_transaction_t& get_dummy_transaction(bool init = false)
     {
         // Create a transaction that won't do anything
-        static auto_transaction_t s_dummy(auto_transaction_t::no_auto_begin);
+        static auto_transaction_t s_dummy(auto_transaction_t::no_auto_restart);
         if (init)
         {
             s_dummy.commit();

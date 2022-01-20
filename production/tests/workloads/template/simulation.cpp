@@ -106,7 +106,7 @@ void simulation_t::handle_test(const string& input)
     }
 
     my_time_point_t start_transaction_start_mark = my_clock_t::now();
-    auto_transaction_t txn(auto_transaction_t::no_auto_begin);
+    auto_transaction_t txn(auto_transaction_t::no_auto_restart);
     my_time_point_t inside_transaction_start_mark = my_clock_t::now();
 
     setup_test_data(limit);
@@ -227,7 +227,7 @@ bool simulation_t::read_input()
 void simulation_t::simulation_step()
 {
     my_time_point_t start_transaction_start_mark = my_clock_t::now();
-    auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+    auto_transaction_t tx(auto_transaction_t::no_auto_restart);
     my_time_point_t inside_transaction_start_mark = my_clock_t::now();
 
     my_duration_in_microseconds_t update_duration = perform_single_step();

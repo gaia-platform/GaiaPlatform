@@ -3,8 +3,9 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia_palletbox.h"
 #include "json.hpp"
+
+#include "gaia_palletbox.h"
 #include "palletbox_constants.hpp"
 #include "simulation.hpp"
 
@@ -88,7 +89,7 @@ public:
 
     void init_storage() override
     {
-        auto_transaction_t txn(auto_transaction_t::no_auto_begin);
+        auto_transaction_t txn(auto_transaction_t::no_auto_restart);
 
         // If we already have inserted a table then our storage has already been
         // initialized.  Re-initialize the database to default values.
