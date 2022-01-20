@@ -903,6 +903,7 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
 
 QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation loc)
 {
+fprintf(stderr, "Entering getFieldType()\n");
     DeclContext* context = getCurFunctionDecl();
     const llvm::StringMap<llvm::StringMap<QualType>>& tableData = getTableData();
     if (tableData.empty())
@@ -959,6 +960,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
     {
         for (const IdentifierInfo* id : attr->tables())
         {
+fprintf(stderr, "  tables.push_back(id->getName()=%s) %d\n", id->getName(), __LINE__);
             tables.push_back(id->getName());
         }
     }
@@ -966,6 +968,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
     {
         for (const auto& it : tableData)
         {
+fprintf(stderr, "  tables.push_back(it.first()=%s) %d\n", it.first(), __LINE__);
             tables.push_back(it.first());
         }
     }
@@ -1023,6 +1026,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
                     }
                     else
                     {
+fprintf(stderr, "  Sema::getFieldType():%d\n", __LINE__);
                         Diag(loc, diag::err_duplicate_field) << fieldOrTagName;
                         return Context.VoidTy;
                     }
@@ -1031,6 +1035,7 @@ QualType Sema::getFieldType(const std::string& fieldOrTagName, SourceLocation lo
         }
         if (result == Context.VoidTy)
         {
+fprintf(stderr, "  Sema::getFieldType():%d\n", __LINE__);
             Diag(loc, diag::err_duplicate_field) << fieldOrTagName;
             return Context.VoidTy;
         }

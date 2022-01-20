@@ -7,6 +7,7 @@
 
 #include <optional>
 
+#include "gaia_internal/catalog/ddl_execution.hpp"
 #include "gaia_internal/catalog/ddl_executor.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/exceptions.hpp"
@@ -192,6 +193,19 @@ inline void check_not_system_db(const string& name)
 void initialize_catalog()
 {
     ddl_executor_t::get();
+
+    // Add the rules catalog to the catalog.
+    ddl::parser_t parser;
+    parser.parse_string(
+        "create database rules_catalog;"
+        "create table gaia_application (name string);"
+        "create table gaia_rule (name string);"
+        "create table app_ruleset (active_on_startup bool);"
+        "relationship gaia_catalog_ruleset_rule ( gaia_application.app_rulesets -> app_ruleset[], app_ruleset.gaia_application -> gaia_application );");
+    execute(parser.statements);
+
+    // This must be reset in order for the new DDL definitions to be in the right place.
+    use_database("");
 }
 
 void use_database(const string& name)
