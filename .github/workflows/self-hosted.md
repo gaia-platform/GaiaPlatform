@@ -106,7 +106,7 @@ lsblk -o NAME,HCTL,SIZE,MOUNTPOINT | grep -i "sd"
 
 at the end, should see:
 ```
-sdc     1:0:0:1      64G 
+sdc     1:0:0:1      64G
 └─sdc1               64G /datadrive
 ```
 
