@@ -6,6 +6,7 @@
 #pragma once
 
 #include <tuple>
+#include <utility>
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
@@ -47,6 +48,12 @@ public:
         return *this;
     }
 
+    table_builder_t& field(data_field_def_t field)
+    {
+        m_fields.push_back(field);
+        return *this;
+    }
+
     table_builder_t& field(const std::string& field_name, data_type_t data_type, bool optional = false)
     {
         m_fields.emplace_back(field_name, data_type, optional);
@@ -71,8 +78,7 @@ public:
         for (const auto& field : m_fields)
         {
             fields.emplace_back(
-                std::make_unique<data_field_def_t>(
-                    std::get<0>(field), std::get<1>(field), 1, std::get<2>(field)));
+                std::make_unique<data_field_def_t>(field));
         }
 
         if (!m_db_name.empty())
@@ -94,8 +100,8 @@ public:
     }
 
 private:
-    std::string m_table_name{};
-    std::string m_db_name{};
-    std::vector<std::tuple<std::string, data_type_t, bool>> m_fields{};
+    std::string m_table_name;
+    std::string m_db_name;
+    std::vector<data_field_def_t> m_fields{};
     bool m_fail_on_exists = false;
 };
