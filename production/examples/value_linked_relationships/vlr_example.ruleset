@@ -14,8 +14,11 @@ ruleset vlr_rules
     {
         gaia_log::app().info("{} has arrived at: {}", name, person->floor.department);
 
-        auto me = name;
+        const char* me = name;
 
+        // The navigation path person->floor->person refers to all people currently
+        // on the same floor as the singular person who fired this rule.
+        // This statement makes sure that the person does not say "Hi" to themselves.
         if (0 != strcmp(me, person->floor->person.name))
         {
             gaia_log::app().info("{} says: Hi, {}!", name, me);
