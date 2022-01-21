@@ -22,10 +22,10 @@ namespace index
 {
 
 /**
-* RAII object class with an XLOCK on the underlying index object.
-* This interface is temporary until we have "live" indexes.
-* T_structure is the underlying index data structure.
-*/
+ * RAII object class with an XLOCK on the underlying index object.
+ * This interface is temporary until we have "live" indexes.
+ * T_structure is the underlying index data structure.
+ */
 template <typename T_structure>
 class index_writer_guard_t
 {
@@ -52,8 +52,8 @@ private:
 constexpr size_t c_offset_buffer_size = 32;
 
 /*
-* Buffer storing data for garbage collecting offsets.
-*/
+ * Buffer storing data for garbage collecting offsets.
+ */
 
 class index_offset_buffer_t
 {

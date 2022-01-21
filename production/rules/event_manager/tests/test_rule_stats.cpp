@@ -291,13 +291,13 @@ public:
         EXPECT_EQ(static_cast<uint32_t>(stats.count_retries), expected.retries);
         EXPECT_EQ(static_cast<uint32_t>(stats.count_abandoned), expected.abandoned);
         EXPECT_EQ(static_cast<uint32_t>(stats.count_scheduled), expected.scheduled);
-        //cout << "max exec: " << stats.max_rule_execution_time << endl;
+        // cout << "max exec: " << stats.max_rule_execution_time << endl;
         compare_duration(static_cast<int64_t>(stats.max_rule_execution_time), ms_to_ns(expected.max_exec_ms));
-        //cout << "tot exec: " << stats.total_rule_execution_time << endl;
+        // cout << "tot exec: " << stats.total_rule_execution_time << endl;
         compare_duration(static_cast<int64_t>(stats.total_rule_execution_time), ms_to_ns(expected.total_exec_ms));
-        //cout << "max invoc: " << stats.max_rule_invocation_latency << endl;
+        // cout << "max invoc: " << stats.max_rule_invocation_latency << endl;
         compare_duration(static_cast<int64_t>(stats.max_rule_invocation_latency), ms_to_ns(expected.max_latency_ms));
-        //cout << "tot invoc: " << stats.total_rule_invocation_latency << endl;
+        // cout << "tot invoc: " << stats.total_rule_invocation_latency << endl;
         compare_duration(static_cast<int64_t>(stats.total_rule_invocation_latency), ms_to_ns(expected.total_latency_ms));
     }
 

@@ -106,9 +106,9 @@ const std::vector<gaia::db::payload_types::data_holder_t>& index_key_t::values()
 }
 
 /*
-* Combine hash of all data holders in this key.
-* Repeatedly concatenate hash values and rehash.
-*/
+ * Combine hash of all data holders in this key.
+ * Repeatedly concatenate hash values and rehash.
+ */
 gaia::db::payload_types::data_hash_t index_key_hash::operator()(index_key_t const& key) const
 {
     constexpr size_t c_hash_concat_buffer_elems = 2;

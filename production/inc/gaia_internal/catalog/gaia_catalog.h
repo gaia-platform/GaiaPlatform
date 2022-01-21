@@ -378,5 +378,3 @@ template<class unused_t> gaia::expressions::expression_t<gaia_database_t, gaia_d
 }  // namespace gaia
 
 #endif  // GAIA_GENERATED_catalog_H_
-
-

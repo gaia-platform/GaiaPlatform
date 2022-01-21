@@ -25,7 +25,7 @@ option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
 
 option(ENABLE_STACKTRACE "Enable stack traces" ON)
 
-option(BUILD_GAIA_RELEASE "Build Gaia Release packages and binaries" OFF)
+option(BUILD_GAIA_SDK "Build Gaia SDK packages and binaries" OFF)
 
 option(ENABLE_SDK_TESTS "Build and execute ruleset translation tests" ON)
 
@@ -35,10 +35,14 @@ option(DISABLE_ASSERTS "Disable assertions" OFF)
 
 option(DISABLE_CCACHE "Disable ccache unconditionally" OFF)
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
-else()
-  option(ENABLE_CLANG_TIDY "Enable clang tidy" OFF)
+option(ENABLE_CLANG_TIDY "Enable Clang-Tidy to be specified externally")
+
+if (NOT ENABLE_CLANG_TIDY)
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
+  else()
+    option(ENABLE_CLANG_TIDY "Enable clang tidy" OFF)
+  endif()
 endif()
 
 # Sets the Gaia build architecture which is the SDK target architecture.
@@ -99,7 +103,7 @@ target_compile_definitions(gaia_build_options INTERFACE $<$<BOOL:${DISABLE_ASSER
 target_compile_options(gaia_build_options INTERFACE $<$<BOOL:${DISABLE_ASSERTS}>:-Wno-unused-parameter -Wno-unused-lambda-capture -Wno-unused-variable -Wno-unused-but-set-variable>)
 
 # LLVM and CLANG specific options.
-if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
+if(BUILD_GAIA_SDK OR BUILD_GAIA_LLVM_TESTS)
   set(LLVM_ENABLE_WARNINGS OFF CACHE BOOL "")
   set(CLANG_BUILD_TOOLS OFF CACHE BOOL "")
   set(LLVM_BUILD_TOOLS OFF CACHE BOOL "")
@@ -363,7 +367,7 @@ add_subdirectory(schemas)
 # Tools.
 add_subdirectory(tools)
 
-if(BUILD_GAIA_RELEASE)
+if(BUILD_GAIA_SDK)
   unset(CMAKE_CXX_CLANG_TIDY)
   add_subdirectory("${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm" llvm EXCLUDE_FROM_ALL)
   if(ENABLE_CLANG_TIDY)
@@ -485,13 +489,6 @@ file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
 file(
   COPY ${CMAKE_CURRENT_SOURCE_DIR}/gaia_log.conf
   DESTINATION ${PROJECT_BINARY_DIR}/common/
-)
-
-# Copy the git-hooks. git-hooks are local to any git repo and
-# are not copied over when you clone a repo.
-file(
-  COPY ${CMAKE_CURRENT_SOURCE_DIR}/../dev_tools/hooks/pre-commit
-  DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../.git/hooks
 )
 
 # We want to disable all clang-tidy checks for generated code.

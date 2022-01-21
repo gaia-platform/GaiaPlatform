@@ -165,6 +165,8 @@ execute_suites() {
 
     save_current_directory
 
+    cd "$SCRIPTPATH" || exit
+
     clear_suite_output
 
     WORKLOAD_INDEX=0

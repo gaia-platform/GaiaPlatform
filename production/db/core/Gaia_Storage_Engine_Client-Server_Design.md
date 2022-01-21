@@ -19,25 +19,25 @@ changes required to support out-of-process clients.
 <dt>Database</dt>
 <dd>The component of the Gaia Platform responsible for maintaining data at the key-value level.</dd>
 <dt>Database client</dt>
-<dd>The component of the database which implements Gaia Platform data APIs and exposes them to third-party code running 
+<dd>The component of the database which implements Gaia Platform data APIs and exposes them to third-party code running
     in external processes.</dd>
 <dt>Database server</dt>
-<dd>The component of the database which manages the storage of data in memory and on disk, and coordinates client access 
+<dd>The component of the database which manages the storage of data in memory and on disk, and coordinates client access
     to data, including transactional reads and writes.</dd>
 <dt>Data segment</dt>
-<dd>A shared memory segment managed by the database server but readable and writable by all clients, which contains all 
-    objects created by clients, including obsolete versions. The data segment's memory is managed by a simple "bump allocator", 
-    which allocates memory for each object consecutively (on 8-byte boundaries), with no attempt to reuse memory from 
+<dd>A shared memory segment managed by the database server but readable and writable by all clients, which contains all
+    objects created by clients, including obsolete versions. The data segment's memory is managed by a simple "bump allocator",
+    which allocates memory for each object consecutively (on 8-byte boundaries), with no attempt to reuse memory from
     obsolete object versions.</dd>
 <dt>Locator segment</dt>
-<dd>A shared memory segment managed by the database server but readable by all clients (and privately writable), which 
-    contains the current pointer addresses (actually offsets in the data segment) of all objects created by clients, 
+<dd>A shared memory segment managed by the database server but readable by all clients (and privately writable), which
+    contains the current pointer addresses (actually offsets in the data segment) of all objects created by clients,
     which are addressed by "locators", or offsets in the locator segment.</dd>
 <dt>Log segment</dt>
-<dd>A shared memory segment created per-transaction by clients, which contains a log record for each object mutated by 
+<dd>A shared memory segment created per-transaction by clients, which contains a log record for each object mutated by
     the transaction, enabling the server to validate the transaction and apply it to the locator segment.</dd>
 <dt>Cursor</dt>
-<dd>A unidirectional data stream from server to client, initiated by a <tt>REQUEST_STREAM</tt> control message sent over 
+<dd>A unidirectional data stream from server to client, initiated by a <tt>REQUEST_STREAM</tt> control message sent over
     a session channel and implemented as a stream socket pair. A cursor is exposed to application code as a C++ range or iterator.</dd>
 </dl>
 

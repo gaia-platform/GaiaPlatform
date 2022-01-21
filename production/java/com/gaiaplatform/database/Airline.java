@@ -84,4 +84,3 @@ public final class Airline extends Table {
     public Airline get(Airline obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
   }
 }
-

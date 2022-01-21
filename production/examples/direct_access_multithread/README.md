@@ -1,7 +1,11 @@
 # Direct Access Multithread Demo
+
 Demonstrates usage of the Gaia Direct Access API in a multithreaded application.
 
+For more information on Direct Access, see [Using the Direct Access Classes](https://gaia-platform.github.io/gaia-platform-docs.io/articles/apps-direct-access.html) in the Gaia developer documentation.
+
 ## Build Instructions
+
 These instructions assume that you have installed the Gaia SDK, Clang, and CMake. For information on installing the SDK and tools, see the Gaia SDK README.md.
 
 1. To preserve the initial state of the sample code, copy the source files to a new directory.

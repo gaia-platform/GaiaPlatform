@@ -21,7 +21,6 @@ using namespace gaia::direct_access;
 using namespace gaia::prerequisites;
 using namespace gaia::rules;
 
-
 extern int g_total_hours;
 extern int g_high_grade_hours;
 extern int g_low_grade_hours;
@@ -45,7 +44,6 @@ protected:
         unsubscribe_rules();
         gaia::rules::shutdown_rules_engine();
     }
-
 };
 
 TEST_F(test_metarule3, test_meta_rule_3)
@@ -70,11 +68,9 @@ TEST_F(test_metarule3, test_meta_rule_3)
 
     gaia::rules::test::wait_for_rules_to_complete();
 
-
     ASSERT_EQ(g_total_hours, 18);
     ASSERT_EQ(g_high_grade_hours, 6);
     ASSERT_EQ(g_low_grade_hours, 12);
-
 
     gaia::db::begin_transaction();
     auto sw = student.writer();
