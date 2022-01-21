@@ -184,6 +184,7 @@ TEST_F(db__query_processor__index_scan__test, query_single_match)
         for (const gaia::common::gaia_id_t field_id : *index.fields())
         {
             const auto& field = field_view_t(gaia::db::id_to_ptr(field_id));
+            if (field.data_type() == data_type_t::e_int32 && !field.optional() && index.type() == index_type_t::range)
             {
                 range_index_id = index.id();
                 break;
@@ -569,7 +570,7 @@ TEST_F(test_index_scan, query_rang_inclusive)
 
     gaia::db::begin_transaction();
 
-    for (const index_view_t& index : catalog_core_t::list_indexes(type_record_id))
+    for (const index_view_t& index : catalog_core::list_indexes(type_record_id))
     {
         for (const gaia::common::gaia_id_t field_id : *index.fields())
         {
@@ -656,7 +657,7 @@ TEST_F(test_index_scan, query_range_exclusive)
 
     gaia::db::begin_transaction();
 
-    for (const index_view_t& index : catalog_core_t::list_indexes(type_record_id))
+    for (const index_view_t& index : catalog_core::list_indexes(type_record_id))
     {
         for (const gaia::common::gaia_id_t field_id : *index.fields())
         {
