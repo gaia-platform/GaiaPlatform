@@ -100,6 +100,16 @@ Start with the `[apt]` section in [production gdev.cfg](production/gdev.cfg). In
 sudo apt install clang-format-13 clang-tidy-13 debhelper ...
 ```
 
+Then update the default versions of these commands:
+
+```bash
+update-alternatives --install "/usr/bin/clang" "clang" "/usr/bin/clang-13" 10
+update-alternatives --install "/usr/bin/clang++" "clang++" "/usr/bin/clang++-13" 10
+update-alternatives --install "/usr/bin/ld.lld" "ld.lld" "/usr/bin/ld.lld-13" 10
+update-alternatives --install "/usr/bin/clang-format" "clang-format" "/usr/bin/clang-format-13" 10
+update-alternatives --install "/usr/bin/clang-tidy" "clang-tidy" "/usr/bin/clang-tidy-13" 10
+```
+
 Then move to the `$GAIA_REPO/third_party/production/` folder and follow the instructions in the `gdev.cfg` file within each subdirectory:
 
 For instance, let's consider `daemonize/gdev.cfg`:
