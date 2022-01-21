@@ -561,7 +561,7 @@ TEST_F(db__query_processor__index_scan__test, query_local_modify_match)
     gaia::db::rollback_transaction();
 }
 
-TEST_F(test_index_scan, query_rang_inclusive)
+TEST_F(db__query_processor__index_scan__test, query_range_inclusive)
 {
     // Lookup index_id for integer field.
     gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
@@ -570,7 +570,7 @@ TEST_F(test_index_scan, query_rang_inclusive)
 
     gaia::db::begin_transaction();
 
-    for (const index_view_t& index : catalog_core::list_indexes(type_record_id))
+    for (const index_view_t& index : : list_indexes(type_record_id))
     {
         for (const gaia::common::gaia_id_t field_id : *index.fields())
         {
@@ -648,7 +648,7 @@ TEST_F(test_index_scan, query_rang_inclusive)
     gaia::db::rollback_transaction();
 }
 
-TEST_F(test_index_scan, query_range_exclusive)
+TEST_F(db__query_processor__index_scan__test, query_range_exclusive)
 {
     // Lookup index_id for integer field.
     gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
@@ -657,7 +657,7 @@ TEST_F(test_index_scan, query_range_exclusive)
 
     gaia::db::begin_transaction();
 
-    for (const index_view_t& index : catalog_core::list_indexes(type_record_id))
+    for (const index_view_t& index : : list_indexes(type_record_id))
     {
         for (const gaia::common::gaia_id_t field_id : *index.fields())
         {
