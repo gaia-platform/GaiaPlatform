@@ -177,6 +177,7 @@ if ! docker buildx build \
     -f "$GAIA_REPO/production/dockerfile" \
     -t build_image \
     $BASE_IMAGE \
+    --no-cache \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
     --platform linux/amd64 \
     --shm-size 1gb \
