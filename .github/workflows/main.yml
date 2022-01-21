@@ -8,9 +8,7 @@ on:
   pull_request:
     branches:
       - master
-# types:
-#   - opened
-#   - reopened
+
 env:
   GAIA_VERSION: 0.3.3
   SSH_AUTH_SOCK: /tmp/ssh_agent.sock
@@ -29,8 +27,10 @@ jobs:
 
       - name: Set Files in GAIA_HOME to all access.
         run : |
-          echo "see self-hosted.md for why"
-          sudo chmod -R 777 "$GAIA_REPO"
+          if [[ "${{ runner.name }}" =~ ^builder.* ]] ; then
+            echo "see self-hosted.md for why"
+            sudo chmod -R 777 "$GAIA_REPO"
+          fi
 
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -130,8 +130,10 @@ jobs:
     steps:
       - name: Set Files in GAIA_HOME to all access.
         run : |
-          echo "see self-hosted.md for why"
-          sudo chmod -R 777 "$GAIA_REPO"
+          if [[ "${{ runner.name }}" =~ ^builder.* ]] ; then
+            echo "see self-hosted.md for why"
+            sudo chmod -R 777 "$GAIA_REPO"
+          fi
 
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -188,8 +190,10 @@ jobs:
     steps:
       - name: Set Files in GAIA_HOME to all access.
         run : |
-          echo "see self-hosted.md for why"
-          sudo chmod -R 777 "$GAIA_REPO"
+          if [[ "${{ runner.name }}" =~ ^builder.* ]] ; then
+            echo "see self-hosted.md for why"
+            sudo chmod -R 777 "$GAIA_REPO"
+          fi
 
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -259,8 +263,10 @@ jobs:
     steps:
       - name: Set Files in GAIA_HOME to all access.
         run : |
-          echo "see self-hosted.md for why"
-          sudo chmod -R 777 "$GAIA_REPO"
+          if [[ "${{ runner.name }}" =~ ^builder.* ]] ; then
+            echo "see self-hosted.md for why"
+            sudo chmod -R 777 "$GAIA_REPO"
+          fi
 
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -317,8 +323,10 @@ jobs:
     steps:
       - name: Set Files in GAIA_HOME to all access.
         run : |
-          echo "see self-hosted.md for why"
-          sudo chmod -R 777 "$GAIA_REPO"
+          if [[ "${{ runner.name }}" =~ ^builder.* ]] ; then
+            echo "see self-hosted.md for why"
+            sudo chmod -R 777 "$GAIA_REPO"
+          fi
 
       - name: Checkout Repository
         uses: actions/checkout@master
