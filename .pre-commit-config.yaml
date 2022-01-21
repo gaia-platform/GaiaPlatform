@@ -6,6 +6,7 @@ repos:
 # - repo: meta
 #   hooks:
 #     -   id: identity
+
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v4.0.1
   hooks:
@@ -13,6 +14,7 @@ repos:
     - id: check-yaml
     - id: end-of-file-fixer
     - id: trailing-whitespace
+
 - repo: https://github.com/Lucas-C/pre-commit-hooks
   rev: v1.1.10
   hooks:
@@ -67,6 +69,7 @@ repos:
       exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py|production/db/core/)
       args:
         - --ignore=E203,E501,W503
+
 - repo: https://github.com/PyCQA/pylint
   rev: v2.11.1
   hooks:
