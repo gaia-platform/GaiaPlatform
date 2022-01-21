@@ -26,6 +26,12 @@ jobs:
 #   uses: fkirc/skip-duplicate-actions@master
 #   with:
 #     concurrent_skipping: 'same_content'
+
+      - name: Set Files in GAIA_HOME to all access.
+        run : |
+          echo "see self-hosted.md for why"
+          sudo chmod -R 777 "$GAIA_REPO"
+
       - name: Checkout Repository
         uses: actions/checkout@master
 

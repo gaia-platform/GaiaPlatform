@@ -205,3 +205,16 @@ To help in this, each section of the installation scripts has a *Copy to Clipboa
 
 When running the `config.sh` script, most of the prompts should be answered with no changes.
 For the `Enter name of work folder`, enter `/datadrive` to match the mounted data drive.
+
+## Issues
+
+```
+Run actions/checkout@master
+Syncing repository: gaia-platform/GaiaPlatform
+Getting Git version info
+Deleting the contents of '/datadrive/runner/GaiaPlatform/GaiaPlatform'
+Error: Command failed: rm -rf "/datadrive/runner/GaiaPlatform/GaiaPlatform/build"
+rm: cannot remove '/datadrive/runner/GaiaPlatform/GaiaPlatform/build/output/package/gaia-0.3.3_amd64.deb': Permission denied
+```
+- seems to be a permissions issue
+  - added `sudo chmod -R 777 /datadrive/runner/GaiaPlatform/GaiaPlatform/build` to start of jobs
