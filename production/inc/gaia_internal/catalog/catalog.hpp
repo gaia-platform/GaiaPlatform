@@ -50,6 +50,7 @@ constexpr char c_db_table_name_connector = '.';
 
 const std::string c_catalog_db_name = "catalog";
 const std::string c_event_log_db_name = "event_log";
+const std::string c_default_db_name = "";
 
 /*
  * The following enum classes are shared cross the catalog usage.

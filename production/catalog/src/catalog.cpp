@@ -184,6 +184,8 @@ invalid_create_list_internal::invalid_create_list_internal(const std::string& me
 
 inline void check_not_system_db(const string& name)
 {
+    // Temporarily disabled.
+    return;
     if (name == c_catalog_db_name || name == c_event_log_db_name)
     {
         throw forbidden_system_db_operation_internal(name);
@@ -197,7 +199,7 @@ void initialize_catalog()
     // Add the rules catalog to the catalog.
     ddl::parser_t parser;
     parser.parse_string(
-        "create database rules_catalog;"
+        "use catalog;"
         "create table gaia_application (name string);"
         "create table gaia_rule (name string);"
         "create table app_ruleset (active_on_startup bool);"
@@ -205,7 +207,7 @@ void initialize_catalog()
     execute(parser.statements);
 
     // This must be reset in order for the new DDL definitions to be in the right place.
-    use_database("");
+    use_database(c_default_db_name);
 }
 
 void use_database(const string& name)
