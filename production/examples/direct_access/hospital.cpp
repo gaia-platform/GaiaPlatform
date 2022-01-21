@@ -673,7 +673,7 @@ void use_dac_object_across_transactions()
     PRINT_METHOD_NAME();
 
     // First transaction.
-    auto_transaction_t txn{auto_transaction_t::no_auto_begin};
+    auto_transaction_t txn{auto_transaction_t::no_auto_restart};
     doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House"));
     txn.commit();
 
@@ -726,9 +726,9 @@ int main()
 {
     gaia::system::initialize();
 
-    // The no_auto_begin argument prevents beginning a new transaction
+    // The no_auto_restart argument prevents beginning a new transaction
     // when the current one is committed.
-    auto_transaction_t txn{auto_transaction_t::no_auto_begin};
+    auto_transaction_t txn{auto_transaction_t::no_auto_restart};
 
     clean_db();
 
