@@ -5,9 +5,7 @@
 
 #pragma once
 
-/*
- * This meta-header file contains expression AST pieces from the expression tree.
- */
+// This meta-header file contains expression AST pieces from the expression tree.
 
 #include "binary_expression.hpp"
 #include "container_accessor.hpp"

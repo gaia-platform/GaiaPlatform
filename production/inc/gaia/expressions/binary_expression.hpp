@@ -13,12 +13,12 @@ namespace gaia
 namespace expressions
 {
 
-/*
+/**
  * Binary expression - this expression denotes an expression with a left and right operand.
- * T_bind - context this expression binds to.
- * T_return - the type this expression evaluates to.
- * T_left - the evaluated type of the left operand.
- * T_right - the evaluated type of the right operand.
+ * @tparam T_bind - context this expression binds to.
+ * @tparam T_return - the type this expression evaluates to.
+ * @tparam T_left - the evaluated type of the left operand.
+ * @tparam T_right - the evaluated type of the right operand.
  *
  * binary_expression_fn_t - expression evaluating left operand, right operand and then applying the operation.
  */
@@ -40,7 +40,7 @@ public:
         : m_function(function), m_left_operand(left_operand.create_subexpression()), m_right_operand(right_operand.create_subexpression()){};
     virtual ~binary_expression_t() = default;
 
-    T_return operator()(const T_bind&) const override;
+    T_return operator()(const T_bind& bind) const override;
     subexpression_t<T_bind, T_return> create_subexpression() const override;
 
 private:

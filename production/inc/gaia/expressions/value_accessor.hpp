@@ -14,11 +14,11 @@ namespace gaia
 namespace expressions
 {
 
-/*
+/**
  * This is an expression boxing a native type.
  * As such, it is only enabled for non-expression types.
- * T_bind - context this expression binds to.
- * T_return - what this expression evaluates to.
+ * @tparam T_bind - context this expression binds to.
+ * @tparam T_return - what this expression evaluates to.
  */
 template <typename T_bind, typename T_return, typename = typename std::enable_if<!is_expression<T_return>::value>::type>
 class value_accessor_t;
@@ -31,7 +31,7 @@ public:
     value_accessor_t(const T_return& value);
     virtual ~value_accessor_t() = default;
 
-    T_return operator()(const T_bind&) const override;
+    T_return operator()(const T_bind& bind) const override;
     subexpression_t<T_bind, T_return> create_subexpression() const override;
 
 private:

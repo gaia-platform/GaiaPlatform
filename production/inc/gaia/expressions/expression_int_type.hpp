@@ -10,18 +10,18 @@
 #include "gaia/common.hpp"
 
 #include "expression_ast.hpp"
-/*
- * Operations to allow queries on Gaia's accessors derived from int_type.
- *
- * Currently only common::gaia_id_t operations are defined.
- *
- * We only support == and != operators for queries.
- */
+
+// Operations to allow queries on Gaia's accessors derived from int_type.
+//
+// Currently only common::gaia_id_t operations are defined.
+//
+// We only support == and != operators for queries.
 
 namespace gaia
 {
 namespace expressions
 {
+
 // == operator.
 template <typename T_bind>
 binary_expression_t<T_bind, bool, common::gaia_id_t, common::gaia_id_t, operator_token_t::e_eq>

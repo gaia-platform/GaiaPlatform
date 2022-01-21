@@ -9,21 +9,16 @@
 
 namespace gaia
 {
-/**
- * \addtogroup gaia
- * @{
- */
 namespace expressions
 {
 
-/**
- * Pointer to an DAC class (T_class) member accessor method.
- * An DAC accessor method returns the data stored in a certain
- * table column, i.e. &employee_t::name.
- *
- * This accessor is specific to DAC as all DAC class methods
- * are const getters that do not accept any argument.
- */
+// Pointer to an DAC class (T_bind) member accessor method.
+// An DAC accessor method returns the data stored in a certain
+// table column, i.e. &employee_t::name.
+//
+// This accessor is specific to DAC as all DAC class methods
+// are const getters that do not accept any argument.
+
 template <typename T_bind, typename T_return>
 using member_accessor_ptr_t = T_return (T_bind::*)() const;
 
@@ -32,10 +27,10 @@ using member_accessor_ptr_t = T_return (T_bind::*)() const;
  * (eg. &employee_t::name).
  *
  * Previously member_accessor_t also allowed generic functions but that functionality
- * has been split off to transform_expression_t provide a cleaner algebra when defining templates.
+ * has been split off to transform_expression_t to provide a cleaner algebra when defining templates.
  *
- * @tparam T_class The DAC class type this expression binds to.
- * @tparam T_return The type returned when calling the () operator.
+ * @tparam T_bind - The DAC class type this expression binds to.
+ * @tparam T_return - The type this expression evaluates to.
  *
  * This class can be specialized to provide additional functionality and run-time
  * information on specific member types. The type of accessor is determined by the catalog

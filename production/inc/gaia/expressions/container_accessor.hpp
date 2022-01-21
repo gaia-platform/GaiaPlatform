@@ -38,7 +38,7 @@ public:
 
     // Additional APIs on top of dac_container types.
     transform_expression_t<T_bind, bool> contains(const expression_t<T_value, bool>& predicate);
-    transform_expression_t<T_bind, bool> contains(const T_value&);
+    transform_expression_t<T_bind, bool> contains(const T_value& value);
     transform_expression_t<T_bind, bool> empty();
     transform_expression_t<T_bind, int64_t> count();
 };

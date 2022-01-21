@@ -11,11 +11,9 @@
 #include "expression_ast.hpp"
 #include "expression_traits.hpp"
 
-/*
- * This file builds ASTs supporting additional string operations using template specialization.
- * Specifically , we support equals and not equals comparisons against const char* and std::string
- * types in C++.
- */
+// This file builds ASTs supporting additional string operations using template specialization.
+// Specifically, we support equals and not equals comparisons against const char* and std::string
+// types in C++.
 
 namespace gaia
 {

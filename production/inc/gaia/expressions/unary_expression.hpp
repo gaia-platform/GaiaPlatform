@@ -13,11 +13,11 @@ namespace gaia
 namespace expressions
 {
 
-/*
+/**
  * Unary expression - expression consisting of one operator + one operand.
- * T_bind - context this expression binds to.
- * T_return - type this expression evaluates to.
- * T_operand - the type the operand evaluates to.
+ * @tparam T_bind - context this expression binds to.
+ * @tparam T_return - type this expression evaluates to.
+ * @tparam T_operand - the type the operand evaluates to.
  *
  * unary_expression_fn_t - function evaluating a the subexpression then performs the operation.
  *
@@ -36,7 +36,7 @@ public:
         : m_function(function), m_operand(operand.create_subexpression()){};
     virtual ~unary_expression_t() = default;
 
-    T_return operator()(const T_bind&) const override;
+    T_return operator()(const T_bind& bind) const override;
     subexpression_t<T_bind, T_return> create_subexpression() const override;
 
 private:

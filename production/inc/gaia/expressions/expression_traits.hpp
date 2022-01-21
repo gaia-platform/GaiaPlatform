@@ -19,14 +19,12 @@ namespace expressions
 template <typename T_bind>
 using is_expression = typename std::is_base_of<expression_base_t, T_bind>;
 
-/*
- * Operator tokens recognized by the C++ compiler.
- *
- * These tokens are not actual operations themselves.
- * These tokens are to specialize operator expressions so
- * query processor can run analysis and do expression rewrites
- * (e.g conversion of expressions to disjunctive normal form).
- */
+// Operator tokens recognized by the C++ compiler.
+//
+// These tokens are not actual operations themselves.
+// These tokens are to specialize operator expressions so that the
+// query processor can run analysis and do expression rewrites
+// (e.g conversion of expressions to disjunctive normal form).
 
 enum class operator_token_t
 {

@@ -229,7 +229,7 @@ bool field_facade_t::is_vector() const
 std::pair<std::string, std::string> field_facade_t::generate_expr_variable() const
 {
     // For now, we only use the generic member_accessor_t.
-    // In future more specialized accessors will be needed e.g. vector accessors.
+    // In the future, more specialized accessors will be needed e.g. vector accessors.
     // This is to support additional queries on different accessor types.
 
     std::string accessor_string;

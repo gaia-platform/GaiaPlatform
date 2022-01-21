@@ -9,27 +9,24 @@
 #include "expression_ast.hpp"
 #include "expression_traits.hpp"
 
-/*
- * This is a generic expression AST builder for non-specialized expression types.
- * The expression would evaluate to the same result and type as what is defined in C++.
- * Operator precedence rules will be identical to C++. Short-circuit evaluation rules are
- * identical to C++.
- *
- * Specialized AST builders exist for certain types such as strings to allow for custom
- * behavior.
- *
- * The builder consists of free-standing operator overloads that will piece expression AST
- * pieces together into an expression tree.
- *
- * Generically operation support for overloading operators for binary expressions:
- * 1) Both operands are expressions.
- * 2) The left operand is a value.
- * 3) The right operand is a value.
- *
- * The case where both expressions of values is notably absent. This is because
- * the C++ compiler already handles this case.
- *
- */
+// This is a generic expression AST builder for non-specialized expression types.
+// The expression would evaluate to the same result and type as what is defined in C++.
+// Operator precedence rules will be identical to C++. Short-circuit evaluation rules are
+// identical to C++.
+//
+// Specialized AST builders exist for certain types such as strings to allow for custom
+// behavior.
+//
+// The builder consists of free-standing operator overloads that will piece the expression AST
+// pieces together into an expression tree.
+//
+// Generically operation support for overloading operators for binary expressions:
+// 1) Both operands are expressions.
+// 2) The left operand is a value.
+// 3) The right operand is a value.
+//
+// The case where both operands are values is notably absent. This is because
+// the C++ compiler already natively handles this case!
 
 namespace gaia
 {
