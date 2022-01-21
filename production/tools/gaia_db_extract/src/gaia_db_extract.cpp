@@ -9,7 +9,7 @@
 #include <memory>
 #include <vector>
 
-#include "json.hpp"
+#include <json.hpp>
 
 #include "gaia/exceptions.hpp"
 

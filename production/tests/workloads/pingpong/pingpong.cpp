@@ -112,7 +112,7 @@ public:
     void init_storage() override
     {
         printf("here\n");
-        auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+        auto_transaction_t tx(auto_transaction_t::no_auto_restart);
         printf("here\n");
 
         // If we already have inserted a ping pong table then our storage has already been

@@ -8,7 +8,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "json.hpp"
+#include <json.hpp>
 
 #include "gaia/common.hpp"
 
