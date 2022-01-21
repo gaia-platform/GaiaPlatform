@@ -45,7 +45,6 @@ repos:
   hooks:
     - id: shellcheck
     - id: script-must-have-extension
-      exclude: ^(((data|scratch|third_party)/)|dev_tools/hooks/pre-commit)
       types: [shell, executable]
 
 - repo: https://github.com/psf/black
@@ -54,12 +53,12 @@ repos:
     - id: black
       stages: [merge-commit, commit, manual]
       exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py|production/db/core/)
-    - id: black
-      stages: [push, post-checkout, post-commit, post-merge, post-rewrite]
-      exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py|production/db/core/)
-      args:
-        - --check
-        - --diff
+# - id: black
+#   stages: [push, post-checkout, post-commit, post-merge, post-rewrite]
+#   exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py|production/db/core/)
+#   args:
+#     - --check
+#     - --diff
 - repo: https://github.com/PyCQA/flake8
   rev: 4.0.1
   hooks:
