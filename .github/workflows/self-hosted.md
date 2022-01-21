@@ -1,9 +1,18 @@
 # Self Hosted Build Machines
 
+Right now, to get things off the ground, this is a manual process to set up the build machines.
+We probably will not have to set up new build machines that often/
+As such, it is a question of priorities as to whether to automate this process more, or try and make it more scriptable.
+
 ## Get Access to Azure From Matthew
 
 Before you can start doing anything with the build machines, you will need Azure access from Matthew.
 Once you have that, make sure you can login to the [Azure portal](https://portal.azure.com/) and look around.
+
+To simply look at the build machines and their status, no further action is required.
+To actively SSH into the build machines, only the next step is required.
+The remaining steps should be followed to set up a new build machine.
+Any failure to set up the machine properly will likely result in either the machine not being available for building, or not properly handling the build jobs as they become available.
 
 ## Azure SSH Key
 
@@ -20,33 +29,34 @@ ssh-add ~/keyfile.pem
 ```
 
 - Reference: [How to Add Your EC2 PEM File to Your SSH Keychain](https://www.cloudsavvyit.com/1795/how-to-add-your-ec2-pem-file-to-your-ssh-keychain/)
+  - note that this link talks about AWS, but the same thing applies to Azure
 
 ## Creating the VM
 
-(This is still a work in progress.)
+Go to the home page for your Azure account, and search for `Virtual Machines`.
+On that page, click on the `Create` button at the top of the list of available machines.
 
-Search for `Virtual Machines`
-- Create button at top
+In the `Basics` tab, set the following options as indicated here:
+- `resource group`: set to `build-1_group`
+- `virtual machine name`: set to something unique, but preface with `builder-`
+- `image`: `ubuntu 20.04 LTS`
+- `size`: `Standard D4s v3 (4 vcpus, 16 GiB memory)`
+- `ssh public key source`: `use existing key stored in Azure`
+- `stored keys`: `build-machine-key`
 
-Basics tab
-- resource group-> build-1_group
-- virtual machine name-> unique, preface with `build-`
-- image -> ubuntu 20.04 LTS
-- size -> Standard D4s v3 (4 vcpus, 16 GiB memory)
-- ssh public key source -> use existing key stored in Azure
-- stored keys -> build-machine-key
+In the `Disks` tab, create and attach a new disk.
+For that new disk, add the disk with the following options:
+- `number`: `1`
+- `size`: `64 GB`
 
-Disks tab
-- Create and attach a new disk
-- add disk 64GB, Lun-1
+Once those are done, press the button that says `Review and Create`.
+Carefully review everything on the page to make sure it looks right, then press the `Create` button.
+The deploy might take a while to complete, displaying `Deployment in process` during the entire time.
 
-Review and Create
-- review everything and then press Create
-- might take a while to complete, will see `Deployment in process`
-
-Press "go to resource"
-
-Notice the IP address on the right under Public IP Address
+After around one minute, it should indicated that it finished deploying the Virtual Machine, and present a button that says `go to resource`.
+Pressing that button will take you to the main page for the newly create VM.
+Of particular interest is the IP address on the right under Public IP Address.
+That address is needed to connect to the build machine, so note it for later use.
 
 - Reference: [Using the GitHub self-hosted runner and Azure Virtual Machines to login with a System Assigned Managed Identity](https://www.cloudwithchris.com/blog/github-selfhosted-runner-on-azure/)
 
@@ -55,60 +65,79 @@ Notice the IP address on the right under Public IP Address
 On the virtual machines page for the specific machine you want to login to, there is a Networking section on the right.
 Note the IP address for the VM from the `Public IP address` field.
 
+To SSH from your local shell to the build machine, use the following form:
+
 ```sh
 ssh azureuser@<ip address>
 ```
 
 ### Attaching the Data Drive
 
-- find drive
+Once you have SSHed in to the build machine, the first thing to do is to attach the data drive to the virtual machine.
+The first step of this is to use this command:
 
 ```sh
 lsblk -o NAME,HCTL,SIZE,MOUNTPOINT | grep -i "sd"
 ```
 
-- should be listed as `sdc` with a 64G drive
-- note that it is not mounted
+to locate the data drive.
+Unless something changes, the new drive should be listed at the end as `sdc`, indicate a 64G drive, and no mount point.
+If this changes, please talk to someone else and get verification that things look correct.
 
-- partition the disk
+Assuming things look right, the first step to using the disk is to partition it with the following commands:
+
 ```sh
 sudo parted /dev/sdc --script mklabel gpt mkpart xfspart xfs 0% 100%
 sudo mkfs.xfs /dev/sdc1
 sudo partprobe /dev/sdc1
 ```
 
-- mount
+and then mount the partition with these commands:
+
 ```sh
 sudo mkdir /datadrive
 sudo mount /dev/sdc1 /datadrive
 ```
 
-- persist the mount
+To verify that things are set up properly, execute:
+
+```sh
+lsblk -o NAME,HCTL,SIZE,MOUNTPOINT | grep -i "sd"
 ```
+
+This time, at the end, you should see:
+
+```text
+sdc     1:0:0:1      64G
+└─sdc1               64G /datadrive
+```
+
+At this point, the data drive is partitioned and mounted, but will require re-mounting if the virtual machine is restarted.
+To solve that issue, we need to persist the mounting.
+The first step of that process is to execute the following command:
+
+```sh
 sudo blkid
 ```
-- note the UUID for the mount `/dev/sdc1`, like `2ac03c2e-da59-4bd3-b9ad-a9ceaea60a01`
-- should be at the bottom
 
-```
+Near the bottom of the output should be a line for the mount that we recently added, `/dev/sdc1`.
+The important piece of information to keep track of is the UUID associated with the mount, like `2ac03c2e-da59-4bd3-b9ad-a9ceaea60a01`.
+To persist the mount, edit the `/etc/fstab` file with"
+
+```sh
 sudo nano /etc/fstab
 ```
 
-add to end
+and add the following line to the end of the file:
+
 ```
 UUID=2ac03c2e-da59-4bd3-b9ad-a9ceaea60a01   /datadrive   xfs   defaults,nofail   1   2
 ```
 
-execute again to verify things are set up
-```
-lsblk -o NAME,HCTL,SIZE,MOUNTPOINT | grep -i "sd"
-```
+but replace the UUID `2ac03c2e-da59-4bd3-b9ad-a9ceaea60a01` with the one that you noted from the call to `blkid`.
+If you are not familiar with `nano`, press `Ctrl-S` to save and then `Ctrl-X` to exit.
 
-at the end, should see:
-```
-sdc     1:0:0:1      64G
-└─sdc1               64G /datadrive
-```
+Finally, to make sure we do not run into permissions problems anywhere else, run the following commands to allow anything inside of our Virtual Machine to access the drive:
 
 ```
 sudo chmod 777 /datadrive
@@ -116,7 +145,7 @@ mkdir /datadrive/docker
 mkdir /datadrive/runner
 ```
 
-- Reference: [xx](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/attach-disk-portal)
+- Reference: [Use the portal to attach a data disk to a Linux VM](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/attach-disk-portal)
 
 ## Install Docker
 
@@ -146,6 +175,8 @@ sudo chmod 666 /var/run/docker.sock
 sudo service docker start
 ```
 
+Finally, to verify that everything has been setup correctly, it is recommended that you execute this command:
+
 ```sh
 docker run hello-world
 ```
@@ -154,36 +185,62 @@ docker run hello-world
 
 ## Move Docker Data Directory
 
-sudo service docker stop
+Now that Docker is installed, we need to move its data directory to the data drive.
+To do this, we first stop the docker service:
 
-- `sudo nano /etc/docker/daemon.json`
+```sh
+sudo service docker stop
 ```
+
+Once the service is stopped, we need to create a new file using:
+
+```sh
+sudo nano /etc/docker/daemon.json
+```
+
+and add the following content for that file:
+
+```text
 {
   "data-root": "/datadrive/docker"
 }
 ```
+
+If you are not familiar with `nano`, press `Ctrl-S` to save and then `Ctrl-X` to exit.
+
+To be on the safe side, once we have saved the file, run the command:
+
+```sh
 sudo chmod 777 /etc/docker/daemon.json
-
-- copy docker over
 ```
+
+to set global permissions for this file.
+
+At this point, we have the data directory for Docker moved to its new location, but we also need to move the previous information over.
+To do this, execute the following commands to copy the configuration over to the new directory and to make a backup of the old information:
+
+```sh
 sudo rsync -aP /var/lib/docker/ /datadrive/docker
-```
-
-- make backup
-```
 sudo mv /var/lib/docker /var/lib/docker.old
 ```
 
-```
+When you are ready, the next step is to start Docker up using the following command:
+
+```sh
 sudo service docker start
 ```
 
-- after double check with hello-world, cleanup:
-```
+At this point, the Docker service should start up without any problems.
+Another good check is to see if the `hello-world` image can be spun up again.
+Once you are satisfied that Docker is running properly, you can clean up the old Docker data directory using:
+
+```sh
 sudo rm -rf /var/lib/docker.old
 ```
 
-- Reference: [x](https://www.guguweb.com/2019/02/07/how-to-move-docker-data-directory-to-another-location-on-ubuntu/)
+If you would like, you can keep that information around until after a couple of build jobs have successfully passed.
+
+- Reference: [HOW TO MOVE DOCKER DATA DIRECTORY TO ANOTHER LOCATION ON UBUNTU](https://www.guguweb.com/2019/02/07/how-to-move-docker-data-directory-to-another-location-on-ubuntu/)
 
 ## Add User to Docker Group
 
@@ -206,7 +263,22 @@ To help in this, each section of the installation scripts has a *Copy to Clipboa
 When running the `config.sh` script, most of the prompts should be answered with no changes.
 For the `Enter name of work folder`, enter `/datadrive` to match the mounted data drive.
 
+When prompted for the name of the machine, it should automatically start with `builder-` to match the name of the machine, but double check that.
+During the execution of the workflow, the extra "little bits" required by the workflow to work efficiently with our build machines key off of this.
+An example of this is:
+
+```sh
+    if [[ "${{ runner.name }}" =~ ^builder.* ]] ; then
+      docker system prune --force
+    else
+      echo "Setting up SSH socket for Docker."
+      ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+    fi
+```
+
 ## Issues
+
+### Debian Package Being Written with Root Permissions
 
 ```
 Run actions/checkout@master
