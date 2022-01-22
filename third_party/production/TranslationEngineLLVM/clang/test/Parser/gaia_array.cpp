@@ -1,5 +1,5 @@
 // RUN: %clang_cc1  -fsyntax-only -verify -fgaia-extensions %s
-// expected-no-diagnostics
+
 ruleset test1
 {
     void f(int a[])
@@ -7,7 +7,9 @@ ruleset test1
     on_update(isolated)
     {
         isolated.history[5] = 5;
+        history[3] = 2;
         auto t = isolated.history[5];
+        t = history[3];
         int foo_array[] = {1,2,3};
         history = {3,4,5};
         isolated.history = {6,7,8};
@@ -20,5 +22,11 @@ ruleset test1
         isolated.insert(history:foo_array, age:2);
         isolated.insert(history:{4,7,8}, age:3);
         f(history);
+        int test = history; // expected-error {{cannot initialize a variable of type 'int' with an lvalue of type 'int []'}}
+        history = 5; // expected-error {{assigning to 'int []' from incompatible type 'int'}}
+        history ={3, 4.5}; // expected-error {{type 'double' cannot be narrowed to 'int' in initializer list}}
+        // expected-warning@-1 {{implicit conversion from 'double' to 'int' changes value from 4.5 to 4}}
+        // expected-note@-2 {{insert an explicit cast to silence this issue}}
+        isolated.insert(history:{4,7.7,8}); // expected-error {{Cannot convert from 'void' to 'int []' for parameter 'history'}}
     }
 }
