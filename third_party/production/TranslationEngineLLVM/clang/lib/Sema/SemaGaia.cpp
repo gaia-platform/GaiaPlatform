@@ -104,7 +104,7 @@ static QualType mapFieldType(catalog::data_type_t dbType, bool isArray, ASTConte
 
     if (isArray)
     {
-        return context->getConstantArrayType(returnType, llvm::APInt(8, 0), ArrayType::Normal, 0);
+        return context->getIncompleteArrayType(returnType, ArrayType::Normal, 0);
     }
 
     return returnType;

@@ -107,15 +107,6 @@ public:
         return (*m_vector)[i];
     }
 
-    operator std::vector<T_type>() const
-    {
-        if (is_null())
-        {
-            return std::vector<T_type>();
-        }
-        return std::vector<T_type>(data(), data() + size());
-    }
-
     dac_vector_iterator_t<T_type> begin() const
     {
         return dac_vector_iterator_t<T_type>(data(), 0);
