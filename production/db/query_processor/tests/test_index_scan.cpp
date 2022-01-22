@@ -570,7 +570,7 @@ TEST_F(db__query_processor__index_scan__test, query_range_inclusive)
 
     gaia::db::begin_transaction();
 
-    for (const index_view_t& index : : list_indexes(type_record_id))
+    for (const index_view_t& index : list_indexes(type_record_id))
     {
         for (const gaia::common::gaia_id_t field_id : *index.fields())
         {
@@ -657,7 +657,7 @@ TEST_F(db__query_processor__index_scan__test, query_range_exclusive)
 
     gaia::db::begin_transaction();
 
-    for (const index_view_t& index : : list_indexes(type_record_id))
+    for (const index_view_t& index : list_indexes(type_record_id))
     {
         for (const gaia::common::gaia_id_t field_id : *index.fields())
         {
