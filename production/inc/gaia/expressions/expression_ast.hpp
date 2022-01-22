@@ -7,9 +7,9 @@
 
 // This meta-header file contains expression AST pieces from the expression tree.
 
-#include "binary_expression.hpp"
-#include "container_accessor.hpp"
-#include "member_accessor.hpp"
-#include "transform_expression.hpp"
-#include "unary_expression.hpp"
-#include "value_accessor.hpp"
+#include "gaia/expressions/accessors/container_accessor.hpp"
+#include "gaia/expressions/accessors/member_accessor.hpp"
+#include "gaia/expressions/accessors/value_accessor.hpp"
+#include "gaia/expressions/internal/binary_expression.hpp"
+#include "gaia/expressions/internal/transform_expression.hpp"
+#include "gaia/expressions/internal/unary_expression.hpp"

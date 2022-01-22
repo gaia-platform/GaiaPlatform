@@ -5,7 +5,8 @@
 
 #pragma once
 
-#include "expression_base.hpp"
+#include "gaia/expressions/expression_base.hpp"
+
 namespace gaia
 {
 namespace expressions
