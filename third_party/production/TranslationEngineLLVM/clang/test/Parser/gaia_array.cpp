@@ -27,6 +27,6 @@ ruleset test1
         history ={3, 4.5}; // expected-error {{type 'double' cannot be narrowed to 'int' in initializer list}}
         // expected-warning@-1 {{implicit conversion from 'double' to 'int' changes value from 4.5 to 4}}
         // expected-note@-2 {{insert an explicit cast to silence this issue}}
-        isolated.insert(history:{4,7.7,8}); // expected-error {{Cannot convert from 'void' to 'int []' for parameter 'history'}}
+        isolated.insert(history:{4,7.7,8}); // expected-error {{Cannot convert from 'initializer list' to 'int []' for parameter 'history'.}}
     }
 }

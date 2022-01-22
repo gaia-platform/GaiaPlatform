@@ -5568,7 +5568,7 @@ ExprResult Sema::ActOnCallExpr(Scope *Scope, Expr *Fn, SourceLocation LParenLoc,
               if(Context.getBaseElementType(parameterType) != initList->getInit(idx)->getType())
               {
                 Diag(LParenLoc, diag::err_argument_type_mismatch)
-                  << argumentType.getAsString() << parameterType.getAsString() << parameterNames[i];
+                  << "initializer list" << parameterType.getAsString() << parameterNames[i];
                 return ExprError();
               }
             }
