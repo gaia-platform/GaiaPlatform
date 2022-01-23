@@ -193,8 +193,8 @@ struct base_field_def_t
 
 struct data_field_def_t : base_field_def_t
 {
-    data_field_def_t(std::string name, data_type_t type, uint16_t length, bool optional = false)
-        : base_field_def_t(name, field_type_t::data), data_type(type), length(length), optional(optional)
+    data_field_def_t(std::string name, data_type_t type, uint16_t length)
+        : base_field_def_t(name, field_type_t::data), data_type(type), length(length)
     {
     }
 
