@@ -42,56 +42,10 @@ protected:
 
 field_def_list_t gaia_db_extract_test::test_table_fields;
 
-// Note: the specific values of this table may change with catalog enhancements.
-// If that has an effect on this test, it may be better to verify the existence
-// of known fields, like "larger_value" or "age".
-constexpr char c_expected_table[] = "{"
-                                    "\"fields\": ["
-                                    "{"
-                                    "\"id\": 64,"
-                                    "\"name\": \"larger_value\","
-                                    "\"position\": 4,"
-                                    "\"repeated_count\": 1,"
-                                    "\"type\": \"double\""
-                                    "},"
-                                    "{"
-                                    "\"id\": 63,"
-                                    "\"name\": \"value\","
-                                    "\"position\": 3,"
-                                    "\"repeated_count\": 1,"
-                                    "\"type\": \"float\""
-                                    "},"
-                                    "{"
-                                    "\"id\": 62,"
-                                    "\"name\": \"age\","
-                                    "\"position\": 2,"
-                                    "\"repeated_count\": 1,"
-                                    "\"type\": \"int8\""
-                                    "},"
-                                    "{"
-                                    "\"id\": 61,"
-                                    "\"name\": \"name\","
-                                    "\"position\": 1,"
-                                    "\"repeated_count\": 1,"
-                                    "\"type\": \"string\""
-                                    "},"
-                                    "{"
-                                    "\"id\": 60,"
-                                    "\"name\": \"id\","
-                                    "\"position\": 0,"
-                                    "\"repeated_count\": 1,"
-                                    "\"type\": \"int64\""
-                                    "}"
-                                    "],"
-                                    "\"id\": 59,"
-                                    "\"name\": \"test_table\","
-                                    "\"type\": 3905506732"
-                                    "}";
-
 // TODO: This test is unstable as IDs are not guaranteed to be the same.
 // Compare a JSON-formatted query result to a known good result. Use a JSON
 // comparison method that is white-space and ordering independent.
-TEST_F(gaia_db_extract_test, DISABLED_extract_catalog)
+TEST_F(gaia_db_extract_test, extract_catalog)
 {
     create_database("extract_test", false);
     create_table(c_table_name, test_table_fields);
@@ -99,28 +53,49 @@ TEST_F(gaia_db_extract_test, DISABLED_extract_catalog)
     // The gaia_db_extract_initialize() is actually only needed if rows must be found
     // through reflection. So this should work.
     auto extracted_catalog = gaia_db_extract("", "", c_start_at_first, c_row_limit_unlimited);
+    size_t field_count = 0;
 
     json_t json_object = json_t::parse(extracted_catalog);
-    json_t expected_json = json_t::parse(c_expected_table);
-
-    bool found_match = false;
 
     for (auto& json_databases : json_object["databases"])
     {
         if (!json_databases["name"].get<string>().compare("extract_test"))
         {
-            for (auto& json_tables : json_databases["tables"])
+            for (const auto& json_tables : json_databases["tables"])
             {
-                if (expected_json == json_tables)
+                for (const auto& json_fields : json_tables["fields"])
                 {
-                    found_match = true;
-                    break;
+                    if (!json_fields["name"].get<string>().compare("larger_value"))
+                    {
+                        EXPECT_EQ(json_fields["type"].get<string>().compare("double"), 0);
+                        field_count++;
+                    }
+                    else if (!json_fields["name"].get<string>().compare("value"))
+                    {
+                        EXPECT_EQ(json_fields["type"].get<string>().compare("float"), 0);
+                        field_count++;
+                    }
+                    else if (!json_fields["name"].get<string>().compare("age"))
+                    {
+                        EXPECT_EQ(json_fields["type"].get<string>().compare("int8"), 0);
+                        field_count++;
+                    }
+                    else if (!json_fields["name"].get<string>().compare("name"))
+                    {
+                        EXPECT_EQ(json_fields["type"].get<string>().compare("string"), 0);
+                        field_count++;
+                    }
+                    else if (!json_fields["name"].get<string>().compare("id"))
+                    {
+                        EXPECT_EQ(json_fields["type"].get<string>().compare("int64"), 0);
+                        field_count++;
+                    }
                 }
             }
         }
     }
 
-    ASSERT_TRUE(found_match);
+    EXPECT_EQ(field_count, 5);
 }
 
 // Exercise the ability to scan through a database table as a sequence of blocks

@@ -9,6 +9,8 @@
 #include <memory>
 #include <vector>
 
+#include <json.hpp>
+
 #include "gaia/exceptions.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
@@ -19,7 +21,6 @@
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 
-#include "json.hpp"
 #include "table_iterator.hpp"
 
 using namespace gaia::common;
