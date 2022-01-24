@@ -11,7 +11,6 @@ Module to search for and remove any occurences of multiple empty lines.
 
 import argparse
 import sys
-import os
 
 __DEFAULT_FILE_ENCODING = "utf-8"
 
@@ -32,11 +31,19 @@ def __process_command_line():
     return parser.parse_args()
 
 
-def __check_file(filename):
+def __check_file(filename, prefix_lines_array):
 
     with open(filename, mode="rt", encoding=__DEFAULT_FILE_ENCODING) as file_processed:
         lines = file_processed.readlines()
-    return True
+
+    did_all_lines_match = len(lines) >= len(prefix_lines_array)
+    if did_all_lines_match:
+        for prefix_line_index, prefix_line in enumerate(prefix_lines_array):
+            input_line = lines[prefix_line_index][0:-1]
+            did_all_lines_match = input_line == prefix_line
+            if not did_all_lines_match:
+                break
+    return did_all_lines_match
 
 
 def process_script_action():
@@ -47,13 +54,20 @@ def process_script_action():
 
     return_code = 0
 
-    fg = args.file_prefix.replace("\\n", "\n")
-    print(str(fg))
-
+    prefix_lines_array = args.file_prefix.replace("\\n", "\n").split("\n")
     for filename in args.filenames:
-        if __check_file(filename):
-            print(f"Fixing {filename}")
+        if not __check_file(filename, prefix_lines_array):
+            print(f"Missing prefix: {filename}")
             return_code = 1
+
+    if return_code:
+        print("")
+        print(
+            "The files with the above file paths do not contain the specified prefix of:"
+        )
+        print("```")
+        print("\n".join(prefix_lines_array))
+        print("```")
 
     return return_code
 
