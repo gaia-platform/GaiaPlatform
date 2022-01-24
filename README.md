@@ -98,7 +98,6 @@ make install
 
 You will need to run the following commands:
 
-
 ```bash
 sudo apt-get install build-essential
 

@@ -1245,7 +1245,6 @@ TEST_F(event_manager_test, forward_chain_field_rollback)
     uninstall_transaction_hooks();
 }
 
-
 // TODO[GAIAPLAT-308]: Event logging does not happen since we don't have trim.
 // The following two tests will only verify that there are no entries in the
 // event log.
