@@ -10,7 +10,6 @@
 #include <string>
 
 #include <flatbuffers/idl.h>
-#include <flatbuffers/util.h>
 
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/retail_assert.hpp"
@@ -172,9 +171,10 @@ vector<uint8_t> generate_bin(const string& fbs, const string& json)
     parsing_result = parser.Parse(json.c_str());
     ASSERT_INVARIANT(parsing_result == true, "Invalid FlatBuffers JSON!");
 
-    return vector(
+    // Use the std::vector (begin, end) iterator constructor.
+    return {
         parser.builder_.GetBufferPointer(),
-        parser.builder_.GetBufferPointer() + parser.builder_.GetSize());
+        parser.builder_.GetBufferPointer() + parser.builder_.GetSize()};
 }
 
 } // namespace catalog
