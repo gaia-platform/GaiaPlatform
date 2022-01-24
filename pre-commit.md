@@ -11,6 +11,9 @@ After installation using `pip install pre-commit`, executing `pre-commit run --a
 
 Note that `pre-commit` is also implemented as part of our GitHub Actions workflow, and will fail the workflow if they do not pass.
 
+This file is mainly to include notes on the various pre-commit checks we use, as well as ones that we have tried and discarded.
+For more information on why we are using any of these hooks, please refer to the [Coding Guidelines](docs/coding-guidelines.md) document.
+
 ### Generic Checks
 
 - check for merge conflicts
@@ -21,6 +24,10 @@ Note that `pre-commit` is also implemented as part of our GitHub Actions workflo
   - none of our projects should use TAB characters
 - check for CRLF sequence in files
   - since we are all developing on Ubuntu, none of our files should have the Windows end of line sequence
+- single empty line at end of file
+  - posix compliance
+- no trailing spaces at end of line
+  - hard to see in some editors
 
 ### C++ Files
 
