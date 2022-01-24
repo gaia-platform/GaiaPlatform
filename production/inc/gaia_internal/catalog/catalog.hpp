@@ -239,6 +239,10 @@ struct data_field_def_t : base_field_def_t
     bool active = false;
 
     bool unique = false;
+
+    // TODO: we don't have a way to define optional in the DDL yet,
+    //  hence all the fields are non-optional by default.
+    bool optional = false;
 };
 
 using composite_name_t = std::pair<std::string, std::string>;

@@ -48,7 +48,6 @@ table configuration (
     right_widget_bot                    references robot using right_widget_botx
 )
 
-
 --
 -- Simulation objects
 --
@@ -220,7 +219,6 @@ table delayed_event (
     event_requeued                      bool,
     delayed_id                          uint64
 )
-
 
 --
 -- General Events
@@ -411,7 +409,6 @@ table bot_out_of_battery_event (
     robot_id                            uint16
 )
 
-
 --
 -- Pallet Events
 --
@@ -446,7 +443,6 @@ table pallet_shipped_event (
     pallet_id                           string
 )
 
-
 --
 -- Widget Events
 --
@@ -480,7 +476,6 @@ table widget_production_finished_event (
     widget                              references widget,
     widget_id                           string
 )
-
 
 --
 -- Tasks

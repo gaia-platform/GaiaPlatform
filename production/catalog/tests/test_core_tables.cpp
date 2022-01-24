@@ -78,7 +78,8 @@ TEST_F(gaia_core_tables_test, create_core_table_types)
         c_sample_boolean,
         c_sample_boolean,
         c_sample_boolean,
-        c_hash_value);
+        c_hash_value,
+        c_sample_boolean);
     EXPECT_NE(gaia_field_id, c_invalid_gaia_id);
 
     // gaia_index_t

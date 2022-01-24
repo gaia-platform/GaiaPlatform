@@ -10,7 +10,6 @@
 #include <string>
 
 #include <flatbuffers/idl.h>
-#include <flatbuffers/util.h>
 
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/retail_assert.hpp"
@@ -171,9 +170,11 @@ std::vector<uint8_t> generate_bfbs(const string& fbs)
     bool parsing_result = fbs_parser.Parse(fbs.c_str());
     ASSERT_PRECONDITION(parsing_result == true, "Invalid FlatBuffers schema!");
     fbs_parser.Serialize();
-    return std::vector<uint8_t>(
+
+    // Use the std::vector (begin, end) iterator constructor.
+    return {
         fbs_parser.builder_.GetBufferPointer(),
-        fbs_parser.builder_.GetBufferPointer() + fbs_parser.builder_.GetSize());
+        fbs_parser.builder_.GetBufferPointer() + fbs_parser.builder_.GetSize()};
 }
 
 } // namespace catalog

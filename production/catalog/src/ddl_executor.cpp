@@ -14,7 +14,6 @@
 #include <utility>
 
 #include "gaia/common.hpp"
-#include "gaia/exception.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
@@ -119,6 +118,7 @@ void ddl_executor_t::bootstrap_catalog()
         //     active bool,
         //     unique bool,
         //     hash string,
+        //     optional bool,
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
@@ -129,6 +129,7 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("active", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("unique", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("hash", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("optional", data_type_t::e_bool, 1));
         create_table_impl(
             c_catalog_db_name, c_gaia_field_table_name, fields, is_system, throw_on_exists, auto_drop,
             static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_field));
@@ -954,7 +955,8 @@ gaia_id_t ddl_executor_t::create_table_impl(
             false,
             data_field->active,
             data_field->unique,
-            c_empty_hash);
+            c_empty_hash,
+            data_field->optional);
         // Connect the field to the table it belongs to.
         gaia_table_t::get(table_id).gaia_fields().insert(field_id);
         // Create an unique range index for the unique field.
@@ -1096,7 +1098,7 @@ gaia_id_t ddl_executor_t::create_index(
 
     gaia_table_t::get(table_id).gaia_indexes().insert(index_id);
 
-    // Creating an unique index on a single field automatically makes the field
+    // Creating a unique index on a single field automatically makes the field
     // unique. Do nothing for multiple-field index creation because we do not
     // support unique constraints for composite keys at the moment.
     if (unique && field_ids.size() == 1)
