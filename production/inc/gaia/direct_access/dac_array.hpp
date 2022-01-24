@@ -24,18 +24,18 @@ class dac_vector_iterator_t
 {
 public:
     dac_vector_iterator_t()
-        : m_iterator_data(nullptr), m_index(0)
+        : m_iterator_data(nullptr)
     {
     }
 
-    explicit dac_vector_iterator_t(const T_class* iterator_data, uint32_t index)
-        : m_iterator_data(iterator_data), m_index(index)
+    explicit dac_vector_iterator_t(const T_class* iterator_data)
+        : m_iterator_data(iterator_data)
     {
     }
 
     dac_vector_iterator_t<T_class>& operator++()
     {
-        ++m_index;
+        ++m_iterator_data;
         return *this;
     }
     dac_vector_iterator_t<T_class> operator++(int)
@@ -46,26 +46,25 @@ public:
     }
     bool operator==(const dac_vector_iterator_t& rhs) const
     {
-        return m_iterator_data == rhs.m_iterator_data && m_index == rhs.m_index;
+        return m_iterator_data == rhs.m_iterator_data;
     }
     bool operator!=(const dac_vector_iterator_t& rhs) const
     {
-        return m_iterator_data != rhs.m_iterator_data || m_index != rhs.m_index;
+        return m_iterator_data != rhs.m_iterator_data;
     }
 
     const T_class& operator*() const
     {
-        return *(m_iterator_data + m_index);
+        return *(m_iterator_data);
     }
 
     const T_class* operator->() const
     {
-        return m_iterator_data + m_index;
+        return m_iterator_data;
     }
 
 protected:
     const T_class* m_iterator_data;
-    uint32_t m_index;
 };
 // A pimpl style wrapper class that encapsulates flatbuffers::Vector.
 template <typename T_type>
@@ -109,12 +108,12 @@ public:
 
     dac_vector_iterator_t<T_type> begin() const
     {
-        return dac_vector_iterator_t<T_type>(data(), 0);
+        return dac_vector_iterator_t<T_type>(data());
     }
 
     dac_vector_iterator_t<T_type> end() const
     {
-        return dac_vector_iterator_t<T_type>(data(), size());
+        return dac_vector_iterator_t<T_type>(data() + size());
     }
 
 private:
