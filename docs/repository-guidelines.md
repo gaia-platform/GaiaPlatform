@@ -34,7 +34,7 @@ This application provides a very clean and modular way to add actions (referred 
 #### Fixers and Checkers
 
 There are two types of Pre-Commit hooks that are available.
-The Pre-Commit homepage does not go into that concept until later in the (very long) home page, which has caused confusion. 
+The Pre-Commit homepage does not go into that concept until later in the (very long) home page, which has caused confusion.
 The Checker hooks scan for a given set of circumstances and fail the check if that set of circumstances is present.
 If you run Pre-Commit again without addressing those circumstances, you should expect to see the same failure.
 

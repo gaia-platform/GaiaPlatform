@@ -12,6 +12,7 @@ repos:
     - id: check-merge-conflict
     - id: check-yaml
     - id: end-of-file-fixer
+      exclude: ^(production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h)
     - id: trailing-whitespace
 - repo: https://github.com/Lucas-C/pre-commit-hooks
   rev: v1.1.10
