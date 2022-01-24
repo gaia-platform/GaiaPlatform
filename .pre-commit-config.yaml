@@ -1,6 +1,6 @@
 fail_fast: false
 
-exclude: ^(data|scratch|third_party)/
+exclude: (^(data|scratch|third_party)/)|(^(production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h))
 repos:
 # Enabling this repo produces a list of files that are to be scanned.  DEBUG ONLY!
 # - repo: meta
@@ -27,7 +27,7 @@ repos:
         - --Werror
         - --style=file
         - -i
-      exclude: ^(production/tests/workloads/template/json.hpp|production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h)
+      exclude: ^(production/tests/workloads/template/json.hpp)
 
 # Waiting on https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1848 and https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1849
 # - repo: https://github.com/pocc/pre-commit-hooks
@@ -60,6 +60,7 @@ repos:
       args:
         - --check
         - --diff
+
 - repo: https://github.com/PyCQA/flake8
   rev: 4.0.1
   hooks:
@@ -67,9 +68,18 @@ repos:
       exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py|production/db/core/)
       args:
         - --ignore=E203,E501,W503
+
 - repo: https://github.com/PyCQA/pylint
   rev: v2.11.1
   hooks:
     - id: pylint
       exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py|production/db/core/|production/tests/python/ps_mem.py)
       args: [--disable=R0801]
+
+- repo: local
+  hooks:
+    - id: fix_double_empty_lines
+      name: Eliminate multiple empty lines
+      entry: dev_tools/github-actions/pre-commit-hooks/fix_double_empty_lines.py
+      language: python
+      exclude: .py$|^(production/tests/workloads/template/json.hpp|production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h|production/licenses/)

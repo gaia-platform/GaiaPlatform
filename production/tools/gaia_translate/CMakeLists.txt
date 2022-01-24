@@ -98,8 +98,6 @@ if("$CACHE{ENABLE_SDK_TESTS}")
   )
   target_include_directories(test_metarule3_ruleset PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
-
-
   # Smoke test for basic ruleset translation functionality
   add_gtest(test_translation_engine
     "tests/test_translation_engine.cpp;${RULES_TEST_HELPERS}"

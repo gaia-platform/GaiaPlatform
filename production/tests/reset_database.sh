@@ -180,10 +180,8 @@ TEMP_FILE=/tmp/reset.db.tmp
 # Set up any local script variables.
 service_name=gaia
 
-
 # Parse any command line values.
 parse_command_line "$@"
-
 
 # Clean entrance into the script.
 start_process
