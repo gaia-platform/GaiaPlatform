@@ -370,13 +370,23 @@ void update_payload(gaia_ptr_t& obj, size_t data_size, const void* data)
 {
     db_object_t* old_this = obj.to_ptr();
     gaia_offset_t old_offset = obj.to_offset();
-    size_t references_size = old_this->num_references * sizeof(gaia_id_t);
 
     obj.update_payload_no_txn(data_size, data);
 
+    // We can't propagate events for system objects otherwise
+    // ddl_executor_t::create_table_impl() fail when
+    // updating the gaia_table during catalog_bootstrap().
+    if (is_catalog_core_object(obj.type()))
+    {
+        obj.finalize_update(old_offset);
+        return;
+    }
+
+    size_t references_size = old_this->num_references * sizeof(gaia_id_t);
     auto new_data = reinterpret_cast<const uint8_t*>(data);
     auto old_data = reinterpret_cast<const uint8_t*>(old_this->payload);
     const uint8_t* old_data_payload = old_data + references_size;
+
     field_position_list_t changed_fields = compute_payload_diff(obj.type(), old_data_payload, new_data);
 
     auto_connect(
