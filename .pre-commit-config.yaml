@@ -82,4 +82,4 @@ repos:
       name: Eliminate multiple empty lines
       entry: dev_tools/github-actions/pre-commit-hooks/fix_double_empty_lines.py
       language: python
-      exclude: .py$|^(production/tests/workloads/template/json.hpp|production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h)
+      exclude: .py$|^(production/tests/workloads/template/json.hpp|production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h|production/licenses/)
