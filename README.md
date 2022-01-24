@@ -5,8 +5,8 @@ GaiaPlatform - Main repository
 ## Coding Guidelines
 
 To maintain a healthy codebase, we have a collection of guidelines to use when authoring code.
-To enforce that those guidelines are consistantly applied, where possible we use the [Pre-Commit](https://pre-commit.com) application with  hooks that match the guidelines.
-These guidelines and information on which pre-commit hooks are in place for those guidelines are located in the [Coding Guidelines](docs/coding-guidelines.md) document.
+To enforce that those guidelines are consistantly applied, where possible we use the [Pre-Commit](https://pre-commit.com) application with hooks that match the guidelines.
+These guidelines and information on which pre-commit hooks are in place for those guidelines are located in the [Repository Guidelines](docs/repository-guidelines.md) document.
 Please review these guidelines before creating or changing any source code within the codebase.
 
 ## Environment requirements

@@ -1,4 +1,17 @@
-# Coding Guidelines
+# Repository Guidelines
+
+## Table Of Contents
+
+- [File Guidelines](#file-guidelines)
+  - [Using Pre-Commit](#using-pre-commit)
+  - [General File Guidelines](#general-file-guidelines)
+  - [C++ File Guidelines](#c++-file-guidelines)
+  - [Python File Guidelines](#python-file-guidelines)
+  - [Bash File Guidelines](#bash-file-guidelines)
+  - [Markdown File Guidelines](#markdown-file-guidelines)
+
+
+## File Guidelines
 
 These guidelines apply to any files that are committed to this project.
 Where possible, these guidelines use our [Pre-Commit](../pre-commit.md) infrastructure to verify that the guidelines are being applied uniformly against our portions of the code base.
@@ -12,37 +25,32 @@ Please note that these guidelines are generalizations, and are not absolutes.
 If there is an exception to the guidelines, they are on a case by case basis and should be documented as such.
 However, where possible we should be trying to adhere to these guidelines unless there is a show-stopper that is preventing us from doing so.
 
-## Table Of Contents
+### Using Pre-Commit
 
-[Using Pre-Commit](#using-pre-commit)
-[General File Guidelines](#general-file-guidelines)
-[C++ File Guidelines](#c++-file-guidelines)
-[Python File Guidelines](#python-file-guidelines)
-[Bash File Guidelines](#bash-file-guidelines)
-[Markdown File Guidelines](#markdown-file-guidelines)
+Part of the standard Git application is the ability to specify actions to take before a commit is submitted to the repository.
+While people often "roll their own", a popular option is to use the [Pre-Commit](https://pre-commit.com) application.
+This application provides a very clean and modular way to add actions (referred to as checks) to a Git repository.
 
-## Using Pre-Commit
+#### Fixers and Checkers
 
-### Fixers and Checkers
-
-The [Pre-Commit Homepage](https://pre-commit.com) does not go into it until later in the (very long) home page, but there are two types of hooks that are available.
-
+There are two types of Pre-Commit hooks that are available.
+The Pre-Commit homepage does not go into that concept until later in the (very long) home page, which has caused confusion. 
 The Checker hooks scan for a given set of circumstances and fail the check if that set of circumstances is present.
 If you run Pre-Commit again without addressing those circumstances, you should expect to see the same failure.
 
 The Fixer hooks scan for a given set of circumstances and fail the check if that set of circumstances is present.
-However, unlike the Checker hooks, these hooks will attempt (and usually succeed) to fix this issue that they failed on.
+However, unlike the Checker hooks, these hooks will attempt (and usually succeed) to fix the issue that they failed on.
 As such, if you execute Pre-Commit again, you should expect to see the failure disappear and have changed files appear when you enter `git status` in the repository.
 This process is specific to Pre-Commit's design.
 It was done this way to allow you a chance to verify any changed files before committing them to the repository.
 
-### Installing Pre-Commit
+#### Installing Pre-Commit
 
 The instructions at the [Pre-Commit Homepage](https://pre-commit.com) are very easy to follow for installation of the pre-commit hooks.
-Once the Pre-Commit application has been installed, you will need to following the instructions for installing it as a pre-commit hook by using the command line: `pre-commit install`.
+Once the Pre-Commit application has been installed, you will need to follow the instructions for installing it as a pre-commit hook by using the command line: `pre-commit install`.
 In addition, as we use `shellcheck` for validating Bash scripts, you will need to do `sudo apt-get install -y shellcheck` to allow the shellcheck hook to work properly.
 
-### Invoking Pre-Commit
+#### Invoking Pre-Commit
 
 Generally speaking, after following the above instructions, the Pre-Commit application will be executed as part of your local Git commit process.
 However, if you want to execute the tool by itself before committing, you can invoke it manually using `pre-commit` with no options.
@@ -65,15 +73,14 @@ Trim Trailing Whitespace.................................................Failed
 - files were modified by this hook
 
 Fixing docs/coding-guidelines.md
-
 ```
 
 Given this output, the observation is that the file `docs/coding-guidelines.md` (this file) contained at least one line that had a trailing whitespace.
 Furthermore, because the failure report started with `Fixing`, it can be inferred that the `trailing-whitespace` hook is a fixer hook, and fixed the issue in that same file.
 
-## General File Guidelines
+### General File Guidelines
 
-### Lines Should Not Have Trailing Whitespace
+#### Lines Should Not Have Trailing Whitespace
 
 | Pre-Commit Hook | Hook Id |
 | -- |  -- |
@@ -81,25 +88,26 @@ Furthermore, because the failure report started with `Fixing`, it can be inferre
 
 Not all editors display trailing whitespace clearly.
 As such, it can often be difficult to spot the trailing whitespace, which may influence the data on that line in an unexpected manner.
-As none of the languages we use requires whitespaces at the end of a line, our guidelines is to not have it present.
+As none of the languages we use requires whitespaces at the end of a line, our guideline is to not have it present.
 
-### Every File Should End With A Single Blank Line
+#### Every File Should End With A Single Blank Line
 
 | Pre-Commit Hook | Hook Id |
 | -- |  -- |
 | https://github.com/pre-commit/pre-commit-hooks | end-of-file-fixer |
 
 It is a [common standard](https://stackoverflow.com/questions/2287967/why-is-it-recommended-to-have-empty-line-in-the-end-of-a-source-file#:~:text=The%20empty%20line%20in%20the,can%20handle%20the%20EOF%20marker.) to end each source file with a single blank line.
-We adhere to this guideline, as in a Linux world, is just makes sense. [Ed Note: Better reason?]
+We adhere to this guideline, as in a Linux world, is just makes sense.
+In addition, GitHub also flags the lack of the terminating endline too when it displays the files, so why do things that result in red icons in GitHub Pull Requests?
 
-### Files Should Not Contain Tab Characters or the CRLF Character Sequence
+#### Files Should Not Contain Tab Characters or the CRLF Character Sequence
 
 | Pre-Commit Hook | Hook Id |
 | -- |  -- |
 | https://github.com/Lucas-C/pre-commit-hooks | forbid-crlf |
 | https://github.com/Lucas-C/pre-commit-hooks | forbid-tabs |
 
-### Files With Merge Conflicts Should Not Be Checked In
+#### Files With Merge Conflicts Should Not Be Checked In
 
 | Pre-Commit Hook | Hook Id |
 | -- |  -- |
@@ -109,7 +117,7 @@ This is hopefully a bit of an obvious guideline.
 However good our editors are, sometimes a file with merge conlict markers can become part of a commit and make it into the code base.
 Therefore, the guideline to not have merge conflict markers in our codebase is checked for as part of our pre-commit checks.
 
-### YAML Files Should Be Cleanly Parseable
+#### YAML Files Should Be Cleanly Parseable
 
 | Pre-Commit Hook | Hook Id |
 | -- |  -- |
@@ -120,7 +128,7 @@ As we try and automated more with our codebase, the number of YAML files present
 While the format for a YAML file is pretty easy to understand, it is also pretty easy to get something slightly wrong.
 Therefore, we check that only cleanly parseable YAML files are added to our codebase.
 
-### Copyright notes
+#### Copyright notes
 
 Use the following copyright note with your code. Several language specific versions are provided below.
 
@@ -141,24 +149,27 @@ Use the following copyright note with your code. Several language specific versi
 ---------------------------------------------
 ```
 
-## C++ File Guidelines
+### C++ File Guidelines
 
-### Consistent File Formatting Using Clang-Format
+#### Consistent File Formatting Using Clang-Format
 
 | Pre-Commit Hook | Hook Id |
 | -- |  -- |
 | https://github.com/pre-commit/mirrors-clang-format | clang-format |
 
 To have consistent formatting in our C++ files, the `clang-format` tool is applied using [this settings file](../.clang-format).
-Our coding style is roughly equivalent to the Google coding style with a couple of small changes.
+Our coding style is roughly equivalent to the LLVM coding style with a couple of small changes.
 
-Note that in the past, `clang-format` has reordered the includes and broken the build.
-There are ways to avoid it.
-Please read [this article](https://stackoverflow.com/questions/37927553/can-clang-format-break-my-code) for more information.
+Note that in the past, various actions have resulted in a broken build.
+The first action is `clang-format` reordering the includes in a file, breaking the build in the process.
+To avoid that side-effect, please read [this article](https://stackoverflow.com/questions/37927553/can-clang-format-break-my-code).
+The second action is changing versions of the Clang-Format tool.
+When that has happened, we have had to update our [settings file](../.clang-format).
+While the second action happens less frequently, it has happened enough times that we though it prudent to mention it here.
 
 Note that copies of third-party files (like `json.hpp`) and committed generated files (like `production/catalog/src/gaia_catalog.cpp`) are eligible for being excluded from being scanned.
 
-### Linting C++ Using Clang-Tidy
+#### Linting C++ Using Clang-Tidy
 
 | Pre-Commit Hook | Hook Id |
 | -- |  -- |
@@ -170,9 +181,9 @@ At the moment, any produced warnings will only show up in the compiler output, b
 However, in the near future, we hope to enable a setting in `clang-tidy` that would change the warnings to errors and fail the build.
 As that is our goal, please do your best to reduce the number of warnings and to not introduce any new warnings.
 
-## Python File Guidelines
+### Python File Guidelines
 
-### Using Standard Python Tools
+#### Using Standard Python Tools
 
 | Pre-Commit Hook | Hook Id |
 | -- |  -- |
@@ -184,18 +195,18 @@ The "holy trinity" of development tools for most Python developers are Black, Fl
 Black is simply a code formatter that most Python developers use in its default settings, which are PEP8 compliance.
 Both Flake8 and PyLint are common linters that provide enough benefit that most Python developers keep them around.
 
-## Bash File Guidelines
+### Bash File Guidelines
 
-### Bash Scripts Should Be Clearly Identifyable As Such
+#### Bash Scripts Should Be Clearly Identifyable As Such
 
 | Pre-Commit Hook | Hook Id |
 | -- |  -- |
 | https://github.com/jumanjihouse/pre-commit-hooks | script-must-have-extension |
 
 We have lots of different types of files in our code base, so there is a clear advantage to having the filename provide a clear indication of what type of file it is.
-This guideline meerly states that any Bash script should end with a `.sh` extension, and the `script-must-have-extension` hook enforces this.
+This guideline merely states that any Bash script should end with a `.sh` extension, and the `script-must-have-extension` hook enforces this.
 
-### Linting Bash Using Shellcheck
+#### Linting Bash Using Shellcheck
 
 | Pre-Commit Hook | Hook Id |
 | -- |  -- |
@@ -204,7 +215,7 @@ This guideline meerly states that any Bash script should end with a `.sh` extens
 Shellcheck is a very efficient linter for Bash shell scripts.
 It is primed with a good set of checks that aim to avoid the issues that are most often found with Bash scripts.
 
-## Markdown File Guidelines
+### Markdown File Guidelines
 
 * Keep sentences on a single line.
   This makes it easier to update them.
