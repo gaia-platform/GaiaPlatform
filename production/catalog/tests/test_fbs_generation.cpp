@@ -6,6 +6,8 @@
 #include <flatbuffers/idl.h>
 #include <gtest/gtest.h>
 
+#include "gaia/direct_access/auto_transaction.hpp"
+
 #include "gaia_internal/db/db_test_base.hpp"
 
 #include "fbs_generator.hpp"
@@ -15,6 +17,7 @@ using namespace std;
 using namespace gaia::catalog;
 using namespace gaia::common;
 using namespace gaia::db;
+using namespace gaia::direct_access;
 
 class fbs_generation_test : public db_test_base_t
 {
@@ -37,19 +40,9 @@ TEST_F(fbs_generation_test, generate_fbs_from_catalog)
     string test_table_name{"test_fbs_generation"};
 
     gaia_id_t table_id = create_table(test_table_name, test_table_fields);
+
+    auto_transaction_t txn;
     string fbs = generate_fbs(table_id);
-
-    flatbuffers::Parser fbs_parser;
-
-    EXPECT_GT(fbs.size(), 0);
-    ASSERT_TRUE(fbs_parser.Parse(fbs.c_str()));
-}
-
-TEST_F(fbs_generation_test, generate_fbs_from_table_definition)
-{
-    string test_table_name{"test_fbs_generation"};
-
-    string fbs = generate_fbs("", test_table_name, test_table_fields);
 
     flatbuffers::Parser fbs_parser;
 
@@ -61,7 +54,10 @@ TEST_F(fbs_generation_test, generate_bfbs)
 {
     string test_table_name{"test_fbs_generation"};
 
-    string fbs = generate_fbs("", test_table_name, test_table_fields);
+    gaia_id_t table_id = create_table(test_table_name, test_table_fields);
+
+    auto_transaction_t txn;
+    string fbs = generate_fbs(table_id);
     vector<uint8_t> bfbs = generate_bfbs(fbs);
 
     ASSERT_GT(bfbs.size(), 0);
