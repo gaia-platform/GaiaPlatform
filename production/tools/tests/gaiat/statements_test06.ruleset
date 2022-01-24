@@ -14,5 +14,4 @@ ruleset test141
     }
 }
 
-
 // CHECK: expression result unused

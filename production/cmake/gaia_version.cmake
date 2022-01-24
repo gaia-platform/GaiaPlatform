@@ -3,7 +3,6 @@
 # All rights reserved.
 #############################################
 
-
 option(GIT_HEAD_HASH "Hash of the current commit.")
 option(GIT_MASTER_HASH "Hash of the latests origin/master commit.")
 
