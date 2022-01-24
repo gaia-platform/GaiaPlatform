@@ -10,7 +10,6 @@
   - [Bash File Guidelines](#bash-file-guidelines)
   - [Markdown File Guidelines](#markdown-file-guidelines)
 
-
 ## File Guidelines
 
 These guidelines apply to any files that are committed to this project.
