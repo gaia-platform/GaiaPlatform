@@ -908,26 +908,22 @@ gaia_id_t ddl_executor_t::create_table_impl(
         field_names.insert(field_name);
     }
 
-    string fbs{generate_fbs(in_context(db_name), table_name, fields)};
-    const std::vector<uint8_t> bfbs = generate_bfbs(fbs);
-    const std::vector<uint8_t> bin = generate_bin(fbs, generate_json(fields));
-
     gaia_type_t table_type
         = (fixed_type == c_invalid_gaia_type)
         ? gaia_type_t(generate_table_type(in_context(db_name), table_name))
         : fixed_type;
 
-    gaia_id_t table_id = gaia_table_t::insert_row(
-        table_name.c_str(),
-        table_type,
-        is_system,
-        bfbs,
-        bin);
-
-    gaia_log::catalog().debug("Created table '{}', type:'{}', id:'{}'", table_name, table_type, table_id);
+    gaia_table_writer table_w;
+    table_w.name = table_name.c_str();
+    table_w.type = table_type;
+    table_w.is_system = true;
+    gaia_id_t table_id = table_w.insert_row();
+    gaia_table_t gaia_table = gaia_table_t::get(table_id);
 
     // Connect the table to the database.
     gaia_database_t::get(db_id).gaia_tables().insert(table_id);
+
+    gaia_log::catalog().debug("Created table '{}', type:'{}', id:'{}'", table_name, table_type, table_id);
 
     uint16_t data_field_position = 0;
     for (const auto& field : fields)
@@ -948,7 +944,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
             data_field->unique,
             data_field->optional);
         // Connect the field to the table it belongs to.
-        gaia_table_t::get(table_id).gaia_fields().insert(field_id);
+        gaia_table.gaia_fields().insert(field_id);
         // Create an unique range index for the unique field.
         if (data_field->unique)
         {
@@ -957,10 +953,24 @@ gaia_id_t ddl_executor_t::create_table_impl(
                 true,
                 static_cast<uint8_t>(index_type_t::range),
                 {field_id});
-            gaia_table_t::get(table_id).gaia_indexes().insert(index_id);
+            gaia_table.gaia_indexes().insert(index_id);
         }
         data_field_position++;
     }
+
+    // After creating the table, generates the bfbs and the serialization template.
+    // using the newly generated table_id.
+    string fbs{generate_fbs(table_id)};
+    const std::vector<uint8_t> bfbs = generate_bfbs(fbs);
+
+    bool ignore_optional = true;
+    string fbs_without_optional{generate_fbs(table_id, ignore_optional)};
+    const std::vector<uint8_t> serialization_template = generate_bin(fbs_without_optional, generate_json(table_id));
+
+    table_w = gaia_table.writer();
+    table_w.serialization_template = serialization_template;
+    table_w.binary_schema = bfbs;
+    table_w.update_row();
 
     return table_id;
 }
