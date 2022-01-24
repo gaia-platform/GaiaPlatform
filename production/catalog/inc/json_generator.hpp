@@ -23,14 +23,6 @@ namespace catalog
 std::string generate_json(gaia::common::gaia_id_t table_id);
 
 /**
- * Generate a default data file (JSON) from parsing the definition of a table.
- *
- * @param fields table fields parsing result bindings
- * @return JSON file
- */
-std::string generate_json(const ddl::field_def_list_t& fields);
-
-/**
  * Generate serializations (bin) in base64 encoded string format.
  *
  * @param fbs flatbuffers schema

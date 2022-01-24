@@ -908,26 +908,22 @@ gaia_id_t ddl_executor_t::create_table_impl(
         field_names.insert(field_name);
     }
 
-    string fbs{generate_fbs(in_context(db_name), table_name, fields)};
-    const std::vector<uint8_t> bfbs = generate_bfbs(fbs);
-    const std::vector<uint8_t> bin = generate_bin(fbs, generate_json(fields));
-
     gaia_type_t table_type
         = (fixed_type == c_invalid_gaia_type)
         ? gaia_type_t(generate_table_type(in_context(db_name), table_name))
         : fixed_type;
 
-    gaia_id_t table_id = gaia_table_t::insert_row(
-        table_name.c_str(),
-        table_type,
-        is_system,
-        bfbs,
-        bin);
-
-    gaia_log::catalog().debug("Created table '{}', type:'{}', id:'{}'", table_name, table_type, table_id);
+    gaia_table_writer table_w;
+    table_w.name = table_name.c_str();
+    table_w.type = table_type;
+    table_w.is_system = true;
+    gaia_id_t table_id = table_w.insert_row();
+    gaia_table_t gaia_table = gaia_table_t::get(table_id);
 
     // Connect the table to the database.
     gaia_database_t::get(db_id).gaia_tables().insert(table_id);
+
+    gaia_log::catalog().debug("Created table '{}', type:'{}', id:'{}'", table_name, table_type, table_id);
 
     uint16_t data_field_position = 0;
     for (const auto& field : fields)
@@ -948,7 +944,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
             data_field->unique,
             data_field->optional);
         // Connect the field to the table it belongs to.
-        gaia_table_t::get(table_id).gaia_fields().insert(field_id);
+        gaia_table.gaia_fields().insert(field_id);
         // Create an unique range index for the unique field.
         if (data_field->unique)
         {
@@ -957,10 +953,41 @@ gaia_id_t ddl_executor_t::create_table_impl(
                 true,
                 static_cast<uint8_t>(index_type_t::range),
                 {field_id});
-            gaia_table_t::get(table_id).gaia_indexes().insert(index_id);
+            gaia_table.gaia_indexes().insert(index_id);
         }
         data_field_position++;
     }
+
+    // After creating the table, generates the bfbs and the serialization template.
+    // using the newly generated table_id.
+    string fbs{generate_fbs(table_id)};
+    const std::vector<uint8_t> bfbs = generate_bfbs(fbs);
+
+    bool ignore_optional = true;
+    string fbs_without_optional{generate_fbs(table_id, ignore_optional)};
+    const std::vector<uint8_t> serialization_template = generate_bin(fbs_without_optional, generate_json(table_id));
+
+    // This is a workaround to avoid to use gaia_table_writer.update_row()
+    // method. The reason is that gaia_table_writer.update_row() triggers
+    // gaia::db::compute_payload_diff() which requires the type under diff
+    // (gaia_table in this case) to be in the type_id_mapping_t cache.
+    // gaia_table can't be in the type_id_mapping_t during gaia_database
+    // bootstrap, because the database is bootstrapped before the table,
+    // hence you'll get an error:
+    // "The type 'xxxx' does not exist in the catalog for payload diff!"
+    //
+    // This workaround avoids calling compute_payload_diff() hence no failure.
+    // Maybe there are cleaner ways to achieve the same result. This is the best
+    // I could come up with without modifying APIs and moving headers around.
+    gaia_ptr_t gaia_table_ptr = gaia_ptr_t::from_gaia_id(gaia_table.gaia_id());
+    internal::gaia_tableT table_w_skip_update;
+    flatbuffers::GetRoot<internal::gaia_table>(gaia_table_ptr.data())->UnPackTo(&table_w_skip_update);
+    table_w_skip_update.binary_schema = bfbs;
+    table_w_skip_update.serialization_template = serialization_template;
+    flatbuffers::FlatBufferBuilder fbb;
+    fbb.Finish(internal::gaia_table::Pack(fbb, &table_w_skip_update));
+    gaia_table_ptr.update_payload(fbb.GetSize(), fbb.GetBufferPointer());
+    fbb.Clear();
 
     return table_id;
 }
