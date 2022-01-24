@@ -18,22 +18,15 @@ namespace catalog
  * Generate FlatBuffers schema (fbs) for a catalog table.
  * The given table is the root type of the generated schema.
  *
+ * @param table_id The table id for which to generate the FlatBuffers schema
+ * @param ignore_optional This is a workaround to prevent the generation of optional
+ *        scalar values which, as of flatbuffers 2.0.0, are not supported when reading
+ *        data from JSON. When generating a fbs meant for JSON template data this
+ *        value should be true, false otherwise.
+ *        See: https://github.com/google/flatbuffers/issues/6975
  * @return generated fbs string
  */
-std::string generate_fbs(gaia::common::gaia_id_t table_id);
-
-/**
- * Generate FlatBuffers schema (fbs) from parsing result of a table.
- * Before the support of complex types, we can generate a table schema from its own own definition.
- * This method has no dependency on catalog or other table definitions.
- * Note: If we begin to supoort complex types, the method will need to be updated sigificantly.
- *
- * @param db_name database name
- * @param table_name table name
- * @param fields table fields parsing result bindings
- * @return fbs schema
- */
-std::string generate_fbs(const std::string& db_name, const std::string& table_name, const ddl::field_def_list_t& fields);
+std::string generate_fbs(gaia::common::gaia_id_t table_id, bool ignore_optional = false);
 
 /**
  * Generate binary FlatBuffers schema (bfbs) in base64 encoded string format.
