@@ -74,7 +74,7 @@ public:
 
     template<class unused_t>
     struct expr_ {
-        static gaia::expressions::expression_t<gaia_ref_anchor_t, gaia::common::gaia_id_t> gaia_id;
+        static gaia::expressions::member_accessor_t<gaia_ref_anchor_t, gaia::common::gaia_id_t> gaia_id;
     };
     using expr = expr_<void>;
 private:
@@ -85,7 +85,7 @@ namespace gaia_ref_anchor_expr {
     static auto& gaia_id = gaia_ref_anchor_t::expr::gaia_id;
 } // gaia_ref_anchor_expr
 
-template<class unused_t> gaia::expressions::expression_t<gaia_ref_anchor_t, gaia::common::gaia_id_t> gaia_ref_anchor_t::expr_<unused_t>::gaia_id{&gaia_ref_anchor_t::gaia_id};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_ref_anchor_t, gaia::common::gaia_id_t> gaia_ref_anchor_t::expr_<unused_t>::gaia_id{&gaia_ref_anchor_t::gaia_id};
 
 
 typedef gaia::direct_access::dac_writer_t<c_gaia_type_gaia_index, gaia_index_t, internal::gaia_index, internal::gaia_indexT> gaia_index_writer;
@@ -104,12 +104,12 @@ public:
 
     template<class unused_t>
     struct expr_ {
-        static gaia::expressions::expression_t<gaia_index_t, gaia::common::gaia_id_t> gaia_id;
-        static gaia::expressions::expression_t<gaia_index_t, const char*> name;
-        static gaia::expressions::expression_t<gaia_index_t, bool> unique;
-        static gaia::expressions::expression_t<gaia_index_t, uint8_t> type;
-        static gaia::expressions::expression_t<gaia_index_t, gaia::direct_access::dac_vector_t<uint64_t>> fields;
-        static gaia::expressions::expression_t<gaia_index_t, gaia_table_t> table;
+        static gaia::expressions::member_accessor_t<gaia_index_t, gaia::common::gaia_id_t> gaia_id;
+        static gaia::expressions::member_accessor_t<gaia_index_t, const char*> name;
+        static gaia::expressions::member_accessor_t<gaia_index_t, bool> unique;
+        static gaia::expressions::member_accessor_t<gaia_index_t, uint8_t> type;
+        static gaia::expressions::member_accessor_t<gaia_index_t, gaia::direct_access::dac_vector_t<uint64_t>> fields;
+        static gaia::expressions::member_accessor_t<gaia_index_t, gaia_table_t> table;
     };
     using expr = expr_<void>;
 private:
@@ -125,12 +125,12 @@ namespace gaia_index_expr {
     static auto& table = gaia_index_t::expr::table;
 } // gaia_index_expr
 
-template<class unused_t> gaia::expressions::expression_t<gaia_index_t, gaia::common::gaia_id_t> gaia_index_t::expr_<unused_t>::gaia_id{&gaia_index_t::gaia_id};
-template<class unused_t> gaia::expressions::expression_t<gaia_index_t, const char*> gaia_index_t::expr_<unused_t>::name{&gaia_index_t::name};
-template<class unused_t> gaia::expressions::expression_t<gaia_index_t, bool> gaia_index_t::expr_<unused_t>::unique{&gaia_index_t::unique};
-template<class unused_t> gaia::expressions::expression_t<gaia_index_t, uint8_t> gaia_index_t::expr_<unused_t>::type{&gaia_index_t::type};
-template<class unused_t> gaia::expressions::expression_t<gaia_index_t, gaia::direct_access::dac_vector_t<uint64_t>> gaia_index_t::expr_<unused_t>::fields{&gaia_index_t::fields};
-template<class unused_t> gaia::expressions::expression_t<gaia_index_t, gaia_table_t> gaia_index_t::expr_<unused_t>::table{&gaia_index_t::table};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_index_t, gaia::common::gaia_id_t> gaia_index_t::expr_<unused_t>::gaia_id{&gaia_index_t::gaia_id};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_index_t, const char*> gaia_index_t::expr_<unused_t>::name{&gaia_index_t::name};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_index_t, bool> gaia_index_t::expr_<unused_t>::unique{&gaia_index_t::unique};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_index_t, uint8_t> gaia_index_t::expr_<unused_t>::type{&gaia_index_t::type};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_index_t, gaia::direct_access::dac_vector_t<uint64_t>> gaia_index_t::expr_<unused_t>::fields{&gaia_index_t::fields};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_index_t, gaia_table_t> gaia_index_t::expr_<unused_t>::table{&gaia_index_t::table};
 
 
 typedef gaia::direct_access::dac_writer_t<c_gaia_type_gaia_relationship, gaia_relationship_t, internal::gaia_relationship, internal::gaia_relationshipT> gaia_relationship_writer;
@@ -158,21 +158,21 @@ public:
 
     template<class unused_t>
     struct expr_ {
-        static gaia::expressions::expression_t<gaia_relationship_t, gaia::common::gaia_id_t> gaia_id;
-        static gaia::expressions::expression_t<gaia_relationship_t, const char*> name;
-        static gaia::expressions::expression_t<gaia_relationship_t, const char*> to_parent_link_name;
-        static gaia::expressions::expression_t<gaia_relationship_t, const char*> to_child_link_name;
-        static gaia::expressions::expression_t<gaia_relationship_t, uint8_t> cardinality;
-        static gaia::expressions::expression_t<gaia_relationship_t, bool> parent_required;
-        static gaia::expressions::expression_t<gaia_relationship_t, bool> deprecated;
-        static gaia::expressions::expression_t<gaia_relationship_t, uint16_t> first_child_offset;
-        static gaia::expressions::expression_t<gaia_relationship_t, uint16_t> next_child_offset;
-        static gaia::expressions::expression_t<gaia_relationship_t, uint16_t> prev_child_offset;
-        static gaia::expressions::expression_t<gaia_relationship_t, uint16_t> parent_offset;
-        static gaia::expressions::expression_t<gaia_relationship_t, gaia::direct_access::dac_vector_t<uint16_t>> parent_field_positions;
-        static gaia::expressions::expression_t<gaia_relationship_t, gaia::direct_access::dac_vector_t<uint16_t>> child_field_positions;
-        static gaia::expressions::expression_t<gaia_relationship_t, gaia_table_t> child;
-        static gaia::expressions::expression_t<gaia_relationship_t, gaia_table_t> parent;
+        static gaia::expressions::member_accessor_t<gaia_relationship_t, gaia::common::gaia_id_t> gaia_id;
+        static gaia::expressions::member_accessor_t<gaia_relationship_t, const char*> name;
+        static gaia::expressions::member_accessor_t<gaia_relationship_t, const char*> to_parent_link_name;
+        static gaia::expressions::member_accessor_t<gaia_relationship_t, const char*> to_child_link_name;
+        static gaia::expressions::member_accessor_t<gaia_relationship_t, uint8_t> cardinality;
+        static gaia::expressions::member_accessor_t<gaia_relationship_t, bool> parent_required;
+        static gaia::expressions::member_accessor_t<gaia_relationship_t, bool> deprecated;
+        static gaia::expressions::member_accessor_t<gaia_relationship_t, uint16_t> first_child_offset;
+        static gaia::expressions::member_accessor_t<gaia_relationship_t, uint16_t> next_child_offset;
+        static gaia::expressions::member_accessor_t<gaia_relationship_t, uint16_t> prev_child_offset;
+        static gaia::expressions::member_accessor_t<gaia_relationship_t, uint16_t> parent_offset;
+        static gaia::expressions::member_accessor_t<gaia_relationship_t, gaia::direct_access::dac_vector_t<uint16_t>> parent_field_positions;
+        static gaia::expressions::member_accessor_t<gaia_relationship_t, gaia::direct_access::dac_vector_t<uint16_t>> child_field_positions;
+        static gaia::expressions::member_accessor_t<gaia_relationship_t, gaia_table_t> child;
+        static gaia::expressions::member_accessor_t<gaia_relationship_t, gaia_table_t> parent;
     };
     using expr = expr_<void>;
 private:
@@ -197,21 +197,21 @@ namespace gaia_relationship_expr {
     static auto& parent = gaia_relationship_t::expr::parent;
 } // gaia_relationship_expr
 
-template<class unused_t> gaia::expressions::expression_t<gaia_relationship_t, gaia::common::gaia_id_t> gaia_relationship_t::expr_<unused_t>::gaia_id{&gaia_relationship_t::gaia_id};
-template<class unused_t> gaia::expressions::expression_t<gaia_relationship_t, const char*> gaia_relationship_t::expr_<unused_t>::name{&gaia_relationship_t::name};
-template<class unused_t> gaia::expressions::expression_t<gaia_relationship_t, const char*> gaia_relationship_t::expr_<unused_t>::to_parent_link_name{&gaia_relationship_t::to_parent_link_name};
-template<class unused_t> gaia::expressions::expression_t<gaia_relationship_t, const char*> gaia_relationship_t::expr_<unused_t>::to_child_link_name{&gaia_relationship_t::to_child_link_name};
-template<class unused_t> gaia::expressions::expression_t<gaia_relationship_t, uint8_t> gaia_relationship_t::expr_<unused_t>::cardinality{&gaia_relationship_t::cardinality};
-template<class unused_t> gaia::expressions::expression_t<gaia_relationship_t, bool> gaia_relationship_t::expr_<unused_t>::parent_required{&gaia_relationship_t::parent_required};
-template<class unused_t> gaia::expressions::expression_t<gaia_relationship_t, bool> gaia_relationship_t::expr_<unused_t>::deprecated{&gaia_relationship_t::deprecated};
-template<class unused_t> gaia::expressions::expression_t<gaia_relationship_t, uint16_t> gaia_relationship_t::expr_<unused_t>::first_child_offset{&gaia_relationship_t::first_child_offset};
-template<class unused_t> gaia::expressions::expression_t<gaia_relationship_t, uint16_t> gaia_relationship_t::expr_<unused_t>::next_child_offset{&gaia_relationship_t::next_child_offset};
-template<class unused_t> gaia::expressions::expression_t<gaia_relationship_t, uint16_t> gaia_relationship_t::expr_<unused_t>::prev_child_offset{&gaia_relationship_t::prev_child_offset};
-template<class unused_t> gaia::expressions::expression_t<gaia_relationship_t, uint16_t> gaia_relationship_t::expr_<unused_t>::parent_offset{&gaia_relationship_t::parent_offset};
-template<class unused_t> gaia::expressions::expression_t<gaia_relationship_t, gaia::direct_access::dac_vector_t<uint16_t>> gaia_relationship_t::expr_<unused_t>::parent_field_positions{&gaia_relationship_t::parent_field_positions};
-template<class unused_t> gaia::expressions::expression_t<gaia_relationship_t, gaia::direct_access::dac_vector_t<uint16_t>> gaia_relationship_t::expr_<unused_t>::child_field_positions{&gaia_relationship_t::child_field_positions};
-template<class unused_t> gaia::expressions::expression_t<gaia_relationship_t, gaia_table_t> gaia_relationship_t::expr_<unused_t>::child{&gaia_relationship_t::child};
-template<class unused_t> gaia::expressions::expression_t<gaia_relationship_t, gaia_table_t> gaia_relationship_t::expr_<unused_t>::parent{&gaia_relationship_t::parent};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, gaia::common::gaia_id_t> gaia_relationship_t::expr_<unused_t>::gaia_id{&gaia_relationship_t::gaia_id};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, const char*> gaia_relationship_t::expr_<unused_t>::name{&gaia_relationship_t::name};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, const char*> gaia_relationship_t::expr_<unused_t>::to_parent_link_name{&gaia_relationship_t::to_parent_link_name};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, const char*> gaia_relationship_t::expr_<unused_t>::to_child_link_name{&gaia_relationship_t::to_child_link_name};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, uint8_t> gaia_relationship_t::expr_<unused_t>::cardinality{&gaia_relationship_t::cardinality};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, bool> gaia_relationship_t::expr_<unused_t>::parent_required{&gaia_relationship_t::parent_required};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, bool> gaia_relationship_t::expr_<unused_t>::deprecated{&gaia_relationship_t::deprecated};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, uint16_t> gaia_relationship_t::expr_<unused_t>::first_child_offset{&gaia_relationship_t::first_child_offset};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, uint16_t> gaia_relationship_t::expr_<unused_t>::next_child_offset{&gaia_relationship_t::next_child_offset};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, uint16_t> gaia_relationship_t::expr_<unused_t>::prev_child_offset{&gaia_relationship_t::prev_child_offset};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, uint16_t> gaia_relationship_t::expr_<unused_t>::parent_offset{&gaia_relationship_t::parent_offset};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, gaia::direct_access::dac_vector_t<uint16_t>> gaia_relationship_t::expr_<unused_t>::parent_field_positions{&gaia_relationship_t::parent_field_positions};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, gaia::direct_access::dac_vector_t<uint16_t>> gaia_relationship_t::expr_<unused_t>::child_field_positions{&gaia_relationship_t::child_field_positions};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, gaia_table_t> gaia_relationship_t::expr_<unused_t>::child{&gaia_relationship_t::child};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, gaia_table_t> gaia_relationship_t::expr_<unused_t>::parent{&gaia_relationship_t::parent};
 
 
 typedef gaia::direct_access::dac_writer_t<c_gaia_type_gaia_field, gaia_field_t, internal::gaia_field, internal::gaia_fieldT> gaia_field_writer;
@@ -233,15 +233,15 @@ public:
 
     template<class unused_t>
     struct expr_ {
-        static gaia::expressions::expression_t<gaia_field_t, gaia::common::gaia_id_t> gaia_id;
-        static gaia::expressions::expression_t<gaia_field_t, const char*> name;
-        static gaia::expressions::expression_t<gaia_field_t, uint8_t> type;
-        static gaia::expressions::expression_t<gaia_field_t, uint16_t> repeated_count;
-        static gaia::expressions::expression_t<gaia_field_t, uint16_t> position;
-        static gaia::expressions::expression_t<gaia_field_t, bool> deprecated;
-        static gaia::expressions::expression_t<gaia_field_t, bool> active;
-        static gaia::expressions::expression_t<gaia_field_t, bool> unique;
-        static gaia::expressions::expression_t<gaia_field_t, gaia_table_t> table;
+        static gaia::expressions::member_accessor_t<gaia_field_t, gaia::common::gaia_id_t> gaia_id;
+        static gaia::expressions::member_accessor_t<gaia_field_t, const char*> name;
+        static gaia::expressions::member_accessor_t<gaia_field_t, uint8_t> type;
+        static gaia::expressions::member_accessor_t<gaia_field_t, uint16_t> repeated_count;
+        static gaia::expressions::member_accessor_t<gaia_field_t, uint16_t> position;
+        static gaia::expressions::member_accessor_t<gaia_field_t, bool> deprecated;
+        static gaia::expressions::member_accessor_t<gaia_field_t, bool> active;
+        static gaia::expressions::member_accessor_t<gaia_field_t, bool> unique;
+        static gaia::expressions::member_accessor_t<gaia_field_t, gaia_table_t> table;
     };
     using expr = expr_<void>;
 private:
@@ -260,15 +260,15 @@ namespace gaia_field_expr {
     static auto& table = gaia_field_t::expr::table;
 } // gaia_field_expr
 
-template<class unused_t> gaia::expressions::expression_t<gaia_field_t, gaia::common::gaia_id_t> gaia_field_t::expr_<unused_t>::gaia_id{&gaia_field_t::gaia_id};
-template<class unused_t> gaia::expressions::expression_t<gaia_field_t, const char*> gaia_field_t::expr_<unused_t>::name{&gaia_field_t::name};
-template<class unused_t> gaia::expressions::expression_t<gaia_field_t, uint8_t> gaia_field_t::expr_<unused_t>::type{&gaia_field_t::type};
-template<class unused_t> gaia::expressions::expression_t<gaia_field_t, uint16_t> gaia_field_t::expr_<unused_t>::repeated_count{&gaia_field_t::repeated_count};
-template<class unused_t> gaia::expressions::expression_t<gaia_field_t, uint16_t> gaia_field_t::expr_<unused_t>::position{&gaia_field_t::position};
-template<class unused_t> gaia::expressions::expression_t<gaia_field_t, bool> gaia_field_t::expr_<unused_t>::deprecated{&gaia_field_t::deprecated};
-template<class unused_t> gaia::expressions::expression_t<gaia_field_t, bool> gaia_field_t::expr_<unused_t>::active{&gaia_field_t::active};
-template<class unused_t> gaia::expressions::expression_t<gaia_field_t, bool> gaia_field_t::expr_<unused_t>::unique{&gaia_field_t::unique};
-template<class unused_t> gaia::expressions::expression_t<gaia_field_t, gaia_table_t> gaia_field_t::expr_<unused_t>::table{&gaia_field_t::table};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_field_t, gaia::common::gaia_id_t> gaia_field_t::expr_<unused_t>::gaia_id{&gaia_field_t::gaia_id};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_field_t, const char*> gaia_field_t::expr_<unused_t>::name{&gaia_field_t::name};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_field_t, uint8_t> gaia_field_t::expr_<unused_t>::type{&gaia_field_t::type};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_field_t, uint16_t> gaia_field_t::expr_<unused_t>::repeated_count{&gaia_field_t::repeated_count};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_field_t, uint16_t> gaia_field_t::expr_<unused_t>::position{&gaia_field_t::position};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_field_t, bool> gaia_field_t::expr_<unused_t>::deprecated{&gaia_field_t::deprecated};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_field_t, bool> gaia_field_t::expr_<unused_t>::active{&gaia_field_t::active};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_field_t, bool> gaia_field_t::expr_<unused_t>::unique{&gaia_field_t::unique};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_field_t, gaia_table_t> gaia_field_t::expr_<unused_t>::table{&gaia_field_t::table};
 
 
 typedef gaia::direct_access::dac_writer_t<c_gaia_type_gaia_table, gaia_table_t, internal::gaia_table, internal::gaia_tableT> gaia_table_writer;
@@ -296,17 +296,17 @@ public:
 
     template<class unused_t>
     struct expr_ {
-        static gaia::expressions::expression_t<gaia_table_t, gaia::common::gaia_id_t> gaia_id;
-        static gaia::expressions::expression_t<gaia_table_t, const char*> name;
-        static gaia::expressions::expression_t<gaia_table_t, uint32_t> type;
-        static gaia::expressions::expression_t<gaia_table_t, bool> is_system;
-        static gaia::expressions::expression_t<gaia_table_t, gaia::direct_access::dac_vector_t<uint8_t>> binary_schema;
-        static gaia::expressions::expression_t<gaia_table_t, gaia::direct_access::dac_vector_t<uint8_t>> serialization_template;
-        static gaia::expressions::expression_t<gaia_table_t, gaia_database_t> database;
-        static gaia::expressions::expression_t<gaia_table_t, gaia_table_t::gaia_indexes_list_t> gaia_indexes;
-        static gaia::expressions::expression_t<gaia_table_t, gaia_table_t::incoming_relationships_list_t> incoming_relationships;
-        static gaia::expressions::expression_t<gaia_table_t, gaia_table_t::outgoing_relationships_list_t> outgoing_relationships;
-        static gaia::expressions::expression_t<gaia_table_t, gaia_table_t::gaia_fields_list_t> gaia_fields;
+        static gaia::expressions::member_accessor_t<gaia_table_t, gaia::common::gaia_id_t> gaia_id;
+        static gaia::expressions::member_accessor_t<gaia_table_t, const char*> name;
+        static gaia::expressions::member_accessor_t<gaia_table_t, uint32_t> type;
+        static gaia::expressions::member_accessor_t<gaia_table_t, bool> is_system;
+        static gaia::expressions::member_accessor_t<gaia_table_t, gaia::direct_access::dac_vector_t<uint8_t>> binary_schema;
+        static gaia::expressions::member_accessor_t<gaia_table_t, gaia::direct_access::dac_vector_t<uint8_t>> serialization_template;
+        static gaia::expressions::member_accessor_t<gaia_table_t, gaia_database_t> database;
+        static gaia::expressions::container_accessor_t<gaia_table_t, gaia_index_t, gaia_table_t::gaia_indexes_list_t> gaia_indexes;
+        static gaia::expressions::container_accessor_t<gaia_table_t, gaia_relationship_t, gaia_table_t::incoming_relationships_list_t> incoming_relationships;
+        static gaia::expressions::container_accessor_t<gaia_table_t, gaia_relationship_t, gaia_table_t::outgoing_relationships_list_t> outgoing_relationships;
+        static gaia::expressions::container_accessor_t<gaia_table_t, gaia_field_t, gaia_table_t::gaia_fields_list_t> gaia_fields;
     };
     using expr = expr_<void>;
 private:
@@ -327,17 +327,17 @@ namespace gaia_table_expr {
     static auto& gaia_fields = gaia_table_t::expr::gaia_fields;
 } // gaia_table_expr
 
-template<class unused_t> gaia::expressions::expression_t<gaia_table_t, gaia::common::gaia_id_t> gaia_table_t::expr_<unused_t>::gaia_id{&gaia_table_t::gaia_id};
-template<class unused_t> gaia::expressions::expression_t<gaia_table_t, const char*> gaia_table_t::expr_<unused_t>::name{&gaia_table_t::name};
-template<class unused_t> gaia::expressions::expression_t<gaia_table_t, uint32_t> gaia_table_t::expr_<unused_t>::type{&gaia_table_t::type};
-template<class unused_t> gaia::expressions::expression_t<gaia_table_t, bool> gaia_table_t::expr_<unused_t>::is_system{&gaia_table_t::is_system};
-template<class unused_t> gaia::expressions::expression_t<gaia_table_t, gaia::direct_access::dac_vector_t<uint8_t>> gaia_table_t::expr_<unused_t>::binary_schema{&gaia_table_t::binary_schema};
-template<class unused_t> gaia::expressions::expression_t<gaia_table_t, gaia::direct_access::dac_vector_t<uint8_t>> gaia_table_t::expr_<unused_t>::serialization_template{&gaia_table_t::serialization_template};
-template<class unused_t> gaia::expressions::expression_t<gaia_table_t, gaia_database_t> gaia_table_t::expr_<unused_t>::database{&gaia_table_t::database};
-template<class unused_t> gaia::expressions::expression_t<gaia_table_t, gaia_table_t::gaia_indexes_list_t> gaia_table_t::expr_<unused_t>::gaia_indexes{&gaia_table_t::gaia_indexes};
-template<class unused_t> gaia::expressions::expression_t<gaia_table_t, gaia_table_t::incoming_relationships_list_t> gaia_table_t::expr_<unused_t>::incoming_relationships{&gaia_table_t::incoming_relationships};
-template<class unused_t> gaia::expressions::expression_t<gaia_table_t, gaia_table_t::outgoing_relationships_list_t> gaia_table_t::expr_<unused_t>::outgoing_relationships{&gaia_table_t::outgoing_relationships};
-template<class unused_t> gaia::expressions::expression_t<gaia_table_t, gaia_table_t::gaia_fields_list_t> gaia_table_t::expr_<unused_t>::gaia_fields{&gaia_table_t::gaia_fields};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_table_t, gaia::common::gaia_id_t> gaia_table_t::expr_<unused_t>::gaia_id{&gaia_table_t::gaia_id};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_table_t, const char*> gaia_table_t::expr_<unused_t>::name{&gaia_table_t::name};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_table_t, uint32_t> gaia_table_t::expr_<unused_t>::type{&gaia_table_t::type};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_table_t, bool> gaia_table_t::expr_<unused_t>::is_system{&gaia_table_t::is_system};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_table_t, gaia::direct_access::dac_vector_t<uint8_t>> gaia_table_t::expr_<unused_t>::binary_schema{&gaia_table_t::binary_schema};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_table_t, gaia::direct_access::dac_vector_t<uint8_t>> gaia_table_t::expr_<unused_t>::serialization_template{&gaia_table_t::serialization_template};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_table_t, gaia_database_t> gaia_table_t::expr_<unused_t>::database{&gaia_table_t::database};
+template<class unused_t> gaia::expressions::container_accessor_t<gaia_table_t, gaia_index_t, gaia_table_t::gaia_indexes_list_t> gaia_table_t::expr_<unused_t>::gaia_indexes{&gaia_table_t::gaia_indexes};
+template<class unused_t> gaia::expressions::container_accessor_t<gaia_table_t, gaia_relationship_t, gaia_table_t::incoming_relationships_list_t> gaia_table_t::expr_<unused_t>::incoming_relationships{&gaia_table_t::incoming_relationships};
+template<class unused_t> gaia::expressions::container_accessor_t<gaia_table_t, gaia_relationship_t, gaia_table_t::outgoing_relationships_list_t> gaia_table_t::expr_<unused_t>::outgoing_relationships{&gaia_table_t::outgoing_relationships};
+template<class unused_t> gaia::expressions::container_accessor_t<gaia_table_t, gaia_field_t, gaia_table_t::gaia_fields_list_t> gaia_table_t::expr_<unused_t>::gaia_fields{&gaia_table_t::gaia_fields};
 
 
 typedef gaia::direct_access::dac_writer_t<c_gaia_type_gaia_database, gaia_database_t, internal::gaia_database, internal::gaia_databaseT> gaia_database_writer;
@@ -354,9 +354,9 @@ public:
 
     template<class unused_t>
     struct expr_ {
-        static gaia::expressions::expression_t<gaia_database_t, gaia::common::gaia_id_t> gaia_id;
-        static gaia::expressions::expression_t<gaia_database_t, const char*> name;
-        static gaia::expressions::expression_t<gaia_database_t, gaia_database_t::gaia_tables_list_t> gaia_tables;
+        static gaia::expressions::member_accessor_t<gaia_database_t, gaia::common::gaia_id_t> gaia_id;
+        static gaia::expressions::member_accessor_t<gaia_database_t, const char*> name;
+        static gaia::expressions::container_accessor_t<gaia_database_t, gaia_table_t, gaia_database_t::gaia_tables_list_t> gaia_tables;
     };
     using expr = expr_<void>;
 private:
@@ -369,9 +369,9 @@ namespace gaia_database_expr {
     static auto& gaia_tables = gaia_database_t::expr::gaia_tables;
 } // gaia_database_expr
 
-template<class unused_t> gaia::expressions::expression_t<gaia_database_t, gaia::common::gaia_id_t> gaia_database_t::expr_<unused_t>::gaia_id{&gaia_database_t::gaia_id};
-template<class unused_t> gaia::expressions::expression_t<gaia_database_t, const char*> gaia_database_t::expr_<unused_t>::name{&gaia_database_t::name};
-template<class unused_t> gaia::expressions::expression_t<gaia_database_t, gaia_database_t::gaia_tables_list_t> gaia_database_t::expr_<unused_t>::gaia_tables{&gaia_database_t::gaia_tables};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_database_t, gaia::common::gaia_id_t> gaia_database_t::expr_<unused_t>::gaia_id{&gaia_database_t::gaia_id};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_database_t, const char*> gaia_database_t::expr_<unused_t>::name{&gaia_database_t::name};
+template<class unused_t> gaia::expressions::container_accessor_t<gaia_database_t, gaia_table_t, gaia_database_t::gaia_tables_list_t> gaia_database_t::expr_<unused_t>::gaia_tables{&gaia_database_t::gaia_tables};
 
 
 }  // namespace catalog
