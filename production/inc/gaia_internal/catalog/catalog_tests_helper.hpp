@@ -56,7 +56,8 @@ public:
 
     table_builder_t& field(const std::string& field_name, data_type_t data_type, bool optional = false)
     {
-        data_field_def_t field{field_name, data_type, 1};
+        static constexpr uint16_t c_scalar_value_count = 1;
+        data_field_def_t field{field_name, data_type, c_scalar_value_count};
         field.optional = optional;
         m_fields.push_back(field);
         return *this;

@@ -20,11 +20,10 @@ namespace catalog
  *
  * @param table_id The table id for which to generate the FlatBuffers schema
  * @param ignore_optional This is a workaround to prevent the generation of optional
- *                        scalar values which, as of flatbuffers 2.0.0, are not
- *                        supported when reading data from JSON. When generating
- *                        a fbs meant for JSON template data this value should be
- *                        true, false otherwise.
- *                        https://github.com/google/flatbuffers/issues/6975
+ *        scalar values which, as of flatbuffers 2.0.0, are not supported when reading
+ *        data from JSON. When generating a fbs meant for JSON template data this
+ *        value should be true, false otherwise.
+ *        See: https://github.com/google/flatbuffers/issues/6975
  * @return generated fbs string
  */
 std::string generate_fbs(gaia::common::gaia_id_t table_id, bool ignore_optional = false);

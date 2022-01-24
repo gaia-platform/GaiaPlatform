@@ -967,27 +967,10 @@ gaia_id_t ddl_executor_t::create_table_impl(
     string fbs_without_optional{generate_fbs(table_id, ignore_optional)};
     const std::vector<uint8_t> serialization_template = generate_bin(fbs_without_optional, generate_json(table_id));
 
-    // This is a workaround to avoid to use gaia_table_writer.update_row()
-    // method. The reason is that gaia_table_writer.update_row() triggers
-    // gaia::db::compute_payload_diff() which requires the type under diff
-    // (gaia_table in this case) to be in the type_id_mapping_t cache.
-    // gaia_table can't be in the type_id_mapping_t during gaia_database
-    // bootstrap, because the database is bootstrapped before the table,
-    // hence you'll get an error:
-    // "The type 'xxxx' does not exist in the catalog for payload diff!"
-    //
-    // This workaround avoids calling compute_payload_diff() hence no failure.
-    // Maybe there are cleaner ways to achieve the same result. This is the best
-    // I could come up with without modifying APIs and moving headers around.
-    gaia_ptr_t gaia_table_ptr = gaia_ptr_t::from_gaia_id(gaia_table.gaia_id());
-    internal::gaia_tableT table_w_skip_update;
-    flatbuffers::GetRoot<internal::gaia_table>(gaia_table_ptr.data())->UnPackTo(&table_w_skip_update);
-    table_w_skip_update.binary_schema = bfbs;
-    table_w_skip_update.serialization_template = serialization_template;
-    flatbuffers::FlatBufferBuilder fbb;
-    fbb.Finish(internal::gaia_table::Pack(fbb, &table_w_skip_update));
-    gaia_table_ptr.update_payload(fbb.GetSize(), fbb.GetBufferPointer());
-    fbb.Clear();
+    table_w = gaia_table.writer();
+    table_w.serialization_template = serialization_template;
+    table_w.binary_schema = bfbs;
+    table_w.update_row();
 
     return table_id;
 }
