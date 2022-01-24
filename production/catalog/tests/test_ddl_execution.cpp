@@ -7,12 +7,10 @@
 
 #include "gaia/direct_access/auto_transaction.hpp"
 
-#include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/ddl_execution.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
-#include "catalog_tests_helper.hpp"
 #include "gaia_parser.hpp"
 
 using namespace std;
