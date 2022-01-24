@@ -102,7 +102,6 @@ complete_process() {
     exit "$SCRIPT_RETURN_CODE"
 }
 
-
 save_current_directory() {
     # Save the current directory so we can get back to it.
     if ! pushd . > "$TEMP_FILE" 2>&1;  then
