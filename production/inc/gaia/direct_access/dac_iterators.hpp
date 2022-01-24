@@ -6,7 +6,6 @@
 #pragma once
 
 #include <functional>
-#include <utility>
 
 #include "gaia/common.hpp"
 #include "gaia/direct_access/dac_base.hpp"

@@ -5,6 +5,9 @@
 
 #pragma once
 
+#include <tuple>
+#include <utility>
+
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 
@@ -21,6 +24,10 @@ using gaia::catalog::ddl::field_def_list_t;
  */
 class table_builder_t
 {
+public:
+    static constexpr bool c_optional = true;
+    static constexpr bool c_non_optional = false;
+
 public:
     static table_builder_t new_table(const std::string& table_name)
     {
@@ -41,9 +48,15 @@ public:
         return *this;
     }
 
-    table_builder_t& field(const std::string& field_name, data_type_t data_type)
+    table_builder_t& field(data_field_def_t field)
     {
-        m_fields.emplace_back(field_name, data_type);
+        m_fields.push_back(field);
+        return *this;
+    }
+
+    table_builder_t& field(const std::string& field_name, data_type_t data_type, bool optional = false)
+    {
+        m_fields.emplace_back(field_name, data_type, optional);
         return *this;
     }
 
@@ -64,7 +77,8 @@ public:
 
         for (const auto& field : m_fields)
         {
-            fields.emplace_back(std::make_unique<data_field_def_t>(field.first, field.second, 1));
+            fields.emplace_back(
+                std::make_unique<data_field_def_t>(field));
         }
 
         if (!m_db_name.empty())
@@ -86,8 +100,8 @@ public:
     }
 
 private:
-    std::string m_table_name{};
-    std::string m_db_name{};
-    std::vector<std::pair<std::string, data_type_t>> m_fields{};
+    std::string m_table_name;
+    std::string m_db_name;
+    std::vector<data_field_def_t> m_fields{};
     bool m_fail_on_exists = false;
 };

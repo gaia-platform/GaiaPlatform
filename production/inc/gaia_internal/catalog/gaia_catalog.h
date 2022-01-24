@@ -314,7 +314,7 @@ class gaia_field_t : public gaia::direct_access::dac_object_t<c_gaia_type_gaia_f
 public:
     gaia_field_t() : dac_object_t() {}
     static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(const char* name, uint8_t type, uint16_t repeated_count, uint16_t position, bool deprecated, bool active, bool unique);
+    static gaia::common::gaia_id_t insert_row(const char* name, uint8_t type, uint16_t repeated_count, uint16_t position, bool deprecated, bool active, bool unique, bool optional);
     static gaia::direct_access::dac_container_t<c_gaia_type_gaia_field, gaia_field_t> list();
     const char* name() const;
     uint8_t type() const;
@@ -323,6 +323,7 @@ public:
     bool deprecated() const;
     bool active() const;
     bool unique() const;
+    bool optional() const;
     gaia_table_t table() const;
 
     template<class unused_t>
@@ -335,6 +336,7 @@ public:
         static gaia::expressions::member_accessor_t<gaia_field_t, bool> deprecated;
         static gaia::expressions::member_accessor_t<gaia_field_t, bool> active;
         static gaia::expressions::member_accessor_t<gaia_field_t, bool> unique;
+        static gaia::expressions::member_accessor_t<gaia_field_t, bool> optional;
         static gaia::expressions::member_accessor_t<gaia_field_t, gaia_table_t> table;
     };
     using expr = expr_<void>;
@@ -351,6 +353,7 @@ namespace gaia_field_expr {
     static auto& deprecated = gaia_field_t::expr::deprecated;
     static auto& active = gaia_field_t::expr::active;
     static auto& unique = gaia_field_t::expr::unique;
+    static auto& optional = gaia_field_t::expr::optional;
     static auto& table = gaia_field_t::expr::table;
 } // gaia_field_expr
 
@@ -362,6 +365,7 @@ template<class unused_t> gaia::expressions::member_accessor_t<gaia_field_t, uint
 template<class unused_t> gaia::expressions::member_accessor_t<gaia_field_t, bool> gaia_field_t::expr_<unused_t>::deprecated{&gaia_field_t::deprecated};
 template<class unused_t> gaia::expressions::member_accessor_t<gaia_field_t, bool> gaia_field_t::expr_<unused_t>::active{&gaia_field_t::active};
 template<class unused_t> gaia::expressions::member_accessor_t<gaia_field_t, bool> gaia_field_t::expr_<unused_t>::unique{&gaia_field_t::unique};
+template<class unused_t> gaia::expressions::member_accessor_t<gaia_field_t, bool> gaia_field_t::expr_<unused_t>::optional{&gaia_field_t::optional};
 template<class unused_t> gaia::expressions::member_accessor_t<gaia_field_t, gaia_table_t> gaia_field_t::expr_<unused_t>::table{&gaia_field_t::table};
 
 
@@ -472,3 +476,5 @@ template<class unused_t> gaia::expressions::container_accessor_t<gaia_database_t
 }  // namespace gaia
 
 #endif  // GAIA_GENERATED_catalog_H_
+
+
