@@ -2,7 +2,7 @@
 
 GaiaPlatform - Main repository
 
-## Coding Guidelines
+## Repository Guidelines
 
 To maintain a healthy codebase, we have a collection of guidelines to use when authoring code.
 To enforce that those guidelines are consistantly applied, where possible we use the [Pre-Commit](https://pre-commit.com) application with hooks that match the guidelines.
