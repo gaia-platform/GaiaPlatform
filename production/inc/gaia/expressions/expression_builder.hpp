@@ -60,7 +60,7 @@ operator==(
 {
     return binary_expression_t<T_bind, eq_type<T_left, T_right>, T_left, T_right, operator_token_t::e_eq>(
         left, static_cast<value_accessor_t<T_bind, T_right>>(right),
-        [&right](
+        [right](
             const T_bind& bind,
             const subexpression_t<T_bind, T_left>& left_expression,
             const subexpression_t<T_bind, T_right>&) {
@@ -78,7 +78,7 @@ operator==(
 {
     return binary_expression_t<T_bind, eq_type<T_left, T_right>, T_left, T_right, operator_token_t::e_eq>(
         static_cast<value_accessor_t<T_bind, T_left>>(left), right,
-        [&left](
+        [left](
             const T_bind& bind,
             const subexpression_t<T_bind, T_left>&,
             const subexpression_t<T_bind, T_right>& right_expression) {
@@ -113,7 +113,7 @@ operator!=(
 {
     return binary_expression_t<T_bind, ne_type<T_left, T_right>, T_left, T_right, operator_token_t::e_ne>(
         left, static_cast<value_accessor_t<T_bind, T_right>>(right),
-        [&right](
+        [right](
             const T_bind& bind,
             const subexpression_t<T_bind, T_left>& left_expression,
             const subexpression_t<T_bind, T_right>&) {
@@ -131,7 +131,7 @@ operator!=(
 {
     return binary_expression_t<T_bind, ne_type<T_left, T_right>, T_left, T_right, operator_token_t::e_ne>(
         static_cast<value_accessor_t<T_bind, T_left>>(left), right,
-        [&left](
+        [left](
             const T_bind& bind,
             const subexpression_t<T_bind, T_left>&,
             const subexpression_t<T_bind, T_right>& right_expression) {
@@ -166,7 +166,7 @@ operator>(
 {
     return binary_expression_t<T_bind, gt_type<T_left, T_right>, T_left, T_right, operator_token_t::e_gt>(
         left, static_cast<value_accessor_t<T_bind, T_right>>(right),
-        [&right](
+        [right](
             const T_bind& bind,
             const subexpression_t<T_bind, T_left>& left_expression,
             const subexpression_t<T_bind, T_right>&) {
@@ -184,7 +184,7 @@ operator>(
 {
     return binary_expression_t<T_bind, gt_type<T_left, T_right>, T_left, T_right, operator_token_t::e_gt>(
         static_cast<value_accessor_t<T_bind, T_left>>(left), right,
-        [&left](
+        [left](
             const T_bind& bind,
             const subexpression_t<T_bind, T_left>&,
             const subexpression_t<T_bind, T_right>& right_expression) {
@@ -219,7 +219,7 @@ operator>=(
 {
     return binary_expression_t<T_bind, ge_type<T_left, T_right>, T_left, T_right, operator_token_t::e_ge>(
         left, static_cast<value_accessor_t<T_bind, T_right>>(right),
-        [&right](
+        [right](
             const T_bind& bind,
             const subexpression_t<T_bind, T_left>& left_expression,
             const subexpression_t<T_bind, T_right>&) {
@@ -237,7 +237,7 @@ operator>=(
 {
     return binary_expression_t<T_bind, ge_type<T_left, T_right>, T_left, T_right, operator_token_t::e_ge>(
         static_cast<value_accessor_t<T_bind, T_left>>(left), right,
-        [&left](
+        [left](
             const T_bind& bind,
             const subexpression_t<T_bind, T_left>&,
             const subexpression_t<T_bind, T_right>& right_expression) {
@@ -272,7 +272,7 @@ operator<(
 {
     return binary_expression_t<T_bind, ne_type<T_left, T_right>, T_left, T_right, operator_token_t::e_lt>(
         left, static_cast<value_accessor_t<T_bind, T_right>>(right),
-        [&right](
+        [right](
             const T_bind& bind,
             const subexpression_t<T_bind, T_left>& left_expression,
             const subexpression_t<T_bind, T_right>&) {
@@ -290,7 +290,7 @@ operator<(
 {
     return binary_expression_t<T_bind, lt_type<T_left, T_right>, T_left, T_right, operator_token_t::e_lt>(
         static_cast<value_accessor_t<T_bind, T_left>>(left), right,
-        [&left](
+        [left](
             const T_bind& bind,
             const subexpression_t<T_bind, T_left>&,
             const subexpression_t<T_bind, T_right>& right_expression) {
@@ -325,7 +325,7 @@ operator<=(
 {
     return binary_expression_t<T_bind, or_type<T_left, T_right>, T_left, T_right, operator_token_t::e_le>(
         left, static_cast<value_accessor_t<T_bind, T_right>>(right),
-        [&right](
+        [right](
             const T_bind& bind,
             const subexpression_t<T_bind, T_left>& left_expression,
             const subexpression_t<T_bind, T_right>&) {
@@ -343,7 +343,7 @@ operator<=(
 {
     return binary_expression_t<T_bind, le_type<T_left, T_right>, T_left, T_right, operator_token_t::e_le>(
         static_cast<value_accessor_t<T_bind, T_left>>(left), right,
-        [&left](
+        [left](
             const T_bind& bind,
             const subexpression_t<T_bind, T_left>&,
             const subexpression_t<T_bind, T_right>& right_expression) {
@@ -378,7 +378,7 @@ operator&&(
 {
     return binary_expression_t<T_bind, and_type<T_left, T_right>, T_left, T_right, operator_token_t::e_and>(
         left, static_cast<value_accessor_t<T_bind, T_right>>(right),
-        [&right](
+        [right](
             const T_bind& bind,
             const subexpression_t<T_bind, T_left>& left_expression,
             const subexpression_t<T_bind, T_right>&) {
@@ -396,7 +396,7 @@ operator&&(
 {
     return binary_expression_t<T_bind, or_type<T_left, T_right>, T_left, T_right, operator_token_t::e_and>(
         static_cast<value_accessor_t<T_bind, T_left>>(left), right,
-        [&left](
+        [left](
             const T_bind& bind,
             const subexpression_t<T_bind, T_left>&,
             const subexpression_t<T_bind, T_right>& right_expression) {
@@ -431,7 +431,7 @@ operator||(
 {
     return binary_expression_t<T_bind, or_type<T_left, T_right>, T_left, T_right, operator_token_t::e_or>(
         left, static_cast<value_accessor_t<T_bind, T_right>>(right),
-        [&right](
+        [right](
             const T_bind& bind,
             const subexpression_t<T_bind, T_left>& left_expression,
             const subexpression_t<T_bind, T_right>&) {
@@ -449,7 +449,7 @@ operator||(
 {
     return binary_expression_t<T_bind, or_type<T_left, T_right>, T_left, T_right, operator_token_t::e_or>(
         static_cast<value_accessor_t<T_bind, T_left>>(left), right,
-        [&left](
+        [left](
             const T_bind& bind,
             const subexpression_t<T_bind, T_left>&,
             const subexpression_t<T_bind, T_right>& right_expression) {
