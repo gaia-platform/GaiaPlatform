@@ -476,7 +476,7 @@ TEST_F(test_expressions, object_ne)
         {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
 }
 
-TEST_F(test_expressions, or_predicate)
+TEST_F(test_expressions, or_expr)
 {
     auto_transaction_t txn;
 
