@@ -235,7 +235,7 @@ gaia_id_t* dac_base_t::references() const
     return to_const_ptr<gaia_ptr_t>()->references();
 }
 
-void dac_base_t::set_record(common::gaia_id_t new_id)
+void dac_base_t::set(common::gaia_id_t new_id)
 {
     *(to_ptr<gaia_ptr_t>()) = gaia_ptr_t::from_gaia_id(new_id);
 }
