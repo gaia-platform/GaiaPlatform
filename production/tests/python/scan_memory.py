@@ -5,7 +5,6 @@
 # All rights reserved.
 #############################################
 
-
 """
 Module to scan memory and provide data that is logged.
 """

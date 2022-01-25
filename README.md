@@ -2,13 +2,12 @@
 
 GaiaPlatform - Main repository
 
-## Style guidelines suggestions for README.md files
+## Repository Guidelines
 
-* Keep paragraphs on a single line. This makes it easier to update them.
-* Use empty lines for separation of titles, paragraphs, examples, etc. They are ignored when rendering the files, but make them easier to read when editing them.
-* Use `back-quoting` to emphasize tool names, path names, environment variable names and values, etc. Basically, anything that is closer to coding should be emphasized this way.
-* Use **bold** or *italics* for other situations that require emphasis. Bold can be used when introducing new concepts, like **Quantum Build**. Italics could be used when quoting titles of documents, such as *The Art of Programming*. These situations should be rarer.
-* Use links to reference other project files like the [production README](production/README.md), for example.
+To maintain a healthy codebase, we have a collection of guidelines to use when authoring code.
+To enforce that those guidelines are consistantly applied, where possible we use the [Pre-Commit](https://pre-commit.com) application with hooks that match the guidelines.
+These guidelines and information on which pre-commit hooks are in place for those guidelines are located in the [Repository Guidelines](docs/repository-guidelines.md) document.
+Please review these guidelines before creating or changing any source code within the codebase.
 
 ## Environment requirements
 
@@ -50,37 +49,6 @@ The following folder structure is recommended for C++ projects:
     * tests (subcomponent level)
   * tests (component level)
 * tests (cross-component)
-
-## Formatter and Linter
-
-### Formatter
-`clang-format` is invoked on each commit as a git pre-commit hook. The pre-commit is automatically installed by `cmake`. The `clang-format` version in use is `13`.
-
-Note: `clang-format` reorders the includes which could break the build. There are ways to avoid it. Please read: https://stackoverflow.com/questions/37927553/can-clang-format-break-my-code.
-
-### Linter
-`clang-tidy` is integrated with `cmake` and is invoked on each build. At the moment, it will only print the warnings in the compiler output. `clang-tidy` is not enforced, which means that warnings do not lead to build failures, keep in mind though, that this is the desired behavior in the long term. Do your best to reduce the number of warnings by either fixing them or by updating the rules in the `.clang-tidy` file. The `clang-tidy` version in use is `13`.
-
-## Copyright notes
-
-Use the following copyright note with your code. Several language specific versions are provided below.
-
-```
-#############################################
-# Copyright (c) Gaia Platform LLC
-# All rights reserved.
-#############################################
-
-/////////////////////////////////////////////
-// Copyright (c) Gaia Platform LLC
-// All rights reserved.
-/////////////////////////////////////////////
-
----------------------------------------------
--- Copyright (c) Gaia Platform LLC
--- All rights reserved.
----------------------------------------------
-```
 
 ## Compile with gdev
 
