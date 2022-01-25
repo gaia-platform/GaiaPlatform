@@ -26,7 +26,7 @@ repos:
       name: Eliminate multiple empty lines
       entry: dev_tools/github-actions/pre-commit-hooks/fix_double_empty_lines.py
       language: python
-      exclude: .py$|^(production/tests/workloads/template/json.hpp|production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h|production/licenses/)
+      exclude: .py$|^(production/tests/workloads/template/json.hpp|production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h|production/licenses/|production/tools/gaia_translate/tests/test_translation.ruleset)
 
     - id: python_executable_license_check
       name: Check Python Executable files for License Prefix
