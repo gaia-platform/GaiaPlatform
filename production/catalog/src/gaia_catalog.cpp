@@ -45,10 +45,10 @@ const char* gaia_index_t::gaia_typename()
     return gaia_typename;
 }
 
-gaia::common::gaia_id_t gaia_index_t::insert_row(const char* name, bool unique, uint8_t type, const std::vector<uint64_t>& fields)
+gaia::common::gaia_id_t gaia_index_t::insert_row(const char* name, bool unique, uint8_t type, const std::vector<uint64_t>& fields, const char* hash)
 {
     flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-    b.Finish(internal::Creategaia_indexDirect(b, name, unique, type, &fields));
+    b.Finish(internal::Creategaia_indexDirect(b, name, unique, type, &fields, hash));
     return dac_object_t::insert_row(b);
 }
 
@@ -75,6 +75,11 @@ uint8_t gaia_index_t::type() const
 gaia::direct_access::dac_vector_t<uint64_t> gaia_index_t::fields() const
 {
     return GET_ARRAY(fields);
+}
+
+const char* gaia_index_t::hash() const
+{
+    return GET_STR(hash);
 }
 
 gaia_table_t gaia_index_t::table() const
@@ -136,10 +141,10 @@ const char* gaia_ruleset_t::gaia_typename()
     return gaia_typename;
 }
 
-gaia::common::gaia_id_t gaia_ruleset_t::insert_row(const char* name, bool active_on_startup, const std::vector<uint64_t>& table_ids, const char* source_location, const char* serial_stream)
+gaia::common::gaia_id_t gaia_ruleset_t::insert_row(const char* name, bool active_on_startup)
 {
     flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-    b.Finish(internal::Creategaia_rulesetDirect(b, name, active_on_startup, &table_ids, source_location, serial_stream));
+    b.Finish(internal::Creategaia_rulesetDirect(b, name, active_on_startup));
     return dac_object_t::insert_row(b);
 }
 
@@ -158,21 +163,6 @@ bool gaia_ruleset_t::active_on_startup() const
     return GET(active_on_startup);
 }
 
-gaia::direct_access::dac_vector_t<uint64_t> gaia_ruleset_t::table_ids() const
-{
-    return GET_ARRAY(table_ids);
-}
-
-const char* gaia_ruleset_t::source_location() const
-{
-    return GET_STR(source_location);
-}
-
-const char* gaia_ruleset_t::serial_stream() const
-{
-    return GET_STR(serial_stream);
-}
-
 gaia_ruleset_t::gaia_rules_list_t gaia_ruleset_t::gaia_rules() const
 {
     return gaia_ruleset_t::gaia_rules_list_t(gaia_id(), c_gaia_ruleset_first_gaia_rules, c_gaia_rule_next_ruleset);
@@ -188,10 +178,10 @@ const char* gaia_relationship_t::gaia_typename()
     return gaia_typename;
 }
 
-gaia::common::gaia_id_t gaia_relationship_t::insert_row(const char* name, const char* to_parent_link_name, const char* to_child_link_name, uint8_t cardinality, bool parent_required, bool deprecated, uint16_t first_child_offset, uint16_t next_child_offset, uint16_t prev_child_offset, uint16_t parent_offset, const std::vector<uint16_t>& parent_field_positions, const std::vector<uint16_t>& child_field_positions)
+gaia::common::gaia_id_t gaia_relationship_t::insert_row(const char* name, const char* to_parent_link_name, const char* to_child_link_name, uint8_t cardinality, bool parent_required, bool deprecated, uint16_t first_child_offset, uint16_t next_child_offset, uint16_t prev_child_offset, uint16_t parent_offset, const std::vector<uint16_t>& parent_field_positions, const std::vector<uint16_t>& child_field_positions, const char* hash)
 {
     flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-    b.Finish(internal::Creategaia_relationshipDirect(b, name, to_parent_link_name, to_child_link_name, cardinality, parent_required, deprecated, first_child_offset, next_child_offset, prev_child_offset, parent_offset, &parent_field_positions, &child_field_positions));
+    b.Finish(internal::Creategaia_relationshipDirect(b, name, to_parent_link_name, to_child_link_name, cardinality, parent_required, deprecated, first_child_offset, next_child_offset, prev_child_offset, parent_offset, &parent_field_positions, &child_field_positions, hash));
     return dac_object_t::insert_row(b);
 }
 
@@ -260,6 +250,11 @@ gaia::direct_access::dac_vector_t<uint16_t> gaia_relationship_t::child_field_pos
     return GET_ARRAY(child_field_positions);
 }
 
+const char* gaia_relationship_t::hash() const
+{
+    return GET_STR(hash);
+}
+
 gaia_table_t gaia_relationship_t::child() const
 {
     gaia::common::gaia_id_t anchor_id = this->references()[c_gaia_relationship_parent_child];
@@ -292,10 +287,10 @@ const char* gaia_field_t::gaia_typename()
     return gaia_typename;
 }
 
-gaia::common::gaia_id_t gaia_field_t::insert_row(const char* name, uint8_t type, uint16_t repeated_count, uint16_t position, bool deprecated, bool active, bool unique, bool optional)
+gaia::common::gaia_id_t gaia_field_t::insert_row(const char* name, uint8_t type, uint16_t repeated_count, uint16_t position, bool deprecated, bool active, bool unique, const char* hash, bool optional)
 {
     flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-    b.Finish(internal::Creategaia_fieldDirect(b, name, type, repeated_count, position, deprecated, active, unique, optional));
+    b.Finish(internal::Creategaia_fieldDirect(b, name, type, repeated_count, position, deprecated, active, unique, hash, optional));
     return dac_object_t::insert_row(b);
 }
 
@@ -339,6 +334,11 @@ bool gaia_field_t::unique() const
     return GET(unique);
 }
 
+const char* gaia_field_t::hash() const
+{
+    return GET_STR(hash);
+}
+
 bool gaia_field_t::optional() const
 {
     return GET(optional);
@@ -365,10 +365,10 @@ const char* gaia_table_t::gaia_typename()
     return gaia_typename;
 }
 
-gaia::common::gaia_id_t gaia_table_t::insert_row(const char* name, uint32_t type, bool is_system, const std::vector<uint8_t>& binary_schema, const std::vector<uint8_t>& serialization_template)
+gaia::common::gaia_id_t gaia_table_t::insert_row(const char* name, uint32_t type, bool is_system, const std::vector<uint8_t>& binary_schema, const std::vector<uint8_t>& serialization_template, const char* hash)
 {
     flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-    b.Finish(internal::Creategaia_tableDirect(b, name, type, is_system, &binary_schema, &serialization_template));
+    b.Finish(internal::Creategaia_tableDirect(b, name, type, is_system, &binary_schema, &serialization_template, hash));
     return dac_object_t::insert_row(b);
 }
 
@@ -400,6 +400,11 @@ gaia::direct_access::dac_vector_t<uint8_t> gaia_table_t::binary_schema() const
 gaia::direct_access::dac_vector_t<uint8_t> gaia_table_t::serialization_template() const
 {
     return GET_ARRAY(serialization_template);
+}
+
+const char* gaia_table_t::hash() const
+{
+    return GET_STR(hash);
 }
 
 gaia_database_t gaia_table_t::database() const
@@ -443,10 +448,10 @@ const char* gaia_database_t::gaia_typename()
     return gaia_typename;
 }
 
-gaia::common::gaia_id_t gaia_database_t::insert_row(const char* name)
+gaia::common::gaia_id_t gaia_database_t::insert_row(const char* name, const char* hash)
 {
     flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-    b.Finish(internal::Creategaia_databaseDirect(b, name));
+    b.Finish(internal::Creategaia_databaseDirect(b, name, hash));
     return dac_object_t::insert_row(b);
 }
 
@@ -458,6 +463,11 @@ gaia::direct_access::dac_container_t<c_gaia_type_gaia_database, gaia_database_t>
 const char* gaia_database_t::name() const
 {
     return GET_STR(name);
+}
+
+const char* gaia_database_t::hash() const
+{
+    return GET_STR(hash);
 }
 
 gaia_database_t::gaia_tables_list_t gaia_database_t::gaia_tables() const
