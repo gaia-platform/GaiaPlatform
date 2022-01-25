@@ -916,7 +916,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
     gaia_table_writer table_w;
     table_w.name = table_name.c_str();
     table_w.type = table_type;
-    table_w.is_system = true;
+    table_w.is_system = is_system;
     gaia_id_t table_id = table_w.insert_row();
     gaia_table_t gaia_table = gaia_table_t::get(table_id);
 
