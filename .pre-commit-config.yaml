@@ -54,7 +54,7 @@ repos:
       args:
         - --prefix
         - "#! /usr/bin/bash\n\n#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n"
-      exclude: (^.+$(?<!\.sh))|(^(dev_tools/gdev|production/examples|production/coverage))
+      exclude: (^.+$(?<!\.sh))|(^(dev_tools/gdev|production/examples))
 
     - id: cmake_license_check
       name: Check CMake files for License Prefix
@@ -64,7 +64,7 @@ repos:
         - --prefix
         - "#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n"
       files: ^.*(\.cmake$|\/CMakeLists.txt$)
-      exclude: ^(production/examples|production/cmake|production/tools)
+      exclude: ^(production/examples|production/tools)
 
     - id: db_license_check
       name: Check SQL and DDL files for License Prefix
