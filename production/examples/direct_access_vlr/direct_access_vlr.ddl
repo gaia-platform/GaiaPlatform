@@ -6,7 +6,7 @@
 -- or at https://opensource.org/licenses/MIT.
 ---------------------------------------------
 
-database vlr_example
+database direct_access_vlr
 
 -- Levels in a multi-story building.
 table level (

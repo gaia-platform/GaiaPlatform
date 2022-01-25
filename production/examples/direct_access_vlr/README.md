@@ -1,4 +1,4 @@
-# Value-Linked Relationships Demo
+# Direct Access Value-Linked Relationships Demo
 TODO
 
 ## Build in `gdev`
@@ -10,10 +10,10 @@ make install
 cd /build/production/sdk
 make install
 
-mkdir -p /build/production/examples/value_linked_relationships
-cd /build/production/examples/value_linked_relationships
+mkdir -p /build/production/examples/direct_access_vlr
+cd /build/production/examples/direct_access_vlr
 
 gaia_db_server --persistence disabled & sleep 0.1
-cmake /source/production/examples/value_linked_relationships
+cmake /source/production/examples/direct_access_vlr
 make -j$(nproc)
 ```

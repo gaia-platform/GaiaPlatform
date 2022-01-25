@@ -8,9 +8,9 @@
 
 #include <gaia/system.hpp>
 
-#include "gaia_vlr_example.h"
+#include "gaia_rules_vlr.h"
 
-using namespace gaia::vlr_example;
+using namespace gaia::rules_vlr;
 using gaia::direct_access::auto_transaction_t;
 
 /**
