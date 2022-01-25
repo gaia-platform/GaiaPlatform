@@ -152,6 +152,7 @@ ruleset testE22
     }
 }
 
+
 // GAIAPLAT-1269 (fixed)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused"
