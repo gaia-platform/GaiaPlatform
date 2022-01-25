@@ -102,7 +102,7 @@ protected:
     template <typename T_ptr>
     constexpr T_ptr* to_ptr();
 
-    void set_record(common::gaia_id_t new_id);
+    void set(common::gaia_id_t new_id);
 
 private:
     /**
