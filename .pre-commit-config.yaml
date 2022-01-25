@@ -86,6 +86,42 @@ repos:
       files: ^.*(\.hpp$|\.cpp$|\.inc$)
       exclude: ^(production/tests/workloads/template/json.hpp|production/examples|production/inc/gaia_internal/common/scope_guard.hpp|production/tests/workloads|production/inc/gaia/expressions|production/catalog/src/gaia_generate.cpp)
 
+    - id: bash_license_check_examples
+      name: Check Example Bash files for MIT License Prefix
+      entry: dev_tools/github-actions/pre-commit-hooks/check_file_prefix.py
+      language: python
+      args:
+        - --prefix
+        - "#! /usr/bin/bash\n\n###################################################\n# Copyright (c) Gaia Platform LLC\n#\n# Use of this source code is governed by the MIT\n# license that can be found in the LICENSE.txt file\n# or at https://opensource.org/licenses/MIT.\n###################################################\n"
+      files: ^production/examples/.*\.sh
+
+    - id: cmake_license_check_examples
+      name: Check Example CMake files for MIT License Prefix
+      entry: dev_tools/github-actions/pre-commit-hooks/check_file_prefix.py
+      language: python
+      args:
+        - --prefix
+        - "###################################################\n# Copyright (c) Gaia Platform LLC\n#\n# Use of this source code is governed by the MIT\n# license that can be found in the LICENSE.txt file\n# or at https://opensource.org/licenses/MIT.\n###################################################\n"
+      files: ^production/examples/.*(\.cmake$|\/CMakeLists.txt$)
+
+    - id: db_license_check_eamples
+      name: Check Example SQL and DDL files for MIT License Prefix
+      entry: dev_tools/github-actions/pre-commit-hooks/check_file_prefix.py
+      language: python
+      args:
+        - --prefix
+        - "----------------------------------------------------\n-- Copyright (c) Gaia Platform LLC\n--\n-- Use of this source code is governed by the MIT\n-- license that can be found in the LICENSE.txt file\n-- or at https://opensource.org/licenses/MIT.\n----------------------------------------------------\n"
+      files: ^production/examples/.*(\.ddl$|\.sql$)
+
+    - id: cpp_license_check
+      name: Check Example C++ files for MIT License Prefix
+      entry: dev_tools/github-actions/pre-commit-hooks/check_file_prefix.py
+      language: python
+      args:
+        - --prefix
+        - "////////////////////////////////////////////////////\n// Copyright (c) Gaia Platform LLC\n//\n// Use of this source code is governed by the MIT\n// license that can be found in the LICENSE.txt file\n// or at https://opensource.org/licenses/MIT.\n////////////////////////////////////////////////////\n"
+      files: ^production/examples/.*(\.hpp$|\.cpp$|\.inc$|\.ruleset$)
+
 - repo: https://github.com/pre-commit/mirrors-clang-format
   rev: v13.0.0
   hooks:
