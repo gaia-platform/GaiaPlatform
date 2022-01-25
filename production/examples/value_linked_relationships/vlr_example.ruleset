@@ -10,7 +10,7 @@
 
 ruleset vlr_rules
 {
-    on_update(level_num)
+    on_update(person.level_number)
     {
         gaia_log::app().info("{} has arrived at: {}", name, department);
 
