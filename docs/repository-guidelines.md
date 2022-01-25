@@ -99,12 +99,15 @@ It is a [common standard](https://stackoverflow.com/questions/2287967/why-is-it-
 We adhere to this guideline, as in a Linux world, is just makes sense.
 In addition, GitHub also flags the lack of the terminating endline too when it displays the files, so why do things that result in red icons in GitHub Pull Requests?
 
-#### Files Should Not Contain Tab Characters or the CRLF Character Sequence
+#### Files Should Not Contain Multiple Blank Lines Unless Required
 
 | Pre-Commit Hook | Hook Id |
 | -- |  -- |
-| https://github.com/Lucas-C/pre-commit-hooks | forbid-crlf |
-| https://github.com/Lucas-C/pre-commit-hooks | forbid-tabs |
+| local | fix_double_empty_lines |
+
+With very few exceptions, such as Python and [PEP8](https://www.python.org/dev/peps/pep-0008/), multiple blank lines do not impose any additional meaning to a file.
+To keep things consistent, the guideline is to remove multiple blank lines in favor of one blank line unless there is a strict requirement to keep the multiple lines.
+Outside of Python file, one example is the [licenses file](../production/licenses/LICENSE.third-party.txt) file, where preserving the file in its original format is important.
 
 #### Files With Merge Conflicts Should Not Be Checked In
 
@@ -127,26 +130,112 @@ As we try and automated more with our codebase, the number of YAML files present
 While the format for a YAML file is pretty easy to understand, it is also pretty easy to get something slightly wrong.
 Therefore, we check that only cleanly parseable YAML files are added to our codebase.
 
-#### Copyright notes
+#### Copyright Notices Are Required
 
-Use the following copyright note with your code. Several language specific versions are provided below.
+To ensure that we are following legal guidelines regarding company intellectual property, all source code must be properly annotated with one of the following preface in the encompassed sections.
+As script files may also need to start with the [shebang](https://en.wikipedia.org/wiki/Shebang_(Unix)) sequence, the various forms of those prefix text blocks are outlined below.
 
-```
+##### Python Executable
+
+| Pre-Commit Hook | Hook Id |
+| -- |  -- |
+| https://github.com/pre-commit/pre-commit-hooks | python_executable_license_check |
+
+```Python
+#! /usr/bin/python3
+
 #############################################
 # Copyright (c) Gaia Platform LLC
 # All rights reserved.
 #############################################
 
+"""
+```
+
+This is the prefix that all Python files are checked for, except in the one case that follows.
+
+##### Python Non-Executable
+
+| Pre-Commit Hook | Hook Id |
+| -- |  -- |
+| https://github.com/pre-commit/pre-commit-hooks | python_non_executable_license_check |
+
+```Python
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
+```
+
+The sole exception to the earlier prefix is for [this file](../production/tools/tests/gaiat/lit.cfg.py).
+That file is used to provide configuration for the `lit` testing framework, and as such, is not executable.
+
+##### Bash Executable
+
+| Pre-Commit Hook | Hook Id |
+| -- |  -- |
+| https://github.com/pre-commit/pre-commit-hooks | bash_license_check |
+
+```Python
+#! /usr/bin/bash
+
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
+```
+
+This is the prefix that all Bash files are checked against.
+
+##### CMake Build Files
+
+| Pre-Commit Hook | Hook Id |
+| -- |  -- |
+| https://github.com/pre-commit/pre-commit-hooks | cmake_license_check |
+
+```python
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
+```
+
+This is the prefix that all `*.cmake` and `CMakeLists.txt` files are checked against.
+
+##### CMake Build Files
+
+| Pre-Commit Hook | Hook Id |
+| -- |  -- |
+| https://github.com/pre-commit/pre-commit-hooks | db_license_check |
+
+```sql
+---------------------------------------------
+-- Copyright (c) Gaia Platform LLC
+-- All rights reserved.
+---------------------------------------------
+
+```
+
+This is the prefix that all `*.ddl` and `*.sql` files are checked against.
+
+##### CMake Build Files
+
+| Pre-Commit Hook | Hook Id |
+| -- |  -- |
+| https://github.com/pre-commit/pre-commit-hooks | db_license_check |
+
+```cpp
 /////////////////////////////////////////////
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
 
----------------------------------------------
--- Copyright (c) Gaia Platform LLC
--- All rights reserved.
----------------------------------------------
 ```
+
+This is the prefix that all `*.cpp`, `*.hpp`, and `*.inc` files are checked against.
 
 ### C++ File Guidelines
 
