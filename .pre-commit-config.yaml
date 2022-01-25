@@ -34,8 +34,8 @@ repos:
       language: python
       args:
         - --prefix
-        - "#! /usr/bin/python3\n\n#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n\n\"\"\""
-      exclude: (^.+$(?<!\.py))|(^(dev_tools/gdev|production/tests/python/ps_mem.py|production/tools/tests/gaiat/lit.cfg.py|production/db/core/tests/test_db.py|production/db/core/src/dump_se.py))
+        - "#! /usr/bin/python3\n\n#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n"
+      exclude: (^.+$(?<!\.py))|(^(dev_tools/gdev|production/tests/python/ps_mem.py|production/tools/tests/gaiat/lit.cfg.py))
 
     - id: python_non_executable_license_check
       name: Check Python Non-Executable files for License Prefix
@@ -43,7 +43,7 @@ repos:
       language: python
       args:
         - --prefix
-        - "#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n\n\"\"\""
+        - "#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n"
       files: ^(production/tools/tests/gaiat/lit.cfg.py)$
       exclude: ^(production/tools/tests/gaiat/lit.cfg.py)$
 
@@ -54,7 +54,7 @@ repos:
       args:
         - --prefix
         - "#! /usr/bin/bash\n\n#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n"
-      exclude: (^.+$(?<!\.sh))|(^(dev_tools/gdev|dev_tools/sdk|production/examples|production/coverage|production/sql/tests/test_fdw.sh))
+      exclude: (^.+$(?<!\.sh))|(^(dev_tools/gdev|production/examples|production/coverage))
 
     - id: cmake_license_check
       name: Check CMake files for License Prefix
@@ -64,7 +64,7 @@ repos:
         - --prefix
         - "#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n"
       files: ^.*(\.cmake$|\/CMakeLists.txt$)
-      exclude: ^(production/examples|production/sql|production/db|production/cmake|production/tools)
+      exclude: ^(production/examples|production/cmake|production/tools)
 
     - id: db_license_check
       name: Check SQL and DDL files for License Prefix
@@ -84,7 +84,43 @@ repos:
         - --prefix
         - "/////////////////////////////////////////////\n// Copyright (c) Gaia Platform LLC\n// All rights reserved.\n/////////////////////////////////////////////\n"
       files: ^.*(\.hpp$|\.cpp$|\.inc$)
-      exclude: ^(production/tests/workloads/template/json.hpp|production/examples|production/inc/gaia_internal/common/scope_guard.hpp|production/inc/gaia/expressions|production/catalog/src/gaia_generate.cpp)
+      exclude: ^(production/tests/workloads/template/json.hpp|production/examples|production/inc/gaia_internal/common/scope_guard.hpp)
+
+    - id: bash_license_check_examples
+      name: Check Example Bash files for MIT License Prefix
+      entry: dev_tools/github-actions/pre-commit-hooks/check_file_prefix.py
+      language: python
+      args:
+        - --prefix
+        - "#! /usr/bin/bash\n\n###################################################\n# Copyright (c) Gaia Platform LLC\n#\n# Use of this source code is governed by the MIT\n# license that can be found in the LICENSE.txt file\n# or at https://opensource.org/licenses/MIT.\n###################################################\n"
+      files: ^production/examples/.*\.sh
+
+    - id: cmake_license_check_examples
+      name: Check Example CMake files for MIT License Prefix
+      entry: dev_tools/github-actions/pre-commit-hooks/check_file_prefix.py
+      language: python
+      args:
+        - --prefix
+        - "###################################################\n# Copyright (c) Gaia Platform LLC\n#\n# Use of this source code is governed by the MIT\n# license that can be found in the LICENSE.txt file\n# or at https://opensource.org/licenses/MIT.\n###################################################\n"
+      files: ^production/examples/.*(\.cmake$|\/CMakeLists.txt$)
+
+    - id: db_license_check_eamples
+      name: Check Example SQL and DDL files for MIT License Prefix
+      entry: dev_tools/github-actions/pre-commit-hooks/check_file_prefix.py
+      language: python
+      args:
+        - --prefix
+        - "----------------------------------------------------\n-- Copyright (c) Gaia Platform LLC\n--\n-- Use of this source code is governed by the MIT\n-- license that can be found in the LICENSE.txt file\n-- or at https://opensource.org/licenses/MIT.\n----------------------------------------------------\n"
+      files: ^production/examples/.*(\.ddl$|\.sql$)
+
+    - id: cpp_license_check_examples
+      name: Check Example C++ files for MIT License Prefix
+      entry: dev_tools/github-actions/pre-commit-hooks/check_file_prefix.py
+      language: python
+      args:
+        - --prefix
+        - "////////////////////////////////////////////////////\n// Copyright (c) Gaia Platform LLC\n//\n// Use of this source code is governed by the MIT\n// license that can be found in the LICENSE.txt file\n// or at https://opensource.org/licenses/MIT.\n////////////////////////////////////////////////////\n"
+      files: ^production/examples/.*(\.hpp$|\.cpp$|\.inc$|\.ruleset$)
 
 - repo: https://github.com/pre-commit/mirrors-clang-format
   rev: v13.0.0

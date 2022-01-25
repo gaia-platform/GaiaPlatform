@@ -1,3 +1,8 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
 template <typename T_bind, typename T_return>
 value_accessor_t<T_bind, T_return>::value_accessor_t(const T_return& value)
     : m_value(value)

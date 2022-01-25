@@ -840,7 +840,7 @@ std::string class_writer_t::generate_ref_class_cpp()
     code += "if (dac_base_reference_t::disconnect(this->gaia_id()))";
     code += "{";
     code.IncrementIdentLevel();
-    code += "this->set_record(gaia::common::c_invalid_gaia_id);";
+    code += "this->set(gaia::common::c_invalid_gaia_id);";
     code += "return true;";
     code.DecrementIdentLevel();
     code += "}";
@@ -856,7 +856,7 @@ std::string class_writer_t::generate_ref_class_cpp()
     code += "if (dac_base_reference_t::connect(this->gaia_id(), id))";
     code += "{";
     code.IncrementIdentLevel();
-    code += "this->set_record(id);";
+    code += "this->set(id);";
     code += "return true;";
     code.DecrementIdentLevel();
     code += "}";
