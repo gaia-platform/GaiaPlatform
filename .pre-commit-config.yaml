@@ -54,7 +54,7 @@ repos:
       args:
         - --prefix
         - "#! /usr/bin/bash\n\n#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n"
-      exclude: (^.+$(?<!\.sh))|(^(dev_tools/gdev|production/examples|production/tests|production/coverage))
+      exclude: (^.+$(?<!\.sh))|(^(dev_tools/gdev|production/examples|production/coverage))
 
     - id: cmake_license_check
       name: Check CMake files for License Prefix
@@ -84,7 +84,7 @@ repos:
         - --prefix
         - "/////////////////////////////////////////////\n// Copyright (c) Gaia Platform LLC\n// All rights reserved.\n/////////////////////////////////////////////\n"
       files: ^.*(\.hpp$|\.cpp$|\.inc$)
-      exclude: ^(production/tests/workloads/template/json.hpp|production/examples|production/inc/gaia_internal/common/scope_guard.hpp|production/tests/workloads)
+      exclude: ^(production/tests/workloads/template/json.hpp|production/examples|production/inc/gaia_internal/common/scope_guard.hpp)
 
     - id: bash_license_check_examples
       name: Check Example Bash files for MIT License Prefix
