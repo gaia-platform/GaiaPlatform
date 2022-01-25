@@ -113,7 +113,7 @@ repos:
         - "----------------------------------------------------\n-- Copyright (c) Gaia Platform LLC\n--\n-- Use of this source code is governed by the MIT\n-- license that can be found in the LICENSE.txt file\n-- or at https://opensource.org/licenses/MIT.\n----------------------------------------------------\n"
       files: ^production/examples/.*(\.ddl$|\.sql$)
 
-    - id: cpp_license_check
+    - id: cpp_license_check_examples
       name: Check Example C++ files for MIT License Prefix
       entry: dev_tools/github-actions/pre-commit-hooks/check_file_prefix.py
       language: python
