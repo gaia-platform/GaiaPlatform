@@ -19,7 +19,7 @@ using gaia::direct_access::auto_transaction_t;
  */
 void delete_all_records_from_tables()
 {
-    auto_transaction_t txn{auto_transaction_t::no_auto_begin};
+    auto_transaction_t txn{auto_transaction_t::no_auto_restart};
 
     for (auto person = *person_t::list().begin(); person; person = *person_t::list().begin())
     {
@@ -63,15 +63,15 @@ void vlr_example_usage()
     // Move the person up a level three times.
     for (int i = 0; i < 3; ++i)
     {
-        // Changing their level is as easy as incrementing level_num.
+        // Changing their level is as easy as incrementing level_number.
         // With VLRs, this automatically reconnects the person to the next level.
-        person_w.level_num++;
+        person_w.level_number++;
         person_w.update_row();
         txn.commit();
     }
 
     // Move them back down to the lobby.
-    person_w.level_num = 0;
+    person_w.level_number = 0;
     person_w.update_row();
     txn.commit();
 }
