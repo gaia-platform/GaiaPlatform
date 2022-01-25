@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /usr/bin/bash
 
 #############################################
 # Copyright (c) 2021 Gaia Platform LLC
