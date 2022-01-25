@@ -121,6 +121,7 @@ fi
 # Clean entrance into the script.
 start_process
 
+
 # Verify the requirements for templating are in place.
 if [ -z "$TEMPLATE_PATH" ] ; then
     complete_process 1 "Template directory environment variable TEMPLATE_PATH is not set."
@@ -132,6 +133,7 @@ TEMPLATE_FILE=$TEMPLATE_PATH/template.txt
 if [ ! -f "$TEMPLATE_FILE" ] ; then
     complete_process 1 "Template source file '$(realpath "$TEMPLATE_FILE")' does not exist."
 fi
+
 
 # The template file contains a single file name per line.  That file name is relative
 # to the template file itself, and specifies the source file name of the templated

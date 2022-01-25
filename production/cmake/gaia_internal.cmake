@@ -368,6 +368,7 @@ function(translate_ruleset_internal)
   target_link_libraries(${ARG_LIB_NAME} PUBLIC gaia_direct ${ARG_DAC_LIBRARY})
 endfunction()
 
+
 # Stop CMake if the given parameter was not passed to the function.
 macro(check_param PARAM)
   if(NOT DEFINED ${PARAM})

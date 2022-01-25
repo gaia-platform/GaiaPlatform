@@ -46,6 +46,7 @@ complete_process() {
         fi
     fi
 
+
     if [ "$DID_REPORT_START" -ne 0 ] ; then
         if [ "$SLACK_MODE" -ne 0 ] ; then
             "$SCRIPTPATH/python/publish_to_slack.py" message "$SUITE_MODE" "$COMPLETE_MESSAGE"
@@ -586,6 +587,8 @@ execute_suite_test() {
         fi
     fi
 }
+
+
 
 # Set up any global script variables.
 # shellcheck disable=SC2164

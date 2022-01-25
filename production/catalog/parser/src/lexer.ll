@@ -47,15 +47,18 @@ comment ("--".*)
     loc.step ();
 %}
 
+
 "/*"              BEGIN(xcomment);
 <xcomment>"*/"    BEGIN(INITIAL);
 <xcomment>[^*\n]+ { /* ignore anything that's not a '*' */ }
 <xcomment>"*"[^/] { /* ignore '*' not followed by a '/' */ }
 <xcomment>\n      loc.lines(yyleng);
 
+
 {blank}+     loc.step();
 {comment}    { /* ignore */ }
 \n+          loc.lines(yyleng); loc.step();
+
 
 "CREATE"       return yy::parser::make_CREATE(loc);
 "DROP"         return yy::parser::make_DROP(loc);
@@ -103,6 +106,7 @@ comment ("--".*)
 
 {id}         return yy::parser::make_IDENTIFIER(yytext, loc);
 {int}        return make_NUMBER(yytext, loc);
+
 
 <<EOF>>      return yy::parser::make_END(loc);
 

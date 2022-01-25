@@ -407,6 +407,7 @@ ruleset test_query_9
     }
 }
 
+
 ruleset test_query_10
 {
     on_insert(student)
@@ -705,6 +706,7 @@ ruleset test_insert_delete_2
         grade = c_grade_d + c_grade_plus;
     }
 }
+
 
 ruleset test_connect_1_n
 {

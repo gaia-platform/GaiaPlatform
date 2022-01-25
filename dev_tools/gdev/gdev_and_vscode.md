@@ -17,6 +17,7 @@ These steps are for developers who already set everything up and just want to re
 
 Attached container configurations can be edited with `F1` -> **Remote-Containers: Open Container Configuration File**.
 
+
 ## Get started
 Open a terminal (not in VS Code) and run:
 ```bash

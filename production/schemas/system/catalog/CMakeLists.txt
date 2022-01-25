@@ -28,6 +28,7 @@ add_custom_command(
       -g
 )
 
+
 # This is a standalone command and is not automatically run as part of the build. To run it you can use either of these
 # commands:
 # cmake --build build_folder --target generate_catalog_dac_code

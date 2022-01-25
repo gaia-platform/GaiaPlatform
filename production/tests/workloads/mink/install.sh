@@ -5,6 +5,7 @@
 # All rights reserved.
 #############################################
 
+
 # Simple function to start the process off.
 start_process() {
     local DIRECTORY_TO_INSTALL_TO=$1
@@ -125,6 +126,8 @@ install_into_directory() {
     fi
 }
 
+
+
 # Set up any global script variables.
 # shellcheck disable=SC2164
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
@@ -134,6 +137,8 @@ source "$SCRIPTPATH/properties.sh"
 # Set up any project based local script variables.
 
 # Set up any local script variables.
+
+
 
 parse_command_line "$@"
 

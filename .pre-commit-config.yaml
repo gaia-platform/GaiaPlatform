@@ -12,7 +12,6 @@ repos:
     - id: check-merge-conflict
     - id: check-yaml
     - id: end-of-file-fixer
-      exclude: ^(production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h)
     - id: trailing-whitespace
 - repo: https://github.com/Lucas-C/pre-commit-hooks
   rev: v1.1.10
@@ -22,11 +21,11 @@ repos:
 
 - repo: local
   hooks:
-    - id: fix_double_empty_lines
-      name: Eliminate multiple empty lines
-      entry: dev_tools/github-actions/pre-commit-hooks/fix_double_empty_lines.py
-      language: python
-      exclude: .py$|^(production/tests/workloads/template/json.hpp|production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h|production/licenses/)
+#    - id: fix_double_empty_lines
+#      name: Eliminate multiple empty lines
+#      entry: dev_tools/github-actions/pre-commit-hooks/fix_double_empty_lines.py
+#      language: python
+#      exclude: .py$|^(production/tests/workloads/template/json.hpp|production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h|production/licenses/)
 
     - id: python_executable_license_check
       name: Check Python Executable files for License Prefix
@@ -119,7 +118,6 @@ repos:
   hooks:
     - id: black
       exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py|production/db/core/)
-
 - repo: https://github.com/PyCQA/flake8
   rev: 4.0.1
   hooks:
@@ -127,7 +125,6 @@ repos:
       exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py|production/db/core/)
       args:
         - --ignore=E203,E501,W503
-
 - repo: https://github.com/PyCQA/pylint
   rev: v2.11.1
   hooks:

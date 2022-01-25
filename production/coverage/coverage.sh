@@ -102,6 +102,7 @@ parse_command_line "$@"
 # Clean entrance into the script.
 start_process
 
+
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Creating/cleaning output directory."
 fi
