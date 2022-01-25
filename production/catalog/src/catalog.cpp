@@ -184,8 +184,6 @@ invalid_create_list_internal::invalid_create_list_internal(const std::string& me
 
 inline void check_not_system_db(const string& name)
 {
-    // Temporarily disabled.
-    return;
     if (name == c_catalog_db_name || name == c_event_log_db_name)
     {
         throw forbidden_system_db_operation_internal(name);
@@ -197,17 +195,47 @@ void initialize_catalog()
     ddl_executor_t::get();
 
     // Add the rules catalog to the catalog.
-    ddl::parser_t parser;
-    parser.parse_string(
-        "use catalog;"
-        "create table gaia_application (name string);"
-        "create table gaia_rule (name string);"
-        "create table app_ruleset (active_on_startup bool);"
-        "relationship gaia_catalog_ruleset_rule ( gaia_application.app_rulesets -> app_ruleset[], app_ruleset.gaia_application -> gaia_application );");
-    execute(parser.statements);
+    // ddl::parser_t parser;
+    // parser.parse_string(
+    //     "use catalog;"
+    //     "create table gaia_application (name string);"
+    //     "create table gaia_rule (name string);"
+    //     "create table app_ruleset (active_on_startup bool);"
+    //     "relationship gaia_catalog_ruleset_rule ( gaia_application.app_rulesets -> app_ruleset[], app_ruleset.gaia_application -> gaia_application );");
+    // execute(parser.statements);
 
-    // This must be reset in order for the new DDL definitions to be in the right place.
-    use_database(c_default_db_name);
+    // // This must be reset in order for the new DDL definitions to be in the right place.
+    // use_database(c_default_db_name);
+    bool throw_on_exists = false;
+    bool auto_drop = false;
+
+    // gaia_application_t
+    {
+        field_def_list_t fields;
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("name", data_type_t::e_string, 1));
+        create_table(c_catalog_db_name, "gaia_application", fields, throw_on_exists, auto_drop);
+    }
+
+    // gaia_ruleset_t
+    {
+        field_def_list_t fields;
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("name", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("serial_stream", data_type_t::e_string, 1));
+        create_table(c_catalog_db_name, "gaia_ruleset", fields, throw_on_exists, auto_drop);
+    }
+
+    // gaia_rule_t
+    {
+        field_def_list_t fields;
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("name", data_type_t::e_string, 1));
+        create_table(c_catalog_db_name, "gaia_rule", fields, throw_on_exists, auto_drop);
+    }
+
+    create_relationship(
+        "rule_catalog_gaia_ruleset_gaia_rule",
+        {c_catalog_db_name, "gaia_ruleset", "gaia_rules", "catalog", "gaia_rule", relationship_cardinality_t::many},
+        {c_catalog_db_name, "gaia_rule", "ruleset", "catalog", "gaia_ruleset", relationship_cardinality_t::one},
+        false);
 }
 
 void use_database(const string& name)

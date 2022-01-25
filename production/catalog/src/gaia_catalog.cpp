@@ -14,6 +14,108 @@ namespace catalog
 {
 
 //
+// Implementation of class gaia_rule_t.
+//
+
+const char* gaia_rule_t::gaia_typename()
+{
+    static const char* gaia_typename = "gaia_rule_t";
+    return gaia_typename;
+}
+
+gaia::common::gaia_id_t gaia_rule_t::insert_row(const char* name)
+{
+    flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
+    b.Finish(internal::Creategaia_ruleDirect(b, name));
+    return dac_object_t::insert_row(b);
+}
+
+gaia::direct_access::dac_container_t<c_gaia_type_gaia_rule, gaia_rule_t> gaia_rule_t::list()
+{
+    return gaia::direct_access::dac_container_t<c_gaia_type_gaia_rule, gaia_rule_t>();
+}
+
+const char* gaia_rule_t::name() const
+{
+    return GET_STR(name);
+}
+
+gaia_ruleset_t gaia_rule_t::ruleset() const
+{
+    gaia::common::gaia_id_t anchor_id = this->references()[c_gaia_rule_parent_ruleset];
+    if (anchor_id == gaia::common::c_invalid_gaia_id)
+    {
+        return gaia_ruleset_t();
+    }
+    gaia::common::gaia_id_t id = dac_db_t::get_reference(anchor_id, gaia::common::c_ref_anchor_parent_offset);
+    return (id == gaia::common::c_invalid_gaia_id) ? gaia_ruleset_t() : gaia_ruleset_t::get(id);
+}
+
+//
+// Implementation of class gaia_ruleset_t.
+//
+
+const char* gaia_ruleset_t::gaia_typename()
+{
+    static const char* gaia_typename = "gaia_ruleset_t";
+    return gaia_typename;
+}
+
+gaia::common::gaia_id_t gaia_ruleset_t::insert_row(const char* name, const char* serial_stream)
+{
+    flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
+    b.Finish(internal::Creategaia_rulesetDirect(b, name, serial_stream));
+    return dac_object_t::insert_row(b);
+}
+
+gaia::direct_access::dac_container_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t> gaia_ruleset_t::list()
+{
+    return gaia::direct_access::dac_container_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t>();
+}
+
+const char* gaia_ruleset_t::name() const
+{
+    return GET_STR(name);
+}
+
+const char* gaia_ruleset_t::serial_stream() const
+{
+    return GET_STR(serial_stream);
+}
+
+gaia_ruleset_t::gaia_rules_list_t gaia_ruleset_t::gaia_rules() const
+{
+    return gaia_ruleset_t::gaia_rules_list_t(gaia_id(), c_gaia_ruleset_first_gaia_rules, c_gaia_rule_next_ruleset);
+}
+
+//
+// Implementation of class gaia_application_t.
+//
+
+const char* gaia_application_t::gaia_typename()
+{
+    static const char* gaia_typename = "gaia_application_t";
+    return gaia_typename;
+}
+
+gaia::common::gaia_id_t gaia_application_t::insert_row(const char* name)
+{
+    flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
+    b.Finish(internal::Creategaia_applicationDirect(b, name));
+    return dac_object_t::insert_row(b);
+}
+
+gaia::direct_access::dac_container_t<c_gaia_type_gaia_application, gaia_application_t> gaia_application_t::list()
+{
+    return gaia::direct_access::dac_container_t<c_gaia_type_gaia_application, gaia_application_t>();
+}
+
+const char* gaia_application_t::name() const
+{
+    return GET_STR(name);
+}
+
+//
 // Implementation of class gaia_ref_anchor_t.
 //
 
