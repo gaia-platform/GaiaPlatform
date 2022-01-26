@@ -19,53 +19,6 @@ namespace gaia
 namespace direct_access
 {
 
-template <typename T_class>
-class dac_vector_iterator_t
-{
-public:
-    dac_vector_iterator_t()
-        : m_iterator_data(nullptr)
-    {
-    }
-
-    explicit dac_vector_iterator_t(const T_class* iterator_data)
-        : m_iterator_data(iterator_data)
-    {
-    }
-
-    dac_vector_iterator_t<T_class>& operator++()
-    {
-        ++m_iterator_data;
-        return *this;
-    }
-    dac_vector_iterator_t<T_class> operator++(int)
-    {
-        dac_vector_iterator_t<T_class> temp = *this;
-        ++*this;
-        return temp;
-    }
-    bool operator==(const dac_vector_iterator_t& rhs) const
-    {
-        return m_iterator_data == rhs.m_iterator_data;
-    }
-    bool operator!=(const dac_vector_iterator_t& rhs) const
-    {
-        return m_iterator_data != rhs.m_iterator_data;
-    }
-
-    const T_class& operator*() const
-    {
-        return *(m_iterator_data);
-    }
-
-    const T_class* operator->() const
-    {
-        return m_iterator_data;
-    }
-
-protected:
-    const T_class* m_iterator_data;
-};
 // A pimpl style wrapper class that encapsulates flatbuffers::Vector.
 template <typename T_type>
 class dac_vector_t
@@ -75,20 +28,11 @@ public:
 
     const T_type* data() const
     {
-        if (is_null())
-        {
-            return nullptr;
-        }
         return m_vector->data();
     }
 
     uint32_t size() const
     {
-        if (is_null())
-        {
-            return 0;
-        }
-
         return m_vector->size();
     }
 
@@ -104,16 +48,6 @@ public:
     T_type operator[](uint32_t i) const
     {
         return (*m_vector)[i];
-    }
-
-    dac_vector_iterator_t<T_type> begin() const
-    {
-        return dac_vector_iterator_t<T_type>(data());
-    }
-
-    dac_vector_iterator_t<T_type> end() const
-    {
-        return dac_vector_iterator_t<T_type>(data() + size());
     }
 
 private:
