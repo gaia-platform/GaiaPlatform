@@ -5,4 +5,4 @@
 # All rights reserved.
 #############################################
 
-exec llvm-cov-10 gcov "$@"
+exec llvm-cov-13 gcov "$@"

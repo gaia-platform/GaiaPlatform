@@ -125,7 +125,9 @@ fi
 
 REPO_ROOT_DIR=$(git rev-parse --show-toplevel)
 GDEV_WRAPPER="${REPO_ROOT_DIR}/dev_tools/gdev/gdev.sh"
-"${GDEV_WRAPPER}" run --cfg-enables Coverage --mounts ./coverage/output:output /source/production/coverage/gen_coverage.sh
+if ! "${GDEV_WRAPPER}" run --cfg-enables Coverage --mounts ./coverage/output:output /source/production/coverage/gen_coverage.sh ; then
+    complete_process 1 "Unable to execute a coverage run inside of the Docker container."
+fi
 
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Setting proper permissions on output directory."
@@ -141,14 +143,12 @@ if ! cd "$SCRIPTPATH" > "$TEMP_FILE" 2>&1; then
 fi
 
 if [ "$VERBOSE_MODE" -ne 0 ]; then
-    echo "Creating coverage.json file from coverage output."
+    echo "Creating coverage-summary.json file from coverage output."
 fi
-./summarize.py > "$SCRIPTPATH/output/coverage.json"
-
-if [ "$VERBOSE_MODE" -ne 0 ]; then
-    echo "Creating coverage.zip file from coverage output."
+if ! /usr/bin/python3.8 "$SCRIPTPATH/summarize.py" > "$TEMP_FILE" 2>&1 ; then
+    cat "$TEMP_FILE"
+    complete_process 1 "Script cannot summarize coverage directory after proceeding."
 fi
-zip -r "$SCRIPTPATH/output/coverage.zip" "$SCRIPTPATH/output"
 
 # If we get here, we have a clean exit from the script.
 complete_process 0

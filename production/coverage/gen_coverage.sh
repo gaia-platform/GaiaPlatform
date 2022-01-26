@@ -102,18 +102,26 @@ parse_command_line "$@"
 start_process
 
 PACKAGES=(
-    # We need this for llvm-cov.
-    llvm-10
     lcov
     nano
     zip
     unzip
 )
+
+wget --no-check-certificate -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+add-apt-repository 'deb http://apt.llvm.org/focal/   llvm-toolchain-focal-13  main'
+apt update
+apt-get install -y llvm-13 lldb-13 llvm-13-dev libllvm13 llvm-13-runtime
+
 # shellcheck disable=SC2145
 echo "Installing additional packages: ${PACKAGES[@]}"
 apt -y update
 # shellcheck disable=SC2068
 apt-get install -y ${PACKAGES[@]}
+
+pip install lcov_cobertura
+chmod +x /usr/local/lib/python3.8/dist-packages/lcov_cobertura.py
+pip install project-summarizer
 
 pushd /build/production/output || exit
 rm -rf ./*
@@ -130,8 +138,10 @@ lcov \
     --gcov-tool /source/production/coverage/llvm-gcov.sh \
     -o /build/production/coverage.base \
     > /build/production/output/base.log
+
 echo "Running tests"
-ctest > /build/production/output/ctest.log
+ctest --output-log /build/production/output/ctest.log --output-junit /build/production/output/test.xml
+
 echo "Capturing current state"
 lcov \
     --no-external \
@@ -282,6 +292,28 @@ genhtml \
     coverage.total \
     -o /build/production/output/raw \
     > gen-raw.log
+
+echo "Producing Cobertura Coverage files."
+/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/coverage.filter --base-dir /source/production --output /build/production/output/coverage.xml
+/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/coverage.database --base-dir /source/production --output /build/production/output/database.xml
+/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/coverage.rules --base-dir /source/production --output /build/production/output/rules.xml
+/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/coverage.other --base-dir /source/production --output /build/production/output/other.xml
+/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/coverage.total --base-dir /source/production --output /build/production/output/total.xml
+
+echo "Producing JSON Coverage files."
+mkdir report
+project_summarizer --cobertura output/total.xml
+mv report/coverage.json /build/production/output/coverage.total.json
+project_summarizer --cobertura output/coverage.xml
+mv report/coverage.json /build/production/output/coverage.json
+project_summarizer --cobertura output/rules.xml
+mv report/coverage.json /build/production/output/coverage.rules.json
+project_summarizer --cobertura output/database.xml
+mv report/coverage.json /build/production/output/coverage.database.json
+project_summarizer --cobertura output/other.xml
+mv report/coverage.json /build/production/output/coverage.other.json
+# project_summarizer --junit output/test.xml
+# mv report/coverage.json /build/production/output/test-results.json
 
 # If we get here, we have a clean exit from the script.
 complete_process 0
