@@ -11,7 +11,7 @@ namespace gaia
 namespace direct_access
 {
 
-gaia::direct_access::optional_val_not_found_internal::optional_val_not_found_internal()
+gaia::direct_access::optional_value_not_found_internal::optional_value_not_found_internal()
 {
     m_message = "Optional has no value set!";
 }
