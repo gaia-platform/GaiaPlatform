@@ -21,6 +21,12 @@ ruleset test1
         isolated.insert(age:7, history:{4,7,8});
         isolated.insert(history:foo_array, age:2);
         isolated.insert(history:{4,7,8}, age:3);
+        isolated.history[5]++;
+        ++isolated.history[5];
+        --history[3];
+        history[3]--;
+        isolated.history[5]+=5;
+        history[3]-=3;
         f(history);
         int test = history; // expected-error {{cannot initialize a variable of type 'int' with an lvalue of type 'int []'}}
         history = 5; // expected-error {{assigning to 'int []' from incompatible type 'int'}}

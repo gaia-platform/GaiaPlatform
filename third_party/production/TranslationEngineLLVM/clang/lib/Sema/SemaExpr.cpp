@@ -11360,11 +11360,22 @@ static bool CheckForModifiableLvalue(Expr *E, SourceLocation Loc, Sema &S) {
   bool isGaiaFieldAssignment = false;
   if (S.getLangOpts().Gaia && S.getCurScope()->isInRulesetScope())
   {
-      DeclRefExpr* exp = dyn_cast<DeclRefExpr>(E);
+      Expr* LHSExpression = E;
+      if (isa<ArraySubscriptExpr>(LHSExpression))
+      {
+        LHSExpression = dyn_cast<ArraySubscriptExpr>(LHSExpression)->getBase();
+      }
+
+      if (isa<CastExpr>(LHSExpression))
+      {
+        LHSExpression = dyn_cast<CastExpr>(LHSExpression)->getSubExpr();
+      }
+
+      DeclRefExpr* exp = dyn_cast<DeclRefExpr>(LHSExpression);
 
       if (exp == nullptr)
       {
-          MemberExpr* memberExp = dyn_cast<MemberExpr>(E);
+          MemberExpr* memberExp = dyn_cast<MemberExpr>(LHSExpression);
 
           if (memberExp != nullptr)
           {
