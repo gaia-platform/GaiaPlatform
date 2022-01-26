@@ -27,30 +27,15 @@ namespace direct_access
 //  feature before spending time documenting.
 
 template <typename T_value>
-struct optional_storage_t
-{
-    union
-    {
-        char dummy;
-        T_value val;
-    };
-    bool m_has_value{false};
-
-    optional_storage_t();
-    explicit optional_storage_t(T_value value);
-    ~optional_storage_t() = default;
-};
-
-template <typename T_value>
-class optional
+class optional_t
 {
 public:
-    optional();
+    optional_t();
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    optional(const T_value& t);
+    optional_t(const T_value& t);
 
-    ~optional() = default;
+    ~optional_t() = default;
 
     void reset();
     bool has_value() const;
@@ -65,7 +50,22 @@ public:
     T_value value_or(T_default&& default_value) const&;
 
 private:
-    optional_storage_t<T_value> m_storage;
+    struct optional_storage_t
+    {
+        union
+        {
+            char dummy;
+            T_value val;
+        };
+        bool m_has_value{false};
+
+        optional_storage_t();
+        explicit optional_storage_t(T_value value);
+        ~optional_storage_t() = default;
+    };
+
+private:
+    optional_storage_t m_storage;
 };
 
 #include "dac_optional.inc"

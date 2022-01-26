@@ -18,27 +18,29 @@ protected:
 template <typename T_value>
 void test_optional_value(T_value value, T_value other_value)
 {
-    optional<T_value> opt = value;
+    optional_t<T_value> opt = value;
     ASSERT_TRUE(opt.has_value());
     ASSERT_EQ(opt.value(), value);
     ASSERT_EQ(*opt, value);
     ASSERT_EQ(opt.value_or(other_value), value);
 
-    const optional<T_value> const_opt = value;
+    const optional_t<T_value> const_opt = value;
     ASSERT_TRUE(const_opt.has_value());
     ASSERT_EQ(const_opt.value(), value);
     ASSERT_EQ(*const_opt, value);
     ASSERT_EQ(const_opt.value_or(other_value), value);
 
-    optional<T_value> empty_opt;
+    optional_t<T_value> empty_opt;
     ASSERT_FALSE(empty_opt.has_value());
     ASSERT_EQ(empty_opt.value_or(other_value), other_value);
-    ASSERT_THROW(empty_opt.value(), optional_val_not_found);
+    ASSERT_THROW(empty_opt.value(), optional_value_not_found);
+    ASSERT_THROW(*empty_opt, optional_value_not_found);
 
     opt.reset();
     ASSERT_FALSE(opt.has_value());
     ASSERT_EQ(opt.value_or(other_value), other_value);
-    ASSERT_THROW(opt.value(), optional_val_not_found);
+    ASSERT_THROW(opt.value(), optional_value_not_found);
+    ASSERT_THROW(*opt, optional_value_not_found);
 }
 
 TEST_F(dac_optional_test, test_optional_int)

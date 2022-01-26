@@ -437,7 +437,7 @@ class invalid_object_state : public common::gaia_exception
 /**
  * Thrown when accessing an optional that has no value.
  */
-class optional_val_not_found : public common::gaia_exception
+class optional_value_not_found : public common::gaia_exception
 {
 };
 

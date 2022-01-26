@@ -342,7 +342,7 @@ public:
         const char* child_type);
 };
 
-class optional_val_not_found_internal : public optional_val_not_found
+class optional_val_not_found_internal : public optional_value_not_found
 {
 public:
     optional_val_not_found_internal();
