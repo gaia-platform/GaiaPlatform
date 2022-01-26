@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /usr/bin/bash
 
 #############################################
 # Copyright (c) Gaia Platform LLC
@@ -17,7 +17,7 @@ start_process() {
     fi
     DID_PUSHD=1
 
-    if ! cd $SCRIPTPATH >"$TEMP_FILE" 2>&1; then
+    if ! cd "$SCRIPTPATH" >"$TEMP_FILE" 2>&1; then
         cat "$TEMP_FILE"
         complete_process 1 "Script cannot change to coverage directory before proceeding."
     fi
@@ -101,7 +101,6 @@ parse_command_line "$@"
 
 # Clean entrance into the script.
 start_process
-
 
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Creating/cleaning output directory."

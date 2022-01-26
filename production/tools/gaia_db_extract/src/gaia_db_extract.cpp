@@ -9,6 +9,8 @@
 #include <memory>
 #include <vector>
 
+#include <json.hpp>
+
 #include "gaia/exceptions.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
@@ -19,7 +21,6 @@
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 
-#include "json.hpp"
 #include "table_iterator.hpp"
 
 using namespace gaia::common;
@@ -92,7 +93,7 @@ bool gaia_db_extract_initialize()
 {
     begin_transaction();
 
-    for (auto table_view : catalog_core_t::list_tables())
+    for (auto table_view : catalog_core::list_tables())
     {
         string table_name(table_view.name());
 

@@ -1,0 +1,423 @@
+---
+name: Main
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+env:
+  GAIA_VERSION: 0.3.3
+  SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+  DEV_IMAGE: ghcr.io/gaia-platform/dev-base-gaia-platform:latest
+
+jobs:
+  Third-Party:
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Clean up disk space
+        run: |
+          df
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          df
+
+      - name: Pull Latest Dev-Core Image
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          #docker pull $DEV_IMAGE
+
+      - name: Build Docker Image
+        run: |
+          cd $GAIA_REPO/production
+          pip install atools argcomplete
+          $GAIA_REPO/dev_tools/gdev/gdev.sh dockerfile > $GAIA_REPO/production/raw_dockerfile
+          $GAIA_REPO/dev_tools/github-actions/copy_until_line.py --input-file $GAIA_REPO/production/raw_dockerfile --output-file $GAIA_REPO/production/dockerfile --stop-line "# GenRunDockerfile(production)"
+          docker buildx build -f $GAIA_REPO/production/dockerfile -t $DEV_IMAGE --cache-from $DEV_IMAGE --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
+
+      - name: Upload Intermediate Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/production/raw_dockerfile
+            ${{ github.workspace }}/production/dockerfile
+
+      - name: Rename Image and Publish
+        run: |
+          docker push $DEV_IMAGE
+
+      - name: Report Job Status To Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          fields: ${{ env.SLACK_STATUS_FIELDS }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+  Lint:
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install Required Python Packages
+        run: |
+          python3 -m pip install pre-commit
+
+      - name: Set Cache Key for Pre-Commit Checks
+        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
+
+      - name: Apply Pre-Commit Checks Cache
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Execute Pre-Commit Checks
+        run: |
+          cd $GAIA_REPO/production
+          pre-commit run --all-files
+
+  Core:
+    needs:
+      - Lint
+      - Third-Party
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Clean up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+
+      - name: Pull Latest Dev-Core Image
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker pull $DEV_IMAGE
+
+      - name: Build Docker Image
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
+              --repo-path $GAIA_REPO \
+              --base-image $DEV_IMAGE
+
+      - name: Run Unit Tests
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
+            --repo-path $GAIA_REPO \
+            --gaia-version $GAIA_VERSION \
+            --action unit_tests
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/build/output
+
+  SDK:
+    needs:
+      - Lint
+      - Third-Party
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Clean up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+
+      - name: Pull Latest Dev-Core Image
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker pull $DEV_IMAGE
+
+      - name: Build Docker Image
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
+              --repo-path $GAIA_REPO \
+              --base-image $DEV_IMAGE \
+              --cfg-enables GaiaSDK
+
+      - name: Run Unit Tests
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
+            --repo-path $GAIA_REPO \
+            --gaia-version $GAIA_VERSION \
+            --action unit_tests
+
+      - name: Publish Debian Package
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
+            --repo-path $GAIA_REPO \
+            --gaia-version $GAIA_VERSION \
+            --action publish_package
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/build/output
+
+      - name: Upload Install Package
+        uses: actions/upload-artifact@v2
+        with:
+          name: SDK Install Package
+          path: |
+            ${{ github.workspace }}/build/output/package
+
+  Debug_Core:
+    needs: Core
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Clean up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+
+      - name: Pull Latest Dev-Core Image
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker pull $DEV_IMAGE
+
+      - name: Build Docker Image
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
+              --repo-path $GAIA_REPO \
+              --base-image $DEV_IMAGE \
+              --cfg-enables Debug
+
+      - name: Run Unit Tests
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
+            --repo-path $GAIA_REPO \
+            --gaia-version $GAIA_VERSION \
+            --action unit_tests
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/build/output
+
+  LLVM_Tests:
+    needs: Core
+    if: ${{ false }}
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Clean up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+
+      - name: Pull Latest Dev-Core Image
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker pull $DEV_IMAGE
+
+      - name: Build Docker Image
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
+              --repo-path $GAIA_REPO \
+              --base-image $DEV_IMAGE \
+              --cfg-enables GaiaLLVMTests
+
+      - name: Run Docker Image And Post-Build Script
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --gaia-version $GAIA_VERSION
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/build/output
+
+  Integration_Smoke:
+    needs: SDK
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Download Debian Install Package
+        uses: actions/download-artifact@v2
+        with:
+          name: SDK Install Package
+          path: ${{ github.workspace }}/production/tests/packages
+
+      - name: Tests
+        working-directory: ${{ github.workspace }}
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/production/tests/results
+
+  Integration_Smoke_Persistence:
+    needs: SDK
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Download Debian Install Package
+        uses: actions/download-artifact@v2
+        with:
+          name: SDK Install Package
+          path: ${{ github.workspace }}/production/tests/packages
+
+      - name: Tests
+        working-directory: ${{ github.workspace }}
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/production/tests/results
+
+  Integration_Samples:
+    needs: SDK
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Download Debian Install Package
+        uses: actions/download-artifact@v2
+        with:
+          name: SDK Install Package
+          path: ${{ github.workspace }}/production/tests/packages
+
+      - name: Tests
+        working-directory: ${{ github.workspace }}
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/production/tests/results
+
+  Final:
+    needs:
+      - Integration_Smoke
+      - Integration_Smoke_Persistence
+      - Integration_Samples
+      - Debug_Core
+    runs-on: ubuntu-20.04
+    if: always()
+    steps:
+      - uses: technote-space/workflow-conclusion-action@v2
+
+      - name: Results
+        run: |
+          echo "Build Workflow: ${{ env.WORKFLOW_CONCLUSION }}"

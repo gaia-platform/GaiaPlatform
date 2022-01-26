@@ -21,4 +21,3 @@ In other words, please do not include the _docs_ directory in the top level prod
 ## To View
 
 The build will generate documentation based on doxygen comments in the code under a *docs* directory.  You can view them as either *html* or *latex* files.  An easy way to look at them is to point your browser at ```index.html``` under the *html* directory and then use the links to navigate your content.
-

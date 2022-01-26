@@ -105,16 +105,10 @@ PYBIND11_MODULE(gaia_db_pybind, m)
     class_<gaia_ptr_t>(m, "gaia_ptr")
         .def_static(
             "create",
-            static_cast<gaia_ptr_t (*)(gaia_type_t, size_t, const void*)>(&gaia_ptr_t::create))
-        .def_static(
-            "create",
-            static_cast<gaia_ptr_t (*)(gaia_id_t, gaia_type_t, size_t, const void*)>(&gaia_ptr_t::create))
-        .def_static(
-            "create",
             static_cast<gaia_ptr_t (*)(gaia_id_t, gaia_type_t, reference_offset_t, size_t, const void*)>(&gaia_ptr_t::create))
         .def_static("from_gaia_id", &gaia_ptr_t::from_gaia_id)
         .def_static("find_first", &gaia_ptr_t::find_first)
-        .def_static("remove", &gaia_ptr_t::remove)
+        .def("remove", &gaia_ptr_t::reset)
         .def("is_null", &gaia_ptr_t::is_null)
         .def("id", &gaia_ptr_t::id)
         .def("type", &gaia_ptr_t::type)

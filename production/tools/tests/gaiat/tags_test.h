@@ -6,7 +6,7 @@
 // Use a float field value.
 static float use_float(float v)
 {
-    return v/2.0;
+    return v / 2.0;
 }
 
 // Use a string field value.

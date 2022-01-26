@@ -13,6 +13,7 @@
 #include <gtest/gtest.h>
 
 #include "gaia/db/db.hpp"
+#include <gaia/common.hpp>
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/ddl_executor.hpp"
@@ -562,17 +563,7 @@ TEST_F(recovery_test, reference_create_delete_test_new)
         for (int i = 0; i < c_num_children; i++)
         {
             gaia_ptr_t child = create_object(patient_table_type, "John Doe " + std::to_string(i));
-
-            // Add half references from the parent and half from the children.
-            // (semantically same operation)
-            if (i < 5)
-            {
-                parent.add_child_reference(child.id(), c_first_patient_offset);
-            }
-            else
-            {
-                child.add_parent_reference(parent_id, c_parent_doctor_offset);
-            }
+            gaia_ptr::insert_into_reference_container(parent, child.id(), c_first_patient_offset);
         }
         txn.commit();
     }
@@ -587,10 +578,11 @@ TEST_F(recovery_test, reference_create_delete_test_new)
         // Get the parent.
         gaia_ptr_t parent = gaia_ptr_t::from_gaia_id(parent_id);
         // Make sure address cannot be deleted upon recovery.
-        ASSERT_THROW(gaia_ptr_t::remove(parent), object_still_referenced);
+        ASSERT_THROW(gaia_ptr::remove(parent), object_still_referenced);
 
         // Find the children.
-        gaia_ptr_t first_child = gaia_ptr_t::from_gaia_id(parent.references()[c_first_patient_offset]);
+        gaia_ptr_t anchor = gaia_ptr_t::from_gaia_id(parent.references()[c_first_patient_offset]);
+        gaia_ptr_t first_child = gaia_ptr_t::from_gaia_id(anchor.references()[c_ref_anchor_first_child_offset]);
         children_ids.push_back(first_child.id());
         gaia_ptr_t next_child = gaia_ptr_t::from_gaia_id(first_child.references()[c_next_patient_offset]);
 
@@ -608,17 +600,7 @@ TEST_F(recovery_test, reference_create_delete_test_new)
         {
             gaia_id_t child_id = children_ids[i];
 
-            // Remove half references from the parent and half from the children.
-            // (semantically same operation)
-            if (i < 5)
-            {
-                parent.remove_child_reference(child_id, c_first_patient_offset);
-            }
-            else
-            {
-                gaia_ptr_t child = gaia_ptr_t::from_gaia_id(child_id);
-                child.remove_parent_reference(c_parent_doctor_offset);
-            }
+            gaia_ptr::remove_from_reference_container(parent, child_id, c_first_patient_offset);
         }
         txn.commit();
     }
@@ -665,7 +647,7 @@ TEST_F(recovery_test, reference_update_test_new)
         gaia_ptr_t child = create_object(patient_table_type, "John Doe ");
         child_id = child.id();
 
-        parent.add_child_reference(child_id, c_first_patient_offset);
+        gaia_ptr::insert_into_reference_container(parent, child_id, c_first_patient_offset);
 
         txn.commit();
     }
@@ -683,7 +665,7 @@ TEST_F(recovery_test, reference_update_test_new)
 
         // Get the child
         gaia_ptr_t child = gaia_ptr_t::from_gaia_id(child_id);
-        child.update_parent_reference(new_parent_id, c_parent_doctor_offset);
+        gaia_ptr::update_parent_reference(child, new_parent_id, c_parent_doctor_offset);
 
         txn.commit();
     }
@@ -700,9 +682,8 @@ TEST_F(recovery_test, reference_update_test_new)
         gaia_ptr_t new_parent = gaia_ptr_t::from_gaia_id(new_parent_id);
 
         ASSERT_EQ(c_invalid_gaia_id, parent.references()[c_first_patient_offset]);
-        ASSERT_EQ(new_parent_id, child.references()[c_parent_doctor_offset]);
         ASSERT_EQ(c_invalid_gaia_id, child.references()[c_next_patient_offset]);
-        ASSERT_EQ(child_id, new_parent.references()[c_first_patient_offset]);
+        ASSERT_EQ(new_parent.references()[c_first_patient_offset], child.references()[c_parent_doctor_offset]);
 
         txn.commit();
     }

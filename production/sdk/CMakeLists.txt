@@ -26,7 +26,7 @@ install(TARGETS gaia DESTINATION ${CMAKE_INSTALL_LIBDIR})
 #
 # Ensure this test only includes public headers and links to the gaia shared library
 # Emulate what an SDK user does as closely as possible minus gaiat functionality for
-# a production only (non-gaia release) build.
+# a production only (non-gaia SDK) build.
 #
 set(SDK_TEST_INCLUDES
   # REVIEW: the first 2 includes shouldn't be necessary because they're exported
@@ -39,7 +39,7 @@ set(SDK_TEST_INCLUDES
 
 configure_file("${GAIA_CONFIG}" "${PROJECT_BINARY_DIR}/gaia.conf")
 configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
-configure_file("${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl" "${PROJECT_BINARY_DIR}/addr_book.ddl") 
+configure_file("${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl" "${PROJECT_BINARY_DIR}/addr_book.ddl")
 
 add_gtest(test_sdk "tests/test_sdk.cpp;${GAIA_GENERATED_CODE}/direct_access/addr_book/gaia_addr_book.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia")
 # We don't want to link against dac_addr_book to keep the test as close as possible to customers' environment.
@@ -129,7 +129,7 @@ set(CPACK_DEBHELPER_GENCONTROL ON)
 # Run the debhelpers in verbose mode.
 set(CPACK_DEBHELPER_VERBOSE ON)
 
-if((BUILD_GAIA_RELEASE) AND (NOT BUILD_GAIA_LLVM_TESTS))
+if((BUILD_GAIA_SDK) AND (NOT BUILD_GAIA_LLVM_TESTS))
   # Load the CPackDebHelper module, this will:
   #   - Add "DEB" to the CPACK_GENERATOR variable.
   #   - Parse the files in CPACK_DEBHELPER_INPUT with configure_file().

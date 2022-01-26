@@ -6,7 +6,8 @@
 #include <flatbuffers/idl.h>
 #include <gtest/gtest.h>
 
-#include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia/direct_access/auto_transaction.hpp"
+
 #include "gaia_internal/db/db_test_base.hpp"
 
 #include "fbs_generator.hpp"
@@ -18,6 +19,7 @@ using namespace gaia::catalog;
 using namespace gaia::catalog::ddl;
 using namespace gaia::common;
 using namespace gaia::db;
+using namespace gaia::direct_access;
 
 class json_generation_test : public db_test_base_t
 {
@@ -65,18 +67,9 @@ TEST_F(json_generation_test, generate_json_from_catalog)
 
     gaia_id_t table_id = create_table(test_table_name, test_table_fields);
 
+    auto_transaction_t txn;
     string fbs = generate_fbs(table_id);
     string json = generate_json(table_id);
-
-    validate_through_flatbuffers_parser(fbs, json);
-}
-
-TEST_F(json_generation_test, generate_json_from_table_definition)
-{
-    string test_table_name{"test_generate_json_from_table_definition"};
-
-    string fbs = generate_fbs("", test_table_name, test_table_fields);
-    string json = generate_json(test_table_fields);
 
     validate_through_flatbuffers_parser(fbs, json);
 }
@@ -85,11 +78,13 @@ TEST_F(json_generation_test, generate_bin)
 {
     string test_table_name{"test_generate_bin"};
 
-    string fbs = generate_fbs("", test_table_name, test_table_fields);
+    gaia_id_t table_id = create_table(test_table_name, test_table_fields);
+    auto_transaction_t txn;
+    string fbs = generate_fbs(table_id);
     const vector<uint8_t> bfbs = generate_bfbs(fbs);
     ASSERT_GT(bfbs.size(), 0);
 
-    string json = generate_json(test_table_fields);
+    string json = generate_json(table_id);
     const vector<uint8_t> bin = generate_bin(fbs, json);
     ASSERT_GT(bin.size(), 0);
 
@@ -105,4 +100,23 @@ TEST_F(json_generation_test, generate_bin)
     ASSERT_TRUE(root_type != nullptr);
 
     ASSERT_TRUE(flatbuffers::Verify(*schema, *root_type, serialized_data, serialized_data_size));
+}
+
+TEST_F(json_generation_test, generate_bin_default)
+{
+    string schema{"namespace test_defaults; table test_record { prefix:uint64; data:int64 = 15; suffix:uint64; } root_type test_record;"};
+
+    string json_with_default_data{"{ prefix: 12302652060373662634, data: 15, suffix: 12302652060373662634 }"};
+    string json_with_data{"{ prefix: 12302652060373662634, data: 31, suffix: 12302652060373662634 }"};
+    string json_without_data{"{ prefix: 12302652060373662634, suffix: 12302652060373662634 }"};
+
+    vector<uint8_t> serialization_for_default_data_present = generate_bin(schema, json_with_default_data);
+    vector<uint8_t> serialization_for_data_present = generate_bin(schema, json_with_data);
+    vector<uint8_t> serialization_for_data_absent = generate_bin(schema, json_without_data);
+
+    // We enable force_defaults setting, so the default data should get serialized just as the non-default data.
+    ASSERT_EQ(serialization_for_default_data_present.size(), serialization_for_data_present.size());
+
+    // Missing data does not get serialized even with force_defaults turned on.
+    ASSERT_GT(serialization_for_data_present.size(), serialization_for_data_absent.size());
 }

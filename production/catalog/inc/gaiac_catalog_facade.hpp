@@ -38,6 +38,8 @@ public:
 
     std::string first_offset() const;
     uint16_t first_offset_value() const;
+    std::string parent_offset() const;
+    uint16_t parent_offset_value() const;
     std::string next_offset() const;
     std::string prev_offset() const;
 };

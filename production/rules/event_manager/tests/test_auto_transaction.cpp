@@ -76,7 +76,7 @@ TEST_F(auto_transaction_test, invalid_commit_twice)
 {
     EXPECT_EQ(false, is_transaction_open());
     {
-        auto_transaction_t txn(auto_transaction_t::no_auto_begin);
+        auto_transaction_t txn(auto_transaction_t::no_auto_restart);
         txn.commit();
         EXPECT_THROW(txn.commit(), no_open_transaction);
     }
@@ -117,7 +117,7 @@ TEST_F(auto_transaction_test, rollback_existing)
 
 TEST_F(auto_transaction_test, auto_begin_true)
 {
-    static_assert(false == auto_transaction_t::no_auto_begin, "auto_transaction_t::no_auto_begin constant should be false");
+    static_assert(false == auto_transaction_t::no_auto_restart, "auto_transaction_t::no_auto_restart constant should be false");
     EXPECT_EQ(false, is_transaction_open());
     {
         auto_transaction_t txn;
@@ -133,7 +133,7 @@ TEST_F(auto_transaction_test, auto_begin_false)
 {
     EXPECT_EQ(false, is_transaction_open());
     {
-        auto_transaction_t txn(auto_transaction_t::no_auto_begin);
+        auto_transaction_t txn(auto_transaction_t::no_auto_restart);
         EXPECT_EQ(true, is_transaction_open());
         txn.commit();
         EXPECT_EQ(false, is_transaction_open());

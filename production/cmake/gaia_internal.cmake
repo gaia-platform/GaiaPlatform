@@ -236,6 +236,7 @@ function(process_schema_internal)
     COMMAND ${GAIAC_COMMAND} ${GAIAC_ARGS}
     DEPENDS ${ARG_DDL_FILE}
     DEPENDS gaiac
+    DEPENDS gaia_db_server_exec
   )
 
   if(NOT DEFINED ARG_LIB_NAME)
@@ -335,7 +336,7 @@ function(translate_ruleset_internal)
     COMMAND sleep 1
     COMMAND ${GAIAC_CMD} ${DDL_FILE} -n ${DB_INSTANCE_NAME}
     COMMAND ${GAIAT_CMD} ${ARG_RULESET_FILE} -output ${RULESET_CPP_PATH} -n ${DB_INSTANCE_NAME} --
-      # This variable already contains the leading -I. 
+      # This variable already contains the leading -I.
       ${GAIAT_INCLUDE_PATH}
       -I ${GAIA_SPDLOG_INC}
       -stdlib=$<IF:$<CONFIG:Debug>,libc++,libstdc++>
@@ -366,7 +367,6 @@ function(translate_ruleset_internal)
   target_include_directories(${ARG_LIB_NAME} PRIVATE ${GAIA_INC})
   target_link_libraries(${ARG_LIB_NAME} PUBLIC gaia_direct ${ARG_DAC_LIBRARY})
 endfunction()
-
 
 # Stop CMake if the given parameter was not passed to the function.
 macro(check_param PARAM)
