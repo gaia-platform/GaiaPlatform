@@ -279,7 +279,7 @@ void initialize_catalog()
     {
         vector<string> parent_fields{"name"};
         vector<string> child_fields{"gaia_ruleset"};
-        ddl::table_field_map_t value_link{{c_catalog_db_name, "gaia_ruleset", parent_fields}, {c_catalog_db_name, "gaia_rule", child_fields}};
+        ddl::table_field_map_t value_link{{c_catalog_db_name, c_gaia_ruleset_table_name, parent_fields}, {c_catalog_db_name, c_gaia_rule_table_name, child_fields}};
         create_relationship(
             "rule_catalog_gaia_ruleset_gaia_rule",
             {c_catalog_db_name, c_gaia_ruleset_table_name, "gaia_rules", c_catalog_db_name, c_gaia_rule_table_name, relationship_cardinality_t::many},
@@ -293,7 +293,7 @@ void initialize_catalog()
     {
         vector<string> parent_fields{"name"};
         vector<string> child_fields{"gaia_rule"};
-        ddl::table_field_map_t value_link{{"catalog", "gaia_rule", parent_fields}, {"catalog", "rule_relationship", child_fields}};
+        ddl::table_field_map_t value_link{{c_catalog_db_name, c_gaia_rule_table_name, parent_fields}, {c_catalog_db_name, c_rule_relationship_table_name, child_fields}};
         create_relationship(
             "rule_catalog_gaia_rule_gaia_rule_rule_relationship",
             {c_catalog_db_name, c_gaia_rule_table_name, "rule_relationships", c_catalog_db_name, c_rule_relationship_table_name, relationship_cardinality_t::many},
@@ -307,7 +307,7 @@ void initialize_catalog()
     {
         vector<string> parent_fields{"name"};
         vector<string> child_fields{"gaia_application"};
-        ddl::table_field_map_t value_link{{"catalog", "gaia_application", parent_fields}, {"catalog", "app_database", child_fields}};
+        ddl::table_field_map_t value_link{{c_catalog_db_name, c_gaia_application_table_name, parent_fields}, {c_catalog_db_name, c_app_database_table_name, child_fields}};
         create_relationship(
             "rule_catalog_gaia_application_app_database",
             {c_catalog_db_name, c_gaia_application_table_name, "app_databases", c_catalog_db_name, c_app_database_table_name, relationship_cardinality_t::many},
@@ -321,7 +321,7 @@ void initialize_catalog()
     {
         vector<string> parent_fields{"name"};
         vector<string> child_fields{"gaia_application"};
-        ddl::table_field_map_t value_link{{"catalog", "gaia_application", parent_fields}, {"catalog", "app_ruleset", child_fields}};
+        ddl::table_field_map_t value_link{{c_catalog_db_name, c_gaia_application_table_name, parent_fields}, {c_catalog_db_name, c_app_ruleset_table_name, child_fields}};
         create_relationship(
             "rule_catalog_gaia_application_app_ruleset",
             {c_catalog_db_name, c_gaia_application_table_name, "app_rulesets", c_catalog_db_name, c_app_ruleset_table_name, relationship_cardinality_t::many},
@@ -335,7 +335,7 @@ void initialize_catalog()
     {
         vector<string> parent_fields{"name"};
         vector<string> child_fields{"gaia_ruleset"};
-        ddl::table_field_map_t value_link{{"catalog", "gaia_ruleset", parent_fields}, {"catalog", "ruleset_database", child_fields}};
+        ddl::table_field_map_t value_link{{c_catalog_db_name, c_gaia_ruleset_table_name, parent_fields}, {c_catalog_db_name, c_ruleset_database_table_name, child_fields}};
         create_relationship(
             "rule_catalog_gaia_ruleset_ruleset_database",
             {c_catalog_db_name, c_gaia_ruleset_table_name, "ruleset_databases", c_catalog_db_name, c_ruleset_database_table_name, relationship_cardinality_t::many},
@@ -349,7 +349,7 @@ void initialize_catalog()
     {
         vector<string> parent_fields{"name"};
         vector<string> child_fields{"gaia_ruleset"};
-        ddl::table_field_map_t value_link{{"catalog", "gaia_ruleset", parent_fields}, {"catalog", "app_ruleset", child_fields}};
+        ddl::table_field_map_t value_link{{c_catalog_db_name, c_gaia_ruleset_table_name, parent_fields}, {c_catalog_db_name, c_app_ruleset_table_name, child_fields}};
         create_relationship(
             "rule_catalog_gaia_ruleset_app_ruleset",
             {c_catalog_db_name, c_gaia_ruleset_table_name, "app_rulesets", c_catalog_db_name, c_app_ruleset_table_name, relationship_cardinality_t::many},
@@ -363,7 +363,7 @@ void initialize_catalog()
     {
         vector<string> parent_fields{"name"};
         vector<string> child_fields{"gaia_rule"};
-        ddl::table_field_map_t value_link{{"catalog", "gaia_rule", parent_fields}, {"catalog", "rule_table", child_fields}};
+        ddl::table_field_map_t value_link{{c_catalog_db_name, c_gaia_rule_table_name, parent_fields}, {c_catalog_db_name, c_rule_table_table_name, child_fields}};
         create_relationship(
             "rule_catalog_gaia_rule_gaia_rule_rule_table",
             {c_catalog_db_name, c_gaia_rule_table_name, "rule_tables", c_catalog_db_name, c_rule_table_table_name, relationship_cardinality_t::many},
@@ -377,7 +377,7 @@ void initialize_catalog()
     {
         vector<string> parent_fields{"name"};
         vector<string> child_fields{"gaia_rule"};
-        ddl::table_field_map_t value_link{{"catalog", "gaia_rule", parent_fields}, {"catalog", "rule_field", child_fields}};
+        ddl::table_field_map_t value_link{{c_catalog_db_name, c_gaia_rule_table_name, parent_fields}, {c_catalog_db_name, c_rule_field_table_name, child_fields}};
         create_relationship(
             "rule_catalog_gaia_rule_gaia_rule_field_table",
             {c_catalog_db_name, c_gaia_rule_table_name, "rule_fields", c_catalog_db_name, c_rule_field_table_name, relationship_cardinality_t::many},
