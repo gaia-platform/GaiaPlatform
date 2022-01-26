@@ -11,6 +11,7 @@
 
 #include <flatbuffers/idl.h>
 
+#include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/exceptions.hpp"
@@ -26,11 +27,10 @@ namespace gaia
 namespace catalog
 {
 
-/**
- * Helper functions
- **/
+namespace
+{
 
-static string generate_fbs_namespace(const string& db_name)
+string generate_fbs_namespace(const string& db_name)
 {
     if (db_name.empty() || db_name == c_empty_db_name)
     {
@@ -42,26 +42,29 @@ static string generate_fbs_namespace(const string& db_name)
     }
 }
 
-static string generate_fbs_field(const string& name, const string& type, int repeated_count, bool optional)
+string generate_fbs_field(const gaia_field_t& field, bool ignore_optional = false)
 {
+    string name{field.name()};
+    auto type = static_cast<data_type_t>(field.type());
+    string type_name{get_data_type_name(type)};
+
     std::stringstream ss;
     ss << name;
 
-    if (repeated_count == 1)
+    if (field.repeated_count() == 1)
     {
-        ss << ":" + type;
+        ss << ":" + type_name;
     }
-    else if (repeated_count == 0)
+    else if (field.repeated_count() == 0)
     {
-        ss << ":[" + type + "]";
+        ss << ":[" + type_name + "]";
     }
     else
     {
-        ss << ":[" + type + ":" + to_string(repeated_count) + "]";
+        ss << ":[" + type_name + ":" + to_string(field.repeated_count()) + "]";
     }
 
-    // TODO this will fail for non-scalar values, and for now it's acceptable.
-    if (optional)
+    if (!ignore_optional && field.optional() && type != data_type_t::e_string && field.repeated_count() == 1)
     {
         ss << "=null";
     }
@@ -69,12 +72,7 @@ static string generate_fbs_field(const string& name, const string& type, int rep
     return ss.str();
 }
 
-static string generate_fbs_field(const gaia_field_t& field, bool ignore_optional = false)
-{
-    string name{field.name()};
-    string type{get_data_type_name(static_cast<data_type_t>(field.type()))};
-    return generate_fbs_field(name, type, field.repeated_count(), !ignore_optional && field.optional());
-}
+} // namespace
 
 string get_data_type_name(data_type_t data_type)
 {

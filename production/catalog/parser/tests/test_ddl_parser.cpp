@@ -816,3 +816,76 @@ create table t2(c2 int32);
         ASSERT_NO_THROW(parser.parse_string(ddl));
     }
 }
+
+TEST(catalog_ddl_parser_test, create_optional_field)
+{
+    parser_t parser;
+    ASSERT_NO_THROW(parser.parse_string("CREATE TABLE t (id UINT64 UNIQUE, name STRING OPTIONAL, ssn STRING OPTIONAL UNIQUE ACTIVE, address STRING ACTIVE OPTIONAL);"));
+
+    EXPECT_EQ(1, parser.statements.size());
+    EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
+
+    auto create_list = dynamic_cast<create_list_t*>(parser.statements[0].get());
+    auto create_stmt = dynamic_cast<create_statement_t*>(create_list->statements[0].get());
+
+    EXPECT_EQ(create_stmt->type, create_type_t::create_table);
+
+    auto create_table = dynamic_cast<create_table_t*>(create_stmt);
+
+    EXPECT_EQ(create_table->name, "t");
+    EXPECT_EQ(create_table->fields.size(), 4);
+
+    const data_field_def_t* field;
+
+    EXPECT_EQ(create_table->fields.at(0)->field_type, field_type_t::data);
+    field = dynamic_cast<data_field_def_t*>(create_table->fields.at(0).get());
+    EXPECT_EQ(field->name, "id");
+    EXPECT_EQ(field->data_type, data_type_t::e_uint64);
+    EXPECT_EQ(field->length, 1);
+    EXPECT_EQ(field->active, false);
+    EXPECT_EQ(field->unique, true);
+    EXPECT_EQ(field->optional, false);
+
+    EXPECT_EQ(create_table->fields.at(1)->field_type, field_type_t::data);
+    field = dynamic_cast<data_field_def_t*>(create_table->fields.at(1).get());
+    EXPECT_EQ(field->name, "name");
+    EXPECT_EQ(field->data_type, data_type_t::e_string);
+    EXPECT_EQ(field->length, 1);
+    EXPECT_EQ(field->active, false);
+    EXPECT_EQ(field->unique, false);
+    EXPECT_EQ(field->optional, true);
+
+    EXPECT_EQ(create_table->fields.at(2)->field_type, field_type_t::data);
+    field = dynamic_cast<data_field_def_t*>(create_table->fields.at(2).get());
+    EXPECT_EQ(field->name, "ssn");
+    EXPECT_EQ(field->data_type, data_type_t::e_string);
+    EXPECT_EQ(field->length, 1);
+    EXPECT_EQ(field->active, true);
+    EXPECT_EQ(field->unique, true);
+    EXPECT_EQ(field->optional, true);
+
+    EXPECT_EQ(create_table->fields.at(3)->field_type, field_type_t::data);
+    field = dynamic_cast<data_field_def_t*>(create_table->fields.at(3).get());
+    EXPECT_EQ(field->name, "address");
+    EXPECT_EQ(field->data_type, data_type_t::e_string);
+    EXPECT_EQ(field->length, 1);
+    EXPECT_EQ(field->active, true);
+    EXPECT_EQ(field->unique, false);
+    EXPECT_EQ(field->optional, true);
+
+    array ddls{
+        R"(
+create table t1(c1 int32, t2 unique int32)
+)",
+        R"(
+create table t1(c1 int32, t2 references t2)
+create table t2(c2 int32, t1 references t1 unique);
+)",
+    };
+
+    for (const auto& ddl : ddls)
+    {
+        parser_t parser;
+        ASSERT_THROW(parser.parse_string(ddl), parsing_error);
+    }
+}
