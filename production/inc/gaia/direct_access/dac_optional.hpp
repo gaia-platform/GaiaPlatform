@@ -11,7 +11,7 @@
 
 // QUESTION 1: Should this be a common API instead of direct_access? If we want to use
 //             optional outside DAC classes we may consider this.
-// QUESTION 2: What name should this class has? optional will collide with std::optional
+// QUESTION 2: What name should this class have? optional will collide with std::optional
 //             we could use gaia_optional or dac_optional. If we add specific types to it,
 //             such as `dac_optional_int`, the name can be become quite long.
 // QUESTION 3: Should we limit the feature of this class to scalar types only (since we don't
