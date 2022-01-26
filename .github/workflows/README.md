@@ -31,7 +31,62 @@ From Dax:
 
 > I organized it that way so that non-gaiat developers could have a separate build job and not require compiling LLVM. This makes the build core build job run more quickly than sdk. So, doing the quick stuff first makes sense. I'm just nitpicking in saying that they don't "provide significant coverage" per se.
 
-## Information Relevant to All(Most Steps)
+## Workflow Triggers
+
+Based on experience, there are three main usage patterns for executing the workflow:
+
+1. Before a *Pull Request* is created, a *Push* non-`master` branch, to verify that a change works properly and does not have unintended side effects.
+1. As part of a *Pull Request* against `master`, to assure the reviewer that (at the very least) basic steps have been undertaken to verify that the code is correct.
+1. As part of a *Push* against `master`, to verify that the change works properly once combined with everyone else's work.
+
+These usage patterns are supported in the `main.yml` file by the trigger specification at the top of the workflow:
+
+```YAML
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+```
+
+and this `if` condition at the start of some of the jobs:
+
+```yaml
+    if: github.event_name != 'pull_request'
+```
+
+### Before Pull Request
+
+This usage pattern is supported by the `workflow_dispatch` trigger.
+When the workflow is started, a specific branch can be specified in the GitHub UI.
+As the main focus of this usage pattern is to verify a code change, the full set of jobs are executed on the specified branch.
+
+### Pull Request
+
+This usage pattern is supported by the `pull_request` trigger, its `branches` specification, and the `if` condition.
+To keep things concise, a shortened list of jobs is executed against Pull Requests.
+Those jobs are:
+
+- `Lint`
+- `Third-Party`
+- `Core`
+- `Final`
+
+Jobs that are not in that short list include the above `if` conditional at the start of their jobs and are not executed.
+
+### Merging a Pull Request
+
+This usage pattern is a usage pattern to verify that the reviewed changes are still viable after those changes are merged into the `master` branch.
+Like the scenario for **Before Full Request**, this usage pattern is about verification, executing the full set of jobs to achieve that goal.
+
+#### References
+
+- [Manually running a workflow](https://docs.github.com/en/actions/managing-workflow-runs/manually-running-a-workflow)
+
+## Information Relevant to All(Most Jobs and Their Steps)
 
 The `Lint` job is special, and is covered in its own section below.
 For the other sections, there is a lot of overlap.

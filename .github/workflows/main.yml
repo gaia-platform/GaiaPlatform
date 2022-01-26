@@ -102,6 +102,12 @@ jobs:
           cd $GAIA_REPO/production
           pre-commit run --all-files
 
+      - name: GitHub Info
+        run: |
+          echo "Branch: ${{ github.ref }}"
+          echo "Ref-Name: ${{ github.ref_name }}"
+          echo "Event-Name: ${{ github.event_name }}"
+          echo "Event-Path: ${{ github.event_path }}"
   Core:
     needs:
       - Lint
@@ -156,6 +162,7 @@ jobs:
       - Lint
       - Third-Party
     runs-on: ubuntu-20.04
+    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -218,6 +225,7 @@ jobs:
   Debug_Core:
     needs: Core
     runs-on: ubuntu-20.04
+    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -312,6 +320,7 @@ jobs:
   Integration_Smoke:
     needs: SDK
     runs-on: ubuntu-20.04
+    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -345,6 +354,7 @@ jobs:
   Integration_Smoke_Persistence:
     needs: SDK
     runs-on: ubuntu-20.04
+    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -378,6 +388,7 @@ jobs:
   Integration_Samples:
     needs: SDK
     runs-on: ubuntu-20.04
+    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
