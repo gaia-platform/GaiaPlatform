@@ -117,8 +117,8 @@ void ddl_executor_t::bootstrap_catalog()
         //     deprecated bool,
         //     active bool,
         //     unique bool,
-        //     hash string,
         //     optional bool,
+        //     hash string,
         // );
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1));
@@ -128,8 +128,8 @@ void ddl_executor_t::bootstrap_catalog()
         fields.emplace_back(make_unique<data_field_def_t>("deprecated", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("active", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("unique", data_type_t::e_bool, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("hash", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("optional", data_type_t::e_bool, 1));
+        fields.emplace_back(make_unique<data_field_def_t>("hash", data_type_t::e_string, 1));
         create_table_impl(
             c_catalog_db_name, c_gaia_field_table_name, fields, is_system, throw_on_exists, auto_drop,
             static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_field));
@@ -950,8 +950,9 @@ gaia_id_t ddl_executor_t::create_table_impl(
             false,
             data_field->active,
             data_field->unique,
-            c_empty_hash,
-            data_field->optional);
+            data_field->optional,
+            c_empty_hash);
+
         // Connect the field to the table it belongs to.
         gaia_table.gaia_fields().insert(field_id);
         // Create an unique range index for the unique field.
