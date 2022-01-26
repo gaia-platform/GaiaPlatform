@@ -192,50 +192,200 @@ inline void check_not_system_db(const string& name)
 
 void initialize_catalog()
 {
-    ddl_executor_t::get();
-
-    // Add the rules catalog to the catalog.
-    // ddl::parser_t parser;
-    // parser.parse_string(
-    //     "use catalog;"
-    //     "create table gaia_application (name string);"
-    //     "create table gaia_rule (name string);"
-    //     "create table app_ruleset (active_on_startup bool);"
-    //     "relationship gaia_catalog_ruleset_rule ( gaia_application.app_rulesets -> app_ruleset[], app_ruleset.gaia_application -> gaia_application );");
-    // execute(parser.statements);
-
-    // // This must be reset in order for the new DDL definitions to be in the right place.
-    // use_database(c_default_db_name);
     bool throw_on_exists = false;
     bool auto_drop = false;
 
-    // gaia_application_t
-    {
-        field_def_list_t fields;
-        fields.emplace_back(make_unique<ddl::data_field_def_t>("name", data_type_t::e_string, 1));
-        create_table(c_catalog_db_name, "gaia_application", fields, throw_on_exists, auto_drop);
-    }
+    std::optional<constraint_list_t> constraint = constraint_list_t{};
+    constraint->emplace_back(make_unique<ddl::constraint_t>(ddl::constraint_type_t::unique));
 
     // gaia_ruleset_t
     {
         field_def_list_t fields;
-        fields.emplace_back(make_unique<ddl::data_field_def_t>("name", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("name", data_type_t::e_string, 1, constraint));
         fields.emplace_back(make_unique<ddl::data_field_def_t>("serial_stream", data_type_t::e_string, 1));
-        create_table(c_catalog_db_name, "gaia_ruleset", fields, throw_on_exists, auto_drop);
+        create_table(c_catalog_db_name, c_gaia_ruleset_table_name, fields, throw_on_exists, auto_drop);
     }
 
     // gaia_rule_t
     {
         field_def_list_t fields;
-        fields.emplace_back(make_unique<ddl::data_field_def_t>("name", data_type_t::e_string, 1));
-        create_table(c_catalog_db_name, "gaia_rule", fields, throw_on_exists, auto_drop);
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("name", data_type_t::e_string, 1, constraint));
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("gaia_ruleset", data_type_t::e_string, 1));
+        create_table(c_catalog_db_name, c_gaia_rule_table_name, fields, throw_on_exists, auto_drop);
     }
 
-    create_relationship(
-        "rule_catalog_gaia_ruleset_gaia_rule",
-        {c_catalog_db_name, "gaia_ruleset", "gaia_rules", "catalog", "gaia_rule", relationship_cardinality_t::many},
-        {c_catalog_db_name, "gaia_rule", "ruleset", "catalog", "gaia_ruleset", relationship_cardinality_t::one},
-        false);
+    // gaia_application_t
+    {
+        field_def_list_t fields;
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("name", data_type_t::e_string, 1, constraint));
+        create_table(c_catalog_db_name, c_gaia_application_table_name, fields, throw_on_exists, auto_drop);
+    }
+
+    // app_database_t
+    {
+        field_def_list_t fields;
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("gaia_application", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("gaia_database_id", data_type_t::e_uint64, 1));
+        create_table(c_catalog_db_name, c_app_database_table_name, fields, throw_on_exists, auto_drop);
+    }
+
+    // app_ruleset_t
+    {
+        field_def_list_t fields;
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("gaia_application", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("gaia_ruleset", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("active_on_startup", data_type_t::e_bool, 1));
+        create_table(c_catalog_db_name, c_app_ruleset_table_name, fields, throw_on_exists, auto_drop);
+    }
+
+    // ruleset_database_t
+    {
+        field_def_list_t fields;
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("gaia_ruleset", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("gaia_database_id", data_type_t::e_uint64, 1));
+        create_table(c_catalog_db_name, c_ruleset_database_table_name, fields, throw_on_exists, auto_drop);
+    }
+
+    // rule_table_t
+    {
+        field_def_list_t fields;
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("gaia_rule", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("gaia_table_id", data_type_t::e_uint64, 1));
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("type", data_type_t::e_uint8, 1));
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("anchor", data_type_t::e_bool, 1));
+        create_table(c_catalog_db_name, c_rule_table_table_name, fields, throw_on_exists, auto_drop);
+    }
+
+    // rule_field_t
+    {
+        field_def_list_t fields;
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("gaia_rule", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("gaia_field_id", data_type_t::e_uint64, 1));
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("type", data_type_t::e_uint8, 1));
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("active", data_type_t::e_bool, 1));
+        create_table(c_catalog_db_name, c_rule_field_table_name, fields, throw_on_exists, auto_drop);
+    }
+
+    // rule_relationship_t
+    {
+        field_def_list_t fields;
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("gaia_rule", data_type_t::e_string, 1));
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("gaia_field_id", data_type_t::e_uint64, 1));
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("type", data_type_t::e_uint8, 1));
+        create_table(c_catalog_db_name, c_rule_relationship_table_name, fields, throw_on_exists, auto_drop);
+    }
+
+    // gaia_ruleset_t -> gaia_rule_t
+    {
+        vector<string> parent_fields{"name"};
+        vector<string> child_fields{"gaia_ruleset"};
+        ddl::table_field_map_t value_link{{c_catalog_db_name, "gaia_ruleset", parent_fields}, {c_catalog_db_name, "gaia_rule", child_fields}};
+        create_relationship(
+            "rule_catalog_gaia_ruleset_gaia_rule",
+            {c_catalog_db_name, c_gaia_ruleset_table_name, "gaia_rules", c_catalog_db_name, c_gaia_rule_table_name, relationship_cardinality_t::many},
+            {c_catalog_db_name, c_gaia_rule_table_name, "ruleset", c_catalog_db_name, c_gaia_ruleset_table_name, relationship_cardinality_t::one},
+            value_link,
+            false,
+            false);
+    }
+
+    // gaia_rule_t -> rule_relationship_t
+    {
+        vector<string> parent_fields{"name"};
+        vector<string> child_fields{"gaia_rule"};
+        ddl::table_field_map_t value_link{{"catalog", "gaia_rule", parent_fields}, {"catalog", "rule_relationship", child_fields}};
+        create_relationship(
+            "rule_catalog_gaia_rule_gaia_rule_rule_relationship",
+            {c_catalog_db_name, c_gaia_rule_table_name, "rule_relationships", c_catalog_db_name, c_rule_relationship_table_name, relationship_cardinality_t::many},
+            {c_catalog_db_name, c_rule_relationship_table_name, "rule", c_catalog_db_name, c_gaia_rule_table_name, relationship_cardinality_t::one},
+            value_link,
+            false,
+            false);
+    }
+
+    // gaia_application_t -> app_database_t
+    {
+        vector<string> parent_fields{"name"};
+        vector<string> child_fields{"gaia_application"};
+        ddl::table_field_map_t value_link{{"catalog", "gaia_application", parent_fields}, {"catalog", "app_database", child_fields}};
+        create_relationship(
+            "rule_catalog_gaia_application_app_database",
+            {c_catalog_db_name, c_gaia_application_table_name, "app_databases", c_catalog_db_name, c_app_database_table_name, relationship_cardinality_t::many},
+            {c_catalog_db_name, c_app_database_table_name, "application", c_catalog_db_name, c_gaia_application_table_name, relationship_cardinality_t::one},
+            value_link,
+            false,
+            false);
+    }
+
+    // gaia_application_t -> app_ruleset_t
+    {
+        vector<string> parent_fields{"name"};
+        vector<string> child_fields{"gaia_application"};
+        ddl::table_field_map_t value_link{{"catalog", "gaia_application", parent_fields}, {"catalog", "app_ruleset", child_fields}};
+        create_relationship(
+            "rule_catalog_gaia_application_app_ruleset",
+            {c_catalog_db_name, c_gaia_application_table_name, "app_rulesets", c_catalog_db_name, c_app_ruleset_table_name, relationship_cardinality_t::many},
+            {c_catalog_db_name, c_app_ruleset_table_name, "application", c_catalog_db_name, c_gaia_application_table_name, relationship_cardinality_t::one},
+            value_link,
+            false,
+            false);
+    }
+
+    // gaia_ruleset_t -> ruleset_database_t
+    {
+        vector<string> parent_fields{"name"};
+        vector<string> child_fields{"gaia_ruleset"};
+        ddl::table_field_map_t value_link{{"catalog", "gaia_ruleset", parent_fields}, {"catalog", "ruleset_database", child_fields}};
+        create_relationship(
+            "rule_catalog_gaia_ruleset_ruleset_database",
+            {c_catalog_db_name, c_gaia_ruleset_table_name, "ruleset_databases", c_catalog_db_name, c_ruleset_database_table_name, relationship_cardinality_t::many},
+            {c_catalog_db_name, c_ruleset_database_table_name, "ruleset", c_catalog_db_name, c_gaia_ruleset_table_name, relationship_cardinality_t::one},
+            value_link,
+            false,
+            false);
+    }
+
+    // gaia_ruleset_t -> app_ruleset_t
+    {
+        vector<string> parent_fields{"name"};
+        vector<string> child_fields{"gaia_ruleset"};
+        ddl::table_field_map_t value_link{{"catalog", "gaia_ruleset", parent_fields}, {"catalog", "app_ruleset", child_fields}};
+        create_relationship(
+            "rule_catalog_gaia_ruleset_app_ruleset",
+            {c_catalog_db_name, c_gaia_ruleset_table_name, "app_rulesets", c_catalog_db_name, c_app_ruleset_table_name, relationship_cardinality_t::many},
+            {c_catalog_db_name, c_app_ruleset_table_name, "ruleset", c_catalog_db_name, c_gaia_ruleset_table_name, relationship_cardinality_t::one},
+            value_link,
+            false,
+            false);
+    }
+
+    // gaia_rule_t -> rule_table_t
+    {
+        vector<string> parent_fields{"name"};
+        vector<string> child_fields{"gaia_rule"};
+        ddl::table_field_map_t value_link{{"catalog", "gaia_rule", parent_fields}, {"catalog", "rule_table", child_fields}};
+        create_relationship(
+            "rule_catalog_gaia_rule_gaia_rule_rule_table",
+            {c_catalog_db_name, c_gaia_rule_table_name, "rule_tables", c_catalog_db_name, c_rule_table_table_name, relationship_cardinality_t::many},
+            {c_catalog_db_name, c_rule_table_table_name, "rule", c_catalog_db_name, c_gaia_rule_table_name, relationship_cardinality_t::one},
+            value_link,
+            false,
+            false);
+    }
+
+    // gaia_rule_t -> rule_field_t
+    {
+        vector<string> parent_fields{"name"};
+        vector<string> child_fields{"gaia_rule"};
+        ddl::table_field_map_t value_link{{"catalog", "gaia_rule", parent_fields}, {"catalog", "rule_field", child_fields}};
+        create_relationship(
+            "rule_catalog_gaia_rule_gaia_rule_field_table",
+            {c_catalog_db_name, c_gaia_rule_table_name, "rule_fields", c_catalog_db_name, c_rule_field_table_name, relationship_cardinality_t::many},
+            {c_catalog_db_name, c_rule_field_table_name, "rule", c_catalog_db_name, c_gaia_rule_table_name, relationship_cardinality_t::one},
+            value_link,
+            false,
+            false);
+    }
 }
 
 void use_database(const string& name)
