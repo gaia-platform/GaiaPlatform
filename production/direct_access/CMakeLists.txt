@@ -25,6 +25,7 @@ message(VERBOSE "GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES=${GAIA_DIRECT_ACCESS_PRIVAT
 add_library(gaia_direct STATIC
   src/dac_base.cpp
   src/auto_transaction.cpp
+  src/dac_optional.cpp
 )
 configure_gaia_target(gaia_direct)
 target_include_directories(gaia_direct PUBLIC ${GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES})
@@ -46,6 +47,7 @@ add_gtest(test_one_to_one "tests/test_one_to_one.cpp" "${DIRECT_ACCESS_TEST_INCL
 add_gtest(test_one_to_many "tests/test_one_to_many.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
 add_gtest(test_auto_connect "tests/test_auto_connect.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_airport")
 add_gtest(test_default_db "tests/test_default_db.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac")
+add_gtest(test_optional "tests/test_optional.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct")
 
 option(BUILD_EXPR_PERF_TEST "Build DAC expression performance tests" OFF)
 
