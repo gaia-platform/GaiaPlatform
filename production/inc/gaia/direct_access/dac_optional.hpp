@@ -9,16 +9,22 @@
 
 #include "gaia/exceptions.hpp"
 
-// QUESTION 1: should this be a common API instead of direct_access? If we want to use
-//             optional outside
-// QUESTION 2: what name should this class has? optional will collide with std::optional
+// QUESTION 1: Should this be a common API instead of direct_access? If we want to use
+//             optional outside DAC classes we may consider this.
+// QUESTION 2: What name should this class has? optional will collide with std::optional
 //             we could use gaia_optional or dac_optional. If we add specific types to it,
 //             such as `dac_optional_int`, the name can be become quite long.
+// QUESTION 3: Should we limit the feature of this class to scalar types only (since we don't
+//             need it for anything else for now)
+// QUESTION 4: Should we replace nullable_string with this?
 
 namespace gaia
 {
 namespace direct_access
 {
+
+// TODO Add documentation. Want to have consensus on the
+//  feature before spending time documenting.
 
 template <typename T_value>
 struct optional_storage_t
