@@ -43,9 +43,6 @@ public:
     T_value& value() &;
     const T_value& value() const&;
 
-    T_value& operator*() &;
-    const T_value& operator*() const&;
-
     template <typename T_default>
     T_value value_or(T_default&& default_value) const&;
 
@@ -54,10 +51,11 @@ private:
     {
         union
         {
-            char dummy;
-            T_value val;
+            char empty;
+            T_value value;
         };
-        bool m_has_value{false};
+
+        bool has_value{false};
 
         optional_storage_t();
         explicit optional_storage_t(T_value value);
