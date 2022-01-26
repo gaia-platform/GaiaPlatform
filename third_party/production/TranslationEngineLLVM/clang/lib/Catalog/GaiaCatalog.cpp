@@ -42,9 +42,9 @@ bool clang::gaia::catalog::findNavigationPath(llvm::StringRef src, llvm::StringR
 }
 
 // This pointer is filled in either by gaiat invoking GaiaCatalog::create() (our main use case)
-// or by get() below when we are running clang standalone with gaia extensions enabled for the 
+// or by get() below when we are running clang standalone with gaia extensions enabled for the
 // LLVM parser tests.
-// 
+//
 // The create() and get() methods are not intended to be called concurrently.
 // If multi-threaded use of these APIs becomes a use-case then we'll need to
 // add synchronization around the initialization of this catalog instance pointer.
@@ -59,7 +59,7 @@ void GaiaCatalog::create(clang::DiagnosticsEngine& diag)
 GaiaCatalog& GaiaCatalog::get()
 {
     // If running under gaiat, s_catalog_ptr will be setup with the DiagnosticsEngine from the compiler
-    // instance that gaiat creates. Otherwise lazily create a DiagnosticEngine here and wrap a 
+    // instance that gaiat creates. Otherwise lazily create a DiagnosticEngine here and wrap a
     // catalog instance around it.
     if (!s_catalog_ptr)
     {
@@ -116,8 +116,8 @@ void GaiaCatalog::fillTableData()
 
             if (field.repeated_count() > 1)
             {
-                Diags.Report(diag::err_incorrect_repeated_count) << field.name();
-                catalogTableData.clear();
+                m_diags.Report(diag::err_incorrect_repeated_count) << field.name();
+                m_catalogTableData.clear();
                 return;
             }
 
