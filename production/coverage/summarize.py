@@ -45,13 +45,13 @@ def process_script_action():
         total_coverage_dictionary = read_coverage_log_file("coverage.json")
         rules_coverage_dictionary = read_coverage_log_file("coverage.rules.json")
         database_coverage_dictionary = read_coverage_log_file("coverage.database.json")
-        other_coverage_dictionary = read_coverage_log_file("coverage.other.json")
+        other_coverage_dictionary = read_coverage_log_file("coverage.common.json")
 
         coverage_dictionary = {}
         coverage_dictionary["total"] = total_coverage_dictionary
         coverage_dictionary["rules"] = rules_coverage_dictionary
         coverage_dictionary["database"] = database_coverage_dictionary
-        coverage_dictionary["other"] = other_coverage_dictionary
+        coverage_dictionary["common"] = other_coverage_dictionary
 
         output_path = os.path.join(__BASE_DIR, "coverage-summary.json")
         with open(output_path, "w", encoding=__DEFAULT_FILE_ENCODING) as output_file:
