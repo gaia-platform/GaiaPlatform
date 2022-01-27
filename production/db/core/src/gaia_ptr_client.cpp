@@ -80,9 +80,9 @@ void gaia_ptr_t::finalize_update(gaia_offset_t old_offset)
     client_t::txn_log(m_locator, old_offset, to_offset());
 }
 
-gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t num_references, size_t data_size, const void* data)
+gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t references_count, size_t data_size, const void* data)
 {
-    gaia_ptr_t obj = create_no_txn(id, type, num_references, data_size, data);
+    gaia_ptr_t obj = create_no_txn(id, type, references_count, data_size, data);
     obj.finalize_create();
     return obj;
 }
@@ -109,9 +109,9 @@ gaia_ptr_t gaia_ptr_t::create_ref_anchor(gaia_id_t parent_id, gaia_id_t first_ch
     return obj;
 }
 
-gaia_ptr_t gaia_ptr_t::create_no_txn(gaia_id_t id, gaia_type_t type, reference_offset_t num_references, size_t data_size, const void* data)
+gaia_ptr_t gaia_ptr_t::create_no_txn(gaia_id_t id, gaia_type_t type, reference_offset_t references_count, size_t data_size, const void* data)
 {
-    size_t references_size = num_references * sizeof(gaia_id_t);
+    size_t references_size = references_count * sizeof(gaia_id_t);
     size_t total_payload_size = data_size + references_size;
     if (total_payload_size > c_db_object_max_payload_size)
     {
@@ -129,8 +129,8 @@ gaia_ptr_t gaia_ptr_t::create_no_txn(gaia_id_t id, gaia_type_t type, reference_o
     db_object_t* obj_ptr = obj.to_ptr();
     obj_ptr->id = id;
     obj_ptr->type = type;
-    obj_ptr->num_references = num_references;
-    if (num_references)
+    obj_ptr->references_count = references_count;
+    if (references_count)
     {
         memset(obj_ptr->payload, 0, references_size);
     }
@@ -161,7 +161,7 @@ void gaia_ptr_t::update_payload_no_txn(size_t data_size, const void* data)
 {
     db_object_t* old_this = to_ptr();
 
-    size_t references_size = old_this->num_references * sizeof(gaia_id_t);
+    size_t references_size = old_this->references_count * sizeof(gaia_id_t);
     size_t total_payload_size = data_size + references_size;
     if (total_payload_size > c_db_object_max_payload_size)
     {
@@ -175,11 +175,11 @@ void gaia_ptr_t::update_payload_no_txn(size_t data_size, const void* data)
 
     memcpy(new_this, old_this, c_db_object_header_size);
     new_this->payload_size = total_payload_size;
-    if (old_this->num_references > 0)
+    if (old_this->references_count > 0)
     {
         memcpy(new_this->payload, old_this->payload, references_size);
     }
-    new_this->num_references = old_this->num_references;
+    new_this->references_count = old_this->references_count;
     memcpy(new_this->payload + references_size, data, data_size);
 }
 
