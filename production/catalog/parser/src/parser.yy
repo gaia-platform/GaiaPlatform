@@ -66,7 +66,7 @@
 
 // Word tokens
 %token CREATE DROP DATABASE TABLE IF NOT EXISTS ACTIVE RELATIONSHIP USE USING
-%token UNIQUE RANGE HASH INDEX ON REFERENCES WHERE
+%token UNIQUE RANGE HASH INDEX ON REFERENCES WHERE OPTIONAL
 
 // Symbols
 %token LPAREN "("
@@ -386,6 +386,9 @@ constraint_def:
   }
 | UNIQUE {
       $$ = std::make_unique<unique_constraint_t>();
+  }
+| OPTIONAL {
+      $$ = std::make_unique<optional_constraint_t>();
   }
 ;
 
