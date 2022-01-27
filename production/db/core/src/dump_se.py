@@ -5,35 +5,49 @@
 # All rights reserved.
 #############################################
 
-from gaia_db_pybind import *
+"""
+This module... TBD.
+"""
+
+# pylint: disable=import-error
+from gaia_db_pybind import (
+    begin_session,
+    end_session,
+    begin_transaction,
+    commit_transaction,
+    print_node,
+    gaia_ptr,
+)
+
+# pylint: enable=import-error
 
 begin_session()
 
 begin_transaction()
 
-type = 1
-done = False
-while not done:
-    no_node = False
+TYPE_COUNT = 1
+IS_DONE = False
+while not IS_DONE:
+    NO_NODE = False
 
-    print("Iterating through nodes of type: " + str(type) + "...")
-    node_iter = gaia_ptr.find_first(type)
+    print("Iterating through nodes of type: " + str(TYPE_COUNT) + "...")
+    node_iter = gaia_ptr.find_first(TYPE_COUNT)
 
     if node_iter.is_null():
-        print("No nodes of type " + str(type) + " were found!")
-        no_node = True
+        print("No nodes of type " + str(TYPE_COUNT) + " were found!")
+        NO_NODE = True
 
     while not node_iter.is_null():
         print_node(node_iter, False)
         node_iter = node_iter.find_next()
-    print ("")
+    print("")
 
-    if no_node:
-        print("No nodes of type " + str(type) + " were found!")
+    if NO_NODE:
+        print("No nodes of type " + str(TYPE_COUNT) + " were found!")
         print("Terminating database scan!")
-        done = True
+        IS_DONE = True
 
-    type += 1
+    TYPE_COUNT += 1
 
 commit_transaction()
 
