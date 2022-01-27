@@ -41,108 +41,88 @@ TEST_F(gaia_rule_tables_test, create_each_type)
 
     // These rows will be used through the end of this test.
     auto gaia_ruleset_id = gaia_ruleset_t::insert_row(c_ruleset_name, c_empty_string);
-    EXPECT_NE(gaia_ruleset_id, c_invalid_gaia_id);
     auto gaia_ruleset = gaia_ruleset_t::get(gaia_ruleset_id);
 
     auto gaia_rule_id = gaia_rule_t::insert_row(c_rule_name, c_ruleset_name);
-    EXPECT_NE(gaia_rule_id, c_invalid_gaia_id);
     auto gaia_rule = gaia_rule_t::get(gaia_rule_id);
 
     auto gaia_application_id = gaia_application_t::insert_row(c_application_name);
-    EXPECT_NE(gaia_application_id, c_invalid_gaia_id);
     auto gaia_application = gaia_application_t::get(gaia_application_id);
 
     auto app_database_id = app_database_t::insert_row(c_application_name, c_invalid_gaia_id);
-    EXPECT_NE(app_database_id, c_invalid_gaia_id);
     auto app_database = app_database_t::get(app_database_id);
 
-    auto app_ruleset_id = app_ruleset_t::insert_row(c_application_name, c_ruleset_name, c_bool_value);
-    EXPECT_NE(app_ruleset_id, c_invalid_gaia_id);
+    auto app_ruleset_id = app_ruleset_t::insert_row(c_bool_value, c_application_name, c_ruleset_name);
     auto app_ruleset = app_ruleset_t::get(app_ruleset_id);
 
     auto ruleset_database_id = ruleset_database_t::insert_row(c_ruleset_name, c_invalid_gaia_id);
-    EXPECT_NE(ruleset_database_id, c_invalid_gaia_id);
     auto ruleset_database = ruleset_database_t::get(ruleset_database_id);
 
-    auto rule_table_id = rule_table_t::insert_row(c_rule_name, c_invalid_gaia_id, c_type_value, c_bool_value);
-    EXPECT_NE(rule_table_id, c_invalid_gaia_id);
+    auto rule_table_id = rule_table_t::insert_row(c_type_value, c_bool_value, c_rule_name, c_invalid_gaia_id);
     auto rule_table = rule_table_t::get(rule_table_id);
 
-    auto rule_field_id = rule_field_t::insert_row(c_rule_name, c_invalid_gaia_id, c_type_value, c_bool_value);
-    EXPECT_NE(rule_field_id, c_invalid_gaia_id);
+    auto rule_field_id = rule_field_t::insert_row(c_type_value, c_bool_value, c_rule_name, c_invalid_gaia_id);
     auto rule_field = rule_field_t::get(rule_field_id);
 
-    auto rule_relationship_id = rule_relationship_t::insert_row(c_rule_name, c_invalid_gaia_id, c_type_value);
-    EXPECT_NE(rule_relationship_id, c_invalid_gaia_id);
+    auto rule_relationship_id = rule_relationship_t::insert_row(c_type_value, c_rule_name, c_invalid_gaia_id);
     auto rule_relationship = rule_relationship_t::get(rule_relationship_id);
 
     // gaia_ruleset_t -> gaia_rule_t
-    for (const auto& it : gaia_ruleset.gaia_rules())
+    for (const auto& gaia_rule : gaia_ruleset.gaia_rules())
     {
-        EXPECT_STREQ(it.name(), c_rule_name);
-    }
-
-    // gaia_rule_t -> rule_relationship_t
-    for (const auto& it : gaia_rule.rule_relationships())
-    {
-        EXPECT_EQ(it.type(), c_type_value);
+        EXPECT_STREQ(gaia_rule.name(), c_rule_name);
     }
 
     // gaia_application_t -> app_database_t
-    auto counter = 0;
-    for (const auto& it : gaia_application.app_databases())
+    EXPECT_EQ(gaia_application.app_databases().size(), 1);
+    for (const auto& app_database : gaia_application.app_databases())
     {
-        EXPECT_EQ(it.gaia_database_id(), c_invalid_gaia_id);
-        ++counter;
+        EXPECT_EQ(app_database.gaia_database_id(), c_invalid_gaia_id);
     }
-    EXPECT_EQ(counter, 1);
 
     // gaia_application_t -> app_ruleset_t
-    counter = 0;
-    for (const auto& it : gaia_application.app_rulesets())
+    EXPECT_EQ(gaia_application.app_rulesets().size(), 1);
+    for (const auto& app_ruleset : gaia_application.app_rulesets())
     {
-        EXPECT_EQ(it.active_on_startup(), c_bool_value);
-        ++counter;
+        EXPECT_EQ(app_ruleset.active_on_startup(), c_bool_value);
     }
-    EXPECT_EQ(counter, 1);
 
     // gaia_ruleset_t -> ruleset_database_t
-    counter = 0;
-    for (const auto& it : gaia_ruleset.ruleset_databases())
+    EXPECT_EQ(gaia_ruleset.ruleset_databases().size(), 1);
+    for (const auto& ruleset_database : gaia_ruleset.ruleset_databases())
     {
-        EXPECT_EQ(it.gaia_database_id(), c_invalid_gaia_id);
-        ++counter;
+        EXPECT_EQ(ruleset_database.gaia_database_id(), c_invalid_gaia_id);
     }
-    EXPECT_EQ(counter, 1);
 
     // gaia_ruleset_t -> app_ruleset_t
-    counter = 0;
-    for (const auto& it : gaia_ruleset.app_rulesets())
+    EXPECT_EQ(gaia_ruleset.app_rulesets().size(), 1);
+    for (const auto& app_ruleset : gaia_ruleset.app_rulesets())
     {
-        EXPECT_EQ(it.active_on_startup(), c_bool_value);
-        ++counter;
+        EXPECT_EQ(app_ruleset.active_on_startup(), c_bool_value);
     }
-    EXPECT_EQ(counter, 1);
 
     // gaia_rule_t -> rule_table_t
-    counter = 0;
-    for (const auto& it : gaia_rule.rule_tables())
+    EXPECT_EQ(gaia_rule.rule_tables().size(), 1);
+    for (const auto& rule_table : gaia_rule.rule_tables())
     {
-        EXPECT_EQ(it.type(), c_type_value);
-        EXPECT_EQ(it.anchor(), c_bool_value);
-        ++counter;
+        EXPECT_EQ(rule_table.type(), c_type_value);
+        EXPECT_EQ(rule_table.anchor(), c_bool_value);
     }
-    EXPECT_EQ(counter, 1);
 
     // gaia_rule_t -> rule_field_t
-    counter = 0;
-    for (const auto& it : gaia_rule.rule_fields())
+    EXPECT_EQ(gaia_rule.rule_fields().size(), 1);
+    for (const auto& rule_field : gaia_rule.rule_fields())
     {
-        EXPECT_EQ(it.type(), c_type_value);
-        EXPECT_EQ(it.active(), c_bool_value);
-        ++counter;
+        EXPECT_EQ(rule_field.type(), c_type_value);
+        EXPECT_EQ(rule_field.active(), c_bool_value);
     }
-    EXPECT_EQ(counter, 1);
+
+    // gaia_rule_t -> rule_relationship_t
+    EXPECT_EQ(gaia_rule.rule_relationships().size(), 1);
+    for (const auto& rule_relationship : gaia_rule.rule_relationships())
+    {
+        EXPECT_EQ(rule_relationship.type(), c_type_value);
+    }
 
     commit_transaction();
 
@@ -153,13 +133,13 @@ TEST_F(gaia_rule_tables_test, create_each_type)
     auto ruleset_database_it = rule_field.rule().ruleset().ruleset_databases().begin();
     ruleset_database_t ruleset_database_2 = *ruleset_database_it;
     EXPECT_TRUE(ruleset_database == ruleset_database_2);
-    EXPECT_STREQ(ruleset_database_2.gaia_ruleset(), c_ruleset_name);
+    EXPECT_STREQ(ruleset_database_2.gaia_ruleset_name(), c_ruleset_name);
 
     // From the rule_relationship row to the app_database row.
     auto app_database_it = rule_relationship.rule().ruleset().app_rulesets().begin()->application().app_databases().begin();
     app_database_t app_database_2 = *app_database_it;
     EXPECT_TRUE(app_database == app_database_2);
-    EXPECT_STREQ(app_database_2.gaia_application(), c_application_name);
+    EXPECT_STREQ(app_database_2.gaia_application_name(), c_application_name);
 
     commit_transaction();
 

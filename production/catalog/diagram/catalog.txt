@@ -37,17 +37,6 @@ object gaia_relationship {
   child_field_positions : uint16[]
   hash : string
 }
-object gaia_application {
-  name : unique string
-}
-object gaia_ruleset {
-  name : unique string
-  serial_stream : string
-}
-object gaia_rule {
-  name : unique string
-  gaia_ruleset : string
-}
 object gaia_index {
   name : string
   unique : bool
@@ -55,35 +44,50 @@ object gaia_index {
   fields : uint64[]
   hash : string
 }
+object gaia_ruleset {
+  name : unique string
+  serial_stream : string
+}
+object gaia_rule {
+  name : unique string
+  gaia_ruleset_name : string
+}
+object gaia_application {
+  name : unique string
+}
 object app_database {
-  gaia_application : string
-  gaia_database : gaia_id
+  gaia_application_name : string
+  gaia_database_name : gaia_id
 }
 object ruleset_database {
-  gaia_ruleset : string
-  gaia_database : gaia_id
+  gaia_ruleset_name : string
+  gaia_database_id : gaia_id
 }
 object app_ruleset {
-  gaia_application : string
-  gaia_ruleset : string
   active_on_startup : bool
+  --
+  gaia_application_name : string
+  gaia_ruleset_name : string
 }
 object rule_table {
-  gaia_rule : string
-  gaia_table : gaia_id
   type : Create|Delete
   anchor : bool
+  --
+  gaia_rule_name : string
+  gaia_table_id : gaia_id
 }
 object rule_field {
-  gaia_rule : string
-  gaia_field : gaia_id
   type : Read|Write
   active : bool
+  --
+  gaia_rule_name : string
+  gaia_field_id : gaia_id
 }
 object rule_relationship {
-  gaia_rule : string
-  gaia_relationship : gaia_id
   type : Con|Discon|Nav
+  --
+  gaia_rule_name : string
+  gaia_relationship_id : gaia_id
 }
 gaia_database --> gaia_table
 gaia_table --> gaia_relationship : outgoing_relationships

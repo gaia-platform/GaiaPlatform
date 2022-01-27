@@ -166,6 +166,8 @@ Non core catalog tables (now, only rule catalog tables), are added using the met
 
 Currently, the rules catalog tables are created in the method `initialize_catalog()` in `catalog.cpp`. To update or add to these definitions, follow the pattern that is in use.
 
+A CMake target is available perform the following steps automatically. See the [documentation here](https://github.com/gaia-platform/GaiaPlatform/blob/master/production/schemas/system/catalog/CMakeLists.txt#L10).
+
 ### Sequence of rule catalog update steps
 
 * After updating `initialize_catalog()`, build `gaiac` only. In a separate directory, run `gaiac --db-name catalog --generate` after making sure the server is running.
@@ -177,7 +179,7 @@ Currently, the rules catalog tables are created in the method `initialize_catalo
 
 ## Relationships between core tables and other tables
 
-Core catalog tables are built and managed differently than any other tables in the database. Because if the complexity of modifying them, it is necessary to create all other tables using the `catalog.hpp` catalog API.
+Core catalog tables are built and managed differently than any other tables (rules tables or user-defined) in the database. Because of the complexity of modifying them, it is necessary to create all other tables using the `catalog.hpp` API.
 
 To refer to core tables from within non-core tables, use `gaia_id` values stored in `uint64_t` fields.
 
