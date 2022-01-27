@@ -142,7 +142,7 @@ As script files may also need to start with the [shebang](https://en.wikipedia.o
 | https://github.com/pre-commit/pre-commit-hooks | python_executable_license_check |
 
 ```Python
-#! /usr/bin/python3
+#!/usr/bin/env python3
 
 #############################################
 # Copyright (c) Gaia Platform LLC
@@ -178,7 +178,7 @@ That file is used to provide configuration for the `lit` testing framework, and 
 | https://github.com/pre-commit/pre-commit-hooks | bash_license_check |
 
 ```Python
-#! /usr/bin/bash
+#!/usr/bin/env bash
 
 #############################################
 # Copyright (c) Gaia Platform LLC
