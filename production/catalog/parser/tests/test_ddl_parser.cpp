@@ -820,7 +820,12 @@ create table t2(c2 int32);
 TEST(catalog_ddl_parser_test, create_optional_field)
 {
     parser_t parser;
-    ASSERT_NO_THROW(parser.parse_string("CREATE TABLE t (id UINT64 UNIQUE, name STRING OPTIONAL, ssn STRING OPTIONAL UNIQUE ACTIVE, address STRING ACTIVE OPTIONAL);"));
+    ASSERT_NO_THROW(parser.parse_string("CREATE TABLE t ("
+                                        "id UINT64 UNIQUE,"
+                                        "name STRING OPTIONAL,"
+                                        "ssn STRING OPTIONAL UNIQUE ACTIVE,"
+                                        "address STRING ACTIVE OPTIONAL,"
+                                        "weights UINT16[] OPTIONAL);"));
 
     EXPECT_EQ(1, parser.statements.size());
     EXPECT_EQ(parser.statements[0]->type(), statement_type_t::create_list);
@@ -833,7 +838,7 @@ TEST(catalog_ddl_parser_test, create_optional_field)
     auto create_table = dynamic_cast<create_table_t*>(create_stmt);
 
     EXPECT_EQ(create_table->name, "t");
-    EXPECT_EQ(create_table->fields.size(), 4);
+    EXPECT_EQ(create_table->fields.size(), 5);
 
     const data_field_def_t* field;
 
@@ -873,17 +878,26 @@ TEST(catalog_ddl_parser_test, create_optional_field)
     EXPECT_EQ(field->unique, false);
     EXPECT_EQ(field->optional, true);
 
-    array ddls{
+    EXPECT_EQ(create_table->fields.at(4)->field_type, field_type_t::data);
+    field = dynamic_cast<data_field_def_t*>(create_table->fields.at(4).get());
+    EXPECT_EQ(field->name, "weights");
+    EXPECT_EQ(field->data_type, data_type_t::e_uint16);
+    EXPECT_EQ(field->length, 0);
+    EXPECT_EQ(field->active, false);
+    EXPECT_EQ(field->unique, false);
+    EXPECT_EQ(field->optional, true);
+
+    array false_ddls{
         R"(
-create table t1(c1 int32, t2 unique int32)
+create table t1(c1 int32, t2 optional int32)
 )",
         R"(
 create table t1(c1 int32, t2 references t2)
-create table t2(c2 int32, t1 references t1 unique);
+create table t2(c2 int32, t1 references t1 optional);
 )",
     };
 
-    for (const auto& ddl : ddls)
+    for (const auto& ddl : false_ddls)
     {
         parser_t parser;
         ASSERT_THROW(parser.parse_string(ddl), parsing_error);

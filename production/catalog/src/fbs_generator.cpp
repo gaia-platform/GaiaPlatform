@@ -47,24 +47,25 @@ string generate_fbs_field(const gaia_field_t& field, bool ignore_optional = fals
     string name{field.name()};
     auto type = static_cast<data_type_t>(field.type());
     string type_name{get_data_type_name(type)};
+    uint16_t repeated_count = field.repeated_count();
 
     std::stringstream ss;
     ss << name;
 
-    if (field.repeated_count() == 1)
+    if (repeated_count == 1)
     {
         ss << ":" + type_name;
     }
-    else if (field.repeated_count() == 0)
+    else if (repeated_count == 0)
     {
         ss << ":[" + type_name + "]";
     }
     else
     {
-        ss << ":[" + type_name + ":" + to_string(field.repeated_count()) + "]";
+        ss << ":[" + type_name + ":" + to_string(repeated_count) + "]";
     }
 
-    if (!ignore_optional && field.optional() && type != data_type_t::e_string && field.repeated_count() == 1)
+    if (!ignore_optional && field.optional() && type != data_type_t::e_string && repeated_count == 1)
     {
         ss << "=null";
     }
