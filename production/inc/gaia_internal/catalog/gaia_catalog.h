@@ -129,10 +129,10 @@ class rule_relationship_t : public gaia::direct_access::dac_object_t<c_gaia_type
 public:
     rule_relationship_t() : dac_object_t() {}
     static const char* gaia_typename();
-    static gaia::common::gaia_id_t insert_row(const char* gaia_rule, uint64_t gaia_field_id, uint8_t type);
+    static gaia::common::gaia_id_t insert_row(const char* gaia_rule, uint64_t gaia_relationship_id, uint8_t type);
     static gaia::direct_access::dac_container_t<c_gaia_type_rule_relationship, rule_relationship_t> list();
     const char* gaia_rule() const;
-    uint64_t gaia_field_id() const;
+    uint64_t gaia_relationship_id() const;
     uint8_t type() const;
     gaia_rule_t rule() const;
 
@@ -140,7 +140,7 @@ public:
     struct expr_ {
         static gaia::expressions::member_accessor_t<rule_relationship_t, gaia::common::gaia_id_t> gaia_id;
         static gaia::expressions::member_accessor_t<rule_relationship_t, const char*> gaia_rule;
-        static gaia::expressions::member_accessor_t<rule_relationship_t, uint64_t> gaia_field_id;
+        static gaia::expressions::member_accessor_t<rule_relationship_t, uint64_t> gaia_relationship_id;
         static gaia::expressions::member_accessor_t<rule_relationship_t, uint8_t> type;
         static gaia::expressions::member_accessor_t<rule_relationship_t, gaia_rule_t> rule;
     };
@@ -152,14 +152,14 @@ private:
 namespace rule_relationship_expr {
     static auto& gaia_id = rule_relationship_t::expr::gaia_id;
     static auto& gaia_rule = rule_relationship_t::expr::gaia_rule;
-    static auto& gaia_field_id = rule_relationship_t::expr::gaia_field_id;
+    static auto& gaia_relationship_id = rule_relationship_t::expr::gaia_relationship_id;
     static auto& type = rule_relationship_t::expr::type;
     static auto& rule = rule_relationship_t::expr::rule;
 } // rule_relationship_expr
 
 template<class unused_t> gaia::expressions::member_accessor_t<rule_relationship_t, gaia::common::gaia_id_t> rule_relationship_t::expr_<unused_t>::gaia_id{&rule_relationship_t::gaia_id};
 template<class unused_t> gaia::expressions::member_accessor_t<rule_relationship_t, const char*> rule_relationship_t::expr_<unused_t>::gaia_rule{&rule_relationship_t::gaia_rule};
-template<class unused_t> gaia::expressions::member_accessor_t<rule_relationship_t, uint64_t> rule_relationship_t::expr_<unused_t>::gaia_field_id{&rule_relationship_t::gaia_field_id};
+template<class unused_t> gaia::expressions::member_accessor_t<rule_relationship_t, uint64_t> rule_relationship_t::expr_<unused_t>::gaia_relationship_id{&rule_relationship_t::gaia_relationship_id};
 template<class unused_t> gaia::expressions::member_accessor_t<rule_relationship_t, uint8_t> rule_relationship_t::expr_<unused_t>::type{&rule_relationship_t::type};
 template<class unused_t> gaia::expressions::member_accessor_t<rule_relationship_t, gaia_rule_t> rule_relationship_t::expr_<unused_t>::rule{&rule_relationship_t::rule};
 

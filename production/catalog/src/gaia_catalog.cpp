@@ -23,10 +23,10 @@ const char* rule_relationship_t::gaia_typename()
     return gaia_typename;
 }
 
-gaia::common::gaia_id_t rule_relationship_t::insert_row(const char* gaia_rule, uint64_t gaia_field_id, uint8_t type)
+gaia::common::gaia_id_t rule_relationship_t::insert_row(const char* gaia_rule, uint64_t gaia_relationship_id, uint8_t type)
 {
     flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-    b.Finish(internal::Createrule_relationshipDirect(b, gaia_rule, gaia_field_id, type));
+    b.Finish(internal::Createrule_relationshipDirect(b, gaia_rule, gaia_relationship_id, type));
     return dac_object_t::insert_row(b);
 }
 
@@ -40,9 +40,9 @@ const char* rule_relationship_t::gaia_rule() const
     return GET_STR(gaia_rule);
 }
 
-uint64_t rule_relationship_t::gaia_field_id() const
+uint64_t rule_relationship_t::gaia_relationship_id() const
 {
-    return GET(gaia_field_id);
+    return GET(gaia_relationship_id);
 }
 
 uint8_t rule_relationship_t::type() const

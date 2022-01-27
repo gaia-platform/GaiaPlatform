@@ -75,7 +75,7 @@ struct gaia_databaseT;
 struct rule_relationshipT : public flatbuffers::NativeTable {
   typedef rule_relationship TableType;
   gaia::direct_access::nullable_string_t gaia_rule{};
-  uint64_t gaia_field_id = 0;
+  uint64_t gaia_relationship_id = 0;
   uint8_t type = 0;
 };
 
@@ -84,14 +84,14 @@ struct rule_relationship FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef rule_relationshipBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_GAIA_RULE = 4,
-    VT_GAIA_FIELD_ID = 6,
+    VT_GAIA_RELATIONSHIP_ID = 6,
     VT_TYPE = 8
   };
   const flatbuffers::String *gaia_rule() const {
     return GetPointer<const flatbuffers::String *>(VT_GAIA_RULE);
   }
-  uint64_t gaia_field_id() const {
-    return GetField<uint64_t>(VT_GAIA_FIELD_ID, 0);
+  uint64_t gaia_relationship_id() const {
+    return GetField<uint64_t>(VT_GAIA_RELATIONSHIP_ID, 0);
   }
   uint8_t type() const {
     return GetField<uint8_t>(VT_TYPE, 0);
@@ -100,7 +100,7 @@ struct rule_relationship FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_GAIA_RULE) &&
            verifier.VerifyString(gaia_rule()) &&
-           VerifyField<uint64_t>(verifier, VT_GAIA_FIELD_ID) &&
+           VerifyField<uint64_t>(verifier, VT_GAIA_RELATIONSHIP_ID) &&
            VerifyField<uint8_t>(verifier, VT_TYPE) &&
            verifier.EndTable();
   }
@@ -116,8 +116,8 @@ struct rule_relationshipBuilder {
   void add_gaia_rule(flatbuffers::Offset<flatbuffers::String> gaia_rule) {
     fbb_.AddOffset(rule_relationship::VT_GAIA_RULE, gaia_rule);
   }
-  void add_gaia_field_id(uint64_t gaia_field_id) {
-    fbb_.AddElement<uint64_t>(rule_relationship::VT_GAIA_FIELD_ID, gaia_field_id, 0);
+  void add_gaia_relationship_id(uint64_t gaia_relationship_id) {
+    fbb_.AddElement<uint64_t>(rule_relationship::VT_GAIA_RELATIONSHIP_ID, gaia_relationship_id, 0);
   }
   void add_type(uint8_t type) {
     fbb_.AddElement<uint8_t>(rule_relationship::VT_TYPE, type, 0);
@@ -136,10 +136,10 @@ struct rule_relationshipBuilder {
 inline flatbuffers::Offset<rule_relationship> Createrule_relationship(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> gaia_rule = 0,
-    uint64_t gaia_field_id = 0,
+    uint64_t gaia_relationship_id = 0,
     uint8_t type = 0) {
   rule_relationshipBuilder builder_(_fbb);
-  builder_.add_gaia_field_id(gaia_field_id);
+  builder_.add_gaia_relationship_id(gaia_relationship_id);
   builder_.add_gaia_rule(gaia_rule);
   builder_.add_type(type);
   return builder_.Finish();
@@ -148,13 +148,13 @@ inline flatbuffers::Offset<rule_relationship> Createrule_relationship(
 inline flatbuffers::Offset<rule_relationship> Createrule_relationshipDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *gaia_rule = nullptr,
-    uint64_t gaia_field_id = 0,
+    uint64_t gaia_relationship_id = 0,
     uint8_t type = 0) {
   auto gaia_rule__ = gaia_rule ? _fbb.CreateString(gaia_rule) : 0;
   return gaia::catalog::internal::Createrule_relationship(
       _fbb,
       gaia_rule__,
-      gaia_field_id,
+      gaia_relationship_id,
       type);
 }
 
@@ -1591,7 +1591,7 @@ inline void rule_relationship::UnPackTo(rule_relationshipT *_o, const flatbuffer
   (void)_o;
   (void)_resolver;
   { auto _e = gaia_rule(); if (_e) _o->gaia_rule = gaia::direct_access::nullable_string_t(_e->c_str(), _e->size()); }
-  { auto _e = gaia_field_id(); _o->gaia_field_id = _e; }
+  { auto _e = gaia_relationship_id(); _o->gaia_relationship_id = _e; }
   { auto _e = type(); _o->type = _e; }
 }
 
@@ -1604,12 +1604,12 @@ inline flatbuffers::Offset<rule_relationship> Createrule_relationship(flatbuffer
   (void)_o;
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const rule_relationshipT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _gaia_rule = _o->gaia_rule.empty() ? 0 : _fbb.CreateString(_o->gaia_rule);
-  auto _gaia_field_id = _o->gaia_field_id;
+  auto _gaia_relationship_id = _o->gaia_relationship_id;
   auto _type = _o->type;
   return gaia::catalog::internal::Createrule_relationship(
       _fbb,
       _gaia_rule,
-      _gaia_field_id,
+      _gaia_relationship_id,
       _type);
 }
 

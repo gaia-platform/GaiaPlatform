@@ -270,7 +270,7 @@ void initialize_catalog()
     {
         field_def_list_t fields;
         fields.emplace_back(make_unique<ddl::data_field_def_t>("gaia_rule", data_type_t::e_string, 1));
-        fields.emplace_back(make_unique<ddl::data_field_def_t>("gaia_field_id", data_type_t::e_uint64, 1));
+        fields.emplace_back(make_unique<ddl::data_field_def_t>("gaia_relationship_id", data_type_t::e_uint64, 1));
         fields.emplace_back(make_unique<ddl::data_field_def_t>("type", data_type_t::e_uint8, 1));
         create_table(c_catalog_db_name, c_rule_relationship_table_name, fields, throw_on_exists, auto_drop);
     }
