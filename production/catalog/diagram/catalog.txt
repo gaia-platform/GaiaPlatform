@@ -1,0 +1,106 @@
+@startuml
+object gaia_database {
+  name : string
+  hash : string
+}
+object gaia_table {
+  name : string
+  type : uint32
+  is_system : bool
+  binary_schema : uint8[]
+  serialization_template : uint8[]
+  hash : string
+}
+object gaia_field {
+  name : string
+  type : uint8
+  repeated_count : uint16
+  position : uint16
+  deprecated : bool
+  active : bool
+  unique : bool
+  optional : bool
+  hash : string
+}
+object gaia_relationship {
+  name : string
+  to_parent_link_name : string
+  to_child_link_name : string
+  cardinality : uint8
+  parent_required : bool
+  deprecated : bool
+  first_child_offset : uint16
+  next_child_offset : uint16
+  prev_child_offset : uint16
+  parent_offset : uint16
+  parent_field_positions : uint16[]
+  child_field_positions : uint16[]
+  hash : string
+}
+object gaia_application {
+  name : unique string
+}
+object gaia_ruleset {
+  name : unique string
+  serial_stream : string
+}
+object gaia_rule {
+  name : unique string
+  gaia_ruleset : string
+}
+object gaia_index {
+  name : string
+  unique : bool
+  type : uint8
+  fields : uint64[]
+  hash : string
+}
+object app_database {
+  gaia_application : string
+  gaia_database : gaia_id
+}
+object ruleset_database {
+  gaia_ruleset : string
+  gaia_database : gaia_id
+}
+object app_ruleset {
+  gaia_application : string
+  gaia_ruleset : string
+  active_on_startup : bool
+}
+object rule_table {
+  gaia_rule : string
+  gaia_table : gaia_id
+  type : Create|Delete
+  anchor : bool
+}
+object rule_field {
+  gaia_rule : string
+  gaia_field : gaia_id
+  type : Read|Write
+  active : bool
+}
+object rule_relationship {
+  gaia_rule : string
+  gaia_relationship : gaia_id
+  type : Con|Discon|Nav
+}
+gaia_database --> gaia_table
+gaia_table --> gaia_relationship : outgoing_relationships
+gaia_table --> gaia_relationship : incoming_relationships
+gaia_table --> gaia_field
+gaia_table --> gaia_index
+gaia_ruleset --> gaia_rule
+gaia_database <.. app_database
+gaia_application --> app_database
+gaia_ruleset --> ruleset_database
+gaia_database <.. ruleset_database
+gaia_application --> app_ruleset
+gaia_ruleset --> app_ruleset
+gaia_table <.. rule_table
+gaia_rule --> rule_table
+gaia_field <.. rule_field
+gaia_rule --> rule_field
+gaia_relationship <.. rule_relationship
+gaia_rule --> rule_relationship
+@enduml

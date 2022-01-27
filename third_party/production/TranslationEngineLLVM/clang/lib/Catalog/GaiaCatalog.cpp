@@ -90,7 +90,6 @@ const llvm::StringMap<CatalogTableData>& GaiaCatalog::getCatalogTableData()
 // Fill internal data from catalog.
 void GaiaCatalog::fillTableData()
 {
-fprintf(stderr, "Entering fillTableData()\n");
     try
     {
         db_monitor_t monitor;
@@ -141,9 +140,7 @@ fprintf(stderr, "Entering fillTableData()\n");
             field_data.fieldType = static_cast<data_type_t>(field.type());
             table_data.dbName = table.database().name();
             table_data.fieldData[field.name()] = field_data;
-fprintf(stderr, "  m_catalogTableData[%s]\n", field.name());
             m_catalogTableData[table.name()] = table_data;
-fprintf(stderr, "  m_catalogTableData[%s] = %s\n", table.name(), table_data.dbName.c_str());
         }
 
         for (const auto& relationship : gaia_relationship_t::list())
