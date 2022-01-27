@@ -1,4 +1,5 @@
-#!/usr/bin/env bash
+#! /usr/bin/bash
+
 #############################################
 # Copyright (c) Gaia Platform LLC
 # All rights reserved.

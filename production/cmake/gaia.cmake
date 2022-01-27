@@ -1,3 +1,8 @@
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 cmake_minimum_required(VERSION 3.16)
 
 # Sets Gaia variables. They can be overridden to customize the Gaia behavior.
