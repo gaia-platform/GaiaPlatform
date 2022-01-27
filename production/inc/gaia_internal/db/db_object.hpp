@@ -48,25 +48,37 @@ struct alignas(gaia::db::memory_manager::c_allocation_alignment) db_object_t
     // a serialized flatbuffer object.
     char payload[];
 
-    // Returns the actual size in bytes used by the object, regardless of
-    // alignment constraints. The result can be less than or greater than
-    // `sizeof(db_object_t)`, because of the alignment constraint and the
-    // flexible array member `payload`, respectively.
-    // We have to define this method outside the struct definition because it
-    // references c_db_object_header_size, which depends on the struct
-    // definition.
+    /**
+     * Returns the actual size in bytes used by the object, regardless of
+     * alignment constraints. The result can be less than or greater than
+     * `sizeof(db_object_t)`, because of the alignment constraint and the
+     * flexible array member `payload`, respectively.
+     *
+     * We have to define this method outside the struct definition because it
+     * references c_db_object_header_size, which depends on the struct
+     * definition.
+     */
     [[nodiscard]] inline size_t total_size() const;
 
+    /**
+     * Returns a pointer to the object's data payload.
+     */
     [[nodiscard]] const char* data() const
     {
         return payload + references_count * sizeof(gaia::common::gaia_id_t);
     }
 
+    /**
+     * Returns the size in bytes of the object's data payload.
+     */
     [[nodiscard]] size_t data_size() const
     {
         return payload_size - (references_count * sizeof(gaia::common::gaia_id_t));
     }
 
+    /**
+     * Returns a pointer to the first element of the object's references array.
+     */
     [[nodiscard]] const gaia::common::gaia_id_t* references() const
     {
         return reinterpret_cast<const gaia::common::gaia_id_t*>(payload);
