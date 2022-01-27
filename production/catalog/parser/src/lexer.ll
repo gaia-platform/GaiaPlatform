@@ -70,6 +70,7 @@ comment ("--".*)
 "USE"          return yy::parser::make_USE(loc);
 "USING"        return yy::parser::make_USING(loc);
 "WHERE"        return yy::parser::make_WHERE(loc);
+"OPTIONAL"     return yy::parser::make_OPTIONAL(loc);
 
 "UNIQUE"     return yy::parser::make_UNIQUE(loc);
 "RANGE"      return yy::parser::make_RANGE(loc);
