@@ -6,7 +6,7 @@
 #############################################
 
 """
-This module... TBD.
+This module tests the Python wrappers over the low-level Gaia Database API.
 """
 
 # pylint: disable=import-error
