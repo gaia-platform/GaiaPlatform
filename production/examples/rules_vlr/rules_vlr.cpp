@@ -21,58 +21,49 @@ void delete_all_records_from_tables()
 {
     auto_transaction_t txn{auto_transaction_t::no_auto_restart};
 
-    for (auto person = *person_t::list().begin(); person; person = *person_t::list().begin())
+    for (auto student = *student_t::list().begin(); student; student = *student_t::list().begin())
     {
-        person.delete_row();
+        student.delete_row();
     }
-    for (auto level = *level_t::list().begin(); level; level = *level_t::list().begin())
+    for (auto dorm_room = *dorm_room_t::list().begin(); dorm_room; dorm_room = *dorm_room_t::list().begin())
     {
-        level.delete_row();
+        dorm_room.delete_row();
     }
     txn.commit();
 }
 
 /**
- * An example of using Value-Linked Relationships when updating fields in
- * a record, which automatically reconnects it to related records.
- * It starts by inserting all the necessary records.
+ * Insert dorm rooms into the database.
  */
-void vlr_example_usage()
+void create_dorm_rooms()
 {
     auto_transaction_t txn{};
 
-    // Levels inserted with their numbers and department names.
-    level_t::insert_row(0, "Lobby");
-    level_t::insert_row(1, "Sales");
-    level_t::insert_row(2, "Engineering");
-    level_t::insert_row(3, "Admin");
+    // Dorm rooms inserted with their location names and resident capacities.
+    dorm_room_t::insert_row("A100", 3);
+    dorm_room_t::insert_row("A101", 2);
+    dorm_room_t::insert_row("A102", 2);
 
-    // Insert people at certain levels. Bill starts at level 0: the lobby.
-    person_t person = person_t::get(person_t::insert_row("Bill", 0));
-    person_t::insert_row("Todd", 1);
-    person_t::insert_row("Jane", 1);
-    person_t::insert_row("John", 2);
-    person_t::insert_row("Sarah", 2);
-    person_t::insert_row("Ned", 2);
-    person_t::insert_row("Dave", 3);
     txn.commit();
+}
 
-    // We need a writer to change a person's field values.
-    person_writer person_w = person.writer();
+/**
+ * Insert students into the database. This will trigger a rule that assigns
+ * students to dorms that are below capacity.
+ */
+void insert_new_students()
+{
+    auto_transaction_t txn{};
 
-    // Move the person up a level three times.
-    for (int i = 0; i < 3; ++i)
-    {
-        // Changing their level is as easy as incrementing level_number.
-        // With VLRs, this automatically reconnects the person to the next level.
-        person_w.level_number++;
-        person_w.update_row();
-        txn.commit();
-    }
+    // Students inserted with their student IDs, names, and an empty string
+    // for their dorm room. A rule will assign their rooms.
+    student_t::insert_row(1000, "Todd", "");
+    student_t::insert_row(1001, "Jane", "");
+    student_t::insert_row(1002, "John", "");
+    student_t::insert_row(1003, "Sarah", "");
+    student_t::insert_row(1004, "Ned", "");
+    student_t::insert_row(1005, "Dave", "");
 
-    // Move them back down to the lobby.
-    person_w.level_number = 0;
-    person_w.update_row();
     txn.commit();
 }
 
@@ -81,7 +72,8 @@ int main()
     gaia::system::initialize();
     delete_all_records_from_tables();
 
-    vlr_example_usage();
+    create_dorm_rooms();
+    insert_new_students();
 
     gaia::system::shutdown();
 }

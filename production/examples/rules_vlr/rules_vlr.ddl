@@ -8,20 +8,19 @@
 
 database rules_vlr
 
--- Levels in a multi-story building.
-table level (
-    level_number int32 unique,
-    department string,
-    -- Since a Value-Linked Relationship will be made from people to a level,
-    -- we also need a reference back from a level to people.
-    people references person[]
+-- College students.
+table student (
+    student_id uint32 unique,
+    name string,
+    room_location string,
+    room references dorm_room
+        where student.room_location = dorm_room.location
+
 )
 
-table person (
-    name string,
-    level_number int32,
-    -- Create a 1-to-N VLR between a level (1) and a person (N)
-    -- that matches level numbers.
-    current_level references level
-        where person.level_number = level.level_number
+-- College dorm rooms where students live.
+table dorm_room (
+    location string unique,
+    capacity uint8,
+    residents references student[]
 )

@@ -8,21 +8,29 @@
 
 #include <gaia/logger.hpp>
 
+#include "gaia_rules_vlr.h"
+
+size_t count_residents(const gaia::rules_vlr::dorm_room_t& dorm_room)
+{
+    return dorm_room.residents().size();
+}
+
 ruleset vlr_rules
 {
-    on_update(person.level_number)
+    on_insert(student)
     {
-        gaia_log::app().info("{} has arrived at: {}", name, department);
-
-        const char* me = name;
-
-        // The navigation path level->person refers to all people currently
-        // on the same level as the singular person who fired this rule.
-        // This statement prevents the person from saying "Hi" to themselves.
-        if (0 != strcmp(me, level->person.name))
+        for (/dorm_room)
         {
-            gaia_log::app().info("{} says: Hi, {}!", name, me);
+            if (count_residents(dorm_room) < dorm_room.capacity)
+            {
+                student.room_location = dorm_room.location;
+                return;
+            }
         }
-        gaia_log::app().info("---");
+    }
+
+    on_update(student.room_location)
+    {
+        gaia_log::app().info("{} has been assigned to dorm room {}.", name, location);
     }
 }
