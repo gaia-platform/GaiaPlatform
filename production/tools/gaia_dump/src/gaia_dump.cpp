@@ -102,19 +102,19 @@ static string hex_dump(void* binary_buff, int binary_length, int& line_limit)
 static string dump_node(gaia_ptr_t& node_ptr, bool references, bool payload, int& line_limit)
 {
     string dump;
-    size_t num_references = node_ptr.num_references();
+    size_t references_count = node_ptr.references_count();
     sprintf(
         g_longstring, "id=%016lx, type=%08x, payload=%04zx, references=%02zx\n",
-        node_ptr.id().value(), node_ptr.type().value(), node_ptr.data_size(), num_references);
+        node_ptr.id().value(), node_ptr.type().value(), node_ptr.data_size(), references_count);
     dump += g_longstring;
     if (--line_limit == 0)
     {
         return dump;
     }
-    if (references && num_references)
+    if (references && references_count)
     {
         auto references = node_ptr.references();
-        for (size_t i = 0; i < num_references; i++)
+        for (size_t i = 0; i < references_count; i++)
         {
             sprintf(g_longstring, "      %02zx: %016lx\n", i, references[i].value());
             dump += g_longstring;
