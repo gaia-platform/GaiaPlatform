@@ -336,9 +336,9 @@ gaia_ptr_t create(
     client_t::verify_txn_active();
 
     const type_metadata_t& metadata = type_registry_t::instance().get(type);
-    reference_offset_t num_references = metadata.num_references();
+    reference_offset_t references_count = metadata.references_count();
 
-    gaia_ptr_t obj = gaia_ptr_t::create_no_txn(id, type, num_references, data_size, data);
+    gaia_ptr_t obj = gaia_ptr_t::create_no_txn(id, type, references_count, data_size, data);
     db_object_t* obj_ptr = obj.to_ptr();
     auto_connect(
         id,
@@ -382,12 +382,10 @@ void update_payload(gaia_ptr_t& obj, size_t data_size, const void* data)
         return;
     }
 
-    size_t references_size = old_this->num_references * sizeof(gaia_id_t);
     auto new_data = reinterpret_cast<const uint8_t*>(data);
-    auto old_data = reinterpret_cast<const uint8_t*>(old_this->payload);
-    const uint8_t* old_data_payload = old_data + references_size;
+    auto old_data = reinterpret_cast<const uint8_t*>(old_this->data());
 
-    field_position_list_t changed_fields = compute_payload_diff(obj.type(), old_data_payload, new_data);
+    field_position_list_t changed_fields = compute_payload_diff(obj.type(), old_data, new_data);
 
     auto_connect(
         obj.id(),
@@ -418,7 +416,7 @@ void remove(gaia_ptr_t& object, bool force)
     {
         // If not forced, we need to check if the node is a parent node in any
         // explicit 1:N relationship that still connects to some child nodes.
-        for (reference_offset_t i = 0; i < object.num_references(); i++)
+        for (reference_offset_t i = 0; i < object.references_count(); i++)
         {
             if (references[i] == c_invalid_gaia_id)
             {
@@ -466,7 +464,7 @@ void remove(gaia_ptr_t& object, bool force)
     }
 
     // Make necessary changes to the anchor chain before deleting the node.
-    for (reference_offset_t i = 0; i < object.num_references(); i++)
+    for (reference_offset_t i = 0; i < object.references_count(); i++)
     {
         if (references[i] == c_invalid_gaia_id)
         {

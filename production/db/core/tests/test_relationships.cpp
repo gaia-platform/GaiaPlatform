@@ -163,8 +163,8 @@ TEST_F(gaia_relationships_test, metadata_one_to_many)
     ASSERT_EQ(parent.get_type(), doctor_table_type);
     ASSERT_EQ(child.get_type(), patient_table_type);
 
-    ASSERT_EQ(parent.num_references(), 1);
-    ASSERT_EQ(child.num_references(), 3);
+    ASSERT_EQ(parent.references_count(), 1);
+    ASSERT_EQ(child.references_count(), 3);
 
     auto parent_rel = parent.find_parent_relationship(c_first_patient_offset);
     ASSERT_TRUE(parent_rel.has_value());
@@ -199,8 +199,8 @@ TEST_F(gaia_relationships_test, metadata_one_to_one)
     ASSERT_EQ(parent.get_type(), doctor_table_type);
     ASSERT_EQ(child.get_type(), patient_table_type);
 
-    ASSERT_EQ(parent.num_references(), 1);
-    ASSERT_EQ(child.num_references(), 3);
+    ASSERT_EQ(parent.references_count(), 1);
+    ASSERT_EQ(child.references_count(), 3);
 
     auto parent_rel = parent.find_parent_relationship(c_first_patient_offset);
     ASSERT_TRUE(parent_rel.has_value());

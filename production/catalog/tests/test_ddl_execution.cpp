@@ -438,3 +438,24 @@ create relationship r (d1.t1.link2 -> d2.t2, d2.t2.link1 -> d1.t1);
     ASSERT_NO_THROW(parser.parse_string(ddl));
     ASSERT_THROW(execute(parser.statements), no_cross_db_relationship);
 }
+
+TEST_F(ddl_execution_test, create_optional_fields)
+{
+    const string ddl = R"(
+DROP TABLE IF EXISTS t1;
+CREATE TABLE IF NOT EXISTS t1(t1c1 INT32, t1c2 STRING OPTIONAL);
+
+DROP TABLE IF EXISTS t2;
+CREATE TABLE IF NOT EXISTS t2(t2c1 INT32 OPTIONAL UNIQUE, t2c2 INT32[] OPTIONAL);
+)";
+
+    ddl::parser_t parser;
+    ASSERT_NO_THROW(parser.parse_string(ddl));
+    ASSERT_NO_THROW(execute(parser.statements));
+
+    gaia::direct_access::auto_transaction_t txn(false);
+    ASSERT_EQ(gaia_field_t::list().where(gaia_field_expr::name == "t1c1").begin()->optional(), false);
+    ASSERT_EQ(gaia_field_t::list().where(gaia_field_expr::name == "t1c2").begin()->optional(), true);
+    ASSERT_EQ(gaia_field_t::list().where(gaia_field_expr::name == "t2c1").begin()->optional(), true);
+    ASSERT_EQ(gaia_field_t::list().where(gaia_field_expr::name == "t2c2").begin()->optional(), true);
+}

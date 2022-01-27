@@ -710,7 +710,7 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
         else if (m_fields[field_index].is_reference)
         {
             reference_offset_t reference_offset = m_fields[field_index].position;
-            if (reference_offset >= m_current_record.num_references())
+            if (reference_offset >= m_current_record.references_count())
             {
                 ereport(
                     ERROR,
@@ -1070,7 +1070,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
             }
 
             reference_offset_t reference_offset = m_fields[i].position;
-            if (reference_offset >= record.num_references())
+            if (reference_offset >= record.references_count())
             {
                 ereport(
                     ERROR,
