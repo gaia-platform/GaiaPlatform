@@ -57,13 +57,13 @@ bool optional_t<T_value>::has_value() const
 template <typename T_value>
 T_value& optional_t<T_value>::operator*()
 {
-    return m_storage.has_value ? m_storage.value : throw optional_value_not_found();
+    return value();
 }
 
 template <typename T_value>
 const T_value& optional_t<T_value>::operator*() const
 {
-    return m_storage.has_value ? m_storage.value : throw optional_value_not_found();
+    return value();
 }
 
 template <typename T_value>

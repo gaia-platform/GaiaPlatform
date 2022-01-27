@@ -26,15 +26,15 @@ namespace common
  */
 
 /**
- * Encapsulate a value of type T_vale or the absence of it.
+ * Encapsulate a value of type T_value or the absence of it.
  *
  * This class resembles the C++17 std::optional class.
- * The Gaia API need to be compatible with C++11, this is the main
+ * The Gaia API needs to be compatible with C++11, this is the main
  * reason to introduce a lightweight custom implementation.
  * We try to be similar to std::optional to make it familiar
- * to C++17 users. Not all API have been implemented and some
- * custom API could be added. Basic functionality std::optional
- * functionality is retained.
+ * to C++17 users. Not all APIs have been implemented and some
+ * custom APIs could be added. The basic functionality of
+ * std::optional is retained.
  *
  * @tparam T_value The type of the value optionally stored by this class.
  */
