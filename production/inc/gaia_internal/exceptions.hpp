@@ -152,6 +152,12 @@ public:
     explicit configuration_error_internal(const char* filename);
 };
 
+class optional_value_not_found_internal : public optional_value_not_found
+{
+public:
+    optional_value_not_found_internal();
+};
+
 namespace logging
 {
 
@@ -340,12 +346,6 @@ public:
         common::gaia_id_t parent_id,
         common::gaia_id_t child_id,
         const char* child_type);
-};
-
-class optional_value_not_found_internal : public optional_value_not_found
-{
-public:
-    optional_value_not_found_internal();
 };
 
 } // namespace direct_access

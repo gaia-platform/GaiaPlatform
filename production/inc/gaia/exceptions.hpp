@@ -187,6 +187,13 @@ class configuration_error : public gaia_exception
 {
 };
 
+/**
+ * Thrown when accessing an optional that has no value.
+ */
+class optional_value_not_found : public common::gaia_exception
+{
+};
+
 namespace logging
 {
 /**
@@ -431,13 +438,6 @@ namespace direct_access
  * Thrown when an object's internal state is not as expected.
  */
 class invalid_object_state : public common::gaia_exception
-{
-};
-
-/**
- * Thrown when accessing an optional that has no value.
- */
-class optional_value_not_found : public common::gaia_exception
 {
 };
 

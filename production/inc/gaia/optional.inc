@@ -1,3 +1,6 @@
+
+#include "optional.hpp"
+
 /////////////////////////////////////////////
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
@@ -34,26 +37,37 @@ void optional_t<T_value>::reset()
 }
 
 template <typename T_value>
-T_value& optional_t<T_value>::value() &
+T_value& optional_t<T_value>::value()
 {
     return m_storage.has_value ? m_storage.value : throw optional_value_not_found();
 }
 
 template <typename T_value>
-const T_value& optional_t<T_value>::value() const&
+const T_value& optional_t<T_value>::value() const
 {
     return m_storage.has_value ? m_storage.value : throw optional_value_not_found();
-}
-
-template <typename T_value>
-template <typename T_default>
-T_value optional_t<T_value>::value_or(T_default&& default_value) const&
-{
-    return m_storage.has_value ? m_storage.value : default_value;
 }
 
 template <typename T_value>
 bool optional_t<T_value>::has_value() const
+{
+    return m_storage.has_value;
+}
+
+template <typename T_value>
+T_value& optional_t<T_value>::operator*()
+{
+    return m_storage.has_value ? m_storage.value : throw optional_value_not_found();
+}
+
+template <typename T_value>
+const T_value& optional_t<T_value>::operator*() const
+{
+    return m_storage.has_value ? m_storage.value : throw optional_value_not_found();
+}
+
+template <typename T_value>
+optional_t<T_value>::operator bool() const
 {
     return m_storage.has_value;
 }
