@@ -339,23 +339,18 @@ Some developers have expressed a need to externally verify that their changes wo
 While our configuration does not automatically kick off GitHub workflows when changes are pushed to non-`master` branches of the main repository, they can be started using the process described on [this GitHub webpage](https://docs.github.com/en/actions/managing-workflow-runs/manually-running-a-workflow).
 When executed in this fashion, the workflow will execute all jobs contained within the workflow.
 While this may be overkill in some cases, the developer may cancel the workflow at any time during its execution.
-In this way, developers can execute as many or as few of the extra checks as their require for their particular situation.
+In this way, developers can execute as many or as few of the extra checks as they require for their particular situation.
 
 #### Part of Pull Request
 
-As a general practice, it is good to assure the reviewer that (at least) basic steps have been undertaken to verify that the code that they are reviewing is correct.
+It is good to assure the reviewer that (at least) basic steps have been undertaken to verify that the code that they are reviewing is correct.
 By default, the GitHub workflow will run a shortened set of jobs against the source branch of a *Pull Request*.
 In addition, this workflow is executed within the scope and context of that branch, keeping any changes within the branch until the *Pull Request* is approved.
-As a reviewer, it is on your discretion as to whether you approve a Pull Request or not before all jobs in the shortened workflow have completed.
+As a reviewer, it is at your discretion as to whether you approve a Pull Request or not before all jobs in the shortened workflow have completed.
 
 #### Part of Merging a Pull Request
 
-Under our team guidelines, specified at [Ed Note: Location TBD], there are two criteria for merging to the `master` branch:
-
-1. at least one other person must approve of the changes
-1. the GitHub Workflow against the Pull Request must pass the `Lint` job
-
-Once these conditions are met, the `Squash and Merge` button will be enabled and the branch that is under review will be merged.
+Once the merging conditions for the repository are met, the `Squash and Merge` button will be enabled and the branch that is under review will be merged.
 That merge action triggers the execution of the full workflow against the `master` branch with the new changes applied to it.
 
 #### Looking at the GitHub Workflow in Action
@@ -364,7 +359,6 @@ To look at any of the currently running workflow actions, please use the [Action
 The standard colors and symbols apply to the workflows: a red X for a failed workflow, a green checkmark for a successful workflow, and a yellow dot with an "orbitting circle" for a workflow that is still in progress.
 The GitHub pages are very good at updating when they need to update, but they still occasionally require a manual browser page refresh to set things straight.
 In addition, whenever a workflow has a failed job or a cancelled workflow, an email is sent to the owner of the branch.
-Based on team decisions, we do not currently support any integration with Slack, due to the richness of the GitHub Actions UI.
 
 #### For More Technical Information...
 

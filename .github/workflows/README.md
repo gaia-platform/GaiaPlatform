@@ -33,7 +33,7 @@ From Dax:
 
 ## Workflow Triggers
 
-Based on experience, there are three main usage patterns for executing the workflow:
+Based on experience, there are three main usage patterns for executing the main workflow:
 
 1. Before a *Pull Request* is created, a *Push* non-`master` branch, to verify that a change works properly and does not have unintended side effects.
 1. As part of a *Pull Request* against `master`, to assure the reviewer that (at the very least) basic steps have been undertaken to verify that the code is correct.
