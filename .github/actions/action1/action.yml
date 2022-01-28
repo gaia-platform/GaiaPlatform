@@ -4,11 +4,15 @@ runs:
   using: "composite"
   steps:
     - name: Setup Python 3.8
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.8
+      shell: bash
+      run: |
+        sudo apt --assume-yes update
+        sudo apt --assume-yes install software-properties-common
+        sudo add-apt-repository --assume-yes ppa:deadsnakes/ppa
+        sudo apt --assume-yes install python3.8
 
     - name: Clean up disk space
+      shell: bash
       run: |
         df
         sudo rm -rf /usr/share/dotnet
@@ -17,7 +21,8 @@ runs:
         df
 
     - name: Pull Latest Dev-Core Image
+      shell: bash
       run: |
         ssh-agent -a $SSH_AUTH_SOCK > /dev/null
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-        #docker pull $DEV_IMAGE
+        docker pull $DEV_IMAGE
