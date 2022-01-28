@@ -26,10 +26,10 @@ namespace db
 
 inline db_object_t* create_object(
     gaia::common::gaia_id_t id, gaia::common::gaia_type_t type,
-    size_t num_refs, const gaia::common::gaia_id_t* refs,
+    size_t refs_count, const gaia::common::gaia_id_t* refs,
     size_t obj_data_size, const void* obj_data)
 {
-    size_t ref_len = num_refs * sizeof(*refs);
+    size_t ref_len = refs_count * sizeof(*refs);
     size_t total_len = obj_data_size + ref_len;
     gaia::db::hash_node_t* hash_node = db_hash_map::insert(id);
     hash_node->locator = allocate_locator();
@@ -37,9 +37,9 @@ inline db_object_t* create_object(
     db_object_t* obj_ptr = locator_to_ptr(hash_node->locator.load());
     obj_ptr->id = id;
     obj_ptr->type = type;
-    obj_ptr->num_references = num_refs;
+    obj_ptr->references_count = refs_count;
     obj_ptr->payload_size = total_len;
-    if (num_refs > 0)
+    if (refs_count > 0)
     {
         memcpy(obj_ptr->payload, reinterpret_cast<const uint8_t*>(refs), ref_len);
     }
@@ -52,7 +52,7 @@ inline db_object_t* create_object(
 
 inline db_object_t* create_object(
     gaia::common::gaia_id_t id, gaia::common::gaia_type_t type,
-    size_t num_refs, size_t obj_data_size,
+    size_t refs_count, size_t obj_data_size,
     const void* obj_data)
 {
     gaia::db::hash_node_t* hash_node = db_hash_map::insert(id);
@@ -61,7 +61,7 @@ inline db_object_t* create_object(
     db_object_t* obj_ptr = locator_to_ptr(hash_node->locator.load());
     obj_ptr->id = id;
     obj_ptr->type = type;
-    obj_ptr->num_references = num_refs;
+    obj_ptr->references_count = refs_count;
     obj_ptr->payload_size = obj_data_size;
     if (obj_data_size > 0)
     {

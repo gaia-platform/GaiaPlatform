@@ -51,10 +51,14 @@ std::optional<gaia_id_t> type_generator_t::operator()()
     while (!m_iterator.at_end())
     {
         gaia_locator_t locator = record_list_t::get_record_data(m_iterator).locator;
-        ASSERT_INVARIANT(
-            locator != c_invalid_gaia_locator, "An invalid locator value was returned from record list iteration!");
+        db_object_t* db_object = nullptr;
 
-        db_object_t* db_object = locator_to_ptr(locator);
+        // The record on which the iterator stopped may have been deleted by another thread
+        // before we could read its value, so we have to check again that we have retrieved a valid value.
+        if (locator != c_invalid_gaia_locator)
+        {
+            db_object = locator_to_ptr(locator);
+        }
 
         // Whether we found a record or not, we need to advance the iterator.
         record_list_t::move_next(m_iterator);

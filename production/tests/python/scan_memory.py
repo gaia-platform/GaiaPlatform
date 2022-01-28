@@ -1,4 +1,4 @@
-#! /usr/bin/python3
+#!/usr/bin/env python3
 
 #############################################
 # Copyright (c) Gaia Platform LLC
@@ -85,7 +85,7 @@ def __get_single_sample():
         return_code, output_lines, _ = __execute_script(
             [other_script_path, "-s", "-k", "-S", "-p", process_ids]
         )
-        if return_code in (0, errno.EISNAM):
+        if return_code in (0, errno.EISDIR):
             for line_index, next_line in enumerate(output_lines):
                 if line_index < 2:
                     continue

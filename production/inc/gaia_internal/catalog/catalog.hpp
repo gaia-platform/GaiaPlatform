@@ -149,6 +149,7 @@ enum class constraint_type_t : uint8_t
 {
     active,
     unique,
+    optional,
 };
 
 struct constraint_t
@@ -173,6 +174,14 @@ struct unique_constraint_t : constraint_t
 {
     explicit unique_constraint_t()
         : constraint_t(constraint_type_t::unique)
+    {
+    }
+};
+
+struct optional_constraint_t : constraint_t
+{
+    explicit optional_constraint_t()
+        : constraint_t(constraint_type_t::optional)
     {
     }
 };
@@ -227,6 +236,10 @@ struct data_field_def_t : base_field_def_t
                 {
                     this->unique = true;
                 }
+                else if (constraint->type == constraint_type_t::optional)
+                {
+                    this->optional = true;
+                }
             }
         }
     }
@@ -239,8 +252,6 @@ struct data_field_def_t : base_field_def_t
 
     bool unique = false;
 
-    // TODO: we don't have a way to define optional in the DDL yet,
-    //  hence all the fields are non-optional by default.
     bool optional = false;
 };
 

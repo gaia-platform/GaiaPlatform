@@ -75,7 +75,7 @@ gaia_type_t type_metadata_t::get_type() const
     return m_type;
 }
 
-reference_offset_t type_metadata_t::num_references() const
+reference_offset_t type_metadata_t::references_count() const
 {
     std::shared_lock lock(m_metadata_lock);
     return m_reference_count;
