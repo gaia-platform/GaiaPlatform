@@ -166,7 +166,7 @@ Non core catalog tables (now, only rule catalog tables), are added using the met
 
 Currently, the rules catalog tables are created in the method `initialize_catalog()` in `catalog.cpp`. To update or add to these definitions, follow the pattern that is in use.
 
-A CMake target is available perform the following steps automatically. See the [documentation here](https://github.com/gaia-platform/GaiaPlatform/blob/master/production/schemas/system/catalog/CMakeLists.txt#L10).
+A CMake target is available perform the following steps automatically. See the [documentation here](../schemas/system/catalog/CMakeLists.txt#L10).
 
 ### Sequence of rule catalog update steps
 
