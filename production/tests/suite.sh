@@ -1,4 +1,4 @@
-#! /usr/bin/bash
+#!/usr/bin/env bash
 
 #############################################
 # Copyright (c) Gaia Platform LLC
@@ -45,7 +45,6 @@ complete_process() {
             fi
         fi
     fi
-
 
     if [ "$DID_REPORT_START" -ne 0 ] ; then
         if [ "$SLACK_MODE" -ne 0 ] ; then
@@ -587,8 +586,6 @@ execute_suite_test() {
         fi
     fi
 }
-
-
 
 # Set up any global script variables.
 # shellcheck disable=SC2164

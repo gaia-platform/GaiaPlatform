@@ -620,8 +620,18 @@ std::string class_writer_t::generate_expressions()
     code.IncrementIdentLevel();
 
     std::pair<std::string, std::string> expr_variable;
+    std::string gaia_id_accessor;
 
-    expr_variable = field_facade_t::generate_expr_variable(code.GetValue("TABLE_NAME"), "gaia::common::gaia_id_t", "gaia_id");
+    gaia_id_accessor.append("gaia::expressions::member_accessor_t");
+    gaia_id_accessor.append("<");
+    gaia_id_accessor.append(code.GetValue("TABLE_NAME"));
+    gaia_id_accessor.append("_t, ");
+    gaia_id_accessor.append("gaia::common::gaia_id_t");
+    gaia_id_accessor.append(">");
+    expr_variable = field_facade_t::generate_expr_variable(
+        code.GetValue("TABLE_NAME"),
+        gaia_id_accessor,
+        "gaia_id");
     code += expr_variable.first;
 
     for (const auto& field : m_table.fields())
@@ -632,13 +642,13 @@ std::string class_writer_t::generate_expressions()
 
     for (auto& link : m_table.incoming_links())
     {
-        expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), link.target_type(), link.field_name());
+        expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), link.expression_accessor(), link.field_name());
         code += expr_variable.first;
     }
 
     for (auto& link : m_table.outgoing_links())
     {
-        expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), link.target_type(), link.field_name());
+        expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), link.expression_accessor(), link.field_name());
         code += expr_variable.first;
     }
 
@@ -744,7 +754,20 @@ std::string class_writer_t::generate_expr_instantiation_cpp()
     // inline variables which are available in C++17.
     std::pair<std::string, std::string> expr_variable;
 
-    expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), "gaia::common::gaia_id_t", "gaia_id");
+    std::string gaia_id_accessor;
+
+    gaia_id_accessor.append("gaia::expressions::member_accessor_t");
+    gaia_id_accessor.append("<");
+    gaia_id_accessor.append(m_table.table_name());
+    gaia_id_accessor.append("_t, ");
+    gaia_id_accessor.append("gaia::common::gaia_id_t");
+    gaia_id_accessor.append(">");
+
+    expr_variable
+        = field_facade_t::generate_expr_variable(
+            m_table.table_name(),
+            gaia_id_accessor,
+            "gaia_id");
     code += expr_variable.second;
 
     for (const auto& field : m_table.fields())
@@ -755,13 +778,13 @@ std::string class_writer_t::generate_expr_instantiation_cpp()
 
     for (auto& link : m_table.incoming_links())
     {
-        expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), link.target_type(), link.field_name());
+        expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), link.expression_accessor(), link.field_name());
         code += expr_variable.second;
     }
 
     for (auto& link : m_table.outgoing_links())
     {
-        expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), link.target_type(), link.field_name());
+        expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), link.expression_accessor(), link.field_name());
         code += expr_variable.second;
     }
 
@@ -817,7 +840,7 @@ std::string class_writer_t::generate_ref_class_cpp()
     code += "if (dac_base_reference_t::disconnect(this->gaia_id()))";
     code += "{";
     code.IncrementIdentLevel();
-    code += "this->set_record(gaia::common::c_invalid_gaia_id);";
+    code += "this->set(gaia::common::c_invalid_gaia_id);";
     code += "return true;";
     code.DecrementIdentLevel();
     code += "}";
@@ -833,7 +856,7 @@ std::string class_writer_t::generate_ref_class_cpp()
     code += "if (dac_base_reference_t::connect(this->gaia_id(), id))";
     code += "{";
     code.IncrementIdentLevel();
-    code += "this->set_record(id);";
+    code += "this->set(id);";
     code += "return true;";
     code.DecrementIdentLevel();
     code += "}";

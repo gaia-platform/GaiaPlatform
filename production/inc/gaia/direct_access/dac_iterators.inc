@@ -155,7 +155,10 @@ dac_set_iterator_t<T_child>::dac_set_iterator_t(gaia::common::gaia_id_t id, comm
 }
 
 template <typename T_child>
-dac_set_iterator_t<T_child>::dac_set_iterator_t(gaia::common::gaia_id_t id, std::function<bool(const T_child&)> filter_function, common::reference_offset_t next_offset)
+dac_set_iterator_t<T_child>::dac_set_iterator_t(
+    gaia::common::gaia_id_t id,
+    std::function<bool(const T_child&)> filter_function,
+    common::reference_offset_t next_offset)
     : m_filter_fn(filter_function)
     , m_next_offset(next_offset)
 {

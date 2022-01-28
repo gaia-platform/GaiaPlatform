@@ -55,10 +55,7 @@ char* gaia_ptr_t::data() const
 
 size_t gaia_ptr_t::data_size() const
 {
-    size_t total_len = to_ptr()->payload_size;
-    size_t refs_len = to_ptr()->num_references * sizeof(common::gaia_id_t);
-    size_t data_size = total_len - refs_len;
-    return data_size;
+    return to_ptr()->data_size();
 }
 
 common::gaia_id_t* gaia_ptr_t::references() const
@@ -66,9 +63,9 @@ common::gaia_id_t* gaia_ptr_t::references() const
     return const_cast<common::gaia_id_t*>(to_ptr()->references());
 }
 
-common::reference_offset_t gaia_ptr_t::num_references() const
+common::reference_offset_t gaia_ptr_t::references_count() const
 {
-    return to_ptr()->num_references;
+    return to_ptr()->references_count;
 }
 
 bool gaia_ptr_t::is(common::gaia_type_t type) const

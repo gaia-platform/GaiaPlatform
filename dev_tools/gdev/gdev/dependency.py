@@ -201,7 +201,7 @@ class Dependency:
                 type=int,
                 help=f'Ports to expose in underlying docker container. Default: "{ports_default}"'
             )
-            registry_default = '192.168.0.250:5000'
+            registry_default = None
             parser.add_argument(
                 '--registry',
                 default=registry_default,
