@@ -10,10 +10,11 @@
 #include <string>
 
 #include <flatbuffers/idl.h>
-#include <flatbuffers/util.h>
 
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/retail_assert.hpp"
+
+#include "gaia_spdlog/fmt/fmt.h"
 
 using namespace std;
 using namespace gaia::common;
@@ -95,8 +96,6 @@ static string generate_json_field(const gaia_field_t& field)
 
 string generate_json(gaia_id_t table_id)
 {
-    gaia::db::begin_transaction();
-
     stringstream json_string_stream;
     json_string_stream << "{";
 
@@ -119,44 +118,6 @@ string generate_json(gaia_id_t table_id)
         << endl
         << "}" << endl;
 
-    gaia::db::commit_transaction();
-
-    return json_string_stream.str();
-}
-
-string generate_json(const ddl::field_def_list_t& fields)
-{
-    stringstream json_string_stream;
-    json_string_stream << "{";
-
-    bool has_output_first_field = false;
-    for (auto& field : fields)
-    {
-        if (field->field_type == ddl::field_type_t::reference)
-        {
-            continue;
-        }
-
-        if (has_output_first_field)
-        {
-            json_string_stream << ",";
-        }
-        has_output_first_field = true;
-
-        const ddl::data_field_def_t* data_field = dynamic_cast<ddl::data_field_def_t*>(field.get());
-
-        string field_json = generate_json_field(
-            data_field->name, get_data_type_default_value(data_field->data_type), data_field->length);
-
-        json_string_stream
-            << endl
-            << field_json;
-    }
-
-    json_string_stream
-        << endl
-        << "}" << endl;
-
     return json_string_stream.str();
 }
 
@@ -167,14 +128,17 @@ vector<uint8_t> generate_bin(const string& fbs, const string& json)
     flatbuffers::Parser parser(options);
 
     bool parsing_result = parser.Parse(fbs.c_str());
-    ASSERT_INVARIANT(parsing_result == true, "Invalid FlatBuffers schema!");
+    ASSERT_INVARIANT(
+        parsing_result == true, gaia_fmt::format("Invalid FlatBuffers schema: {}", parser.error_).c_str());
 
     parsing_result = parser.Parse(json.c_str());
-    ASSERT_INVARIANT(parsing_result == true, "Invalid FlatBuffers JSON!");
+    ASSERT_INVARIANT(
+        parsing_result == true, gaia_fmt::format("Invalid FlatBuffers JSON: {}", parser.error_).c_str());
 
-    return vector(
+    // Use the std::vector (begin, end) iterator constructor.
+    return {
         parser.builder_.GetBufferPointer(),
-        parser.builder_.GetBufferPointer() + parser.builder_.GetSize());
+        parser.builder_.GetBufferPointer() + parser.builder_.GetSize()};
 }
 
 } // namespace catalog

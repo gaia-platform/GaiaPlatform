@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 #############################################
 # Copyright (c) Gaia Platform LLC
@@ -57,6 +57,7 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags] <command>"
     echo "Flags:"
+    echo "  -b,--bash                   Drop into bash for debugging."
     echo "  -v,--verbose                Show lots of information while executing the project."
     echo "  -h,--help                   Display this help text."
     echo ""
@@ -66,9 +67,14 @@ show_usage() {
 # Parse the command line.
 parse_command_line() {
     VERBOSE_MODE=0
+    BASH_MODE=0
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
+        -b|--bash)
+            BASH_MODE=1
+            shift
+        ;;
         -v|--verbose)
             VERBOSE_MODE=1
             shift
@@ -102,7 +108,6 @@ parse_command_line "$@"
 # Clean entrance into the script.
 start_process
 
-
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Creating/cleaning output directory."
 fi
@@ -120,13 +125,23 @@ if ! cd "$SCRIPTPATH/.." > "$TEMP_FILE" 2>&1; then
     complete_process 1 "Script cannot change to root production directory before proceeding."
 fi
 
-if [ "$VERBOSE_MODE" -ne 0 ]; then
-    echo "Executing coverage workflow in GCov container."
+if [ "$BASH_MODE" -ne 0 ]; then
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Executing bash in GCov container for debugging."
+    fi
+    CONTAINER_SCRIPT_TO_RUN=
+else
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Executing coverage workflow in GCov container."
+    fi
+    CONTAINER_SCRIPT_TO_RUN=/source/production/coverage/gen_coverage.sh
 fi
 
 REPO_ROOT_DIR=$(git rev-parse --show-toplevel)
 GDEV_WRAPPER="${REPO_ROOT_DIR}/dev_tools/gdev/gdev.sh"
-"${GDEV_WRAPPER}" run --cfg-enables Coverage --mounts ./coverage/output:output /source/production/coverage/gen_coverage.sh
+if ! "${GDEV_WRAPPER}" run --cfg-enables Coverage --mounts ./coverage/output:output $CONTAINER_SCRIPT_TO_RUN ; then
+    complete_process 1 "Unable to execute a coverage run inside of the Docker container."
+fi
 
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Setting proper permissions on output directory."
@@ -142,14 +157,12 @@ if ! cd "$SCRIPTPATH" > "$TEMP_FILE" 2>&1; then
 fi
 
 if [ "$VERBOSE_MODE" -ne 0 ]; then
-    echo "Creating coverage.json file from coverage output."
+    echo "Creating coverage-summary.json file from coverage output."
 fi
-./summarize.py > "$SCRIPTPATH/output/coverage.json"
-
-if [ "$VERBOSE_MODE" -ne 0 ]; then
-    echo "Creating coverage.zip file from coverage output."
+if ! /usr/bin/python3.8 "$SCRIPTPATH/summarize.py" > "$TEMP_FILE" 2>&1 ; then
+    cat "$TEMP_FILE"
+    complete_process 1 "Script cannot summarize coverage directory after proceeding."
 fi
-zip -r "$SCRIPTPATH/output/coverage.zip" "$SCRIPTPATH/output"
 
 # If we get here, we have a clean exit from the script.
 complete_process 0

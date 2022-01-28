@@ -1,6 +1,6 @@
 fail_fast: false
 
-exclude: ^(data|scratch|third_party)/
+exclude: (^(data|scratch|third_party)/)|(^(production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h))
 repos:
 # Enabling this repo produces a list of files that are to be scanned.  DEBUG ONLY!
 # - repo: meta
@@ -12,12 +12,115 @@ repos:
     - id: check-merge-conflict
     - id: check-yaml
     - id: end-of-file-fixer
+      exclude: ^(production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h)
     - id: trailing-whitespace
 - repo: https://github.com/Lucas-C/pre-commit-hooks
   rev: v1.1.10
   hooks:
     - id: forbid-crlf
     - id: forbid-tabs
+
+- repo: local
+  hooks:
+    - id: fix_double_empty_lines
+      name: Eliminate multiple empty lines
+      entry: dev_tools/github-actions/pre-commit-hooks/fix_double_empty_lines.py
+      language: python
+      exclude: .py$|^(production/tests/workloads/template/json.hpp|production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h|production/licenses/|production/tools/gaia_translate/tests/test_translation.ruleset)
+
+    - id: python_executable_license_check
+      name: Check Python Executable files for License Prefix
+      entry: dev_tools/github-actions/pre-commit-hooks/check_file_prefix.py
+      language: python
+      args:
+        - --prefix
+        - "#!/usr/bin/env python3\n\n#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n"
+      exclude: (^.+$(?<!\.py))|(^(dev_tools/gdev|production/tests/python/ps_mem.py|production/tools/tests/gaiat/lit.cfg.py))
+
+    - id: python_non_executable_license_check
+      name: Check Python Non-Executable files for License Prefix
+      entry: dev_tools/github-actions/pre-commit-hooks/check_file_prefix.py
+      language: python
+      args:
+        - --prefix
+        - "#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n"
+      files: ^(production/tools/tests/gaiat/lit.cfg.py)$
+      exclude: ^(production/tools/tests/gaiat/lit.cfg.py)$
+
+    - id: bash_license_check
+      name: Check Bash files for License Prefix
+      entry: dev_tools/github-actions/pre-commit-hooks/check_file_prefix.py
+      language: python
+      args:
+        - --prefix
+        - "#!/usr/bin/env bash\n\n#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n"
+      exclude: (^.+$(?<!\.sh))|(^(dev_tools/gdev|production/examples))
+
+    - id: cmake_license_check
+      name: Check CMake files for License Prefix
+      entry: dev_tools/github-actions/pre-commit-hooks/check_file_prefix.py
+      language: python
+      args:
+        - --prefix
+        - "#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n"
+      files: ^.*(\.cmake$|\/CMakeLists.txt$)
+      exclude: ^(production/examples|production/tools)
+
+    - id: db_license_check
+      name: Check SQL and DDL files for License Prefix
+      entry: dev_tools/github-actions/pre-commit-hooks/check_file_prefix.py
+      language: python
+      args:
+        - --prefix
+        - "---------------------------------------------\n-- Copyright (c) Gaia Platform LLC\n-- All rights reserved.\n---------------------------------------------\n"
+      files: ^.*(\.ddl$|\.sql$)
+      exclude: ^(production/examples)
+
+    - id: cpp_license_check
+      name: Check C++ files for License Prefix
+      entry: dev_tools/github-actions/pre-commit-hooks/check_file_prefix.py
+      language: python
+      args:
+        - --prefix
+        - "/////////////////////////////////////////////\n// Copyright (c) Gaia Platform LLC\n// All rights reserved.\n/////////////////////////////////////////////\n"
+      files: ^.*(\.hpp$|\.cpp$|\.inc$)
+      exclude: ^(production/tests/workloads/template/json.hpp|production/examples|production/inc/gaia_internal/common/scope_guard.hpp)
+
+    - id: bash_license_check_examples
+      name: Check Example Bash files for MIT License Prefix
+      entry: dev_tools/github-actions/pre-commit-hooks/check_file_prefix.py
+      language: python
+      args:
+        - --prefix
+        - "#!/usr/bin/env bash\n\n###################################################\n# Copyright (c) Gaia Platform LLC\n#\n# Use of this source code is governed by the MIT\n# license that can be found in the LICENSE.txt file\n# or at https://opensource.org/licenses/MIT.\n###################################################\n"
+      files: ^production/examples/.*\.sh
+
+    - id: cmake_license_check_examples
+      name: Check Example CMake files for MIT License Prefix
+      entry: dev_tools/github-actions/pre-commit-hooks/check_file_prefix.py
+      language: python
+      args:
+        - --prefix
+        - "###################################################\n# Copyright (c) Gaia Platform LLC\n#\n# Use of this source code is governed by the MIT\n# license that can be found in the LICENSE.txt file\n# or at https://opensource.org/licenses/MIT.\n###################################################\n"
+      files: ^production/examples/.*(\.cmake$|\/CMakeLists.txt$)
+
+    - id: db_license_check_eamples
+      name: Check Example SQL and DDL files for MIT License Prefix
+      entry: dev_tools/github-actions/pre-commit-hooks/check_file_prefix.py
+      language: python
+      args:
+        - --prefix
+        - "----------------------------------------------------\n-- Copyright (c) Gaia Platform LLC\n--\n-- Use of this source code is governed by the MIT\n-- license that can be found in the LICENSE.txt file\n-- or at https://opensource.org/licenses/MIT.\n----------------------------------------------------\n"
+      files: ^production/examples/.*(\.ddl$|\.sql$)
+
+    - id: cpp_license_check_examples
+      name: Check Example C++ files for MIT License Prefix
+      entry: dev_tools/github-actions/pre-commit-hooks/check_file_prefix.py
+      language: python
+      args:
+        - --prefix
+        - "////////////////////////////////////////////////////\n// Copyright (c) Gaia Platform LLC\n//\n// Use of this source code is governed by the MIT\n// license that can be found in the LICENSE.txt file\n// or at https://opensource.org/licenses/MIT.\n////////////////////////////////////////////////////\n"
+      files: ^production/examples/.*(\.hpp$|\.cpp$|\.inc$|\.ruleset$)
 
 - repo: https://github.com/pre-commit/mirrors-clang-format
   rev: v13.0.0
@@ -27,7 +130,7 @@ repos:
         - --Werror
         - --style=file
         - -i
-      exclude: ^(production/tests/workloads/template/json.hpp|production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h)
+      exclude: ^(production/tests/workloads/template/json.hpp)
 
 # Waiting on https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1848 and https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1849
 # - repo: https://github.com/pocc/pre-commit-hooks
@@ -45,31 +148,25 @@ repos:
   hooks:
     - id: shellcheck
     - id: script-must-have-extension
-      exclude: ^(((data|scratch|third_party)/)|dev_tools/hooks/pre-commit)
       types: [shell, executable]
 
 - repo: https://github.com/psf/black
   rev: 21.7b0
   hooks:
     - id: black
-      stages: [merge-commit, commit, manual]
-      exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py|production/db/core/)
-    - id: black
-      stages: [push, post-checkout, post-commit, post-merge, post-rewrite]
-      exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py|production/db/core/)
-      args:
-        - --check
-        - --diff
+      exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py)
+
 - repo: https://github.com/PyCQA/flake8
   rev: 4.0.1
   hooks:
     - id: flake8
-      exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py|production/db/core/)
+      exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py)
       args:
         - --ignore=E203,E501,W503
+
 - repo: https://github.com/PyCQA/pylint
   rev: v2.11.1
   hooks:
     - id: pylint
-      exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py|production/db/core/|production/tests/python/ps_mem.py)
+      exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py|production/tests/python/ps_mem.py)
       args: [--disable=R0801]

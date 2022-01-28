@@ -6,7 +6,8 @@
 #include <flatbuffers/idl.h>
 #include <gtest/gtest.h>
 
-#include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia/direct_access/auto_transaction.hpp"
+
 #include "gaia_internal/db/db_test_base.hpp"
 
 #include "fbs_generator.hpp"
@@ -18,6 +19,7 @@ using namespace gaia::catalog;
 using namespace gaia::catalog::ddl;
 using namespace gaia::common;
 using namespace gaia::db;
+using namespace gaia::direct_access;
 
 class json_generation_test : public db_test_base_t
 {
@@ -65,18 +67,9 @@ TEST_F(json_generation_test, generate_json_from_catalog)
 
     gaia_id_t table_id = create_table(test_table_name, test_table_fields);
 
+    auto_transaction_t txn;
     string fbs = generate_fbs(table_id);
     string json = generate_json(table_id);
-
-    validate_through_flatbuffers_parser(fbs, json);
-}
-
-TEST_F(json_generation_test, generate_json_from_table_definition)
-{
-    string test_table_name{"test_generate_json_from_table_definition"};
-
-    string fbs = generate_fbs("", test_table_name, test_table_fields);
-    string json = generate_json(test_table_fields);
 
     validate_through_flatbuffers_parser(fbs, json);
 }
@@ -85,11 +78,13 @@ TEST_F(json_generation_test, generate_bin)
 {
     string test_table_name{"test_generate_bin"};
 
-    string fbs = generate_fbs("", test_table_name, test_table_fields);
+    gaia_id_t table_id = create_table(test_table_name, test_table_fields);
+    auto_transaction_t txn;
+    string fbs = generate_fbs(table_id);
     const vector<uint8_t> bfbs = generate_bfbs(fbs);
     ASSERT_GT(bfbs.size(), 0);
 
-    string json = generate_json(test_table_fields);
+    string json = generate_json(table_id);
     const vector<uint8_t> bin = generate_bin(fbs, json);
     ASSERT_GT(bin.size(), 0);
 

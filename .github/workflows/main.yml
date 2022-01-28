@@ -8,9 +8,7 @@ on:
   pull_request:
     branches:
       - master
-  pull_request_target:
-    branches:
-      - master
+  workflow_dispatch:
 env:
   GAIA_VERSION: 0.3.3
   SSH_AUTH_SOCK: /tmp/ssh_agent.sock
@@ -29,6 +27,14 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.8
+
+      - name: Clean up disk space
+        run: |
+          df
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          df
 
       - name: Pull Latest Dev-Core Image
         run: |
@@ -57,14 +63,6 @@ jobs:
         run: |
           docker push $DEV_IMAGE
 
-      - name: Report Job Status To Slack
-        uses: 8398a7/action-slack@v3
-        if: always()
-        with:
-          status: ${{ job.status }}
-          fields: ${{ env.SLACK_STATUS_FIELDS }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   Lint:
     runs-on: ubuntu-20.04
     env:
@@ -96,6 +94,12 @@ jobs:
           cd $GAIA_REPO/production
           pre-commit run --all-files
 
+      - name: GitHub Info
+        run: |
+          echo "Branch: ${{ github.ref }}"
+          echo "Ref-Name: ${{ github.ref_name }}"
+          echo "Event-Name: ${{ github.event_name }}"
+          echo "Event-Path: ${{ github.event_path }}"
   Core:
     needs:
       - Lint
@@ -111,6 +115,12 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.8
+
+      - name: Clean up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
 
       - name: Pull Latest Dev-Core Image
         run: |
@@ -144,6 +154,7 @@ jobs:
       - Lint
       - Third-Party
     runs-on: ubuntu-20.04
+    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -154,6 +165,12 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.8
+
+      - name: Clean up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
 
       - name: Pull Latest Dev-Core Image
         run: |
@@ -200,6 +217,7 @@ jobs:
   Debug_Core:
     needs: Core
     runs-on: ubuntu-20.04
+    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -210,6 +228,12 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.8
+
+      - name: Clean up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
 
       - name: Pull Latest Dev-Core Image
         run: |
@@ -239,6 +263,47 @@ jobs:
           path: |
             ${{ github.workspace }}/build/output
 
+  Coverage:
+    needs:
+      - Core
+    runs-on: ubuntu-20.04
+    if: github.event_name != 'pull_request'
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Clean up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+
+      - name: Pull Latest Dev-Core Image
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker pull $DEV_IMAGE
+
+      - name: Coverage
+        run: |
+          cd $GAIA_REPO/production
+          $GAIA_REPO/production/coverage/coverage.sh -v
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/production/coverage/output
+
   LLVM_Tests:
     needs: Core
     if: ${{ false }}
@@ -253,6 +318,12 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.8
+
+      - name: Clean up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
 
       - name: Pull Latest Dev-Core Image
         run: |
@@ -282,6 +353,7 @@ jobs:
   Integration_Smoke:
     needs: SDK
     runs-on: ubuntu-20.04
+    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -315,6 +387,7 @@ jobs:
   Integration_Smoke_Persistence:
     needs: SDK
     runs-on: ubuntu-20.04
+    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -348,6 +421,7 @@ jobs:
   Integration_Samples:
     needs: SDK
     runs-on: ubuntu-20.04
+    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -369,7 +443,6 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
-
 
       - name: Upload Output Files
         if: always()

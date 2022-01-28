@@ -1,4 +1,4 @@
-#! /usr/bin/bash
+#!/usr/bin/env bash
 
 #############################################
 # Copyright (c) Gaia Platform LLC
@@ -383,7 +383,6 @@ execute_test_workflow() {
 
     echo " { \"return-code\" : $DID_FAIL }" > "$TEST_RESULTS_DIRECTORY/return_code.json"
 
-
     # Make sure to calculate the runtime and store it in the `duration.json` file.
     TEST_RUNTIME=$( echo "$TEST_END_MARK - $TEST_START_MARK" | bc -l )
     echo "Test executed in $TEST_RUNTIME ms."
@@ -415,8 +414,6 @@ execute_test_workflow() {
     fi
 }
 
-
-
 # Set up any global script variables.
 # shellcheck disable=SC2164
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
@@ -434,8 +431,6 @@ TEMP_FILE=/tmp/$PROJECT_NAME.test.tmp
 
 # Set up any local script variables.
 DID_PUSHD=0
-
-
 
 # Parse any command line values.
 parse_command_line "$@"

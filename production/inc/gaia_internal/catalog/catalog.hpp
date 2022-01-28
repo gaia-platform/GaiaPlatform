@@ -50,6 +50,15 @@ constexpr char c_db_table_name_connector = '.';
 
 const std::string c_catalog_db_name = "catalog";
 const std::string c_event_log_db_name = "event_log";
+const std::string c_event_log_table_name = "event_log";
+const std::string c_gaia_database_table_name = "gaia_database";
+const std::string c_gaia_table_table_name = "gaia_table";
+const std::string c_gaia_field_table_name = "gaia_field";
+const std::string c_gaia_relationship_table_name = "gaia_relationship";
+const std::string c_gaia_index_table_name = "gaia_index";
+const std::string c_gaia_ref_anchor_table_name = "gaia_ref_anchor";
+const std::string c_gaia_ruleset_table_name = "gaia_ruleset";
+const std::string c_gaia_rule_table_name = "gaia_rule";
 
 /*
  * The following enum classes are shared cross the catalog usage.
@@ -141,6 +150,7 @@ enum class constraint_type_t : uint8_t
 {
     active,
     unique,
+    optional,
 };
 
 struct constraint_t
@@ -165,6 +175,14 @@ struct unique_constraint_t : constraint_t
 {
     explicit unique_constraint_t()
         : constraint_t(constraint_type_t::unique)
+    {
+    }
+};
+
+struct optional_constraint_t : constraint_t
+{
+    explicit optional_constraint_t()
+        : constraint_t(constraint_type_t::optional)
     {
     }
 };
@@ -219,6 +237,10 @@ struct data_field_def_t : base_field_def_t
                 {
                     this->unique = true;
                 }
+                else if (constraint->type == constraint_type_t::optional)
+                {
+                    this->optional = true;
+                }
             }
         }
     }
@@ -230,6 +252,8 @@ struct data_field_def_t : base_field_def_t
     bool active = false;
 
     bool unique = false;
+
+    bool optional = false;
 };
 
 using composite_name_t = std::pair<std::string, std::string>;
