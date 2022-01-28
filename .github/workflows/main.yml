@@ -295,6 +295,7 @@ jobs:
         run: |
           cd $GAIA_REPO/production
           $GAIA_REPO/production/coverage/coverage.sh -v
+          sudo chmod -R 666 $GAIA_REPO/production/coverage/output
 
       - name: Upload Output Files
         if: always()
