@@ -268,9 +268,17 @@ jobs:
 
       - name: Clean up disk space
         run: |
+          echo "Before any clean up"
+          df -h
           sudo rm -rf /usr/share/dotnet
+          echo "After DotNet clean up"
+          df -h
           sudo rm -rf /usr/local/lib/android
+          echo "After DotNet android up"
+          df -h
           sudo rm -rf /opt/ghc
+          echo "After Haskell clean up"
+          df -h
 
       - name: Pull Latest Dev-Core Image
         run: |
