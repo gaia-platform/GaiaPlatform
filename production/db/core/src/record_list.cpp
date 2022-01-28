@@ -108,7 +108,7 @@ bool record_range_t::add(const record_data_t& record_data)
     }
 }
 
-record_data_t& record_range_t::get(size_t index)
+record_data_t& record_range_t::get(size_t index) const
 {
     ASSERT_PRECONDITION(m_record_range != nullptr, "Range is not allocated!");
     ASSERT_PRECONDITION(index < m_record_list->get_range_size(), "Range index is out of range bounds!");
@@ -411,7 +411,7 @@ bool record_list_t::move_next(record_iterator_t& iterator)
     return (iterator.at_end() == false);
 }
 
-const record_data_t& record_list_t::get_record_data(record_iterator_t& iterator)
+const record_data_t& record_list_t::get_record_data(const record_iterator_t& iterator)
 {
     ASSERT_PRECONDITION(iterator.at_end() == false, "Attempt to access invalid iterator state!");
 
@@ -424,7 +424,7 @@ const record_data_t& record_list_t::get_record_data(record_iterator_t& iterator)
     return record_data;
 }
 
-void record_list_t::mark_record_data_as_deleted(record_iterator_t& iterator)
+void record_list_t::mark_record_data_as_deleted(const record_iterator_t& iterator)
 {
     ASSERT_PRECONDITION(iterator.at_end() == false, "Attempt to access invalid iterator state!");
 

@@ -54,11 +54,11 @@ public:
     // The addition may fail when it's running concurrently,
     // so its return value indicates whether it succeeded or not.
     bool add(const record_data_t& record_data);
-    record_data_t& get(size_t index);
+    record_data_t& get(size_t index) const;
 
     // Add and read the next range.
     void add_next_range();
-    inline record_range_t* next_range();
+    inline record_range_t* next_range() const;
 
     // Tells whether the range is full.
     inline bool is_full() const;
@@ -100,7 +100,7 @@ struct record_iterator_t
     record_iterator_t& operator=(const record_iterator_t&);
 
     // Tells whether the iterator position represents the end of the iteration.
-    inline bool at_end();
+    inline bool at_end() const;
 
     // The position of the iterator is represented
     // by the current range and the current index in the range.
@@ -151,7 +151,7 @@ public:
     void request_deletion(gaia::db::gaia_locator_t locator);
 
     // Get the size of a range in this list.
-    inline size_t get_range_size();
+    inline size_t get_range_size() const;
 
     // Start an iteration.
     // Return true if the iterator was positioned on a valid record
@@ -167,10 +167,10 @@ public:
     // The returned record data may be invalid
     // if its information was deleted by a concurrent thread
     // after the iterator was positioned on it.
-    static const record_data_t& get_record_data(record_iterator_t& iterator);
+    static const record_data_t& get_record_data(const record_iterator_t& iterator);
 
     // Mark the record currently referenced by the iterator as deleted.
-    static void mark_record_data_as_deleted(record_iterator_t& iterator);
+    static void mark_record_data_as_deleted(const record_iterator_t& iterator);
 
 protected:
     void clear();
