@@ -41,6 +41,22 @@ void test_optional_value(T_value value)
     ASSERT_THROW(opt.value(), optional_value_not_found);
     ASSERT_THROW(*opt, optional_value_not_found);
     ASSERT_FALSE(opt);
+
+    opt = value;
+    ASSERT_TRUE(opt.has_value());
+    ASSERT_EQ(opt.value(), value);
+
+    opt = nullopt;
+    ASSERT_FALSE(opt.has_value());
+    ASSERT_THROW(opt.value(), optional_value_not_found);
+    ASSERT_THROW(*opt, optional_value_not_found);
+    ASSERT_FALSE(opt);
+
+    const optional_t<T_value> const_empty_opt = nullopt;
+    ASSERT_FALSE(const_empty_opt.has_value());
+    ASSERT_THROW(const_empty_opt.value(), optional_value_not_found);
+    ASSERT_THROW(*const_empty_opt, optional_value_not_found);
+    ASSERT_FALSE(const_empty_opt);
 }
 
 TEST_F(optional_test, test_optional_int)

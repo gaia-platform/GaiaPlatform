@@ -31,6 +31,12 @@ optional_t<T_value>::optional_t(const T_value& t)
 }
 
 template <typename T_value>
+optional_t<T_value>::optional_t(nullopt_t)
+    : m_storage()
+{
+}
+
+template <typename T_value>
 void optional_t<T_value>::reset()
 {
     m_storage = optional_storage_t();
@@ -70,4 +76,11 @@ template <typename T_value>
 optional_t<T_value>::operator bool() const
 {
     return m_storage.has_value;
+}
+
+template <typename T_value>
+optional_t<T_value>& optional_t<T_value>::operator=(nullopt_t) noexcept
+{
+    reset();
+    return *this;
 }
