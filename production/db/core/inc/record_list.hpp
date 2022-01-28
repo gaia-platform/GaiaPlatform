@@ -164,8 +164,9 @@ public:
     static bool move_next(record_iterator_t& iterator);
 
     // Read the record locator for the current iterator position.
-    // This may return no data if the record was deleted by a concurrent thread
-    // since the iterator got positioned on it.
+    // The returned record data may be invalid
+    // if its information was deleted by a concurrent thread
+    // after the iterator was positioned on it.
     static const record_data_t& get_record_data(record_iterator_t& iterator);
 
     // Mark the record currently referenced by the iterator as deleted.
