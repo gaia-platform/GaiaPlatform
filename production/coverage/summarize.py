@@ -18,46 +18,51 @@ __BASE_DIR = "output"
 __DEFAULT_FILE_ENCODING = "utf-8"
 
 
+# pylint: disable=broad-except
 def read_coverage_log_file(relative_file_name):
     """
     Read the coverage log file and construct a dictionary with a summary
     of the information contained within that file.
     """
-    log_path = os.path.join(__BASE_DIR, relative_file_name)
-    with open(log_path, encoding=__DEFAULT_FILE_ENCODING) as input_file:
-        filter_file_lines = input_file.readlines()
-
-    local_coverage_dictionary = {}
-    filter_file_lines = filter_file_lines[-4:]
-    if filter_file_lines[0] != "'Summary coverage rate:\n'":
-        sys.exit(1)
-    filter_file_lines = filter_file_lines[1:]
-    for next_line in filter_file_lines:
-
-        next_line = next_line.strip().split(" ")
-        title = next_line[0][0:-1].strip(".")
-        covered = int(next_line[2][1:])
-        total = int(next_line[4])
-
-        stats_dictionary = {}
-        stats_dictionary["covered"] = covered
-        stats_dictionary["total"] = total
-        stats_dictionary["percent"] = round((100.0 * covered) / total, 2)
-        local_coverage_dictionary[title] = stats_dictionary
-
-    new_dictionary = {}
-    new_dictionary["coverage"] = local_coverage_dictionary
+    try:
+        log_path = os.path.join(__BASE_DIR, relative_file_name)
+        with open(log_path, encoding=__DEFAULT_FILE_ENCODING) as input_file:
+            new_dictionary = json.load(input_file)
+    except Exception as this_exception:
+        print(f"Unable to load file {relative_file_name}: {this_exception}")
     return new_dictionary
 
 
-total_coverage_dictionary = read_coverage_log_file("filter.log")
-rules_coverage_dictionary = read_coverage_log_file("rules.log")
-database_coverage_dictionary = read_coverage_log_file("database.log")
-other_coverage_dictionary = read_coverage_log_file("other.log")
+# pylint: enable=broad-except
 
-coverage_dictionary = {}
-coverage_dictionary["total"] = total_coverage_dictionary
-coverage_dictionary["rules"] = rules_coverage_dictionary
-coverage_dictionary["database"] = database_coverage_dictionary
-coverage_dictionary["other"] = other_coverage_dictionary
-print(json.dumps(coverage_dictionary, indent=4))
+
+# pylint: disable=broad-except
+def process_script_action():
+    """
+    Main processing.
+    """
+    try:
+        total_coverage_dictionary = read_coverage_log_file("coverage.json")
+        rules_coverage_dictionary = read_coverage_log_file("coverage.rules.json")
+        database_coverage_dictionary = read_coverage_log_file("coverage.database.json")
+        other_coverage_dictionary = read_coverage_log_file("coverage.common.json")
+
+        coverage_dictionary = {}
+        coverage_dictionary["total"] = total_coverage_dictionary
+        coverage_dictionary["rules"] = rules_coverage_dictionary
+        coverage_dictionary["database"] = database_coverage_dictionary
+        coverage_dictionary["common"] = other_coverage_dictionary
+
+        output_path = os.path.join(__BASE_DIR, "coverage-summary.json")
+        with open(output_path, "w", encoding=__DEFAULT_FILE_ENCODING) as output_file:
+            json.dump(coverage_dictionary, output_file, indent=4)
+    except Exception as this_exception:
+        print(f"Unable to generate combined coverage file: {this_exception}")
+        return 1
+    return 0
+
+
+# pylint: enable=broad-except
+
+
+sys.exit(process_script_action())

@@ -255,6 +255,47 @@ jobs:
           path: |
             ${{ github.workspace }}/build/output
 
+  Coverage:
+    needs:
+      - Core
+    runs-on: ubuntu-20.04
+    if: github.event_name != 'pull_request'
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Clean up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+
+      - name: Pull Latest Dev-Core Image
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker pull $DEV_IMAGE
+
+      - name: Coverage
+        run: |
+          cd $GAIA_REPO/production
+          $GAIA_REPO/production/coverage/coverage.sh -v
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/production/coverage/output
+
   LLVM_Tests:
     needs: Core
     if: ${{ false }}
