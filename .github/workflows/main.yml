@@ -22,9 +22,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
-
-      - name: Test Action
-        uses: ./.github/actions/action1
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
         with:
           docker-user: ${{ github.actor }}
           docker-password: ${{ secrets.GITHUB_TOKEN }}
@@ -97,23 +96,11 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
-
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
         with:
-          python-version: 3.8
-
-      - name: Clean up disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-
-      - name: Pull Latest Dev-Core Image
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull $DEV_IMAGE
+          docker-user: ${{ github.actor }}
+          docker-password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Docker Image
         run: |
@@ -147,23 +134,11 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
-
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
         with:
-          python-version: 3.8
-
-      - name: Clean up disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-
-      - name: Pull Latest Dev-Core Image
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull $DEV_IMAGE
+          docker-user: ${{ github.actor }}
+          docker-password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Docker Image
         run: |
@@ -210,23 +185,11 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
-
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
         with:
-          python-version: 3.8
-
-      - name: Clean up disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-
-      - name: Pull Latest Dev-Core Image
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull $DEV_IMAGE
+          docker-user: ${{ github.actor }}
+          docker-password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Docker Image
         run: |
@@ -260,31 +223,11 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
-
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
         with:
-          python-version: 3.8
-
-      - name: Clean up disk space
-        run: |
-          echo "Before any clean up"
-          df -h
-          sudo rm -rf /usr/share/dotnet
-          echo "After DotNet clean up"
-          df -h
-          sudo rm -rf /usr/local/lib/android
-          echo "After DotNet android up"
-          df -h
-          sudo rm -rf /opt/ghc
-          echo "After Haskell clean up"
-          df -h
-
-      - name: Pull Latest Dev-Core Image
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull $DEV_IMAGE
+          docker-user: ${{ github.actor }}
+          docker-password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Coverage
         run: |
@@ -308,23 +251,11 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
-
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
         with:
-          python-version: 3.8
-
-      - name: Clean up disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-
-      - name: Pull Latest Dev-Core Image
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull $DEV_IMAGE
+          docker-user: ${{ github.actor }}
+          docker-password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Docker Image
         run: |
