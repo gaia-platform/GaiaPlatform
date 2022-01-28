@@ -1310,6 +1310,7 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
       // Pop the 'else' scope if needed.
       InnerScope.Exit();
     }
+    Actions.PopTableSearchContext();
     if (Tok.is(tok::kw_nomatch))
     {
       // Remove GaiaBreakScope in nomatch
@@ -1367,9 +1368,12 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
   } else if (InnerStatementTrailingElseLoc.isValid()) {
     Diag(InnerStatementTrailingElseLoc, diag::warn_dangling_else);
   }
+  else
+  {
+    Actions.PopTableSearchContext();
+  }
 
   IfScope.Exit();
-  Actions.PopTableSearchContext();
 
   // If the then or else stmt is invalid and the other is valid (and present),
   // make turn the invalid one into a null stmt to avoid dropping the other

@@ -6,7 +6,7 @@
 DATABASE barn_storage
 
 TABLE incubator (
-      name	 STRING,
+      name STRING,
       min_temp FLOAT,
       max_temp FLOAT,
       sensors REFERENCES sensor[],

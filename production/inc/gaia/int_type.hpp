@@ -45,12 +45,14 @@ public:
     {
     }
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     constexpr int_type_t(T_type value)
         : m_value(value)
     {
     }
 
     // This conversion operator will enable many direct operations with integers.
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator T_type() const;
 
     // For explicit retrieval of contained value.

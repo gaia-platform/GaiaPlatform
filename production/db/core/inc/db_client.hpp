@@ -17,6 +17,7 @@
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
+#include "gaia_internal/db/gaia_ptr.hpp"
 #include "gaia_internal/db/triggers.hpp"
 #include "gaia_internal/exceptions.hpp"
 
@@ -40,6 +41,9 @@ class db_client_proxy_t;
 class client_t
 {
     friend class gaia_ptr_t;
+
+    friend void gaia_ptr::update_payload(gaia_ptr_t& obj, size_t data_size, const void* data);
+    friend gaia_ptr_t gaia_ptr::create(common::gaia_id_t id, common::gaia_type_t type, size_t data_size, const void* data);
 
     /**
      * @throws no_open_transaction_internal if there is no open transaction.

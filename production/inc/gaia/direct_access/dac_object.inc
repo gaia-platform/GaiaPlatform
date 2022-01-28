@@ -110,22 +110,23 @@ gaia::common::gaia_id_t dac_object_t<container_type_id, T_class, T_flatbuffer, T
 }
 
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-void dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::delete_row()
+void dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::delete_row(bool force)
 {
     if (!dac_base_t::exists())
     {
         report_invalid_object_state();
     }
 
-    delete_row(gaia_id());
+    delete_row(gaia_id(), force);
 }
 
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
 void dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::delete_row(
-    gaia::common::gaia_id_t id)
+    gaia::common::gaia_id_t id,
+    bool force)
 {
     verify_type(id);
-    dac_base_t::delete_row(id);
+    dac_base_t::delete_row(id, force);
 }
 
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_gaia, typename T_fb, typename T_obj>

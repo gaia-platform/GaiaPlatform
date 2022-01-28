@@ -1,4 +1,4 @@
-#! /usr/bin/bash
+#!/usr/bin/env bash
 
 #############################################
 # Copyright (c) Gaia Platform LLC
@@ -45,7 +45,6 @@ complete_process() {
             fi
         fi
     fi
-
 
     if [ "$DID_REPORT_START" -ne 0 ] ; then
         if [ "$SLACK_MODE" -ne 0 ] ; then
@@ -136,10 +135,6 @@ parse_command_line() {
             LIST_MODE=1
             shift
         ;;
-        -s|--slack)
-            SLACK_MODE=1
-            shift
-        ;;
         -j|--json)
             SHOW_JSON_STATS=1
             shift
@@ -218,6 +213,9 @@ clear_suite_output() {
     fi
 
     if [ -d "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY" ]; then
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Clearing test-results directory '$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY'."
+        fi
         if [ "$(ls -A "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY")" ] ; then
             # shellcheck disable=SC2115
             if ! rm -rf "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY"/* > "$TEMP_FILE" 2>&1; then
@@ -226,7 +224,10 @@ clear_suite_output() {
             fi
         fi
     else
-        if ! mkdir "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY" > "$TEMP_FILE" 2>&1; then
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Creating test-results directory '$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY'."
+        fi
+        if ! mkdir -p "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY" > "$TEMP_FILE" 2>&1; then
             cat "$TEMP_FILE"
             complete_process 1 "Suite script cannot create suite results directory '$(realpath "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY")' prior to suite execution."
         fi
@@ -249,8 +250,12 @@ start_database_if_required() {
         if [ "$VERBOSE_MODE" -ne 0 ]; then
             echo "Creating a new database service instance for the test suite."
         fi
+
         SERVER_PID=$(pgrep "gaia_db_server")
         if [[ -n $SERVER_PID ]] ; then
+            if [ "$VERBOSE_MODE" -ne 0 ]; then
+                echo "Stopping currently executing database instance."
+            fi
             if [ $FORCE_DATABASE_RESTART -eq 0 ] ; then
                 complete_process 1 "Test suite specified a new database service instance, but one is already running. Stop that instance before trying again."
             fi
@@ -265,8 +270,11 @@ start_database_if_required() {
             fi
         fi
 
-        if [ -d "$SUITE_RESULTS_DIRECTORY/dbdir" ] ; then
-            if ! rm -rf "$SUITE_RESULTS_DIRECTORY/dbdir" > "$TEMP_FILE" 2>&1 ; then
+        if [ -d "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/dbdir" ] ; then
+            if [ "$VERBOSE_MODE" -ne 0 ]; then
+                echo "Removing old database directory."
+            fi
+            if ! rm -rf "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/dbdir" > "$TEMP_FILE" 2>&1 ; then
                 cat "$TEMP_FILE"
                 complete_process 1 "Cannot remove the old database directory before starting the new database service instance."
             fi
@@ -274,19 +282,25 @@ start_database_if_required() {
 
         PERSISTENCE_FLAG="--persistence disabled"
         if [ $START_DATABASE_WITH_PERSISTENCE -ne 0 ] ; then
-            if ! mkdir "$SUITE_RESULTS_DIRECTORY/dbdir" > "$TEMP_FILE" 2>&1 ; then
+            if [ "$VERBOSE_MODE" -ne 0 ]; then
+                echo "Creating new database directory."
+            fi
+            if ! mkdir "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/dbdir" > "$TEMP_FILE" 2>&1 ; then
                 cat "$TEMP_FILE"
                 complete_process 1 "Cannot create the requested database directory."
             fi
 
-            PERSISTENCE_FLAG="--persistence enabled --data-dir $SUITE_RESULTS_DIRECTORY/dbdir"
+            PERSISTENCE_FLAG="--persistence enabled --data-dir $SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/dbdir"
         fi
 
+        if [ "$VERBOSE_MODE" -ne 0 ]; then
+            echo "Starting new database instance as a background process."
+        fi
         # shellcheck disable=SC2086
-        gaia_db_server $PERSISTENCE_FLAG > "$SUITE_RESULTS_DIRECTORY/database.log" 2>&1 &
+        gaia_db_server $PERSISTENCE_FLAG > "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/database.log" 2>&1 &
         # shellcheck disable=SC2181
         if [ $? -ne 0 ] ; then
-            cat "$SUITE_RESULTS_DIRECTORY/database.log"
+            cat "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/database.log"
             complete_process 1 "Cannot start the requested database service instance."
         fi
 
@@ -300,12 +314,16 @@ start_database_if_required() {
         DB_SERVER_PID=
         SERVER_PID=$(pgrep "gaia_db_server")
         if [[ -z $SERVER_PID ]] ; then
-            cat "$SUITE_RESULTS_DIRECTORY/database.log"
+            echo "Active processes"
+            echo "----"
+            ps
+            echo "----"
+            cat "$SCRIPTPATH/$SUITE_RESULTS_DIRECTORY/database.log"
             complete_process 1 "Newly started database service instance was not responsive.  Cannot continue the test suite without an active database instance."
         fi
         DB_SERVER_PID=$SERVER_PID
         if [ "$VERBOSE_MODE" -ne 0 ]; then
-            echo "Creating a new database service instance for the test suite."
+            echo "Created a new database service instance for the test suite."
         fi
 
         # Make sure that we register a trap handler to be able to kill the database
@@ -568,8 +586,6 @@ execute_suite_test() {
         fi
     fi
 }
-
-
 
 # Set up any global script variables.
 # shellcheck disable=SC2164

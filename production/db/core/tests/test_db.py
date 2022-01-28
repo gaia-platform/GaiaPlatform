@@ -1,9 +1,27 @@
+#!/usr/bin/env python3
+
 #############################################
 # Copyright (c) Gaia Platform LLC
 # All rights reserved.
 #############################################
 
-from gaia_db_pybind import *
+"""
+This module tests the Python wrappers over the low-level Gaia Database API.
+"""
+
+# pylint: disable=import-error
+from gaia_db_pybind import (
+    begin_session,
+    end_session,
+    begin_transaction,
+    commit_transaction,
+    print_node,
+    gaia_ptr,
+    gaia_id,
+    gaia_type,
+)
+
+# pylint: enable=import-error
 
 # Start session.
 begin_session()
@@ -20,22 +38,22 @@ print_node(node1, False)
 print_node(node2, False)
 print_node(node3, False)
 print_node(node4, False)
-print ('')
+print("")
 
 commit_transaction()
 
 # Second transaction - iterate through nodes of type 'database'.
 begin_transaction()
 
-print("Iterating through nodes of type 'database' (4294967291): ", flush = True)
+print("Iterating through nodes of type 'database' (4294967291): ", flush=True)
 node_iter = gaia_ptr.find_first(gaia_type(4294967291))
-while node_iter.is_null() != True:
+while not node_iter.is_null():
     print_node(node_iter, False)
     node_iter = node_iter.find_next()
-print ('')
+print("")
 
 commit_transaction()
 
 end_session()
 
-print ('All tests passed!')
+print("All tests passed!")

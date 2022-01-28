@@ -30,7 +30,7 @@ namespace db
  * may have minimum size 16B and maximum size 64KB.
  *
  * The object metadata occupies 16 bytes: 8 (id) + 4 (type) + 2 (payload_size)
- * + 2 (num_references) = 16.
+ * + 2 (references_count) = 16.
  */
 struct alignas(gaia::db::memory_manager::c_allocation_alignment) db_object_t
 {
@@ -40,20 +40,46 @@ struct alignas(gaia::db::memory_manager::c_allocation_alignment) db_object_t
     // The flatbuffer size limit is 2GB (the maximum value of a signed 32-bit
     // word). With a 16-bit payload size, the limit is 64KB. The total size of
     // the payload is the serialized flatbuffer size plus the size of the
-    // references array (num_references * sizeof(gaia_id_t)).
+    // references array (references_count * sizeof(gaia_id_t)).
     uint16_t payload_size;
-    gaia::common::reference_offset_t num_references;
+    gaia::common::reference_offset_t references_count;
 
     // This contains an array of zero or more references (gaia_id_t), followed by
     // a serialized flatbuffer object.
     // Flexible array members are not standardized, but are supported by both gcc and clang.
     char payload[];
 
+    /**
+     * Returns the actual size in bytes used by the object, regardless of
+     * alignment constraints. The result can be less than or greater than
+     * `sizeof(db_object_t)`, because of the alignment constraint and the
+     * flexible array member `payload`, respectively.
+     *
+     * We have to define this method outside the struct definition because it
+     * references c_db_object_header_size, which depends on the struct
+     * definition.
+     */
+    [[nodiscard]] inline size_t total_size() const;
+
+    /**
+     * Returns a pointer to the object's data payload.
+     */
     [[nodiscard]] const char* data() const
     {
-        return payload + num_references * sizeof(gaia::common::gaia_id_t);
+        return payload + references_count * sizeof(gaia::common::gaia_id_t);
     }
 
+    /**
+     * Returns the size in bytes of the object's data payload.
+     */
+    [[nodiscard]] size_t data_size() const
+    {
+        return payload_size - (references_count * sizeof(gaia::common::gaia_id_t));
+    }
+
+    /**
+     * Returns a pointer to the first element of the object's references array.
+     */
     [[nodiscard]] const gaia::common::gaia_id_t* references() const
     {
         return reinterpret_cast<const gaia::common::gaia_id_t*>(payload);
@@ -67,18 +93,18 @@ struct alignas(gaia::db::memory_manager::c_allocation_alignment) db_object_t
            << o.type
            << "\tpayload_size: "
            << o.payload_size
-           << "\tnum_references: "
-           << o.num_references
+           << "\treferences_count: "
+           << o.references_count
            << std::endl;
 
         os << "references:" << std::endl;
-        for (size_t i = 0; i < o.num_references; ++i)
+        for (size_t i = 0; i < o.references_count; ++i)
         {
             os << o.references()[i] << std::endl;
         }
         os << std::endl;
 
-        size_t data_size = o.payload_size - (o.num_references * sizeof(gaia::common::gaia_id_t));
+        size_t data_size = o.data_size();
         os << "data (hex):" << std::endl;
 
         for (size_t i = 0; i < data_size; ++i)
@@ -135,6 +161,11 @@ static_assert(c_db_object_max_payload_size <= std::numeric_limits<uint16_t>::max
 // According to the standard, sizeof(T) is always a multiple of alignof(T).
 // We need this multiple to be 1 to simplify memory management.
 static_assert(sizeof(db_object_t) == alignof(db_object_t), "Object size must be identical to object alignment!");
+
+[[nodiscard]] size_t db_object_t::total_size() const
+{
+    return c_db_object_header_size + payload_size;
+}
 
 } // namespace db
 } // namespace gaia

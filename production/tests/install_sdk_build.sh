@@ -1,4 +1,4 @@
-#! /usr/bin/bash
+#!/usr/bin/env bash
 
 #############################################
 # Copyright (c) Gaia Platform LLC
@@ -131,7 +131,6 @@ install_new_package() {
 
 # Set up any project based local script variables.
 TEMP_FILE=/tmp/intall_sdk.db.tmp
-
 
 # Parse any command line values.
 parse_command_line "$@"

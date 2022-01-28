@@ -43,7 +43,7 @@ void index_builder_t::serialize_key(const index_key_t& key, payload_types::data_
     for (const payload_types::data_holder_t& key_value : key.values())
     {
         // TODO: This will have to do until catalog information is available!
-        bool optional = (key_value.type == reflection::String || key_value.type == reflection::Vector);
+        bool optional = true;
         key_value.serialize(buffer, optional);
     }
 }
@@ -57,14 +57,14 @@ index_key_t index_builder_t::deserialize_key(common::gaia_id_t index_id, payload
 
     ASSERT_INVARIANT(index_ptr != nullptr, "Cannot find catalog entry for index.");
 
-    auto index_view = index_view_t(index_ptr);
+    auto index_view = catalog_core::index_view_t(index_ptr);
 
     const auto& fields = *(index_view.fields());
     for (auto field_id : fields)
     {
-        data_type_t type = field_view_t(id_to_ptr(field_id)).data_type();
+        data_type_t type = catalog_core::field_view_t(id_to_ptr(field_id)).data_type();
         // TODO: Until this information is available in the catalog, this will have to do!
-        bool optional = type == common::data_type_t::e_string;
+        bool optional = true;
         index_key.insert(payload_types::data_holder_t(buffer, convert_to_reflection_type(type), optional));
     }
 
@@ -88,7 +88,7 @@ bool index_builder_t::index_exists(common::gaia_id_t index_id)
     return get_indexes()->find(index_id) != get_indexes()->end();
 }
 
-indexes_t::iterator index_builder_t::create_empty_index(const index_view_t& index_view, bool skip_catalog_integrity_check)
+indexes_t::iterator index_builder_t::create_empty_index(const catalog_core::index_view_t& index_view, bool skip_catalog_integrity_check)
 {
     ASSERT_PRECONDITION(skip_catalog_integrity_check || index_view.table_id() != c_invalid_gaia_id, "Cannot find table for index.");
 
@@ -98,14 +98,14 @@ indexes_t::iterator index_builder_t::create_empty_index(const index_view_t& inde
 
     if (index_view.table_id() != c_invalid_gaia_id)
     {
-        auto table_view = table_view_t(id_to_ptr(index_view.table_id()));
+        auto table_view = catalog_core::table_view_t(id_to_ptr(index_view.table_id()));
         key_schema.table_type = table_view.table_type();
         key_schema.binary_schema = table_view.binary_schema();
 
         const auto& fields = *(index_view.fields());
         for (gaia_id_t field_id : fields)
         {
-            field_position_t pos = field_view_t(id_to_ptr(field_id)).position();
+            field_position_t pos = catalog_core::field_view_t(id_to_ptr(field_id)).position();
             key_schema.field_positions.push_back(pos);
         }
     }
@@ -134,7 +134,7 @@ indexes_t::iterator index_builder_t::create_empty_index(const index_view_t& inde
     }
 }
 
-void index_builder_t::drop_index(const index_view_t& index_view)
+void index_builder_t::drop_index(const catalog_core::index_view_t& index_view)
 {
     size_t dropped = get_indexes()->erase(index_view.id());
     // We expect 0 or 1 index structures to be dropped here.
@@ -239,8 +239,8 @@ void update_index_entry(
 
         if (has_found_duplicate_key)
         {
-            auto index_view = index_view_t(id_to_ptr(index->id()));
-            auto table_view = table_view_t(id_to_ptr(index_view.table_id()));
+            auto index_view = catalog_core::index_view_t(id_to_ptr(index->id()));
+            auto table_view = catalog_core::table_view_t(id_to_ptr(index_view.table_id()));
             throw unique_constraint_violation_internal(table_view.name(), index_view.name());
         }
 
@@ -384,7 +384,7 @@ void index_builder_t::update_indexes_from_txn_log(
 
             if (log_record.operation() == gaia_operation_t::remove)
             {
-                auto table_view = table_view_t(offset_to_ptr(log_record.old_offset));
+                auto table_view = catalog_core::table_view_t(offset_to_ptr(log_record.old_offset));
                 dropped_types.push_back(table_view.table_type());
             }
         }
@@ -408,9 +408,9 @@ void index_builder_t::update_indexes_from_txn_log(
         }
 
         // Maintenance on the in-memory index data structures.
-        if (obj->type == static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_index))
+        if (obj->type == static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_index))
         {
-            auto index_view = index_view_t(obj);
+            auto index_view = catalog_core::index_view_t(obj);
 
             if (log_record.operation() == gaia_operation_t::remove)
             {
@@ -439,7 +439,7 @@ void index_builder_t::update_indexes_from_txn_log(
             continue;
         }
 
-        for (const auto& index : catalog_core_t::list_indexes(type_record_id))
+        for (const auto& index : catalog_core::list_indexes(type_record_id))
         {
             ASSERT_PRECONDITION(get_indexes(), "Indexes are not initialized.");
             auto it = get_indexes()->find(index.id());
@@ -448,7 +448,7 @@ void index_builder_t::update_indexes_from_txn_log(
             {
                 auto index_ptr = id_to_ptr(index.id());
                 ASSERT_INVARIANT(index_ptr != nullptr, "Cannot find index in catalog.");
-                auto index_view = index_view_t(index_ptr);
+                auto index_view = catalog_core::index_view_t(index_ptr);
                 it = index::index_builder_t::create_empty_index(index_view);
             }
             else

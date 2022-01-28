@@ -1,4 +1,4 @@
-#! /usr/bin/python3
+#!/usr/bin/env python3
 
 #############################################
 # Copyright (c) Gaia Platform LLC
@@ -13,6 +13,8 @@ into json.
 import sys
 import json
 import argparse
+
+__DEFAULT_FILE_ENCODING = "utf-8"
 
 
 def process_command_line():
@@ -54,7 +56,7 @@ def process_script_action():
 
     main_dictionary = {}
 
-    with open(args.log_file_name) as input_file:
+    with open(args.log_file_name, encoding=__DEFAULT_FILE_ENCODING) as input_file:
         sample_dictionary = {}
         main_dictionary["samples"] = sample_dictionary
         for next_line in input_file:
@@ -76,7 +78,7 @@ def process_script_action():
             memory_metrics["shared"] = float(split_next_line[2])
             memory_metrics["total"] = float(split_next_line[3])
 
-    with open(args.index_file_name) as input_file:
+    with open(args.index_file_name, encoding=__DEFAULT_FILE_ENCODING) as input_file:
         marker_dictionary = {}
         main_dictionary["markers"] = marker_dictionary
         for next_line in input_file:
@@ -87,7 +89,9 @@ def process_script_action():
                 timestamp = int(split_next_line[0])
                 marker_dictionary[timestamp] = split_next_line[1].strip()
 
-    with open(args.output_file_name, "wt") as write_file:
+    with open(
+        args.output_file_name, "wt", encoding=__DEFAULT_FILE_ENCODING
+    ) as write_file:
         json.dump(main_dictionary, write_file, indent=4)
 
 
