@@ -7,6 +7,8 @@
 
 #include <gtest/gtest.h>
 
+#include "gaia/rules/rules.hpp"
+
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
@@ -34,7 +36,7 @@ protected:
 // Insert one row of each catalog table.
 TEST_F(gaia_rule_tables_test, create_each_type)
 {
-    gaia::catalog::initialize_catalog();
+    gaia::rules::initialize_rules_engine();
 
     // Create and connect rules catalog rows.
     begin_transaction();

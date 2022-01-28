@@ -33,6 +33,7 @@ add_library(gaia_rules STATIC
   src/rule_stats_manager.cpp
   src/event_manager_settings.cpp
   src/serial_group_manager.cpp
+  src/rule_catalog.cpp
 )
 
 configure_gaia_target(gaia_rules)
