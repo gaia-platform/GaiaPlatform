@@ -21,10 +21,16 @@ runs:
     - name: Clean up disk space
       shell: bash
       run: |
+        echo "Before Any Cleanup"
         df -h
         sudo rm -rf /usr/share/dotnet
+        echo "After Dotnet Cleanup"
+        df -h
         sudo rm -rf /usr/local/lib/android
+        echo "After Android Cleanup"
+        df -h
         sudo rm -rf /opt/ghc
+        echo "After Haskell Cleanup"
         df -h
 
     - name: Pull Latest Dev-Core Image
