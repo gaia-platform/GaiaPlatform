@@ -23,8 +23,8 @@ import yaml
 # pylint: enable=import-error
 
 __DEFAULT_FILE_ENCODING = "utf-8"
-__FUNGABLE_JOB_PROPERTIES = {"needs", "if"}
-__NON_FUNGABLE_PROPERTIES = {"runs-on", "env", "steps"}
+__FUNGIBLE_JOB_PROPERTIES = {"needs", "if"}
+__NON_FUNGIBLE_PROPERTIES = {"runs-on", "env", "steps"}
 
 
 def __process_command_line():
@@ -72,8 +72,8 @@ def __selectively_compare_jobs(job_name, copy_job_dictionary, main_workflow_dict
 
     for job_property_name in main_workflow_dictionary:
         if (
-            job_property_name not in __FUNGABLE_JOB_PROPERTIES
-            and job_property_name not in __NON_FUNGABLE_PROPERTIES
+            job_property_name not in __FUNGIBLE_JOB_PROPERTIES
+            and job_property_name not in __NON_FUNGIBLE_PROPERTIES
         ):
             print(
                 f"Main workflow job '{job_name}' contains a property '{job_property_name}' "
@@ -83,10 +83,10 @@ def __selectively_compare_jobs(job_name, copy_job_dictionary, main_workflow_dict
 
     did_error = False
     for job_property_name in copy_job_dictionary:
-        if job_property_name in __FUNGABLE_JOB_PROPERTIES:
+        if job_property_name in __FUNGIBLE_JOB_PROPERTIES:
             continue
 
-        if job_property_name not in __NON_FUNGABLE_PROPERTIES:
+        if job_property_name not in __NON_FUNGIBLE_PROPERTIES:
             print(
                 f"Job '{job_name}' contains a property '{job_property_name}' that "
                 + "has not been accounted for."
