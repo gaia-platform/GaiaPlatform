@@ -15,17 +15,17 @@ runs:
       run: |
         sudo apt --assume-yes update
         sudo apt --assume-yes install software-properties-common
-        sudo add-apt-repository --assume-yes ppa:deadsnakes/ppa
+        sudo add-apt-repository --yes ppa:deadsnakes/ppa
         sudo apt --assume-yes install python3.8
 
     - name: Clean up disk space
       shell: bash
       run: |
-        df
+        df -h
         sudo rm -rf /usr/share/dotnet
         sudo rm -rf /usr/local/lib/android
         sudo rm -rf /opt/ghc
-        df
+        df -h
 
     - name: Pull Latest Dev-Core Image
       shell: bash
