@@ -143,6 +143,7 @@ if [ "$ACTION_NAME" == "unit_tests" ] ; then
     fi
 elif [ "$ACTION_NAME" == "publish_package" ] ; then
     #cp gaia-${{ env.GAIA_VERSION }}_amd64.deb gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb
+    cpack -V
     mkdir -p /build/output/package
     cp /build/production/"gaia-${GAIA_VERSION}_amd64.deb" "/build/output/package/gaia-${GAIA_VERSION}_amd64.deb"
 else
