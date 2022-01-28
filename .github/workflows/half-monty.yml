@@ -1,14 +1,8 @@
 ---
-name: Main
+name: Half Monty
 
 on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
-
+  workflow_dispatch:
 env:
   GAIA_VERSION: 0.3.3
   SSH_AUTH_SOCK: /tmp/ssh_agent.sock
@@ -217,7 +211,9 @@ jobs:
             ${{ github.workspace }}/build/output/package
 
   Debug_Core:
-    needs: Core
+    needs:
+      - Lint
+      - Third-Party
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -263,163 +259,3 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
-
-  LLVM_Tests:
-    needs: Core
-    if: ${{ false }}
-    runs-on: ubuntu-20.04
-    env:
-      GAIA_REPO: ${{ github.workspace }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@master
-
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-
-      - name: Clean up disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-
-      - name: Pull Latest Dev-Core Image
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull $DEV_IMAGE
-
-      - name: Build Docker Image
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
-              --repo-path $GAIA_REPO \
-              --base-image $DEV_IMAGE \
-              --cfg-enables GaiaLLVMTests
-
-      - name: Run Docker Image And Post-Build Script
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --gaia-version $GAIA_VERSION
-
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/build/output
-
-  Integration_Smoke:
-    needs: SDK
-    runs-on: ubuntu-20.04
-    env:
-      GAIA_REPO: ${{ github.workspace }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@master
-
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-
-      - name: Download Debian Install Package
-        uses: actions/download-artifact@v2
-        with:
-          name: SDK Install Package
-          path: ${{ github.workspace }}/production/tests/packages
-
-      - name: Tests
-        working-directory: ${{ github.workspace }}
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
-
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/production/tests/results
-
-  Integration_Smoke_Persistence:
-    needs: SDK
-    runs-on: ubuntu-20.04
-    env:
-      GAIA_REPO: ${{ github.workspace }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@master
-
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-
-      - name: Download Debian Install Package
-        uses: actions/download-artifact@v2
-        with:
-          name: SDK Install Package
-          path: ${{ github.workspace }}/production/tests/packages
-
-      - name: Tests
-        working-directory: ${{ github.workspace }}
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
-
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/production/tests/results
-
-  Integration_Samples:
-    needs: SDK
-    runs-on: ubuntu-20.04
-    env:
-      GAIA_REPO: ${{ github.workspace }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@master
-
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-
-      - name: Download Debian Install Package
-        uses: actions/download-artifact@v2
-        with:
-          name: SDK Install Package
-          path: ${{ github.workspace }}/production/tests/packages
-
-      - name: Tests
-        working-directory: ${{ github.workspace }}
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
-
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/production/tests/results
-
-  Final:
-    needs:
-      - Integration_Smoke
-      - Integration_Smoke_Persistence
-      - Integration_Samples
-      - Debug_Core
-    runs-on: ubuntu-20.04
-    if: always()
-    steps:
-      - uses: technote-space/workflow-conclusion-action@v2
-
-      - name: Results
-        run: |
-          echo "Build Workflow: ${{ env.WORKFLOW_CONCLUSION }}"
