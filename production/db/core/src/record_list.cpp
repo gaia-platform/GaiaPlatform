@@ -108,7 +108,7 @@ bool record_range_t::add(const record_data_t& record_data)
     }
 }
 
-record_data_t& record_range_t::get(size_t index)
+record_data_t& record_range_t::get(size_t index) const
 {
     ASSERT_PRECONDITION(m_record_range != nullptr, "Range is not allocated!");
     ASSERT_PRECONDITION(index < m_record_list->get_range_size(), "Range index is out of range bounds!");
@@ -120,10 +120,10 @@ record_data_t& record_range_t::get(size_t index)
 void record_range_t::add_next_range()
 {
     auto next_range = new record_range_t(m_record_list);
-    record_range_t* expected_next_range = nullptr;
 
-    // Try to set the next range. If another threads succeeds before us,
+    // Try to set the next range. If another thread succeeds before us,
     // just delete the range we created and continue.
+    record_range_t* expected_next_range = nullptr;
     if (!m_next_range.compare_exchange_strong(expected_next_range, next_range))
     {
         delete next_range;
@@ -266,8 +266,6 @@ void record_list_t::add(gaia_locator_t locator)
             {
                 current_range->add_next_range();
             }
-
-            shared_range_lock.unlock();
         }
 
         // The next range is guaranteed to exist because of the above logic.
@@ -413,14 +411,20 @@ bool record_list_t::move_next(record_iterator_t& iterator)
     return (iterator.at_end() == false);
 }
 
-record_data_t record_list_t::get_record_data(record_iterator_t& iterator)
+const record_data_t& record_list_t::get_record_data(const record_iterator_t& iterator)
 {
     ASSERT_PRECONDITION(iterator.at_end() == false, "Attempt to access invalid iterator state!");
 
-    return iterator.current_range->get(iterator.current_index);
+    const record_data_t& record_data = iterator.current_range->get(iterator.current_index);
+
+    ASSERT_PRECONDITION(
+        record_data.locator != c_invalid_gaia_locator || iterator.current_range->m_has_deletions,
+        "An invalid locator value was found in a record_range without any deletions!");
+
+    return record_data;
 }
 
-void record_list_t::mark_record_data_as_deleted(record_iterator_t& iterator)
+void record_list_t::mark_record_data_as_deleted(const record_iterator_t& iterator)
 {
     ASSERT_PRECONDITION(iterator.at_end() == false, "Attempt to access invalid iterator state!");
 
