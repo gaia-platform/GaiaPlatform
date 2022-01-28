@@ -1,5 +1,12 @@
 name: 'Setup Job'
 description: 'Setup a Gaia GHA Job'
+inputs:
+  docker-user:
+    description: 'User for Docker'
+    required: true
+  docker-password:
+    description: 'Password for Docker'
+    required: true
 runs:
   using: "composite"
   steps:
@@ -24,5 +31,5 @@ runs:
       shell: bash
       run: |
         ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-        echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        echo "${{ inputs.docker-password }}" | docker login ghcr.io -u ${{ inputs.docker-user }} --password-stdin
         docker pull $DEV_IMAGE

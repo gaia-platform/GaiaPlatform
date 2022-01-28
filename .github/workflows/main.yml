@@ -25,6 +25,9 @@ jobs:
 
       - name: Test Action
         uses: ./.github/actions/action1
+        with:
+          docker-user: ${{ github.actor }}
+          docker-password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Docker Image
         run: |
