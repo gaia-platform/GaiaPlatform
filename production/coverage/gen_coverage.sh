@@ -5,6 +5,12 @@
 # All rights reserved.
 #############################################
 
+# Note that this script makes use of the following resources:
+#
+# - https://chromium.googlesource.com/chromium/src.git/+/65.0.3283.0/docs/ios/coverage.md
+# - https://llvm.org/docs/CommandGuide/llvm-cov.html#llvm-cov-show
+# - https://clang.llvm.org/docs/SourceBasedCodeCoverage.html
+
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
