@@ -183,7 +183,7 @@ class GenAbcBuild(Dependency, ABC):
             cached_images = ','.join(
                 [f'{self.options.registry}/{base_build_name}:latest'
                     for base_build_name in await self.get_base_build_names()])
-            cached_images = " --cache-from {cached_images}"
+            cached_images = f"--cache-from {cached_images}"
 
         # TODO query remotely for cached build sources.
         self.log.info(f'Creating image "{await self.get_tag()}"')
