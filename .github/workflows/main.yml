@@ -294,10 +294,15 @@ jobs:
       - name: Coverage
         run: |
           cd $GAIA_REPO/production
+          mkdir -p $GAIA_REPO/production
           $GAIA_REPO/production/coverage/coverage.sh -v
           echo "COVERAGE OUTPUT"
-          sudo chmod -R 666 $GAIA_REPO/production/coverage/output
-          ls -la $GAIA_REPO/production/coverage/output
+          echo "sudo chmod -R 666 $GAIA_REPO/production"
+          sudo chmod -R 666 $GAIA_REPO/production
+          echo "ls -la $GAIA_REPO/production"
+          ls -la $GAIA_REPO/production
+          echo "ls -la $GAIA_REPO/production/output"
+          ls -la $GAIA_REPO/production/output
           echo "COVERAGE COPY"
           sudo mkdir -p /build/output
           sudo cp -a $GAIA_REPO/production/coverage/output /build/output
@@ -318,6 +323,13 @@ jobs:
           name: ${{github.job}} Test Filesb
           path: |
             /build/output/coverage-summary.json
+      - name: Upload Output Filesc
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Test Filesc
+          path: |
+            ${{ github.workspace }}/production/output/coverage-summary.json
       - name: Upload Output Files2
         if: always()
         uses: actions/upload-artifact@v2
