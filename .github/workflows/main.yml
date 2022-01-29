@@ -297,7 +297,6 @@ jobs:
           $GAIA_REPO/production/coverage/coverage.sh -v
           sudo mkdir -p /output
           sudo cp -a $GAIA_REPO/production/coverage/output /output
-          sudo chown -R ${{ github.actor }}:${{ github.actor }} /output
           sudo chmod -R 666 /output
           ls -laR /output
 
