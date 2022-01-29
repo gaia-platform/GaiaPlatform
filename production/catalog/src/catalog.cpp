@@ -220,7 +220,6 @@ gaia_id_t create_table(
 {
     ddl_executor_t& ddl_executor = ddl_executor_t::get();
     direct_access::auto_transaction_t txn(false);
-    check_not_system_db(db_name);
     gaia_id_t id = ddl_executor.create_table(db_name, name, fields, throw_on_exists, auto_drop);
     txn.commit();
     return id;

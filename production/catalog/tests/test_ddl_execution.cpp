@@ -479,6 +479,10 @@ drop database event_log;
         R"(
 drop database catalog;
 )",
+        R"(
+create database if not exists catalog
+create table if not exists t (c int32);
+)",
     };
 
     for (const auto& ddl : ddls)
