@@ -156,6 +156,7 @@ chmod +x /usr/local/lib/python3.8/dist-packages/lcov_cobertura.py
 pip install project-summarizer
 
 echo "Cleaning the output directory."
+mkdir -p /build/production/output
 pushd /build/production/output || exit
 rm -rf ./*
 popd || exit

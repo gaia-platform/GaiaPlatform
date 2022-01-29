@@ -111,7 +111,7 @@ start_process
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Creating/cleaning output directory."
 fi
-mkdir output > "$TEMP_FILE" 2>&1
+mkdir -p "$SCRIPTPATH/output" > "$TEMP_FILE" 2>&1
 if ! rm -rf "$SCRIPTPATH/output"/* > "$TEMP_FILE" 2>&1; then
     cat "$TEMP_FILE"
     complete_process 1 "Script cannot clean output directory before proceeding."
@@ -139,7 +139,9 @@ fi
 
 REPO_ROOT_DIR=$(git rev-parse --show-toplevel)
 GDEV_WRAPPER="${REPO_ROOT_DIR}/dev_tools/gdev/gdev.sh"
-if ! "${GDEV_WRAPPER}" run --cfg-enables Coverage --mounts ./coverage/output:output $CONTAINER_SCRIPT_TO_RUN ; then
+if ! "${GDEV_WRAPPER}" run --cfg-enables Coverage \
+    --mounts "$SCRIPTPATH/output:/build/production/output" \
+    $CONTAINER_SCRIPT_TO_RUN ; then
     complete_process 1 "Unable to execute a coverage run inside of the Docker container."
 fi
 
