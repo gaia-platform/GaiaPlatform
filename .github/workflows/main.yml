@@ -298,6 +298,9 @@ jobs:
           sudo ls -laR $GAIA_REPO/production/coverage/output
           sudo chmod -R 666 $GAIA_REPO/production/coverage/output
           sudo ls -laR $GAIA_REPO/production/coverage/output
+          sudo mkdir -p ${{ github.workspace }}/output
+          sudo cp -a $GAIA_REPO/production/coverage/output ${{ github.workspace }}/output
+          sudo chmod -R 666 ${{ github.workspace }}/output
 
       - name: Upload Output Files
         if: always()
@@ -305,7 +308,7 @@ jobs:
         with:
           name: ${{github.job}} Output Files
           path: |
-            ${{ github.workspace }}/production/coverage/output
+            ${{ github.workspace }}/output
 
   LLVM_Tests:
     needs: Core
