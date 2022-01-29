@@ -87,6 +87,7 @@ client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::opt
             std::optional<gaia_id_t> id_opt = id_generator();
             if (id_opt)
             {
+                ASSERT_PRECONDITION(id_opt.value() != c_invalid_gaia_id, "id_generator is returning invalid values!");
                 return id_opt;
             }
             else
@@ -115,6 +116,7 @@ client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::opt
 
                     if (db_object->type == type)
                     {
+                        ASSERT_PRECONDITION(db_object->id != c_invalid_gaia_id, "Database object has an invalid id!");
                         return db_object->id;
                     }
                 }
