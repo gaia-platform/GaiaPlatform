@@ -53,7 +53,7 @@ public:
     /**
      * The total number of references this type has.
      */
-    gaia::common::reference_offset_t num_references() const;
+    gaia::common::reference_offset_t references_count() const;
 
     // TODO the two following function should be called only by the registry.
     //  Need to figure the best way to do so since these are used in tests too

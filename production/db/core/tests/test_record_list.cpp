@@ -57,12 +57,14 @@ TEST(storage, record_list)
         if (expected_locator % 2 != 0)
         {
             record_list_t::mark_record_data_as_deleted(iterator);
+            ASSERT_EQ(c_invalid_gaia_locator, record_list_t::get_record_data(iterator).locator);
         }
 
         expected_locator++;
     } while (record_list_t::move_next(iterator));
 
     ASSERT_EQ(true, iterator.at_end());
+    ASSERT_EQ(expected_locator, c_starting_locator + c_count_locators);
 
     // Start a new iteration over the list.
     // Only records with even locator values should now be found.
@@ -81,6 +83,7 @@ TEST(storage, record_list)
     } while (record_list_t::move_next(iterator));
 
     ASSERT_EQ(true, iterator.at_end());
+    ASSERT_EQ(expected_locator, c_starting_locator + c_count_locators);
 
     // Compact list.
     record_list.compact();
@@ -109,4 +112,5 @@ TEST(storage, record_list)
     } while (record_list_t::move_next(iterator));
 
     ASSERT_EQ(true, iterator.at_end());
+    ASSERT_EQ(expected_locator, c_starting_locator + c_count_locators);
 }

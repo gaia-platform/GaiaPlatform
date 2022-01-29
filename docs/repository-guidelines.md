@@ -9,6 +9,8 @@
   - [Python File Guidelines](#python-file-guidelines)
   - [Bash File Guidelines](#bash-file-guidelines)
   - [Markdown File Guidelines](#markdown-file-guidelines)
+- [Code Submission Guidelines](#code-submission-guidelines)
+  - [GitHub Workflows and Submissions](#gitHub-workflows-and-submissions)
 
 ## File Guidelines
 
@@ -142,7 +144,7 @@ As script files may also need to start with the [shebang](https://en.wikipedia.o
 | https://github.com/pre-commit/pre-commit-hooks | python_executable_license_check |
 
 ```Python
-#! /usr/bin/python3
+#!/usr/bin/env python3
 
 #############################################
 # Copyright (c) Gaia Platform LLC
@@ -178,7 +180,7 @@ That file is used to provide configuration for the `lit` testing framework, and 
 | https://github.com/pre-commit/pre-commit-hooks | bash_license_check |
 
 ```Python
-#! /usr/bin/bash
+#!/usr/bin/env bash
 
 #############################################
 # Copyright (c) Gaia Platform LLC
@@ -316,3 +318,48 @@ It is primed with a good set of checks that aim to avoid the issues that are mos
   Italics could be used when quoting titles of documents, such as *The Art of Programming*.
   These situations should be rarer.
 * Use links to reference other project files like the [production README](production/README.md), for example.
+
+## Code Submission Guidelines
+
+Once any changes have been verified locally, passing local tests and verifying that the changes comply to the [File Guidelines](#file-guidelines), the next step is to submit the changes to the Git repository.
+
+[Ed. Note: Some guidelines about how to format your commit messages and your PR messages TBD.  Probably a link into Confluence.]
+
+### GitHub Workflows and Submissions
+
+The repository's GitHub workflows can be leveraged for these three main usage patterns:
+
+1. before a *Pull Request* is created, using a manual workflow trigger on a non-`master` branch
+1. as part of a *Pull Request* against the `master` branch
+1. as part of merging a *Pull Request* against the `master` branch
+
+#### Before a Pull Request
+
+Some developers have expressed a need to externally verify that their changes work properly and do not have unintended side effects.
+While our configuration does not automatically kick off GitHub workflows when changes are pushed to non-`master` branches of the main repository, they can be started using the process described on [this GitHub webpage](https://docs.github.com/en/actions/managing-workflow-runs/manually-running-a-workflow).
+When executed in this fashion, the workflow will execute all jobs contained within the workflow.
+While this may be overkill in some cases, the developer may cancel the workflow at any time during its execution.
+In this way, developers can execute as many or as few of the extra checks as they require for their particular situation.
+
+#### Part of Pull Request
+
+It is good to assure the reviewer that (at least) basic steps have been undertaken to verify that the code that they are reviewing is correct.
+By default, the GitHub workflow will run a shortened set of jobs against the source branch of a *Pull Request*.
+In addition, this workflow is executed within the scope and context of that branch, keeping any changes within the branch until the *Pull Request* is approved.
+As a reviewer, it is at your discretion as to whether you approve a Pull Request or not before all jobs in the shortened workflow have completed.
+
+#### Part of Merging a Pull Request
+
+Once the merging conditions for the repository are met, the `Squash and Merge` button will be enabled and the branch that is under review will be merged.
+That merge action triggers the execution of the full workflow against the `master` branch with the new changes applied to it.
+
+#### Looking at the GitHub Workflow in Action
+
+To look at any of the currently running workflow actions, please use the [Actions Tab](https://github.com/gaia-platform/GaiaPlatform/actions) on the main repository page.
+The standard colors and symbols apply to the workflows: a red X for a failed workflow, a green checkmark for a successful workflow, and a yellow dot with an "orbitting circle" for a workflow that is still in progress.
+The GitHub pages are very good at updating when they need to update, but they still occasionally require a manual browser page refresh to set things straight.
+In addition, whenever a workflow has a failed job or a cancelled workflow, an email is sent to the owner of the branch.
+
+#### For More Technical Information...
+
+If you want to know more about how our GitHub Actions workflow is put together, please check out our [GitHub Actions README](../.github/workflows/README.md).
