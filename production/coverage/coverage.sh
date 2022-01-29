@@ -139,8 +139,7 @@ fi
 
 REPO_ROOT_DIR=$(git rev-parse --show-toplevel)
 GDEV_WRAPPER="${REPO_ROOT_DIR}/dev_tools/gdev/gdev.sh"
-if ! "${GDEV_WRAPPER}" run --cfg-enables Coverage \
-    $CONTAINER_SCRIPT_TO_RUN ; then
+if ! "${GDEV_WRAPPER}" run --cfg-enables Coverage $CONTAINER_SCRIPT_TO_RUN ; then
     complete_process 1 "Unable to execute a coverage run inside of the Docker container."
 fi
 #     --mounts "$SCRIPTPATH/output:/build/production/output" \
