@@ -66,7 +66,7 @@ std::optional<gaia_id_t> type_generator_t::operator()()
         // If the record was found, return its id.
         if (db_object)
         {
-            ASSERT_PRECONDITION(db_object->id != c_invalid_gaia_id, "Database object has an invalid id!");
+            ASSERT_PRECONDITION(db_object->id != c_invalid_gaia_id, "Database object has an invalid gaia_id value!");
             return db_object->id;
         }
     }
