@@ -33,9 +33,6 @@ void event_manager_t::initialize_rule_tables()
 
     ddl_executor_t& ddl_executor = ddl_executor_t::get();
 
-    // The core catalog tables are initialized once during the first call to create_table().
-    // After the core tables are present, these rule tables can be defined.
-
     // Conventions:
     //   - Field names ending in "_name" are used to store the VLR reference to the parent row
     //     of the named type, e.g. gaia_ruleset_name will match a row of the gaia_ruleset table.
