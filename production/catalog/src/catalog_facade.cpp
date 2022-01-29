@@ -213,6 +213,12 @@ std::string field_facade_t::field_type(bool is_function_parameter) const
         // corruption or bugs in catching user input errors.
         ASSERT_UNREACHABLE("Fixed size array is not supported");
     }
+
+    if (m_field.optional())
+    {
+        type_str = "std::optional<" + type_str + ">";
+    }
+
     return type_str;
 }
 
