@@ -296,11 +296,13 @@ jobs:
           cd $GAIA_REPO/production
           $GAIA_REPO/production/coverage/coverage.sh -v
           echo "COVERAGE OUTPUT"
+          sudo chmod -R 666 $GAIA_REPO/production/coverage/output
           ls -la $GAIA_REPO/production/coverage/output
+          echo "COVERAGE COPY"
           sudo mkdir -p /build/output
           sudo cp -a $GAIA_REPO/production/coverage/output /build/output
           sudo chmod -R 666 /build/output
-          ls -laR /build/output
+          ls -la /build/output
 
       - name: Upload Output Filesa
         if: always()
