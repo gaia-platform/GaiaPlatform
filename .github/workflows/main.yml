@@ -17,7 +17,6 @@ env:
 jobs:
   Third-Party:
     runs-on: ubuntu-20.04
-    if: ${{ false }}
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -36,13 +35,11 @@ jobs:
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
           df
-
       - name: Pull Latest Dev-Core Image
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          #docker pull $DEV_IMAGE
-
+          docker pull $DEV_IMAGE
       - name: Build Docker Image
         run: |
           cd $GAIA_REPO/production
@@ -50,7 +47,6 @@ jobs:
           $GAIA_REPO/dev_tools/gdev/gdev.sh dockerfile > $GAIA_REPO/production/raw_dockerfile
           $GAIA_REPO/dev_tools/github-actions/copy_until_line.py --input-file $GAIA_REPO/production/raw_dockerfile --output-file $GAIA_REPO/production/dockerfile --stop-line "# GenRunDockerfile(production)"
           docker buildx build -f $GAIA_REPO/production/dockerfile -t $DEV_IMAGE --cache-from $DEV_IMAGE --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
-
       - name: Upload Intermediate Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -59,11 +55,9 @@ jobs:
           path: |
             ${{ github.workspace }}/production/raw_dockerfile
             ${{ github.workspace }}/production/dockerfile
-
       - name: Rename Image and Publish
         run: |
           docker push $DEV_IMAGE
-
   Lint:
     runs-on: ubuntu-20.04
     env:
@@ -80,7 +74,6 @@ jobs:
       - name: Install Required Python Packages
         run: |
           python3 -m pip install pre-commit
-
       - name: Set Cache Key for Pre-Commit Checks
         run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
 
@@ -94,7 +87,6 @@ jobs:
         run: |
           cd $GAIA_REPO/production
           pre-commit run --all-files
-
       - name: GitHub Info
         run: |
           echo "Branch: ${{ github.ref }}"
@@ -122,26 +114,22 @@ jobs:
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
-
       - name: Pull Latest Dev-Core Image
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker pull $DEV_IMAGE
-
       - name: Build Docker Image
         run: |
           $GAIA_REPO/dev_tools/github-actions/build_image.sh \
               --repo-path $GAIA_REPO \
               --base-image $DEV_IMAGE
-
       - name: Run Unit Tests
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
             --repo-path $GAIA_REPO \
             --gaia-version $GAIA_VERSION \
             --action unit_tests
-
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -149,7 +137,6 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
-
   SDK:
     needs:
       - Lint
@@ -172,34 +159,29 @@ jobs:
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
-
       - name: Pull Latest Dev-Core Image
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker pull $DEV_IMAGE
-
       - name: Build Docker Image
         run: |
           $GAIA_REPO/dev_tools/github-actions/build_image.sh \
               --repo-path $GAIA_REPO \
               --base-image $DEV_IMAGE \
               --cfg-enables GaiaSDK
-
       - name: Run Unit Tests
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
             --repo-path $GAIA_REPO \
             --gaia-version $GAIA_VERSION \
             --action unit_tests
-
       - name: Publish Debian Package
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
             --repo-path $GAIA_REPO \
             --gaia-version $GAIA_VERSION \
             --action publish_package
-
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -207,14 +189,12 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
-
       - name: Upload Install Package
         uses: actions/upload-artifact@v2
         with:
           name: SDK Install Package
           path: |
             ${{ github.workspace }}/build/output/package
-
   Debug_Core:
     needs: Core
     runs-on: ubuntu-20.04
@@ -235,27 +215,23 @@ jobs:
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
-
       - name: Pull Latest Dev-Core Image
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker pull $DEV_IMAGE
-
       - name: Build Docker Image
         run: |
           $GAIA_REPO/dev_tools/github-actions/build_image.sh \
               --repo-path $GAIA_REPO \
               --base-image $DEV_IMAGE \
               --cfg-enables Debug
-
       - name: Run Unit Tests
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
             --repo-path $GAIA_REPO \
             --gaia-version $GAIA_VERSION \
             --action unit_tests
-
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -263,7 +239,6 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
-
   Coverage:
     runs-on: ubuntu-20.04
 #    if: github.event_name != 'pull_request'
@@ -302,63 +277,14 @@ jobs:
           ls -la $GAIA_REPO/production
           echo "ls -la $GAIA_REPO/production/output"
           ls -la $GAIA_REPO/production/output
-          echo "COVERAGE COPY"
-          sudo mkdir -p /build/output
-          sudo cp -a $GAIA_REPO/production/coverage/output /build/output
-          sudo chmod -R 777 /build/output
-          ls -la /build/output
-
-      - name: Upload Output Filesa
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{github.job}} Test Filesa
-          path: |
-            ${{ github.workspace }}/production/coverage/output/coverage-summary.json
-      - name: Upload Output Filesz
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{github.job}} Test Filesz
-          path: |
-            ${{ github.workspace }}/production/output
-      - name: Upload Output Filesb
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{github.job}} Test Filesb
-          path: |
-            /build/output/coverage-summary.json
-      - name: Upload Output Filesc
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{github.job}} Test Filesc
-          path: |
-            ${{ github.workspace }}/production/output/coverage-summary.json
-      - name: Upload Output Files2
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{github.job}} Test Files2
-          path: |
-            /output/*.xml
-      - name: Upload Output Files3
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{github.job}} Test Files3
-          path: |
-            /output/common
 
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: ${{github.job}} Output Files
+          name: ${{github.job}} Test Files
           path: |
-            /output
-
+            ${{ github.workspace }}/production/output
   LLVM_Tests:
     needs: Core
     if: ${{ false }}
@@ -379,24 +305,20 @@ jobs:
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
-
       - name: Pull Latest Dev-Core Image
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker pull $DEV_IMAGE
-
       - name: Build Docker Image
         run: |
           $GAIA_REPO/dev_tools/github-actions/build_image.sh \
               --repo-path $GAIA_REPO \
               --base-image $DEV_IMAGE \
               --cfg-enables GaiaLLVMTests
-
       - name: Run Docker Image And Post-Build Script
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --gaia-version $GAIA_VERSION
-
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -404,7 +326,6 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
-
   Integration_Smoke:
     needs: SDK
     runs-on: ubuntu-20.04
@@ -430,7 +351,6 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
-
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -438,7 +358,6 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/production/tests/results
-
   Integration_Smoke_Persistence:
     needs: SDK
     runs-on: ubuntu-20.04
@@ -464,7 +383,6 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
-
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -472,7 +390,6 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/production/tests/results
-
   Integration_Samples:
     needs: SDK
     runs-on: ubuntu-20.04
@@ -498,7 +415,6 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
-
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -506,7 +422,6 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/production/tests/results
-
   Final:
     needs:
       - Integration_Smoke
