@@ -240,8 +240,11 @@ jobs:
           path: |
             ${{ github.workspace }}/build/output
   Coverage:
-    runs-on: ubuntu-20.04
+    needs:
+      - Lint
+      - Third-Party
 #    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:

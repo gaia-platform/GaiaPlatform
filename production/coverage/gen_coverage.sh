@@ -164,7 +164,7 @@ popd || exit
 echo "Executing tests to cover."
 export LLVM_PROFILE_FILE="tests.profraw"
 echo "Running tests with profile-enabled binaries."
-ctest --output-log /build/production/output/ctest.log --output-junit /build/production/output/test.xml
+ctest --output-log /build/production/output/ctest.log --output-junit /build/production/output/ctest.xml
 /usr/lib/llvm-13/bin/llvm-profdata merge -sparse tests.profraw -o tests.profdata
 
 #
