@@ -17,6 +17,7 @@ env:
 jobs:
   Third-Party:
     runs-on: ubuntu-20.04
+    if: ${{ false }}
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -264,8 +265,6 @@ jobs:
             ${{ github.workspace }}/build/output
 
   Coverage:
-    needs:
-      - Third-Party
     runs-on: ubuntu-20.04
 #    if: github.event_name != 'pull_request'
     env:

@@ -164,6 +164,8 @@ fi
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Creating coverage-summary.json file from coverage output."
 fi
+sudo mkdir -p "$SCRIPTPATH/../output"
+sudo chmod +R 777 "$SCRIPTPATH/../output"
 if ! /usr/bin/python3.8 "$SCRIPTPATH/summarize.py" > "$TEMP_FILE" 2>&1 ; then
     cat "$TEMP_FILE"
     complete_process 1 "Script cannot summarize coverage directory after proceeding."
