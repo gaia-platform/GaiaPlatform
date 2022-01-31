@@ -18,6 +18,7 @@
 #include "gaia/exception.hpp"
 
 #include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/exceptions.hpp"
 
 namespace gaia
 {
@@ -700,6 +701,14 @@ std::string generate_fbs(const std::string& dbname);
  */
 std::string generate_fdw_ddl(
     common::gaia_id_t table_id, const std::string& server_name);
+
+inline void check_not_system_db(const std::string& name)
+{
+    if (name == c_catalog_db_name || name == c_event_log_db_name)
+    {
+        throw forbidden_system_db_operation_internal(name);
+    }
+}
 
 /*@}*/
 } // namespace catalog

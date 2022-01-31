@@ -182,15 +182,6 @@ invalid_create_list_internal::invalid_create_list_internal(const std::string& me
     m_message += message;
 }
 
-inline void check_not_system_db(const string& name)
-{
-    if (name == c_catalog_db_name || name == c_event_log_db_name)
-    {
-        throw forbidden_system_db_operation_internal(name);
-    }
-}
-
-// The initialize the core catalog tables, then the rule catalog tables.
 void initialize_catalog()
 {
     ddl_executor_t::get();
@@ -230,7 +221,6 @@ gaia_id_t create_table(
 {
     ddl_executor_t& ddl_executor = ddl_executor_t::get();
     direct_access::auto_transaction_t txn(false);
-    check_not_system_db(name);
     gaia_id_t id = ddl_executor.create_table(db_name, name, fields, throw_on_exists, auto_drop);
     txn.commit();
     return id;
@@ -314,7 +304,7 @@ void drop_table(const string& name, bool throw_unless_exists)
 
 void drop_table(const string& db_name, const string& name, bool throw_unless_exists)
 {
-    check_not_system_db(name);
+    check_not_system_db(db_name);
     ddl_executor_t& ddl_executor = ddl_executor_t::get();
     direct_access::auto_transaction_t txn(false);
     ddl_executor.drop_table(db_name, name, throw_unless_exists);
