@@ -28,7 +28,7 @@ TEST_F(catalog_core_test, get_table)
     gaia_id_t table_id = gaia::catalog::create_table(test_table_name, fields);
 
     begin_transaction();
-    auto table_view = gaia::db::catalog_core_t::get_table(table_id);
+    auto table_view = gaia::db::catalog_core::get_table(table_id);
     ASSERT_STREQ(table_view.name(), test_table_name);
     commit_transaction();
 }
@@ -38,18 +38,15 @@ TEST_F(catalog_core_test, list_tables)
     std::set<gaia_type_t> system_table_ids{
         static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_field),
         static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_table),
-        static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_rule),
-        static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_ruleset),
         static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_database),
         static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_relationship),
-        static_cast<gaia_type_t::value_type>(system_table_type_t::event_log),
     };
 
     gaia::catalog::initialize_catalog();
 
     std::set<gaia_type_t> list_result;
     begin_transaction();
-    for (auto table_view : gaia::db::catalog_core_t::list_tables())
+    for (auto table_view : gaia::db::catalog_core::list_tables())
     {
         list_result.insert(table_view.table_type());
     }
@@ -67,9 +64,9 @@ TEST_F(catalog_core_test, list_fields)
 
     gaia_id_t table_id = gaia::catalog::create_table(test_table_name, fields);
 
-    std::vector<field_view_t> field_views;
+    std::vector<catalog_core::field_view_t> field_views;
     begin_transaction();
-    for (auto field_view : catalog_core_t::list_fields(table_id))
+    for (auto field_view : catalog_core::list_fields(table_id))
     {
         field_views.push_back(field_view);
     }
@@ -119,7 +116,7 @@ TEST_F(catalog_core_test, list_relationship_from)
 
     std::set<gaia_id_t> tables_with_relationship_from_star;
     begin_transaction();
-    for (relationship_view_t relationship : catalog_core_t::list_relationship_from(star_table_id))
+    for (catalog_core::relationship_view_t relationship : catalog_core::list_relationship_from(star_table_id))
     {
         tables_with_relationship_from_star.insert(relationship.child_table_id());
     }
@@ -153,7 +150,7 @@ TEST_F(catalog_core_test, list_relationship_to)
 
     begin_transaction();
     std::set<gaia_id_t> tables_with_relationship_to_object;
-    for (relationship_view_t relationship : catalog_core_t::list_relationship_to(object_table_id))
+    for (catalog_core::relationship_view_t relationship : catalog_core::list_relationship_to(object_table_id))
     {
         tables_with_relationship_to_object.insert(relationship.parent_table_id());
     }
@@ -182,7 +179,7 @@ TEST_F(catalog_core_test, list_indexes)
 
     std::set<gaia_id_t> index_ids;
     begin_transaction();
-    for (index_view_t index : catalog_core_t::list_indexes(table_id))
+    for (catalog_core::index_view_t index : catalog_core::list_indexes(table_id))
     {
         index_ids.insert(index.id());
     }

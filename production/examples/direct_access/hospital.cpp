@@ -1,10 +1,10 @@
-/////////////////////////////////////////////
-// Copyright (c) 2021 Gaia Platform LLC
+////////////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
 //
-// Use of this source code is governed by an MIT-style
+// Use of this source code is governed by the MIT
 // license that can be found in the LICENSE.txt file
 // or at https://opensource.org/licenses/MIT.
-/////////////////////////////////////////////
+////////////////////////////////////////////////////
 
 #include <gaia/db/db.hpp>
 #include <gaia/exceptions.hpp>
@@ -551,8 +551,7 @@ void filter_lambda()
     // using a lambda to express a predicate.
     // The result is a gaia container.
     auto doctors = doctor_waynetype::list().where(
-        [](const doctor_waynetype& doctor)
-        { return strcmp(doctor.name(), "Dr. House") == 0; });
+        [](const doctor_waynetype& doctor) { return strcmp(doctor.name(), "Dr. House") == 0; });
 
     if (doctors.begin() == doctors.end())
     {
@@ -563,8 +562,7 @@ void filter_lambda()
     doctor_waynetype dr_house = *doctors.begin();
 
     auto patients = dr_house.patients().where(
-        [](const patient_waynetype& patient)
-        { return strcmp(patient.name(), "Jack") == 0; });
+        [](const patient_waynetype& patient) { return strcmp(patient.name(), "Jack") == 0; });
 
     if (patients.begin() == patients.end())
     {
@@ -675,8 +673,8 @@ void use_dac_object_across_transactions()
     PRINT_METHOD_NAME();
 
     // First transaction.
-    auto_transaction_t txn{auto_transaction_t::no_auto_begin};
-    doctor_waynetype dr_house = doctor_waynetype::get(doctor_waynetype::insert_row("Dr. House"));
+    auto_transaction_t txn{auto_transaction_t::no_auto_restart};
+    doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House"));
     txn.commit();
 
     try
@@ -728,9 +726,9 @@ int main()
 {
     gaia::system::initialize();
 
-    // The no_auto_begin argument prevents beginning a new transaction
+    // The no_auto_restart argument prevents beginning a new transaction
     // when the current one is committed.
-    auto_transaction_t txn{auto_transaction_t::no_auto_begin};
+    auto_transaction_t txn{auto_transaction_t::no_auto_restart};
 
     clean_db();
 

@@ -3281,9 +3281,9 @@ def GaiaExplicitPathDefinedTagValues : Attr {
   let Args = [VariadicStringArgument<"tagMapValues">];
 }
 
-def GaiaAnchorTable : Attr {
-  let Spellings = [Keyword<"gaiaAnchorTable">];
+def GaiaAnchor : Attr {
+  let Spellings = [Keyword<"gaiaAnchor">];
   let Subjects = SubjectList<[Record]>;
   let Documentation = [Undocumented];
-  let Args = [IdentifierArgument<"anchor">];
+  let Args = [IdentifierArgument<"anchorTable">, IdentifierArgument<"anchorVariable">, BoolArgument<"isAnchor">, BoolArgument<"isDefined">];
 }

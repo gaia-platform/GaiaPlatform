@@ -157,12 +157,11 @@ void rule_conflict(const rule_context_t* context)
     if (g_num_conflicts > 0)
     {
         g_num_conflicts--;
-        thread([&context]
-               {
+        thread([&context] {
             begin_session();
             {
-                auto_transaction_t txn(auto_transaction_t::no_auto_begin);
-                auto ew = employee_waynetype::get(context->record).writer();
+                auto_transaction_t txn(auto_transaction_t::no_auto_restart);
+                auto ew = employee_t::get(context->record).writer();
                 ew.name_first = "Conflict";
                 ew.update_row();
                 txn.commit();
@@ -468,7 +467,8 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
     }
 }
 
-TEST_F(rule_integration_test, test_two_rules)
+// https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1781
+TEST_F(rule_integration_test, DISABLED_test_two_rules)
 {
     subscribe_update();
     subscribe_insert();
@@ -510,8 +510,7 @@ TEST_F(rule_integration_test, test_parallel)
     gaia::common::timer_t timer;
     subscribe_sleep();
 
-    int64_t total_time = timer.get_function_duration([&]()
-                                                     {
+    int64_t total_time = timer.get_function_duration([&]() {
         {
             rule_monitor_t monitor(num_inserts);
             auto_transaction_t txn(false);
@@ -536,8 +535,7 @@ TEST_F(rule_integration_test, test_serial)
     gaia::common::timer_t timer;
     subscribe_sleep_serial();
 
-    int64_t total_time = timer.get_function_duration([&]()
-                                                     {
+    int64_t total_time = timer.get_function_duration([&]() {
         rule_monitor_t monitor(num_inserts);
         auto_transaction_t txn(false);
         for (size_t i = 0; i < num_inserts; i++)
@@ -625,8 +623,7 @@ TEST_F(rule_integration_test, test_reinit)
 
 TEST_F(rule_integration_test, test_retry)
 {
-    auto test_inner = [&](int num_conflicts, int max_retries, const char* expected_name)
-    {
+    auto test_inner = [&](int num_conflicts, int max_retries, const char* expected_name) {
         event_manager_settings_t settings;
         settings.max_rule_retries = max_retries;
         gaia::rules::test::initialize_rules_engine(settings);
@@ -642,7 +639,7 @@ TEST_F(rule_integration_test, test_retry)
             // First rule execution isn't a retry, thus the "+ 1".
             rule_monitor_t monitor(std::min(num_conflicts, max_retries) + 1);
             g_num_conflicts = num_conflicts;
-            auto_transaction_t txn(auto_transaction_t::no_auto_begin);
+            auto_transaction_t txn(auto_transaction_t::no_auto_restart);
             employee_writer writer;
             writer.name_first = name;
             ids.emplace_back(writer.insert_row());
@@ -651,7 +648,7 @@ TEST_F(rule_integration_test, test_retry)
         // Shut down the rules engine to ensure the rule fires.
         gaia::rules::shutdown_rules_engine();
 
-        auto_transaction_t txn(auto_transaction_t::no_auto_begin);
+        auto_transaction_t txn(auto_transaction_t::no_auto_restart);
         ASSERT_EQ(ids.size(), 2);
         for (auto id : ids)
         {

@@ -5,9 +5,8 @@
 
 #pragma once
 
-#include <stdio.h>
-
 #include <chrono>
+#include <cstdio>
 
 #include <functional>
 

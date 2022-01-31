@@ -236,6 +236,7 @@ function(process_schema_internal)
     COMMAND ${GAIAC_COMMAND} ${GAIAC_ARGS}
     DEPENDS ${ARG_DDL_FILE}
     DEPENDS gaiac
+    DEPENDS gaia_db_server_exec
   )
 
   if(NOT DEFINED ARG_LIB_NAME)
@@ -317,18 +318,10 @@ function(translate_ruleset_internal)
     string(APPEND GAIAT_INCLUDE_PATH "-I;${INCLUDE_PATH};")
   endforeach()
 
-  # We use libc++ in debug and its header must be manually included.
-  # Note: the order of inclusion is relevant and libc++ headers must be
-  # defined first when libc++ is used.
-  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(LIBCXX_INCLUDE_DIR "/usr/lib/llvm-13/include/c++/v1/")
-    # Have to use ; instead of space otherwise custom_command will try to escape it.
-    string(APPEND GAIAT_INCLUDE_PATH "-I;${LIBCXX_INCLUDE_DIR};")
-  endif()
-
   # Get the include directories from the DAC_LIBRARY target.
   get_target_property(DAC_INCLUDE ${ARG_DAC_LIBRARY} INCLUDE_DIRECTORIES)
 
+  # DAC_INCLUDE contains flatbuffers and gaia includes.
   foreach(INCLUDE_PATH ${DAC_INCLUDE})
     string(APPEND GAIAT_INCLUDE_PATH "-I;${INCLUDE_PATH};")
   endforeach()
@@ -343,10 +336,9 @@ function(translate_ruleset_internal)
     COMMAND sleep 1
     COMMAND ${GAIAC_CMD} ${DDL_FILE} -n ${DB_INSTANCE_NAME}
     COMMAND ${GAIAT_CMD} ${ARG_RULESET_FILE} -output ${RULESET_CPP_PATH} -n ${DB_INSTANCE_NAME} --
-      -I ${GAIA_INC}
-      -I ${FLATBUFFERS_INC}
+      # This variable already contains the leading -I.
+      ${GAIAT_INCLUDE_PATH}
       -I ${GAIA_SPDLOG_INC}
-      -I ${GAIAT_INCLUDE_PATH}
       -stdlib=$<IF:$<CONFIG:Debug>,libc++,libstdc++>
       -std=c++${CMAKE_CXX_STANDARD}
     # Kill gaia_db_server by matching the instance name.
@@ -375,7 +367,6 @@ function(translate_ruleset_internal)
   target_include_directories(${ARG_LIB_NAME} PRIVATE ${GAIA_INC})
   target_link_libraries(${ARG_LIB_NAME} PUBLIC gaia_direct ${ARG_DAC_LIBRARY})
 endfunction()
-
 
 # Stop CMake if the given parameter was not passed to the function.
 macro(check_param PARAM)

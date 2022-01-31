@@ -114,12 +114,11 @@ void rule_conflict_exception(const rule_context_t* context)
         ew.update_row();
     }
 
-    thread([&context]
-           {
+    thread([&context] {
         begin_session();
         {
-            auto_transaction_t txn(auto_transaction_t::no_auto_begin);
-            auto ew = employee_waynetype::get(context->record).writer();
+            auto_transaction_t txn(auto_transaction_t::no_auto_restart);
+            auto ew = employee_t::get(context->record).writer();
             ew.name_first = "Conflict";
             ew.update_row();
             txn.commit();
@@ -180,7 +179,7 @@ public:
     // All rules are triggered by an insert into the employees table.
     void trigger_rule()
     {
-        auto_transaction_t txn(auto_transaction_t::no_auto_begin);
+        auto_transaction_t txn(auto_transaction_t::no_auto_restart);
         employee_writer writer;
         writer.name_first = c_name;
         writer.insert_row();

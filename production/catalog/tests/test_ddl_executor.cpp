@@ -15,9 +15,9 @@
 #include "gaia/direct_access/auto_transaction.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
+#include "gaia_internal/catalog/catalog_tests_helper.hpp"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
-#include "catalog_tests_helper.hpp"
 #include "gaia_addr_book.h"
 
 using namespace std;
@@ -39,8 +39,7 @@ gaia_relationship_t find_relationship(
 
     auto it = std::find_if(
         out_relationships.begin(), out_relationships.end(),
-        [&](gaia_relationship_t& relationship)
-        {
+        [&](gaia_relationship_t& relationship) {
             return relationship.to_child_link_name() == field_name;
         });
 
@@ -53,8 +52,7 @@ gaia_relationship_t find_relationship(
 
     it = std::find_if(
         in_relationships.begin(), in_relationships.end(),
-        [&](gaia_relationship_t& relationship)
-        {
+        [&](gaia_relationship_t& relationship) {
             return relationship.to_parent_link_name() == field_name;
         });
 
@@ -108,6 +106,26 @@ TEST_F(ddl_executor_test, create_table)
     check_table_name(table_id, test_table_name);
 
     ASSERT_THROW(create_table(test_db_name, test_table_name, fields), table_already_exists);
+}
+
+TEST_F(ddl_executor_test, system_tables)
+{
+    string test_table_name{"create_table_test"};
+    ddl::field_def_list_t fields;
+    gaia_id_t table_id = create_table(test_table_name, fields);
+
+    auto_transaction_t txn;
+
+    ASSERT_FALSE(gaia_table_t::get(table_id).is_system());
+
+    for (gaia_table_t gaia_table : gaia_table_t::list())
+    {
+        if (strcmp(c_catalog_db_name.c_str(), gaia_table.database().name()) == 0
+            || strcmp(c_event_log_db_name.c_str(), gaia_table.database().name()) == 0)
+        {
+            ASSERT_TRUE(gaia_table.is_system());
+        }
+    }
 }
 
 TEST_F(ddl_executor_test, create_existing_table)
@@ -441,6 +459,7 @@ TEST_F(ddl_executor_test, create_relationships)
     ASSERT_EQ(uint8_t{0}, clinic_to_doctor_relationship.first_child_offset()); // clinic
     ASSERT_EQ(uint8_t{0}, clinic_to_doctor_relationship.parent_offset()); // doctor
     ASSERT_EQ(uint8_t{1}, clinic_to_doctor_relationship.next_child_offset()); // doctor
+    ASSERT_EQ(uint8_t{2}, clinic_to_doctor_relationship.prev_child_offset()); // doctor
 
     // check
     // (doctor) 1 -[patients]-> N (patient)
@@ -456,9 +475,10 @@ TEST_F(ddl_executor_test, create_relationships)
 
     ASSERT_STREQ("patients", doctor_to_patient_relationship.to_child_link_name());
     ASSERT_STREQ("doctor", doctor_to_patient_relationship.to_parent_link_name());
-    ASSERT_EQ(uint8_t{2}, doctor_to_patient_relationship.first_child_offset()); // doctor
+    ASSERT_EQ(uint8_t{3}, doctor_to_patient_relationship.first_child_offset()); // doctor
     ASSERT_EQ(uint8_t{0}, doctor_to_patient_relationship.parent_offset()); // patient
     ASSERT_EQ(uint8_t{1}, doctor_to_patient_relationship.next_child_offset()); // patient
+    ASSERT_EQ(uint8_t{2}, doctor_to_patient_relationship.prev_child_offset()); // patient
 
     // check
     // (clinic) 1 -[patients]-> (patient)
@@ -475,8 +495,9 @@ TEST_F(ddl_executor_test, create_relationships)
     ASSERT_STREQ("patients", clinic_to_patient_relationship.to_child_link_name());
     ASSERT_STREQ("clinic", clinic_to_patient_relationship.to_parent_link_name());
     ASSERT_EQ(uint8_t{1}, clinic_to_patient_relationship.first_child_offset()); // clinic
-    ASSERT_EQ(uint8_t{2}, clinic_to_patient_relationship.parent_offset()); // patient
-    ASSERT_EQ(uint8_t{3}, clinic_to_patient_relationship.next_child_offset()); // patient
+    ASSERT_EQ(uint8_t{3}, clinic_to_patient_relationship.parent_offset()); // patient
+    ASSERT_EQ(uint8_t{4}, clinic_to_patient_relationship.next_child_offset()); // patient
+    ASSERT_EQ(uint8_t{5}, clinic_to_patient_relationship.prev_child_offset()); // patient
     txn.commit();
 }
 
@@ -593,8 +614,7 @@ TEST_F(ddl_executor_test, list_indexes)
         gaia_table_t::get(table_id).gaia_fields().begin(),
         gaia_table_t::get(table_id).gaia_fields().end(),
         back_inserter(unique_settings),
-        [](const auto& field) -> bool
-        { return field.unique(); });
+        [](const auto& field) -> bool { return field.unique(); });
 
     vector<bool> expected_unique_settings{true, false, false};
     ASSERT_EQ(unique_settings, expected_unique_settings);

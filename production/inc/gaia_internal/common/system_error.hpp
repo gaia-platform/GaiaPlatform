@@ -40,7 +40,7 @@ private:
 inline void throw_system_error(const std::string& user_info, int err = errno)
 {
     std::stringstream ss;
-    ss << user_info << " - " << (::strerror(err));
+    ss << user_info << " (System error code " << err << ": " << std::strerror(err) << ")";
     throw system_error(ss.str(), err);
 }
 

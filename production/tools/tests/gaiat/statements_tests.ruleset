@@ -1099,7 +1099,6 @@ ruleset test69
     }
 }
 
-
 // TESTCASE: examine the translation of a switch statement without curly braces, no looping
 // GAIAPLAT-1235
 ruleset test70

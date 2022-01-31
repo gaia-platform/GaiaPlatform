@@ -7,6 +7,9 @@
 
 #include "gtest/gtest.h"
 
+#include <gaia/direct_access/auto_transaction.hpp>
+#include <gaia/exceptions.hpp>
+
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 #include "gaia_internal/db/gaia_relationships.hpp"
@@ -613,7 +616,7 @@ void insert_object(bool committed, employee_waynetype e1, address_waynetype a1)
         else
         {
             // Nothing is committed yet.
-            EXPECT_THROW(e1.addresses().insert(a1), invalid_object_state);
+            EXPECT_THROW(e1.addresses().insert(a1), invalid_object_id);
         }
     }
     commit_transaction();
@@ -823,8 +826,7 @@ TEST_F(gaia_references_test, set_filter)
     size_t name_length = 5;
     int count = 0;
     auto name_length_list = e_mgr.reportees()
-                                .where([&name_length](const employee_waynetype& e)
-                                       { return strlen(e.name_first()) == name_length; });
+                                .where([&name_length](const employee_waynetype& e) { return strlen(e.name_first()) == name_length; });
     for (const auto& e : name_length_list)
     {
         EXPECT_EQ(strlen(e.name_first()), name_length);
@@ -990,4 +992,84 @@ TEST_F(gaia_references_test, test_temporary_object)
     emp.addresses().insert(address_waynetype::get(address_waynetype::insert_row("", "", "", "", "", "", true)));
 
     commit_transaction();
+}
+
+TEST_F(gaia_references_test, test_delete_referenced_child)
+{
+    auto_transaction_t txn;
+
+    const size_t c_num_addresses = 10;
+    employee_t employee = insert_records(c_num_addresses);
+    txn.commit();
+
+    size_t count = 0;
+    for (auto addr = employee.addresses().begin(); addr != employee.addresses().end();)
+    {
+        auto prev = addr++;
+        if (++count % 2 == 0)
+        {
+            // Referenced child objects can be deleted.
+            ASSERT_NO_THROW(prev->delete_row());
+        }
+        else
+        {
+            // The 'force' delete option is not needed here. We use force
+            // deletion for test completeness.
+            ASSERT_NO_THROW(prev->delete_row(true));
+        }
+    }
+    ASSERT_EQ(count, c_num_addresses);
+    txn.commit();
+
+    ASSERT_EQ(employee.addresses().size(), 0);
+    address_t addr = insert_address("2400 4th Ave", "Houston");
+    employee.addresses().connect(addr);
+    txn.commit();
+
+    ASSERT_EQ(employee.addresses().begin()->gaia_id(), addr.gaia_id());
+    ASSERT_NO_THROW(addr.delete_row());
+}
+
+TEST_F(gaia_references_test, test_delete_referenced_parent)
+{
+    auto_transaction_t txn;
+
+    const size_t c_num_addresses = 10;
+    employee_t employee = insert_records(c_num_addresses);
+
+    std::array<address_t, c_num_addresses> addresses;
+    std::copy(employee.addresses().begin(), employee.addresses().end(), addresses.begin());
+    txn.commit();
+
+    // Referenced parent object in an explicit 1:N relationships cannot be
+    // deleted without the force option.
+    ASSERT_THROW(employee.delete_row(), object_still_referenced);
+    txn.commit();
+
+    // Referenced parent object in explicit 1:N relationships can still be
+    // deleted using the force option.
+    ASSERT_NO_THROW(employee.delete_row(true));
+    txn.commit();
+
+    employee_t employee1 = insert_employee("e1");
+    employee_t employee2 = insert_employee("e2");
+    size_t count = 0;
+    for (const auto& addr : addresses)
+    {
+        // All child objects will be disconnected from the force deleted parent
+        // object. They can still be connected to other objects.
+        ASSERT_FALSE(addr.owner());
+        if (++count % 2 == 0)
+        {
+            employee1.addresses().insert(addr);
+        }
+        else
+        {
+            employee2.addresses().connect(addr);
+        }
+    }
+    txn.commit();
+
+    ASSERT_EQ(employee1.addresses().size(), c_num_addresses / 2);
+    ASSERT_EQ(employee2.addresses().size(), c_num_addresses / 2);
 }

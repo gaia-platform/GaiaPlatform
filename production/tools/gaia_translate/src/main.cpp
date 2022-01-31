@@ -79,7 +79,7 @@ bool g_is_rule_prolog_specified = false;
 constexpr char c_connect_keyword[] = "connect";
 constexpr char c_disconnect_keyword[] = "disconnect";
 
-llvm::SmallVector<string, 8> g_rulesets;
+llvm::SmallVector<string, c_size_8> g_rulesets;
 llvm::StringMap<llvm::StringSet<>> g_active_fields;
 llvm::StringSet<> g_insert_tables;
 llvm::StringSet<> g_update_tables;
@@ -87,15 +87,15 @@ llvm::StringMap<string> g_attribute_tag_map;
 
 llvm::DenseSet<SourceLocation> g_insert_call_locations;
 
-llvm::DenseMap<SourceRange, llvm::SmallVector<explicit_path_data_t, 8>> g_expression_explicit_path_data;
+llvm::DenseMap<SourceRange, llvm::SmallVector<explicit_path_data_t, c_size_8>> g_expression_explicit_path_data;
 
 llvm::StringSet<> g_used_dbs;
 
 const FunctionDecl* g_current_rule_declaration = nullptr;
 
-llvm::SmallString<256> g_current_ruleset_subscription;
-llvm::SmallString<256> g_generated_subscription_code;
-llvm::SmallString<256> g_current_ruleset_unsubscription;
+llvm::SmallString<c_size_256> g_current_ruleset_subscription;
+llvm::SmallString<c_size_256> g_generated_subscription_code;
+llvm::SmallString<c_size_256> g_current_ruleset_unsubscription;
 
 // We use this to report the rule location when reporting diagnostics.
 // In the best caese, we'll update the location to report the exact
@@ -134,11 +134,11 @@ struct insert_data_t
 
 // Vector to contain all the data to properly generate code for insert function call.
 // The generation deferred to allow proper code generation for declarative references as arguments for insert call.
-llvm::SmallVector<insert_data_t, 8> g_insert_data;
-llvm::SmallVector<rewriter_history_t, 8> g_rewriter_history;
+llvm::SmallVector<insert_data_t, c_size_8> g_insert_data;
+llvm::SmallVector<rewriter_history_t, c_size_8> g_rewriter_history;
 llvm::DenseMap<SourceRange, string> g_variable_declaration_location;
 llvm::DenseSet<SourceRange> g_variable_declaration_init_location;
-llvm::SmallVector<SourceRange, 8> g_nomatch_location_list;
+llvm::SmallVector<SourceRange, c_size_8> g_nomatch_location_list;
 llvm::DenseMap<SourceRange, string> g_break_label_map;
 llvm::DenseMap<SourceRange, string> g_continue_label_map;
 
@@ -151,6 +151,20 @@ static void print_version(raw_ostream& stream)
     // Note that the clang::raw_ostream does not support 'endl'.
     stream << c_gaiat << " " << gaia_full_version() << "\n";
     stream << c_copyright << "\n";
+}
+
+// Do a safe conversion from unsigned to signed to address clang-tidy
+// narrowing conversion warnings. Note that the original behavior was just cast.
+// Now we'll emit a warning if the length cannot be safely casted to an int.
+int uint_to_int(SourceLocation location, unsigned int token_length)
+{
+    assert(token_length <= INT_MAX && "Cannot safely narrow unsigned int to int");
+    if (token_length > INT_MAX)
+    {
+        gaiat::diag().emit(location, diag::warn_expression_length) << token_length;
+    }
+
+    return static_cast<int>(token_length);
 }
 
 // Get location of a token before the current location.
@@ -177,7 +191,7 @@ SourceRange get_statement_source_range(const Stmt* expression, const SourceManag
 {
     if (expression == nullptr)
     {
-        return SourceRange();
+        return {};
     }
     SourceRange return_value = expression->getSourceRange();
     if (dyn_cast<CompoundStmt>(expression) == nullptr || is_nomatch)
@@ -246,6 +260,18 @@ bool is_range_contained_in_another_range(const SourceRange& range1, const Source
     return false;
 }
 
+bool is_range_contained_in_nomatch(const SourceRange& range)
+{
+    for (const auto& nomatch_source_range : g_nomatch_location_list)
+    {
+        if (is_range_contained_in_another_range(nomatch_source_range, range))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 StringRef get_table_from_expression(StringRef expression)
 {
     size_t dot_position = expression.find('.');
@@ -271,7 +297,7 @@ bool is_tag_defined(const llvm::StringMap<string>& tag_map, StringRef tag)
     return false;
 }
 
-bool can_path_be_optimized(StringRef path_first_component, const llvm::SmallVector<explicit_path_data_t, 8>& path_data)
+bool can_path_be_optimized(StringRef path_first_component, const llvm::SmallVector<explicit_path_data_t, c_size_8>& path_data)
 {
     for (const auto& path_iterator : path_data)
     {
@@ -289,7 +315,7 @@ bool can_path_be_optimized(StringRef path_first_component, const llvm::SmallVect
     return false;
 }
 
-void optimize_path(llvm::SmallVector<explicit_path_data_t, 8>& path, explicit_path_data_t& path_segment, bool is_explicit_path_data_stored)
+void optimize_path(llvm::SmallVector<explicit_path_data_t, c_size_8>& path, explicit_path_data_t& path_segment, bool is_explicit_path_data_stored)
 {
     StringRef first_table = get_table_from_expression(path_segment.path_components.front());
     const auto& tag_iterator = path_segment.tag_table_map.find(first_table);
@@ -317,7 +343,7 @@ void optimize_path(llvm::SmallVector<explicit_path_data_t, 8>& path, explicit_pa
 }
 
 bool is_path_segment_contained_in_another_path(
-    const llvm::SmallVector<explicit_path_data_t, 8>& path,
+    const llvm::SmallVector<explicit_path_data_t, c_size_8>& path,
     const explicit_path_data_t& path_segment)
 {
     llvm::StringSet<> tag_container, table_container;
@@ -366,16 +392,16 @@ bool is_path_segment_contained_in_another_path(
 
 void validate_table_data()
 {
-    if (GaiaCatalog::getCatalogTableData().empty())
+    if (getCatalogTableData().empty())
     {
         g_is_generation_error = true;
         return;
     }
 }
 
-llvm::SmallString<256> generate_general_subscription_code()
+llvm::SmallString<c_size_256> generate_general_subscription_code()
 {
-    llvm::SmallString<256> return_value = StringRef(
+    llvm::SmallString<c_size_256> return_value = StringRef(
         "namespace gaia\n"
         "{\n"
         "namespace rules\n"
@@ -474,7 +500,7 @@ StringRef get_serial_group(const Decl* decl)
     }
 
     // No serial_group() attribute so return an empty string
-    return StringRef();
+    return {};
 }
 
 StringRef get_table_name(const Decl* decl)
@@ -484,7 +510,7 @@ StringRef get_table_name(const Decl* decl)
     {
         return table_attr->getTable()->getName();
     }
-    return StringRef();
+    return {};
 }
 
 // The function parses a rule  attribute e.g.
@@ -515,10 +541,10 @@ bool parse_attribute(StringRef attribute, string& table, string& field, string& 
     }
     validate_table_data();
 
-    if (GaiaCatalog::getCatalogTableData().find(tagless_attribute) == GaiaCatalog::getCatalogTableData().end())
+    if (getCatalogTableData().find(tagless_attribute) == getCatalogTableData().end())
     {
         // Might be a field.
-        for (const auto& tbl : GaiaCatalog::getCatalogTableData())
+        for (const auto& tbl : getCatalogTableData())
         {
             if (tbl.second.fieldData.find(tagless_attribute) != tbl.second.fieldData.end())
             {
@@ -552,14 +578,14 @@ bool validate_and_add_active_field(StringRef table_name, StringRef field_name, b
         return false;
     }
 
-    if (GaiaCatalog::getCatalogTableData().find(table_name) == GaiaCatalog::getCatalogTableData().end())
+    if (getCatalogTableData().find(table_name) == getCatalogTableData().end())
     {
         gaiat::diag().emit(diag::err_table_not_found) << table_name;
         g_is_generation_error = true;
         return false;
     }
 
-    const auto& fields = GaiaCatalog::getCatalogTableData().find(table_name)->second.fieldData;
+    const auto& fields = getCatalogTableData().find(table_name)->second.fieldData;
     const auto& field_iterator = fields.find(field_name);
     if (field_iterator == fields.end())
     {
@@ -615,17 +641,17 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
 
     for (auto& insert_data : g_insert_data)
     {
-        llvm::SmallString<32> class_qualification_string = StringRef("gaia::");
-        class_qualification_string.append(db_namespace(GaiaCatalog::getCatalogTableData().find(insert_data.table_name)->second.dbName));
+        llvm::SmallString<c_size_32> class_qualification_string = StringRef("gaia::");
+        class_qualification_string.append(db_namespace(getCatalogTableData().find(insert_data.table_name)->second.dbName));
         string class_name = gaiat_table_facade_t::class_name(insert_data.table_name);
         class_qualification_string.append(class_name);
         class_qualification_string.append("::");
-        llvm::SmallString<64> replacement_string = class_qualification_string.str();
+        llvm::SmallString<c_size_64> replacement_string = class_qualification_string.str();
         replacement_string.append("get(");
         replacement_string.append(class_qualification_string);
         replacement_string.append("insert_row(");
-        llvm::SmallVector<string, 16> function_arguments = table_navigation_t::get_table_fields(insert_data.table_name);
-        const auto& table_data_iterator = GaiaCatalog::getCatalogTableData().find(insert_data.table_name);
+        llvm::SmallVector<string, c_size_16> function_arguments = table_navigation_t::get_table_fields(insert_data.table_name);
+        const auto& table_data_iterator = getCatalogTableData().find(insert_data.table_name);
         // Generate call arguments.
         for (const auto& call_argument : function_arguments)
         {
@@ -695,7 +721,7 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
         {
             continue_label = continue_label_iterator->second;
         }
-        for (auto data_iterator = explicit_path_data_iterator.second.rbegin(); data_iterator != explicit_path_data_iterator.second.rend(); data_iterator++)
+        for (auto data_iterator = explicit_path_data_iterator.second.rbegin(); data_iterator != explicit_path_data_iterator.second.rend(); ++data_iterator)
         {
             StringRef anchor_table_name = get_table_name(
                 get_table_from_expression(anchor_table), data_iterator->tag_table_map);
@@ -776,7 +802,7 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
             if (!(data_iterator->skip_implicit_path_generation && data_iterator->path_components.size() == 1))
             {
                 navigation_code = table_navigation_t::generate_explicit_navigation_code(
-                    anchor_table, *data_iterator);
+                    anchor_table_name, *data_iterator);
                 if (navigation_code.prefix.empty())
                 {
                     g_is_generation_error = true;
@@ -801,11 +827,11 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
             //...............Navigation code for x
             // l1_break:
 
-            if (!break_label.empty() && &(*data_iterator) == &explicit_path_data_iterator.second.back())
+            if (!break_label.empty() && data_iterator + 1 == explicit_path_data_iterator.second.rend())
             {
                 navigation_code.postfix += (Twine("\n") + break_label + ":;\n").str();
             }
-            if (!continue_label.empty() && &(*data_iterator) == &explicit_path_data_iterator.second.back())
+            if (!continue_label.empty() && data_iterator + 1 == explicit_path_data_iterator.second.rend())
             {
                 navigation_code.postfix = (Twine("\n") + continue_label + ":;\n" + navigation_code.postfix).str();
             }
@@ -838,9 +864,9 @@ void generate_table_subscription(
     llvm::DenseMap<uint32_t, string>& rule_line_numbers,
     Rewriter& rewriter)
 {
-    llvm::SmallString<256> common_subscription_code;
+    llvm::SmallString<c_size_256> common_subscription_code;
     string class_name = gaiat_table_facade_t::class_name(table);
-    if (GaiaCatalog::getCatalogTableData().find(table) == GaiaCatalog::getCatalogTableData().end())
+    if (getCatalogTableData().find(table) == getCatalogTableData().end())
     {
         gaiat::diag().emit(diag::err_table_not_found) << table;
         g_is_generation_error = true;
@@ -903,7 +929,7 @@ void generate_table_subscription(
     {
         g_current_ruleset_subscription.append(c_ident);
         g_current_ruleset_subscription.append("gaia::rules::subscribe_rule(gaia::");
-        g_current_ruleset_subscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
+        g_current_ruleset_subscription.append(db_namespace(getCatalogTableData().find(table)->second.dbName));
         g_current_ruleset_subscription.append(class_name);
         if (subscribe_update)
         {
@@ -920,7 +946,7 @@ void generate_table_subscription(
 
         g_current_ruleset_unsubscription.append(c_ident);
         g_current_ruleset_unsubscription.append("gaia::rules::unsubscribe_rule(gaia::");
-        g_current_ruleset_unsubscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
+        g_current_ruleset_unsubscription.append(db_namespace(getCatalogTableData().find(table)->second.dbName));
         g_current_ruleset_unsubscription.append(class_name);
         g_current_ruleset_unsubscription.append("::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
         g_current_ruleset_unsubscription.append(rule_name);
@@ -931,7 +957,7 @@ void generate_table_subscription(
         g_current_ruleset_subscription.append(field_subscription_code);
         g_current_ruleset_subscription.append(c_ident);
         g_current_ruleset_subscription.append("gaia::rules::subscribe_rule(gaia::");
-        g_current_ruleset_subscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
+        g_current_ruleset_subscription.append(db_namespace(getCatalogTableData().find(table)->second.dbName));
         g_current_ruleset_subscription.append(class_name);
         g_current_ruleset_subscription.append("::s_gaia_type, gaia::db::triggers::event_type_t::row_update, fields_");
         g_current_ruleset_subscription.append(rule_name);
@@ -941,7 +967,7 @@ void generate_table_subscription(
         g_current_ruleset_unsubscription.append(field_subscription_code);
         g_current_ruleset_unsubscription.append(c_ident);
         g_current_ruleset_unsubscription.append("gaia::rules::unsubscribe_rule(gaia::");
-        g_current_ruleset_unsubscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
+        g_current_ruleset_unsubscription.append(db_namespace(getCatalogTableData().find(table)->second.dbName));
         g_current_ruleset_unsubscription.append(class_name);
         g_current_ruleset_unsubscription.append("::s_gaia_type, gaia::db::triggers::event_type_t::row_update, fields_");
         g_current_ruleset_unsubscription.append(rule_name);
@@ -950,7 +976,7 @@ void generate_table_subscription(
         g_current_ruleset_unsubscription.append("binding);\n");
     }
 
-    SmallString<64> function_prologue;
+    SmallString<c_size_64> function_prologue;
     (
         Twine("\n")
         + c_nolint_identifier_naming
@@ -1000,14 +1026,14 @@ void generate_table_subscription(
         }
         if (is_anchor_generation_required)
         {
-            const auto& table_data = GaiaCatalog::getCatalogTableData();
+            const auto& table_data = getCatalogTableData();
             auto anchor_table_data_itr = table_data.find(table);
 
             if (anchor_table_data_itr == table_data.end())
             {
                 return;
             }
-            SmallString<256> anchor_code;
+            SmallString<c_size_256> anchor_code;
             (
                 Twine("\nauto ")
                 + table
@@ -1100,7 +1126,7 @@ void optimize_subscription(StringRef table, int rule_count)
             = (Twine(g_current_ruleset) + "_" + g_current_rule_declaration->getName() + "_" + Twine(rule_count)).str();
         g_current_ruleset_subscription.append(c_ident);
         g_current_ruleset_subscription.append("gaia::rules::subscribe_rule(gaia::");
-        g_current_ruleset_subscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
+        g_current_ruleset_subscription.append(db_namespace(getCatalogTableData().find(table)->second.dbName));
         g_current_ruleset_subscription.append(class_name);
         g_current_ruleset_subscription.append("::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
         g_current_ruleset_subscription.append(rule_name);
@@ -1108,7 +1134,7 @@ void optimize_subscription(StringRef table, int rule_count)
 
         g_current_ruleset_unsubscription.append(c_ident);
         g_current_ruleset_unsubscription.append("gaia::rules::unsubscribe_rule(gaia::");
-        g_current_ruleset_unsubscription.append(db_namespace(GaiaCatalog::getCatalogTableData().find(table)->second.dbName));
+        g_current_ruleset_unsubscription.append(db_namespace(getCatalogTableData().find(table)->second.dbName));
         g_current_ruleset_unsubscription.append(class_name);
         g_current_ruleset_unsubscription.append("::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
         g_current_ruleset_unsubscription.append(rule_name);
@@ -1198,7 +1224,7 @@ void generate_rules(Rewriter& rewriter)
             return;
         }
 
-        SmallString<256> field_subscription_code;
+        SmallString<c_size_256> field_subscription_code;
         string rule_name
             = (Twine(g_current_ruleset) + "_" + g_current_rule_declaration->getName() + "_" + Twine(rule_count)).str();
 
@@ -1210,7 +1236,7 @@ void generate_rules(Rewriter& rewriter)
         field_subscription_code.append(rule_name);
         field_subscription_code.append(";\n");
 
-        const auto& fields = GaiaCatalog::getCatalogTableData().find(table)->second.fieldData;
+        const auto& fields = getCatalogTableData().find(table)->second.fieldData;
 
         for (const auto& field : field_description.second)
         {
@@ -1560,7 +1586,7 @@ void update_expression_explicit_path_data(
     {
         return;
     }
-    llvm::SmallVector<explicit_path_data_t, 8> path_data;
+    llvm::SmallVector<explicit_path_data_t, c_size_8> path_data;
     SourceRange expression_source_range = get_expression_source_range(context, *node, source_range, rewriter);
     if (expression_source_range.isInvalid())
     {
@@ -1571,6 +1597,22 @@ void update_expression_explicit_path_data(
     {
         if (is_range_contained_in_another_range(expression_explicit_path_data_iterator.first, expression_source_range))
         {
+            if (data.anchor_variable == data.anchor_table)
+            {
+                for (const auto& path_expression_explicit_path_data_iterator : expression_explicit_path_data_iterator.second)
+                {
+                    if (path_expression_explicit_path_data_iterator.is_anchor
+                        && get_table_from_expression(path_expression_explicit_path_data_iterator.path_components.back()) == data.anchor_table)
+                    {
+                        data.anchor_variable = path_expression_explicit_path_data_iterator.variable_name;
+                        if (data.skip_implicit_path_generation && path_expression_explicit_path_data_iterator.variable_name != data.variable_name)
+                        {
+                            data.skip_implicit_path_generation = false;
+                        }
+                    }
+                }
+            }
+
             if (!is_expression_from_body(context, *node))
             {
                 if (is_path_segment_contained_in_another_path(expression_explicit_path_data_iterator.second, data))
@@ -1596,6 +1638,7 @@ void update_expression_explicit_path_data(
                 {
                     data.skip_implicit_path_generation = true;
                 }
+
                 for (const auto& defined_tag_iterator : expression_explicit_path_data_iterator.second.front().defined_tags)
                 {
                     data.tag_table_map[defined_tag_iterator.second] = defined_tag_iterator.first();
@@ -1603,6 +1646,12 @@ void update_expression_explicit_path_data(
                     {
                         data.skip_implicit_path_generation = true;
                     }
+                }
+
+                if (!is_range_contained_in_nomatch(expression_explicit_path_data_iterator.first)
+                    && is_range_contained_in_nomatch(expression_source_range))
+                {
+                    data.skip_implicit_path_generation = false;
                 }
             }
         }
@@ -1625,6 +1674,10 @@ void update_expression_used_tables(
     StringRef table,
     StringRef variable_name,
     const SourceRange& source_range,
+    StringRef anchor_table,
+    StringRef anchor_variable,
+    bool is_anchor,
+    bool skip_implicit_generation,
     Rewriter& rewriter)
 {
     explicit_path_data_t path_data;
@@ -1634,6 +1687,10 @@ void update_expression_used_tables(
     path_data.tag_table_map[variable_name] = table_name;
     path_data.used_tables.insert(table_name);
     path_data.variable_name = variable_name;
+    path_data.anchor_table = anchor_table;
+    path_data.anchor_variable = anchor_variable;
+    path_data.is_anchor = is_anchor;
+    path_data.skip_implicit_path_generation = skip_implicit_generation;
     update_expression_explicit_path_data(context, node, path_data, source_range, rewriter);
 }
 
@@ -1651,7 +1708,7 @@ bool get_explicit_path_data(const Decl* decl, explicit_path_data_t& data, Source
     data.is_absolute_path = explicit_path_attribute->getPath().startswith("/") || explicit_path_attribute->getPath().startswith("@/");
     path_source_range.setBegin(SourceLocation::getFromRawEncoding(explicit_path_attribute->getPathStart()));
     path_source_range.setEnd(SourceLocation::getFromRawEncoding(explicit_path_attribute->getPathEnd()));
-    llvm::SmallVector<string, 8> path_components;
+    llvm::SmallVector<string, c_size_8> path_components;
     llvm::StringMap<string> tag_map;
     for (const auto& path_component_iterator : explicit_path_attribute->pathComponents())
     {
@@ -1672,7 +1729,7 @@ bool get_explicit_path_data(const Decl* decl, explicit_path_data_t& data, Source
         g_is_generation_error = true;
         return false;
     }
-    llvm::SmallVector<string, 8> tag_map_keys, tag_map_values, defined_tag_map_keys, defined_tag_map_values;
+    llvm::SmallVector<string, c_size_8> tag_map_keys, tag_map_values, defined_tag_map_keys, defined_tag_map_values;
 
     for (const auto& tag_map_keys_iterator : explicit_path_tag_key_attribute->tagMapKeys())
     {
@@ -1725,7 +1782,7 @@ void update_used_dbs(const explicit_path_data_t& explicit_path_data)
         {
             table_name = tag_table_iterator->second;
         }
-        g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
+        g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
     }
 }
 
@@ -1748,6 +1805,10 @@ public:
         string table_name;
         string field_name;
         string variable_name;
+        StringRef anchor_table;
+        StringRef anchor_variable;
+        bool is_anchor = false;
+        bool skip_implicit_navigation = false;
         SourceRange expression_source_range;
         explicit_path_data_t explicit_path_data;
         bool explicit_path_present = true;
@@ -1758,6 +1819,16 @@ public:
             {
                 return;
             }
+
+            const auto* anchor_attribute = decl->getAttr<GaiaAnchorAttr>();
+            if (anchor_attribute != nullptr)
+            {
+                anchor_table = anchor_attribute->getAnchorTable()->getName();
+                anchor_variable = anchor_attribute->getAnchorVariable()->getName();
+                is_anchor = anchor_attribute->getIsAnchor();
+                skip_implicit_navigation = anchor_attribute->getIsDefined();
+            }
+
             table_name = get_table_name(decl);
             field_name = decl->getName();
             variable_name = expression->getNameInfo().getAsString();
@@ -1766,7 +1837,7 @@ public:
                 variable_name = table_name;
                 explicit_path_present = false;
                 expression_source_range = SourceRange(expression->getLocation(), expression->getEndLoc());
-                g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
+                g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
             }
             else
             {
@@ -1774,6 +1845,10 @@ public:
                 get_variable_name(variable_name, table_name, explicit_path_data);
                 update_used_dbs(explicit_path_data);
                 expression_source_range.setEnd(expression->getEndLoc());
+                explicit_path_data.anchor_table = anchor_table;
+                explicit_path_data.anchor_variable = anchor_variable;
+                explicit_path_data.is_anchor = is_anchor;
+                explicit_path_data.skip_implicit_path_generation = skip_implicit_navigation;
             }
             if (decl->hasAttr<GaiaFieldValueAttr>())
             {
@@ -1799,6 +1874,15 @@ public:
                 variable_name = declaration_expression->getNameInfo().getAsString();
                 const ValueDecl* decl = declaration_expression->getDecl();
 
+                const auto* anchor_attribute = decl->getAttr<GaiaAnchorAttr>();
+                if (anchor_attribute != nullptr)
+                {
+                    anchor_table = anchor_attribute->getAnchorTable()->getName();
+                    anchor_variable = anchor_attribute->getAnchorVariable()->getName();
+                    is_anchor = anchor_attribute->getIsAnchor();
+                    skip_implicit_navigation = anchor_attribute->getIsDefined();
+                }
+
                 if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
                 {
                     explicit_path_present = false;
@@ -1806,7 +1890,7 @@ public:
                         = SourceRange(
                             member_expression->getBeginLoc(),
                             member_expression->getEndLoc());
-                    g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
+                    g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
                 }
                 else
                 {
@@ -1814,6 +1898,10 @@ public:
                     get_variable_name(variable_name, table_name, explicit_path_data);
                     update_used_dbs(explicit_path_data);
                     expression_source_range.setEnd(member_expression->getEndLoc());
+                    explicit_path_data.anchor_table = anchor_table;
+                    explicit_path_data.anchor_variable = anchor_variable;
+                    explicit_path_data.is_anchor = is_anchor;
+                    explicit_path_data.skip_implicit_path_generation = skip_implicit_navigation;
                 }
 
                 if (decl->hasAttr<GaiaFieldValueAttr>())
@@ -1858,13 +1946,14 @@ public:
                     }
                 }
             }
-            g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
+            g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
             m_rewriter.ReplaceText(expression_source_range, replacement);
             g_rewriter_history.push_back({expression_source_range, replacement, replace_text});
-            auto offset
+            unsigned int token_length
                 = Lexer::MeasureTokenLength(
                       expression_source_range.getEnd(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts())
                 + 1;
+            int offset = uint_to_int(expression_source_range.getBegin(), token_length);
             if (!explicit_path_present)
             {
                 update_expression_used_tables(
@@ -1873,6 +1962,10 @@ public:
                     table_name,
                     variable_name,
                     SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)),
+                    anchor_table,
+                    anchor_variable,
+                    is_anchor,
+                    skip_implicit_navigation,
                     m_rewriter);
                 update_expression_used_tables(
                     result.Context,
@@ -1880,6 +1973,10 @@ public:
                     table_name,
                     variable_name,
                     SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)),
+                    anchor_table,
+                    anchor_variable,
+                    is_anchor,
+                    skip_implicit_navigation,
                     m_rewriter);
             }
             else
@@ -1943,6 +2040,10 @@ public:
         string table_name;
         string field_name;
         string variable_name;
+        StringRef anchor_table;
+        StringRef anchor_variable;
+        bool is_anchor = false;
+        bool skip_implicit_navigation = false;
         SourceRange set_source_range;
         if (left_declaration_expression == nullptr && member_expression == nullptr)
         {
@@ -1960,17 +2061,30 @@ public:
             table_name = get_table_name(operator_declaration);
             field_name = operator_declaration->getName().str();
             variable_name = table_name;
+            const auto* anchor_attribute = operator_declaration->getAttr<GaiaAnchorAttr>();
+            if (anchor_attribute != nullptr)
+            {
+                anchor_table = anchor_attribute->getAnchorTable()->getName();
+                anchor_variable = anchor_attribute->getAnchorVariable()->getName();
+                is_anchor = anchor_attribute->getIsAnchor();
+                skip_implicit_navigation = anchor_attribute->getIsDefined();
+            }
+
             if (!get_explicit_path_data(operator_declaration, explicit_path_data, set_source_range))
             {
                 explicit_path_present = false;
                 set_source_range.setBegin(left_declaration_expression->getLocation());
-                g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
+                g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
             }
             else
             {
                 variable_name = get_table_from_expression(explicit_path_data.path_components.back());
                 get_variable_name(variable_name, table_name, explicit_path_data);
                 update_used_dbs(explicit_path_data);
+                explicit_path_data.anchor_table = anchor_table;
+                explicit_path_data.anchor_variable = anchor_variable;
+                explicit_path_data.is_anchor = is_anchor;
+                explicit_path_data.skip_implicit_path_generation = skip_implicit_navigation;
             }
             if (operator_declaration->hasAttr<GaiaFieldValueAttr>())
             {
@@ -1998,18 +2112,30 @@ public:
             field_name = member_expression->getMemberNameInfo().getName().getAsString();
             table_name = get_table_name(decl);
             variable_name = declaration_expression->getNameInfo().getAsString();
+            const auto* anchor_attribute = decl->getAttr<GaiaAnchorAttr>();
+            if (anchor_attribute != nullptr)
+            {
+                anchor_table = anchor_attribute->getAnchorTable()->getName();
+                anchor_variable = anchor_attribute->getAnchorVariable()->getName();
+                is_anchor = anchor_attribute->getIsAnchor();
+                skip_implicit_navigation = anchor_attribute->getIsDefined();
+            }
 
             if (!get_explicit_path_data(decl, explicit_path_data, set_source_range))
             {
                 explicit_path_present = false;
                 set_source_range.setBegin(member_expression->getBeginLoc());
-                g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
+                g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
             }
             else
             {
                 variable_name = get_table_from_expression(explicit_path_data.path_components.back());
                 get_variable_name(variable_name, table_name, explicit_path_data);
                 update_used_dbs(explicit_path_data);
+                explicit_path_data.anchor_table = anchor_table;
+                explicit_path_data.anchor_variable = anchor_variable;
+                explicit_path_data.is_anchor = is_anchor;
+                explicit_path_data.skip_implicit_path_generation = skip_implicit_navigation;
             }
             if (decl->hasAttr<GaiaFieldValueAttr>())
             {
@@ -2135,7 +2261,8 @@ public:
         m_rewriter.InsertTextAfterToken(operator_end_location, replacement_text);
         g_rewriter_history.push_back({SourceRange(operator_end_location), replacement_text, insert_text_after_token});
 
-        auto offset = Lexer::MeasureTokenLength(operator_end_location, m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
+        unsigned int token_length = Lexer::MeasureTokenLength(operator_end_location, m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
+        int offset = uint_to_int(operator_end_location, token_length);
         if (!explicit_path_present)
         {
             update_expression_used_tables(
@@ -2144,6 +2271,10 @@ public:
                 table_name,
                 variable_name,
                 SourceRange(set_source_range.getBegin(), operator_end_location.getLocWithOffset(offset)),
+                anchor_table,
+                anchor_variable,
+                is_anchor,
+                skip_implicit_navigation,
                 m_rewriter);
         }
         else
@@ -2152,7 +2283,7 @@ public:
                 result.Context,
                 op,
                 explicit_path_data,
-                SourceRange(set_source_range.getBegin(), op->getEndLoc().getLocWithOffset(offset)),
+                SourceRange(set_source_range.getBegin(), operator_end_location.getLocWithOffset(offset)),
                 m_rewriter);
         }
     }
@@ -2237,6 +2368,10 @@ public:
         string table_name;
         string field_name;
         string variable_name;
+        StringRef anchor_table;
+        StringRef anchor_variable;
+        bool is_anchor = false;
+        bool skip_implicit_navigation = false;
         SourceRange operator_source_range;
 
         if (declaration_expression != nullptr)
@@ -2250,17 +2385,29 @@ public:
             table_name = get_table_name(operator_declaration);
             field_name = operator_declaration->getName().str();
             variable_name = declaration_expression->getNameInfo().getAsString();
+            const auto* anchor_attribute = operator_declaration->getAttr<GaiaAnchorAttr>();
+            if (anchor_attribute != nullptr)
+            {
+                anchor_table = anchor_attribute->getAnchorTable()->getName();
+                anchor_variable = anchor_attribute->getAnchorVariable()->getName();
+                is_anchor = anchor_attribute->getIsAnchor();
+                skip_implicit_navigation = anchor_attribute->getIsDefined();
+            }
             if (!get_explicit_path_data(operator_declaration, explicit_path_data, operator_source_range))
             {
                 variable_name = table_name;
                 explicit_path_present = false;
-                g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
+                g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
             }
             else
             {
                 variable_name = get_table_from_expression(explicit_path_data.path_components.back());
                 get_variable_name(variable_name, table_name, explicit_path_data);
                 update_used_dbs(explicit_path_data);
+                explicit_path_data.anchor_table = anchor_table;
+                explicit_path_data.anchor_variable = anchor_variable;
+                explicit_path_data.is_anchor = is_anchor;
+                explicit_path_data.skip_implicit_path_generation = skip_implicit_navigation;
             }
         }
         else
@@ -2276,16 +2423,28 @@ public:
             field_name = member_expression->getMemberNameInfo().getName().getAsString();
             table_name = get_table_name(operator_declaration);
             variable_name = declaration_expression->getNameInfo().getAsString();
+            const auto* anchor_attribute = operator_declaration->getAttr<GaiaAnchorAttr>();
+            if (anchor_attribute != nullptr)
+            {
+                anchor_table = anchor_attribute->getAnchorTable()->getName();
+                anchor_variable = anchor_attribute->getAnchorVariable()->getName();
+                is_anchor = anchor_attribute->getIsAnchor();
+                skip_implicit_navigation = anchor_attribute->getIsDefined();
+            }
             if (!get_explicit_path_data(operator_declaration, explicit_path_data, operator_source_range))
             {
                 explicit_path_present = false;
-                g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
+                g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
             }
             else
             {
                 variable_name = get_table_from_expression(explicit_path_data.path_components.back());
                 get_variable_name(variable_name, table_name, explicit_path_data);
                 update_used_dbs(explicit_path_data);
+                explicit_path_data.anchor_table = anchor_table;
+                explicit_path_data.anchor_variable = anchor_variable;
+                explicit_path_data.is_anchor = is_anchor;
+                explicit_path_data.skip_implicit_path_generation = skip_implicit_navigation;
             }
         }
         string writer_variable = table_navigation_t::get_variable_name("writer", llvm::StringMap<string>());
@@ -2351,7 +2510,8 @@ public:
         g_rewriter_history.push_back(
             {SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)),
              replace_string, replace_text});
-        auto offset = Lexer::MeasureTokenLength(op->getEndLoc(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
+        unsigned int token_length = Lexer::MeasureTokenLength(op->getEndLoc(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
+        int offset = uint_to_int(op->getBeginLoc(), token_length);
 
         if (!explicit_path_present)
         {
@@ -2361,6 +2521,10 @@ public:
                 table_name,
                 variable_name,
                 SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(offset)),
+                anchor_table,
+                anchor_variable,
+                is_anchor,
+                skip_implicit_navigation,
                 m_rewriter);
         }
         else
@@ -2668,13 +2832,13 @@ public:
         {
             g_variable_declaration_location[variable_declaration->getSourceRange()] = variable_name;
             gaiat::diag().set_location(variable_declaration->getSourceRange().getBegin());
-            if (GaiaCatalog::getCatalogTableData().find(variable_name) != GaiaCatalog::getCatalogTableData().end())
+            if (getCatalogTableData().find(variable_name) != getCatalogTableData().end())
             {
                 gaiat::diag().emit(diag::warn_table_hidden) << variable_name;
                 return;
             }
 
-            for (const auto& table_data : GaiaCatalog::getCatalogTableData())
+            for (const auto& table_data : getCatalogTableData())
             {
                 if (table_data.second.fieldData.find(variable_name) != table_data.second.fieldData.end())
                 {
@@ -2790,6 +2954,10 @@ public:
         explicit_path_data_t explicit_path_data;
         bool explicit_path_present = true;
         string variable_name;
+        StringRef anchor_table;
+        StringRef anchor_variable;
+        bool is_anchor = false;
+        bool skip_implicit_navigation = false;
         const ValueDecl* decl = expression->getDecl();
         if (!decl->getType()->isStructureType())
         {
@@ -2797,11 +2965,21 @@ public:
         }
         table_name = get_table_name(decl);
         variable_name = decl->getNameAsString();
+
+        const auto* anchor_attribute = decl->getAttr<GaiaAnchorAttr>();
+        if (anchor_attribute != nullptr)
+        {
+            anchor_table = anchor_attribute->getAnchorTable()->getName();
+            anchor_variable = anchor_attribute->getAnchorVariable()->getName();
+            is_anchor = anchor_attribute->getIsAnchor();
+            skip_implicit_navigation = anchor_attribute->getIsDefined();
+        }
+
         if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
         {
             explicit_path_present = false;
             expression_source_range = SourceRange(expression->getLocation(), expression->getEndLoc());
-            g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
+            g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
         }
         else
         {
@@ -2810,6 +2988,10 @@ public:
             update_used_dbs(explicit_path_data);
             expression_source_range
                 = SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(-1));
+            explicit_path_data.anchor_table = anchor_table;
+            explicit_path_data.anchor_variable = anchor_variable;
+            explicit_path_data.is_anchor = is_anchor;
+            explicit_path_data.skip_implicit_path_generation = skip_implicit_navigation;
         }
 
         if (decl->hasAttr<GaiaFieldValueAttr>())
@@ -2841,8 +3023,9 @@ public:
             m_rewriter.ReplaceText(expression_source_range, variable_name);
             g_rewriter_history.push_back({expression_source_range, variable_name, replace_text});
 
-            auto offset
+            unsigned int token_length
                 = Lexer::MeasureTokenLength(expression_source_range.getEnd(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
+            int offset = uint_to_int(expression_source_range.getBegin(), token_length);
             if (explicit_path_present)
             {
                 update_expression_explicit_path_data(
@@ -2860,6 +3043,10 @@ public:
                     table_name,
                     variable_name,
                     SourceRange(expression_source_range.getBegin(), expression_source_range.getEnd().getLocWithOffset(offset)),
+                    anchor_table,
+                    anchor_variable,
+                    is_anchor,
+                    skip_implicit_navigation,
                     m_rewriter);
             }
         }
@@ -2975,11 +3162,9 @@ public:
             // Trim the argument name of whitespaces.
             argument_name.erase(
                 argument_name.begin(),
-                find_if(argument_name.begin(), argument_name.end(), [](unsigned char ch)
-                        { return !isspace(ch); }));
+                find_if(argument_name.begin(), argument_name.end(), [](unsigned char ch) { return !isspace(ch); }));
             argument_name.erase(
-                find_if(argument_name.rbegin(), argument_name.rend(), [](unsigned char ch)
-                        { return !isspace(ch); })
+                find_if(argument_name.rbegin(), argument_name.rend(), [](unsigned char ch) { return !isspace(ch); })
                     .base(),
                 argument_name.end());
             insert_data.argument_map[argument_name] = argument->getSourceRange();
@@ -3020,6 +3205,10 @@ public:
         SourceRange expression_source_range;
         explicit_path_data_t explicit_path_data;
         bool explicit_path_present = true;
+        StringRef anchor_table;
+        StringRef anchor_variable;
+        bool is_anchor = false;
+        bool skip_implicit_navigation = false;
 
         gaiat::diag().set_location(expression->getBeginLoc());
 
@@ -3032,17 +3221,32 @@ public:
         }
         const ValueDecl* decl = path->getDecl();
         table_name = get_table_name(decl);
+
+        const auto* anchor_attribute = decl->getAttr<GaiaAnchorAttr>();
+        if (anchor_attribute != nullptr)
+        {
+            anchor_table = anchor_attribute->getAnchorTable()->getName();
+            anchor_variable = anchor_attribute->getAnchorVariable()->getName();
+            is_anchor = anchor_attribute->getIsAnchor();
+            skip_implicit_navigation = anchor_attribute->getIsDefined();
+        }
+
         if (!get_explicit_path_data(decl, explicit_path_data, expression_source_range))
         {
-            g_used_dbs.insert(GaiaCatalog::getCatalogTableData().find(table_name)->second.dbName);
+            g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
             explicit_path_present = false;
             expression_source_range.setBegin(expression->getLParenLoc().getLocWithOffset(1));
+            variable_name = table_name;
         }
         else
         {
             variable_name = get_table_from_expression(explicit_path_data.path_components.back());
             get_variable_name(variable_name, table_name, explicit_path_data);
             update_used_dbs(explicit_path_data);
+            explicit_path_data.anchor_table = anchor_table;
+            explicit_path_data.anchor_variable = anchor_variable;
+            explicit_path_data.is_anchor = is_anchor;
+            explicit_path_data.skip_implicit_path_generation = skip_implicit_navigation;
         }
         expression_source_range.setEnd(expression->getRParenLoc().getLocWithOffset(-1));
 
@@ -3065,6 +3269,10 @@ public:
                     table_name,
                     variable_name,
                     expression_source_range,
+                    anchor_table,
+                    anchor_variable,
+                    is_anchor,
+                    skip_implicit_navigation,
                     m_rewriter);
             }
         }
@@ -3165,8 +3373,9 @@ public:
             }
         }
 
-        auto offset
+        unsigned int token_length
             = Lexer::MeasureTokenLength(expression_source_range.getEnd(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
+        int offset = uint_to_int(expression_source_range.getBegin(), token_length);
         expression_source_range.setEnd(expression_source_range.getEnd().getLocWithOffset(offset));
         string replacement_string = (Twine("goto ") + label_name).str();
         m_rewriter.ReplaceText(expression_source_range, replacement_string);
@@ -3208,7 +3417,7 @@ public:
 
         const auto* link_expr = result.Nodes.getNodeAs<MemberExpr>("tableFieldGet");
 
-        const llvm::StringMap<CatalogTableData>& table_data = GaiaCatalog::getCatalogTableData();
+        const llvm::StringMap<CatalogTableData>& table_data = getCatalogTableData();
 
         gaiat::diag().set_location(table_call->getLocation());
 
@@ -3618,8 +3827,7 @@ public:
 
         // Always call the TextDiagnosticPrinter's EndSourceFile() method.
         auto call_end_source_file = ::gaia::common::scope_guard::make_scope_guard(
-            [this]
-            { TextDiagnosticPrinter::EndSourceFile(); });
+            [this] { TextDiagnosticPrinter::EndSourceFile(); });
 
         generate_rules(rewriter);
 
@@ -3699,7 +3907,11 @@ public:
             false);
         m_diagnostics_source_manager = std::make_unique<SourceManager>(*m_diagnostics_engine, compiler.getFileManager(), false);
 
-        g_diag_ptr = std::make_unique<diagnostic_context_t>(m_diagnostics_source_manager->getDiagnostics());
+        // Ensure we are using the same compiler diagnostics engine from any exception code thrown by
+        // the catalog or translation engine code.
+        g_diag_ptr = std::make_unique<diagnostic_context_t>(compiler_diagnostic_engine);
+        GaiaCatalog::create(compiler_diagnostic_engine);
+
         return std::unique_ptr<clang::ASTConsumer>(
             new translation_engine_consumer_t(&compiler.getASTContext(), m_rewriter));
     }

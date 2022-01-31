@@ -2138,7 +2138,14 @@ static bool validateRuleAttribute(StringRef attribute,
         << field;
       return false;
     }
-    S.AddTableSearchAnchor(table);
+    if (tag.empty())
+    {
+      S.AddTableSearchAnchor(table, table);
+    }
+    else
+    {
+      S.AddTableSearchAnchor(table, tag);
+    }
     return true;
   }
 
@@ -2175,7 +2182,14 @@ static bool validateRuleAttribute(StringRef attribute,
     }
     else
     {
-      S.AddTableSearchAnchor(fieldTable);
+      if (tag.empty())
+      {
+        S.AddTableSearchAnchor(fieldTable, fieldTable);
+      }
+      else
+      {
+        S.AddTableSearchAnchor(fieldTable, tag);
+      }
     }
     return returnValue;
   }
@@ -2188,7 +2202,15 @@ static bool validateRuleAttribute(StringRef attribute,
       return false;
     }
   }
-  S.AddTableSearchAnchor(attribute);
+
+  if (tag.empty())
+  {
+    S.AddTableSearchAnchor(attribute, attribute);
+  }
+  else
+  {
+    S.AddTableSearchAnchor(attribute, tag);
+  }
 
   return true;
 }

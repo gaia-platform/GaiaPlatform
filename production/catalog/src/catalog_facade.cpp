@@ -228,7 +228,19 @@ bool field_facade_t::is_vector() const
 
 std::pair<std::string, std::string> field_facade_t::generate_expr_variable() const
 {
-    return generate_expr_variable(table_type_name(), field_type(), field_name());
+    // For now, we only use the generic member_accessor_t.
+    // In the future, more specialized accessors will be needed e.g. vector accessors.
+    // This is to support additional queries on different accessor types.
+
+    std::string accessor_string;
+    accessor_string.append("gaia::expressions::member_accessor_t");
+    accessor_string.append("<");
+    accessor_string.append(class_name());
+    accessor_string.append(", ");
+    accessor_string.append(field_type());
+    accessor_string.append(">");
+
+    return generate_expr_variable(class_name(), accessor_string, field_name());
 }
 
 std::string field_facade_t::table_type_name() const
@@ -236,20 +248,19 @@ std::string field_facade_t::table_type_name() const
     return std::string(m_field.table().name()) + c_class_suffix;
 }
 
-std::pair<std::string, std::string> field_facade_t::generate_expr_variable(const std::string& class_name, const std::string& type, const std::string& field)
+std::pair<std::string, std::string> field_facade_t::generate_expr_variable(
+    const std::string& class_name,
+    const std::string& expr_accessor,
+    const std::string& field)
 {
     std::string expr_decl;
     std::string expr_init;
     std::string type_decl;
 
-    // Example:  gaia::direct_access::expression_t<employee_waynetype, int64_t>
-    type_decl.append("gaia::direct_access::expression_t<");
-    type_decl.append(class_name);
-    type_decl.append(", ");
-    type_decl.append(type);
-    type_decl.append(">");
+    // Example:  gaia::expressions::expression_t<employee_t, int64_t>
+    type_decl.append(expr_accessor);
 
-    // Example:  static gaia::direct_access::expression_t<employee_waynetype, int64_t> hire_date;
+    // Example:  static gaia::expressions::expression_t<employee_t, int64_t> hire_date;
     expr_decl.append("static ");
     expr_decl.append(type_decl);
     expr_decl.append(" ");
@@ -257,7 +268,7 @@ std::pair<std::string, std::string> field_facade_t::generate_expr_variable(const
     expr_decl.append(";");
 
     // Example:  template<class unused_t>
-    // gaia::direct_access::expression_t<employee_waynetype, int64_t> employee_waynetype::expr_<unused_t>::hire_date{&employee_waynetype::hire_date};
+    // gaia::expressions::expression_t<employee_t, int64_t> employee_t::expr_<unused_t>::hire_date{&employee_t::hire_date};
     expr_init.append("template<class unused_t> ");
     expr_init.append(type_decl);
     expr_init.append(" ");
@@ -385,6 +396,33 @@ std::string link_facade_t::target_type() const
         type.append(to_table() + c_class_suffix);
         return type;
     }
+}
+
+std::string link_facade_t::expression_accessor() const
+{
+    std::string type_decl;
+    if (is_multiple_cardinality())
+    {
+        type_decl.append("gaia::expressions::container_accessor_t");
+        type_decl.append("<");
+        type_decl.append(from_table());
+        type_decl.append("_t, ");
+        type_decl.append(to_table());
+        type_decl.append("_t, ");
+        type_decl.append(target_type());
+        type_decl.append(">");
+    }
+    else
+    {
+        type_decl.append("gaia::expressions::member_accessor_t");
+        type_decl.append("<");
+        type_decl.append(from_table());
+        type_decl.append("_t, ");
+        type_decl.append(target_type());
+        type_decl.append(">");
+    }
+
+    return type_decl;
 }
 
 } // namespace generate

@@ -569,7 +569,6 @@ pause = 200 microsecond
 | 3 | 0.45s | 0.09 | 3131,3130,3130 | 59,58,58 | 0 | 4 | 121 | 0 |
 | 4 | 0.54s | 0.17 | 3134,3128,3130 | 62,56,58 | 0 | 4 | 124,124,134 | 0 |
 
-
 ### Scenario Test 8
 
 - specifically `suite-scaling` related tests

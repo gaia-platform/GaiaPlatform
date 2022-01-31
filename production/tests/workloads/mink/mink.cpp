@@ -180,7 +180,7 @@ void restore_default_values()
 
 void init_storage()
 {
-    auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+    auto_transaction_t tx(auto_transaction_t::no_auto_restart);
 
     // If we already have inserted an incubator then our storage has already been
     // initialized.  Re-initialize the database to default values.
@@ -349,8 +349,8 @@ float calc_new_temp(float curr_temp, float fan_speed)
 
 void set_power(bool is_on)
 {
-    auto_transaction_t tx(auto_transaction_t::no_auto_begin);
-    for (auto i : incubator_waynetype::list())
+    auto_transaction_t tx(auto_transaction_t::no_auto_restart);
+    for (auto i : incubator_t::list())
     {
         auto w = i.writer();
         w.is_on = is_on;
@@ -362,7 +362,7 @@ void set_power(bool is_on)
 void simulation_step()
 {
     my_time_point start_transaction_start_mark = my_clock::now();
-    auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+    auto_transaction_t tx(auto_transaction_t::no_auto_restart);
     my_time_point inside_transaction_start_mark = my_clock::now();
 
     float new_temp = 0.0;

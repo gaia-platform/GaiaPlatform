@@ -76,6 +76,7 @@ add_library(gaia_db_client STATIC
   src/db_client_api.cpp
   src/gaia_ptr.cpp
   src/gaia_ptr_client.cpp
+  src/gaia_ptr_api.cpp
   src/payload_diff.cpp
   src/client_messenger.cpp
   src/mapped_data.cpp
@@ -201,7 +202,7 @@ set(GAIA_DB_CORE_TEST_INCLUDES
 ###############################################
 # PyBind11 wrapper for database.
 ###############################################
-find_package(pybind11 REQUIRED)
+find_package(pybind11)
 
 if(Python3_FOUND AND pybind11_FOUND)
   pybind11_add_module(gaia_db_pybind src/db_pybind_wrapper.cpp)
@@ -265,9 +266,9 @@ target_link_libraries(gaia_db_catalog_test PRIVATE gaia_common gaia_db_client ga
 add_gtest(test_rdb_object_converter tests/test_rdb_object_converter.cpp "${GEN_DIR};${GAIA_DB_CORE_TEST_INCLUDES}" "rocks_wrapper;gaia_db_server")
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage")
 add_gtest(test_record_list_manager tests/test_record_list_manager.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage")
-add_gtest(test_db_client tests/test_db_client.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_db_client;gaia_direct;gaia_catalog")
+add_gtest(test_db_client tests/test_db_client.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_db_client")
 add_gtest(test_db_internals tests/test_db_internals.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage;gaia_db_client")
-add_gtest(test_db_references tests/test_db_references.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_db_client;gaia_direct;gaia_catalog")
+add_gtest(test_gaia_ptr_api tests/test_gaia_ptr_api.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_db_client;gaia_direct;gaia_catalog")
 add_gtest(test_env_instance_name tests/test_db_server_env.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_db_client;gaia_direct")
 
 add_gtest(test_multiple_server_instances
@@ -284,3 +285,8 @@ add_gtest(test_catalog_core
   tests/test_catalog_core.cpp
   "${FLATBUFFERS_INC};${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_INC}"
   "gaia_common;gaia_db_client;gaia_catalog")
+
+add_gtest(test_optional_scalars
+  "tests/test_optional_scalars.cpp"
+  "${GAIA_DB_CORE_TEST_INCLUDES};"
+  "rt;gaia_system;gaia_db_catalog_test")
