@@ -63,7 +63,7 @@ jobs:
           docker-user: ${{ github.actor }}
           docker-password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build
+      - name: Create Build
         uses: ./.github/actions/build-job
         with:
           gaia-repo: ${{ github.workspace }}
@@ -87,7 +87,7 @@ jobs:
           docker-user: ${{ github.actor }}
           docker-password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build
+      - name: Create Build
         uses: ./.github/actions/build-job
         with:
           gaia-repo: ${{ github.workspace }}
@@ -97,9 +97,12 @@ jobs:
           publish-package: true
 
   Debug_Core:
-    needs: Core
+# needs: Core
+    needs:
+      - Lint
+      - Third-Party
     runs-on: ubuntu-20.04
-    if: github.event_name != 'pull_request'
+#    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -111,30 +114,45 @@ jobs:
           docker-user: ${{ github.actor }}
           docker-password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Docker Image
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
-              --repo-path $GAIA_REPO \
-              --base-image $DEV_IMAGE \
-              --cfg-enables Debug
-      - name: Run Unit Tests
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
-            --repo-path $GAIA_REPO \
-            --gaia-version $GAIA_VERSION \
-            --action unit_tests
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
+      - name: Create Build
+        uses: ./.github/actions/build-job
         with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/build/output
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          build-flavor: Debug
+          execute-unit-tests: true
+
+  LLVM_Tests:
+    needs:
+      - Lint
+      - Third-Party
+# needs: Core
+#    if: ${{ false }}
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
+        with:
+          docker-user: ${{ github.actor }}
+          docker-password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Build
+        uses: ./.github/actions/build-job
+        with:
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          build-flavor: GaiaLLVMTests
+          execute-unit-tests: true
+
   Coverage:
     needs:
       - Lint
       - Third-Party
-    if: github.event_name != 'pull_request'
+#    if: github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -147,149 +165,60 @@ jobs:
           docker-user: ${{ github.actor }}
           docker-password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Coverage
-        run: |
-          cd $GAIA_REPO/production
-          mkdir -p $GAIA_REPO/production
-          $GAIA_REPO/production/coverage/coverage.sh -v
-          echo "COVERAGE OUTPUT"
-          echo "sudo chmod -R 777 $GAIA_REPO/production"
-          sudo chmod -R 777 $GAIA_REPO/production
+      - name: Measure Coverage
+        uses: ./.github/actions/coverage-job
+        with:
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
 
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{github.job}} Test Files
-          path: |
-            ${{ github.workspace }}/production/output
-  LLVM_Tests:
-    needs: Core
-    if: ${{ false }}
-    runs-on: ubuntu-20.04
-    env:
-      GAIA_REPO: ${{ github.workspace }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@master
-      - name: Setup Action
-        uses: ./.github/actions/setup-job
-        with:
-          docker-user: ${{ github.actor }}
-          docker-password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build Docker Image
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
-              --repo-path $GAIA_REPO \
-              --base-image $DEV_IMAGE \
-              --cfg-enables GaiaLLVMTests
-      - name: Run Docker Image And Post-Build Script
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --gaia-version $GAIA_VERSION
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/build/output
   Integration_Smoke:
     needs: SDK
     runs-on: ubuntu-20.04
-    if: github.event_name != 'pull_request'
+#    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
 
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
+      - name: Run Integration Tests Against Package
+        uses: ./.github/actions/integration-tests-job
         with:
-          python-version: 3.8
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
 
-      - name: Download Debian Install Package
-        uses: actions/download-artifact@v2
-        with:
-          name: SDK Install Package
-          path: ${{ github.workspace }}/production/tests/packages
-
-      - name: Tests
-        working-directory: ${{ github.workspace }}
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/production/tests/results
   Integration_Smoke_Persistence:
     needs: SDK
     runs-on: ubuntu-20.04
-    if: github.event_name != 'pull_request'
+#    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
 
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
+      - name: Run Integration Tests Against Package
+        uses: ./.github/actions/integration-tests-job
         with:
-          python-version: 3.8
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
 
-      - name: Download Debian Install Package
-        uses: actions/download-artifact@v2
-        with:
-          name: SDK Install Package
-          path: ${{ github.workspace }}/production/tests/packages
-
-      - name: Tests
-        working-directory: ${{ github.workspace }}
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/production/tests/results
   Integration_Samples:
     needs: SDK
     runs-on: ubuntu-20.04
-    if: github.event_name != 'pull_request'
+#    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
 
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
+      - name: Run Integration Tests Against Package
+        uses: ./.github/actions/integration-tests-job
         with:
-          python-version: 3.8
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
 
-      - name: Download Debian Install Package
-        uses: actions/download-artifact@v2
-        with:
-          name: SDK Install Package
-          path: ${{ github.workspace }}/production/tests/packages
-
-      - name: Tests
-        working-directory: ${{ github.workspace }}
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/production/tests/results
   Final:
     needs:
       - Integration_Smoke

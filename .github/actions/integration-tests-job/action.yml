@@ -1,0 +1,39 @@
+name: 'Integration Tests Job'
+description: 'Installs a previously built package and runs integration tests against it.'
+inputs:
+  gaia-repo:
+    description: 'Repository location'
+    required: true
+  job-name:
+    description: 'Name of the job this is being called from'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Download Debian Install Package
+      uses: actions/download-artifact@v2
+      with:
+        name: SDK Install Package
+        path: ${{ inputs.gaia-repo }}/production/tests/packages
+
+    - name: Execute Tests
+      working-directory: ${{ inputs.gaia-repo }}
+      shell: bash
+      run: |
+        ${{ inputs.gaia-repo }}/dev_tools/github-actions/execute_tests_against_package.sh \
+          --job-name ${{ inputs.job-name }} \
+          --repo-path ${{ inputs.gaia-repo }} \
+          --package ${{ inputs.gaia-repo }}/production/tests/packages
+
+    - name: Upload Output Files
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ inputs.job-name }} Output Files
+        path: |
+          ${{ inputs.gaia-repo }}/production/tests/results

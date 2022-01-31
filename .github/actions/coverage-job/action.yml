@@ -1,0 +1,26 @@
+name: 'Coverage Job'
+description: 'Build the product and measure the testing done against the product.'
+inputs:
+  gaia-repo:
+    description: 'Repository location'
+    required: true
+  job-name:
+    description: 'Name of the job this is being called from'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Coverage
+      run: |
+        cd $GAIA_REPO/production
+        mkdir -p $GAIA_REPO/production
+        $GAIA_REPO/production/coverage/coverage.sh -v
+        sudo chmod -R 777 $GAIA_REPO/production
+
+    - name: Upload Output Files
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ inputs.job-name }} Test Files
+        path: |
+          ${{ inputs.gaia-repo }}/production/output
