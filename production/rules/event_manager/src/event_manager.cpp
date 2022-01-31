@@ -62,6 +62,7 @@ void event_manager_t::init()
     // Apply default settings.  See explanation in event_manager_settings.hpp.
     event_manager_settings_t settings;
     init(settings);
+    initialize_rule_tables();
 }
 
 void event_manager_t::init(const event_manager_settings_t& settings)
