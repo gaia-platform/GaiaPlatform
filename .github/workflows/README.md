@@ -48,7 +48,7 @@ on:
   workflow_dispatch:
 ```
 
-and this `if` condition at the start of some of the jobs:
+and this `if` conditional at the start of some of the jobs:
 
 ```yaml
     if: github.event_name != 'pull_request'
@@ -64,7 +64,7 @@ To enable the developer to have more confidence in their proposed changes before
 The currently available manual workflows are:
 
 - `Main` - Same workflow that is used when changes are pushed to the `master` branch.
-- `Every-Job` - Same workflow as `Main`, but with all job conditionals removed.
+- `Every-Job` - Same workflow as `Main`, but with all job `if` conditionals removed.
 - `Core and SDK Jobs` - Reduced set of jobs, only those necessary to build the `Core` and `SDK` jobs and their variations.
 - `Bare Minimum` - Specifically the `Lint` job and the `Core` job.
 
