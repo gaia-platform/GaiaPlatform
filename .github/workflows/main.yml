@@ -31,11 +31,11 @@ jobs:
 
       - name: Clean up disk space
         run: |
-          df
+          df -h
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
-          df
+          df -h
 
       - name: Pull Latest Dev-Core Image
         run: |
