@@ -127,7 +127,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: Dev Image
-          path: ${{ github.workspace }}/production/dev_image.tar.gz
+          path: ${{ github.workspace }}/production
 
       - name: XXX
         run: |
