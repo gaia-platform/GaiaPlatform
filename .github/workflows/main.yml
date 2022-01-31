@@ -133,16 +133,9 @@ jobs:
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          echo "--images"
-          docker image ls
-          echo "--ls"
-          ls -la ${{ github.workspace }}/production/
-          echo "--ls"
           ls -la ${{ github.workspace }}/production/dev_image.tar.gz
           echo "--load"
           docker load < ${{ github.workspace }}/production/dev_image.tar.gz
-          echo "--images"
-          docker image ls
 
       - name: Build Docker Image
         run: |
