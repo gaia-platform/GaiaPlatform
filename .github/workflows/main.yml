@@ -97,12 +97,9 @@ jobs:
           publish-package: true
 
   Debug_Core:
-# needs: Core
-    needs:
-      - Lint
-      - Third-Party
+    needs: Core
     runs-on: ubuntu-20.04
-#    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
