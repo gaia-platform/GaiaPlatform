@@ -19,13 +19,13 @@ constexpr char c_references_string[] = "--references";
 constexpr char c_payload_string[] = "--payload";
 constexpr char c_catalog_string[] = "--catalog";
 constexpr char c_show_types_string[] = "--show-types";
-const int c_show_types_length = strlen(c_show_types_string);
+const size_t c_show_types_length = strlen(c_show_types_string);
 constexpr char c_start_string[] = "--start";
-const int c_start_length = strlen(c_start_string);
+const size_t c_start_length = strlen(c_start_string);
 constexpr char c_end_string[] = "--end";
-const int c_end_length = strlen(c_end_string);
+const size_t c_end_length = strlen(c_end_string);
 constexpr char c_line_limit_string[] = "--line-limit";
-const int c_line_limit_length = strlen(c_line_limit_string);
+const size_t c_line_limit_length = strlen(c_line_limit_string);
 
 int main(int argc, char* argv[])
 {
