@@ -132,6 +132,8 @@ jobs:
 
       - name: XXX
         run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker image ls
           docker load < ${{ github.workspace }}/production/dev_image.tar.gz
           docker image ls
@@ -448,6 +450,10 @@ jobs:
     runs-on: ubuntu-20.04
     if: always()
     steps:
+      - uses: geekyeggo/delete-artifact@v1
+        with:
+          name: Dev Image
+
       - uses: technote-space/workflow-conclusion-action@v2
 
       - name: Results
