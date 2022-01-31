@@ -9566,7 +9566,7 @@ def err_incorrect_operator_expression_type : Error<
 def err_incorrect_table : Error<
   "Incorrect table for field '%0'.">;
 def err_incorrect_repeated_count : Error<
-  "Incorrect repeated count for field '%0'.">;
+  "Fixed size arrays are not supported for field '%0'.">;
 def err_incorrect_tag_use_in_path : Error<
   "Tag '%0' cannot be used in this context.">;
 def err_incorrect_operator_type : Error<

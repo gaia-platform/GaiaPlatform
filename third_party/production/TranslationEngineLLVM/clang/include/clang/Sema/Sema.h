@@ -4616,6 +4616,7 @@ public:
                                SourceLocation IdentLoc, IdentifierInfo *Ident,
                                const ParsedAttributesView &AttrList);
   void ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace);
+  void ActOnRuleStart();
   llvm::StringSet<> getCatalogTableList();
   llvm::StringMap<llvm::StringMap<QualType>> getTableData();
   void AddExplicitPathData(SourceLocation location, SourceLocation startLocation, SourceLocation endLocation, const std::string &explicitPath);

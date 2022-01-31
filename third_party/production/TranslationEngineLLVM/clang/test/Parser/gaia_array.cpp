@@ -8,7 +8,7 @@ ruleset test1
     {
         isolated.history[5] = 5;
         history[3] = 2;
-        auto t = isolated.history[5];
+        int t = isolated.history[5];
         t = history[3];
         int foo_array[] = {1,2,3};
         history = {3,4,5};
@@ -34,5 +34,7 @@ ruleset test1
         // expected-warning@-1 {{implicit conversion from 'double' to 'int' changes value from 4.5 to 4}}
         // expected-note@-2 {{insert an explicit cast to silence this issue}}
         isolated.insert(history:{4,7.7,8}); // expected-error {{Cannot convert from 'initializer list' to 'int []' for parameter 'history'.}}
+        isolated.history += {6,7,8}; // expected-error {{invalid operands to binary expression ('int []' and 'int [3]')}}
+        isolated.history -= foo_array; // expected-error {{invalid operands to binary expression ('int []' and 'int [3]')}}
     }
 }

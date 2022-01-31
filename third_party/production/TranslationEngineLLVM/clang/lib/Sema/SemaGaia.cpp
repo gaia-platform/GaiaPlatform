@@ -1625,3 +1625,14 @@ bool Sema::ValidateLabel(const LabelDecl* label)
     declarativeLabelsInProcess.erase(labelName);
     return true;
 }
+
+void Sema::ActOnRuleStart()
+{
+    ResetTableSearchContextStack();
+    labelsInProcess.clear();
+    declarativeLabelsInProcess.clear();
+    explicitPathData.clear();
+    explicitPathTagMapping.clear();
+    extendedExplicitPathTagMapping.clear();
+    injectedVariablesLocation.clear();
+}

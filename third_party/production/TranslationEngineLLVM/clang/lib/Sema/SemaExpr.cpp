@@ -12504,10 +12504,10 @@ ExprResult Sema::CreateBuiltinBinOp(SourceLocation OpLoc,
   bool isGaiaArrayFieldAssignment = false;
   if (getLangOpts().Gaia && getCurScope()->isInRulesetScope())
   {
-    DeclRefExpr* exp = dyn_cast<DeclRefExpr>(LHSExpr);
+    const DeclRefExpr* exp = dyn_cast<DeclRefExpr>(LHSExpr);
     if (exp == nullptr)
     {
-      MemberExpr* memberExp = dyn_cast<MemberExpr>(LHSExpr);
+      const MemberExpr* memberExp = dyn_cast<MemberExpr>(LHSExpr);
       if (memberExp != nullptr)
       {
         exp = dyn_cast<DeclRefExpr>(memberExp->getBase());
@@ -12515,7 +12515,7 @@ ExprResult Sema::CreateBuiltinBinOp(SourceLocation OpLoc,
     }
     if (exp != nullptr)
     {
-      ValueDecl* decl = exp->getDecl();
+      const ValueDecl* decl = exp->getDecl();
       if ((decl->hasAttr<GaiaFieldAttr>()
             || decl->hasAttr<GaiaFieldValueAttr>()
             || decl->hasAttr<FieldTableAttr>())
@@ -13142,8 +13142,8 @@ ExprResult Sema::CreateBuiltinUnaryOp(SourceLocation OpLoc,
                                       Expr *InputExpr) {
   if (getLangOpts().Gaia && getCurScope()->isInRulesetScope())
   {
-    DeclRefExpr *exp = dyn_cast<DeclRefExpr>(InputExpr);
-    MemberExpr *expm = dyn_cast<MemberExpr>(InputExpr);
+    const DeclRefExpr *exp = dyn_cast<DeclRefExpr>(InputExpr);
+    const MemberExpr *expm = dyn_cast<MemberExpr>(InputExpr);
 
     if (exp == nullptr && expm != nullptr)
     {
@@ -13152,7 +13152,7 @@ ExprResult Sema::CreateBuiltinUnaryOp(SourceLocation OpLoc,
 
     if (exp != nullptr)
     {
-        ValueDecl *decl = exp->getDecl();
+        const ValueDecl *decl = exp->getDecl();
         if ((decl->hasAttr<GaiaFieldAttr>() ||
             decl->hasAttr<GaiaFieldValueAttr>()) &&
             (Opc == UO_AddrOf || Opc == UO_Deref))
