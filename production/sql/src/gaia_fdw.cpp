@@ -25,12 +25,9 @@ extern "C"
  * executor, and various maintenance commands. The scan-related functions are
  * required, the rest are optional.
  */
-extern "C" Datum gaia_fdw_handler(PG_FUNCTION_ARGS)
+extern "C" Datum gaia_fdw_handler([[maybe_unused]] PG_FUNCTION_ARGS)
 {
     elog(DEBUG1, c_message_entering_function, __func__);
-
-    // To silence unused argument warning.
-    (void)fcinfo;
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     FdwRoutine* routine = makeNode(FdwRoutine);

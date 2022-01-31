@@ -80,11 +80,11 @@ if("$CACHE{ENABLE_SDK_TESTS}")
   )
   target_include_directories(test_serial_ruleset PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
-  translate_ruleset_internal(
-    RULESET_FILE ${RULESET_PREFIX}/test_rulesets.ruleset
-    DAC_LIBRARY dac_prerequisites
-  )
-  target_include_directories(test_rulesets_ruleset PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+  # translate_ruleset_internal(
+  #   RULESET_FILE ${RULESET_PREFIX}/test_rulesets.ruleset
+  #   DAC_LIBRARY dac_prerequisites
+  # )
+  # target_include_directories(test_rulesets_ruleset PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
   translate_ruleset_internal(
     RULESET_FILE ${RULESET_PREFIX}/test_amr_swarm.ruleset
@@ -117,25 +117,25 @@ if("$CACHE{ENABLE_SDK_TESTS}")
     "rt;gaia_system;gaia_db_catalog_test;test_serial_ruleset")
 
   # Test Preview extensions to Declarative Language
-  add_gtest(test_tags_ruleset
-    "tests/test_tags.cpp;${RULES_TEST_HELPERS}"
-    "${TEST_INCLUDES}"
-    "rt;gaia_system;gaia_db_catalog_test;test_rulesets_ruleset")
+  # add_gtest(test_tags_ruleset
+  #   "tests/test_tags.cpp;${RULES_TEST_HELPERS}"
+  #   "${TEST_INCLUDES}"
+  #   "rt;gaia_system;gaia_db_catalog_test;test_rulesets_ruleset")
 
-  add_gtest(test_queries_ruleset
-    "tests/test_queries.cpp;${RULES_TEST_HELPERS}"
-    "${TEST_INCLUDES}"
-    "rt;gaia_system;gaia_db_catalog_test;test_rulesets_ruleset")
+  # add_gtest(test_queries_ruleset
+  #   "tests/test_queries.cpp;${RULES_TEST_HELPERS}"
+  #   "${TEST_INCLUDES}"
+  #   "rt;gaia_system;gaia_db_catalog_test;test_rulesets_ruleset")
 
-  add_gtest(test_insert_delete_ruleset
-    "tests/test_insert_delete.cpp;${RULES_TEST_HELPERS}"
-    "${TEST_INCLUDES}"
-    "rt;gaia_system;gaia_db_catalog_test;test_rulesets_ruleset")
+  # add_gtest(test_insert_delete_ruleset
+  #   "tests/test_insert_delete.cpp;${RULES_TEST_HELPERS}"
+  #   "${TEST_INCLUDES}"
+  #   "rt;gaia_system;gaia_db_catalog_test;test_rulesets_ruleset")
 
-  add_gtest(test_connect_disconnect_ruleset
-    "tests/test_connect_disconnect.cpp;${RULES_TEST_HELPERS}"
-    "${TEST_INCLUDES}"
-    "rt;gaia_system;gaia_db_catalog_test;test_rulesets_ruleset")
+  # add_gtest(test_connect_disconnect_ruleset
+  #   "tests/test_connect_disconnect.cpp;${RULES_TEST_HELPERS}"
+  #   "${TEST_INCLUDES}"
+  #   "rt;gaia_system;gaia_db_catalog_test;test_rulesets_ruleset")
 
   add_gtest(test_amr_swarm
     "tests/test_amr_swarm.cpp;tests/bot_commands.cpp;${RULES_TEST_HELPERS}"
