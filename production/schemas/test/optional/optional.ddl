@@ -19,3 +19,16 @@ table optional_values
     optional_double double optional,
     optional_bool bool optional
 )
+
+table optional_vlr_parent
+(
+    id uint32 unique optional,
+    child references optional_vlr_child[]
+)
+
+table optional_vlr_child
+(
+    parent_id uint32 optional,
+    parent references optional_vlr_parent
+        where optional_vlr_child.parent_id = optional_vlr_parent.id
+)

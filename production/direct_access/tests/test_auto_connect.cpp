@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <string>
-
 #include <gtest/gtest.h>
 
 #include "gaia/common.hpp"

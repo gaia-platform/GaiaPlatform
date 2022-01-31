@@ -60,6 +60,13 @@ gaia_id_t find_using_index(
         schema->size(),
         field_position);
 
+    if (field_value.is_null)
+    {
+        // We don't want null values on both sides of a relationship to
+        // be considered as a match.
+        return c_invalid_gaia_id;
+    }
+
     index::index_key_t key;
     key.insert(field_value);
     for (const auto& scan : query_processor::scan::index_scan_t(
