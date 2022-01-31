@@ -143,7 +143,7 @@ jobs:
           gaia-repo: ${{ github.workspace }}
           job-name: ${{ github.job }}
           build-flavor: GaiaLLVMTests
-          execute-unit-tests: true
+          execute-unit-tests: false
 
   Coverage:
     needs:
