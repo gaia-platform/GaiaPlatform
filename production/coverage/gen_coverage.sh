@@ -5,6 +5,12 @@
 # All rights reserved.
 #############################################
 
+# Note that this script makes use of the following resources:
+#
+# - https://chromium.googlesource.com/chromium/src.git/+/65.0.3283.0/docs/ios/coverage.md
+# - https://llvm.org/docs/CommandGuide/llvm-cov.html#llvm-cov-show
+# - https://clang.llvm.org/docs/SourceBasedCodeCoverage.html
+
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -150,6 +156,7 @@ chmod +x /usr/local/lib/python3.8/dist-packages/lcov_cobertura.py
 pip install project-summarizer
 
 echo "Cleaning the output directory."
+mkdir -p /build/production/output
 pushd /build/production/output || exit
 rm -rf ./*
 popd || exit
@@ -157,7 +164,7 @@ popd || exit
 echo "Executing tests to cover."
 export LLVM_PROFILE_FILE="tests.profraw"
 echo "Running tests with profile-enabled binaries."
-ctest --output-log /build/production/output/ctest.log --output-junit /build/production/output/test.xml
+ctest --output-log /build/production/output/ctest.log --output-junit /build/production/output/ctest.xml
 /usr/lib/llvm-13/bin/llvm-profdata merge -sparse tests.profraw -o tests.profdata
 
 #
@@ -218,6 +225,9 @@ project_summarizer --cobertura output/common.xml
 mv report/coverage.json /build/production/output/coverage.common.json
 # project_summarizer --junit output/test.xml
 # mv report/coverage.json /build/production/output/test-results.json
+
+mkdir -p /source/production/output
+cp -a /build/production/output /source/production
 
 # If we get here, we have a clean exit from the script.
 complete_process 0

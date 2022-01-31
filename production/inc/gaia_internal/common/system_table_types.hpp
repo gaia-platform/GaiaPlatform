@@ -42,8 +42,6 @@ enum class system_table_type_t : gaia_type_t::value_type
     catalog_gaia_ref_anchor = static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_ref_anchor),
     // Assign constant IDs to other system tables starting from lower end of the reserved range.
     event_log = c_system_table_reserved_range_start.value(),
-    gaia_ruleset = event_log + 1,
-    gaia_rule = gaia_ruleset + 1,
 };
 
 inline bool is_catalog_core_object(gaia_type_t type)
