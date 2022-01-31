@@ -1,10 +1,9 @@
-
-#include "optional.hpp"
-
 /////////////////////////////////////////////
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
 /////////////////////////////////////////////
+
+#include "optional.hpp"
 
 template <typename T_value>
 optional_t<T_value>::optional_storage_t::optional_storage_t()
