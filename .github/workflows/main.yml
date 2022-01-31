@@ -55,11 +55,18 @@ jobs:
           path: |
             ${{ github.workspace }}/production/raw_dockerfile
             ${{ github.workspace }}/production/dockerfile
-      - name: Rename Image and Publish
+
+      - name: Publish Dev Image to GitHub Repository
         run: |
+          echo "Pushing Dev Image to GitHub Docker Repository"
           docker push $DEV_IMAGE
+
+      - name: Saved Dev Image as GZipped Tarball
+        run: |
+          echo "Saving Dev Image as GZipped Tarball"
           docker save $DEV_IMAGE | gzip > ${{ github.workspace }}/production/dev_image.tar.gz
           ls -la ${{ github.workspace }}/production/dev_image.tar.gz
+
       - name: Upload Install Package
         uses: actions/upload-artifact@v2
         with:
@@ -123,18 +130,16 @@ jobs:
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
 
-      - name: Download Debian Install Package
+      - name: Download Dev Image
         uses: actions/download-artifact@v2
         with:
           name: Dev Image
           path: ${{ github.workspace }}/production
 
-      - name: XXX
+      - name: Load Dev Image from GZipped Tarball
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           ls -la ${{ github.workspace }}/production/dev_image.tar.gz
-          echo "--load"
           docker load < ${{ github.workspace }}/production/dev_image.tar.gz
 
       - name: Build Docker Image
@@ -142,6 +147,7 @@ jobs:
           $GAIA_REPO/dev_tools/github-actions/build_image.sh \
               --repo-path $GAIA_REPO \
               --base-image $DEV_IMAGE
+
       - name: Run Unit Tests
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
@@ -160,7 +166,7 @@ jobs:
       - Lint
       - Third-Party
     runs-on: ubuntu-20.04
-    if: github.event_name != 'pull_request'
+#    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -177,11 +183,19 @@ jobs:
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
-      - name: Pull Latest Dev-Core Image
+
+      - name: Download Dev Image
+        uses: actions/download-artifact@v2
+        with:
+          name: Dev Image
+          path: ${{ github.workspace }}/production
+
+      - name: Load Dev Image from GZipped Tarball
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull $DEV_IMAGE
+          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
+          docker load < ${{ github.workspace }}/production/dev_image.tar.gz
+
       - name: Build Docker Image
         run: |
           $GAIA_REPO/dev_tools/github-actions/build_image.sh \
@@ -216,7 +230,7 @@ jobs:
   Debug_Core:
     needs: Core
     runs-on: ubuntu-20.04
-    if: github.event_name != 'pull_request'
+#    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -233,11 +247,19 @@ jobs:
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
-      - name: Pull Latest Dev-Core Image
+
+      - name: Download Dev Image
+        uses: actions/download-artifact@v2
+        with:
+          name: Dev Image
+          path: ${{ github.workspace }}/production
+
+      - name: Load Dev Image from GZipped Tarball
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull $DEV_IMAGE
+          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
+          docker load < ${{ github.workspace }}/production/dev_image.tar.gz
+
       - name: Build Docker Image
         run: |
           $GAIA_REPO/dev_tools/github-actions/build_image.sh \
@@ -261,7 +283,7 @@ jobs:
     needs:
       - Lint
       - Third-Party
-    if: github.event_name != 'pull_request'
+#    if: github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -280,11 +302,17 @@ jobs:
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
 
-      - name: Pull Latest Dev-Core Image
+      - name: Download Dev Image
+        uses: actions/download-artifact@v2
+        with:
+          name: Dev Image
+          path: ${{ github.workspace }}/production
+
+      - name: Load Dev Image from GZipped Tarball
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull $DEV_IMAGE
+          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
+          docker load < ${{ github.workspace }}/production/dev_image.tar.gz
 
       - name: Coverage
         run: |
@@ -322,11 +350,19 @@ jobs:
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
-      - name: Pull Latest Dev-Core Image
+
+      - name: Download Dev Image
+        uses: actions/download-artifact@v2
+        with:
+          name: Dev Image
+          path: ${{ github.workspace }}/production
+
+      - name: Load Dev Image from GZipped Tarball
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull $DEV_IMAGE
+          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
+          docker load < ${{ github.workspace }}/production/dev_image.tar.gz
+
       - name: Build Docker Image
         run: |
           $GAIA_REPO/dev_tools/github-actions/build_image.sh \
