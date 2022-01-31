@@ -31,6 +31,7 @@ runs:
         fi
         echo "Configuration: $CFG_ENABLES"
         $GAIA_REPO/dev_tools/github-actions/build_image.sh \
+            --verbose \
             --repo-path $GAIA_REPO \
             --base-image $DEV_IMAGE $CFG_ENABLES
 
@@ -39,6 +40,7 @@ runs:
       run: |
         if [ "${{ inputs.execute-unit-tests }}" == "true" ] ; then
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
+            --verbose \
             --repo-path $GAIA_REPO \
             --gaia-version $GAIA_VERSION \
             --action unit_tests
@@ -49,6 +51,7 @@ runs:
       run: |
         if [ "${{ inputs.publish-package }}" == "true" ] ; then
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
+            --verbose \
             --repo-path $GAIA_REPO \
             --gaia-version $GAIA_VERSION \
             --action publish_package

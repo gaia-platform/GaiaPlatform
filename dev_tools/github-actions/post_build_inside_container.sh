@@ -134,18 +134,32 @@ save_current_directory
 
 cd /build/production || exit
 
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Creating image action output directory."
+fi
 mkdir -p /build/output
 cp /build/production/*.log /build/output
 
 if [ "$ACTION_NAME" == "unit_tests" ] ; then
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Executing unit tests."
+    fi
     if ! ctest 2>&1 | tee /build/output/ctest.log; then
         complete_process 1 "Unit tests failed to complete successfully."
     fi
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Unit tests complete successfully."
+    fi
 elif [ "$ACTION_NAME" == "publish_package" ] ; then
-    #cp gaia-${{ env.GAIA_VERSION }}_amd64.deb gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Publishing SDK package."
+    fi
     cpack -V
     mkdir -p /build/output/package
     cp /build/production/"gaia-${GAIA_VERSION}_amd64.deb" "/build/output/package/gaia-${GAIA_VERSION}_amd64.deb"
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Publishing of the SDK package completed successfully."
+    fi
 else
     complete_process 1 "Action '$ACTION_NAME' is not known."
 fi
