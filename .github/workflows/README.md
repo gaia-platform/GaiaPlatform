@@ -63,10 +63,11 @@ As the main focus of this usage pattern is to verify a code change, the full set
 To enable the developer to have more confidence in their proposed changes before a *Pull Request*, they can decide to use one of the manually executed workflows to verify their changes.
 The currently available manual workflows are:
 
-- `Main` - Same workflow that is used when changes are pushed to the `master` branch.
-- `Every-Job` - Same workflow as `Main`, but with all job `if` conditionals removed.
-- `Core and SDK Jobs` - Reduced set of jobs, only those necessary to build the `Core` and `SDK` jobs and their variations.
-- `Bare Minimum` - Specifically the `Lint` job and the `Core` job.
+- `Main` - Same workflow that is used when changes are pushed to the `master` branch
+- `Core` - Specifically the `Lint` job and the `Core` and `Debug_Core` jobs
+- `Core and SDK Jobs` - Reduced set of jobs, only those necessary to build the `Core` and `SDK` jobs and their variations
+- `LLVM Tests` - Only the `LLVM_Tests` job
+  - Note that inside of that job, the required Core and SDK components are built as part of the `LLVM_Tests` job
 
 Also note that to maintain integrity between these "child" workflows and the main workflow, there is a Pre-Commit hook that verifies those child workflows.
 While developers are encouraged to come up with their own workflows to test given scenarios, there is no provision for a `scratch` directory for workflows.
