@@ -97,6 +97,12 @@ if("$CACHE{ENABLE_SDK_TESTS}")
     DAC_LIBRARY dac_prerequisites
   )
   target_include_directories(test_metarule3_ruleset PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+  
+  translate_ruleset_internal(
+    RULESET_FILE ${RULESET_PREFIX}/test_array.ruleset
+    DAC_LIBRARY dac_addr_book
+  )
+  target_include_directories(test_array_ruleset PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
   # Smoke test for basic ruleset translation functionality
   add_gtest(test_translation_engine

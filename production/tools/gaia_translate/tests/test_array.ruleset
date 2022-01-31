@@ -1,0 +1,49 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+int g_total_hours = 0;
+int g_high_grade_hours = 0;
+int g_low_grade_hours = 0;
+
+ruleset test_array
+{
+//TODO add navigation path tests
+//TODO add variable size array tests
+//TODO add array field as an argument
+//TODO add {field1, field2} tests
+    on_update(customer)
+    {
+        int t = customer.sales_by_quarter[5];
+        t = sales_by_quarter[5];
+        customer.sales_by_quarter[3] = 3;
+
+        sales_by_quarter[3] = 2;
+        customer.sales_by_quarter[5]+=5;
+        sales_by_quarter[3]-=3;
+
+        customer.sales_by_quarter[5]++;
+        ++customer.sales_by_quarter[2];
+        --sales_by_quarter[2];
+        sales_by_quarter[4]--;
+
+
+        int ggg_array[t];
+        int foo_array[3] = {1,2,3};
+        sales_by_quarter = {3,4,5};
+        customer.sales_by_quarter = {6,7,8};
+
+        customer.sales_by_quarter = foo_array;
+        sales_by_quarter = foo_array;
+        customer.insert(name:"1");
+        customer.insert(sales_by_quarter:foo_array);
+        customer.insert(sales_by_quarter:{4,7,8});
+        customer.insert(name:"1", sales_by_quarter:foo_array);
+        customer.insert(name:"1", sales_by_quarter:{4,7,8});
+        customer.insert(sales_by_quarter:foo_array, name:"1");
+        customer.insert(sales_by_quarter:{4,7,8}, name:"1");
+    }
+
+
+}
