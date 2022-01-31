@@ -50,7 +50,6 @@ jobs:
       - name: Install Required Python Packages
         run: |
           python3 -m pip install pre-commit
-
       - name: Set Cache Key for Pre-Commit Checks
         run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
 
@@ -64,7 +63,6 @@ jobs:
         run: |
           cd $GAIA_REPO/production
           pre-commit run --all-files
-
       - name: GitHub Info
         run: |
           echo "Branch: ${{ github.ref }}"
@@ -92,14 +90,12 @@ jobs:
           $GAIA_REPO/dev_tools/github-actions/build_image.sh \
               --repo-path $GAIA_REPO \
               --base-image $DEV_IMAGE
-
       - name: Run Unit Tests
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
             --repo-path $GAIA_REPO \
             --gaia-version $GAIA_VERSION \
             --action unit_tests
-
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -107,7 +103,6 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
-
   SDK:
     needs:
       - Lint
@@ -131,21 +126,18 @@ jobs:
               --repo-path $GAIA_REPO \
               --base-image $DEV_IMAGE \
               --cfg-enables GaiaSDK
-
       - name: Run Unit Tests
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
             --repo-path $GAIA_REPO \
             --gaia-version $GAIA_VERSION \
             --action unit_tests
-
       - name: Publish Debian Package
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
             --repo-path $GAIA_REPO \
             --gaia-version $GAIA_VERSION \
             --action publish_package
-
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -153,14 +145,12 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
-
       - name: Upload Install Package
         uses: actions/upload-artifact@v2
         with:
           name: SDK Install Package
           path: |
             ${{ github.workspace }}/build/output/package
-
   Debug_Core:
     needs: Core
     runs-on: ubuntu-20.04
@@ -182,14 +172,12 @@ jobs:
               --repo-path $GAIA_REPO \
               --base-image $DEV_IMAGE \
               --cfg-enables Debug
-
       - name: Run Unit Tests
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
             --repo-path $GAIA_REPO \
             --gaia-version $GAIA_VERSION \
             --action unit_tests
-
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -197,12 +185,12 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
-
   Coverage:
     needs:
-      - Core
-    runs-on: ubuntu-20.04
+      - Lint
+      - Third-Party
     if: github.event_name != 'pull_request'
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -217,16 +205,19 @@ jobs:
       - name: Coverage
         run: |
           cd $GAIA_REPO/production
+          mkdir -p $GAIA_REPO/production
           $GAIA_REPO/production/coverage/coverage.sh -v
+          echo "COVERAGE OUTPUT"
+          echo "sudo chmod -R 777 $GAIA_REPO/production"
+          sudo chmod -R 777 $GAIA_REPO/production
 
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: ${{github.job}} Output Files
+          name: ${{github.job}} Test Files
           path: |
-            ${{ github.workspace }}/production/coverage/output
-
+            ${{ github.workspace }}/production/output
   LLVM_Tests:
     needs: Core
     if: ${{ false }}
@@ -248,11 +239,9 @@ jobs:
               --repo-path $GAIA_REPO \
               --base-image $DEV_IMAGE \
               --cfg-enables GaiaLLVMTests
-
       - name: Run Docker Image And Post-Build Script
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --gaia-version $GAIA_VERSION
-
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -260,7 +249,6 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
-
   Integration_Smoke:
     needs: SDK
     runs-on: ubuntu-20.04
@@ -286,7 +274,6 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
-
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -294,7 +281,6 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/production/tests/results
-
   Integration_Smoke_Persistence:
     needs: SDK
     runs-on: ubuntu-20.04
@@ -320,7 +306,6 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
-
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -328,7 +313,6 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/production/tests/results
-
   Integration_Samples:
     needs: SDK
     runs-on: ubuntu-20.04
@@ -354,7 +338,6 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
-
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -362,13 +345,13 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/production/tests/results
-
   Final:
     needs:
       - Integration_Smoke
       - Integration_Smoke_Persistence
       - Integration_Samples
       - Debug_Core
+      - Coverage
     runs-on: ubuntu-20.04
     if: always()
     steps:

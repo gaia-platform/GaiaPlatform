@@ -12848,7 +12848,8 @@ ExprResult
 Sema::BuildCallToMemberFunction(Scope *S, Expr *MemExprE,
                                 SourceLocation LParenLoc,
                                 MultiExprArg Args,
-                                SourceLocation RParenLoc) {
+                                SourceLocation RParenLoc,
+                                bool isSpecialGaiaFunctionCall) {
   assert(MemExprE->getType() == Context.BoundMemberTy ||
          MemExprE->getType() == Context.OverloadTy);
 
@@ -13068,8 +13069,7 @@ Sema::BuildCallToMemberFunction(Scope *S, Expr *MemExprE,
     return ExprError();
 
   DiagnoseSentinelCalls(Method, LParenLoc, Args);
-
-  if (CheckFunctionCall(Method, TheCall, Proto))
+  if (CheckFunctionCall(Method, TheCall, Proto, isSpecialGaiaFunctionCall))
     return ExprError();
 
   // In the case the method to call was not selected by the overloading
