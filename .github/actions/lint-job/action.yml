@@ -1,5 +1,5 @@
-name: 'Setup Action'
-description: 'Setup a Gaia GHA Job'
+name: 'Lint Job'
+description: 'Lint the entire repository and ensure that it follows all guidelines.'
 inputs:
   event-name:
     description: 'Name associated with the event'

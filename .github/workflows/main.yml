@@ -63,24 +63,13 @@ jobs:
           docker-user: ${{ github.actor }}
           docker-password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Docker Image
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
-              --repo-path $GAIA_REPO \
-              --base-image $DEV_IMAGE
-      - name: Run Unit Tests
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
-            --repo-path $GAIA_REPO \
-            --gaia-version $GAIA_VERSION \
-            --action unit_tests
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
+      - name: Build
+        uses: ./.github/actions/build-job
         with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/build/output
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          execute-unit-tests: true
+
   SDK:
     needs:
       - Lint
@@ -98,37 +87,15 @@ jobs:
           docker-user: ${{ github.actor }}
           docker-password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Docker Image
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
-              --repo-path $GAIA_REPO \
-              --base-image $DEV_IMAGE \
-              --cfg-enables GaiaSDK
-      - name: Run Unit Tests
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
-            --repo-path $GAIA_REPO \
-            --gaia-version $GAIA_VERSION \
-            --action unit_tests
-      - name: Publish Debian Package
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
-            --repo-path $GAIA_REPO \
-            --gaia-version $GAIA_VERSION \
-            --action publish_package
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
+      - name: Build
+        uses: ./.github/actions/build-job
         with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/build/output
-      - name: Upload Install Package
-        uses: actions/upload-artifact@v2
-        with:
-          name: SDK Install Package
-          path: |
-            ${{ github.workspace }}/build/output/package
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          build-flavor: GaiaSDK
+          execute-unit-tests: true
+          publish-package: true
+
   Debug_Core:
     needs: Core
     runs-on: ubuntu-20.04

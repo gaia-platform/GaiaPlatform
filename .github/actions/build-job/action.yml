@@ -1,0 +1,71 @@
+name: 'Build Job'
+description: 'Build one of the flavors of a Gaia build.'
+inputs:
+  gaia-repo:
+    description: 'Repository location'
+    required: true
+  job-name:
+    description: 'Name of the job this is being called from'
+    required: true
+  execute-unit-tests:
+    description: 'Set to "true" to execute unit tests'
+    required: false
+    default: 'true'
+  publish-package:
+    description: 'Set to "true" to publish a generated package'
+    required: false
+    default: 'false'
+  build-flavor:
+    description: 'Configuration to pass to GDev'
+    required: false
+    default: ''
+runs:
+  using: "composite"
+  steps:
+    - name: Build Docker Image
+      shell: bash
+      run: |
+        CFG_ENABLES=
+        if [ "${{ inputs.build-flavor }}" != "" ] ; then
+          CFG_ENABLES="--cfg-enables ${{ inputs.build-flavor }}"
+        fi
+        echo "Configuration: $CFG_ENABLES"
+        $GAIA_REPO/dev_tools/github-actions/build_image.sh \
+            --repo-path $GAIA_REPO \
+            --base-image $DEV_IMAGE $CFG_ENABLES
+
+    - name: Run Unit Tests
+      shell: bash
+      run: |
+        if [ "${{ inputs.execute-unit-tests }}" == "true" ] ; then
+          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
+            --repo-path $GAIA_REPO \
+            --gaia-version $GAIA_VERSION \
+            --action unit_tests
+        fi
+
+    - name: Publish Debian Package
+      shell: bash
+      run: |
+        if [ "${{ inputs.publish-package }}" == "true" ] ; then
+          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
+            --repo-path $GAIA_REPO \
+            --gaia-version $GAIA_VERSION \
+            --action publish_package
+        fi
+
+    - name: Upload Output Files
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ inputs.job-name }} Output Files
+        path: |
+          ${{ inputs.gaia-repo }}/build/output
+
+    - name: Upload Install Package
+      if: ${{ inputs.publish-package == 'true' }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: SDK Install Package
+        path: |
+          ${{ inputs.gaia-repo }}/build/output/package
