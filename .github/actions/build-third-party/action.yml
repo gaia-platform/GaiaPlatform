@@ -11,6 +11,7 @@ runs:
   using: "composite"
   steps:
     - name: Build Docker Image
+      shell: bash
       run: |
         cd $GAIA_REPO/production
         pip install atools argcomplete
@@ -28,5 +29,6 @@ runs:
           ${{ inputs.gaia-repo }}/production/dockerfile
 
     - name: Rename Image and Publish
+      shell: bash
       run: |
         docker push $DEV_IMAGE

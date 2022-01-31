@@ -42,33 +42,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@master
 
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
+      - name: Verify Changes Adhere to Guidelines
+        uses: ./.github/actions/lint-job
         with:
-          python-version: 3.8
+          event-name: ${{ github.event_name }}
 
-      - name: Install Required Python Packages
-        run: |
-          python3 -m pip install pre-commit
-      - name: Set Cache Key for Pre-Commit Checks
-        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
-
-      - name: Apply Pre-Commit Checks Cache
-        uses: actions/cache@v1
-        with:
-          path: ~/.cache/pre-commit
-          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
-
-      - name: Execute Pre-Commit Checks
-        run: |
-          cd $GAIA_REPO/production
-          pre-commit run --all-files
-      - name: GitHub Info
-        run: |
-          echo "Branch: ${{ github.ref }}"
-          echo "Ref-Name: ${{ github.ref_name }}"
-          echo "Event-Name: ${{ github.event_name }}"
-          echo "Event-Path: ${{ github.event_path }}"
   Core:
     needs:
       - Lint
