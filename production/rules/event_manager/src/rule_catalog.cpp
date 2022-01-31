@@ -49,7 +49,7 @@ void event_manager_t::initialize_rule_tables()
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1, constraint));
         fields.emplace_back(make_unique<data_field_def_t>("serial_stream", data_type_t::e_string, 1));
-        ddl_executor.create_table(c_catalog_db_name, c_gaia_ruleset_table_name, fields, throw_on_exists, auto_drop);
+        ddl_executor.create_system_table(c_catalog_db_name, c_gaia_ruleset_table_name, fields, throw_on_exists, auto_drop);
     }
 
     // gaia_rule_t
@@ -57,14 +57,14 @@ void event_manager_t::initialize_rule_tables()
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1, constraint));
         fields.emplace_back(make_unique<data_field_def_t>("gaia_ruleset_name", data_type_t::e_string, 1));
-        ddl_executor.create_table(c_catalog_db_name, c_gaia_rule_table_name, fields, throw_on_exists, auto_drop);
+        ddl_executor.create_system_table(c_catalog_db_name, c_gaia_rule_table_name, fields, throw_on_exists, auto_drop);
     }
 
     // gaia_application_t
     {
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("name", data_type_t::e_string, 1, constraint));
-        ddl_executor.create_table(c_catalog_db_name, c_gaia_application_table_name, fields, throw_on_exists, auto_drop);
+        ddl_executor.create_system_table(c_catalog_db_name, c_gaia_application_table_name, fields, throw_on_exists, auto_drop);
     }
 
     // app_database_t
@@ -72,7 +72,7 @@ void event_manager_t::initialize_rule_tables()
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("gaia_application_name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("gaia_database_id", data_type_t::e_uint64, 1));
-        ddl_executor.create_table(c_catalog_db_name, c_app_database_table_name, fields, throw_on_exists, auto_drop);
+        ddl_executor.create_system_table(c_catalog_db_name, c_app_database_table_name, fields, throw_on_exists, auto_drop);
     }
 
     // app_ruleset_t
@@ -81,7 +81,7 @@ void event_manager_t::initialize_rule_tables()
         fields.emplace_back(make_unique<data_field_def_t>("active_on_startup", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("gaia_application_name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("gaia_ruleset_name", data_type_t::e_string, 1));
-        ddl_executor.create_table(c_catalog_db_name, c_app_ruleset_table_name, fields, throw_on_exists, auto_drop);
+        ddl_executor.create_system_table(c_catalog_db_name, c_app_ruleset_table_name, fields, throw_on_exists, auto_drop);
     }
 
     // ruleset_database_t
@@ -89,7 +89,7 @@ void event_manager_t::initialize_rule_tables()
         field_def_list_t fields;
         fields.emplace_back(make_unique<data_field_def_t>("gaia_ruleset_name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("gaia_database_id", data_type_t::e_uint64, 1));
-        ddl_executor.create_table(c_catalog_db_name, c_ruleset_database_table_name, fields, throw_on_exists, auto_drop);
+        ddl_executor.create_system_table(c_catalog_db_name, c_ruleset_database_table_name, fields, throw_on_exists, auto_drop);
     }
 
     // rule_table_t
@@ -99,7 +99,7 @@ void event_manager_t::initialize_rule_tables()
         fields.emplace_back(make_unique<data_field_def_t>("anchor", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("gaia_rule_name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("gaia_table_id", data_type_t::e_uint64, 1));
-        ddl_executor.create_table(c_catalog_db_name, c_rule_table_table_name, fields, throw_on_exists, auto_drop);
+        ddl_executor.create_system_table(c_catalog_db_name, c_rule_table_table_name, fields, throw_on_exists, auto_drop);
     }
 
     // rule_field_t
@@ -109,7 +109,7 @@ void event_manager_t::initialize_rule_tables()
         fields.emplace_back(make_unique<data_field_def_t>("active", data_type_t::e_bool, 1));
         fields.emplace_back(make_unique<data_field_def_t>("gaia_rule_name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("gaia_field_id", data_type_t::e_uint64, 1));
-        ddl_executor.create_table(c_catalog_db_name, c_rule_field_table_name, fields, throw_on_exists, auto_drop);
+        ddl_executor.create_system_table(c_catalog_db_name, c_rule_field_table_name, fields, throw_on_exists, auto_drop);
     }
 
     // rule_relationship_t
@@ -118,7 +118,7 @@ void event_manager_t::initialize_rule_tables()
         fields.emplace_back(make_unique<data_field_def_t>("type", data_type_t::e_uint8, 1));
         fields.emplace_back(make_unique<data_field_def_t>("gaia_rule_name", data_type_t::e_string, 1));
         fields.emplace_back(make_unique<data_field_def_t>("gaia_relationship_id", data_type_t::e_uint64, 1));
-        ddl_executor.create_table(c_catalog_db_name, c_rule_relationship_table_name, fields, throw_on_exists, auto_drop);
+        ddl_executor.create_system_table(c_catalog_db_name, c_rule_relationship_table_name, fields, throw_on_exists, auto_drop);
     }
 
     // gaia_ruleset_t -> gaia_rule_t
