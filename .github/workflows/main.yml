@@ -228,7 +228,9 @@ jobs:
           path: |
             ${{ github.workspace }}/build/output/package
   Debug_Core:
-    needs: Core
+    needs:
+      - Lint
+      - Third-Party
     runs-on: ubuntu-20.04
 #    if: github.event_name != 'pull_request'
     env:
@@ -331,8 +333,10 @@ jobs:
           path: |
             ${{ github.workspace }}/production/output
   LLVM_Tests:
-    needs: Core
-    if: ${{ false }}
+    needs:
+      - Lint
+      - Third-Party
+#    if: ${{ false }}
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
