@@ -1,0 +1,32 @@
+name: 'Build Third Party'
+description: 'Build The Third Party'
+inputs:
+  gaia-repo:
+    description: 'Repository location'
+    required: true
+  job-name:
+    description: 'Name of the job this is being called from'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Build Docker Image
+      run: |
+        cd $GAIA_REPO/production
+        pip install atools argcomplete
+        $GAIA_REPO/dev_tools/gdev/gdev.sh dockerfile > $GAIA_REPO/production/raw_dockerfile
+        $GAIA_REPO/dev_tools/github-actions/copy_until_line.py --input-file $GAIA_REPO/production/raw_dockerfile --output-file $GAIA_REPO/production/dockerfile --stop-line "# GenRunDockerfile(production)"
+        docker buildx build -f $GAIA_REPO/production/dockerfile -t $DEV_IMAGE --cache-from $DEV_IMAGE --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
+
+    - name: Upload Intermediate Files
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ inputs.job-name }} Output Files
+        path: |
+          ${{ inputs.gaia-repo }}/production/raw_dockerfile
+          ${{ inputs.gaia-repo }}/production/dockerfile
+
+    - name: Rename Image and Publish
+      run: |
+        docker push $DEV_IMAGE

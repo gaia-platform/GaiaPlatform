@@ -28,26 +28,11 @@ jobs:
           docker-user: ${{ github.actor }}
           docker-password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Docker Image
-        run: |
-          cd $GAIA_REPO/production
-          pip install atools argcomplete
-          $GAIA_REPO/dev_tools/gdev/gdev.sh dockerfile > $GAIA_REPO/production/raw_dockerfile
-          $GAIA_REPO/dev_tools/github-actions/copy_until_line.py --input-file $GAIA_REPO/production/raw_dockerfile --output-file $GAIA_REPO/production/dockerfile --stop-line "# GenRunDockerfile(production)"
-          docker buildx build -f $GAIA_REPO/production/dockerfile -t $DEV_IMAGE --cache-from $DEV_IMAGE --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
-
-      - name: Upload Intermediate Files
-        if: always()
-        uses: actions/upload-artifact@v2
+      - name: Build Third Party Image
+        uses: ./.github/actions/build-third-party
         with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/production/raw_dockerfile
-            ${{ github.workspace }}/production/dockerfile
-
-      - name: Rename Image and Publish
-        run: |
-          docker push $DEV_IMAGE
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
 
   Lint:
     runs-on: ubuntu-20.04

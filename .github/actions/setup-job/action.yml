@@ -10,13 +10,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-# - name: Setup Python 3.8
-#   shell: bash
-#   run: |
-#     sudo apt --assume-yes update
-#     sudo apt --assume-yes install software-properties-common
-#     sudo add-apt-repository --yes ppa:deadsnakes/ppa
-#     sudo apt --assume-yes install python3.8
     - name: Setup Python 3.8
       uses: actions/setup-python@v2
       with:
