@@ -13,7 +13,7 @@ import os
 import json
 import sys
 
-__BASE_DIR = "output"
+__BASE_DIR = "../output"
 
 __DEFAULT_FILE_ENCODING = "utf-8"
 

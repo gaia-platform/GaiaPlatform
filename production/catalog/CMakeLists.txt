@@ -54,7 +54,7 @@ add_library(gaia_catalog STATIC
 configure_gaia_target(gaia_catalog)
 target_include_directories(gaia_catalog PUBLIC ${GAIA_CATALOG_PUBLIC_INCLUDES})
 target_include_directories(gaia_catalog PRIVATE ${GAIA_CATALOG_PRIVATE_INCLUDES})
-target_link_libraries(gaia_catalog PRIVATE gaia_parser gaia_direct flatbuffers)
+target_link_libraries(gaia_catalog PRIVATE gaia_rules gaia_parser gaia_direct flatbuffers)
 target_link_libraries(gaia_catalog PUBLIC dac_catalog)
 
 add_gtest(test_ddl_executor
@@ -98,6 +98,11 @@ add_gtest(test_gaiac_generation
     "tests/test_gaiac_generation.cpp"
     "${TEST_GAIA_EXECUTION_INCLUDES}"
     "rt;gaia_system;gaia_db_catalog_test;dac_airport")
+
+add_gtest(test_rule_tables
+    "tests/test_rule_tables.cpp"
+    "${TEST_GAIA_EXECUTION_INCLUDES}"
+    "rt;gaia_system;gaia_db_catalog_test;")
 
 add_subdirectory(gaiac)
 add_subdirectory(parser)

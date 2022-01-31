@@ -13,6 +13,7 @@
 
 #include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
+#include "gaia/rules/rules.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/ddl_execution.hpp"
@@ -66,6 +67,7 @@ string trim(const string& s)
 void start_repl(parser_t& parser)
 {
     initialize_catalog();
+    gaia::rules::initialize_rules_engine();
 
     const auto prompt = "gaiac> ";
     const auto wait_for_more_prompt = "> ";
@@ -459,6 +461,7 @@ int main(int argc, char* argv[])
         else
         {
             initialize_catalog();
+            gaia::rules::initialize_rules_engine();
 
             if (!ddl_filename.empty())
             {

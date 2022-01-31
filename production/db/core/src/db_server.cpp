@@ -1171,6 +1171,7 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
                 {
                     // The connecting client will get ECONNRESET on their first
                     // read from this socket.
+                    std::cerr << "Disconnecting new session because authentication failed or session limit has been exceeded." << std::endl;
                     close_fd(session_socket);
                     continue;
                 }
@@ -1224,6 +1225,7 @@ void server_t::session_handler(int session_socket)
     // directly ensure that `session_limit_exceeded_internal` is thrown in this case.
     if (!reserve_safe_ts_index())
     {
+        std::cerr << "Disconnecting new session because session handler failed to reserve a safe_ts entry index." << std::endl;
         return;
     }
 
