@@ -58,9 +58,8 @@ jobs:
       - name: Rename Image and Publish
         run: |
           docker push $DEV_IMAGE
-          ls -la ${{ github.workspace }}/production
           docker save $DEV_IMAGE | gzip > ${{ github.workspace }}/production/dev_image.tar.gz
-          ls -la ${{ github.workspace }}/production
+          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
       - name: Upload Install Package
         uses: actions/upload-artifact@v2
         with:
@@ -138,6 +137,8 @@ jobs:
           docker image ls
           echo "--ls"
           ls -la ${{ github.workspace }}/production/
+          echo "--ls"
+          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
           echo "--load"
           docker load < ${{ github.workspace }}/production/dev_image.tar.gz
           echo "--images"
