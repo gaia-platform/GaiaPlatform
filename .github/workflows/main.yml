@@ -243,7 +243,7 @@ jobs:
     needs:
       - Lint
       - Third-Party
-#    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -276,10 +276,6 @@ jobs:
           echo "COVERAGE OUTPUT"
           echo "sudo chmod -R 777 $GAIA_REPO/production"
           sudo chmod -R 777 $GAIA_REPO/production
-          echo "ls -la $GAIA_REPO/production"
-          ls -la $GAIA_REPO/production
-          echo "ls -la $GAIA_REPO/production/output"
-          ls -la $GAIA_REPO/production/output
 
       - name: Upload Output Files
         if: always()
@@ -431,6 +427,7 @@ jobs:
       - Integration_Smoke_Persistence
       - Integration_Samples
       - Debug_Core
+      - Coverage
     runs-on: ubuntu-20.04
     if: always()
     steps:
