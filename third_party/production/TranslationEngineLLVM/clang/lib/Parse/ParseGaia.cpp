@@ -579,7 +579,7 @@ void Parser::ParseRule(Declarator &D)
         return;
     }
     // Reset search context stack
-    Actions.ResetTableSearchContextStack();
+    Actions.ActOnRuleStart();
     Actions.PushTableSearchContext();
     ParsedAttributesWithRange attrs(AttrFactory);
     if (!ParseGaiaAttributes(attrs, Rule))
