@@ -30,7 +30,7 @@ extern "C" Datum gaia_fdw_handler(PG_FUNCTION_ARGS)
     elog(DEBUG1, c_message_entering_function, __func__);
 
     // To silence unused argument warning.
-    fcinfo = nullptr;
+    (void)fcinfo;
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     FdwRoutine* routine = makeNode(FdwRoutine);
