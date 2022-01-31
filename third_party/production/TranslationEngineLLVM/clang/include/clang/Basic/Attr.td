@@ -3287,3 +3287,11 @@ def GaiaAnchor : Attr {
   let Documentation = [Undocumented];
   let Args = [IdentifierArgument<"anchorTable">, IdentifierArgument<"anchorVariable">, BoolArgument<"isAnchor">, BoolArgument<"isDefined">];
 }
+
+// ================================
+
+def GaiaRule : InheritableAttr {
+  let Spellings = [Declspec<"rule">];
+  let Subjects = SubjectList<[Function]>;
+  let Documentation = [Undocumented];
+}

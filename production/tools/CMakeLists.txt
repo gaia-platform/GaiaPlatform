@@ -12,6 +12,7 @@ if(BUILD_GAIA_SDK)
     unset(CMAKE_CXX_CLANG_TIDY)
   endif()
   add_subdirectory(gaia_translate)
+  add_subdirectory(suppini)
 
   if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_CXX_CLANG_TIDY clang-tidy)

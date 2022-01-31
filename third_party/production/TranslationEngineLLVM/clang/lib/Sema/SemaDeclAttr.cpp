@@ -7331,6 +7331,10 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
   case ParsedAttr::AT_GaiaOnChange:
     handleGaiaRuleAttr(S, D, AL);
     break;
+
+  case ParsedAttr::AT_GaiaRule:
+    handleSimpleAttribute<GaiaRuleAttr>(S, D, AL);
+    break;
   }
 }
 

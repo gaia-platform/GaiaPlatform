@@ -22,10 +22,6 @@ set(GAIAT_SRCS
   src/table_navigation.cpp
 )
 
-link_directories(
-  ${GAIA_PROD_BUILD}/lib
-)
-
 add_executable(gaiat ${GAIAT_SRCS})
 configure_gaia_target(gaiat)
 target_include_directories(gaiat SYSTEM PRIVATE ${TRANSLATION_ENGINE_SYSTEM_INCLUDES})
