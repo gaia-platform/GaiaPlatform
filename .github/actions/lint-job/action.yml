@@ -18,6 +18,7 @@ runs:
         python3 -m pip install pre-commit
 
     - name: Set Cache Key for Pre-Commit Checks
+      shell: bash
       run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
 
     - name: Apply Pre-Commit Checks Cache
