@@ -519,30 +519,6 @@ TEST_F(test_expressions, and_expr)
             .where(hire_date <= date(2021, 1, 1) && hire_date >= date(2036, 2, 7)));
 }
 
-TEST_F(test_expressions, xor_expr)
-{
-    auto_transaction_t txn;
-
-    auto employees = employee_t::list().where(
-        name_first == "Wayne"
-        ^ name_first == "Bill"
-        ^ name_first == "Cristofor");
-
-    assert_contains(employees, {wayne, bill});
-    employees = employee_t::list().where(
-        hire_date <= date(2020, 1, 10)
-        ^ hire_date >= date(2020, 5, 31)
-        ^ name_last == "Cristofor");
-
-    assert_contains(employees, {dax, bill, wayne, laurentiu, simone, mihir});
-
-    employees = employee_t::list().where(
-        hire_date <= date(1991, 1, 1)
-        ^ hire_date >= date(2036, 2, 7));
-
-    assert_empty(employees);
-}
-
 TEST_F(test_expressions, not_expr)
 {
     auto_transaction_t txn;
