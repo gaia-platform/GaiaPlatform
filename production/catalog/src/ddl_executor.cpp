@@ -302,6 +302,16 @@ gaia_id_t ddl_executor_t::create_table(
     return create_table_impl(db_name, name, fields, false, throw_on_exists, auto_drop);
 }
 
+gaia_id_t ddl_executor_t::create_system_table(
+    const string& db_name,
+    const string& name,
+    const field_def_list_t& fields,
+    bool throw_on_exists,
+    bool auto_drop)
+{
+    return create_table_impl(db_name, name, fields, true, throw_on_exists, auto_drop);
+}
+
 gaia_id_t ddl_executor_t::get_table_id(const std::string& db, const std::string& table)
 {
     gaia_id_t db_id = find_db_id(db);
