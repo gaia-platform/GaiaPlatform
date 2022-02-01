@@ -341,6 +341,8 @@ When executed in this fashion, the workflow will execute all jobs contained with
 While this may be overkill in some cases, the developer may cancel the workflow at any time during its execution.
 In this way, developers can execute as many or as few of the extra checks as they require for their particular situation.
 
+For more information on which workflows kick of which jobs, please check the [Workflows Page](../.github/workflows/README.md#workflow-triggers).
+
 #### Part of Pull Request
 
 It is good to assure the reviewer that (at least) basic steps have been undertaken to verify that the code that they are reviewing is correct.

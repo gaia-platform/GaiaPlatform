@@ -1,4 +1,4 @@
-# GitHub Actions
+# GitHub Actions Workflows
 
 **PLEASE READ THROUGH THIS FILE COMPLETELY BEFORE MAKING ANY CHANGES TO THE MAIN.YML FILE**
 
@@ -31,7 +31,7 @@ The other half of that statement is based on experience and observation that mos
 
 Based on experience, there are three main usage patterns for executing the main workflow:
 
-1. Before a *Pull Request* is created, a *Push* non-`master` branch, to verify that a change works properly and does not have unintended side effects.
+1. A manually triggered build against a non-`master` branch, to verify that a change works properly and does not have unintended side effects.
 1. As part of a *Pull Request* against `master`, to assure the reviewer that (at the very least) basic steps have been undertaken to verify that the code is correct.
 1. As part of a *Push* against `master`, to verify that the change works properly once combined with everyone else's work.
 
@@ -48,22 +48,35 @@ on:
   workflow_dispatch:
 ```
 
-and this `if` condition at the start of some of the jobs:
+and this `if` conditional at the start of some of the jobs:
 
 ```yaml
     if: github.event_name != 'pull_request'
 ```
 
-### Before Pull Request
+### Manually Triggered Workflows
 
 This usage pattern is supported by the `workflow_dispatch` trigger.
 When the workflow is started, a specific branch can be specified in the GitHub UI.
 As the main focus of this usage pattern is to verify a code change, the full set of jobs are executed on the specified branch.
 
+To enable the developer to have more confidence in their proposed changes before a *Pull Request*, they can decide to use one of the manually executed workflows to verify their changes.
+The currently available manual workflows are:
+
+- `Main` - Same workflow that is used when changes are pushed to the `master` branch
+- `Core` - Specifically the `Lint` job and the `Core` and `Debug_Core` jobs
+- `Core and SDK Jobs` - Reduced set of jobs, only those necessary to build the `Core` and `SDK` jobs and their variations
+- `LLVM Tests` - Only the `LLVM_Tests` job
+  - Note that inside of that job, the required Core and SDK components are built as part of the `LLVM_Tests` job
+
+Also note that to maintain integrity between these "child" workflows and the main workflow, there is a Pre-Commit hook that verifies those child workflows.
+While developers are encouraged to come up with their own workflows to test given scenarios, there is no provision for a `scratch` directory for workflows.
+If a situation occurs where a developer is frequently using their own custom workflow in their own branch prior to submitting a *Pull Request*, please bring it up on the main channel to talk about it with the team.
+
 ### Pull Request
 
 This usage pattern is supported by the `pull_request` trigger, its `branches` specification, and the `if` condition.
-To keep things concise, a shortened list of jobs is executed against Pull Requests.
+To keep things concise, a shortened list of jobs is executed against a *Pull Request*.
 Those jobs are:
 
 - `Lint`
