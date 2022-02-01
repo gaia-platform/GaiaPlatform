@@ -68,11 +68,19 @@ jobs:
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
 
-      - name: Pull Latest Dev-Core Image
+      - name: Download Dev Image
+        uses: actions/download-artifact@v2
+        with:
+          name: Dev Image
+          path: ${{ github.workspace }}/production
+
+      - name: Load Dev Image from GZipped Tarball
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull $DEV_IMAGE
+          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
+          docker load < ${{ github.workspace }}/production/dev_image.tar.gz
+          rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
+          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
 
       - name: Build Docker Image
         run: |
