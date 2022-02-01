@@ -101,7 +101,7 @@ std::string dac_compilation_unit_writer_t::generate_close_header_guard()
 std::string dac_compilation_unit_writer_t::generate_includes()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "#include <optional>";
+    code += "#include <gaia/optional.hpp>";
     code += "#include <gaia/direct_access/dac_object.hpp>";
     code += "#include <gaia/direct_access/dac_iterators.hpp>";
     code += "#include \"{{DBNAME}}_generated.h\"";
