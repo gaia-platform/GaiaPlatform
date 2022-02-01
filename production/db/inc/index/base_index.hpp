@@ -62,6 +62,13 @@ struct index_record_t
     index_record_operation_t operation;
     uint8_t flags;
 
+    // Returns true if the record has been initialized and false if it was not.
+    // This is needed to enable the stream generator to produce instances of index_record_t.
+    explicit operator bool() const
+    {
+        return (operation != index_record_operation_t::not_set);
+    }
+
     friend std::ostream& operator<<(std::ostream& os, const index_record_t& rec);
 };
 

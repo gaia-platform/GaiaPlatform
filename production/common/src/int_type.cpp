@@ -19,6 +19,12 @@ int_type_t<T_type, default_invalid_value, T_type_constraint>::operator T_type() 
 }
 
 template <typename T_type, T_type default_invalid_value, typename T_type_constraint>
+int_type_t<T_type, default_invalid_value, T_type_constraint>::operator bool() const
+{
+    return (m_value != c_default_invalid_value);
+}
+
+template <typename T_type, T_type default_invalid_value, typename T_type_constraint>
 T_type&
 int_type_t<T_type, default_invalid_value, T_type_constraint>::value_ref()
 {

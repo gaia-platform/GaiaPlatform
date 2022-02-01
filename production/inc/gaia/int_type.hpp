@@ -55,6 +55,9 @@ public:
     // NOLINTNEXTLINE(google-explicit-constructor)
     operator T_type() const;
 
+    // Return false if the contained value is c_default_invalid_value and true otherwise.
+    explicit operator bool() const;
+
     // For explicit retrieval of contained value.
     constexpr T_type value() const
     {

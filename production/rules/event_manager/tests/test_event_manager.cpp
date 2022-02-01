@@ -392,19 +392,19 @@ struct rule_decl_t
  */
 static const rule_decl_t c_rule_decl[] = {
     // TODO[GAIAPLAT-445] We don't expose deleted row events
-    // {{c_ruleset1_name, c_rule1_name, test_gaia_t::s_gaia_type, event_type_t::row_delete, 0, 1}, rule1},
-    // {{c_ruleset1_name, c_rule2_name, test_gaia_t::s_gaia_type, event_type_t::row_delete, 0, 2}, rule2},
-    {{c_ruleset1_name, c_rule2_name, test_gaia_t::s_gaia_type, event_type_t::row_insert, 0, 2}, rule2},
-    {{c_ruleset1_name, c_rule1_name, test_gaia_t::s_gaia_type, event_type_t::row_update, 0, 1}, rule1},
-    {{c_ruleset2_name, c_rule3_name, test_gaia_other_t::s_gaia_type, event_type_t::row_insert, 0, 30}, rule3},
-    {{c_ruleset2_name, c_rule4_name, test_gaia_other_t::s_gaia_type, event_type_t::row_insert, 0, 40}, rule4},
+    // {{c_ruleset1_name, c_rule1_name, test_gaia_t::s_gaia_type, event_type_t::row_delete, gaia::common::c_invalid_field_position, 1}, rule1},
+    // {{c_ruleset1_name, c_rule2_name, test_gaia_t::s_gaia_type, event_type_t::row_delete, gaia::common::c_invalid_field_position, 2}, rule2},
+    {{c_ruleset1_name, c_rule2_name, test_gaia_t::s_gaia_type, event_type_t::row_insert, gaia::common::c_invalid_field_position, 2}, rule2},
+    {{c_ruleset1_name, c_rule1_name, test_gaia_t::s_gaia_type, event_type_t::row_update, gaia::common::c_invalid_field_position, 1}, rule1},
+    {{c_ruleset2_name, c_rule3_name, test_gaia_other_t::s_gaia_type, event_type_t::row_insert, gaia::common::c_invalid_field_position, 30}, rule3},
+    {{c_ruleset2_name, c_rule4_name, test_gaia_other_t::s_gaia_type, event_type_t::row_insert, gaia::common::c_invalid_field_position, 40}, rule4},
     {{c_ruleset1_name, c_rule1_name, test_gaia_other_t::s_gaia_type, event_type_t::row_update, c_first_name, 1}, rule1},
     {{c_ruleset1_name, c_rule2_name, test_gaia_other_t::s_gaia_type, event_type_t::row_update, c_last_name, 2}, rule2}
-    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_begin, 0, 30}, rule3},
-    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_commit, 0, 30}, rule3},
-    //{{ruleset2_name, rule4_name, 0, event_type_t::transaction_commit, 0, 40}, rule4},
-    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_rollback, 0, 30}, rule3},
-    //{{ruleset2_name, rule4_name, 0, event_type_t::transaction_rollback, 0, 40}, rule4}
+    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_begin, gaia::common::c_invalid_field_position, 30}, rule3},
+    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_commit, gaia::common::c_invalid_field_position, 30}, rule3},
+    //{{ruleset2_name, rule4_name, 0, event_type_t::transaction_commit, gaia::common::c_invalid_field_position, 40}, rule4},
+    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_rollback, gaia::common::c_invalid_field_position, 30}, rule3},
+    //{{ruleset2_name, rule4_name, 0, event_type_t::transaction_rollback, gaia::common::c_invalid_field_position, 40}, rule4}
 };
 
 /**

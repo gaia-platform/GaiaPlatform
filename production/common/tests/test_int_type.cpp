@@ -184,3 +184,34 @@ TEST(common, int_type)
     test_int_type<int32_t>();
     test_int_type<int64_t>();
 }
+
+TEST(common, int_type_bool_cast)
+{
+    constexpr uint64_t c_uint64_max = std::numeric_limits<uint64_t>::max();
+
+    // Start with an uninitialized value.
+    // It should be interpreted as 'false'.
+    // But if we don't use an explicit cast, the value
+    // will be neither true nor false.
+    int_type_t<uint64_t, c_uint64_max> value;
+    EXPECT_EQ(c_uint64_max, value.value());
+    EXPECT_EQ(false, static_cast<bool>(value));
+    EXPECT_EQ(false, !!value);
+    EXPECT_NE(true, static_cast<bool>(value));
+    EXPECT_NE(true, !!value);
+    EXPECT_NE(false, value);
+    EXPECT_NE(true, value);
+
+    // Initialize our value.
+    // It should now be interpreted as 'true'.
+    // But again, if we don't use an explicit cast, the value
+    // will be neither true nor false.
+    value = 7;
+    EXPECT_NE(c_uint64_max, value.value());
+    EXPECT_EQ(true, static_cast<bool>(value));
+    EXPECT_EQ(true, !!value);
+    EXPECT_NE(false, static_cast<bool>(value));
+    EXPECT_NE(false, !!value);
+    EXPECT_NE(false, value);
+    EXPECT_NE(true, value);
+}
