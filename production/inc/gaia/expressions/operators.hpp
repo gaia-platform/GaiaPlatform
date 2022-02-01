@@ -194,11 +194,46 @@ evaluate_operator(const T_left& left, const T_right& right, operator_or_t)
     return left || right;
 }
 
+template <typename T_left, typename T_right>
+static inline add_default_type<T_left, T_right>
+evaluate_operator(const T_left& left, const T_right& right, operator_add_t)
+{
+    return left + right;
+}
+
+template <typename T_left, typename T_right>
+static inline sub_default_type<T_left, T_right>
+evaluate_operator(const T_left& left, const T_right& right, operator_sub_t)
+{
+    return left - right;
+}
+
+template <typename T_left, typename T_right>
+static inline mul_default_type<T_left, T_right>
+evaluate_operator(const T_left& left, const T_right& right, operator_mul_t)
+{
+    return left * right;
+}
+
+template <typename T_left, typename T_right>
+static inline div_default_type<T_left, T_right>
+evaluate_operator(const T_left& left, const T_right& right, operator_div_t)
+{
+    return left / right;
+}
+
 template <typename T_operand>
 static inline not_default_type<T_operand>
 evaluate_operator(const T_operand& operand, operator_not_t)
 {
     return !operand;
+}
+
+template <typename T_operand>
+static inline neg_default_type<T_operand>
+evaluate_operator(const T_operand& operand, operator_neg_t)
+{
+    return -operand;
 }
 
 // Template definitions for type returns.
