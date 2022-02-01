@@ -50,3 +50,4 @@ add_gtest(test_logging "tests/test_logging.cpp;${GAIA_REPO}/production/common/sr
 add_gtest(test_random tests/test_random.cpp "${GAIA_COMMON_INCLUDES}" "gaia_common")
 add_gtest(test_inline_shared_lock tests/test_inline_shared_lock.cpp "${GAIA_COMMON_INCLUDES}" "gaia_common")
 add_gtest(test_hash tests/test_hash.cpp "${GAIA_COMMON_INCLUDES}" "")
+add_gtest(test_optional "tests/test_optional.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_common")
