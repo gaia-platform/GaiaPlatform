@@ -15,6 +15,7 @@
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/common/generator_iterator.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
@@ -32,6 +33,10 @@ struct catalog_db_object_view_t
     explicit catalog_db_object_view_t(const db_object_t* obj_ptr)
         : m_obj_ptr{obj_ptr}
     {
+        ASSERT_PRECONDITION(
+            obj_ptr != nullptr,
+            "Unexpected null pointer to a db object. "
+            "The view class can only be used to read valid db catalog objects.");
     }
 
     [[nodiscard]] common::gaia_id_t id() const

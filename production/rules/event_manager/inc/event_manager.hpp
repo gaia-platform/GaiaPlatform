@@ -26,16 +26,6 @@ namespace gaia
 namespace rules
 {
 
-const std::string c_gaia_ruleset_table_name = "gaia_ruleset";
-const std::string c_gaia_rule_table_name = "gaia_rule";
-const std::string c_gaia_application_table_name = "gaia_application";
-const std::string c_app_database_table_name = "app_database";
-const std::string c_app_ruleset_table_name = "app_ruleset";
-const std::string c_ruleset_database_table_name = "ruleset_database";
-const std::string c_rule_table_table_name = "rule_table";
-const std::string c_rule_field_table_name = "rule_field";
-const std::string c_rule_relationship_table_name = "rule_relationship";
-
 /**
  * Implementation class for event and rule APIs defined
  * in events.hpp and rules.hpp respectively.  See documentation
