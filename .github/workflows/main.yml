@@ -120,11 +120,8 @@ jobs:
           execute-unit-tests: true
 
   LLVM_Tests:
-    needs:
-      - Lint
-      - Third-Party
-# needs: Core
-#    if: ${{ false }}
+    needs: Core
+    if: ${{ false }}
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -149,7 +146,7 @@ jobs:
     needs:
       - Lint
       - Third-Party
-#    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
