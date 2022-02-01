@@ -88,10 +88,6 @@ jobs:
               --base-image $DEV_IMAGE \
               --cfg-enables GaiaLLVMTests
 
-      - name: Run Docker Image And Post-Build Script
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --gaia-version $GAIA_VERSION
-
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2

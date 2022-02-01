@@ -57,7 +57,7 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags] <command>"
     echo "Flags:"
-    echo "  -b,--bash                   Drop into bash for debugging."
+    echo "  -s,--shell                  Drop into the bash shell for debugging."
     echo "  -v,--verbose                Show lots of information while executing the project."
     echo "  -h,--help                   Display this help text."
     echo ""
@@ -68,11 +68,21 @@ show_usage() {
 parse_command_line() {
     VERBOSE_MODE=0
     BASH_MODE=0
+    BASE_IMAGE=
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
-        -b|--bash)
+        -s|--shell)
             BASH_MODE=1
+            shift
+        ;;
+        -b|--base-image)
+            if [ -z "$2" ] ; then
+                echo "Error: Argument $1 must be followed by the name of an image." >&2
+                show_usage
+            fi
+            BASE_IMAGE=$2
+            shift
             shift
         ;;
         -v|--verbose)
@@ -137,9 +147,18 @@ else
     CONTAINER_SCRIPT_TO_RUN=/source/production/coverage/gen_coverage.sh
 fi
 
+COVERAGE_IMAGE_BASE=
+if [ -n "$BASE_IMAGE" ] ; then
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Basing the coverage image on the '$BASE_IMAGE' image."
+    fi
+    COVERAGE_IMAGE_BASE="--base-image $BASE_IMAGE"
+fi
+
 REPO_ROOT_DIR=$(git rev-parse --show-toplevel)
 GDEV_WRAPPER="${REPO_ROOT_DIR}/dev_tools/gdev/gdev.sh"
-if ! "${GDEV_WRAPPER}" run --cfg-enables Coverage $CONTAINER_SCRIPT_TO_RUN ; then
+# shellcheck disable=SC2086
+if ! "${GDEV_WRAPPER}" run --cfg-enables Coverage $COVERAGE_IMAGE_BASE $CONTAINER_SCRIPT_TO_RUN ; then
     complete_process 1 "Unable to execute a coverage run inside of the Docker container."
 fi
 

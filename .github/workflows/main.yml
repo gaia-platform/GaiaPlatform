@@ -168,10 +168,9 @@ jobs:
             ${{ github.workspace }}/build/output
   SDK:
     needs:
-      - Lint
-      - Third-Party
+      - Core
     runs-on: ubuntu-20.04
-#    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -235,10 +234,9 @@ jobs:
             ${{ github.workspace }}/build/output/package
   Debug_Core:
     needs:
-      - Lint
-      - Third-Party
+      - Core
     runs-on: ubuntu-20.04
-#    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -344,7 +342,7 @@ jobs:
     needs:
       - Lint
       - Third-Party
-#    if: ${{ false }}
+#    if: github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -382,9 +380,7 @@ jobs:
               --repo-path $GAIA_REPO \
               --base-image $DEV_IMAGE \
               --cfg-enables GaiaLLVMTests
-      - name: Run Docker Image And Post-Build Script
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --gaia-version $GAIA_VERSION
+
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -490,11 +486,16 @@ jobs:
             ${{ github.workspace }}/production/tests/results
   Final:
     needs:
+      - Lint
+      - Third-Party
+      - Core
+      - SDK
+      - Debug_Core
+      - Coverage
+      - LLVM_Tests
       - Integration_Smoke
       - Integration_Smoke_Persistence
       - Integration_Samples
-      - Debug_Core
-      - Coverage
     runs-on: ubuntu-20.04
     if: always()
     steps:
@@ -507,3 +508,18 @@ jobs:
       - name: Results
         run: |
           echo "Build Workflow: ${{ env.WORKFLOW_CONCLUSION }}"
+#     echo "failure"
+#     echo "success"
+
+# - name: Download Coverage Files
+#   uses: actions/download-artifact@v2
+#   with:
+#     name: Coverage Test Files
+#     path: ${{ github.workspace }}/production
+
+# - name: Results
+#   run: |
+#     echo "Build id: ${{ github.run_id }}"
+#     ls -laR ${{ github.workspace }}/production
+#     ls -la ${{ github.workspace }}/production/coverage-summary.json
+#     ls -la ${{ github.workspace }}/production/ctest.xml
