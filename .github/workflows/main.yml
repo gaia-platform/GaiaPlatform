@@ -146,7 +146,6 @@ jobs:
           ls -la ${{ github.workspace }}/production/dev_image.tar.gz
           docker load < ${{ github.workspace }}/production/dev_image.tar.gz
           rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
-          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
 
       - name: Build Docker Image
         run: |
@@ -202,7 +201,6 @@ jobs:
           ls -la ${{ github.workspace }}/production/dev_image.tar.gz
           docker load < ${{ github.workspace }}/production/dev_image.tar.gz
           rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
-          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
 
       - name: Build Docker Image
         run: |
@@ -270,7 +268,6 @@ jobs:
           ls -la ${{ github.workspace }}/production/dev_image.tar.gz
           docker load < ${{ github.workspace }}/production/dev_image.tar.gz
           rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
-          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
 
       - name: Build Docker Image
         run: |
@@ -326,7 +323,6 @@ jobs:
           ls -la ${{ github.workspace }}/production/dev_image.tar.gz
           docker load < ${{ github.workspace }}/production/dev_image.tar.gz
           rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
-          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
 
       - name: Coverage
         run: |
@@ -379,7 +375,6 @@ jobs:
           ls -la ${{ github.workspace }}/production/dev_image.tar.gz
           docker load < ${{ github.workspace }}/production/dev_image.tar.gz
           rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
-          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
 
       - name: Build Docker Image
         run: |
