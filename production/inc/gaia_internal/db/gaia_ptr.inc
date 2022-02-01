@@ -30,7 +30,7 @@ gaia_ptr_t::operator bool() const
 
 bool gaia_ptr_t::is_null() const
 {
-    return m_locator == c_invalid_gaia_locator;
+    return !m_locator.is_valid();
 }
 
 bool gaia_ptr_t::is_ref_anchor() const

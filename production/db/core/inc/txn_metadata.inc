@@ -10,7 +10,7 @@ constexpr char c_message_not_a_commit_timestamp[] = "Not a commit timestamp!";
 txn_metadata_t::txn_metadata_t(gaia_txn_id_t ts)
     : m_ts(ts)
 {
-    ASSERT_PRECONDITION(m_ts != c_invalid_gaia_txn_id, "Invalid txn timestamp!");
+    ASSERT_PRECONDITION(m_ts.is_valid(), "Invalid txn timestamp!");
     txn_metadata_entry_t::check_ts_size(m_ts);
 }
 
@@ -169,7 +169,7 @@ std::optional<txn_metadata_t> txn_metadata_t::get_commit_ts_metadata()
 {
     ASSERT_PRECONDITION(is_begin_ts(), "Not a begin timestamp!");
     gaia_txn_id_t commit_ts = get_entry().get_timestamp();
-    if (commit_ts != c_invalid_gaia_txn_id)
+    if (commit_ts.is_valid())
     {
         return txn_metadata_t(commit_ts);
     }

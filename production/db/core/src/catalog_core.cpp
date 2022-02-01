@@ -196,7 +196,7 @@ list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint
 {
     auto obj_ptr = id_to_ptr(table_id);
     gaia_id_t anchor_id = obj_ptr->references()[first_offset];
-    if (anchor_id == c_invalid_gaia_id)
+    if (!anchor_id.is_valid())
     {
         return generator_range_t<T_catalog_obj_view>();
     }
@@ -204,7 +204,7 @@ list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint
     gaia_id_t first_obj_id = anchor_ptr->references()[c_ref_anchor_first_child_offset];
 
     auto generator = [id = first_obj_id, next_offset]() mutable -> std::optional<T_catalog_obj_view> {
-        if (id == c_invalid_gaia_id)
+        if (!id.is_valid())
         {
             return std::nullopt;
         }

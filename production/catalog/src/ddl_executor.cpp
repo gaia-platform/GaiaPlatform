@@ -984,7 +984,7 @@ void ddl_executor_t::drop_table(const string& db_name, const string& name, bool 
 
 void ddl_executor_t::validate_new_reference_offset(reference_offset_t reference_offset)
 {
-    if (reference_offset == c_invalid_reference_offset)
+    if (!reference_offset.is_valid())
     {
         throw max_reference_count_reached_internal();
     }
@@ -1002,7 +1002,7 @@ reference_offset_t ddl_executor_t::find_parent_available_offset(const gaia_table
     {
         max_offset = std::max(max_offset.value(), relationship.first_child_offset());
 
-        ASSERT_INVARIANT(max_offset != c_invalid_reference_offset, "Invalid reference offset detected!");
+        ASSERT_INVARIANT(max_offset.is_valid(), "Invalid reference offset detected!");
     }
 
     reference_offset_t next_available_offset = max_offset + 1;
@@ -1027,7 +1027,7 @@ reference_offset_t ddl_executor_t::find_child_available_offset(const gaia_table_
              relationship.prev_child_offset(),
              relationship.parent_offset()});
 
-        ASSERT_INVARIANT(max_offset != c_invalid_reference_offset, "Invalid reference offset detected!");
+        ASSERT_INVARIANT(max_offset.is_valid(), "Invalid reference offset detected!");
     }
 
     reference_offset_t next_available_offset = max_offset + 1;
@@ -1124,9 +1124,9 @@ gaia_id_t ddl_executor_t::create_table_impl(
     }
 
     gaia_type_t table_type
-        = (fixed_type == c_invalid_gaia_type)
-        ? gaia_type_t(generate_table_type(in_context(db_name), table_name))
-        : fixed_type;
+        = (fixed_type.is_valid())
+        ? fixed_type
+        : gaia_type_t(generate_table_type(in_context(db_name), table_name));
 
     gaia_table_writer table_w;
     table_w.name = table_name.c_str();

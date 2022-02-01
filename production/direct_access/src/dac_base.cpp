@@ -250,7 +250,7 @@ dac_base_reference_t::dac_base_reference_t(gaia_id_t parent, reference_offset_t 
 
 bool dac_base_reference_t::connect(gaia_id_t old_id, gaia::common::gaia_id_t new_id)
 {
-    if (old_id != c_invalid_gaia_id && old_id == new_id)
+    if (old_id.is_valid() && old_id == new_id)
     {
         return false;
     }
@@ -261,7 +261,7 @@ bool dac_base_reference_t::connect(gaia_id_t old_id, gaia::common::gaia_id_t new
 
 bool dac_base_reference_t::disconnect(gaia_id_t id)
 {
-    if (id == gaia::common::c_invalid_gaia_id)
+    if (!id.is_valid())
     {
         return false;
     }
