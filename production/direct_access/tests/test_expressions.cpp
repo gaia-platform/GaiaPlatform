@@ -649,11 +649,27 @@ TEST_F(test_expressions, array)
             }),
         hooli);
 
+    assert_contains(
+        customer_t::list().where(sales_by_quarter[3] == hooli_sales[3]),
+        hooli);
+
+    assert_contains(
+        customer_t::list().where(sales_by_quarter[sales_by_quarter.size() - 1] == hooli_sales[hooli_sales.size() - 1]),
+        {hooli, pied_piper}); // pied_piper's last quarter has the same sales as hooli's quarter.
+
     assert_empty(
         customer_t::list().where(
             [](const auto& c) {
                 return c.sales_by_quarter()[0] == -1;
             }));
+
+    assert_empty(
+        customer_t::list().where(sales_by_quarter.is_null()));
+    assert_empty(
+        customer_t::list().where(sales_by_quarter[0] == -1));
+
+    assert_non_empty(customer_t::list().where(sales_by_quarter[0] == sales_by_quarter[0]));
+    assert_non_empty(customer_t::list().where(sales_by_quarter.size() == 5));
 }
 
 TEST_F(test_expressions, one_to_one)
