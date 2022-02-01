@@ -539,7 +539,7 @@ public:
             gaia_type_t gaia_type = decl.sub.gaia_type;
             field_position_list_t fields;
 
-            if (decl.sub.field)
+            if (decl.sub.field.is_valid())
             {
                 fields.emplace_back(decl.sub.field);
             }

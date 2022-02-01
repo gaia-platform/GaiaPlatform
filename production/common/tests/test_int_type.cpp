@@ -185,12 +185,11 @@ TEST(common, int_type)
     test_int_type<int64_t>();
 }
 
-TEST(common, int_type_bool_cast)
+TEST(common, int_type_is_valid)
 {
     constexpr uint64_t c_uint64_max = std::numeric_limits<uint64_t>::max();
 
     // Start with an uninitialized value.
-    // It should be converted to 'false'.
     int_type_t<uint64_t, c_uint64_max> value;
     EXPECT_EQ(c_uint64_max, value.value());
 
@@ -201,30 +200,10 @@ TEST(common, int_type_bool_cast)
     EXPECT_FALSE(value == false);
     EXPECT_FALSE(value == true);
 
-    // Test explicit bool conversion using static_cast and the negation operator.
-    EXPECT_EQ(false, static_cast<bool>(value));
-    EXPECT_EQ(false, !!value);
-    EXPECT_NE(true, static_cast<bool>(value));
-    EXPECT_NE(true, !!value);
-
-    // Check implicit bool conversion using the ternary operator and if clauses.
-    bool is_value_true = value ? true : false;
-    EXPECT_EQ(false, is_value_true);
-    EXPECT_NE(true, is_value_true);
-
-    if (value)
-    {
-        is_value_true = true;
-    }
-    else
-    {
-        is_value_true = false;
-    }
-    EXPECT_EQ(false, is_value_true);
-    EXPECT_NE(true, is_value_true);
+    // Test is_valid().
+    EXPECT_FALSE(value.is_valid());
 
     // Initialize our value.
-    // It should be converted to 'true'.
     value = 7;
     EXPECT_NE(c_uint64_max, value.value());
 
@@ -235,25 +214,6 @@ TEST(common, int_type_bool_cast)
     EXPECT_FALSE(value == false);
     EXPECT_FALSE(value == true);
 
-    // Test explicit bool conversion using static_cast and the negation operator.
-    EXPECT_EQ(true, static_cast<bool>(value));
-    EXPECT_EQ(true, !!value);
-    EXPECT_NE(false, static_cast<bool>(value));
-    EXPECT_NE(false, !!value);
-
-    // Check implicit bool conversion using the ternary operator and if clauses.
-    is_value_true = value ? true : false;
-    EXPECT_EQ(true, is_value_true);
-    EXPECT_NE(false, is_value_true);
-
-    if (value)
-    {
-        is_value_true = true;
-    }
-    else
-    {
-        is_value_true = false;
-    }
-    EXPECT_EQ(true, is_value_true);
-    EXPECT_NE(false, is_value_true);
+    // Test is_valid().
+    EXPECT_TRUE(value.is_valid());
 }

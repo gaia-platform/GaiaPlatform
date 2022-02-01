@@ -64,7 +64,7 @@ struct index_record_t
 
     // Returns true if the record has been initialized and false if it was not.
     // This is needed to enable the stream generator to produce instances of index_record_t.
-    explicit operator bool() const
+    constexpr bool is_valid() const
     {
         return (operation != index_record_operation_t::not_set);
     }

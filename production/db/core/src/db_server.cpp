@@ -727,7 +727,7 @@ void server_t::init_indexes()
         }
     }
 
-    while (++locator && locator <= last_locator)
+    while ((++locator).is_valid() && locator <= last_locator)
     {
         auto obj = locator_to_ptr(locator);
 
@@ -2095,7 +2095,7 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
             record_list->request_deletion(txn_log->log_records[i].locator);
         }
 
-        if (offset_to_free)
+        if (offset_to_free.is_valid())
         {
             deallocate_object(offset_to_free);
         }
