@@ -190,28 +190,70 @@ TEST(common, int_type_bool_cast)
     constexpr uint64_t c_uint64_max = std::numeric_limits<uint64_t>::max();
 
     // Start with an uninitialized value.
-    // It should be interpreted as 'false'.
-    // But if we don't use an explicit cast, the value
-    // will be neither true nor false.
+    // It should be converted to 'false'.
     int_type_t<uint64_t, c_uint64_max> value;
     EXPECT_EQ(c_uint64_max, value.value());
+
+    // Test situations when a bool conversion is not made.
+    // Without a conversion, the value will be neither true nor false.
+    EXPECT_NE(false, value);
+    EXPECT_NE(true, value);
+    EXPECT_FALSE(value == false);
+    EXPECT_FALSE(value == true);
+
+    // Test explicit bool conversion using static_cast and the negation operator.
     EXPECT_EQ(false, static_cast<bool>(value));
     EXPECT_EQ(false, !!value);
     EXPECT_NE(true, static_cast<bool>(value));
     EXPECT_NE(true, !!value);
-    EXPECT_NE(false, value);
-    EXPECT_NE(true, value);
+
+    // Check implicit bool conversion using the ternary operator and if clauses.
+    bool is_value_true = value ? true : false;
+    EXPECT_EQ(false, is_value_true);
+    EXPECT_NE(true, is_value_true);
+
+    if (value)
+    {
+        is_value_true = true;
+    }
+    else
+    {
+        is_value_true = false;
+    }
+    EXPECT_EQ(false, is_value_true);
+    EXPECT_NE(true, is_value_true);
 
     // Initialize our value.
-    // It should now be interpreted as 'true'.
-    // But again, if we don't use an explicit cast, the value
-    // will be neither true nor false.
+    // It should be converted to 'true'.
     value = 7;
     EXPECT_NE(c_uint64_max, value.value());
+
+    // Test situations when a bool conversion is not made.
+    // Without a conversion, the value will be neither true nor false.
+    EXPECT_NE(false, value);
+    EXPECT_NE(true, value);
+    EXPECT_FALSE(value == false);
+    EXPECT_FALSE(value == true);
+
+    // Test explicit bool conversion using static_cast and the negation operator.
     EXPECT_EQ(true, static_cast<bool>(value));
     EXPECT_EQ(true, !!value);
     EXPECT_NE(false, static_cast<bool>(value));
     EXPECT_NE(false, !!value);
-    EXPECT_NE(false, value);
-    EXPECT_NE(true, value);
+
+    // Check implicit bool conversion using the ternary operator and if clauses.
+    is_value_true = value ? true : false;
+    EXPECT_EQ(true, is_value_true);
+    EXPECT_NE(false, is_value_true);
+
+    if (value)
+    {
+        is_value_true = true;
+    }
+    else
+    {
+        is_value_true = false;
+    }
+    EXPECT_EQ(true, is_value_true);
+    EXPECT_NE(false, is_value_true);
 }
