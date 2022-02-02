@@ -127,7 +127,14 @@ struct rule_binding_t
 struct subscription_t
 {
     subscription_t()
-        : subscription_t(nullptr, nullptr, common::c_invalid_gaia_type, db::triggers::event_type_t::not_set, 0, 0, nullptr)
+        : subscription_t(
+            nullptr,
+            nullptr,
+            common::c_invalid_gaia_type,
+            db::triggers::event_type_t::not_set,
+            common::c_invalid_field_position,
+            0,
+            nullptr)
     {
     }
 

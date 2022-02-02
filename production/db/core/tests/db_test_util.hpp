@@ -83,12 +83,12 @@ public:
     // updates the type registry.
     void create_relationship()
     {
-        if (m_parent_type == common::c_invalid_gaia_type)
+        if (!m_parent_type.is_valid())
         {
             throw std::invalid_argument("parent_type must be set!");
         }
 
-        if (m_child_type == common::c_invalid_gaia_type)
+        if (!m_child_type.is_valid())
         {
             throw std::invalid_argument("child_type must be set!");
         }

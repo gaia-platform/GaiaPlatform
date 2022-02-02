@@ -68,7 +68,7 @@ inline bool locator_exists(gaia_locator_t locator)
     locators_t* locators = gaia::db::get_locators();
     counters_t* counters = gaia::db::get_counters();
 
-    return (locator != c_invalid_gaia_locator)
+    return (locator.is_valid())
         && (locator <= counters->last_locator)
         && ((*locators)[locator] != c_invalid_gaia_offset);
 }
@@ -84,7 +84,7 @@ inline gaia_offset_t locator_to_offset(gaia_locator_t locator)
 inline db_object_t* offset_to_ptr(gaia_offset_t offset)
 {
     data_t* data = gaia::db::get_data();
-    return (offset != c_invalid_gaia_offset)
+    return (offset.is_valid())
         ? reinterpret_cast<db_object_t*>(&data->objects[offset])
         : nullptr;
 }
@@ -130,7 +130,7 @@ inline void allocate_object(
     // The allocation can fail either because there is no current chunk, or
     // because the current chunk is full.
     gaia_offset_t object_offset = chunk_manager->allocate(size + c_db_object_header_size);
-    if (object_offset == c_invalid_gaia_offset)
+    if (!object_offset.is_valid())
     {
         if (chunk_manager->initialized())
         {
@@ -147,7 +147,7 @@ inline void allocate_object(
 
         // Allocate a new chunk.
         memory_manager::chunk_offset_t new_chunk_offset = memory_manager->allocate_chunk();
-        if (new_chunk_offset == memory_manager::c_invalid_chunk_offset)
+        if (!new_chunk_offset.is_valid())
         {
             throw memory_allocation_error_internal();
         }
@@ -160,7 +160,7 @@ inline void allocate_object(
     }
 
     ASSERT_POSTCONDITION(
-        object_offset != c_invalid_gaia_offset,
+        object_offset.is_valid(),
         "Allocation from chunk was not expected to fail!");
 
     // Update locator array to point to the new offset.
