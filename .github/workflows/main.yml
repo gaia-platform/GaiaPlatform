@@ -326,6 +326,7 @@ jobs:
         run: |
           cd $GAIA_REPO/production
           mkdir -p $GAIA_REPO/production
+          sudo pip install atools argcomplete
           $GAIA_REPO/production/coverage/coverage.sh --verbose --output $REPO_ROOT_DIR/build/output
           echo "COVERAGE OUTPUT"
           echo "sudo chmod -R 777 $GAIA_REPO/production"
