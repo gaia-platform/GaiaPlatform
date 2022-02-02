@@ -429,10 +429,10 @@ void index_builder_t::update_indexes_from_txn_log(
 
         gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(obj->type);
 
-        // System tables are not indexed.
+        // Catalog core tables are not indexed.
         // The operation is from a dropped table.
         // Skip if catalog verification disabled and type not found in the catalog.
-        if (is_system_object(obj->type)
+        if (is_catalog_core_object(obj->type)
             || std::find(dropped_types.begin(), dropped_types.end(), obj->type) != dropped_types.end()
             || (skip_catalog_integrity_check && type_record_id == c_invalid_gaia_id))
         {
@@ -498,8 +498,8 @@ void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool dea
             {
                 auto obj = offset_to_ptr(offset);
 
-                // We do not index system objects, so we can move on.
-                if (is_system_object(obj->type))
+                // We do not index catalog core objects, so we can move on.
+                if (is_catalog_core_object(obj->type))
                 {
                     continue;
                 }

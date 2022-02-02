@@ -97,8 +97,6 @@ void event_manager_t::init(const event_manager_settings_t& settings)
     };
     set_commit_trigger(m_trigger_fn);
 
-    initialize_rule_tables();
-
     m_is_initialized = true;
 }
 

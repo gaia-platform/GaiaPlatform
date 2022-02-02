@@ -731,8 +731,8 @@ void server_t::init_indexes()
     {
         auto obj = locator_to_ptr(locator);
 
-        // Skip system objects -- they are not indexed.
-        if (is_system_object(obj->type))
+        // Skip catalog core objects -- they are not indexed.
+        if (is_catalog_core_object(obj->type))
         {
             continue;
         }
