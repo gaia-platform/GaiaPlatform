@@ -338,6 +338,7 @@ jobs:
           name: ${{github.job}} Test Files
           path: |
             ${{ github.workspace }}/production/output
+            ${{ github.workspace }}/production/dockerfile
   LLVM_Tests:
     needs:
       - Lint

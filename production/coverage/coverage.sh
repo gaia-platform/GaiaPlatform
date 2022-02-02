@@ -150,9 +150,11 @@ if ! cd "$SCRIPTPATH/.." > "$TEMP_FILE" 2>&1; then
     complete_process 1 "Script cannot change to root production directory before proceeding."
 fi
 
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Generating the coverage dockerfile."
+fi
 REPO_ROOT_DIR=$(git rev-parse --show-toplevel)
 GDEV_WRAPPER="${REPO_ROOT_DIR}/dev_tools/gdev/gdev.sh"
-
 if ! "${GDEV_WRAPPER}" dockerfile --cfg-enables Coverage > "${REPO_ROOT_DIR}/production/dockerfile" ; then
     cat "${REPO_ROOT_DIR}/production/dockerfile"
     complete_process 1 "Unable to generate dockerfile for coverage run."
@@ -166,6 +168,9 @@ if [ -n "$BASE_IMAGE" ] ; then
     COVERAGE_IMAGE_BASE="--cache-from $BASE_IMAGE"
 fi
 
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Building the coverage docker image."
+fi
 # shellcheck disable=SC2086
 if ! docker buildx build \
     -f "$REPO_ROOT_DIR/production/dockerfile" \
