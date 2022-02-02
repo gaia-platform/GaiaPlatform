@@ -93,7 +93,14 @@ static string hex_dump(void* binary_buff, size_t binary_length, int& line_limit)
             return dump;
         }
         binary_ptr += c_bytes_per_line;
-        binary_length -= c_bytes_per_line;
+        if (binary_length < c_bytes_per_line)
+        {
+            binary_length = 0;
+        }
+        else
+        {
+            binary_length -= c_bytes_per_line;
+        }
         offset += c_bytes_per_line;
     }
     return dump;
