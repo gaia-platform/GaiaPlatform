@@ -1054,9 +1054,11 @@ uint32_t generate_table_type(const string& db_name, const string& table_name)
     ASSERT_PRECONDITION(db_name.length() <= std::numeric_limits<int>::max(), "The DB name is too long.");
     ASSERT_PRECONDITION(table_name.length() <= std::numeric_limits<int>::max(), "The table name is too long.");
 
-    return (hash::murmur3_32(table_name.data(), static_cast<int>(table_name.length()))
-            ^ (hash::murmur3_32(db_name.data(), static_cast<int>(db_name.length())) << 1))
-        % c_system_table_reserved_range_start;
+    uint32_t hash = hash::murmur3_32(db_name.data(), static_cast<int>(db_name.length()));
+    hash <<= 1;
+    hash ^= hash::murmur3_32(table_name.data(), static_cast<int>(table_name.length()));
+    hash %= c_system_table_reserved_range_start;
+    return hash;
 }
 
 gaia_id_t ddl_executor_t::create_table_impl(
