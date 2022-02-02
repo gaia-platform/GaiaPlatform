@@ -114,7 +114,7 @@ parse_command_line() {
     esac
     done
 
-    if [ -z $OUTPUT_DIRECTORY ] ; then
+    if [ -z "$OUTPUT_DIRECTORY" ] ; then
         complete_process 1 "The -o/--output parameter must be specified."
     fi
 }
@@ -153,7 +153,6 @@ fi
 REPO_ROOT_DIR=$(git rev-parse --show-toplevel)
 GDEV_WRAPPER="${REPO_ROOT_DIR}/dev_tools/gdev/gdev.sh"
 
-
 if ! "${GDEV_WRAPPER}" dockerfile --cfg-enables Coverage > "${REPO_ROOT_DIR}/production/dockerfile" ; then
     cat "${REPO_ROOT_DIR}/production/dockerfile"
     complete_process 1 "Unable to generate dockerfile for coverage run."
@@ -167,6 +166,7 @@ if [ -n "$BASE_IMAGE" ] ; then
     COVERAGE_IMAGE_BASE="--cache-from $BASE_IMAGE"
 fi
 
+# shellcheck disable=SC2086
 if ! docker buildx build \
     -f "$REPO_ROOT_DIR/production/dockerfile" \
     -t coverage_image \
@@ -192,7 +192,7 @@ else
     CONTAINER_SCRIPT_TO_RUN="/source/production/coverage/gen_coverage.sh"
 fi
 
-mkdir -p $OUTPUT_DIRECTORY
+mkdir -p "$OUTPUT_DIRECTORY"
 
 if ! docker run \
     --rm \
@@ -216,7 +216,7 @@ fi
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Creating coverage-summary.json file from coverage output."
 fi
-if ! /usr/bin/python3.8 "$SCRIPTPATH/summarize.py" --output $OUTPUT_DIRECTORY > "$TEMP_FILE" 2>&1 ; then
+if ! /usr/bin/python3.8 "$SCRIPTPATH/summarize.py" --output "$OUTPUT_DIRECTORY" > "$TEMP_FILE" 2>&1 ; then
     cat "$TEMP_FILE"
     complete_process 1 "Script cannot summarize coverage directory after proceeding."
 fi
@@ -225,7 +225,7 @@ if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Setting proper permissions on output directory."
 fi
 sudo chown -R "$USER":"$USER" "$OUTPUT_DIRECTORY"
-sudo chmod -R 777 $OUTPUT_DIRECTORY
+sudo chmod -R 777 "$OUTPUT_DIRECTORY"
 
 # If we get here, we have a clean exit from the script.
 complete_process 0

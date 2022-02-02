@@ -16,13 +16,12 @@ import argparse
 
 __DEFAULT_FILE_ENCODING = "utf-8"
 
+
 def __process_command_line():
     """
     Process the arguments on the command line.
     """
-    parser = argparse.ArgumentParser(
-        description="Summarize the results of the build."
-    )
+    parser = argparse.ArgumentParser(description="Summarize the results of the build.")
     parser.add_argument(
         "--output",
         dest="output_directory",
@@ -31,6 +30,7 @@ def __process_command_line():
         help="Directory to use as output.",
     )
     return parser.parse_args()
+
 
 # pylint: disable=broad-except
 def read_coverage_log_file(relative_file_name, output_directory):
@@ -58,10 +58,18 @@ def process_script_action():
     args = __process_command_line()
 
     try:
-        total_coverage_dictionary = read_coverage_log_file("coverage.json", args.output_directory)
-        rules_coverage_dictionary = read_coverage_log_file("coverage.rules.json", args.output_directory)
-        database_coverage_dictionary = read_coverage_log_file("coverage.database.json", args.output_directory)
-        other_coverage_dictionary = read_coverage_log_file("coverage.common.json", args.output_directory)
+        total_coverage_dictionary = read_coverage_log_file(
+            "coverage.json", args.output_directory
+        )
+        rules_coverage_dictionary = read_coverage_log_file(
+            "coverage.rules.json", args.output_directory
+        )
+        database_coverage_dictionary = read_coverage_log_file(
+            "coverage.database.json", args.output_directory
+        )
+        other_coverage_dictionary = read_coverage_log_file(
+            "coverage.common.json", args.output_directory
+        )
 
         coverage_dictionary = {}
         coverage_dictionary["total"] = total_coverage_dictionary
