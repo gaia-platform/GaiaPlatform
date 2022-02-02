@@ -226,8 +226,8 @@ mv report/coverage.json /build/production/output/coverage.common.json
 # project_summarizer --junit output/test.xml
 # mv report/coverage.json /build/production/output/test-results.json
 
-mkdir -p /source/production/output
-cp -a /build/production/output /source/production
+mkdir -p /build/output
+cp -a /build/production/output /build
 
 # If we get here, we have a clean exit from the script.
 complete_process 0

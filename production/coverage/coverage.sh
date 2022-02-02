@@ -57,6 +57,7 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags] <command>"
     echo "Flags:"
+    echo "  -o,--output                 Folder to place any output."
     echo "  -s,--shell                  Drop into the bash shell for debugging."
     echo "  -v,--verbose                Show lots of information while executing the project."
     echo "  -h,--help                   Display this help text."
@@ -69,6 +70,7 @@ parse_command_line() {
     VERBOSE_MODE=0
     BASH_MODE=0
     BASE_IMAGE=
+    OUTPUT_DIRECTORY=
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
@@ -82,6 +84,15 @@ parse_command_line() {
                 show_usage
             fi
             BASE_IMAGE=$2
+            shift
+            shift
+        ;;
+        -o|--output)
+            if [ -z "$2" ] ; then
+                echo "Error: Argument $1 must be followed by the directory to place output in." >&2
+                show_usage
+            fi
+            OUTPUT_DIRECTORY=$2
             shift
             shift
         ;;
@@ -102,6 +113,10 @@ parse_command_line() {
         ;;
     esac
     done
+
+    if [ -z $OUTPUT_DIRECTORY ] ; then
+        complete_process 1 "The -o/--output parameter must be specified."
+    fi
 }
 
 # Set up any global script variables.
@@ -135,6 +150,36 @@ if ! cd "$SCRIPTPATH/.." > "$TEMP_FILE" 2>&1; then
     complete_process 1 "Script cannot change to root production directory before proceeding."
 fi
 
+REPO_ROOT_DIR=$(git rev-parse --show-toplevel)
+GDEV_WRAPPER="${REPO_ROOT_DIR}/dev_tools/gdev/gdev.sh"
+
+
+if ! "${GDEV_WRAPPER}" dockerfile --cfg-enables Coverage > "${REPO_ROOT_DIR}/production/dockerfile" ; then
+    cat "${REPO_ROOT_DIR}/production/dockerfile"
+    complete_process 1 "Unable to generate dockerfile for coverage run."
+fi
+
+COVERAGE_IMAGE_BASE=
+if [ -n "$BASE_IMAGE" ] ; then
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Basing the coverage image on the '$BASE_IMAGE' image."
+    fi
+    COVERAGE_IMAGE_BASE="--cache-from $BASE_IMAGE"
+fi
+
+if ! docker buildx build \
+    -f "$REPO_ROOT_DIR/production/dockerfile" \
+    -t coverage_image \
+    $COVERAGE_IMAGE_BASE \
+    --build-arg BUILDKIT_INLINE_CACHE=1 \
+    --platform linux/amd64 \
+    --shm-size 1gb \
+    --ssh default \
+    --compress \
+    "$REPO_ROOT_DIR" ; then
+    complete_process 1 "Coverage build failed."
+fi
+
 if [ "$BASH_MODE" -ne 0 ]; then
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Executing bash in GCov container for debugging."
@@ -144,28 +189,21 @@ else
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Executing coverage workflow in GCov container."
     fi
-    CONTAINER_SCRIPT_TO_RUN=/source/production/coverage/gen_coverage.sh
+    CONTAINER_SCRIPT_TO_RUN="/source/production/coverage/gen_coverage.sh"
 fi
 
-COVERAGE_IMAGE_BASE=
-if [ -n "$BASE_IMAGE" ] ; then
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Basing the coverage image on the '$BASE_IMAGE' image."
-    fi
-    COVERAGE_IMAGE_BASE="--base-image $BASE_IMAGE"
-fi
+mkdir -p $OUTPUT_DIRECTORY
 
-REPO_ROOT_DIR=$(git rev-parse --show-toplevel)
-GDEV_WRAPPER="${REPO_ROOT_DIR}/dev_tools/gdev/gdev.sh"
-# shellcheck disable=SC2086
-if ! "${GDEV_WRAPPER}" run --cfg-enables Coverage $COVERAGE_IMAGE_BASE $CONTAINER_SCRIPT_TO_RUN ; then
-    complete_process 1 "Unable to execute a coverage run inside of the Docker container."
+if ! docker run \
+    --rm \
+    --init \
+    -t \
+    --platform linux/amd64 \
+    --mount "type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$OUTPUT_DIRECTORY" \
+    coverage_image \
+    $CONTAINER_SCRIPT_TO_RUN ; then
+    complete_process 1 "Coverage run failed."
 fi
-
-if [ "$VERBOSE_MODE" -ne 0 ]; then
-    echo "Setting proper permissions on output directory."
-fi
-sudo chown -R "$USER":"$USER" "$SCRIPTPATH/output"
 
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Switching to the coverage directory."
@@ -178,12 +216,16 @@ fi
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Creating coverage-summary.json file from coverage output."
 fi
-sudo mkdir -p "$SCRIPTPATH/../output"
-sudo chmod -R 777 "$SCRIPTPATH/../output"
-if ! /usr/bin/python3.8 "$SCRIPTPATH/summarize.py" > "$TEMP_FILE" 2>&1 ; then
+if ! /usr/bin/python3.8 "$SCRIPTPATH/summarize.py" --output $OUTPUT_DIRECTORY > "$TEMP_FILE" 2>&1 ; then
     cat "$TEMP_FILE"
     complete_process 1 "Script cannot summarize coverage directory after proceeding."
 fi
+
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Setting proper permissions on output directory."
+fi
+sudo chown -R "$USER":"$USER" "$OUTPUT_DIRECTORY"
+sudo chmod -R 777 $OUTPUT_DIRECTORY
 
 # If we get here, we have a clean exit from the script.
 complete_process 0

@@ -326,7 +326,7 @@ jobs:
         run: |
           cd $GAIA_REPO/production
           mkdir -p $GAIA_REPO/production
-          $GAIA_REPO/production/coverage/coverage.sh -v
+          $GAIA_REPO/production/coverage/coverage.sh --verbose --output $REPO_ROOT_DIR/build/output
           echo "COVERAGE OUTPUT"
           echo "sudo chmod -R 777 $GAIA_REPO/production"
           sudo chmod -R 777 $GAIA_REPO/production
@@ -342,7 +342,7 @@ jobs:
     needs:
       - Lint
       - Third-Party
-#    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
