@@ -15,7 +15,6 @@ table student (
     room_location string,
     room references dorm_room
         where student.room_location = dorm_room.location
-
 )
 
 -- College dorm rooms where students live.
