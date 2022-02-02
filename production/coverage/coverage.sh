@@ -155,8 +155,12 @@ if [ "$VERBOSE_MODE" -ne 0 ]; then
 fi
 REPO_ROOT_DIR=$(git rev-parse --show-toplevel)
 GDEV_WRAPPER="${REPO_ROOT_DIR}/dev_tools/gdev/gdev.sh"
-if ! "${GDEV_WRAPPER}" dockerfile --cfg-enables Coverage > "${REPO_ROOT_DIR}/production/dockerfile" ; then
+if ! "${GDEV_WRAPPER}" dockerfile --cfg-enables Coverage > "${REPO_ROOT_DIR}/production/raw_dockerfile" ; then
     cat "${REPO_ROOT_DIR}/production/dockerfile"
+    complete_process 1 "Unable to generate raw dockerfile for coverage run."
+fi
+
+if ! "$SCRIPTPATH/copy_after_line.py" --input-file "$REPO_ROOT_DIR/production/raw_dockerfile" --output-file "$REPO_ROOT_DIR/production/dockerfile" --start-line "#syntax=docker/dockerfile-upstream:master-experimental" ; then
     complete_process 1 "Unable to generate dockerfile for coverage run."
 fi
 
