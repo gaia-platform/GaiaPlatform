@@ -24,7 +24,7 @@ namespace common
  */
 
 // Note: if compiling with C++17 or newer,
-// flatbuffers::Optional is aliased to std::optional
+// flatbuffers::Optional is aliased to std::optional.
 template <typename T_value>
 using optional_t = flatbuffers::Optional<T_value>;
 using nullopt_t = flatbuffers::nullopt_t;
