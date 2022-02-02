@@ -38,7 +38,7 @@ gaia_offset_t offset_from_chunk_and_slot(
 void* page_address_from_offset(gaia_offset_t offset)
 {
     ASSERT_PRECONDITION(
-        offset != c_invalid_gaia_offset,
+        offset.is_valid(),
         "Cannot call page_address_from_offset() on an invalid offset!");
 
     data_t* data = gaia::db::get_data();

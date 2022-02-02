@@ -3000,7 +3000,8 @@ public:
   BuildCallToMemberFunction(Scope *S, Expr *MemExpr,
                             SourceLocation LParenLoc,
                             MultiExprArg Args,
-                            SourceLocation RParenLoc);
+                            SourceLocation RParenLoc,
+                            bool isSpecialGaiaFunctionCall = false);
   ExprResult
   BuildCallToObjectOfClassType(Scope *S, Expr *Object, SourceLocation LParenLoc,
                                MultiExprArg Args,
@@ -4615,6 +4616,7 @@ public:
                                SourceLocation IdentLoc, IdentifierInfo *Ident,
                                const ParsedAttributesView &AttrList);
   void ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace);
+  void ActOnRuleStart();
   llvm::StringSet<> getCatalogTableList();
   llvm::StringMap<llvm::StringMap<QualType>> getTableData();
   void AddExplicitPathData(SourceLocation location, SourceLocation startLocation, SourceLocation endLocation, const std::string &explicitPath);
@@ -9811,7 +9813,7 @@ public:
   // For simple assignment, pass both expressions and a null converted type.
   // For compound assignment, pass both expressions and the converted type.
   QualType CheckAssignmentOperands( // C99 6.5.16.[1,2]
-    Expr *LHSExpr, ExprResult &RHS, SourceLocation Loc, QualType CompoundType);
+    Expr *LHSExpr, ExprResult &RHS, SourceLocation Loc, QualType CompoundType, bool isGaiaArrayFieldAssignment = false);
 
   ExprResult checkPseudoObjectIncDec(Scope *S, SourceLocation OpLoc,
                                      UnaryOperatorKind Opcode, Expr *Op);
@@ -10580,7 +10582,8 @@ private:
   static bool getFormatStringInfo(const FormatAttr *Format, bool IsCXXMember,
                                   FormatStringInfo *FSI);
   bool CheckFunctionCall(FunctionDecl *FDecl, CallExpr *TheCall,
-                         const FunctionProtoType *Proto);
+                         const FunctionProtoType *Proto,
+                         bool isSpecialGaiaFunctionCall = false);
   bool CheckObjCMethodCall(ObjCMethodDecl *Method, SourceLocation loc,
                            ArrayRef<const Expr *> Args);
   bool CheckPointerCall(NamedDecl *NDecl, CallExpr *TheCall,

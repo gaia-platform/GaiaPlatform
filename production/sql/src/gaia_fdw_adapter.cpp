@@ -721,7 +721,7 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
             }
 
             gaia_id_t anchor_id = m_current_record.references()[reference_offset];
-            if (anchor_id == c_invalid_gaia_id)
+            if (!anchor_id.is_valid())
             {
                 field_value.value = UInt64GetDatum(c_invalid_gaia_id);
                 field_value.isnull = true;
@@ -732,7 +732,7 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
                 field_value.value = UInt64GetDatum(reference_id);
 
                 // If the reference id is invalid, surface the value as NULL.
-                if (reference_id == c_invalid_gaia_id)
+                if (!reference_id.is_valid())
                 {
                     field_value.isnull = true;
                 }
@@ -1088,7 +1088,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
                 // If inserting a new record or if the existing reference is not set,
                 // we can just leave the reference unset.
                 if (modify_operation_type == modify_operation_type_t::insert
-                    || old_reference_id == c_invalid_gaia_id)
+                    || !old_reference_id.is_valid())
                 {
                     continue;
                 }
@@ -1100,7 +1100,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
             {
                 gaia_id_t new_reference_id = DatumGetUInt64(m_fields[i].value_to_set.value);
 
-                if (new_reference_id == c_invalid_gaia_id)
+                if (!new_reference_id.is_valid())
                 {
                     ereport(
                         ERROR,

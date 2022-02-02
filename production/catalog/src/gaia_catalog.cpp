@@ -14,6 +14,407 @@ namespace catalog
 {
 
 //
+// Implementation of class rule_relationship_t.
+//
+
+const char* rule_relationship_t::gaia_typename()
+{
+    static const char* gaia_typename = "rule_relationship_t";
+    return gaia_typename;
+}
+
+gaia::common::gaia_id_t rule_relationship_t::insert_row(uint8_t type, const char* gaia_rule_name, uint64_t gaia_relationship_id)
+{
+    flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
+    b.Finish(internal::Createrule_relationshipDirect(b, type, gaia_rule_name, gaia_relationship_id));
+    return dac_object_t::insert_row(b);
+}
+
+gaia::direct_access::dac_container_t<c_gaia_type_rule_relationship, rule_relationship_t> rule_relationship_t::list()
+{
+    return gaia::direct_access::dac_container_t<c_gaia_type_rule_relationship, rule_relationship_t>();
+}
+
+uint8_t rule_relationship_t::type() const
+{
+    return GET(type);
+}
+
+const char* rule_relationship_t::gaia_rule_name() const
+{
+    return GET_STR(gaia_rule_name);
+}
+
+uint64_t rule_relationship_t::gaia_relationship_id() const
+{
+    return GET(gaia_relationship_id);
+}
+
+gaia_rule_t rule_relationship_t::rule() const
+{
+    gaia::common::gaia_id_t id = dac_db_t::get_reference(this->references()[c_rule_relationship_parent_rule], gaia::common::c_ref_anchor_parent_offset);
+    return (id == gaia::common::c_invalid_gaia_id) ? gaia_rule_t() : gaia_rule_t::get(id);
+}
+
+//
+// Implementation of class rule_field_t.
+//
+
+const char* rule_field_t::gaia_typename()
+{
+    static const char* gaia_typename = "rule_field_t";
+    return gaia_typename;
+}
+
+gaia::common::gaia_id_t rule_field_t::insert_row(uint8_t type, bool active, const char* gaia_rule_name, uint64_t gaia_field_id)
+{
+    flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
+    b.Finish(internal::Createrule_fieldDirect(b, type, active, gaia_rule_name, gaia_field_id));
+    return dac_object_t::insert_row(b);
+}
+
+gaia::direct_access::dac_container_t<c_gaia_type_rule_field, rule_field_t> rule_field_t::list()
+{
+    return gaia::direct_access::dac_container_t<c_gaia_type_rule_field, rule_field_t>();
+}
+
+uint8_t rule_field_t::type() const
+{
+    return GET(type);
+}
+
+bool rule_field_t::active() const
+{
+    return GET(active);
+}
+
+const char* rule_field_t::gaia_rule_name() const
+{
+    return GET_STR(gaia_rule_name);
+}
+
+uint64_t rule_field_t::gaia_field_id() const
+{
+    return GET(gaia_field_id);
+}
+
+gaia_rule_t rule_field_t::rule() const
+{
+    gaia::common::gaia_id_t id = dac_db_t::get_reference(this->references()[c_rule_field_parent_rule], gaia::common::c_ref_anchor_parent_offset);
+    return (id == gaia::common::c_invalid_gaia_id) ? gaia_rule_t() : gaia_rule_t::get(id);
+}
+
+//
+// Implementation of class rule_table_t.
+//
+
+const char* rule_table_t::gaia_typename()
+{
+    static const char* gaia_typename = "rule_table_t";
+    return gaia_typename;
+}
+
+gaia::common::gaia_id_t rule_table_t::insert_row(uint8_t type, bool anchor, const char* gaia_rule_name, uint64_t gaia_table_id)
+{
+    flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
+    b.Finish(internal::Createrule_tableDirect(b, type, anchor, gaia_rule_name, gaia_table_id));
+    return dac_object_t::insert_row(b);
+}
+
+gaia::direct_access::dac_container_t<c_gaia_type_rule_table, rule_table_t> rule_table_t::list()
+{
+    return gaia::direct_access::dac_container_t<c_gaia_type_rule_table, rule_table_t>();
+}
+
+uint8_t rule_table_t::type() const
+{
+    return GET(type);
+}
+
+bool rule_table_t::anchor() const
+{
+    return GET(anchor);
+}
+
+const char* rule_table_t::gaia_rule_name() const
+{
+    return GET_STR(gaia_rule_name);
+}
+
+uint64_t rule_table_t::gaia_table_id() const
+{
+    return GET(gaia_table_id);
+}
+
+gaia_rule_t rule_table_t::rule() const
+{
+    gaia::common::gaia_id_t id = dac_db_t::get_reference(this->references()[c_rule_table_parent_rule], gaia::common::c_ref_anchor_parent_offset);
+    return (id == gaia::common::c_invalid_gaia_id) ? gaia_rule_t() : gaia_rule_t::get(id);
+}
+
+//
+// Implementation of class ruleset_database_t.
+//
+
+const char* ruleset_database_t::gaia_typename()
+{
+    static const char* gaia_typename = "ruleset_database_t";
+    return gaia_typename;
+}
+
+gaia::common::gaia_id_t ruleset_database_t::insert_row(const char* gaia_ruleset_name, uint64_t gaia_database_id)
+{
+    flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
+    b.Finish(internal::Createruleset_databaseDirect(b, gaia_ruleset_name, gaia_database_id));
+    return dac_object_t::insert_row(b);
+}
+
+gaia::direct_access::dac_container_t<c_gaia_type_ruleset_database, ruleset_database_t> ruleset_database_t::list()
+{
+    return gaia::direct_access::dac_container_t<c_gaia_type_ruleset_database, ruleset_database_t>();
+}
+
+const char* ruleset_database_t::gaia_ruleset_name() const
+{
+    return GET_STR(gaia_ruleset_name);
+}
+
+uint64_t ruleset_database_t::gaia_database_id() const
+{
+    return GET(gaia_database_id);
+}
+
+gaia_ruleset_t ruleset_database_t::ruleset() const
+{
+    gaia::common::gaia_id_t id = dac_db_t::get_reference(this->references()[c_ruleset_database_parent_ruleset], gaia::common::c_ref_anchor_parent_offset);
+    return (id == gaia::common::c_invalid_gaia_id) ? gaia_ruleset_t() : gaia_ruleset_t::get(id);
+}
+
+//
+// Implementation of class app_ruleset_t.
+//
+
+const char* app_ruleset_t::gaia_typename()
+{
+    static const char* gaia_typename = "app_ruleset_t";
+    return gaia_typename;
+}
+
+gaia::common::gaia_id_t app_ruleset_t::insert_row(bool active_on_startup, const char* gaia_application_name, const char* gaia_ruleset_name)
+{
+    flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
+    b.Finish(internal::Createapp_rulesetDirect(b, active_on_startup, gaia_application_name, gaia_ruleset_name));
+    return dac_object_t::insert_row(b);
+}
+
+gaia::direct_access::dac_container_t<c_gaia_type_app_ruleset, app_ruleset_t> app_ruleset_t::list()
+{
+    return gaia::direct_access::dac_container_t<c_gaia_type_app_ruleset, app_ruleset_t>();
+}
+
+bool app_ruleset_t::active_on_startup() const
+{
+    return GET(active_on_startup);
+}
+
+const char* app_ruleset_t::gaia_application_name() const
+{
+    return GET_STR(gaia_application_name);
+}
+
+const char* app_ruleset_t::gaia_ruleset_name() const
+{
+    return GET_STR(gaia_ruleset_name);
+}
+
+gaia_ruleset_t app_ruleset_t::ruleset() const
+{
+    gaia::common::gaia_id_t id = dac_db_t::get_reference(this->references()[c_app_ruleset_parent_ruleset], gaia::common::c_ref_anchor_parent_offset);
+    return (id == gaia::common::c_invalid_gaia_id) ? gaia_ruleset_t() : gaia_ruleset_t::get(id);
+}
+
+gaia_application_t app_ruleset_t::application() const
+{
+    gaia::common::gaia_id_t id = dac_db_t::get_reference(this->references()[c_app_ruleset_parent_application], gaia::common::c_ref_anchor_parent_offset);
+    return (id == gaia::common::c_invalid_gaia_id) ? gaia_application_t() : gaia_application_t::get(id);
+}
+
+//
+// Implementation of class app_database_t.
+//
+
+const char* app_database_t::gaia_typename()
+{
+    static const char* gaia_typename = "app_database_t";
+    return gaia_typename;
+}
+
+gaia::common::gaia_id_t app_database_t::insert_row(const char* gaia_application_name, uint64_t gaia_database_id)
+{
+    flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
+    b.Finish(internal::Createapp_databaseDirect(b, gaia_application_name, gaia_database_id));
+    return dac_object_t::insert_row(b);
+}
+
+gaia::direct_access::dac_container_t<c_gaia_type_app_database, app_database_t> app_database_t::list()
+{
+    return gaia::direct_access::dac_container_t<c_gaia_type_app_database, app_database_t>();
+}
+
+const char* app_database_t::gaia_application_name() const
+{
+    return GET_STR(gaia_application_name);
+}
+
+uint64_t app_database_t::gaia_database_id() const
+{
+    return GET(gaia_database_id);
+}
+
+gaia_application_t app_database_t::application() const
+{
+    gaia::common::gaia_id_t id = dac_db_t::get_reference(this->references()[c_app_database_parent_application], gaia::common::c_ref_anchor_parent_offset);
+    return (id == gaia::common::c_invalid_gaia_id) ? gaia_application_t() : gaia_application_t::get(id);
+}
+
+//
+// Implementation of class gaia_application_t.
+//
+
+const char* gaia_application_t::gaia_typename()
+{
+    static const char* gaia_typename = "gaia_application_t";
+    return gaia_typename;
+}
+
+gaia::common::gaia_id_t gaia_application_t::insert_row(const char* name)
+{
+    flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
+    b.Finish(internal::Creategaia_applicationDirect(b, name));
+    return dac_object_t::insert_row(b);
+}
+
+gaia::direct_access::dac_container_t<c_gaia_type_gaia_application, gaia_application_t> gaia_application_t::list()
+{
+    return gaia::direct_access::dac_container_t<c_gaia_type_gaia_application, gaia_application_t>();
+}
+
+const char* gaia_application_t::name() const
+{
+    return GET_STR(name);
+}
+
+gaia_application_t::app_rulesets_list_t gaia_application_t::app_rulesets() const
+{
+    return gaia_application_t::app_rulesets_list_t(this->references()[c_gaia_application_first_app_rulesets], c_app_ruleset_parent_application);
+}
+
+gaia_application_t::app_databases_list_t gaia_application_t::app_databases() const
+{
+    return gaia_application_t::app_databases_list_t(this->references()[c_gaia_application_first_app_databases], c_app_database_parent_application);
+}
+
+//
+// Implementation of class gaia_rule_t.
+//
+
+const char* gaia_rule_t::gaia_typename()
+{
+    static const char* gaia_typename = "gaia_rule_t";
+    return gaia_typename;
+}
+
+gaia::common::gaia_id_t gaia_rule_t::insert_row(const char* name, const char* gaia_ruleset_name)
+{
+    flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
+    b.Finish(internal::Creategaia_ruleDirect(b, name, gaia_ruleset_name));
+    return dac_object_t::insert_row(b);
+}
+
+gaia::direct_access::dac_container_t<c_gaia_type_gaia_rule, gaia_rule_t> gaia_rule_t::list()
+{
+    return gaia::direct_access::dac_container_t<c_gaia_type_gaia_rule, gaia_rule_t>();
+}
+
+const char* gaia_rule_t::name() const
+{
+    return GET_STR(name);
+}
+
+const char* gaia_rule_t::gaia_ruleset_name() const
+{
+    return GET_STR(gaia_ruleset_name);
+}
+
+gaia_ruleset_t gaia_rule_t::ruleset() const
+{
+    gaia::common::gaia_id_t id = dac_db_t::get_reference(this->references()[c_gaia_rule_parent_ruleset], gaia::common::c_ref_anchor_parent_offset);
+    return (id == gaia::common::c_invalid_gaia_id) ? gaia_ruleset_t() : gaia_ruleset_t::get(id);
+}
+
+gaia_rule_t::rule_relationships_list_t gaia_rule_t::rule_relationships() const
+{
+    return gaia_rule_t::rule_relationships_list_t(this->references()[c_gaia_rule_first_rule_relationships], c_rule_relationship_parent_rule);
+}
+
+gaia_rule_t::rule_fields_list_t gaia_rule_t::rule_fields() const
+{
+    return gaia_rule_t::rule_fields_list_t(this->references()[c_gaia_rule_first_rule_fields], c_rule_field_parent_rule);
+}
+
+gaia_rule_t::rule_tables_list_t gaia_rule_t::rule_tables() const
+{
+    return gaia_rule_t::rule_tables_list_t(this->references()[c_gaia_rule_first_rule_tables], c_rule_table_parent_rule);
+}
+
+//
+// Implementation of class gaia_ruleset_t.
+//
+
+const char* gaia_ruleset_t::gaia_typename()
+{
+    static const char* gaia_typename = "gaia_ruleset_t";
+    return gaia_typename;
+}
+
+gaia::common::gaia_id_t gaia_ruleset_t::insert_row(const char* name, const char* serial_stream)
+{
+    flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
+    b.Finish(internal::Creategaia_rulesetDirect(b, name, serial_stream));
+    return dac_object_t::insert_row(b);
+}
+
+gaia::direct_access::dac_container_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t> gaia_ruleset_t::list()
+{
+    return gaia::direct_access::dac_container_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t>();
+}
+
+const char* gaia_ruleset_t::name() const
+{
+    return GET_STR(name);
+}
+
+const char* gaia_ruleset_t::serial_stream() const
+{
+    return GET_STR(serial_stream);
+}
+
+gaia_ruleset_t::app_rulesets_list_t gaia_ruleset_t::app_rulesets() const
+{
+    return gaia_ruleset_t::app_rulesets_list_t(this->references()[c_gaia_ruleset_first_app_rulesets], c_app_ruleset_parent_ruleset);
+}
+
+gaia_ruleset_t::ruleset_databases_list_t gaia_ruleset_t::ruleset_databases() const
+{
+    return gaia_ruleset_t::ruleset_databases_list_t(this->references()[c_gaia_ruleset_first_ruleset_databases], c_ruleset_database_parent_ruleset);
+}
+
+gaia_ruleset_t::gaia_rules_list_t gaia_ruleset_t::gaia_rules() const
+{
+    return gaia_ruleset_t::gaia_rules_list_t(this->references()[c_gaia_ruleset_first_gaia_rules], c_gaia_rule_parent_ruleset);
+}
+
+//
 // Implementation of class gaia_ref_anchor_t.
 //
 
@@ -91,81 +492,6 @@ gaia_table_t gaia_index_t::table() const
     }
     gaia::common::gaia_id_t id = dac_db_t::get_reference(anchor_id, gaia::common::c_ref_anchor_parent_offset);
     return (id == gaia::common::c_invalid_gaia_id) ? gaia_table_t() : gaia_table_t::get(id);
-}
-
-//
-// Implementation of class gaia_rule_t.
-//
-
-const char* gaia_rule_t::gaia_typename()
-{
-    static const char* gaia_typename = "gaia_rule_t";
-    return gaia_typename;
-}
-
-gaia::common::gaia_id_t gaia_rule_t::insert_row(const char* name)
-{
-    flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-    b.Finish(internal::Creategaia_ruleDirect(b, name));
-    return dac_object_t::insert_row(b);
-}
-
-gaia::direct_access::dac_container_t<c_gaia_type_gaia_rule, gaia_rule_t> gaia_rule_t::list()
-{
-    return gaia::direct_access::dac_container_t<c_gaia_type_gaia_rule, gaia_rule_t>();
-}
-
-const char* gaia_rule_t::name() const
-{
-    return GET_STR(name);
-}
-
-gaia_ruleset_t gaia_rule_t::ruleset() const
-{
-    gaia::common::gaia_id_t anchor_id = this->references()[c_gaia_rule_parent_ruleset];
-    if (anchor_id == gaia::common::c_invalid_gaia_id)
-    {
-        return gaia_ruleset_t();
-    }
-    gaia::common::gaia_id_t id = dac_db_t::get_reference(anchor_id, gaia::common::c_ref_anchor_parent_offset);
-    return (id == gaia::common::c_invalid_gaia_id) ? gaia_ruleset_t() : gaia_ruleset_t::get(id);
-}
-
-//
-// Implementation of class gaia_ruleset_t.
-//
-
-const char* gaia_ruleset_t::gaia_typename()
-{
-    static const char* gaia_typename = "gaia_ruleset_t";
-    return gaia_typename;
-}
-
-gaia::common::gaia_id_t gaia_ruleset_t::insert_row(const char* name, bool active_on_startup)
-{
-    flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);
-    b.Finish(internal::Creategaia_rulesetDirect(b, name, active_on_startup));
-    return dac_object_t::insert_row(b);
-}
-
-gaia::direct_access::dac_container_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t> gaia_ruleset_t::list()
-{
-    return gaia::direct_access::dac_container_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t>();
-}
-
-const char* gaia_ruleset_t::name() const
-{
-    return GET_STR(name);
-}
-
-bool gaia_ruleset_t::active_on_startup() const
-{
-    return GET(active_on_startup);
-}
-
-gaia_ruleset_t::gaia_rules_list_t gaia_ruleset_t::gaia_rules() const
-{
-    return gaia_ruleset_t::gaia_rules_list_t(gaia_id(), c_gaia_ruleset_first_gaia_rules, c_gaia_rule_next_ruleset);
 }
 
 //

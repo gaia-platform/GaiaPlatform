@@ -108,13 +108,15 @@ client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::opt
                     gaia_offset_t offset = lr->new_offset;
 
                     ASSERT_INVARIANT(
-                        offset != c_invalid_gaia_offset,
+                        offset.is_valid(),
                         "An unexpected invalid object offset was found in the log record!");
 
                     db_object_t* db_object = offset_to_ptr(offset);
 
                     if (db_object->type == type)
                     {
+                        ASSERT_PRECONDITION(
+                            db_object->id != c_invalid_gaia_id, "Database object has an invalid gaia_id value!");
                         return db_object->id;
                     }
                 }
@@ -379,7 +381,7 @@ void client_t::begin_transaction()
     s_txn_id = txn_info->transaction_id();
     s_txn_log_offset = txn_info->transaction_log_offset();
     ASSERT_INVARIANT(
-        s_txn_id != c_invalid_gaia_txn_id,
+        s_txn_id.is_valid(),
         "Begin timestamp should not be invalid!");
     ASSERT_INVARIANT(
         s_txn_log_offset != c_invalid_log_offset,

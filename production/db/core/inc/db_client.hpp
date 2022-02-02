@@ -50,6 +50,7 @@ class client_t
      */
     friend gaia::db::locators_t* gaia::db::get_locators();
     friend gaia_txn_id_t gaia::db::get_current_txn_id();
+    friend gaia::db::mapped_log_t* gaia::db::get_mapped_log();
     friend gaia::db::txn_log_t* gaia::db::get_txn_log();
 
     /**
@@ -108,8 +109,6 @@ private:
 
     // These fields have session lifetime.
     thread_local static inline config::session_options_t s_session_options;
-    thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
-    thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
 
     thread_local static inline int s_fd_locators = -1;
 

@@ -52,7 +52,7 @@ static StringRef getTableFromExpression(StringRef expression)
     }
 }
 
-static QualType mapFieldType(catalog::data_type_t dbType, ASTContext* context)
+static QualType mapFieldType(catalog::data_type_t dbType, bool isArray, ASTContext* context)
 {
     // Clang complains if we add a default clause to a switch that covers all values of an enum,
     // so this code is written to avoid that.
@@ -101,6 +101,11 @@ static QualType mapFieldType(catalog::data_type_t dbType, ASTContext* context)
     // We should not be reaching this line with this value,
     // unless there is an error in code.
     assert(returnType != context->VoidTy);
+
+    if (isArray)
+    {
+        return context->getIncompleteArrayType(returnType, ArrayType::Normal, 0);
+    }
 
     return returnType;
 }
@@ -389,7 +394,7 @@ llvm::StringMap<llvm::StringMap<QualType>> Sema::getTableData()
         llvm::StringMap<QualType> fields;
         for (const auto& fieldData : catalogDataItem.second.fieldData)
         {
-            fields[fieldData.first()] =  mapFieldType(fieldData.second.fieldType, &Context);
+            fields[fieldData.first()] =  mapFieldType(fieldData.second.fieldType, fieldData.second.isArray, &Context);
         }
         result[catalogDataItem.first()] = fields;
     }
@@ -1619,4 +1624,15 @@ bool Sema::ValidateLabel(const LabelDecl* label)
     labelsInProcess.erase(labelName);
     declarativeLabelsInProcess.erase(labelName);
     return true;
+}
+
+void Sema::ActOnRuleStart()
+{
+    ResetTableSearchContextStack();
+    labelsInProcess.clear();
+    declarativeLabelsInProcess.clear();
+    explicitPathData.clear();
+    explicitPathTagMapping.clear();
+    extendedExplicitPathTagMapping.clear();
+    injectedVariablesLocation.clear();
 }

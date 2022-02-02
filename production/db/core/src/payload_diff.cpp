@@ -36,7 +36,7 @@ field_position_list_t compute_payload_diff(
     // and we cannot find the type in catalog. This means we have some serious
     // data corruption bug(s).
     ASSERT_INVARIANT(
-        type_record_id != c_invalid_gaia_id,
+        type_record_id.is_valid(),
         gaia_fmt::format("The type '{}' does not exist in the catalog for payload diff!", type_id).c_str());
 
     auto schema = catalog_core::get_table(type_record_id).binary_schema();

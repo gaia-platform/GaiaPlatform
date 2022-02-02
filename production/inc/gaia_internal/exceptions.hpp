@@ -152,6 +152,12 @@ public:
     explicit configuration_error_internal(const char* filename);
 };
 
+class optional_value_not_found_internal : public optional_value_not_found
+{
+public:
+    optional_value_not_found_internal();
+};
+
 namespace logging
 {
 

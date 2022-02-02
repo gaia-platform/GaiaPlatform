@@ -97,6 +97,7 @@ class server_t
     friend gaia::db::id_index_t* gaia::db::get_id_index();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
     friend gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id();
+    friend gaia::db::mapped_log_t* gaia::db::get_mapped_log();
     friend gaia::db::txn_log_t* gaia::db::get_txn_log();
     friend gaia::db::memory_manager::memory_manager_t* gaia::db::get_memory_manager();
     friend gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager();
