@@ -34,7 +34,7 @@ struct catalog_db_object_view_t
         : m_obj_ptr{obj_ptr}
     {
         ASSERT_PRECONDITION(
-            obj_ptr != nullptr,
+            obj_ptr,
             "Unexpected null pointer to a db object. "
             "The view class can only be used to read valid db catalog objects.");
     }

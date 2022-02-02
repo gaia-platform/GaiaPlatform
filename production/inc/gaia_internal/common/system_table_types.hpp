@@ -40,17 +40,18 @@ enum class system_table_type_t : gaia_type_t::value_type
     catalog_gaia_relationship = static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_relationship),
     catalog_gaia_index = static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_index),
     catalog_gaia_ref_anchor = static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_ref_anchor),
+
     // Assign constant IDs to other system tables starting from lower end of the reserved range.
     event_log = c_system_table_reserved_range_start.value(),
-    gaia_ruleset = event_log + 1,
-    gaia_rule = gaia_ruleset + 1,
-    gaia_application = gaia_rule + 1,
-    app_database = gaia_application + 1,
-    app_ruleset = app_database + 1,
-    ruleset_database = app_ruleset + 1,
-    rule_table = ruleset_database + 1,
-    rule_field = rule_table + 1,
-    rule_relationship = rule_field + 1,
+    gaia_ruleset,
+    gaia_rule,
+    gaia_application,
+    app_database,
+    app_ruleset,
+    ruleset_database,
+    rule_table,
+    rule_field,
+    rule_relationship,
 };
 
 inline bool is_catalog_core_object(gaia_type_t type)

@@ -276,14 +276,14 @@ void ddl_executor_t::bootstrap_catalog()
     m_empty_db_id = create_database(c_empty_db_name, false);
     m_db_context = c_empty_db_name;
 
-    // Initialize the the rule catalog tables.
+    // Initialize the rule catalog tables.
     //
     // Conventions:
     //   - Field names ending in "_name" are used to store the VLR reference to the parent row
     //     of the named type, e.g. gaia_ruleset_name will match a row of the gaia_ruleset table.
     //   - Field names ending in "_id" are used to store the gaia_id_t of a row of the
     //     named type. These are used only to point from rule tables to core tables.
-    //   - Fields names not ending in either "_id" or "_name" are data in the row, not used
+    //   - Field names not ending in either "_id" or "_name" are data in the row, not used
     //     to create connections with other rows.
     //   - The connection-related fields are placed below the data fields.
     std::optional<constraint_list_t> unique_constraint = constraint_list_t{};
