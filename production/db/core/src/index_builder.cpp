@@ -50,7 +50,7 @@ void index_builder_t::serialize_key(const index_key_t& key, payload_types::data_
 
 index_key_t index_builder_t::deserialize_key(common::gaia_id_t index_id, payload_types::data_read_buffer_t& buffer)
 {
-    ASSERT_PRECONDITION(index_id != c_invalid_gaia_id, "Invalid gaia id.");
+    ASSERT_PRECONDITION(index_id.is_valid(), "Invalid gaia id.");
 
     index_key_t index_key;
     auto index_ptr = id_to_ptr(index_id);
@@ -96,7 +96,7 @@ indexes_t::iterator index_builder_t::create_empty_index(const catalog_core::inde
 
     index_key_schema_t key_schema;
 
-    if (index_view.table_id() != c_invalid_gaia_id)
+    if (index_view.table_id().is_valid())
     {
         auto table_view = catalog_core::table_view_t(id_to_ptr(index_view.table_id()));
         key_schema.table_type = table_view.table_type();
@@ -186,7 +186,7 @@ void update_index_entry(
 
             bool is_aborted_operation
                 = !is_marked_committed(it_start->second)
-                && commit_ts != c_invalid_gaia_txn_id
+                && commit_ts.is_valid()
                 && transactions::txn_metadata_t::is_txn_aborted(commit_ts);
 
             // Index entries made by rolled back transactions or aborted transactions can be ignored,
@@ -209,7 +209,7 @@ void update_index_entry(
             bool is_our_operation = (begin_ts == record.txn_id);
             bool is_committed_operation
                 = is_marked_committed(it_start->second)
-                || (commit_ts != c_invalid_gaia_txn_id && transactions::txn_metadata_t::is_txn_committed(commit_ts));
+                || (commit_ts.is_valid() && transactions::txn_metadata_t::is_txn_committed(commit_ts));
 
             // Opportunistically mark a record as committed to skip metadata lookup next time.
             if (is_committed_operation)
@@ -434,7 +434,7 @@ void index_builder_t::update_indexes_from_txn_log(
         // Skip if catalog verification disabled and type not found in the catalog.
         if (is_catalog_core_object(obj->type)
             || std::find(dropped_types.begin(), dropped_types.end(), obj->type) != dropped_types.end()
-            || (skip_catalog_integrity_check && type_record_id == c_invalid_gaia_id))
+            || (skip_catalog_integrity_check && !type_record_id.is_valid()))
         {
             continue;
         }
@@ -494,7 +494,7 @@ void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool dea
             gaia_offset_t offset = deallocate_new_offsets ? log_record.new_offset : log_record.old_offset;
 
             // If no action is needed, move on to the next log record.
-            if (offset != c_invalid_gaia_offset)
+            if (offset.is_valid())
             {
                 auto obj = offset_to_ptr(offset);
 

@@ -37,9 +37,9 @@ public:
     inline bool initialized() const
     {
         ASSERT_INVARIANT(
-            (m_chunk_offset != c_invalid_chunk_offset) == bool(m_metadata),
+            (m_chunk_offset.is_valid()) == (m_metadata != nullptr),
             "The chunk offset and the metadata pointer must both be set or both be unset!");
-        return (m_chunk_offset != c_invalid_chunk_offset);
+        return m_chunk_offset.is_valid();
     }
 
     // Initialize the chunk manager with an empty chunk.
@@ -112,14 +112,14 @@ private:
     inline void validate_initialized() const
     {
         ASSERT_PRECONDITION(
-            (m_chunk_offset != c_invalid_chunk_offset) && (m_metadata != nullptr),
+            (m_chunk_offset.is_valid()) && (m_metadata != nullptr),
             "Chunk manager was not initialized!");
     }
 
     inline void validate_uninitialized() const
     {
         ASSERT_PRECONDITION(
-            (m_chunk_offset == c_invalid_chunk_offset) && (m_metadata == nullptr),
+            (!m_chunk_offset.is_valid()) && (m_metadata == nullptr),
             "Chunk manager was already initialized!");
     }
 

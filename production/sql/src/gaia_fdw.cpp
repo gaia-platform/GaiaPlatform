@@ -701,7 +701,7 @@ extern "C" TupleTableSlot* gaia_exec_foreign_insert(
         }
     }
 
-    if (gaia_id == c_invalid_gaia_id)
+    if (!gaia_id.is_valid())
     {
         ereport(
             ERROR,
@@ -789,7 +789,7 @@ extern "C" TupleTableSlot* gaia_exec_foreign_update(
         }
     }
 
-    if (gaia_id == c_invalid_gaia_id)
+    if (!gaia_id.is_valid())
     {
         ereport(
             ERROR,
