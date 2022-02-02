@@ -36,6 +36,9 @@ void test_optional_value(T_value val, T_value other_val, T_accessor accessor, T_
     optional_values_t values = optional_values_t::get(values_id);
 
     ASSERT_FALSE((values.*accessor)().has_value());
+    // Since this test is run with C++17, gaia::common::optional_t maps to std::optional
+    // hence the std::bad_optional_access exception.
+    ASSERT_THROW((values.*accessor)().value(), std::bad_optional_access);
 
     // Put a raw value in the optional.
     values_w = values.writer();
@@ -46,13 +49,21 @@ void test_optional_value(T_value val, T_value other_val, T_accessor accessor, T_
     ASSERT_EQ((values.*accessor)().value(), val);
 
     // Replace the optional value with another optional.
-    std::optional<T_value> opt_value = other_val;
+    optional_t<T_value> opt_value = other_val;
     values_w = values.writer();
     (values_w.*writer) = opt_value;
     values_w.update_row();
 
     ASSERT_TRUE((values.*accessor)().has_value());
     ASSERT_EQ((values.*accessor)().value(), other_val);
+
+    // Replace the optional value with nullopt.
+    values_w = values.writer();
+    (values_w.*writer) = nullopt;
+    values_w.update_row();
+
+    ASSERT_FALSE((values.*accessor)().has_value());
+    ASSERT_THROW((values.*accessor)().value(), std::bad_optional_access);
 }
 
 TEST_F(optional_dac_test, test_optionals_values)
@@ -68,6 +79,57 @@ TEST_F(optional_dac_test, test_optionals_values)
     test_optional_value<float>(8.1f, 10.1f, &optional_values_t::optional_float, &optional_values_writer::optional_float);
     test_optional_value<double>(9.2, 11.2, &optional_values_t::optional_double, &optional_values_writer::optional_double);
     test_optional_value<bool>(true, false, &optional_values_t::optional_bool, &optional_values_writer::optional_bool);
+}
+
+TEST_F(optional_dac_test, test_non_optionals_values)
+{
+    auto_transaction_t txn;
+
+    optional_values_writer values_w;
+    gaia_id_t values_id = values_w.insert_row();
+    optional_values_t values = optional_values_t::get(values_id);
+
+    // Default values for non-optional fields.
+    ASSERT_EQ(values.non_optional_int(), 0);
+    ASSERT_EQ(values.non_optional_fp(), 0.0);
+    ASSERT_EQ(values.non_optional_int(), false);
+
+    // Assign value to non-optional.
+    values_w = values.writer();
+    values_w.non_optional_int = 10;
+    values_w.non_optional_fp = 10.2;
+    values_w.non_optional_bool = true;
+    values_w.update_row();
+
+    ASSERT_EQ(values.non_optional_int(), 10);
+    ASSERT_EQ(values.non_optional_fp(), 10.2);
+    ASSERT_EQ(values.non_optional_bool(), true);
+}
+
+TEST_F(optional_dac_test, test_insert)
+{
+    auto_transaction_t txn;
+
+    // The values are automatically "boxed into an optional".
+    gaia_id_t values_id_1 = optional_insert_override_t::insert_row(23, 2.3, true);
+    optional_insert_override_t values_1 = optional_insert_override_t::get(values_id_1);
+    ASSERT_EQ(values_1.optional_uint8(), 23);
+    ASSERT_EQ(values_1.optional_double(), 2.3);
+    ASSERT_EQ(values_1.non_optional_bool(), true);
+
+    // The values are passed as optional.
+    gaia_id_t values_id_2 = optional_insert_override_t::insert_row(optional_t<uint8_t>(23), optional_t<double>(2.3), true);
+    optional_insert_override_t values_2 = optional_insert_override_t::get(values_id_2);
+    ASSERT_EQ(values_2.optional_uint8(), 23);
+    ASSERT_EQ(values_2.optional_double(), 2.3);
+    ASSERT_EQ(values_2.non_optional_bool(), true);
+
+    // Pass nullopt to leave values uninitialized.
+    gaia_id_t values_id_3 = optional_insert_override_t::insert_row(nullopt, nullopt, true);
+    optional_insert_override_t values_3 = optional_insert_override_t::get(values_id_3);
+    ASSERT_FALSE(values_3.optional_uint8().has_value());
+    ASSERT_FALSE(values_3.optional_double().has_value());
+    ASSERT_EQ(values_3.non_optional_bool(), true);
 }
 
 TEST_F(optional_dac_test, test_vlr)
@@ -94,7 +156,7 @@ TEST_F(optional_dac_test, test_vlr)
 
     // Child implicit disconnect.
     child_w = child.writer();
-    child_w.parent_id = std::nullopt;
+    child_w.parent_id = nullopt;
     child_w.update_row();
 
     ASSERT_EQ(parent.child().size(), 0);
@@ -107,7 +169,7 @@ TEST_F(optional_dac_test, test_vlr)
     ASSERT_EQ(parent.child().size(), 1);
 
     parent_w = parent.writer();
-    parent_w.id = std::nullopt;
+    parent_w.id = nullopt;
     parent_w.update_row();
 
     ASSERT_EQ(parent.child().size(), 0);

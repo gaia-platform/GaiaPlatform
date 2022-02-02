@@ -7,6 +7,7 @@ database optional_sandbox;
 
 table optional_values
 (
+    -- Optional fields.
     optional_uint8 uint8 optional,
     optional_uint16 uint16 optional,
     optional_uint32 uint32 optional,
@@ -17,7 +18,18 @@ table optional_values
     optional_int64 int64 optional,
     optional_float float optional,
     optional_double double optional,
-    optional_bool bool optional
+    optional_bool bool optional,
+    -- Mix non-optional fields.
+    non_optional_int uint32,
+    non_optional_fp double,
+    non_optional_bool bool
+)
+
+table optional_insert_override
+(
+    optional_uint8 uint8 optional,
+    optional_double double optional,
+    non_optional_bool bool
 )
 
 table optional_vlr_parent
