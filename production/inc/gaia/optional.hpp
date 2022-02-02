@@ -23,11 +23,8 @@ namespace common
  * @{
  */
 
-// For simplicity, we use the flatbuffers implementation of Optional.
-// flatbuffers::Optional uses std::optional when available or falls back to a
-// trivial implementation of optional when std::optional is not available.
-// By using flatbuffers::Optional we don't have to convert back and forth between
-// flatbuffers::Optional and gaia::common::optional_t.
+// Note: if compiling with C++17 or newer, flatbuffers::Optional 
+// uses std::optional under the covers.
 template <typename T_value>
 using optional_t = flatbuffers::Optional<T_value>;
 using nullopt_t = flatbuffers::nullopt_t;
