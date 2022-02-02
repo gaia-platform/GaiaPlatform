@@ -30,14 +30,7 @@ const T_output& generator_iterator_t<T_output>::operator*() const
 template <typename T_output>
 const T_output* generator_iterator_t<T_output>::operator->() const
 {
-    if (m_state.has_value())
-    {
-        return &m_state.value();
-    }
-    else
-    {
-        return nullptr;
-    }
+    return m_state ? &m_state.value() : nullptr;
 }
 
 template <typename T_output>
@@ -56,9 +49,9 @@ generator_iterator_t<T_output>& generator_iterator_t<T_output>::operator++()
 template <typename T_output>
 generator_iterator_t<T_output> generator_iterator_t<T_output>::operator++(int)
 {
-    auto r = *this;
-    ++(*this);
-    return r;
+    auto old = *this;
+    operator++();
+    return old;
 }
 
 template <typename T_output>
