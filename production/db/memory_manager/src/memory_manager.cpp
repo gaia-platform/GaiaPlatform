@@ -175,7 +175,7 @@ chunk_offset_t memory_manager_t::allocate_chunk()
 {
     // First try to reuse a deallocated chunk.
     chunk_offset_t allocated_chunk_offset = allocate_used_chunk();
-    if (allocated_chunk_offset != c_invalid_chunk_offset)
+    if (!allocated_chunk_offset.is_valid())
     {
 #ifdef DEBUG
         // In debug mode, we write-protect all allocations after writes are
@@ -195,14 +195,14 @@ chunk_offset_t memory_manager_t::allocate_chunk()
     }
 
     // If no deallocated chunk is available, then claim the next chunk from unused memory.
-    if (allocated_chunk_offset == c_invalid_chunk_offset)
+    if (!allocated_chunk_offset.is_valid())
     {
         allocated_chunk_offset = allocate_unused_chunk();
     }
 
     // At this point, we must either have a valid chunk offset, or we have run out of memory.
     ASSERT_INVARIANT(
-        (allocated_chunk_offset != c_invalid_chunk_offset) || (m_metadata->next_available_unused_chunk_offset > c_last_chunk_offset),
+        (allocated_chunk_offset.is_valid()) || (m_metadata->next_available_unused_chunk_offset > c_last_chunk_offset),
         "Chunk allocation cannot fail unless memory is exhausted!");
 
     return allocated_chunk_offset;

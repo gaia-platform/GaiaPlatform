@@ -50,13 +50,6 @@ public:
         bool throw_on_exists = true,
         bool auto_drop = false);
 
-    gaia::common::gaia_id_t create_system_table(
-        const std::string& db_name,
-        const std::string& name,
-        const ddl::field_def_list_t& fields,
-        bool throw_on_exists = true,
-        bool auto_drop = false);
-
     gaia::common::gaia_id_t create_relationship(
         const std::string& name,
         const ddl::link_def_t& link1,

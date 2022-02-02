@@ -510,7 +510,7 @@ std::string class_writer_t::generate_incoming_links_accessors_cpp()
         else
         {
             code += "gaia::common::gaia_id_t anchor_id = this->references()[{{PARENT_OFFSET}}];";
-            code += "if (anchor_id == gaia::common::c_invalid_gaia_id)";
+            code += "if (!anchor_id.is_valid())";
             code += "{";
             code.IncrementIdentLevel();
             code += "return {{PARENT_TABLE}}_t();";
@@ -518,7 +518,7 @@ std::string class_writer_t::generate_incoming_links_accessors_cpp()
             code += "}";
             code += "gaia::common::gaia_id_t id = dac_db_t::get_reference(anchor_id, gaia::common::c_ref_anchor_parent_offset);";
         }
-        code += "return (id == gaia::common::c_invalid_gaia_id) ? {{PARENT_TABLE}}_t() : {{PARENT_TABLE}}_t::get(id);";
+        code += "return (id.is_valid()) ? {{PARENT_TABLE}}_t::get(id) : {{PARENT_TABLE}}_t();";
         code.DecrementIdentLevel();
         code += "}";
         code += "";
@@ -595,7 +595,7 @@ std::string class_writer_t::generate_outgoing_links_accessors_cpp()
             code += "{";
             code.IncrementIdentLevel();
             code += "gaia::common::gaia_id_t anchor_id = this->references()[{{FIRST_OFFSET}}];";
-            code += "gaia::common::gaia_id_t child_id = (anchor_id == gaia::common::c_invalid_gaia_id) ? gaia::common::c_invalid_gaia_id : dac_db_t::get_reference(anchor_id, gaia::common::c_ref_anchor_first_child_offset);";
+            code += "gaia::common::gaia_id_t child_id = (anchor_id.is_valid()) ? dac_db_t::get_reference(anchor_id, gaia::common::c_ref_anchor_first_child_offset) : gaia::common::c_invalid_gaia_id;";
             code += "return {{CHILD_TABLE}}_ref_t(gaia_id(), child_id, {{FIRST_OFFSET}});";
             code.DecrementIdentLevel();
             code += "}";
