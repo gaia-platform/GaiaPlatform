@@ -108,16 +108,24 @@ set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 #
 # The directory that contains the files listed in CPACK_DEBHELPER_INPUT.
 set(CPACK_DEBHELPER_INPUT_DIR "${PROJECT_SOURCE_DIR}/debian")
+
+# Clear old debian configured files.
+file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/debian)
+
 # List of input files that require processing by the debhelpers. All of these
 # must have the '.in' extension because they are first processed by
 # configure_file().
 set(CPACK_DEBHELPER_INPUT
   control.in
   changelog.in
-  service.in
   links.in
   dirs.in
 )
+
+if (SDK_DB_SERVER_AS_SERVICE)
+  list(APPEND CPACK_DEBHELPER_INPUT service.in)
+endif()
+
 # List of debhelpers to run.
 # If left unset the default list of debhelpers is executed.
 set(CPACK_DEBHELPER_RUN
