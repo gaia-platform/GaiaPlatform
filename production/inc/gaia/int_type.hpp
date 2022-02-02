@@ -57,6 +57,7 @@ public:
 
     // Disable conversions to bool.
     explicit operator bool() = delete;
+    explicit operator bool() const = delete;
 
     // Returns whether the contained value is set
     // to a different value than the default_invalid_value.
