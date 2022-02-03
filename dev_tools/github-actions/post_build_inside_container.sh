@@ -5,7 +5,6 @@
 # All rights reserved.
 #############################################
 
-
 # Note that this script is meant to be invoked from
 # post_build_action.sh which does command line
 # argument validation before calling this script.
