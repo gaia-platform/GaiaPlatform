@@ -209,7 +209,7 @@ mkdir -p "$OUTPUT_DIRECTORY"
 if ! docker run \
     --rm \
     --init \
-    $INTERACTIVE_MODE \
+    -t \
     --platform linux/amd64 \
     --mount "type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$OUTPUT_DIRECTORY" \
     coverage_image \
