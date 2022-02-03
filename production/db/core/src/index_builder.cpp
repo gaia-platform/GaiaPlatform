@@ -189,7 +189,7 @@ void update_index_entry(
                 && commit_ts.is_valid()
                 && transactions::txn_metadata_t::is_txn_aborted(commit_ts);
 
-            // Index entries made by rolled back transactions or aborted transactions can be ignored,
+            // Index entries made by rolled back transactions or aborted transactions can be ignored.
             // We can also remove them, because we are already holding a lock.
 
             if (is_aborted_operation
@@ -357,7 +357,7 @@ void index_builder_t::populate_index(common::gaia_id_t index_id, gaia_locator_t 
  * As such, we rely on the logs being sorted by temporal order.
  */
 void index_builder_t::update_indexes_from_txn_log(
-    const txn_log_t& records, bool skip_catalog_integrity_check, bool allow_create_empty)
+    txn_log_t* txn_log, bool skip_catalog_integrity_check, bool allow_create_empty)
 {
     // Clear the type_id_mapping cache (so it will be refreshed) if we find any
     // table is created or dropped in the txn.
@@ -365,14 +365,13 @@ void index_builder_t::update_indexes_from_txn_log(
     bool has_cleared_cache = false;
     std::vector<gaia_type_t> dropped_types;
 
-    for (size_t i = 0; i < records.record_count; ++i)
+    for (auto log_record = txn_log->log_records; log_record < txn_log->log_records + txn_log->record_count; ++log_record)
     {
-        const auto& log_record = records.log_records[i];
-        if ((log_record.operation() == gaia_operation_t::remove || log_record.operation() == gaia_operation_t::create)
+        if ((log_record->operation() == gaia_operation_t::remove || log_record->operation() == gaia_operation_t::create)
             && offset_to_ptr(
-                   log_record.operation() == gaia_operation_t::remove
-                       ? log_record.old_offset
-                       : log_record.new_offset)
+                   log_record->operation() == gaia_operation_t::remove
+                       ? log_record->old_offset
+                       : log_record->new_offset)
                     ->type
                 == static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_table))
         {
@@ -382,28 +381,27 @@ void index_builder_t::update_indexes_from_txn_log(
                 has_cleared_cache = true;
             }
 
-            if (log_record.operation() == gaia_operation_t::remove)
+            if (log_record->operation() == gaia_operation_t::remove)
             {
-                auto table_view = catalog_core::table_view_t(offset_to_ptr(log_record.old_offset));
+                auto table_view = catalog_core::table_view_t(offset_to_ptr(log_record->old_offset));
                 dropped_types.push_back(table_view.table_type());
             }
         }
     }
 
     gaia_operation_t last_index_operation = gaia_operation_t::not_set;
-    for (size_t i = 0; i < records.record_count; ++i)
+    for (auto log_record = txn_log->log_records; log_record < txn_log->log_records + txn_log->record_count; ++log_record)
     {
-        auto& log_record = records.log_records[i];
         db_object_t* obj = nullptr;
 
-        if (log_record.operation() == gaia_operation_t::remove)
+        if (log_record->operation() == gaia_operation_t::remove)
         {
-            obj = offset_to_ptr(log_record.old_offset);
+            obj = offset_to_ptr(log_record->old_offset);
             ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
         }
         else
         {
-            obj = offset_to_ptr(log_record.new_offset);
+            obj = offset_to_ptr(log_record->new_offset);
             ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
         }
 
@@ -412,18 +410,18 @@ void index_builder_t::update_indexes_from_txn_log(
         {
             auto index_view = catalog_core::index_view_t(obj);
 
-            if (log_record.operation() == gaia_operation_t::remove)
+            if (log_record->operation() == gaia_operation_t::remove)
             {
                 index::index_builder_t::drop_index(index_view);
             }
             // We only create the empty index after the post-create update operation because it is finally linked to the parent.
-            else if (log_record.operation() == gaia_operation_t::update && last_index_operation == gaia_operation_t::create)
+            else if (log_record->operation() == gaia_operation_t::update && last_index_operation == gaia_operation_t::create)
             {
                 index::index_builder_t::create_empty_index(index_view, skip_catalog_integrity_check);
             }
 
             // Keep track of the last index operation in this txn.
-            last_index_operation = log_record.operation();
+            last_index_operation = log_record->operation();
             continue;
         }
 
@@ -456,7 +454,7 @@ void index_builder_t::update_indexes_from_txn_log(
                 ASSERT_INVARIANT(it != get_indexes()->end(), "Index structure could not be found.");
             }
 
-            index::index_builder_t::update_index(it->second, log_record);
+            index::index_builder_t::update_index(it->second, *log_record);
         }
     }
 }
@@ -479,17 +477,19 @@ void remove_entries_with_offsets(base_index_t* base_index, const index_offset_bu
     }
 }
 
-void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool deallocate_new_offsets)
+void index_builder_t::gc_indexes_from_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets)
 {
-    size_t records_index = 0;
-    while (records_index < records.record_count)
+    size_t record_index = 0;
+    size_t record_count = txn_log->record_count;
+
+    while (record_index < record_count)
     {
         index_offset_buffer_t collected_offsets;
         // Fill the offset buffer for garbage collection.
         // Exit the loop when we either have run out of records to process or the offsets buffer is full.
-        for (; records_index < records.record_count && collected_offsets.size() < c_offset_buffer_size; ++records_index)
+        for (; record_index < record_count && collected_offsets.size() < c_offset_buffer_size; ++record_index)
         {
-            const auto& log_record = records.log_records[records_index];
+            const auto& log_record = txn_log->log_records[record_index];
 
             gaia_offset_t offset = deallocate_new_offsets ? log_record.new_offset : log_record.old_offset;
 
@@ -523,10 +523,10 @@ void index_builder_t::gc_indexes_from_txn_log(const txn_log_t& records, bool dea
             switch (it.second->type())
             {
             case catalog::index_type_t::range:
-                remove_entries_with_offsets<range_index_t>(it.second.get(), collected_offsets, records.begin_ts);
+                remove_entries_with_offsets<range_index_t>(it.second.get(), collected_offsets, txn_log->begin_ts());
                 break;
             case catalog::index_type_t::hash:
-                remove_entries_with_offsets<hash_index_t>(it.second.get(), collected_offsets, records.begin_ts);
+                remove_entries_with_offsets<hash_index_t>(it.second.get(), collected_offsets, txn_log->begin_ts());
                 break;
             }
         }

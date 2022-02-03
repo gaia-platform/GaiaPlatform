@@ -47,13 +47,13 @@ txn_metadata_entry_t txn_metadata_entry_t::new_begin_ts_entry()
     return txn_metadata_entry_t{c_txn_status_active << c_txn_status_flags_shift};
 }
 
-txn_metadata_entry_t txn_metadata_entry_t::new_commit_ts_entry(gaia_txn_id_t begin_ts, int log_fd)
+txn_metadata_entry_t txn_metadata_entry_t::new_commit_ts_entry(gaia_txn_id_t begin_ts, db::log_offset_t log_offset)
 {
     // We construct the commit_ts metadata by concatenating required bits.
-    uint64_t shifted_log_fd = static_cast<uint64_t>(log_fd) << c_txn_log_fd_shift;
+    uint64_t shifted_log_offset = static_cast<uint64_t>(log_offset) << c_txn_log_offset_shift;
     constexpr uint64_t c_shifted_status_flags{
         c_txn_status_validating << c_txn_status_flags_shift};
-    return txn_metadata_entry_t{c_shifted_status_flags | shifted_log_fd | begin_ts};
+    return txn_metadata_entry_t{c_shifted_status_flags | shifted_log_offset | begin_ts};
 }
 
 bool txn_metadata_entry_t::is_uninitialized()
@@ -137,23 +137,12 @@ gaia_txn_id_t txn_metadata_entry_t::get_timestamp()
     return (m_word & c_txn_ts_mask);
 }
 
-int txn_metadata_entry_t::get_log_fd()
+db::log_offset_t txn_metadata_entry_t::get_log_offset()
 {
     ASSERT_PRECONDITION(is_commit_ts_entry(), "Not a commit timestamp!");
 
-    // The txn log fd is the 16 bits of the ts metadata after the 3 status bits.
-    uint16_t fd = (m_word & c_txn_log_fd_mask) >> c_txn_log_fd_shift;
-
-    // If the log fd is invalidated, then return an invalid fd value (-1).
-    return (fd != c_invalid_txn_log_fd_bit_pattern) ? static_cast<int>(fd) : -1;
-}
-
-txn_metadata_entry_t txn_metadata_entry_t::invalidate_log_fd()
-{
-    ASSERT_PRECONDITION(is_commit_ts_entry(), "Not a commit timestamp!");
-    ASSERT_PRECONDITION(is_decided(), "Cannot invalidate an undecided txn!");
-
-    return txn_metadata_entry_t{m_word | c_txn_log_fd_mask};
+    // The txn log offset is the 16 bits of the ts metadata after the 3 status bits.
+    return (m_word & c_txn_log_offset_mask) >> c_txn_log_offset_shift;
 }
 
 txn_metadata_entry_t txn_metadata_entry_t::set_submitted(gaia_txn_id_t commit_ts)
@@ -265,7 +254,7 @@ std::string txn_metadata_entry_t::dump_metadata()
 
     if (is_commit_ts_entry())
     {
-        str << "Log fd for commit_ts metadata: " << get_log_fd() << std::endl;
+        str << "Log offset for commit_ts metadata: " << get_log_offset() << std::endl;
     }
     return str.str();
 }

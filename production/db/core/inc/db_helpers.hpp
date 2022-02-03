@@ -104,11 +104,23 @@ inline gaia_txn_id_t get_last_txn_id()
 
 inline void apply_log_to_locators(locators_t* locators, txn_log_t* log)
 {
-    for (size_t i = 0; i < log->record_count; ++i)
+    for (auto record = log->log_records; record < log->log_records + log->record_count; ++record)
     {
-        auto& record = log->log_records[i];
-        (*locators)[record.locator] = record.new_offset;
+        (*locators)[record->locator] = record->new_offset;
     }
+}
+
+inline gaia::db::txn_log_t* get_txn_log_from_offset(log_offset_t offset)
+{
+    ASSERT_PRECONDITION(offset != gaia::db::c_invalid_log_offset, "Txn log offset is invalid!");
+    gaia::db::logs_t* logs = gaia::db::get_logs();
+    return &((*logs)[offset]);
+}
+
+inline void apply_log_from_offset(locators_t* locators, log_offset_t log_offset)
+{
+    txn_log_t* txn_log = get_txn_log_from_offset(log_offset);
+    apply_log_to_locators(locators, txn_log);
 }
 
 inline index::db_index_t id_to_index(common::gaia_id_t index_id)
@@ -165,6 +177,18 @@ inline void allocate_object(
 
     // Update locator array to point to the new offset.
     update_locator(locator, object_offset);
+}
+
+inline bool acquire_txn_log_reference(log_offset_t log_offset, gaia_txn_id_t begin_ts)
+{
+    txn_log_t* txn_log = get_txn_log_from_offset(log_offset);
+    return txn_log->acquire_reference(begin_ts);
+}
+
+inline void release_txn_log_reference(log_offset_t log_offset, gaia_txn_id_t begin_ts)
+{
+    txn_log_t* txn_log = get_txn_log_from_offset(log_offset);
+    txn_log->release_reference(begin_ts);
 }
 
 } // namespace db

@@ -62,18 +62,18 @@ size_t slot_to_bit_index(slot_offset_t slot_offset)
 size_t slot_to_bit_index_in_word(slot_offset_t slot_offset)
 {
     size_t bit_index = slot_to_bit_index(slot_offset);
-    return bit_index % c_uint64_bit_count;
+    return bit_index % common::c_uint64_bit_count;
 }
 
 size_t slot_to_page_index(slot_offset_t slot_offset)
 {
     size_t bit_index = slot_to_bit_index(slot_offset);
-    return bit_index / c_uint64_bit_count;
+    return bit_index / common::c_uint64_bit_count;
 }
 
 slot_offset_t page_index_to_first_slot_in_page(size_t page_index)
 {
-    return (page_index * c_uint64_bit_count) + c_first_slot_offset;
+    return (page_index * common::c_uint64_bit_count) + c_first_slot_offset;
 }
 
 void write_protect_allocation_page_for_offset(gaia_offset_t offset)

@@ -253,6 +253,7 @@ constexpr std::underlying_type_t<T> get_enum_value(T val)
 }
 
 constexpr char c_whitespace_chars[] = " \n\r\t\f\v";
+constexpr size_t c_uint64_bit_count = std::numeric_limits<uint64_t>::digits;
 
 /*@}*/
 } // namespace common

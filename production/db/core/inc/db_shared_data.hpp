@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "gaia_internal/db/db_types.hpp"
+
 #include "db_internal_types.hpp"
 #include "mapped_data.hpp"
 #include "memory_types.hpp"
@@ -51,9 +53,6 @@ gaia::db::memory_manager::memory_manager_t* get_memory_manager();
 
 // Gets the chunk manager instance for the current thread or process.
 gaia::db::memory_manager::chunk_manager_t* get_chunk_manager();
-
-// Gets the mapped transaction log for the current session thread.
-gaia::db::mapped_log_t* get_mapped_log();
 
 // Gets the transaction log for the current session thread.
 gaia::db::txn_log_t* get_txn_log();

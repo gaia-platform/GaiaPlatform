@@ -19,7 +19,6 @@ namespace db
 namespace memory_manager
 {
 
-constexpr size_t c_uint64_bit_count = CHAR_BIT * sizeof(uint64_t);
 constexpr uint64_t c_all_set_word = -1;
 constexpr size_t c_max_bit_index = -1;
 

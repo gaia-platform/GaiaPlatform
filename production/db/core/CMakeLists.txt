@@ -79,7 +79,6 @@ add_library(gaia_db_client STATIC
   src/gaia_ptr_api.cpp
   src/payload_diff.cpp
   src/client_messenger.cpp
-  src/mapped_data.cpp
   src/db_client.cpp
   src/db_shared_data_client.cpp
   src/type_metadata.cpp
@@ -152,7 +151,6 @@ set(GAIA_DB_SERVER_SOURCES
   src/gaia_ptr.cpp
   src/gaia_ptr_server.cpp
   src/index_builder.cpp
-  src/mapped_data.cpp
   src/system_checks.cpp
   src/txn_metadata.cpp
   src/type_generator.cpp
@@ -267,7 +265,6 @@ add_gtest(test_rdb_object_converter tests/test_rdb_object_converter.cpp "${GEN_D
 add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage")
 add_gtest(test_record_list_manager tests/test_record_list_manager.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage")
 add_gtest(test_db_client tests/test_db_client.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_db_client")
-add_gtest(test_db_internals tests/test_db_internals.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage;gaia_db_client")
 add_gtest(test_gaia_ptr_api tests/test_gaia_ptr_api.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_db_client;gaia_direct;gaia_catalog")
 add_gtest(test_env_instance_name tests/test_db_server_env.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_db_client;gaia_direct")
 
