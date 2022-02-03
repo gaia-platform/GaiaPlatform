@@ -189,28 +189,41 @@ struct txn_log_t
 {
     // This header should be a multiple of 16 bytes (the current multiple is 1).
     //
+    // When a txn log becomes eligible for GC, there may still be txns in the
+    // "open" phase applying this log to their snapshots, so we need to track
+    // them separately via a reference count in the txn log header, and only
+    // allow GC when the reference count is zero. This reference count tracks
+    // outstanding readers, not owners! (The owning txn is identified by the
+    // begin timestamp, or "txn ID", while the allocation status of this log
+    // offset is tracked on the server, in the "allocated log offsets" bitmap.)
     // For lock-free reference count updates, we need to store the reference
     // count in the same word as the begin timestamp (to prevent changing the
-    // reference count after the log offset has been reused). This reference
-    // count tracks outstanding readers, not owners! Owners are tracked on the
-    // server, in the "allocated log offsets" bitmap.
+    // reference count after the log offset has been reused).
     //
-    // After GC is complete, the bit in the "allocated log offsets" bitmap
-    // corresponding to this offset will be cleared so the offset can be reused,
-    // but there may still be outstanding readers applying this log to their
-    // snapshots, so we need to track them separately and only reuse the offset
-    // after the reference count is zero (it cannot be incremented after GC is
-    // complete, because only logs with commit timestamps younger than the
-    // post-apply watermark will be applied to a new txn's snapshot, and GC
-    // always lags the post-apply watermark).
+    // Before GC begins, the GC thread attempts to "invalidate" the txn log by
+    // CAS'ing the begin_ts_with_refcount word to 0, provided that the refcount
+    // is already 0 (this means that a nonzero reference count can indefinitely
+    // delay GC). At the end of GC, the record_count field is zeroed, so all
+    // existing log records are unreachable (i.e., garbage). Finally, the GC
+    // thread clears the log offset's bit in the "allocated log offsets" bitmap,
+    // to make it available for reuse.
     //
     // REVIEW: The reference count mechanism is not fault-tolerant: if a client
     // session thread applying logs to its snapshot crashes, it will never
     // decrement the reference counts for those logs and the offsets for those
-    // logs (and their memory) can never be reused. A possible solution is to
-    // only let the server modify reference counts, and have the client signal a
-    // per-session eventfd when it has finished applying logs, so the server can
-    // decrement their reference counts.
+    // logs (and their memory) can never be reused. The solution we adopt is to
+    // only let the server modify reference counts. This means that we can only
+    // GC a txn log after any txn that applied that log to its snapshot is
+    // submitted, rather than as soon as that txn has finished applying the log
+    // (i.e., when begin_transaction() returns). But a fortuitous benefit of
+    // this solution is that if we keep shared references to all applied logs
+    // for the duration of txn execution, then we can safely apply those logs to
+    // a server-side local snapshot (which we currently use for table and index
+    // scans). We can revisit this design (say, to have the client send another
+    // message or signal an eventfd before begin_transaction() returns, to
+    // notify the server that it's safe to release shared references on any logs
+    // applied to the current txn's snapshot) after server-side snapshots are
+    // unnecessary (i.e., when table and index scans move into shared memory).
 
     std::atomic<uint64_t> begin_ts_with_refcount;
     uint16_t record_count;
