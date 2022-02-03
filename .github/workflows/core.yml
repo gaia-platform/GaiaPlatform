@@ -133,6 +133,7 @@ jobs:
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
             --repo-path $GAIA_REPO \
             --action unit_tests
+
       - name: Get Gaia Version
         id: getversion
         run: |
