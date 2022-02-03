@@ -76,7 +76,9 @@ gaia_id_t dac_db_t::get_iterator_value(std::shared_ptr<dac_base_iterator_state_t
         return c_invalid_gaia_id;
     }
     gaia_ptr_t gaia_ptr = *iterator;
-    return gaia_ptr.id();
+    gaia_id_t gaia_id = gaia_ptr.id();
+    ASSERT_INVARIANT(gaia_id.is_valid(), "get_iterator_value() has unexpectedly produced an invalid gaia_id value!");
+    return gaia_id;
 }
 
 bool dac_db_t::advance_iterator(std::shared_ptr<dac_base_iterator_state_t> iterator_state)
