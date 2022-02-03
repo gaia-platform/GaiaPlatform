@@ -175,6 +175,17 @@ fi
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Building the coverage docker image."
 fi
+echo "docker buildx build \
+    -f \"$REPO_ROOT_DIR/production/dockerfile\" \
+    -t coverage_image \
+    $COVERAGE_IMAGE_BASE \
+    --build-arg BUILDKIT_INLINE_CACHE=1 \
+    --platform linux/amd64 \
+    --shm-size 1gb \
+    --ssh default \
+    --compress \
+    \"$REPO_ROOT_DIR\""
+
 # shellcheck disable=SC2086
 if ! docker buildx build \
     -f "$REPO_ROOT_DIR/production/dockerfile" \
@@ -189,27 +200,34 @@ if ! docker buildx build \
     complete_process 1 "Coverage build failed."
 fi
 
+mkdir -p "$OUTPUT_DIRECTORY"
+
 if [ "$BASH_MODE" -ne 0 ]; then
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Executing bash in GCov container for debugging."
     fi
     CONTAINER_SCRIPT_TO_RUN=
-    INTERACTIVE_MODE="-t"
 else
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Executing coverage workflow in GCov container."
     fi
     CONTAINER_SCRIPT_TO_RUN="/source/production/coverage/gen_coverage.sh --verbose"
-    INTERACTIVE_MODE="-it"
 fi
 
-mkdir -p "$OUTPUT_DIRECTORY"
+echo "docker run \
+    --rm \
+    -t \
+    --init \
+    --platform linux/amd64 \
+    --mount type=\"volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$OUTPUT_DIRECTORY\" \
+    coverage_image \
+    $CONTAINER_SCRIPT_TO_RUN "
 
 # shellcheck disable=SC2086
 if ! docker run \
     --rm \
-    --init \
     -t \
+    --init \
     --platform linux/amd64 \
     --mount "type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$OUTPUT_DIRECTORY" \
     coverage_image \
