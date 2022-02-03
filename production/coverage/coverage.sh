@@ -203,6 +203,7 @@ fi
 
 mkdir -p "$OUTPUT_DIRECTORY"
 
+# shellcheck disable=SC2086
 if ! docker run \
     --rm \
     --init \
