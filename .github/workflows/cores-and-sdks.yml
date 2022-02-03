@@ -139,12 +139,9 @@ jobs:
         run: |
           echo "::set-output name=version::$(cat $GAIA_REPO/production/inc/gaia_internal/common/gaia_file_version.txt)"
 
-      - name: Publish Debian Package
+      - name: Verify Version
         run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
-            --repo-path $GAIA_REPO \
-            --gaia-version ${{ steps.getversion.outputs.version }} \
-            --action publish_package
+          echo "Gaia Version: ${{ steps.getversion.outputs.version }}"
 
       - name: Upload Output Files
         if: always()
