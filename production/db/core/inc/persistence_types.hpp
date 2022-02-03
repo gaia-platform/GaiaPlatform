@@ -106,6 +106,7 @@ struct record_header_t
         uint32_t decision_count;
     };
 
+    // Padding to make struct a multiple of 8 bytes.
     char padding[3];
 };
 

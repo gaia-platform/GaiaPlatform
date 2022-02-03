@@ -113,7 +113,6 @@ struct txn_log_t
     // convenient place for shared state between the client and server.
     memory_manager::chunk_offset_t current_chunk;
     size_t record_count;
-    int session_decision_eventfd;
     size_t chunk_count;
 
     struct log_record_t
