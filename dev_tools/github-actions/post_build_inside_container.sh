@@ -127,7 +127,7 @@ if [ "$ACTION_NAME" == "unit_tests" ] ; then
         complete_process 1 "Unit tests failed to complete successfully."
     fi
 elif [ "$ACTION_NAME" == "publish_package" ] ; then
-    GAIA_PACKAGE_NAME=$(cat /build/production/gaia_package_name.txt | tr -d '\n')
+    GAIA_PACKAGE_NAME=$(tr -d '\n' < /build/production/gaia_package_name.txt)
     if [ -z "$GAIA_PACKAGE_NAME" ]; then
         complete_process 1 "Failed to read the Gaia Package Name from gaia_package_name.txt"
     fi
