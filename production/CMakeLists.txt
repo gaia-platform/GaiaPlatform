@@ -37,7 +37,7 @@ option(DISABLE_CCACHE "Disable ccache unconditionally" OFF)
 
 option(ENABLE_CLANG_TIDY "Enable Clang-Tidy to be specified externally")
 
-option(SDK_DB_SERVER_AS_SERVICE "Makes the SDK package to install gaia_db_server as a service" ON)
+option(SDK_SETUP_DB_SERVER_AS_SERVICE "Makes the SDK package install gaia_db_server as a service" ON)
 
 if (NOT ENABLE_CLANG_TIDY)
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
