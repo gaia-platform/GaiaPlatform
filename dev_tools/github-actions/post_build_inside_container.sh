@@ -127,6 +127,9 @@ parse_command_line "$@"
 start_process
 save_current_directory
 
+GAIA_VERSION=$(cat /source/production/inc/gaia_internal/common/gaia_file_version.txt)
+echo "Gaia Version: $GAIA_VERSION"
+
 cd /build/production || exit
 
 mkdir -p /build/output
