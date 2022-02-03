@@ -1943,7 +1943,14 @@ public:
                 {
                     if (is_range_contained_in_another_range(expression_source_range, insert_data_argument_range_iterator.first))
                     {
-                        insert_data_argument_range_iterator.second = replacement;
+                        if (insert_data_argument_range_iterator.second.empty())
+                        {
+                            insert_data_argument_range_iterator.second = (Twine(replacement) + ".to_vector()").str();
+                        }
+                        else
+                        {
+                            insert_data_argument_range_iterator.second = replacement;
+                        }
                         insert_data.argument_table_names.insert(table_name);
                     }
                 }
@@ -2205,9 +2212,22 @@ public:
 
         if (array_assignment)
         {
-            if (array_assignment && !array_size.empty())
+            if (array_size.empty())
             {
-                string temp_array_variable = table_navigation_t::get_variable_name("tem_array", llvm::StringMap<string>());
+                replacement_text = (Twine("[&]() mutable {auto ")
+                                    + writer_variable
+                                    + " = "
+                                    + variable_name
+                                    + ".writer(); "
+                                    + writer_variable
+                                    + "."
+                                    + field_name
+                                    + "=")
+                                       .str();
+            }
+            else
+            {
+                string temp_array_variable = table_navigation_t::get_variable_name("temp_array", llvm::StringMap<string>());
                 replacement_text = (Twine("[&]() mutable {auto ")
                                     + writer_variable
                                     + " = "
@@ -2260,7 +2280,7 @@ public:
                                    .str();
         }
 
-        if (array_assignment)
+        if (array_assignment && !array_size.empty())
         {
             set_source_range.setEnd(op->getRHS()->getSourceRange().getEnd());
         }
@@ -2289,16 +2309,30 @@ public:
         g_rewriter_history.push_back({set_source_range, replacement_text, replace_text});
         if (array_assignment)
         {
-            replacement_text = (Twine("; ")
-                                + writer_variable
-                                + ".update_row(); return "
-                                + writer_variable
-                                + "."
-                                + field_name
-                                + "();}()")
-                                   .str();
+            if (array_size.empty())
+            {
+                replacement_text = (Twine(".to_vector(); ")
+                                    + writer_variable
+                                    + ".update_row(); return "
+                                    + variable_name
+                                    + "."
+                                    + field_name
+                                    + "();}()")
+                                       .str();
+            }
+            else
+            {
+                replacement_text = (Twine("; ")
+                                    + writer_variable
+                                    + ".update_row(); return "
+                                    + variable_name
+                                    + "."
+                                    + field_name
+                                    + "();}()")
+                                       .str();
+            }
         }
-        if (array_expression_source_range.isValid())
+        else if (array_expression_source_range.isValid())
         {
             replacement_text = (Twine("; ")
                                 + writer_variable
@@ -3376,6 +3410,7 @@ public:
             {
                 if (array_size_expression.empty())
                 {
+                    insert_data.argument_replacement_map[argument->getSourceRange()] = "";
                 }
                 else
                 {
