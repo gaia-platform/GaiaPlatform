@@ -36,6 +36,13 @@ namespace persistence
  * Fill the record_header.crc field with CRC_INITIAL_VALUE when
  * computing the checksum: crc32c is vulnerable to 0-prefixing,
  * so we make sure the initial bytes are non-zero.
+ * 
+ * https://stackoverflow.com/questions/2321676/data-length-vs-crc-length
+ * "From the wikipedia article: "maximal total blocklength is equal to 2r − 1". That's in bits. 
+ * You don't need to do much research to see that 29 - 1 is 511 bits. Using CRC-8, 
+ * multiple messages longer than 64 bytes will have the same CRC checksum value."
+ * So CRC-16 would have max message size 2^17-1 bits or about 2^14 bytes = 16KB, 
+ * and CRC-32 would have max message size 2^33-1 bits or about 2^30 bytes = 1GB
  */
 static constexpr crc32_t c_crc_initial_value = ((uint32_t)-1);
 
