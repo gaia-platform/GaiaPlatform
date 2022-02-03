@@ -326,7 +326,9 @@ jobs:
         run: |
           cd $GAIA_REPO/production
           mkdir -p $GAIA_REPO/production
+          sudo chmod -R 777 $GAIA_REPO/production
           mkdir -p $GAIA_REPO/build/output
+          sudo chmod -R 777 $GAIA_REPO/build/output
           $GAIA_REPO/production/coverage/coverage.sh --verbose --output $GAIA_REPO/build/output
           echo "COVERAGE OUTPUT"
           echo "sudo chmod -R 777 $GAIA_REPO/production"
