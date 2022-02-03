@@ -194,11 +194,13 @@ if [ "$BASH_MODE" -ne 0 ]; then
         echo "Executing bash in GCov container for debugging."
     fi
     CONTAINER_SCRIPT_TO_RUN=
+    INTERACTIVE_MODE="-t"
 else
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Executing coverage workflow in GCov container."
     fi
     CONTAINER_SCRIPT_TO_RUN="/source/production/coverage/gen_coverage.sh --verbose"
+    INTERACTIVE_MODE="-it"
 fi
 
 mkdir -p "$OUTPUT_DIRECTORY"
@@ -207,7 +209,7 @@ mkdir -p "$OUTPUT_DIRECTORY"
 if ! docker run \
     --rm \
     --init \
-    -t \
+    $INTERACTIVE_MODE \
     --platform linux/amd64 \
     --mount "type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$OUTPUT_DIRECTORY" \
     coverage_image \

@@ -79,3 +79,4 @@ production/tests/workloads/pingpong/simulation.cpp
 production/tests/workloads/pingpong/simulation.hpp
 production/tests/results/suites/
 production/dockerfile
+production/raw_dockerfile
