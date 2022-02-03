@@ -5,6 +5,10 @@
 # All rights reserved.
 #############################################
 
+# Do not call this bash script directly,  It should only be
+# invoked by post_build_action.sh.  Argument checking is
+# done by post_build_action.sh
+
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -98,15 +102,6 @@ parse_command_line() {
         ;;
     esac
     done
-
-    if [ -z "$ACTION_NAME" ] ; then
-        echo "Error: Argument -a/--action is required" >&2
-        show_usage
-    fi
-    if [ -z "$GAIA_VERSION" ] ; then
-        echo "Error: Argument -g/--gaia-version is required" >&2
-        show_usage
-    fi
 }
 
 # Save the current directory when starting the script, so we can go back to that
@@ -142,7 +137,6 @@ if [ "$ACTION_NAME" == "unit_tests" ] ; then
         complete_process 1 "Unit tests failed to complete successfully."
     fi
 elif [ "$ACTION_NAME" == "publish_package" ] ; then
-    #cp gaia-${{ env.GAIA_VERSION }}_amd64.deb gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb
     cpack -V
     mkdir -p /build/output/package
     cp /build/production/"gaia-${GAIA_VERSION}_amd64.deb" "/build/output/package/gaia-${GAIA_VERSION}_amd64.deb"

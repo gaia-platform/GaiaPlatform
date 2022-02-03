@@ -114,13 +114,15 @@ parse_command_line() {
         echo "Error: Argument -r/--repo-path is required" >&2
         show_usage
     fi
-    if [ -z "$GAIA_VERSION" ] ; then
-        echo "Error: Argument -g/--gaia-version is required" >&2
-        show_usage
-    fi
     if [ -z "$ACTION_NAME" ] ; then
         echo "Error: Argument -a/--action is required" >&2
         show_usage
+    fi
+    if [ "$ACTION_NAME" == "publish_package" ]; then
+        if [ -z "$GAIA_VERSION" ]; then
+            echo "Error: Argument -g/--gaia-version is required to publish a package" >&2
+            show_usage
+        fi
     fi
 }
 

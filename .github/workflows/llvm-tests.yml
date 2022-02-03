@@ -4,7 +4,6 @@ name: LLVM Tests
 on:
   workflow_dispatch:
 env:
-  GAIA_VERSION: 0.3.3
   SSH_AUTH_SOCK: /tmp/ssh_agent.sock
   DEV_IMAGE: ghcr.io/gaia-platform/dev-base-gaia-platform:latest
 
@@ -80,10 +79,6 @@ jobs:
               --repo-path $GAIA_REPO \
               --base-image $DEV_IMAGE \
               --cfg-enables GaiaLLVMTests
-
-      - name: Run Docker Image And Post-Build Script
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_image.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --gaia-version $GAIA_VERSION
 
       - name: Upload Output Files
         if: always()
