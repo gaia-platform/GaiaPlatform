@@ -5,6 +5,11 @@
 # All rights reserved.
 #############################################
 
+
+# Note that this script is meant to be invoked from
+# post_build_action.sh which does command line
+# argument validation before calling this script.
+
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -122,16 +127,16 @@ if [ "$ACTION_NAME" == "unit_tests" ] ; then
         complete_process 1 "Unit tests failed to complete successfully."
     fi
 elif [ "$ACTION_NAME" == "publish_package" ] ; then
-    GAIA_VERSION=$(cat /source/production/inc/gaia_internal/common/gaia_file_version.txt)
-    if [ -z "$GAIA_VERSION" ]; then
-        complete_process 1 "Failed to read version from gaia_file_version.txt"
+    GAIA_PACKAGE_NAME=$(cat /build/production/gaia_package_name.txt | tr -d '\n')
+    if [ -z "$GAIA_PACKAGE_NAME" ]; then
+        complete_process 1 "Failed to read the Gaia Package Name from gaia_package_name.txt"
     fi
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Gaia Version is: $GAIA_VERSION"
+        echo "Gaia Package Name is: $GAIA_PACKAGE_NAME"
     fi
     cpack -V
     mkdir -p /build/output/package
-    cp /build/production/"gaia-${GAIA_VERSION}_amd64.deb" "/build/output/package/gaia-${GAIA_VERSION}_amd64.deb"
+    cp /build/production/"${GAIA_PACKAGE_NAME}.deb" "/build/output/package/${GAIA_PACKAGE_NAME}.deb"
 else
     complete_process 1 "Action '$ACTION_NAME' is not known."
 fi
