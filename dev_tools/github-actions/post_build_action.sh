@@ -48,7 +48,6 @@ show_usage() {
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
     echo "  -a,--action         Action to execute inside of the container."
-    echo "  -g,--gaia-version   Version associate with the build."
     echo "  -r,--repo-path      Base path of the repository to generate from."
     echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
@@ -61,7 +60,6 @@ parse_command_line() {
     VERBOSE_MODE=0
     ACTION_NAME=
     GAIA_REPO=
-    GAIA_VERSION=
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
@@ -80,15 +78,6 @@ parse_command_line() {
                 show_usage
             fi
             GAIA_REPO=$2
-            shift
-            shift
-        ;;
-        -g|--gaia-version)
-            if [ -z "$2" ] ; then
-                echo "Error: Argument $1 must be followed by the version of Gaia being built." >&2
-                show_usage
-            fi
-            GAIA_VERSION=$2
             shift
             shift
         ;;
@@ -117,14 +106,6 @@ parse_command_line() {
     if [ -z "$ACTION_NAME" ] ; then
         echo "Error: Argument -a/--action is required" >&2
         show_usage
-    fi
-    if [ "$ACTION_NAME" == "publish_package" ] ; then
-        if [ -z "$GAIA_VERSION" ]; then
-            echo "Error: Argument -g/--gaia-version is required to publish a package" >&2
-            show_usage
-        else
-            GAIA_VERSION_PARAM="--gaia-version $GAIA_VERSION"
-        fi
     fi
 }
 
@@ -165,7 +146,7 @@ if ! docker run \
     --platform linux/amd64 \
     --mount "type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$GAIA_REPO/build/output" \
     build_image \
-    /source/dev_tools/github-actions/post_build_inside_container.sh --action "$ACTION_NAME" "$GAIA_VERSION_PARAM" ; then
+    /source/dev_tools/github-actions/post_build_inside_container.sh --action "$ACTION_NAME" ; then
     complete_process 1 "Docker post-build script failed."
 fi
 

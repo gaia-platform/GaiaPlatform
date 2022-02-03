@@ -5,10 +5,6 @@
 # All rights reserved.
 #############################################
 
-# Do not call this bash script directly,  It should only be
-# invoked by post_build_action.sh.  Argument checking is
-# done by post_build_action.sh
-
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -52,7 +48,6 @@ show_usage() {
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
     echo "  -a,--action         Action to execute inside of the container."
-    echo "  -g,--gaia-version   Version associate with the build."
     echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
     echo ""
@@ -63,7 +58,6 @@ show_usage() {
 parse_command_line() {
     VERBOSE_MODE=0
     ACTION_NAME=
-    GAIA_VERSION=
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
@@ -73,15 +67,6 @@ parse_command_line() {
                 show_usage
             fi
             ACTION_NAME=$2
-            shift
-            shift
-        ;;
-        -g|--gaia-version)
-            if [ -z "$2" ] ; then
-                echo "Error: Argument $1 must be followed by the version of Gaia being built." >&2
-                show_usage
-            fi
-            GAIA_VERSION=$2
             shift
             shift
         ;;
@@ -127,9 +112,6 @@ parse_command_line "$@"
 start_process
 save_current_directory
 
-GAIA_VERSION=$(cat /source/production/inc/gaia_internal/common/gaia_file_version.txt)
-echo "Gaia Version: $GAIA_VERSION"
-
 cd /build/production || exit
 
 mkdir -p /build/output
@@ -140,6 +122,13 @@ if [ "$ACTION_NAME" == "unit_tests" ] ; then
         complete_process 1 "Unit tests failed to complete successfully."
     fi
 elif [ "$ACTION_NAME" == "publish_package" ] ; then
+    GAIA_VERSION=$(cat /source/production/inc/gaia_internal/common/gaia_file_version.txt)
+    if [ -z "$GAIA_VERSION" ]; then
+        complete_process 1 "Failed to read version from gaia_file_version.txt"
+    fi
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Gaia Version is: $GAIA_VERSION"
+    fi
     cpack -V
     mkdir -p /build/output/package
     cp /build/production/"gaia-${GAIA_VERSION}_amd64.deb" "/build/output/package/gaia-${GAIA_VERSION}_amd64.deb"

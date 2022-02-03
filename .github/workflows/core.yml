@@ -134,15 +134,6 @@ jobs:
             --repo-path $GAIA_REPO \
             --action unit_tests
 
-      - name: Get Gaia Version
-        id: getversion
-        run: |
-          echo "::set-output name=version::$(cat $GAIA_REPO/production/inc/gaia_internal/common/gaia_file_version.txt)"
-
-      - name: Verify Version
-        run: |
-          echo "Gaia Version: ${{ steps.getversion.outputs.version }}"
-
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
