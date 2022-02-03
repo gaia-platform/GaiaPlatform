@@ -140,7 +140,7 @@ jobs:
 
       - name: Verify Version
         run: |
-        echo "Gaia Version: ${{ steps.getversion.outputs.version }}"
+          echo "Gaia Version: ${{ steps.getversion.outputs.version }}"
 
       - name: Upload Output Files
         if: always()
