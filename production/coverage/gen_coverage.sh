@@ -186,32 +186,32 @@ echo "Generate the various flavors of reports."
 generate_report \
     "total" \
     "/build/production/output/total" \
-    "/build/production/coverage.filter" \
+    "/build/production/output/coverage.filter" \
     "/source/production"
 
 generate_report \
     "rules" \
     "/build/production/output/rules" \
-    "/build/production/coverage.rules" \
+    "/build/production/output/coverage.rules" \
     "/source/production/direct_access /source/production/tools"
 
 generate_report \
     "database" \
     "/build/production/output/database" \
-    "/build/production/coverage.database" \
+    "/build/production/output/coverage.database" \
     "/source/production/db /source/production/catalog"
 
 generate_report \
     "common" \
     "/build/production/output/common" \
-    "/build/production/coverage.common" \
+    "/build/production/output/coverage.common" \
     "/source/production/inc /source/production/common"
 
 echo "Producing Cobertura Coverage files."
-/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/coverage.filter --base-dir /source/production --output /build/production/output/coverage.xml
-/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/coverage.rules --base-dir /source/production --output /build/production/output/rules.xml
-/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/coverage.database --base-dir /source/production --output /build/production/output/database.xml
-/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/coverage.common --base-dir /source/production --output /build/production/output/common.xml
+/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.filter --base-dir /source/production --output /build/production/output/coverage.xml
+/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.rules --base-dir /source/production --output /build/production/output/rules.xml
+/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.database --base-dir /source/production --output /build/production/output/database.xml
+/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.common --base-dir /source/production --output /build/production/output/common.xml
 
 echo "Producing JSON Coverage Summary files."
 mkdir report

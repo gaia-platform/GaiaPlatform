@@ -198,7 +198,7 @@ else
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Executing coverage workflow in GCov container."
     fi
-    CONTAINER_SCRIPT_TO_RUN="/source/production/coverage/gen_coverage.sh"
+    CONTAINER_SCRIPT_TO_RUN="/source/production/coverage/gen_coverage.sh --verbose"
 fi
 
 mkdir -p "$OUTPUT_DIRECTORY"
