@@ -118,10 +118,12 @@ parse_command_line() {
         echo "Error: Argument -a/--action is required" >&2
         show_usage
     fi
-    if [ "$ACTION_NAME" == "publish_package" ]; then
+    if [ "$ACTION_NAME" == "publish_package" ] ; then
         if [ -z "$GAIA_VERSION" ]; then
             echo "Error: Argument -g/--gaia-version is required to publish a package" >&2
             show_usage
+        else
+            GAIA_VERSION_PARAM="--gaia-version $GAIA_VERSION"
         fi
     fi
 }
@@ -163,7 +165,7 @@ if ! docker run \
     --platform linux/amd64 \
     --mount "type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$GAIA_REPO/build/output" \
     build_image \
-    /source/dev_tools/github-actions/post_build_inside_container.sh --action "$ACTION_NAME" --gaia-version "$GAIA_VERSION" ; then
+    /source/dev_tools/github-actions/post_build_inside_container.sh --action "$ACTION_NAME" "$GAIA_VERSION_PARAM" ; then
     complete_process 1 "Docker post-build script failed."
 fi
 
