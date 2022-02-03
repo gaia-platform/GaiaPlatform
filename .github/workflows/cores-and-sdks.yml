@@ -186,7 +186,7 @@ jobs:
       - name: Get Gaia Version
         id: getversion
         run: |
-          echo "::set-output name=version::$(cat $GAIA_REPO/production/inc/gaia_internal/common.gaia_file_version.txt"
+          echo "::set-output name=version::$(cat $GAIA_REPO/production/inc/gaia_internal/common/gaia_file_version.txt"
 
       - name: Publish Debian Package
         run: |
