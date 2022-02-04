@@ -175,7 +175,7 @@ chunk_offset_t memory_manager_t::allocate_chunk()
 {
     // First try to reuse a deallocated chunk.
     chunk_offset_t allocated_chunk_offset = allocate_used_chunk();
-    if (!allocated_chunk_offset.is_valid())
+    if (allocated_chunk_offset.is_valid())
     {
 #ifdef DEBUG
         // In debug mode, we write-protect all allocations after writes are
