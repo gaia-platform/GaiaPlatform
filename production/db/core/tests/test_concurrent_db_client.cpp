@@ -144,7 +144,7 @@ public:
         // Initialize this worker's local object reference.
         begin_transaction();
         auto obj = gaia_ptr_t::create(
-            gaia_id_t(object_id), m_object_type, sizeof(c_even_value), c_even_value);
+            gaia_id_t(object_id), m_object_type, 0, sizeof(c_even_value), c_even_value);
         commit_transaction();
 
         // Signal the controller that we're ready.
