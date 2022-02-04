@@ -211,9 +211,10 @@ if [ "$BASH_MODE" -ne 0 ]; then
         -it \
         --init \
         --platform linux/amd64 \
+        --entrypoint /bin/bash \
         --mount type=\"volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$OUTPUT_DIRECTORY\" \
         coverage_image \
-        bash"
+        /bin/bash"
 
     # shellcheck disable=SC2086
     if ! docker run \
@@ -221,9 +222,10 @@ if [ "$BASH_MODE" -ne 0 ]; then
         -it \
         --init \
         --platform linux/amd64 \
+        --entrypoint /bin/bash \
         --mount "type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$OUTPUT_DIRECTORY" \
         coverage_image \
-        bash ; then
+        /bin/bash ; then
         complete_process 1 "Coverage run failed."
     fi
 else
@@ -247,7 +249,7 @@ else
         --platform linux/amd64 \
         --mount "type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$OUTPUT_DIRECTORY" \
         coverage_image \
-        $CONTAINER_SCRIPT_TO_RUN ; then
+        /source/production/coverage/gen_coverage.sh --verbose ; then
         complete_process 1 "Coverage run failed."
     fi
 fi
