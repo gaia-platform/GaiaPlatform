@@ -31,6 +31,8 @@ option(ENABLE_SDK_TESTS "Build and execute ruleset translation tests" ON)
 
 option(EXPORT_SYMBOLS "Export symbols by default from shared libraries" OFF)
 
+option(ENABLE_PROFILING_SUPPORT "Instrument binaries for profiling" OFF)
+
 option(DISABLE_ASSERTS "Disable assertions" OFF)
 
 option(DISABLE_CCACHE "Disable ccache unconditionally" OFF)
