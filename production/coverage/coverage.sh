@@ -206,33 +206,50 @@ if [ "$BASH_MODE" -ne 0 ]; then
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Executing bash in GCov container for debugging."
     fi
-    CONTAINER_SCRIPT_TO_RUN=
+    echo "docker run \
+        --rm \
+        -it \
+        --init \
+        --platform linux/amd64 \
+        --mount type=\"volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$OUTPUT_DIRECTORY\" \
+        coverage_image \
+        bash"
+
+    # shellcheck disable=SC2086
+    if ! docker run \
+        --rm \
+        -it \
+        --init \
+        --platform linux/amd64 \
+        --mount "type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$OUTPUT_DIRECTORY" \
+        coverage_image \
+        bash ; then
+        complete_process 1 "Coverage run failed."
+    fi
 else
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Executing coverage workflow in GCov container."
     fi
-    CONTAINER_SCRIPT_TO_RUN="/source/production/coverage/gen_coverage.sh --verbose"
-fi
+    echo "docker run \
+        --rm \
+        -t \
+        --init \
+        --platform linux/amd64 \
+        --mount type=\"volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$OUTPUT_DIRECTORY\" \
+        coverage_image \
+        /source/production/coverage/gen_coverage.sh --verbose "
 
-echo "docker run \
-    --rm \
-    -t \
-    --init \
-    --platform linux/amd64 \
-    --mount type=\"volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$OUTPUT_DIRECTORY\" \
-    coverage_image \
-    $CONTAINER_SCRIPT_TO_RUN "
-
-# shellcheck disable=SC2086
-if ! docker run \
-    --rm \
-    -t \
-    --init \
-    --platform linux/amd64 \
-    --mount "type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$OUTPUT_DIRECTORY" \
-    coverage_image \
-    $CONTAINER_SCRIPT_TO_RUN ; then
-    complete_process 1 "Coverage run failed."
+    # shellcheck disable=SC2086
+    if ! docker run \
+        --rm \
+        -t \
+        --init \
+        --platform linux/amd64 \
+        --mount "type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$OUTPUT_DIRECTORY" \
+        coverage_image \
+        $CONTAINER_SCRIPT_TO_RUN ; then
+        complete_process 1 "Coverage run failed."
+    fi
 fi
 
 if [ "$VERBOSE_MODE" -ne 0 ]; then

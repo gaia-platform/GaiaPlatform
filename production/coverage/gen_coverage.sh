@@ -167,6 +167,8 @@ echo "Running tests with profile-enabled binaries."
 ctest --output-log /build/production/output/ctest.log --output-junit /build/production/output/ctest.xml
 /usr/lib/llvm-13/bin/llvm-profdata merge -sparse tests.profraw -o tests.profdata
 
+ls -la /build/production/t*
+
 #
 # Source directories, by team:
 #
