@@ -144,4 +144,4 @@ else
     complete_process 1 "Action '$ACTION_NAME' is not known."
 fi
 
-complete_process 0
+complete_process 0 ""
