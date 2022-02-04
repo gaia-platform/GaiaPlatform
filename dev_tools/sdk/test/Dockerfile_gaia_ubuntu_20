@@ -10,6 +10,4 @@ RUN apt-get update \
   && apt-get install -y \
   cmake \
   clang \
-  # fixes a weird clang dynamic linking error
-  libncurses5 \
   && apt-get clean
