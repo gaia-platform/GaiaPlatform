@@ -53,7 +53,7 @@ gaia_ptr_t gaia_ptr_t::find_first(common::gaia_type_t type)
 
 gaia_ptr_t gaia_ptr_t::find_next() const
 {
-    if (m_locator)
+    if (m_locator.is_valid())
     {
         return find_next(to_ptr()->type);
     }

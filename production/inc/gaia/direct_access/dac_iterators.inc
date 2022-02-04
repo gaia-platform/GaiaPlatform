@@ -6,7 +6,6 @@
 //
 // Implementation for dac_iterator_t.
 //
-#include "gaia/common.hpp"
 template <typename T_class>
 dac_iterator_t<T_class>::dac_iterator_t(std::shared_ptr<dac_base_iterator_state_t> iterator_state)
     : m_iterator_state(std::move(iterator_state))
@@ -62,7 +61,7 @@ dac_iterator_t<T_class>& dac_iterator_t<T_class>::operator++()
 template <typename T_class>
 dac_iterator_t<T_class> dac_iterator_t<T_class>::operator++(int)
 {
-    dac_iterator_t<T_class> old = *this;
+    auto old = *this;
     operator++();
     return old;
 }
@@ -105,17 +104,18 @@ dac_iterator_t<T_class> dac_container_t<container_type_id, T_class>::begin() con
     gaia::common::gaia_id_t id;
     while ((id = dac_db_t::get_iterator_value(iterator_state)).is_valid())
     {
-        if (m_filter_fn)
-        {
-            T_class obj = T_class::get(id);
-            if (obj && m_filter_fn(obj))
-            {
-                return dac_iterator_t<T_class>(iterator_state, m_filter_fn);
-            }
-        }
-        else
+        if (!m_filter_fn)
         {
             break;
+        }
+
+        // The id has already been validated,
+        // so we must be able to retrieve a valid object instance with it.
+        T_class obj = T_class::get(id);
+
+        if (m_filter_fn(obj))
+        {
+            return dac_iterator_t<T_class>(iterator_state, m_filter_fn);
         }
 
         dac_db_t::advance_iterator(iterator_state);
