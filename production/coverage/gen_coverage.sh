@@ -165,9 +165,15 @@ echo "Executing tests to cover."
 export LLVM_PROFILE_FILE="/build/production/tests.%4m.profraw"
 echo "Running tests with profile-enabled binaries."
 ctest --output-log /build/production/output/ctest.log --output-junit /build/production/output/ctest.xml
-/usr/lib/llvm-13/bin/llvm-profdata merge -sparse tests.profraw -o tests.profdata
 
+echo "list"
 ls -la /build/production/t*
+echo "find"
+find -maxdepth 1 -name "*.profraw" > /build/production/output/profiles.txt
+cat /build/production/output/profiles.txt
+echo "merge"
+/usr/lib/llvm-13/bin/llvm-profdata merge --input-files /build/production/output/profiles.txt --output tests.profdata
+
 
 #
 # Source directories, by team:
