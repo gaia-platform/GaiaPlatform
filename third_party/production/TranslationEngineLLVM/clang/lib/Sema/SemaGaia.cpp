@@ -52,7 +52,7 @@ static StringRef getTableFromExpression(StringRef expression)
     }
 }
 
-static QualType mapFieldType(catalog::data_type_t dbType, ASTContext* context)
+static QualType mapFieldType(catalog::data_type_t dbType, bool isArray, ASTContext* context)
 {
     // Clang complains if we add a default clause to a switch that covers all values of an enum,
     // so this code is written to avoid that.
@@ -102,6 +102,11 @@ static QualType mapFieldType(catalog::data_type_t dbType, ASTContext* context)
     // unless there is an error in code.
     assert(returnType != context->VoidTy);
 
+    if (isArray)
+    {
+        return context->getIncompleteArrayType(returnType, ArrayType::Normal, 0);
+    }
+
     return returnType;
 }
 
@@ -146,7 +151,11 @@ std::string Sema::ParseExplicitPath(StringRef pathString, SourceLocation loc, St
     llvm::StringMap<string> tagMap;
     SmallVector<string, 8> path;
     bool is_absolute = pathString.front() == '/';
-fprintf(stderr, "pathString='%s'\n", pathString);
+    char s[100];
+    sprintf(s, "%s", pathString);
+fprintf(stderr, "pathString='%s'\n", s);
+if (strcmp(s, "W.station_id") == 0)
+    fprintf(stderr, "found W.station_id\n");
     if (is_absolute || pathString.front() == '@')
     {
         searchStartPosition = 1;
@@ -390,7 +399,7 @@ llvm::StringMap<llvm::StringMap<QualType>> Sema::getTableData()
         llvm::StringMap<QualType> fields;
         for (const auto& fieldData : catalogDataItem.second.fieldData)
         {
-            fields[fieldData.first()] =  mapFieldType(fieldData.second.fieldType, &Context);
+            fields[fieldData.first()] =  mapFieldType(fieldData.second.fieldType, fieldData.second.isArray, &Context);
         }
         result[catalogDataItem.first()] = fields;
     }
@@ -600,13 +609,11 @@ TagDecl* Sema::lookupEDCClass(StringRef className)
     //  ....
 
     auto typeIterator = Context.getEDCTypes().find(className);
-fprintf(stderr, "className=%s, ", className);
+// fprintf(stderr, "className=%s\n", className);
     if (typeIterator != Context.getEDCTypes().end())
     {
-fprintf(stderr, "map=%s\n", typeIterator->second);
         return llvm::cast_or_null<TagDecl>(typeIterator->second->getAsRecordDecl());
     }
-fprintf(stderr, "NOT FOUND\n");
     return nullptr;
 }
 
@@ -1256,7 +1263,8 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
     QualType qualType = Context.VoidTy;
     StringRef firstComponent;
 
-fprintf(stderr, "explicitPath='%s'\n", explicitPath.c_str());
+if (strlen(explicitPath.c_str()) == 0)
+    fprintf(stderr, "explicitPath='%s'\n", explicitPath.c_str());
     string table = ParseExplicitPath(explicitPath, loc, firstComponent);
     if (!table.empty())
     {
@@ -1621,4 +1629,15 @@ bool Sema::ValidateLabel(const LabelDecl* label)
     labelsInProcess.erase(labelName);
     declarativeLabelsInProcess.erase(labelName);
     return true;
+}
+
+void Sema::ActOnRuleStart()
+{
+    ResetTableSearchContextStack();
+    labelsInProcess.clear();
+    declarativeLabelsInProcess.clear();
+    explicitPathData.clear();
+    explicitPathTagMapping.clear();
+    extendedExplicitPathTagMapping.clear();
+    injectedVariablesLocation.clear();
 }

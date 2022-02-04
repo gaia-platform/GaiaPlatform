@@ -182,7 +182,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
         variable_name = last_variable_name;
     }
 
-    if (variable_name != anchor_table_name || variable_name != anchor_variable)
+    if (variable_name != anchor_variable)
     {
         return_value.prefix.append("\n{\nauto ");
         return_value.prefix.append(variable_name);

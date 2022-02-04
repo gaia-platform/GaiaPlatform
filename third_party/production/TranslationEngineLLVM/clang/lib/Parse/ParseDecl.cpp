@@ -5616,7 +5616,7 @@ void Parser::ParseDirectDeclarator(Declarator &D) {
         ParsedAttributesWithRange attrs(AttrFactory);
         InjectRuleFunction(D, attrs);
         // Reset search context stack
-        Actions.ResetTableSearchContextStack();
+        Actions.ActOnRuleStart();
         return;
       }
     }

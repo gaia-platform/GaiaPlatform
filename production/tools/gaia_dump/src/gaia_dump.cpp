@@ -24,7 +24,7 @@ using namespace std;
 // One printable line of output.
 static char g_longstring[c_line_length];
 
-string hex_dump16(uint32_t offset, void* binary_buff, int binary_length)
+string hex_dump16(uint32_t offset, void* binary_buff, size_t binary_length)
 {
     string dump;
 
@@ -32,7 +32,7 @@ string hex_dump16(uint32_t offset, void* binary_buff, int binary_length)
     dump += g_longstring;
     int line_position = 0;
     auto binary_ptr = static_cast<uint8_t*>(binary_buff);
-    int remaining_length = binary_length;
+    size_t remaining_length = binary_length;
     if (remaining_length > c_line_size)
     {
         remaining_length = c_line_size;
@@ -80,7 +80,7 @@ string hex_dump16(uint32_t offset, void* binary_buff, int binary_length)
     return dump;
 }
 
-static string hex_dump(void* binary_buff, int binary_length, int& line_limit)
+static string hex_dump(void* binary_buff, size_t binary_length, int& line_limit)
 {
     string dump;
     uint32_t offset = 0;
@@ -93,7 +93,14 @@ static string hex_dump(void* binary_buff, int binary_length, int& line_limit)
             return dump;
         }
         binary_ptr += c_bytes_per_line;
-        binary_length -= c_bytes_per_line;
+        if (binary_length < c_bytes_per_line)
+        {
+            binary_length = 0;
+        }
+        else
+        {
+            binary_length -= c_bytes_per_line;
+        }
         offset += c_bytes_per_line;
     }
     return dump;

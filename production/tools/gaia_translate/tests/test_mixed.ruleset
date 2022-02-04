@@ -36,7 +36,6 @@ ruleset test_mixed
 {
     on_insert(i:incubator)
     {
-#if 0
         f(incubator);
         f1(incubator);
         f2(incubator);
@@ -45,7 +44,6 @@ ruleset test_mixed
         f2(i);
         gaia::barn_storage::incubator_waynetype ii = i;
         gaia::barn_storage::incubator_waynetype iii = incubator;
-#endif
     }
 
     // If the sensor was deleted, this rule will not be fired.

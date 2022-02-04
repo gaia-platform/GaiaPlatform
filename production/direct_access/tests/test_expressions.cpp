@@ -192,18 +192,18 @@ TEST_F(test_expressions, gaia_id_ed)
 
     // Yoda expression support.
     assert_contains(
-        employee_t::list()
-            .where(yiwen.gaia_id() == employee_t::expr::gaia_id),
+        employee_waynetype::list()
+            .where(yiwen.gaia_id() == employee_waynetype::expr::gaia_id),
         yiwen);
 
     assert_empty(
-        employee_t::list()
-            .where(employee_t::expr::gaia_id == seattle.gaia_id()));
+        employee_waynetype::list()
+            .where(employee_waynetype::expr::gaia_id == seattle.gaia_id()));
 
     // != support.
     assert_non_empty(
-        employee_t::list()
-            .where(employee_t::expr::gaia_id != seattle.gaia_id()));
+        employee_waynetype::list()
+            .where(employee_waynetype::expr::gaia_id != seattle.gaia_id()));
 }
 
 TEST_F(test_expressions, int64_eq)
@@ -216,7 +216,7 @@ TEST_F(test_expressions, int64_eq)
         yiwen);
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date == hire_date),
         {simone, dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
 
@@ -225,7 +225,7 @@ TEST_F(test_expressions, int64_eq)
             .where(hire_date == date(2050, 5, 10)));
 
     assert_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where(date(2050, 5, 10) == hire_date));
 }
 
@@ -239,17 +239,17 @@ TEST_F(test_expressions, int64_ne)
         {simone, mihir, laurentiu, tobin, wayne, bill, dax});
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(date(2020, 5, 10) != hire_date),
         {simone, mihir, laurentiu, tobin, wayne, bill, dax});
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date != date(2050, 5, 10)),
         {simone, mihir, yiwen, laurentiu, tobin, wayne, bill, dax});
 
     assert_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date != hire_date));
 }
 
@@ -263,7 +263,7 @@ TEST_F(test_expressions, int64_gt)
         {simone, mihir});
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(date(2020, 5, 10) > hire_date),
         {laurentiu, tobin, wayne, bill, dax});
 
@@ -272,7 +272,7 @@ TEST_F(test_expressions, int64_gt)
             .where(hire_date > date(2050, 5, 10)));
 
     assert_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date > hire_date));
 }
 
@@ -286,7 +286,7 @@ TEST_F(test_expressions, int64_ge)
         {simone, mihir, yiwen});
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(date(2020, 5, 10) >= hire_date),
         {yiwen, laurentiu, tobin, wayne, bill, dax});
 
@@ -295,7 +295,7 @@ TEST_F(test_expressions, int64_ge)
             .where(hire_date >= date(2050, 5, 10)));
 
     assert_non_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date >= hire_date));
 }
 
@@ -309,7 +309,7 @@ TEST_F(test_expressions, int64_lt)
         {laurentiu, tobin, wayne, bill, dax});
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(date(2020, 5, 10) < hire_date),
         {simone, mihir});
 
@@ -318,7 +318,7 @@ TEST_F(test_expressions, int64_lt)
             .where(hire_date < date(1902, 5, 10)));
 
     assert_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date < hire_date));
 }
 
@@ -332,7 +332,7 @@ TEST_F(test_expressions, int64_le)
         {yiwen, laurentiu, tobin, wayne, bill, dax});
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(date(2020, 5, 10) <= hire_date),
         {yiwen, simone, mihir});
 
@@ -341,7 +341,7 @@ TEST_F(test_expressions, int64_le)
             .where(hire_date <= date(1902, 5, 10)));
 
     assert_non_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where(hire_date <= hire_date));
 }
 
@@ -350,7 +350,7 @@ TEST_F(test_expressions, string_eq)
     auto_transaction_t txn;
 
     assert_non_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where(name_first == name_first));
 
     assert_contains(
@@ -359,17 +359,17 @@ TEST_F(test_expressions, string_eq)
         simone);
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where("Simone" == name_first),
         simone);
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(name_first == std::string("Simone")),
         simone);
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(std::string("Simone") == name_first),
         simone);
 
@@ -393,7 +393,7 @@ TEST_F(test_expressions, string_ne)
     auto_transaction_t txn;
 
     assert_empty(
-        employee_t::list()
+        employee_waynetype::list()
             .where(name_first != name_first));
 
     assert_contains(
@@ -402,17 +402,17 @@ TEST_F(test_expressions, string_ne)
         {dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where("Simone" != name_first),
         {dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(name_first != std::string("Simone")),
         {dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
 
     assert_contains(
-        employee_t::list()
+        employee_waynetype::list()
             .where(std::string("Simone") != name_first),
         {dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
 
@@ -486,7 +486,7 @@ TEST_F(test_expressions, or_expr)
         || name_first == "Cristofor");
 
     assert_contains(employees, {wayne, bill});
-    employees = employee_t::list().where(
+    employees = employee_waynetype::list().where(
         hire_date <= date(2020, 1, 10)
         || hire_date >= date(2020, 5, 31)
         || name_last == "Cristofor");

@@ -144,8 +144,8 @@ struct txn_log_t
 
         inline gaia_operation_t operation() const
         {
-            bool is_old_offset_valid = (old_offset != c_invalid_gaia_offset);
-            bool is_new_offset_valid = (new_offset != c_invalid_gaia_offset);
+            bool is_old_offset_valid = old_offset.is_valid();
+            bool is_new_offset_valid = new_offset.is_valid();
             if (is_old_offset_valid && is_new_offset_valid)
             {
                 return gaia_operation_t::update;

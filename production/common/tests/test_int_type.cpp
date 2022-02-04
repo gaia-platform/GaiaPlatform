@@ -184,3 +184,36 @@ TEST(common, int_type)
     test_int_type<int32_t>();
     test_int_type<int64_t>();
 }
+
+TEST(common, int_type_is_valid)
+{
+    constexpr uint64_t c_uint64_max = std::numeric_limits<uint64_t>::max();
+
+    // Start with an uninitialized value.
+    int_type_t<uint64_t, c_uint64_max> value;
+    EXPECT_EQ(c_uint64_max, value.value());
+
+    // Test situations when a bool conversion is not made.
+    // Without a conversion, the value will be neither true nor false.
+    EXPECT_NE(false, value);
+    EXPECT_NE(true, value);
+    EXPECT_FALSE(value == false);
+    EXPECT_FALSE(value == true);
+
+    // Test is_valid().
+    EXPECT_FALSE(value.is_valid());
+
+    // Initialize our value.
+    value = 7;
+    EXPECT_NE(c_uint64_max, value.value());
+
+    // Test situations when a bool conversion is not made.
+    // Without a conversion, the value will be neither true nor false.
+    EXPECT_NE(false, value);
+    EXPECT_NE(true, value);
+    EXPECT_FALSE(value == false);
+    EXPECT_FALSE(value == true);
+
+    // Test is_valid().
+    EXPECT_TRUE(value.is_valid());
+}

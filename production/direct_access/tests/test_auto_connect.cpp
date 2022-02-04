@@ -209,42 +209,42 @@ TEST_F(auto_connect_test, delete_parent)
 
     auto_transaction_t txn;
 
-    gaia_id_t flight_id = flight_t::insert_row(old_flight_number, {});
+    gaia_id_t flight_id = flight_waynetype::insert_row(old_flight_number, {});
     txn.commit();
 
-    gaia_id_t spock_id = passenger_t::insert_row("Spock", "Vulcan", old_flight_number);
-    gaia_id_t kirk_id = passenger_t::insert_row("James", "Kirk", old_flight_number);
+    gaia_id_t spock_id = passenger_waynetype::insert_row("Spock", "Vulcan", old_flight_number);
+    gaia_id_t kirk_id = passenger_waynetype::insert_row("James", "Kirk", old_flight_number);
     txn.commit();
 
-    ASSERT_EQ(flight_t::get(flight_id).return_passengers().size(), 2);
-    ASSERT_EQ(passenger_t::get(spock_id).return_flight().gaia_id(), flight_id);
-    ASSERT_EQ(passenger_t::get(kirk_id).return_flight().gaia_id(), flight_id);
+    ASSERT_EQ(flight_waynetype::get(flight_id).return_passengers().size(), 2);
+    ASSERT_EQ(passenger_waynetype::get(spock_id).return_flight().gaia_id(), flight_id);
+    ASSERT_EQ(passenger_waynetype::get(kirk_id).return_flight().gaia_id(), flight_id);
 
     // A referenced parent object in a value linked relationship can be deleted
     // without the 'force' option.
-    ASSERT_NO_THROW(flight_t::delete_row(flight_id));
+    ASSERT_NO_THROW(flight_waynetype::delete_row(flight_id));
     txn.commit();
 
     // The (previously auto) connected objects will be disconnected as a result.
-    ASSERT_FALSE(passenger_t::get(spock_id).return_flight());
-    ASSERT_FALSE(passenger_t::get(kirk_id).return_flight());
+    ASSERT_FALSE(passenger_waynetype::get(spock_id).return_flight());
+    ASSERT_FALSE(passenger_waynetype::get(kirk_id).return_flight());
     txn.commit();
 
-    auto spock_writer = passenger_t::get(spock_id).writer();
+    auto spock_writer = passenger_waynetype::get(spock_id).writer();
     spock_writer.return_flight_number = new_flight_number;
     spock_writer.update_row();
     txn.commit();
 
-    flight_id = flight_t::insert_row(new_flight_number, {});
+    flight_id = flight_waynetype::insert_row(new_flight_number, {});
     txn.commit();
 
-    auto kirk_writer = passenger_t::get(kirk_id).writer();
+    auto kirk_writer = passenger_waynetype::get(kirk_id).writer();
     kirk_writer.return_flight_number = new_flight_number;
     kirk_writer.update_row();
     txn.commit();
 
     // The disconnected objects can and will be auto-connected to new parent
     // object(s) if the linked field values match.
-    ASSERT_EQ(passenger_t::get(spock_id).return_flight().gaia_id(), flight_id);
-    ASSERT_EQ(passenger_t::get(kirk_id).return_flight().gaia_id(), flight_id);
+    ASSERT_EQ(passenger_waynetype::get(spock_id).return_flight().gaia_id(), flight_id);
+    ASSERT_EQ(passenger_waynetype::get(kirk_id).return_flight().gaia_id(), flight_id);
 }

@@ -28,6 +28,7 @@ struct CatalogFieldData
 {
     bool isDeprecated;
     bool isActive;
+    bool isArray;
     field_position_t position;
     data_type_t fieldType;
 };

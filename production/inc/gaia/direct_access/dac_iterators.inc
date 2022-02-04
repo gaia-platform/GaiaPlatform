@@ -12,7 +12,7 @@ dac_iterator_t<T_class>::dac_iterator_t(std::shared_ptr<dac_base_iterator_state_
     : m_iterator_state(std::move(iterator_state))
 {
     gaia::common::gaia_id_t id = dac_db_t::get_iterator_value(m_iterator_state);
-    m_obj = (id == gaia::common::c_invalid_gaia_id) ? T_class() : T_class::get(id);
+    m_obj = (id.is_valid()) ? T_class::get(id) : T_class();
 }
 
 template <typename T_class>
@@ -22,13 +22,13 @@ dac_iterator_t<T_class>::dac_iterator_t(
     : m_iterator_state(std::move(iterator_state)), m_filter_fn(filter_function)
 {
     gaia::common::gaia_id_t id = dac_db_t::get_iterator_value(m_iterator_state);
-    m_obj = (id == gaia::common::c_invalid_gaia_id) ? T_class() : T_class::get(id);
+    m_obj = (id.is_valid()) ? T_class::get(id) : T_class();
 }
 
 template <typename T_class>
 dac_iterator_t<T_class>::dac_iterator_t(gaia::common::gaia_id_t id)
 {
-    m_obj = (id == gaia::common::c_invalid_gaia_id) ? T_class() : T_class::get(id);
+    m_obj = (id.is_valid()) ? T_class::get(id) : T_class();
 }
 
 template <typename T_class>
@@ -40,11 +40,11 @@ dac_iterator_t<T_class>& dac_iterator_t<T_class>::operator++()
     }
 
     gaia::common::gaia_id_t id = m_obj.gaia_id();
-    while (id != gaia::common::c_invalid_gaia_id)
+    while (id.is_valid())
     {
         dac_db_t::advance_iterator(m_iterator_state);
         id = dac_db_t::get_iterator_value(m_iterator_state);
-        m_obj = (id == gaia::common::c_invalid_gaia_id) ? T_class() : T_class::get(id);
+        m_obj = (id.is_valid()) ? T_class::get(id) : T_class();
 
         // If we have an object and a filter function and the object doesn't satisfy the filter,
         // then keep looking for another object that does.
@@ -103,7 +103,7 @@ dac_iterator_t<T_class> dac_container_t<container_type_id, T_class>::begin() con
         = dac_db_t::initialize_iterator(container_type_id);
 
     gaia::common::gaia_id_t id;
-    while ((id = dac_db_t::get_iterator_value(iterator_state)) != common::c_invalid_gaia_id)
+    while ((id = dac_db_t::get_iterator_value(iterator_state)).is_valid())
     {
         if (m_filter_fn)
         {
@@ -151,7 +151,7 @@ template <typename T_child>
 dac_set_iterator_t<T_child>::dac_set_iterator_t(gaia::common::gaia_id_t id, common::reference_offset_t next_offset)
     : m_next_offset(next_offset)
 {
-    m_child_obj = (id == gaia::common::c_invalid_gaia_id) ? T_child() : T_child::get(id);
+    m_child_obj = (id.is_valid()) ? T_child::get(id) : T_child();
 }
 
 template <typename T_child>
@@ -162,7 +162,7 @@ dac_set_iterator_t<T_child>::dac_set_iterator_t(
     : m_filter_fn(filter_function)
     , m_next_offset(next_offset)
 {
-    m_child_obj = (id == gaia::common::c_invalid_gaia_id) ? T_child() : T_child::get(id);
+    m_child_obj = (id.is_valid()) ? T_child::get(id) : T_child();
 }
 
 template <typename T_child>
@@ -188,9 +188,9 @@ dac_set_iterator_t<T_child>& dac_set_iterator_t<T_child>::operator++()
     gaia::common::gaia_id_t id;
     if (m_filter_fn)
     {
-        for (id = m_child_obj.references()[m_next_offset], m_child_obj = (id == gaia::common::c_invalid_gaia_id) ? T_child() : T_child::get(id);
+        for (id = m_child_obj.references()[m_next_offset], m_child_obj = (id.is_valid()) ? T_child::get(id) : T_child();
              m_child_obj;
-             id = m_child_obj.references()[m_next_offset], m_child_obj = (id == gaia::common::c_invalid_gaia_id) ? T_child() : T_child::get(id))
+             id = m_child_obj.references()[m_next_offset], m_child_obj = (id.is_valid()) ? T_child::get(id) : T_child())
         {
             if (m_filter_fn(m_child_obj))
             {
@@ -203,7 +203,7 @@ dac_set_iterator_t<T_child>& dac_set_iterator_t<T_child>::operator++()
         if (m_child_obj)
         {
             id = m_child_obj.references()[m_next_offset];
-            m_child_obj = (id == gaia::common::c_invalid_gaia_id) ? T_child() : T_child::get(id);
+            m_child_obj = (id.is_valid()) ? T_child::get(id) : T_child();
         }
     }
 
@@ -238,7 +238,7 @@ dac_set_iterator_t<T_child> value_linked_reference_container_t<T_child>::begin()
 {
     gaia::common::gaia_id_t id = dac_db_t::get_reference(m_anchor_id, gaia::common::c_ref_anchor_first_child_offset);
     gaia::common::reference_offset_t next_offset = m_anchor_offset + 1;
-    while (id != gaia::common::c_invalid_gaia_id)
+    while (id.is_valid())
     {
         if (m_filter_fn)
         {
@@ -281,13 +281,13 @@ size_t value_linked_reference_container_t<T_child>::size() const
 template <typename T_child>
 dac_set_iterator_t<T_child> reference_container_t<T_child>::begin() const
 {
-    if (m_parent_id == gaia::common::c_invalid_gaia_id)
+    if (!m_parent_id.is_valid())
     {
         return end_dac_set_iterator();
     }
 
     gaia::common::gaia_id_t anchor_id = dac_db_t::get_reference(m_parent_id, m_child_offset);
-    if (anchor_id == gaia::common::c_invalid_gaia_id)
+    if (!anchor_id.is_valid())
     {
         return end_dac_set_iterator();
     }
@@ -298,7 +298,7 @@ dac_set_iterator_t<T_child> reference_container_t<T_child>::begin() const
         return dac_set_iterator_t<T_child>(id, m_next_offset);
     }
 
-    while (id != gaia::common::c_invalid_gaia_id)
+    while (id.is_valid())
     {
         if (m_filter_fn(T_child::get(id)))
         {
@@ -338,7 +338,7 @@ void reference_container_t<T_child>::insert(const T_child& child)
 template <typename T_child>
 bool reference_container_t<T_child>::connect(gaia::common::gaia_id_t id)
 {
-    if (id == gaia::common::c_invalid_gaia_id || m_parent_id == gaia::common::c_invalid_gaia_id)
+    if (!id.is_valid() || !m_parent_id.is_valid())
     {
         report_invalid_object_id(id);
     }

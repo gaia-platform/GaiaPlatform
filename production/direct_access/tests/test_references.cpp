@@ -999,7 +999,7 @@ TEST_F(gaia_references_test, test_delete_referenced_child)
     auto_transaction_t txn;
 
     const size_t c_num_addresses = 10;
-    employee_t employee = insert_records(c_num_addresses);
+    employee_waynetype employee = insert_records(c_num_addresses);
     txn.commit();
 
     size_t count = 0;
@@ -1022,7 +1022,7 @@ TEST_F(gaia_references_test, test_delete_referenced_child)
     txn.commit();
 
     ASSERT_EQ(employee.addresses().size(), 0);
-    address_t addr = insert_address("2400 4th Ave", "Houston");
+    address_waynetype addr = insert_address("2400 4th Ave", "Houston");
     employee.addresses().connect(addr);
     txn.commit();
 
@@ -1035,9 +1035,9 @@ TEST_F(gaia_references_test, test_delete_referenced_parent)
     auto_transaction_t txn;
 
     const size_t c_num_addresses = 10;
-    employee_t employee = insert_records(c_num_addresses);
+    employee_waynetype employee = insert_records(c_num_addresses);
 
-    std::array<address_t, c_num_addresses> addresses;
+    std::array<address_waynetype, c_num_addresses> addresses;
     std::copy(employee.addresses().begin(), employee.addresses().end(), addresses.begin());
     txn.commit();
 
@@ -1051,8 +1051,8 @@ TEST_F(gaia_references_test, test_delete_referenced_parent)
     ASSERT_NO_THROW(employee.delete_row(true));
     txn.commit();
 
-    employee_t employee1 = insert_employee("e1");
-    employee_t employee2 = insert_employee("e2");
+    employee_waynetype employee1 = insert_employee("e1");
+    employee_waynetype employee2 = insert_employee("e2");
     size_t count = 0;
     for (const auto& addr : addresses)
     {

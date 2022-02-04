@@ -50,19 +50,19 @@ TEST_F(test_metarule3, test_meta_rule_3)
 {
     gaia::db::begin_transaction();
 
-    auto student = student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
+    auto student = student_waynetype::get(student_waynetype::insert_row("stu001", "Richard", 45, 4, 3.0));
 
-    course_t::insert_row("cou001", "math101", 3);
-    course_t::insert_row("cou002", "math201", 4);
-    course_t::insert_row("cou003", "eng101", 3);
-    course_t::insert_row("cou004", "sci101", 3);
-    course_t::insert_row("cou005", "math301", 5);
+    course_waynetype::insert_row("cou001", "math101", 3);
+    course_waynetype::insert_row("cou002", "math201", 4);
+    course_waynetype::insert_row("cou003", "eng101", 3);
+    course_waynetype::insert_row("cou004", "sci101", 3);
+    course_waynetype::insert_row("cou005", "math301", 5);
 
-    registration_t::insert_row("reg001", "stu001", "cou002", c_status_pending, c_grade_none);
-    registration_t::insert_row("reg002", "stu001", "cou004", c_status_eligible, c_grade_c);
-    registration_t::insert_row("reg003", "stu001", "cou001", c_status_eligible, c_grade_b);
-    registration_t::insert_row("reg004", "stu001", "cou003", c_status_eligible, c_grade_a);
-    registration_t::insert_row("reg006", "stu001", "cou005", c_status_pending, c_grade_d);
+    registration_waynetype::insert_row("reg001", "stu001", "cou002", c_status_pending, c_grade_none);
+    registration_waynetype::insert_row("reg002", "stu001", "cou004", c_status_eligible, c_grade_c);
+    registration_waynetype::insert_row("reg003", "stu001", "cou001", c_status_eligible, c_grade_b);
+    registration_waynetype::insert_row("reg004", "stu001", "cou003", c_status_eligible, c_grade_a);
+    registration_waynetype::insert_row("reg006", "stu001", "cou005", c_status_pending, c_grade_d);
 
     gaia::db::commit_transaction();
 

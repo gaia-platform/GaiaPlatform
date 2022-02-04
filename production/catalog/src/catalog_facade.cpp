@@ -235,12 +235,12 @@ std::pair<std::string, std::string> field_facade_t::generate_expr_variable() con
     std::string accessor_string;
     accessor_string.append("gaia::expressions::member_accessor_t");
     accessor_string.append("<");
-    accessor_string.append(class_name());
+    accessor_string.append(table_type_name());
     accessor_string.append(", ");
     accessor_string.append(field_type());
     accessor_string.append(">");
 
-    return generate_expr_variable(class_name(), accessor_string, field_name());
+    return generate_expr_variable(table_type_name(), accessor_string, field_name());
 }
 
 std::string field_facade_t::table_type_name() const
@@ -405,10 +405,10 @@ std::string link_facade_t::expression_accessor() const
     {
         type_decl.append("gaia::expressions::container_accessor_t");
         type_decl.append("<");
-        type_decl.append(from_table());
-        type_decl.append("_t, ");
-        type_decl.append(to_table());
-        type_decl.append("_t, ");
+        type_decl.append(from_class_name());
+        type_decl.append(", ");
+        type_decl.append(to_class_name());
+        type_decl.append(", ");
         type_decl.append(target_type());
         type_decl.append(">");
     }
@@ -416,8 +416,8 @@ std::string link_facade_t::expression_accessor() const
     {
         type_decl.append("gaia::expressions::member_accessor_t");
         type_decl.append("<");
-        type_decl.append(from_table());
-        type_decl.append("_t, ");
+        type_decl.append(from_class_name());
+        type_decl.append(", ");
         type_decl.append(target_type());
         type_decl.append(">");
     }

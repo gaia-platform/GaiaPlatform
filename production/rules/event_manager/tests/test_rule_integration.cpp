@@ -161,7 +161,7 @@ void rule_conflict(const rule_context_t* context)
             begin_session();
             {
                 auto_transaction_t txn(auto_transaction_t::no_auto_restart);
-                auto ew = employee_t::get(context->record).writer();
+                auto ew = employee_waynetype::get(context->record).writer();
                 ew.name_first = "Conflict";
                 ew.update_row();
                 txn.commit();
