@@ -258,18 +258,19 @@ void server_t::handle_rollback_txn(
 
 void server_t::recover_persistent_log()
 {
+    if (s_server_conf.persistence_mode() == persistence_mode_t::e_disabled)
+    {
+        return;
+    }
+
     if (c_use_gaia_log_implementation)
     {
-        // If persistence is disabled, then this is a no-op.
-        if (!(s_server_conf.persistence_mode() == persistence_mode_t::e_disabled))
+        if (!s_log_handler)
         {
-            if (!s_log_handler)
-            {
-                ASSERT_INVARIANT(s_validate_persistence_batch_eventfd >= 0, "Invalid validate flush eventfd.");
-                s_log_handler = std::make_unique<persistence::log_handler_t>(s_server_conf.data_dir());
+            ASSERT_INVARIANT(s_validate_persistence_batch_eventfd >= 0, "Invalid validate flush eventfd.");
+            s_log_handler = std::make_unique<persistence::log_handler_t>(s_server_conf.data_dir());
 
-                s_log_handler->open_for_writes(s_validate_persistence_batch_eventfd, s_signal_checkpoint_log_eventfd);
-            }
+            s_log_handler->open_for_writes(s_validate_persistence_batch_eventfd, s_signal_checkpoint_log_eventfd);
         }
 
         if (s_server_conf.persistence_mode() == persistence_mode_t::e_disabled_after_recovery)
@@ -279,7 +280,7 @@ void server_t::recover_persistent_log()
     }
 }
 
-void server_t::write_to_persistent_log(int64_t txn_group_timeout_us, bool sync_writes)
+void server_t::persist_pending_writes(bool should_wait_for_completion)
 {
     ASSERT_PRECONDITION(s_log_handler, "Persistent log handler should be initialized.");
 
@@ -358,7 +359,7 @@ void server_t::write_to_persistent_log(int64_t txn_group_timeout_us, bool sync_w
 
         end = std::chrono::steady_clock::now();
 
-        if (std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() >= txn_group_timeout_us)
+        if (std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() >= c_txn_group_timeout_us)
         {
             break;
         }
@@ -372,7 +373,7 @@ void server_t::write_to_persistent_log(int64_t txn_group_timeout_us, bool sync_w
         }
 
         // Explicitly submit any remaining writes that are still not logged.
-        s_log_handler->submit_writes(sync_writes);
+        s_log_handler->submit_writes(should_wait_for_completion);
     }
 }
 
@@ -918,11 +919,11 @@ void server_t::recover_db()
     }
 }
 
-void server_t::flush_all_pending_writes()
+void server_t::flush_pending_writes()
 {
     while (true)
     {
-        write_to_persistent_log(c_txn_group_timeout_us);
+        persist_pending_writes(c_txn_group_timeout_us);
         if (s_seen_and_undecided_txn_set.size() == 0)
         {
             break;
@@ -1015,22 +1016,22 @@ void server_t::log_writer_handler()
                     s_log_handler->validate_flushed_batch();
                 }
 
-                write_to_persistent_log(c_txn_group_timeout_us);
+                persist_pending_writes(c_txn_group_timeout_us);
             }
             else if (ev.data.fd == s_signal_log_write_eventfd)
             {
                 read_eventfd(s_signal_log_write_eventfd);
-                write_to_persistent_log(c_txn_group_timeout_us);
+                persist_pending_writes(c_txn_group_timeout_us);
             }
             else if (ev.data.fd == s_signal_decision_eventfd)
             {
                 read_eventfd(s_signal_decision_eventfd);
-                write_to_persistent_log(c_txn_group_timeout_us);
+                persist_pending_writes(c_txn_group_timeout_us);
             }
             else if (ev.data.fd == s_server_shutdown_eventfd)
             {
                 // Server shutdown; before shutdown finish persisting any pending writes before exiting.
-                flush_all_pending_writes();
+                flush_pending_writes();
                 shutdown = true;
             }
             else

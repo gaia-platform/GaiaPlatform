@@ -32,15 +32,14 @@ namespace db
 namespace persistence
 {
 
-async_disk_writer_t::async_disk_writer_t(int validate_flush_eventfd, int signal_checkpoint_eventfd)
+async_disk_writer_t::async_disk_writer_t(int log_flush_eventfd, int signal_checkpoint_eventfd)
 {
-    ASSERT_PRECONDITION(validate_flush_eventfd >= 0, "Invalid validate flush eventfd");
+    ASSERT_PRECONDITION(log_flush_eventfd >= 0, "Invalid validate flush eventfd");
     ASSERT_PRECONDITION(signal_checkpoint_eventfd >= 0, "Invalid signal checkpoint eventfd");
 
-    m_validate_flush_eventfd = validate_flush_eventfd;
+    m_log_flush_eventfd = log_flush_eventfd;
     m_signal_checkpoint_eventfd = signal_checkpoint_eventfd;
 
-    // Used to block new writes to disk when a batch is already getting flushed.
     s_flush_eventfd = eventfd(1, 0);
     if (s_flush_eventfd == -1)
     {
@@ -136,15 +135,16 @@ void async_disk_writer_t::submit_and_swap_in_progress_batch(int file_fd, bool sh
     // Block on any pending disk flushes.
     eventfd_read(s_flush_eventfd, &event_counter);
 
-    // m_validate_flush_eventfd might already be consumed by the caller.
+    // m_log_flush_eventfd might already be consumed by the caller.
     uint64_t val;
-    ssize_t bytes_read = ::read(m_validate_flush_eventfd, &val, sizeof(val));
-    if (bytes_read == -1)
+    ssize_t bytes_read = ::read(m_log_flush_eventfd, &val, sizeof(val));
+    if(bytes_read == -1)
     {
-        ASSERT_INVARIANT(errno == EAGAIN, "");
+        ASSERT_INVARIANT(errno == EAGAIN, "Unexpected error! read() is expected to fail with EAGAIN for a non-blocking eventfd.");
     }
     else
     {
+        ASSERT_INVARIANT(bytes_read == sizeof(val), "Failed to fully read data!");
         // Before submitting the next batch perform any maintenance on the in_flight batch.
         perform_post_completion_maintenance();
     }
@@ -161,7 +161,7 @@ void async_disk_writer_t::finish_and_submit_batch(int file_fd, bool should_wait_
     {
         swap_batches();
 
-        // Nothing to submit; reset the flush efd that got burnt in submit_and_swap_in_progress_batch() function.
+        // Nothing to submit; reset the flush eventfd that got burnt in submit_and_swap_in_progress_batch() function.
         signal_eventfd_single_thread(s_flush_eventfd);
 
         // Reset metadata buffer.
@@ -173,7 +173,7 @@ void async_disk_writer_t::finish_and_submit_batch(int file_fd, bool should_wait_
     m_in_progress_batch->add_fdatasync_op_to_batch(file_fd, get_enum_value(uring_op_t::fdatasync), IOSQE_IO_LINK);
 
     // Signal eventfd's as part of batch.
-    m_in_progress_batch->add_pwritev_op_to_batch(&c_default_iov, 1, m_validate_flush_eventfd, 0, get_enum_value(uring_op_t::pwritev_eventfd_validate), IOSQE_IO_DRAIN);
+    m_in_progress_batch->add_pwritev_op_to_batch(&c_default_iov, 1, m_log_flush_eventfd, 0, get_enum_value(uring_op_t::pwritev_eventfd_validate), IOSQE_IO_DRAIN);
     m_in_progress_batch->add_pwritev_op_to_batch(&c_default_iov, 1, s_flush_eventfd, 0, get_enum_value(uring_op_t::pwritev_eventfd_flush), IOSQE_IO_LINK);
 
     swap_batches();

@@ -121,7 +121,7 @@ private:
     static inline int s_flush_eventfd = -1;
 
     // eventfd to signal that the IO results belonging to a batch are ready to be validated.
-    int m_validate_flush_eventfd = -1;
+    int m_log_flush_eventfd = -1;
 
     // eventfd to signal that a file is ready to be checkpointed.
     int m_signal_checkpoint_eventfd = -1;

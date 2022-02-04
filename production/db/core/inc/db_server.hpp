@@ -111,8 +111,7 @@ private:
     // TODO: Delete this once recovery/checkpointing implementation is in.
     static inline bool c_use_gaia_log_implementation = false;
 
-    // TODO: Make configurable.
-    static constexpr int64_t c_txn_group_timeout_us = 100;
+    static constexpr uint64_t c_txn_group_timeout_us = 100;
 
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
     static constexpr size_t c_stream_batch_size{1ULL << 10};
@@ -136,6 +135,9 @@ private:
 
     // Signals the checkpointing thread to merge log file updates into the LSM store.
     static inline int s_signal_checkpoint_log_eventfd = -1;
+
+    // Signal to persistence thread that a batch is ready to be validated.
+    static inline int s_validate_persistence_batch_eventfd = -1;
 
     // These thread objects are owned by the client dispatch thread.
     static inline std::vector<std::thread> s_session_threads{};
@@ -165,9 +167,6 @@ private:
     thread_local static inline messages::session_state_t s_session_state = messages::session_state_t::DISCONNECTED;
     thread_local static inline bool s_session_shutdown = false;
     thread_local static inline int s_session_shutdown_eventfd = -1;
-
-    // Signal to persistence thread that a batch is ready to be validated.
-    static inline int s_validate_persistence_batch_eventfd = -1;
     thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
     thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
 
@@ -433,11 +432,11 @@ private:
 
     static void log_writer_handler();
 
-    static void write_to_persistent_log(int64_t txn_group_timeout_us, bool sync_writes = false);
+    static void persist_pending_writes(bool should_wait_for_completion = false);
 
     static void recover_persistent_log();
 
-    static void flush_all_pending_writes();
+    static void flush_pending_writes();
 
     static void session_handler(int session_socket);
 
