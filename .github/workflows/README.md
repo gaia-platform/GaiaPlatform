@@ -135,7 +135,6 @@ These are set in each job to ensure a stable environment is available at the wor
 
 ```YAML
 env:
-  GAIA_VERSION: 0.3.3
   SSH_AUTH_SOCK: /tmp/ssh_agent.sock
   DEV_IMAGE: ghcr.io/gaia-platform/dev-base:latest
 ```
@@ -150,7 +149,6 @@ env:
 | Name | Description |
 | --- | --- |
 | `GAIA_REPO` | where the workspace is within the workspace provided by GHA |
-| `GAIA_VERSION` | version of the product being built |
 | `SSH_AUTH_SOCK` | needed for docker related commands issued within the scripts |
 | `DEV_IMAGE` | image to use as a base/cache for the other images to be built |
 
@@ -328,7 +326,6 @@ The two currently available actions are:
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
             --repo-path $GAIA_REPO \
-            --gaia-version $GAIA_VERSION \
             --action unit_tests
 ```
 
