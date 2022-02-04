@@ -63,7 +63,7 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags] <command>"
     echo "Flags:"
-    echo "  -v,--verbose                Show lots of information while executing the project."
+    echo "  -q,--quiet                  Do not show lots of information while executing the project."
     echo "  -h,--help                   Display this help text."
     echo ""
     show_usage_commands
@@ -72,12 +72,12 @@ show_usage() {
 
 # Parse the command line.
 parse_command_line() {
-    VERBOSE_MODE=0
+    VERBOSE_MODE=1
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
-        -v|--verbose)
-            VERBOSE_MODE=1
+        -q|--quiet)
+            VERBOSE_MODE=0
             shift
         ;;
         -h|--help)

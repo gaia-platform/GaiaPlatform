@@ -237,7 +237,7 @@ else
         --platform linux/amd64 \
         --mount type=\"volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$OUTPUT_DIRECTORY\" \
         coverage_image \
-        \"/source/production/coverage/gen_coverage.sh --verbose\""
+        \"/source/production/coverage/gen_coverage.sh\""
 
     # shellcheck disable=SC2086
     if ! docker run \
@@ -247,7 +247,7 @@ else
         --platform linux/amd64 \
         --mount "type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$OUTPUT_DIRECTORY" \
         coverage_image \
-        "/source/production/coverage/gen_coverage.sh --verbose "; then
+        "/source/production/coverage/gen_coverage.sh"; then
         complete_process 1 "Coverage run failed."
     fi
 fi
