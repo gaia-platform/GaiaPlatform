@@ -3,7 +3,29 @@ UseCRLF: false
 UseTab: Never
 IndentWidth: 4
 ColumnLimit: 0
-BreakBeforeBraces: Allman
+# The following configuration encodes the BreakBeforeBraces Allman style
+# but for BeforeLambdaBody to allow one-liner lambdas.
+# See discussion here about customizing BreakBeforeBraces: https://reviews.llvm.org/D94906#2505095.
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel:  true
+  AfterClass:      true
+  AfterControlStatement: Always
+  AfterEnum:       true
+  AfterFunction:   true
+  AfterNamespace:  true
+  AfterObjCDeclaration: true
+  AfterStruct:     true
+  AfterUnion:      true
+  AfterExternBlock: true
+  BeforeCatch:     true
+  BeforeElse:      true
+  BeforeLambdaBody: false
+  BeforeWhile:     false
+  IndentBraces:    false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
 
 # Force pointers to the type for C++.
 DerivePointerAlignment: false
@@ -13,7 +35,7 @@ PointerAlignment: Left
 AccessModifierOffset: -4
 
 # From clang-format-11 there are more fine grained options for this setting.
-AlignOperands: false
+AlignOperands: DontAlign
 BreakBeforeBinaryOperators: All
 BreakBeforeTernaryOperators: true
 
@@ -69,12 +91,9 @@ IncludeCategories:
   - Regex: 'liburing'
     Priority: 10
     SortPriority: 13
-  - Regex: 'postgres'
+  - Regex: 'json\.hpp'
     Priority: 10
     SortPriority: 14
-  - Regex: 'pg_'
-    Priority: 10
-    SortPriority: 15
   # C system headers.
   - Regex: '^<.*\.h>'
     Priority: 1

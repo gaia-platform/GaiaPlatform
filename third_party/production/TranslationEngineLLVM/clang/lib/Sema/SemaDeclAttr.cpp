@@ -2138,6 +2138,14 @@ static bool validateRuleAttribute(StringRef attribute,
         << field;
       return false;
     }
+    if (tag.empty())
+    {
+      S.AddTableSearchAnchor(table, table);
+    }
+    else
+    {
+      S.AddTableSearchAnchor(table, tag);
+    }
     return true;
   }
 
@@ -2153,6 +2161,7 @@ static bool validateRuleAttribute(StringRef attribute,
     }
 
     bool returnValue = false;
+    StringRef fieldTable;
     for (const auto& table : tableData)
     {
       if (table.second.find(attribute) != table.second.end())
@@ -2163,12 +2172,24 @@ static bool validateRuleAttribute(StringRef attribute,
           return false;
         }
         returnValue = true;
+        fieldTable = table.first();
       }
     }
     if (!returnValue)
     {
       S.Diag(AL.getLoc(), diag::err_unknown_field_or_table)
         << attribute;
+    }
+    else
+    {
+      if (tag.empty())
+      {
+        S.AddTableSearchAnchor(fieldTable, fieldTable);
+      }
+      else
+      {
+        S.AddTableSearchAnchor(fieldTable, tag);
+      }
     }
     return returnValue;
   }
@@ -2180,6 +2201,15 @@ static bool validateRuleAttribute(StringRef attribute,
       S.Diag(AL.getLoc(), diag::err_duplicate_field) << attribute;
       return false;
     }
+  }
+
+  if (tag.empty())
+  {
+    S.AddTableSearchAnchor(attribute, attribute);
+  }
+  else
+  {
+    S.AddTableSearchAnchor(attribute, tag);
   }
 
   return true;

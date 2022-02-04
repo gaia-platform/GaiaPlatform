@@ -1,7 +1,10 @@
-/////////////////////////////////////////////
+////////////////////////////////////////////////////
 // Copyright (c) Gaia Platform LLC
-// All rights reserved.
-/////////////////////////////////////////////
+//
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE.txt file
+// or at https://opensource.org/licenses/MIT.
+////////////////////////////////////////////////////
 
 #include <algorithm>
 #include <atomic>
@@ -37,19 +40,19 @@ ruleset incubator_ruleset
             return;
         }
 
-        if (sensor.value < incubator.min_temp 
+        if (sensor.value < incubator.min_temp
             || sensor.value > incubator.max_temp)
         {
-            for (A:actuator)
+            for (actuator)
             {
-                A.value = adjust_temperature(incubator.min_temp, incubator.max_temp, sensor.value, A.value);
-                A.timestamp = g_timestamp;
+                actuator.value = adjust_temperature(incubator.min_temp, incubator.max_temp, sensor.value, actuator.value);
+                actuator.timestamp = g_timestamp;
             }
         }
     }
 
     // Rule 2:  Verify the temperature is kept in range if the
-    // incubator temperature limits change. 
+    // incubator temperature limits change.
     on_update(incubator.max_temp, incubator.min_temp)
     {
         if (!incubator.is_on)
@@ -58,15 +61,15 @@ ruleset incubator_ruleset
         }
 
         sensor_loop:
-        for (S:sensor)
+        for (sensor)
         {
-            if (S.value < min_temp 
-                || S.value > max_temp)
+            if (sensor.value < min_temp
+                || sensor.value > max_temp)
             {
-                for (A:actuator)
+                for (actuator)
                 {
-                    A.value = adjust_temperature(min_temp, max_temp, S.value, A.value);
-                    A.timestamp = g_timestamp;
+                    actuator.value = adjust_temperature(min_temp, max_temp, sensor.value, actuator.value);
+                    actuator.timestamp = g_timestamp;
                 }
                 break sensor_loop;
             }
@@ -77,10 +80,10 @@ ruleset incubator_ruleset
     {
         if (!@incubator.is_on)
         {
-            for (A:actuator)
+            for (actuator)
             {
-                A.value = 0;
-                A.timestamp = g_timestamp;
+                actuator.value = 0;
+                actuator.timestamp = g_timestamp;
             }
         }
     }
@@ -95,7 +98,7 @@ ruleset incubator_ruleset
         }
 
         if_loop:
-        if (S:sensor.value > incubator.max_temp)
+        if (sensor.value > incubator.max_temp)
         {
             if (actuator.value > c_fan_threshold * c_fan_speed_limit)
             {

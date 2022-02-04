@@ -29,12 +29,17 @@ public:
     const T_type* data() const
     {
         return m_vector->data();
-    };
+    }
 
     uint32_t size() const
     {
         return m_vector->size();
-    };
+    }
+
+    bool is_null() const
+    {
+        return m_vector == nullptr;
+    }
 
     // Normally the operator "[]" should return a reference or const reference
     // to the array element. Given we only support arrays of basic types and the

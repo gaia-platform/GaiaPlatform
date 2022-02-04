@@ -24,7 +24,7 @@ using namespace std;
 // One printable line of output.
 static char g_longstring[c_line_length];
 
-string hex_dump16(uint32_t offset, void* binary_buff, int binary_length)
+string hex_dump16(uint32_t offset, void* binary_buff, size_t binary_length)
 {
     string dump;
 
@@ -32,7 +32,7 @@ string hex_dump16(uint32_t offset, void* binary_buff, int binary_length)
     dump += g_longstring;
     int line_position = 0;
     auto binary_ptr = static_cast<uint8_t*>(binary_buff);
-    int remaining_length = binary_length;
+    size_t remaining_length = binary_length;
     if (remaining_length > c_line_size)
     {
         remaining_length = c_line_size;
@@ -80,7 +80,7 @@ string hex_dump16(uint32_t offset, void* binary_buff, int binary_length)
     return dump;
 }
 
-static string hex_dump(void* binary_buff, int binary_length, int& line_limit)
+static string hex_dump(void* binary_buff, size_t binary_length, int& line_limit)
 {
     string dump;
     uint32_t offset = 0;
@@ -93,7 +93,14 @@ static string hex_dump(void* binary_buff, int binary_length, int& line_limit)
             return dump;
         }
         binary_ptr += c_bytes_per_line;
-        binary_length -= c_bytes_per_line;
+        if (binary_length < c_bytes_per_line)
+        {
+            binary_length = 0;
+        }
+        else
+        {
+            binary_length -= c_bytes_per_line;
+        }
         offset += c_bytes_per_line;
     }
     return dump;
@@ -102,19 +109,19 @@ static string hex_dump(void* binary_buff, int binary_length, int& line_limit)
 static string dump_node(gaia_ptr_t& node_ptr, bool references, bool payload, int& line_limit)
 {
     string dump;
-    size_t num_references = node_ptr.num_references();
+    size_t references_count = node_ptr.references_count();
     sprintf(
         g_longstring, "id=%016lx, type=%08x, payload=%04zx, references=%02zx\n",
-        node_ptr.id().value(), node_ptr.type().value(), node_ptr.data_size(), num_references);
+        node_ptr.id().value(), node_ptr.type().value(), node_ptr.data_size(), references_count);
     dump += g_longstring;
     if (--line_limit == 0)
     {
         return dump;
     }
-    if (references && num_references)
+    if (references && references_count)
     {
         auto references = node_ptr.references();
-        for (size_t i = 0; i < num_references; i++)
+        for (size_t i = 0; i < references_count; i++)
         {
             sprintf(g_longstring, "      %02zx: %016lx\n", i, references[i].value());
             dump += g_longstring;
@@ -163,11 +170,11 @@ string gaia_dump(gaia_id_t low, gaia_id_t high, bool payload, bool references, b
     {
         try
         {
-            auto node_ptr = gaia_ptr_t::open(id);
+            auto node_ptr = gaia_ptr_t::from_gaia_id(id);
             if (node_ptr)
             {
                 // If 'catalog' is true, don't check the catalog range.
-                if (catalog || node_ptr.type() < c_system_table_reserved_range_start)
+                if (catalog || !is_system_object(node_ptr.type()))
                 {
                     if (type_in(node_ptr.type(), type_vec))
                     {

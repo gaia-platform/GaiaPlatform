@@ -51,10 +51,9 @@ public:
     std::optional<relationship_t> find_child_relationship(gaia::common::reference_offset_t parent_offset) const;
 
     /**
-     * The number of references this type has both as parent and child.
-     * Note: child references count 2X, since 2 pointers are necessary to express them.
+     * The total number of references this type has.
      */
-    gaia::common::reference_offset_t num_references() const;
+    gaia::common::reference_offset_t references_count() const;
 
     // TODO the two following function should be called only by the registry.
     //  Need to figure the best way to do so since these are used in tests too
@@ -83,6 +82,9 @@ private:
     // The relationship_t objects are shared between the parent and the child side of the relationship.
     std::unordered_map<gaia::common::reference_offset_t, std::shared_ptr<relationship_t>> m_parent_relationships;
     std::unordered_map<gaia::common::reference_offset_t, std::shared_ptr<relationship_t>> m_child_relationships;
+
+    // The total number of reference slots this type has.
+    common::reference_offset_t m_reference_count{0};
 
     bool is_initialized();
     void mark_as_initialized();

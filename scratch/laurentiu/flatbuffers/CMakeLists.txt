@@ -42,6 +42,13 @@ else()
     set_target_properties(TestAdvanced PROPERTIES COMPILE_FLAGS ${GAIA_COMPILE_FLAGS})
     set_target_properties(TestAdvanced PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
 
+    # Record test.
+    add_executable(TestRecord TestRecord.cpp)
+    target_include_directories(TestRecord PRIVATE ${PROJECT_SOURCE_DIR})
+    target_link_libraries(TestRecord PRIVATE rt)
+    set_target_properties(TestRecord PROPERTIES COMPILE_FLAGS ${GAIA_COMPILE_FLAGS})
+    set_target_properties(TestRecord PROPERTIES LINK_FLAGS ${GAIA_LINK_FLAGS})
+
     # Copy binary file required for Tutorial.
     configure_file(generated/monster_data.bin . COPYONLY)
     # Copy binary files required for Versions test.
@@ -55,6 +62,7 @@ else()
     add_test(NAME test_flatbuffers_access COMMAND TestAccess)
     add_test(NAME test_flatbuffers_versions COMMAND TestVersions)
     add_test(NAME test_flatbuffers_advanced COMMAND TestAdvanced)
+    add_test(NAME test_record COMMAND TestRecord)
 endif ()
 
 find_library(FLATCCRT_LIB flatccrt)

@@ -187,6 +187,13 @@ class configuration_error : public gaia_exception
 {
 };
 
+/**
+ * Thrown when accessing an optional that has no value.
+ */
+class optional_value_not_found : public common::gaia_exception
+{
+};
+
 namespace logging
 {
 /**

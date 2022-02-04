@@ -100,7 +100,7 @@ double class_name_t::method_with_many_arguments(
 void short_statements()
 {
     int a = 3;
-    //NOLINTNEXTLINE
+    // NOLINTNEXTLINE
     if (true)
     {
         a = 4;
@@ -158,8 +158,8 @@ void braced_style()
 
 int no_space_after_c_cast()
 {
-    double var = 3.14; //NOLINT
-    return (int)var; //NOLINT
+    double var = 3.14; // NOLINT
+    return (int)var; // NOLINT
 }
 
 bool space_after_not()
@@ -168,17 +168,47 @@ bool space_after_not()
     return !yes;
 }
 
-int ternary_operator(int a)
+int binary_operator()
 {
-    // To align this way need clang11 which supports AlignOperands: AlignAfterOperator
-    //    return a == 1
-    //             ? 2
-    //             : 3;
-    // For now ubuntu20 (used by gdev) has clang10 so we keep it this way
-    // (I'm trying to install clang11/12 on gdev)
-    return a == 1
-        ? 2
-        : 3;
+    int var1 = 10;
+    int var2 = 30;
+    int var3 = 50;
+
+    int result1 = var1 + var2 + var3;
+
+    int result2
+        = var1 + var2 + var3;
+
+    int result3 = var1
+        + var2 + var3;
+
+    return result1
+        + result2
+        + result3;
+}
+
+int ternary_operator()
+{
+    int var1 = 10;
+    int var2 = 30;
+
+    int result1 = (var1 > var2) ? var1 : var2;
+
+    int result2 = (var1 > var2) ? var1
+                                : var2;
+
+    int result3 = (var1 > var2)
+        ? var1
+        : var2;
+
+    int result4
+        = (var1 > var2)
+        ? var1
+        : var2;
+
+    return result1 < result2
+        ? result3
+        : result4;
 }
 
 void pure_anarchy()

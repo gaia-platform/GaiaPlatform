@@ -1,4 +1,4 @@
-#! /usr/bin/bash
+#!/usr/bin/env bash
 
 #############################################
 # Copyright (c) Gaia Platform LLC
@@ -17,7 +17,7 @@ SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 # shellcheck disable=SC2034
 SUITE_MODE="smoke-suites"
 # shellcheck disable=SC2034
-TEST_WORKLOADS=("smoke" "palletbox" "pingpong" "marcopolo")
+TEST_WORKLOADS=("smoke" "pingpong" "marcopolo")
 # shellcheck disable=SC2034
 USE_PERSISTENT_DATABASE=1
 # shellcheck disable=SC2034

@@ -7,4 +7,3 @@ class GenAptRun(GenAbcRun):
     @property
     def build(self) -> GenAptBuild:
         return GenAptBuild(self.options)
-

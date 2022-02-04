@@ -11,4 +11,3 @@
 workload palletbox
 
 perf repeat 3
-

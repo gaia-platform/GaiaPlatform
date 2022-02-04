@@ -36,6 +36,13 @@ namespace persistence
  * Fill the record_header.crc field with CRC_INITIAL_VALUE when
  * computing the checksum: crc32c is vulnerable to 0-prefixing,
  * so we make sure the initial bytes are non-zero.
+ * 
+ * https://stackoverflow.com/questions/2321676/data-length-vs-crc-length
+ * "From the wikipedia article: "maximal total blocklength is equal to 2r − 1". That's in bits. 
+ * You don't need to do much research to see that 29 - 1 is 511 bits. Using CRC-8, 
+ * multiple messages longer than 64 bytes will have the same CRC checksum value."
+ * So CRC-16 would have max message size 2^17-1 bits or about 2^14 bytes = 16KB, 
+ * and CRC-32 would have max message size 2^33-1 bits or about 2^30 bytes = 1GB
  */
 static constexpr crc32_t c_crc_initial_value = ((uint32_t)-1);
 
@@ -57,7 +64,7 @@ public:
     void create_txn_record(
         gaia_txn_id_t commit_ts,
         record_type_t type,
-        std::vector<gaia_offset_t>& object_offsets,
+        std::vector<contiguous_offsets_t>& object_offsets,
         std::vector<gaia::common::gaia_id_t>& deleted_ids);
 
     /**
@@ -73,25 +80,16 @@ public:
     /**
      * Submit async_disk_writer's internal I/O request queue to the kernel for processing.
      */
-    void submit_writes(bool sync);
+    void submit_writes(bool should_wait_for_completion);
 
     /**
      * Validate the result of I/O calls submitted to the kernel for processing.
      */
-    void validate_flushed_batch();
-
-    /**
-     * Track the session_decision_eventfd for each commit_ts; txn_commit() will only return once 
-     * session_decision_eventfd is written to by the log_writer thread - signifying that the txn decision
-     * has been persisted.
-     */
-    void register_commit_ts_for_session_notification(gaia_txn_id_t commit_ts, int session_decision_eventfd);
+    void perform_flushed_batch_maintenance();
 
 private:
-    // TODO: Make log file size configurable.
-    static constexpr uint64_t c_file_size = 4 * 1024 * 1024;
-    static constexpr std::string_view c_gaia_wal_dir_name = "/wal_dir";
-    static constexpr int c_gaia_wal_dir_permissions = 0755;
+    static constexpr char c_gaia_wal_dir_name[] = "/wal_dir";
+    static constexpr int c_gaia_wal_dir_permissions = S_IRWXU | (S_IRGRP | S_IROTH | S_IXGRP | S_IXOTH);
     static inline std::string s_wal_dir_path{};
     static inline int s_dir_fd = -1;
 

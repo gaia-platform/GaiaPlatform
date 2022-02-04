@@ -24,3 +24,8 @@ logging::logger_exception_internal::logger_exception_internal()
 {
     m_message = "Logger sub-system not initialized!";
 }
+
+optional_value_not_found_internal::optional_value_not_found_internal()
+{
+    m_message = "Optional has no value set!";
+}

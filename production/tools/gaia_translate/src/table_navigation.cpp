@@ -16,7 +16,6 @@
 #include "diagnostics.h"
 #include "table_navigation.h"
 
-
 using namespace std;
 using namespace clang;
 using namespace ::gaia::translation;
@@ -30,10 +29,10 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(llv
 {
     string last_variable_name;
     navigation_code_data_t return_value;
-    const auto& table_data = GaiaCatalog::getCatalogTableData();
+    const auto& table_data = getCatalogTableData();
     if (table_data.empty() || path_data.path_components.empty())
     {
-        return navigation_code_data_t();
+        return {};
     }
     bool first_component = true;
     string source_table;
@@ -53,16 +52,27 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(llv
         {
             table = path_component;
         }
-
-        if (path_component == path_data.path_components.back() && !path_data.variable_name.empty())
+        if (path_data.skip_implicit_path_generation
+            && path_component == path_data.path_components.front()
+            && (table == path_data.anchor_variable
+                || (table == path_data.anchor_table
+                    && path_data.tag_table_map.find(table) == path_data.tag_table_map.end())))
+        {
+            last_variable_name = path_data.anchor_variable;
+            auto tag_iterator = path_data.tag_table_map.find(last_variable_name);
+            if (tag_iterator != path_data.tag_table_map.end())
+            {
+                table = tag_iterator->second;
+            }
+        }
+        else if (path_component == path_data.path_components.back() && !path_data.variable_name.empty())
         {
             last_variable_name = path_data.variable_name;
         }
         else
         {
             last_variable_name = get_variable_name(table, path_data.tag_table_map);
-
-            if (last_variable_name != table)
+            if (table != last_variable_name)
             {
                 // Path component is not a tag defined earlier. Check if it is a tag defined in the path
                 auto defined_tag_iterator = path_data.defined_tags.find(table);
@@ -84,7 +94,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(llv
                 auto table_data_itr = table_data.find(table);
                 if (table_data_itr == table_data.end())
                 {
-                    return navigation_code_data_t();
+                    return {};
                 }
                 return_value.prefix.append("\n{\n");
                 return_value.prefix.append(c_nolint_range_copy);
@@ -103,7 +113,18 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(llv
             {
                 if (!path_data.skip_implicit_path_generation)
                 {
-                    return_value = generate_navigation_code(anchor_table, path_data.used_tables, path_data.tag_table_map, last_variable_name);
+                    if (path_data.anchor_table.empty())
+                    {
+                        return_value = generate_navigation_code(anchor_table, anchor_table, path_data.used_tables, path_data.tag_table_map, last_variable_name);
+                    }
+                    else if (path_data.anchor_variable.empty())
+                    {
+                        return_value = generate_navigation_code(path_data.anchor_table, path_data.anchor_table, path_data.used_tables, path_data.tag_table_map, last_variable_name);
+                    }
+                    else
+                    {
+                        return_value = generate_navigation_code(path_data.anchor_table, path_data.anchor_variable, path_data.used_tables, path_data.tag_table_map, last_variable_name);
+                    }
                 }
             }
             first_component = false;
@@ -112,7 +133,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(llv
         {
             if (!generate_navigation_step(source_table_type, source_field, table, source_table, last_variable_name, return_value))
             {
-                return navigation_code_data_t();
+                return {};
             }
         }
         source_table_type = table;
@@ -125,13 +146,13 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(llv
 
 // Function that generates  code to navigate between anchor table and set of tables and return more data about the generated path.
 navigation_code_data_t table_navigation_t::generate_navigation_code(
-    llvm::StringRef anchor_table, const llvm::StringSet<>& tables, const llvm::StringMap<string>& tags, string& last_variable_name)
+    llvm::StringRef anchor_table, llvm::StringRef anchor_variable, const llvm::StringSet<>& tables, const llvm::StringMap<string>& tags, string& last_variable_name)
 {
     navigation_code_data_t return_value;
-    const auto& table_data =GaiaCatalog::getCatalogTableData();
+    const auto& table_data = getCatalogTableData();
     if (table_data.empty() || tables.empty())
     {
-        return navigation_code_data_t();
+        return {};
     }
     StringRef anchor_table_name = anchor_table;
     string variable_name = get_variable_name(anchor_table, tags);
@@ -144,7 +165,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
     auto anchor_table_data_itr = table_data.find(anchor_table);
     if (anchor_table_data_itr == table_data.end())
     {
-        return navigation_code_data_t();
+        return {};
     }
 
     StringRef table_name = tables.begin()->first();
@@ -158,12 +179,13 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
     {
         variable_name = last_variable_name;
     }
-    if (variable_name != anchor_table_name)
+
+    if (variable_name != anchor_variable)
     {
         return_value.prefix.append("\n{\nauto ");
         return_value.prefix.append(variable_name);
         return_value.prefix.append(" = ");
-        return_value.prefix.append(anchor_table_name);
+        return_value.prefix.append(anchor_variable);
         return_value.prefix.append(";\n");
     }
     else
@@ -171,7 +193,6 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
         return_value.prefix = "\n{\n";
     }
     return_value.postfix = "\n}\n";
-
     if (tables.size() == 1 && table_name == anchor_table_name)
     {
         return return_value;
@@ -179,7 +200,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
     if (anchor_table_data_itr->second.linkData.empty())
     {
         gaiat::diag().emit(diag::err_no_anchor_path) << anchor_table;
-        return navigation_code_data_t();
+        return {};
     }
     llvm::StringSet<> processed_tables;
     // Iterate through list of destination tables
@@ -212,7 +233,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
                 if (is_1_relationship || is_n_relationship)
                 {
                     gaiat::diag().emit(diag::err_ambiguous_path) << anchor_table << table;
-                    return navigation_code_data_t();
+                    return {};
                 }
                 if (it.second.cardinality == catalog::relationship_cardinality_t::one)
                 {
@@ -228,184 +249,52 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
 
         if (!is_1_relationship && !is_n_relationship)
         {
-            llvm::SmallVector<navigation_data_t, 8> path;
+            llvm::SmallVector<string, c_size_8> path;
             // Find topographically shortest path between anchor table and destination table.
-            if (find_navigation_path(anchor_table_name, table_name, path))
+            if (findNavigationPath(anchor_table_name, table_name, path))
             {
                 string source_table = variable_name;
                 string source_table_type = anchor_table_name;
                 // Generate code for the path.
-                for (const auto& p : path)
+                for (const auto& path_component : path)
                 {
-                    if (p.table_name == anchor_table_name)
+                    if (path_component == anchor_table_name)
                     {
                         variable_name = anchor_table;
                     }
-                    else if (p.table_name == table_name)
+                    else if (path_component == table_name)
                     {
                         variable_name = last_variable_name;
                     }
                     else
                     {
-                        variable_name = get_variable_name(p.table_name, tags);
+                        variable_name = get_variable_name(path_component, tags);
                     }
-                    if (!generate_navigation_step(source_table_type, "", p.table_name, source_table, variable_name, return_value))
+                    if (!generate_navigation_step(source_table_type, "", path_component, source_table, variable_name, return_value))
                     {
-                        return navigation_code_data_t();
+                        return {};
                     }
-                    source_table_type = p.table_name;
+                    source_table_type = path_component;
                     source_table = variable_name;
                 }
                 last_variable_name = variable_name;
             }
             else
             {
-                return navigation_code_data_t();
+                return {};
             }
         }
         else
         {
             if (!generate_navigation_step(anchor_table_name, "", table_name, variable_name, last_variable_name, return_value))
             {
-                return navigation_code_data_t();
+                return {};
             }
         }
         processed_tables.insert(last_variable_name);
     }
 
     return return_value;
-}
-
-// Auxilary function find topologically closest table.
-StringRef table_navigation_t::get_closest_table(const llvm::StringMap<int>& table_distance)
-{
-    int min_distance = INT_MAX;
-    StringRef return_value;
-    for (const auto& d : table_distance)
-    {
-        if (d.second < min_distance)
-        {
-            min_distance = d.second;
-            return_value = d.first();
-        }
-    }
-
-    return return_value;
-}
-
-// Find shortest navigation path between 2 tables. If multiple shortest paths exist, return an error.
-bool table_navigation_t::find_navigation_path(StringRef src, StringRef dst, SmallVector<navigation_data_t, 8>& current_path)
-{
-    if (src == dst)
-    {
-        return true;
-    }
-    const auto& table_data = GaiaCatalog::getCatalogTableData();
-    bool return_value = find_navigation_path(src, dst, current_path, table_data);
-    if (!return_value)
-    {
-        gaiat::diag().emit(diag::err_no_path) << src << dst;
-        return false;
-    }
-
-    const size_t path_length = current_path.size();
-    // Remove edges from the original shortest path and check if a shortest path with the same length can be found.
-    for (size_t path_index = 0; path_index < path_length - 1; ++path_index)
-    {
-        SmallVector<navigation_data_t, 8> path;
-        llvm::StringMap<CatalogTableData> graph_data(table_data);
-        const auto& edge_src = current_path[path_index];
-        const auto& edge_dst = current_path[path_index + 1];
-        const auto& graph_itr = graph_data.find(edge_src.table_name);
-
-        for (auto it = graph_itr->second.linkData.begin(); it != graph_itr->second.linkData.end();)
-        {
-            if (it->second.targetTable == edge_dst.table_name)
-            {
-                auto toErase = it;
-                graph_itr->second.linkData.erase(toErase);
-                ++it;
-            }
-            else
-            {
-                ++it;
-            }
-        }
-
-        if (find_navigation_path(src, dst, path, graph_data))
-        {
-            if (path.size() == path_length)
-            {
-                gaiat::diag().emit(diag::err_multiple_shortest_paths) << src << dst;
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-// Find shortest navigation path between 2 tables.
-bool table_navigation_t::find_navigation_path(StringRef src, StringRef dst, llvm::SmallVector<navigation_data_t, 8>& current_path, const llvm::StringMap<CatalogTableData>& graph_data)
-{
-    if (src == dst)
-    {
-        return true;
-    }
-
-    llvm::StringMap<int> table_distance;
-    llvm::StringMap<string> table_prev;
-    llvm::StringMap<navigation_data_t> table_navigation;
-
-    for (const auto& table_description : GaiaCatalog::getCatalogTableData())
-    {
-        table_distance[table_description.first()] = INT_MAX;
-    }
-    table_distance[src] = 0;
-
-    string closest_table;
-
-    while (closest_table != dst)
-    {
-        closest_table = get_closest_table(table_distance);
-        if (closest_table.empty())
-        {
-            return false;
-        }
-
-        if (closest_table == dst)
-        {
-            break;
-        }
-
-        int distance = table_distance[closest_table];
-
-        table_distance.erase(closest_table);
-
-        auto table_itr = graph_data.find(closest_table);
-        for (const auto& it : table_itr->second.linkData)
-        {
-            StringRef table_name = it.second.targetTable;
-            if (table_distance.find(table_name) != table_distance.end())
-            {
-                if (table_distance[table_name] > distance + 1)
-                {
-                    table_distance[table_name] = distance + 1;
-                    table_prev[table_name] = closest_table;
-                    table_navigation[table_name] = {it.second.targetTable, it.first()};
-                }
-            }
-        }
-    }
-
-    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
-    StringRef tbl = dst;
-    while (table_prev[tbl] != "")
-    {
-        current_path.insert(current_path.begin(), table_navigation[tbl]);
-        tbl = table_prev[tbl];
-    }
-    return true;
 }
 
 // Get variable name for navigation code
@@ -424,7 +313,7 @@ string table_navigation_t::get_variable_name(StringRef variable, const llvm::Str
 // Function that generates a single navigation step code.
 bool table_navigation_t::generate_navigation_step(StringRef source_table, StringRef source_field, StringRef destination_table, StringRef source_variable_name, StringRef variable_name, navigation_code_data_t& navigation_data)
 {
-    auto table_itr = GaiaCatalog::getCatalogTableData().find(source_table);
+    auto table_itr = getCatalogTableData().find(source_table);
 
     bool is_1_relationship = false, is_n_relationship = false;
 
@@ -502,10 +391,10 @@ bool table_navigation_t::generate_navigation_step(StringRef source_table, String
     return true;
 }
 
-llvm::SmallVector<string, 16> table_navigation_t::get_table_fields(StringRef table)
+llvm::SmallVector<string, c_size_16> table_navigation_t::get_table_fields(StringRef table)
 {
-    llvm::SmallVector<string, 16> return_value;
-    const auto& table_data = GaiaCatalog::getCatalogTableData();
+    llvm::SmallVector<string, c_size_16> return_value;
+    const auto& table_data = getCatalogTableData();
     if (table_data.empty())
     {
         return return_value;
@@ -519,9 +408,9 @@ llvm::SmallVector<string, 16> table_navigation_t::get_table_fields(StringRef tab
 
     return_value.resize(table_iterator->second.fieldData.size());
 
-    for (const auto& fieldData : table_iterator->second.fieldData)
+    for (const auto& field_data : table_iterator->second.fieldData)
     {
-        return_value[fieldData.second.position] = fieldData.first();
+        return_value[field_data.second.position] = field_data.first();
     }
 
     return return_value;

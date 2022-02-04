@@ -104,7 +104,7 @@ public:
     auto_transaction_t& get_dummy_transaction(bool init = false)
     {
         // Create a transaction that won't do anything
-        static auto_transaction_t s_dummy(auto_transaction_t::no_auto_begin);
+        static auto_transaction_t s_dummy(auto_transaction_t::no_auto_restart);
         if (init)
         {
             s_dummy.commit();
@@ -273,9 +273,9 @@ void rule5(const rule_context_t* context)
            // TODO[GAIAPLAT-155]: Determine how the rule schedule deals with cycles
            //{context->event_type, context->gaia_type, context->record, nullptr, 0},
            // Allow event call on different gaia_type.
-           {context->event_type, test_gaia_other_t::s_gaia_type, context->record, empty_position_list, dummy_txn_id},
+           {context->event_type, test_gaia_other_t::s_gaia_type, context->record, c_empty_position_list, dummy_txn_id},
            // Allow event call on different event_type.
-           {event_type_t::row_insert, context->gaia_type, test_gaia_ptr->gaia_id(), empty_position_list, dummy_txn_id}};
+           {event_type_t::row_insert, context->gaia_type, test_gaia_ptr->gaia_id(), c_empty_position_list, dummy_txn_id}};
     test::commit_trigger(trigger_events, 2);
 }
 
@@ -322,7 +322,7 @@ void rule8(const rule_context_t* context)
 
     test_gaia_t row;
     trigger_event_t trigger_event
-        = {event_type_t::row_update, test_gaia_t::s_gaia_type, row.gaia_id(), empty_position_list, dummy_txn_id};
+        = {event_type_t::row_update, test_gaia_t::s_gaia_type, row.gaia_id(), c_empty_position_list, dummy_txn_id};
     test::commit_trigger(&trigger_event, 1);
 }
 
@@ -391,20 +391,20 @@ struct rule_decl_t
  * transaction_rollback: rule3, rule4
  */
 static const rule_decl_t c_rule_decl[] = {
-    //TODO[GAIAPLAT-445] We don't expose deleted row events
-    // {{c_ruleset1_name, c_rule1_name, test_gaia_t::s_gaia_type, event_type_t::row_delete, 0, 1}, rule1},
-    // {{c_ruleset1_name, c_rule2_name, test_gaia_t::s_gaia_type, event_type_t::row_delete, 0, 2}, rule2},
-    {{c_ruleset1_name, c_rule2_name, test_gaia_t::s_gaia_type, event_type_t::row_insert, 0, 2}, rule2},
-    {{c_ruleset1_name, c_rule1_name, test_gaia_t::s_gaia_type, event_type_t::row_update, 0, 1}, rule1},
-    {{c_ruleset2_name, c_rule3_name, test_gaia_other_t::s_gaia_type, event_type_t::row_insert, 0, 30}, rule3},
-    {{c_ruleset2_name, c_rule4_name, test_gaia_other_t::s_gaia_type, event_type_t::row_insert, 0, 40}, rule4},
+    // TODO[GAIAPLAT-445] We don't expose deleted row events
+    // {{c_ruleset1_name, c_rule1_name, test_gaia_t::s_gaia_type, event_type_t::row_delete, gaia::common::c_invalid_field_position, 1}, rule1},
+    // {{c_ruleset1_name, c_rule2_name, test_gaia_t::s_gaia_type, event_type_t::row_delete, gaia::common::c_invalid_field_position, 2}, rule2},
+    {{c_ruleset1_name, c_rule2_name, test_gaia_t::s_gaia_type, event_type_t::row_insert, gaia::common::c_invalid_field_position, 2}, rule2},
+    {{c_ruleset1_name, c_rule1_name, test_gaia_t::s_gaia_type, event_type_t::row_update, gaia::common::c_invalid_field_position, 1}, rule1},
+    {{c_ruleset2_name, c_rule3_name, test_gaia_other_t::s_gaia_type, event_type_t::row_insert, gaia::common::c_invalid_field_position, 30}, rule3},
+    {{c_ruleset2_name, c_rule4_name, test_gaia_other_t::s_gaia_type, event_type_t::row_insert, gaia::common::c_invalid_field_position, 40}, rule4},
     {{c_ruleset1_name, c_rule1_name, test_gaia_other_t::s_gaia_type, event_type_t::row_update, c_first_name, 1}, rule1},
     {{c_ruleset1_name, c_rule2_name, test_gaia_other_t::s_gaia_type, event_type_t::row_update, c_last_name, 2}, rule2}
-    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_begin, 0, 30}, rule3},
-    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_commit, 0, 30}, rule3},
-    //{{ruleset2_name, rule4_name, 0, event_type_t::transaction_commit, 0, 40}, rule4},
-    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_rollback, 0, 30}, rule3},
-    //{{ruleset2_name, rule4_name, 0, event_type_t::transaction_rollback, 0, 40}, rule4}
+    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_begin, gaia::common::c_invalid_field_position, 30}, rule3},
+    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_commit, gaia::common::c_invalid_field_position, 30}, rule3},
+    //{{ruleset2_name, rule4_name, 0, event_type_t::transaction_commit, gaia::common::c_invalid_field_position, 40}, rule4},
+    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_rollback, gaia::common::c_invalid_field_position, 30}, rule3},
+    //{{ruleset2_name, rule4_name, 0, event_type_t::transaction_rollback, gaia::common::c_invalid_field_position, 40}, rule4}
 };
 
 /**
@@ -539,7 +539,7 @@ public:
             gaia_type_t gaia_type = decl.sub.gaia_type;
             field_position_list_t fields;
 
-            if (decl.sub.field)
+            if (decl.sub.field.is_valid())
             {
                 fields.emplace_back(decl.sub.field);
             }
@@ -694,8 +694,8 @@ TEST_F(event_manager_test, log_database_event_single_event_single_rule)
     const gaia_id_t new_record = 20;
     const gaia_id_t record = 55;
     trigger_event_t events[] = {
-        {event_type_t::row_insert, test_gaia_t::s_gaia_type, new_record, empty_position_list, dummy_txn_id},
-        {event_type_t::row_update, test_gaia_t::s_gaia_type, record, empty_position_list, dummy_txn_id}};
+        {event_type_t::row_insert, test_gaia_t::s_gaia_type, new_record, c_empty_position_list, dummy_txn_id},
+        {event_type_t::row_update, test_gaia_t::s_gaia_type, record, c_empty_position_list, dummy_txn_id}};
 
     test::commit_trigger(events, 2);
 
@@ -802,8 +802,8 @@ TEST_F(event_manager_test, log_database_event_single_rule_multi_event)
     trigger_event_t events[] = {
         // TODO[GAIAPLAT-445] We don't expose deleted row events
         //{event_type_t::row_delete, test_gaia_t::s_gaia_type, record, empty_position_list, dummy_txn_id},
-        {event_type_t::row_update, test_gaia_t::s_gaia_type, record + 1, empty_position_list, dummy_txn_id},
-        {event_type_t::row_insert, test_gaia_t::s_gaia_type, record + 2, empty_position_list, dummy_txn_id}};
+        {event_type_t::row_update, test_gaia_t::s_gaia_type, record + 1, c_empty_position_list, dummy_txn_id},
+        {event_type_t::row_insert, test_gaia_t::s_gaia_type, record + 2, c_empty_position_list, dummy_txn_id}};
 
     test::commit_trigger(events, 2);
     validate_rule_sequence(sequence);
@@ -823,8 +823,8 @@ TEST_F(event_manager_test, log_database_event_multi_rule_single_event)
     // fired in response to the insert event.
     const gaia_id_t record = 100;
     trigger_event_t events[] = {
-        {event_type_t::row_update, test_gaia_t::s_gaia_type, 1, empty_position_list, dummy_txn_id},
-        {event_type_t::row_insert, test_gaia_t::s_gaia_type, record, empty_position_list, dummy_txn_id},
+        {event_type_t::row_update, test_gaia_t::s_gaia_type, 1, c_empty_position_list, dummy_txn_id},
+        {event_type_t::row_insert, test_gaia_t::s_gaia_type, record, c_empty_position_list, dummy_txn_id},
     };
     test::commit_trigger(events, 2);
     validate_rule_sequence(sequence);
@@ -854,7 +854,7 @@ TEST_F(event_manager_test, log_event_multi_rule_multi_event)
 
     trigger_event_t events[] = {
         {event_type_t::row_update, test_gaia_t::s_gaia_type, 1, g_first_name, dummy_txn_id},
-        {event_type_t::row_insert, test_gaia_other_t::s_gaia_type, record, empty_position_list, dummy_txn_id}};
+        {event_type_t::row_insert, test_gaia_other_t::s_gaia_type, record, c_empty_position_list, dummy_txn_id}};
     test::commit_trigger(events, 2);
     validate_rule_sequence(sequence);
 
@@ -875,7 +875,7 @@ TEST_F(event_manager_test, log_event_multi_rule_multi_event)
 
     const gaia_id_t another_record = 205;
     trigger_event_t single_event
-        = {event_type_t::row_insert, test_gaia_t::s_gaia_type, another_record, empty_position_list, dummy_txn_id};
+        = {event_type_t::row_insert, test_gaia_t::s_gaia_type, another_record, c_empty_position_list, dummy_txn_id};
     test::commit_trigger(&single_event, 1);
     validate_rule_sequence(sequence);
     validate_rule(event_type_t::row_insert, test_gaia_t::s_gaia_type, another_record);
@@ -984,7 +984,7 @@ TEST_F(event_manager_test, unsubscribe_rule_not_found)
     // Try to remove the rule from the other table events that we didn't register the rule on.
     EXPECT_EQ(false, unsubscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_insert, empty_fields, rb));
     // TODO[GAIAPLAT-445] We don't expose deleted row events
-    //EXPECT_EQ(false, unsubscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_delete, empty_fields, rb));
+    // EXPECT_EQ(false, unsubscribe_rule(test_gaia_t::s_gaia_type, event_type_t::row_delete, empty_fields, rb));
 
     // Try to remove the rule from a type that we didn't register the rule on
     EXPECT_EQ(false, unsubscribe_rule(test_gaia_other_t::s_gaia_type, event_type_t::row_update, empty_fields, rb));
@@ -1244,7 +1244,6 @@ TEST_F(event_manager_test, forward_chain_field_rollback)
 
     uninstall_transaction_hooks();
 }
-
 
 // TODO[GAIAPLAT-308]: Event logging does not happen since we don't have trim.
 // The following two tests will only verify that there are no entries in the

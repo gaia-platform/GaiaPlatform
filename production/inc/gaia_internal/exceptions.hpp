@@ -152,6 +152,12 @@ public:
     explicit configuration_error_internal(const char* filename);
 };
 
+class optional_value_not_found_internal : public optional_value_not_found
+{
+public:
+    optional_value_not_found_internal();
+};
+
 namespace logging
 {
 
@@ -335,6 +341,8 @@ namespace direct_access
 class invalid_object_state_internal : public invalid_object_state
 {
 public:
+    invalid_object_state_internal();
+
     invalid_object_state_internal(
         common::gaia_id_t parent_id,
         common::gaia_id_t child_id,

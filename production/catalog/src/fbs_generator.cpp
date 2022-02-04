@@ -10,8 +10,8 @@
 #include <string>
 
 #include <flatbuffers/idl.h>
-#include <flatbuffers/util.h>
 
+#include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/exceptions.hpp"
@@ -27,11 +27,10 @@ namespace gaia
 namespace catalog
 {
 
-/**
- * Helper functions
- **/
+namespace
+{
 
-static string generate_fbs_namespace(const string& db_name)
+string generate_fbs_namespace(const string& db_name)
 {
     if (db_name.empty() || db_name == c_empty_db_name)
     {
@@ -43,28 +42,38 @@ static string generate_fbs_namespace(const string& db_name)
     }
 }
 
-static string generate_fbs_field(const string& name, const string& type, int count)
+string generate_fbs_field(const gaia_field_t& field, bool ignore_optional = false)
 {
-    if (count == 1)
+    string name{field.name()};
+    auto type = static_cast<data_type_t>(field.type());
+    string type_name{get_data_type_name(type)};
+    uint16_t repeated_count = field.repeated_count();
+
+    std::stringstream ss;
+    ss << name;
+
+    if (repeated_count == 1)
     {
-        return name + ":" + type;
+        ss << ":" + type_name;
     }
-    else if (count == 0)
+    else if (repeated_count == 0)
     {
-        return name + ":[" + type + "]";
+        ss << ":[" + type_name + "]";
     }
     else
     {
-        return name + ":[" + type + ":" + to_string(count) + "]";
+        ss << ":[" + type_name + ":" + to_string(repeated_count) + "]";
     }
+
+    if (!ignore_optional && field.optional() && type != data_type_t::e_string && repeated_count == 1)
+    {
+        ss << "=null";
+    }
+
+    return ss.str();
 }
 
-static string generate_fbs_field(const gaia_field_t& field)
-{
-    string name{field.name()};
-    string type{get_data_type_name(static_cast<data_type_t>(field.type()))};
-    return generate_fbs_field(name, type, field.repeated_count());
-}
+} // namespace
 
 string get_data_type_name(data_type_t data_type)
 {
@@ -99,14 +108,13 @@ string get_data_type_name(data_type_t data_type)
         message
             << "Unhandled data_type_t value '" << static_cast<int>(data_type)
             << "' in get_data_type_name()!";
-        ASSERT_UNREACHABLE(message.str());
+        ASSERT_UNREACHABLE(message.str().c_str());
     }
 }
 
-string generate_fbs(gaia_id_t table_id)
+string generate_fbs(gaia_id_t table_id, bool ignore_optional)
 {
     string fbs;
-    gaia::db::begin_transaction();
     gaia_table_t table = gaia_table_t::get(table_id);
     fbs += generate_fbs_namespace(table.database().name());
     string table_name{table.name()};
@@ -114,11 +122,10 @@ string generate_fbs(gaia_id_t table_id)
     for (gaia_id_t field_id : list_fields(table_id))
     {
         gaia_field_t field = gaia_field_t::get(field_id);
-        fbs += "\t" + generate_fbs_field(field) + ";\n";
+        fbs += "\t" + generate_fbs_field(field, ignore_optional) + ";\n";
     }
     fbs += "}\n";
     fbs += "root_type " + table_name + ";";
-    gaia::db::commit_transaction();
     return fbs;
 }
 
@@ -145,35 +152,17 @@ string generate_fbs(const string& db_name)
     return fbs;
 }
 
-string generate_fbs(const string& db_name, const string& table_name, const ddl::field_def_list_t& fields)
-{
-    string fbs = generate_fbs_namespace(db_name);
-    fbs += "table " + table_name + "{";
-    for (auto& field : fields)
-    {
-        if (field->field_type == ddl::field_type_t::reference)
-        {
-            continue;
-        }
-        const ddl::data_field_def_t* data_field = dynamic_cast<ddl::data_field_def_t*>(field.get());
-        string field_fbs = generate_fbs_field(
-            data_field->name, get_data_type_name(data_field->data_type), data_field->length);
-        fbs += field_fbs + ";";
-    }
-    fbs += "}";
-    fbs += "root_type " + table_name + ";";
-    return fbs;
-}
-
 std::vector<uint8_t> generate_bfbs(const string& fbs)
 {
     flatbuffers::Parser fbs_parser;
     bool parsing_result = fbs_parser.Parse(fbs.c_str());
     ASSERT_PRECONDITION(parsing_result == true, "Invalid FlatBuffers schema!");
     fbs_parser.Serialize();
-    return std::vector<uint8_t>(
+
+    // Use the std::vector (begin, end) iterator constructor.
+    return {
         fbs_parser.builder_.GetBufferPointer(),
-        fbs_parser.builder_.GetBufferPointer() + fbs_parser.builder_.GetSize());
+        fbs_parser.builder_.GetBufferPointer() + fbs_parser.builder_.GetSize()};
 }
 
 } // namespace catalog

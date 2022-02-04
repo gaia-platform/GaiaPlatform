@@ -1214,6 +1214,7 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
   //
   ParseScope IfScope(this, Scope::DeclScope | Scope::ControlScope, C99orCXX);
 
+  Actions.PushTableSearchContext();
   // Parse the condition.
   StmtResult InitStmt;
   Sema::ConditionResult Cond;
@@ -1309,6 +1310,7 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
       // Pop the 'else' scope if needed.
       InnerScope.Exit();
     }
+    Actions.PopTableSearchContext();
     if (Tok.is(tok::kw_nomatch))
     {
       // Remove GaiaBreakScope in nomatch
@@ -1365,6 +1367,10 @@ StmtResult Parser::ParseIfStatement(SourceLocation *TrailingElseLoc) {
     return StmtError();
   } else if (InnerStatementTrailingElseLoc.isValid()) {
     Diag(InnerStatementTrailingElseLoc, diag::warn_dangling_else);
+  }
+  else
+  {
+    Actions.PopTableSearchContext();
   }
 
   IfScope.Exit();
@@ -1429,7 +1435,7 @@ StmtResult Parser::ParseSwitchStatement(SourceLocation *TrailingElseLoc) {
   if (C99orCXX)
     ScopeFlags |= Scope::DeclScope | Scope::ControlScope;
   ParseScope SwitchScope(this, ScopeFlags);
-
+  Actions.PushTableSearchContext();
   // Parse the condition.
   StmtResult InitStmt;
   Sema::ConditionResult Cond;
@@ -1480,6 +1486,7 @@ StmtResult Parser::ParseSwitchStatement(SourceLocation *TrailingElseLoc) {
   // Pop the scopes.
   InnerScope.Exit();
   SwitchScope.Exit();
+  Actions.PopTableSearchContext();
 
   return Actions.ActOnFinishSwitchStmt(SwitchLoc, Switch.get(), Body.get());
 }
@@ -1520,7 +1527,7 @@ StmtResult Parser::ParseWhileStatement(SourceLocation *TrailingElseLoc) {
   else
     ScopeFlags = Scope::BreakScope | Scope::ContinueScope;
   ParseScope WhileScope(this, ScopeFlags);
-
+  Actions.PushTableSearchContext();
   // Parse the condition.
   Sema::ConditionResult Cond;
   {
@@ -1549,6 +1556,7 @@ StmtResult Parser::ParseWhileStatement(SourceLocation *TrailingElseLoc) {
   // Pop the body scope if needed.
   InnerScope.Exit();
   WhileScope.Exit();
+  Actions.PopTableSearchContext();
 
   if (Cond.isInvalid() || Body.isInvalid())
     return StmtError();
@@ -1736,6 +1744,7 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
   MaybeParseCXX11Attributes(attrs);
 
   SourceLocation EmptyInitStmtSemiLoc;
+  Actions.PushTableSearchContext();
 
   // Parse the first part of the for specifier.
   {
@@ -2020,6 +2029,8 @@ StmtResult Parser::ParseForStatement(SourceLocation *TrailingElseLoc) {
 
   // Leave the for-scope.
   ForScope.Exit();
+
+  Actions.PopTableSearchContext();
 
   if (Body.isInvalid())
     return StmtError();

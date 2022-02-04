@@ -74,7 +74,7 @@ extern "C" void unsubscribe_ruleset(const char* ruleset_name);
  * The caller supplies a rule_binding to subscribe/unsubscribe rules to/from events.
  * The caller must supply the ruleset_name, rule_name, and the function pointer for the rule.
  * The ruleset_name and the rule_name must uniquely identify the rule.
-  */
+ */
 struct rule_binding_t
 {
     rule_binding_t()
@@ -127,7 +127,14 @@ struct rule_binding_t
 struct subscription_t
 {
     subscription_t()
-        : subscription_t(nullptr, nullptr, common::c_invalid_gaia_type, db::triggers::event_type_t::not_set, 0, 0, nullptr)
+        : subscription_t(
+            nullptr,
+            nullptr,
+            common::c_invalid_gaia_type,
+            db::triggers::event_type_t::not_set,
+            common::c_invalid_field_position,
+            0,
+            nullptr)
     {
     }
 

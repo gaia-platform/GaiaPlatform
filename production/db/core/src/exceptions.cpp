@@ -72,7 +72,8 @@ object_still_referenced_internal::object_still_referenced_internal(
     message
         << "Cannot delete object with ID '" << id << "', type '" << object_type
         << "', because it is still referenced by another object with ID '"
-        << other_id << "', type '" << other_type << "'";
+        << other_id << "', type '" << other_type << "'. "
+        << "Use the 'force' option to force delete the object.";
     m_message = message.str();
 }
 

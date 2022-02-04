@@ -14,6 +14,8 @@
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/exceptions.hpp"
 
+#include <gaia_spdlog/fmt/fmt.h>
+
 #include "fbs_generator.hpp"
 
 using namespace std;
@@ -248,7 +250,7 @@ void generate_table_fbs(const string& name)
             }
         }
     }
-    if (table_id == c_invalid_gaia_id)
+    if (!table_id.is_valid())
     {
         throw table_does_not_exist_internal(name);
     }
@@ -453,7 +455,7 @@ bool handle_meta_command(const string& cmd)
     ASSERT_PRECONDITION(!cmd.empty(), "Meta command should not be empty.");
     ASSERT_PRECONDITION(
         cmd[c_cmd_prefix_index] == c_command_prefix,
-        "Meta command should start with a '" + string(1, c_command_prefix) + "'.");
+        gaia_fmt::format("Meta command should start with a '{}'.", c_command_prefix).c_str());
 
     if (cmd.length() < c_cmd_minimum_length)
     {

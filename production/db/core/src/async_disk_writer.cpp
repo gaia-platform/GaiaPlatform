@@ -85,11 +85,6 @@ void async_disk_writer_t::throw_error(std::string err_msg, int err, uint64_t use
     throw_system_error(ss.str(), err);
 }
 
-void async_disk_writer_t::map_commit_ts_to_session_decision_eventfd(gaia_txn_id_t commit_ts, int session_decision_eventfd)
-{
-    m_ts_to_session_decision_eventfd_map.insert(std::pair(commit_ts, session_decision_eventfd));
-}
-
 void async_disk_writer_t::add_decisions_to_batch(const decision_list_t& decisions)
 {
     for (const auto& decision : decisions)

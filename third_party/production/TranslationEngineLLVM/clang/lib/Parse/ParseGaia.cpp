@@ -264,7 +264,8 @@ bool Parser::ParseRuleSubscriptionAttributes(ParsedAttributesWithRange &attrs,
                 if (NextToken().is(tok::identifier))
                 {
                     ConsumeToken();
-                    table += Tok.getIdentifierInfo()->getName().str();
+                    StringRef tableName = Tok.getIdentifierInfo()->getName();
+                    table += tableName;
                 }
                 else
                 {
@@ -499,6 +500,9 @@ Parser::DeclGroupPtrTy Parser::ParseRuleset()
         return nullptr;
     }
 
+    // Reset search context stack
+    Actions.ResetTableSearchContextStack();
+
     // Enter a scope for the namespace.
     ParseScope rulesetScope(this, Scope::GaiaRulesetScope);
     Decl *rulesetDecl = Actions.ActOnRulesetDefStart(getCurScope(), rulesetLoc, identLoc, ident, attrs);
@@ -574,6 +578,9 @@ void Parser::ParseRule(Declarator &D)
         Diag(Tok, diag::err_expected) << tok::identifier;
         return;
     }
+    // Reset search context stack
+    Actions.ActOnRuleStart();
+    Actions.PushTableSearchContext();
     ParsedAttributesWithRange attrs(AttrFactory);
     if (!ParseGaiaAttributes(attrs, Rule))
     {

@@ -24,24 +24,36 @@ target_link_libraries(gaia PRIVATE
 install(TARGETS gaia DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 #
-# Ensure this test only includes public headers and links to the gaia shared library.
+# Ensure this test only includes public headers and links to the gaia shared library
+# Emulate what an SDK user does as closely as possible minus gaiat functionality for
+# a production only (non-gaia SDK) build.
 #
 set(SDK_TEST_INCLUDES
+  # REVIEW: the first 2 includes shouldn't be necessary because they're exported
+  # by INTERFACE targets.
+  ${GAIA_PROD_BUILD}/deps/gaia_spdlog/include
+  ${GAIA_PROD_BUILD}/deps/flatbuffers/include
   ${GAIA_INC}
+  ${GAIA_GENERATED_CODE}/direct_access/addr_book
 )
 
 configure_file("${GAIA_CONFIG}" "${PROJECT_BINARY_DIR}/gaia.conf")
 configure_file("${GAIA_LOG_CONFIG}" "${PROJECT_BINARY_DIR}/gaia_log.conf")
-# Disabling test_sdk until we can remove the dependency on non-public methods exported from the SDK shared library.
-# add_gtest(test_sdk "tests/test_sdk.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;gaia_spdlog;dac_addr_book")
+configure_file("${GAIA_REPO}/production/schemas/test/addr_book/addr_book.ddl" "${PROJECT_BINARY_DIR}/addr_book.ddl")
+
+add_gtest(test_sdk "tests/test_sdk.cpp;${GAIA_GENERATED_CODE}/direct_access/addr_book/gaia_addr_book.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia")
+# We don't want to link against dac_addr_book to keep the test as close as possible to customers' environment.
+# Though we want to ensure that the DAC headers have been generated before building the test.
+add_dependencies(test_sdk dac_addr_book)
+set_source_files_properties(${GAIA_GENERATED_CODE}/direct_access/addr_book/gaia_addr_book.cpp PROPERTIES GENERATED 1)
+
 add_gtest(test_sdk_no_init_rules "tests/test_sdk_no_init_rules.cpp" "${SDK_TEST_INCLUDES}" "rt;gaia;dac_addr_book")
 
-# Set CPack variables required for building a DEB/RPM package.
+# Set CPack variables required for building a DEB package.
 #
 # See:
 # https://cmake.org/cmake/help/v3.17/module/CPack.html#variables-common-to-all-cpack-generators
 # https://cmake.org/cmake/help/v3.17/cpack_gen/deb.html#variables-specific-to-cpack-debian-deb-generator
-# https://cmake.org/cmake/help/v3.17/cpack_gen/rpm.html#variables-specific-to-cpack-rpm-generator
 #
 set(CPACK_PACKAGE_CONTACT "info@gaiaplatform.io")
 set(CPACK_PACKAGE_VENDOR "Gaia Platform")
@@ -56,14 +68,14 @@ set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSIO
 
 # DEB specific section.
 #
-set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE amd64)
+set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${GAIA_BUILD_ARCH})
 set(CPACK_DEBIAN_PACKAGE_DESCRIPTION ${CPACK_PACKAGE_DESCRIPTION})
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER ${CPACK_PACKAGE_CONTACT})
 set(CPACK_DEBIAN_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}.deb)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   # We only link libc++ in Debug builds.
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "clang-10,lld-10,libc++-10-dev,libc++abi-10-dev")
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc++-10-dev,libc++abi-10-dev")
   # REVIEW (GAIAPLAT-1474): When CPack correctly applies
   # CPACK_DEBIAN_PACKAGE_RECOMMENDS, then uncomment the following 2 lines and
   # remove the preceding definition of CPACK_DEBIAN_PACKAGE_DEPENDS.
@@ -80,7 +92,7 @@ else()
   # built with libstdc++ (which is the default stdlib in both gcc and clang).
   # GCC 9 is installed by default on Ubuntu 20.04 with the build-essential
   # package, so we try to be compatible with that.
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "clang-10,lld-10,libstdc++-9-dev")
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++-9-dev")
   # REVIEW (GAIAPLAT-1474): When CPack correctly applies
   # CPACK_DEBIAN_PACKAGE_RECOMMENDS, then uncomment the following 2 lines and
   # remove the preceding definition of CPACK_DEBIAN_PACKAGE_DEPENDS.
@@ -91,18 +103,6 @@ endif()
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF)
 set(CPACK_DEBIAN_PACKAGE_SECTION "custom")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
-
-# RPM specific section.
-#
-set(CPACK_RPM_PACKAGE_ARCHITECTURE amd64)
-set(CPACK_RPM_PACKAGE_DESCRIPTION ${CPACK_PACKAGE_DESCRIPTION})
-set(CPACK_RPM_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}.rpm)
-set(CPACK_RPM_PACKAGE_REQUIRES "llvm-toolset-clang >= 10.0.1, llvm-toolset-lld >= 10.0.1, libcxx-devel >= 10.0.1, libcxxabi-devel >= 10.0.1")
-
-
-# Note: set this variable to use a custom RPM spec file.
-# ATM the file does not work. https://gaiaplatform.atlassian.net/browse/GAIAPLAT-592
-# set(CPACK_RPM_USER_BINARY_SPECFILE ${PROJECT_SOURCE_DIR}/rpm/gaia.spec)
 
 # Set CPackDebHelper variables:
 #
@@ -129,10 +129,7 @@ set(CPACK_DEBHELPER_GENCONTROL ON)
 # Run the debhelpers in verbose mode.
 set(CPACK_DEBHELPER_VERBOSE ON)
 
-# Build rpm
-set(CPACK_GENERATOR "RPM")
-
-if((BUILD_GAIA_RELEASE) AND (NOT BUILD_GAIA_LLVM_TESTS))
+if((BUILD_GAIA_SDK) AND (NOT BUILD_GAIA_LLVM_TESTS))
   # Load the CPackDebHelper module, this will:
   #   - Add "DEB" to the CPACK_GENERATOR variable.
   #   - Parse the files in CPACK_DEBHELPER_INPUT with configure_file().
@@ -178,16 +175,21 @@ install(FILES ${GAIA_REPO}/production/gaia_log.conf DESTINATION ${CMAKE_INSTALL_
 # Place cmake functions
 install(FILES ${GAIA_REPO}/production/cmake/gaia.cmake DESTINATION cmake/)
 
+# Place Examples README and License
+install(FILES ${GAIA_REPO}/production/examples/LICENSE.txt DESTINATION examples)
+install(FILES ${GAIA_REPO}/production/examples/README.md DESTINATION examples)
+
 # Place hello example.
 install(FILES ${GAIA_REPO}/production/examples/hello/README.md DESTINATION examples/hello)
 install(FILES ${GAIA_REPO}/production/examples/hello/hello.ddl DESTINATION examples/hello)
 install(FILES ${GAIA_REPO}/production/examples/hello/hello.ruleset DESTINATION examples/hello)
 install(FILES ${GAIA_REPO}/production/examples/hello/hello.cpp DESTINATION examples/hello)
-install(FILES ${GAIA_REPO}/production/examples/hello/setup.sql DESTINATION examples/hello)
-install(PROGRAMS ${GAIA_REPO}/production/examples/hello/setup.sh DESTINATION examples/hello)
 install(PROGRAMS ${GAIA_REPO}/production/examples/hello/build.sh DESTINATION examples/hello)
 install(PROGRAMS ${GAIA_REPO}/production/examples/hello/run.sh DESTINATION examples/hello)
 install(FILES ${GAIA_REPO}/production/examples/hello/CMakeLists.txt DESTINATION examples/hello)
+# Disabling FDW related files until we officially support it.
+#install(FILES ${GAIA_REPO}/production/examples/hello/setup.sql DESTINATION examples/hello)
+#install(PROGRAMS ${GAIA_REPO}/production/examples/hello/setup.sh DESTINATION examples/hello)
 
 # Place incubator example.
 install(FILES ${GAIA_REPO}/production/examples/incubator/incubator.ddl DESTINATION examples/incubator)
@@ -205,6 +207,12 @@ install(FILES ${GAIA_REPO}/production/examples/direct_access/hospital.ddl DESTIN
 install(FILES ${GAIA_REPO}/production/examples/direct_access/hospital.cpp DESTINATION examples/direct_access)
 install(FILES ${GAIA_REPO}/production/examples/direct_access/CMakeLists.txt DESTINATION examples/direct_access)
 install(FILES ${GAIA_REPO}/production/examples/direct_access/README.md DESTINATION examples/direct_access)
+
+# Place direct_access example
+install(FILES ${GAIA_REPO}/production/examples/direct_access_multithread/counter.ddl DESTINATION examples/direct_access_multithread)
+install(FILES ${GAIA_REPO}/production/examples/direct_access_multithread/counter.cpp DESTINATION examples/direct_access_multithread)
+install(FILES ${GAIA_REPO}/production/examples/direct_access_multithread/CMakeLists.txt DESTINATION examples/direct_access_multithread)
+install(FILES ${GAIA_REPO}/production/examples/direct_access_multithread/README.md DESTINATION examples/direct_access_multithread)
 
 # Place license files.
 install(FILES ${GAIA_REPO}/production/licenses/LICENSE.third-party.txt DESTINATION .)
