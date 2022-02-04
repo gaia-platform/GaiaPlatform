@@ -224,6 +224,7 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
+            !${{ github.workspace }}/build/output/package
 
       - name: Upload Install Package
         uses: actions/upload-artifact@v2
