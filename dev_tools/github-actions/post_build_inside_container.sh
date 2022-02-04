@@ -5,10 +5,6 @@
 # All rights reserved.
 #############################################
 
-# Note that this script is meant to be invoked from
-# post_build_action.sh which does command line
-# argument validation before calling this script.
-
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -91,6 +87,11 @@ parse_command_line() {
         ;;
     esac
     done
+
+    if [ -z "$ACTION_NAME" ] ; then
+        echo "Error: Argument -a/--action is required" >&2
+        show_usage
+    fi
 }
 
 # Save the current directory when starting the script, so we can go back to that
