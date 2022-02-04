@@ -169,11 +169,10 @@ ctest --output-log /build/production/output/ctest.log --output-junit /build/prod
 echo "list"
 ls -la /build/production/t*
 echo "find"
-find -maxdepth 1 -name "*.profraw" > /build/production/output/profiles.txt
+find . -maxdepth 1 -name "*.profraw" > /build/production/output/profiles.txt
 cat /build/production/output/profiles.txt
 echo "merge"
 /usr/lib/llvm-13/bin/llvm-profdata merge --input-files /build/production/output/profiles.txt --output tests.profdata
-
 
 #
 # Source directories, by team:
