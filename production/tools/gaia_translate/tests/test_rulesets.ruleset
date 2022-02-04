@@ -407,7 +407,6 @@ ruleset test_query_9
     }
 }
 
-
 ruleset test_query_10
 {
     on_insert(student)
@@ -707,33 +706,26 @@ ruleset test_insert_delete_2
     }
 }
 
-
 ruleset test_connect_1_n
 {
     on_insert(student)
     {
-        auto r1 = registration.insert(reg_id: "reg001");
-        student.connect(r1);
-        student.registrations.connect(r1);
+        auto r1 = registration.insert(reg_id: "reg001", student_id: student.student_id);
 
-        for(/r2:registration)
+        for(/r:registration)
         {
-            student.connect(r2);
-            student.registrations.connect(r2);
+            r.student_id = student.student_id;
         }
 
-        gaia::prerequisites::registration_t r3 = registration.insert(reg_id: "reg002");
-        student.registrations.connect(r3);
-        student.connect(r3);
+        gaia::prerequisites::registration_t r2 = registration.insert(reg_id: "reg002", student_id: student.student_id);
 
         gaia::prerequisites::registration_writer w;
         w.reg_id = "reg003";
-        gaia::prerequisites::registration_t r4 = gaia::prerequisites::registration_t::get(w.insert_row());
-        student.connect(r4);
-        student.registrations.connect(r4);
+        w.student_id = student.student_id;
+        w.insert_row();
 
-        student.connect(registration.insert(reg_id: "reg004"));
-        student.registrations.connect(registration.insert(reg_id: "reg005"));
+        registration.insert(reg_id: "reg004", student_id: student.student_id);
+        registration.insert(reg_id: "reg005", student_id: student.student_id);
     }
 };
 
@@ -765,7 +757,7 @@ ruleset test_disconnect_1_n
         {
             for(/r:registration)
             {
-                student.disconnect(r);
+                r.student_id = nullptr;
             }
         }
         else
@@ -784,7 +776,7 @@ ruleset test_disconnect_1_n
         {
             for (/r:registration)
             {
-                course.registrations.disconnect(r);
+                r.course_id = nullptr;
             }
         }
         else
@@ -793,19 +785,6 @@ ruleset test_disconnect_1_n
 #ifdef TEST_FAILURES // GAIAPLAT-1176 (V1)
             course.registrations.disconnect(registration);
 #endif
-        }
-    }
-
-    on_insert(course)
-    {
-        if (strcmp(course.course_id, "cou001") == 0)
-        {
-            course.registrations.clear();
-        }
-        else
-        {
-            // This doesn't work for the same reason as delete.
-
         }
     }
 };

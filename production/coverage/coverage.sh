@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 #############################################
 # Copyright (c) Gaia Platform LLC
@@ -17,7 +17,7 @@ start_process() {
     fi
     DID_PUSHD=1
 
-    if ! cd $SCRIPTPATH >"$TEMP_FILE" 2>&1; then
+    if ! cd "$SCRIPTPATH" >"$TEMP_FILE" 2>&1; then
         cat "$TEMP_FILE"
         complete_process 1 "Script cannot change to coverage directory before proceeding."
     fi
@@ -57,19 +57,24 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags] <command>"
     echo "Flags:"
+    echo "  -b,--bash                   Drop into bash for debugging."
     echo "  -v,--verbose                Show lots of information while executing the project."
     echo "  -h,--help                   Display this help text."
     echo ""
-    show_usage_commands
     exit 1
 }
 
 # Parse the command line.
 parse_command_line() {
     VERBOSE_MODE=0
+    BASH_MODE=0
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
+        -b|--bash)
+            BASH_MODE=1
+            shift
+        ;;
         -v|--verbose)
             VERBOSE_MODE=1
             shift
@@ -103,35 +108,14 @@ parse_command_line "$@"
 # Clean entrance into the script.
 start_process
 
-
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Creating/cleaning output directory."
 fi
-mkdir output > "$TEMP_FILE" 2>&1
+mkdir -p "$SCRIPTPATH/output" > "$TEMP_FILE" 2>&1
 if ! rm -rf "$SCRIPTPATH/output"/* > "$TEMP_FILE" 2>&1; then
     cat "$TEMP_FILE"
     complete_process 1 "Script cannot clean output directory before proceeding."
 fi
-
-
-if [ "$VERBOSE_MODE" -ne 0 ]; then
-    echo "Placing tooled 'gdev.cfg' file in root production directory."
-fi
-if ! diff "$SCRIPTPATH/../gdev.cfg" "$SCRIPTPATH/gdev.cfg" > "$TEMP_FILE" 2>&1; then
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Backing up existing gdev.cfg in the root production directory."
-    fi
-    cp "$SCRIPTPATH/../gdev.cfg" "$SCRIPTPATH/../gdev.cfg.old"
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Copying coverage gdev.cfg to the root production directory."
-    fi
-    cp "$SCRIPTPATH/gdev.cfg" "$SCRIPTPATH/../gdev.cfg"
-else
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Coverage gdev.cfg is already present in the root production directory."
-    fi
-fi
-
 
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Switching to the root production directory."
@@ -141,18 +125,22 @@ if ! cd "$SCRIPTPATH/.." > "$TEMP_FILE" 2>&1; then
     complete_process 1 "Script cannot change to root production directory before proceeding."
 fi
 
-if [ "$VERBOSE_MODE" -ne 0 ]; then
-    echo "Executing coverage workflow in GCov container."
+if [ "$BASH_MODE" -ne 0 ]; then
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Executing bash in GCov container for debugging."
+    fi
+    CONTAINER_SCRIPT_TO_RUN=
+else
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Executing coverage workflow in GCov container."
+    fi
+    CONTAINER_SCRIPT_TO_RUN=/source/production/coverage/gen_coverage.sh
 fi
 
-gdev run --mounts ./coverage/output:output /source/production/coverage/gen_coverage.sh
-
-if [[ -f $SCRIPTPATH/../gdev.cfg.old ]]; then
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Restoring previous gdev.cfg file to root production directory."
-    fi
-    cp "$SCRIPTPATH/../gdev.cfg.old" "$SCRIPTPATH/../gdev.cfg"
-    rm "$SCRIPTPATH/../gdev.cfg.old"
+REPO_ROOT_DIR=$(git rev-parse --show-toplevel)
+GDEV_WRAPPER="${REPO_ROOT_DIR}/dev_tools/gdev/gdev.sh"
+if ! "${GDEV_WRAPPER}" run --cfg-enables Coverage $CONTAINER_SCRIPT_TO_RUN ; then
+    complete_process 1 "Unable to execute a coverage run inside of the Docker container."
 fi
 
 if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -169,14 +157,14 @@ if ! cd "$SCRIPTPATH" > "$TEMP_FILE" 2>&1; then
 fi
 
 if [ "$VERBOSE_MODE" -ne 0 ]; then
-    echo "Creating coverage.json file from converage output."
+    echo "Creating coverage-summary.json file from coverage output."
 fi
-./summarize.py > "$SCRIPTPATH/output/coverage.json"
-
-if [ "$VERBOSE_MODE" -ne 0 ]; then
-    echo "Creating coverage.zip file from converage output."
+sudo mkdir -p "$SCRIPTPATH/../output"
+sudo chmod -R 777 "$SCRIPTPATH/../output"
+if ! /usr/bin/python3.8 "$SCRIPTPATH/summarize.py" > "$TEMP_FILE" 2>&1 ; then
+    cat "$TEMP_FILE"
+    complete_process 1 "Script cannot summarize coverage directory after proceeding."
 fi
-zip -r "$SCRIPTPATH/output/coverage.zip" "$SCRIPTPATH/output"
 
 # If we get here, we have a clean exit from the script.
 complete_process 0

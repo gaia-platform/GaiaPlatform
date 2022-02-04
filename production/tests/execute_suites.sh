@@ -1,4 +1,4 @@
-#! /usr/bin/bash
+#!/usr/bin/env bash
 
 #############################################
 # Copyright (c) Gaia Platform LLC
@@ -164,6 +164,8 @@ execute_suites() {
     start_process
 
     save_current_directory
+
+    cd "$SCRIPTPATH" || exit
 
     clear_suite_output
 

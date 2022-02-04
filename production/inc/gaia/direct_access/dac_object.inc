@@ -28,7 +28,7 @@ const T_flatbuffer* dac_object_t<container_type_id, T_class, T_flatbuffer, T_fla
 {
     if (!dac_base_t::exists())
     {
-        report_invalid_object_id(gaia::common::c_invalid_gaia_id);
+        report_invalid_object_state();
     }
     return flatbuffers::GetRoot<T_flatbuffer>(dac_base_t::data());
 }
@@ -58,7 +58,7 @@ gaia::common::gaia_id_t* dac_object_t<container_type_id, T_class, T_flatbuffer, 
 {
     if (!dac_base_t::exists())
     {
-        report_invalid_object_id(gaia::common::c_invalid_gaia_id);
+        report_invalid_object_state();
     }
     return dac_base_t::references();
 }
@@ -69,7 +69,7 @@ dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::wri
 {
     if (!dac_base_t::exists())
     {
-        report_invalid_object_id(gaia::common::c_invalid_gaia_id);
+        report_invalid_object_state();
     }
 
     auto writer = dac_writer_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>();
@@ -79,18 +79,13 @@ dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::wri
 }
 
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-T_class dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::get(gaia::common::gaia_id_t id)
-{
-    return T_class(verify_type(id));
-}
-
-template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-gaia::common::gaia_id_t dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::verify_type(gaia::common::gaia_id_t id)
+void dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::verify_type(
+    gaia::common::gaia_id_t id)
 {
     gaia::common::gaia_type_t target_type = gaia::common::c_invalid_gaia_type;
     if (!dac_base_t::get_type(id, target_type))
     {
-        return gaia::common::c_invalid_gaia_id;
+        report_invalid_object_id(id);
     }
 
     // Make sure the types match.
@@ -98,8 +93,13 @@ gaia::common::gaia_id_t dac_object_t<container_type_id, T_class, T_flatbuffer, T
     {
         report_invalid_object_type(id, T_class::s_gaia_type, T_class::gaia_typename(), target_type);
     }
+}
 
-    return id;
+template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
+T_class dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::get(gaia::common::gaia_id_t id)
+{
+    verify_type(id);
+    return T_class(id);
 }
 
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
@@ -110,21 +110,25 @@ gaia::common::gaia_id_t dac_object_t<container_type_id, T_class, T_flatbuffer, T
 }
 
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-void dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::delete_row()
+void dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::delete_row(bool force)
 {
     if (!dac_base_t::exists())
     {
-        report_invalid_object_id(gaia::common::c_invalid_gaia_id);
+        report_invalid_object_state();
     }
 
-    delete_row(gaia_id());
+    delete_row(gaia_id(), force);
 }
 
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
-void dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::delete_row(gaia::common::gaia_id_t id)
+void dac_object_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::delete_row(
+    gaia::common::gaia_id_t id,
+    bool force)
 {
-    dac_base_t::delete_row(verify_type(id));
+    verify_type(id);
+    dac_base_t::delete_row(id, force);
 }
+
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_gaia, typename T_fb, typename T_obj>
 dac_object_t<container_type_id, T_gaia, T_fb, T_obj>::dac_object_t()
     : dac_base_t()

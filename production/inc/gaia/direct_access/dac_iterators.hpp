@@ -5,8 +5,9 @@
 
 #pragma once
 
-#include <utility>
+#include <functional>
 
+#include "gaia/common.hpp"
 #include "gaia/direct_access/dac_base.hpp"
 #include "gaia/exceptions.hpp"
 
@@ -132,39 +133,65 @@ private:
     common::reference_offset_t m_next_offset;
 };
 
-// A reference_chain_container_t is defined within each DAC that is a parent in
-// a "set" relationship. The relationship is represented by a chain of pointers.
-// The parent points to the first child, and each child points to the next
-// child, where a null pointer indicates the end of the chain. Each DAC contains
-// a fixed number of reference slots of type gaia::common::gaia_id_t, to form the chains it is
-// a member of. Any DAC may be parent of any number of sets, and a member of any
-// number of sets. The catalog is aware of each set relationship and determines
-// the number of slots required to be stored in an DAC instance in order to
-// hold the pointers. One reference slot is needed for each set owned by this
-// DAC, and two slots are needed for each set of which this DAC is a member.
-// Constants have been generated to identify the particular slot assigned for
-// its role in a set.
-//
-// @tparam T_child the Direct Access Class that is in the child position in the set
 template <typename T_child>
-class reference_chain_container_t : protected dac_db_t
+class value_linked_reference_container_t : protected dac_db_t
 {
 public:
-    // This constructor will be used by the where() method to create a filtered container.
-    explicit reference_chain_container_t(gaia::common::gaia_id_t parent, std::function<bool(const T_child&)> filter_function, common::reference_offset_t child_offset, common::reference_offset_t next_offset)
+    explicit value_linked_reference_container_t(
+        gaia::common::gaia_id_t anchor_id,
+        common::reference_offset_t anchor_offset,
+        std::function<bool(const T_child&)> filter_function)
+        : m_anchor_id(anchor_id), m_anchor_offset(anchor_offset), m_filter_fn(filter_function)
+    {
+    }
+
+    explicit value_linked_reference_container_t(
+        gaia::common::gaia_id_t anchor_id,
+        common::reference_offset_t anchor_offset)
+        : m_anchor_id(anchor_id), m_anchor_offset(anchor_offset)
+    {
+    }
+
+    value_linked_reference_container_t(const value_linked_reference_container_t&) = default;
+    value_linked_reference_container_t& operator=(const value_linked_reference_container_t&) = default;
+
+    dac_set_iterator_t<T_child> begin() const;
+    dac_set_iterator_t<T_child> end() const;
+
+    size_t size() const;
+
+    value_linked_reference_container_t<T_child> where(std::function<bool(const T_child&)> filter_function) const;
+
+private:
+    gaia::common::gaia_id_t m_anchor_id{gaia::common::c_invalid_gaia_id};
+    common::reference_offset_t m_anchor_offset;
+    std::function<bool(const T_child&)> m_filter_fn{};
+};
+
+template <typename T_child>
+class reference_container_t : protected dac_db_t
+{
+public:
+    explicit reference_container_t(
+        gaia::common::gaia_id_t parent,
+        std::function<bool(const T_child&)> filter_function,
+        common::reference_offset_t child_offset,
+        common::reference_offset_t next_offset)
         : m_parent_id(parent)
         , m_filter_fn(filter_function)
         , m_child_offset(child_offset)
         , m_next_offset(next_offset){};
 
-    explicit reference_chain_container_t(gaia::common::gaia_id_t parent, common::reference_offset_t child_offset, common::reference_offset_t next_offset)
+    explicit reference_container_t(
+        gaia::common::gaia_id_t parent,
+        common::reference_offset_t child_offset,
+        common::reference_offset_t next_offset)
         : m_parent_id(parent)
         , m_child_offset(child_offset)
         , m_next_offset(next_offset){};
 
-    // reference_chain_container_t is copied from the DAC list methods.
-    reference_chain_container_t(const reference_chain_container_t&) = default;
-    reference_chain_container_t& operator=(const reference_chain_container_t&) = default;
+    reference_container_t(const reference_container_t&) = default;
+    reference_container_t& operator=(const reference_container_t&) = default;
 
     dac_set_iterator_t<T_child> begin() const;
     dac_set_iterator_t<T_child> end() const;
@@ -183,13 +210,18 @@ public:
     bool disconnect(const T_child& child_edc);
     void clear();
 
-    reference_chain_container_t<T_child> where(std::function<bool(const T_child&)>) const;
+    reference_container_t<T_child> where(std::function<bool(const T_child&)>) const;
 
 private:
     gaia::common::gaia_id_t m_parent_id{gaia::common::c_invalid_gaia_id};
     std::function<bool(const T_child&)> m_filter_fn{};
     common::reference_offset_t m_child_offset;
     common::reference_offset_t m_next_offset;
+
+    inline dac_set_iterator_t<T_child> end_dac_set_iterator() const
+    {
+        return dac_set_iterator_t<T_child>(gaia::common::c_invalid_gaia_id, common::c_invalid_reference_offset);
+    }
 };
 
 // Pick up our template implementation. These still need to be in the header so

@@ -36,7 +36,7 @@ message(VERBOSE "GAIA_CATALOG_PRIVATE_INCLUDES=${GAIA_CATALOG_PRIVATE_INCLUDES}"
 # These files is downloaded with ExternalProject_Add in third_party/production/flatbuffers.
 # CMake is not able to detect this dependency and fails at config time.
 # The GENERATED property makes cmake to skip the source check at config time.
-set_source_files_properties(${FLATBUFFERS_SOURCE}/src/code_generators.cpp PROPERTIES GENERATED TRUE)
+set_source_files_properties(${FLATBUFFERS_SRC}/src/code_generators.cpp PROPERTIES GENERATED TRUE)
 
 add_library(gaia_catalog STATIC
   src/ddl_execution.cpp
@@ -49,7 +49,7 @@ add_library(gaia_catalog STATIC
   src/gaiac_catalog_facade.cpp
   src/dac_generator.cpp
   src/gaia_generate.cpp
-  ${FLATBUFFERS_SOURCE}/src/code_generators.cpp)
+  ${FLATBUFFERS_SRC}/src/code_generators.cpp)
 
 configure_gaia_target(gaia_catalog)
 target_include_directories(gaia_catalog PUBLIC ${GAIA_CATALOG_PUBLIC_INCLUDES})
@@ -98,6 +98,11 @@ add_gtest(test_gaiac_generation
     "tests/test_gaiac_generation.cpp"
     "${TEST_GAIA_EXECUTION_INCLUDES}"
     "rt;gaia_system;gaia_db_catalog_test;dac_airport")
+
+add_gtest(test_rule_tables
+    "tests/test_rule_tables.cpp"
+    "${TEST_GAIA_EXECUTION_INCLUDES}"
+    "rt;gaia_system;gaia_db_catalog_test;")
 
 add_subdirectory(gaiac)
 add_subdirectory(parser)

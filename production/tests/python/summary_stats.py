@@ -1,4 +1,4 @@
-#! /usr/bin/python3
+#!/usr/bin/env python3
 
 #############################################
 # Copyright (c) Gaia Platform LLC
@@ -20,6 +20,8 @@ DECIMALS_PLACES_IN_MILLISECONDS = 3
 
 __PLAIN_FORMAT = "plain"
 __JSON_FORMAT = "json"
+
+__DEFAULT_FILE_ENCODING = "utf-8"
 
 
 def __check_output_format(value):
@@ -659,7 +661,7 @@ def __process_script_action():
 
     args = __process_command_line()
     input_file_name = "suite-results/summary.json"
-    with open(input_file_name) as input_file:
+    with open(input_file_name, encoding=__DEFAULT_FILE_ENCODING) as input_file:
         data_dictionary = json.load(input_file)
 
     if args.output_format == __JSON_FORMAT:

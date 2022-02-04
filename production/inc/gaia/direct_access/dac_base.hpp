@@ -55,10 +55,11 @@ protected:
     static common::gaia_id_t get_reference(common::gaia_id_t id, common::reference_offset_t slot);
     static common::gaia_id_t insert(common::gaia_type_t container, size_t data_size, const void* data);
     static void update(common::gaia_id_t id, size_t data_size, const void* data);
-    static bool insert_child_reference(common::gaia_id_t parent_id, common::gaia_id_t child_id, common::reference_offset_t child_slot);
-    static bool remove_child_reference(common::gaia_id_t parent_id, common::gaia_id_t child_id, common::reference_offset_t child_slot);
-    static void delete_row(common::gaia_id_t id);
+    static void delete_row(common::gaia_id_t id, bool force = false);
     static bool get_type(common::gaia_id_t id, common::gaia_type_t& type);
+
+    static bool insert_into_reference_container(common::gaia_id_t parent_id, common::gaia_id_t id, common::reference_offset_t anchor_slot);
+    static bool remove_from_reference_container(common::gaia_id_t parent_id, common::gaia_id_t id, common::reference_offset_t anchor_slot);
 };
 
 /**
@@ -101,7 +102,7 @@ protected:
     template <typename T_ptr>
     constexpr T_ptr* to_ptr();
 
-    void set_record(common::gaia_id_t new_id);
+    void set(common::gaia_id_t new_id);
 
 private:
     /**
@@ -137,6 +138,7 @@ void report_invalid_object_type(
     common::gaia_type_t expected_type,
     const char* expected_typename,
     common::gaia_type_t actual_type);
+void report_invalid_object_state();
 void report_invalid_object_state(
     common::gaia_id_t parent_id,
     common::gaia_id_t chile_id,

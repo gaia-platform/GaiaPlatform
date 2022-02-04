@@ -2,13 +2,12 @@
 
 GaiaPlatform - Main repository
 
-## Style guidelines suggestions for README.md files
+## Repository Guidelines
 
-* Keep paragraphs on a single line. This makes it easier to update them.
-* Use empty lines for separation of titles, paragraphs, examples, etc. They are ignored when rendering the files, but make them easier to read when editing them.
-* Use `back-quoting` to emphasize tool names, path names, environment variable names and values, etc. Basically, anything that is closer to coding should be emphasized this way.
-* Use **bold** or *italics* for other situations that require emphasis. Bold can be used when introducing new concepts, like **Quantum Build**. Italics could be used when quoting titles of documents, such as *The Art of Programming*. These situations should be rarer.
-* Use links to reference other project files like the [production README](production/README.md), for example.
+To maintain a healthy codebase, we have a collection of guidelines to use when authoring code.
+To enforce that those guidelines are consistantly applied, where possible we use the [Pre-Commit](https://pre-commit.com) application with hooks that match the guidelines.
+These guidelines and information on which pre-commit hooks are in place for those guidelines are located in the [Repository Guidelines](docs/repository-guidelines.md) document.
+Please review these guidelines before creating or changing any source code within the codebase.
 
 ## Environment requirements
 
@@ -18,20 +17,18 @@ The `GAIA_REPO` environment variable is used to refer to the root of the project
 export GAIA_REPO=<path_to_your_repoes>/GaiaPlatform
 ```
 
-This repository is meant to be built with `clang-10`. To ensure `clang-10` use, add the following lines to your `.bashrc`:
+This repository is meant to be built with `clang-13`. To ensure `clang-13` use, add the following lines to your `.bashrc`:
 
 ```bash
-export CC=/usr/bin/clang-10
-export CPP=/usr/bin/clang-cpp-10
-export CXX=/usr/bin/clang++-10
+export CC=/usr/bin/clang-13
+export CPP=/usr/bin/clang-cpp-13
+export CXX=/usr/bin/clang++-13
 ```
 
-(As an aside, the upgrade from `clang-8` to `clang-10` was not driven because we needed features in `clang-10` but rather because the default clang version installed with `apt get install clang` on Ubuntu 20 will install version 10. If you need to continue to build with `clang-8` then that should work just fine.  Please be advised, however, that our TeamCity CI job for Ubuntu 20 will use `clang-10` to build the product that we ship.)
-
-The build system expects the LLVM linker `ld.lld` to be present in your `PATH` and to resolve to the `ld.lld-10` executable. You can ensure this by installing the `lld-10` package on Debian-derived systems (such as Ubuntu) and adding the following line to your `.bashrc`:
+The build system expects the LLVM linker `ld.lld` to be present in your `PATH` and to resolve to the `ld.lld-13` executable. You can ensure this by installing the `lld-13` package on Debian-derived systems (such as Ubuntu) and adding the following line to your `.bashrc`:
 
 ```
-export LDFLAGS="-B/usr/lib/llvm-10/bin/ -fuse-ld=lld"
+export LDFLAGS="-B/usr/lib/llvm-13/bin/ -fuse-ld=lld"
 ```
 
 ## Folder structuring
@@ -53,37 +50,6 @@ The following folder structure is recommended for C++ projects:
   * tests (component level)
 * tests (cross-component)
 
-## Formatter and Linter
-
-### Formatter
-`clang-format` is invoked on each commit as a git pre-commit hook. The pre-commit is automatically installed by `cmake`. The `clang-format` version in use is `10.0`.
-
-Note: `clang-format` reorders the includes which could break the build. There are ways to avoid it. Please read: https://stackoverflow.com/questions/37927553/can-clang-format-break-my-code.
-
-### Linter
-`clang-tidy` is integrated with `cmake` and is invoked on each build. At the moment, it will only print the warnings in the compiler output. `clang-tidy` is not enforced, which means that warnings do not lead to build failures, keep in mind though, that this is the desired behavior in the long term. Do your best to reduce the number of warnings by either fixing them or by updating the rules in the `.clang-tidy` file. The `clang-tidy` version in use is `10.0`.
-
-## Copyright notes
-
-Use the following copyright note with your code. Several language specific versions are provided below.
-
-```
-#############################################
-# Copyright (c) Gaia Platform LLC
-# All rights reserved.
-#############################################
-
-/////////////////////////////////////////////
-// Copyright (c) Gaia Platform LLC
-// All rights reserved.
-/////////////////////////////////////////////
-
----------------------------------------------
--- Copyright (c) Gaia Platform LLC
--- All rights reserved.
----------------------------------------------
-```
-
 ## Compile with gdev
 
 `gdev` is a command line tool that creates repeatable builds in the GaiaPlatform repo. The builds are isolated within Docker images and do not depend on any installed packages or configuration on your host.
@@ -99,7 +65,17 @@ As an alternative to `gdev`, you can compile the project locally. The disadvanta
 Start with the `[apt]` section in [production gdev.cfg](production/gdev.cfg). Install all the packages with `apt install`:
 
 ```bash
-sudo apt install clang-format-10 clang-tidy-10 debhelper ...
+sudo apt install clang-format-13 clang-tidy-13 debhelper ...
+```
+
+Then update the default versions of these commands:
+
+```bash
+update-alternatives --install "/usr/bin/clang" "clang" "/usr/bin/clang-13" 10
+update-alternatives --install "/usr/bin/clang++" "clang++" "/usr/bin/clang++-13" 10
+update-alternatives --install "/usr/bin/ld.lld" "ld.lld" "/usr/bin/ld.lld-13" 10
+update-alternatives --install "/usr/bin/clang-format" "clang-format" "/usr/bin/clang-format-13" 10
+update-alternatives --install "/usr/bin/clang-tidy" "clang-tidy" "/usr/bin/clang-tidy-13" 10
 ```
 
 Then move to the `$GAIA_REPO/third_party/production/` folder and follow the instructions in the `gdev.cfg` file within each subdirectory:
@@ -121,7 +97,6 @@ make install
 ```
 
 You will need to run the following commands:
-
 
 ```bash
 sudo apt-get install build-essential
@@ -205,7 +180,7 @@ When we are ready to release a new version of Gaia this is the process to follow
    ```shell
    git add -u
    git commit -m "Bump Gaia version to 0.3.0-beta"
-   git branch --set-upstream-to origin gaia-release-0.3.0-beta
+   git push --set-upstream origin gaia-release-0.3.0-beta
    # Create a PR to push the change into master.
    ```
 6. Create a tag reflecting the new version:

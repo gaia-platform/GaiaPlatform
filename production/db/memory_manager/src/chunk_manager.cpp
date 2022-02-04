@@ -102,7 +102,7 @@ gaia_offset_t chunk_manager_t::allocate(
     // Now update the atomic allocation metadata.
     m_metadata->update_last_allocation_metadata(allocation_size_in_slots);
 
-    // Finally, update the allocation bitmap (order is important for crash-consistency).
+    // Update the allocation bitmap (order is important for crash-consistency).
     slot_offset_t allocated_slot = m_metadata->max_allocated_slot_offset();
     mark_slot_allocated(allocated_slot);
     ASSERT_INVARIANT(
@@ -355,7 +355,7 @@ gaia_offset_t chunk_manager_t::last_allocated_offset()
     m_metadata->synchronize_allocation_metadata();
 
     slot_offset_t max_allocated_slot_offset = m_metadata->max_allocated_slot_offset();
-    if (max_allocated_slot_offset == c_invalid_slot_offset)
+    if (!max_allocated_slot_offset.is_valid())
     {
         return c_invalid_gaia_offset;
     }

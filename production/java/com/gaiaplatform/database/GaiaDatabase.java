@@ -121,7 +121,7 @@ public class GaiaDatabase
 
     private static void printPayload(byte[] payload)
     {
-        if (payload.length == 0)
+        if (payload == null || payload.length == 0)
         {
             return;
         }
@@ -169,7 +169,7 @@ public class GaiaDatabase
         System.out.println(
             "Node id: " + nodeId
             + ", type: " + getNodeType(nodeId)
-            + ", payload size: " + payload.length
+            + ", payload size: " + (payload == null ? 0 : payload.length)
             + ";");
 
         printPayload(payload);

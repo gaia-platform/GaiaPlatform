@@ -1,0 +1,12 @@
+# spdlog is full of data races
+race:spdlog
+thread:spdlog
+mutex:spdlog
+signal:spdlog
+deadlock:spdlog
+called_from_lib:spdlog
+
+# https://bugs.chromium.org/p/chromium/issues/detail?id=78014
+# https://codereview.chromium.org/6670113/
+# https://codereview.chromium.org/6670113/patch/1/2
+race:mktime

@@ -1,13 +1,15 @@
----------------------------------------------
+----------------------------------------------------
 -- Copyright (c) Gaia Platform LLC
--- All rights reserved.
----------------------------------------------
+--
+-- Use of this source code is governed by the MIT
+-- license that can be found in the LICENSE.txt file
+-- or at https://opensource.org/licenses/MIT.
+----------------------------------------------------
 
 database hospital
 
 table doctor (
     name string,
-    email string unique,
     patients references patient[]
 )
 
@@ -15,10 +17,8 @@ table patient (
     name string,
     height uint8,
     is_active bool,
-    doctor_email string,
     analysis_results float[],
-    doctor references doctor
-        where patient.doctor_email = doctor.email,
+    doctor references doctor,
     address references address
 )
 

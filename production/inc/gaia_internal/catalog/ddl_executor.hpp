@@ -104,6 +104,13 @@ private:
         bool auto_drop = false,
         gaia::common::gaia_type_t type = gaia::common::c_invalid_gaia_type);
 
+    gaia::common::gaia_id_t create_index(
+        const std::string& name,
+        bool unique,
+        index_type_t type,
+        common::gaia_id_t table_id,
+        const std::vector<common::gaia_id_t>& field_ids);
+
     // Internal drop table implementation. Callers need to acquire a transaction
     // before calling this method.
     // If enforce_referential_integrity is false it does not check referential integrity, fails otherwise.

@@ -1,9 +1,13 @@
-/////////////////////////////////////////////
+////////////////////////////////////////////////////
 // Copyright (c) Gaia Platform LLC
-// All rights reserved.
-/////////////////////////////////////////////
+//
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE.txt file
+// or at https://opensource.org/licenses/MIT.
+////////////////////////////////////////////////////
 
 #include <gaia/db/db.hpp>
+#include <gaia/exceptions.hpp>
 #include <gaia/logger.hpp>
 #include <gaia/system.hpp>
 
@@ -34,7 +38,7 @@ void create_record_insert()
 
     // The insert_row() method has one argument for each column
     // in the doctor table.
-    gaia_id_t id = doctor_t::insert_row("Dr. House", "house@md.com");
+    gaia_id_t id = doctor_t::insert_row("Dr. House");
 
     gaia_log::app().info("Created doctor with ID: {}", id);
 }
@@ -64,7 +68,7 @@ void lookup_record_get()
 {
     PRINT_METHOD_NAME();
 
-    gaia_id_t id = patient_t::insert_row("John", 175, false, nullptr, {});
+    gaia_id_t id = patient_t::insert_row("John", 175, false, {});
 
     patient_t john = patient_t::get(id);
     gaia_log::app().info("Patient name: {}", john.name());
@@ -78,14 +82,14 @@ void array_type_fields()
     PRINT_METHOD_NAME();
 
     patient_t john = patient_t::get(
-        patient_t::insert_row("John", 175, false, nullptr, {1.0, 0.9, 3.1, 0.8}));
+        patient_t::insert_row("John", 175, false, {1.0, 0.9, 3.1, 0.8}));
 
     gaia_log::app().info("{}'s analysis results are:", john.name());
 
     auto analysis_results = john.analysis_results();
 
     // To iterate the array you can use a normal for loop.
-    for (int i = 0; i < analysis_results.size(); i++)
+    for (size_t i = 0; i < analysis_results.size(); i++)
     {
         gaia_log::app().info(" - {}", analysis_results[i]);
     }
@@ -98,7 +102,7 @@ void update_record()
 {
     PRINT_METHOD_NAME();
 
-    gaia_id_t id = patient_t::insert_row("John", 175, false, nullptr, {});
+    gaia_id_t id = patient_t::insert_row("John", 175, false, {});
 
     patient_t john = patient_t::get(id);
     gaia_log::app().info("Patient name is: {}", john.name());
@@ -122,15 +126,15 @@ void lookup_invalid_record()
 {
     PRINT_METHOD_NAME();
 
-    patient_t john = patient_t::get(gaia::common::c_invalid_gaia_id);
-
-    if (john)
+    try
     {
-        throw std::runtime_error("The patient is expected to evaluate to false.");
+        // A failure will happen for every id that does not map to an existing object.
+        patient_t john = patient_t::get(gaia::common::c_invalid_gaia_id);
+        throw std::runtime_error("patient_t::get(gaia::common::c_invalid_gaia_id) should have failed with an exception.");
     }
-    else
+    catch (const gaia::db::invalid_object_id& e)
     {
-        gaia_log::app().info("Cannot find patient with id: {}", gaia::common::c_invalid_gaia_id);
+        gaia_log::app().info("Getting object with invalid id failed as expected: {}", e.what());
     }
 }
 
@@ -142,15 +146,15 @@ void access_invalid_record()
 {
     PRINT_METHOD_NAME();
 
-    patient_t john = patient_t::get(gaia::common::c_invalid_gaia_id);
+    patient_t john;
 
     try
     {
         gaia_log::app().info("Patient name: {}", john.name());
     }
-    catch (gaia::db::invalid_object_id& ex)
+    catch (gaia::direct_access::invalid_object_state& e)
     {
-        gaia_log::app().info("As expected, attempting to access an invalid object raised the following exception: '{}'.", ex.what());
+        gaia_log::app().info("As expected, attempting to access an invalid object raised the following exception: '{}'.", e.what());
     }
 }
 
@@ -162,7 +166,7 @@ void compare_records()
 {
     PRINT_METHOD_NAME();
 
-    gaia_id_t id = doctor_t::insert_row("Dr. Reid", "reid@md.com");
+    gaia_id_t id = doctor_t::insert_row("Dr. Reid");
 
     doctor_t dr_house_1 = doctor_t::get(id);
     doctor_t dr_house_2 = doctor_t::get(id);
@@ -176,7 +180,7 @@ void compare_records()
         throw std::runtime_error("The records are expected to be equal.");
     }
 
-    doctor_t dr_dorian = doctor_t::get(doctor_t::insert_row("Dr. Dorian", "dorian@md.com"));
+    doctor_t dr_dorian = doctor_t::get(doctor_t::insert_row("Dr. Dorian"));
 
     if (dr_dorian == dr_house_2)
     {
@@ -210,7 +214,7 @@ void delete_single_record()
 {
     PRINT_METHOD_NAME();
 
-    doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House", "house@md.com"));
+    doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House"));
 
     dr_house.delete_row();
 
@@ -233,17 +237,16 @@ void delete_single_record_static()
 {
     PRINT_METHOD_NAME();
 
-    gaia_id_t dr_house_id = doctor_t::insert_row("Dr. House", "house@md.com");
+    gaia_id_t dr_house_id = doctor_t::insert_row("Dr. House");
 
     doctor_t::delete_row(dr_house_id);
 
-    doctor_t dr_house = doctor_t::get(dr_house_id);
-
-    if (dr_house)
+    try
     {
+        doctor_t dr_house = doctor_t::get(dr_house_id);
         throw std::runtime_error("The doctor is expected to be invalid after deletion.");
     }
-    else
+    catch (const gaia::db::invalid_object_id& e)
     {
         gaia_log::app().info("The record has been deleted");
     }
@@ -260,9 +263,9 @@ void delete_all_records()
 {
     PRINT_METHOD_NAME();
 
-    doctor_t::insert_row("Dr. House", "house@md.com");
-    doctor_t::insert_row("Dr. Dorian", "dorian@md.com");
-    doctor_t::insert_row("Dr. Reid", "reid@md.com");
+    doctor_t::insert_row("Dr. House");
+    doctor_t::insert_row("Dr. Dorian");
+    doctor_t::insert_row("Dr. Reid");
 
     for (auto doctor_it = doctor_t::list().begin();
          doctor_it != doctor_t::list().end();)
@@ -281,11 +284,11 @@ void delete_all_records()
  */
 gaia_id_t create_one_to_many_relationship()
 {
-    doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House", "house@md.com"));
+    doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House"));
 
-    patient_t jane = patient_t::get(patient_t::insert_row("Jane", 183, true, nullptr, {}));
-    patient_t jack = patient_t::get(patient_t::insert_row("Jack", 176, false, nullptr, {}));
-    gaia_id_t john_id = patient_t::insert_row("John", 175, false, nullptr, {});
+    patient_t jane = patient_t::get(patient_t::insert_row("Jane", 183, true, {}));
+    patient_t jack = patient_t::get(patient_t::insert_row("Jack", 176, false, {}));
+    gaia_id_t john_id = patient_t::insert_row("John", 175, false, {});
 
     // Type safe insert (accepts instances of patient_t).
     dr_house.patients().insert(jane);
@@ -340,18 +343,18 @@ void delete_one_to_many_relationship_re(gaia_id_t doctor_id)
     {
         doctor.delete_row();
     }
-    catch (const gaia::db::object_still_referenced& ex)
+    catch (const gaia::db::object_still_referenced& e)
     {
-        gaia_log::app().info("As expected, deleting the doctor record raised the following exception '{}'.", ex.what());
+        gaia_log::app().info("As expected, deleting the doctor record raised the following exception '{}'.", e.what());
     }
 
     try
     {
         patient.delete_row();
     }
-    catch (const gaia::db::object_still_referenced& ex)
+    catch (const gaia::db::object_still_referenced& e)
     {
-        gaia_log::app().info("As expected, deleting the patient record raised the following exception '{}'.", ex.what());
+        gaia_log::app().info("As expected, deleting the patient record raised the following exception '{}'.", e.what());
     }
 }
 
@@ -417,7 +420,7 @@ gaia_id_t create_one_to_one_relationship()
 {
     PRINT_METHOD_NAME();
 
-    patient_t jane = patient_t::get(patient_t::insert_row("Jane", 183, true, nullptr, {}));
+    patient_t jane = patient_t::get(patient_t::insert_row("Jane", 183, true, {}));
     address_t amsterdam = address_t::get(address_t::insert_row("Tuinstraat", "Amsterdam"));
 
     // The address() method returns an address_ref_t which is a subclass of
@@ -475,18 +478,18 @@ void delete_one_to_one_relationship_re(gaia_id_t patient_id)
     {
         patient.delete_row();
     }
-    catch (const gaia::db::object_still_referenced& ex)
+    catch (const gaia::db::object_still_referenced& e)
     {
-        gaia_log::app().info("As expected, deleting the patient record raised the following exception '{}'.", ex.what());
+        gaia_log::app().info("As expected, deleting the patient record raised the following exception '{}'.", e.what());
     }
 
     try
     {
         address.delete_row();
     }
-    catch (const gaia::db::object_still_referenced& ex)
+    catch (const gaia::db::object_still_referenced& e)
     {
-        gaia_log::app().info("As expected, deleting the address record raised the following exception '{}'.", ex.what());
+        gaia_log::app().info("As expected, deleting the address record raised the following exception '{}'.", e.what());
     }
 }
 
@@ -509,94 +512,16 @@ void delete_one_to_one_relationship(gaia_id_t patient_id)
 }
 
 /**
- * Shows the usage of value linked relationships. Traditional Gaia relationships
- * link records together using the Gaia ID, a system generate value the user have no
- * control over. Value linked relationships allow linking records using user specified
- * values.
- *
- * In this example we are going to link patients to a doctor using the doctor email.
- * As you can see there is no explict call to link the records (insert()/connect()),
- * the records are automatically linked when the a patient is assigned an existing
- * doctor email.
- */
-void one_to_many_value_linked_relationship()
-{
-    PRINT_METHOD_NAME();
-
-    // --- Create the relationship ---
-    gaia_id_t dr_house_id = doctor_t::insert_row("Dr. House", "house@md.com");
-
-    // By setting the patient_email field to "house@md.com" the patient
-    // will be automatically linked to the doctor with that email.
-    gaia_id_t jane_id = patient_t::insert_row("Jane", 183, true, "house@md.com", {});
-    gaia_id_t jack_id = patient_t::insert_row("Jack", 176, false, "house@md.com", {});
-
-    // John is not immediately connected with the doctor...
-    patient_t john = patient_t::get(
-        patient_t::insert_row("John", 175, false, "", {}));
-
-    // The connection with the doctor is created with this update.
-    patient_writer john_w = john.writer();
-    john_w.doctor_email = "house@md.com";
-    john_w.update_row();
-
-    // If you set an email that does not correspond to any doctor,
-    // no connection is created. You can delete the record right away.
-    gaia_id_t jasmine_id = patient_t::insert_row("Jasmine", 154, false, "i_dont_exist@md.com", {});
-    patient_t::delete_row(jasmine_id);
-
-    // --- Traverse the relationship ---
-
-    doctor_t dr_house = doctor_t::get(dr_house_id);
-    for (patient_t& patient : dr_house.patients())
-    {
-        gaia_log::app().info("Patient:{} has doctor:{}", patient.name(), patient.doctor().name());
-    }
-
-    // --- Disconnect the relationship ---
-
-    patient_t jane = patient_t::get(jane_id);
-    patient_t jack = patient_t::get(jack_id);
-
-    patient_writer jane_w = jane.writer();
-    patient_writer jack_w = jack.writer();
-    john_w = john.writer();
-
-    // By setting to "" the doctor_email field the relationship
-    // is automatically disconnected.
-
-    jane_w.doctor_email = "";
-    jane_w.update_row();
-    john_w.doctor_email = "";
-    john_w.update_row();
-    jack_w.doctor_email = "";
-    jack_w.update_row();
-
-    if (dr_house.patients().size() > 0)
-    {
-        throw std::runtime_error("The doctor is supposed to have no patients!");
-    }
-
-    gaia_log::app().info("{} patients count {}", dr_house.name(), dr_house.patients().size());
-
-    // Now you can delete all the objects.
-    jane.delete_row();
-    john.delete_row();
-    jack.delete_row();
-    dr_house.delete_row();
-}
-
-/**
  * Helper method to create data used in filter examples.
  */
 void create_filter_data()
 {
-    doctor_t dr_dorian = doctor_t::get(doctor_t::insert_row("Dr. Dorian", "dorian@md.com"));
-    doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House", "house@md.com"));
+    doctor_t dr_dorian = doctor_t::get(doctor_t::insert_row("Dr. Dorian"));
+    doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House"));
 
-    patient_t jane = patient_t::get(patient_t::insert_row("Jane", 183, true, nullptr, {}));
-    patient_t jack = patient_t::get(patient_t::insert_row("Jack", 176, false, nullptr, {}));
-    patient_t john = patient_t::get(patient_t::insert_row("John", 165, false, nullptr, {}));
+    patient_t jane = patient_t::get(patient_t::insert_row("Jane", 183, true, {}));
+    patient_t jack = patient_t::get(patient_t::insert_row("Jack", 176, false, {}));
+    patient_t john = patient_t::get(patient_t::insert_row("John", 165, false, {}));
 
     dr_dorian.patients().insert(jane);
     dr_house.patients().insert(jack);
@@ -626,7 +551,7 @@ void filter_lambda()
     // using a lambda to express a predicate.
     // The result is a gaia container.
     auto doctors = doctor_t::list().where(
-        [](const doctor_t& doctor) { return strcmp(doctor.email(), "house@md.com") == 0; });
+        [](const doctor_t& doctor) { return strcmp(doctor.name(), "Dr. House") == 0; });
 
     if (doctors.begin() == doctors.end())
     {
@@ -748,8 +673,8 @@ void use_dac_object_across_transactions()
     PRINT_METHOD_NAME();
 
     // First transaction.
-    auto_transaction_t txn{auto_transaction_t::no_auto_begin};
-    doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House", "house@md.com"));
+    auto_transaction_t txn{auto_transaction_t::no_auto_restart};
+    doctor_t dr_house = doctor_t::get(doctor_t::insert_row("Dr. House"));
     txn.commit();
 
     try
@@ -757,9 +682,9 @@ void use_dac_object_across_transactions()
         // Outside a transaction.
         dr_house.name();
     }
-    catch (const gaia::db::no_open_transaction& ex)
+    catch (const gaia::db::no_open_transaction& e)
     {
-        gaia_log::app().info("As expected, you cannot access a record outside of a transaction: '{}'", ex.what());
+        gaia_log::app().info("As expected, you cannot access a record outside of a transaction: '{}'", e.what());
     }
 
     // Second transaction.
@@ -801,9 +726,9 @@ int main()
 {
     gaia::system::initialize();
 
-    // The no_auto_begin argument prevents beginning a new transaction
+    // The no_auto_restart argument prevents beginning a new transaction
     // when the current one is committed.
-    auto_transaction_t txn{auto_transaction_t::no_auto_begin};
+    auto_transaction_t txn{auto_transaction_t::no_auto_restart};
 
     clean_db();
 
@@ -829,8 +754,6 @@ int main()
     traverse_one_to_one_relationship(patient_id);
     delete_one_to_one_relationship_re(patient_id);
     delete_one_to_one_relationship(patient_id);
-    clean_db();
-    one_to_many_value_linked_relationship();
     clean_db();
     create_filter_data();
     filter_lambda();

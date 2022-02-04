@@ -1,7 +1,11 @@
 # Direct Access Demo
+
 A demo of the Gaia Direct Access API.
 
+For more information on Direct Access, see [Using the Direct Access Classes](https://gaia-platform.github.io/gaia-platform-docs.io/articles/apps-direct-access.html) in the Gaia developer documentation.
+
 ## Build Instructions
+
 These instructions assume you have installed the SDK and have installed the `clang` and `cmake` tools.  See the SDK User's Guide for instructions on how to do this.
 
 1. To preserve the initial state of the sample code, copy the source files to a new directory.
@@ -17,7 +21,7 @@ These instructions assume you have installed the SDK and have installed the `cla
     cmake ..
     make
     ```
-3. The output of the build is the 'incubator' executable.
+3. The output of the build is the `hospital` executable.
 
 # Running the Demo
 

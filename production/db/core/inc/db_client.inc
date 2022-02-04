@@ -25,7 +25,7 @@ inline int client_t::get_session_socket_for_txn()
 
 inline bool client_t::is_valid_event(common::gaia_type_t type)
 {
-    return (s_txn_commit_trigger && type < common::c_system_table_reserved_range_start);
+    return (s_txn_commit_trigger && !is_system_object(type));
 }
 
 inline void client_t::verify_txn_active()
@@ -63,18 +63,9 @@ inline void client_t::verify_no_session()
 inline void client_t::txn_log(
     gaia_locator_t locator,
     gaia_offset_t old_offset,
-    gaia_offset_t new_offset,
-    gaia_operation_t operation,
-    common::gaia_id_t deleted_id)
+    gaia_offset_t new_offset)
 {
     ASSERT_PRECONDITION(s_log.is_set(), "Transaction log must be mapped!");
-
-    if (operation == gaia_operation_t::remove)
-    {
-        ASSERT_PRECONDITION(
-            deleted_id != common::c_invalid_gaia_id && new_offset == c_invalid_gaia_offset,
-            "A delete operation must have a valid deleted gaia_id and an invalid new version offset!");
-    }
 
     // We never allocate more than `c_max_log_records` records in the log.
     if (s_log.data()->record_count == c_max_log_records)
@@ -87,8 +78,6 @@ inline void client_t::txn_log(
     lr.locator = locator;
     lr.old_offset = old_offset;
     lr.new_offset = new_offset;
-    lr.deleted_id = deleted_id;
-    lr.operation = operation;
 }
 
 // This generator wraps a socket which reads a stream of values of `T_element_type` from the server.
@@ -140,14 +129,14 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
             // The datagram size must be an integer multiple of our datum size.
             ASSERT_INVARIANT(datagram_size % sizeof(T_element_type) == 0, c_message_unexpected_datagram_size);
 
-            // Align the end of the buffer to the datagram size.
+            // Align the end of the buffer to the expected number of elements.
             // Per the C++ standard, this will never reduce capacity.
-            batch_buffer.resize(datagram_size);
+            batch_buffer.resize(datagram_size / sizeof(T_element_type));
 
             // Get the actual data.
             // This is a nonblocking read, because the previous blocking
             // read will not return until data is available.
-            ssize_t bytes_read = ::recv(*stream_socket_ptr, batch_buffer.data(), batch_buffer.size(), MSG_DONTWAIT);
+            ssize_t bytes_read = ::recv(*stream_socket_ptr, batch_buffer.data(), datagram_size, MSG_DONTWAIT);
             if (bytes_read == -1)
             {
                 // Per above, we should never have to block here.
@@ -167,6 +156,9 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
         // (the server reversed the original buffer before sending).
         T_element_type next_value = batch_buffer.back();
         batch_buffer.pop_back();
+
+        ASSERT_POSTCONDITION(next_value.is_valid(), "The stream generator has produced an invalid element value!");
+
         return next_value;
     };
 }

@@ -22,43 +22,43 @@
         "body": ["on_change($1)","{","\t$0","}\n"],
         "description": "snippet for on_change"
     },
-  
+
     "using": {
         "prefix": "using",
         "body": ["using namespace $0"],
         "description": "snippet for using namespace"
     },
-  
+
     "for loop": {
         "prefix": "for",
         "body": ["for ($1)", "{", "\t$0", "}"],
         "description": "snippet for a for loop"
     },
-  
+
     "do": {
         "prefix": "do",
         "body": ["do", "{", "\t$0", "} while($1);\n"],
         "description": "snippet for a do...while loop"
     },
-  
+
     "while": {
         "prefix": "while",
         "body": ["while ($1)", "{", "\t$0", "}\n"],
         "description": "snippet for a while loop"
     },
-  
+
     "if": {
         "prefix": "if",
         "body": ["if ($1)","{", "\t$0", "}"],
         "description": "snippet for an if statement"
     },
-  
+
     "else": {
         "prefix": "else",
         "body": ["else", "{", "\t$0", "}\n"],
         "description": "snippet for else"
     },
-  
+
     "else if": {
         "prefix": "else if",
         "body": ["else if ($1)", "{", "\t$0", "}"],

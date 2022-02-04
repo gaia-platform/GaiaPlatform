@@ -5,17 +5,16 @@
 
 #include <cstdlib>
 
-#include <iostream>
 #include <thread>
 
 #include <gtest/gtest.h>
+#include <json.hpp>
 
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
 #include "gaia_addr_book.h"
 #include "gaia_amr_swarm.h"
 #include "gaia_db_extract.hpp"
-#include "json.hpp"
 
 using namespace gaia::db;
 using namespace gaia::direct_access;

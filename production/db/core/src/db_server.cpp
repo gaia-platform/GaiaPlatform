@@ -96,7 +96,7 @@ void server_t::handle_connect(
 
     // We need to reply to the client with the fds for the data/locator segments.
     FlatBufferBuilder builder;
-    build_server_reply(builder, session_event_t::CONNECT, old_state, new_state);
+    build_server_reply_info(builder, session_event_t::CONNECT, old_state, new_state);
 
     // Collect fds.
     int fd_list[static_cast<size_t>(data_mapping_t::index_t::count_mappings)];
@@ -120,7 +120,7 @@ void server_t::handle_begin_txn(
         old_state == session_state_t::CONNECTED && new_state == session_state_t::TXN_IN_PROGRESS,
         c_message_current_event_is_inconsistent_with_state_transition);
 
-    ASSERT_PRECONDITION(s_txn_id == c_invalid_gaia_txn_id, "Transaction begin timestamp should be uninitialized!");
+    ASSERT_PRECONDITION(!s_txn_id.is_valid(), "Transaction begin timestamp should be uninitialized!");
 
     ASSERT_PRECONDITION(!s_log.is_set(), "Transaction log should be uninitialized!");
 
@@ -144,7 +144,7 @@ void server_t::handle_begin_txn(
     // number of log fds on the initial reply message.
     int log_fd = s_log.fd();
     FlatBufferBuilder builder;
-    build_server_reply(
+    build_server_reply_info(
         builder, session_event_t::BEGIN_TXN, old_state, new_state, s_txn_id, txn_log_fds_for_snapshot.size());
     send_msg_with_fds(s_session_socket, &log_fd, 1, builder.GetBufferPointer(), builder.GetSize());
 
@@ -169,7 +169,7 @@ void server_t::txn_begin(std::vector<int>& txn_log_fds_for_snapshot)
 
     // The begin_ts returned by register_begin_ts() should always be valid because it
     // retries if it is concurrently sealed.
-    ASSERT_INVARIANT(s_txn_id != c_invalid_gaia_txn_id, "Begin timestamp is invalid!");
+    ASSERT_INVARIANT(s_txn_id.is_valid(), "Begin timestamp is invalid!");
 
     // Ensure that there are no undecided txns in our snapshot window.
     safe_watermark_t pre_apply_watermark(watermark_type_t::pre_apply);
@@ -183,7 +183,6 @@ void server_t::txn_begin(std::vector<int>& txn_log_fds_for_snapshot)
 
     // Update the log header with our begin timestamp and initialize it to empty.
     s_log.data()->begin_ts = s_txn_id;
-    s_log.data()->current_chunk = c_invalid_chunk_offset;
     s_log.data()->record_count = 0;
 }
 
@@ -247,7 +246,7 @@ void server_t::handle_rollback_txn(
         c_message_current_event_is_inconsistent_with_state_transition);
 
     ASSERT_PRECONDITION(
-        s_txn_id != c_invalid_gaia_txn_id,
+        s_txn_id.is_valid(),
         "No active transaction to roll back!");
 
     ASSERT_PRECONDITION(s_log.is_set(), c_message_uninitialized_log_fd);
@@ -312,14 +311,14 @@ void server_t::handle_decide_txn(
     FlatBufferBuilder builder;
     if (event == session_event_t::DECIDE_TXN_ROLLBACK_FOR_ERROR)
     {
-        build_server_reply(builder, event, old_state, new_state, s_error_message.c_str());
+        build_server_reply_error(builder, event, old_state, new_state, s_error_message.c_str());
 
         // Clear error information.
         s_error_message = c_empty_string;
     }
     else
     {
-        build_server_reply(builder, event, old_state, new_state, s_txn_id, 0);
+        build_server_reply_info(builder, event, old_state, new_state, s_txn_id, 0);
     }
     send_msg_with_fds(s_session_socket, nullptr, 0, builder.GetBufferPointer(), builder.GetSize());
 
@@ -356,7 +355,7 @@ void server_t::handle_client_shutdown(
     s_session_shutdown = true;
 
     // If the session had an active txn, clean up all its resources.
-    if (s_txn_id != c_invalid_gaia_txn_id)
+    if (s_txn_id.is_valid())
     {
         bool client_disconnected = true;
         txn_rollback(client_disconnected);
@@ -500,7 +499,7 @@ void server_t::handle_request_stream(
     // Any exceptions after this point will close the server socket, ensuring the producer thread terminates.
     // However, its destructor will not run until the session thread exits and joins the producer thread.
     FlatBufferBuilder builder;
-    build_server_reply(builder, event, old_state, new_state);
+    build_server_reply_info(builder, event, old_state, new_state);
     send_msg_with_fds(s_session_socket, &client_socket, 1, builder.GetBufferPointer(), builder.GetSize());
 }
 
@@ -545,7 +544,7 @@ void server_t::apply_transition(session_event_t event, const void* event_data, i
         + "'.");
 }
 
-void server_t::build_server_reply(
+void server_t::build_server_reply_info(
     FlatBufferBuilder& builder,
     session_event_t event,
     session_state_t old_state,
@@ -562,7 +561,7 @@ void server_t::build_server_reply(
     builder.Finish(message);
 }
 
-void server_t::build_server_reply(
+void server_t::build_server_reply_error(
     FlatBufferBuilder& builder,
     session_event_t event,
     session_state_t old_state,
@@ -654,7 +653,7 @@ void server_t::init_memory_manager(bool initializing)
             sizeof(s_shared_data.data()->objects));
 
         memory_manager::chunk_offset_t chunk_offset = s_memory_manager.allocate_chunk();
-        if (chunk_offset == c_invalid_chunk_offset)
+        if (!chunk_offset.is_valid())
         {
             throw memory_allocation_error_internal();
         }
@@ -720,20 +719,20 @@ void server_t::init_indexes()
     gaia_locator_t last_locator = s_shared_counters.data()->last_locator.load();
 
     // Create initial index data structures.
-    for (const auto& table : catalog_core_t::list_tables())
+    for (const auto& table : catalog_core::list_tables())
     {
-        for (const auto& index : catalog_core_t::list_indexes(table.id()))
+        for (const auto& index : catalog_core::list_indexes(table.id()))
         {
             index::index_builder_t::create_empty_index(index);
         }
     }
 
-    while (++locator && locator <= last_locator)
+    while ((++locator).is_valid() && locator <= last_locator)
     {
         auto obj = locator_to_ptr(locator);
 
-        // Skip system objects -- they are not indexed.
-        if (is_system_object(obj->type))
+        // Skip catalog core objects -- they are not indexed.
+        if (is_catalog_core_object(obj->type))
         {
             continue;
         }
@@ -749,9 +748,9 @@ void server_t::init_indexes()
             continue;
         }
 
-        for (const auto& index : catalog_core_t::list_indexes(type_record_id))
+        for (const auto& index : catalog_core::list_indexes(type_record_id))
         {
-            index::index_builder_t::populate_index(index.id(), obj->type, locator);
+            index::index_builder_t::populate_index(index.id(), locator);
         }
     }
 }
@@ -861,7 +860,7 @@ void server_t::create_local_snapshot(bool apply_logs)
     if (apply_logs)
     {
         ASSERT_PRECONDITION(
-            s_txn_id != c_invalid_gaia_txn_id && txn_metadata_t::is_txn_active(s_txn_id),
+            s_txn_id.is_valid() && txn_metadata_t::is_txn_active(s_txn_id),
             "create_local_snapshot() must be called from within an active transaction!");
         std::vector<int> txn_log_fds;
         get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds);
@@ -952,7 +951,7 @@ void server_t::init_listening_socket(const std::string& socket_name)
     // in the server address structure after the prefix null byte.
     ASSERT_INVARIANT(
         socket_name.size() <= sizeof(server_addr.sun_path) - 1,
-        "Socket name '" + socket_name + "' is too long!");
+        gaia_fmt::format("Socket name '{}' is too long!", socket_name).c_str());
 
     // We prepend a null byte to the socket name so the address is in the
     // (Linux-exclusive) "abstract namespace", i.e., not bound to the
@@ -1172,6 +1171,7 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
                 {
                     // The connecting client will get ECONNRESET on their first
                     // read from this socket.
+                    std::cerr << "Disconnecting new session because authentication failed or session limit has been exceeded." << std::endl;
                     close_fd(session_socket);
                     continue;
                 }
@@ -1225,6 +1225,7 @@ void server_t::session_handler(int session_socket)
     // directly ensure that `session_limit_exceeded_internal` is thrown in this case.
     if (!reserve_safe_ts_index())
     {
+        std::cerr << "Disconnecting new session because session handler failed to reserve a safe_ts entry index." << std::endl;
         return;
     }
 
@@ -2082,7 +2083,7 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
 
         // If we're gc-ing the old version of an object that is being deleted,
         // then request the deletion of its locator from the corresponding record list.
-        if (!deallocate_new_offsets && txn_log->log_records[i].new_offset == c_invalid_gaia_offset)
+        if (!deallocate_new_offsets && txn_log->log_records[i].new_offset.is_valid() == false)
         {
             // Get the old object data to extract its type.
             db_object_t* db_object = offset_to_ptr(txn_log->log_records[i].old_offset);
@@ -2094,7 +2095,7 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
             record_list->request_deletion(txn_log->log_records[i].locator);
         }
 
-        if (offset_to_free)
+        if (offset_to_free.is_valid())
         {
             deallocate_object(offset_to_free);
         }
@@ -2580,53 +2581,11 @@ void server_t::txn_rollback(bool client_disconnected)
     // owned by the client session when it crashed.
     if (client_disconnected)
     {
-        // Load the crashed session's chunk, so we can directly free the final
-        // allocation if necessary.
-        // BUG (GAIAPLAT-1489): this will only work if we're inside a txn when
-        // the session crashes. Otherwise, we'll leak the chunk and it will be
-        // orphaned forever (unless we somehow GC orphaned chunks).
-        memory_manager::chunk_offset_t chunk_offset = s_log.data()->current_chunk;
-        if (chunk_offset != c_invalid_chunk_offset)
-        {
-            s_chunk_manager.load(chunk_offset);
-
-            // Get final allocation from chunk metadata, so we can check to be sure
-            // it's present in our txn log.
-            gaia_offset_t last_allocated_offset = s_chunk_manager.last_allocated_offset();
-
-            // If we haven't logged the final allocation, then deallocate it directly.
-            if (last_allocated_offset != c_invalid_gaia_offset)
-            {
-                bool is_log_empty = (s_log.data()->record_count == 0);
-
-                // If we have no log records, but we do have a final allocation, then deallocate it directly.
-                bool should_deallocate_directly = is_log_empty;
-
-                // If we do have a non-empty log, then check if the final record matches the final allocation.
-                // if (!is_log_empty)
-                // {
-                // BUG (GAIAPLAT-1490): I removed the original logic here
-                // because it was incorrect. We can afford to leak the final
-                // allocation when a session crashes in the middle of a txn
-                // for now, until we implement this properly.
-                // }
-
-                if (should_deallocate_directly)
-                {
-                    s_chunk_manager.deallocate(last_allocated_offset);
-                }
-            }
-
-            // Get the session's chunk version for safe deallocation.
-            memory_manager::chunk_version_t version = s_chunk_manager.get_version();
-
-            // Now retire the chunk.
-            s_chunk_manager.retire_chunk(version);
-
-            // We don't strictly need this since the session thread is about to exit,
-            // but it's good hygiene to clear unused thread-locals.
-            s_chunk_manager.release();
-        }
+        // TODO[GAIAPLAT-1490]: Implement this logic correctly by tracking the
+        // current chunk ID in shared session state. For now, chunks owned by a
+        // crashed session will never be retired (and therefore can never be
+        // reallocated). Deallocation of object versions in these orphaned
+        // chunks will still succeed, though, so GC correctness is unaffected.
     }
 
     // Claim ownership of the log fd from the mapping object.
@@ -2665,13 +2624,13 @@ void server_t::perform_pre_commit_work_for_txn()
 
         // In case of insertions, we want to update the record list for the object's type.
         // We do this after updating the shared locator view, so we can access the new object's data.
-        if (lr->old_offset == c_invalid_gaia_offset)
+        if (lr->old_offset.is_valid() == false)
         {
             gaia_locator_t locator = lr->locator;
             gaia_offset_t offset = lr->new_offset;
 
             ASSERT_INVARIANT(
-                offset != c_invalid_gaia_offset, "An unexpected invalid object offset was found in the log record!");
+                offset.is_valid(), "An unexpected invalid object offset was found in the log record!");
 
             db_object_t* db_object = offset_to_ptr(offset);
             std::shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(db_object->type);

@@ -14,7 +14,7 @@ include(UseJava)
 
 enable_testing()
 
-project(production VERSION 0.3.2)
+project(production VERSION 0.3.3)
 
 # Sets the pre-release version which will be appended to the
 # product version: 0.1.0-alpha.
@@ -25,17 +25,37 @@ option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
 
 option(ENABLE_STACKTRACE "Enable stack traces" ON)
 
-option(BUILD_GAIA_RELEASE "Build Gaia Release packages and binaries" OFF)
+option(BUILD_GAIA_SDK "Build Gaia SDK packages and binaries" OFF)
 
 option(ENABLE_SDK_TESTS "Build and execute ruleset translation tests" ON)
 
 option(EXPORT_SYMBOLS "Export symbols by default from shared libraries" OFF)
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
-else()
-  option(ENABLE_CLANG_TIDY "Enable clang tidy" OFF)
+option(DISABLE_ASSERTS "Disable assertions" OFF)
+
+option(DISABLE_CCACHE "Disable ccache unconditionally" OFF)
+
+option(ENABLE_CLANG_TIDY "Enable Clang-Tidy to be specified externally")
+
+if (NOT ENABLE_CLANG_TIDY)
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
+  else()
+    option(ENABLE_CLANG_TIDY "Enable clang tidy" OFF)
+  endif()
 endif()
+
+# Sets the Gaia build architecture which is the SDK target architecture.
+# For simplicity we do not support cross-compiling yet.
+if (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "amd64|AMD64|x86_64|X86_64")
+  set(GAIA_BUILD_ARCH "amd64")
+elseif (CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm64|ARM64|aarch64|AARCH64")
+  set(GAIA_BUILD_ARCH "arm64")
+else()
+  message(FATAL_ERROR "Unrecognised architecture: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+endif()
+
+message(STATUS "GAIA_BUILD_ARCH: ${GAIA_BUILD_ARCH}")
 
 include(GNUInstallDirs)
 include(ExternalProject)
@@ -68,18 +88,22 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 find_program(CCACHE_FOUND ccache)
-if(CCACHE_FOUND)
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-endif(CCACHE_FOUND)
+if(CCACHE_FOUND AND NOT DISABLE_CCACHE)
+  set_property(GLOBAL PROPERTY CMAKE_CXX_COMPILER_LAUNCHER ccache)
+endif()
 
 # Default compiler/linker flags for Gaia targets.
 add_library(gaia_build_options INTERFACE)
 target_compile_options(gaia_build_options INTERFACE -Wall -Wextra -ftime-trace)
 # Ensure Debug builds have the DEBUG macro defined.
 target_compile_definitions(gaia_build_options INTERFACE $<$<CONFIG:Debug>:DEBUG>)
+# Propagate the DISABLE_ASSERTS option to a macro definition.
+target_compile_definitions(gaia_build_options INTERFACE $<$<BOOL:${DISABLE_ASSERTS}>:DISABLE_ASSERTS>)
+# Disabling asserts will produce bogus unused variable warnings.
+target_compile_options(gaia_build_options INTERFACE $<$<BOOL:${DISABLE_ASSERTS}>:-Wno-unused-parameter -Wno-unused-lambda-capture -Wno-unused-variable -Wno-unused-but-set-variable>)
 
 # LLVM and CLANG specific options.
-if(BUILD_GAIA_RELEASE OR BUILD_GAIA_LLVM_TESTS)
+if(BUILD_GAIA_SDK OR BUILD_GAIA_LLVM_TESTS)
   set(LLVM_ENABLE_WARNINGS OFF CACHE BOOL "")
   set(CLANG_BUILD_TOOLS OFF CACHE BOOL "")
   set(LLVM_BUILD_TOOLS OFF CACHE BOOL "")
@@ -124,7 +148,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
 
     # Explicitly list all legal values for SANITIZER.
     # (This will eventually include ASAN, MSAN, TSAN.)
-    set_property(CACHE SANITIZER PROPERTY STRINGS "ASAN")
+    set_property(CACHE SANITIZER PROPERTY STRINGS "ASAN" "TSAN" "NONE")
   endif()
 
   if(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
@@ -173,6 +197,12 @@ if(DEFINED CACHE{SANITIZER})
     target_compile_options(gaia_build_options INTERFACE -fsanitize=undefined)
     target_link_options(gaia_build_options INTERFACE -fsanitize=undefined)
   endif()
+
+  if("$CACHE{SANITIZER}" STREQUAL "TSAN")
+    # Add TSan flags only to Gaia targets to avoid compatibility issues with other libraries.
+    target_compile_options(gaia_build_options INTERFACE -fsanitize=thread)
+    target_link_options(gaia_build_options INTERFACE -fsanitize=thread)
+  endif()
 endif()
 
 message(STATUS "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
@@ -188,11 +218,10 @@ set(GOOGLE_TEST "${GAIA_REPO}/third_party/production/googletest")
 set(GOOGLE_TEST_INC "${GOOGLE_TEST}/googletest/include")
 
 set(FLATBUFFERS_ROOT ${DEPENDENCIES_INSTALL_PREFIX}/flatbuffers)
-set(FLATBUFFERS_PREFIX flatbuffers)
-set(FLATBUFFERS_SOURCE_DIR src)
-set(FLATBUFFERS_SOURCE "${CMAKE_BINARY_DIR}/flatbuffers/${FLATBUFFERS_SOURCE_DIR}")
+set(FLATBUFFERS_SRC "${FLATBUFFERS_ROOT}/src")
 set(FLATBUFFERS_INC "${FLATBUFFERS_ROOT}/include")
 set(FLATBUFFERS_BIN "${FLATBUFFERS_ROOT}/bin")
+set(FLATBUFFERS_LIB "${FLATBUFFERS_ROOT}/lib")
 
 set(GAIA_SPDLOG "${DEPENDENCIES_INSTALL_PREFIX}/gaia_spdlog")
 set(GAIA_SPDLOG_INC "${GAIA_SPDLOG}/include")
@@ -338,7 +367,7 @@ add_subdirectory(schemas)
 # Tools.
 add_subdirectory(tools)
 
-if(BUILD_GAIA_RELEASE)
+if(BUILD_GAIA_SDK)
   unset(CMAKE_CXX_CLANG_TIDY)
   add_subdirectory("${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm" llvm EXCLUDE_FROM_ALL)
   if(ENABLE_CLANG_TIDY)
@@ -460,13 +489,6 @@ file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
 file(
   COPY ${CMAKE_CURRENT_SOURCE_DIR}/gaia_log.conf
   DESTINATION ${PROJECT_BINARY_DIR}/common/
-)
-
-# Copy the git-hooks. git-hooks are local to any git repo and
-# are not copied over when you clone a repo.
-file(
-  COPY ${CMAKE_CURRENT_SOURCE_DIR}/../dev_tools/hooks/pre-commit
-  DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../.git/hooks
 )
 
 # We want to disable all clang-tidy checks for generated code.

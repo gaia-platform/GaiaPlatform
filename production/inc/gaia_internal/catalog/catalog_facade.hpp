@@ -80,7 +80,7 @@ public:
     // pair.first = declaration
     // pair.second = initialization
     static std::pair<std::string, std::string> generate_expr_variable(
-        const std::string& table, const std::string& type, const std::string& field);
+        const std::string& table, const std::string& expr_accessor, const std::string& field);
 
 private:
     gaia_field_t m_field;
@@ -96,12 +96,15 @@ public:
     std::string to_table() const;
 
     std::string target_type() const;
+    std::string expression_accessor() const;
 
     bool is_one_to_one() const;
     bool is_one_to_many() const;
 
     bool is_single_cardinality() const;
     bool is_multiple_cardinality() const;
+
+    bool is_value_linked() const;
 
 protected:
     gaia::catalog::gaia_relationship_t m_relationship;

@@ -10,9 +10,9 @@ namespace gaia
 namespace direct_access
 {
 
-auto_transaction_t::auto_transaction_t(bool auto_begin)
+auto_transaction_t::auto_transaction_t(bool auto_restart)
 {
-    m_auto_begin = auto_begin;
+    m_auto_restart = auto_restart;
     gaia::db::begin_transaction();
 }
 
@@ -24,7 +24,7 @@ void auto_transaction_t::begin()
 void auto_transaction_t::commit()
 {
     gaia::db::commit_transaction();
-    if (m_auto_begin)
+    if (m_auto_restart)
     {
         gaia::db::begin_transaction();
     }

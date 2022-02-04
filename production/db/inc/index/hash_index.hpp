@@ -21,14 +21,14 @@ using hash_type_t = std::unordered_multimap<index_key_t, index_record_t, index_k
 using hash_index_iterator_t = index_iterator_t<hash_type_t, hash_type_t::const_iterator>;
 
 /**
-* Actual hash index implementation.
-*/
+ * Actual hash index implementation.
+ */
 
 class hash_index_t : public index_t<hash_type_t, hash_index_iterator_t>
 {
 public:
-    hash_index_t(gaia::common::gaia_id_t index_id, gaia::common::gaia_type_t table_type, bool is_unique = false)
-        : index_t(index_id, catalog::index_type_t::hash, table_type, is_unique)
+    hash_index_t(gaia::common::gaia_id_t index_id, index_key_schema_t key_schema, bool is_unique = false)
+        : index_t(index_id, catalog::index_type_t::hash, key_schema, is_unique)
     {
     }
     ~hash_index_t() = default;
