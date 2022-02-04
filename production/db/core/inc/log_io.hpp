@@ -64,7 +64,7 @@ public:
     void create_txn_record(
         gaia_txn_id_t commit_ts,
         record_type_t type,
-        std::vector<gaia_offset_t>& object_offsets,
+        std::vector<contiguous_offsets_t>& object_offsets,
         std::vector<gaia::common::gaia_id_t>& deleted_ids);
 
     /**
@@ -80,25 +80,16 @@ public:
     /**
      * Submit async_disk_writer's internal I/O request queue to the kernel for processing.
      */
-    void submit_writes(bool sync);
+    void submit_writes(bool should_wait_for_completion);
 
     /**
      * Validate the result of I/O calls submitted to the kernel for processing.
      */
-    void validate_flushed_batch();
-
-    /**
-     * Track the session_decision_eventfd for each commit_ts; txn_commit() will only return once 
-     * session_decision_eventfd is written to by the log_writer thread - signifying that the txn decision
-     * has been persisted.
-     */
-    void register_commit_ts_for_session_notification(gaia_txn_id_t commit_ts, int session_decision_eventfd);
+    void perform_flushed_batch_maintenance();
 
 private:
-    // TODO: Make log file size configurable.
-    static constexpr uint64_t c_file_size = 4 * 1024 * 1024;
-    static constexpr std::string_view c_gaia_wal_dir_name = "/wal_dir";
-    static constexpr int c_gaia_wal_dir_permissions = 0755;
+    static constexpr char c_gaia_wal_dir_name[] = "/wal_dir";
+    static constexpr int c_gaia_wal_dir_permissions = S_IRWXU | (S_IRGRP | S_IROTH | S_IXGRP | S_IXOTH);
     static inline std::string s_wal_dir_path{};
     static inline int s_dir_fd = -1;
 
