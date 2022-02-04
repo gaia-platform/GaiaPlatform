@@ -27,8 +27,11 @@ popd
 rm -rf ./hello
 cp -r /opt/gaia/examples/hello .
 pushd hello
+echo "Build the example."
 ./build.sh
+echo "Run the example."
 ./run.sh
+echo "Example has been run."
 popd
 
 # Stop the db server.
