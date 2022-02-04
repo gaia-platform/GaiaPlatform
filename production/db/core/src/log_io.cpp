@@ -16,12 +16,12 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <sys/stat.h>
 
 #include "liburing.h"
 
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
-#include "gaia_internal/common/write_ahead_log_error.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include <gaia_internal/common/mmap_helpers.hpp>
 
@@ -34,6 +34,7 @@
 #include "memory_helpers.hpp"
 #include "memory_types.hpp"
 #include "txn_metadata.hpp"
+#include "persistence_types.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
@@ -99,9 +100,9 @@ file_offset_t log_handler_t::allocate_log_space(size_t payload_size)
     // Another simplification is that an async_write_batch contains only writes belonging to a single log file.
     if (!m_current_file)
     {
-        auto file_size = (payload_size > c_file_size) ? payload_size : c_file_size;
+        auto file_size = (payload_size > c_max_log_file_size_in_bytes) ? payload_size : c_max_log_file_size_in_bytes;
         m_current_file.reset();
-        m_current_file = std::make_unique<log_file_t>(s_wal_dir_path, s_dir_fd, s_file_num.load(), file_size);
+        m_current_file = std::make_unique<log_file_t>(s_wal_dir_path, s_dir_fd, s_file_num, file_size);
     }
     else if (m_current_file->get_bytes_remaining_after_append(payload_size) <= 0)
     {
@@ -114,8 +115,8 @@ file_offset_t log_handler_t::allocate_log_space(size_t payload_size)
 
         // Open new file.
         s_file_num++;
-        auto fs = (payload_size > c_file_size) ? payload_size : c_file_size;
-        m_current_file = std::make_unique<log_file_t>(s_wal_dir_path, s_dir_fd, s_file_num.load(), fs);
+        auto file_size = (payload_size > c_max_log_file_size_in_bytes) ? payload_size : c_max_log_file_size_in_bytes;
+        m_current_file = std::make_unique<log_file_t>(s_wal_dir_path, s_dir_fd, s_file_num, file_size);
     }
 
     auto current_offset = m_current_file->get_current_offset();
@@ -134,12 +135,12 @@ void log_handler_t::create_decision_record(const decision_list_t& txn_decisions)
 
     // Create decision record and enqueue a pwrite() request for the same.
     std::vector<iovec> writes_to_submit;
-    size_t txn_decision_size = txn_decisions.size() * (sizeof(gaia_txn_id_t) + sizeof(decision_type_t));
-    auto total_log_space_needed = txn_decision_size + sizeof(record_header_t);
+    size_t txn_decision_size = txn_decisions.size() * (sizeof(decision_entry_t));
+    size_t total_log_space_needed = txn_decision_size + sizeof(record_header_t);
     allocate_log_space(total_log_space_needed);
 
     // Create log record header.
-    record_header_t header;
+    record_header_t header{};
     header.crc = c_crc_initial_value;
     header.payload_size = total_log_space_needed;
     header.decision_count = txn_decisions.size();
@@ -151,7 +152,7 @@ void log_handler_t::create_decision_record(const decision_list_t& txn_decisions)
     txn_crc = calculate_crc32(txn_crc, &header, sizeof(record_header_t));
     txn_crc = calculate_crc32(txn_crc, txn_decisions.data(), txn_decision_size);
 
-    ASSERT_INVARIANT(txn_crc > 0, "CRC cannot be zero.");
+    ASSERT_INVARIANT(txn_crc != 0, "CRC cannot be zero.");
     header.crc = txn_crc;
 
     // Copy information which needs to survive for the entire batch lifetime into the metadata buffer.
@@ -170,8 +171,6 @@ void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t comm
     mapped_log_t log;
     log.open(txn_log_fd);
 
-    register_commit_ts_for_session_notification(commit_ts, log.data()->session_decision_eventfd);
-
     std::vector<common::gaia_id_t> deleted_ids;
 
     // Create chunk_to_offsets_map; this is done to ensure offsets are processed in the correct order.
@@ -181,32 +180,32 @@ void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t comm
     std::map<chunk_offset_t, std::set<gaia_offset_t>> chunk_to_offsets_map;
     for (size_t i = 0; i < log.data()->chunk_count; i++)
     {
-        auto chunk = log.data()->chunks + i;
-        auto chunk_offset = memory_manager::chunk_from_offset(*chunk);
+        auto chunk = log.data()->chunks[i];
+        auto chunk_offset = memory_manager::chunk_from_offset(chunk);
         chunk_to_offsets_map.insert(std::pair(chunk_offset, std::set<gaia_offset_t>()));
     }
 
     // Obtain deleted_ids & obtain sorted offsets per chunk.
     for (size_t i = 0; i < log.data()->record_count; i++)
     {
-        auto lr = log.data()->log_records + i;
-        if (lr->operation == gaia_operation_t::remove)
+        auto lr = log.data()->log_records[i];
+        if (lr.operation() == gaia_operation_t::remove)
         {
-            deleted_ids.push_back(lr->deleted_id);
+            deleted_ids.push_back(offset_to_ptr(lr.old_offset)->id);
         }
         else
         {
-            auto chunk = memory_manager::chunk_from_offset(lr->new_offset);
+            auto chunk = memory_manager::chunk_from_offset(lr.new_offset);
             ASSERT_INVARIANT(chunk_to_offsets_map.count(chunk) > 0, "Can't find chunk.");
             ASSERT_INVARIANT(chunk != c_invalid_chunk_offset, "Invalid chunk offset found.");
-            chunk_to_offsets_map.find(chunk)->second.insert(lr->new_offset);
+            chunk_to_offsets_map.find(chunk)->second.insert(lr.new_offset);
         }
     }
 
     // Group contiguous objects and also find total object size.
     // Each odd entry in the contiguous_offsets vector is the begin offset of a contiguous memory
     // segment and each even entry is the ending offset of said memory chunk.
-    std::vector<gaia_offset_t> contiguous_offsets;
+    std::vector<contiguous_offsets_t> contiguous_offsets;
 
     for (const auto& pair : chunk_to_offsets_map)
     {
@@ -215,15 +214,14 @@ void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t comm
         {
             continue;
         }
-        contiguous_offsets.push_back(*object_address_offsets.begin());
+        contiguous_offsets_t offset_pair{};
+        offset_pair.offset1 = (*object_address_offsets.begin());
         auto end_offset = *(--object_address_offsets.end());
         auto payload_size = offset_to_ptr(end_offset)->payload_size + c_db_object_header_size;
         size_t allocation_size = memory_manager::calculate_allocation_size_in_slots(payload_size) * c_slot_size_in_bytes;
-        contiguous_offsets.push_back(end_offset + allocation_size);
+        offset_pair.offset2 = (end_offset + allocation_size);
+        contiguous_offsets.push_back(offset_pair);
     }
-
-    // The contiguous_offsets vector should have an even number of entries.
-    ASSERT_INVARIANT(contiguous_offsets.size() % 2 == 0, "We expect a begin and end offset.");
 
     if (deleted_ids.size() > 0 || contiguous_offsets.size() > 0)
     {
@@ -231,29 +229,23 @@ void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t comm
     }
 }
 
-void log_handler_t::register_commit_ts_for_session_notification(gaia_txn_id_t commit_ts, int session_decision_eventfd)
-{
-    ASSERT_INVARIANT(session_decision_eventfd > 0, "Invalid session_decision_eventfd.");
-    m_async_disk_writer->map_commit_ts_to_session_decision_eventfd(commit_ts, session_decision_eventfd);
-}
-
-void log_handler_t::validate_flushed_batch()
+void log_handler_t::perform_flushed_batch_maintenance()
 {
     m_async_disk_writer->perform_post_completion_maintenance();
 }
 
-void log_handler_t::submit_writes(bool sync)
+void log_handler_t::submit_writes(bool should_wait_for_completion)
 {
-    m_async_disk_writer->submit_and_swap_in_progress_batch(m_current_file->get_file_fd(), sync);
+    m_async_disk_writer->submit_and_swap_in_progress_batch(m_current_file->get_file_fd(), should_wait_for_completion);
 }
 
 void log_handler_t::create_txn_record(
     gaia_txn_id_t commit_ts,
     record_type_t type,
-    std::vector<gaia_offset_t>& contiguous_address_offsets,
+    std::vector<contiguous_offsets_t>& contiguous_offsets,
     std::vector<gaia_id_t>& deleted_ids)
 {
-    ASSERT_PRECONDITION(!deleted_ids.empty() || (contiguous_address_offsets.size() % 2 == 0 && !contiguous_address_offsets.empty()), "Txn record cannot have empty payload.");
+    ASSERT_PRECONDITION(!deleted_ids.empty() || !contiguous_offsets.empty(), "Txn record cannot have empty payload.");
 
     std::vector<iovec> writes_to_submit;
 
@@ -263,11 +255,10 @@ void log_handler_t::create_txn_record(
 
     // Create iovec entries.
     size_t payload_size = 0;
-    for (size_t i = 0; i < contiguous_address_offsets.size(); i += 2)
+    for (auto offset_pair : contiguous_offsets)
     {
-        auto offset = contiguous_address_offsets.at(i);
-        auto ptr = offset_to_ptr(offset);
-        auto chunk_size = contiguous_address_offsets.at(i + 1) - contiguous_address_offsets.at(i);
+        auto ptr = offset_to_ptr(offset_pair.offset1);
+        auto chunk_size = offset_pair.offset2 - offset_pair.offset1;
         payload_size += chunk_size;
         writes_to_submit.push_back({ptr, chunk_size});
     }
@@ -303,7 +294,7 @@ void log_handler_t::create_txn_record(
     txn_crc = calculate_crc32(txn_crc, deleted_ids.data(), deleted_size);
 
     // Update CRC in header before sending it to the async_disk_writer.
-    ASSERT_INVARIANT(txn_crc > 0, "Computed CRC cannot be zero.");
+    ASSERT_INVARIANT(txn_crc != 0, "Computed CRC cannot be zero.");
     header.crc = txn_crc;
 
     // Copy the header into the metadata buffer as it needs to survive the lifetime of the async_write_batch it is a part of.

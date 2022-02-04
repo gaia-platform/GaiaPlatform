@@ -107,13 +107,6 @@ public:
 
     void add_decisions_to_batch(const decision_list_t& decisions);
 
-    /**
-     * For each commit ts, keep track of the eventfd which the session thread blocks on. Once the txn
-     * has been made durable, this eventfd is written to so that the session thread can make progress and
-     * return commit decision to the client.
-     */
-    void map_commit_ts_to_session_decision_eventfd(gaia_txn_id_t commit_ts, int session_decision_eventfd);
-
 private:
     // Reserve slots in the in_progress batch to be able to append additional operations to it (before it gets submitted to the kernel)
     static constexpr size_t c_submit_batch_sqe_count = 3;
