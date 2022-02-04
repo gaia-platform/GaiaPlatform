@@ -341,7 +341,7 @@ jobs:
         with:
           name: ${{github.job}} Test Files
           path: |
-            ${{ github.workspace }}/production/output
+            ${{ github.workspace }}/build/output
             ${{ github.workspace }}/production/raw_dockerfile
             ${{ github.workspace }}/production/dockerfile
   LLVM_Tests:
