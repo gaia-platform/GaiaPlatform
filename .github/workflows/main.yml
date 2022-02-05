@@ -338,7 +338,8 @@ jobs:
           mkdir -p $GAIA_REPO/build/output
           sudo chmod -R 777 $GAIA_REPO/build/output
           $GAIA_REPO/production/coverage/coverage.sh --verbose --output $GAIA_REPO/build/output
-          echo "COVERAGE OUTPUT"
+          cp $GAIA_REPO/production/raw_dockerfile $GAIA_REPO/build/output
+          cp $GAIA_REPO//production/dockerfile $GAIA_REPO/build/output
           echo "sudo chmod -R 777 $GAIA_REPO/production"
           sudo chmod -R 777 $GAIA_REPO/production
 
@@ -349,8 +350,6 @@ jobs:
           name: ${{github.job}} Test Files
           path: |
             ${{ github.workspace }}/build/output
-            ${{ github.workspace }}/production/raw_dockerfile
-            ${{ github.workspace }}/production/dockerfile
 
   LLVM_Tests:
     needs:
