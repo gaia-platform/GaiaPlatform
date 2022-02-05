@@ -552,6 +552,7 @@ void server_t::build_server_reply_info(
     gaia_txn_id_t txn_id,
     size_t log_fds_to_apply_count)
 {
+    builder.ForceDefaults(true);
     flatbuffers::Offset<server_reply_t> server_reply;
     const auto transaction_info = Createtransaction_info_t(builder, txn_id, log_fds_to_apply_count);
     server_reply = Createserver_reply_t(
@@ -568,6 +569,7 @@ void server_t::build_server_reply_error(
     session_state_t new_state,
     const char* error_message)
 {
+    builder.ForceDefaults(true);
     flatbuffers::Offset<server_reply_t> server_reply;
     const auto transaction_error = Createtransaction_error_tDirect(builder, error_message);
     server_reply = Createserver_reply_t(
