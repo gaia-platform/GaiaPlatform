@@ -119,10 +119,8 @@ void async_disk_writer_t::perform_post_completion_maintenance()
         transactions::txn_metadata_t::set_txn_durable(decision.commit_ts);
 
         // Unblock session thread.
-        auto itr = m_ts_to_session_decision_eventfd_map.find(decision.commit_ts);
-        ASSERT_INVARIANT(itr != m_ts_to_session_decision_eventfd_map.end(), "Unable to find session durability eventfd from committing txn's commit_ts");
+        // TODO FUTEX
         signal_eventfd_single_thread(itr->second);
-        m_ts_to_session_decision_eventfd_map.erase(itr);
     }
 
     m_in_flight_batch->clear_decision_batch();

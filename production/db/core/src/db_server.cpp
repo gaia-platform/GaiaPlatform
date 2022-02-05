@@ -184,7 +184,6 @@ void server_t::txn_begin(std::vector<int>& txn_log_fds_for_snapshot)
     // Update the log header with our begin timestamp and initialize it to empty.
     s_log.data()->begin_ts = s_txn_id;
     s_log.data()->record_count = 0;
-    s_log.data()->session_decision_eventfd = s_session_decision_eventfd;
 }
 
 void server_t::get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds)
@@ -292,7 +291,6 @@ void server_t::persist_pending_writes(bool should_wait_for_completion)
     bool updates_exist = false;
 
     // Run loop till there are no more updates to consume or there is a timeout.
-    updates_exist = false;
     while (true)
     {
         // Take snapshot of last allocated timestamp.
@@ -349,7 +347,6 @@ void server_t::persist_pending_writes(bool should_wait_for_completion)
                     ASSERT_INVARIANT(txn_log_fd != -1, "Invalid log fd");
                     mapped_log_t log;
                     log.open(txn_log_fd);
-                    s_log_handler->register_commit_ts_for_session_notification(ts, log.data()->session_decision_eventfd);
                     auto decision = txn_metadata_t::is_txn_committed(ts) ? persistence::decision_type_t::commit : persistence::decision_type_t::abort;
                     txn_decisions.emplace_back(persistence::decision_entry_t{ts, decision});
                     it = s_seen_and_undecided_txn_set.erase(it);
@@ -1458,13 +1455,6 @@ void server_t::session_handler(int session_socket)
         // want to try to read any pending data from the client, because we're
         // trying to shut down as quickly as possible.
         close_fd(s_session_socket);
-    });
-
-    // To signal session threads to return commit decision to client after txn has been made durable.
-    s_session_decision_eventfd = make_eventfd();
-
-    auto cleanup_session_decision_eventfd = make_scope_guard([]() {
-        close_fd(s_session_decision_eventfd);
     });
 
     // Initialize this thread's memory manager.
@@ -2979,7 +2969,6 @@ bool server_t::txn_commit()
                 return is_committed;
             }
 
-            consume_eventfd(s_session_decision_eventfd);
             ASSERT_POSTCONDITION(txn_metadata_t::is_txn_durable(commit_ts), "Txn should be durable post eventfd read");
         }
     }

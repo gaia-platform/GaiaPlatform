@@ -126,9 +126,6 @@ private:
     // eventfd to signal that a file is ready to be checkpointed.
     int m_signal_checkpoint_eventfd = -1;
 
-    // Keep track of session threads to unblock.
-    std::unordered_map<gaia_txn_id_t, int> m_ts_to_session_decision_eventfd_map;
-
     // Writes are batched and we maintain two buffers so that writes to a buffer
     // can still proceed when the other buffer is getting flushed to disk.
 
