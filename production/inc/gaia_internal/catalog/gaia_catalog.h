@@ -9,6 +9,7 @@
 #ifndef GAIA_GENERATED_catalog_H_
 #define GAIA_GENERATED_catalog_H_
 
+#include <gaia/optional.hpp>
 #include <gaia/direct_access/dac_object.hpp>
 #include <gaia/direct_access/dac_iterators.hpp>
 #include "catalog_generated.h"
