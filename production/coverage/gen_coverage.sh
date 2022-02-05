@@ -153,7 +153,6 @@ apt-get install -y llvm-13 lldb-13 llvm-13-dev libllvm13 llvm-13-runtime lcov
 echo "Installing Python helper packages."
 pip install lcov_cobertura
 chmod +x /usr/local/lib/python3.8/dist-packages/lcov_cobertura.py
-# pip install project-summarizer
 
 echo "Cleaning the output directory."
 mkdir -p /build/production/output
@@ -161,17 +160,15 @@ pushd /build/production/output || exit
 rm -rf ./*
 popd || exit
 
-echo "Executing tests to cover."
-export LLVM_PROFILE_FILE="/build/production/tests.%4m.profraw"
 echo "Running tests with profile-enabled binaries."
+export LLVM_PROFILE_FILE="/build/production/tests.%4m.profraw"
 ctest --output-log /build/production/output/ctest.log --output-junit /build/production/output/ctest.xml
 
-echo "list"
-ls -la /build/production/t*
-echo "find"
+echo "Creating an input file of all created profiles."
 find . -maxdepth 1 -name "*.profraw" > /build/production/output/profiles.txt
 cat /build/production/output/profiles.txt
-echo "merge"
+
+echo "Merging all profiles into a single profile data file."
 /usr/lib/llvm-13/bin/llvm-profdata merge --input-files /build/production/output/profiles.txt --output tests.profdata
 
 #
@@ -219,17 +216,6 @@ echo "Producing Cobertura Coverage files."
 /usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.rules --base-dir /source/production --output /build/production/output/rules.xml
 /usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.database --base-dir /source/production --output /build/production/output/database.xml
 /usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.common --base-dir /source/production --output /build/production/output/common.xml
-
-# echo "Producing JSON Coverage Summary files."
-# mkdir report
-# project_summarizer --cobertura output/coverage.xml
-# mv report/coverage.json /build/production/output/coverage.json
-# project_summarizer --cobertura output/rules.xml
-# mv report/coverage.json /build/production/output/coverage.rules.json
-# project_summarizer --cobertura output/database.xml
-# mv report/coverage.json /build/production/output/coverage.database.json
-# project_summarizer --cobertura output/common.xml
-# mv report/coverage.json /build/production/output/coverage.common.json
 
 mkdir -p /build/output
 cp -a /build/production/output /build

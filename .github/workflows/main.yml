@@ -15,6 +15,7 @@ env:
   DEV_IMAGE: ghcr.io/gaia-platform/dev-base-gaia-platform:latest
 
 jobs:
+
   Third-Party:
     runs-on: ubuntu-20.04
     env:
@@ -75,6 +76,7 @@ jobs:
           name: Dev Image
           path: |
             ${{ github.workspace }}/production/dev_image.tar.gz
+
   Lint:
     runs-on: ubuntu-20.04
     env:
@@ -104,6 +106,7 @@ jobs:
         run: |
           cd $GAIA_REPO/production
           pre-commit run --all-files
+
       - name: GitHub Info
         run: |
           echo "Branch: ${{ github.ref }}"
@@ -164,6 +167,7 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
+
   SDK:
     needs:
       - Core
@@ -275,11 +279,13 @@ jobs:
               --repo-path $GAIA_REPO \
               --base-image $DEV_IMAGE \
               --cfg-enables Debug
+
       - name: Run Unit Tests
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
             --repo-path $GAIA_REPO \
             --action unit_tests
+
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -287,11 +293,12 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
+
   Coverage:
     needs:
       - Lint
       - Third-Party
-#    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -344,6 +351,7 @@ jobs:
             ${{ github.workspace }}/build/output
             ${{ github.workspace }}/production/raw_dockerfile
             ${{ github.workspace }}/production/dockerfile
+
   LLVM_Tests:
     needs:
       - Lint
@@ -420,6 +428,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
+
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -427,6 +436,7 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/production/tests/results
+
   Integration_Smoke_Persistence:
     needs: SDK
     runs-on: ubuntu-20.04
@@ -452,6 +462,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
+
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -459,6 +470,7 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/production/tests/results
+
   Integration_Samples:
     needs: SDK
     runs-on: ubuntu-20.04
@@ -484,6 +496,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
+
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -491,6 +504,7 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/production/tests/results
+
   Final:
     needs:
       - Lint
@@ -515,18 +529,3 @@ jobs:
       - name: Results
         run: |
           echo "Build Workflow: ${{ env.WORKFLOW_CONCLUSION }}"
-#     echo "failure"
-#     echo "success"
-
-# - name: Download Coverage Files
-#   uses: actions/download-artifact@v2
-#   with:
-#     name: Coverage Test Files
-#     path: ${{ github.workspace }}/production
-
-# - name: Results
-#   run: |
-#     echo "Build id: ${{ github.run_id }}"
-#     ls -laR ${{ github.workspace }}/production
-#     ls -la ${{ github.workspace }}/production/coverage-summary.json
-#     ls -la ${{ github.workspace }}/production/ctest.xml

@@ -260,14 +260,6 @@ if ! cd "$SCRIPTPATH" > "$TEMP_FILE" 2>&1; then
     complete_process 1 "Script cannot change to coverage directory before proceeding."
 fi
 
-# if [ "$VERBOSE_MODE" -ne 0 ]; then
-#     echo "Creating coverage-summary.json file from coverage output."
-# fi
-# if ! /usr/bin/python3.8 "$SCRIPTPATH/summarize.py" --output "$OUTPUT_DIRECTORY" > "$TEMP_FILE" 2>&1 ; then
-#     cat "$TEMP_FILE"
-#     complete_process 1 "Script cannot summarize coverage directory after proceeding."
-# fi
-
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Setting proper permissions on output directory."
 fi
