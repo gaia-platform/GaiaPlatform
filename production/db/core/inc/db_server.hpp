@@ -481,6 +481,8 @@ private:
 
     static void gc_applied_txn_logs();
 
+    static void update_post_gc_watermark();
+
     static void truncate_txn_table();
 
     static gaia_txn_id_t submit_txn(gaia_txn_id_t begin_ts, log_offset_t log_offset);
