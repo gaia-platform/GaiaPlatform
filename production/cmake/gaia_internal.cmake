@@ -30,6 +30,7 @@ endfunction()
 function(configure_gaia_target TARGET)
   # Keep this dependency PRIVATE to avoid leaking Gaia build options into all dependent targets.
   target_link_libraries(${TARGET} PRIVATE gaia_build_options)
+
   if(NOT EXPORT_SYMBOLS)
     # See https://cmake.org/cmake/help/latest/policy/CMP0063.html.
     cmake_policy(SET CMP0063 NEW)
@@ -42,6 +43,23 @@ function(configure_gaia_target TARGET)
     # (https://gcc.gnu.org/wiki/Visibility).
     set_target_properties(${TARGET} PROPERTIES VISIBILITY_INLINES_HIDDEN ON)
   endif(NOT EXPORT_SYMBOLS)
+
+  if(ENABLE_PROFILING_SUPPORT)
+    # Profiling support only makes sense in Release mode.
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+      message(FATAL_ERROR "ENABLE_PROFILING_SUPPORT=ON is only supported in Release builds.")
+    endif()
+
+    # Instrument all Gaia static libraries/executables for profiling (e.g. uftrace).
+    # Keep this property PRIVATE to avoid leaking it into dependent targets.
+    # REVIEW: Listing alternative profiling options for trial-and-error
+    # evaluation. Only `-pg` is supported by gcc, while the other 2 options are
+    # supported by clang, so if we decide to internally support gcc, we could use
+    # that option when gcc is the configured compiler.
+    target_compile_options(${TARGET} PRIVATE -finstrument-functions)
+    # target_compile_options(${TARGET} PRIVATE -fxray-instrument)
+    # target_compile_options(${TARGET} PRIVATE -pg)
+  endif(ENABLE_PROFILING_SUPPORT)
 endfunction(configure_gaia_target)
 
 #

@@ -9,6 +9,5 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
   && apt-get install -y \
   cmake \
-  # fixes a weird clang dynamic linking error
-  libncurses5 \
+  clang \
   && apt-get clean

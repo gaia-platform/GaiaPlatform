@@ -548,6 +548,7 @@ void server_t::build_server_reply_info(
     log_offset_t txn_log_offset,
     const std::vector<std::pair<gaia_txn_id_t, log_offset_t>>& txn_logs_to_apply)
 {
+    builder.ForceDefaults(true);
     const auto txn_logs_to_apply_vec = builder.CreateVectorOfStructs<transaction_log_info_t>(
         txn_logs_to_apply.size(),
         [&](size_t i, transaction_log_info_t* t) -> void {
@@ -555,7 +556,6 @@ void server_t::build_server_reply_info(
             gaia_txn_id_t commit_ts = txn_metadata_t::get_commit_ts_from_begin_ts(txn_id);
             *t = {txn_id, commit_ts, log_offset};
         });
-
     const auto transaction_info = Createtransaction_info_t(builder, txn_id, txn_log_offset, txn_logs_to_apply_vec);
     const auto server_reply = Createserver_reply_t(
         builder, event, old_state, new_state,
@@ -571,6 +571,7 @@ void server_t::build_server_reply_error(
     session_state_t new_state,
     const char* error_message)
 {
+    builder.ForceDefaults(true);
     const auto transaction_error = Createtransaction_error_tDirect(builder, error_message);
     const auto server_reply = Createserver_reply_t(
         builder, event, old_state, new_state,
