@@ -117,12 +117,14 @@ set(CPACK_DEBHELPER_INPUT
   service.in
   links.in
   dirs.in
+  templates.in
+  postinst.in
 )
 # List of debhelpers to run.
 # If left unset the default list of debhelpers is executed.
 set(CPACK_DEBHELPER_RUN
   dh_install dh_installdirs dh_installchangelogs
-  dh_installdocs dh_installsystemd
+  dh_installdocs dh_installdebconf dh_installsystemd
   dh_usrlocal dh_link dh_dwz dh_compress dh_fixperms)
 # Let the debhelpers generate the debian/control file (instead of CPack).
 set(CPACK_DEBHELPER_GENCONTROL ON)

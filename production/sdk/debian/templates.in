@@ -1,0 +1,30 @@
+Template: gaia/install-service
+Type: boolean
+Default: true
+Description: Do you want to use the Gaia database server as a systemd service?
+
+Template: gaia/start-service
+Type: boolean
+Default: true
+Description: Do you want to start the Gaia database server systemd service after the installation?
+
+Template: gaia/enable-service
+Type: boolean
+Default: true
+Description: Do you like want to enable the Gaia database server systemd service?
+
+Template: gaia/service-disabled
+Type: note
+Description: The Gaia database server systemd service is disabled.
+ To enable the service, run "systemctl enable gaia" as root.
+ To start the service, run "systemctl start gaia" as root.
+
+Template: gaia/service-masked
+Type: note
+Description: The Gaia database server systemd service is masked.
+ To use the service, run "systemctl unmask gaia.service" as root first.
+
+Template: gaia/service-stopped
+Type: note
+Description: The Gaia database server systemd service will not start after the installation.
+ To start the service, run "systemctl start gaia" as root.
