@@ -21,13 +21,13 @@ void delete_all_records_from_tables()
 {
     auto_transaction_t txn{auto_transaction_t::no_auto_restart};
 
-    for (auto student = *student_t::list().begin(); student; student = *student_t::list().begin())
+    for (auto student = student_t::list().begin(); student != student_t::list().end();)
     {
-        student.delete_row();
+        (*student++).delete_row();
     }
-    for (auto dorm_room = *dorm_room_t::list().begin(); dorm_room; dorm_room = *dorm_room_t::list().begin())
+    for (auto dorm_room = dorm_room_t::list().begin(); dorm_room != dorm_room_t::list().end();)
     {
-        dorm_room.delete_row();
+        (*dorm_room++).delete_row();
     }
     txn.commit();
 }
