@@ -1,7 +1,7 @@
 /////////////////////////////////////////////
-//// Copyright (c) Gaia Platform LLC
-//// All rights reserved.
-///////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"

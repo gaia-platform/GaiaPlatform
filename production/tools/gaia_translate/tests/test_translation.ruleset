@@ -97,6 +97,8 @@ ruleset test3
     }
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused"
 ruleset testE13
 {
     on_insert(sensor)
@@ -105,6 +107,7 @@ ruleset testE13
         daily += /sensor.value;
     }
 }
+#pragma clang diagnostic pop
 
 #if 0
 // This rule interferes with 'ruleset set' rules
@@ -150,6 +153,8 @@ ruleset testE22
 }
 
 // GAIAPLAT-1269 (fixed)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused"
 ruleset testE23
 {
     on_update(incubator)
@@ -164,6 +169,7 @@ ruleset testE23
         };
     }
 }
+#pragma clang diagnostic pop
 
 void use_id(unsigned int)
 {
@@ -340,6 +346,7 @@ ruleset test_define
     on_update(actuator.timestamp)
     {
         actuator.value = TEST;
+        incubator->actuator.value = TEST;
         use_float(TEST);
     }
 }

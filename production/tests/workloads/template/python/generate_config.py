@@ -1,4 +1,4 @@
-#! /usr/bin/python3
+#!/usr/bin/env python3
 
 #############################################
 # Copyright (c) Gaia Platform LLC
@@ -13,6 +13,8 @@ import sys
 import os
 import json
 import argparse
+
+__DEFAULT_FILE_ENCODING = "utf-8"
 
 CONFIGURATION_FILE_TEMPLATE = """
 [Database]
@@ -123,7 +125,7 @@ def load_configuration_values_from_json_file(args):
                 f"Configuration source file '{config_json_file}' must exist and not be a directory."
             )
             sys.exit(1)
-        with open(config_json_file) as input_file:
+        with open(config_json_file, encoding=__DEFAULT_FILE_ENCODING) as input_file:
             data = json.load(input_file)
 
         thread_pool_count = read_thread_pool_count(data, thread_pool_count)
@@ -148,7 +150,7 @@ def write_templated_output(output_file_name, thread_count, stats_log_interval):
         "{THREAD_POOL_COUNT}", str(thread_count)
     ).replace("{STATS_LOG_INTERVAL}", str(stats_log_interval))
 
-    with open(output_file_name, "w") as write_file:
+    with open(output_file_name, "w", encoding=__DEFAULT_FILE_ENCODING) as write_file:
         write_file.write(templated_file_contents)
 
 

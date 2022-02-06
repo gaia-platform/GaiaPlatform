@@ -120,11 +120,6 @@ class Dependency:
     @staticmethod
     def get_parser() -> ArgumentParser:
         def add_flags(parser: ArgumentParser) -> None:
-            parser.add_argument(
-                'args',
-                nargs=REMAINDER,
-                help=f'Args to be forwarded on to docker run, if applicable.'
-            )
             base_image_default = 'ubuntu:20.04'
             parser.add_argument(
                 '--base-image',
@@ -135,7 +130,7 @@ class Dependency:
             parser.add_argument(
                 '--cfg-enables',
                 default=cfg_enables_default,
-                nargs='*',
+                nargs=1,
                 help=(
                     f'Enable lines in gdev.cfg files gated by `enable_if`, `enable_if_any`, and'
                     f' `enable_if_all` functions. Default: "{cfg_enables_default}"'
@@ -201,7 +196,7 @@ class Dependency:
                 type=int,
                 help=f'Ports to expose in underlying docker container. Default: "{ports_default}"'
             )
-            registry_default = '192.168.0.250:5000'
+            registry_default = None
             parser.add_argument(
                 '--registry',
                 default=registry_default,
@@ -209,6 +204,11 @@ class Dependency:
                     f'Registry to push images and query cached build stages.'
                     f' Default: {registry_default}'
                 )
+            )
+            parser.add_argument(
+                'args',
+                nargs=REMAINDER,
+                help=f'Args to be forwarded on to docker run, if applicable.'
             )
 
         def inner(parser: ArgumentParser, parser_structure: _ParserStructure) -> ArgumentParser:

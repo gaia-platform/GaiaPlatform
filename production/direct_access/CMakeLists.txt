@@ -15,6 +15,7 @@ set(GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES
   ${GAIA_INC}/internal/common
   ${GAIA_INC}/internal/db
   ${GAIA_REPO}/production/db/inc/memory_manager
+  ${GAIA_REPO}/production/db/inc/expressions
   ${PROJECT_SOURCE_DIR}
 )
 
@@ -38,13 +39,17 @@ set(DIRECT_ACCESS_TEST_INCLUDES
 
 add_gtest(test_direct_access "tests/test_direct_access.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
 add_gtest(test_references "tests/test_references.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
-add_gtest(test_iterators "tests/test_iterators.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
+add_gtest(test_iterator_conformance "tests/test_iterator_conformance.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
 add_gtest(test_incubator "tests/test_incubator.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_barn_storage")
 add_gtest(test_expressions "tests/test_expressions.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
 add_gtest(test_one_to_one "tests/test_one_to_one.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_one_to_one")
 add_gtest(test_one_to_many "tests/test_one_to_many.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
 add_gtest(test_auto_connect "tests/test_auto_connect.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_airport")
-add_gtest(test_default_db "tests/test_default_db.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;edc")
+add_gtest(test_default_db "tests/test_default_db.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac")
+add_gtest(test_optional_dac
+  "tests/test_optional_dac.cpp"
+  "${DIRECT_ACCESS_TEST_INCLUDES}"
+  "rt;gaia_direct;gaia_db_catalog_test;dac_optional_sandbox")
 
 option(BUILD_EXPR_PERF_TEST "Build DAC expression performance tests" OFF)
 

@@ -5,6 +5,7 @@
 
 #include "gaia/direct_access/dac_base.hpp"
 
+#include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
 
 #include "gaia_internal/common/generator_iterator.hpp"
@@ -75,7 +76,9 @@ gaia_id_t dac_db_t::get_iterator_value(std::shared_ptr<dac_base_iterator_state_t
         return c_invalid_gaia_id;
     }
     gaia_ptr_t gaia_ptr = *iterator;
-    return gaia_ptr.id();
+    gaia_id_t gaia_id = gaia_ptr.id();
+    ASSERT_INVARIANT(gaia_id.is_valid(), "get_iterator_value() has unexpectedly produced an invalid gaia_id value!");
+    return gaia_id;
 }
 
 bool dac_db_t::advance_iterator(std::shared_ptr<dac_base_iterator_state_t> iterator_state)
@@ -119,11 +122,11 @@ gaia_id_t dac_db_t::get_reference(gaia_id_t id, common::reference_offset_t slot)
 gaia_id_t dac_db_t::insert(gaia_type_t container, size_t data_size, const void* data)
 {
     gaia_id_t id = gaia_ptr_t::generate_id();
-    gaia_ptr_t::create(id, container, data_size, data);
+    gaia_ptr::create(id, container, data_size, data);
     return id;
 }
 
-void dac_db_t::delete_row(gaia_id_t id)
+void dac_db_t::delete_row(gaia_id_t id, bool force)
 {
     gaia_ptr_t gaia_ptr = gaia_ptr_t::from_gaia_id(id);
     if (!gaia_ptr)
@@ -131,39 +134,22 @@ void dac_db_t::delete_row(gaia_id_t id)
         throw invalid_object_id_internal(id);
     }
 
-    gaia_ptr_t::remove(gaia_ptr);
+    gaia_ptr::remove(gaia_ptr, force);
 }
 
 void dac_db_t::update(gaia_id_t id, size_t data_size, const void* data)
 {
-    gaia_ptr_t gaia_ptr = gaia_ptr_t::from_gaia_id(id);
-    if (!gaia_ptr)
-    {
-        throw invalid_object_id_internal(id);
-    }
-    gaia_ptr.update_payload(data_size, data);
+    gaia_ptr::update_payload(id, data_size, data);
 }
 
-bool dac_db_t::insert_child_reference(gaia_id_t parent_id, gaia_id_t child_id, common::reference_offset_t child_slot)
+bool dac_db_t::insert_into_reference_container(gaia_id_t parent_id, gaia_id_t id, common::reference_offset_t anchor_slot)
 {
-    gaia_ptr_t parent = gaia_ptr_t::from_gaia_id(parent_id);
-    if (!parent)
-    {
-        throw invalid_object_id_internal(parent_id);
-    }
-
-    return parent.add_child_reference(child_id, child_slot);
+    return gaia_ptr::insert_into_reference_container(parent_id, id, anchor_slot);
 }
 
-bool dac_db_t::remove_child_reference(gaia_id_t parent_id, gaia_id_t child_id, common::reference_offset_t child_slot)
+bool dac_db_t::remove_from_reference_container(gaia_id_t parent_id, gaia_id_t id, common::reference_offset_t anchor_slot)
 {
-    gaia_ptr_t parent = gaia_ptr_t::from_gaia_id(parent_id);
-    if (!parent)
-    {
-        throw invalid_object_id_internal(parent_id);
-    }
-
-    return parent.remove_child_reference(child_id, child_slot);
+    return gaia_ptr::remove_from_reference_container(parent_id, id, anchor_slot);
 }
 
 //
@@ -251,7 +237,7 @@ gaia_id_t* dac_base_t::references() const
     return to_const_ptr<gaia_ptr_t>()->references();
 }
 
-void dac_base_t::set_record(common::gaia_id_t new_id)
+void dac_base_t::set(common::gaia_id_t new_id)
 {
     *(to_ptr<gaia_ptr_t>()) = gaia_ptr_t::from_gaia_id(new_id);
 }
@@ -266,22 +252,22 @@ dac_base_reference_t::dac_base_reference_t(gaia_id_t parent, reference_offset_t 
 
 bool dac_base_reference_t::connect(gaia_id_t old_id, gaia::common::gaia_id_t new_id)
 {
-    if (old_id != c_invalid_gaia_id && old_id == new_id)
+    if (old_id.is_valid() && old_id == new_id)
     {
         return false;
     }
     dac_base_reference_t::disconnect(old_id);
-    dac_db_t::insert_child_reference(m_parent_id, new_id, m_child_offset);
+    dac_db_t::insert_into_reference_container(m_parent_id, new_id, m_child_offset);
     return true;
 }
 
 bool dac_base_reference_t::disconnect(gaia_id_t id)
 {
-    if (id == gaia::common::c_invalid_gaia_id)
+    if (!id.is_valid())
     {
         return false;
     }
-    dac_db_t::remove_child_reference(m_parent_id, id, m_child_offset);
+    dac_db_t::remove_from_reference_container(m_parent_id, id, m_child_offset);
     return true;
 }
 

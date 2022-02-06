@@ -241,8 +241,8 @@ void event_manager_t::enqueue_invocation(
 
 void event_manager_t::check_subscription(event_type_t event_type, const field_position_list_t& fields)
 {
-    //TODO[GAIAPLAT-445] We don't expose deleted row events
-    //if (event_type == event_t::row_delete || event_type == event_type_t::row_insert)
+    // TODO[GAIAPLAT-445] We don't expose deleted row events
+    // if (event_type == event_t::row_delete || event_type == event_type_t::row_insert)
     if (event_type == event_type_t::row_insert)
     {
         if (fields.size() > 0)
@@ -685,10 +685,10 @@ last_operation_t gaia::rules::rule_context_t::last_operation(gaia_type_t other_g
 
     switch (event_type)
     {
-    //TODO[GAIAPLAT-445] We don't expose deleted row events
-    //case db::triggers::event_type_t::row_delete:
-    //    operation = last_operation_t::row_delete;
-    //    break;
+    // TODO[GAIAPLAT-445] We don't expose deleted row events
+    // case db::triggers::event_type_t::row_delete:
+    //     operation = last_operation_t::row_delete;
+    //     break;
     case db::triggers::event_type_t::row_insert:
         operation = last_operation_t::row_insert;
         break;

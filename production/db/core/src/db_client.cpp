@@ -39,6 +39,7 @@ std::shared_ptr<int> client_t::get_id_cursor_socket_for_type(gaia_type_t type)
 {
     // Build the cursor socket request.
     FlatBufferBuilder builder;
+    builder.ForceDefaults(true);
     auto table_scan_info = Createtable_scan_info_t(builder, type);
     auto client_request = Createclient_request_t(
         builder, session_event_t::REQUEST_STREAM, request_data_t::table_scan, table_scan_info.Union());
@@ -108,13 +109,15 @@ client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::opt
                     gaia_offset_t offset = lr->new_offset;
 
                     ASSERT_INVARIANT(
-                        offset != c_invalid_gaia_offset,
+                        offset.is_valid(),
                         "An unexpected invalid object offset was found in the log record!");
 
                     db_object_t* db_object = offset_to_ptr(offset);
 
                     if (db_object->type == type)
                     {
+                        ASSERT_PRECONDITION(
+                            db_object->id != c_invalid_gaia_id, "Database object has an invalid gaia_id value!");
                         return db_object->id;
                     }
                 }
@@ -145,6 +148,7 @@ static void build_client_request(
     FlatBufferBuilder& builder,
     session_event_t event)
 {
+    builder.ForceDefaults(true);
     flatbuffers::Offset<client_request_t> client_request;
     client_request = Createclient_request_t(builder, event);
     auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
@@ -272,7 +276,8 @@ void client_t::begin_session(config::session_options_t session_options)
     // authentication is currently disabled in the server).
     try
     {
-        client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 4);
+        client_messenger.send_and_receive(
+            s_session_socket, nullptr, 0, builder, static_cast<size_t>(data_mapping_t::index_t::count_mappings));
     }
     catch (const gaia::common::peer_disconnected&)
     {
@@ -299,14 +304,15 @@ void client_t::begin_session(config::session_options_t session_options)
 
     // Set up the shared-memory mappings.
     // The locators mapping will be performed manually, so skip its information in the mapping table.
-    size_t index_fd = 0;
+    size_t fd_index = 0;
     for (auto data_mapping : s_data_mappings)
     {
         if (data_mapping.mapping_index != data_mapping_t::index_t::locators)
         {
-            data_mapping.open(client_messenger.received_fd(index_fd));
+            int fd = client_messenger.received_fd(fd_index);
+            data_mapping.open(fd);
         }
-        ++index_fd;
+        ++fd_index;
     }
 
     // Set up the private locator segment fd.
@@ -373,7 +379,7 @@ void client_t::begin_transaction()
     const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
     s_txn_id = txn_info->transaction_id();
     ASSERT_INVARIANT(
-        s_txn_id != c_invalid_gaia_txn_id,
+        s_txn_id.is_valid(),
         "Begin timestamp should not be invalid!");
 
     // Apply all txn logs received from the server to our snapshot, in order.

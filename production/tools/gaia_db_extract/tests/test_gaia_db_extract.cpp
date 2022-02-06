@@ -6,12 +6,12 @@
 #include <iostream>
 
 #include <gtest/gtest.h>
+#include <json.hpp>
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/db/db_test_base.hpp"
 
 #include "gaia_db_extract.hpp"
-#include "json.hpp"
 
 using namespace gaia::catalog;
 using namespace gaia::catalog::ddl;
@@ -53,7 +53,7 @@ TEST_F(gaia_db_extract_test, extract_catalog)
     // The gaia_db_extract_initialize() is actually only needed if rows must be found
     // through reflection. So this should work.
     auto extracted_catalog = gaia_db_extract("", "", c_start_at_first, c_row_limit_unlimited);
-    int32_t field_count = 0;
+    size_t field_count = 0;
 
     json_t json_object = json_t::parse(extracted_catalog);
 
@@ -61,9 +61,9 @@ TEST_F(gaia_db_extract_test, extract_catalog)
     {
         if (!json_databases["name"].get<string>().compare("extract_test"))
         {
-            for (auto& json_tables : json_databases["tables"])
+            for (const auto& json_tables : json_databases["tables"])
             {
-                for (auto& json_fields : json_tables["fields"])
+                for (const auto& json_fields : json_tables["fields"])
                 {
                     if (!json_fields["name"].get<string>().compare("larger_value"))
                     {

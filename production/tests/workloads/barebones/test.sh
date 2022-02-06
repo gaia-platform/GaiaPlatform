@@ -1,4 +1,4 @@
-#! /usr/bin/bash
+#!/usr/bin/env bash
 
 #############################################
 # Copyright (c) Gaia Platform LLC
@@ -101,7 +101,6 @@ complete_process() {
 
     exit "$SCRIPT_RETURN_CODE"
 }
-
 
 save_current_directory() {
     # Save the current directory so we can get back to it.

@@ -291,6 +291,7 @@ void execute_create_statement_no_txn(
     if (create_stmt->type == ddl::create_type_t::create_table)
     {
         auto create_table_stmt = dynamic_cast<ddl::create_table_t*>(create_stmt);
+        check_not_system_db(create_table_stmt->database);
         executor.create_table(
             create_table_stmt->database,
             create_table_stmt->name,
@@ -300,6 +301,7 @@ void execute_create_statement_no_txn(
     }
     else if (create_stmt->type == ddl::create_type_t::create_database)
     {
+        check_not_system_db(create_stmt->name);
         executor.create_database(create_stmt->name, throw_on_exist, create_stmt->auto_drop);
     }
     else if (create_stmt->type == ddl::create_type_t::create_relationship)

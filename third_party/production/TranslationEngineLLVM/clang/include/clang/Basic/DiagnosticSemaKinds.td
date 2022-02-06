@@ -9517,6 +9517,8 @@ def err_argument_type_not_supported : Error<
   "Type '%0' is not supported.">;
 def err_catalog_exception : Error<
   "An exception has occurred while processing the catalog: '%0'.">;
+def err_catalog_exception_fatal : Error<
+  "An exception has occurred while processing the catalog: '%0'.">, DefaultFatal;
 def err_declarative_label_does_not_exist : Error<
   "Declarative label does not exist.">;
 def err_declarative_label_statement_is_invalid : Error<
@@ -9563,6 +9565,8 @@ def err_incorrect_operator_expression_type : Error<
   "Incorrect operator expression type.">;
 def err_incorrect_table : Error<
   "Incorrect table for field '%0'.">;
+def err_incorrect_repeated_count : Error<
+  "Fixed size arrays are not supported for field '%0'.">;
 def err_incorrect_tag_use_in_path : Error<
   "Tag '%0' cannot be used in this context.">;
 def err_incorrect_operator_type : Error<
@@ -9645,6 +9649,9 @@ def note_field_reference : Note<
 def note_link_reference : Note<
   "Link: '%0.%1'.">;
 
+def warn_expression_length : Warning<
+  "Expression has length '%0'. This may lead to incorrect rule translation.">,
+  InGroup<GaiaExtensions>;
 def warn_field_hidden : Warning<
   "Local variable '%0' hides a database field with the same name. "
   "Rename your local variable so that it doesn't conflict with an "

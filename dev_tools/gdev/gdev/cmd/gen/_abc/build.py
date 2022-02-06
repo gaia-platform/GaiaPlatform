@@ -178,6 +178,13 @@ class GenAbcBuild(Dependency, ABC):
     async def main(self) -> None:
         await self.dockerfile.run()
 
+        cached_images = ""
+        if self.options.registry:
+            cached_images = ','.join(
+                [f'{self.options.registry}/{base_build_name}:latest'
+                    for base_build_name in await self.get_base_build_names()])
+            cached_images = f"--cache-from {cached_images}"
+
         # TODO query remotely for cached build sources.
         self.log.info(f'Creating image "{await self.get_tag()}"')
         await Host.execute(
@@ -202,10 +209,7 @@ class GenAbcBuild(Dependency, ABC):
             # Allow cloning repos with ssh.
             f' --ssh default'
 
-            f''' --cache-from {','.join([
-                f'{self.options.registry}/{base_build_name}:latest'
-                for base_build_name in await self.get_base_build_names()
-            ])}'''
+            f' {cached_images}'
 
             f' {Path.repo()}'
         )

@@ -201,7 +201,6 @@ BREAK_TARGET:
 }
 #endif
 
-
 // TESTCASE: break from an if condition with two navigations
 // GAIAPLAT-1141 (fixed)
 // GAIAPLAT-1164 (fixed)

@@ -112,4 +112,3 @@ public final class Airport extends Table {
     public Airport get(Airport obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
   }
 }
-

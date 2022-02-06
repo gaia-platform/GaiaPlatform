@@ -7,6 +7,8 @@
 
 #include <sstream>
 
+#include "gaia/common.hpp"
+
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/logger.hpp"
@@ -157,16 +159,15 @@ NullableDatum convert_to_nullable_datum(const data_holder_t& value)
 {
     NullableDatum nullable_datum{};
     nullable_datum.value = 0;
-    nullable_datum.isnull = false;
+    nullable_datum.isnull = value.is_null;
+
+    if (value.is_null)
+    {
+        return nullable_datum;
+    }
 
     if (value.type == reflection::String)
     {
-        if (value.hold.string_value == nullptr)
-        {
-            nullable_datum.isnull = true;
-            return nullable_datum;
-        }
-
         size_t string_length = strlen(value.hold.string_value);
         size_t pg_text_length = string_length + VARHDRSZ;
         text* pg_text = reinterpret_cast<text*>(palloc(pg_text_length));
@@ -190,6 +191,7 @@ NullableDatum convert_to_nullable_datum(const data_holder_t& value)
 data_holder_t convert_to_data_holder(const Datum& value, data_type_t value_type)
 {
     data_holder_t data_holder;
+    data_holder.is_null = false;
 
     try
     {
@@ -259,7 +261,7 @@ void adapter_t::initialize_caches()
         s_map_table_name_to_ids.size() == 0,
         "s_map_table_name_to_ids has been initialized already!");
 
-    for (auto table_view : catalog_core_t::list_tables())
+    for (auto table_view : catalog_core::list_tables())
     {
         elog(
             DEBUG1, "Loading metadata information for table `%s' with type '%ld' and id '%ld'...",
@@ -452,7 +454,7 @@ List* adapter_t::get_ddl_command_list(const char* server_name)
 
         gaia::db::begin_transaction();
 
-        for (auto table_view : catalog_core_t::list_tables())
+        for (auto table_view : catalog_core::list_tables())
         {
             // Generate DDL statement for current table and log it.
             string ddl_formatted_statement = gaia::catalog::generate_fdw_ddl(table_view.id(), server_name);
@@ -708,7 +710,7 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
         else if (m_fields[field_index].is_reference)
         {
             reference_offset_t reference_offset = m_fields[field_index].position;
-            if (reference_offset >= m_current_record.num_references())
+            if (reference_offset >= m_current_record.references_count())
             {
                 ereport(
                     ERROR,
@@ -718,13 +720,22 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
                          reference_offset, get_table_name())));
             }
 
-            gaia_id_t reference_id = m_current_record.references()[reference_offset];
-            field_value.value = UInt64GetDatum(reference_id);
-
-            // If the reference id is invalid, surface the value as NULL.
-            if (reference_id == c_invalid_gaia_id)
+            gaia_id_t anchor_id = m_current_record.references()[reference_offset];
+            if (!anchor_id.is_valid())
             {
+                field_value.value = UInt64GetDatum(c_invalid_gaia_id);
                 field_value.isnull = true;
+            }
+            else
+            {
+                gaia_id_t reference_id = gaia_ptr_t::from_gaia_id(anchor_id).references()[c_ref_anchor_parent_offset];
+                field_value.value = UInt64GetDatum(reference_id);
+
+                // If the reference id is invalid, surface the value as NULL.
+                if (!reference_id.is_valid())
+                {
+                    field_value.isnull = true;
+                }
             }
         }
         else if (m_fields[field_index].repeated_count != 1)
@@ -738,27 +749,34 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
                 0,
                 m_fields[field_index].position);
 
-            ArrayBuildState* state = initArrayResult(element_type, CurrentMemoryContext, true);
-
-            for (size_t i = 0; i < array_size; i++)
+            if (array_size == std::numeric_limits<size_t>::max())
             {
-                data_holder_t value = get_field_array_element(
-                    m_container_id,
-                    m_current_payload,
-                    nullptr,
-                    0,
-                    m_fields[field_index].position,
-                    i);
-
-                accumArrayResult(
-                    state,
-                    convert_to_datum(value),
-                    false,
-                    element_type,
-                    CurrentMemoryContext);
+                field_value.isnull = true;
             }
+            else
+            {
+                ArrayBuildState* state = initArrayResult(element_type, CurrentMemoryContext, true);
 
-            field_value.value = makeArrayResult(state, CurrentMemoryContext);
+                for (size_t i = 0; i < array_size; i++)
+                {
+                    data_holder_t value = get_field_array_element(
+                        m_container_id,
+                        m_current_payload,
+                        nullptr,
+                        0,
+                        m_fields[field_index].position,
+                        i);
+
+                    accumArrayResult(
+                        state,
+                        convert_to_datum(value),
+                        false,
+                        element_type,
+                        CurrentMemoryContext);
+                }
+
+                field_value.value = makeArrayResult(state, CurrentMemoryContext);
+            }
         }
         else
         {
@@ -878,8 +896,7 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
     if (field_value.isnull && !m_fields[field_index].is_reference)
     {
         // For now, in the case of regular field updates,
-        // we don't have a way to represent NULL for scalar types
-        // and reflection API does not support setting nullptr strings either.
+        // the reflection API does not support setting nullptr values,
         // so we'll process NULL by doing nothing,
         // which will result in fields getting set to default values.
         return;
@@ -939,7 +956,7 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
             ArrayType* pg_array = DatumGetArrayTypeP(field_value.value);
 
-            // PostgreSQL supports setting array element value to NULL even for
+            // PostgreSQL supports setting array element values to NULL even for
             // scalar types. It will be difficult for us to implement the
             // feature because both std::vector and flatbuffers::vector do not
             // support it. Do not allow this behavior at the moment.
@@ -1021,7 +1038,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
         gaia_ptr_t record;
         if (modify_operation_type == modify_operation_type_t::insert)
         {
-            record = gaia_ptr_t::create(gaia_id, m_container_id, m_current_payload->size(), m_current_payload->data());
+            record = gaia_ptr::create(gaia_id, m_container_id, m_current_payload->size(), m_current_payload->data());
         }
         else if (modify_operation_type == modify_operation_type_t::update)
         {
@@ -1031,7 +1048,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
             if (record.data_size() != m_current_payload->size()
                 || memcmp(record.data(), m_current_payload->data(), record.data_size()) != 0)
             {
-                record.update_payload(m_current_payload->size(), m_current_payload->data());
+                gaia_ptr::update_payload(record, m_current_payload->size(), m_current_payload->data());
             }
         }
         else
@@ -1053,7 +1070,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
             }
 
             reference_offset_t reference_offset = m_fields[i].position;
-            if (reference_offset >= record.num_references())
+            if (reference_offset >= record.references_count())
             {
                 ereport(
                     ERROR,
@@ -1071,19 +1088,19 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
                 // If inserting a new record or if the existing reference is not set,
                 // we can just leave the reference unset.
                 if (modify_operation_type == modify_operation_type_t::insert
-                    || old_reference_id == c_invalid_gaia_id)
+                    || !old_reference_id.is_valid())
                 {
                     continue;
                 }
 
                 // If the existing reference was valid, we need to remove it.
-                record.remove_parent_reference(reference_offset);
+                gaia_ptr::remove_from_reference_container(gaia_id, reference_offset);
             }
             else
             {
                 gaia_id_t new_reference_id = DatumGetUInt64(m_fields[i].value_to_set.value);
 
-                if (new_reference_id == c_invalid_gaia_id)
+                if (!new_reference_id.is_valid())
                 {
                     ereport(
                         ERROR,
@@ -1102,7 +1119,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
                 }
 
                 // Update the reference to the new value.
-                record.update_parent_reference(new_reference_id, reference_offset);
+                gaia_ptr::update_parent_reference(record, new_reference_id, reference_offset);
             }
         }
 
@@ -1166,7 +1183,7 @@ bool modify_state_t::delete_record(uint64_t gaia_id)
             return false;
         }
 
-        gaia_ptr_t::remove(record);
+        gaia_ptr::remove(record);
 
         return true;
     }

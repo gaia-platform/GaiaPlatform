@@ -10,9 +10,9 @@
 #include "gaia/direct_access/auto_transaction.hpp"
 #include "gaia/direct_access/dac_array.hpp"
 #include "gaia/direct_access/dac_base.hpp"
-#include "gaia/direct_access/dac_expressions.hpp"
 #include "gaia/direct_access/nullable_string.hpp"
 #include "gaia/exceptions.hpp"
+#include "gaia/expressions/expressions.hpp"
 
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
@@ -80,15 +80,28 @@ public:
     static T_gaia get(gaia::common::gaia_id_t id);
 
     /**
-     * Delete the database object. This doesn't destroy the direct access class
-     * object.
+     * Delete the database object.
+     *
+     * If the object is explicitly connected to object(s) on the child side of a
+     * 1:N relationship, the deletion fails.
+     *
+     * Use the 'force' option to delete the object in these cases. When you
+     * force the deletion of the object, all child objects are disconnected from
+     * the object.
      */
-    void delete_row();
+    void delete_row(bool force = false);
 
     /**
      * Delete the database object specified by the id.
+     *
+     * If the object is explicitly connected to object(s) on the child side of a
+     * 1:N relationship, the deletion fails.
+     *
+     * Use the 'force' option to delete the object in these cases. When you
+     * force the deletion of the object, all child objects are disconnected from
+     * the object.
      */
-    static void delete_row(gaia::common::gaia_id_t id);
+    static void delete_row(gaia::common::gaia_id_t id, bool force = false);
 
     /**
      * Get the array of pointers to related objects.
@@ -153,7 +166,7 @@ class dac_writer_t : public T_obj, protected dac_db_t
     friend dac_object_t<container_type_id, T_gaia, T_fb, T_obj>;
 
 public:
-    dac_writer_t() = default;
+    dac_writer_t();
 
     /**
      * Insert the values in this new object into a newly created database object.

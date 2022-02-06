@@ -112,7 +112,8 @@ create relationship if not exists animal_feeding (
 );
 
 create table if not exists isolated (
-    age uint32
+    age uint32,
+    history int32[]
 );
 
 create table if not exists hyperconnected (

@@ -189,6 +189,7 @@ private:
         db::triggers::event_type_t event_type,
         common::field_position_t field,
         const char* ruleset_filter);
+    static void initialize_rule_tables();
 };
 
 } // namespace rules

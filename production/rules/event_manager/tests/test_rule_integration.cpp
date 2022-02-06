@@ -160,7 +160,7 @@ void rule_conflict(const rule_context_t* context)
         thread([&context] {
             begin_session();
             {
-                auto_transaction_t txn(auto_transaction_t::no_auto_begin);
+                auto_transaction_t txn(auto_transaction_t::no_auto_restart);
                 auto ew = employee_t::get(context->record).writer();
                 ew.name_first = "Conflict";
                 ew.update_row();
@@ -467,6 +467,7 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
     }
 }
 
+// https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1781
 TEST_F(rule_integration_test, test_two_rules)
 {
     subscribe_update();
@@ -640,7 +641,7 @@ TEST_F(rule_integration_test, test_retry)
             // First rule execution isn't a retry, thus the "+ 1".
             rule_monitor_t monitor(std::min(num_conflicts, max_retries) + 1);
             g_num_conflicts = num_conflicts;
-            auto_transaction_t txn(auto_transaction_t::no_auto_begin);
+            auto_transaction_t txn(auto_transaction_t::no_auto_restart);
             employee_writer writer;
             writer.name_first = name;
             ids.emplace_back(writer.insert_row());
@@ -649,7 +650,7 @@ TEST_F(rule_integration_test, test_retry)
         // Shut down the rules engine to ensure the rule fires.
         gaia::rules::shutdown_rules_engine();
 
-        auto_transaction_t txn(auto_transaction_t::no_auto_begin);
+        auto_transaction_t txn(auto_transaction_t::no_auto_restart);
         ASSERT_EQ(ids.size(), 2);
         for (auto id : ids)
         {

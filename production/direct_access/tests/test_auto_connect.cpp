@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <string>
-
 #include <gtest/gtest.h>
 
 #include "gaia/common.hpp"
@@ -85,7 +83,7 @@ TEST_F(auto_connect_test, child_update_disconnect)
     ASSERT_EQ(passenger_t::get(passenger_id).return_flight().gaia_id(), flight_id);
 
     auto passenger_writer = passenger_t::get(passenger_id).writer();
-    passenger_writer.return_flight_number = 0;
+    passenger_writer.return_flight_number = nullopt;
     passenger_writer.update_row();
     txn.commit();
 
@@ -125,7 +123,10 @@ TEST_F(auto_connect_test, child_update_reconnect)
 
 TEST_F(auto_connect_test, parent_insert_connect)
 {
-    const int32_t flight_number = 1701;
+    // Ensure that auto-connect works with the default value for the type (0). This
+    // test will ensure that the underlying FlatBufferBuilder is configured to
+    // serialize default values instead of omitting them.
+    const int32_t flight_number = 0;
     auto_transaction_t txn;
     gaia_id_t spock_id = passenger_t::insert_row("Spock", "Vulcan", flight_number);
     gaia_id_t kirk_id = passenger_t::insert_row("James", "Kirk", flight_number);
@@ -159,7 +160,7 @@ TEST_F(auto_connect_test, parent_update_disconnect)
     ASSERT_EQ(passenger_t::get(kirk_id).return_flight().gaia_id(), flight_id);
 
     auto flight_writer = flight_t::get(flight_id).writer();
-    flight_writer.number = 0;
+    flight_writer.number = nullopt;
     flight_writer.update_row();
     txn.commit();
 
@@ -200,4 +201,51 @@ TEST_F(auto_connect_test, parent_update_reconnect)
         return_passenger_ids.insert(return_passenger.gaia_id());
     }
     ASSERT_EQ(passenger_ids, return_passenger_ids);
+}
+
+TEST_F(auto_connect_test, delete_parent)
+{
+    const int32_t old_flight_number = 1;
+    const int32_t new_flight_number = 1701;
+
+    auto_transaction_t txn;
+
+    gaia_id_t flight_id = flight_t::insert_row(old_flight_number, {});
+    txn.commit();
+
+    gaia_id_t spock_id = passenger_t::insert_row("Spock", "Vulcan", old_flight_number);
+    gaia_id_t kirk_id = passenger_t::insert_row("James", "Kirk", old_flight_number);
+    txn.commit();
+
+    ASSERT_EQ(flight_t::get(flight_id).return_passengers().size(), 2);
+    ASSERT_EQ(passenger_t::get(spock_id).return_flight().gaia_id(), flight_id);
+    ASSERT_EQ(passenger_t::get(kirk_id).return_flight().gaia_id(), flight_id);
+
+    // A referenced parent object in a value linked relationship can be deleted
+    // without the 'force' option.
+    ASSERT_NO_THROW(flight_t::delete_row(flight_id));
+    txn.commit();
+
+    // The (previously auto) connected objects will be disconnected as a result.
+    ASSERT_FALSE(passenger_t::get(spock_id).return_flight());
+    ASSERT_FALSE(passenger_t::get(kirk_id).return_flight());
+    txn.commit();
+
+    auto spock_writer = passenger_t::get(spock_id).writer();
+    spock_writer.return_flight_number = new_flight_number;
+    spock_writer.update_row();
+    txn.commit();
+
+    flight_id = flight_t::insert_row(new_flight_number, {});
+    txn.commit();
+
+    auto kirk_writer = passenger_t::get(kirk_id).writer();
+    kirk_writer.return_flight_number = new_flight_number;
+    kirk_writer.update_row();
+    txn.commit();
+
+    // The disconnected objects can and will be auto-connected to new parent
+    // object(s) if the linked field values match.
+    ASSERT_EQ(passenger_t::get(spock_id).return_flight().gaia_id(), flight_id);
+    ASSERT_EQ(passenger_t::get(kirk_id).return_flight().gaia_id(), flight_id);
 }

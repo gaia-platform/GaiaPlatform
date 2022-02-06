@@ -35,8 +35,8 @@ struct index_key_schema_t
 };
 
 /**
-* Reflection based logical key for the index.
-*/
+ * Reflection based logical key for the index.
+ */
 class index_key_t
 {
     friend std::ostream& operator<<(std::ostream& os, const index_key_t& key);
@@ -65,6 +65,7 @@ public:
 
     const std::vector<gaia::db::payload_types::data_holder_t>& values() const;
     size_t size() const;
+    bool is_null() const;
 
 private:
     int compare(const index_key_t& other) const;
@@ -74,8 +75,8 @@ private:
 };
 
 /**
-* Standard conforming hash function for index keys.
-*/
+ * Standard conforming hash function for index keys.
+ */
 struct index_key_hash
 {
     gaia::db::payload_types::data_hash_t operator()(const index_key_t& key) const;
