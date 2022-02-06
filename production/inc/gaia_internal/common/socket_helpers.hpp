@@ -26,7 +26,18 @@ namespace common
 // datagram larger than 1 page could fail if the OS cannot allocate enough contiguous physical
 // pages.
 // See https://stackoverflow.com/questions/4729315/what-is-the-max-size-of-af-unix-datagram-message-in-linux.
-constexpr size_t c_max_msg_size_in_bytes{1 << 12};
+//
+// constexpr size_t c_max_msg_size_in_bytes{1 << 12};
+//
+// REVIEW: We need to expand this size to accommodate the potentially unbounded
+// number of txn log offsets that could be received from the server in
+// begin_transaction(). (In performance tests with 16 threads concurrently
+// submitting txns, the 4KB size caused a read truncation error, but 8KB seemed
+// sufficient.) A robust solution would use something like the old "dummy
+// message sequence" protocol for txn log fds, but reserve enough space in the
+// server reply message for the majority of use cases (say up to 16 txn log
+// offsets).
+constexpr size_t c_max_msg_size_in_bytes{1 << 13};
 
 // This could be up to 253 (the value of SCM_MAX_FD according to the manpage for unix(7)), but we
 // set it to a reasonable value for a stack buffer.
