@@ -3850,13 +3850,11 @@ public:
         g_generated_subscription_code.append(g_current_ruleset);
         g_generated_subscription_code.append("()\n{\n");
         g_generated_subscription_code.append(g_current_ruleset_subscription);
-        g_generated_subscription_code.append("}\n");
-        g_generated_subscription_code.append("void unsubscribe_ruleset_");
+        g_generated_subscription_code.append("}\nvoid unsubscribe_ruleset_");
         g_generated_subscription_code.append(g_current_ruleset);
         g_generated_subscription_code.append("()\n{\n");
         g_generated_subscription_code.append(g_current_ruleset_unsubscription);
-        g_generated_subscription_code.append("}\n");
-        g_generated_subscription_code.append("} // namespace ");
+        g_generated_subscription_code.append("}\n} // namespace ");
         g_generated_subscription_code.append(g_current_ruleset);
         g_generated_subscription_code.append("\n");
         g_generated_subscription_code.append(generate_general_subscription_code());

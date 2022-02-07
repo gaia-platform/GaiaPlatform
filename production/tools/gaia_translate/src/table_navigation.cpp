@@ -106,8 +106,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(llv
                 return_value.prefix.append(table_data_itr->second.dbName);
                 return_value.prefix.append("::");
                 return_value.prefix.append(class_name);
-                return_value.prefix.append("::");
-                return_value.prefix.append("list())\n{\n");
+                return_value.prefix.append("::list())\n{\n");
 
                 return_value.postfix = "\n}\n}\n";
             }
