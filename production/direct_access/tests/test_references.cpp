@@ -248,46 +248,46 @@ bool bounce_hierarchy(employee_waynetype& eptr)
     return true;
 }
 
-bool delete_hierarchy(employee_waynetype& employee_waynetypeo_delete)
+bool delete_hierarchy(employee_waynetype& employee_to_delete)
 {
     int count_addressee = 1;
     while (count_addressee >= 1)
     {
         count_addressee = 0;
         // As long as there is at least one address_waynetype, continue
-        address_waynetype address_waynetypeo_delete;
-        for (auto& address : employee_waynetypeo_delete.addresses())
+        address_waynetype address_to_delete;
+        for (auto& address : employee_to_delete.addresses())
         {
             ++count_addressee;
-            address_waynetypeo_delete = address;
+            address_to_delete = address;
             // Repeat: delete the last phone until all are deleted
             int count_phones = 1;
             while (count_phones >= 1)
             {
                 count_phones = 0;
 
-                phone_waynetype phone_waynetypeo_delete;
+                phone_waynetype phone_to_delete;
                 for (const auto& phone : address.phones())
                 {
                     ++count_phones;
-                    phone_waynetypeo_delete = phone;
+                    phone_to_delete = phone;
                 }
 
                 if (count_phones)
                 {
-                    address.phones().remove(phone_waynetypeo_delete);
-                    phone_waynetypeo_delete.delete_row();
+                    address.phones().remove(phone_to_delete);
+                    phone_to_delete.delete_row();
                 }
             }
         }
         if (count_addressee)
         {
-            employee_waynetypeo_delete.addresses().remove(address_waynetypeo_delete);
-            address_waynetypeo_delete.delete_row();
+            employee_to_delete.addresses().remove(address_to_delete);
+            address_to_delete.delete_row();
         }
     }
 
-    employee_waynetypeo_delete.delete_row();
+    employee_to_delete.delete_row();
     return true;
 }
 

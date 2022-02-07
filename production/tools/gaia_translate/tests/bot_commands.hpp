@@ -19,8 +19,8 @@ namespace commands
 
 extern bool show_outgoing_robot_messages;
 
-void move_robot_waynetypeo_station(const gaia::amr_swarm::robot_waynetype& robot, const gaia::amr_swarm::station_waynetype station);
-void move_robot_waynetypeo_station(robot_waynetype& robot, const stations station_id);
+void move_robot_to_station(const gaia::amr_swarm::robot_waynetype& robot, const gaia::amr_swarm::station_waynetype station);
+void move_robot_to_station(robot_waynetype& robot, const stations station_id);
 
 void pickup_pallet_from_station(const gaia::amr_swarm::robot_waynetype& robot, const gaia::amr_swarm::pallet_waynetype pallet);
 void pickup_widget_from_station(const gaia::amr_swarm::robot_waynetype& robot, const gaia::amr_swarm::widget_waynetype widget);

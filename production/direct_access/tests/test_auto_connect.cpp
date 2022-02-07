@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <string>
-
 #include <gtest/gtest.h>
 
 #include "gaia/common.hpp"
@@ -85,7 +83,7 @@ TEST_F(auto_connect_test, child_update_disconnect)
     ASSERT_EQ(passenger_waynetype::get(passenger_id).return_flight().gaia_id(), flight_id);
 
     auto passenger_writer = passenger_waynetype::get(passenger_id).writer();
-    passenger_writer.return_flight_number = 0;
+    passenger_writer.return_flight_number = nullopt;
     passenger_writer.update_row();
     txn.commit();
 
@@ -159,7 +157,7 @@ TEST_F(auto_connect_test, parent_update_disconnect)
     ASSERT_EQ(passenger_waynetype::get(kirk_id).return_flight().gaia_id(), flight_id);
 
     auto flight_writer = flight_waynetype::get(flight_id).writer();
-    flight_writer.number = 0;
+    flight_writer.number = nullopt;
     flight_writer.update_row();
     txn.commit();
 

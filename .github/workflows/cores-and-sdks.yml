@@ -4,7 +4,6 @@ name: Core and SDK Jobs
 on:
   workflow_dispatch:
 env:
-  GAIA_VERSION: 0.3.3
   SSH_AUTH_SOCK: /tmp/ssh_agent.sock
   DEV_IMAGE: ghcr.io/gaia-platform/dev-base-gaia-platform:latest
 
@@ -133,7 +132,6 @@ jobs:
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
             --repo-path $GAIA_REPO \
-            --gaia-version $GAIA_VERSION \
             --action unit_tests
 
       - name: Upload Output Files
@@ -183,14 +181,12 @@ jobs:
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
             --repo-path $GAIA_REPO \
-            --gaia-version $GAIA_VERSION \
             --action unit_tests
 
       - name: Publish Debian Package
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
             --repo-path $GAIA_REPO \
-            --gaia-version $GAIA_VERSION \
             --action publish_package
 
       - name: Upload Output Files
@@ -247,7 +243,6 @@ jobs:
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
             --repo-path $GAIA_REPO \
-            --gaia-version $GAIA_VERSION \
             --action unit_tests
 
       - name: Upload Output Files

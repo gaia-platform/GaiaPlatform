@@ -59,18 +59,18 @@ TEST_F(test_amr_swarm, setup_complete_event)
 
     // Initial conditions require a Charging station, a Widget robot type, a Pallet robot type,
     // a pallet bot and two widget bots.
-    station_type_t::insert_row((uint8_t)station_types::Charging, c_sandbox, 0, 8);
-    station_t::insert_row(c_station_type_id, c_sandbox, (uint8_t)station_types::Charging);
+    station_type_waynetype::insert_row((uint8_t)station_types::Charging, c_sandbox, 0, 8);
+    station_waynetype::insert_row(c_station_type_id, c_sandbox, (uint8_t)station_types::Charging);
 
-    robot_type_t::insert_row((uint8_t)robot_types::Pallet, c_sandbox, c_pallet_capacity, 0);
-    robot_t::insert_row(c_robot1_id, c_sandbox, c_max_charge, false, true, false, (uint8_t)robot_types::Pallet, c_station_type_id);
+    robot_type_waynetype::insert_row((uint8_t)robot_types::Pallet, c_sandbox, c_pallet_capacity, 0);
+    robot_waynetype::insert_row(c_robot1_id, c_sandbox, c_max_charge, false, true, false, (uint8_t)robot_types::Pallet, c_station_type_id);
 
-    robot_type_t::insert_row((uint8_t)robot_types::Widget, c_sandbox, 0, c_widget_capacity);
-    robot_t::insert_row(c_robot2_id, c_sandbox, c_max_charge, false, true, false, (uint8_t)robot_types::Widget, c_station_type_id);
-    robot_t::insert_row(c_robot3_id, c_sandbox, c_max_charge, false, true, false, (uint8_t)robot_types::Widget, c_station_type_id);
+    robot_type_waynetype::insert_row((uint8_t)robot_types::Widget, c_sandbox, 0, c_widget_capacity);
+    robot_waynetype::insert_row(c_robot2_id, c_sandbox, c_max_charge, false, true, false, (uint8_t)robot_types::Widget, c_station_type_id);
+    robot_waynetype::insert_row(c_robot3_id, c_sandbox, c_max_charge, false, true, false, (uint8_t)robot_types::Widget, c_station_type_id);
 
     // The setup_complete_event row causes the setup rule to fire.
-    setup_complete_event_t::insert_row(0);
+    setup_complete_event_waynetype::insert_row(0);
 
     commit_transaction();
 
@@ -80,9 +80,10 @@ TEST_F(test_amr_swarm, setup_complete_event)
     begin_transaction();
 
     // Obtain the configuration row.
-    configuration_t configuration;
+    configuration_waynetype configuration;
     int counter = 0;
-    for (const configuration_t& c : configuration_t::list())
+
+    for (const configuration_waynetype& c : configuration_waynetype::list())
     {
         ++counter;
         configuration = c;

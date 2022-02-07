@@ -38,7 +38,7 @@ namespace commands
 // detailing their request.
 bool show_outgoing_robot_messages = false;
 
-void move_robot_to_station(const robot_t& robot, const gaia::amr_swarm::station_t station)
+void move_robot_to_station(const robot_waynetype& robot, const gaia::amr_swarm::station_waynetype station)
 {
     if (robot.station() == station)
     {
@@ -54,10 +54,10 @@ void move_robot_to_station(const robot_t& robot, const gaia::amr_swarm::station_
     // communication::publish_message(create_bot_topic(robot, c_topic_suffix_move_location), station.sandbox_id());
 }
 
-void move_robot_to_station(robot_t& robot, const stations station_id)
+void move_robot_to_station(robot_waynetype& robot, const stations station_id)
 {
-    auto station_iter = station_t::list().where(station_expr::id == (int)station_id).begin();
-    if (station_iter == station_t::list().end())
+    auto station_iter = station_waynetype::list().where(station_expr::id == (int)station_id).begin();
+    if (station_iter == station_waynetype::list().end())
     {
         throw exceptions::amr_exception(gaia_fmt::format("Cannot find station with id {}", station_id));
     }
@@ -65,7 +65,7 @@ void move_robot_to_station(robot_t& robot, const stations station_id)
     move_robot_to_station(robot, *station_iter);
 }
 
-void request_charge_level(const robot_t& robot)
+void request_charge_level(const robot_waynetype& robot)
 {
     if (show_outgoing_robot_messages)
     {
@@ -73,7 +73,7 @@ void request_charge_level(const robot_t& robot)
     }
 }
 
-void pickup_pallet_from_station(const robot_t& robot, const gaia::amr_swarm::pallet_t pallet)
+void pickup_pallet_from_station(const robot_waynetype& robot, const gaia::amr_swarm::pallet_waynetype pallet)
 {
     if (robot.pallets().size() > 0)
     {
@@ -107,7 +107,7 @@ void pickup_pallet_from_station(const robot_t& robot, const gaia::amr_swarm::pal
     }
 }
 
-void drop_pallet_at_station(const robot_t& robot)
+void drop_pallet_at_station(const robot_waynetype& robot)
 {
     if (robot.pallets().size() == 0)
     {
@@ -127,7 +127,7 @@ void drop_pallet_at_station(const robot_t& robot)
     }
 }
 
-void start_charging_robot(const robot_t& robot)
+void start_charging_robot(const robot_waynetype& robot)
 {
     if (robot.station().id() != (int)stations::Charging)
     {
@@ -141,7 +141,7 @@ void start_charging_robot(const robot_t& robot)
     }
 }
 
-void drop_widget_at_station(const robot_t& robot)
+void drop_widget_at_station(const robot_waynetype& robot)
 {
     if (robot.widgets().size() == 0)
     {
@@ -161,7 +161,7 @@ void drop_widget_at_station(const robot_t& robot)
     }
 }
 
-void pickup_widget_from_station(const robot_t& robot, const gaia::amr_swarm::widget_t widget)
+void pickup_widget_from_station(const robot_waynetype& robot, const gaia::amr_swarm::widget_waynetype widget)
 {
     if (robot.pallets().size() > 0)
     {

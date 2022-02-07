@@ -14,7 +14,7 @@ table airport
 
 table flight
 (
-    number int32 unique,
+    number int32 unique optional,
     miles_flown_by_quarter int32[],
     segments references segment[],
     passengers references passenger[],
@@ -33,7 +33,7 @@ table segment
 table passenger (
     name string,
     address string,
-    return_flight_number int32,
+    return_flight_number int32 optional,
     flight references flight using passengers,
     return_flight references flight using return_passengers
       where passenger.return_flight_number = flight.number
