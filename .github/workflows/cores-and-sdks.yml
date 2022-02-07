@@ -52,9 +52,23 @@ jobs:
             ${{ github.workspace }}/production/raw_dockerfile
             ${{ github.workspace }}/production/dockerfile
 
-      - name: Rename Image and Publish
+      - name: Publish Dev Image to GitHub Repository
         run: |
+          echo "Pushing Dev Image to GitHub Docker Repository"
           docker push $DEV_IMAGE
+
+      - name: Save Compressed Dev Image
+        run: |
+          echo "Saving Dev Image as GZipped Tarball"
+          docker save $DEV_IMAGE | gzip > ${{ github.workspace }}/production/dev_image.tar.gz
+          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
+
+      - name: Upload Install Package
+        uses: actions/upload-artifact@v2
+        with:
+          name: Dev Image
+          path: |
+            ${{ github.workspace }}/production/dev_image.tar.gz
 
   Lint:
     runs-on: ubuntu-20.04
@@ -116,11 +130,18 @@ jobs:
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
 
-      - name: Pull Latest Dev-Core Image
+      - name: Download Dev Image
+        uses: actions/download-artifact@v2
+        with:
+          name: Dev Image
+          path: ${{ github.workspace }}/production
+
+      - name: Load Compressed Dev Image
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull $DEV_IMAGE
+          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
+          docker load < ${{ github.workspace }}/production/dev_image.tar.gz
+          rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
 
       - name: Build Docker Image
         run: |
@@ -164,11 +185,18 @@ jobs:
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
 
-      - name: Pull Latest Dev-Core Image
+      - name: Download Dev Image
+        uses: actions/download-artifact@v2
+        with:
+          name: Dev Image
+          path: ${{ github.workspace }}/production
+
+      - name: Load Compressed Dev Image
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull $DEV_IMAGE
+          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
+          docker load < ${{ github.workspace }}/production/dev_image.tar.gz
+          rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
 
       - name: Build Docker Image
         run: |
@@ -196,6 +224,7 @@ jobs:
           name: ${{github.job}} Output Files
           path: |
             ${{ github.workspace }}/build/output
+            !${{ github.workspace }}/build/output/package
 
       - name: Upload Install Package
         uses: actions/upload-artifact@v2
@@ -226,11 +255,18 @@ jobs:
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
 
-      - name: Pull Latest Dev-Core Image
+      - name: Download Dev Image
+        uses: actions/download-artifact@v2
+        with:
+          name: Dev Image
+          path: ${{ github.workspace }}/production
+
+      - name: Load Compressed Dev Image
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull $DEV_IMAGE
+          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
+          docker load < ${{ github.workspace }}/production/dev_image.tar.gz
+          rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
 
       - name: Build Docker Image
         run: |
