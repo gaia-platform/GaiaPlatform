@@ -159,7 +159,9 @@ if [ "$VERBOSE_MODE" -ne 0 ]; then
 fi
 cd "$PACKAGE_PATH" || exit
 # shellcheck disable=SC2061
-sudo apt --assume-yes install "$(find . -name gaia*)"
+if ! sudo apt --assume-yes install "$(find . -name gaia*)" ; then
+    complete_process 1 "Installation of Gaia SDK did not succeed."
+fi
 
 ## PER JOB CONFIGURATION ##
 
