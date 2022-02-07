@@ -166,7 +166,7 @@ class dac_writer_t : public T_obj, protected dac_db_t
     friend dac_object_t<container_type_id, T_gaia, T_fb, T_obj>;
 
 public:
-    dac_writer_t() = default;
+    dac_writer_t();
 
     /**
      * Insert the values in this new object into a newly created database object.

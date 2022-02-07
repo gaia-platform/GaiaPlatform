@@ -5,6 +5,9 @@
 # All rights reserved.
 #############################################
 
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/ without the fail fast.
+set -uo pipefail
+
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -141,4 +144,4 @@ else
     complete_process 1 "Action '$ACTION_NAME' is not known."
 fi
 
-complete_process 0
+complete_process 0 ""
