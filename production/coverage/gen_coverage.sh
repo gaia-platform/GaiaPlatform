@@ -63,7 +63,7 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags] <command>"
     echo "Flags:"
-    echo "  -v,--verbose                Show lots of information while executing the project."
+    echo "  -q,--quiet                  Do not show lots of information while executing the project."
     echo "  -h,--help                   Display this help text."
     echo ""
     show_usage_commands
@@ -72,12 +72,12 @@ show_usage() {
 
 # Parse the command line.
 parse_command_line() {
-    VERBOSE_MODE=0
+    VERBOSE_MODE=1
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
-        -v|--verbose)
-            VERBOSE_MODE=1
+        -q|--quiet)
+            VERBOSE_MODE=0
             shift
         ;;
         -h|--help)
@@ -153,7 +153,6 @@ apt-get install -y llvm-13 lldb-13 llvm-13-dev libllvm13 llvm-13-runtime lcov
 echo "Installing Python helper packages."
 pip install lcov_cobertura
 chmod +x /usr/local/lib/python3.8/dist-packages/lcov_cobertura.py
-pip install project-summarizer
 
 echo "Cleaning the output directory."
 mkdir -p /build/production/output
@@ -161,11 +160,16 @@ pushd /build/production/output || exit
 rm -rf ./*
 popd || exit
 
-echo "Executing tests to cover."
-export LLVM_PROFILE_FILE="tests.profraw"
 echo "Running tests with profile-enabled binaries."
+export LLVM_PROFILE_FILE="/build/production/tests.%4m.profraw"
 ctest --output-log /build/production/output/ctest.log --output-junit /build/production/output/ctest.xml
-/usr/lib/llvm-13/bin/llvm-profdata merge -sparse tests.profraw -o tests.profdata
+
+echo "Creating an input file of all created profiles."
+find . -name "*.profraw" > /build/production/output/profiles.txt
+cat /build/production/output/profiles.txt
+
+echo "Merging all profiles into a single profile data file."
+/usr/lib/llvm-13/bin/llvm-profdata merge --input-files /build/production/output/profiles.txt --output tests.profdata
 
 #
 # Source directories, by team:
@@ -186,48 +190,35 @@ echo "Generate the various flavors of reports."
 generate_report \
     "total" \
     "/build/production/output/total" \
-    "/build/production/coverage.filter" \
+    "/build/production/output/coverage.filter" \
     "/source/production"
 
 generate_report \
     "rules" \
     "/build/production/output/rules" \
-    "/build/production/coverage.rules" \
+    "/build/production/output/coverage.rules" \
     "/source/production/direct_access /source/production/tools"
 
 generate_report \
     "database" \
     "/build/production/output/database" \
-    "/build/production/coverage.database" \
+    "/build/production/output/coverage.database" \
     "/source/production/db /source/production/catalog"
 
 generate_report \
     "common" \
     "/build/production/output/common" \
-    "/build/production/coverage.common" \
+    "/build/production/output/coverage.common" \
     "/source/production/inc /source/production/common"
 
 echo "Producing Cobertura Coverage files."
-/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/coverage.filter --base-dir /source/production --output /build/production/output/coverage.xml
-/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/coverage.rules --base-dir /source/production --output /build/production/output/rules.xml
-/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/coverage.database --base-dir /source/production --output /build/production/output/database.xml
-/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/coverage.common --base-dir /source/production --output /build/production/output/common.xml
+/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.filter --base-dir /source/production --output /build/production/output/coverage.xml
+/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.rules --base-dir /source/production --output /build/production/output/rules.xml
+/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.database --base-dir /source/production --output /build/production/output/database.xml
+/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.common --base-dir /source/production --output /build/production/output/common.xml
 
-echo "Producing JSON Coverage Summary files."
-mkdir report
-project_summarizer --cobertura output/coverage.xml
-mv report/coverage.json /build/production/output/coverage.json
-project_summarizer --cobertura output/rules.xml
-mv report/coverage.json /build/production/output/coverage.rules.json
-project_summarizer --cobertura output/database.xml
-mv report/coverage.json /build/production/output/coverage.database.json
-project_summarizer --cobertura output/common.xml
-mv report/coverage.json /build/production/output/coverage.common.json
-# project_summarizer --junit output/test.xml
-# mv report/coverage.json /build/production/output/test-results.json
-
-mkdir -p /source/production/output
-cp -a /build/production/output /source/production
+mkdir -p /build/output
+cp -a /build/production/output /build
 
 # If we get here, we have a clean exit from the script.
 complete_process 0

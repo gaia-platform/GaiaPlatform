@@ -143,6 +143,12 @@ gaia::common::gaia_type_t dac_object_t<container_type_id, T_class, T_flatbuffer,
 // The dac_writer_t implementation.
 //
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
+dac_writer_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::dac_writer_t()
+{
+    m_builder.ForceDefaults(true);
+}
+
+template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class, typename T_flatbuffer, typename T_flatbuffer_object>
 gaia::common::gaia_id_t dac_writer_t<container_type_id, T_class, T_flatbuffer, T_flatbuffer_object>::insert_row()
 {
     auto u = T_flatbuffer::Pack(m_builder, this);
