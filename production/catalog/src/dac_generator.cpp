@@ -361,6 +361,7 @@ std::string class_writer_t::generate_insert_cpp()
     code.IncrementIdentLevel();
 
     code += "flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);";
+    code += "b.ForceDefaults(true);";
     code.SetValue("DIRECT", m_table.has_string_or_vector() ? "Direct" : "");
     code += "b.Finish(internal::Create{{TABLE_NAME}}{{DIRECT}}(b\\";
 

@@ -123,7 +123,10 @@ TEST_F(auto_connect_test, child_update_reconnect)
 
 TEST_F(auto_connect_test, parent_insert_connect)
 {
-    const int32_t flight_number = 1701;
+    // Ensure that auto-connect works with the default value for the type (0). This
+    // test will ensure that the underlying FlatBufferBuilder is configured to
+    // serialize default values instead of omitting them.
+    const int32_t flight_number = 0;
     auto_transaction_t txn;
     gaia_id_t spock_id = passenger_waynetype::insert_row("Spock", "Vulcan", flight_number);
     gaia_id_t kirk_id = passenger_waynetype::insert_row("James", "Kirk", flight_number);
