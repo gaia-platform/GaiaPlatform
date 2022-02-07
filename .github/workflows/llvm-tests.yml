@@ -73,7 +73,7 @@ jobs:
           name: Dev Image
           path: ${{ github.workspace }}/production
 
-      - name: Load Dev Image from GZipped Tarball
+      - name: Load Compressed Dev Image
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           ls -la ${{ github.workspace }}/production/dev_image.tar.gz

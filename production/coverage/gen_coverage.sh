@@ -165,7 +165,7 @@ export LLVM_PROFILE_FILE="/build/production/tests.%4m.profraw"
 ctest --output-log /build/production/output/ctest.log --output-junit /build/production/output/ctest.xml
 
 echo "Creating an input file of all created profiles."
-find . -maxdepth 1 -name "*.profraw" > /build/production/output/profiles.txt
+find . -name "*.profraw" > /build/production/output/profiles.txt
 cat /build/production/output/profiles.txt
 
 echo "Merging all profiles into a single profile data file."
