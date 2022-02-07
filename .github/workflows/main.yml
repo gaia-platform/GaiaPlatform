@@ -56,6 +56,8 @@ jobs:
 
   SDK:
     runs-on: ubuntu-20.04
+    needs:
+      - Lint
     if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
