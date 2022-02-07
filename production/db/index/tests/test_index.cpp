@@ -328,8 +328,8 @@ TEST_F(index_test, unique_constraint_same_txn)
     const char* student_id = "00002217";
 
     auto_transaction_t txn;
-    student_waynetype::insert_row(student_id, "Alice", 21, 30, 3.75);
-    student_waynetype::insert_row(student_id, "Bob", 22, 28, 3.5);
+    student_t::insert_row(student_id, "Alice", 21, 30, 3.75);
+    student_t::insert_row(student_id, "Bob", 22, 28, 3.5);
     ASSERT_THROW(txn.commit(), unique_constraint_violation);
 }
 
@@ -338,11 +338,11 @@ TEST_F(index_test, unique_constraint_different_txn)
     const char* student_id = "00002217";
 
     auto_transaction_t txn;
-    student_waynetype::insert_row(student_id, "Alice", 21, 30, 3.75);
+    student_t::insert_row(student_id, "Alice", 21, 30, 3.75);
     txn.commit();
 
     // Attempt to re-insert the same key - we should trigger the conflict.
-    student_waynetype::insert_row(student_id, "Bob", 22, 28, 3.5);
+    student_t::insert_row(student_id, "Bob", 22, 28, 3.5);
     ASSERT_THROW(txn.commit(), unique_constraint_violation);
 }
 
@@ -351,18 +351,18 @@ TEST_F(index_test, unique_constraint_update_record)
     const char* student_id = "00002217";
 
     auto_transaction_t txn;
-    gaia_id_t id = student_waynetype::insert_row(student_id, "Alice", 21, 30, 3.75);
+    gaia_id_t id = student_t::insert_row(student_id, "Alice", 21, 30, 3.75);
     txn.commit();
 
     // Update the record - this should not trigger any conflict.
-    student_waynetype alice = student_waynetype::get(id);
+    student_t alice = student_t::get(id);
     auto alice_w = alice.writer();
     alice_w.surname = "Alicia";
     alice_w.update_row();
     txn.commit();
 
     // Verify the update.
-    alice = student_waynetype::get(id);
+    alice = student_t::get(id);
     ASSERT_EQ(0, strcmp(alice.surname(), "Alicia"));
 }
 
@@ -371,17 +371,17 @@ TEST_F(index_test, unique_constraint_delete_record)
     const char* student_id = "00002217";
 
     auto_transaction_t txn;
-    gaia_id_t id = student_waynetype::insert_row(student_id, "Alice", 21, 30, 3.75);
+    gaia_id_t id = student_t::insert_row(student_id, "Alice", 21, 30, 3.75);
     txn.commit();
 
     // Delete the record and reinsert the key - this should not trigger any conflict.
-    student_waynetype alice = student_waynetype::get(id);
+    student_t alice = student_t::get(id);
     alice.delete_row();
-    id = student_waynetype::insert_row(student_id, "Alicia", 21, 30, 3.75);
+    id = student_t::insert_row(student_id, "Alicia", 21, 30, 3.75);
     txn.commit();
 
     // Verify the insert.
-    alice = student_waynetype::get(id);
+    alice = student_t::get(id);
     ASSERT_EQ(0, strcmp(alice.surname(), "Alicia"));
 }
 
@@ -391,13 +391,13 @@ TEST_F(index_test, unique_constraint_rollback_transaction)
     const char* bob_student_id = "00002346";
 
     auto_transaction_t txn;
-    student_waynetype::insert_row(alice_student_id, "Alice", 21, 30, 3.75);
+    student_t::insert_row(alice_student_id, "Alice", 21, 30, 3.75);
     txn.commit();
 
     // Insert a second key and then attempt to re-insert the first key.
     // We should trigger the conflict and our transaction should be rolled back.
-    student_waynetype::insert_row(bob_student_id, "Bob", 22, 28, 3.5);
-    student_waynetype::insert_row(alice_student_id, "Charles", 22, 24, 3.25);
+    student_t::insert_row(bob_student_id, "Bob", 22, 28, 3.5);
+    student_t::insert_row(alice_student_id, "Charles", 22, 24, 3.25);
     ASSERT_THROW(txn.commit(), unique_constraint_violation);
 
     // Attempt to insert the second key again.
@@ -405,6 +405,6 @@ TEST_F(index_test, unique_constraint_rollback_transaction)
     // We need to manually start a transaction because the exception generated earlier
     // prevented the automatic restart.
     txn.begin();
-    student_waynetype::insert_row(bob_student_id, "Bob", 22, 28, 3.5);
+    student_t::insert_row(bob_student_id, "Bob", 22, 28, 3.5);
     txn.commit();
 }

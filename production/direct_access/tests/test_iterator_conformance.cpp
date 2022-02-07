@@ -43,45 +43,45 @@ public:
 
         employee_writer.name_first = "Many";
         employee_writer.name_last = "Addresses";
-        m_employee = employee_waynetype::get(employee_writer.insert_row());
+        m_employee = employee_t::get(employee_writer.insert_row());
 
         for (size_t i = 0; i < count; i++)
         {
             address_writer.street = to_string(i);
-            address_waynetype address = address_waynetype::get(address_writer.insert_row());
+            address_t address = address_t::get(address_writer.insert_row());
             m_employee.addresses().insert(address);
         }
     }
 
     // Use operator overloading to call the right begin and end methods.  Ignore
     // the parameter, however.
-    T_iterator get_begin(dac_iterator_t<address_waynetype>&)
+    T_iterator get_begin(dac_iterator_t<address_t>&)
     {
-        return address_waynetype::list().begin();
+        return address_t::list().begin();
     }
 
-    T_iterator get_begin(dac_set_iterator_t<address_waynetype>&)
+    T_iterator get_begin(dac_set_iterator_t<address_t>&)
     {
         return m_employee.addresses().begin();
     }
 
-    T_iterator get_end(dac_iterator_t<address_waynetype>&)
+    T_iterator get_end(dac_iterator_t<address_t>&)
     {
-        return address_waynetype::list().end();
+        return address_t::list().end();
     }
 
-    T_iterator get_end(dac_set_iterator_t<address_waynetype>&)
+    T_iterator get_end(dac_set_iterator_t<address_t>&)
     {
         return m_employee.addresses().end();
     }
 
 private:
-    employee_waynetype m_employee;
+    employee_t m_employee;
 };
 
 // Set up the test suite to test the gaia_iterator and gaia_set_iterator types.
 using iterator_types
-    = ::testing::Types<dac_iterator_t<address_waynetype>, dac_set_iterator_t<address_waynetype>>;
+    = ::testing::Types<dac_iterator_t<address_t>, dac_set_iterator_t<address_t>>;
 TYPED_TEST_SUITE(iterator_conformance_t, iterator_types);
 
 // Tests for LegacyIterator conformance
@@ -314,7 +314,7 @@ TYPED_TEST(iterator_conformance_t, deref_and_postinc)
     TypeParam iter_a = this->get_begin(iter_a);
     TypeParam iter_b = this->get_begin(iter_b);
 
-    address_waynetype address = *iter_b;
+    address_t address = *iter_b;
     ++iter_b;
 
     const char* c_post_inc_error = "*iter++ does not have the expected effects.";
@@ -403,7 +403,7 @@ TYPED_TEST(iterator_conformance_t, multipass_guarantee)
     auto_transaction_t tx;
     this->insert_records(c_count);
 
-    std::vector<address_waynetype> sequence;
+    std::vector<address_t> sequence;
 
     TypeParam iter;
 
@@ -442,8 +442,7 @@ TYPED_TEST(iterator_conformance_t, algorithm_test)
     std::transform(
         this->get_begin(iter), this->get_end(iter),
         std::back_inserter(transform_list),
-        [](const address_waynetype& address) -> int
-        { return atoi(address.street()); });
+        [](const address_t& address) -> int { return atoi(address.street()); });
 
     EXPECT_EQ(transform_list.size(), c_count);
 }

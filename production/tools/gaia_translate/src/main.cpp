@@ -3823,6 +3823,15 @@ public:
 
     void EndSourceFile() override
     {
+        if (g_is_generation_error)
+        {
+            return;
+        }
+
+        if (!g_translation_engine_output_option.empty())
+        {
+            std::remove(g_translation_engine_output_option.c_str());
+        }
         Rewriter& rewriter = *m_rewriter;
 
         // Always call the TextDiagnosticPrinter's EndSourceFile() method.
@@ -3830,6 +3839,10 @@ public:
             [this] { TextDiagnosticPrinter::EndSourceFile(); });
 
         generate_rules(rewriter);
+        if (g_is_generation_error)
+        {
+            return;
+        }
 
         g_generated_subscription_code.append("namespace ");
         g_generated_subscription_code.append(g_current_ruleset);
@@ -3848,6 +3861,7 @@ public:
         g_generated_subscription_code.append("\n");
         g_generated_subscription_code.append(generate_general_subscription_code());
 
+        if (!m_rewriter->getSourceMgr().getDiagnostics().hasErrorOccurred() && !g_is_generation_error && !g_translation_engine_output_option.empty())
         {
             std::error_code error_code;
             llvm::raw_fd_ostream output_file(g_translation_engine_output_option, error_code, llvm::sys::fs::F_None);

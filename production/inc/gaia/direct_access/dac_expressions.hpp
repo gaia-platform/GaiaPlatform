@@ -30,7 +30,7 @@ namespace direct_access
 /**
  * Pointer to an DAC class (T_class) member accessor method.
  * An DAC accessor method returns the data stored in a certain
- * table column, i.e. &employee_waynetype::name.
+ * table column, i.e. &employee_t::name.
  *
  * This accessor is specific to DAC as all DAC class methods
  * are const getters that do not accept any argument.
@@ -59,7 +59,7 @@ using dac_predicate_t = std::function<bool(const T_class&)>;
 
 /**
  * Access data within DAC classes. Data can be accessed via member_accessor_ptr_t
- * (eg. &employee_waynetype::name) or via a generic function.
+ * (eg. &employee_t::name) or via a generic function.
  *
  * @tparam T_class The DAC class type
  * @tparam T_return The type returned when calling the () operator.
@@ -115,7 +115,7 @@ private:
  * For instance:
  *
  *  auto simone = ...// get employee whose name is "Simone"
- *  auto name = expression_t<employee_waynetype, const char *>(&employee_waynetype::name);
+ *  auto name = expression_t<employee_t, const char *>(&employee_t::name);
  *
  *  auto name_predicate = name == "Simone";
  *  cout << name_predicate(simone) << endl; // -> 1

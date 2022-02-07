@@ -151,11 +151,6 @@ std::string Sema::ParseExplicitPath(StringRef pathString, SourceLocation loc, St
     llvm::StringMap<string> tagMap;
     SmallVector<string, 8> path;
     bool is_absolute = pathString.front() == '/';
-    char s[100];
-    sprintf(s, "%s", pathString);
-// fprintf(stderr, "pathString='%s'\n", s);
-// if (strcmp(s, "W.station_id") == 0)
-//     fprintf(stderr, "found W.station_id\n");
     if (is_absolute || pathString.front() == '@')
     {
         searchStartPosition = 1;
@@ -1263,8 +1258,6 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
     QualType qualType = Context.VoidTy;
     StringRef firstComponent;
 
-// if (strlen(explicitPath.c_str()) == 0)
-//     fprintf(stderr, "explicitPath='%s'\n", explicitPath.c_str());
     string table = ParseExplicitPath(explicitPath, loc, firstComponent);
     if (!table.empty())
     {

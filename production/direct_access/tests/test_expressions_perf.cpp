@@ -122,7 +122,7 @@ public:
             employee_writer.name_first = "Name_" + to_string(index_employee);
             employee_writer.name_last = "Surname_" + to_string(index_employee);
             employee_writer.hire_date = static_cast<int64_t>(index_employee);
-            auto employee = employee_waynetype::get(employee_writer.insert_row());
+            auto employee = employee_t::get(employee_writer.insert_row());
 
             for (uint64_t index_address = 0; index_address < c_num_employee_addresses; index_address++)
             {
@@ -246,19 +246,17 @@ TEST_F(test_expressions_perf, int_eq)
 
     static const int64_t c_time = 100;
 
-    auto expr_fn = []()
-    {
-        auto container = employee_waynetype::list()
+    auto expr_fn = []() {
+        auto container = employee_t::list()
                              .where(hire_date == c_time);
         int num_employee = std::distance(container.begin(), container.end());
 
         EXPECT_EQ(num_employee, 1);
     };
 
-    auto plain_fn = []()
-    {
+    auto plain_fn = []() {
         int num_employee = 0;
-        for (auto& e : employee_waynetype::list())
+        for (auto& e : employee_t::list())
         {
             if (e.hire_date() == c_time)
             {
@@ -279,19 +277,17 @@ TEST_F(test_expressions_perf, int_gteq)
 
     static const int64_t c_time = 100;
 
-    auto expr_fn = []()
-    {
-        auto container = employee_waynetype::list()
+    auto expr_fn = []() {
+        auto container = employee_t::list()
                              .where(hire_date >= c_time);
         int num_employee = std::distance(container.begin(), container.end());
 
         EXPECT_EQ(num_employee, c_num_employees - c_time);
     };
 
-    auto plain_fn = []()
-    {
+    auto plain_fn = []() {
         int num_employee = 0;
-        for (auto& e : employee_waynetype::list())
+        for (auto& e : employee_t::list())
         {
             if (e.hire_date() >= c_time)
             {
@@ -312,19 +308,17 @@ TEST_F(test_expressions_perf, int_lt)
 
     static const int64_t c_time = 100;
 
-    auto expr_fn = []()
-    {
-        auto container = employee_waynetype::list()
+    auto expr_fn = []() {
+        auto container = employee_t::list()
                              .where(hire_date < c_time);
         int num_employee = std::distance(container.begin(), container.end());
 
         EXPECT_EQ(num_employee, c_time);
     };
 
-    auto plain_fn = []()
-    {
+    auto plain_fn = []() {
         int num_employee = 0;
-        for (auto& e : employee_waynetype::list())
+        for (auto& e : employee_t::list())
         {
             if (e.hire_date() < c_time)
             {
@@ -343,20 +337,18 @@ TEST_F(test_expressions_perf, c_string_eq)
 {
     auto_transaction_t txn;
 
-    auto expr_fn = []()
-    {
-        auto container = employee_waynetype::list()
+    auto expr_fn = []() {
+        auto container = employee_t::list()
                              .where(name_first == "Name_100");
         int num_employee = std::distance(container.begin(), container.end());
 
         EXPECT_EQ(num_employee, 1);
     };
 
-    auto plain_fn = []()
-    {
+    auto plain_fn = []() {
         int num_employee = 0;
         const char* value = "Name_100";
-        for (auto& e : employee_waynetype::list())
+        for (auto& e : employee_t::list())
         {
             if (strcmp(e.name_first(), value) == 0)
             {
@@ -375,20 +367,18 @@ TEST_F(test_expressions_perf, string_eq)
 {
     auto_transaction_t txn;
 
-    auto expr_fn = []()
-    {
-        auto container = employee_waynetype::list()
+    auto expr_fn = []() {
+        auto container = employee_t::list()
                              .where(name_first == string("Name_100"));
         int num_employee = std::distance(container.begin(), container.end());
 
         EXPECT_EQ(num_employee, 1);
     };
 
-    auto plain_fn = []()
-    {
+    auto plain_fn = []() {
         int num_employee = 0;
         string value = "Name_100";
-        for (auto& e : employee_waynetype::list())
+        for (auto& e : employee_t::list())
         {
             if (strcmp(e.name_first(), value.c_str()) == 0)
             {
@@ -407,15 +397,14 @@ TEST_F(test_expressions_perf, object_eq)
 {
     auto_transaction_t txn;
 
-    const employee_waynetype dude = *employee_waynetype::list()
-                                         .where(name_first == "Name_0")
-                                         .begin();
+    const employee_t dude = *employee_t::list()
+                                 .where(name_first == "Name_0")
+                                 .begin();
     EXPECT_TRUE(dude);
 
-    auto expr_fn = [&dude]()
-    {
-        vector<address_waynetype> addresses;
-        for (auto& a : address_waynetype::list()
+    auto expr_fn = [&dude]() {
+        vector<address_t> addresses;
+        for (auto& a : address_t::list()
                            .where(addressee == dude))
         {
             addresses.push_back(a);
@@ -423,10 +412,9 @@ TEST_F(test_expressions_perf, object_eq)
         EXPECT_EQ(addresses.size(), c_num_employee_addresses);
     };
 
-    auto plain_fn = [&dude]()
-    {
-        vector<address_waynetype> addresses;
-        for (auto& a : address_waynetype::list())
+    auto plain_fn = [&dude]() {
+        vector<address_t> addresses;
+        for (auto& a : address_t::list())
         {
             if (a.addressee() == dude)
             {
@@ -445,9 +433,8 @@ TEST_F(test_expressions_perf, mixed_bool_op)
 {
     auto_transaction_t txn;
 
-    auto expr_fn = []()
-    {
-        auto container = employee_waynetype::list()
+    auto expr_fn = []() {
+        auto container = employee_t::list()
                              .where(
                                  (name_first == "Name_100" && name_last == "Surname_100")
                                  || (hire_date >= 10 && hire_date < 11));
@@ -456,10 +443,9 @@ TEST_F(test_expressions_perf, mixed_bool_op)
         EXPECT_EQ(num_employee, 2);
     };
 
-    auto plain_fn = []()
-    {
+    auto plain_fn = []() {
         int num_employee = 0;
-        for (auto& e : employee_waynetype::list())
+        for (auto& e : employee_t::list())
         {
             if ((strcmp(e.name_first(), "Name_100") == 0 && strcmp(e.name_last(), "Surname_100") == 0)
                 || (e.hire_date() >= 10 && e.hire_date() < 11))
@@ -479,19 +465,17 @@ TEST_F(test_expressions_perf, test_container_contains)
 {
     auto_transaction_t txn;
 
-    auto expr_fn = []()
-    {
-        auto container = employee_waynetype::list()
+    auto expr_fn = []() {
+        auto container = employee_t::list()
                              .where(addresses.contains(city == "city_0"));
         int num_employee = std::distance(container.begin(), container.end());
 
         EXPECT_EQ(num_employee, c_num_employees);
     };
 
-    auto plain_fn = []()
-    {
+    auto plain_fn = []() {
         int num_employee = 0;
-        for (auto& e : employee_waynetype::list())
+        for (auto& e : employee_t::list())
         {
             for (auto& a : e.addresses())
             {
@@ -513,23 +497,19 @@ TEST_F(test_expressions_perf, test_container_contains_lambda)
 {
     auto_transaction_t txn;
 
-    auto expr_fn = []()
-    {
-        auto container = employee_waynetype::list()
+    auto expr_fn = []() {
+        auto container = employee_t::list()
                              .where(addresses.contains(city == "city_0"));
         int num_employee = std::distance(container.begin(), container.end());
 
         EXPECT_EQ(num_employee, c_num_employees);
     };
 
-    auto plain_fn = []()
-    {
-        auto container = employee_waynetype::list().where(
-            [](const employee_waynetype& emp)
-            {
+    auto plain_fn = []() {
+        auto container = employee_t::list().where(
+            [](const employee_t& emp) {
                 auto addresses = emp.addresses().where(
-                    [](const address_waynetype addr)
-                    {
+                    [](const address_t addr) {
                         return addr.city() == string("city_0");
                     });
                 return addresses.begin() != addresses.end();
@@ -548,19 +528,17 @@ TEST_F(test_expressions_perf, test_container_count)
 {
     auto_transaction_t txn;
 
-    auto expr_fn = []()
-    {
-        auto container = employee_waynetype::list()
+    auto expr_fn = []() {
+        auto container = employee_t::list()
                              .where(addresses.count() == c_num_employee_addresses);
         int num_employee = std::distance(container.begin(), container.end());
 
         EXPECT_EQ(num_employee, c_num_employees);
     };
 
-    auto plain_fn = []()
-    {
+    auto plain_fn = []() {
         int num_employee = 0;
-        for (auto& e : employee_waynetype::list())
+        for (auto& e : employee_t::list())
         {
             auto addresses = e.addresses();
             if (std::distance(addresses.begin(), addresses.end()) == c_num_employee_addresses)
@@ -580,19 +558,17 @@ TEST_F(test_expressions_perf, test_container_empty)
 {
     auto_transaction_t txn;
 
-    auto expr_fn = []()
-    {
-        auto container = employee_waynetype::list()
+    auto expr_fn = []() {
+        auto container = employee_t::list()
                              .where(addresses.empty());
         int num_employee = std::distance(container.begin(), container.end());
 
         EXPECT_EQ(num_employee, 0);
     };
 
-    auto plain_fn = []()
-    {
+    auto plain_fn = []() {
         int num_employee = 0;
-        for (auto& e : employee_waynetype::list())
+        for (auto& e : employee_t::list())
         {
             auto addresses = e.addresses();
             if (addresses.begin() == addresses.end())

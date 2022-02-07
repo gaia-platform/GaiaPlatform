@@ -51,9 +51,9 @@ public:
     void init_storage()
     {
         gaia::db::begin_transaction();
-        auto incubator = gaia::barn_storage::incubator_waynetype::get(insert_incubator("TestIncubator", c_g_incubator_min_temperature, c_g_incubator_max_temperature));
-        incubator.sensors().insert(gaia::barn_storage::sensor_waynetype::insert_row("TestSensor1", 0, 0.0));
-        incubator.actuators().insert(gaia::barn_storage::actuator_waynetype::insert_row("TestActuator1", 0, 0.0));
+        auto incubator = gaia::barn_storage::incubator_t::get(insert_incubator("TestIncubator", c_g_incubator_min_temperature, c_g_incubator_max_temperature));
+        incubator.sensors().insert(gaia::barn_storage::sensor_t::insert_row("TestSensor1", 0, 0.0));
+        incubator.actuators().insert(gaia::barn_storage::actuator_t::insert_row("TestActuator1", 0, 0.0));
         gaia::db::commit_transaction();
     }
 
@@ -97,17 +97,17 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
 
     gaia::db::begin_transaction();
 
-    for (const auto& i : gaia::barn_storage::incubator_waynetype::list())
+    for (const auto& i : gaia::barn_storage::incubator_t::list())
     {
         EXPECT_EQ(i.max_temp(), 4);
     }
 
-    for (const auto& a : gaia::barn_storage::actuator_waynetype::list())
+    for (const auto& a : gaia::barn_storage::actuator_t::list())
     {
         EXPECT_EQ(a.value(), 0);
     }
 
-    for (const auto& s : gaia::barn_storage::sensor_waynetype::list())
+    for (const auto& s : gaia::barn_storage::sensor_t::list())
     {
         EXPECT_EQ(s.value(), 0);
     }
@@ -115,7 +115,7 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
 
     gaia::db::begin_transaction();
 
-    for (auto s : gaia::barn_storage::sensor_waynetype::list())
+    for (auto s : gaia::barn_storage::sensor_t::list())
     {
         auto w = s.writer();
         w.value = c_g_expected_sensor_value;
@@ -140,17 +140,17 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
 
     gaia::db::begin_transaction();
 
-    for (const auto& i : gaia::barn_storage::incubator_waynetype::list())
+    for (const auto& i : gaia::barn_storage::incubator_t::list())
     {
         EXPECT_EQ(i.max_temp(), 10);
     }
 
-    for (const auto& s : gaia::barn_storage::sensor_waynetype::list())
+    for (const auto& s : gaia::barn_storage::sensor_t::list())
     {
         EXPECT_EQ(s.value(), c_g_expected_sensor_value);
     }
 
-    for (const auto& a : gaia::barn_storage::actuator_waynetype::list())
+    for (const auto& a : gaia::barn_storage::actuator_t::list())
     {
         EXPECT_EQ(a.value(), c_g_expected_actuator_value);
     }
@@ -158,8 +158,8 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
 
     gaia::db::begin_transaction();
 
-    auto s_id = gaia::barn_storage::sensor_waynetype::insert_row("TestSensor2", 0, 0.0);
-    auto incubator = *(gaia::barn_storage::incubator_waynetype::list().begin());
+    auto s_id = gaia::barn_storage::sensor_t::insert_row("TestSensor2", 0, 0.0);
+    auto incubator = *(gaia::barn_storage::incubator_t::list().begin());
     incubator.sensors().insert(s_id);
     gaia::db::commit_transaction();
 
@@ -174,7 +174,7 @@ TEST_F(translation_engine_test, subscribe_valid_ruleset)
 
     gaia::db::begin_transaction();
 
-    auto s = gaia::barn_storage::sensor_waynetype::get(s_id);
+    auto s = gaia::barn_storage::sensor_t::get(s_id);
     s.incubator().sensors().remove(s);
     s.delete_row();
 
@@ -191,9 +191,9 @@ TEST_F(translation_engine_test, test_navigation_looping)
 
     gaia::db::begin_transaction();
 
-    auto incubator = *(gaia::barn_storage::incubator_waynetype::list().begin());
+    auto incubator = *(gaia::barn_storage::incubator_t::list().begin());
 
-    auto s_id = gaia::barn_storage::sensor_waynetype::insert_row("TestSensor3", 0, 0.0);
+    auto s_id = gaia::barn_storage::sensor_t::insert_row("TestSensor3", 0, 0.0);
     incubator.sensors().insert(s_id);
 
     gaia::barn_storage::incubator_writer w = incubator.writer();

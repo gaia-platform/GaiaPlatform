@@ -114,7 +114,7 @@ public:
         while (num_employees == 0)
         {
             begin_transaction();
-            num_employees = employee_waynetype::list().size();
+            num_employees = employee_t::list().size();
 
             if (num_employees == 0)
             {

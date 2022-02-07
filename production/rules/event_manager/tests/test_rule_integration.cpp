@@ -42,10 +42,10 @@ constexpr char c_name[] = "John";
 constexpr char c_city[] = "Seattle";
 constexpr char c_state[] = "WA";
 constexpr char c_phone_number[] = "867-5309";
-constexpr char c_phone_waynetypeype[] = "satellite";
+constexpr char c_phone_type[] = "satellite";
 
 constexpr uint16_t c_phone_number_position = 0;
-constexpr uint16_t c_phone_waynetypeype_position = 1;
+constexpr uint16_t c_phone_type_position = 1;
 constexpr uint16_t c_phone_primary_position = 2;
 
 atomic<int> g_wait_for_count;
@@ -55,16 +55,16 @@ bool g_manual_commit;
 // When an employee is inserted insert an address.
 void rule_insert(const rule_context_t* context)
 {
-    employee_waynetype e = employee_waynetype::get(context->record);
-    EXPECT_EQ(employee_waynetype::s_gaia_type, context->gaia_type);
+    employee_t e = employee_t::get(context->record);
+    EXPECT_EQ(employee_t::s_gaia_type, context->gaia_type);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_insert);
     g_wait_for_count--;
 }
 
 void rule_insert_address(const rule_context_t* context)
 {
-    employee_waynetype e = employee_waynetype::get(context->record);
-    EXPECT_EQ(employee_waynetype::s_gaia_type, context->gaia_type);
+    employee_t e = employee_t::get(context->record);
+    EXPECT_EQ(employee_t::s_gaia_type, context->gaia_type);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_insert);
 
     if (0 == strcmp(c_name, e.name_first()))
@@ -78,9 +78,9 @@ void rule_insert_address(const rule_context_t* context)
 
 void rule_update_helper(const rule_context_t* context)
 {
-    EXPECT_EQ(address_waynetype::s_gaia_type, context->gaia_type);
+    EXPECT_EQ(address_t::s_gaia_type, context->gaia_type);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_insert);
-    address_waynetype a = address_waynetype::get(context->record);
+    address_t a = address_t::get(context->record);
     address_writer aw = a.writer();
     aw.state = c_state;
     aw.update_row();
@@ -108,7 +108,7 @@ void rule_update_address(const rule_context_t* context)
 
 void rule_update(const rule_context_t* context)
 {
-    employee_waynetype e = employee_waynetype::get(context->record);
+    employee_t e = employee_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
     EXPECT_STREQ(c_name, e.name_first());
     g_wait_for_count--;
@@ -116,17 +116,17 @@ void rule_update(const rule_context_t* context)
 
 void rule_field_phone_number(const rule_context_t* context)
 {
-    phone_waynetype p = phone_waynetype::get(context->record);
+    phone_t p = phone_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
     EXPECT_STREQ(c_phone_number, p.phone_number());
     g_wait_for_count--;
 }
 
-void rule_field_phone_waynetypeype(const rule_context_t* context)
+void rule_field_phone_type(const rule_context_t* context)
 {
-    phone_waynetype p = phone_waynetype::get(context->record);
+    phone_t p = phone_t::get(context->record);
     EXPECT_EQ(context->event_type, triggers::event_type_t::row_update);
-    EXPECT_STREQ(c_phone_waynetypeype, p.type());
+    EXPECT_STREQ(c_phone_type, p.type());
     g_wait_for_count--;
 }
 
@@ -134,7 +134,7 @@ void rule_field_phone_waynetypeype(const rule_context_t* context)
 // row event then we can re-instate these tests
 // void rule_delete(const rule_context_t* context)
 // {
-//     employee_waynetype d = employee_waynetype::get(context->record);
+//     employee_t d = employee_t::get(context->record);
 //     EXPECT_EQ(context->event_type, triggers::event_type_t::row_delete);
 //     EXPECT_THROW(d.delete_row(), invalid_object_id);
 //     g_wait_for_count--;
@@ -149,7 +149,7 @@ void rule_sleep(const rule_context_t*)
 void rule_conflict(const rule_context_t* context)
 {
     {
-        auto ew = employee_waynetype::get(context->record).writer();
+        auto ew = employee_t::get(context->record).writer();
         ew.name_first = "Success";
         ew.update_row();
     }
@@ -161,7 +161,7 @@ void rule_conflict(const rule_context_t* context)
             begin_session();
             {
                 auto_transaction_t txn(auto_transaction_t::no_auto_restart);
-                auto ew = employee_waynetype::get(context->record).writer();
+                auto ew = employee_t::get(context->record).writer();
                 ew.name_first = "Conflict";
                 ew.update_row();
                 txn.commit();
@@ -205,7 +205,7 @@ public:
     void subscribe_insert()
     {
         rule_binding_t rule1{"ruleset", "rule_insert", rule_insert};
-        subscribe_rule(employee_waynetype::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule1);
+        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule1);
     }
 
     void subscribe_insert_chain(bool commit_in_rule)
@@ -213,36 +213,36 @@ public:
         rule_binding_t rule1{"ruleset", "rule_insert_address", rule_insert_address};
         gaia_rule_fn fn = commit_in_rule ? rule_update_address_commit : rule_update_address;
         rule_binding_t rule2{"ruleset", "rule_update_address", fn};
-        subscribe_rule(employee_waynetype::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule1);
-        subscribe_rule(address_waynetype::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule2);
+        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule1);
+        subscribe_rule(address_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule2);
     }
 
     // TODO[GAIAPLAT-445] We don't expose deleted row events
     // void subscribe_delete()
     // {
     //     rule_binding_t rule{"ruleset", "rule_delete", rule_delete};
-    //     subscribe_rule(employee_waynetype::s_gaia_type, triggers::event_type_t::row_delete, empty_fields, rule);
+    //     subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_delete, empty_fields, rule);
     // }
 
     void subscribe_update()
     {
         rule_binding_t rule{"ruleset", "rule_update", rule_update};
-        subscribe_rule(employee_waynetype::s_gaia_type, triggers::event_type_t::row_update, empty_fields, rule);
+        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_update, empty_fields, rule);
     }
 
     void subscribe_sleep()
     {
         rule_binding_t rule{"ruleset", "rule_sleep", rule_sleep};
-        subscribe_rule(employee_waynetype::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule);
+        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule);
     }
 
     void subscribe_sleep_serial()
     {
         rule_binding_t rule{"ruleset", "rule_sleep", rule_sleep, 0, "Serial"};
-        subscribe_rule(employee_waynetype::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule);
+        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, rule);
     }
 
-    // We have two rules:  rule_field_phone_number and rule_phone_waynetypeype.
+    // We have two rules:  rule_field_phone_number and rule_phone_type.
     // The former is fired when phone_number changes and the latter is
     // fired when the type changes.  Both will fire if the 'primary' field
     // is changed.  This tests the following cases:
@@ -261,19 +261,19 @@ public:
             binding.rule_name = "rule_field_phone_number";
             binding.rule = rule_field_phone_number;
         }
-        else if (field_position == c_phone_waynetypeype_position)
+        else if (field_position == c_phone_type_position)
         {
-            binding.rule_name = "rule_field_phone_waynetypeype";
-            binding.rule = rule_field_phone_waynetypeype;
+            binding.rule_name = "rule_field_phone_type";
+            binding.rule = rule_field_phone_type;
         }
 
-        subscribe_rule(phone_waynetype::s_gaia_type, triggers::event_type_t::row_update, fields, binding);
+        subscribe_rule(phone_t::s_gaia_type, triggers::event_type_t::row_update, fields, binding);
     }
 
     void subscribe_conflict()
     {
         rule_binding_t binding{"ruleset", "rule_conflict", rule_conflict};
-        subscribe_rule(employee_waynetype::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, binding);
+        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, binding);
     }
 
 protected:
@@ -334,7 +334,7 @@ TEST_F(rule_integration_test, test_insert)
     // rule that was fired above.
     {
         auto_transaction_t txn(false);
-        address_waynetype a = *(address_waynetype::list().begin());
+        address_t a = *(address_t::list().begin());
         EXPECT_STREQ(a.city(), c_city);
         EXPECT_STREQ(a.state(), c_state);
     }
@@ -350,7 +350,7 @@ TEST_F(rule_integration_test, test_insert)
 //         auto_transaction_t txn(true);
 //         employee_writer writer;
 //         writer.name_first = c_name;
-//         employee_waynetype e = employee_waynetype::get(writer.insert_row());
+//         employee_t e = employee_t::get(writer.insert_row());
 //         txn.commit();
 //         e.delete_row();
 //         txn.commit();
@@ -364,7 +364,7 @@ TEST_F(rule_integration_test, test_update)
         auto_transaction_t txn(true);
         employee_writer writer;
         writer.name_first = "Ignore";
-        employee_waynetype e = employee_waynetype::get(writer.insert_row());
+        employee_t e = employee_t::get(writer.insert_row());
         txn.commit();
         writer = e.writer();
         writer.name_first = c_name;
@@ -384,7 +384,7 @@ TEST_F(rule_integration_test, test_update_and_delete)
         auto_transaction_t txn(true);
         employee_writer writer;
         writer.name_first = "Ignore";
-        employee_waynetype e = employee_waynetype::get(writer.insert_row());
+        employee_t e = employee_t::get(writer.insert_row());
         txn.commit();
         writer = e.writer();
         writer.name_first = c_name;
@@ -403,7 +403,7 @@ TEST_F(rule_integration_test, test_update_field)
         auto_transaction_t txn(true);
         phone_writer writer;
         writer.phone_number = "111-1111";
-        phone_waynetype p = phone_waynetype::get(writer.insert_row());
+        phone_t p = phone_t::get(writer.insert_row());
         txn.commit();
         writer = p.writer();
         writer.phone_number = c_phone_number;
@@ -416,18 +416,18 @@ TEST_F(rule_integration_test, test_update_field)
 TEST_F(rule_integration_test, test_update_field_multiple_rules)
 {
     subscribe_field(c_phone_number_position);
-    subscribe_field(c_phone_waynetypeype_position);
+    subscribe_field(c_phone_type_position);
     {
         rule_monitor_t monitor(2);
         auto_transaction_t txn(true);
         phone_writer writer;
         writer.phone_number = "111-1111";
         // writer.type = "home";
-        phone_waynetype p = phone_waynetype::get(writer.insert_row());
+        phone_t p = phone_t::get(writer.insert_row());
         txn.commit();
         writer = p.writer();
         writer.phone_number = c_phone_number;
-        writer.type = c_phone_waynetypeype;
+        writer.type = c_phone_type;
         writer.update_row();
         txn.commit();
     }
@@ -450,7 +450,7 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
         {
             // Changing the phone number should fire a rule.
             rule_monitor_t monitor(1);
-            phone_writer writer = phone_waynetype::get(phone_id).writer();
+            phone_writer writer = phone_t::get(phone_id).writer();
             writer.phone_number = c_phone_number;
             writer.update_row();
             txn.commit();
@@ -459,7 +459,7 @@ TEST_F(rule_integration_test, test_update_field_single_rule)
         {
             // Changing the primary field should fire the rule.
             rule_monitor_t monitor(1);
-            phone_writer writer = phone_waynetype::get(phone_id).writer();
+            phone_writer writer = phone_t::get(phone_id).writer();
             writer.primary = true;
             writer.update_row();
             txn.commit();
@@ -487,8 +487,8 @@ TEST_F(rule_integration_test, test_two_rules)
         txn.commit();
 
         // Update second record.
-        employee_waynetype::delete_row(first);
-        writer = employee_waynetype::get(second).writer();
+        employee_t::delete_row(first);
+        writer = employee_t::get(second).writer();
         writer.name_first = c_name;
         writer.update_row();
         txn.commit();
@@ -516,7 +516,7 @@ TEST_F(rule_integration_test, test_parallel)
             auto_transaction_t txn(false);
             for (size_t i = 0; i < num_inserts; i++)
             {
-                employee_waynetype::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
+                employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
             }
             txn.commit();
         } });
@@ -540,7 +540,7 @@ TEST_F(rule_integration_test, test_serial)
         auto_transaction_t txn(false);
         for (size_t i = 0; i < num_inserts; i++)
         {
-            employee_waynetype::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
+            employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
         }
         txn.commit(); });
     double total_seconds = gaia::common::timer_t::ns_to_s(total_time);
@@ -566,7 +566,7 @@ TEST_F(rule_integration_test, test_shutdown_pending_rules)
         gaia_id_t id = writer.insert_row();
         txn.commit();
 
-        writer = employee_waynetype::get(id).writer();
+        writer = employee_t::get(id).writer();
         for (size_t i = 0; i < num_rule_invocations; i++)
         {
             writer.hire_date = i;
@@ -652,7 +652,7 @@ TEST_F(rule_integration_test, test_retry)
         ASSERT_EQ(ids.size(), 2);
         for (auto id : ids)
         {
-            EXPECT_EQ(string(employee_waynetype::get(id).name_first()), expected_name);
+            EXPECT_EQ(string(employee_t::get(id).name_first()), expected_name);
         }
     };
 

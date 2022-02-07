@@ -29,16 +29,16 @@ protected:
 // Using the catalog manager's create_table(), create a catalog and an DAC header from that.
 TEST_F(gaia_generate_test, use_create_table)
 {
-    create_database("airport_waynetypeest");
+    create_database("airport_test");
     ddl::field_def_list_t fields;
     fields.emplace_back(make_unique<ddl::data_field_def_t>("name", data_type_t::e_string, 1));
-    create_table("airport_waynetypeest", "airport", fields);
+    create_table("airport_test", "airport", fields);
 
-    auto header_str = generate_dac_header("airport_waynetypeest");
-    EXPECT_NE(0, header_str.find("class airport_waynetype"));
+    auto header_str = generate_dac_header("airport_test");
+    EXPECT_NE(0, header_str.find("class airport_t"));
 
-    auto cpp_str = generate_dac_cpp("airport_waynetypeest", "gaia_airport.h");
-    EXPECT_NE(0, header_str.find("trip_segment_waynetype::insert_row"));
+    auto cpp_str = generate_dac_cpp("airport_test", "gaia_airport.h");
+    EXPECT_NE(0, header_str.find("trip_segment_t::insert_row"));
 }
 
 // Start from Gaia DDL to create an DAC header.
@@ -64,13 +64,13 @@ TEST_F(gaia_generate_test, airport_example)
     // flies from Denver to Chicago. A segment 888 miles long, no status, no
     // miles flown.
     const int32_t c_miles1 = 888;
-    auto segment_1 = segment_waynetype::get(segment_waynetype::insert_row(c_miles1, 0, 0));
+    auto segment_1 = segment_t::get(segment_t::insert_row(c_miles1, 0, 0));
 
     // An airport.
-    auto airport_1 = airport_waynetype::get(
-        airport_waynetype::insert_row("Denver International", "Denver", "DEN"));
-    auto airport_2 = airport_waynetype::get(
-        airport_waynetype::insert_row("Chicago O'Hare International", "Chicago", "ORD"));
+    auto airport_1 = airport_t::get(
+        airport_t::insert_row("Denver International", "Denver", "DEN"));
+    auto airport_2 = airport_t::get(
+        airport_t::insert_row("Chicago O'Hare International", "Chicago", "ORD"));
 
     // Connect the segment to the source and destination airports.
     airport_1.segments_from().insert(segment_1);
@@ -80,15 +80,15 @@ TEST_F(gaia_generate_test, airport_example)
     begin_transaction();
     // A 606 mile segment.
     const int c_miles2 = 606;
-    auto segment_2 = segment_waynetype::get(segment_waynetype::insert_row(c_miles2, 0, 0));
-    auto airport_3 = airport_waynetype::get(
-        airport_waynetype::insert_row("Atlanta International", "Atlanta", "ATL"));
+    auto segment_2 = segment_t::get(segment_t::insert_row(c_miles2, 0, 0));
+    auto airport_3 = airport_t::get(
+        airport_t::insert_row("Atlanta International", "Atlanta", "ATL"));
     airport_2.segments_from().insert(segment_2);
     airport_3.segments_to().insert(segment_2);
 
     // Create the flight #58 that spans two segments.
     const int c_flight = 58;
-    auto flight_1 = flight_waynetype::get(flight_waynetype::insert_row(c_flight, {0}));
+    auto flight_1 = flight_t::get(flight_t::insert_row(c_flight, {0}));
     // Insert both segments to the flight's list of segments.
     flight_1.segments().insert(segment_1);
     flight_1.segments().insert(segment_2);
@@ -96,7 +96,7 @@ TEST_F(gaia_generate_test, airport_example)
 
     begin_transaction();
     stringstream ss;
-    for (const auto& flight : flight_waynetype::list())
+    for (const auto& flight : flight_t::list())
     {
         for (const auto& segment : flight.segments())
         {

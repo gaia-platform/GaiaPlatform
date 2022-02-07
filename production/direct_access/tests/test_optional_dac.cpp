@@ -33,7 +33,7 @@ void test_optional_value(T_value val, T_value other_val, T_accessor accessor, T_
     optional_values_writer values_w;
     gaia_id_t values_id = values_w.insert_row();
 
-    optional_values_waynetype values = optional_values_waynetype::get(values_id);
+    optional_values_t values = optional_values_t::get(values_id);
 
     ASSERT_FALSE((values.*accessor)().has_value());
     // Since this test is run with C++17, gaia::common::optional_t maps to std::optional
@@ -68,17 +68,17 @@ void test_optional_value(T_value val, T_value other_val, T_accessor accessor, T_
 
 TEST_F(optional_dac_test, test_optionals_values)
 {
-    test_optional_value<uint8_t>(8, 10, &optional_values_waynetype::optional_uint8, &optional_values_writer::optional_uint8);
-    test_optional_value<uint16_t>(8, 10, &optional_values_waynetype::optional_uint16, &optional_values_writer::optional_uint16);
-    test_optional_value<uint32_t>(8, 10, &optional_values_waynetype::optional_uint32, &optional_values_writer::optional_uint32);
-    test_optional_value<uint64_t>(8, 10, &optional_values_waynetype::optional_uint64, &optional_values_writer::optional_uint64);
-    test_optional_value<int8_t>(8, 10, &optional_values_waynetype::optional_int8, &optional_values_writer::optional_int8);
-    test_optional_value<int16_t>(8, 10, &optional_values_waynetype::optional_int16, &optional_values_writer::optional_int16);
-    test_optional_value<int32_t>(8, 10, &optional_values_waynetype::optional_int32, &optional_values_writer::optional_int32);
-    test_optional_value<int64_t>(8, 10, &optional_values_waynetype::optional_int64, &optional_values_writer::optional_int64);
-    test_optional_value<float>(8.1f, 10.1f, &optional_values_waynetype::optional_float, &optional_values_writer::optional_float);
-    test_optional_value<double>(9.2, 11.2, &optional_values_waynetype::optional_double, &optional_values_writer::optional_double);
-    test_optional_value<bool>(true, false, &optional_values_waynetype::optional_bool, &optional_values_writer::optional_bool);
+    test_optional_value<uint8_t>(8, 10, &optional_values_t::optional_uint8, &optional_values_writer::optional_uint8);
+    test_optional_value<uint16_t>(8, 10, &optional_values_t::optional_uint16, &optional_values_writer::optional_uint16);
+    test_optional_value<uint32_t>(8, 10, &optional_values_t::optional_uint32, &optional_values_writer::optional_uint32);
+    test_optional_value<uint64_t>(8, 10, &optional_values_t::optional_uint64, &optional_values_writer::optional_uint64);
+    test_optional_value<int8_t>(8, 10, &optional_values_t::optional_int8, &optional_values_writer::optional_int8);
+    test_optional_value<int16_t>(8, 10, &optional_values_t::optional_int16, &optional_values_writer::optional_int16);
+    test_optional_value<int32_t>(8, 10, &optional_values_t::optional_int32, &optional_values_writer::optional_int32);
+    test_optional_value<int64_t>(8, 10, &optional_values_t::optional_int64, &optional_values_writer::optional_int64);
+    test_optional_value<float>(8.1f, 10.1f, &optional_values_t::optional_float, &optional_values_writer::optional_float);
+    test_optional_value<double>(9.2, 11.2, &optional_values_t::optional_double, &optional_values_writer::optional_double);
+    test_optional_value<bool>(true, false, &optional_values_t::optional_bool, &optional_values_writer::optional_bool);
 }
 
 TEST_F(optional_dac_test, test_non_optionals_values)
@@ -87,7 +87,7 @@ TEST_F(optional_dac_test, test_non_optionals_values)
 
     optional_values_writer values_w;
     gaia_id_t values_id = values_w.insert_row();
-    optional_values_waynetype values = optional_values_waynetype::get(values_id);
+    optional_values_t values = optional_values_t::get(values_id);
 
     // Default values for non-optional fields.
     ASSERT_EQ(values.non_optional_int(), 0);
@@ -111,22 +111,22 @@ TEST_F(optional_dac_test, test_insert)
     auto_transaction_t txn;
 
     // The values are automatically "boxed into an optional".
-    gaia_id_t values_id_1 = optional_insert_override_waynetype::insert_row(23, 2.3, true);
-    optional_insert_override_waynetype values_1 = optional_insert_override_waynetype::get(values_id_1);
+    gaia_id_t values_id_1 = optional_insert_override_t::insert_row(23, 2.3, true);
+    optional_insert_override_t values_1 = optional_insert_override_t::get(values_id_1);
     ASSERT_EQ(values_1.optional_uint8(), 23);
     ASSERT_EQ(values_1.optional_double(), 2.3);
     ASSERT_EQ(values_1.non_optional_bool(), true);
 
     // The values are passed as optional.
-    gaia_id_t values_id_2 = optional_insert_override_waynetype::insert_row(optional_t<uint8_t>(23), optional_t<double>(2.3), true);
-    optional_insert_override_waynetype values_2 = optional_insert_override_waynetype::get(values_id_2);
+    gaia_id_t values_id_2 = optional_insert_override_t::insert_row(optional_t<uint8_t>(23), optional_t<double>(2.3), true);
+    optional_insert_override_t values_2 = optional_insert_override_t::get(values_id_2);
     ASSERT_EQ(values_2.optional_uint8(), 23);
     ASSERT_EQ(values_2.optional_double(), 2.3);
     ASSERT_EQ(values_2.non_optional_bool(), true);
 
     // Pass nullopt to leave values uninitialized.
-    gaia_id_t values_id_3 = optional_insert_override_waynetype::insert_row(nullopt, nullopt, true);
-    optional_insert_override_waynetype values_3 = optional_insert_override_waynetype::get(values_id_3);
+    gaia_id_t values_id_3 = optional_insert_override_t::insert_row(nullopt, nullopt, true);
+    optional_insert_override_t values_3 = optional_insert_override_t::get(values_id_3);
     ASSERT_FALSE(values_3.optional_uint8().has_value());
     ASSERT_FALSE(values_3.optional_double().has_value());
     ASSERT_EQ(values_3.non_optional_bool(), true);
@@ -137,8 +137,8 @@ TEST_F(optional_dac_test, test_vlr)
     auto_transaction_t txn;
 
     // Empty values do not create connection.
-    optional_vlr_parent_waynetype parent = optional_vlr_parent_waynetype::get(optional_vlr_parent_writer().insert_row());
-    optional_vlr_child_waynetype child = optional_vlr_child_waynetype::get(optional_vlr_child_writer().insert_row());
+    optional_vlr_parent_t parent = optional_vlr_parent_t::get(optional_vlr_parent_writer().insert_row());
+    optional_vlr_child_t child = optional_vlr_child_t::get(optional_vlr_child_writer().insert_row());
 
     ASSERT_EQ(parent.child().size(), 0);
 

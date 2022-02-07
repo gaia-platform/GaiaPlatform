@@ -28,10 +28,10 @@ static constexpr int c_delayed_check_production_start_task = 1;
 static constexpr bool show_state_debug = true;
 
 // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1430 (fixed)
-static robot_waynetype temp_main_pallet_bot;
-static robot_waynetype temp_left_widget_bot;
-static robot_waynetype temp_right_widget_bot;
-static configuration_waynetype temp_config;
+static robot_t temp_main_pallet_bot;
+static robot_t temp_left_widget_bot;
+static robot_t temp_right_widget_bot;
+static configuration_t temp_config;
 
 uint64_t get_time_millis()
 {
@@ -70,7 +70,7 @@ ruleset amr_swarm_ruleset
     // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1427
     on_insert(setup_complete_event) {
         for(/C:configuration) {
-            configuration_waynetype temp_config;
+            configuration_t temp_config;
             for (/R:robot) {
                 if (R->robot_type.id == (int)robot_types::Pallet) {
                     temp_config.main_pallet_bot().connect(R);
@@ -85,7 +85,7 @@ ruleset amr_swarm_ruleset
     {
         fprintf(stderr, "setup_complete_event: %d\n", __LINE__);
         gaia_log::app().info(">>on_insert(setup_complete_event)");
-        configuration_waynetype config;
+        configuration_t config;
         config = configuration.insert(
             widget_bot_recharge_threshold : 0.20,
             pallet_bot_recharge_threshold : 0.20);
@@ -94,9 +94,9 @@ ruleset amr_swarm_ruleset
             config.robots().connect(R);
         }
 
-        robot_waynetype main_pallet_bot;
-        robot_waynetype left_widget_bot;
-        robot_waynetype right_widget_bot;
+        robot_t main_pallet_bot;
+        robot_t left_widget_bot;
+        robot_t right_widget_bot;
 
         for (/ C : configuration)
         {
@@ -1060,7 +1060,7 @@ ruleset amr_swarm_ruleset
         // rule above, 'R' can be used this way.
         if (/R:robot->robot_type.id == (int)robot_types::Widget)
         {
-            robot_waynetype robot_to_move;
+            robot_t robot_to_move;
             robot_to_move = R;
             if (R.charge < R.config->configuration.widget_bot_recharge_threshold)
             {
@@ -1083,7 +1083,7 @@ ruleset amr_swarm_ruleset
         for (/ C : configuration)
         {
             // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1428
-            robot_waynetype right_widget_botxx;
+            robot_t right_widget_botxx;
             right_widget_botxx = C.right_widget_bot->robot;
             if (right_widget_botxx)
             {
@@ -1120,7 +1120,7 @@ ruleset amr_swarm_ruleset
         for (/ C : configuration)
         {
             // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1428
-            robot_waynetype right_widget_bot;
+            robot_t right_widget_bot;
             right_widget_bot = C.right_widget_bot->robot;
             for (/ R : robot)
             {
@@ -1240,7 +1240,7 @@ ruleset amr_swarm_ruleset
 
         for (/ C : configuration)
         {
-            robot_waynetype right_widget_bot;
+            robot_t right_widget_bot;
             right_widget_bot = C.right_widget_bot->robot;
 
             // If the bot that just charged is the "left" bot, then we want to

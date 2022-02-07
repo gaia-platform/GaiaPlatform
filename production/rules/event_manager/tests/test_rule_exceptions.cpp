@@ -109,7 +109,7 @@ void rule_non_std_exception(const rule_context_t*)
 void rule_conflict_exception(const rule_context_t* context)
 {
     {
-        auto ew = employee_waynetype::get(context->record).writer();
+        auto ew = employee_t::get(context->record).writer();
         ew.name_first = "Success";
         ew.update_row();
     }
@@ -118,7 +118,7 @@ void rule_conflict_exception(const rule_context_t* context)
         begin_session();
         {
             auto_transaction_t txn(auto_transaction_t::no_auto_restart);
-            auto ew = employee_waynetype::get(context->record).writer();
+            auto ew = employee_t::get(context->record).writer();
             ew.name_first = "Conflict";
             ew.update_row();
             txn.commit();
@@ -138,19 +138,19 @@ public:
     void subscribe_conflict()
     {
         rule_binding_t binding{"ruleset", "rule_conflict", rule_conflict_exception};
-        subscribe_rule(employee_waynetype::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, binding);
+        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, binding);
     }
 
     void subscribe_std_exception()
     {
         rule_binding_t binding{"ruleset", "rule_std", rule_std_exception};
-        subscribe_rule(employee_waynetype::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, binding);
+        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, binding);
     }
 
     void subscribe_non_std_exception()
     {
         rule_binding_t binding{"ruleset", "rule_non_std", rule_non_std_exception};
-        subscribe_rule(employee_waynetype::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, binding);
+        subscribe_rule(employee_t::s_gaia_type, triggers::event_type_t::row_insert, empty_fields, binding);
     }
 
     void init_exception_counters()

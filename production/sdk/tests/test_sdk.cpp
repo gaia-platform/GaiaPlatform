@@ -56,9 +56,9 @@ extern "C" void initialize_rules()
 void rule_1(const rule_context_t* ctx)
 {
     // Ensure the linker exports rule_context_t::last_operation.
-    if (ctx->last_operation(gaia::addr_book::employee_waynetype::s_gaia_type) == last_operation_t::row_insert)
+    if (ctx->last_operation(gaia::addr_book::employee_t::s_gaia_type) == last_operation_t::row_insert)
     {
-        ASSERT_EQ(ctx->gaia_type, gaia::addr_book::employee_waynetype::s_gaia_type);
+        ASSERT_EQ(ctx->gaia_type, gaia::addr_book::employee_t::s_gaia_type);
         g_rule_1_called = true;
     }
 }
@@ -101,7 +101,7 @@ TEST_F(sdk_test, auto_txn)
     w.name_first = "Public";
     w.name_last = "Headers";
     gaia_id_t id = w.insert_row();
-    employee_waynetype e = employee_waynetype::get(id);
+    employee_t e = employee_t::get(id);
     e.delete_row();
     tx.commit();
 }
@@ -112,7 +112,7 @@ TEST_F(sdk_test, rule_subscribe_unsubscribe)
 
     EXPECT_TRUE(g_initialize_rules_called);
 
-    subscribe_rule(employee_waynetype::s_gaia_type, event_type_t::row_insert, empty_fields, binding);
+    subscribe_rule(employee_t::s_gaia_type, event_type_t::row_insert, empty_fields, binding);
     {
         auto_transaction_t tx;
         employee_writer w;
@@ -121,7 +121,7 @@ TEST_F(sdk_test, rule_subscribe_unsubscribe)
         w.insert_row();
         // [GAIAPLAT-1205]:  We now do not fire an event if
         // the anchor row has been deleted.
-        // employee_waynetype e = employee_waynetype::get(id);
+        // employee_t e = employee_t::get(id);
         // e.delete_row();
         tx.commit();
 
@@ -129,14 +129,14 @@ TEST_F(sdk_test, rule_subscribe_unsubscribe)
         EXPECT_TRUE(g_rule_1_called) << "rule_1 should have been called";
     }
 
-    EXPECT_EQ(true, unsubscribe_rule(employee_waynetype::s_gaia_type, event_type_t::row_insert, empty_fields, binding));
+    EXPECT_EQ(true, unsubscribe_rule(employee_t::s_gaia_type, event_type_t::row_insert, empty_fields, binding));
 }
 
 TEST_F(sdk_test, rule_list)
 {
     rule_binding_t binding("ruleset", "rulename", rule_1);
 
-    subscribe_rule(employee_waynetype::s_gaia_type, event_type_t::row_insert, empty_fields, binding);
+    subscribe_rule(employee_t::s_gaia_type, event_type_t::row_insert, empty_fields, binding);
 
     subscription_list_t subscriptions;
 
@@ -153,7 +153,7 @@ TEST_F(sdk_test, rule_list)
 
     ASSERT_STREQ("ruleset", rule_subscription->ruleset_name);
     ASSERT_STREQ("rulename", rule_subscription->rule_name);
-    ASSERT_EQ(employee_waynetype::s_gaia_type, rule_subscription->gaia_type);
+    ASSERT_EQ(employee_t::s_gaia_type, rule_subscription->gaia_type);
     ASSERT_EQ(event_type_t::row_insert, rule_subscription->event_type);
 }
 

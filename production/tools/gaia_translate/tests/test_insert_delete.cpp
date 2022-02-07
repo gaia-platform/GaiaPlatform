@@ -50,39 +50,39 @@ extern string g_string_value;
 extern std::atomic<int32_t> g_onupdate_value;
 extern std::atomic<int32_t> g_insert_count;
 
-student_waynetype student_1;
-student_waynetype student_2;
-student_waynetype student_3;
-student_waynetype student_4;
-student_waynetype student_5;
+student_t student_1;
+student_t student_2;
+student_t student_3;
+student_t student_4;
+student_t student_5;
 
-course_waynetype course_1;
-course_waynetype course_2;
-course_waynetype course_3;
-course_waynetype course_4;
-course_waynetype course_5;
+course_t course_1;
+course_t course_2;
+course_t course_3;
+course_t course_4;
+course_t course_5;
 
-registration_waynetype reg_1;
-registration_waynetype reg_2;
-registration_waynetype reg_3;
-registration_waynetype reg_4;
-registration_waynetype reg_5;
-registration_waynetype reg_6;
-registration_waynetype reg_7;
-registration_waynetype reg_8;
-registration_waynetype reg_9;
-registration_waynetype reg_A;
-registration_waynetype reg_B;
-registration_waynetype reg_C;
-registration_waynetype reg_D;
-registration_waynetype reg_E;
-registration_waynetype reg_F;
-registration_waynetype reg_G;
+registration_t reg_1;
+registration_t reg_2;
+registration_t reg_3;
+registration_t reg_4;
+registration_t reg_5;
+registration_t reg_6;
+registration_t reg_7;
+registration_t reg_8;
+registration_t reg_9;
+registration_t reg_A;
+registration_t reg_B;
+registration_t reg_C;
+registration_t reg_D;
+registration_t reg_E;
+registration_t reg_F;
+registration_t reg_G;
 
-prereq_waynetype prereq_1;
-prereq_waynetype prereq_2;
-prereq_waynetype prereq_3;
-prereq_waynetype prereq_4;
+prereq_t prereq_1;
+prereq_t prereq_2;
+prereq_t prereq_3;
+prereq_t prereq_4;
 
 class test_insert_delete_code : public db_catalog_test_base_t
 {
@@ -131,42 +131,42 @@ protected:
         gaia::db::begin_transaction();
 
         // These must be DAC objects. They have insert() methods.
-        student_1 = student_waynetype::get(student_waynetype::insert_row("stu001", "Richard", 45, 4, 3.0));
-        student_2 = student_waynetype::get(student_waynetype::insert_row("stu002", "Russell", 32, 4, 3.0));
-        student_3 = student_waynetype::get(student_waynetype::insert_row("stu003", "Reuben", 26, 4, 3.0));
-        student_4 = student_waynetype::get(student_waynetype::insert_row("stu004", "Rachael", 51, 4, 3.0));
-        student_5 = student_waynetype::get(student_waynetype::insert_row("stu005", "Renee", 65, 4, 3.0));
+        student_1 = student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
+        student_2 = student_t::get(student_t::insert_row("stu002", "Russell", 32, 4, 3.0));
+        student_3 = student_t::get(student_t::insert_row("stu003", "Reuben", 26, 4, 3.0));
+        student_4 = student_t::get(student_t::insert_row("stu004", "Rachael", 51, 4, 3.0));
+        student_5 = student_t::get(student_t::insert_row("stu005", "Renee", 65, 4, 3.0));
 
         // These must be DAC objects. They have insert() methods.
-        course_1 = course_waynetype::get(course_t::insert_row("cou001", "math101", 3));
-        course_2 = course_waynetype::get(course_t::insert_row("cou002", "math201", 4));
-        course_3 = course_waynetype::get(course_t::insert_row("cou003", "eng101", 3));
-        course_4 = course_waynetype::get(course_t::insert_row("cou004", "sci101", 3));
-        course_5 = course_waynetype::get(course_t::insert_row("cou005", "math301", 5));
+        course_1 = course_t::get(course_t::insert_row("cou001", "math101", 3));
+        course_2 = course_t::get(course_t::insert_row("cou002", "math201", 4));
+        course_3 = course_t::get(course_t::insert_row("cou003", "eng101", 3));
+        course_4 = course_t::get(course_t::insert_row("cou004", "sci101", 3));
+        course_5 = course_t::get(course_t::insert_row("cou005", "math301", 5));
 
-        reg_1 = registration_waynetype::get(registration_waynetype::insert_row("reg001", c_status_pending, c_grade_none));
+        reg_1 = registration_t::get(registration_t::insert_row("reg001", c_status_pending, c_grade_none));
         // These are gaia_id_t.
-        auto reg_2 = registration_waynetype::insert_row("reg002", c_status_eligible, c_grade_c);
-        auto reg_3 = registration_waynetype::insert_row("reg003", c_status_eligible, c_grade_b);
-        auto reg_4 = registration_waynetype::insert_row("reg004", c_status_eligible, c_grade_c);
-        auto reg_5 = registration_waynetype::insert_row("reg005", c_status_eligible, c_grade_d);
-        auto reg_6 = registration_waynetype::insert_row("reg006", c_status_pending, c_grade_none);
-        auto reg_7 = registration_waynetype::insert_row("reg007", c_status_eligible, c_grade_c);
-        auto reg_8 = registration_waynetype::insert_row("reg008", c_status_eligible, c_grade_b);
-        auto reg_9 = registration_waynetype::insert_row("reg009", c_status_eligible, c_grade_b);
-        auto reg_A = registration_waynetype::insert_row("reg00A", c_status_eligible, c_grade_a);
-        auto reg_B = registration_waynetype::insert_row("reg00B", c_status_eligible, c_grade_b);
-        auto reg_C = registration_waynetype::insert_row("reg00C", c_status_eligible, c_grade_b);
-        auto reg_D = registration_waynetype::insert_row("reg00D", c_status_pending, c_grade_none);
-        auto reg_E = registration_waynetype::insert_row("reg00E", c_status_eligible, c_grade_c);
-        auto reg_F = registration_waynetype::insert_row("reg00F", c_status_eligible, c_grade_a);
-        auto reg_G = registration_waynetype::insert_row("reg00G", c_status_eligible, c_grade_b);
+        auto reg_2 = registration_t::insert_row("reg002", c_status_eligible, c_grade_c);
+        auto reg_3 = registration_t::insert_row("reg003", c_status_eligible, c_grade_b);
+        auto reg_4 = registration_t::insert_row("reg004", c_status_eligible, c_grade_c);
+        auto reg_5 = registration_t::insert_row("reg005", c_status_eligible, c_grade_d);
+        auto reg_6 = registration_t::insert_row("reg006", c_status_pending, c_grade_none);
+        auto reg_7 = registration_t::insert_row("reg007", c_status_eligible, c_grade_c);
+        auto reg_8 = registration_t::insert_row("reg008", c_status_eligible, c_grade_b);
+        auto reg_9 = registration_t::insert_row("reg009", c_status_eligible, c_grade_b);
+        auto reg_A = registration_t::insert_row("reg00A", c_status_eligible, c_grade_a);
+        auto reg_B = registration_t::insert_row("reg00B", c_status_eligible, c_grade_b);
+        auto reg_C = registration_t::insert_row("reg00C", c_status_eligible, c_grade_b);
+        auto reg_D = registration_t::insert_row("reg00D", c_status_pending, c_grade_none);
+        auto reg_E = registration_t::insert_row("reg00E", c_status_eligible, c_grade_c);
+        auto reg_F = registration_t::insert_row("reg00F", c_status_eligible, c_grade_a);
+        auto reg_G = registration_t::insert_row("reg00G", c_status_eligible, c_grade_b);
 
         // These are gaia_id_t.
-        prereq_1 = prereq_waynetype::get(prereq_waynetype::insert_row("pre001", c_grade_c));
-        prereq_2 = prereq_waynetype::get(prereq_waynetype::insert_row("pre002", c_grade_d));
-        prereq_3 = prereq_waynetype::get(prereq_waynetype::insert_row("pre003", c_grade_c));
-        prereq_4 = prereq_waynetype::get(prereq_waynetype::insert_row("pre004", c_grade_c));
+        prereq_1 = prereq_t::get(prereq_t::insert_row("pre001", c_grade_c));
+        prereq_2 = prereq_t::get(prereq_t::insert_row("pre002", c_grade_d));
+        prereq_3 = prereq_t::get(prereq_t::insert_row("pre003", c_grade_c));
+        prereq_4 = prereq_t::get(prereq_t::insert_row("pre004", c_grade_c));
 
         student_1.registrations().insert(reg_1);
         student_1.registrations().insert(reg_2);
@@ -227,11 +227,11 @@ protected:
 TEST_F(test_insert_delete_code, implicit_delete)
 {
     gaia::db::begin_transaction();
-    auto student_1 = student_waynetype::get(student_waynetype::insert_row("stu001", "Richard", 45, 4, 3.0));
-    registration_waynetype::insert_row("reg001", nullptr, nullptr, c_status_pending, c_grade_none);
-    registration_waynetype::insert_row("reg002", nullptr, nullptr, c_status_eligible, c_grade_c);
-    registration_waynetype::insert_row("reg003", nullptr, nullptr, c_status_eligible, c_grade_b);
-    registration_waynetype::insert_row("reg004", nullptr, nullptr, c_status_eligible, c_grade_c);
+    auto student_1 = student_t::get(student_t::insert_row("stu001", "Richard", 45, 4, 3.0));
+    registration_t::insert_row("reg001", nullptr, nullptr, c_status_pending, c_grade_none);
+    registration_t::insert_row("reg002", nullptr, nullptr, c_status_eligible, c_grade_c);
+    registration_t::insert_row("reg003", nullptr, nullptr, c_status_eligible, c_grade_b);
+    registration_t::insert_row("reg004", nullptr, nullptr, c_status_eligible, c_grade_c);
     gaia::db::commit_transaction();
 
     // Use the rules for insert & delete.
@@ -258,21 +258,21 @@ TEST_F(test_insert_delete_code, build_database)
     gaia::rules::subscribe_ruleset("test_insert_delete_2");
 
     gaia::db::begin_transaction();
-    enrollment_log_waynetype::insert_row("stu001", "Wayne", 67, "cou001", "math101", 3, "reg001");
-    enrollment_log_waynetype::insert_row("stu002", "William", 23, "cou002", "csci101", 5, "reg002");
-    enrollment_log_waynetype::insert_row("stu003", "Ward", 56, "cou003", "math201", 3, "reg003");
-    enrollment_log_waynetype::insert_row("stu004", "Walter", 65, "cou004", "engl101", 4, "reg004");
-    enrollment_log_waynetype::insert_row("stu005", "Warren", 67, "cou005", "engl201", 3, "reg005");
-    enrollment_log_waynetype::insert_row("stu006", "Waldo", 37, "cou006", "sosc101", 5, "reg006");
-    enrollment_log_waynetype::insert_row("stu007", "Wilma", 44, "cou007", "sosc201", 5, "reg007");
-    enrollment_log_waynetype::insert_row("stu008", "Wesley", 12, "cou086", "csci302", 5, "reg008");
+    enrollment_log_t::insert_row("stu001", "Wayne", 67, "cou001", "math101", 3, "reg001");
+    enrollment_log_t::insert_row("stu002", "William", 23, "cou002", "csci101", 5, "reg002");
+    enrollment_log_t::insert_row("stu003", "Ward", 56, "cou003", "math201", 3, "reg003");
+    enrollment_log_t::insert_row("stu004", "Walter", 65, "cou004", "engl101", 4, "reg004");
+    enrollment_log_t::insert_row("stu005", "Warren", 67, "cou005", "engl201", 3, "reg005");
+    enrollment_log_t::insert_row("stu006", "Waldo", 37, "cou006", "sosc101", 5, "reg006");
+    enrollment_log_t::insert_row("stu007", "Wilma", 44, "cou007", "sosc201", 5, "reg007");
+    enrollment_log_t::insert_row("stu008", "Wesley", 12, "cou086", "csci302", 5, "reg008");
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();
 
     int row_count = 0;
     gaia::db::begin_transaction();
-    for (auto student : gaia::prerequisites::student_waynetype::list())
+    for (auto student : gaia::prerequisites::student_t::list())
     {
         for (auto registration : student.registrations())
         {
