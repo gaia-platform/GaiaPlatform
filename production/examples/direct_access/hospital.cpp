@@ -133,14 +133,14 @@ void optional_values()
     // similarly to a C++17 std::optional.
     if (john.height().has_value())
     {
-        throw std::runtime_error("The record is supposed to hold no value.");
+        throw std::runtime_error("The value for john.height() should be missing.");
     }
     else
     {
         gaia_log::app().info("No height provided for patient {}", john.name());
     }
 
-    // You can update the value of null opt
+    // You can update the missing value with a value.
     patient_writer john_w = john.writer();
     john_w.height = 178;
     john_w.update_row();
@@ -151,7 +151,7 @@ void optional_values()
     }
     else
     {
-        throw std::runtime_error("The record is supposed to hold a value.");
+        throw std::runtime_error("The height column is supposed to have a value.");
     }
 }
 
@@ -188,7 +188,7 @@ void access_invalid_record()
     try
     {
         gaia_log::app().info("Patient name: {}", john.name());
-        throw std::runtime_error("patient_t::get(gaia::common::c_invalid_gaia_id) should have failed with an exception.");
+        throw std::runtime_error("Accessing an invalid object is expected to fail.");
     }
     catch (gaia::direct_access::invalid_object_state& e)
     {
@@ -240,9 +240,13 @@ void list_all_patients()
 
     for (auto& patient : patient_t::list())
     {
-        // Not printing height because it is optional and no value has been provided for it.
+        // patient.height().value_or(0) is expected top return 0 since
+        // the height hasn't been assigned.
         gaia_log::app().info(
-            "Patient name:{}, is_active:{}", patient.name(), patient.is_active());
+            "Patient name:{}, height:{} is_active:{}",
+            patient.name(),
+            patient.height().value_or(0),
+            patient.is_active());
     }
 }
 
@@ -347,13 +351,12 @@ gaia_id_t create_one_to_many_relationship()
 /**
  * Iterates over all the patients of the specified doctor.
  * For each patient, traverse the backlink to the doctor.
- *
- * @param doctor_id Id of previously created doctor with patients.
  */
-void traverse_one_to_many_relationship(gaia_id_t doctor_id)
+void traverse_one_to_many_relationship()
 {
     PRINT_METHOD_NAME();
 
+    gaia_id_t doctor_id = create_one_to_many_relationship();
     doctor_t doctor = doctor_t::get(doctor_id);
 
     // doctor.patients() returns a container of patient_t.
@@ -372,17 +375,17 @@ void traverse_one_to_many_relationship(gaia_id_t doctor_id)
  * is on the 1 side and has connected object on the n side violates
  * referential integrity and causes Gaia to throw an object_still_referenced
  * exception. You can delete the n side first, see next example.
- *
- * @param doctor_id Id of previously created doctor with patients.
  */
-void delete_one_to_many_relationship_re(gaia_id_t doctor_id)
+void delete_one_to_many_relationship_re()
 {
     PRINT_METHOD_NAME();
 
+    gaia_id_t doctor_id = create_one_to_many_relationship();
     doctor_t doctor = doctor_t::get(doctor_id);
 
     try
     {
+        // You can't delete doctor because it's on the 1 side of the 1:n relationship.
         doctor.delete_row();
         throw std::runtime_error("It should not be possible to delete the doctor because it has a patient connected.");
     }
@@ -393,29 +396,35 @@ void delete_one_to_many_relationship_re(gaia_id_t doctor_id)
 }
 
 /**
- * There are two ways to delete an object referenced by another object in a 1:n relationship:
- * 1. Disconnect the objects first, and then delete it.
- * 2. Delete all the objects on the n side first.
- *
- * @param doctor_id Id of previously created doctor with patients.
+ * There are three ways to delete an object referenced by another object in a 1:n relationship:
+ * 1. Delete the objects on the n side first.
+ * 2. Disconnect the objects first, and then delete it.
+ * 3. Delete the object on the 1 side specifying force=true flag in the delete_row() method.
  */
-void delete_one_to_many_relationship(gaia_id_t doctor_id)
+void delete_one_to_many_relationship()
 {
     PRINT_METHOD_NAME();
 
+    gaia_id_t doctor_id = create_one_to_many_relationship();
     doctor_t doctor = doctor_t::get(doctor_id);
 
     // Pick one of the doctor's patients.
     patient_t patient = *(doctor.patients().begin());
 
-    // You can now delete the patient because it's on the n side of the relationship.
+    // 1. You can delete the patient because it's on the n side of the relationship.
     patient.delete_row();
 
-    // Unlink all the remaining patients.
+    // 2. You can unlink all the remaining patients.
     doctor.patients().clear();
 
     // You can now delete the doctor.
     doctor.delete_row();
+
+    // 3. If you want to delete the doctor first
+    // you can pass the force=true flag to delete_row().
+    doctor_id = create_one_to_many_relationship();
+    doctor = doctor_t::get(doctor_id);
+    doctor.delete_row(true);
 }
 
 /**
@@ -466,13 +475,12 @@ gaia_id_t create_one_to_one_relationship()
 /**
  * Access the address from the patient, and access the patient from the address
  * using the backlink.
- *
- * @param patient_id Id of previously created patient with an address.
  */
-void traverse_one_to_one_relationship(gaia_id_t patient_id)
+void traverse_one_to_one_relationship()
 {
     PRINT_METHOD_NAME();
 
+    gaia_id_t patient_id = create_one_to_one_relationship();
     patient_t patient = patient_t::get(patient_id);
     // Actually returns address_ref_t which being a subclass of
     // address_t can be assigned to address_t.
@@ -495,21 +503,19 @@ void traverse_one_to_one_relationship(gaia_id_t patient_id)
 /**
  * Likewise in 1:n relationships, if you try to delete a database object that
  * is referenced by another object (in a 1:1 relationship) Gaia throw an
- * object_still_referenced exception.
- *
- * TODO what is the behavior now?
- *
- * @param patient_id Id of previously created patient with an address.
+ * object_still_referenced exception. In a 1:1 relationship you can delete
+ * the object on the table that is defined later in the DDL (address in this case)
  */
-void delete_one_to_one_relationship_re(gaia_id_t patient_id)
+void delete_one_to_one_relationship_re()
 {
     PRINT_METHOD_NAME();
 
+    gaia_id_t patient_id = create_one_to_one_relationship();
     patient_t patient = patient_t::get(patient_id);
-    address_ref_t address = patient.address();
 
     try
     {
+        // You cannot delete patient because it's defined before address in the DDL.
         patient.delete_row();
         throw std::runtime_error("The patient deletion should fail!");
     }
@@ -517,33 +523,39 @@ void delete_one_to_one_relationship_re(gaia_id_t patient_id)
     {
         gaia_log::app().info("As expected, deleting the patient record raised the following exception '{}'.", e.what());
     }
-
-    // TODO the following does not fail, but the one above does fail.
-    //    try
-    //    {
-    //        address.delete_row();
-    //    }
-    //    catch (const gaia::db::object_still_referenced& e)
-    //    {
-    //        gaia_log::app().info("As expected, deleting the address record raised the following exception '{}'.", e.what());
-    //    }
 }
 
 /**
- * The correct way to delete objects in 1:1 relationships is to first disconnect them.
- *
- * @param patient_id Id of previously created patient with an address.
+ * There are three ways to delete an object referenced by another object in a 1:n relationship:
+ * 1. Disconnect the objects first, and then delete it.
+ * 2. Delete the object defined in the table that appear later in the DDL.
+ * 3. Delete the object specifying force=true flag in the delete_row() method.
  */
-void delete_one_to_one_relationship(gaia_id_t patient_id)
+void delete_one_to_one_relationship()
 {
     PRINT_METHOD_NAME();
 
+    // 1. You can disconnect the objects first and then delete them.
+    gaia_id_t patient_id = create_one_to_one_relationship();
     patient_t patient = patient_t::get(patient_id);
     address_ref_t address = patient.address(); // NOLINT(cppcoreguidelines-slicing)
-
     patient.address().disconnect();
-
     patient.delete_row();
+    address.delete_row();
+
+    // 2. You can delete the address first.
+    patient_id = create_one_to_one_relationship();
+    patient = patient_t::get(patient_id);
+    address = patient.address();
+    address.delete_row();
+    patient.delete_row();
+
+    // 3. Pass the force=true flag to delete_row()
+    // to delete the patient first.
+    patient_id = create_one_to_one_relationship();
+    patient = patient_t::get(patient_id);
+    address = patient.address();
+    patient.delete_row(true);
     address.delete_row();
 }
 
@@ -783,15 +795,19 @@ int main()
     delete_single_record();
     delete_single_record_static();
     delete_all_records();
-    gaia_id_t doctor_id = create_one_to_many_relationship();
-    traverse_one_to_many_relationship(doctor_id);
-    delete_one_to_many_relationship_re(doctor_id);
-    delete_one_to_many_relationship(doctor_id);
+    traverse_one_to_many_relationship();
+    clean_db();
+    delete_one_to_many_relationship_re();
+    clean_db();
+    delete_one_to_many_relationship();
+    clean_db();
     delete_one_to_many_relationship_erase();
-    gaia_id_t patient_id = create_one_to_one_relationship();
-    traverse_one_to_one_relationship(patient_id);
-    delete_one_to_one_relationship_re(patient_id);
-    delete_one_to_one_relationship(patient_id);
+    clean_db();
+    traverse_one_to_one_relationship();
+    clean_db();
+    delete_one_to_one_relationship_re();
+    clean_db();
+    delete_one_to_one_relationship();
     clean_db();
     create_filter_data();
     filter_lambda();
