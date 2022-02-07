@@ -22,18 +22,18 @@ repos:
     - id: forbid-crlf
     - id: forbid-tabs
 
-- repo: local
-  hooks:
-    - id: verify_child_gha_workflows
-      name: Verify Child GHA Workflows Are Consistent
-      entry: dev_tools/github-actions/pre-commit-hooks/verify_child_workflows.py
-      language: python
-      args:
-        - --base-workflow
-        - main.yml
-        - "*.yml"
-      pass_filenames: false
-      additional_dependencies: [pyyaml]
+# - repo: local
+#   hooks:
+#     - id: verify_child_gha_workflows
+#       name: Verify Child GHA Workflows Are Consistent
+#       entry: dev_tools/github-actions/pre-commit-hooks/verify_child_workflows.py
+#       language: python
+#       args:
+#         - --base-workflow
+#         - main.yml
+#         - "*.yml"
+#       pass_filenames: false
+#       additional_dependencies: [pyyaml]
 
 - repo: local
   hooks:
