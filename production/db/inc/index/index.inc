@@ -57,17 +57,15 @@ void index_t<T_structure, T_iterator>::remove_index_entry_with_offset(const inde
 template <typename T_structure, typename T_iterator>
 void index_t<T_structure, T_iterator>::mark_entries_committed(gaia_txn_id_t metadata_truncation_txn_id)
 {
+    std::lock_guard lock(m_index_lock);
+    if (m_last_mark_committed_txn_id >= m_last_updated_txn_id)
     {
-        std::lock_guard lock(m_index_lock);
-        if (m_last_mark_committed_txn_id >= m_last_updated_txn_id)
-        {
-            // Nothing to do here. All index entries have already been marked and we have not modified the index since.
-            //
-            // It is unsafe to check m_last_updated_txn_id against the metadata truncation id since metadata_truncation_txn_id can advance
-            // ahead of the last mark committed point without updating the index. This situation leads to required lookups
-            // on truncated metadata on the next index lookup.
-            return;
-        }
+        // Nothing to do here. All index entries have already been marked and we have not modified the index since.
+        //
+        // It is unsafe to check m_last_updated_txn_id against the metadata truncation id since metadata_truncation_txn_id can advance
+        // ahead of the last mark committed point without updating the index. This situation leads to required lookups
+        // on truncated metadata on the next index lookup.
+        return;
     }
 
     for (auto it = m_data.begin(); it != m_data.end(); ++it)
@@ -76,18 +74,13 @@ void index_t<T_structure, T_iterator>::mark_entries_committed(gaia_txn_id_t meta
 
         if (record.txn_id <= metadata_truncation_txn_id)
         {
-            // This should ideally be atomic, but the records stop becoming copyable.
-            std::lock_guard lock(m_index_lock);
             mark_committed(record);
         }
     }
 
+    if (metadata_truncation_txn_id > m_last_mark_committed_txn_id)
     {
-        std::lock_guard lock(m_index_lock);
-        if (metadata_truncation_txn_id > m_last_mark_committed_txn_id)
-        {
-            m_last_mark_committed_txn_id = metadata_truncation_txn_id;
-        }
+        m_last_mark_committed_txn_id = metadata_truncation_txn_id;
     }
 }
 
