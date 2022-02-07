@@ -604,7 +604,6 @@ TagDecl* Sema::lookupEDCClass(StringRef className)
     //  ....
 
     auto typeIterator = Context.getEDCTypes().find(className);
-// fprintf(stderr, "className=%s\n", className);
     if (typeIterator != Context.getEDCTypes().end())
     {
         return llvm::cast_or_null<TagDecl>(typeIterator->second->getAsRecordDecl());

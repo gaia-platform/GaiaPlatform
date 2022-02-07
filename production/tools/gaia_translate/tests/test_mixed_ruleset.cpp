@@ -65,19 +65,16 @@ TEST_F(test_mixed_code, subscribe_valid_ruleset)
     gaia::rules::test::wait_for_rules_to_complete();
 
     gaia::db::begin_transaction();
-    for (const auto& s : sensor_t::list())
-    {
-        fprintf(stderr, "s.name()=%s\n", s.name());
-    }
 
     const auto sensors = sensor_t::list().where([](const sensor_t& s) {
-        fprintf(stderr, "s.name()=%s\n", s.name());
         return strcmp(s.name(), "TestSensor1") == 0;
     });
 
     ASSERT_EQ(2, std::distance(sensors.begin(), sensors.end()));
 
-    const auto actuators = actuator_t::list().where([](const actuator_t& s) { return strcmp(s.name(), "TestActuator1") == 0; });
+    const auto actuators = actuator_t::list().where([](const actuator_t& s) {
+        return strcmp(s.name(), "TestActuator1") == 0;
+    });
 
     ASSERT_EQ(2, std::distance(sensors.begin(), sensors.end()));
 
