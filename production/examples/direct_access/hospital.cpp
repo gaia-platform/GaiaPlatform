@@ -119,6 +119,43 @@ void update_record()
 }
 
 /**
+ * Optional values can represent absence of value.
+ */
+void optional_values()
+{
+    PRINT_METHOD_NAME();
+
+    // You can pass nullopt instead of height to denote the absence of value.
+    gaia_id_t id = patient_t::insert_row("John", gaia::common::nullopt, false, {});
+    patient_t john = patient_t::get(id);
+
+    // john.height() return a gaia::common::optional_t<uint8> which behaves
+    // similarly to a C++17 std::optional.
+    if (john.height().has_value())
+    {
+        throw std::runtime_error("The record is supposed to hold no value.");
+    }
+    else
+    {
+        gaia_log::app().info("No height provided for patient {}", john.name());
+    }
+
+    // You can update the value of null opt
+    patient_writer john_w = john.writer();
+    john_w.height = 178;
+    john_w.update_row();
+
+    if (john.height().has_value())
+    {
+        gaia_log::app().info("{}'s height is {}", john.name(), john.height().value());
+    }
+    else
+    {
+        throw std::runtime_error("The record is supposed to hold a value.");
+    }
+}
+
+/**
  * DACs override the bool() operator to return true when the
  * instance is in a valid state and false otherwise.
  */
@@ -129,7 +166,7 @@ void lookup_invalid_record()
     try
     {
         // A failure will happen for every id that does not map to an existing object.
-        patient_t john = patient_t::get(gaia::common::c_invalid_gaia_id);
+        patient_t::get(gaia::common::c_invalid_gaia_id);
         throw std::runtime_error("patient_t::get(gaia::common::c_invalid_gaia_id) should have failed with an exception.");
     }
     catch (const gaia::db::invalid_object_id& e)
@@ -151,6 +188,7 @@ void access_invalid_record()
     try
     {
         gaia_log::app().info("Patient name: {}", john.name());
+        throw std::runtime_error("patient_t::get(gaia::common::c_invalid_gaia_id) should have failed with an exception.");
     }
     catch (gaia::direct_access::invalid_object_state& e)
     {
@@ -202,8 +240,9 @@ void list_all_patients()
 
     for (auto& patient : patient_t::list())
     {
+        // Not printing height because it is optional and no value has been provided for it.
         gaia_log::app().info(
-            "Patient name:{}, height:{} is_active:{}", patient.name(), patient.height(), patient.is_active());
+            "Patient name:{}, is_active:{}", patient.name(), patient.is_active());
     }
 }
 
@@ -243,7 +282,7 @@ void delete_single_record_static()
 
     try
     {
-        doctor_t dr_house = doctor_t::get(dr_house_id);
+        doctor_t::get(dr_house_id);
         throw std::runtime_error("The doctor is expected to be invalid after deletion.");
     }
     catch (const gaia::db::invalid_object_id& e)
@@ -272,6 +311,11 @@ void delete_all_records()
     {
         auto next_doctor_it = doctor_it++;
         next_doctor_it->delete_row();
+    }
+
+    if (doctor_t::list().size() > 0)
+    {
+        throw std::runtime_error("The doctor table is expected to be empty.");
     }
 
     gaia_log::app().info("Doctors count: {}", doctor_t::list().size());
@@ -324,9 +368,10 @@ void traverse_one_to_many_relationship(gaia_id_t doctor_id)
 }
 
 /**
- * Attempting to delete a database object that is referenced by another
- * object violates referential integrity and causes Gaia to throw an
- * object_still_referenced exception.
+ * With 1:n relationships attempting to delete a database object that
+ * is on the 1 side and has connected object on the n side violates
+ * referential integrity and causes Gaia to throw an object_still_referenced
+ * exception. You can delete the n side first, see next example.
  *
  * @param doctor_id Id of previously created doctor with patients.
  */
@@ -336,31 +381,21 @@ void delete_one_to_many_relationship_re(gaia_id_t doctor_id)
 
     doctor_t doctor = doctor_t::get(doctor_id);
 
-    // Pick one of the doctor's patients.
-    patient_t patient = *(doctor.patients().begin());
-
     try
     {
         doctor.delete_row();
+        throw std::runtime_error("It should not be possible to delete the doctor because it has a patient connected.");
     }
     catch (const gaia::db::object_still_referenced& e)
     {
         gaia_log::app().info("As expected, deleting the doctor record raised the following exception '{}'.", e.what());
     }
-
-    try
-    {
-        patient.delete_row();
-    }
-    catch (const gaia::db::object_still_referenced& e)
-    {
-        gaia_log::app().info("As expected, deleting the patient record raised the following exception '{}'.", e.what());
-    }
 }
 
 /**
- * The correct to delete an object that is referenced by other objects
- * is to disconnect it first, and then delete it.
+ * There are two ways to delete an object referenced by another object in a 1:n relationship:
+ * 1. Disconnect the objects first, and then delete it.
+ * 2. Delete all the objects on the n side first.
  *
  * @param doctor_id Id of previously created doctor with patients.
  */
@@ -373,10 +408,7 @@ void delete_one_to_many_relationship(gaia_id_t doctor_id)
     // Pick one of the doctor's patients.
     patient_t patient = *(doctor.patients().begin());
 
-    // You can unlink a single element (there are still 2 connected).
-    doctor.patients().remove(patient);
-
-    // You can now delete the patient.
+    // You can now delete the patient because it's on the n side of the relationship.
     patient.delete_row();
 
     // Unlink all the remaining patients.
@@ -465,6 +497,8 @@ void traverse_one_to_one_relationship(gaia_id_t patient_id)
  * is referenced by another object (in a 1:1 relationship) Gaia throw an
  * object_still_referenced exception.
  *
+ * TODO what is the behavior now?
+ *
  * @param patient_id Id of previously created patient with an address.
  */
 void delete_one_to_one_relationship_re(gaia_id_t patient_id)
@@ -477,20 +511,22 @@ void delete_one_to_one_relationship_re(gaia_id_t patient_id)
     try
     {
         patient.delete_row();
+        throw std::runtime_error("The patient deletion should fail!");
     }
     catch (const gaia::db::object_still_referenced& e)
     {
         gaia_log::app().info("As expected, deleting the patient record raised the following exception '{}'.", e.what());
     }
 
-    try
-    {
-        address.delete_row();
-    }
-    catch (const gaia::db::object_still_referenced& e)
-    {
-        gaia_log::app().info("As expected, deleting the address record raised the following exception '{}'.", e.what());
-    }
+    // TODO the following does not fail, but the one above does fail.
+    //    try
+    //    {
+    //        address.delete_row();
+    //    }
+    //    catch (const gaia::db::object_still_referenced& e)
+    //    {
+    //        gaia_log::app().info("As expected, deleting the address record raised the following exception '{}'.", e.what());
+    //    }
 }
 
 /**
@@ -681,6 +717,7 @@ void use_dac_object_across_transactions()
     {
         // Outside a transaction.
         dr_house.name();
+        throw std::runtime_error("It should not be possible to interact with the database outside of a transaction.");
     }
     catch (const gaia::db::no_open_transaction& e)
     {
@@ -737,6 +774,7 @@ int main()
     lookup_record_get();
     array_type_fields();
     update_record();
+    optional_values();
     lookup_invalid_record();
     access_invalid_record();
     compare_records();
