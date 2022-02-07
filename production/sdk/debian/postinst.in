@@ -1,22 +1,22 @@
 #!/bin/sh -e
-
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
 . /usr/share/debconf/confmodule
 
-db_input medium gaia/install-service || true
-db_go
-db_get gaia/install-service
-if [ "$RET" = "false" ]; then
-    deb-systemd-helper mask 'gaia.service' >/dev/null || true
-    db_input medium gaia/service-masked
-    db_go
-else
-    # This will only remove masks created by d-s-h on package removal.
-    deb-systemd-helper unmask 'gaia.service' >/dev/null || true
+# Adapted from code automatically added by dh_installsystemd/13.2
+if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || [ "$1" = "abort-deconfigure" ] || [ "$1" = "abort-remove" ] ; then
+    if [ "$1" = "configure" ]; then
+        db_input high gaia/install-service || true
+        db_go
+    fi
 
-    db_input medium gaia/enable-service || true
-    db_go
-    db_get gaia/enable-service
+    db_get gaia/install-service
     if [ "$RET" = "true" ]; then
+        # This will only remove masks created by d-s-h on package removal.
+        deb-systemd-helper unmask 'gaia.service' >/dev/null || true
+
         # was-enabled defaults to true, so new installations run enable.
         if deb-systemd-helper --quiet was-enabled 'gaia.service'; then
             # Enables the unit on first installation, creates new
@@ -26,30 +26,20 @@ else
             # Update the statefile to add new symlinks (if any), which need to be
             # cleaned up on purge. Also remove old symlinks.
             deb-systemd-helper update-state 'gaia.service' >/dev/null || true
-            deb-systemd-helper disable 'gaia.service' >/dev/null || true
         fi
 
-        # Only ask to start the service if it is enabled.
-        db_input medium gaia/start-service || true
-        db_go
-        db_get gaia/start-service
-        if [ "$RET" = "true" ]; then
-            if [ -d /run/systemd/system ]; then
-                systemctl --system daemon-reload >/dev/null || true
-                if [ -n "$2" ]; then
+        if [ -d /run/systemd/system ]; then
+            systemctl --system daemon-reload >/dev/null || true
+            if [ -n "$2" ]; then
                     _dh_action=restart
-                else
+            else
                     _dh_action=start
-                fi
-                deb-systemd-invoke $_dh_action 'gaia.service' >/dev/null || true
             fi
-        else
-            db_input medium gaia/service-stopped
-            db_go
+            deb-systemd-invoke $_dh_action 'gaia.service' >/dev/null || true
         fi
-
     else
-        db_input medium gaia/service-disabled
+        deb-systemd-helper mask 'gaia.service' >/dev/null || true
+        db_input high gaia/service-masked
         db_go
     fi
 fi
