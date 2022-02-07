@@ -123,8 +123,8 @@ void rule_conflict_exception(const rule_context_t* context)
             ew.update_row();
             txn.commit();
         }
-        end_session(); })
-        .join();
+        end_session();
+    }).join();
 }
 
 /**

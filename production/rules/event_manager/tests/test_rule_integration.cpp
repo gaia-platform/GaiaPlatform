@@ -166,8 +166,8 @@ void rule_conflict(const rule_context_t* context)
                 ew.update_row();
                 txn.commit();
             }
-            end_session(); })
-            .join();
+            end_session();
+        }).join();
     }
 
     g_wait_for_count--;
@@ -519,7 +519,8 @@ TEST_F(rule_integration_test, test_parallel)
                 employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
             }
             txn.commit();
-        } });
+        }
+    });
     double total_seconds = gaia::common::timer_t::ns_to_s(total_time);
     EXPECT_TRUE(total_seconds < 2.0);
 }
@@ -542,7 +543,8 @@ TEST_F(rule_integration_test, test_serial)
         {
             employee_t::insert_row("John", "Jones", "111-11-1111", i, nullptr, nullptr);
         }
-        txn.commit(); });
+        txn.commit();
+    });
     double total_seconds = gaia::common::timer_t::ns_to_s(total_time);
     EXPECT_TRUE(total_seconds >= num_inserts);
 }
