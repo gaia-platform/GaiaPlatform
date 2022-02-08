@@ -17,8 +17,7 @@ set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
-set(GAIA_ROOT "/usr/local")
-include("/usr/local/cmake/gaia.cmake")
+include("/opt/gaia/cmake/gaia.cmake")
 
 # Generate Direct Access classes from the DDL schema.
 process_schema(
