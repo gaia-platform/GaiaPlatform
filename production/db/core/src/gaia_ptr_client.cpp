@@ -130,7 +130,7 @@ gaia_ptr_t gaia_ptr_t::create_no_txn(gaia_id_t id, gaia_type_t type, reference_o
     obj_ptr->id = id;
     obj_ptr->type = type;
     obj_ptr->references_count = references_count;
-    if (references_count)
+    if (references_count > 0)
     {
         memset(obj_ptr->payload, 0, references_size);
     }

@@ -6,6 +6,7 @@ repos:
 # - repo: meta
 #   hooks:
 #     -   id: identity
+
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v4.0.1
   hooks:
@@ -14,6 +15,7 @@ repos:
     - id: end-of-file-fixer
       exclude: ^(production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h)
     - id: trailing-whitespace
+
 - repo: https://github.com/Lucas-C/pre-commit-hooks
   rev: v1.1.10
   hooks:
@@ -22,12 +24,27 @@ repos:
 
 - repo: local
   hooks:
+    - id: verify_child_gha_workflows
+      name: Verify Child GHA Workflows Are Consistent
+      entry: dev_tools/github-actions/pre-commit-hooks/verify_child_workflows.py
+      language: python
+      args:
+        - --base-workflow
+        - main.yml
+        - "*.yml"
+      pass_filenames: false
+      additional_dependencies: [pyyaml]
+
+- repo: local
+  hooks:
     - id: fix_double_empty_lines
       name: Eliminate multiple empty lines
       entry: dev_tools/github-actions/pre-commit-hooks/fix_double_empty_lines.py
       language: python
-      exclude: .py$|^(production/tests/workloads/template/json.hpp|production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h|production/licenses/|production/tools/gaia_translate/tests/test_translation.ruleset)
+      exclude: .py$|^(production/tests/workloads/template/json.hpp|production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h|production/licenses)
 
+- repo: local
+  hooks:
     - id: python_executable_license_check
       name: Check Python Executable files for License Prefix
       entry: dev_tools/github-actions/pre-commit-hooks/check_file_prefix.py
@@ -64,7 +81,7 @@ repos:
         - --prefix
         - "#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n"
       files: ^.*(\.cmake$|\/CMakeLists.txt$)
-      exclude: ^(production/examples|production/tools)
+      exclude: ^(production/examples)
 
     - id: db_license_check
       name: Check SQL and DDL files for License Prefix

@@ -1,0 +1,96 @@
+---
+name: LLVM Tests
+
+on:
+  workflow_dispatch:
+env:
+  SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+  DEV_IMAGE: ghcr.io/gaia-platform/dev-base-gaia-platform:latest
+
+jobs:
+
+  Lint:
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install Required Python Packages
+        run: |
+          python3 -m pip install pre-commit
+
+      - name: Set Cache Key for Pre-Commit Checks
+        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
+
+      - name: Apply Pre-Commit Checks Cache
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Execute Pre-Commit Checks
+        run: |
+          cd $GAIA_REPO/production
+          pre-commit run --all-files
+
+      - name: GitHub Info
+        run: |
+          echo "Branch: ${{ github.ref }}"
+          echo "Ref-Name: ${{ github.ref_name }}"
+          echo "Event-Name: ${{ github.event_name }}"
+          echo "Event-Path: ${{ github.event_path }}"
+
+  LLVM_Tests:
+    needs: Lint
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Clean up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+
+      - name: Download Dev Image
+        uses: actions/download-artifact@v2
+        with:
+          name: Dev Image
+          path: ${{ github.workspace }}/production
+
+      - name: Load Compressed Dev Image
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
+          docker load < ${{ github.workspace }}/production/dev_image.tar.gz
+          rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
+
+      - name: Build Docker Image
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
+              --repo-path $GAIA_REPO \
+              --base-image $DEV_IMAGE \
+              --cfg-enables GaiaLLVMTests
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/build/output

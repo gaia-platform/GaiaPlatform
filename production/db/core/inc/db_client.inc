@@ -129,14 +129,14 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
             // The datagram size must be an integer multiple of our datum size.
             ASSERT_INVARIANT(datagram_size % sizeof(T_element_type) == 0, c_message_unexpected_datagram_size);
 
-            // Align the end of the buffer to the datagram size.
+            // Align the end of the buffer to the expected number of elements.
             // Per the C++ standard, this will never reduce capacity.
-            batch_buffer.resize(datagram_size);
+            batch_buffer.resize(datagram_size / sizeof(T_element_type));
 
             // Get the actual data.
             // This is a nonblocking read, because the previous blocking
             // read will not return until data is available.
-            ssize_t bytes_read = ::recv(*stream_socket_ptr, batch_buffer.data(), batch_buffer.size(), MSG_DONTWAIT);
+            ssize_t bytes_read = ::recv(*stream_socket_ptr, batch_buffer.data(), datagram_size, MSG_DONTWAIT);
             if (bytes_read == -1)
             {
                 // Per above, we should never have to block here.
@@ -156,6 +156,9 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
         // (the server reversed the original buffer before sending).
         T_element_type next_value = batch_buffer.back();
         batch_buffer.pop_back();
+
+        ASSERT_POSTCONDITION(next_value.is_valid(), "The stream generator has produced an invalid element value!");
+
         return next_value;
     };
 }

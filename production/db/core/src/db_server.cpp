@@ -120,7 +120,7 @@ void server_t::handle_begin_txn(
         old_state == session_state_t::CONNECTED && new_state == session_state_t::TXN_IN_PROGRESS,
         c_message_current_event_is_inconsistent_with_state_transition);
 
-    ASSERT_PRECONDITION(s_txn_id == c_invalid_gaia_txn_id, "Transaction begin timestamp should be uninitialized!");
+    ASSERT_PRECONDITION(!s_txn_id.is_valid(), "Transaction begin timestamp should be uninitialized!");
 
     ASSERT_PRECONDITION(!s_log.is_set(), "Transaction log should be uninitialized!");
 
@@ -169,7 +169,7 @@ void server_t::txn_begin(std::vector<int>& txn_log_fds_for_snapshot)
 
     // The begin_ts returned by register_begin_ts() should always be valid because it
     // retries if it is concurrently sealed.
-    ASSERT_INVARIANT(s_txn_id != c_invalid_gaia_txn_id, "Begin timestamp is invalid!");
+    ASSERT_INVARIANT(s_txn_id.is_valid(), "Begin timestamp is invalid!");
 
     // Ensure that there are no undecided txns in our snapshot window.
     safe_watermark_t pre_apply_watermark(watermark_type_t::pre_apply);
@@ -246,7 +246,7 @@ void server_t::handle_rollback_txn(
         c_message_current_event_is_inconsistent_with_state_transition);
 
     ASSERT_PRECONDITION(
-        s_txn_id != c_invalid_gaia_txn_id,
+        s_txn_id.is_valid(),
         "No active transaction to roll back!");
 
     ASSERT_PRECONDITION(s_log.is_set(), c_message_uninitialized_log_fd);
@@ -355,7 +355,7 @@ void server_t::handle_client_shutdown(
     s_session_shutdown = true;
 
     // If the session had an active txn, clean up all its resources.
-    if (s_txn_id != c_invalid_gaia_txn_id)
+    if (s_txn_id.is_valid())
     {
         bool client_disconnected = true;
         txn_rollback(client_disconnected);
@@ -552,6 +552,7 @@ void server_t::build_server_reply_info(
     gaia_txn_id_t txn_id,
     size_t log_fds_to_apply_count)
 {
+    builder.ForceDefaults(true);
     flatbuffers::Offset<server_reply_t> server_reply;
     const auto transaction_info = Createtransaction_info_t(builder, txn_id, log_fds_to_apply_count);
     server_reply = Createserver_reply_t(
@@ -568,6 +569,7 @@ void server_t::build_server_reply_error(
     session_state_t new_state,
     const char* error_message)
 {
+    builder.ForceDefaults(true);
     flatbuffers::Offset<server_reply_t> server_reply;
     const auto transaction_error = Createtransaction_error_tDirect(builder, error_message);
     server_reply = Createserver_reply_t(
@@ -653,7 +655,7 @@ void server_t::init_memory_manager(bool initializing)
             sizeof(s_shared_data.data()->objects));
 
         memory_manager::chunk_offset_t chunk_offset = s_memory_manager.allocate_chunk();
-        if (chunk_offset == c_invalid_chunk_offset)
+        if (!chunk_offset.is_valid())
         {
             throw memory_allocation_error_internal();
         }
@@ -727,12 +729,12 @@ void server_t::init_indexes()
         }
     }
 
-    while (++locator && locator <= last_locator)
+    while ((++locator).is_valid() && locator <= last_locator)
     {
         auto obj = locator_to_ptr(locator);
 
-        // Skip system objects -- they are not indexed.
-        if (is_system_object(obj->type))
+        // Skip catalog core objects -- they are not indexed.
+        if (is_catalog_core_object(obj->type))
         {
             continue;
         }
@@ -860,7 +862,7 @@ void server_t::create_local_snapshot(bool apply_logs)
     if (apply_logs)
     {
         ASSERT_PRECONDITION(
-            s_txn_id != c_invalid_gaia_txn_id && txn_metadata_t::is_txn_active(s_txn_id),
+            s_txn_id.is_valid() && txn_metadata_t::is_txn_active(s_txn_id),
             "create_local_snapshot() must be called from within an active transaction!");
         std::vector<int> txn_log_fds;
         get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds);
@@ -1171,6 +1173,7 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
                 {
                     // The connecting client will get ECONNRESET on their first
                     // read from this socket.
+                    std::cerr << "Disconnecting new session because authentication failed or session limit has been exceeded." << std::endl;
                     close_fd(session_socket);
                     continue;
                 }
@@ -1224,6 +1227,7 @@ void server_t::session_handler(int session_socket)
     // directly ensure that `session_limit_exceeded_internal` is thrown in this case.
     if (!reserve_safe_ts_index())
     {
+        std::cerr << "Disconnecting new session because session handler failed to reserve a safe_ts entry index." << std::endl;
         return;
     }
 
@@ -2081,7 +2085,7 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
 
         // If we're gc-ing the old version of an object that is being deleted,
         // then request the deletion of its locator from the corresponding record list.
-        if (!deallocate_new_offsets && txn_log->log_records[i].new_offset == c_invalid_gaia_offset)
+        if (!deallocate_new_offsets && txn_log->log_records[i].new_offset.is_valid() == false)
         {
             // Get the old object data to extract its type.
             db_object_t* db_object = offset_to_ptr(txn_log->log_records[i].old_offset);
@@ -2093,7 +2097,7 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
             record_list->request_deletion(txn_log->log_records[i].locator);
         }
 
-        if (offset_to_free)
+        if (offset_to_free.is_valid())
         {
             deallocate_object(offset_to_free);
         }
@@ -2327,10 +2331,10 @@ void server_t::gc_applied_txn_logs()
     // Ensure we clean up our cached chunk IDs when we exit this task.
     auto cleanup_fd = make_scope_guard([&]() { s_map_gc_chunks_to_versions.clear(); });
 
-    // First get a snapshot of the post-apply watermark, for an upper bound on the scan.
+    // Get a snapshot of the post-apply watermark, for an upper bound on the scan.
     safe_watermark_t post_apply_watermark(watermark_type_t::post_apply);
 
-    // Now get a snapshot of the post-GC watermark, for a lower bound on the scan.
+    // Get a snapshot of the post-GC watermark, for a lower bound on the scan.
     safe_watermark_t post_gc_watermark(watermark_type_t::post_gc);
 
     // Scan from the post-GC watermark to the post-apply watermark,
@@ -2419,15 +2423,16 @@ void server_t::gc_applied_txn_logs()
         chunk_manager.try_deallocate_chunk(chunk_version);
         chunk_manager.release();
     }
-}
 
-void server_t::truncate_txn_table()
-{
-    // First catch up the post-GC watermark.
+    // Finally, catch up the post-GC watermark.
     // Unlike log application, we don't try to perform GC and advance the
     // post-GC watermark in a single scan, because log application is strictly
     // sequential, while GC is sequentially initiated but concurrently executed.
+    update_post_gc_watermark();
+}
 
+void server_t::update_post_gc_watermark()
+{
     // Get a snapshot of the post-apply watermark, for an upper bound on the scan.
     safe_watermark_t post_apply_watermark(watermark_type_t::post_apply);
 
@@ -2490,75 +2495,81 @@ void server_t::truncate_txn_table()
 
             break;
         }
+    }
+}
 
-        // Get a snapshot of the pre-truncate watermark before advancing it.
-        gaia_txn_id_t prev_pre_truncate_watermark = get_watermark(watermark_type_t::pre_truncate);
+void server_t::truncate_txn_table()
+{
+    // Get a snapshot of the pre-truncate watermark before advancing it.
+    gaia_txn_id_t prev_pre_truncate_watermark = get_watermark(watermark_type_t::pre_truncate);
 
-        // Compute a safe truncation timestamp.
-        gaia_txn_id_t new_pre_truncate_watermark = get_safe_truncation_ts();
+    // Compute a safe truncation timestamp.
+    gaia_txn_id_t new_pre_truncate_watermark = get_safe_truncation_ts();
 
-        // Abort if the safe truncation timestamp does not exceed the current
-        // pre-truncate watermark.
-        // NB: It is expected that the safe truncation timestamp can be behind
-        // the pre-truncate watermark, because some published (but not yet
-        // validated) timestamps may have been behind the pre-truncate watermark
-        // when they were published (and will later fail validation).
-        if (new_pre_truncate_watermark <= prev_pre_truncate_watermark)
-        {
-            return;
-        }
+    // Abort if the safe truncation timestamp does not exceed the current
+    // pre-truncate watermark.
+    // NB: It is expected that the safe truncation timestamp can be behind
+    // the pre-truncate watermark, because some published (but not yet
+    // validated) timestamps may have been behind the pre-truncate watermark
+    // when they were published (and will later fail validation).
+    if (new_pre_truncate_watermark <= prev_pre_truncate_watermark)
+    {
+        return;
+    }
 
-        // Try to advance the pre-truncate watermark.
-        if (!advance_watermark(watermark_type_t::pre_truncate, new_pre_truncate_watermark))
-        {
-            // Abort if another thread has concurrently advanced the
-            // pre-truncate watermark, to avoid contention.
-            ASSERT_INVARIANT(
-                get_watermark(watermark_type_t::pre_truncate) > prev_pre_truncate_watermark,
-                "The watermark must have advanced if advance_watermark() failed!");
-
-            return;
-        }
-
-        // Mark any index entries as committed before the metadata is truncated. At this point, all
-        // aborted/terminated index entries before the pre-truncate watermark should have been
-        // garbage collected.
-        index::index_builder_t::mark_index_entries_committed(new_pre_truncate_watermark);
-
-        // We advanced the pre-truncate watermark, so actually truncate the txn
-        // table by decommitting its unused physical pages. Because this
-        // operation is concurrency-safe and idempotent, it can be done without
-        // mutual exclusion.
-        // REVIEW: The previous logic could also be used to safely advance the
-        // "head" pointer if the txn table were implemented as a circular
-        // buffer.
-
-        // Calculate the number of pages between the previously read pre-truncate
-        // watermark and our safe truncation timestamp. If the result exceeds zero,
-        // then decommit all such pages.
-        char* prev_page_start_address = get_txn_metadata_page_address_from_ts(prev_pre_truncate_watermark);
-        char* new_page_start_address = get_txn_metadata_page_address_from_ts(new_pre_truncate_watermark);
-
-        // Check for overflow.
+    // Try to advance the pre-truncate watermark.
+    if (!advance_watermark(watermark_type_t::pre_truncate, new_pre_truncate_watermark))
+    {
+        // Abort if another thread has concurrently advanced the
+        // pre-truncate watermark, to avoid contention.
         ASSERT_INVARIANT(
-            prev_page_start_address <= new_page_start_address,
-            "The new pre-truncate watermark must start on the same or later page than the previous pre-truncate watermark!");
+            get_watermark(watermark_type_t::pre_truncate) > prev_pre_truncate_watermark,
+            "The watermark must have advanced if advance_watermark() failed!");
 
-        size_t pages_to_decommit_count = (new_page_start_address - prev_page_start_address) / c_page_size_in_bytes;
-        if (pages_to_decommit_count > 0)
+        return;
+    }
+
+    // Mark any index entries as committed before the metadata is truncated. At this point, all
+    // aborted/terminated index entries before the pre-truncate watermark should have been
+    // garbage collected.
+    index::index_builder_t::mark_index_entries_committed(new_pre_truncate_watermark);
+
+    // We advanced the pre-truncate watermark, so actually truncate the txn
+    // table by decommitting its unused physical pages. Because this
+    // operation is concurrency-safe and idempotent, it can be done without
+    // mutual exclusion.
+    // REVIEW: The previous logic could also be used to safely advance the
+    // "head" pointer if the txn table were implemented as a circular
+    // buffer.
+
+    // Calculate the number of pages between the previously read pre-truncate
+    // watermark and our safe truncation timestamp. If the result exceeds zero,
+    // then decommit all such pages.
+    char* prev_page_start_address = get_txn_metadata_page_address_from_ts(prev_pre_truncate_watermark);
+    char* new_page_start_address = get_txn_metadata_page_address_from_ts(new_pre_truncate_watermark);
+
+    // Check for overflow.
+    ASSERT_INVARIANT(
+        prev_page_start_address <= new_page_start_address,
+        "The new pre-truncate watermark must start on the same or later page than the previous pre-truncate watermark!");
+
+    size_t pages_to_decommit_count = (new_page_start_address - prev_page_start_address) / c_page_size_in_bytes;
+    if (pages_to_decommit_count > 0)
+    {
+        // MADV_FREE seems like the best fit for our needs, since it allows
+        // the OS to lazily reclaim decommitted pages. (If we move the txn
+        // table to a shared mapping (e.g. memfd), then we'll need to switch
+        // to MADV_REMOVE.)
+        //
+        // REVIEW: MADV_FREE makes it impossible to monitor RSS usage, so
+        // use MADV_DONTNEED unless we actually need better performance (see
+        // https://github.com/golang/go/issues/42330 for a discussion of
+        // these issues). Moreover, we will never reuse the decommitted
+        // virtual memory, so using MADV_FREE wouldn't save the cost of hard
+        // page faults on first access to decommitted pages.
+        if (-1 == ::madvise(prev_page_start_address, pages_to_decommit_count * c_page_size_in_bytes, MADV_DONTNEED))
         {
-            // MADV_FREE seems like the best fit for our needs, since it allows
-            // the OS to lazily reclaim decommitted pages. (If we move the txn
-            // table to a shared mapping (e.g. memfd), then we'll need to switch
-            // to MADV_REMOVE.)
-            // REVIEW: MADV_FREE makes it impossible to monitor RSS usage, so
-            // use MADV_DONTNEED unless we actually need better performance.
-            // (See https://github.com/golang/go/issues/42330 for a discussion
-            // of these issues.)
-            if (-1 == ::madvise(prev_page_start_address, pages_to_decommit_count * c_page_size_in_bytes, MADV_DONTNEED))
-            {
-                throw_system_error("madvise(MADV_DONTNEED) failed!");
-            }
+            throw_system_error("madvise(MADV_DONTNEED) failed!");
         }
     }
 }
@@ -2622,13 +2633,13 @@ void server_t::perform_pre_commit_work_for_txn()
 
         // In case of insertions, we want to update the record list for the object's type.
         // We do this after updating the shared locator view, so we can access the new object's data.
-        if (lr->old_offset == c_invalid_gaia_offset)
+        if (lr->old_offset.is_valid() == false)
         {
             gaia_locator_t locator = lr->locator;
             gaia_offset_t offset = lr->new_offset;
 
             ASSERT_INVARIANT(
-                offset != c_invalid_gaia_offset, "An unexpected invalid object offset was found in the log record!");
+                offset.is_valid(), "An unexpected invalid object offset was found in the log record!");
 
             db_object_t* db_object = offset_to_ptr(offset);
             std::shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(db_object->type);

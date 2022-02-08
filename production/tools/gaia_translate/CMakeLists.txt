@@ -1,3 +1,8 @@
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 enable_testing()
 project(gaiat VERSION 0.0.0)
 

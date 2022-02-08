@@ -247,7 +247,7 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
     gaia_log::db().trace("Creating metadata for type: '{}'", type);
 
     gaia_id_t record_id = get_record_id(type);
-    if (record_id == c_invalid_gaia_id)
+    if (!record_id.is_valid())
     {
         throw invalid_object_type_internal(type);
     }
