@@ -172,7 +172,6 @@ public:
 
         // Update the global counter.
         m_total_txn_count += local_txn_count;
-        std::cerr << "Owner of object " << object_id << " adding " << local_txn_count << " to global txn count..." << std::endl;
     }
 };
 
@@ -181,11 +180,10 @@ TEST_F(db_concurrent_client_test, DISABLED_test_concurrent_update_throughput)
     // Handle termination gracefully.
     db_concurrent_client_test::register_signal_handler();
 
-    for (size_t num_workers_exp = 0; num_workers_exp < 5; ++num_workers_exp)
+    for (size_t num_workers = 1; num_workers <= std::thread::hardware_concurrency(); ++num_workers)
     {
         m_total_txn_count = 0;
 
-        size_t num_workers = 1 << num_workers_exp;
         init_data(num_workers);
 
         m_workers_ready.reset(num_workers);
@@ -225,8 +223,9 @@ TEST_F(db_concurrent_client_test, DISABLED_test_concurrent_update_throughput)
         // Compute elapsed time.
         auto elapsed_time_secs = gaia::common::timer_t::ns_to_s(gaia::common::timer_t::get_duration(start_time));
 
-        // Output the worker count, txn count, elapsed time, and TPS, then exit.
+        // Compute transactions/second.
         auto tps = static_cast<size_t>(std::ceil(static_cast<double>(m_total_txn_count) / elapsed_time_secs));
-        std::cout << num_workers << " " << m_total_txn_count << " " << elapsed_time_secs << " " << tps << std::endl;
+
+        std::cout << num_workers << " " << tps << std::endl;
     }
 }
