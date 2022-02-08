@@ -261,7 +261,7 @@ private:
     static inline std::atomic<gaia_txn_id_t> s_last_queued_commit_ts_upper_bound = c_invalid_gaia_txn_id;
 
     // Keep a track of undecided txns submitted to the async_disk_writer.
-    static inline std::set<gaia_txn_id_t> s_seen_and_undecided_txn_set{};
+    static inline std::set<gaia_txn_id_t> s_txn_decision_not_queued_set{};
 
 private:
     // Returns the current value of the given watermark.
@@ -436,7 +436,8 @@ private:
 
     static void recover_persistent_log();
 
-    static void flush_pending_writes();
+    // Method should only be called on server shutdown.
+    static void flush_pending_writes_on_server_shutdown();
 
     static void session_handler(int session_socket);
 

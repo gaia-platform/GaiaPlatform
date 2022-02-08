@@ -85,7 +85,7 @@ public:
     /**
      * Validate the result of I/O calls submitted to the kernel for processing.
      */
-    void perform_flushed_batch_maintenance();
+    void perform_flushed_batch_results_and_do_maintenance();
 
 private:
     static constexpr char c_gaia_wal_dir_name[] = "/wal_dir";

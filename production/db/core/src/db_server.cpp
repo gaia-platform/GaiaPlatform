@@ -290,6 +290,13 @@ void server_t::persist_pending_writes(bool should_wait_for_completion)
     auto start = std::chrono::steady_clock::now();
     auto end = start;
     bool updates_exist = false;
+    size_t num_scans = 0;
+
+    // Heuristic so we aren't consuming 100% CPU in the while loop scanning for items - even when
+    // new commit ts don't exist. The alternatives is to have a minimum loop time (this could be
+    // 5-10% of c_txn_group_timeout_us) instead of a minimum number of scans. Further changes here
+    // pending experimentation.
+    size_t c_max_consecutive_scans_with_no_updates = 5;
 
     // Run loop till there are no more updates to consume or there is a timeout.
     while (true)
@@ -297,67 +304,96 @@ void server_t::persist_pending_writes(bool should_wait_for_completion)
         // Take snapshot of last allocated timestamp.
         gaia_txn_id_t last_allocated_ts = get_last_txn_id();
 
-        for (gaia_txn_id_t ts = s_last_queued_commit_ts_upper_bound.load() + 1; ts <= last_allocated_ts; ++ts)
+        bool uninitialized_ts_seen = false;
+
+        // We don't require safe_ts_t guarantees outside this loop.
+        for (safe_ts_t ts = s_last_queued_commit_ts_upper_bound.load() + 1; ts <= last_allocated_ts; ++ts)
         {
             if (txn_metadata_t::is_uninitialized_ts(ts))
             {
-                // Simply continue; validation is responsible for sealing ts.
+                uninitialized_ts_seen = true;               
                 continue;
             }
 
             if (txn_metadata_t::is_commit_ts(ts))
             {
-                updates_exist = true;
-                int txn_log_fd = txn_metadata_t::get_txn_log_fd(ts);
-                if (txn_log_fd == -1)
-                {
-                    continue;
-                }
-                s_seen_and_undecided_txn_set.insert(ts);
-
-                // Add txn writes to the async_write_batch. Internally writes will get logged to disk when the
-                // batch becomes full.
-                s_log_handler->process_txn_log_and_write(txn_log_fd, ts);
-            }
-        }
-
-        // Update upper bound.
-        s_last_queued_commit_ts_upper_bound = last_allocated_ts;
-
-        // Iterate through commit ts of previously undecided txn's and create decision records for them.
-        // It would be correct to update this if condition to a while loop, but in that case writes to the txn log
-        // won't proceed in parallel with validation when the number of entries to the async_write_batch doesn't meet the criteria
-        // for it to get flushed to disk.
-        if (s_seen_and_undecided_txn_set.size() > 0)
-        {
-            for (auto it = s_seen_and_undecided_txn_set.cbegin(); it != s_seen_and_undecided_txn_set.cend();)
-            {
-                auto ts = *it;
-
-                if (txn_metadata_t::is_txn_validating(ts))
-                {
-                    // This ensures that if a txn with commit ts 'X' has been decided then all txn's with
-                    // commit ts < X have also been decided.
-                    break;
-                }
-
-                if (txn_metadata_t::is_txn_decided(ts))
+                // Avoid duplicate writes.
+                if (s_txn_decision_not_queued_set.count(ts) == 0)
                 {
                     updates_exist = true;
                     int txn_log_fd = txn_metadata_t::get_txn_log_fd(ts);
-                    ASSERT_INVARIANT(txn_log_fd != -1, "Invalid log fd");
-                    mapped_log_t log;
-                    log.open(txn_log_fd);
-                    auto decision = txn_metadata_t::is_txn_committed(ts) ? persistence::decision_type_t::commit : persistence::decision_type_t::abort;
-                    txn_decisions.emplace_back(persistence::decision_entry_t{ts, decision});
-                    it = s_seen_and_undecided_txn_set.erase(it);
+                    // if (txn_log_fd == -1)
+                    // {
+                    //     continue;
+                    // }
+                    s_txn_decision_not_queued_set.insert(ts);
+
+                    // Add txn writes to the async_write_batch. Internally writes will get logged to disk when the
+                    // batch becomes full.
+                    s_log_handler->process_txn_log_and_write(txn_log_fd, ts);
+                }     
+            }
+        }
+
+        // An uninitialized txn metadata entry could always be used for a commit_ts after the above scan completed.
+        // Thus update s_last_queued_commit_ts_upper_bound only if no uninitialized ts are observed.
+        if (!uninitialized_ts_seen)
+        {
+            s_last_queued_commit_ts_upper_bound = last_allocated_ts;
+        }
+
+        // Iterate through commit ts of txn's for which the decision hasn't been sent to the
+        // async_disk_writer yet and create decision records for them.
+        auto it = s_txn_decision_not_queued_set.cbegin();
+        while (it != s_txn_decision_not_queued_set.cend())
+        {
+            auto ts = *it;
+
+            if (txn_metadata_t::is_txn_validating(ts))
+            {
+                // This ensures that if a txn with commit ts 'X' has been decided then all txn's
+                // with commit ts < X have also been decided.
+                break;
+            }
+            else
+            {
+                // Txn is decided at this point.
+                updates_exist = true;
+                auto decision = txn_metadata_t::is_txn_committed(ts) ? persistence::decision_type_t::commit 
+                    : persistence::decision_type_t::abort;
+                txn_decisions.emplace_back({ts, decision});
+
+                // No uninitialized ts observed. Delete from s_seen_txn_and_unlogged_desision_set
+                if (!uninitialized_ts_seen)
+                {
+                    // Iterator will advance with this assignment.
+                    it = s_txn_decision_not_queued_set.erase(it);
+                } 
+                else
+                {
+                    // Skip any deletions from s_seen_txn_and_unlogged_desision_set array. This
+                    // is done to stop duplicate logging of txn updates. Although this won't
+                    // stop duplicate logging of the decision record - which is tolerated since
+                    // this should be much lower cost than logging updates from all txn's found
+                    // in this scan.
+                    it++;
                 }
             }
         }
 
         end = std::chrono::steady_clock::now();
-
-        if (std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() >= c_txn_group_timeout_us)
+        
+        if (updates_exist)
+        {
+            // Reset.
+            num_scans = 0;
+        }
+        else
+        {
+            num_scans ++;
+        }
+        
+        if (num_scans == c_max_consecutive_scans_with_no_updates || std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() >= c_txn_group_timeout_us)
         {
             break;
         }
@@ -917,12 +953,13 @@ void server_t::recover_db()
     }
 }
 
-void server_t::flush_pending_writes()
+void server_t::flush_pending_writes_on_server_shutdown()
 {
     while (true)
     {
-        persist_pending_writes(c_txn_group_timeout_us);
-        if (s_seen_and_undecided_txn_set.size() == 0)
+        bool should_wait_for_completion = true;
+        persist_pending_writes(should_wait_for_completion);
+        if (s_txn_decision_not_queued_set.size() == 0)
         {
             break;
         }
@@ -992,7 +1029,7 @@ void server_t::log_writer_handler()
                 }
                 else
                 {
-                    ASSERT_INVARIANT(false, c_message_unexpected_fd);
+                    ASSERT_UNREACHABLE(false, c_message_unexpected_fd);
                 }
             }
 
@@ -1006,30 +1043,30 @@ void server_t::log_writer_handler()
                 ssize_t bytes_read = ::read(s_validate_persistence_batch_eventfd, &val, sizeof(val));
                 if (bytes_read == -1)
                 {
-                    ASSERT_INVARIANT(errno == EAGAIN, "");
+                    ASSERT_INVARIANT(errno == EAGAIN, "Unexpected error! read() is expected to fail with EAGAIN for a non-blocking eventfd.");
                 }
                 else
                 {
                     // Validate the results of a previously flushed batch only if read returns successfully.
-                    s_log_handler->validate_flushed_batch();
+                    s_log_handler->perform_flushed_batch_results_and_do_maintenance();
                 }
 
                 persist_pending_writes(c_txn_group_timeout_us);
             }
             else if (ev.data.fd == s_signal_log_write_eventfd)
             {
-                read_eventfd(s_signal_log_write_eventfd);
+                consume_eventfd(s_signal_log_write_eventfd);
                 persist_pending_writes(c_txn_group_timeout_us);
             }
             else if (ev.data.fd == s_signal_decision_eventfd)
             {
-                read_eventfd(s_signal_decision_eventfd);
+                consume_eventfd(s_signal_decision_eventfd);
                 persist_pending_writes(c_txn_group_timeout_us);
             }
             else if (ev.data.fd == s_server_shutdown_eventfd)
             {
-                // Server shutdown; before shutdown finish persisting any pending writes before exiting.
-                flush_pending_writes();
+                // Server shutdown: finish persisting any pending writes before exiting.
+                flush_pending_writes_on_server_shutdown();
                 shutdown = true;
             }
             else
@@ -1430,7 +1467,7 @@ void server_t::client_dispatch_handler(const std::string& socket_name)
             }
             else if (ev.data.fd == s_server_shutdown_eventfd)
             {
-                consume_eventfd(s_server_shutdown_eventfd);
+                read_eventfd(s_server_shutdown_eventfd);
                 return;
             }
             else
@@ -1625,7 +1662,7 @@ void server_t::session_handler(int session_socket)
             else if (ev.data.fd == s_server_shutdown_eventfd)
             {
                 ASSERT_INVARIANT(ev.events == EPOLLIN, "Expected EPOLLIN event type!");
-                consume_eventfd(s_server_shutdown_eventfd);
+                read_eventfd(s_server_shutdown_eventfd);
                 event = session_event_t::SERVER_SHUTDOWN;
             }
             else
@@ -1861,7 +1898,7 @@ void server_t::stream_producer_handler(
             else if (ev.data.fd == cancel_eventfd)
             {
                 ASSERT_INVARIANT(ev.events == EPOLLIN, c_message_unexpected_event_type);
-                consume_eventfd(cancel_eventfd);
+                read_eventfd(cancel_eventfd);
                 producer_shutdown = true;
             }
             else
@@ -2930,7 +2967,8 @@ bool server_t::txn_commit()
 
     if (c_use_gaia_log_implementation)
     {
-        // Signal to the persistence thread to write txn log to disk.
+        // Signal to the persistence thread to write txn log to disk. The commit_ts value being
+        // signaled in this case is irrelevant since it is never used by the polling thread.
         eventfd_write(s_signal_log_write_eventfd, static_cast<eventfd_t>(commit_ts));
     }
 

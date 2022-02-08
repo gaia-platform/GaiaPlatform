@@ -230,7 +230,7 @@ inline void signal_eventfd_multiple_threads(int eventfd)
 /**
  * Simply return eventfd counter value.
  */
-inline uint64_t read_eventfd(int eventfd)
+inline uint64_t consume_eventfd(int eventfd)
 {
     uint64_t val;
     ssize_t bytes_read = ::read(eventfd, &val, sizeof(val));
@@ -244,10 +244,10 @@ inline uint64_t read_eventfd(int eventfd)
     return val;
 }
 
-inline void consume_eventfd(int eventfd)
+inline void read_eventfd(int eventfd)
 {
     // We should always read the value 1 from a semaphore eventfd.
-    uint64_t val = read_eventfd(eventfd);
+    uint64_t val = consume_eventfd(eventfd);
     ASSERT_POSTCONDITION(val == 1, "Unexpected value!");
 }
 
