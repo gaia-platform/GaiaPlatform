@@ -16,6 +16,7 @@
 #include <liburing.h>
 
 #include "gaia_internal/common/fd_helpers.hpp"
+#include "gaia_internal/common/futex_helpers.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 
 #include "async_write_batch.hpp"
@@ -118,9 +119,11 @@ void async_disk_writer_t::perform_post_completion_maintenance()
         // Set durability flags for txn.
         transactions::txn_metadata_t::set_txn_durable(decision.commit_ts);
 
-        // Unblock session thread.
-        // TODO FUTEX
-        signal_eventfd_single_thread(itr->second);
+        // Unblock session thread. 
+        void* addr = transactions::txn_metadata_t::get_txn_metadata_entry_addr(decision.commit_ts);
+
+        // Assert since anything else implies a programming issue.
+        ASSERT_INVARIANT(common::futex_wake(addr, 1) == 1, "Only a single session thread should be waiting to wake up.");        
     }
 
     m_in_flight_batch->clear_decision_batch();

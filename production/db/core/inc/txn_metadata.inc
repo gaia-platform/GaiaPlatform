@@ -377,6 +377,20 @@ txn_metadata_entry_t txn_metadata_t::get_entry()
     return txn_metadata_entry_t{s_txn_metadata_map[m_ts].load()};
 }
 
+void* txn_metadata_t::get_txn_metadata_entry_addr(gaia_txn_id_t commit_ts)
+{
+    ASSERT_PRECONDITION(s_txn_metadata_map, "Transaction metadata has not been initialized!");
+
+    return &s_txn_metadata_map[commit_ts];
+}
+
+uint32_t txn_metadata_t::get_txn_metadata_entry_higher_bits(gaia_txn_id_t commit_ts)
+{
+    ASSERT_PRECONDITION(s_txn_metadata_map, "Transaction metadata has not been initialized!");
+
+    return static_cast<uint32_t>(s_txn_metadata_map[commit_ts].load() >> 32);
+}
+
 void txn_metadata_t::set_entry(txn_metadata_entry_t entry)
 {
     s_txn_metadata_map[m_ts].store(entry.get_word());

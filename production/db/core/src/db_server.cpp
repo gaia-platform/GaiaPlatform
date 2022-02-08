@@ -27,6 +27,7 @@
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/socket_helpers.hpp"
 #include "gaia_internal/common/system_error.hpp"
+#include "gaia_internal/common/futex_helpers.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_object.hpp"
@@ -2964,12 +2965,23 @@ bool server_t::txn_commit()
 
         if (s_log_handler)
         {
+            void* addr = transactions::txn_metadata_t::get_txn_metadata_entry_addr(commit_ts);
+
+            // We are only interested in whether the persistence bit is set.
+            // futex_wait() will only wait if the int32_t at addr matches the expected value.
+            // The addr points to the last 32 bits of the txn metadata entry for commit_ts.
+            auto expected_val = transactions::txn_metadata_t::get_txn_metadata_entry_higher_bits(commit_ts);
+
+            // Skip waiting in case persistence bit is set.
             if (txn_metadata_t::is_txn_durable(commit_ts))
             {
                 return is_committed;
             }
 
-            ASSERT_POSTCONDITION(txn_metadata_t::is_txn_durable(commit_ts), "Txn should be durable post eventfd read");
+            // Wait.
+            common::futex_wait(addr, expected_val);
+                    
+            ASSERT_POSTCONDITION(txn_metadata_t::is_txn_durable(commit_ts), "Txn should be durable.");
         }
     }
     else
