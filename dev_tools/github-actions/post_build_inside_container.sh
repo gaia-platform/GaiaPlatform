@@ -5,6 +5,9 @@
 # All rights reserved.
 #############################################
 
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/ without the fail fast.
+set -uo pipefail
+
 # Simple function to start the process off.
 start_process() {
     if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -48,7 +51,6 @@ show_usage() {
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
     echo "  -a,--action         Action to execute inside of the container."
-    echo "  -g,--gaia-version   Version associate with the build."
     echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
     echo ""
@@ -59,7 +61,6 @@ show_usage() {
 parse_command_line() {
     VERBOSE_MODE=0
     ACTION_NAME=
-    GAIA_VERSION=
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
@@ -69,15 +70,6 @@ parse_command_line() {
                 show_usage
             fi
             ACTION_NAME=$2
-            shift
-            shift
-        ;;
-        -g|--gaia-version)
-            if [ -z "$2" ] ; then
-                echo "Error: Argument $1 must be followed by the version of Gaia being built." >&2
-                show_usage
-            fi
-            GAIA_VERSION=$2
             shift
             shift
         ;;
@@ -101,10 +93,6 @@ parse_command_line() {
 
     if [ -z "$ACTION_NAME" ] ; then
         echo "Error: Argument -a/--action is required" >&2
-        show_usage
-    fi
-    if [ -z "$GAIA_VERSION" ] ; then
-        echo "Error: Argument -g/--gaia-version is required" >&2
         show_usage
     fi
 }
@@ -142,12 +130,18 @@ if [ "$ACTION_NAME" == "unit_tests" ] ; then
         complete_process 1 "Unit tests failed to complete successfully."
     fi
 elif [ "$ACTION_NAME" == "publish_package" ] ; then
-    #cp gaia-${{ env.GAIA_VERSION }}_amd64.deb gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb
+    GAIA_PACKAGE_NAME=$(tr -d '\n' < /build/production/gaia_package_name.txt)
+    if [ -z "$GAIA_PACKAGE_NAME" ]; then
+        complete_process 1 "Failed to read the Gaia Package Name from gaia_package_name.txt"
+    fi
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Gaia Package Name is: $GAIA_PACKAGE_NAME"
+    fi
     cpack -V
     mkdir -p /build/output/package
-    cp /build/production/"gaia-${GAIA_VERSION}_amd64.deb" "/build/output/package/gaia-${GAIA_VERSION}_amd64.deb"
+    cp /build/production/"${GAIA_PACKAGE_NAME}.deb" "/build/output/package/${GAIA_PACKAGE_NAME}.deb"
 else
     complete_process 1 "Action '$ACTION_NAME' is not known."
 fi
 
-complete_process 0
+complete_process 0 ""

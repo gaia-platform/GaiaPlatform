@@ -58,3 +58,4 @@ set(BUILD_NUMBER "$ENV{USER}.${CURRENT_TIME}")
 # If this is a CI build this value is set directly in the hpp.in file.
 set(IS_CI_BUILD false)
 configure_file(${GAIA_INC}/gaia_internal/common/gaia_version.hpp.in ${GAIA_INC}/gaia_internal/common/gaia_version.hpp)
+configure_file(${GAIA_INC}/gaia_internal/common/gaia_package_name.txt.in ${CMAKE_BINARY_DIR}/gaia_package_name.txt)

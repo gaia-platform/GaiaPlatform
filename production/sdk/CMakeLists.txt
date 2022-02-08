@@ -75,7 +75,7 @@ set(CPACK_DEBIAN_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}_${CPAC
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   # We only link libc++ in Debug builds.
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc++-10-dev,libc++abi-10-dev")
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "debconf, libc++-10-dev, libc++abi-10-dev")
   # REVIEW (GAIAPLAT-1474): When CPack correctly applies
   # CPACK_DEBIAN_PACKAGE_RECOMMENDS, then uncomment the following 2 lines and
   # remove the preceding definition of CPACK_DEBIAN_PACKAGE_DEPENDS.
@@ -92,7 +92,7 @@ else()
   # built with libstdc++ (which is the default stdlib in both gcc and clang).
   # GCC 9 is installed by default on Ubuntu 20.04 with the build-essential
   # package, so we try to be compatible with that.
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++-9-dev")
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "debconf, libstdc++-9-dev")
   # REVIEW (GAIAPLAT-1474): When CPack correctly applies
   # CPACK_DEBIAN_PACKAGE_RECOMMENDS, then uncomment the following 2 lines and
   # remove the preceding definition of CPACK_DEBIAN_PACKAGE_DEPENDS.
@@ -117,12 +117,14 @@ set(CPACK_DEBHELPER_INPUT
   service.in
   links.in
   dirs.in
+  templates.in
+  postinst.in
 )
 # List of debhelpers to run.
 # If left unset the default list of debhelpers is executed.
 set(CPACK_DEBHELPER_RUN
   dh_install dh_installdirs dh_installchangelogs
-  dh_installdocs dh_installsystemd
+  dh_installdocs dh_installdebconf dh_installsystemd
   dh_usrlocal dh_link dh_dwz dh_compress dh_fixperms)
 # Let the debhelpers generate the debian/control file (instead of CPack).
 set(CPACK_DEBHELPER_GENCONTROL ON)
