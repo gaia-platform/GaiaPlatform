@@ -115,23 +115,27 @@ generate_report() {
     echo "Creating HTML representation of coverage $COVERAGE_TYPE."
     mkdir -p "$HTML_OUTPUT_DIR"
     # shellcheck disable=SC2086
-    /usr/lib/llvm-13/bin/llvm-cov show \
+    if ! /usr/lib/llvm-13/bin/llvm-cov show \
         -instr-profile=$COVERAGE_PROFILE \
         -output-dir="$HTML_OUTPUT_DIR" \
         $COVERAGE_HTML_FLAGS \
         $COVERAGE_BINARIES \
-        $SOURCE_DIRECTORIES
+        $SOURCE_DIRECTORIES ; then
+        complete_process 1 "Unable to create HTML representation of coverage $COVERAGE_TYPE."
+    fi
     chmod -R 666 "$HTML_OUTPUT_DIR/coverage"
     chmod 666 "$HTML_OUTPUT_DIR/index.html"
     chmod 666 "$HTML_OUTPUT_DIR/style.css"
 
     echo "Generating export for $COVERAGE_TYPE."
     # shellcheck disable=SC2086
-    /usr/lib/llvm-13/bin/llvm-cov export \
+    if ! /usr/lib/llvm-13/bin/llvm-cov export \
         -instr-profile=$COVERAGE_PROFILE \
         $COVERAGE_EXPORT_FLAGS \
         $COVERAGE_BINARIES \
-        $SOURCE_DIRECTORIES > "$FILTER_NAME"
+        $SOURCE_DIRECTORIES > "$FILTER_NAME" ; then
+        complete_process 1 "Unable to generate export for $COVERAGE_TYPE."
+    fi
 }
 
 # Set up any project based local script variables.
@@ -160,16 +164,20 @@ pushd /build/production/output || exit
 rm -rf ./*
 popd || exit
 
+# Note that for the purposes of coverage, we are not concerned with pass/fail.
+# That responsibility is covered by the other jobs.
 echo "Running tests with profile-enabled binaries."
 export LLVM_PROFILE_FILE="/build/production/tests.%4m.profraw"
 ctest --output-log /build/production/output/ctest.log --output-junit /build/production/output/ctest.xml
 
 echo "Creating an input file of all created profiles."
-find . -name "*.profraw" > /build/production/output/profiles.txt
+find . -name "*.profraw" ! -path "./llvm/*" > /build/production/output/profiles.txt
 cat /build/production/output/profiles.txt
 
 echo "Merging all profiles into a single profile data file."
-/usr/lib/llvm-13/bin/llvm-profdata merge --input-files /build/production/output/profiles.txt --output tests.profdata
+if ! /usr/lib/llvm-13/bin/llvm-profdata merge --input-files /build/production/output/profiles.txt --output tests.profdata ; then
+    complete_process 1 "Unable to merge profiles into a single data file."
+fi
 
 #
 # Source directories, by team:
@@ -212,10 +220,26 @@ generate_report \
     "/source/production/inc /source/production/common"
 
 echo "Producing Cobertura Coverage files."
-/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.filter --base-dir /source/production --output /build/production/output/coverage.xml
-/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.rules --base-dir /source/production --output /build/production/output/rules.xml
-/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.database --base-dir /source/production --output /build/production/output/database.xml
-/usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.common --base-dir /source/production --output /build/production/output/common.xml
+if ! /usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.filter \
+    --base-dir /source/production \
+    --output /build/production/output/coverage.xml ; then
+    complete_process 1 "Unable to produce Cobertura Coverage file: coverage.xml"
+fi
+if ! /usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.rules \
+    --base-dir /source/production \
+    --output /build/production/output/rules.xml ; then
+    complete_process 1 "Unable to produce Cobertura Coverage file: rules.xml"
+fi
+if ! /usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.database \
+    --base-dir /source/production \
+    --output /build/production/output/database.xml ; then
+    complete_process 1 "Unable to produce Cobertura Coverage file: database.xml"
+fi
+if ! /usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.common \
+    --base-dir /source/production \
+    --output /build/production/output/common.xml ; then
+    complete_process 1 "Unable to produce Cobertura Coverage file: common.xml"
+fi
 
 mkdir -p /build/output
 cp -a /build/production/output /build
