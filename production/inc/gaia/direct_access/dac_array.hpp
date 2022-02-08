@@ -47,10 +47,6 @@ public:
 
     std::vector<T_type> to_vector() const
     {
-        if (is_null())
-        {
-            return std::vector<T_type>();
-        }
         return std::vector<T_type>(data(), data() + size());
     }
 
