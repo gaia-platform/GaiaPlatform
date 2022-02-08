@@ -13,6 +13,8 @@ add_library(gaia_qp STATIC
   src/predicate.cpp
   src/scan_generators.cpp)
 
+configure_gaia_target(gaia_qp)
+
 set(GAIA_QP_PRIVATE_INCLUDES
   "${GAIA_REPO}/production/db/core/inc"
   "${GAIA_INC}"

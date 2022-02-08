@@ -50,6 +50,15 @@ public:
         return (*m_vector)[i];
     }
 
+    std::vector<T_type> to_vector() const
+    {
+        if (is_null())
+        {
+            return std::vector<T_type>();
+        }
+        return std::vector<T_type>(data(), data() + size());
+    }
+
 private:
     // Make the dac_object_t a friend so it can call the private vector constructor.
     template <gaia::common::gaia_type_t::value_type gaia_type, typename T_gaia, typename T_fb, typename T_obj>

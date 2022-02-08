@@ -52,7 +52,6 @@ atomic<int> g_wait_for_count;
 atomic<int> g_num_conflicts;
 bool g_manual_commit;
 
-// When an employee is inserted insert an address.
 void rule_insert(const rule_context_t* context)
 {
     employee_t e = employee_t::get(context->record);
@@ -61,6 +60,7 @@ void rule_insert(const rule_context_t* context)
     g_wait_for_count--;
 }
 
+// When an employee is inserted insert an address.
 void rule_insert_address(const rule_context_t* context)
 {
     employee_t e = employee_t::get(context->record);
@@ -487,7 +487,6 @@ TEST_F(rule_integration_test, test_two_rules)
         txn.commit();
 
         // Update second record.
-        employee_t::delete_row(first);
         writer = employee_t::get(second).writer();
         writer.name_first = c_name;
         writer.update_row();
