@@ -26,7 +26,7 @@
 #include <llvm/ADT/Twine.h>
 #pragma clang diagnostic pop
 
-#include "gaia_internal/catalog/gaiat_catalog_facade.hpp"
+#include "gaia_internal/catalog/translation_catalog_facade.hpp"
 #include "gaia_internal/common/gaia_version.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/db/db.hpp"
@@ -45,7 +45,7 @@ using namespace clang::ast_matchers;
 using namespace ::gaia;
 using namespace ::gaia::common;
 using namespace ::gaia::translation;
-using namespace ::gaia::catalog::generate;
+using namespace ::gaia::translation::generate;
 using namespace clang::gaia::catalog;
 
 cl::OptionCategory g_translation_engine_category("Translation engine options");
@@ -643,7 +643,7 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
     {
         llvm::SmallString<c_size_32> class_qualification_string = StringRef("gaia::");
         class_qualification_string.append(db_namespace(getCatalogTableData().find(insert_data.table_name)->second.dbName));
-        string class_name = gaiat_table_facade_t::class_name(insert_data.table_name);
+        string class_name = translation_table_facade_t::class_name(insert_data.table_name);
         class_qualification_string.append(class_name);
         class_qualification_string.append("::");
         llvm::SmallString<c_size_64> replacement_string = class_qualification_string.str();
@@ -872,7 +872,7 @@ void generate_table_subscription(
     Rewriter& rewriter)
 {
     llvm::SmallString<c_size_256> common_subscription_code;
-    string class_name = gaiat_table_facade_t::class_name(table);
+    string class_name = translation_table_facade_t::class_name(table);
     if (getCatalogTableData().find(table) == getCatalogTableData().end())
     {
         gaiat::diag().emit(diag::err_table_not_found) << table;
@@ -1124,7 +1124,7 @@ void generate_table_subscription(
 
 void optimize_subscription(StringRef table, int rule_count)
 {
-    string class_name = gaiat_table_facade_t::class_name(table);
+    string class_name = translation_table_facade_t::class_name(table);
     // This is to reuse the same rule function and rule_binding_t
     // for the same table in case update and insert operation.
     if (g_insert_tables.find(table) != g_insert_tables.end())

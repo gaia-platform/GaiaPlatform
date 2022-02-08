@@ -74,7 +74,7 @@ public:
     std::string field_name() const;
     std::string field_type(bool is_function_parameter = false) const;
     std::string table_name() const;
-    std::string table_type_name() const;
+    std::string table_class_name() const;
     std::pair<std::string, std::string> generate_expr_variable() const;
     bool is_string() const;
     bool is_vector() const;

@@ -8,22 +8,22 @@
 #include "gaia_internal/catalog/catalog_facade.hpp"
 
 /*
- * Provides gaiat specific facade.
+ * Provides translation specific facade.
  */
 
 namespace gaia
 {
-namespace catalog
+namespace translation
 {
 namespace generate
 {
 
-class gaiat_table_facade_t : public table_facade_t
+class translation_table_facade_t : public gaia::catalog::generate::table_facade_t
 {
 public:
     static std::string class_name(const std::string& table_name);
 };
 
 } // namespace generate
-} // namespace catalog
+} // namespace translation
 } // namespace gaia

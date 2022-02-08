@@ -46,7 +46,7 @@ add_library(gaia_catalog STATIC
   src/fdw_ddl_generator.cpp
   src/catalog.cpp
   src/catalog_facade.cpp
-  src/gaiac_catalog_facade.cpp
+  src/compilation_catalog_facade.cpp
   src/dac_generator.cpp
   src/gaia_generate.cpp
   ${FLATBUFFERS_SRC}/src/code_generators.cpp)

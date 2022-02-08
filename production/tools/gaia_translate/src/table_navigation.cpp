@@ -11,7 +11,7 @@
 #include <llvm/ADT/Twine.h>
 #pragma clang diagnostic pop
 
-#include "gaia_internal/catalog/gaiat_catalog_facade.hpp"
+#include "gaia_internal/catalog/translation_catalog_facade.hpp"
 #include "gaia_internal/common/random.hpp"
 
 #include "diagnostics.h"
@@ -19,8 +19,9 @@
 
 using namespace std;
 using namespace clang;
-using namespace ::gaia::translation;
 using namespace clang::gaia::catalog;
+using namespace ::gaia::translation;
+using namespace ::gaia::translation::generate;
 
 constexpr char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
 constexpr int c_variable_length = 15;
@@ -97,7 +98,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(llv
                 {
                     return {};
                 }
-                string class_name = catalog::generate::gaiat_table_facade_t::class_name(table);
+                string class_name = translation_table_facade_t::class_name(table);
                 return_value.prefix.append("\n{\n");
                 return_value.prefix.append(c_nolint_range_copy);
                 return_value.prefix.append("\nfor (auto ");

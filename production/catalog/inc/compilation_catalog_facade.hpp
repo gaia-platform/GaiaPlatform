@@ -8,7 +8,7 @@
 #include "gaia_internal/catalog/catalog_facade.hpp"
 
 /*
- * Provides gaiac specific facade.
+ * Provides compilation specific facade.
  */
 
 namespace gaia
@@ -18,10 +18,10 @@ namespace catalog
 namespace generate
 {
 
-class gaiac_incoming_link_facade_t : public link_facade_t
+class compilation_incoming_link_facade_t : public link_facade_t
 {
 public:
-    explicit gaiac_incoming_link_facade_t(const link_facade_t& link);
+    explicit compilation_incoming_link_facade_t(const link_facade_t& link);
 
     std::string parent_offset() const;
     uint16_t parent_offset_value() const;
@@ -31,10 +31,10 @@ public:
     uint16_t prev_offset_value() const;
 };
 
-class gaiac_outgoing_link_facade_t : public link_facade_t
+class compilation_outgoing_link_facade_t : public link_facade_t
 {
 public:
-    explicit gaiac_outgoing_link_facade_t(const link_facade_t& link);
+    explicit compilation_outgoing_link_facade_t(const link_facade_t& link);
 
     std::string first_offset() const;
     uint16_t first_offset_value() const;

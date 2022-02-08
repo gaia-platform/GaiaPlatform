@@ -12,7 +12,7 @@
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/catalog_facade.hpp"
 
-#include "gaiac_catalog_facade.hpp"
+#include "compilation_catalog_facade.hpp"
 
 namespace gaia
 {
@@ -162,7 +162,7 @@ std::string dac_compilation_unit_writer_t::generate_constants()
 
         for (const auto& incoming_link : table.incoming_links())
         {
-            gaiac_incoming_link_facade_t link{incoming_link};
+            compilation_incoming_link_facade_t link{incoming_link};
             flatbuffers::CodeWriter const_code = create_code_writer();
             const_code.SetValue("PARENT_OFFSET", link.parent_offset());
             const_code.SetValue("PARENT_OFFSET_VALUE", std::to_string(link.parent_offset_value()));
@@ -178,7 +178,7 @@ std::string dac_compilation_unit_writer_t::generate_constants()
 
         for (const auto& outgoing_link : table.outgoing_links())
         {
-            gaiac_outgoing_link_facade_t link{outgoing_link};
+            compilation_outgoing_link_facade_t link{outgoing_link};
             flatbuffers::CodeWriter const_code = create_code_writer();
             const_code.SetValue("FIRST_OFFSET", link.first_offset());
             const_code.SetValue("FIRST_OFFSET_VALUE", std::to_string(link.first_offset_value()));
@@ -496,7 +496,7 @@ std::string class_writer_t::generate_incoming_links_accessors_cpp()
     // Iterate over the relationships where the current table is the child
     for (auto& incoming_link : m_table.incoming_links())
     {
-        gaiac_incoming_link_facade_t link{incoming_link};
+        compilation_incoming_link_facade_t link{incoming_link};
         code.SetValue("FIELD_NAME", link.field_name());
         code.SetValue("PARENT_CLASS_NAME", link.to_class_name());
         code.SetValue("PARENT_OFFSET", link.parent_offset());
@@ -562,7 +562,7 @@ std::string class_writer_t::generate_outgoing_links_accessors_cpp()
     // Iterate over the relationships where the current table appear as parent
     for (auto& outgoing_link : m_table.outgoing_links())
     {
-        gaiac_outgoing_link_facade_t link{outgoing_link};
+        compilation_outgoing_link_facade_t link{outgoing_link};
         code.SetValue("CHILD_TABLE", link.to_table());
         code.SetValue("FIELD_NAME", link.field_name());
         code.SetValue("FIRST_OFFSET", link.first_offset());
