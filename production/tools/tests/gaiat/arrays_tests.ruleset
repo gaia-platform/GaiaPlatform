@@ -1,0 +1,59 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+// RUN: %gaiat %s --
+
+#include "tags_test.h"
+
+ruleset test1
+{
+    on_update(farmer)
+    {
+        previous_years[0] = 34;
+        previous_years[1] = 14;
+    }
+}
+
+ruleset test2
+{
+    on_update(farmer)
+    {
+        int total_3_years = 0;
+        total_3_years = previous_years[0] + previous_years[1] + previous_years[2];
+    }
+}
+
+// Use an int field value.
+int use_int(int i)
+{
+    return i * 2;
+}
+
+ruleset test3
+{
+    on_update(farmer)
+    {
+        for (int i=0; i<5; i++)
+        {
+            use_int(previous_years[i]);
+        }
+    }
+}
+
+ruleset test4
+{
+    on_insert(farmer)
+    {
+        previous_years[bushels] = bushels + 1;
+    }
+}
+
+ruleset test5
+{
+    on_insert(farmer)
+    {
+        previous_years[bushels] = previous_years[bushels + 1];
+    }
+}
