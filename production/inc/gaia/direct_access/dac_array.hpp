@@ -10,6 +10,7 @@
 #include <flatbuffers/flatbuffers.h>
 
 #include "gaia/direct_access/dac_object.hpp"
+#include "gaia/exception.hpp"
 
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
@@ -34,11 +35,6 @@ public:
     uint32_t size() const
     {
         return m_vector->size();
-    }
-
-    bool is_null() const
-    {
-        return m_vector == nullptr;
     }
 
     // Normally the operator "[]" should return a reference or const reference
@@ -68,6 +64,10 @@ private:
         : m_vector(vector_ptr)
     {
         static_assert(std::is_arithmetic<T_type>::value, "dac_vector_t only supports basic types!");
+        if (vector_ptr == nullptr)
+        {
+            throw gaia::common::gaia_exception("Unexpected dac vector nullptr!");
+        }
     };
 
     const flatbuffers::Vector<T_type>* m_vector;
