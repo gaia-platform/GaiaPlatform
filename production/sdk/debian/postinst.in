@@ -1,0 +1,45 @@
+#!/bin/sh -e
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+. /usr/share/debconf/confmodule
+
+# Adapted from code automatically added by dh_installsystemd/13.2
+if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || [ "$1" = "abort-deconfigure" ] || [ "$1" = "abort-remove" ] ; then
+    if [ "$1" = "configure" ]; then
+        db_input high gaia/install-service || true
+        db_go
+    fi
+
+    db_get gaia/install-service
+    if [ "$RET" = "true" ]; then
+        # This will only remove masks created by d-s-h on package removal.
+        deb-systemd-helper unmask 'gaia.service' >/dev/null || true
+
+        # was-enabled defaults to true, so new installations run enable.
+        if deb-systemd-helper --quiet was-enabled 'gaia.service'; then
+            # Enables the unit on first installation, creates new
+            # symlinks on upgrades if the unit file has changed.
+            deb-systemd-helper enable 'gaia.service' >/dev/null || true
+        else
+            # Update the statefile to add new symlinks (if any), which need to be
+            # cleaned up on purge. Also remove old symlinks.
+            deb-systemd-helper update-state 'gaia.service' >/dev/null || true
+        fi
+
+        if [ -d /run/systemd/system ]; then
+            systemctl --system daemon-reload >/dev/null || true
+            if [ -n "$2" ]; then
+                    _dh_action=restart
+            else
+                    _dh_action=start
+            fi
+            deb-systemd-invoke $_dh_action 'gaia.service' >/dev/null || true
+        fi
+    else
+        deb-systemd-helper mask 'gaia.service' >/dev/null || true
+        db_input high gaia/service-masked
+        db_go
+    fi
+fi
