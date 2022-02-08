@@ -660,26 +660,33 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
             {
                 // Provide default parameter value.
                 const auto& field_data_iterator = table_data_iterator->second.fieldData.find(call_argument);
-                switch (field_data_iterator->second.fieldType)
+                if (field_data_iterator->second.isArray)
                 {
-                case data_type_t::e_bool:
-                    replacement_string.append("false,");
-                    break;
-                case data_type_t::e_int8:
-                case data_type_t::e_uint8:
-                case data_type_t::e_int16:
-                case data_type_t::e_uint16:
-                case data_type_t::e_int32:
-                case data_type_t::e_uint32:
-                case data_type_t::e_int64:
-                case data_type_t::e_uint64:
-                case data_type_t::e_float:
-                case data_type_t::e_double:
-                    replacement_string.append("0,");
-                    break;
-                case data_type_t::e_string:
-                    replacement_string.append("\"\",");
-                    break;
+                    replacement_string.append("{},");
+                }
+                else
+                {
+                    switch (field_data_iterator->second.fieldType)
+                    {
+                    case data_type_t::e_bool:
+                        replacement_string.append("false,");
+                        break;
+                    case data_type_t::e_int8:
+                    case data_type_t::e_uint8:
+                    case data_type_t::e_int16:
+                    case data_type_t::e_uint16:
+                    case data_type_t::e_int32:
+                    case data_type_t::e_uint32:
+                    case data_type_t::e_int64:
+                    case data_type_t::e_uint64:
+                    case data_type_t::e_float:
+                    case data_type_t::e_double:
+                        replacement_string.append("0,");
+                        break;
+                    case data_type_t::e_string:
+                        replacement_string.append("\"\",");
+                        break;
+                    }
                 }
             }
             else
@@ -1941,7 +1948,14 @@ public:
                 {
                     if (is_range_contained_in_another_range(expression_source_range, insert_data_argument_range_iterator.first))
                     {
-                        insert_data_argument_range_iterator.second = replacement;
+                        if (insert_data_argument_range_iterator.second.empty())
+                        {
+                            insert_data_argument_range_iterator.second = (Twine(replacement) + ".to_vector()").str();
+                        }
+                        else
+                        {
+                            insert_data_argument_range_iterator.second = replacement;
+                        }
                         insert_data.argument_table_names.insert(table_name);
                     }
                 }
@@ -2031,6 +2045,46 @@ public:
             g_is_generation_error = true;
             return;
         }
+
+        string array_index_expression_code;
+        SourceRange array_expression_source_range;
+
+        if (isa<ArraySubscriptExpr>(operator_expression))
+        {
+            array_expression_source_range = operator_expression->getSourceRange();
+            array_index_expression_code = m_rewriter.getRewrittenText(
+                dyn_cast<ArraySubscriptExpr>(operator_expression)->getIdx()->getSourceRange());
+            operator_expression = dyn_cast<ArraySubscriptExpr>(operator_expression)->getBase();
+        }
+
+        if (isa<CastExpr>(operator_expression))
+        {
+            operator_expression = dyn_cast<CastExpr>(operator_expression)->getSubExpr();
+        }
+
+        bool array_assignment = false;
+        string array_size;
+        QualType rhs_type = op->getRHS()->getType();
+        string rhs_code;
+
+        if (rhs_type->isArrayType() && op->getOpcode() == BO_Assign && !isa<InitListExpr>(op->getRHS()))
+        {
+            rhs_code = m_rewriter.getRewrittenText(op->getRHS()->getSourceRange());
+            array_assignment = true;
+            if (rhs_type->isConstantArrayType())
+            {
+                array_size = dyn_cast<ConstantArrayType>(rhs_type)->getSize().toString(10, false);
+            }
+            else if (rhs_type->isVariableArrayType())
+            {
+                array_size = m_rewriter.getRewrittenText(dyn_cast<VariableArrayType>(rhs_type)->getSizeExpr()->getSourceRange());
+            }
+            else if (rhs_type->isDependentSizedArrayType())
+            {
+                array_size = m_rewriter.getRewrittenText(dyn_cast<DependentSizedArrayType>(rhs_type)->getSizeExpr()->getSourceRange());
+            }
+        }
+
         const auto* left_declaration_expression = dyn_cast<DeclRefExpr>(operator_expression);
         const auto* member_expression = dyn_cast<MemberExpr>(operator_expression);
 
@@ -2047,7 +2101,7 @@ public:
         SourceRange set_source_range;
         if (left_declaration_expression == nullptr && member_expression == nullptr)
         {
-            gaiat::diag().emit(operator_expression->getExprLoc(), diag::err_incorrect_operator_expression_type);
+            gaiat::diag().emit(op->getLHS()->getExprLoc(), diag::err_incorrect_operator_expression_type);
             g_is_generation_error = true;
             return;
         }
@@ -2150,84 +2204,99 @@ public:
                 }
             }
         }
-        tok::TokenKind token_kind;
-        string writer_variable = table_navigation_t::get_variable_name("writer", llvm::StringMap<string>());
-        string replacement_text = (Twine("[&]() mutable {auto ")
-                                   + writer_variable
-                                   + " = "
-                                   + variable_name
-                                   + ".writer(); "
-                                   + writer_variable
-                                   + "."
-                                   + field_name)
-                                      .str();
 
-        switch (op->getOpcode())
+        tok::TokenKind token_kind = convert_compound_binary_opcode_token_kind(op);
+        if (g_is_generation_error)
         {
-        case BO_Assign:
-        {
-            token_kind = tok::equal;
-            break;
-        }
-        case BO_MulAssign:
-        {
-            token_kind = tok::starequal;
-            break;
-        }
-        case BO_DivAssign:
-        {
-            token_kind = tok::slashequal;
-            break;
-        }
-        case BO_RemAssign:
-        {
-            token_kind = tok::percentequal;
-            break;
-        }
-        case BO_AddAssign:
-        {
-            token_kind = tok::plusequal;
-            break;
-        }
-        case BO_SubAssign:
-        {
-            token_kind = tok::minusequal;
-            break;
-        }
-        case BO_ShlAssign:
-        {
-            token_kind = tok::lesslessequal;
-            break;
-        }
-        case BO_ShrAssign:
-        {
-            token_kind = tok::greatergreaterequal;
-            break;
-        }
-        case BO_AndAssign:
-        {
-            token_kind = tok::ampequal;
-            break;
-        }
-        case BO_XorAssign:
-        {
-            token_kind = tok::caretequal;
-            break;
-        }
-        case BO_OrAssign:
-        {
-            token_kind = tok::pipeequal;
-            break;
-        }
-        default:
-            gaiat::diag().emit(op->getOperatorLoc(), diag::err_incorrect_operator_type);
-            g_is_generation_error = true;
             return;
         }
 
-        replacement_text.append(convert_compound_binary_opcode(op));
+        string writer_variable = table_navigation_t::get_variable_name("writer", llvm::StringMap<string>());
 
-        if (left_declaration_expression != nullptr)
+        string replacement_text;
+
+        if (array_assignment)
+        {
+            if (array_size.empty())
+            {
+                replacement_text = (Twine("[&]() mutable {auto ")
+                                    + writer_variable
+                                    + " = "
+                                    + variable_name
+                                    + ".writer(); "
+                                    + writer_variable
+                                    + "."
+                                    + field_name
+                                    + "=")
+                                       .str();
+            }
+            else
+            {
+                string temp_array_variable = table_navigation_t::get_variable_name("temp_array", llvm::StringMap<string>());
+                replacement_text = (Twine("[&]() mutable {auto ")
+                                    + writer_variable
+                                    + " = "
+                                    + variable_name
+                                    + ".writer(); auto "
+                                    + temp_array_variable
+                                    + "="
+                                    + rhs_code
+                                    + ";"
+                                    + writer_variable
+                                    + "."
+                                    + field_name
+                                    + "=std::vector("
+                                    + temp_array_variable
+                                    + ","
+                                    + temp_array_variable
+                                    + "+"
+                                    + array_size
+                                    + ")")
+                                       .str();
+            }
+        }
+        else if (array_expression_source_range.isValid())
+        {
+            replacement_text = (Twine("[&]() mutable {auto ")
+                                + writer_variable
+                                + " = "
+                                + variable_name
+                                + ".writer(); "
+                                + writer_variable
+                                + "."
+                                + field_name
+                                + "["
+                                + array_index_expression_code
+                                + "]"
+                                + convert_compound_binary_opcode(op))
+                                   .str();
+        }
+        else
+        {
+            replacement_text = (Twine("[&]() mutable {auto ")
+                                + writer_variable
+                                + " = "
+                                + variable_name
+                                + ".writer(); "
+                                + writer_variable
+                                + "."
+                                + field_name
+                                + convert_compound_binary_opcode(op))
+                                   .str();
+        }
+
+        if (array_assignment && !array_size.empty())
+        {
+            set_source_range.setEnd(op->getRHS()->getSourceRange().getEnd());
+        }
+        else if (array_expression_source_range.isValid())
+        {
+            set_source_range.setEnd(Lexer::findLocationAfterToken(
+                                        array_expression_source_range.getEnd(), token_kind, m_rewriter.getSourceMgr(),
+                                        m_rewriter.getLangOpts(), true)
+                                        .getLocWithOffset(-1));
+        }
+        else if (left_declaration_expression != nullptr)
         {
             set_source_range.setEnd(Lexer::findLocationAfterToken(
                                         set_source_range.getBegin(), token_kind, m_rewriter.getSourceMgr(),
@@ -2243,14 +2312,55 @@ public:
         }
         m_rewriter.ReplaceText(set_source_range, replacement_text);
         g_rewriter_history.push_back({set_source_range, replacement_text, replace_text});
-        replacement_text = (Twine("; ")
-                            + writer_variable
-                            + ".update_row(); return "
-                            + writer_variable
-                            + "."
-                            + field_name
-                            + ";}()")
-                               .str();
+        if (array_assignment)
+        {
+            if (array_size.empty())
+            {
+                replacement_text = (Twine(".to_vector(); ")
+                                    + writer_variable
+                                    + ".update_row(); return "
+                                    + variable_name
+                                    + "."
+                                    + field_name
+                                    + "();}()")
+                                       .str();
+            }
+            else
+            {
+                replacement_text = (Twine("; ")
+                                    + writer_variable
+                                    + ".update_row(); return "
+                                    + variable_name
+                                    + "."
+                                    + field_name
+                                    + "();}()")
+                                       .str();
+            }
+        }
+        else if (array_expression_source_range.isValid())
+        {
+            replacement_text = (Twine("; ")
+                                + writer_variable
+                                + ".update_row(); return "
+                                + writer_variable
+                                + "."
+                                + field_name
+                                + "["
+                                + array_index_expression_code
+                                + "];}()")
+                                   .str();
+        }
+        else
+        {
+            replacement_text = (Twine("; ")
+                                + writer_variable
+                                + ".update_row(); return "
+                                + writer_variable
+                                + "."
+                                + field_name
+                                + ";}()")
+                                   .str();
+        }
         SourceLocation operator_end_location = op->getEndLoc();
         SourceRange operator_source_range = get_statement_source_range(op, m_rewriter.getSourceMgr(), m_rewriter.getLangOpts());
         if (operator_source_range.isValid() && operator_source_range.getEnd() < operator_end_location)
@@ -2289,7 +2399,40 @@ public:
     }
 
 private:
-    string convert_compound_binary_opcode(const BinaryOperator* op)
+    tok::TokenKind convert_compound_binary_opcode_token_kind(const BinaryOperator* op) const
+    {
+        switch (op->getOpcode())
+        {
+        case BO_Assign:
+            return tok::equal;
+        case BO_MulAssign:
+            return tok::starequal;
+        case BO_DivAssign:
+            return tok::slashequal;
+        case BO_RemAssign:
+            return tok::percentequal;
+        case BO_AddAssign:
+            return tok::plusequal;
+        case BO_SubAssign:
+            return tok::minusequal;
+        case BO_ShlAssign:
+            return tok::lesslessequal;
+        case BO_ShrAssign:
+            return tok::greatergreaterequal;
+        case BO_AndAssign:
+            return tok::ampequal;
+        case BO_XorAssign:
+            return tok::caretequal;
+        case BO_OrAssign:
+            return tok::pipeequal;
+        default:
+            gaiat::diag().emit(op->getOperatorLoc(), diag::err_incorrect_operator_type);
+            g_is_generation_error = true;
+            return tok::unknown;
+        }
+    }
+
+    const char* convert_compound_binary_opcode(const BinaryOperator* op) const
     {
         switch (op->getOpcode())
         {
@@ -2353,12 +2496,29 @@ public:
             g_is_generation_error = true;
             return;
         }
+
+        string array_index_expression_code;
+        SourceRange array_expression_source_range;
+
+        if (isa<ArraySubscriptExpr>(operator_expression))
+        {
+            array_expression_source_range = operator_expression->getSourceRange();
+            array_index_expression_code = m_rewriter.getRewrittenText(
+                dyn_cast<ArraySubscriptExpr>(operator_expression)->getIdx()->getSourceRange());
+            operator_expression = dyn_cast<ArraySubscriptExpr>(operator_expression)->getBase();
+        }
+
+        if (isa<CastExpr>(operator_expression))
+        {
+            operator_expression = dyn_cast<CastExpr>(operator_expression)->getSubExpr();
+        }
+
         const auto* declaration_expression = dyn_cast<DeclRefExpr>(operator_expression);
         const auto* member_expression = dyn_cast<MemberExpr>(operator_expression);
 
         if (declaration_expression == nullptr && member_expression == nullptr)
         {
-            gaiat::diag().emit(operator_expression->getExprLoc(), diag::err_incorrect_operator_expression_type);
+            gaiat::diag().emit(op->getSubExpr()->getExprLoc(), diag::err_incorrect_operator_expression_type);
             g_is_generation_error = true;
             return;
         }
@@ -2453,42 +2613,90 @@ public:
             string temp_variable = table_navigation_t::get_variable_name("temp", llvm::StringMap<string>());
             if (op->isIncrementOp())
             {
-                replace_string
-                    = (Twine("[&]() mutable {auto ") + temp_variable + " = "
-                       + variable_name + "." + field_name + "(); auto " + writer_variable + " = "
-                       + variable_name + ".writer(); " + writer_variable + "." + field_name + "++; "
-                       + writer_variable + ".update_row(); return " + temp_variable + ";}()")
-                          .str();
+                if (array_expression_source_range.isValid())
+                {
+                    replace_string
+                        = (Twine("[&]() mutable {auto ") + temp_variable + " = "
+                           + variable_name + "." + field_name + "()[" + array_index_expression_code + "]; auto " + writer_variable + " = "
+                           + variable_name + ".writer(); ++" + writer_variable + "." + field_name + "[" + array_index_expression_code + "]; "
+                           + writer_variable + ".update_row(); return " + temp_variable + ";}()")
+                              .str();
+                }
+                else
+                {
+                    replace_string
+                        = (Twine("[&]() mutable {auto ") + temp_variable + " = "
+                           + variable_name + "." + field_name + "(); auto " + writer_variable + " = "
+                           + variable_name + ".writer(); ++" + writer_variable + "." + field_name + "; "
+                           + writer_variable + ".update_row(); return " + temp_variable + ";}()")
+                              .str();
+                }
             }
             else if (op->isDecrementOp())
             {
-                replace_string
-                    = (Twine("[&]() mutable {auto ") + temp_variable + " = "
-                       + variable_name + "." + field_name + "(); auto " + writer_variable + " = "
-                       + variable_name + ".writer(); " + writer_variable + "." + field_name + "--; "
-                       + writer_variable + ".update_row(); return " + temp_variable + ";}()")
-                          .str();
+                if (array_expression_source_range.isValid())
+                {
+                    replace_string
+                        = (Twine("[&]() mutable {auto ") + temp_variable + " = "
+                           + variable_name + "." + field_name + "()[" + array_index_expression_code + "]; auto " + writer_variable + " = "
+                           + variable_name + ".writer(); --" + writer_variable + "." + field_name + "[" + array_index_expression_code + "]; "
+                           + writer_variable + ".update_row(); return " + temp_variable + ";}()")
+                              .str();
+                }
+                else
+                {
+                    replace_string
+                        = (Twine("[&]() mutable {auto ") + temp_variable + " = "
+                           + variable_name + "." + field_name + "(); auto " + writer_variable + " = "
+                           + variable_name + ".writer(); --" + writer_variable + "." + field_name + "; "
+                           + writer_variable + ".update_row(); return " + temp_variable + ";}()")
+                              .str();
+                }
             }
         }
         else
         {
             if (op->isIncrementOp())
             {
-                replace_string
-                    = (Twine("[&]() mutable {auto ") + writer_variable + " = " + variable_name
-                       + ".writer(); ++ " + writer_variable + "." + field_name
-                       + ";" + writer_variable + ".update_row(); return " + writer_variable
-                       + "." + field_name + ";}()")
-                          .str();
+                if (array_expression_source_range.isValid())
+                {
+                    replace_string
+                        = (Twine("[&]() mutable {auto ") + writer_variable + " = " + variable_name
+                           + ".writer(); ++" + writer_variable + "." + field_name + "[" + array_index_expression_code + "]"
+                           + ";" + writer_variable + ".update_row(); return " + writer_variable
+                           + "." + field_name + "[" + array_index_expression_code + "];}()")
+                              .str();
+                }
+                else
+                {
+                    replace_string
+                        = (Twine("[&]() mutable {auto ") + writer_variable + " = " + variable_name
+                           + ".writer(); ++" + writer_variable + "." + field_name
+                           + ";" + writer_variable + ".update_row(); return " + writer_variable
+                           + "." + field_name + ";}()")
+                              .str();
+                }
             }
             else if (op->isDecrementOp())
             {
-                replace_string
-                    = (Twine("[&]() mutable {auto ") + writer_variable + " = " + variable_name
-                       + ".writer(); -- " + writer_variable + "." + field_name
-                       + ";" + writer_variable + ".update_row(); return " + writer_variable
-                       + "." + field_name + ";}()")
-                          .str();
+                if (array_expression_source_range.isValid())
+                {
+                    replace_string
+                        = (Twine("[&]() mutable {auto ") + writer_variable + " = " + variable_name
+                           + ".writer(); --" + writer_variable + "." + field_name + "[" + array_index_expression_code + "]"
+                           + ";" + writer_variable + ".update_row(); return " + writer_variable
+                           + "." + field_name + "[" + array_index_expression_code + "];}()")
+                              .str();
+                }
+                else
+                {
+                    replace_string
+                        = (Twine("[&]() mutable {auto ") + writer_variable + " = " + variable_name
+                           + ".writer(); --" + writer_variable + "." + field_name + "[" + array_index_expression_code + "]"
+                           + ";" + writer_variable + ".update_row(); return " + writer_variable
+                           + "." + field_name + +"[" + array_index_expression_code + "];}()")
+                              .str();
+                }
             }
         }
 
@@ -2503,12 +2711,17 @@ public:
                 }
             }
         }
+        int op_end_location_offset = 1;
+        if (!op->isPostfix() && array_expression_source_range.isValid())
+        {
+            op_end_location_offset = 0;
+        }
 
         m_rewriter.ReplaceText(
-            SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)),
+            SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(op_end_location_offset)),
             replace_string);
         g_rewriter_history.push_back(
-            {SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(1)),
+            {SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(op_end_location_offset)),
              replace_string, replace_text});
         unsigned int token_length = Lexer::MeasureTokenLength(op->getEndLoc(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
         int offset = uint_to_int(op->getBeginLoc(), token_length);
@@ -2621,6 +2834,7 @@ public:
                     {
                         g_attribute_tag_map[tag] = table;
                     }
+                    g_used_dbs.insert(getCatalogTableData().find(table)->second.dbName);
                 }
             }
         }
@@ -2645,6 +2859,7 @@ public:
                     {
                         g_attribute_tag_map[tag] = table;
                     }
+                    g_used_dbs.insert(getCatalogTableData().find(table)->second.dbName);
                 }
             }
         }
@@ -2675,6 +2890,7 @@ public:
                     {
                         g_attribute_tag_map[tag] = table;
                     }
+                    g_used_dbs.insert(getCatalogTableData().find(table)->second.dbName);
                 }
             }
         }
@@ -3152,6 +3368,30 @@ public:
         // Parse insert call arguments to build name value map.
         for (const auto& argument : expression->arguments())
         {
+            QualType argument_type = argument->getType();
+            bool is_array = false;
+            string array_size_expression;
+            if (isa<ImplicitCastExpr>(argument))
+            {
+                argument_type = dyn_cast<ImplicitCastExpr>(argument)->getSubExpr()->getType();
+            }
+
+            if (argument_type->isArrayType() && !isa<InitListExpr>(argument))
+            {
+                is_array = true;
+                if (argument_type->isConstantArrayType())
+                {
+                    array_size_expression = dyn_cast<ConstantArrayType>(argument_type)->getSize().toString(10, false);
+                }
+                else if (argument_type->isVariableArrayType())
+                {
+                    array_size_expression = m_rewriter.getRewrittenText(dyn_cast<VariableArrayType>(argument_type)->getSizeExpr()->getSourceRange());
+                }
+                else if (argument_type->isDependentSizedArrayType())
+                {
+                    array_size_expression = m_rewriter.getRewrittenText(dyn_cast<DependentSizedArrayType>(argument_type)->getSizeExpr()->getSourceRange());
+                }
+            }
             argument_start_location = get_previous_token_location(
                 get_previous_token_location(argument->getSourceRange().getBegin(), m_rewriter), m_rewriter);
 
@@ -3168,7 +3408,32 @@ public:
                     .base(),
                 argument_name.end());
             insert_data.argument_map[argument_name] = argument->getSourceRange();
-            insert_data.argument_replacement_map[argument->getSourceRange()] = m_rewriter.getRewrittenText(argument->getSourceRange());
+
+            const auto& table_data_iterator = getCatalogTableData().find(insert_data.table_name);
+            const auto& field_data_iterator = table_data_iterator->second.fieldData.find(argument_name);
+
+            if (is_array && field_data_iterator->second.isArray)
+            {
+                if (array_size_expression.empty())
+                {
+                    insert_data.argument_replacement_map[argument->getSourceRange()] = "";
+                }
+                else
+                {
+                    insert_data.argument_replacement_map[argument->getSourceRange()] = (Twine("std::vector(")
+                                                                                        + m_rewriter.getRewrittenText(argument->getSourceRange())
+                                                                                        + ","
+                                                                                        + m_rewriter.getRewrittenText(argument->getSourceRange())
+                                                                                        + "+"
+                                                                                        + array_size_expression
+                                                                                        + ")")
+                                                                                           .str();
+                }
+            }
+            else
+            {
+                insert_data.argument_replacement_map[argument->getSourceRange()] = m_rewriter.getRewrittenText(argument->getSourceRange());
+            }
         }
         g_insert_data.push_back(insert_data);
         g_insert_call_locations.insert(expression->getBeginLoc());
@@ -3658,6 +3923,32 @@ public:
                                       to(varDecl(hasAttr(attr::GaiaFieldLValue)))))))))
                   .bind("fieldSet");
 
+        StatementMatcher array_field_set_matcher
+            = binaryOperator(
+                  allOf(
+                      hasAncestor(ruleset_matcher),
+                      isAssignmentOperator(),
+                      hasLHS(
+                          arraySubscriptExpr(
+                              hasDescendant(
+                                  declRefExpr(
+                                      to(varDecl(hasAttr(attr::GaiaFieldLValue)))))))))
+                  .bind("fieldSet");
+
+        StatementMatcher array_field_unary_operator_matcher
+            = unaryOperator(
+                  allOf(
+                      hasAncestor(ruleset_matcher),
+                      anyOf(
+                          hasOperatorName("++"),
+                          hasOperatorName("--")),
+                      hasUnaryOperand(
+                          arraySubscriptExpr(
+                              hasDescendant(
+                                  declRefExpr(
+                                      to(varDecl(hasAttr(attr::GaiaFieldLValue)))))))))
+                  .bind("fieldUnaryOp");
+
         StatementMatcher table_field_unary_operator_matcher
             = unaryOperator(
                   allOf(
@@ -3688,7 +3979,8 @@ public:
                               hasDescendant(field_get_matcher),
                               hasDescendant(field_unary_operator_matcher),
                               hasDescendant(table_field_get_matcher),
-                              hasDescendant(table_field_unary_operator_matcher)))))
+                              hasDescendant(table_field_unary_operator_matcher),
+                              hasDescendant(array_field_unary_operator_matcher)))))
                   .bind("varDeclarationInit");
 
         StatementMatcher declarative_break_matcher = breakStmt().bind("DeclBreak");
@@ -3750,12 +4042,14 @@ public:
 
         m_matcher.addMatcher(field_set_matcher, &m_field_set_match_handler);
         m_matcher.addMatcher(table_field_set_matcher, &m_field_set_match_handler);
+        m_matcher.addMatcher(array_field_set_matcher, &m_field_set_match_handler);
 
         m_matcher.addMatcher(rule_matcher, &m_rule_match_handler);
         m_matcher.addMatcher(ruleset_matcher, &m_ruleset_match_handler);
-        m_matcher.addMatcher(field_unary_operator_matcher, &m_field_unary_operator_match_handler);
 
+        m_matcher.addMatcher(field_unary_operator_matcher, &m_field_unary_operator_match_handler);
         m_matcher.addMatcher(table_field_unary_operator_matcher, &m_field_unary_operator_match_handler);
+        m_matcher.addMatcher(array_field_unary_operator_matcher, &m_field_unary_operator_match_handler);
 
         m_matcher.addMatcher(variable_declaration_matcher, &m_variable_declaration_match_handler);
         m_matcher.addMatcher(variable_declaration_init_matcher, &m_variable_declaration_match_handler);

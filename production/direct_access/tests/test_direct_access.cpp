@@ -951,6 +951,24 @@ TEST_F(dac_object_test, array_writer)
     EXPECT_EQ(customer_t::get(id).sales_by_quarter()[2], q3_sales);
 }
 
+TEST_F(dac_object_test, empty_array)
+{
+    // If the array field is not optional and no value is given when inserting
+    // the row, an empty vector will be inserted (by FlatBuffers). This test
+    // verifies the behavior.
+    const char* customer_name = "Test Customer";
+
+    auto_transaction_t txn;
+    auto w = customer_writer();
+    w.name = customer_name;
+    gaia_id_t id = w.insert_row();
+    txn.commit();
+
+    auto c = customer_t::get(id);
+    EXPECT_STREQ(c.name(), customer_name);
+    EXPECT_EQ(c.sales_by_quarter().size(), 0);
+}
+
 // TESTCASE: Delete rows accessed through a list() iterator.
 // GAIAPLAT-1049
 // The delete_row() interferes with iterator.
