@@ -956,7 +956,7 @@ TEST_F(dac_object_test, array_writer)
 
 TEST_F(dac_object_test, null_array)
 {
-    const char* customer_name = "null";
+    const char* customer_name = "Test Customer";
 
     auto_transaction_t txn;
     auto w = customer_writer();
