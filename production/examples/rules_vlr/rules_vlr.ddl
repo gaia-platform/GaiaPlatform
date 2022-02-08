@@ -12,7 +12,9 @@ database rules_vlr
 table student (
     id uint32 unique,
     name string,
-    room_id uint32,
+    -- room_id is optional, so if set to null, that means a student is
+    -- not connected to any dorm room.
+    room_id uint32 optional,
     room references dorm_room
         where student.room_id = dorm_room.id
 )

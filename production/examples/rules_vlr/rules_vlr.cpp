@@ -29,6 +29,7 @@ void delete_all_records_from_tables()
     {
         (*dorm_room++).delete_row();
     }
+
     txn.commit();
 }
 
@@ -52,16 +53,18 @@ void create_dorm_rooms()
  */
 void insert_new_students()
 {
+    using gaia::common::nullopt;
+
     auto_transaction_t txn{};
 
-    const uint32_t c_unused_dorm_room_id = 0;
-
-    student_t::insert_row(1000, "Todd", c_unused_dorm_room_id);
-    student_t::insert_row(1001, "Jane", c_unused_dorm_room_id);
-    student_t::insert_row(1002, "John", c_unused_dorm_room_id);
-    student_t::insert_row(1003, "Sarah", c_unused_dorm_room_id);
-    student_t::insert_row(1004, "Ned", c_unused_dorm_room_id);
-    student_t::insert_row(1005, "Dave", c_unused_dorm_room_id);
+    // The room_id field is optional, so we start by setting it to nullopt
+    // to mean "this student is not connected to a room".
+    student_t::insert_row(1000, "Todd", nullopt);
+    student_t::insert_row(1001, "Jane", nullopt);
+    student_t::insert_row(1002, "John", nullopt);
+    student_t::insert_row(1003, "Sarah", nullopt);
+    student_t::insert_row(1004, "Ned", nullopt);
+    student_t::insert_row(1005, "Dave", nullopt);
 
     txn.commit();
 }
