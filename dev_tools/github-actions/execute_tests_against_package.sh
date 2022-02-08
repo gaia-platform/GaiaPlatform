@@ -151,16 +151,25 @@ if ! mkdir -p "$GAIA_REPO/production/tests/results" ; then
     complete_process 1 "Unable to create an output directory for '$JOB_NAME'."
 fi
 
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Installing the Gaia Debian Package."
+fi
 cd "$PACKAGE_PATH" || exit
 # shellcheck disable=SC2061
 sudo apt --assume-yes install "$(find . -name gaia*)"
 
 ## PER JOB CONFIGURATION ##
 
-if [ "$JOB_NAME" == "Integration_Smoke" ] ; then
+if [[ "$JOB_NAME" == Integration_Smoke* ]] ; then
 
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Resetting the database for the Integration Smoke test without persistence."
+    fi
     sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop --database
 
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Executing the Integration Smoke tests without persistence."
+    fi
     DID_FAIL=0
     if ! "$GAIA_REPO/production/tests/smoke_suites.sh" --verbose ; then
         DID_FAIL=1
@@ -170,10 +179,16 @@ if [ "$JOB_NAME" == "Integration_Smoke" ] ; then
         complete_process 1 "Tests for job '$JOB_NAME' failed  See job artifacts for more information."
     fi
 
-elif [ "$JOB_NAME" == "Integration_Smoke_Persistence" ] ; then
+elif [[ "$JOB_NAME" == Integration_Smoke_Persistence* ]] ; then
 
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Resetting the database for the Integration Smoke test with persistence."
+    fi
     sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop --database
 
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Executing the Integration Smoke tests with persistence."
+    fi
     DID_FAIL=0
     if ! "$GAIA_REPO/production/tests/smoke_suites_with_persistence.sh" --verbose ; then
         DID_FAIL=1
@@ -183,8 +198,11 @@ elif [ "$JOB_NAME" == "Integration_Smoke_Persistence" ] ; then
         complete_process 1 "Tests for job '$JOB_NAME' failed  See job artifacts for more information."
     fi
 
-elif [ "$JOB_NAME" == "Integration_Samples" ] ; then
+elif [[ "$JOB_NAME" == "Integration_Samples" ]] ; then
 
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Executing the Integration Samples tests."
+    fi
     cd "$GAIA_REPO/dev_tools/sdk/test" || exit
     if ! sudo bash -c "./build_sdk_samples.sh > \"$GAIA_REPO/production/tests/results/test.log\"" ; then
         complete_process 1 "Tests for job '$JOB_NAME' failed  See job artifacts for more information."
