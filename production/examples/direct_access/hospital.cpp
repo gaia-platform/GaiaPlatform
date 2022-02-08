@@ -373,9 +373,9 @@ void traverse_one_to_many_relationship()
 /**
  * With 1:n relationships, attempting to delete a database object that
  * is on the "1" side and has at least one connected object on the "n"
- * side violates referential integrity, causing Gaia system to throw an
+ * side violates referential integrity, causing the Gaia system to throw an
  * object_still_referenced exception. You can delete the "n" side first;
- * see next example.
+ * see the next example.
  */
 void delete_one_to_many_relationship_re()
 {
@@ -495,7 +495,7 @@ void traverse_one_to_one_relationship()
     // You can do: patient.address().connect(...)
     // You can't do: address.patient().connect(...)
     //
-    // This depends on the order in which items are defined in the DDL.
+    // This depends on the order in which items are defined in the schema.
     // patient appears first hence it exposes the ability to set/unset
     // the reference to address.
     gaia_log::app().info("Patient {}", address.patient().name());
@@ -504,8 +504,9 @@ void traverse_one_to_one_relationship()
 /**
  * Likewise in 1:n relationships, if you try to delete a database object that
  * is referenced by another object (in a 1:1 relationship) the Gaia system
- * will throw an object_still_referenced exception. In a 1:1 relationship you can delete
- * the object on the table that is defined later in the DDL (address in this case)
+ * will throw an object_still_referenced exception. In a 1:1 relationship,
+ * you can delete an object in the table that is defined later in the schema
+ * (address in this case).
  */
 void delete_one_to_one_relationship_re()
 {
@@ -516,9 +517,9 @@ void delete_one_to_one_relationship_re()
 
     try
     {
-        // You cannot delete patient because it's defined before address in the DDL.
+        // You cannot delete patient because it's defined before address in the schema.
         patient.delete_row();
-        throw std::runtime_error("The patient deletion should fail!");
+        throw std::runtime_error("Deleting patient should fail!");
     }
     catch (const gaia::db::object_still_referenced& e)
     {
@@ -528,9 +529,9 @@ void delete_one_to_one_relationship_re()
 
 /**
  * There are three ways to delete an object referenced by another object in a 1:n relationship:
- * 1. Disconnect the objects first, and then delete it.
- * 2. Delete the object defined in the table that appear later in the DDL.
- * 3. Delete the object specifying force=true flag in the delete_row() method.
+ * 1. Disconnect the objects on the "n" side first, and then delete the object on the "1" side.
+ * 2. Delete an object defined in a table that appears later in the schema.
+ * 3. Delete the object on the "1" side by specifying the force=true flag in the delete_row() method.
  */
 void delete_one_to_one_relationship()
 {
