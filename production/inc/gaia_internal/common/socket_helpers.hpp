@@ -37,7 +37,8 @@ namespace common
 // message sequence" protocol for txn log fds, but reserve enough space in the
 // server reply message for the majority of use cases (say up to 16 txn log
 // offsets).
-constexpr size_t c_max_msg_size_in_bytes{1 << 13};
+// 64KB oughta be enough for anybody...
+constexpr size_t c_max_msg_size_in_bytes{1 << 16};
 
 // This could be up to 253 (the value of SCM_MAX_FD according to the manpage for unix(7)), but we
 // set it to a reasonable value for a stack buffer.
