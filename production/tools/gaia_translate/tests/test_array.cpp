@@ -54,7 +54,7 @@ protected:
 
 TEST_F(test_array, test_array_unqualified_fields)
 {
-    const std::vector<int32_t> expected_sales{9, 2, 4, 5, 4};
+    const std::vector<int32_t> expected_sales{6, 2, 4, 5, 4};
     gaia::db::begin_transaction();
 
     auto client_id = client_t::insert_row("1", {9, 8, 7, 6, 5});
@@ -69,7 +69,7 @@ TEST_F(test_array, test_array_unqualified_fields)
 
 TEST_F(test_array, test_array_qualified_fields)
 {
-    const std::vector<int32_t> expected_sales{9, 3, 12, 7, 6};
+    const std::vector<int32_t> expected_sales{7, 3, 12, 7, 6};
     gaia::db::begin_transaction();
 
     auto client_id = client_t::insert_row("2", {9, 8, 7, 6, 5});
@@ -112,7 +112,7 @@ TEST_F(test_array, test_array_unqualified_constant_array)
 
 TEST_F(test_array, test_array_explicit_navigation)
 {
-    const std::vector<int32_t> expected_sales{9, 3, 12, 7, 6};
+    const std::vector<int32_t> expected_sales{8, 3, 12, 7, 6};
     gaia::db::begin_transaction();
 
     auto client_id = client_t::insert_row("5", {9, 8, 7, 6, 5});
@@ -129,7 +129,7 @@ TEST_F(test_array, test_array_explicit_navigation)
 
 TEST_F(test_array, test_array_implicit_navigation)
 {
-    const std::vector<int32_t> expected_sales{9, 3, 12, 7, 6};
+    const std::vector<int32_t> expected_sales{6, 3, 12, 7, 6};
     gaia::db::begin_transaction();
 
     auto client_id = client_t::insert_row("zz", {9, 8, 7, 6, 5});
@@ -226,6 +226,38 @@ TEST_F(test_array, test_array_qualified_field_to_qualified_assignment)
     gaia::rules::test::wait_for_rules_to_complete();
 
     check_array(client_id, expected_sales);
+}
+
+TEST_F(test_array, test_array_qualified_field_to_empty)
+{
+    gaia::db::begin_transaction();
+
+    auto client_id = client_t::insert_row("12", {7, 9, 4});
+
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    gaia::db::begin_transaction();
+    auto c = client_t::get(client_id);
+    ASSERT_TRUE(c.sales().is_null());
+    gaia::db::commit_transaction();
+}
+
+TEST_F(test_array, test_array_unqualified_field_to_empty)
+{
+    gaia::db::begin_transaction();
+
+    auto client_id = client_t::insert_row("13", {5, 8, 3});
+
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    gaia::db::begin_transaction();
+    auto c = client_t::get(client_id);
+    ASSERT_TRUE(c.sales().is_null());
+    gaia::db::commit_transaction();
 }
 
 TEST_F(test_array, test_array_explicit_navigation_init_assignment)
