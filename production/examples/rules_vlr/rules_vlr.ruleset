@@ -14,11 +14,12 @@ ruleset vlr_serial_rules : serial_group()
 {
     on_insert(student)
     {
+        // Check the capacity of all dorm rooms.
         if (/dorm_room.capacity > 0)
         {
             // The student is automatically connected to the dorm room
-            // because now their linked field (room_location) matches a room.
-            student.room_location = dorm_room.location;
+            // because now their linked field (room_id) matches a room.
+            student.room_id = dorm_room.id;
             dorm_room.capacity--;
             return;
         }
@@ -28,8 +29,11 @@ ruleset vlr_serial_rules : serial_group()
 // Without a serial group, rules in this ruleset run in parallel.
 ruleset vlr_parallel_rules
 {
-    on_update(student.room_location)
+    on_update(student.room_id)
     {
-        gaia_log::app().info("{} has been assigned to dorm room {}.", name, location);
+        // This rule's anchor row is a student, but we can refer to their
+        // connected dorm_room because we linked them in the previous rule.
+        gaia_log::app().info("Assigned {} to dorm room {}.",
+            student.name, dorm_room.name);
     }
 }

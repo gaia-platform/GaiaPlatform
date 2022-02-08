@@ -39,10 +39,9 @@ void create_dorm_rooms()
 {
     auto_transaction_t txn{};
 
-    // Dorm rooms inserted with their location names and resident capacities.
-    dorm_room_t::insert_row("A100", 3);
-    dorm_room_t::insert_row("A101", 2);
-    dorm_room_t::insert_row("A102", 2);
+    dorm_room_t::insert_row(100, "A120", 3);
+    dorm_room_t::insert_row(101, "B304", 2);
+    dorm_room_t::insert_row(102, "C217", 2);
 
     txn.commit();
 }
@@ -55,14 +54,14 @@ void insert_new_students()
 {
     auto_transaction_t txn{};
 
-    // Students inserted with their student IDs, names, and an empty string
-    // for their dorm room. A rule will assign their rooms.
-    student_t::insert_row(1000, "Todd", "");
-    student_t::insert_row(1001, "Jane", "");
-    student_t::insert_row(1002, "John", "");
-    student_t::insert_row(1003, "Sarah", "");
-    student_t::insert_row(1004, "Ned", "");
-    student_t::insert_row(1005, "Dave", "");
+    const uint32_t c_unused_dorm_room_id = 0;
+
+    student_t::insert_row(1000, "Todd", c_unused_dorm_room_id);
+    student_t::insert_row(1001, "Jane", c_unused_dorm_room_id);
+    student_t::insert_row(1002, "John", c_unused_dorm_room_id);
+    student_t::insert_row(1003, "Sarah", c_unused_dorm_room_id);
+    student_t::insert_row(1004, "Ned", c_unused_dorm_room_id);
+    student_t::insert_row(1005, "Dave", c_unused_dorm_room_id);
 
     txn.commit();
 }

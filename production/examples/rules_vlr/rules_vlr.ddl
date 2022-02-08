@@ -10,16 +10,17 @@ database rules_vlr
 
 -- College students.
 table student (
-    student_id uint32 unique,
+    id uint32 unique,
     name string,
-    room_location string,
+    room_id uint32,
     room references dorm_room
-        where student.room_location = dorm_room.location
+        where student.room_id = dorm_room.id
 )
 
 -- College dorm rooms where students live.
 table dorm_room (
-    location string unique,
+    id uint32 unique,
+    name string,
     capacity uint8,
     residents references student[]
 )
