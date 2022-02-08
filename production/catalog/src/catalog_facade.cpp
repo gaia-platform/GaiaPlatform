@@ -333,8 +333,7 @@ std::string link_facade_t::to_table() const
 
 bool link_facade_t::is_value_linked() const
 {
-    return (!m_relationship.parent_field_positions().is_null())
-        && m_relationship.parent_field_positions().size() > 0;
+    return m_relationship.parent_field_positions().size() > 0;
 }
 
 bool link_facade_t::is_single_cardinality() const

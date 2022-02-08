@@ -240,7 +240,7 @@ TEST_F(test_array, test_array_qualified_field_to_empty)
 
     gaia::db::begin_transaction();
     auto c = client_t::get(client_id);
-    ASSERT_TRUE(c.sales().is_null());
+    ASSERT_TRUE(c.sales().to_vector().empty());
     gaia::db::commit_transaction();
 }
 
@@ -256,7 +256,7 @@ TEST_F(test_array, test_array_unqualified_field_to_empty)
 
     gaia::db::begin_transaction();
     auto c = client_t::get(client_id);
-    ASSERT_TRUE(c.sales().is_null());
+    ASSERT_TRUE(c.sales().to_vector().empty());
     gaia::db::commit_transaction();
 }
 
