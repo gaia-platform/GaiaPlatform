@@ -2331,10 +2331,10 @@ void server_t::gc_applied_txn_logs()
     // Ensure we clean up our cached chunk IDs when we exit this task.
     auto cleanup_fd = make_scope_guard([&]() { s_map_gc_chunks_to_versions.clear(); });
 
-    // First get a snapshot of the post-apply watermark, for an upper bound on the scan.
+    // Get a snapshot of the post-apply watermark, for an upper bound on the scan.
     safe_watermark_t post_apply_watermark(watermark_type_t::post_apply);
 
-    // Now get a snapshot of the post-GC watermark, for a lower bound on the scan.
+    // Get a snapshot of the post-GC watermark, for a lower bound on the scan.
     safe_watermark_t post_gc_watermark(watermark_type_t::post_gc);
 
     // Scan from the post-GC watermark to the post-apply watermark,
@@ -2423,15 +2423,16 @@ void server_t::gc_applied_txn_logs()
         chunk_manager.try_deallocate_chunk(chunk_version);
         chunk_manager.release();
     }
-}
 
-void server_t::truncate_txn_table()
-{
-    // First catch up the post-GC watermark.
+    // Finally, catch up the post-GC watermark.
     // Unlike log application, we don't try to perform GC and advance the
     // post-GC watermark in a single scan, because log application is strictly
     // sequential, while GC is sequentially initiated but concurrently executed.
+    update_post_gc_watermark();
+}
 
+void server_t::update_post_gc_watermark()
+{
     // Get a snapshot of the post-apply watermark, for an upper bound on the scan.
     safe_watermark_t post_apply_watermark(watermark_type_t::post_apply);
 
@@ -2494,75 +2495,81 @@ void server_t::truncate_txn_table()
 
             break;
         }
+    }
+}
 
-        // Get a snapshot of the pre-truncate watermark before advancing it.
-        gaia_txn_id_t prev_pre_truncate_watermark = get_watermark(watermark_type_t::pre_truncate);
+void server_t::truncate_txn_table()
+{
+    // Get a snapshot of the pre-truncate watermark before advancing it.
+    gaia_txn_id_t prev_pre_truncate_watermark = get_watermark(watermark_type_t::pre_truncate);
 
-        // Compute a safe truncation timestamp.
-        gaia_txn_id_t new_pre_truncate_watermark = get_safe_truncation_ts();
+    // Compute a safe truncation timestamp.
+    gaia_txn_id_t new_pre_truncate_watermark = get_safe_truncation_ts();
 
-        // Abort if the safe truncation timestamp does not exceed the current
-        // pre-truncate watermark.
-        // NB: It is expected that the safe truncation timestamp can be behind
-        // the pre-truncate watermark, because some published (but not yet
-        // validated) timestamps may have been behind the pre-truncate watermark
-        // when they were published (and will later fail validation).
-        if (new_pre_truncate_watermark <= prev_pre_truncate_watermark)
-        {
-            return;
-        }
+    // Abort if the safe truncation timestamp does not exceed the current
+    // pre-truncate watermark.
+    // NB: It is expected that the safe truncation timestamp can be behind
+    // the pre-truncate watermark, because some published (but not yet
+    // validated) timestamps may have been behind the pre-truncate watermark
+    // when they were published (and will later fail validation).
+    if (new_pre_truncate_watermark <= prev_pre_truncate_watermark)
+    {
+        return;
+    }
 
-        // Try to advance the pre-truncate watermark.
-        if (!advance_watermark(watermark_type_t::pre_truncate, new_pre_truncate_watermark))
-        {
-            // Abort if another thread has concurrently advanced the
-            // pre-truncate watermark, to avoid contention.
-            ASSERT_INVARIANT(
-                get_watermark(watermark_type_t::pre_truncate) > prev_pre_truncate_watermark,
-                "The watermark must have advanced if advance_watermark() failed!");
-
-            return;
-        }
-
-        // Mark any index entries as committed before the metadata is truncated. At this point, all
-        // aborted/terminated index entries before the pre-truncate watermark should have been
-        // garbage collected.
-        index::index_builder_t::mark_index_entries_committed(new_pre_truncate_watermark);
-
-        // We advanced the pre-truncate watermark, so actually truncate the txn
-        // table by decommitting its unused physical pages. Because this
-        // operation is concurrency-safe and idempotent, it can be done without
-        // mutual exclusion.
-        // REVIEW: The previous logic could also be used to safely advance the
-        // "head" pointer if the txn table were implemented as a circular
-        // buffer.
-
-        // Calculate the number of pages between the previously read pre-truncate
-        // watermark and our safe truncation timestamp. If the result exceeds zero,
-        // then decommit all such pages.
-        char* prev_page_start_address = get_txn_metadata_page_address_from_ts(prev_pre_truncate_watermark);
-        char* new_page_start_address = get_txn_metadata_page_address_from_ts(new_pre_truncate_watermark);
-
-        // Check for overflow.
+    // Try to advance the pre-truncate watermark.
+    if (!advance_watermark(watermark_type_t::pre_truncate, new_pre_truncate_watermark))
+    {
+        // Abort if another thread has concurrently advanced the
+        // pre-truncate watermark, to avoid contention.
         ASSERT_INVARIANT(
-            prev_page_start_address <= new_page_start_address,
-            "The new pre-truncate watermark must start on the same or later page than the previous pre-truncate watermark!");
+            get_watermark(watermark_type_t::pre_truncate) > prev_pre_truncate_watermark,
+            "The watermark must have advanced if advance_watermark() failed!");
 
-        size_t pages_to_decommit_count = (new_page_start_address - prev_page_start_address) / c_page_size_in_bytes;
-        if (pages_to_decommit_count > 0)
+        return;
+    }
+
+    // Mark any index entries as committed before the metadata is truncated. At this point, all
+    // aborted/terminated index entries before the pre-truncate watermark should have been
+    // garbage collected.
+    index::index_builder_t::mark_index_entries_committed(new_pre_truncate_watermark);
+
+    // We advanced the pre-truncate watermark, so actually truncate the txn
+    // table by decommitting its unused physical pages. Because this
+    // operation is concurrency-safe and idempotent, it can be done without
+    // mutual exclusion.
+    // REVIEW: The previous logic could also be used to safely advance the
+    // "head" pointer if the txn table were implemented as a circular
+    // buffer.
+
+    // Calculate the number of pages between the previously read pre-truncate
+    // watermark and our safe truncation timestamp. If the result exceeds zero,
+    // then decommit all such pages.
+    char* prev_page_start_address = get_txn_metadata_page_address_from_ts(prev_pre_truncate_watermark);
+    char* new_page_start_address = get_txn_metadata_page_address_from_ts(new_pre_truncate_watermark);
+
+    // Check for overflow.
+    ASSERT_INVARIANT(
+        prev_page_start_address <= new_page_start_address,
+        "The new pre-truncate watermark must start on the same or later page than the previous pre-truncate watermark!");
+
+    size_t pages_to_decommit_count = (new_page_start_address - prev_page_start_address) / c_page_size_in_bytes;
+    if (pages_to_decommit_count > 0)
+    {
+        // MADV_FREE seems like the best fit for our needs, since it allows
+        // the OS to lazily reclaim decommitted pages. (If we move the txn
+        // table to a shared mapping (e.g. memfd), then we'll need to switch
+        // to MADV_REMOVE.)
+        //
+        // REVIEW: MADV_FREE makes it impossible to monitor RSS usage, so
+        // use MADV_DONTNEED unless we actually need better performance (see
+        // https://github.com/golang/go/issues/42330 for a discussion of
+        // these issues). Moreover, we will never reuse the decommitted
+        // virtual memory, so using MADV_FREE wouldn't save the cost of hard
+        // page faults on first access to decommitted pages.
+        if (-1 == ::madvise(prev_page_start_address, pages_to_decommit_count * c_page_size_in_bytes, MADV_DONTNEED))
         {
-            // MADV_FREE seems like the best fit for our needs, since it allows
-            // the OS to lazily reclaim decommitted pages. (If we move the txn
-            // table to a shared mapping (e.g. memfd), then we'll need to switch
-            // to MADV_REMOVE.)
-            // REVIEW: MADV_FREE makes it impossible to monitor RSS usage, so
-            // use MADV_DONTNEED unless we actually need better performance.
-            // (See https://github.com/golang/go/issues/42330 for a discussion
-            // of these issues.)
-            if (-1 == ::madvise(prev_page_start_address, pages_to_decommit_count * c_page_size_in_bytes, MADV_DONTNEED))
-            {
-                throw_system_error("madvise(MADV_DONTNEED) failed!");
-            }
+            throw_system_error("madvise(MADV_DONTNEED) failed!");
         }
     }
 }
