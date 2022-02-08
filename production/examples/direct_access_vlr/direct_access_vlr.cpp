@@ -21,14 +21,15 @@ void delete_all_records_from_tables()
 {
     auto_transaction_t txn{auto_transaction_t::no_auto_restart};
 
-    for (auto person = *person_t::list().begin(); person; person = *person_t::list().begin())
+    for (auto person = person_t::list().begin(); person != person_t::list().end();)
     {
-        person.delete_row();
+        (*person++).delete_row();
     }
-    for (auto level = *level_t::list().begin(); level; level = *level_t::list().begin())
+    for (auto level = level_t::list().begin(); level != level_t::list().end();)
     {
-        level.delete_row();
+        (*level++).delete_row();
     }
+
     txn.commit();
 }
 
