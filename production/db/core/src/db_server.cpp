@@ -649,7 +649,7 @@ void server_t::init_shared_memory()
     recover_db();
 
     // Initialize indexes.
-    // init_indexes();
+    init_indexes();
 
     // Done with local snapshot.
     s_local_snapshot_locators.close();
@@ -2004,7 +2004,7 @@ void server_t::gc_txn_log_from_offset(log_offset_t log_offset, bool is_committed
 
     // Remove index entries that might be referencing obsolete versions before
     // actually deallocating them.
-    // index::index_builder_t::gc_indexes_from_txn_log(txn_log, deallocate_new_offsets);
+    index::index_builder_t::gc_indexes_from_txn_log(txn_log, deallocate_new_offsets);
     deallocate_txn_log(txn_log, deallocate_new_offsets);
 }
 
@@ -2036,17 +2036,17 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
 
         // If we're gc-ing the old version of an object that is being deleted,
         // then request the deletion of its locator from the corresponding record list.
-        // if (!deallocate_new_offsets && !log_record->new_offset.is_valid())
-        // {
-        //     // Get the old object data to extract its type.
-        //     db_object_t* db_object = offset_to_ptr(log_record->old_offset);
+        if (!deallocate_new_offsets && !log_record->new_offset.is_valid())
+        {
+            // Get the old object data to extract its type.
+            db_object_t* db_object = offset_to_ptr(log_record->old_offset);
 
-        //     // Retrieve the record_list_t instance corresponding to the type.
-        //     std::shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(db_object->type);
+            // Retrieve the record_list_t instance corresponding to the type.
+            std::shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(db_object->type);
 
-        //     // Request the deletion of the record corresponding to the object.
-        //     record_list->request_deletion(log_record->locator);
-        // }
+            // Request the deletion of the record corresponding to the object.
+            record_list->request_deletion(log_record->locator);
+        }
 
         if (offset_to_free.is_valid())
         {
@@ -2505,7 +2505,7 @@ void server_t::truncate_txn_table()
     // Mark any index entries as committed before the metadata is truncated. At this point, all
     // aborted/terminated index entries before the pre-truncate watermark should have been
     // garbage collected.
-    // index::index_builder_t::mark_index_entries_committed(new_pre_truncate_watermark);
+    index::index_builder_t::mark_index_entries_committed(new_pre_truncate_watermark);
 
     // We advanced the pre-truncate watermark, so actually truncate the txn
     // table by decommitting its unused physical pages. Because this
@@ -2636,7 +2636,7 @@ void server_t::sort_log()
 bool server_t::txn_commit()
 {
     // Perform pre-commit work.
-    // perform_pre_commit_work_for_txn();
+    perform_pre_commit_work_for_txn();
 
     // Before registering the log, sort by locator for fast conflict detection.
     sort_log();
