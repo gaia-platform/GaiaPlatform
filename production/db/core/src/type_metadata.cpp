@@ -237,7 +237,7 @@ static std::shared_ptr<relationship_t> create_relationship(catalog_core::relatio
         .next_child_offset = relationship.next_child_offset(),
         .prev_child_offset = relationship.prev_child_offset(),
         .parent_offset = relationship.parent_offset(),
-        .cardinality = cardinality_t::many,
+        .cardinality = relationship.cardinality(),
         .parent_required = false,
         .value_linked = relationship.is_value_linked()});
 }
