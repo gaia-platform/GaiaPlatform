@@ -48,7 +48,7 @@ show_usage() {
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
     echo "  -b,--base-image     Optional base image to use as a cache for the new image."
-    echo "  -c,--cfg-enables"
+    echo "  -c,--cfg-enables    Zero or more configurations to enable in the gdev.cfg files."
     echo "  -r,--repo-path      Base path of the repository to generate from."
     echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
@@ -143,27 +143,33 @@ save_current_directory
 CONFIGURATION_OPTIONS=
 for i in "${CONFIG[@]}"
 do
-    CONFIGURATION_OPTIONS="$CONFIGURATION_OPTIONS --cfg-enables $i"
+    if [ -z "$CONFIGURATION_OPTIONS" ] ; then
+        CONFIGURATION_OPTIONS="$i"
+    else
+        CONFIGURATION_OPTIONS="$CONFIGURATION_OPTIONS,$i"
+    fi
 done
+CONFIGURATION_OPTIONS="--cfg-enables $CONFIGURATION_OPTIONS"
 
 # Ensure we have a predicatable place to place output that we want to expose.
 if ! mkdir -p "$GAIA_REPO/build/output" ; then
-    complete_process 1 "Unable to create an output directory for '$JOB_NAME'."
+    complete_process 1 "Unable to create an output directory for job."
 fi
 
 # Execute GDev to produce a dockerfile with the specified configuration options.
 cd "$GAIA_REPO/production" || exit
 if ! pip install atools argcomplete ; then
-    complete_process 1 "Unable to install Python packages required to build dockerfile for '$JOB_NAME'."
+    complete_process 1 "Unable to install Python packages required to build dockerfile for job."
 fi
 # shellcheck disable=SC2086
 if ! "$GAIA_REPO/dev_tools/gdev/gdev.sh" dockerfile $CONFIGURATION_OPTIONS > "$GAIA_REPO/production/dockerfile" ; then
-    complete_process 1 "Creation of dockerfile for job '$JOB_NAME' failed."
+    cat "$GAIA_REPO/production/dockerfile"
+    complete_process 1 "Creation of dockerfile for job failed."
 fi
 
 # Copy that dockerfile to our output directory for later debugging, if needed.
 if ! cp "$GAIA_REPO/production/dockerfile" "$GAIA_REPO/build/output" ; then
-    complete_process 1 "Copy of dockerfile for job '$JOB_NAME' failed."
+    complete_process 1 "Copy of dockerfile for job failed."
 fi
 
 # Execute `docker buildx build` to create a dockerfile.
@@ -183,7 +189,7 @@ if ! docker buildx build \
     --ssh default \
     --compress \
     "$GAIA_REPO" ; then
-    complete_process 1 "Docker build for job '$JOB_NAME' failed."
+    complete_process 1 "Docker build for job failed."
 fi
 
 complete_process 0

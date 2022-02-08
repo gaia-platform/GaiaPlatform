@@ -267,8 +267,9 @@ class Dependency:
         if parsed_args['args'] and parsed_args['args'][0] == '--':
             parsed_args['args'] = parsed_args['args'][1:]
         parsed_args['args'] = ' '.join(parsed_args['args'])
+        split_enables_arguments = parsed_args['cfg_enables'][0].split(",") if parsed_args['cfg_enables'] else []
         parsed_args['cfg_enables'] = frozenset([
-            parsed_args['base_image'], *parsed_args['cfg_enables'], *parsed_args['mixins']
+            parsed_args['base_image'], *split_enables_arguments, *parsed_args['mixins']
         ])
         parsed_args['mixins'] = frozenset(parsed_args['mixins'])
         parsed_args['ports'] = frozenset(str(port) for port in parsed_args['ports'])
