@@ -31,7 +31,7 @@ These instructions assume you have installed the SDK and have installed the `cla
     ```
 4. The output of the build is the `rules_vlr` executable.
 
-# Running the Example
+## Running the Example
 
 To run the `rules_vlr` binary from the build directory use the following command:
 

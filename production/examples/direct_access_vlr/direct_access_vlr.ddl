@@ -20,7 +20,7 @@ table level (
 table person (
     name string,
     level_number int32,
-    -- Create a 1-to-N VLR between a level (1) and a person (N)
+    -- Create a 1-to-N VLR between a level (1) and people (N)
     -- that matches level numbers.
     current_level references level
         where person.level_number = level.level_number

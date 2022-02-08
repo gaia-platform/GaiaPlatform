@@ -15,6 +15,8 @@ table student (
     -- room_id is optional, so if set to null, that means a student is
     -- not connected to any dorm room.
     room_id uint32 optional,
+    -- Create a 1-to-N Value-Linked Relationship between
+    -- a dorm room (1) and students (N) that matches room IDs.
     room references dorm_room
         where student.room_id = dorm_room.id
 )
