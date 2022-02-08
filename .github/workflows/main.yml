@@ -294,6 +294,76 @@ jobs:
           path: |
             ${{ github.workspace }}/build/output
 
+  Debug_SDK:
+    needs:
+      - Core
+    runs-on: ubuntu-20.04
+#    if: github.event_name != 'pull_request'
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Clean up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+
+      - name: Download Dev Image
+        uses: actions/download-artifact@v2
+        with:
+          name: Dev Image
+          path: ${{ github.workspace }}/production
+
+      - name: Load Compressed Dev Image
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
+          docker load < ${{ github.workspace }}/production/dev_image.tar.gz
+          rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
+
+      - name: Build Docker Image
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
+              --repo-path $GAIA_REPO \
+              --base-image $DEV_IMAGE \
+              --cfg-enables GaiaSDK --cfg-enables Debug
+
+      - name: Run Unit Tests
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
+            --repo-path $GAIA_REPO \
+            --action unit_tests
+
+      - name: Publish Debian Package
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
+            --repo-path $GAIA_REPO \
+            --action publish_package
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/build/output
+            !${{ github.workspace }}/build/output/package
+
+      - name: Upload Install Package
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debug_SDK Install Package
+          path: |
+            ${{ github.workspace }}/build/output/package
+
   Coverage:
     needs:
       - Lint
@@ -426,7 +496,49 @@ jobs:
       - name: Tests
         working-directory: ${{ github.workspace }}
         run: |
-          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh \
+            --verbose \
+            --job-name $GITHUB_JOB \
+            --repo-path $GAIA_REPO \
+            --package $GAIA_REPO/production/tests/packages
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/production/tests/results
+
+  Integration_Smoke_Debug:
+    needs: Debug_SDK
+    runs-on: ubuntu-20.04
+#    if: github.event_name != 'pull_request'
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Download Debian Install Package
+        uses: actions/download-artifact@v2
+        with:
+          name: Debug_SDK Install Package
+          path: ${{ github.workspace }}/production/tests/packages
+
+      - name: Tests
+        working-directory: ${{ github.workspace }}
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh \
+            --verbose \
+            --job-name $GITHUB_JOB \
+            --repo-path $GAIA_REPO \
+            --package $GAIA_REPO/production/tests/packages
 
       - name: Upload Output Files
         if: always()
@@ -460,7 +572,49 @@ jobs:
       - name: Tests
         working-directory: ${{ github.workspace }}
         run: |
-          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh \
+            --verbose \
+            --job-name $GITHUB_JOB \
+            --repo-path $GAIA_REPO \
+            --package $GAIA_REPO/production/tests/packages
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/production/tests/results
+
+  Integration_Smoke_Persistence_Debug:
+    needs: Debug_SDK
+    runs-on: ubuntu-20.04
+# if: github.event_name != 'pull_request'
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Download Debian Install Package
+        uses: actions/download-artifact@v2
+        with:
+          name: Debug_SDK Install Package
+          path: ${{ github.workspace }}/production/tests/packages
+
+      - name: Tests
+        working-directory: ${{ github.workspace }}
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh \
+            --verbose \
+            --job-name $GITHUB_JOB \
+            --repo-path $GAIA_REPO \
+            --package $GAIA_REPO/production/tests/packages
 
       - name: Upload Output Files
         if: always()
@@ -509,12 +663,15 @@ jobs:
       - Lint
       - Third-Party
       - Core
-      - SDK
       - Debug_Core
+      - SDK
+      - Debug_SDK
       - Coverage
       - LLVM_Tests
       - Integration_Smoke
+      - Integration_Smoke_Debug
       - Integration_Smoke_Persistence
+      - Integration_Smoke_Persistence_Debug
       - Integration_Samples
     runs-on: ubuntu-20.04
     if: always()
