@@ -14,7 +14,6 @@ COPY $gaia_sdk_deb .
 ENV CC=/usr/bin/clang-10
 ENV CPP=/usr/bin/clang-cpp-10
 ENV CXX=/usr/bin/clang++-10
-ENV LDFLAGS="-B/usr/lib/llvm-10/bin/ -fuse-ld=lld"
 
 RUN apt-get update \
     && apt-get install -y ./$gaia_sdk_deb

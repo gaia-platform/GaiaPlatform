@@ -4,7 +4,6 @@ name: Core Build
 on:
   workflow_dispatch:
 env:
-  GAIA_VERSION: 0.3.3
   SSH_AUTH_SOCK: /tmp/ssh_agent.sock
   DEV_IMAGE: ghcr.io/gaia-platform/dev-base-gaia-platform:latest
 
@@ -91,9 +90,23 @@ jobs:
             ${{ github.workspace }}/production/raw_dockerfile
             ${{ github.workspace }}/production/dockerfile
 
-      - name: Rename Image and Publish
+      - name: Publish Dev Image to GitHub Repository
         run: |
+          echo "Pushing Dev Image to GitHub Docker Repository"
           docker push $DEV_IMAGE
+
+      - name: Save Compressed Dev Image
+        run: |
+          echo "Saving Dev Image as GZipped Tarball"
+          docker save $DEV_IMAGE | gzip > ${{ github.workspace }}/production/dev_image.tar.gz
+          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
+
+      - name: Upload Install Package
+        uses: actions/upload-artifact@v2
+        with:
+          name: Dev Image
+          path: |
+            ${{ github.workspace }}/production/dev_image.tar.gz
 
   Core:
     needs:
@@ -117,11 +130,18 @@ jobs:
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
 
-      - name: Pull Latest Dev-Core Image
+      - name: Download Dev Image
+        uses: actions/download-artifact@v2
+        with:
+          name: Dev Image
+          path: ${{ github.workspace }}/production
+
+      - name: Load Compressed Dev Image
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull $DEV_IMAGE
+          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
+          docker load < ${{ github.workspace }}/production/dev_image.tar.gz
+          rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
 
       - name: Build Docker Image
         run: |
@@ -133,7 +153,6 @@ jobs:
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
             --repo-path $GAIA_REPO \
-            --gaia-version $GAIA_VERSION \
             --action unit_tests
 
       - name: Upload Output Files
@@ -166,11 +185,18 @@ jobs:
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
 
-      - name: Pull Latest Dev-Core Image
+      - name: Download Dev Image
+        uses: actions/download-artifact@v2
+        with:
+          name: Dev Image
+          path: ${{ github.workspace }}/production
+
+      - name: Load Compressed Dev Image
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull $DEV_IMAGE
+          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
+          docker load < ${{ github.workspace }}/production/dev_image.tar.gz
+          rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
 
       - name: Build Docker Image
         run: |
@@ -183,7 +209,6 @@ jobs:
         run: |
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
             --repo-path $GAIA_REPO \
-            --gaia-version $GAIA_VERSION \
             --action unit_tests
 
       - name: Upload Output Files

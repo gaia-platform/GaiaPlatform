@@ -44,6 +44,7 @@ std::shared_ptr<int> scan_generator_t::get_record_cursor_socket_for_index(
     std::shared_ptr<query_processor::scan::index_predicate_t> predicate)
 {
     FlatBufferBuilder builder;
+    builder.ForceDefaults(true);
 
     flatbuffers::Offset<void> serialized_predicate = 0;
 
