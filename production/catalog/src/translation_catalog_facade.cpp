@@ -7,9 +7,9 @@
 
 namespace gaia
 {
-namespace translation
+namespace catalog
 {
-namespace generate
+namespace translation
 {
 
 //
@@ -21,6 +21,6 @@ std::string translation_table_facade_t::class_name(const std::string& table_name
     return table_name + catalog::generate::c_class_suffix;
 }
 
-} // namespace generate
 } // namespace translation
+} // namespace catalog
 } // namespace gaia

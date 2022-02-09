@@ -21,7 +21,7 @@ using namespace std;
 using namespace clang;
 using namespace clang::gaia::catalog;
 using namespace ::gaia::translation;
-using namespace ::gaia::translation::generate;
+using namespace ::gaia::catalog::translation;
 
 constexpr char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
 constexpr int c_variable_length = 15;

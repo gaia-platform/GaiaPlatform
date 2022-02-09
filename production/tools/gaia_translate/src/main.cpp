@@ -45,7 +45,7 @@ using namespace clang::ast_matchers;
 using namespace ::gaia;
 using namespace ::gaia::common;
 using namespace ::gaia::translation;
-using namespace ::gaia::translation::generate;
+using namespace ::gaia::catalog::translation;
 using namespace clang::gaia::catalog;
 
 cl::OptionCategory g_translation_engine_category("Translation engine options");

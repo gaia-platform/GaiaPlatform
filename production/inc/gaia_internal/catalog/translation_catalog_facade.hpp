@@ -13,9 +13,9 @@
 
 namespace gaia
 {
-namespace translation
+namespace catalog
 {
-namespace generate
+namespace translation
 {
 
 class translation_table_facade_t : public gaia::catalog::generate::table_facade_t
@@ -24,6 +24,6 @@ public:
     static std::string class_name(const std::string& table_name);
 };
 
-} // namespace generate
 } // namespace translation
+} // namespace catalog
 } // namespace gaia
