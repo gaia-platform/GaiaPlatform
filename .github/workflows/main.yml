@@ -23,25 +23,11 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
-
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
         with:
-          python-version: 3.8
-
-      - name: Clean up disk space
-        run: |
-          df -h
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          df -h
-
-      - name: Pull Latest Dev-Core Image
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull $DEV_IMAGE
+          docker-user: ${{ github.actor }}
+          docker-password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Docker Image
         run: |
@@ -50,6 +36,7 @@ jobs:
           $GAIA_REPO/dev_tools/gdev/gdev.sh dockerfile > $GAIA_REPO/production/raw_dockerfile
           $GAIA_REPO/dev_tools/github-actions/copy_until_line.py --input-file $GAIA_REPO/production/raw_dockerfile --output-file $GAIA_REPO/production/dockerfile --stop-line "# GenRunDockerfile(production)"
           docker buildx build -f $GAIA_REPO/production/dockerfile -t $DEV_IMAGE --cache-from $DEV_IMAGE --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
+
       - name: Upload Intermediate Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -124,30 +111,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
-
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-
-      - name: Clean up disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-
-      - name: Download Dev Image
-        uses: actions/download-artifact@v2
-        with:
-          name: Dev Image
-          path: ${{ github.workspace }}/production
-
-      - name: Load Compressed Dev Image
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
-          docker load < ${{ github.workspace }}/production/dev_image.tar.gz
-          rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
 
       - name: Build Docker Image
         run: |
@@ -160,6 +125,7 @@ jobs:
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
             --repo-path $GAIA_REPO \
             --action unit_tests
+
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
@@ -172,36 +138,14 @@ jobs:
     needs:
       - Core
     runs-on: ubuntu-20.04
-#    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
-
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-
-      - name: Clean up disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-
-      - name: Download Dev Image
-        uses: actions/download-artifact@v2
-        with:
-          name: Dev Image
-          path: ${{ github.workspace }}/production
-
-      - name: Load Compressed Dev Image
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
-          docker load < ${{ github.workspace }}/production/dev_image.tar.gz
-          rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
 
       - name: Build Docker Image
         run: |
@@ -248,30 +192,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
-
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-
-      - name: Clean up disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-
-      - name: Download Dev Image
-        uses: actions/download-artifact@v2
-        with:
-          name: Dev Image
-          path: ${{ github.workspace }}/production
-
-      - name: Load Compressed Dev Image
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
-          docker load < ${{ github.workspace }}/production/dev_image.tar.gz
-          rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
 
       - name: Build Docker Image
         run: |
@@ -305,30 +227,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
-
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-
-      - name: Clean up disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-
-      - name: Download Dev Image
-        uses: actions/download-artifact@v2
-        with:
-          name: Dev Image
-          path: ${{ github.workspace }}/production
-
-      - name: Load Compressed Dev Image
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
-          docker load < ${{ github.workspace }}/production/dev_image.tar.gz
-          rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
 
       - name: Coverage
         run: |
@@ -362,30 +262,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
-
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-
-      - name: Clean up disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-
-      - name: Download Dev Image
-        uses: actions/download-artifact@v2
-        with:
-          name: Dev Image
-          path: ${{ github.workspace }}/production
-
-      - name: Load Compressed Dev Image
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
-          docker load < ${{ github.workspace }}/production/dev_image.tar.gz
-          rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
 
       - name: Build Docker Image
         run: |
