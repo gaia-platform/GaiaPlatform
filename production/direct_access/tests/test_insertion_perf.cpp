@@ -128,7 +128,8 @@ void log_performance_difference(accumulator_t<int64_t> expr_accumulator, std::st
 void run_performance_test(
     std::function<void()> expr_fn,
     std::string_view message,
-    uint32_t num_iterations = 5)
+    uint32_t num_iterations = 5,
+    bool clear_db = true)
 {
     accumulator_t<int64_t> expr_accumulator;
 
@@ -136,7 +137,10 @@ void run_performance_test(
     {
         int64_t expr_duration = g_timer_t::get_function_duration(expr_fn);
         expr_accumulator.add(expr_duration);
-        clear_database();
+        if (clear_db)
+        {
+            clear_database();
+        }
     }
 
     log_performance_difference(expr_accumulator, message);
@@ -225,91 +229,89 @@ TEST_F(test_insert_perf, insert)
     run_performance_test(insert6, "Value Linked Relationships");
 }
 
-//#include "gaia_internal/catalog/catalog.hpp"
-//#include "gaia_internal/db/catalog_core.hpp"
-//
-//#include "db_object_helpers.hpp"
-//#include "index_key.hpp"
-//#include "index_scan.hpp"
-//#include "type_id_mapping.hpp"
-//
-// using namespace gaia::db;
-// using namespace gaia::catalog;
-//
-// TEST_F(test_insert_perf, query_single_match)
-//{
-//    // Lookup index_id for integer field.
-//    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(simple_table_index_t::s_gaia_type);
-//    gaia_id_t range_index_id = c_invalid_gaia_id;
-//    gaia_id_t hash_index_id = c_invalid_gaia_id;
-//
-//    auto_transaction_t txn;
-//
-//    for (const auto& index : catalog_core::list_indexes(type_record_id))
-//    {
-//        for (const auto& field_id : *index.fields())
-//        {
-//            const auto& field = catalog_core::field_view_t(gaia::db::id_to_ptr(field_id));
-//            //            if (field.data_type() == data_type_t::e_int32 && index.type() == index_type_t::range)
-//            //            {
-//            //                range_index_id = index.id();
-//            //                break;
-//            //            }
-//            //            else
-//            if (field.data_type() == data_type_t::e_uint64 && index.type() == index_type_t::hash)
-//            {
-//                hash_index_id = index.id();
-//                break;
-//            }
-//        }
-//    }
-//
-//    EXPECT_TRUE(hash_index_id != c_invalid_gaia_id);
-//    //
-//    //    // Queries the indexes.
-//    int32_t value = c_num_initial_rows;
-//    //
-//    //    // Equal-range query on range index.
-//    //    size_t num_results = 0;
-//    auto index_key = index_key_t(value);
-//    auto equal_predicate = std::make_shared<index_equal_range_predicate_t>(index_key);
-//    //    for (const auto& scan : index_scan_t(range_index_id, equal_predicate))
-//    //    {
-//    //        (void)scan;
-//    //        ++num_results;
-//    //    }
-//    //
-//    //    EXPECT_EQ(num_results, 1);
-//    //
-//    // Equal-range query on hash index.
-//    size_t num_results = 0;
-//    for (const auto& scan : index_scan_t(hash_index_id, equal_predicate))
-//    {
-//        (void)scan;
-//        ++num_results;
-//    }
-//
-//    EXPECT_EQ(num_results, 1);
-//
-//    auto point_predicate = std::make_shared<index_point_read_predicate_t>(index_key);
-//
-//    // Point-query on range index.
-//    num_results = 0;
-//    for (const auto& scan : index_scan_t(range_index_id, point_predicate))
-//    {
-//        (void)scan;
-//        ++num_results;
-//    }
-//
-//    EXPECT_EQ(num_results, 1);
-//
-//    // Point-query on hash index.
-//    num_results = 0;
-//    for (const auto& scan : index_scan_t(hash_index_id, point_predicate))
-//    {
-//        (void)scan;
-//        ++num_results;
-//    }
-//
-//    EXPECT_EQ(num_results, 1);
-//}
+#include "gaia_internal/catalog/catalog.hpp"
+#include "gaia_internal/db/catalog_core.hpp"
+
+#include "db_object_helpers.hpp"
+#include "index_key.hpp"
+#include "index_scan.hpp"
+#include "type_id_mapping.hpp"
+
+using namespace gaia::db;
+using namespace gaia::catalog;
+using namespace gaia::db::query_processor::scan;
+using namespace gaia::db::index;
+
+TEST_F(test_insert_perf, query_single_match)
+{
+
+    auto_transaction_t txn{auto_transaction_t::no_auto_restart};
+    for (int i = 0; i < 1000000; i++)
+    {
+        simple_table_index_t::insert_row(i);
+    }
+
+    // Lookup index_id for integer field.
+    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(simple_table_index_t::s_gaia_type);
+    gaia_id_t hash_index_id = c_invalid_gaia_id;
+
+    for (const auto& index : catalog_core::list_indexes(type_record_id))
+    {
+        for (const auto& field_id : *index.fields())
+        {
+            const auto& field = catalog_core::field_view_t(gaia::db::id_to_ptr(field_id));
+
+            if (field.data_type() == data_type_t::e_uint64 && index.type() == index_type_t::hash)
+            {
+                hash_index_id = index.id();
+                break;
+            }
+        }
+    }
+
+    EXPECT_TRUE(hash_index_id != c_invalid_gaia_id);
+
+    txn.commit();
+
+    auto index = [&]() {
+        auto_transaction_t txn{auto_transaction_t::no_auto_restart};
+        uint64_t value = 10000;
+        auto index_key = index_key_t(value);
+        int num_results = 0;
+        auto point_predicate = std::make_shared<index_point_read_predicate_t>(index_key);
+        for (const auto& scan : index_scan_t(hash_index_id, point_predicate))
+        {
+            (void)scan;
+            ++num_results;
+        }
+
+        txn.commit();
+
+        gaia_log::app().info("Index res found: {}", num_results);
+        EXPECT_EQ(num_results, 1);
+    };
+
+    run_performance_test(index, "Hash Index value found", 5, false);
+
+    auto index2 = [&]() {
+        auto_transaction_t txn{auto_transaction_t::no_auto_restart};
+        uint64_t value = 1000000000;
+        auto index_key = index_key_t(value);
+        int num_results = 0;
+        auto point_predicate = std::make_shared<index_point_read_predicate_t>(index_key);
+        for (const auto& scan : index_scan_t(hash_index_id, point_predicate))
+        {
+            (void)scan;
+            ++num_results;
+        }
+
+        txn.commit();
+
+        gaia_log::app().info("Index res found: {}", num_results);
+        EXPECT_EQ(num_results, 0);
+    };
+
+    run_performance_test(index2, "Hash Index value not found", 5, false);
+
+    // Point-query on hash index.
+}
