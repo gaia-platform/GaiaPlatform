@@ -24,15 +24,11 @@ ruleset vlr_serial_rules : serial_group()
             return;
         }
     }
-}
 
-// Without a serial group, rules in this ruleset run in parallel.
-ruleset vlr_parallel_rules
-{
     on_update(student.room_id)
     {
         // This rule's anchor row is a student, but we can refer to their
-        // connected dorm_room because we linked them in the previous rule.
+        // connected dorm_room because we connected them in the previous rule.
         gaia_log::app().info("Assigned {} to dorm room {}.",
             student.name, dorm_room.name);
     }

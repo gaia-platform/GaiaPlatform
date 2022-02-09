@@ -59,12 +59,12 @@ void insert_new_students()
 
     // The room_id field is optional, so we start by setting it to nullopt
     // to mean "this student is not connected to a room".
-    student_t::insert_row(1000, "Todd", nullopt);
-    student_t::insert_row(1001, "Jane", nullopt);
-    student_t::insert_row(1002, "John", nullopt);
-    student_t::insert_row(1003, "Sarah", nullopt);
-    student_t::insert_row(1004, "Ned", nullopt);
-    student_t::insert_row(1005, "Dave", nullopt);
+    student_t::insert_row(1000, "Alice", nullopt);
+    student_t::insert_row(1001, "Bob", nullopt);
+    student_t::insert_row(1002, "Charles", nullopt);
+    student_t::insert_row(1003, "Dave", nullopt);
+    student_t::insert_row(1004, "Elijah", nullopt);
+    student_t::insert_row(1005, "Fred", nullopt);
 
     txn.commit();
 }
