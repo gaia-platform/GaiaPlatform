@@ -29,8 +29,6 @@ runs:
         ${{ inputs.gaia-repo }}/production/coverage/coverage.sh --verbose --output ${{ inputs.gaia-repo }}/build/output
         cp ${{ inputs.gaia-repo }}/production/raw_dockerfile ${{ inputs.gaia-repo }}/build/output
         cp ${{ inputs.gaia-repo }}/production/dockerfile ${{ inputs.gaia-repo }}/build/output
-        echo "sudo chmod -R 777 ${{ inputs.gaia-repo }}/production"
-        sudo chmod -R 777 ${{ inputs.gaia-repo }}/production
 
     - name: Upload Output Files
       if: always()
@@ -38,4 +36,4 @@ runs:
       with:
         name: ${{ inputs.job-name }} Test Files
         path: |
-          ${{ inputs.gaia-repo }}/production/output
+          ${{ inputs.gaia-repo }}/build/output
