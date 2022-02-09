@@ -11,17 +11,18 @@ database direct_access_vlr
 -- Floors in a multi-story building.
 table floor (
     floor_number int32 unique,
-    department string,
-    -- Since a Value Linked Relationship will be made from people to a floor,
-    -- we also need a reference back from a floor to people.
-    people references person[]
+    description string,
+    -- Since a Value Linked Relationship will be made from elevators to a floor,
+    -- we also need a reference back from a floor to elevators.
+    elevators references elevator[]
 )
 
-table person (
-    name string,
+-- Elevators that travel up and down floors.
+table elevator (
+    elevator_id uint32,
     floor_number int32,
-    -- Create a 1:N VLR between a floor (1) and people (N)
+    -- Create a 1:N VLR between a floor (1) and elevators (N)
     -- that matches floor numbers.
     current_floor references floor
-        where person.floor_number = floor.floor_number
+        where elevator.floor_number = floor.floor_number
 )

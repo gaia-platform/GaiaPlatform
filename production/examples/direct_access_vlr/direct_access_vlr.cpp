@@ -22,9 +22,9 @@ void delete_all_records_from_tables()
 {
     auto_transaction_t txn{auto_transaction_t::no_auto_restart};
 
-    for (auto person = person_t::list().begin(); person != person_t::list().end();)
+    for (auto elevator = elevator_t::list().begin(); elevator != elevator_t::list().end();)
     {
-        (*person++).delete_row();
+        (*elevator++).delete_row();
     }
     for (auto floor = floor_t::list().begin(); floor != floor_t::list().end();)
     {
@@ -43,31 +43,32 @@ void vlr_example_usage()
 {
     auto_transaction_t txn{};
 
-    // Floors inserted with their numbers and department names.
+    // Floors inserted with their numbers and descriptions.
     floor_t::insert_row(0, "Lobby");
     floor_t::insert_row(1, "Sales");
     floor_t::insert_row(2, "Engineering");
     floor_t::insert_row(3, "Admin");
 
-    // Insert people at certain floors. Bill starts at floor 0: the lobby.
-    person_t person = person_t::get(person_t::insert_row("Bill", 0));
+    // Insert an elevator with an ID of 1 that starts at floor 0, the lobby.
+    elevator_t elevator = elevator_t::get(elevator_t::insert_row(1, 0));
     txn.commit();
 
-    // We need a writer to change a person's field values.
-    person_writer person_w = person.writer();
+    // We need a writer to change a elevator's field values.
+    elevator_writer elevator_w = elevator.writer();
 
-    // Move the person up a floor three times.
+    // Move the elevator up a floor three times.
     for (int i = 0; i < 3; ++i)
     {
-        // Changing their floor is as easy as incrementing floor_number.
-        // With VLRs, this automatically reconnects the person to the next floor.
-        person_w.floor_number++;
-        person_w.update_row();
+        // Changing its floor is as easy as incrementing floor_number.
+        // With VLRs, this automatically reconnects the elevator to the next floor.
+        elevator_w.floor_number++;
+        elevator_w.update_row();
         txn.commit();
 
-        // Now that the person is implicitly connected to a floor through a VLR,
+        // Now that the elevator is implicitly connected to a floor through a VLR,
         // we can directly access that floor using the current_floor reference.
-        gaia_log::app().info("{} has arrived at: {}", person.name(), person.current_floor().department());
+        floor_t current_floor = elevator.current_floor();
+        gaia_log::app().info("Elevator {} has arrived at floor {}: {}", elevator.elevator_id(), current_floor.floor_number(), current_floor.description());
     }
 }
 
