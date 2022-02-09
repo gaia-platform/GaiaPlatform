@@ -67,8 +67,7 @@ void vlr_example_usage()
 
         // Now that the person is implicitly connected to a level through a VLR,
         // we can directly access that level using the current_level reference.
-        gaia_log::app().info("{} has arrived at: {}",
-            person.name(), person.current_level().department());
+        gaia_log::app().info("{} has arrived at: {}", person.name(), person.current_level().department());
     }
 }
 
