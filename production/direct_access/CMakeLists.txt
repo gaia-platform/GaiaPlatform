@@ -51,6 +51,11 @@ add_gtest(test_optional_dac
   "${DIRECT_ACCESS_TEST_INCLUDES}"
   "rt;gaia_direct;gaia_db_catalog_test;dac_optional_sandbox")
 
+add_gtest(test_insert_perf
+  "tests/test_insertion_perf.cpp"
+  "${DIRECT_ACCESS_TEST_INCLUDES};${GAIA_REPO}/production/db/inc/index;${GAIA_REPO}/production/db/inc/query_processor;${GAIA_REPO}/production/db/core/inc;${GAIA_REPO}/production/db/inc/payload_types;${GAIA_PROD_BUILD}/db/core/generated"
+  "rt;gaia_direct;gaia_db_catalog_test;dac_insert_sandbox")
+
 option(BUILD_EXPR_PERF_TEST "Build DAC expression performance tests" OFF)
 
 if(BUILD_EXPR_PERF_TEST)
