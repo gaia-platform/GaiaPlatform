@@ -19,7 +19,7 @@ find_package(Threads REQUIRED)
 
 include("/opt/gaia/cmake/gaia.cmake")
 
-# Generate Direct Access classes from the DDL schema.
+# Generate Direct Access Classes from the DDL schema.
 process_schema(
   DDL_FILE ${PROJECT_SOURCE_DIR}/rules_vlr.ddl
   DATABASE_NAME rules_vlr

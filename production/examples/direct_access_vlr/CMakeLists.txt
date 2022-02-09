@@ -19,15 +19,10 @@ find_package(Threads REQUIRED)
 
 include("/opt/gaia/cmake/gaia.cmake")
 
-# Generate Direct Access classes from the DDL schema.
+# Generate Direct Access Classes from the DDL schema.
 process_schema(
   DDL_FILE ${PROJECT_SOURCE_DIR}/direct_access_vlr.ddl
   DATABASE_NAME direct_access_vlr
-)
-
-# Translate the ruleset into C++.
-translate_ruleset(
-  RULESET_FILE ${PROJECT_SOURCE_DIR}/direct_access_vlr.ruleset
 )
 
 add_executable(direct_access_vlr

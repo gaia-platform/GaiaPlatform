@@ -216,7 +216,6 @@ install(FILES ${GAIA_REPO}/production/examples/direct_access_multithread/README.
 
 # Place direct_access_vlr example.
 install(FILES ${GAIA_REPO}/production/examples/direct_access_vlr/direct_access_vlr.ddl DESTINATION examples/direct_access_vlr)
-install(FILES ${GAIA_REPO}/production/examples/direct_access_vlr/direct_access_vlr.ruleset DESTINATION examples/direct_access_vlr)
 install(FILES ${GAIA_REPO}/production/examples/direct_access_vlr/direct_access_vlr.cpp DESTINATION examples/direct_access_vlr)
 install(FILES ${GAIA_REPO}/production/examples/direct_access_vlr/CMakeLists.txt DESTINATION examples/direct_access_vlr)
 install(FILES ${GAIA_REPO}/production/examples/direct_access_vlr/README.md DESTINATION examples/direct_access_vlr)

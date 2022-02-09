@@ -6,6 +6,7 @@
 // or at https://opensource.org/licenses/MIT.
 ////////////////////////////////////////////////////
 
+#include <gaia/logger.hpp>
 #include <gaia/system.hpp>
 
 #include "gaia_direct_access_vlr.h"
@@ -50,12 +51,6 @@ void vlr_example_usage()
 
     // Insert people at certain levels. Bill starts at level 0: the lobby.
     person_t person = person_t::get(person_t::insert_row("Bill", 0));
-    person_t::insert_row("Todd", 1);
-    person_t::insert_row("Jane", 1);
-    person_t::insert_row("John", 2);
-    person_t::insert_row("Sarah", 2);
-    person_t::insert_row("Ned", 2);
-    person_t::insert_row("Dave", 3);
     txn.commit();
 
     // We need a writer to change a person's field values.
@@ -69,12 +64,12 @@ void vlr_example_usage()
         person_w.level_number++;
         person_w.update_row();
         txn.commit();
-    }
 
-    // Move them back down to the lobby.
-    person_w.level_number = 0;
-    person_w.update_row();
-    txn.commit();
+        // Now that the person is implicitly connected to a level through a VLR,
+        // we can directly access that level using the current_level reference.
+        gaia_log::app().info("{} has arrived at: {}",
+            person.name(), person.current_level().department());
+    }
 }
 
 int main()

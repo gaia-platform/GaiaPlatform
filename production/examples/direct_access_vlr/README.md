@@ -2,7 +2,7 @@
 
 An example of using Value-Linked Relationships (VLRs) to implicitly connect rows by updating linked fields with Direct Access APIs.
 
-This example features a scenario of levels in a multi-story office building, each with a different department (Sales, Engineering, etc.) on each level. People move up and down these levels when visiting different departments.
+This example features a scenario of levels in a multi-story office building, each with a different department (Sales, Engineering, etc.) on each level. A person starts in the lobby and moves up floors.
 
 The premise of VLRs: if the tables `level` and `person` have a 1-to-N relationship (`level.people -> person[]`), then changing the linked field `person.level_number` will **implicitly connect** that `person` row to a `level` row whose `level.level_number` matches.
 
@@ -39,4 +39,4 @@ To run the `direct_access_vlr` binary from the build directory use the following
 ./direct_access_vlr
 ```
 
-The output will show the logs of a person travelling up and down levels; people on each level will greet new arrivals.
+The output will show the logs of a person arriving at consecutive levels.
