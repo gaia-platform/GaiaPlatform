@@ -1,16 +1,18 @@
-# Value-Linked Relationships in Rules Example
+# Value Linked References in Rules example
 
-An example of using Value-Linked Relationships (VLRs) to implicitly connect rows by updating linked fields inside declarative Ruleset code.
+An example that demonstrates how to use Value Linked References (VLRs) to implicitly connect rows by updating linked fields in declarative Ruleset code.
 
 This example features college students being automatically assigned to dorm rooms. A declarative Rule selects the first available room for a new student and fills a room until it reaches its resident capacity.
 
-The premise of VLRs: if the tables `dorm_room` and `student` have a 1-to-N relationship (`dorm_room.residents -> student[]`), then changing the linked field `student.room_id` will **implicitly connect** that `student` row to a `dorm_room` row whose `dorm_room.id` matches.
+## How VLRs are used in this scenario
 
-For more information on Value-Linked Relationships, see [Implicit Relationships](https://gaia-platform.github.io/gaia-platform-docs.io/articles/reference/ddl-implicit-relationships.html) in the Gaia developer documentation.
+The tables `dorm_room` and `student` have a 1:N relationship (`dorm_room.residents -> student[]`). Changing the linked field `student.room_id` **implicitly connects** that `student` row to a `dorm_room` row whose `dorm_room.id` it matches.
 
-## Build Instructions
+For more information about Value Linked References, see [Implicit Relationships](https://gaia-platform.github.io/gaia-platform-docs.io/articles/reference/ddl-implicit-relationships.html) in the Gaia developer documentation.
 
-These instructions assume you have installed the SDK and have installed the `clang` and `cmake` tools.  See the SDK User's Guide for instructions on how to do this.
+## Build instructions
+
+These instructions assume you have installed the SDK and have installed the `clang` and `cmake` tools.  See the [Getting Started guide](https://gaia-platform.github.io/gaia-platform-docs.io/articles/getting-started-with-gaia.html) for instructions on how to do this.
 
 1. To preserve the initial state of the sample code, copy the source files to a new directory.
     ```shell
@@ -31,7 +33,7 @@ These instructions assume you have installed the SDK and have installed the `cla
     ```
 4. The output of the build is the `rules_vlr` executable.
 
-## Running the Example
+## Running the example
 
 To run the `rules_vlr` binary from the build directory use the following command:
 

@@ -1,16 +1,18 @@
-# Direct Access Value-Linked Relationships Example
+# Value Linked References with Direct Access example
 
-An example of using Value-Linked Relationships (VLRs) to implicitly connect rows by updating linked fields with Direct Access APIs.
+An example that demonstrates how to use Value Linked References (VLRs) to implicitly connect rows by updating linked fields with Direct Access APIs.
 
 This example features a scenario of levels in a multi-story office building, each with a different department (Sales, Engineering, etc.) on each level. A person starts in the lobby and moves up floors.
 
-The premise of VLRs: if the tables `level` and `person` have a 1-to-N relationship (`level.people -> person[]`), then changing the linked field `person.level_number` will **implicitly connect** that `person` row to a `level` row whose `level.level_number` matches.
+## How VLRs are used in this scenario
 
-For more information on Value-Linked Relationships, see [Implicit Relationships](https://gaia-platform.github.io/gaia-platform-docs.io/articles/reference/ddl-implicit-relationships.html) in the Gaia developer documentation.
+The tables `level` and `person` have a 1:N relationship (`level.people -> person[]`). Changing the linked field `person.level_number` **implicitly connects** that `person` row to a `level` row whose `level.level_number` it matches.
 
-## Build Instructions
+For more information about Value Linked References, see [Implicit Relationships](https://gaia-platform.github.io/gaia-platform-docs.io/articles/reference/ddl-implicit-relationships.html) in the Gaia developer documentation.
 
-These instructions assume you have installed the SDK and have installed the `clang` and `cmake` tools.  See the SDK User's Guide for instructions on how to do this.
+## Build instructions
+
+These instructions assume you have installed the SDK and have installed the `clang` and `cmake` tools.  See the [Getting Started guide](https://gaia-platform.github.io/gaia-platform-docs.io/articles/getting-started-with-gaia.html) for instructions on how to do this.
 
 1. To preserve the initial state of the sample code, copy the source files to a new directory.
     ```shell
@@ -31,7 +33,7 @@ These instructions assume you have installed the SDK and have installed the `cla
     ```
 4. The output of the build is the `direct_access_vlr` executable.
 
-## Running the Example
+## Running the example
 
 To run the `direct_access_vlr` binary from the build directory use the following command:
 

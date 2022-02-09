@@ -35,7 +35,7 @@ void delete_all_records_from_tables()
 }
 
 /**
- * An example of using Value-Linked Relationships when updating fields in
+ * An example of using Value Linked References when updating fields in
  * a record, which automatically reconnects it to related records.
  * It starts by inserting all the necessary records.
  */
