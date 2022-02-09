@@ -88,6 +88,7 @@ client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::opt
             std::optional<gaia_id_t> id_opt = id_generator();
             if (id_opt)
             {
+                ASSERT_POSTCONDITION(id_opt.value().is_valid(), "The id generator has produced an invalid gaia_id value!");
                 return id_opt;
             }
             else
