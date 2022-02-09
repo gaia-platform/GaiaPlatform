@@ -58,7 +58,7 @@ template <>
 std::pair<hash_type_t::const_iterator, hash_type_t::const_iterator>
 index_generator_t<hash_type_t>::range() const
 {
-    if (m_begin_key.empty() && m_end_key.empty())
+    if (m_begin_key == c_unbound_index_key && m_end_key == c_unbound_index_key)
     {
         return {m_data.cbegin(), m_data.cend()};
     }

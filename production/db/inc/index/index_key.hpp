@@ -76,7 +76,7 @@ private:
 };
 
 // static empty key.
-static index_key_t c_empty_index_key{};
+static const index_key_t c_unbound_index_key{};
 
 /**
  * Standard conforming hash function for index keys.
