@@ -1,4 +1,3 @@
----
 name: Main
 
 on:
@@ -57,7 +56,7 @@ jobs:
           docker save $DEV_IMAGE | gzip > ${{ github.workspace }}/production/dev_image.tar.gz
           ls -la ${{ github.workspace }}/production/dev_image.tar.gz
 
-      - name: Upload Install Package
+      - name: Upload Compressed Dev Image
         uses: actions/upload-artifact@v2
         with:
           name: Dev Image
@@ -114,31 +113,19 @@ jobs:
       - name: Setup Action
         uses: ./.github/actions/setup-job
 
-      - name: Build Docker Image
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
-              --repo-path $GAIA_REPO \
-              --base-image $DEV_IMAGE
-
-      - name: Run Unit Tests
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
-            --repo-path $GAIA_REPO \
-            --action unit_tests
-
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
+      - name: Create Build
+        uses: ./.github/actions/build-job
         with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/build/output
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          execute-unit-tests: true
+          publish-package: false
 
   SDK:
     needs:
       - Core
     runs-on: ubuntu-20.04
-    if: github.event_name != 'pull_request'
+#    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -147,46 +134,20 @@ jobs:
       - name: Setup Action
         uses: ./.github/actions/setup-job
 
-      - name: Build Docker Image
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
-              --repo-path $GAIA_REPO \
-              --base-image $DEV_IMAGE \
-              --cfg-enables GaiaSDK
-
-      - name: Run Unit Tests
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
-            --repo-path $GAIA_REPO \
-            --action unit_tests
-
-      - name: Publish Debian Package
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
-            --repo-path $GAIA_REPO \
-            --action publish_package
-
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
+      - name: Create Build
+        uses: ./.github/actions/build-job
         with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/build/output
-            !${{ github.workspace }}/build/output/package
-
-      - name: Upload Install Package
-        uses: actions/upload-artifact@v2
-        with:
-          name: SDK Install Package
-          path: |
-            ${{ github.workspace }}/build/output/package
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          execute-unit-tests: true
+          publish-package: true
+          build-flavor: GaiaSDK
 
   Debug_Core:
     needs:
       - Core
     runs-on: ubuntu-20.04
-    if: github.event_name != 'pull_request'
+#    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -195,32 +156,20 @@ jobs:
       - name: Setup Action
         uses: ./.github/actions/setup-job
 
-      - name: Build Docker Image
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
-              --repo-path $GAIA_REPO \
-              --base-image $DEV_IMAGE \
-              --cfg-enables Debug
-
-      - name: Run Unit Tests
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
-            --repo-path $GAIA_REPO \
-            --action unit_tests
-
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
+      - name: Create Build
+        uses: ./.github/actions/build-job
         with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/build/output
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          execute-unit-tests: true
+          publish-package: false
+          build-flavor: Debug
 
   Coverage:
     needs:
       - Lint
       - Third-Party
-    if: github.event_name != 'pull_request'
+#    if: github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -231,31 +180,16 @@ jobs:
         uses: ./.github/actions/setup-job
 
       - name: Coverage
-        run: |
-          cd $GAIA_REPO/production
-          mkdir -p $GAIA_REPO/production
-          sudo chmod -R 777 $GAIA_REPO/production
-          mkdir -p $GAIA_REPO/build/output
-          sudo chmod -R 777 $GAIA_REPO/build/output
-          $GAIA_REPO/production/coverage/coverage.sh --verbose --output $GAIA_REPO/build/output
-          cp $GAIA_REPO/production/raw_dockerfile $GAIA_REPO/build/output
-          cp $GAIA_REPO//production/dockerfile $GAIA_REPO/build/output
-          echo "sudo chmod -R 777 $GAIA_REPO/production"
-          sudo chmod -R 777 $GAIA_REPO/production
-
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
+        uses: ./.github/actions/coverage-job
         with:
-          name: ${{github.job}} Test Files
-          path: |
-            ${{ github.workspace }}/build/output
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
 
   LLVM_Tests:
     needs:
       - Lint
       - Third-Party
-    if: github.event_name != 'pull_request'
+#    if: github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -265,20 +199,14 @@ jobs:
       - name: Setup Action
         uses: ./.github/actions/setup-job
 
-      - name: Build Docker Image
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
-              --repo-path $GAIA_REPO \
-              --base-image $DEV_IMAGE \
-              --cfg-enables GaiaLLVMTests
-
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
+      - name: Create Build
+        uses: ./.github/actions/build-job
         with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/build/output
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          execute-unit-tests: false
+          publish-package: false
+          build-flavor: GaiaLLVMTests
 
   Integration_Smoke:
     needs: SDK
@@ -397,7 +325,7 @@ jobs:
   Integration_Performance:
     needs: SDK
     runs-on: ubuntu-20.04
-#    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -444,6 +372,7 @@ jobs:
       - Integration_Smoke
       - Integration_Smoke_Persistence
       - Integration_Samples
+      - Integration_Performance
     runs-on: ubuntu-20.04
     if: always()
     steps:
