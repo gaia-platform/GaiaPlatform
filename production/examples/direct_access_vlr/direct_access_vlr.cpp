@@ -26,9 +26,9 @@ void delete_all_records_from_tables()
     {
         (*person++).delete_row();
     }
-    for (auto level = level_t::list().begin(); level != level_t::list().end();)
+    for (auto floor = floor_t::list().begin(); floor != floor_t::list().end();)
     {
-        (*level++).delete_row();
+        (*floor++).delete_row();
     }
 
     txn.commit();
@@ -43,31 +43,31 @@ void vlr_example_usage()
 {
     auto_transaction_t txn{};
 
-    // Levels inserted with their numbers and department names.
-    level_t::insert_row(0, "Lobby");
-    level_t::insert_row(1, "Sales");
-    level_t::insert_row(2, "Engineering");
-    level_t::insert_row(3, "Admin");
+    // Floors inserted with their numbers and department names.
+    floor_t::insert_row(0, "Lobby");
+    floor_t::insert_row(1, "Sales");
+    floor_t::insert_row(2, "Engineering");
+    floor_t::insert_row(3, "Admin");
 
-    // Insert people at certain levels. Bill starts at level 0: the lobby.
+    // Insert people at certain floors. Bill starts at floor 0: the lobby.
     person_t person = person_t::get(person_t::insert_row("Bill", 0));
     txn.commit();
 
     // We need a writer to change a person's field values.
     person_writer person_w = person.writer();
 
-    // Move the person up a level three times.
+    // Move the person up a floor three times.
     for (int i = 0; i < 3; ++i)
     {
-        // Changing their level is as easy as incrementing level_number.
-        // With VLRs, this automatically reconnects the person to the next level.
-        person_w.level_number++;
+        // Changing their floor is as easy as incrementing floor_number.
+        // With VLRs, this automatically reconnects the person to the next floor.
+        person_w.floor_number++;
         person_w.update_row();
         txn.commit();
 
-        // Now that the person is implicitly connected to a level through a VLR,
-        // we can directly access that level using the current_level reference.
-        gaia_log::app().info("{} has arrived at: {}", person.name(), person.current_level().department());
+        // Now that the person is implicitly connected to a floor through a VLR,
+        // we can directly access that floor using the current_floor reference.
+        gaia_log::app().info("{} has arrived at: {}", person.name(), person.current_floor().department());
     }
 }
 

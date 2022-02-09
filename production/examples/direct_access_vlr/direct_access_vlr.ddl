@@ -8,20 +8,20 @@
 
 database direct_access_vlr
 
--- Levels in a multi-story building.
-table level (
-    level_number int32 unique,
+-- Floors in a multi-story building.
+table floor (
+    floor_number int32 unique,
     department string,
-    -- Since a Value Linked Relationship will be made from people to a level,
-    -- we also need a reference back from a level to people.
+    -- Since a Value Linked Relationship will be made from people to a floor,
+    -- we also need a reference back from a floor to people.
     people references person[]
 )
 
 table person (
     name string,
-    level_number int32,
-    -- Create a 1:N VLR between a level (1) and people (N)
-    -- that matches level numbers.
-    current_level references level
-        where person.level_number = level.level_number
+    floor_number int32,
+    -- Create a 1:N VLR between a floor (1) and people (N)
+    -- that matches floor numbers.
+    current_floor references floor
+        where person.floor_number = floor.floor_number
 )

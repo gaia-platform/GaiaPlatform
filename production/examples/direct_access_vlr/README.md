@@ -2,11 +2,11 @@
 
 An example that demonstrates how to use Value Linked References (VLRs) to implicitly connect rows by updating linked fields with Direct Access APIs.
 
-This example features a scenario of levels in a multi-story office building, each with a different department (Sales, Engineering, etc.) on each level. A person starts in the lobby and moves up floors.
+The scenario for this example is a company that occupies a multi-story office building. Each department (Sales, Engineering, etc.) occupies a separate floor of the building. To visit another department, people move between floors.
 
 ## How VLRs are used in this scenario
 
-The tables `level` and `person` have a 1:N relationship (`level.people -> person[]`). Changing the linked field `person.level_number` **implicitly connects** that `person` row to a `level` row whose `level.level_number` it matches.
+The tables `floor` and `person` have a 1:N relationship (`floor.people -> person[]`). Changing the linked field `person.floor_number` **implicitly connects** that `person` row to a `floor` row whose `floor.floor_number` it matches.
 
 For more information about Value Linked References, see [Implicit Relationships](https://gaia-platform.github.io/gaia-platform-docs.io/articles/reference/ddl-implicit-relationships.html) in the Gaia developer documentation.
 
@@ -41,4 +41,4 @@ To run the `direct_access_vlr` binary from the build directory use the following
 ./direct_access_vlr
 ```
 
-The output will show the logs of a person arriving at consecutive levels.
+The output will show the logs of a person arriving at consecutive floors.
