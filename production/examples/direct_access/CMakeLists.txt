@@ -26,7 +26,7 @@ process_schema(
 )
 
 add_executable(hospital
-    hospital.cpp
+  hospital.cpp
 )
 
 target_add_gaia_generated_sources(hospital)
