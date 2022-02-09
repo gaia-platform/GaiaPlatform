@@ -65,6 +65,7 @@ public:
 
     const std::vector<gaia::db::payload_types::data_holder_t>& values() const;
     size_t size() const;
+    bool empty() const;
     bool is_null() const;
 
 private:
@@ -73,6 +74,9 @@ private:
 private:
     std::vector<gaia::db::payload_types::data_holder_t> m_key_values;
 };
+
+// static empty key.
+static index_key_t c_empty_index_key{};
 
 /**
  * Standard conforming hash function for index keys.

@@ -69,10 +69,10 @@ index_writer_guard_t<range_type_t>::equal_range(const index_key_t& key)
 
 template <>
 std::pair<range_type_t::const_iterator, range_type_t::const_iterator>
-index_generator_t<range_type_t>::range(const index_key_t& begin_key, const index_key_t& end_key) const
+index_generator_t<range_type_t>::range() const
 {
-    range_type_t::const_iterator first = (begin_key.size() == 0) ? m_data.cbegin() : m_data.find(begin_key);
-    range_type_t::const_iterator last = (first == m_data.cend() || end_key.size() == 0) ? m_data.cend() : m_data.upper_bound(end_key);
+    range_type_t::const_iterator first = (m_begin_key.empty()) ? m_data.cbegin() : m_data.find(m_begin_key);
+    range_type_t::const_iterator last = (first == m_data.cend() || m_end_key.empty()) ? m_data.cend() : m_data.upper_bound(m_end_key);
     return {first, last};
 }
 

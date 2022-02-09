@@ -56,15 +56,15 @@ index_writer_guard_t<hash_type_t>::equal_range(const index_key_t& key)
 
 template <>
 std::pair<hash_type_t::const_iterator, hash_type_t::const_iterator>
-index_generator_t<hash_type_t>::range(const index_key_t& begin_key, const index_key_t& end_key) const
+index_generator_t<hash_type_t>::range() const
 {
-    if (begin_key.size() == 0 && end_key.size() == 0)
+    if (m_begin_key.empty() && m_end_key.empty())
     {
         return {m_data.cbegin(), m_data.cend()};
     }
-    else if (begin_key == end_key)
+    else if (m_begin_key == m_end_key)
     {
-        return m_data.equal_range(begin_key);
+        return m_data.equal_range(m_begin_key);
     }
     else
     {

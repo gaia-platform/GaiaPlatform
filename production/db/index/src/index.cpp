@@ -88,6 +88,11 @@ std::size_t index_key_t::size() const
     return m_key_values.size();
 }
 
+bool index_key_t::empty() const
+{
+    return m_key_values.size() == 0;
+}
+
 bool index_key_t::is_null() const
 {
     for (const auto& value : m_key_values)
