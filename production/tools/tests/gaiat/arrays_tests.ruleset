@@ -7,6 +7,7 @@
 
 #include "tags_test.h"
 
+// TESTCASE: basic scalar array assignment
 ruleset test1
 {
     on_update(farmer)
@@ -16,6 +17,7 @@ ruleset test1
     }
 }
 
+// TESTCASE: referencing scalar array elements
 ruleset test2
 {
     on_update(farmer)
@@ -31,6 +33,7 @@ int use_int(int i)
     return i * 2;
 }
 
+// TESTCASE: using a variable to index scalar array field
 ruleset test3
 {
     on_update(farmer)
@@ -42,6 +45,8 @@ ruleset test3
     }
 }
 
+// GAIAPLAT-1999
+// TESTCASE: using a field value to index a scalar array field
 ruleset test4
 {
     on_insert(farmer)
@@ -50,6 +55,7 @@ ruleset test4
     }
 }
 
+// TESTCASE: using a field value to index a scalar array field
 ruleset test5
 {
     on_insert(farmer)
