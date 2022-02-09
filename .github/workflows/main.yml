@@ -172,7 +172,7 @@ jobs:
     needs:
       - Core
     runs-on: ubuntu-20.04
-    if: github.event_name != 'pull_request'
+#    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -426,7 +426,11 @@ jobs:
       - name: Tests
         working-directory: ${{ github.workspace }}
         run: |
-          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh \
+            --verbose \
+            --job-name $GITHUB_JOB \
+            --repo-path $GAIA_REPO \
+            --package $GAIA_REPO/production/tests/packages
 
       - name: Upload Output Files
         if: always()
@@ -460,7 +464,11 @@ jobs:
       - name: Tests
         working-directory: ${{ github.workspace }}
         run: |
-          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh \
+            --verbose \
+            --job-name $GITHUB_JOB \
+            --repo-path $GAIA_REPO \
+            --package $GAIA_REPO/production/tests/packages
 
       - name: Upload Output Files
         if: always()
@@ -494,7 +502,49 @@ jobs:
       - name: Tests
         working-directory: ${{ github.workspace }}
         run: |
-          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh --job-name $GITHUB_JOB --repo-path $GAIA_REPO --package $GAIA_REPO/production/tests/packages
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh \
+            --verbose \
+            --job-name $GITHUB_JOB \
+            --repo-path $GAIA_REPO \
+            --package $GAIA_REPO/production/tests/packages
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/production/tests/results
+
+  Integration_Performance:
+    needs: SDK
+    runs-on: ubuntu-20.04
+#    if: github.event_name != 'pull_request'
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Download Debian Install Package
+        uses: actions/download-artifact@v2
+        with:
+          name: SDK Install Package
+          path: ${{ github.workspace }}/production/tests/packages
+
+      - name: Tests
+        working-directory: ${{ github.workspace }}
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh \
+            --verbose \
+            --job-name $GITHUB_JOB \
+            --repo-path $GAIA_REPO \
+            --package $GAIA_REPO/production/tests/packages
 
       - name: Upload Output Files
         if: always()
