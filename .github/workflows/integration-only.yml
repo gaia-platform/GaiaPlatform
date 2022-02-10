@@ -1,0 +1,50 @@
+---
+name: Integration Tests Only
+
+on:
+  workflow_dispatch:
+
+jobs:
+  Integration_Tests:
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    strategy:
+      matrix:
+        persistence: [enabled, disabled]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Create Directory To Host Install Package Cache
+        run: |
+          mkdir -p ${{ github.workspace }}/packages
+
+      - name: Cache Last Successful Install Package
+        uses: actions/cache@v1
+        with:
+          path: ${{ github.workspace }}/packages
+          key: latest-release-sdk-package
+
+      - name: Tests
+        working-directory: ${{ github.workspace }}
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh \
+            --verbose \
+            --job-name $GITHUB_JOB \
+            --repo-path $GAIA_REPO \
+            --db-persistence ${{ matrix.persistence }} \
+            --package $GAIA_REPO/production/tests/packages
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} With Persistence ${{ matrix.persistence }} Output Files
+          path: |
+            ${{ github.workspace }}/production/tests/results

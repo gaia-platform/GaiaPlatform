@@ -47,6 +47,7 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
+    echo "  -d,--db-persistence Whether the database is started with persistence enabled or disabled."
     echo "  -j,--job-name       GitHub Actions job that this script is being invoked from."
     echo "  -r,--repo-path      Base path of the repository to generate from."
     echo "  -v,--verbose        Display detailed information during execution."
@@ -61,9 +62,19 @@ parse_command_line() {
     JOB_NAME=
     GAIA_REPO=
     PACKAGE_PATH=
+    PERSISTENCE_MODE=0
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
+        -d|--db-persistence)
+            if [ -z "$2" ] ; then
+                echo "Error: Argument $1 must be followed by either 'enabled' or 'disabled'." >&2
+                show_usage
+            fi
+            PERSISTENCE_MODE=$2
+            shift
+            shift
+        ;;
         -r|--repo-path)
             if [ -z "$2" ] ; then
                 echo "Error: Argument $1 must be followed by the path to the repository." >&2
@@ -121,6 +132,12 @@ parse_command_line() {
         echo "Error: Argument -j/--job-name is required" >&2
         show_usage
     fi
+    if [ -n "$PERSISTENCE_MODE" ] ; then
+        if [ "$PERSISTENCE_MODE" != "enabled" ] && [ "$PERSISTENCE_MODE" != "disabled" ] ; then
+            echo "Error: Argument -d/--db-persistence must be 'enabled' or 'disabled'." >&2
+            show_usage
+        fi
+    fi
 }
 
 # Save the current directory when starting the script, so we can go back to that
@@ -157,41 +174,29 @@ sudo apt --assume-yes install "$(find . -name gaia*)"
 
 ## PER JOB CONFIGURATION ##
 
-if [ "$JOB_NAME" == "Integration_Smoke" ] ; then
+if [ "$JOB_NAME" == "Integration_Tests" ] ; then
 
-    sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop --database
+    cd $GAIA_REPO/production/tests
+    TEST_NAME="marcopolo"
+
+    if ! sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop --database ; then
+        complete_process 1 "Stopping of the database before execution of integration tests failed."
+    fi
+
+    PERSISTENCE_FLAG=
+    if [ "$PERSISTENCE_MODE" == "enabled" ] ; then
+        PERSISTENCE_FLAG="--persistence"
+        echo "  using a persistent database."
+    else
+        echo "  using a non-persistent database."
+    fi
 
     DID_FAIL=0
-    if ! "$GAIA_REPO/production/tests/smoke_suites.sh" --verbose ; then
+    if ! ./suite.sh --verbose --json --database $PERSISTENCE_FLAG --memory "$TEST_NAME" ; then
         DID_FAIL=1
     fi
-    cp -a "$GAIA_REPO/production/tests/suites" "$GAIA_REPO/production/tests/results"
-    if [ $DID_FAIL -ne 0 ] ; then
-        complete_process 1 "Tests for job '$JOB_NAME' failed  See job artifacts for more information."
-    fi
 
-elif [ "$JOB_NAME" == "Integration_Smoke_Persistence" ] ; then
-
-    sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop --database
-
-    DID_FAIL=0
-    if ! "$GAIA_REPO/production/tests/smoke_suites_with_persistence.sh" --verbose ; then
-        DID_FAIL=1
-    fi
-    cp -a "$GAIA_REPO/production/tests/suites" "$GAIA_REPO/production/tests/results"
-    if [ $DID_FAIL -ne 0 ] ; then
-        complete_process 1 "Tests for job '$JOB_NAME' failed  See job artifacts for more information."
-    fi
-
-elif [ "$JOB_NAME" == "Integration_Performance" ] ; then
-
-    sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop --database
-
-    DID_FAIL=0
-    if ! "$GAIA_REPO/production/tests/performance_suites.sh" --verbose ; then
-        DID_FAIL=1
-    fi
-    cp -a "$GAIA_REPO/production/tests/suites" "$GAIA_REPO/production/tests/results"
+    cp -a "$GAIA_REPO/production/tests/suite-results" "$GAIA_REPO/production/tests/results"
     if [ $DID_FAIL -ne 0 ] ; then
         complete_process 1 "Tests for job '$JOB_NAME' failed  See job artifacts for more information."
     fi
