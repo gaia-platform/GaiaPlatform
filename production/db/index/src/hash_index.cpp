@@ -68,7 +68,7 @@ index_generator_t<hash_type_t>::range() const
     }
     else
     {
-        ASSERT_UNREACHABLE("hash index does not support non-equal range queries.");
+        ASSERT_UNREACHABLE("Hash index does not support non-equal range queries.");
     }
 }
 
