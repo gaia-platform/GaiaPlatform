@@ -170,7 +170,7 @@ if [ "$JOB_NAME" == "Integration_Smoke" ] ; then
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Executing Integration Smoke tests without persistence."
     fi
-    sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop --database
+    sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop
 
     DID_FAIL=0
     if ! "$GAIA_REPO/production/tests/smoke_suites.sh" --verbose ; then
@@ -190,7 +190,7 @@ elif [ "$JOB_NAME" == "Integration_Smoke_Persistence" ] ; then
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Executing Integration Smoke tests with persistence."
     fi
-    sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop --database
+    sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop
 
     DID_FAIL=0
     if ! "$GAIA_REPO/production/tests/smoke_suites_with_persistence.sh" --verbose ; then
@@ -203,7 +203,7 @@ elif [ "$JOB_NAME" == "Integration_Smoke_Persistence" ] ; then
 
 elif [ "$JOB_NAME" == "Integration_Performance" ] ; then
 
-    sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop --database
+    sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop
 
     DID_FAIL=0
     if ! "$GAIA_REPO/production/tests/performance_suites.sh" --verbose ; then
@@ -221,7 +221,7 @@ elif [ "$JOB_NAME" == "Integration_Samples" ] ; then
     fi
 
     cd "$GAIA_REPO/dev_tools/sdk/test" || exit
-    if ! sudo bash -c "./build_sdk_samples.sh 2>&1 > \"$GAIA_REPO/production/tests/results/test.log\"" ; then
+    if ! sudo bash -c "./github_actions_build.sh 2>&1 > \"$GAIA_REPO/production/tests/results/test.log\"" ; then
         complete_process 1 "Tests for job '$JOB_NAME' failed  See job artifacts for more information."
     fi
 
