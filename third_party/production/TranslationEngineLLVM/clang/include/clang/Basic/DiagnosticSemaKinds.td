@@ -9528,7 +9528,7 @@ def err_declarative_label_wrong_statement : Error<
   "The statement of the declarative label is not a declarative 'if' or 'for'.">;
 def err_duplicate_field : Error<
   "The reference to field '%0' is ambiguous; the field '%0' is defined in multiple tables. "
-  "To disambiguate field names that occur in more than one table, qualify the field with the 
+  "To disambiguate field names that occur in more than one table, qualify the field with the "
   "table name (table.field). To restrict the list of tables to search, specify the tables "
   "in the ruleset 'tables' attribute.">;
 def err_wrong_table_field : Error<
