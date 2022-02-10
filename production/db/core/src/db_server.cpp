@@ -14,6 +14,7 @@
 #include <iostream>
 #include <memory>
 #include <ostream>
+#include <string>
 #include <thread>
 #include <unordered_set>
 
@@ -460,27 +461,32 @@ void server_t::handle_request_stream(
         case index_query_t::index_point_read_query_t:
         case index_query_t::index_equal_range_query_t:
         {
+            std::vector<char> storage;
             index::index_key_t key;
             {
                 // Create local snapshot to query catalog for key serialization schema.
                 bool apply_logs = true;
                 create_local_snapshot(apply_logs);
                 auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
+                const payload_types::serialization_buffer_t* key_buffer;
 
                 if (query_type == index_query_t::index_point_read_query_t)
                 {
                     auto query = request_data->query_as_index_point_read_query_t();
-                    auto key_buffer = payload_types::data_read_buffer_t(*(query->key()));
-                    key = index::index_builder_t::deserialize_key(index_id, key_buffer);
+                    key_buffer = query->key();
                 }
                 else
                 {
                     auto query = request_data->query_as_index_equal_range_query_t();
-                    auto key_buffer = payload_types::data_read_buffer_t(*(query->key()));
-                    key = index::index_builder_t::deserialize_key(index_id, key_buffer);
+                    key_buffer = query->key();
                 }
+                storage = std::vector(
+                    reinterpret_cast<const char*>(key_buffer->Data()),
+                    reinterpret_cast<const char*>(key_buffer->Data()) + key_buffer->size());
+                auto key_read_buffer = payload_types::data_read_buffer_t(storage.data());
+                key = index::index_builder_t::deserialize_key(index_id, key_read_buffer);
             }
-            start_stream_producer(server_socket, index->equal_range_generator(txn_id, key));
+            start_stream_producer(server_socket, index->equal_range_generator(txn_id, std::move(storage), key));
             break;
         }
         default:
@@ -1639,7 +1645,7 @@ void server_t::start_stream_producer(int stream_socket, std::shared_ptr<generato
 
     // Create stream producer thread.
     s_session_owned_threads.emplace_back(
-        stream_producer_handler<T_element>, stream_socket, s_session_shutdown_eventfd, std::move(generator_fn));
+        stream_producer_handler<T_element>, stream_socket, s_session_shutdown_eventfd, generator_fn);
 }
 
 std::shared_ptr<generator_t<gaia_id_t>> server_t::get_id_generator_for_type(gaia_type_t type)
