@@ -36,11 +36,6 @@ public:
         return m_vector->size();
     }
 
-    bool is_null() const
-    {
-        return m_vector == nullptr;
-    }
-
     // Normally the operator "[]" should return a reference or const reference
     // to the array element. Given we only support arrays of basic types and the
     // vector class is always read-only, it should be safe to return the T_type
@@ -48,6 +43,11 @@ public:
     T_type operator[](uint32_t i) const
     {
         return (*m_vector)[i];
+    }
+
+    std::vector<T_type> to_vector() const
+    {
+        return std::vector<T_type>(data(), data() + size());
     }
 
 private:
