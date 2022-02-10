@@ -22,10 +22,7 @@ runs:
       shell: bash
       run: |
         cd ${{ inputs.gaia-repo }}/production
-        mkdir -p ${{ inputs.gaia-repo }}/production
-        sudo chmod -R 777 ${{ inputs.gaia-repo }}/production
         mkdir -p ${{ inputs.gaia-repo }}/build/output
-        sudo chmod -R 777 ${{ inputs.gaia-repo }}/build/output
         ${{ inputs.gaia-repo }}/production/coverage/coverage.sh --verbose --output ${{ inputs.gaia-repo }}/build/output
         cp ${{ inputs.gaia-repo }}/production/raw_dockerfile ${{ inputs.gaia-repo }}/build/output
         cp ${{ inputs.gaia-repo }}/production/dockerfile ${{ inputs.gaia-repo }}/build/output

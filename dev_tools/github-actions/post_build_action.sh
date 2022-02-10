@@ -132,7 +132,7 @@ parse_command_line "$@"
 start_process
 save_current_directory
 
-# Ensure we have a predicatable place to place output that we want to expose.
+# Ensure we have a predictable place to place output that we want to expose.
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Creating build action output directory."
 fi
