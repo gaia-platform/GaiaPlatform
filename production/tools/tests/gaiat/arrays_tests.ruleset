@@ -63,3 +63,39 @@ ruleset test5
         previous_years[bushels] = previous_years[bushels + 1];
     }
 }
+
+// TESTCASE: subscript scalar array with invalid number
+ruleset test6
+{
+    on_insert(farmer)
+    {
+        previous_years[-1] = previous_years[-2];
+    }
+}
+
+// TESTCASE: use hex constants in array subscripts
+ruleset test7
+{
+    on_insert(farmer)
+    {
+        previous_years[0x1] = previous_years[0xffff];
+    }
+}
+
+unsigned int update_int(unsigned int& i)
+{
+    return i * 3;
+}
+
+// TESTCASE: send one element of scalar array into a function
+ruleset test8
+{
+    on_update(farmer)
+    {
+        for (int i=0; i<5; i++)
+        {
+            int sum = 0;
+            sum += update_int(previous_years[i]);
+        }
+    }
+}

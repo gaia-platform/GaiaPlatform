@@ -5,6 +5,7 @@
 
 // RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
+// TESTCASE: treat scalar array as a struct
 ruleset test02
 {
     on_insert(farmer)

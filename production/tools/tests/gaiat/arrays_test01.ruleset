@@ -5,6 +5,7 @@
 
 // RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
+// TESTCASE: attempt two subscripts in single-dimentional array
 ruleset test01
 {
     on_insert(farmer)

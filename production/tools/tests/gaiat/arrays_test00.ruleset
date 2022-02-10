@@ -5,6 +5,7 @@
 
 // RUN: not %gaiat %s -- 2>&1| FileCheck  %s
 
+// TESTCASE: assign to scalar value not in table
 ruleset test00
 {
     on_insert(farmer)
