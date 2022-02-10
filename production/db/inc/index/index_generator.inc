@@ -20,7 +20,7 @@ std::optional<index_record_t> index_generator_t<T_structure>::operator()()
     if (!m_initialized)
     {
         m_index_lock.lock();
-        auto iterators = range(m_begin_key, m_end_key);
+        auto iterators = range();
         m_it = iterators.first;
         m_end = iterators.second;
         m_initialized = true;
