@@ -459,7 +459,7 @@ jobs:
           mkdir -p ${{ github.workspace }}/packages
 
       - name: Cache Last Successful Install Package
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         if: env.WORKFLOW_CONCLUSION == 'success'
         with:
           path: ${{ github.workspace }}/packages
