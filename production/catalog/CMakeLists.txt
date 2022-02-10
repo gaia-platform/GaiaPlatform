@@ -104,5 +104,10 @@ add_gtest(test_rule_tables
     "${TEST_GAIA_EXECUTION_INCLUDES}"
     "rt;gaia_system;gaia_db_catalog_test;")
 
+add_gtest(test_hash_generation
+    "tests/test_hash_generation.cpp"
+    "${TEST_GAIA_EXECUTION_INCLUDES}"
+    "rt;gaia_system;gaia_db_catalog_test;dac_airport")
+
 add_subdirectory(gaiac)
 add_subdirectory(parser)
