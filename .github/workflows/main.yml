@@ -369,8 +369,7 @@ jobs:
       - Debug_Core
       - Coverage
       - LLVM_Tests
-      - Integration_Smoke
-      - Integration_Smoke_Persistence
+      - Integration_Tests
       - Integration_Samples
     runs-on: ubuntu-20.04
     if: always()
