@@ -9,11 +9,12 @@
 echo "Into script."
 set -e
 
-# Start the db server.
-echo "reset data store."
-gaia_db_server --reset-data-store &
-echo "sleep."
-sleep 1
+# Under normal testing circumstances, we have a fresh install of the SDK and
+# the service is already running.  If that is not the case, either start the
+# gaia service or start a new instance of the database with something similar
+# to:
+#
+# gaia_db_server --reset-data-store &
 
 # Make incubator example.
 echo "Create clean inc"
