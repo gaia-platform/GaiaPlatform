@@ -7,14 +7,13 @@
 #include <limits>
 #include <string>
 
-#include <gtest/gtest.h>
-
 #include "gaia/common.hpp"
 #include "gaia/direct_access/auto_transaction.hpp"
-#include "gaia/logger.hpp"
+#include "gaia/system.hpp"
 
+#include "gaia_internal/catalog/ddl_execution.hpp"
+#include "gaia_internal/common/logger.hpp"
 #include "gaia_internal/common/timer.hpp"
-#include "gaia_internal/db/db_catalog_test_base.hpp"
 
 #include "gaia_insert_sandbox.h"
 
@@ -27,38 +26,6 @@ using g_timer_t = gaia::common::timer_t;
 
 static const int64_t c_num_insertion = 1000;
 static const int64_t c_children_number = 10;
-
-class test_insert_perf : public gaia::db::db_catalog_test_base_t
-{
-public:
-    test_insert_perf()
-        : db_catalog_test_base_t("insert.ddl"){};
-};
-
-template <typename T_type>
-void clear_table()
-{
-    for (auto obj_it = T_type::list().begin();
-         obj_it != T_type::list().end();)
-    {
-        auto next_obj_it = obj_it++;
-        next_obj_it->delete_row();
-    }
-}
-
-void clear_database()
-{
-    auto_transaction_t txn{auto_transaction_t::no_auto_restart};
-    clear_table<simple_table_t>();
-    clear_table<simple_table_2_t>();
-    clear_table<simple_table_3_t>();
-    clear_table<simple_table_index_t>();
-    clear_table<table_child_t>();
-    clear_table<table_parent_t>();
-    clear_table<table_child_vlr_t>();
-    clear_table<table_parent_vlr_t>();
-    txn.commit();
-}
 
 template <typename T_num>
 class accumulator_t
@@ -137,96 +104,9 @@ void run_performance_test(
     {
         int64_t expr_duration = g_timer_t::get_function_duration(expr_fn);
         expr_accumulator.add(expr_duration);
-        if (clear_db)
-        {
-            clear_database();
-        }
     }
 
     log_performance_difference(expr_accumulator, message);
-}
-
-TEST_F(test_insert_perf, insert)
-{
-    sleep(1);
-    cout << "Inserting " << c_num_insertion << " objects in the database for each test" << endl;
-
-    auto insert1 = []() {
-        auto_transaction_t txn{auto_transaction_t::no_auto_restart};
-
-        for (int i = 0; i < c_num_insertion; i++)
-        {
-            simple_table_t::insert_row(i);
-        }
-
-        txn.commit();
-    };
-
-    run_performance_test(insert1, "simple_table_t::insert_row");
-
-    auto insert2 = []() {
-        auto_transaction_t txn{auto_transaction_t::no_auto_restart};
-
-        for (int i = 0; i < c_num_insertion; i++)
-        {
-            simple_table_writer w;
-            w.uint64_field = i;
-            w.insert_row();
-        }
-
-        txn.commit();
-    };
-
-    run_performance_test(insert2, "simple_table_writer");
-
-    auto insert3 = []() {
-        auto_transaction_t txn{auto_transaction_t::no_auto_restart};
-
-        for (int i = 0; i < c_num_insertion; i++)
-        {
-            simple_table_2_t::insert_row(i, "suppini", {1, 2, 3, 4, 5});
-        }
-
-        txn.commit();
-    };
-
-    run_performance_test(insert3, "simple_table_2_t::insert_row");
-
-    auto insert4 = []() {
-        auto_transaction_t txn{auto_transaction_t::no_auto_restart};
-        for (int i = 0; i < c_num_insertion; i++)
-        {
-            simple_table_index_t::insert_row(i);
-        }
-        txn.commit();
-    };
-
-    run_performance_test(insert4, "simple_table_index_t::insert_row");
-
-    auto insert5 = []() {
-        auto_transaction_t txn{auto_transaction_t::no_auto_restart};
-        for (int i = 0; i < (c_num_insertion / 2); i++)
-        {
-            table_parent_t parent = table_parent_t::get(table_parent_t::insert_row());
-            gaia_id_t child = table_child_t::insert_row();
-            parent.children().insert(child);
-        }
-        txn.commit();
-    };
-
-    run_performance_test(insert5, "Simple relationships");
-
-    auto insert6 = []() {
-        auto_transaction_t txn{auto_transaction_t::no_auto_restart};
-        for (int i = 0; i < (c_num_insertion / 2); i++)
-        {
-            table_parent_vlr_t::insert_row(i);
-            table_child_vlr_t::insert_row(i);
-        }
-        txn.commit();
-    };
-
-    run_performance_test(insert6, "Value Linked Relationships");
 }
 
 #include "gaia_internal/catalog/catalog.hpp"
@@ -242,14 +122,41 @@ using namespace gaia::catalog;
 using namespace gaia::db::query_processor::scan;
 using namespace gaia::db::index;
 
-TEST_F(test_insert_perf, query_single_match)
+int main()
 {
+    gaia::system::initialize();
+
+    //    for (int i = 0; i < 3; i++)
+    //    {
+    //        try
+    //        {
+    //            gaia::db::begin_session();
+    //            break;
+    //        }
+    //        catch (std::exception& ex)
+    //        {
+    //            gaia_log::app().info("Attempt {}..", i);
+    //            sleep(1);
+    //        }
+    //    }
+
+    if (true)
+    {
+        gaia::catalog::load_catalog("/home/simone/repos/GaiaPlatform/production/schemas/test/insert/insert.ddl");
+
+        auto_transaction_t txn{auto_transaction_t::no_auto_restart};
+
+        for (int i = 0; i < 1000000; i++)
+        {
+            simple_table_index_t::insert_row(i);
+        }
+        txn.commit();
+        gaia::system::shutdown();
+        sleep(1);
+        exit(0);
+    }
 
     auto_transaction_t txn{auto_transaction_t::no_auto_restart};
-    for (int i = 0; i < 1000000; i++)
-    {
-        simple_table_index_t::insert_row(i);
-    }
 
     // Lookup index_id for integer field.
     gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(simple_table_index_t::s_gaia_type);
@@ -269,28 +176,28 @@ TEST_F(test_insert_perf, query_single_match)
         }
     }
 
-    EXPECT_TRUE(hash_index_id != c_invalid_gaia_id);
+    assert(hash_index_id != c_invalid_gaia_id);
 
     txn.commit();
 
-    //    auto index = [&]() {
-    //        auto_transaction_t txn{auto_transaction_t::no_auto_restart};
-    //        uint64_t value = 10000;
-    //        auto index_key = index_key_t(value);
-    //        int num_results = 0;
-    //        auto point_predicate = std::make_shared<index_point_read_predicate_t>(index_key);
-    //        for (const auto& scan : index_scan_t(hash_index_id, point_predicate))
-    //        {
-    //            (void)scan;
-    //            ++num_results;
-    //        }
-    //
-    //        txn.commit();
-    //
-    //        EXPECT_EQ(num_results, 1);
-    //    };
-    //
-    //    run_performance_test(index, "Hash Index value found", 5, false);
+    auto index = [&]() {
+        auto_transaction_t txn{auto_transaction_t::no_auto_restart};
+        uint64_t value = 10000;
+        auto index_key = index_key_t(value);
+        int num_results = 0;
+        auto point_predicate = std::make_shared<index_point_read_predicate_t>(index_key);
+        for (const auto& scan : index_scan_t(hash_index_id, point_predicate))
+        {
+            (void)scan;
+            ++num_results;
+        }
+
+        txn.commit();
+
+        assert(num_results == 1);
+    };
+
+    run_performance_test(index, "Hash Index value found", 5, false);
 
     auto index2 = [&]() {
         auto_transaction_t txn{auto_transaction_t::no_auto_restart};
@@ -306,10 +213,11 @@ TEST_F(test_insert_perf, query_single_match)
 
         txn.commit();
 
-        EXPECT_EQ(num_results, 0);
+        assert(num_results == 0);
     };
 
     run_performance_test(index2, "Hash Index value not found", 5, false);
 
     // Point-query on hash index.
+    gaia::db::end_session();
 }
