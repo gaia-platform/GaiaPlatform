@@ -5,7 +5,7 @@
 
 #include "hash_index.hpp"
 
-#include <utility>
+#include "gaia_internal/common/retail_assert.hpp"
 
 #include "txn_metadata.hpp"
 
@@ -44,9 +44,7 @@ std::pair<hash_index_iterator_t, hash_index_iterator_t> hash_index_t::equal_rang
 
 std::shared_ptr<common::iterators::generator_t<index_record_t>> hash_index_t::equal_range_generator(gaia_txn_id_t txn_id, const index_key_t& key)
 {
-    std::lock_guard<std::recursive_mutex> lock(m_index_lock);
-    const auto [start, end] = m_data.equal_range(key);
-    return std::make_shared<index_generator_t<hash_type_t>>(get_lock(), start, end, txn_id);
+    return std::make_shared<index_generator_t<hash_type_t>>(get_lock(), m_data, key, key, txn_id);
 }
 
 template <>
@@ -54,6 +52,24 @@ std::pair<hash_type_t::iterator, hash_type_t::iterator>
 index_writer_guard_t<hash_type_t>::equal_range(const index_key_t& key)
 {
     return m_data.equal_range(key);
+}
+
+template <>
+std::pair<hash_type_t::const_iterator, hash_type_t::const_iterator>
+index_generator_t<hash_type_t>::range() const
+{
+    if (m_begin_key == c_unbound_index_key && m_end_key == c_unbound_index_key)
+    {
+        return {m_data.cbegin(), m_data.cend()};
+    }
+    else if (m_begin_key == m_end_key)
+    {
+        return m_data.equal_range(m_begin_key);
+    }
+    else
+    {
+        ASSERT_UNREACHABLE("Hash index does not support non-equal range queries.");
+    }
 }
 
 } // namespace index
