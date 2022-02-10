@@ -41,7 +41,7 @@ repos:
       name: Eliminate multiple empty lines
       entry: dev_tools/github-actions/pre-commit-hooks/fix_double_empty_lines.py
       language: python
-      exclude: .py$|^(production/tests/workloads/template/json.hpp|production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h|production/licenses/|production/tools/gaia_translate/tests/test_translation.ruleset)
+      exclude: .py$|^(production/tests/workloads/template/json.hpp|production/catalog/src/gaia_catalog.cpp|production/inc/gaia_internal/catalog/catalog_generated.h|production/inc/gaia_internal/catalog/gaia_catalog.h|production/licenses)
 
 - repo: local
   hooks:
@@ -81,7 +81,7 @@ repos:
         - --prefix
         - "#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n"
       files: ^.*(\.cmake$|\/CMakeLists.txt$)
-      exclude: ^(production/examples|production/tools)
+      exclude: ^(production/examples)
 
     - id: db_license_check
       name: Check SQL and DDL files for License Prefix

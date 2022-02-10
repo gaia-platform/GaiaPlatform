@@ -201,8 +201,17 @@ elif [ "$JOB_NAME" == "Integration_Smoke_Persistence" ] ; then
         complete_process 1 "Tests for job '$JOB_NAME' failed  See job artifacts for more information."
     fi
 
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Integration Smoke tests executed successfully."
+elif [ "$JOB_NAME" == "Integration_Performance" ] ; then
+
+    sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop --database
+
+    DID_FAIL=0
+    if ! "$GAIA_REPO/production/tests/performance_suites.sh" --verbose ; then
+        DID_FAIL=1
+    fi
+    cp -a "$GAIA_REPO/production/tests/suites" "$GAIA_REPO/production/tests/results"
+    if [ $DID_FAIL -ne 0 ] ; then
+        complete_process 1 "Tests for job '$JOB_NAME' failed  See job artifacts for more information."
     fi
 
 elif [ "$JOB_NAME" == "Integration_Samples" ] ; then

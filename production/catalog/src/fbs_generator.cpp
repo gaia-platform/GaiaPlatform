@@ -58,7 +58,7 @@ string generate_fbs_field(const gaia_field_t& field, bool ignore_optional = fals
     }
     else if (repeated_count == 0)
     {
-        ss << ":[" + type_name + "]";
+        ss << ":[" + type_name + "] (required)";
     }
     else
     {
