@@ -71,7 +71,7 @@ ruleset test38
 // GAIAPLAT-1425 (fixed)
 ruleset test39
 {
-    on_update(value) // expected-error {{The reference to field 'value' is ambiguous; the field 'value' was found in multiple tables. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifying them in the ruleset 'tables' attribute.}}
+    on_update(value) // expected-error {{The reference to field 'value' is ambiguous; the field 'value' is defined in multiple tables. To disambiguate field names that occur in more than one table, qualify the field with the table name (table.field). To restrict the list of tables to search, specify the tables in the ruleset 'tables' attribute.}}
     {
     }
 }
@@ -92,7 +92,7 @@ ruleset test53
 
 ruleset test53
 {
-    on_update(value) // expected-error {{The reference to field 'value' is ambiguous; the field 'value' was found in multiple tables. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifying them in the ruleset 'tables' attribute.}}
+    on_update(value) // expected-error {{The reference to field 'value' is ambiguous; the field 'value' is defined in multiple tables. To disambiguate field names that occur in more than one table, qualify the field with the table name (table.field). To restrict the list of tables to search, specify the tables in the ruleset 'tables' attribute.}}
     {
     }
 }
@@ -155,7 +155,7 @@ ruleset test61
 
 ruleset test62
 {
-    on_change(value) // expected-error {{The reference to field 'value' is ambiguous; the field 'value' was found in multiple tables. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifying them in the ruleset 'tables' attribute.}}
+    on_change(value) // expected-error {{The reference to field 'value' is ambiguous; the field 'value' is defined in multiple tables. To disambiguate field names that occur in more than one table, qualify the field with the table name (table.field). To restrict the list of tables to search, specify the tables in the ruleset 'tables' attribute.}}
     {
     }
 }
@@ -176,7 +176,7 @@ ruleset test64
 
 ruleset test65
 {
-    on_change(value) // expected-error {{The reference to field 'value' is ambiguous; the field 'value' was found in multiple tables. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifying them in the ruleset 'tables' attribute.}}
+    on_change(value) // expected-error {{The reference to field 'value' is ambiguous; the field 'value' is defined in multiple tables. To disambiguate field names that occur in more than one table, qualify the field with the table name (table.field). To restrict the list of tables to search, specify the tables in the ruleset 'tables' attribute.}}
     {
     }
 }
@@ -238,7 +238,7 @@ ruleset test73
 
 ruleset test74
 {
-    on_insert(value) // expected-error {{The reference to field 'value' is ambiguous; the field 'value' was found in multiple tables. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifying them in the ruleset 'tables' attribute.}}
+    on_insert(value) // expected-error {{The reference to field 'value' is ambiguous; the field 'value' is defined in multiple tables. To disambiguate field names that occur in more than one table, qualify the field with the table name (table.field). To restrict the list of tables to search, specify the tables in the ruleset 'tables' attribute.}}
     {
     }
 }
@@ -259,7 +259,7 @@ ruleset test76
 
 ruleset test77
 {
-    on_insert(value) // expected-error {{The reference to field 'value' is ambiguous; the field 'value' was found in multiple tables. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifying them in the ruleset 'tables' attribute.}}
+    on_insert(value) // expected-error {{The reference to field 'value' is ambiguous; the field 'value' is defined in multiple tables. To disambiguate field names that occur in more than one table, qualify the field with the table name (table.field). To restrict the list of tables to search, specify the tables in the ruleset 'tables' attribute.}}
     {
     }
 }
@@ -275,7 +275,7 @@ ruleset test79
 {
     on_insert(I:incubator)
     {
-        actuator.value += value/2; // expected-error {{The reference to field 'value' is ambiguous; the field 'value' was found in multiple tables. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifying them in the ruleset 'tables' attribute.}}
+        actuator.value += value/2; // expected-error {{The reference to field 'value' is ambiguous; the field 'value' is defined in multiple tables. To disambiguate field names that occur in more than one table, qualify the field with the table name (table.field). To restrict the list of tables to search, specify the tables in the ruleset 'tables' attribute.}}
                                    // expected-error@-1 {{use of undeclared identifier 'value'}}
                                    // expected-note@-2 {{'actuator__type::value' declared here}}
                                    // expected-error@-3 {{invalid use of non-static data member 'value'}}
@@ -288,7 +288,7 @@ ruleset test80
     {
         if (sensor.value + actuator.value > 10)
         {
-            actuator.value += value/2;  // expected-error {{The reference to field 'value' is ambiguous; the field 'value' was found in multiple tables. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifying them in the ruleset 'tables' attribute.}}
+            actuator.value += value/2;  // expected-error {{The reference to field 'value' is ambiguous; the field 'value' is defined in multiple tables. To disambiguate field names that occur in more than one table, qualify the field with the table name (table.field). To restrict the list of tables to search, specify the tables in the ruleset 'tables' attribute.}}
                                         // expected-error@-1 {{use of undeclared identifier 'value'}}
         }
     }

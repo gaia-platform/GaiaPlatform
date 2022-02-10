@@ -16,4 +16,4 @@ ruleset test79
     }
 }
 
-// CHECK: The reference to field 'value' is ambiguous; the field 'value' was found in multiple tables. Qualify your field with the table name (table.field) to disambiguate field names that occur in more than one table. You can also restrict the list of tables to search by specifying them in the ruleset 'tables' attribute.
+// CHECK: The reference to field 'value' is ambiguous; the field 'value' is defined in multiple tables. To disambiguate field names that occur in more than one table, qualify the field with the table name (table.field). To restrict the list of tables to search, specify the tables in the ruleset 'tables' attribute.
