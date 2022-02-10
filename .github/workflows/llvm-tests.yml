@@ -22,40 +22,11 @@ jobs:
           docker-user: ${{ github.actor }}
           docker-password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Docker Image
-        run: |
-          cd $GAIA_REPO/production
-          pip install atools argcomplete
-          $GAIA_REPO/dev_tools/gdev/gdev.sh dockerfile > $GAIA_REPO/production/raw_dockerfile
-          $GAIA_REPO/dev_tools/github-actions/copy_until_line.py --input-file $GAIA_REPO/production/raw_dockerfile --output-file $GAIA_REPO/production/dockerfile --stop-line "# GenRunDockerfile(production)"
-          docker buildx build -f $GAIA_REPO/production/dockerfile -t $DEV_IMAGE --cache-from $DEV_IMAGE --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
-
-      - name: Upload Intermediate Files
-        if: always()
-        uses: actions/upload-artifact@v2
+      - name: Build Third-Party Projects
+        uses: ./.github/actions/third-party-job
         with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/production/raw_dockerfile
-            ${{ github.workspace }}/production/dockerfile
-
-      - name: Publish Dev Image to GitHub Repository
-        run: |
-          echo "Pushing Dev Image to GitHub Docker Repository"
-          docker push $DEV_IMAGE
-
-      - name: Save Compressed Dev Image
-        run: |
-          echo "Saving Dev Image as GZipped Tarball"
-          docker save $DEV_IMAGE | gzip > ${{ github.workspace }}/production/dev_image.tar.gz
-          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
-
-      - name: Upload Compressed Dev Image
-        uses: actions/upload-artifact@v2
-        with:
-          name: Dev Image
-          path: |
-            ${{ github.workspace }}/production/dev_image.tar.gz
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
 
   LLVM_Tests:
     needs: Lint
