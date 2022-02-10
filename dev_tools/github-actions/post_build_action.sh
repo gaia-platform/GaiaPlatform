@@ -152,7 +152,7 @@ if ! docker run \
     --platform linux/amd64 \
     --mount "type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$GAIA_REPO/build/output" \
     build_image \
-    /source/dev_tools/github-actions/post_build_inside_container.sh --verbose --action "$ACTION_NAME" ; then
+    /source/dev_tools/github-actions/post_build_inside_container.sh --action "$ACTION_NAME" ; then
     complete_process 1 "Docker post-build script failed."
 fi
 if [ "$VERBOSE_MODE" -ne 0 ]; then
