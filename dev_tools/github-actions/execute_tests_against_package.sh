@@ -50,6 +50,7 @@ show_usage() {
     echo "  -d,--db-persistence Whether the database is started with persistence enabled or disabled."
     echo "  -j,--job-name       GitHub Actions job that this script is being invoked from."
     echo "  -r,--repo-path      Base path of the repository to generate from."
+    echo "  -s,--suite-name     Name of the integration test suite to execute."
     echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
     echo ""
@@ -62,6 +63,7 @@ parse_command_line() {
     JOB_NAME=
     GAIA_REPO=
     PACKAGE_PATH=
+    SUITE_NAME=
     PERSISTENCE_MODE=0
     PARAMS=()
     while (( "$#" )); do
@@ -102,6 +104,15 @@ parse_command_line() {
             shift
             shift
         ;;
+        -s|--suite-name)
+            if [ -z "$2" ] ; then
+                echo "Error: Argument $1 must be followed by the integration suite name to execute." >&2
+                show_usage
+            fi
+            SUITE_NAME=$2
+            shift
+            shift
+        ;;
         -v|--verbose)
             VERBOSE_MODE=1
             shift
@@ -132,6 +143,11 @@ parse_command_line() {
         echo "Error: Argument -j/--job-name is required" >&2
         show_usage
     fi
+    if [ -z "$SUITE_NAME" ] ; then
+        echo "Error: Argument -s/--suite-name is required" >&2
+        show_usage
+    fi
+    
     if [ -n "$PERSISTENCE_MODE" ] ; then
         if [ "$PERSISTENCE_MODE" != "enabled" ] && [ "$PERSISTENCE_MODE" != "disabled" ] ; then
             echo "Error: Argument -d/--db-persistence must be 'enabled' or 'disabled'." >&2
@@ -188,7 +204,6 @@ fi
 if [ "$JOB_NAME" == "Integration_Tests" ] ; then
 
     cd $GAIA_REPO/production/tests
-    TEST_NAME="marcopolo"
 
     if ! sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop --database ; then
         complete_process 1 "Stopping of the database before execution of integration tests failed."
@@ -203,7 +218,7 @@ if [ "$JOB_NAME" == "Integration_Tests" ] ; then
     fi
 
     DID_FAIL=0
-    if ! ./suite.sh --verbose --json --database $PERSISTENCE_FLAG --memory "$TEST_NAME" ; then
+    if ! ./suite.sh --verbose --json --database $PERSISTENCE_FLAG --memory "$SUITE_NAME" ; then
         DID_FAIL=1
     fi
 

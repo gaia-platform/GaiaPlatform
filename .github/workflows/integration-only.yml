@@ -19,6 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         persistence: [enabled, disabled]
+        suite-name: [marcopolo,mink]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -41,18 +42,18 @@ jobs:
       - name: Tests
         working-directory: ${{ github.workspace }}
         run: |
-          ls -la ${{ github.workspace }}/packages
           $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh \
             --verbose \
             --job-name $GITHUB_JOB \
             --repo-path $GAIA_REPO \
             --db-persistence ${{ matrix.persistence }} \
+            --suite-name ${{ matrix.suite-name }} \
             --package $GAIA_REPO/packages
 
       - name: Upload Output Files
         if: always()
         uses: actions/upload-artifact@v2
         with:
-          name: ${{github.job}} With Persistence ${{ matrix.persistence }} Output Files
+          name: Test ${{ matrix.suite-name }} With Persistence ${{ matrix.persistence }} Output Files
           path: |
             ${{ github.workspace }}/production/tests/results
