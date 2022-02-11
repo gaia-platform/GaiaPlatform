@@ -50,7 +50,7 @@ jobs:
           docker save $DEV_IMAGE | gzip > ${{ github.workspace }}/production/dev_image.tar.gz
           ls -la ${{ github.workspace }}/production/dev_image.tar.gz
 
-      - name: Upload Install Package
+      - name: Upload Compressed Dev Image
         uses: actions/upload-artifact@v2
         with:
           name: Dev Image
@@ -58,7 +58,7 @@ jobs:
             ${{ github.workspace }}/production/dev_image.tar.gz
 
   LLVM_Tests:
-    needs: Lint
+    needs: Third-Party
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -68,17 +68,11 @@ jobs:
       - name: Setup Action
         uses: ./.github/actions/setup-job
 
-      - name: Build Docker Image
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
-              --repo-path $GAIA_REPO \
-              --base-image $DEV_IMAGE \
-              --cfg-enables GaiaLLVMTests
-
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
+      - name: Create Build
+        uses: ./.github/actions/build-job
         with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/build/output
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          execute-unit-tests: false
+          publish-package: false
+          build-flavor: GaiaLLVMTests
