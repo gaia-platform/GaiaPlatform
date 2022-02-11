@@ -1465,7 +1465,7 @@ void server_t::stream_producer_handler(
     // We need to call reserve() rather than the "sized" constructor to avoid changing size().
     batch_buffer.reserve(c_stream_batch_size);
 
-    auto gen_it = generator_iterator_t<T_element>(std::move(generator_fn));
+    auto gen_it = generator_iterator_t<T_element>(generator_fn);
 
     while (!producer_shutdown)
     {
