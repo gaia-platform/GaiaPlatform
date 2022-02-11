@@ -24,6 +24,11 @@ data_read_buffer_t::data_read_buffer_t(const serialization_buffer_t& buffer)
 {
 }
 
+data_read_buffer_t::data_read_buffer_t(const char* ptr)
+    : m_buffer_ptr(ptr)
+{
+}
+
 const char* data_read_buffer_t::read(size_t size)
 {
     const char* ptr = m_buffer_ptr;
