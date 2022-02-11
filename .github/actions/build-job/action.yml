@@ -5,7 +5,7 @@
 #             - `job-name` - name of the job that contains the call to this action
 #             - `execute-unit-tests` - set to `true` to execute unit tests after the build is complete
 #             - `publish-package` - set to `true` to create a package and publish it to the job's artifacts
-#             - `build-project` - Core, GaiaSDK, GaiaLLVMTests, etc, (passed on to `gdev` as cfg-enables)
+#             - `build-project` - Core, GaiaSDK, GaiaLLVMTests, Coverage, etc, (passed on to `gdev` as cfg-enables)
 #             - `build-type` - Debug, Release, RelWithDebInfo (passed on to `gdev` as `cfg-enables`)
 # Notes:      - None
 ---

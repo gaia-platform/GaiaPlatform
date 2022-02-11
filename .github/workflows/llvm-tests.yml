@@ -47,3 +47,4 @@ jobs:
           execute-unit-tests: false
           publish-package: false
           build-project: GaiaLLVMTests
+          build-type: Release
