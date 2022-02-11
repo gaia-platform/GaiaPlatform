@@ -237,7 +237,7 @@ static std::shared_ptr<relationship_t> create_relationship(catalog_core::relatio
         .next_child_offset = relationship.next_child_offset(),
         .prev_child_offset = relationship.prev_child_offset(),
         .parent_offset = relationship.parent_offset(),
-        .cardinality = cardinality_t::many,
+        .cardinality = relationship.cardinality(),
         .parent_required = false,
         .value_linked = relationship.is_value_linked()});
 }
@@ -247,7 +247,7 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
     gaia_log::db().trace("Creating metadata for type: '{}'", type);
 
     gaia_id_t record_id = get_record_id(type);
-    if (record_id == c_invalid_gaia_id)
+    if (!record_id.is_valid())
     {
         throw invalid_object_type_internal(type);
     }

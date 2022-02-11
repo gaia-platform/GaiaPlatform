@@ -54,7 +54,7 @@ add_library(gaia_catalog STATIC
 configure_gaia_target(gaia_catalog)
 target_include_directories(gaia_catalog PUBLIC ${GAIA_CATALOG_PUBLIC_INCLUDES})
 target_include_directories(gaia_catalog PRIVATE ${GAIA_CATALOG_PRIVATE_INCLUDES})
-target_link_libraries(gaia_catalog PRIVATE gaia_rules gaia_parser gaia_direct flatbuffers)
+target_link_libraries(gaia_catalog PRIVATE gaia_parser gaia_direct flatbuffers)
 target_link_libraries(gaia_catalog PUBLIC dac_catalog)
 
 add_gtest(test_ddl_executor

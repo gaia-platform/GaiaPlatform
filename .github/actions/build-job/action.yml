@@ -1,3 +1,13 @@
+# Title:      Build Job Action
+# Purpose:    To coordinate the building and publishing of a build with a given flavor.
+# Prereqs:    - `./.github/actions/setup-job`
+# Inputs:     - `gaia-repo` - root of the GAIA repository on the file system
+#             - `job-name` - name of the job that contains the call to this action
+#             - `execute-unit-tests` - set to `true` to execute unit tests after the build is complete
+#             - `publish-package` - set to `true` to create a package and publish it to the job's artifacts
+#             - `build-flavor` - flavor to associate with the build (passed on to `gdev` as `cfg-enables`)
+# Notes:      - None
+---
 name: 'Build Job'
 description: 'Build one of the flavors of a Gaia build.'
 inputs:
@@ -22,6 +32,7 @@ inputs:
 runs:
   using: "composite"
   steps:
+  
     - name: Build Docker Image
       shell: bash
       run: |
@@ -42,7 +53,6 @@ runs:
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
             --verbose \
             --repo-path $GAIA_REPO \
-            --gaia-version $GAIA_VERSION \
             --action unit_tests
         fi
 
@@ -53,9 +63,16 @@ runs:
           $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
             --verbose \
             --repo-path $GAIA_REPO \
-            --gaia-version $GAIA_VERSION \
             --action publish_package
         fi
+
+    - name: Upload Install Package
+      if: ${{ inputs.publish-package == 'true' }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ inputs.job-name }} Install Package
+        path: |
+          ${{ inputs.gaia-repo }}/build/output/package
 
     - name: Upload Output Files
       if: always()
@@ -64,11 +81,3 @@ runs:
         name: ${{ inputs.job-name }} Output Files
         path: |
           ${{ inputs.gaia-repo }}/build/output
-
-    - name: Upload Install Package
-      if: ${{ inputs.publish-package == 'true' }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: SDK Install Package
-        path: |
-          ${{ inputs.gaia-repo }}/build/output/package

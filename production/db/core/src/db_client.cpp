@@ -39,6 +39,7 @@ std::shared_ptr<int> client_t::get_id_cursor_socket_for_type(gaia_type_t type)
 {
     // Build the cursor socket request.
     FlatBufferBuilder builder;
+    builder.ForceDefaults(true);
     auto table_scan_info = Createtable_scan_info_t(builder, type);
     auto client_request = Createclient_request_t(
         builder, session_event_t::REQUEST_STREAM, request_data_t::table_scan, table_scan_info.Union());
@@ -87,8 +88,8 @@ client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::opt
             std::optional<gaia_id_t> id_opt = id_generator();
             if (id_opt)
             {
-                ASSERT_PRECONDITION(
-                    id_opt.value() != c_invalid_gaia_id, "The id_generator is returning invalid gaia_id values!");
+                // See https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2001
+                ASSERT_POSTCONDITION(id_opt.value().is_valid(), "The id generator has produced an invalid gaia_id value!");
                 return id_opt;
             }
             else
@@ -110,7 +111,7 @@ client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::opt
                     gaia_offset_t offset = lr->new_offset;
 
                     ASSERT_INVARIANT(
-                        offset != c_invalid_gaia_offset,
+                        offset.is_valid(),
                         "An unexpected invalid object offset was found in the log record!");
 
                     db_object_t* db_object = offset_to_ptr(offset);
@@ -149,6 +150,7 @@ static void build_client_request(
     FlatBufferBuilder& builder,
     session_event_t event)
 {
+    builder.ForceDefaults(true);
     flatbuffers::Offset<client_request_t> client_request;
     client_request = Createclient_request_t(builder, event);
     auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
@@ -379,7 +381,7 @@ void client_t::begin_transaction()
     const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
     s_txn_id = txn_info->transaction_id();
     ASSERT_INVARIANT(
-        s_txn_id != c_invalid_gaia_txn_id,
+        s_txn_id.is_valid(),
         "Begin timestamp should not be invalid!");
 
     // Apply all txn logs received from the server to our snapshot, in order.

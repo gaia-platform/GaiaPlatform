@@ -1,12 +1,20 @@
+# Title:      Setup Action
+# Purpose:    To do the heavy lifting of getting jobs setup that require a developer image.
+# Prereqs:    - `actions/checkout@master`
+# Inputs:     - `docker-user` - docker user to log into the docker repository with
+#             - `docker-password` - docker password corresponding to the `docker-user`
+# Notes:      - if the `docker-user` input is provided, the image will be downloaded from the repository
+#             - if the `docker-user` input is NOT provided, the image will be downloaded from the workflow's artifacts
+---
 name: 'Setup Action'
 description: 'Setup a Gaia GHA Job'
 inputs:
   docker-user:
     description: 'User for Docker'
-    required: true
+    default: ''
   docker-password:
     description: 'Password for Docker'
-    required: true
+    default: ''
 runs:
   using: "composite"
   steps:
@@ -31,8 +39,25 @@ runs:
         df -h
 
     - name: Pull Latest Dev-Core Image
+      if: ${{ inputs.docker-user != '' }}
       shell: bash
       run: |
         ssh-agent -a $SSH_AUTH_SOCK > /dev/null
         echo "${{ inputs.docker-password }}" | docker login ghcr.io -u ${{ inputs.docker-user }} --password-stdin
         docker pull $DEV_IMAGE
+
+    - name: Download Compressed Dev Image
+      if: ${{ inputs.docker-user == '' }}
+      uses: actions/download-artifact@v2
+      with:
+        name: Dev Image
+        path: ${{ github.workspace }}/production
+
+    - name: Load Compressed Dev Image
+      if: ${{ inputs.docker-user == '' }}
+      shell: bash
+      run: |
+        ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+        ls -la ${{ github.workspace }}/production/dev_image.tar.gz
+        docker load < ${{ github.workspace }}/production/dev_image.tar.gz
+        rm -rf ${{ github.workspace }}/production/dev_image.tar.gz

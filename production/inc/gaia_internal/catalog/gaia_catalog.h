@@ -9,6 +9,7 @@
 #ifndef GAIA_GENERATED_catalog_H_
 #define GAIA_GENERATED_catalog_H_
 
+#include <gaia/optional.hpp>
 #include <gaia/direct_access/dac_object.hpp>
 #include <gaia/direct_access/dac_iterators.hpp>
 #include "catalog_generated.h"
@@ -22,44 +23,44 @@ namespace catalog
 constexpr size_t c_flatbuffer_builder_size = 128;
 
 // Constants contained in the rule_relationship object.
-constexpr common::gaia_type_t::value_type c_gaia_type_rule_relationship = 2301358477u;
+constexpr common::gaia_type_t::value_type c_gaia_type_rule_relationship = 4294963209u;
 constexpr common::reference_offset_t c_rule_relationship_parent_rule = 0;
 constexpr common::reference_offset_t c_rule_relationship_next_rule = 1;
 
 // Constants contained in the rule_field object.
-constexpr common::gaia_type_t::value_type c_gaia_type_rule_field = 4146831106u;
+constexpr common::gaia_type_t::value_type c_gaia_type_rule_field = 4294963208u;
 constexpr common::reference_offset_t c_rule_field_parent_rule = 0;
 constexpr common::reference_offset_t c_rule_field_next_rule = 1;
 
 // Constants contained in the rule_table object.
-constexpr common::gaia_type_t::value_type c_gaia_type_rule_table = 697464930u;
+constexpr common::gaia_type_t::value_type c_gaia_type_rule_table = 4294963207u;
 constexpr common::reference_offset_t c_rule_table_parent_rule = 0;
 constexpr common::reference_offset_t c_rule_table_next_rule = 1;
 
 // Constants contained in the ruleset_database object.
-constexpr common::gaia_type_t::value_type c_gaia_type_ruleset_database = 3973636459u;
+constexpr common::gaia_type_t::value_type c_gaia_type_ruleset_database = 4294963206u;
 constexpr common::reference_offset_t c_ruleset_database_parent_ruleset = 0;
 constexpr common::reference_offset_t c_ruleset_database_next_ruleset = 1;
 
 // Constants contained in the app_ruleset object.
-constexpr common::gaia_type_t::value_type c_gaia_type_app_ruleset = 3586028736u;
+constexpr common::gaia_type_t::value_type c_gaia_type_app_ruleset = 4294963205u;
 constexpr common::reference_offset_t c_app_ruleset_parent_application = 0;
 constexpr common::reference_offset_t c_app_ruleset_next_application = 1;
 constexpr common::reference_offset_t c_app_ruleset_parent_ruleset = 3;
 constexpr common::reference_offset_t c_app_ruleset_next_ruleset = 4;
 
 // Constants contained in the app_database object.
-constexpr common::gaia_type_t::value_type c_gaia_type_app_database = 945845868u;
+constexpr common::gaia_type_t::value_type c_gaia_type_app_database = 4294963204u;
 constexpr common::reference_offset_t c_app_database_parent_application = 0;
 constexpr common::reference_offset_t c_app_database_next_application = 1;
 
 // Constants contained in the gaia_application object.
-constexpr common::gaia_type_t::value_type c_gaia_type_gaia_application = 2620337870u;
+constexpr common::gaia_type_t::value_type c_gaia_type_gaia_application = 4294963203u;
 constexpr common::reference_offset_t c_gaia_application_first_app_databases = 0;
 constexpr common::reference_offset_t c_gaia_application_first_app_rulesets = 1;
 
 // Constants contained in the gaia_rule object.
-constexpr common::gaia_type_t::value_type c_gaia_type_gaia_rule = 4032499586u;
+constexpr common::gaia_type_t::value_type c_gaia_type_gaia_rule = 4294963202u;
 constexpr common::reference_offset_t c_gaia_rule_parent_ruleset = 0;
 constexpr common::reference_offset_t c_gaia_rule_next_ruleset = 1;
 constexpr common::reference_offset_t c_gaia_rule_first_rule_tables = 3;
@@ -67,7 +68,7 @@ constexpr common::reference_offset_t c_gaia_rule_first_rule_fields = 4;
 constexpr common::reference_offset_t c_gaia_rule_first_rule_relationships = 5;
 
 // Constants contained in the gaia_ruleset object.
-constexpr common::gaia_type_t::value_type c_gaia_type_gaia_ruleset = 3430245432u;
+constexpr common::gaia_type_t::value_type c_gaia_type_gaia_ruleset = 4294963201u;
 constexpr common::reference_offset_t c_gaia_ruleset_first_gaia_rules = 0;
 constexpr common::reference_offset_t c_gaia_ruleset_first_ruleset_databases = 1;
 constexpr common::reference_offset_t c_gaia_ruleset_first_app_rulesets = 2;

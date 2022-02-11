@@ -1,3 +1,10 @@
+# Title:      Coverage Job Action
+# Purpose:    To build a full version of the product and measure code coverage and other metrics.
+# Prereqs:    - `./.github/actions/setup-job`
+# Inputs:     - `gaia-repo` - root of the GAIA repository on the file system
+#             - `job-name` - name of the job that contains the call to this action
+# Notes:      - None
+---
 name: 'Coverage Job'
 description: 'Build the product and measure the testing done against the product.'
 inputs:
@@ -10,13 +17,15 @@ inputs:
 runs:
   using: "composite"
   steps:
+
     - name: Coverage
       shell: bash
       run: |
-        cd $GAIA_REPO/production
-        mkdir -p $GAIA_REPO/production
-        $GAIA_REPO/production/coverage/coverage.sh -v
-        sudo chmod -R 777 $GAIA_REPO/production
+        cd ${{ inputs.gaia-repo }}/production
+        mkdir -p ${{ inputs.gaia-repo }}/build/output
+        ${{ inputs.gaia-repo }}/production/coverage/coverage.sh --verbose --output ${{ inputs.gaia-repo }}/build/output
+        cp ${{ inputs.gaia-repo }}/production/raw_dockerfile ${{ inputs.gaia-repo }}/build/output
+        cp ${{ inputs.gaia-repo }}/production/dockerfile ${{ inputs.gaia-repo }}/build/output
 
     - name: Upload Output Files
       if: always()
@@ -24,4 +33,4 @@ runs:
       with:
         name: ${{ inputs.job-name }} Test Files
         path: |
-          ${{ inputs.gaia-repo }}/production/output
+          ${{ inputs.gaia-repo }}/build/output

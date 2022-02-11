@@ -1,4 +1,3 @@
----
 name: Main
 
 on:
@@ -9,12 +8,13 @@ on:
     branches:
       - master
   workflow_dispatch:
+
 env:
-  GAIA_VERSION: 0.3.3
   SSH_AUTH_SOCK: /tmp/ssh_agent.sock
   DEV_IMAGE: ghcr.io/gaia-platform/dev-base-gaia-platform:latest
 
 jobs:
+
   Third-Party:
     runs-on: ubuntu-20.04
     env:
@@ -57,11 +57,9 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
+
       - name: Setup Action
         uses: ./.github/actions/setup-job
-        with:
-          docker-user: ${{ github.actor }}
-          docker-password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Build
         uses: ./.github/actions/build-job
@@ -69,35 +67,11 @@ jobs:
           gaia-repo: ${{ github.workspace }}
           job-name: ${{ github.job }}
           execute-unit-tests: true
+          publish-package: false
 
   SDK:
     needs:
-      - Lint
-      - Third-Party
-    runs-on: ubuntu-20.04
-#    if: github.event_name != 'pull_request'
-    env:
-      GAIA_REPO: ${{ github.workspace }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@master
-      - name: Setup Action
-        uses: ./.github/actions/setup-job
-        with:
-          docker-user: ${{ github.actor }}
-          docker-password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create Build
-        uses: ./.github/actions/build-job
-        with:
-          gaia-repo: ${{ github.workspace }}
-          job-name: ${{ github.job }}
-          build-flavor: GaiaSDK
-          execute-unit-tests: true
-          publish-package: true
-
-  Debug_Core:
-    needs: Core
+      - Core
     runs-on: ubuntu-20.04
     if: github.event_name != 'pull_request'
     env:
@@ -105,42 +79,41 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
+
       - name: Setup Action
         uses: ./.github/actions/setup-job
-        with:
-          docker-user: ${{ github.actor }}
-          docker-password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Build
         uses: ./.github/actions/build-job
         with:
           gaia-repo: ${{ github.workspace }}
           job-name: ${{ github.job }}
-          build-flavor: Debug
           execute-unit-tests: true
+          publish-package: true
+          build-flavor: GaiaSDK
 
-  LLVM_Tests:
-    needs: Core
-    if: ${{ false }}
+  Debug_Core:
+    needs:
+      - Core
     runs-on: ubuntu-20.04
+    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
+
       - name: Setup Action
         uses: ./.github/actions/setup-job
-        with:
-          docker-user: ${{ github.actor }}
-          docker-password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Build
         uses: ./.github/actions/build-job
         with:
           gaia-repo: ${{ github.workspace }}
           job-name: ${{ github.job }}
-          build-flavor: GaiaLLVMTests
-          execute-unit-tests: false
+          execute-unit-tests: true
+          publish-package: false
+          build-flavor: Debug
 
   Coverage:
     needs:
@@ -153,38 +126,82 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
+
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
+
+      - name: Coverage
+        uses: ./.github/actions/coverage-job
+        with:
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+
+  LLVM_Tests:
+    needs:
+      - Lint
+      - Third-Party
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
+
+      - name: Create Build
+        uses: ./.github/actions/build-job
+        with:
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          execute-unit-tests: false
+          publish-package: false
+          build-flavor: GaiaLLVMTests
+
+  Integration_Smoke:
+    needs: SDK
+    runs-on: ubuntu-20.04
+    if: github.event_name != 'pull_request'
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
       - name: Setup Action
         uses: ./.github/actions/setup-job
         with:
           docker-user: ${{ github.actor }}
           docker-password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Measure Coverage
-        uses: ./.github/actions/coverage-job
+      - name: Download Debian Install Package
+        uses: actions/download-artifact@v2
         with:
-          gaia-repo: ${{ github.workspace }}
-          job-name: ${{ github.job }}
+          name: SDK Install Package
+          path: ${{ github.workspace }}/production/tests/packages
 
-  Integration_Smoke:
-    needs: SDK
-    runs-on: ubuntu-20.04
-#    if: github.event_name != 'pull_request'
-    env:
-      GAIA_REPO: ${{ github.workspace }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@master
+      - name: Tests
+        working-directory: ${{ github.workspace }}
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh \
+            --verbose \
+            --job-name $GITHUB_JOB \
+            --repo-path $GAIA_REPO \
+            --package $GAIA_REPO/production/tests/packages
 
-      - name: Run Integration Tests Against Package
-        uses: ./.github/actions/integration-tests-job
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
         with:
-          gaia-repo: ${{ github.workspace }}
-          job-name: ${{ github.job }}
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/production/tests/results
 
   Integration_Smoke_Persistence:
     needs: SDK
     runs-on: ubuntu-20.04
-#    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -196,11 +213,34 @@ jobs:
         with:
           gaia-repo: ${{ github.workspace }}
           job-name: ${{ github.job }}
+
+      - name: Download Debian Install Package
+        uses: actions/download-artifact@v2
+        with:
+          name: SDK Install Package
+          path: ${{ github.workspace }}/production/tests/packages
+
+      - name: Tests
+        working-directory: ${{ github.workspace }}
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh \
+            --verbose \
+            --job-name $GITHUB_JOB \
+            --repo-path $GAIA_REPO \
+            --package $GAIA_REPO/production/tests/packages
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/production/tests/results
 
   Integration_Samples:
     needs: SDK
     runs-on: ubuntu-20.04
-#    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -213,17 +253,108 @@ jobs:
           gaia-repo: ${{ github.workspace }}
           job-name: ${{ github.job }}
 
+      - name: Download Debian Install Package
+        uses: actions/download-artifact@v2
+        with:
+          name: SDK Install Package
+          path: ${{ github.workspace }}/production/tests/packages
+
+      - name: Tests
+        working-directory: ${{ github.workspace }}
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh \
+            --verbose \
+            --job-name $GITHUB_JOB \
+            --repo-path $GAIA_REPO \
+            --package $GAIA_REPO/production/tests/packages
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/production/tests/results
+
+  Integration_Performance:
+    needs: SDK
+    runs-on: ubuntu-20.04
+    if: github.event_name != 'pull_request'
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Run Integration Tests Against Package
+        uses: ./.github/actions/integration-tests-job
+        with:
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+
+      - name: Download Debian Install Package
+        uses: actions/download-artifact@v2
+        with:
+          name: SDK Install Package
+          path: ${{ github.workspace }}/production/tests/packages
+
+      - name: Tests
+        working-directory: ${{ github.workspace }}
+        run: |
+          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh \
+            --verbose \
+            --job-name $GITHUB_JOB \
+            --repo-path $GAIA_REPO \
+            --package $GAIA_REPO/production/tests/packages
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.job}} Output Files
+          path: |
+            ${{ github.workspace }}/production/tests/results
+
   Final:
     needs:
+      - Lint
+      - Third-Party
+      - Core
+      - SDK
+      - Debug_Core
+      - Coverage
+      - LLVM_Tests
       - Integration_Smoke
       - Integration_Smoke_Persistence
       - Integration_Samples
-      - Debug_Core
-      - Coverage
+      - Integration_Performance
     runs-on: ubuntu-20.04
     if: always()
     steps:
+      - uses: geekyeggo/delete-artifact@v1
+        with:
+          name: Dev Image
+
       - uses: technote-space/workflow-conclusion-action@v2
+
+      - name: Create Directory To Host Install Package Cache
+        if: env.WORKFLOW_CONCLUSION == 'success'
+        run: |
+          mkdir -p ${{ github.workspace }}/packages
+
+      - name: Cache Last Successful Install Package
+        uses: actions/cache@v2
+        if: env.WORKFLOW_CONCLUSION == 'success'
+        with:
+          path: ${{ github.workspace }}/packages
+          key: latest-release-sdk-package
+
+      - name: Download Debian Install Package Into Cached Directory
+        uses: actions/download-artifact@v2
+        if: env.WORKFLOW_CONCLUSION == 'success'
+        with:
+          name: SDK Install Package
+          path: ${{ github.workspace }}/packages
 
       - name: Results
         run: |

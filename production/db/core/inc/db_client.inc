@@ -156,6 +156,10 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
         // (the server reversed the original buffer before sending).
         T_element_type next_value = batch_buffer.back();
         batch_buffer.pop_back();
+
+        // See https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2001
+        // ASSERT_POSTCONDITION(next_value.is_valid(), "The stream generator has produced an invalid element value!");
+
         return next_value;
     };
 }

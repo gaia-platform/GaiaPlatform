@@ -188,6 +188,9 @@ if ! docker buildx build \
     "$GAIA_REPO" ; then
     complete_process 1 "Docker build for job '$JOB_NAME' failed."
 fi
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Building of docker image for job '$JOB_NAME' completed successfully."
+fi
 
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Building of docker image for job '$JOB_NAME' completed successfully."
