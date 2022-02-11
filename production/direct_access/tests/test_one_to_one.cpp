@@ -251,3 +251,22 @@ TEST_F(gaia_one_to_one_test, connect_multiple_relationship)
     ASSERT_EQ(john_person.student(), john_student);
     ASSERT_EQ(john_person.employee(), john_employee);
 }
+
+TEST_F(gaia_one_to_one_test, deletion)
+{
+    auto_transaction_t txn;
+
+    auto madeline_person = create<person_t>("Madeline", "Clark");
+    auto madeline_employee = create<employee_t>("Gaia Platform LLC");
+
+    ASSERT_FALSE(madeline_person.employee());
+    ASSERT_FALSE(madeline_employee.person());
+
+    ASSERT_TRUE(madeline_person.employee().connect(madeline_employee.gaia_id()));
+
+    ASSERT_NO_THROW(madeline_person.delete_row());
+    ASSERT_NO_THROW(madeline_employee.delete_row());
+
+    ASSERT_FALSE(madeline_person);
+    ASSERT_FALSE(madeline_employee);
+}

@@ -15,7 +15,7 @@ table doctor (
 
 table patient (
     name string,
-    height uint8,
+    height uint8 optional,
     is_active bool,
     analysis_results float[],
     doctor references doctor,
