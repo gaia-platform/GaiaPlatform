@@ -10,6 +10,7 @@
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/ddl_execution.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/common/hash.hpp"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
 #include "gaia_airport.h"
@@ -18,6 +19,7 @@
 using namespace gaia::airport;
 using namespace gaia::catalog;
 using namespace gaia::db;
+using namespace gaia::common::hash;
 using namespace std;
 
 class hash_generation : public db_catalog_test_base_t
@@ -61,9 +63,14 @@ TEST_F(hash_generation, visit_catalog_definitions)
 
             for (auto& child_relationship : table.incoming_relationships())
             {
+                // Calculate the hash.
+                multi_segment_hash hashes;
+                hashes.hash_add(child_relationship.name(), strlen(child_relationship.name()));
+                hashes.hash_add(child_relationship.to_parent_link_name(), strlen(child_relationship.to_parent_link_name()));
+                hashes.hash_add(child_relationship.to_child_link_name(), strlen(child_relationship.to_child_link_name()));
                 auto child_relationship_w = child_relationship.writer();
                 fprintf(stderr, "    incoming relationship name = %s\n", child_relationship_w.name.c_str());
-                child_relationship_w.hash = "child_relationship_hash";
+                child_relationship_w.hash = hashes.to_string();
                 child_relationship_w.update_row();
             }
         }

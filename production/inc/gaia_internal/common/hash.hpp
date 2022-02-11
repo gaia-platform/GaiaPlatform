@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <cstring>
 
 #include <vector>
@@ -56,11 +57,17 @@ public:
     // Add a hash value to the composite.
     void hash_include(const uint8_t* hash_in);
 
-    // Return the hash of all included hashes.
+    // Calculate the hash of all included hashes, optionally return the value.
     void hash_calc(uint8_t* hash_out);
+    void hash_calc();
+
+    // Return the calculated hash value as a char string.
+    char* to_string();
 
 private:
     std::vector<uint8_t> m_hashes;
+    uint8_t m_hash[c_long_hash_value_length];
+    char m_hash_string[(c_long_hash_value_length * 2) + 1];
 };
 
 } // namespace hash

@@ -279,14 +279,30 @@ void multi_segment_hash::hash_include(const uint8_t* hash_in)
 // Return the hash of all included hashes.
 void multi_segment_hash::hash_calc(uint8_t* hash_out)
 {
+    hash_calc();
+    memcpy(hash_out, m_hash, c_long_hash_value_length);
+}
+
+void multi_segment_hash::hash_calc()
+{
     if (m_hashes.size() == 16)
     {
-        std::memcpy(hash_out, m_hashes.data(), c_long_hash_value_length);
+        std::memcpy(m_hash, m_hashes.data(), c_long_hash_value_length);
     }
     else
     {
-        murmur3_128(m_hashes.data(), m_hashes.size(), hash_out);
+        murmur3_128(m_hashes.data(), m_hashes.size(), m_hash);
     }
+}
+
+char* multi_segment_hash::to_string()
+{
+    for (size_t i = 0; i < c_long_hash_value_length; ++i)
+    {
+        sprintf(m_hash_string + i * 2, "%02x", m_hash[i]);
+    }
+
+    return m_hash_string;
 }
 
 } // namespace hash

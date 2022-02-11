@@ -62,24 +62,8 @@ TEST(hash_test, murmur3_128)
 TEST(hash_test, multi_segment_hash)
 {
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-    uint8_t expected_hash_values[16] = {
-        0x61,
-        0xd8,
-        0x35,
-        0x12,
-        0x6d,
-        0x38,
-        0x2e,
-        0x3a,
-        0x89,
-        0xd6,
-        0x70,
-        0xa9,
-        0xae,
-        0xb4,
-        0x4c,
-        0x7b,
-    };
+    uint8_t expected_hash_values[16]
+        = {0x61, 0xd8, 0x35, 0x12, 0x6d, 0x38, 0x2e, 0x3a, 0x89, 0xd6, 0x70, 0xa9, 0xae, 0xb4, 0x4c, 0x7b};
 
     multi_segment_hash hashes;
     uint8_t hash_value[c_long_hash_value_length];
