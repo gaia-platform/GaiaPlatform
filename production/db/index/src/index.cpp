@@ -75,7 +75,18 @@ bool index_key_t::operator>=(const index_key_t& other) const
 
 bool index_key_t::operator==(const index_key_t& other) const
 {
-    return compare(other) == 0;
+    if (empty() && other.empty())
+    {
+        return true;
+    }
+    else if (empty() || other.empty())
+    {
+        return false;
+    }
+    else
+    {
+        return compare(other) == 0;
+    }
 }
 
 void index_key_t::insert(gaia::db::payload_types::data_holder_t value)
@@ -86,6 +97,11 @@ void index_key_t::insert(gaia::db::payload_types::data_holder_t value)
 std::size_t index_key_t::size() const
 {
     return m_key_values.size();
+}
+
+bool index_key_t::empty() const
+{
+    return m_key_values.size() == 0;
 }
 
 bool index_key_t::is_null() const

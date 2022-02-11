@@ -8,27 +8,27 @@
 
 cmake_minimum_required(VERSION 3.16)
 
-project(hospital)
+project(direct_access_vlr)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# We need pthreads support.
+# We need pthreads.
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
 include("/opt/gaia/cmake/gaia.cmake")
 
-# --- Generate Direct Access classes from DDL---
+# Generate Direct Access Classes from the DDL schema.
 process_schema(
-  DDL_FILE ${PROJECT_SOURCE_DIR}/hospital.ddl
-  DATABASE_NAME hospital
+  DDL_FILE ${PROJECT_SOURCE_DIR}/direct_access_vlr.ddl
+  DATABASE_NAME direct_access_vlr
 )
 
-add_executable(hospital
-  hospital.cpp
+add_executable(direct_access_vlr
+  direct_access_vlr.cpp
 )
 
-target_add_gaia_generated_sources(hospital)
-target_include_directories(hospital PRIVATE ${GAIA_INC})
-target_link_libraries(hospital PRIVATE ${GAIA_LIB} Threads::Threads)
+target_add_gaia_generated_sources(direct_access_vlr)
+target_include_directories(direct_access_vlr PRIVATE ${GAIA_INC})
+target_link_libraries(direct_access_vlr PRIVATE ${GAIA_LIB} Threads::Threads)
