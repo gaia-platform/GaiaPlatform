@@ -16,6 +16,12 @@ set -e
 #
 # gaia_db_server --reset-data-store &
 
+gaia_db_server_pid=$(pgrep -f "gaia_db_server")
+if [ -z "$gaia_db_server_pid" ] ; then
+    echo "Database is not currently running.  Please start gaia_db_server and try again."
+    exit 1
+fi
+
 # Make incubator example.
 echo "Create clean inc"
 rm -rf ./incubator
