@@ -66,7 +66,7 @@ std::string table_facade_t::table_type() const
 
 std::string table_facade_t::class_name() const
 {
-    return std::string(m_table.name()) + c_class_suffix;
+    return std::string(m_table.name()) + c_class_name_suffix;
 }
 
 std::vector<field_facade_t> table_facade_t::fields() const
@@ -246,17 +246,17 @@ std::pair<std::string, std::string> field_facade_t::generate_expr_variable() con
     std::string accessor_string;
     accessor_string.append("gaia::expressions::member_accessor_t");
     accessor_string.append("<");
-    accessor_string.append(table_class_name());
+    accessor_string.append(class_name());
     accessor_string.append(", ");
     accessor_string.append(field_type());
     accessor_string.append(">");
 
-    return generate_expr_variable(table_class_name(), accessor_string, field_name());
+    return generate_expr_variable(class_name(), accessor_string, field_name());
 }
 
-std::string field_facade_t::table_class_name() const
+std::string field_facade_t::class_name() const
 {
-    return std::string(m_field.table().name()) + c_class_suffix;
+    return std::string(m_field.table().name()) + c_class_name_suffix;
 }
 
 std::pair<std::string, std::string> field_facade_t::generate_expr_variable(
@@ -326,9 +326,9 @@ std::string link_facade_t::from_class_name() const
 {
     if (m_is_from_parent)
     {
-        return std::string(m_relationship.parent().name()) + c_class_suffix;
+        return std::string(m_relationship.parent().name()) + c_class_name_suffix;
     }
-    return std::string(m_relationship.child().name()) + c_class_suffix;
+    return std::string(m_relationship.child().name()) + c_class_name_suffix;
 }
 
 std::string link_facade_t::to_table() const
@@ -344,9 +344,9 @@ std::string link_facade_t::to_class_name() const
 {
     if (m_is_from_parent)
     {
-        return std::string(m_relationship.child().name()) + c_class_suffix;
+        return std::string(m_relationship.child().name()) + c_class_name_suffix;
     }
-    return std::string(m_relationship.parent().name()) + c_class_suffix;
+    return std::string(m_relationship.parent().name()) + c_class_name_suffix;
 }
 
 bool link_facade_t::is_value_linked() const
@@ -403,7 +403,7 @@ std::string link_facade_t::target_type() const
     else
     {
         std::string type;
-        type.append(to_table() + c_class_suffix);
+        type.append(to_table() + c_class_name_suffix);
         return type;
     }
 }

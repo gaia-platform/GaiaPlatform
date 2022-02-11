@@ -30,6 +30,7 @@
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/Twine.h"
 using namespace gaia;
+using namespace gaia::catalog::gaiat;
 using namespace std;
 using namespace clang;
 
@@ -636,7 +637,7 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, StringRef targetTab
 
     // TODO [GAIAPLAT-1168] We should not statically build the EDC type, must ask the Catalog for it.
     // Lookup the EDC class type.
-    auto edcClassName = ::gaia::catalog::translation::translation_table_facade_t::class_name(targetTableName);
+    auto edcClassName = table_facade_t::class_name(targetTableName);
     // llvm::SmallString<20> edcTableTypeName = edcClassName;
     TagDecl* edcTargetTypeDecl = lookupEDCClass(edcClassName);
     if (edcTargetTypeDecl)
@@ -792,7 +793,7 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
 
     // Adds a conversion function from the generated table type (table__type)
     // to the EDC type (table_t).
-    auto edcClassName = ::gaia::catalog::translation::translation_table_facade_t::class_name(typeName.c_str());
+    auto edcClassName = table_facade_t::class_name(typeName.c_str());
     TagDecl* edcType = lookupEDCClass(edcClassName);
     if (edcType != nullptr)
     {

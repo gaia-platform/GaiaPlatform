@@ -9,7 +9,7 @@
 #include "llvm/ADT/StringMap.h"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/catalog/catalog.hpp"
-#include "gaia_internal/catalog/translation_catalog_facade.hpp"
+#include "gaia_internal/gaiat/catalog_facade.hpp"
 
 using namespace gaia;
 using namespace gaia::common;
