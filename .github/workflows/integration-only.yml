@@ -30,23 +30,24 @@ jobs:
 
       - name: Create Directory To Host Install Package Cache
         run: |
-          mkdir -p ${{ github.workspace }}/production/tests/packages
+          mkdir -p ${{ github.workspace }}/packages
 
       - name: Cache Last Successful Install Package
         uses: actions/cache@v2
         with:
-          path: ${{ github.workspace }}/production/tests/packages
+          path: ${{ github.workspace }}/packages
           key: latest-release-sdk-package
 
       - name: Tests
         working-directory: ${{ github.workspace }}
         run: |
+          ls -la ${{ github.workspace }}/packages
           $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh \
             --verbose \
             --job-name $GITHUB_JOB \
             --repo-path $GAIA_REPO \
             --db-persistence ${{ matrix.persistence }} \
-            --package $GAIA_REPO/production/tests/packages
+            --package $GAIA_REPO/packages
 
       - name: Upload Output Files
         if: always()
