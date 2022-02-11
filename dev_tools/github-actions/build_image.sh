@@ -172,6 +172,9 @@ if [ -n "$BASE_IMAGE" ] ; then
     BASE_IMAGE="--cache-from $BASE_IMAGE"
 fi
 
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Building docker image..."
+fi
 # shellcheck disable=SC2086
 if ! docker buildx build \
     -f "$GAIA_REPO/production/dockerfile" \
@@ -184,6 +187,9 @@ if ! docker buildx build \
     --compress \
     "$GAIA_REPO" ; then
     complete_process 1 "Docker build for job '$JOB_NAME' failed."
+fi
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Building of docker image for job '$JOB_NAME' completed successfully."
 fi
 
 complete_process 0
