@@ -314,20 +314,20 @@ jobs:
       - uses: technote-space/workflow-conclusion-action@v2
 
       - name: Create Directory To Host Install Package Cache
-        if: env.WORKFLOW_CONCLUSION == 'success'
+        if: env.WORKFLOW_CONCLUSION == 'success' && github.event_name != 'pull_request'
         run: |
           mkdir -p ${{ github.workspace }}/packages
 
       - name: Cache Last Successful Install Package
         uses: actions/cache@v2
-        if: env.WORKFLOW_CONCLUSION == 'success'
+        if: env.WORKFLOW_CONCLUSION == 'success' && github.event_name != 'pull_request'
         with:
           path: ${{ github.workspace }}/packages
           key: latest-release-sdk-package
 
       - name: Download Debian Install Package Into Cached Directory
         uses: actions/download-artifact@v2
-        if: env.WORKFLOW_CONCLUSION == 'success'
+        if: env.WORKFLOW_CONCLUSION == 'success' && github.event_name != 'pull_request'
         with:
           name: SDK Install Package
           path: ${{ github.workspace }}/packages

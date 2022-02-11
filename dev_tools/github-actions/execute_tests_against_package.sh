@@ -147,7 +147,7 @@ parse_command_line() {
         echo "Error: Argument -s/--suite-name is required" >&2
         show_usage
     fi
-    
+
     if [ -n "$PERSISTENCE_MODE" ] ; then
         if [ "$PERSISTENCE_MODE" != "enabled" ] && [ "$PERSISTENCE_MODE" != "disabled" ] ; then
             echo "Error: Argument -d/--db-persistence must be 'enabled' or 'disabled'." >&2
@@ -183,7 +183,6 @@ save_current_directory
 if ! mkdir -p "$GAIA_REPO/production/tests/results" ; then
     complete_process 1 "Unable to create an output directory for '$JOB_NAME'."
 fi
-
 
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Looking for Debian package to install..."

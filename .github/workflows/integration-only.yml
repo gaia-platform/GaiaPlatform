@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         persistence: [enabled, disabled]
-        suite-name: [smoke,marcopolo,pingpong]
+        suite-name: [smoke,marcopolo,pingpong,mink-perf,pingpong-perf,marcopolo-perf]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
