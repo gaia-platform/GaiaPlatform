@@ -34,8 +34,24 @@ runs:
       run: |
         mkdir -p ${{ inputs.gaia-repo }}/packages
 
+    - name: Download Debian Install Package
+      continue-on-error: true
+      uses: actions/download-artifact@v2
+      with:
+        name: SDK Install Package
+        path: ${{ github.workspace }}/packages
+
+    - name: XXX
+      shell: bash
+      run: |
+        if [ "$(ls -A ${{ github.workspace }}/packages)" ]; then
+          echo "SDK=present" >> $GITHUB_ENV
+        else
+          echo "SDK=not-present" >> $GITHUB_ENV
+	      fi
+
     - name: Cache Last Successful Install Package
-      if: github.event_name == 'workflow_dispatch'
+      if: ${{ env.SDK }} != 'present'
       uses: actions/cache@v2
       with:
         path: ${{ inputs.gaia-repo }}/packages
