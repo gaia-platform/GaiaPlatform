@@ -3,10 +3,9 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <string>
-
 #include <gtest/gtest.h>
 
+#include "gaia_internal/common/timer.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
@@ -23,9 +22,11 @@ using namespace gaia::db::query_processor::scan;
 using namespace gaia::catalog;
 using namespace gaia::db::index;
 
-constexpr size_t c_num_initial_rows = 20;
+constexpr size_t c_num_initial_rows = 200000;
 constexpr size_t c_query_limit_rows = 5;
 constexpr const char* c_no_match_str = "no match";
+
+using g_timer_t = gaia::common::timer_t;
 
 class test_index_scan : public gaia::db::db_catalog_test_base_t
 {
@@ -47,7 +48,6 @@ public:
             w.i = c_num_initial_rows - i; // DESC
             w.insert_row();
         }
-
         txn.commit();
     }
 };
@@ -188,6 +188,8 @@ TEST_F(test_index_scan, query_single_match)
             }
         }
     }
+
+    gaia_log::app().info("2");
 
     EXPECT_TRUE(range_index_id != c_invalid_gaia_id && hash_index_id != c_invalid_gaia_id);
 

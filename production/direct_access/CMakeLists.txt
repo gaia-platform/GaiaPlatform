@@ -51,6 +51,28 @@ add_gtest(test_optional_dac
   "${DIRECT_ACCESS_TEST_INCLUDES}"
   "rt;gaia_direct;gaia_db_catalog_test;dac_optional_sandbox")
 
+add_gtest(test_insert_perf
+  "tests/test_insertion_perf.cpp"
+  "${DIRECT_ACCESS_TEST_INCLUDES};${GAIA_REPO}/production/db/inc/index;${GAIA_REPO}/production/db/inc/query_processor;${GAIA_REPO}/production/db/core/inc;${GAIA_REPO}/production/db/inc/payload_types;${GAIA_PROD_BUILD}/db/core/generated"
+  "rt;gaia_direct;gaia_db_catalog_test;dac_insert_sandbox")
+
+
+add_executable(test_insert_perf2 tests/test_insertion_perf2.cpp)
+target_include_directories(test_insert_perf2 PRIVATE
+  ${DIRECT_ACCESS_TEST_INCLUDES}
+  ${GAIA_REPO}/production/db/inc/index
+  ${GAIA_REPO}/production/db/inc/query_processor
+  ${GAIA_REPO}/production/db/core/inc
+  ${GAIA_REPO}/production/db/inc/payload_types
+  ${GAIA_PROD_BUILD}/db/core/generated
+  ${GAIA_REPO}/production/catalog/inc
+  ${GAIA_REPO}/production/catalog/parser/inc
+  ${GAIA_REPO}/production/db/core/inc
+  ${GAIA_REPO}/production/db/inc/memory_manager
+  ${GAIA_INC}
+  ${GAIA_PARSER_GENERATED})
+target_link_libraries(test_insert_perf2 PRIVATE rt gaia_direct gaia_db_catalog_test dac_insert_sandbox gaia_parser gaia_system)
+
 option(BUILD_EXPR_PERF_TEST "Build DAC expression performance tests" OFF)
 
 if(BUILD_EXPR_PERF_TEST)
