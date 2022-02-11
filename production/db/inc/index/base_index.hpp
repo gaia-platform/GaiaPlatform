@@ -14,6 +14,7 @@
 #include <optional>
 #include <ostream>
 #include <sstream>
+#include <vector>
 
 #include "gaia/common.hpp"
 #include "gaia/exception.hpp"
@@ -113,7 +114,9 @@ public:
 
     virtual void clear() = 0;
     virtual std::shared_ptr<common::iterators::generator_t<index_record_t>> generator(gaia_txn_id_t txn_id) = 0;
-    virtual std::shared_ptr<common::iterators::generator_t<index_record_t>> equal_range_generator(gaia_txn_id_t txn_id, const index_key_t& key) = 0;
+    virtual std::shared_ptr<common::iterators::generator_t<index_record_t>> equal_range_generator(
+        gaia_txn_id_t txn_id, std::vector<char>&& key_storage, const index_key_t& key)
+        = 0;
 
 protected:
     gaia::common::gaia_id_t m_index_id;

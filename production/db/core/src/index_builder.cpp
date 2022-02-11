@@ -439,6 +439,8 @@ void index_builder_t::update_indexes_from_txn_log(
             continue;
         }
 
+        ASSERT_INVARIANT(type_record_id.is_valid(), "Cannot find type record for object.");
+
         for (const auto& index : catalog_core::list_indexes(type_record_id))
         {
             ASSERT_PRECONDITION(get_indexes(), "Indexes are not initialized.");
