@@ -461,7 +461,7 @@ void server_t::handle_request_stream(
         case index_query_t::index_point_read_query_t:
         case index_query_t::index_equal_range_query_t:
         {
-            std::vector<char> storage;
+            std::vector<char> key_storage;
             index::index_key_t key;
             {
                 // Create local snapshot to query catalog for key serialization schema.
@@ -480,13 +480,13 @@ void server_t::handle_request_stream(
                     auto query = request_data->query_as_index_equal_range_query_t();
                     key_buffer = query->key();
                 }
-                storage = std::vector(
+                key_storage = std::vector(
                     reinterpret_cast<const char*>(key_buffer->Data()),
                     reinterpret_cast<const char*>(key_buffer->Data()) + key_buffer->size());
-                auto key_read_buffer = payload_types::data_read_buffer_t(storage.data());
+                auto key_read_buffer = payload_types::data_read_buffer_t(key_storage.data());
                 key = index::index_builder_t::deserialize_key(index_id, key_read_buffer);
             }
-            start_stream_producer(server_socket, index->equal_range_generator(txn_id, std::move(storage), key));
+            start_stream_producer(server_socket, index->equal_range_generator(txn_id, std::move(key_storage), key));
             break;
         }
         default:
