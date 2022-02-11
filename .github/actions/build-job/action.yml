@@ -33,6 +33,12 @@ runs:
   using: "composite"
   steps:
 
+    - name: Stamp Version Info
+      shell: bash
+      run : |
+        sed -i 's/@IS_CI_BUILD@/true/' $GAIA_REPO/production/inc/gaia_internal/common/gaia_version.hpp.in
+        sed -i 's/@BUILD_NUMBER@/'"${{ github.run_id }}"'/' $GAIA_REPO/production/inc/gaia_internal/common/gaia_version.hpp.in
+
     - name: Build Docker Image
       shell: bash
       run: |
