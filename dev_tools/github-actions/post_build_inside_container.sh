@@ -117,7 +117,7 @@ cp /build/production/*.log /build/output
 if [ "$ACTION_NAME" == "unit_tests" ] ; then
     echo "Executing unit tests."
 
-    if ! ctest 2>&1 | tee /build/output/ctest.log; then
+    if ! ctest --output-on-failure 2>&1 | tee /build/output/ctest.log; then
         complete_process 1 "Unit tests failed to complete successfully."
     fi
 
