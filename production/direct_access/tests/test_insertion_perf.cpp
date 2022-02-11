@@ -26,10 +26,11 @@ using namespace std;
 
 using g_timer_t = gaia::common::timer_t;
 
-// Note with > 50k obejcts i fails with:
+// Note with > 50k objects it fails with, even if we split the commit.
 // C++ exception with description "Cannot find an object with ID '1072630'." thrown in the test body.
 // During deletion.
-static const int64_t c_num_insertion = 50000;
+static const int64_t c_num_insertion = 100000;
+static const int64_t c_max_insertion_single_txn = 50000;
 static const int64_t c_children_number = 10;
 
 class test_insert_perf : public gaia::db::db_catalog_test_base_t
@@ -153,14 +154,23 @@ void run_performance_test(
 void insert_thread(int num_records)
 {
     gaia::db::begin_session();
-    auto_transaction_t txn{auto_transaction_t::no_auto_restart};
+    gaia::db::begin_transaction();
 
     for (int i = 0; i < num_records; i++)
     {
+        if (i > 0 && i % c_max_insertion_single_txn == 0)
+        {
+            gaia::db::commit_transaction();
+            gaia::db::begin_transaction();
+        }
         simple_table_t::insert_row(i);
     }
 
-    txn.commit();
+    if (gaia::db::is_transaction_open())
+    {
+        gaia::db::commit_transaction();
+    }
+
     gaia::db::end_session();
 }
 
@@ -170,14 +180,23 @@ TEST_F(test_insert_perf, insert)
     cout << "Inserting " << c_num_insertion << " objects in the database for each test" << endl;
 
     auto insert1 = []() {
-        auto_transaction_t txn{auto_transaction_t::no_auto_restart};
+        gaia::db::begin_transaction();
 
         for (int i = 0; i < c_num_insertion; i++)
         {
+            if (i > 0 && i % c_max_insertion_single_txn == 0)
+            {
+                gaia::db::commit_transaction();
+                gaia::db::begin_transaction();
+            }
+
             simple_table_t::insert_row(i);
         }
 
-        txn.commit();
+        if (gaia::db::is_transaction_open())
+        {
+            gaia::db::commit_transaction();
+        }
     };
 
     run_performance_test(insert1, "simple_table_t::insert_row");
