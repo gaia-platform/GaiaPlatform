@@ -58,7 +58,7 @@ jobs:
             ${{ github.workspace }}/production/dev_image.tar.gz
 
   LLVM_Tests:
-    needs: Lint
+    needs: Third-Party
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
