@@ -331,7 +331,7 @@ jobs:
       - Integration_Samples
       - Integration_Performance
     runs-on: ubuntu-20.04
-    if: always()
+    if: github.event_name != 'pull_request'
     steps:
       - uses: geekyeggo/delete-artifact@v1
         with:
