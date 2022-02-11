@@ -2,17 +2,12 @@
 name: Integration Tests Only
 
 on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
   workflow_dispatch:
 
 jobs:
   Integration_Tests:
     runs-on: ubuntu-20.04
+    timeout-minutes: 7
     env:
       GAIA_REPO: ${{ github.workspace }}
     strategy:
