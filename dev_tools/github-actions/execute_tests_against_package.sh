@@ -168,9 +168,20 @@ if ! mkdir -p "$GAIA_REPO/production/tests/results" ; then
     complete_process 1 "Unable to create an output directory for '$JOB_NAME'."
 fi
 
+
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Looking for Debian package to install..."
+fi
 cd "$PACKAGE_PATH" || exit
+INSTALL_PATH="$(find . -name gaia*)"
+
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Installing Debian package '$INSTALL_PATH'..."
+fi
 # shellcheck disable=SC2061
-sudo apt --assume-yes install "$(find . -name gaia*)"
+if ! sudo apt --assume-yes install "$INSTALL_PATH" ; then
+    complete_process 1 "Debian package '$INSTALL_PATH' could not be installed."
+fi
 
 ## PER JOB CONFIGURATION ##
 
