@@ -1,23 +1,11 @@
 #!/usr/bin/env python3.8
-# PYTHON_ARGCOMPLETE_OK
 
+import sys
+from gdev.main import DockerDev
 
 def main() -> int:
-    from gdev.dependency import Dependency
-    dependency = Dependency.of_sys_argv()
-
-    import logging
-    logging.basicConfig(level=dependency.options.log_level)
-
-    import asyncio
-    try:
-        asyncio.run(dependency.cli_entrypoint())
-    except dependency.Exception as e:
-        print(f'\n{e}', file=sys.stderr)
-
+    DockerDev().main()
     return 0
 
-
 if __name__ == '__main__':
-    import sys
     sys.exit(main())
