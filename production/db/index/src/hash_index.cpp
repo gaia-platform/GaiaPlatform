@@ -42,11 +42,6 @@ std::pair<hash_index_iterator_t, hash_index_iterator_t> hash_index_t::equal_rang
     return std::make_pair(hash_index_iterator_t(this, start, m_data.cend()), hash_index_iterator_t(this, end, m_data.cend()));
 }
 
-std::shared_ptr<common::iterators::generator_t<index_record_t>> hash_index_t::equal_range_generator(gaia_txn_id_t txn_id, const index_key_t& key)
-{
-    return std::make_shared<index_generator_t<hash_type_t>>(get_lock(), m_data, key, key, txn_id);
-}
-
 template <>
 std::pair<hash_type_t::iterator, hash_type_t::iterator>
 index_writer_guard_t<hash_type_t>::equal_range(const index_key_t& key)
