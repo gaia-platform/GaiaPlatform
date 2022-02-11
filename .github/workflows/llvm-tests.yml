@@ -46,4 +46,4 @@ jobs:
           job-name: ${{ github.job }}
           execute-unit-tests: false
           publish-package: false
-          build-flavor: GaiaLLVMTests
+          build-project: GaiaLLVMTests

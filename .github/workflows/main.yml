@@ -90,7 +90,7 @@ jobs:
           job-name: ${{ github.job }}
           execute-unit-tests: true
           publish-package: true
-          build-flavor: GaiaSDK
+          build-project: GaiaSDK
 
   Debug_Core:
     needs:
@@ -113,7 +113,7 @@ jobs:
           job-name: ${{ github.job }}
           execute-unit-tests: true
           publish-package: false
-          build-flavor: Debug
+          build-type: Debug
 
   Coverage:
     needs:
@@ -158,7 +158,7 @@ jobs:
           job-name: ${{ github.job }}
           execute-unit-tests: false
           publish-package: false
-          build-flavor: GaiaLLVMTests
+          build-project: GaiaLLVMTests
 
   Integration_Smoke:
     needs: SDK

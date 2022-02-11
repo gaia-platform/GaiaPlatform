@@ -66,4 +66,4 @@ jobs:
           job-name: ${{ github.job }}
           execute-unit-tests: true
           publish-package: false
-          build-flavor: Debug
+          build-type: Debug

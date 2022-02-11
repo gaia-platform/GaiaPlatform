@@ -5,7 +5,8 @@
 #             - `job-name` - name of the job that contains the call to this action
 #             - `execute-unit-tests` - set to `true` to execute unit tests after the build is complete
 #             - `publish-package` - set to `true` to create a package and publish it to the job's artifacts
-#             - `build-flavor` - flavor to associate with the build (passed on to `gdev` as `cfg-enables`)
+#             - `build-project` - Core, GaiaSDK, GaiaLLVMTests, etc, (passed on to `gdev` as cfg-enables)
+#             - `build-type` - Debug, Release, RelWithDebInfo (passed on to `gdev` as `cfg-enables`)
 # Notes:      - None
 ---
 name: 'Build Job'
@@ -25,8 +26,12 @@ inputs:
     description: 'Set to "true" to publish a generated package'
     required: false
     default: 'false'
-  build-flavor:
-    description: 'Configuration to pass to GDev'
+  build-project:
+    description: 'Project to pass to GDev for Core, SDK'
+    required: false
+    default: ''
+  build-type:
+    description: 'Configuration to pass to GDev for CMAKE_BUILD_TYPE'
     required: false
     default: ''
 runs:
@@ -38,14 +43,13 @@ runs:
       run : |
         sed -i 's/@IS_CI_BUILD@/true/' $GAIA_REPO/production/inc/gaia_internal/common/gaia_version.hpp.in
         sed -i 's/@BUILD_NUMBER@/'"${{ github.run_id }}"'/' $GAIA_REPO/production/inc/gaia_internal/common/gaia_version.hpp.in
-        cat $GAIA_REPO/production/inc/gaia_internal/common/gaia_version.hpp.in
 
     - name: Build Docker Image
       shell: bash
       run: |
         CFG_ENABLES=
-        if [ "${{ inputs.build-flavor }}" != "" ] ; then
-          CFG_ENABLES="--cfg-enables ${{ inputs.build-flavor }}"
+        if [ "${{ inputs.build-project }}" != "" ] || [ "${{ inputs.build-type }}" != "" ] ; then
+          CFG_ENABLES="--cfg-enables ${{ inputs.build-project}} ${{ inputs.build-type }}"
         fi
         echo "Configuration: $CFG_ENABLES"
         $GAIA_REPO/dev_tools/github-actions/build_image.sh \
