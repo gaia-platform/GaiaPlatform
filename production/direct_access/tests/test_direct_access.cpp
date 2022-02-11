@@ -1003,3 +1003,35 @@ TEST_F(dac_object_test, delete_row_in_loop)
 
     txn.commit();
 }
+
+TEST_F(dac_object_test, array_range_based_for_loop)
+{
+    auto_transaction_t txn;
+    gaia_id_t id = customer_t::insert_row("Unibot", {200, 300, 500});
+    txn.commit();
+
+    auto c = customer_t::get(id);
+    std::vector<int32_t> sales;
+    for (auto s : c.sales_by_quarter())
+    {
+        sales.push_back(s);
+    }
+    EXPECT_EQ(sales.size(), c.sales_by_quarter().size());
+    EXPECT_TRUE(std::equal(sales.begin(), sales.end(), c.sales_by_quarter().data()));
+
+    sales.clear();
+    for (auto s1 = c.sales_by_quarter().begin(); s1 != c.sales_by_quarter().end(); ++s1)
+    {
+        sales.push_back(*s1);
+    }
+    EXPECT_EQ(sales.size(), c.sales_by_quarter().size());
+    EXPECT_TRUE(std::equal(sales.begin(), sales.end(), c.sales_by_quarter().data()));
+
+    sales.clear();
+    for (uint32_t idx = 0; idx < c.sales_by_quarter().size(); ++idx)
+    {
+        sales.push_back(c.sales_by_quarter()[idx]);
+    }
+    EXPECT_EQ(sales.size(), c.sales_by_quarter().size());
+    EXPECT_TRUE(std::equal(sales.begin(), sales.end(), c.sales_by_quarter().data()));
+}
