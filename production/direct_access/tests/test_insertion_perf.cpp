@@ -261,7 +261,7 @@ TEST_F(test_insert_perf, query_single_match)
         {
             const auto& field = catalog_core::field_view_t(gaia::db::id_to_ptr(field_id));
 
-            if (field.data_type() == data_type_t::e_uint64 && index.type() == index_type_t::hash)
+            if (field.data_type() == data_type_t::e_uint64 && index.type() == index_type_t::range)
             {
                 hash_index_id = index.id();
                 break;
@@ -273,24 +273,24 @@ TEST_F(test_insert_perf, query_single_match)
 
     txn.commit();
 
-    //    auto index = [&]() {
-    //        auto_transaction_t txn{auto_transaction_t::no_auto_restart};
-    //        uint64_t value = 10000;
-    //        auto index_key = index_key_t(value);
-    //        int num_results = 0;
-    //        auto point_predicate = std::make_shared<index_point_read_predicate_t>(index_key);
-    //        for (const auto& scan : index_scan_t(hash_index_id, point_predicate))
-    //        {
-    //            (void)scan;
-    //            ++num_results;
-    //        }
-    //
-    //        txn.commit();
-    //
-    //        EXPECT_EQ(num_results, 1);
-    //    };
-    //
-    //    run_performance_test(index, "Hash Index value found", 5, false);
+    auto index = [&]() {
+        auto_transaction_t txn{auto_transaction_t::no_auto_restart};
+        uint64_t value = 10000;
+        auto index_key = index_key_t(value);
+        int num_results = 0;
+        auto point_predicate = std::make_shared<index_point_read_predicate_t>(index_key);
+        for (const auto& scan : index_scan_t(hash_index_id, point_predicate))
+        {
+            (void)scan;
+            ++num_results;
+        }
+
+        txn.commit();
+
+        EXPECT_EQ(num_results, 1);
+    };
+
+    run_performance_test(index, "Hash Index value found", 5, false);
 
     auto index2 = [&]() {
         auto_transaction_t txn{auto_transaction_t::no_auto_restart};
@@ -311,5 +311,23 @@ TEST_F(test_insert_perf, query_single_match)
 
     run_performance_test(index2, "Hash Index value not found", 5, false);
 
+    auto index3 = [&]() {
+        auto_transaction_t txn{auto_transaction_t::no_auto_restart};
+        uint64_t value = 10000;
+        auto index_key = index_key_t(value);
+        int num_results = 0;
+        auto point_predicate = std::make_shared<index_point_read_predicate_t>(index_key);
+        for (const auto& scan : index_scan_t(hash_index_id, point_predicate))
+        {
+            (void)scan;
+            ++num_results;
+        }
+
+        txn.commit();
+
+        EXPECT_EQ(num_results, 1);
+    };
+
+    run_performance_test(index3, "Hash Index value found", 5, false);
     // Point-query on hash index.
 }

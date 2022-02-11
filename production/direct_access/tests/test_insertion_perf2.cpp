@@ -122,9 +122,20 @@ using namespace gaia::catalog;
 using namespace gaia::db::query_processor::scan;
 using namespace gaia::db::index;
 
+template <typename T_type>
+void clear_table()
+{
+    for (auto obj_it = T_type::list().begin();
+         obj_it != T_type::list().end();)
+    {
+        auto next_obj_it = obj_it++;
+        next_obj_it->delete_row();
+    }
+}
+
 int main()
 {
-    gaia::system::initialize();
+    gaia::system::initialize("/home/simone/repos/gaia2/GaiaPlatform/production/gaia.conf", "/home/simone/repos/gaia2/GaiaPlatform/production/gaia_log.conf");
 
     //    for (int i = 0; i < 3; i++)
     //    {
@@ -140,19 +151,21 @@ int main()
     //        }
     //    }
 
-    if (true)
+    if (false)
     {
-        gaia::catalog::load_catalog("/home/simone/repos/GaiaPlatform/production/schemas/test/insert/insert.ddl");
-
         auto_transaction_t txn{auto_transaction_t::no_auto_restart};
+
+        clear_table<simple_table_index_t>();
+        gaia_log::app().info("Before Num records: {}", simple_table_index_t::list().size());
 
         for (int i = 0; i < 1000000; i++)
         {
             simple_table_index_t::insert_row(i);
         }
+
+        gaia_log::app().info("After Num records: {}", simple_table_index_t::list().size());
         txn.commit();
         gaia::system::shutdown();
-        sleep(1);
         exit(0);
     }
 
