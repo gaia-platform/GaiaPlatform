@@ -16,6 +16,7 @@ jobs:
     env:
       GAIA_REPO: ${{ github.workspace }}
     strategy:
+      fail-fast: false
       matrix:
         persistence: [enabled, disabled]
     steps:
@@ -32,7 +33,7 @@ jobs:
           mkdir -p ${{ github.workspace }}/packages
 
       - name: Cache Last Successful Install Package
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ${{ github.workspace }}/packages
           key: latest-release-sdk-package
