@@ -30,12 +30,12 @@ jobs:
 
       - name: Create Directory To Host Install Package Cache
         run: |
-          mkdir -p ${{ github.workspace }}/packages
+          mkdir -p ${{ github.workspace }}/production/tests/packages
 
       - name: Cache Last Successful Install Package
         uses: actions/cache@v2
         with:
-          path: ${{ github.workspace }}/packages
+          path: ${{ github.workspace }}/production/tests/packages
           key: latest-release-sdk-package
 
       - name: Tests
