@@ -188,6 +188,7 @@ if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Looking for Debian package to install..."
 fi
 cd "$PACKAGE_PATH" || exit
+# shellcheck disable=SC2061
 INSTALL_PATH="$(find . -name gaia*)"
 
 if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -202,7 +203,7 @@ fi
 
 if [ "$JOB_NAME" == "Integration_Tests" ] ; then
 
-    cd $GAIA_REPO/production/tests
+    cd "$GAIA_REPO/production/tests" || exit
 
     if ! sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop --database ; then
         complete_process 1 "Stopping of the database before execution of integration tests failed."
