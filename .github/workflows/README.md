@@ -262,22 +262,19 @@ Those two steps ensure that the last step, the actual invocation of the Pre-Comm
 
 ## Build Jobs
 
-Each build job is present in the workflow to build a project and then specify a build type for each project.
+We support the following *build* jobs:
 
-| Build | Description | build-project | build-type |
-|---|---|---|---|
-| Core | Quickest build configuration, ensure core components compile cleanly and unit tests complete. | Core | Release|
-|SDK | Build a Release version of the product's SDK. | GaiaSDK | Release |
-| LLMV_Tests | Version of the build that specifically targets LLVM and GaiaT related tests. | GaiaLLVMTests | Release |
-| Debug_Core | Version of the `Core` build with debug enabled | Core | Debug |
-| Debug_SDK (TBD) | Version of the SDK build with debug enabled | GaiaSDK | Debug |
-| Debug_LLMV_Tests (TBD) | Version of the build that specifically targets LLVM and GaiaT related tests with debug enabled | GaiaLLVMTests | Debug |
-| Coverage* | Project used for generating code coverage numbers | Coverage | RelWithDebInfo|
-
-* Note that the coverage job does not currently use `build-project` and `build-type` input parameters as these are baked into the underlying `coverage.sh` script.
+| Build | Description | cfg-enable flag(s)|
+|---|---|---|
+| Core | Quickest build configuration, ensure core components compile cleanly and unit tests complete. | none |
+| SDK | Build a Release version of the product's SDK. | GaiaSDK |
+| LLMV_Tests | Version of the build that specifically targets LLVM and GaiaT related tests. | GaiaLLVMTests |
+| Debug_Core | Version of the `Core` build with debug enabled | Debug |
+| Debug_SDK (TBD) | Version of the SDK build with debug enabled | GaiaSDK, Debug |
+| Debug_LLMV_Tests (TBD) | Version of the build that specifically targets LLVM and GaiaT related tests with debug enabled | GaiaLLVMTests, Debug |
 
 ### Versioning
-The version of the product is specified in the top-level [CMakeLists.txt](../../production/CMakeLists.txt) file.  This is the *only* place in our entire build system (CMake files, gdev.cfg files, python scripts, shell scripts, .yml files) that we should be providing the following information:
+The version of the product is specified in the top-level [CMakeLists.txt](../../production/CMakeLists.txt) file.  This is the *only* place in our entire build system (CMake files, gdev.cfg files, python scripts, shell scripts, .yml files) where we should be providing the following information:
 
 * Major.Minor.Patch version numbers:  Set by the `project(production VERSION X.Y.Z)`
 * The pre-release string:  Set by the `PRE_RELEASE_IDENTIFIER` setting.

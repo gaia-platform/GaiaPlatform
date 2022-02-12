@@ -46,7 +46,7 @@ jobs:
           job-name: ${{ github.job }}
           execute-unit-tests: true
           publish-package: false
-          build-project: Core
+          build-flavor: Core
           build-type: Release
 
   SDK:
@@ -68,7 +68,7 @@ jobs:
           job-name: ${{ github.job }}
           execute-unit-tests: true
           publish-package: true
-          build-project: GaiaSDK
+          build-flavor: GaiaSDK
           build-type: Release
 
   Debug_Core:
@@ -90,5 +90,5 @@ jobs:
           job-name: ${{ github.job }}
           execute-unit-tests: true
           publish-package: false
-          build-project: Core
+          build-flavor: Core
           build-type: Debug
