@@ -911,67 +911,6 @@ TEST_F(dac_object_test, list_filter)
     }
 }
 
-TEST_F(dac_object_test, array_insert)
-{
-    const char* customer_name = "Unibot";
-    const int32_t q1_sales = 200;
-    const int32_t q2_sales = 300;
-    const int32_t q3_sales = 500;
-
-    auto_transaction_t txn;
-    const std::vector<int32_t> sales_by_quarter{q1_sales, q2_sales, q3_sales};
-    gaia_id_t id = customer_t::insert_row(customer_name, sales_by_quarter);
-    txn.commit();
-
-    auto c = customer_t::get(id);
-    EXPECT_TRUE(std::equal(sales_by_quarter.begin(), sales_by_quarter.end(), c.sales_by_quarter().data()));
-}
-
-TEST_F(dac_object_test, array_writer)
-{
-    const char* customer_name = "xorlab";
-    const int32_t q1_sales = 100;
-    const int32_t q2_sales = 200;
-    const int32_t q3_sales = 300;
-
-    auto_transaction_t txn;
-    auto w = customer_writer();
-    w.name = customer_name;
-    w.sales_by_quarter = {q1_sales, q2_sales};
-    gaia_id_t id = w.insert_row();
-    txn.commit();
-
-    auto c = customer_t::get(id);
-    EXPECT_STREQ(c.name(), customer_name);
-    EXPECT_EQ(c.sales_by_quarter()[0], q1_sales);
-    EXPECT_EQ(c.sales_by_quarter()[1], q2_sales);
-
-    w = c.writer();
-    w.sales_by_quarter.push_back(q3_sales);
-    w.update_row();
-    txn.commit();
-
-    EXPECT_EQ(customer_t::get(id).sales_by_quarter()[2], q3_sales);
-}
-
-TEST_F(dac_object_test, empty_array)
-{
-    // If the array field is not optional and no value is given when inserting
-    // the row, an empty vector will be inserted (by FlatBuffers). This test
-    // verifies the behavior.
-    const char* customer_name = "Test Customer";
-
-    auto_transaction_t txn;
-    auto w = customer_writer();
-    w.name = customer_name;
-    gaia_id_t id = w.insert_row();
-    txn.commit();
-
-    auto c = customer_t::get(id);
-    EXPECT_STREQ(c.name(), customer_name);
-    EXPECT_EQ(c.sales_by_quarter().size(), 0);
-}
-
 // TESTCASE: Delete rows accessed through a list() iterator.
 // GAIAPLAT-1049
 // The delete_row() interferes with iterator.
@@ -1002,36 +941,4 @@ TEST_F(dac_object_test, delete_row_in_loop)
     EXPECT_EQ(count, 2);
 
     txn.commit();
-}
-
-TEST_F(dac_object_test, array_range_based_for_loop)
-{
-    auto_transaction_t txn;
-    gaia_id_t id = customer_t::insert_row("Unibot", {200, 300, 500});
-    txn.commit();
-
-    auto c = customer_t::get(id);
-    std::vector<int32_t> sales;
-    for (auto s : c.sales_by_quarter())
-    {
-        sales.push_back(s);
-    }
-    EXPECT_EQ(sales.size(), c.sales_by_quarter().size());
-    EXPECT_TRUE(std::equal(sales.begin(), sales.end(), c.sales_by_quarter().data()));
-
-    sales.clear();
-    for (auto s1 = c.sales_by_quarter().begin(); s1 != c.sales_by_quarter().end(); ++s1)
-    {
-        sales.push_back(*s1);
-    }
-    EXPECT_EQ(sales.size(), c.sales_by_quarter().size());
-    EXPECT_TRUE(std::equal(sales.begin(), sales.end(), c.sales_by_quarter().data()));
-
-    sales.clear();
-    for (uint32_t idx = 0; idx < c.sales_by_quarter().size(); ++idx)
-    {
-        sales.push_back(c.sales_by_quarter()[idx]);
-    }
-    EXPECT_EQ(sales.size(), c.sales_by_quarter().size());
-    EXPECT_TRUE(std::equal(sales.begin(), sales.end(), c.sales_by_quarter().data()));
 }

@@ -37,19 +37,51 @@ set(DIRECT_ACCESS_TEST_INCLUDES
   ${GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES}
 )
 
-add_gtest(test_direct_access "tests/test_direct_access.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
-add_gtest(test_references "tests/test_references.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
-add_gtest(test_iterator_conformance "tests/test_iterator_conformance.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
-add_gtest(test_incubator "tests/test_incubator.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_barn_storage")
-add_gtest(test_expressions "tests/test_expressions.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
-add_gtest(test_one_to_one "tests/test_one_to_one.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_one_to_one")
-add_gtest(test_one_to_many "tests/test_one_to_many.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
-add_gtest(test_auto_connect "tests/test_auto_connect.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_airport")
-add_gtest(test_default_db "tests/test_default_db.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac")
+# Test suites in alphabetical order.
+add_gtest(test_array_fields
+  "tests/test_array_fields.cpp"
+  "${DIRECT_ACCESS_TEST_INCLUDES}"
+  "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
+add_gtest(test_auto_connect
+  "tests/test_auto_connect.cpp"
+  "${DIRECT_ACCESS_TEST_INCLUDES}"
+  "rt;gaia_direct;gaia_db_catalog_test;dac_airport")
+add_gtest(test_default_db
+  "tests/test_default_db.cpp"
+  "${DIRECT_ACCESS_TEST_INCLUDES}"
+  "rt;gaia_direct;gaia_db_catalog_test;dac")
+add_gtest(test_direct_access
+  "tests/test_direct_access.cpp"
+  "${DIRECT_ACCESS_TEST_INCLUDES}"
+  "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
+add_gtest(test_expressions
+  "tests/test_expressions.cpp"
+  "${DIRECT_ACCESS_TEST_INCLUDES}"
+  "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
+add_gtest(test_incubator
+  "tests/test_incubator.cpp"
+  "${DIRECT_ACCESS_TEST_INCLUDES}"
+  "rt;gaia_direct;gaia_db_catalog_test;dac_barn_storage")
+add_gtest(test_iterator_conformance
+  "tests/test_iterator_conformance.cpp"
+  "${DIRECT_ACCESS_TEST_INCLUDES}"
+  "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
+add_gtest(test_one_to_many
+  "tests/test_one_to_many.cpp"
+  "${DIRECT_ACCESS_TEST_INCLUDES}"
+  "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
+add_gtest(test_one_to_one
+  "tests/test_one_to_one.cpp"
+  "${DIRECT_ACCESS_TEST_INCLUDES}"
+  "rt;gaia_direct;gaia_db_catalog_test;dac_one_to_one")
 add_gtest(test_optional_dac
   "tests/test_optional_dac.cpp"
   "${DIRECT_ACCESS_TEST_INCLUDES}"
   "rt;gaia_direct;gaia_db_catalog_test;dac_optional_sandbox")
+add_gtest(test_references
+  "tests/test_references.cpp"
+  "${DIRECT_ACCESS_TEST_INCLUDES}"
+  "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
 
 option(BUILD_EXPR_PERF_TEST "Build DAC expression performance tests" OFF)
 
