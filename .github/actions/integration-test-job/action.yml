@@ -29,7 +29,7 @@ runs:
       with:
         python-version: 3.8
 
-    - name: XXX
+    - name: Check for Previously Downloaded SDK Package
       shell: bash
       run: |
         if [ "$(ls -A ${{ github.workspace }}/packages)" ]; then
