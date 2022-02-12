@@ -29,18 +29,6 @@ runs:
       with:
         python-version: 3.8
 
-    - name: Create Directory To Host Install Package Cache
-      shell: bash
-      run: |
-        mkdir -p ${{ inputs.gaia-repo }}/packages
-
-    - name: Download Debian Install Package
-      continue-on-error: true
-      uses: actions/download-artifact@v2
-      with:
-        name: SDK Install Package
-        path: ${{ github.workspace }}/packages
-
     - name: XXX
       shell: bash
       run: |
