@@ -27,7 +27,7 @@ inputs:
     required: false
     default: 'false'
   build-flavor:
-    description: 'Project to pass to GDev for Core, SDK'
+    description: 'Project to pass to GDev for Core, SDK, and LLVMTests'
     required: false
     default: ''
   build-type:

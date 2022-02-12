@@ -262,7 +262,7 @@ Those two steps ensure that the last step, the actual invocation of the Pre-Comm
 
 ## Build Jobs
 
-We support the following *build* jobs:
+We support the following build jobs:
 
 | Build | Description | cfg-enable flag(s)|
 |---|---|---|
@@ -273,8 +273,8 @@ We support the following *build* jobs:
 | Debug_SDK (TBD) | Version of the SDK build with debug enabled | GaiaSDK, Debug |
 | Debug_LLMV_Tests (TBD) | Version of the build that specifically targets LLVM and GaiaT related tests with debug enabled | GaiaLLVMTests, Debug |
 
-### Versioning
-The version of the product is specified in the top-level [CMakeLists.txt](../../production/CMakeLists.txt) file.  This is the *only* place in our entire build system (CMake files, gdev.cfg files, python scripts, shell scripts, .yml files) where we should be providing the following information:
+### Versioning Builds
+The version of the product is specified in the top-level [CMakeLists.txt](../../production/CMakeLists.txt) file. This is the *only* place in our entire build system (CMake files, gdev.cfg files, python scripts, shell scripts, yaml files) where we should be providing the following information:
 
 * Major.Minor.Patch version numbers:  Set by the `project(production VERSION X.Y.Z)`
 * The pre-release string:  Set by the `PRE_RELEASE_IDENTIFIER` setting.
@@ -282,14 +282,14 @@ The version of the product is specified in the top-level [CMakeLists.txt](../../
 
 This information is then used for two outputs:
 
-1. The name of the install packages we generate.  For example:  `gaia-0.3.3_amd64.deb`
+1. The name of the install packages we generate.  For example: `gaia-0.3.3_amd64.deb`
 1. A rich version string returned by our tools and database server when you invoke them with the `--version` command line option.  For example: `0.3.3-beta+1827813810`
 
 #### Install Package Name
-The install package name is populated at build time by doing parameter substitution of [gaia_package_name.txt.in](../../production/inc/gaia_internal/common/gaia_package_name.txt.in).  This is done in our CMake [gaia_version.cmake](../../production/cmake/gaia_version.cmake) using the `configure_file` CMake directive.  This `gaia_package_name.txt` output file is only used by our github actions pipeline to tell the build job what filename to copy as an artifact.  The [SDK CMakeLists](../../production/sdk/CMakeLists.txt) actually constructs the filename via CPACK_PACKAGE_* settings derived from the CMake variable settings above.
+The install package name is populated at build time by doing parameter substitution of [gaia_package_name.txt.in](../../production/inc/gaia_internal/common/gaia_package_name.txt.in).  This is done in our CMake [gaia_version.cmake](../../production/cmake/gaia_version.cmake) using the `configure_file` CMake directive.  This `gaia_package_name.txt` output file is only used by our github actions pipeline to tell the build job what filename to copy as an artifact.  The [SDK CMakeLists.txt](../../production/sdk/CMakeLists.txt) file actually constructs the filename via CPACK_PACKAGE_* settings derived from the CMake variable settings above.
 
 #### Version String
-The same [gaia_version.cmake](../../production/cmake/gaia_version.cmake) file above also uses `configure_file` to replace the version variables in [gaia_version.hpp.in](../../production/inc/gaia_internal/common/gaia_version.hpp.in) to generate a `gaia_version.hpp` file.  This header is included by our tools to generate a consistent version string across `gaia_db_server`, `gaiac`, and `gaiat`.  At build time, we also add the `github.run_id` property to the build string.  This is the `+1827813810` number you see at the end of the string. When we run in CI, the [build-job action](../actions/build-job/action.yml) also updates the [gaia_version.hpp.in](../../production/inc/gaia_internal/common/gaia_version.hpp.in) to fill in the IS_CI and BUILD_NUMBER variables.  Given a `run_id` one can lookup the build in github using the following url:  https://github.com/gaia-platform/GaiaPlatform/actions/runs/<run_id>.
+The same [gaia_version.cmake](../../production/cmake/gaia_version.cmake) file above also uses `configure_file` to replace the version variables in [gaia_version.hpp.in](../../production/inc/gaia_internal/common/gaia_version.hpp.in) to generate a `gaia_version.hpp` file.  This header is included by our tools to generate a consistent version string across `gaia_db_server`, `gaiac`, and `gaiat`.  At build time, we also add the `github.run_id` property to the build string.  This is the number to the right of the `+` sign in the version string. When the build is run in CI, the [build-job action](../actions/build-job/action.yml) also updates the [gaia_version.hpp.in](../../production/inc/gaia_internal/common/gaia_version.hpp.in) to fill in the IS_CI and BUILD_NUMBER variables.  Given a `run_id` one can lookup the build in github using the following url:  https://github.com/gaia-platform/GaiaPlatform/actions/runs/<run_id>.
 
 ### Docker Setup And Pulling the Dev-Base Image
 
