@@ -298,7 +298,7 @@ ruleset test_comment_rule
     /* COMMENT
      COMMENT
      COMMENT*/
-     min_temp = 5;
+     timestamp = 5;
     }
 }
 
