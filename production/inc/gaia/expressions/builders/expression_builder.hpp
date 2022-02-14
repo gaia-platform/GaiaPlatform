@@ -179,7 +179,6 @@ operator||(const T_left& left, const T_right& right)
         expression_bind<T_bind>(left), expression_bind<T_bind>(right));
 }
 
-
 // ^ operator.
 template <
     typename T_left,
@@ -198,7 +197,7 @@ operator^(const T_left& left, const T_right& right)
         expression_bind<T_bind>(left), expression_bind<T_bind>(right));
 }
 // + operator.
-  template <
+template <
     typename T_left,
     typename T_right,
     typename T_bind = bind_type<T_left, T_right>,
