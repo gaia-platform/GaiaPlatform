@@ -1,0 +1,17 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// TESTCASE: treat scalar array as a struct
+ruleset test02
+{
+    on_insert(farmer)
+    {
+        previous_years[bushels].bad_field = 1;
+    }
+}
+
+// CHECK: error: member reference base type 'unsigned int' is not a structure or union
