@@ -201,6 +201,7 @@ evaluate_operator(const T_left& left, const T_right& right, operator_xor_t)
     return left ^ right;
 }
 
+template <typename T_left, typename T_right>
 static inline add_default_type<T_left, T_right>
 evaluate_operator(const T_left& left, const T_right& right, operator_add_t)
 {

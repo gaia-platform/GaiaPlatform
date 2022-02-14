@@ -40,7 +40,6 @@ public:
 
     // Additional accessor operations taken directly from dac_array.
     transform_expression_t<T_bind, size_t> size() const;
-    transform_expression_t<T_bind, bool> is_null() const;
 };
 
 #include "vector_accessor.inc"

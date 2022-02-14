@@ -688,8 +688,6 @@ TEST_F(test_expressions, array)
             }));
 
     assert_empty(
-        customer_t::list().where(sales_by_quarter.is_null()));
-    assert_empty(
         customer_t::list().where(sales_by_quarter[0] == -1));
 
     assert_non_empty(customer_t::list().where(sales_by_quarter[0] == sales_by_quarter[0]));

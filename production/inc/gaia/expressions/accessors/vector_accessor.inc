@@ -37,17 +37,6 @@ vector_accessor_t<T_bind, T_element, T_return>::size() const
 }
 
 template <typename T_bind, typename T_element, typename T_return>
-transform_expression_t<T_bind, bool>
-vector_accessor_t<T_bind, T_element, T_return>::is_null() const
-{
-    return transform_expression_t<T_bind, bool>(
-        [this](
-            const T_bind& bind) {
-            return (*this)(bind).is_null();
-        });
-}
-
-template <typename T_bind, typename T_element, typename T_return>
 subexpression_t<T_bind, T_return> vector_accessor_t<T_bind, T_element, T_return>::create_subexpression() const
 {
     return std::make_shared<vector_accessor_t<T_bind, T_element, T_return>>(*this);
