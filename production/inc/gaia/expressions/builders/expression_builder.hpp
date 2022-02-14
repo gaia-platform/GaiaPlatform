@@ -179,6 +179,7 @@ operator||(const T_left& left, const T_right& right)
         expression_bind<T_bind>(left), expression_bind<T_bind>(right));
 }
 
+
 // ^ operator.
 template <
     typename T_left,
@@ -196,6 +197,77 @@ operator^(const T_left& left, const T_right& right)
     return binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>(
         expression_bind<T_bind>(left), expression_bind<T_bind>(right));
 }
+// + operator.
+  template <
+    typename T_left,
+    typename T_right,
+    typename T_bind = bind_type<T_left, T_right>,
+    typename T_eval_left = eval_type<T_left>,
+    typename T_eval_right = eval_type<T_right>,
+    typename T_return = add_type<T_eval_left, T_eval_right>,
+    typename T_token = operator_add_t,
+    typename T_type_constraint = typename std::enable_if<
+        is_expression<T_left>::value || is_expression<T_right>::value>::type>
+binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>
+operator+(const T_left& left, const T_right& right)
+{
+    return binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>(
+        expression_bind<T_bind>(left), expression_bind<T_bind>(right));
+}
+
+// - operator (binary).
+template <
+    typename T_left,
+    typename T_right,
+    typename T_bind = bind_type<T_left, T_right>,
+    typename T_eval_left = eval_type<T_left>,
+    typename T_eval_right = eval_type<T_right>,
+    typename T_return = sub_type<T_eval_left, T_eval_right>,
+    typename T_token = operator_sub_t,
+    typename T_type_constraint = typename std::enable_if<
+        is_expression<T_left>::value || is_expression<T_right>::value>::type>
+binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>
+operator-(const T_left& left, const T_right& right)
+{
+    return binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>(
+        expression_bind<T_bind>(left), expression_bind<T_bind>(right));
+}
+
+// * operator.
+template <
+    typename T_left,
+    typename T_right,
+    typename T_bind = bind_type<T_left, T_right>,
+    typename T_eval_left = eval_type<T_left>,
+    typename T_eval_right = eval_type<T_right>,
+    typename T_return = mul_type<T_eval_left, T_eval_right>,
+    typename T_token = operator_mul_t,
+    typename T_type_constraint = typename std::enable_if<
+        is_expression<T_left>::value || is_expression<T_right>::value>::type>
+binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>
+operator*(const T_left& left, const T_right& right)
+{
+    return binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>(
+        expression_bind<T_bind>(left), expression_bind<T_bind>(right));
+}
+
+// / operator.
+template <
+    typename T_left,
+    typename T_right,
+    typename T_bind = bind_type<T_left, T_right>,
+    typename T_eval_left = eval_type<T_left>,
+    typename T_eval_right = eval_type<T_right>,
+    typename T_return = div_type<T_eval_left, T_eval_right>,
+    typename T_token = operator_div_t,
+    typename T_type_constraint = typename std::enable_if<
+        is_expression<T_left>::value || is_expression<T_right>::value>::type>
+binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>
+operator/(const T_left& left, const T_right& right)
+{
+    return binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>(
+        expression_bind<T_bind>(left), expression_bind<T_bind>(right));
+}
 
 // ! operator.
 template <
@@ -208,6 +280,23 @@ template <
     = typename std::enable_if<is_expression<T_operand>::value>::type>
 unary_expression_t<T_bind, T_return, T_eval_operand, T_token>
 operator!(
+    const T_operand& operand)
+{
+    return unary_expression_t<T_bind, T_return, T_eval_operand, T_token>(
+        expression_bind<T_bind>(operand));
+}
+
+// - operator(unary).
+template <
+    typename T_operand,
+    typename T_bind = bind_type<T_operand>,
+    typename T_eval_operand = eval_type<T_operand>,
+    typename T_return = neg_type<T_eval_operand>,
+    typename T_token = operator_neg_t,
+    typename T_type_constraint
+    = typename std::enable_if<is_expression<T_operand>::value>::type>
+unary_expression_t<T_bind, T_return, T_eval_operand, T_token>
+operator-(
     const T_operand& operand)
 {
     return unary_expression_t<T_bind, T_return, T_eval_operand, T_token>(
