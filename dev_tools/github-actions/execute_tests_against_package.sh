@@ -143,11 +143,12 @@ parse_command_line() {
         echo "Error: Argument -j/--job-name is required" >&2
         show_usage
     fi
-    if [ -z "$SUITE_NAME" ] ; then
-        echo "Error: Argument -s/--suite-name is required" >&2
-        show_usage
+    if [ "$JOB_NAME" != "Integration_Samples" ] ; then
+        if [ -z "$SUITE_NAME" ] ; then
+            echo "Error: Argument -s/--suite-name is required for non-Integration_Samples jobs." >&2
+            show_usage
+        fi
     fi
-
     if [ -n "$PERSISTENCE_MODE" ] ; then
         if [ "$PERSISTENCE_MODE" != "enabled" ] && [ "$PERSISTENCE_MODE" != "disabled" ] ; then
             echo "Error: Argument -d/--db-persistence must be 'enabled' or 'disabled'." >&2
