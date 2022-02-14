@@ -236,8 +236,8 @@ std::pair<std::string, std::string> field_facade_t::generate_expr_variable() con
     {
         accessor_string.append("gaia::expressions::vector_accessor_t");
         accessor_string.append("<");
-        accessor_string.append(table_name());
-        accessor_string.append("_t, ");
+        accessor_string.append(class_name());
+        accessor_string.append(", ");
         accessor_string.append(element_type());
         accessor_string.append(", ");
         accessor_string.append(field_type());
@@ -248,7 +248,7 @@ std::pair<std::string, std::string> field_facade_t::generate_expr_variable() con
         accessor_string.append("gaia::expressions::member_accessor_t");
         accessor_string.append("<");
         accessor_string.append(class_name());
-        accessor_string.append("_t, ");
+        accessor_string.append(", ");
         accessor_string.append(field_type());
         accessor_string.append(">");
     }
@@ -281,7 +281,7 @@ std::pair<std::string, std::string> field_facade_t::generate_expr_variable(
     expr_decl.append(";");
 
     // Example:  template<class unused_t>
-    // gaia::expressions::expression_t<employee_t, int64_t> employee_t::expr_<unused_t>::hire_date{&employee_t::hire_date};
+    // gaia::expressions::expression_t<employee_t, int64_t> internal::employee_t::expr_<unused_t>::hire_date{&employee_t::hire_date};
     expr_init.append("template<class unused_t> ");
     expr_init.append(type_decl);
     expr_init.append(" ");
