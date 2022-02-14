@@ -255,3 +255,25 @@ def test_show_dockerfile_debug_and_llvm():
     execute_results.assert_results(
         expected_output, expected_error, expected_return_code
     )
+
+def test_show_dockerfile_debug_and_new_base_image():
+    """
+    Make sure that we can generate a dockerfile from the current directory,
+        with the setting of --cfg-enable Debug --base-image frogger
+    """
+
+    # Arrange
+    executor = get_executor()
+    suppplied_arguments = ["dockerfile", "--cfg-enable", "Debug", "--base-image", "frogger"]
+    expected_return_code, expected_output, expected_error = determine_old_script_behavior(suppplied_arguments)
+
+    # Act
+    execute_results = executor.invoke_main(arguments=suppplied_arguments, cwd=determine_repository_production_directory())
+
+    # Assert
+    assert "frogger" in expected_output, "Original output does not contain specified base image."
+    assert "ubuntu:20.04" not in expected_output, "Original output contains default base image."
+
+    execute_results.assert_results(
+        expected_output, expected_error, expected_return_code
+    )
