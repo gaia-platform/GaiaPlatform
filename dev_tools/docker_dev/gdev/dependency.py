@@ -17,55 +17,7 @@ from gdev.custom.pathlib import Path
 from gdev.options import Options, Mount
 from gdev.third_party.atools import memoize, memoize_db
 from gdev.third_party.argcomplete import autocomplete, FilesCompleter
-
-
-@dataclass(frozen=True)
-class _ParserStructure:
-    command_parts: Tuple[str, ...]
-    doc: str
-    sub_parser_structures: FrozenSet[_ParserStructure] = frozenset()
-
-    def get_command_class(self) -> str:
-        return ''.join([
-            command_part.capitalize()
-            for command_part in self.command_parts
-            for command_part in command_part.split('_')
-            if command_part
-        ])
-
-    def get_command_module(self) -> str:
-        return '.'.join(['gdev.cmd', *self.command_parts])
-
-    @classmethod
-    def of_command_parts(cls, command_parts: Tuple[str, ...]) -> _ParserStructure:
-        module_name = '.'.join(['gdev.cmd', *command_parts])
-        spec = find_spec(module_name)
-        module = import_module(module_name)
-        if spec.submodule_search_locations is None:
-            command_class = ''.join([
-                command_part.capitalize()
-                for command_part in command_parts
-                for command_part in command_part.split('_')
-                if command_part
-            ])
-            doc = getdoc(module.__dict__[command_class]) or ''
-            parser_structure = _ParserStructure(command_parts=command_parts, doc=doc)
-        else:
-            doc = getdoc(module)
-            sub_parser_structures: Set[_ParserStructure] = set()
-            for module in iter_modules(spec.submodule_search_locations):
-                if not (sub_command := module.name).startswith('_'):
-                    sub_parser_structures.add(
-                        cls.of_command_parts(tuple([*command_parts, sub_command]))
-                    )
-            parser_structure = _ParserStructure(
-                command_parts=command_parts,
-                doc=doc,
-                sub_parser_structures=frozenset(sub_parser_structures)
-            )
-
-        return parser_structure
-
+from gdev.parser_structure import ParserStructure
 
 @dataclass(frozen=True)
 class Dependency:
@@ -114,8 +66,8 @@ class Dependency:
 
     @staticmethod
     @memoize_db(size=1)
-    def get_parser_structure() -> _ParserStructure:
-        return _ParserStructure.of_command_parts(tuple())
+    def get_parser_structure() -> ParserStructure:
+        return ParserStructure.of_command_parts(tuple())
 
     @staticmethod
     def get_parser() -> ArgumentParser:
@@ -130,12 +82,14 @@ class Dependency:
             parser.add_argument(
                 '--cfg-enables',
                 default=cfg_enables_default,
-                nargs=1,
+                nargs='*',
                 help=(
                     f'Enable lines in gdev.cfg files gated by `enable_if`, `enable_if_any`, and'
                     f' `enable_if_all` functions. Default: "{cfg_enables_default}"'
                 )
             )
+
+            # Only used when GDev is being set up.
             log_level_default = 'INFO'
             parser.add_argument(
                 '--log-level',
@@ -143,6 +97,8 @@ class Dependency:
                 choices=[name for _, name in sorted(logging._levelToName.items())],
                 help=f'Log level. Default: "{log_level_default}"'
             )
+
+            # Only used as part of "run" to force a build.
             parser.add_argument(
                 '-f', '--force',
                 action='store_true',
@@ -211,7 +167,7 @@ class Dependency:
                 help=f'Args to be forwarded on to docker run, if applicable.'
             )
 
-        def inner(parser: ArgumentParser, parser_structure: _ParserStructure) -> ArgumentParser:
+        def inner(parser: ArgumentParser, parser_structure: ParserStructure) -> ArgumentParser:
             if not parser_structure.sub_parser_structures:
                 add_flags(parser)
                 parser.set_defaults(
@@ -220,9 +176,12 @@ class Dependency:
                 )
             else:
                 sub_parsers = parser.add_subparsers()
+                sub_parser_map = {}
                 for sub_parser_structure in parser_structure.sub_parser_structures:
-                    sub_parser = sub_parsers.add_parser(sub_parser_structure.command_parts[-1])
-                    inner(sub_parser, sub_parser_structure)
+                    sub_parser_map[sub_parser_structure.command_parts[-1]] = sub_parser_structure
+                for next_map_key in sorted(sub_parser_map.keys()):
+                    sub_parser = sub_parsers.add_parser(next_map_key)
+                    inner(sub_parser, sub_parser_map[next_map_key])
             parser.description = parser_structure.doc
 
             return parser

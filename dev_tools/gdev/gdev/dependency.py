@@ -220,9 +220,12 @@ class Dependency:
                 )
             else:
                 sub_parsers = parser.add_subparsers()
+                sub_parser_map = {}
                 for sub_parser_structure in parser_structure.sub_parser_structures:
-                    sub_parser = sub_parsers.add_parser(sub_parser_structure.command_parts[-1])
-                    inner(sub_parser, sub_parser_structure)
+                    sub_parser_map[sub_parser_structure.command_parts[-1]] = sub_parser_structure
+                for next_map_key in sorted(sub_parser_map.keys()):
+                    sub_parser = sub_parsers.add_parser(next_map_key)
+                    inner(sub_parser, sub_parser_map[next_map_key])
             parser.description = parser_structure.doc
 
             return parser
