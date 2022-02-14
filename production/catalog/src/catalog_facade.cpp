@@ -149,51 +149,42 @@ std::string field_facade_t::field_name() const
     return m_field.name();
 }
 
-std::string field_facade_t::field_type(bool is_function_parameter) const
+std::string field_facade_t::element_type() const
 {
-    std::string type_str;
-
     switch (static_cast<data_type_t>(m_field.type()))
     {
     case data_type_t::e_bool:
-        type_str = "bool";
-        break;
+        return "bool";
     case data_type_t::e_int8:
-        type_str = "int8_t";
-        break;
+        return "int8_t";
     case data_type_t::e_uint8:
-        type_str = "uint8_t";
-        break;
+        return "uint8_t";
     case data_type_t::e_int16:
-        type_str = "int16_t";
-        break;
+        return "int16_t";
     case data_type_t::e_uint16:
-        type_str = "uint16_t";
-        break;
+        return "uint16_t";
     case data_type_t::e_int32:
-        type_str = "int32_t";
-        break;
+        return "int32_t";
     case data_type_t::e_uint32:
-        type_str = "uint32_t";
-        break;
+        return "uint32_t";
     case data_type_t::e_int64:
-        type_str = "int64_t";
-        break;
+        return "int64_t";
     case data_type_t::e_uint64:
-        type_str = "uint64_t";
-        break;
+        return "uint64_t";
     case data_type_t::e_float:
-        type_str = "float";
-        break;
+        return "float";
     case data_type_t::e_double:
-        type_str = "double";
-        break;
+        return "double";
     case data_type_t::e_string:
-        type_str = "const char*";
-        break;
+        return "const char*";
     default:
         ASSERT_UNREACHABLE("Unknown type!");
     };
+}
+
+std::string field_facade_t::field_type(bool is_function_parameter) const
+{
+    std::string type_str = element_type();
 
     if (m_field.repeated_count() == 0)
     {
@@ -228,17 +219,27 @@ bool field_facade_t::is_vector() const
 
 std::pair<std::string, std::string> field_facade_t::generate_expr_variable() const
 {
-    // For now, we only use the generic member_accessor_t.
-    // In the future, more specialized accessors will be needed e.g. vector accessors.
-    // This is to support additional queries on different accessor types.
-
     std::string accessor_string;
-    accessor_string.append("gaia::expressions::member_accessor_t");
-    accessor_string.append("<");
-    accessor_string.append(table_name());
-    accessor_string.append("_t, ");
-    accessor_string.append(field_type());
-    accessor_string.append(">");
+    if (is_vector())
+    {
+        accessor_string.append("gaia::expressions::vector_accessor_t");
+        accessor_string.append("<");
+        accessor_string.append(table_name());
+        accessor_string.append("_t, ");
+        accessor_string.append(element_type());
+        accessor_string.append(", ");
+        accessor_string.append(field_type());
+        accessor_string.append(">");
+    }
+    else
+    {
+        accessor_string.append("gaia::expressions::member_accessor_t");
+        accessor_string.append("<");
+        accessor_string.append(table_name());
+        accessor_string.append("_t, ");
+        accessor_string.append(field_type());
+        accessor_string.append(">");
+    }
 
     return generate_expr_variable(table_name(), accessor_string, field_name());
 }
