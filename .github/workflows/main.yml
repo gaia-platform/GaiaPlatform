@@ -68,6 +68,8 @@ jobs:
           job-name: ${{ github.job }}
           execute-unit-tests: true
           publish-package: false
+          build-flavor: Core
+          build-type: Release
 
   SDK:
     needs:
@@ -91,6 +93,7 @@ jobs:
           execute-unit-tests: true
           publish-package: true
           build-flavor: GaiaSDK
+          build-type: Release
 
   Debug_Core:
     needs:
@@ -113,7 +116,8 @@ jobs:
           job-name: ${{ github.job }}
           execute-unit-tests: true
           publish-package: false
-          build-flavor: Debug
+          build-flavor: Core
+          build-type: Debug
 
   Coverage:
     needs:
@@ -159,6 +163,7 @@ jobs:
           execute-unit-tests: false
           publish-package: false
           build-flavor: GaiaLLVMTests
+          build-type: Release
 
   Integration_Tests:
     needs:
@@ -247,7 +252,7 @@ jobs:
       - Integration_Tests
       - Integration_Samples
     runs-on: ubuntu-20.04
-    if: always()
+    if: github.event_name != 'pull_request'
     steps:
       - uses: geekyeggo/delete-artifact@v1
         with:
