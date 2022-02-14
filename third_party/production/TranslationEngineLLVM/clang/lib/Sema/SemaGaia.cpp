@@ -30,6 +30,7 @@
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/Twine.h"
 using namespace gaia;
+using namespace gaia::catalog::gaiat;
 using namespace std;
 using namespace clang;
 
@@ -608,7 +609,6 @@ TagDecl* Sema::lookupEDCClass(StringRef className)
     {
         return llvm::cast_or_null<TagDecl>(typeIterator->second->getAsRecordDecl());
     }
-
     return nullptr;
 }
 
@@ -635,12 +635,11 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, StringRef targetTab
 
     targetTypes.push_back(implicitTargetTypeDecl);
 
-    // TODO [GAIAPLAT-1168] We should not statically build the EDC type, bust ask the Catalog for it.
-    // Lookup the EDC class type (table_t)
-    llvm::SmallString<20> edcTableTypeName = targetTableName;
-    edcTableTypeName += "_t";
-    TagDecl* edcTargetTypeDecl = lookupEDCClass(edcTableTypeName);
-
+    // TODO [GAIAPLAT-1168] We should not statically build the EDC type, must ask the Catalog for it.
+    // Lookup the EDC class type.
+    auto edcClassName = table_facade_t::class_name(targetTableName);
+    // llvm::SmallString<20> edcTableTypeName = edcClassName;
+    TagDecl* edcTargetTypeDecl = lookupEDCClass(edcClassName);
     if (edcTargetTypeDecl)
     {
         targetTypes.push_back(edcTargetTypeDecl);
@@ -794,8 +793,7 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
 
     // Adds a conversion function from the generated table type (table__type)
     // to the EDC type (table_t).
-    llvm::SmallString<20> edcClassName = typeName;
-    edcClassName += "_t";
+    auto edcClassName = table_facade_t::class_name(typeName.c_str());
     TagDecl* edcType = lookupEDCClass(edcClassName);
     if (edcType != nullptr)
     {

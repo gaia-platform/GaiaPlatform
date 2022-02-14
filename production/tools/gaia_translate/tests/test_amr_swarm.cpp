@@ -82,6 +82,7 @@ TEST_F(test_amr_swarm, setup_complete_event)
     // Obtain the configuration row.
     configuration_t configuration;
     int counter = 0;
+
     for (const configuration_t& c : configuration_t::list())
     {
         ++counter;
