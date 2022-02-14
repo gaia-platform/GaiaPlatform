@@ -7,6 +7,7 @@
 
 #include <mutex>
 #include <utility>
+#include <vector>
 
 #include "gaia_internal/common/generator_iterator.hpp"
 
@@ -31,6 +32,7 @@ public:
     index_generator_t(
         std::recursive_mutex& mutex,
         const T_structure& data,
+        std::vector<char>&& storage,
         const index_key_t& begin_key,
         const index_key_t& end_key,
         gaia_txn_id_t txn_id);
@@ -46,6 +48,7 @@ private:
     bool m_initialized;
     std::recursive_mutex& m_index_lock;
     const T_structure& m_data;
+    std::vector<char> m_storage;
     index_key_t m_begin_key;
     index_key_t m_end_key;
     gaia_txn_id_t m_txn_id;
