@@ -15,9 +15,12 @@ set -e
 # to:
 #
 # gaia_db_server --reset-data-store &
+#
+# OR
+# 
+# sudo systemctl start gaia
 
-gaia_db_server_pid=$(pgrep -f "gaia_db_server")
-if [ -z "$gaia_db_server_pid" ] ; then
+if ! pgrep -f "gaia_db_server" 2>&1 > /dev/null ; then
     echo "Database is not currently running.  Please start gaia_db_server and try again."
     exit 1
 fi
