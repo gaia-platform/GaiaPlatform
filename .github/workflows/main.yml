@@ -15,6 +15,19 @@ env:
 
 jobs:
 
+  Lint:
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Execute Static Analysis Checks
+        uses: ./.github/actions/lint-job
+        with:
+          gaia-repo: ${{ github.workspace }}
+
   Third-Party:
     runs-on: ubuntu-20.04
     env:
@@ -28,77 +41,11 @@ jobs:
           docker-user: ${{ github.actor }}
           docker-password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Docker Image
-        run: |
-          cd $GAIA_REPO/production
-          pip install atools argcomplete
-          $GAIA_REPO/dev_tools/gdev/gdev.sh dockerfile > $GAIA_REPO/production/raw_dockerfile
-          $GAIA_REPO/dev_tools/github-actions/copy_until_line.py --input-file $GAIA_REPO/production/raw_dockerfile --output-file $GAIA_REPO/production/dockerfile --stop-line "# GenRunDockerfile(production)"
-          docker buildx build -f $GAIA_REPO/production/dockerfile -t $DEV_IMAGE --cache-from $DEV_IMAGE --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
-
-      - name: Upload Intermediate Files
-        if: always()
-        uses: actions/upload-artifact@v2
+      - name: Build Third-Party Projects
+        uses: ./.github/actions/third-party-job
         with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/production/raw_dockerfile
-            ${{ github.workspace }}/production/dockerfile
-
-      - name: Publish Dev Image to GitHub Repository
-        run: |
-          echo "Pushing Dev Image to GitHub Docker Repository"
-          docker push $DEV_IMAGE
-
-      - name: Save Compressed Dev Image
-        run: |
-          echo "Saving Dev Image as GZipped Tarball"
-          docker save $DEV_IMAGE | gzip > ${{ github.workspace }}/production/dev_image.tar.gz
-          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
-
-      - name: Upload Compressed Dev Image
-        uses: actions/upload-artifact@v2
-        with:
-          name: Dev Image
-          path: |
-            ${{ github.workspace }}/production/dev_image.tar.gz
-
-  Lint:
-    runs-on: ubuntu-20.04
-    env:
-      GAIA_REPO: ${{ github.workspace }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@master
-
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-
-      - name: Install Required Python Packages
-        run: |
-          python3 -m pip install pre-commit
-      - name: Set Cache Key for Pre-Commit Checks
-        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
-
-      - name: Apply Pre-Commit Checks Cache
-        uses: actions/cache@v1
-        with:
-          path: ~/.cache/pre-commit
-          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
-
-      - name: Execute Pre-Commit Checks
-        run: |
-          cd $GAIA_REPO/production
-          pre-commit run --all-files
-
-      - name: GitHub Info
-        run: |
-          echo "Branch: ${{ github.ref }}"
-          echo "Ref-Name: ${{ github.ref_name }}"
-          echo "Event-Name: ${{ github.event_name }}"
-          echo "Event-Path: ${{ github.event_path }}"
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
 
   Core:
     needs:
@@ -121,6 +68,8 @@ jobs:
           job-name: ${{ github.job }}
           execute-unit-tests: true
           publish-package: false
+          build-flavor: Core
+          build-type: Release
 
   SDK:
     needs:
@@ -144,6 +93,7 @@ jobs:
           execute-unit-tests: true
           publish-package: true
           build-flavor: GaiaSDK
+          build-type: Release
 
   Debug_Core:
     needs:
@@ -166,7 +116,8 @@ jobs:
           job-name: ${{ github.job }}
           execute-unit-tests: true
           publish-package: false
-          build-flavor: Debug
+          build-flavor: Core
+          build-type: Debug
 
   Coverage:
     needs:
@@ -212,6 +163,7 @@ jobs:
           execute-unit-tests: false
           publish-package: false
           build-flavor: GaiaLLVMTests
+          build-type: Release
 
   Integration_Smoke:
     needs: SDK
@@ -379,13 +331,32 @@ jobs:
       - Integration_Samples
       - Integration_Performance
     runs-on: ubuntu-20.04
-    if: always()
+    if: github.event_name != 'pull_request'
     steps:
       - uses: geekyeggo/delete-artifact@v1
         with:
           name: Dev Image
 
       - uses: technote-space/workflow-conclusion-action@v2
+
+      - name: Create Directory To Host Install Package Cache
+        if: env.WORKFLOW_CONCLUSION == 'success' && github.event_name != 'pull_request'
+        run: |
+          mkdir -p ${{ github.workspace }}/packages
+
+      - name: Cache Last Successful Install Package
+        uses: actions/cache@v2
+        if: env.WORKFLOW_CONCLUSION == 'success' && github.event_name != 'pull_request'
+        with:
+          path: ${{ github.workspace }}/packages
+          key: latest-release-sdk-package
+
+      - name: Download Debian Install Package Into Cached Directory
+        uses: actions/download-artifact@v2
+        if: env.WORKFLOW_CONCLUSION == 'success' && github.event_name != 'pull_request'
+        with:
+          name: SDK Install Package
+          path: ${{ github.workspace }}/packages
 
       - name: Results
         run: |
