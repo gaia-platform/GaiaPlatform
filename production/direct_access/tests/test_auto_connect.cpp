@@ -3,8 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <string>
-
 #include <gtest/gtest.h>
 
 #include "gaia/common.hpp"
@@ -85,7 +83,7 @@ TEST_F(auto_connect_test, child_update_disconnect)
     ASSERT_EQ(passenger_t::get(passenger_id).return_flight().gaia_id(), flight_id);
 
     auto passenger_writer = passenger_t::get(passenger_id).writer();
-    passenger_writer.return_flight_number = 0;
+    passenger_writer.return_flight_number = nullopt;
     passenger_writer.update_row();
     txn.commit();
 
@@ -125,7 +123,10 @@ TEST_F(auto_connect_test, child_update_reconnect)
 
 TEST_F(auto_connect_test, parent_insert_connect)
 {
-    const int32_t flight_number = 1701;
+    // Ensure that auto-connect works with the default value for the type (0). This
+    // test will ensure that the underlying FlatBufferBuilder is configured to
+    // serialize default values instead of omitting them.
+    const int32_t flight_number = 0;
     auto_transaction_t txn;
     gaia_id_t spock_id = passenger_t::insert_row("Spock", "Vulcan", flight_number);
     gaia_id_t kirk_id = passenger_t::insert_row("James", "Kirk", flight_number);
@@ -159,7 +160,7 @@ TEST_F(auto_connect_test, parent_update_disconnect)
     ASSERT_EQ(passenger_t::get(kirk_id).return_flight().gaia_id(), flight_id);
 
     auto flight_writer = flight_t::get(flight_id).writer();
-    flight_writer.number = 0;
+    flight_writer.number = nullopt;
     flight_writer.update_row();
     txn.commit();
 

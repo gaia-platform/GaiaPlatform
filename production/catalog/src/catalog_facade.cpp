@@ -204,6 +204,17 @@ std::string field_facade_t::field_type(bool is_function_parameter) const
         // corruption or bugs in catching user input errors.
         ASSERT_UNREACHABLE("Fixed size array is not supported");
     }
+
+    if (m_field.optional())
+    {
+        // This is a temporary limitation. Follow-up task: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1966.
+        ASSERT_PRECONDITION(
+            static_cast<data_type_t>(m_field.type()) != data_type_t::e_string
+                && m_field.repeated_count() == 1,
+            "Optional in DAC classes is supported only for scalar types.");
+        type_str = "gaia::common::optional_t<" + type_str + ">";
+    }
+
     return type_str;
 }
 
@@ -323,8 +334,7 @@ std::string link_facade_t::to_table() const
 
 bool link_facade_t::is_value_linked() const
 {
-    return (!m_relationship.parent_field_positions().is_null())
-        && m_relationship.parent_field_positions().size() > 0;
+    return m_relationship.parent_field_positions().size() > 0;
 }
 
 bool link_facade_t::is_single_cardinality() const

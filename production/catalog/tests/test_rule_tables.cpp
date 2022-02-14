@@ -36,7 +36,7 @@ protected:
 // Insert one row of each catalog table.
 TEST_F(gaia_rule_tables_test, create_each_type)
 {
-    gaia::rules::initialize_rules_engine();
+    initialize_catalog();
 
     // Create and connect rules catalog rows.
     begin_transaction();

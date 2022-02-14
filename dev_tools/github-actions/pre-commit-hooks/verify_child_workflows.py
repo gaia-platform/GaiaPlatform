@@ -23,8 +23,8 @@ import yaml
 # pylint: enable=import-error
 
 __DEFAULT_FILE_ENCODING = "utf-8"
-__FUNGIBLE_JOB_PROPERTIES = {"needs", "if"}
-__NON_FUNGIBLE_PROPERTIES = {"runs-on", "env", "steps"}
+__FUNGIBLE_JOB_PROPERTIES = {"needs", "if", "timeout-minutes"}
+__NON_FUNGIBLE_PROPERTIES = {"runs-on", "env", "steps", "strategy"}
 
 
 def __process_command_line():
