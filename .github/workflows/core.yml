@@ -46,6 +46,8 @@ jobs:
           job-name: ${{ github.job }}
           execute-unit-tests: true
           publish-package: false
+          build-flavor: Core
+          build-type: Release
 
   Debug_Core:
     needs:
@@ -66,4 +68,5 @@ jobs:
           job-name: ${{ github.job }}
           execute-unit-tests: true
           publish-package: false
-          build-flavor: Debug
+          build-flavor: Core
+          build-type: Debug
