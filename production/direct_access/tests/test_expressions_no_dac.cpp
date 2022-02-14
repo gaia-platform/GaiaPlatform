@@ -20,7 +20,6 @@ struct context_t
 
 TEST_F(test_expressions_no_dac, expr_add)
 {
-
     int64_t i64 = 500;
     auto i64_value_accessor = value_accessor_t<context_t, int64_t>(i64);
 
