@@ -3,6 +3,7 @@ Module to
 """
 
 import sys
+from time import sleep
 
 class DockerDev():
     def main(self):
@@ -20,6 +21,8 @@ class DockerDev():
             asyncio.run(dependency.cli_entrypoint())
         except dependency.Exception as e:
             print(f'\n{e}', file=sys.stderr)
+        finally:
+            logging.shutdown()
 
         return 0
 

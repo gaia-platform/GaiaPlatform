@@ -6,14 +6,22 @@ from .._abc.dockerfile import GenAbcDockerfile
 
 
 class GenPreRunDockerfile(GenAbcDockerfile):
+    """
+    Class to generate the PRERUN section of the dockerfile.
+    """
 
     @property
     def cfg(self) -> GenPreRunCfg:
+        """
+        Get the configuration associated with this portion of the dockerfile.
+        """
         return GenPreRunCfg(self.options)
 
     @memoize
     async def get_env_section(self) -> str:
-        """Return text for the ENV section of the final build stage."""
+        """
+        Return text for the ENV section of the final build stage.
+        """
         from ..env.dockerfile import GenEnvDockerfile
 
         seen_env_dockerfiles = set()
@@ -38,6 +46,9 @@ class GenPreRunDockerfile(GenAbcDockerfile):
 
     @memoize
     async def get_input_dockerfiles(self) -> Iterable[GenAbcDockerfile]:
+        """
+        Return dockerfiles that describe build stages that come directly before this one.
+        """
         from ..apt.dockerfile import GenAptDockerfile
         from ..env.dockerfile import GenEnvDockerfile
         from ..gaia.dockerfile import GenGaiaDockerfile
@@ -60,6 +71,9 @@ class GenPreRunDockerfile(GenAbcDockerfile):
 
     @memoize
     async def get_run_section(self) -> str:
+        """
+        Return text for the RUN line of the final build stage.
+        """
         if section_lines := await self.cfg.get_section_lines():
             run_section = (
                     'RUN '

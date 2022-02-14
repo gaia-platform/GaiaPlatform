@@ -130,7 +130,7 @@ class Dependency:
             parser.add_argument(
                 '--cfg-enables',
                 default=cfg_enables_default,
-                nargs=1,
+                nargs='*',
                 help=(
                     f'Enable lines in gdev.cfg files gated by `enable_if`, `enable_if_any`, and'
                     f' `enable_if_all` functions. Default: "{cfg_enables_default}"'

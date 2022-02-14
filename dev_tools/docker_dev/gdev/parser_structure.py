@@ -1,8 +1,8 @@
+from __future__ import annotations
 from typing import FrozenSet, Sequence, Set, Tuple
 from importlib import import_module
 from importlib.util import find_spec
 from inspect import getdoc, isabstract, iscoroutinefunction
-from __future__ import annotations
 from argparse import ArgumentParser, REMAINDER
 from asyncio import gather
 from dataclasses import dataclass
@@ -45,6 +45,10 @@ class ParserStructure:
 
     @classmethod
     def of_command_parts(cls, command_parts: Tuple[str, ...]) -> ParserStructure:
+        """
+        Create a parser structure out of the command parts.
+        """
+
         module_name = '.'.join(['gdev.cmd', *command_parts])
         spec = find_spec(module_name)
         module = import_module(module_name)

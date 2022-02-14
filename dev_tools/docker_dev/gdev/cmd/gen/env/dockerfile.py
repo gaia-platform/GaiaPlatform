@@ -7,13 +7,22 @@ from .._abc.dockerfile import GenAbcDockerfile
 
 
 class GenEnvDockerfile(GenAbcDockerfile):
+    """
+    Class to generate the ENV section of the dockerfile.
+    """
 
     @property
     def cfg(self) -> GenEnvCfg:
+        """
+        Get the configuration associated with this portion of the dockerfile.
+        """
         return GenEnvCfg(self.options)
 
     @memoize
     async def get_input_dockerfiles(self) -> Iterable[GenAbcDockerfile]:
+        """
+        Return dockerfiles that describe build stages that come directly before this one.
+        """
         from ..gaia.dockerfile import GenGaiaDockerfile
 
         input_dockerfiles = []

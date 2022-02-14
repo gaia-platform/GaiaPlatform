@@ -67,17 +67,28 @@ class Dependency:
     @staticmethod
     @memoize_db(size=1)
     def get_parser_structure() -> ParserStructure:
+        """
+        Create a parser structure out of the command parts.
+        """
         return ParserStructure.of_command_parts(tuple())
 
     @staticmethod
     def get_parser() -> ArgumentParser:
         def add_flags(parser: ArgumentParser) -> None:
+
+            # Dockerfile, and above
             base_image_default = 'ubuntu:20.04'
             parser.add_argument(
                 '--base-image',
                 default=base_image_default,
                 help=f'Base image for build. Default: "{base_image_default}"'
             )
+
+            # Cfg, and above.
+            # For Cfg, will add `# enable by setting` comments when the cfg output is displayed
+            #  indicating what the cfg file will look like with that cfg-enable applied.
+            #  NOTE: Due to nargs='*', this will swallow all remaining arguments.
+            #  NOTE: Cfg does not warn if provided --cfg-enable is not present in any gdev.cfg files
             cfg_enables_default = []
             parser.add_argument(
                 '--cfg-enables',
@@ -104,6 +115,7 @@ class Dependency:
                 action='store_true',
                 help='Force Docker to build with local changes.'
             )
+
             mixins_default = []
             parser.add_argument(
                 '--mixins',
@@ -120,6 +132,7 @@ class Dependency:
                     f' directory. Default: "{mixins_default}"'
                 )
             )
+            
             mounts_default = []
             parser.add_argument(
                 '--mounts',
