@@ -179,8 +179,26 @@ operator||(const T_left& left, const T_right& right)
         expression_bind<T_bind>(left), expression_bind<T_bind>(right));
 }
 
-// + operator.
+
+// ^ operator.
 template <
+    typename T_left,
+    typename T_right,
+    typename T_bind = bind_type<T_left, T_right>,
+    typename T_eval_left = eval_type<T_left>,
+    typename T_eval_right = eval_type<T_right>,
+    typename T_return = xor_type<T_eval_left, T_eval_right>,
+    typename T_token = operator_xor_t,
+    typename T_type_constraint = typename std::enable_if<
+        is_expression<T_left>::value || is_expression<T_right>::value>::type>
+binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>
+operator^(const T_left& left, const T_right& right)
+{
+    return binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>(
+        expression_bind<T_bind>(left), expression_bind<T_bind>(right));
+}
+// + operator.
+  template <
     typename T_left,
     typename T_right,
     typename T_bind = bind_type<T_left, T_right>,
