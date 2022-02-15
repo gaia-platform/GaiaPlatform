@@ -7,6 +7,9 @@ from gdev.mount import Mount
 
 @dataclass(frozen=True)
 class Options:
+    """
+    Class to encapsulate the options related to the command line.
+    """
     args: str
     base_image: str
     cfg_enables: FrozenSet[str]
