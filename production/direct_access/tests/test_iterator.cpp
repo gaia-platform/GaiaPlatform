@@ -15,8 +15,6 @@
 
 #include "gaia_addr_book.h"
 
-using namespace std::chrono_literals;
-
 using namespace gaia::db;
 using namespace gaia::common;
 using namespace gaia::direct_access;
@@ -24,7 +22,10 @@ using namespace gaia::addr_book;
 
 const std::string c_name_1 = "Anastasia";
 const std::string c_name_2 = "Bartholomew";
-const size_t c_count_iterations = 10;
+
+constexpr size_t c_read_wait_in_ms = 0;
+constexpr size_t c_update_wait_in_ms = 200;
+constexpr size_t c_count_iterations = 10;
 
 bool g_stop_all = false;
 
@@ -40,7 +41,7 @@ protected:
 //
 // The reader will check the size of the table before
 // attempting to iterate over its records.
-void read_work(size_t id)
+void read_work(size_t id, size_t wait_in_ms)
 {
     size_t size = 0;
     std::string name;
@@ -78,6 +79,9 @@ void read_work(size_t id)
         }
 
         commit_transaction();
+
+        // Wait before attempting another read.
+        usleep(wait_in_ms);
     }
 
     begin_transaction();
@@ -105,7 +109,7 @@ void read_work(size_t id)
 //
 // Update conflicts are expected and are just tracked in a counter
 // for reporting at the end of the execution.
-void update_work(size_t id)
+void update_work(size_t id, size_t wait_in_ms)
 {
     size_t size = 0;
     std::string name;
@@ -177,8 +181,7 @@ void update_work(size_t id)
         }
 
         // Wait before attempting another update.
-        std::this_thread::sleep_for(100ms);
-        ;
+        usleep(wait_in_ms);
     }
 
     begin_transaction();
@@ -211,11 +214,11 @@ TEST_F(test_iterator, parallel_read_update)
     }
     commit_transaction();
 
-    std::thread reader_thread_1(read_work, 1);
-    std::thread reader_thread_2(read_work, 2);
-    std::thread reader_thread_3(read_work, 3);
-    std::thread reader_thread_4(read_work, 4);
-    std::thread updater_thread1(update_work, 1);
+    std::thread reader_thread_1(read_work, 1, c_read_wait_in_ms);
+    std::thread reader_thread_2(read_work, 2, c_read_wait_in_ms);
+    std::thread reader_thread_3(read_work, 3, c_read_wait_in_ms);
+    std::thread reader_thread_4(read_work, 4, c_read_wait_in_ms);
+    std::thread updater_thread1(update_work, 1, c_update_wait_in_ms);
 
     reader_thread_1.join();
     reader_thread_2.join();
