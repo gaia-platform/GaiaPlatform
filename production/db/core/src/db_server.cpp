@@ -425,11 +425,38 @@ void server_t::handle_request_stream(
     int client_socket, server_socket;
     std::tie(client_socket, server_socket) = get_stream_socket_pair();
 
-    // The client socket should unconditionally be closed on exit because it's
-    // duplicated when passed to the client and we no longer need it on the
-    // server.
+    // The client socket will normally be closed immediately after sending it to
+    // the client session (and before starting the stream producer thread).
+    // The server socket will be closed by the stream producer thread when it
+    // exits, or when this method exits if the stream producer thread isn't
+    // successfully started.
     auto client_socket_cleanup = make_scope_guard([&]() { close_fd(client_socket); });
     auto server_socket_cleanup = make_scope_guard([&]() { close_fd(server_socket); });
+
+    // We need to send the (duplicated) read end of the socket to the client
+    // session and close the server-side read end before we can start the stream
+    // producer thread. Otherwise the stream producer thread may write to the
+    // socket before the server-side read end is closed, causing the stream
+    // producer epoll loop to receive EPOLLERR and the client-side read end to
+    // return 0 bytes from read(2).
+
+    // Any exceptions after this point will close the server socket, ensuring
+    // the producer thread terminates.
+    FlatBufferBuilder builder;
+    build_server_reply_info(builder, event, old_state, new_state);
+    send_msg_with_fds(s_session_socket, &client_socket, 1, builder.GetBufferPointer(), builder.GetSize());
+
+    // Now it is safe to close the read end of the socket (and we must do so
+    // before starting the stream producer thread, to avoid the race described
+    // earlier).
+    client_socket_cleanup.dismiss();
+    close_fd(client_socket);
+
+    // If we get here, then the client has already received the read end of the
+    // socket pair. We need to delay the first write to the socket until after
+    // we have closed the duplicated read end, so we start the stream producer
+    // thread *after* successfully sending the read end of the socket to the
+    // client.
 
     auto request = static_cast<const client_request_t*>(event_data);
 
@@ -501,12 +528,6 @@ void server_t::handle_request_stream(
 
     // Transfer ownership of the server socket to the stream producer thread.
     server_socket_cleanup.dismiss();
-
-    // Any exceptions after this point will close the server socket, ensuring the producer thread terminates.
-    // However, its destructor will not run until the session thread exits and joins the producer thread.
-    FlatBufferBuilder builder;
-    build_server_reply_info(builder, event, old_state, new_state);
-    send_msg_with_fds(s_session_socket, &client_socket, 1, builder.GetBufferPointer(), builder.GetSize());
 }
 
 void server_t::apply_transition(session_event_t event, const void* event_data, int* fds, size_t fd_count)
