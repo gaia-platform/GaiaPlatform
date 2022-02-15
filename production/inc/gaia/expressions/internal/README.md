@@ -1,3 +1,3 @@
-This folder contains expressions internal to the expression AST.
+This folder contains expressions needed to construct the expression AST.
 
-Internal expressions are not referenced in DAC generation code or directly called by users.
+These files do not need to be directly included by the user to perform direct queries.
