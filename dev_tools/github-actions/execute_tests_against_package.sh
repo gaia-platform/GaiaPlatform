@@ -148,11 +148,11 @@ parse_command_line() {
             echo "Error: Argument -s/--suite-name is required for non-Integration_Samples jobs." >&2
             show_usage
         fi
-    fi
-    if [ -n "$PERSISTENCE_MODE" ] ; then
-        if [ "$PERSISTENCE_MODE" != "enabled" ] && [ "$PERSISTENCE_MODE" != "disabled" ] ; then
-            echo "Error: Argument -d/--db-persistence must be 'enabled' or 'disabled'." >&2
-            show_usage
+        if [ -n "$PERSISTENCE_MODE" ] ; then
+            if [ "$PERSISTENCE_MODE" != "enabled" ] && [ "$PERSISTENCE_MODE" != "disabled" ] ; then
+                echo "Error: Argument -d/--db-persistence must be 'enabled' or 'disabled'." >&2
+                show_usage
+            fi
         fi
     fi
 }
