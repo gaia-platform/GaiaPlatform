@@ -50,6 +50,11 @@ protected:
         EXPECT_TRUE(std::equal(expected_values.begin(), expected_values.end(), c.sales().data()));
         gaia::db::commit_transaction();
     }
+
+    void check_array(const client_t& client, const std::vector<int32_t>& expected_values)
+    {
+        EXPECT_TRUE(std::equal(expected_values.begin(), expected_values.end(), client.sales().data()));
+    }
 };
 
 TEST_F(test_array, test_array_unqualified_fields)
@@ -302,13 +307,14 @@ TEST_F(test_array, test_array_insert)
 
     gaia::db::begin_transaction();
     auto company_writer = company.writer();
-    company_writer.company_name = "c6";
+    company_writer.company_name = "qq";
     company_writer.update_row();
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();
 
     gaia::db::begin_transaction();
+    ASSERT_EQ(client_t::list().size(), 13);
     for (const auto& client : client_t::list())
     {
         std::string name = client.client_name();
@@ -317,11 +323,11 @@ TEST_F(test_array, test_array_insert)
             ASSERT_TRUE(client.sales().size() == 3 || client.sales().size() == 4);
             if (client.sales().size() == 3)
             {
-                check_array(client.gaia_id(), {4, 7, 8});
+                check_array(client, {4, 7, 8});
             }
             else if (client.sales().size() == 4)
             {
-                check_array(client.gaia_id(), {1, 2, 3, 5});
+                check_array(client, {1, 2, 3, 5});
             }
         }
         else if (name == "a")
@@ -330,27 +336,42 @@ TEST_F(test_array, test_array_insert)
         }
         else if (name == "b")
         {
-            check_array(client.gaia_id(), {1, 2, 3, 5});
+            check_array(client, {1, 2, 3, 5});
         }
         else if (name == "c")
         {
-            check_array(client.gaia_id(), {5, 7, 9});
+            check_array(client, {5, 7, 9});
         }
         else if (name == "d")
         {
-            check_array(client.gaia_id(), {1, 2, 3, 5});
+            check_array(client, {1, 2, 3, 5});
         }
         else if (name == "e")
         {
-            check_array(client.gaia_id(), {4, 7, 8});
+            check_array(client, {4, 7, 8});
         }
         else if (name == "f")
         {
-            check_array(client.gaia_id(), {9, 8, 5, 6, 1});
+            check_array(client, {9, 8, 5, 6, 1});
         }
         else if (name == "g")
         {
-            check_array(client.gaia_id(), {9, 8, 5, 6, 1});
+            check_array(client, {9, 8, 5, 6, 1});
+        }
+        else if (name == "h")
+        {
+            ASSERT_EQ(client.period(), 0);
+            check_array(client, {0, 1, 0, 2});
+        }
+        else if (name == "i")
+        {
+            ASSERT_EQ(client.period(), 2);
+            check_array(client, {3, 4, 3, 5});
+        }
+        else if (name == "j")
+        {
+            ASSERT_EQ(client.period(), 6);
+            check_array(client, {6, 7, 6, 8});
         }
     }
     gaia::db::commit_transaction();
