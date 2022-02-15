@@ -224,6 +224,7 @@ jobs:
           job-name: ${{ github.job }}
           suite-name: ${{ matrix.suite-name }}
           db-persistence: ${{ matrix.persistence }}
+          allow_cached_sdk: true
 
   Integration_Tests_Debug:
     needs:
@@ -261,6 +262,7 @@ jobs:
           job-name: ${{ github.job }}
           suite-name: ${{ matrix.suite-name }}
           db-persistence: ${{ matrix.persistence }}
+          allow_cached_sdk: false
 
   Integration_Samples:
     needs: SDK
