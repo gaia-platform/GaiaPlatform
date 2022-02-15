@@ -122,72 +122,25 @@ jobs:
   Debug_SDK:
     needs:
       - Core
-    runs-on: ubuntu-20.04
 #    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
 
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
+      - name: Create Build
+        uses: ./.github/actions/build-job
         with:
-          python-version: 3.8
-
-      - name: Clean up disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-
-      - name: Download Dev Image
-        uses: actions/download-artifact@v2
-        with:
-          name: Dev Image
-          path: ${{ github.workspace }}/production
-
-      - name: Load Compressed Dev Image
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
-          docker load < ${{ github.workspace }}/production/dev_image.tar.gz
-          rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
-
-      - name: Build Docker Image
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
-              --repo-path $GAIA_REPO \
-              --base-image $DEV_IMAGE \
-              --cfg-enables GaiaSDK --cfg-enables Debug
-
-      - name: Run Unit Tests
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
-            --repo-path $GAIA_REPO \
-            --action unit_tests
-
-      - name: Publish Debian Package
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
-            --repo-path $GAIA_REPO \
-            --action publish_package
-
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/build/output
-            !${{ github.workspace }}/build/output/package
-
-      - name: Upload Install Package
-        uses: actions/upload-artifact@v2
-        with:
-          name: Debug_SDK Install Package
-          path: |
-            ${{ github.workspace }}/build/output/package
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          execute-unit-tests: true
+          publish-package: true
+          build-flavor: GaiaSDK
+          build-type: Debug
 
   Coverage:
     needs:
@@ -273,42 +226,41 @@ jobs:
           db-persistence: ${{ matrix.persistence }}
 
   Integration_Tests_Debug:
-    needs: Debug_SDK
+    needs:
+      - Debug_SDK
+#    if: github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
-# if: github.event_name != 'pull_request'
+    timeout-minutes: 7
     env:
       GAIA_REPO: ${{ github.workspace }}
+    strategy:
+      fail-fast: false
+      matrix:
+        persistence: [enabled, disabled]
+        suite-name: [smoke,marcopolo,pingpong,mink-perf,pingpong-perf,marcopolo-perf]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
 
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
+      - name: Create Directory To Host Install Package Cache
+        shell: bash
+        run: |
+          mkdir -p ${{ github.workspace }}/packages
 
       - name: Download Debian Install Package
+        continue-on-error: true
         uses: actions/download-artifact@v2
         with:
           name: Debug_SDK Install Package
-          path: ${{ github.workspace }}/production/tests/packages
+          path: ${{ github.workspace }}/packages
 
-      - name: Tests
-        working-directory: ${{ github.workspace }}
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/execute_tests_against_package.sh \
-            --verbose \
-            --job-name $GITHUB_JOB \
-            --repo-path $GAIA_REPO \
-            --package $GAIA_REPO/production/tests/packages
-
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
+      - name: Run Integration Tests
+        uses: ./.github/actions/integration-test-job
         with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/production/tests/results
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          suite-name: ${{ matrix.suite-name }}
+          db-persistence: ${{ matrix.persistence }}
 
   Integration_Samples:
     needs: SDK
