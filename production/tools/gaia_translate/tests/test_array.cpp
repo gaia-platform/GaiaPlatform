@@ -400,7 +400,6 @@ TEST_F(test_array, test_array_unqualified_field_index)
     check_array(client_id, expected_sales);
 }
 
-
 TEST_F(test_array, test_array_unqualified_field_array_assignment)
 {
     const std::vector<int32_t> expected_sales{0, 1, 1, 3};
