@@ -174,10 +174,10 @@ install(DIRECTORY ${GAIA_INC}/gaia DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${GAIA_REPO}/production/gaia.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR})
 install(FILES ${GAIA_REPO}/production/gaia_log.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR})
 
-# Place cmake functions
+# Place cmake functions.
 install(FILES ${GAIA_REPO}/production/cmake/gaia.cmake DESTINATION cmake/)
 
-# Place Examples README and License
+# Place examples README and license.
 install(FILES ${GAIA_REPO}/production/examples/LICENSE.txt DESTINATION examples)
 install(FILES ${GAIA_REPO}/production/examples/README.md DESTINATION examples)
 
@@ -204,17 +204,30 @@ else()
   install(FILES ${GAIA_REPO}/production/examples/incubator/CMakeLists.txt DESTINATION examples/incubator)
 endif()
 
-# Place direct_access example
+# Place direct_access example.
 install(FILES ${GAIA_REPO}/production/examples/direct_access/hospital.ddl DESTINATION examples/direct_access)
 install(FILES ${GAIA_REPO}/production/examples/direct_access/hospital.cpp DESTINATION examples/direct_access)
 install(FILES ${GAIA_REPO}/production/examples/direct_access/CMakeLists.txt DESTINATION examples/direct_access)
 install(FILES ${GAIA_REPO}/production/examples/direct_access/README.md DESTINATION examples/direct_access)
 
-# Place direct_access example
+# Place direct_access_multithread example.
 install(FILES ${GAIA_REPO}/production/examples/direct_access_multithread/counter.ddl DESTINATION examples/direct_access_multithread)
 install(FILES ${GAIA_REPO}/production/examples/direct_access_multithread/counter.cpp DESTINATION examples/direct_access_multithread)
 install(FILES ${GAIA_REPO}/production/examples/direct_access_multithread/CMakeLists.txt DESTINATION examples/direct_access_multithread)
 install(FILES ${GAIA_REPO}/production/examples/direct_access_multithread/README.md DESTINATION examples/direct_access_multithread)
+
+# Place direct_access_vlr example.
+install(FILES ${GAIA_REPO}/production/examples/direct_access_vlr/direct_access_vlr.ddl DESTINATION examples/direct_access_vlr)
+install(FILES ${GAIA_REPO}/production/examples/direct_access_vlr/direct_access_vlr.cpp DESTINATION examples/direct_access_vlr)
+install(FILES ${GAIA_REPO}/production/examples/direct_access_vlr/CMakeLists.txt DESTINATION examples/direct_access_vlr)
+install(FILES ${GAIA_REPO}/production/examples/direct_access_vlr/README.md DESTINATION examples/direct_access_vlr)
+
+# Place rules_vlr example.
+install(FILES ${GAIA_REPO}/production/examples/rules_vlr/rules_vlr.ddl DESTINATION examples/rules_vlr)
+install(FILES ${GAIA_REPO}/production/examples/rules_vlr/rules_vlr.ruleset DESTINATION examples/rules_vlr)
+install(FILES ${GAIA_REPO}/production/examples/rules_vlr/rules_vlr.cpp DESTINATION examples/rules_vlr)
+install(FILES ${GAIA_REPO}/production/examples/rules_vlr/CMakeLists.txt DESTINATION examples/rules_vlr)
+install(FILES ${GAIA_REPO}/production/examples/rules_vlr/README.md DESTINATION examples/rules_vlr)
 
 # Place license files.
 install(FILES ${GAIA_REPO}/production/licenses/LICENSE.third-party.txt DESTINATION .)

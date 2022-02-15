@@ -52,6 +52,7 @@ class data_read_buffer_t
 {
 public:
     explicit data_read_buffer_t(const serialization_buffer_t& buffer);
+    explicit data_read_buffer_t(const char* ptr);
     data_read_buffer_t(const data_read_buffer_t& other) = delete;
 
     const char* read(size_t size);

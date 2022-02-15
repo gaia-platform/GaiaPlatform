@@ -865,10 +865,10 @@ TEST_F(dac_object_test, iter_arrow_deref)
 int count_names(size_t name_length)
 {
     int count = 0;
-    auto name_length_list = employee_t::list()
-                                .where([&](const employee_t& e) {
-                                    return strlen(e.name_first()) == name_length;
-                                });
+    auto name_length_list
+        = employee_t::list().where([&](const employee_t& e) {
+              return strlen(e.name_first()) == name_length;
+          });
     for (const auto& e : name_length_list)
     {
         EXPECT_EQ(strlen(e.name_first()), name_length);
@@ -898,11 +898,11 @@ TEST_F(dac_object_test, list_filter)
     EXPECT_EQ(count_names(8), 2);
 
     // Filter for names ending in 'y'.
-    auto names_ending_with_y = employee_t::list()
-                                   .where([&](const employee_t& e) {
-                                       const char* first_name = e.name_first();
-                                       return first_name[strlen(first_name) - 1] == 'y';
-                                   });
+    auto names_ending_with_y
+        = employee_t::list().where([&](const employee_t& e) {
+              const char* first_name = e.name_first();
+              return first_name[strlen(first_name) - 1] == 'y';
+          });
 
     for (const auto& e : names_ending_with_y)
     {
