@@ -35,6 +35,11 @@ protected:
         : db_catalog_test_base_t("addr_book.ddl"){};
 };
 
+// A reader will keep attempting to read the single record
+// in our table in a very tight loop.
+//
+// The reader will check the size of the table before
+// attempting to iterate over its records.
 void read_work(size_t id)
 {
     size_t size = 0;
@@ -44,6 +49,8 @@ void read_work(size_t id)
 
     gaia::db::begin_session();
 
+    // Keep running until a request to stop execution
+    // or we reached our iteration count.
     while (!g_stop_all && ++iteration_number < c_count_iterations)
     {
         found = false;
@@ -52,6 +59,7 @@ void read_work(size_t id)
 
         size = customer_t::list().size();
 
+        // Stop execution if we couldn't find the record.
         if (size == 0)
         {
             g_stop_all = true;
@@ -63,6 +71,7 @@ void read_work(size_t id)
             found = true;
         }
 
+        // Stop execution if we couldn't find the record.
         if (!found)
         {
             g_stop_all = true;
@@ -88,6 +97,14 @@ void read_work(size_t id)
         << "(" << found << ")" << std::endl;
 }
 
+// An updater will periodically update the record's name field
+// to one of two different values.
+//
+// The updater will check the current name value and then will
+// try to update it to the other value.
+//
+// Update conflicts are expected and are just tracked in a counter
+// for reporting at the end of the execution.
 void update_work(size_t id)
 {
     size_t size = 0;
@@ -100,6 +117,8 @@ void update_work(size_t id)
 
     gaia::db::begin_session();
 
+    // Keep running until a request to stop execution.
+    // This is done so that updater threads don't outlast the reader ones.
     while (!g_stop_all && ++iteration_number > 0)
     {
         found_name_1 = false;
@@ -111,6 +130,7 @@ void update_work(size_t id)
 
             size = customer_t::list().size();
 
+            // Stop execution if we couldn't find the record.
             if (size == 0)
             {
                 g_stop_all = true;
@@ -145,6 +165,7 @@ void update_work(size_t id)
             }
             else
             {
+                // Stop execution if we couldn't find the record.
                 g_stop_all = true;
             }
 
