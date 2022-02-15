@@ -52,7 +52,27 @@ class multi_segment_hash
 {
 public:
     // Add a hash to the composite resulting from a key.
-    void hash_add(const void* key, size_t len);
+    // Scalar values are encoded in such a way that the hash values are most diverse.
+    // An issue with the murmur3 algorithm is that trailing 0's don't affect the
+    // hash value. The encoding rules implemented here will reduce the odds of that.
+    // Strings require no encoding.
+    void hash_add(const char* key);
+    // Floating point requires no encoding.
+    void hash_add(float key);
+    void hash_add(double key);
+    // Booleans become 0xdd for true and 0x99 for false.
+    void hash_add(bool key);
+    // All other scalar values are inverted.
+    template <typename T>
+    void hash_add(T key)
+    {
+        uint8_t hash[c_long_hash_value_length];
+        // We are inverting the non-string, non-bool integral values because low values like 0
+        // or 1 can create a hash that is the same regardless of the length, 1, 2, 4 or 8 bytes.
+        T use_key = ~key;
+        murmur3_128(&use_key, sizeof(T), hash);
+        hash_include(hash);
+    }
 
     // Add a hash value to the composite.
     void hash_include(const uint8_t* hash_in);
@@ -60,6 +80,12 @@ public:
     // Calculate the hash of all included hashes, optionally return the value.
     void hash_calc(uint8_t* hash_out);
     void hash_calc();
+
+    // Return a pointer to the calculated hash value;
+    uint8_t* hash()
+    {
+        return m_hash;
+    }
 
     // Return the calculated hash value as a char string.
     char* to_string();

@@ -710,6 +710,18 @@ inline void check_not_system_db(const std::string& name)
     }
 }
 
+/**
+ * Generate and store hash values in a database definition.
+ *
+ * @param dbname database name
+ */
+void add_catalog_hashes(const std::string dbname);
+
+/**
+ * Generate and store hash values in all non-system catalogs.
+ */
+void add_catalog_hashes();
+
 /*@}*/
 } // namespace catalog
 /*@}*/

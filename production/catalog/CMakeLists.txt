@@ -49,6 +49,7 @@ add_library(gaia_catalog STATIC
   src/gaiac_catalog_facade.cpp
   src/dac_generator.cpp
   src/gaia_generate.cpp
+  src/hash_generator.cpp
   ${FLATBUFFERS_SRC}/src/code_generators.cpp)
 
 configure_gaia_target(gaia_catalog)

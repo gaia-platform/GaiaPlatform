@@ -481,6 +481,8 @@ void load_catalog(ddl::parser_t& parser, const std::string& ddl_filename)
 
     parser.parse_string(buffer.str());
     execute(parser.statements);
+
+    add_catalog_hashes();
 }
 
 void load_catalog(const char* ddl_filename)

@@ -129,6 +129,7 @@ inline uint64_t fmix64(uint64_t k)
 void murmur3_128(const void* key, const size_t len, void* out)
 {
     auto data = static_cast<const uint8_t*>(key);
+
     const size_t nblocks = len / 16;
 
     uint64_t h1 = len;
@@ -262,11 +263,47 @@ void murmur3_128(const void* key, const size_t len, void* out)
     static_cast<uint64_t*>(out)[1] = h2;
 }
 
-// Add a hash to the composite resulting from a key.
-void multi_segment_hash::hash_add(const void* key, size_t len)
+// Add a hash to the composite resulting from a cstring.
+void multi_segment_hash::hash_add(const char* key)
 {
     uint8_t hash[c_long_hash_value_length];
-    murmur3_128(key, len, hash);
+    murmur3_128(key, strlen(key), hash);
+    hash_include(hash);
+}
+
+// Add a hash to the composite resulting from a float.
+void multi_segment_hash::hash_add(float key)
+{
+    uint8_t hash[c_long_hash_value_length];
+    murmur3_128(&key, sizeof(key), hash);
+    hash_include(hash);
+}
+
+// Add a hash to the composite resulting from a double.
+void multi_segment_hash::hash_add(double key)
+{
+    uint8_t hash[c_long_hash_value_length];
+    murmur3_128(&key, sizeof(key), hash);
+    hash_include(hash);
+}
+
+// Add a hash to the composite resulting from a boolean value.
+void multi_segment_hash::hash_add(bool key)
+{
+    uint8_t hash[c_long_hash_value_length];
+
+    // We want non-zero keys. This will ensure boolean's are hashed
+    // with non-zero but different keys.
+    uint8_t bool_true_encoding = 0xdd;
+    uint8_t bool_false_encoding = 0x99;
+    if (key)
+    {
+        murmur3_128(&bool_true_encoding, sizeof(uint8_t), hash);
+    }
+    else
+    {
+        murmur3_128(&bool_false_encoding, sizeof(uint8_t), hash);
+    }
     hash_include(hash);
 }
 

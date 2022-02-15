@@ -53,7 +53,7 @@ TEST(hash_test, murmur3_128)
     {
         multi_segment_hash hashes;
         uint8_t hash_value[c_long_hash_value_length];
-        hashes.hash_add(keys[i], strlen(keys[i]));
+        hashes.hash_add(keys[i]);
         hashes.hash_calc(hash_value);
         EXPECT_EQ(memcmp(expected_hash_values[i], hash_value, c_long_hash_value_length), 0);
     }
@@ -70,7 +70,7 @@ TEST(hash_test, multi_segment_hash)
 
     for (size_t i = 0; i < c_test_case_num; i++)
     {
-        hashes.hash_add(keys[i], strlen(keys[i]));
+        hashes.hash_add(keys[i]);
     }
 
     hashes.hash_calc(hash_value);
