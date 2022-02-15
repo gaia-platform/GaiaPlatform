@@ -14,13 +14,17 @@ import sys
 from typing import FrozenSet, Sequence, Set, Tuple
 
 from gdev.custom.pathlib import Path
-from gdev.options import Options, Mount
+from gdev.options import Options
+from gdev.mount import Mount
 from gdev.third_party.atools import memoize, memoize_db
 from gdev.third_party.argcomplete import autocomplete, FilesCompleter
 from gdev.parser_structure import ParserStructure
 
 @dataclass(frozen=True)
 class Dependency:
+    """
+    Bob-->Dependency(options: 'Options')
+    """
     # The gdev CLI uses docstrings in the help output. This is what they'll see if a subclass does
     # not provide a docstring.
 
@@ -195,6 +199,9 @@ class Dependency:
                 for next_map_key in sorted(sub_parser_map.keys()):
                     sub_parser = sub_parsers.add_parser(next_map_key)
                     inner(sub_parser, sub_parser_map[next_map_key])
+
+            # NOTE: This is where the description for the parser element in the help
+            # is arrived at.
             parser.description = parser_structure.doc
 
             return parser
@@ -224,7 +231,9 @@ class Dependency:
 
     @staticmethod
     def of_args(args: Sequence[str]) -> Dependency:
-        """Return Dependency constructed by parsing args as if from sys.argv."""
+        """
+        Return Dependency constructed by parsing args as if from sys.argv.
+        """
 
         parser = Dependency.get_parser()
         autocomplete(parser, default_completer=FilesCompleter(allowednames='', directories=False))
@@ -267,5 +276,7 @@ class Dependency:
 
     @staticmethod
     def of_sys_argv() -> Dependency:
-        """Return Dependency constructed by parsing args from sys.argv."""
+        """
+        Return Dependency constructed by parsing args from sys.argv.
+        """
         return Dependency.of_args(tuple(sys.argv[1:]))

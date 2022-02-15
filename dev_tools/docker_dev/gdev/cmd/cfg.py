@@ -6,10 +6,6 @@ from .gen.run.cfg import GenRunCfg
 
 
 class Cfg(GenRunCfg):
-    """
-    Class to encapsulate the 'cfg' subcommand.
-    """
-
     @memoize
     async def cli_entrypoint(self) -> None:
         """

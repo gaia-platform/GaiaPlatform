@@ -16,4 +16,5 @@ fi
 
 # shellcheck disable=SC2046,SC2068
 PYTHONPATH=$(dirname $(realpath "$0"))
+find . -type f -name '*.pyc' -delete
 pipenv run pytest -ra
