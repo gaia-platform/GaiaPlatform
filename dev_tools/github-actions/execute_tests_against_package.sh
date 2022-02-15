@@ -238,7 +238,7 @@ elif [ "$JOB_NAME" == "Integration_Samples" ] ; then
     fi
 
     cd "$GAIA_REPO/dev_tools/sdk/test" || exit
-    if ! sudo bash -c "./github_actions_build.sh 2>&1 > \"$GAIA_REPO/production/tests/results/test.log\"" ; then
+    if ! sudo bash -c "./build_sample_for_github_actions.sh 2>&1 > \"$GAIA_REPO/production/tests/results/test.log\"" ; then
         complete_process 1 "Tests for job '$JOB_NAME' failed  See job artifacts for more information."
     fi
 
