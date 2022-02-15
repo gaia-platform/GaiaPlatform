@@ -18,21 +18,22 @@ namespace expressions
  * This is an expression boxing a native type.
  * As such, it is only enabled for non-expression types.
  * @tparam T_bind - context this expression binds to.
+ * @tparam T_boxed - type of the value of the to be boxed.
  * @tparam T_return - what this expression evaluates to.
  */
 template <
     typename T_bind,
-    typename T_class,
-    typename T_return = eval_type<T_class>,
-    typename = typename std::enable_if<is_value<T_class>::value>::type>
+    typename T_boxed,
+    typename T_return = eval_type<T_boxed>,
+    typename = typename std::enable_if<is_value<T_boxed>::value>::type>
 class value_accessor_t;
 
-template <typename T_bind, typename T_class, typename T_return>
-class value_accessor_t<T_bind, T_class, T_return> final : public expression_t<T_bind, T_return>
+template <typename T_bind, typename T_boxed, typename T_return>
+class value_accessor_t<T_bind, T_boxed, T_return> final : public expression_t<T_bind, T_return>
 {
 public:
     // NOLINTNEXTLINE(google-explicit-constructor)
-    value_accessor_t(const T_class& value);
+    value_accessor_t(const T_boxed& value);
     virtual ~value_accessor_t() = default;
 
     T_return operator()(const T_bind& bind) const override;

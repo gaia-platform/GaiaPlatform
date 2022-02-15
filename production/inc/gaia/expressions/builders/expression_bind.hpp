@@ -22,7 +22,7 @@ template <
     typename T_bind,
     typename T_class,
     typename = typename std::enable_if<is_value<T_class>::value>::type>
-constexpr value_accessor_t<T_bind, T_class, eval_type<T_class>> expression_bind(const T_class& value)
+constexpr value_accessor_t<T_bind, T_class, eval_type<T_class>> bind(const T_class& value)
 {
     return value_accessor_t<T_bind, T_class, eval_type<T_class>>(value);
 }
@@ -31,7 +31,7 @@ constexpr value_accessor_t<T_bind, T_class, eval_type<T_class>> expression_bind(
 // Check if the expression binds to a different context.. return a compiler error if so.
 template <typename T_bind, typename T_expr_bind, typename T_return>
 constexpr const expression_t<T_bind, T_return>&
-expression_bind(
+bind(
     const expression_t<T_expr_bind, T_return>& expression)
 {
     static_assert(std::is_same<T_bind, T_expr_bind>::value, "Cannot bind expression to this context.");

@@ -50,7 +50,7 @@ binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>
 operator==(const T_left& left, const T_right& right)
 {
     return binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>(
-        expression_bind<T_bind>(left), expression_bind<T_bind>(right));
+        expressions::bind<T_bind>(left), expressions::bind<T_bind>(right));
 }
 
 // != operator.
@@ -68,7 +68,7 @@ binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>
 operator!=(const T_left& left, const T_right& right)
 {
     return binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>(
-        expression_bind<T_bind>(left), expression_bind<T_bind>(right));
+        expressions::bind<T_bind>(left), expressions::bind<T_bind>(right));
 }
 
 // > operator.
@@ -86,7 +86,7 @@ binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>
 operator>(const T_left& left, const T_right& right)
 {
     return binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>(
-        expression_bind<T_bind>(left), expression_bind<T_bind>(right));
+        expressions::bind<T_bind>(left), expressions::bind<T_bind>(right));
 }
 
 // >= operator.
@@ -104,7 +104,7 @@ binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>
 operator>=(const T_left& left, const T_right& right)
 {
     return binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>(
-        expression_bind<T_bind>(left), expression_bind<T_bind>(right));
+        expressions::bind<T_bind>(left), expressions::bind<T_bind>(right));
 }
 
 // < operator.
@@ -122,7 +122,7 @@ binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>
 operator<(const T_left& left, const T_right& right)
 {
     return binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>(
-        expression_bind<T_bind>(left), expression_bind<T_bind>(right));
+        expressions::bind<T_bind>(left), expressions::bind<T_bind>(right));
 }
 
 // <= operator.
@@ -140,7 +140,7 @@ binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>
 operator<=(const T_left& left, const T_right& right)
 {
     return binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>(
-        expression_bind<T_bind>(left), expression_bind<T_bind>(right));
+        expressions::bind<T_bind>(left), expressions::bind<T_bind>(right));
 }
 
 // && operator.
@@ -158,7 +158,7 @@ binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>
 operator&&(const T_left& left, const T_right& right)
 {
     return binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>(
-        expression_bind<T_bind>(left), expression_bind<T_bind>(right));
+        expressions::bind<T_bind>(left), expressions::bind<T_bind>(right));
 }
 
 // || operator.
@@ -176,7 +176,7 @@ binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>
 operator||(const T_left& left, const T_right& right)
 {
     return binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>(
-        expression_bind<T_bind>(left), expression_bind<T_bind>(right));
+        expressions::bind<T_bind>(left), expressions::bind<T_bind>(right));
 }
 
 // ^ operator.
@@ -194,7 +194,7 @@ binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>
 operator^(const T_left& left, const T_right& right)
 {
     return binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>(
-        expression_bind<T_bind>(left), expression_bind<T_bind>(right));
+        expressions::bind<T_bind>(left), expressions::bind<T_bind>(right));
 }
 // + operator.
 template <
@@ -211,7 +211,7 @@ binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>
 operator+(const T_left& left, const T_right& right)
 {
     return binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>(
-        expression_bind<T_bind>(left), expression_bind<T_bind>(right));
+        expressions::bind<T_bind>(left), expressions::bind<T_bind>(right));
 }
 
 // - operator (binary).
@@ -229,7 +229,7 @@ binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>
 operator-(const T_left& left, const T_right& right)
 {
     return binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>(
-        expression_bind<T_bind>(left), expression_bind<T_bind>(right));
+        expressions::bind<T_bind>(left), expressions::bind<T_bind>(right));
 }
 
 // * operator.
@@ -247,7 +247,7 @@ binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>
 operator*(const T_left& left, const T_right& right)
 {
     return binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>(
-        expression_bind<T_bind>(left), expression_bind<T_bind>(right));
+        expressions::bind<T_bind>(left), expressions::bind<T_bind>(right));
 }
 
 // / operator.
@@ -265,7 +265,7 @@ binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>
 operator/(const T_left& left, const T_right& right)
 {
     return binary_expression_t<T_bind, T_return, T_eval_left, T_eval_right, T_token>(
-        expression_bind<T_bind>(left), expression_bind<T_bind>(right));
+        expressions::bind<T_bind>(left), expressions::bind<T_bind>(right));
 }
 
 // ! operator.
@@ -282,7 +282,7 @@ operator!(
     const T_operand& operand)
 {
     return unary_expression_t<T_bind, T_return, T_eval_operand, T_token>(
-        expression_bind<T_bind>(operand));
+        expressions::bind<T_bind>(operand));
 }
 
 // - operator(unary).
@@ -299,7 +299,7 @@ operator-(
     const T_operand& operand)
 {
     return unary_expression_t<T_bind, T_return, T_eval_operand, T_token>(
-        expression_bind<T_bind>(operand));
+        expressions::bind<T_bind>(operand));
 }
 
 } // namespace expressions

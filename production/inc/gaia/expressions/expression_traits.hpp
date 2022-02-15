@@ -17,6 +17,7 @@ namespace expressions
 
 namespace detail
 {
+
 // Tags for the different AST components.
 struct expression_tag_t
 {
@@ -53,6 +54,9 @@ typename std::decay<T_class>::type eval_type_test(T_class, value_tag_t);
 } // namespace detail
 
 // Infer the evaluated types for the objects when building an AST tree.
+// Expressions i.e eval_type<expression<T_bind, T_return>> will evaluate to T_return
+// Value types will evaluate to themselves.
+// The exception will be string values e.g eval_type<char[13]> will evaluate to std::string.
 template <typename T_class>
 using eval_type = decltype(detail::eval_type_test(std::declval<T_class>(), detail::ast_tag(std::declval<T_class>())));
 
