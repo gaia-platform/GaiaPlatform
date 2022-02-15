@@ -75,7 +75,7 @@ jobs:
     needs:
       - Core
     runs-on: ubuntu-20.04
-    if: github.event_name != 'pull_request'
+#    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -168,7 +168,7 @@ jobs:
   Integration_Tests:
     needs:
       - SDK
-    if: github.event_name != 'pull_request'
+#    if: github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     timeout-minutes: 7
     env:
@@ -177,7 +177,7 @@ jobs:
       fail-fast: false
       matrix:
         persistence: [enabled, disabled]
-        suite-name: [smoke,marcopolo,pingpong,mink-perf,pingpong-perf,marcopolo-perf]
+        suite-name: [smoke,marcopolo,pingpong,palletbox,mink-perf,pingpong-perf,marcopolo-perf,palletbox-perf]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
