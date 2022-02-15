@@ -92,6 +92,39 @@ typename dac_iterator_t<T_class>::pointer dac_iterator_t<T_class>::operator->()
 }
 
 //
+// Implementation for dac_snapshot_container_t
+//
+template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class>
+dac_snapshot_container_t<container_type_id, T_class>::dac_snapshot_container_t(
+    const dac_container_t<container_type_id, T_class>& container)
+{
+    for (auto item : container)
+    {
+        m_snapshot.push_back(item);
+    }
+}
+
+// The begin() method returns either the first element, or the first element that satisfies m_filter_fn.
+template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class>
+typename std::vector<T_class>::const_iterator dac_snapshot_container_t<container_type_id, T_class>::begin() const
+{
+    return m_snapshot.begin();
+}
+
+// The begin() method returns either the first element, or the first element that satisfies m_filter_fn.
+template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class>
+typename std::vector<T_class>::const_iterator dac_snapshot_container_t<container_type_id, T_class>::end() const
+{
+    return m_snapshot.end();
+}
+
+template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class>
+size_t dac_snapshot_container_t<container_type_id, T_class>::size() const
+{
+    return m_snapshot.size();
+}
+
+//
 // Implementation for dac_container_t
 //
 
@@ -124,6 +157,23 @@ dac_iterator_t<T_class> dac_container_t<container_type_id, T_class>::begin() con
     }
 
     return dac_iterator_t<T_class>(iterator_state);
+}
+
+template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class>
+dac_snapshot_container_t<container_type_id, T_class> dac_container_t<container_type_id, T_class>::snapshot() const
+{
+    return dac_snapshot_container_t<container_type_id, T_class>(*this);
+}
+
+template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class>
+void dac_container_t<container_type_id, T_class>::delete_all(bool force)
+{
+    auto it = begin();
+    for (auto it = begin(); it != end();)
+    {
+        auto to_del = it++;
+        to_del->delete_row(force);
+    }
 }
 
 // The where() method constructs a dac_container_t with a std::function to be used for filtering.
@@ -280,6 +330,39 @@ size_t value_linked_reference_container_t<T_child>::size() const
 }
 
 //
+// Implementation for dac_snapshot_reference_container_t
+//
+template <typename T_child>
+dac_snapshot_reference_container_t<T_child>::dac_snapshot_reference_container_t(
+    const reference_container_t<T_child>& container)
+{
+    for (auto item : container)
+    {
+        m_snapshot.push_back(item);
+    }
+}
+
+// The begin() method returns either the first element, or the first element that satisfies m_filter_fn.
+template <typename T_child>
+typename std::vector<T_child>::const_iterator dac_snapshot_reference_container_t<T_child>::begin() const
+{
+    return m_snapshot.begin();
+}
+
+// The begin() method returns either the first element, or the first element that satisfies m_filter_fn.
+template <typename T_child>
+typename std::vector<T_child>::const_iterator dac_snapshot_reference_container_t<T_child>::end() const
+{
+    return m_snapshot.end();
+}
+
+template <typename T_child>
+size_t dac_snapshot_reference_container_t<T_child>::size() const
+{
+    return m_snapshot.size();
+}
+
+//
 // Implementation for reference_container_t.
 //
 template <typename T_child>
@@ -313,6 +396,24 @@ dac_set_iterator_t<T_child> reference_container_t<T_child>::begin() const
     }
 
     return dac_set_iterator_t<T_child>(id, m_filter_fn, m_next_offset);
+}
+
+template <typename T_child>
+dac_snapshot_reference_container_t<T_child>
+reference_container_t<T_child>::snapshot() const
+{
+    return dac_snapshot_reference_container_t<T_child>(*this);
+}
+
+template <typename T_child>
+void reference_container_t<T_child>::disconnect_all()
+{
+    auto it = begin();
+    for (auto it = begin(); it != end();)
+    {
+        auto to_disconnect = it++;
+        disconnect(*to_disconnect);
+    }
 }
 
 template <typename T_child>

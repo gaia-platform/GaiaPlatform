@@ -75,6 +75,29 @@ protected:
 };
 
 /**
+ * @brief A dac_snapshot_container_t copies all objects of the same Direct Access Class type in the database.
+ *   so that the contents of the container can be modified while the iterator remains stable.
+ *
+ * @tparam container_type_id the type identifier of Direct Access Class
+ * @tparam T_class the class of the Direct Access Class
+ */
+template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class>
+class dac_snapshot_container_t
+{
+public:
+    dac_snapshot_container_t() = delete;
+    dac_snapshot_container_t(const dac_container_t<container_type_id, T_class>& container);
+
+    typename std::vector<T_class>::const_iterator begin() const;
+    typename std::vector<T_class>::const_iterator end() const;
+
+    size_t size() const;
+
+private:
+    std::vector<T_class> m_snapshot;
+};
+
+/**
  * @brief A dac_container_t contains all objects of the same Direct Access Class type in the database.
  *
  * @tparam container_type_id the type identifier of Direct Access Class
@@ -92,6 +115,8 @@ public:
 
     dac_iterator_t<T_class> begin() const;
     dac_iterator_t<T_class> end() const;
+    dac_snapshot_container_t<container_type_id, T_class> snapshot() const;
+    void delete_all(bool force = false);
 
     size_t size() const;
 
@@ -179,6 +204,30 @@ private:
 };
 
 /**
+ * @brief A snapshot_reference_container_t contains the methods that implement an iterator
+ * for scanning through the references of an object as well as the methods
+ * for managing these references. These references are copied so that the iterator is stable
+ * even when membership of items in the underlying container is changed.
+ *
+ * @tparam T_child the Direct Access Class that is being referenced
+ */
+template <typename T_child>
+class dac_snapshot_reference_container_t
+{
+public:
+    dac_snapshot_reference_container_t() = delete;
+    dac_snapshot_reference_container_t(const reference_container_t<T_child>& container);
+
+    typename std::vector<T_child>::const_iterator begin() const;
+    typename std::vector<T_child>::const_iterator end() const;
+
+    size_t size() const;
+
+private:
+    std::vector<T_child> m_snapshot;
+};
+
+/**
  * @brief A reference_container_t contains the methods that implement an iterator
  * for scanning through the references of an object as well as the methods
  * for managing these references.
@@ -212,7 +261,8 @@ public:
 
     dac_set_iterator_t<T_child> begin() const;
     dac_set_iterator_t<T_child> end() const;
-
+    dac_snapshot_reference_container_t<T_child> snapshot() const;
+    void disconnect_all();
     size_t size() const;
 
     void insert(gaia::common::gaia_id_t child_id);

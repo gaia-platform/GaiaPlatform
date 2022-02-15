@@ -29,6 +29,28 @@ class dac_object_test : public db_catalog_test_base_t
 protected:
     dac_object_test()
         : db_catalog_test_base_t(string("addr_book.ddl")){};
+
+    /*
+        void SetUp() override
+        {
+            db_catalog_test_base_t::SetUp();
+            {
+                auto_transaction_t tx (auto_transaction_t::no_auto_restart);
+                printf("nukarama!\n");
+                printf("employee size before :  %zu\n", employee_t::list().size());
+                employee_t::list().delete_all(true);
+                printf("employee size after :  %zu\n", employee_t::list().size());
+                employee_t::list().delete_all(true);
+                address_t::list().delete_all(true);
+                phone_t::list().delete_all(true);
+                internet_contract_t::list().delete_all(true);
+                customer_t::list().delete_all(true);
+                company_t::list().delete_all(true);
+                client_t::list().delete_all(true);
+                tx.commit();
+            }
+        }
+    */
 };
 
 int count_rows()
@@ -45,6 +67,7 @@ int count_rows()
 // Utility function that creates one named employee row.
 employee_t create_employee(const char* name)
 {
+    printf("in create_employee\n");
     auto w = employee_writer();
     w.name_first = name;
     gaia_id_t id = w.insert_row();
@@ -179,6 +202,8 @@ TEST_F(dac_object_test, read_back_scan)
     begin_transaction();
     auto eid1 = create_employee("Howard").gaia_id();
     auto eid2 = create_employee("Henry").gaia_id();
+    printf("Henry is: %ld\n", (int64_t)eid2);
+    printf("employee size in test :  %zu\n", employee_t::list().size());
     commit_transaction();
 
     begin_transaction();
@@ -583,6 +608,10 @@ void insert_thread(bool new_thread)
 
     begin_transaction();
     {
+        if (new_thread)
+        {
+            printf("IN INSERT THREAD YOU FOUL TEST DEMON\n");
+        }
         g_inserted_id = employee_t::insert_row(g_insert, nullptr, nullptr, 0, nullptr, nullptr);
     }
     commit_transaction();
@@ -965,5 +994,177 @@ TEST_F(dac_object_test, delete_row_in_loop)
 
     EXPECT_EQ(count, 2);
 
+    txn.commit();
+}
+
+TEST_F(dac_object_test, fail_delete_row_in_loop)
+{
+    auto_transaction_t txn;
+    phone_t::insert_row("206", "Y", true);
+    phone_t::insert_row("425", "Y", true);
+
+    int count = 0;
+
+    // The following code will not work because of the iterator implementation.
+    printf("size before delete:  %zu\n", phone_t::list().size());
+    for (auto p : phone_t::list())
+    {
+        p.delete_row();
+        count++;
+    }
+    printf("size after delete:  %zu\n", phone_t::list().size());
+
+    txn.commit();
+}
+
+TEST_F(dac_object_test, snapshot_delete_row)
+{
+    auto_transaction_t txn;
+    phone_t::insert_row("206", "Y", true);
+    phone_t::insert_row("425", "Y", true);
+    phone_t::insert_row("808", "N", true);
+    phone_t::insert_row("808", "Y", true);
+    phone_t::insert_row("253", "N", true);
+
+    // int count = 0;
+
+    // auto iter = phone_t::list();
+
+    // dac_snapshot_container_t<c_gaia_type_phone, phone_t> phone_snapshot(iter);
+    // printf("original size before delete:  %zu\n", phone_t::list().size());
+    // printf("snapshot size before delete:  %zu\n", phone_snapshot.size());
+
+    printf("original size before delete:  %zu\n", phone_t::list().size());
+    printf("original size before filtered delete:  %zu\n", phone_t::list().where(phone_t::expr::phone_number == "808").size());
+    for (auto p : phone_t::list().where(phone_t::expr::phone_number == "808").snapshot())
+    {
+        p.delete_row();
+    }
+    printf("original size after delete:  %zu\n", phone_t::list().size());
+    // printf("snapshot size before delete:  %zu\n", phone_snapshot.size());
+
+    txn.commit();
+}
+
+TEST_F(dac_object_test, delete_all)
+{
+    auto_transaction_t txn;
+    phone_t::insert_row("206", "Y", true);
+    phone_t::insert_row("425", "Y", true);
+    phone_t::insert_row("808", "N", true);
+    phone_t::insert_row("808", "Y", true);
+    phone_t::insert_row("253", "N", true);
+
+    // int count = 0;
+
+    // auto iter = phone_t::list();
+
+    // dac_snapshot_container_t<c_gaia_type_phone, phone_t> phone_snapshot(iter);
+    // printf("original size before delete:  %zu\n", phone_t::list().size());
+    // printf("snapshot size before delete:  %zu\n", phone_snapshot.size());
+
+    printf("original size before delete:  %zu\n", phone_t::list().size());
+    printf("original size before filtered delete:  %zu\n", phone_t::list().where(phone_t::expr::phone_number == "808").size());
+    phone_t::list().where(phone_t::expr::phone_number == "808").delete_all();
+    printf("original size after filtered delete:  %zu\n", phone_t::list().size());
+    // printf("snapshot size before delete:  %zu\n", phone_snapshot.size());
+
+    txn.commit();
+}
+
+TEST_F(dac_object_test, failed_move_addresses)
+{
+    auto_transaction_t txn;
+    employee_writer ew;
+
+    ew.name_last = "Hawkins";
+    ew.name_first = "Dax";
+    employee_t d = employee_t::get(ew.insert_row());
+
+    ew.name_last = "Hawkins";
+    ew.name_first = "Kent";
+    employee_t k = employee_t::get(ew.insert_row());
+
+    address_writer aw;
+    aw.city = "Seattle";
+    k.addresses().insert(aw.insert_row());
+
+    aw.city = "Los Angeles";
+    k.addresses().insert(aw.insert_row());
+    aw.city = "Princeville";
+    k.addresses().insert(aw.insert_row());
+    printf("Kent has %zu addresses.\n", k.addresses().size());
+    printf("Dax has %zu addresses.\n", d.addresses().size());
+    txn.commit();
+
+    // now move move addreses to Dax
+    for (auto a : k.addresses())
+    {
+        k.addresses().remove(a);
+        d.addresses().insert(a);
+    }
+
+    printf("Kent has %zu addresses.\n", k.addresses().size());
+    printf("Dax has %zu addresses.\n", d.addresses().size());
+}
+
+TEST_F(dac_object_test, success_move_addresses)
+{
+    auto_transaction_t txn;
+    employee_writer ew;
+
+    ew.name_last = "Hawkins";
+    ew.name_first = "Dax";
+    employee_t d = employee_t::get(ew.insert_row());
+
+    ew.name_last = "Hawkins";
+    ew.name_first = "Kent";
+    employee_t k = employee_t::get(ew.insert_row());
+
+    address_writer aw;
+    aw.city = "Seattle";
+    k.addresses().insert(aw.insert_row());
+
+    aw.city = "Los Angeles";
+    k.addresses().insert(aw.insert_row());
+    aw.city = "Princeville";
+    k.addresses().insert(aw.insert_row());
+    printf("Kent has %zu addresses.\n", k.addresses().size());
+    printf("Dax has %zu addresses.\n", d.addresses().size());
+    txn.commit();
+
+    // now move move addreses to Dax
+    for (auto a : k.addresses().snapshot())
+    {
+        k.addresses().remove(a);
+        d.addresses().insert(a);
+    }
+
+    printf("Kent has %zu addresses.\n", k.addresses().size());
+    printf("Dax has %zu addresses.\n", d.addresses().size());
+}
+
+TEST_F(dac_object_test, disconnect_all)
+{
+    auto_transaction_t txn;
+    employee_writer ew;
+
+    ew.name_last = "Hawkins";
+    ew.name_first = "Kent";
+    employee_t k = employee_t::get(ew.insert_row());
+
+    address_writer aw;
+    aw.city = "Seattle";
+    k.addresses().insert(aw.insert_row());
+    aw.city = "Los Angeles";
+    k.addresses().insert(aw.insert_row());
+    aw.city = "Princeville";
+    k.addresses().insert(aw.insert_row());
+    txn.commit();
+
+    // disconnect
+    printf("Kent has %zu addresses before disconnect_all.\n", k.addresses().size());
+    k.addresses().disconnect_all();
+    printf("Kent has %zu addresses after disconnect_all \n", k.addresses().size());
     txn.commit();
 }
