@@ -237,7 +237,7 @@ jobs:
       fail-fast: false
       matrix:
         persistence: [enabled, disabled]
-        suite-name: [smoke,marcopolo,pingpong,mink-perf,pingpong-perf,marcopolo-perf]
+        suite-name: [smoke,marcopolo,pingpong]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -306,11 +306,10 @@ jobs:
       - Third-Party
       - Core
       - Debug_Core
-      - SDK
-      - Debug_SDK
       - Coverage
       - LLVM_Tests
       - Integration_Tests
+      - Integration_Tests_Debug
       - Integration_Samples
     runs-on: ubuntu-20.04
     if: github.event_name != 'pull_request'
