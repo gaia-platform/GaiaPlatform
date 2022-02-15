@@ -66,7 +66,7 @@ std::string table_facade_t::table_type() const
 
 std::string table_facade_t::class_name() const
 {
-    return std::string(m_table.name()) + "_t";
+    return std::string(m_table.name()) + c_class_name_suffix;
 }
 
 std::vector<field_facade_t> table_facade_t::fields() const
@@ -246,21 +246,21 @@ std::pair<std::string, std::string> field_facade_t::generate_expr_variable() con
     std::string accessor_string;
     accessor_string.append("gaia::expressions::member_accessor_t");
     accessor_string.append("<");
-    accessor_string.append(table_name());
-    accessor_string.append("_t, ");
+    accessor_string.append(class_name());
+    accessor_string.append(", ");
     accessor_string.append(field_type());
     accessor_string.append(">");
 
-    return generate_expr_variable(table_name(), accessor_string, field_name());
+    return generate_expr_variable(class_name(), accessor_string, field_name());
 }
 
-std::string field_facade_t::table_name() const
+std::string field_facade_t::class_name() const
 {
-    return m_field.table().name();
+    return std::string(m_field.table().name()) + c_class_name_suffix;
 }
 
 std::pair<std::string, std::string> field_facade_t::generate_expr_variable(
-    const std::string& table,
+    const std::string& class_name,
     const std::string& expr_accessor,
     const std::string& field)
 {
@@ -283,12 +283,12 @@ std::pair<std::string, std::string> field_facade_t::generate_expr_variable(
     expr_init.append("template<class unused_t> ");
     expr_init.append(type_decl);
     expr_init.append(" ");
-    expr_init.append(table);
-    expr_init.append("_t::expr_<unused_t>::");
+    expr_init.append(class_name);
+    expr_init.append("::expr_<unused_t>::");
     expr_init.append(field);
     expr_init.append("{&");
-    expr_init.append(table);
-    expr_init.append("_t::");
+    expr_init.append(class_name);
+    expr_init.append("::");
     expr_init.append(field);
     expr_init.append("};");
 
@@ -322,6 +322,15 @@ std::string link_facade_t::from_table() const
     return m_relationship.child().name();
 }
 
+std::string link_facade_t::from_class_name() const
+{
+    if (m_is_from_parent)
+    {
+        return std::string(m_relationship.parent().name()) + c_class_name_suffix;
+    }
+    return std::string(m_relationship.child().name()) + c_class_name_suffix;
+}
+
 std::string link_facade_t::to_table() const
 {
     if (m_is_from_parent)
@@ -329,6 +338,15 @@ std::string link_facade_t::to_table() const
         return m_relationship.child().name();
     }
     return m_relationship.parent().name();
+}
+
+std::string link_facade_t::to_class_name() const
+{
+    if (m_is_from_parent)
+    {
+        return std::string(m_relationship.child().name()) + c_class_name_suffix;
+    }
+    return std::string(m_relationship.parent().name()) + c_class_name_suffix;
 }
 
 bool link_facade_t::is_value_linked() const
@@ -365,8 +383,8 @@ std::string link_facade_t::target_type() const
         std::string type;
         if (is_multiple_cardinality())
         {
-            type.append(from_table());
-            type.append("_t::");
+            type.append(from_class_name());
+            type.append("::");
             type.append(field_name());
             type.append("_list_t");
         }
@@ -385,8 +403,7 @@ std::string link_facade_t::target_type() const
     else
     {
         std::string type;
-        type.append(to_table());
-        type.append("_t");
+        type.append(to_table() + c_class_name_suffix);
         return type;
     }
 }
@@ -398,10 +415,10 @@ std::string link_facade_t::expression_accessor() const
     {
         type_decl.append("gaia::expressions::container_accessor_t");
         type_decl.append("<");
-        type_decl.append(from_table());
-        type_decl.append("_t, ");
-        type_decl.append(to_table());
-        type_decl.append("_t, ");
+        type_decl.append(from_class_name());
+        type_decl.append(", ");
+        type_decl.append(to_class_name());
+        type_decl.append(", ");
         type_decl.append(target_type());
         type_decl.append(">");
     }
@@ -409,8 +426,8 @@ std::string link_facade_t::expression_accessor() const
     {
         type_decl.append("gaia::expressions::member_accessor_t");
         type_decl.append("<");
-        type_decl.append(from_table());
-        type_decl.append("_t, ");
+        type_decl.append(from_class_name());
+        type_decl.append(", ");
         type_decl.append(target_type());
         type_decl.append(">");
     }
