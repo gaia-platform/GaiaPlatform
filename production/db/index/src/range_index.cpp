@@ -53,11 +53,6 @@ std::pair<range_index_iterator_t, range_index_iterator_t> range_index_t::equal_r
     return {first, last};
 }
 
-std::shared_ptr<common::iterators::generator_t<index_record_t>> range_index_t::equal_range_generator(gaia_txn_id_t txn_id, const index_key_t& key)
-{
-    return std::make_shared<index_generator_t<range_type_t>>(get_lock(), m_data, key, key, txn_id);
-}
-
 template <>
 std::pair<range_type_t::iterator, range_type_t::iterator>
 index_writer_guard_t<range_type_t>::equal_range(const index_key_t& key)
