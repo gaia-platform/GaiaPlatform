@@ -19,6 +19,8 @@ from gdev.mount import Mount
 from gdev.third_party.atools import memoize, memoize_db
 from gdev.third_party.argcomplete import autocomplete, FilesCompleter
 from gdev.parser_structure import ParserStructure
+from gdev.host import Host
+import argparse
 
 @dataclass(frozen=True)
 class Dependency:
@@ -79,6 +81,14 @@ class Dependency:
     @staticmethod
     def get_parser() -> ArgumentParser:
         def add_flags(parser: ArgumentParser) -> None:
+
+            parser.add_argument(
+                "--x-level-1",
+                dest="x_level_1",
+                action="store_true",
+                default=False,
+                help=argparse.SUPPRESS,
+            )
 
             # Dockerfile, and above
             base_image_default = 'ubuntu:20.04'
@@ -201,7 +211,7 @@ class Dependency:
                     inner(sub_parser, sub_parser_map[next_map_key])
 
             # NOTE: This is where the description for the parser element in the help
-            # is arrived at.
+            # is arrived
             parser.description = parser_structure.doc
 
             return parser
@@ -244,6 +254,10 @@ class Dependency:
             parser.parse_args([*args, '--help'])
             import sys
             sys.exit(1)
+
+        if parsed_args['x_level_1']:
+            Host.xx(True)
+            del parsed_args['x_level_1']
 
         if parsed_args['args'] and parsed_args['args'][0] == '--':
             parsed_args['args'] = parsed_args['args'][1:]

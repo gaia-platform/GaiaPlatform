@@ -17,7 +17,8 @@ from gdev.custom.pathlib import Path
 from gdev.options import Options, Mount
 from gdev.third_party.atools import memoize, memoize_db
 from gdev.third_party.argcomplete import autocomplete, FilesCompleter
-
+import argparse
+from gdev.host import Host
 
 @dataclass(frozen=True)
 class _ParserStructure:
@@ -120,6 +121,15 @@ class Dependency:
     @staticmethod
     def get_parser() -> ArgumentParser:
         def add_flags(parser: ArgumentParser) -> None:
+
+            parser.add_argument(
+                "--x-level-1",
+                dest="x_level_1",
+                action="store_true",
+                default=False,
+                #help=argparse.SUPPRESS,
+            )
+
             base_image_default = 'ubuntu:20.04'
             parser.add_argument(
                 '--base-image',
@@ -266,6 +276,9 @@ class Dependency:
             parser.parse_args([*args, '--help'])
             import sys
             sys.exit(1)
+
+        if parsed_args.x_level_1:
+            Host.xx(True)
 
         if parsed_args['args'] and parsed_args['args'][0] == '--':
             parsed_args['args'] = parsed_args['args'][1:]
