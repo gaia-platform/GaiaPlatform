@@ -130,7 +130,7 @@ class Dependency:
             parser.add_argument(
                 '--cfg-enables',
                 default=cfg_enables_default,
-                nargs=1,
+                nargs="*",
                 help=(
                     f'Enable lines in gdev.cfg files gated by `enable_if`, `enable_if_any`, and'
                     f' `enable_if_all` functions. Default: "{cfg_enables_default}"'
@@ -267,7 +267,13 @@ class Dependency:
         if parsed_args['args'] and parsed_args['args'][0] == '--':
             parsed_args['args'] = parsed_args['args'][1:]
         parsed_args['args'] = ' '.join(parsed_args['args'])
-        split_enables_arguments = parsed_args['cfg_enables'][0].split(",") if parsed_args['cfg_enables'] else []
+
+        # This supports both a single cfg-enable that is comma separated with and old style separate.
+        if parsed_args['cfg_enables'] and len(parsed_args['cfg_enables']) == 1 and "," in parsed_args['cfg_enables']:
+            split_enables_arguments = parsed_args['cfg_enables'][0].split(",") if parsed_args['cfg_enables'] else []
+        else:
+            split_enables_arguments = parsed_args['cfg_enables']
+
         parsed_args['cfg_enables'] = frozenset([
             parsed_args['base_image'], *split_enables_arguments, *parsed_args['mixins']
         ])
