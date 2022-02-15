@@ -2270,12 +2270,14 @@ public:
             writer_variable = table_navigation_t::get_variable_name("writer", llvm::StringMap<string>());
             g_writer_data.push_back({op->getSourceRange(), writer_variable, variable_name});
             writer_variable_prefix = (Twine("auto ")
-                                + writer_variable
-                                + " = "
-                                + variable_name
-                                + ".writer();").str();
+                                      + writer_variable
+                                      + " = "
+                                      + variable_name
+                                      + ".writer();")
+                                         .str();
             writer_variable_postfix = (Twine(writer_variable)
-                                + ".update_row();").str();
+                                       + ".update_row();")
+                                          .str();
         }
         string replacement_text;
         string temp_array_variable;
@@ -2287,7 +2289,7 @@ public:
                                 + writer_variable_prefix
                                 + "auto "
                                 + temp_array_variable
-                                +"="
+                                + "="
                                 + writer_variable
                                 + "."
                                 + field_name)
@@ -2299,7 +2301,8 @@ public:
             replacement_text = (Twine("([&]() mutable {")
                                 + writer_variable_prefix
                                 + "auto "
-                                + temp_array_variable).str();
+                                + temp_array_variable)
+                                   .str();
         }
         else
         {
@@ -2327,32 +2330,34 @@ public:
             if (array_size.empty())
             {
                 replacement_text = (Twine(".to_vector(); ")
-                                + writer_variable_postfix
-                                + "return "
-                                + variable_name
-                                + "."
-                                + field_name
-                                + "();}())").str();
+                                    + writer_variable_postfix
+                                    + "return "
+                                    + variable_name
+                                    + "."
+                                    + field_name
+                                    + "();}())")
+                                       .str();
             }
             else
             {
                 replacement_text = (Twine(";")
-                                + writer_variable
-                                + "."
-                                + field_name
-                                + "=std::vector("
-                                + temp_array_variable
-                                + ","
-                                + temp_array_variable
-                                + "+"
-                                + array_size
-                                + "); "
-                                + writer_variable_postfix
-                                + "return "
-                                + variable_name
-                                + "."
-                                + field_name
-                                + "();}())").str();
+                                    + writer_variable
+                                    + "."
+                                    + field_name
+                                    + "=std::vector("
+                                    + temp_array_variable
+                                    + ","
+                                    + temp_array_variable
+                                    + "+"
+                                    + array_size
+                                    + "); "
+                                    + writer_variable_postfix
+                                    + "return "
+                                    + variable_name
+                                    + "."
+                                    + field_name
+                                    + "();}())")
+                                       .str();
             }
         }
         else if (!temp_array_variable.empty())
@@ -2361,7 +2366,8 @@ public:
                                 + writer_variable_postfix
                                 + "return "
                                 + temp_array_variable
-                                + ";}())").str();
+                                + ";}())")
+                                   .str();
         }
         else
         {
@@ -2568,12 +2574,14 @@ public:
             writer_variable = table_navigation_t::get_variable_name("writer", llvm::StringMap<string>());
             g_writer_data.push_back({op->getSourceRange(), writer_variable, variable_name});
             writer_variable_prefix = (Twine("auto ")
-                                + writer_variable
-                                + " = "
-                                + variable_name
-                                + ".writer();").str();
+                                      + writer_variable
+                                      + " = "
+                                      + variable_name
+                                      + ".writer();")
+                                         .str();
             writer_variable_postfix = (Twine(writer_variable)
-                                + ".update_row();").str();
+                                       + ".update_row();")
+                                          .str();
         }
         string temp_variable = table_navigation_t::get_variable_name("temp", llvm::StringMap<string>());
         if (op->isPostfix())
@@ -2583,34 +2591,37 @@ public:
                 if (array_expression_source_range.isValid())
                 {
                     replace_string = (Twine("([&]() mutable {")
-                            + writer_variable_prefix
-                            + "auto "
-                            + temp_variable
-                            + "="
-                            + writer_variable
-                            + "."
-                            + field_name).str();
+                                      + writer_variable_prefix
+                                      + "auto "
+                                      + temp_variable
+                                      + "="
+                                      + writer_variable
+                                      + "."
+                                      + field_name)
+                                         .str();
                     replace_string_postfix = (Twine("++;")
-                            + writer_variable_postfix
-                            + "return "
-                            + temp_variable
-                            + ";}())").str();
+                                              + writer_variable_postfix
+                                              + "return "
+                                              + temp_variable
+                                              + ";}())")
+                                                 .str();
                 }
                 else
                 {
                     replace_string = (Twine("([&]() mutable {")
-                        + writer_variable_prefix
-                        + "auto "
-                        + temp_variable
-                        + "="
-                        + writer_variable
-                        + "."
-                        + field_name
-                        + "++; "
-                        + writer_variable_postfix
-                        + "return "
-                        + temp_variable
-                        + ";}())").str();
+                                      + writer_variable_prefix
+                                      + "auto "
+                                      + temp_variable
+                                      + "="
+                                      + writer_variable
+                                      + "."
+                                      + field_name
+                                      + "++; "
+                                      + writer_variable_postfix
+                                      + "return "
+                                      + temp_variable
+                                      + ";}())")
+                                         .str();
                 }
             }
             else if (op->isDecrementOp())
@@ -2618,34 +2629,37 @@ public:
                 if (array_expression_source_range.isValid())
                 {
                     replace_string = (Twine("([&]() mutable {")
-                            + writer_variable_prefix
-                            + "auto "
-                            + temp_variable
-                            + "="
-                            + writer_variable
-                            + "."
-                            + field_name).str();
+                                      + writer_variable_prefix
+                                      + "auto "
+                                      + temp_variable
+                                      + "="
+                                      + writer_variable
+                                      + "."
+                                      + field_name)
+                                         .str();
                     replace_string_postfix = (Twine("--;")
-                            + writer_variable_postfix
-                            + "return "
-                            + temp_variable
-                            + ";}())").str();
+                                              + writer_variable_postfix
+                                              + "return "
+                                              + temp_variable
+                                              + ";}())")
+                                                 .str();
                 }
                 else
                 {
                     replace_string = (Twine("([&]() mutable {")
-                        + writer_variable_prefix
-                        + "auto "
-                        + temp_variable
-                        + "="
-                        + writer_variable
-                        + "."
-                        + field_name
-                        + "--; "
-                        + writer_variable_postfix
-                        + "return "
-                        + temp_variable
-                        + ";}())").str();
+                                      + writer_variable_prefix
+                                      + "auto "
+                                      + temp_variable
+                                      + "="
+                                      + writer_variable
+                                      + "."
+                                      + field_name
+                                      + "--; "
+                                      + writer_variable_postfix
+                                      + "return "
+                                      + temp_variable
+                                      + ";}())")
+                                         .str();
                 }
             }
         }
@@ -2656,34 +2670,37 @@ public:
                 if (array_expression_source_range.isValid())
                 {
                     replace_string = (Twine("([&]() mutable {")
-                            + writer_variable_prefix
-                            + "auto "
-                            + temp_variable
-                            + "= ++"
-                            + writer_variable
-                            + "."
-                            + field_name).str();
+                                      + writer_variable_prefix
+                                      + "auto "
+                                      + temp_variable
+                                      + "= ++"
+                                      + writer_variable
+                                      + "."
+                                      + field_name)
+                                         .str();
                     replace_string_postfix = (Twine(";")
-                            + writer_variable_postfix
-                            + "return "
-                            + temp_variable
-                            + ";}())").str();
+                                              + writer_variable_postfix
+                                              + "return "
+                                              + temp_variable
+                                              + ";}())")
+                                                 .str();
                 }
                 else
                 {
                     replace_string = (Twine("([&]() mutable {")
-                        + writer_variable_prefix
-                        + "auto "
-                        + temp_variable
-                        + "= ++"
-                        + writer_variable
-                        + "."
-                        + field_name
-                        + "; "
-                        + writer_variable_postfix
-                        + "return "
-                        + temp_variable
-                        + ";}())").str();
+                                      + writer_variable_prefix
+                                      + "auto "
+                                      + temp_variable
+                                      + "= ++"
+                                      + writer_variable
+                                      + "."
+                                      + field_name
+                                      + "; "
+                                      + writer_variable_postfix
+                                      + "return "
+                                      + temp_variable
+                                      + ";}())")
+                                         .str();
                 }
             }
             else if (op->isDecrementOp())
@@ -2691,34 +2708,37 @@ public:
                 if (array_expression_source_range.isValid())
                 {
                     replace_string = (Twine("([&]() mutable {")
-                            + writer_variable_prefix
-                            + "auto "
-                            + temp_variable
-                            + "= --"
-                            + writer_variable
-                            + "."
-                            + field_name).str();
+                                      + writer_variable_prefix
+                                      + "auto "
+                                      + temp_variable
+                                      + "= --"
+                                      + writer_variable
+                                      + "."
+                                      + field_name)
+                                         .str();
                     replace_string_postfix = (Twine(";")
-                            + writer_variable_postfix
-                            + "return "
-                            + temp_variable
-                            + ";}())").str();
+                                              + writer_variable_postfix
+                                              + "return "
+                                              + temp_variable
+                                              + ";}())")
+                                                 .str();
                 }
                 else
                 {
                     replace_string = (Twine("([&]() mutable {")
-                        + writer_variable_prefix
-                        + "auto "
-                        + temp_variable
-                        + "= --"
-                        + writer_variable
-                        + "."
-                        + field_name
-                        + "; "
-                        + writer_variable_postfix
-                        + "return "
-                        + temp_variable
-                        + ";}())").str();
+                                      + writer_variable_prefix
+                                      + "auto "
+                                      + temp_variable
+                                      + "= --"
+                                      + writer_variable
+                                      + "."
+                                      + field_name
+                                      + "; "
+                                      + writer_variable_postfix
+                                      + "return "
+                                      + temp_variable
+                                      + ";}())")
+                                         .str();
                 }
             }
         }
@@ -2750,10 +2770,10 @@ public:
                 replace_string_postfix);
             g_rewriter_history.push_back(
                 {SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(op_end_location_offset)),
-                replace_string, replace_text});
+                 replace_string, replace_text});
             g_rewriter_history.push_back(
                 {SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(op_end_location_offset)),
-                replace_string, replace_text});
+                 replace_string, replace_text});
         }
         else
         {
@@ -2762,7 +2782,7 @@ public:
                 replace_string);
             g_rewriter_history.push_back(
                 {SourceRange(op->getBeginLoc(), op->getEndLoc().getLocWithOffset(op_end_location_offset)),
-                replace_string, replace_text});
+                 replace_string, replace_text});
         }
         unsigned int token_length = Lexer::MeasureTokenLength(op->getEndLoc(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
         int offset = uint_to_int(op->getBeginLoc(), token_length);
