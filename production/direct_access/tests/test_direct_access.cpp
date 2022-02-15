@@ -109,6 +109,7 @@ TEST_F(dac_object_test, create_employee)
     commit_transaction();
 }
 
+/*
 // Delete one row
 TEST_F(dac_object_test, create_employee_delete)
 {
@@ -192,6 +193,7 @@ TEST_F(dac_object_test, existing_insert_field)
     EXPECT_NE(e.gaia_id(), employee_t::get(eid).gaia_id());
     commit_transaction();
 }
+*/
 
 // Test on existing objects found by ID
 // ====================================
@@ -222,6 +224,7 @@ TEST_F(dac_object_test, read_back_scan)
     }
     commit_transaction();
 }
+/*
 
 // Used twice, below
 void update_read_back(bool update_flag)
@@ -1168,3 +1171,4 @@ TEST_F(dac_object_test, disconnect_all)
     printf("Kent has %zu addresses after disconnect_all \n", k.addresses().size());
     txn.commit();
 }
+*/
