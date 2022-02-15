@@ -173,4 +173,26 @@ ruleset test_array
         client.insert(sales:client.sales, client_name:"f");
         client.insert(sales:sales, client_name:"g");
     }
+
+    on_insert(company)
+    {
+        if (strcmp(company_name, "c5") == 0)
+        {
+            sales[period] = period++;
+            sales[period++] = ++period;
+            sales[period + 1] = period + 1;
+            sales[period]++;
+            ++sales[++period];
+            g_client_sales = sales[++period];
+        }
+    }
+
+    on_insert(company)
+    {
+        if (strcmp(company_name, "c6") == 0)
+        {
+            sales = {period, period + 1, ++period, 3};
+            g_client_sales = period;
+        }
+    }
 }

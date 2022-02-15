@@ -85,6 +85,8 @@ llvm::StringMap<string> g_attribute_tag_map;
 
 llvm::DenseSet<SourceLocation> g_insert_call_locations;
 
+llvm::DenseSet<SourceRange> g_match_source_ranges;
+
 llvm::DenseMap<SourceRange, llvm::SmallVector<explicit_path_data_t, c_size_8>> g_expression_explicit_path_data;
 
 llvm::StringSet<> g_used_dbs;
@@ -130,6 +132,13 @@ struct insert_data_t
     llvm::StringSet<> argument_table_names;
 };
 
+struct writer_data_t
+{
+    SourceRange expression_range;
+    string writer_name;
+    string variable_name;
+};
+
 // Vector to contain all the data to properly generate code for insert function call.
 // The generation deferred to allow proper code generation for declarative references as arguments for insert call.
 llvm::SmallVector<insert_data_t, c_size_8> g_insert_data;
@@ -140,6 +149,7 @@ llvm::SmallVector<SourceRange, c_size_8> g_nomatch_location_list;
 llvm::DenseMap<SourceRange, string> g_break_label_map;
 llvm::DenseMap<SourceRange, string> g_continue_label_map;
 
+llvm::SmallVector<writer_data_t, c_size_32> g_writer_data;
 // Suppress these clang-tidy warnings for now.
 static const char c_nolint_identifier_naming[] = "// NOLINTNEXTLINE(readability-identifier-naming)";
 static const char c_ident[] = "    ";
@@ -163,6 +173,20 @@ int uint_to_int(SourceLocation location, unsigned int token_length)
     }
 
     return static_cast<int>(token_length);
+}
+
+bool check_match_source_range(SourceRange range)
+{
+    if (g_match_source_ranges.find(range) != g_match_source_ranges.end())
+    {
+        return true;
+    }
+    else
+    {
+        g_match_source_ranges.insert(range);
+    }
+
+    return false;
 }
 
 // Get location of a token before the current location.
@@ -268,6 +292,19 @@ bool is_range_contained_in_nomatch(const SourceRange& range)
         }
     }
     return false;
+}
+
+string get_writer_name(SourceRange range, const string& variable_name)
+{
+    for (const auto& writer_data_iterator : g_writer_data)
+    {
+        if (is_range_contained_in_another_range(writer_data_iterator.expression_range, range)
+            && writer_data_iterator.variable_name == variable_name)
+        {
+            return writer_data_iterator.writer_name;
+        }
+    }
+    return string();
 }
 
 StringRef get_table_from_expression(StringRef expression)
@@ -1491,6 +1528,11 @@ bool is_expression_from_body(ASTContext* context, const Stmt& node)
                 SourceRange(expression->getLParenLoc().getLocWithOffset(1), expression->getRParenLoc().getLocWithOffset(-1)),
                 node.getSourceRange());
         }
+        else if (const auto* expression = node_parents_iterator.get<ArraySubscriptExpr>())
+        {
+            return !is_range_contained_in_another_range(expression->getIdx()->getSourceRange(), node.getSourceRange())
+                && !is_range_contained_in_another_range(node.getSourceRange(), expression->getIdx()->getSourceRange());
+        }
         else if (const auto* declaration = node_parents_iterator.get<VarDecl>())
         {
             auto node_parents = context->getParents(*declaration);
@@ -1816,6 +1858,11 @@ public:
         bool explicit_path_present = true;
         if (expression != nullptr)
         {
+            if (check_match_source_range(expression->getSourceRange()))
+            {
+                return;
+            }
+
             const ValueDecl* decl = expression->getDecl();
             if (decl->getType()->isStructureType())
             {
@@ -1868,6 +1915,11 @@ public:
         }
         else if (member_expression != nullptr)
         {
+            if (check_match_source_range(member_expression->getSourceRange()))
+            {
+                return;
+            }
+
             auto* declaration_expression = dyn_cast<DeclRefExpr>(member_expression->getBase());
             if (declaration_expression != nullptr)
             {
@@ -2033,6 +2085,12 @@ public:
             g_is_generation_error = true;
             return;
         }
+
+        if (check_match_source_range(op->getSourceRange()))
+        {
+            return;
+        }
+
         const Expr* operator_expression = op->getLHS();
         if (operator_expression == nullptr)
         {
@@ -2041,14 +2099,11 @@ public:
             return;
         }
 
-        string array_index_expression_code;
         SourceRange array_expression_source_range;
 
         if (isa<ArraySubscriptExpr>(operator_expression))
         {
-            array_expression_source_range = operator_expression->getSourceRange();
-            array_index_expression_code = m_rewriter.getRewrittenText(
-                dyn_cast<ArraySubscriptExpr>(operator_expression)->getIdx()->getSourceRange());
+            array_expression_source_range = dyn_cast<ArraySubscriptExpr>(operator_expression)->getIdx()->getSourceRange();
             operator_expression = dyn_cast<ArraySubscriptExpr>(operator_expression)->getBase();
         }
 
@@ -2060,11 +2115,9 @@ public:
         bool array_assignment = false;
         string array_size;
         QualType rhs_type = op->getRHS()->getType();
-        string rhs_code;
 
         if (rhs_type->isArrayType() && op->getOpcode() == BO_Assign && !isa<InitListExpr>(op->getRHS()))
         {
-            rhs_code = m_rewriter.getRewrittenText(op->getRHS()->getSourceRange());
             array_assignment = true;
             if (rhs_type->isConstantArrayType())
             {
@@ -2199,164 +2252,119 @@ public:
                 }
             }
         }
-
-        tok::TokenKind token_kind = convert_compound_binary_opcode_token_kind(op);
-        if (g_is_generation_error)
+        string writer_variable = get_writer_name(op->getSourceRange(), variable_name);
+        string writer_variable_prefix;
+        string writer_variable_postfix;
+        if (writer_variable.empty())
         {
-            return;
-        }
-
-        string writer_variable = table_navigation_t::get_variable_name("writer", llvm::StringMap<string>());
-
-        string replacement_text;
-
-        if (array_assignment)
-        {
-            if (array_size.empty())
-            {
-                replacement_text = (Twine("[&]() mutable {auto ")
-                                    + writer_variable
-                                    + " = "
-                                    + variable_name
-                                    + ".writer(); "
-                                    + writer_variable
-                                    + "."
-                                    + field_name
-                                    + "=")
-                                       .str();
-            }
-            else
-            {
-                string temp_array_variable = table_navigation_t::get_variable_name("temp_array", llvm::StringMap<string>());
-                replacement_text = (Twine("[&]() mutable {auto ")
-                                    + writer_variable
-                                    + " = "
-                                    + variable_name
-                                    + ".writer(); auto "
-                                    + temp_array_variable
-                                    + "="
-                                    + rhs_code
-                                    + ";"
-                                    + writer_variable
-                                    + "."
-                                    + field_name
-                                    + "=std::vector("
-                                    + temp_array_variable
-                                    + ","
-                                    + temp_array_variable
-                                    + "+"
-                                    + array_size
-                                    + ")")
-                                       .str();
-            }
-        }
-        else if (array_expression_source_range.isValid())
-        {
-            replacement_text = (Twine("[&]() mutable {auto ")
+            writer_variable = table_navigation_t::get_variable_name("writer", llvm::StringMap<string>());
+            g_writer_data.push_back({op->getSourceRange(), writer_variable, variable_name});
+            writer_variable_prefix = (Twine("auto ")
                                 + writer_variable
                                 + " = "
                                 + variable_name
-                                + ".writer(); "
+                                + ".writer();").str();
+            writer_variable_postfix = (Twine(writer_variable)
+                                + ".update_row();").str();
+        }
+        string replacement_text;
+        string temp_array_variable;
+
+        if (array_expression_source_range.isValid())
+        {
+            temp_array_variable = table_navigation_t::get_variable_name("temp_array", llvm::StringMap<string>());
+            replacement_text = (Twine("([&]() mutable {")
+                                + writer_variable_prefix
+                                + "auto "
+                                + temp_array_variable
+                                +"="
                                 + writer_variable
                                 + "."
-                                + field_name
-                                + "["
-                                + array_index_expression_code
-                                + "]"
-                                + convert_compound_binary_opcode(op))
+                                + field_name)
                                    .str();
+        }
+        else if (array_assignment && !array_size.empty())
+        {
+            temp_array_variable = table_navigation_t::get_variable_name("temp_array", llvm::StringMap<string>());
+            replacement_text = (Twine("([&]() mutable {")
+                                + writer_variable_prefix
+                                + "auto "
+                                + temp_array_variable).str();
         }
         else
         {
-            replacement_text = (Twine("[&]() mutable {auto ")
-                                + writer_variable
-                                + " = "
-                                + variable_name
-                                + ".writer(); "
+            replacement_text = (Twine("([&]() mutable {")
+                                + writer_variable_prefix
                                 + writer_variable
                                 + "."
-                                + field_name
-                                + convert_compound_binary_opcode(op))
+                                + field_name)
                                    .str();
         }
 
         if (array_assignment && !array_size.empty())
         {
-            set_source_range.setEnd(op->getRHS()->getSourceRange().getEnd());
-        }
-        else if (array_expression_source_range.isValid())
-        {
-            set_source_range.setEnd(Lexer::findLocationAfterToken(
-                                        array_expression_source_range.getEnd(), token_kind, m_rewriter.getSourceMgr(),
-                                        m_rewriter.getLangOpts(), true)
-                                        .getLocWithOffset(-1));
-        }
-        else if (left_declaration_expression != nullptr)
-        {
-            set_source_range.setEnd(Lexer::findLocationAfterToken(
-                                        set_source_range.getBegin(), token_kind, m_rewriter.getSourceMgr(),
-                                        m_rewriter.getLangOpts(), true)
-                                        .getLocWithOffset(-1));
+            set_source_range.setEnd(op->getLHS()->getSourceRange().getEnd());
         }
         else
         {
-            set_source_range.setEnd(Lexer::findLocationAfterToken(
-                                        member_expression->getExprLoc(), token_kind, m_rewriter.getSourceMgr(),
-                                        m_rewriter.getLangOpts(), true)
-                                        .getLocWithOffset(-1));
+            set_source_range = operator_expression->getSourceRange();
         }
         m_rewriter.ReplaceText(set_source_range, replacement_text);
         g_rewriter_history.push_back({set_source_range, replacement_text, replace_text});
+
         if (array_assignment)
         {
             if (array_size.empty())
             {
                 replacement_text = (Twine(".to_vector(); ")
-                                    + writer_variable
-                                    + ".update_row(); return "
-                                    + variable_name
-                                    + "."
-                                    + field_name
-                                    + "();}()")
-                                       .str();
+                                + writer_variable_postfix
+                                + "return "
+                                + variable_name
+                                + "."
+                                + field_name
+                                + "();}())").str();
             }
             else
             {
-                replacement_text = (Twine("; ")
-                                    + writer_variable
-                                    + ".update_row(); return "
-                                    + variable_name
-                                    + "."
-                                    + field_name
-                                    + "();}()")
-                                       .str();
-            }
-        }
-        else if (array_expression_source_range.isValid())
-        {
-            replacement_text = (Twine("; ")
-                                + writer_variable
-                                + ".update_row(); return "
+                replacement_text = (Twine(";")
                                 + writer_variable
                                 + "."
                                 + field_name
-                                + "["
-                                + array_index_expression_code
-                                + "];}()")
-                                   .str();
+                                + "=std::vector("
+                                + temp_array_variable
+                                + ","
+                                + temp_array_variable
+                                + "+"
+                                + array_size
+                                + "); "
+                                + writer_variable_postfix
+                                + "return "
+                                + variable_name
+                                + "."
+                                + field_name
+                                + "();}())").str();
+            }
+        }
+        else if (!temp_array_variable.empty())
+        {
+            replacement_text = (Twine("; ")
+                                + writer_variable_postfix
+                                + "return "
+                                + temp_array_variable
+                                + ";}())").str();
         }
         else
         {
             replacement_text = (Twine("; ")
-                                + writer_variable
-                                + ".update_row(); return "
+                                + writer_variable_postfix
+                                + "return "
                                 + writer_variable
                                 + "."
                                 + field_name
-                                + ";}()")
+                                + ";}())")
                                    .str();
         }
-        SourceLocation operator_end_location = op->getEndLoc();
+        SourceLocation operator_end_location = op->getRHS()->getSourceRange().getEnd();
         SourceRange operator_source_range = get_statement_source_range(op, m_rewriter.getSourceMgr(), m_rewriter.getLangOpts());
         if (operator_source_range.isValid() && operator_source_range.getEnd() < operator_end_location)
         {
@@ -2394,72 +2402,6 @@ public:
     }
 
 private:
-    tok::TokenKind convert_compound_binary_opcode_token_kind(const BinaryOperator* op) const
-    {
-        switch (op->getOpcode())
-        {
-        case BO_Assign:
-            return tok::equal;
-        case BO_MulAssign:
-            return tok::starequal;
-        case BO_DivAssign:
-            return tok::slashequal;
-        case BO_RemAssign:
-            return tok::percentequal;
-        case BO_AddAssign:
-            return tok::plusequal;
-        case BO_SubAssign:
-            return tok::minusequal;
-        case BO_ShlAssign:
-            return tok::lesslessequal;
-        case BO_ShrAssign:
-            return tok::greatergreaterequal;
-        case BO_AndAssign:
-            return tok::ampequal;
-        case BO_XorAssign:
-            return tok::caretequal;
-        case BO_OrAssign:
-            return tok::pipeequal;
-        default:
-            gaiat::diag().emit(op->getOperatorLoc(), diag::err_incorrect_operator_type);
-            g_is_generation_error = true;
-            return tok::unknown;
-        }
-    }
-
-    const char* convert_compound_binary_opcode(const BinaryOperator* op) const
-    {
-        switch (op->getOpcode())
-        {
-        case BO_Assign:
-            return "=";
-        case BO_MulAssign:
-            return "*=";
-        case BO_DivAssign:
-            return "/=";
-        case BO_RemAssign:
-            return "%=";
-        case BO_AddAssign:
-            return "+=";
-        case BO_SubAssign:
-            return "-=";
-        case BO_ShlAssign:
-            return "<<=";
-        case BO_ShrAssign:
-            return ">>=";
-        case BO_AndAssign:
-            return "&=";
-        case BO_XorAssign:
-            return "^=";
-        case BO_OrAssign:
-            return "|=";
-        default:
-            gaiat::diag().emit(op->getOperatorLoc(), diag::err_incorrect_operator_code) << op->getOpcode();
-            g_is_generation_error = true;
-            return "";
-        }
-    }
-
     Rewriter& m_rewriter;
 };
 
@@ -2484,6 +2426,12 @@ public:
             g_is_generation_error = true;
             return;
         }
+
+        if (check_match_source_range(op->getSourceRange()))
+        {
+            return;
+        }
+
         const Expr* operator_expression = op->getSubExpr();
         if (operator_expression == nullptr)
         {
@@ -2492,14 +2440,12 @@ public:
             return;
         }
 
-        string array_index_expression_code;
         SourceRange array_expression_source_range;
 
         if (isa<ArraySubscriptExpr>(operator_expression))
         {
-            array_expression_source_range = operator_expression->getSourceRange();
-            array_index_expression_code = m_rewriter.getRewrittenText(
-                dyn_cast<ArraySubscriptExpr>(operator_expression)->getIdx()->getSourceRange());
+            array_expression_source_range = dyn_cast<ArraySubscriptExpr>(operator_expression)->getIdx()->getSourceRange();
+            array_expression_source_range.setEnd(dyn_cast<ArraySubscriptExpr>(operator_expression)->getRBracketLoc());
             operator_expression = dyn_cast<ArraySubscriptExpr>(operator_expression)->getBase();
         }
 
@@ -2520,6 +2466,7 @@ public:
         explicit_path_data_t explicit_path_data;
         bool explicit_path_present = true;
         string replace_string;
+        string replace_string_postfix;
         string table_name;
         string field_name;
         string variable_name;
@@ -2602,50 +2549,93 @@ public:
                 explicit_path_data.skip_implicit_path_generation = skip_implicit_navigation;
             }
         }
-        string writer_variable = table_navigation_t::get_variable_name("writer", llvm::StringMap<string>());
+        string writer_variable = get_writer_name(op->getSourceRange(), variable_name);
+        string writer_variable_prefix;
+        string writer_variable_postfix;
+
+        if (writer_variable.empty())
+        {
+            writer_variable = table_navigation_t::get_variable_name("writer", llvm::StringMap<string>());
+            g_writer_data.push_back({op->getSourceRange(), writer_variable, variable_name});
+            writer_variable_prefix = (Twine("auto ")
+                                + writer_variable
+                                + " = "
+                                + variable_name
+                                + ".writer();").str();
+            writer_variable_postfix = (Twine(writer_variable)
+                                + ".update_row();").str();
+        }
+        string temp_variable = table_navigation_t::get_variable_name("temp", llvm::StringMap<string>());
         if (op->isPostfix())
         {
-            string temp_variable = table_navigation_t::get_variable_name("temp", llvm::StringMap<string>());
             if (op->isIncrementOp())
             {
                 if (array_expression_source_range.isValid())
                 {
-                    replace_string
-                        = (Twine("[&]() mutable {auto ") + temp_variable + " = "
-                           + variable_name + "." + field_name + "()[" + array_index_expression_code + "]; auto " + writer_variable + " = "
-                           + variable_name + ".writer(); ++" + writer_variable + "." + field_name + "[" + array_index_expression_code + "]; "
-                           + writer_variable + ".update_row(); return " + temp_variable + ";}()")
-                              .str();
+                    replace_string = (Twine("([&]() mutable {")
+                            + writer_variable_prefix
+                            + "auto "
+                            + temp_variable
+                            + "="
+                            + writer_variable
+                            + "."
+                            + field_name).str();
+                    replace_string_postfix = (Twine("++;")
+                            + writer_variable_postfix
+                            + "return "
+                            + temp_variable
+                            + ";}())").str();
                 }
                 else
                 {
-                    replace_string
-                        = (Twine("[&]() mutable {auto ") + temp_variable + " = "
-                           + variable_name + "." + field_name + "(); auto " + writer_variable + " = "
-                           + variable_name + ".writer(); ++" + writer_variable + "." + field_name + "; "
-                           + writer_variable + ".update_row(); return " + temp_variable + ";}()")
-                              .str();
+                    replace_string = (Twine("([&]() mutable {")
+                        + writer_variable_prefix
+                        + "auto "
+                        + temp_variable
+                        + "="
+                        + writer_variable
+                        + "."
+                        + field_name
+                        + "++; "
+                        + writer_variable_postfix
+                        + "return "
+                        + temp_variable
+                        + ";}())").str();
                 }
             }
             else if (op->isDecrementOp())
             {
                 if (array_expression_source_range.isValid())
                 {
-                    replace_string
-                        = (Twine("[&]() mutable {auto ") + temp_variable + " = "
-                           + variable_name + "." + field_name + "()[" + array_index_expression_code + "]; auto " + writer_variable + " = "
-                           + variable_name + ".writer(); --" + writer_variable + "." + field_name + "[" + array_index_expression_code + "]; "
-                           + writer_variable + ".update_row(); return " + temp_variable + ";}()")
-                              .str();
+                    replace_string = (Twine("([&]() mutable {")
+                            + writer_variable_prefix
+                            + "auto "
+                            + temp_variable
+                            + "="
+                            + writer_variable
+                            + "."
+                            + field_name).str();
+                    replace_string_postfix = (Twine("--;")
+                            + writer_variable_postfix
+                            + "return "
+                            + temp_variable
+                            + ";}())").str();
                 }
                 else
                 {
-                    replace_string
-                        = (Twine("[&]() mutable {auto ") + temp_variable + " = "
-                           + variable_name + "." + field_name + "(); auto " + writer_variable + " = "
-                           + variable_name + ".writer(); --" + writer_variable + "." + field_name + "; "
-                           + writer_variable + ".update_row(); return " + temp_variable + ";}()")
-                              .str();
+                    replace_string = (Twine("([&]() mutable {")
+                        + writer_variable_prefix
+                        + "auto "
+                        + temp_variable
+                        + "="
+                        + writer_variable
+                        + "."
+                        + field_name
+                        + "--; "
+                        + writer_variable_postfix
+                        + "return "
+                        + temp_variable
+                        + ";}())").str();
                 }
             }
         }
@@ -2655,42 +2645,70 @@ public:
             {
                 if (array_expression_source_range.isValid())
                 {
-                    replace_string
-                        = (Twine("[&]() mutable {auto ") + writer_variable + " = " + variable_name
-                           + ".writer(); ++" + writer_variable + "." + field_name + "[" + array_index_expression_code + "]"
-                           + ";" + writer_variable + ".update_row(); return " + writer_variable
-                           + "." + field_name + "[" + array_index_expression_code + "];}()")
-                              .str();
+                    replace_string = (Twine("([&]() mutable {")
+                            + writer_variable_prefix
+                            + "auto "
+                            + temp_variable
+                            + "= ++"
+                            + writer_variable
+                            + "."
+                            + field_name).str();
+                    replace_string_postfix = (Twine(";")
+                            + writer_variable_postfix
+                            + "return "
+                            + temp_variable
+                            + ";}())").str();
                 }
                 else
                 {
-                    replace_string
-                        = (Twine("[&]() mutable {auto ") + writer_variable + " = " + variable_name
-                           + ".writer(); ++" + writer_variable + "." + field_name
-                           + ";" + writer_variable + ".update_row(); return " + writer_variable
-                           + "." + field_name + ";}()")
-                              .str();
+                    replace_string = (Twine("([&]() mutable {")
+                        + writer_variable_prefix
+                        + "auto "
+                        + temp_variable
+                        + "= ++"
+                        + writer_variable
+                        + "."
+                        + field_name
+                        + "; "
+                        + writer_variable_postfix
+                        + "return "
+                        + temp_variable
+                        + ";}())").str();
                 }
             }
             else if (op->isDecrementOp())
             {
                 if (array_expression_source_range.isValid())
                 {
-                    replace_string
-                        = (Twine("[&]() mutable {auto ") + writer_variable + " = " + variable_name
-                           + ".writer(); --" + writer_variable + "." + field_name + "[" + array_index_expression_code + "]"
-                           + ";" + writer_variable + ".update_row(); return " + writer_variable
-                           + "." + field_name + "[" + array_index_expression_code + "];}()")
-                              .str();
+                    replace_string = (Twine("([&]() mutable {")
+                            + writer_variable_prefix
+                            + "auto "
+                            + temp_variable
+                            + "= --"
+                            + writer_variable
+                            + "."
+                            + field_name).str();
+                    replace_string_postfix = (Twine(";")
+                            + writer_variable_postfix
+                            + "return "
+                            + temp_variable
+                            + ";}())").str();
                 }
                 else
                 {
-                    replace_string
-                        = (Twine("[&]() mutable {auto ") + writer_variable + " = " + variable_name
-                           + ".writer(); --" + writer_variable + "." + field_name + "[" + array_index_expression_code + "]"
-                           + ";" + writer_variable + ".update_row(); return " + writer_variable
-                           + "." + field_name + +"[" + array_index_expression_code + "];}()")
-                              .str();
+                    replace_string = (Twine("([&]() mutable {")
+                        + writer_variable_prefix
+                        + "auto "
+                        + temp_variable
+                        + "= --"
+                        + writer_variable
+                        + "."
+                        + field_name
+                        + "; "
+                        + writer_variable_postfix
+                        + "return "
+                        + temp_variable
+                        + ";}())").str();
                 }
             }
         }
@@ -2712,12 +2730,30 @@ public:
             op_end_location_offset = 0;
         }
 
-        m_rewriter.ReplaceText(
-            SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(op_end_location_offset)),
-            replace_string);
-        g_rewriter_history.push_back(
-            {SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(op_end_location_offset)),
-             replace_string, replace_text});
+        if (!replace_string_postfix.empty())
+        {
+            m_rewriter.ReplaceText(
+                SourceRange(op->getBeginLoc().getLocWithOffset(-1), array_expression_source_range.getBegin().getLocWithOffset(-2)),
+                replace_string);
+            m_rewriter.ReplaceText(
+                SourceRange(array_expression_source_range.getEnd().getLocWithOffset(1), op->getEndLoc().getLocWithOffset(op_end_location_offset)),
+                replace_string_postfix);
+            g_rewriter_history.push_back(
+                {SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(op_end_location_offset)),
+                replace_string, replace_text});
+            g_rewriter_history.push_back(
+                {SourceRange(op->getBeginLoc().getLocWithOffset(-1), op->getEndLoc().getLocWithOffset(op_end_location_offset)),
+                replace_string, replace_text});
+        }
+        else
+        {
+            m_rewriter.ReplaceText(
+                SourceRange(op->getBeginLoc(), op->getEndLoc().getLocWithOffset(op_end_location_offset)),
+                replace_string);
+            g_rewriter_history.push_back(
+                {SourceRange(op->getBeginLoc(), op->getEndLoc().getLocWithOffset(op_end_location_offset)),
+                replace_string, replace_text});
+        }
         unsigned int token_length = Lexer::MeasureTokenLength(op->getEndLoc(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;
         int offset = uint_to_int(op->getBeginLoc(), token_length);
 
@@ -3105,12 +3141,22 @@ public:
 
         if (event_expression != nullptr)
         {
+            if (check_match_source_range(event_expression->getSourceRange()))
+            {
+                return;
+            }
+
             expression_source_range = SourceRange(event_expression->getBeginLoc(), event_expression->getEndLoc());
             replacement_text = "context->event_type";
         }
 
         if (type_expression != nullptr)
         {
+            if (check_match_source_range(type_expression->getSourceRange()))
+            {
+                return;
+            }
+
             expression_source_range = SourceRange(type_expression->getBeginLoc(), type_expression->getEndLoc());
             replacement_text = "context->gaia_type";
         }
