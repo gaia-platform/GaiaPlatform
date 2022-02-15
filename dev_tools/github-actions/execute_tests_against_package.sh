@@ -202,7 +202,7 @@ fi
 
 ## PER JOB CONFIGURATION ##
 
-if [ "$JOB_NAME" == "Integration_Tests" ] | [ "$JOB_NAME" == "Performance_Tests" ] ; then
+if [ "$JOB_NAME" == "Integration_Tests" ] || [ "$JOB_NAME" == "Performance_Tests" ] ; then
 
     cd "$GAIA_REPO/production/tests" || exit
 
