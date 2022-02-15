@@ -130,6 +130,7 @@ struct insert_data_t
     llvm::StringMap<SourceRange> argument_map;
     llvm::DenseMap<SourceRange, string> argument_replacement_map;
     llvm::StringSet<> argument_table_names;
+    llvm::SmallVector<SourceRange, c_size_8> init_list_insert_argument_list;
 };
 
 struct writer_data_t
@@ -672,6 +673,14 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
     if (g_is_generation_error)
     {
         return;
+    }
+
+    for (auto& insert_data : g_insert_data)
+    {
+        for (const auto& init_list_data : insert_data.init_list_insert_argument_list)
+        {
+            insert_data.argument_replacement_map[init_list_data] = rewriter.getRewrittenText(init_list_data);
+        }
     }
 
     for (auto& insert_data : g_insert_data)
@@ -1993,7 +2002,8 @@ public:
             {
                 for (auto& insert_data_argument_range_iterator : insert_data.argument_replacement_map)
                 {
-                    if (is_range_contained_in_another_range(expression_source_range, insert_data_argument_range_iterator.first))
+                    if (is_range_contained_in_another_range(expression_source_range, insert_data_argument_range_iterator.first)
+                        || is_range_contained_in_another_range(insert_data_argument_range_iterator.first, expression_source_range))
                     {
                         if (insert_data_argument_range_iterator.second.empty())
                         {
@@ -3417,7 +3427,11 @@ public:
                 argument_type = dyn_cast<ImplicitCastExpr>(argument)->getSubExpr()->getType();
             }
 
-            if (argument_type->isArrayType() && !isa<InitListExpr>(argument))
+            if (isa<InitListExpr>(argument))
+            {
+                insert_data.init_list_insert_argument_list.push_back(argument->getSourceRange());
+            }
+            else if (argument_type->isArrayType())
             {
                 is_array = true;
                 if (argument_type->isConstantArrayType())
