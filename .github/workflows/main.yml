@@ -75,6 +75,7 @@ jobs:
     needs:
       - Lint
       - Third-Party
+#    if: github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -205,7 +206,7 @@ jobs:
   Integration_Samples:
     needs: SDK
     runs-on: ubuntu-20.04
-    if: github.event_name != 'pull_request'
+#    if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
