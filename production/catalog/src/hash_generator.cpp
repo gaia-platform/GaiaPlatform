@@ -31,7 +31,7 @@ static void add_index_hashes(multi_segment_hash& table_hash, gaia_index_t& index
     hashes.hash_add(index.type());
     for (size_t field_position = 0; field_position < index.fields().size(); ++field_position)
     {
-        hashes.hash_add(field_position);
+        hashes.hash_add(index.fields()[field_position]);
     }
     hashes.hash_calc();
     table_hash.hash_include(hashes.hash());
@@ -77,14 +77,14 @@ static void add_relationship_hashes(multi_segment_hash& table_hash, gaia_relatio
         parent_position < relationship.parent_field_positions().size();
         ++parent_position)
     {
-        hashes.hash_add(parent_position);
+        hashes.hash_add(relationship.parent_field_positions()[parent_position]);
     }
     for (
         size_t child_position = 0;
         child_position < relationship.child_field_positions().size();
         ++child_position)
     {
-        hashes.hash_add(child_position);
+        hashes.hash_add(relationship.parent_field_positions()[child_position]);
     }
     auto relationship_w = relationship.writer();
     hashes.hash_calc();

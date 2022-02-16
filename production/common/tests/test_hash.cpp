@@ -34,8 +34,7 @@ TEST(hash_test, murmur3_32)
 
 TEST(hash_test, murmur3_128)
 {
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-    uint8_t expected_hash_values[c_test_case_num][16] = {
+    uint8_t expected_hash_values[c_test_case_num][c_bytes_per_long_hash] = {
         {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
         {0x66, 0xb3, 0xcc, 0x85, 0x4e, 0x58, 0xc4, 0xee, 0x19, 0x0d, 0xb3, 0xc8, 0x75, 0x84, 0x26, 0xe6},
         {0x9e, 0x83, 0x53, 0x76, 0x2c, 0x85, 0x1e, 0xc8, 0x76, 0xef, 0x7a, 0x5f, 0x0e, 0x8a, 0x5c, 0x0b},
@@ -61,18 +60,39 @@ TEST(hash_test, murmur3_128)
 
 TEST(hash_test, multi_segment_hash)
 {
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
-    uint8_t expected_hash_values[16]
+    uint8_t expected_hash_values[c_bytes_per_long_hash]
         = {0x61, 0xd8, 0x35, 0x12, 0x6d, 0x38, 0x2e, 0x3a, 0x89, 0xd6, 0x70, 0xa9, 0xae, 0xb4, 0x4c, 0x7b};
+    // This is the ASCII representation of the hex bytes above.
+    const char expected_hash_string[] = "61d835126d382e3a89d670a9aeb44c7b";
 
     multi_segment_hash hashes;
     uint8_t hash_value[c_bytes_per_long_hash];
 
+    // Mash all of the keys into a single hash.
     for (size_t i = 0; i < c_test_case_num; i++)
     {
         hashes.hash_add(keys[i]);
     }
 
+    // Lock in the hash value and compare to known result.
     hashes.hash_calc(hash_value);
     EXPECT_EQ(std::memcmp(expected_hash_values, hash_value, c_bytes_per_long_hash), 0);
+
+    // Compare the ASCII representation to the object's string conversion.
+    char* hash_string = hashes.to_string();
+    EXPECT_STREQ(hash_string, expected_hash_string);
+
+    // Convert the string back back to bytes and compare again.
+    uint8_t converted_hash_values[c_bytes_per_long_hash];
+    char one_byte[3];
+    uint32_t int_byte;
+    for (size_t byte = 0; byte < c_bytes_per_long_hash; ++byte)
+    {
+        one_byte[0] = hash_string[byte * 2];
+        one_byte[1] = hash_string[byte * 2 + 1];
+        one_byte[2] = '\0';
+        sscanf(one_byte, "%2x", &int_byte);
+        converted_hash_values[byte] = static_cast<uint8_t>(int_byte);
+    }
+    EXPECT_EQ(std::memcmp(expected_hash_values, converted_hash_values, c_bytes_per_long_hash), 0);
 }
