@@ -1,4 +1,5 @@
 from test.gdev_execute import MainlineExecutor, determine_old_script_behavior, determine_repository_production_directory, SubprocessExecutor, determine_repository_base_directory
+from gdev.host import Host
 
 def get_executor():
     return SubprocessExecutor()
@@ -170,16 +171,18 @@ def __find_and_remove(line_to_look_in, part_to_look_for, look_at_end=False, sear
 
 def __construct_base_build_line(is_using_mixins=False):
 
-    xx = 'custom' if is_using_mixins else 'run'
-    return f"-f {determine_repository_base_directory()}/.gdev/production/{xx}.dockerfile.gdev " + \
-        f"-t production__{xx}:latest --label GitHash=\"9998234cadd975da9d956c981f3b7a64f11209e1\" " + \
+    current_hash = Host.execute_and_get_line_sync('git rev-parse HEAD')
+
+    run_type = 'custom' if is_using_mixins else 'run'
+    return f"-f {determine_repository_base_directory()}/.gdev/production/{run_type}.dockerfile.gdev " + \
+        f"-t production__{run_type}:latest --label GitHash=\"{current_hash}\" " + \
         "--build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb " + \
         f"--ssh default  {determine_repository_base_directory()}"
 
 def __construct_base_run_command_line(is_using_mixins=False):
-    xx = 'custom' if is_using_mixins else 'run'
-    return f"--rm --init --entrypoint /bin/bash --hostname production__{xx} --platform linux/amd64 " + \
-        f"--privileged  --volume {determine_repository_base_directory()}:/source production__{xx}:latest"
+    run_type = 'custom' if is_using_mixins else 'run'
+    return f"--rm --init --entrypoint /bin/bash --hostname production__{run_type} --platform linux/amd64 " + \
+        f"--privileged  --volume {determine_repository_base_directory()}:/source production__{run_type}:latest"
 
 
 def test_show_cfg():
