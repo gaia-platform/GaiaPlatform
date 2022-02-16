@@ -130,7 +130,7 @@ elif [ "$ACTION_NAME" == "publish_package" ] ; then
         complete_process 1 "Failed to read the Gaia Package Name from gaia_package_name.txt"
     fi
     echo "Gaia Package Name is: $GAIA_PACKAGE_NAME"
-   
+
     if ! cpack -V ; then
         complete_process 1 "Failed to package the build into file $GAIA_PACKAGE_NAME.deb"
     fi
