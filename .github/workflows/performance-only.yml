@@ -1,5 +1,5 @@
 ---
-name: Integration Tests Only
+name: Performance Tests Only
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ env:
   DEV_IMAGE: ghcr.io/gaia-platform/dev-base-gaia-platform:latest
 
 jobs:
-  Integration_Tests:
+  Performance_Tests:
     runs-on: ubuntu-20.04
     timeout-minutes: 7
     env:
@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         persistence: [enabled, disabled]
-        suite-name: [smoke,marcopolo,pingpong,palletbox]
+        suite-name: [mink-perf,pingpong-perf,marcopolo-perf,palletbox-perf]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -35,7 +35,7 @@ jobs:
           name: SDK Install Package
           path: ${{ github.workspace }}/packages
 
-      - name: Run Integration Tests
+      - name: Run Performance Tests
         uses: ./.github/actions/integration-test-job
         with:
           gaia-repo: ${{ github.workspace }}

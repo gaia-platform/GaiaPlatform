@@ -9,12 +9,24 @@
 echo "Into script."
 set -e
 
-# Start the db server.
-gaia_db_server --reset-data-store &
-sleep 1
+# Under normal testing circumstances, we have a fresh install of the SDK and
+# the service is already running.  If that is not the case, either start the
+# gaia service or start a new instance of the database with something similar
+# to:
+#
+# gaia_db_server --reset-data-store &
+#
+# OR
+#
+# sudo systemctl start gaia
+
+if ! pgrep -f "gaia_db_server" > /dev/null 2>&1 ; then
+    echo "Database is not currently running.  Please start gaia_db_server and try again."
+    exit 1
+fi
 
 # Make incubator example.
-echo "Create clean incubator directory"
+echo "Create clean inc"
 rm -rf ./incubator
 cp -r /opt/gaia/examples/incubator .
 pushd incubator
@@ -29,7 +41,7 @@ popd
 popd
 
 # Make and execute Hello World example.
-echo "Create clean hello directory"
+echo "Create clean hello"
 rm -rf ./hello
 cp -r /opt/gaia/examples/hello .
 pushd hello
@@ -39,6 +51,3 @@ echo "Run the example."
 ./run.sh
 echo "Example has been run."
 popd
-
-# Stop the db server.
-pkill -f gaia_db_server
