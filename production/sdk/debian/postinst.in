@@ -31,15 +31,13 @@ if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || [ "$1" = "abort-decon
         if [ -d /run/systemd/system ]; then
             systemctl --system daemon-reload >/dev/null || true
             if [ -n "$2" ]; then
-                    _dh_action=restart
+                _dh_action=restart
             else
-                    _dh_action=start
+                _dh_action=start
             fi
             deb-systemd-invoke $_dh_action 'gaia.service' >/dev/null || true
         fi
     else
         deb-systemd-helper mask 'gaia.service' >/dev/null || true
-        db_input high gaia/service-masked
-        db_go
     fi
 fi
