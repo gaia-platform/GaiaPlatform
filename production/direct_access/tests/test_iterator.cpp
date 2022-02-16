@@ -48,7 +48,7 @@ void read_work(size_t id, size_t wait_in_ms)
     bool found = false;
     size_t iteration_number = 0;
 
-    gaia::db::begin_session();
+    begin_session();
 
     // Keep running until a request to stop execution
     // or we reached our iteration count.
@@ -94,7 +94,7 @@ void read_work(size_t id, size_t wait_in_ms)
     }
     commit_transaction();
 
-    gaia::db::end_session();
+    end_session();
 
     std::cout
         << "R" << id << "> " << iteration_number << "/" << size << "/" << name
@@ -119,7 +119,7 @@ void update_work(size_t id, size_t wait_in_ms)
     size_t update_count = 0;
     size_t conflict_count = 0;
 
-    gaia::db::begin_session();
+    begin_session();
 
     // Keep running until a request to stop execution.
     // This is done so that updater threads don't outlast the reader ones.
@@ -193,7 +193,7 @@ void update_work(size_t id, size_t wait_in_ms)
     }
     commit_transaction();
 
-    gaia::db::end_session();
+    end_session();
 
     std::cout
         << "U" << id << "> Iteration: " << iteration_number << "/" << size << "/" << name
