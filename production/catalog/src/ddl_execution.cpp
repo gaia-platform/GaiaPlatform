@@ -482,6 +482,8 @@ void load_catalog(ddl::parser_t& parser, const std::string& ddl_filename)
     parser.parse_string(buffer.str());
     execute(parser.statements);
 
+    // Scan through the catalog and construct hashes for each non-system
+    // catalog gaia_{database,table,index,field,relationship}.
     add_catalog_hashes();
 }
 

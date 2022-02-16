@@ -124,7 +124,7 @@ void murmur3_128(const void* key, const size_t len, void* out)
 {
     auto data = static_cast<const uint8_t*>(key);
 
-    const size_t nblocks = len / 16;
+    const size_t nblocks = len / c_bytes_per_long_hash;
 
     uint64_t h1 = len;
     uint64_t h2 = len;
@@ -168,7 +168,7 @@ void murmur3_128(const void* key, const size_t len, void* out)
     //----------
     // tail
 
-    auto tail = static_cast<const uint8_t*>(data + nblocks * 16);
+    auto tail = static_cast<const uint8_t*>(data + nblocks * c_bytes_per_long_hash);
 
     uint64_t k1 = 0;
     uint64_t k2 = 0;
@@ -240,7 +240,7 @@ void murmur3_128(const void* key, const size_t len, void* out)
 // Add a hash to the composite resulting from a cstring.
 void multi_segment_hash::hash_add(const char* key)
 {
-    uint8_t hash[c_long_hash_value_length];
+    uint8_t hash[c_bytes_per_long_hash];
     murmur3_128(key, strlen(key), hash);
     hash_include(hash);
 }
@@ -248,7 +248,7 @@ void multi_segment_hash::hash_add(const char* key)
 // Add a hash to the composite resulting from a float.
 void multi_segment_hash::hash_add(float key)
 {
-    uint8_t hash[c_long_hash_value_length];
+    uint8_t hash[c_bytes_per_long_hash];
     murmur3_128(&key, sizeof(key), hash);
     hash_include(hash);
 }
@@ -256,7 +256,7 @@ void multi_segment_hash::hash_add(float key)
 // Add a hash to the composite resulting from a double.
 void multi_segment_hash::hash_add(double key)
 {
-    uint8_t hash[c_long_hash_value_length];
+    uint8_t hash[c_bytes_per_long_hash];
     murmur3_128(&key, sizeof(key), hash);
     hash_include(hash);
 }
@@ -264,7 +264,7 @@ void multi_segment_hash::hash_add(double key)
 // Add a hash to the composite resulting from a boolean value.
 void multi_segment_hash::hash_add(bool key)
 {
-    uint8_t hash[c_long_hash_value_length];
+    uint8_t hash[c_bytes_per_long_hash];
 
     // We want non-zero keys. This will ensure boolean's are hashed
     // with non-zero but different keys.
@@ -284,21 +284,22 @@ void multi_segment_hash::hash_add(bool key)
 // Add a hash value to the composite.
 void multi_segment_hash::hash_include(const uint8_t* hash_in)
 {
-    m_hashes.insert(m_hashes.end(), hash_in, hash_in + c_long_hash_value_length);
+    m_hashes.insert(m_hashes.end(), hash_in, hash_in + c_bytes_per_long_hash);
 }
 
 // Return the hash of all included hashes.
 void multi_segment_hash::hash_calc(uint8_t* hash_out)
 {
     hash_calc();
-    memcpy(hash_out, m_hash, c_long_hash_value_length);
+    memcpy(hash_out, m_hash, c_bytes_per_long_hash);
 }
 
 void multi_segment_hash::hash_calc()
 {
-    if (m_hashes.size() == 16)
+    // If there is only one has included, don't hash it against itself.
+    if (m_hashes.size() == c_bytes_per_long_hash)
     {
-        std::memcpy(m_hash, m_hashes.data(), c_long_hash_value_length);
+        std::memcpy(m_hash, m_hashes.data(), c_bytes_per_long_hash);
     }
     else
     {
@@ -308,7 +309,7 @@ void multi_segment_hash::hash_calc()
 
 char* multi_segment_hash::to_string()
 {
-    for (size_t i = 0; i < c_long_hash_value_length; ++i)
+    for (size_t i = 0; i < c_bytes_per_long_hash; ++i)
     {
         sprintf(m_hash_string + i * 2, "%02x", m_hash[i]);
     }

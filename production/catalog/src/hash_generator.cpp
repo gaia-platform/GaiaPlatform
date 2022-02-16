@@ -22,12 +22,17 @@ namespace gaia
 namespace catalog
 {
 
+// Calculate and store a hash for this index. Include it in it's table.
 static void add_index_hashes(multi_segment_hash& table_hash, gaia_index_t& index)
 {
     multi_segment_hash hashes;
     hashes.hash_add(index.name());
     hashes.hash_add(index.unique());
     hashes.hash_add(index.type());
+    for (size_t field_position = 0; field_position < index.fields().size(); ++field_position)
+    {
+        hashes.hash_add(field_position);
+    }
     hashes.hash_calc();
     table_hash.hash_include(hashes.hash());
     auto index_w = index.writer();
@@ -35,6 +40,7 @@ static void add_index_hashes(multi_segment_hash& table_hash, gaia_index_t& index
     index_w.update_row();
 }
 
+// Calculate and store a hash for this field. Include it in it's table.
 static void add_field_hashes(multi_segment_hash& table_hash, gaia_field_t& field)
 {
     multi_segment_hash hashes;
@@ -52,6 +58,7 @@ static void add_field_hashes(multi_segment_hash& table_hash, gaia_field_t& field
     field_w.update_row();
 }
 
+// Calculate and store a hash for this relationship. Include it in it's table.
 static void add_relationship_hashes(multi_segment_hash& table_hash, gaia_relationship_t& relationship)
 {
     if (relationship.deprecated())
@@ -86,6 +93,7 @@ static void add_relationship_hashes(multi_segment_hash& table_hash, gaia_relatio
     relationship_w.update_row();
 }
 
+// For every catalog row that defines this database, calculate and store its hash.
 void add_catalog_hashes(const std::string db_name)
 {
     begin_transaction();
@@ -144,6 +152,7 @@ void add_catalog_hashes(const std::string db_name)
     commit_transaction();
 }
 
+// Apply this algorithm on all non-system databases.
 void add_catalog_hashes()
 {
     vector<string> db_name_list;

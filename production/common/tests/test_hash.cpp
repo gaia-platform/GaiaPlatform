@@ -44,18 +44,18 @@ TEST(hash_test, murmur3_128)
 
     for (size_t i = 0; i < c_test_case_num; i++)
     {
-        uint8_t hash_value[c_long_hash_value_length];
+        uint8_t hash_value[c_bytes_per_long_hash];
         murmur3_128(keys[i], strlen(keys[i]), hash_value);
-        EXPECT_EQ(memcmp(expected_hash_values[i], hash_value, c_long_hash_value_length), 0);
+        EXPECT_EQ(memcmp(expected_hash_values[i], hash_value, c_bytes_per_long_hash), 0);
     }
 
     for (size_t i = 0; i < c_test_case_num; i++)
     {
         multi_segment_hash hashes;
-        uint8_t hash_value[c_long_hash_value_length];
+        uint8_t hash_value[c_bytes_per_long_hash];
         hashes.hash_add(keys[i]);
         hashes.hash_calc(hash_value);
-        EXPECT_EQ(memcmp(expected_hash_values[i], hash_value, c_long_hash_value_length), 0);
+        EXPECT_EQ(memcmp(expected_hash_values[i], hash_value, c_bytes_per_long_hash), 0);
     }
 }
 
@@ -66,7 +66,7 @@ TEST(hash_test, multi_segment_hash)
         = {0x61, 0xd8, 0x35, 0x12, 0x6d, 0x38, 0x2e, 0x3a, 0x89, 0xd6, 0x70, 0xa9, 0xae, 0xb4, 0x4c, 0x7b};
 
     multi_segment_hash hashes;
-    uint8_t hash_value[c_long_hash_value_length];
+    uint8_t hash_value[c_bytes_per_long_hash];
 
     for (size_t i = 0; i < c_test_case_num; i++)
     {
@@ -74,5 +74,5 @@ TEST(hash_test, multi_segment_hash)
     }
 
     hashes.hash_calc(hash_value);
-    EXPECT_EQ(std::memcmp(expected_hash_values, hash_value, c_long_hash_value_length), 0);
+    EXPECT_EQ(std::memcmp(expected_hash_values, hash_value, c_bytes_per_long_hash), 0);
 }
