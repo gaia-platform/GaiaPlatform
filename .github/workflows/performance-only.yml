@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         persistence: [enabled, disabled]
-        suite-name: [mink-perf,pingpong-perf,marcopolo-perf]
+        suite-name: [mink-perf,pingpong-perf,marcopolo-perf,palletbox-perf]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
