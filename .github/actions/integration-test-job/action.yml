@@ -37,6 +37,7 @@ runs:
       if: ${{ inputs.allow_cached_sdk }} == 'true'
       shell: bash
       run: |
+        echo "allow_cached_sdk = ${{ inputs.allow_cached_sdk }}"
         if [ "$(ls -A ${{ github.workspace }}/packages)" ]; then
           echo "SDK=present" >> $GITHUB_ENV
         else
@@ -44,7 +45,7 @@ runs:
         fi
 
     - name: Cache Last Successful Install Package
-      if: ${{ env.SDK }} != 'present' && ${{ inputs.allow_cached_sdk }} == 'true'
+      if: ${{ env.SDK }} == 'not-present' && ${{ inputs.allow_cached_sdk }} == 'true'
       uses: actions/cache@v2
       with:
         path: ${{ inputs.gaia-repo }}/packages
