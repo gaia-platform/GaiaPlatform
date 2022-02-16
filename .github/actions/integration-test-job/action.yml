@@ -1,0 +1,66 @@
+# Title:      Integration Test Job Action
+# Purpose:    To run a single integration test suite against the specified SDL build.
+# Prereqs:    - `actions/checkout`
+# Inputs:     - `gaia-repo` - root of the GAIA repository on the file system
+#             - `job-name` - name of the job that contains the call to this action
+# Notes:      - None
+---
+name: 'Integration Test Job'
+description: 'Execute a single integration test suite against a SDK.'
+inputs:
+  gaia-repo:
+    description: 'Repository location'
+    required: true
+  job-name:
+    description: 'Name of the job this is being called from'
+    required: true
+  suite-name:
+    description: 'Name of the integration suite to be executed'
+    required: true
+  db-persistence:
+    description: 'Whether database persistence should be enabled or disabled'
+    required: true
+runs:
+  using: "composite"
+  steps:
+
+    - name: Setup Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Check for Previously Downloaded SDK Package
+      shell: bash
+      run: |
+        if [ "$(ls -A ${{ github.workspace }}/packages)" ]; then
+          echo "SDK=present" >> $GITHUB_ENV
+        else
+          echo "SDK=not-present" >> $GITHUB_ENV
+        fi
+
+    - name: Cache Last Successful Install Package
+      if: ${{ env.SDK }} != 'present'
+      uses: actions/cache@v2
+      with:
+        path: ${{ inputs.gaia-repo }}/packages
+        key: latest-release-sdk-package
+
+    - name: Tests
+      working-directory: ${{ inputs.gaia-repo }}
+      shell: bash
+      run: |
+        ${{ inputs.gaia-repo }}/dev_tools/github-actions/execute_tests_against_package.sh \
+          --verbose \
+          --job-name ${{ inputs.job-name }} \
+          --repo-path ${{ inputs.gaia-repo }} \
+          --db-persistence ${{ inputs.db-persistence }} \
+          --suite-name ${{ inputs.suite-name }} \
+          --package ${{ inputs.gaia-repo }}/packages
+
+    - name: Upload Output Files
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: Test ${{ matrix.suite-name }} With Persistence ${{ matrix.persistence }} Output Files
+        path: |
+          ${{ inputs.gaia-repo }}/production/tests/results
