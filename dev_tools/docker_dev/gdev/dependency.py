@@ -25,8 +25,9 @@ import argparse
 @dataclass(frozen=True)
 class Dependency:
     """
-    Bob-->Dependency(options: 'Options')
+    Bob.Dependency
     """
+
     # The gdev CLI uses docstrings in the help output. This is what they'll see if a subclass does
     # not provide a docstring.
 
@@ -83,8 +84,7 @@ class Dependency:
         def add_flags(parser: ArgumentParser) -> None:
 
             parser.add_argument(
-                "--x-level-1",
-                dest="x_level_1",
+                "--dry-dock",
                 action="store_true",
                 default=False,
                 help=argparse.SUPPRESS,
@@ -130,6 +130,7 @@ class Dependency:
                 help='Force Docker to build with local changes.'
             )
 
+            # Dockerfile, and above
             mixins_default = []
             parser.add_argument(
                 '--mixins',
@@ -161,6 +162,8 @@ class Dependency:
                     f' "{" ".join(mounts_default)}"'
                 )
             )
+
+            # Build +
             platform_default = {
                 'x86_64': 'amd64',
                 'aarch64': 'arm64',
@@ -171,6 +174,7 @@ class Dependency:
                 choices=['amd64', 'arm64'],
                 help=f'Platform to build upon. Default: "{platform_default}"'
             )
+
             ports_default = []
             parser.add_argument(
                 '-p', '--ports',
@@ -179,6 +183,8 @@ class Dependency:
                 type=int,
                 help=f'Ports to expose in underlying docker container. Default: "{ports_default}"'
             )
+
+            # Build +
             registry_default = None
             parser.add_argument(
                 '--registry',
@@ -255,9 +261,9 @@ class Dependency:
             import sys
             sys.exit(1)
 
-        if parsed_args['x_level_1']:
-            Host.xx(True)
-            del parsed_args['x_level_1']
+        if 'dry_dock' in parsed_args:
+            Host.set_drydock(parsed_args['dry_dock'])
+            del parsed_args['dry_dock']
 
         if parsed_args['args'] and parsed_args['args'][0] == '--':
             parsed_args['args'] = parsed_args['args'][1:]

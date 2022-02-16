@@ -122,12 +122,12 @@ class Dependency:
     def get_parser() -> ArgumentParser:
         def add_flags(parser: ArgumentParser) -> None:
 
+            # This has been specifically added to allow backwards compatibility testing.
             parser.add_argument(
-                "--x-level-1",
-                dest="x_level_1",
+                "--dry-dock",
                 action="store_true",
                 default=False,
-                #help=argparse.SUPPRESS,
+                help=argparse.SUPPRESS,
             )
 
             base_image_default = 'ubuntu:20.04'
@@ -277,8 +277,10 @@ class Dependency:
             import sys
             sys.exit(1)
 
-        if parsed_args.x_level_1:
-            Host.xx(True)
+        # This has been specifically added to allow backwards compatibility testing.
+        if 'dry_dock' in parsed_args:
+            Host.set_drydock(parsed_args['dry_dock'])
+            del parsed_args['dry_dock']
 
         if parsed_args['args'] and parsed_args['args'][0] == '--':
             parsed_args['args'] = parsed_args['args'][1:]

@@ -14,19 +14,24 @@ log = getLogger(__name__)
 @dataclass(frozen=True)
 class Host:
 
-    __xx = False
+    __is_drydock_enabled = False
 
     """
     Class to handle communications with the host system.
     """
     @staticmethod
-    def xx(value):
-        Host.__xx = value
+    def set_drydock(value):
+        Host.__is_drydock_enabled = value
 
     @staticmethod
-    async def __finish_process(err_ok: bool, process: Process) -> Sequence[str]:
+    def is_drydock_enabled():
+        return Host.__is_drydock_enabled
+
+    @staticmethod
+    async def __finish_process(err_ok: bool, process: Process, command:str) -> Sequence[str]:
 
         stdout, stderr = await process.communicate()
+        log.debug(f'execute: return_code= {process.returncode}, command= {command}')
         if process.returncode == 0 or err_ok:
             if stdout is None:
                 return tuple()
@@ -49,17 +54,17 @@ class Host:
             stderr=PIPE if capture_output else None,
             env=os.environ,
         )
-        return await Host.__finish_process(err_ok=err_ok, process=process)
+        return await Host.__finish_process(err_ok=err_ok, process=process, command=command)
 
     @staticmethod
     async def execute(command: str, *, err_ok: bool = False) -> None:
         """
         Execute the specified command string without capturing any of the output. 
         """
-        print(">>>>>" + str(Host.__xx))
-        if Host.__xx:
+        if Host.is_drydock_enabled:
             print(f"[execute:{command}]")
-        await Host.__execute(capture_output=False, command=command, err_ok=err_ok)
+        else:
+            await Host.__execute(capture_output=False, command=command, err_ok=err_ok)
 
     @staticmethod
     async def execute_and_get_lines(command: str, *, err_ok: bool = False) -> Sequence[str]:
@@ -73,6 +78,9 @@ class Host:
         """
         Execute the specified command string and capture the single line of output. 
         """
-        lines = await Host.__execute(capture_output=True, command=command, err_ok=err_ok)
+        if Host.is_drydock_enabled and command.startswith("docker image inspect"):
+            lines = ["<no value>"]
+        else:
+            lines = await Host.__execute(capture_output=True, command=command, err_ok=err_ok)
         assert len(lines) == 1, f'Must contain one line: {lines = }'
         return lines[0]

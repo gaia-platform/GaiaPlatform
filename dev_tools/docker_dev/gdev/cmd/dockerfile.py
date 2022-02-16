@@ -8,7 +8,7 @@ from .gen.run.dockerfile import GenRunDockerfile
 
 class Dockerfile(Dependency):
     """
-    Class to encapsulate the 'cfg' subcommandxx.
+    Class to encapsulate the 'cfg' subcommand.
     """
 
     @memoize
