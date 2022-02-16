@@ -59,7 +59,7 @@ class Host:
     @staticmethod
     async def execute(command: str, *, err_ok: bool = False) -> None:
         """
-        Execute the specified command string without capturing any of the output. 
+        Execute the specified command string without capturing any of the output.
         """
         if Host.is_drydock_enabled:
             print(f"[execute:{command}]")
@@ -69,14 +69,14 @@ class Host:
     @staticmethod
     async def execute_and_get_lines(command: str, *, err_ok: bool = False) -> Sequence[str]:
         """
-        Execute the specified command string and capture the output. 
+        Execute the specified command string and capture the output.
         """
         return await Host.__execute(capture_output=True, command=command, err_ok=err_ok)
 
     @staticmethod
     async def execute_and_get_line(command: str, *, err_ok: bool = False) -> str:
         """
-        Execute the specified command string and capture the single line of output. 
+        Execute the specified command string and capture the single line of output.
         """
         if Host.is_drydock_enabled and command.startswith("docker image inspect"):
             lines = ["<no value>"]

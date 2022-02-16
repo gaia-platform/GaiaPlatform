@@ -64,7 +64,7 @@ def determine_repository_production_directory():
 def determine_old_script_behavior(gdev_arguments):
     original_gdev_script_path = os.path.realpath(os.path.join(determine_repository_base_directory(), "dev_tools", "gdev", "gdev.sh"))
     executor = SubprocessExecutor(original_gdev_script_path)
-    
+
     arguments_to_use = [original_gdev_script_path]
     arguments_to_use.extend(gdev_arguments)
 
