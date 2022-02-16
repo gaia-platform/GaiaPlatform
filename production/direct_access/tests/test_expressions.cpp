@@ -519,6 +519,30 @@ TEST_F(test_expressions, and_expr)
             .where(hire_date <= date(2021, 1, 1) && hire_date >= date(2036, 2, 7)));
 }
 
+TEST_F(test_expressions, xor_expr)
+{
+    auto_transaction_t txn;
+
+    auto employees = employee_t::list().where(
+        name_first == "Wayne"
+        ^ name_first == "Bill"
+        ^ name_first == "Cristofor");
+
+    assert_contains(employees, {wayne, bill});
+    employees = employee_t::list().where(
+        hire_date <= date(2020, 1, 10)
+        ^ hire_date >= date(2020, 5, 31)
+        ^ name_last == "Cristofor");
+
+    assert_contains(employees, {dax, bill, wayne, laurentiu, simone, mihir});
+
+    employees = employee_t::list().where(
+        hire_date <= date(1991, 1, 1)
+        ^ hire_date >= date(2036, 2, 7));
+
+    assert_empty(employees);
+}
+
 TEST_F(test_expressions, not_expr)
 {
     auto_transaction_t txn;
@@ -649,11 +673,25 @@ TEST_F(test_expressions, array)
             }),
         hooli);
 
+    assert_contains(
+        customer_t::list().where(sales_by_quarter[3] == hooli_sales[3]),
+        hooli);
+
+    assert_contains(
+        customer_t::list().where(sales_by_quarter[sales_by_quarter.size() - 1] == hooli_sales[hooli_sales.size() - 1]),
+        {hooli, pied_piper}); // pied_piper's last quarter has the same sales as hooli's quarter.
+
     assert_empty(
         customer_t::list().where(
             [](const auto& c) {
                 return c.sales_by_quarter()[0] == -1;
             }));
+
+    assert_empty(
+        customer_t::list().where(sales_by_quarter[0] == -1));
+
+    assert_non_empty(customer_t::list().where(sales_by_quarter[0] == sales_by_quarter[0]));
+    assert_non_empty(customer_t::list().where(sales_by_quarter.size() == 5));
 }
 
 TEST_F(test_expressions, one_to_one)
