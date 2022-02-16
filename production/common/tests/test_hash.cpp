@@ -6,8 +6,10 @@
 #include <gtest/gtest.h>
 
 #include "gaia_internal/common/hash.hpp"
+#include "gaia_internal/common/retail_assert.hpp"
 
 using namespace std;
+using namespace gaia::common;
 using namespace gaia::common::hash;
 
 constexpr size_t c_test_case_num = 5;
@@ -95,4 +97,17 @@ TEST(hash_test, multi_segment_hash)
         converted_hash_values[byte] = static_cast<uint8_t>(int_byte);
     }
     EXPECT_EQ(std::memcmp(expected_hash_values, converted_hash_values, c_bytes_per_long_hash), 0);
+}
+
+TEST(hash_test, bad_keys)
+{
+    // This should not result in an exception.
+    murmur3_32(nullptr, 0);
+
+    multi_segment_hash hashes;
+    // A null cstring or uint8_t pointer should result in an excepton.
+    const char* null_cstring = nullptr;
+    uint8_t* null_byte_ptr = nullptr;
+    EXPECT_THROW(hashes.hash_add(null_cstring), retail_assertion_failure);
+    EXPECT_THROW(hashes.hash_include(null_byte_ptr), retail_assertion_failure);
 }

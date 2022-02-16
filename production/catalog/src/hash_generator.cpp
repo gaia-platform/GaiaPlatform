@@ -22,43 +22,43 @@ namespace gaia
 namespace catalog
 {
 
-// Calculate and store a hash for this index. Include it in it's table.
+// Calculate and store a hash for this index. Include it in its table.
 static void add_index_hashes(multi_segment_hash& table_hash, gaia_index_t& index)
 {
-    multi_segment_hash hashes;
-    hashes.hash_add(index.name());
-    hashes.hash_add(index.unique());
-    hashes.hash_add(index.type());
+    multi_segment_hash index_hash;
+    index_hash.hash_add(index.name());
+    index_hash.hash_add(index.unique());
+    index_hash.hash_add(index.type());
     for (size_t field_position = 0; field_position < index.fields().size(); ++field_position)
     {
-        hashes.hash_add(index.fields()[field_position]);
+        index_hash.hash_add(index.fields()[field_position]);
     }
-    hashes.hash_calc();
-    table_hash.hash_include(hashes.hash());
+    index_hash.hash_calc();
+    table_hash.hash_include(index_hash.hash());
     auto index_w = index.writer();
-    index_w.hash = hashes.to_string();
+    index_w.hash = index_hash.to_string();
     index_w.update_row();
 }
 
-// Calculate and store a hash for this field. Include it in it's table.
+// Calculate and store a hash for this field. Include it in its table.
 static void add_field_hashes(multi_segment_hash& table_hash, gaia_field_t& field)
 {
-    multi_segment_hash hashes;
-    hashes.hash_add(field.name());
-    hashes.hash_add(field.type());
-    hashes.hash_add(field.repeated_count());
-    hashes.hash_add(field.position());
+    multi_segment_hash field_hash;
+    field_hash.hash_add(field.name());
+    field_hash.hash_add(field.type());
+    field_hash.hash_add(field.repeated_count());
+    field_hash.hash_add(field.position());
     // active? Currently 'active' is unused.
-    hashes.hash_add(field.unique());
-    hashes.hash_add(field.optional());
-    hashes.hash_calc();
-    table_hash.hash_include(hashes.hash());
+    field_hash.hash_add(field.unique());
+    field_hash.hash_add(field.optional());
+    field_hash.hash_calc();
+    table_hash.hash_include(field_hash.hash());
     auto field_w = field.writer();
-    field_w.hash = hashes.to_string();
+    field_w.hash = field_hash.to_string();
     field_w.update_row();
 }
 
-// Calculate and store a hash for this relationship. Include it in it's table.
+// Calculate and store a hash for this relationship. Include it in its table.
 static void add_relationship_hashes(multi_segment_hash& table_hash, gaia_relationship_t& relationship)
 {
     if (relationship.deprecated())
@@ -66,30 +66,30 @@ static void add_relationship_hashes(multi_segment_hash& table_hash, gaia_relatio
         return;
     }
     // Calculate the hash.
-    multi_segment_hash hashes;
-    hashes.hash_add(relationship.name());
-    hashes.hash_add(relationship.to_parent_link_name());
-    hashes.hash_add(relationship.to_child_link_name());
-    hashes.hash_add(relationship.cardinality());
-    hashes.hash_add(relationship.parent_required());
+    multi_segment_hash relationship_hash;
+    relationship_hash.hash_add(relationship.name());
+    relationship_hash.hash_add(relationship.to_parent_link_name());
+    relationship_hash.hash_add(relationship.to_child_link_name());
+    relationship_hash.hash_add(relationship.cardinality());
+    relationship_hash.hash_add(relationship.parent_required());
     for (
         size_t parent_position = 0;
         parent_position < relationship.parent_field_positions().size();
         ++parent_position)
     {
-        hashes.hash_add(relationship.parent_field_positions()[parent_position]);
+        relationship_hash.hash_add(relationship.parent_field_positions()[parent_position]);
     }
     for (
         size_t child_position = 0;
         child_position < relationship.child_field_positions().size();
         ++child_position)
     {
-        hashes.hash_add(relationship.parent_field_positions()[child_position]);
+        relationship_hash.hash_add(relationship.parent_field_positions()[child_position]);
     }
     auto relationship_w = relationship.writer();
-    hashes.hash_calc();
-    table_hash.hash_include(hashes.hash());
-    relationship_w.hash = hashes.to_string();
+    relationship_hash.hash_calc();
+    table_hash.hash_include(relationship_hash.hash());
+    relationship_w.hash = relationship_hash.to_string();
     relationship_w.update_row();
 }
 

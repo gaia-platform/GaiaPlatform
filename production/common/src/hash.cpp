@@ -240,6 +240,7 @@ void murmur3_128(const void* key, const size_t len, void* out)
 // Add a hash to the composite resulting from a cstring.
 void multi_segment_hash::hash_add(const char* key)
 {
+    ASSERT_PRECONDITION(key != nullptr, "Cannot provide NULL key to hash_add()");
     uint8_t hash[c_bytes_per_long_hash];
     murmur3_128(key, strlen(key), hash);
     hash_include(hash);
@@ -284,6 +285,7 @@ void multi_segment_hash::hash_add(bool key)
 // Add a hash value to the composite.
 void multi_segment_hash::hash_include(const uint8_t* hash_in)
 {
+    ASSERT_PRECONDITION(hash_in != nullptr, "Cannot provide NULL key to hash_include()");
     m_hashes.insert(m_hashes.end(), hash_in, hash_in + c_bytes_per_long_hash);
 }
 
@@ -296,7 +298,7 @@ void multi_segment_hash::hash_calc(uint8_t* hash_out)
 
 void multi_segment_hash::hash_calc()
 {
-    // If there is only one has included, don't hash it against itself.
+    // If there is only one hash included, don't hash it against itself.
     if (m_hashes.size() == c_bytes_per_long_hash)
     {
         std::memcpy(m_hash, m_hashes.data(), c_bytes_per_long_hash);
