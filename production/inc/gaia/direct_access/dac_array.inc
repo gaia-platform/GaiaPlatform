@@ -72,6 +72,12 @@ uint32_t dac_vector_t<T_type>::size() const
     return m_vector->size();
 }
 
+/**
+ * Normally `operator[]` should return a reference or const reference
+ * to the array element. Given we only support arrays of basic types and the
+ * vector class is always read-only, it should be safe to return the T_type
+ * value directly here without any performance or functionality loss.
+ */
 template <typename T_type>
 T_type dac_vector_t<T_type>::operator[](uint32_t i) const
 {

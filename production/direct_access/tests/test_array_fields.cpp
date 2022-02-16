@@ -87,31 +87,30 @@ TEST_F(array_field_test, empty_array)
 TEST_F(array_field_test, array_iteration)
 {
     auto_transaction_t txn;
-    gaia_id_t id = customer_t::insert_row("Unibot", {200, 300, 500});
+    customer_t customer = customer_t::get(customer_t::insert_row("Unibot", {200, 300, 500}));
     txn.commit();
 
-    auto c = customer_t::get(id);
     std::vector<int32_t> sales;
-    for (auto s : c.sales_by_quarter())
+    for (auto sale : customer.sales_by_quarter())
     {
-        sales.push_back(s);
+        sales.push_back(sale);
     }
-    EXPECT_EQ(sales.size(), c.sales_by_quarter().size());
-    EXPECT_TRUE(std::equal(sales.begin(), sales.end(), c.sales_by_quarter().data()));
+    EXPECT_EQ(sales.size(), customer.sales_by_quarter().size());
+    EXPECT_TRUE(std::equal(sales.begin(), sales.end(), customer.sales_by_quarter().data()));
 
     sales.clear();
-    for (auto s1 = c.sales_by_quarter().begin(); s1 != c.sales_by_quarter().end(); ++s1)
+    for (auto sales_iter = customer.sales_by_quarter().begin(); sales_iter != customer.sales_by_quarter().end(); ++sales_iter)
     {
-        sales.push_back(*s1);
+        sales.push_back(*sales_iter);
     }
-    EXPECT_EQ(sales.size(), c.sales_by_quarter().size());
-    EXPECT_TRUE(std::equal(sales.begin(), sales.end(), c.sales_by_quarter().data()));
+    EXPECT_EQ(sales.size(), customer.sales_by_quarter().size());
+    EXPECT_TRUE(std::equal(sales.begin(), sales.end(), customer.sales_by_quarter().data()));
 
     sales.clear();
-    for (uint32_t idx = 0; idx < c.sales_by_quarter().size(); ++idx)
+    for (uint32_t i = 0; i < customer.sales_by_quarter().size(); ++i)
     {
-        sales.push_back(c.sales_by_quarter()[idx]);
+        sales.push_back(customer.sales_by_quarter()[i]);
     }
-    EXPECT_EQ(sales.size(), c.sales_by_quarter().size());
-    EXPECT_TRUE(std::equal(sales.begin(), sales.end(), c.sales_by_quarter().data()));
+    EXPECT_EQ(sales.size(), customer.sales_by_quarter().size());
+    EXPECT_TRUE(std::equal(sales.begin(), sales.end(), customer.sales_by_quarter().data()));
 }

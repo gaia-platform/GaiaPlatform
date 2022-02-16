@@ -16,8 +16,18 @@
 
 namespace gaia
 {
+/**
+ * @addtogroup gaia
+ * @{
+ */
 namespace direct_access
 {
+/**
+ * @addtogroup direct_access
+ * @{
+ *
+ * Provides an API for accessing array fields in Direct Access objects.
+ */
 
 template <typename T_class>
 class dac_vector_iterator_t
@@ -41,29 +51,56 @@ protected:
     uint32_t m_index;
 };
 
-// A pimpl style wrapper class that encapsulates flatbuffers::Vector.
+/**
+ * The base class of array fields. It encapsulates `flatbuffers::Vector` for storage.
+ *
+ * @tparam T_type the type of the array's elements.
+ */
 template <typename T_type>
 class dac_vector_t
 {
 public:
     dac_vector_t() = delete;
 
+    /**
+     * @return A pointer to the contiguous array of data stored by the vector.
+     */
     const T_type* data() const;
+
+    /**
+     * @return The number of elements in the vector.
+     */
     uint32_t size() const;
 
-    // Normally the operator "[]" should return a reference or const reference
-    // to the array element. Given we only support arrays of basic types and the
-    // vector class is always read-only, it should be safe to return the T_type
-    // value directly here without any performance or functionality loss.
+    /**
+     * The read-only member access operator.
+     * Unlike typical `operator[]` implementations, it returns a copy of the element instead of a reference.
+     *
+     * @param i The index to access. Out-of-bounds indices cause undefined behavior.
+     * @return A copy of the element at given index.
+     */
     T_type operator[](uint32_t i) const;
 
+    /**
+     * @return An iterator pointing to the first element of the vector.
+     */
     dac_vector_iterator_t<T_type> begin() const;
+
+    /**
+     * @return A "past-the-end" iterator used to check if there are no more elements.
+     * It is not the last element and should not be dereferenced.
+     */
     dac_vector_iterator_t<T_type> end() const;
 
+    /**
+     * @return A `std::vector` containing a copy of all elements in the Direct Access vector.
+     */
     std::vector<T_type> to_vector() const;
 
 private:
-    // Make the dac_object_t a friend so it can call the private vector constructor.
+    /**
+     * `dac_object_t` needs to be a friend so it can call the private vector constructor.
+     */
     template <gaia::common::gaia_type_t::value_type gaia_type, typename T_gaia, typename T_fb, typename T_obj>
     friend struct dac_object_t;
 
@@ -72,9 +109,14 @@ private:
     const flatbuffers::Vector<T_type>* m_vector;
 };
 
+// Pick up our template implementation.  These still
+// need to be in the header so that template specializations
+// that are declared later will pick up the definitions.
 #include "dac_array.inc"
 
+/*@}*/
 } // namespace direct_access
+/*@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.
