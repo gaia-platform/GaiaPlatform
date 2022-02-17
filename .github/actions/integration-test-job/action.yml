@@ -34,18 +34,19 @@ runs:
         python-version: 3.8
 
     - name: Check for Previously Downloaded SDK Package
-      if: ${{ inputs.allow_cached_sdk }} == 'true'
+      if: inputs.allow_cached_sdk == 'true'
       shell: bash
       run: |
-        echo "allow_cached_sdk = ${{ inputs.allow_cached_sdk }}"
         if [ "$(ls -A ${{ github.workspace }}/packages)" ]; then
           echo "SDK=present" >> $GITHUB_ENV
         else
           echo "SDK=not-present" >> $GITHUB_ENV
         fi
+        echo "env.SDK = ${{ env.SDK }}"
+        echo "allow_cached_sdk = ${{ inputs.allow_cached_sdk }}"
 
     - name: Cache Last Successful Install Package
-      if: ${{ env.SDK }} == 'not-present' && ${{ inputs.allow_cached_sdk }} == 'true'
+      if: env.SDK == 'not-present' && inputs.allow_cached_sdk == 'true'
       uses: actions/cache@v2
       with:
         path: ${{ inputs.gaia-repo }}/packages
