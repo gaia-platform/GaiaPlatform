@@ -4,6 +4,7 @@
 /////////////////////////////////////////////
 
 #pragma once
+
 #include <type_traits>
 
 #include "gaia/expressions/builders/expression_bind.hpp"
