@@ -209,6 +209,12 @@ public:
     transaction_object_limit_exceeded_internal();
 };
 
+class transaction_log_allocation_failure_internal : public transaction_log_allocation_failure
+{
+public:
+    transaction_log_allocation_failure_internal();
+};
+
 class duplicate_object_id_internal : public duplicate_object_id
 {
 public:
