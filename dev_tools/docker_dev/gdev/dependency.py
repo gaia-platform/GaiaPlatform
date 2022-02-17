@@ -147,7 +147,6 @@ class Dependency:
                     f' directory. Default: "{mixins_default}"'
                 )
             )
-
             mounts_default = []
             parser.add_argument(
                 '--mounts',
@@ -174,7 +173,6 @@ class Dependency:
                 choices=['amd64', 'arm64'],
                 help=f'Platform to build upon. Default: "{platform_default}"'
             )
-
             ports_default = []
             parser.add_argument(
                 '-p', '--ports',

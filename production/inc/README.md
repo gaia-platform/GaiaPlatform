@@ -21,3 +21,4 @@ In order to simplify our headers, we expose fewer component groups under _gaia/_
 * Catalog and database headers go under _inc/gaia/db/_
 * Rules go under _inc/gaia/rules/_
 * Direct access headers go under _inc/gaia/direct\_access/_
+* Expression headers go under _inc/gaia/expressions/_

@@ -122,7 +122,7 @@ void persistent_store_manager::prepare_wal_for_write(gaia::db::txn_log_t* log, c
     rocksdb::Transaction* txn = m_rdb_wrapper->get_txn_by_name(txn_name);
     for (size_t i = 0; i < log->record_count; i++)
     {
-        txn_log_t::log_record_t* lr = log->log_records + i;
+        log_record_t* lr = log->log_records + i;
         if (lr->operation() == gaia_operation_t::remove)
         {
             // Encode key to be deleted.

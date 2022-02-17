@@ -7,8 +7,8 @@
 
 #include <type_traits>
 
-#include "member_accessor.hpp"
-#include "transform_expression.hpp"
+#include "gaia/expressions/accessors/member_accessor.hpp"
+#include "gaia/expressions/internal/transform_expression.hpp"
 
 // Specialization of member_accessor_t for container types.
 namespace gaia
@@ -16,12 +16,12 @@ namespace gaia
 namespace expressions
 {
 
-/*
+/**
  * This class provides a specialized accessor on fields of container type.
  *
- * T_bind - the parent class with this container.
- * T_value - the type of objects inside this container.
- * T_return - the container type.
+ * @tparam T_bind - the parent class with this container.
+ * @tparam T_value - the type of objects inside this container.
+ * @tparam T_return - the container type.
  */
 template <typename T_bind, typename T_value, typename T_return>
 class container_accessor_t : public member_accessor_t<T_bind, T_return>

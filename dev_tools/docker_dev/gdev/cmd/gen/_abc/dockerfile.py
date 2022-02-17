@@ -22,8 +22,6 @@ class GenAbcDockerfile(Dependency, ABC):
         """
         raise NotImplementedError
 
-    @property
-    @memoize
     def path(self) -> Path:
         """
         Return path where dockerfile is to be written.

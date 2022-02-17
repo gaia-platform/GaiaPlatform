@@ -1,5 +1,7 @@
 #!/usr/bin/env python3.8
 
+# PYTHON_ARGCOMPLETE_OK
+
 import sys
 from gdev.main import DockerDev
 
