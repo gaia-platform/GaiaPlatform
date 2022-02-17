@@ -5,8 +5,9 @@
 
 #pragma once
 
-#include "expression_base.hpp"
-#include "expression_traits.hpp"
+#include "gaia/expressions/expression_base.hpp"
+#include "gaia/expressions/expression_traits.hpp"
+#include "gaia/expressions/operators.hpp"
 
 namespace gaia
 {
@@ -29,15 +30,13 @@ using binary_expression_fn_t = std::function<T_return(
     const subexpression_t<T_bind, T_left>&,
     const subexpression_t<T_bind, T_right>&)>;
 
-template <typename T_bind, typename T_return, typename T_left, typename T_right, operator_token_t e_token>
+template <typename T_bind, typename T_return, typename T_left, typename T_right, typename T_token>
 class binary_expression_t : public expression_t<T_bind, T_return>
 {
 public:
     binary_expression_t(
         const expression_t<T_bind, T_left>& left_operand,
-        const expression_t<T_bind, T_right>& right_operand,
-        binary_expression_fn_t<T_bind, T_return, T_left, T_right> function)
-        : m_function(function), m_left_operand(left_operand.create_subexpression()), m_right_operand(right_operand.create_subexpression()){};
+        const expression_t<T_bind, T_right>& right_operand);
     virtual ~binary_expression_t() = default;
 
     T_return operator()(const T_bind& bind) const override;

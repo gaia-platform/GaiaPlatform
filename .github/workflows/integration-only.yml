@@ -1,0 +1,44 @@
+---
+name: Integration Tests Only
+
+on:
+  workflow_dispatch:
+
+env:
+  SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+  DEV_IMAGE: ghcr.io/gaia-platform/dev-base-gaia-platform:latest
+
+jobs:
+  Integration_Tests:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 7
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    strategy:
+      fail-fast: false
+      matrix:
+        persistence: [enabled, disabled]
+        suite-name: [smoke,marcopolo,pingpong,palletbox]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Create Directory To Host Install Package Cache
+        shell: bash
+        run: |
+          mkdir -p ${{ github.workspace }}/packages
+
+      - name: Download Debian Install Package
+        continue-on-error: true
+        uses: actions/download-artifact@v2
+        with:
+          name: SDK Install Package
+          path: ${{ github.workspace }}/packages
+
+      - name: Run Integration Tests
+        uses: ./.github/actions/integration-test-job
+        with:
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          suite-name: ${{ matrix.suite-name }}
+          db-persistence: ${{ matrix.persistence }}
