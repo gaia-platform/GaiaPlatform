@@ -65,7 +65,7 @@ inline void client_t::txn_log(
     gaia_offset_t old_offset,
     gaia_offset_t new_offset)
 {
-    // OLD
+    // OLD (txn log fds)
     {
         ASSERT_PRECONDITION(s_log.is_set(), "Transaction log must be mapped!");
 
@@ -83,7 +83,7 @@ inline void client_t::txn_log(
     }
     // OLD
 
-    // NEW
+    // NEW (txn log offsets)
     {
         txn_log_t* txn_log = get_txn_log();
         if (txn_log->record_count == c_max_log_records)

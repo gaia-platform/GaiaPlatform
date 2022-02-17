@@ -183,7 +183,7 @@ void server_t::txn_begin(std::vector<int>& txn_log_fds_for_snapshot)
 
     get_txn_log_fds_for_snapshot(s_txn_id, txn_log_fds_for_snapshot);
 
-    // OLD
+    // OLD (txn log fds)
     {
         // Allocate the txn log fd on the server, for rollback-safety if the client session crashes.
         s_log.create(
@@ -195,13 +195,13 @@ void server_t::txn_begin(std::vector<int>& txn_log_fds_for_snapshot)
     }
     // OLD
 
-    // NEW
+    // NEW (txn log offsets)
     {
         // Allocate the txn log offset on the server, for rollback-safety if the client session crashes.
         s_txn_log_offset = allocate_log_offset();
         if (s_txn_log_offset == c_invalid_log_offset)
         {
-            throw transaction_object_limit_exceeded_internal();
+            throw transaction_log_allocation_failure_internal();
         }
 
         // Update the log header with our begin timestamp and initialize it to empty.
