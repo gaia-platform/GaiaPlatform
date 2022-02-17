@@ -103,7 +103,7 @@ client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::opt
         {
             while (log_index < s_log.data()->record_count)
             {
-                txn_log_t::log_record_t* lr = &(s_log.data()->log_records[log_index++]);
+                log_record_t* lr = &(s_log.data()->log_records[log_index++]);
 
                 // Look for insertions of objects of the given data type and return their gaia_id.
                 if (lr->old_offset == c_invalid_gaia_offset)
@@ -184,6 +184,9 @@ void client_t::txn_cleanup()
 
     // Reset transaction id.
     s_txn_id = c_invalid_gaia_txn_id;
+
+    // Reset transaction log offset.
+    s_txn_log_offset = c_invalid_log_offset;
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
@@ -380,9 +383,13 @@ void client_t::begin_transaction()
     // Extract the transaction id and cache it; it needs to be reset for the next transaction.
     const transaction_info_t* txn_info = client_messenger.server_reply()->data_as_transaction_info();
     s_txn_id = txn_info->transaction_id();
+    s_txn_log_offset = txn_info->transaction_log_offset();
     ASSERT_INVARIANT(
         s_txn_id.is_valid(),
         "Begin timestamp should not be invalid!");
+    ASSERT_INVARIANT(
+        s_txn_log_offset != c_invalid_log_offset,
+        "Txn log offset should not be invalid!");
 
     // Apply all txn logs received from the server to our snapshot, in order.
     size_t fds_remaining_count = txn_info->log_fds_to_apply_count();

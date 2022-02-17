@@ -34,6 +34,9 @@ gaia::db::counters_t* get_counters();
 // Returns a pointer to a mapping of the "data" shared memory segment.
 gaia::db::data_t* get_data();
 
+// Returns a pointer to a mapping of the "logs" shared memory segment.
+gaia::db::logs_t* get_logs();
+
 // Returns a pointer to a mapping of the "id_index" shared memory segment.
 gaia::db::id_index_t* get_id_index();
 
@@ -51,6 +54,9 @@ gaia::db::memory_manager::chunk_manager_t* get_chunk_manager();
 
 // Gets the mapped transaction log for the current session thread.
 gaia::db::mapped_log_t* get_mapped_log();
+
+// Gets the transaction log for the current session thread.
+gaia::db::txn_log_t* get_txn_log();
 
 } // namespace db
 } // namespace gaia
