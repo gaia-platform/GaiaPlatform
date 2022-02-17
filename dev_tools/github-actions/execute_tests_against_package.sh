@@ -143,15 +143,16 @@ parse_command_line() {
         echo "Error: Argument -j/--job-name is required" >&2
         show_usage
     fi
-    if [ -z "$SUITE_NAME" ] ; then
-        echo "Error: Argument -s/--suite-name is required" >&2
-        show_usage
-    fi
-
-    if [ -n "$PERSISTENCE_MODE" ] ; then
-        if [ "$PERSISTENCE_MODE" != "enabled" ] && [ "$PERSISTENCE_MODE" != "disabled" ] ; then
-            echo "Error: Argument -d/--db-persistence must be 'enabled' or 'disabled'." >&2
+    if [ "$JOB_NAME" != "Integration_Samples" ] ; then
+        if [ -z "$SUITE_NAME" ] ; then
+            echo "Error: Argument -s/--suite-name is required for non-Integration_Samples jobs." >&2
             show_usage
+        fi
+        if [ -n "$PERSISTENCE_MODE" ] ; then
+            if [ "$PERSISTENCE_MODE" != "enabled" ] && [ "$PERSISTENCE_MODE" != "disabled" ] ; then
+                echo "Error: Argument -d/--db-persistence must be 'enabled' or 'disabled'." >&2
+                show_usage
+            fi
         fi
     fi
 }
@@ -180,6 +181,9 @@ start_process
 save_current_directory
 
 # Ensure we have a predicatable place to place output that we want to expose.
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Creating test output directory."
+fi
 if ! mkdir -p "$GAIA_REPO/production/tests/results" ; then
     complete_process 1 "Unable to create an output directory for '$JOB_NAME'."
 fi
@@ -201,7 +205,7 @@ fi
 
 ## PER JOB CONFIGURATION ##
 
-if [ "$JOB_NAME" == "Integration_Tests" ] ; then
+if [ "$JOB_NAME" == "Integration_Tests" ] || [ "$JOB_NAME" == "Performance_Tests" ] ; then
 
     cd "$GAIA_REPO/production/tests" || exit
 
@@ -229,9 +233,17 @@ if [ "$JOB_NAME" == "Integration_Tests" ] ; then
 
 elif [ "$JOB_NAME" == "Integration_Samples" ] ; then
 
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Executing Integration Sample tests."
+    fi
+
     cd "$GAIA_REPO/dev_tools/sdk/test" || exit
-    if ! sudo bash -c "./build_sdk_samples.sh > \"$GAIA_REPO/production/tests/results/test.log\"" ; then
+    if ! sudo bash -c "./build_sample_for_github_actions.sh 2>&1 > \"$GAIA_REPO/production/tests/results/test.log\"" ; then
         complete_process 1 "Tests for job '$JOB_NAME' failed  See job artifacts for more information."
+    fi
+
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Integration Sample tests executed successfully."
     fi
 fi
 

@@ -138,17 +138,15 @@ struct log_record_t
 
     inline gaia_operation_t operation() const
     {
-        bool is_old_offset_valid = old_offset.is_valid();
-        bool is_new_offset_valid = new_offset.is_valid();
-        if (is_old_offset_valid && is_new_offset_valid)
+        if (old_offset.is_valid() && new_offset.is_valid())
         {
             return gaia_operation_t::update;
         }
-        else if (!is_old_offset_valid && is_new_offset_valid)
+        else if (!old_offset.is_valid() && new_offset.is_valid())
         {
             return gaia_operation_t::create;
         }
-        else if (is_old_offset_valid && !is_new_offset_valid)
+        else if (old_offset.is_valid() && !new_offset.is_valid())
         {
             return gaia_operation_t::remove;
         }
@@ -165,7 +163,9 @@ constexpr size_t c_max_logs{(1ULL << 16) - 1};
 
 // The total size of a txn log in shared memory.
 // We need to allow as many log records as the maximum number of live object
-// versions, and each log record occupies 16 bytes.
+// versions (i.e., the maximum number of locators), and each log record occupies
+// 16 bytes. We equally distribute the maximum number of live log records over
+// the maximum number of live txn logs to get the maximum txn log size.
 constexpr size_t c_txn_log_size{((c_max_locators + 1) * sizeof(log_record_t)) / (c_max_logs + 1)};
 
 // We want to ensure that the txn log header size never changes accidentally.
@@ -175,7 +175,7 @@ constexpr size_t c_txn_log_header_size = 16;
 static_assert(
     (c_txn_log_header_size >= sizeof(log_record_t))
         && (c_txn_log_header_size % sizeof(log_record_t) == 0),
-    "Header size must be multiple of record size!");
+    "Header size must be a multiple of record size!");
 
 // There can be at most 2^32 live versions in the data segment, and we can have
 // at most 2^16 logs, so each log can contain at most 2^16 records, minus the
@@ -227,6 +227,7 @@ struct txn_log_t
 
     std::atomic<uint64_t> begin_ts_with_refcount;
     uint16_t record_count;
+
     // Pad the header to a multiple of 16 bytes (to align the first log record on 16 bytes).
     uint16_t reserved1;
     uint32_t reserved2;
@@ -398,8 +399,7 @@ struct data_t
     aligned_storage_for_t<db_object_t> objects[c_max_locators + 1];
 };
 
-// The first valid log offset (1) immediately follows the invalid log offset (0).
-constexpr log_offset_t c_first_log_offset{1};
+constexpr log_offset_t c_first_log_offset{c_invalid_log_offset.value() + 1};
 constexpr log_offset_t c_last_log_offset{c_max_logs};
 
 // This is an array with 2^16 elements ("logs"), each holding 2^16 16-byte entries ("records").

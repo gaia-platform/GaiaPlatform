@@ -2594,7 +2594,7 @@ void server_t::txn_rollback(bool client_disconnected)
     deallocate_log_offset(s_txn_log_offset);
 
     // Set our txn status to TXN_TERMINATED.
-    // NB: this must be done before calling perform_maintenance()!
+    // This allows GC to proceed past this txn's begin_ts.
     txn_metadata_t::set_active_txn_terminated(s_txn_id);
 }
 
@@ -2624,7 +2624,7 @@ void server_t::perform_pre_commit_work_for_txn()
 }
 
 // Sort all txn log records by locator. This enables us to use fast binary
-// search and binary merge algorithms for conflict detection.
+// search and merge intersection algorithms for conflict detection.
 void server_t::sort_log()
 {
     // We use stable_sort() to preserve the temporal order of multiple updates
@@ -3131,9 +3131,8 @@ log_offset_t server_t::allocate_log_offset()
         "Log offset allocation cannot fail unless log space is exhausted!");
 
     // Initialize txn log metadata.
-    // REVIEW: Not sure if it's better to move this initialization logic into a
-    // wrapping function, so this function is only responsible for allocating
-    // the offset.
+    // REVIEW: We could move this initialization logic into a wrapping function,
+    // so this function is only responsible for allocating the offset.
     if (allocated_offset != c_invalid_log_offset)
     {
         ASSERT_INVARIANT(s_txn_id != c_invalid_gaia_txn_id, "Cannot allocate a txn log without a valid txn ID!");

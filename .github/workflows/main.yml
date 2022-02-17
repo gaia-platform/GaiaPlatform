@@ -73,9 +73,10 @@ jobs:
 
   SDK:
     needs:
-      - Core
-    runs-on: ubuntu-20.04
+      - Lint
+      - Third-Party
     if: github.event_name != 'pull_request'
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -177,7 +178,7 @@ jobs:
       fail-fast: false
       matrix:
         persistence: [enabled, disabled]
-        suite-name: [smoke,marcopolo,pingpong,mink-perf,pingpong-perf,marcopolo-perf]
+        suite-name: [smoke,marcopolo,pingpong,palletbox]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
@@ -195,6 +196,43 @@ jobs:
           path: ${{ github.workspace }}/packages
 
       - name: Run Integration Tests
+        uses: ./.github/actions/integration-test-job
+        with:
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          suite-name: ${{ matrix.suite-name }}
+          db-persistence: ${{ matrix.persistence }}
+
+  Performance_Tests:
+    needs:
+      - Integration_Tests
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-20.04
+    timeout-minutes: 7
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    strategy:
+      fail-fast: false
+      matrix:
+        persistence: [enabled, disabled]
+        suite-name: [mink-perf,pingpong-perf,marcopolo-perf,palletbox-perf]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Create Directory To Host Install Package Cache
+        shell: bash
+        run: |
+          mkdir -p ${{ github.workspace }}/packages
+
+      - name: Download Debian Install Package
+        continue-on-error: true
+        uses: actions/download-artifact@v2
+        with:
+          name: SDK Install Package
+          path: ${{ github.workspace }}/packages
+
+      - name: Run Performance Tests
         uses: ./.github/actions/integration-test-job
         with:
           gaia-repo: ${{ github.workspace }}
@@ -242,17 +280,14 @@ jobs:
 
   Final:
     needs:
-      - Lint
-      - Third-Party
       - Core
-      - SDK
       - Debug_Core
       - Coverage
       - LLVM_Tests
       - Integration_Tests
+      - Performance_Tests
       - Integration_Samples
     runs-on: ubuntu-20.04
-    if: github.event_name != 'pull_request'
     steps:
       - uses: geekyeggo/delete-artifact@v1
         with:

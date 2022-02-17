@@ -57,5 +57,8 @@ gaia::db::memory_manager::chunk_manager_t* get_chunk_manager();
 // Gets the transaction log for the current session thread.
 gaia::db::txn_log_t* get_txn_log();
 
+// Gets the transaction log for the current session thread.
+gaia::db::txn_log_t* get_txn_log();
+
 } // namespace db
 } // namespace gaia
