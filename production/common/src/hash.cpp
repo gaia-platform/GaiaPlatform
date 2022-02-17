@@ -28,10 +28,10 @@ inline uint32_t rotl32(uint32_t x, uint32_t n)
 }
 
 // Compute murmur3 32 bit hash for the key.
-uint32_t murmur3_32(const void* key, size_t len)
+uint32_t murmur3_32(const void* key, int len)
 {
     auto data = static_cast<const uint8_t*>(key);
-    const size_t nblocks = len / 4;
+    const int nblocks = len / 4;
 
     uint32_t h1 = len;
 
@@ -43,7 +43,7 @@ uint32_t murmur3_32(const void* key, size_t len)
 
     auto blocks = reinterpret_cast<const uint32_t*>(data + nblocks * 4);
 
-    for (size_t i = -nblocks; i; i++)
+    for (int i = -nblocks; i; i++)
     {
         uint32_t k1;
         std::memcpy(&k1, (blocks + i), sizeof(k1));
@@ -120,11 +120,11 @@ inline uint64_t fmix64(uint64_t k)
 }
 
 // Compute murmur3 128 bit hash for the key.
-void murmur3_128(const void* key, const size_t len, void* out)
+void multi_segment_hash::murmur3_128(const void* key, const int len, void* out)
 {
     auto data = static_cast<const uint8_t*>(key);
 
-    const size_t nblocks = len / c_bytes_per_long_hash;
+    const int nblocks = len / c_murmur3_128_hash_size_in_bytes;
 
     uint64_t h1 = len;
     uint64_t h2 = len;
@@ -138,7 +138,7 @@ void murmur3_128(const void* key, const size_t len, void* out)
     auto blocks = reinterpret_cast<const uint64_t*>(data);
 
     // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
-    for (size_t i = 0; i < nblocks; i++)
+    for (int i = 0; i < nblocks; i++)
     {
         uint64_t k1;
         uint64_t k2;
@@ -168,7 +168,7 @@ void murmur3_128(const void* key, const size_t len, void* out)
     //----------
     // tail
 
-    auto tail = static_cast<const uint8_t*>(data + nblocks * c_bytes_per_long_hash);
+    auto tail = static_cast<const uint8_t*>(data + nblocks * c_murmur3_128_hash_size_in_bytes);
 
     uint64_t k1 = 0;
     uint64_t k2 = 0;
@@ -241,7 +241,7 @@ void murmur3_128(const void* key, const size_t len, void* out)
 void multi_segment_hash::hash_add(const char* key)
 {
     ASSERT_PRECONDITION(key != nullptr, "Cannot provide NULL key to hash_add()");
-    uint8_t hash[c_bytes_per_long_hash];
+    uint8_t hash[c_murmur3_128_hash_size_in_bytes];
     murmur3_128(key, strlen(key), hash);
     hash_include(hash);
 }
@@ -249,7 +249,7 @@ void multi_segment_hash::hash_add(const char* key)
 // Add a hash to the composite resulting from a float.
 void multi_segment_hash::hash_add(float key)
 {
-    uint8_t hash[c_bytes_per_long_hash];
+    uint8_t hash[c_murmur3_128_hash_size_in_bytes];
     murmur3_128(&key, sizeof(key), hash);
     hash_include(hash);
 }
@@ -257,7 +257,7 @@ void multi_segment_hash::hash_add(float key)
 // Add a hash to the composite resulting from a double.
 void multi_segment_hash::hash_add(double key)
 {
-    uint8_t hash[c_bytes_per_long_hash];
+    uint8_t hash[c_murmur3_128_hash_size_in_bytes];
     murmur3_128(&key, sizeof(key), hash);
     hash_include(hash);
 }
@@ -265,12 +265,8 @@ void multi_segment_hash::hash_add(double key)
 // Add a hash to the composite resulting from a boolean value.
 void multi_segment_hash::hash_add(bool key)
 {
-    uint8_t hash[c_bytes_per_long_hash];
+    uint8_t hash[c_murmur3_128_hash_size_in_bytes];
 
-    // We want non-zero keys. This will ensure boolean's are hashed
-    // with non-zero but different keys.
-    uint8_t bool_true_encoding = 0xdd;
-    uint8_t bool_false_encoding = 0x99;
     if (key)
     {
         murmur3_128(&bool_true_encoding, sizeof(uint8_t), hash);
@@ -286,22 +282,22 @@ void multi_segment_hash::hash_add(bool key)
 void multi_segment_hash::hash_include(const uint8_t* hash_in)
 {
     ASSERT_PRECONDITION(hash_in != nullptr, "Cannot provide NULL key to hash_include()");
-    m_hashes.insert(m_hashes.end(), hash_in, hash_in + c_bytes_per_long_hash);
+    m_hashes.insert(m_hashes.end(), hash_in, hash_in + c_murmur3_128_hash_size_in_bytes);
 }
 
 // Return the hash of all included hashes.
 void multi_segment_hash::hash_calc(uint8_t* hash_out)
 {
     hash_calc();
-    memcpy(hash_out, m_hash, c_bytes_per_long_hash);
+    memcpy(hash_out, m_hash, c_murmur3_128_hash_size_in_bytes);
 }
 
 void multi_segment_hash::hash_calc()
 {
     // If there is only one hash included, don't hash it against itself.
-    if (m_hashes.size() == c_bytes_per_long_hash)
+    if (m_hashes.size() == c_murmur3_128_hash_size_in_bytes)
     {
-        std::memcpy(m_hash, m_hashes.data(), c_bytes_per_long_hash);
+        std::memcpy(m_hash, m_hashes.data(), c_murmur3_128_hash_size_in_bytes);
     }
     else
     {
@@ -311,7 +307,7 @@ void multi_segment_hash::hash_calc()
 
 char* multi_segment_hash::to_string()
 {
-    for (size_t i = 0; i < c_bytes_per_long_hash; ++i)
+    for (size_t i = 0; i < c_murmur3_128_hash_size_in_bytes; ++i)
     {
         sprintf(m_hash_string + i * 2, "%02x", m_hash[i]);
     }

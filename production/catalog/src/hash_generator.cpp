@@ -21,9 +21,11 @@ namespace gaia
 {
 namespace catalog
 {
+namespace
+{
 
-// Calculate and store a hash for this index. Include it in its table.
-static void add_index_hashes(multi_segment_hash& table_hash, gaia_index_t& index)
+// Calculate and store a hash for this index. Store it in the gaia_index row.
+void add_index_hashes(multi_segment_hash& table_hash, gaia_index_t& index)
 {
     multi_segment_hash index_hash;
     index_hash.hash_add(index.name());
@@ -40,8 +42,8 @@ static void add_index_hashes(multi_segment_hash& table_hash, gaia_index_t& index
     index_w.update_row();
 }
 
-// Calculate and store a hash for this field. Include it in its table.
-static void add_field_hashes(multi_segment_hash& table_hash, gaia_field_t& field)
+// Calculate and store a hash for this field. Store it in the gaia_field row.
+void add_field_hashes(multi_segment_hash& table_hash, gaia_field_t& field)
 {
     multi_segment_hash field_hash;
     field_hash.hash_add(field.name());
@@ -58,8 +60,8 @@ static void add_field_hashes(multi_segment_hash& table_hash, gaia_field_t& field
     field_w.update_row();
 }
 
-// Calculate and store a hash for this relationship. Include it in its table.
-static void add_relationship_hashes(multi_segment_hash& table_hash, gaia_relationship_t& relationship)
+// Calculate and store a hash for this relationship. Store it in the gaia_relationship row.
+void add_relationship_hashes(multi_segment_hash& table_hash, gaia_relationship_t& relationship)
 {
     if (relationship.deprecated())
     {
@@ -92,6 +94,7 @@ static void add_relationship_hashes(multi_segment_hash& table_hash, gaia_relatio
     relationship_w.hash = relationship_hash.to_string();
     relationship_w.update_row();
 }
+} // namespace
 
 // For every catalog row that defines this database, calculate and store its hash.
 void add_catalog_hashes(const std::string db_name)

@@ -33,14 +33,7 @@ namespace hash
  * Warning: murmur3 is not a cryptographic hash function and should not be used
  * in places where security is a concern.
  */
-uint32_t murmur3_32(const void* key, size_t len);
-
-constexpr size_t c_bytes_per_long_hash = 16;
-
-/*
- * Compute murmur3 128 bit hash for the key.
- */
-void murmur3_128(const void* key, const size_t len, void* out);
+uint32_t murmur3_32(const void* key, int len);
 
 /*
  * Create a composite mash from 1 or more previous 128-bit hashes.
@@ -51,26 +44,34 @@ void murmur3_128(const void* key, const size_t len, void* out);
 class multi_segment_hash
 {
 public:
+    static constexpr int c_murmur3_128_hash_size_in_bytes = 16;
+
+    // Boolean encoding. These values are arbitrary. They just need to be different.
+    static constexpr uint8_t bool_true_encoding = 0xdd;
+    static constexpr uint8_t bool_false_encoding = 0x99;
+
+    /**
+     * Compute murmur3 128 bit hash for the key.
+     */
+    void murmur3_128(const void* key, const int len, void* out);
+
     /**
      * Add a hash to the composite resulting from a key.
      * Scalar values are encoded in such a way that the hash values are most diverse.
      * An issue with the murmur3 algorithm is that trailing 0's don't affect the
      * hash value. The encoding rules implemented here will reduce the odds of that.
-     * Strings require no encoding.
+     * Strings and floating point require no encoding.
+     * Booleans are changed to two different non-zero values.
+     * All other scalars are inverted because of the frequency of 0.
      */
     void hash_add(const char* key);
-    // Floating point requires no encoding.
     void hash_add(float key);
     void hash_add(double key);
-    // Booleans become 0xdd for true and 0x99 for false.
     void hash_add(bool key);
-    // All other scalar values are inverted.
     template <typename T>
     void hash_add(T key)
     {
-        uint8_t hash[c_bytes_per_long_hash];
-        // We are inverting the integral values because low values like 0 or 1 can
-        // create a hash that is the same regardless of the length, 1, 2, 4 or 8 bytes.
+        uint8_t hash[c_murmur3_128_hash_size_in_bytes];
         T use_key = ~key;
         murmur3_128(&use_key, sizeof(T), hash);
         hash_include(hash);
@@ -105,10 +106,10 @@ private:
     std::vector<uint8_t> m_hashes;
 
     // The final hash value.
-    uint8_t m_hash[c_bytes_per_long_hash];
+    uint8_t m_hash[c_murmur3_128_hash_size_in_bytes];
 
     // A printable form of the hash for human consumption.
-    char m_hash_string[(c_bytes_per_long_hash * 2) + 1];
+    char m_hash_string[(c_murmur3_128_hash_size_in_bytes * 2) + 1];
 };
 
 } // namespace hash
