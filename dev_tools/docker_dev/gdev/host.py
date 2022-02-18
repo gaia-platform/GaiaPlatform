@@ -20,6 +20,9 @@ class Host:
 
     __is_drydock_enabled = False
 
+    """
+    Class to handle communications with the host system.
+    """
     @staticmethod
     def set_drydock(value):
         """
