@@ -140,8 +140,10 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
 
             if (datagram_size == 0)
             {
-                // We received EOF from the server, so tell the caller to stop iteration.
-                // The socket will get cleared by its shared_ptr destructor.
+                // We received EOF from the server, so tell the caller to stop iterating.
+                // We also close the socket here to make it easier to detect further calls
+                // into the iterator, which would now hit the earlier assertion.
+                common::close_fd(*stream_socket_ptr);
                 return std::nullopt;
             }
 
