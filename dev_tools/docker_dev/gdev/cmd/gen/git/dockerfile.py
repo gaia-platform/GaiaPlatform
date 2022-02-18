@@ -4,13 +4,22 @@ from .._abc.dockerfile import GenAbcDockerfile
 
 
 class GenGitDockerfile(GenAbcDockerfile):
+    """
+    Class to generate the GIT section of the dockerfile.
+    """
 
     @property
     def cfg(self) -> GenGitCfg:
+        """
+        Get the configuration associated with this portion of the dockerfile.
+        """
         return GenGitCfg(self.options)
 
     @memoize
     async def get_from_section(self) -> str:
+        """
+        Return text for the FROM line of the final build stage.
+        """
         from_section = f'FROM git_base AS {await self.get_name()}'
 
         self.log.debug(f'{from_section = }')
@@ -19,6 +28,9 @@ class GenGitDockerfile(GenAbcDockerfile):
 
     @memoize
     async def get_run_section(self) -> str:
+        """
+        Return text for the RUN line of the final build stage.
+        """
         if section_lines := await self.cfg.get_section_lines():
             run_section = (
                     'RUN '

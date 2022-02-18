@@ -1,21 +1,15 @@
-from __future__ import annotations
+"""
+Module to represent the entire collection of options available from the command line.
+"""
 from dataclasses import dataclass
-import logging
 from typing import FrozenSet
-
-from gdev.custom.pathlib import Path
-
-log = logging.getLogger(__name__)
-
-
-@dataclass(frozen=True)
-class Mount:
-    container_path: Path
-    host_path: Path
-
+from gdev.mount import Mount
 
 @dataclass(frozen=True)
 class Options:
+    """
+    Class to encapsulate the options related to the command line.
+    """
     args: str
     base_image: str
     cfg_enables: FrozenSet[str]

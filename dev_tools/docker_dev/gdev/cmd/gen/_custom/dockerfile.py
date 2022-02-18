@@ -11,14 +11,24 @@ from .._abc.dockerfile import GenAbcDockerfile
 
 @dataclass(frozen=True, repr=False)
 class GenCustomDockerfile(GenAbcDockerfile):
+    """
+    Class to provide for a customized GenAbcDockerfile where user properties
+    from the host of the container are taken into account.
+    """
     base_dockerfile: GenAbcDockerfile
 
     @property
     def cfg(self) -> GenCustomCfg:
+        """
+        Get the configuration associated with this portion of the dockerfile.
+        """
         return GenCustomCfg(self.options)
 
     @memoize
     async def get_env_section(self) -> str:
+        """
+        Return text for the ENV section of the final build stage.
+        """
         from ..pre_run.dockerfile import GenPreRunDockerfile
 
         env_section = await GenPreRunDockerfile(self.options).get_env_section()
@@ -29,6 +39,9 @@ class GenCustomDockerfile(GenAbcDockerfile):
 
     @memoize
     async def get_input_dockerfiles(self) -> Iterable[GenAbcDockerfile]:
+        """
+        Return dockerfiles that describe build stages that come directly before this one.
+        """
         from ..run.dockerfile import GenRunDockerfile
 
         input_dockerfiles = [self.base_dockerfile]
@@ -42,6 +55,13 @@ class GenCustomDockerfile(GenAbcDockerfile):
 
     @memoize
     async def get_text(self) -> str:
+        """
+        Return the full text for this dockerfile, including all build stages.
+
+        Note that since these mixins interact directly with the host from within the
+        container, these commands are run to ensure that the user information on the
+        host is used to set permissions and ownership.
+        """
         text_parts = [await super().get_text()]
 
         if {'clion', 'sudo', 'vscode'} & self.options.mixins:

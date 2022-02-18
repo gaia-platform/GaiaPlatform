@@ -10,18 +10,22 @@ from .cfg import GenAbcCfg
 
 
 class GenAbcDockerfile(Dependency, ABC):
-    """Create a Dockerfile from the rules in the `gdev.cfg` file in the current working directory.
+    """
+    Create a Dockerfile from the rules in the `gdev.cfg` file in the current working directory.
     """
 
     @property
     @abstractmethod
     def cfg(self) -> GenAbcCfg:
+        """
+        Get the configuration associated with this portion of the dockerfile.
+        """
         raise NotImplementedError
 
-    @property
-    @memoize
     def path(self) -> Path:
-        """Return path where dockerfile is to be written."""
+        """
+        Return path where dockerfile is to be written.
+        """
         path = (
                 Path.repo()
                 / '.gdev'
@@ -35,6 +39,10 @@ class GenAbcDockerfile(Dependency, ABC):
 
     @memoize
     async def get_base_stages_text(self) -> str:
+        """
+        Get the text that applies to the base stages of the dockerfile.
+        """
+
         base_stages_text = dedent(fr'''
             #syntax=docker/dockerfile-upstream:master-experimental
 
@@ -84,7 +92,9 @@ class GenAbcDockerfile(Dependency, ABC):
 
     @memoize
     async def get_copy_section(self) -> str:
-        """Return text for the COPY section of the final build stage."""
+        """
+        Return text for the COPY section of the final build stage.
+        """
         from ..pre_run.dockerfile import GenPreRunDockerfile
         seen_dockerfiles = set()
 
@@ -122,21 +132,24 @@ class GenAbcDockerfile(Dependency, ABC):
 
     @memoize
     async def get_env_section(self) -> str:
+        """
+        Return text for the ENV section of the final build stage.
+        """
         env_section = ''
-
         self.log.debug(f'{env_section = }')
-
         return env_section
 
     @memoize
-    async def get_final_stage_text(self) -> str:
-        """Return text for the final build stage."""
+    async def __get_final_stage_text(self) -> str:
+        """
+        Return the text for the final stage, built up of the individual sections, in order.
+        """
         final_stage_text = '\n'.join(line for line in [
             f'\n# {self}',
             await self.get_from_section(),
             await self.get_copy_section(),
             await self.get_env_section(),
-            await self.get_workdir_section(),
+            await self.__get_workdir_section(),
             await self.get_run_section(),
             'ENTRYPOINT [ "/bin/bash" ]',
         ] if line)
@@ -147,7 +160,9 @@ class GenAbcDockerfile(Dependency, ABC):
 
     @memoize
     async def get_from_section(self) -> str:
-        """Return text for the FROM line of the final build stage."""
+        """
+        Return text for the FROM line of the final build stage.
+        """
         from_section = f'FROM base AS {await self.get_name()}'
 
         self.log.debug(f'{from_section = }')
@@ -156,7 +171,9 @@ class GenAbcDockerfile(Dependency, ABC):
 
     @memoize
     async def get_input_dockerfiles(self) -> Iterable[GenAbcDockerfile]:
-        """Return dockerfiles that describe build stages that come directly before this one."""
+        """
+        Return dockerfiles that describe build stages that come directly before this one.
+        """
         input_dockerfiles = tuple()
 
         self.log.debug(f'{input_dockerfiles = }')
@@ -165,7 +182,9 @@ class GenAbcDockerfile(Dependency, ABC):
 
     @memoize
     async def get_name(self) -> str:
-        """Return the name of the final build stage, for e.g. `FROM <image> AS <name>`."""
+        """
+        Return the name of the final build stage, for e.g. `FROM <image> AS <name>`.
+        """
         name = f'{self.options.target.replace("/", "__")}__{self.cfg.section_name}'.lower()
 
         self.log.debug(f'{name = }')
@@ -174,7 +193,9 @@ class GenAbcDockerfile(Dependency, ABC):
 
     @memoize
     async def get_run_section(self) -> str:
-        """Return text for the RUN line of the final build stage."""
+        """
+        Return text for the RUN line of the final build stage.
+        """
         run_section = ''
 
         self.log.debug(f'{run_section = }')
@@ -183,7 +204,9 @@ class GenAbcDockerfile(Dependency, ABC):
 
     @memoize
     async def get_text(self) -> str:
-        """Return the full text for this dockerfile, including all build stages."""
+        """
+        Return the full text for this dockerfile, including all build stages.
+        """
         seen_dockerfiles = set()
 
         # Calculating which build stages to include in the full Dockerfile text has the same tricky
@@ -200,7 +223,7 @@ class GenAbcDockerfile(Dependency, ABC):
                 for input_dockerfile in await dockerfile.get_input_dockerfiles():
                     text_parts += await inner(input_dockerfile)
                 if await dockerfile.get_run_section() or dockerfile is self:
-                    text_parts.append(await dockerfile.get_final_stage_text())
+                    text_parts.append(await dockerfile.__get_final_stage_text())
             return text_parts
 
         text = '\n'.join([await self.get_base_stages_text(), *await inner(self)])
@@ -210,8 +233,10 @@ class GenAbcDockerfile(Dependency, ABC):
         return text
 
     @memoize
-    async def get_workdir_section(self) -> str:
-        """Return text for the WORKDIR line of the final build stage."""
+    async def __get_workdir_section(self) -> str:
+        """
+        Return text for the WORKDIR line of the final build stage.
+        """
         workdir_section = f'WORKDIR {self.cfg.path.parent.image_build()}'
 
         self.log.debug(f'{workdir_section = }')
@@ -220,12 +245,20 @@ class GenAbcDockerfile(Dependency, ABC):
 
     @memoize
     async def main(self) -> None:
+        """
+        Mainline interface.
+        """
         self.log.info(f'Creating dockerfile {self.path}')
         self.path.write_text(data=await self.get_text())
 
     @memoize
     async def cli_entrypoint(self) -> None:
-        """If actual CLI command is `gdev ... dockerfile`, run as normal and then print contents."""
+        """
+        If actual CLI command is `gdev ... dockerfile`, run as normal and then print contents.
+        """
+
+        # If we have any mixins, we may need to do some extra work in the
+        # dockerfile to make sure that the mixins can work properly.
         if not self.options.mixins:
             dockerfile = self
         else:
