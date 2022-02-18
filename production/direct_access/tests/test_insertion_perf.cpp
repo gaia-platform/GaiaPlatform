@@ -1,7 +1,7 @@
 /////////////////////////////////////////////
+/////////////////////////////////////////////
 // Copyright (c) Gaia Platform LLC
 // All rights reserved.
-/////////////////////////////////////////////
 
 #include <iostream>
 #include <limits>
@@ -29,9 +29,11 @@ using g_timer_t = gaia::common::timer_t;
 // Note with > 50k objects it fails with, even if we split the commit.
 // C++ exception with description "Cannot find an object with ID '1072630'." thrown in the test body.
 // During deletion.
-static const int64_t c_num_insertion = 500000;
+static const int64_t c_num_insertion = 100000;
 static const int64_t c_max_insertion_single_txn = 50000;
 static const int64_t c_children_number = 10;
+
+std::atomic<uint64_t> cnt = 0;
 
 class test_insert_perf : public gaia::db::db_catalog_test_base_t
 {
@@ -40,6 +42,15 @@ public:
         : db_catalog_test_base_t("insert.ddl"){};
 };
 
+template <typename T_itr>
+void consume_iter(T_itr& curr, T_itr end)
+{
+    while (curr != end)
+    {
+        curr++;
+    }
+}
+
 // No way to make it working.
 template <typename T_type>
 void clear_table()
@@ -47,20 +58,38 @@ void clear_table()
     size_t counter = 1;
     gaia::db::begin_transaction();
 
-    for (auto obj_it = T_type::list().begin();
-         obj_it != T_type::list().end();)
+    try
     {
-        auto next_obj_it = obj_it++;
-        next_obj_it->delete_row();
+        for (auto obj_it = T_type::list().begin();
+             obj_it != T_type::list().end();)
+        {
+            auto next_obj_it = obj_it++;
+            next_obj_it->delete_row();
+            cnt++;
 
-        if (counter % (c_max_insertion_single_txn / 2) == 0)
+            if (counter % (c_max_insertion_single_txn / 2) == 0)
+            {
+                consume_iter(obj_it, T_type::list().end());
+                gaia::db::commit_transaction();
+                gaia::db::begin_transaction();
+                // Avoid "Cursor was not called from the scope of its own transaction!" thrown in the test body."
+                obj_it = T_type::list().begin();
+            }
+            counter++;
+        }
+    }
+    catch (exception& ex)
+    {
+        gaia_log::app().info("Failed with: {}", ex.what());
+        gaia_log::app().info("Final count: {}", cnt.load());
+
+        if (gaia::db::is_transaction_open())
         {
             gaia::db::commit_transaction();
-            gaia::db::begin_transaction();
-            // Avoid "Cursor was not called from the scope of its own transaction!" thrown in the test body."
-            obj_it = T_type::list().begin();
         }
-        counter++;
+        gaia::db::end_session();
+
+        throw ex;
     }
 
     if (gaia::db::is_transaction_open())
@@ -162,7 +191,7 @@ void run_performance_test(
         {
             // No way to make it working. The problem is that previous rows affect
             // the insertion rate of new insertions.
-            //            clear_database();
+            clear_database();
         }
     }
 
@@ -182,6 +211,7 @@ void insert_thread(int num_records)
             gaia::db::begin_transaction();
         }
         simple_table_t::insert_row(i);
+        //        cnt++;
     }
 
     if (gaia::db::is_transaction_open())
@@ -196,27 +226,28 @@ TEST_F(test_insert_perf, insert)
 {
     cout << "Inserting " << c_num_insertion << " objects in the database for each test" << endl;
 
-    auto insert1 = []() {
-        gaia::db::begin_transaction();
-
-        for (int i = 0; i < c_num_insertion; i++)
-        {
-            if (i > 0 && i % c_max_insertion_single_txn == 0)
-            {
-                gaia::db::commit_transaction();
-                gaia::db::begin_transaction();
-            }
-
-            simple_table_t::insert_row(i);
-        }
-
-        if (gaia::db::is_transaction_open())
-        {
-            gaia::db::commit_transaction();
-        }
-    };
-
-    run_performance_test(insert1, "simple_table_t::insert_row");
+    //    auto insert1 = []() {
+    //        gaia::db::begin_transaction();
+    //
+    //        for (int i = 0; i < c_num_insertion; i++)
+    //        {
+    //            if (i > 0 && i % c_max_insertion_single_txn == 0)
+    //            {
+    //                gaia::db::commit_transaction();
+    //                gaia::db::begin_transaction();
+    //            }
+    //
+    //            simple_table_t::insert_row(i);
+    //            cnt++;
+    //        }
+    //
+    //        if (gaia::db::is_transaction_open())
+    //        {
+    //            gaia::db::commit_transaction();
+    //        }
+    //    };
+    //
+    //    run_performance_test(insert1, "simple_table_t::insert_row", 50);
     //
     //    auto insert2 = []() {
     //        auto_transaction_t txn{auto_transaction_t::no_auto_restart};
@@ -282,7 +313,7 @@ TEST_F(test_insert_perf, insert)
     //
     //    run_performance_test(insert6, "Value Linked Relationships");
 
-    for (size_t num_workers : {2, 5, 10})
+    for (size_t num_workers : {/*2, 5 ,*/ 10})
     {
         auto insert7 = [num_workers]() {
             std::vector<std::thread> workers;
@@ -297,109 +328,6 @@ TEST_F(test_insert_perf, insert)
                 worker.join();
             }
         };
-        run_performance_test(insert7, gaia_fmt::format("simple_table_t::insert_row with {} threads", num_workers));
+        run_performance_test(insert7, gaia_fmt::format("simple_table_t::insert_row with {} threads", num_workers), 20);
     }
 }
-
-//#include "gaia_internal/catalog/catalog.hpp"
-//#include "gaia_internal/db/catalog_core.hpp"
-//
-//#include "db_object_helpers.hpp"
-//#include "index_key.hpp"
-//#include "index_scan.hpp"
-//#include "type_id_mapping.hpp"
-//
-// using namespace gaia::db;
-// using namespace gaia::catalog;
-// using namespace gaia::db::query_processor::scan;
-// using namespace gaia::db::index;
-//
-// TEST_F(test_insert_perf, query_single_match)
-//{
-//
-//    auto_transaction_t txn{auto_transaction_t::no_auto_restart};
-//    for (int i = 0; i < 1000000; i++)
-//    {
-//        simple_table_index_t::insert_row(i);
-//    }
-//
-//    // Lookup index_id for integer field.
-//    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(simple_table_index_t::s_gaia_type);
-//    gaia_id_t hash_index_id = c_invalid_gaia_id;
-//
-//    for (const auto& index : catalog_core::list_indexes(type_record_id))
-//    {
-//        for (const auto& field_id : *index.fields())
-//        {
-//            const auto& field = catalog_core::field_view_t(gaia::db::id_to_ptr(field_id));
-//
-//            if (field.data_type() == data_type_t::e_uint64 && index.type() == index_type_t::range)
-//            {
-//                hash_index_id = index.id();
-//                break;
-//            }
-//        }
-//    }
-//
-//    EXPECT_TRUE(hash_index_id != c_invalid_gaia_id);
-//
-//    txn.commit();
-//
-//    auto index = [&]() {
-//        auto_transaction_t txn{auto_transaction_t::no_auto_restart};
-//        uint64_t value = 10000;
-//        auto index_key = index_key_t(value);
-//        int num_results = 0;
-//        auto point_predicate = std::make_shared<index_point_read_predicate_t>(index_key);
-//        for (const auto& scan : index_scan_t(hash_index_id, point_predicate))
-//        {
-//            (void)scan;
-//            ++num_results;
-//        }
-//
-//        txn.commit();
-//
-//        EXPECT_EQ(num_results, 1);
-//    };
-//
-//    run_performance_test(index, "Hash Index value found", 5, false);
-//
-//    auto index2 = [&]() {
-//        auto_transaction_t txn{auto_transaction_t::no_auto_restart};
-//        uint64_t value = 1000000000;
-//        auto index_key = index_key_t(value);
-//        int num_results = 0;
-//        auto point_predicate = std::make_shared<index_point_read_predicate_t>(index_key);
-//        for (const auto& scan : index_scan_t(hash_index_id, point_predicate))
-//        {
-//            (void)scan;
-//            ++num_results;
-//        }
-//
-//        txn.commit();
-//
-//        EXPECT_EQ(num_results, 0);
-//    };
-//
-//    run_performance_test(index2, "Hash Index value not found", 5, false);
-//
-//    auto index3 = [&]() {
-//        auto_transaction_t txn{auto_transaction_t::no_auto_restart};
-//        uint64_t value = 10000;
-//        auto index_key = index_key_t(value);
-//        int num_results = 0;
-//        auto point_predicate = std::make_shared<index_point_read_predicate_t>(index_key);
-//        for (const auto& scan : index_scan_t(hash_index_id, point_predicate))
-//        {
-//            (void)scan;
-//            ++num_results;
-//        }
-//
-//        txn.commit();
-//
-//        EXPECT_EQ(num_results, 1);
-//    };
-//
-//    run_performance_test(index3, "Hash Index value found", 5, false);
-//    // Point-query on hash index.
-//}

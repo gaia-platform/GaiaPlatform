@@ -107,10 +107,11 @@ public:
         common::gaia_id_t parent_id,
         common::gaia_id_t first_child_id);
 
+    void finalize_create();
+
 protected:
     void allocate(size_t size);
 
-    void finalize_create();
     void finalize_update(gaia_offset_t old_offset);
 
     inline bool is(common::gaia_type_t type) const;
