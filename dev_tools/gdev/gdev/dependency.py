@@ -268,14 +268,8 @@ class Dependency:
             parsed_args['args'] = parsed_args['args'][1:]
         parsed_args['args'] = ' '.join(parsed_args['args'])
 
-        # This supports both a single cfg-enable that is comma separated with and old style separate.
-        if parsed_args['cfg_enables'] and len(parsed_args['cfg_enables']) == 1 and "," in parsed_args['cfg_enables']:
-            split_enables_arguments = parsed_args['cfg_enables'][0].split(",") if parsed_args['cfg_enables'] else []
-        else:
-            split_enables_arguments = parsed_args['cfg_enables']
-
         parsed_args['cfg_enables'] = frozenset([
-            parsed_args['base_image'], *split_enables_arguments, *parsed_args['mixins']
+            parsed_args['base_image'], *parsed_args['cfg_enables'], *parsed_args['mixins']
         ])
         parsed_args['mixins'] = frozenset(parsed_args['mixins'])
         parsed_args['ports'] = frozenset(str(port) for port in parsed_args['ports'])

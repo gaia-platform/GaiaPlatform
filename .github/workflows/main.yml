@@ -123,7 +123,7 @@ jobs:
   Debug_SDK:
     needs:
       - Core
-    if: github.event_name != 'pull_request'
+#    if: github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
