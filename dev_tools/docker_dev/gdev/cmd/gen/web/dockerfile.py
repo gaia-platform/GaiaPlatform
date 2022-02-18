@@ -4,13 +4,22 @@ from .._abc.dockerfile import GenAbcDockerfile
 
 
 class GenWebDockerfile(GenAbcDockerfile):
+    """
+    Class to generate the WEB section of the dockerfile.
+    """
 
     @property
     def cfg(self) -> GenWebCfg:
+        """
+        Get the configuration associated with this portion of the dockerfile.
+        """
         return GenWebCfg(self.options)
 
     @memoize
     async def get_from_section(self) -> str:
+        """
+        Return text for the FROM line of the final build stage.
+        """
         from_section = f'FROM web_base AS {await self.get_name()}'
 
         self.log.debug(f'{from_section = }')
@@ -19,6 +28,10 @@ class GenWebDockerfile(GenAbcDockerfile):
 
     @memoize
     async def get_run_section(self) -> str:
+        """
+        Return text for the RUN line of the final build stage.
+        """
+
         if section_lines := await self.cfg.get_section_lines():
             run_statement = (
                 f'RUN wget '

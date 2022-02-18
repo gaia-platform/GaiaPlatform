@@ -14,8 +14,18 @@ log = getLogger(__name__)
 @dataclass(frozen=True)
 class Host:
 
+    __is_drydock_enabled = False
+
     class SubprocessException(Exception):
         pass
+
+    @staticmethod
+    def set_drydock(value):
+        Host.__is_drydock_enabled = value
+
+    @staticmethod
+    def is_drydock_enabled():
+        return Host.__is_drydock_enabled
 
     @staticmethod
     async def _finish_process(err_ok: bool, process: Process) -> Sequence[str]:
@@ -46,7 +56,10 @@ class Host:
 
     @staticmethod
     async def execute(command: str, *, err_ok: bool = False) -> None:
-        await Host._execute(capture_output=False, command=command, err_ok=err_ok)
+        if Host.__is_drydock_enabled:
+            print(f"[execute:{command}]")
+        else:
+            await Host.__execute(capture_output=False, command=command, err_ok=err_ok)
 
     @staticmethod
     async def execute_and_get_lines(command: str, *, err_ok: bool = False) -> Sequence[str]:
