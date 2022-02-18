@@ -52,6 +52,7 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
+    echo "  -d,--database       Enable the creation of the database within the script."
     echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
     echo ""
@@ -234,7 +235,7 @@ fi
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Executing the LLVM Tests."
 fi
-if ! /build/production/llvm/bin/llvm-lit --xunit-xml-output /build/production/llvm.xml . ; then
+if ! /build/production/llvm/bin/llvm-lit --xunit-xml-output /build/production/output/llvm.xml . ; then
     complete_process 1 "Execution of the LLVM tests failed."
 fi
 

@@ -168,7 +168,9 @@ popd || exit
 # That responsibility is covered by the other jobs.
 echo "Running tests with profile-enabled binaries."
 export LLVM_PROFILE_FILE="/build/production/tests.%4m.profraw"
+
 ctest --output-log /build/production/output/ctest.log --output-junit /build/production/output/ctest.xml
+/source/production/tests/llvm.sh --database --verbose
 
 echo "Creating an input file of all created profiles."
 find . -name "*.profraw" ! -path "./llvm/*" > /build/production/output/profiles.txt
