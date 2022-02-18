@@ -148,7 +148,7 @@ void server_t::txn_begin()
     // Allocate the txn log offset on the server, for rollback-safety if the client session crashes.
     s_txn_log_offset = allocate_log_offset();
 
-    // REVIEW: This exception needs to be thrown on the client!
+    // REVIEW (GAIAPLAT-2033): This exception needs to be thrown on the client!
     if (s_txn_log_offset == c_invalid_log_offset)
     {
         throw transaction_log_allocation_failure_internal();
@@ -1219,8 +1219,9 @@ void server_t::session_handler(int session_socket)
     // are currently claimed by sessions), then immediately close the socket, so
     // the client throws a `peer_disconnected` exception and rethrows a
     // `session_limit_exceeded_internal` exception.
-    // REVIEW: When we have a way to marshal exceptions to the client, we should
-    // directly ensure that `session_limit_exceeded_internal` is thrown in this case.
+    // REVIEW (GAIAPLAT-2034): When we have a way to marshal exceptions to the
+    // client, we should directly ensure that `session_limit_exceeded_internal`
+    // is thrown in this case.
     if (!reserve_safe_ts_index())
     {
         std::cerr << "Disconnecting new session because session handler failed to reserve a safe_ts entry index." << std::endl;
