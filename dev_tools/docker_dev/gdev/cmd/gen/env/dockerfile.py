@@ -1,3 +1,7 @@
+"""
+Module to generate the ENV section of the dockerfile.
+"""
+
 from dataclasses import replace
 from typing import Iterable
 
@@ -19,14 +23,14 @@ class GenEnvDockerfile(GenAbcDockerfile):
         return GenEnvCfg(self.options)
 
     @memoize
-    async def get_input_dockerfiles(self) -> Iterable[GenAbcDockerfile]:
+    def get_input_dockerfiles(self) -> Iterable[GenAbcDockerfile]:
         """
         Return dockerfiles that describe build stages that come directly before this one.
         """
         from ..gaia.dockerfile import GenGaiaDockerfile
 
         input_dockerfiles = []
-        for section_line in await GenGaiaDockerfile(self.options).cfg.get_section_lines():
+        for section_line in GenGaiaDockerfile(self.options).cfg.get_section_lines():
             input_dockerfiles.append(GenEnvDockerfile(replace(self.options, target=section_line)))
         input_dockerfiles = tuple(input_dockerfiles)
 

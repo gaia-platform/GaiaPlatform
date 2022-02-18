@@ -1,9 +1,18 @@
+"""
+Module to satisfy the push requirements to for the APT section.
+"""
 from .build import GenAptBuild
 from .._abc.push import GenAbcPush
 
 
 class GenAptPush(GenAbcPush):
+    """
+    Class to satisfy the push requirements to for the APT section.
+    """
 
     @property
     def build(self) -> GenAptBuild:
+        """
+        Return the class that will be used to generate the build requirements.
+        """
         return GenAptBuild(self.options)

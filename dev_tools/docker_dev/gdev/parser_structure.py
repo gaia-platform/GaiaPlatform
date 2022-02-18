@@ -1,10 +1,12 @@
+"""
+Module to allow for a description of the structure to be constructed.
+"""
 from __future__ import annotations
 from typing import FrozenSet, Sequence, Set, Tuple
 from importlib import import_module
 from importlib.util import find_spec
 from inspect import getdoc, isabstract, iscoroutinefunction
 from argparse import ArgumentParser, REMAINDER
-from asyncio import gather
 from dataclasses import dataclass
 from importlib import import_module
 from importlib.util import find_spec

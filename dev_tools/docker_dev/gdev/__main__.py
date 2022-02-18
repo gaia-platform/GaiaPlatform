@@ -1,5 +1,9 @@
 #!/usr/bin/env python3.8
 
+"""
+Module to provide the main entry point from a -m/module use case.
+"""
+
 # PYTHON_ARGCOMPLETE_OK
 
 import sys

@@ -1,3 +1,6 @@
+"""
+Module to provide for the necessary actions to perform a push of the image.
+"""
 from abc import ABC, abstractmethod
 
 from gdev.dependency import Dependency
@@ -7,16 +10,25 @@ from .build import GenAbcBuild
 
 
 class GenAbcPush(Dependency, ABC):
+    """
+    Class to provide for the necessary actions to perform a push of the image.
+    """
 
     @property
     @abstractmethod
     def build(self) -> GenAbcBuild:
+        """
+        Return the class that will be used to generate the build requirements.
+        """
         raise NotImplemented
 
     @memoize
-    async def main(self) -> None:
-        await self.build.main()
+    def main(self) -> None:
+        """
+        Main action undertaken by this class.
+        """
+        self.build.main()
 
-        tag = await self.build.get_tag()
-        await Host.execute(f'docker tag {tag} {self.options.registry}/{tag}')
-        await Host.execute(f'docker push {self.options.registry}/{tag}')
+        tag = self.build.get_tag()
+        Host.execute_sync(f'docker tag {tag} {self.options.registry}/{tag}')
+        Host.execute_sync(f'docker push {self.options.registry}/{tag}')

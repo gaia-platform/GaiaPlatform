@@ -36,7 +36,7 @@ def test_show_help_build():
     execute_results = executor.invoke_main(arguments=suppplied_arguments, cwd=determine_repository_production_directory())
 
     # Assert
-    expected_output = expected_output.replace("Dependency(options: 'Options')", "Bob")
+    expected_output = expected_output.replace("Dependency(options: 'Options')", "Bob.Dependency")
     execute_results.assert_results(
         expected_output, expected_error, expected_return_code
     )
@@ -73,7 +73,7 @@ def test_show_help_dockerfile():
     execute_results = executor.invoke_main(arguments=suppplied_arguments, cwd=determine_repository_production_directory())
 
     # Assert
-    expected_output = expected_output.replace("Dependency(options: 'Options')", "Class to encapsulate the 'cfg' subcommandxx.")
+    expected_output = expected_output.replace("Dependency(options: 'Options')", "Class to encapsulate the 'cfg' subcommand.")
     execute_results.assert_results(
         expected_output, expected_error, expected_return_code
     )
@@ -109,7 +109,7 @@ def test_show_help_push():
     execute_results = executor.invoke_main(arguments=suppplied_arguments, cwd=determine_repository_production_directory())
 
     # Assert
-    expected_output = expected_output.replace("Dependency(options: 'Options')", "Bob")
+    expected_output = expected_output.replace("Dependency(options: 'Options')", "Bob.Dependency")
     execute_results.assert_results(
         expected_output, expected_error, expected_return_code
     )
@@ -128,7 +128,7 @@ def test_show_help_run():
     execute_results = executor.invoke_main(arguments=suppplied_arguments, cwd=determine_repository_production_directory())
 
     # Assert
-    expected_output = expected_output.replace("Dependency(options: 'Options')", "Bob")
+    expected_output = expected_output.replace("Dependency(options: 'Options')", "Bob.Dependency")
     execute_results.assert_results(
         expected_output, expected_error, expected_return_code
     )
