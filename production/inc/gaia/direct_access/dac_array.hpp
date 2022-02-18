@@ -29,32 +29,58 @@ namespace direct_access
  * Provides an API for accessing array fields in Direct Access objects.
  */
 
-template <typename T_class>
+// Forward declaring so `dac_vector_iterator_t` can use it.
+template <typename T_type>
+class dac_vector_t;
+
+/**
+ * An iterator for traversing elements in a `dac_vector_t`.
+ *
+ * @tparam T_type The type of `dac_vector_t` elements that the iterator traverses.
+ */
+template <typename T_type>
 class dac_vector_iterator_t
 {
 public:
+    using difference_type = std::ptrdiff_t;
+    using value_type = T_type;
+    using pointer = const T_type*;
+    using reference = const T_type&;
+    using iterator_category = std::bidirectional_iterator_tag; // TODO: upgrade to random_access_iterator_tag
+
+    /**
+     * Constructs an iterator that does not point to any data.
+     */
     dac_vector_iterator_t();
 
-    explicit dac_vector_iterator_t(const T_class* iterator_data, uint32_t index);
+    /**
+     * Constructs an iterator pointing to a DAC vector, starting at a given index.
+     * @param dac_vector The DAC vector to iterate over.
+     * @param index The vector index to start iterating from.
+     */
+    explicit dac_vector_iterator_t(const dac_vector_t<T_type>& dac_vector, uint32_t index);
 
-    dac_vector_iterator_t<T_class>& operator++();
-    dac_vector_iterator_t<T_class> operator++(int);
+    dac_vector_iterator_t<T_type>& operator++();
+    dac_vector_iterator_t<T_type> operator++(int);
+
+    dac_vector_iterator_t<T_type>& operator--();
+    dac_vector_iterator_t<T_type> operator--(int);
 
     bool operator==(const dac_vector_iterator_t& rhs) const;
     bool operator!=(const dac_vector_iterator_t& rhs) const;
 
-    const T_class& operator*() const;
-    const T_class* operator->() const;
+    reference operator*() const;
+    pointer operator->() const;
 
 protected:
-    const T_class* m_iterator_data;
+    const T_type* m_iterator_data;
     uint32_t m_index;
 };
 
 /**
  * The base class of array fields. It encapsulates `flatbuffers::Vector` for storage.
  *
- * @tparam T_type the type of the array's elements.
+ * @tparam T_type The type of the array's elements.
  */
 template <typename T_type>
 class dac_vector_t
