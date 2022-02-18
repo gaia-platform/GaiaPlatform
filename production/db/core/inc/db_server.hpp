@@ -137,7 +137,7 @@ private:
     static inline int s_signal_checkpoint_log_eventfd = -1;
 
     // Signal to persistence thread that a batch is ready to be validated.
-    static inline int s_validate_persistence_batch_eventfd = -1;
+    static inline int s_do_write_batch_maintenance_eventfd = -1;
 
     // These thread objects are owned by the client dispatch thread.
     static inline std::vector<std::thread> s_session_threads{};

@@ -228,7 +228,7 @@ void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t comm
     }
 }
 
-void log_handler_t::perform_flushed_batch_results_and_do_maintenance()
+void log_handler_t::check_flushed_batch_results_and_do_maintenance()
 {
     m_async_disk_writer->perform_post_completion_maintenance();
 }

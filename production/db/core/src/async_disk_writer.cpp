@@ -123,7 +123,9 @@ void async_disk_writer_t::perform_post_completion_maintenance()
         void* addr = transactions::txn_metadata_t::get_txn_metadata_entry_addr(decision.commit_ts);
 
         // Assert since anything else implies a programming issue.
-        ASSERT_INVARIANT(common::futex_wake(addr, 1) == 1, "Only a single session thread should be waiting to wake up.");        
+        // CAN THIS BE 0?; Is it possible for a wake to occur before a wait?
+        // It is possible for the Futex call to be missed.
+        common::futex_wake(addr, 1);
     }
 
     m_in_flight_batch->clear_decision_batch();

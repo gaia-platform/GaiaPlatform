@@ -314,7 +314,6 @@ class memory_allocation_error_internal : public memory_allocation_error
 {
 public:
     explicit memory_allocation_error_internal();
-    explicit memory_allocation_error_internal(const std::string& message);
 };
 
 namespace index

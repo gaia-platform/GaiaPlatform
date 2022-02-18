@@ -134,7 +134,7 @@ inline void allocate_object(
     {
         if (gaia::db::get_mapped_log()->data()->chunk_count == c_max_chunks_per_txn)
         {
-            throw memory_allocation_error_internal("Maximum number of chunks for this transaction has been reached.");
+            throw transaction_memory_limit_exceeded();
         }
 
         if (chunk_manager->initialized())

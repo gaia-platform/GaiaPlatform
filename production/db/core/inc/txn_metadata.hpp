@@ -107,6 +107,7 @@ public:
     inline bool seal_if_uninitialized();
 
     static inline int get_txn_log_fd(gaia_txn_id_t commit_ts);
+    static inline int get_entry(gaia_txn_id_t commit_ts);
     static inline bool seal_uninitialized_ts(gaia_txn_id_t ts);
     static inline bool invalidate_txn_log_fd(gaia_txn_id_t commit_ts);
     static inline void set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts);

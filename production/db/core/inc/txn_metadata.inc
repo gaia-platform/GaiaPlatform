@@ -377,6 +377,13 @@ txn_metadata_entry_t txn_metadata_t::get_entry()
     return txn_metadata_entry_t{s_txn_metadata_map[m_ts].load()};
 }
 
+txn_metadata_entry_t txn_metadata_t::get_entry(gaia_txn_id_t commit_ts)
+{
+    ASSERT_PRECONDITION(s_txn_metadata_map, "Transaction metadata has not been initialized!");
+
+    return txn_metadata_entry_t{s_txn_metadata_map[commit_ts].load()};
+}
+
 void* txn_metadata_t::get_txn_metadata_entry_addr(gaia_txn_id_t commit_ts)
 {
     ASSERT_PRECONDITION(s_txn_metadata_map, "Transaction metadata has not been initialized!");

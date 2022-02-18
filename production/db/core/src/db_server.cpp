@@ -267,10 +267,10 @@ void server_t::recover_persistent_log()
     {
         if (!s_log_handler)
         {
-            ASSERT_INVARIANT(s_validate_persistence_batch_eventfd >= 0, "Invalid validate flush eventfd.");
+            ASSERT_INVARIANT(s_do_write_batch_maintenance_eventfd >= 0, "Invalid validate flush eventfd.");
             s_log_handler = std::make_unique<persistence::log_handler_t>(s_server_conf.data_dir());
 
-            s_log_handler->open_for_writes(s_validate_persistence_batch_eventfd, s_signal_checkpoint_log_eventfd);
+            s_log_handler->open_for_writes(s_do_write_batch_maintenance_eventfd, s_signal_checkpoint_log_eventfd);
         }
 
         if (s_server_conf.persistence_mode() == persistence_mode_t::e_disabled_after_recovery)
@@ -976,7 +976,7 @@ void server_t::log_writer_handler()
     }
 
     auto epoll_cleanup = make_scope_guard([&]() { close_fd(epoll_fd); });
-    int registered_fds[] = {s_signal_log_write_eventfd, s_signal_decision_eventfd, s_validate_persistence_batch_eventfd, s_server_shutdown_eventfd};
+    int registered_fds[] = {s_signal_log_write_eventfd, s_signal_decision_eventfd, s_do_write_batch_maintenance_eventfd, s_server_shutdown_eventfd};
 
     for (int registered_fd : registered_fds)
     {
@@ -1023,7 +1023,7 @@ void server_t::log_writer_handler()
                 {
                     throw_system_error("Shutdown eventfd error!");
                 }
-                else if (ev.data.fd == s_validate_persistence_batch_eventfd)
+                else if (ev.data.fd == s_do_write_batch_maintenance_eventfd)
                 {
                     throw_system_error("Validate persistence batch eventfd error!");
                 }
@@ -1036,11 +1036,11 @@ void server_t::log_writer_handler()
             ASSERT_INVARIANT(ev.events == EPOLLIN, c_message_unexpected_event_type);
 
             // Signal to the persistence thread a batch was written to disk and the results of I/O operations
-            // need to be validated.
-            if (ev.data.fd == s_validate_persistence_batch_eventfd)
+            // need to be checked.
+            if (ev.data.fd == s_do_write_batch_maintenance_eventfd)
             {
                 uint64_t val;
-                ssize_t bytes_read = ::read(s_validate_persistence_batch_eventfd, &val, sizeof(val));
+                ssize_t bytes_read = ::read(s_do_write_batch_maintenance_eventfd, &val, sizeof(val));
                 if (bytes_read == -1)
                 {
                     ASSERT_INVARIANT(errno == EAGAIN, "Unexpected error! read() is expected to fail with EAGAIN for a non-blocking eventfd.");
@@ -1048,7 +1048,7 @@ void server_t::log_writer_handler()
                 else
                 {
                     // Validate the results of a previously flushed batch only if read returns successfully.
-                    s_log_handler->perform_flushed_batch_results_and_do_maintenance();
+                    s_log_handler->check_flushed_batch_results_and_do_maintenance();
                 }
 
                 persist_pending_writes(c_txn_group_timeout_us);
@@ -3008,15 +3008,30 @@ bool server_t::txn_commit()
             // We are only interested in whether the persistence bit is set.
             // futex_wait() will only wait if the int32_t at addr matches the expected value.
             // The addr points to the last 32 bits of the txn metadata entry for commit_ts.
-            auto expected_val = transactions::txn_metadata_t::get_txn_metadata_entry_higher_bits(commit_ts);
+            // expected_val is only relevant if durable bit is unset.
+            uint32_t expected_val = 0;
+            txn_metadata_entry_t txn_entry{transactions::txn_metadata_t::get_entry(commit_ts)};
 
-            // Skip waiting in case persistence bit is set.
-            if (txn_metadata_t::is_txn_durable(commit_ts))
+            if (!txn_entry.is_durable())
             {
+
+                expected_val = static_cast<uint32_t>(txn_entry >> 32);
+            }
+            else
+            {
+                // Txn is durable. Exit.
                 return is_committed;
             }
-
-            // Wait.
+            
+            
+            // Wait if address pointed to by futex is the same as expected_val.
+            // Only want to wait if expected_val has the persistence bit unset.
+            // What if it has lost the futex wake?
+            // Futex wake can be lost if log writer thread marks the txn entry durable and then issues a wake call before futex_wait
+            // is even called by commit path.
+            // In that case, the futex_wait call will simply fail since expected_val is now different from value at addr.
+            // Futex WAKE only called after txn entry is updated.
+            // If we reach this point in the code, expected_val has durable bit unset.
             common::futex_wait(addr, expected_val);
                     
             ASSERT_POSTCONDITION(txn_metadata_t::is_txn_durable(commit_ts), "Txn should be durable.");
@@ -3511,7 +3526,7 @@ void server_t::run(server_config_t server_conf)
         // the eventfd counter to never exceed 1.
         // The persistence batch should only be validated after a batch has finished flushing (or this will lead to
         // premature cleaning of metadata in the in-flight persistence batch)
-        s_validate_persistence_batch_eventfd = make_nonblocking_eventfd();
+        s_do_write_batch_maintenance_eventfd = make_nonblocking_eventfd();
 
         // To signal to the persistence thread that new writes are available to be written.
         // Semaphore semantics in this case will be correct but will lead to the thread being awake
@@ -3523,7 +3538,7 @@ void server_t::run(server_config_t server_conf)
         auto cleanup_persistence_eventfds = make_scope_guard([]() {
             close_fd(s_signal_log_write_eventfd);
             close_fd(s_signal_decision_eventfd);
-            close_fd(s_validate_persistence_batch_eventfd);
+            close_fd(s_do_write_batch_maintenance_eventfd);
         });
 
         // Block handled signals in this thread and subsequently spawned threads.
