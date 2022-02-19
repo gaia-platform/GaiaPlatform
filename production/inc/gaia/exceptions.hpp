@@ -269,9 +269,18 @@ class transaction_update_conflict : public common::gaia_exception
 /**
  * \brief The transaction attempted to update too many objects.
  *
- * A transaction can create, update, or delete at most 2^20 objects.
+ * A transaction can create, update, or delete at most 2^16 objects.
  */
 class transaction_object_limit_exceeded : public common::gaia_exception
+{
+};
+
+/**
+ * \brief Unable to allocate a log for this transaction.
+ *
+ * The system can allocate at most 2^16 transaction logs at one time.
+ */
+class transaction_log_allocation_failure : public common::gaia_exception
 {
 };
 

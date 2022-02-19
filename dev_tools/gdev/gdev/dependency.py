@@ -17,7 +17,8 @@ from gdev.custom.pathlib import Path
 from gdev.options import Options, Mount
 from gdev.third_party.atools import memoize, memoize_db
 from gdev.third_party.argcomplete import autocomplete, FilesCompleter
-
+import argparse
+from gdev.host import Host
 
 @dataclass(frozen=True)
 class _ParserStructure:
@@ -120,6 +121,15 @@ class Dependency:
     @staticmethod
     def get_parser() -> ArgumentParser:
         def add_flags(parser: ArgumentParser) -> None:
+
+            # This has been specifically added to allow backwards compatibility testing.
+            parser.add_argument(
+                "--dry-dock",
+                action="store_true",
+                default=False,
+                help=argparse.SUPPRESS,
+            )
+
             base_image_default = 'ubuntu:20.04'
             parser.add_argument(
                 '--base-image',
@@ -130,7 +140,7 @@ class Dependency:
             parser.add_argument(
                 '--cfg-enables',
                 default=cfg_enables_default,
-                nargs=1,
+                nargs='*',
                 help=(
                     f'Enable lines in gdev.cfg files gated by `enable_if`, `enable_if_any`, and'
                     f' `enable_if_all` functions. Default: "{cfg_enables_default}"'
@@ -220,9 +230,12 @@ class Dependency:
                 )
             else:
                 sub_parsers = parser.add_subparsers()
+                sub_parser_map = {}
                 for sub_parser_structure in parser_structure.sub_parser_structures:
-                    sub_parser = sub_parsers.add_parser(sub_parser_structure.command_parts[-1])
-                    inner(sub_parser, sub_parser_structure)
+                    sub_parser_map[sub_parser_structure.command_parts[-1]] = sub_parser_structure
+                for next_map_key in sorted(sub_parser_map.keys()):
+                    sub_parser = sub_parsers.add_parser(next_map_key)
+                    inner(sub_parser, sub_parser_map[next_map_key])
             parser.description = parser_structure.doc
 
             return parser
@@ -263,6 +276,11 @@ class Dependency:
             parser.parse_args([*args, '--help'])
             import sys
             sys.exit(1)
+
+        # This has been specifically added to allow backwards compatibility testing.
+        if 'dry_dock' in parsed_args:
+            Host.set_drydock(parsed_args['dry_dock'])
+            del parsed_args['dry_dock']
 
         if parsed_args['args'] and parsed_args['args'][0] == '--':
             parsed_args['args'] = parsed_args['args'][1:]

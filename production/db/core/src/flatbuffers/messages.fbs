@@ -72,6 +72,7 @@ table client_request_t {
 
 table transaction_info_t {
     transaction_id: uint64;
+    transaction_log_offset: uint16;
     log_fds_to_apply_count: uint64;
 }
 
