@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <string>
+#include <vector>
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
@@ -96,6 +97,18 @@ void add_relationship_hashes(multi_segment_hash& table_hash, gaia_relationship_t
 }
 } // namespace
 
+struct hash_buffer_t
+{
+    uint8_t hash_buffer[multi_segment_hash::c_murmur3_128_hash_size_in_bytes];
+};
+
+bool sort_by_name(
+    const pair<string, hash_buffer_t>& a,
+    const pair<string, hash_buffer_t>& b)
+{
+    return (a.first < b.first);
+}
+
 // For every catalog row that defines this database, calculate and store its hash.
 void add_catalog_hashes(const std::string db_name)
 {
@@ -108,6 +121,11 @@ void add_catalog_hashes(const std::string db_name)
         multi_segment_hash db_hash;
         db_hash.hash_add(db.name());
         auto db_w = db.writer();
+
+        // Prepare to collect and sort the table hashes by the table name. This ensures that the
+        // same hash for the database will be generated even if the table definitions have been
+        // re-arranged in the DDL.
+        vector<pair<string, hash_buffer_t>> table_vector;
 
         // The table hash is composed of the hashes for the table's name and type, followed
         // by the hashes of all indexes, fields and relationships that are connected to this table.
@@ -137,13 +155,23 @@ void add_catalog_hashes(const std::string db_name)
                 add_relationship_hashes(table_hash, child_relationship);
             }
 
-            // Include this table's hash in the database's composite, and
-            // store the hash string in this table.
+            // Store the hash string in this table.
             table_hash.hash_calc();
-            db_hash.hash_include(table_hash.hash());
             auto table_w = table.writer();
             table_w.hash = table_hash.to_string();
             table_w.update_row();
+
+            pair<string, hash_buffer_t> table_pair;
+            table_pair.first = table.name();
+            memcpy(table_pair.second.hash_buffer, table_hash.hash(), multi_segment_hash::c_murmur3_128_hash_size_in_bytes);
+            table_vector.push_back(table_pair);
+        }
+
+        // Include the ordered table hash in the database hash.
+        sort(table_vector.begin(), table_vector.end(), sort_by_name);
+        for (const auto& table : table_vector)
+        {
+            db_hash.hash_include(table.second.hash_buffer);
         }
 
         // Finally, store the hash string of the database.
