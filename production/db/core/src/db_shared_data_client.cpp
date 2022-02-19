@@ -29,6 +29,11 @@ gaia::db::locators_t* gaia::db::get_locators_for_allocator()
     return gaia::db::get_locators();
 }
 
+size_t* get_current_txn_memory_size_bytes()
+{
+    return &gaia::db::client_t::s_txn_memory_size_bytes;
+}
+
 gaia::db::counters_t* gaia::db::get_counters()
 {
     // Since we don't use this accessor in the client itself, we can assert that

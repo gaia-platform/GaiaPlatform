@@ -183,6 +183,9 @@ void client_t::txn_cleanup()
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
+
+    // Reset txn size.
+    s_txn_memory_size_bytes = 0;
 }
 
 int client_t::get_session_socket(const std::string& socket_name)

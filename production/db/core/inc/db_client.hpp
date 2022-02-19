@@ -104,6 +104,8 @@ private:
     thread_local static inline mapped_data_t<locators_t> s_private_locators;
     thread_local static inline gaia::db::index::indexes_t s_local_indexes{};
 
+    thread_local static inline size_t s_txn_memory_size_bytes = 0;
+
     // These fields have session lifetime.
     thread_local static inline config::session_options_t s_session_options;
 

@@ -31,6 +31,11 @@ gaia::db::counters_t* gaia::db::get_counters()
     return gaia::db::server_t::s_shared_counters.data();
 }
 
+size_t* get_current_txn_memory_size_bytes()
+{
+    return nullptr;
+}
+
 gaia::db::data_t* gaia::db::get_data()
 {
     // Since we don't use this accessor in the server itself, we can assert that

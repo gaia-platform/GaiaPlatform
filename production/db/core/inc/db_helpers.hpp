@@ -126,17 +126,26 @@ inline void allocate_object(
 {
     memory_manager::memory_manager_t* memory_manager = gaia::db::get_memory_manager();
     memory_manager::chunk_manager_t* chunk_manager = gaia::db::get_chunk_manager();
+    
+    size_t size_to_allocate = size + c_db_object_header_size;
 
-    // The allocation can fail either because there is no current chunk, or
-    // because the current chunk is full.
-    gaia_offset_t object_offset = chunk_manager->allocate(size + c_db_object_header_size);
-    if (!object_offset.is_valid())
+    if (get_current_txn_memory_size_bytes() != nullptr)
     {
-        if (gaia::db::get_mapped_log()->data()->chunk_count == c_max_chunks_per_txn)
+        if (*get_current_txn_memory_size_bytes() + size_to_allocate <= c_max_txn_memory_size_bytes)
+        {
+            *get_current_txn_memory_size_bytes() += size_to_allocate;
+        }
+        else
         {
             throw transaction_memory_limit_exceeded();
         }
+    }
 
+    // The allocation can fail either because there is no current chunk, or
+    // because the current chunk is full.
+    gaia_offset_t object_offset = chunk_manager->allocate(size_to_allocate);
+    if (!object_offset.is_valid())
+    {
         if (chunk_manager->initialized())
         {
             // The current chunk is out of memory, so retire it and allocate a new chunk.
@@ -160,15 +169,12 @@ inline void allocate_object(
         // Initialize the new chunk.
         chunk_manager->initialize(new_chunk_offset);
 
-        // Before we allocate, persist current chunk ID in txn log, for access
-        // on the server in case we crash.
-        gaia::db::get_mapped_log()->data()->current_chunk = new_chunk_offset;
-
-        auto& chunk = gaia::db::get_mapped_log()->data()->chunks[gaia::db::get_mapped_log()->data()->chunk_count++];
-        chunk = static_cast<size_t>(new_chunk_offset);
+        // // Before we allocate, persist current chunk ID in txn log, for access
+        // // on the server in case we crash.
+        // gaia::db::get_mapped_log()->data()->current_chunk = new_chunk_offset;
 
         // Allocate from new chunk.
-        object_offset = chunk_manager->allocate(size + c_db_object_header_size);
+        object_offset = chunk_manager->allocate(size_to_allocate);
     }
 
     ASSERT_POSTCONDITION(
