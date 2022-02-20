@@ -176,13 +176,13 @@ void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t comm
     // The txn_log is sorted on the client for the correct validation impl, thus this map is used to track order of writes.
     // Note that writes beloning to a txn can be assigned in arbitrary chunk order (due to chunk reuse) which is another reason to
     // track chunk ids in the log.
-    std::map<chunk_offset_t, std::set<gaia_offset_t>> chunk_to_offsets_map;
-    for (size_t i = 0; i < log.data()->chunk_count; i++)
-    {
-        auto chunk = log.data()->chunks[i];
-        auto chunk_offset = memory_manager::chunk_from_offset(chunk);
-        chunk_to_offsets_map.insert(std::pair(chunk_offset, std::set<gaia_offset_t>()));
-    }
+    // std::map<chunk_offset_t, std::set<gaia_offset_t>> chunk_to_offsets_map;
+    // for (size_t i = 0; i < log.data()->chunk_count; i++)
+    // {
+    //     auto chunk = log.data()->chunks[i];
+    //     auto chunk_offset = memory_manager::chunk_from_offset(chunk);
+    //     chunk_to_offsets_map.insert(std::pair(chunk_offset, std::set<gaia_offset_t>()));
+    // }
 
     // Obtain deleted_ids & obtain sorted offsets per chunk.
     for (size_t i = 0; i < log.data()->record_count; i++)
