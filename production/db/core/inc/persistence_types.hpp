@@ -17,13 +17,6 @@
 #include <gaia_internal/common/topological_sort.hpp>
 #include "gaia_internal/db/db_types.hpp"
 
-struct chunk_info_helper_t
-{
-    toposort::graph<chunk_offset_t>::node_ptr node_ptr;
-    gaia_offset_t min_offset;
-    gaia_offset_t max_offset; 
-};
-
 namespace gaia
 {
 namespace db
@@ -55,8 +48,14 @@ struct decision_entry_t
 // They can span chunks.
 struct contiguous_offsets_t
 {
-    gaia_offset_t offset1;
-    gaia_offset_t offset2;
+    gaia_offset_t min_offset;
+    gaia_offset_t max_offset;
+};
+
+struct chunk_info_helper_t
+{
+    common::toposort::graph<chunk_offset_t>::node_ptr node_ptr;
+    contiguous_offsets_t offsets;
 };
 
 // Pair of log file sequence number and file fd.

@@ -166,19 +166,19 @@ void log_handler_t::create_decision_record(const decision_list_t& txn_decisions)
     m_async_disk_writer->enqueue_pwritev_requests(writes_to_submit, m_current_file->get_file_fd(), m_current_file->get_current_offset(), uring_op_t::pwritev_decision);
 }
 
-void log_handler_t::create_topograph_node_helper(
-    graph<chunk_offset_t>& chunk_offset_graph,
-    std::unordered_map<chunk_offset_t, chunk_info_helper_t>& chunk_info_map,
-    chunk_offset_t chunk_offset, 
-    gaia_offset_t gaia_offset)
+void create_node_for_topsort(
+        graph<chunk_offset_t>& chunk_offset_graph,
+        std::unordered_map<chunk_offset_t, chunk_info_helper_t>& chunk_info_map,
+        chunk_offset_t chunk_offset, 
+        gaia_offset_t gaia_offset)
 {
     if (chunk_info_map.count(chunk_offset) == 0)
     {
         auto node_ptr = chunk_offset_graph.create_node(std::move(chunk_offset));
         chunk_info_helper_t chunk_info_helper;
         chunk_info_helper.node_ptr = node_ptr;
-        chunk_info_helper.min_offset = gaia_offset;
-        chunk_info_helper.min_offset = gaia_offset;
+        chunk_info_helper.offsets.min_offset = gaia_offset;
+        chunk_info_helper.offsets.max_offset = gaia_offset;
         chunk_info_map.insert(std::pair(chunk_offset, chunk_info_helper));
     }
 }
@@ -191,11 +191,10 @@ void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t comm
 
     std::vector<common::gaia_id_t> deleted_ids;
     
-    // The txn log records are sorted by locator but preserve the order of multiple updates to the same locator.
-    // Use topsort to find the 'almost' original chunk order from the relative chunk ordering present in the sorted txn log.
-    // If updates for a certain locator don't share chunks, then the order in which chunks are written to the persistent log
-    // is irrelevant.
-    // Obtaining chunk order is pretty light weight, since the number of chunks are constrained by the size of txn (defined by c_max_txn_memory_size_bytes)
+    // The txn log records are sorted by locator but preserve the order of multiple updates to the
+    // same locator. Use topsort to find the 'almost' original chunk order from the relative chunk
+    // ordering present in the sorted txn log. If updates for a certain locator aren't made across
+    // chunks, then the order in which chunks are written to the persistent log is not important.
     graph<chunk_offset_t> chunk_offset_graph;
 
     // Used to avoid dups in graph. 
@@ -213,7 +212,7 @@ void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t comm
         else
         {
             chunk_offset_t chunk_offset = memory_manager::chunk_from_offset(lr.new_offset);
-            create_topograph_node_helper(chunk_offset_graph, chunk_info_map, chunk_offset, lr.new_offset);
+            create_node_for_topsort(chunk_offset_graph, chunk_info_map, chunk_offset, lr.new_offset);
 
             if (i+1 != log.data()->record_count - 1)
             {
@@ -226,7 +225,7 @@ void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t comm
                     if (chunk_offset != chunk_offset_plus_1)       
                     {
                         // Create node.
-                        create_topograph_node_helper(chunk_offset_graph, chunk_info_map, chunk_offset_plus_1, lr_plus_1.new_offset);
+                        create_node_for_topsort(chunk_offset_graph, chunk_info_map, chunk_offset_plus_1, lr_plus_1.new_offset);
         
                         // Add dependency.                     
                         auto node_ptr_plus_1 = chunk_info_map.find(chunk_offset_plus_1)->second;
@@ -238,15 +237,15 @@ void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t comm
                 }
             }
 
-            // Simply update min & max seen offset for the chunk.
+            // Simply update min & max offset for the chunk.
             auto it = chunk_info_map.find(chunk_offset);
-            if (lr.new_offset < it->second.min_offset)
+            if (lr.new_offset < it->second.offsets.min_offset)
             {
-                it->second.min_offset = lr.new_offset;
+                it->second.offsets.min_offset = lr.new_offset;
             }
-            else if (lr.new_offset > it->second.max_offset)
+            else if (lr.new_offset > it->second.offsets.max_offset)
             {
-                it->second.max_offset = lr.new_offset;
+                it->second.offsets.max_offset = lr.new_offset;
             }
         }
     }
@@ -259,10 +258,10 @@ void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t comm
     for (graph<chunk_offset_t>::node_ptr node_ptr : nodes)
     {
         auto it = chunk_info_map.find(node_ptr.get()->data);
-        auto end_offset = it->second.max_offset;
+        auto end_offset = it->second.offsets.max_offset;
         auto payload_size = offset_to_ptr(end_offset)->payload_size + c_db_object_header_size;
         size_t allocation_size = memory_manager::calculate_allocation_size_in_slots(payload_size) * c_slot_size_in_bytes;
-        contiguous_offsets_t offset_pair{it->second.min_offset, end_offset + allocation_size};
+        contiguous_offsets_t offset_pair{it->second.offsets.min_offset, end_offset + allocation_size};
         contiguous_offsets.push_back(offset_pair);
     }
 
@@ -300,8 +299,8 @@ void log_handler_t::create_txn_record(
     size_t payload_size = 0;
     for (auto offset_pair : contiguous_offsets)
     {
-        auto ptr = offset_to_ptr(offset_pair.offset1);
-        auto chunk_size = offset_pair.offset2 - offset_pair.offset1;
+        auto ptr = offset_to_ptr(offset_pair.min_offset);
+        auto chunk_size = offset_pair.max_offset - offset_pair.min_offset;
         payload_size += chunk_size;
         writes_to_submit.push_back({ptr, chunk_size});
     }
