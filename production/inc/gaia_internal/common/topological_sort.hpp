@@ -37,7 +37,6 @@
 #include <algorithm>
 #include <memory>
 #include <vector>
-#include <unordered_set>
 
 namespace toposort
 {
@@ -132,7 +131,6 @@ public:
   void clear()
   {
     m_Nodes.clear();
-    m_UniqueNodes.clear();
   }
 
   /**
@@ -144,12 +142,7 @@ public:
    */
   node_ptr create_node(T&& value)
   {
-    if(m_UniqueNodes.count(value))
-    {
-      return nullptr;
-    }
     m_Nodes.push_back(std::make_shared<node>(std::forward<T>(value)));
-    m_UniqueNodes.insert(value);
     return m_Nodes.back();
   }
 

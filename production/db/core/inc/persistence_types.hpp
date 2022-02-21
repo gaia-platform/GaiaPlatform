@@ -14,7 +14,15 @@
 
 #include "gaia_internal/common/mmap_helpers.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
+#include <gaia_internal/common/topological_sort.hpp>
 #include "gaia_internal/db/db_types.hpp"
+
+struct chunk_info_helper_t
+{
+    toposort::graph<chunk_offset_t>::node_ptr node_ptr;
+    gaia_offset_t min_offset;
+    gaia_offset_t max_offset; 
+};
 
 namespace gaia
 {

@@ -17,6 +17,7 @@
 #include <unordered_map>
 
 #include "gaia/common.hpp"
+#include <gaia_internal/common/topological_sort.hpp>
 
 #include "gaia_internal/db/db_object.hpp"
 
@@ -100,6 +101,12 @@ private:
     std::unique_ptr<log_file_t> m_current_file;
 
     std::unique_ptr<async_disk_writer_t> m_async_disk_writer;
+
+    void create_topograph_node_helper(
+        toposort::graph<chunk_offset_t>& chunk_offset_graph,
+        std::unordered_map<chunk_offset_t, chunk_info_helper_t>& chunk_info_map,
+        chunk_offset_t chunk_offset,
+        gaia_offset_t gaia_offset);
 };
 
 } // namespace persistence
