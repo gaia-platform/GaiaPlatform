@@ -52,6 +52,11 @@ out_of_memory_internal::out_of_memory_internal()
     m_message = "Out of memory.";
 }
 
+transaction_memory_limit_exceeded_internal::transaction_memory_limit_exceeded_internal()
+{
+    m_message = "Transaction exceeded its memory limit.";
+}
+
 system_object_limit_exceeded_internal::system_object_limit_exceeded_internal()
 {
     m_message = "System object limit exceeded.";

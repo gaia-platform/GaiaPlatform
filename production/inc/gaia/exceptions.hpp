@@ -294,6 +294,16 @@ class out_of_memory : public common::gaia_exception
 };
 
 /**
+ * \brief The transaction exceeded its memory limit.
+ *
+ * A transaction can use at most 64MB of memory.
+ */
+class transaction_memory_limit_exceeded : public common::gaia_exception
+{
+};
+
+
+/**
  * \brief The transaction tried to create more objects than are permitted in the system.
  *
  * The system cannot contain more than 2^32 objects.

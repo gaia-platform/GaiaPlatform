@@ -24,6 +24,7 @@
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include <gaia_internal/common/mmap_helpers.hpp>
+#include <gaia_internal/common/topological_sort.hpp>
 
 #include "crc32c.h"
 #include "db_helpers.hpp"
@@ -39,6 +40,7 @@
 using namespace gaia::common;
 using namespace gaia::db::memory_manager;
 using namespace gaia::db;
+using namespace toposort;
 
 namespace gaia
 {
@@ -67,7 +69,6 @@ log_handler_t::log_handler_t(const std::string& wal_dir_path)
 void log_handler_t::open_for_writes(int validate_flushed_batch_eventfd, int signal_checkpoint_eventfd)
 {
     ASSERT_PRECONDITION(validate_flushed_batch_eventfd != -1, "Eventfd to signal post flush maintenance operations invalid!");
-    ASSERT_PRECONDITION(signal_checkpoint_eventfd != -1, "Eventfd to signal checkpointing of log file is invalid!");
     ASSERT_INVARIANT(s_dir_fd != -1, "Unable to open data directory for persistent log writes.");
 
     // Create new log file every time the log_writer gets initialized.
@@ -165,6 +166,23 @@ void log_handler_t::create_decision_record(const decision_list_t& txn_decisions)
     m_async_disk_writer->enqueue_pwritev_requests(writes_to_submit, m_current_file->get_file_fd(), m_current_file->get_current_offset(), uring_op_t::pwritev_decision);
 }
 
+void create_node_for_topsort(
+        graph<chunk_offset_t>& chunk_offset_graph,
+        std::unordered_map<chunk_offset_t, chunk_info_helper_t>& chunk_info_map,
+        chunk_offset_t chunk_offset, 
+        gaia_offset_t gaia_offset)
+{
+    if (chunk_info_map.count(chunk_offset) == 0)
+    {
+        auto node_ptr = chunk_offset_graph.create_node(std::move(chunk_offset));
+        chunk_info_helper_t chunk_info_helper;
+        chunk_info_helper.node_ptr = node_ptr;
+        chunk_info_helper.offsets.min_offset = gaia_offset;
+        chunk_info_helper.offsets.max_offset = gaia_offset;
+        chunk_info_map.insert(std::pair(chunk_offset, chunk_info_helper));
+    }
+}
+
 void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t commit_ts)
 {
     // Map in memory txn_log.
@@ -172,54 +190,78 @@ void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t comm
     log.open(txn_log_fd);
 
     std::vector<common::gaia_id_t> deleted_ids;
+    
+    // The txn log records are sorted by locator but preserve the order of multiple updates to the
+    // same locator. Use topsort to find the 'almost' original chunk order from the relative chunk
+    // ordering present in the sorted txn log. If updates for a certain locator aren't made across
+    // chunks, then the order in which chunks are written to the persistent log is not important.
+    graph<chunk_offset_t> chunk_offset_graph;
 
-    // Create chunk_to_offsets_map; this is done to ensure offsets are processed in the correct order.
-    // The txn_log is sorted on the client for the correct validation impl, thus this map is used to track order of writes.
-    // Note that writes beloning to a txn can be assigned in arbitrary chunk order (due to chunk reuse) which is another reason to
-    // track chunk ids in the log.
-    std::map<chunk_offset_t, std::set<gaia_offset_t>> chunk_to_offsets_map;
-    for (size_t i = 0; i < log.data()->chunk_count; i++)
-    {
-        auto chunk = log.data()->chunks[i];
-        auto chunk_offset = memory_manager::chunk_from_offset(chunk);
-        chunk_to_offsets_map.insert(std::pair(chunk_offset, std::set<gaia_offset_t>()));
-    }
+    // Used to avoid dups in graph. 
+    std::unordered_map<chunk_offset_t, chunk_info_helper_t> chunk_info_map;
+    std::set<std::pair<chunk_offset_t, chunk_offset_t>> dependencies;
 
-    // Obtain deleted_ids & obtain sorted offsets per chunk.
     for (size_t i = 0; i < log.data()->record_count; i++)
     {
         auto lr = log.data()->log_records[i];
+
         if (lr.operation() == gaia_operation_t::remove)
         {
             deleted_ids.push_back(offset_to_ptr(lr.old_offset)->id);
         }
         else
         {
-            auto chunk = memory_manager::chunk_from_offset(lr.new_offset);
-            ASSERT_INVARIANT(chunk_to_offsets_map.count(chunk) > 0, "Can't find chunk.");
-            ASSERT_INVARIANT(chunk != c_invalid_chunk_offset, "Invalid chunk offset found.");
-            chunk_to_offsets_map.find(chunk)->second.insert(lr.new_offset);
+            chunk_offset_t chunk_offset = memory_manager::chunk_from_offset(lr.new_offset);
+            create_node_for_topsort(chunk_offset_graph, chunk_info_map, chunk_offset, lr.new_offset);
+
+            if (i+1 != log.data()->record_count - 1)
+            {
+                auto lr_plus_1 = log.data()->log_records[i + 1];
+                chunk_offset_t chunk_offset_plus_1 = memory_manager::chunk_from_offset(lr_plus_1.new_offset);
+
+                if (lr.locator == lr_plus_1.locator)
+                {            
+                    // Locator objects across two different chunks.
+                    if (chunk_offset != chunk_offset_plus_1)       
+                    {
+                        // Create node.
+                        create_node_for_topsort(chunk_offset_graph, chunk_info_map, chunk_offset_plus_1, lr_plus_1.new_offset);
+        
+                        // Add dependency.                     
+                        auto node_ptr_plus_1 = chunk_info_map.find(chunk_offset_plus_1)->second;
+                        if (dependencies.count({chunk_offset_plus_1, chunk_offset}) == 0)
+                        {
+                            node_ptr_plus_1.node_ptr->depends_on(chunk_info_map.find(chunk_offset)->second.node_ptr);
+                        }       
+                    }       
+                }
+            }
+
+            // Simply update min & max offset for the chunk.
+            auto it = chunk_info_map.find(chunk_offset);
+            if (lr.new_offset < it->second.offsets.min_offset)
+            {
+                it->second.offsets.min_offset = lr.new_offset;
+            }
+            else if (lr.new_offset > it->second.offsets.max_offset)
+            {
+                it->second.offsets.max_offset = lr.new_offset;
+            }
         }
     }
 
-    // Group contiguous objects and also find total object size.
-    // Each odd entry in the contiguous_offsets vector is the begin offset of a contiguous memory
-    // segment and each even entry is the ending offset of said memory chunk.
+    // Get chunk order.
+    graph<chunk_offset_t>::node_list nodes = chunk_offset_graph.sort().sorted_nodes;
+
     std::vector<contiguous_offsets_t> contiguous_offsets;
 
-    for (const auto& pair : chunk_to_offsets_map)
+    for (graph<chunk_offset_t>::node_ptr node_ptr : nodes)
     {
-        auto object_address_offsets = pair.second;
-        if (object_address_offsets.size() == 0)
-        {
-            continue;
-        }
-        contiguous_offsets_t offset_pair{};
-        offset_pair.offset1 = (*object_address_offsets.begin());
-        auto end_offset = *(--object_address_offsets.end());
+        auto it = chunk_info_map.find(node_ptr.get()->data);
+        auto end_offset = it->second.offsets.max_offset;
         auto payload_size = offset_to_ptr(end_offset)->payload_size + c_db_object_header_size;
         size_t allocation_size = memory_manager::calculate_allocation_size_in_slots(payload_size) * c_slot_size_in_bytes;
-        offset_pair.offset2 = (end_offset + allocation_size);
+        contiguous_offsets_t offset_pair{it->second.offsets.min_offset, end_offset + allocation_size};
         contiguous_offsets.push_back(offset_pair);
     }
 
@@ -229,7 +271,7 @@ void log_handler_t::process_txn_log_and_write(int txn_log_fd, gaia_txn_id_t comm
     }
 }
 
-void log_handler_t::perform_flushed_batch_maintenance()
+void log_handler_t::check_flushed_batch_results_and_do_maintenance()
 {
     m_async_disk_writer->perform_post_completion_maintenance();
 }
@@ -257,8 +299,8 @@ void log_handler_t::create_txn_record(
     size_t payload_size = 0;
     for (auto offset_pair : contiguous_offsets)
     {
-        auto ptr = offset_to_ptr(offset_pair.offset1);
-        auto chunk_size = offset_pair.offset2 - offset_pair.offset1;
+        auto ptr = offset_to_ptr(offset_pair.min_offset);
+        auto chunk_size = offset_pair.max_offset - offset_pair.min_offset;
         payload_size += chunk_size;
         writes_to_submit.push_back({ptr, chunk_size});
     }

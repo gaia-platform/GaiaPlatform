@@ -17,6 +17,7 @@
 #include <unordered_map>
 
 #include "gaia/common.hpp"
+#include <gaia_internal/common/topological_sort.hpp>
 
 #include "gaia_internal/db/db_object.hpp"
 
@@ -85,7 +86,7 @@ public:
     /**
      * Validate the result of I/O calls submitted to the kernel for processing.
      */
-    void perform_flushed_batch_maintenance();
+    void check_flushed_batch_results_and_do_maintenance();
 
 private:
     static constexpr char c_gaia_wal_dir_name[] = "/wal_dir";

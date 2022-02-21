@@ -107,6 +107,7 @@ public:
     inline bool seal_if_uninitialized();
 
     static inline int get_txn_log_fd(gaia_txn_id_t commit_ts);
+    static inline int get_entry(gaia_txn_id_t commit_ts);
     static inline bool seal_uninitialized_ts(gaia_txn_id_t ts);
     static inline bool invalidate_txn_log_fd(gaia_txn_id_t commit_ts);
     static inline void set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts);
@@ -114,6 +115,8 @@ public:
     static inline void update_txn_decision(gaia_txn_id_t commit_ts, bool is_committed);
     static inline void set_txn_durable(gaia_txn_id_t commit_ts);
     static inline bool set_txn_gc_complete(gaia_txn_id_t commit_ts);
+    static inline void* get_txn_metadata_entry_addr(gaia_txn_id_t commit_ts);
+    static inline uint32_t get_txn_metadata_entry_higher_bits(gaia_txn_id_t commit_ts);
 
     static gaia_txn_id_t register_begin_ts();
     static gaia_txn_id_t register_commit_ts(gaia_txn_id_t begin_ts, int log_fd);

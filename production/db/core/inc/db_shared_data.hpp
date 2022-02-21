@@ -52,5 +52,7 @@ gaia::db::memory_manager::chunk_manager_t* get_chunk_manager();
 // Gets the mapped transaction log for the current session thread.
 gaia::db::mapped_log_t* get_mapped_log();
 
+size_t get_current_txn_memory_size_bytes();
+
 } // namespace db
 } // namespace gaia

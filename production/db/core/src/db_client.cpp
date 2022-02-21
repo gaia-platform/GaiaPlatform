@@ -183,6 +183,9 @@ void client_t::txn_cleanup()
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
+
+    // Reset txn size.
+    s_txn_memory_size_bytes = 0;
 }
 
 int client_t::get_session_socket(const std::string& socket_name)
@@ -402,6 +405,11 @@ void client_t::begin_transaction()
     s_log.open(log_fd, read_only);
 
     cleanup_private_locators.dismiss();
+
+    // Keep track of every chunk used in a transaction. This helps retain the order in which chunks are
+    // assigned to a txn; with chunk reuse they can be assigned out of order.
+    auto& chunk = s_log.data()->chunks[s_log.data()->chunk_count++];
+    chunk = static_cast<size_t>(s_chunk_manager.chunk_offset());
 }
 
 void client_t::apply_txn_log(int log_fd)

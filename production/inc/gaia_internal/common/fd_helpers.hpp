@@ -169,7 +169,7 @@ inline size_t read_fd_at_offset(
     return bytes_read;
 }
 
-inline int make_eventfd()
+inline int make_single_reader_eventfd()
 {
     // Create eventfd shutdown event.
     // Linux is non-POSIX-compliant and sometimes marks an fd as readable
@@ -192,6 +192,21 @@ inline int make_eventfd()
     {
         int err = errno;
         const char* reason = ::explain_eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE);
+        throw system_error(reason, err);
+    }
+    return eventfd;
+}
+
+/**
+ * Create an eventfd only with the EFD_NONBLOCK flag.
+ */
+inline int make_multi_reader_eventfd()
+{
+    int eventfd = ::eventfd(0, EFD_NONBLOCK);
+    if (eventfd == -1)
+    {
+        int err = errno;
+        const char* reason = ::explain_eventfd(0, EFD_NONBLOCK);
         throw system_error(reason, err);
     }
     return eventfd;
@@ -227,9 +242,11 @@ inline void signal_eventfd_multiple_threads(int eventfd)
     signal_eventfd(eventfd, c_max_semaphore_count);
 }
 
-inline void consume_eventfd(int eventfd)
+/**
+ * Simply return eventfd counter value. The returned value may be greater than 1.
+ */
+inline uint64_t consume_eventfd(int eventfd)
 {
-    // We should always read the value 1 from a semaphore eventfd.
     uint64_t val;
     ssize_t bytes_read = ::read(eventfd, &val, sizeof(val));
     if (bytes_read == -1)
@@ -239,6 +256,14 @@ inline void consume_eventfd(int eventfd)
         throw system_error(reason, err);
     }
     ASSERT_POSTCONDITION(bytes_read == sizeof(val), "Failed to fully read data!");
+    return val;
+}
+
+inline void read_eventfd(int eventfd)
+{
+    // We should always read the value 1, whether the eventfd was signaled with
+    // signal_eventfd_single_thread() or signal_eventfd_multiple_threads().
+    uint64_t val = consume_eventfd(eventfd);
     ASSERT_POSTCONDITION(val == 1, "Unexpected value!");
 }
 

@@ -221,6 +221,12 @@ public:
     out_of_memory_internal();
 };
 
+class transaction_memory_limit_exceeded_internal : public transaction_memory_limit_exceeded
+{
+public:
+    transaction_memory_limit_exceeded_internal();
+};
+
 class system_object_limit_exceeded_internal : public system_object_limit_exceeded
 {
 public:
