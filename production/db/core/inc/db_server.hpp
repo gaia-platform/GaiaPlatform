@@ -136,7 +136,8 @@ private:
     // Signals the checkpointing thread to merge log file updates into the LSM store.
     static inline int s_signal_checkpoint_log_eventfd = -1;
 
-    // Signal to persistence thread that a batch is ready to be validated.
+    // To signal to the persistence thread to check the return values of a batch of async I/O
+    // operations post batch flush.
     static inline int s_do_write_batch_maintenance_eventfd = -1;
 
     // These thread objects are owned by the client dispatch thread.

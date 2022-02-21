@@ -1540,7 +1540,7 @@ void server_t::session_handler(int session_socket)
     epoll_event events[std::size(fds)];
 
     // Event to signal session-owned threads to terminate.
-    s_session_shutdown_eventfd = make_eventfd();
+    s_session_shutdown_eventfd = make_single_reader_eventfd();
     auto owned_threads_cleanup = make_scope_guard([]() {
         // Signal all session-owned threads to terminate.
         signal_eventfd_multiple_threads(s_session_shutdown_eventfd);
@@ -3040,9 +3040,6 @@ bool server_t::txn_commit()
     else
     {
         // Persist the commit decision.
-        // REVIEW: We can return a decision to the client asynchronously with the
-        // decision being persisted (because the decision can be reconstructed from
-        // the durable log itself, without the decision record).
         if (s_persistent_store)
         {
             // Mark txn as durable in metadata so we can GC the txn log.
@@ -3511,7 +3508,7 @@ void server_t::run(server_config_t server_conf)
     while (true)
     {
         // Create eventfd shutdown event.
-        s_server_shutdown_eventfd = make_eventfd();
+        s_server_shutdown_eventfd = make_single_reader_eventfd();
         auto cleanup_shutdown_eventfd = make_scope_guard([]() {
             // We can't close this fd until all readers and writers have exited.
             // The only readers are the client dispatch thread and the session
@@ -3521,19 +3518,18 @@ void server_t::run(server_config_t server_conf)
             close_fd(s_server_shutdown_eventfd);
         });
 
-        // To signal to the persistence thread to validate the return values of a batch of async I/O operations post batch flush.
         // This eventfd does not require semaphore semantics since only a single batch can be flushed to disk at a time so we expect
         // the eventfd counter to never exceed 1.
         // The persistence batch should only be validated after a batch has finished flushing (or this will lead to
         // premature cleaning of metadata in the in-flight persistence batch)
-        s_do_write_batch_maintenance_eventfd = make_nonblocking_eventfd();
-
-        // To signal to the persistence thread that new writes are available to be written.
-        // Semaphore semantics in this case will be correct but will lead to the thread being awake
-        // unnecessarily - in case several session threads signal log/decision eventfd writes.
-        s_signal_log_write_eventfd = make_nonblocking_eventfd();
-
-        s_signal_decision_eventfd = make_nonblocking_eventfd();
+        s_do_write_batch_maintenance_eventfd = make_multi_reader_eventfd();
+        
+        // For the below two eventfd's, use non-semaphore semantics. With non-semaphore semantics,
+        // multiple threads could concurrently increment the eventfd to a value > 1 before it's
+        // serviced by the epoll loop, but a single read will reset the eventfd to 0, effectively
+        // debouncing the multiple notifications.
+        s_signal_log_write_eventfd = make_multi_reader_eventfd();
+        s_signal_decision_eventfd = make_multi_reader_eventfd();
 
         auto cleanup_persistence_eventfds = make_scope_guard([]() {
             close_fd(s_signal_log_write_eventfd);
@@ -3551,7 +3547,8 @@ void server_t::run(server_config_t server_conf)
         init_shared_memory();
 
         std::thread log_writer_thread;
-        if (s_server_conf.persistence_mode() != persistence_mode_t::e_disabled)
+        if (!(s_server_conf.persistence_mode() == persistence_mode_t::e_disabled ||
+                s_server_conf.persistence_mode() == persistence_mode_t::e_disabled_after_recovery))
         {
             // Launch persistence thread.
             log_writer_thread = std::thread(&log_writer_handler);
@@ -3570,7 +3567,8 @@ void server_t::run(server_config_t server_conf)
         // We shouldn't get here unless the signal handler thread has caught a signal.
         ASSERT_INVARIANT(caught_signal != 0, "A signal should have been caught!");
 
-        if (s_server_conf.persistence_mode() != persistence_mode_t::e_disabled)
+        if (!(s_server_conf.persistence_mode() == persistence_mode_t::e_disabled ||
+                s_server_conf.persistence_mode() == persistence_mode_t::e_disabled_after_recovery))
         {
             log_writer_thread.join();
         }
