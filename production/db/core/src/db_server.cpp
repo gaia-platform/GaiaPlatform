@@ -322,10 +322,7 @@ void server_t::persist_pending_writes(bool should_wait_for_completion)
                 {
                     updates_exist = true;
                     int txn_log_fd = txn_metadata_t::get_txn_log_fd(ts);
-                    // if (txn_log_fd == -1)
-                    // {
-                    //     continue;
-                    // }
+                    
                     s_txn_decision_not_queued_set.insert(ts);
 
                     // Add txn writes to the async_write_batch. Internally writes will get logged to disk when the
