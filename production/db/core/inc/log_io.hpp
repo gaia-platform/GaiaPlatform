@@ -91,6 +91,7 @@ public:
      * Entry point to start recovery procedure from gaia log files. Checkpointing reuses the same function.
      */
     void recover_from_persistent_log(
+        std::shared_ptr<persistent_store_manager_t>& persistent_store_manager,
         gaia_txn_id_t& last_checkpointed_commit_ts,
         file_sequence_t& last_processed_log_seq,
         file_sequence_t max_log_seq_to_process,
@@ -104,8 +105,8 @@ public:
     /**
      * Register persistent store create/delete APIs. Rework to call persistent store APIs directly?
      */
-    void register_write_to_persistent_store_fn(std::function<void(db_recovered_object_t&)> write_obj_fn);
-    void register_remove_from_persistent_store_fn(std::function<void(gaia::common::gaia_id_t)> remove_obj_fn);
+    // void register_write_to_persistent_store_fn(std::function<void(db_recovered_object_t&)> write_obj_fn);
+    // void register_remove_from_persistent_store_fn(std::function<void(gaia::common::gaia_id_t)> remove_obj_fn);
 
     /**
      * Set the log sequence counter.
@@ -143,8 +144,8 @@ private:
 
     gaia_txn_id_t m_max_decided_commit_ts;
 
-    std::function<void(db_recovered_object_t&)> write_to_persistent_store_fn;
-    std::function<void(gaia::common::gaia_id_t)> remove_from_persistent_store_fn;
+    // std::function<void(db_recovered_object_t&)> write_to_persistent_store_fn;
+    // std::function<void(gaia::common::gaia_id_t)> remove_from_persistent_store_fn;
 
     // Recovery & Checkpointing APIs
     size_t update_cursor(struct record_iterator_t* it);
@@ -154,7 +155,10 @@ private:
     bool is_remaining_file_empty(unsigned char* start, unsigned char* end);
     void write_log_record_to_persistent_store(read_record_t* record);
     void write_records(record_iterator_t* it, gaia_txn_id_t& last_checkpointed_commit_ts);
-    bool write_log_file_to_persistent_store(gaia_txn_id_t& last_checkpointed_commit_ts, record_iterator_t& it);
+    bool write_log_file_to_persistent_store(
+        std::shared_ptr<persistent_store_manager_t>& persistent_store_manager,
+        gaia_txn_id_t& last_checkpointed_commit_ts,
+        record_iterator_t& it);
 };
 
 } // namespace persistence

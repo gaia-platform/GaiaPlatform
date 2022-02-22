@@ -32,6 +32,7 @@
 #include "mapped_data.hpp"
 #include "memory_helpers.hpp"
 #include "memory_types.hpp"
+#include "persistent_store_manager.hpp"
 #include "txn_metadata.hpp"
 
 using namespace gaia::common;
@@ -323,17 +324,17 @@ void log_handler_t::create_txn_record(
     m_async_disk_writer->enqueue_pwritev_requests(writes_to_submit, m_current_file->get_file_fd(), begin_offset, uring_op_t::pwritev_txn);
 }
 
-void log_handler_t::register_write_to_persistent_store_fn(
-    std::function<void(db_recovered_object_t&)> write_obj_fn)
-{
-    write_to_persistent_store_fn = write_obj_fn;
-}
+// void log_handler_t::register_write_to_persistent_store_fn(
+//     std::function<void(db_recovered_object_t&)> write_obj_fn)
+// {
+//     write_to_persistent_store_fn = write_obj_fn;
+// }
 
-void log_handler_t::register_remove_from_persistent_store_fn(
-    std::function<void(gaia_id_t)> remove_obj_fn)
-{
-    remove_from_persistent_store_fn = remove_obj_fn;
-}
+// void log_handler_t::register_remove_from_persistent_store_fn(
+//     std::function<void(gaia_id_t)> remove_obj_fn)
+// {
+//     remove_from_persistent_store_fn = remove_obj_fn;
+// }
 
 void log_handler_t::destroy_persistent_log(file_sequence_t max_log_seq_to_delete)
 {
@@ -354,6 +355,7 @@ void log_handler_t::set_persistent_log_sequence(file_sequence_t log_seq)
 }
 
 void log_handler_t::recover_from_persistent_log(
+    std::shared_ptr<persistent_store_manager_t>& s_persistent_store,
     gaia_txn_id_t& last_checkpointed_commit_ts,
     file_sequence_t& last_processed_log_seq,
     file_sequence_t max_log_seq_to_process,
@@ -472,7 +474,10 @@ size_t log_handler_t::get_remaining_txns_to_checkpoint_count()
     return txn_index.size();
 }
 
-bool log_handler_t::write_log_file_to_persistent_store(gaia_txn_id_t& last_checkpointed_commit_ts, record_iterator_t& it)
+bool log_handler_t::write_log_file_to_persistent_store(
+    std::shared_ptr<persistent_store_manager_t>& persistent_store_manager,
+    gaia_txn_id_t& last_checkpointed_commit_ts,
+    record_iterator_t& it)
 {
     // Iterate over records in file and write them to persistent store.
     write_records(&it, last_checkpointed_commit_ts);
@@ -504,7 +509,8 @@ void log_handler_t::write_log_record_to_persistent_store(read_record_t* record)
         ASSERT_INVARIANT(obj_ptr, "Object cannot be null.");
         ASSERT_INVARIANT(obj_ptr->id != common::c_invalid_gaia_id, "Recovered id cannot be invalid.");
         ASSERT_INVARIANT(obj_ptr->payload_size > 0, "Recovered object size should be greater than 0");
-        write_to_persistent_store_fn(*obj_ptr);
+        // write_to_persistent_store_fn(*obj_ptr);
+        s_persistent_store->put(*obj_ptr);
 
         size_t requested_size = obj_ptr->payload_size + c_db_object_header_size;
 
@@ -519,7 +525,8 @@ void log_handler_t::write_log_record_to_persistent_store(read_record_t* record)
         auto deleted_id = reinterpret_cast<common::gaia_id_t*>(deleted_ids_ptr);
         ASSERT_INVARIANT(deleted_id, "Deleted ID cannot be null.");
         ASSERT_INVARIANT(*deleted_id > 0, "Deleted ID cannot be invalid.");
-        remove_from_persistent_store_fn(*deleted_id);
+        // remove_from_persistent_store_fn(*deleted_id);
+        s_persistent_store->remove(*deleted_id);
         deleted_ids_ptr += sizeof(common::gaia_id_t);
     }
 }

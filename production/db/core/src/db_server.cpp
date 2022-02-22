@@ -271,15 +271,15 @@ void server_t::recover_persistent_log()
 
                 s_log_handler->open_for_writes(s_validate_persistence_batch_eventfd, s_signal_checkpoint_log_eventfd);
 
-                auto put_obj = [&](db_recovered_object_t& obj) {
-                    s_persistent_store->put(obj);
-                };
-                auto remove_obj = [=](gaia_id_t id) {
-                    s_persistent_store->remove(id);
-                };
+                // auto put_obj = [&](db_recovered_object_t& obj) {
+                //     s_persistent_store->put(obj);
+                // };
+                // auto remove_obj = [=](gaia_id_t id) {
+                //     s_persistent_store->remove(id);
+                // };
 
-                s_log_handler->register_write_to_persistent_store_fn(put_obj);
-                s_log_handler->register_remove_from_persistent_store_fn(remove_obj);
+                // s_log_handler->register_write_to_persistent_store_fn(put_obj);
+                // s_log_handler->register_remove_from_persistent_store_fn(remove_obj);
 
                 if (s_server_conf.persistence_mode() == persistence_mode_t::e_reinitialized_on_startup)
                 {
@@ -287,17 +287,18 @@ void server_t::recover_persistent_log()
                 }
 
                 // Get last processed log.
-                auto last_processed_log_seq = s_persistent_store->get_value(gaia::db::persistence::persistent_store_manager::c_last_processed_log_num_key);
+                auto last_processed_log_seq = s_persistent_store->get_value(gaia::db::persistence::persistent_store_manager_t::c_last_processed_log_num_key);
 
                 // Recover only the first time this method gets called.
                 gaia_txn_id_t last_checkpointed_commit_ts = 0;
                 s_log_handler->recover_from_persistent_log(
+                    s_persistent_store,
                     last_checkpointed_commit_ts,
                     last_processed_log_seq,
                     INT64_MAX,
                     gaia::db::persistence::recovery_mode_t::finish_on_first_error);
 
-                s_persistent_store->update_value(gaia::db::persistence::persistent_store_manager::c_last_processed_log_num_key, last_processed_log_seq);
+                s_persistent_store->update_value(gaia::db::persistence::persistent_store_manager_t::c_last_processed_log_num_key, last_processed_log_seq);
 
                 s_log_handler->set_persistent_log_sequence(last_processed_log_seq);
 
@@ -934,7 +935,7 @@ void server_t::recover_db()
             auto cleanup = make_scope_guard([]() { end_startup_txn(); });
             begin_startup_txn();
 
-            s_persistent_store = std::make_unique<gaia::db::persistence::persistent_store_manager>(
+            s_persistent_store = std::make_unique<gaia::db::persistence::persistent_store_manager_t>(
                 get_counters(), s_server_conf.data_dir());
             if (s_server_conf.persistence_mode() == persistence_mode_t::e_reinitialized_on_startup)
             {
@@ -1102,7 +1103,7 @@ void server_t::checkpoint_handler()
             max_log_seq_to_checkpoint,
             gaia::db::persistence::recovery_mode_t::checkpoint);
 
-        s_persistent_store->update_value(gaia::db::persistence::persistent_store_manager::c_last_processed_log_num_key, last_processed_log_seq);
+        s_persistent_store->update_value(gaia::db::persistence::persistent_store_manager_t::c_last_processed_log_num_key, last_processed_log_seq);
 
         // Flush persistent store buffer to disk.
         s_persistent_store->flush();

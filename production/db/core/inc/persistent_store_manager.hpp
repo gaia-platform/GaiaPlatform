@@ -27,13 +27,13 @@ namespace db
 namespace persistence
 {
 
-class persistent_store_manager
+class persistent_store_manager_t
 {
 
 public:
-    persistent_store_manager(
+    persistent_store_manager_t(
         gaia::db::counters_t* counters, std::string data_dir);
-    ~persistent_store_manager();
+    ~persistent_store_manager_t();
 
     /**
      * Open rocksdb with the correct options.

@@ -152,7 +152,7 @@ private:
     static inline mapped_data_t<data_t> s_shared_data{};
     static inline mapped_data_t<id_index_t> s_shared_id_index{};
     static inline index::indexes_t s_global_indexes{};
-    static inline std::unique_ptr<persistence::persistent_store_manager> s_persistent_store{};
+    static inline std::shared_ptr<persistence::persistent_store_manager_t> s_persistent_store{};
     static inline std::unique_ptr<persistence::log_handler_t> s_log_handler{};
 
     // These fields have transaction lifetime.

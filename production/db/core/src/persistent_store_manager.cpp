@@ -34,8 +34,8 @@ namespace db
 namespace persistence
 {
 
-const std::string persistent_store_manager::c_last_processed_log_num_key = "gaia_last_processed_log_num_key";
-persistent_store_manager::persistent_store_manager(
+const std::string persistent_store_manager_t::c_last_processed_log_num_key = "gaia_last_processed_log_num_key";
+persistent_store_manager_t::persistent_store_manager_t(
     gaia::db::counters_t* counters, std::string data_dir)
     : m_counters(counters), m_data_dir_path(std::move(data_dir))
 {
@@ -45,12 +45,12 @@ persistent_store_manager::persistent_store_manager(
     m_rdb_wrapper = make_unique<gaia::db::persistence::rdb_wrapper_t>(m_data_dir_path, write_options, transaction_db_options);
 }
 
-persistent_store_manager::~persistent_store_manager()
+persistent_store_manager_t::~persistent_store_manager_t()
 {
     close();
 }
 
-void persistent_store_manager::open()
+void persistent_store_manager_t::open()
 {
     rocksdb::TransactionDBOptions options{};
     rocksdb::Options init_options{};
@@ -101,29 +101,29 @@ void persistent_store_manager::open()
     m_rdb_wrapper->open_txn_db(init_options, options);
 }
 
-void persistent_store_manager::close()
+void persistent_store_manager_t::close()
 {
     m_rdb_wrapper->close();
 }
 
-void persistent_store_manager::append_wal_commit_marker(const std::string& txn_name)
+void persistent_store_manager_t::append_wal_commit_marker(const std::string& txn_name)
 {
     m_rdb_wrapper->commit(txn_name);
 }
 
-std::string persistent_store_manager::begin_txn(gaia_txn_id_t txn_id)
+std::string persistent_store_manager_t::begin_txn(gaia_txn_id_t txn_id)
 {
     rocksdb::WriteOptions write_options{};
     rocksdb::TransactionOptions txn_options{};
     return m_rdb_wrapper->begin_txn(write_options, txn_options, txn_id);
 }
 
-void persistent_store_manager::append_wal_rollback_marker(const std::string& txn_name)
+void persistent_store_manager_t::append_wal_rollback_marker(const std::string& txn_name)
 {
     m_rdb_wrapper->rollback(txn_name);
 }
 
-void persistent_store_manager::prepare_wal_for_write(gaia::db::txn_log_t* log, const std::string& txn_name)
+void persistent_store_manager_t::prepare_wal_for_write(gaia::db::txn_log_t* log, const std::string& txn_name)
 {
     ASSERT_PRECONDITION(log, "Transaction log is null!");
     // The key_count variable represents the number of puts + deletes.
@@ -178,7 +178,7 @@ void persistent_store_manager::prepare_wal_for_write(gaia::db::txn_log_t* log, c
  * Todo(Mihir) Note that, for now we skip validating the existence of object references on recovery,
  * since these aren't validated during object creation either.
  */
-void persistent_store_manager::recover()
+void persistent_store_manager_t::recover()
 {
     auto it = std::unique_ptr<rocksdb::Iterator>(m_rdb_wrapper->get_iterator());
     gaia_id_t max_id = 0;
@@ -210,12 +210,12 @@ void persistent_store_manager::recover()
     m_counters->last_type_id = max_type_id;
 }
 
-void persistent_store_manager::destroy_persistent_store()
+void persistent_store_manager_t::destroy_persistent_store()
 {
     m_rdb_wrapper->destroy_persistent_store();
 }
 
-uint64_t persistent_store_manager::get_value(const std::string& key)
+uint64_t persistent_store_manager_t::get_value(const std::string& key)
 {
     std::string value;
     m_rdb_wrapper->get(key, value);
@@ -231,19 +231,19 @@ uint64_t persistent_store_manager::get_value(const std::string& key)
     return reinterpret_cast<uint64_t>(result);
 }
 
-void persistent_store_manager::flush()
+void persistent_store_manager_t::flush()
 {
     m_rdb_wrapper->flush();
 }
 
-void persistent_store_manager::update_value(const std::string& key_to_write, uint64_t value_to_write)
+void persistent_store_manager_t::update_value(const std::string& key_to_write, uint64_t value_to_write)
 {
     string_writer_t value;
     value.write_uint64(value_to_write);
     m_rdb_wrapper->put(key_to_write, value.to_slice());
 }
 
-void persistent_store_manager::put(gaia::db::db_recovered_object_t& object)
+void persistent_store_manager_t::put(gaia::db::db_recovered_object_t& object)
 {
     string_writer_t key;
     string_writer_t value;
@@ -256,7 +256,7 @@ void persistent_store_manager::put(gaia::db::db_recovered_object_t& object)
     m_rdb_wrapper->put(key.to_slice(), value.to_slice());
 }
 
-void persistent_store_manager::remove(gaia::common::gaia_id_t id_to_remove)
+void persistent_store_manager_t::remove(gaia::common::gaia_id_t id_to_remove)
 {
     // Encode key to be deleted.
     string_writer_t key;
