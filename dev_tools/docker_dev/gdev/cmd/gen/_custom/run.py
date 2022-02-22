@@ -1,5 +1,5 @@
 """
-Module to satisfy the run requirements to for a RUN section that includes MIXINs.
+Module to satisfy the run requirements a RUN section that includes MIXINs.
 """
 from dataclasses import dataclass
 import os
@@ -12,7 +12,7 @@ from .._abc.run import GenAbcRun
 @dataclass(frozen=True, repr=False)
 class GenCustomRun(GenAbcRun):
     """
-    Class to satisfy the run requirements to for a RUN section that includes MIXINs.
+    Class to satisfy the run requirements a RUN section that includes MIXINs.
     """
     base_run: GenAbcRun
 

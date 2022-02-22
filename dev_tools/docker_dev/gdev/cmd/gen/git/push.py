@@ -1,5 +1,5 @@
 """
-Module to satisfy the push requirements to for the GIT section.
+Module to satisfy the push requirements for the GIT section.
 """
 from .build import GenGitBuild
 from .._abc.push import GenAbcPush
@@ -7,7 +7,7 @@ from .._abc.push import GenAbcPush
 
 class GenGitPush(GenAbcPush):
     """
-    Class to satisfy the push requirements to for the GIT section.
+    Class to satisfy the push requirements for the GIT section.
     """
 
     @property

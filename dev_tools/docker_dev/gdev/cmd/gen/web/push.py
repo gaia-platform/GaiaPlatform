@@ -1,5 +1,5 @@
 """
-Module to satisfy the push requirements to for the WEB section.
+Module to satisfy the push requirements for the WEB section.
 """
 from .build import GenWebBuild
 from .._abc.push import GenAbcPush
@@ -7,7 +7,7 @@ from .._abc.push import GenAbcPush
 
 class GenWebPush(GenAbcPush):
     """
-    Class to satisfy the push requirements to for the WEB section.
+    Class to satisfy the push requirements for the WEB section.
     """
 
     @property

@@ -15,7 +15,7 @@ from .._abc.dockerfile import GenAbcDockerfile
 @dataclass(frozen=True, repr=False)
 class GenCustomDockerfile(GenAbcDockerfile):
     """
-    Class to provide for a customized GenAbcDockerfile where user properties
+    Class to provide a customized GenAbcDockerfile where user properties
     from the host of the container are taken into account.
     """
     base_dockerfile: GenAbcDockerfile

@@ -1,5 +1,5 @@
 """
-Module to satisfy the run requirements to for the RUN section.
+Module to satisfy the run requirements for the RUN section.
 """
 from .build import GenRunBuild
 from .._abc.run import GenAbcRun
@@ -7,7 +7,7 @@ from .._abc.run import GenAbcRun
 
 class GenRunRun(GenAbcRun):
     """
-    Class to satisfy the run requirements to for the RUN section.
+    Class to satisfy the run requirements for the RUN section.
     """
 
     @property

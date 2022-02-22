@@ -1,5 +1,5 @@
 """
-Module to provide for a single entrance point from the operating system.
+Module to provide a single entry point from the operating system.
 """
 
 import sys
@@ -7,11 +7,11 @@ from time import sleep
 
 class DockerDev():
     """
-    Class to provide for a single entrance point from the operating system.
+    Class to provide a single entry point from the operating system.
     """
     def main(self):
         """
-        Main entrance point from the operating system.
+        Main entry point from the operating system.
         """
         from gdev.dependency import Dependency
         dependency = Dependency.of_sys_argv()

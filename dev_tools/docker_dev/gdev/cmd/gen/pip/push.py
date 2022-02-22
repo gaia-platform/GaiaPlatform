@@ -1,5 +1,5 @@
 """
-Module to satisfy the push requirements to for the PIP section.
+Module to satisfy the push requirements for the PIP section.
 """
 from .build import GenPipBuild
 from .._abc.push import GenAbcPush
@@ -7,7 +7,7 @@ from .._abc.push import GenAbcPush
 
 class GenPipPush(GenAbcPush):
     """
-    Class to satisfy the push requirements to for the PIP section.
+    Class to satisfy the push requirements for the PIP section.
     """
 
     @property

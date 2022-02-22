@@ -1,5 +1,5 @@
 """
-Module to satisfy the run requirements to for the ENV section.
+Module to satisfy the run requirements for the ENV section.
 """
 from .build import GenEnvBuild
 from .._abc.run import GenAbcRun
@@ -7,7 +7,7 @@ from .._abc.run import GenAbcRun
 
 class GenEnvRun(GenAbcRun):
     """
-    Class to satisfy the run requirements to for the ENV section.
+    Class to satisfy the run requirements for the ENV section.
     """
 
     @property

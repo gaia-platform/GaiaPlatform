@@ -1,5 +1,5 @@
 """
-Module to satisfy the run requirements to for the PIP section.
+Module to satisfy the run requirements for the PIP section.
 """
 from .build import GenPipBuild
 from .._abc.run import GenAbcRun
@@ -7,7 +7,7 @@ from .._abc.run import GenAbcRun
 
 class GenPipRun(GenAbcRun):
     """
-    Class to satisfy the run requirements to for the PIP section.
+    Class to satisfy the run requirements for the PIP section.
     """
 
     @property

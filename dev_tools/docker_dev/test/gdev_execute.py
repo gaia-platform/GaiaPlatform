@@ -34,7 +34,7 @@ class SubprocessExecutor():
 
 class MainlineExecutor(InProcessExecution):
     """
-    Class to provide for a local instance of a InProcessExecution class.
+    Class to provide a local instance of a InProcessExecution class.
     """
 
     def __init__(self, use_module=True, use_main=False):

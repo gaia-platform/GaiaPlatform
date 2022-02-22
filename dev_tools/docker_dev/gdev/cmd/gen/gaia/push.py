@@ -1,5 +1,5 @@
 """
-Module to satisfy the push requirements to for the GAIA section.
+Module to satisfy the push requirements for the GAIA section.
 """
 from .build import GenGaiaBuild
 from .._abc.push import GenAbcPush
@@ -7,7 +7,7 @@ from .._abc.push import GenAbcPush
 
 class GenGaiaPush(GenAbcPush):
     """
-    Class to satisfy the push requirements to for the GAIA section.
+    Class to satisfy the push requirements for the GAIA section.
     """
 
     @property

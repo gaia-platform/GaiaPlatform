@@ -1,5 +1,5 @@
 """
-Module to satisfy the run requirements to for the WEB section.
+Module to satisfy the run requirements for the WEB section.
 """
 from .build import GenWebBuild
 from .._abc.run import GenAbcRun
@@ -7,7 +7,7 @@ from .._abc.run import GenAbcRun
 
 class GenWebRun(GenAbcRun):
     """
-    Class to satisfy the run requirements to for the WEB section.
+    Class to satisfy the run requirements for the WEB section.
     """
 
     @property

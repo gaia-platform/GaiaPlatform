@@ -1,5 +1,5 @@
 """
-Module to provide for a subclass of the GenAbcCfg class for the Apt section where MIXINs are used.
+Module to provide a subclass of the GenAbcCfg class for the Apt section where MIXINs are used.
 """
 from typing import Iterable
 
@@ -10,7 +10,7 @@ from .._abc.cfg import GenAbcCfg
 
 class GenCustomCfg(GenAbcCfg):
     """
-    Class to provide for a subclass of the GenAbcCfg class for the Apt section where MIXINs are used.
+    Class to provide a subclass of the GenAbcCfg class for the Apt section where MIXINs are used.
     """
 
     @memoize

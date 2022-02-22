@@ -1,5 +1,5 @@
 """
-Module to satisfy the run requirements to for the GAIA section.
+Module to satisfy the run requirements for the GAIA section.
 """
 from .build import GenGaiaBuild
 from .._abc.run import GenAbcRun
@@ -7,7 +7,7 @@ from .._abc.run import GenAbcRun
 
 class GenGaiaRun(GenAbcRun):
     """
-    Class to satisfy the run requirements to for the GAIA section.
+    Class to satisfy the run requirements for the GAIA section.
     """
 
     @property

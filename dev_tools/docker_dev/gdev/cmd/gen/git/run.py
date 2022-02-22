@@ -1,5 +1,5 @@
 """
-Module to satisfy the run requirements to for the GIT section.
+Module to satisfy the run requirements for the GIT section.
 """
 from .._abc.build import GenAbcBuild
 from .._abc.run import GenAbcRun
@@ -7,7 +7,7 @@ from .._abc.run import GenAbcRun
 
 class GenGitRun(GenAbcRun):
     """
-    Class to satisfy the run requirements to for the GIT section.
+    Class to satisfy the run requirements for the GIT section.
     """
 
     @property

@@ -1,5 +1,5 @@
 """
-Module to satisfy the run requirements to for the PRERUN section.
+Module to satisfy the run requirements for the PRERUN section.
 """
 from .build import GenPreRunBuild
 from .._abc.run import GenAbcRun
@@ -7,7 +7,7 @@ from .._abc.run import GenAbcRun
 
 class GenPreRunRun(GenAbcRun):
     """
-    Class to satisfy the run requirements to for the PRERUN section.
+    Class to satisfy the run requirements for the PRERUN section.
     """
 
     @property

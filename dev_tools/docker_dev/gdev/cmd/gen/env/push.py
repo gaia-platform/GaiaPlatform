@@ -1,5 +1,5 @@
 """
-Module to satisfy the push requirements to for the ENV section.
+Module to satisfy the push requirements for the ENV section.
 """
 from .build import GenEnvBuild
 from .._abc.push import GenAbcPush
@@ -7,7 +7,7 @@ from .._abc.push import GenAbcPush
 
 class GenEnvPush(GenAbcPush):
     """
-    Class to satisfy the push requirements to for the ENV section.
+    Class to satisfy the push requirements for the ENV section.
     """
 
     @property

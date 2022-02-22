@@ -16,7 +16,7 @@ LOGGER = logging.getLogger(__name__)
 
 class InProcessResult:
     """
-    Class to provide for an encapsulation of the results of an execution.
+    Class to provide an encapsulation of the results of an execution.
     """
 
     def __init__(self, return_code, std_out, std_err):

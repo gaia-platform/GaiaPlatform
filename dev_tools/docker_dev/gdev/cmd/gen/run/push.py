@@ -1,5 +1,5 @@
 """
-Module to satisfy the push requirements to for the RUN section.
+Module to satisfy the push requirements for the RUN section.
 """
 from .build import GenRunBuild
 from .._abc.push import GenAbcPush
@@ -7,7 +7,7 @@ from .._abc.push import GenAbcPush
 
 class GenRunPush(GenAbcPush):
     """
-    Class to satisfy the push requirements to for the RUN section.
+    Class to satisfy the push requirements for the RUN section.
     """
 
     @property

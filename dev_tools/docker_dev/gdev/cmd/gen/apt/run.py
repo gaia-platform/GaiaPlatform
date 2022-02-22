@@ -1,5 +1,5 @@
 """
-Module to satisfy the run requirements to for the APT section.
+Module to satisfy the run requirements for the APT section.
 """
 
 from .build import GenAptBuild
@@ -8,7 +8,7 @@ from .._abc.run import GenAbcRun
 
 class GenAptRun(GenAbcRun):
     """
-    Class to satisfy the run requirements to for the APT section.
+    Class to satisfy the run requirements for the APT section.
     """
 
     @property

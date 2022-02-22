@@ -1,5 +1,5 @@
 """
-Module to provide for a base class for use by all the subcommand modules.
+Module to provide a base class for use by all the subcommand modules.
 """
 
 # PYTHON_ARGCOMPLETE_OK

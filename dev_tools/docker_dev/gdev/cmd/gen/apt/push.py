@@ -1,5 +1,5 @@
 """
-Module to satisfy the push requirements to for the APT section.
+Module to satisfy the push requirements for the APT section.
 """
 from .build import GenAptBuild
 from .._abc.push import GenAbcPush
@@ -7,7 +7,7 @@ from .._abc.push import GenAbcPush
 
 class GenAptPush(GenAbcPush):
     """
-    Class to satisfy the push requirements to for the APT section.
+    Class to satisfy the push requirements for the APT section.
     """
 
     @property
