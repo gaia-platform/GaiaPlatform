@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 from test.pytest_execute import InProcessExecution, InProcessResult
 from gdev.__main__ import main
 from gdev.main import DockerDev
@@ -6,7 +13,8 @@ import io
 import subprocess
 
 """
-This code mostly copied from: https://github.com/jackdewinter/pyscan/blob/test/test_scenarios.py
+This code copied from: https://github.com/jackdewinter/pyscan/blob/test/test_scenarios.py with small changes.
+Any changes made to this code above the base code are copyright by Gaia Platform LLC.
 """
 
 class SubprocessExecutor():

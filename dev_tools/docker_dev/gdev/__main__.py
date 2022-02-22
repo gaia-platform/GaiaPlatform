@@ -1,4 +1,9 @@
-#!/usr/bin/env python3.8
+#!/usr/bin/env python3
+
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
 
 """
 Module to provide the main entry point from a -m/module use case.
