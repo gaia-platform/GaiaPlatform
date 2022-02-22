@@ -194,6 +194,13 @@ TEST_F(optional_dac_test, where_test)
         ++initial_count;
     }
 
+    // Check the initial negative counts for invariants.
+    size_t initial_neg_count = 0;
+    for (auto i : optional_values_t::list().where(!optional_bool))
+    {
+        ++initial_neg_count;
+    }
+
     // insert an empty optional
     size_t count = 0;
     optional_values_writer values_w;
@@ -201,6 +208,15 @@ TEST_F(optional_dac_test, where_test)
     values_w.insert_row();
 
     for (auto i : optional_values_t::list().where(optional_bool))
+    {
+        ++count;
+    }
+
+    // Empty optional should not match! So count should be identical.
+    ASSERT_EQ(count, initial_count);
+
+    count = 0;
+    for (auto i : optional_values_t::list().where(!optional_bool))
     {
         ++count;
     }
@@ -222,6 +238,16 @@ TEST_F(optional_dac_test, where_test)
     // Freshly inserted row should not match (false).
     ASSERT_EQ(count, initial_count);
 
+    count = 0;
+
+    for (auto i : optional_values_t::list().where(!optional_bool))
+    {
+        ++count;
+    }
+
+    // Freshly inserted row should match (false).
+    ASSERT_EQ(count, initial_count + 1);
+
     // Insert a legitimate true value.
     values_w.optional_bool = true;
     values_w.insert_row();
@@ -234,6 +260,16 @@ TEST_F(optional_dac_test, where_test)
     }
 
     // Freshly inserted row should match.
+    ASSERT_EQ(count, initial_count + 1);
+
+    count = 0;
+
+    for (auto i : optional_values_t::list().where(!optional_bool))
+    {
+        ++count;
+    }
+
+    // Freshly inserted row should not match (false).
     ASSERT_EQ(count, initial_count + 1);
 
     auto final_count = 0;
