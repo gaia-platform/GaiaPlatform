@@ -619,6 +619,7 @@ void server_t::clear_shared_memory()
     data_mapping_t::close(c_data_mappings);
     s_local_snapshot_locators.close();
     s_chunk_manager.release();
+    record_list_manager_t::get()->clear();
 }
 
 // To avoid synchronization, we assume that this method is only called when
