@@ -887,7 +887,7 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
             const auto& targetLinks = catalogData.find(linkData.targetTable)->second.linkData;
             for (const auto& link : targetLinks)
             {
-                if (link.second.targetTable == linkData.targetTable)
+                if (link.second.targetTable == typeName)
                 {
                     ++linkCount;
                 }
