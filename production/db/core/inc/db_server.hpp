@@ -267,7 +267,7 @@ private:
     // Keep track of the last txn that has been submitted to the async_disk_writer.
     static inline std::atomic<gaia_txn_id_t> s_last_queued_commit_ts_upper_bound = c_invalid_gaia_txn_id;
 
-    static inline gaia_txn_id_t s_last_checkpointed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
+    static inline std::atomic<gaia_txn_id_t> s_last_checkpointed_commit_ts_lower_bound = c_invalid_gaia_txn_id;
 
     // Keep a track of undecided txns submitted to the async_disk_writer.
     static inline std::set<gaia_txn_id_t> s_seen_and_undecided_txn_set{};

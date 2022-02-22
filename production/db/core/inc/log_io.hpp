@@ -92,14 +92,14 @@ public:
      */
     void recover_from_persistent_log(
         gaia_txn_id_t& last_checkpointed_commit_ts,
-        uint64_t& last_processed_log_seq,
-        uint64_t max_log_seq_to_process,
+        file_sequence_t& last_processed_log_seq,
+        file_sequence_t max_log_seq_to_process,
         recovery_mode_t mode);
 
     /**
      * Destroy all log files with sequence number lesser than or equal to max_log_seq_to_delete.
      */
-    void destroy_persistent_log(uint64_t max_log_seq_to_delete);
+    void destroy_persistent_log(file_sequence_t max_log_seq_to_delete);
 
     /**
      * Register persistent store create/delete APIs. Rework to call persistent store APIs directly?
@@ -110,7 +110,7 @@ public:
     /**
      * Set the log sequence counter.
      */
-    void set_persistent_log_sequence(uint64_t log_seq);
+    void set_persistent_log_sequence(file_sequence_t log_seq);
 
     size_t get_remaining_txns_to_checkpoint_count();
 

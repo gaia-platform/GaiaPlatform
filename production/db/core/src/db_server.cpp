@@ -1087,15 +1087,15 @@ void server_t::checkpoint_handler()
 {
     // Wait for a persistent log file to be closed before checkpointing it.
     // This can be achieved via blocking on an eventfd read.
-    uint64_t last_deleted_log_seq = 0;
+    file_sequence_t last_deleted_log_seq = 0;
     while (true)
     {
         // Log sequence number of file ready to be checkpointed.
-        eventfd_t max_log_seq_to_checkpoint;
+        file_sequence_t max_log_seq_to_checkpoint;
         eventfd_read(s_signal_checkpoint_log_eventfd, &max_log_seq_to_checkpoint);
 
         // Process all existing log files.
-        uint64_t last_processed_log_seq = 0;
+        file_sequence_t last_processed_log_seq = 0;
         s_log_handler->recover_from_persistent_log(
             s_last_checkpointed_commit_ts_lower_bound,
             last_processed_log_seq,

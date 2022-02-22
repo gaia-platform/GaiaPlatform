@@ -335,12 +335,12 @@ void log_handler_t::register_remove_from_persistent_store_fn(
     remove_from_persistent_store_fn = remove_obj_fn;
 }
 
-void log_handler_t::destroy_persistent_log(uint64_t max_log_seq_to_delete)
+void log_handler_t::destroy_persistent_log(file_sequence_t max_log_seq_to_delete)
 {
     // Done with recovery, delete all files.
     for (const auto& file : std::filesystem::directory_iterator(s_wal_dir_path))
     {
-        uint64_t file_seq = std::stoi(file.path().filename());
+        file_sequence_t file_seq = std::stoi(file.path().filename());
         if (file_seq <= max_log_seq_to_delete)
         {
             std::filesystem::remove_all(file.path());
@@ -348,15 +348,15 @@ void log_handler_t::destroy_persistent_log(uint64_t max_log_seq_to_delete)
     }
 }
 
-void log_handler_t::set_persistent_log_sequence(uint64_t log_seq)
+void log_handler_t::set_persistent_log_sequence(file_sequence_t log_seq)
 {
     s_file_num = log_seq + 1;
 }
 
 void log_handler_t::recover_from_persistent_log(
     gaia_txn_id_t& last_checkpointed_commit_ts,
-    uint64_t& last_processed_log_seq,
-    uint64_t max_log_seq_to_process,
+    file_sequence_t& last_processed_log_seq,
+    file_sequence_t max_log_seq_to_process,
     recovery_mode_t mode)
 {
     // Only relevant for checkpointing. Recovery doesn't care about the
