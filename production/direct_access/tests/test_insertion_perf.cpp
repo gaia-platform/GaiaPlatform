@@ -367,8 +367,11 @@ TEST_F(test_insert_perf, DISABLED_value_linked_relationships)
     run_performance_test(insert6, "Value Linked Relationships", 5, c_vlr_insertions);
 }
 
-// TODO keeping this enabled for now to ensure there is no regression for GAIAPLAT-1475
-TEST_F(test_insert_perf, simple_table_concurrent)
+// To reproduce GAIAPLAT-1475 you need to:
+// - c_num_insertion = 200000
+// - Call run_performance_test with num_iterations=10
+// Keeping it disabled for now because it takes too much time.
+TEST_F(test_insert_perf, DISABLED_simple_table_concurrent)
 {
     constexpr size_t c_num_workers = 5;
 
