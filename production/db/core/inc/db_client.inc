@@ -143,6 +143,9 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
                 // We received EOF from the server, so tell the caller to stop iterating.
                 // We also close the socket here to make it easier to detect further calls
                 // into the iterator, which would now hit the earlier assertion.
+                //
+                // See: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2056
+                // for additional discussion of this code.
                 common::close_fd(*stream_socket_ptr);
                 return std::nullopt;
             }
