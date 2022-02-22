@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 from test.gdev_execute import MainlineExecutor, determine_old_script_behavior, determine_repository_production_directory, SubprocessExecutor, determine_repository_base_directory
 from gdev.host import Host
 
