@@ -50,13 +50,15 @@ class client_t
      */
     friend gaia::db::locators_t* gaia::db::get_locators();
     friend gaia_txn_id_t gaia::db::get_current_txn_id();
-    friend gaia::db::mapped_log_t* get_mapped_log();
+    friend gaia::db::mapped_log_t* gaia::db::get_mapped_log();
+    friend gaia::db::txn_log_t* gaia::db::get_txn_log();
 
     /**
      * @throws no_open_session_internal if there is no open session.
      */
     friend gaia::db::counters_t* gaia::db::get_counters();
     friend gaia::db::data_t* gaia::db::get_data();
+    friend gaia::db::logs_t* gaia::db::get_logs();
     friend gaia::db::id_index_t* gaia::db::get_id_index();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
     friend gaia::db::memory_manager::memory_manager_t* gaia::db::get_memory_manager();
@@ -100,6 +102,7 @@ private:
     // These fields have transaction lifetime.
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
     thread_local static inline mapped_log_t s_log{};
+    thread_local static inline log_offset_t s_txn_log_offset = c_invalid_log_offset;
 
     thread_local static inline mapped_data_t<locators_t> s_private_locators;
     thread_local static inline gaia::db::index::indexes_t s_local_indexes{};
@@ -111,6 +114,7 @@ private:
 
     thread_local static inline mapped_data_t<counters_t> s_shared_counters;
     thread_local static inline mapped_data_t<data_t> s_shared_data;
+    thread_local static inline mapped_data_t<logs_t> s_shared_logs;
     thread_local static inline mapped_data_t<id_index_t> s_shared_id_index;
 
     thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
@@ -124,6 +128,7 @@ private:
         {data_mapping_t::index_t::locators, &s_private_locators, c_gaia_mem_locators_prefix},
         {data_mapping_t::index_t::counters, &s_shared_counters, c_gaia_mem_counters_prefix},
         {data_mapping_t::index_t::data, &s_shared_data, c_gaia_mem_data_prefix},
+        {data_mapping_t::index_t::logs, &s_shared_logs, c_gaia_mem_logs_prefix},
         {data_mapping_t::index_t::id_index, &s_shared_id_index, c_gaia_mem_id_index_prefix},
     };
 

@@ -56,16 +56,16 @@ class GenAbcCfg(Dependency, ABC):
                         else f'# enable by not setting "{enable}": ',
                     'enable_if_any': lambda *enables:
                         '' if set(enables) & cfg_enables
-                        else f'# enable by setting any of "{set(enables)}": ',
+                        else f'# enable by setting any of "{sorted(set(enables))}": ',
                     'enable_if_not_any': lambda *enables:
                         '' if not (set(enables) & cfg_enables)
-                        else f'# enable by not setting any of "{set(enables)}": ',
+                        else f'# enable by not setting any of "{sorted(set(enables))}": ',
                     'enable_if_all': lambda *enables:
                         '' if set(enables) in cfg_enables
-                        else f'# enable by setting all of "{set(enables)}": ',
+                        else f'# enable by setting all of "{sorted(set(enables))}": ',
                     'enable_if_not_all': lambda *enables:
                         '' if not (set(enables) in cfg_enables)
-                        else f'# enable by not setting all of "{set(enables)}": ',
+                        else f'# enable by not setting all of "{sorted(set(enables))}": ',
                     'source_dir': Path.source
                 }
             )[1:-1]
