@@ -401,6 +401,7 @@ void execute_create_list_statements(
         auto create_stmt = dynamic_cast<ddl::create_statement_t*>(stmt.get());
         execute_create_statement_no_txn(executor, create_stmt);
     }
+    add_catalog_hashes();
     txn.commit();
 }
 
@@ -429,6 +430,11 @@ void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
                 ddl_executor_t& executor = ddl_executor_t::get();
                 direct_access::auto_transaction_t txn(false);
                 execute_create_statement_no_txn(executor, create_list->statements.front().get());
+
+                // Scan through the catalog and construct hashes for each non-system
+                // catalog gaia_{database,table,index,field,relationship}.
+                add_catalog_hashes();
+
                 txn.commit();
             }
             else
@@ -481,10 +487,6 @@ void load_catalog(ddl::parser_t& parser, const std::string& ddl_filename)
 
     parser.parse_string(buffer.str());
     execute(parser.statements);
-
-    // Scan through the catalog and construct hashes for each non-system
-    // catalog gaia_{database,table,index,field,relationship}.
-    add_catalog_hashes();
 }
 
 void load_catalog(const char* ddl_filename)

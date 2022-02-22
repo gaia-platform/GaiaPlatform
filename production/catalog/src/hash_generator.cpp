@@ -95,7 +95,6 @@ void add_relationship_hashes(multi_segment_hash& table_hash, gaia_relationship_t
     relationship_w.hash = relationship_hash.to_string();
     relationship_w.update_row();
 }
-} // namespace
 
 struct hash_buffer_t
 {
@@ -108,12 +107,11 @@ bool sort_by_name(
 {
     return (a.first < b.first);
 }
+} // namespace
 
 // For every catalog row that defines this database, calculate and store its hash.
 void add_catalog_hashes(const std::string db_name)
 {
-    begin_transaction();
-
     // The database hash is composed of the hash for the database name, followed by the hashes
     // of all database tables.
     for (auto& db : gaia_database_t::list().where(gaia_database_expr::name == db_name))
@@ -179,29 +177,17 @@ void add_catalog_hashes(const std::string db_name)
         db_w.hash = db_hash.to_string();
         db_w.update_row();
     }
-
-    commit_transaction();
 }
 
 // Apply this algorithm on all non-system databases.
 void add_catalog_hashes()
 {
-    vector<string> db_name_list;
-
-    // Multiple loops to avoid extra transactions.
-    begin_transaction();
     for (auto& db : gaia_database_t::list())
     {
         if (strcmp(db.name(), "catalog") && strcmp(db.name(), "event_log"))
         {
-            db_name_list.emplace_back(db.name());
+            add_catalog_hashes(db.name());
         }
-    }
-    commit_transaction();
-
-    for (const auto& dbname : db_name_list)
-    {
-        add_catalog_hashes(dbname);
     }
 }
 
