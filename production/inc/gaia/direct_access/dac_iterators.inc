@@ -114,8 +114,8 @@ dac_iterator_t<T_class> dac_container_t<container_type_id, T_class>::begin() con
         // so we must be able to retrieve a valid object instance with it.
         T_class obj = T_class::get(id);
 
-        auto predicate = m_filter_fn(obj);
-        if (predicate.has_value() && predicate.value())
+        auto predicate_value = m_filter_fn(obj);
+        if (predicate_value.has_value() && predicate_value.value())
         {
             return dac_iterator_t<T_class>(iterator_state, m_filter_fn);
         }
@@ -194,8 +194,8 @@ dac_set_iterator_t<T_child>& dac_set_iterator_t<T_child>::operator++()
              m_child_obj;
              id = m_child_obj.references()[m_next_offset], m_child_obj = (id.is_valid()) ? T_child::get(id) : T_child())
         {
-            auto predicate = m_filter_fn(m_child_obj);
-            if (predicate.has_value() && predicate.value())
+            auto predicate_value = m_filter_fn(m_child_obj);
+            if (predicate_value.has_value() && predicate_value.value())
             {
                 break;
             }
@@ -245,8 +245,8 @@ dac_set_iterator_t<T_child> value_linked_reference_container_t<T_child>::begin()
     {
         if (m_filter_fn)
         {
-            auto predicate = m_filter_fn(T_child::get(id));
-            if (predicate.has_value() && predicate.value())
+            auto predicate_value = m_filter_fn(T_child::get(id));
+            if (predicate_value.has_value() && predicate_value.value())
             {
                 break;
             }
@@ -304,8 +304,8 @@ dac_set_iterator_t<T_child> reference_container_t<T_child>::begin() const
 
     while (id.is_valid())
     {
-        auto predicate = m_filter_fn(T_child::get(id));
-        if (predicate.has_value() && predicate.value())
+        auto predicate_value = m_filter_fn(T_child::get(id));
+        if (predicate_value.has_value() && predicate_value.value())
         {
             break;
         }
