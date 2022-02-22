@@ -35,9 +35,18 @@ using namespace clang;
 
 static SmallString<20> fieldTableName;
 
-static constexpr char ruleContextTypeName[] = "rule_context__type";
+static constexpr char ruleContextTypeNameBase[] = "rule_context";
 static constexpr char connectFunctionName[] = "connect";
 static constexpr char disconnectFunctionName[] = "disconnect";
+
+static SmallString<32> calculateNameHash(StringRef name)
+{
+    llvm::MD5 Hasher;
+    llvm::MD5::MD5Result Hash;
+    Hasher.update(name);
+    Hasher.final(Hash);
+    return Hash.digest();
+}
 
 static StringRef getTableFromExpression(StringRef expression)
 {
@@ -500,7 +509,8 @@ void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, const Small
 
 QualType Sema::getRuleContextType(SourceLocation loc)
 {
-    RecordDecl* RD = Context.buildImplicitRecord(ruleContextTypeName);
+    Twine ruleContextTypeName = Twine(ruleContextTypeNameBase) + calculateNameHash(ruleContextTypeNameBase) + "__type";
+    RecordDecl* RD = Context.buildImplicitRecord(ruleContextTypeName.str());
     RD->setLexicalDeclContext(CurContext);
     RD->startDefinition();
     Scope S(CurScope, Scope::DeclScope | Scope::ClassScope, Diags);
@@ -535,9 +545,12 @@ QualType Sema::getLinkType(StringRef linkName, StringRef from_table, StringRef t
     // If you have (farmer)-[incubators]->(incubator), the type name is: farmer_incubators__type.
     // The table name is necessary because there could me multiple links in multiple tables
     // with the same name.
-    llvm::SmallString<20> linkTypeName = from_table;
+    llvm::SmallString<64> linkTypeName = from_table;
     linkTypeName += '_';
     linkTypeName += linkName;
+    linkTypeName += '_';
+    linkTypeName += to_table;
+    linkTypeName += calculateNameHash(linkTypeName);
     linkTypeName += "__type";
 
     TagDecl* linkTypeDeclaration = lookupClass(linkTypeName, loc, getCurScope());
@@ -612,7 +625,9 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, StringRef targetTab
     SmallVector<TagDecl*, 2> targetTypes;
 
     // Look up the implicit class type (table__type).
-    llvm::SmallString<20> implicitTableTypeName = targetTableName;
+    llvm::SmallString<64> implicitTableTypeName = targetTableName;
+    implicitTableTypeName += '_';
+    implicitTableTypeName += calculateNameHash(targetTableName);
     implicitTableTypeName += "__type";
     TagDecl* implicitTargetTypeDecl = lookupClass(implicitTableTypeName, loc, getCurScope());
 
@@ -738,7 +753,10 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
     //  3. It finds the definition and returns it. This happens if this method
     //     is called multiple times for the same table.
 
-    llvm::SmallString<20> implicitClassName = typeName;
+    llvm::SmallString<64> implicitClassName;
+    implicitClassName += typeName;
+    implicitClassName += "_";
+    implicitClassName += calculateNameHash(typeName);
     implicitClassName += "__type";
 
     TagDecl* previousDeclaration = lookupClass(implicitClassName, loc, getCurScope());
@@ -863,6 +881,27 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
             links_target_tables[linkData.targetTable]++;
             links_cardinality[linkData.targetTable] = linkData.cardinality == catalog::relationship_cardinality_t::many;
         }
+        else
+        {
+            int linkCount = 0;
+            const auto& targetLinks = catalogData.find(linkData.targetTable)->second.linkData;
+            for (const auto& link : targetLinks)
+            {
+                if (link.second.targetTable == linkData.targetTable)
+                {
+                    ++linkCount;
+                }
+            }
+
+            if (linkCount == 1)
+            {
+                QualType type = getLinkType(link.first(), tableName, linkData.targetTable
+                    , linkData.cardinality == catalog::relationship_cardinality_t::many, loc);
+                addField(&Context.Idents.get(link.first()), type, RD, loc);
+                links_target_tables[linkData.targetTable]++;
+                links_cardinality[linkData.targetTable] = linkData.cardinality == catalog::relationship_cardinality_t::many;
+            }
+        }
     }
 
     // Insert fields and methods that are not part of the schema.  Note that we use the keyword 'remove' to
@@ -895,7 +934,6 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
             addConnectDisconnect(RD, targetTablePair.first(), links_cardinality[targetTablePair.first()], loc, attrFactory, attrs);
         }
     }
-
     RD->completeDefinition();
 
     return Context.getTagDeclType(RD);
