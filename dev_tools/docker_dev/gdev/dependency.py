@@ -15,22 +15,20 @@ from __future__ import annotations
 from argparse import ArgumentParser, REMAINDER
 from dataclasses import dataclass
 from importlib import import_module
-from importlib.util import find_spec
-from inspect import getdoc, isabstract, iscoroutinefunction
+from inspect import isabstract
 import logging
-from pkgutil import iter_modules
 import platform
 import sys
-from typing import FrozenSet, Sequence, Set, Tuple
+from typing import Sequence
+import argparse
 
-from gdev.custom.pathlib import Path
+from gdev.custom.gaia_path import GaiaPath
 from gdev.options import Options
 from gdev.mount import Mount
 from gdev.third_party.atools import memoize, memoize_db
 from gdev.third_party.argcomplete import autocomplete, FilesCompleter
 from gdev.parser_structure import ParserStructure
 from gdev.host import Host
-import argparse
 
 @dataclass(frozen=True)
 class Dependency:
@@ -38,16 +36,30 @@ class Dependency:
     Bob.Dependency
     """
 
-    # The gdev CLI uses docstrings in the help output. This is what they'll see if a subclass does
-    # not provide a docstring.
+    # The gdev CLI uses docstrings in the help output. This is what they'll see if a
+    # subclass does not provide a docstring.
 
     options: Options
 
-    # These two classes are only present to handle the Abort exception, and early exit in some cases.
+    __LOG_LEVELS = [
+        "CRITICAL",
+        "ERROR",
+        "WARNING",
+        "INFO",
+        "DEBUG"]
+
+
+    # These two classes are only present to handle the Abort exception,
+    # and early exit in some cases.
     class Exception(Exception):
-        pass
+        """
+        Useless exception to be refactored out.
+        """
 
     class Abort(Exception):
+        """
+        Exception to know we aborted.
+        """
         def __str__(self) -> str:
             return f'Abort: {super().__str__()}'
 
@@ -78,7 +90,7 @@ class Dependency:
         if handler.level > logging.DEBUG:
             formatter = logging.Formatter(f'({self.options.target}) %(message)s')
         else:
-            formatter = logging.Formatter(f'%(levelname)s:%(name)s %(message)s')
+            formatter = logging.Formatter('%(levelname)s:%(name)s %(message)s')
         handler.setFormatter(formatter)
         log.addHandler(handler)
         return log
@@ -141,7 +153,7 @@ class Dependency:
             parser.add_argument(
                 '--log-level',
                 default=log_level_default,
-                choices=[name for _, name in sorted(logging._levelToName.items())],
+                choices=Dependency.__LOG_LEVELS,
                 help=f'Log level. Default: "{log_level_default}"'
             )
 
@@ -160,12 +172,13 @@ class Dependency:
                 nargs='*',
                 choices=sorted([
                     directory.name
-                    for directory in Path.mixin().iterdir()
+                    for directory in GaiaPath.mixin().iterdir()
                     if directory.is_dir()
                 ]),
                 help=(
                     f'Image mixins to use when creating a container. Mixins provide dev tools and'
-                    f' configuration from targets in the "{Path.mixin().relative_to(Path.repo())}"'
+                    f' configuration from targets in '
+                    f'the "{GaiaPath.mixin().relative_to(GaiaPath.repo())}"'
                     f' directory. Default: "{mixins_default}"'
                 )
             )
@@ -210,14 +223,14 @@ class Dependency:
                 '--registry',
                 default=registry_default,
                 help=(
-                    f'Registry to push images and query cached build stages.'
+                    'Registry to push images and query cached build stages.'
                     f' Default: {registry_default}'
                 )
             )
             parser.add_argument(
                 'args',
                 nargs=REMAINDER,
-                help=f'Args to be forwarded on to docker run, if applicable.'
+                help='Args to be forwarded on to docker run, if applicable.'
             )
 
         def inner(parser: ArgumentParser, parser_structure: ParserStructure) -> ArgumentParser:
@@ -256,9 +269,9 @@ class Dependency:
             return
 
         if hasattr(self, 'main'):
-            self.log.debug(f'Starting {type(self).__name__}.main')
+            self.log.debug('Starting %s.main', str(type(self).__name__))
             self.main()
-            self.log.debug(f'Finished {type(self).__name__}.main')
+            self.log.debug('Finished %s.main', str(type(self).__name__))
 
         # if self.options.log_level == 'DEBUG':
         #     getters = []
@@ -282,7 +295,6 @@ class Dependency:
         if not parsed_args:
             Dependency.get_parser_structure.memoize.remove()
             parser.parse_args([*args, '--help'])
-            import sys
             sys.exit(1)
 
         if 'dry_dock' in parsed_args:
@@ -301,7 +313,7 @@ class Dependency:
         mounts = []
         for mount in parsed_args['mounts']:
             host_path, container_path = mount.split(':', 1)
-            host_path, container_path = Path(host_path), Path(container_path)
+            host_path, container_path = GaiaPath(host_path), GaiaPath(container_path)
             if not host_path.is_absolute():
                 host_path = host_path.absolute()
             if not container_path.is_absolute():
@@ -312,7 +324,7 @@ class Dependency:
         command_class = parsed_args.pop('command_class')
         command_module = parsed_args.pop('command_module')
 
-        options = Options(target=f'{Path.cwd().relative_to(Path.repo())}', **parsed_args)
+        options = Options(target=f'{GaiaPath.cwd().relative_to(GaiaPath.repo())}', **parsed_args)
 
         dependency = getattr(import_module(command_module), command_class)(options)
 

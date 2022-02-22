@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import FrozenSet
 from gdev.mount import Mount
 
+# pylint: disable=too-many-instance-attributes
 @dataclass(frozen=True)
 class Options:
     """
@@ -28,3 +29,4 @@ class Options:
     ports: FrozenSet[str]
     registry: str
     target: str
+# pylint: enable=too-many-instance-attributes

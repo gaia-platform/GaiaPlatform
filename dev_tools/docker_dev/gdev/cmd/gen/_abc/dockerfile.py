@@ -6,7 +6,8 @@
 #############################################
 
 """
-Module to create a Dockerfile from the rules in the `gdev.cfg` file in the current working directory.
+Module to create a Dockerfile from the rules in the `gdev.cfg` file in the
+current working directory.
 """
 
 from __future__ import annotations
@@ -14,15 +15,16 @@ from abc import ABC, abstractmethod
 from textwrap import dedent
 from typing import Iterable
 
-from gdev.custom.pathlib import Path
+from gdev.custom.gaia_path import GaiaPath
 from gdev.dependency import Dependency
 from gdev.third_party.atools import memoize
-from .cfg import GenAbcCfg
+from gdev.cmd.gen._abc.cfg import GenAbcCfg
 
 
 class GenAbcDockerfile(Dependency, ABC):
     """
-    Class to create a Dockerfile from the rules in the `gdev.cfg` file in the current working directory.
+    Class to create a Dockerfile from the rules in the `gdev.cfg` file in the current
+    working directory.
     """
 
     @property
@@ -34,18 +36,18 @@ class GenAbcDockerfile(Dependency, ABC):
         raise NotImplementedError
 
     @property
-    def path(self) -> Path:
+    def path(self) -> GaiaPath:
         """
         Return path where dockerfile is to be written.
         """
         path = (
-                Path.repo()
+                GaiaPath.repo()
                 / '.gdev'
                 / self.options.target
                 / f'{self.cfg.section_name}.dockerfile.gdev'
         )
 
-        self.log.debug(f'{path = }')
+        self.log.debug('path = %s', path)
 
         return path
 
@@ -98,16 +100,19 @@ class GenAbcDockerfile(Dependency, ABC):
                 && apt-get clean
         ''').strip()
 
-        self.log.debug(f'{base_stages_text}')
+        self.log.debug('base_stages_text = %s', base_stages_text)
 
         return base_stages_text
 
+    # pylint: disable=import-outside-toplevel
+    #
+    # Required to resolve cyclical dependency issues.
     @memoize
     def get_copy_section(self) -> str:
         """
         Return text for the COPY section of the final build stage.
         """
-        from ..pre_run.dockerfile import GenPreRunDockerfile
+        from gdev.cmd.gen.pre_run.dockerfile import GenPreRunDockerfile
         seen_dockerfiles = set()
 
         # Calculating which build stages to copy from has a tricky problem problems. Docker
@@ -138,9 +143,10 @@ class GenAbcDockerfile(Dependency, ABC):
 
         copy_section = '\n'.join(inner(self))
 
-        self.log.debug(f'{copy_section = }')
+        self.log.debug('copy_section = %s', copy_section)
 
         return copy_section
+    # pylint: enable=import-outside-toplevel
 
     @memoize
     def get_env_section(self) -> str:
@@ -148,11 +154,11 @@ class GenAbcDockerfile(Dependency, ABC):
         Return text for the ENV section of the final build stage.
         """
         env_section = ''
-        self.log.debug(f'{env_section = }')
+        self.log.debug('env_section = %s', env_section)
         return env_section
 
     @memoize
-    def __get_final_stage_text(self) -> str:
+    def get_final_stage_text(self) -> str:
         """
         Return the text for the final stage, built up of the individual sections, in order.
         """
@@ -166,7 +172,7 @@ class GenAbcDockerfile(Dependency, ABC):
             'ENTRYPOINT [ "/bin/bash" ]',
         ] if line)
 
-        self.log.debug(f'{final_stage_text = }')
+        self.log.debug('final_stage_text = %s', final_stage_text)
 
         return final_stage_text
 
@@ -177,7 +183,7 @@ class GenAbcDockerfile(Dependency, ABC):
         """
         from_section = f'FROM base AS {self.get_name()}'
 
-        self.log.debug(f'{from_section = }')
+        self.log.debug('from_section = %s', from_section)
 
         return from_section
 
@@ -188,7 +194,7 @@ class GenAbcDockerfile(Dependency, ABC):
         """
         input_dockerfiles = tuple()
 
-        self.log.debug(f'{input_dockerfiles = }')
+        self.log.debug('input_dockerfiles = %s', input_dockerfiles)
 
         return input_dockerfiles
 
@@ -199,7 +205,7 @@ class GenAbcDockerfile(Dependency, ABC):
         """
         name = f'{self.options.target.replace("/", "__")}__{self.cfg.section_name}'.lower()
 
-        self.log.debug(f'{name = }')
+        self.log.debug('name = %s', name)
 
         return name
 
@@ -210,9 +216,22 @@ class GenAbcDockerfile(Dependency, ABC):
         """
         run_section = ''
 
-        self.log.debug(f'{run_section = }')
+        self.log.debug('run_section = %s', run_section)
 
         return run_section
+
+
+    def __get_dockerfile_sections_recursive(self, dockerfile: GenAbcDockerfile,
+        seen_dockerfiles) -> Iterable[str]:
+        text_parts = []
+        if dockerfile not in seen_dockerfiles:
+            seen_dockerfiles.add(dockerfile)
+            for input_dockerfile in dockerfile.get_input_dockerfiles():
+                text_parts += self.__get_dockerfile_sections_recursive(input_dockerfile,
+                    seen_dockerfiles)
+            if dockerfile.get_run_section() or dockerfile is self:
+                text_parts.append(dockerfile.get_final_stage_text())
+        return text_parts
 
     @memoize
     def get_text(self) -> str:
@@ -228,19 +247,11 @@ class GenAbcDockerfile(Dependency, ABC):
         # only part of the dockerfile that is affected by this is the copy section for each stage,
         # as it will need to copy from any of the missing, empty stage's non-empty input stages
         # instead.
-        def inner(dockerfile: GenAbcDockerfile) -> Iterable[str]:
-            text_parts = []
-            if dockerfile not in seen_dockerfiles:
-                seen_dockerfiles.add(dockerfile)
-                for input_dockerfile in dockerfile.get_input_dockerfiles():
-                    text_parts += inner(input_dockerfile)
-                if dockerfile.get_run_section() or dockerfile is self:
-                    text_parts.append(dockerfile.__get_final_stage_text())
-            return text_parts
 
-        text = '\n'.join([self.get_base_stages_text(), *inner(self)])
+        text = '\n'.join([self.get_base_stages_text(), \
+            *self.__get_dockerfile_sections_recursive(self, seen_dockerfiles)])
 
-        self.log.debug(f'{text = }')
+        self.log.debug('text = %s', text)
 
         return text
 
@@ -251,7 +262,7 @@ class GenAbcDockerfile(Dependency, ABC):
         """
         workdir_section = f'WORKDIR {self.cfg.path.parent.image_build()}'
 
-        self.log.debug(f'{workdir_section = }')
+        self.log.debug('workdir_section = %s', workdir_section)
 
         return workdir_section
 
@@ -260,9 +271,12 @@ class GenAbcDockerfile(Dependency, ABC):
         """
         Mainline interface.
         """
-        self.log.info(f'Creating dockerfile {self.path}')
+        self.log.info('Creating dockerfile %s', self.path)
         self.path.write_text(data=self.get_text())
 
+    # pylint: disable=import-outside-toplevel
+    #
+    # Required to resolve cyclical dependency issues.
     @memoize
     def cli_entrypoint(self) -> None:
         """
@@ -274,8 +288,9 @@ class GenAbcDockerfile(Dependency, ABC):
         if not self.options.mixins:
             dockerfile = self
         else:
-            from .._custom.dockerfile import GenCustomDockerfile
+            from gdev.cmd.gen._custom.dockerfile import GenCustomDockerfile
             dockerfile = GenCustomDockerfile(options=self.options, base_dockerfile=self)
 
         dockerfile.run()
         print(dockerfile.get_text())
+    # pylint: enable=import-outside-toplevel

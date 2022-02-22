@@ -5,6 +5,11 @@
 # All rights reserved.
 #############################################
 
+"""
+Module to install the autocomplete package if it is not already installed.
+"""
+
+# pylint: disable=import-self, unused-import
 try:
     from argcomplete import autocomplete
     from argcomplete.completers import FilesCompleter
@@ -15,3 +20,4 @@ except ImportError:
 
     from argcomplete import autocomplete
     from argcomplete.completers import FilesCompleter
+# pylint: enable=import-self, unused-import

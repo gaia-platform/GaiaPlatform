@@ -75,6 +75,13 @@ class Dependency:
 
     options: Options
 
+    __LOG_LEVELS = [
+        "CRITICAL",
+        "ERROR",
+        "WARNING",
+        "INFO",
+        "DEBUG"]
+
     class Exception(Exception):
         pass
 
@@ -150,7 +157,7 @@ class Dependency:
             parser.add_argument(
                 '--log-level',
                 default=log_level_default,
-                choices=[name for _, name in sorted(logging._levelToName.items())],
+                choices=[name for name in Dependency.__LOG_LEVELS],
                 help=f'Log level. Default: "{log_level_default}"'
             )
             parser.add_argument(

@@ -13,10 +13,9 @@ from inspect import getfile
 import re
 from typing import FrozenSet, Iterable, Pattern
 
-from gdev.custom.pathlib import Path
+from gdev.custom.gaia_path import GaiaPath
 from gdev.dependency import Dependency
 from gdev.third_party.atools import memoize
-
 
 class GenAbcCfg(Dependency, ABC):
     """
@@ -25,12 +24,12 @@ class GenAbcCfg(Dependency, ABC):
 
     @property
     @memoize
-    def path(self) -> Path:
+    def path(self) -> GaiaPath:
         """
         Determine the path to the configuration file that we are observing.
         """
-        path = Path.repo() / self.options.target / 'gdev.cfg'
-        self.log.debug(f'{path = }')
+        path = GaiaPath.repo() / self.options.target / 'gdev.cfg'
+        self.log.debug('path = %s', path)
         return path
 
     @property
@@ -38,7 +37,7 @@ class GenAbcCfg(Dependency, ABC):
         """
         Determine the section name in the configuration based on the type of the class.
         """
-        return Path(getfile(type(self))).parent.name.strip('_')
+        return GaiaPath(getfile(type(self))).parent.name.strip('_')
 
     @memoize
     def __get_begin_pattern(self) -> Pattern:
@@ -47,7 +46,7 @@ class GenAbcCfg(Dependency, ABC):
         """
 
         begin_pattern = re.compile(fr'^\[{self.section_name}]$')
-        self.log.debug(f'{begin_pattern = }')
+        self.log.debug('begin_pattern = %s', begin_pattern)
         return begin_pattern
 
     @memoize
@@ -55,22 +54,28 @@ class GenAbcCfg(Dependency, ABC):
         """
         Get the regex pattern that identifies the end of the section.
         """
-        end_pattern = re.compile(fr'^(# .*|)\[.+]$')
-        self.log.debug(f'{end_pattern = }')
+        end_pattern = re.compile(r'^(# .*|)\[.+]$')
+        self.log.debug('end_pattern = %s', end_pattern)
         return end_pattern
 
+
+    # pylint: disable=eval-used
     @staticmethod
     @memoize
-    def get_lines(cfg_enables: FrozenSet[str], path: Path) -> Iterable[str]:
+    def get_lines(cfg_enables: FrozenSet[str], path: GaiaPath) -> Iterable[str]:
         """
-        Get the various lines for the section with the inline notations like `{enable_if('CI_GitHub')}`
-        replaced with `# enable by setting "{'CI_GitHub'}": `.
+        Get the various lines for the section with the inline notations like
+        `{enable_if('CI_GitHub')}` replaced with `# enable by setting "{'CI_GitHub'}": `.
         """
-        return tuple([
+        # Per suggestions from https://realpython.com/python-eval-function/:
+        # - `__locals` field set to an empty dictionary
+        # - `__globals` field set to contain empty `__builtins__` item
+
+        return tuple((
             eval(
                 f'fr""" {line} """',
                 {
-                    'build_dir': Path.build,
+                    'build_dir': GaiaPath.build,
                     'enable_if': lambda enable:
                         '' if enable in cfg_enables
                         else f'# enable by setting "{enable}": ',
@@ -89,15 +94,17 @@ class GenAbcCfg(Dependency, ABC):
                     'enable_if_not_all': lambda *enables:
                         '' if not (set(enables) in cfg_enables)
                         else f'# enable by not setting all of "{sorted(set(enables))}": ',
-                    'source_dir': Path.source
-                }
+                    'source_dir': GaiaPath.source,
+                    "__builtins__": {}
+                }, {}
             )[1:-1]
             for line in (GenAbcCfg.__get_raw_text(path)).splitlines()
-        ])
+        ))
+    # pylint: enable=eval-used
 
     @staticmethod
     @memoize
-    def __get_raw_text(path: Path) -> str:
+    def __get_raw_text(path: GaiaPath) -> str:
         if not path.is_file():
             raise Dependency.Abort(f'File "<repo_root>/{path.context()}" must exist.')
 
@@ -142,7 +149,7 @@ class GenAbcCfg(Dependency, ABC):
 
         section_lines = tuple(section_lines)
 
-        self.log.debug(f'{section_lines = }')
+        self.log.debug('section_lines = %s', section_lines)
 
         return section_lines
 

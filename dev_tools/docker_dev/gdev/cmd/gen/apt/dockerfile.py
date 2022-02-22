@@ -9,8 +9,8 @@
 Module to generate the APT section of the dockerfile.
 """
 from gdev.third_party.atools import memoize
+from gdev.cmd.gen._abc.dockerfile import GenAbcDockerfile
 from .cfg import GenAptCfg
-from .._abc.dockerfile import GenAbcDockerfile
 
 
 class GenAptDockerfile(GenAbcDockerfile):
@@ -32,7 +32,7 @@ class GenAptDockerfile(GenAbcDockerfile):
         """
         from_section = f'FROM apt_base AS {self.get_name()}'
 
-        self.log.debug(f'{from_section = }')
+        self.log.debug('from_section = %s', from_section)
 
         return from_section
 
@@ -52,6 +52,6 @@ class GenAptDockerfile(GenAbcDockerfile):
         else:
             run_section = ''
 
-        self.log.debug(f'{run_section = }')
+        self.log.debug('run_section = %s', run_section)
 
         return run_section

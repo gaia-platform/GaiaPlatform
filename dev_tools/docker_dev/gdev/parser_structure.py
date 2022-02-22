@@ -12,14 +12,9 @@ from __future__ import annotations
 from typing import FrozenSet, Set, Tuple
 from importlib import import_module
 from importlib.util import find_spec
-from inspect import getdoc, isabstract, iscoroutinefunction
-from argparse import ArgumentParser, REMAINDER
+from inspect import getdoc
 from dataclasses import dataclass
-from importlib import import_module
-from importlib.util import find_spec
-from inspect import getdoc, isabstract, iscoroutinefunction
 from pkgutil import iter_modules
-from typing import FrozenSet, Sequence, Set, Tuple
 
 
 
@@ -28,7 +23,8 @@ class ParserStructure:
     """
     Class to provide a description of the structure to be constructed.
 
-    Note that the `gdev.cmd` is a `path` within the package hierarchy, not calling out to a gdev.cmd script.
+    Note that the `gdev.cmd` is a `path` within the package hierarchy,
+    not calling out to a gdev.cmd script.
     """
 
     command_parts: Tuple[str, ...]
