@@ -52,7 +52,7 @@ repos:
       args:
         - --prefix
         - "#!/usr/bin/env python3\n\n#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n"
-      exclude: (^.+$(?<!\.py))|(^(dev_tools/gdev|dev_tools/docker_dev|production/tests/python/ps_mem.py|production/tools/tests/gaiat/lit.cfg.py))
+      exclude: (^.+$(?<!\.py))|(^(dev_tools/gdev|production/tests/python/ps_mem.py|production/tools/tests/gaiat/lit.cfg.py))|(^.+\_\_init\_\_\.py)
 
     - id: python_non_executable_license_check
       name: Check Python Non-Executable files for License Prefix

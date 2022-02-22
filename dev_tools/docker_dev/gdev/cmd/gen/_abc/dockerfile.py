@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 """
 Module to create a Dockerfile from the rules in the `gdev.cfg` file in the current working directory.
 """

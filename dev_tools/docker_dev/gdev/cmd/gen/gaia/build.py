@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 """
 Module to satisfy the build requirements to generate the dockerfile for the GAIA section.
 """

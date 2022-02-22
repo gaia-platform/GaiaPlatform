@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 """
 Module to generate the PIP section of the dockerfile.
 """

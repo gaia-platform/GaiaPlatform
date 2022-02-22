@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 from abc import ABC, abstractmethod
 import os
 import shlex

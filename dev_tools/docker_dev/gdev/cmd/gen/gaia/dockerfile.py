@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 """
 Module to handle the processing of the 'gaia' section of the 'gdev.cfg' file.
 """
