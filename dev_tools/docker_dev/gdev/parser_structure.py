@@ -9,7 +9,7 @@
 Module to provide a description of the structure to be constructed.
 """
 from __future__ import annotations
-from typing import FrozenSet, Sequence, Set, Tuple
+from typing import FrozenSet, Set, Tuple
 from importlib import import_module
 from importlib.util import find_spec
 from inspect import getdoc, isabstract, iscoroutinefunction
