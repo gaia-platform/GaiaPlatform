@@ -18,58 +18,43 @@ os.environ['DOCKER_CLI_EXPERIMENTAL'] = 'enabled'
 
 
 class GenAbcBuild(Dependency, ABC):
-    """Build a Docker image from the rules in the `gdev.cfg` file in the current working directory.
+    """
+    Build a Docker image from the rules in the `gdev.cfg` file in the current working directory.
     """
 
     @property
     def cfg(self) -> GenAbcCfg:
+        """
+        Get the configuration associated with a specific portion of the dockerfile.
+        """
         return self.dockerfile.cfg
 
     @property
     @abstractmethod
     def dockerfile(self) -> GenAbcDockerfile:
+        """
+        Return the class that will be used to generate a specific portion of the dockerfile.
+        """
         raise NotImplementedError
 
-    async def _execute(
-            self,
-            *,
-            command: str,
-            err_ok: bool,
-            fn: Callable[..., Awaitable[Union[None, Iterable[str], str]]]
-    ) -> Union[None, Iterable[str], str]:
-        return await fn(
-            command=(
-                f'docker run --rm'
-                f' -v {Path.repo()}:{Path.repo().image_source()}'
-                f' {await self.get_tag()}'
-                f' {command}'
-            ),
-            err_ok=err_ok,
-        )
-
-    async def execute(self, command: str, *, err_ok=False) -> None:
-        await self._execute(command=command, err_ok=err_ok, fn=Host.execute)
-
-    async def execute_and_get_lines(self, command: str, *, err_ok=False) -> Iterable[str]:
-        return await self._execute(command=command, err_ok=err_ok, fn=Host.execute_and_get_lines)
-
-    async def execute_and_get_line(self, command: str, *, err_ok=False) -> str:
-        return await self._execute(command=command, err_ok=err_ok, fn=Host.execute_and_get_line)
-
+    # TODO: Used?
     @memoize
-    async def get_actual_git_hash(self) -> str:
-        actual_git_hash = await self._get_actual_label_value('GitHash')
+    def __get_actual_git_hash(self) -> str:
+        actual_git_hash = self._get_actual_label_value('GitHash')
 
         self.log.debug(f'{actual_git_hash = }')
 
         return actual_git_hash
 
     @memoize
-    async def _get_actual_label_value(self, name: str) -> str:
-        if (line := await Host.execute_and_get_line(
+    def _get_actual_label_value(self, name: str) -> str:
+        """
+        Request that docker provide information about the label value for the current image.
+        """
+        if (line := Host.execute_and_get_line_sync(
                 f'docker image inspect'
                 f' --format="{{{{.Config.Labels.{name}}}}}"'
-                f' {await self.get_tag()}'
+                f' {self.get_tag()}'
         )) == '"<no value>"':
             value = ''
         else:
@@ -78,41 +63,50 @@ class GenAbcBuild(Dependency, ABC):
         return value
 
     @memoize
-    async def _get_actual_label_value_by_name(self) -> Mapping[str, str]:
-        return {'GitHash': await self._get_actual_label_value(name='GitHash')}
+    def _get_actual_label_value_by_name(self) -> Mapping[str, str]:
+        """
+        Get the hash of an image with the actual label values that are called for by the configuration.
+        """
+        return {'GitHash': self._get_actual_label_value(name='GitHash')}
 
     @memoize
-    async def get_actual_label_value_by_name(self) -> Mapping[str, str]:
-        actual_label_value_by_name = await self._get_actual_label_value_by_name()
+    def get_actual_label_value_by_name(self) -> Mapping[str, str]:
+        """
+        Get the hash of an image with the actual label values that are called for by the configuration.
+        """
 
+        actual_label_value_by_name = self._get_actual_label_value_by_name()
         self.log.debug(f'{actual_label_value_by_name = }')
-
         return actual_label_value_by_name
 
     @memoize
-    async def get_base_build_names(self) -> Iterable[str]:
-        seen_dockerfiles = set()
+    def __get_base_build_names(self) -> Iterable[str]:
 
-        async def inner(dockerfile: GenAbcDockerfile) -> Iterable[str]:
+        seen_dockerfiles = set()
+        def inner(dockerfile: GenAbcDockerfile) -> Iterable[str]:
             build_names = []
             if dockerfile not in seen_dockerfiles:
                 seen_dockerfiles.add(dockerfile)
-                for input_dockerfile in await dockerfile.get_input_dockerfiles():
-                    build_names += await inner(input_dockerfile)
-                if await dockerfile.get_run_section() or dockerfile is self.dockerfile:
-                    build_names.append(await dockerfile.get_name())
+                for input_dockerfile in dockerfile.get_input_dockerfiles():
+                    build_names += inner(input_dockerfile)
+                if dockerfile.get_run_section() or dockerfile is self.dockerfile:
+                    build_names.append(dockerfile.get_name())
             return build_names
 
-        base_build_names = tuple(await inner(self.dockerfile))
+        base_build_names = tuple(inner(self.dockerfile))
 
         self.log.debug(f'{base_build_names = }')
 
         return base_build_names
 
     @memoize
-    async def get_sha(self) -> str:
-        if lines := await Host.execute_and_get_lines(
-                f'docker image ls -q --no-trunc {await self.get_tag()}'
+    def get_sha(self) -> str:
+        """
+        Determine the SHA hash associated with the current image.
+        """
+
+        if lines := Host.execute_and_get_lines_sync(
+                f'docker image ls -q --no-trunc {self.get_tag()}'
         ):
             sha = next(iter(lines))
         else:
@@ -123,30 +117,35 @@ class GenAbcBuild(Dependency, ABC):
         return sha
 
     @memoize
-    async def get_tag(self) -> str:
-        tag = f'{await self.dockerfile.get_name()}:latest'
+    def get_tag(self) -> str:
+        """
+        Construct a tag from the name of the dockerfile.
+        """
+
+        tag = f'{self.dockerfile.get_name()}:latest'
 
         self.log.debug(f'{tag = }')
 
         return tag
 
+    # TODO unused?
     @memoize
-    async def get_uncommitted(self) -> str:
+    def __get_uncommitted(self) -> str:
         seen_dockerfiles = set()
 
-        async def inner(dockerfile: GenAbcDockerfile) -> Iterable[Path]:
+        def inner(dockerfile: GenAbcDockerfile) -> Iterable[Path]:
             paths = set()
             if dockerfile not in seen_dockerfiles:
                 seen_dockerfiles.add(dockerfile)
                 paths.add( Path.repo() / Path(dockerfile.options.target))
-                for input_dockerfile in await dockerfile.get_input_dockerfiles():
-                    paths |= await inner(input_dockerfile)
+                for input_dockerfile in dockerfile.get_input_dockerfiles():
+                    paths |= inner(input_dockerfile)
             return paths
 
         uncommitted = '\n'.join(
-            await Host.execute_and_get_lines(
+            Host.execute_and_get_lines_sync(
                 f'git status --short ' + ' '.join(
-                    f'{path.parent}' for path in await inner(self.dockerfile)
+                    f'{path.parent}' for path in inner(self.dockerfile)
                 )
             )
         )
@@ -156,46 +155,58 @@ class GenAbcBuild(Dependency, ABC):
         return uncommitted
 
     @memoize
-    async def get_wanted_git_hash(self) -> str:
-        wanted_git_hash = await Host.execute_and_get_line('git rev-parse HEAD')
+    def __get_wanted_git_hash(self) -> str:
+        """
+        Request that GIT provides information about the SHA of the HEAD node.
+        """
+        wanted_git_hash = Host.execute_and_get_line_sync('git rev-parse HEAD')
 
         self.log.debug(f'{wanted_git_hash = }')
 
         return wanted_git_hash
 
-    async def _get_wanted_label_value_by_name(self) -> Mapping[str, str]:
-        return {'GitHash': await self.get_wanted_git_hash()}
+    def _get_wanted_label_value_by_name(self) -> Mapping[str, str]:
+        """
+        Get the hash of the image with the label values that are called for by the configuration.
+        """
+        return {'GitHash': self.__get_wanted_git_hash()}
 
     @memoize
-    async def get_wanted_label_value_by_name(self) -> Mapping[str, str]:
-        wanted_label_value_by_name = await self._get_wanted_label_value_by_name()
+    def get_wanted_label_value_by_name(self) -> Mapping[str, str]:
+        """
+        Get the hash of the image with the label values that are called for by the configuration.
+        """
+        wanted_label_value_by_name = self._get_wanted_label_value_by_name()
 
         self.log.debug(f'{wanted_label_value_by_name = }')
 
         return wanted_label_value_by_name
 
     @memoize
-    async def main(self) -> None:
-        await self.dockerfile.run()
+    def main(self) -> None:
+        """
+        Main action for this subcommand.
+        """
+        self.dockerfile.run()
 
         cached_images = ""
         if self.options.registry:
             cached_images = ','.join(
                 [f'{self.options.registry}/{base_build_name}:latest'
-                    for base_build_name in await self.get_base_build_names()])
+                    for base_build_name in self.__get_base_build_names()])
             cached_images = f"--cache-from {cached_images}"
 
         # TODO query remotely for cached build sources.
-        self.log.info(f'Creating image "{await self.get_tag()}"')
-        await Host.execute(
+        self.log.info(f'Creating image "{self.get_tag()}"')
+        Host.execute_sync(
             f'docker buildx build'
             f' -f {self.dockerfile.path}'
-            f' -t {await self.get_tag()}'
+            f' -t {self.get_tag()}'
 
             f'''{''.join([
                 f' --label {name}="{value}"'
                 for name, value
-                in (await self.get_wanted_label_value_by_name()).items()
+                in (self.get_wanted_label_value_by_name()).items()
             ])}'''
 
             # Keep metadata about layers so that they can be used as a cache source.
@@ -213,14 +224,18 @@ class GenAbcBuild(Dependency, ABC):
 
             f' {Path.repo()}'
         )
-        await Host.execute(f'docker image prune -f')
+        Host.execute_sync(f'docker image prune -f')
 
     @memoize
-    async def cli_entrypoint(self) -> None:
+    def cli_entrypoint(self) -> None:
+        """
+        Execution entrypoint for this module.
+        """
+
         if not self.options.mixins:
             build = self
         else:
             from .._custom.build import GenCustomBuild
             build = GenCustomBuild(options=self.options, base_build=self)
 
-        await build.run()
+        build.run()

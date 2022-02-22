@@ -1,3 +1,6 @@
+"""
+Module to generate the RUN section of the dockerfile where MIXINs are used.
+"""
 from dataclasses import dataclass, replace
 import os
 from textwrap import dedent
@@ -12,7 +15,7 @@ from .._abc.dockerfile import GenAbcDockerfile
 @dataclass(frozen=True, repr=False)
 class GenCustomDockerfile(GenAbcDockerfile):
     """
-    Class to provide for a customized GenAbcDockerfile where user properties
+    Class to provide a customized GenAbcDockerfile where user properties
     from the host of the container are taken into account.
     """
     base_dockerfile: GenAbcDockerfile
@@ -25,27 +28,27 @@ class GenCustomDockerfile(GenAbcDockerfile):
         return GenCustomCfg(self.options)
 
     @memoize
-    async def get_env_section(self) -> str:
+    def get_env_section(self) -> str:
         """
         Return text for the ENV section of the final build stage.
         """
         from ..pre_run.dockerfile import GenPreRunDockerfile
 
-        env_section = await GenPreRunDockerfile(self.options).get_env_section()
+        env_section = GenPreRunDockerfile(self.options).get_env_section()
 
         self.log.debug(f'{env_section = }')
 
         return env_section
 
     @memoize
-    async def get_input_dockerfiles(self) -> Iterable[GenAbcDockerfile]:
+    def get_input_dockerfiles(self) -> Iterable[GenAbcDockerfile]:
         """
         Return dockerfiles that describe build stages that come directly before this one.
         """
         from ..run.dockerfile import GenRunDockerfile
 
         input_dockerfiles = [self.base_dockerfile]
-        for line in await self.cfg.get_lines():
+        for line in self.cfg.get_lines():
             input_dockerfiles.append(GenRunDockerfile(replace(self.options, target=line)))
         input_dockerfiles = tuple(input_dockerfiles)
 
@@ -54,7 +57,7 @@ class GenCustomDockerfile(GenAbcDockerfile):
         return input_dockerfiles
 
     @memoize
-    async def get_text(self) -> str:
+    def get_text(self) -> str:
         """
         Return the full text for this dockerfile, including all build stages.
 
@@ -62,7 +65,7 @@ class GenCustomDockerfile(GenAbcDockerfile):
         container, these commands are run to ensure that the user information on the
         host is used to set permissions and ownership.
         """
-        text_parts = [await super().get_text()]
+        text_parts = [super().get_text()]
 
         if {'clion', 'sudo', 'vscode'} & self.options.mixins:
             uid = os.getuid()
