@@ -1,8 +1,11 @@
+"""
+Module to provide a base class for use by all the subcommand modules.
+"""
+
 # PYTHON_ARGCOMPLETE_OK
 
 from __future__ import annotations
 from argparse import ArgumentParser, REMAINDER
-from asyncio import gather
 from dataclasses import dataclass
 from importlib import import_module
 from importlib.util import find_spec
@@ -33,6 +36,7 @@ class Dependency:
 
     options: Options
 
+    # These two classes are only present to handle the Abort exception, and early exit in some cases.
     class Exception(Exception):
         pass
 
@@ -52,6 +56,12 @@ class Dependency:
     @property
     @memoize
     def log(self) -> logging.Logger:
+        """
+        Set up a logging instance for the current module.
+
+        Note that the @memoize decorator means that this will only be setup
+        once for any given instance of a class.
+        """
         log = logging.getLogger(f'{self.__module__} ({self.options.target})')
         log.setLevel(self.options.log_level)
         log.propagate = False
@@ -64,12 +74,14 @@ class Dependency:
             formatter = logging.Formatter(f'%(levelname)s:%(name)s %(message)s')
         handler.setFormatter(formatter)
         log.addHandler(handler)
-
         return log
 
     @memoize
-    async def cli_entrypoint(self) -> None:
-        await self.run()
+    def cli_entrypoint(self) -> None:
+        """
+        Execution entrypoint for this module.
+        """
+        self.run()
 
     @staticmethod
     @memoize_db(size=1)
@@ -81,6 +93,9 @@ class Dependency:
 
     @staticmethod
     def get_parser() -> ArgumentParser:
+        """
+        Calculate the arguments to show for the given subcommand.
+        """
         def add_flags(parser: ArgumentParser) -> None:
 
             parser.add_argument(
@@ -225,23 +240,27 @@ class Dependency:
         )
 
     @memoize
-    async def run(self) -> None:
+    def run(self) -> None:
+        """
+        Run the main action that is the focus of this class.
+        """
+
         if isabstract(self):
             return
 
         if hasattr(self, 'main'):
             self.log.debug(f'Starting {type(self).__name__}.main')
-            await self.main()
+            self.main()
             self.log.debug(f'Finished {type(self).__name__}.main')
 
-        if self.options.log_level == 'DEBUG':
-            getters = []
-            for cls in reversed(type(self).mro()):
-                for k, v in cls.__dict__.items():
-                    if k.startswith('get_') and iscoroutinefunction(v) and hasattr(v, 'memoize'):
-                        getters.append(getattr(self, k)())
+        # if self.options.log_level == 'DEBUG':
+        #     getters = []
+        #     for cls in reversed(type(self).mro()):
+        #         for k, v in cls.__dict__.items():
+        #             if k.startswith('get_') and iscoroutinefunction(v) and hasattr(v, 'memoize'):
+        #                 getters.append(getattr(self, k)())
 
-            await gather(*[getter for getter in getters])
+        #     await gather(*[getter for getter in getters])
 
     @staticmethod
     def of_args(args: Sequence[str]) -> Dependency:

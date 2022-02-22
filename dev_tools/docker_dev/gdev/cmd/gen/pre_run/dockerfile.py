@@ -1,3 +1,6 @@
+"""
+Module to generate the PRERUN section of the dockerfile.
+"""
 from typing import Iterable
 
 from gdev.third_party.atools import memoize
@@ -18,7 +21,7 @@ class GenPreRunDockerfile(GenAbcDockerfile):
         return GenPreRunCfg(self.options)
 
     @memoize
-    async def get_env_section(self) -> str:
+    def get_env_section(self) -> str:
         """
         Return text for the ENV section of the final build stage.
         """
@@ -26,26 +29,26 @@ class GenPreRunDockerfile(GenAbcDockerfile):
 
         seen_env_dockerfiles = set()
 
-        async def inner(env_dockerfile: GenEnvDockerfile) -> Iterable[str]:
+        def inner(env_dockerfile: GenEnvDockerfile) -> Iterable[str]:
             env_section_parts = []
             if env_dockerfile not in seen_env_dockerfiles:
                 seen_env_dockerfiles.add(env_dockerfile)
-                for input_env_dockerfile in await env_dockerfile.get_input_dockerfiles():
-                    env_section_parts += await inner(GenEnvDockerfile(input_env_dockerfile.options))
-                if section_lines := await env_dockerfile.cfg.get_section_lines():
+                for input_env_dockerfile in env_dockerfile.get_input_dockerfiles():
+                    env_section_parts += inner(GenEnvDockerfile(input_env_dockerfile.options))
+                if section_lines := env_dockerfile.cfg.get_section_lines():
                     env_section_parts.append(f'# {env_dockerfile}')
                     for line in section_lines:
                         env_section_parts.append(f'ENV {line}')
             return env_section_parts
 
-        env_section = '\n'.join(await inner(GenEnvDockerfile(self.options)))
+        env_section = '\n'.join(inner(GenEnvDockerfile(self.options)))
 
         self.log.debug(f'{env_section = }')
 
         return env_section
 
     @memoize
-    async def get_input_dockerfiles(self) -> Iterable[GenAbcDockerfile]:
+    def get_input_dockerfiles(self) -> Iterable[GenAbcDockerfile]:
         """
         Return dockerfiles that describe build stages that come directly before this one.
         """
@@ -70,11 +73,11 @@ class GenPreRunDockerfile(GenAbcDockerfile):
         return input_dockerfiles
 
     @memoize
-    async def get_run_section(self) -> str:
+    def get_run_section(self) -> str:
         """
         Return text for the RUN line of the final build stage.
         """
-        if section_lines := await self.cfg.get_section_lines():
+        if section_lines := self.cfg.get_section_lines():
             run_section = (
                     'RUN '
                     + ' \\\n    && '.join(section_lines)

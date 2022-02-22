@@ -1,3 +1,7 @@
+"""
+Module to represent a mount point between the docker container and the host system.
+"""
+
 from dataclasses import dataclass
 from gdev.custom.pathlib import Path
 

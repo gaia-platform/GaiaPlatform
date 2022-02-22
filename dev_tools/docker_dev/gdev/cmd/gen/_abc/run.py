@@ -10,16 +10,23 @@ from .build import GenAbcBuild
 from gdev.host import Host
 
 class GenAbcRun(Dependency, ABC):
-    """Create a Docker container from the image build with `gdev build` and run a command in it."""
+    """
+    Create a Docker container from the image build with `gdev build` and run a command in it.
+    """
 
     @property
     @abstractmethod
     def build(self) -> GenAbcBuild:
-        """The base build that needs to exist for us to run our container."""
+        """
+        The base build that needs to exist for us to run our container.
+        """
         raise NotImplementedError
 
     @memoize
-    async def _get_flags(self) -> str:
+    def _get_flags(self) -> str:
+        """
+        Get the set of flags and arguments to apply to a `docker run` command.
+        """
         flags_parts = [
             # Remove the container once we exit it.
             f'--rm',
@@ -30,7 +37,7 @@ class GenAbcRun(Dependency, ABC):
             # Usually the default entrypoint, but override it to be certain.
             f'--entrypoint /bin/bash',
 
-            f'--hostname {await self.build.dockerfile.get_name()}',
+            f'--hostname {self.build.dockerfile.get_name()}',
             f'--platform linux/{self.options.platform}',
             f'--privileged',
 
@@ -72,24 +79,30 @@ class GenAbcRun(Dependency, ABC):
         return flags
 
     @memoize
-    async def get_flags(self) -> str:
-        flags = await self._get_flags()
+    def get_flags(self) -> str:
+        """
+        Get the set of flags and arguments to apply to a `docker run` command.
+        """
+        flags = self._get_flags()
 
         self.log.debug(f'{flags = }')
 
         return flags
 
     @memoize
-    async def main(self) -> None:
+    def main(self) -> None:
+        """
+        Main action to invoke for this class.
+        """
         if (
                 self.options.force
-                or (not await self.build.get_sha())
+                or (not self.build.get_sha())
                 or (
-                    await self.build.get_wanted_label_value_by_name()
-                    != await self.build.get_actual_label_value_by_name()
+                    self.build.get_wanted_label_value_by_name()
+                    != self.build.get_actual_label_value_by_name()
                 )
         ):
-            await self.build.run()
+            self.build.run()
 
         if self.options.mounts:
             for mount in self.options.mounts:
@@ -100,8 +113,8 @@ class GenAbcRun(Dependency, ABC):
 
         # execvpe the `docker run` command. It's drastically simpler than trying to manage it as a
         # Python subprocess.
-        command_to_execute = (f'docker run {await self.get_flags()}'
-            f' {await self.build.get_tag()}'
+        command_to_execute = (f'docker run {self.get_flags()}'
+            f' {self.build.get_tag()}'
             f'''{fr' -c "{self.options.args}"' if self.options.args else ""}''')
         if Host.is_drydock_enabled():
             print(f"[execvpe:{command_to_execute}]")
@@ -111,11 +124,14 @@ class GenAbcRun(Dependency, ABC):
             os.execvpe(command[0], command, os.environ)
 
     @memoize
-    async def cli_entrypoint(self) -> None:
+    def cli_entrypoint(self) -> None:
+        """
+        Execution entrypoint for this module.
+        """
         if not self.options.mixins:
             run = self
         else:
             from .._custom.run import GenCustomRun
             run = GenCustomRun(options=self.options, base_run=self)
 
-        await run.run()
+        run.run()
