@@ -365,8 +365,7 @@ template <
     typename T_bind = bind_type<T_operand>,
     typename T_eval_operand = eval_type<T_operand>,
     typename T_token = operator_not_t,
-    typename T_type_constraint
-    = typename std::enable_if<
+    typename T_type_constraint = typename std::enable_if<
         is_expression<T_operand>::value>::type,
     typename T_return = not_type<T_eval_operand>>
 unary_expression_t<T_bind, T_return, T_eval_operand, T_token>
@@ -383,8 +382,7 @@ template <
     typename T_bind = bind_type<T_operand>,
     typename T_eval_operand = eval_type<T_operand>,
     typename T_return = neg_type<T_eval_operand>,
-    typename T_type_constraint
-    = typename std::enable_if<
+    typename T_type_constraint = typename std::enable_if<
         is_expression<T_operand>::value>::type,
     typename T_token = operator_neg_t>
 unary_expression_t<T_bind, T_return, T_eval_operand, T_token>
@@ -401,8 +399,7 @@ template <
     typename T_bind = bind_type<T_operand>,
     typename T_eval_operand = eval_type<T_operand>,
     typename T_token = operator_pos_t,
-    typename T_type_constraint
-    = typename std::enable_if<
+    typename T_type_constraint = typename std::enable_if<
         is_expression<T_operand>::value>::type,
     typename T_return = pos_type<T_eval_operand>>
 unary_expression_t<T_bind, T_return, T_eval_operand, T_token>
