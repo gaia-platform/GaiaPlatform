@@ -8,6 +8,7 @@
 """
 Module to provide for the necessary actions to perform a push of the image.
 """
+
 from abc import ABC, abstractmethod
 
 from gdev.dependency import Dependency
@@ -37,5 +38,5 @@ class GenAbcPush(Dependency, ABC):
         self.build.main()
 
         tag = self.build.get_tag()
-        Host.execute_sync(f'docker tag {tag} {self.options.registry}/{tag}')
-        Host.execute_sync(f'docker push {self.options.registry}/{tag}')
+        Host.execute_sync(f"docker tag {tag} {self.options.registry}/{tag}")
+        Host.execute_sync(f"docker push {self.options.registry}/{tag}")

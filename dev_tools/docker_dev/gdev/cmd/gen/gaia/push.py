@@ -8,8 +8,9 @@
 """
 Module to satisfy the push requirements for the GAIA section.
 """
-from .build import GenGaiaBuild
-from .._abc.push import GenAbcPush
+
+from gdev.cmd.gen.gaia.build import GenGaiaBuild
+from gdev.cmd.gen._abc.push import GenAbcPush
 
 
 class GenGaiaPush(GenAbcPush):

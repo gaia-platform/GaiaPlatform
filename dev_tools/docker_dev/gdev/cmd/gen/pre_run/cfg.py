@@ -8,7 +8,8 @@
 """
 Module to provide a subclass of the GenAbcCfg class for the PreRun section.
 """
-from .._abc.cfg import GenAbcCfg
+
+from gdev.cmd.gen._abc.cfg import GenAbcCfg
 
 
 class GenPreRunCfg(GenAbcCfg):

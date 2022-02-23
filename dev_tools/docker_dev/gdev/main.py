@@ -13,11 +13,13 @@ import sys
 import logging
 from gdev.dependency import Dependency
 
+
 # pylint: disable=too-few-public-methods
-class DockerDev():
+class DockerDev:
     """
     Class to provide a single entry point from the operating system.
     """
+
     @staticmethod
     def main():
         """
@@ -30,11 +32,13 @@ class DockerDev():
         try:
             dependency.cli_entrypoint()
         except dependency.Exception as this_exception:
-            print(f'\n{this_exception}', file=sys.stderr)
+            print(f"\n{this_exception}", file=sys.stderr)
         finally:
             logging.shutdown()
 
         return 0
+
+
 # pylint: enable=too-few-public-methods
 
 if __name__ == "__main__":

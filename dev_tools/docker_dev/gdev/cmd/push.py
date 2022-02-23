@@ -8,9 +8,10 @@
 """
 Module to provide for the `push` subcommand entry point.
 """
+
 from gdev.dependency import Dependency
 from gdev.third_party.atools import memoize
-from .gen.run.push import GenRunPush
+from gdev.cmd.gen.run.push import GenRunPush
 
 
 class Push(Dependency):

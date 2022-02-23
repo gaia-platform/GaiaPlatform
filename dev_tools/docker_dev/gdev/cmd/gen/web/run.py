@@ -8,8 +8,9 @@
 """
 Module to satisfy the run requirements for the WEB section.
 """
-from .build import GenWebBuild
-from .._abc.run import GenAbcRun
+
+from gdev.cmd.gen.web.build import GenWebBuild
+from gdev.cmd.gen._abc.run import GenAbcRun
 
 
 class GenWebRun(GenAbcRun):
