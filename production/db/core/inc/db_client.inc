@@ -65,19 +65,39 @@ inline void client_t::txn_log(
     gaia_offset_t old_offset,
     gaia_offset_t new_offset)
 {
-    ASSERT_PRECONDITION(s_log.is_set(), "Transaction log must be mapped!");
-
-    // We never allocate more than `c_max_log_records` records in the log.
-    if (s_log.data()->record_count == c_max_log_records)
+    // OLD (txn log fds)
     {
-        throw transaction_object_limit_exceeded_internal();
-    }
+        ASSERT_PRECONDITION(s_log.is_set(), "Transaction log must be mapped!");
 
-    // Initialize the new record and increment the record count.
-    auto& lr = s_log.data()->log_records[s_log.data()->record_count++];
-    lr.locator = locator;
-    lr.old_offset = old_offset;
-    lr.new_offset = new_offset;
+        // We never allocate more than `c_max_log_records` records in the log.
+        if (s_log.data()->record_count == c_max_log_records)
+        {
+            throw transaction_object_limit_exceeded_internal();
+        }
+
+        // Initialize the new record and increment the record count.
+        auto& lr = s_log.data()->log_records[s_log.data()->record_count++];
+        lr.locator = locator;
+        lr.old_offset = old_offset;
+        lr.new_offset = new_offset;
+    }
+    // OLD
+
+    // NEW (txn log offsets)
+    // {
+    //     txn_log_t* txn_log = get_txn_log();
+    //     if (txn_log->record_count == c_max_log_records)
+    //     {
+    //         throw transaction_object_limit_exceeded_internal();
+    //     }
+
+    //     // Initialize the new record and increment the record count.
+    //     auto& lr = txn_log->log_records[txn_log->record_count++];
+    //     lr.locator = locator;
+    //     lr.old_offset = old_offset;
+    //     lr.new_offset = new_offset;
+    // }
+    // NEW
 }
 
 // This generator wraps a socket which reads a stream of values of `T_element_type` from the server.
@@ -120,8 +140,15 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
 
             if (datagram_size == 0)
             {
-                // We received EOF from the server, so close the socket and tell
-                // the caller to stop iteration.
+                // We received EOF from the server, so tell the caller to stop iterating.
+                // We also close the socket here to make it easier to detect further calls
+                // into the iterator, which would now hit the earlier assertion.
+                // This early close is also an optimization to allow the server to close
+                // its cursor socket and terminate its cursor thread immediately
+                // after the client detects the end of iteration.
+                //
+                // See: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2056
+                // for additional discussion of this code.
                 common::close_fd(*stream_socket_ptr);
                 return std::nullopt;
             }
@@ -157,7 +184,8 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
         T_element_type next_value = batch_buffer.back();
         batch_buffer.pop_back();
 
-        ASSERT_POSTCONDITION(next_value.is_valid(), "The stream generator has produced an invalid element value!");
+        // See https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2001
+        // ASSERT_POSTCONDITION(next_value.is_valid(), "The stream generator has produced an invalid element value!");
 
         return next_value;
     };

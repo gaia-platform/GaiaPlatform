@@ -93,11 +93,12 @@ class server_t
     friend gaia::db::locators_t* gaia::db::get_locators_for_allocator();
     friend gaia::db::counters_t* gaia::db::get_counters();
     friend gaia::db::data_t* gaia::db::get_data();
+    friend gaia::db::logs_t* gaia::db::get_logs();
     friend gaia::db::id_index_t* gaia::db::get_id_index();
-    friend gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id();
-    friend gaia::db::mapped_log_t* get_mapped_log();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
-
+    friend gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id();
+    friend gaia::db::mapped_log_t* gaia::db::get_mapped_log();
+    friend gaia::db::txn_log_t* gaia::db::get_txn_log();
     friend gaia::db::memory_manager::memory_manager_t* gaia::db::get_memory_manager();
     friend gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager();
 
@@ -116,6 +117,8 @@ private:
     // would be exhausted by 512 sessions opened in a single process, but we
     // also create other large per-session mappings, so we need a large margin
     // of error, hence the choice of 128 for the session limit).
+    // REVIEW: How much could we relax this limit if we revert to per-process
+    // mappings of the data segment?
     static constexpr size_t c_session_limit{1ULL << 7};
 
     static inline int s_server_shutdown_eventfd = -1;
@@ -127,6 +130,7 @@ private:
     static inline mapped_data_t<locators_t> s_shared_locators{};
     static inline mapped_data_t<counters_t> s_shared_counters{};
     static inline mapped_data_t<data_t> s_shared_data{};
+    static inline mapped_data_t<logs_t> s_shared_logs{};
     static inline mapped_data_t<id_index_t> s_shared_id_index{};
     static inline index::indexes_t s_global_indexes{};
     static inline std::unique_ptr<persistent_store_manager> s_persistent_store{};
@@ -134,9 +138,25 @@ private:
     // These fields have transaction lifetime.
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
     thread_local static inline mapped_log_t s_log{};
+    thread_local static inline log_offset_t s_txn_log_offset = c_invalid_log_offset;
 
     // Local snapshot. This is a private copy of locators for server-side transactions.
     thread_local static inline mapped_data_t<locators_t> s_local_snapshot_locators{};
+
+    // The allocated status of each log offset is tracked in this bitmap. When
+    // opening a new txn, each session thread must allocate an offset for its txn
+    // log by setting a cleared bit in this bitmap. When txn log GC completes,
+    // the log's allocated bit should be cleared.
+    static inline std::array<
+        std::atomic<uint64_t>, (c_max_logs + 1) / memory_manager::c_uint64_bit_count>
+        s_allocated_log_offsets_bitmap{};
+
+    // We use this offset to track the lowest-numbered log offset that has never
+    // been allocated.
+    // NB: We use size_t here rather than log_offset_t to avoid integer
+    // overflow. A 64-bit atomically incremented counter cannot overflow in any
+    // reasonable time.
+    static inline std::atomic<size_t> s_next_unused_log_offset{1};
 
     // This is used by GC tasks on a session thread to cache chunk IDs for empty chunk deallocation.
     thread_local static inline std::unordered_map<
@@ -201,7 +221,7 @@ private:
 
     // An array of monotonically nondecreasing timestamps, or "watermarks", that
     // represent the progress of system maintenance tasks with respect to txn
-    // timestamps. See `watermark_type_t` for a full explanation.
+    // history. See `watermark_type_t` for a full explanation.
     static inline std::array<std::atomic<gaia_txn_id_t::value_type>, common::get_enum_value(watermark_type_t::count)> s_watermarks{};
 
     // A global array in which each session thread publishes a "safe timestamp"
@@ -302,6 +322,22 @@ private:
     // that was reserved before this method was called.
     static gaia_txn_id_t get_safe_truncation_ts();
 
+    // Returns true if the given log offset is allocated, false otherwise.
+    static bool is_log_offset_allocated(log_offset_t offset);
+
+    // Allocates the first unallocated log offset, returning the invalid log
+    // offset if no unallocated offset is available.
+    static log_offset_t allocate_log_offset();
+
+    // Deallocates the given log offset.
+    static void deallocate_log_offset(log_offset_t offset);
+
+    // Allocates the first used log offset.
+    static log_offset_t allocate_used_log_offset();
+
+    // Allocates the first unused log offset.
+    static log_offset_t allocate_unused_log_offset();
+
 private:
     // A list of data mappings that we manage together.
     // The order of declarations must be the order of data_mapping_t::index_t values!
@@ -309,6 +345,7 @@ private:
         {data_mapping_t::index_t::locators, &s_shared_locators, c_gaia_mem_locators_prefix},
         {data_mapping_t::index_t::counters, &s_shared_counters, c_gaia_mem_counters_prefix},
         {data_mapping_t::index_t::data, &s_shared_data, c_gaia_mem_data_prefix},
+        {data_mapping_t::index_t::logs, &s_shared_logs, c_gaia_mem_logs_prefix},
         {data_mapping_t::index_t::id_index, &s_shared_id_index, c_gaia_mem_id_index_prefix},
     };
 
@@ -367,6 +404,7 @@ private:
         messages::session_state_t old_state,
         messages::session_state_t new_state,
         gaia_txn_id_t txn_id = c_invalid_gaia_txn_id,
+        log_offset_t txn_log_offset = c_invalid_log_offset,
         size_t log_fds_to_apply_count = 0);
 
     static void build_server_reply_error(
@@ -376,7 +414,7 @@ private:
         messages::session_state_t new_state,
         const char* error_message);
 
-    static void clear_shared_memory();
+    static void clear_server_state();
 
     static void init_memory_manager(bool initializing);
 

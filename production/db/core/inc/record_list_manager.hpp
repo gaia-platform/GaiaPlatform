@@ -51,6 +51,10 @@ public:
     // Return the size of the internal map.
     size_t size() const;
 
+    // Clear the record_list data tracked by the manager.
+    // This is provided for scenarios in which the server state needs to be cleared.
+    void clear();
+
 protected:
     std::shared_ptr<record_list_t> get_record_list_internal(
         gaia::common::gaia_type_t type_id) const;

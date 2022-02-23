@@ -270,7 +270,7 @@ void index_builder_t::update_index(
 
 void index_builder_t::update_index(
     db_index_t index,
-    const txn_log_t::log_record_t& log_record)
+    const log_record_t& log_record)
 {
     // Most operations expect an object located at new_offset,
     // so we'll try to get a reference to its payload.
@@ -438,6 +438,8 @@ void index_builder_t::update_indexes_from_txn_log(
         {
             continue;
         }
+
+        ASSERT_INVARIANT(type_record_id.is_valid(), "Cannot find type record for object.");
 
         for (const auto& index : catalog_core::list_indexes(type_record_id))
         {
