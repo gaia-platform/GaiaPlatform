@@ -58,9 +58,6 @@ add_gtest(test_insert_perf
   "${DIRECT_ACCESS_TEST_INCLUDES};"
   "rt;gaia_direct;gaia_db_catalog_test;dac_insert_sandbox")
 
-option(BUILD_EXPR_PERF_TEST "Build DAC expression performance tests" OFF)
-
-
 add_gtest(test_expressions_perf
   "tests/test_expressions_perf.cpp"
   "${DIRECT_ACCESS_TEST_INCLUDES}"
