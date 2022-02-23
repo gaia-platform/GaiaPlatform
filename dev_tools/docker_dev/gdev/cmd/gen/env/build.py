@@ -8,8 +8,9 @@
 """
 Module to satisfy the build requirements to generate the dockerfile for the ENV section.
 """
-from .dockerfile import GenEnvDockerfile
-from .._abc.build import GenAbcBuild
+
+from gdev.cmd.gen.env.dockerfile import GenEnvDockerfile
+from gdev.cmd.gen._abc.build import GenAbcBuild
 
 
 class GenEnvBuild(GenAbcBuild):

@@ -8,8 +8,9 @@
 """
 Module to satisfy the push requirements for the GIT section.
 """
-from .build import GenGitBuild
-from .._abc.push import GenAbcPush
+
+from gdev.cmd.gen.git.build import GenGitBuild
+from gdev.cmd.gen._abc.push import GenAbcPush
 
 
 class GenGitPush(GenAbcPush):

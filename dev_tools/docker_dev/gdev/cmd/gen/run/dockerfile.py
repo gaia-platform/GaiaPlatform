@@ -9,11 +9,13 @@
 Module to execute the steps necessary to generate a dockerfile based
 on the configuration.
 """
+
 from typing import Iterable
 
 from gdev.third_party.atools import memoize
 from gdev.cmd.gen._abc.dockerfile import GenAbcDockerfile
-from .cfg import GenRunCfg
+from gdev.cmd.gen.run.cfg import GenRunCfg
+
 
 class GenRunDockerfile(GenAbcDockerfile):
     """
@@ -40,9 +42,12 @@ class GenRunDockerfile(GenAbcDockerfile):
 
         env_section = GenPreRunDockerfile(self.options).get_env_section()
 
-        self.log.debug('env_section = %s', env_section)
+        self.log.debug("env_section = %s", env_section)
 
         return env_section
+
+    # pylint: enable=import-outside-toplevel
+
     # pylint: enable=import-outside-toplevel
 
     # pylint: disable=import-outside-toplevel
@@ -57,9 +62,12 @@ class GenRunDockerfile(GenAbcDockerfile):
 
         input_dockerfiles = tuple([GenPreRunDockerfile(self.options)])
 
-        self.log.debug('input_dockerfiles = %s', input_dockerfiles)
+        self.log.debug("input_dockerfiles = %s", input_dockerfiles)
 
         return input_dockerfiles
+
+    # pylint: enable=import-outside-toplevel
+
     # pylint: enable=import-outside-toplevel
 
     @memoize
@@ -68,13 +76,10 @@ class GenRunDockerfile(GenAbcDockerfile):
         Return text for the RUN line of the final build stage.
         """
         if section_lines := self.cfg.get_section_lines():
-            run_section = (
-                    'RUN '
-                    + ' \\\n    && '.join(section_lines)
-            )
+            run_section = "RUN " + " \\\n    && ".join(section_lines)
         else:
-            run_section = ''
+            run_section = ""
 
-        self.log.debug('run_section = %s', run_section)
+        self.log.debug("run_section = %s", run_section)
 
         return run_section

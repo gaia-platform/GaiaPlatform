@@ -9,10 +9,14 @@
 Module to provide high level scenario tests for the Docker_Dev project.
 """
 
-from test.gdev_execute import determine_old_script_behavior, \
-        determine_repository_production_directory, SubprocessExecutor, \
-            determine_repository_base_directory
+from test.gdev_execute import (
+    determine_old_script_behavior,
+    determine_repository_production_directory,
+    SubprocessExecutor,
+    determine_repository_base_directory,
+)
 from gdev.host import Host
+
 
 def get_executor():
     """
@@ -20,166 +24,15 @@ def get_executor():
     """
     return SubprocessExecutor()
 
-def test_show_help_x():
-    """
-    Make sure that we can show help about the various things to do.
-    """
-
-    # Arrange
-    executor = get_executor()
-    suppplied_arguments = ["--help"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
-    expected_output = expected_output.replace(\
-        "\nGaiaPlatform build and development environment tool.\n", "")
-
-    # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
-
-    # Assert
-    execute_results.assert_results(
-        expected_output, expected_error, expected_return_code
-    )
-
-def test_show_help_build():
-    """
-    Make sure that we can show help about the build task.
-    """
-
-    # Arrange
-    executor = get_executor()
-    suppplied_arguments = ["build", "--help"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
-
-    # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
-
-    # Assert
-    expected_output = expected_output.replace("Dependency(options: 'Options')", \
-        "Class to provide for the `build` subcommand entry point.")
-    execute_results.assert_results(
-        expected_output, expected_error, expected_return_code
-    )
-
-def test_show_help_cfg():
-    """
-    Make sure that we can show help about the cfg task.
-    """
-
-    # Arrange
-    executor = get_executor()
-    suppplied_arguments = ["cfg", "--help"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
-
-    # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
-
-    # Assert
-    expected_output = expected_output.replace("Parse gdev.cfg for build rules.", \
-        "Class to provide for the `cfg` subcommand entry point.")
-    execute_results.assert_results(
-        expected_output, expected_error, expected_return_code
-    )
-def test_show_help_dockerfile():
-    """
-    Make sure that we can show help about the dockerfile task.
-    """
-
-    # Arrange
-    executor = get_executor()
-    suppplied_arguments = ["dockerfile", "--help"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
-
-    # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
-
-    # Assert
-    expected_output = expected_output.replace("Dependency(options: 'Options')", \
-        "Class to provide for the `dockerfile` subcommand entry point.")
-    execute_results.assert_results(
-        expected_output, expected_error, expected_return_code
-    )
-def test_show_help_gen():
-    """
-    Make sure that we can show help about the gen task.
-    """
-
-    # Arrange
-    executor = get_executor()
-    suppplied_arguments = ["gen", "--help"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
-    expected_output = expected_output.replace("\nInternal component commands for top-level " + \
-        "gdev commands. These should rarely\n" + \
-        "be needed.\n", "")
-
-    # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
-
-    # Assert
-    execute_results.assert_results(
-        expected_output, expected_error, expected_return_code
-    )
-
-def test_show_help_push():
-    """
-    Make sure that we can show help about the push task.
-    """
-
-    # Arrange
-    executor = get_executor()
-    suppplied_arguments = ["push", "--help"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
-
-    # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
-
-    # Assert
-    expected_output = expected_output.replace("Dependency(options: 'Options')", \
-        "Class to provide for the `push` subcommand entry point.")
-    execute_results.assert_results(
-        expected_output, expected_error, expected_return_code
-    )
-
-def test_show_help_run():
-    """
-    Make sure that we can show help about the run task.
-    """
-
-    # Arrange
-    executor = get_executor()
-    suppplied_arguments = ["run", "--help"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
-
-    # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
-
-    # Assert
-    expected_output = expected_output.replace("Dependency(options: 'Options')", \
-        "Class to provide for the `run` subcommand entry point.")
-    execute_results.assert_results(
-        expected_output, expected_error, expected_return_code
-    )
 
 def __find_drydock_line(expected_output, drydock_prefix):
 
     assert drydock_prefix in expected_output
     start_index = expected_output.index(drydock_prefix)
     end_index = expected_output.index("]\n", start_index)
-    last_line = expected_output[start_index+len(drydock_prefix):end_index]
+    last_line = expected_output[start_index + len(drydock_prefix) : end_index]
     return last_line
+
 
 def __find_docker_run_line(expected_output):
 
@@ -187,46 +40,61 @@ def __find_docker_run_line(expected_output):
     print(f"run_line:{run_line}")
     return run_line
 
+
 def __find_docker_build_line(expected_output):
 
-    build_line= __find_drydock_line(expected_output, "[execute:docker buildx build ")
+    build_line = __find_drydock_line(expected_output, "[execute:docker buildx build ")
     print(f"build_line:{build_line}")
     return build_line
 
-def __find_and_remove(line_to_look_in, part_to_look_for, look_at_end=False, \
-    search_for_end_whitespace=False, replace_with=None):
+
+def __find_and_remove(
+    line_to_look_in,
+    part_to_look_for,
+    look_at_end=False,
+    search_for_end_whitespace=False,
+    replace_with=None,
+):
 
     if look_at_end:
         assert line_to_look_in.endswith(part_to_look_for)
-        line_to_look_in = line_to_look_in[0:-(len(part_to_look_for))]
+        line_to_look_in = line_to_look_in[0 : -(len(part_to_look_for))]
     else:
         part_index = line_to_look_in.index(part_to_look_for)
         if search_for_end_whitespace:
             end_index = line_to_look_in.index(" ", part_index + len(part_to_look_for))
         else:
             end_index = part_index + len(part_to_look_for)
-        line_to_look_in = line_to_look_in[0:part_index] + \
-            (replace_with if replace_with else "") + \
-            line_to_look_in[end_index:]
+        line_to_look_in = (
+            line_to_look_in[0:part_index]
+            + (replace_with if replace_with else "")
+            + line_to_look_in[end_index:]
+        )
     return line_to_look_in
+
 
 def __construct_base_build_line(is_using_mixins=False):
 
-    current_hash = Host.execute_and_get_line_sync('git rev-parse HEAD')
+    current_hash = Host.execute_and_get_line_sync("git rev-parse HEAD")
 
-    run_type = 'custom' if is_using_mixins else 'run'
-    return f"-f {determine_repository_base_directory()}/.gdev/production" + \
-        f"/{run_type}.dockerfile.gdev " + \
-        f"-t production__{run_type}:latest --label GitHash=\"{current_hash}\" " + \
-        "--build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb " + \
-        f"--ssh default  {determine_repository_base_directory()}"
+    run_type = "custom" if is_using_mixins else "run"
+    return (
+        f"-f {determine_repository_base_directory()}/.gdev/production"
+        + f"/{run_type}.dockerfile.gdev "
+        + f'-t production__{run_type}:latest --label GitHash="{current_hash}" '
+        + "--build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb "
+        + f"--ssh default  {determine_repository_base_directory()}"
+    )
+
 
 def __construct_base_run_command_line(is_using_mixins=False):
-    run_type = 'custom' if is_using_mixins else 'run'
-    return f"--rm --init --entrypoint /bin/bash --hostname production__{run_type} " + \
-        "--platform linux/amd64 " + \
-        f"--privileged  --volume {determine_repository_base_directory()}:" + \
-            f"/source production__{run_type}:latest"
+    run_type = "custom" if is_using_mixins else "run"
+    return (
+        f"--rm --init --entrypoint /bin/bash --hostname production__{run_type} "
+        + "--platform linux/amd64 "
+        + f"--privileged  --volume {determine_repository_base_directory()}:"
+        + f"/source production__{run_type}:latest"
+    )
 
 
 def test_show_cfg():
@@ -237,21 +105,28 @@ def test_show_cfg():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["cfg"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
         expected_output, expected_error, expected_return_code
     )
-    assert '# enable by setting "Debug"' in expected_output, \
-        "Original output missing config hint."
-    assert '# enable by setting "GaiaLLVMTests"' in expected_output, \
-        "Original output missing config hint."
+    assert (
+        '# enable by setting "Debug"' in expected_output
+    ), "Original output missing config hint."
+    assert (
+        '# enable by setting "GaiaLLVMTests"' in expected_output
+    ), "Original output missing config hint."
+
 
 def test_show_cfg_with_cfg_enable_debug():
     """
@@ -262,21 +137,28 @@ def test_show_cfg_with_cfg_enable_debug():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["cfg", "--cfg-enable", "Debug"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
         expected_output, expected_error, expected_return_code
     )
-    assert '# enable by setting "Debug"' not in expected_output, \
-        "Original output contains config hint."
-    assert '# enable by setting "GaiaLLVMTests"' in expected_output, \
-        "Original output missing config hint."
+    assert (
+        '# enable by setting "Debug"' not in expected_output
+    ), "Original output contains config hint."
+    assert (
+        '# enable by setting "GaiaLLVMTests"' in expected_output
+    ), "Original output missing config hint."
+
 
 def test_show_cfg_with_cfg_enable_debug_and_llvm():
     """
@@ -287,21 +169,28 @@ def test_show_cfg_with_cfg_enable_debug_and_llvm():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["cfg", "--cfg-enable", "Debug", "GaiaLLVMTests"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
         expected_output, expected_error, expected_return_code
     )
-    assert '# enable by setting "Debug"' not in expected_output, \
-        "Original output contains config hint."
-    assert '# enable by setting "GaiaLLVMTests"' not in expected_output, \
-        "Original output missing config hint."
+    assert (
+        '# enable by setting "Debug"' not in expected_output
+    ), "Original output contains config hint."
+    assert (
+        '# enable by setting "GaiaLLVMTests"' not in expected_output
+    ), "Original output missing config hint."
+
 
 def test_generate_dockerfile():
     """
@@ -311,21 +200,28 @@ def test_generate_dockerfile():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["dockerfile"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
         expected_output, expected_error, expected_return_code
     )
-    assert "-DCMAKE_BUILD_TYPE=Debug" not in expected_output, \
-        "Original output contains untriggered line."
-    assert "-DBUILD_GAIA_LLVM_TESTS=ON" not in expected_output, \
-        "Original output contains untriggered line."
+    assert (
+        "-DCMAKE_BUILD_TYPE=Debug" not in expected_output
+    ), "Original output contains untriggered line."
+    assert (
+        "-DBUILD_GAIA_LLVM_TESTS=ON" not in expected_output
+    ), "Original output contains untriggered line."
+
 
 def test_generate_dockerfile_debug():
     """
@@ -339,21 +235,28 @@ def test_generate_dockerfile_debug():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["dockerfile", "--cfg-enable", "Debug"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
         expected_output, expected_error, expected_return_code
     )
-    assert "-DCMAKE_BUILD_TYPE=Debug" in expected_output, \
-        "Original output does not contain triggered line."
-    assert "-DBUILD_GAIA_LLVM_TESTS=ON" not in expected_output, \
-        "Original output contains untriggered line."
+    assert (
+        "-DCMAKE_BUILD_TYPE=Debug" in expected_output
+    ), "Original output does not contain triggered line."
+    assert (
+        "-DBUILD_GAIA_LLVM_TESTS=ON" not in expected_output
+    ), "Original output contains untriggered line."
+
 
 def test_generate_dockerfile_debug_and_llvm():
     """
@@ -367,21 +270,28 @@ def test_generate_dockerfile_debug_and_llvm():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["dockerfile", "--cfg-enable", "Debug", "GaiaLLVMTests"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
         expected_output, expected_error, expected_return_code
     )
-    assert "-DCMAKE_BUILD_TYPE=Debug" in expected_output, \
-        "Original output does not contain triggered line."
-    assert "-DBUILD_GAIA_LLVM_TESTS=ON" in expected_output, \
-        "Original output does not contain triggered line."
+    assert (
+        "-DCMAKE_BUILD_TYPE=Debug" in expected_output
+    ), "Original output does not contain triggered line."
+    assert (
+        "-DBUILD_GAIA_LLVM_TESTS=ON" in expected_output
+    ), "Original output does not contain triggered line."
+
 
 def test_generate_dockerfile_debug_and_new_base_image():
     """
@@ -394,21 +304,36 @@ def test_generate_dockerfile_debug_and_new_base_image():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["dockerfile", "--cfg-enable", "Debug", "--base-image", "frogger"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    suppplied_arguments = [
+        "dockerfile",
+        "--cfg-enable",
+        "Debug",
+        "--base-image",
+        "frogger",
+    ]
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
         expected_output, expected_error, expected_return_code
     )
-    assert "frogger" in expected_output, "Original output does not contain specified base image."
-    assert "ubuntu:20.04" not in expected_output, "Original output contains default base image."
+    assert (
+        "frogger" in expected_output
+    ), "Original output does not contain specified base image."
+    assert (
+        "ubuntu:20.04" not in expected_output
+    ), "Original output contains default base image."
     assert "RUN groupadd -r -o -g 1000" not in expected_output
+
 
 def test_generate_dockerfile_mixins_sshd():
     """
@@ -419,12 +344,16 @@ def test_generate_dockerfile_mixins_sshd():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["dockerfile", "--mixins", "sshd"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
@@ -432,6 +361,7 @@ def test_generate_dockerfile_mixins_sshd():
     )
     assert "RUN groupadd -r -o -g 1000" not in expected_output
     assert "openssh-server" in expected_output
+
 
 def test_generate_dockerfile_mixins_sshd_and_nano():
     """
@@ -442,12 +372,16 @@ def test_generate_dockerfile_mixins_sshd_and_nano():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["dockerfile", "--mixins", "sshd", "nano"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
@@ -456,6 +390,7 @@ def test_generate_dockerfile_mixins_sshd_and_nano():
     assert "RUN groupadd -r -o -g 1000" not in expected_output
     assert "openssh-server" in expected_output
     assert "nano" in expected_output
+
 
 def test_generate_docker_build():
     """
@@ -467,12 +402,16 @@ def test_generate_docker_build():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["build", "--dry-dock"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
@@ -481,6 +420,7 @@ def test_generate_docker_build():
 
     build_line = __find_docker_build_line(expected_output)
     assert build_line == __construct_base_build_line()
+
 
 def test_generate_docker_build_with_platform():
     """
@@ -491,12 +431,16 @@ def test_generate_docker_build_with_platform():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["build", "--dry-dock", "--platform", "arm64"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
@@ -504,9 +448,11 @@ def test_generate_docker_build_with_platform():
     )
 
     build_line = __find_docker_build_line(expected_output)
-    build_line = __find_and_remove(build_line, " --platform linux/arm64",\
-        replace_with=" --platform linux/amd64")
+    build_line = __find_and_remove(
+        build_line, " --platform linux/arm64", replace_with=" --platform linux/amd64"
+    )
     assert build_line == __construct_base_build_line()
+
 
 def test_generate_docker_build_with_registry():
     """
@@ -517,12 +463,16 @@ def test_generate_docker_build_with_registry():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["build", "--dry-dock", "--registry", "localhost"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
@@ -530,9 +480,14 @@ def test_generate_docker_build_with_registry():
     )
 
     build_line = __find_docker_build_line(expected_output)
-    build_line = __find_and_remove(build_line, " --cache-from localhost/production__",\
-        search_for_end_whitespace=True,replace_with=" ")
+    build_line = __find_and_remove(
+        build_line,
+        " --cache-from localhost/production__",
+        search_for_end_whitespace=True,
+        replace_with=" ",
+    )
     assert build_line == __construct_base_build_line()
+
 
 def test_generate_docker_build_with_mixins_sudo():
     """
@@ -543,12 +498,16 @@ def test_generate_docker_build_with_mixins_sudo():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["build", "--dry-dock", "--mixins", "sudo"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
@@ -556,8 +515,9 @@ def test_generate_docker_build_with_mixins_sudo():
     )
 
     build_line = __find_docker_build_line(expected_output)
-    build_line = __find_and_remove(build_line, ' --label Mixins="[\'sudo\']"')
+    build_line = __find_and_remove(build_line, " --label Mixins=\"['sudo']\"")
     assert build_line == __construct_base_build_line(is_using_mixins=True)
+
 
 def test_generate_docker_build_with_mixins_sudo_and_nano():
     """
@@ -568,12 +528,16 @@ def test_generate_docker_build_with_mixins_sudo_and_nano():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["build", "--dry-dock", "--mixins", "sudo", "nano"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
@@ -581,8 +545,9 @@ def test_generate_docker_build_with_mixins_sudo_and_nano():
     )
 
     build_line = __find_docker_build_line(expected_output)
-    build_line = __find_and_remove(build_line, ' --label Mixins="[\'nano\',\'sudo\']"')
+    build_line = __find_and_remove(build_line, " --label Mixins=\"['nano','sudo']\"")
     assert build_line == __construct_base_build_line(is_using_mixins=True)
+
 
 def test_generate_docker_run():
     """
@@ -594,12 +559,16 @@ def test_generate_docker_run():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["run", "--dry-dock"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
@@ -622,12 +591,16 @@ def test_generate_docker_run_mixin_clion():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["run", "--dry-dock", "--mixins", "clion"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
@@ -635,13 +608,16 @@ def test_generate_docker_run_mixin_clion():
     )
 
     build_line = __find_docker_build_line(expected_output)
-    build_line = __find_and_remove(build_line, ' --label Mixins="[\'clion\']"')
+    build_line = __find_and_remove(build_line, " --label Mixins=\"['clion']\"")
     assert build_line == __construct_base_build_line(is_using_mixins=True)
 
     run_line = __find_docker_run_line(expected_output)
-    run_line = __find_and_remove(run_line, \
-        " -p 22:22 --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --user 1000:1000")
+    run_line = __find_and_remove(
+        run_line,
+        " -p 22:22 --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --user 1000:1000",
+    )
     assert run_line == __construct_base_run_command_line(is_using_mixins=True)
+
 
 def test_generate_docker_run_mixin_nano():
     """
@@ -652,12 +628,16 @@ def test_generate_docker_run_mixin_nano():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["run", "--dry-dock", "--mixins", "nano"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
@@ -665,11 +645,12 @@ def test_generate_docker_run_mixin_nano():
     )
 
     build_line = __find_docker_build_line(expected_output)
-    build_line = __find_and_remove(build_line, ' --label Mixins="[\'nano\']"')
+    build_line = __find_and_remove(build_line, " --label Mixins=\"['nano']\"")
     assert build_line == __construct_base_build_line(is_using_mixins=True)
 
     run_line = __find_docker_run_line(expected_output)
     assert run_line == __construct_base_run_command_line(is_using_mixins=True)
+
 
 def test_generate_docker_run_mounts():
     """
@@ -681,12 +662,16 @@ def test_generate_docker_run_mounts():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["run", "--dry-dock", "--mount", "/root:/host"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
@@ -697,9 +682,11 @@ def test_generate_docker_run_mounts():
     assert build_line == __construct_base_build_line()
 
     run_line = __find_docker_run_line(expected_output)
-    run_line = __find_and_remove(run_line, \
-        '--mount type=volume,dst=/host,volume-driver=local,volume-opt=type=none,' + \
-            'volume-opt=o=bind,volume-opt=device=/root ')
+    run_line = __find_and_remove(
+        run_line,
+        "--mount type=volume,dst=/host,volume-driver=local,volume-opt=type=none,"
+        + "volume-opt=o=bind,volume-opt=device=/root ",
+    )
     assert run_line == __construct_base_run_command_line()
 
 
@@ -713,12 +700,16 @@ def test_generate_docker_run_platform():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["run", "--dry-dock", "--platform", "arm64"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
@@ -726,13 +717,15 @@ def test_generate_docker_run_platform():
     )
 
     build_line = __find_docker_build_line(expected_output)
-    build_line = __find_and_remove(build_line, " --platform linux/arm64", \
-        replace_with=" --platform linux/amd64")
+    build_line = __find_and_remove(
+        build_line, " --platform linux/arm64", replace_with=" --platform linux/amd64"
+    )
     assert build_line == __construct_base_build_line()
 
     run_line = __find_docker_run_line(expected_output)
-    run_line = __find_and_remove(run_line, " --platform linux/arm64", \
-        replace_with=" --platform linux/amd64")
+    run_line = __find_and_remove(
+        run_line, " --platform linux/arm64", replace_with=" --platform linux/amd64"
+    )
     assert run_line == __construct_base_run_command_line()
 
 
@@ -745,12 +738,16 @@ def test_generate_docker_run_ports():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["run", "--dry-dock", "--ports", "1234"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
@@ -775,12 +772,16 @@ def test_generate_docker_run_registry():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["run", "--dry-dock", "--registry", "localhost"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
@@ -788,12 +789,16 @@ def test_generate_docker_run_registry():
     )
 
     build_line = __find_docker_build_line(expected_output)
-    build_line = __find_and_remove(build_line, "--cache-from localhost/production__", \
-        search_for_end_whitespace=True)
+    build_line = __find_and_remove(
+        build_line,
+        "--cache-from localhost/production__",
+        search_for_end_whitespace=True,
+    )
     assert build_line == __construct_base_build_line()
 
     run_line = __find_docker_run_line(expected_output)
     assert run_line == __construct_base_run_command_line()
+
 
 def test_generate_docker_run_force():
     """
@@ -804,12 +809,16 @@ def test_generate_docker_run_force():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["run", "--dry-dock", "--force"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(
@@ -822,6 +831,7 @@ def test_generate_docker_run_force():
     run_line = __find_docker_run_line(expected_output)
     assert run_line == __construct_base_run_command_line()
 
+
 def test_generate_docker_run_args():
     """
     Make sure that we can generate a request to docker to run the image built
@@ -831,12 +841,16 @@ def test_generate_docker_run_args():
     # Arrange
     executor = get_executor()
     suppplied_arguments = ["run", "--dry-dock", "not-an-argument"]
-    expected_return_code, expected_output, expected_error = \
-        determine_old_script_behavior(suppplied_arguments)
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
 
     # Act
-    execute_results = executor.invoke_main(arguments=suppplied_arguments, \
-        cwd=determine_repository_production_directory())
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
 
     # Assert
     execute_results.assert_results(

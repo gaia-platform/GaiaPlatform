@@ -8,8 +8,9 @@
 """
 Module to provide for the `cfg` subcommand entry point.
 """
+
 from gdev.third_party.atools import memoize
-from .gen.run.cfg import GenRunCfg
+from gdev.cmd.gen.run.cfg import GenRunCfg
 
 
 class Cfg(GenRunCfg):
@@ -23,10 +24,7 @@ class Cfg(GenRunCfg):
         Execution entrypoint for this module.
         """
         print(
-            '\n'.join(
-                self.get_lines(
-                    cfg_enables=self.options.cfg_enables,
-                    path=self.path
-                )
+            "\n".join(
+                self.get_lines(cfg_enables=self.options.cfg_enables, path=self.path)
             )
         )

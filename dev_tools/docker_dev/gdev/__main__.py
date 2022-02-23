@@ -14,6 +14,7 @@ Module to provide the main entry point from a -m/module use case.
 import sys
 from gdev.main import DockerDev
 
+
 def main() -> int:
     """
     Module main entry point into the application.
@@ -21,5 +22,6 @@ def main() -> int:
     DockerDev().main()
     return 0
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     sys.exit(main())

@@ -8,8 +8,9 @@
 """
 Module to satisfy the build requirements to generate the dockerfile for the GIT section.
 """
-from .dockerfile import GenGitDockerfile
-from .._abc.build import GenAbcBuild
+
+from gdev.cmd.gen.git.dockerfile import GenGitDockerfile
+from gdev.cmd.gen._abc.build import GenAbcBuild
 
 
 class GenGitBuild(GenAbcBuild):

@@ -8,8 +8,9 @@
 """
 Module to satisfy the run requirements for the PIP section.
 """
-from .build import GenPipBuild
-from .._abc.run import GenAbcRun
+
+from gdev.cmd.gen.pip.build import GenPipBuild
+from gdev.cmd.gen._abc.run import GenAbcRun
 
 
 class GenPipRun(GenAbcRun):

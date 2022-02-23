@@ -8,9 +8,10 @@
 """
 Module to provide for the `dockerfile` subcommand entry point.
 """
+
 from gdev.dependency import Dependency
 from gdev.third_party.atools import memoize
-from .gen.run.dockerfile import GenRunDockerfile
+from gdev.cmd.gen.run.dockerfile import GenRunDockerfile
 
 
 class Dockerfile(Dependency):

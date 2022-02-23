@@ -14,7 +14,7 @@ from typing import Iterable
 
 from gdev.third_party.atools import memoize
 from gdev.cmd.gen._abc.dockerfile import GenAbcDockerfile
-from .cfg import GenEnvCfg
+from gdev.cmd.gen.env.cfg import GenEnvCfg
 
 
 class GenEnvDockerfile(GenAbcDockerfile):
@@ -41,10 +41,13 @@ class GenEnvDockerfile(GenAbcDockerfile):
 
         input_dockerfiles = []
         for section_line in GenGaiaDockerfile(self.options).cfg.get_section_lines():
-            input_dockerfiles.append(GenEnvDockerfile(replace(self.options, target=section_line)))
+            input_dockerfiles.append(
+                GenEnvDockerfile(replace(self.options, target=section_line))
+            )
         input_dockerfiles = tuple(input_dockerfiles)
 
-        self.log.debug('input_dockerfiles = %s', input_dockerfiles)
+        self.log.debug("input_dockerfiles = %s", input_dockerfiles)
 
         return input_dockerfiles
+
     # pylint: enable=import-outside-toplevel

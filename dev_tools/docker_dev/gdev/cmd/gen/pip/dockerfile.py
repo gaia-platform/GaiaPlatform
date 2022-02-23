@@ -11,7 +11,7 @@ Module to generate the PIP section of the dockerfile.
 
 from gdev.third_party.atools import memoize
 from gdev.cmd.gen._abc.dockerfile import GenAbcDockerfile
-from .cfg import GenPipCfg
+from gdev.cmd.gen.pip.cfg import GenPipCfg
 
 
 class GenPipDockerfile(GenAbcDockerfile):
@@ -31,9 +31,9 @@ class GenPipDockerfile(GenAbcDockerfile):
         """
         Return text for the FROM line of the final build stage.
         """
-        from_section = f'FROM pip_base AS {self.get_name()}'
+        from_section = f"FROM pip_base AS {self.get_name()}"
 
-        self.log.debug('from_section = %s', from_section)
+        self.log.debug("from_section = %s", from_section)
 
         return from_section
 
@@ -44,13 +44,13 @@ class GenPipDockerfile(GenAbcDockerfile):
         """
         if section_lines := self.cfg.get_section_lines():
             run_section = (
-                'RUN python3 -m pip install '
-                + ' \\\n        '.join(section_lines)
-                + ' \\\n    && apt-get remove --autoremove -y python3-pip'
+                "RUN python3 -m pip install "
+                + " \\\n        ".join(section_lines)
+                + " \\\n    && apt-get remove --autoremove -y python3-pip"
             )
         else:
-            run_section = ''
+            run_section = ""
 
-        self.log.debug('run_section = %s', run_section)
+        self.log.debug("run_section = %s", run_section)
 
         return run_section

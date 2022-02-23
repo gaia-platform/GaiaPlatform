@@ -8,8 +8,9 @@
 """
 Module to satisfy the build requirements to generate the dockerfile for the RUN section.
 """
-from .dockerfile import GenRunDockerfile
-from .._abc.build import GenAbcBuild
+
+from gdev.cmd.gen.run.dockerfile import GenRunDockerfile
+from gdev.cmd.gen._abc.build import GenAbcBuild
 
 
 class GenRunBuild(GenAbcBuild):

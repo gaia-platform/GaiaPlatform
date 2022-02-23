@@ -8,8 +8,9 @@
 """
 Module to satisfy the push requirements for the PIP section.
 """
-from .build import GenPipBuild
-from .._abc.push import GenAbcPush
+
+from gdev.cmd.gen.pip.build import GenPipBuild
+from gdev.cmd.gen._abc.push import GenAbcPush
 
 
 class GenPipPush(GenAbcPush):
