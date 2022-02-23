@@ -20,6 +20,30 @@ dac_vector_const_iterator_t<T_type>::dac_vector_const_iterator_t(const dac_vecto
 }
 
 template <typename T_type>
+bool dac_vector_const_iterator_t<T_type>::operator==(const dac_vector_const_iterator_t& rhs) const
+{
+    return m_index == rhs.m_index;
+}
+
+template <typename T_type>
+bool dac_vector_const_iterator_t<T_type>::operator!=(const dac_vector_const_iterator_t& rhs) const
+{
+    return !(*this == rhs);
+}
+
+template <typename T_type>
+typename dac_vector_const_iterator_t<T_type>::reference dac_vector_const_iterator_t<T_type>::operator*() const
+{
+    return *(m_iterator_data + m_index);
+}
+
+template <typename T_type>
+typename dac_vector_const_iterator_t<T_type>::pointer dac_vector_const_iterator_t<T_type>::operator->() const
+{
+    return m_iterator_data + m_index;
+}
+
+template <typename T_type>
 dac_vector_const_iterator_t<T_type>& dac_vector_const_iterator_t<T_type>::operator++()
 {
     ++m_index;
@@ -35,27 +59,96 @@ dac_vector_const_iterator_t<T_type> dac_vector_const_iterator_t<T_type>::operato
 }
 
 template <typename T_type>
-bool dac_vector_const_iterator_t<T_type>::operator==(const dac_vector_const_iterator_t& rhs) const
+dac_vector_const_iterator_t<T_type>& dac_vector_const_iterator_t<T_type>::operator--()
 {
-    return m_iterator_data == rhs.m_iterator_data && m_index == rhs.m_index;
+    --m_index;
+    return *this;
 }
 
 template <typename T_type>
-bool dac_vector_const_iterator_t<T_type>::operator!=(const dac_vector_const_iterator_t& rhs) const
+dac_vector_const_iterator_t<T_type> dac_vector_const_iterator_t<T_type>::operator--(int)
 {
-    return m_iterator_data != rhs.m_iterator_data || m_index != rhs.m_index;
+    dac_vector_const_iterator_t<T_type> temp = *this;
+    --*this;
+    return temp;
 }
 
 template <typename T_type>
-typename dac_vector_const_iterator_t<T_type>::reference dac_vector_const_iterator_t<T_type>::operator*() const
+dac_vector_const_iterator_t<T_type> dac_vector_const_iterator_t<T_type>::operator+(
+    dac_vector_const_iterator_t<T_type>::difference_type rhs) const
 {
-    return *(m_iterator_data + m_index);
+    dac_vector_const_iterator_t<T_type> iter_copy = this;
+    return iter_copy += rhs;
 }
 
 template <typename T_type>
-typename dac_vector_const_iterator_t<T_type>::pointer dac_vector_const_iterator_t<T_type>::operator->() const
+dac_vector_const_iterator_t<T_type> operator+(
+    typename dac_vector_const_iterator_t<T_type>::difference_type lhs,
+    const dac_vector_const_iterator_t<T_type>& rhs)
 {
-    return m_iterator_data + m_index;
+    return rhs + lhs;
+}
+
+template <typename T_type>
+dac_vector_const_iterator_t<T_type> dac_vector_const_iterator_t<T_type>::operator-(
+    dac_vector_const_iterator_t<T_type>::difference_type rhs) const
+{
+    dac_vector_const_iterator_t<T_type> iter_copy = this;
+    return iter_copy -= rhs;
+}
+
+template <typename T_type>
+typename dac_vector_const_iterator_t<T_type>::difference_type dac_vector_const_iterator_t<T_type>::operator-(
+    const dac_vector_const_iterator_t<T_type>& rhs) const
+{
+    return m_index - rhs.m_index;
+}
+
+template <typename T_type>
+dac_vector_const_iterator_t<T_type>& dac_vector_const_iterator_t<T_type>::operator+=(
+    dac_vector_const_iterator_t<T_type>::difference_type rhs)
+{
+    m_index += rhs;
+    return *this;
+}
+
+template <typename T_type>
+dac_vector_const_iterator_t<T_type>& dac_vector_const_iterator_t<T_type>::operator-=(
+    dac_vector_const_iterator_t<T_type>::difference_type rhs)
+{
+    m_index -= rhs;
+    return *this;
+}
+
+template <typename T_type>
+typename dac_vector_const_iterator_t<T_type>::reference dac_vector_const_iterator_t<T_type>::operator[](
+    dac_vector_const_iterator_t<T_type>::difference_type rhs) const
+{
+    return *(m_iterator_data + rhs);
+}
+
+template <typename T_type>
+bool dac_vector_const_iterator_t<T_type>::operator<(const dac_vector_const_iterator_t<T_type>& rhs) const
+{
+    return m_index < rhs.m_index;
+}
+
+template <typename T_type>
+bool dac_vector_const_iterator_t<T_type>::operator>(const dac_vector_const_iterator_t<T_type>& rhs) const
+{
+    return rhs < *this;
+}
+
+template <typename T_type>
+bool dac_vector_const_iterator_t<T_type>::operator<=(const dac_vector_const_iterator_t<T_type>& rhs) const
+{
+    return !(*this > rhs);
+}
+
+template <typename T_type>
+bool dac_vector_const_iterator_t<T_type>::operator>=(const dac_vector_const_iterator_t<T_type>& rhs) const
+{
+    return !(*this < rhs);
 }
 
 //

@@ -46,7 +46,7 @@ public:
     using value_type = T_type;
     using pointer = const value_type*;
     using reference = const value_type&;
-    using iterator_category = std::forward_iterator_tag;
+    using iterator_category = std::random_access_iterator_tag;
 
     /**
      * Constructs an iterator that does not point to any data.
@@ -60,8 +60,7 @@ public:
      */
     explicit dac_vector_const_iterator_t(const dac_vector_t<T_type>& dac_vector, uint32_t index);
 
-    dac_vector_const_iterator_t<T_type>& operator++();
-    dac_vector_const_iterator_t<T_type> operator++(int);
+    // Comparing iterators from different containers is undefined behavior.
 
     bool operator==(const dac_vector_const_iterator_t& rhs) const;
     bool operator!=(const dac_vector_const_iterator_t& rhs) const;
@@ -69,10 +68,34 @@ public:
     reference operator*() const;
     pointer operator->() const;
 
+    dac_vector_const_iterator_t<T_type>& operator++();
+    dac_vector_const_iterator_t<T_type> operator++(int);
+    dac_vector_const_iterator_t<T_type>& operator--();
+    dac_vector_const_iterator_t<T_type> operator--(int);
+
+    dac_vector_const_iterator_t<T_type> operator+(difference_type rhs) const;
+    dac_vector_const_iterator_t<T_type> operator-(difference_type rhs) const;
+    difference_type operator-(const dac_vector_const_iterator_t<T_type>& rhs) const;
+
+    dac_vector_const_iterator_t<T_type>& operator+=(difference_type rhs);
+    dac_vector_const_iterator_t<T_type>& operator-=(difference_type rhs);
+
+    reference operator[](difference_type rhs) const;
+
+    bool operator<(const dac_vector_const_iterator_t<T_type>& rhs) const;
+    bool operator>(const dac_vector_const_iterator_t<T_type>& rhs) const;
+    bool operator<=(const dac_vector_const_iterator_t<T_type>& rhs) const;
+    bool operator>=(const dac_vector_const_iterator_t<T_type>& rhs) const;
+
 private:
     const T_type* m_iterator_data;
     uint32_t m_index;
 };
+
+template <typename T_type>
+dac_vector_const_iterator_t<T_type> operator+(
+    typename dac_vector_const_iterator_t<T_type>::difference_type lhs,
+    const dac_vector_const_iterator_t<T_type>& rhs);
 
 /**
  * The base class of array fields.
