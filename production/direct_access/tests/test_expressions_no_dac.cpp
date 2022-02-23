@@ -190,6 +190,15 @@ TEST_F(test_expressions_no_dac, expr_neg)
     ASSERT_EQ(neg_expression(g_bind), -i64);
 }
 
+TEST_F(test_expressions_no_dac, expr_pos)
+{
+    int64_t i64 = 500;
+    auto i64_value_accessor = value_accessor_t<context_t, int64_t>(i64);
+
+    auto pos_expression = +i64_value_accessor;
+    ASSERT_EQ(pos_expression(g_bind), +i64);
+}
+
 TEST_F(test_expressions_no_dac, expr_inv)
 {
     int64_t i64 = 500;
