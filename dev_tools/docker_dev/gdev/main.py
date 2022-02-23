@@ -41,8 +41,5 @@ class DockerDev:
 
 # pylint: enable=too-few-public-methods
 
-
-# pylint: enable=too-few-public-methods
-
 if __name__ == "__main__":
     DockerDev().main()

@@ -153,8 +153,6 @@ class GenAbcDockerfile(Dependency, ABC):
 
     # pylint: enable=import-outside-toplevel
 
-    # pylint: enable=import-outside-toplevel
-
     @memoize
     def get_env_section(self) -> str:
         """

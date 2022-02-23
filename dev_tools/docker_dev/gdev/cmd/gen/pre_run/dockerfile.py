@@ -62,8 +62,6 @@ class GenPreRunDockerfile(GenAbcDockerfile):
 
     # pylint: enable=import-outside-toplevel
 
-    # pylint: enable=import-outside-toplevel
-
     # pylint: disable=import-outside-toplevel
     #
     # Required to resolve cyclical dependency issues.
@@ -93,8 +91,6 @@ class GenPreRunDockerfile(GenAbcDockerfile):
         self.log.debug("input_dockerfiles = %s", input_dockerfiles)
 
         return input_dockerfiles
-
-    # pylint: enable=import-outside-toplevel
 
     # pylint: enable=import-outside-toplevel
 
