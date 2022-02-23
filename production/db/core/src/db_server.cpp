@@ -614,11 +614,12 @@ void server_t::build_server_reply_error(
     builder.Finish(message);
 }
 
-void server_t::clear_shared_memory()
+void server_t::clear_server_state()
 {
     data_mapping_t::close(c_data_mappings);
     s_local_snapshot_locators.close();
     s_chunk_manager.release();
+    record_list_manager_t::get()->clear();
 }
 
 // To avoid synchronization, we assume that this method is only called when
@@ -638,10 +639,10 @@ void server_t::init_shared_memory()
     }
 
     // We may be reinitializing the server upon receiving a SIGHUP.
-    clear_shared_memory();
+    clear_server_state();
 
     // Clear all shared memory if an exception is thrown.
-    auto cleanup_memory = make_scope_guard([]() { clear_shared_memory(); });
+    auto cleanup_memory = make_scope_guard([]() { clear_server_state(); });
 
     // Validate shared memory mapping definitions and assert that mappings are not made yet.
     data_mapping_t::validate(c_data_mappings, std::size(c_data_mappings));

@@ -1,3 +1,13 @@
+#!/usr/bin/env python3
+
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
+"""
+Module to parse the target gdev.cfg for build rules.
+"""
 from abc import ABC
 from inspect import getfile
 import re
@@ -10,7 +20,7 @@ from gdev.third_party.atools import memoize
 
 class GenAbcCfg(Dependency, ABC):
     """
-    Parse the target gdev.cfg for build rules.
+    Class to parse the target gdev.cfg for build rules.
     """
 
     @property
@@ -31,7 +41,7 @@ class GenAbcCfg(Dependency, ABC):
         return Path(getfile(type(self))).parent.name.strip('_')
 
     @memoize
-    async def get_begin_pattern(self) -> Pattern:
+    def __get_begin_pattern(self) -> Pattern:
         """
         Get the regex pattern that identifies the beginning of the section.
         """
@@ -41,7 +51,7 @@ class GenAbcCfg(Dependency, ABC):
         return begin_pattern
 
     @memoize
-    async def get_end_pattern(self) -> Pattern:
+    def __get_end_pattern(self) -> Pattern:
         """
         Get the regex pattern that identifies the end of the section.
         """
@@ -51,7 +61,7 @@ class GenAbcCfg(Dependency, ABC):
 
     @staticmethod
     @memoize
-    async def get_lines(cfg_enables: FrozenSet[str], path: Path) -> Iterable[str]:
+    def get_lines(cfg_enables: FrozenSet[str], path: Path) -> Iterable[str]:
         """
         Get the various lines for the section with the inline notations like `{enable_if('CI_GitHub')}`
         replaced with `# enable by setting "{'CI_GitHub'}": `.
@@ -82,12 +92,12 @@ class GenAbcCfg(Dependency, ABC):
                     'source_dir': Path.source
                 }
             )[1:-1]
-            for line in (await GenAbcCfg.__get_raw_text(path)).splitlines()
+            for line in (GenAbcCfg.__get_raw_text(path)).splitlines()
         ])
 
     @staticmethod
     @memoize
-    async def __get_raw_text(path: Path) -> str:
+    def __get_raw_text(path: Path) -> str:
         if not path.is_file():
             raise Dependency.Abort(f'File "<repo_root>/{path.context()}" must exist.')
 
@@ -95,21 +105,21 @@ class GenAbcCfg(Dependency, ABC):
         return text
 
     @memoize
-    async def get_section_lines(self) -> Iterable[str]:
+    def get_section_lines(self) -> Iterable[str]:
         """
         Get all the lines for the current section.
         """
 
-        lines = await self.get_lines(cfg_enables=self.options.cfg_enables, path=self.path)
+        lines = self.get_lines(cfg_enables=self.options.cfg_enables, path=self.path)
 
         ilines = iter(lines)
         section_lines = []
-        begin_pattern = await self.get_begin_pattern()
+        begin_pattern = self.__get_begin_pattern()
         for iline in ilines:
             if begin_pattern.match(iline):
                 break
 
-        end_pattern = await self.get_end_pattern()
+        end_pattern = self.__get_end_pattern()
         for iline in ilines:
             if end_pattern.match(iline):
                 break
@@ -137,8 +147,8 @@ class GenAbcCfg(Dependency, ABC):
         return section_lines
 
     @memoize
-    async def cli_entrypoint(self) -> None:
+    def cli_entrypoint(self) -> None:
         """
-        Entry point for the command line.
+        Execution entrypoint for this module.
         """
-        print(f'[{self.section_name}]\n' + '\n'.join(await self.get_section_lines()))
+        print(f'[{self.section_name}]\n' + '\n'.join(self.get_section_lines()))

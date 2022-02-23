@@ -1,3 +1,14 @@
+#!/usr/bin/env python3
+
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
+"""
+Module to create a Dockerfile from the rules in the `gdev.cfg` file in the current working directory.
+"""
+
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from textwrap import dedent
@@ -11,7 +22,7 @@ from .cfg import GenAbcCfg
 
 class GenAbcDockerfile(Dependency, ABC):
     """
-    Create a Dockerfile from the rules in the `gdev.cfg` file in the current working directory.
+    Class to create a Dockerfile from the rules in the `gdev.cfg` file in the current working directory.
     """
 
     @property
@@ -22,6 +33,7 @@ class GenAbcDockerfile(Dependency, ABC):
         """
         raise NotImplementedError
 
+    @property
     def path(self) -> Path:
         """
         Return path where dockerfile is to be written.
@@ -38,7 +50,7 @@ class GenAbcDockerfile(Dependency, ABC):
         return path
 
     @memoize
-    async def get_base_stages_text(self) -> str:
+    def get_base_stages_text(self) -> str:
         """
         Get the text that applies to the base stages of the dockerfile.
         """
@@ -91,7 +103,7 @@ class GenAbcDockerfile(Dependency, ABC):
         return base_stages_text
 
     @memoize
-    async def get_copy_section(self) -> str:
+    def get_copy_section(self) -> str:
         """
         Return text for the COPY section of the final build stage.
         """
@@ -103,17 +115,17 @@ class GenAbcDockerfile(Dependency, ABC):
         # build stage, so we cannot have such stages. In cases where such a stage would be an input
         # to the current stage, we must instead recursively select the empty stage's non-input
         # stages instead.
-        async def inner(dockerfile: GenAbcDockerfile) -> Iterable[str]:
+        def inner(dockerfile: GenAbcDockerfile) -> Iterable[str]:
             copy_section_parts = []
             if dockerfile not in seen_dockerfiles:
                 seen_dockerfiles.add(dockerfile)
-                for input_dockerfile in await dockerfile.get_input_dockerfiles():
-                    if await input_dockerfile.get_run_section():
+                for input_dockerfile in dockerfile.get_input_dockerfiles():
+                    if input_dockerfile.get_run_section():
                         copy_section_parts.append(
-                            f'COPY --from={await input_dockerfile.get_name()} / /'
+                            f'COPY --from={input_dockerfile.get_name()} / /'
                         )
                     else:
-                        copy_section_parts += await inner(input_dockerfile)
+                        copy_section_parts += inner(input_dockerfile)
 
                 path = dockerfile.cfg.path.parent
                 if (
@@ -124,14 +136,14 @@ class GenAbcDockerfile(Dependency, ABC):
 
             return copy_section_parts
 
-        copy_section = '\n'.join(await inner(self))
+        copy_section = '\n'.join(inner(self))
 
         self.log.debug(f'{copy_section = }')
 
         return copy_section
 
     @memoize
-    async def get_env_section(self) -> str:
+    def get_env_section(self) -> str:
         """
         Return text for the ENV section of the final build stage.
         """
@@ -140,17 +152,17 @@ class GenAbcDockerfile(Dependency, ABC):
         return env_section
 
     @memoize
-    async def __get_final_stage_text(self) -> str:
+    def __get_final_stage_text(self) -> str:
         """
         Return the text for the final stage, built up of the individual sections, in order.
         """
         final_stage_text = '\n'.join(line for line in [
             f'\n# {self}',
-            await self.get_from_section(),
-            await self.get_copy_section(),
-            await self.get_env_section(),
-            await self.__get_workdir_section(),
-            await self.get_run_section(),
+            self.get_from_section(),
+            self.get_copy_section(),
+            self.get_env_section(),
+            self.__get_workdir_section(),
+            self.get_run_section(),
             'ENTRYPOINT [ "/bin/bash" ]',
         ] if line)
 
@@ -159,18 +171,18 @@ class GenAbcDockerfile(Dependency, ABC):
         return final_stage_text
 
     @memoize
-    async def get_from_section(self) -> str:
+    def get_from_section(self) -> str:
         """
         Return text for the FROM line of the final build stage.
         """
-        from_section = f'FROM base AS {await self.get_name()}'
+        from_section = f'FROM base AS {self.get_name()}'
 
         self.log.debug(f'{from_section = }')
 
         return from_section
 
     @memoize
-    async def get_input_dockerfiles(self) -> Iterable[GenAbcDockerfile]:
+    def get_input_dockerfiles(self) -> Iterable[GenAbcDockerfile]:
         """
         Return dockerfiles that describe build stages that come directly before this one.
         """
@@ -181,7 +193,7 @@ class GenAbcDockerfile(Dependency, ABC):
         return input_dockerfiles
 
     @memoize
-    async def get_name(self) -> str:
+    def get_name(self) -> str:
         """
         Return the name of the final build stage, for e.g. `FROM <image> AS <name>`.
         """
@@ -192,7 +204,7 @@ class GenAbcDockerfile(Dependency, ABC):
         return name
 
     @memoize
-    async def get_run_section(self) -> str:
+    def get_run_section(self) -> str:
         """
         Return text for the RUN line of the final build stage.
         """
@@ -203,7 +215,7 @@ class GenAbcDockerfile(Dependency, ABC):
         return run_section
 
     @memoize
-    async def get_text(self) -> str:
+    def get_text(self) -> str:
         """
         Return the full text for this dockerfile, including all build stages.
         """
@@ -216,24 +228,24 @@ class GenAbcDockerfile(Dependency, ABC):
         # only part of the dockerfile that is affected by this is the copy section for each stage,
         # as it will need to copy from any of the missing, empty stage's non-empty input stages
         # instead.
-        async def inner(dockerfile: GenAbcDockerfile) -> Iterable[str]:
+        def inner(dockerfile: GenAbcDockerfile) -> Iterable[str]:
             text_parts = []
             if dockerfile not in seen_dockerfiles:
                 seen_dockerfiles.add(dockerfile)
-                for input_dockerfile in await dockerfile.get_input_dockerfiles():
-                    text_parts += await inner(input_dockerfile)
-                if await dockerfile.get_run_section() or dockerfile is self:
-                    text_parts.append(await dockerfile.__get_final_stage_text())
+                for input_dockerfile in dockerfile.get_input_dockerfiles():
+                    text_parts += inner(input_dockerfile)
+                if dockerfile.get_run_section() or dockerfile is self:
+                    text_parts.append(dockerfile.__get_final_stage_text())
             return text_parts
 
-        text = '\n'.join([await self.get_base_stages_text(), *await inner(self)])
+        text = '\n'.join([self.get_base_stages_text(), *inner(self)])
 
         self.log.debug(f'{text = }')
 
         return text
 
     @memoize
-    async def __get_workdir_section(self) -> str:
+    def __get_workdir_section(self) -> str:
         """
         Return text for the WORKDIR line of the final build stage.
         """
@@ -244,17 +256,17 @@ class GenAbcDockerfile(Dependency, ABC):
         return workdir_section
 
     @memoize
-    async def main(self) -> None:
+    def main(self) -> None:
         """
         Mainline interface.
         """
         self.log.info(f'Creating dockerfile {self.path}')
-        self.path.write_text(data=await self.get_text())
+        self.path.write_text(data=self.get_text())
 
     @memoize
-    async def cli_entrypoint(self) -> None:
+    def cli_entrypoint(self) -> None:
         """
-        If actual CLI command is `gdev ... dockerfile`, run as normal and then print contents.
+        Execution entrypoint for this module.
         """
 
         # If we have any mixins, we may need to do some extra work in the
@@ -265,5 +277,5 @@ class GenAbcDockerfile(Dependency, ABC):
             from .._custom.dockerfile import GenCustomDockerfile
             dockerfile = GenCustomDockerfile(options=self.options, base_dockerfile=self)
 
-        await dockerfile.run()
-        print(await dockerfile.get_text())
+        dockerfile.run()
+        print(dockerfile.get_text())

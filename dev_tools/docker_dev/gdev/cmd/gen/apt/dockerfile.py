@@ -1,3 +1,13 @@
+#!/usr/bin/env python3
+
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
+"""
+Module to generate the APT section of the dockerfile.
+"""
 from gdev.third_party.atools import memoize
 from .cfg import GenAptCfg
 from .._abc.dockerfile import GenAbcDockerfile
@@ -16,22 +26,22 @@ class GenAptDockerfile(GenAbcDockerfile):
         return GenAptCfg(self.options)
 
     @memoize
-    async def get_from_section(self) -> str:
+    def get_from_section(self) -> str:
         """
         Return text for the FROM line of the final build stage.
         """
-        from_section = f'FROM apt_base AS {await self.get_name()}'
+        from_section = f'FROM apt_base AS {self.get_name()}'
 
         self.log.debug(f'{from_section = }')
 
         return from_section
 
     @memoize
-    async def get_run_section(self) -> str:
+    def get_run_section(self) -> str:
         """
         Return text for the RUN line of the final build stage.
         """
-        if section_lines := await self.cfg.get_section_lines():
+        if section_lines := self.cfg.get_section_lines():
             run_section = (
                     'RUN apt-get update'
                     + ' \\\n    && DEBIAN_FRONTEND=noninteractive apt-get install -y'

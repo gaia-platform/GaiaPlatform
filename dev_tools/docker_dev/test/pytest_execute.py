@@ -1,7 +1,15 @@
+#!/usr/bin/env python3
+
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 """
 Module to provide functionality to test scripts from within pytest.
 
 This code copied from: https://github.com/jackdewinter/pyscan.
+Any changes made to this code above the base code are copyright by Gaia Platform LLC.
 """
 import difflib
 import io
@@ -16,7 +24,7 @@ LOGGER = logging.getLogger(__name__)
 
 class InProcessResult:
     """
-    Class to provide for an encapsulation of the results of an execution.
+    Class to provide an encapsulation of the results of an execution.
     """
 
     def __init__(self, return_code, std_out, std_err):

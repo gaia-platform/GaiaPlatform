@@ -1,10 +1,19 @@
+#!/usr/bin/env python3
+
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
+"""
+Module to provide a description of the structure to be constructed.
+"""
 from __future__ import annotations
-from typing import FrozenSet, Sequence, Set, Tuple
+from typing import FrozenSet, Set, Tuple
 from importlib import import_module
 from importlib.util import find_spec
 from inspect import getdoc, isabstract, iscoroutinefunction
 from argparse import ArgumentParser, REMAINDER
-from asyncio import gather
 from dataclasses import dataclass
 from importlib import import_module
 from importlib.util import find_spec
@@ -17,7 +26,7 @@ from typing import FrozenSet, Sequence, Set, Tuple
 @dataclass(frozen=True)
 class ParserStructure:
     """
-    Class to allow for a description of the structure to be constructed.
+    Class to provide a description of the structure to be constructed.
 
     Note that the `gdev.cmd` is a `path` within the package hierarchy, not calling out to a gdev.cmd script.
     """
