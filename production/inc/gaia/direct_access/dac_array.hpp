@@ -29,56 +29,53 @@ namespace direct_access
  * Provides an API for accessing array fields in Direct Access objects.
  */
 
-// Forward declaring so `dac_vector_iterator_t` can use it.
+// Forward declaring so `dac_vector_const_iterator_t` can use it.
 template <typename T_type>
 class dac_vector_t;
 
 /**
- * An iterator for traversing elements in a `dac_vector_t`.
+ * A read-only iterator for traversing elements in a `dac_vector_t`.
  *
  * @tparam T_type The type of `dac_vector_t` elements that the iterator traverses.
  */
 template <typename T_type>
-class dac_vector_iterator_t
+class dac_vector_const_iterator_t
 {
 public:
     using difference_type = std::ptrdiff_t;
     using value_type = T_type;
-    using pointer = const T_type*;
-    using reference = const T_type&;
-    using iterator_category = std::bidirectional_iterator_tag; // TODO: upgrade to random_access_iterator_tag
+    using pointer = const value_type*;
+    using reference = const value_type&;
+    using iterator_category = std::forward_iterator_tag;
 
     /**
      * Constructs an iterator that does not point to any data.
      */
-    dac_vector_iterator_t();
+    dac_vector_const_iterator_t();
 
     /**
      * Constructs an iterator pointing to a DAC vector, starting at a given index.
      * @param dac_vector The DAC vector to iterate over.
      * @param index The vector index to start iterating from.
      */
-    explicit dac_vector_iterator_t(const dac_vector_t<T_type>& dac_vector, uint32_t index);
+    explicit dac_vector_const_iterator_t(const dac_vector_t<T_type>& dac_vector, uint32_t index);
 
-    dac_vector_iterator_t<T_type>& operator++();
-    dac_vector_iterator_t<T_type> operator++(int);
+    dac_vector_const_iterator_t<T_type>& operator++();
+    dac_vector_const_iterator_t<T_type> operator++(int);
 
-    dac_vector_iterator_t<T_type>& operator--();
-    dac_vector_iterator_t<T_type> operator--(int);
-
-    bool operator==(const dac_vector_iterator_t& rhs) const;
-    bool operator!=(const dac_vector_iterator_t& rhs) const;
+    bool operator==(const dac_vector_const_iterator_t& rhs) const;
+    bool operator!=(const dac_vector_const_iterator_t& rhs) const;
 
     reference operator*() const;
     pointer operator->() const;
 
-protected:
+private:
     const T_type* m_iterator_data;
     uint32_t m_index;
 };
 
 /**
- * The base class of array fields. It encapsulates `flatbuffers::Vector` for storage.
+ * The base class of array fields.
  *
  * @tparam T_type The type of the array's elements.
  */
@@ -86,6 +83,8 @@ template <typename T_type>
 class dac_vector_t
 {
 public:
+    using const_iterator = dac_vector_const_iterator_t<T_type>;
+
     dac_vector_t() = delete;
 
     /**
@@ -110,13 +109,13 @@ public:
     /**
      * @return An iterator pointing to the first element of the vector.
      */
-    dac_vector_iterator_t<T_type> begin() const;
+    const_iterator begin() const;
 
     /**
      * @return A "past-the-end" iterator used to check if there are no more elements.
      * It is not the last element and should not be dereferenced.
      */
-    dac_vector_iterator_t<T_type> end() const;
+    const_iterator end() const;
 
     /**
      * @return A `std::vector` containing a copy of all elements in the Direct Access vector.
