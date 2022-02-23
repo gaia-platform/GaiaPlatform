@@ -142,8 +142,8 @@ void multi_segment_hash::murmur3_128(const void* key, const int len, void* out)
     {
         uint64_t k1;
         uint64_t k2;
-        memcpy(&k1, (blocks + i * 2), sizeof(k1));
-        memcpy(&k2, (blocks + i * 2 + 1), sizeof(k2));
+        std::memcpy(&k1, (blocks + i * 2), sizeof(k1));
+        std::memcpy(&k2, (blocks + i * 2 + 1), sizeof(k2));
 
         k1 *= c1;
         k1 = rotl64(k1, 31);
@@ -233,8 +233,9 @@ void multi_segment_hash::murmur3_128(const void* key, const int len, void* out)
     h1 += h2;
     h2 += h1;
 
-    static_cast<uint64_t*>(out)[0] = h1;
-    static_cast<uint64_t*>(out)[1] = h2;
+    uint8_t* result = static_cast<uint8_t*>(out);
+    std::memcpy(result, &h1, sizeof(uint64_t));
+    std::memcpy(result + sizeof(uint64_t), &h2, sizeof(uint64_t));
 }
 
 // Add a hash to the composite resulting from a cstring.
@@ -289,7 +290,7 @@ void multi_segment_hash::hash_include(const uint8_t* hash_in)
 void multi_segment_hash::hash_calc(uint8_t* hash_out)
 {
     hash_calc();
-    memcpy(hash_out, m_hash, c_murmur3_128_hash_size_in_bytes);
+    std::memcpy(hash_out, m_hash, c_murmur3_128_hash_size_in_bytes);
 }
 
 void multi_segment_hash::hash_calc()
