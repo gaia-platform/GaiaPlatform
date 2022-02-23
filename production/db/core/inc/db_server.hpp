@@ -413,7 +413,7 @@ private:
         messages::session_state_t new_state,
         const char* error_message);
 
-    static void clear_shared_memory();
+    static void clear_server_state();
 
     static void init_memory_manager(bool initializing);
 

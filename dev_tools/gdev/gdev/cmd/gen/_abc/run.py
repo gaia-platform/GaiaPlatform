@@ -7,7 +7,7 @@ from gdev.custom.pathlib import Path
 from gdev.dependency import Dependency
 from gdev.third_party.atools import memoize
 from .build import GenAbcBuild
-
+from gdev.host import Host
 
 class GenAbcRun(Dependency, ABC):
     """Create a Docker container from the image build with `gdev build` and run a command in it."""
@@ -100,14 +100,15 @@ class GenAbcRun(Dependency, ABC):
 
         # execvpe the `docker run` command. It's drastically simpler than trying to manage it as a
         # Python subprocess.
-        command = shlex.split(
-            f'docker run {await self.get_flags()}'
+        command_to_execute = (f'docker run {await self.get_flags()}'
             f' {await self.build.get_tag()}'
-            f'''{fr' -c "{self.options.args}"' if self.options.args else ""}'''
-        )
-        self.log.debug(f'execvpe {command = }')
-
-        os.execvpe(command[0], command, os.environ)
+            f'''{fr' -c "{self.options.args}"' if self.options.args else ""}''')
+        if Host.is_drydock_enabled():
+            print(f"[execvpe:{command_to_execute}]")
+        else:
+            command = shlex.split(command_to_execute)
+            self.log.debug(f'execvpe {command = }')
+            os.execvpe(command[0], command, os.environ)
 
     @memoize
     async def cli_entrypoint(self) -> None:
