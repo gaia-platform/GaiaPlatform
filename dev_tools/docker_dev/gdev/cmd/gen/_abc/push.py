@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from gdev.dependency import Dependency
 from gdev.host import Host
 from gdev.third_party.atools import memoize
-from .build import GenAbcBuild
+from gdev.cmd.gen._abc.build import GenAbcBuild
 
 
 class GenAbcPush(Dependency, ABC):
@@ -27,7 +27,7 @@ class GenAbcPush(Dependency, ABC):
         """
         Return the class that will be used to generate the build requirements.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     @memoize
     def main(self) -> None:

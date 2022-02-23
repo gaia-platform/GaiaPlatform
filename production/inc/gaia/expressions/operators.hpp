@@ -75,6 +75,9 @@ struct operator_shr_t
 struct operator_neg_t
 {
 }; // - token (unary).
+struct operator_pos_t
+{
+}; // + token (unary).
 struct operator_not_t
 {
 }; // !token.
@@ -130,6 +133,8 @@ using shr_default_type = decltype(std::declval<T_left>() >> std::declval<T_right
 
 template <typename T_operand>
 using neg_default_type = decltype(-std::declval<T_operand&>());
+template <typename T_operand>
+using pos_default_type = decltype(+std::declval<T_operand&>());
 template <typename T_operand>
 using not_default_type = decltype(!std::declval<T_operand&>());
 template <typename T_operand>
@@ -279,6 +284,13 @@ evaluate_operator(const T_operand& operand, operator_neg_t)
 }
 
 template <typename T_operand>
+static inline pos_default_type<T_operand>
+evaluate_operator(const T_operand& operand, operator_pos_t)
+{
+    return +operand;
+}
+
+template <typename T_operand>
 static inline inv_default_type<T_operand>
 evaluate_operator(const T_operand& operand, operator_inv_t)
 {
@@ -328,6 +340,8 @@ template <typename T_operand>
 using not_type = decltype(evaluate_operator(std::declval<T_operand>(), std::declval<operator_not_t>()));
 template <typename T_operand>
 using neg_type = decltype(evaluate_operator(std::declval<T_operand>(), std::declval<operator_neg_t>()));
+template <typename T_operand>
+using pos_type = decltype(evaluate_operator(std::declval<T_operand>(), std::declval<operator_pos_t>()));
 template <typename T_operand>
 using inv_type = decltype(evaluate_operator(std::declval<T_operand>(), std::declval<operator_inv_t>()));
 

@@ -10,12 +10,12 @@ Module to represent a mount point between the docker container and the host syst
 """
 
 from dataclasses import dataclass
-from gdev.custom.pathlib import Path
+from gdev.custom.gaia_path import GaiaPath
 
 @dataclass(frozen=True)
 class Mount:
     """
     Class to represent a mount point between the docker container and the host system.
     """
-    container_path: Path
-    host_path: Path
+    container_path: GaiaPath
+    host_path: GaiaPath

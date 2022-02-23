@@ -11,9 +11,8 @@ Module to generate the PRERUN section of the dockerfile.
 from typing import Iterable
 
 from gdev.third_party.atools import memoize
+from gdev.cmd.gen._abc.dockerfile import GenAbcDockerfile
 from .cfg import GenPreRunCfg
-from .._abc.dockerfile import GenAbcDockerfile
-
 
 class GenPreRunDockerfile(GenAbcDockerfile):
     """
@@ -27,12 +26,15 @@ class GenPreRunDockerfile(GenAbcDockerfile):
         """
         return GenPreRunCfg(self.options)
 
+    # pylint: disable=import-outside-toplevel
+    #
+    # Required to resolve cyclical dependency issues.
     @memoize
     def get_env_section(self) -> str:
         """
         Return text for the ENV section of the final build stage.
         """
-        from ..env.dockerfile import GenEnvDockerfile
+        from gdev.cmd.gen.env.dockerfile import GenEnvDockerfile
 
         seen_env_dockerfiles = set()
 
@@ -50,21 +52,25 @@ class GenPreRunDockerfile(GenAbcDockerfile):
 
         env_section = '\n'.join(inner(GenEnvDockerfile(self.options)))
 
-        self.log.debug(f'{env_section = }')
+        self.log.debug('env_section = %s', env_section)
 
         return env_section
+    # pylint: enable=import-outside-toplevel
 
+    # pylint: disable=import-outside-toplevel
+    #
+    # Required to resolve cyclical dependency issues.
     @memoize
     def get_input_dockerfiles(self) -> Iterable[GenAbcDockerfile]:
         """
         Return dockerfiles that describe build stages that come directly before this one.
         """
-        from ..apt.dockerfile import GenAptDockerfile
-        from ..env.dockerfile import GenEnvDockerfile
-        from ..gaia.dockerfile import GenGaiaDockerfile
-        from ..git.dockerfile import GenGitDockerfile
-        from ..pip.dockerfile import GenPipDockerfile
-        from ..web.dockerfile import GenWebDockerfile
+        from gdev.cmd.gen.env.dockerfile import GenEnvDockerfile
+        from gdev.cmd.gen.apt.dockerfile import GenAptDockerfile
+        from gdev.cmd.gen.gaia.dockerfile import GenGaiaDockerfile
+        from gdev.cmd.gen.git.dockerfile import GenGitDockerfile
+        from gdev.cmd.gen.pip.dockerfile import GenPipDockerfile
+        from gdev.cmd.gen.web.dockerfile import GenWebDockerfile
 
         input_dockerfiles = tuple([
             GenAptDockerfile(self.options),
@@ -75,9 +81,10 @@ class GenPreRunDockerfile(GenAbcDockerfile):
             GenWebDockerfile(self.options),
         ])
 
-        self.log.debug(f'{input_dockerfiles = }')
+        self.log.debug('input_dockerfiles = %s', input_dockerfiles)
 
         return input_dockerfiles
+    # pylint: enable=import-outside-toplevel
 
     @memoize
     def get_run_section(self) -> str:
@@ -92,6 +99,6 @@ class GenPreRunDockerfile(GenAbcDockerfile):
         else:
             run_section = ''
 
-        self.log.debug(f'{run_section = }')
+        self.log.debug('run_section = %s', run_section)
 
         return run_section

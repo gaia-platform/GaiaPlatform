@@ -18,4 +18,3 @@ class GenEnvCfg(GenAbcCfg):
     Note that this class is empty, but kept to maintain a subcommand structure
     that is equivalent to the other subcommands, such as build.
     """
-    pass
