@@ -64,7 +64,8 @@ class InProcessResult:
                 if not was_found:
                     assert (
                         False
-                    ), f"Block\n---\n{next_text_block}\n---\nwas not found in\n---\n{actual_stream.getvalue()}"
+                    ), f"Block\n---\n{next_text_block}\n---\nwas not found in" + \
+                        f"\n---\n{actual_stream.getvalue()}"
         elif actual_stream.getvalue().strip() != expected_text.strip():
             diff = difflib.ndiff(
                 expected_text.splitlines(), actual_stream.getvalue().splitlines()
@@ -162,7 +163,8 @@ class InProcessResult:
 
             assert (
                 self.__return_code == error_code
-            ), f"Actual error code ({self.__return_code}) and expected error code ({error_code}) differ."
+            ), f"Actual error code ({self.__return_code}) and " + \
+                f"expected error code ({error_code}) differ."
 
         finally:
             self.__std_out.close()
@@ -226,7 +228,8 @@ class InProcessResult:
             diff_values = "\n".join(list(diff))
             assert (
                 False
-            ), f"Actual and expected contents of '{file_path}' are not equal:\n---\n{diff_values}\n---\n"
+            ), f"Actual and expected contents of '{file_path}' are not equal:" + \
+                f"\n---\n{diff_values}\n---\n"
 
 
 # pylint: disable=too-few-public-methods

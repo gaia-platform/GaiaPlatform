@@ -13,10 +13,10 @@ import os
 from textwrap import dedent
 from typing import Iterable
 
-from gdev.custom.pathlib import Path
+from gdev.custom.gaia_path import GaiaPath
 from gdev.third_party.atools import memoize
+from gdev.cmd.gen._abc.dockerfile import GenAbcDockerfile
 from .cfg import GenCustomCfg
-from .._abc.dockerfile import GenAbcDockerfile
 
 
 @dataclass(frozen=True, repr=False)
@@ -34,34 +34,42 @@ class GenCustomDockerfile(GenAbcDockerfile):
         """
         return GenCustomCfg(self.options)
 
+    # pylint: disable=import-outside-toplevel
+    #
+    # Required to resolve cyclical dependency issues.
     @memoize
     def get_env_section(self) -> str:
         """
         Return text for the ENV section of the final build stage.
         """
-        from ..pre_run.dockerfile import GenPreRunDockerfile
+        from gdev.cmd.gen.pre_run.dockerfile import GenPreRunDockerfile
 
         env_section = GenPreRunDockerfile(self.options).get_env_section()
 
-        self.log.debug(f'{env_section = }')
+        self.log.debug('env_section = %s', env_section)
 
         return env_section
+    # pylint: enable=import-outside-toplevel
 
+    # pylint: disable=import-outside-toplevel
+    #
+    # Required to resolve cyclical dependency issues.
     @memoize
     def get_input_dockerfiles(self) -> Iterable[GenAbcDockerfile]:
         """
         Return dockerfiles that describe build stages that come directly before this one.
         """
-        from ..run.dockerfile import GenRunDockerfile
+        from gdev.cmd.gen.run.dockerfile import GenRunDockerfile
 
         input_dockerfiles = [self.base_dockerfile]
-        for line in self.cfg.get_lines():
+        for line in self.cfg.get_mixin_lines():
             input_dockerfiles.append(GenRunDockerfile(replace(self.options, target=line)))
         input_dockerfiles = tuple(input_dockerfiles)
 
-        self.log.debug(f'{input_dockerfiles = }')
+        self.log.debug('input_dockerfiles = %s', input_dockerfiles)
 
         return input_dockerfiles
+    # pylint: enable=import-outside-toplevel
 
     @memoize
     def get_text(self) -> str:
@@ -77,7 +85,7 @@ class GenCustomDockerfile(GenAbcDockerfile):
         if {'clion', 'sudo', 'vscode'} & self.options.mixins:
             uid = os.getuid()
             gid = os.getgid()
-            home = Path.home()
+            home = GaiaPath.home()
             login = os.getlogin()
             text_parts.append(dedent(fr'''
                 RUN groupadd -r -o -g {gid} {login} \
@@ -86,11 +94,11 @@ class GenCustomDockerfile(GenAbcDockerfile):
                     && chown {login}:{login} {home} \
                     && echo "{login} ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers \
                     && touch {home}/.sudo_as_admin_successful \
-                    && chown -R {login}:{login} {Path.repo().image_build()}
+                    && chown -R {login}:{login} {GaiaPath.repo().image_build()}
             ''').strip())
 
         text = '\n'.join(text_parts)
 
-        self.log.debug(f'{text = }')
+        self.log.debug('text = %s', text)
 
         return text

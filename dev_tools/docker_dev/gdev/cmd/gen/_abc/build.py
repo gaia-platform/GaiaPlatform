@@ -5,17 +5,21 @@
 # All rights reserved.
 #############################################
 
+"""
+Module to help build a docker image from its component pieces.
+"""
+
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import os
-from typing import Awaitable, Callable, Iterable, Mapping, Union
+from typing import Iterable, Mapping
 
-from gdev.custom.pathlib import Path
+from gdev.custom.gaia_path import GaiaPath
 from gdev.dependency import Dependency
 from gdev.host import Host
 from gdev.third_party.atools import memoize
-from .cfg import GenAbcCfg
-from .dockerfile import GenAbcDockerfile
+from gdev.cmd.gen._abc.cfg import GenAbcCfg
+from gdev.cmd.gen._abc.dockerfile import GenAbcDockerfile
 
 
 # We require buildkit support for inline caching of multi-stage dockerfiles. It's also way faster
@@ -44,15 +48,6 @@ class GenAbcBuild(Dependency, ABC):
         """
         raise NotImplementedError
 
-    # TODO: Used?
-    @memoize
-    def __get_actual_git_hash(self) -> str:
-        actual_git_hash = self._get_actual_label_value('GitHash')
-
-        self.log.debug(f'{actual_git_hash = }')
-
-        return actual_git_hash
-
     @memoize
     def _get_actual_label_value(self, name: str) -> str:
         """
@@ -72,18 +67,20 @@ class GenAbcBuild(Dependency, ABC):
     @memoize
     def _get_actual_label_value_by_name(self) -> Mapping[str, str]:
         """
-        Get the hash of an image with the actual label values that are called for by the configuration.
+        Get the hash of an image with the actual label values that are called
+        for by the configuration.
         """
         return {'GitHash': self._get_actual_label_value(name='GitHash')}
 
     @memoize
     def get_actual_label_value_by_name(self) -> Mapping[str, str]:
         """
-        Get the hash of an image with the actual label values that are called for by the configuration.
+        Get the hash of an image with the actual label values that are called
+        for by the configuration.
         """
 
         actual_label_value_by_name = self._get_actual_label_value_by_name()
-        self.log.debug(f'{actual_label_value_by_name = }')
+        self.log.debug('actual_label_value_by_name = %s', actual_label_value_by_name)
         return actual_label_value_by_name
 
     @memoize
@@ -102,7 +99,7 @@ class GenAbcBuild(Dependency, ABC):
 
         base_build_names = tuple(inner(self.dockerfile))
 
-        self.log.debug(f'{base_build_names = }')
+        self.log.debug('base_build_names = %s', base_build_names)
 
         return base_build_names
 
@@ -119,7 +116,7 @@ class GenAbcBuild(Dependency, ABC):
         else:
             sha = ''
 
-        self.log.debug(f'{sha = }')
+        self.log.debug('sha = %s', sha)
 
         return sha
 
@@ -131,35 +128,9 @@ class GenAbcBuild(Dependency, ABC):
 
         tag = f'{self.dockerfile.get_name()}:latest'
 
-        self.log.debug(f'{tag = }')
+        self.log.debug('tag = %s', tag)
 
         return tag
-
-    # TODO unused?
-    @memoize
-    def __get_uncommitted(self) -> str:
-        seen_dockerfiles = set()
-
-        def inner(dockerfile: GenAbcDockerfile) -> Iterable[Path]:
-            paths = set()
-            if dockerfile not in seen_dockerfiles:
-                seen_dockerfiles.add(dockerfile)
-                paths.add( Path.repo() / Path(dockerfile.options.target))
-                for input_dockerfile in dockerfile.get_input_dockerfiles():
-                    paths |= inner(input_dockerfile)
-            return paths
-
-        uncommitted = '\n'.join(
-            Host.execute_and_get_lines_sync(
-                f'git status --short ' + ' '.join(
-                    f'{path.parent}' for path in inner(self.dockerfile)
-                )
-            )
-        )
-
-        self.log.debug(f'{uncommitted = }')
-
-        return uncommitted
 
     @memoize
     def __get_wanted_git_hash(self) -> str:
@@ -168,7 +139,7 @@ class GenAbcBuild(Dependency, ABC):
         """
         wanted_git_hash = Host.execute_and_get_line_sync('git rev-parse HEAD')
 
-        self.log.debug(f'{wanted_git_hash = }')
+        self.log.debug('wanted_git_hash = %s', wanted_git_hash)
 
         return wanted_git_hash
 
@@ -185,7 +156,7 @@ class GenAbcBuild(Dependency, ABC):
         """
         wanted_label_value_by_name = self._get_wanted_label_value_by_name()
 
-        self.log.debug(f'{wanted_label_value_by_name = }')
+        self.log.debug('wanted_label_value_by_name = %s', wanted_label_value_by_name)
 
         return wanted_label_value_by_name
 
@@ -203,8 +174,7 @@ class GenAbcBuild(Dependency, ABC):
                     for base_build_name in self.__get_base_build_names()])
             cached_images = f"--cache-from {cached_images}"
 
-        # TODO query remotely for cached build sources.
-        self.log.info(f'Creating image "{self.get_tag()}"')
+        self.log.info('Creating image "%s"', self.get_tag())
         Host.execute_sync(
             f'docker buildx build'
             f' -f {self.dockerfile.path}'
@@ -229,10 +199,13 @@ class GenAbcBuild(Dependency, ABC):
 
             f' {cached_images}'
 
-            f' {Path.repo()}'
+            f' {GaiaPath.repo()}'
         )
-        Host.execute_sync(f'docker image prune -f')
+        Host.execute_sync('docker image prune -f')
 
+    # pylint: disable=import-outside-toplevel
+    #
+    # Required to resolve cyclical dependency issues.
     @memoize
     def cli_entrypoint(self) -> None:
         """
@@ -242,7 +215,8 @@ class GenAbcBuild(Dependency, ABC):
         if not self.options.mixins:
             build = self
         else:
-            from .._custom.build import GenCustomBuild
+            from gdev.cmd.gen._custom.build import GenCustomBuild
             build = GenCustomBuild(options=self.options, base_build=self)
 
         build.run()
+    # pylint: enable=import-outside-toplevel

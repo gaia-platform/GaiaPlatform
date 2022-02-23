@@ -8,8 +8,8 @@
 """
 Module to satisfy the run requirements for the GIT section.
 """
-from .._abc.build import GenAbcBuild
-from .._abc.run import GenAbcRun
+from gdev.cmd.gen._abc.run import GenAbcRun
+from gdev.cmd.gen.git.build import GenGitBuild
 
 
 class GenGitRun(GenAbcRun):
@@ -18,9 +18,8 @@ class GenGitRun(GenAbcRun):
     """
 
     @property
-    def build(self) -> GenAbcBuild:
+    def build(self) -> GenGitBuild:
         """
         Return the class that will be used to generate the run requirements.
         """
-        from .build import GenGitBuild
         return GenGitBuild(self.options)

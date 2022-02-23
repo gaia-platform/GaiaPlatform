@@ -43,7 +43,8 @@ class GenCustomBuild(GenAbcBuild):
     @memoize
     def _get_actual_label_value_by_name(self) -> Mapping[str, str]:
         """
-        Get the hash of an image with the actual label values that are called for by the configuration.
+        Get the hash of an image with the actual label values that are called
+        for by the configuration.
         """
         return {
             **super()._get_actual_label_value_by_name(),

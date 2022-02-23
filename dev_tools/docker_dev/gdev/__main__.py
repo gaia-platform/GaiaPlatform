@@ -15,6 +15,9 @@ import sys
 from gdev.main import DockerDev
 
 def main() -> int:
+    """
+    Module main entry point into the application.
+    """
     DockerDev().main()
     return 0
 

@@ -10,8 +10,8 @@ Module to generate the GIT section of the dockerfile.
 """
 
 from gdev.third_party.atools import memoize
+from gdev.cmd.gen._abc.dockerfile import GenAbcDockerfile
 from .cfg import GenGitCfg
-from .._abc.dockerfile import GenAbcDockerfile
 
 
 class GenGitDockerfile(GenAbcDockerfile):
@@ -33,7 +33,7 @@ class GenGitDockerfile(GenAbcDockerfile):
         """
         from_section = f'FROM git_base AS {self.get_name()}'
 
-        self.log.debug(f'{from_section = }')
+        self.log.debug('from_section = %s', from_section)
 
         return from_section
 
@@ -54,6 +54,6 @@ class GenGitDockerfile(GenAbcDockerfile):
         else:
             run_section = ''
 
-        self.log.debug(f'{run_section = }')
+        self.log.debug('run_section = %s', run_section)
 
         return run_section
