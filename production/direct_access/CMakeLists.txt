@@ -58,10 +58,6 @@ add_gtest(test_optional_dac
   "tests/test_optional_dac.cpp"
   "${DIRECT_ACCESS_TEST_INCLUDES}"
   "rt;gaia_direct;gaia_db_catalog_test;dac_optional_sandbox")
-add_gtest(test_references
-  "tests/test_references.cpp"
-  "${DIRECT_ACCESS_TEST_INCLUDES}"
-  "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
 
 add_gtest(test_insert_perf
   "tests/test_insertion_perf.cpp"
