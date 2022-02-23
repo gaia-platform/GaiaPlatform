@@ -32,8 +32,6 @@ ruleset test_connect_disconnect_1_n
             farmer.incubators.connect(i);
             farmer.incubators.disconnect(i);
 
-            i.farmer.connect(farmer);
-
             // This is not possible ATM because of this bug: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1037
             // In order to correctly tell apart tables from links we need to improve the parsing logic.
   //        incubators.connect(i);
