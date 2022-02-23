@@ -52,7 +52,6 @@ std::string eval_type_test(T_class, string_value_tag_t);
 // Default value type.
 template <typename T_class>
 typename std::decay<T_class>::type eval_type_test(T_class, value_tag_t);
-
 } // namespace detail
 
 // Infer the evaluated types for the objects when building an AST tree.
