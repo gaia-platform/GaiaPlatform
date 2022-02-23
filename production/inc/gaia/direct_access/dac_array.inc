@@ -124,7 +124,7 @@ template <typename T_type>
 typename dac_vector_const_iterator_t<T_type>::reference dac_vector_const_iterator_t<T_type>::operator[](
     dac_vector_const_iterator_t<T_type>::difference_type rhs) const
 {
-    return *(m_iterator_data + rhs);
+    return *(*this + rhs);
 }
 
 template <typename T_type>
