@@ -26,7 +26,7 @@ namespace
 {
 
 // Calculate and store a hash for this index. Store it in the gaia_index row.
-void add_index_hashes(multi_segment_hash& table_hash, gaia_index_t& index)
+void add_hash(multi_segment_hash& table_hash, gaia_index_t& index)
 {
     multi_segment_hash index_hash;
     index_hash.hash_add(index.name());
@@ -44,7 +44,7 @@ void add_index_hashes(multi_segment_hash& table_hash, gaia_index_t& index)
 }
 
 // Calculate and store a hash for this field. Store it in the gaia_field row.
-void add_field_hashes(multi_segment_hash& table_hash, gaia_field_t& field)
+void add_hash(multi_segment_hash& table_hash, gaia_field_t& field)
 {
     multi_segment_hash field_hash;
     field_hash.hash_add(field.name());
@@ -62,7 +62,7 @@ void add_field_hashes(multi_segment_hash& table_hash, gaia_field_t& field)
 }
 
 // Calculate and store a hash for this relationship. Store it in the gaia_relationship row.
-void add_relationship_hashes(multi_segment_hash& table_hash, gaia_relationship_t& relationship)
+void add_hash(multi_segment_hash& table_hash, gaia_relationship_t& relationship)
 {
     if (relationship.deprecated())
     {
@@ -110,7 +110,7 @@ bool sort_by_name(
 } // namespace
 
 // For every catalog row that defines this database, calculate and store its hash.
-void add_catalog_hashes(const std::string db_name)
+void add_hash(const std::string db_name)
 {
     // The database hash is composed of the hash for the database name, followed by the hashes
     // of all database tables.
@@ -135,22 +135,22 @@ void add_catalog_hashes(const std::string db_name)
 
             for (auto& index : table.gaia_indexes())
             {
-                add_index_hashes(table_hash, index);
+                add_hash(table_hash, index);
             }
 
             for (auto& field : table.gaia_fields())
             {
-                add_field_hashes(table_hash, field);
+                add_hash(table_hash, field);
             }
 
             for (auto& parent_relationship : table.outgoing_relationships())
             {
-                add_relationship_hashes(table_hash, parent_relationship);
+                add_hash(table_hash, parent_relationship);
             }
 
             for (auto& child_relationship : table.incoming_relationships())
             {
-                add_relationship_hashes(table_hash, child_relationship);
+                add_hash(table_hash, child_relationship);
             }
 
             // Store the hash string in this table.
@@ -180,13 +180,13 @@ void add_catalog_hashes(const std::string db_name)
 }
 
 // Apply this algorithm on all non-system databases.
-void add_catalog_hashes()
+void add_hash()
 {
     for (auto& db : gaia_database_t::list())
     {
         if (strcmp(db.name(), "catalog") && strcmp(db.name(), "event_log"))
         {
-            add_catalog_hashes(db.name());
+            add_hash(db.name());
         }
     }
 }

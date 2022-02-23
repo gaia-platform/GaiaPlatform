@@ -401,7 +401,7 @@ void execute_create_list_statements(
         auto create_stmt = dynamic_cast<ddl::create_statement_t*>(stmt.get());
         execute_create_statement_no_txn(executor, create_stmt);
     }
-    add_catalog_hashes();
+    add_hash();
     txn.commit();
 }
 
@@ -433,7 +433,7 @@ void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
 
                 // Scan through the catalog and construct hashes for each non-system
                 // catalog gaia_{database,table,index,field,relationship}.
-                add_catalog_hashes();
+                add_hash();
 
                 txn.commit();
             }

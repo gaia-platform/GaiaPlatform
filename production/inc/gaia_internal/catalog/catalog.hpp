@@ -715,12 +715,12 @@ inline void check_not_system_db(const std::string& name)
  *
  * @param dbname database name
  */
-void add_catalog_hashes(const std::string dbname);
+void add_hash(const std::string dbname);
 
 /**
  * Generate and store hash values in all non-system catalogs.
  */
-void add_catalog_hashes();
+void add_hash();
 
 /*@}*/
 } // namespace catalog
