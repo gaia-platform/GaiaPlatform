@@ -26,7 +26,7 @@ ruleset test19: tables(sensor)
 ruleset test15
 {
     {
-        actuator.value1++; // expected-error {{no member named 'value1' in 'actuator__type'; did you mean 'value'?}} \
+        actuator.value1++; // expected-error {{no member named 'value1' in 'actuator_9f63755fe9e4859c03277e1b6fae0f4e__type'; did you mean 'value'?}} \
                            // expected-note {{'value' declared here}}
     }
 }

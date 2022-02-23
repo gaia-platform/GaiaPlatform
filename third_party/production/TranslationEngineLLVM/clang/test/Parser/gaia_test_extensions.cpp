@@ -31,13 +31,13 @@ ruleset test1
 // CHECK:      RulesetDecl{{.*}} test1
 // CHECK:      FunctionDecl{{.*}} {{.*}} 'void (...)'
 // CHECK:     MemberExpr 0x{{[^ ]*}} <col:5, col:15> 'float' lvalue .min_temp 0x{{[^ ]*}}
-// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'incubator__type' lvalue Var 0x{{[^ ]*}} 'incubator' 'incubator__type'
+// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'incubator_7ef2a3e809cfbd83be97d22711284407__type' lvalue Var 0x{{[^ ]*}} 'incubator' 'incubator_7ef2a3e809cfbd83be97d22711284407__type'
 // CHECK:     MemberExpr 0x{{[^ ]*}} <col:27, col:34> 'float' lvalue .value 0x{{[^ ]*}}
-// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:27> 'sensor__type' lvalue Var 0x{{[^ ]*}} 'sensor' 'sensor__type'
+// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:27> 'sensor_a5fe26d5d09b736a77f4345e9f80b951__type' lvalue Var 0x{{[^ ]*}} 'sensor' 'sensor_a5fe26d5d09b736a77f4345e9f80b951__type'
 // CHECK:     MemberExpr 0x{{[^ ]*}} <col:5, col:15> 'float' lvalue .max_temp 0x{{[^ ]*}}
-// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'incubator__type' lvalue Var 0x{{[^ ]*}} 'incubator' 'incubator__type'
+// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'incubator_7ef2a3e809cfbd83be97d22711284407__type' lvalue Var 0x{{[^ ]*}} 'incubator' 'incubator_7ef2a3e809cfbd83be97d22711284407__type'
 // CHECK:     MemberExpr 0x{{[^ ]*}} <col:27, col:37> 'float' lvalue .min_temp 0x{{[^ ]*}}
-// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:27> 'incubator__type' lvalue Var 0x{{[^ ]*}} 'incubator' 'incubator__type'
+// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:27> 'incubator_7ef2a3e809cfbd83be97d22711284407__type' lvalue Var 0x{{[^ ]*}} 'incubator' 'incubator_7ef2a3e809cfbd83be97d22711284407__type'
 // CHECK:     GaiaOnInsertAttr 0x{{[^ ]*}} <line:25:3, col:22> incubator
 // CHECK:     RuleAttr 0x{{[^ ]*}} <line:26:3>
 
@@ -64,9 +64,9 @@ ruleset test2
 // CHECK:      RulesetDecl{{.*}} test2
 // CHECK:      FunctionDecl{{.*}} {{.*}} 'void (...)'
 // CHECK:     MemberExpr 0x{{[^ ]*}} <col:8, col:17> 'float' lvalue .value 0x{{[^ ]*}}
-// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:8> 'actuator__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator__type'
+// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:8> 'actuator_9f63755fe9e4859c03277e1b6fae0f4e__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator_9f63755fe9e4859c03277e1b6fae0f4e__type'
 // CHECK:     MemberExpr 0x{{[^ ]*}} <col:5, col:14> 'float' lvalue .value 0x{{[^ ]*}}
-// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'actuator__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator__type'
+// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:5> 'actuator_9f63755fe9e4859c03277e1b6fae0f4e__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator_9f63755fe9e4859c03277e1b6fae0f4e__type'
 // CHECK:     RuleAttr 0x{{[^ ]*}} <line:56:3>
 
 
@@ -101,15 +101,15 @@ ruleset test4
 // CHECK:   FunctionDecl{{.*}} {{.*}} 'void (...)'
 // CHECK:   VarDecl 0x{{[^ ]*}} <col:5, col:27> col:10 x 'const char *':'const char *' cinit
 // CHECK:   MemberExpr 0x{{[^ ]*}} <col:14, col:27> 'const char *' xvalue .rule_name 0x{{[^ ]*}}
-// CHECK:   GaiaRuleContextExpr 0x{{[^ ]*}} <col:14> 'rule_context__type' rule_context
+// CHECK:   GaiaRuleContextExpr 0x{{[^ ]*}} <col:14> 'rule_context_f489c36097a661e7bb4d0934bf940da7__type' rule_context
 // CHECK:   VarDecl 0x{{[^ ]*}} <col:5, col:27> col:10 y 'const char *':'const char *' cinit
 // CHECK:   MemberExpr 0x{{[^ ]*}} <col:14, col:27> 'const char *' xvalue .ruleset_name 0x{{[^ ]*}}
 // CHECK:   VarDecl 0x{{[^ ]*}} <col:5, col:27> col:10 e 'unsigned int':'unsigned int' cinit
 // CHECK:   MemberExpr 0x{{[^ ]*}} <col:14, col:27> 'const unsigned int' xvalue .event_type 0x{{[^ ]*}}
-// CHECK:   GaiaRuleContextExpr 0x{{[^ ]*}} <col:14> 'rule_context__type' rule_context
+// CHECK:   GaiaRuleContextExpr 0x{{[^ ]*}} <col:14> 'rule_context_f489c36097a661e7bb4d0934bf940da7__type' rule_context
 // CHECK:   VarDecl 0x{{[^ ]*}} <col:5, col:27> col:10 g 'unsigned int':'unsigned int' cinit
 // CHECK:   MemberExpr 0x{{[^ ]*}} <col:14, col:27> 'const unsigned int' xvalue .gaia_type 0x{{[^ ]*}}
-// CHECK:   GaiaRuleContextExpr 0x{{[^ ]*}} <col:14> 'rule_context__type' rule_context
+// CHECK:   GaiaRuleContextExpr 0x{{[^ ]*}} <col:14> 'rule_context_f489c36097a661e7bb4d0934bf940da7__type' rule_context
 
 ruleset test5
 {
@@ -125,9 +125,9 @@ ruleset test5
 // CHECK:      RulesetDecl{{.*}} test5
 // CHECK:      FunctionDecl{{.*}} {{.*}} 'void (...)'
 // CHECK:     MemberExpr 0x{{[^ ]*}} <col:9, col:18> 'float' lvalue .value 0x{{[^ ]*}}
-// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:9> 'actuator__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator__type'
+// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:9> 'actuator_9f63755fe9e4859c03277e1b6fae0f4e__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator_9f63755fe9e4859c03277e1b6fae0f4e__type'
 // CHECK:     MemberExpr 0x{{[^ ]*}} <col:7, col:16> 'float' lvalue .value 0x{{[^ ]*}}
-// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:7> 'actuator__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator__type'
+// CHECK-NEXT:     DeclRefExpr 0x{{[^ ]*}} <col:7> 'actuator_9f63755fe9e4859c03277e1b6fae0f4e__type' lvalue Var 0x{{[^ ]*}} 'actuator' 'actuator_9f63755fe9e4859c03277e1b6fae0f4e__type'
 // CHECK:     RuleAttr 0x{{[^ ]*}} <line:117:3>
 
 ruleset test6

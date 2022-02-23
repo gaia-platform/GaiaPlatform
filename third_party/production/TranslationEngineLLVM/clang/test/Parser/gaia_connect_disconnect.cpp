@@ -10,6 +10,7 @@ ruleset test_connect_disconnect_1_n
         {
             farmer.connect(r);
             farmer.disconnect(r);
+            r.connect(farmer);
         }
 
         farmer.connect(raised.insert(birthdate: "2 Aug 1990"));
@@ -17,6 +18,8 @@ ruleset test_connect_disconnect_1_n
         auto birthday = raised.insert(birthdate: "2 Aug 1990");
         farmer.connect(birthday);
         farmer.disconnect(birthday);
+
+        birthday.connect(farmer);
 
         gaia::barn_storage::raised_t r2;
         farmer.connect(r2);
@@ -28,6 +31,8 @@ ruleset test_connect_disconnect_1_n
         {
             farmer.incubators.connect(i);
             farmer.incubators.disconnect(i);
+
+            i.farmer.connect(farmer);
 
             // This is not possible ATM because of this bug: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1037
             // In order to correctly tell apart tables from links we need to improve the parsing logic.
@@ -82,8 +87,8 @@ ruleset test_connect_disconnect_fail_in_isolated_table
     on_insert(isolated)
     {
         int i = 1;
-        isolated.connect(i); // expected-error {{no member named 'connect' in 'isolated__type'}}
-        isolated.disconnect(i); // expected-error {{no member named 'disconnect' in 'isolated__type'}}
+        isolated.connect(i); // expected-error {{no member named 'connect' in 'isolated_220226394582d7117410e3c021748c2a__type'}}
+        isolated.disconnect(i); // expected-error {{no member named 'disconnect' in 'isolated_220226394582d7117410e3c021748c2a__type'}}
     }
 };
 
@@ -117,8 +122,8 @@ ruleset test_connect_disconnect_invalid_syntax_1
        crop.disconnect(); // expected-error {{no matching member function for call to 'disconnect'}}
        crop.yield.connect(); // expected-error {{too few arguments to function call, single argument 'param_1' was not specified}}
        crop.yield.disconnect(); // expected-error {{too few arguments to function call, single argument 'param_1' was not specified}}
-       crop.yield.connect("aaaaa"); // expected-error {{reference to type 'const yield__type' could not bind to an lvalue of type 'const char [6]'}}
-       crop.yield.disconnect(1); // expected-error {{reference to type 'const yield__type' could not bind to an rvalue of type 'int'}}
+       crop.yield.connect("aaaaa"); // expected-error {{reference to type 'const yield_16f10dfd541c23362492b4e513adf0a1__type' could not bind to an lvalue of type 'const char [6]'}}
+       crop.yield.disconnect(1); // expected-error {{reference to type 'const yield_16f10dfd541c23362492b4e513adf0a1__type' could not bind to an rvalue of type 'int'}}
     }
 }
 
@@ -164,7 +169,7 @@ ruleset test_connect_disconnect_works_only_on_parent
     on_insert(incubator)
     {
         auto f1 = farmer.insert(name: "Gino D'Acampo");
-        incubator.landlord.connect(f1); // expected-error {{no member named 'landlord' in 'incubator__type'}}
+        incubator.landlord.connect(f1); // expected-error {{no member named 'landlord' in 'incubator_7ef2a3e809cfbd83be97d22711284407__type'}}
         incubator.connect(f1); // expected-error {{no matching member function for call to 'connect'}}
         incubator.disconnect(f1); // expected-error {{no matching member function for call to 'disconnect'}}
     }

@@ -509,7 +509,7 @@ void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, const Small
 
 QualType Sema::getRuleContextType(SourceLocation loc)
 {
-    Twine ruleContextTypeName = Twine(ruleContextTypeNameBase) + calculateNameHash(ruleContextTypeNameBase) + "__type";
+    Twine ruleContextTypeName = Twine(ruleContextTypeNameBase) + "_" + calculateNameHash(ruleContextTypeNameBase) + "__type";
     RecordDecl* RD = Context.buildImplicitRecord(ruleContextTypeName.str());
     RD->setLexicalDeclContext(CurContext);
     RD->startDefinition();
@@ -550,6 +550,7 @@ QualType Sema::getLinkType(StringRef linkName, StringRef from_table, StringRef t
     linkTypeName += linkName;
     linkTypeName += '_';
     linkTypeName += to_table;
+    linkTypeName += '_';
     linkTypeName += calculateNameHash(linkTypeName);
     linkTypeName += "__type";
 
