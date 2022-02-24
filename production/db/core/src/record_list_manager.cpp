@@ -83,6 +83,15 @@ size_t record_list_manager_t::size() const
     return m_record_list_map.size();
 }
 
+void record_list_manager_t::clear()
+{
+    // We acquire a unique lock because we need to update the map.
+    // Such operations should be rare.
+    unique_lock unique_lock(m_lock);
+
+    m_record_list_map.clear();
+}
+
 } // namespace storage
 } // namespace db
 } // namespace gaia

@@ -1,19 +1,27 @@
+#!/usr/bin/env python3
+
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 """
-Module to provide handling for the 'dockerfile' subcommand.
+Module to provide for the `dockerfile` subcommand entry point.
 """
+
 from gdev.dependency import Dependency
 from gdev.third_party.atools import memoize
-from .gen.run.dockerfile import GenRunDockerfile
+from gdev.cmd.gen.run.dockerfile import GenRunDockerfile
 
 
 class Dockerfile(Dependency):
     """
-    Class to encapsulate the 'cfg' subcommand.
+    Class to provide for the `dockerfile` subcommand entry point.
     """
 
     @memoize
-    async def cli_entrypoint(self) -> None:
+    def cli_entrypoint(self) -> None:
         """
         Entry point for the command line.
         """
-        await GenRunDockerfile(self.options).cli_entrypoint()
+        GenRunDockerfile(self.options).cli_entrypoint()
