@@ -32,7 +32,7 @@ runs:
     - name: Check for Previously Downloaded SDK Package
       shell: bash
       run: |
-        if [ "$(ls -A ${{ github.workspace }}/packages)" ]; then
+        if [ "$(ls -A ${{ inputs.gaia-repo }}/build/output/package)" ]; then
           echo "SDK=present" >> $GITHUB_ENV
         else
           echo "SDK=not-present" >> $GITHUB_ENV
@@ -42,7 +42,7 @@ runs:
       if: ${{ env.SDK }} != 'present'
       uses: actions/cache@v2
       with:
-        path: ${{ inputs.gaia-repo }}/packages
+        path: ${{ inputs.gaia-repo }}/build/output/package
         key: latest-release-sdk-package
 
     - name: Tests
@@ -55,7 +55,7 @@ runs:
           --repo-path ${{ inputs.gaia-repo }} \
           --db-persistence ${{ inputs.db-persistence }} \
           --suite-name ${{ inputs.suite-name }} \
-          --package ${{ inputs.gaia-repo }}/packages
+          --package ${{ inputs.gaia-repo }}/build/output/package
 
     - name: Upload Output Files
       if: always()

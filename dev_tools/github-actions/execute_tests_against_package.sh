@@ -194,6 +194,10 @@ fi
 cd "$PACKAGE_PATH" || exit
 # shellcheck disable=SC2061
 INSTALL_PATH="$(find . -name gaia*)"
+if [[ -z "$INSTALL_PATH" ]] ; then
+    ls -la "$PACKAGE_PATH"
+    complete_process 1 "Debian package to install could not be found."
+fi
 
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Installing Debian package '$INSTALL_PATH'..."
