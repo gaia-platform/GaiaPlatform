@@ -199,6 +199,7 @@ gaia_id_t create_database(const string& name, bool throw_on_exists, bool auto_dr
     ddl_executor_t& ddl_executor = ddl_executor_t::get();
     direct_access::auto_transaction_t txn(false);
     gaia_id_t id = ddl_executor.create_database(name, throw_on_exists, auto_drop);
+    add_hash(name);
     txn.commit();
     return id;
 }
@@ -208,6 +209,7 @@ gaia_id_t create_table(const string& name, const ddl::field_def_list_t& fields)
     ddl_executor_t& ddl_executor = ddl_executor_t::get();
     direct_access::auto_transaction_t txn(false);
     gaia_id_t id = ddl_executor.create_table("", name, fields);
+    add_hash(name);
     txn.commit();
     return id;
 }
@@ -222,6 +224,7 @@ gaia_id_t create_table(
     ddl_executor_t& ddl_executor = ddl_executor_t::get();
     direct_access::auto_transaction_t txn(false);
     gaia_id_t id = ddl_executor.create_table(db_name, name, fields, throw_on_exists, auto_drop);
+    add_hash(name);
     txn.commit();
     return id;
 }
@@ -247,6 +250,7 @@ gaia_id_t create_relationship(
     ddl_executor_t& ddl_executor = ddl_executor_t::get();
     direct_access::auto_transaction_t txn(false);
     gaia_id_t id = ddl_executor.create_relationship(name, link1, link2, field_map, throw_on_exists, auto_drop);
+    add_hash(name);
     txn.commit();
     return id;
 }
@@ -265,6 +269,7 @@ gaia_id_t create_index(
     direct_access::auto_transaction_t txn(false);
     gaia_id_t id = ddl_executor.create_index(
         index_name, unique, type, db_name, table_name, field_names, throw_on_exists, auto_drop);
+    add_hash(db_name);
     txn.commit();
     return id;
 }
@@ -274,6 +279,7 @@ void drop_relationship(const string& name, bool throw_unless_exists)
     ddl_executor_t& ddl_executor = ddl_executor_t::get();
     direct_access::auto_transaction_t txn(false);
     ddl_executor.drop_relationship(name, throw_unless_exists);
+    add_hash(name);
     txn.commit();
 }
 
@@ -282,6 +288,7 @@ void drop_index(const string& name, bool throw_unless_exists)
     ddl_executor_t& ddl_executor = ddl_executor_t::get();
     direct_access::auto_transaction_t txn(false);
     ddl_executor.drop_index(name, throw_unless_exists);
+    add_hash(name);
     txn.commit();
 }
 
@@ -291,6 +298,7 @@ void drop_database(const string& name, bool throw_unless_exists)
     ddl_executor_t& ddl_executor = ddl_executor_t::get();
     direct_access::auto_transaction_t txn(false);
     ddl_executor.drop_database(name, throw_unless_exists);
+    add_hash(name);
     txn.commit();
 }
 
@@ -299,6 +307,7 @@ void drop_table(const string& name, bool throw_unless_exists)
     ddl_executor_t& ddl_executor = ddl_executor_t::get();
     direct_access::auto_transaction_t txn(false);
     ddl_executor.drop_table("", name, throw_unless_exists);
+    add_hash(name);
     txn.commit();
 }
 
@@ -308,6 +317,7 @@ void drop_table(const string& db_name, const string& name, bool throw_unless_exi
     ddl_executor_t& ddl_executor = ddl_executor_t::get();
     direct_access::auto_transaction_t txn(false);
     ddl_executor.drop_table(db_name, name, throw_unless_exists);
+    add_hash(name);
     txn.commit();
 }
 

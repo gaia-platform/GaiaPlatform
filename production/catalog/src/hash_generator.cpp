@@ -114,9 +114,11 @@ void add_hash(const std::string db_name)
 {
     // The database hash is composed of the hash for the database name, followed by the hashes
     // of all database tables.
-    for (auto& db : gaia_database_t::list().where(gaia_database_expr::name == db_name))
+    const auto& db_list = gaia_database_t::list().where(gaia_database_expr::name == db_name);
+    if (db_list.begin() != db_list.end())
     {
         multi_segment_hash db_hash;
+        auto db = *db_list.begin();
         db_hash.hash_add(db.name());
         auto db_w = db.writer();
 
