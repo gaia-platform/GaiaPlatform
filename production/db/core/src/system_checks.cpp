@@ -9,7 +9,6 @@
 #include <unistd.h>
 
 #include <charconv>
-
 #include <iostream>
 
 #include <libexplain/getrlimit.h>
