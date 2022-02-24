@@ -103,12 +103,6 @@ public:
     void destroy_persistent_log(file_sequence_t max_log_seq_to_delete);
 
     /**
-     * Register persistent store create/delete APIs. Rework to call persistent store APIs directly?
-     */
-    // void register_write_to_persistent_store_fn(std::function<void(db_recovered_object_t&)> write_obj_fn);
-    // void register_remove_from_persistent_store_fn(std::function<void(gaia::common::gaia_id_t)> remove_obj_fn);
-
-    /**
      * Set the log sequence counter.
      */
     void set_persistent_log_sequence(file_sequence_t log_seq);
@@ -153,8 +147,13 @@ private:
     void map_log_file(struct record_iterator_t* it, int file_fd, recovery_mode_t recovery_mode);
     void unmap_file(void* start, size_t size);
     bool is_remaining_file_empty(unsigned char* start, unsigned char* end);
-    void write_log_record_to_persistent_store(read_record_t* record);
-    void write_records(record_iterator_t* it, gaia_txn_id_t& last_checkpointed_commit_ts);
+    void write_log_record_to_persistent_store(
+        std::shared_ptr<persistent_store_manager_t>& persistent_store_manager,
+        read_record_t* record);
+    void write_records(
+        std::shared_ptr<persistent_store_manager_t>& persistent_store_manager,
+        record_iterator_t* it,
+        gaia_txn_id_t& last_checkpointed_commit_ts);
     bool write_log_file_to_persistent_store(
         std::shared_ptr<persistent_store_manager_t>& persistent_store_manager,
         gaia_txn_id_t& last_checkpointed_commit_ts,

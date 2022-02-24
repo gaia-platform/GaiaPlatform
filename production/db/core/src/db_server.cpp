@@ -271,16 +271,6 @@ void server_t::recover_persistent_log()
 
                 s_log_handler->open_for_writes(s_validate_persistence_batch_eventfd, s_signal_checkpoint_log_eventfd);
 
-                // auto put_obj = [&](db_recovered_object_t& obj) {
-                //     s_persistent_store->put(obj);
-                // };
-                // auto remove_obj = [=](gaia_id_t id) {
-                //     s_persistent_store->remove(id);
-                // };
-
-                // s_log_handler->register_write_to_persistent_store_fn(put_obj);
-                // s_log_handler->register_remove_from_persistent_store_fn(remove_obj);
-
                 if (s_server_conf.persistence_mode() == persistence_mode_t::e_reinitialized_on_startup)
                 {
                     s_log_handler->destroy_persistent_log(INT64_MAX);
@@ -1098,6 +1088,7 @@ void server_t::checkpoint_handler()
         // Process all existing log files.
         file_sequence_t last_processed_log_seq = 0;
         s_log_handler->recover_from_persistent_log(
+            s_persistent_store,
             s_last_checkpointed_commit_ts_lower_bound,
             last_processed_log_seq,
             max_log_seq_to_checkpoint,

@@ -324,18 +324,6 @@ void log_handler_t::create_txn_record(
     m_async_disk_writer->enqueue_pwritev_requests(writes_to_submit, m_current_file->get_file_fd(), begin_offset, uring_op_t::pwritev_txn);
 }
 
-// void log_handler_t::register_write_to_persistent_store_fn(
-//     std::function<void(db_recovered_object_t&)> write_obj_fn)
-// {
-//     write_to_persistent_store_fn = write_obj_fn;
-// }
-
-// void log_handler_t::register_remove_from_persistent_store_fn(
-//     std::function<void(gaia_id_t)> remove_obj_fn)
-// {
-//     remove_from_persistent_store_fn = remove_obj_fn;
-// }
-
 void log_handler_t::destroy_persistent_log(file_sequence_t max_log_seq_to_delete)
 {
     // Done with recovery, delete all files.
@@ -433,7 +421,7 @@ void log_handler_t::recover_from_persistent_log(
         });
 
         // halt_recovery is set to true in case an IO issue is encountered while reading the log.
-        auto halt_recovery = write_log_file_to_persistent_store(last_checkpointed_commit_ts, it);
+        auto halt_recovery = write_log_file_to_persistent_store(s_persistent_store, last_checkpointed_commit_ts, it);
 
         // Skip unmapping and closing the file in case it has some unprocessed transactions.
         if (txn_index.size() > 0)
@@ -480,7 +468,7 @@ bool log_handler_t::write_log_file_to_persistent_store(
     record_iterator_t& it)
 {
     // Iterate over records in file and write them to persistent store.
-    write_records(&it, last_checkpointed_commit_ts);
+    write_records(persistent_store_manager, &it, last_checkpointed_commit_ts);
 
     // Check that any remaining transactions have commit timestamp greater than the commit ts of the txn that was last written to the persistent store.
     for (auto entry : txn_index)
@@ -493,7 +481,9 @@ bool log_handler_t::write_log_file_to_persistent_store(
     return it.halt_recovery;
 }
 
-void log_handler_t::write_log_record_to_persistent_store(read_record_t* record)
+void log_handler_t::write_log_record_to_persistent_store(
+    std::shared_ptr<persistent_store_manager_t>& persistent_store_manager,
+    read_record_t* record)
 {
     ASSERT_PRECONDITION(record->header.record_type == record_type_t::txn, "Expected transaction record.");
 
@@ -510,7 +500,7 @@ void log_handler_t::write_log_record_to_persistent_store(read_record_t* record)
         ASSERT_INVARIANT(obj_ptr->id != common::c_invalid_gaia_id, "Recovered id cannot be invalid.");
         ASSERT_INVARIANT(obj_ptr->payload_size > 0, "Recovered object size should be greater than 0");
         // write_to_persistent_store_fn(*obj_ptr);
-        s_persistent_store->put(*obj_ptr);
+        persistent_store_manager->put(*obj_ptr);
 
         size_t requested_size = obj_ptr->payload_size + c_db_object_header_size;
 
@@ -526,12 +516,15 @@ void log_handler_t::write_log_record_to_persistent_store(read_record_t* record)
         ASSERT_INVARIANT(deleted_id, "Deleted ID cannot be null.");
         ASSERT_INVARIANT(*deleted_id > 0, "Deleted ID cannot be invalid.");
         // remove_from_persistent_store_fn(*deleted_id);
-        s_persistent_store->remove(*deleted_id);
+        persistent_store_manager->remove(*deleted_id);
         deleted_ids_ptr += sizeof(common::gaia_id_t);
     }
 }
 
-void log_handler_t::write_records(record_iterator_t* it, gaia_txn_id_t& last_checkpointed_commit_ts)
+void log_handler_t::write_records(
+    std::shared_ptr<persistent_store_manager_t>& persistent_store_manager,
+    record_iterator_t* it,
+    gaia_txn_id_t& last_checkpointed_commit_ts)
 {
     size_t record_size = 0;
 
@@ -585,7 +578,7 @@ void log_handler_t::write_records(record_iterator_t* it, gaia_txn_id_t& last_che
                     // Txn record is safe to be written to rocksdb at this point, since checksums for both
                     // the txn & decision record were validated and we asserted that the txn record is written
                     // before the decision record in the wal.
-                    write_log_record_to_persistent_store(reinterpret_cast<read_record_t*>(txn_it->second));
+                    write_log_record_to_persistent_store(persistent_store_manager, reinterpret_cast<read_record_t*>(txn_it->second));
                 }
 
                 // Update 'last_checkpointed_commit_ts' in memory so it can later be written to persistent store.
