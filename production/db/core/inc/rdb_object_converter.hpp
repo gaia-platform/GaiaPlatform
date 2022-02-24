@@ -40,27 +40,13 @@ private:
 public:
     string_writer_t() = default;
 
-    string_writer_t(size_t len)
+    get(size_t len)
     {
         m_buffer.reserve(len);
     }
 
-    inline void write_uint64(uint64_t value)
-    {
-        write(reinterpret_cast<const char* const>(&value), sizeof(value));
-    }
-
-    inline void write_uint32(uint32_t value)
-    {
-        write(reinterpret_cast<const char* const>(&value), sizeof(value));
-    }
-
-    inline void write_uint16(uint16_t value)
-    {
-        write(reinterpret_cast<const char* const>(&value), sizeof(value));
-    }
-
-    inline void write_uint8(uint8_t value)
+    template <typename T>
+    inline void write(T value)
     {
         write(reinterpret_cast<const char* const>(&value), sizeof(value));
     }

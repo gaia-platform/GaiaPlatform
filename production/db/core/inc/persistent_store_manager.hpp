@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <filesystem>
 #include <memory>
 
 #include "gaia/common.hpp"
@@ -32,7 +33,7 @@ class persistent_store_manager_t
 
 public:
     persistent_store_manager_t(
-        gaia::db::counters_t* counters, std::string data_dir);
+        gaia::db::counters_t* counters, std::filesystem::path data_dir);
     ~persistent_store_manager_t();
 
     /**
@@ -114,21 +115,27 @@ public:
     /**
      * Get value of a custom key. Used to retain a gaia counter across restarts.
      */
-    uint64_t get_value(const std::string& key);
+    uint64_t get_counter_value(const std::string& key);
 
     /**
-     * Update custom key's value. Used to retain gaia counter across restarts.
+     * Update a custom key's value. Used to retain gaia counter across restarts.
      */
-    void update_value(const std::string& key, uint64_t value_to_write);
+    void set_counter_value(const std::string& key, uint64_t value_to_write);
 
     static constexpr char c_data_dir_command_flag[] = "--data-dir";
-    static constexpr char c_persistent_store_dir_name[] = "/data";
-    static const std::string c_last_processed_log_num_key;
+    static inline const std::filesystem::path c_persistent_store_dir_name{"data"};
+
+    // Keep track of the last read log file to avoid reading it repeatedly during checkpointing.
+    static inline const std::string c_last_processed_log_seq_key = "gaia_last_processed_log_seq_key";
+
+    // Default value for any counters (example: log file sequence number) stored in the persistent store.
+    // If a key for the counter is not found, the default value is returned.
+    static inline const uint64_t c_default_counter_value = 0;
 
 private:
     gaia::db::counters_t* m_counters = nullptr;
     std::unique_ptr<gaia::db::persistence::rdb_wrapper_t> m_rdb_wrapper;
-    std::string m_data_dir_path;
+    std::filesystem::path m_data_dir_path;
 };
 
 } // namespace persistence

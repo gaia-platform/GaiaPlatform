@@ -125,25 +125,25 @@ private:
 
     std::unique_ptr<async_disk_writer_t> m_async_disk_writer;
 
+    // Recovery & Checkpointing APIs/structures.
+
+    // This map is populated when log files are read during recovery/checkpointing.
     // Map txn commit_ts to location of log record header during recovery.
     // This index is maintained on a per log file basis. Before moving to the next file
     // we assert that this index is empty as all txns have been processed.
     // Note that the recovery implementation proceeds in increasing log file order.
-    std::map<gaia_txn_id_t, unsigned char*> txn_index;
+    std::map<gaia_txn_id_t, unsigned char*> txn_records_by_commit_ts;
 
-    // This map contains the current set of txns that are being processed (by either recovery or checkpointing)
+    // This map is populated when log files are read during recovery/checkpointing.
+    // This map contains the current set of txns that are being processed. (by either recovery or checkpointing)
     // Txns are processed one decision record at a time; a single decision record may contain
     // multiple txns.
-    std::map<gaia_txn_id_t, decision_type_t> decision_index;
+    std::map<gaia_txn_id_t, decision_type_t> decision_records_by_commit_ts;
 
     gaia_txn_id_t m_max_decided_commit_ts;
 
-    // std::function<void(db_recovered_object_t&)> write_to_persistent_store_fn;
-    // std::function<void(gaia::common::gaia_id_t)> remove_from_persistent_store_fn;
-
-    // Recovery & Checkpointing APIs
-    size_t update_cursor(struct record_iterator_t* it);
-    size_t validate_recovered_record_crc(struct record_iterator_t* it);
+    size_t update_iterator(struct record_iterator_t* it);
+    size_t validate_recovered_record_checksum(struct record_iterator_t* it);
     void map_log_file(struct record_iterator_t* it, int file_fd, recovery_mode_t recovery_mode);
     void unmap_file(void* start, size_t size);
     bool is_remaining_file_empty(unsigned char* start, unsigned char* end);
@@ -153,11 +153,11 @@ private:
     void write_records(
         std::shared_ptr<persistent_store_manager_t>& persistent_store_manager,
         record_iterator_t* it,
-        gaia_txn_id_t& last_checkpointed_commit_ts);
+        gaia_txn_id_t* last_checkpointed_commit_ts);
     bool write_log_file_to_persistent_store(
         std::shared_ptr<persistent_store_manager_t>& persistent_store_manager,
-        gaia_txn_id_t& last_checkpointed_commit_ts,
-        record_iterator_t& it);
+        record_iterator_t* it,
+        gaia_txn_id_t* last_checkpointed_commit_ts);
 };
 
 } // namespace persistence

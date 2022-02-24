@@ -26,15 +26,15 @@ TEST(write_read_assert, basic)
     ASSERT_EQ(empty_payload.length(), 0);
 
     // Fill write buffer
-    writer.write_uint64(e1);
+    writer.write(e1);
     EXPECT_EQ(8, writer.get_current_position());
-    writer.write_uint64(e2);
+    writer.write(e2);
     EXPECT_EQ(16, writer.get_current_position());
-    writer.write_uint32(e3);
+    writer.write(e3);
     writer.write(payload.c_str(), payload.length());
-    writer.write_uint32(e5);
-    writer.write_uint8(e6);
-    writer.write_uint8(e7);
+    writer.write(e5);
+    writer.write(e6);
+    writer.write(e7);
 
     writer.write(empty_payload.c_str(), empty_payload.length());
 
@@ -78,7 +78,7 @@ TEST(write_read_assert, payload_edge_case)
     std::string empty_payload = "";
 
     writer.write(empty_payload.data(), empty_payload.length());
-    writer.write_uint8(e);
+    writer.write(e);
 
     rocksdb::Slice s = writer.to_slice();
     string_reader_t reader(s);

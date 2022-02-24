@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <filesystem>
 #include <utility>
 
 #include <rocksdb/utilities/transaction_db.h>
@@ -18,11 +19,16 @@ namespace db
 {
 namespace persistence
 {
+
 class rdb_wrapper_t
 {
 public:
-    rdb_wrapper_t(std::string dir, const rocksdb::WriteOptions& write_opts, rocksdb::TransactionDBOptions txn_opts)
-        : m_txn_db(nullptr), m_data_dir(std::move(dir)), m_write_options(write_opts), m_txn_options(std::move(txn_opts))
+    rdb_wrapper_t(
+        const std::filesystem::path dir,
+        const rocksdb::WriteOptions& write_opts,
+        const rocksdb::ReadOptions& read_opts,
+        rocksdb::TransactionDBOptions txn_opts)
+        : m_txn_db(nullptr), m_data_dir(std::move(dir)), m_write_options(write_opts), m_read_options(read_opts), m_txn_options(std::move(txn_opts))
     {
     }
 
@@ -63,9 +69,10 @@ public:
 
 private:
     std::unique_ptr<rocksdb::TransactionDB> m_txn_db;
-    std::string m_data_dir;
-    rocksdb::WriteOptions m_write_options;
-    rocksdb::TransactionDBOptions m_txn_options;
+    std::filesystem::path m_data_dir;
+    rocksdb::WriteOptions m_write_options{};
+    rocksdb::ReadOptions m_read_options{};
+    rocksdb::TransactionDBOptions m_txn_options{};
 };
 
 } // namespace persistence

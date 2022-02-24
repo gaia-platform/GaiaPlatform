@@ -53,6 +53,7 @@ using namespace gaia::db::messages;
 using namespace gaia::db::memory_manager;
 using namespace gaia::db::storage;
 using namespace gaia::db::transactions;
+using namespace gaia::db::persistence;
 using namespace gaia::common;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
@@ -259,6 +260,10 @@ void server_t::handle_rollback_txn(
 
 void server_t::recover_persistent_log()
 {
+    // The APIs to delete logs and recover persistent logs require a max log file sequence number to process.
+    // Passing this argument ensure that all log files are either deleted or recovered.
+    constexpr file_sequence_t c_max_log_sequence_number(std::numeric_limits<uint64_t>::max());
+
     if (c_use_gaia_log_implementation)
     {
         // If persistence is disabled, then this is a no-op.
@@ -273,11 +278,11 @@ void server_t::recover_persistent_log()
 
                 if (s_server_conf.persistence_mode() == persistence_mode_t::e_reinitialized_on_startup)
                 {
-                    s_log_handler->destroy_persistent_log(INT64_MAX);
+                    s_log_handler->destroy_persistent_log(c_max_log_sequence_number);
                 }
 
                 // Get last processed log.
-                auto last_processed_log_seq = s_persistent_store->get_value(gaia::db::persistence::persistent_store_manager_t::c_last_processed_log_num_key);
+                auto last_processed_log_seq = s_persistent_store->get_counter_value(persistent_store_manager_t::c_last_processed_log_seq_key);
 
                 // Recover only the first time this method gets called.
                 gaia_txn_id_t last_checkpointed_commit_ts = 0;
@@ -285,14 +290,14 @@ void server_t::recover_persistent_log()
                     s_persistent_store,
                     last_checkpointed_commit_ts,
                     last_processed_log_seq,
-                    INT64_MAX,
-                    gaia::db::persistence::recovery_mode_t::finish_on_first_error);
+                    c_max_log_sequence_number,
+                    recovery_mode_t::stop_on_first_error);
 
-                s_persistent_store->update_value(gaia::db::persistence::persistent_store_manager_t::c_last_processed_log_num_key, last_processed_log_seq);
+                s_persistent_store->set_counter_value(persistent_store_manager_t::c_last_processed_log_seq_key, last_processed_log_seq);
 
                 s_log_handler->set_persistent_log_sequence(last_processed_log_seq);
 
-                s_log_handler->destroy_persistent_log(INT64_MAX);
+                s_log_handler->destroy_persistent_log(c_max_log_sequence_number);
 
                 std::cout << "s_validate_persistence_batch_eventfd = " << s_validate_persistence_batch_eventfd << std::endl;
                 s_log_handler->open_for_writes(s_validate_persistence_batch_eventfd, s_signal_checkpoint_log_eventfd);
@@ -925,8 +930,7 @@ void server_t::recover_db()
             auto cleanup = make_scope_guard([]() { end_startup_txn(); });
             begin_startup_txn();
 
-            s_persistent_store = std::make_unique<gaia::db::persistence::persistent_store_manager_t>(
-                get_counters(), s_server_conf.data_dir());
+            s_persistent_store = std::make_unique<persistent_store_manager_t>(get_counters(), s_server_conf.data_dir());
             if (s_server_conf.persistence_mode() == persistence_mode_t::e_reinitialized_on_startup)
             {
                 s_persistent_store->destroy_persistent_store();
@@ -1076,13 +1080,14 @@ void server_t::log_writer_handler()
 
 void server_t::checkpoint_handler()
 {
-    // Wait for a persistent log file to be closed before checkpointing it.
-    // This can be achieved via blocking on an eventfd read.
     file_sequence_t last_deleted_log_seq = 0;
     while (true)
     {
         // Log sequence number of file ready to be checkpointed.
         file_sequence_t max_log_seq_to_checkpoint;
+
+        // Wait for a persistent log file to be closed before checkpointing it.
+        // This can be achieved via blocking on an eventfd read.
         eventfd_read(s_signal_checkpoint_log_eventfd, &max_log_seq_to_checkpoint);
 
         // Process all existing log files.
@@ -1092,9 +1097,9 @@ void server_t::checkpoint_handler()
             s_last_checkpointed_commit_ts_lower_bound,
             last_processed_log_seq,
             max_log_seq_to_checkpoint,
-            gaia::db::persistence::recovery_mode_t::checkpoint);
+            recovery_mode_t::fail_on_first_error);
 
-        s_persistent_store->update_value(gaia::db::persistence::persistent_store_manager_t::c_last_processed_log_num_key, last_processed_log_seq);
+        s_persistent_store->set_counter_value(persistent_store_manager_t::c_last_processed_log_seq_key, last_processed_log_seq);
 
         // Flush persistent store buffer to disk.
         s_persistent_store->flush();

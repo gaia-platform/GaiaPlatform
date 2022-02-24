@@ -14,6 +14,7 @@
 #include <rocksdb/utilities/transaction_db.h>
 #include <rocksdb/write_batch.h>
 
+#include "gaia_internal/common/common.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/persistent_store_error.hpp"
@@ -152,19 +153,15 @@ void rdb_wrapper_t::remove(const rocksdb::Slice& key)
 
 void rdb_wrapper_t::get(const rocksdb::Slice& key, std::string& value)
 {
-    rocksdb::DestroyDB(m_data_dir, rocksdb::Options{});
-    std::string val;
-    rocksdb::Status status = m_txn_db->Get(rocksdb::ReadOptions(), key, &val);
+    rocksdb::Status status = m_txn_db->Get(m_read_options, key, &value);
+
+    // Handle key not found error.
     if (status.IsNotFound())
     {
-        // Not found.
-        value = "";
+        value = c_empty_string;
     }
-    else if (status.ok())
-    {
-        value = val;
-    }
-    else
+    // For all other errors, throw persistent_store_error.
+    else if (!status.ok())
     {
         handle_rdb_error(status);
     }

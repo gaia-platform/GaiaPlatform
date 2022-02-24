@@ -26,26 +26,23 @@ void encode_object_base(
     common::gaia_id_t id,
     common::gaia_type_t type,
     gaia::common::reference_offset_t num_references,
-    uint16_t payload_size,
     const gaia::common::gaia_id_t* references,
+    uint16_t payload_size,
     const char* payload,
     gaia::db::persistence::string_writer_t& key,
     gaia::db::persistence::string_writer_t& value)
 {
     // Create key.
-    key.write_uint64(id);
+    key.write(id);
 
     // Create value.
-    value.write_uint32(type);
-    value.write_uint16(num_references);
-    value.write_uint16(payload_size);
+    value.write(type);
+    value.write(num_references);
+    value.write(payload_size);
 
-    auto reference_arr_ptr = references;
-    for (int i = 0; i < num_references; i++)
+    for (auto ref_ptr = references; ref_ptr < references + num_references; ++ref_ptr)
     {
-        // Encode all references.
-        value.write_uint64(*reference_arr_ptr);
-        reference_arr_ptr++;
+        value.write(*ref_ptr);
     }
 
     size_t references_size = num_references * sizeof(gaia_id_t);
@@ -68,8 +65,8 @@ void encode_object(
         gaia_object->id,
         gaia_object->type,
         gaia_object->num_references,
-        gaia_object->payload_size,
         gaia_object->references(),
+        gaia_object->payload_size,
         gaia_object->payload,
         key,
         value);
@@ -84,8 +81,8 @@ void encode_checkpointed_object(
         gaia_object->id,
         gaia_object->type,
         gaia_object->num_references,
-        gaia_object->payload_size,
         gaia_object->references(),
+        gaia_object->payload_size,
         gaia_object->payload,
         key,
         value);

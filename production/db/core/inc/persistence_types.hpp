@@ -8,6 +8,7 @@
 #include <cstddef>
 
 #include <atomic>
+#include <limits>
 #include <ostream>
 
 #include "gaia/common.hpp"
@@ -30,17 +31,14 @@ enum class recovery_mode_t : uint8_t
     // Does not tolerate any IO failure when reading a log file; any
     // IO error is treated as unrecoverable.
     // This mode is used when checkpointing log writes to RocksDB.
-    checkpoint = 0x1,
+    fail_on_first_error = 0x1,
 
     // Stop recovery on first IO error. Database will always start and will try to recover as much
     // committed data from the log as possible.
     // Updates are logged one batch as a time; Persistent batch IO is validated
     // first before marking any txn in the batch as durable (and returning a commit decision to the user);
     // Thus ignore any txn after the last seen decision timestamp before encountering IO error.
-    finish_on_first_error = 0x2,
-
-    // TODO: Already supported by 'checkpoint' option, but make this option visible to customer along with 'finish_on_first_error'
-    kill_on_first_error = 0x3,
+    stop_on_first_error = 0x2,
 };
 
 enum class record_type_t : uint8_t
@@ -137,19 +135,31 @@ struct read_record_t
 
 struct record_iterator_t
 {
-    unsigned char* cursor;
-    unsigned char* end;
-    unsigned char* stop_at;
+    // Pointer to the current record in a log file.
+    unsigned char* iterator;
+
+    // Beginning of the log file.
     unsigned char* begin;
-    void* mapped;
+
+    // End of log file.
+    unsigned char* end;
+
+    // End of log file. May not be the same as end.
+    unsigned char* stop_at;
+
+    // Value returned from the mmap() call on a persistent log file.
+    void* mapped_data;
     size_t map_size;
     int file_fd;
+
+    // Recovery mode.
     recovery_mode_t recovery_mode;
+
+    //This flag is set when halt recovery is halted.
     bool halt_recovery;
 };
 
-// The primary motivation of this buffer is to keep a hold of any additional information we want to write to the log
-// apart from the shared memory objects.
+// This buffer is used to stage non-object data to be written to the log.
 // Custom information includes
 // 1) deleted object IDs in a txn.
 // 2) custom txn headers
