@@ -161,7 +161,7 @@ repos:
 #     - id: oclint
 
 - repo: https://github.com/jumanjihouse/pre-commit-hooks
-  rev: master
+  rev: 2.1.6
   hooks:
     - id: shellcheck
     - id: script-must-have-extension
@@ -186,4 +186,6 @@ repos:
   hooks:
     - id: pylint
       exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py|production/tests/python/ps_mem.py)
-      args: [--disable=R0801]
+      args:
+      - --disable=R0801
+      - --disable=import-error

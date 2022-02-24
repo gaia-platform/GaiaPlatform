@@ -61,6 +61,7 @@ class Dependency:
         Note that the @memoize decorator means that this will only be setup
         once for any given instance of a class.
         """
+
         log = logging.getLogger(f"{self.__module__} ({self.options.target})")
         log.setLevel(self.options.log_level)
         log.propagate = False

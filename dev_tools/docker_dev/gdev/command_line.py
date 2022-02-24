@@ -42,12 +42,14 @@ class CommandLine:
         "push": __SUBCOMMAND_ID_PUSH,
     }
 
+    __DEFAULT_LOG_LEVEL = "INFO"
     __DEFAULT_BASE_IMAGE = "ubuntu:20.04"
     __DEFAULT_PORTS = []
     __DEFAULT_MOUNTS = []
     __DEFAULT_REGISTRY = None
     __DEFAULT_PLATFORM = __PLATFORM_CHOICE_MAP[platform.machine()]
     __DEFAULT_MIXINS = []
+    __DEFAULT_CFG_ENABLES = []
 
     __is_backward_compatible_enabled = False
 
@@ -80,25 +82,23 @@ class CommandLine:
 
         #  NOTE: Due to nargs='*', this will swallow all remaining arguments.
         #  NOTE: Cfg does not warn if provided --cfg-enable is not present in any gdev.cfg files
-        cfg_enables_default = []
         parser.add_argument(
             "--cfg-enables",
-            default=cfg_enables_default,
+            default=CommandLine.__DEFAULT_CFG_ENABLES,
             nargs="*",
             help=(
                 f"Enable lines in gdev.cfg files gated by `enable_if`, `enable_if_any`, and"
-                f' `enable_if_all` functions. Default: "{cfg_enables_default}"'
+                f' `enable_if_all` functions. Default: "{CommandLine.__DEFAULT_CFG_ENABLES}"'
             ),
         )
 
     @staticmethod
     def __add_log_level(parser):
-        log_level_default = "INFO"
         parser.add_argument(
             "--log-level",
-            default=log_level_default,
+            default=CommandLine.__DEFAULT_LOG_LEVEL,
             choices=CommandLine.__LOG_LEVELS,
-            help=f'Log level. Default: "{log_level_default}"',
+            help=f'Log level. Default: "{CommandLine.__DEFAULT_LOG_LEVEL}"',
         )
 
     @staticmethod
@@ -328,10 +328,11 @@ class CommandLine:
             parsed_args, "registry", CommandLine.__DEFAULT_REGISTRY
         )
 
-        if "ports" in parsed_args:
-            ports = [str(port) for port in parsed_args["ports"]]
-        else:
-            ports = CommandLine.__DEFAULT_PORTS
+        ports = (
+            [str(port) for port in parsed_args["ports"]]
+            if "ports" in parsed_args
+            else CommandLine.__DEFAULT_PORTS
+        )
         parsed_args["ports"] = frozenset(ports)
 
         mounts = CommandLine.__DEFAULT_MOUNTS
