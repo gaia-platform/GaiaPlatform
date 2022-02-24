@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include <chrono>
 #include <cstdlib>
 
+#include <chrono>
 #include <fstream>
 #include <memory>
 #include <random>
