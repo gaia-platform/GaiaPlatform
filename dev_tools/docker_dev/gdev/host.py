@@ -1,7 +1,15 @@
-from asyncio.subprocess import create_subprocess_exec, create_subprocess_shell, PIPE, Process
-from dataclasses import dataclass
+#!/usr/bin/env python3
+
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
+"""
+Module to handle communications with the host system.
+"""
+
 from logging import getLogger
-import os
 import sys
 from typing import Optional, Sequence
 import subprocess
@@ -13,121 +21,102 @@ from gdev.third_party.atools import memoize
 log = getLogger(__name__)
 
 
-@dataclass(frozen=True)
 class Host:
+    """
+    Class to handle communications with the host system.
+    """
 
     __is_drydock_enabled = False
 
     """
     Class to handle communications with the host system.
     """
+
     @staticmethod
     def set_drydock(value):
+        """
+        Set the drydock value to enable reporting of commands instead of executing them.
+        """
         Host.__is_drydock_enabled = value
 
     @staticmethod
     def is_drydock_enabled():
+        """
+        Determine if drydock mode is enabled.
+        """
         return Host.__is_drydock_enabled
 
     @staticmethod
-    async def __finish_process(err_ok: bool, process: Process, command:str) -> Sequence[str]:
-
-        stdout, stderr = await process.communicate()
-        log.debug(f'execute: return_code= {process.returncode}, command= {command}')
-        if process.returncode == 0 or err_ok:
-            if stdout is None:
-                return tuple()
-            else:
-                return tuple(stdout.decode().strip().splitlines())
-        else:
-            if stdout is not None:
-                print(stdout.decode(), file=sys.stdout)
-            if stderr is not None:
-                print(stderr.decode(), file=sys.stderr)
-            sys.exit(process.returncode)
-
-    @staticmethod
     @memoize
-    async def __execute(command: str, err_ok: bool, capture_output: bool) -> Optional[Sequence[str]]:
-        log.debug(f'execute {err_ok = } {capture_output = } {command = }')
-        process = await create_subprocess_exec(
-            *command.split(),
-            stdout=PIPE if capture_output else None,
-            stderr=PIPE if capture_output else None,
-            env=os.environ,
+    def __execute_sync(
+        command: str, err_ok: bool, capture_output: bool
+    ) -> Optional[Sequence[str]]:
+
+        log.debug(
+            "execute_sync err_ok = %s capture_output = %s command = %s",
+            err_ok,
+            capture_output,
+            command,
         )
-        return await Host.__finish_process(err_ok=err_ok, process=process, command=command)
+        with subprocess.Popen(
+            command.replace("  ", " ").split(" "),
+            stdout=subprocess.PIPE if capture_output else None,
+            stderr=subprocess.PIPE if capture_output else None,
+        ) as child_process:
 
-    @staticmethod
-    def __execute_sync(command: str, err_ok: bool, capture_output: bool) -> Optional[Sequence[str]]:
+            process_return_code = child_process.wait()
+            log.debug(
+                "execute: return_code= %s, command= %s", process_return_code, command
+            )
 
-        log.debug(f'execute_sync {err_ok = } {capture_output = } {command = }')
-        child_process = subprocess.Popen(
-            command.split(" "),
-            stdout=PIPE if capture_output else None,
-            stderr=PIPE if capture_output else None)
-
-        process_return_code = child_process.wait()
-        log.debug(f'execute: return_code= {process_return_code}, command= {command}')
-
-        if process_return_code == 0 or err_ok:
-            if child_process.stdout is None:
-                return tuple()
-            else:
-                process_stdout_output = ""
-                for line in io.TextIOWrapper(child_process.stdout, encoding="utf-8"):
-                    process_stdout_output += line
+            if process_return_code == 0 or err_ok:
+                if child_process.stdout is None:
+                    return tuple()
+                process_stdout_output = "".join(
+                    io.TextIOWrapper(child_process.stdout, encoding="utf-8")
+                )
                 return tuple(process_stdout_output.strip().splitlines())
-        else:
             if child_process.stdout is not None:
-                process_stdout_output = ""
-                for line in io.TextIOWrapper(child_process.stdout, encoding="utf-8"):
-                    process_stdout_output += line
+                process_stdout_output = "".join(
+                    io.TextIOWrapper(child_process.stdout, encoding="utf-8")
+                )
                 print(process_stdout_output, file=sys.stdout)
             if child_process.stderr is not None:
-                process_stderr_output = ""
-                for line in io.TextIOWrapper(child_process.stderr, encoding="utf-8"):
-                    process_stderr_output += line
+                process_stderr_output = "".join(
+                    io.TextIOWrapper(child_process.stderr, encoding="utf-8")
+                )
                 print(process_stderr_output, file=sys.stderr)
             sys.exit(process_return_code)
 
     @staticmethod
-    async def execute(command: str, *, err_ok: bool = False) -> None:
+    def execute_sync(command: str, *, err_ok: bool = False) -> None:
         """
         Execute the specified command string without capturing any of the output.
         """
-        if Host.is_drydock_enabled:
+        if Host.is_drydock_enabled():
             print(f"[execute:{command}]")
         else:
-            await Host.__execute(capture_output=False, command=command, err_ok=err_ok)
+            Host.__execute_sync(capture_output=False, command=command, err_ok=err_ok)
 
     @staticmethod
-    async def execute_and_get_lines(command: str, *, err_ok: bool = False) -> Sequence[str]:
+    def execute_and_get_lines_sync(
+        command: str, *, err_ok: bool = False
+    ) -> Sequence[str]:
         """
         Execute the specified command string and capture the output.
         """
-        return await Host.__execute(capture_output=True, command=command, err_ok=err_ok)
-
-    @staticmethod
-    async def execute_and_get_line(command: str, *, err_ok: bool = False) -> str:
-        """
-        Execute the specified command string and capture the single line of output.
-        """
-        if Host.is_drydock_enabled and command.startswith("docker image inspect"):
-            lines = ["<no value>"]
-        else:
-            lines = await Host.__execute(capture_output=True, command=command, err_ok=err_ok)
-        assert len(lines) == 1, f'Must contain one line: {lines = }'
-        return lines[0]
+        return Host.__execute_sync(capture_output=True, command=command, err_ok=err_ok)
 
     @staticmethod
     def execute_and_get_line_sync(command: str, *, err_ok: bool = False) -> str:
         """
         Execute the specified command string and capture the single line of output.
         """
-        if Host.is_drydock_enabled and command.startswith("docker image inspect"):
+        if Host.is_drydock_enabled() and command.startswith("docker image inspect"):
             lines = ["<no value>"]
         else:
-            lines = Host.__execute_sync(capture_output=True, command=command, err_ok=err_ok)
-        assert len(lines) == 1, f'Must contain one line: {lines = }'
+            lines = Host.__execute_sync(
+                capture_output=True, command=command, err_ok=err_ok
+            )
+        assert len(lines) == 1, f"Must contain one line: {lines = }"
         return lines[0]

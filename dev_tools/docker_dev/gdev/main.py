@@ -1,30 +1,45 @@
+#!/usr/bin/env python3
+
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
 """
-Module to
+Module to provide a single entry point from the operating system.
 """
 
 import sys
-from time import sleep
+import logging
+from gdev.dependency import Dependency
 
-class DockerDev():
-    def main(self):
+
+# pylint: disable=too-few-public-methods
+class DockerDev:
+    """
+    Class to provide a single entry point from the operating system.
+    """
+
+    @staticmethod
+    def main():
         """
-        Main entrance point.
+        Main entry point from the operating system.
         """
-        from gdev.dependency import Dependency
         dependency = Dependency.of_sys_argv()
 
-        import logging
         logging.basicConfig(level=dependency.options.log_level)
 
-        import asyncio
         try:
-            asyncio.run(dependency.cli_entrypoint())
-        except dependency.Exception as e:
-            print(f'\n{e}', file=sys.stderr)
+            dependency.cli_entrypoint()
+        except dependency.Exception as this_exception:
+            print(f"\n{this_exception}", file=sys.stderr)
         finally:
             logging.shutdown()
 
         return 0
+
+
+# pylint: enable=too-few-public-methods
 
 if __name__ == "__main__":
     DockerDev().main()

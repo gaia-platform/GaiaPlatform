@@ -378,9 +378,10 @@ void client_t::begin_transaction()
     ASSERT_INVARIANT(
         s_txn_id.is_valid(),
         "Begin timestamp should not be invalid!");
-    ASSERT_INVARIANT(
-        s_txn_log_offset != c_invalid_log_offset,
-        "Txn log offset should not be invalid!");
+    // NEW (txn log offsets)
+    // ASSERT_INVARIANT(
+    //     s_txn_log_offset != c_invalid_log_offset,
+    //     "Txn log offset should not be invalid!");
 
     // Apply all txn logs received from the server to our snapshot, in order.
     const auto transaction_logs_to_apply = txn_info->transaction_logs_to_apply();

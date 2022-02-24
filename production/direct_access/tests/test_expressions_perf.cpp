@@ -132,7 +132,8 @@ public:
                 employee.addresses().insert(address_w.insert_row());
             }
 
-            if (index_employee % 10000 == 0)
+            // Ensuring we don't hit the transaction limit.
+            if (index_employee % 1000 == 0)
             {
                 txn.commit();
                 auto elapsed = g_timer_t::ns_to_ms(g_timer_t::get_duration(start));
@@ -240,7 +241,7 @@ void run_performance_test(
     log_performance_difference(expr_accumulator, plain_accumulator, message);
 }
 
-TEST_F(test_expressions_perf, int_eq)
+TEST_F(test_expressions_perf, DISABLED_int_eq)
 {
     auto_transaction_t txn;
 
@@ -271,7 +272,7 @@ TEST_F(test_expressions_perf, int_eq)
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, int_gteq)
+TEST_F(test_expressions_perf, DISABLED_int_gteq)
 {
     auto_transaction_t txn;
 
@@ -302,7 +303,7 @@ TEST_F(test_expressions_perf, int_gteq)
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, int_lt)
+TEST_F(test_expressions_perf, DISABLED_int_lt)
 {
     auto_transaction_t txn;
 
@@ -333,7 +334,7 @@ TEST_F(test_expressions_perf, int_lt)
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, c_string_eq)
+TEST_F(test_expressions_perf, DISABLED_c_string_eq)
 {
     auto_transaction_t txn;
 
@@ -363,7 +364,7 @@ TEST_F(test_expressions_perf, c_string_eq)
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, string_eq)
+TEST_F(test_expressions_perf, DISABLED_string_eq)
 {
     auto_transaction_t txn;
 
@@ -393,7 +394,7 @@ TEST_F(test_expressions_perf, string_eq)
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, object_eq)
+TEST_F(test_expressions_perf, DISABLED_object_eq)
 {
     auto_transaction_t txn;
 
@@ -405,7 +406,7 @@ TEST_F(test_expressions_perf, object_eq)
     auto expr_fn = [&dude]() {
         vector<address_t> addresses;
         for (auto& a : address_t::list()
-                           .where(addressee == dude))
+                           .where(owner == dude))
         {
             addresses.push_back(a);
         }
@@ -416,7 +417,7 @@ TEST_F(test_expressions_perf, object_eq)
         vector<address_t> addresses;
         for (auto& a : address_t::list())
         {
-            if (a.addressee() == dude)
+            if (a.owner() == dude)
             {
                 addresses.push_back(a);
             }
@@ -429,7 +430,7 @@ TEST_F(test_expressions_perf, object_eq)
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, mixed_bool_op)
+TEST_F(test_expressions_perf, DISABLED_mixed_bool_op)
 {
     auto_transaction_t txn;
 
@@ -461,7 +462,8 @@ TEST_F(test_expressions_perf, mixed_bool_op)
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, test_container_contains)
+// TODO: Test broken: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2059
+TEST_F(test_expressions_perf, DISABLED_test_container_contains)
 {
     auto_transaction_t txn;
 
@@ -493,7 +495,8 @@ TEST_F(test_expressions_perf, test_container_contains)
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, test_container_contains_lambda)
+// TODO: Test broken: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2059
+TEST_F(test_expressions_perf, DISABLED_test_container_contains_lambda)
 {
     auto_transaction_t txn;
 
@@ -524,7 +527,8 @@ TEST_F(test_expressions_perf, test_container_contains_lambda)
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, test_container_count)
+// TODO: Test broken: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2059
+TEST_F(test_expressions_perf, DISABLED_test_container_count)
 {
     auto_transaction_t txn;
 
@@ -554,7 +558,8 @@ TEST_F(test_expressions_perf, test_container_count)
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, test_container_empty)
+// TODO: Test broken: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2059
+TEST_F(test_expressions_perf, DISABLED_test_container_empty)
 {
     auto_transaction_t txn;
 

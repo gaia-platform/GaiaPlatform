@@ -118,8 +118,15 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
 
             if (datagram_size == 0)
             {
-                // We received EOF from the server, so close the socket and tell
-                // the caller to stop iteration.
+                // We received EOF from the server, so tell the caller to stop iterating.
+                // We also close the socket here to make it easier to detect further calls
+                // into the iterator, which would now hit the earlier assertion.
+                // This early close is also an optimization to allow the server to close
+                // its cursor socket and terminate its cursor thread immediately
+                // after the client detects the end of iteration.
+                //
+                // See: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2056
+                // for additional discussion of this code.
                 common::close_fd(*stream_socket_ptr);
                 return std::nullopt;
             }

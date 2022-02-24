@@ -412,7 +412,7 @@ typedef txn_log_t logs_t[c_max_logs + 1];
 // locator value).
 struct id_index_t
 {
-    size_t hash_node_count;
+    std::atomic<size_t> hash_node_count;
     hash_node_t hash_nodes[c_hash_buckets + c_max_locators];
 };
 
