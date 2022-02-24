@@ -9,19 +9,19 @@
 Module to create a Docker container from the image build with `gdev build`.
 """
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 import os
 import shlex
 import sys
 
 from gdev.custom.gaia_path import GaiaPath
-from gdev.dependency import Dependency
+from gdev.sections._abc.gdev_action import GdevAction
 from gdev.third_party.atools import memoize
 from gdev.host import Host
 from gdev.sections._abc.build import GenAbcBuild
 
 
-class GenAbcRun(Dependency, ABC):
+class GenAbcRun(GdevAction):
     """
     Create a Docker container from the image build with `gdev build` and run a command in it.
     """

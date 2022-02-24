@@ -9,17 +9,17 @@
 Module to parse the target gdev.cfg for build rules.
 """
 
-from abc import ABC
 from inspect import getfile
 import re
 from typing import FrozenSet, Iterable, Pattern
 
 from gdev.custom.gaia_path import GaiaPath
-from gdev.dependency import Dependency
+from gdev.sections._abc.gdev_action import GdevAction
 from gdev.third_party.atools import memoize
+from gdev.sections.section_action_exception import SectionActionException
 
 
-class GenAbcCfg(Dependency, ABC):
+class GenAbcCfg(GdevAction):
     """
     Class to parse the target gdev.cfg for build rules.
     """
@@ -111,7 +111,9 @@ class GenAbcCfg(Dependency, ABC):
     @memoize
     def __get_raw_text(path: GaiaPath) -> str:
         if not path.is_file():
-            raise Dependency.Abort(f'File "<repo_root>/{path.context()}" must exist.')
+            raise SectionActionException(
+                f'File "<repo_root>/{path.context()}" must exist.'
+            )
 
         text = path.read_text()
         return text
