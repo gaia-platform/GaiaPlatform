@@ -29,6 +29,8 @@ namespace common
  */
 
 constexpr char c_empty_string[] = "";
+constexpr char c_whitespace_chars[] = " \n\r\t\f\v";
+constexpr size_t c_uint64_bit_count = std::numeric_limits<uint64_t>::digits;
 
 /**
  * The type of a Gaia object identifier.
@@ -214,12 +216,20 @@ static_assert(
  */
 constexpr reference_offset_t c_invalid_reference_offset;
 
-// The offset of the parent reference in an anchor node.
-constexpr common::reference_offset_t c_ref_anchor_parent_offset{0};
-// The offset of the first child reference in an anchor node.
-constexpr common::reference_offset_t c_ref_anchor_first_child_offset{1};
-// Total number of reference slots in an anchor node.
-constexpr common::reference_offset_t c_ref_anchor_ref_num{2};
+/**
+ * The offset of the parent reference in an anchor node.
+ */
+constexpr reference_offset_t c_ref_anchor_parent_offset{0};
+
+/**
+ * The offset of the first child reference in an anchor node.
+ */
+constexpr reference_offset_t c_ref_anchor_first_child_offset{1};
+
+/**
+ * The total number of reference slots in an anchor node.
+ */
+constexpr reference_offset_t c_ref_anchor_ref_num{2};
 
 // This assertion ensures that the default type initialization
 // matches the value of the invalid constant.
@@ -251,9 +261,6 @@ constexpr std::underlying_type_t<T> get_enum_value(T val)
 {
     return static_cast<std::underlying_type_t<T>>(val);
 }
-
-constexpr char c_whitespace_chars[] = " \n\r\t\f\v";
-constexpr size_t c_uint64_bit_count = std::numeric_limits<uint64_t>::digits;
 
 /*@}*/
 } // namespace common
