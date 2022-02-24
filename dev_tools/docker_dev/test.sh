@@ -14,5 +14,8 @@ END
     exit 1
 fi
 
-# shellcheck disable=SC2068
-pipenv run pytest --full-trace -ra $@
+# --full-trace
+PYTEST_ARGS="-ra"
+PYTEST_ARGS="$PYTEST_ARGS --cov --cov-branch --cov-report html:report/coverage"
+# shellcheck disable=SC2068,SC2086
+pipenv run pytest $PYTEST_ARGS $@
