@@ -29,6 +29,7 @@ class ParserStructure:
 
     command_parts: Tuple[str, ...]
     doc: str
+    alt_doc: str
     sub_parser_structures: FrozenSet[ParserStructure] = frozenset()
 
     def get_command_class(self) -> str:
@@ -69,9 +70,16 @@ class ParserStructure:
                 ]
             )
             doc = getdoc(module.__dict__[command_class]) or ""
-            parser_structure = ParserStructure(command_parts=command_parts, doc=doc)
+            alt_doc = ""
+            instance = module.__dict__[command_class](None)
+            if hasattr(instance, "cli_entrypoint_description"):
+                alt_doc = instance.cli_entrypoint_description()
+            parser_structure = ParserStructure(
+                command_parts=command_parts, doc=doc, alt_doc=alt_doc
+            )
         else:
             doc = getdoc(module)
+            alt_doc = ""
             sub_parser_structures: Set[ParserStructure] = set()
             for module in iter_modules(spec.submodule_search_locations):
                 if not (sub_command := module.name).startswith("_"):
@@ -81,6 +89,7 @@ class ParserStructure:
             parser_structure = ParserStructure(
                 command_parts=command_parts,
                 doc=doc,
+                alt_doc=alt_doc,
                 sub_parser_structures=frozenset(sub_parser_structures),
             )
 

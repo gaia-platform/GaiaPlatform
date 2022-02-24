@@ -19,6 +19,13 @@ class Push(Dependency):
     Class to provide for the `push` subcommand entry point.
     """
 
+    @classmethod
+    def cli_entrypoint_description(cls):
+        """
+        Description to display in help for this subcommand.
+        """
+        return "Build the image, if required, and push the image to the image registry."
+
     @memoize
     def cli_entrypoint(self) -> None:
         """

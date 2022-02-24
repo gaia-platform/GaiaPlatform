@@ -18,6 +18,13 @@ class Cfg(GenRunCfg):
     Class to provide for the `cfg` subcommand entry point.
     """
 
+    @classmethod
+    def cli_entrypoint_description(cls):
+        """
+        Description to display in help for this subcommand.
+        """
+        return "Generate the configuration used as the basis for the dockerfile."
+
     @memoize
     def cli_entrypoint(self) -> None:
         """
