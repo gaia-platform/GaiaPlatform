@@ -47,8 +47,8 @@ dac_iterator_t<T_class>& dac_iterator_t<T_class>::operator++()
 
         // If we have an object and a filter function and the object doesn't satisfy the filter,
         // then keep looking for another object that does.
-        if (m_obj && m_filter_fn
-            && (!m_filter_fn(m_obj).has_value() || !m_filter_fn(m_obj).value()))
+        common::optional_t<bool> predicate_value = (m_obj && m_filter_fn) ? m_filter_fn(m_obj) : static_cast<bool>(m_obj);
+        if (!predicate_value.has_value() || !predicate_value.value())
         {
             continue;
         }
