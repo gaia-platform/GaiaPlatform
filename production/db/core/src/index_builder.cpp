@@ -90,7 +90,7 @@ bool index_builder_t::index_exists(common::gaia_id_t index_id)
 
 indexes_t::iterator index_builder_t::create_empty_index(const catalog_core::index_view_t& index_view, bool skip_catalog_integrity_check)
 {
-    ASSERT_PRECONDITION(skip_catalog_integrity_check || index_view.table_id() != c_invalid_gaia_id, "Cannot find table for index.");
+    ASSERT_PRECONDITION(skip_catalog_integrity_check || index_view.table_id().is_valid(), "Cannot find table for index.");
 
     bool is_unique = index_view.unique();
 

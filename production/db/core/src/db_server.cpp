@@ -149,15 +149,18 @@ void server_t::txn_begin()
     s_txn_log_offset = allocate_log_offset();
 
     // REVIEW (GAIAPLAT-2033): This exception needs to be thrown on the client!
-    if (s_txn_log_offset == c_invalid_log_offset)
+    if (!s_txn_log_offset.is_valid())
     {
         throw transaction_log_allocation_failure_internal();
     }
 }
 
-void server_t::get_txn_log_offsets_for_snapshot(gaia_txn_id_t begin_ts, std::vector<std::pair<gaia_txn_id_t, log_offset_t>>& txn_ids_with_log_offsets_for_snapshot)
+void server_t::get_txn_log_offsets_for_snapshot(
+    gaia_txn_id_t begin_ts, std::vector<std::pair<gaia_txn_id_t, log_offset_t>>& txn_ids_with_log_offsets_for_snapshot)
 {
-    ASSERT_PRECONDITION(txn_ids_with_log_offsets_for_snapshot.empty(), "Vector passed in to get_txn_log_offsets_for_snapshot() should be empty!");
+    ASSERT_PRECONDITION(
+        txn_ids_with_log_offsets_for_snapshot.empty(),
+        "Vector passed in to get_txn_log_offsets_for_snapshot() should be empty!");
 
     // Take a snapshot of the post-apply watermark and scan backward from
     // begin_ts, stopping either just before the saved watermark or at the first
@@ -761,7 +764,7 @@ void server_t::init_indexes()
         gaia_id_t type_record_id
             = type_id_mapping_t::instance().get_record_id(obj->type);
 
-        if (type_record_id == c_invalid_gaia_id)
+        if (!type_record_id.is_valid())
         {
             // Orphaned object detected. We continue instead of throw here because of GAIAPLAT-1276.
             // This should be reverted once we no longer orphan objects during a DROP operation.
@@ -828,8 +831,8 @@ gaia_txn_id_t server_t::begin_startup_txn()
 
     // Allocate begin timestamp and txn log offset.
     txn_begin();
-    ASSERT_POSTCONDITION(s_txn_id != c_invalid_gaia_txn_id, "Transaction begin timestamp should be valid!");
-    ASSERT_POSTCONDITION(s_txn_log_offset != c_invalid_log_offset, "Transaction log offset should be valid!");
+    ASSERT_POSTCONDITION(s_txn_id.is_valid(), "Transaction begin timestamp should be valid!");
+    ASSERT_POSTCONDITION(s_txn_log_offset.is_valid(), "Transaction log offset should be valid!");
 
     return s_txn_id;
 }
@@ -2020,7 +2023,7 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
 {
     ASSERT_PRECONDITION(txn_log, "txn_log must be a valid address!");
     ASSERT_PRECONDITION(
-        txn_log->begin_ts() == c_invalid_gaia_txn_id,
+        !txn_log->begin_ts().is_valid(),
         "A deallocated txn_log cannot have an owning txn!");
 
     for (auto log_record = txn_log->log_records; log_record < txn_log->log_records + txn_log->record_count; ++log_record)
@@ -2350,7 +2353,7 @@ void server_t::gc_applied_txn_logs()
             }
 
             log_offset_t log_offset = txn_metadata_t::get_txn_log_offset(ts);
-            ASSERT_INVARIANT(log_offset != c_invalid_log_offset, "A commit_ts txn metadata entry must have a valid log offset!");
+            ASSERT_INVARIANT(log_offset.is_valid(), "A commit_ts txn metadata entry must have a valid log offset!");
             txn_log_t* txn_log = get_txn_log_from_offset(log_offset);
             gaia_txn_id_t begin_ts = txn_metadata_t::get_begin_ts_from_commit_ts(ts);
 
@@ -2604,14 +2607,14 @@ void server_t::perform_pre_commit_work_for_txn()
 {
     // Process the txn log to update record lists.
     txn_log_t* txn_log = get_txn_log();
-    for (log_record_t* lr = txn_log->log_records; lr < txn_log->log_records + txn_log->record_count; ++lr)
+    for (log_record_t* log_record = txn_log->log_records; log_record < txn_log->log_records + txn_log->record_count; ++log_record)
     {
         // In case of insertions, we want to update the record list for the object's type.
         // We do this after updating the shared locator view, so we can access the new object's data.
-        if (lr->old_offset.is_valid() == false)
+        if (log_record->old_offset.is_valid() == false)
         {
-            gaia_locator_t locator = lr->locator;
-            gaia_offset_t offset = lr->new_offset;
+            gaia_locator_t locator = log_record->locator;
+            gaia_offset_t offset = log_record->new_offset;
 
             ASSERT_INVARIANT(
                 offset.is_valid(), "An unexpected invalid object offset was found in the log record!");
@@ -3122,22 +3125,22 @@ log_offset_t server_t::allocate_log_offset()
     log_offset_t allocated_offset = allocate_used_log_offset();
 
     // If no deallocated offset is available, then allocate the next unused offset.
-    if (allocated_offset == c_invalid_log_offset)
+    if (!allocated_offset.is_valid())
     {
         allocated_offset = allocate_unused_log_offset();
     }
 
     // At this point, we must either have a valid offset, or we have run out of log space.
     ASSERT_INVARIANT(
-        (allocated_offset != c_invalid_log_offset) || (s_next_unused_log_offset > c_last_log_offset),
+        allocated_offset.is_valid() || (s_next_unused_log_offset > c_last_log_offset),
         "Log offset allocation cannot fail unless log space is exhausted!");
 
     // Initialize txn log metadata.
     // REVIEW: We could move this initialization logic into a wrapping function,
     // so this function is only responsible for allocating the offset.
-    if (allocated_offset != c_invalid_log_offset)
+    if (allocated_offset.is_valid())
     {
-        ASSERT_INVARIANT(s_txn_id != c_invalid_gaia_txn_id, "Cannot allocate a txn log without a valid txn ID!");
+        ASSERT_INVARIANT(s_txn_id.is_valid(), "Cannot allocate a txn log without a valid txn ID!");
         txn_log_t* txn_log = get_txn_log_from_offset(allocated_offset);
         // If we allocated an unallocated or deallocated offset, its log header must be uninitialized.
         ASSERT_INVARIANT(txn_log->begin_ts() == 0, "Cannot allocate a txn log with a valid txn ID!");
@@ -3158,7 +3161,7 @@ void server_t::deallocate_log_offset(log_offset_t offset)
     // The txn log header at this offset must have an invalid txn ID and zero refcount.
     // REVIEW: these asserts require access to shared memory, so could be debug-only.
     txn_log_t* txn_log = get_txn_log_from_offset(offset);
-    ASSERT_PRECONDITION(txn_log->begin_ts() == c_invalid_gaia_txn_id, "Cannot deallocate a txn log with a valid txn ID!");
+    ASSERT_PRECONDITION(!txn_log->begin_ts().is_valid(), "Cannot deallocate a txn log with a valid txn ID!");
     ASSERT_PRECONDITION(txn_log->reference_count() == 0, "Cannot deallocate a txn log with a nonzero reference count!");
 
     memory_manager::safe_set_bit_value(

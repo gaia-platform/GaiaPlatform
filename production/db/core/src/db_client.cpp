@@ -120,7 +120,7 @@ client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::opt
                     if (db_object->type == type)
                     {
                         ASSERT_PRECONDITION(
-                            db_object->id != c_invalid_gaia_id, "Database object has an invalid gaia_id value!");
+                            db_object->id.is_valid(), "Database object has an invalid gaia_id value!");
                         return db_object->id;
                     }
                 }
@@ -378,16 +378,15 @@ void client_t::begin_transaction()
     ASSERT_INVARIANT(
         s_txn_id.is_valid(),
         "Begin timestamp should not be invalid!");
-    // NEW (txn log offsets)
-    // ASSERT_INVARIANT(
-    //     s_txn_log_offset != c_invalid_log_offset,
-    //     "Txn log offset should not be invalid!");
+    ASSERT_INVARIANT(
+        s_txn_log_offset.is_valid(),
+        "Txn log offset should not be invalid!");
 
     // Apply all txn logs received from the server to our snapshot, in order.
     const auto transaction_logs_to_apply = txn_info->transaction_logs_to_apply();
     for (const auto txn_log_info : *transaction_logs_to_apply)
     {
-        // REVIEW: After snapshot reuse is enabled, skip applying logs with
+        // REVIEW: After snapshot reuse (GAIAPLAT-2068) is enabled, skip applying logs with
         // txn_log_info.commit_timestamp <= s_latest_applied_commit_ts.
         apply_log_from_offset(s_private_locators.data(), txn_log_info->log_offset());
     }

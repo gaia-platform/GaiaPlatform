@@ -77,8 +77,8 @@ inline gaia_offset_t locator_to_offset(gaia_locator_t locator)
 {
     locators_t* locators = gaia::db::get_locators();
     return locator_exists(locator)
-        ? (*locators)[locator].load()
-        : c_invalid_gaia_offset.value();
+        ? (*locators)[locator]
+        : c_invalid_gaia_offset;
 }
 
 inline db_object_t* offset_to_ptr(gaia_offset_t offset)

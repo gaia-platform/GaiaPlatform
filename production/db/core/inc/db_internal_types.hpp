@@ -262,6 +262,8 @@ struct txn_log_t
 
     static uint64_t word_from_begin_ts_and_refcount(gaia_txn_id_t begin_ts, size_t refcount)
     {
+        ASSERT_PRECONDITION(begin_ts.is_valid(), "Begin timestamp must be valid!");
+        ASSERT_PRECONDITION(refcount < (1 << c_txn_log_refcount_bits), "Reference count must fit in 16 bits!");
         return (begin_ts << transactions::txn_metadata_entry_t::c_txn_ts_shift) | (refcount << c_txn_log_refcount_shift);
     }
 
@@ -279,7 +281,9 @@ struct txn_log_t
     {
         // We should only call this on a newly allocated log offset.
         uint64_t old_begin_ts_with_refcount = begin_ts_with_refcount;
-        ASSERT_PRECONDITION(old_begin_ts_with_refcount == 0, "Cannot call set_begin_ts() on an initialized txn log header!");
+        ASSERT_PRECONDITION(
+            old_begin_ts_with_refcount == 0,
+            "Cannot call set_begin_ts() on an initialized txn log header!");
 
         uint64_t new_begin_ts_with_refcount = word_from_begin_ts_and_refcount(begin_ts, 0);
         bool has_set_value = begin_ts_with_refcount.compare_exchange_strong(old_begin_ts_with_refcount, new_begin_ts_with_refcount);
@@ -289,7 +293,7 @@ struct txn_log_t
     // Returns false if the owning txn (begin_ts) changed, true otherwise.
     inline bool acquire_reference(gaia_txn_id_t begin_ts)
     {
-        ASSERT_PRECONDITION(begin_ts != c_invalid_gaia_txn_id, "acquire_reference() must be called with a valid begin_ts!");
+        ASSERT_PRECONDITION(begin_ts.is_valid(), "acquire_reference() must be called with a valid begin_ts!");
         while (true)
         {
             uint64_t old_begin_ts_with_refcount = begin_ts_with_refcount;
@@ -318,7 +322,7 @@ struct txn_log_t
     // We pass the original begin_ts only to be able to check invariants.
     inline void release_reference(gaia_txn_id_t begin_ts)
     {
-        ASSERT_PRECONDITION(begin_ts != c_invalid_gaia_txn_id, "release_reference() must be called with a valid begin_ts!");
+        ASSERT_PRECONDITION(begin_ts.is_valid(), "release_reference() must be called with a valid begin_ts!");
         while (true)
         {
             uint64_t old_begin_ts_with_refcount = begin_ts_with_refcount;
@@ -355,7 +359,7 @@ struct txn_log_t
             return false;
         }
 
-        uint64_t new_begin_ts_with_refcount = word_from_begin_ts_and_refcount(c_invalid_gaia_txn_id, 0);
+        uint64_t new_begin_ts_with_refcount = 0;
         if (begin_ts_with_refcount.compare_exchange_strong(old_begin_ts_with_refcount, new_begin_ts_with_refcount))
         {
             return true;
