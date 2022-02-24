@@ -186,7 +186,7 @@ void child_side_auto_connect(
             {
                 // This is the only child because next node does not exist.
                 auto anchor = gaia_ptr_t::from_gaia_id(references[relationship_view.parent_offset()]);
-                if (anchor.references()[c_ref_anchor_parent_offset] == c_invalid_gaia_id)
+                if (anchor.references()[c_ref_anchor_parent_offset].is_valid() == false)
                 {
                     // Delete the anchor node if it is not connected to some parent node.
                     anchor.reset();
@@ -450,7 +450,7 @@ void remove(gaia_ptr_t& object, bool force)
                     // relationships or 1:1 relationships.
                     continue;
                 }
-                if (anchor.references()[c_ref_anchor_first_child_offset] == c_invalid_gaia_id)
+                if (anchor.references()[c_ref_anchor_first_child_offset].is_valid() == false)
                 {
                     // There is no child. We can delete the parent.
                     continue;
