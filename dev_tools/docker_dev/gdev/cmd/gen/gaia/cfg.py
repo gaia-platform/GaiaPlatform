@@ -8,7 +8,8 @@
 """
 Module to provide a subclass of the GenAbcCfg class for the Gaia section.
 """
-from .._abc.cfg import GenAbcCfg
+
+from gdev.cmd.gen._abc.cfg import GenAbcCfg
 
 
 class GenGaiaCfg(GenAbcCfg):

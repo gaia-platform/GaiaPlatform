@@ -8,8 +8,9 @@
 """
 Module to satisfy the push requirements for the PRERUN section.
 """
-from .build import GenPreRunBuild
-from .._abc.push import GenAbcPush
+
+from gdev.cmd.gen.pre_run.build import GenPreRunBuild
+from gdev.cmd.gen._abc.push import GenAbcPush
 
 
 class GenPreRunPush(GenAbcPush):

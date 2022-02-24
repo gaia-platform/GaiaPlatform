@@ -8,6 +8,7 @@
 """
 Module to parse the target gdev.cfg for build rules.
 """
+
 from abc import ABC
 from inspect import getfile
 import re
@@ -16,6 +17,7 @@ from typing import FrozenSet, Iterable, Pattern
 from gdev.custom.gaia_path import GaiaPath
 from gdev.dependency import Dependency
 from gdev.third_party.atools import memoize
+
 
 class GenAbcCfg(Dependency, ABC):
     """
@@ -28,8 +30,8 @@ class GenAbcCfg(Dependency, ABC):
         """
         Determine the path to the configuration file that we are observing.
         """
-        path = GaiaPath.repo() / self.options.target / 'gdev.cfg'
-        self.log.debug('path = %s', path)
+        path = GaiaPath.repo() / self.options.target / "gdev.cfg"
+        self.log.debug("path = %s", path)
         return path
 
     @property
@@ -37,7 +39,7 @@ class GenAbcCfg(Dependency, ABC):
         """
         Determine the section name in the configuration based on the type of the class.
         """
-        return GaiaPath(getfile(type(self))).parent.name.strip('_')
+        return GaiaPath(getfile(type(self))).parent.name.strip("_")
 
     @memoize
     def __get_begin_pattern(self) -> Pattern:
@@ -45,8 +47,8 @@ class GenAbcCfg(Dependency, ABC):
         Get the regex pattern that identifies the beginning of the section.
         """
 
-        begin_pattern = re.compile(fr'^\[{self.section_name}]$')
-        self.log.debug('begin_pattern = %s', begin_pattern)
+        begin_pattern = re.compile(fr"^\[{self.section_name}]$")
+        self.log.debug("begin_pattern = %s", begin_pattern)
         return begin_pattern
 
     @memoize
@@ -54,10 +56,9 @@ class GenAbcCfg(Dependency, ABC):
         """
         Get the regex pattern that identifies the end of the section.
         """
-        end_pattern = re.compile(r'^(# .*|)\[.+]$')
-        self.log.debug('end_pattern = %s', end_pattern)
+        end_pattern = re.compile(r"^(# .*|)\[.+]$")
+        self.log.debug("end_pattern = %s", end_pattern)
         return end_pattern
-
 
     # pylint: disable=eval-used
     @staticmethod
@@ -71,35 +72,39 @@ class GenAbcCfg(Dependency, ABC):
         # - `__locals` field set to an empty dictionary
         # - `__globals` field set to contain empty `__builtins__` item
 
-        return tuple((
-            eval(
-                f'fr""" {line} """',
-                {
-                    'build_dir': GaiaPath.build,
-                    'enable_if': lambda enable:
-                        '' if enable in cfg_enables
+        return tuple(
+            (
+                eval(
+                    f'fr""" {line} """',
+                    {
+                        "build_dir": GaiaPath.build,
+                        "enable_if": lambda enable: ""
+                        if enable in cfg_enables
                         else f'# enable by setting "{enable}": ',
-                    'enable_if_not': lambda enable:
-                        '' if enable not in cfg_enables
+                        "enable_if_not": lambda enable: ""
+                        if enable not in cfg_enables
                         else f'# enable by not setting "{enable}": ',
-                    'enable_if_any': lambda *enables:
-                        '' if set(enables) & cfg_enables
+                        "enable_if_any": lambda *enables: ""
+                        if set(enables) & cfg_enables
                         else f'# enable by setting any of "{sorted(set(enables))}": ',
-                    'enable_if_not_any': lambda *enables:
-                        '' if not (set(enables) & cfg_enables)
+                        "enable_if_not_any": lambda *enables: ""
+                        if not (set(enables) & cfg_enables)
                         else f'# enable by not setting any of "{sorted(set(enables))}": ',
-                    'enable_if_all': lambda *enables:
-                        '' if set(enables) in cfg_enables
+                        "enable_if_all": lambda *enables: ""
+                        if set(enables) in cfg_enables
                         else f'# enable by setting all of "{sorted(set(enables))}": ',
-                    'enable_if_not_all': lambda *enables:
-                        '' if not (set(enables) in cfg_enables)
+                        "enable_if_not_all": lambda *enables: ""
+                        if not (set(enables) in cfg_enables)
                         else f'# enable by not setting all of "{sorted(set(enables))}": ',
-                    'source_dir': GaiaPath.source,
-                    "__builtins__": {}
-                }, {}
-            )[1:-1]
-            for line in (GenAbcCfg.__get_raw_text(path)).splitlines()
-        ))
+                        "source_dir": GaiaPath.source,
+                        "__builtins__": {},
+                    },
+                    {},
+                )[1:-1]
+                for line in (GenAbcCfg.__get_raw_text(path)).splitlines()
+            )
+        )
+
     # pylint: enable=eval-used
 
     @staticmethod
@@ -136,20 +141,20 @@ class GenAbcCfg(Dependency, ABC):
         section_lines = []
         for iline in ilines:
             line_parts = [iline]
-            while line_parts[-1].endswith('\\'):
-                if not (next_line := next(ilines)).strip().startswith('#'):
+            while line_parts[-1].endswith("\\"):
+                if not (next_line := next(ilines)).strip().startswith("#"):
                     line_parts.append(next_line)
-            section_lines.append('\n    '.join(line_parts))
+            section_lines.append("\n    ".join(line_parts))
 
         section_lines = [
             section_line
             for section_line in section_lines
-            if (section_line and not section_line.startswith('#'))
+            if (section_line and not section_line.startswith("#"))
         ]
 
         section_lines = tuple(section_lines)
 
-        self.log.debug('section_lines = %s', section_lines)
+        self.log.debug("section_lines = %s", section_lines)
 
         return section_lines
 
@@ -158,4 +163,4 @@ class GenAbcCfg(Dependency, ABC):
         """
         Execution entrypoint for this module.
         """
-        print(f'[{self.section_name}]\n' + '\n'.join(self.get_section_lines()))
+        print(f"[{self.section_name}]\n" + "\n".join(self.get_section_lines()))

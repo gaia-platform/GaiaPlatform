@@ -8,8 +8,9 @@
 """
 Module to satisfy the push requirements for the WEB section.
 """
-from .build import GenWebBuild
-from .._abc.push import GenAbcPush
+
+from gdev.cmd.gen.web.build import GenWebBuild
+from gdev.cmd.gen._abc.push import GenAbcPush
 
 
 class GenWebPush(GenAbcPush):

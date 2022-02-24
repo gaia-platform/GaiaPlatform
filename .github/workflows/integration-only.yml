@@ -26,14 +26,19 @@ jobs:
       - name: Create Directory To Host Install Package Cache
         shell: bash
         run: |
-          mkdir -p ${{ github.workspace }}/packages
+          mkdir -p ${{ github.workspace }}/build/output/package
 
       - name: Download Debian Install Package
         continue-on-error: true
         uses: actions/download-artifact@v2
         with:
           name: SDK Install Package
-          path: ${{ github.workspace }}/packages
+          path: ${{ github.workspace }}/build/output/package
+
+      - name: Create Directory To Host Install Package Cache
+        shell: bash
+        run: |
+          ls -la ${{ github.workspace }}/build/output/package
 
       - name: Run Integration Tests
         uses: ./.github/actions/integration-test-job

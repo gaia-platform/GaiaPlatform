@@ -8,8 +8,9 @@
 """
 Module to satisfy the build requirements to generate the dockerfile for the WEB section.
 """
-from .dockerfile import GenWebDockerfile
-from .._abc.build import GenAbcBuild
+
+from gdev.cmd.gen.web.dockerfile import GenWebDockerfile
+from gdev.cmd.gen._abc.build import GenAbcBuild
 
 
 class GenWebBuild(GenAbcBuild):

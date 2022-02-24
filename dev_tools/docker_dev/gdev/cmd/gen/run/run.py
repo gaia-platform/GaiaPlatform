@@ -8,8 +8,9 @@
 """
 Module to satisfy the run requirements for the RUN section.
 """
-from .build import GenRunBuild
-from .._abc.run import GenAbcRun
+
+from gdev.cmd.gen.run.build import GenRunBuild
+from gdev.cmd.gen._abc.run import GenAbcRun
 
 
 class GenRunRun(GenAbcRun):

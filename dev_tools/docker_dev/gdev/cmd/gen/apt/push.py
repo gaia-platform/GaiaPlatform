@@ -8,8 +8,9 @@
 """
 Module to satisfy the push requirements for the APT section.
 """
-from .build import GenAptBuild
-from .._abc.push import GenAbcPush
+
+from gdev.cmd.gen.apt.build import GenAptBuild
+from gdev.cmd.gen._abc.push import GenAbcPush
 
 
 class GenAptPush(GenAbcPush):

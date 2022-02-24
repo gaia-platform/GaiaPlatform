@@ -25,6 +25,7 @@ class GaiaPath(PosixPath):
     """
     Class to provide various pathing utilities to make things simpler.
     """
+
     _repo: GaiaPath = None
 
     def context(self) -> GaiaPath:
@@ -52,7 +53,7 @@ class GaiaPath(PosixPath):
         """
         Determine the path to where the mixins are stored.
         """
-        return cls.repo() / 'dev_tools' / 'gdev' / 'mixin'
+        return cls.repo() / "dev_tools" / "gdev" / "mixin"
 
     @classmethod
     def repo(cls) -> GaiaPath:
@@ -62,35 +63,37 @@ class GaiaPath(PosixPath):
         if cls._repo is None:
             repo = GaiaPath(
                 check_output(
-                    'git rev-parse --show-toplevel'.split(),
-                    cwd=f'{GaiaPath(__file__).parent}'
-                ).decode().strip()
+                    "git rev-parse --show-toplevel".split(),
+                    cwd=f"{GaiaPath(__file__).parent}",
+                )
+                .decode()
+                .strip()
             )
 
-            log.debug('repo = %s', repo)
+            log.debug("repo = %s", repo)
 
             cls._repo = repo
 
         return cls._repo
 
     @classmethod
-    def build(cls, path: Union[GaiaPath, str] = '/') -> GaiaPath:
+    def build(cls, path: Union[GaiaPath, str] = "/") -> GaiaPath:
         """
         Compute a path along the "/build" tree in the container.
         """
-        return GaiaPath('/build') / path
+        return GaiaPath("/build") / path
 
     @classmethod
-    def source(cls, path: Union[GaiaPath, str] = '/') -> GaiaPath:
+    def source(cls, path: Union[GaiaPath, str] = "/") -> GaiaPath:
         """
         Compute a path along the "/source" tree in the container.
         """
-        return GaiaPath('/source') / path
+        return GaiaPath("/source") / path
 
     def write_text(self, data: str, encoding=None, errors=None) -> None:
         """
         Write the specified text to the given file.
         """
-        log.debug('Writing to %s, text: \n%s', self, indent(data, "    "))
+        log.debug("Writing to %s, text: \n%s", self, indent(data, "    "))
         self.parent.mkdir(parents=True, exist_ok=True)
         super().write_text(data, encoding=encoding, errors=errors)

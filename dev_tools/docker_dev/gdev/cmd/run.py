@@ -11,7 +11,7 @@ Module to provide for the `run` subcommand entry point.
 
 from gdev.dependency import Dependency
 from gdev.third_party.atools import memoize
-from .gen.run.run import GenRunRun
+from gdev.cmd.gen.run.run import GenRunRun
 
 
 class Run(Dependency):
