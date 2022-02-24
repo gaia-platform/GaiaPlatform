@@ -9,12 +9,11 @@
 Module to provide for the `cfg` subcommand entry point.
 """
 
-from gdev.dependency import Dependency
-from gdev.third_party.atools import memoize
 from gdev.sections.run.build import GenRunBuild
+from gdev.sections._custom.build import GenCustomBuild
 
 
-class Build(Dependency):
+class Build:
     """
     Class to provide for the `build` subcommand entry point.
     """
@@ -26,9 +25,13 @@ class Build(Dependency):
         """
         return "Build the image based on the assembled dockerfile."
 
-    @memoize
-    def cli_entrypoint(self) -> None:
+    @classmethod
+    def cli_entrypoint(cls, options) -> None:
         """
         Execution entrypoint for this module.
         """
-        GenRunBuild(self.options).cli_entrypoint()
+        build = GenRunBuild(options)
+        if options.mixins:
+            build = GenCustomBuild(options=options, base_build=build)
+
+        build.run()

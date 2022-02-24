@@ -9,12 +9,11 @@
 Module to provide for the `run` subcommand entry point.
 """
 
-from gdev.dependency import Dependency
-from gdev.third_party.atools import memoize
 from gdev.sections.run.run import GenRunRun
+from gdev.sections._custom.run import GenCustomRun
 
 
-class Run(Dependency):
+class Run:
     """
     Class to provide for the `run` subcommand entry point.
     """
@@ -26,9 +25,13 @@ class Run(Dependency):
         """
         return "Build the image, if required, and execute a container for GaiaPlatform development."
 
-    @memoize
-    def cli_entrypoint(self) -> None:
+    @classmethod
+    def cli_entrypoint(cls, options) -> None:
         """
         Execution entrypoint for this module.
         """
-        GenRunRun(self.options).cli_entrypoint()
+        run = GenRunRun(options)
+        if options.mixins:
+            run = GenCustomRun(options=options, base_run=run)
+
+        run.run()

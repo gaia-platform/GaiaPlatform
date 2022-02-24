@@ -130,8 +130,13 @@ def determine_old_script_behavior(gdev_arguments):
     )
     # executor = SubprocessExecutor(original_gdev_script_path)
 
+    old_gdev_arguments = gdev_arguments[:]
+    if "--backward" in old_gdev_arguments:
+        index = old_gdev_arguments.index("--backward")
+        del old_gdev_arguments[index]
+
     arguments_to_use = [original_gdev_script_path]
-    arguments_to_use.extend(gdev_arguments)
+    arguments_to_use.extend(old_gdev_arguments)
 
     with subprocess.Popen(
         arguments_to_use,

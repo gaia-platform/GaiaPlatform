@@ -9,12 +9,12 @@
 Module to provide for the `dockerfile` subcommand entry point.
 """
 
-from gdev.dependency import Dependency
-from gdev.third_party.atools import memoize
+from gdev.command_line import CommandLine
 from gdev.sections.run.dockerfile import GenRunDockerfile
+from gdev.sections._custom.dockerfile import GenCustomDockerfile
 
 
-class Dockerfile(Dependency):
+class Dockerfile:
     """
     Class to provide for the `dockerfile` subcommand entry point.
     """
@@ -26,9 +26,18 @@ class Dockerfile(Dependency):
         """
         return "Assemble the dockerfile based on the generated configuration."
 
-    @memoize
-    def cli_entrypoint(self) -> None:
+    @classmethod
+    def cli_entrypoint(cls, options) -> None:
         """
         Entry point for the command line.
         """
-        GenRunDockerfile(self.options).cli_entrypoint()
+        dockerfile = GenRunDockerfile(options)
+        if options.mixins:
+            dockerfile = GenCustomDockerfile(
+                options=options, base_dockerfile=dockerfile
+            )
+        dockerfile.run()
+        if CommandLine.is_backward_compatibility_mode_enabled():
+            print(dockerfile.path.read_text())
+        else:
+            print(f"Dockerfile written to: {dockerfile.path}")
