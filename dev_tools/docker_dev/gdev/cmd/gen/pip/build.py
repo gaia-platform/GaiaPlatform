@@ -8,8 +8,9 @@
 """
 Module to satisfy the build requirements to generate the dockerfile for the PIP section.
 """
-from .dockerfile import GenPipDockerfile
-from .._abc.build import GenAbcBuild
+
+from gdev.cmd.gen.pip.dockerfile import GenPipDockerfile
+from gdev.cmd.gen._abc.build import GenAbcBuild
 
 
 class GenPipBuild(GenAbcBuild):

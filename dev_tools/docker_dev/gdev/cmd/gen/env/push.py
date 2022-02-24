@@ -8,8 +8,9 @@
 """
 Module to satisfy the push requirements for the ENV section.
 """
-from .build import GenEnvBuild
-from .._abc.push import GenAbcPush
+
+from gdev.cmd.gen.env.build import GenEnvBuild
+from gdev.cmd.gen._abc.push import GenAbcPush
 
 
 class GenEnvPush(GenAbcPush):

@@ -8,8 +8,9 @@
 """
 Module to satisfy the build requirements to generate the dockerfile for the APT section.
 """
-from .dockerfile import GenAptDockerfile
-from .._abc.build import GenAbcBuild
+
+from gdev.cmd.gen.apt.dockerfile import GenAptDockerfile
+from gdev.cmd.gen._abc.build import GenAbcBuild
 
 
 class GenAptBuild(GenAbcBuild):

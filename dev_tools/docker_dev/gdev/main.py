@@ -10,30 +10,36 @@ Module to provide a single entry point from the operating system.
 """
 
 import sys
-from time import sleep
+import logging
+from gdev.dependency import Dependency
 
-class DockerDev():
+
+# pylint: disable=too-few-public-methods
+class DockerDev:
     """
     Class to provide a single entry point from the operating system.
     """
-    def main(self):
+
+    @staticmethod
+    def main():
         """
         Main entry point from the operating system.
         """
-        from gdev.dependency import Dependency
         dependency = Dependency.of_sys_argv()
 
-        import logging
         logging.basicConfig(level=dependency.options.log_level)
 
         try:
             dependency.cli_entrypoint()
-        except dependency.Exception as e:
-            print(f'\n{e}', file=sys.stderr)
+        except dependency.Exception as this_exception:
+            print(f"\n{this_exception}", file=sys.stderr)
         finally:
             logging.shutdown()
 
         return 0
+
+
+# pylint: enable=too-few-public-methods
 
 if __name__ == "__main__":
     DockerDev().main()

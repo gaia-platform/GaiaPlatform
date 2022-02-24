@@ -9,8 +9,8 @@
 Module to satisfy the run requirements for the APT section.
 """
 
-from .build import GenAptBuild
-from .._abc.run import GenAbcRun
+from gdev.cmd.gen.apt.build import GenAptBuild
+from gdev.cmd.gen._abc.run import GenAbcRun
 
 
 class GenAptRun(GenAbcRun):

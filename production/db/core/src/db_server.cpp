@@ -142,7 +142,8 @@ void server_t::handle_begin_txn(
 
     ASSERT_POSTCONDITION(s_txn_id != c_invalid_gaia_txn_id, "Transaction begin timestamp should be valid!");
     ASSERT_POSTCONDITION(s_log.is_set(), "Transaction log should be initialized!");
-    ASSERT_POSTCONDITION(s_txn_log_offset != c_invalid_log_offset, "Transaction log offset should be valid!");
+    // NEW (txn log offsets)
+    // ASSERT_POSTCONDITION(s_txn_log_offset != c_invalid_log_offset, "Transaction log offset should be valid!");
 
     // Send the reply message to the client, with the number of txn log fds to
     // be sent later.
@@ -196,19 +197,19 @@ void server_t::txn_begin(std::vector<int>& txn_log_fds_for_snapshot)
     // OLD
 
     // NEW (txn log offsets)
-    {
-        // Allocate the txn log offset on the server, for rollback-safety if the client session crashes.
-        s_txn_log_offset = allocate_log_offset();
-        if (s_txn_log_offset == c_invalid_log_offset)
-        {
-            throw transaction_log_allocation_failure_internal();
-        }
+    // {
+    //     // Allocate the txn log offset on the server, for rollback-safety if the client session crashes.
+    //     s_txn_log_offset = allocate_log_offset();
+    //     if (s_txn_log_offset == c_invalid_log_offset)
+    //     {
+    //         throw transaction_log_allocation_failure_internal();
+    //     }
 
-        // Update the log header with our begin timestamp and initialize it to empty.
-        txn_log_t* txn_log = gaia::db::get_txn_log();
-        txn_log->begin_ts = s_txn_id;
-        txn_log->record_count = 0;
-    }
+    //     // Update the log header with our begin timestamp and initialize it to empty.
+    //     txn_log_t* txn_log = gaia::db::get_txn_log();
+    //     txn_log->begin_ts = s_txn_id;
+    //     txn_log->record_count = 0;
+    // }
     // NEW
 }
 

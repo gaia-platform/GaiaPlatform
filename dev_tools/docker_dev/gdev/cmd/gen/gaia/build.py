@@ -8,8 +8,9 @@
 """
 Module to satisfy the build requirements to generate the dockerfile for the GAIA section.
 """
-from .dockerfile import GenGaiaDockerfile
-from .._abc.build import GenAbcBuild
+
+from gdev.cmd.gen.gaia.dockerfile import GenGaiaDockerfile
+from gdev.cmd.gen._abc.build import GenAbcBuild
 
 
 class GenGaiaBuild(GenAbcBuild):

@@ -84,19 +84,19 @@ inline void client_t::txn_log(
     // OLD
 
     // NEW (txn log offsets)
-    {
-        txn_log_t* txn_log = get_txn_log();
-        if (txn_log->record_count == c_max_log_records)
-        {
-            throw transaction_object_limit_exceeded_internal();
-        }
+    // {
+    //     txn_log_t* txn_log = get_txn_log();
+    //     if (txn_log->record_count == c_max_log_records)
+    //     {
+    //         throw transaction_object_limit_exceeded_internal();
+    //     }
 
-        // Initialize the new record and increment the record count.
-        auto& lr = txn_log->log_records[txn_log->record_count++];
-        lr.locator = locator;
-        lr.old_offset = old_offset;
-        lr.new_offset = new_offset;
-    }
+    //     // Initialize the new record and increment the record count.
+    //     auto& lr = txn_log->log_records[txn_log->record_count++];
+    //     lr.locator = locator;
+    //     lr.old_offset = old_offset;
+    //     lr.new_offset = new_offset;
+    // }
     // NEW
 }
 

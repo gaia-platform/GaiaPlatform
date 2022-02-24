@@ -8,8 +8,9 @@
 """
 Module to satisfy the run requirements for the GAIA section.
 """
-from .build import GenGaiaBuild
-from .._abc.run import GenAbcRun
+
+from gdev.cmd.gen.gaia.build import GenGaiaBuild
+from gdev.cmd.gen._abc.run import GenAbcRun
 
 
 class GenGaiaRun(GenAbcRun):

@@ -20,6 +20,7 @@ from gdev.third_party.atools import memoize
 
 log = getLogger(__name__)
 
+
 class Host:
     """
     Class to handle communications with the host system.
@@ -30,6 +31,7 @@ class Host:
     """
     Class to handle communications with the host system.
     """
+
     @staticmethod
     def set_drydock(value):
         """
@@ -46,35 +48,43 @@ class Host:
 
     @staticmethod
     @memoize
-    def __execute_sync(command: str, err_ok: bool, capture_output: bool) -> Optional[Sequence[str]]:
+    def __execute_sync(
+        command: str, err_ok: bool, capture_output: bool
+    ) -> Optional[Sequence[str]]:
 
-        log.debug(f'execute_sync {err_ok = } {capture_output = } {command = }')
-        child_process = subprocess.Popen(
+        log.debug(
+            "execute_sync err_ok = %s capture_output = %s command = %s",
+            err_ok,
+            capture_output,
+            command,
+        )
+        with subprocess.Popen(
             command.replace("  ", " ").split(" "),
             stdout=subprocess.PIPE if capture_output else None,
-            stderr=subprocess.PIPE if capture_output else None)
+            stderr=subprocess.PIPE if capture_output else None,
+        ) as child_process:
 
-        process_return_code = child_process.wait()
-        log.debug(f'execute: return_code= {process_return_code}, command= {command}')
+            process_return_code = child_process.wait()
+            log.debug(
+                "execute: return_code= %s, command= %s", process_return_code, command
+            )
 
-        if process_return_code == 0 or err_ok:
-            if child_process.stdout is None:
-                return tuple()
-            else:
-                process_stdout_output = ""
-                for line in io.TextIOWrapper(child_process.stdout, encoding="utf-8"):
-                    process_stdout_output += line
+            if process_return_code == 0 or err_ok:
+                if child_process.stdout is None:
+                    return tuple()
+                process_stdout_output = "".join(
+                    io.TextIOWrapper(child_process.stdout, encoding="utf-8")
+                )
                 return tuple(process_stdout_output.strip().splitlines())
-        else:
             if child_process.stdout is not None:
-                process_stdout_output = ""
-                for line in io.TextIOWrapper(child_process.stdout, encoding="utf-8"):
-                    process_stdout_output += line
+                process_stdout_output = "".join(
+                    io.TextIOWrapper(child_process.stdout, encoding="utf-8")
+                )
                 print(process_stdout_output, file=sys.stdout)
             if child_process.stderr is not None:
-                process_stderr_output = ""
-                for line in io.TextIOWrapper(child_process.stderr, encoding="utf-8"):
-                    process_stderr_output += line
+                process_stderr_output = "".join(
+                    io.TextIOWrapper(child_process.stderr, encoding="utf-8")
+                )
                 print(process_stderr_output, file=sys.stderr)
             sys.exit(process_return_code)
 
@@ -89,7 +99,9 @@ class Host:
             Host.__execute_sync(capture_output=False, command=command, err_ok=err_ok)
 
     @staticmethod
-    def execute_and_get_lines_sync(command: str, *, err_ok: bool = False) -> Sequence[str]:
+    def execute_and_get_lines_sync(
+        command: str, *, err_ok: bool = False
+    ) -> Sequence[str]:
         """
         Execute the specified command string and capture the output.
         """
@@ -103,6 +115,8 @@ class Host:
         if Host.is_drydock_enabled() and command.startswith("docker image inspect"):
             lines = ["<no value>"]
         else:
-            lines = Host.__execute_sync(capture_output=True, command=command, err_ok=err_ok)
-        assert len(lines) == 1, f'Must contain one line: {lines = }'
+            lines = Host.__execute_sync(
+                capture_output=True, command=command, err_ok=err_ok
+            )
+        assert len(lines) == 1, f"Must contain one line: {lines = }"
         return lines[0]

@@ -8,12 +8,13 @@
 """
 Module to satisfy the build requirements to generate the dockerfile where MIXINs are used.
 """
+
 from dataclasses import dataclass
 from typing import Mapping
 
 from gdev.third_party.atools import memoize
-from .dockerfile import GenCustomDockerfile
-from .._abc.build import GenAbcBuild
+from gdev.cmd.gen._custom.dockerfile import GenCustomDockerfile
+from gdev.cmd.gen._abc.build import GenAbcBuild
 
 
 @dataclass(frozen=True, repr=False)
@@ -21,6 +22,7 @@ class GenCustomBuild(GenAbcBuild):
     """
     Class to satisfy the build requirements to generate the dockerfile where MIXINs are used.
     """
+
     base_build: GenAbcBuild
 
     @property
@@ -37,15 +39,16 @@ class GenCustomBuild(GenAbcBuild):
         """
         return {
             **super()._get_wanted_label_value_by_name(),
-            'Mixins': f'{sorted(self.options.mixins)}'.replace(' ', '')
+            "Mixins": f"{sorted(self.options.mixins)}".replace(" ", ""),
         }
 
     @memoize
     def _get_actual_label_value_by_name(self) -> Mapping[str, str]:
         """
-        Get the hash of an image with the actual label values that are called for by the configuration.
+        Get the hash of an image with the actual label values that are called
+        for by the configuration.
         """
         return {
             **super()._get_actual_label_value_by_name(),
-            'Mixins': super()._get_actual_label_value('Mixins')
+            "Mixins": super()._get_actual_label_value("Mixins"),
         }

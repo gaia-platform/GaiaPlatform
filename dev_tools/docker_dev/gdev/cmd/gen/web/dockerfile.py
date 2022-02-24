@@ -8,9 +8,10 @@
 """
 Module to generate the WEB section of the dockerfile.
 """
+
 from gdev.third_party.atools import memoize
-from .cfg import GenWebCfg
-from .._abc.dockerfile import GenAbcDockerfile
+from gdev.cmd.gen._abc.dockerfile import GenAbcDockerfile
+from gdev.cmd.gen.web.cfg import GenWebCfg
 
 
 class GenWebDockerfile(GenAbcDockerfile):
@@ -30,9 +31,9 @@ class GenWebDockerfile(GenAbcDockerfile):
         """
         Return text for the FROM line of the final build stage.
         """
-        from_section = f'FROM web_base AS {self.get_name()}'
+        from_section = f"FROM web_base AS {self.get_name()}"
 
-        self.log.debug(f'{from_section = }')
+        self.log.debug("from_section = %s", from_section)
 
         return from_section
 
@@ -43,14 +44,15 @@ class GenWebDockerfile(GenAbcDockerfile):
         """
 
         if section_lines := self.cfg.get_section_lines():
+            formatted_section_lines = " \\\n        ".join(section_lines)
             run_statement = (
-                f'RUN wget '
-                + ' \\\n        '.join(section_lines)
-                + ' \\\n    && apt-get remove --autoremove -y wget'
+                "RUN wget "
+                + formatted_section_lines
+                + " \\\n    && apt-get remove --autoremove -y wget"
             )
         else:
-            run_statement = ''
+            run_statement = ""
 
-        self.log.debug(f'{run_statement = }')
+        self.log.debug("run_statement = %s", run_statement)
 
         return run_statement

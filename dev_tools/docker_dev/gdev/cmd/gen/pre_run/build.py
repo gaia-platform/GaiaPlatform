@@ -8,11 +8,9 @@
 """
 Module to satisfy the build requirements to generate the dockerfile for the PRERUN section.
 """
-from typing import Iterable
 
-from gdev.third_party.atools import memoize
-from .dockerfile import GenPreRunDockerfile
-from .._abc.build import GenAbcBuild
+from gdev.cmd.gen.pre_run.dockerfile import GenPreRunDockerfile
+from gdev.cmd.gen._abc.build import GenAbcBuild
 
 
 class GenPreRunBuild(GenAbcBuild):
