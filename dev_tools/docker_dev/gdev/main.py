@@ -72,16 +72,19 @@ class DockerDev:
         """
         Main entry point from the operating system.
         """
-        subcommand, options = DockerDev.__of_args(tuple(sys.argv[1:]))
-
-        logging.basicConfig(level=options.log_level)
-
         try:
-            subcommand.cli_entrypoint(options)
-        except SectionActionException as this_exception:
+            subcommand, options = DockerDev.__of_args(tuple(sys.argv[1:]))
+
+            logging.basicConfig(level=options.log_level)
+
+            try:
+                subcommand.cli_entrypoint(options)
+            except SectionActionException as this_exception:
+                print(f"\n{this_exception}", file=sys.stderr)
+            finally:
+                logging.shutdown()
+        except ValueError as this_exception:
             print(f"\n{this_exception}", file=sys.stderr)
-        finally:
-            logging.shutdown()
 
         return 0
 

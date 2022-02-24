@@ -868,7 +868,7 @@ def test_generate_docker_run_force():
     assert run_line == __construct_base_run_command_line()
 
 
-def test_generate_docker_run_args():
+def test_generate_docker_run_args_old():
     """
     Make sure that we can generate a request to docker to run the image built
     by previous steps.  Any trailing arguments are passed to container.
@@ -876,7 +876,63 @@ def test_generate_docker_run_args():
 
     # Arrange
     executor = get_executor()
+    suppplied_arguments = ["run", "--backward", "--dry-dock", "not-an-argument"]
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
+
+    # Act
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
+
+    # Assert
+    execute_results.assert_results(
+        expected_output, expected_error, expected_return_code
+    )
+
+    build_line = __find_docker_build_line(expected_output)
+    assert build_line == __construct_base_build_line()
+
+    run_line = __find_docker_run_line(expected_output)
+    run_line = __find_and_remove(run_line, ' -c "not-an-argument"', look_at_end=True)
+    assert run_line == __construct_base_run_command_line()
+
+
+def test_generate_docker_run_args_new():
+    """
+    Per request, only the `--` form of the argument is preserved going forward.
+    """
+
+    # Arrange
+    executor = get_executor()
     suppplied_arguments = ["run", "--dry-dock", "not-an-argument"]
+    expected_return_code = 0
+    expected_output = ""
+    expected_error = "arguments to pass to docker run must be prefaced with `--`"
+
+    # Act
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
+
+    # Assert
+    execute_results.assert_results(
+        expected_output, expected_error, expected_return_code
+    )
+
+
+def test_generate_docker_run_explicit_args():
+    """
+    Make sure that we can generate a request to docker to run the image built
+    by previous steps.  Any trailing arguments are passed to container.
+    """
+
+    # Arrange
+    executor = get_executor()
+    suppplied_arguments = ["run", "--dry-dock", "--", "not-an-argument"]
     (
         expected_return_code,
         expected_output,

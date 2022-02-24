@@ -15,4 +15,4 @@ END
 fi
 
 # shellcheck disable=SC2068
-pipenv run pytest -ra $@
+pipenv run pytest --full-trace -ra $@

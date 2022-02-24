@@ -19,6 +19,7 @@ import io
 
 HELP_POSITIONAL_PREFIX = """positional arguments:
   args                  Args to be forwarded on to docker run, if applicable.
+                        Must start with the argument `--`.
 
 """
 HELP_BASE_ARGUMENTS = """optional arguments:
