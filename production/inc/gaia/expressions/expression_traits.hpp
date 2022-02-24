@@ -9,6 +9,7 @@
 #include <type_traits>
 
 #include "gaia/expressions/expression_base.hpp"
+#include "gaia/optional.hpp"
 
 namespace gaia
 {
