@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
+"""
+Module to provide for the `dockerfile` subcommand entry point.
+"""
+
+from gdev.dependency import Dependency
+from gdev.third_party.atools import memoize
+from gdev.sections.run.dockerfile import GenRunDockerfile
+
+
+class Dockerfile(Dependency):
+    """
+    Class to provide for the `dockerfile` subcommand entry point.
+    """
+
+    @classmethod
+    def cli_entrypoint_description(cls):
+        """
+        Description to display in help for this subcommand.
+        """
+        return "Assemble the dockerfile based on the generated configuration."
+
+    @memoize
+    def cli_entrypoint(self) -> None:
+        """
+        Entry point for the command line.
+        """
+        GenRunDockerfile(self.options).cli_entrypoint()
