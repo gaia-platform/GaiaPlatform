@@ -103,18 +103,18 @@ static_assert(
 /**
  * Opaque handle to a gaia record.
  */
-class gaia_handle_t : public int_type_t<uint64_t, 0>
+class gaia_handle_t : public int_type_t<uint32_t, 0>
 {
 public:
     // By default, we should initialize to an invalid value.
     constexpr gaia_handle_t()
-        : int_type_t<uint64_t, 0>()
+        : int_type_t<uint32_t, 0>()
     {
     }
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    constexpr gaia_handle_t(uint64_t value)
-        : int_type_t<uint64_t, 0>(value)
+    constexpr gaia_handle_t(uint32_t value)
+        : int_type_t<uint32_t, 0>(value)
     {
     }
 };
