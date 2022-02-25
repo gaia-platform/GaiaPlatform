@@ -169,14 +169,19 @@ class CommandLine:
         )
 
     @staticmethod
-    def __add_registry(parser):
+    def __add_registry(parser, is_backward_compatible_guess):
+
+        help_text = (
+            "Registry to push images and query cached build stages."
+            if is_backward_compatible_guess
+            else "Optional registry to use for caching build stages.  "
+            + "Required registry for pushing images."
+        )
+        help_text = f"{help_text}\nDefault: {CommandLine.__DEFAULT_REGISTRY}"
         parser.add_argument(
             "--registry",
             default=CommandLine.__DEFAULT_REGISTRY,
-            help=(
-                "Registry to push images and query cached build stages."
-                f" Default: {CommandLine.__DEFAULT_REGISTRY}"
-            ),
+            help=help_text,
         )
 
     @staticmethod
@@ -190,6 +195,15 @@ class CommandLine:
             "args",
             nargs=REMAINDER,
             help=help_text,
+        )
+
+    @staticmethod
+    def __add_backward(parser):
+        parser.add_argument(
+            "--backward",
+            action="store_true",
+            default=False,
+            help=SUPPRESS,
         )
 
     @staticmethod
@@ -207,12 +221,7 @@ class CommandLine:
             default=False,
             help=SUPPRESS,
         )
-        parser.add_argument(
-            "--backward",
-            action="store_true",
-            default=False,
-            help=SUPPRESS,
-        )
+        CommandLine.__add_backward(parser)
 
         if is_backward_compatible_guess:
             CommandLine.__add_base_image(parser)
@@ -223,7 +232,7 @@ class CommandLine:
             CommandLine.__add_mounts(parser)
             CommandLine.__add_platform(parser)
             CommandLine.__add_ports(parser)
-            CommandLine.__add_registry(parser)
+            CommandLine.__add_registry(parser, is_backward_compatible_guess)
             CommandLine.__add_docker_run_arguments(parser, is_backward_compatible_guess)
         else:
             CommandLine.__add_log_level(parser)
@@ -233,7 +242,7 @@ class CommandLine:
                 CommandLine.__add_mixins(parser)
             if subcommand_id >= CommandLine.__SUBCOMMAND_ID_BUILD:
                 CommandLine.__add_platform(parser)
-                CommandLine.__add_registry(parser)
+                CommandLine.__add_registry(parser, is_backward_compatible_guess)
             if subcommand_id == CommandLine.__SUBCOMMAND_ID_RUN:
                 CommandLine.__add_force_build(parser)
                 CommandLine.__add_mounts(parser)
@@ -277,8 +286,10 @@ class CommandLine:
 
             return parser
 
+        base_parser = ArgumentParser(prog="gdev", allow_abbrev=False)
+        CommandLine.__add_backward(base_parser)
         return inner(
-            ArgumentParser(prog="gdev", allow_abbrev=False),
+            base_parser,
             parser_structure=parser_structure,
             parser_name=None,
         )
@@ -290,17 +301,7 @@ class CommandLine:
         return parsed_args[entry_name]
 
     @staticmethod
-    def interpret_arguments(parsed_args):
-        """
-        Interpret the arguments that were supplied, inline to the parsed_args dictionary.
-        """
-
-        if "dry_dock" in parsed_args:
-            Host.set_drydock(parsed_args["dry_dock"])
-            del parsed_args["dry_dock"]
-        if "backward" in parsed_args:
-            CommandLine.set_backward_mode(parsed_args["backward"])
-            del parsed_args["backward"]
+    def __handle_trailing_arguments(parsed_args):
 
         # Note: https://stackoverflow.com/questions/22850332/
         #       getting-the-remaining-arguments-in-argparse
@@ -317,6 +318,25 @@ class CommandLine:
                 parsed_args["args"] = " ".join(parsed_args["args"][1:])
         else:
             parsed_args["args"] = ""
+        return parsed_args
+
+    @staticmethod
+    def interpret_arguments(parsed_args):
+        """
+        Interpret the arguments that were supplied, inline to the parsed_args dictionary.
+        """
+
+        if "backward" in parsed_args:
+            CommandLine.set_backward_mode(parsed_args["backward"])
+            del parsed_args["backward"]
+        if not parsed_args:
+            return False
+
+        if "dry_dock" in parsed_args:
+            Host.set_drydock(parsed_args["dry_dock"])
+            del parsed_args["dry_dock"]
+
+        parsed_args = CommandLine.__handle_trailing_arguments(parsed_args)
 
         base_image = CommandLine.__get_argument_with_default(
             parsed_args, "base_image", CommandLine.__DEFAULT_BASE_IMAGE
@@ -362,3 +382,4 @@ class CommandLine:
                     container_path = container_path.absolute().image_build()
                 mounts.append(Mount(container_path=container_path, host_path=host_path))
         parsed_args["mounts"] = frozenset(mounts)
+        return True

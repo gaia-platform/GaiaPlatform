@@ -25,7 +25,10 @@ def get_executor():
     return SubprocessExecutor()
 
 
-def __find_drydock_line(expected_output, drydock_prefix):
+def find_drydock_line(expected_output, drydock_prefix):
+    """
+    Find a drydock line with the specified prefix in the output.
+    """
 
     assert drydock_prefix in expected_output
     start_index = expected_output.index(drydock_prefix)
@@ -34,27 +37,40 @@ def __find_drydock_line(expected_output, drydock_prefix):
     return last_line
 
 
-def __find_docker_run_line(expected_output):
+def __find_docker_tag_line(expected_output):
 
-    run_line = __find_drydock_line(expected_output, "[execvpe:docker run ")
-    print(f"run_line:{run_line}")
-    return run_line
+    tag_line = find_drydock_line(expected_output, "[execute:docker tag ")
+    print(f"tag_line:{tag_line}")
+    return tag_line
 
 
-def __find_docker_build_line(expected_output):
+def __find_docker_push_line(expected_output):
 
-    build_line = __find_drydock_line(expected_output, "[execute:docker buildx build ")
+    push_line = find_drydock_line(expected_output, "[execute:docker push ")
+    print(f"push_line:{push_line}")
+    return push_line
+
+
+def find_docker_build_line(expected_output):
+    """
+    Find the drydock line corresponding to a docker build.
+    """
+
+    build_line = find_drydock_line(expected_output, "[execute:docker buildx build ")
     print(f"build_line:{build_line}")
     return build_line
 
 
-def __find_and_remove(
+def find_and_remove(
     line_to_look_in,
     part_to_look_for,
     look_at_end=False,
     search_for_end_whitespace=False,
     replace_with=None,
 ):
+    """
+    Find a given sequence, with respect to whitespace, and replace it with a given value.
+    """
 
     if look_at_end:
         assert line_to_look_in.endswith(part_to_look_for)
@@ -73,7 +89,10 @@ def __find_and_remove(
     return line_to_look_in
 
 
-def __construct_base_build_line(is_using_mixins=False):
+def construct_base_build_line(is_using_mixins=False):
+    """
+    Construct our understanding of what the build line should be.
+    """
 
     current_hash = Host.execute_and_get_line_sync("git rev-parse HEAD")
 
@@ -87,14 +106,14 @@ def __construct_base_build_line(is_using_mixins=False):
     )
 
 
-def __construct_base_run_command_line(is_using_mixins=False):
+def __construct_base_tag_command_line(is_using_mixins=False):
     run_type = "custom" if is_using_mixins else "run"
-    return (
-        f"--rm --init --entrypoint /bin/bash --hostname production__{run_type} "
-        + "--platform linux/amd64 "
-        + f"--privileged  --volume {determine_repository_base_directory()}:"
-        + f"/source production__{run_type}:latest"
-    )
+    return f"production__run:latest None/production__{run_type}:latest"
+
+
+def __construct_base_push_command_line(is_using_mixins=False):
+    run_type = "custom" if is_using_mixins else "run"
+    return f"None/production__{run_type}:latest"
 
 
 def test_show_cfg():
@@ -454,8 +473,8 @@ def test_generate_docker_build():
         expected_output, expected_error, expected_return_code
     )
 
-    build_line = __find_docker_build_line(expected_output)
-    assert build_line == __construct_base_build_line()
+    build_line = find_docker_build_line(expected_output)
+    assert build_line == construct_base_build_line()
 
 
 def test_generate_docker_build_with_platform():
@@ -483,11 +502,11 @@ def test_generate_docker_build_with_platform():
         expected_output, expected_error, expected_return_code
     )
 
-    build_line = __find_docker_build_line(expected_output)
-    build_line = __find_and_remove(
+    build_line = find_docker_build_line(expected_output)
+    build_line = find_and_remove(
         build_line, " --platform linux/arm64", replace_with=" --platform linux/amd64"
     )
-    assert build_line == __construct_base_build_line()
+    assert build_line == construct_base_build_line()
 
 
 def test_generate_docker_build_with_registry():
@@ -515,14 +534,14 @@ def test_generate_docker_build_with_registry():
         expected_output, expected_error, expected_return_code
     )
 
-    build_line = __find_docker_build_line(expected_output)
-    build_line = __find_and_remove(
+    build_line = find_docker_build_line(expected_output)
+    build_line = find_and_remove(
         build_line,
         " --cache-from localhost/production__",
         search_for_end_whitespace=True,
         replace_with=" ",
     )
-    assert build_line == __construct_base_build_line()
+    assert build_line == construct_base_build_line()
 
 
 def test_generate_docker_build_with_mixins_sudo():
@@ -550,9 +569,9 @@ def test_generate_docker_build_with_mixins_sudo():
         expected_output, expected_error, expected_return_code
     )
 
-    build_line = __find_docker_build_line(expected_output)
-    build_line = __find_and_remove(build_line, " --label Mixins=\"['sudo']\"")
-    assert build_line == __construct_base_build_line(is_using_mixins=True)
+    build_line = find_docker_build_line(expected_output)
+    build_line = find_and_remove(build_line, " --label Mixins=\"['sudo']\"")
+    assert build_line == construct_base_build_line(is_using_mixins=True)
 
 
 def test_generate_docker_build_with_mixins_sudo_and_nano():
@@ -580,21 +599,21 @@ def test_generate_docker_build_with_mixins_sudo_and_nano():
         expected_output, expected_error, expected_return_code
     )
 
-    build_line = __find_docker_build_line(expected_output)
-    build_line = __find_and_remove(build_line, " --label Mixins=\"['nano','sudo']\"")
-    assert build_line == __construct_base_build_line(is_using_mixins=True)
+    build_line = find_docker_build_line(expected_output)
+    build_line = find_and_remove(build_line, " --label Mixins=\"['nano','sudo']\"")
+    assert build_line == construct_base_build_line(is_using_mixins=True)
 
 
-def test_generate_docker_run():
+def test_generate_docker_push():
     """
-    Make sure that we can generate a request to docker to run the image built
+    Make sure that we can generate a request to docker to push the image built
     by previous steps.  Note that this uses the `--drydock` test argument to simulate
     calling docker without actually calling docker.
     """
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["run", "--dry-dock"]
+    suppplied_arguments = ["push", "--backward", "--dry-dock"]
     (
         expected_return_code,
         expected_output,
@@ -611,307 +630,31 @@ def test_generate_docker_run():
         expected_output, expected_error, expected_return_code
     )
 
-    build_line = __find_docker_build_line(expected_output)
-    assert build_line == __construct_base_build_line()
+    build_line = find_docker_build_line(expected_output)
+    assert build_line == construct_base_build_line()
 
-    run_line = __find_docker_run_line(expected_output)
-    assert run_line == __construct_base_run_command_line()
+    tag_line = __find_docker_tag_line(expected_output)
+    assert tag_line == __construct_base_tag_command_line()
+
+    push_line = __find_docker_push_line(expected_output)
+    assert push_line == __construct_base_push_command_line()
 
 
-def test_generate_docker_run_mixin_clion():
+def test_generate_docker_push_new():
     """
-    Make sure that we can generate a request to docker to run the image built
-    by previous steps.  The `clion` mixin adds to the build line and the run line.
-    """
-
-    # Arrange
-    executor = get_executor()
-    suppplied_arguments = ["run", "--dry-dock", "--mixins", "clion"]
-    (
-        expected_return_code,
-        expected_output,
-        expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
-
-    # Act
-    execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
-    )
-
-    # Assert
-    execute_results.assert_results(
-        expected_output, expected_error, expected_return_code
-    )
-
-    build_line = __find_docker_build_line(expected_output)
-    build_line = __find_and_remove(build_line, " --label Mixins=\"['clion']\"")
-    assert build_line == __construct_base_build_line(is_using_mixins=True)
-
-    run_line = __find_docker_run_line(expected_output)
-    run_line = __find_and_remove(
-        run_line,
-        " -p 22:22 --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --user 1000:1000",
-    )
-    assert run_line == __construct_base_run_command_line(is_using_mixins=True)
-
-
-def test_generate_docker_run_mixin_nano():
-    """
-    Make sure that we can generate a request to docker to run the image built
-    by previous steps.  The nano mixin only adds to the build line.
+    Make sure that we can generate a request to docker to push the image built
+    by previous steps.  Note the new version catches a registry not being
+    specified and stops the program.
     """
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["run", "--dry-dock", "--mixins", "nano"]
-    (
-        expected_return_code,
-        expected_output,
-        expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
-
-    # Act
-    execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
-    )
-
-    # Assert
-    execute_results.assert_results(
-        expected_output, expected_error, expected_return_code
-    )
-
-    build_line = __find_docker_build_line(expected_output)
-    build_line = __find_and_remove(build_line, " --label Mixins=\"['nano']\"")
-    assert build_line == __construct_base_build_line(is_using_mixins=True)
-
-    run_line = __find_docker_run_line(expected_output)
-    assert run_line == __construct_base_run_command_line(is_using_mixins=True)
-
-
-def test_generate_docker_run_mounts():
-    """
-    Make sure that we can generate a request to docker to run the image built
-    by previous steps.  The mount command allows us to mount an extra directory
-    into the container.
-    """
-
-    # Arrange
-    executor = get_executor()
-    suppplied_arguments = ["run", "--dry-dock", "--mount", "/root:/host"]
-    (
-        expected_return_code,
-        expected_output,
-        expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
-
-    # Act
-    execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
-    )
-
-    # Assert
-    execute_results.assert_results(
-        expected_output, expected_error, expected_return_code
-    )
-
-    build_line = __find_docker_build_line(expected_output)
-    assert build_line == __construct_base_build_line()
-
-    run_line = __find_docker_run_line(expected_output)
-    run_line = __find_and_remove(
-        run_line,
-        "--mount type=volume,dst=/host,volume-driver=local,volume-opt=type=none,"
-        + "volume-opt=o=bind,volume-opt=device=/root ",
-    )
-    assert run_line == __construct_base_run_command_line()
-
-
-def test_generate_docker_run_platform():
-    """
-    Make sure that we can generate a request to docker to run the image built
-    by previous steps.  The platform command is supported, but it is not clear if
-    any of our machines can run in a cross-platform mode.
-    """
-
-    # Arrange
-    executor = get_executor()
-    suppplied_arguments = ["run", "--dry-dock", "--platform", "arm64"]
-    (
-        expected_return_code,
-        expected_output,
-        expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
-
-    # Act
-    execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
-    )
-
-    # Assert
-    execute_results.assert_results(
-        expected_output, expected_error, expected_return_code
-    )
-
-    build_line = __find_docker_build_line(expected_output)
-    build_line = __find_and_remove(
-        build_line, " --platform linux/arm64", replace_with=" --platform linux/amd64"
-    )
-    assert build_line == __construct_base_build_line()
-
-    run_line = __find_docker_run_line(expected_output)
-    run_line = __find_and_remove(
-        run_line, " --platform linux/arm64", replace_with=" --platform linux/amd64"
-    )
-    assert run_line == __construct_base_run_command_line()
-
-
-def test_generate_docker_run_ports():
-    """
-    Make sure that we can generate a request to docker to run the image built
-    by previous steps.  The ports argument will make sure to expose needed ports.
-    """
-
-    # Arrange
-    executor = get_executor()
-    suppplied_arguments = ["run", "--dry-dock", "--ports", "1234"]
-    (
-        expected_return_code,
-        expected_output,
-        expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
-
-    # Act
-    execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
-    )
-
-    # Assert
-    execute_results.assert_results(
-        expected_output, expected_error, expected_return_code
-    )
-
-    build_line = __find_docker_build_line(expected_output)
-    assert build_line == __construct_base_build_line()
-
-    run_line = __find_docker_run_line(expected_output)
-    run_line = __find_and_remove(run_line, " -p 1234:1234")
-    assert run_line == __construct_base_run_command_line()
-
-
-def test_generate_docker_run_registry():
-    """
-    Make sure that we can generate a request to docker to run the image built
-    by previous steps.  The registry argument provides a location to cache the build
-    steps from.
-    """
-
-    # Arrange
-    executor = get_executor()
-    suppplied_arguments = ["run", "--dry-dock", "--registry", "localhost"]
-    (
-        expected_return_code,
-        expected_output,
-        expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
-
-    # Act
-    execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
-    )
-
-    # Assert
-    execute_results.assert_results(
-        expected_output, expected_error, expected_return_code
-    )
-
-    build_line = __find_docker_build_line(expected_output)
-    build_line = __find_and_remove(
-        build_line,
-        "--cache-from localhost/production__",
-        search_for_end_whitespace=True,
-    )
-    assert build_line == __construct_base_build_line()
-
-    run_line = __find_docker_run_line(expected_output)
-    assert run_line == __construct_base_run_command_line()
-
-
-def test_generate_docker_run_force():
-    """
-    Make sure that we can generate a request to docker to run the image built
-    by previous steps.  The force argument instructs the build stage to be forced.
-    """
-
-    # Arrange
-    executor = get_executor()
-    suppplied_arguments = ["run", "--dry-dock", "--force"]
-    (
-        expected_return_code,
-        expected_output,
-        expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
-
-    # Act
-    execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
-    )
-
-    # Assert
-    execute_results.assert_results(
-        expected_output, expected_error, expected_return_code
-    )
-
-    build_line = __find_docker_build_line(expected_output)
-    assert build_line == __construct_base_build_line()
-
-    run_line = __find_docker_run_line(expected_output)
-    assert run_line == __construct_base_run_command_line()
-
-
-def test_generate_docker_run_args_old():
-    """
-    Make sure that we can generate a request to docker to run the image built
-    by previous steps.  Any trailing arguments are passed to container.
-    """
-
-    # Arrange
-    executor = get_executor()
-    suppplied_arguments = ["run", "--backward", "--dry-dock", "not-an-argument"]
-    (
-        expected_return_code,
-        expected_output,
-        expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
-
-    # Act
-    execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
-    )
-
-    # Assert
-    execute_results.assert_results(
-        expected_output, expected_error, expected_return_code
-    )
-
-    build_line = __find_docker_build_line(expected_output)
-    assert build_line == __construct_base_build_line()
-
-    run_line = __find_docker_run_line(expected_output)
-    run_line = __find_and_remove(run_line, ' -c "not-an-argument"', look_at_end=True)
-    assert run_line == __construct_base_run_command_line()
-
-
-def test_generate_docker_run_args_new():
-    """
-    Per request, only the `--` form of the argument is preserved going forward.
-    """
-
-    # Arrange
-    executor = get_executor()
-    suppplied_arguments = ["run", "--dry-dock", "not-an-argument"]
-    expected_return_code = 0
+    suppplied_arguments = ["push", "--dry-dock"]
+    expected_return_code = 1
     expected_output = ""
-    expected_error = "arguments to pass to docker run must be prefaced with `--`"
+    expected_error = (
+        "Error: The --registry arguments must specify the registry to push to."
+    )
 
     # Act
     execute_results = executor.invoke_main(
@@ -922,36 +665,3 @@ def test_generate_docker_run_args_new():
     execute_results.assert_results(
         expected_output, expected_error, expected_return_code
     )
-
-
-def test_generate_docker_run_explicit_args():
-    """
-    Make sure that we can generate a request to docker to run the image built
-    by previous steps.  Any trailing arguments are passed to container.
-    """
-
-    # Arrange
-    executor = get_executor()
-    suppplied_arguments = ["run", "--dry-dock", "--", "not-an-argument"]
-    (
-        expected_return_code,
-        expected_output,
-        expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
-
-    # Act
-    execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
-    )
-
-    # Assert
-    execute_results.assert_results(
-        expected_output, expected_error, expected_return_code
-    )
-
-    build_line = __find_docker_build_line(expected_output)
-    assert build_line == __construct_base_build_line()
-
-    run_line = __find_docker_run_line(expected_output)
-    run_line = __find_and_remove(run_line, ' -c "not-an-argument"', look_at_end=True)
-    assert run_line == __construct_base_run_command_line()

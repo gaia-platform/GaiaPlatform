@@ -51,10 +51,9 @@ class DockerDev:
         # make sure to show the default help command. Otherwise, intrepret the arguments
         # inline.
         parsed_args = parser.parse_args(args).__dict__
-        if not parsed_args:
+        if not CommandLine.interpret_arguments(parsed_args):
             parser.parse_args([*args, "--help"])
             sys.exit(1)
-        CommandLine.interpret_arguments(parsed_args)
 
         # Set the options up.  The two command_* elements are not part of the Options
         # class, so pop them before the Options class is initialized.
