@@ -9,7 +9,6 @@
 #include <unistd.h>
 
 #include <charconv>
-
 #include <iostream>
 
 #include <libexplain/getrlimit.h>
@@ -187,11 +186,6 @@ static bool check_and_adjust_resource_limit(int rlimit_id, const char* rlimit_de
 bool check_and_adjust_vm_limit()
 {
     return check_and_adjust_resource_limit(RLIMIT_AS, "virtual address space", c_min_vm_limit);
-}
-
-bool check_and_adjust_fd_limit()
-{
-    return check_and_adjust_resource_limit(RLIMIT_NOFILE, "open file descriptor", c_min_fd_limit);
 }
 
 } // namespace db

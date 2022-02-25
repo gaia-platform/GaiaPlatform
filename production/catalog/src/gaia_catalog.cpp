@@ -816,7 +816,5 @@ gaia_database_t::gaia_tables_list_t gaia_database_t::gaia_tables() const
     return gaia_database_t::gaia_tables_list_t(gaia_id(), c_gaia_database_first_gaia_tables, c_gaia_table_next_database);
 }
 
-}  // namespace catalog
-}  // namespace gaia
-
-
+} // namespace catalog
+} // namespace gaia

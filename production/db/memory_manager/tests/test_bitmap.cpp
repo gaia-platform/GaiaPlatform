@@ -7,11 +7,14 @@
 
 #include <gtest/gtest.h>
 
+#include <gaia/common.hpp>
+
 #include "bitmap.hpp"
 
 using namespace std;
 
 using namespace gaia::db::memory_manager;
+using namespace gaia::common;
 
 TEST(bitmap, set_bit_value_and_is_bit_set)
 {
