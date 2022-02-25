@@ -18,4 +18,5 @@
 
 #include "gaia/expressions/builders/expression_builder.hpp"
 #include "gaia/expressions/builders/expression_int_type.hpp"
+#include "gaia/expressions/builders/expression_optional.hpp"
 #include "gaia/expressions/builders/expression_string.hpp"

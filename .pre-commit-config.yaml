@@ -52,7 +52,7 @@ repos:
       args:
         - --prefix
         - "#!/usr/bin/env python3\n\n#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n"
-      exclude: (^.+$(?<!\.py))|(^(dev_tools/gdev|dev_tools/docker_dev|production/tests/python/ps_mem.py|production/tools/tests/gaiat/lit.cfg.py))
+      exclude: (^.+$(?<!\.py))|(^(dev_tools/gdev|production/tests/python/ps_mem.py|production/tools/tests/gaiat/lit.cfg.py))|(^.+\_\_init\_\_\.py)
 
     - id: python_non_executable_license_check
       name: Check Python Non-Executable files for License Prefix
@@ -171,13 +171,13 @@ repos:
   rev: 21.7b0
   hooks:
     - id: black
-      exclude: ^(dev_tools/gdev/|dev_tools/docker_dev/|production/tools/tests/gaiat/lit.cfg.py)
+      exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py)
 
 - repo: https://github.com/PyCQA/flake8
   rev: 4.0.1
   hooks:
     - id: flake8
-      exclude: ^(dev_tools/gdev/|dev_tools/docker_dev/|production/tools/tests/gaiat/lit.cfg.py)
+      exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py)
       args:
         - --ignore=E203,E501,W503
 
@@ -185,5 +185,5 @@ repos:
   rev: v2.11.1
   hooks:
     - id: pylint
-      exclude: ^(dev_tools/gdev/|dev_tools/docker_dev/|production/tools/tests/gaiat/lit.cfg.py|production/tests/python/ps_mem.py)
+      exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py|production/tests/python/ps_mem.py)
       args: [--disable=R0801]

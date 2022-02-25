@@ -7,6 +7,8 @@
 
 #include <type_traits>
 
+#include "expression_traits.hpp"
+
 namespace gaia
 {
 namespace expressions
@@ -56,7 +58,7 @@ struct operator_mul_t
 }; // * token.
 struct operator_div_t
 {
-}; // . token.
+}; // / token.
 struct operator_mod_t
 {
 }; // % token.
@@ -75,6 +77,9 @@ struct operator_shr_t
 struct operator_neg_t
 {
 }; // - token (unary).
+struct operator_pos_t
+{
+}; // + token (unary).
 struct operator_not_t
 {
 }; // !token.
@@ -130,6 +135,8 @@ using shr_default_type = decltype(std::declval<T_left>() >> std::declval<T_right
 
 template <typename T_operand>
 using neg_default_type = decltype(-std::declval<T_operand&>());
+template <typename T_operand>
+using pos_default_type = decltype(+std::declval<T_operand&>());
 template <typename T_operand>
 using not_default_type = decltype(!std::declval<T_operand&>());
 template <typename T_operand>
@@ -229,6 +236,41 @@ evaluate_operator(const T_left& left, const T_right& right, operator_div_t)
     return left / right;
 }
 
+template <typename T_left, typename T_right>
+static inline mod_default_type<T_left, T_right>
+evaluate_operator(const T_left& left, const T_right& right, operator_mod_t)
+{
+    return left % right;
+}
+
+template <typename T_left, typename T_right>
+static inline band_default_type<T_left, T_right>
+evaluate_operator(const T_left& left, const T_right& right, operator_band_t)
+{
+    return left & right;
+}
+
+template <typename T_left, typename T_right>
+static inline bor_default_type<T_left, T_right>
+evaluate_operator(const T_left& left, const T_right& right, operator_bor_t)
+{
+    return left | right;
+}
+
+template <typename T_left, typename T_right>
+static inline shl_default_type<T_left, T_right>
+evaluate_operator(const T_left& left, const T_right& right, operator_shl_t)
+{
+    return left << right;
+}
+
+template <typename T_left, typename T_right>
+static inline shr_default_type<T_left, T_right>
+evaluate_operator(const T_left& left, const T_right& right, operator_shr_t)
+{
+    return left >> right;
+}
+
 template <typename T_operand>
 static inline not_default_type<T_operand>
 evaluate_operator(const T_operand& operand, operator_not_t)
@@ -243,49 +285,65 @@ evaluate_operator(const T_operand& operand, operator_neg_t)
     return -operand;
 }
 
+template <typename T_operand>
+static inline pos_default_type<T_operand>
+evaluate_operator(const T_operand& operand, operator_pos_t)
+{
+    return +operand;
+}
+
+template <typename T_operand>
+static inline inv_default_type<T_operand>
+evaluate_operator(const T_operand& operand, operator_inv_t)
+{
+    return ~operand;
+}
+
 // Template definitions for type returns.
 // We rely on a evaluate_operator() type being defined for the type.
 template <typename T_left, typename T_right>
-using eq_type = decltype(evaluate_operator(std::declval<T_right>(), std::declval<T_left>(), std::declval<operator_eq_t>()));
+using eq_type = decltype(evaluate_operator(std::declval<T_left>(), std::declval<T_right>(), std::declval<operator_eq_t>()));
 template <typename T_left, typename T_right>
-using ne_type = decltype(evaluate_operator(std::declval<T_right>(), std::declval<T_left>(), std::declval<operator_ne_t>()));
+using ne_type = decltype(evaluate_operator(std::declval<T_left>(), std::declval<T_right>(), std::declval<operator_ne_t>()));
 template <typename T_left, typename T_right>
-using gt_type = decltype(evaluate_operator(std::declval<T_right>(), std::declval<T_left>(), std::declval<operator_gt_t>()));
+using gt_type = decltype(evaluate_operator(std::declval<T_left>(), std::declval<T_right>(), std::declval<operator_gt_t>()));
 template <typename T_left, typename T_right>
-using ge_type = decltype(evaluate_operator(std::declval<T_right>(), std::declval<T_left>(), std::declval<operator_ge_t>()));
+using ge_type = decltype(evaluate_operator(std::declval<T_left>(), std::declval<T_right>(), std::declval<operator_ge_t>()));
 template <typename T_left, typename T_right>
-using lt_type = decltype(evaluate_operator(std::declval<T_right>(), std::declval<T_left>(), std::declval<operator_lt_t>()));
+using lt_type = decltype(evaluate_operator(std::declval<T_left>(), std::declval<T_right>(), std::declval<operator_lt_t>()));
 template <typename T_left, typename T_right>
-using le_type = decltype(evaluate_operator(std::declval<T_right>(), std::declval<T_left>(), std::declval<operator_le_t>()));
+using le_type = decltype(evaluate_operator(std::declval<T_left>(), std::declval<T_right>(), std::declval<operator_le_t>()));
 template <typename T_left, typename T_right>
-using and_type = decltype(evaluate_operator(std::declval<T_right>(), std::declval<T_left>(), std::declval<operator_and_t>()));
+using and_type = decltype(evaluate_operator(std::declval<T_left>(), std::declval<T_right>(), std::declval<operator_and_t>()));
 template <typename T_left, typename T_right>
-using or_type = decltype(evaluate_operator(std::declval<T_right>(), std::declval<T_left>(), std::declval<operator_or_t>()));
+using or_type = decltype(evaluate_operator(std::declval<T_left>(), std::declval<T_right>(), std::declval<operator_or_t>()));
 template <typename T_left, typename T_right>
-using xor_type = decltype(evaluate_operator(std::declval<T_right>(), std::declval<T_left>(), std::declval<operator_xor_t>()));
+using xor_type = decltype(evaluate_operator(std::declval<T_left>(), std::declval<T_right>(), std::declval<operator_xor_t>()));
 template <typename T_left, typename T_right>
-using add_type = decltype(evaluate_operator(std::declval<T_right>(), std::declval<T_left>(), std::declval<operator_add_t>()));
+using add_type = decltype(evaluate_operator(std::declval<T_left>(), std::declval<T_right>(), std::declval<operator_add_t>()));
 template <typename T_left, typename T_right>
-using sub_type = decltype(evaluate_operator(std::declval<T_right>(), std::declval<T_left>(), std::declval<operator_sub_t>()));
+using sub_type = decltype(evaluate_operator(std::declval<T_left>(), std::declval<T_right>(), std::declval<operator_sub_t>()));
 template <typename T_left, typename T_right>
-using div_type = decltype(evaluate_operator(std::declval<T_right>(), std::declval<T_left>(), std::declval<operator_div_t>()));
+using div_type = decltype(evaluate_operator(std::declval<T_left>(), std::declval<T_right>(), std::declval<operator_div_t>()));
 template <typename T_left, typename T_right>
-using mul_type = decltype(evaluate_operator(std::declval<T_right>(), std::declval<T_left>(), std::declval<operator_mul_t>()));
+using mul_type = decltype(evaluate_operator(std::declval<T_left>(), std::declval<T_right>(), std::declval<operator_mul_t>()));
 template <typename T_left, typename T_right>
-using mod_type = decltype(evaluate_operator(std::declval<T_right>(), std::declval<T_left>(), std::declval<operator_mod_t>()));
+using mod_type = decltype(evaluate_operator(std::declval<T_left>(), std::declval<T_right>(), std::declval<operator_mod_t>()));
 template <typename T_left, typename T_right>
-using band_type = decltype(evaluate_operator(std::declval<T_right>(), std::declval<T_left>(), std::declval<operator_band_t>()));
+using band_type = decltype(evaluate_operator(std::declval<T_left>(), std::declval<T_right>(), std::declval<operator_band_t>()));
 template <typename T_left, typename T_right>
-using bor_type = decltype(evaluate_operator(std::declval<T_right>(), std::declval<T_left>(), std::declval<operator_bor_t>()));
+using bor_type = decltype(evaluate_operator(std::declval<T_left>(), std::declval<T_right>(), std::declval<operator_bor_t>()));
 template <typename T_left, typename T_right>
-using shl_type = decltype(evaluate_operator(std::declval<T_right>(), std::declval<T_left>(), std::declval<operator_shl_t>()));
+using shl_type = decltype(evaluate_operator(std::declval<T_left>(), std::declval<T_right>(), std::declval<operator_shl_t>()));
 template <typename T_left, typename T_right>
-using shr_type = decltype(evaluate_operator(std::declval<T_right>(), std::declval<T_left>(), std::declval<operator_shr_t>()));
+using shr_type = decltype(evaluate_operator(std::declval<T_left>(), std::declval<T_right>(), std::declval<operator_shr_t>()));
 
 template <typename T_operand>
 using not_type = decltype(evaluate_operator(std::declval<T_operand>(), std::declval<operator_not_t>()));
 template <typename T_operand>
 using neg_type = decltype(evaluate_operator(std::declval<T_operand>(), std::declval<operator_neg_t>()));
+template <typename T_operand>
+using pos_type = decltype(evaluate_operator(std::declval<T_operand>(), std::declval<operator_pos_t>()));
 template <typename T_operand>
 using inv_type = decltype(evaluate_operator(std::declval<T_operand>(), std::declval<operator_inv_t>()));
 

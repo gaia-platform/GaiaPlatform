@@ -1,20 +1,32 @@
+#!/usr/bin/env python3
+
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
+
+"""
+Module to generate the RUN section of the dockerfile where MIXINs are used.
+"""
+
 from dataclasses import dataclass, replace
 import os
 from textwrap import dedent
 from typing import Iterable
 
-from gdev.custom.pathlib import Path
+from gdev.custom.gaia_path import GaiaPath
 from gdev.third_party.atools import memoize
-from .cfg import GenCustomCfg
-from .._abc.dockerfile import GenAbcDockerfile
+from gdev.cmd.gen._abc.dockerfile import GenAbcDockerfile
+from gdev.cmd.gen._custom.cfg import GenCustomCfg
 
 
 @dataclass(frozen=True, repr=False)
 class GenCustomDockerfile(GenAbcDockerfile):
     """
-    Class to provide for a customized GenAbcDockerfile where user properties
+    Class to provide a customized GenAbcDockerfile where user properties
     from the host of the container are taken into account.
     """
+
     base_dockerfile: GenAbcDockerfile
 
     @property
@@ -24,37 +36,49 @@ class GenCustomDockerfile(GenAbcDockerfile):
         """
         return GenCustomCfg(self.options)
 
+    # pylint: disable=import-outside-toplevel
+    #
+    # Required to resolve cyclical dependency issues.
     @memoize
-    async def get_env_section(self) -> str:
+    def get_env_section(self) -> str:
         """
         Return text for the ENV section of the final build stage.
         """
-        from ..pre_run.dockerfile import GenPreRunDockerfile
+        from gdev.cmd.gen.pre_run.dockerfile import GenPreRunDockerfile
 
-        env_section = await GenPreRunDockerfile(self.options).get_env_section()
+        env_section = GenPreRunDockerfile(self.options).get_env_section()
 
-        self.log.debug(f'{env_section = }')
+        self.log.debug("env_section = %s", env_section)
 
         return env_section
 
+    # pylint: enable=import-outside-toplevel
+
+    # pylint: disable=import-outside-toplevel
+    #
+    # Required to resolve cyclical dependency issues.
     @memoize
-    async def get_input_dockerfiles(self) -> Iterable[GenAbcDockerfile]:
+    def get_input_dockerfiles(self) -> Iterable[GenAbcDockerfile]:
         """
         Return dockerfiles that describe build stages that come directly before this one.
         """
-        from ..run.dockerfile import GenRunDockerfile
+        from gdev.cmd.gen.run.dockerfile import GenRunDockerfile
 
         input_dockerfiles = [self.base_dockerfile]
-        for line in await self.cfg.get_lines():
-            input_dockerfiles.append(GenRunDockerfile(replace(self.options, target=line)))
+        for line in self.cfg.get_mixin_lines():
+            input_dockerfiles.append(
+                GenRunDockerfile(replace(self.options, target=line))
+            )
         input_dockerfiles = tuple(input_dockerfiles)
 
-        self.log.debug(f'{input_dockerfiles = }')
+        self.log.debug("input_dockerfiles = %s", input_dockerfiles)
 
         return input_dockerfiles
 
+    # pylint: enable=import-outside-toplevel
+
     @memoize
-    async def get_text(self) -> str:
+    def get_text(self) -> str:
         """
         Return the full text for this dockerfile, including all build stages.
 
@@ -62,25 +86,29 @@ class GenCustomDockerfile(GenAbcDockerfile):
         container, these commands are run to ensure that the user information on the
         host is used to set permissions and ownership.
         """
-        text_parts = [await super().get_text()]
+        text_parts = [super().get_text()]
 
-        if {'clion', 'sudo', 'vscode'} & self.options.mixins:
+        if {"clion", "sudo", "vscode"} & self.options.mixins:
             uid = os.getuid()
             gid = os.getgid()
-            home = Path.home()
+            home = GaiaPath.home()
             login = os.getlogin()
-            text_parts.append(dedent(fr'''
+            text_parts.append(
+                dedent(
+                    fr"""
                 RUN groupadd -r -o -g {gid} {login} \
                     && useradd {login} -l -r -o -u {uid} -g {gid} -G sudo \
                     && mkdir -p {home} \
                     && chown {login}:{login} {home} \
                     && echo "{login} ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers \
                     && touch {home}/.sudo_as_admin_successful \
-                    && chown -R {login}:{login} {Path.repo().image_build()}
-            ''').strip())
+                    && chown -R {login}:{login} {GaiaPath.repo().image_build()}
+            """
+                ).strip()
+            )
 
-        text = '\n'.join(text_parts)
+        text = "\n".join(text_parts)
 
-        self.log.debug(f'{text = }')
+        self.log.debug("text = %s", text)
 
         return text
