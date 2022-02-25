@@ -267,8 +267,6 @@ class CommandLine:
                         sub_parser_structure.command_parts[-1]
                     ] = sub_parser_structure
                 for next_map_key in sorted(sub_parser_map.keys()):
-                    if not is_backward_compatible_guess and next_map_key == "gen":
-                        continue
                     sub_parser = sub_parsers.add_parser(next_map_key)
                     inner(sub_parser, sub_parser_map[next_map_key], next_map_key)
 
