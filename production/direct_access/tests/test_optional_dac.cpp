@@ -13,6 +13,7 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::direct_access;
 using namespace gaia::optional_sandbox;
+using namespace gaia::optional_sandbox::optional_values_expr;
 
 class optional_dac_test : public db_catalog_test_base_t
 {
@@ -173,4 +174,110 @@ TEST_F(optional_dac_test, test_vlr)
     parent_w.update_row();
 
     ASSERT_EQ(parent.child().size(), 0);
+}
+
+TEST_F(optional_dac_test, where_test)
+{
+    auto_transaction_t txn;
+    size_t initial_total_count = 0;
+
+    // Pull the current total row count so we can check some invariants.
+    for (auto i : optional_values_t::list())
+    {
+        ++initial_total_count;
+    }
+
+    // Check the initial matching counts for invariants.
+    size_t initial_count = 0;
+    for (auto i : optional_values_t::list().where(optional_bool))
+    {
+        ++initial_count;
+    }
+
+    // Check the initial negative counts for invariants.
+    size_t initial_neg_count = 0;
+    for (auto i : optional_values_t::list().where(!optional_bool))
+    {
+        ++initial_neg_count;
+    }
+
+    // insert an empty optional
+    size_t count = 0;
+    optional_values_writer values_w;
+    values_w.optional_bool = nullopt;
+    values_w.insert_row();
+
+    for (auto i : optional_values_t::list().where(optional_bool))
+    {
+        ++count;
+    }
+
+    // Empty optional should not match! So count should be identical.
+    ASSERT_EQ(count, initial_count);
+
+    count = 0;
+    for (auto i : optional_values_t::list().where(!optional_bool))
+    {
+        ++count;
+    }
+
+    // Empty optional should not match! So count should be identical.
+    ASSERT_EQ(count, initial_count);
+
+    // Insert a legitimate false value.
+    values_w.optional_bool = false;
+    values_w.insert_row();
+
+    count = 0;
+
+    for (auto i : optional_values_t::list().where(optional_bool))
+    {
+        ++count;
+    }
+
+    // Freshly inserted row should not match (false).
+    ASSERT_EQ(count, initial_count);
+
+    count = 0;
+
+    for (auto i : optional_values_t::list().where(!optional_bool))
+    {
+        ++count;
+    }
+
+    // Freshly inserted row should match (false).
+    ASSERT_EQ(count, initial_count + 1);
+
+    // Insert a legitimate true value.
+    values_w.optional_bool = true;
+    values_w.insert_row();
+
+    count = 0;
+
+    for (auto i : optional_values_t::list().where(optional_bool))
+    {
+        ++count;
+    }
+
+    // Freshly inserted row should match.
+    ASSERT_EQ(count, initial_count + 1);
+
+    count = 0;
+
+    for (auto i : optional_values_t::list().where(!optional_bool))
+    {
+        ++count;
+    }
+
+    // Freshly inserted row should not match (false).
+    ASSERT_EQ(count, initial_count + 1);
+
+    auto final_count = 0;
+    for (auto i : optional_values_t::list())
+    {
+        ++final_count;
+    }
+
+    // Check if those rows were truly inserted
+    ASSERT_EQ(final_count, initial_total_count + 3);
 }
