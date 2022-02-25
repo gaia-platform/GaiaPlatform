@@ -20,6 +20,7 @@
 #include "gaia_internal/db/db_types.hpp"
 
 #include "memory_types.hpp"
+#include "txn_metadata_entry.hpp"
 
 namespace gaia
 {
@@ -181,17 +182,61 @@ static_assert(
 // number of record slots occupied by the log header.
 constexpr size_t c_max_log_records{((c_max_locators + 1) / (c_max_logs + 1)) - (c_txn_log_header_size / sizeof(log_record_t))};
 
+// The record count should fit into 16 bits.
+static_assert(c_max_log_records <= std::numeric_limits<uint16_t>::max());
+
 struct txn_log_t
 {
-    // This header should be a multiple of 16 bytes.
-    gaia_txn_id_t begin_ts;
-    size_t record_count;
+    // This header should be a multiple of 16 bytes (the current multiple is 1).
+    //
+    // When a txn log becomes eligible for GC, there may still be txns in the
+    // "open" phase applying this log to their snapshots, so we need to track
+    // them separately via a reference count in the txn log header, and only
+    // allow GC when the reference count is zero. This reference count tracks
+    // outstanding readers, not owners! (The owning txn is identified by the
+    // begin timestamp, or "txn ID", while the allocation status of this log
+    // offset is tracked on the server, in the "allocated log offsets" bitmap.)
+    // For lock-free reference count updates, we need to store the reference
+    // count in the same word as the begin timestamp (to prevent changing the
+    // reference count after the log offset has been reused).
+    //
+    // Before GC begins, the GC thread attempts to "invalidate" the txn log by
+    // CAS'ing the begin_ts_with_refcount word to 0, provided that the refcount
+    // is already 0 (this means that a nonzero reference count can indefinitely
+    // delay GC). At the end of GC, the record_count field is zeroed, so all
+    // existing log records are unreachable (i.e., garbage). Finally, the GC
+    // thread clears the log offset's bit in the "allocated log offsets" bitmap,
+    // to make it available for reuse.
+    //
+    // REVIEW: The reference count mechanism is not fault-tolerant: if a client
+    // session thread applying logs to its snapshot crashes, it will never
+    // decrement the reference counts for those logs and the offsets for those
+    // logs (and their memory) can never be reused. The solution we adopt is to
+    // only let the server modify reference counts. This means that we can only
+    // GC a txn log after any txn that applied that log to its snapshot is
+    // submitted, rather than as soon as that txn has finished applying the log
+    // (i.e., when begin_transaction() returns). But a fortuitous benefit of
+    // this solution is that if we keep shared references to all applied logs
+    // for the duration of txn execution, then we can safely apply those logs to
+    // a server-side local snapshot (which we currently use for table and index
+    // scans). We can revisit this design (say, to have the client send another
+    // message or signal an eventfd before begin_transaction() returns, to
+    // notify the server that it's safe to release shared references on any logs
+    // applied to the current txn's snapshot) after server-side snapshots are
+    // unnecessary (i.e., when table and index scans move into shared memory).
+
+    std::atomic<uint64_t> begin_ts_with_refcount;
+    uint16_t record_count;
+
+    // Pad the header to a multiple of 16 bytes (to align the first log record on 16 bytes).
+    uint16_t reserved1;
+    uint32_t reserved2;
 
     log_record_t log_records[c_max_log_records];
 
     friend std::ostream& operator<<(std::ostream& os, const txn_log_t& l)
     {
-        os << "begin_ts: " << l.begin_ts << std::endl;
+        os << "begin_ts: " << l.begin_ts() << std::endl;
         os << "record_count: " << l.record_count << std::endl;
         for (size_t i = 0; i < l.record_count; ++i)
         {
@@ -201,9 +246,126 @@ struct txn_log_t
         return os;
     }
 
-    inline size_t size()
+    static constexpr size_t c_txn_log_refcount_bits{16ULL};
+    static constexpr uint64_t c_txn_log_refcount_shift{common::c_uint64_bit_count - c_txn_log_refcount_bits};
+    static constexpr uint64_t c_txn_log_refcount_mask{((1ULL << c_txn_log_refcount_bits) - 1) << c_txn_log_refcount_shift};
+
+    static gaia_txn_id_t begin_ts_from_word(uint64_t word)
     {
-        return sizeof(txn_log_t);
+        return gaia_txn_id_t{(word & transactions::txn_metadata_entry_t::c_txn_ts_mask) >> transactions::txn_metadata_entry_t::c_txn_ts_shift};
+    }
+
+    static size_t refcount_from_word(uint64_t word)
+    {
+        return static_cast<size_t>((word & c_txn_log_refcount_mask) >> c_txn_log_refcount_shift);
+    }
+
+    static uint64_t word_from_begin_ts_and_refcount(gaia_txn_id_t begin_ts, size_t refcount)
+    {
+        ASSERT_PRECONDITION(begin_ts.is_valid(), "Begin timestamp must be valid!");
+        ASSERT_PRECONDITION(refcount < (1 << c_txn_log_refcount_bits), "Reference count must fit in 16 bits!");
+        return (begin_ts << transactions::txn_metadata_entry_t::c_txn_ts_shift) | (refcount << c_txn_log_refcount_shift);
+    }
+
+    gaia_txn_id_t begin_ts() const
+    {
+        return begin_ts_from_word(begin_ts_with_refcount);
+    }
+
+    size_t reference_count() const
+    {
+        return refcount_from_word(begin_ts_with_refcount);
+    }
+
+    void set_begin_ts(gaia_txn_id_t begin_ts)
+    {
+        // We should only call this on a newly allocated log offset.
+        uint64_t old_begin_ts_with_refcount = begin_ts_with_refcount;
+        ASSERT_PRECONDITION(
+            old_begin_ts_with_refcount == 0,
+            "Cannot call set_begin_ts() on an initialized txn log header!");
+
+        uint64_t new_begin_ts_with_refcount = word_from_begin_ts_and_refcount(begin_ts, 0);
+        bool has_set_value = begin_ts_with_refcount.compare_exchange_strong(old_begin_ts_with_refcount, new_begin_ts_with_refcount);
+        ASSERT_POSTCONDITION(has_set_value, "set_begin_ts() should only be called when txn log offset is exclusively owned!");
+    }
+
+    // Returns false if the owning txn (begin_ts) changed, true otherwise.
+    inline bool acquire_reference(gaia_txn_id_t begin_ts)
+    {
+        ASSERT_PRECONDITION(begin_ts.is_valid(), "acquire_reference() must be called with a valid begin_ts!");
+        while (true)
+        {
+            uint64_t old_begin_ts_with_refcount = begin_ts_with_refcount;
+
+            // Return failure if ownership of this txn log has changed.
+            if (begin_ts != begin_ts_from_word(old_begin_ts_with_refcount))
+            {
+                return false;
+            }
+
+            size_t refcount = refcount_from_word(old_begin_ts_with_refcount);
+            uint64_t new_begin_ts_with_refcount = word_from_begin_ts_and_refcount(begin_ts, ++refcount);
+
+            if (begin_ts_with_refcount.compare_exchange_strong(old_begin_ts_with_refcount, new_begin_ts_with_refcount))
+            {
+                break;
+            }
+        }
+
+        return true;
+    }
+
+    // Releasing a reference must always succeed because the refcount can't be
+    // zero and the txn log offset can't be reused until all references are
+    // released.
+    // We pass the original begin_ts only to be able to check invariants.
+    inline void release_reference(gaia_txn_id_t begin_ts)
+    {
+        ASSERT_PRECONDITION(begin_ts.is_valid(), "release_reference() must be called with a valid begin_ts!");
+        while (true)
+        {
+            uint64_t old_begin_ts_with_refcount = begin_ts_with_refcount;
+            gaia_txn_id_t begin_ts = begin_ts_from_word(old_begin_ts_with_refcount);
+
+            ASSERT_INVARIANT(
+                begin_ts == begin_ts_from_word(old_begin_ts_with_refcount),
+                "Cannot change ownership of a txn log with outstanding references!");
+
+            size_t refcount = refcount_from_word(old_begin_ts_with_refcount);
+            ASSERT_PRECONDITION(refcount > 0, "Cannot release a reference when refcount is zero!");
+            uint64_t new_begin_ts_with_refcount = word_from_begin_ts_and_refcount(begin_ts, --refcount);
+
+            if (begin_ts_with_refcount.compare_exchange_strong(old_begin_ts_with_refcount, new_begin_ts_with_refcount))
+            {
+                break;
+            }
+        }
+    }
+
+    // Returns false with no effect if begin_ts does not match the current
+    // begin_ts, or it matches but the refcount is nonzero.
+    // Otherwise, clears begin_ts_with_refcount and returns true.
+    inline bool invalidate(gaia_txn_id_t begin_ts)
+    {
+        uint64_t old_begin_ts_with_refcount = begin_ts_with_refcount;
+        gaia_txn_id_t old_begin_ts = begin_ts_from_word(old_begin_ts_with_refcount);
+        size_t old_refcount = refcount_from_word(old_begin_ts_with_refcount);
+
+        // Invalidation should fail if either invalidation has already occurred
+        // (with possible reuse), or there are outstanding shared references.
+        if (old_begin_ts != begin_ts || old_refcount > 0)
+        {
+            return false;
+        }
+
+        uint64_t new_begin_ts_with_refcount = 0;
+        if (begin_ts_with_refcount.compare_exchange_strong(old_begin_ts_with_refcount, new_begin_ts_with_refcount))
+        {
+            return true;
+        }
+
+        return false;
     }
 };
 
@@ -217,9 +379,9 @@ struct counters_t
 {
     // These fields are used as cross-process atomic counters. We don't need
     // something like a cross-process mutex for this, as long as we use atomic
-    // intrinsics for mutating the counters. This is because the instructions
+    // intrinsics for mutating the counters. (This is because the instructions
     // targeted by the intrinsics operate at the level of physical memory, not
-    // virtual addresses.
+    // virtual addresses.)
     // NB: All these fields are initialized to 0, even though C++ doesn't guarantee
     // it, because this struct is constructed in a memory-mapped shared-memory
     // segment, and the OS automatically zeroes new pages.
@@ -240,38 +402,6 @@ struct data_t
     // The first entry of the array is reserved for the invalid offset value 0.
     aligned_storage_for_t<db_object_t> objects[c_max_locators + 1];
 };
-
-// Represents txn logs as offsets within the "log segment" of shared memory.
-// We can fit 2^16 1MB txn logs into 64GB of memory, so txn log offsets can be
-// represented as 16-bit integers. A log_offset_t value is just the offset of a
-// txn log object in 1MB units, relative to the base address of the log segment.
-// We use 0 to represent an invalid log offset (so the first log offset is unused).
-class log_offset_t : public common::int_type_t<uint16_t, 0>
-{
-public:
-    // By default, we should initialize to an invalid value.
-    constexpr log_offset_t()
-        : common::int_type_t<uint16_t, 0>()
-    {
-    }
-
-    constexpr log_offset_t(uint16_t value)
-        : common::int_type_t<uint16_t, 0>(value)
-    {
-    }
-};
-
-static_assert(
-    sizeof(log_offset_t) == sizeof(log_offset_t::value_type),
-    "log_offset_t has a different size than its underlying integer type!");
-
-constexpr log_offset_t c_invalid_log_offset;
-
-// This assertion ensures that the default type initialization
-// matches the value of the invalid constant.
-static_assert(
-    c_invalid_log_offset.value() == log_offset_t::c_default_invalid_value,
-    "Invalid c_invalid_log_offset initialization!");
 
 constexpr log_offset_t c_first_log_offset{c_invalid_log_offset.value() + 1};
 constexpr log_offset_t c_last_log_offset{c_max_logs};
