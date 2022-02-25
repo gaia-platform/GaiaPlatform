@@ -130,9 +130,15 @@ elif [ "$ACTION_NAME" == "publish_package" ] ; then
         complete_process 1 "Failed to read the Gaia Package Name from gaia_package_name.txt"
     fi
     echo "Gaia Package Name is: $GAIA_PACKAGE_NAME"
-    cpack -V
+
+    if ! cpack -V ; then
+        complete_process 1 "Failed to package the build into file $GAIA_PACKAGE_NAME.deb"
+    fi
+
     mkdir -p /build/output/package
-    cp /build/production/"${GAIA_PACKAGE_NAME}.deb" "/build/output/package/${GAIA_PACKAGE_NAME}.deb"
+    if ! cp /build/production/"${GAIA_PACKAGE_NAME}.deb" "/build/output/package/${GAIA_PACKAGE_NAME}.deb" ; then
+        complete_process 1 "Failed to copy the build package into file /build/output/package directory."
+    fi
 
     echo "Publishing of the SDK package completed successfully."
 else

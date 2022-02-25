@@ -42,3 +42,4 @@ jobs:
           job-name: ${{ github.job }}
           suite-name: ${{ matrix.suite-name }}
           db-persistence: ${{ matrix.persistence }}
+          allow_cached_sdk: true
