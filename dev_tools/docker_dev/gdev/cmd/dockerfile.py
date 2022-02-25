@@ -19,6 +19,13 @@ class Dockerfile(Dependency):
     Class to provide for the `dockerfile` subcommand entry point.
     """
 
+    @classmethod
+    def cli_entrypoint_description(cls):
+        """
+        Description to display in help for this subcommand.
+        """
+        return "Assemble the dockerfile based on the generated configuration."
+
     @memoize
     def cli_entrypoint(self) -> None:
         """
