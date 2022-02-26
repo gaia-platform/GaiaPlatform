@@ -119,6 +119,10 @@ struct hash_node_t
 struct log_record_t
 {
     gaia_locator_t locator;
+    // We need 4 bytes of padding to maintain total size at 16 bytes.
+    // (We place the padding here to align the two offsets on an 8-byte
+    // boundary, in case we need to modify them both atomically in the future.)
+    uint32_t reserved;
     gaia_offset_t old_offset;
     gaia_offset_t new_offset;
 
