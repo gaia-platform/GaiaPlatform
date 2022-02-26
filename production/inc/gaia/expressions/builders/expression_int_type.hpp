@@ -20,13 +20,13 @@ namespace expressions
 {
 
 // == operator.
-static inline bool evaluate_operator(common::gaia_id_t left, common::gaia_id_t right, operator_eq_t)
+constexpr inline bool evaluate_operator(common::gaia_id_t left, common::gaia_id_t right, operator_eq_t)
 {
     return left.value() == right.value();
 }
 
 // != operator.
-static inline bool evaluate_operator(common::gaia_id_t left, common::gaia_id_t right, operator_ne_t)
+constexpr inline bool evaluate_operator(common::gaia_id_t left, common::gaia_id_t right, operator_ne_t)
 {
     return left.value() != right.value();
 }
