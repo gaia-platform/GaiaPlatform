@@ -145,13 +145,24 @@ void persistent_store_manager_t::prepare_wal_for_write(gaia::db::txn_log_t* log,
         {
             string_writer_t key;
             string_writer_t value;
-            db_object_t* obj = offset_to_ptr(lr->new_offset);
-            if (!obj)
+            db_object_t* gaia_object = offset_to_ptr(lr->new_offset);
+            if (!gaia_object)
             {
                 // Object was deleted in current transaction.
                 continue;
             }
-            encode_object(obj, key, value);
+
+            // TODO(Mihir): Reuse the Put API after new persistence path is enabled.
+            encode_object(
+                gaia_object->id,
+                gaia_object->type,
+                gaia_object->num_references,
+                gaia_object->references(),
+                gaia_object->payload_size,
+                gaia_object->data_size(),
+                gaia_object->data(),
+                key,
+                value);
             // Gaia objects encoded as key-value slices shouldn't be empty.
             ASSERT_INVARIANT(
                 key.get_current_position() != 0 && value.get_current_position() != 0,
@@ -246,16 +257,35 @@ void persistent_store_manager_t::set_counter_value(const std::string& key_to_wri
     m_rdb_wrapper->put(key_to_write, value.to_slice());
 }
 
-void persistent_store_manager_t::put(gaia::db::db_recovered_object_t& object)
+void persistent_store_manager_t::put(
+    common::gaia_id_t id,
+    common::gaia_type_t type,
+    gaia::common::reference_offset_t num_references,
+    const gaia::common::gaia_id_t* references,
+    uint16_t payload_size,
+    uint16_t data_size,
+    const char* data)
 {
     string_writer_t key;
     string_writer_t value;
-    encode_checkpointed_object(&object, key, value);
+
+    encode_object(
+        id,
+        type,
+        num_references,
+        references,
+        payload_size,
+        data_size,
+        data,
+        key,
+        value);
 
     // Gaia objects encoded as key-value slices shouldn't be empty.
     ASSERT_POSTCONDITION(
         key.get_current_position() != 0 && value.get_current_position() != 0,
         "Encoded key & value should not be empty!");
+
+    // Don't need RocksDB txn context here.
     m_rdb_wrapper->put(key.to_slice(), value.to_slice());
 }
 

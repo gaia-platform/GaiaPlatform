@@ -33,6 +33,7 @@
 #include "memory_helpers.hpp"
 #include "memory_types.hpp"
 #include "persistent_store_manager.hpp"
+#include "rdb_object_converter.hpp"
 #include "txn_metadata.hpp"
 
 using namespace gaia::common;
@@ -261,7 +262,7 @@ void log_handler_t::create_txn_record(
     struct iovec header_entry = {nullptr, 0};
     writes_to_submit.push_back(header_entry);
 
-    // Create iovec entries.
+    // Create iovec entries for txn objects.
     size_t payload_size = 0;
     for (size_t i = 0; i < contiguous_address_offsets.size(); i += 2)
     {
@@ -494,14 +495,44 @@ void log_handler_t::write_log_record_to_persistent_store(
 
     while (payload_ptr < deleted_ids_ptr)
     {
-        auto obj_ptr = reinterpret_cast<db_recovered_object_t*>(payload_ptr);
-
+        // We use string_reader_t here to read the object instead of directly using
+        // reinterpret_cast<db_object_t*> since Gaia objects are packed into the log and don't
+        // respect the alignment requirement for db_object_t. This is done for the sake of
+        // encoding simplicity and to avoid bloating the size of the log. (Although the
+        // latter isn't a very strong argument)
+        // The object metadata occupies 16 bytes: 8 (id) + 4 (type) + 2 (payload_size)
+        // + 2 (num_references) = 16.
+        auto obj_ptr = payload_ptr;
         ASSERT_INVARIANT(obj_ptr, "Object cannot be null.");
-        ASSERT_INVARIANT(obj_ptr->id != common::c_invalid_gaia_id, "Recovered id cannot be invalid.");
-        ASSERT_INVARIANT(obj_ptr->payload_size > 0, "Recovered object size should be greater than 0");
-        persistent_store_manager->put(*obj_ptr);
 
-        size_t requested_size = obj_ptr->payload_size + c_db_object_header_size;
+        gaia_id_t id = *reinterpret_cast<gaia_id_t*>(obj_ptr);
+        ASSERT_INVARIANT(id != common::c_invalid_gaia_id, "Recovered id cannot be invalid.");
+        obj_ptr += sizeof(gaia_id_t);
+
+        gaia_type_t type = *reinterpret_cast<gaia_type_t*>(obj_ptr);
+        ASSERT_INVARIANT(type != common::c_invalid_gaia_type, "Recovered type cannot be invalid.");
+        obj_ptr += sizeof(gaia_type_t);
+
+        uint16_t payload_size = *reinterpret_cast<uint16_t*>(obj_ptr);
+        ASSERT_INVARIANT(payload_size > 0, "Recovered object size should be greater than 0");
+        obj_ptr += sizeof(uint16_t);
+
+        reference_offset_t num_references = *reinterpret_cast<reference_offset_t*>(obj_ptr);
+        obj_ptr += sizeof(reference_offset_t);
+
+        auto references = reinterpret_cast<const gaia_id_t*>(obj_ptr);
+        auto data = reinterpret_cast<const char*>(obj_ptr) + num_references * sizeof(gaia::common::gaia_id_t);
+
+        persistent_store_manager->put(
+            id,
+            type,
+            num_references,
+            references,
+            payload_size,
+            payload_size - (num_references * sizeof(gaia::common::gaia_id_t)),
+            data);
+
+        size_t requested_size = payload_size + c_db_object_header_size;
 
         size_t allocation_size = memory_manager::calculate_allocation_size_in_slots(requested_size) * c_slot_size_in_bytes;
 
@@ -543,7 +574,6 @@ void log_handler_t::write_records(
             ASSERT_INVARIANT(it->halt_recovery, "We don't expect empty records to be logged.");
         }
 
-        // Todo: Don't cast structs directly, instead decode byte by byte.
         read_record_t* record = reinterpret_cast<read_record_t*>(current_record_ptr);
 
         if (record_size != 0 && record->header.record_type == record_type_t::decision)

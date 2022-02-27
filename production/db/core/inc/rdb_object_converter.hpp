@@ -40,7 +40,7 @@ private:
 public:
     string_writer_t() = default;
 
-    get(size_t len)
+    string_writer_t(size_t len)
     {
         m_buffer.reserve(len);
     }
@@ -93,6 +93,11 @@ public:
 
     string_reader_t(const rocksdb::Slice& slice)
         : m_starting_byte(slice.data()), m_current_byte(slice.data()), m_size(slice.size())
+    {
+    }
+
+    string_reader_t(const char* data, size_t size)
+        : m_starting_byte(data), m_current_byte(data), m_size(size)
     {
     }
 
@@ -155,15 +160,16 @@ public:
     }
 };
 
-void encode_checkpointed_object(
-    const db_recovered_object_t* gaia_object,
-    string_writer_t& key,
-    string_writer_t& value);
-
 void encode_object(
-    const db_object_t* gaia_object,
-    string_writer_t& key,
-    string_writer_t& value);
+    common::gaia_id_t id,
+    common::gaia_type_t type,
+    gaia::common::reference_offset_t num_references,
+    const gaia::common::gaia_id_t* references,
+    uint16_t payload_size,
+    uint16_t data_size,
+    const char* data,
+    gaia::db::persistence::string_writer_t& key,
+    gaia::db::persistence::string_writer_t& value);
 
 db_object_t* decode_object(
     const rocksdb::Slice& key,

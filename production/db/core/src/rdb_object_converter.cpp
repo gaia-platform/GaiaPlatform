@@ -22,13 +22,19 @@ namespace db
 namespace persistence
 {
 
-void encode_object_base(
+/**
+ * Format:
+ * Key: id (uint64)
+ * Value: type, reference_count, payload_size, payload
+ */
+void encode_object(
     common::gaia_id_t id,
     common::gaia_type_t type,
     gaia::common::reference_offset_t num_references,
     const gaia::common::gaia_id_t* references,
     uint16_t payload_size,
-    const char* payload,
+    uint16_t data_size,
+    const char* data,
     gaia::db::persistence::string_writer_t& key,
     gaia::db::persistence::string_writer_t& value)
 {
@@ -45,47 +51,7 @@ void encode_object_base(
         value.write(*ref_ptr);
     }
 
-    size_t references_size = num_references * sizeof(gaia_id_t);
-    size_t data_size = payload_size - references_size;
-    const char* data_ptr = payload + references_size;
-    value.write(data_ptr, data_size);
-}
-
-/**
- * Format:
- * Key: id (uint64)
- * Value: type, reference_count, payload_size, payload
- */
-void encode_object(
-    const db_object_t* gaia_object,
-    gaia::db::persistence::string_writer_t& key,
-    gaia::db::persistence::string_writer_t& value)
-{
-    encode_object_base(
-        gaia_object->id,
-        gaia_object->type,
-        gaia_object->num_references,
-        gaia_object->references(),
-        gaia_object->payload_size,
-        gaia_object->payload,
-        key,
-        value);
-}
-
-void encode_checkpointed_object(
-    const db_recovered_object_t* gaia_object,
-    string_writer_t& key,
-    string_writer_t& value)
-{
-    encode_object_base(
-        gaia_object->id,
-        gaia_object->type,
-        gaia_object->num_references,
-        gaia_object->references(),
-        gaia_object->payload_size,
-        gaia_object->payload,
-        key,
-        value);
+    value.write(data, data_size);
 }
 
 db_object_t* decode_object(

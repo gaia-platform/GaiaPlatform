@@ -93,7 +93,14 @@ public:
     /**
      * This API is only used during checkpointing & recovery.
      */
-    void put(gaia::db::db_recovered_object_t& object);
+    void put(
+        common::gaia_id_t id,
+        common::gaia_type_t type,
+        gaia::common::reference_offset_t num_references,
+        const gaia::common::gaia_id_t* references,
+        uint16_t payload_size,
+        uint16_t data_size,
+        const char* data);
 
     /**
      * This API is only used during checkpointing & recovery.
