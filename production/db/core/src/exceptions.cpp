@@ -194,9 +194,9 @@ unique_constraint_violation_internal::unique_constraint_violation_internal(const
     std::stringstream message;
     message
         << c_error_description
-        << " Cannot insert a duplicate key in table: '"
-        << error_table_name << "', because of the unique constraint of "
-        << " index: '" << error_index_name << "'.";
+        << " Cannot insert a duplicate key in table '"
+        << error_table_name << "', because of the unique constraint of"
+        << " index '" << error_index_name << "'.";
     m_message = message.str();
 }
 
