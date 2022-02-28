@@ -180,6 +180,16 @@ memory_allocation_error_internal::memory_allocation_error_internal(const std::st
     m_message = message;
 }
 
+namespace persistence
+{
+
+checksum_error_internal::checksum_error_internal(const std::string& message)
+{
+    m_message = message;
+}
+
+} // namespace persistence
+
 namespace index
 {
 

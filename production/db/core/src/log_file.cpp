@@ -30,7 +30,7 @@ log_file_t::log_file_t(const std::string& dir, int dir_fd, log_sequence_t log_se
     m_dir_fd = dir_fd;
     m_dir_name = dir;
     m_log_seq = log_seq;
-    m_file_size = size;
+    m_file_size = size - c_reserved_size;
     m_current_offset = 0;
 
     // open and fallocate depending on size.

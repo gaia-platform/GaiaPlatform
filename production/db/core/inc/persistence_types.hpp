@@ -47,6 +47,7 @@ enum class record_type_t : uint8_t
     not_set = 0x0,
     txn = 0x1,
     decision = 0x2,
+    end_of_file = 0x3,
 };
 
 enum class decision_type_t : uint8_t
@@ -118,8 +119,8 @@ struct log_file_pointer_t
 
 struct record_header_t
 {
+    record_size_t record_size;
     crc32_t crc;
-    record_size_t payload_size;
     record_type_t record_type;
     gaia_txn_id_t txn_commit_ts;
 
@@ -135,10 +136,57 @@ struct record_header_t
     char padding[3];
 };
 
+constexpr size_t c_invalid_read_record_size = 0;
+
 struct read_record_t
 {
     struct record_header_t header;
     unsigned char payload[];
+
+    // Record size includes the header size and the payload size.
+    size_t get_record_size()
+    {
+        return header.record_size;
+    }
+
+    unsigned char* get_record()
+    {
+        return reinterpret_cast<unsigned char*>(this);
+    }
+
+    unsigned char* get_deleted_ids()
+    {
+        ASSERT_PRECONDITION(header.record_type == record_header_t::record_type::txn, "Incorrect record type!");
+        return reinterpret_cast<unsigned char*>(payload);
+    }
+
+    unsigned char* get_objects()
+    {
+        ASSERT_PRECONDITION(header.record_type == record_header_t::record_type::txn, "Incorrect record type!");
+        return get_deleted_ids() + header.deleted_object_count * sizeof(gaia_id_t);
+    }
+
+    decision_entry_t* get_decisions()
+    {
+        ASSERT_PRECONDITION(header.record_type == record_header_t::record_type::decision, "Incorrect record type!");
+        return reinterpret_cast<decision_entry_t*>(payload);
+    }
+
+    unsigned char* get_payload_end()
+    {
+        return get_record() + get_record_size();
+    }
+
+    static read_record_t* get_record(void* ptr)
+    {
+        ASSERT_PRECONDITION(ptr, "Invalid address!");
+        return reinterpret_cast<read_record_t*>(ptr);
+    }
+
+    bool is_valid()
+    {
+        return header.record_size != c_invalid_read_record_size && (header.record_type == record_type_t::txn || header.record_type == record_type_t::decision || header.record_type == record_type_t::end_of_file);
+    }
 };
 
 struct record_iterator_t

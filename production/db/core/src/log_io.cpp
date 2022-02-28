@@ -93,6 +93,32 @@ uint32_t calculate_crc32(uint32_t init_crc, const void* data, size_t n)
     return rocksdb::crc32c::Extend(init_crc, static_cast<const char*>(data), n);
 }
 
+void log_handler_t::create_end_of_file_record()
+{
+    // Create log record header.
+    record_header_t header;
+    header.crc = c_crc_initial_value;
+
+    // No need to allocate space in the log file as it is already reserved during log file
+    // construction.
+    header.record_size = sizeof(record_header_t);
+    header.decision_count = 0;
+    header.txn_commit_ts = c_invalid_gaia_txn_id;
+    header.record_type = record_type_t::end_of_file;
+
+    // Compute crc.
+    crc32_t txn_crc = 0;
+    txn_crc = calculate_crc32(txn_crc, &header, sizeof(record_header_t));
+    header.crc = txn_crc;
+
+    // Copy information which needs to survive for the entire batch lifetime into the metadata buffer.
+    auto header_ptr = m_async_disk_writer->copy_into_metadata_buffer(&header, sizeof(record_header_t), m_current_file->get_file_fd());
+    std::vector<iovec> writes_to_submit = {{header_ptr, sizeof(record_header_t)}};
+
+    // Append record to async_write_batch.
+    m_async_disk_writer->enqueue_pwritev_requests(writes_to_submit, m_current_file->get_file_fd(), m_current_file->get_current_offset(), uring_op_t::pwritev_decision);
+}
+
 file_offset_t log_handler_t::allocate_log_space(size_t payload_size)
 {
     // For simplicity, we don't break up transaction records across log files. Txn updates
@@ -107,6 +133,10 @@ file_offset_t log_handler_t::allocate_log_space(size_t payload_size)
     }
     else if (m_current_file->get_bytes_remaining_after_append(payload_size) <= 0)
     {
+        // No need to allocate space in the log file as it is already reserved during log file
+        // construction.
+        create_end_of_file_record();
+
         m_async_disk_writer->perform_file_close_operations(m_current_file->get_file_fd(), m_current_file->get_log_sequence());
 
         // One batch writes to a single log file at a time.
@@ -143,7 +173,7 @@ void log_handler_t::create_decision_record(const decision_list_t& txn_decisions)
     // Create log record header.
     record_header_t header;
     header.crc = c_crc_initial_value;
-    header.payload_size = total_log_space_needed;
+    header.record_size = total_log_space_needed;
     header.decision_count = txn_decisions.size();
     header.txn_commit_ts = c_invalid_gaia_txn_id;
     header.record_type = record_type_t::decision;
@@ -263,8 +293,18 @@ void log_handler_t::create_txn_record(
     struct iovec header_entry = {nullptr, 0};
     writes_to_submit.push_back(header_entry);
 
+    // Augment payload size with the size of deleted ids.
+    auto deleted_size = deleted_ids.size() * sizeof(gaia_id_t);
+    size_t payload_size = deleted_size;
+
+    // Allocate space for deleted writes in the metadata buffer.
+    if (!deleted_ids.empty())
+    {
+        auto deleted_id_ptr = m_async_disk_writer->copy_into_metadata_buffer(deleted_ids.data(), deleted_size, m_current_file->get_file_fd());
+        writes_to_submit.push_back({deleted_id_ptr, deleted_size});
+    }
+
     // Create iovec entries for txn objects.
-    size_t payload_size = 0;
     for (size_t i = 0; i < contiguous_address_offsets.size(); i += 2)
     {
         auto offset = contiguous_address_offsets.at(i);
@@ -273,10 +313,6 @@ void log_handler_t::create_txn_record(
         payload_size += chunk_size;
         writes_to_submit.push_back({ptr, chunk_size});
     }
-
-    // Augment payload size with the size of deleted ids.
-    auto deleted_size = deleted_ids.size() * sizeof(gaia_id_t);
-    payload_size += deleted_size;
 
     // Calculate total log space needed.
     auto total_log_space_needed = payload_size + sizeof(record_header_t);
@@ -287,7 +323,7 @@ void log_handler_t::create_txn_record(
     // Create header.
     record_header_t header;
     header.crc = c_crc_initial_value;
-    header.payload_size = total_log_space_needed;
+    header.record_size = total_log_space_needed;
     header.deleted_object_count = deleted_ids.size();
     header.txn_commit_ts = commit_ts;
     header.record_type = type;
@@ -295,14 +331,14 @@ void log_handler_t::create_txn_record(
     // Calculate CRC.
     auto txn_crc = calculate_crc32(0, &header, sizeof(record_header_t));
 
-    // Start from 1 to skip CRC calculation for the first entry.
-    for (size_t i = 1; i < writes_to_submit.size(); i++)
+    // Augment CRC calculation with set of deleted object IDs.
+    txn_crc = calculate_crc32(txn_crc, deleted_ids.data(), deleted_size);
+
+    // Skip CRC calculation for the first entry and for all deleted objects.
+    for (size_t i = 1 + deleted_size; i < writes_to_submit.size(); i++)
     {
         txn_crc = calculate_crc32(txn_crc, writes_to_submit.at(i).iov_base, writes_to_submit.at(i).iov_len);
     }
-
-    // Augment CRC calculation with set of deleted object IDs.
-    txn_crc = calculate_crc32(txn_crc, deleted_ids.data(), deleted_size);
 
     // Update CRC in header before sending it to the async_disk_writer.
     ASSERT_INVARIANT(txn_crc > 0, "Computed CRC cannot be zero.");
@@ -314,13 +350,6 @@ void log_handler_t::create_txn_record(
     // Update the first iovec entry with the header information.
     writes_to_submit.at(0).iov_base = header_ptr;
     writes_to_submit.at(0).iov_len = sizeof(record_header_t);
-
-    // Allocate space for deleted writes in the metadata buffer.
-    if (!deleted_ids.empty())
-    {
-        auto deleted_id_ptr = m_async_disk_writer->copy_into_metadata_buffer(deleted_ids.data(), deleted_size, m_current_file->get_file_fd());
-        writes_to_submit.push_back({deleted_id_ptr, deleted_size});
-    }
 
     // Finally send I/O requests to the async_disk_writer.
     m_async_disk_writer->enqueue_pwritev_requests(writes_to_submit, m_current_file->get_file_fd(), begin_offset, uring_op_t::pwritev_txn);
@@ -513,12 +542,10 @@ void log_handler_t::write_log_record_to_persistent_store(
 {
     ASSERT_PRECONDITION(record->header.record_type == record_type_t::txn, "Expected transaction record.");
 
-    auto payload_ptr = reinterpret_cast<unsigned char*>(record->payload);
-    auto start_ptr = payload_ptr;
-    auto end_ptr = reinterpret_cast<unsigned char*>(record) + record->header.payload_size;
-    auto deleted_ids_ptr = end_ptr - (sizeof(common::gaia_id_t) * record->header.deleted_object_count);
+    auto obj_ptr = record->get_objects();
+    auto end_ptr = record->get_payload_end();
 
-    while (payload_ptr < deleted_ids_ptr)
+    while (obj_ptr < end_ptr)
     {
         // We use string_reader_t here to read the object instead of directly using
         // reinterpret_cast<db_object_t*> since Gaia objects are packed into the log and don't
@@ -527,26 +554,26 @@ void log_handler_t::write_log_record_to_persistent_store(
         // latter isn't a very strong argument)
         // The object metadata occupies 16 bytes: 8 (id) + 4 (type) + 2 (payload_size)
         // + 2 (num_references) = 16.
-        auto obj_ptr = payload_ptr;
-        ASSERT_INVARIANT(obj_ptr, "Object cannot be null.");
+        auto obj_ptr_copy = obj_ptr;
+        ASSERT_INVARIANT(obj_ptr_copy, "Object cannot be null.");
 
-        gaia_id_t id = *reinterpret_cast<gaia_id_t*>(obj_ptr);
+        gaia_id_t id = *reinterpret_cast<gaia_id_t*>(obj_ptr_copy);
         ASSERT_INVARIANT(id != common::c_invalid_gaia_id, "Recovered id cannot be invalid.");
-        obj_ptr += sizeof(gaia_id_t);
+        obj_ptr_copy += sizeof(gaia_id_t);
 
-        gaia_type_t type = *reinterpret_cast<gaia_type_t*>(obj_ptr);
+        gaia_type_t type = *reinterpret_cast<gaia_type_t*>(obj_ptr_copy);
         ASSERT_INVARIANT(type != common::c_invalid_gaia_type, "Recovered type cannot be invalid.");
-        obj_ptr += sizeof(gaia_type_t);
+        obj_ptr_copy += sizeof(gaia_type_t);
 
-        uint16_t payload_size = *reinterpret_cast<uint16_t*>(obj_ptr);
+        uint16_t payload_size = *reinterpret_cast<uint16_t*>(obj_ptr_copy);
         ASSERT_INVARIANT(payload_size > 0, "Recovered object size should be greater than 0");
-        obj_ptr += sizeof(uint16_t);
+        obj_ptr_copy += sizeof(uint16_t);
 
-        reference_offset_t num_references = *reinterpret_cast<reference_offset_t*>(obj_ptr);
-        obj_ptr += sizeof(reference_offset_t);
+        reference_offset_t num_references = *reinterpret_cast<reference_offset_t*>(obj_ptr_copy);
+        obj_ptr_copy += sizeof(reference_offset_t);
 
-        auto references = reinterpret_cast<const gaia_id_t*>(obj_ptr);
-        auto data = reinterpret_cast<const char*>(obj_ptr) + num_references * sizeof(gaia::common::gaia_id_t);
+        auto references = reinterpret_cast<const gaia_id_t*>(obj_ptr_copy);
+        auto data = reinterpret_cast<const char*>(obj_ptr_copy) + num_references * sizeof(gaia::common::gaia_id_t);
 
         persistent_store_manager->put(
             id,
@@ -561,17 +588,16 @@ void log_handler_t::write_log_record_to_persistent_store(
 
         size_t allocation_size = memory_manager::calculate_allocation_size_in_slots(requested_size) * c_slot_size_in_bytes;
 
-        payload_ptr += allocation_size;
+        obj_ptr += allocation_size;
     }
 
-    for (size_t i = 0; i < record->header.deleted_object_count; i++)
+    // Propagate deletes at the very end.
+    auto first_id_ptr = reinterpret_cast<common::gaia_id_t*>(record->get_deleted_ids());
+    for (gaia_id_t* id_ptr = first_id_ptr; id_ptr < first_id_ptr + record->header.deleted_object_count; ++id_ptr)
     {
-        ASSERT_INVARIANT(deleted_ids_ptr < end_ptr, "Txn content overflow.");
-        auto deleted_id = reinterpret_cast<common::gaia_id_t*>(deleted_ids_ptr);
-        ASSERT_INVARIANT(deleted_id, "Deleted ID cannot be null.");
-        ASSERT_INVARIANT(*deleted_id > 0, "Deleted ID cannot be invalid.");
-        persistent_store_manager->remove(*deleted_id);
-        deleted_ids_ptr += sizeof(common::gaia_id_t);
+        ASSERT_INVARIANT(id_ptr, "Deleted ID cannot be null.");
+        ASSERT_INVARIANT(*id_ptr != c_invalid_gaia_id, "Deleted ID cannot be invalid.");
+        persistent_store_manager->remove(*id_ptr);
     }
 }
 
@@ -580,45 +606,40 @@ void log_handler_t::write_records(
     record_iterator_t* it,
     gaia_txn_id_t* last_checkpointed_commit_ts)
 {
-    size_t record_size = 0;
+    size_t record_size = c_invalid_read_record_size;
 
-    do
+    while (true)
     {
         auto current_record_ptr = it->iterator;
         record_size = update_iterator(it);
 
-        if (record_size == 0)
+        if (record_size == c_invalid_read_record_size)
         {
-            if (it->halt_recovery || it->iterator >= it->stop_at)
+            if (it->halt_recovery || (it->iterator >= it->stop_at))
             {
                 it->iterator = nullptr;
                 it->end = nullptr;
                 break;
             }
-
-            ASSERT_INVARIANT(it->halt_recovery, "We don't expect empty records to be logged.");
         }
 
-        read_record_t* record = reinterpret_cast<read_record_t*>(current_record_ptr);
+        read_record_t* record = read_record_t::get_record(current_record_ptr);
 
-        if (record_size != 0 && record->header.record_type == record_type_t::decision)
+        if (record->header.record_type == record_type_t::decision)
         {
-            // Decode decision record.
-            auto payload_ptr = current_record_ptr + sizeof(record_header_t);
-
             // Obtain decisions. Decisions may not be in commit order, so sort and process them.
-            for (size_t i = 0; i < record->header.decision_count; i++)
+            auto first_decision_entry = record->get_decisions();
+            for (decision_entry_t* decision_entry = first_decision_entry;
+                 decision_entry < first_decision_entry + record->header.decision_count; ++decision_entry)
             {
-                auto decision_entry = reinterpret_cast<decision_entry_t*>(payload_ptr);
                 if (decision_entry->commit_ts > *last_checkpointed_commit_ts)
                 {
                     ASSERT_INVARIANT(m_txn_records_by_commit_ts.count(decision_entry->commit_ts) > 0, "Transaction record should be written before the decision record.");
                     m_decision_records_by_commit_ts.insert(std::pair(decision_entry->commit_ts, decision_entry->decision));
                 }
-                payload_ptr += sizeof(decision_entry_t);
             }
 
-            // Iterare decisions.
+            // Iterate decisions.
             for (auto decision_it = m_decision_records_by_commit_ts.cbegin(); decision_it != m_decision_records_by_commit_ts.cend();)
             {
                 ASSERT_INVARIANT(m_txn_records_by_commit_ts.count(decision_it->first) > 0, "Transaction record should be written before the decision record.");
@@ -631,7 +652,7 @@ void log_handler_t::write_records(
                     // Txn record is safe to be written to rocksdb at this point, since checksums for both
                     // the txn & decision record were validated and we asserted that the txn record is written
                     // before the decision record in the wal.
-                    write_log_record_to_persistent_store(persistent_store_manager, reinterpret_cast<read_record_t*>(txn_it->second));
+                    write_log_record_to_persistent_store(persistent_store_manager, read_record_t::get_record(txn_it->second));
                 }
 
                 // Update 'last_checkpointed_commit_ts' in memory so it can later be written to persistent store.
@@ -640,7 +661,7 @@ void log_handler_t::write_records(
                 decision_it = m_decision_records_by_commit_ts.erase(decision_it);
             }
         }
-        else if (record_size != 0 && record->header.record_type == record_type_t::txn)
+        else if (record->header.record_type == record_type_t::txn)
         {
             // Skip over records that have already been checkpointed.
             if (record->header.txn_commit_ts <= *last_checkpointed_commit_ts)
@@ -649,62 +670,49 @@ void log_handler_t::write_records(
             }
             m_txn_records_by_commit_ts.insert(std::pair(record->header.txn_commit_ts, current_record_ptr));
         }
-
-    } while (true);
+        else if (record->header.record_type == record_type_t::end_of_file)
+        {
+            it->iterator = nullptr;
+            it->end = nullptr;
+            break;
+        }
+    }
 }
 
 size_t log_handler_t::update_iterator(struct record_iterator_t* it)
 {
+    size_t record_size = c_invalid_read_record_size;
     if (it->iterator < it->stop_at)
     {
-        size_t record_size = validate_recovered_record_checksum(it);
-
-        // Recovery failure.
-        if (record_size == 0)
-        {
-            return 0;
-        }
-
+        validate_checksum(it);
+        record_size = read_record_t::get_record(it->iterator)->get_record_size();
         it->iterator += record_size;
-        return record_size;
     }
-    else
-    {
-        return 0;
-    }
+    return record_size;
 }
 
-size_t log_handler_t::validate_recovered_record_checksum(struct record_iterator_t* it)
+void log_handler_t::validate_checksum(struct record_iterator_t* it)
 {
-    auto destination = reinterpret_cast<read_record_t*>(it->iterator);
+    auto destination = read_record_t::get_record(it->iterator);
 
-    if (destination->header.crc == 0)
+    // Basic checks for record.
+    bool is_record_valid = destination && destination->is_valid();
+    if (!is_record_valid)
     {
-        if (is_remaining_file_empty(it->iterator, it->end))
-        {
-            // Stop processing the current log file.
-            it->stop_at = it->iterator;
-            return 0;
-        }
+        // Stop processing the current log file.
+        it->stop_at = it->iterator;
+        it->halt_recovery = true;
 
         if (it->recovery_mode == log_reader_mode_t::checkpoint_fail_on_first_error)
         {
-            throw std::runtime_error("Log record has empty checksum value!");
+            throw std::runtime_error("Log record is invalid!");
         }
-        else if (it->recovery_mode == log_reader_mode_t::recovery_stop_on_first_error)
-        {
-            // We expect all log files to be truncated to appropriate size, so halt recovery.
-            it->halt_recovery = true;
-            return 0;
-        }
-        else
-        {
-            ASSERT_INVARIANT(false, "Unexpected recovery mode.");
-        }
+
+        return;
     }
 
     // CRC calculation requires manipulating the recovered record header's CRC;
-    // So create a copy of the header to avoid modifying the wal log once it has been written.
+    // So create a copy of the header to avoid modifying the log once it has been written.
     record_header_t header_copy;
     memcpy(&header_copy, &destination->header, sizeof(record_header_t));
 
@@ -715,42 +723,31 @@ size_t log_handler_t::validate_recovered_record_checksum(struct record_iterator_
     auto crc = calculate_crc32(0, &header_copy, sizeof(record_header_t));
 
     // Calculate payload CRC.
-    crc = calculate_crc32(crc, destination->payload, header_copy.payload_size - sizeof(record_header_t));
+    crc = calculate_crc32(crc, destination->payload, header_copy.record_size - sizeof(record_header_t));
 
     if (crc != expected_crc)
     {
         if (it->recovery_mode == log_reader_mode_t::checkpoint_fail_on_first_error)
         {
-            throw std::runtime_error("Record checksum match failed!");
+            throw checksum_error_internal("Record checksum match failed!");
         }
 
         if (it->recovery_mode == log_reader_mode_t::recovery_stop_on_first_error)
         {
             it->halt_recovery = true;
-            return 0;
         }
     }
-
-    return header_copy.payload_size;
 }
 
 void log_handler_t::map_log_file(struct record_iterator_t* it, int file_fd, log_reader_mode_t recovery_mode)
 {
-    struct stat st;
     read_record_t* wal_record;
 
-    if (fstat(file_fd, &st) == -1)
-    {
-        throw_system_error("failed to fstat wal file");
-    }
-
-    auto first_data = lseek(file_fd, 0, SEEK_DATA);
-    ASSERT_INVARIANT(first_data == 0, "We don't expect any holes in the beginning to the wal files.");
-    ASSERT_INVARIANT(st.st_size > 0, "We don't expect to write empty persistent log files.");
-
+    size_t size = get_fd_size(file_fd);
+    ASSERT_INVARIANT(size > 0, "Empty log file!");
     gaia::common::map_fd_data(
         wal_record,
-        st.st_size,
+        size,
         PROT_READ,
         MAP_SHARED,
         file_fd,
@@ -758,22 +755,14 @@ void log_handler_t::map_log_file(struct record_iterator_t* it, int file_fd, log_
 
     *it = (struct record_iterator_t){
         .iterator = (unsigned char*)wal_record,
-        .end = (unsigned char*)wal_record + st.st_size,
-        .stop_at = (unsigned char*)wal_record + st.st_size,
+        .end = (unsigned char*)wal_record + size,
+        .stop_at = (unsigned char*)wal_record + size,
         .begin = (unsigned char*)wal_record,
         .mapped_data = wal_record,
-        .map_size = (size_t)st.st_size,
+        .map_size = size,
         .file_fd = file_fd,
         .recovery_mode = recovery_mode,
         .halt_recovery = false};
-}
-
-bool log_handler_t::is_remaining_file_empty(unsigned char* start, unsigned char* end)
-{
-    auto remaining_size = end - start;
-    unsigned char zeroblock[remaining_size];
-    memset(zeroblock, 0, sizeof zeroblock);
-    return memcmp(zeroblock, start, remaining_size) == 0;
 }
 
 } // namespace persistence

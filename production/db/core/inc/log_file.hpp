@@ -62,6 +62,10 @@ private:
     int m_file_fd;
     std::string m_file_name;
     inline static constexpr int c_file_permissions = 0666;
+
+    // We reserve space for a header at the end of a log file.
+    // This serves to signify the end of a file.
+    inline static constexpr size_t c_reserved_size = sizeof(record_header_t);
 };
 
 } // namespace persistence

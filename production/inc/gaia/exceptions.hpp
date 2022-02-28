@@ -397,6 +397,23 @@ class pre_commit_validation_failure : public common::gaia_exception
 {
 };
 
+namespace persistence
+{
+/**
+ * \addtogroup persistence
+ * @{
+ */
+
+/**
+ * Thrown to indicate a checksum validation error when reading persistent log records.
+ */
+class checksum_error : public common::gaia_exception
+{
+};
+
+/*@}*/
+} // namespace persistence
+
 namespace index
 {
 /**

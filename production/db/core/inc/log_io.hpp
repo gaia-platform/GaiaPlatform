@@ -71,6 +71,11 @@ public:
     void create_decision_record(const decision_list_t& txn_decisions);
 
     /**
+     * Log record to signify end of file.
+     */
+    void create_end_of_file_record();
+
+    /**
      * Submit async_disk_writer's internal I/O request queue to the kernel for processing.
      */
     void submit_writes(bool sync);
@@ -141,7 +146,7 @@ private:
     gaia_txn_id_t m_max_decided_commit_ts;
 
     size_t update_iterator(struct record_iterator_t* it);
-    size_t validate_recovered_record_checksum(struct record_iterator_t* it);
+    void validate_checksum(struct record_iterator_t* it);
     void map_log_file(struct record_iterator_t* it, int file_fd, log_reader_mode_t recovery_mode);
     void unmap_file(void* start, size_t size);
     bool is_remaining_file_empty(unsigned char* start, unsigned char* end);

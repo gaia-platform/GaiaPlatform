@@ -305,6 +305,17 @@ public:
     explicit memory_allocation_error_internal(const std::string& message);
 };
 
+namespace persistence
+{
+
+class checksum_error_internal : public checksum_error
+{
+public:
+    checksum_error_internal(const std::string& message);
+};
+
+} // namespace persistence
+
 namespace index
 {
 
