@@ -48,8 +48,11 @@ runs:
       shell: bash
       run: |
         CFG_ENABLES=
-        if [ "${{ inputs.build-flavor }}" != "" ] || [ "${{ inputs.build-type }}" != "" ] ; then
-          CFG_ENABLES="--cfg-enables ${{ inputs.build-flavor}} ${{ inputs.build-type }}"
+        if [ "${{ inputs.build-flavor }}" != "" ] ; then
+          CFG_ENABLES="$CFG_ENABLES --cfg-enables ${{ inputs.build-flavor}}"
+        fi
+        if [ "${{ inputs.build-type }}" != "" ] ; then
+          CFG_ENABLES="$CFG_ENABLES --cfg-enables ${{ inputs.build-type }}"
         fi
         echo "Configuration: $CFG_ENABLES"
         $GAIA_REPO/dev_tools/github-actions/build_image.sh \

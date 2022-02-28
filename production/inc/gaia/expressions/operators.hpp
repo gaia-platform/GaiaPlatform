@@ -7,6 +7,8 @@
 
 #include <type_traits>
 
+#include "expression_traits.hpp"
+
 namespace gaia
 {
 namespace expressions
@@ -56,7 +58,7 @@ struct operator_mul_t
 }; // * token.
 struct operator_div_t
 {
-}; // . token.
+}; // / token.
 struct operator_mod_t
 {
 }; // % token.

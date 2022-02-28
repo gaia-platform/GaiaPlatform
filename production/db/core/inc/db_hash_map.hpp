@@ -117,10 +117,7 @@ public:
         {
             if (node->id == id)
             {
-                if (node->locator != c_invalid_gaia_locator)
-                {
-                    node->locator = c_invalid_gaia_locator;
-                }
+                node->locator = c_invalid_gaia_locator;
                 return;
             }
             if (!node->next_offset)
