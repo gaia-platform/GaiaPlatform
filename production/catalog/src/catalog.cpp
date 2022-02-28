@@ -208,8 +208,9 @@ gaia_id_t create_table(const string& name, const ddl::field_def_list_t& fields)
 {
     ddl_executor_t& ddl_executor = ddl_executor_t::get();
     direct_access::auto_transaction_t txn(false);
-    gaia_id_t id = ddl_executor.create_table("", name, fields);
-    add_hash(name);
+    ddl_executor_t::get().switch_db_context(c_empty_db_name);
+    gaia_id_t id = ddl_executor.create_table(c_empty_db_name, name, fields);
+    add_hash(c_empty_db_name);
     txn.commit();
     return id;
 }
@@ -223,8 +224,9 @@ gaia_id_t create_table(
 {
     ddl_executor_t& ddl_executor = ddl_executor_t::get();
     direct_access::auto_transaction_t txn(false);
+    ddl_executor_t::get().switch_db_context(db_name);
     gaia_id_t id = ddl_executor.create_table(db_name, name, fields, throw_on_exists, auto_drop);
-    add_hash(name);
+    add_hash(db_name);
     txn.commit();
     return id;
 }
@@ -306,7 +308,7 @@ void drop_table(const string& name, bool throw_unless_exists)
 {
     ddl_executor_t& ddl_executor = ddl_executor_t::get();
     direct_access::auto_transaction_t txn(false);
-    ddl_executor.drop_table("", name, throw_unless_exists);
+    ddl_executor.drop_table(c_empty_db_name, name, throw_unless_exists);
     add_hash(name);
     txn.commit();
 }
