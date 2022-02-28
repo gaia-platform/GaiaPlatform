@@ -61,6 +61,7 @@ struct field_view_t : catalog_db_object_view_t
     [[nodiscard]] const char* name() const;
     [[nodiscard]] common::data_type_t data_type() const;
     [[nodiscard]] common::field_position_t position() const;
+    [[nodiscard]] bool optional() const;
 };
 
 using buffer = const flatbuffers::Vector<uint8_t>;
