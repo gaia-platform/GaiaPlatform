@@ -137,22 +137,3 @@ class GenAbcRun(Dependency, ABC):
             command = shlex.split(command_to_execute)
             self.log.debug("execvpe command=%s", command)
             os.execvpe(command[0], command, os.environ)
-
-    # pylint: disable=import-outside-toplevel
-    #
-    # Required to resolve cyclical dependency issues.
-    @memoize
-    def cli_entrypoint(self) -> None:
-        """
-        Execution entrypoint for this module.
-        """
-        if not self.options.mixins:
-            run = self
-        else:
-            from gdev.sections._custom.run import GenCustomRun
-
-            run = GenCustomRun(options=self.options, base_run=self)
-
-        run.run()
-
-    # pylint: enable=import-outside-toplevel

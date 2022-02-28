@@ -64,20 +64,20 @@ class DockerDev:
         )
 
         # Create the subcommand that was indicated, including all options.
-        return getattr(import_module(command_module), command_class)(options)
+        return getattr(import_module(command_module), command_class)(), options
 
     @staticmethod
     def main():
         """
         Main entry point from the operating system.
         """
-        dependency = DockerDev.__of_args(tuple(sys.argv[1:]))
+        subcommand, options = DockerDev.__of_args(tuple(sys.argv[1:]))
 
-        logging.basicConfig(level=dependency.options.log_level)
+        logging.basicConfig(level=options.log_level)
 
         try:
-            dependency.cli_entrypoint()
-        except dependency.Exception as this_exception:
+            subcommand.cli_entrypoint(options)
+        except Dependency.Exception as this_exception:
             print(f"\n{this_exception}", file=sys.stderr)
         finally:
             logging.shutdown()

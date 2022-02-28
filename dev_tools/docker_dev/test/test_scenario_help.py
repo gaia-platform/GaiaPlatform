@@ -61,50 +61,6 @@ HELP_RUN_ARGUMENTS = """  -f, --force           Force Docker to build with local
                         Default: "[]"
 """
 
-HELP_POSITIONAL_PREFIX = """positional arguments:
-  args                  Args to be forwarded on to docker run, if applicable.
-
-"""
-HELP_BASE_ARGUMENTS = """optional arguments:
-  -h, --help            show this help message and exit
-  --log-level {CRITICAL,ERROR,WARNING,INFO,DEBUG}
-                        Log level. Default: "INFO"
-  --cfg-enables [CFG_ENABLES [CFG_ENABLES ...]]
-                        Enable lines in gdev.cfg files gated by `enable_if`,
-                        `enable_if_any`, and `enable_if_all` functions.
-                        Default: "[]"
-"""
-HELP_DOCKERFILE_ARGUMENTS = (
-    HELP_BASE_ARGUMENTS
-    + """  --base-image BASE_IMAGE
-                        Base image for build. Default: "ubuntu:20.04"
-  --mixins [{clion,gdb,git,nano,sshd,sudo} [{clion,gdb,git,nano,sshd,sudo} ...]]
-                        Image mixins to use when creating a container. Mixins
-                        provide dev tools and configuration from targets in
-                        the "dev_tools/gdev/mixin" directory. Default: "[]"
-"""
-)
-HELP_BUILD_ARGUMENTS = (
-    HELP_DOCKERFILE_ARGUMENTS
-    + """  --platform {amd64,arm64}
-                        Platform to build upon. Default: "amd64"
-  --registry REGISTRY   Registry to push images and query cached build stages.
-                        Default: None
-"""
-)
-HELP_RUN_ARGUMENTS = """  -f, --force           Force Docker to build with local changes.
-  --mounts MOUNTS       <host_path>:<container_path> mounts to be created (or
-                        if already created, resumed) during `docker run`.
-                        Paths may be specified as relative paths. <host_path>
-                        relative paths are relative to the host's current
-                        working directory. <container_path> relative paths are
-                        relative to the Docker container's WORKDIR (AKA the
-                        build dir). Default: ""
-  -p [PORTS [PORTS ...]], --ports [PORTS [PORTS ...]]
-                        Ports to expose in underlying docker container.
-                        Default: "[]"
-"""
-
 
 def get_executor():
     """

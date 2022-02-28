@@ -201,23 +201,3 @@ class GenAbcBuild(Dependency, ABC):
             f" {GaiaPath.repo()}"
         )
         Host.execute_sync("docker image prune -f")
-
-    # pylint: disable=import-outside-toplevel
-    #
-    # Required to resolve cyclical dependency issues.
-    @memoize
-    def cli_entrypoint(self) -> None:
-        """
-        Execution entrypoint for this module.
-        """
-
-        if not self.options.mixins:
-            build = self
-        else:
-            from gdev.sections._custom.build import GenCustomBuild
-
-            build = GenCustomBuild(options=self.options, base_build=self)
-
-        build.run()
-
-    # pylint: enable=import-outside-toplevel
