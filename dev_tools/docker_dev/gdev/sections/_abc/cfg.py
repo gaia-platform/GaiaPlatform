@@ -159,9 +159,9 @@ class GenAbcCfg(Dependency, ABC):
         return section_lines
 
     @memoize
-    def cli_entrypoint(self) -> None:
+    def main(self) -> None:
         """
-        Execution entrypoint for this module.
+        Main action undertaken by this class.
         """
         print(
             "\n".join(

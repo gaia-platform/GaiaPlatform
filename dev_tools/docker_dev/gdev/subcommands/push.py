@@ -9,12 +9,10 @@
 Module to provide for the `push` subcommand entry point.
 """
 
-from gdev.dependency import Dependency
-from gdev.third_party.atools import memoize
 from gdev.sections.run.push import GenRunPush
 
 
-class Push(Dependency):
+class Push:
     """
     Class to provide for the `push` subcommand entry point.
     """
@@ -26,9 +24,9 @@ class Push(Dependency):
         """
         return "Build the image, if required, and push the image to the image registry."
 
-    @memoize
-    def cli_entrypoint(self) -> None:
+    @classmethod
+    def cli_entrypoint(cls, options) -> None:
         """
         Execution entrypoint for this module.
         """
-        GenRunPush(self.options).cli_entrypoint()
+        GenRunPush(options).run()

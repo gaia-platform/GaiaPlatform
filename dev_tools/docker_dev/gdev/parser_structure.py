@@ -67,10 +67,10 @@ class ParserStructure:
                 ]
             )
             doc = getdoc(module.__dict__[command_class]) or ""
-            instance = module.__dict__[command_class](None)
+            subcommand_instance = module.__dict__[command_class]()
             alt_doc = (
-                instance.cli_entrypoint_description()
-                if hasattr(instance, "cli_entrypoint_description")
+                subcommand_instance.cli_entrypoint_description()
+                if hasattr(subcommand_instance, "cli_entrypoint_description")
                 else ""
             )
             parser_structure = ParserStructure(

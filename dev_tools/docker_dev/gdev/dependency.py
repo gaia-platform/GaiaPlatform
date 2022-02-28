@@ -77,13 +77,6 @@ class Dependency:
         return log
 
     @memoize
-    def cli_entrypoint(self) -> None:
-        """
-        Execution entrypoint for this module.
-        """
-        self.run()
-
-    @memoize
     def run(self) -> None:
         """
         Run the main action that is the focus of this class.
