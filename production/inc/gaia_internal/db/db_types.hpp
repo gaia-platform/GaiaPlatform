@@ -61,18 +61,18 @@ static_assert(
  * data segment. Each gaia_id corresponds to a unique locator for the lifetime
  * of the server process.
  */
-class gaia_locator_t : public common::int_type_t<uint64_t, 0>
+class gaia_locator_t : public common::int_type_t<uint32_t, 0>
 {
 public:
     // By default, we should initialize to an invalid value.
     constexpr gaia_locator_t()
-        : common::int_type_t<uint64_t, 0>()
+        : common::int_type_t<uint32_t, 0>()
     {
     }
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    constexpr gaia_locator_t(uint64_t value)
-        : common::int_type_t<uint64_t, 0>(value)
+    constexpr gaia_locator_t(uint32_t value)
+        : common::int_type_t<uint32_t, 0>(value)
     {
     }
 };

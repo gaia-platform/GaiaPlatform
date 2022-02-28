@@ -22,9 +22,6 @@ from pkgutil import iter_modules
 class ParserStructure:
     """
     Class to provide a description of the structure to be constructed.
-
-    Note that the `gdev.cmd` is a `path` within the package hierarchy,
-    not calling out to a gdev.cmd script.
     """
 
     command_parts: Tuple[str, ...]
@@ -49,7 +46,7 @@ class ParserStructure:
         """
         Name of the module that contains the procedure to enact.
         """
-        return ".".join(["gdev.cmd", *self.command_parts])
+        return ".".join(["gdev.subcommands", *self.command_parts])
 
     @classmethod
     def of_command_parts(cls, command_parts: Tuple[str, ...]) -> ParserStructure:
@@ -57,7 +54,7 @@ class ParserStructure:
         Create a parser structure out of the command parts.
         """
 
-        module_name = ".".join(["gdev.cmd", *command_parts])
+        module_name = ".".join(["gdev.subcommands", *command_parts])
         spec = find_spec(module_name)
         module = import_module(module_name)
         if spec.submodule_search_locations is None:
