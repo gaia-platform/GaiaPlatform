@@ -92,3 +92,25 @@ jobs:
           publish-package: false
           build-flavor: Core
           build-type: Debug
+
+  Debug_SDK:
+    needs:
+      - Third-Party
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
+
+      - name: Create Build
+        uses: ./.github/actions/build-job
+        with:
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          execute-unit-tests: true
+          publish-package: true
+          build-flavor: GaiaSDK
+          build-type: Debug

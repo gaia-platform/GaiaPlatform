@@ -50,39 +50,40 @@ namespace transactions
 // encoded as 0 because all entries of the array are zeroed when a page is
 // allocated. We also introduce the pseudo-state TXN_DECIDED, encoded as the
 // shared set bit in TXN_COMMITTED and TXN_ABORTED. Each active txn may assume
-// the states TXN_NONE, TXN_ACTIVE, TXN_SUBMITTED, TXN_TERMINATED, while
-// each submitted txn may assume the states TXN_SUBMITTED, TXN_COMMITTED,
-// TXN_ABORTED, so we need 2 bits for each txn metadata entry to represent all possible
-// states. Combined with the begin/commit bit, we need to reserve the 3 high
-// bits of each 64-bit entry for txn state, leaving 61 bits for other purposes.
-// The remaining bits are used as follows. In the TXN_NONE state, all bits are
-// 0. In the TXN_ACTIVE state, the non-state bits are currently unused, but
-// they could be used for active txn information like session thread ID, session
-// socket, session userfaultfd, etc. In the TXN_SUBMITTED state, the remaining
-// bits always hold a commit timestamp (which is guaranteed to be at most 42
-// bits per above). The commit timestamp serves as a forwarding pointer to the
-// submitted txn metadata for this txn. Note that the commit timestamp metadata for a
-// txn may be set before its begin timestamp metadata has been updated, because
-// multiple updates to the array cannot be made atomically without locks. (This
-// is similar to insertion into a lock-free singly-linked list, where the new
-// node is linked to its successor before its predecessor is linked to the new
-// node.) Our algorithms are tolerant to this transient inconsistency. A commit
-// timestamp metadata always holds the submitted txn's log fd in the low 16 bits
-// following the 3 high bits used for state (we assume that all log fds fit into
-// 16 bits), and the txn's begin timestamp in the low 42 bits.
+// the states TXN_NONE, TXN_ACTIVE, TXN_SUBMITTED, TXN_TERMINATED, while each
+// submitted txn may assume the states TXN_SUBMITTED, TXN_COMMITTED,
+// TXN_ABORTED, so we need 2 bits for each txn metadata entry to represent all
+// possible states. Combined with the begin/commit bit, we need to reserve the 3
+// high bits of each 64-bit entry for txn state, leaving 61 bits for other
+// purposes. The remaining bits are used as follows. In the TXN_NONE state, all
+// bits are zero. In the TXN_ACTIVE state, the non-state bits are currently
+// unused, but they could be used for active txn information like session thread
+// ID, session socket, session userfaultfd, etc. In the TXN_SUBMITTED state, the
+// remaining bits always hold a commit timestamp (which is guaranteed to be at
+// most 42 bits per above). The commit timestamp serves as a forwarding pointer
+// to the submitted txn metadata for this txn. Note that the commit timestamp
+// metadata for a txn may be set before its begin timestamp metadata has been
+// updated, because multiple updates to the array cannot be made atomically
+// without locks. (This is similar to insertion into a lock-free singly-linked
+// list, where the new node is linked to its successor before its predecessor is
+// linked to the new node.) Our algorithms are tolerant to this transient
+// inconsistency. A commit timestamp metadata entry always holds the submitted
+// txn's log offset in the low 16 bits following the 3 high bits used for state
+// (we assume that all log offsets fit into 16 bits), and the txn's begin
+// timestamp in the low 42 bits.
 //
-// We can always find the watermark by just scanning the txn_metadata array until we
-// find the first begin timestamp metadata not in state TXN_TERMINATED. However, we
-// need to know where to start scanning from, because pages toward the beginning of
-// the array may have already been deallocated (as part of advancing the
-// watermark, once all txn logs preceding the watermark have been scanned for
-// garbage and deallocated, all pages preceding the new watermark's position in
-// the array can be freed using madvise(MADV_FREE)). We can store a global
-// watermark variable to cache this information, which could always be stale but
-// tells us where to start scanning to find the current watermark, because the
-// watermark only moves forward. This global variable is also set as part of
-// advancing the watermark on termination of the oldest active txn, which is
-// delegated to that txn's session thread.
+// We can always find the watermark by just scanning the txn_metadata array
+// until we find the first begin timestamp metadata not in state TXN_TERMINATED.
+// However, we need to know where to start scanning from, because pages toward
+// the beginning of the array may have already been deallocated (as part of
+// advancing the watermark, once all txn logs preceding the watermark have been
+// scanned for garbage and deallocated, all pages preceding the new watermark's
+// position in the array can be freed using madvise(MADV_FREE)). We can store a
+// global watermark variable to cache this information, which could always be
+// stale but tells us where to start scanning to find the current watermark,
+// because the watermark only moves forward. This global variable is also set as
+// part of advancing the watermark on termination of the oldest active txn,
+// which is delegated to that txn's session thread.
 void txn_metadata_t::init_txn_metadata_map()
 {
     // We reserve 2^45 bytes = 32TB of virtual address space. YOLO.
@@ -160,7 +161,7 @@ gaia_txn_id_t txn_metadata_t::register_begin_ts()
     return begin_ts;
 }
 
-gaia_txn_id_t txn_metadata_t::register_commit_ts(gaia_txn_id_t begin_ts, int log_fd)
+gaia_txn_id_t txn_metadata_t::register_commit_ts(gaia_txn_id_t begin_ts, db::log_offset_t log_offset)
 {
     ASSERT_PRECONDITION(!is_uninitialized_ts(begin_ts), c_message_uninitialized_timestamp);
 
@@ -183,7 +184,7 @@ gaia_txn_id_t txn_metadata_t::register_commit_ts(gaia_txn_id_t begin_ts, int log
         txn_metadata_entry_t expected_value{
             txn_metadata_entry_t::uninitialized_value()};
         txn_metadata_entry_t desired_value{
-            txn_metadata_entry_t::new_commit_ts_entry(begin_ts, log_fd)};
+            txn_metadata_entry_t::new_commit_ts_entry(begin_ts, log_offset)};
         txn_metadata_entry_t actual_value{
             commit_ts_metadata.compare_exchange(expected_value, desired_value)};
 
