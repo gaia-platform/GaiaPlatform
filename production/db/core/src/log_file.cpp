@@ -25,17 +25,17 @@ namespace persistence
 // TODO (Mihir): Use io_uring for fsync, close & fallocate operations in this file.
 // open() operation will remain synchronous, since we need the file fd to perform other async
 // operations on the file.
-log_file_t::log_file_t(const std::string& dir, int dir_fd, file_sequence_t file_seq, size_t size)
+log_file_t::log_file_t(const std::string& dir, int dir_fd, log_sequence_t log_seq, size_t size)
 {
     m_dir_fd = dir_fd;
     m_dir_name = dir;
-    m_file_seq = file_seq;
+    m_log_seq = log_seq;
     m_file_size = size;
     m_current_offset = 0;
 
     // open and fallocate depending on size.
     std::stringstream file_name;
-    file_name << m_dir_name << "/" << m_file_seq;
+    file_name << m_dir_name << "/" << m_log_seq;
     m_file_fd = openat(dir_fd, file_name.str().c_str(), O_WRONLY | O_CREAT, c_file_permissions);
     if (m_file_fd < 0)
     {
@@ -81,9 +81,9 @@ void log_file_t::allocate(size_t size)
     m_current_offset += size;
 }
 
-file_sequence_t log_file_t::get_file_sequence()
+log_sequence_t log_file_t::get_log_sequence()
 {
-    return m_file_seq;
+    return m_log_seq;
 }
 
 size_t log_file_t::get_bytes_remaining_after_append(size_t record_size)

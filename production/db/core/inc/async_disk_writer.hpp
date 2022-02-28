@@ -93,7 +93,7 @@ public:
      * Append fdatasync to the in_progress_batch and update batch with file fd so that the file
      * can be closed once the kernel has processed it.
      */
-    void perform_file_close_operations(int file_fd, file_sequence_t log_seq);
+    void perform_file_close_operations(int file_fd, log_sequence_t log_seq);
 
     /**
      * Copy any temporary writes (which don't exist in gaia shared memory) into the metadata buffer.
@@ -115,7 +115,8 @@ public:
     void map_commit_ts_to_session_decision_eventfd(gaia_txn_id_t commit_ts, int session_decision_eventfd);
 
 private:
-    // Reserve slots in the in_progress batch to be able to append additional operations to it (before it gets submitted to the kernel)
+    // Reserve slots in the in_progress batch to be able to append additional operations to it
+    // (before it gets submitted to the kernel)
     static constexpr size_t c_submit_batch_sqe_count = 3;
     static constexpr size_t c_single_submission_entry_count = 1;
     static constexpr size_t c_async_batch_size = 32;
@@ -123,14 +124,15 @@ private:
     static inline eventfd_t c_default_flush_eventfd_value = 1;
     static inline iovec c_default_iov = {static_cast<void*>(&c_default_flush_eventfd_value), sizeof(eventfd_t)};
 
-    // eventfd to signal that a batch flush has completed.
-    // Used to block new writes to disk when a batch is already getting flushed.
+    // eventfd for signalling that a batch flush has completed. Used to block new writes to disk
+    // when a batch is already getting flushed.
     static inline int s_flush_eventfd = -1;
 
-    // eventfd to signal that the IO results belonging to a batch are ready to be validated.
+    // eventfd for signalling that the IO results belonging to a batch are ready to be checked for
+    // errors.
     int m_validate_flush_eventfd = -1;
 
-    // eventfd to signal that a file is ready to be checkpointed.
+    // eventfd for signal that a log file is ready to be checkpointed.
     int m_signal_checkpoint_eventfd = -1;
 
     // Keep track of session threads to unblock.

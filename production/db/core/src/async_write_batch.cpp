@@ -104,20 +104,20 @@ void async_write_batch_t::close_all_files_in_batch()
     m_files_to_close.clear();
 }
 
-void async_write_batch_t::append_file_to_batch(int fd, file_sequence_t log_seq)
+void async_write_batch_t::append_file_to_batch(int fd, log_sequence_t log_seq)
 {
     // Add file info to the batch that should be closed once all of its pending writes have finished.
     log_file_info_t info{log_seq, fd};
     m_files_to_close.push_back(info);
 }
 
-file_sequence_t async_write_batch_t::get_max_file_seq_to_close()
+log_sequence_t async_write_batch_t::get_max_log_seq_to_close()
 {
     if (m_files_to_close.size() > 0)
     {
         return m_files_to_close.back().sequence;
     }
-    return c_invalid_file_sequence_number;
+    return c_invalid_log_sequence_number;
 }
 
 size_t async_write_batch_t::get_unsubmitted_entries_count()

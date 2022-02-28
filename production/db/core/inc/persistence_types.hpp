@@ -24,21 +24,22 @@ namespace db
 namespace persistence
 {
 
-enum class recovery_mode_t : uint8_t
+enum class log_reader_mode_t : uint8_t
 {
     not_set = 0x0,
 
+    // Checkpoint mode.
     // Does not tolerate any IO failure when reading a log file; any
     // IO error is treated as unrecoverable.
-    // This mode is used when checkpointing log writes to RocksDB.
-    fail_on_first_error = 0x1,
+    checkpoint_fail_on_first_error = 0x1,
 
+    // Recovery mode.
     // Stop recovery on first IO error. Database will always start and will try to recover as much
     // committed data from the log as possible.
     // Updates are logged one batch as a time; Persistent batch IO is validated
     // first before marking any txn in the batch as durable (and returning a commit decision to the user);
     // Thus ignore any txn after the last seen decision timestamp before encountering IO error.
-    stop_on_first_error = 0x2,
+    recovery_stop_on_first_error = 0x2,
 };
 
 enum class record_type_t : uint8_t
@@ -64,26 +65,27 @@ struct decision_entry_t
 // Pair of log file sequence number and file fd.
 typedef std::vector<decision_entry_t> decision_list_t;
 
-class file_sequence_t : public common::int_type_t<size_t, 0>
+// Persistent log file sequence number.
+class log_sequence_t : public common::int_type_t<size_t, 0>
 {
 public:
     // By default, we should initialize to an invalid value.
-    constexpr file_sequence_t()
+    constexpr log_sequence_t()
         : common::int_type_t<size_t, 0>()
     {
     }
 
-    constexpr file_sequence_t(size_t value)
+    constexpr log_sequence_t(size_t value)
         : common::int_type_t<size_t, 0>(value)
     {
     }
 };
 
 static_assert(
-    sizeof(file_sequence_t) == sizeof(file_sequence_t::value_type),
-    "file_sequence_t has a different size than its underlying integer type!");
+    sizeof(log_sequence_t) == sizeof(log_sequence_t::value_type),
+    "log_sequence_t has a different size than its underlying integer type!");
 
-constexpr file_sequence_t c_invalid_file_sequence_number;
+constexpr log_sequence_t c_invalid_log_sequence_number;
 
 typedef size_t file_offset_t;
 
@@ -99,13 +101,19 @@ typedef uint32_t crc32_t;
 // This assertion ensures that the default type initialization
 // matches the value of the invalid constant.
 static_assert(
-    c_invalid_file_sequence_number.value() == file_sequence_t::c_default_invalid_value,
-    "Invalid c_invalid_file_sequence_number initialization!");
+    c_invalid_log_sequence_number.value() == log_sequence_t::c_default_invalid_value,
+    "Invalid c_invalid_log_sequence_number initialization!");
 
 struct log_file_info_t
 {
-    file_sequence_t sequence;
+    log_sequence_t sequence;
     int file_fd;
+};
+
+struct log_file_pointer_t
+{
+    void* begin;
+    size_t size;
 };
 
 struct record_header_t
@@ -153,7 +161,7 @@ struct record_iterator_t
     int file_fd;
 
     // Recovery mode.
-    recovery_mode_t recovery_mode;
+    log_reader_mode_t recovery_mode;
 
     //This flag is set when halt recovery is halted.
     bool halt_recovery;

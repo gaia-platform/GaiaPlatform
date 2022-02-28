@@ -262,7 +262,7 @@ void server_t::recover_persistent_log()
 {
     // The APIs to delete logs and recover persistent logs require a max log file sequence number to process.
     // Passing this argument ensure that all log files are either deleted or recovered.
-    constexpr file_sequence_t c_max_log_sequence_number(std::numeric_limits<uint64_t>::max());
+    constexpr log_sequence_t c_max_log_sequence_number(std::numeric_limits<uint64_t>::max());
 
     if (c_use_gaia_log_implementation)
     {
@@ -278,7 +278,7 @@ void server_t::recover_persistent_log()
 
                 if (s_server_conf.persistence_mode() == persistence_mode_t::e_reinitialized_on_startup)
                 {
-                    s_log_handler->destroy_persistent_log(c_max_log_sequence_number);
+                    s_log_handler->truncate_persistent_log(c_max_log_sequence_number);
                 }
 
                 // Get last processed log.
@@ -291,13 +291,13 @@ void server_t::recover_persistent_log()
                     last_checkpointed_commit_ts,
                     last_processed_log_seq,
                     c_max_log_sequence_number,
-                    recovery_mode_t::stop_on_first_error);
+                    log_reader_mode_t::recovery_stop_on_first_error);
 
                 s_persistent_store->set_counter_value(persistent_store_manager_t::c_last_processed_log_seq_key, last_processed_log_seq);
 
                 s_log_handler->set_persistent_log_sequence(last_processed_log_seq);
 
-                s_log_handler->destroy_persistent_log(c_max_log_sequence_number);
+                s_log_handler->truncate_persistent_log(c_max_log_sequence_number);
 
                 std::cout << "s_validate_persistence_batch_eventfd = " << s_validate_persistence_batch_eventfd << std::endl;
                 s_log_handler->open_for_writes(s_validate_persistence_batch_eventfd, s_signal_checkpoint_log_eventfd);
@@ -1080,24 +1080,24 @@ void server_t::log_writer_handler()
 
 void server_t::checkpoint_handler()
 {
-    file_sequence_t last_deleted_log_seq = 0;
+    log_sequence_t last_deleted_log_seq = 0;
     while (true)
     {
         // Log sequence number of file ready to be checkpointed.
-        file_sequence_t max_log_seq_to_checkpoint;
+        log_sequence_t max_log_seq_to_checkpoint;
 
         // Wait for a persistent log file to be closed before checkpointing it.
         // This can be achieved via blocking on an eventfd read.
         eventfd_read(s_signal_checkpoint_log_eventfd, &max_log_seq_to_checkpoint);
 
         // Process all existing log files.
-        file_sequence_t last_processed_log_seq = 0;
+        log_sequence_t last_processed_log_seq = 0;
         s_log_handler->recover_from_persistent_log(
             s_persistent_store,
             s_last_checkpointed_commit_ts_lower_bound,
             last_processed_log_seq,
             max_log_seq_to_checkpoint,
-            recovery_mode_t::fail_on_first_error);
+            log_reader_mode_t::checkpoint_fail_on_first_error);
 
         s_persistent_store->set_counter_value(persistent_store_manager_t::c_last_processed_log_seq_key, last_processed_log_seq);
 
@@ -1105,7 +1105,7 @@ void server_t::checkpoint_handler()
         s_persistent_store->flush();
 
         ASSERT_INVARIANT(max_log_seq_to_checkpoint > last_deleted_log_seq, "Log files cannot be deleted out of order");
-        s_log_handler->destroy_persistent_log(last_processed_log_seq);
+        s_log_handler->truncate_persistent_log(last_processed_log_seq);
         last_deleted_log_seq = max_log_seq_to_checkpoint;
     }
 }

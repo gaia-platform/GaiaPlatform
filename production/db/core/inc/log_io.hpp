@@ -93,32 +93,30 @@ public:
     void recover_from_persistent_log(
         std::shared_ptr<persistent_store_manager_t>& persistent_store_manager,
         gaia_txn_id_t& last_checkpointed_commit_ts,
-        file_sequence_t& last_processed_log_seq,
-        file_sequence_t max_log_seq_to_process,
-        recovery_mode_t mode);
+        log_sequence_t& last_processed_log_seq,
+        log_sequence_t max_log_seq_to_process,
+        log_reader_mode_t mode);
 
     /**
      * Destroy all log files with sequence number lesser than or equal to max_log_seq_to_delete.
      */
-    void destroy_persistent_log(file_sequence_t max_log_seq_to_delete);
+    void truncate_persistent_log(log_sequence_t max_log_seq_to_delete);
 
     /**
      * Set the log sequence counter.
      */
-    void set_persistent_log_sequence(file_sequence_t log_seq);
-
-    size_t get_remaining_txns_to_checkpoint_count();
+    void set_persistent_log_sequence(log_sequence_t log_seq);
 
 private:
     // TODO: Make log file size configurable.
     static constexpr uint64_t c_file_size = 4 * 1024 * 1024;
-    static constexpr std::string_view c_gaia_wal_dir_name = "/wal_dir";
+    static constexpr const char c_gaia_wal_dir_name[] = "wal_dir";
     static constexpr int c_gaia_wal_dir_permissions = 0755;
-    static inline std::string s_wal_dir_path{};
+    static inline std::filesystem::path s_wal_dir_path{};
     static inline int s_dir_fd = -1;
 
     // Log file sequence starts from 1.
-    static inline std::atomic<file_sequence_t::value_type> s_file_num = 1;
+    static inline std::atomic<log_sequence_t::value_type> s_file_num = 1;
 
     // Keep track of the current log file.
     std::unique_ptr<log_file_t> m_current_file;
@@ -132,19 +130,19 @@ private:
     // This index is maintained on a per log file basis. Before moving to the next file
     // we assert that this index is empty as all txns have been processed.
     // Note that the recovery implementation proceeds in increasing log file order.
-    std::map<gaia_txn_id_t, unsigned char*> txn_records_by_commit_ts;
+    std::map<gaia_txn_id_t, unsigned char*> m_txn_records_by_commit_ts;
 
     // This map is populated when log files are read during recovery/checkpointing.
     // This map contains the current set of txns that are being processed. (by either recovery or checkpointing)
     // Txns are processed one decision record at a time; a single decision record may contain
     // multiple txns.
-    std::map<gaia_txn_id_t, decision_type_t> decision_records_by_commit_ts;
+    std::map<gaia_txn_id_t, decision_type_t> m_decision_records_by_commit_ts;
 
     gaia_txn_id_t m_max_decided_commit_ts;
 
     size_t update_iterator(struct record_iterator_t* it);
     size_t validate_recovered_record_checksum(struct record_iterator_t* it);
-    void map_log_file(struct record_iterator_t* it, int file_fd, recovery_mode_t recovery_mode);
+    void map_log_file(struct record_iterator_t* it, int file_fd, log_reader_mode_t recovery_mode);
     void unmap_file(void* start, size_t size);
     bool is_remaining_file_empty(unsigned char* start, unsigned char* end);
     void write_log_record_to_persistent_store(

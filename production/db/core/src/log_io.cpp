@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <charconv>
 #include <cstddef>
 
 #include <atomic>
@@ -66,8 +67,8 @@ log_handler_t::log_handler_t(const std::string& wal_dir_path)
 
 void log_handler_t::open_for_writes(int validate_flushed_batch_eventfd, int signal_checkpoint_eventfd)
 {
-    ASSERT_PRECONDITION(validate_flushed_batch_eventfd != -1, "Eventfd to signal post flush maintenance operations invalid!");
-    ASSERT_PRECONDITION(signal_checkpoint_eventfd != -1, "Eventfd to signal checkpointing of log file is invalid!");
+    ASSERT_PRECONDITION(validate_flushed_batch_eventfd != -1, "Invalid eventfd!");
+    ASSERT_PRECONDITION(signal_checkpoint_eventfd != -1, "Invalid eventfd!");
     ASSERT_INVARIANT(s_dir_fd != -1, "Unable to open data directory for persistent log writes.");
 
     // Create new log file every time the log_writer gets initialized.
@@ -106,7 +107,7 @@ file_offset_t log_handler_t::allocate_log_space(size_t payload_size)
     }
     else if (m_current_file->get_bytes_remaining_after_append(payload_size) <= 0)
     {
-        m_async_disk_writer->perform_file_close_operations(m_current_file->get_file_fd(), m_current_file->get_file_sequence());
+        m_async_disk_writer->perform_file_close_operations(m_current_file->get_file_fd(), m_current_file->get_log_sequence());
 
         // One batch writes to a single log file at a time.
         m_async_disk_writer->submit_and_swap_in_progress_batch(m_current_file->get_file_fd());
@@ -325,92 +326,114 @@ void log_handler_t::create_txn_record(
     m_async_disk_writer->enqueue_pwritev_requests(writes_to_submit, m_current_file->get_file_fd(), begin_offset, uring_op_t::pwritev_txn);
 }
 
-void log_handler_t::destroy_persistent_log(file_sequence_t max_log_seq_to_delete)
+void log_handler_t::truncate_persistent_log(log_sequence_t max_log_seq_to_delete)
 {
-    // Done with recovery, delete all files.
+    // Done with recovery/checkpointing, delete all files with sequence number <=
+    // max_log_seq_to_delete
     for (const auto& file : std::filesystem::directory_iterator(s_wal_dir_path))
     {
-        file_sequence_t file_seq = std::stoi(file.path().filename());
-        if (file_seq <= max_log_seq_to_delete)
+        auto filename_str = file.path().filename().string();
+
+        // Unable to use log_sequence_t here since the from_chars() method only handles int types.
+        size_t log_seq = c_invalid_log_sequence_number;
+        const auto result = std::from_chars(filename_str.c_str(), filename_str.c_str() + filename_str.size(), log_seq);
+        if (result.ec != std::errc{})
         {
-            std::filesystem::remove_all(file.path());
+            throw_system_error("Failed to convert log file name to integer!");
+        }
+
+        if (log_seq <= max_log_seq_to_delete)
+        {
+            // Throws filesystem::filesystem_error on underlying OS API errors.
+            // TODO: Revisit whether failure of the filesystem should cause the server to crash.
+            std::filesystem::remove(file.path());
         }
     }
 }
 
-void log_handler_t::set_persistent_log_sequence(file_sequence_t log_seq)
+void log_handler_t::set_persistent_log_sequence(log_sequence_t log_seq)
 {
+    // Extremely unlikely but add a check anyway.
+    ASSERT_PRECONDITION(log_seq != std::numeric_limits<uint64_t>::max(), "Log file sequence number is exhausted!");
     s_file_num = log_seq + 1;
 }
 
 void log_handler_t::recover_from_persistent_log(
     std::shared_ptr<persistent_store_manager_t>& s_persistent_store,
     gaia_txn_id_t& last_checkpointed_commit_ts,
-    file_sequence_t& last_processed_log_seq,
-    file_sequence_t max_log_seq_to_process,
-    recovery_mode_t mode)
+    log_sequence_t& last_processed_log_seq,
+    log_sequence_t max_log_seq_to_process,
+    log_reader_mode_t mode)
 {
     // Only relevant for checkpointing. Recovery doesn't care about the
     // 'last_checkpointed_commit_ts' and will reset this field to zero.
     // We don't persist txn ids across restarts.
     m_max_decided_commit_ts = last_checkpointed_commit_ts;
+
     // Scan all files and read log records starting from the highest numbered file.
-    std::vector<uint64_t> log_files;
+    std::vector<log_sequence_t> log_file_sequences;
     for (const auto& file : std::filesystem::directory_iterator(s_wal_dir_path))
     {
         ASSERT_INVARIANT(file.is_regular_file(), "Only expecting files in persistent log directory.");
+
+        auto filename_str = file.path().filename().string();
+
         // The file name is just the log sequence number.
-        log_files.push_back(std::stoi(file.path().filename()));
+        size_t log_seq = c_invalid_log_sequence_number;
+        const auto result = std::from_chars(filename_str.c_str(), filename_str.c_str() + filename_str.size(), log_seq);
+        if (result.ec != std::errc{})
+        {
+            throw_system_error("Failed to convert log file name to integer!");
+        }
+        log_file_sequences.push_back(log_seq);
     }
 
     // Sort files in ascending order by file name.
-    sort(log_files.begin(), log_files.end());
+    std::sort(log_file_sequences.begin(), log_file_sequences.end());
 
     // Apply txns from file.
-    uint64_t max_log_file_seq_to_delete = 0;
-    std::vector<int> files_to_close;
-    std::vector<std::pair<void*, size_t>> files_to_unmap;
+    log_sequence_t max_log_seq_to_delete = 0;
+    std::vector<int> file_fds_to_close;
+    std::vector<log_file_pointer_t> file_pointers_to_unmap;
 
     auto file_cleanup = scope_guard::make_scope_guard([&]() {
-        for (auto fd : files_to_close)
+        for (auto fd : file_fds_to_close)
         {
             close_fd(fd);
         }
 
-        for (auto entry : files_to_unmap)
+        for (log_file_pointer_t entry : file_pointers_to_unmap)
         {
-            unmap_file(entry.first, entry.second);
+            unmap_fd_data(entry.begin, entry.size);
         }
     });
 
-    for (auto file_seq : log_files)
+    for (log_sequence_t log_seq : log_file_sequences)
     {
-        ASSERT_PRECONDITION(file_seq > last_processed_log_seq, "Log file sequence number should be ");
-        if (file_seq > max_log_seq_to_process)
+        if (log_seq > max_log_seq_to_process)
         {
             break;
         }
 
         // Ignore already processed files.
-        if (file_seq <= last_processed_log_seq)
+        if (log_seq <= last_processed_log_seq)
         {
             continue;
         }
 
         // Open file.
-        std::stringstream file_name;
-        file_name << s_wal_dir_path << "/" << file_seq;
-        auto file_fd = open(file_name.str().c_str(), O_RDONLY);
+        std::filesystem::path file_name = s_wal_dir_path / std::string(log_seq.value);
+        auto file_fd = open(file_name.c_str(), O_RDONLY);
+
+        if (file_fd == -1)
+        {
+            throw_system_error("Unable to open persistent log file.");
+        }
 
         // Try to close fd as soon as possible.
         auto file_cleanup = scope_guard::make_scope_guard([&]() {
             close_fd(file_fd);
         });
-
-        if (file_fd < 0)
-        {
-            throw_system_error("Unable to open persistent log file.", errno);
-        }
 
         // mmap file.
         record_iterator_t it;
@@ -418,49 +441,49 @@ void log_handler_t::recover_from_persistent_log(
 
         // Try to unmap file as soon as possible.
         auto mmap_cleanup = scope_guard::make_scope_guard([&]() {
-            unmap_file(&it.begin, it.map_size);
+            unmap_fd_data(it.begin, it.map_size);
         });
 
-        // halt_recovery is set to true in case an IO issue is encountered while reading the log.
-        auto halt_recovery = write_log_file_to_persistent_store(s_persistent_store, &it, &last_checkpointed_commit_ts);
+        // halt_recovery is set to true if an IO error is encountered while reading the log.
+        bool halt_recovery = write_log_file_to_persistent_store(s_persistent_store, &it, &last_checkpointed_commit_ts);
 
-        // Skip unmapping and closing the file in case it has some unprocessed transactions.
-        if (txn_records_by_commit_ts.size() > 0)
+        // Skip unmapping and closing the file if it has some unprocessed transactions.
+        if (m_txn_records_by_commit_ts.size() > 0)
         {
-            files_to_close.push_back(file_fd);
-            files_to_unmap.push_back(std::pair(it.mapped_data, it.map_size));
-            mmap_cleanup.dismiss();
+            file_fds_to_close.push_back(file_fd);
             file_cleanup.dismiss();
-        }
 
-        if (mode == recovery_mode_t::fail_on_first_error)
+            file_pointers_to_unmap.push_back({it.mapped_data, it.map_size});
+            mmap_cleanup.dismiss();
+        }
+        else if (mode == log_reader_mode_t::checkpoint_fail_on_first_error)
         {
-            if (txn_records_by_commit_ts.size() == 0)
+            if (m_txn_records_by_commit_ts.size() == 0)
             {
                 // Safe to delete this file as it doesn't have any more txns to write to the persistent store.
-                max_log_file_seq_to_delete = file_seq;
-                ASSERT_INVARIANT(decision_records_by_commit_ts.size() == 0, "Failed to process all persistent log records.");
+                max_log_seq_to_delete = log_seq;
+                ASSERT_INVARIANT(m_decision_records_by_commit_ts.size() == 0, "Failed to process all persistent log records.");
             }
         }
 
         if (halt_recovery)
         {
-            ASSERT_INVARIANT(file_seq == log_files.back(), "We don't expect IO issues in intermediate log files.");
+            // TODO: THROW an error based on recovery mode.
+
+            // TODO: Verify whether it is possible to see IO errors in intermediate log files.
+            // ASSERT_INVARIANT(log_seq == log_file_sequences.back(), "We don't expect IO errors in intermediate log files.");
             break;
         }
     }
 
-    if (log_files.size() > 0)
+    if (log_file_sequences.size() > 0)
     {
-        last_processed_log_seq = (mode == recovery_mode_t::fail_on_first_error) ? max_log_file_seq_to_delete : log_files.back();
+        // Set last_processed_log_seq as max_log_seq_to_delete in Checkpoint mode & to the last
+        // observed log sequence in the wal directory during recovery.
+        last_processed_log_seq = (mode == log_reader_mode_t::checkpoint_fail_on_first_error) ? max_log_seq_to_delete : log_file_sequences.back();
     }
 
-    ASSERT_POSTCONDITION(decision_records_by_commit_ts.size() == 0, "Failed to process all persistent log records.");
-}
-
-size_t log_handler_t::get_remaining_txns_to_checkpoint_count()
-{
-    return txn_records_by_commit_ts.size();
+    ASSERT_POSTCONDITION(m_decision_records_by_commit_ts.size() == 0, "Failed to process all persistent log records.");
 }
 
 bool log_handler_t::write_log_file_to_persistent_store(
@@ -471,13 +494,15 @@ bool log_handler_t::write_log_file_to_persistent_store(
     // Iterate over records in file and write them to persistent store.
     write_records(persistent_store_manager, it, last_checkpointed_commit_ts);
 
-    // Check that any remaining transactions have commit timestamp greater than the commit ts of the txn that was last written to the persistent store.
-    for (auto entry : txn_records_by_commit_ts)
+    // Check that any remaining transactions have commit timestamp greater than the commit ts of the
+    // txn that was last written to the persistent store.
+    for (auto entry : m_txn_records_by_commit_ts)
     {
-        ASSERT_INVARIANT(entry.first > *last_checkpointed_commit_ts, "Expected to find decision record for txn.");
+        ASSERT_INVARIANT(entry.first > *last_checkpointed_commit_ts, "Expected txn to be checkpointed!");
     }
 
-    ASSERT_POSTCONDITION(decision_records_by_commit_ts.size() == 0, "Failed to process all persistent log records in log file.");
+    // The log file should not have any decision records that are yet to be processed.
+    ASSERT_POSTCONDITION(!it->halt_recovery && m_decision_records_by_commit_ts.size() == 0, "Failed to process all persistent log records in log file.");
 
     return it->halt_recovery;
 }
@@ -587,18 +612,18 @@ void log_handler_t::write_records(
                 auto decision_entry = reinterpret_cast<decision_entry_t*>(payload_ptr);
                 if (decision_entry->commit_ts > *last_checkpointed_commit_ts)
                 {
-                    ASSERT_INVARIANT(txn_records_by_commit_ts.count(decision_entry->commit_ts) > 0, "Transaction record should be written before the decision record.");
-                    decision_records_by_commit_ts.insert(std::pair(decision_entry->commit_ts, decision_entry->decision));
+                    ASSERT_INVARIANT(m_txn_records_by_commit_ts.count(decision_entry->commit_ts) > 0, "Transaction record should be written before the decision record.");
+                    m_decision_records_by_commit_ts.insert(std::pair(decision_entry->commit_ts, decision_entry->decision));
                 }
                 payload_ptr += sizeof(decision_entry_t);
             }
 
             // Iterare decisions.
-            for (auto decision_it = decision_records_by_commit_ts.cbegin(); decision_it != decision_records_by_commit_ts.cend();)
+            for (auto decision_it = m_decision_records_by_commit_ts.cbegin(); decision_it != m_decision_records_by_commit_ts.cend();)
             {
-                ASSERT_INVARIANT(txn_records_by_commit_ts.count(decision_it->first) > 0, "Transaction record should be written before the decision record.");
+                ASSERT_INVARIANT(m_txn_records_by_commit_ts.count(decision_it->first) > 0, "Transaction record should be written before the decision record.");
 
-                auto txn_it = txn_records_by_commit_ts.find(decision_it->first);
+                auto txn_it = m_txn_records_by_commit_ts.find(decision_it->first);
 
                 // Only perform recovery and checkpointing for committed transactions.
                 if (decision_it->second == decision_type_t::commit)
@@ -611,8 +636,8 @@ void log_handler_t::write_records(
 
                 // Update 'last_checkpointed_commit_ts' in memory so it can later be written to persistent store.
                 *last_checkpointed_commit_ts = std::max(*last_checkpointed_commit_ts, decision_it->first);
-                txn_it = txn_records_by_commit_ts.erase(txn_it);
-                decision_it = decision_records_by_commit_ts.erase(decision_it);
+                txn_it = m_txn_records_by_commit_ts.erase(txn_it);
+                decision_it = m_decision_records_by_commit_ts.erase(decision_it);
             }
         }
         else if (record_size != 0 && record->header.record_type == record_type_t::txn)
@@ -622,7 +647,7 @@ void log_handler_t::write_records(
             {
                 continue;
             }
-            txn_records_by_commit_ts.insert(std::pair(record->header.txn_commit_ts, current_record_ptr));
+            m_txn_records_by_commit_ts.insert(std::pair(record->header.txn_commit_ts, current_record_ptr));
         }
 
     } while (true);
@@ -662,11 +687,11 @@ size_t log_handler_t::validate_recovered_record_checksum(struct record_iterator_
             return 0;
         }
 
-        if (it->recovery_mode == recovery_mode_t::fail_on_first_error)
+        if (it->recovery_mode == log_reader_mode_t::checkpoint_fail_on_first_error)
         {
             throw std::runtime_error("Log record has empty checksum value!");
         }
-        else if (it->recovery_mode == recovery_mode_t::stop_on_first_error)
+        else if (it->recovery_mode == log_reader_mode_t::recovery_stop_on_first_error)
         {
             // We expect all log files to be truncated to appropriate size, so halt recovery.
             it->halt_recovery = true;
@@ -694,12 +719,12 @@ size_t log_handler_t::validate_recovered_record_checksum(struct record_iterator_
 
     if (crc != expected_crc)
     {
-        if (it->recovery_mode == recovery_mode_t::fail_on_first_error)
+        if (it->recovery_mode == log_reader_mode_t::checkpoint_fail_on_first_error)
         {
             throw std::runtime_error("Record checksum match failed!");
         }
 
-        if (it->recovery_mode == recovery_mode_t::stop_on_first_error)
+        if (it->recovery_mode == log_reader_mode_t::recovery_stop_on_first_error)
         {
             it->halt_recovery = true;
             return 0;
@@ -709,7 +734,7 @@ size_t log_handler_t::validate_recovered_record_checksum(struct record_iterator_
     return header_copy.payload_size;
 }
 
-void log_handler_t::map_log_file(struct record_iterator_t* it, int file_fd, recovery_mode_t recovery_mode)
+void log_handler_t::map_log_file(struct record_iterator_t* it, int file_fd, log_reader_mode_t recovery_mode)
 {
     struct stat st;
     read_record_t* wal_record;
@@ -749,11 +774,6 @@ bool log_handler_t::is_remaining_file_empty(unsigned char* start, unsigned char*
     unsigned char zeroblock[remaining_size];
     memset(zeroblock, 0, sizeof zeroblock);
     return memcmp(zeroblock, start, remaining_size) == 0;
-}
-
-void log_handler_t::unmap_file(void* begin, size_t size)
-{
-    munmap(begin, size);
 }
 
 } // namespace persistence

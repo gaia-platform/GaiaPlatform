@@ -107,15 +107,15 @@ void async_disk_writer_t::perform_post_completion_maintenance()
         m_in_flight_batch->validate_next_completion_event();
     }
 
-    auto max_file_seq_to_close = m_in_flight_batch->get_max_file_seq_to_close();
+    auto max_log_seq_to_close = m_in_flight_batch->get_max_log_seq_to_close();
 
     // Post validation, close all files in batch.
     m_in_flight_batch->close_all_files_in_batch();
 
     // Signal to checkpointing thread the upper bound of files that it can process.
-    if (max_file_seq_to_close > 0)
+    if (max_log_seq_to_close > 0)
     {
-        signal_eventfd(m_signal_checkpoint_eventfd, max_file_seq_to_close);
+        signal_eventfd(m_signal_checkpoint_eventfd, max_log_seq_to_close);
     }
 
     const decision_list_t& decisions = m_in_flight_batch->get_decision_batch_entries();
@@ -196,7 +196,7 @@ void async_disk_writer_t::finish_and_submit_batch(int file_fd, bool should_wait_
     ASSERT_INVARIANT(m_in_flight_batch->get_unsubmitted_entries_count() == 0, "batch size after submission should be 0.");
 }
 
-void async_disk_writer_t::perform_file_close_operations(int file_fd, file_sequence_t log_seq)
+void async_disk_writer_t::perform_file_close_operations(int file_fd, log_sequence_t log_seq)
 {
     submit_if_full(file_fd, c_single_submission_entry_count);
 

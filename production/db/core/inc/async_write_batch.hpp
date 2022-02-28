@@ -53,9 +53,9 @@ public:
     /**
      * Add file fd to the batch that should be closed once all of its pending writes have finished.
      */
-    void append_file_to_batch(int fd, file_sequence_t log_seq);
+    void append_file_to_batch(int fd, log_sequence_t log_seq);
 
-    file_sequence_t get_max_file_seq_to_close();
+    log_sequence_t get_max_log_seq_to_close();
 
     /**
      * https://man7.org/linux/man-pages/man2/pwritev.2.html
