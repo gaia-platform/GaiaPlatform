@@ -7,6 +7,8 @@
 
 #include <type_traits>
 
+#include "expression_traits.hpp"
+
 namespace gaia
 {
 namespace expressions
@@ -56,7 +58,7 @@ struct operator_mul_t
 }; // * token.
 struct operator_div_t
 {
-}; // . token.
+}; // / token.
 struct operator_mod_t
 {
 }; // % token.
@@ -144,154 +146,154 @@ using inv_default_type = decltype(~std::declval<T_operand&>());
 // These evaluations use SFINAE to perform the default evaluation of C++ operators.
 
 template <typename T_left, typename T_right>
-static inline eq_default_type<T_left, T_right>
+inline constexpr eq_default_type<T_left, T_right>
 evaluate_operator(const T_left& left, const T_right& right, operator_eq_t)
 {
     return left == right;
 }
 
 template <typename T_left, typename T_right>
-static inline ne_default_type<T_left, T_right>
+inline constexpr ne_default_type<T_left, T_right>
 evaluate_operator(const T_left& left, const T_right& right, operator_ne_t)
 {
     return left != right;
 }
 
 template <typename T_left, typename T_right>
-static inline gt_default_type<T_left, T_right>
+inline constexpr gt_default_type<T_left, T_right>
 evaluate_operator(const T_left& left, const T_right& right, operator_gt_t)
 {
     return left > right;
 }
 
 template <typename T_left, typename T_right>
-static inline ge_default_type<T_left, T_right>
+inline constexpr ge_default_type<T_left, T_right>
 evaluate_operator(const T_left& left, const T_right& right, operator_ge_t)
 {
     return left >= right;
 }
 
 template <typename T_left, typename T_right>
-static inline lt_default_type<T_left, T_right>
+inline constexpr lt_default_type<T_left, T_right>
 evaluate_operator(const T_left& left, const T_right& right, operator_lt_t)
 {
     return left < right;
 }
 
 template <typename T_left, typename T_right>
-static inline ge_default_type<T_left, T_right>
+inline constexpr ge_default_type<T_left, T_right>
 evaluate_operator(const T_left& left, const T_right& right, operator_le_t)
 {
     return left <= right;
 }
 
 template <typename T_left, typename T_right>
-static inline and_default_type<T_left, T_right>
+inline constexpr and_default_type<T_left, T_right>
 evaluate_operator(const T_left& left, const T_right& right, operator_and_t)
 {
     return left && right;
 }
 
 template <typename T_left, typename T_right>
-static inline or_default_type<T_left, T_right>
+inline constexpr or_default_type<T_left, T_right>
 evaluate_operator(const T_left& left, const T_right& right, operator_or_t)
 {
     return left || right;
 }
 
 template <typename T_left, typename T_right>
-static inline xor_default_type<T_left, T_right>
+inline constexpr xor_default_type<T_left, T_right>
 evaluate_operator(const T_left& left, const T_right& right, operator_xor_t)
 {
     return left ^ right;
 }
 
 template <typename T_left, typename T_right>
-static inline add_default_type<T_left, T_right>
+inline constexpr add_default_type<T_left, T_right>
 evaluate_operator(const T_left& left, const T_right& right, operator_add_t)
 {
     return left + right;
 }
 
 template <typename T_left, typename T_right>
-static inline sub_default_type<T_left, T_right>
+inline constexpr sub_default_type<T_left, T_right>
 evaluate_operator(const T_left& left, const T_right& right, operator_sub_t)
 {
     return left - right;
 }
 
 template <typename T_left, typename T_right>
-static inline mul_default_type<T_left, T_right>
+inline constexpr mul_default_type<T_left, T_right>
 evaluate_operator(const T_left& left, const T_right& right, operator_mul_t)
 {
     return left * right;
 }
 
 template <typename T_left, typename T_right>
-static inline div_default_type<T_left, T_right>
+inline constexpr div_default_type<T_left, T_right>
 evaluate_operator(const T_left& left, const T_right& right, operator_div_t)
 {
     return left / right;
 }
 
 template <typename T_left, typename T_right>
-static inline mod_default_type<T_left, T_right>
+inline constexpr mod_default_type<T_left, T_right>
 evaluate_operator(const T_left& left, const T_right& right, operator_mod_t)
 {
     return left % right;
 }
 
 template <typename T_left, typename T_right>
-static inline band_default_type<T_left, T_right>
+inline constexpr band_default_type<T_left, T_right>
 evaluate_operator(const T_left& left, const T_right& right, operator_band_t)
 {
     return left & right;
 }
 
 template <typename T_left, typename T_right>
-static inline bor_default_type<T_left, T_right>
+inline constexpr bor_default_type<T_left, T_right>
 evaluate_operator(const T_left& left, const T_right& right, operator_bor_t)
 {
     return left | right;
 }
 
 template <typename T_left, typename T_right>
-static inline shl_default_type<T_left, T_right>
+inline constexpr shl_default_type<T_left, T_right>
 evaluate_operator(const T_left& left, const T_right& right, operator_shl_t)
 {
     return left << right;
 }
 
 template <typename T_left, typename T_right>
-static inline shr_default_type<T_left, T_right>
+inline constexpr shr_default_type<T_left, T_right>
 evaluate_operator(const T_left& left, const T_right& right, operator_shr_t)
 {
     return left >> right;
 }
 
 template <typename T_operand>
-static inline not_default_type<T_operand>
+inline constexpr not_default_type<T_operand>
 evaluate_operator(const T_operand& operand, operator_not_t)
 {
     return !operand;
 }
 
 template <typename T_operand>
-static inline neg_default_type<T_operand>
+inline constexpr neg_default_type<T_operand>
 evaluate_operator(const T_operand& operand, operator_neg_t)
 {
     return -operand;
 }
 
 template <typename T_operand>
-static inline pos_default_type<T_operand>
+inline constexpr pos_default_type<T_operand>
 evaluate_operator(const T_operand& operand, operator_pos_t)
 {
     return +operand;
 }
 
 template <typename T_operand>
-static inline inv_default_type<T_operand>
+inline constexpr inv_default_type<T_operand>
 evaluate_operator(const T_operand& operand, operator_inv_t)
 {
     return ~operand;
