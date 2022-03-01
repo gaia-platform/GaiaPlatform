@@ -18,8 +18,9 @@ from test.gdev_execute import (
 import io
 
 HELP_POSITIONAL_PREFIX = """positional arguments:
-  args                  Args to be forwarded on to docker run, if applicable.
-                        Must start with the argument `--`.
+  args                  Zero or more arguments to be forwarded on to docker
+                        run. If one or more arguments are provided, the first
+                        argument must be `--`.
 
 """
 HELP_BASE_ARGUMENTS = """optional arguments:
