@@ -97,7 +97,6 @@ class server_t
     friend gaia::db::id_index_t* gaia::db::get_id_index();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
     friend gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id();
-    friend gaia::db::mapped_log_t* gaia::db::get_mapped_log();
     friend gaia::db::txn_log_t* gaia::db::get_txn_log();
     friend gaia::db::memory_manager::memory_manager_t* gaia::db::get_memory_manager();
     friend gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager();
@@ -137,10 +136,10 @@ private:
 
     // These fields have transaction lifetime.
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
-    thread_local static inline mapped_log_t s_log{};
     thread_local static inline log_offset_t s_txn_log_offset = c_invalid_log_offset;
+    thread_local static inline std::vector<std::pair<gaia_txn_id_t, log_offset_t>> s_txn_logs_for_snapshot{};
 
-    // Local snapshot. This is a private copy of locators for server-side transactions.
+    // Local snapshot for server-side transactions.
     thread_local static inline mapped_data_t<locators_t> s_local_snapshot_locators{};
 
     // The allocated status of each log offset is tracked in this bitmap. When
@@ -148,7 +147,7 @@ private:
     // log by setting a cleared bit in this bitmap. When txn log GC completes,
     // the log's allocated bit should be cleared.
     static inline std::array<
-        std::atomic<uint64_t>, (c_max_logs + 1) / memory_manager::c_uint64_bit_count>
+        std::atomic<uint64_t>, (c_max_logs + 1) / common::c_uint64_bit_count>
         s_allocated_log_offsets_bitmap{};
 
     // We use this offset to track the lowest-numbered log offset that has never
@@ -251,7 +250,7 @@ private:
     // When it is no longer using the safe_ts API (e.g., at session exit), each
     // thread should clear the bit that it set.
     static inline std::array<
-        std::atomic<uint64_t>, s_safe_ts_per_thread_entries.size() / memory_manager::c_uint64_bit_count>
+        std::atomic<uint64_t>, s_safe_ts_per_thread_entries.size() / common::c_uint64_bit_count>
         s_safe_ts_reserved_indexes_bitmap{};
 
     static constexpr size_t c_invalid_safe_ts_index{s_safe_ts_per_thread_entries.size()};
@@ -405,7 +404,7 @@ private:
         messages::session_state_t new_state,
         gaia_txn_id_t txn_id = c_invalid_gaia_txn_id,
         log_offset_t txn_log_offset = c_invalid_log_offset,
-        size_t log_fds_to_apply_count = 0);
+        const std::vector<std::pair<gaia_txn_id_t, log_offset_t>>& txn_logs_to_apply = {});
 
     static void build_server_reply_error(
         flatbuffers::FlatBufferBuilder& builder,
@@ -462,9 +461,15 @@ private:
     static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> get_id_generator_for_type(
         common::gaia_type_t type);
 
-    static void get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds);
+    static void get_txn_log_offsets_for_snapshot(
+        gaia_txn_id_t begin_ts,
+        std::vector<std::pair<gaia_txn_id_t, log_offset_t>>& txn_ids_with_log_offsets_for_snapshot);
 
-    static void txn_begin(std::vector<int>& txn_log_fds_for_snapshot);
+    static void release_txn_log_offsets_for_snapshot();
+
+    static void release_transaction_resources();
+
+    static void txn_begin();
 
     static void txn_rollback(bool client_disconnected = false);
 
@@ -480,9 +485,9 @@ private:
 
     static void truncate_txn_table();
 
-    static gaia_txn_id_t submit_txn(gaia_txn_id_t begin_ts, int log_fd);
+    static gaia_txn_id_t submit_txn(gaia_txn_id_t begin_ts, log_offset_t log_offset);
 
-    static bool txn_logs_conflict(int log_fd1, int log_fd2);
+    static bool txn_logs_conflict(log_offset_t offset_1, log_offset_t offset_2);
 
     static void perform_pre_commit_work_for_txn();
 
@@ -492,9 +497,9 @@ private:
 
     static void apply_txn_log_from_ts(gaia_txn_id_t commit_ts);
 
-    static void gc_txn_log_from_fd(int log_fd, bool committed = true);
+    static void gc_txn_log_from_offset(log_offset_t offset, bool is_committed);
 
-    static void deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets = false);
+    static void deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets);
 
     // The following method pairs are used to work on a startup transaction.
 
@@ -512,49 +517,9 @@ private:
 
     static char* get_txn_metadata_page_address_from_ts(gaia_txn_id_t ts);
 
-    class invalid_log_fd : public common::gaia_exception
-    {
-    public:
-        explicit invalid_log_fd(gaia_txn_id_t commit_ts)
-            : m_commit_ts(commit_ts)
-        {
-        }
+    static inline bool acquire_txn_log_reference_from_commit_ts(gaia_txn_id_t commit_ts);
 
-        gaia_txn_id_t get_ts() const
-        {
-            return m_commit_ts;
-        }
-
-    private:
-        gaia_txn_id_t m_commit_ts{c_invalid_gaia_txn_id};
-    };
-
-    // This class allows txn code to safely use a txn log fd embedded in a
-    // commit_ts metadata entry even while it is concurrently invalidated (i.e.,
-    // the fd is closed and its embedded value is set to -1). The constructor
-    // throws an invalid_log_fd exception if the fd is invalidated during
-    // construction.
-    class safe_fd_from_ts_t
-    {
-    public:
-        inline explicit safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd = true);
-
-        // The "rule of 3" doesn't apply here because we never pass this object
-        // directly to a function; we always extract the safe fd value first.
-        safe_fd_from_ts_t() = delete;
-        safe_fd_from_ts_t(const safe_fd_from_ts_t&) = delete;
-        safe_fd_from_ts_t& operator=(const safe_fd_from_ts_t&) = delete;
-        inline ~safe_fd_from_ts_t();
-
-        // This is the only public API. Callers are expected to call this method on
-        // a stack-constructed instance of the class before they pass an fd to a
-        // function that does not expect it to be concurrently closed.
-        inline int get_fd() const;
-
-    private:
-        int m_local_log_fd{-1};
-        bool m_auto_close_fd{true};
-    };
+    static inline void release_txn_log_reference_from_commit_ts(gaia_txn_id_t commit_ts);
 
     class safe_ts_failure : public common::gaia_exception
     {

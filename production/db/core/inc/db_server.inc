@@ -23,91 +23,6 @@ bool server_config_t::skip_catalog_integrity_checks()
     return m_skip_catalog_integrity_checks;
 }
 
-server_t::safe_fd_from_ts_t::safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd)
-    : m_auto_close_fd(auto_close_fd)
-{
-    ASSERT_PRECONDITION(
-        transactions::txn_metadata_t::is_commit_ts(commit_ts),
-        "You must initialize safe_fd_from_ts_t from a valid commit_ts!");
-
-    // If the log fd was invalidated, it is either closed or soon will be
-    // closed, and therefore we cannot use it. We return early if the fd has
-    // already been invalidated to avoid the dup(2) call.
-    int log_fd = transactions::txn_metadata_t::get_txn_log_fd(commit_ts);
-    if (log_fd == -1)
-    {
-        throw invalid_log_fd(commit_ts);
-    }
-
-    // To avoid races from the log fd being closed out from under us by a
-    // concurrent updater, we first dup(2) the fd, and then if the dup was
-    // successful, test the log fd entry again to ensure we aren't reusing a
-    // closed log fd. If the log fd was invalidated, then we need to close our
-    // dup fd and return false.
-    try
-    {
-        m_local_log_fd = common::duplicate_fd(log_fd);
-    }
-    catch (const common::system_error& e)
-    {
-        // The log fd was already closed by another thread (after being
-        // invalidated).
-        // NB: This does not handle the case of the log fd being closed and then
-        // reused before our dup(2) call. That case is handled below, where we
-        // check for invalidation.
-        if (e.get_errno() == EBADF)
-        {
-            // The log fd must have been invalidated before it was closed.
-            ASSERT_INVARIANT(
-                transactions::txn_metadata_t::get_txn_log_fd(commit_ts) == -1,
-                "log fd was closed without being invalidated!");
-
-            // We lost the race because the log fd was invalidated and closed
-            // after our check.
-            throw invalid_log_fd(commit_ts);
-        }
-        else
-        {
-            throw;
-        }
-    }
-
-    // If we were able to duplicate the log fd, check to be sure it wasn't
-    // invalidated (and thus possibly closed and reused before the call to
-    // dup(2)), so we know we aren't reusing a closed fd.
-    if (transactions::txn_metadata_t::get_txn_log_fd(commit_ts) == -1)
-    {
-        // If we got here, we must have a valid dup fd.
-        ASSERT_INVARIANT(
-            common::is_fd_valid(m_local_log_fd),
-            "fd should be valid if dup() succeeded!");
-
-        // We need to close the duplicated fd because the original fd might have
-        // been reused and we would leak it otherwise (because the destructor
-        // isn't called if the constructor throws).
-        common::close_fd(m_local_log_fd);
-        throw invalid_log_fd(commit_ts);
-    }
-}
-
-server_t::safe_fd_from_ts_t::~safe_fd_from_ts_t()
-{
-    // Ensure we close the dup log fd. If the original log fd was closed already
-    // (indicated by get_txn_log_fd() returning -1), this will free the
-    // shared-memory object referenced by the fd.
-    if (m_auto_close_fd)
-    {
-        // If the constructor fails, this will handle an invalid fd (-1)
-        // correctly.
-        common::close_fd(m_local_log_fd);
-    }
-}
-
-int server_t::safe_fd_from_ts_t::get_fd() const
-{
-    return m_local_log_fd;
-}
-
 server_t::safe_ts_t::safe_ts_t(gaia_txn_id_t safe_ts)
     : m_ts(safe_ts)
 {
@@ -221,9 +136,10 @@ server_t::safe_watermark_t::safe_watermark_t(watermark_type_t watermark_type)
             // timestamp" that was reserved in the local safe_ts's constructor.)
             safe_ts_t safe_ts(watermark_ts);
             m_safe_ts = std::move(safe_ts);
-            // NB: It is legal to access safe_ts after moving from it,
-            // because the standard specifies that "Moved-from objects
-            // shall be placed in a valid but unspecified state."
+            // NB: It is legal to call any method without preconditions on a
+            // moved-from safe_ts, because the standard specifies that
+            // "Moved-from objects shall be placed in a valid but unspecified
+            // state."
             ASSERT_POSTCONDITION(
                 static_cast<gaia_txn_id_t>(safe_ts).is_valid() == false,
                 "safe_ts should contain an invalid timestamp after moving!");
@@ -239,4 +155,20 @@ server_t::safe_watermark_t::safe_watermark_t(watermark_type_t watermark_type)
 server_t::safe_watermark_t::operator gaia_txn_id_t() const
 {
     return gaia_txn_id_t(m_safe_ts);
+}
+
+bool server_t::acquire_txn_log_reference_from_commit_ts(gaia_txn_id_t commit_ts)
+{
+    ASSERT_PRECONDITION(transactions::txn_metadata_t::is_commit_ts(commit_ts), "Not a commit timestamp!");
+    gaia_txn_id_t begin_ts = transactions::txn_metadata_t::get_begin_ts_from_commit_ts(commit_ts);
+    log_offset_t log_offset = transactions::txn_metadata_t::get_txn_log_offset(commit_ts);
+    return acquire_txn_log_reference(log_offset, begin_ts);
+}
+
+void server_t::release_txn_log_reference_from_commit_ts(gaia_txn_id_t commit_ts)
+{
+    ASSERT_PRECONDITION(transactions::txn_metadata_t::is_commit_ts(commit_ts), "Not a commit timestamp!");
+    gaia_txn_id_t begin_ts = transactions::txn_metadata_t::get_begin_ts_from_commit_ts(commit_ts);
+    log_offset_t log_offset = transactions::txn_metadata_t::get_txn_log_offset(commit_ts);
+    release_txn_log_reference(log_offset, begin_ts);
 }
