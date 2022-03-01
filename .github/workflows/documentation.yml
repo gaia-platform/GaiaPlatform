@@ -27,7 +27,6 @@ jobs:
       - name: Generate Documentation
         uses: mattnotmitt/doxygen-action@v1.9.2
         with:
-          additional-packages: font-fira-code
           doxyfile-path: /github/workspace/production/docs/doxyfile
 
       - name: Upload Output Files
