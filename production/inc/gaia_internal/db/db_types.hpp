@@ -61,18 +61,18 @@ static_assert(
  * data segment. Each gaia_id corresponds to a unique locator for the lifetime
  * of the server process.
  */
-class gaia_locator_t : public common::int_type_t<uint64_t, 0>
+class gaia_locator_t : public common::int_type_t<uint32_t, 0>
 {
 public:
     // By default, we should initialize to an invalid value.
     constexpr gaia_locator_t()
-        : common::int_type_t<uint64_t, 0>()
+        : common::int_type_t<uint32_t, 0>()
     {
     }
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    constexpr gaia_locator_t(uint64_t value)
-        : common::int_type_t<uint64_t, 0>(value)
+    constexpr gaia_locator_t(uint32_t value)
+        : common::int_type_t<uint32_t, 0>(value)
     {
     }
 };
@@ -134,6 +134,38 @@ constexpr gaia_offset_t c_invalid_gaia_offset;
 static_assert(
     c_invalid_gaia_offset.value() == gaia_offset_t::c_default_invalid_value,
     "Invalid c_invalid_gaia_offset initialization!");
+
+// Represents txn logs as offsets within the "log segment" of shared memory.
+// We can fit 2^16 1MB txn logs into 64GB of memory, so txn log offsets can be
+// represented as 16-bit integers. A log_offset_t value is just the offset of a
+// txn log object in 1MB units, relative to the base address of the log segment.
+// We use 0 to represent an invalid log offset (so the first log offset is unused).
+class log_offset_t : public common::int_type_t<uint16_t, 0>
+{
+public:
+    // By default, we should initialize to an invalid value.
+    constexpr log_offset_t()
+        : common::int_type_t<uint16_t, 0>()
+    {
+    }
+
+    constexpr log_offset_t(uint16_t value)
+        : common::int_type_t<uint16_t, 0>(value)
+    {
+    }
+};
+
+static_assert(
+    sizeof(log_offset_t) == sizeof(log_offset_t::value_type),
+    "log_offset_t has a different size than its underlying integer type!");
+
+constexpr log_offset_t c_invalid_log_offset;
+
+// This assertion ensures that the default type initialization
+// matches the value of the invalid constant.
+static_assert(
+    c_invalid_log_offset.value() == log_offset_t::c_default_invalid_value,
+    "Invalid c_invalid_log_offset initialization!");
 
 } // namespace db
 } // namespace gaia
