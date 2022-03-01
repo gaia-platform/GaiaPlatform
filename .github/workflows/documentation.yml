@@ -39,7 +39,7 @@ jobs:
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:
-          source-directory: ${{ github.workspace }}/doxygen-output
+          source-directory: /github/workspace/doxygen-output/docs
           destination-github-username: gaia-platform
           destination-repository-name: test
           user-email: jack@gaiaplatform.io
