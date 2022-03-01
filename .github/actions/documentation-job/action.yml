@@ -1,0 +1,51 @@
+# Title:      Documentation Job Action
+# Purpose:    To build the internal project documentation and publish it to a repository for use.
+# Prereqs:    - None
+# Inputs:     - `gaia-repo` - root of the GAIA repository on the file system
+#             - `job-name` - name of the job that contains the call to this action
+# Notes:      - None
+---
+name: 'Documentation Job'
+description: 'Build the internal documentation and publish it to the gaia-platform/test repository for viewing.'
+inputs:
+  gaia-repo:
+    description: 'Repository location'
+    required: true
+  job-name:
+    description: 'Name of the job this is being called from'
+    required: true
+runs:
+  using: "composite"
+  steps:
+
+    - name: Create Output Directory And Adjust Doxyfile
+      shell: bash
+      run: |
+        mkdir -p ${{ inputs.gaia-repo }}/doxygen-output
+        sed -i 's|@CMAKE_CURRENT_BINARY_DIR@|/github/workspace/doxygen-output|g' ${{ inputs.gaia-repo }}/production/docs/doxyfile
+        sed -i 's|@CMAKE_CURRENT_SOURCE_DIR@/../|/github/workspace/production|g' ${{ inputs.gaia-repo }}/production/docs/doxyfile
+
+    - name: Generate Documentation Using Doxygen
+      uses: mattnotmitt/doxygen-action@v1.9.2
+      with:
+        doxyfile-path: /github/workspace/production/docs/doxyfile
+
+    - name: Push Output Directory to Document Repository
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source-directory: /github/workspace/doxygen-output/docs
+        destination-github-username: gaia-platform
+        destination-repository-name: test
+        user-email: jack@gaiaplatform.io
+        target-branch: master
+
+    - name: Upload Output Files
+      if: ${{ false }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ inputs.job-name }} Output Files
+        path: |
+          ${{ inputs.gaia-repo }}/doxygen-output
+          ${{ inputs.gaia-repo }}/production/docs/doxyfile

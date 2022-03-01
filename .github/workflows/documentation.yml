@@ -9,7 +9,7 @@ env:
 
 jobs:
 
-  Third-Party:
+  Documentation:
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -17,39 +17,8 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@master
 
-      - name: Create Directory To Host Install Package Cache
-        shell: bash
-        run: |
-          mkdir -p ${{ github.workspace }}/doxygen-output
-          sed -i 's|@CMAKE_CURRENT_BINARY_DIR@|/github/workspace/doxygen-output|g' ${{ github.workspace }}/production/docs/doxyfile
-          sed -i 's|@CMAKE_CURRENT_SOURCE_DIR@/../|/github/workspace/production|g' ${{ github.workspace }}/production/docs/doxyfile
-
-      - name: Generate Documentation
-        uses: mattnotmitt/doxygen-action@v1.9.2
+      - name: Build Documentation
+        uses: ./.github/actions/documentation-job
         with:
-          doxyfile-path: /github/workspace/production/docs/doxyfile
-
-      - name: XXX
-        shell: bash
-        run: |
-          ls -la ${{ github.workspace }}/doxygen-output
-
-      - name: Push directory to test repository
-        uses: cpina/github-action-push-to-another-repository@main
-        env:
-          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
-        with:
-          source-directory: /github/workspace/doxygen-output/docs
-          destination-github-username: gaia-platform
-          destination-repository-name: test
-          user-email: jack@gaiaplatform.io
-          target-branch: master
-
-      - name: Upload Output Files
-#        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ github.job }} Output Files
-          path: |
-            ${{ github.workspace }}/doxygen-output
-            ${{ github.workspace }}/production/docs/doxyfile
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
