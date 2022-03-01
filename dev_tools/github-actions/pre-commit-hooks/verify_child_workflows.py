@@ -43,7 +43,7 @@ def __process_command_line():
     parser.add_argument(
         "--ignore",
         dest="ignore_path",
-        action="store",
+        action="append",
         help="Path of a workflow to ignore.",
     )
     parser.add_argument("filenames", nargs="+", help="Filenames to fix")
@@ -177,13 +177,17 @@ def process_script_action():
     if not main_workflow_dictionary:
         return 1
 
+    ignore_paths = []
+    for next_ignore_path in args.ignore_path:
+        next_ignore_path = os.path.join(
+            __calculate_github_workflows_directory(), next_ignore_path
+        )
+        ignore_paths.append(next_ignore_path)
+
     scan_error_count = 0
     for next_filename in args.filenames:
 
         if "*" in next_filename:
-            ignore_path = os.path.join(
-                __calculate_github_workflows_directory(), args.ignore_path
-            )
             glob_path = os.path.join(
                 __calculate_github_workflows_directory(), next_filename
             )
@@ -191,7 +195,7 @@ def process_script_action():
                 if next_glob_filename == main_workflow_file_name:
                     continue
 
-                if ignore_path == next_glob_filename:
+                if next_glob_filename in ignore_paths:
                     print(f"Ignoring: {next_glob_filename}")
                     continue
 

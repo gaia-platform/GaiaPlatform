@@ -33,6 +33,8 @@ repos:
         - main.yml
         - --ignore
         - remove-old-artifacts.yml
+        - --ignore
+        - documentation.yml
         - "*.yml"
       pass_filenames: false
       additional_dependencies: [pyyaml]
