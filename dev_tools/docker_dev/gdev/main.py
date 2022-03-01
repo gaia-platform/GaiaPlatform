@@ -15,12 +15,13 @@ import sys
 import logging
 from importlib import import_module
 from typing import Sequence
-from gdev.dependency import Dependency
+from gdev.sections._abc.gdev_action import GdevAction
 from gdev.custom.gaia_path import GaiaPath
 from gdev.options import Options
 from gdev.third_party.argcomplete import autocomplete, FilesCompleter
 from gdev.parser_structure import ParserStructure
 from gdev.command_line import CommandLine
+from gdev.sections.section_action_exception import SectionActionException
 
 
 # pylint: disable=too-few-public-methods
@@ -30,7 +31,7 @@ class DockerDev:
     """
 
     @staticmethod
-    def __of_args(args: Sequence[str]) -> Dependency:
+    def __of_args(args: Sequence[str]) -> GdevAction:
         """
         Return Dependency constructed by parsing args as if from sys.argv.
         """
@@ -77,7 +78,7 @@ class DockerDev:
 
         try:
             subcommand.cli_entrypoint(options)
-        except Dependency.Exception as this_exception:
+        except SectionActionException as this_exception:
             print(f"\n{this_exception}", file=sys.stderr)
         finally:
             logging.shutdown()

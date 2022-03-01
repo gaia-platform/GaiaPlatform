@@ -12,6 +12,7 @@ Module to provide a base class for use by all the subcommand modules.
 # PYTHON_ARGCOMPLETE_OK
 
 from __future__ import annotations
+from abc import ABC
 from dataclasses import dataclass
 from inspect import isabstract
 import logging
@@ -21,27 +22,12 @@ from gdev.third_party.atools import memoize
 
 
 @dataclass(frozen=True)
-class Dependency:
+class GdevAction(ABC):
     """
     Class to provide a base class for use by all the subcommand modules.
     """
 
     options: Options
-
-    # These two classes are only present to handle the Abort exception,
-    # and early exit in some cases.
-    class Exception(Exception):
-        """
-        Useless exception to be refactored out.
-        """
-
-    class Abort(Exception):
-        """
-        Exception to know we aborted.
-        """
-
-        def __str__(self) -> str:
-            return f"Abort: {super().__str__()}"
 
     def __hash__(self) -> int:
         return hash((type(self), self.options))

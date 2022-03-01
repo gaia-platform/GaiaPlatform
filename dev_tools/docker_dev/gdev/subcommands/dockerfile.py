@@ -37,7 +37,6 @@ class Dockerfile:
                 options=options, base_dockerfile=dockerfile
             )
         dockerfile.run()
-
         if CommandLine.is_backward_compatibility_mode_enabled():
             print(dockerfile.path.read_text())
         else:

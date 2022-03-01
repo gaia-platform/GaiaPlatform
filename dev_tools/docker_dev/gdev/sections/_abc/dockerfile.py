@@ -11,17 +11,17 @@ current working directory.
 """
 
 from __future__ import annotations
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from textwrap import dedent
 from typing import Iterable
 
 from gdev.custom.gaia_path import GaiaPath
-from gdev.dependency import Dependency
+from gdev.sections._abc.gdev_action import GdevAction
 from gdev.third_party.atools import memoize
 from gdev.sections._abc.cfg import GenAbcCfg
 
 
-class GenAbcDockerfile(Dependency, ABC):
+class GenAbcDockerfile(GdevAction):
     """
     Class to create a Dockerfile from the rules in the `gdev.cfg` file in the current
     working directory.
