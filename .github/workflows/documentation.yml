@@ -16,7 +16,26 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
+
+      - name: Create Directory To Host Install Package Cache
+        shell: bash
+        run: |
+          mkdir -p ${{ github.workspace }}/doxygen-output
+          sed -i 's|@CMAKE_CURRENT_BINARY_DIR@|${{ github.workspace }}/doxygen-output|g' ${{ github.workspace }}/production/docs/doxyfile
+          sed -i 's|@CMAKE_CURRENT_SOURCE_DIR@|${{ github.workspace }}/production/docs|g' ${{ github.workspace }}/production/docs/doxyfile
+
       - name: Generate Documentation
         uses: mattnotmitt/doxygen-action@v1.9.2
         with:
           additional-packages: font-fira-code
+          working-directory: '${{ github.workspace }}/production/docs'
+          doxyfile-path: '${{ github.workspace }}/production/docs/doxyfile'
+
+      - name: Upload Output Files
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.job }} Output Files
+          path: |
+            ${{ github.workspace }}/doxygen-output
+            ${{ github.workspace }}/production/docs/doxyfile
