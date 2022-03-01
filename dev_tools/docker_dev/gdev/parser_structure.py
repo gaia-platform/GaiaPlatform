@@ -81,10 +81,11 @@ class ParserStructure:
             alt_doc = ""
             sub_parser_structures: Set[ParserStructure] = set()
             for module in iter_modules(spec.submodule_search_locations):
-                if not (sub_command := module.name).startswith("_"):
-                    sub_parser_structures.add(
-                        cls.of_command_parts(tuple([*command_parts, sub_command]))
-                    )
+                sub_command = module.name
+                assert not sub_command.startswith("_")
+                sub_parser_structures.add(
+                    cls.of_command_parts(tuple([*command_parts, sub_command]))
+                )
             parser_structure = ParserStructure(
                 command_parts=command_parts,
                 doc=doc,

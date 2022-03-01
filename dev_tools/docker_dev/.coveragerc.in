@@ -1,5 +1,6 @@
 [run]
 source = gdev
+omit = {pwd}/../gdev/*
 
 [report]
 exclude_lines =
