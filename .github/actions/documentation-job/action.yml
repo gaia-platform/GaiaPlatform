@@ -3,6 +3,8 @@
 # Prereqs:    - None
 # Inputs:     - `gaia-repo` - root of the GAIA repository on the file system
 #             - `job-name` - name of the job that contains the call to this action
+#             - `github-token` - github token with permissions to allow for the publishing of
+#                                the generated files to another repository
 # Notes:      - None
 ---
 name: 'Documentation Job'
@@ -13,6 +15,9 @@ inputs:
     required: true
   job-name:
     description: 'Name of the job this is being called from'
+    required: true
+  github-token:
+    description: 'GitHub token to allow publishing to other repository'
     required: true
 runs:
   using: "composite"
@@ -33,7 +38,7 @@ runs:
     - name: Push Output Directory to Document Repository
       uses: cpina/github-action-push-to-another-repository@main
       env:
-        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        API_TOKEN_GITHUB: ${{ inputs.github-token }}
       with:
         source-directory: /github/workspace/doxygen-output/docs
         destination-github-username: gaia-platform

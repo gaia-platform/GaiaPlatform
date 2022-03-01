@@ -364,6 +364,7 @@ jobs:
         with:
           gaia-repo: ${{ github.workspace }}
           job-name: ${{ github.job }}
+          github-token: ${{ secrets.API_TOKEN_GITHUB }}
 
   Final:
     needs:
