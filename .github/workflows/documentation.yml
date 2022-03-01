@@ -29,6 +29,11 @@ jobs:
         with:
           doxyfile-path: /github/workspace/production/docs/doxyfile
 
+      - name: XXX
+        shell: bash
+        run: |
+          ls -la ${{ github.workspace }}/doxygen-output
+
       - name: Push directory to test repository
         uses: cpina/github-action-push-to-another-repository@main
         env:
@@ -41,7 +46,7 @@ jobs:
           target-branch: master
 
       - name: Upload Output Files
-        if: always()
+#        if: always()
         uses: actions/upload-artifact@v2
         with:
           name: ${{ github.job }} Output Files
