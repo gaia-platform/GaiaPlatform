@@ -10,6 +10,7 @@
 #include "gaia/expressions/expression_ast.hpp"
 #include "gaia/expressions/expression_traits.hpp"
 #include "gaia/expressions/operators.hpp"
+
 #include "gaia/internal/expressions/builders/expression_bind.hpp"
 
 // This is a generic expression AST builder for expression types.
