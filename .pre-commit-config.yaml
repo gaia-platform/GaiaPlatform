@@ -31,6 +31,8 @@ repos:
       args:
         - --base-workflow
         - main.yml
+        - --ignore
+        - remove-old-artifacts.yml
         - "*.yml"
       pass_filenames: false
       additional_dependencies: [pyyaml]
