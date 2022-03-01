@@ -42,6 +42,8 @@ class CommandLine:
         "push": __SUBCOMMAND_ID_PUSH,
     }
 
+    DOUBLE_DASH_ARGUMENT = "--"
+
     __DEFAULT_LOG_LEVEL = "INFO"
     __DEFAULT_BASE_IMAGE = "ubuntu:20.04"
     __DEFAULT_PORTS = []
@@ -180,11 +182,21 @@ class CommandLine:
         )
 
     @staticmethod
-    def __add_docker_run_arguments(parser):
+    def __add_docker_run_arguments(parser, is_backward_compatible_guess):
+
+        if is_backward_compatible_guess:
+            help_text = "Args to be forwarded on to docker run, if applicable."
+        else:
+            help_text = (
+                "Zero or more arguments to be forwarded on to docker run. "
+                + "If one or more arguments are provided, the first argument "
+                + f"must be `{CommandLine.DOUBLE_DASH_ARGUMENT}`."
+            )
+
         parser.add_argument(
             "args",
             nargs=REMAINDER,
-            help="Args to be forwarded on to docker run, if applicable.",
+            help=help_text,
         )
 
     @staticmethod
@@ -219,7 +231,7 @@ class CommandLine:
             CommandLine.__add_platform(parser)
             CommandLine.__add_ports(parser)
             CommandLine.__add_registry(parser)
-            CommandLine.__add_docker_run_arguments(parser)
+            CommandLine.__add_docker_run_arguments(parser, is_backward_compatible_guess)
         else:
             CommandLine.__add_log_level(parser)
             CommandLine.__add_cfg_enables(parser)
@@ -233,7 +245,9 @@ class CommandLine:
                 CommandLine.__add_force_build(parser)
                 CommandLine.__add_mounts(parser)
                 CommandLine.__add_ports(parser)
-                CommandLine.__add_docker_run_arguments(parser)
+                CommandLine.__add_docker_run_arguments(
+                    parser, is_backward_compatible_guess
+                )
 
     @staticmethod
     def get_parser(parser_structure, is_backward_compatible_guess) -> ArgumentParser:
@@ -273,7 +287,7 @@ class CommandLine:
             return parser
 
         return inner(
-            ArgumentParser(prog="gdev"),
+            ArgumentParser(prog="gdev", allow_abbrev=False),
             parser_structure=parser_structure,
             parser_name=None,
         )
@@ -297,10 +311,26 @@ class CommandLine:
             CommandLine.set_backward_mode(parsed_args["backward"])
             del parsed_args["backward"]
 
+        # Note: https://stackoverflow.com/questions/22850332/
+        #       getting-the-remaining-arguments-in-argparse
         if "args" in parsed_args:
-            if parsed_args["args"] and parsed_args["args"][0] == "--":
-                parsed_args["args"] = parsed_args["args"][1:]
-            parsed_args["args"] = " ".join(parsed_args["args"])
+            if CommandLine.is_backward_compatibility_mode_enabled():
+                if (
+                    parsed_args["args"]
+                    and parsed_args["args"][0] == CommandLine.DOUBLE_DASH_ARGUMENT
+                ):
+                    parsed_args["args"] = parsed_args["args"][1:]
+                parsed_args["args"] = " ".join(parsed_args["args"])
+            else:
+                if (
+                    parsed_args["args"]
+                    and parsed_args["args"][0] != CommandLine.DOUBLE_DASH_ARGUMENT
+                ):
+                    raise ValueError(
+                        "arguments to pass to docker run must be prefaced "
+                        + f"with `{CommandLine.DOUBLE_DASH_ARGUMENT}`"
+                    )
+                parsed_args["args"] = " ".join(parsed_args["args"][1:])
         else:
             parsed_args["args"] = ""
 
