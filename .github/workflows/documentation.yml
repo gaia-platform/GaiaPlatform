@@ -21,18 +21,14 @@ jobs:
         shell: bash
         run: |
           mkdir -p ${{ github.workspace }}/doxygen-output
-          sed -i 's|@CMAKE_CURRENT_BINARY_DIR@|${{ github.workspace }}/doxygen-output|g' ${{ github.workspace }}/production/docs/doxyfile
-          sed -i 's|@CMAKE_CURRENT_SOURCE_DIR@/../|${{ github.workspace }}/production|g' ${{ github.workspace }}/production/docs/doxyfile
-          echo "--${{ github.workspace }}/production/docs"
-          ls -la ${{ github.workspace }}/production/docs
-          echo "--${{ github.workspace }}/production"
-          ls -la ${{ github.workspace }}/production
+          sed -i 's|@CMAKE_CURRENT_BINARY_DIR@|/github/workspace/doxygen-output|g' ${{ github.workspace }}/production/docs/doxyfile
+          sed -i 's|@CMAKE_CURRENT_SOURCE_DIR@/../|/github/workspace/production|g' ${{ github.workspace }}/production/docs/doxyfile
 
       - name: Generate Documentation
         uses: mattnotmitt/doxygen-action@v1.9.2
         with:
           additional-packages: font-fira-code
-          doxyfile-path: ${{ github.workspace }}/production/docs/doxyfile
+          doxyfile-path: /github/workspace/production/docs/doxyfile
 
       - name: Upload Output Files
         if: always()
