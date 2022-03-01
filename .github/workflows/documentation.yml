@@ -38,7 +38,7 @@ jobs:
           destination-github-username: gaia-platform
           destination-repository-name: test
           user-email: jack@gaiaplatform.io
-          target-branch: main
+          target-branch: master
 
       - name: Upload Output Files
         if: always()
