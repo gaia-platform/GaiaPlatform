@@ -136,6 +136,12 @@ private:
     common::reference_offset_t m_next_offset;
 };
 
+/**
+ * @brief A value_linked_reference_container_t contains the methods that implement an iterator
+ * for scanning through the value-linked references of an object.
+ *
+ * @tparam T_child the Direct Access Class that is being referenced
+ */
 template <typename T_child>
 class value_linked_reference_container_t : protected dac_db_t
 {
@@ -171,6 +177,13 @@ private:
     std::function<common::optional_t<bool>(const T_child&)> m_filter_fn{};
 };
 
+/**
+ * @brief A reference_container_t contains the methods that implement an iterator
+ * for scanning through the references of an object as well as the methods
+ * for managing these references.
+ *
+ * @tparam T_child the Direct Access Class that is being referenced
+ */
 template <typename T_child>
 class reference_container_t : protected dac_db_t
 {
