@@ -453,14 +453,6 @@ struct drop_statement_t : statement_t
 void initialize_catalog();
 
 /**
- * Switch to the database.
- *
- * @param name database name
- * @throw db_does_not_exist_internal
- */
-void use_database(const std::string& name);
-
-/**
  * Create a database in the catalog.
  *
  * @param name database name

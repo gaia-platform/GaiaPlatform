@@ -149,8 +149,6 @@ TEST_F(ddl_executor_test, create_existing_table)
 
 TEST_F(ddl_executor_test, list_tables)
 {
-    use_database(c_empty_db_name);
-
     ddl::field_def_list_t fields;
     set<gaia_id_t> table_ids;
     constexpr int c_num_fields = 10;
@@ -706,8 +704,8 @@ TEST_F(ddl_executor_test, reverse_table_order_hash)
     create_table(test_db_name, second_test_table_name, fields);
     string first_hash = get_database_hash(test_db_name);
 
-    drop_table(first_test_table_name);
-    drop_table(second_test_table_name);
+    drop_table(test_db_name, first_test_table_name);
+    drop_table(test_db_name, second_test_table_name);
 
     // Add the tables again in reverse order and expect database hash to be the same.
     create_table(test_db_name, second_test_table_name, fields);

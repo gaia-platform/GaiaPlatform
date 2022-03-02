@@ -80,8 +80,6 @@ public:
 
     void drop_database(const std::string& name);
 
-    void switch_db_context(const std::string& db_name);
-
     gaia::common::gaia_id_t find_db_id(const std::string& dbname) const;
 
 private:
@@ -152,14 +150,6 @@ private:
         gaia::common::gaia_id_t table_id, const std::vector<std::string>& field_names);
 
     gaia::common::gaia_id_t m_empty_db_id;
-
-    // The DB context defines the database in which an entity like a table, an
-    // index, or a relationship will be referred to without a database name.
-    std::string m_db_context;
-    inline std::string in_context(const std::string& db)
-    {
-        return db.empty() ? m_db_context : db;
-    }
 };
 } // namespace catalog
 } // namespace gaia
