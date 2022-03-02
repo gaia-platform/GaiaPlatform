@@ -18,7 +18,7 @@
 namespace gaia
 {
 /**
- * @addtogroup gaia
+ * @addtogroup gaia_exceptions
  * @{
  */
 

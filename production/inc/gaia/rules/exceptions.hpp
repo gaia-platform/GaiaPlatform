@@ -13,15 +13,11 @@
 namespace gaia
 {
 /**
- * @addtogroup gaia
+ * @addtogroup gaia_rules_exceptions
  * @{
  */
 namespace rules
 {
-/**
- * @addtogroup rules
- * @{
- */
 
 /**
  * @brief An incomplete rule_binding_t structure was provided.
@@ -75,7 +71,6 @@ public:
     explicit ruleset_not_found(const char* ruleset_name);
 };
 
-/*@}*/
 } // namespace rules
 /*@}*/
 } // namespace gaia
