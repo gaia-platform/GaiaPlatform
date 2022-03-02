@@ -16,8 +16,16 @@
 
 namespace gaia
 {
+/**
+ * @addtogroup gaia
+ * @{
+ */
 namespace direct_access
 {
+/**
+ * @addtogroup direct_access
+ * @{
+ */
 
 /**
  * @brief A vector class for enabling operation with vector fields.
@@ -66,7 +74,9 @@ private:
     const flatbuffers::Vector<T_type>* m_vector;
 };
 
+/*@}*/
 } // namespace direct_access
+/*@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.

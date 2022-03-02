@@ -16,7 +16,6 @@ namespace gaia
  * @addtogroup gaia
  * @{
  */
-
 namespace rules
 {
 /**

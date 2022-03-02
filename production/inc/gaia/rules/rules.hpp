@@ -24,10 +24,8 @@ namespace gaia
  * @addtogroup gaia
  * @{
  */
-
 namespace rules
 {
-
 /**
  * @addtogroup rules
  * @{

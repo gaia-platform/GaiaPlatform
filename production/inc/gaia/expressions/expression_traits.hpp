@@ -13,8 +13,16 @@
 
 namespace gaia
 {
+/**
+ * @addtogroup gaia
+ * @{
+ */
 namespace expressions
 {
+/**
+ * @addtogroup expressions
+ * @{
+ */
 
 namespace detail
 {
@@ -131,5 +139,7 @@ using is_expression = typename std::is_base_of<expression_base_t, T_class>;
 template <typename T_class>
 using is_value = decltype(detail::value_tag_test(detail::ast_tag(std::declval<T_class>())));
 
+/*@}*/
 } // namespace expressions
+/*@}*/
 } // namespace gaia

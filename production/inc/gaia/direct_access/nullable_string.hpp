@@ -12,8 +12,16 @@
 
 namespace gaia
 {
+/**
+ * @addtogroup gaia
+ * @{
+ */
 namespace direct_access
 {
+/**
+ * @addtogroup gaia
+ * @{
+ */
 
 /**
  * @brief A custom string class that can represent null values.
@@ -96,7 +104,9 @@ private:
     bool is_null;
 };
 
+/*@}*/
 } // namespace direct_access
+/*@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.
