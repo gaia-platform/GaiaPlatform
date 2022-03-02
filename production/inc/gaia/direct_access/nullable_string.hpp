@@ -19,7 +19,7 @@ namespace gaia
 namespace direct_access
 {
 /**
- * @addtogroup gaia
+ * @addtogroup direct_access
  * @{
  */
 

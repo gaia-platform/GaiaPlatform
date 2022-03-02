@@ -15,13 +15,12 @@
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
 
-/**
- * @addtogroup gaia_exceptions
- * @{
- */
-
 namespace gaia
 {
+/**
+ * @addtogroup gaia
+ * @{
+ */
 
 namespace catalog
 {
@@ -427,9 +426,8 @@ class invalid_object_state : public common::gaia_exception
 
 } // namespace direct_access
 
+/**@}*/
 } // namespace gaia
-
-/**@}*/ // @addtogroup gaia_exceptions
 
 // Restore default hidden visibility for all symbols.
 #pragma GCC visibility pop
