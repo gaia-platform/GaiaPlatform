@@ -29,28 +29,6 @@ class dac_object_test : public db_catalog_test_base_t
 protected:
     dac_object_test()
         : db_catalog_test_base_t(string("addr_book.ddl")){};
-
-    /*
-        void SetUp() override
-        {
-            db_catalog_test_base_t::SetUp();
-            {
-                auto_transaction_t tx (auto_transaction_t::no_auto_restart);
-                printf("nukarama!\n");
-                printf("employee size before :  %zu\n", employee_t::list().size());
-                employee_t::list().delete_all(true);
-                printf("employee size after :  %zu\n", employee_t::list().size());
-                employee_t::list().delete_all(true);
-                address_t::list().delete_all(true);
-                phone_t::list().delete_all(true);
-                internet_contract_t::list().delete_all(true);
-                customer_t::list().delete_all(true);
-                company_t::list().delete_all(true);
-                client_t::list().delete_all(true);
-                tx.commit();
-            }
-        }
-    */
 };
 
 int count_rows()
@@ -109,7 +87,6 @@ TEST_F(dac_object_test, create_employee)
     commit_transaction();
 }
 
-/*
 // Delete one row
 TEST_F(dac_object_test, create_employee_delete)
 {
@@ -193,7 +170,6 @@ TEST_F(dac_object_test, existing_insert_field)
     EXPECT_NE(e.gaia_id(), employee_t::get(eid).gaia_id());
     commit_transaction();
 }
-*/
 
 // Test on existing objects found by ID
 // ====================================
@@ -224,7 +200,6 @@ TEST_F(dac_object_test, read_back_scan)
     }
     commit_transaction();
 }
-/*
 
 // Used twice, below
 void update_read_back(bool update_flag)
@@ -1000,6 +975,7 @@ TEST_F(dac_object_test, delete_row_in_loop)
     txn.commit();
 }
 
+/*
 TEST_F(dac_object_test, fail_delete_row_in_loop)
 {
     auto_transaction_t txn;
@@ -1019,6 +995,7 @@ TEST_F(dac_object_test, fail_delete_row_in_loop)
 
     txn.commit();
 }
+*/
 
 TEST_F(dac_object_test, snapshot_delete_row)
 {
@@ -1171,4 +1148,3 @@ TEST_F(dac_object_test, disconnect_all)
     printf("Kent has %zu addresses after disconnect_all \n", k.addresses().size());
     txn.commit();
 }
-*/
