@@ -9,6 +9,9 @@
 #include <algorithm>
 #include <atomic>
 
+#include "incubator_helper.hpp"
+#include "gaia_incubator.h"
+
 extern std::atomic<int> g_timestamp;
 static constexpr float c_fan_speed_limit = 5000.0;
 static constexpr float c_fan_speed_increment = 500.0;
@@ -30,11 +33,29 @@ float adjust_temperature(float min_temp, float max_temp, float sensor_value, flo
     return new_fan_rpm;
 }
 
+void my_sensors(gaia::direct_access::dac_container_t<gaia::incubator::c_gaia_type_sensor, gaia::incubator::sensor_t>& list)
+{
+    int count = 0;
+    for (auto s : list)
+    {
+        count++;
+
+    }
+}
+
+bool my_incubator(gaia::incubator::incubator_t& inc)
+{
+    bool is_on = inc.is_on();
+    return is_on;
+}
+
 ruleset incubator_ruleset
 {
     // Rule 1:  Keep the temperature in range of the incubator limits.
     on_update(sensor.value)
     {
+        my_incubator(incubator);
+
         if (!incubator.is_on)
         {
             return;
@@ -55,6 +76,7 @@ ruleset incubator_ruleset
     // incubator temperature limits change.
     on_update(incubator.max_temp, incubator.min_temp)
     {
+        //my_sensors(incubator->sensor)
         if (!incubator.is_on)
         {
             return;
@@ -76,17 +98,22 @@ ruleset incubator_ruleset
         }
     }
 
-    // Rule 3:  Turn off all the fans if the incubator is powered down.
+// Rule 3:  Turn off all the fans if the incubator is powered down.
+{
+    if (!@incubator.is_on)
     {
-        if (!@incubator.is_on)
+        for (actuator)
         {
-            for (actuator)
-            {
-                actuator.value = 0;
-                actuator.timestamp = g_timestamp;
-            }
+            actuator.value = 0;
+            actuator.timestamp = g_timestamp;
         }
     }
+
+    // call our callback
+    incubator_helper_t * helper = nullptr;
+    helper = (incubator_helper_t *)instance;
+    helper->show_status(is_on);
+}
 
     // Rule 4:  If the fan is at 70% of its limit and the temperature is still too hot then
     // set the fan to its maximum speed.

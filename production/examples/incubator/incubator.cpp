@@ -23,6 +23,7 @@
 #include "gaia/system.hpp"
 
 #include "gaia_incubator.h"
+#include "incubator_helper.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -729,6 +730,43 @@ int main(int argc, const char** argv)
     std::cout << "-----------------------------------------\n";
 
     init_storage();
+
+    incubator_helper_t chicken_helper(c_chicken);
+    incubator_helper_t puppy_helper(c_puppy);
+
+    auto_transaction_t tx(auto_transaction_t::no_auto_restart);
+    if (callback_t::list().size() == 0)
+    {
+        callback_t::insert_row(c_chicken, (uint64_t)(&chicken_helper));
+        callback_t::insert_row(c_puppy, (uint64_t)(&puppy_helper));
+    }
+    else
+    {
+        for (auto callback : callback_t::list())
+        {
+            auto writer = callback.writer();
+            if (strcmp(writer.name.c_str(), c_chicken) == 0)
+            {
+                writer.instance = (uint64_t)(&chicken_helper);
+            }
+            else
+            {
+                writer.instance = (uint64_t)(&puppy_helper);
+            }
+
+            writer.update_row();
+        }
+    }
+    tx.commit();
+    /*
+        for (auto callback : callback_t::list())
+        {
+            incubator_helper_t * p = (incubator_helper_t*)(callback.instance());
+            p->show_status(true);
+        }
+        tx.commit();
+    */
+
     sim.run();
     gaia::system::shutdown();
 }

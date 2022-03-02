@@ -11,28 +11,35 @@ create database if not exists incubator;
 use incubator;
 
 create table if not exists incubator (
-    name string,
+    name string unique,
     is_on bool,
     min_temp float,
-    max_temp float
-);
+    max_temp float,
+    callback references callback[] where incubator.name = callback.name
+)
+
+create table if not exists callback (
+    name string,
+    instance uint64,
+    incubator references incubator
+)
 
 create table if not exists sensor (
     name string,
     timestamp uint64,
     value float
-);
+)
 
 create table if not exists actuator (
     name string,
     timestamp uint64,
     value float
-);
+)
 
 create relationship if not exists incubator_sensors (
     incubator.sensors -> sensor[],
     sensor.incubator -> incubator
-);
+)
 
 create relationship if not exists incubator_actuators (
     incubator.actuators -> actuator[],
