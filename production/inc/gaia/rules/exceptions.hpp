@@ -10,12 +10,13 @@
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
 
-namespace gaia
-{
 /**
  * @addtogroup gaia_rules_exceptions
  * @{
  */
+
+namespace gaia
+{
 namespace rules
 {
 
@@ -72,8 +73,9 @@ public:
 };
 
 } // namespace rules
-/*@}*/
 } // namespace gaia
+
+/**@}*/ // @addtogroup gaia_rules_exceptions
 
 // Restore default hidden visibility for all symbols.
 #pragma GCC visibility pop

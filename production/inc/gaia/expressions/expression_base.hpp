@@ -56,7 +56,7 @@ public:
 template <typename T_bind, typename T_return>
 using subexpression_t = std::shared_ptr<expression_t<T_bind, T_return>>;
 
-/*@}*/
+/**@}*/
 } // namespace expressions
-/*@}*/
+/**@}*/
 } // namespace gaia

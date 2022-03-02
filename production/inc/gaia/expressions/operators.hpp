@@ -356,7 +356,7 @@ using pos_type = decltype(evaluate_operator(std::declval<T_operand>(), std::decl
 template <typename T_operand>
 using inv_type = decltype(evaluate_operator(std::declval<T_operand>(), std::declval<operator_inv_t>()));
 
-/*@}*/
+/**@}*/
 } // namespace expressions
-/*@}*/
+/**@}*/
 } // namespace gaia

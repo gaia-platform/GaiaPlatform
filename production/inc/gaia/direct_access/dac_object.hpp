@@ -190,9 +190,9 @@ private:
 // that are declared later will pick up the definitions.
 #include "gaia/internal/direct_access/dac_object.inc"
 
-/*@}*/
+/**@}*/
 } // namespace direct_access
-/*@}*/
+/**@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.

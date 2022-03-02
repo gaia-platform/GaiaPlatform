@@ -93,9 +93,9 @@ protected:
     T_type m_value;
 };
 
-/*@}*/
+/**@}*/
 } // namespace common
-/*@}*/
+/**@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.

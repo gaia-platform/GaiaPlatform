@@ -30,9 +30,9 @@ using optional_t = flatbuffers::Optional<T_value>;
 using nullopt_t = flatbuffers::nullopt_t;
 inline constexpr nullopt_t nullopt = flatbuffers::nullopt;
 
-/*@}*/
+/**@}*/
 } // namespace common
-/*@}*/
+/**@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.

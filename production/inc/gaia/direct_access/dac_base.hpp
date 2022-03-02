@@ -94,9 +94,9 @@ private:
     common::reference_offset_t m_child_offset;
 };
 
-/*@}*/
+/**@}*/
 } // namespace direct_access
-/*@}*/
+/**@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.

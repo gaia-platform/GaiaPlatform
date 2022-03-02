@@ -262,9 +262,9 @@ constexpr std::underlying_type_t<T> get_enum_value(T val)
     return static_cast<std::underlying_type_t<T>>(val);
 }
 
-/*@}*/
+/**@}*/
 } // namespace common
-/*@}*/
+/**@}*/
 } // namespace gaia
 
 #include "gaia/internal/common_std.inc"

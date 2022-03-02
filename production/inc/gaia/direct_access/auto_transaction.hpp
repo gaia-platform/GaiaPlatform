@@ -55,9 +55,9 @@ private:
     bool m_auto_restart;
 };
 
-/*@}*/
+/**@}*/
 } // namespace direct_access
-/*@}*/
+/**@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.

@@ -46,11 +46,11 @@ enum class event_type_t : uint32_t
  */
 const char* event_type_name(event_type_t event_type);
 
-/*@}*/
+/**@}*/
 } // namespace triggers
-/*@}*/
+/**@}*/
 } // namespace db
-/*@}*/
+/**@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.

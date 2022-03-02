@@ -95,9 +95,9 @@ void rollback_transaction();
  */
 void commit_transaction();
 
-/*@}*/
+/**@}*/
 } // namespace db
-/*@}*/
+/**@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.

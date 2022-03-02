@@ -331,9 +331,9 @@ void list_subscribed_rules(
     const common::field_position_t* field,
     subscription_list_t& subscriptions);
 
-/*@}*/
+/**@}*/
 } // namespace rules
-/*@}*/
+/**@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.

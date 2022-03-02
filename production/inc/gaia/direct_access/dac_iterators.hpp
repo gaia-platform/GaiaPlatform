@@ -245,9 +245,9 @@ private:
 // definitions.
 #include "gaia/internal/direct_access/dac_iterators.inc"
 
-/*@}*/
+/**@}*/
 } // namespace direct_access
-/*@}*/
+/**@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.

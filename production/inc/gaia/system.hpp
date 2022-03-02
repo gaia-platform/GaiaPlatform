@@ -35,9 +35,9 @@ void initialize(const char* gaia_config_file = nullptr, const char* logger_confi
  */
 void shutdown();
 
-/*@}*/
+/**@}*/
 } // namespace system
-/*@}*/
+/**@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.

@@ -196,11 +196,11 @@ private:
  */
 logger_t& app();
 
-/*@}*/
+/**@}*/
 } // namespace logging
-/*@}*/
+/**@}*/
 } // namespace common
-/*@}*/
+/**@}*/
 } // namespace gaia
 
 namespace gaia_log = gaia::common::logging;
