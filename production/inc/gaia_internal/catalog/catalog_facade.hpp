@@ -38,6 +38,7 @@ public:
     explicit database_facade_t(gaia_database_t database);
 
     std::string database_name() const;
+    std::string database_hash() const;
     bool is_default_database();
     std::vector<table_facade_t> tables() const;
 

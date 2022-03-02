@@ -28,6 +28,11 @@ std::string database_facade_t::database_name() const
     return m_database.name();
 }
 
+std::string database_facade_t::database_hash() const
+{
+    return "the_database_hash"; // m_database.hash();
+}
+
 std::vector<table_facade_t> database_facade_t::tables() const
 {
     auto tables = std::vector<table_facade_t>();

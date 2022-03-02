@@ -39,6 +39,7 @@ std::string dac_compilation_unit_writer_t::write_header()
         code += class_writer.write_header();
     }
 
+    code += generate_hash_accessor();
     code += generate_close_namespace();
     code += generate_close_header_guard();
     return code.ToString();
@@ -57,9 +58,30 @@ std::string dac_compilation_unit_writer_t::write_cpp()
         code += class_writer.write_cpp();
     }
 
+    code += generate_hash_accessor_cpp();
     code += generate_close_namespace();
     return code.ToString();
 }
+
+std::string dac_compilation_unit_writer_t::write_init()
+{
+    flatbuffers::CodeWriter code(c_indentation_string);
+    code += generate_copyright();
+    code += generate_open_namespace();
+
+    code.SetValue("DBNAME", m_database.database_name());
+    code += "extern \"C\" void initialize_direct_access(const char* app)\n{";
+    code.IncrementIdentLevel();
+    code += "char* database_hash;";
+    code += "database_hash = gaia::{{DBNAME}}::dac_hash_code();";
+    code += "validate_hash_code(\"{{DBNAME}}\", database_hash);";
+    code.DecrementIdentLevel();
+    code += "}\n";
+
+    code += generate_close_namespace();
+    return code.ToString();
+}
+
 flatbuffers::CodeWriter dac_compilation_unit_writer_t::create_code_writer()
 {
     flatbuffers::CodeWriter code(c_indentation_string);
@@ -223,6 +245,32 @@ std::string dac_compilation_unit_writer_t::generate_ref_forward_declarations()
 
     std::string str = code.ToString();
     return str;
+}
+
+std::string dac_compilation_unit_writer_t::generate_hash_accessor()
+{
+    flatbuffers::CodeWriter code = create_code_writer();
+
+    code.SetValue("DATABASE_HASH", m_database.database_hash());
+    code += "// The unique hash and hash accessor for this database.";
+    code += "constexpr char c_{{DBNAME}}_hash[] = \"{{DATABASE_HASH}}\";";
+    code += "const char* dac_hash_code();";
+
+    return code.ToString();
+}
+
+std::string dac_compilation_unit_writer_t::generate_hash_accessor_cpp()
+{
+    flatbuffers::CodeWriter code = create_code_writer();
+
+    code += "// The hash accessor for this database.";
+    code += "const char* dac_hash_code()\n{";
+    code.IncrementIdentLevel();
+    code += "return c_{{DBNAME}}_hash;";
+    code.DecrementIdentLevel();
+    code += "}";
+
+    return code.ToString();
 }
 
 std::string class_writer_t::write_header()

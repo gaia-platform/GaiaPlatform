@@ -23,6 +23,15 @@ using namespace gaia::system;
 using namespace gaia::common;
 using namespace scope_guard;
 
+/**
+ * This function is supplied by the user (either via the DDL compiler or custom application code).
+ * However, since it is optional, provide an implementation to satisfy the linker here.
+ * If the user does provide an implementation, the linker will choose the strong reference.
+ */
+extern "C" void __attribute__((weak)) initialize_direct_access()
+{
+}
+
 void gaia::system::initialize(const char* gaia_config_file, const char* logger_config_file)
 {
     // Default locations for log files are placed under/opt/gaia/etc/
@@ -80,6 +89,7 @@ void gaia::system::initialize(const char* gaia_config_file, const char* logger_c
 
     gaia::catalog::initialize_catalog();
     gaia::rules::initialize_rules_engine(root_config);
+    initialize_rules();
 
     cleanup_init_state.dismiss();
 }

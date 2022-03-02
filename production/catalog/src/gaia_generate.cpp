@@ -45,5 +45,14 @@ std::string generate_dac_cpp(const std::string& db_name, const std::string& head
     return cpp_content;
 }
 
+std::string generate_init_cpp(const std::string& db_name)
+{
+    db::begin_transaction();
+    generate::dac_compilation_unit_writer_t file_writer{find_database(db_name)};
+    std::string init_content = file_writer.write_init();
+    db::commit_transaction();
+    return init_content;
+}
+
 } // namespace catalog
 } // namespace gaia

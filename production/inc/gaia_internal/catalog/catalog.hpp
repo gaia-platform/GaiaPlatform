@@ -666,6 +666,16 @@ void drop_index(const std::string& name, bool throw_unless_exists = true);
 gaia::common::gaia_id_t find_db_id(const std::string& dbname);
 
 /**
+ * Check the header file's hash code against the catalog's hash code
+ * for this database.
+ *
+ * @param dbname database name
+ * @param database_hash 128-bit hash code of this database's catalog definition
+ * @return database id (or INVALID_ID if the db name does not exist)
+ */
+gaia::common::gaia_id_t verify_hash_code(const std::string& dbname, const char* database_hash);
+
+/**
  * Generate the Direct Access Classes header file.
  *
  * @param dbname database name
@@ -682,6 +692,14 @@ std::string generate_dac_header(const std::string& dbname);
  * @return generated source
  */
 std::string generate_dac_cpp(const std::string& dbname, const std::string& header_file_name);
+
+/**
+ * Generate the Direct Access Classes initialization file.
+ *
+ * @param dbname database name
+ * @return generated source
+ */
+std::string generate_init_cpp(const std::string& dbname);
 
 /**
  * Generate FlatBuffers schema (fbs) for all catalog tables in a given database.

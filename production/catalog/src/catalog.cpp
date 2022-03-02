@@ -318,50 +318,64 @@ gaia_id_t find_db_id(const string& db_name)
     return ddl_executor.find_db_id(db_name);
 }
 
-vector<gaia_id_t> list_fields(gaia_id_t table_id)
+bool verify_hash_code(const string& db_name, const char* database_hash)
 {
-    vector<gaia_id_t> fields;
-    // Direct access reference list API guarantees LIFO. As long as we only
-    // allow appending new fields to table definitions, reversing the field list
-    // order should result in fields being listed in the ascending order of
-    // their positions.
-    for (const auto& field : gaia_table_t::get(table_id).gaia_fields())
+    auto database = gaia_database_t::list().where(gaia_database_expr::name == db_name);
+
+    if (database.begin() != database.end())
     {
-        fields.insert(fields.begin(), field.gaia_id());
-    }
-    return fields;
-}
+        if (strcmp(database.begin().hash(), database_hash) == 0)
+        {
+            return true;
+        }
 
-vector<gaia_id_t> list_references(gaia_id_t table_id)
-{
-    return list_child_relationships(table_id);
-}
-
-vector<gaia_id_t> list_child_relationships(gaia_id_t table_id)
-{
-    vector<gaia_id_t> relationships;
-
-    for (const gaia_relationship_t& child_relationship :
-         gaia_table_t::get(table_id).incoming_relationships())
-    {
-        relationships.push_back(child_relationship.gaia_id());
+        return false;
     }
 
-    return relationships;
-}
-
-vector<gaia_id_t> list_parent_relationships(gaia_id_t table_id)
-{
-    vector<gaia_id_t> relationships;
-
-    for (const gaia_relationship_t& parent_relationship :
-         gaia_table_t::get(table_id).outgoing_relationships())
+    vector<gaia_id_t> list_fields(gaia_id_t table_id)
     {
-        relationships.push_back(parent_relationship.gaia_id());
+        vector<gaia_id_t> fields;
+        // Direct access reference list API guarantees LIFO. As long as we only
+        // allow appending new fields to table definitions, reversing the field list
+        // order should result in fields being listed in the ascending order of
+        // their positions.
+        for (const auto& field : gaia_table_t::get(table_id).gaia_fields())
+        {
+            fields.insert(fields.begin(), field.gaia_id());
+        }
+        return fields;
     }
 
-    return relationships;
-}
+    vector<gaia_id_t> list_references(gaia_id_t table_id)
+    {
+        return list_child_relationships(table_id);
+    }
+
+    vector<gaia_id_t> list_child_relationships(gaia_id_t table_id)
+    {
+        vector<gaia_id_t> relationships;
+
+        for (const gaia_relationship_t& child_relationship :
+             gaia_table_t::get(table_id).incoming_relationships())
+        {
+            relationships.push_back(child_relationship.gaia_id());
+        }
+
+        return relationships;
+    }
+
+    vector<gaia_id_t> list_parent_relationships(gaia_id_t table_id)
+    {
+        vector<gaia_id_t> relationships;
+
+        for (const gaia_relationship_t& parent_relationship :
+             gaia_table_t::get(table_id).outgoing_relationships())
+        {
+            relationships.push_back(parent_relationship.gaia_id());
+        }
+
+        return relationships;
+    }
 
 } // namespace catalog
 } // namespace gaia

@@ -39,6 +39,7 @@ public:
 
     std::string write_header();
     std::string write_cpp();
+    std::string write_init();
 
 private:
     flatbuffers::CodeWriter create_code_writer();
@@ -53,6 +54,8 @@ private:
     std::string generate_constants();
     std::string generate_forward_declarations();
     std::string generate_ref_forward_declarations();
+    std::string generate_hash_accessor();
+    std::string generate_hash_accessor_cpp();
 
 private:
     database_facade_t m_database;

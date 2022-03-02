@@ -163,12 +163,17 @@ void generate_dac_code(const string& db_name, const filesystem::path& output_pat
     filesystem::path cpp_path = output_path;
     cpp_path /= base_name + ".cpp";
 
+    filesystem::path init_path = output_path;
+    init_path /= "initialize_direct_access.cpp";
+
     ofstream dac_header(header_path);
     ofstream dac_cpp(cpp_path);
+    ofstream dac_init(init_path);
     try
     {
         dac_header << gaia::catalog::generate_dac_header(db_name) << endl;
         dac_cpp << gaia::catalog::generate_dac_cpp(db_name, header_path.filename()) << endl;
+        dac_init << gaia::catalog::generate_init_cpp(db_name) << endl;
     }
     catch (gaia::common::gaia_exception& e)
     {
@@ -177,6 +182,7 @@ void generate_dac_code(const string& db_name, const filesystem::path& output_pat
 
     dac_header.close();
     dac_cpp.close();
+    dac_init.close();
 }
 
 void generate_edc(const string& db_name, const filesystem::path& output_path)
@@ -475,6 +481,7 @@ int main(int argc, char* argv[])
 
                 for (const auto& db_name : db_names)
                 {
+                    fprintf(stderr, "main(): output_path = %s\n", output_path.c_str());
                     generate_edc(db_name, output_path);
                 }
             }
