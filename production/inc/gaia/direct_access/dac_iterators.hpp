@@ -228,7 +228,7 @@ private:
 // Pick up our template implementation. These still need to be in the header so
 // that template specializations that are declared later will pick up the
 // definitions.
-#include "dac_iterators.inc"
+#include "gaia/internal/direct_access/dac_iterators.inc"
 
 /*@}*/
 } // namespace direct_access
