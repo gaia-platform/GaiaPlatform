@@ -43,6 +43,11 @@ namespace catalog_core
     return catalog::Getgaia_field(m_obj_ptr->data())->position();
 }
 
+[[nodiscard]] bool field_view_t::optional() const
+{
+    return catalog::Getgaia_field(m_obj_ptr->data())->optional();
+}
+
 [[nodiscard]] const char* table_view_t::name() const
 {
     return catalog::Getgaia_table(m_obj_ptr->data())->name()->c_str();
