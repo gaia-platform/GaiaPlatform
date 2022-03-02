@@ -30,7 +30,7 @@ namespace triggers
  */
 
 /**
- * Identifies the type of database event.
+ * @brief Identifies the type of database event.
  */
 enum class event_type_t : uint32_t
 {
@@ -42,7 +42,7 @@ enum class event_type_t : uint32_t
 };
 
 /**
- * Returns a string representation of the event type.
+ * @brief Returns a string representation of the event type.
  */
 const char* event_type_name(event_type_t event_type);
 
