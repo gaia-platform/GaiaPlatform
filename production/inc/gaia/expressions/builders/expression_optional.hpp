@@ -59,7 +59,7 @@ template <typename T_operand>
 using inv_optional_type = typename common::optional_t<inv_type<T_operand>>;
 
 template <typename T_left, typename T_right>
-static inline and_optional_type<T_left, T_right>
+inline constexpr and_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const common::optional_t<T_right>& right, operator_and_t)
 {
     if (left.has_value() && right.has_value())
@@ -70,7 +70,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const common::optional
 }
 
 template <typename T_left, typename T_right>
-static inline and_optional_type<T_left, T_right>
+inline constexpr and_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, operator_and_t)
 {
     if (left.has_value())
@@ -81,7 +81,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline and_optional_type<T_left, T_right>
+inline constexpr and_optional_type<T_left, T_right>
 evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, operator_and_t)
 {
     if (right.has_value())
@@ -92,7 +92,7 @@ evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline or_optional_type<T_left, T_right>
+inline constexpr or_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const common::optional_t<T_right>& right, operator_or_t)
 {
     if (left.has_value() && right.has_value())
@@ -103,7 +103,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const common::optional
 }
 
 template <typename T_left, typename T_right>
-static inline or_optional_type<T_left, T_right>
+inline constexpr or_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, operator_or_t)
 {
     if (left.has_value())
@@ -114,7 +114,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline or_optional_type<T_left, T_right>
+inline constexpr or_optional_type<T_left, T_right>
 evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, operator_or_t)
 {
     if (right.has_value())
@@ -125,7 +125,7 @@ evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline xor_optional_type<T_left, T_right>
+inline constexpr xor_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const common::optional_t<T_right>& right, operator_xor_t)
 {
     if (left.has_value() && right.has_value())
@@ -136,7 +136,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const common::optional
 }
 
 template <typename T_left, typename T_right>
-static inline xor_optional_type<T_left, T_right>
+inline constexpr xor_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, operator_xor_t)
 {
     if (left.has_value())
@@ -147,7 +147,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline xor_optional_type<T_left, T_right>
+inline constexpr xor_optional_type<T_left, T_right>
 evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, operator_xor_t)
 {
     if (right.has_value())
@@ -158,7 +158,7 @@ evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline add_optional_type<T_left, T_right>
+inline constexpr add_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const common::optional_t<T_right>& right, operator_add_t)
 {
     if (left.has_value() && right.has_value())
@@ -169,7 +169,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const common::optional
 }
 
 template <typename T_left, typename T_right>
-static inline add_optional_type<T_left, T_right>
+inline constexpr add_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, operator_add_t)
 {
     if (left.has_value())
@@ -180,7 +180,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline add_optional_type<T_left, T_right>
+inline constexpr add_optional_type<T_left, T_right>
 evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, operator_add_t)
 {
     if (right.has_value())
@@ -191,7 +191,7 @@ evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline sub_optional_type<T_left, T_right>
+inline constexpr sub_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const common::optional_t<T_right>& right, operator_sub_t)
 {
     if (left.has_value() && right.has_value())
@@ -202,7 +202,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const common::optional
 }
 
 template <typename T_left, typename T_right>
-static inline sub_optional_type<T_left, T_right>
+inline constexpr sub_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, operator_sub_t)
 {
     if (left.has_value())
@@ -213,7 +213,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline sub_optional_type<T_left, T_right>
+inline constexpr sub_optional_type<T_left, T_right>
 evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, operator_sub_t)
 {
     if (right.has_value())
@@ -224,7 +224,7 @@ evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline mul_optional_type<T_left, T_right>
+inline constexpr mul_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const common::optional_t<T_right>& right, operator_mul_t)
 {
     if (left.has_value() && right.has_value())
@@ -235,7 +235,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const common::optional
 }
 
 template <typename T_left, typename T_right>
-static inline mul_optional_type<T_left, T_right>
+inline constexpr mul_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, operator_mul_t)
 {
     if (left.has_value())
@@ -246,7 +246,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline mul_optional_type<T_left, T_right>
+inline constexpr mul_optional_type<T_left, T_right>
 evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, operator_mul_t)
 {
     if (right.has_value())
@@ -257,7 +257,7 @@ evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline div_optional_type<T_left, T_right>
+inline constexpr div_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const common::optional_t<T_right>& right, operator_div_t)
 {
     if (left.has_value() && right.has_value())
@@ -268,7 +268,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const common::optional
 }
 
 template <typename T_left, typename T_right>
-static inline div_optional_type<T_left, T_right>
+inline constexpr div_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, operator_div_t)
 {
     if (left.has_value())
@@ -279,7 +279,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline div_optional_type<T_left, T_right>
+inline constexpr div_optional_type<T_left, T_right>
 evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, operator_div_t)
 {
     if (right.has_value())
@@ -290,7 +290,7 @@ evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline mod_optional_type<T_left, T_right>
+inline constexpr mod_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const common::optional_t<T_right>& right, operator_mod_t)
 {
     if (left.has_value() && right.has_value())
@@ -301,7 +301,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const common::optional
 }
 
 template <typename T_left, typename T_right>
-static inline mod_optional_type<T_left, T_right>
+inline constexpr mod_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, operator_mod_t)
 {
     if (left.has_value())
@@ -312,7 +312,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline mod_optional_type<T_left, T_right>
+inline constexpr mod_optional_type<T_left, T_right>
 evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, operator_mod_t)
 {
     if (right.has_value())
@@ -323,7 +323,7 @@ evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline band_optional_type<T_left, T_right>
+inline constexpr band_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const common::optional_t<T_right>& right, operator_band_t)
 {
     if (left.has_value() && right.has_value())
@@ -334,7 +334,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const common::optional
 }
 
 template <typename T_left, typename T_right>
-static inline band_optional_type<T_left, T_right>
+inline constexpr band_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, operator_band_t)
 {
     if (left.has_value())
@@ -345,7 +345,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline band_optional_type<T_left, T_right>
+inline constexpr band_optional_type<T_left, T_right>
 evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, operator_band_t)
 {
     if (right.has_value())
@@ -356,7 +356,7 @@ evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline bor_optional_type<T_left, T_right>
+inline constexpr bor_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const common::optional_t<T_right>& right, operator_bor_t)
 {
     if (left.has_value() && right.has_value())
@@ -367,7 +367,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const common::optional
 }
 
 template <typename T_left, typename T_right>
-static inline bor_optional_type<T_left, T_right>
+inline constexpr bor_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, operator_bor_t)
 {
     if (left.has_value())
@@ -378,7 +378,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline bor_optional_type<T_left, T_right>
+inline constexpr bor_optional_type<T_left, T_right>
 evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, operator_bor_t)
 {
     if (right.has_value())
@@ -389,7 +389,7 @@ evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline shl_optional_type<T_left, T_right>
+inline constexpr shl_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const common::optional_t<T_right>& right, operator_shl_t)
 {
     if (left.has_value() && right.has_value())
@@ -400,7 +400,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const common::optional
 }
 
 template <typename T_left, typename T_right>
-static inline shl_optional_type<T_left, T_right>
+inline constexpr shl_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, operator_shl_t)
 {
     if (left.has_value())
@@ -411,7 +411,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline shl_optional_type<T_left, T_right>
+inline constexpr shl_optional_type<T_left, T_right>
 evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, operator_shl_t)
 {
     if (right.has_value())
@@ -422,7 +422,7 @@ evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline shr_optional_type<T_left, T_right>
+inline constexpr shr_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const common::optional_t<T_right>& right, operator_shr_t)
 {
     if (left.has_value() && right.has_value())
@@ -433,7 +433,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const common::optional
 }
 
 template <typename T_left, typename T_right>
-static inline shr_optional_type<T_left, T_right>
+inline constexpr shr_optional_type<T_left, T_right>
 evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, operator_shr_t)
 {
     if (left.has_value())
@@ -444,7 +444,7 @@ evaluate_operator(const common::optional_t<T_left>& left, const T_right& right, 
 }
 
 template <typename T_left, typename T_right>
-static inline shr_optional_type<T_left, T_right>
+inline constexpr shr_optional_type<T_left, T_right>
 evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, operator_shr_t)
 {
     if (right.has_value())
@@ -455,7 +455,7 @@ evaluate_operator(const T_left& left, const common::optional_t<T_right>& right, 
 }
 
 template <typename T_operand>
-static inline not_optional_type<T_operand>
+inline constexpr not_optional_type<T_operand>
 evaluate_operator(const common::optional_t<T_operand>& operand, operator_not_t)
 {
     if (operand.has_value())
@@ -466,7 +466,7 @@ evaluate_operator(const common::optional_t<T_operand>& operand, operator_not_t)
 }
 
 template <typename T_operand>
-static inline neg_optional_type<T_operand>
+inline constexpr neg_optional_type<T_operand>
 evaluate_operator(const common::optional_t<T_operand>& operand, operator_neg_t)
 {
     if (operand.has_value())
@@ -477,7 +477,7 @@ evaluate_operator(const common::optional_t<T_operand>& operand, operator_neg_t)
 }
 
 template <typename T_operand>
-static inline pos_optional_type<T_operand>
+inline constexpr pos_optional_type<T_operand>
 evaluate_operator(const common::optional_t<T_operand>& operand, operator_pos_t)
 {
     if (operand.has_value())
@@ -488,7 +488,7 @@ evaluate_operator(const common::optional_t<T_operand>& operand, operator_pos_t)
 }
 
 template <typename T_operand>
-static inline inv_optional_type<T_operand>
+inline constexpr inv_optional_type<T_operand>
 evaluate_operator(const common::optional_t<T_operand>& operand, operator_inv_t)
 {
     if (operand.has_value())

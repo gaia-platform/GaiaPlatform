@@ -22,9 +22,6 @@ from pkgutil import iter_modules
 class ParserStructure:
     """
     Class to provide a description of the structure to be constructed.
-
-    Note that the `gdev.cmd` is a `path` within the package hierarchy,
-    not calling out to a gdev.cmd script.
     """
 
     command_parts: Tuple[str, ...]
@@ -49,7 +46,7 @@ class ParserStructure:
         """
         Name of the module that contains the procedure to enact.
         """
-        return ".".join(["gdev.cmd", *self.command_parts])
+        return ".".join(["gdev.subcommands", *self.command_parts])
 
     @classmethod
     def of_command_parts(cls, command_parts: Tuple[str, ...]) -> ParserStructure:
@@ -57,7 +54,7 @@ class ParserStructure:
         Create a parser structure out of the command parts.
         """
 
-        module_name = ".".join(["gdev.cmd", *command_parts])
+        module_name = ".".join(["gdev.subcommands", *command_parts])
         spec = find_spec(module_name)
         module = import_module(module_name)
         if spec.submodule_search_locations is None:
@@ -70,10 +67,10 @@ class ParserStructure:
                 ]
             )
             doc = getdoc(module.__dict__[command_class]) or ""
-            instance = module.__dict__[command_class](None)
+            subcommand_instance = module.__dict__[command_class]()
             alt_doc = (
-                instance.cli_entrypoint_description()
-                if hasattr(instance, "cli_entrypoint_description")
+                subcommand_instance.cli_entrypoint_description()
+                if hasattr(subcommand_instance, "cli_entrypoint_description")
                 else ""
             )
             parser_structure = ParserStructure(
@@ -84,10 +81,11 @@ class ParserStructure:
             alt_doc = ""
             sub_parser_structures: Set[ParserStructure] = set()
             for module in iter_modules(spec.submodule_search_locations):
-                if not (sub_command := module.name).startswith("_"):
-                    sub_parser_structures.add(
-                        cls.of_command_parts(tuple([*command_parts, sub_command]))
-                    )
+                sub_command = module.name
+                assert not sub_command.startswith("_")
+                sub_parser_structures.add(
+                    cls.of_command_parts(tuple([*command_parts, sub_command]))
+                )
             parser_structure = ParserStructure(
                 command_parts=command_parts,
                 doc=doc,

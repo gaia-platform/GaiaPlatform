@@ -15,12 +15,13 @@ import sys
 import logging
 from importlib import import_module
 from typing import Sequence
-from gdev.dependency import Dependency
+from gdev.sections._abc.gdev_action import GdevAction
 from gdev.custom.gaia_path import GaiaPath
 from gdev.options import Options
 from gdev.third_party.argcomplete import autocomplete, FilesCompleter
 from gdev.parser_structure import ParserStructure
 from gdev.command_line import CommandLine
+from gdev.sections.section_action_exception import SectionActionException
 
 
 # pylint: disable=too-few-public-methods
@@ -30,13 +31,25 @@ class DockerDev:
     """
 
     @staticmethod
-    def __of_args(args: Sequence[str]) -> Dependency:
+    def __of_args(args: Sequence[str]) -> GdevAction:
         """
         Return Dependency constructed by parsing args as if from sys.argv.
         """
 
         # Generate the parser structure, and the command line arguments based off of that.
-        is_backward_compatible_guess = "--backward" in args
+        #
+        # Note that while `is_backward_compatible_guess` is named as a guess, it is
+        # a good guess.  Ideally, the parser would return this value and the options
+        # would trigger off that parsing of the argument.  However, since there are
+        # arguments and attributes of those arguments that have changed since the
+        # original GDEV, we need to guess at whether the application is in its backward
+        # compatible mode BEFORE the argument parsing.
+        current_args = (
+            args[: args.index(CommandLine.DOUBLE_DASH_ARGUMENT)]
+            if CommandLine.DOUBLE_DASH_ARGUMENT in args
+            else args[:]
+        )
+        is_backward_compatible_guess = "--backward" in current_args
         parser = CommandLine.get_parser(
             ParserStructure.of_command_parts(tuple()), is_backward_compatible_guess
         )
@@ -64,23 +77,26 @@ class DockerDev:
         )
 
         # Create the subcommand that was indicated, including all options.
-        return getattr(import_module(command_module), command_class)(options)
+        return getattr(import_module(command_module), command_class)(), options
 
     @staticmethod
     def main():
         """
         Main entry point from the operating system.
         """
-        dependency = DockerDev.__of_args(tuple(sys.argv[1:]))
-
-        logging.basicConfig(level=dependency.options.log_level)
-
         try:
-            dependency.cli_entrypoint()
-        except dependency.Exception as this_exception:
+            subcommand, options = DockerDev.__of_args(tuple(sys.argv[1:]))
+
+            logging.basicConfig(level=options.log_level)
+
+            try:
+                subcommand.cli_entrypoint(options)
+            except SectionActionException as this_exception:
+                print(f"\n{this_exception}", file=sys.stderr)
+            finally:
+                logging.shutdown()
+        except ValueError as this_exception:
             print(f"\n{this_exception}", file=sys.stderr)
-        finally:
-            logging.shutdown()
 
         return 0
 

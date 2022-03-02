@@ -13,10 +13,14 @@ from test.gdev_execute import (
     determine_old_script_behavior,
     determine_repository_production_directory,
     SubprocessExecutor,
+    InProcessResult,
 )
+import io
 
 HELP_POSITIONAL_PREFIX = """positional arguments:
-  args                  Args to be forwarded on to docker run, if applicable.
+  args                  Zero or more arguments to be forwarded on to docker
+                        run. If one or more arguments are provided, the first
+                        argument must be `--`.
 
 """
 HELP_BASE_ARGUMENTS = """optional arguments:
@@ -83,7 +87,7 @@ def test_show_help_old_no_args():
     ) = determine_old_script_behavior(suppplied_arguments)
     expected_output = expected_output.replace(
         "\nGaiaPlatform build and development environment tool.\n", ""
-    )
+    ).replace(",gen,", ",")
 
     # Act
     execute_results = executor.invoke_main(
@@ -323,26 +327,31 @@ def test_show_help_old_gen():
     """
 
     # Arrange
-    executor = get_executor()
     suppplied_arguments = ["gen", "--backward", "--help"]
+
+    # Act
     (
         expected_return_code,
         expected_output,
         expected_error,
     ) = determine_old_script_behavior(suppplied_arguments)
-    expected_output = expected_output.replace(
-        "\nInternal component commands for top-level "
-        + "gdev commands. These should rarely\n"
-        + "be needed.\n",
-        "",
-    )
-
-    # Act
-    execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    execute_results = InProcessResult(
+        expected_return_code, io.StringIO(expected_output), io.StringIO(expected_error)
     )
 
     # Assert
+    expected_return_code = 0
+    expected_output = """usage: gdev gen [-h] {apt,env,gaia,git,pip,pre_run,run,web} ...
+
+Internal component commands for top-level gdev commands. These should rarely
+be needed.
+
+positional arguments:
+  {apt,env,gaia,git,pip,pre_run,run,web}
+
+optional arguments:
+  -h, --help            show this help message and exit"""
+    expected_error = ""
     execute_results.assert_results(
         expected_output, expected_error, expected_return_code
     )
@@ -350,7 +359,7 @@ def test_show_help_old_gen():
 
 def test_show_help_new_gen():
     """
-    As the gen task is not callable, in the new version, we do not show it as
+    As the gen task is not callable in the new version, we do not show it as
     a viable subcommand.
     """
 
