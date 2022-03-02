@@ -63,6 +63,7 @@ using eval_type = decltype(detail::eval_type_test(std::declval<T_class>(), detai
 
 namespace detail
 {
+
 // Expression bind type tests.
 // Rules are as follows:
 // expression_t<T_bind, ...> -> T_bind
@@ -115,6 +116,7 @@ struct bind_type_t<T_class>
 {
     using type = decltype(bind_type_test(std::declval<T_class>()));
 };
+
 } // namespace detail
 
 // Infer the bind type based on all the parameters.

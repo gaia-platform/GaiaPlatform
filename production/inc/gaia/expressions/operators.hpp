@@ -13,6 +13,7 @@ namespace gaia
 {
 namespace expressions
 {
+
 // Tags representing operator tokens recognized by the C++ compiler.
 //
 // These tokens are not actual operations themselves.

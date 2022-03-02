@@ -15,7 +15,6 @@ namespace expressions
 {
 
 /**
- *
  * This class represents an accessor to an array type in DAC.
  *
  * @tparam T_bind - context this expression binds to.

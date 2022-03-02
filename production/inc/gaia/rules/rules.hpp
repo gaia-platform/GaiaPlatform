@@ -21,7 +21,7 @@
 namespace gaia
 {
 /**
- * \addtogroup gaia
+ * @addtogroup gaia
  * @{
  */
 
@@ -29,11 +29,8 @@ namespace rules
 {
 
 /**
- * \addtogroup rules
+ * @addtogroup rules
  * @{
- *
- * Provides facilities for subscribing and unsubscribing rules
- * to events.
  */
 
 struct rule_context_t;

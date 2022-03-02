@@ -14,13 +14,13 @@
 namespace gaia
 {
 /**
- * \addtogroup gaia
+ * @addtogroup gaia
  * @{
  */
 namespace common
 {
 /**
- * \addtogroup common
+ * @addtogroup common
  * @{
  */
 

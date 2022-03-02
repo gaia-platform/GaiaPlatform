@@ -15,12 +15,16 @@ namespace gaia
 namespace direct_access
 {
 
-// This class has been introduced to enable us to differentiate between
-// zero-length strings and null strings. The C++ object api --gen-object-api
-// represents strings as std::string by default and represents zero-length
-// strings as null values.  To use this type instead of std::string, we pass
-// the class name (gaia::direct_access::nullable_string_t) to the flatc compiler via
-// the option --cpp-str-type.
+/**
+ * @brief A custom string class that can represent null values.
+ *
+ * This class has been introduced to enable us to differentiate between
+ * zero-length strings and null strings. The C++ object api --gen-object-api
+ * represents strings as std::string by default and represents zero-length
+ * strings as null values.  To use this type instead of std::string, we pass
+ * the class name (gaia::direct_access::nullable_string_t) to the flatc compiler via
+ * the option --cpp-str-type.
+ */
 struct nullable_string_t : std::string
 {
     nullable_string_t()
@@ -80,7 +84,7 @@ struct nullable_string_t : std::string
         return *this;
     }
 
-    // When a flatbuffer is created, it will call the empty() method.  Default behavior
+    // When a serialization is created, it will call the empty() method.  Default behavior
     // is to set a nullptr if the nullable_string_t is zero-length.  We will only return true
     // if the nullable_string_t is null.
     bool empty() const

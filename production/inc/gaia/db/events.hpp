@@ -17,9 +17,13 @@ namespace db
 namespace triggers
 {
 
+/**
+ * Identifies the type of database event.
+ */
 enum class event_type_t : uint32_t
 {
     not_set = 0,
+
     // Row events.
     row_update = 1 << 0,
     row_insert = 1 << 1,

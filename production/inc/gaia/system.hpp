@@ -11,20 +11,19 @@
 namespace gaia
 {
 /**
- * \addtogroup gaia
+ * @addtogroup gaia
  * @{
  */
 namespace system
 {
 /**
- * \addtogroup system
+ * @addtogroup system
  * @{
- *
- * Provides system wide facilities for the Gaia Platform
  */
 
 /**
- *  Initialize the Gaia sub systems
+ * @brief Initialize the Gaia sub systems.
+ *
  * @param gaia_config_file Full path and name of gaia configuration file.
  * @param logger_config_file Full path and name of the logger configuration file.
  * @throw configuration_error_internal
@@ -32,7 +31,7 @@ namespace system
 void initialize(const char* gaia_config_file = nullptr, const char* logger_config_file = nullptr);
 
 /**
- *  Shutdown the Gaia sub systems
+ * @brief Shutdown the Gaia sub systems.
  */
 void shutdown();
 

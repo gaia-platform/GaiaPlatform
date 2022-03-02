@@ -15,20 +15,19 @@
 namespace gaia
 {
 /**
- * \addtogroup gaia
+ * @addtogroup gaia
  * @{
  */
 namespace direct_access
 {
 /**
- * \addtogroup direct_access
+ * @addtogroup direct_access
  * @{
- *
- * Provides a RAII object for exception safe handling of transactions.
- *
  */
 
 /**
+ * @brief Provides a RAII object for exception safe handling of transactions.
+ *
  * The auto transaction object begins a transaction on construction and
  * does a rollback on destruction.  The user must explicitly call commit().
  *
