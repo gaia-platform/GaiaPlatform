@@ -8,8 +8,8 @@
 #include <flatbuffers/flatbuffers.h>
 
 #include "gaia/direct_access/auto_transaction.hpp"
-#include "gaia/direct_access/dac_array.hpp"
 #include "gaia/direct_access/dac_base.hpp"
+#include "gaia/direct_access/dac_vector.hpp"
 #include "gaia/direct_access/nullable_string.hpp"
 #include "gaia/exceptions.hpp"
 #include "gaia/expressions/expressions.hpp"
@@ -191,7 +191,7 @@ private:
 // Pick up our template implementation.  These still
 // need to be in the header so that template specializations
 // that are declared later will pick up the definitions.
-#include "gaia/direct_access/dac_object.inc"
+#include "gaia/internal/direct_access/dac_object.inc"
 
 /*@}*/
 } // namespace direct_access
