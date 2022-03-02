@@ -4,12 +4,14 @@
 /////////////////////////////////////////////
 
 #pragma once
+
 #include <type_traits>
 
-#include "gaia/expressions/builders/expression_bind.hpp"
 #include "gaia/expressions/expression_ast.hpp"
 #include "gaia/expressions/expression_traits.hpp"
 #include "gaia/expressions/operators.hpp"
+
+#include "gaia/internal/expressions/builders/expression_bind.hpp"
 
 // This is a generic expression AST builder for expression types.
 // The expression would evaluate to the same result and type as what is defined in C++.
@@ -381,10 +383,10 @@ template <
     typename T_operand,
     typename T_bind = bind_type<T_operand>,
     typename T_eval_operand = eval_type<T_operand>,
-    typename T_return = neg_type<T_eval_operand>,
+    typename T_token = operator_neg_t,
     typename T_type_constraint = typename std::enable_if<
         is_expression<T_operand>::value>::type,
-    typename T_token = operator_neg_t>
+    typename T_return = neg_type<T_eval_operand>>
 unary_expression_t<T_bind, T_return, T_eval_operand, T_token>
 operator-(
     const T_operand& operand)

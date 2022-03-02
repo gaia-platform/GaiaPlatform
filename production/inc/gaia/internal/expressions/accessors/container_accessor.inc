@@ -13,9 +13,13 @@ template <typename T_bind, typename T_value, typename T_return>
 transform_expression_t<T_bind, bool> container_accessor_t<T_bind, T_value, T_return>::contains(
     const expression_t<T_value, bool>& predicate)
 {
+    auto stored_predicate = predicate.create_subexpression();
+
     return transform_expression_t<T_bind, bool>(
-        [&predicate, this](const T_bind& bind) {
-            auto container = (*this)(bind).where(std::cref(predicate));
+        [stored_predicate, this](const T_bind& bind) {
+            auto container = (*this)(bind).where([stored_predicate](const T_value& obj) {
+                return (*stored_predicate)(obj);
+            });
             return container.begin() != container.end();
         });
 }
@@ -24,9 +28,9 @@ template <typename T_bind, typename T_value, typename T_return>
 transform_expression_t<T_bind, bool> container_accessor_t<T_bind, T_value, T_return>::contains(const T_value& value)
 {
     return transform_expression_t<T_bind, bool>(
-        [&value, this](const T_bind& bind) {
+        [value, this](const T_bind& bind) {
             auto container = (*this)(bind).where(
-                [&value](const T_value& obj) {
+                [value](const T_value& obj) {
                     return value == obj;
                 });
             return container.begin() != container.end();

@@ -3,6 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "db_helpers.hpp"
 #include "db_server.hpp"
 #include "db_shared_data.hpp"
 
@@ -78,16 +79,7 @@ gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager()
     return &gaia::db::server_t::s_chunk_manager;
 }
 
-gaia::db::mapped_log_t* gaia::db::get_mapped_log()
-{
-    return &gaia::db::server_t::s_log;
-}
-
 gaia::db::txn_log_t* gaia::db::get_txn_log()
 {
-    ASSERT_PRECONDITION(
-        gaia::db::server_t::s_txn_log_offset != gaia::db::c_invalid_log_offset,
-        "Txn log offset is invalid!");
-    gaia::db::logs_t* logs = gaia::db::server_t::s_shared_logs.data();
-    return &((*logs)[gaia::db::server_t::s_txn_log_offset]);
+    return gaia::db::get_txn_log_from_offset(gaia::db::server_t::s_txn_log_offset);
 }

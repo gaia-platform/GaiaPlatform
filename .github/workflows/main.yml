@@ -75,7 +75,7 @@ jobs:
     needs:
       - Lint
       - Third-Party
-#    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -118,6 +118,29 @@ jobs:
           execute-unit-tests: true
           publish-package: false
           build-flavor: Core
+          build-type: Debug
+
+  Debug_SDK:
+    needs:
+      - Core
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
+
+      - name: Create Build
+        uses: ./.github/actions/build-job
+        with:
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          execute-unit-tests: true
+          publish-package: true
+          build-flavor: GaiaSDK
           build-type: Debug
 
   Coverage:
@@ -169,7 +192,7 @@ jobs:
   Integration_Tests:
     needs:
       - SDK
-#    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     timeout-minutes: 7
     env:
@@ -207,13 +230,54 @@ jobs:
           job-name: ${{ github.job }}
           suite-name: ${{ matrix.suite-name }}
           db-persistence: ${{ matrix.persistence }}
+          allow_cached_sdk: true
+
+  Integration_Tests_Debug:
+    needs:
+      - Debug_SDK
+#    Disabled due to https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2002
+#    if: github.event_name != 'pull_request'
+    if: ${{ false }}
+    runs-on: ubuntu-20.04
+    timeout-minutes: 7
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    strategy:
+      fail-fast: false
+      matrix:
+        persistence: [enabled, disabled]
+        suite-name: [smoke,marcopolo,pingpong]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Create Directory To Host Install Package Cache
+        shell: bash
+        run: |
+          mkdir -p ${{ github.workspace }}/packages
+
+      - name: Download Debian Install Package
+        continue-on-error: true
+        uses: actions/download-artifact@v2
+        with:
+          name: Debug_SDK Install Package
+          path: ${{ github.workspace }}/packages
+
+      - name: Run Integration Tests
+        uses: ./.github/actions/integration-test-job
+        with:
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          suite-name: ${{ matrix.suite-name }}
+          db-persistence: ${{ matrix.persistence }}
+          allow_cached_sdk: false
 
   Performance_Tests:
     needs:
       - Integration_Tests
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
-    timeout-minutes: 7
+    timeout-minutes: 10
     env:
       GAIA_REPO: ${{ github.workspace }}
     strategy:
@@ -244,6 +308,7 @@ jobs:
           job-name: ${{ github.job }}
           suite-name: ${{ matrix.suite-name }}
           db-persistence: ${{ matrix.persistence }}
+          allow_cached_sdk: true
 
   Integration_Samples:
     needs: SDK
@@ -290,6 +355,7 @@ jobs:
       - Coverage
       - LLVM_Tests
       - Integration_Tests
+      - Integration_Tests_Debug
       - Performance_Tests
       - Integration_Samples
     runs-on: ubuntu-20.04

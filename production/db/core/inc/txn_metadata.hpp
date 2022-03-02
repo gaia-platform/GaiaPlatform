@@ -14,6 +14,7 @@
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
+#include "db_internal_types.hpp"
 #include "txn_metadata_entry.hpp"
 
 namespace gaia
@@ -88,8 +89,7 @@ public:
     static inline gaia_txn_id_t get_begin_ts_from_commit_ts(gaia_txn_id_t commit_ts);
     static inline gaia_txn_id_t get_commit_ts_from_begin_ts(gaia_txn_id_t begin_ts);
 
-    inline int get_txn_log_fd();
-    inline bool invalidate_txn_log_fd();
+    inline db::log_offset_t get_txn_log_offset();
     inline void set_active_txn_submitted(gaia_txn_id_t commit_ts);
     inline void set_active_txn_terminated();
     inline void update_txn_decision(bool has_committed);
@@ -106,9 +106,8 @@ public:
     // we know that its metadata entry has been successfully initialized.
     inline bool seal_if_uninitialized();
 
-    static inline int get_txn_log_fd(gaia_txn_id_t commit_ts);
+    static inline db::log_offset_t get_txn_log_offset(gaia_txn_id_t commit_ts);
     static inline bool seal_uninitialized_ts(gaia_txn_id_t ts);
-    static inline bool invalidate_txn_log_fd(gaia_txn_id_t commit_ts);
     static inline void set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts);
     static inline void set_active_txn_terminated(gaia_txn_id_t begin_ts);
     static inline void update_txn_decision(gaia_txn_id_t commit_ts, bool is_committed);
@@ -116,7 +115,7 @@ public:
     static inline bool set_txn_gc_complete(gaia_txn_id_t commit_ts);
 
     static gaia_txn_id_t register_begin_ts();
-    static gaia_txn_id_t register_commit_ts(gaia_txn_id_t begin_ts, int log_fd);
+    static gaia_txn_id_t register_commit_ts(gaia_txn_id_t begin_ts, db::log_offset_t log_offset);
 
     static void dump_txn_metadata_at_ts(gaia_txn_id_t ts);
 
@@ -137,16 +136,17 @@ private:
     // the txn timestamp counter and containing metadata for every txn that has
     // been submitted to the system.
     //
-    // Entries may be "uninitialized", "sealed" (initialized with a
+    // Entries may be "uninitialized", "sealed" (i.e., initialized with a
     // special "junk" value and forbidden to be used afterward), or initialized
     // with txn metadata, consisting of 3 status bits, 1 bit for GC status
     // (unknown or complete), 1 bit for persistence status (unknown or
-    // complete), 1 bit reserved for future use, 16 bits for a txn log fd, and
-    // 42 bits for a linked timestamp (i.e., the commit timestamp of a submitted
-    // txn embedded in its begin timestamp metadata, or the begin timestamp of a
-    // submitted txn embedded in its commit timestamp metadata). The 3 status bits
-    // use the high bit to distinguish begin timestamps from commit timestamps,
-    // and 2 bits to store the state of an active, terminated, or submitted txn.
+    // complete), 1 bit reserved for future use, 16 bits for a txn log offset,
+    // and 42 bits for a linked timestamp (i.e., the commit timestamp of a
+    // submitted txn embedded in its begin timestamp metadata, or the begin
+    // timestamp of a submitted txn embedded in its commit timestamp metadata).
+    // The 3 status bits use the high bit to distinguish begin timestamps from
+    // commit timestamps, and 2 bits to store the state of an active,
+    // terminated, or submitted txn.
     //
     // The array is always accessed without any locking, but its entries have
     // read and write barriers (via std::atomic) that ensure causal consistency
@@ -157,7 +157,7 @@ private:
     // virtual address space (1/8 of the total virtual address space available
     // to the process), but allocate physical pages only on first access. When a
     // range of timestamp entries falls behind the watermark, its physical pages
-    // can be decommitted via madvise(MADV_REMOVE).
+    // can be decommitted via madvise(MADV_DONTNEED).
     //
     // REVIEW: Because we reserve 2^45 bytes of virtual address space and each
     // array entry is 8 bytes, we can address the whole range using 2^42
