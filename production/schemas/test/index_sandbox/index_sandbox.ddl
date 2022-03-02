@@ -11,7 +11,7 @@ CREATE TABLE if not exists sandbox (
     str STRING,
     f FLOAT,
     i INT32,
-    i_optional INT32 optional
+    optional_i INT32 optional
 );
 
 CREATE TABLE if not exists empty (
@@ -30,5 +30,5 @@ CREATE HASH INDEX float_hash_idx ON sandbox(f);
 CREATE INDEX empty_idx ON empty(i);
 CREATE HASH INDEX empty_hash_idx ON empty(i);
 
-CREATE INDEX opt_int_idx ON sandbox(i_optional);
-CREATE HASH INDEX opt_int_hash_idx ON sandbox(i_optional);
+CREATE INDEX opt_int_idx ON sandbox(optional_i);
+CREATE HASH INDEX opt_int_hash_idx ON sandbox(optional_i);

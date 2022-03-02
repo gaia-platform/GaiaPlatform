@@ -45,7 +45,7 @@ public:
             w.str = ""; // SAME
             w.f = static_cast<float>(i); // ASC
             w.i = c_num_initial_rows - i; // DESC
-            w.i_optional = nullopt; // ALL NULLs
+            w.optional_i = nullopt; // ALL NULLs
             w.insert_row();
         }
 
