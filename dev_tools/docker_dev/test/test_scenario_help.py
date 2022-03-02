@@ -18,8 +18,9 @@ from test.gdev_execute import (
 import io
 
 HELP_POSITIONAL_PREFIX = """positional arguments:
-  args                  Args to be forwarded on to docker run, if applicable.
-                        Must start with the argument `--`.
+  args                  Zero or more arguments to be forwarded on to docker
+                        run. If one or more arguments are provided, the first
+                        argument must be `--`.
 
 """
 HELP_BASE_ARGUMENTS = """optional arguments:
@@ -47,14 +48,6 @@ HELP_BUILD_ARGUMENTS = (
                         Platform to build upon. Default: "amd64"
   --registry REGISTRY   Registry to push images and query cached build stages.
                         Default: None
-"""
-)
-HELP_NEW_BUILD_ARGUMENTS = (
-    HELP_DOCKERFILE_ARGUMENTS
-    + """  --platform {amd64,arm64}
-                        Platform to build upon. Default: "amd64"
-  --registry REGISTRY   Optional registry to use for caching build stages.
-                        Required registry for pushing images. Default: None
 """
 )
 HELP_RUN_ARGUMENTS = """  -f, --force           Force Docker to build with local changes.
@@ -86,35 +79,6 @@ def test_show_help_old_no_args():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["--backward"]
-    (
-        expected_return_code,
-        expected_output,
-        expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
-    expected_output = expected_output.replace(
-        "\nGaiaPlatform build and development environment tool.\n", ""
-    ).replace(",gen,", ",")
-
-    # Act
-    execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
-    )
-
-    # Assert
-    execute_results.assert_results(
-        expected_output, expected_error, expected_return_code
-    )
-
-
-def test_show_help_old_help():
-    """
-    Make sure that we can show help about the various things to do, and that it is backward
-    compatible with the old Gdev output.
-    """
-
-    # Arrange
-    executor = get_executor()
     suppplied_arguments = ["--backward", "--help"]
     (
         expected_return_code,
@@ -136,7 +100,7 @@ def test_show_help_old_help():
     )
 
 
-def test_show_help_new_help():
+def test_show_help_new_no_args():
     """
     Make sure that we can show help about the various things to do.
     """
@@ -220,7 +184,7 @@ def test_show_help_new_build():
 Build the image based on the assembled dockerfile.
 
 """
-        + HELP_NEW_BUILD_ARGUMENTS
+        + HELP_BUILD_ARGUMENTS
     )
     expected_error = ""
     execute_results.assert_results(
@@ -475,7 +439,7 @@ def test_show_help_new_push():
 Build the image, if required, and push the image to the image registry.
 
 """
-        + HELP_NEW_BUILD_ARGUMENTS
+        + HELP_BUILD_ARGUMENTS
     )
     expected_error = ""
     execute_results.assert_results(
@@ -543,7 +507,7 @@ development.
 
 """
         + HELP_POSITIONAL_PREFIX
-        + HELP_NEW_BUILD_ARGUMENTS
+        + HELP_BUILD_ARGUMENTS
         + HELP_RUN_ARGUMENTS
     )
     expected_error = ""

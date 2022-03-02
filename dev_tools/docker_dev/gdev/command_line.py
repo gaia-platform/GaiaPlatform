@@ -42,6 +42,8 @@ class CommandLine:
         "push": __SUBCOMMAND_ID_PUSH,
     }
 
+    DOUBLE_DASH_ARGUMENT = "--"
+
     __DEFAULT_LOG_LEVEL = "INFO"
     __DEFAULT_BASE_IMAGE = "ubuntu:20.04"
     __DEFAULT_PORTS = []
@@ -169,41 +171,32 @@ class CommandLine:
         )
 
     @staticmethod
-    def __add_registry(parser, is_backward_compatible_guess):
-
-        help_text = (
-            "Registry to push images and query cached build stages."
-            if is_backward_compatible_guess
-            else "Optional registry to use for caching build stages.  "
-            + "Required registry for pushing images."
-        )
-        help_text = f"{help_text}\nDefault: {CommandLine.__DEFAULT_REGISTRY}"
+    def __add_registry(parser):
         parser.add_argument(
             "--registry",
             default=CommandLine.__DEFAULT_REGISTRY,
-            help=help_text,
+            help=(
+                "Registry to push images and query cached build stages."
+                f" Default: {CommandLine.__DEFAULT_REGISTRY}"
+            ),
         )
 
     @staticmethod
     def __add_docker_run_arguments(parser, is_backward_compatible_guess):
 
-        help_text = "Args to be forwarded on to docker run, if applicable."
-        if not is_backward_compatible_guess:
-            help_text += "  Must start with the argument `--`."
+        if is_backward_compatible_guess:
+            help_text = "Args to be forwarded on to docker run, if applicable."
+        else:
+            help_text = (
+                "Zero or more arguments to be forwarded on to docker run. "
+                + "If one or more arguments are provided, the first argument "
+                + f"must be `{CommandLine.DOUBLE_DASH_ARGUMENT}`."
+            )
 
         parser.add_argument(
             "args",
             nargs=REMAINDER,
             help=help_text,
-        )
-
-    @staticmethod
-    def __add_backward(parser):
-        parser.add_argument(
-            "--backward",
-            action="store_true",
-            default=False,
-            help=SUPPRESS,
         )
 
     @staticmethod
@@ -221,7 +214,12 @@ class CommandLine:
             default=False,
             help=SUPPRESS,
         )
-        CommandLine.__add_backward(parser)
+        parser.add_argument(
+            "--backward",
+            action="store_true",
+            default=False,
+            help=SUPPRESS,
+        )
 
         if is_backward_compatible_guess:
             CommandLine.__add_base_image(parser)
@@ -232,7 +230,7 @@ class CommandLine:
             CommandLine.__add_mounts(parser)
             CommandLine.__add_platform(parser)
             CommandLine.__add_ports(parser)
-            CommandLine.__add_registry(parser, is_backward_compatible_guess)
+            CommandLine.__add_registry(parser)
             CommandLine.__add_docker_run_arguments(parser, is_backward_compatible_guess)
         else:
             CommandLine.__add_log_level(parser)
@@ -242,7 +240,7 @@ class CommandLine:
                 CommandLine.__add_mixins(parser)
             if subcommand_id >= CommandLine.__SUBCOMMAND_ID_BUILD:
                 CommandLine.__add_platform(parser)
-                CommandLine.__add_registry(parser, is_backward_compatible_guess)
+                CommandLine.__add_registry(parser)
             if subcommand_id == CommandLine.__SUBCOMMAND_ID_RUN:
                 CommandLine.__add_force_build(parser)
                 CommandLine.__add_mounts(parser)
@@ -286,10 +284,8 @@ class CommandLine:
 
             return parser
 
-        base_parser = ArgumentParser(prog="gdev", allow_abbrev=False)
-        CommandLine.__add_backward(base_parser)
         return inner(
-            base_parser,
+            ArgumentParser(prog="gdev", allow_abbrev=False),
             parser_structure=parser_structure,
             parser_name=None,
         )
@@ -301,42 +297,40 @@ class CommandLine:
         return parsed_args[entry_name]
 
     @staticmethod
-    def __handle_trailing_arguments(parsed_args):
-
-        # Note: https://stackoverflow.com/questions/22850332/
-        #       getting-the-remaining-arguments-in-argparse
-        if "args" in parsed_args:
-            if CommandLine.is_backward_compatibility_mode_enabled():
-                if parsed_args["args"] and parsed_args["args"][0] == "--":
-                    parsed_args["args"] = parsed_args["args"][1:]
-                parsed_args["args"] = " ".join(parsed_args["args"])
-            else:
-                if parsed_args["args"] and parsed_args["args"][0] != "--":
-                    raise ValueError(
-                        "arguments to pass to docker run must be prefaced with `--`"
-                    )
-                parsed_args["args"] = " ".join(parsed_args["args"][1:])
-        else:
-            parsed_args["args"] = ""
-        return parsed_args
-
-    @staticmethod
     def interpret_arguments(parsed_args):
         """
         Interpret the arguments that were supplied, inline to the parsed_args dictionary.
         """
 
-        if "backward" in parsed_args:
-            CommandLine.set_backward_mode(parsed_args["backward"])
-            del parsed_args["backward"]
-        if not parsed_args:
-            return False
-
         if "dry_dock" in parsed_args:
             Host.set_drydock(parsed_args["dry_dock"])
             del parsed_args["dry_dock"]
+        if "backward" in parsed_args:
+            CommandLine.set_backward_mode(parsed_args["backward"])
+            del parsed_args["backward"]
 
-        parsed_args = CommandLine.__handle_trailing_arguments(parsed_args)
+        # Note: https://stackoverflow.com/questions/22850332/
+        #       getting-the-remaining-arguments-in-argparse
+        if "args" in parsed_args:
+            if CommandLine.is_backward_compatibility_mode_enabled():
+                if (
+                    parsed_args["args"]
+                    and parsed_args["args"][0] == CommandLine.DOUBLE_DASH_ARGUMENT
+                ):
+                    parsed_args["args"] = parsed_args["args"][1:]
+                parsed_args["args"] = " ".join(parsed_args["args"])
+            else:
+                if (
+                    parsed_args["args"]
+                    and parsed_args["args"][0] != CommandLine.DOUBLE_DASH_ARGUMENT
+                ):
+                    raise ValueError(
+                        "arguments to pass to docker run must be prefaced "
+                        + f"with `{CommandLine.DOUBLE_DASH_ARGUMENT}`"
+                    )
+                parsed_args["args"] = " ".join(parsed_args["args"][1:])
+        else:
+            parsed_args["args"] = ""
 
         base_image = CommandLine.__get_argument_with_default(
             parsed_args, "base_image", CommandLine.__DEFAULT_BASE_IMAGE
@@ -382,4 +376,3 @@ class CommandLine:
                     container_path = container_path.absolute().image_build()
                 mounts.append(Mount(container_path=container_path, host_path=host_path))
         parsed_args["mounts"] = frozenset(mounts)
-        return True
