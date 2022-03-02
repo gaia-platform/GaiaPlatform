@@ -9,11 +9,10 @@
 Module to provide for the `cfg` subcommand entry point.
 """
 
-from gdev.third_party.atools import memoize
 from gdev.sections.run.cfg import GenRunCfg
 
 
-class Cfg(GenRunCfg):
+class Cfg:
     """
     Class to provide for the `cfg` subcommand entry point.
     """
@@ -25,9 +24,9 @@ class Cfg(GenRunCfg):
         """
         return "Generate the configuration used as the basis for the dockerfile."
 
-    @memoize
-    def cli_entrypoint(self) -> None:
+    @classmethod
+    def cli_entrypoint(cls, options) -> None:
         """
         Execution entrypoint for this module.
         """
-        GenRunCfg(self.options).cli_entrypoint()
+        GenRunCfg(options).run()

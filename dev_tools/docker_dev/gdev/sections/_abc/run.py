@@ -9,19 +9,19 @@
 Module to create a Docker container from the image build with `gdev build`.
 """
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 import os
 import shlex
 import sys
 
 from gdev.custom.gaia_path import GaiaPath
-from gdev.dependency import Dependency
+from gdev.sections._abc.gdev_action import GdevAction
 from gdev.third_party.atools import memoize
 from gdev.host import Host
 from gdev.sections._abc.build import GenAbcBuild
 
 
-class GenAbcRun(Dependency, ABC):
+class GenAbcRun(GdevAction):
     """
     Create a Docker container from the image build with `gdev build` and run a command in it.
     """
@@ -137,22 +137,3 @@ class GenAbcRun(Dependency, ABC):
             command = shlex.split(command_to_execute)
             self.log.debug("execvpe command=%s", command)
             os.execvpe(command[0], command, os.environ)
-
-    # pylint: disable=import-outside-toplevel
-    #
-    # Required to resolve cyclical dependency issues.
-    @memoize
-    def cli_entrypoint(self) -> None:
-        """
-        Execution entrypoint for this module.
-        """
-        if not self.options.mixins:
-            run = self
-        else:
-            from gdev.sections._custom.run import GenCustomRun
-
-            run = GenCustomRun(options=self.options, base_run=self)
-
-        run.run()
-
-    # pylint: enable=import-outside-toplevel

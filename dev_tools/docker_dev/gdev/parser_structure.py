@@ -67,10 +67,10 @@ class ParserStructure:
                 ]
             )
             doc = getdoc(module.__dict__[command_class]) or ""
-            instance = module.__dict__[command_class](None)
+            subcommand_instance = module.__dict__[command_class]()
             alt_doc = (
-                instance.cli_entrypoint_description()
-                if hasattr(instance, "cli_entrypoint_description")
+                subcommand_instance.cli_entrypoint_description()
+                if hasattr(subcommand_instance, "cli_entrypoint_description")
                 else ""
             )
             parser_structure = ParserStructure(
@@ -81,10 +81,11 @@ class ParserStructure:
             alt_doc = ""
             sub_parser_structures: Set[ParserStructure] = set()
             for module in iter_modules(spec.submodule_search_locations):
-                if not (sub_command := module.name).startswith("_"):
-                    sub_parser_structures.add(
-                        cls.of_command_parts(tuple([*command_parts, sub_command]))
-                    )
+                sub_command = module.name
+                assert not sub_command.startswith("_")
+                sub_parser_structures.add(
+                    cls.of_command_parts(tuple([*command_parts, sub_command]))
+                )
             parser_structure = ParserStructure(
                 command_parts=command_parts,
                 doc=doc,

@@ -27,6 +27,8 @@ class SubprocessExecutor:
     Class to use a subprocess to execute the tests.
     """
 
+    __INVOKED_TIMEOUT_IN_SECS = 5.0
+
     def __init__(self, script_path=None):
         self.__script_path = (
             script_path
@@ -54,7 +56,9 @@ class SubprocessExecutor:
             arguments, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         ) as new_process:
 
-            process_return_code = new_process.wait()
+            process_return_code = new_process.wait(
+                timeout=SubprocessExecutor.__INVOKED_TIMEOUT_IN_SECS
+            )
 
             process_stdout_output = "".join(
                 io.TextIOWrapper(new_process.stdout, encoding="utf-8")
@@ -130,8 +134,13 @@ def determine_old_script_behavior(gdev_arguments):
     )
     # executor = SubprocessExecutor(original_gdev_script_path)
 
+    old_gdev_arguments = gdev_arguments[:]
+    if "--backward" in old_gdev_arguments:
+        index = old_gdev_arguments.index("--backward")
+        del old_gdev_arguments[index]
+
     arguments_to_use = [original_gdev_script_path]
-    arguments_to_use.extend(gdev_arguments)
+    arguments_to_use.extend(old_gdev_arguments)
 
     with subprocess.Popen(
         arguments_to_use,

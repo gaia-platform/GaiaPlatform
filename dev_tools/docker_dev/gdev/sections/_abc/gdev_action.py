@@ -12,6 +12,7 @@ Module to provide a base class for use by all the subcommand modules.
 # PYTHON_ARGCOMPLETE_OK
 
 from __future__ import annotations
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from inspect import isabstract
 import logging
@@ -21,27 +22,12 @@ from gdev.third_party.atools import memoize
 
 
 @dataclass(frozen=True)
-class Dependency:
+class GdevAction(ABC):
     """
     Class to provide a base class for use by all the subcommand modules.
     """
 
     options: Options
-
-    # These two classes are only present to handle the Abort exception,
-    # and early exit in some cases.
-    class Exception(Exception):
-        """
-        Useless exception to be refactored out.
-        """
-
-    class Abort(Exception):
-        """
-        Exception to know we aborted.
-        """
-
-        def __str__(self) -> str:
-            return f"Abort: {super().__str__()}"
 
     def __hash__(self) -> int:
         return hash((type(self), self.options))
@@ -76,12 +62,12 @@ class Dependency:
         log.addHandler(handler)
         return log
 
-    @memoize
-    def cli_entrypoint(self) -> None:
+    @abstractmethod
+    def main(self) -> None:
         """
-        Execution entrypoint for this module.
+        Main action to invoke for this class.
         """
-        self.run()
+        raise NotImplementedError
 
     @memoize
     def run(self) -> None:
@@ -89,10 +75,9 @@ class Dependency:
         Run the main action that is the focus of this class.
         """
 
-        if isabstract(self):
-            return
+        assert not isabstract(self), "This should never be abstract."
+        assert hasattr(self, "main"), "Every action must have a main function."
 
-        if hasattr(self, "main"):
-            self.log.debug("Starting %s.main", str(type(self).__name__))
-            self.main()
-            self.log.debug("Finished %s.main", str(type(self).__name__))
+        self.log.debug("Starting %s.main", str(type(self).__name__))
+        self.main()
+        self.log.debug("Finished %s.main", str(type(self).__name__))

@@ -11,17 +11,17 @@ current working directory.
 """
 
 from __future__ import annotations
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from textwrap import dedent
 from typing import Iterable
 
 from gdev.custom.gaia_path import GaiaPath
-from gdev.dependency import Dependency
+from gdev.sections._abc.gdev_action import GdevAction
 from gdev.third_party.atools import memoize
 from gdev.sections._abc.cfg import GenAbcCfg
 
 
-class GenAbcDockerfile(Dependency, ABC):
+class GenAbcDockerfile(GdevAction):
     """
     Class to create a Dockerfile from the rules in the `gdev.cfg` file in the current
     working directory.
@@ -289,26 +289,3 @@ class GenAbcDockerfile(Dependency, ABC):
         """
         self.log.info("Creating dockerfile %s", self.path)
         self.path.write_text(data=self.get_text())
-
-    # pylint: disable=import-outside-toplevel
-    #
-    # Required to resolve cyclical dependency issues.
-    @memoize
-    def cli_entrypoint(self) -> None:
-        """
-        Execution entrypoint for this module.
-        """
-
-        # If we have any mixins, we may need to do some extra work in the
-        # dockerfile to make sure that the mixins can work properly.
-        if not self.options.mixins:
-            dockerfile = self
-        else:
-            from gdev.sections._custom.dockerfile import GenCustomDockerfile
-
-            dockerfile = GenCustomDockerfile(options=self.options, base_dockerfile=self)
-
-        dockerfile.run()
-        print(dockerfile.get_text())
-
-    # pylint: enable=import-outside-toplevel

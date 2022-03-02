@@ -1,0 +1,22 @@
+---
+name: Documentation
+
+on:
+  workflow_dispatch:
+env:
+  SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+  DEV_IMAGE: ghcr.io/gaia-platform/dev-base-gaia-platform:latest
+
+jobs:
+
+  Third-Party:
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+      - name: Generate Documentation
+        uses: mattnotmitt/doxygen-action@v1.9.2
+        with:
+          additional-packages: font-fira-code

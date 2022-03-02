@@ -10,12 +10,12 @@ Module to help build a docker image from its component pieces.
 """
 
 from __future__ import annotations
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 import os
 from typing import Iterable, Mapping
 
 from gdev.custom.gaia_path import GaiaPath
-from gdev.dependency import Dependency
+from gdev.sections._abc.gdev_action import GdevAction
 from gdev.host import Host
 from gdev.third_party.atools import memoize
 from gdev.sections._abc.cfg import GenAbcCfg
@@ -28,7 +28,7 @@ os.environ["DOCKER_BUILDKIT"] = "1"
 os.environ["DOCKER_CLI_EXPERIMENTAL"] = "enabled"
 
 
-class GenAbcBuild(Dependency, ABC):
+class GenAbcBuild(GdevAction):
     """
     Build a Docker image from the rules in the `gdev.cfg` file in the current working directory.
     """
@@ -201,23 +201,3 @@ class GenAbcBuild(Dependency, ABC):
             f" {GaiaPath.repo()}"
         )
         Host.execute_sync("docker image prune -f")
-
-    # pylint: disable=import-outside-toplevel
-    #
-    # Required to resolve cyclical dependency issues.
-    @memoize
-    def cli_entrypoint(self) -> None:
-        """
-        Execution entrypoint for this module.
-        """
-
-        if not self.options.mixins:
-            build = self
-        else:
-            from gdev.sections._custom.build import GenCustomBuild
-
-            build = GenCustomBuild(options=self.options, base_build=self)
-
-        build.run()
-
-    # pylint: enable=import-outside-toplevel

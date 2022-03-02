@@ -199,7 +199,7 @@ def test_generate_dockerfile():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["dockerfile"]
+    suppplied_arguments = ["dockerfile", "--backward"]
     (
         expected_return_code,
         expected_output,
@@ -223,6 +223,35 @@ def test_generate_dockerfile():
     ), "Original output contains untriggered line."
 
 
+def test_generate_new_dockerfile():
+    """
+    Make sure that we can generate a dockerfile from the current directory.
+    """
+
+    # Arrange
+    executor = get_executor()
+    base = determine_repository_base_directory()
+
+    suppplied_arguments = ["dockerfile"]
+    expected_return_code = 0
+    expected_output = (
+        f"Dockerfile written to: {base}/.gdev/production/run.dockerfile.gdev"
+    )
+    expected_error = (
+        f"(production) Creating dockerfile {base}/.gdev/production/run.dockerfile.gdev"
+    )
+
+    # Act
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
+
+    # Assert
+    execute_results.assert_results(
+        expected_output, expected_error, expected_return_code
+    )
+
+
 def test_generate_dockerfile_debug():
     """
     Make sure that we can generate a dockerfile from the current directory,
@@ -234,7 +263,7 @@ def test_generate_dockerfile_debug():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["dockerfile", "--cfg-enable", "Debug"]
+    suppplied_arguments = ["dockerfile", "--backward", "--cfg-enable", "Debug"]
     (
         expected_return_code,
         expected_output,
@@ -269,7 +298,13 @@ def test_generate_dockerfile_debug_and_llvm():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["dockerfile", "--cfg-enable", "Debug", "GaiaLLVMTests"]
+    suppplied_arguments = [
+        "dockerfile",
+        "--backward",
+        "--cfg-enable",
+        "Debug",
+        "GaiaLLVMTests",
+    ]
     (
         expected_return_code,
         expected_output,
@@ -306,6 +341,7 @@ def test_generate_dockerfile_debug_and_new_base_image():
     executor = get_executor()
     suppplied_arguments = [
         "dockerfile",
+        "--backward",
         "--cfg-enable",
         "Debug",
         "--base-image",
@@ -343,7 +379,7 @@ def test_generate_dockerfile_mixins_sshd():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["dockerfile", "--mixins", "sshd"]
+    suppplied_arguments = ["dockerfile", "--backward", "--mixins", "sshd"]
     (
         expected_return_code,
         expected_output,
@@ -371,7 +407,7 @@ def test_generate_dockerfile_mixins_sshd_and_nano():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["dockerfile", "--mixins", "sshd", "nano"]
+    suppplied_arguments = ["dockerfile", "--backward", "--mixins", "sshd", "nano"]
     (
         expected_return_code,
         expected_output,
@@ -832,7 +868,7 @@ def test_generate_docker_run_force():
     assert run_line == __construct_base_run_command_line()
 
 
-def test_generate_docker_run_args():
+def test_generate_docker_run_args_old():
     """
     Make sure that we can generate a request to docker to run the image built
     by previous steps.  Any trailing arguments are passed to container.
@@ -840,7 +876,63 @@ def test_generate_docker_run_args():
 
     # Arrange
     executor = get_executor()
+    suppplied_arguments = ["run", "--backward", "--dry-dock", "not-an-argument"]
+    (
+        expected_return_code,
+        expected_output,
+        expected_error,
+    ) = determine_old_script_behavior(suppplied_arguments)
+
+    # Act
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
+
+    # Assert
+    execute_results.assert_results(
+        expected_output, expected_error, expected_return_code
+    )
+
+    build_line = __find_docker_build_line(expected_output)
+    assert build_line == __construct_base_build_line()
+
+    run_line = __find_docker_run_line(expected_output)
+    run_line = __find_and_remove(run_line, ' -c "not-an-argument"', look_at_end=True)
+    assert run_line == __construct_base_run_command_line()
+
+
+def test_generate_docker_run_args_new():
+    """
+    Per request, only the `--` form of the argument is preserved going forward.
+    """
+
+    # Arrange
+    executor = get_executor()
     suppplied_arguments = ["run", "--dry-dock", "not-an-argument"]
+    expected_return_code = 0
+    expected_output = ""
+    expected_error = "arguments to pass to docker run must be prefaced with `--`"
+
+    # Act
+    execute_results = executor.invoke_main(
+        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+    )
+
+    # Assert
+    execute_results.assert_results(
+        expected_output, expected_error, expected_return_code
+    )
+
+
+def test_generate_docker_run_explicit_args():
+    """
+    Make sure that we can generate a request to docker to run the image built
+    by previous steps.  Any trailing arguments are passed to container.
+    """
+
+    # Arrange
+    executor = get_executor()
+    suppplied_arguments = ["run", "--dry-dock", "--", "not-an-argument"]
     (
         expected_return_code,
         expected_output,
