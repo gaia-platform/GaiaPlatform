@@ -13,8 +13,16 @@
 
 namespace gaia
 {
+/**
+ * @addtogroup gaia
+ * @{
+ */
 namespace expressions
 {
+/**
+ * @addtogroup expressions
+ * @{
+ */
 
 namespace detail
 {
@@ -63,6 +71,7 @@ using eval_type = decltype(detail::eval_type_test(std::declval<T_class>(), detai
 
 namespace detail
 {
+
 // Expression bind type tests.
 // Rules are as follows:
 // expression_t<T_bind, ...> -> T_bind
@@ -115,6 +124,7 @@ struct bind_type_t<T_class>
 {
     using type = decltype(bind_type_test(std::declval<T_class>()));
 };
+
 } // namespace detail
 
 // Infer the bind type based on all the parameters.
@@ -129,5 +139,7 @@ using is_expression = typename std::is_base_of<expression_base_t, T_class>;
 template <typename T_class>
 using is_value = decltype(detail::value_tag_test(detail::ast_tag(std::declval<T_class>())));
 
+/**@}*/
 } // namespace expressions
+/**@}*/
 } // namespace gaia

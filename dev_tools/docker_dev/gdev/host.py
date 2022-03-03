@@ -118,5 +118,11 @@ class Host:
             lines = Host.__execute_sync(
                 capture_output=True, command=command, err_ok=err_ok
             )
-        assert len(lines) == 1, f"Must contain one line: {lines = }"
+        if len(lines) != 1:
+            print(
+                f"Output of command `{command}` must only contain one line, not:"
+                + "\n"
+                + "\n".join(lines)
+            )
+            sys.exit(1)
         return lines[0]
