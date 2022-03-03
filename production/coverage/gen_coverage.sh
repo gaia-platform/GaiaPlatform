@@ -148,26 +148,21 @@ parse_command_line "$@"
 # Clean entrance into the script.
 start_process
 
-echo "--"
-pwd
-echo "--"
+echo "---"
 echo "before"
 du --max-depth=1 -m
-echo "--"
+echo "---"
 
 find . -name "*.o" -type f -delete
 find . -name "*.a" -type f -delete
-# find . -name *.o.d -type f -delete
-# find . -name *.dwo -type f -delete
 rm -rf llvm/unittests/
 rm -rf llvm/tools/
 rm -rf llvm/test/
-#rm -rf llvm/lib/*.a
 
-echo "--"
+echo "---"
 echo "after"
 du --max-depth=1 -m
-echo "--"
+echo "---"
 
 echo "Downloading LLVM-13."
 wget --no-check-certificate -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -

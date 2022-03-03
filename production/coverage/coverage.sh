@@ -212,7 +212,12 @@ du --max-depth=1 -m
 df -h
 echo "--"
 
-docker system prune -f
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Pruning system resources consumed during build process."
+fi
+if ! docker system prune -f ; then
+    complete_process 1 "Unable to prune system resources after image build."
+fi
 
 echo "--"
 echo "after"
