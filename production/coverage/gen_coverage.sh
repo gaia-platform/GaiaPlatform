@@ -148,6 +148,25 @@ parse_command_line "$@"
 # Clean entrance into the script.
 start_process
 
+echo "--"
+pwd
+echo "--"
+echo "before"
+du --max-depth=1 -m
+echo "--"
+
+find . -name "*.o" -type f -delete
+# find . -name *.o.d -type f -delete
+# find . -name *.dwo -type f -delete
+rm -rf llvm/unittests/
+rm -rf llvm/tools/
+rm -rf llvm/test/
+
+echo "--"
+echo "after"
+du --max-depth=1 -m
+echo "--"
+
 echo "Downloading LLVM-13."
 wget --no-check-certificate -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 add-apt-repository 'deb http://apt.llvm.org/focal/   llvm-toolchain-focal-13  main'
