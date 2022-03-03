@@ -348,6 +348,24 @@ jobs:
           path: |
             ${{ github.workspace }}/production/tests/results
 
+  Documentation:
+    needs:
+      - Lint
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-20.04
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Build Documentation
+        uses: ./.github/actions/documentation-job
+        with:
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          github-token: ${{ secrets.API_TOKEN_GITHUB }}
+
   Final:
     needs:
       - Core
@@ -358,6 +376,7 @@ jobs:
       - Integration_Tests_Debug
       - Performance_Tests
       - Integration_Samples
+      - Documentation
     runs-on: ubuntu-20.04
     steps:
       - uses: geekyeggo/delete-artifact@v1
