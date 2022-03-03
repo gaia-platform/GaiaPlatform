@@ -10,6 +10,11 @@
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
 
+/**
+ * @defgroup triggers triggers
+ * Triggers namespace
+ */
+
 namespace gaia
 {
 /**

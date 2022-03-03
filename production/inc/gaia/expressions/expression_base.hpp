@@ -8,6 +8,11 @@
 #include <functional>
 #include <memory>
 
+/**
+ * @defgroup expressions expressions
+ * Expressions namespace
+ */
+
 namespace gaia
 {
 /**

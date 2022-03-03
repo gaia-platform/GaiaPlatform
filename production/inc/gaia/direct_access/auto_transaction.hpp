@@ -12,6 +12,11 @@
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
 
+/**
+ * @defgroup direct_access direct_access
+ * Direct Access namespace
+ */
+
 namespace gaia
 {
 /**

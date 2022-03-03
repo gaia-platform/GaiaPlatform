@@ -12,6 +12,11 @@
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
 
+/**
+ * @defgroup logging logging
+ * Logging namespace
+ */
+
 namespace gaia
 {
 /**

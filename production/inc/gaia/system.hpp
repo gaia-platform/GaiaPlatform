@@ -8,6 +8,11 @@
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
 
+/**
+ * @defgroup system system
+ * System namespace
+ */
+
 namespace gaia
 {
 /**
