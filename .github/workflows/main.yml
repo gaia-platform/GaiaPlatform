@@ -148,6 +148,7 @@ jobs:
       - Lint
       - Third-Party
     if: github.event_name != 'pull_request'
+    timeout-minutes: 200
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
