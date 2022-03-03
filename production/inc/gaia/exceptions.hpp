@@ -15,6 +15,18 @@
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
 
+/**
+ * @defgroup catalog catalog
+ * @ingroup gaia
+ * Catalog namespace
+ */
+
+/**
+ * @defgroup index index
+ * @ingroup db
+ * Index namespace
+ */
+
 namespace gaia
 {
 /**
@@ -24,6 +36,10 @@ namespace gaia
 
 namespace catalog
 {
+/**
+ * @addtogroup catalog
+ * @{
+ */
 
 /**
  * @brief Trying to modify a system database.
@@ -166,10 +182,15 @@ class invalid_create_list : public common::gaia_exception
 {
 };
 
+/**@}*/
 } // namespace catalog
 
 namespace common
 {
+/**
+ * @addtogroup common
+ * @{
+ */
 
 /**
  * @brief An invalid Gaia configuration setting was detected.
@@ -187,6 +208,10 @@ class optional_value_not_found : public common::gaia_exception
 
 namespace logging
 {
+/**
+ * @addtogroup logging
+ * @{
+ */
 
 /**
  * @brief Indicates a logging system failure.
@@ -195,12 +220,18 @@ class logger_exception : public gaia_exception
 {
 };
 
+/**@}*/
 } // namespace logging
 
+/**@}*/
 } // namespace common
 
 namespace db
 {
+/**
+ * @addtogroup db
+ * @{
+ */
 
 /**
  * @brief A session already exists on this thread.
@@ -399,6 +430,10 @@ class pre_commit_validation_failure : public common::gaia_exception
 
 namespace index
 {
+/**
+ * @addtogroup index
+ * @{
+ */
 
 /**
  * @brief Indicates the violation of a UNIQUE constraint.
@@ -410,12 +445,18 @@ class unique_constraint_violation : public pre_commit_validation_failure
 {
 };
 
+/**@}*/
 } // namespace index
 
+/**@}*/
 } // namespace db
 
 namespace direct_access
 {
+/**
+ * @addtogroup direct_access
+ * @{
+ */
 
 /**
  * @brief An object's internal state is not as expected.
@@ -424,6 +465,7 @@ class invalid_object_state : public common::gaia_exception
 {
 };
 
+/**@}*/
 } // namespace direct_access
 
 /**@}*/
