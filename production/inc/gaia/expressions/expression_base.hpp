@@ -8,10 +8,24 @@
 #include <functional>
 #include <memory>
 
+/**
+ * @defgroup expressions expressions
+ * @ingroup gaia
+ * Expressions namespace
+ */
+
 namespace gaia
 {
+/**
+ * @addtogroup gaia
+ * @{
+ */
 namespace expressions
 {
+/**
+ * @addtogroup expressions
+ * @{
+ */
 
 // Empty non-templated base class for template is_expression<> macro to pick up.
 // This is because the templated classes are considered separate classes in C++,
@@ -48,5 +62,7 @@ public:
 template <typename T_bind, typename T_return>
 using subexpression_t = std::shared_ptr<expression_t<T_bind, T_return>>;
 
+/**@}*/
 } // namespace expressions
+/**@}*/
 } // namespace gaia
