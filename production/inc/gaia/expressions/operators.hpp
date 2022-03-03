@@ -11,8 +11,17 @@
 
 namespace gaia
 {
+/**
+ * @addtogroup gaia
+ * @{
+ */
 namespace expressions
 {
+/**
+ * @addtogroup expressions
+ * @{
+ */
+
 // Tags representing operator tokens recognized by the C++ compiler.
 //
 // These tokens are not actual operations themselves.
@@ -347,5 +356,7 @@ using pos_type = decltype(evaluate_operator(std::declval<T_operand>(), std::decl
 template <typename T_operand>
 using inv_type = decltype(evaluate_operator(std::declval<T_operand>(), std::declval<operator_inv_t>()));
 
+/**@}*/
 } // namespace expressions
+/**@}*/
 } // namespace gaia

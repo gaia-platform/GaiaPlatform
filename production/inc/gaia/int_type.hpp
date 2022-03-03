@@ -14,13 +14,13 @@
 namespace gaia
 {
 /**
- * \addtogroup gaia
+ * @addtogroup gaia
  * @{
  */
 namespace common
 {
 /**
- * \addtogroup common
+ * @addtogroup common
  * @{
  */
 
@@ -93,9 +93,9 @@ protected:
     T_type m_value;
 };
 
-/*@}*/
+/**@}*/
 } // namespace common
-/*@}*/
+/**@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.
