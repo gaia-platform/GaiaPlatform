@@ -9,17 +9,27 @@
 
 #include <flatbuffers/flatbuffers.h>
 
-#include "gaia/direct_access/dac_object.hpp"
+#include "gaia/common.hpp"
 
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
 
 namespace gaia
 {
+/**
+ * @addtogroup gaia
+ * @{
+ */
 namespace direct_access
 {
+/**
+ * @addtogroup direct_access
+ * @{
+ */
 
-// A pimpl style wrapper class that encapsulates flatbuffers::Vector.
+/**
+ * @brief A vector class for enabling operation with vector fields.
+ */
 template <typename T_type>
 class dac_vector_t
 {
@@ -51,7 +61,7 @@ public:
     }
 
 private:
-    // Make the dac_object_t a friend so it can call the private vector constructor.
+    // Make dac_object_t a friend so it can call the private vector constructor.
     template <gaia::common::gaia_type_t::value_type gaia_type, typename T_gaia, typename T_fb, typename T_obj>
     friend struct dac_object_t;
 
@@ -64,7 +74,9 @@ private:
     const flatbuffers::Vector<T_type>* m_vector;
 };
 
+/**@}*/
 } // namespace direct_access
+/**@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.

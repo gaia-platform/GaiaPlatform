@@ -16,6 +16,7 @@ namespace expressions
 
 /**
  * Binary expression - this expression denotes an expression with a left and right operand.
+ *
  * @tparam T_bind - context this expression binds to.
  * @tparam T_return - the type this expression evaluates to.
  * @tparam T_left - the evaluated type of the left operand.
