@@ -67,23 +67,26 @@ class InProcessResult:
                         f"Block\n---\n{next_text_block}\n---\nwas not found in"
                         + f"\n---\n{actual_stream.getvalue()}"
                     )
-        elif actual_stream.getvalue().strip() != expected_text.strip():
-            diff = difflib.ndiff(
-                expected_text.splitlines(), actual_stream.getvalue().splitlines()
-            )
+        else:
+            if actual_stream.getvalue().strip() != expected_text.strip():
+                diff = difflib.ndiff(
+                    expected_text.splitlines(), actual_stream.getvalue().splitlines()
+                )
 
-            diff_values = "\n".join(list(diff)) + "\n---\n"
+                diff_values = "\n".join(list(diff)) + "\n---\n"
 
-            LOGGER.warning(
-                "actual>>%s",
-                cls.__make_value_visible(actual_stream.getvalue()),
-            )
-            print(f"WARN>actual>>{cls.__make_value_visible(actual_stream.getvalue())}")
-            LOGGER.warning("expect>>%s", cls.__make_value_visible(expected_text))
-            print(f"WARN>expect>>{cls.__make_value_visible(expected_text)}")
-            if log_extra:
-                print(f"log_extra:{log_extra}")
-            assert False, f"{stream_name} not as expected:\n{diff_values}"
+                LOGGER.warning(
+                    "actual>>%s",
+                    cls.__make_value_visible(actual_stream.getvalue()),
+                )
+                print(
+                    f"WARN>actual>>{cls.__make_value_visible(actual_stream.getvalue())}"
+                )
+                LOGGER.warning("expect>>%s", cls.__make_value_visible(expected_text))
+                print(f"WARN>expect>>{cls.__make_value_visible(expected_text)}")
+                if log_extra:
+                    print(f"log_extra:{log_extra}")
+                assert False, f"{stream_name} not as expected:\n{diff_values}"
 
     # pylint: enable=too-many-arguments
 
@@ -107,6 +110,13 @@ class InProcessResult:
         Standard output collected during execution.
         """
         return self.__std_out
+
+    @property
+    def std_err(self):
+        """
+        Standard error collected during execution.
+        """
+        return self.__std_err
 
     # pylint: disable=too-many-arguments
     def assert_results(
