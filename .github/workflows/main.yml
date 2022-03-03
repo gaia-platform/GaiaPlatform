@@ -51,7 +51,7 @@ jobs:
     needs:
       - Lint
       - Third-Party
-    if: github.event_name != 'pull_request'
+    if: ${{ false }}
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -76,7 +76,7 @@ jobs:
     needs:
       - Lint
       - Third-Party
-    if: github.event_name != 'pull_request'
+    if: ${{ false }}
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -101,7 +101,7 @@ jobs:
     needs:
       - Core
     runs-on: ubuntu-20.04
-    if: github.event_name != 'pull_request'
+    if: ${{ false }}
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -124,7 +124,7 @@ jobs:
   Debug_SDK:
     needs:
       - Core
-    if: github.event_name != 'pull_request'
+    if: ${{ false }}
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -169,7 +169,7 @@ jobs:
     needs:
       - Lint
       - Third-Party
-    if: github.event_name != 'pull_request'
+    if: ${{ false }}
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}

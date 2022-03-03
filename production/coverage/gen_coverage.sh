@@ -156,11 +156,13 @@ du --max-depth=1 -m
 echo "--"
 
 find . -name "*.o" -type f -delete
+find . -name "*.a" -type f -delete
 # find . -name *.o.d -type f -delete
 # find . -name *.dwo -type f -delete
 rm -rf llvm/unittests/
 rm -rf llvm/tools/
 rm -rf llvm/test/
+#rm -rf llvm/lib/*.a
 
 echo "--"
 echo "after"
@@ -197,6 +199,9 @@ echo "Merging all profiles into a single profile data file."
 if ! /usr/lib/llvm-13/bin/llvm-profdata merge --input-files /build/production/output/profiles.txt --output tests.profdata ; then
     complete_process 1 "Unable to merge profiles into a single data file."
 fi
+
+echo "Removing all profiles."
+find . -name "*.profraw" -type f -delete
 
 #
 # Source directories, by team:
