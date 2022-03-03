@@ -2,14 +2,14 @@ name: Remove old artifacts
 
 on:
   schedule:
-    # Every day at 4am UTC
-    - cron: '0 4 * * *'
+    # Every 2 hours
+    - cron: '0 */2 * * *'
   workflow_dispatch:
 
 jobs:
   remove-old-artifacts:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
 
     steps:
     - name: Remove old artifacts

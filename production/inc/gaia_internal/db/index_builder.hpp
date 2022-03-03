@@ -39,7 +39,7 @@ public:
         db_index_t index, const log_record_t& log_record);
 
     static index_key_t make_key(db_index_t index, const uint8_t* payload);
-    static void serialize_key(const index_key_t& key, payload_types::data_write_buffer_t& buffer);
+    static void serialize_key(common::gaia_id_t index_id, const index_key_t& key, payload_types::data_write_buffer_t& buffer);
     static index_key_t deserialize_key(common::gaia_id_t index_id, payload_types::data_read_buffer_t& buffer);
 
     static void populate_index(common::gaia_id_t index_id, gaia_locator_t locator);

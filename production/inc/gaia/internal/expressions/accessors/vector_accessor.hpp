@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "gaia/expressions/accessors/member_accessor.hpp"
-#include "gaia/expressions/accessors/value_accessor.hpp"
-#include "gaia/expressions/internal/transform_expression.hpp"
+#include "gaia/internal/expressions/accessors/member_accessor.hpp"
+#include "gaia/internal/expressions/accessors/value_accessor.hpp"
+#include "gaia/internal/expressions/transform_expression.hpp"
 
 namespace gaia
 {
@@ -15,7 +15,6 @@ namespace expressions
 {
 
 /**
- *
  * This class represents an accessor to an array type in DAC.
  *
  * @tparam T_bind - context this expression binds to.

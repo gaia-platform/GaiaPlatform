@@ -7,8 +7,8 @@
 
 #include <type_traits>
 
-#include "gaia/expressions/accessors/member_accessor.hpp"
-#include "gaia/expressions/internal/transform_expression.hpp"
+#include "gaia/internal/expressions/accessors/member_accessor.hpp"
+#include "gaia/internal/expressions/transform_expression.hpp"
 
 // Specialization of member_accessor_t for container types.
 namespace gaia
