@@ -81,10 +81,10 @@ def __check_results(
             lined_output_value = host_executor.output_value
         else:
             lined_output_value = "\n".join(host_executor.output_value)
-        comapre_results = execution_result.assert_stream_contents(
+        compare_results = execution_result.assert_stream_contents(
             "value", io.StringIO(lined_output_value), expected_value_string
         )
-        assert not comapre_results, comapre_results
+        assert not compare_results, compare_results
     else:
         assert not host_executor.output_value, "Output value was expected to be None."
 

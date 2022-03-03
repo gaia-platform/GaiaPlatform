@@ -56,16 +56,16 @@ def test_generate_docker_run():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["run", "--dry-dock"]
+    supplied_arguments = ["run", "--dry-dock"]
     (
         expected_return_code,
         expected_output,
         expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
+    ) = determine_old_script_behavior(supplied_arguments)
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -88,16 +88,16 @@ def test_generate_docker_run_mixin_clion():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["run", "--dry-dock", "--mixins", "clion"]
+    supplied_arguments = ["run", "--dry-dock", "--mixins", "clion"]
     (
         expected_return_code,
         expected_output,
         expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
+    ) = determine_old_script_behavior(supplied_arguments)
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -120,21 +120,22 @@ def test_generate_docker_run_mixin_clion():
 def test_generate_docker_run_mixin_nano():
     """
     Make sure that we can generate a request to docker to run the image built
-    by previous steps.  The nano mixin only adds to the build line.
+    by previous steps.  The `nano` mixin only adds to the arguments passed to
+    the docker build command line.
     """
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["run", "--dry-dock", "--mixins", "nano"]
+    supplied_arguments = ["run", "--dry-dock", "--mixins", "nano"]
     (
         expected_return_code,
         expected_output,
         expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
+    ) = determine_old_script_behavior(supplied_arguments)
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -159,16 +160,16 @@ def test_generate_docker_run_mounts():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["run", "--dry-dock", "--mount", "/root:/host"]
+    supplied_arguments = ["run", "--dry-dock", "--mount", "/root:/host"]
     (
         expected_return_code,
         expected_output,
         expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
+    ) = determine_old_script_behavior(supplied_arguments)
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -197,16 +198,16 @@ def test_generate_docker_run_platform():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["run", "--dry-dock", "--platform", "arm64"]
+    supplied_arguments = ["run", "--dry-dock", "--platform", "arm64"]
     (
         expected_return_code,
         expected_output,
         expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
+    ) = determine_old_script_behavior(supplied_arguments)
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -235,16 +236,16 @@ def test_generate_docker_run_ports():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["run", "--dry-dock", "--ports", "1234"]
+    supplied_arguments = ["run", "--dry-dock", "--ports", "1234"]
     (
         expected_return_code,
         expected_output,
         expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
+    ) = determine_old_script_behavior(supplied_arguments)
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -269,16 +270,16 @@ def test_generate_docker_run_registry():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["run", "--dry-dock", "--registry", "localhost"]
+    supplied_arguments = ["run", "--dry-dock", "--registry", "localhost"]
     (
         expected_return_code,
         expected_output,
         expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
+    ) = determine_old_script_behavior(supplied_arguments)
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -306,16 +307,16 @@ def test_generate_docker_run_force():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["run", "--dry-dock", "--force"]
+    supplied_arguments = ["run", "--dry-dock", "--force"]
     (
         expected_return_code,
         expected_output,
         expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
+    ) = determine_old_script_behavior(supplied_arguments)
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -338,16 +339,16 @@ def test_generate_docker_run_args_old():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["run", "--backward", "--dry-dock", "not-an-argument"]
+    supplied_arguments = ["run", "--backward", "--dry-dock", "not-an-argument"]
     (
         expected_return_code,
         expected_output,
         expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
+    ) = determine_old_script_behavior(supplied_arguments)
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -370,14 +371,14 @@ def test_generate_docker_run_args_new():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["run", "--dry-dock", "not-an-argument"]
+    supplied_arguments = ["run", "--dry-dock", "not-an-argument"]
     expected_return_code = 0
     expected_output = ""
     expected_error = "arguments to pass to docker run must be prefaced with `--`"
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -394,16 +395,16 @@ def test_generate_docker_run_explicit_args():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["run", "--dry-dock", "--", "not-an-argument"]
+    supplied_arguments = ["run", "--dry-dock", "--", "not-an-argument"]
     (
         expected_return_code,
         expected_output,
         expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
+    ) = determine_old_script_behavior(supplied_arguments)
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
