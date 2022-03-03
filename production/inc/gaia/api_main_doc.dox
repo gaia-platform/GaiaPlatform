@@ -1,22 +1,19 @@
-/*! \mainpage 
+/*! @mainpage 
  *
- * \section intro_sec Introduction
+ * @section intro_sec Introduction
  *
  * Summarizes the available Gaia APIs.
  *
- * \section example_sec Examples
+ * @section example_sec Examples
  * 
- *  Examples are installed in /opt/gaia/examples/:
+ * Examples are installed in /opt/gaia/examples/:
  *  
- * direct_access - Demonstrates the basic usage of the Gaia Direct Access API.
+ * - direct_access - Demonstrates the basic usage of the Gaia Direct Access API.
+ * - direct_access_multithread - Demonstrates the usage of the Gaia Direct Access API in multi-threaded app.
+ * - hello - Demonstrates the basics of creating a Gaia app.
+ * - incubator - Demonstrates the basic usage of rules in a Gaia app.
  *
- * direct_access_multithread - Demonstrates the usage of the Gaia Direct Access API in multi-threaded app.
- *
- * hello - Demonstrates the basics of creating a Gaia app.
- *
- * incubator - Demonstrates the basic usage of rules in a Gaia app.
- *
- * \section resources_sec Additional reference material
+ * @section resources_sec Additional reference material
  * 
  * [Gaia DDL](https://gaia-platform.github.io/gaia-platform-docs.io/articles/reference/ddl-gaia.html)
  *
