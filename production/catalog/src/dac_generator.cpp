@@ -73,8 +73,15 @@ std::string dac_compilation_unit_writer_t::write_init()
     code += "extern \"C\" void initialize_direct_access(const char* app)\n{";
     code.IncrementIdentLevel();
     code += "char* database_hash;";
-    code += "database_hash = gaia::{{DBNAME}}::dac_hash_code();";
-    code += "validate_hash_code(\"{{DBNAME}}\", database_hash);";
+    if (m_database.database_name() != c_empty_db_name)
+    {
+        code += "database_hash = gaia::{{DBNAME}}::dac_hash_code();";
+    }
+    else
+    {
+        code += "database_hash = gaia::dac_hash_code();";
+    }
+    code += "verify_hash_code(\"{{DBNAME}}\", database_hash);";
     code.DecrementIdentLevel();
     code += "}\n";
 

@@ -88,6 +88,7 @@ void gaia::system::initialize(const char* gaia_config_file, const char* logger_c
     db_initialized = true;
 
     gaia::catalog::initialize_catalog();
+    // gaia::initialize_direct_access("");
     gaia::rules::initialize_rules_engine(root_config);
     initialize_rules();
 

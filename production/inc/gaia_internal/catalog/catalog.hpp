@@ -673,7 +673,7 @@ gaia::common::gaia_id_t find_db_id(const std::string& dbname);
  * @param database_hash 128-bit hash code of this database's catalog definition
  * @return database id (or INVALID_ID if the db name does not exist)
  */
-gaia::common::gaia_id_t verify_hash_code(const std::string& dbname, const char* database_hash);
+bool verify_hash_code(const std::string& dbname, const char* database_hash);
 
 /**
  * Generate the Direct Access Classes header file.
