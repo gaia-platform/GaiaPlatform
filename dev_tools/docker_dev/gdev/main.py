@@ -37,7 +37,19 @@ class DockerDev:
         """
 
         # Generate the parser structure, and the command line arguments based off of that.
-        is_backward_compatible_guess = "--backward" in args
+        #
+        # Note that while `is_backward_compatible_guess` is named as a guess, it is
+        # a good guess.  Ideally, the parser would return this value and the options
+        # would trigger off that parsing of the argument.  However, since there are
+        # arguments and attributes of those arguments that have changed since the
+        # original GDEV, we need to guess at whether the application is in its backward
+        # compatible mode BEFORE the argument parsing.
+        current_args = (
+            args[: args.index(CommandLine.DOUBLE_DASH_ARGUMENT)]
+            if CommandLine.DOUBLE_DASH_ARGUMENT in args
+            else args[:]
+        )
+        is_backward_compatible_guess = "--backward" in current_args
         parser = CommandLine.get_parser(
             ParserStructure.of_command_parts(tuple()), is_backward_compatible_guess
         )
@@ -72,16 +84,19 @@ class DockerDev:
         """
         Main entry point from the operating system.
         """
-        subcommand, options = DockerDev.__of_args(tuple(sys.argv[1:]))
-
-        logging.basicConfig(level=options.log_level)
-
         try:
-            subcommand.cli_entrypoint(options)
-        except SectionActionException as this_exception:
+            subcommand, options = DockerDev.__of_args(tuple(sys.argv[1:]))
+
+            logging.basicConfig(level=options.log_level)
+
+            try:
+                subcommand.cli_entrypoint(options)
+            except SectionActionException as this_exception:
+                print(f"\n{this_exception}", file=sys.stderr)
+            finally:
+                logging.shutdown()
+        except ValueError as this_exception:
             print(f"\n{this_exception}", file=sys.stderr)
-        finally:
-            logging.shutdown()
 
         return 0
 

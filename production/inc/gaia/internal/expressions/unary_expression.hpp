@@ -21,9 +21,7 @@ namespace expressions
  * @tparam T_operand - the type the operand evaluates to.
  *
  * unary_expression_fn_t - function evaluating a the subexpression then performs the operation.
- *
  */
-
 template <typename T_bind, typename T_return>
 using unary_expression_fn_t = std::function<T_return(const T_bind&, const subexpression_t<T_bind, T_return>&)>;
 

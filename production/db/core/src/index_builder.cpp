@@ -38,13 +38,18 @@ index_key_t index_builder_t::make_key(db_index_t index, const uint8_t* payload)
     return index_key_t(index->key_schema(), payload);
 }
 
-void index_builder_t::serialize_key(const index_key_t& key, payload_types::data_write_buffer_t& buffer)
+void index_builder_t::serialize_key(common::gaia_id_t index_id, const index_key_t& key, payload_types::data_write_buffer_t& buffer)
 {
-    for (const payload_types::data_holder_t& key_value : key.values())
+    auto index_ptr = id_to_ptr(index_id);
+    auto index_view = catalog_core::index_view_t(index_ptr);
+
+    const auto& fields = *(index_view.fields());
+
+    for (size_t i = 0; i < fields.size(); i++)
     {
-        // TODO: This will have to do until catalog information is available!
-        bool optional = true;
-        key_value.serialize(buffer, optional);
+        auto field_view = catalog_core::field_view_t(id_to_ptr(fields[i]));
+        bool optional = field_view.optional();
+        key.values()[i].serialize(buffer, optional);
     }
 }
 
@@ -62,9 +67,9 @@ index_key_t index_builder_t::deserialize_key(common::gaia_id_t index_id, payload
     const auto& fields = *(index_view.fields());
     for (auto field_id : fields)
     {
-        data_type_t type = catalog_core::field_view_t(id_to_ptr(field_id)).data_type();
-        // TODO: Until this information is available in the catalog, this will have to do!
-        bool optional = true;
+        auto field_view = catalog_core::field_view_t(id_to_ptr(field_id));
+        data_type_t type = field_view.data_type();
+        bool optional = field_view.optional();
         index_key.insert(payload_types::data_holder_t(buffer, convert_to_reflection_type(type), optional));
     }
 

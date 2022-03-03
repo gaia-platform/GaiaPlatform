@@ -18,29 +18,27 @@
 namespace gaia
 {
 /**
- * \addtogroup gaia
+ * @addtogroup gaia
  * @{
  */
 namespace direct_access
 {
 /**
- * \addtogroup direct_access
+ * @addtogroup direct_access
  * @{
- *
- * Implementation of Direct Access Classes. This provides a direct access API
- * for CRUD operations on the database, plus navigation between objects through
- * linked lists called "sets".
  */
 
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class>
 class dac_container_t;
 
-// C++17 compliant way when std::iterator is deprecated.
-//
-// An dac_iterator_t contains the methods that satisfy an iterator interface.
-// Only used from dac_container_t template, which defines the begin(), where() and end().
-//
-// @tparam T_class the Direct Access Class
+/**
+ * @brief  A dac_iterator_t contains the methods that implement an iterator
+ * for scanning through the objects of type T_class
+ *
+ * Only used from dac_container_t template, which defines the begin(), where() and end().
+ *
+ * @tparam T_class the Direct Access Class
+ */
 template <typename T_class>
 class dac_iterator_t : protected dac_db_t
 {
@@ -76,10 +74,12 @@ protected:
     std::function<common::optional_t<bool>(const T_class&)> m_filter_fn;
 };
 
-// A dac_container_t is all objects of the same Direct Access Class in the database.
-//
-// @tparam container_type_id the type identifier of Direct Access Class
-// @tparam T_class the class of the Direct Access Class
+/**
+ * @brief A dac_container_t contains all objects of the same Direct Access Class type in the database.
+ *
+ * @tparam container_type_id the type identifier of Direct Access Class
+ * @tparam T_class the class of the Direct Access Class
+ */
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class>
 class dac_container_t : protected dac_db_t
 {
@@ -101,12 +101,15 @@ private:
     std::function<common::optional_t<bool>(const T_class&)> m_filter_fn;
 };
 
-// A dac_set_iterator_t is only used from reference_chain_container_t. It
-// contains the methods that implement an iterator for scanning through the
-// linked list forming a "set" between a parent and multiple child instances of
-// a class.
-//
-// @tparam T_child the Direct Access Class that is in the child position in the set
+/**
+ * @brief A dac_set_iterator_t contains the methods that implement an iterator
+ * for scanning through the linked list forming a "set" between a parent
+ * and multiple child instances of a class.
+ *
+ * A dac_set_iterator_t is only used from reference_chain_container_t.
+ *
+ * @tparam T_child the Direct Access Class that is in the child position in the set
+ */
 template <typename T_child>
 class dac_set_iterator_t : protected dac_db_t
 {
@@ -134,6 +137,12 @@ private:
     common::reference_offset_t m_next_offset;
 };
 
+/**
+ * @brief A value_linked_reference_container_t contains the methods that implement an iterator
+ * for scanning through the value-linked references of an object.
+ *
+ * @tparam T_child the Direct Access Class that is being referenced
+ */
 template <typename T_child>
 class value_linked_reference_container_t : protected dac_db_t
 {
@@ -169,6 +178,13 @@ private:
     std::function<common::optional_t<bool>(const T_child&)> m_filter_fn{};
 };
 
+/**
+ * @brief A reference_container_t contains the methods that implement an iterator
+ * for scanning through the references of an object as well as the methods
+ * for managing these references.
+ *
+ * @tparam T_child the Direct Access Class that is being referenced
+ */
 template <typename T_child>
 class reference_container_t : protected dac_db_t
 {
@@ -228,11 +244,11 @@ private:
 // Pick up our template implementation. These still need to be in the header so
 // that template specializations that are declared later will pick up the
 // definitions.
-#include "dac_iterators.inc"
+#include "gaia/internal/direct_access/dac_iterators.inc"
 
-/*@}*/
+/**@}*/
 } // namespace direct_access
-/*@}*/
+/**@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.

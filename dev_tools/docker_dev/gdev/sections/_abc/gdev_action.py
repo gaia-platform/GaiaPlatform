@@ -12,7 +12,7 @@ Module to provide a base class for use by all the subcommand modules.
 # PYTHON_ARGCOMPLETE_OK
 
 from __future__ import annotations
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from inspect import isabstract
 import logging
@@ -62,16 +62,22 @@ class GdevAction(ABC):
         log.addHandler(handler)
         return log
 
+    @abstractmethod
+    def main(self) -> None:
+        """
+        Main action to invoke for this class.
+        """
+        raise NotImplementedError
+
     @memoize
     def run(self) -> None:
         """
         Run the main action that is the focus of this class.
         """
 
-        if isabstract(self):
-            return
+        assert not isabstract(self), "This should never be abstract."
+        assert hasattr(self, "main"), "Every action must have a main function."
 
-        if hasattr(self, "main"):
-            self.log.debug("Starting %s.main", str(type(self).__name__))
-            self.main()
-            self.log.debug("Finished %s.main", str(type(self).__name__))
+        self.log.debug("Starting %s.main", str(type(self).__name__))
+        self.main()
+        self.log.debug("Finished %s.main", str(type(self).__name__))

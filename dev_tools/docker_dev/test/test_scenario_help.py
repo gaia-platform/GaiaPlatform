@@ -18,7 +18,9 @@ from test.gdev_execute import (
 import io
 
 HELP_POSITIONAL_PREFIX = """positional arguments:
-  args                  Args to be forwarded on to docker run, if applicable.
+  args                  Zero or more arguments to be forwarded on to docker
+                        run. If one or more arguments are provided, the first
+                        argument must be `--`.
 
 """
 HELP_BASE_ARGUMENTS = """optional arguments:
@@ -77,19 +79,19 @@ def test_show_help_old_no_args():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["--backward", "--help"]
+    supplied_arguments = ["--backward", "--help"]
     (
         expected_return_code,
         expected_output,
         expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
+    ) = determine_old_script_behavior(supplied_arguments)
     expected_output = expected_output.replace(
         "\nGaiaPlatform build and development environment tool.\n", ""
     ).replace(",gen,", ",")
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -104,11 +106,11 @@ def test_show_help_new_no_args():
     """
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["--help"]
+    supplied_arguments = ["--help"]
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -134,16 +136,16 @@ def test_show_help_old_build():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["build", "--backward", "--help"]
+    supplied_arguments = ["build", "--backward", "--help"]
     (
         expected_return_code,
         expected_output,
         expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
+    ) = determine_old_script_behavior(supplied_arguments)
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -163,11 +165,11 @@ def test_show_help_new_build():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["build", "--help"]
+    supplied_arguments = ["build", "--help"]
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -198,16 +200,16 @@ def test_show_help_old_cfg():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["cfg", "--backward", "--help"]
+    supplied_arguments = ["cfg", "--backward", "--help"]
     (
         expected_return_code,
         expected_output,
         expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
+    ) = determine_old_script_behavior(supplied_arguments)
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -227,11 +229,11 @@ def test_show_help_new_cfg():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["cfg", "--help"]
+    supplied_arguments = ["cfg", "--help"]
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -259,16 +261,16 @@ def test_show_help_old_dockerfile():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["dockerfile", "--backward", "--help"]
+    supplied_arguments = ["dockerfile", "--backward", "--help"]
     (
         expected_return_code,
         expected_output,
         expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
+    ) = determine_old_script_behavior(supplied_arguments)
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -288,11 +290,11 @@ def test_show_help_new_dockerfile():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["dockerfile", "--help"]
+    supplied_arguments = ["dockerfile", "--help"]
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -325,14 +327,14 @@ def test_show_help_old_gen():
     """
 
     # Arrange
-    suppplied_arguments = ["gen", "--backward", "--help"]
+    supplied_arguments = ["gen", "--backward", "--help"]
 
     # Act
     (
         expected_return_code,
         expected_output,
         expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
+    ) = determine_old_script_behavior(supplied_arguments)
     execute_results = InProcessResult(
         expected_return_code, io.StringIO(expected_output), io.StringIO(expected_error)
     )
@@ -363,11 +365,11 @@ def test_show_help_new_gen():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["gen", "--help"]
+    supplied_arguments = ["gen", "--help"]
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -389,16 +391,16 @@ def test_show_help_old_push():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["push", "--backward", "--help"]
+    supplied_arguments = ["push", "--backward", "--help"]
     (
         expected_return_code,
         expected_output,
         expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
+    ) = determine_old_script_behavior(supplied_arguments)
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -418,11 +420,11 @@ def test_show_help_new_push():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["push", "--help"]
+    supplied_arguments = ["push", "--help"]
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -453,16 +455,16 @@ def test_show_help_old_run():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["run", "--backward", "--help"]
+    supplied_arguments = ["run", "--backward", "--help"]
     (
         expected_return_code,
         expected_output,
         expected_error,
-    ) = determine_old_script_behavior(suppplied_arguments)
+    ) = determine_old_script_behavior(supplied_arguments)
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
@@ -482,11 +484,11 @@ def test_show_help_new_run():
 
     # Arrange
     executor = get_executor()
-    suppplied_arguments = ["run", "--help"]
+    supplied_arguments = ["run", "--help"]
 
     # Act
     execute_results = executor.invoke_main(
-        arguments=suppplied_arguments, cwd=determine_repository_production_directory()
+        arguments=supplied_arguments, cwd=determine_repository_production_directory()
     )
 
     # Assert
