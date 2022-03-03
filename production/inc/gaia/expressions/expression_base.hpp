@@ -10,6 +10,7 @@
 
 /**
  * @defgroup expressions expressions
+ * @ingroup gaia
  * Expressions namespace
  */
 

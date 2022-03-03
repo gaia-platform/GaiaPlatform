@@ -20,6 +20,7 @@
 
 /**
  * @defgroup rules rules
+ * @ingroup gaia
  * Rules namespace
  */
 

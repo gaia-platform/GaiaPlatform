@@ -12,6 +12,7 @@
 
 /**
  * @defgroup triggers triggers
+ * @ingroup db
  * Triggers namespace
  */
 

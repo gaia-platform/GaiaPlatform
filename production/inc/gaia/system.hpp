@@ -10,6 +10,7 @@
 
 /**
  * @defgroup system system
+ * @ingroup gaia
  * System namespace
  */
 

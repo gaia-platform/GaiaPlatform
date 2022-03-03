@@ -14,6 +14,7 @@
 
 /**
  * @defgroup direct_access direct_access
+ * @ingroup gaia
  * Direct Access namespace
  */
 

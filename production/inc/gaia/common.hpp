@@ -22,6 +22,7 @@
 
 /**
  * @defgroup common common
+ * @ingroup gaia
  * Common namespace
  */
 

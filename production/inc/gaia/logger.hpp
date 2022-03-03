@@ -14,6 +14,7 @@
 
 /**
  * @defgroup logging logging
+ * @ingroup common
  * Logging namespace
  */
 

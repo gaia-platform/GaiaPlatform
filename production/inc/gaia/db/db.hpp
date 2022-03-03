@@ -14,6 +14,7 @@
 
 /**
  * @defgroup db db
+ * @ingroup gaia
  * Database namespace
  */
 
