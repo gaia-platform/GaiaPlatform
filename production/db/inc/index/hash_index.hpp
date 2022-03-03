@@ -23,7 +23,6 @@ using hash_index_iterator_t = index_iterator_t<hash_type_t, hash_type_t::const_i
 /**
  * Actual hash index implementation.
  */
-
 class hash_index_t : public index_t<hash_type_t, hash_index_iterator_t>
 {
 public:

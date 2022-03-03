@@ -68,8 +68,7 @@ protected:
  * - The RPC calls to the server for initialization.
  * - Merge operation between local and remote.
  * - Visibility resolution of locators.
- *
- * */
+ */
 template <typename T_index, typename T_index_iterator>
 class index_scan_physical_t : public base_index_scan_physical_t
 {
