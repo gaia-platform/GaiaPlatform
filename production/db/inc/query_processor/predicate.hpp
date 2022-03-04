@@ -77,4 +77,4 @@ public:
 } // namespace scan
 } // namespace query_processor
 } // namespace db
-}; // namespace gaia
+} // namespace gaia

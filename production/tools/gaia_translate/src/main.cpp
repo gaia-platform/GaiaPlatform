@@ -3420,14 +3420,15 @@ public:
                 }
                 else
                 {
-                    insert_data.argument_replacement_map[argument->getSourceRange()] = (Twine("std::vector(")
-                                                                                        + m_rewriter.getRewrittenText(argument->getSourceRange())
-                                                                                        + ","
-                                                                                        + m_rewriter.getRewrittenText(argument->getSourceRange())
-                                                                                        + "+"
-                                                                                        + array_size_expression
-                                                                                        + ")")
-                                                                                           .str();
+                    insert_data.argument_replacement_map[argument->getSourceRange()]
+                        = (Twine("std::vector(")
+                           + m_rewriter.getRewrittenText(argument->getSourceRange())
+                           + ","
+                           + m_rewriter.getRewrittenText(argument->getSourceRange())
+                           + "+"
+                           + array_size_expression
+                           + ")")
+                              .str();
                 }
             }
             else

@@ -37,6 +37,7 @@ void index_offset_buffer_t::insert(gaia_offset_t offset, common::gaia_type_t typ
     m_offsets[m_size] = std::make_pair<gaia_offset_t, common::gaia_type_t>(std::move(offset), std::move(type));
     ++m_size;
 }
+
 } // namespace index
 } // namespace db
 } // namespace gaia
