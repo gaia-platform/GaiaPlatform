@@ -121,7 +121,7 @@ const std::vector<gaia::db::payload_types::data_holder_t>& index_key_t::values()
     return m_key_values;
 }
 
-/*
+/**
  * Combine hash of all data holders in this key.
  * Repeatedly concatenate hash values and rehash.
  */
@@ -144,7 +144,7 @@ gaia::db::payload_types::data_hash_t index_key_hash::operator()(index_key_t cons
     return prev_hash;
 }
 
-/*
+/**
  * ostream operator overloads
  */
 

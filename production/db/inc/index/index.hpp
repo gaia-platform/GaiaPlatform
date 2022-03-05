@@ -51,10 +51,9 @@ private:
 
 constexpr size_t c_offset_buffer_size = 32;
 
-/*
+/**
  * Buffer storing data for garbage collecting offsets.
  */
-
 class index_offset_buffer_t
 {
 public:

@@ -99,6 +99,7 @@ std::shared_ptr<int> scan_generator_t::get_record_cursor_socket_for_index(
 
     return stream_socket_ptr;
 }
+
 } // namespace scan
 } // namespace query_processor
 } // namespace db

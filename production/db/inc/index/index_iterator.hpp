@@ -21,7 +21,6 @@ namespace index
 /**
  * Class iterating over indexes, with locks handled via RAII.
  */
-
 template <typename T_structure, typename T_index_it>
 class index_iterator_t
 {

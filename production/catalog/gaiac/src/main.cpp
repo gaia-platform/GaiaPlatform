@@ -33,8 +33,9 @@ using namespace gaia::catalog::ddl;
 using namespace gaia::common;
 using namespace gaia::db;
 
+// Use unnamed namespace to restrict external linkage.
 namespace
-{ // Use unnamed namespace to restrict external linkage.
+{
 
 const string c_error_prompt = "ERROR: ";
 const string c_warning_prompt = "WARNING: ";
