@@ -9,7 +9,7 @@ env:
 
 jobs:
   Third-Party:
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -30,7 +30,7 @@ jobs:
   Core:
     needs:
       - Third-Party
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -52,7 +52,7 @@ jobs:
   Debug_Core:
     needs:
       - Third-Party
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
