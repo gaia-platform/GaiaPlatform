@@ -31,6 +31,10 @@ repos:
       args:
         - --base-workflow
         - main.yml
+        - --ignore
+        - remove-old-artifacts.yml
+        - --ignore
+        - documentation.yml
         - "*.yml"
       pass_filenames: false
       additional_dependencies: [pyyaml]
@@ -52,7 +56,7 @@ repos:
       args:
         - --prefix
         - "#!/usr/bin/env python3\n\n#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n"
-      exclude: (^.+$(?<!\.py))|(^(dev_tools/gdev|production/tests/python/ps_mem.py|production/tools/tests/gaiat/lit.cfg.py))
+      exclude: (^.+$(?<!\.py))|(^(dev_tools/gdev|production/tests/python/ps_mem.py|production/tools/tests/gaiat/lit.cfg.py))|(^.+\_\_init\_\_\.py)
 
     - id: python_non_executable_license_check
       name: Check Python Non-Executable files for License Prefix
@@ -71,7 +75,7 @@ repos:
       args:
         - --prefix
         - "#!/usr/bin/env bash\n\n#############################################\n# Copyright (c) Gaia Platform LLC\n# All rights reserved.\n#############################################\n"
-      exclude: (^.+$(?<!\.sh))|(^(dev_tools/gdev|production/examples))
+      exclude: (^.+$(?<!\.sh))|(^(dev_tools/gdev|dev_tools/docker_dev|production/examples))
 
     - id: cmake_license_check
       name: Check CMake files for License Prefix
@@ -161,7 +165,7 @@ repos:
 #     - id: oclint
 
 - repo: https://github.com/jumanjihouse/pre-commit-hooks
-  rev: master
+  rev: 2.1.6
   hooks:
     - id: shellcheck
     - id: script-must-have-extension
@@ -186,4 +190,6 @@ repos:
   hooks:
     - id: pylint
       exclude: ^(dev_tools/gdev/|production/tools/tests/gaiat/lit.cfg.py|production/tests/python/ps_mem.py)
-      args: [--disable=R0801]
+      args:
+      - --disable=R0801
+      - --disable=import-error

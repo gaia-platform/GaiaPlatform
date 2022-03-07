@@ -40,6 +40,11 @@ transaction_object_limit_exceeded_internal::transaction_object_limit_exceeded_in
     m_message = "Transaction attempted to update too many objects.";
 }
 
+transaction_log_allocation_failure_internal::transaction_log_allocation_failure_internal()
+{
+    m_message = "Unable to allocate a log for this transaction.";
+}
+
 duplicate_object_id_internal::duplicate_object_id_internal(common::gaia_id_t id)
 {
     std::stringstream message;
@@ -189,9 +194,9 @@ unique_constraint_violation_internal::unique_constraint_violation_internal(const
     std::stringstream message;
     message
         << c_error_description
-        << " Cannot insert a duplicate key in table: '"
-        << error_table_name << "', because of the unique constraint of "
-        << " index: '" << error_index_name << "'.";
+        << " Cannot insert a duplicate key in table '"
+        << error_table_name << "', because of the unique constraint of"
+        << " index '" << error_index_name << "'.";
     m_message = message.str();
 }
 

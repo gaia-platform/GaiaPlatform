@@ -172,6 +172,12 @@ if [ -n "$BASE_IMAGE" ] ; then
     COVERAGE_IMAGE_BASE="--cache-from $BASE_IMAGE"
 fi
 
+echo "--"
+echo "before"
+du --max-depth=1 -m
+df -h
+echo "--"
+
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Building the coverage docker image."
 fi
@@ -199,6 +205,25 @@ if ! docker buildx build \
     "$REPO_ROOT_DIR" ; then
     complete_process 1 "Coverage build failed."
 fi
+
+echo "--"
+echo "before"
+du --max-depth=1 -m
+df -h
+echo "--"
+
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Pruning system resources consumed during build process."
+fi
+if ! docker system prune -f ; then
+    complete_process 1 "Unable to prune system resources after image build."
+fi
+
+echo "--"
+echo "after"
+du --max-depth=1 -m
+df -h
+echo "--"
 
 mkdir -p "$OUTPUT_DIRECTORY"
 

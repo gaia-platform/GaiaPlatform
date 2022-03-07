@@ -1,0 +1,35 @@
+////////////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+//
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE.txt file
+// or at https://opensource.org/licenses/MIT.
+////////////////////////////////////////////////////
+
+#include <gaia/logger.hpp>
+
+// A serial group is needed to prevent transaction conflicts over a dorm room
+// when multiple students are processed in parallel.
+ruleset vlr_serial_rules : serial_group()
+{
+    on_insert(student)
+    {
+        // Check the capacity of all dorm rooms.
+        if (/dorm_room.capacity > 0)
+        {
+            // The student is automatically connected to the dorm room
+            // because now their linked field (room_id) matches a room.
+            student.room_id = dorm_room.id;
+            dorm_room.capacity--;
+            return;
+        }
+    }
+
+    on_update(student.room_id)
+    {
+        // This rule's anchor row is a student, but we can refer to their
+        // dorm_room because we connected them in the previous rule.
+        gaia_log::app().info("Assigned {} to dorm room {}.",
+            student.name, dorm_room.name);
+    }
+}

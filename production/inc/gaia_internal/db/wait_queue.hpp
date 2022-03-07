@@ -6,7 +6,6 @@
 #pragma once
 
 #include <condition_variable>
-
 #include <queue>
 #include <thread>
 
