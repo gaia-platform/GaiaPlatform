@@ -45,6 +45,7 @@ runs:
         ssh-agent -a $SSH_AUTH_SOCK > /dev/null
         echo "${{ inputs.docker-password }}" | docker login ghcr.io -u ${{ inputs.docker-user }} --password-stdin
         docker pull $DEV_IMAGE
+        ssh-agent -k
 
     - name: Download Compressed Dev Image
       if: ${{ inputs.docker-user == '' }}
@@ -61,3 +62,4 @@ runs:
         ls -la ${{ github.workspace }}/production/dev_image.tar.gz
         docker load < ${{ github.workspace }}/production/dev_image.tar.gz
         rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
+        ssh-agent -k
