@@ -4,7 +4,7 @@ name: Core Build
 on:
   workflow_dispatch:
 env:
-#  SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+  SSH_AUTH_SOCK: /tmp/ssh_agent.sock
   DEV_IMAGE: ghcr.io/gaia-platform/dev-base-gaia-platform:latest
 
 jobs:
@@ -34,10 +34,10 @@ jobs:
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@master
-      - name: Setup Action
-        uses: ./.github/actions/setup-job
+#      - name: Checkout Repository
+#        uses: actions/checkout@master
+#      - name: Setup Action
+#        uses: ./.github/actions/setup-job
 
       - name: Create Build
         uses: ./.github/actions/build-job
@@ -56,10 +56,10 @@ jobs:
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@master
-      - name: Setup Action
-        uses: ./.github/actions/setup-job
+#      - name: Checkout Repository
+#        uses: actions/checkout@master
+#      - name: Setup Action
+#        uses: ./.github/actions/setup-job
 
       - name: Create Build
         uses: ./.github/actions/build-job
