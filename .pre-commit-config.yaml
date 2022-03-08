@@ -173,6 +173,12 @@ repos:
     - id: script-must-have-extension
       types: [shell, executable]
 
+- repo: https://github.com/koalaman/shellcheck-precommit
+  rev: v0.7.2
+  hooks:
+    - id: shellcheck
+#       args: ["--severity=warning"]  # Optionally only show errors and warnings
+
 - repo: https://github.com/psf/black
   rev: 21.7b0
   hooks:
