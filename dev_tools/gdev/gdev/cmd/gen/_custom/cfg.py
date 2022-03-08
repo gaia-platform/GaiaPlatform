@@ -9,7 +9,7 @@ class GenCustomCfg(GenAbcCfg):
 
     @memoize
     async def get_lines(self) -> Iterable[str]:
-        lines = tuple([f'{Path.mixin().context() / mixin}' for mixin in self.options.mixins])
+        lines = tuple([f'{Path.mixin().context() / mixin}' for mixin in sorted(self.options.mixins)])
 
         self.log.info(f'{lines = }')
 

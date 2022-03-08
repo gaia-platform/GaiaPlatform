@@ -106,35 +106,6 @@ protected:
     void open_shared(int fd) override;
 };
 
-// This class is similar to mapped_data_t, but is specialized for operation on log data structures.
-// There are enough differences from mapped_data_t to warrant a separate implementation.
-class mapped_log_t : public core_mapped_data_t<txn_log_t>
-{
-public:
-    mapped_log_t() = default;
-
-    // Copy semantics is disabled and moves should be performed via reset().
-    mapped_log_t(const mapped_log_t& other) = delete;
-    mapped_log_t(mapped_log_t&& other) = delete;
-    mapped_log_t& operator=(const mapped_log_t& rhs) = delete;
-    mapped_log_t& operator=(mapped_log_t&& rhs) = delete;
-
-    ~mapped_log_t() = default;
-
-    // Creates a memory-mapping for a log data structure.
-    void create(const char* name) override;
-
-    // Opens a memory-mapped log structure using a file descriptor.
-    void open(int fd, bool read_only = true);
-
-    // Unmaps a memory-mapped log structure, truncates and seals its fd, and
-    // relinquishes ownership of the fd, returning it to the caller.
-    int unmap_truncate_seal_fd();
-
-protected:
-    void open_shared(int fd) override;
-};
-
 // Structure describing a data mapping.
 // This is used to enable common handling of multiple mappings based on an array of such descriptions,
 // via the methods of this class.
@@ -145,6 +116,7 @@ struct data_mapping_t
         locators,
         counters,
         data,
+        logs,
         id_index,
 
         // This must be kept the last enum value.

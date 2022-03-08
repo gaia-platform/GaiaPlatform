@@ -15,20 +15,33 @@
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
 
+/**
+ * @defgroup gaia gaia
+ * Gaia global namespace
+ */
+
+/**
+ * @defgroup common common
+ * @ingroup gaia
+ * Common namespace
+ */
+
 namespace gaia
 {
 /**
- * \addtogroup gaia
+ * @addtogroup gaia
  * @{
  */
 namespace common
 {
 /**
- * \addtogroup common
+ * @addtogroup common
  * @{
  */
 
 constexpr char c_empty_string[] = "";
+constexpr char c_whitespace_chars[] = " \n\r\t\f\v";
+constexpr size_t c_uint64_bit_count = std::numeric_limits<uint64_t>::digits;
 
 /**
  * The type of a Gaia object identifier.
@@ -101,18 +114,18 @@ static_assert(
 /**
  * Opaque handle to a gaia record.
  */
-class gaia_handle_t : public int_type_t<uint64_t, 0>
+class gaia_handle_t : public int_type_t<uint32_t, 0>
 {
 public:
     // By default, we should initialize to an invalid value.
     constexpr gaia_handle_t()
-        : int_type_t<uint64_t, 0>()
+        : int_type_t<uint32_t, 0>()
     {
     }
 
     // NOLINTNEXTLINE(google-explicit-constructor)
-    constexpr gaia_handle_t(uint64_t value)
-        : int_type_t<uint64_t, 0>(value)
+    constexpr gaia_handle_t(uint32_t value)
+        : int_type_t<uint32_t, 0>(value)
     {
     }
 };
@@ -214,12 +227,20 @@ static_assert(
  */
 constexpr reference_offset_t c_invalid_reference_offset;
 
-// The offset of the parent reference in an anchor node.
-constexpr common::reference_offset_t c_ref_anchor_parent_offset{0};
-// The offset of the first child reference in an anchor node.
-constexpr common::reference_offset_t c_ref_anchor_first_child_offset{1};
-// Total number of reference slots in an anchor node.
-constexpr common::reference_offset_t c_ref_anchor_ref_num{2};
+/**
+ * The offset of the parent reference in an anchor node.
+ */
+constexpr reference_offset_t c_ref_anchor_parent_offset{0};
+
+/**
+ * The offset of the first child reference in an anchor node.
+ */
+constexpr reference_offset_t c_ref_anchor_first_child_offset{1};
+
+/**
+ * The total number of reference slots in an anchor node.
+ */
+constexpr reference_offset_t c_ref_anchor_ref_num{2};
 
 // This assertion ensures that the default type initialization
 // matches the value of the invalid constant.
@@ -252,77 +273,12 @@ constexpr std::underlying_type_t<T> get_enum_value(T val)
     return static_cast<std::underlying_type_t<T>>(val);
 }
 
-constexpr char c_whitespace_chars[] = " \n\r\t\f\v";
-
-/*@}*/
+/**@}*/
 } // namespace common
-/*@}*/
+/**@}*/
 } // namespace gaia
 
-namespace std
-{
-
-// This enables gaia_id_t to be hashed and used as a key in maps.
-template <>
-struct hash<gaia::common::gaia_id_t>
-{
-    size_t operator()(const gaia::common::gaia_id_t& gaia_id) const noexcept
-    {
-        return std::hash<gaia::common::gaia_id_t::value_type>()(gaia_id.value());
-    }
-};
-
-// This enables gaia_type_t to be hashed and used as a key in maps.
-template <>
-struct hash<gaia::common::gaia_type_t>
-{
-    size_t operator()(const gaia::common::gaia_type_t& gaia_type) const noexcept
-    {
-        return std::hash<gaia::common::gaia_type_t::value_type>()(gaia_type.value());
-    }
-};
-
-// This enables gaia_handle_t to be hashed and used as a key in maps.
-template <>
-struct hash<gaia::common::gaia_handle_t>
-{
-    size_t operator()(const gaia::common::gaia_handle_t& gaia_handle) const noexcept
-    {
-        return std::hash<gaia::common::gaia_handle_t::value_type>()(gaia_handle.value());
-    }
-};
-
-// This enables gaia_event_t to be hashed and used as a key in maps.
-template <>
-struct hash<gaia::common::gaia_event_t>
-{
-    size_t operator()(const gaia::common::gaia_event_t& gaia_event) const noexcept
-    {
-        return std::hash<gaia::common::gaia_event_t::value_type>()(gaia_event.value());
-    }
-};
-
-// This enables field_position_t to be hashed and used as a key in maps.
-template <>
-struct hash<gaia::common::field_position_t>
-{
-    size_t operator()(const gaia::common::field_position_t& field_position) const noexcept
-    {
-        return std::hash<gaia::common::field_position_t::value_type>()(field_position.value());
-    }
-};
-
-// This enables reference_offset_t to be hashed and used as a key in maps.
-template <>
-struct hash<gaia::common::reference_offset_t>
-{
-    size_t operator()(const gaia::common::reference_offset_t& reference_offset) const noexcept
-    {
-        return std::hash<gaia::common::reference_offset_t::value_type>()(reference_offset.value());
-    }
-};
-
-} // namespace std
+#include "gaia/internal/common_std.inc"
 
 // Restore default hidden visibility for all symbols.
 #pragma GCC visibility pop

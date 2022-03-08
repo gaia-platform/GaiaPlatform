@@ -132,13 +132,19 @@ parse_command_line "$@"
 start_process
 save_current_directory
 
+# Ensure we have a predictable place to place output that we want to expose.
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Creating build action output directory."
+fi
 cd "$GAIA_REPO/production" || exit
 
-# Ensure we have a predicatable place to place output that we want to expose.
 if ! mkdir -p "$GAIA_REPO/build/output" ; then
     complete_process 1 "Unable to create an output directory to capture the results."
 fi
 
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Executing build action within docker image."
+fi
 if ! docker run \
     --rm \
     --init \
@@ -148,6 +154,9 @@ if ! docker run \
     build_image \
     /source/dev_tools/github-actions/post_build_inside_container.sh --action "$ACTION_NAME" ; then
     complete_process 1 "Docker post-build script failed."
+fi
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Docker post-build script succeeded."
 fi
 
 complete_process 0

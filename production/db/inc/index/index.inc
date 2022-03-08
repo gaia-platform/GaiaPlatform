@@ -105,7 +105,15 @@ template <typename T_structure, typename T_iterator>
 std::shared_ptr<common::iterators::generator_t<index_record_t>> index_t<T_structure, T_iterator>::generator(
     gaia_txn_id_t txn_id)
 {
-    return std::make_shared<index_generator_t<T_structure>>(get_lock(), m_data, txn_id);
+    std::vector<char> storage;
+    return std::make_shared<index_generator_t<T_structure>>(get_lock(), m_data, std::move(storage), c_unbound_index_key, c_unbound_index_key, txn_id);
+}
+
+template <typename T_structure, typename T_iterator>
+std::shared_ptr<common::iterators::generator_t<index_record_t>> index_t<T_structure, T_iterator>::equal_range_generator(
+    gaia_txn_id_t txn_id, std::vector<char>&& storage, const index_key_t& key)
+{
+    return std::make_shared<index_generator_t<T_structure>>(get_lock(), m_data, std::move(storage), key, key, txn_id);
 }
 
 // Find physical key corresponding to a logical_key + record or return the end iterator.

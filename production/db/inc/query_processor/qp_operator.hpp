@@ -22,8 +22,7 @@ namespace query_processor
  *
  * In future, this class should be much more well fleshed out,
  * perhaps with methods like explain()?
- *
- * */
+ */
 class physical_operator_t
 {
 };

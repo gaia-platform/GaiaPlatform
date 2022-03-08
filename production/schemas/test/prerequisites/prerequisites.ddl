@@ -73,3 +73,16 @@ table enrollment_log (
     log_hours int32,
     log_reg_id string
 )
+
+table floor (
+    num int32 unique,
+    department string,
+    people references person[]
+)
+
+table person (
+    person_name string,
+    floor_num int32,
+    floor references floor
+        where person.floor_num = floor.num
+)

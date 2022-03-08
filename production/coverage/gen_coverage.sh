@@ -148,6 +148,22 @@ parse_command_line "$@"
 # Clean entrance into the script.
 start_process
 
+echo "---"
+echo "before"
+du --max-depth=1 -m
+echo "---"
+
+find . -name "*.o" -type f -delete
+find . -name "*.a" -type f -delete
+rm -rf llvm/unittests/
+rm -rf llvm/tools/
+rm -rf llvm/test/
+
+echo "---"
+echo "after"
+du --max-depth=1 -m
+echo "---"
+
 echo "Downloading LLVM-13."
 wget --no-check-certificate -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 add-apt-repository 'deb http://apt.llvm.org/focal/   llvm-toolchain-focal-13  main'
@@ -178,6 +194,9 @@ echo "Merging all profiles into a single profile data file."
 if ! /usr/lib/llvm-13/bin/llvm-profdata merge --input-files /build/production/output/profiles.txt --output tests.profdata ; then
     complete_process 1 "Unable to merge profiles into a single data file."
 fi
+
+echo "Removing all profiles."
+find . -name "*.profraw" -type f -delete
 
 #
 # Source directories, by team:

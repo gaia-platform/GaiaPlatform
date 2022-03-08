@@ -8,44 +8,6 @@ env:
   DEV_IMAGE: ghcr.io/gaia-platform/dev-base-gaia-platform:latest
 
 jobs:
-  Lint:
-    runs-on: ubuntu-20.04
-    env:
-      GAIA_REPO: ${{ github.workspace }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@master
-
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
-
-      - name: Install Required Python Packages
-        run: |
-          python3 -m pip install pre-commit
-
-      - name: Set Cache Key for Pre-Commit Checks
-        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
-
-      - name: Apply Pre-Commit Checks Cache
-        uses: actions/cache@v1
-        with:
-          path: ~/.cache/pre-commit
-          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
-
-      - name: Execute Pre-Commit Checks
-        run: |
-          cd $GAIA_REPO/production
-          pre-commit run --all-files
-
-      - name: GitHub Info
-        run: |
-          echo "Branch: ${{ github.ref }}"
-          echo "Ref-Name: ${{ github.ref_name }}"
-          echo "Event-Name: ${{ github.event_name }}"
-          echo "Event-Path: ${{ github.event_path }}"
-
   Third-Party:
     runs-on: ubuntu-20.04
     env:
@@ -53,64 +15,20 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
-
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
         with:
-          python-version: 3.8
+          docker-user: ${{ github.actor }}
+          docker-password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Clean up disk space
-        run: |
-          df -h
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          df -h
-
-      - name: Pull Latest Dev-Core Image
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker pull $DEV_IMAGE
-
-      - name: Build Docker Image
-        run: |
-          cd $GAIA_REPO/production
-          pip install atools argcomplete
-          $GAIA_REPO/dev_tools/gdev/gdev.sh dockerfile > $GAIA_REPO/production/raw_dockerfile
-          $GAIA_REPO/dev_tools/github-actions/copy_until_line.py --input-file $GAIA_REPO/production/raw_dockerfile --output-file $GAIA_REPO/production/dockerfile --stop-line "# GenRunDockerfile(production)"
-          docker buildx build -f $GAIA_REPO/production/dockerfile -t $DEV_IMAGE --cache-from $DEV_IMAGE --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/amd64 --shm-size 1gb --ssh default --compress ..
-
-      - name: Upload Intermediate Files
-        if: always()
-        uses: actions/upload-artifact@v2
+      - name: Build Third-Party Projects
+        uses: ./.github/actions/third-party-job
         with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/production/raw_dockerfile
-            ${{ github.workspace }}/production/dockerfile
-
-      - name: Publish Dev Image to GitHub Repository
-        run: |
-          echo "Pushing Dev Image to GitHub Docker Repository"
-          docker push $DEV_IMAGE
-
-      - name: Save Compressed Dev Image
-        run: |
-          echo "Saving Dev Image as GZipped Tarball"
-          docker save $DEV_IMAGE | gzip > ${{ github.workspace }}/production/dev_image.tar.gz
-          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
-
-      - name: Upload Install Package
-        uses: actions/upload-artifact@v2
-        with:
-          name: Dev Image
-          path: |
-            ${{ github.workspace }}/production/dev_image.tar.gz
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
 
   Core:
     needs:
-      - Lint
       - Third-Party
     runs-on: ubuntu-20.04
     env:
@@ -118,54 +36,21 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
 
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
+      - name: Create Build
+        uses: ./.github/actions/build-job
         with:
-          python-version: 3.8
-
-      - name: Clean up disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-
-      - name: Download Dev Image
-        uses: actions/download-artifact@v2
-        with:
-          name: Dev Image
-          path: ${{ github.workspace }}/production
-
-      - name: Load Compressed Dev Image
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
-          docker load < ${{ github.workspace }}/production/dev_image.tar.gz
-          rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
-
-      - name: Build Docker Image
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
-              --repo-path $GAIA_REPO \
-              --base-image $DEV_IMAGE
-
-      - name: Run Unit Tests
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
-            --repo-path $GAIA_REPO \
-            --action unit_tests
-
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/build/output
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          execute-unit-tests: true
+          publish-package: false
+          build-flavor: Core
+          build-type: Release
 
   Debug_Core:
     needs:
-      - Lint
       - Third-Party
     runs-on: ubuntu-20.04
     env:
@@ -173,48 +58,15 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
+      - name: Setup Action
+        uses: ./.github/actions/setup-job
 
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v2
+      - name: Create Build
+        uses: ./.github/actions/build-job
         with:
-          python-version: 3.8
-
-      - name: Clean up disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-
-      - name: Download Dev Image
-        uses: actions/download-artifact@v2
-        with:
-          name: Dev Image
-          path: ${{ github.workspace }}/production
-
-      - name: Load Compressed Dev Image
-        run: |
-          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-          ls -la ${{ github.workspace }}/production/dev_image.tar.gz
-          docker load < ${{ github.workspace }}/production/dev_image.tar.gz
-          rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
-
-      - name: Build Docker Image
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/build_image.sh \
-              --repo-path $GAIA_REPO \
-              --base-image $DEV_IMAGE \
-              --cfg-enables Debug
-
-      - name: Run Unit Tests
-        run: |
-          $GAIA_REPO/dev_tools/github-actions/post_build_action.sh \
-            --repo-path $GAIA_REPO \
-            --action unit_tests
-
-      - name: Upload Output Files
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{github.job}} Output Files
-          path: |
-            ${{ github.workspace }}/build/output
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          execute-unit-tests: true
+          publish-package: false
+          build-flavor: Core
+          build-type: Debug
