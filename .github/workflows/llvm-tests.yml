@@ -10,7 +10,7 @@ env:
 jobs:
 
   Third-Party:
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -30,7 +30,7 @@ jobs:
 
   LLVM_Tests:
     needs: Third-Party
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:

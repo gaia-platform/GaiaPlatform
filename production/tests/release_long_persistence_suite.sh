@@ -22,6 +22,5 @@ USE_PERSISTENT_DATABASE=1
 
 # Invoke the actual execution of the suites.
 # shellcheck source=execute_suites.sh
-# shellcheck disable=SC1091
 source "$SCRIPTPATH/execute_suites.sh"
 execute_suites "$@"
