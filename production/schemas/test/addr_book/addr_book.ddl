@@ -58,6 +58,7 @@ table company(
 
 table client (
     client_name string,
+    period int32,
     sales int32[],
     company references company
 )
