@@ -35,6 +35,8 @@ repos:
         - remove-old-artifacts.yml
         - --ignore
         - documentation.yml
+        - --ignore
+        - build-tool-cache.yml
         - "*.yml"
       pass_filenames: false
       additional_dependencies: [pyyaml]
