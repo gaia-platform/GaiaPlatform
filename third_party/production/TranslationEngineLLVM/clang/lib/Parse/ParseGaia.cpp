@@ -61,7 +61,7 @@ std::string Parser::GetExplicitNavigationPath()
             returnValue = "@/";
         }
     }
-    else if (previousPreviousToken.is(tok::slash))
+    else if (previousPreviousToken.is(tok::slash) && getPreviousToken(previousPreviousToken).isNot(tok::star))
     {
         returnValue = "/";
         startLocation = previousPreviousToken.getLocation();

@@ -8,6 +8,7 @@
 #include <atomic>
 #include <vector>
 
+#include <gaia/logger.hpp>
 #include "gaia_prerequisites.h"
 #include "test_rulesets.hpp"
 
@@ -803,5 +804,23 @@ ruleset test_disconnect_delete
     {
         registration.student_id = nullptr;
         registration.remove();
+    }
+}
+
+//GAIAPLAT-1906
+ruleset vlr_rules
+{
+    on_update(floor_num)
+    {
+        auto c = floor(345.235345);
+        gaia_log::app().info("{} has arrived at: {}", person_name, floor.department);
+
+        auto me = person_name;
+
+        if (0 != strcmp(me, floor->person.person_name))
+        {
+            gaia_log::app().info("{} says: Hi, {}!", person_name, me);
+        }
+        gaia_log::app().info("---");
     }
 }
