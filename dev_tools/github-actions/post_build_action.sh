@@ -149,6 +149,7 @@ if ! docker run \
     --rm \
     --init \
     -t \
+    -u $(id -u ${USER}):$(id -g ${USER}) \
     --platform linux/amd64 \
     --mount "type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$GAIA_REPO/build/output" \
     build_image \
