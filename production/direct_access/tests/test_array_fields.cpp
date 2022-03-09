@@ -25,7 +25,7 @@ class array_field_test : public db_catalog_test_base_t
 {
 protected:
     array_field_test()
-        : db_catalog_test_base_t(std::string("addr_book.ddl")){};
+        : db_catalog_test_base_t("addr_book.ddl"){};
 };
 
 TEST_F(array_field_test, array_insert)
@@ -118,4 +118,13 @@ TEST_F(array_field_test, array_iteration)
     }
     EXPECT_EQ(sales.size(), customer.sales_by_quarter().size());
     EXPECT_TRUE(std::equal(sales.begin(), sales.end(), customer.sales_by_quarter().data()));
+
+    sales.clear();
+    std::vector<int32_t> expected_sales = {500, 300, 200};
+    for (auto sales_iter = customer.sales_by_quarter().rbegin(); sales_iter != customer.sales_by_quarter().rend(); ++sales_iter)
+    {
+        sales.push_back(*sales_iter);
+    }
+    EXPECT_EQ(sales.size(), customer.sales_by_quarter().size());
+    EXPECT_TRUE(std::equal(sales.begin(), sales.end(), expected_sales.begin()));
 }

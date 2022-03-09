@@ -51,7 +51,7 @@ public:
     /**
      * Constructs an iterator that does not point to any data.
      */
-    dac_vector_const_iterator_t();
+    dac_vector_const_iterator_t() = default;
 
     /**
      * Constructs an iterator pointing to a DAC vector, starting at a given index.
@@ -98,6 +98,70 @@ dac_vector_const_iterator_t<T_type> operator+(
     const dac_vector_const_iterator_t<T_type>& rhs);
 
 /**
+ * A read-only reverse iterator for traversing elements in a `dac_vector_t`.
+ *
+ * @tparam T_type The type of `dac_vector_t` elements that the iterator traverses.
+ */
+template <typename T_type>
+class dac_vector_const_reverse_iterator_t
+{
+public:
+    using difference_type = std::ptrdiff_t;
+    using value_type = T_type;
+    using pointer = const value_type*;
+    using reference = const value_type&;
+    using iterator_category = std::random_access_iterator_tag;
+
+    /**
+     * Constructs a reverse iterator that does not point to any data.
+     */
+    dac_vector_const_reverse_iterator_t() = default;
+
+    /**
+     * Constructs a revere iterator pointing to a DAC vector, starting at a given index.
+     * @param dac_vector The DAC vector to iterate over.
+     * @param index The vector index to start iterating from.
+     */
+    explicit dac_vector_const_reverse_iterator_t(const dac_vector_t<T_type>& dac_vector, uint32_t index);
+
+    // Comparing iterators from different containers is undefined behavior.
+
+    bool operator==(const dac_vector_const_reverse_iterator_t& rhs) const;
+    bool operator!=(const dac_vector_const_reverse_iterator_t& rhs) const;
+
+    reference operator*() const;
+    pointer operator->() const;
+
+    dac_vector_const_reverse_iterator_t<T_type>& operator++();
+    dac_vector_const_reverse_iterator_t<T_type> operator++(int);
+    dac_vector_const_reverse_iterator_t<T_type>& operator--();
+    dac_vector_const_reverse_iterator_t<T_type> operator--(int);
+
+    dac_vector_const_reverse_iterator_t<T_type> operator+(difference_type rhs) const;
+    dac_vector_const_reverse_iterator_t<T_type> operator-(difference_type rhs) const;
+    difference_type operator-(const dac_vector_const_reverse_iterator_t<T_type>& rhs) const;
+
+    dac_vector_const_reverse_iterator_t<T_type>& operator+=(difference_type rhs);
+    dac_vector_const_reverse_iterator_t<T_type>& operator-=(difference_type rhs);
+
+    reference operator[](difference_type rhs) const;
+
+    bool operator<(const dac_vector_const_reverse_iterator_t<T_type>& rhs) const;
+    bool operator>(const dac_vector_const_reverse_iterator_t<T_type>& rhs) const;
+    bool operator<=(const dac_vector_const_reverse_iterator_t<T_type>& rhs) const;
+    bool operator>=(const dac_vector_const_reverse_iterator_t<T_type>& rhs) const;
+
+private:
+    const T_type* m_iterator_data;
+    uint32_t m_index;
+};
+
+template <typename T_type>
+dac_vector_const_reverse_iterator_t<T_type> operator+(
+    typename dac_vector_const_reverse_iterator_t<T_type>::difference_type lhs,
+    const dac_vector_const_reverse_iterator_t<T_type>& rhs);
+
+/**
  * The base class of array fields.
  *
  * @tparam T_type The type of the array's elements.
@@ -107,6 +171,7 @@ class dac_vector_t
 {
 public:
     using const_iterator = dac_vector_const_iterator_t<T_type>;
+    using const_reverse_iterator = dac_vector_const_reverse_iterator_t<T_type>;
 
     dac_vector_t() = delete;
 
@@ -139,6 +204,17 @@ public:
      * It is not the last element and should not be dereferenced.
      */
     const_iterator end() const;
+
+    /**
+     * @return A reverse iterator pointing to the last element of the vector.
+     */
+    const_reverse_iterator rbegin() const;
+
+    /**
+     * @return A "past-the-start" reverse iterator used to check if there are no more elements.
+     * It is not the first element and should not be dereferenced.
+     */
+    const_reverse_iterator rend() const;
 
     /**
      * @return A `std::vector` containing a copy of all elements in the Direct Access vector.

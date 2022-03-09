@@ -59,7 +59,7 @@ class Host:
         if Host.__is_drydock_enabled:
             print(f"[execute:{command}]")
         else:
-            await Host.__execute(capture_output=False, command=command, err_ok=err_ok)
+            await Host._execute(capture_output=False, command=command, err_ok=err_ok)
 
     @staticmethod
     async def execute_and_get_lines(command: str, *, err_ok: bool = False) -> Sequence[str]:
