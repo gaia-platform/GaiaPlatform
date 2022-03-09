@@ -61,23 +61,28 @@ AllowAllParametersOfDeclarationOnNextLine: true
 # 1. Associated file header (XYZ.hpp)
 # 2. C system headers. (Priority: 1-2)
 # 3. C++ standard library headers (Priority: 5)
-# 4. third party library headers (Priority: 10)
-# 5. your other project headers (Priority: 20-22 + 30)
+# 4. Third party library headers (Priority: 10)
+# 5. Other project headers (Priority: 20-23 + 30)
 # Note this could break the code, read: https://stackoverflow.com/questions/37927553/can-clang-format-break-my-code
 IncludeBlocks: Regroup
 IncludeCategories:
+  # Public internal Gaia headers.
+  - Regex: 'gaia\/internal\/'
+    Priority: 20
+    SortPriority: 21
   # Public Gaia headers.
   - Regex: 'gaia\/'
-    Priority: 20
+    Priority: 21
+    SortPriority: 20
   # Internal Gaia headers.
   - Regex: 'gaia_internal\/'
-    Priority: 21
-  # Internal Gaia headers.
+    Priority: 22
+  # Internal Gaia spdlog headers.
   - Regex: 'gaia_spdlog\/'
-    Priority: 22
-  # Internal Gaia headers.
+    Priority: 23
+  # Internal Gaia spdlog headers.
   - Regex: 'gaia_spdlog_setup\/'
-    Priority: 22
+    Priority: 23
   # Third-party headers.
   - Regex: '[flatbuffers|gtest|libexplain|llvm|pybind11|rocksdb|spdlog|tabulate]\/'
     Priority: 10
@@ -97,7 +102,7 @@ IncludeCategories:
   # C system headers.
   - Regex: '^<.*\.h>'
     Priority: 1
-  - Regex: '^<c.*'
+  - Regex: 'cassert|cctype|cerrno|cfenv|cfloat|cinttypes|climits|clocale|cmath|csetjmp|csignal|cstdarg|cstddef|cstdint|cstdio|cstdlib|cstring|ctime|cuchar|cwchar|cwctype'
     Priority: 2
   # C++ library headers.
   - Regex: '^<.*'

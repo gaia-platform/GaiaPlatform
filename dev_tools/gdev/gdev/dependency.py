@@ -75,6 +75,13 @@ class Dependency:
 
     options: Options
 
+    __LOG_LEVELS = [
+        "CRITICAL",
+        "ERROR",
+        "WARNING",
+        "INFO",
+        "DEBUG"]
+
     class Exception(Exception):
         pass
 
@@ -140,7 +147,7 @@ class Dependency:
             parser.add_argument(
                 '--cfg-enables',
                 default=cfg_enables_default,
-                nargs='*',
+                nargs="*",
                 help=(
                     f'Enable lines in gdev.cfg files gated by `enable_if`, `enable_if_any`, and'
                     f' `enable_if_all` functions. Default: "{cfg_enables_default}"'
@@ -150,7 +157,7 @@ class Dependency:
             parser.add_argument(
                 '--log-level',
                 default=log_level_default,
-                choices=[name for _, name in sorted(logging._levelToName.items())],
+                choices=[name for name in Dependency.__LOG_LEVELS],
                 help=f'Log level. Default: "{log_level_default}"'
             )
             parser.add_argument(
@@ -285,6 +292,7 @@ class Dependency:
         if parsed_args['args'] and parsed_args['args'][0] == '--':
             parsed_args['args'] = parsed_args['args'][1:]
         parsed_args['args'] = ' '.join(parsed_args['args'])
+
         parsed_args['cfg_enables'] = frozenset([
             parsed_args['base_image'], *parsed_args['cfg_enables'], *parsed_args['mixins']
         ])

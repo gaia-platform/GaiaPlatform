@@ -290,6 +290,18 @@ ruleset test_comment
     }
 }
 
+ruleset test_comment_rule
+{
+
+    on_insert(sensor)
+    {
+    /* COMMENT
+     COMMENT
+     COMMENT*/
+     timestamp = 5;
+    }
+}
+
 // GAIAPLAT-1432
 ruleset testE31
 {

@@ -14,5 +14,15 @@ END
     exit 1
 fi
 
-# shellcheck disable=SC2068
-pipenv run pytest -ra $@
+# Since we do checks against the original gdev, make sure to eliminate them from
+# the coverage reports.
+# shellcheck disable=SC2164
+SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+cp "$SCRIPTPATH/.coveragerc.in" "$SCRIPTPATH/.coveragerc"
+sed -i "s|{pwd}|$SCRIPTPATH|" "$SCRIPTPATH/.coveragerc"
+
+# --full-trace
+PYTEST_ARGS="-ra"
+PYTEST_ARGS="$PYTEST_ARGS --cov=gdev --cov-branch --cov-report html:report/coverage"
+# shellcheck disable=SC2068,SC2086
+pipenv run pytest $PYTEST_ARGS $@

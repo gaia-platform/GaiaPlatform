@@ -18,22 +18,23 @@
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
 
+/**
+ * @defgroup rules rules
+ * @ingroup gaia
+ * Rules namespace
+ */
+
 namespace gaia
 {
 /**
- * \addtogroup gaia
+ * @addtogroup gaia
  * @{
  */
-
 namespace rules
 {
-
 /**
- * \addtogroup rules
+ * @addtogroup rules
  * @{
- *
- * Provides facilities for subscribing and unsubscribing rules
- * to events.
  */
 
 struct rule_context_t;
@@ -336,9 +337,9 @@ void list_subscribed_rules(
     const common::field_position_t* field,
     subscription_list_t& subscriptions);
 
-/*@}*/
+/**@}*/
 } // namespace rules
-/*@}*/
+/**@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.

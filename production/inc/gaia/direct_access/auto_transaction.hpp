@@ -12,23 +12,28 @@
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
 
+/**
+ * @defgroup direct_access direct_access
+ * @ingroup gaia
+ * Direct Access namespace
+ */
+
 namespace gaia
 {
 /**
- * \addtogroup gaia
+ * @addtogroup gaia
  * @{
  */
 namespace direct_access
 {
 /**
- * \addtogroup direct_access
+ * @addtogroup direct_access
  * @{
- *
- * Provides a RAII object for exception safe handling of transactions.
- *
  */
 
 /**
+ * @brief Provides a RAII object for exception safe handling of transactions.
+ *
  * The auto transaction object begins a transaction on construction and
  * does a rollback on destruction.  The user must explicitly call commit().
  *
@@ -56,9 +61,9 @@ private:
     bool m_auto_restart;
 };
 
-/*@}*/
+/**@}*/
 } // namespace direct_access
-/*@}*/
+/**@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.

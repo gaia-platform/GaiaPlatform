@@ -25,6 +25,7 @@ namespace direct_access
 //
 // Exception class implementations.
 //
+
 invalid_object_state_internal::invalid_object_state_internal()
 {
     m_message = "An operation was attempted on an object that does not exist.";
@@ -245,6 +246,7 @@ void dac_base_t::set(common::gaia_id_t new_id)
 //
 // dac_base_reference_t implementation
 //
+
 dac_base_reference_t::dac_base_reference_t(gaia_id_t parent, reference_offset_t child_offset)
     : m_parent_id(parent), m_child_offset(child_offset)
 {

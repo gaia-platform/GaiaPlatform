@@ -194,6 +194,10 @@ fi
 cd "$PACKAGE_PATH" || exit
 # shellcheck disable=SC2061
 INSTALL_PATH="$(find . -name gaia*)"
+if [[ -z "$INSTALL_PATH" ]] ; then
+    ls -la "$PACKAGE_PATH"
+    complete_process 1 "Debian package to install could not be found."
+fi
 
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Installing Debian package '$INSTALL_PATH'..."
@@ -205,7 +209,7 @@ fi
 
 ## PER JOB CONFIGURATION ##
 
-if [ "$JOB_NAME" == "Integration_Tests" ] || [ "$JOB_NAME" == "Performance_Tests" ] ; then
+if [[ "$JOB_NAME" == Integration_Tests* ]] || [[ "$JOB_NAME" == "Performance_Tests" ]] ; then
 
     cd "$GAIA_REPO/production/tests" || exit
 
@@ -234,9 +238,8 @@ if [ "$JOB_NAME" == "Integration_Tests" ] || [ "$JOB_NAME" == "Performance_Tests
 elif [ "$JOB_NAME" == "Integration_Samples" ] ; then
 
     if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Executing Integration Sample tests."
+        echo "Executing the Integration Samples tests."
     fi
-
     cd "$GAIA_REPO/dev_tools/sdk/test" || exit
     if ! sudo bash -c "./build_sample_for_github_actions.sh 2>&1 > \"$GAIA_REPO/production/tests/results/test.log\"" ; then
         complete_process 1 "Tests for job '$JOB_NAME' failed  See job artifacts for more information."

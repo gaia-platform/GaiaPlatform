@@ -50,7 +50,7 @@ std::shared_ptr<int> scan_generator_t::get_record_cursor_socket_for_index(
 
     if (predicate)
     {
-        serialized_predicate = predicate->as_query(builder);
+        serialized_predicate = predicate->as_query(index_id, builder);
     }
 
     auto info_builder = index_scan_info_tBuilder(builder);
@@ -99,6 +99,7 @@ std::shared_ptr<int> scan_generator_t::get_record_cursor_socket_for_index(
 
     return stream_socket_ptr;
 }
+
 } // namespace scan
 } // namespace query_processor
 } // namespace db

@@ -2160,7 +2160,6 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
   } else {
     bool IvarLookupFollowUp = II && !SS.isSet() && getCurMethodDecl();
     LookupParsedName(R, S, &SS, !IvarLookupFollowUp);
-
     // If the result might be in a dependent base class, this is a dependent
     // id-expression.
     if (R.getResultKind() == LookupResult::NotFoundInCurrentInstantiation)
@@ -2197,7 +2196,20 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
   bool isVariableInjected = false;
   bool isInjectionFailed = false;
 
-  if (R.empty() && getCurScope()->isInRulesetScope())
+  bool isPossibleFunctionShadowOfDeclarativeEntity = false;
+  if (!R.empty())
+  {
+    for (NamedDecl *declaration : R)
+    {
+      if (isa<FunctionDecl>(declaration))
+      {
+        isPossibleFunctionShadowOfDeclarativeEntity = !explicitPath.empty() && explicitPath.rfind(II->getName(), 0) == 0 && explicitPath != II->getName();
+        break;
+      }
+    }
+  }
+
+  if ((R.empty() || isPossibleFunctionShadowOfDeclarativeEntity) && getCurScope()->isInRulesetScope())
   {
     if (S->getFnParent() != nullptr)
     {
@@ -2212,6 +2224,10 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
             NamedDecl *D = injectVariableDefinition(II, NameLoc, explicitPath);
             if (D)
             {
+              if (!R.empty())
+              {
+                R.clear(LookupOrdinaryName);
+              }
               R.addDecl(D);
               isVariableInjected = true;
               injectedVariablesLocation.insert(NameLoc);

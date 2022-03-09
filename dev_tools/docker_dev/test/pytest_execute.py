@@ -11,6 +11,7 @@ Module to provide functionality to test scripts from within pytest.
 This code copied from: https://github.com/jackdewinter/pyscan.
 Any changes made to this code above the base code are copyright by Gaia Platform LLC.
 """
+
 import difflib
 import io
 import logging
@@ -62,26 +63,30 @@ class InProcessResult:
                 diff_values = "\n".join(list(diff))
                 print(diff_values, file=sys.stderr)
                 if not was_found:
-                    assert (
-                        False
-                    ), f"Block\n---\n{next_text_block}\n---\nwas not found in\n---\n{actual_stream.getvalue()}"
-        elif actual_stream.getvalue().strip() != expected_text.strip():
-            diff = difflib.ndiff(
-                expected_text.splitlines(), actual_stream.getvalue().splitlines()
-            )
+                    assert False, (
+                        f"Block\n---\n{next_text_block}\n---\nwas not found in"
+                        + f"\n---\n{actual_stream.getvalue()}"
+                    )
+        else:
+            if actual_stream.getvalue().strip() != expected_text.strip():
+                diff = difflib.ndiff(
+                    expected_text.splitlines(), actual_stream.getvalue().splitlines()
+                )
 
-            diff_values = "\n".join(list(diff)) + "\n---\n"
+                diff_values = "\n".join(list(diff)) + "\n---\n"
 
-            LOGGER.warning(
-                "actual>>%s",
-                cls.__make_value_visible(actual_stream.getvalue()),
-            )
-            print(f"WARN>actual>>{cls.__make_value_visible(actual_stream.getvalue())}")
-            LOGGER.warning("expect>>%s", cls.__make_value_visible(expected_text))
-            print(f"WARN>expect>>{cls.__make_value_visible(expected_text)}")
-            if log_extra:
-                print(f"log_extra:{log_extra}")
-            assert False, f"{stream_name} not as expected:\n{diff_values}"
+                LOGGER.warning(
+                    "actual>>%s",
+                    cls.__make_value_visible(actual_stream.getvalue()),
+                )
+                print(
+                    f"WARN>actual>>{cls.__make_value_visible(actual_stream.getvalue())}"
+                )
+                LOGGER.warning("expect>>%s", cls.__make_value_visible(expected_text))
+                print(f"WARN>expect>>{cls.__make_value_visible(expected_text)}")
+                if log_extra:
+                    print(f"log_extra:{log_extra}")
+                assert False, f"{stream_name} not as expected:\n{diff_values}"
 
     # pylint: enable=too-many-arguments
 
@@ -105,6 +110,13 @@ class InProcessResult:
         Standard output collected during execution.
         """
         return self.__std_out
+
+    @property
+    def std_err(self):
+        """
+        Standard error collected during execution.
+        """
+        return self.__std_err
 
     # pylint: disable=too-many-arguments
     def assert_results(
@@ -160,9 +172,10 @@ class InProcessResult:
                     not self.__std_err.getvalue()
                 ), f"Expected stderr to be empty, not: {self.__std_err.getvalue()}"
 
-            assert (
-                self.__return_code == error_code
-            ), f"Actual error code ({self.__return_code}) and expected error code ({error_code}) differ."
+            assert self.__return_code == error_code, (
+                f"Actual error code ({self.__return_code}) and "
+                + f"expected error code ({error_code}) differ."
+            )
 
         finally:
             self.__std_out.close()
@@ -224,9 +237,10 @@ class InProcessResult:
         if are_different:
             diff = difflib.ndiff(split_actual_contents, split_expected_contents)
             diff_values = "\n".join(list(diff))
-            assert (
-                False
-            ), f"Actual and expected contents of '{file_path}' are not equal:\n---\n{diff_values}\n---\n"
+            assert False, (
+                f"Actual and expected contents of '{file_path}' are not equal:"
+                + f"\n---\n{diff_values}\n---\n"
+            )
 
 
 # pylint: disable=too-few-public-methods

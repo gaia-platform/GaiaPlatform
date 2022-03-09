@@ -25,7 +25,7 @@ namespace scan
 
 class base_index_scan_physical_t;
 
-/*
+/**
  * Additional scan state for index scans.
  *
  * In future could be modified to also collect statistics.
@@ -64,7 +64,7 @@ inline bool scan_state_t::limit_reached()
  * Instantiating the iterator will cause the init() method
  * of the implementation to be called.
  *
- **/
+ */
 class index_scan_iterator_t
 {
 public:
@@ -89,7 +89,7 @@ private:
 };
 
 /**
- *  This method is a point of entry and is compatible with C++'s range-based for loop.
+ * This method is a point of entry and is compatible with C++'s range-based for loop.
  *
  * Example usage:
  *
@@ -98,8 +98,7 @@ private:
  *   {
  *     ...
  *   }
- *
- **/
+ */
 class index_scan_t
 {
 public:
