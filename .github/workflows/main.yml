@@ -100,7 +100,7 @@ jobs:
     needs:
       - Core
     runs-on: ubuntu-20.04
-    if: github.event_name != 'pull_request'
+    if: ${{ false }}
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -123,7 +123,7 @@ jobs:
   Debug_SDK:
     needs:
       - Core
-    if: github.event_name != 'pull_request'
+    if: ${{ false }}
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -147,7 +147,7 @@ jobs:
     needs:
       - Lint
       - Third-Party
-    if: github.event_name != 'pull_request'
+    if: ${{ false }}
     timeout-minutes: 200
     runs-on: ubuntu-20.04
     env:
@@ -169,7 +169,7 @@ jobs:
     needs:
       - Lint
       - Third-Party
-    if: github.event_name != 'pull_request'
+    if: ${{ false }}
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -352,7 +352,7 @@ jobs:
   Documentation:
     needs:
       - Lint
-    if: github.event_name != 'pull_request'
+    if: ${{ false }}
     runs-on: ubuntu-20.04
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -370,11 +370,11 @@ jobs:
   Final:
     needs:
       - Core
-      - Debug_Core
-      - Coverage
-      - LLVM_Tests
+#      - Debug_Core
+#      - Coverage
+#      - LLVM_Tests
       - Integration_Tests
-      - Integration_Tests_Debug
+#      - Integration_Tests_Debug
       - Performance_Tests
       - Integration_Samples
       - Documentation
