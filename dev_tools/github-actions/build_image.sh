@@ -183,6 +183,8 @@ if [ "$VERBOSE_MODE" -ne 0 ]; then
 fi
 # shellcheck disable=SC2086
 if ! docker buildx build \
+    --build-arg USER_ID=$(id -u ${USER}) \
+    --build-arg GROUP_ID=$(id -g ${USER}) \
     -f "$GAIA_REPO/production/dockerfile" \
     -t build_image \
     $BASE_IMAGE \
