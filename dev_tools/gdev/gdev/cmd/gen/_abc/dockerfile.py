@@ -44,6 +44,9 @@ class GenAbcDockerfile(Dependency, ABC):
             ARG USER_ID
             ARG GROUP_ID
 
+            RUN echo "User: ${{USER_ID}}"
+            RUN echo "Group: ${{GROUP_ID}}"
+
             RUN groupadd -r -g 101 messagebus \
                 && groupadd -r -g 102 postgres \
                 && groupadd -r -g 103 ssh \
