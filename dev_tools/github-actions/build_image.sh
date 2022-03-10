@@ -188,8 +188,8 @@ if ! docker buildx build \
     -t build_image \
     $BASE_IMAGE \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
-    --build-arg USER_ID=$(id -u ${USER}) \
-    --build-arg GROUP_ID=$(id -g ${USER}) \
+    --build-arg USER_ID="$(id -u ${USER})" \
+    --build-arg GROUP_ID="$(id -g ${USER})" \
     --platform linux/amd64 \
     --shm-size 1gb \
     --ssh default \
