@@ -182,9 +182,6 @@ if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Building docker image..."
 fi
 
-echo "$(id -u ${USER})"
-echo "$(id -g ${USER})"
-
 # shellcheck disable=SC2086
 if ! docker buildx build \
     -f "$GAIA_REPO/production/dockerfile" \
