@@ -52,7 +52,7 @@ class GenAbcDockerfile(Dependency, ABC):
                 && groupadd -r -g 106 systemd-journal \
                 && groupadd -r -g 107 systemd-network \
                 && groupadd -r -g 108 systemd-resolve \
-                && groupadd -g ${GROUP_ID} ci-user \
+                && groupadd -g ${{GROUP_ID}} ci-user \
                 && useradd messagebus -l -r -u 101 -g 101 \
                 && useradd postgres -l -r -u 102 -g 102 -G ssl-cert \
                 && useradd systemd-timesync -l -r -u 103 -g 105 -d /run/systemd \
@@ -62,9 +62,9 @@ class GenAbcDockerfile(Dependency, ABC):
                 && useradd systemd-resolve -l -r -u 105 -g 108 -d /run/systemd \
                     -s /usr/sbin/nologin \
                 && useradd sshd -l -r -u 106 -d /run/sshd -s /usr/sbin/nologin \
-                && useradd -l -u ${USER_ID} -g ci-user ci-user \
+                && useradd -l -u ${{USER_ID}} -g ci-user ci-user
 
-            USER ci-user \
+            USER ci-user
 
             FROM base AS apt_base
             RUN echo "APT::Acquire::Retries \"5\";" > /etc/apt/apt.conf.d/80-retries \
