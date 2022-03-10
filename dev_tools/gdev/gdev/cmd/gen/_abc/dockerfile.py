@@ -41,6 +41,15 @@ class GenAbcDockerfile(Dependency, ABC):
             # Static definition of base stages.
             FROM {self.options.base_image} AS base
 
+            # Only filled in by github CI actions currently.
+            ARG USER_ID
+            ARG GROUP_ID
+
+            RUN if [ ${{USER_ID:-0}} -ne 0 ] && [ ${{GROUP_ID:-0}} -ne 0 ]; then \
+                groupadd -g ${{GROUP_ID}} ci-user \
+                && useradd -l -u ${{USER_ID}} -g ci-user ci-user \
+            ;fi
+
             RUN groupadd -r -g 101 messagebus \
                 && groupadd -r -g 102 postgres \
                 && groupadd -r -g 103 ssh \
