@@ -145,11 +145,11 @@ fi
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Executing build action within docker image."
 fi
+
 if ! docker run \
     --rm \
     --init \
     -t \
-    -u $(id -u ${USER}):$(id -g ${USER}) \
     --platform linux/amd64 \
     --mount "type=volume,dst=/build/output,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device=$GAIA_REPO/build/output" \
     build_image \
