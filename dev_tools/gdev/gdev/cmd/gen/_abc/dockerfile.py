@@ -65,7 +65,9 @@ class GenAbcDockerfile(Dependency, ABC):
                 && useradd systemd-resolve -l -r -u 105 -g 108 -d /run/systemd \
                     -s /usr/sbin/nologin \
                 && useradd sshd -l -r -u 106 -d /run/sshd -s /usr/sbin/nologin \
-                && useradd -l -r -u ${{USER_ID}} -g ci-user ci-user
+                && useradd -l -u ${{USER_ID}} -g ci-user ci-user \
+                && chown --silent --no-dereference --recursive ${{USER_ID}}:${{GROUP_ID}} \
+                    /etc/apt/apt.conf.d
 
             USER ci-user
 
