@@ -181,14 +181,18 @@ fi
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Building docker image..."
 fi
+
+echo "$(id -u ${USER})"
+echo "$(id -g ${USER})"
+
 # shellcheck disable=SC2086
 if ! docker buildx build \
-    --build-arg USER_ID=$(id -u ${USER}) \
-    --build-arg GROUP_ID=$(id -g ${USER}) \
     -f "$GAIA_REPO/production/dockerfile" \
     -t build_image \
     $BASE_IMAGE \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
+    --build-arg USER_ID=$(id -u ${USER}) \
+    --build-arg GROUP_ID=$(id -g ${USER}) \
     --platform linux/amd64 \
     --shm-size 1gb \
     --ssh default \
