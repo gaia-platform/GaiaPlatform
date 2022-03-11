@@ -27,6 +27,7 @@ using gaia::direct_access::auto_transaction_t;
 void clean_db()
 {
     auto_transaction_t txn(auto_transaction_t::no_auto_restart);
+    const bool remove_related_rows = true;
 
     for (auto doctor_it = doctor_t::list().begin();
          doctor_it != doctor_t::list().end();)
@@ -40,8 +41,7 @@ void clean_db()
          patient_it != patient_t::list().end();)
     {
         auto next_patient_it = patient_it++;
-        next_patient_it->address().disconnect();
-        next_patient_it->delete_row();
+        next_patient_it->delete_row(remove_related_rows);
     }
     for (auto address_it = address_t::list().begin();
          address_it != address_t::list().end();)
@@ -137,8 +137,18 @@ void run_update_rule()
     writer.update_row();
 }
 
+
+
 void run_setup_clinic()
 {
+    // Address IDs
+    const uint32_t address_ab_id = 1;
+    const uint32_t address_cd_id = 2;
+    const uint32_t address_rd_id = 3;
+    const uint32_t address_ak_id = 4;
+    const uint32_t address_jh_id = 5;
+    const uint32_t address_nn_id = 6;
+
     // In order to reduce boilerplate code, all examples will wrap 
     // transaction handling in the example_t class constructor and
     // destructor from now on.
@@ -149,31 +159,25 @@ void run_setup_clinic()
     doctor_t dr_dorian = doctor_t::get(doctor_t::insert_row("Dr. Dorian", true));
     doctor_t dr_reid = doctor_t::get(doctor_t::insert_row("Dr. Reid", true));
 
-    // add patients
-    patient_t pat_ab = patient_t::get(patient_t::insert_row("Amos Burton", 71, false, {}));
-    patient_t pat_cd = patient_t::get(patient_t::insert_row("Camina Drummer", 66, false, {}));
-    patient_t pat_rd = patient_t::get(patient_t::insert_row("Roberta Draper", 72, false, {}));
-    patient_t pat_ak = patient_t::get(patient_t::insert_row("Alex Kamal", 68, false, {}));
-    patient_t pat_jh = patient_t::get(patient_t::insert_row("Jim Holden", 73, false, {}));
-    patient_t pat_nn = patient_t::get(patient_t::insert_row("Naomi Nagata", 67, false, {}));
+    // Add patients
+    patient_t pat_ab = patient_t::get(patient_t::insert_row("Amos Burton", address_ab_id, 71, false, {}));
+    patient_t pat_cd = patient_t::get(patient_t::insert_row("Camina Drummer", address_cd_id, 66, false, {}));
+    patient_t pat_rd = patient_t::get(patient_t::insert_row("Roberta Draper", address_rd_id, 72, false, {}));
+    patient_t pat_ak = patient_t::get(patient_t::insert_row("Alex Kamal", address_ak_id, 68, false, {}));
+    patient_t pat_jh = patient_t::get(patient_t::insert_row("Jim Holden", address_jh_id, 73, false, {}));
+    patient_t pat_nn = patient_t::get(patient_t::insert_row("Naomi Nagata", address_nn_id, 67, false, {}));
 
-    // add addresses (1 for each patient)
-    address_t add_ab = address_t::get(address_t::insert_row("17 Cherry Tree Lane", "Seattle"));
-    address_t add_cd = address_t::get(address_t::insert_row("350 Fifth Avenue", "New York"));
-    address_t add_rd = address_t::get(address_t::insert_row("221b Baker St", "Chicago"));
-    address_t add_ak = address_t::get(address_t::insert_row("1313 Mockingbird Lane", "Georgia"));
-    address_t add_jh = address_t::get(address_t::insert_row("62 West Wallaby St", "Lansing"));
-    address_t add_nn = address_t::get(address_t::insert_row("742 Evergreen Terrace", "Springfield"));
+    // Add addresses (1 for each patient).  Because we are using value-linked references we do not need
+    // to explicitly connect them.
+    address_t add_ab = address_t::get(address_t::insert_row(address_ab_id, "17 Cherry Tree Lane", "Seattle"));
+    address_t add_cd = address_t::get(address_t::insert_row(address_cd_id, "350 Fifth Avenue", "New York"));
+    address_t add_rd = address_t::get(address_t::insert_row(address_rd_id, "221b Baker St", "Chicago"));
+    address_t add_ak = address_t::get(address_t::insert_row(address_ak_id, "1313 Mockingbird Lane", "Georgia"));
+    address_t add_jh = address_t::get(address_t::insert_row(address_jh_id, "62 West Wallaby St", "Lansing"));
+    address_t add_nn = address_t::get(address_t::insert_row(address_nn_id, "742 Evergreen Terrace", "Springfield"));
 
-    // connect address to patients (1:1)
-    pat_ab.address().connect(add_ab);
-    pat_cd.address().connect(add_cd);
-    pat_rd.address().connect(add_rd);
-    pat_ak.address().connect(add_ak);
-    pat_jh.address().connect(add_jh);
-    pat_nn.address().connect(add_nn);
-
-    // connect patients to doctors (each doctor gets two patients)
+    // Connect patients to doctors (each doctor gets two patients) to show
+    // explicit relationships (non value-linked).
     dr_cox.patients().connect(pat_ab);
     dr_cox.patients().connect(pat_cd);
     dr_dorian.patients().connect(pat_rd);

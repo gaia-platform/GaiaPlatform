@@ -16,14 +16,17 @@ table doctor (
 
 table patient (
     name string,
+    address_id uint32 unique,
     height uint8 optional,
     is_active bool,
     analysis_results float[],
     doctor references doctor,
-    address references address
+    address references address[]
+        where patient.address_id = address.id
 )
 
 table address (
+    id uint32 unique,
     street string,
     city string,
     patient references patient
