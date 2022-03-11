@@ -416,3 +416,44 @@ TEST_F(test_array, test_array_unqualified_field_array_assignment)
     ASSERT_EQ(g_client_sales, 1);
     check_array(client_id, expected_sales);
 }
+
+TEST_F(test_array, test_array_unqualified_field_iteration)
+{
+    gaia::db::begin_transaction();
+
+    client_t::insert_row("14", 0, {2, 9, 6});
+
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    ASSERT_EQ(g_client_sales, 17);
+}
+
+TEST_F(test_array, test_array_qualified_field_iteration)
+{
+    gaia::db::begin_transaction();
+
+    client_t::insert_row("15", 0, {3, 7, 6});
+
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    ASSERT_EQ(g_client_sales, 16);
+}
+
+TEST_F(test_array, test_array_explicit_path_iteration)
+{
+    gaia::db::begin_transaction();
+
+    auto client_id = client_t::insert_row("16", 0, {1, 19, 6});
+    auto company = company_t::get(company_t::insert_row("jj"));
+    company.clients().connect(client_t::get(client_id));
+
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    ASSERT_EQ(g_client_sales, 26);
+}
