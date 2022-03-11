@@ -248,7 +248,6 @@ elif [ "$JOB_NAME" == "Integration_Samples" ] ; then
     cp "${GAIA_REPO}/dev_tools/sdk/test/"* "${GAIA_REPO}/production/tests/staging/"
     cp "${INSTALL_PATH}" "${GAIA_REPO}/production/tests/staging"
 
-
     # Only run sample tests instead of the other integration tests
     cd "${GAIA_REPO}/production/tests/staging" || exit
 
