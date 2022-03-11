@@ -193,7 +193,8 @@ jobs:
   Integration_Tests:
     needs:
       - SDK
-    if: github.event_name != 'pull_request'
+    # if: github.event_name != 'pull_request'
+    if: ${{false}}
     runs-on: self-hosted
     timeout-minutes: 7
     env:
@@ -276,7 +277,8 @@ jobs:
   Performance_Tests:
     needs:
       - Integration_Tests
-    if: github.event_name != 'pull_request'
+    # if: github.event_name != 'pull_request'
+    if: ${{false}}
     runs-on: self-hosted
     timeout-minutes: 10
     env:
@@ -373,11 +375,11 @@ jobs:
 #      - Debug_Core
 #      - Coverage
 #      - LLVM_Tests
-      - Integration_Tests
+#      - Integration_Tests
 #      - Integration_Tests_Debug
-      - Performance_Tests
+#      - Performance_Tests
       - Integration_Samples
-      - Documentation
+#      - Documentation
     runs-on: self-hosted
     steps:
       - uses: geekyeggo/delete-artifact@v1
