@@ -23,7 +23,7 @@ public:
     type_index_cursor_t(type_index_t* type_index, common::gaia_type_t type)
         : m_type_index(type_index), m_type(type), m_prev_node(nullptr)
     {
-        m_curr_locator = m_type_index->get_first_locator();
+        m_curr_locator = m_type_index->get_first_locator(m_type);
         m_curr_node = m_type_index->get_list_node(m_curr_locator);
     }
 
@@ -54,8 +54,8 @@ public:
         *this = type_index_cursor_t(m_type_index, type);
     }
 
-    // Returns true if the current node has been marked deleted, false otherwise.
-    // This can only be called when the cursor is positioned before the end of the list.
+    // Returns true if the current node has been logically deleted, false otherwise.
+    // PRECONDITION: the cursor is positioned before the end of the list.
     inline bool is_current_node_deleted()
     {
         ASSERT_PRECONDITION(m_curr_node, "Cannot call is_current_node_deleted() at end of list!");
@@ -74,13 +74,13 @@ public:
         return m_curr_node->get_next_locator();
     }
 
-    // Unlinks the current node from the list (the current node must have
-    // already been marked for deletion).
+    // Unlinks the current node from the list by pointing the previous node to
+    // the next unmarked node in the list.
     // Returns false if the previous node was already marked for deletion (so
     // the caller must unlink that node before retrying), true otherwise.
     //
-    // PRECONDITION: "deleted" mark bit is set for `locator`.
-    // POSTCONDITION: returns false if list node for `prev_locator` was already marked.
+    // PRECONDITION: the current node is marked for deletion.
+    // POSTCONDITION: returns false if the previous node was already marked for deletion.
     //
     // NB: Because we also unlink all contiguous nodes marked for deletion after
     // the current node, this has the side effect of advancing the cursor to the
@@ -92,10 +92,9 @@ public:
         ASSERT_PRECONDITION(current_locator().is_valid(), "Cannot unlink invalid locator!");
         ASSERT_PRECONDITION(is_current_node_deleted(), "Cannot unlink a locator not marked for deletion!");
 
-        // Make the next unmarked node in the list the successor of the previous
-        // node. Save the previous node and the current locator since they'll be
+        // Save the previous node and the current locator since they'll be
         // overwritten by advance().
-        locator_list_node_t* unlink_src_node = m_prev_node;
+        locator_list_node_t* prev_node = m_prev_node;
         gaia_locator_t unlinked_locator = current_locator();
 
         // Traverse through all marked nodes, stopping at the first unmarked
@@ -104,17 +103,17 @@ public:
             ;
 
         // Handle the special case where the first marked node is at the head of the list.
-        if (!unlink_src_node)
+        if (!prev_node)
         {
             return m_type_index->set_first_locator(m_type, unlinked_locator, current_locator());
         }
 
-        // Otherwise, set the source node to point to the current locator
+        // Otherwise, set the previous node to point to the new current locator
         // (either the first unmarked node or the invalid locator, indicating
         // end of list).
-        // Return whether the CAS succeeded (it could fail if the source node
+        // Return whether the CAS succeeded (it could fail if the previous node
         // has either been marked for deletion or pointed to a new successor).
-        return unlink_src_node->set_next_locator(unlinked_locator, current_locator());
+        return prev_node->set_next_locator(unlinked_locator, current_locator());
     }
 
 private:
@@ -131,7 +130,7 @@ private:
     gaia_locator_t m_curr_locator;
 
     // Type ID of node list.
-    common::gaia_type_t m_type
+    common::gaia_type_t m_type;
 };
 
 } // namespace db
