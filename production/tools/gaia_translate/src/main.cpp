@@ -2931,6 +2931,7 @@ public:
         g_insert_data.clear();
         g_variable_declaration_location.clear();
         g_variable_declaration_init_location.clear();
+        g_writer_data.clear();
         g_is_rule_prolog_specified = false;
         g_rule_attribute_source_range = SourceRange();
         g_is_rule_context_rule_name_referenced = false;
@@ -3059,6 +3060,7 @@ public:
         g_rewriter_history.clear();
         g_nomatch_location_list.clear();
         g_insert_data.clear();
+        g_writer_data.clear();
         g_variable_declaration_location.clear();
         g_variable_declaration_init_location.clear();
         g_is_rule_prolog_specified = false;
