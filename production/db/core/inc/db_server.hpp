@@ -26,6 +26,7 @@
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 #include "txn_metadata.hpp"
+#include "type_index.hpp"
 
 namespace gaia
 {
@@ -95,6 +96,7 @@ class server_t
     friend gaia::db::data_t* gaia::db::get_data();
     friend gaia::db::logs_t* gaia::db::get_logs();
     friend gaia::db::id_index_t* gaia::db::get_id_index();
+    friend gaia::db::type_index_t* gaia::db::get_type_index();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
     friend gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id();
     friend gaia::db::txn_log_t* gaia::db::get_txn_log();
@@ -131,6 +133,7 @@ private:
     static inline mapped_data_t<data_t> s_shared_data{};
     static inline mapped_data_t<logs_t> s_shared_logs{};
     static inline mapped_data_t<id_index_t> s_shared_id_index{};
+    static inline mapped_data_t<type_index_t> s_shared_type_index{};
     static inline index::indexes_t s_global_indexes{};
     static inline std::unique_ptr<persistent_store_manager> s_persistent_store{};
 
@@ -346,6 +349,7 @@ private:
         {data_mapping_t::index_t::data, &s_shared_data, c_gaia_mem_data_prefix},
         {data_mapping_t::index_t::logs, &s_shared_logs, c_gaia_mem_logs_prefix},
         {data_mapping_t::index_t::id_index, &s_shared_id_index, c_gaia_mem_id_index_prefix},
+        {data_mapping_t::index_t::type_index, &s_shared_type_index, c_gaia_mem_type_index_prefix},
     };
 
     // Function pointer type that executes side effects of a session state transition.

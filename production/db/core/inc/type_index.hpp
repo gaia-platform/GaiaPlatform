@@ -1,0 +1,221 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+#pragma once
+
+#include "gaia/common.hpp"
+
+#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/db/db_types.hpp"
+#include "gaia_internal/exceptions.hpp"
+
+#include "db_internal_types.hpp"
+
+namespace gaia
+{
+namespace db
+{
+
+// This struct's fields are not atomic because the entire 8-byte struct is
+// intended to be written atomically (to avoid races between concurrent
+// deletions, the deletion mark bit in the `metadata` word must be updated
+// atomically with `next_locator`).
+struct locator_list_node_t
+{
+    // This 64-bit word logically contains a 32-bit "metadata" word, followed by
+    // a 32-bit locator. These two words must be modified atomically as a single
+    // word, to preserve the invariant that a node marked for deletion cannot
+    // allow any thread to modify its locator word. Ideally we would steal a
+    // single bit from the locator word to use for the deletion mark, but we
+    // need the entire 32-bit word to cover our 32-bit locator address space.
+    //
+    // REVIEW: The 32-bit metadata word currently stores an "allocated" bit in
+    // addition to the "deleted" bit, to detect illegal locator reuse. (We can't
+    // use the locator word for this, because an allocated locator may not have
+    // a successor in the list for its type.) The metadata word could also store
+    // a locator version to enable locator reuse.
+    std::atomic<uint64_t> word;
+
+    static constexpr size_t c_locator_bit_width{32ULL};
+    static constexpr uint64_t c_locator_shift{0ULL};
+    static constexpr uint64_t c_locator_mask{((1ULL << c_locator_bit_width) - 1) << c_locator_shift};
+
+    static constexpr size_t c_deleted_flag_bit_width{1ULL};
+    static constexpr size_t c_deleted_flag_shift{
+        common::c_uint64_bit_count - c_deleted_flag_bit_width};
+    static constexpr uint64_t c_deleted_flag_mask{1ULL << c_deleted_flag_shift};
+
+    // Returns the locator index of the current node's successor, or the invalid
+    // locator if it has no successor.
+    inline gaia_locator_t get_next_locator()
+    {
+        return static_cast<gaia_locator_t>((word & c_locator_mask) >> c_locator_shift);
+    }
+
+    // Returns true if the "deleted" bit is set, false otherwise.
+    inline bool is_marked_for_deletion()
+    {
+        return static_cast<bool>((word & c_deleted_flag_mask) >> c_deleted_flag_shift);
+    }
+
+    // Returns false if the "deleted" bit is set or the successor has been changed, true otherwise.
+    inline bool set_next_locator(gaia_locator_t expected_locator, gaia_locator_t desired_locator)
+    {
+        // The "expected" word has the "deleted" bit unset, because we want to
+        // fail if this node has been marked for deletion.
+        uint64_t expected_word{expected_locator.value() << c_locator_shift};
+        uint64_t desired_word{(desired_locator.value() << c_locator_shift)};
+        return word.compare_exchange_strong(expected_word, desired_word);
+    }
+
+    // Returns false if the "deleted" bit was already set, true otherwise.
+    inline bool mark_for_deletion()
+    {
+        while (true)
+        {
+            uint64_t expected_word{word};
+            if (expected_word & c_deleted_flag_mask)
+            {
+                return false;
+            }
+            uint64_t desired_word{word | c_deleted_flag_mask};
+            if (word.compare_exchange_strong(expected_word, desired_word))
+            {
+                break;
+            }
+        }
+
+        return true;
+    }
+};
+
+static_assert(
+    sizeof(locator_list_node_t) == sizeof(uint64_t),
+    "Expected locator_list_node_t to occupy 8 bytes!");
+
+static_assert(std::atomic<locator_list_node_t>::is_always_lock_free);
+
+struct type_index_entry_t
+{
+    // The type ID of this locator list.
+    std::atomic<common::gaia_type_t::value_type> type;
+
+    // The first locator in the list.
+    std::atomic<gaia_locator_t::value_type> first_locator;
+};
+
+static_assert(sizeof(type_index_entry_t) == 8, "Expected sizeof(type_index_entry_t) to be 8!");
+
+struct type_index_t
+{
+    type_index_entry_t type_index_entries[c_max_types];
+
+    // Atomic counter incremented during type registration to determine the
+    // index of the registered type in the `type_index_entries` array.
+    std::atomic<size_t> type_index_entries_count;
+    locator_list_node_t locator_lists_array[c_max_locators + 1];
+
+    // Claims a slot in `type_index_entries` by atomically incrementing
+    // `type_index_entries_count` (slots are not reused).
+    inline void register_type(common::gaia_type_t type)
+    {
+        size_t type_index_entry_idx = ++type_index_entries_count;
+        if (type_index_entry_idx > c_max_types)
+        {
+            throw type_limit_exceeded_internal();
+        }
+        type_index_entries[type_index_entry_idx].type = type;
+    }
+
+    inline gaia_locator_t get_first_locator(common::gaia_type_t type)
+    {
+        for (size_t i = 0; i < type_index_entries_count; ++i)
+        {
+            if (type_index_entries[i].type == type)
+            {
+                return gaia_locator_t(type_index_entries[i].first_locator);
+            }
+        }
+        ASSERT_UNREACHABLE("Type must be registered before accessing its locator list!");
+    }
+
+    // This has CAS semantics because we need to retry operations that change
+    // the head of the list if the previously observed head of the list has
+    // changed.
+    inline bool set_first_locator(
+        common::gaia_type_t type, gaia_locator_t expected_locator, gaia_locator_t desired_locator)
+    {
+        gaia_locator_t::value_type expected_value = expected_locator.value();
+        gaia_locator_t::value_type desired_value = desired_locator.value();
+
+        for (size_t i = 0; i < type_index_entries_count; ++i)
+        {
+            if (type_index_entries[i].type == type)
+            {
+                return type_index_entries[i].first_locator.compare_exchange_strong(expected_value, desired_value);
+            }
+        }
+        ASSERT_UNREACHABLE("Type must be registered before accessing its locator list!");
+    }
+
+    inline locator_list_node_t* get_list_node(gaia_locator_t locator)
+    {
+        if (!locator.is_valid())
+        {
+            return nullptr;
+        }
+
+        return &locator_lists_array[locator];
+    }
+
+    // Inserts the node for a locator at the head of the list for its type.
+    // PRECONDITION: `type` is already registered in `type_index_entries`.
+    // PRECONDITION: The list node for `locator` has not been previously used.
+    // POSTCONDITION: `get_locator_cursor(type).current_locator()` returns
+    // `locator` (in the absence of concurrent invocations).
+    inline void add_locator(gaia_locator_t locator, common::gaia_type_t type)
+    {
+        locator_list_node_t* new_node = get_list_node(locator);
+        ASSERT_INVARIANT(!new_node->is_marked_for_deletion(), "A deleted locator can never be reused!");
+
+        // 1. Take a snapshot of the first node in the list.
+        // 2. Point the new node to the snapshot of the first node in the list.
+        // 3. CAS the list head to the new node. Retry on failure.
+        while (true)
+        {
+            gaia_locator_t first_locator = get_first_locator(type);
+
+            // We explicitly set the next locator even if it's invalid. There
+            // can be no concurrent changes to the next locator of the new node,
+            // so we just use its previous value for the CAS.
+            bool success = new_node->set_next_locator(new_node->get_next_locator(), first_locator);
+            ASSERT_POSTCONDITION(success, "Setting the next locator on a new node cannot fail!");
+
+            // Now try to point the list head to the new node, retrying if it
+            // was concurrently pointed to another node.
+            if (set_first_locator(type, first_locator, locator))
+            {
+                break;
+            }
+        }
+    }
+
+    // PRECONDITION: `locator` was previously allocated.
+    // POSTCONDITION: returns false if list node for `locator` was already marked for deletion.
+    inline bool delete_locator(gaia_locator_t locator)
+    {
+        // REVIEW: A necessary precondition is that the locator being deleted
+        // was allocated, but that is difficult to verify without coupling to
+        // counters_t. Instead, the caller should perform this check.
+
+        // To avoid traversing the list, we only mark the node corresponding to
+        // this locator as deleted. A subsequent traversal will unlink the node.
+        locator_list_node_t* node = get_list_node(locator);
+        return node->mark_for_deletion();
+    }
+};
+
+} // namespace db
+} // namespace gaia

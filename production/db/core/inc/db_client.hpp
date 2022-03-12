@@ -58,6 +58,7 @@ class client_t
     friend gaia::db::data_t* gaia::db::get_data();
     friend gaia::db::logs_t* gaia::db::get_logs();
     friend gaia::db::id_index_t* gaia::db::get_id_index();
+    friend gaia::db::type_index_t* gaia::db::get_type_index();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
     friend gaia::db::memory_manager::memory_manager_t* gaia::db::get_memory_manager();
     friend gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager();
@@ -121,6 +122,7 @@ private:
     thread_local static inline mapped_data_t<data_t> s_shared_data;
     thread_local static inline mapped_data_t<logs_t> s_shared_logs;
     thread_local static inline mapped_data_t<id_index_t> s_shared_id_index;
+    thread_local static inline mapped_data_t<type_index_t> s_shared_type_index;
 
     thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
     thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
@@ -135,6 +137,7 @@ private:
         {data_mapping_t::index_t::data, &s_shared_data, c_gaia_mem_data_prefix},
         {data_mapping_t::index_t::logs, &s_shared_logs, c_gaia_mem_logs_prefix},
         {data_mapping_t::index_t::id_index, &s_shared_id_index, c_gaia_mem_id_index_prefix},
+        {data_mapping_t::index_t::type_index, &s_shared_type_index, c_gaia_mem_type_index_prefix},
     };
 
     // s_events has transaction lifetime and is cleared after each transaction.

@@ -118,6 +118,7 @@ struct data_mapping_t
         data,
         logs,
         id_index,
+        type_index,
 
         // This must be kept the last enum value.
         // Any new entry should be added above it.

@@ -10,6 +10,7 @@
 #include "db_internal_types.hpp"
 #include "mapped_data.hpp"
 #include "memory_types.hpp"
+#include "type_index.hpp"
 
 namespace gaia
 {
@@ -42,6 +43,9 @@ gaia::db::logs_t* get_logs();
 // Returns a pointer to a mapping of the "id_index" shared memory segment.
 gaia::db::id_index_t* get_id_index();
 
+// Returns a pointer to a mapping of the "type_index" shared memory segment.
+gaia::db::type_index_t* get_type_index();
+
 // Get the current txn id.
 gaia::db::gaia_txn_id_t get_current_txn_id();
 
@@ -53,9 +57,6 @@ gaia::db::memory_manager::memory_manager_t* get_memory_manager();
 
 // Gets the chunk manager instance for the current thread or process.
 gaia::db::memory_manager::chunk_manager_t* get_chunk_manager();
-
-// Gets the transaction log for the current session thread.
-gaia::db::txn_log_t* get_txn_log();
 
 // Gets the transaction log for the current session thread.
 gaia::db::txn_log_t* get_txn_log();

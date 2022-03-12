@@ -66,6 +66,7 @@ constexpr char c_gaia_mem_counters_prefix[] = "gaia_mem_counters_";
 constexpr char c_gaia_mem_data_prefix[] = "gaia_mem_data_";
 constexpr char c_gaia_mem_logs_prefix[] = "gaia_mem_logs_";
 constexpr char c_gaia_mem_id_index_prefix[] = "gaia_mem_id_index_";
+constexpr char c_gaia_mem_type_index_prefix[] = "gaia_mem_type_index_";
 
 constexpr char c_gaia_mem_txn_log_prefix[] = "gaia_mem_txn_log_";
 constexpr char c_gaia_internal_txn_log_prefix[] = "gaia_internal_txn_log_";
@@ -92,6 +93,14 @@ constexpr size_t c_max_locators{(1ULL << 29) - 1};
 // value, so we subtract 1.
 constexpr size_t c_max_locators{(1ULL << 32) - 1};
 #endif
+
+// This is the largest power of 2 that is compatible with a collision
+// probability < 2^-20 for 32-bit randomized type IDs (see
+// https://en.wikipedia.org/wiki/Birthday_problem#Square_approximation).
+//
+// REVIEW: If we move to either sequentially allocated type IDs or 64-bit or
+// larger randomized type IDs, we can expand this limit.
+constexpr size_t c_max_types = 64;
 
 // With 2^32 locators, 2^20 hash buckets bounds the average hash chain length to
 // 2^12. This is still prohibitive overhead for traversal on each reference
@@ -250,9 +259,9 @@ struct txn_log_t
         return os;
     }
 
-    static constexpr size_t c_txn_log_refcount_bits{16ULL};
-    static constexpr uint64_t c_txn_log_refcount_shift{common::c_uint64_bit_count - c_txn_log_refcount_bits};
-    static constexpr uint64_t c_txn_log_refcount_mask{((1ULL << c_txn_log_refcount_bits) - 1) << c_txn_log_refcount_shift};
+    static constexpr size_t c_txn_log_refcount_bit_width{16ULL};
+    static constexpr uint64_t c_txn_log_refcount_shift{common::c_uint64_bit_count - c_txn_log_refcount_bit_width};
+    static constexpr uint64_t c_txn_log_refcount_mask{((1ULL << c_txn_log_refcount_bit_width) - 1) << c_txn_log_refcount_shift};
 
     static gaia_txn_id_t begin_ts_from_word(uint64_t word)
     {
@@ -267,7 +276,7 @@ struct txn_log_t
     static uint64_t word_from_begin_ts_and_refcount(gaia_txn_id_t begin_ts, size_t refcount)
     {
         ASSERT_PRECONDITION(begin_ts.is_valid(), "Begin timestamp must be valid!");
-        ASSERT_PRECONDITION(refcount < (1 << c_txn_log_refcount_bits), "Reference count must fit in 16 bits!");
+        ASSERT_PRECONDITION(refcount < (1 << c_txn_log_refcount_bit_width), "Reference count must fit in 16 bits!");
         return (begin_ts << transactions::txn_metadata_entry_t::c_txn_ts_shift) | (refcount << c_txn_log_refcount_shift);
     }
 
