@@ -7,14 +7,14 @@
 ////////////////////////////////////////////////////
 
 #include <iostream>
+
 #include <gaia/db/db.hpp>
 #include <gaia/exceptions.hpp>
 #include <gaia/logger.hpp>
-#include <gaia/system.hpp>
 #include <gaia/rules/rules.hpp>
+#include <gaia/system.hpp>
 
 #include "gaia_hospital.h"
-
 
 using namespace gaia::hospital;
 using namespace gaia::rules;
@@ -64,7 +64,7 @@ public:
     ~example_t()
     {
         m_transaction.commit();
-        // For example purposes only, let all the rules run. 
+        // For example purposes only, let all the rules run.
         sleep(1);
         gaia_log::app().info("Press any key to continue...");
         std::cin.get();
@@ -78,7 +78,7 @@ class lesson_t
 {
 public:
     lesson_t(const char* lesson)
-    : m_lesson(lesson)
+        : m_lesson(lesson)
     {
         clean_db();
         subscribe_ruleset(m_lesson);
@@ -90,9 +90,8 @@ public:
     }
 
 private:
-    const char* m_lesson;    
+    const char* m_lesson;
 };
-
 
 #define PRINT_METHOD_NAME() gaia_log::app().info("---- {}() ----", __FUNCTION__)
 
@@ -104,42 +103,7 @@ private:
 /// on the Gaia database.
 ///
 
-void run_insert_rule()
-{
-    example_t example("db: inserting 'Dr. House' to the database");
-
-    doctor_t::insert_row("Dr. House", true);
-    
-    // Note that we only fire a rule when we add a doctor.
-    // We can add a patient as well and no rules are fired.
-    patient_writer patient;
-    patient.name = "Emma";
-    patient.is_active = false;
-    patient.insert_row();
-
-    // Note that the transaction must be committed for those changes to
-    // be seen by the rules engine. Rules are only fired after the commit.
-    // In the examples, the commit call is happening when the 'example_t'
-    // class goes out of scope.
-}
-
-void run_update_rule()
-{
-    // In order to reduce boilerplate code, all examples will wrap 
-    // transaction handling in the example_t class constructor and
-    // destructor from now on.
-    example_t example("db: updating patient 'Emma'");
-
-    // Retrieve the first (and only) patient
-    patient_t patient = *(patient_t::list().begin());
-    patient_writer writer = patient.writer();
-    writer.is_active = true;
-    writer.update_row();
-}
-
-
-
-void run_setup_clinic()
+void setup_clinic(bool connect_patients_to_doctors = false)
 {
     // Address IDs
     const uint32_t address_ab_id = 1;
@@ -149,10 +113,7 @@ void run_setup_clinic()
     const uint32_t address_jh_id = 5;
     const uint32_t address_nn_id = 6;
 
-    // In order to reduce boilerplate code, all examples will wrap 
-    // transaction handling in the example_t class constructor and
-    // destructor from now on.
-    example_t example("db: populating clinic");
+    auto_transaction_t txn(auto_transaction_t::no_auto_restart);
 
     // add doctors, patients, and addresses
     doctor_t dr_cox = doctor_t::get(doctor_t::insert_row("Dr. Cox", true));
@@ -176,14 +137,52 @@ void run_setup_clinic()
     address_t add_jh = address_t::get(address_t::insert_row(address_jh_id, "62 West Wallaby St", "Lansing"));
     address_t add_nn = address_t::get(address_t::insert_row(address_nn_id, "742 Evergreen Terrace", "Springfield"));
 
-    // Connect patients to doctors (each doctor gets two patients) to show
-    // explicit relationships (non value-linked).
-    dr_cox.patients().connect(pat_ab);
-    dr_cox.patients().connect(pat_cd);
-    dr_dorian.patients().connect(pat_rd);
-    dr_dorian.patients().connect(pat_ak);
-    dr_reid.patients().connect(pat_jh);
-    dr_reid.patients().connect(pat_nn);
+    if (connect_patients_to_doctors)
+    {
+        // Connect patients to doctors (each doctor gets two patients) to show
+        // explicit relationships (non value-linked).
+        dr_cox.patients().connect(pat_ab);
+        dr_cox.patients().connect(pat_cd);
+        dr_dorian.patients().connect(pat_rd);
+        dr_dorian.patients().connect(pat_ak);
+        dr_reid.patients().connect(pat_jh);
+        dr_reid.patients().connect(pat_nn);
+    }
+
+    txn.commit();
+}
+
+void run_insert_rule()
+{
+    example_t example("db: inserting 'Dr. House' to the database");
+
+    doctor_t::insert_row("Dr. House", true);
+
+    // Note that we only fire a rule when we add a doctor.
+    // We can add a patient as well and no rules are fired.
+    patient_writer patient;
+    patient.name = "Emma";
+    patient.is_active = false;
+    patient.insert_row();
+
+    // Note that the transaction must be committed for those changes to
+    // be seen by the rules engine. Rules are only fired after the commit.
+    // In the examples, the commit call is happening when the 'example_t'
+    // class goes out of scope.
+}
+
+void run_update_rule()
+{
+    // In order to reduce boilerplate code, all examples will wrap
+    // transaction handling in the example_t class constructor and
+    // destructor from now on.
+    example_t example("db: updating patient 'Emma'");
+
+    // Retrieve the first (and only) patient
+    patient_t patient = *(patient_t::list().begin());
+    patient_writer writer = patient.writer();
+    writer.is_active = true;
+    writer.update_row();
 }
 
 void run_navigate_one_to_one()
@@ -207,7 +206,6 @@ void run_navigate_one_to_many()
     writer.is_active = false;
     writer.update_row();
 }
-
 
 int main()
 {
@@ -235,50 +233,56 @@ int main()
     }
 
     {
+        const bool connect_patients_to_doctors = true;
+
         lesson_t lesson("navigation");
-        run_setup_clinic();
+        setup_clinic(connect_patients_to_doctors);
         run_navigate_one_to_one();
-        run_navigate_one_to_many();        
+        run_navigate_one_to_many();
     }
 
+    {
+        lesson_t lesson("connections");
+        setup_clinic();
+    }
 
-/*
-    create_record_insert();
-    create_record_writer();
-    lookup_record_get();
-    array_type_fields();
-    update_record();
-    optional_values();
-    lookup_invalid_record();
-    access_invalid_record();
-    compare_records();
-    list_all_patients();
-    clean_db();
-    delete_single_record();
-    delete_single_record_static();
-    delete_all_records();
-    traverse_one_to_many_relationship();
-    clean_db();
-    delete_one_to_many_relationship_re();
-    clean_db();
-    delete_one_to_many_relationship();
-    clean_db();
-    delete_one_to_many_relationship_erase();
-    clean_db();
-    traverse_one_to_one_relationship();
-    clean_db();
-    delete_one_to_one_relationship();
-    clean_db();
-    create_filter_data();
-    filter_lambda();
-    filter_gaia_predicates_strings();
-    filter_gaia_predicates_numbers();
-    filter_gaia_predicates_containers();
-    clean_db();
+    /*
+        create_record_insert();
+        create_record_writer();
+        lookup_record_get();
+        array_type_fields();
+        update_record();
+        optional_values();
+        lookup_invalid_record();
+        access_invalid_record();
+        compare_records();
+        list_all_patients();
+        clean_db();
+        delete_single_record();
+        delete_single_record_static();
+        delete_all_records();
+        traverse_one_to_many_relationship();
+        clean_db();
+        delete_one_to_many_relationship_re();
+        clean_db();
+        delete_one_to_many_relationship();
+        clean_db();
+        delete_one_to_many_relationship_erase();
+        clean_db();
+        traverse_one_to_one_relationship();
+        clean_db();
+        delete_one_to_one_relationship();
+        clean_db();
+        create_filter_data();
+        filter_lambda();
+        filter_gaia_predicates_strings();
+        filter_gaia_predicates_numbers();
+        filter_gaia_predicates_containers();
+        clean_db();
 
-    txn.commit();
+        txn.commit();
 
-    use_dac_object_across_transactions();
-*/
+        use_dac_object_across_transactions();
+    */
     gaia::system::shutdown();
 }

@@ -17,8 +17,8 @@ set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
-set(GAIA_SOURCE "/source/production")
-set(GAIA_BUILD "/build/production")
+set(GAIA_SOURCE "/home/dax/git/GaiaPlatform/production")
+set(GAIA_BUILD "${GAIA_SOURCE}/build")
 
 set(GAIA_INC "${GAIA_SOURCE}/inc")
 set(GAIA_GAIAT_CMD "${GAIA_BUILD}/tools/gaia_translate/gaiat")

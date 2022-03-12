@@ -14,6 +14,10 @@ ruleset basics
     // Fired by: run_insert_rule.
     //
     // This rule is fired when a doctor is inserted into the database.
+    // Every rule acts on exactly one table change.  The row of the table
+    // that changed is passed to the rule.  This row is known as the anchor row.
+    // In this rule, we are printing the 'name' column from the 'doctor' table.
+    // In fact, we are printing the 'name' of the 'doctor' who was inserted.
     on_insert(doctor)
     {
         gaia_log::app().info("{}:{}: doctor '{}' was inserted.", 
@@ -22,7 +26,9 @@ ruleset basics
 
     // Fired by: run_update_rule.
     //
-    // This rule is fired when any column of the patient is updated
+    // This rule is fired when any column of the patient is updated.
+    // Since the anchor row in this rule is the 'patient' table, the
+    // 'name' refers to the patient's name.
     on_update(patient)
     {
         gaia_log::app().info("{}:{}: patient '{}' was updated.", 
@@ -104,13 +110,18 @@ ruleset forward_chaining
     }
 }
 
-
-ruleset navigation
+// By default, all rules run in parallel.  The 'serial_group' attribute ensures 
+// that no rules in this ruleset can run concurrently with each other. Because
+// this sample logs mulitple rows from each rule, we want to serialize serialize
+// the rules so that they don't interleave their output for the tutorial.
+ruleset navigation : serial_group()
 {
     // Fired by: run_navigate_one_to_one
     //
-    // This rule shows navigating related records to the patient.  Both of the
-    // patient's doctor and address is visible in this rule
+    // This rule shows navigating objects related to the patient.  Because 
+    // the anchor row of this rule is the patient and relationships exist both
+    // to a patient's doctor and a patient's address, we can access the data from
+    // these related objects.
     on_update(patient.is_active)
     {
         gaia_log::app().info("{}:{}: patient '{}' 'is_active' status was updated to '{}'.", 
@@ -128,6 +139,28 @@ ruleset navigation
             patient.name, address.street, address.city);
     }
 
+    // Fired by: run_navigate_one_to_one
+    //
+    // This rule is the same as above but shows the '->' operator to
+    // explicitly navigate tables.  This rule is semantically equivalent
+    // to the above rule.
+    on_update(patient.is_active)
+    {
+        gaia_log::app().info("{}:{}: patient '{}' 'is_active' status was updated to '{}'.", 
+            rule_context.ruleset_name, rule_context.rule_name, name, is_active);
+
+        // Since Gaia understands how your data is connected, you can directly
+        // reference related information.
+
+        // Who is this patient's doctor?
+        gaia_log::app().info("'{}' is a patient of '{}'.",
+            patient.name, patient->doctor.name);
+
+        // Where does this patient live?
+        gaia_log::app().info("'{}' lives on '{}' in '{}'.",
+            patient.name, patient->address.street, patient->address.city);
+    }
+
     // Fired by: run_navigate_one_to_many
     //
     // This rule shows listing all the patients for whom
@@ -137,22 +170,48 @@ ruleset navigation
         gaia_log::app().info("{}:{}: doctor '{}' 'is_active' status was updated to '{}'.", 
             rule_context.ruleset_name, rule_context.rule_name, name, is_active);
 
-        // List all the patients of this doctor.
+        // List all the patients of this doctor.  Since the schema for this application
+        // specifies that a doctor may have many patients, Gaia will actually loop
+        // over all the patients belonging to this doctor.  In other words, this statement
+        // is executed for every patient related to the 'doctor' anchor row.
         gaia_log::app().info("'{}' is a patient of '{}'.",
             patient.name, doctor.name);
+    }
 
-        // You could also do this explicitly
+    // Fired by: run_navigate_one_to_many
+    //
+    // This rule lists all the patients for whom this doctor cares
+    // using a more explicit syntax than the above rule. The rule
+    // is semantically equivalent to the previous rule.
+    on_update(doctor.is_active)
+    {
+        gaia_log::app().info("{}:{}: doctor '{}' 'is_active' status was updated to '{}'.", 
+            rule_context.ruleset_name, rule_context.rule_name, name, is_active);
+
+        // You could also iterate over all of the doctor's patients
+        // using a declarative 'for'
         for (patient)
         {
             gaia_log::app().info("'{}' is a patient of '{}'.",
                 patient.name, doctor.name);
         }
+    }
+
+    // Fired by: run_navigate_one_to_many
+    //
+    // This rule lists all of the patients stored in the database.  By using
+    // the '/' modifier on the table, we can access all records in the database and
+    // not just the ones directly related to the 'doctor' anchor row.
+    on_update(doctor.is_active)
+    {
+        gaia_log::app().info("{}:{}: doctor '{}' 'is_active' status was updated to '{}'.", 
+            rule_context.ruleset_name, rule_context.rule_name, name, is_active);
 
         // If you wanted to list all patients (not just those related to the doctor)
         // then use the '/' modifier.
         for (/patient)
         {
-            // Note that if we had just displayed "doctor.name", then
+            // Note that if we had just displayed 'doctor.name', then
             // it would have been the anchor row's doctor and not the doctor
             // related to this patient.  In this case, we specifically want
             // the patient's doctor so use the '->' operator to traverse
@@ -160,11 +219,6 @@ ruleset navigation
             gaia_log::app().info("'{}' is a patient of '{}'.",
                 patient.name, patient->doctor.name);
         }
-
-        // TODO (dax): talk about anchor rows.
-
-        // TODO (dax): series of stories about connecting doctors to patients and 
-        // patients to doctors.  Perhaps even use VLR?
     }
 }
 
