@@ -350,6 +350,21 @@ ruleset testE33
             rule_context.gaia_type);
     }
 }
+ruleset test15
+{
+    on_update(incubator.name)
+    {
+        S:sensor.value = S.value * 1.01;
+    }
+}
+
+ruleset test16
+{
+    on_update(sensor.name)
+    {
+        /actuator.timestamp = sensor.timestamp;
+    }
+}
 
 // GAIAPLAT-1730
 #define TEST 5.0
@@ -362,14 +377,3 @@ ruleset test_define
         use_float(TEST);
     }
 }
-
-#if 0
-// This rule interferes with 'ruleset set' rules
-ruleset test15
-{
-    on_change(incubator)
-    {
-        S:sensor.value = S.value * 1.01;
-    }
-}
-#endif

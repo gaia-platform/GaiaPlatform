@@ -2259,13 +2259,18 @@ public:
             {
                 if (!explicit_path_present)
                 {
-                    set_source_range = SourceRange(set_source_range.getBegin().getLocWithOffset(-1), set_source_range.getEnd());
+                    m_rewriter.RemoveText(SourceRange(set_source_range.getBegin().getLocWithOffset(-1), set_source_range.getBegin()));
                 }
                 gaiat::diag().set_location(set_source_range.getBegin());
                 if (!validate_and_add_active_field(table_name, field_name, true))
                 {
                     return;
                 }
+            }
+
+            if (explicit_path_present && explicit_path_data.is_absolute_path)
+            {
+                m_rewriter.RemoveText(SourceRange(set_source_range.getBegin().getLocWithOffset(-1), set_source_range.getBegin()));
             }
         }
         else
@@ -2310,13 +2315,17 @@ public:
             {
                 if (!explicit_path_present)
                 {
-                    set_source_range = SourceRange(set_source_range.getBegin().getLocWithOffset(-1), set_source_range.getEnd());
+                    m_rewriter.RemoveText(SourceRange(set_source_range.getBegin().getLocWithOffset(-1), set_source_range.getBegin()));
                 }
                 gaiat::diag().set_location(set_source_range.getBegin());
                 if (!validate_and_add_active_field(table_name, field_name, true))
                 {
                     return;
                 }
+            }
+            if (explicit_path_present && explicit_path_data.is_absolute_path)
+            {
+                m_rewriter.RemoveText(SourceRange(set_source_range.getBegin().getLocWithOffset(-1), set_source_range.getBegin()));
             }
         }
         string writer_variable = get_writer_name(op->getSourceRange(), variable_name);
