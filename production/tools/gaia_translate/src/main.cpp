@@ -1432,8 +1432,7 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
         }
         else if (const auto* expression = node_parents_iterator.get<IfStmt>())
         {
-            if (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value)
-                || is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange()))
+            if (expression->getCond() && (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value) || is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange())))
             {
                 SourceRange source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
                 update_expression_location(return_value, source_range.getBegin(), source_range.getEnd());
@@ -1448,8 +1447,7 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
         }
         else if (const auto* expression = node_parents_iterator.get<WhileStmt>())
         {
-            if (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value)
-                || is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange()))
+            if (expression->getCond() && (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value) || is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange())))
             {
                 SourceRange source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
                 update_expression_location(return_value, source_range.getBegin(), source_range.getEnd());
@@ -1458,8 +1456,7 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
         }
         else if (const auto* expression = node_parents_iterator.get<DoStmt>())
         {
-            if (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value)
-                || is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange()))
+            if (expression->getCond() && (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value) || is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange())))
             {
                 SourceRange source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
                 update_expression_location(return_value, source_range.getBegin(), source_range.getEnd());
@@ -1468,12 +1465,29 @@ SourceRange get_expression_source_range(ASTContext* context, const Stmt& node, c
         }
         else if (const auto* expression = node_parents_iterator.get<ForStmt>())
         {
-            if (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value)
-                || is_range_contained_in_another_range(expression->getInit()->getSourceRange(), return_value)
-                || is_range_contained_in_another_range(expression->getInc()->getSourceRange(), return_value)
-                || is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange())
-                || is_range_contained_in_another_range(return_value, expression->getInit()->getSourceRange())
-                || is_range_contained_in_another_range(return_value, expression->getInc()->getSourceRange()))
+            if ((expression->getCond()
+                 && (is_range_contained_in_another_range(expression->getCond()->getSourceRange(), return_value)
+                     || is_range_contained_in_another_range(return_value, expression->getCond()->getSourceRange())))
+                || (expression->getInit()
+                    && (is_range_contained_in_another_range(expression->getInit()->getSourceRange(), return_value)
+                        || is_range_contained_in_another_range(return_value, expression->getInit()->getSourceRange())))
+                || (expression->getInc()
+                    && (is_range_contained_in_another_range(expression->getInc()->getSourceRange(), return_value)
+                        || is_range_contained_in_another_range(return_value, expression->getInc()->getSourceRange()))))
+            {
+                SourceRange source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
+                update_expression_location(return_value, source_range.getBegin(), source_range.getEnd());
+            }
+            return return_value;
+        }
+        else if (const auto* expression = node_parents_iterator.get<CXXForRangeStmt>())
+        {
+            if ((expression->getInit()
+                 && (is_range_contained_in_another_range(expression->getInit()->getSourceRange(), return_value)
+                     || is_range_contained_in_another_range(return_value, expression->getInit()->getSourceRange())))
+                || (expression->getRangeInit()
+                    && (is_range_contained_in_another_range(expression->getRangeInit()->getSourceRange(), return_value)
+                        || is_range_contained_in_another_range(return_value, expression->getRangeInit()->getSourceRange()))))
             {
                 SourceRange source_range = get_statement_source_range(expression, rewriter.getSourceMgr(), rewriter.getLangOpts());
                 update_expression_location(return_value, source_range.getBegin(), source_range.getEnd());
@@ -1519,22 +1533,26 @@ bool is_expression_from_body(ASTContext* context, const Stmt& node)
     {
         if (const auto* expression = node_parents_iterator.get<IfStmt>())
         {
-            return !is_range_contained_in_another_range(expression->getCond()->getSourceRange(), node.getSourceRange());
+            return expression->getCond() && !is_range_contained_in_another_range(expression->getCond()->getSourceRange(), node.getSourceRange());
         }
         else if (const auto* expression = node_parents_iterator.get<WhileStmt>())
         {
-            return !is_range_contained_in_another_range(expression->getCond()->getSourceRange(), node.getSourceRange());
+            return expression->getCond() && !is_range_contained_in_another_range(expression->getCond()->getSourceRange(), node.getSourceRange());
         }
         else if (const auto* expression = node_parents_iterator.get<DoStmt>())
         {
-            return !is_range_contained_in_another_range(expression->getCond()->getSourceRange(), node.getSourceRange());
+            return expression->getCond() && !is_range_contained_in_another_range(expression->getCond()->getSourceRange(), node.getSourceRange());
+        }
+        else if (const auto* expression = node_parents_iterator.get<CXXForRangeStmt>())
+        {
+            return !((expression->getInit() && is_range_contained_in_another_range(expression->getInit()->getSourceRange(), node.getSourceRange())) || (expression->getRangeInit() && is_range_contained_in_another_range(expression->getRangeInit()->getSourceRange(), node.getSourceRange())));
         }
         else if (const auto* expression = node_parents_iterator.get<ForStmt>())
         {
             return !(
-                is_range_contained_in_another_range(expression->getInit()->getSourceRange(), node.getSourceRange())
-                || is_range_contained_in_another_range(expression->getCond()->getSourceRange(), node.getSourceRange())
-                || is_range_contained_in_another_range(expression->getInc()->getSourceRange(), node.getSourceRange()));
+                (expression->getInit() && is_range_contained_in_another_range(expression->getInit()->getSourceRange(), node.getSourceRange()))
+                || (expression->getCond() && is_range_contained_in_another_range(expression->getCond()->getSourceRange(), node.getSourceRange()))
+                || (expression->getInc() && is_range_contained_in_another_range(expression->getInc()->getSourceRange(), node.getSourceRange())));
         }
         else if (const auto* expression = node_parents_iterator.get<GaiaForStmt>())
         {
@@ -1544,7 +1562,7 @@ bool is_expression_from_body(ASTContext* context, const Stmt& node)
         }
         else if (const auto* expression = node_parents_iterator.get<ArraySubscriptExpr>())
         {
-            return !is_range_contained_in_another_range(expression->getIdx()->getSourceRange(), node.getSourceRange())
+            return expression->getIdx() && !is_range_contained_in_another_range(expression->getIdx()->getSourceRange(), node.getSourceRange())
                 && !is_range_contained_in_another_range(node.getSourceRange(), expression->getIdx()->getSourceRange());
         }
         else if (const auto* declaration = node_parents_iterator.get<VarDecl>())
@@ -1555,6 +1573,29 @@ bool is_expression_from_body(ASTContext* context, const Stmt& node)
         else if (const auto* expression = node_parents_iterator.get<Stmt>())
         {
             return is_expression_from_body(context, *expression);
+        }
+    }
+    return false;
+}
+
+bool is_expression_from_range(ASTContext* context, const Stmt& node)
+{
+    auto node_parents = context->getParents(node);
+    for (const auto& node_parents_iterator : node_parents)
+    {
+        if (const auto* expression = node_parents_iterator.get<CXXForRangeStmt>())
+        {
+            return (expression->getInit() && is_range_contained_in_another_range(expression->getInit()->getSourceRange(), node.getSourceRange()))
+                || (expression->getRangeInit() && is_range_contained_in_another_range(expression->getRangeInit()->getSourceRange(), node.getSourceRange()));
+        }
+        else if (const auto* declaration = node_parents_iterator.get<VarDecl>())
+        {
+            auto node_parents = context->getParents(*declaration);
+            return is_expression_from_range(context, *(node_parents[0].get<DeclStmt>()));
+        }
+        else if (const auto* expression = node_parents_iterator.get<Stmt>())
+        {
+            return is_expression_from_range(context, *expression);
         }
     }
     return false;
@@ -1588,6 +1629,17 @@ bool should_expression_location_be_merged(ASTContext* context, const Stmt& node,
             }
         }
         else if (const auto* expression = node_parents_iterator.get<DoStmt>())
+        {
+            if (special_parent)
+            {
+                return false;
+            }
+            else
+            {
+                return should_expression_location_be_merged(context, *expression, true);
+            }
+        }
+        else if (const auto* expression = node_parents_iterator.get<CXXForRangeStmt>())
         {
             if (special_parent)
             {
@@ -3103,7 +3155,10 @@ public:
         const auto* variable_declaration_init = result.Nodes.getNodeAs<VarDecl>("varDeclarationInit");
         if (variable_declaration_init != nullptr)
         {
-            g_variable_declaration_init_location.insert(variable_declaration_init->getSourceRange());
+            if (!is_expression_from_range(result.Context, *(variable_declaration_init->getInit())))
+            {
+                g_variable_declaration_init_location.insert(variable_declaration_init->getSourceRange());
+            }
         }
         if (variable_declaration == nullptr)
         {
