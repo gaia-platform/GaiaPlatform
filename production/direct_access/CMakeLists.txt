@@ -48,6 +48,12 @@ add_gtest(test_one_to_one "tests/test_one_to_one.cpp" "${DIRECT_ACCESS_TEST_INCL
 add_gtest(test_one_to_many "tests/test_one_to_many.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
 add_gtest(test_auto_connect "tests/test_auto_connect.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac_airport")
 add_gtest(test_default_db "tests/test_default_db.cpp" "${DIRECT_ACCESS_TEST_INCLUDES}" "rt;gaia_direct;gaia_db_catalog_test;dac")
+
+add_gtest(test_array_fields
+  "tests/test_array_fields.cpp"
+  "${DIRECT_ACCESS_TEST_INCLUDES}"
+  "rt;gaia_direct;gaia_db_catalog_test;dac_addr_book")
+
 add_gtest(test_optional_dac
   "tests/test_optional_dac.cpp"
   "${DIRECT_ACCESS_TEST_INCLUDES}"

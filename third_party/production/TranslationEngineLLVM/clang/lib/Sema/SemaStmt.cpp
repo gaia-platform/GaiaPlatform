@@ -2489,7 +2489,28 @@ StmtResult Sema::BuildCXXForRangeStmt(SourceLocation ForLoc,
       return StmtError();
     QualType RangeType = Range->getType();
 
-    if (RequireCompleteType(RangeLoc, RangeType,
+    bool isFieldArrayExpression = false;
+    DeclRefExpr* rangeExpression = dyn_cast<DeclRefExpr>(Range);
+
+    if (rangeExpression == nullptr)
+    {
+      const MemberExpr* memberExp = dyn_cast<MemberExpr>(Range);
+      if (memberExp != nullptr)
+      {
+        rangeExpression = dyn_cast<DeclRefExpr>(memberExp->getBase());
+      }
+    }
+
+    if (rangeExpression != nullptr)
+    {
+      ValueDecl* rangeExpressionDeclaration = rangeExpression->getDecl();
+      isFieldArrayExpression = rangeExpressionDeclaration->hasAttr<GaiaFieldAttr>()
+        || rangeExpressionDeclaration->hasAttr<FieldTableAttr>()
+        || rangeExpressionDeclaration->hasAttr<GaiaExplicitPathAttr>()
+        || rangeExpressionDeclaration->hasAttr<GaiaTableAttr>();
+    }
+
+    if (!isFieldArrayExpression && RequireCompleteType(RangeLoc, RangeType,
                             diag::err_for_range_incomplete_type))
       return StmtError();
 
@@ -2524,7 +2545,12 @@ StmtResult Sema::BuildCXXForRangeStmt(SourceLocation ForLoc,
 
       // Find the array bound.
       ExprResult BoundExpr;
-      if (const ConstantArrayType *CAT = dyn_cast<ConstantArrayType>(UnqAT))
+      if (isFieldArrayExpression)
+      {
+        BoundExpr = IntegerLiteral::Create(
+            Context, llvm::APInt(), Context.getPointerDiffType(), RangeLoc);
+      }
+      else if (const ConstantArrayType *CAT = dyn_cast<ConstantArrayType>(UnqAT))
         BoundExpr = IntegerLiteral::Create(
             Context, CAT->getSize(), Context.getPointerDiffType(), RangeLoc);
       else if (const VariableArrayType *VAT =

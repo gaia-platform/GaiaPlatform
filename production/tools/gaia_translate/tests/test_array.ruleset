@@ -198,4 +198,40 @@ ruleset test_array
             g_client_sales = period;
         }
     }
+
+    on_insert(client)
+    {
+        if (strcmp(client_name, "14") == 0)
+        {
+            g_client_sales = 0;
+            for (auto sale : sales)
+            {
+                g_client_sales += sale;
+            }
+        }
+    }
+
+    on_insert(client)
+    {
+        if (strcmp(client_name, "15") == 0)
+        {
+            g_client_sales = 0;
+            for (auto sale : client.sales)
+            {
+                g_client_sales += sale;
+            }
+        }
+    }
+
+    on_insert(client)
+    {
+        if (strcmp(client_name, "16") == 0)
+        {
+            g_client_sales = 0;
+            for (auto sale : company->client.sales)
+            {
+                g_client_sales += sale;
+            }
+        }
+    }
 }
