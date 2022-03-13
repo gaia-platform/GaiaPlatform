@@ -2259,18 +2259,13 @@ public:
             {
                 if (!explicit_path_present)
                 {
-                    m_rewriter.RemoveText(SourceRange(set_source_range.getBegin().getLocWithOffset(-1), set_source_range.getBegin()));
+                    set_source_range = SourceRange(set_source_range.getBegin().getLocWithOffset(-1), set_source_range.getEnd());
                 }
                 gaiat::diag().set_location(set_source_range.getBegin());
                 if (!validate_and_add_active_field(table_name, field_name, true))
                 {
                     return;
                 }
-            }
-
-            if (explicit_path_present && explicit_path_data.is_absolute_path)
-            {
-                m_rewriter.RemoveText(SourceRange(set_source_range.getBegin().getLocWithOffset(-1), set_source_range.getBegin()));
             }
         }
         else
@@ -2315,17 +2310,13 @@ public:
             {
                 if (!explicit_path_present)
                 {
-                    m_rewriter.RemoveText(SourceRange(set_source_range.getBegin().getLocWithOffset(-1), set_source_range.getBegin()));
+                    set_source_range = SourceRange(set_source_range.getBegin().getLocWithOffset(-1), set_source_range.getEnd());
                 }
                 gaiat::diag().set_location(set_source_range.getBegin());
                 if (!validate_and_add_active_field(table_name, field_name, true))
                 {
                     return;
                 }
-            }
-            if (explicit_path_present && explicit_path_data.is_absolute_path)
-            {
-                m_rewriter.RemoveText(SourceRange(set_source_range.getBegin().getLocWithOffset(-1), set_source_range.getBegin()));
             }
         }
         string writer_variable = get_writer_name(op->getSourceRange(), variable_name);
@@ -2386,8 +2377,9 @@ public:
         }
         else
         {
-            set_source_range = operator_expression->getSourceRange();
+            set_source_range.setEnd(operator_expression->getSourceRange().getEnd());
         }
+
         m_rewriter.ReplaceText(set_source_range, replacement_text);
         g_rewriter_history.push_back({set_source_range, replacement_text, replace_text});
 
