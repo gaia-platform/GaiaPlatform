@@ -363,13 +363,18 @@ ruleset test_define
     }
 }
 
-#if 0
-// This rule interferes with 'ruleset set' rules
 ruleset test15
 {
-    on_change(incubator)
+    on_update(incubator.name)
     {
         S:sensor.value = S.value * 1.01;
     }
 }
-#endif
+
+ruleset test16
+{
+    on_update(sensor.name)
+    {
+        /actuator.timestamp = sensor.timestamp;
+    }
+}
