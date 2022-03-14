@@ -99,3 +99,58 @@ ruleset test8
         }
     }
 }
+
+// TESTCASE: send one element of scalar array into a function using iterators with unqualified reference
+ruleset test9
+{
+    on_update(farmer)
+    {
+        for (auto year : previous_years)
+        {
+            int sum = 0;
+            sum += update_int(year);
+        }
+    }
+}
+
+// TESTCASE: send one element of scalar array into a function using iterators with qualified reference
+ruleset test10
+{
+    on_update(farmer)
+    {
+        for (auto year : yield.previous_years)
+        {
+            int sum = 0;
+            sum += update_int(year);
+        }
+    }
+}
+
+// TESTCASE: regular for with fields as port of init/condition/increment missing
+ruleset test11
+{
+    on_update(farmer)
+    {
+        for (; bushels < 5; bushels++)
+        {}
+
+        for (bushels = 0; ; bushels++)
+        {}
+
+        for (bushels = 0; bushels < 5; )
+        {}
+    }
+}
+
+// TESTCASE: send one element of scalar array into a function using iterators with explicit path reference
+ruleset test12
+{
+    on_update(farmer)
+    {
+        for (auto year : farmer->yield.previous_years)
+        {
+            int sum = 0;
+            sum += update_int(year);
+        }
+    }
+}
