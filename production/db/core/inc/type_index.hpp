@@ -127,12 +127,11 @@ struct type_index_t
     // `type_index_entries_count` (slots are not reused).
     inline void register_type(common::gaia_type_t type)
     {
-        size_t type_index_entry_idx = ++type_index_entries_count;
-        if (type_index_entry_idx > c_max_types)
+        if (type_index_entries_count > c_max_types)
         {
             throw type_limit_exceeded_internal();
         }
-        type_index_entries[type_index_entry_idx].type = type;
+        type_index_entries[type_index_entries_count++].type = type;
     }
 
     // Returns the head of the locator list for the given type.

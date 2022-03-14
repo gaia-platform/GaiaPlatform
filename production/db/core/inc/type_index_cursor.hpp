@@ -40,7 +40,7 @@ public:
         {
             return false;
         }
-        prev_node = m_curr_node;
+        m_prev_node = m_curr_node;
         m_curr_locator = m_curr_node->get_next_locator();
         m_curr_node = m_type_index->get_list_node(m_curr_locator);
         return static_cast<bool>(m_curr_node);
@@ -51,7 +51,7 @@ public:
     {
         // Create a new cursor with the same type and copy it into this cursor
         // using the default copy constructor.
-        *this = type_index_cursor_t(m_type_index, type);
+        *this = type_index_cursor_t(m_type_index, m_type);
     }
 
     // Returns true if the current node has been logically deleted, false otherwise.
