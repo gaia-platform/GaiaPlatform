@@ -204,15 +204,6 @@ if [[ -z "$INSTALL_PATH" ]] ; then
     complete_process 1 "Debian package to install could not be found."
 fi
 
-# if [ "$VERBOSE_MODE" -ne 0 ]; then
-#    echo "Installing Debian package '$INSTALL_PATH'..."
-# fi
-# shellcheck disable=SC2061
-
-# if ! sudo apt --assume-yes install "$INSTALL_PATH" ; then
-#    complete_process 1 "Debian package '$INSTALL_PATH' could not be installed."
-# fi
-
 ## PER JOB CONFIGURATION ##
 
 if [[ "$JOB_NAME" == Integration_Tests* ]] || [[ "$JOB_NAME" == "Performance_Tests" ]] ; then
@@ -251,8 +242,6 @@ elif [ "$JOB_NAME" == "Integration_Samples" ] ; then
     # Only run sample tests instead of the other integration tests
     cd "${GAIA_REPO}/production/tests/staging" || exit
 
-    #TODO: need to copy .deb into container files ... (maybe to an output dir first?)
-
     # Build our empty ubuntu20 container with cmake and clang
     if ! docker buildx build \
         -f Dockerfile_gaia_ubuntu_20 \
@@ -287,11 +276,6 @@ elif [ "$JOB_NAME" == "Integration_Samples" ] ; then
         . ; then
         complete_process 1 "Docker build for job failed (gaia_sdk_20)."
     fi
-
-#    cd "$GAIA_REPO/dev_tools/sdk/test" || exit
-#    if ! bash -c "./build_sample_for_github_actions.sh 2>&1 > \"$GAIA_REPO/production/tests/results/test.log\"" ; then
-#        complete_process 1 "Tests for job '$JOB_NAME' failed  See job artifacts for more information."
-#    fi
 
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Integration Sample tests executed successfully."

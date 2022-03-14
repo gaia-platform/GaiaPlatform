@@ -123,7 +123,7 @@ jobs:
   Debug_SDK:
     needs:
       - Core
-    if: ${{ false }}
+    if: github.event_name != 'pull_request'
     runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
