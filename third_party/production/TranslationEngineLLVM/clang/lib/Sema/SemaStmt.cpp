@@ -2548,7 +2548,8 @@ StmtResult Sema::BuildCXXForRangeStmt(SourceLocation ForLoc,
       if (isFieldArrayExpression)
       {
         BoundExpr = IntegerLiteral::Create(
-            Context, llvm::APInt(), Context.getPointerDiffType(), RangeLoc);
+            Context, llvm::APInt(Context.getTypeSize(Context.getSizeType()), true),
+            Context.getPointerDiffType(), RangeLoc);
       }
       else if (const ConstantArrayType *CAT = dyn_cast<ConstantArrayType>(UnqAT))
         BoundExpr = IntegerLiteral::Create(
