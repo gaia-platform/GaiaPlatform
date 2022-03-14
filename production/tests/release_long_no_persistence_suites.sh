@@ -25,4 +25,5 @@ USE_MEMORY_SAMPLING=1
 
 # Invoke the actual execution of the suites.
 source "$SCRIPTPATH/execute_suites.sh"
+# shellcheck disable=SC1091
 execute_suites "$@"
