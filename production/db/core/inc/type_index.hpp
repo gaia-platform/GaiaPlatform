@@ -68,16 +68,18 @@ static_assert(
 static_assert(std::atomic<locator_list_node_t>::is_always_lock_free);
 
 // Holds a type ID and the head of its linked list of locators.
+// This structure is always updated atomically via CAS.
 struct type_index_entry_t
 {
     // The type ID of this locator list.
-    std::atomic<common::gaia_type_t::value_type> type;
+    common::gaia_type_t::value_type type;
 
     // The first locator in the list.
-    std::atomic<gaia_locator_t::value_type> first_locator;
+    gaia_locator_t::value_type first_locator;
 };
 
 static_assert(sizeof(type_index_entry_t) == 8, "Expected sizeof(type_index_entry_t) to be 8!");
+static_assert(std::atomic<type_index_entry_t>::is_always_lock_free);
 
 // An index enabling efficient retrieval of all locators belonging to a
 // registered type. Each type ID maps to a linked list containing all locators
@@ -85,20 +87,21 @@ static_assert(sizeof(type_index_entry_t) == 8, "Expected sizeof(type_index_entry
 struct type_index_t
 {
     // Mapping of registered type IDs to the heads of their locator lists.
-    type_index_entry_t type_index_entries[c_max_types];
-
-    // Atomic counter incremented during type registration to determine the
-    // index of the registered type in the `type_index_entries` array.
-    std::atomic<size_t> type_index_entries_count;
+    std::atomic<type_index_entry_t> type_index_entries[c_max_types];
 
     // Pool of nodes used for the linked lists representing the sets of locators
     // belonging to each registered type. The array index of each node
     // corresponds to the locator it represents.
     locator_list_node_t locator_lists_array[c_max_locators + 1];
 
+    // Returns a reference to the type index entry containing `type`.
+    // PRECONDITON: `type` has already been registered.
+    inline std::atomic<type_index_entry_t>& get_type_index_entry(common::gaia_type_t type);
+
     // Claims a slot in `type_index_entries` by atomically incrementing
     // `type_index_entries_count` (slots are not reused).
-    inline void register_type(common::gaia_type_t type);
+    // Returns true if type was not already registered, false otherwise.
+    inline bool register_type(common::gaia_type_t type);
 
     // Returns the head of the locator list for the given type.
     inline gaia_locator_t get_first_locator(common::gaia_type_t type);

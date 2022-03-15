@@ -32,6 +32,9 @@ inline common::gaia_id_t allocate_id()
     return ++(counters->last_id);
 }
 
+// REVIEW [DEPRECATE]: This has been superseded by externally allocated type IDs
+// (based on a digest of a fully-qualified type name), and seems to only be used
+// by a single test.
 inline common::gaia_type_t allocate_type()
 {
     counters_t* counters = gaia::db::get_counters();
@@ -44,7 +47,7 @@ inline gaia_txn_id_t allocate_txn_id()
     return ++(counters->last_txn_id);
 }
 
-inline gaia_locator_t allocate_locator()
+inline gaia_locator_t allocate_locator(common::gaia_type_t type)
 {
     counters_t* counters = gaia::db::get_counters();
 
@@ -53,7 +56,14 @@ inline gaia_locator_t allocate_locator()
         throw system_object_limit_exceeded_internal();
     }
 
-    return ++(counters->last_locator);
+    gaia_locator_t locator = ++(counters->last_locator);
+
+    type_index_t* type_index = get_type_index();
+    // Ignore failure if type is already registered.
+    type_index->register_type(type);
+    type_index->add_locator(type, locator);
+
+    return locator;
 }
 
 inline void update_locator(gaia_locator_t locator, gaia_offset_t offset)
