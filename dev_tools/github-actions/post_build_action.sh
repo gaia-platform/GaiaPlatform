@@ -145,6 +145,7 @@ fi
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Executing build action within docker image."
 fi
+
 if ! docker run \
     --rm \
     --init \

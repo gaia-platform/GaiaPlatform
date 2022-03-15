@@ -16,7 +16,7 @@ env:
 jobs:
 
   Lint:
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -29,7 +29,7 @@ jobs:
           gaia-repo: ${{ github.workspace }}
 
   Third-Party:
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -51,7 +51,7 @@ jobs:
     needs:
       - Lint
       - Third-Party
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -76,7 +76,7 @@ jobs:
       - Lint
       - Third-Party
     if: github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -99,7 +99,7 @@ jobs:
   Debug_Core:
     needs:
       - Core
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     if: ${{ false }}
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -123,8 +123,8 @@ jobs:
   Debug_SDK:
     needs:
       - Core
-    if: ${{ false }}
-    runs-on: ubuntu-20.04
+    if: github.event_name != 'pull_request'
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -149,7 +149,7 @@ jobs:
       - Third-Party
     if: ${{ false }}
     timeout-minutes: 200
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -170,7 +170,7 @@ jobs:
       - Lint
       - Third-Party
     if: ${{ false }}
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -193,8 +193,9 @@ jobs:
   Integration_Tests:
     needs:
       - SDK
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
+    # if: github.event_name != 'pull_request'
+    if: ${{false}}
+    runs-on: self-hosted
     timeout-minutes: 7
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -239,7 +240,7 @@ jobs:
 #    Disabled due to https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2002
 #    if: github.event_name != 'pull_request'
     if: ${{ false }}
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     timeout-minutes: 7
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -276,8 +277,9 @@ jobs:
   Performance_Tests:
     needs:
       - Integration_Tests
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
+    # if: github.event_name != 'pull_request'
+    if: ${{false}}
+    runs-on: self-hosted
     timeout-minutes: 10
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -313,7 +315,7 @@ jobs:
 
   Integration_Samples:
     needs: SDK
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -353,7 +355,7 @@ jobs:
     needs:
       - Lint
     if: ${{ false }}
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -373,12 +375,12 @@ jobs:
 #      - Debug_Core
 #      - Coverage
 #      - LLVM_Tests
-      - Integration_Tests
+#      - Integration_Tests
 #      - Integration_Tests_Debug
-      - Performance_Tests
+#      - Performance_Tests
       - Integration_Samples
-      - Documentation
-    runs-on: ubuntu-20.04
+#      - Documentation
+    runs-on: self-hosted
     steps:
       - uses: geekyeggo/delete-artifact@v1
         with:

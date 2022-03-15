@@ -28,13 +28,13 @@ runs:
       run: |
         echo "Before Any Cleanup"
         df -h
-        sudo rm -rf /usr/share/dotnet
+        rm -rf /usr/share/dotnet
         echo "After Dotnet Cleanup ~ 4G"
         df -h
-        sudo rm -rf /opt/ghc
+        rm -rf /opt/ghc
         echo "After Haskell Cleanup ~0.5G"
         df -h
-        sudo rm -rf /usr/local/lib/android
+        rm -rf /usr/local/lib/android
         echo "After Android Cleanup ~15G"
         df -h
 
@@ -42,6 +42,7 @@ runs:
       if: ${{ inputs.docker-user != '' }}
       shell: bash
       run: |
+        if pgrep ssh-agent; then pkill ssh-agent; fi
         ssh-agent -a $SSH_AUTH_SOCK > /dev/null
         echo "${{ inputs.docker-password }}" | docker login ghcr.io -u ${{ inputs.docker-user }} --password-stdin
         docker pull $DEV_IMAGE
@@ -57,6 +58,7 @@ runs:
       if: ${{ inputs.docker-user == '' }}
       shell: bash
       run: |
+        if pgrep ssh-agent; then pkill ssh-agent; fi
         ssh-agent -a $SSH_AUTH_SOCK > /dev/null
         ls -la ${{ github.workspace }}/production/dev_image.tar.gz
         docker load < ${{ github.workspace }}/production/dev_image.tar.gz

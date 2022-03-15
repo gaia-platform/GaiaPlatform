@@ -145,4 +145,8 @@ else
     complete_process 1 "Action '$ACTION_NAME' is not known."
 fi
 
+# Change ownership of our output files to our generated docker user so that we can remove it at
+# a later build step outside of the container.
+chown --recursive ci-user:ci-user /build/output
+
 complete_process 0 ""

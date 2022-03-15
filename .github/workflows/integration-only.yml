@@ -10,7 +10,7 @@ env:
 
 jobs:
   Integration_Tests:
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     timeout-minutes: 7
     env:
       GAIA_REPO: ${{ github.workspace }}

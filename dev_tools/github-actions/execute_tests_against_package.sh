@@ -184,8 +184,13 @@ save_current_directory
 if [ "$VERBOSE_MODE" -ne 0 ]; then
     echo "Creating test output directory."
 fi
+
 if ! mkdir -p "$GAIA_REPO/production/tests/results" ; then
     complete_process 1 "Unable to create an output directory for '$JOB_NAME'."
+fi
+
+if ! mkdir -p "$GAIA_REPO/production/tests/staging" ; then
+    complete_process 1 "Unable to create a staging directory for '$JOB_NAME'."
 fi
 
 if [ "$VERBOSE_MODE" -ne 0 ]; then
@@ -193,18 +198,10 @@ if [ "$VERBOSE_MODE" -ne 0 ]; then
 fi
 cd "$PACKAGE_PATH" || exit
 # shellcheck disable=SC2061
-INSTALL_PATH="$(find . -name gaia*)"
+INSTALL_PATH="$(find . -name gaia-*.deb)"
 if [[ -z "$INSTALL_PATH" ]] ; then
     ls -la "$PACKAGE_PATH"
     complete_process 1 "Debian package to install could not be found."
-fi
-
-if [ "$VERBOSE_MODE" -ne 0 ]; then
-    echo "Installing Debian package '$INSTALL_PATH'..."
-fi
-# shellcheck disable=SC2061
-if ! sudo apt --assume-yes install "$INSTALL_PATH" ; then
-    complete_process 1 "Debian package '$INSTALL_PATH' could not be installed."
 fi
 
 ## PER JOB CONFIGURATION ##
@@ -213,7 +210,7 @@ if [[ "$JOB_NAME" == Integration_Tests* ]] || [[ "$JOB_NAME" == "Performance_Tes
 
     cd "$GAIA_REPO/production/tests" || exit
 
-    if ! sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop --database ; then
+    if ! "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop --database ; then
         complete_process 1 "Stopping of the database before execution of integration tests failed."
     fi
 
@@ -237,12 +234,47 @@ if [[ "$JOB_NAME" == Integration_Tests* ]] || [[ "$JOB_NAME" == "Performance_Tes
 
 elif [ "$JOB_NAME" == "Integration_Samples" ] ; then
 
+    # Place the files we need accessible to our docker container into the staging
+    # directory.
+    cp "${GAIA_REPO}/dev_tools/sdk/test/"* "${GAIA_REPO}/production/tests/staging/"
+    cp "${INSTALL_PATH}" "${GAIA_REPO}/production/tests/staging"
+
+    # Only run sample tests instead of the other integration tests
+    cd "${GAIA_REPO}/production/tests/staging" || exit
+
+    # Build our empty ubuntu20 container with cmake and clang
+    if ! docker buildx build \
+        -f Dockerfile_gaia_ubuntu_20 \
+        -t gaia_ubuntu_20 \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        --platform linux/amd64 \
+        --shm-size 1gb \
+        --ssh default \
+        --compress \
+        . ; then
+        complete_process 1 "Docker build for job failed (gaia_ubuntu_20)."
+    fi
+
+    echo "Install path = ${INSTALL_PATH}"
+
     if [ "$VERBOSE_MODE" -ne 0 ]; then
         echo "Executing the Integration Samples tests."
     fi
-    cd "$GAIA_REPO/dev_tools/sdk/test" || exit
-    if ! sudo bash -c "./build_sample_for_github_actions.sh 2>&1 > \"$GAIA_REPO/production/tests/results/test.log\"" ; then
-        complete_process 1 "Tests for job '$JOB_NAME' failed  See job artifacts for more information."
+
+    # Now build our SDK container which will run the samples script
+    if ! docker buildx build \
+        -f Dockerfile_gaia_sdk_20 \
+        -t gaia_sdk_20 \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        --build-arg gaia_sdk_deb="${INSTALL_PATH}" \
+        --platform linux/amd64 \
+        --no-cache \
+        --shm-size 1gb \
+        --ssh default \
+        --progress=plain \
+        --compress \
+        . ; then
+        complete_process 1 "Docker build for job failed (gaia_sdk_20)."
     fi
 
     if [ "$VERBOSE_MODE" -ne 0 ]; then
