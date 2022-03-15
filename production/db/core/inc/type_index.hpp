@@ -78,7 +78,9 @@ struct type_index_entry_t
     gaia_locator_t::value_type first_locator;
 };
 
-static_assert(sizeof(type_index_entry_t) == 8, "Expected sizeof(type_index_entry_t) to be 8!");
+static_assert(
+    sizeof(type_index_entry_t) == sizeof(uint64_t),
+    "Expected type_index_entry_t to occupy 8 bytes!");
 static_assert(std::atomic<type_index_entry_t>::is_always_lock_free);
 
 // An index enabling efficient retrieval of all locators of a registered type.
