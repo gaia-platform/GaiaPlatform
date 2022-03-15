@@ -21,7 +21,7 @@ class type_index_cursor_t
 {
 public:
     type_index_cursor_t(type_index_t* type_index, common::gaia_type_t type)
-        : m_type_index(type_index), m_type(type), m_prev_node(nullptr)
+        : m_type_index(type_index), m_prev_node(nullptr), m_type(type)
     {
         m_curr_locator = m_type_index->get_first_locator(m_type);
         m_curr_node = m_type_index->get_list_node(m_curr_locator);
@@ -113,7 +113,7 @@ public:
         // end of list).
         // Return whether the CAS succeeded (it could fail if the previous node
         // has either been marked for deletion or pointed to a new successor).
-        return prev_node->set_next_locator(unlinked_locator, current_locator());
+        return prev_node->try_set_next_locator(unlinked_locator, current_locator());
     }
 
 private:
@@ -132,6 +132,11 @@ private:
     // Type ID of node list.
     common::gaia_type_t m_type;
 };
+
+// The fields are ordered to minimize size (since this structure is passed by
+// value), so check that size hasn't changed, to catch reorderings.
+constexpr size_t c_expected_type_index_cursor_size = 32;
+static_assert(sizeof(type_index_cursor_t) == c_expected_type_index_cursor_size);
 
 } // namespace db
 } // namespace gaia

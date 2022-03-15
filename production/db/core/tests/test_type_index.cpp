@@ -46,7 +46,7 @@ protected:
 // Add one locator and verify that the cursor finds it.
 TEST_F(type_index_test, add_and_find_one_locator)
 {
-    m_type_index->add_locator(c_first_locator, c_first_type);
+    m_type_index->add_locator(c_first_type, c_first_locator);
     type_index_cursor_t cursor(m_type_index, c_first_type);
     EXPECT_EQ(cursor.current_locator(), c_first_locator);
     EXPECT_FALSE(cursor.next_locator().is_valid());
@@ -56,7 +56,7 @@ TEST_F(type_index_test, add_and_find_one_locator)
 // deleted.
 TEST_F(type_index_test, add_and_delete_one_locator)
 {
-    m_type_index->add_locator(c_first_locator, c_first_type);
+    m_type_index->add_locator(c_first_type, c_first_locator);
     EXPECT_TRUE(m_type_index->delete_locator(c_first_locator));
     type_index_cursor_t cursor(m_type_index, c_first_type);
     EXPECT_EQ(cursor.current_locator(), c_first_locator);
@@ -68,7 +68,7 @@ TEST_F(type_index_test, add_and_delete_one_locator)
 // find it on a new traversal.
 TEST_F(type_index_test, add_delete_unlink_one_locator)
 {
-    m_type_index->add_locator(c_first_locator, c_first_type);
+    m_type_index->add_locator(c_first_type, c_first_locator);
     EXPECT_TRUE(m_type_index->delete_locator(c_first_locator));
     type_index_cursor_t cursor(m_type_index, c_first_type);
     EXPECT_EQ(cursor.current_locator(), c_first_locator);
@@ -87,9 +87,9 @@ TEST_F(type_index_test, add_multi_delete_unlink_head_locator)
 {
     constexpr size_t c_locator_count = 8;
     constexpr gaia_locator_t c_last_locator{c_locator_count};
-    for (gaia_locator_t::value_type locator_value = c_first_locator.value(); locator_value <= c_last_locator.value(); ++locator_value)
+    for (gaia_locator_t locator = c_first_locator; locator <= c_last_locator; ++locator)
     {
-        m_type_index->add_locator(gaia_locator_t(locator_value), c_first_type);
+        m_type_index->add_locator(c_first_type, locator);
     }
     EXPECT_TRUE(m_type_index->delete_locator(c_last_locator));
     type_index_cursor_t cursor(m_type_index, c_first_type);
@@ -113,9 +113,9 @@ TEST_F(type_index_test, add_multi_delete_unlink_tail_locator)
 {
     constexpr size_t c_locator_count = 8;
     constexpr gaia_locator_t c_last_locator{c_locator_count};
-    for (gaia_locator_t::value_type locator_value = c_first_locator.value(); locator_value <= c_last_locator.value(); ++locator_value)
+    for (gaia_locator_t locator = c_first_locator; locator <= c_last_locator; ++locator)
     {
-        m_type_index->add_locator(gaia_locator_t(locator_value), c_first_type);
+        m_type_index->add_locator(c_first_type, locator);
     }
     EXPECT_TRUE(m_type_index->delete_locator(c_first_locator));
     type_index_cursor_t cursor(m_type_index, c_first_type);
@@ -144,13 +144,13 @@ TEST_F(type_index_test, add_multi_delete_all_unlink_head)
 {
     constexpr size_t c_locator_count = 8;
     constexpr gaia_locator_t c_last_locator{c_locator_count};
-    for (gaia_locator_t::value_type locator_value = c_first_locator.value(); locator_value <= c_last_locator.value(); ++locator_value)
+    for (gaia_locator_t locator = c_first_locator; locator <= c_last_locator; ++locator)
     {
-        m_type_index->add_locator(gaia_locator_t(locator_value), c_first_type);
+        m_type_index->add_locator(c_first_type, locator);
     }
-    for (gaia_locator_t::value_type locator_value = c_first_locator.value(); locator_value <= c_last_locator.value(); ++locator_value)
+    for (gaia_locator_t locator = c_first_locator; locator <= c_last_locator; ++locator)
     {
-        EXPECT_TRUE(m_type_index->delete_locator(gaia_locator_t(locator_value)));
+        EXPECT_TRUE(m_type_index->delete_locator(locator));
     }
     type_index_cursor_t cursor(m_type_index, c_first_type);
     EXPECT_EQ(cursor.current_locator(), c_last_locator);
@@ -168,13 +168,13 @@ TEST_F(type_index_test, add_multi_delete_all_except_head_unlink_all_deleted)
 {
     constexpr size_t c_locator_count = 8;
     constexpr gaia_locator_t c_last_locator{c_locator_count};
-    for (gaia_locator_t::value_type locator_value = c_first_locator.value(); locator_value <= c_last_locator.value(); ++locator_value)
+    for (gaia_locator_t locator = c_first_locator; locator <= c_last_locator; ++locator)
     {
-        m_type_index->add_locator(gaia_locator_t(locator_value), c_first_type);
+        m_type_index->add_locator(c_first_type, locator);
     }
-    for (gaia_locator_t::value_type locator_value = c_first_locator.value() + 1; locator_value <= c_last_locator.value(); ++locator_value)
+    for (gaia_locator_t locator = c_first_locator + 1; locator <= c_last_locator; ++locator)
     {
-        EXPECT_TRUE(m_type_index->delete_locator(gaia_locator_t(locator_value)));
+        EXPECT_TRUE(m_type_index->delete_locator(locator));
     }
     type_index_cursor_t cursor(m_type_index, c_first_type);
     EXPECT_EQ(cursor.current_locator(), c_last_locator);
@@ -193,13 +193,13 @@ TEST_F(type_index_test, add_multi_delete_all_except_tail_unlink_all_deleted)
 {
     constexpr size_t c_locator_count = 8;
     constexpr gaia_locator_t c_last_locator{c_locator_count};
-    for (gaia_locator_t::value_type locator_value = c_first_locator.value(); locator_value <= c_last_locator.value(); ++locator_value)
+    for (gaia_locator_t locator = c_first_locator; locator <= c_last_locator; ++locator)
     {
-        m_type_index->add_locator(gaia_locator_t(locator_value), c_first_type);
+        m_type_index->add_locator(c_first_type, locator);
     }
-    for (gaia_locator_t::value_type locator_value = c_first_locator.value(); locator_value < c_last_locator.value(); ++locator_value)
+    for (gaia_locator_t locator = c_first_locator; locator < c_last_locator; ++locator)
     {
-        EXPECT_TRUE(m_type_index->delete_locator(gaia_locator_t(locator_value)));
+        EXPECT_TRUE(m_type_index->delete_locator(locator));
     }
     type_index_cursor_t cursor(m_type_index, c_first_type);
     EXPECT_EQ(cursor.current_locator(), c_last_locator);
@@ -220,13 +220,13 @@ TEST_F(type_index_test, add_multi_delete_all_except_head_and_tail_unlink_all_del
 {
     constexpr size_t c_locator_count = 8;
     constexpr gaia_locator_t c_last_locator{c_locator_count};
-    for (gaia_locator_t::value_type locator_value = c_first_locator.value(); locator_value <= c_last_locator.value(); ++locator_value)
+    for (gaia_locator_t locator = c_first_locator; locator <= c_last_locator; ++locator)
     {
-        m_type_index->add_locator(gaia_locator_t(locator_value), c_first_type);
+        m_type_index->add_locator(c_first_type, locator);
     }
-    for (gaia_locator_t::value_type locator_value = c_first_locator.value() + 1; locator_value < c_last_locator.value(); ++locator_value)
+    for (gaia_locator_t locator = c_first_locator + 1; locator < c_last_locator; ++locator)
     {
-        EXPECT_TRUE(m_type_index->delete_locator(gaia_locator_t(locator_value)));
+        EXPECT_TRUE(m_type_index->delete_locator(locator));
     }
     type_index_cursor_t cursor(m_type_index, c_first_type);
     EXPECT_EQ(cursor.current_locator(), c_last_locator);
@@ -249,9 +249,9 @@ TEST_F(type_index_test, add_multi_delete_only_head_and_tail_unlink_all_deleted)
 {
     constexpr size_t c_locator_count = 8;
     constexpr gaia_locator_t c_last_locator{c_locator_count};
-    for (gaia_locator_t::value_type locator_value = c_first_locator.value(); locator_value <= c_last_locator.value(); ++locator_value)
+    for (gaia_locator_t locator = c_first_locator; locator <= c_last_locator; ++locator)
     {
-        m_type_index->add_locator(gaia_locator_t(locator_value), c_first_type);
+        m_type_index->add_locator(c_first_type, locator);
     }
     EXPECT_TRUE(m_type_index->delete_locator(c_first_locator));
     EXPECT_TRUE(m_type_index->delete_locator(c_last_locator));
@@ -275,4 +275,62 @@ TEST_F(type_index_test, add_multi_delete_only_head_and_tail_unlink_all_deleted)
         ++locators_found_count;
     } while (cursor.advance());
     EXPECT_EQ(locators_found_count, c_locator_count - 2);
+}
+
+// Try to exceed the registered type limit and verify the expected exception is
+// thrown.
+TEST_F(type_index_test, exceed_registered_type_limit)
+{
+    // We already registered a single type, so start after that type ID and
+    // stop at the type limit.
+    for (gaia_type_t type_id = c_first_type + 1; type_id.value() <= c_max_types; ++type_id)
+    {
+        EXPECT_NO_THROW(m_type_index->register_type(type_id));
+    }
+    // Now try to register another type after we've already reached the type limit.
+    EXPECT_THROW(m_type_index->register_type(c_max_types + 1), type_limit_exceeded);
+}
+
+// Register as many types as allowed by the type limit, then add a locator to
+// each list and verify its presence, delete the locator from each list and
+// verify its logically deleted status, and finally unlink the locator from each
+// list and verify its absence.
+TEST_F(type_index_test, add_delete_unlink_locators_multiple_types)
+{
+    // We already registered a single type, so start after that type ID and
+    // stop at the type limit.
+    for (gaia_type_t type_id = c_first_type + 1; type_id.value() <= c_max_types; ++type_id)
+    {
+        EXPECT_NO_THROW(m_type_index->register_type(type_id));
+    }
+    // For each registered type, add a locator to the index for that type and
+    // verify its presence.
+    gaia_locator_t locator = c_first_locator;
+    for (gaia_type_t type_id{c_first_type}; type_id.value() <= c_max_types; ++type_id, ++locator)
+    {
+        m_type_index->add_locator(type_id, locator);
+        type_index_cursor_t cursor(m_type_index, type_id);
+        EXPECT_EQ(cursor.current_locator(), locator);
+        EXPECT_FALSE(cursor.next_locator().is_valid());
+    }
+    // For each registered type, logically delete the locator in the index for
+    // that type, verify its deleted status, then unlink it.
+    locator = c_first_locator;
+    for (gaia_type_t type_id{c_first_type}; type_id.value() <= c_max_types; ++type_id, ++locator)
+    {
+        EXPECT_TRUE(m_type_index->delete_locator(locator));
+        type_index_cursor_t cursor(m_type_index, type_id);
+        EXPECT_EQ(cursor.current_locator(), locator);
+        EXPECT_FALSE(cursor.next_locator().is_valid());
+        EXPECT_TRUE(cursor.is_current_node_deleted());
+        EXPECT_TRUE(cursor.unlink_for_deletion());
+    }
+    // For each registered type, verify that there are no locators in the index
+    // for that type.
+    for (gaia_type_t type_id = c_first_type; type_id.value() <= c_max_types; ++type_id)
+    {
+        type_index_cursor_t cursor(m_type_index, type_id);
+        EXPECT_FALSE(cursor.current_locator().is_valid());
+        EXPECT_FALSE(cursor.advance());
+    }
 }
