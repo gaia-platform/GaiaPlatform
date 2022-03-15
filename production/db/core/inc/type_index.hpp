@@ -49,51 +49,16 @@ struct locator_list_node_t
 
     // Returns the locator index of the current node's successor, or the invalid
     // locator if it has no successor.
-    inline gaia_locator_t get_next_locator()
-    {
-        return static_cast<gaia_locator_t>((data_word & c_locator_mask) >> c_locator_shift);
-    }
+    inline gaia_locator_t get_next_locator();
 
     // Returns true if the "deleted" bit is set, false otherwise.
-    inline bool is_marked_for_deletion()
-    {
-        return static_cast<bool>((data_word & c_deleted_flag_mask) >> c_deleted_flag_shift);
-    }
-
-    inline uint64_t data_word_from_locator(gaia_locator_t locator)
-    {
-        return locator.value() << c_locator_shift;
-    }
+    inline bool is_marked_for_deletion();
 
     // Returns false if the "deleted" bit is set or the successor has been changed, true otherwise.
-    inline bool try_set_next_locator(gaia_locator_t expected_locator, gaia_locator_t desired_locator)
-    {
-        // The "expected" word has the "deleted" bit unset, because we want to
-        // fail if this node has been marked for deletion.
-        uint64_t expected_word{data_word_from_locator(expected_locator)};
-        uint64_t desired_word{data_word_from_locator(desired_locator)};
-        return data_word.compare_exchange_strong(expected_word, desired_word);
-    }
+    inline bool try_set_next_locator(gaia_locator_t expected_locator, gaia_locator_t desired_locator);
 
     // Returns false if the "deleted" bit was already set, true otherwise.
-    inline bool mark_for_deletion()
-    {
-        while (true)
-        {
-            uint64_t expected_word{data_word};
-            if (expected_word & c_deleted_flag_mask)
-            {
-                return false;
-            }
-            uint64_t desired_word{data_word | c_deleted_flag_mask};
-            if (data_word.compare_exchange_strong(expected_word, desired_word))
-            {
-                break;
-            }
-        }
-
-        return true;
-    }
+    inline bool mark_for_deletion();
 };
 
 static_assert(
@@ -133,31 +98,10 @@ struct type_index_t
 
     // Claims a slot in `type_index_entries` by atomically incrementing
     // `type_index_entries_count` (slots are not reused).
-    inline void register_type(common::gaia_type_t type)
-    {
-        if (type_index_entries_count >= c_max_types)
-        {
-            throw type_limit_exceeded_internal();
-        }
-        type_index_entries[type_index_entries_count++].type = type;
-    }
+    inline void register_type(common::gaia_type_t type);
 
     // Returns the head of the locator list for the given type.
-    inline gaia_locator_t get_first_locator(common::gaia_type_t type)
-    {
-        // REVIEW: With our current limit of 64 types, linear search should be
-        // fine (the whole array is at most 8 cache lines, so should almost
-        // always be in L1 cache), but with more types we'll eventually need
-        // sublinear search complexity.
-        for (size_t i = 0; i < type_index_entries_count; ++i)
-        {
-            if (type_index_entries[i].type == type)
-            {
-                return gaia_locator_t(type_index_entries[i].first_locator);
-            }
-        }
-        ASSERT_UNREACHABLE("Type must be registered before accessing its locator list!");
-    }
+    inline gaia_locator_t get_first_locator(common::gaia_type_t type);
 
     // Changes the head of the locator list for the given type to
     // `desired_locator`, if the head is still `expected_locator`.
@@ -165,88 +109,26 @@ struct type_index_t
     // This has CAS semantics because we need to retry if the head of the list
     // changes during the operation.
     inline bool set_first_locator(
-        common::gaia_type_t type, gaia_locator_t expected_locator, gaia_locator_t desired_locator)
-    {
-        gaia_locator_t::value_type expected_value = expected_locator.value();
-        gaia_locator_t::value_type desired_value = desired_locator.value();
-
-        for (size_t i = 0; i < type_index_entries_count; ++i)
-        {
-            if (type_index_entries[i].type == type)
-            {
-                return type_index_entries[i].first_locator.compare_exchange_strong(expected_value, desired_value);
-            }
-        }
-        ASSERT_UNREACHABLE("Type must be registered before accessing its locator list!");
-    }
+        common::gaia_type_t type, gaia_locator_t expected_locator, gaia_locator_t desired_locator);
 
     // Gets the list node corresponding to the given locator.
-    inline locator_list_node_t* get_list_node(gaia_locator_t locator)
-    {
-        if (!locator.is_valid())
-        {
-            return nullptr;
-        }
-
-        return &locator_lists_array[locator];
-    }
+    inline locator_list_node_t* get_list_node(gaia_locator_t locator);
 
     // Inserts the node for a locator at the head of the list for its type.
     // PRECONDITION: `type` is already registered in `type_index_entries`.
     // PRECONDITION: The list node for `locator` has not been previously used.
     // POSTCONDITION: `type_index_cursor_t(type).current_locator()` returns
     // `locator` (in the absence of concurrent invocations).
-    inline void add_locator(common::gaia_type_t type, gaia_locator_t locator)
-    {
-        ASSERT_PRECONDITION(type.is_valid(), "Cannot call add_locator() with an invalid type!");
-        ASSERT_PRECONDITION(locator.is_valid(), "Cannot call add_locator() with an invalid locator!");
-
-        locator_list_node_t* new_node = get_list_node(locator);
-        // REVIEW: Checking the new node for logically deleted status and for a
-        // valid next pointer will not detect all cases of reuse, since a reused
-        // node may not be deleted, and the tail node of a list will always
-        // point to the invalid locator. We probably need to reserve an
-        // additional metadata bit to track allocated status (there was one
-        // originally but it was removed because I thought it introduced too
-        // much complexity).
-        ASSERT_INVARIANT(!new_node->get_next_locator().is_valid(), "A new locator cannot point to another locator!");
-        ASSERT_INVARIANT(!new_node->is_marked_for_deletion(), "A new locator cannot be logically deleted!");
-
-        while (true)
-        {
-            // Take a snapshot of the first node in the list.
-            gaia_locator_t first_locator = get_first_locator(type);
-
-            // Point the new node to the snapshot of the first node in the list.
-            // We explicitly set the next locator even if it's invalid. There
-            // can be no concurrent changes to the next locator of the new node,
-            // so we just use its previous value for the CAS.
-            bool has_succeeded = new_node->try_set_next_locator(new_node->get_next_locator(), first_locator);
-            ASSERT_POSTCONDITION(has_succeeded, "Setting the next locator on a new node cannot fail!");
-
-            // Now try to point the list head to the new node, retrying if it
-            // was concurrently pointed to another node.
-            if (set_first_locator(type, first_locator, locator))
-            {
-                break;
-            }
-        }
-    }
+    inline void add_locator(common::gaia_type_t type, gaia_locator_t locator);
 
     // Logically deletes the given locator from the list for its type.
     // Returns false if the given locator was already logically deleted, true otherwise.
     // PRECONDITION: `locator` was previously allocated.
     // POSTCONDITION: returns false if list node for `locator` was already marked for deletion.
-    inline bool delete_locator(gaia_locator_t locator)
-    {
-        ASSERT_PRECONDITION(locator.is_valid(), "Cannot call delete_locator() with an invalid locator!");
-
-        // To avoid traversing the list, we only mark the node corresponding to
-        // this locator as deleted. A subsequent traversal will unlink the node.
-        locator_list_node_t* node = get_list_node(locator);
-        return node->mark_for_deletion();
-    }
+    inline bool delete_locator(gaia_locator_t locator);
 };
+
+#include "type_index.inc"
 
 } // namespace db
 } // namespace gaia
