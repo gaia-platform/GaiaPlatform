@@ -2053,7 +2053,6 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
         {
             // Get the old object data to extract its type.
             db_object_t* db_object = offset_to_ptr(log_record->old_offset);
-
             // Retrieve the record_list_t instance corresponding to the type.
             std::shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(db_object->type);
 
@@ -2064,6 +2063,18 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
         if (offset_to_free.is_valid())
         {
             deallocate_object(offset_to_free);
+        }
+
+        // For committed txns, we need to remove any deleted locators from the
+        // type index. For aborted or rolled-back txns, we need to remove any
+        // allocated locators from the type index.
+        bool committed_remove_locator_op = !deallocate_new_offsets && log_record->operation() == gaia_operation_t::remove;
+        bool aborted_create_locator_op = deallocate_new_offsets && log_record->operation() == gaia_operation_t::create;
+        if (committed_remove_locator_op || aborted_create_locator_op)
+        {
+            type_index_t* type_index = get_type_index();
+            bool has_succeeded = type_index->delete_locator(log_record->locator);
+            ASSERT_INVARIANT(has_succeeded, "A locator cannot be deleted twice!");
         }
     }
 
