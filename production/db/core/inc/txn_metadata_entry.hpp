@@ -12,6 +12,8 @@
 #include <sstream>
 #include <string>
 
+#include "gaia/common.hpp"
+
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
@@ -97,7 +99,7 @@ private:
     //
     // txn_status (3) | gc_status (1) | persistence_status (1) | reserved (1) | log_offset (16) | linked_timestamp (42)
 
-    static constexpr size_t c_txn_metadata_bit_width{64};
+    static constexpr size_t c_txn_metadata_bit_width{common::c_uint64_bit_count};
 
     // Transaction status flags.
     static constexpr size_t c_txn_status_flags_bit_width{3};

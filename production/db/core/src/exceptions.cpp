@@ -118,6 +118,11 @@ invalid_object_type_internal::invalid_object_type_internal(
     m_message = message.str();
 }
 
+type_limit_exceeded_internal::type_limit_exceeded_internal()
+{
+    m_message = "Registered type limit exceeded.";
+}
+
 session_limit_exceeded_internal::session_limit_exceeded_internal()
 {
     m_message = "Server session limit exceeded.";
