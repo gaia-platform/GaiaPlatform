@@ -37,29 +37,3 @@ runs:
         rm -rf /usr/local/lib/android
         echo "After Android Cleanup ~15G"
         df -h
-
-    - name: Pull Latest Dev-Core Image
-      if: ${{ inputs.docker-user != '' }}
-      shell: bash
-      run: |
-        if pgrep ssh-agent; then pkill ssh-agent; fi
-        ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-        echo "${{ inputs.docker-password }}" | docker login ghcr.io -u ${{ inputs.docker-user }} --password-stdin
-        docker pull $DEV_IMAGE
-
-    - name: Download Compressed Dev Image
-      if: ${{ inputs.docker-user == '' }}
-      uses: actions/download-artifact@v2
-      with:
-        name: Dev Image
-        path: ${{ github.workspace }}/production
-
-    - name: Load Compressed Dev Image
-      if: ${{ inputs.docker-user == '' }}
-      shell: bash
-      run: |
-        if pgrep ssh-agent; then pkill ssh-agent; fi
-        ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-        ls -la ${{ github.workspace }}/production/dev_image.tar.gz
-        docker load < ${{ github.workspace }}/production/dev_image.tar.gz
-        rm -rf ${{ github.workspace }}/production/dev_image.tar.gz
