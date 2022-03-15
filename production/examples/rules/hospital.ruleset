@@ -281,7 +281,6 @@ ruleset navigation : serial_group()
         {
             gaia_log::app().info("Active patient '{}' is assigned to '{}'.", 
                 patient.name, doctor.name); 
-
         }
         else
         {
