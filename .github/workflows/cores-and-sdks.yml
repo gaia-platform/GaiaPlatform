@@ -8,28 +8,7 @@ env:
   DEV_IMAGE: ghcr.io/gaia-platform/dev-base-gaia-platform:latest
 
 jobs:
-  Third-Party:
-    runs-on: self-hosted
-    env:
-      GAIA_REPO: ${{ github.workspace }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@master
-      - name: Setup Action
-        uses: ./.github/actions/setup-job
-        with:
-          docker-user: ${{ github.actor }}
-          docker-password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build Third-Party Projects
-        uses: ./.github/actions/third-party-job
-        with:
-          gaia-repo: ${{ github.workspace }}
-          job-name: ${{ github.job }}
-
   Core:
-    needs:
-      - Third-Party
     runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -50,8 +29,6 @@ jobs:
           build-type: Release
 
   SDK:
-    needs:
-      - Third-Party
     runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -72,8 +49,6 @@ jobs:
           build-type: Release
 
   Debug_Core:
-    needs:
-      - Third-Party
     runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -94,8 +69,6 @@ jobs:
           build-type: Debug
 
   Debug_SDK:
-    needs:
-      - Third-Party
     runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}

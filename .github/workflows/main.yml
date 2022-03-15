@@ -28,29 +28,9 @@ jobs:
         with:
           gaia-repo: ${{ github.workspace }}
 
-  Third-Party:
-    runs-on: self-hosted
-    env:
-      GAIA_REPO: ${{ github.workspace }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@master
-      - name: Setup Action
-        uses: ./.github/actions/setup-job
-        with:
-          docker-user: ${{ github.actor }}
-          docker-password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build Third-Party Projects
-        uses: ./.github/actions/third-party-job
-        with:
-          gaia-repo: ${{ github.workspace }}
-          job-name: ${{ github.job }}
-
   Core:
     needs:
       - Lint
-      - Third-Party
     runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -74,7 +54,6 @@ jobs:
   SDK:
     needs:
       - Lint
-      - Third-Party
     if: github.event_name != 'pull_request'
     runs-on: self-hosted
     env:
@@ -146,7 +125,6 @@ jobs:
   Coverage:
     needs:
       - Lint
-      - Third-Party
     if: ${{ false }}
     timeout-minutes: 200
     runs-on: self-hosted
@@ -168,7 +146,6 @@ jobs:
   LLVM_Tests:
     needs:
       - Lint
-      - Third-Party
     if: ${{ false }}
     runs-on: self-hosted
     env:
