@@ -14,22 +14,20 @@ table doctor (
     patients references patient[]
 )
 
-table patient (
-    name string,
-    address_id uint32 unique,
-    height uint8 optional,
-    is_active bool,
-    analysis_results float[],
-    doctor references doctor,
-    address references address[]
-        where patient.address_id = address.id
-)
-
 table address (
     id uint32 unique,
     street string,
     city string,
-    patient references patient
+    patient references patient[]
+        where address.id = patient.address_id
 )
 
--- TODO (dax): add an unrelated table
+table patient (
+    name string,
+    address_id uint32,
+    height uint8 optional,
+    is_active bool,
+    analysis_results float[],
+    doctor references doctor,
+    address references address
+)

@@ -21,6 +21,8 @@ using namespace gaia::rules;
 using gaia::common::gaia_id_t;
 using gaia::direct_access::auto_transaction_t;
 
+std::string g_lesson;
+
 /**
  * Clean the database.
  */
@@ -74,25 +76,6 @@ private:
     auto_transaction_t m_transaction;
 };
 
-class lesson_t
-{
-public:
-    lesson_t(const char* lesson)
-        : m_lesson(lesson)
-    {
-        clean_db();
-        subscribe_ruleset(m_lesson);
-    }
-
-    ~lesson_t()
-    {
-        unsubscribe_ruleset(m_lesson);
-    }
-
-private:
-    const char* m_lesson;
-};
-
 #define PRINT_METHOD_NAME() gaia_log::app().info("---- {}() ----", __FUNCTION__)
 
 ///
@@ -134,7 +117,7 @@ void setup_clinic(bool connect_patients_to_doctors = false)
     address_t add_cd = address_t::get(address_t::insert_row(address_cd_id, "350 Fifth Avenue", "New York"));
     address_t add_rd = address_t::get(address_t::insert_row(address_rd_id, "221b Baker St", "Chicago"));
     address_t add_ak = address_t::get(address_t::insert_row(address_ak_id, "1313 Mockingbird Lane", "Georgia"));
-    address_t add_jh = address_t::get(address_t::insert_row(address_jh_id, "62 West Wallaby St", "Lansing"));
+    address_t add_jh = address_t::get(address_t::insert_row(address_jh_id, "63 West Wallaby St", "Lansing"));
     address_t add_nn = address_t::get(address_t::insert_row(address_nn_id, "742 Evergreen Terrace", "Springfield"));
 
     if (connect_patients_to_doctors)
@@ -200,14 +183,89 @@ void run_navigate_one_to_many()
 {
     example_t example("db: making doctor inactive");
 
-    // Make Jim Holden active
+    // Make Dr. Cox inactive.
     doctor_t dr_cox = *(doctor_t::list().where(doctor_expr::name == "Dr. Cox").begin());
     doctor_writer writer = dr_cox.writer();
     writer.is_active = false;
     writer.update_row();
 }
 
-int main()
+void run_navigate_nomatch()
+{
+    example_t example("db: inserting doctor and patient");
+    doctor_t::insert_row("Dr. Kelsey", true);
+    patient_t::insert_row("Chrisjen Avasarala", 0, 68, true, {});
+}
+
+void run_connect_patient()
+{
+    example_t example("db: making patient active");
+
+    // Make Camina Drummer an active patient.
+    patient_t pat_cd = *(patient_t::list().where(patient_expr::name == "Camina Drummer").begin());
+    patient_writer writer = pat_cd.writer();
+    writer.is_active = true;
+    writer.update_row();
+}
+
+void run_disconnect_patient()
+{
+    example_t example("db: making patient inactive");
+
+    // Make Camina Drummer an inactive patient.
+    patient_t pat_cd = *(patient_t::list().where(patient_expr::name == "Camina Drummer").begin());
+    patient_writer writer = pat_cd.writer();
+    writer.is_active = false;
+    writer.update_row();
+}
+
+void run_change_address()
+{
+    example_t example("db: changing address street");
+
+    // Move Jim to the same city as Naomi.
+    address_t address = *(address_t::list().where(address_expr::city == "Lansing").begin());
+    address_writer writer = address.writer();
+    writer.street = "62 West Wallaby St.";
+    writer.update_row();
+}
+
+void run_interop_patient(const char* doctor_name)
+{
+    example_t example("db: making doctor inactive");
+
+    // Make the specified doctor inactive.
+    auto doctor = *(doctor_t::list().where(doctor_expr::name == doctor_name).begin());
+    doctor_writer writer = doctor.writer();
+    writer.is_active = false;
+    writer.update_row();
+}
+
+void run_tags_simple()
+{
+    example_t example("db: making doctor inactive");
+
+    auto doctor = *(doctor_t::list().begin());
+    doctor_writer writer = doctor.writer();
+    writer.is_active = false;
+    writer.update_row();
+}
+
+bool run_lesson(const char* name)
+{
+    if (g_lesson.empty() || g_lesson == name)
+    {
+        unsubscribe_rules();
+        clean_db();
+        subscribe_ruleset(name);
+        gaia_log::app().info("--- [Lesson {}] ---", name);
+        return true;
+    }
+
+    return false;
+}
+
+int main(int argc, const char** argv)
 {
     // It is helpful to walk through the direct_access sample before running this one to get
     // acquainted with how to interact with the Gaia database.  This tutorial focuses on
@@ -221,29 +279,61 @@ int main()
     // For this tutorial we'll only subscribe one ruleset at a time per lesson.
     unsubscribe_rules();
 
+    if (argc == 2)
     {
-        lesson_t lesson("basics");
+        g_lesson = argv[1];
+    }
+
+    if (run_lesson("basics"))
+    {
         run_insert_rule();
         run_update_rule();
     }
 
+    if (run_lesson("forward_chaining"))
     {
-        lesson_t lesson("forward_chaining");
         run_insert_rule();
     }
 
-    {
-        const bool connect_patients_to_doctors = true;
+    const bool connect_patients_to_doctors = true;
 
-        lesson_t lesson("navigation");
+    if (run_lesson("navigation"))
+    {
         setup_clinic(connect_patients_to_doctors);
         run_navigate_one_to_one();
         run_navigate_one_to_many();
+        run_navigate_nomatch();
     }
 
+    if (run_lesson("tags"))
     {
-        lesson_t lesson("connections");
+        setup_clinic(connect_patients_to_doctors);
+        run_tags_simple();
+    }
+
+    if (run_lesson("insert_delete"))
+    {
+        setup_clinic(connect_patients_to_doctors);
+    }
+
+    if (run_lesson("connections"))
+    {
         setup_clinic();
+        run_connect_patient();
+        run_disconnect_patient();
+        run_change_address();
+    }
+
+    if (run_lesson("interop"))
+    {
+        setup_clinic(connect_patients_to_doctors);
+        run_interop_patient("Dr. Cox");
+        run_interop_patient("Dr. Dorian");
+    }
+
+    if (run_lesson("arrays"))
+    {
+        setup_clinic(connect_patients_to_doctors);
     }
 
     /*
