@@ -186,7 +186,7 @@ fi
 if ! docker buildx build \
     -f "$GAIA_REPO/production/dockerfile" \
     -t build_image \
-#    $BASE_IMAGE \
+    $BASE_IMAGE \
     --build-arg BUILDKIT_INLINE_CACHE=1 \
     --build-arg USER_ID="$(id -u ${USER})" \
     --build-arg GROUP_ID="$(id -g ${USER})" \
