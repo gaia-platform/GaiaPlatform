@@ -38,7 +38,7 @@ process_schema(
 
 translate_ruleset(
   RULESET_FILE ${PROJECT_SOURCE_DIR}/hospital.ruleset
-  CLANG_PARAMS -I${GAIA_BUILD}/deps/gaia_spdlog/include
+  CLANG_PARAMS -I${GAIA_BUILD}/deps/gaia_spdlog/include -I${GAIA_BUILD}/deps/flatbuffers/include
 )
 
 add_executable(hospital
