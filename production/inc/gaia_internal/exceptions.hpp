@@ -267,6 +267,12 @@ public:
         common::gaia_type_t actual_type);
 };
 
+class type_limit_exceeded_internal : public type_limit_exceeded
+{
+public:
+    type_limit_exceeded_internal();
+};
+
 class session_limit_exceeded_internal : public session_limit_exceeded
 {
 public:

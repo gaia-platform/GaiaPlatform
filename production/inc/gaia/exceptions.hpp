@@ -361,6 +361,13 @@ class invalid_object_type : public common::gaia_exception
 };
 
 /**
+ * @brief The registered type limit has been exceeded.
+ */
+class type_limit_exceeded : public common::gaia_exception
+{
+};
+
+/**
  * @brief The Gaia server session limit has been exceeded.
  */
 class session_limit_exceeded : public common::gaia_exception

@@ -59,6 +59,15 @@ gaia::db::id_index_t* gaia::db::get_id_index()
     return gaia::db::server_t::s_shared_id_index.data();
 }
 
+gaia::db::type_index_t* gaia::db::get_type_index()
+{
+    // Since we don't use this accessor in the server itself, we can assert that
+    // it is always non-null (since callers should never be able to see it in
+    // its null state, i.e., with the type_index segment unmapped).
+    ASSERT_PRECONDITION(gaia::db::server_t::s_shared_type_index.is_set(), "Server type_index segment is unmapped!");
+    return gaia::db::server_t::s_shared_type_index.data();
+}
+
 gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id()
 {
     return gaia::db::server_t::s_txn_id;

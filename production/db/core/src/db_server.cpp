@@ -626,7 +626,7 @@ void server_t::init_shared_memory()
         ASSERT_INVARIANT(!data_mapping.is_set(), "Memory should be unmapped");
     }
 
-    // s_shared_locators uses sizeof(gaia_offset_t) * c_max_locators = 32GB of virtual address space.
+    // s_shared_locators uses sizeof(gaia_offset_t) * c_max_locators = 16GB of virtual address space.
     //
     // s_shared_data uses (64B) * c_max_locators = 256GB of virtual address space.
     //
@@ -637,6 +637,8 @@ void server_t::init_shared_memory()
     // 4B/locator (assuming 4-byte locators), or 16GB, if we can assume that
     // gaia_ids are sequentially allocated and seldom deleted, so we can just
     // use an array of locators indexed by gaia_id.
+    //
+    // s_shared_type_index uses (8B) * c_max_locators = 32GB of virtual address space.
     data_mapping_t::create(c_data_mappings, s_server_conf.instance_name().c_str());
 
     bool initializing = true;
