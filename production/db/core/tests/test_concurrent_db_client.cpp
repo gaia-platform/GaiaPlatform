@@ -73,13 +73,13 @@ public:
     static constexpr char c_even_value[] = "ping";
     static constexpr char c_odd_value[] = "pong";
 
+    static constexpr gaia_type_t c_object_type{1};
+
     // Initialized to false state.
     static inline std::atomic<bool> s_should_exit{};
     static_assert(std::atomic<bool>::is_always_lock_free);
 
     std::atomic<size_t> m_total_txn_count{};
-
-    gaia_type_t m_object_type{};
 
     // An array of DB object IDs, where each object is only updated by a single thread.
     // This stores the underlying type because int_type_t isn't copyable so doesn't work with forwarding.
@@ -124,9 +124,6 @@ public:
         {
             m_object_ids.clear();
 
-            // Create a new DB type.
-            m_object_type = allocate_type();
-
             // Create a new ID for each DB object we create.
             for (size_t worker_id = 0; worker_id < num_workers; ++worker_id)
             {
@@ -144,7 +141,7 @@ public:
         // Initialize this worker's local object reference.
         begin_transaction();
         auto obj = gaia_ptr_t::create(
-            gaia_id_t(object_id), m_object_type, 0, sizeof(c_even_value), c_even_value);
+            gaia_id_t(object_id), c_object_type, 0, sizeof(c_even_value), c_even_value);
         commit_transaction();
 
         // Signal the controller that we're ready.

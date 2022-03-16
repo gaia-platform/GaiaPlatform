@@ -121,7 +121,7 @@ gaia_ptr_t gaia_ptr_t::create_no_txn(gaia_id_t id, gaia_type_t type, reference_o
     // TODO: this constructor allows creating a gaia_ptr_t in an invalid state;
     //  the db_object_t should either be initialized before and passed in
     //  or it should be initialized inside the constructor.
-    gaia_locator_t locator = allocate_locator();
+    gaia_locator_t locator = allocate_locator(type);
     hash_node_t* hash_node = db_hash_map::insert(id);
     hash_node->locator = locator;
     allocate_object(locator, total_payload_size);
