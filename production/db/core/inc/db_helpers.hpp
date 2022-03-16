@@ -32,15 +32,6 @@ inline common::gaia_id_t allocate_id()
     return ++(counters->last_id);
 }
 
-// REVIEW [DEPRECATE]: This has been superseded by externally allocated type IDs
-// (based on a digest of a fully-qualified type name), and seems to only be used
-// by a single test.
-inline common::gaia_type_t allocate_type()
-{
-    counters_t* counters = gaia::db::get_counters();
-    return ++(counters->last_type_id);
-}
-
 inline gaia_txn_id_t allocate_txn_id()
 {
     counters_t* counters = gaia::db::get_counters();
