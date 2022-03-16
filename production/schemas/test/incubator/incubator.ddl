@@ -26,3 +26,12 @@ TABLE actuator (
       value FLOAT,
       incubator REFERENCES incubator
 )
+
+table state (
+    pick bool,
+    place bool
+)
+
+table pick_action ()
+
+table move_action ()
