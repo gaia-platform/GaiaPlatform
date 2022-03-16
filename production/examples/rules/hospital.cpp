@@ -23,8 +23,6 @@ using namespace gaia::rules;
 using gaia::common::gaia_id_t;
 using gaia::direct_access::auto_transaction_t;
 
-std::string g_lesson;
-
 /**
  * Clean the database.
  */
@@ -225,35 +223,145 @@ void change_address()
     writer.update_row();
 }
 
-bool run_lesson(const char* name)
+void basics()
 {
+    insert_doctor("Dr. House");
+    insert_patient("Emma");
+    update_patient_status("Emma", true);
+}
 
-    if (g_lesson.empty() || g_lesson == name)
+void forward_chaining()
+{
+    insert_patient("Emma");
+}
+
+void navigation()
+{
+    update_patient_status("Jim Holden", true);
+    update_patient_status("Jim Holden", false);
+    update_doctor_status("Dr. Cox", false);
+    update_doctor_status("Dr. Cox", true);
+    update_doctor_name("Dr. Cox", "Dr. Kelso");
+    insert_doctor_and_patient("Dr. Cox", "Chrisjen Avasarala");
+    insert_address();
+}
+
+void tags()
+{
+    update_doctor_status("Dr. Reid", false);
+    update_doctor_status("Dr. Reid", true);
+    update_doctor_name("Dr. Reid", "Dr. DeclareUseTag");
+    update_doctor_name("Dr. Cox", "Dr. MultiTags");
+    update_doctor_name("Dr. Dorian", "Dr. NestedTags");
+}
+
+void insert_delete()
+{
+    update_doctor_status("Dr. Dorian", false);
+    update_doctor_status("Dr. Dorian", true);
+    update_patient_status("Rule Patient", false);
+}
+
+void connections()
+{
+    update_patient_status("Camina Drummer", true);
+    update_patient_status("Camina Drummer", false);
+    change_address();
+}
+
+void interop()
+{
+    update_doctor_status("Dr. Cox", false);
+    update_doctor_status("Dr. Dorian", false);
+}
+
+void arrays()
+{
+    update_patient_results("Amos Burton", {1.23, 4.56});
+    update_patient_status("Amos Burton", true);
+}
+
+typedef void (*lesson_fn)(void);
+struct lesson_plan_t
+{
+    lesson_fn lesson;
+    bool setup_clinic;
+    bool connect_patients_to_doctors;
+};
+std::map<std::string, lesson_plan_t> g_lessons;
+
+void load_lessons()
+{
+    g_lessons["basics"] = {basics, false, false};
+    g_lessons["forward_chaining"] = {forward_chaining, false, false};
+    g_lessons["navigation"] = {navigation, true, true};
+    g_lessons["tags"] = {tags, true, true};
+    g_lessons["insert_delete"] = {insert_delete, true, true};
+    g_lessons["connections"] = {connections, true, false};
+    g_lessons["interop"] = {interop, true, true};
+    g_lessons["arrays"] = {arrays, true, false};
+}
+
+bool run_lesson(const std::string& lesson)
+{
+    auto lesson_iter = g_lessons.find(lesson);
+    if (lesson_iter == g_lessons.end())
     {
-        unsubscribe_rules();
-        clean_db();
-
-        std::string lesson(name);
-
-        if ((lesson == "navigation")
-            || (lesson == "tags")
-            || (lesson == "interop")
-            || (lesson == "insert_delete")
-            || (lesson == "arrays"))
-        {
-            const bool connect_patients_to_doctors = true;
-            setup_clinic(connect_patients_to_doctors);
-        }
-        else if ((lesson == "connections"))
-        {
-            setup_clinic();
-        }
-        subscribe_ruleset(name);
-        gaia_log::app().info("--- [Lesson {}] ---", name);
-        return true;
+        return false;
     }
 
-    return false;
+    lesson_plan_t plan = lesson_iter->second;
+
+    // By default, all rulesets are subscribed and active after initialization.
+    // For this tutorial, only subscribe one ruleset at a time per lesson.
+    unsubscribe_rules();
+    clean_db();
+
+    if (plan.setup_clinic)
+    {
+        setup_clinic(plan.connect_patients_to_doctors);
+    }
+    subscribe_ruleset(lesson.c_str());
+    gaia_log::app().info("--- [Lesson {}] ---", lesson);
+    plan.lesson();
+
+    return true;
+}
+
+void list_lessons(bool run = false)
+{
+    for (const auto& pair : g_lessons)
+    {
+        if (run)
+        {
+            run_lesson(pair.first);
+        }
+        else
+        {
+            std::cout << pair.first << "\n";
+        }
+    }
+}
+
+void run_lessons()
+{
+    list_lessons(true);
+}
+
+void usage(const char* command)
+{
+    std::cout << "Usage: " << command << " [--help | --list-lessons | <lesson>]\n";
+    std::cout << " <no args>: run all lessons in the tutorial.\n";
+    std::cout << " <lesson>: run the specified lesson.\n";
+    std::cout << " --list-lessons: show all available lessons.\n";
+    std::cout << " --help: print this message.\n";
+}
+
+void lesson_not_found(const char* command, std::string& lesson)
+{
+    std::cout << "Lesson '" << lesson
+              << "' not found.  To see the valid lessons, use:" << std::endl
+              << command << " --list-lessons" << std::endl;
 }
 
 int main(int argc, const char** argv)
@@ -261,115 +369,41 @@ int main(int argc, const char** argv)
     // It is helpful to walk through the direct_access sample before running this one to get
     // acquainted with how to interact with the Gaia database.  This tutorial focuses on
     // the syntax for rules.  Rules are fired in response to changes made to the database.
+    load_lessons();
 
     // Load up a custom configuration file so that we don't
     // log rule statistics during the tutorial.
     gaia::system::initialize("./gaia_tutorial.conf");
 
-    // By default, all rulesets are subscribed and active after initialization.
-    // For this tutorial we'll only subscribe one ruleset at a time per lesson.
-    unsubscribe_rules();
-
-    if (argc == 2)
+    // Run all lessons if no arguments are passed.
+    if (argc == 1)
     {
-        g_lesson = argv[1];
+        run_lessons();
+    }
+    else if (argc == 2)
+    {
+        std::string arg = argv[1];
+        if (arg == "--help")
+        {
+            usage(argv[0]);
+        }
+        else if (arg == "--list-lessons")
+        {
+            list_lessons();
+        }
+        else
+        {
+            if (!run_lesson(arg))
+            {
+                lesson_not_found(argv[0], arg);
+            }
+        }
+    }
+    else
+    {
+        usage(argv[0]);
     }
 
-    if (run_lesson("basics"))
-    {
-        insert_doctor("Dr. House");
-        insert_patient("Emma");
-        update_patient_status("Emma", true);
-    }
-
-    if (run_lesson("forward_chaining"))
-    {
-        insert_patient("Emma");
-    }
-
-    if (run_lesson("navigation"))
-    {
-        update_patient_status("Jim Holden", true);
-        update_patient_status("Jim Holden", false);
-        update_doctor_status("Dr. Cox", false);
-        update_doctor_status("Dr. Cox", true);
-        update_doctor_name("Dr. Cox", "Dr. Kelso");
-        insert_doctor_and_patient("Dr. Cox", "Chrisjen Avasarala");
-        insert_address();
-    }
-
-    if (run_lesson("tags"))
-    {
-        update_doctor_status("Dr. Reid", false);
-        update_doctor_status("Dr. Reid", true);
-        update_doctor_name("Dr. Reid", "Dr. DeclareUseTag");
-        update_doctor_name("Dr. Cox", "Dr. MultiTags");
-        update_doctor_name("Dr. Dorian", "Dr. NestedTags");
-    }
-
-    if (run_lesson("insert_delete"))
-    {
-        update_doctor_status("Dr. Dorian", false);
-        update_doctor_status("Dr. Dorian", true);
-        update_patient_status("Rule Patient", false);
-    }
-
-    if (run_lesson("connections"))
-    {
-        update_patient_status("Camina Drummer", true);
-        update_patient_status("Camina Drummer", false);
-        change_address();
-    }
-
-    if (run_lesson("interop"))
-    {
-        update_doctor_status("Dr. Cox", false);
-        update_doctor_status("Dr. Dorian", false);
-    }
-
-    if (run_lesson("arrays"))
-    {
-        update_patient_results("Amos Burton", {1.23, 4.56});
-        update_patient_status("Amos Burton", true);
-    }
-
-    /*
-        create_record_insert();
-        create_record_writer();
-        lookup_record_get();
-        array_type_fields();
-        update_record();
-        optional_values();
-        lookup_invalid_record();
-        access_invalid_record();
-        compare_records();
-        list_all_patients();
-        clean_db();
-        delete_single_record();
-        delete_single_record_static();
-        delete_all_records();
-        traverse_one_to_many_relationship();
-        clean_db();
-        delete_one_to_many_relationship_re();
-        clean_db();
-        delete_one_to_many_relationship();
-        clean_db();
-        delete_one_to_many_relationship_erase();
-        clean_db();
-        traverse_one_to_one_relationship();
-        clean_db();
-        delete_one_to_one_relationship();
-        clean_db();
-        create_filter_data();
-        filter_lambda();
-        filter_gaia_predicates_strings();
-        filter_gaia_predicates_numbers();
-        filter_gaia_predicates_containers();
-        clean_db();
-
-        txn.commit();
-
-        use_dac_object_across_transactions();
-    */
     gaia::system::shutdown();
+    return EXIT_SUCCESS;
 }

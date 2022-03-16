@@ -732,4 +732,4 @@ ruleset arrays
         // Add more test results
         analysis_results = {analysis_results[0], analysis_results[1], 7.89, 10.1112};
     }
-} // rulset arrays
+} // ruleset arrays
