@@ -329,6 +329,7 @@ int main(int argc, const char** argv)
 
     if (run_lesson("arrays"))
     {
+        update_patient_results("Amos Burton", {1.23, 4.56});
         update_patient_status("Amos Burton", true);
     }
 

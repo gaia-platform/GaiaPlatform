@@ -8,6 +8,7 @@
 #include "gaia/logger.hpp"
 #include "gaia_hospital.h"
 #include "gaia/db/events.hpp"
+#include "gaia/direct_access/dac_vector.hpp"
 
 // Tip:  if you are using VS-code, you can install the Gaia Platform Intellisense extension to get
 // syntax highlighting and intellisense for Gaia DDL and Ruleset files.
@@ -696,21 +697,39 @@ ruleset interop
     }
 } // ruleset interop
 
+// Array support is improving.  For now we have to dop down into
+// normal C++ to retrieve the size of the array.
+uint32_t get_result_size(gaia::hospital::patient_t& patient)
+{
+    return patient.analysis_results().size();
+}
+
 ruleset arrays
 {
     // [arrays:1_patient]
     //
+    // Array fields can be used like any other field and support.
+    on_update(analysis_results)
+    {
+        gaia_log::app().info("{}:{}: patient '{}' has '{}' results:", 
+            rule_context.ruleset_name, rule_context.rule_name, 
+            patient.name, get_result_size(patient));
+
+        for (auto result : analysis_results)
+        {
+            gaia_log::app().info("{}", result);
+        }
+    }
+
+    // [arrays:2_patient]
+    //
+    // Array fields can be access like any other field.
     on_update(patient.is_active)
     {
-        if (!patient.is_active)
-        {
-            return;
-        }
-
-        gaia_log::app().info("{}:{}: patient '{}' 'is_active' status was updated to '{}'.", 
+        gaia_log::app().info("{}:{}: patient '{}' has status '{}'", 
             rule_context.ruleset_name, rule_context.rule_name, patient.name, patient.is_active);
 
-        patient.analysis_results[0] = 32.45;
-        patient.analysis_results[1] = 12.22;
+        // Add more test results
+        analysis_results = {analysis_results[0], analysis_results[1], 7.89, 10.1112};
     }
 } // rulset arrays
