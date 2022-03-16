@@ -43,9 +43,13 @@ translate_ruleset(
 
 add_executable(hospital
   hospital.cpp
+  lesson_manager.cpp
 )
 
 target_add_gaia_generated_sources(hospital)
-target_include_directories(hospital PRIVATE ${GAIA_INC} ${GAIA_BUILD}/deps/gaia_spdlog/include ${GAIA_BUILD}/deps/flatbuffers/include)
+target_include_directories(hospital PRIVATE 
+  ${GAIA_INC} ${GAIA_BUILD}/deps/gaia_spdlog/include
+  ${GAIA_BUILD}/deps/flatbuffers/include
+  ${PROJECT_SOURCE_DIR})
 target_link_directories(hospital PRIVATE ${GAIA_LIB_DIR})
 target_link_libraries(hospital PRIVATE gaia Threads::Threads)

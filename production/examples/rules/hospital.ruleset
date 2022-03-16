@@ -5,13 +5,31 @@
 // license that can be found in the LICENSE.txt file
 // or at https://opensource.org/licenses/MIT.
 ////////////////////////////////////////////////////
+
+
+// Consider adding a nested loop with label scenario
+// add helpers in interop (deleting all rows, size of collections, exists keyword)
+// Fix cmake files
+// Add this and direct access to samples test
+
+// Include Gaia's built-in logger for the application.
 #include "gaia/logger.hpp"
+
+// The generated Direct Access classses are used for the 'interop' lesson.
 #include "gaia_hospital.h"
+
+// Pull in a helper to show the event type
 #include "gaia/db/events.hpp"
+
+// The direct access vector is used in the 'array' lesson.
 #include "gaia/direct_access/dac_vector.hpp"
+
+// Coordinates the declarative rules with the procedural lessons.
+#include "lesson_manager.hpp"
 
 // Tip:  if you are using VS-code, you can install the Gaia Platform Intellisense extension to get
 // syntax highlighting and intellisense for Gaia DDL and Ruleset files.
+
 ruleset basics
 {
     // [basics:1_doctor]
@@ -19,32 +37,32 @@ ruleset basics
     // This rule is fired when a doctor is inserted into the database.
     // Every rule acts on exactly one table change.  The row of the table
     // that changed is passed to the rule.  This row is known as the anchor row.
-    // In this rule, we are printing the 'name' column from the 'doctor' table.
-    // In fact, we are printing the 'name' of the 'doctor' who was inserted.
+    // In this rule, we are printing the 'name' column from the 'doctor' who
+    // was just inserted.
     on_insert(doctor)
     {
-        gaia_log::app().info("{}:{}: doctor '{}' was inserted.", 
+        rule_scope_t r("{}:{}: doctor '{}' was inserted.", 
             rule_context.ruleset_name, rule_context.rule_name, name);
     }
 
     // Rule: basics:2_patient]
     //
     // This rule is fired when any column of the patient is updated.
-    // Since the anchor row in this rule is the 'patient' table, the
+    // Because the anchor row in this rule is the 'patient' table, the
     // 'name' refers to the patient's name.
     on_update(patient)
     {
-        gaia_log::app().info("{}:{}: patient '{}' was updated.", 
+        rule_scope_t r("{}:{}: patient '{}' was updated.", 
             rule_context.ruleset_name, rule_context.rule_name, name);
     }
 
     // [basics:3_patient]
     //
-    // This rule will fire since we changed the 'is_active' column of the patient.
+    // This rule will fire because we changed the 'is_active' column of the patient.
     // This rule also shows that you can fire multiple rules off a single database change.
     on_update(patient.is_active)
     {
-        gaia_log::app().info("{}:{}: patient '{}' 'is_active' status was updated.", 
+        rule_scope_t r("{}:{}: patient '{}' 'is_active' status was updated.", 
             rule_context.ruleset_name, rule_context.rule_name, name);
     }
 
@@ -54,19 +72,19 @@ ruleset basics
     // based on a single field change using the '@<column>' syntax.  This rule is
     // the same as the previous rule in that it fires when 'patient.is_active' changes.
     {
-        gaia_log::app().info("{}:{}: patient '{}' 'is_active' status was updated to '{}'.", 
+        rule_scope_t r("{}:{}: patient '{}' 'is_active' status was updated to '{}'.", 
             rule_context.ruleset_name, rule_context.rule_name, patient.name, @patient.is_active);
     }
 
     // [basics:5_patient]
     //
-    // This rule will fire since we changed the 'is_active' column of the patient. Note that
+    // This rule will fire because we changed the 'is_active' column of the patient. Note that
     // the rule will fire if either the 'is_active' or the 'name' column of the patient
     // is changed.  Gaia currently does not support firing a rule only if all the columns
     // listed in the 'on_update' directive are changed.
     on_update(patient.is_active, patient.name)
     {
-        gaia_log::app().info("{}:{}: patient '{}' 'is_active' status or 'name' was updated.", 
+        rule_scope_t r("{}:{}: patient '{}' 'is_active' status or 'name' was updated.", 
             rule_context.ruleset_name, rule_context.rule_name, name);
     }    
 
@@ -81,7 +99,7 @@ ruleset basics
         // rule_name: ordinal of the rule
         // event_type: what event caused the rule to fire
         // gaia_type: type of anchor object
-        gaia_log::app().info("{}:{}: patient '{}' was fired due to a '{}' event on type '{}'.", 
+        rule_scope_t r("{}:{}: patient '{}' was fired due to a '{}' event on type '{}'.", 
             rule_context.ruleset_name, rule_context.rule_name, name, 
             gaia::db::triggers::event_type_name(rule_context.event_type),
             rule_context.gaia_type);
@@ -96,7 +114,7 @@ ruleset forward_chaining
     // Updating the patient will then cause the next rule to fire.
     on_insert(patient)
     {
-        gaia_log::app().info("{}:{}: patient '{}' was inserted.", 
+        rule_scope_t r("{}:{}: patient '{}' was inserted.", 
             rule_context.ruleset_name, rule_context.rule_name, name);
         is_active = true;
     }
@@ -107,9 +125,8 @@ ruleset forward_chaining
     // inserted patient.
     on_update(patient.is_active)
     {
-        gaia_log::app().info("{}:{}: patient '{}' 'is_active' status was updated to '{}'.", 
+        rule_scope_t r("{}:{}: patient '{}' 'is_active' status was updated to '{}'.", 
             rule_context.ruleset_name, rule_context.rule_name, name, is_active);
-
     }
 } // ruleset forward_chaining
 
@@ -131,10 +148,11 @@ ruleset navigation : serial_group()
         {
             return;
         }
-        gaia_log::app().info("{}:{}: patient '{}' 'is_active' status was updated to '{}'.", 
+
+        rule_scope_t r("{}:{}: patient '{}' 'is_active' status was updated to '{}'.", 
             rule_context.ruleset_name, rule_context.rule_name, name, is_active);
 
-        // Since Gaia understands how your data is connected, you can directly
+        // Because Gaia understands how your data is connected, you can directly
         // reference columns in related tables.
 
         // Who is this patient's doctor?
@@ -158,10 +176,10 @@ ruleset navigation : serial_group()
             return;
         }
 
-        gaia_log::app().info("{}:{}: patient '{}' 'is_active' status was updated to '{}'.", 
+        rule_scope_t r("{}:{}: patient '{}' 'is_active' status was updated to '{}'.", 
             rule_context.ruleset_name, rule_context.rule_name, name, is_active);
 
-        // Since Gaia understands how your data is connected, you can directly
+        // Because Gaia understands how your data is connected, you can directly
         // reference related information.
 
         // Who is this patient's doctor?
@@ -184,10 +202,10 @@ ruleset navigation : serial_group()
             return;
         }
 
-        gaia_log::app().info("{}:{}: doctor '{}' 'is_active' status was updated to '{}'.", 
+        rule_scope_t r("{}:{}: doctor '{}' 'is_active' status was updated to '{}'.", 
             rule_context.ruleset_name, rule_context.rule_name, name, is_active);
 
-        // List all the patients of this doctor.  Since the schema for this application
+        // List all the patients of this doctor.  Because the schema for this application
         // specifies that a doctor may have many patients, Gaia will actually loop
         // over all the patients belonging to this doctor.  In other words, this statement
         // is executed for every patient related to the 'doctor' anchor row.
@@ -207,7 +225,7 @@ ruleset navigation : serial_group()
             return;
         }
 
-        gaia_log::app().info("{}:{}: doctor '{}' 'is_active' status was updated to '{}'.", 
+        rule_scope_t r("{}:{}: doctor '{}' 'is_active' status was updated to '{}'.", 
             rule_context.ruleset_name, rule_context.rule_name, name, is_active);
 
         // You can also iterate over all of the doctor's patients
@@ -226,7 +244,7 @@ ruleset navigation : serial_group()
     // not just the ones directly related to the 'doctor' anchor row.
     on_update(doctor.name)
     {
-        gaia_log::app().info("{}:{}: doctor '{}' is a new name.", 
+        rule_scope_t r("{}:{}: doctor '{}' is a new name.", 
             rule_context.ruleset_name, rule_context.rule_name, name, is_active);
 
         // If you wanted to list all patients (not just those related to the doctor)
@@ -249,7 +267,7 @@ ruleset navigation : serial_group()
     // has no related patients.
     on_insert(doctor)
     {
-        gaia_log::app().info("{}:{}: doctor '{}' was added.", 
+        rule_scope_t r("{}:{}: doctor '{}' was added.", 
             rule_context.ruleset_name, rule_context.rule_name, name);
 
         if (patient.is_active)
@@ -267,7 +285,7 @@ ruleset navigation : serial_group()
     // This shows that the nomatch clause can be used with a 1:1 relationship (patient->doctor).
     on_insert(patient)
     {
-        gaia_log::app().info("{}:{}: patient '{}' was added.", 
+        rule_scope_t r("{}:{}: patient '{}' was added.", 
             rule_context.ruleset_name, rule_context.rule_name, name);
 
         if (doctor.is_active)
@@ -287,7 +305,7 @@ ruleset navigation : serial_group()
     // This shows that nomatch clauses can be nested.
     on_insert(address)
     {
-        gaia_log::app().info("{}:{}: address '{}' was added.", 
+        rule_scope_t r("{}:{}: address '{}' was added.", 
             rule_context.ruleset_name, rule_context.rule_name, id);
 
         for(/this_doctor:doctor)
@@ -332,7 +350,8 @@ ruleset tags : serial_group()
         {
             return;
         }
-        gaia_log::app().info("{}:{}: '{}' 'is_active' status was updated to '{}'.", 
+        
+        rule_scope_t r("{}:{}: '{}' 'is_active' status was updated to '{}'.", 
             rule_context.ruleset_name, rule_context.rule_name, anchor_doctor.name, doctor.is_active);
     }
 
@@ -346,7 +365,7 @@ ruleset tags : serial_group()
             return;
         }
 
-        gaia_log::app().info("{}:{}: '{}' 'is_active' status was updated to '{}'.", 
+        rule_scope_t r("{}:{}: '{}' 'is_active' status was updated to '{}'.", 
             rule_context.ruleset_name, rule_context.rule_name, anchor_doctor.name, doctor.is_active);
 
         for(/loop_doctor:doctor)
@@ -365,7 +384,8 @@ ruleset tags : serial_group()
         {
             return;
         }
-        gaia_log::app().info("{}:{}: '{}' 'is_active' status is '{}'.", 
+
+        rule_scope_t r("{}:{}: '{}' 'is_active' status is '{}'.", 
             rule_context.ruleset_name, rule_context.rule_name, doctor.name, doctor.is_active);
 
         // You can declare and use a tag in a statement.  The following
@@ -386,7 +406,7 @@ ruleset tags : serial_group()
             return;
         }
 
-        gaia_log::app().info("{}:{}: '{}' 'is_active' status is '{}'.", 
+        rule_scope_t r("{}:{}: '{}' 'is_active' status is '{}'.", 
             rule_context.ruleset_name, rule_context.rule_name, doctor.name, doctor.is_active);
 
         // You can declare multiple tags in a single statement
@@ -409,7 +429,7 @@ ruleset tags : serial_group()
             return;
         }
 
-        gaia_log::app().info("{}:{}: '{}' 'is_active' status is '{}'.", 
+        rule_scope_t r("{}:{}: '{}' 'is_active' status is '{}'.", 
             rule_context.ruleset_name, rule_context.rule_name, doctor.name, doctor.is_active);
 
         // Like variables, tags are valid across enclosing scopes.
@@ -433,76 +453,6 @@ ruleset tags : serial_group()
     }
 } // ruleset tags
 
-ruleset insert_delete
-{
-    // [insert_delete:1_doctor]
-    //
-    // This rule inserts a new patient into the database. You can specify column
-    // name : value pairs in the insert statement.
-    on_update(doctor.is_active)
-    {
-        if (doctor.is_active)
-        {
-            return;
-        }
-
-        gaia_log::app().info("{}:{}: '{}' status is '{}'", 
-            rule_context.ruleset_name, rule_context.rule_name, doctor.name, doctor.is_active);
-
-        if (strcmp("Alex Kamal", /alex:patient.name) == 0)
-        {
-            // Insert a new patient and have them live at the same address as Alex Kamal.
-            patient.insert(name : "Alex Roomie", address_id : alex.address_id);
-        }
-
-        for (/patient)
-        {
-            gaia_log::app().info("Patient '{}' lives at '{}' in '{}'", 
-                patient.name, patient->address.street, patient->address.city);
-        }
-    }
-
-    // [insert_delete:2_doctor]
-    //
-    // This rule inserts a new patient into the database and connects it to
-    // the updated doctor.
-    on_update(doctor.is_active)
-    {
-        if (!doctor.is_active)
-        {
-            return;
-        }
-
-        gaia_log::app().info("{}:{}: '{}' status is '{}'", 
-            rule_context.ruleset_name, rule_context.rule_name, doctor.name, doctor.is_active);
-
-        // Insert a patient for this doctor and connect them.
-        doctor.connect(patient.insert(name : "Rule Patient", is_active:true));
-
-        gaia_log::app().info("'{}' has patient '{}'",
-            doctor.name, patient.name);
-    }
-
-    // [insert_delete:3_patient]
-    //
-    // If a patient changes status to inactive, then remove them from their doctor
-    // and delete them.
-    on_update(patient.is_active)
-    {
-        if (patient.is_active)
-        {
-            return;
-        }
-
-        doctor.disconnect(patient);
-        patient.remove();
-
-        // Verify the rule patient is gone
-        gaia_log::app().info("Patients:");
-        gaia_log::app().info("'{}'", /patient.name);
-    }
-} // ruleset insert_delete
-
 ruleset connections
 {
     // [connections:1_patient]
@@ -517,7 +467,7 @@ ruleset connections
             return;
         }
 
-        gaia_log::app().info("{}:{}: patient '{}' 'is_active' status was updated to '{}'.", 
+        rule_scope_t r("{}:{}: patient '{}' 'is_active' status was updated to '{}'.", 
             rule_context.ruleset_name, rule_context.rule_name, name, is_active);
 
         // Note that this statement will not execute because the patient
@@ -556,7 +506,7 @@ ruleset connections
             return;
         }
 
-        gaia_log::app().info("{}:{}: patient '{}' 'is_active' status was updated to '{}'.", 
+        rule_scope_t r("{}:{}: patient '{}' 'is_active' status was updated to '{}'.", 
             rule_context.ruleset_name, rule_context.rule_name, name, is_active);
 
         // Remember the doctor's name. After we disconnect
@@ -579,7 +529,7 @@ ruleset connections
     // for tables value linked relationships.
     on_update(address.street)
     {
-        gaia_log::app().info("{}:{}: Address '{}' 'street' was updated to '{}'.", 
+        rule_scope_t r("{}:{}: Address '{}' 'street' was updated to '{}'.", 
             rule_context.ruleset_name, rule_context.rule_name, address.id, street);
 
         gaia_log::app().info("Patient '{}' lives on '{}' in '{}'.",
@@ -609,32 +559,105 @@ ruleset connections
     }
 } // ruleset connections
 
-// This is a normal C++ function that we can call from a rule. This means
-// that no translation occurs for this code.
-void reassign_patients(gaia::hospital::doctor_t& doctor)
+ruleset insert_delete
 {
-    std::vector<gaia::hospital::patient_t> patient_list;
-    for (auto patient : doctor.patients())
+    // [insert_delete:1_doctor]
+    //
+    // This rule inserts a new patient into the database. You can specify column
+    // name : value pairs in the insert statement.
+    on_update(doctor.is_active)
     {
-        patient_list.push_back(patient);
+        if (doctor.is_active)
+        {
+            return;
+        }
+
+        rule_scope_t r("{}:{}: '{}' status is '{}'", 
+            rule_context.ruleset_name, rule_context.rule_name, doctor.name, doctor.is_active);
+
+        if (strcmp("Alex Kamal", /alex:patient.name) == 0)
+        {
+            // Insert a new patient and have them live at the same address as Alex Kamal.
+            patient.insert(name : "Alex Roomie", address_id : alex.address_id);
+        }
+
+        for (/patient)
+        {
+            gaia_log::app().info("Patient '{}' lives at '{}' in '{}'", 
+                patient.name, patient->address.street, patient->address.city);
+        }
     }
 
-    // Remove all patients from this doctor
-    doctor.patients().clear();
-
-    // Reassign patients to the first active doctor we find.
-    auto active_doctor = *(gaia::hospital::doctor_t::list().where(
-        gaia::hospital::doctor_expr::is_active == true).begin());
-    for (auto patient : patient_list)
+    // [insert_delete:2_doctor]
+    //
+    // This rule inserts a new patient into the database and connects it to
+    // the updated doctor.
+    on_update(doctor.is_active)
     {
-        active_doctor.patients().connect(patient);
-        gaia_log::app().info("'{}' has been reassigned from '{}' to '{}'.",
-            patient.name(), doctor.name(), active_doctor.name());
+        if (!doctor.is_active)
+        {
+            return;
+        }
+
+        rule_scope_t r("{}:{}: '{}' status is '{}'", 
+            rule_context.ruleset_name, rule_context.rule_name, doctor.name, doctor.is_active);
+
+        // Insert a patient for this doctor and connect them.
+        doctor.connect(patient.insert(name : "Rule Patient", is_active:true));
+
+        gaia_log::app().info("'{}' has patient '{}'",
+            doctor.name, patient.name);
     }
-}
+
+    // [insert_delete:3_patient]
+    //
+    // If a patient changes status to inactive, then remove them from their doctor
+    // and delete them.
+    on_update(patient.is_active)
+    {
+        if (patient.is_active)
+        {
+            return;
+        }
+
+        rule_scope_t r("{}:{}: '{}' status is '{}'",
+            rule_context.ruleset_name, rule_context.rule_name, patient.name, patient.is_active);
+
+        doctor.disconnect(patient);
+        patient.remove();
+
+        // Verify the rule patient is gone
+        gaia_log::app().info("Patients:");
+        gaia_log::app().info("'{}'", /patient.name);
+    }
+} // ruleset insert_delete
 
 ruleset interop
 {
+    // This is a normal C++ function that we can call from a rule. This means
+    // that no translation occurs for this code.
+    void reassign_patients(gaia::hospital::doctor_t& doctor)
+    {
+        std::vector<gaia::hospital::patient_t> patient_list;
+        for (auto patient : doctor.patients())
+        {
+            patient_list.push_back(patient);
+        }
+
+        // Remove all patients from this doctor
+        doctor.patients().clear();
+
+        // Reassign patients to the first active doctor we find.
+        auto active_doctor = *(gaia::hospital::doctor_t::list().where(
+            gaia::hospital::doctor_expr::is_active == true).begin());
+
+        for (auto patient : patient_list)
+        {
+            active_doctor.patients().connect(patient);
+            gaia_log::app().info("'{}' has been reassigned from '{}' to '{}'.",
+                patient.name(), doctor.name(), active_doctor.name());
+        }
+    }
 
     // [interop:1_doctor]
     //
@@ -647,7 +670,7 @@ ruleset interop
             return;
         }
 
-        gaia_log::app().info("{}:{}: doctor '{}' 'is_active' status was updated to '{}'.", 
+        rule_scope_t r("{}:{}: doctor '{}' 'is_active' status was updated to '{}'.", 
             rule_context.ruleset_name, rule_context.rule_name, name, is_active);
 
         // Call our C++ function defined above.
@@ -665,7 +688,7 @@ ruleset interop
             return;
         }
 
-        gaia_log::app().info("{}:{}: doctor '{}' 'is_active' status was updated to '{}'.", 
+        rule_scope_t r("{}:{}: doctor '{}' 'is_active' status was updated to '{}'.", 
             rule_context.ruleset_name, rule_context.rule_name, name, is_active);
 
         // We can interoperate between normal C++ code and Gaia 
@@ -697,21 +720,21 @@ ruleset interop
     }
 } // ruleset interop
 
-// Array support is improving.  For now we have to dop down into
-// normal C++ to retrieve the size of the array.
-uint32_t get_result_size(gaia::hospital::patient_t& patient)
-{
-    return patient.analysis_results().size();
-}
-
 ruleset arrays
 {
+    // Array support in our declarative language is a work in progress.
+    // We need to use normal C++ to retrieve the size of the array.
+    uint32_t get_result_size(gaia::hospital::patient_t& patient)
+    {
+        return patient.analysis_results().size();
+    }
+
     // [arrays:1_patient]
     //
     // Array fields can be used like any other field and support.
     on_update(analysis_results)
     {
-        gaia_log::app().info("{}:{}: patient '{}' has '{}' results:", 
+        rule_scope_t r("{}:{}: patient '{}' has '{}' results:", 
             rule_context.ruleset_name, rule_context.rule_name, 
             patient.name, get_result_size(patient));
 
@@ -726,7 +749,7 @@ ruleset arrays
     // Array fields can be access like any other field.
     on_update(patient.is_active)
     {
-        gaia_log::app().info("{}:{}: patient '{}' has status '{}'", 
+        rule_scope_t r("{}:{}: patient '{}' has status '{}'", 
             rule_context.ruleset_name, rule_context.rule_name, patient.name, patient.is_active);
 
         // Add more test results

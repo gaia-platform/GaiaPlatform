@@ -6,26 +6,17 @@
 // or at https://opensource.org/licenses/MIT.
 ////////////////////////////////////////////////////
 
-#include <unistd.h>
-
-#include <iostream>
-
-#include <gaia/db/db.hpp>
-#include <gaia/exceptions.hpp>
-#include <gaia/logger.hpp>
-#include <gaia/rules/rules.hpp>
+#include <gaia/direct_access/auto_transaction.hpp>
 #include <gaia/system.hpp>
 
 #include "gaia_hospital.h"
+#include "lesson_manager.hpp"
 
 using namespace gaia::hospital;
-using namespace gaia::rules;
-using gaia::common::gaia_id_t;
+
 using gaia::direct_access::auto_transaction_t;
 
-/**
- * Clean the database.
- */
+// Clean up the database between lessons.
 void clean_db()
 {
     auto_transaction_t txn(auto_transaction_t::no_auto_restart);
@@ -55,28 +46,9 @@ void clean_db()
     txn.commit();
 }
 
-const uint32_t c_wait_time = 10000; // 10 milliseconds
-class example_t
-{
-public:
-    example_t(const char* description)
-    {
-        gaia_log::app().info(description);
-    }
-
-    ~example_t()
-    {
-        m_transaction.commit();
-        // For example purposes only, wait for the rule to be complete.
-        usleep(c_wait_time);
-        gaia_log::app().info("Press <enter> to continue...");
-        std::cin.get();
-    }
-
-private:
-    auto_transaction_t m_transaction;
-};
-
+// Add doctors, patients, and addresses.  If connect_patients_to_doctors
+// is 'true', then assign patients to doctors. Patients are always
+// assigned to addresses based on their address_id.
 void setup_clinic(bool connect_patients_to_doctors = false)
 {
     // Address IDs
@@ -126,21 +98,22 @@ void setup_clinic(bool connect_patients_to_doctors = false)
     txn.commit();
 }
 
-void insert_doctor(const char* doctor_name)
+// The follwing functions make inserts and updates to trigger rules in the tutorial.
+void insert_doctor(const char* doctor_name, uint8_t count_rules)
 {
-    example_t example("db: inserting a doctor in the database");
+    example_t example("db: inserting a doctor in the database", count_rules);
 
     doctor_t::insert_row(doctor_name, true);
 
     // Note that the transaction must be committed for those changes to
     // be seen by the rules engine. Rules are only fired after the commit.
     // In the examples, the commit call is happening when the 'example_t'
-    // class goes out of scope.
+    // class goes out of scope.  See example_t::~example_t() in lesson_manager.hpp.
 }
 
-void insert_patient(const char* patient_name)
+void insert_patient(const char* patient_name, uint8_t count_rules)
 {
-    example_t example("db: inserting a patient in the database");
+    example_t example("db: inserting a patient in the database", count_rules);
 
     // Note that we only fire a rule when we add a doctor.
     // We can add a patient as well and no rules are fired.
@@ -150,12 +123,12 @@ void insert_patient(const char* patient_name)
     patient.insert_row();
 }
 
-void update_patient_status(const char* patient_name, bool status)
+void update_patient_status(const char* patient_name, bool status, uint8_t count_rules)
 {
     // In order to reduce boilerplate code, all examples will wrap
     // transaction handling in the example_t class constructor and
     // destructor from now on.
-    example_t example("db: updating patient's status");
+    example_t example("db: updating patient's status", count_rules);
 
     // Retrieve the first (and only) patient
     patient_t patient = *(patient_t::list().where(patient_expr::name == patient_name).begin());
@@ -164,12 +137,12 @@ void update_patient_status(const char* patient_name, bool status)
     writer.update_row();
 }
 
-void update_patient_results(const char* patient_name, std::vector<float> results)
+void update_patient_results(const char* patient_name, std::vector<float> results, uint8_t count_rules)
 {
     // In order to reduce boilerplate code, all examples will wrap
     // transaction handling in the example_t class constructor and
     // destructor from now on.
-    example_t example("db: updating patient's results");
+    example_t example("db: updating patient's results", count_rules);
 
     // Retrieve the first (and only) patient
     patient_t patient = *(patient_t::list().where(patient_expr::name == patient_name).begin());
@@ -178,9 +151,9 @@ void update_patient_results(const char* patient_name, std::vector<float> results
     writer.update_row();
 }
 
-void update_doctor_status(const char* doctor_name, bool status)
+void update_doctor_status(const char* doctor_name, bool status, uint8_t count_rules)
 {
-    example_t example("db: updating doctor's active status");
+    example_t example("db: updating doctor's active status", count_rules);
 
     doctor_t dr_cox = *(doctor_t::list().where(doctor_expr::name == doctor_name).begin());
     doctor_writer writer = dr_cox.writer();
@@ -188,221 +161,127 @@ void update_doctor_status(const char* doctor_name, bool status)
     writer.update_row();
 }
 
-void update_doctor_name(const char* old_name, const char* new_name)
+void update_doctor_name(const char* old_name, const char* new_name, uint8_t count_rules)
 {
-    example_t example("db: changing doctor's name");
+    example_t example("db: changing doctor's name", count_rules);
 
-    // Make Dr. Cox inactive.
     doctor_t dr_cox = *(doctor_t::list().where(doctor_expr::name == old_name).begin());
     doctor_writer writer = dr_cox.writer();
     writer.name = new_name;
     writer.update_row();
 }
 
-void insert_doctor_and_patient(const char* doctor_name, const char* patient_name)
+void insert_doctor_and_patient(const char* doctor_name, const char* patient_name, uint8_t count_rules)
 {
-    example_t example("db: inserting doctor and patient");
+    example_t example("db: inserting doctor and patient", count_rules);
     doctor_t::insert_row("Dr. Cox", true);
     patient_t::insert_row("Chrisjen Avasarala", 0, 68, true, {});
 }
 
-void insert_address()
+void insert_address(uint8_t count_rules)
 {
-    example_t example("db: inserting address");
+    example_t example("db: inserting address", count_rules);
     address_t::insert_row(17, "1 End of the Bar", "Deadwood");
 }
 
-void change_address()
+void change_address(uint8_t count_rules)
 {
-    example_t example("db: changing address street");
+    example_t example("db: changing address street", count_rules);
 
-    // Move Jim to the same city as Naomi.
     address_t address = *(address_t::list().where(address_expr::city == "Lansing").begin());
     address_writer writer = address.writer();
     writer.street = "62 West Wallaby St.";
     writer.update_row();
 }
 
+// The following functions are the "lessons" of the tutorial. They work by using the
+// functions above to make changes to the data that fire the rules in the lesson.
+// Each lesson corresponds to a separate ruleset in 'hospital.ruleset'.  See that
+// file for step by step documentation on each rule that is fired.
+
+void arrays()
+{
+    update_patient_results("Amos Burton", {1.23, 4.56}, 1);
+    update_patient_status("Amos Burton", true, 2);
+}
+
 void basics()
 {
-    insert_doctor("Dr. House");
-    insert_patient("Emma");
-    update_patient_status("Emma", true);
-}
-
-void forward_chaining()
-{
-    insert_patient("Emma");
-}
-
-void navigation()
-{
-    update_patient_status("Jim Holden", true);
-    update_patient_status("Jim Holden", false);
-    update_doctor_status("Dr. Cox", false);
-    update_doctor_status("Dr. Cox", true);
-    update_doctor_name("Dr. Cox", "Dr. Kelso");
-    insert_doctor_and_patient("Dr. Cox", "Chrisjen Avasarala");
-    insert_address();
-}
-
-void tags()
-{
-    update_doctor_status("Dr. Reid", false);
-    update_doctor_status("Dr. Reid", true);
-    update_doctor_name("Dr. Reid", "Dr. DeclareUseTag");
-    update_doctor_name("Dr. Cox", "Dr. MultiTags");
-    update_doctor_name("Dr. Dorian", "Dr. NestedTags");
-}
-
-void insert_delete()
-{
-    update_doctor_status("Dr. Dorian", false);
-    update_doctor_status("Dr. Dorian", true);
-    update_patient_status("Rule Patient", false);
+    insert_doctor("Dr. House", 1);
+    insert_patient("Emma", 1);
+    update_patient_status("Emma", true, 5);
 }
 
 void connections()
 {
-    update_patient_status("Camina Drummer", true);
-    update_patient_status("Camina Drummer", false);
-    change_address();
+    update_patient_status("Camina Drummer", true, 1);
+    update_patient_status("Camina Drummer", false, 1);
+    change_address(1);
+}
+
+void forward_chaining()
+{
+    insert_patient("Emma", 2);
+}
+
+void insert_delete()
+{
+    update_doctor_status("Dr. Dorian", false, 1);
+    update_doctor_status("Dr. Dorian", true, 1);
+    update_patient_status("Rule Patient", false, 1);
 }
 
 void interop()
 {
-    update_doctor_status("Dr. Cox", false);
-    update_doctor_status("Dr. Dorian", false);
+    update_doctor_status("Dr. Cox", false, 1);
+    update_doctor_status("Dr. Dorian", false, 1);
 }
 
-void arrays()
+void navigation()
 {
-    update_patient_results("Amos Burton", {1.23, 4.56});
-    update_patient_status("Amos Burton", true);
+    update_patient_status("Jim Holden", true, 1);
+    update_patient_status("Jim Holden", false, 1);
+    update_doctor_status("Dr. Cox", false, 1);
+    update_doctor_status("Dr. Cox", true, 1);
+    update_doctor_name("Dr. Cox", "Dr. Kelso", 1);
+    insert_doctor_and_patient("Dr. Cox", "Chrisjen Avasarala", 2);
+    insert_address(1);
 }
 
-typedef void (*lesson_fn)(void);
-struct lesson_plan_t
+void tags()
 {
-    lesson_fn lesson;
-    bool setup_clinic;
-    bool connect_patients_to_doctors;
-};
-std::map<std::string, lesson_plan_t> g_lessons;
-
-void load_lessons()
-{
-    g_lessons["basics"] = {basics, false, false};
-    g_lessons["forward_chaining"] = {forward_chaining, false, false};
-    g_lessons["navigation"] = {navigation, true, true};
-    g_lessons["tags"] = {tags, true, true};
-    g_lessons["insert_delete"] = {insert_delete, true, true};
-    g_lessons["connections"] = {connections, true, false};
-    g_lessons["interop"] = {interop, true, true};
-    g_lessons["arrays"] = {arrays, true, false};
-}
-
-bool run_lesson(const std::string& lesson)
-{
-    auto lesson_iter = g_lessons.find(lesson);
-    if (lesson_iter == g_lessons.end())
-    {
-        return false;
-    }
-
-    lesson_plan_t plan = lesson_iter->second;
-
-    // By default, all rulesets are subscribed and active after initialization.
-    // For this tutorial, only subscribe one ruleset at a time per lesson.
-    unsubscribe_rules();
-    clean_db();
-
-    if (plan.setup_clinic)
-    {
-        setup_clinic(plan.connect_patients_to_doctors);
-    }
-    subscribe_ruleset(lesson.c_str());
-    gaia_log::app().info("--- [Lesson {}] ---", lesson);
-    plan.lesson();
-
-    return true;
-}
-
-void list_lessons(bool run = false)
-{
-    for (const auto& pair : g_lessons)
-    {
-        if (run)
-        {
-            run_lesson(pair.first);
-        }
-        else
-        {
-            std::cout << pair.first << "\n";
-        }
-    }
-}
-
-void run_lessons()
-{
-    list_lessons(true);
-}
-
-void usage(const char* command)
-{
-    std::cout << "Usage: " << command << " [--help | --list-lessons | <lesson>]\n";
-    std::cout << " <no args>: run all lessons in the tutorial.\n";
-    std::cout << " <lesson>: run the specified lesson.\n";
-    std::cout << " --list-lessons: show all available lessons.\n";
-    std::cout << " --help: print this message.\n";
-}
-
-void lesson_not_found(const char* command, std::string& lesson)
-{
-    std::cout << "Lesson '" << lesson
-              << "' not found.  To see the valid lessons, use:" << std::endl
-              << command << " --list-lessons" << std::endl;
+    update_doctor_status("Dr. Reid", false, 1);
+    update_doctor_status("Dr. Reid", true, 1);
+    update_doctor_name("Dr. Reid", "Dr. DeclareUseTag", 1);
+    update_doctor_name("Dr. Cox", "Dr. MultiTags", 1);
+    update_doctor_name("Dr. Dorian", "Dr. NestedTags", 1);
 }
 
 int main(int argc, const char** argv)
 {
-    // It is helpful to walk through the direct_access sample before running this one to get
-    // acquainted with how to interact with the Gaia database.  This tutorial focuses on
-    // the syntax for rules.  Rules are fired in response to changes made to the database.
-    load_lessons();
+    // All lessons can be run sequentially or they
+    // can be run one at a time by specifying the lesson on the
+    // command line.
+    lesson_manager_t lesson_manager;
+
+    const bool setup_clinic = true;
+    const bool connect_patients_to_doctors = true;
+
+    lesson_manager.add_lesson("01_basics", basics, "basics");
+    lesson_manager.add_lesson("02_forward_chaining", forward_chaining, "forward_chaining");
+    lesson_manager.add_lesson("03_navigation", navigation, "navigation", setup_clinic, connect_patients_to_doctors);
+    lesson_manager.add_lesson("04_tags", tags, "tags", setup_clinic, connect_patients_to_doctors);
+    lesson_manager.add_lesson("05_connections", connections, "connections", setup_clinic);
+    lesson_manager.add_lesson("06_insert_delete", insert_delete, "insert_delete", setup_clinic, connect_patients_to_doctors);
+    lesson_manager.add_lesson("07_interop", interop, "interop", setup_clinic, connect_patients_to_doctors);
+    lesson_manager.add_lesson("08_arrays", arrays, "arrays", setup_clinic);
 
     // Load up a custom configuration file so that we don't
     // log rule statistics during the tutorial.
     gaia::system::initialize("./gaia_tutorial.conf");
 
-    // Run all lessons if no arguments are passed.
-    if (argc == 1)
-    {
-        run_lessons();
-    }
-    else if (argc == 2)
-    {
-        std::string arg = argv[1];
-        if (arg == "--help")
-        {
-            usage(argv[0]);
-        }
-        else if (arg == "--list-lessons")
-        {
-            list_lessons();
-        }
-        else
-        {
-            if (!run_lesson(arg))
-            {
-                lesson_not_found(argv[0], arg);
-            }
-        }
-    }
-    else
-    {
-        usage(argv[0]);
-    }
+    args_handler_t args_handler(lesson_manager);
+    args_handler.parse_and_run(argc, argv);
 
     gaia::system::shutdown();
     return EXIT_SUCCESS;
