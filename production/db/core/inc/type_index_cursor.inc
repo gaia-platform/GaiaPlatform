@@ -68,7 +68,7 @@ bool type_index_cursor_t::unlink_for_deletion()
     // Handle the special case where the first marked node is at the head of the list.
     if (!prev_node)
     {
-        return m_type_index->set_first_locator(m_type, unlinked_locator, current_locator());
+        return m_type_index->try_set_first_locator(m_type, unlinked_locator, current_locator());
     }
 
     // Otherwise, set the previous node to point to the new current locator
