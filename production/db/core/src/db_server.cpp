@@ -2006,6 +2006,11 @@ void server_t::gc_txn_log_from_offset(log_offset_t log_offset, bool is_committed
 {
     txn_log_t* txn_log = get_txn_log_from_offset(log_offset);
 
+    // Remove index entries that might be referencing obsolete versions before
+    // actually deallocating them.
+    bool deallocate_new_offsets = !is_committed;
+    index::index_builder_t::gc_indexes_from_txn_log(txn_log, deallocate_new_offsets);
+
     // If the txn committed, we deallocate only undo versions, because the
     // redo versions may still be visible after the txn has fallen
     // behind the watermark. If the txn aborted, then we deallocate only
@@ -2013,15 +2018,10 @@ void server_t::gc_txn_log_from_offset(log_offset_t log_offset, bool is_committed
     // that we could deallocate intermediate versions (i.e., those
     // superseded within the same txn) immediately, but we do it here
     // for simplicity.
-    bool deallocate_new_offsets = !is_committed;
-
-    // Remove index entries that might be referencing obsolete versions before
-    // actually deallocating them.
-    index::index_builder_t::gc_indexes_from_txn_log(txn_log, deallocate_new_offsets);
-    deallocate_txn_log(txn_log, deallocate_new_offsets);
+    deallocate_txn_log(txn_log, is_committed);
 }
 
-void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets)
+void server_t::deallocate_txn_log(txn_log_t* txn_log, bool is_committed)
 {
     ASSERT_PRECONDITION(txn_log, "txn_log must be a valid address!");
     ASSERT_PRECONDITION(
@@ -2043,13 +2043,13 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
         // txn log of an aborted txn is after it falls behind the watermark,
         // because at that point it cannot be in the conflict window of any
         // committing txn.
-        gaia_offset_t offset_to_free = deallocate_new_offsets
-            ? log_record->new_offset
-            : log_record->old_offset;
+        gaia_offset_t offset_to_free = is_committed
+            ? log_record->old_offset
+            : log_record->new_offset;
 
         // If we're gc-ing the old version of an object that is being deleted,
         // then request the deletion of its locator from the corresponding record list.
-        if (!deallocate_new_offsets && !log_record->new_offset.is_valid())
+        if (is_committed && log_record->operation() == gaia_operation_t::remove)
         {
             // Get the old object data to extract its type.
             db_object_t* db_object = offset_to_ptr(log_record->old_offset);
@@ -2068,9 +2068,9 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
         // For committed txns, we need to remove any deleted locators from the
         // type index. For aborted or rolled-back txns, we need to remove any
         // allocated locators from the type index.
-        bool committed_remove_locator_op = !deallocate_new_offsets && log_record->operation() == gaia_operation_t::remove;
-        bool aborted_create_locator_op = deallocate_new_offsets && log_record->operation() == gaia_operation_t::create;
-        if (committed_remove_locator_op || aborted_create_locator_op)
+        bool is_locator_removal_committed = is_committed && log_record->operation() == gaia_operation_t::remove;
+        bool is_locator_creation_aborted = !is_committed && log_record->operation() == gaia_operation_t::create;
+        if (is_locator_removal_committed || is_locator_creation_aborted)
         {
             type_index_t* type_index = get_type_index();
             bool has_succeeded = type_index->delete_locator(log_record->locator);

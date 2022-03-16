@@ -49,41 +49,49 @@ bool locator_list_node_t::mark_for_deletion()
 
 std::atomic<type_index_entry_t>& type_index_t::get_type_index_entry(common::gaia_type_t type)
 {
+    ASSERT_PRECONDITION(type.is_valid(), "Cannot call get_type_index_entry() with an invalid type!");
+
     // REVIEW: With our current limit of 64 types, linear search should be
     // fine (the whole array is at most 8 cache lines, so should almost
     // always be in L1 cache), but with more types we'll eventually need
-    // sublinear search complexity.
+    // sublinear search complexity (e.g., a hash table).
 
-    // Scan until the first uninitialized entry or the end of the array,
-    // whichever comes first.
-    for (size_t type_index_entry_idx = 0;
-         type_index_entry_idx < std::size(type_index_entries);
-         ++type_index_entry_idx)
+    // Scan until the end of the array. (We could stop at the first
+    // uninitialized entry, but the branch is likely not worth it for such a
+    // small array; see e.g.
+    // https://dirtyhandscoding.wordpress.com/2017/08/25/performance-comparison-linear-search-vs-binary-search/.)
+    for (size_t i = 0; i < std::size(type_index_entries); ++i)
     {
-        auto& entry_ref = type_index_entries[type_index_entry_idx];
+        auto& entry_ref = type_index_entries[i];
         auto entry_val = entry_ref.load();
-        if (entry_val.type == common::c_invalid_gaia_type)
-        {
-            break;
-        }
         if (entry_val.type == type)
         {
             return entry_ref;
         }
     }
-    // The precondition has been violated.
+    // If we reach the end of the array without finding the entry for this type,
+    // the precondition has been violated.
     ASSERT_UNREACHABLE("Type must be registered before calling get_type_index_entry()!");
 }
 
 bool type_index_t::register_type(common::gaia_type_t type)
 {
+    ASSERT_PRECONDITION(type.is_valid(), "Cannot call register_type() with an invalid type!");
+
+    // This implements the insert operation on a lock-free set. Inserting a
+    // duplicate element is prevented by CAS semantics: each concurrent insert
+    // uses the next uninitialized array entry (there can be no "holes" in the
+    // array because entries only go from zero to nonzero, and we never scan
+    // past an entry initially read as zero until a CAS shows it is nonzero), so
+    // for any two concurrent inserts, one of them (the one that initializes the
+    // higher-indexed entry) must see the other's insert, and abort if has the
+    // same value.
+    //
     // Scan until the first uninitialized entry or the end of the array,
     // whichever comes first.
-    for (size_t type_index_entry_idx = 0;
-         type_index_entry_idx < std::size(type_index_entries);
-         ++type_index_entry_idx)
+    for (size_t i = 0; i < std::size(type_index_entries); ++i)
     {
-        auto& entry_ref = type_index_entries[type_index_entry_idx];
+        auto& entry_ref = type_index_entries[i];
         auto entry_val = entry_ref.load();
         // The type was already registered.
         if (entry_val.type == type)
@@ -92,6 +100,11 @@ bool type_index_t::register_type(common::gaia_type_t type)
         }
 
         // Try to initialize the first uninitialized entry.
+        //
+        // REVIEW: This could technically be a relaxed load, because the
+        // subsequent CAS will detect a stale read. However, we don't currently
+        // specify non-default memory orderings anywhere, and I think we should
+        // only change this policy on the basis of profiling data.
         if (entry_val.type == common::c_invalid_gaia_type)
         {
             type_index_entry_t expected_entry{common::c_invalid_gaia_type, c_invalid_gaia_locator};
