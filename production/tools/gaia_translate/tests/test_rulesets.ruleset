@@ -824,3 +824,23 @@ ruleset vlr_rules
         gaia_log::app().info("---");
     }
 }
+
+ruleset pick_and_place_ruleset
+{
+    {
+        if (@pick && !@place)
+        {
+            pick_action.insert();
+        }
+    }
+
+    on_insert(pick_action)
+    {
+        move_action.insert();
+    }
+
+    on_insert(move_action)
+    {
+        gaia_log::app().info("Moving...");
+    }
+}

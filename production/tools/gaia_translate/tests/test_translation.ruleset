@@ -378,23 +378,3 @@ ruleset test16
         /actuator.timestamp = sensor.timestamp;
     }
 }
-
-ruleset pick_and_place_ruleset
-{
-    {
-        if (@pick && !@place)
-        {
-            pick_action.insert();
-        }
-    }
-
-    on_insert(pick_action)
-    {
-        move_action.insert();
-    }
-
-    on_insert(move_action)
-    {
-        gaia_log::app().info("Moving...");
-    }
-}
