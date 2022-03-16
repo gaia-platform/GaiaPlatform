@@ -111,7 +111,7 @@ struct type_index_t
     // the head is still `expected_locator`. Returns true if the head is still
     // `expected_locator`, false otherwise. (This has CAS semantics because we
     // need to retry if the head of the list changes during the operation.)
-    inline bool set_first_locator(
+    inline bool try_set_first_locator(
         common::gaia_type_t type, gaia_locator_t expected_locator, gaia_locator_t desired_locator);
 
     // Gets the list node corresponding to `locator`.

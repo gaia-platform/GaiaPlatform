@@ -114,7 +114,7 @@ gaia_locator_t type_index_t::get_first_locator(common::gaia_type_t type)
     return get_type_index_entry(type).load().first_locator;
 }
 
-bool type_index_t::set_first_locator(
+bool type_index_t::try_set_first_locator(
     common::gaia_type_t type, gaia_locator_t expected_locator, gaia_locator_t desired_locator)
 {
     type_index_entry_t expected_entry{type, expected_locator};
@@ -163,7 +163,7 @@ void type_index_t::add_locator(common::gaia_type_t type, gaia_locator_t locator)
 
         // Now try to point the list head to the new node, retrying if it
         // was concurrently pointed to another node.
-        if (set_first_locator(type, first_locator, locator))
+        if (try_set_first_locator(type, first_locator, locator))
         {
             break;
         }
