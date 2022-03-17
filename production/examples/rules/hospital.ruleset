@@ -7,7 +7,7 @@
 ////////////////////////////////////////////////////
 
 
-// Consider adding a nested loop with label scenario
+// TODO (dax): Consider adding a nested loop with label scenario
 // add helpers in interop (deleting all rows, size of collections, exists keyword)
 // Fix cmake files
 // Add this and direct access to samples test

@@ -1,8 +1,8 @@
-# Rules Demo (TODO)
+# Rules Demo
 
-A demo of the Gaia Direct Access API.
+A demo of using Gaia Rules.
 
-For more information on Direct Access, see [Using the Direct Access Classes](https://gaia-platform.github.io/gaia-platform-docs.io/articles/apps-direct-access.html) in the Gaia developer documentation.
+For more information on Gaie Rules, see [Gaia Rulesets](https://gaia-platform.github.io/gaia-platform-docs.io/articles/rulesets-gaia-rulesets.html) in the Gaia developer documentation.
 
 ## Build Instructions
 
@@ -10,9 +10,9 @@ These instructions assume you have installed the SDK and have installed the `cla
 
 1. To preserve the initial state of the sample code, copy the source files to a new directory.
     ```shell
-    mkdir direct_access
-    cd direct_access
-    cp -r /opt/gaia/examples/direct_access/* .
+    mkdir rules
+    cd rules
+    cp -r /opt/gaia/examples/rules/* .
     ```
 2. Create the build directory under the current `direct_access/` directory and initiate the build.
     ```shell
@@ -25,8 +25,17 @@ These instructions assume you have installed the SDK and have installed the `cla
 
 # Running the Demo
 
-To run the `hospital` binary from the build directory use the following command:
+To run all of the lessons, run the `hospital` binary from the build directory use the following command:
 
 ```shell
 ./hospital
+```
+
+You can also run lessons one at a time by using the following command:
+```shell
+./hospital lesson
+```
+Where `lesson` must be one of the lessons output from:
+```shell
+./hospital --lessons
 ```
