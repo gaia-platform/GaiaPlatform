@@ -742,7 +742,10 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
                 replacement_string.append(",");
             }
         }
-        replacement_string.resize(replacement_string.size() - 1);
+        if (!function_arguments.empty())
+        {
+            replacement_string.resize(replacement_string.size() - 1);
+        }
         replacement_string.append("))");
 
         rewriter.ReplaceText(insert_data.expression_range, replacement_string);

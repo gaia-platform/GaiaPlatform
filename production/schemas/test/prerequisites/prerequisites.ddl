@@ -86,3 +86,12 @@ table person (
     floor references floor
         where person.floor_num = floor.num
 )
+
+table state (
+    pick bool,
+    place bool
+)
+
+table pick_action ()
+
+table move_action ()

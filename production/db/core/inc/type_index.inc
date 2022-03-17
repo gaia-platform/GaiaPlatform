@@ -36,6 +36,7 @@ bool locator_list_node_t::mark_for_deletion()
         {
             return false;
         }
+
         uint64_t desired_word{data_word | c_deleted_flag_mask};
         if (data_word.compare_exchange_strong(expected_word, desired_word))
         {
@@ -46,45 +47,93 @@ bool locator_list_node_t::mark_for_deletion()
     return true;
 }
 
-void type_index_t::register_type(common::gaia_type_t type)
+std::atomic<type_index_entry_t>& type_index_t::get_type_index_entry(common::gaia_type_t type)
 {
-    if (type_index_entries_count >= c_max_types)
+    ASSERT_PRECONDITION(type.is_valid(), "Cannot call get_type_index_entry() with an invalid type!");
+
+    // REVIEW: With our current limit of 64 types, linear search should be
+    // fine (the whole array is at most 8 cache lines, so should almost
+    // always be in L1 cache), but with more types we'll eventually need
+    // sublinear search complexity (e.g., a hash table).
+
+    // Scan until the end of the array. (We could stop at the first
+    // uninitialized entry, but the branch is likely not worth it for such a
+    // small array; see e.g.
+    // https://dirtyhandscoding.wordpress.com/2017/08/25/performance-comparison-linear-search-vs-binary-search/.)
+    for (size_t i = 0; i < std::size(type_index_entries); ++i)
     {
-        throw type_limit_exceeded_internal();
+        auto& entry_ref = type_index_entries[i];
+        auto entry_val = entry_ref.load();
+        if (entry_val.type == type)
+        {
+            return entry_ref;
+        }
     }
-    type_index_entries[type_index_entries_count++].type = type;
+    // If we reach the end of the array without finding the entry for this type,
+    // the precondition has been violated.
+    ASSERT_UNREACHABLE("Type must be registered before calling get_type_index_entry()!");
+}
+
+bool type_index_t::register_type(common::gaia_type_t type)
+{
+    ASSERT_PRECONDITION(type.is_valid(), "Cannot call register_type() with an invalid type!");
+
+    // This implements the insert operation on a lock-free set. Inserting a
+    // duplicate element is prevented by CAS semantics: each concurrent insert
+    // uses the next uninitialized array entry (there can be no "holes" in the
+    // array because entries only go from zero to nonzero, and we never scan
+    // past an entry initially read as zero until a CAS shows it is nonzero), so
+    // for any two concurrent inserts, one of them (the one that initializes the
+    // higher-indexed entry) must see the other's insert, and abort if has the
+    // same value.
+    //
+    // Scan until the first uninitialized entry or the end of the array,
+    // whichever comes first.
+    for (size_t i = 0; i < std::size(type_index_entries); ++i)
+    {
+        auto& entry_ref = type_index_entries[i];
+        auto entry_val = entry_ref.load();
+        // The type was already registered.
+        if (entry_val.type == type)
+        {
+            return false;
+        }
+
+        // Try to initialize the first uninitialized entry.
+        //
+        // REVIEW: This could technically be a relaxed load, because the
+        // subsequent CAS will detect a stale read. However, we don't currently
+        // specify non-default memory orderings anywhere, and I think we should
+        // only change this policy on the basis of profiling data.
+        if (entry_val.type == common::c_invalid_gaia_type)
+        {
+            type_index_entry_t expected_entry{common::c_invalid_gaia_type, c_invalid_gaia_locator};
+            type_index_entry_t desired_entry{type, c_invalid_gaia_locator};
+
+            // If the CAS succeeds, we are done, otherwise try the next entry.
+            if (entry_ref.compare_exchange_strong(expected_entry, desired_entry))
+            {
+                return true;
+            }
+        }
+    }
+
+    // We reached the end of the array without finding an uninitialized entry.
+    throw type_limit_exceeded_internal();
 }
 
 gaia_locator_t type_index_t::get_first_locator(common::gaia_type_t type)
 {
-    // REVIEW: With our current limit of 64 types, linear search should be
-    // fine (the whole array is at most 8 cache lines, so should almost
-    // always be in L1 cache), but with more types we'll eventually need
-    // sublinear search complexity.
-    for (size_t i = 0; i < type_index_entries_count; ++i)
-    {
-        if (type_index_entries[i].type == type)
-        {
-            return gaia_locator_t(type_index_entries[i].first_locator);
-        }
-    }
-    ASSERT_UNREACHABLE("Type must be registered before accessing its locator list!");
+    return get_type_index_entry(type).load().first_locator;
 }
 
-bool type_index_t::set_first_locator(
+bool type_index_t::try_set_first_locator(
     common::gaia_type_t type, gaia_locator_t expected_locator, gaia_locator_t desired_locator)
 {
-    gaia_locator_t::value_type expected_value = expected_locator.value();
-    gaia_locator_t::value_type desired_value = desired_locator.value();
+    type_index_entry_t expected_entry{type, expected_locator};
+    type_index_entry_t desired_entry{type, desired_locator};
 
-    for (size_t i = 0; i < type_index_entries_count; ++i)
-    {
-        if (type_index_entries[i].type == type)
-        {
-            return type_index_entries[i].first_locator.compare_exchange_strong(expected_value, desired_value);
-        }
-    }
-    ASSERT_UNREACHABLE("Type must be registered before accessing its locator list!");
+    return get_type_index_entry(type).compare_exchange_strong(expected_entry, desired_entry);
 }
 
 locator_list_node_t* type_index_t::get_list_node(gaia_locator_t locator)
@@ -127,7 +176,7 @@ void type_index_t::add_locator(common::gaia_type_t type, gaia_locator_t locator)
 
         // Now try to point the list head to the new node, retrying if it
         // was concurrently pointed to another node.
-        if (set_first_locator(type, first_locator, locator))
+        if (try_set_first_locator(type, first_locator, locator))
         {
             break;
         }
