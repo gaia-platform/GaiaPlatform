@@ -30,7 +30,7 @@ function install_sample {
 
 # Make and execute Hello World example. We build this with the provided
 # scripts instead of CMake so don't use the 'install-sample' above.
-cd $current_dir
+cd "$current_dir"
 rm -rf ./hello
 cp -r /opt/gaia/examples/hello .
 cd hello
