@@ -47,7 +47,7 @@ add_executable(hospital
 )
 
 target_add_gaia_generated_sources(hospital)
-target_include_directories(hospital PRIVATE 
+target_include_directories(hospital PRIVATE
   ${GAIA_INC} ${GAIA_BUILD}/deps/gaia_spdlog/include
   ${GAIA_BUILD}/deps/flatbuffers/include
   ${PROJECT_SOURCE_DIR})
