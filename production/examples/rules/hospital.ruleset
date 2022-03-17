@@ -24,6 +24,7 @@
 // Tip:  if you are using VS-code, you can install the Gaia Platform Intellisense extension to get
 // syntax highlighting and intellisense for Gaia DDL and Ruleset files.
 
+// Show how to write rules that respond to column updates, table inserts, or both.
 ruleset basics
 {
     // [basics:1_doctor]
@@ -100,6 +101,7 @@ ruleset basics
     }
 } // ruleset basics
 
+// Show that a rule itself can make changes to the database such that another rule is fired.
 ruleset forward_chaining
 {
     // [forward_chaining:1_patient]
@@ -124,6 +126,10 @@ ruleset forward_chaining
     }
 } // ruleset forward_chaining
 
+// Show how to navigate records related to the rule's anchor or all records
+// for a particular object type in the database. This lesson also shows how
+// to iterate over records using declarative 'if' and 'for' statements.
+//
 // By default, all rules run in parallel.  The 'serial_group' attribute ensures
 // that no rules in this ruleset can run concurrently with each other. Because
 // this sample logs mulitple rows from each rule, we want to serialize
@@ -332,6 +338,8 @@ ruleset navigation : serial_group()
     }
 } // ruleset navigation
 
+// Shows how to use tags in rules. Tags are a way to explicitly represent a row and
+// have rule or statement scope.
 ruleset tags : serial_group()
 {
     // [tags:1_doctor]
@@ -447,6 +455,8 @@ ruleset tags : serial_group()
     }
 } // ruleset tags
 
+// Shows how to connect and disconnect records to each other for both
+// value-linked and non-value-linked references.
 ruleset connections
 {
     // [connections:1_patient]
@@ -553,6 +563,7 @@ ruleset connections
     }
 } // ruleset connections
 
+// Shows how to insert and remove records from the database.
 ruleset insert_delete
 {
     // [insert_delete:1_doctor]
@@ -626,6 +637,7 @@ ruleset insert_delete
     }
 } // ruleset insert_delete
 
+// Shows how declarative C++ and normal C++ can interoperate.
 ruleset interop
 {
     // This is a normal C++ function that we can call from a rule. This means
@@ -714,6 +726,7 @@ ruleset interop
     }
 } // ruleset interop
 
+// Shows how to use array fields.
 ruleset arrays
 {
     // Array support in our declarative language is a work in progress.
