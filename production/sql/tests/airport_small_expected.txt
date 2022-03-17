@@ -1,0 +1,4 @@
+You are now connected to database "airport" as user "postgres".
+London Heathrow Airport
+SEA,AA,LHR,AA,OTP
+SEA,AA,LHR,AA,OTP
