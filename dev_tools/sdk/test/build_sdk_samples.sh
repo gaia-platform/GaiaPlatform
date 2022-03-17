@@ -6,71 +6,54 @@
 #############################################
 
 # Exit the script as soon as any line fails.
-echo "Into script."
 set -e
 
 # Start the db server.
 gaia_db_server --reset-data-store &
 sleep 1
 
-# Make incubator example.
-echo "Create clean incubator directory"
-rm -rf ./incubator
-cp -r /opt/gaia/examples/incubator .
-pushd incubator
-echo "Make build"
-mkdir build
-pushd build
-echo "CMake"
-cmake ..
-echo "Make"
-make
-popd
-popd
+current_dir=$(pwd)
 
-# Make and execute Hello World example.
-echo "Create clean hello directory"
+# When this function returns the current directory is where the executable
+# is built.
+function install_sample {
+    cd $current_dir
+    local sample=$1
+    rm -rf ./$sample
+    cp -r /opt/gaia/examples/$sample .
+    cd $sample
+    mkdir build
+    cd build
+    cmake ..
+    make
+}
+
+# Make and execute Hello World example. We build this with the provided
+# scripts instead of CMake so don't use the 'install-sample' above.
+cd $current_dir
 rm -rf ./hello
 cp -r /opt/gaia/examples/hello .
-pushd hello
-echo "Build the example."
+cd hello
 ./build.sh
-echo "Run the example."
 ./run.sh
-echo "Example has been run."
-popd
 
-# Make and execute the Direct Access example
-echo "Create clean direct_access directory"
-rm -rf ./direct_access
-cp -r /opt/gaia/examples/direct_access .
-pushd direct_access
-echo "Make build"
-mkdir build
-pushd build
-echo "CMake"
-cmake ..
-echo "Make"
-make
+install_sample "incubator"
+# We don't run incubator because it is does not have a non-interative mode.
+
+install_sample "direct_access"
 ./hospital
-popd
-popd
 
-# Make and execute the Rules example
-echo "Create clean rules directory"
-rm -rf ./direct_access
-cp -r /opt/gaia/examples/rules .
-pushd rules
-echo "Make build"
-mkdir build
-pushd build
-echo "CMake"
-cmake ..
-echo "Make"
-make
+install_sample "direct_access_vlr"
+./direct_access_vlr
+
+install_sample "direct_access_multithread"
+./counter
+
+install_sample "rules"
 ./hospital --non-interactive
-popd
-popd
+
+install_sample "rules_vlr"
+./rules_vlr
 
 # Stop the db server.
 pkill -f gaia_db_server
