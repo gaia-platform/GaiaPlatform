@@ -100,6 +100,7 @@ void GaiaCatalog::fillTableData()
                 continue;
             }
             CatalogTableData table_data;
+            table_data.dbName = table.database().name();
             m_catalogTableData[table.name()] = table_data;
         }
 
@@ -133,8 +134,8 @@ void GaiaCatalog::fillTableData()
                 m_catalogTableData.clear();
                 return;
             }
-            CatalogTableData table_data = table_data_iterator->second;
-            if (table_data.fieldData.find(field.name()) != table_data.fieldData.end())
+
+            if (table_data_iterator->second.fieldData.find(field.name()) != table_data_iterator->second.fieldData.end())
             {
                 m_diags.Report(diag::err_duplicate_field) << field.name();
                 m_catalogTableData.clear();
@@ -146,9 +147,7 @@ void GaiaCatalog::fillTableData()
             field_data.isDeprecated = field.deprecated();
             field_data.isArray = field.repeated_count() == 0;
             field_data.fieldType = static_cast<data_type_t>(field.type());
-            table_data.dbName = table.database().name();
-            table_data.fieldData[field.name()] = field_data;
-            m_catalogTableData[table.name()] = table_data;
+            table_data_iterator->second.fieldData[field.name()] = field_data;
         }
 
         for (const auto& relationship : gaia_relationship_t::list())
