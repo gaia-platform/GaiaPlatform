@@ -17,11 +17,11 @@ current_dir=$(pwd)
 # When this function returns the current directory is where the executable
 # is built.
 function install_sample {
-    cd $current_dir
+    cd "$current_dir"
     local sample=$1
-    rm -rf ./$sample
-    cp -r /opt/gaia/examples/$sample .
-    cd $sample
+    rm -rf ./"$sample"
+    cp -r /opt/gaia/examples/"$sample" .
+    cd "$sample"
     mkdir build
     cd build
     cmake ..
