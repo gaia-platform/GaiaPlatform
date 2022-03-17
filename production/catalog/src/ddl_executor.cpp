@@ -520,11 +520,11 @@ gaia_id_t ddl_executor_t::create_database(const string& name, bool throw_on_exis
         }
     }
 
-    gaia_log::catalog().debug("Creating database '{}'", name);
+    gaia_log::catalog().debug("Creating database '{}'...", name);
 
     gaia_id_t id = gaia_database_t::insert_row(name.c_str(), c_empty_hash);
 
-    gaia_log::catalog().debug("Created database '{}', id:'{}'", name, id);
+    gaia_log::catalog().debug("Created database '{}' with id '{}'.", name, id);
 
     switch_db_context(name);
 
@@ -679,10 +679,20 @@ gaia_id_t ddl_executor_t::create_relationship(
                 + link1.from_table + "' and table '" + link1.to_table + "') is not supported.");
         }
 
-        if (field_map->first.fields.size() != 1 || field_map->second.fields.size() != 1)
+        if (field_map->first.fields.size() != field_map->second.fields.size())
         {
-            throw invalid_relationship_field_internal("Defining relationships using composite keys are not supported currently.");
+            throw invalid_relationship_field_internal(
+                "The number of parent fields does not match the number of child fields in the relationship.");
         }
+        else if (field_map->first.fields.size() != 1)
+        {
+            ASSERT_INVARIANT(
+                field_map->second.fields.size() != 1, "Relationship field counts should match at this point!");
+
+            throw invalid_relationship_field_internal(
+                "Defining relationships using composite keys is not supported currently.");
+        }
+
         gaia_id_t first_table_id = get_table_id(in_context(field_map->first.database), field_map->first.table);
         gaia_id_t second_table_id = get_table_id(in_context(field_map->second.database), field_map->second.table);
 
@@ -699,7 +709,21 @@ gaia_id_t ddl_executor_t::create_relationship(
         }
         else
         {
-            throw invalid_relationship_field_internal("The field's table(s) do not match the tables of the relationship");
+            throw invalid_relationship_field_internal(
+                "The tables of the fields do not match the tables of the relationship.");
+        }
+
+        // The types of the fields must match.
+        for (size_t i = 0; i < parent_field_ids.size(); i++)
+        {
+            auto parent_field = gaia_field_t::get(parent_field_ids[i]);
+            auto child_field = gaia_field_t::get(child_field_ids[i]);
+
+            if (parent_field.type() != child_field.type())
+            {
+                throw invalid_relationship_field_internal(
+                    "The type of fields used in the relationship does not match.");
+            }
         }
 
         // Parent side fields must be unique.
@@ -990,7 +1014,8 @@ void ddl_executor_t::validate_new_reference_offset(reference_offset_t reference_
     }
 }
 
-reference_offset_t ddl_executor_t::find_parent_available_offset(const gaia_table_t::outgoing_relationships_list_t& relationships)
+reference_offset_t ddl_executor_t::find_parent_available_offset(
+    const gaia_table_t::outgoing_relationships_list_t& relationships)
 {
     if (relationships.begin() == relationships.end())
     {
@@ -1012,7 +1037,8 @@ reference_offset_t ddl_executor_t::find_parent_available_offset(const gaia_table
     return next_available_offset;
 }
 
-reference_offset_t ddl_executor_t::find_child_available_offset(const gaia_table_t::incoming_relationships_list_t& relationships)
+reference_offset_t ddl_executor_t::find_child_available_offset(
+    const gaia_table_t::incoming_relationships_list_t& relationships)
 {
     if (relationships.begin() == relationships.end())
     {
@@ -1051,7 +1077,7 @@ uint32_t generate_table_type(const string& db_name, const string& table_name)
     // size of the bison/flex input buffer (YY_BUF_SIZE). We currently use
     // default setting which is 16k. The assertions below make sure the token
     // length does not exceed the `len` parameter of the hash function.
-    ASSERT_PRECONDITION(db_name.length() <= std::numeric_limits<int>::max(), "The DB name is too long.");
+    ASSERT_PRECONDITION(db_name.length() <= std::numeric_limits<int>::max(), "The database name is too long.");
     ASSERT_PRECONDITION(table_name.length() <= std::numeric_limits<int>::max(), "The table name is too long.");
 
     return hash::murmur3_32(table_name.data(), static_cast<int>(table_name.length()))
@@ -1105,7 +1131,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
         }
     }
 
-    gaia_log::catalog().debug("Creating table '{}'", table_name);
+    gaia_log::catalog().debug("Creating table '{}'...", table_name);
 
     // Check for any duplication in field names.
     // We do this before generating fbs because FlatBuffers schema
@@ -1139,7 +1165,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
     // Connect the table to the database.
     gaia_database_t::get(db_id).gaia_tables().insert(table_id);
 
-    gaia_log::catalog().debug("Created table '{}', type:'{}', id:'{}'", table_name, table_type, table_id);
+    gaia_log::catalog().debug("Created table '{}' with type '{}' and id '{}'.", table_name, table_type, table_id);
 
     uint16_t data_field_position = 0;
     for (const auto& field : fields)
