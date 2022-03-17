@@ -40,5 +40,37 @@ echo "Run the example."
 echo "Example has been run."
 popd
 
+# Make and execute the Direct Access example
+echo "Create clean direct_access directory"
+rm -rf ./direct_access
+cp -r /opt/gaia/examples/direct_access .
+pushd direct_access
+echo "Make build"
+mkdir build
+pushd build
+echo "CMake"
+cmake ..
+echo "Make"
+make
+./hospital
+popd
+popd
+
+# Make and execute the Rules example
+echo "Create clean rules directory"
+rm -rf ./direct_access
+cp -r /opt/gaia/examples/rules .
+pushd rules
+echo "Make build"
+mkdir build
+pushd build
+echo "CMake"
+cmake ..
+echo "Make"
+make
+./hospital --non-interactive
+popd
+popd
+
 # Stop the db server.
 pkill -f gaia_db_server
