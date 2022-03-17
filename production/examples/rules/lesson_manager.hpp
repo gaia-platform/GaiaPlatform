@@ -28,6 +28,7 @@ public:
 
 private:
     void enumerate_lessons_(bool run = false);
+    void display_lesson_header(const std::string& lesson);
 
 private:
     struct lesson_plan_t

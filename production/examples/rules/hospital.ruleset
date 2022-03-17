@@ -6,11 +6,6 @@
 // or at https://opensource.org/licenses/MIT.
 ////////////////////////////////////////////////////
 
-// TODO (dax): Consider adding a nested loop with label scenario
-// add helpers in interop (deleting all rows, size of collections, exists keyword)
-// Fix cmake files
-// Add this and direct access to samples test
-
 // Include Gaia's built-in logger for the application.
 #include "gaia/logger.hpp"
 
@@ -44,7 +39,7 @@ ruleset basics
             rule_context.ruleset_name, rule_context.rule_name, name);
     }
 
-    // Rule: basics:2_patient]
+    // [basics:2_patient]
     //
     // This rule is fired when any column of the patient is updated.
     // Because the anchor row in this rule is the 'patient' table, the
@@ -98,7 +93,7 @@ ruleset basics
         // rule_name: ordinal of the rule
         // event_type: what event caused the rule to fire
         // gaia_type: type of anchor object
-        rule_scope_t r("{}:{}: patient '{}' was fired due to a '{}' event on type '{}'.",
+        rule_scope_t r("{}:{}: patient '{}' was changed due to a '{}' event on type '{}'.",
             rule_context.ruleset_name, rule_context.rule_name, name,
             gaia::db::triggers::event_type_name(rule_context.event_type),
             rule_context.gaia_type);

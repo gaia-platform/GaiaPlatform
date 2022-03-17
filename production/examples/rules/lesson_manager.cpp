@@ -41,10 +41,21 @@ bool lesson_manager_t::run_lesson(const std::string& lesson)
         setup_clinic(plan.connect_patients_to_doctors);
     }
     gaia::rules::subscribe_ruleset(plan.ruleset_name);
-    gaia_log::app().info("\n--- [Lesson '{}'] ---", lesson);
+    display_lesson_header(lesson);
     plan.lesson();
 
     return true;
+}
+
+void lesson_manager_t::display_lesson_header(const std::string& lesson)
+{
+    const char* header = "--- [Lesson: {}] ---";
+    uint8_t border_len = strlen(header) + lesson.length() - strlen("{}");
+    std::string border;
+    border.assign(border_len, '-');
+    gaia_log::app().info("{}", border);
+    gaia_log::app().info(header, lesson);
+    gaia_log::app().info("{}", border);
 }
 
 void lesson_manager_t::enumerate_lessons_(bool run)

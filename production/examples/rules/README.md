@@ -12,9 +12,9 @@ These instructions assume you have installed the SDK and have installed the `cla
     ```shell
     mkdir rules
     cd rules
-    cp -r /opt/gaia/examples/rules/* .
+    cp -r /opt/gaia/examples/rules/ .
     ```
-2. Create the build directory under the current `direct_access/` directory and initiate the build.
+2. Create the build directory under the current `rules/` directory and initiate the build.
     ```shell
     mkdir build
     cd build/
@@ -33,7 +33,7 @@ To run all of the lessons, run the `hospital` binary from the build directory us
 
 You can also run lessons one at a time by using the following command:
 ```shell
-./hospital lesson
+./hospital <lesson>
 ```
 Where `lesson` must be one of the lessons output from:
 ```shell

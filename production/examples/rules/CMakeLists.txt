@@ -17,10 +17,18 @@ set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
+set(GAIA_SOURCE "/home/dax/git/GaiaPlatform/production")
+set(GAIA_BUILD "${GAIA_SOURCE}/build")
+
+set(GAIA_INC "${GAIA_SOURCE}/inc")
+set(GAIA_GAIAT_CMD "${GAIA_BUILD}/tools/gaia_translate/gaiat")
+set(GAIA_GAIAC_CMD "${GAIA_BUILD}/catalog/gaiac/gaiac")
+set(GAIA_LIB_DIR "${GAIA_BUILD}/sdk")
+
 # Use a custom gaia config file to suppress rule stats logging.
 configure_file("${PROJECT_SOURCE_DIR}/gaia.conf" "${PROJECT_BINARY_DIR}/gaia_tutorial.conf")
 
-include("/opt/gaia/cmake/gaia.cmake")
+include("${GAIA_SOURCE}/cmake/gaia.cmake")
 
 # --- Generate Direct Access classes from DDL---
 process_schema(
@@ -28,9 +36,9 @@ process_schema(
   DATABASE_NAME hospital
 )
 
-# -- Translate ruleset into CPP --
 translate_ruleset(
   RULESET_FILE ${PROJECT_SOURCE_DIR}/hospital.ruleset
+  CLANG_PARAMS -I${GAIA_BUILD}/deps/gaia_spdlog/include -I${GAIA_BUILD}/deps/flatbuffers/include
 )
 
 add_executable(hospital
@@ -39,5 +47,9 @@ add_executable(hospital
 )
 
 target_add_gaia_generated_sources(hospital)
-target_include_directories(hospital PRIVATE ${GAIA_INC} ${PROJECT_SOURCE_DIR})
-target_link_libraries(hospital PRIVATE ${GAIA_LIB} Threads::Threads)
+target_include_directories(hospital PRIVATE
+  ${GAIA_INC} ${GAIA_BUILD}/deps/gaia_spdlog/include
+  ${GAIA_BUILD}/deps/flatbuffers/include
+  ${PROJECT_SOURCE_DIR})
+target_link_directories(hospital PRIVATE ${GAIA_LIB_DIR})
+target_link_libraries(hospital PRIVATE gaia Threads::Threads)

@@ -130,7 +130,6 @@ void update_patient_status(const char* patient_name, bool status, uint8_t count_
     // destructor from now on.
     example_t example("db: updating patient's status", count_rules);
 
-    // Retrieve the first (and only) patient
     patient_t patient = *(patient_t::list().where(patient_expr::name == patient_name).begin());
     patient_writer writer = patient.writer();
     writer.is_active = status;
