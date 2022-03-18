@@ -336,6 +336,51 @@ ruleset navigation : serial_group()
             }
         }
     }
+
+    // [navigation:9_address]
+    //
+    // Shows how to use labels on declarative 'for' and
+    // declarative 'if' statements.
+    on_update(address.street)
+    {
+        rule_scope_t r("{}:{}: address '{}' street was changed to '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, id, street);
+
+        // The below code will loop over all addresses
+        // and print out the name of the first active
+        // patient living there.
+        gaia_log::app().info("break to <if_label>");
+        for(/loop_address:address)
+        {
+            gaia_log::app().info("Address '{}', '{}'.",
+                loop_address.street, loop_address.city);
+
+            if_label:
+            if (loop_address->patient.is_active)
+            {
+                gaia_log::app().info("Patient '{}' at '{}', '{}' is active.",
+                    loop_address->patient.name, loop_address.street, loop_address.city);
+                break if_label;
+            }
+        }
+
+        // The below code will stop looping at the first address
+        // for whom an active patient lives.
+        gaia_log::app().info("break to <for_label>");
+        for_label:
+        for(/loop_address:address)
+        {
+            gaia_log::app().info("Address '{}', '{}'.",
+                loop_address.street, loop_address.city);
+
+            if (loop_address->patient.is_active)
+            {
+                gaia_log::app().info("Patient '{}' at '{}', '{}' is active.",
+                    loop_address->patient.name, loop_address.street, loop_address.city);
+                break for_label;
+            }
+        }
+    }
 } // ruleset navigation
 
 // Shows how to use tags in rules. Tags are a way to explicitly represent a row and
@@ -724,6 +769,81 @@ ruleset interop
             }
         }
     }
+
+    // [interop:3_doctor]
+    //
+    // Check whether a doctor has any patients assigned using the Direct Access
+    // classes.
+    on_insert(doctor)
+    {
+        rule_scope_t r("{}:{}: doctor '{}' was inserted.",
+            rule_context.ruleset_name, rule_context.rule_name, name);
+
+        gaia::hospital::doctor_t dac_doctor = doctor;
+        if (static_cast<gaia::hospital::doctor_t>(doctor).patients().size() == 0)
+        {
+            gaia_log::app().info("'{}' has no patients.", doctor.name);
+        }
+
+        // Equivalent check to see if the doctor has no patients.
+        for(patient)
+        {
+        }
+        nomatch
+        {
+            gaia_log::app().info("'{}' still has no patients.", doctor.name);
+        }
+    }
+
+    // [interop:4_patient]
+    //
+    // Check whether a patient has provided an address using the Direct Access
+    // classes.
+    on_insert(patient)
+    {
+        rule_scope_t r("{}:{}: patient '{}' was inserted.",
+            rule_context.ruleset_name, rule_context.rule_name, name);
+
+        gaia::hospital::patient_t dac_patient = patient;
+        if (!dac_patient.address())
+        {
+            gaia_log::app().info("'{}' has not provided an address.", patient.name);
+        }
+
+        // Equivalent check to see if the patient has any addresses.
+        for(address)
+        {
+        }
+        nomatch
+        {
+            gaia_log::app().info("'{}' still has not provided an address.", patient.name);
+        }
+    }
+
+    // [interop:5_address]
+    //
+    // Check whether any address exists in the database.
+    on_insert(address)
+    {
+        rule_scope_t r("{}:{}: address '{}, {}' was inserted.",
+            rule_context.ruleset_name, rule_context.rule_name, street, city);
+
+        address.remove();
+
+        if (gaia::hospital::address_t::list().size() == 0)
+        {
+            gaia_log::app().info("No addresses exist in the database");
+        }
+
+        // Equivalent check to see if any address exists in the database.
+        for (/address)
+        {
+        }
+        nomatch
+        {
+            gaia_log::app().info("Still no addresses exist in the database");
+        }
+    }
 } // ruleset interop
 
 // Shows how to use array fields.
@@ -763,3 +883,4 @@ ruleset arrays
         analysis_results = {analysis_results[0], analysis_results[1], 7.89, 10.1112};
     }
 } // ruleset arrays
+

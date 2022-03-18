@@ -16,33 +16,26 @@ using namespace gaia::hospital;
 
 using gaia::direct_access::auto_transaction_t;
 
+template <class T_object>
+void remove_all_rows()
+{
+    const bool force_disconnect_of_related_rows = true;
+
+    for (auto obj_it = T_object::list().begin();
+         obj_it != T_object::list().end();)
+    {
+        auto this_it = obj_it++;
+        this_it->delete_row(force_disconnect_of_related_rows);
+    }
+}
+
 // Clean up the database between lessons.
 void clean_db()
 {
     auto_transaction_t txn(auto_transaction_t::no_auto_restart);
-    const bool remove_related_rows = true;
-
-    for (auto doctor_it = doctor_t::list().begin();
-         doctor_it != doctor_t::list().end();)
-    {
-        auto next_doctor_it = doctor_it++;
-        next_doctor_it->patients().clear();
-        next_doctor_it->delete_row();
-    }
-
-    for (auto patient_it = patient_t::list().begin();
-         patient_it != patient_t::list().end();)
-    {
-        auto next_patient_it = patient_it++;
-        next_patient_it->delete_row(remove_related_rows);
-    }
-    for (auto address_it = address_t::list().begin();
-         address_it != address_t::list().end();)
-    {
-        auto next_address_it = address_it++;
-        next_address_it->delete_row();
-    }
-
+    remove_all_rows<doctor_t>();
+    remove_all_rows<address_t>();
+    remove_all_rows<patient_t>();
     txn.commit();
 }
 
@@ -69,7 +62,7 @@ void setup_clinic(bool connect_patients_to_doctors = false)
     // Add patients
     patient_t pat_ab = patient_t::get(patient_t::insert_row("Amos Burton", address_ab_id, 71, false, {}));
     patient_t pat_cd = patient_t::get(patient_t::insert_row("Camina Drummer", address_cd_id, 66, false, {}));
-    patient_t pat_rd = patient_t::get(patient_t::insert_row("Roberta Draper", address_rd_id, 72, false, {}));
+    patient_t pat_rd = patient_t::get(patient_t::insert_row("Roberta Draper", address_rd_id, 72, true, {}));
     patient_t pat_ak = patient_t::get(patient_t::insert_row("Alex Kamal", address_ak_id, 68, false, {}));
     patient_t pat_jh = patient_t::get(patient_t::insert_row("Jim Holden", address_jh_id, 73, false, {}));
     patient_t pat_nn = patient_t::get(patient_t::insert_row("Naomi Nagata", address_nn_id, 67, false, {}));
@@ -234,6 +227,15 @@ void interop()
 {
     update_doctor_status("Dr. Cox", false, 1);
     update_doctor_status("Dr. Dorian", false, 1);
+    insert_doctor("Dr. Kelso", 1);
+    insert_patient("Chrisjen Avasarala", 1);
+    // For the next rule, delete all the addresses
+    {
+        auto_transaction_t tx(auto_transaction_t::no_auto_restart);
+        remove_all_rows<address_t>();
+        tx.commit();
+    }
+    insert_address(1);
 }
 
 void navigation()
@@ -245,6 +247,7 @@ void navigation()
     update_doctor_name("Dr. Cox", "Dr. Kelso", 1);
     insert_doctor_and_patient("Dr. Cox", "Chrisjen Avasarala", 2);
     insert_address(1);
+    change_address(1);
 }
 
 void tags()
