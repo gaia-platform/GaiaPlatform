@@ -250,6 +250,12 @@ WHERE gaia_src_id IS NULL
 DROP TABLE airports_copy;
 
 -- Finally, we can insert the data into the routes table.
+--
+-- We do this in chunks, to avoid hitting the limit on the number of records
+-- that can be updated in a single transaction.
+--
+-- Changing this back to a single bulk-insert operation is tracked by:
+-- https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2090
 INSERT INTO airport_fdw.routes
     (gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment)
 SELECT
