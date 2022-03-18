@@ -35,6 +35,7 @@ using namespace gaia::db::memory_manager;
 using namespace flatbuffers;
 using namespace scope_guard;
 
+#ifdef OLD_TABLE_SCAN
 std::shared_ptr<int> client_t::get_id_cursor_socket_for_type(gaia_type_t type)
 {
     // Build the cursor socket request.
@@ -146,6 +147,7 @@ client_t::get_id_generator_for_type(gaia_type_t type)
     auto augmented_id_generator = augment_id_generator_for_type(type, id_generator);
     return std::make_shared<gaia::common::iterators::generator_t<gaia_id_t>>(augmented_id_generator);
 }
+#endif
 
 static void build_client_request(
     FlatBufferBuilder& builder,

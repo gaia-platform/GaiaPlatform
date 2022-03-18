@@ -42,17 +42,23 @@
 #include "memory_types.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
+#ifdef OLD_TABLE_SCAN
 #include "record_list_manager.hpp"
+#endif
 #include "system_checks.hpp"
 #include "txn_metadata.hpp"
+#ifdef OLD_TABLE_SCAN
 #include "type_generator.hpp"
+#endif
 #include "type_id_mapping.hpp"
 
 using namespace flatbuffers;
 using namespace gaia::db;
 using namespace gaia::db::messages;
 using namespace gaia::db::memory_manager;
+#ifdef OLD_TABLE_SCAN
 using namespace gaia::db::storage;
+#endif
 using namespace gaia::db::transactions;
 using namespace gaia::common;
 using namespace gaia::common::iterators;
@@ -433,6 +439,7 @@ void server_t::handle_request_stream(
 
     switch (request->data_type())
     {
+#ifdef OLD_TABLE_SCAN
     case request_data_t::table_scan:
     {
         auto type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
@@ -441,6 +448,7 @@ void server_t::handle_request_stream(
 
         break;
     }
+#endif
     case request_data_t::index_scan:
     {
         auto request_data = request->data_as_index_scan();
@@ -594,7 +602,9 @@ void server_t::clear_server_state()
     data_mapping_t::close(c_data_mappings);
     s_local_snapshot_locators.close();
     s_chunk_manager.release();
+#ifdef OLD_TABLE_SCAN
     record_list_manager_t::get()->clear();
+#endif
 }
 
 // To avoid synchronization, we assume that this method is only called when
@@ -1645,10 +1655,12 @@ void server_t::start_stream_producer(int stream_socket, std::shared_ptr<generato
         stream_producer_handler<T_element>, stream_socket, s_session_shutdown_eventfd, generator_fn);
 }
 
+#ifdef OLD_TABLE_SCAN
 std::shared_ptr<generator_t<gaia_id_t>> server_t::get_id_generator_for_type(gaia_type_t type)
 {
     return std::make_shared<type_generator_t>(type, s_txn_id);
 }
+#endif
 
 void server_t::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts)
 {
@@ -2047,6 +2059,7 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool is_committed)
             ? log_record->old_offset
             : log_record->new_offset;
 
+#ifdef OLD_TABLE_SCAN
         // If we're gc-ing the old version of an object that is being deleted,
         // then request the deletion of its locator from the corresponding record list.
         if (is_committed && log_record->operation() == gaia_operation_t::remove)
@@ -2059,6 +2072,7 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool is_committed)
             // Request the deletion of the record corresponding to the object.
             record_list->request_deletion(log_record->locator);
         }
+#endif
 
         if (offset_to_free.is_valid())
         {
@@ -2618,6 +2632,7 @@ void server_t::txn_rollback(bool client_disconnected)
 
 void server_t::perform_pre_commit_work_for_txn()
 {
+#ifdef OLD_TABLE_SCAN
     // Process the txn log to update record lists.
     txn_log_t* txn_log = get_txn_log();
     for (log_record_t* log_record = txn_log->log_records; log_record < txn_log->log_records + txn_log->record_count; ++log_record)
@@ -2637,6 +2652,7 @@ void server_t::perform_pre_commit_work_for_txn()
             record_list->add(locator);
         }
     }
+#endif
 
     update_indexes_from_txn_log();
 }
