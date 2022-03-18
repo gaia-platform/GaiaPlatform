@@ -35,7 +35,7 @@ if(EXECUTE_FDW_TESTS)
         ${PG_CLIENT} " "
         ${CMAKE_CURRENT_SOURCE_DIR}/airport_setup.sql " "
         ${CMAKE_CURRENT_SOURCE_DIR}/airport_test.sql " "
-        ${CMAKE_CURRENT_SOURCE_DIR}/airport_small_expected.txt " "
+        ${CMAKE_CURRENT_SOURCE_DIR}/airport_expected.txt " "
         ${GAIA_REPO}/data/internal/airport)
 
     # Add a test to execute our test scripts.

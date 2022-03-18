@@ -69,7 +69,7 @@ CREATE UNIQUE INDEX rawdata_route_uidx ON rawdata_routes (al_id, src_ap_id, dst_
 
 \copy rawdata_airports(ap_id, name, city, country, iata, icao, latitude, longitude, altitude, timezone, dst, tztext, TYPE, source) FROM 'airports.dat' WITH DELIMITER ',' csv quote AS '"' NULL AS '\N'
 
-\copy rawdata_routes(airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment) FROM 'routes_small.dat' WITH DELIMITER ',' csv quote AS '"' NULL AS '\N'
+\copy rawdata_routes(airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment) FROM 'routes.dat' WITH DELIMITER ',' csv quote AS '"' NULL AS '\N'
 
 -- Now insert the data into the Gaia tables.
 INSERT INTO airport_fdw.airlines (
@@ -250,31 +250,82 @@ WHERE gaia_src_id IS NULL
 DROP TABLE airports_copy;
 
 -- Finally, we can insert the data into the routes table.
-INSERT INTO airport_fdw.routes (
-    gaia_src_id,
-    gaia_dst_id,
-    airline,
-    al_id,
-    src_ap,
-    src_ap_id,
-    dst_ap,
-    dst_ap_id,
-    codeshare,
-    stops,
-    equipment)
+--
+-- We do this in chunks, to avoid hitting the limit on the number of records
+-- that can be updated in a single transaction.
+--
+-- Changing this back to a single bulk-insert operation is tracked by:
+-- https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2090
+INSERT INTO airport_fdw.routes
+    (gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment)
 SELECT
-    gaia_src_id,
-    gaia_dst_id,
-    airline,
-    al_id,
-    src_ap,
-    src_ap_id,
-    dst_ap,
-    dst_ap_id,
-    codeshare,
-    stops,
-    equipment
+    gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment
 FROM
-    intermediate_routes;
+    intermediate_routes
+WHERE al_id < 300;
+
+INSERT INTO airport_fdw.routes
+    (gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment)
+SELECT
+    gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment
+FROM
+    intermediate_routes
+WHERE al_id >= 300 AND al_id < 1000;
+
+INSERT INTO airport_fdw.routes
+    (gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment)
+SELECT
+    gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment
+FROM
+    intermediate_routes
+WHERE al_id >= 1000 AND al_id < 2000;
+
+INSERT INTO airport_fdw.routes
+    (gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment)
+SELECT
+    gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment
+FROM
+    intermediate_routes
+WHERE al_id >= 2000 AND al_id < 2800;
+
+INSERT INTO airport_fdw.routes
+    (gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment)
+SELECT
+    gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment
+FROM
+    intermediate_routes
+WHERE al_id >= 2800 AND al_id < 3700;
+
+INSERT INTO airport_fdw.routes
+    (gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment)
+SELECT
+    gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment
+FROM
+    intermediate_routes
+WHERE al_id >= 3700 AND al_id < 4500;
+
+INSERT INTO airport_fdw.routes
+    (gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment)
+SELECT
+    gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment
+FROM
+    intermediate_routes
+WHERE al_id >= 4500 AND al_id < 5200;
+
+INSERT INTO airport_fdw.routes
+    (gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment)
+SELECT
+    gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment
+FROM
+    intermediate_routes
+WHERE al_id >= 5200 AND al_id < 6000;
+
+INSERT INTO airport_fdw.routes
+    (gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment)
+SELECT
+    gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment
+FROM
+    intermediate_routes
+WHERE al_id >= 6000;
 
 DROP TABLE intermediate_routes;
