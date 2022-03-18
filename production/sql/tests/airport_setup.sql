@@ -264,7 +264,7 @@ SELECT
     gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment
 FROM
     intermediate_routes
-WHERE al_id >= 300 AND al_id <= 1000;
+WHERE al_id >= 300 AND al_id < 1000;
 
 INSERT INTO airport_fdw.routes
     (gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment)
@@ -272,7 +272,7 @@ SELECT
     gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment
 FROM
     intermediate_routes
-WHERE al_id >= 1000 AND al_id <= 2000;
+WHERE al_id >= 1000 AND al_id < 2000;
 
 INSERT INTO airport_fdw.routes
     (gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment)
@@ -280,7 +280,7 @@ SELECT
     gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment
 FROM
     intermediate_routes
-WHERE al_id >= 2000 AND al_id <= 2800;
+WHERE al_id >= 2000 AND al_id < 2800;
 
 INSERT INTO airport_fdw.routes
     (gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment)
@@ -288,7 +288,7 @@ SELECT
     gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment
 FROM
     intermediate_routes
-WHERE al_id >= 2800 AND al_id <= 3700;
+WHERE al_id >= 2800 AND al_id < 3700;
 
 INSERT INTO airport_fdw.routes
     (gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment)
@@ -296,7 +296,7 @@ SELECT
     gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment
 FROM
     intermediate_routes
-WHERE al_id >= 3700 AND al_id <= 4500;
+WHERE al_id >= 3700 AND al_id < 4500;
 
 INSERT INTO airport_fdw.routes
     (gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment)
@@ -304,7 +304,7 @@ SELECT
     gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment
 FROM
     intermediate_routes
-WHERE al_id >= 4500 AND al_id <= 5200;
+WHERE al_id >= 4500 AND al_id < 5200;
 
 INSERT INTO airport_fdw.routes
     (gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment)
@@ -312,7 +312,7 @@ SELECT
     gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment
 FROM
     intermediate_routes
-WHERE al_id >= 5200 AND al_id <= 6000;
+WHERE al_id >= 5200 AND al_id < 6000;
 
 INSERT INTO airport_fdw.routes
     (gaia_src_id, gaia_dst_id, airline, al_id, src_ap, src_ap_id, dst_ap, dst_ap_id, codeshare, stops, equipment)
