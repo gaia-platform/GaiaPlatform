@@ -55,6 +55,11 @@ table index_equal_range_query_t {
     key: [byte];
 }
 
+// REVIEW: Remove when the OLD_TABLE_SCAN option is removed.
+table table_scan_info_t {
+    type_id: uint64;
+}
+
 table index_scan_info_t {
     index_id: uint64;
     txn_id: uint64;
@@ -62,8 +67,9 @@ table index_scan_info_t {
 }
 
 union request_data_t {
-    // Uncomment if OLD_TABLE_SCAN is defined.
-    // table_scan: table_scan_info_t,
+    // REVIEW: Remove the table_scan member when the OLD_TABLE_SCAN option is
+    // removed.
+    table_scan: table_scan_info_t,
     index_scan: index_scan_info_t,
 }
 
