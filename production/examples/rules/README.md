@@ -21,21 +21,21 @@ These instructions assume you have installed the SDK and have installed the `cla
     cmake ..
     make
     ```
-3. The output of the build is the `hospital` executable.
+3. The output of the build is the `rules` executable.
 
 # Running the Demo
 
-To run all of the lessons, run the `hospital` binary from the build directory use the following command:
+To run all of the lessons, run the `rules` binary from the build directory use the following command:
 
 ```shell
-./hospital
+./rules
 ```
 
 You can also run lessons one at a time by using the following command:
 ```shell
-./hospital <lesson>
+./rules <lesson>
 ```
 Where `lesson` must be one of the lessons output from:
 ```shell
-./hospital --lessons
+./rules --lessons
 ```

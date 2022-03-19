@@ -6,28 +6,29 @@
 -- or at https://opensource.org/licenses/MIT.
 ----------------------------------------------------
 
-database hospital
+database clinic
 
-table doctor (
+table physician
+(
     name string,
-    is_active bool,
-    patients references patient[]
+    is_attending bool,
+    residents references resident[]
 )
 
-table address (
+table location (
     id uint32 unique,
     street string,
     city string,
-    patient references patient[]
-        where address.id = patient.address_id
+    resident references resident[]
+        where location.id = resident.location_id
 )
 
-table patient (
+table resident (
     name string,
-    address_id uint32,
+    location_id uint32,
     height uint8 optional,
-    is_active bool,
-    analysis_results float[],
-    doctor references doctor,
-    address references address
+    is_intern bool,
+    evaluation_results float[],
+    physician references physician,
+    location references location
 )

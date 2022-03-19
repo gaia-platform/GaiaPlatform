@@ -41,16 +41,16 @@ install_sample "incubator"
 # We don't run incubator because it is does not have a non-interative mode.
 
 install_sample "direct_access"
-./hospital
+./direct_access
 
 install_sample "direct_access_vlr"
 ./direct_access_vlr
 
 install_sample "direct_access_multithread"
-./counter
+./direct_access_multithread
 
 install_sample "rules"
-./hospital --non-interactive
+./rules --non-interactive
 
 install_sample "rules_vlr"
 ./rules_vlr

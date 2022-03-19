@@ -233,9 +233,9 @@ install(FILES ${GAIA_REPO}/production/examples/rules_vlr/README.md DESTINATION e
 install(FILES ${GAIA_REPO}/production/examples/rules/gaia.conf DESTINATION examples/rules)
 install(FILES ${GAIA_REPO}/production/examples/rules/lesson_manager.hpp DESTINATION examples/rules)
 install(FILES ${GAIA_REPO}/production/examples/rules/lesson_manager.cpp DESTINATION examples/rules)
-install(FILES ${GAIA_REPO}/production/examples/rules/hospital.ddl DESTINATION examples/rules)
-install(FILES ${GAIA_REPO}/production/examples/rules/hospital.ruleset DESTINATION examples/rules)
-install(FILES ${GAIA_REPO}/production/examples/rules/hospital.cpp DESTINATION examples/rules)
+install(FILES ${GAIA_REPO}/production/examples/rules/clinic.ddl DESTINATION examples/rules)
+install(FILES ${GAIA_REPO}/production/examples/rules/clinic.ruleset DESTINATION examples/rules)
+install(FILES ${GAIA_REPO}/production/examples/rules/clinic.cpp DESTINATION examples/rules)
 install(FILES ${GAIA_REPO}/production/examples/rules/CMakeLists.txt DESTINATION examples/rules)
 install(FILES ${GAIA_REPO}/production/examples/rules/README.md DESTINATION examples/rules)
 
