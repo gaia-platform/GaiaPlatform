@@ -75,7 +75,7 @@ public:
     }
 };
 
-// Handle tutorial command line arguments.
+// Handles tutorial command line arguments.
 class args_handler_t
 {
 public:

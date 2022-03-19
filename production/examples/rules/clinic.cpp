@@ -44,7 +44,7 @@ void clean_db()
 // assigned to locations based on their location_id.
 void setup_clinic(bool connect_residents_to_physicians = false)
 {
-    // location IDs
+    // Location IDs.
     const uint32_t location_ab_id = 1;
     const uint32_t location_cd_id = 2;
     const uint32_t location_rd_id = 3;
@@ -54,12 +54,12 @@ void setup_clinic(bool connect_residents_to_physicians = false)
 
     auto_transaction_t txn(auto_transaction_t::no_auto_restart);
 
-    // add physicians, residents, and locations
+    // Add physicians, residents, and locations.
     physician_t dr_cox = physician_t::get(physician_t::insert_row("Dr. Cox", true));
     physician_t dr_dorian = physician_t::get(physician_t::insert_row("Dr. Dorian", true));
     physician_t dr_reid = physician_t::get(physician_t::insert_row("Dr. Reid", true));
 
-    // Add residents
+    // Add residents.
     resident_t pat_ab = resident_t::get(resident_t::insert_row("Amos Burton", location_ab_id, 71, false, {}));
     resident_t pat_cd = resident_t::get(resident_t::insert_row("Camina Drummer", location_cd_id, 66, false, {}));
     resident_t pat_rd = resident_t::get(resident_t::insert_row("Roberta Draper", location_rd_id, 72, true, {}));
@@ -91,7 +91,7 @@ void setup_clinic(bool connect_residents_to_physicians = false)
     txn.commit();
 }
 
-// The follwing functions make inserts and updates to trigger rules in the tutorial.
+// The following functions make inserts and updates to trigger rules in the tutorial.
 void insert_doctor(const char* doctor_name, uint8_t count_rules)
 {
     example_t example("db: inserting a physician in the database", count_rules);
@@ -118,9 +118,6 @@ void insert_patient(const char* patient_name, uint8_t count_rules)
 
 void update_resident_status(const char* patient_name, bool status, uint8_t count_rules)
 {
-    // In order to reduce boilerplate code, all examples will wrap
-    // transaction handling in the example_t class constructor and
-    // destructor from now on.
     example_t example("db: updating resident's status", count_rules);
 
     resident_t resident = *(resident_t::list().where(resident_expr::name == patient_name).begin());
@@ -131,12 +128,8 @@ void update_resident_status(const char* patient_name, bool status, uint8_t count
 
 void update_resident_results(const char* patient_name, std::vector<float> results, uint8_t count_rules)
 {
-    // In order to reduce boilerplate code, all examples will wrap
-    // transaction handling in the example_t class constructor and
-    // destructor from now on.
     example_t example("db: updating resident's results", count_rules);
 
-    // Retrieve the first (and only) resident
     resident_t resident = *(resident_t::list().where(resident_expr::name == patient_name).begin());
     resident_writer writer = resident.writer();
     writer.evaluation_results = results;
@@ -188,7 +181,7 @@ void change_location(uint8_t count_rules)
 
 // The following functions are the "lessons" of the tutorial. They work by using the
 // functions above to make changes to the data that fire the rules in the lesson.
-// Each lesson corresponds to a separate ruleset in 'hospital.ruleset'.  See that
+// Each lesson corresponds to a separate ruleset in 'clinic.ruleset'.  See that
 // file for step by step documentation on each rule that is fired.
 
 void arrays()
@@ -229,7 +222,7 @@ void interop()
     update_physician_status("Dr. Dorian", false, 1);
     insert_doctor("Dr. Kelso", 1);
     insert_patient("Chrisjen Avasarala", 1);
-    // For the next rule, delete all the locations
+    // For the next rule, delete all the locations.
     {
         auto_transaction_t tx(auto_transaction_t::no_auto_restart);
         remove_all_rows<location_t>();
@@ -240,8 +233,7 @@ void interop()
 
 void navigation()
 {
-    update_resident_status("Jim Holden", true, 1);
-    update_resident_status("Jim Holden", false, 1);
+    update_resident_status("Jim Holden", true, 2);
     update_physician_status("Dr. Cox", false, 1);
     update_physician_status("Dr. Cox", true, 1);
     update_physician_name("Dr. Cox", "Dr. Kelso", 1);

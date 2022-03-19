@@ -2,7 +2,7 @@
 
 A demo of using Gaia Rules.
 
-For more information on Gaie Rules, see [Gaia Rulesets](https://gaia-platform.github.io/gaia-platform-docs.io/articles/rulesets-gaia-rulesets.html) in the Gaia developer documentation.
+For more information on Gaia Rules, see [Gaia Rulesets](https://gaia-platform.github.io/gaia-platform-docs.io/articles/rulesets-gaia-rulesets.html) in the Gaia developer documentation.
 
 ## Build Instructions
 
@@ -12,7 +12,7 @@ These instructions assume you have installed the SDK and have installed the `cla
     ```shell
     mkdir rules
     cd rules
-    cp -r /opt/gaia/examples/rules/ .
+    cp -r /opt/gaia/examples/rules/* .
     ```
 2. Create the build directory under the current `rules/` directory and initiate the build.
     ```shell

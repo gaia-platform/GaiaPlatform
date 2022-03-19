@@ -15,7 +15,7 @@
 void clean_db();
 void setup_clinic(bool connect_patients_to_doctors = false);
 
-// Lesson Manager
+// Lesson Manager.
 void lesson_manager_t::add_lesson(const char* lesson_name, lesson_fn lesson, const char* ruleset_name, bool setup_clinic, bool connect_patients_to_doctors)
 {
     m_lessons[lesson_name] = {lesson, ruleset_name, setup_clinic, connect_patients_to_doctors};
@@ -88,7 +88,7 @@ void lesson_manager_t::run_lessons()
     enumerate_lessons_(true);
 }
 
-// Example wrapper (database side)
+// Example wrapper (database side).
 
 std::atomic<int8_t> example_t::s_rule_counter;
 bool example_t::s_non_interactive = false;
@@ -117,12 +117,12 @@ example_t::~example_t()
     }
     else
     {
-        // Give the rule transaction time to commit
+        // Give the rule transaction time to commit.
         usleep(10);
     }
 }
 
-// Command line argument handler
+// Command line argument handler.
 args_handler_t::args_handler_t(lesson_manager_t& lesson_manager)
     : m_lesson_manager(lesson_manager)
 {
@@ -133,7 +133,7 @@ void args_handler_t::parse_and_run(int argc, const char** argv)
     m_command = argv[0];
 
     // Supported command line for 1 arg:
-    // ./hospital
+    // ./rules
     if (argc == 1)
     {
         // By default, run all lessons interactively.
@@ -142,10 +142,10 @@ void args_handler_t::parse_and_run(int argc, const char** argv)
     }
 
     // Supported command line for 2 args:
-    // ./hospital --lessons
-    // ./hospital --help
-    // ./hospital --non-interactive
-    // ./hospital <lesson>
+    // ./rules --lessons
+    // ./rules --help
+    // ./rules --non-interactive
+    // ./rules <lesson>
     if (argc == 2)
     {
         std::string arg;
@@ -173,8 +173,8 @@ void args_handler_t::parse_and_run(int argc, const char** argv)
     }
 
     // Supported command lines for 3 args:
-    // ./hospital <lesson> --non-interactive
-    // ./hospital --non-interactive <lesson>
+    // ./rules <lesson> --non-interactive
+    // ./rules --non-interactive <lesson>
     if (argc == 3)
     {
         std::string arg1 = argv[1];
