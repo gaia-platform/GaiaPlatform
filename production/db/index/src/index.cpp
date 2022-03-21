@@ -10,7 +10,6 @@
 #include "gaia_internal/common/retail_assert.hpp"
 
 #include "field_access.hpp"
-#include "index_iterator.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db::index;

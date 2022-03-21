@@ -7,8 +7,6 @@
 
 #include "gaia_internal/common/retail_assert.hpp"
 
-#include "txn_metadata.hpp"
-
 namespace gaia
 {
 namespace db

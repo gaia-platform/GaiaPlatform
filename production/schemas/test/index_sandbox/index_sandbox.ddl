@@ -30,5 +30,5 @@ CREATE HASH INDEX float_hash_idx ON sandbox(f);
 CREATE INDEX empty_idx ON empty(i);
 CREATE HASH INDEX empty_hash_idx ON empty(i);
 
-CREATE INDEX opt_int_idx ON sandbox(optional_i);
-CREATE HASH INDEX opt_int_hash_idx ON sandbox(optional_i);
+-- CREATE INDEX opt_int_idx ON sandbox(optional_i);
+-- CREATE HASH INDEX opt_int_hash_idx ON sandbox(optional_i);

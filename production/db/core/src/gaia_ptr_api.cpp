@@ -9,6 +9,7 @@
 
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
+#include "gaia_internal/common/timer.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 #include "gaia_internal/db/gaia_relationships.hpp"
@@ -22,6 +23,7 @@
 #include "index_scan.hpp"
 #include "payload_diff.hpp"
 #include "type_id_mapping.hpp"
+using g_timer_t = gaia::common::timer_t;
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -45,13 +47,18 @@ gaia_id_t find_using_index(
     gaia_id_t indexed_table_id,
     field_position_t indexed_field_position)
 {
+    auto begin = g_timer_t::get_time_point();
     gaia_type_t indexed_table_type = catalog_core::get_table(indexed_table_id).table_type();
     gaia_id_t indexed_table_type_id = type_id_mapping_t::instance().get_record_id(indexed_table_type);
+    g_timer_t::log_duration(begin, "get_stuff");
 
+    begin = g_timer_t::get_time_point();
     gaia_id_t index_id = catalog_core::find_index(indexed_table_type_id, indexed_field_position);
+    g_timer_t::log_duration(begin, "find_index");
     // Callers need to ensure the table has an index on the field to search.
     ASSERT_PRECONDITION(index_id.is_valid(), "Cannot find value index for the table.");
 
+    begin = g_timer_t::get_time_point();
     auto schema = catalog_core::get_table(type_id).binary_schema();
     auto field_value = payload_types::get_field_value(
         type,
@@ -59,6 +66,7 @@ gaia_id_t find_using_index(
         schema->data(),
         schema->size(),
         field_position);
+    g_timer_t::log_duration(begin, "find_value");
 
     if (field_value.is_null)
     {
@@ -67,12 +75,14 @@ gaia_id_t find_using_index(
         return c_invalid_gaia_id;
     }
 
+    begin = g_timer_t::get_time_point();
     index::index_key_t key;
     key.insert(field_value);
     for (const auto& scan : query_processor::scan::index_scan_t(
              index_id,
              std::make_shared<query_processor::scan::index_point_read_predicate_t>(key)))
     {
+        g_timer_t::log_duration(begin, "query_processor::scan::index_scan_t");
         return scan.id();
     }
     return c_invalid_gaia_id;
@@ -206,6 +216,7 @@ void child_side_auto_connect(
         references[relationship_view.parent_offset()] = c_invalid_gaia_id;
 
         // Check if the field value exists in any parent node using the index on the parent table.
+        auto begin = g_timer_t::get_time_point();
         gaia_id_t parent_id = find_using_index(
             payload,
             field_position,
@@ -213,6 +224,7 @@ void child_side_auto_connect(
             type_id,
             relationship_view.parent_table_id(),
             relationship_view.parent_field_positions()->Get(0));
+        g_timer_t::log_duration(begin, "child.find_using_index");
 
         if (parent_id.is_valid())
         {
@@ -289,8 +301,13 @@ void auto_connect(
 
     for (auto field_position : candidate_fields)
     {
+        auto begin = g_timer_t::get_time_point();
         parent_side_auto_connect(id, type, type_id, references, payload, field_position);
+        g_timer_t::log_duration(begin, "parent_side_auto_connect");
+
+        begin = g_timer_t::get_time_point();
         child_side_auto_connect(id, type, type_id, references, payload, field_position);
+        g_timer_t::log_duration(begin, "child_side_auto_connect");
     }
 }
 
@@ -347,12 +364,15 @@ gaia_ptr_t create(
 
     gaia_ptr_t obj = gaia_ptr_t::create_no_txn(id, type, references_count, data_size, data);
     db_object_t* obj_ptr = obj.to_ptr();
+
+    auto begin = g_timer_t::get_time_point();
     auto_connect(
         id,
         type,
         // NOLINTNEXTLINE: cppcoreguidelines-pro-type-const-cast
         const_cast<gaia_id_t*>(obj_ptr->references()),
         reinterpret_cast<const uint8_t*>(obj_ptr->data()));
+    g_timer_t::log_duration(begin, "auto_connect");
 
     obj.finalize_create();
 
