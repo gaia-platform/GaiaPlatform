@@ -186,7 +186,9 @@ TEST_F(gaia_multi_process_test, multi_process_inserts)
         for (auto const& employee : employee_t::list())
         {
             EXPECT_EQ(employee_names.count(employee.name_first()), 1);
+            employee_names.extract(employee.name_first());
         }
+        EXPECT_EQ(employee_names.size(), 0);
         commit_transaction();
 
         // EXCHANGE 2: concurrent transactions.
@@ -214,7 +216,9 @@ TEST_F(gaia_multi_process_test, multi_process_inserts)
         for (auto const& employee : employee_t::list())
         {
             EXPECT_EQ(employee_names.count(employee.name_first()), 1);
+            employee_names.extract(employee.name_first());
         }
+        EXPECT_EQ(employee_names.size(), 0);
         commit_transaction();
 
         end_session();
@@ -326,12 +330,14 @@ TEST_F(gaia_multi_process_test, multi_process_aborts)
 
         // Scan through all resulting rows.
         // See if all objects exist.
-        employee_names = {"Howard", "Henry", "Harold", "Hank"};
+        employee_names = {"Howard", "Henry", "Hank"};
         begin_transaction();
         for (auto const& employee : employee_t::list())
         {
             EXPECT_EQ(employee_names.count(employee.name_first()), 1);
+            employee_names.extract(employee.name_first());
         }
+        EXPECT_EQ(employee_names.size(), 0);
         commit_transaction();
 
         // EXCHANGE 2: concurrent transactions.
@@ -354,12 +360,14 @@ TEST_F(gaia_multi_process_test, multi_process_aborts)
 
         // Scan through all resulting rows.
         // See if all objects exist.
-        employee_names = {"Howard", "Henry", "Harold", "Hank", "Hubert"};
+        employee_names = {"Howard", "Henry", "Hank", "Hubert"};
         begin_transaction();
         for (auto const& employee : employee_t::list())
         {
             EXPECT_EQ(employee_names.count(employee.name_first()), 1);
+            employee_names.extract(employee.name_first());
         }
+        EXPECT_EQ(employee_names.size(), 0);
         commit_transaction();
 
         end_session();

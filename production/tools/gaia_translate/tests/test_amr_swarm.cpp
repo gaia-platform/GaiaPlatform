@@ -108,10 +108,14 @@ TEST_F(test_amr_swarm, setup_complete_event)
 
     auto robot = configuration.main_pallet_bot();
     EXPECT_EQ(robot_ids.count(robot.id()), 1);
+    robot_ids.extract(robot.id());
     robot = configuration.left_widget_bot();
     EXPECT_EQ(robot_ids.count(robot.id()), 1);
+    robot_ids.extract(robot.id());
     robot = configuration.right_widget_bot();
     EXPECT_EQ(robot_ids.count(robot.id()), 1);
+    robot_ids.extract(robot.id());
+    EXPECT_EQ(robot_ids.size(), 0);
 
     commit_transaction();
 }
