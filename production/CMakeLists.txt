@@ -21,8 +21,6 @@ project(production VERSION 0.4.1)
 # When the product is GA this should be empty.
 set(PRE_RELEASE_IDENTIFIER "beta")
 
-option(OLD_TABLE_SCAN "Enable old table scan implementation" OFF)
-
 option(EXECUTE_FDW_TESTS "Execute FDW tests" OFF)
 
 option(ENABLE_STACKTRACE "Enable stack traces" ON)
@@ -105,8 +103,6 @@ target_compile_definitions(gaia_build_options INTERFACE $<$<CONFIG:Debug>:DEBUG>
 target_compile_definitions(gaia_build_options INTERFACE $<$<BOOL:${DISABLE_ASSERTS}>:DISABLE_ASSERTS>)
 # Disabling asserts will produce bogus unused variable warnings.
 target_compile_options(gaia_build_options INTERFACE $<$<BOOL:${DISABLE_ASSERTS}>:-Wno-unused-parameter -Wno-unused-lambda-capture -Wno-unused-variable -Wno-unused-but-set-variable>)
-# Propagate the OLD_TABLE_SCAN option to a macro definition.
-target_compile_definitions(gaia_build_options INTERFACE $<$<BOOL:${OLD_TABLE_SCAN}>:OLD_TABLE_SCAN>)
 
 # LLVM and CLANG specific options.
 if(BUILD_GAIA_SDK OR BUILD_GAIA_LLVM_TESTS)

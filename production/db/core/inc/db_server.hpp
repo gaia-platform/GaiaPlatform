@@ -88,9 +88,7 @@ private:
 class server_t
 {
     friend class gaia_ptr_t;
-#ifdef OLD_TABLE_SCAN
-    friend class type_generator_t;
-#endif
+
     friend gaia::db::locators_t* gaia::db::get_locators();
     friend gaia::db::locators_t* gaia::db::get_locators_for_allocator();
     friend gaia::db::counters_t* gaia::db::get_counters();
@@ -462,11 +460,6 @@ private:
     static void start_stream_producer(
         int stream_socket,
         std::shared_ptr<common::iterators::generator_t<T_element>> generator);
-
-#ifdef OLD_TABLE_SCAN
-    static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> get_id_generator_for_type(
-        common::gaia_type_t type);
-#endif
 
     static void get_txn_log_offsets_for_snapshot(
         gaia_txn_id_t begin_ts,

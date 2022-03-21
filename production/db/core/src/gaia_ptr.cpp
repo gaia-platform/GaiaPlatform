@@ -82,33 +82,6 @@ gaia_ptr_t gaia_ptr_t::find_next(gaia_type_t type) const
     return next_ptr;
 }
 
-#ifdef OLD_TABLE_SCAN
-gaia_ptr_generator_t::gaia_ptr_generator_t(std::shared_ptr<generator_t<gaia_id_t>> id_generator)
-    : m_id_generator(std::move(id_generator))
-{
-}
-
-std::optional<gaia_ptr_t> gaia_ptr_generator_t::operator()()
-{
-    std::optional<gaia_id_t> id_opt;
-    while ((id_opt = (*m_id_generator)()))
-    {
-        gaia_ptr_t gaia_ptr = gaia_ptr_t::from_gaia_id(*id_opt);
-        if (gaia_ptr)
-        {
-            return gaia_ptr;
-        }
-    }
-    return std::nullopt;
-}
-
-generator_iterator_t<gaia_ptr_t>
-gaia_ptr_t::find_all_iterator(
-    gaia_type_t type)
-{
-    return generator_iterator_t<gaia_ptr_t>(gaia_ptr_generator_t(get_id_generator_for_type(type)));
-}
-#else // OLD_TABLE_SCAN
 std::shared_ptr<generator_t<gaia_locator_t>>
 gaia_ptr_t::get_locator_generator_for_type(gaia_type_t type)
 {
@@ -163,7 +136,6 @@ gaia_ptr_t::find_all_iterator(
 {
     return generator_iterator_t<gaia_ptr_t>(gaia_ptr_generator_t(get_locator_generator_for_type(type)));
 }
-#endif // OLD_TABLE_SCAN
 
 generator_range_t<gaia_ptr_t> gaia_ptr_t::find_all_range(
     gaia_type_t type)

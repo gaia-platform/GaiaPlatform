@@ -25,12 +25,6 @@ enum session_event_t: uint8 {
     DECIDE_TXN_ROLLBACK_FOR_ERROR,
 }
 
-// FlatBuffers doesn't allow scalar fields in a union.
-// Uncomment if OLD_TABLE_SCAN is defined.
-// table table_scan_info_t {
-//     type_id: uint64;
-// }
-
 union index_query_t {index_range_query_t, index_point_read_query_t, index_equal_range_query_t}
 
 // Range queries return all results between the lower bound (inclusive) and the upper bound (inclusive).
@@ -55,11 +49,6 @@ table index_equal_range_query_t {
     key: [byte];
 }
 
-// REVIEW: Remove when the OLD_TABLE_SCAN option is removed.
-table table_scan_info_t {
-    type_id: uint64;
-}
-
 table index_scan_info_t {
     index_id: uint64;
     txn_id: uint64;
@@ -67,9 +56,6 @@ table index_scan_info_t {
 }
 
 union request_data_t {
-    // REVIEW: Remove the table_scan member when the OLD_TABLE_SCAN option is
-    // removed.
-    table_scan: table_scan_info_t,
     index_scan: index_scan_info_t,
 }
 
