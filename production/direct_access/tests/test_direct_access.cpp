@@ -328,10 +328,14 @@ TEST_F(dac_object_test, pre_post_iterator)
     auto e = employee_t::list().begin();
     auto name_first = (*e).name_first();
     EXPECT_EQ(employee_names.count(name_first), 1);
+    employee_names.extract(name_first);
     EXPECT_STREQ((*e++).name_first(), name_first);
     EXPECT_EQ(employee_names.count((*e).name_first()), 1);
+    employee_names.extract(e->name_first());
     name_first = (*++e).name_first();
     EXPECT_EQ(employee_names.count(name_first), 1);
+    employee_names.extract(name_first);
+    EXPECT_EQ(employee_names.size(), 0);
     EXPECT_STREQ((*e).name_first(), name_first);
     e++;
     EXPECT_EQ(e == employee_t::list().end(), true);
