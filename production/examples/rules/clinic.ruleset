@@ -1,0 +1,925 @@
+////////////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+//
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE.txt file
+// or at https://opensource.org/licenses/MIT.
+////////////////////////////////////////////////////
+
+// Include Gaia's built-in logger for the application.
+#include "gaia/logger.hpp"
+
+// The generated Direct Access classses are used for the 'interop' lesson.
+#include "gaia_clinic.h"
+
+// Pull in a helper to show the event type
+#include "gaia/db/events.hpp"
+
+// The Direct Access vector is used in the 'array' lesson.
+#include "gaia/direct_access/dac_vector.hpp"
+
+// Coordinates the declarative rules with the procedural lessons.
+#include "lesson_manager.hpp"
+
+// Tip:  if you are using VS-code, you can install the Gaia Platform Intellisense extension to get
+// syntax highlighting and Intellisense for Gaia DDL and Ruleset files.
+
+// Show how to write rules that respond to column updates, table inserts, or both.
+ruleset basics
+{
+    // [basics:1_physician]
+    //
+    // This rule is fired when a physician is inserted into the database.
+    // Every rule acts on exactly one table change.  The row of the table
+    // that changed is passed to the rule.  This row is known as the anchor row.
+    // In this rule, we are printing the 'name' column from the 'physician' who
+    // was just inserted.
+    on_insert(physician)
+    {
+        // The 'rule_scope_t' class is only here for the tutorial and is not required for
+        // rules. When the class goes out of scope, the destructor will signal the procedural
+        // code in 'clinic.cpp' that the rules for the example are done executing.
+        rule_scope_t r("{}:{}: physician '{}' was inserted.",
+            rule_context.ruleset_name, rule_context.rule_name, name);
+    }
+
+    // [basics:2_resident]
+    //
+    // This rule is fired when any column of the resident is updated.
+    // Because the anchor row in this rule will be a row from the 'resident' table, the
+    // 'name' refers to the resident's name.
+    on_update(resident)
+    {
+        rule_scope_t r("{}:{}: resident '{}' was updated.",
+            rule_context.ruleset_name, rule_context.rule_name, name);
+    }
+
+    // [basics:3_resident]
+    //
+    // This rule will fire because we changed the 'is_intern' column of the resident.
+    // This rule also shows that you can fire multiple rules off a single database change.
+    on_update(resident.is_intern)
+    {
+        rule_scope_t r("{}:{}: 'is_intern' status for resident '{}' was updated.",
+            rule_context.ruleset_name, rule_context.rule_name, name);
+    }
+
+    // [basics:4_resident]
+    //
+    // This rule shows a shortcut syntax for firing a rule based on a single field change
+    // using the '@<column>' syntax.  This rule is the same as the previous rule in that
+    // it fires when 'resident.is_intern' changes.
+    {
+        rule_scope_t r("{}:{}: 'is_intern' status for resident '{}' was updated to '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, resident.name, @resident.is_intern);
+    }
+
+    // [basics:5_resident]
+    //
+    // This rule will fire because we changed the 'is_intern' column of the resident. Note that
+    // the rule will fire if either the 'is_intern' or the 'name' column of the resident
+    // is changed.  Gaia currently does not support firing a rule only if all the columns
+    // listed in the 'on_update' directive are changed.
+    on_update(resident.is_intern, resident.name)
+    {
+        rule_scope_t r("{}:{}: 'is_intern' status or 'name' for resident '{}' was updated.",
+            rule_context.ruleset_name, rule_context.rule_name, name);
+    }
+
+    // [basics:6_resident]
+    //
+    // The 'on_change' keyword will cause the rule to fire if a new row is inserted
+    // into the table or any column is updated in a table.
+    on_change(resident)
+    {
+        // The 'rule_context' allows you to display information about a rule:
+        // ruleset_name: name of the ruleset
+        // rule_name: ordinal of the rule
+        // event_type: what event caused the rule to fire
+        // gaia_type: type of anchor object.
+        rule_scope_t r("{}:{}: resident '{}' was changed due to a '{}' event on type '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, name,
+            gaia::db::triggers::event_type_name(rule_context.event_type),
+            rule_context.gaia_type);
+    }
+} // ruleset basics
+
+// Show that a rule itself can make changes to the database such that another rule is fired.
+ruleset forward_chaining
+{
+    // [forward_chaining:1_resident]
+    //
+    // This rule will update the 'is_intern' field of the the resident and set it to true.
+    // Updating the resident will then cause the next rule to fire.
+    on_insert(resident)
+    {
+        rule_scope_t r("{}:{}: resident '{}' was inserted.",
+            rule_context.ruleset_name, rule_context.rule_name, name);
+        is_intern = true;
+    }
+
+    // [forward_chaining:2_resident]
+    //
+    // This rule is fired because the first rule changes the 'is_intern' field on the newly
+    // inserted resident.
+    on_update(resident.is_intern)
+    {
+        rule_scope_t r("{}:{}: 'is_intern' status for resident '{}' was updated to '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, name, is_intern);
+    }
+} // ruleset forward_chaining
+
+// Show how to navigate records related to the rule's anchor or all records
+// for a particular object type in the database. This lesson also shows how
+// to iterate over records using declarative 'if' and 'for' statements.
+//
+// By default, all rules run in parallel.  The 'serial_group' attribute ensures
+// that no rules in this ruleset can run concurrently with each other. Because
+// this sample logs multiple rows from each rule, we want to serialize
+// the rules so that they don't interleave their output for the tutorial.
+ruleset navigation : serial_group()
+{
+    // [navigation:1_resident]
+    //
+    // This rule shows navigating objects related to the resident.  Because
+    // the anchor row of this rule is the resident and relationships exist both
+    // to a resident's physician and a resident's location, we can access the data from
+    // these related objects.
+    on_update(resident.is_intern)
+    {
+        rule_scope_t r("{}:{}: 'is_intern' status for resident '{}' was updated to '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, name, is_intern);
+
+        // Because Gaia understands how your data is connected, you can directly
+        // reference columns in related tables.
+
+        // Who is this resident's physician?
+        gaia_log::app().info("'{}' is a resident of '{}'.",
+            resident.name, physician.name);
+
+        // Where does this resident live?
+        gaia_log::app().info("'{}' lives on '{}' in '{}'.",
+            resident.name, location.street, location.city);
+    }
+
+    // [navigation:2_resident]
+    //
+    // This rule is the same as the one above but shows the '->' operator to
+    // explicitly navigate tables.
+    on_update(resident.is_intern)
+    {
+        rule_scope_t r("{}:{}: 'is_intern' status for resident '{}' was updated to '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, name, is_intern);
+
+        // Who is this resident's physician?
+        gaia_log::app().info("'{}' is a resident of '{}'.",
+            resident.name, resident->physician.name);
+
+        // Where does this resident live?
+        gaia_log::app().info("'{}' lives on '{}' in '{}'.",
+            resident.name, resident->location.street, resident->location.city);
+    }
+
+    // [navigation:3_physician]
+    //
+    // This rule shows listing all the residents who report to this physician.
+    on_update(physician.is_attending)
+    {
+        if (!physician.is_attending)
+        {
+            return;
+        }
+
+        rule_scope_t r("{}:{}: 'is_attending' status for physician '{}' was updated to '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, name, is_attending);
+
+        // List all the residents of this physician.  Because the schema for this application
+        // specifies that a physician may have many residents, Gaia will actually loop
+        // over all the residents belonging to this physician.  In other words, this statement
+        // is executed for every resident related to the 'physician' anchor row.
+        gaia_log::app().info("'{}' is a resident of '{}'.",
+            resident.name, physician.name);
+    }
+
+    // [navigation:4_physician]
+    //
+    // This rule lists all the residents who report to this physician
+    // using a more explicit syntax than the above rule. The rule
+    // is semantically equivalent to the previous rule.
+    on_update(physician.is_attending)
+    {
+        if (physician.is_attending)
+        {
+            return;
+        }
+
+        rule_scope_t r("{}:{}: 'is_attending' status for physician '{}' was updated to '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, name, is_attending);
+
+        // You can also iterate over all of the physician's residents
+        // using a declarative 'for'.
+        for (resident)
+        {
+            gaia_log::app().info("'{}' is a resident of '{}'.",
+                resident.name, physician.name);
+        }
+    }
+
+    // [navigation:5_physician]
+    //
+    // This rule lists all of the residents stored in the database.  By using
+    // the '/' modifier on the table, we can access all records in the database and
+    // not just the ones directly related to the 'physician' anchor row.
+    on_update(physician.name)
+    {
+        rule_scope_t r("{}:{}: physician '{}' is a new name.",
+            rule_context.ruleset_name, rule_context.rule_name, name, is_attending);
+
+        // If you wanted to list all residents (not just those related to the physician)
+        // then use the '/' modifier.
+        for (/resident)
+        {
+            // Note that if we had just displayed 'physician.name', then
+            // it would have been the anchor row's physician and not the physician
+            // related to this resident.  In this case, we specifically want
+            // the resident's physician so use the '->' operator to traverse
+            // the relationship.
+            gaia_log::app().info("'{}' is a resident of '{}'.",
+                resident.name, resident->physician.name);
+        }
+    }
+
+    // [navigation:6_physician]
+    //
+    // This rule shows the use of the nomatch clause in the case when a physician
+    // has no related residents.
+    on_insert(physician)
+    {
+        rule_scope_t r("{}:{}: physician '{}' was added.",
+            rule_context.ruleset_name, rule_context.rule_name, name);
+
+        if (resident.is_intern)
+        {
+            gaia_log::app().info("resident '{}' is an intern.", resident.name);
+        }
+        nomatch
+        {
+            gaia_log::app().info("'{}' has no residents.", physician.name);
+        }
+    }
+
+    // [navigation:7_resident]
+    //
+    // This shows that the nomatch clause can be used with a 1:1 relationship (resident->physician).
+    on_insert(resident)
+    {
+        rule_scope_t r("{}:{}: resident '{}' was added.",
+            rule_context.ruleset_name, rule_context.rule_name, name);
+
+        if (physician.is_attending)
+        {
+            gaia_log::app().info("resident '{}' is assigned to '{}'.",
+                resident.name, physician.name);
+        }
+        nomatch
+        {
+            gaia_log::app().info("resident '{}' is not assigned to a physician yet.",
+                resident.name);
+        }
+    }
+
+    // [navigation:8_location]
+    //
+    // This shows that nomatch clauses can be nested.
+    on_insert(location)
+    {
+        rule_scope_t r("{}:{}: location '{}' was added.",
+            rule_context.ruleset_name, rule_context.rule_name, id);
+
+        for (/this_physician:physician)
+        {
+            for (this_physician->this_resident:resident)
+            {
+                gaia_log::app().info("physician '{}' has resident '{}'.",
+                    this_physician.name, this_resident.name);
+            }
+            nomatch
+            {
+                gaia_log::app().info("physician '{}' has no residents.",
+                    this_physician.name);
+
+                for (/that_resident:resident)
+                {
+                    if (strcmp(that_resident->this_location:location.city, "Seattle") == 0)
+                    {
+                        gaia_log::app().info("resident '{}' lives in Seattle on '{}'.",
+                            that_resident.name, this_location.street);
+                    }
+                    else
+                    {
+                        gaia_log::app().info("resident '{}' does not live in Seattle.",
+                            that_resident.name);
+                    }
+                    nomatch
+                    {
+                        gaia_log::app().info("resident '{}' has not submitted an location.",
+                            that_resident.name);
+                    }
+                }
+            }
+        }
+    }
+
+    // [navigation:9_location]
+    //
+    // Shows how to use labels on declarative 'for' and
+    // declarative 'if' statements.
+    on_update(location.street)
+    {
+        rule_scope_t r("{}:{}: location '{}' street was changed to '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, id, street);
+
+        // The below code will loop over all locations
+        // and print out the name of the first intern
+        // resident living there.
+        gaia_log::app().info("break to <if_label>");
+        for (/loop_location:location)
+        {
+            gaia_log::app().info("location '{}', '{}'.",
+                loop_location.street, loop_location.city);
+
+            if_label:
+            if (loop_location->resident.is_intern)
+            {
+                gaia_log::app().info("resident '{}' at '{}', '{}' is an intern.",
+                    loop_location->resident.name, loop_location.street, loop_location.city);
+                break if_label;
+            }
+        }
+
+        // The below code will stop looping at the first location
+        // where a resident who is an intern lives.
+        gaia_log::app().info("break to <for_label>");
+        for_label:
+        for (/loop_location:location)
+        {
+            gaia_log::app().info("location '{}', '{}'.",
+                loop_location.street, loop_location.city);
+
+            if (loop_location->resident.is_intern)
+            {
+                gaia_log::app().info("resident '{}' at '{}', '{}' is an intern.",
+                    loop_location->resident.name, loop_location.street, loop_location.city);
+                break for_label;
+            }
+        }
+    }
+} // ruleset navigation
+
+// Shows how to use tags in rules. Tags are a way to explicitly represent a row and
+// have rule or statement scope.
+ruleset tags : serial_group()
+{
+    // [tags:1_physician]
+    //
+    // Shows the use of a tag for a rule's anchor row.  In this case
+    // 'anchor_physician' can be used anywhere 'physician' is used.
+    on_update(anchor_physician:physician.is_attending)
+    {
+        if (anchor_physician.is_attending)
+        {
+            return;
+        }
+
+        rule_scope_t r("{}:{}: 'is_attending' status for physician '{}' was updated to '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, anchor_physician.name, physician.is_attending);
+    }
+
+    // [tags:2_physician]
+    //
+    // Shows the use of a tag as a loop variable.
+    on_update(anchor_physician:physician.is_attending)
+    {
+        if (!anchor_physician.is_attending)
+        {
+            return;
+        }
+
+        rule_scope_t r("{}:{}: 'is_attending' status for physician '{}' was updated to '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, anchor_physician.name, physician.is_attending);
+
+        for (/loop_physician:physician)
+        {
+            gaia_log::app().info("Loop physician is '{}', anchor physician is '{}'",
+                loop_physician.name, anchor_physician.name);
+        }
+    }
+
+    // [tags:3_physician]
+    //
+    // Declare and use a tag in the same statement.
+    on_update(physician.name)
+    {
+        if (strcmp(physician.name, "Dr. DeclareUseTag") != 0)
+        {
+            return;
+        }
+
+        rule_scope_t r("{}:{}: 'is_attending' status for physician '{}' is '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, physician.name, physician.is_attending);
+
+        // You can declare and use a tag in a statement.  The following
+        // line declares 'tag_resident' and then uses it to refer to the resident's intern
+        // status.
+        gaia_log::app().info("'is_intern' status for resident '{}' of physician '{}' is '{}'.",
+            physician->tag_resident:resident.name, physician.name, tag_resident.is_intern);
+    }
+
+    // [tags:4_physician]
+    //
+    // Using multiple tags in a single statement.
+    on_update(physician.name)
+    {
+        if (strcmp(physician.name, "Dr. MultiTags") != 0)
+        {
+            return;
+        }
+
+        rule_scope_t r("{}:{}: 'is_attending' status for physican '{}' is '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, physician.name, physician.is_attending);
+
+        // You can declare multiple tags in a single statement.
+        for (tag_physician:physician->tag_resident:resident->tag_location:location)
+        {
+            gaia_log::app().info("'{}' has resident '{}' who lives in '{}'.",
+                tag_physician.name,
+                tag_resident.name,
+                tag_location.city);
+        }
+    }
+
+    // [tags:5_physician]
+    //
+    // Using nested tags.
+    on_update(physician.name)
+    {
+        if (strcmp(physician.name, "Dr. NestedTags") != 0)
+        {
+            return;
+        }
+
+        rule_scope_t r("{}:{}: 'is_attending' status for physican '{}' is '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, physician.name, physician.is_attending);
+
+        // Like variables, tags are valid across enclosing scopes.
+        for (tag_physician:physician)
+        {
+            for (tag_physician->tag_resident:resident)
+            {
+                for (tag_resident->tag_location:location)
+                    gaia_log::app().info("'{}' has resident '{}' who lives in '{}'.",
+                        tag_physician.name,
+                        tag_resident.name,
+                        tag_location.city);
+            }
+
+            // It's legal to redeclare a tag once it goes out of scope.
+            if (!tag_resident:resident.is_intern)
+            {
+                gaia_log::app().info("Resident '{}' is not an intern.", tag_resident.name);
+            }
+        }
+    }
+} // ruleset tags
+
+// Shows how to connect and disconnect records to each other for both
+// value-linked and non-value-linked references.
+ruleset connections
+{
+    // [connections:1_resident]
+    //
+    // Connect a resident to the first attending physician in the database.
+    on_update(resident.is_intern)
+    {
+        // If a resident is not an intern, then do not make
+        // any changes in this rule.
+        if (!resident.is_intern)
+        {
+            return;
+        }
+
+        rule_scope_t r("{}:{}: 'is_intern' status for resident '{}' was updated to '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, name, is_intern);
+
+        // Note that this statement will not execute because the resident
+        // is not connected to any physician yet.
+        gaia_log::app().info("'{}' is already a resident of '{}'.",
+            resident.name, resident->physician.name);
+
+        // Declarative 'if' statements may translate into a loop for
+        // traversing 1:M relationships.  Therefore, we allow 'break' functionality by
+        // associating a label 'found_physician' with the declarative if statement. This
+        // code will break after finding the first physician who is attending. Note that labels
+        // can also be used for 'continue' functionality as well.
+        found_physician:
+        if (/physician.is_attending)
+        {
+            physician.connect(resident);
+            break found_physician;
+        }
+
+        // Now that the resident has been connected, this statement
+        // will execute.
+        gaia_log::app().info("'{}' is now a resident of '{}'.",
+            resident.name, resident->physician.name);
+    }
+
+    // [connections:2_resident]
+    //
+    // If a resident moves is not an intern any longer, then disconnect
+    // the resident from the physician.
+    on_update(resident.is_intern)
+    {
+        // If a resident is still an intern then don't make changes in
+        // this rule.
+        if (resident.is_intern)
+        {
+            return;
+        }
+
+        rule_scope_t r("{}:{}: 'is_intern' status for resident '{}' was updated to '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, name, is_intern);
+
+        // Remember the physician's name. After we disconnect
+        // the physician from the resident, we won't be able to navigate
+        // to it again. Note that we need to split apart the declaration
+        // of 'physician_name' from its initialization. This is because the
+        // 'physician_name' may never be assigned if the resident is not connected
+        // to any physicians.
+        const char* physician_name = nullptr;
+        physician_name = physician.name;
+        physician.disconnect(resident);
+
+        gaia_log::app().info("Resident '{}' is no longer a resident of '{}'.",
+            resident.name, physician_name);
+    }
+
+    // [connections:3_location]
+    //
+    // Show that no explicit call to connect or disconnect is needed
+    // for tables value-linked relationships.
+    on_update(location.street)
+    {
+        rule_scope_t r("{}:{}: location '{}' 'street' was updated to '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, location.id, street);
+
+        gaia_log::app().info("resident '{}' lives on '{}' in '{}'.",
+            resident.name, location.street, location.city);
+
+        // The anchor location is Jim Holden's location which means that
+        // the connected resident is 'Jim Holden'.  Change Jim's location_id
+        // to the same location_id as Naomi.
+        uint32_t naomi_location = 0;
+        if (strcmp("Naomi Nagata", /naomi:resident.name) == 0)
+        {
+            // Because we have defined a value-linked location between a resident
+            // and their location, we can update the connections just by changing
+            // the value of the field involved in the relationship.
+            resident.location_id = naomi.location_id;
+        }
+
+        // Show Jim's location again.  Note, however, that the anchor location row
+        // is still pointing to Jim's old location.  In fact, Jim is now not reachable
+        // from this location as he no longer lives there.  So, find Jim again in the
+        // database and print out his location.
+        if (strcmp("Jim Holden", /jim:resident.name) == 0)
+        {
+            gaia_log::app().info("resident '{}' now lives on '{}' in '{}'.",
+                jim.name, jim->location.street, jim->location.city);
+        }
+    }
+} // ruleset connections
+
+// Shows how to insert and remove records from the database.
+ruleset insert_delete
+{
+    // [insert_delete:1_physician]
+    //
+    // This rule inserts a new resident into the database. You can specify column
+    // name : value pairs in the insert statement.
+    on_update(physician.is_attending)
+    {
+        if (physician.is_attending)
+        {
+            return;
+        }
+
+        rule_scope_t r("{}:{}: 'is_attending' status for physician '{}' is '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, physician.name, physician.is_attending);
+
+        if (strcmp("Alex Kamal", /alex:resident.name) == 0)
+        {
+            // Insert a new resident and have them live at the same location as Alex Kamal.
+            resident.insert(name : "Alex Roomie", location_id : alex.location_id);
+        }
+
+        for (/resident)
+        {
+            gaia_log::app().info("Resident '{}' lives at '{}' in '{}'.",
+                resident.name, resident->location.street, resident->location.city);
+        }
+    }
+
+    // [insert_delete:2_physician]
+    //
+    // This rule inserts a new resident into the database and connects it to
+    // the updated physician.
+    on_update(physician.is_attending)
+    {
+        if (!physician.is_attending)
+        {
+            return;
+        }
+
+        rule_scope_t r("{}:{}: 'is_attending' status for physician '{}' is '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, physician.name, physician.is_attending);
+
+        // Insert a resident for this physician and connect them.
+        physician.connect(resident.insert(name : "Rule Resident", is_intern:true));
+
+        gaia_log::app().info("'{}' has resident '{}'",
+            physician.name, resident.name);
+    }
+
+    // [insert_delete:3_resident]
+    //
+    // If a resident is no longer an intern, then remove them from their physician
+    // and delete them.
+    on_update(resident.is_intern)
+    {
+        if (resident.is_intern)
+        {
+            return;
+        }
+
+        rule_scope_t r("{}:{}: 'is_intern' status for resident '{}' is '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, resident.name, resident.is_intern);
+
+        physician.disconnect(resident);
+        resident.remove();
+
+        // Verify the rule resident is gone.
+        gaia_log::app().info("Residents:");
+        gaia_log::app().info("'{}'", /resident.name);
+    }
+} // ruleset insert_delete
+
+// Shows how declarative C++ and normal C++ can interoperate.
+ruleset interop
+{
+    // This is a normal C++ function that we can call from a rule. This means
+    // that no translation occurs for this code.
+    void reassign_residents(gaia::clinic::physician_t& physician)
+    {
+        std::vector<gaia::clinic::resident_t> resident_list;
+        for (auto resident : physician.residents())
+        {
+            resident_list.push_back(resident);
+        }
+
+        // Remove all residents from this physician.
+        physician.residents().clear();
+
+        // Reassign residents to the first attending physician we find.
+        auto attending = *(gaia::clinic::physician_t::list().where(
+            gaia::clinic::physician_expr::is_attending == true).begin());
+
+        for (auto resident : resident_list)
+        {
+            attending.residents().connect(resident);
+            gaia_log::app().info("'{}' has been reassigned from '{}' to '{}'.",
+                resident.name(), physician.name(), attending.name());
+        }
+    }
+
+    // [interop:1_physician]
+    //
+    // If 'Dr. Cox' is no longer attending then reassign all the physician's
+    // residents to a different attending physician.
+    on_update(physician.is_attending)
+    {
+        if (strcmp(physician.name, "Dr. Cox") != 0)
+        {
+            return;
+        }
+
+        rule_scope_t r("{}:{}: 'is_attending' status for physician '{}' was updated to '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, name, is_attending);
+
+        // Call our C++ function defined above.
+        reassign_residents(physician);
+    }
+
+    // [interop:2_physician]
+    //
+    // If a physician besides 'Dr. Cox' is no longer attending, then reassign all the physician's
+    // residents to a different attending physician.  Show mixed C++ and declarative C++ in the same rule.
+    on_update(physician.is_attending)
+    {
+        if (strcmp(physician.name, "Dr. Cox") == 0)
+        {
+            return;
+        }
+
+        rule_scope_t r("{}:{}: 'is_attending' status for physician '{}' was updated to '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, name, is_attending);
+
+        // We can interoperate between normal C++ code and Gaia
+        // Declarative C++ within a rule seamlessly.  The below code takes a "snapshot"
+        // of all the residents belonging to this physician. The rule then iterates over
+        // the snapshot to disconnect all residents from the non-attending physician and assign
+        // them to an attending physician.
+        std::vector<gaia::clinic::resident_t> resident_list;
+        resident_list.push_back(resident);
+
+        // Iterate over each Direct Access resident object
+        // that we stored in the resident list.  Because we are using
+        // the Direct Access resident class directly, we need to
+        // use the method name for lookup (i.e. 'dac_resident.name()' instead
+        // of just 'resident.name').
+        for (auto dac_resident : resident_list)
+        {
+            physician.disconnect(dac_resident);
+
+            found_physician:
+            if (/attending:physician.is_attending)
+            {
+                attending.connect(dac_resident);
+                gaia_log::app().info("'{}' has been reassigned from '{}' to '{}'.",
+                    dac_resident.name(), physician.name, attending.name);
+                break found_physician;
+            }
+        }
+    }
+
+    // [interop:3_physician]
+    //
+    // Check whether a physician has any residents assigned using the Direct Access
+    // classes.
+    on_insert(physician)
+    {
+        rule_scope_t r("{}:{}: physician '{}' was inserted.",
+            rule_context.ruleset_name, rule_context.rule_name, name);
+
+        gaia::clinic::physician_t dac_physician = physician;
+        if (static_cast<gaia::clinic::physician_t>(physician).residents().size() == 0)
+        {
+            gaia_log::app().info("'{}' has no residents.", physician.name);
+        }
+
+        // Equivalent check to see if the physician has no residents.
+        for (resident)
+        {
+        }
+        nomatch
+        {
+            gaia_log::app().info("'{}' still has no residents.", physician.name);
+        }
+    }
+
+    // [interop:4_resident]
+    //
+    // Check whether a resident has provided an location using the Direct Access
+    // classes.
+    on_insert(resident)
+    {
+        rule_scope_t r("{}:{}: resident '{}' was inserted.",
+            rule_context.ruleset_name, rule_context.rule_name, name);
+
+        gaia::clinic::resident_t dac_resident = resident;
+        if (!dac_resident.location())
+        {
+            gaia_log::app().info("'{}' has not provided a location.", resident.name);
+        }
+
+        // Equivalent check to see if the resident has any locations.
+        for (location)
+        {
+        }
+        nomatch
+        {
+            gaia_log::app().info("'{}' still has not provided a location.", resident.name);
+        }
+    }
+
+    // [interop:5_location]
+    //
+    // Check whether any location exists in the database.
+    on_insert(location)
+    {
+        rule_scope_t r("{}:{}: location '{}, {}' was inserted.",
+            rule_context.ruleset_name, rule_context.rule_name, street, city);
+
+        location.remove();
+
+        if (gaia::clinic::location_t::list().size() == 0)
+        {
+            gaia_log::app().info("No locations exist in the database.");
+        }
+
+        // Equivalent check to see if any location exists in the database.
+        for (/location)
+        {
+        }
+        nomatch
+        {
+            gaia_log::app().info("Still no locations exist in the database.");
+        }
+    }
+
+    // [interop:6_location]
+    //
+    // Show how to read and write a null to an optional field.
+    on_update(resident.is_intern)
+    {
+        if (!is_intern)
+        {
+            return;
+        }
+
+        rule_scope_t r("{}:{}: 'is_intern' status for resident '{}' was updated.",
+            rule_context.ruleset_name, rule_context.rule_name, resident.name, resident.is_intern);
+
+        gaia::common::optional_t<uint8_t> opt_height = resident.height;
+        if (opt_height.has_value())
+        {
+            gaia_log::app().info("Resident '{}' is '{}' inches tall.", resident.name, opt_height.value());
+            // Set to a null value;
+            gaia::clinic::resident_t dac_resident = resident;
+            auto writer = dac_resident.writer();
+            writer.height = gaia::common::nullopt;
+            writer.update_row();
+        }
+    }
+
+    // [interop:7_location]
+    //
+    // Show how to read and write optional fields.
+    on_update(resident.is_intern)
+    {
+        if (is_intern)
+        {
+            return;
+        }
+
+        rule_scope_t r("{}:{}: 'is_intern' status for resident '{}' was updated.",
+            rule_context.ruleset_name, rule_context.rule_name, resident.name, resident.is_intern);
+
+        gaia::common::optional_t<uint8_t> opt_height = resident.height;
+        if (!opt_height.has_value())
+        {
+            height = 67;
+            opt_height = height;
+            gaia_log::app().info("Resident '{}' has a new height of '{}' inches.",
+                resident.name, opt_height.value());
+        }
+    }
+} // ruleset interop
+
+// Shows how to use array fields.
+ruleset arrays
+{
+    // Array support in our declarative language is a work in progress.
+    // We need to use normal C++ to retrieve the size of the array.
+    uint32_t get_result_size(gaia::clinic::resident_t& resident)
+    {
+        return resident.evaluation_results().size();
+    }
+
+    // [arrays:1_resident]
+    //
+    // Array fields can be used like any other field.
+    on_update(evaluation_results)
+    {
+        rule_scope_t r("{}:{}: resident '{}' has '{}' evaluations:",
+            rule_context.ruleset_name, rule_context.rule_name,
+            resident.name, get_result_size(resident));
+
+        for (auto result : evaluation_results)
+        {
+            gaia_log::app().info("{}", result);
+        }
+    }
+
+    // [arrays:2_resident]
+    //
+    // Array fields can be accessed like any other field.
+    on_update(resident.is_intern)
+    {
+        rule_scope_t r("{}:{}: 'is_intern' status for resident '{}' is '{}'.",
+            rule_context.ruleset_name, rule_context.rule_name, resident.name, resident.is_intern);
+
+        // Add more test results.
+        evaluation_results = {evaluation_results[0], evaluation_results[1], 92.50, 100.00};
+    }
+} // ruleset arrays
