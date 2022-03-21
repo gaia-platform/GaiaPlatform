@@ -40,6 +40,7 @@ extern "C"
 
 #include "gaia/common.hpp"
 
+#include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 
@@ -216,8 +217,8 @@ public:
     bool scan_forward();
 
 protected:
-    // The COW-SE smart ptr we are currently iterating over.
-    gaia::db::gaia_ptr_t m_current_record;
+    // The iterator that we are using for the current scan.
+    gaia::common::iterators::generator_iterator_t<gaia::db::gaia_ptr_t> m_iterator;
 
     // Pointer to the deserialized payload of the current record.
     const uint8_t* m_current_payload;

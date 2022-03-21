@@ -20,6 +20,7 @@
 #include <cstdlib>
 
 #include <thread>
+#include <unordered_set>
 
 #include <gtest/gtest.h>
 
@@ -147,6 +148,8 @@ protected:
 // Test parallel multi-process transactions.
 TEST_F(gaia_multi_process_test, multi_process_inserts)
 {
+    std::unordered_set<std::string> employee_names;
+
     semaphore_initialize();
 
     pid_t child_pid = fork();
@@ -178,16 +181,14 @@ TEST_F(gaia_multi_process_test, multi_process_inserts)
 
         // Scan through all resulting rows.
         // See if all objects exist.
+        employee_names = {"Howard", "Henry", "Harold", "Hank"};
         begin_transaction();
-        auto employee_iterator = employee_t::list().begin();
-        auto employee = *employee_iterator;
-        EXPECT_STREQ(employee.name_first(), "Howard");
-        employee = *(++employee_iterator);
-        EXPECT_STREQ(employee.name_first(), "Henry");
-        employee = *(++employee_iterator);
-        EXPECT_STREQ(employee.name_first(), "Harold");
-        employee = *(++employee_iterator);
-        EXPECT_STREQ(employee.name_first(), "Hank");
+        for (auto const& employee : employee_t::list())
+        {
+            EXPECT_EQ(employee_names.count(employee.name_first()), 1);
+            employee_names.extract(employee.name_first());
+        }
+        EXPECT_EQ(employee_names.size(), 0);
         commit_transaction();
 
         // EXCHANGE 2: concurrent transactions.
@@ -210,20 +211,14 @@ TEST_F(gaia_multi_process_test, multi_process_inserts)
 
         // Scan through all resulting rows.
         // See if all objects exist.
+        employee_names = {"Howard", "Henry", "Harold", "Hank", "Hubert", "Hugo"};
         begin_transaction();
-        employee_iterator = employee_t::list().begin();
-        employee = *employee_iterator;
-        EXPECT_STREQ(employee.name_first(), "Howard");
-        employee = *(++employee_iterator);
-        EXPECT_STREQ(employee.name_first(), "Henry");
-        employee = *(++employee_iterator);
-        EXPECT_STREQ(employee.name_first(), "Harold");
-        employee = *(++employee_iterator);
-        EXPECT_STREQ(employee.name_first(), "Hank");
-        employee = *(++employee_iterator);
-        EXPECT_STREQ(employee.name_first(), "Hubert");
-        employee = *(++employee_iterator);
-        EXPECT_STREQ(employee.name_first(), "Hugo");
+        for (auto const& employee : employee_t::list())
+        {
+            EXPECT_EQ(employee_names.count(employee.name_first()), 1);
+            employee_names.extract(employee.name_first());
+        }
+        EXPECT_EQ(employee_names.size(), 0);
         commit_transaction();
 
         end_session();
@@ -302,6 +297,8 @@ TEST_F(gaia_multi_process_test, multi_process_inserts)
 // Test parallel multi-process transactions and aborts.
 TEST_F(gaia_multi_process_test, multi_process_aborts)
 {
+    std::unordered_set<std::string> employee_names;
+
     semaphore_initialize();
 
     pid_t child_pid = fork();
@@ -333,15 +330,14 @@ TEST_F(gaia_multi_process_test, multi_process_aborts)
 
         // Scan through all resulting rows.
         // See if all objects exist.
+        employee_names = {"Howard", "Henry", "Hank"};
         begin_transaction();
-        auto empl_iterator = employee_t::list().begin();
-        ++empl_iterator;
-        empl_iterator++;
-        // Make sure we have hit the end of the list.
-        EXPECT_STREQ((*empl_iterator).name_first(), "Hank");
-        empl_iterator++;
-        EXPECT_EQ(true, empl_iterator == employee_t::list().end());
-        EXPECT_EQ(empl_iterator, employee_t::list().end());
+        for (auto const& employee : employee_t::list())
+        {
+            EXPECT_EQ(employee_names.count(employee.name_first()), 1);
+            employee_names.extract(employee.name_first());
+        }
+        EXPECT_EQ(employee_names.size(), 0);
         commit_transaction();
 
         // EXCHANGE 2: concurrent transactions.
@@ -364,13 +360,14 @@ TEST_F(gaia_multi_process_test, multi_process_aborts)
 
         // Scan through all resulting rows.
         // See if all objects exist.
+        employee_names = {"Howard", "Henry", "Hank", "Hubert"};
         begin_transaction();
-        empl_iterator = employee_t::list().begin();
-        auto employee = *empl_iterator;
-        employee = *(++empl_iterator);
-        employee = *(++empl_iterator);
-        employee = *(++empl_iterator);
-        EXPECT_STREQ(employee.name_first(), "Hubert");
+        for (auto const& employee : employee_t::list())
+        {
+            EXPECT_EQ(employee_names.count(employee.name_first()), 1);
+            employee_names.extract(employee.name_first());
+        }
+        EXPECT_EQ(employee_names.size(), 0);
         commit_transaction();
 
         end_session();
