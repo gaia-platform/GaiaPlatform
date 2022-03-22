@@ -110,7 +110,28 @@ public:
     template <class S>
     static S* get_state(const char* table_name, size_t expected_field_count)
     {
-        S* state = (S*)palloc0(sizeof(S));
+        // Allocations of state structures should be 16-byte aligned,
+        // but palloc0 doesn't seem to have a way to take alignment into account,
+        // so we'll need to overallocate memory
+        // and then find the first properly aligned address within that allocation.
+        const uintptr_t c_alignment = 16;
+
+        uintptr_t memory_pointer = reinterpret_cast<uintptr_t>(palloc0(sizeof(S) + c_alignment - 1));
+        ASSERT_INVARIANT(memory_pointer > 0, "palloc0() failed!");
+
+        uintptr_t aligned_memory_pointer = memory_pointer;
+        if (memory_pointer % c_alignment != 0)
+        {
+            aligned_memory_pointer = ((memory_pointer / c_alignment) + 1) * c_alignment;
+        }
+        ASSERT_INVARIANT(
+            aligned_memory_pointer >= memory_pointer,
+            "Aligned pointer should be higher than original pointer!");
+        ASSERT_INVARIANT(
+            aligned_memory_pointer < memory_pointer + c_alignment,
+            "Aligned pointer exceeds original pointer by more than the alignment size!");
+
+        S* state = reinterpret_cast<S*>(aligned_memory_pointer);
 
         return state->initialize(table_name, expected_field_count) ? state : nullptr;
     }
