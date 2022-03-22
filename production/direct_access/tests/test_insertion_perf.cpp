@@ -170,7 +170,7 @@ void run_performance_test(
 
     for (size_t iteration = 0; iteration < num_iterations; iteration++)
     {
-        gaia_log::app().debug("[{}]: {} iteration staring, {} insertions", message, iteration, num_insertions);
+        gaia_log::app().debug("[{}]: {} iteration starting, {} insertions", message, iteration, num_insertions);
         int64_t expr_duration = g_timer_t::get_function_duration(expr_fn);
         expr_accumulator.add(expr_duration);
 
