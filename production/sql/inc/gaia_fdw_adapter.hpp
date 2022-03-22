@@ -110,28 +110,26 @@ public:
     template <class S>
     static S* get_state(const char* table_name, size_t expected_field_count)
     {
-        // Allocations of state structures should be 16-byte aligned,
-        // but palloc0 doesn't seem to have a way to take alignment into account,
-        // so we'll need to overallocate memory
-        // and then find the first properly aligned address within that allocation.
-        const uintptr_t c_alignment = 16;
-
-        uintptr_t memory_pointer = reinterpret_cast<uintptr_t>(palloc0(sizeof(S) + c_alignment - 1));
-        ASSERT_INVARIANT(memory_pointer > 0, "palloc0() failed!");
-
-        uintptr_t aligned_memory_pointer = memory_pointer;
-        if (memory_pointer % c_alignment != 0)
-        {
-            aligned_memory_pointer = ((memory_pointer / c_alignment) + 1) * c_alignment;
-        }
+        // Ensure that the space allocated for S is properly aligned.
+        // We'll allocate enough extra space to ensure that the requested buffer
+        // can be properly aligned within it.
+        size_t state_size = sizeof(S);
+        size_t state_alignment = alignof(S);
+        size_t buffer_size = state_size + state_alignment - 1;
+        void* buffer = palloc0(buffer_size);
         ASSERT_INVARIANT(
-            aligned_memory_pointer >= memory_pointer,
+            buffer != nullptr,
+            "palloc0() failed!");
+        void* original_buffer = buffer;
+        void* aligned_buffer = std::align(state_alignment, state_size, buffer, buffer_size);
+        ASSERT_INVARIANT(
+            aligned_buffer >= original_buffer,
             "Aligned pointer should be higher than original pointer!");
         ASSERT_INVARIANT(
-            aligned_memory_pointer < memory_pointer + c_alignment,
+            static_cast<uint8_t*>(aligned_buffer) < static_cast<uint8_t*>(original_buffer) + state_alignment,
             "Aligned pointer exceeds original pointer by more than the alignment size!");
 
-        S* state = reinterpret_cast<S*>(aligned_memory_pointer);
+        S* state = reinterpret_cast<S*>(aligned_buffer);
 
         return state->initialize(table_name, expected_field_count) ? state : nullptr;
     }
