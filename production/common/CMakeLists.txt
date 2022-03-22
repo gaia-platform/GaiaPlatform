@@ -31,7 +31,7 @@ add_library(gaia_common STATIC
 )
 
 configure_gaia_target(gaia_common)
-target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES})
+target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES} ${FLATBUFFERS_INC})
 
 # The following are INTERFACE libraries for including headers.
 target_link_libraries(gaia_common PUBLIC cpptoml)

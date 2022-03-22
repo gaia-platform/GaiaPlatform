@@ -6,7 +6,9 @@
 #pragma once
 
 #include "gaia/exception.hpp"
+#include "gaia/optional.hpp"
 
+#include "gaia_spdlog/fmt/bundled/format.h"
 #include "gaia_spdlog/spdlog.h"
 
 // Export all symbols declared in this file.
@@ -208,6 +210,33 @@ logger_t& app();
 } // namespace common
 /**@}*/
 } // namespace gaia
+
+namespace gaia_fmt
+{
+inline namespace v7
+{
+/**
+ * Formatter to allow logging gaia::common::optional_t types.
+ *
+ */
+
+template <typename T>
+struct formatter<gaia::common::optional_t<T>> : formatter<T>
+{
+    template <typename FormatContext>
+    auto format(gaia::common::optional_t<T> optional, FormatContext& ctx)
+    {
+        if (!optional.has_value())
+        {
+            formatter<string_view> str_formatter;
+            return str_formatter.format("<missing>", ctx);
+        }
+        return formatter<T>::format(optional.value(), ctx);
+    }
+};
+
+} // namespace v7
+} // namespace gaia_fmt
 
 namespace gaia_log = gaia::common::logging;
 
