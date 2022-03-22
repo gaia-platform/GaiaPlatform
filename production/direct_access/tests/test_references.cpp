@@ -345,7 +345,7 @@ TEST_F(gaia_references_test, connect_scan)
     // Count the records in the hierarchy
     auto record_count = scan_hierarchy(eptr);
     auto total_count_addresses = gaia_references_test::count_employees * gaia_references_test::count_addresses;
-    auto total_count_phones = gaia_references_test::count_employees * gaia_references_test::count_addresses * gaia_references_test::count_phones;
+    auto total_count_phones = total_count_addresses * gaia_references_test::count_phones;
     EXPECT_EQ(record_count, gaia_references_test::count_employees + total_count_addresses + total_count_phones);
 
     // Travel down, then up the hierarchy

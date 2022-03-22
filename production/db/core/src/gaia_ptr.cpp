@@ -12,6 +12,8 @@
 
 #include "db_hash_map.hpp"
 #include "db_helpers.hpp"
+#include "type_index.hpp"
+#include "type_index_cursor.hpp"
 
 using namespace gaia::common;
 using namespace gaia::common::iterators;
@@ -80,17 +82,46 @@ gaia_ptr_t gaia_ptr_t::find_next(gaia_type_t type) const
     return next_ptr;
 }
 
-gaia_ptr_generator_t::gaia_ptr_generator_t(std::shared_ptr<generator_t<gaia_id_t>> id_generator)
-    : m_id_generator(std::move(id_generator))
+std::shared_ptr<generator_t<gaia_locator_t>>
+gaia_ptr_t::get_locator_generator_for_type(gaia_type_t type)
+{
+    type_index_t* type_index = get_type_index();
+    type_index_cursor_t cursor(type_index, type);
+
+    // Scan locator node list for this type, helping to finish any deletions in progress.
+    auto locator_generator = [cursor]() mutable -> std::optional<gaia_locator_t> {
+        if (!cursor)
+        {
+            // We've reached the end of the list, so signal end of iteration.
+            return std::nullopt;
+        }
+        // Is current node marked for deletion? If so, unlink it (and all
+        // consecutive marked nodes) from the list and continue.
+        if (cursor.is_current_node_deleted())
+        {
+            // We ignore failures because a subsequent scan will retry.
+            cursor.unlink_for_deletion();
+        }
+        // Save the current locator before we advance the cursor.
+        auto current_locator = cursor.current_locator();
+        cursor.advance();
+        return current_locator;
+    };
+
+    return std::make_shared<generator_t<gaia_locator_t>>(locator_generator);
+}
+
+gaia_ptr_generator_t::gaia_ptr_generator_t(std::shared_ptr<generator_t<gaia_locator_t>> locator_generator)
+    : m_locator_generator(std::move(locator_generator))
 {
 }
 
 std::optional<gaia_ptr_t> gaia_ptr_generator_t::operator()()
 {
-    std::optional<gaia_id_t> id_opt;
-    while ((id_opt = (*m_id_generator)()))
+    std::optional<gaia_locator_t> locator_opt;
+    while ((locator_opt = (*m_locator_generator)()))
     {
-        gaia_ptr_t gaia_ptr = gaia_ptr_t::from_gaia_id(*id_opt);
+        gaia_ptr_t gaia_ptr = gaia_ptr_t::from_locator(*locator_opt);
         if (gaia_ptr)
         {
             return gaia_ptr;
@@ -103,7 +134,7 @@ generator_iterator_t<gaia_ptr_t>
 gaia_ptr_t::find_all_iterator(
     gaia_type_t type)
 {
-    return generator_iterator_t<gaia_ptr_t>(gaia_ptr_generator_t(get_id_generator_for_type(type)));
+    return generator_iterator_t<gaia_ptr_t>(gaia_ptr_generator_t(get_locator_generator_for_type(type)));
 }
 
 generator_range_t<gaia_ptr_t> gaia_ptr_t::find_all_range(
