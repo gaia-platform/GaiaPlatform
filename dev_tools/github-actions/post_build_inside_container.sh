@@ -118,10 +118,10 @@ if [ "$ACTION_NAME" == "unit_tests" ] ; then
     echo "Executing unit tests."
 
     # Enable FDW Tests
-    cd /build/production/sql
+    cd /build/production/sql || exit
     make install
     service postgresql restart
-    cd /build/production
+    cd /build/production || exit
 
     if ! ctest --output-on-failure 2>&1 | tee /build/output/ctest.log; then
         complete_process 1 "Unit tests failed to complete successfully."
