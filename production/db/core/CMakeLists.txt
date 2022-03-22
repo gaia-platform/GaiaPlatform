@@ -57,17 +57,6 @@ foreach(FBS_SOURCE ${FBS_SOURCES})
 endforeach(FBS_SOURCE)
 
 ###############################################
-# Our main target.
-###############################################
-add_library(gaia_storage STATIC
-  src/record_list.cpp
-  src/record_list_manager.cpp)
-configure_gaia_target(gaia_storage)
-target_include_directories(gaia_storage PUBLIC ${GAIA_DB_CORE_PUBLIC_INCLUDES})
-target_include_directories(gaia_storage PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES})
-target_link_libraries(gaia_storage PRIVATE gaia_common)
-
-###############################################
 # Database-related code begins here.
 ###############################################
 add_library(gaia_db_client STATIC
@@ -115,14 +104,14 @@ target_include_directories(rocks_wrapper PRIVATE
 target_include_directories(rocks_wrapper SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(rocks_wrapper SYSTEM PRIVATE "${GEN_DIR}")
 # The client is required to create gaia objects on recovery.
-target_link_libraries(rocks_wrapper PUBLIC rocksdb gaia_common gaia_storage)
+target_link_libraries(rocks_wrapper PUBLIC rocksdb gaia_common)
 
 # Liburing
 # Choose static version of the library.
 message(CHECK_START "Looking for liburing")
 find_path(LIBURING_INCLUDE_DIR NAMES liburing.h)
 find_library(LIBURING_LIBRARY NAMES liburing.a)
-if (LIBURING_LIBRARY)
+if(LIBURING_LIBRARY)
   message(CHECK_PASS "found")
 else()
   message(CHECK_FAIL "not found")
@@ -153,7 +142,6 @@ set(GAIA_DB_SERVER_SOURCES
   src/index_builder.cpp
   src/system_checks.cpp
   src/txn_metadata.cpp
-  src/type_generator.cpp
   src/type_id_mapping.cpp)
 
 add_library(gaia_db_server ${GAIA_DB_SERVER_SOURCES})
@@ -261,9 +249,6 @@ configure_gaia_target(gaia_db_catalog_test)
 target_include_directories(gaia_db_catalog_test PRIVATE ${GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES})
 target_link_libraries(gaia_db_catalog_test PRIVATE gaia_common gaia_db_client gaia_schema_loader gtest)
 
-add_gtest(test_rdb_object_converter tests/test_rdb_object_converter.cpp "${GEN_DIR};${GAIA_DB_CORE_TEST_INCLUDES}" "rocks_wrapper;gaia_db_server")
-add_gtest(test_record_list tests/test_record_list.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage")
-add_gtest(test_record_list_manager tests/test_record_list_manager.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_storage")
 add_gtest(test_type_index tests/test_type_index.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_db_client;${LIB_CAP};${LIB_EXPLAIN}")
 add_gtest(test_db_client tests/test_db_client.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_db_client")
 add_gtest(test_concurrent_db_client tests/test_concurrent_db_client.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_db_client")
