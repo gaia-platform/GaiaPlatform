@@ -47,18 +47,6 @@ public:
     }
 };
 
-/**
- * Consume an iterator.
- */
-template <typename T_itr>
-void consume_iter(T_itr& curr, T_itr end)
-{
-    while (curr != end)
-    {
-        curr++;
-    }
-}
-
 template <typename T_type>
 void clear_table(size_t max_deletion_per_txn = c_max_insertion_single_txn)
 {
@@ -73,12 +61,6 @@ void clear_table(size_t max_deletion_per_txn = c_max_insertion_single_txn)
 
         if (counter % max_deletion_per_txn == 0)
         {
-            // TODO this increases the deletion time by quite a bit and with the current branch
-            //  the 'Connection reset by peer' does not appear anymore.
-            //  We may want to just delete this.
-            // By consuming the iterator, before starting a new transaction, we avoid:
-            // "Stream socket error: 'Connection reset by peer'."
-            // consume_iter(obj_it, T_type::list().end());
             gaia::db::commit_transaction();
             gaia::db::begin_transaction();
             // Avoid "Cursor was not called from the scope of its own transaction!" thrown in the test body."
