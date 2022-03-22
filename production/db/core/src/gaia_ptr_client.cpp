@@ -49,13 +49,6 @@ void gaia_ptr_t::reset()
     m_locator = c_invalid_gaia_locator;
 }
 
-// This trivial implementation is necessary to avoid calling into client_t code from the header file.
-std::shared_ptr<generator_t<gaia_id_t>>
-gaia_ptr_t::get_id_generator_for_type(gaia_type_t type)
-{
-    return client_t::get_id_generator_for_type(type);
-}
-
 db_object_t* gaia_ptr_t::to_ptr() const
 {
     client_t::verify_txn_active();

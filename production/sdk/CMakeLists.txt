@@ -229,5 +229,15 @@ install(FILES ${GAIA_REPO}/production/examples/rules_vlr/rules_vlr.cpp DESTINATI
 install(FILES ${GAIA_REPO}/production/examples/rules_vlr/CMakeLists.txt DESTINATION examples/rules_vlr)
 install(FILES ${GAIA_REPO}/production/examples/rules_vlr/README.md DESTINATION examples/rules_vlr)
 
+# Place rules example.
+install(FILES ${GAIA_REPO}/production/examples/rules/gaia.conf DESTINATION examples/rules)
+install(FILES ${GAIA_REPO}/production/examples/rules/lesson_manager.hpp DESTINATION examples/rules)
+install(FILES ${GAIA_REPO}/production/examples/rules/lesson_manager.cpp DESTINATION examples/rules)
+install(FILES ${GAIA_REPO}/production/examples/rules/clinic.ddl DESTINATION examples/rules)
+install(FILES ${GAIA_REPO}/production/examples/rules/clinic.ruleset DESTINATION examples/rules)
+install(FILES ${GAIA_REPO}/production/examples/rules/clinic.cpp DESTINATION examples/rules)
+install(FILES ${GAIA_REPO}/production/examples/rules/CMakeLists.txt DESTINATION examples/rules)
+install(FILES ${GAIA_REPO}/production/examples/rules/README.md DESTINATION examples/rules)
+
 # Place license files.
 install(FILES ${GAIA_REPO}/production/licenses/LICENSE.third-party.txt DESTINATION .)

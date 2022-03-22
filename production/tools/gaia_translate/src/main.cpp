@@ -1004,7 +1004,14 @@ void generate_table_subscription(
         g_current_ruleset_unsubscription.append("gaia::rules::unsubscribe_rule(gaia::");
         g_current_ruleset_unsubscription.append(db_namespace(getCatalogTableData().find(table)->second.dbName));
         g_current_ruleset_unsubscription.append(class_name);
-        g_current_ruleset_unsubscription.append("::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
+        if (subscribe_update)
+        {
+            g_current_ruleset_unsubscription.append("::s_gaia_type, gaia::db::triggers::event_type_t::row_update, gaia::rules::empty_fields,");
+        }
+        else
+        {
+            g_current_ruleset_unsubscription.append("::s_gaia_type, gaia::db::triggers::event_type_t::row_insert, gaia::rules::empty_fields,");
+        }
         g_current_ruleset_unsubscription.append(rule_name);
         g_current_ruleset_unsubscription.append("binding);\n");
     }

@@ -87,9 +87,9 @@ public:
 
     static inline int get_session_socket_for_txn();
 
-    // This returns a generator object for gaia_ids of a given type.
-    static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>>
-    get_id_generator_for_type(common::gaia_type_t type);
+    // This returns a generator object for locators of a given type.
+    static std::shared_ptr<common::iterators::generator_t<gaia_locator_t>>
+    get_locator_generator_for_type(common::gaia_type_t type);
 
     // This is a helper for higher-level methods that use
     // this generator to build a range or iterator object.
@@ -156,14 +156,6 @@ private:
     static void apply_txn_log(log_offset_t offset);
 
     static int get_session_socket(const std::string& socket_name);
-
-    static std::shared_ptr<int> get_id_cursor_socket_for_type(common::gaia_type_t type);
-
-    static std::function<std::optional<int>()>
-    get_fd_stream_generator_for_socket(int stream_socket);
-
-    static std::function<std::optional<common::gaia_id_t>()>
-    augment_id_generator_for_type(common::gaia_type_t type, std::function<std::optional<common::gaia_id_t>()> id_generator);
 
     /**
      *  Check if an event should be generated for a given type.

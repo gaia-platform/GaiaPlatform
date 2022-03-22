@@ -6,6 +6,11 @@
 type_index_cursor_t::type_index_cursor_t(type_index_t* type_index, common::gaia_type_t type)
     : m_type_index(type_index), m_prev_node(nullptr), m_type(type)
 {
+    // Existing clients (e.g., the catalog bootstrapping implementation) expect
+    // that creating an iterator for an unregistered type will automatically
+    // register that type.
+    // Ignore failure if type is already registered.
+    m_type_index->register_type(type);
     m_curr_locator = m_type_index->get_first_locator(m_type);
     m_curr_node = m_type_index->get_list_node(m_curr_locator);
 }
