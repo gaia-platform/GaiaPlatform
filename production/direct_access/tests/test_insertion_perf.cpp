@@ -73,9 +73,12 @@ void clear_table(size_t max_deletion_per_txn = c_max_insertion_single_txn)
 
         if (counter % max_deletion_per_txn == 0)
         {
+            // TODO this increases the deletion time by quite a bit and with the current branch
+            //  the 'Connection reset by peer' does not appear anymore.
+            //  We may want to just delete this.
             // By consuming the iterator, before starting a new transaction, we avoid:
             // "Stream socket error: 'Connection reset by peer'."
-            consume_iter(obj_it, T_type::list().end());
+            // consume_iter(obj_it, T_type::list().end());
             gaia::db::commit_transaction();
             gaia::db::begin_transaction();
             // Avoid "Cursor was not called from the scope of its own transaction!" thrown in the test body."
@@ -176,9 +179,17 @@ void run_performance_test(
 
     for (size_t iteration = 0; iteration < num_iterations; iteration++)
     {
+        gaia_log::app().debug("[{}]: {} iteration staring, {} insertions", message, iteration, num_insertions);
         int64_t expr_duration = g_timer_t::get_function_duration(expr_fn);
         expr_accumulator.add(expr_duration);
-        clear_database();
+
+        double_t iteration_ms = g_timer_t::ns_to_ms(expr_duration);
+        gaia_log::app().debug("[{}]: {} iteration, completed in {:.2f}ms", message, iteration, iteration_ms);
+
+        gaia_log::app().debug("[{}]: {} iteration, clearing database", message, iteration);
+        int64_t clear_database_duration = g_timer_t::get_function_duration(clear_database);
+        double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
+        gaia_log::app().debug("[{}]: {} iteration, cleared in {:.2f}ms", message, iteration, clear_ms);
     }
 
     log_performance_difference(expr_accumulator, message, num_insertions);
