@@ -31,6 +31,7 @@ add_library(gaia_common STATIC
 )
 
 configure_gaia_target(gaia_common)
+add_dependencies(gaia_common flatbuffers_dependency)
 target_include_directories(gaia_common PUBLIC ${GAIA_COMMON_INCLUDES} ${FLATBUFFERS_INC})
 
 # The following are INTERFACE libraries for including headers.
