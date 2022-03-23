@@ -211,7 +211,7 @@ void insert_thread(size_t num_records)
 
 TEST_F(test_insert_perf, DISABLED_simple_table_insert)
 {
-    auto insert1 = []() {
+    auto insert = []() {
         gaia::db::begin_transaction();
 
         for (size_t i = 0; i < c_num_insertion; i++)
@@ -231,12 +231,12 @@ TEST_F(test_insert_perf, DISABLED_simple_table_insert)
         }
     };
 
-    run_performance_test(insert1, "simple_table_t::insert_row");
+    run_performance_test(insert, "simple_table_t::insert_row");
 }
 
 TEST_F(test_insert_perf, DISABLED_simple_table_writer)
 {
-    auto insert2 = []() {
+    auto insert = []() {
         gaia::db::begin_transaction();
 
         for (size_t i = 0; i < c_num_insertion; i++)
@@ -258,12 +258,12 @@ TEST_F(test_insert_perf, DISABLED_simple_table_writer)
         }
     };
 
-    run_performance_test(insert2, "simple_table_writer");
+    run_performance_test(insert, "simple_table_writer");
 }
 
 TEST_F(test_insert_perf, DISABLED_simple_table_2)
 {
-    auto insert3 = []() {
+    auto insert = []() {
         gaia::db::begin_transaction();
 
         for (size_t i = 0; i < c_num_insertion; i++)
@@ -283,12 +283,12 @@ TEST_F(test_insert_perf, DISABLED_simple_table_2)
         }
     };
 
-    run_performance_test(insert3, "simple_table_2_t::insert_row");
+    run_performance_test(insert, "simple_table_2_t::insert_row");
 }
 
 TEST_F(test_insert_perf, DISABLED_simple_table_index)
 {
-    auto insert4 = []() {
+    auto insert = []() {
         gaia::db::begin_transaction();
 
         for (size_t i = 0; i < c_num_insertion; i++)
@@ -308,12 +308,12 @@ TEST_F(test_insert_perf, DISABLED_simple_table_index)
         }
     };
 
-    run_performance_test(insert4, "simple_table_index_t::insert_row");
+    run_performance_test(insert, "simple_table_index_t::insert_row");
 }
 
 TEST_F(test_insert_perf, DISABLED_simple_relationships)
 {
-    auto insert5 = []() {
+    auto insert = []() {
         gaia::db::begin_transaction();
 
         for (size_t i = 0; i < (c_num_insertion / 2); i++)
@@ -336,7 +336,7 @@ TEST_F(test_insert_perf, DISABLED_simple_relationships)
         }
     };
 
-    run_performance_test(insert5, "simple_relationships");
+    run_performance_test(insert, "simple_relationships");
 }
 
 TEST_F(test_insert_perf, DISABLED_value_linked_relationships_parent_only)
@@ -345,7 +345,7 @@ TEST_F(test_insert_perf, DISABLED_value_linked_relationships_parent_only)
     // finish in a reasonable amount of time.
     constexpr uint64_t c_vlr_insertions = c_num_insertion / 50;
 
-    auto insert6 = []() {
+    auto insert = []() {
         gaia::db::begin_transaction();
 
         for (size_t i = 0; i < c_vlr_insertions; i++)
@@ -365,7 +365,7 @@ TEST_F(test_insert_perf, DISABLED_value_linked_relationships_parent_only)
         }
     };
 
-    run_performance_test(insert6, "value_linked_relationships_parent_only", c_num_iterations, c_vlr_insertions);
+    run_performance_test(insert, "value_linked_relationships_parent_only", c_num_iterations, c_vlr_insertions);
 }
 
 TEST_F(test_insert_perf, DISABLED_value_linked_relationships_child_only)
@@ -374,7 +374,7 @@ TEST_F(test_insert_perf, DISABLED_value_linked_relationships_child_only)
     // finish in a reasonable amount of time.
     constexpr uint64_t c_vlr_insertions = c_num_insertion / 50;
 
-    auto insert6 = []() {
+    auto insert = []() {
         gaia::db::begin_transaction();
 
         for (size_t i = 0; i < c_vlr_insertions; i++)
@@ -394,7 +394,7 @@ TEST_F(test_insert_perf, DISABLED_value_linked_relationships_child_only)
         }
     };
 
-    run_performance_test(insert6, "value_linked_relationships_child_only", c_num_iterations, c_vlr_insertions);
+    run_performance_test(insert, "value_linked_relationships_child_only", c_num_iterations, c_vlr_insertions);
 }
 
 TEST_F(test_insert_perf, DISABLED_value_linked_relationships_autoconnect_to_same_parent)
@@ -403,7 +403,7 @@ TEST_F(test_insert_perf, DISABLED_value_linked_relationships_autoconnect_to_same
     // finish in a reasonable amount of time.
     constexpr uint64_t c_vlr_insertions = c_num_insertion / 100;
 
-    auto insert6 = []() {
+    auto insert = []() {
         gaia::db::begin_transaction();
 
         table_parent_vlr_t::insert_row(0);
@@ -425,7 +425,7 @@ TEST_F(test_insert_perf, DISABLED_value_linked_relationships_autoconnect_to_same
         }
     };
 
-    run_performance_test(insert6, "value_linked_relationships_autoconnect_to_same_parent", c_num_iterations, c_vlr_insertions + 1);
+    run_performance_test(insert, "value_linked_relationships_autoconnect_to_same_parent", c_num_iterations, c_vlr_insertions + 1);
 }
 
 TEST_F(test_insert_perf, DISABLED_value_linked_relationships_autoconnect_to_different_parent)
@@ -434,7 +434,7 @@ TEST_F(test_insert_perf, DISABLED_value_linked_relationships_autoconnect_to_diff
     // finish in a reasonable amount of time.
     constexpr uint64_t c_vlr_insertions = c_num_insertion / 200;
 
-    auto insert6 = []() {
+    auto insert = []() {
         gaia::db::begin_transaction();
 
         for (size_t i = 0; i < c_vlr_insertions; i++)
@@ -455,7 +455,7 @@ TEST_F(test_insert_perf, DISABLED_value_linked_relationships_autoconnect_to_diff
         }
     };
 
-    run_performance_test(insert6, "value_linked_relationships_autoconnect_to_different_parent", c_num_iterations, c_vlr_insertions * 2);
+    run_performance_test(insert, "value_linked_relationships_autoconnect_to_different_parent", c_num_iterations, c_vlr_insertions * 2);
 }
 
 // To reproduce GAIAPLAT-1475 you need to:
