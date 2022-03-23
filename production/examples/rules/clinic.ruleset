@@ -839,7 +839,7 @@ ruleset interop
 
     // [interop:6_resident]
     //
-    // Show how to read an optional field and set to 'nullopt'.
+    // Show how to use optional fields.
     on_update(resident.is_intern)
     {
         if (!is_intern)
