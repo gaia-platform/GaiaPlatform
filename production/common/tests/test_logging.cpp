@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 
 #include "gaia/exceptions.hpp"
+#include "gaia/optional.hpp"
 
 #include "gaia_internal/common/debug_logger.hpp"
 #include "gaia_internal/common/logger.hpp"
@@ -137,4 +138,30 @@ TEST(logger_test, is_log_level_enabled)
     verify_log_levels(gaia_spdlog::level::err);
     verify_log_levels(gaia_spdlog::level::critical);
     verify_log_levels(gaia_spdlog::level::off);
+}
+
+template <typename T>
+void verify_optional_logging(T value)
+{
+    gaia::common::optional_t<T> optional, null_optional;
+    optional = value;
+    null_optional = gaia::common::nullopt;
+    gaia_log::app().info("Optional has value '{}', '{}'", optional, null_optional);
+}
+
+TEST(logger_test, optional)
+{
+    gaia_log::initialize("./gaia_log.conf");
+    verify_optional_logging<uint8_t>(1);
+    verify_optional_logging<int8_t>(2);
+    verify_optional_logging<uint16_t>(3);
+    verify_optional_logging<int16_t>(4);
+    verify_optional_logging<uint32_t>(5);
+    verify_optional_logging<int32_t>(6);
+    verify_optional_logging<uint64_t>(7);
+    verify_optional_logging<int64_t>(8);
+    verify_optional_logging<float>(9.0);
+    verify_optional_logging<double>(10.0);
+    verify_optional_logging<bool>(false);
+    gaia_log::shutdown();
 }
