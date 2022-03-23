@@ -36,17 +36,16 @@ This will display something like:
 -----------------------------------------
 chicken |power: ON |min:  99.0|max: 102.0
 -----------------------------------------
-	|Temp A    |      1943|    101.97
-	---------------------------------
-	|Fan A     |         0|    1000.0
-	---------------------------------
-	|root      |1
-	|check_temperature|1
-	|check_fan |0
-	|set_fan   |0
-	|check_fan_adjust|0
-	|adjust_fan|0
-
+     |Temp A    |      1943|    101.97
+     ---------------------------------
+     |Fan A     |         0|    1000.0
+     ---------------------------------
+     |root      |1
+     |check_temperature|1
+     |check_fan |0
+     |set_fan   |0
+     |check_fan_adjust|0
+     |adjust_fan|0
 
 ```
 The above shows an incubator, that is at a temperature of 101.97 degrees.  It contains one fan turning at 1000 rpm. The simulation has been running for 313 ticks. The status of root node of Behavior tree is Success. The status of Check Temperature action node has also Success status. The rest of Behavior Tree nodes have not been ticked.

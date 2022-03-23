@@ -120,7 +120,7 @@ ruleset behavior_tree
           node.parent->node.tick_flag = !node.parent->node.tick_flag;
         }
     }
-    
+
     ///////////////////////////////////////////////////////////////////////////////////////////////
     /// A check temperature action node is ticked
     ///
@@ -159,7 +159,7 @@ ruleset behavior_tree
       node.status = success;
       set_fan_speed_trigger.remove();
     }
-    
+
     ///////////////////////////////////////////////////////////////////////////////////////////////
     /// A check fan speed action node is ticked
     ///

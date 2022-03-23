@@ -19,13 +19,12 @@
 #include <string>
 #include <thread>
 
-#include "behave.hpp"
-
 #include "gaia/rules/rules.hpp"
 #include "gaia/system.hpp"
 
-#include "gaia_incubator.h"
+#include "behave.hpp"
 #include "gaia_behave.h"
+#include "gaia_incubator.h"
 
 using namespace gaia::behave;
 
@@ -38,7 +37,6 @@ using namespace gaia::rules;
 
 const char c_sensor_a[] = "Temp A";
 const char c_actuator_a[] = "Fan A";
-
 
 const char c_chicken[] = "chicken";
 constexpr float c_chicken_min = 99.0;
@@ -138,7 +136,7 @@ void init_storage()
 {
     auto_transaction_t tx(auto_transaction_t::no_auto_restart);
 
-     init_behavioral_tree();
+    init_behavioral_tree();
     // If we already have inserted an incubator then our storage has already been
     // initialized.  Re-initialize the database to default values.
     if (incubator_t::list().size())
@@ -221,7 +219,7 @@ float adjust_temperature(float min_temp, float max_temp, float sensor_value, flo
     }
     else if (sensor_value <= min_temp)
     {
-        new_fan_rpm = std::max(0.0f, fan_rpm - (2*c_fan_speed_increment));
+        new_fan_rpm = std::max(0.0f, fan_rpm - (2 * c_fan_speed_increment));
     }
 
     return new_fan_rpm;
@@ -256,7 +254,7 @@ void simulation()
 
         for (const auto& a : actuator_t::list())
         {
-	        fan_a = a.value();
+            fan_a = a.value();
         }
 
         auto current = std::chrono::steady_clock::now();
