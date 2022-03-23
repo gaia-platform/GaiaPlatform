@@ -72,7 +72,7 @@ public:
 
     /**
      * Returns true if this type is involved in at least one value linked relationship
-     * both as parent and child.
+     * either as parent or child.
      */
     bool has_value_linked_relationship() const;
 
