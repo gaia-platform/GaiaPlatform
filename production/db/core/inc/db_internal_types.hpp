@@ -108,7 +108,7 @@ constexpr size_t c_max_types = 64;
 // should be able to solve this by storing locators directly in each object's
 // references array rather than gaia_ids. Other expensive index lookups could be
 // similarly optimized by substituting locators for gaia_ids.
-constexpr size_t c_hash_buckets{1ULL << 20};
+constexpr size_t c_hash_buckets{1ULL << 26};
 
 // This is an array of offsets in the data segment corresponding to object
 // versions, where each array index is referred to as a "locator."
