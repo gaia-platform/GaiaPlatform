@@ -70,6 +70,12 @@ public:
      */
     void add_child_relationship(const std::shared_ptr<relationship_t>& relationship);
 
+    /**
+     * Returns true if this type is involved in at least one value linked relationship
+     * either as parent or child.
+     */
+    bool has_value_linked_relationship() const;
+
 private:
     const gaia::common::gaia_type_t m_type;
 
@@ -85,6 +91,9 @@ private:
 
     // The total number of reference slots this type has.
     common::reference_offset_t m_reference_count{0};
+
+    // Set to true as soon as at least one relationship is marked as VLR.
+    bool m_has_value_linked_relationship{false};
 
     bool is_initialized();
     void mark_as_initialized();

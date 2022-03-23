@@ -6,6 +6,7 @@
 #pragma once
 
 #include "gaia/exception.hpp"
+#include "gaia/optional.hpp"
 
 #include "gaia_spdlog/spdlog.h"
 
@@ -210,6 +211,26 @@ logger_t& app();
 } // namespace gaia
 
 namespace gaia_log = gaia::common::logging;
+
+GAIA_FMT_BEGIN_NAMESPACE
+/**
+ * Formatter to allow logging gaia::common::optional_t types.
+ */
+template <typename T>
+struct formatter<gaia::common::optional_t<T>> : formatter<T>
+{
+    template <typename FormatContext>
+    auto format(gaia::common::optional_t<T> optional, FormatContext& ctx)
+    {
+        if (!optional.has_value())
+        {
+            formatter<string_view> str_formatter;
+            return str_formatter.format("<missing>", ctx);
+        }
+        return formatter<T>::format(optional.value(), ctx);
+    }
+};
+GAIA_FMT_END_NAMESPACE
 
 // Restore default hidden visibility for all symbols.
 #pragma GCC visibility pop

@@ -230,7 +230,6 @@ void interop()
     }
     insert_location(1);
     update_resident_status("Alex Kamal", true, 1);
-    update_resident_status("Alex Kamal", false, 1);
 }
 
 void navigation()
