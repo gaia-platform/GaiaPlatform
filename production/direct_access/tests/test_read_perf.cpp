@@ -25,7 +25,7 @@ using namespace std;
 
 using g_timer_t = gaia::common::timer_t;
 
-static const uint64_t c_num_insertion = 100000;
+static const uint64_t c_num_records = 100000;
 static const uint64_t c_num_iterations = 5;
 
 // This is a hard limit imposed by the db architecture.
@@ -164,40 +164,40 @@ void run_performance_test(
     std::function<void()> expr_fn,
     std::string_view message,
     size_t num_iterations = c_num_iterations,
-    uint64_t num_insertions = c_num_insertion)
+    uint64_t num_records = c_num_records)
 {
     accumulator_t<int64_t> expr_accumulator;
 
     for (size_t iteration = 0; iteration < num_iterations; iteration++)
     {
-        gaia_log::app().debug("[{}]: {} iteration staring, {} insertions", message, iteration, num_insertions);
+        gaia_log::app().info("[{}]: {} iteration staring, {} records", message, iteration, num_records);
         int64_t expr_duration = g_timer_t::get_function_duration(expr_fn);
         expr_accumulator.add(expr_duration);
 
         double_t iteration_ms = g_timer_t::ns_to_ms(expr_duration);
-        gaia_log::app().debug("[{}]: {} iteration, completed in {:.2f}ms", message, iteration, iteration_ms);
-
-        gaia_log::app().debug("[{}]: {} iteration, clearing database", message, iteration);
-        int64_t clear_database_duration = g_timer_t::get_function_duration(clear_database);
-        double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
-        gaia_log::app().debug("[{}]: {} iteration, cleared in {:.2f}ms", message, iteration, clear_ms);
+        gaia_log::app().info("[{}]: {} iteration, completed in {:.2f}ms", message, iteration, iteration_ms);
     }
 
-    log_performance_difference(expr_accumulator, message, num_insertions, num_iterations);
+    gaia_log::app().info("[{}]: clearing database", message);
+    int64_t clear_database_duration = g_timer_t::get_function_duration(clear_database);
+    double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
+    gaia_log::app().info("[{}]: cleared in {:.2f}ms", message, clear_ms);
+
+    log_performance_difference(expr_accumulator, message, num_records, num_iterations);
 }
 
-void insert_thread(size_t num_records)
+void insert_data()
 {
-    gaia::db::begin_session();
     gaia::db::begin_transaction();
 
-    for (size_t i = 0; i < num_records; i++)
+    for (size_t i = 0; i < c_num_records; i++)
     {
         if (i > 0 && i % c_max_insertion_single_txn == 0)
         {
             gaia::db::commit_transaction();
             gaia::db::begin_transaction();
         }
+
         simple_table_t::insert_row(i);
     }
 
@@ -205,280 +205,93 @@ void insert_thread(size_t num_records)
     {
         gaia::db::commit_transaction();
     }
-
-    gaia::db::end_session();
 }
 
-TEST_F(test_read_perf, DISABLED_simple_table_insert)
+TEST_F(test_read_perf, DISABLED_table_scan)
 {
-    auto insert1 = []() {
+    insert_data();
+
+    auto work = []() {
         gaia::db::begin_transaction();
 
-        for (size_t i = 0; i < c_num_insertion; i++)
+        int i = 0;
+        for ([[maybe_unused]] auto& record :
+             simple_table_t::list())
         {
-            if (i > 0 && i % c_max_insertion_single_txn == 0)
-            {
-                gaia::db::commit_transaction();
-                gaia::db::begin_transaction();
-            }
-
-            simple_table_t::insert_row(i);
+            i++;
         }
 
-        if (gaia::db::is_transaction_open())
-        {
-            gaia::db::commit_transaction();
-        }
+        gaia::db::commit_transaction();
+
+        ASSERT_EQ(c_num_records, i);
     };
 
-    run_performance_test(insert1, "simple_table_t::insert_row");
+    run_performance_test(work, "simple_table_t::table_scan", 2);
 }
 
-TEST_F(test_read_perf, DISABLED_simple_table_writer)
+TEST_F(test_read_perf, DISABLED_table_scan_data_access)
 {
-    auto insert2 = []() {
+    insert_data();
+
+    auto work = []() {
         gaia::db::begin_transaction();
 
-        for (size_t i = 0; i < c_num_insertion; i++)
+        int i = 0;
+        for (auto& record : simple_table_t::list())
         {
-            if (i > 0 && i % c_max_insertion_single_txn == 0)
-            {
-                gaia::db::commit_transaction();
-                gaia::db::begin_transaction();
-            }
-
-            simple_table_writer w;
-            w.uint64_field = i;
-            w.insert_row();
+            (void)record.uint64_field();
+            (void)record.gaia_id();
+            i++;
         }
 
-        if (gaia::db::is_transaction_open())
-        {
-            gaia::db::commit_transaction();
-        }
+        gaia::db::commit_transaction();
+
+        ASSERT_EQ(c_num_records, i);
     };
 
-    run_performance_test(insert2, "simple_table_writer");
+    run_performance_test(work, "simple_table_t::table_scan_data_access", 2);
 }
 
-TEST_F(test_read_perf, DISABLED_simple_table_2)
+TEST_F(test_read_perf, DISABLED_filter_no_match)
 {
-    auto insert3 = []() {
+    insert_data();
+
+    auto work = []() {
         gaia::db::begin_transaction();
 
-        for (size_t i = 0; i < c_num_insertion; i++)
+        int i = 0;
+        for ([[maybe_unused]] auto& record :
+             simple_table_t::list().where(simple_table_t::expr::uint64_field > c_num_records))
         {
-            if (i > 0 && i % c_max_insertion_single_txn == 0)
-            {
-                gaia::db::commit_transaction();
-                gaia::db::begin_transaction();
-            }
-
-            simple_table_2_t::insert_row(i, "suppini", {1, 2, 3, 4, 5});
+            i++;
         }
 
-        if (gaia::db::is_transaction_open())
-        {
-            gaia::db::commit_transaction();
-        }
+        gaia::db::commit_transaction();
+
+        ASSERT_EQ(0, i);
     };
 
-    run_performance_test(insert3, "simple_table_2_t::insert_row");
+    run_performance_test(work, "simple_table_t::filter_no_match", 2);
 }
 
-TEST_F(test_read_perf, DISABLED_simple_table_index)
+TEST_F(test_read_perf, DISABLED_filter_match)
 {
-    auto insert4 = []() {
+    insert_data();
+
+    auto work = []() {
         gaia::db::begin_transaction();
 
-        for (size_t i = 0; i < c_num_insertion; i++)
+        int i = 0;
+        for ([[maybe_unused]] auto& record :
+             simple_table_t::list().where(simple_table_t::expr::uint64_field >= (c_num_records / 2)))
         {
-            if (i > 0 && i % c_max_insertion_single_txn == 0)
-            {
-                gaia::db::commit_transaction();
-                gaia::db::begin_transaction();
-            }
-
-            simple_table_index_t::insert_row(i);
+            i++;
         }
 
-        if (gaia::db::is_transaction_open())
-        {
-            gaia::db::commit_transaction();
-        }
+        gaia::db::commit_transaction();
+
+        ASSERT_EQ(c_num_records / 2, i);
     };
 
-    run_performance_test(insert4, "simple_table_index_t::insert_row");
-}
-
-TEST_F(test_read_perf, DISABLED_simple_relationships)
-{
-    auto insert5 = []() {
-        gaia::db::begin_transaction();
-
-        for (size_t i = 0; i < (c_num_insertion / 2); i++)
-        {
-            // Divides by 5 because the following operations causes 5 objects mutations.
-            if (i > 0 && i % (c_max_insertion_single_txn / 5) == 0)
-            {
-                gaia::db::commit_transaction();
-                gaia::db::begin_transaction();
-            }
-
-            table_parent_t parent = table_parent_t::get(table_parent_t::insert_row());
-            gaia_id_t child = table_child_t::insert_row();
-            parent.children().insert(child);
-        }
-
-        if (gaia::db::is_transaction_open())
-        {
-            gaia::db::commit_transaction();
-        }
-    };
-
-    run_performance_test(insert5, "simple_relationships");
-}
-
-TEST_F(test_read_perf, DISABLED_value_linked_relationships_parent_only)
-{
-    // VLR are so slow that we need to use a lower number of insertion to
-    // finish in a reasonable amount of time.
-    constexpr uint64_t c_vlr_insertions = c_num_insertion / 50;
-
-    auto insert6 = []() {
-        gaia::db::begin_transaction();
-
-        for (size_t i = 0; i < c_vlr_insertions; i++)
-        {
-            if (i > 0 && i % (c_max_insertion_single_txn / 2) == 0)
-            {
-                gaia::db::commit_transaction();
-                gaia::db::begin_transaction();
-            }
-
-            table_parent_vlr_t::insert_row(i);
-        }
-
-        if (gaia::db::is_transaction_open())
-        {
-            gaia::db::commit_transaction();
-        }
-    };
-
-    run_performance_test(insert6, "value_linked_relationships_parent_only", c_num_iterations, c_vlr_insertions);
-}
-
-TEST_F(test_read_perf, DISABLED_value_linked_relationships_child_only)
-{
-    // VLR are so slow that we need to use a lower number of insertion to
-    // finish in a reasonable amount of time.
-    constexpr uint64_t c_vlr_insertions = c_num_insertion / 50;
-
-    auto insert6 = []() {
-        gaia::db::begin_transaction();
-
-        for (size_t i = 0; i < c_vlr_insertions; i++)
-        {
-            if (i > 0 && i % (c_max_insertion_single_txn / 2) == 0)
-            {
-                gaia::db::commit_transaction();
-                gaia::db::begin_transaction();
-            }
-
-            table_child_vlr_t::insert_row(i);
-        }
-
-        if (gaia::db::is_transaction_open())
-        {
-            gaia::db::commit_transaction();
-        }
-    };
-
-    run_performance_test(insert6, "value_linked_relationships_child_only", c_num_iterations, c_vlr_insertions);
-}
-
-TEST_F(test_read_perf, DISABLED_value_linked_relationships_autoconnect_to_same_parent)
-{
-    // VLR are so slow that we need to use a lower number of insertion to
-    // finish in a reasonable amount of time.
-    constexpr uint64_t c_vlr_insertions = c_num_insertion / 100;
-
-    auto insert6 = []() {
-        gaia::db::begin_transaction();
-
-        table_parent_vlr_t::insert_row(0);
-
-        for (size_t i = 0; i < c_vlr_insertions; i++)
-        {
-            if (i > 0 && i % (c_max_insertion_single_txn / 2) == 0)
-            {
-                gaia::db::commit_transaction();
-                gaia::db::begin_transaction();
-            }
-
-            table_child_vlr_t::insert_row(0);
-        }
-
-        if (gaia::db::is_transaction_open())
-        {
-            gaia::db::commit_transaction();
-        }
-    };
-
-    run_performance_test(insert6, "value_linked_relationships_autoconnect_to_same_parent", c_num_iterations, c_vlr_insertions + 1);
-}
-
-TEST_F(test_read_perf, DISABLED_value_linked_relationships_autoconnect_to_different_parent)
-{
-    // VLR are so slow that we need to use a lower number of insertion to
-    // finish in a reasonable amount of time.
-    constexpr uint64_t c_vlr_insertions = c_num_insertion / 200;
-
-    auto insert6 = []() {
-        gaia::db::begin_transaction();
-
-        for (size_t i = 0; i < c_vlr_insertions; i++)
-        {
-            if (i > 0 && i % (c_max_insertion_single_txn / 2) == 0)
-            {
-                gaia::db::commit_transaction();
-                gaia::db::begin_transaction();
-            }
-
-            table_parent_vlr_t::insert_row(i);
-            table_child_vlr_t::insert_row(i);
-        }
-
-        if (gaia::db::is_transaction_open())
-        {
-            gaia::db::commit_transaction();
-        }
-    };
-
-    run_performance_test(insert6, "value_linked_relationships_autoconnect_to_different_parent", c_num_iterations, c_vlr_insertions * 2);
-}
-
-// To reproduce GAIAPLAT-1475 you need to:
-// - c_num_insertion = 200000
-// - Call run_performance_test with num_iterations=10
-// Keeping it disabled for now because it takes too much time.
-TEST_F(test_read_perf, DISABLED_simple_table_concurrent)
-{
-    constexpr size_t c_num_workers = 5;
-
-    auto insert = []() {
-        std::vector<std::thread> workers;
-
-        for (size_t i = 0; i < c_num_workers; i++)
-        {
-            workers.emplace_back(insert_thread, (c_num_insertion / c_num_workers));
-        }
-
-        for (auto& worker : workers)
-        {
-            worker.join();
-        }
-    };
-
-    run_performance_test(insert, gaia_fmt::format("simple_table_t::insert_row with {} threads", c_num_workers));
+    run_performance_test(work, gaia_fmt::format("simple_table_t::filter_match {} matches", c_num_records / 2), 2);
 }
