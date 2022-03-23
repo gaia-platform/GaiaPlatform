@@ -31,6 +31,9 @@ namespace direct_access
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_class>
 class dac_container_t;
 
+template <typename T_child>
+class reference_container_t;
+
 /**
  * @brief  A dac_iterator_t contains the methods that implement an iterator
  * for scanning through the objects of type T_class
