@@ -8,9 +8,6 @@
 #include <memory>
 #include <string>
 
-#include "gaia/optional.hpp"
-
-#include "gaia_spdlog/fmt/bundled/format.h"
 #include "gaia_spdlog/spdlog.h"
 
 namespace gaia::common::logging
