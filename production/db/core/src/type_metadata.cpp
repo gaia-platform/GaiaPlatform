@@ -60,6 +60,11 @@ void type_metadata_t::add_parent_relationship(const std::shared_ptr<relationship
 
     m_parent_relationships.insert({relationship->first_child_offset, relationship});
     m_reference_count += 1;
+
+    if (relationship->value_linked)
+    {
+        m_has_value_linked_relationship = true;
+    }
 }
 
 void type_metadata_t::add_child_relationship(const std::shared_ptr<relationship_t>& relationship)
@@ -68,6 +73,11 @@ void type_metadata_t::add_child_relationship(const std::shared_ptr<relationship_
 
     m_child_relationships.insert({relationship->parent_offset, relationship});
     m_reference_count += 3;
+
+    if (relationship->value_linked)
+    {
+        m_has_value_linked_relationship = true;
+    }
 }
 
 gaia_type_t type_metadata_t::get_type() const
@@ -89,6 +99,11 @@ bool type_metadata_t::is_initialized()
 void type_metadata_t::mark_as_initialized()
 {
     m_initialized.store(true);
+}
+
+bool type_metadata_t::has_value_linked_relationship() const
+{
+    return m_has_value_linked_relationship;
 }
 
 /*
