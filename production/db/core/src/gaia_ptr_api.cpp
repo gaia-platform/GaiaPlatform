@@ -346,13 +346,17 @@ gaia_ptr_t create(
     reference_offset_t references_count = metadata.references_count();
 
     gaia_ptr_t obj = gaia_ptr_t::create_no_txn(id, type, references_count, data_size, data);
-    db_object_t* obj_ptr = obj.to_ptr();
-    auto_connect(
-        id,
-        type,
-        // NOLINTNEXTLINE: cppcoreguidelines-pro-type-const-cast
-        const_cast<gaia_id_t*>(obj_ptr->references()),
-        reinterpret_cast<const uint8_t*>(obj_ptr->data()));
+
+    if (metadata.has_value_linked_relationship())
+    {
+        db_object_t* obj_ptr = obj.to_ptr();
+        auto_connect(
+            id,
+            type,
+            // NOLINTNEXTLINE: cppcoreguidelines-pro-type-const-cast
+            const_cast<gaia_id_t*>(obj_ptr->references()),
+            reinterpret_cast<const uint8_t*>(obj_ptr->data()));
+    }
 
     obj.finalize_create();
 
