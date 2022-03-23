@@ -215,7 +215,6 @@ namespace gaia_log = gaia::common::logging;
 GAIA_FMT_BEGIN_NAMESPACE
 /**
  * Formatter to allow logging gaia::common::optional_t types.
- *
  */
 template <typename T>
 struct formatter<gaia::common::optional_t<T>> : formatter<T>
