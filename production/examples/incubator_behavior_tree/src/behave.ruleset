@@ -1,0 +1,200 @@
+////////////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+//
+// Use of this source code is governed by the MIT
+// license that can be found in the LICENSE.txt file
+// or at https://opensource.org/licenses/MIT.
+////////////////////////////////////////////////////
+
+#include "behave.hpp"
+#include <gaia/logger.hpp>
+
+float adjust_temperature(float min_temp, float max_temp, float sensor_value, float fan_rpm);
+extern float c_fan_speed_limit;
+extern float c_fan_threshold;
+extern float c_fan_speed_increment;
+
+ruleset behavior_tree
+{
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    /// A tick is triggered
+    ///
+    /// Triggered by:
+    ///   update of node tick_flag
+    ///
+    /// Triggers:
+    ///
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    on_update(p:node.tick_flag)
+    {
+      unsigned int child_count = 0;
+      if (p.node_type == action && p.status != running)
+      {
+        p.status = running;
+
+        if (p.argument == check_temperature)
+        {
+          p.check_temperature.connect(check_temperature_trigger.insert());
+        }
+        else if (p.argument == set_fan_speed)
+        {
+          p.set_fan_speed.connect(set_fan_speed_trigger.insert());
+        }
+        else if (p.argument == check_fan_speed)
+        {
+          p.check_fan_speed.connect(check_fan_speed_trigger.insert());
+        }
+        else if (p.argument == adjust_fan_speed)
+        {
+          p.adjust_fan_speed.connect(adjust_fan_speed_trigger.insert());
+        }
+        return;
+      }
+      else if (p.node_type == selector)
+      {
+        if (p.children->c:node.order == child_count)
+        {
+          if (c.status == running)
+          {
+            p.status = running;
+            return;
+          }
+          else if(c.status == success)
+          {
+            p.status = success;
+            return;
+          }
+          else if (c.status == idle)
+          {
+            c.tick_flag = !c.tick_flag;
+            return;
+          }
+          ++child_count;
+        }
+        if (p.status == idle)
+        {
+          p.status = failure;
+        }
+      }
+      else if (p.node_type == sequence)
+      {
+        if (p.children->c:node.order == child_count)
+        {
+          if (c.status == running)
+          {
+            p.status = running;
+            return;
+          }
+          else if(c.status == failure)
+          {
+            p.status = failure;
+            return;
+          }
+          else if (c.status == idle)
+          {
+            c.tick_flag = !c.tick_flag;
+            return;
+          }
+          ++child_count;
+        }
+        if (p.status == idle)
+        {
+          p.status = success;
+        }
+      }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    /// A node status has changed
+    ///
+    /// Triggered by:
+    ///   update of node status
+    ///
+    /// Triggers:
+    ///
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    on_update(node.status)
+    {
+        if (node.status == success || node.status == failure)
+        {
+          node.parent->node.tick_flag = !node.parent->node.tick_flag;
+        }
+    }
+    
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    /// A check temperature action node is ticked
+    ///
+    /// Triggered by:
+    ///   tick for a check temperature action node
+    ///
+    /// Triggers:
+    ///
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    on_insert(check_temperature_trigger)
+    {
+      if (/sensor.value < /incubator.min_temp
+                        || /sensor.value > /incubator.max_temp)
+      {
+        node.status = failure;
+      }
+      else
+      {
+        node.status = success;
+      }
+      check_temperature_trigger.remove();
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    /// A set fan speed action node is ticked
+    ///
+    /// Triggered by:
+    ///   tick for a calculate and set fan speed action node
+    ///
+    /// Triggers:
+    ///
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    on_insert(set_fan_speed_trigger)
+    {
+      /actuator.value = adjust_temperature(/incubator.min_temp, /incubator.max_temp, /sensor.value, /actuator.value);
+      node.status = success;
+      set_fan_speed_trigger.remove();
+    }
+    
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    /// A check fan speed action node is ticked
+    ///
+    /// Triggered by:
+    ///   tick for a check fan speed action node
+    ///
+    /// Triggers:
+    ///
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    on_insert(check_fan_speed_trigger)
+    {
+      if (/sensor.value > /incubator.max_temp
+                            && /actuator.value > c_fan_threshold * c_fan_speed_limit)
+      {
+        node.status = success;
+      }
+      else
+      {
+        node.status = failure;
+      }
+      check_fan_speed_trigger.remove();
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    /// An adjust fan speed action node is ticked
+    ///
+    /// Triggered by:
+    ///   tick for an adjust fan speed action node
+    ///
+    /// Triggers:
+    ///
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    on_insert(adjust_fan_speed_trigger)
+    {
+      node.status = success;
+      /actuator.value = c_fan_speed_limit;
+    }
+};
