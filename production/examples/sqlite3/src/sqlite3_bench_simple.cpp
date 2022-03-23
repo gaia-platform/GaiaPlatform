@@ -18,8 +18,8 @@
 
 #include "timer.hpp"
 
-const constexpr uint32_t c_insert_buffer_stmts = 65000;
 const constexpr uint32_t c_num_insertion = 10000000;
+const constexpr uint32_t c_insert_buffer_stmts = c_num_insertion > 1000000 ? c_num_insertion / 10 : c_num_insertion;
 
 using namespace std::chrono;
 using namespace std;
@@ -118,7 +118,7 @@ class sqlite3_benchmark : public ::testing::Test
 protected:
     static void SetUpTestSuite()
     {
-        spdlog::set_level(spdlog::level::info);
+        spdlog::set_level(spdlog::level::debug);
     }
 
     static void TearDownTestCase()
@@ -145,22 +145,30 @@ protected:
         printf("%s\n", sqlite3_column_text(version_stmt, 0));
         sqlite3_finalize(version_stmt);
 
-        exec(db, "CREATE TABLE IF NOT EXISTS simple_table(uint64_field BIGINT);\n"
+        exec(db, "CREATE TABLE IF NOT EXISTS simple_table(id INTEGER PRIMARY KEY, uint64_field BIGINT);\n"
                  "PRAGMA user_version = 4;");
     }
 
-    void log_performance_difference(accumulator_t<int64_t> expr_accumulator, std::string_view message, uint64_t num_insertions)
+    void log_performance_difference(accumulator_t<int64_t> expr_accumulator, std::string_view message, uint64_t num_insertions, size_t num_iterations)
     {
-        double_t avg_expr = g_timer_t::ns_to_us(expr_accumulator.avg());
-        double_t avg_expr_ms = g_timer_t::ns_to_ms(expr_accumulator.avg());
-        double_t min_expr = g_timer_t::ns_to_us(expr_accumulator.min());
-        double_t max_expr = g_timer_t::ns_to_us(expr_accumulator.max());
-        double_t single_record_insertion = avg_expr / num_insertions;
+        double_t avg_expr_us = g_timer_t::ns_to_us(static_cast<int64_t>(expr_accumulator.avg()));
+        double_t min_expr_us = g_timer_t::ns_to_us(expr_accumulator.min());
+        double_t max_expr_us = g_timer_t::ns_to_us(expr_accumulator.max());
+        double_t avg_expr_ms = g_timer_t::ns_to_ms(static_cast<int64_t>(expr_accumulator.avg()));
+        double_t min_expr_ms = g_timer_t::ns_to_ms(expr_accumulator.min());
+        double_t max_expr_ms = g_timer_t::ns_to_ms(expr_accumulator.max());
 
-        cout << message << " performance:" << endl;
+        double_t single_record_avg_ns = avg_expr_us / static_cast<double_t>(num_insertions);
+        double_t single_record_min_ns = min_expr_us / static_cast<double_t>(num_insertions);
+        double_t single_record_max_ns = max_expr_us / static_cast<double_t>(num_insertions);
+
         printf(
-            "  [expr]: avg:%0.2fus/%0.2fms min:%0.2fus max:%0.2fus single_insert:%0.2fus\n",
-            avg_expr, avg_expr_ms, min_expr, max_expr, single_record_insertion);
+            "[%s] %lu rows, %zu iterations:\n"
+            "   [total]: avg:%0.2fms min:%0.2fms max:%0.2fms\n"
+            "  [single]: avg:%0.2fus min:%0.2fus max:%0.2fus",
+            message.data(), num_insertions, num_iterations,
+            avg_expr_ms, min_expr_ms, max_expr_ms,
+            single_record_avg_ns, single_record_min_ns, single_record_max_ns);
 
         cout << endl;
     }
@@ -169,7 +177,8 @@ protected:
         std::function<void()> expr_fn,
         std::string_view message,
         size_t num_iterations = 3,
-        uint64_t num_insertions = c_num_insertion)
+        uint64_t num_insertions = c_num_insertion,
+        bool read_benchmark = false)
     {
         accumulator_t<int64_t> expr_accumulator;
 
@@ -182,13 +191,26 @@ protected:
             double_t iteration_ms = g_timer_t::ns_to_ms(expr_duration);
             spdlog::debug("[{}]: {} iteration, completed in {:.2f}ms", message, iteration, iteration_ms);
 
-            spdlog::debug("[{}]: {} iteration, clearing database", message, iteration);
-            int64_t clear_database_duration = g_timer_t::get_function_duration([this]() { clear_database(db); });
-            double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
-            spdlog::debug("[{}]: {} iteration, cleared in {:.2f}ms", message, iteration, clear_ms);
+            // Writer benchmarks need to reset the data on every iteration.
+            if (!read_benchmark)
+            {
+                spdlog::debug("[{}]: {} iteration, clearing database", message, iteration);
+                int64_t clear_database_duration = g_timer_t::get_function_duration([this]() { clear_database(db); });
+                double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
+                spdlog::debug("[{}]: {} iteration, cleared in {:.2f}ms", message, iteration, clear_ms);
+            }
         }
 
-        log_performance_difference(expr_accumulator, message, num_insertions);
+        // Reader benchmarks need to use the data on every iteration hence the deletion should happen only at the end.
+        if (read_benchmark)
+        {
+            spdlog::debug("[{}]: clearing database", message);
+            int64_t clear_database_duration = g_timer_t::get_function_duration([this]() { clear_database(db); });
+            double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
+            spdlog::debug("[{}]: cleared in {:.2f}ms", message, clear_ms);
+        }
+
+        log_performance_difference(expr_accumulator, message, num_insertions, num_iterations);
     }
 
 public:
@@ -312,6 +334,139 @@ TEST_F(sqlite3_benchmark, simple_insert_prepared_statement)
     };
 
     run_performance_test(simple_insert, "sqlite3::simple_insert_prepared_statement");
+}
+
+void insert_records(sqlite3* db)
+{
+    const char* sql = "INSERT INTO simple_table(uint64_field) VALUES (?);";
+
+    sqlite3_stmt* stmt; // will point to prepared stamement object
+    sqlite3_prepare_v2(
+        db, // the handle to your (opened and ready) database
+        sql, // the sql statement, utf-8 encoded
+        -1, // max length of sql statement
+        &stmt, // this is an "out" parameter, the compiled statement goes here
+        nullptr); // pointer to the tail end of sql statement (when there are
+                  // multiple statements inside the string; can be null)
+
+    exec(db, "BEGIN TRANSACTION;");
+
+    for (int i = 0; i < c_num_insertion; i++)
+    {
+        sqlite3_bind_int64(stmt, 1, i);
+        int ret_val = sqlite3_step(stmt);
+        if (ret_val != SQLITE_DONE)
+        {
+            printf("Commit Failed! %d\n", ret_val);
+            sqlite3_close(db);
+            exit(1);
+        }
+        sqlite3_reset(stmt);
+
+        if (i % c_insert_buffer_stmts == 0 || i == c_num_insertion - 1)
+        {
+            exec(db, "COMMIT;");
+
+            if (i < c_num_insertion - 1)
+            {
+                exec(db, "BEGIN TRANSACTION;");
+            }
+        }
+    }
+
+    sqlite3_free(stmt);
+}
+
+TEST_F(sqlite3_benchmark, full_table_scan)
+{
+    insert_records(db);
+
+    auto simple_insert = [this]() {
+        sqlite3_stmt* stmt = query(db, "SELECT * FROM simple_table");
+
+        int i = 0;
+
+        while (sqlite3_step(stmt) != SQLITE_DONE)
+        {
+            i++;
+        }
+
+        sqlite3_finalize(stmt);
+
+        ASSERT_EQ(c_num_insertion, i);
+    };
+
+    run_performance_test(simple_insert, "sqlite3::full_table_scan", 3, c_num_insertion, true);
+}
+
+TEST_F(sqlite3_benchmark, full_table_scan_access_data)
+{
+    insert_records(db);
+
+    auto simple_insert = [this]() {
+        sqlite3_stmt* stmt = query(db, "SELECT * FROM simple_table");
+
+        int i = 0;
+
+        while (sqlite3_step(stmt) != SQLITE_DONE)
+        {
+            sqlite3_column_int64(stmt, 0);
+            sqlite3_column_int64(stmt, 1);
+            i++;
+        }
+
+        sqlite3_finalize(stmt);
+
+        ASSERT_EQ(c_num_insertion, i);
+    };
+
+    run_performance_test(simple_insert, "sqlite3::full_table_scan_access_data", 3, c_num_insertion, true);
+}
+
+TEST_F(sqlite3_benchmark, filter_no_match)
+{
+    insert_records(db);
+
+    auto simple_insert = [this]() {
+        sqlite3_stmt* stmt = query(db, "SELECT * FROM simple_table WHERE uint64_field > ?");
+        sqlite3_bind_int(stmt, 1, c_num_insertion);
+
+        int i = 0;
+
+        while (sqlite3_step(stmt) != SQLITE_DONE)
+        {
+            i++;
+        }
+
+        sqlite3_finalize(stmt);
+
+        ASSERT_EQ(0, i);
+    };
+
+    run_performance_test(simple_insert, "sqlite3::filter_no_match", 3, c_num_insertion, true);
+}
+
+TEST_F(sqlite3_benchmark, filter_match)
+{
+    insert_records(db);
+
+    auto simple_insert = [this]() {
+        sqlite3_stmt* stmt = query(db, "SELECT * FROM simple_table WHERE uint64_field >= ?");
+        sqlite3_bind_int(stmt, 1, c_num_insertion / 2);
+
+        int i = 0;
+
+        while (sqlite3_step(stmt) != SQLITE_DONE)
+        {
+            i++;
+        }
+
+        sqlite3_finalize(stmt);
+
+        ASSERT_EQ(c_num_insertion / 2, i);
+    };
+
+    run_performance_test(simple_insert, fmt::format("sqlite3::filter_match {} matches", c_num_insertion / 2), 3, c_num_insertion, true);
 }
 
 // int main()
