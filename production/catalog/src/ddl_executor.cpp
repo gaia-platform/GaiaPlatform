@@ -1084,6 +1084,22 @@ uint32_t generate_table_type(const string& db_name, const string& table_name)
         ^ (hash::murmur3_32(db_name.data(), static_cast<int>(db_name.length())) << 1);
 }
 
+bool is_type_used(gaia_type_t type)
+{
+    for (auto& database : gaia_database_t::list())
+    {
+        for (auto& table : gaia_database_t::get(database.gaia_id()).gaia_tables())
+        {
+            if (table.type() == type)
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 gaia_id_t ddl_executor_t::create_table_impl(
     const string& db_name,
     const string& table_name,
@@ -1153,6 +1169,10 @@ gaia_id_t ddl_executor_t::create_table_impl(
         = (fixed_type.is_valid())
         ? fixed_type
         : gaia_type_t(generate_table_type(in_context(db_name), table_name));
+
+    ASSERT_INVARIANT(
+        !is_type_used(table_type),
+        "A table type collision was detected!");
 
     gaia_table_writer table_w;
     table_w.name = table_name.c_str();
