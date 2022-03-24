@@ -45,12 +45,16 @@ dac_iterator_t<T_class>& dac_iterator_t<T_class>::operator++()
         id = dac_db_t::get_iterator_value(m_iterator_state);
         m_obj = (id.is_valid()) ? T_class::get(id) : T_class();
 
-        // If we have an object and a filter function and the object doesn't satisfy the filter,
-        // then keep looking for another object that does.
-        common::optional_t<bool> predicate_value = (m_obj && m_filter_fn) ? m_filter_fn(m_obj) : static_cast<bool>(m_obj);
-        if (!predicate_value.has_value() || !predicate_value.value())
+        // Check m_filter_fn first which is much cheaper than dac_object_t:::operator bool().
+        // You could argue that since id is valid you can expect the object to be valid too
+        // hence no need for the check.
+        if (m_filter_fn && m_obj)
         {
-            continue;
+            common::optional_t<bool> predicate_value = m_filter_fn(m_obj);
+            if (!predicate_value.has_value() || !predicate_value.value())
+            {
+                continue;
+            }
         }
 
         break;
