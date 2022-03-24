@@ -102,13 +102,22 @@ constexpr size_t c_max_locators{(1ULL << 32) - 1};
 // larger randomized type IDs, we can expand this limit.
 constexpr size_t c_max_types = 64;
 
-// With 2^32 locators, 2^20 hash buckets bounds the average hash chain length to
-// 2^12. This is still prohibitive overhead for traversal on each reference
-// lookup (given that each node traversal is effectively random-access), but we
-// should be able to solve this by storing locators directly in each object's
-// references array rather than gaia_ids. Other expensive index lookups could be
-// similarly optimized by substituting locators for gaia_ids.
-constexpr size_t c_hash_buckets{1ULL << 20};
+// With 2^32 locators, 2^26 hash buckets bounds the average hash chain length to
+// 2^6. For more realistic workloads (say 2^27 locators, which bounds average
+// hash chain length to 2), this gives constant-time performance. The tradeoff
+// is that because buckets are scattered randomly in the array, we now consume
+// up to 1GB of physical memory, which can be fully allocated with as few as
+// 2^22 locators (coupon collector's approximation). To avoid this unpleasant
+// tradeoff, we need a different data structure (a randomized binary search tree
+// laid out breadth-first in an array currently seems like the best candidate).
+//
+// If hash map lookups during reference traversals are a bottleneck, we could
+// store locators rather than gaia_ids in each object's references array (we
+// would need to either swizzle them to gaia_ids during persistence and
+// unswizzle gaia_ids to locators during recovery, or persist the
+// gaia_id->locator mapping separately). Other expensive hash map lookups could
+// be similarly optimized by substituting locators for gaia_ids.
+constexpr size_t c_hash_buckets{1ULL << 26};
 
 // This is an array of offsets in the data segment corresponding to object
 // versions, where each array index is referred to as a "locator."
@@ -121,9 +130,14 @@ struct hash_node_t
 {
     // To enable atomic operations, we use the base integer type instead of gaia_id_t.
     std::atomic<common::gaia_id_t::value_type> id;
-    std::atomic<size_t> next_offset;
+    std::atomic<uint32_t> next_offset;
     std::atomic<gaia_locator_t::value_type> locator;
 };
+
+// We need exactly as many hash nodes as valid locators, so we use the
+// underlying integer type of a locator to index hash nodes.
+static_assert(sizeof(gaia_locator_t) == sizeof(uint32_t), "Expected locators to be 4 bytes!");
+static_assert(sizeof(hash_node_t) == 16, "Expected hash_node_t to occupy 16 bytes!");
 
 struct log_record_t
 {
@@ -430,7 +444,8 @@ typedef txn_log_t logs_t[c_max_logs + 1];
 struct id_index_t
 {
     std::atomic<size_t> hash_node_count;
-    hash_node_t hash_nodes[c_hash_buckets + c_max_locators];
+    hash_node_t hash_buckets[c_hash_buckets];
+    hash_node_t hash_nodes[c_max_locators];
 };
 
 // These are types meant to access index types from the client/server.
