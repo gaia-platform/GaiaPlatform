@@ -1,0 +1,67 @@
+{
+    "name": "database-webview-tool",
+    "version": "0.1.0",
+    "engines": {
+        "vscode": "^1.23.0"
+    },
+    "publisher": "Gaia Platform",
+    "activationEvents": [
+        "onCommand:database-webview.start"
+    ],
+    "main": "./build/ext-src/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "database-webview.start",
+                "title": "Start Database Webview",
+                "category": "GaiaPlatform"
+            }
+        ]
+    },
+    "dependencies": {
+        "@emotion/styled": "^11.3.0",
+        "@mui/icons-material": "^5.0.3",
+        "@mui/material": "^5.0.3",
+        "npm-watch": "^0.11.0",
+        "react": "^17.0.2",
+        "react-dom": "^17.0.2",
+        "terser": "3.16.0",
+        "vscode": "^1.1.37"
+    },
+    "resolutions": {
+        "terser": "3.14.1"
+    },
+    "watch": {
+        "build": {
+            "patterns": [
+                "src"
+            ],
+            "extensions": [
+                ".ts",
+                ".tsx",
+                ".css"
+            ]
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "node ./scripts/build-non-split.js && tsc -p tsconfig.extension.json",
+        "postinstall": "node ./node_modules/vscode/bin/install",
+        "start": "react-scripts start",
+        "build": "node ./scripts/build-non-split.js --watch --outDir ./build && tsc -p tsconfig.extension.json",
+        "watch": "npm-watch"
+    },
+    "devDependencies": {
+        "@types/node": "^10.1.2",
+        "@types/react": "^16.3.14",
+        "@types/react-dom": "^16.0.5",
+        "react-scripts": "^2.1.3",
+        "rewire": "^4.0.1",
+        "typescript": "^3.3.1"
+    },
+    "browserslist": [
+        ">0.2%",
+        "not dead",
+        "not ie <= 11",
+        "not op_mini all"
+    ]
+}
