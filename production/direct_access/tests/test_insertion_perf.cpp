@@ -25,8 +25,8 @@ using namespace std;
 
 using g_timer_t = gaia::common::timer_t;
 
-static const uint64_t c_num_insertion = 100000;
-static const uint64_t c_num_iterations = 5;
+static const uint64_t c_num_records = 100000;
+static const uint64_t c_num_iterations = 1;
 
 // This is a hard limit imposed by the db architecture.
 static const uint64_t c_max_insertion_single_txn = (1 << 16) - 1;
@@ -150,7 +150,7 @@ void log_performance_difference(accumulator_t<int64_t> expr_accumulator, std::st
     double_t single_record_max_ns = max_expr_us / static_cast<double_t>(num_insertions);
 
     printf(
-        "[%s] %lu rows, %zu iterations:\n"
+        "[%s] %lu records, %zu iterations:\n"
         "   [total]: avg:%0.2fms min:%0.2fms max:%0.2fms\n"
         "  [single]: avg:%0.2fus min:%0.2fus max:%0.2fus",
         message.data(), num_insertions, num_iterations,
@@ -164,13 +164,13 @@ void run_performance_test(
     std::function<void()> expr_fn,
     std::string_view message,
     size_t num_iterations = c_num_iterations,
-    uint64_t num_insertions = c_num_insertion)
+    uint64_t num_insertions = c_num_records)
 {
     accumulator_t<int64_t> expr_accumulator;
 
     for (size_t iteration = 0; iteration < num_iterations; iteration++)
     {
-        gaia_log::app().debug("[{}]: {} iteration starting, {} insertions", message, iteration, num_insertions);
+        gaia_log::app().debug("[{}]: {} iteration starting, {} records", message, iteration, num_insertions);
         int64_t expr_duration = g_timer_t::get_function_duration(expr_fn);
         expr_accumulator.add(expr_duration);
 
@@ -209,12 +209,12 @@ void insert_thread(size_t num_records)
     gaia::db::end_session();
 }
 
-TEST_F(test_insert_perf, DISABLED_simple_table_insert)
+TEST_F(test_insert_perf, simple_table_insert)
 {
     auto insert = []() {
         gaia::db::begin_transaction();
 
-        for (size_t i = 0; i < c_num_insertion; i++)
+        for (size_t i = 0; i < c_num_records; i++)
         {
             if (i > 0 && i % c_max_insertion_single_txn == 0)
             {
@@ -234,12 +234,12 @@ TEST_F(test_insert_perf, DISABLED_simple_table_insert)
     run_performance_test(insert, "simple_table_t::insert_row");
 }
 
-TEST_F(test_insert_perf, DISABLED_simple_table_writer)
+TEST_F(test_insert_perf, simple_table_writer)
 {
     auto insert = []() {
         gaia::db::begin_transaction();
 
-        for (size_t i = 0; i < c_num_insertion; i++)
+        for (size_t i = 0; i < c_num_records; i++)
         {
             if (i > 0 && i % c_max_insertion_single_txn == 0)
             {
@@ -261,12 +261,12 @@ TEST_F(test_insert_perf, DISABLED_simple_table_writer)
     run_performance_test(insert, "simple_table_writer");
 }
 
-TEST_F(test_insert_perf, DISABLED_simple_table_2)
+TEST_F(test_insert_perf, simple_table_2)
 {
     auto insert = []() {
         gaia::db::begin_transaction();
 
-        for (size_t i = 0; i < c_num_insertion; i++)
+        for (size_t i = 0; i < c_num_records; i++)
         {
             if (i > 0 && i % c_max_insertion_single_txn == 0)
             {
@@ -286,12 +286,12 @@ TEST_F(test_insert_perf, DISABLED_simple_table_2)
     run_performance_test(insert, "simple_table_2_t::insert_row");
 }
 
-TEST_F(test_insert_perf, DISABLED_simple_table_index)
+TEST_F(test_insert_perf, simple_table_index)
 {
     auto insert = []() {
         gaia::db::begin_transaction();
 
-        for (size_t i = 0; i < c_num_insertion; i++)
+        for (size_t i = 0; i < c_num_records; i++)
         {
             if (i > 0 && i % c_max_insertion_single_txn == 0)
             {
@@ -311,12 +311,12 @@ TEST_F(test_insert_perf, DISABLED_simple_table_index)
     run_performance_test(insert, "simple_table_index_t::insert_row");
 }
 
-TEST_F(test_insert_perf, DISABLED_simple_relationships)
+TEST_F(test_insert_perf, simple_relationships)
 {
     auto insert = []() {
         gaia::db::begin_transaction();
 
-        for (size_t i = 0; i < (c_num_insertion / 2); i++)
+        for (size_t i = 0; i < (c_num_records / 2); i++)
         {
             // Divides by 5 because the following operations causes 5 objects mutations.
             if (i > 0 && i % (c_max_insertion_single_txn / 5) == 0)
@@ -339,11 +339,11 @@ TEST_F(test_insert_perf, DISABLED_simple_relationships)
     run_performance_test(insert, "simple_relationships");
 }
 
-TEST_F(test_insert_perf, DISABLED_value_linked_relationships_parent_only)
+TEST_F(test_insert_perf, value_linked_relationships_parent_only)
 {
     // VLR are so slow that we need to use a lower number of insertion to
     // finish in a reasonable amount of time.
-    constexpr uint64_t c_vlr_insertions = c_num_insertion / 50;
+    constexpr uint64_t c_vlr_insertions = c_num_records / 100;
 
     auto insert = []() {
         gaia::db::begin_transaction();
@@ -368,11 +368,11 @@ TEST_F(test_insert_perf, DISABLED_value_linked_relationships_parent_only)
     run_performance_test(insert, "value_linked_relationships_parent_only", c_num_iterations, c_vlr_insertions);
 }
 
-TEST_F(test_insert_perf, DISABLED_value_linked_relationships_child_only)
+TEST_F(test_insert_perf, value_linked_relationships_child_only)
 {
     // VLR are so slow that we need to use a lower number of insertion to
     // finish in a reasonable amount of time.
-    constexpr uint64_t c_vlr_insertions = c_num_insertion / 50;
+    constexpr uint64_t c_vlr_insertions = c_num_records / 100;
 
     auto insert = []() {
         gaia::db::begin_transaction();
@@ -397,11 +397,11 @@ TEST_F(test_insert_perf, DISABLED_value_linked_relationships_child_only)
     run_performance_test(insert, "value_linked_relationships_child_only", c_num_iterations, c_vlr_insertions);
 }
 
-TEST_F(test_insert_perf, DISABLED_value_linked_relationships_autoconnect_to_same_parent)
+TEST_F(test_insert_perf, value_linked_relationships_autoconnect_to_same_parent)
 {
     // VLR are so slow that we need to use a lower number of insertion to
     // finish in a reasonable amount of time.
-    constexpr uint64_t c_vlr_insertions = c_num_insertion / 100;
+    constexpr uint64_t c_vlr_insertions = c_num_records / 200;
 
     auto insert = []() {
         gaia::db::begin_transaction();
@@ -428,11 +428,11 @@ TEST_F(test_insert_perf, DISABLED_value_linked_relationships_autoconnect_to_same
     run_performance_test(insert, "value_linked_relationships_autoconnect_to_same_parent", c_num_iterations, c_vlr_insertions + 1);
 }
 
-TEST_F(test_insert_perf, DISABLED_value_linked_relationships_autoconnect_to_different_parent)
+TEST_F(test_insert_perf, value_linked_relationships_autoconnect_to_different_parent)
 {
     // VLR are so slow that we need to use a lower number of insertion to
     // finish in a reasonable amount of time.
-    constexpr uint64_t c_vlr_insertions = c_num_insertion / 200;
+    constexpr uint64_t c_vlr_insertions = c_num_records / 200;
 
     auto insert = []() {
         gaia::db::begin_transaction();
@@ -462,7 +462,7 @@ TEST_F(test_insert_perf, DISABLED_value_linked_relationships_autoconnect_to_diff
 // - c_num_insertion = 200000
 // - Call run_performance_test with num_iterations=10
 // Keeping it disabled for now because it takes too much time.
-TEST_F(test_insert_perf, DISABLED_simple_table_concurrent)
+TEST_F(test_insert_perf, simple_table_concurrent)
 {
     constexpr size_t c_num_workers = 5;
 
@@ -471,7 +471,7 @@ TEST_F(test_insert_perf, DISABLED_simple_table_concurrent)
 
         for (size_t i = 0; i < c_num_workers; i++)
         {
-            workers.emplace_back(insert_thread, (c_num_insertion / c_num_workers));
+            workers.emplace_back(insert_thread, (c_num_records / c_num_workers));
         }
 
         for (auto& worker : workers)
