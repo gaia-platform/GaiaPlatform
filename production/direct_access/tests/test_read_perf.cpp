@@ -26,7 +26,7 @@ using namespace std;
 using g_timer_t = gaia::common::timer_t;
 
 static const uint64_t c_num_records = 100000;
-static const uint64_t c_num_iterations = 5;
+static const uint64_t c_num_iterations = 1;
 
 // This is a hard limit imposed by the db architecture.
 static const uint64_t c_max_insertion_single_txn = (1 << 16) - 1;
@@ -207,7 +207,7 @@ void insert_data()
     }
 }
 
-TEST_F(test_read_perf, DISABLED_table_scan)
+TEST_F(test_read_perf, table_scan)
 {
     insert_data();
 
@@ -229,7 +229,7 @@ TEST_F(test_read_perf, DISABLED_table_scan)
     run_performance_test(work, "simple_table_t::table_scan", 2);
 }
 
-TEST_F(test_read_perf, DISABLED_table_scan_data_access)
+TEST_F(test_read_perf, table_scan_data_access)
 {
     insert_data();
 
@@ -249,10 +249,10 @@ TEST_F(test_read_perf, DISABLED_table_scan_data_access)
         ASSERT_EQ(c_num_records, i);
     };
 
-    run_performance_test(work, "simple_table_t::table_scan_data_access", 2);
+    run_performance_test(work, "simple_table_t::table_scan_data_access");
 }
 
-TEST_F(test_read_perf, DISABLED_filter_no_match)
+TEST_F(test_read_perf, filter_no_match)
 {
     insert_data();
 
@@ -271,10 +271,10 @@ TEST_F(test_read_perf, DISABLED_filter_no_match)
         ASSERT_EQ(0, i);
     };
 
-    run_performance_test(work, "simple_table_t::filter_no_match", 2);
+    run_performance_test(work, "simple_table_t::filter_no_match");
 }
 
-TEST_F(test_read_perf, DISABLED_filter_match)
+TEST_F(test_read_perf, filter_match)
 {
     insert_data();
 
@@ -293,5 +293,5 @@ TEST_F(test_read_perf, DISABLED_filter_match)
         ASSERT_EQ(c_num_records / 2, i);
     };
 
-    run_performance_test(work, gaia_fmt::format("simple_table_t::filter_match {} matches", c_num_records / 2), 2);
+    run_performance_test(work, gaia_fmt::format("simple_table_t::filter_match {} matches", c_num_records / 2));
 }

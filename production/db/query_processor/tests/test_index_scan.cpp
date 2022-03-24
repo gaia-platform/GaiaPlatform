@@ -68,9 +68,9 @@ TEST_F(test_index_scan, verify_cardinality)
 
     EXPECT_TRUE(count == c_num_initial_rows);
 
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
 
-    for (const auto& idx : catalog_core::list_indexes(type_record_id))
+    for (const auto& idx : catalog_core::list_indexes(table_id))
     {
         // Open an index scan operator for this operator.
         auto scan = index_scan_t(idx.id());
@@ -90,9 +90,9 @@ TEST_F(test_index_scan, verify_cardinality_empty)
 {
     auto_transaction_t txn;
 
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::empty_t::s_gaia_type);
+    gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(gaia::index_sandbox::empty_t::s_gaia_type);
 
-    for (const auto& index : catalog_core::list_indexes(type_record_id))
+    for (const auto& index : catalog_core::list_indexes(table_id))
     {
         auto scan = index_scan_t(index.id());
         size_t scan_count = 0;
@@ -113,9 +113,9 @@ TEST_F(test_index_scan, test_limits)
 
     size_t limit = c_query_limit_rows;
 
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
 
-    for (const auto& idx : catalog_core::list_indexes(type_record_id))
+    for (const auto& idx : catalog_core::list_indexes(table_id))
     {
         // Open an index scan operator for this operator with the fixed limit.
         auto scan = index_scan_t(idx.id(), nullptr, limit);
@@ -166,13 +166,13 @@ TEST_F(test_index_scan, test_limits)
 TEST_F(test_index_scan, query_single_match)
 {
     // Lookup index_id for integer field.
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
     gaia_id_t range_index_id = c_invalid_gaia_id;
     gaia_id_t hash_index_id = c_invalid_gaia_id;
 
     auto_transaction_t txn;
 
-    for (const auto& index : catalog_core::list_indexes(type_record_id))
+    for (const auto& index : catalog_core::list_indexes(table_id))
     {
         for (const auto& field_id : *index.fields())
         {
@@ -243,13 +243,13 @@ TEST_F(test_index_scan, query_single_match)
 TEST_F(test_index_scan, query_multi_match)
 {
     // Lookup index_id for integer field.
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
     gaia_id_t range_index_id = c_invalid_gaia_id;
     gaia_id_t hash_index_id = c_invalid_gaia_id;
 
     auto_transaction_t txn;
 
-    for (const auto& index : catalog_core::list_indexes(type_record_id))
+    for (const auto& index : catalog_core::list_indexes(table_id))
     {
         for (const auto& field_id : *index.fields())
         {
@@ -317,13 +317,13 @@ TEST_F(test_index_scan, query_multi_match)
 TEST_F(test_index_scan, query_match_optional)
 {
     // Lookup index_id for integer field.
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
     gaia_id_t range_index_id = c_invalid_gaia_id;
     gaia_id_t hash_index_id = c_invalid_gaia_id;
 
     auto_transaction_t txn;
 
-    for (const auto& index : catalog_core::list_indexes(type_record_id))
+    for (const auto& index : catalog_core::list_indexes(table_id))
     {
         for (const auto& field_id : *index.fields())
         {
@@ -393,7 +393,7 @@ TEST_F(test_index_scan, query_match_optional)
 TEST_F(test_index_scan, query_local_modify_no_match)
 {
     // Lookup index_id for integer field.
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
     gaia_id_t range_index_id = c_invalid_gaia_id;
     gaia_id_t hash_index_id = c_invalid_gaia_id;
 
@@ -405,7 +405,7 @@ TEST_F(test_index_scan, query_local_modify_no_match)
     w.i = -1;
     w.insert_row();
 
-    for (const auto& index : catalog_core::list_indexes(type_record_id))
+    for (const auto& index : catalog_core::list_indexes(table_id))
     {
         for (const auto& field_id : *index.fields())
         {
@@ -475,7 +475,7 @@ TEST_F(test_index_scan, query_local_modify_no_match)
 TEST_F(test_index_scan, query_local_modify_match)
 {
     // Lookup index_id for integer field.
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
     gaia_id_t range_index_id = c_invalid_gaia_id;
     gaia_id_t hash_index_id = c_invalid_gaia_id;
 
@@ -487,7 +487,7 @@ TEST_F(test_index_scan, query_local_modify_match)
     w.i = -1;
     w.insert_row();
 
-    for (const auto& index : catalog_core::list_indexes(type_record_id))
+    for (const auto& index : catalog_core::list_indexes(table_id))
     {
         for (const auto& field_id : *index.fields())
         {
@@ -557,13 +557,13 @@ TEST_F(test_index_scan, query_local_modify_match)
 TEST_F(test_index_scan, query_no_match)
 {
     // Lookup index_id for integer field.
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
     gaia_id_t range_index_id = c_invalid_gaia_id;
     gaia_id_t hash_index_id = c_invalid_gaia_id;
 
     auto_transaction_t txn;
 
-    for (const auto& index : catalog_core::list_indexes(type_record_id))
+    for (const auto& index : catalog_core::list_indexes(table_id))
     {
         for (const auto& field_id : *index.fields())
         {
@@ -640,9 +640,9 @@ TEST_F(test_index_scan, rollback_txn)
 
     // Rollback operation should not be visible to scans.
     gaia::db::begin_transaction();
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
 
-    for (const auto& idx : catalog_core::list_indexes(type_record_id))
+    for (const auto& idx : catalog_core::list_indexes(table_id))
     {
         // Open an index scan operator for this operator.
         auto scan = index_scan_t(idx.id());
@@ -669,9 +669,9 @@ TEST_F(test_index_scan, insert_followed_by_delete)
     to_delete = w.insert_row();
 
     // Insert should be visible.
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
 
-    for (const auto& idx : catalog_core::list_indexes(type_record_id))
+    for (const auto& idx : catalog_core::list_indexes(table_id))
     {
         // Open an index scan operator for this operator.
         auto scan = index_scan_t(idx.id());
@@ -689,7 +689,7 @@ TEST_F(test_index_scan, insert_followed_by_delete)
     gaia::index_sandbox::sandbox_t::get(to_delete).delete_row();
 
     // Delete in effect.
-    for (const auto& idx : catalog_core::list_indexes(type_record_id))
+    for (const auto& idx : catalog_core::list_indexes(table_id))
     {
         // Open an index scan operator for this operator.
         auto scan = index_scan_t(idx.id());
@@ -718,9 +718,9 @@ TEST_F(test_index_scan, multi_insert_followed_by_delete)
     to_delete3 = w.insert_row();
 
     // Insert should be visible.
-    gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
+    gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(gaia::index_sandbox::sandbox_t::s_gaia_type);
 
-    for (const auto& idx : catalog_core::list_indexes(type_record_id))
+    for (const auto& idx : catalog_core::list_indexes(table_id))
     {
         // Open an index scan operator for this operator.
         auto scan = index_scan_t(idx.id());
@@ -740,7 +740,7 @@ TEST_F(test_index_scan, multi_insert_followed_by_delete)
     gaia::index_sandbox::sandbox_t::get(to_delete3).delete_row();
 
     // Delete in effect.
-    for (const auto& idx : catalog_core::list_indexes(type_record_id))
+    for (const auto& idx : catalog_core::list_indexes(table_id))
     {
         // Open an index scan operator for this operator.
         auto scan = index_scan_t(idx.id());
