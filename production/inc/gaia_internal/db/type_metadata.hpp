@@ -168,7 +168,7 @@ private:
     /**
      * Returns the gaia_id_t of the table that holds the information about the given gaia_type_t
      */
-    common::gaia_id_t get_record_id(gaia::common::gaia_type_t);
+    common::gaia_id_t get_table_id(gaia::common::gaia_type_t);
 
     /**
      * Creates an instance of type_metadata_t fetching the information from the Catalog.

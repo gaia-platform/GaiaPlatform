@@ -430,21 +430,21 @@ void index_builder_t::update_indexes_from_txn_log(
             continue;
         }
 
-        gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(obj->type);
+        gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(obj->type);
 
         // Catalog core tables are not indexed.
         // The operation is from a dropped table.
         // Skip if catalog verification disabled and type not found in the catalog.
         if (is_catalog_core_object(obj->type)
             || std::find(dropped_types.begin(), dropped_types.end(), obj->type) != dropped_types.end()
-            || (skip_catalog_integrity_check && !type_record_id.is_valid()))
+            || (skip_catalog_integrity_check && !table_id.is_valid()))
         {
             continue;
         }
 
-        ASSERT_INVARIANT(type_record_id.is_valid(), "Cannot find type record for object.");
+        ASSERT_INVARIANT(table_id.is_valid(), "Cannot find type table id for object.");
 
-        for (const auto& index : catalog_core::list_indexes(type_record_id))
+        for (const auto& index : catalog_core::list_indexes(table_id))
         {
             ASSERT_PRECONDITION(get_indexes(), "Indexes are not initialized.");
             auto it = get_indexes()->find(index.id());

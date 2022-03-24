@@ -751,10 +751,8 @@ void server_t::init_indexes()
             continue;
         }
 
-        gaia_id_t type_record_id
-            = type_id_mapping_t::instance().get_record_id(obj->type);
-
-        if (!type_record_id.is_valid())
+        gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(obj->type);
+        if (!table_id.is_valid())
         {
             // Orphaned object detected. We continue instead of throw here because of GAIAPLAT-1276.
             // This should be reverted once we no longer orphan objects during a DROP operation.
@@ -762,7 +760,7 @@ void server_t::init_indexes()
             continue;
         }
 
-        for (const auto& index : catalog_core::list_indexes(type_record_id))
+        for (const auto& index : catalog_core::list_indexes(table_id))
         {
             index::index_builder_t::populate_index(index.id(), locator);
         }
