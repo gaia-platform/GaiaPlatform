@@ -46,8 +46,6 @@ dac_iterator_t<T_class>& dac_iterator_t<T_class>::operator++()
         m_obj = (id.is_valid()) ? T_class::get(id) : T_class();
 
         // Check m_filter_fn first which is much cheaper than dac_object_t:::operator bool().
-        // You could argue that since id is valid you can expect the object to be valid too
-        // hence no need for the check.
         if (m_filter_fn && m_obj)
         {
             common::optional_t<bool> predicate_value = m_filter_fn(m_obj);
