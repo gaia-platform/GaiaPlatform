@@ -6,7 +6,8 @@
     },
     "publisher": "Gaia Platform",
     "activationEvents": [
-        "onCommand:database-webview.start"
+        "onCommand:database-webview.start",
+        "onView:databases"
     ],
     "main": "./build/ext-src/extension.js",
     "contributes": {
@@ -16,7 +17,30 @@
                 "title": "Start Database Webview",
                 "category": "GaiaPlatform"
             }
-        ]
+        ],
+        "viewsWelcome": [
+            {
+                "view": "databases",
+                "contents": "A Gaia Database Server was not found.\n"
+            }
+        ],
+        "views": {
+            "gaia-explorer": [
+                {
+                    "id": "databases",
+                    "name": "Databases"
+                }
+            ]
+        },
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "gaia-explorer",
+                    "title": "Gaia Explorer",
+                    "icon": "media/gaia_logo.png"
+                }
+            ]
+        }
     },
     "dependencies": {
         "@emotion/styled": "^11.3.0",
@@ -51,7 +75,7 @@
         "watch": "npm-watch"
     },
     "devDependencies": {
-        "@types/node": "^10.1.2",
+        "@types/node": "^10.17.60",
         "@types/react": "^16.3.14",
         "@types/react-dom": "^16.0.5",
         "react-scripts": "^2.1.3",

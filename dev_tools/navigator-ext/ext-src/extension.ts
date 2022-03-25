@@ -1,21 +1,28 @@
+'use strict';
+
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { GaiaCatalogProvider } from './databaseExplorer';
 
 export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(vscode.commands.registerCommand('database-webview.start', () => {
         ReactPanel.createOrShow(context.extensionPath);
     }));
+
+    vscode.window.registerTreeDataProvider('databases', new GaiaCatalogProvider());
+
+    //vscode.window.createTreeView('databases',
+    //    { gaiaCatalogProvider : new GaiaCatalogProvider()
+    //});
+
 }
 
 
 // Manages react webview panels.
- 
 class ReactPanel {
-    
     // Track the currently panel.
     // Only allow a single panel to exist at a time.
-     
     public static currentPanel: ReactPanel | undefined;
 
     private static readonly viewType = 'react';
@@ -49,7 +56,7 @@ class ReactPanel {
                 vscode.Uri.file(path.join(this._extensionPath, 'build'))
             ]
         });
-        
+
         // Set the webview's initial html content.
         this._panel.webview.html = this._getHtmlForWebview();
 
@@ -114,7 +121,6 @@ class ReactPanel {
 
             <body>
                 <div id="root"></div>
-                
                 <script nonce="${nonce}" src="${scriptUri}"></script>
             </body>
             </html>`;
