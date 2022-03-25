@@ -140,3 +140,22 @@ table detection (
 table d_object (
     detection references detection
 )
+
+create table if not exists student (
+    student_id string unique,
+    surname string
+);
+
+table registration (
+    reg_id string,
+    student_id string,
+    course_id string,
+    status string,
+    grade float
+);
+
+relationship student_reg (
+    student.registrations -> registration[],
+    registration.registered_student -> student,
+    using registration(student_id), student(student_id)
+);

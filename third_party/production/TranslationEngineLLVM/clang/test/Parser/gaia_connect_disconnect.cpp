@@ -114,14 +114,14 @@ ruleset test_connect_disconnect_fail_with_wrong_param_types
 
 ruleset test_connect_disconnect_invalid_syntax_1
 {
-    on_insert(crop)
+    on_insert(incubator)
     {
-       crop.connect(); // expected-error {{no matching member function for call to 'connect'}}
-       crop.disconnect(); // expected-error {{no matching member function for call to 'disconnect'}}
-       crop.yield.connect(); // expected-error {{too few arguments to function call, single argument 'param_1' was not specified}}
-       crop.yield.disconnect(); // expected-error {{too few arguments to function call, single argument 'param_1' was not specified}}
-       crop.yield.connect("aaaaa"); // expected-error {{reference to type 'const yield_16f10dfd541c23362492b4e513adf0a1__type' could not bind to an lvalue of type 'const char [6]'}}
-       crop.yield.disconnect(1); // expected-error {{reference to type 'const yield_16f10dfd541c23362492b4e513adf0a1__type' could not bind to an rvalue of type 'int'}}
+       incubator.connect(); // expected-error {{no matching member function for call to 'connect'}}
+       incubator.disconnect(); // expected-error {{no matching member function for call to 'disconnect'}}
+       incubator.sensors.connect(); // expected-error {{too few arguments to function call, single argument 'param_1' was not specified}}
+       incubator.sensors.disconnect(); // expected-error {{too few arguments to function call, single argument 'param_1' was not specified}}
+       incubator.sensors.connect("aaaaa"); // expected-error {{reference to type 'const sensor_a5fe26d5d09b736a77f4345e9f80b951__type' could not bind to an lvalue of type 'const char [6]'}}
+       incubator.sensors.disconnect(1); // expected-error {{reference to type 'const sensor_a5fe26d5d09b736a77f4345e9f80b951__type' could not bind to an rvalue of type 'int'}}
     }
 }
 

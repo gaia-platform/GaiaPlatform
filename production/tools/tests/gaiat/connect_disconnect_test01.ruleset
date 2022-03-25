@@ -1,0 +1,18 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// TESTCASE: connect/disconnect are not supported for VLR links
+ruleset test_connect_child_parent_vlr_1_n
+{
+    on_insert(registration)
+    {
+        auto s = student.insert(student_id: "2", surname: "test");
+        registration.connect(s);
+    }
+};
+
+// CHECK: no member named 'connect' in 'registration_563873d38950b841aebf89c3be1b1a35__type'
