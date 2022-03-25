@@ -7,6 +7,9 @@
 #include "db_helpers.hpp"
 #include "db_shared_data.hpp"
 
+const bool gaia::db::c_is_running_on_server = false;
+const bool gaia::db::c_is_running_on_client = true;
+
 gaia::db::locators_t* gaia::db::get_locators()
 {
     if (!gaia::db::client_t::s_private_locators.is_set())

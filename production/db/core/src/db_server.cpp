@@ -771,10 +771,11 @@ void server_t::init_indexes()
 void server_t::update_indexes_from_txn_log()
 {
     bool replay_logs = true;
-
     create_local_snapshot(replay_logs);
     auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
-    index::index_builder_t::update_indexes_from_txn_log(get_txn_log(), s_server_conf.skip_catalog_integrity_checks());
+
+    index::index_builder_t::update_indexes_from_txn_log(
+        get_txn_log(), s_server_conf.skip_catalog_integrity_checks());
 }
 
 void server_t::recover_db()
