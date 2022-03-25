@@ -50,8 +50,6 @@ inline gaia_locator_t allocate_locator(common::gaia_type_t type)
     gaia_locator_t locator = ++(counters->last_locator);
 
     type_index_t* type_index = get_type_index();
-    // Ignore failure if type is already registered.
-    type_index->register_type(type);
     type_index->add_locator(type, locator);
 
     return locator;
