@@ -47,7 +47,7 @@ bool locator_list_node_t::mark_for_deletion()
     return true;
 }
 
-std::atomic<type_index_entry_t>& type_index_t::get_type_index_entry(common::gaia_type_t type)
+std::atomic<type_index_entry_t>* type_index_t::get_type_index_entry(common::gaia_type_t type)
 {
     ASSERT_PRECONDITION(type.is_valid(), "Cannot call get_type_index_entry() with an invalid type!");
 
@@ -66,12 +66,10 @@ std::atomic<type_index_entry_t>& type_index_t::get_type_index_entry(common::gaia
         auto entry_val = entry_ref.load();
         if (entry_val.type == type)
         {
-            return entry_ref;
+            return &entry_ref;
         }
     }
-    // If we reach the end of the array without finding the entry for this type,
-    // the precondition has been violated.
-    ASSERT_UNREACHABLE("Type must be registered before calling get_type_index_entry()!");
+    return nullptr;
 }
 
 bool type_index_t::register_type(common::gaia_type_t type)
@@ -124,7 +122,20 @@ bool type_index_t::register_type(common::gaia_type_t type)
 
 gaia_locator_t type_index_t::get_first_locator(common::gaia_type_t type)
 {
-    return get_type_index_entry(type).load().first_locator;
+    auto type_index_entry_ptr = get_type_index_entry(type);
+    // Lazily register a type on the first call to add_locator() or
+    // type_index_cursor_t() for that type.
+    //
+    // NB: Existing clients (e.g., the catalog bootstrapping implementation)
+    // expect that creating an iterator for an unregistered type will
+    // automatically register that type.
+    if (!type_index_entry_ptr)
+    {
+        register_type(type);
+        type_index_entry_ptr = get_type_index_entry(type);
+        ASSERT_POSTCONDITION(type_index_entry_ptr, "Type entry must exist after calling register_type()!");
+    }
+    return type_index_entry_ptr->load().first_locator;
 }
 
 bool type_index_t::try_set_first_locator(
@@ -133,7 +144,9 @@ bool type_index_t::try_set_first_locator(
     type_index_entry_t expected_entry{type, expected_locator};
     type_index_entry_t desired_entry{type, desired_locator};
 
-    return get_type_index_entry(type).compare_exchange_strong(expected_entry, desired_entry);
+    auto type_index_entry_ptr = get_type_index_entry(type);
+    ASSERT_PRECONDITION(type_index_entry_ptr, "Type must be registered before calling try_set_first_locator()!");
+    return type_index_entry_ptr->compare_exchange_strong(expected_entry, desired_entry);
 }
 
 locator_list_node_t* type_index_t::get_list_node(gaia_locator_t locator)
