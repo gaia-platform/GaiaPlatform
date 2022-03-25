@@ -39,7 +39,6 @@ void db_client_proxy_t::rebuild_local_indexes()
     }
 
     bool allow_create_empty = true;
-
     index::index_builder_t::update_indexes_from_txn_log(
         gaia::db::get_txn_log(), client_t::s_session_options.skip_catalog_integrity_check, allow_create_empty);
 }
