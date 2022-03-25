@@ -25,6 +25,10 @@ class memory_manager_t;
 class chunk_manager_t;
 } // namespace memory_manager
 
+// Indicates whether the code is executed on server or client.
+extern const bool c_is_running_on_server;
+extern const bool c_is_running_on_client;
+
 // Returns a pointer to a mapping of the "locators" shared memory segment.
 gaia::db::locators_t* get_locators();
 
