@@ -9,6 +9,9 @@ chunk_offset_t chunk_from_offset(gaia_offset_t offset)
     static_assert(
         sizeof(gaia_offset_t) == sizeof(uint32_t)
         && sizeof(chunk_offset_t) == sizeof(uint16_t));
+
+    ASSERT_PRECONDITION(offset.is_valid(), "chunk_from_offset() has been called for an invalid offset!");
+
     return static_cast<chunk_offset_t>(offset >> (CHAR_BIT * sizeof(slot_offset_t)));
 }
 
@@ -18,6 +21,9 @@ slot_offset_t slot_from_offset(gaia_offset_t offset)
     static_assert(
         sizeof(gaia_offset_t) == sizeof(uint32_t)
         && sizeof(slot_offset_t) == sizeof(uint16_t));
+
+    ASSERT_PRECONDITION(offset.is_valid(), "slot_from_offset() has been called for an invalid offset!");
+
     // First mask out the 16 high bits (for correctness), then truncate.
     constexpr uint32_t mask{(1UL << (CHAR_BIT * sizeof(slot_offset_t))) - 1};
     return static_cast<slot_offset_t>(offset & mask);
@@ -32,13 +38,19 @@ gaia_offset_t offset_from_chunk_and_slot(
         sizeof(gaia_offset_t) == sizeof(uint32_t)
         && sizeof(chunk_offset_t) == sizeof(uint16_t)
         && sizeof(slot_offset_t) == sizeof(uint16_t));
+
+    ASSERT_PRECONDITION(
+        chunk_offset.is_valid(), "offset_from_chunk_and_slot() has been called for an invalid chunk offset!");
+    ASSERT_PRECONDITION(
+        slot_offset.is_valid(), "offset_from_chunk_and_slot() has been called for an invalid slot offset!");
+
     return (chunk_offset << (CHAR_BIT * sizeof(slot_offset_t))) | slot_offset;
 }
 
 void* page_address_from_offset(gaia_offset_t offset)
 {
     ASSERT_PRECONDITION(
-        offset != c_invalid_gaia_offset,
+        offset.is_valid(),
         "Cannot call page_address_from_offset() on an invalid offset!");
 
     data_t* data = gaia::db::get_data();
@@ -56,24 +68,25 @@ size_t slot_to_bit_index(slot_offset_t slot_offset)
     ASSERT_PRECONDITION(
         slot_offset >= c_first_slot_offset && slot_offset <= c_last_slot_offset,
         "Slot offset passed to slot_to_bit_index() is out of bounds!");
+
     return slot_offset - c_first_slot_offset;
 }
 
 size_t slot_to_bit_index_in_word(slot_offset_t slot_offset)
 {
     size_t bit_index = slot_to_bit_index(slot_offset);
-    return bit_index % c_uint64_bit_count;
+    return bit_index % common::c_uint64_bit_count;
 }
 
 size_t slot_to_page_index(slot_offset_t slot_offset)
 {
     size_t bit_index = slot_to_bit_index(slot_offset);
-    return bit_index / c_uint64_bit_count;
+    return bit_index / common::c_uint64_bit_count;
 }
 
 slot_offset_t page_index_to_first_slot_in_page(size_t page_index)
 {
-    return (page_index * c_uint64_bit_count) + c_first_slot_offset;
+    return (page_index * common::c_uint64_bit_count) + c_first_slot_offset;
 }
 
 void write_protect_allocation_page_for_offset(gaia_offset_t offset)
@@ -82,6 +95,7 @@ void write_protect_allocation_page_for_offset(gaia_offset_t offset)
     ASSERT_INVARIANT(
         ((offset * c_slot_size_in_bytes) % c_page_size_in_bytes) == 0,
         "Allocations must be page-aligned in debug mode!");
+
     void* offset_page = page_address_from_offset(offset);
     if (-1 == ::mprotect(offset_page, c_page_size_in_bytes, PROT_READ))
     {

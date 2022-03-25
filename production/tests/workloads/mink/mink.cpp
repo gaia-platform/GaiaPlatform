@@ -5,12 +5,12 @@
 
 #include <unistd.h>
 
-#include <chrono>
 #include <cstring>
 #include <ctime>
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <iostream>
 #include <string>
 #include <thread>
@@ -180,7 +180,7 @@ void restore_default_values()
 
 void init_storage()
 {
-    auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+    auto_transaction_t tx(auto_transaction_t::no_auto_restart);
 
     // If we already have inserted an incubator then our storage has already been
     // initialized.  Re-initialize the database to default values.
@@ -349,7 +349,7 @@ float calc_new_temp(float curr_temp, float fan_speed)
 
 void set_power(bool is_on)
 {
-    auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+    auto_transaction_t tx(auto_transaction_t::no_auto_restart);
     for (auto i : incubator_t::list())
     {
         auto w = i.writer();
@@ -362,7 +362,7 @@ void set_power(bool is_on)
 void simulation_step()
 {
     my_time_point start_transaction_start_mark = my_clock::now();
-    auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+    auto_transaction_t tx(auto_transaction_t::no_auto_restart);
     my_time_point inside_transaction_start_mark = my_clock::now();
 
     float new_temp = 0.0;
@@ -1206,7 +1206,7 @@ void measure_time_slices()
 {
     const int slices_to_measure = 500;
 
-    //std::this_thread::sleep_for(microseconds(c_processing_pause_in_microseconds));
+    // std::this_thread::sleep_for(microseconds(c_processing_pause_in_microseconds));
     my_time_point end_sleep_start_mark = my_clock::now();
     for (int i = 0; i < slices_to_measure; i++)
     {

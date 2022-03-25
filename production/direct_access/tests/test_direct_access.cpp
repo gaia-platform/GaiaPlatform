@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <thread>
+#include <unordered_set>
 
 #include <gtest/gtest.h>
 
@@ -176,18 +177,24 @@ TEST_F(dac_object_test, existing_insert_field)
 TEST_F(dac_object_test, read_back_scan)
 {
     begin_transaction();
-    auto eid = create_employee("Howard").gaia_id();
+    auto eid1 = create_employee("Howard").gaia_id();
     auto eid2 = create_employee("Henry").gaia_id();
     commit_transaction();
 
     begin_transaction();
-    auto i = employee_t::list().begin();
-    auto e = *i;
-    EXPECT_EQ(eid, e.gaia_id());
-    EXPECT_STREQ("Howard", e.name_first());
-    e = *(++i);
-    EXPECT_EQ(eid2, e.gaia_id());
-    EXPECT_STREQ("Henry", e.name_first());
+    for (auto const& employee : employee_t::list())
+    {
+        auto eid = employee.gaia_id();
+        EXPECT_TRUE(eid == eid1 || eid == eid2);
+        if (eid == eid1)
+        {
+            EXPECT_STREQ("Howard", employee.name_first());
+        }
+        else if (eid == eid2)
+        {
+            EXPECT_STREQ("Henry", employee.name_first());
+        }
+    }
     commit_transaction();
 }
 
@@ -195,55 +202,64 @@ TEST_F(dac_object_test, read_back_scan)
 void update_read_back(bool update_flag)
 {
     auto_transaction_t txn;
-    create_employee("Howard");
-    create_employee("Henry");
+    auto eid1 = create_employee("Howard").gaia_id();
+    auto eid2 = create_employee("Henry").gaia_id();
     txn.commit();
 
-    auto i = employee_t::list().begin();
-    auto e = *i;
-    auto w = e.writer();
-    w.name_first = "Herald";
-    w.name_last = "Hollman";
-    if (update_flag)
+    for (auto& employee : employee_t::list())
     {
-        w.update_row();
-    }
-    e = *(++i);
-
-    // get writer for next row!
-    w = e.writer();
-    w.name_first = "Gerald";
-    w.name_last = "Glickman";
-    if (update_flag)
-    {
-        w.update_row();
+        auto eid = employee.gaia_id();
+        EXPECT_TRUE(eid == eid1 || eid == eid2);
+        auto writer = employee.writer();
+        if (eid == eid1)
+        {
+            writer.name_first = "Herald";
+            writer.name_last = "Hollman";
+        }
+        else if (eid == eid2)
+        {
+            writer.name_first = "Gerald";
+            writer.name_last = "Glickman";
+        }
+        if (update_flag)
+        {
+            writer.update_row();
+        }
     }
     txn.commit();
 
-    i = employee_t::list().begin();
-    e = *i;
-    if (update_flag)
+    for (auto const& employee : employee_t::list())
     {
-        EXPECT_STREQ("Herald", e.name_first());
-        EXPECT_STREQ("Hollman", e.name_last());
-    }
-    else
-    {
-        // unchanged by previous transaction
-        EXPECT_STREQ("Howard", e.name_first());
-        EXPECT_STREQ(nullptr, e.name_last());
-    }
-    e = *(++i);
-    if (update_flag)
-    {
-        EXPECT_STREQ("Gerald", e.name_first());
-        EXPECT_STREQ("Glickman", e.name_last());
-    }
-    else
-    {
-        // unchanged by previous transaction
-        EXPECT_STREQ("Henry", e.name_first());
-        EXPECT_STREQ(nullptr, e.name_last());
+        auto eid = employee.gaia_id();
+        EXPECT_TRUE(eid == eid1 || eid == eid2);
+        if (eid == eid1)
+        {
+            if (update_flag)
+            {
+                EXPECT_STREQ("Herald", employee.name_first());
+                EXPECT_STREQ("Hollman", employee.name_last());
+            }
+            else
+            {
+                // unchanged by previous transaction
+                EXPECT_STREQ("Howard", employee.name_first());
+                EXPECT_STREQ(nullptr, employee.name_last());
+            }
+        }
+        else if (eid == eid2)
+        {
+            if (update_flag)
+            {
+                EXPECT_STREQ("Gerald", employee.name_first());
+                EXPECT_STREQ("Glickman", employee.name_last());
+            }
+            else
+            {
+                // unchanged by previous transaction
+                EXPECT_STREQ("Henry", employee.name_first());
+                EXPECT_STREQ(nullptr, employee.name_last());
+            }
+        }
     }
 }
 
@@ -306,12 +322,21 @@ TEST_F(dac_object_test, pre_post_iterator)
     create_employee("Hvitserk");
     create_employee("Hubert");
     create_employee("Humphrey");
+
+    std::unordered_set<std::string> employee_names({"Hvitserk", "Hubert", "Humphrey"});
+
     auto e = employee_t::list().begin();
-    EXPECT_STREQ((*e).name_first(), "Hvitserk");
-    EXPECT_STREQ((*e++).name_first(), "Hvitserk");
-    EXPECT_STREQ((*e).name_first(), "Hubert");
-    EXPECT_STREQ((*++e).name_first(), "Humphrey");
-    EXPECT_STREQ((*e).name_first(), "Humphrey");
+    auto name_first = (*e).name_first();
+    EXPECT_EQ(employee_names.count(name_first), 1);
+    employee_names.extract(name_first);
+    EXPECT_STREQ((*e++).name_first(), name_first);
+    EXPECT_EQ(employee_names.count((*e).name_first()), 1);
+    employee_names.extract(e->name_first());
+    name_first = (*++e).name_first();
+    EXPECT_EQ(employee_names.count(name_first), 1);
+    employee_names.extract(name_first);
+    EXPECT_EQ(employee_names.size(), 0);
+    EXPECT_STREQ((*e).name_first(), name_first);
     e++;
     EXPECT_EQ(e == employee_t::list().end(), true);
     ++e;
@@ -865,10 +890,10 @@ TEST_F(dac_object_test, iter_arrow_deref)
 int count_names(size_t name_length)
 {
     int count = 0;
-    auto name_length_list = employee_t::list()
-                                .where([&](const employee_t& e) {
-                                    return strlen(e.name_first()) == name_length;
-                                });
+    auto name_length_list
+        = employee_t::list().where([&](const employee_t& e) {
+              return strlen(e.name_first()) == name_length;
+          });
     for (const auto& e : name_length_list)
     {
         EXPECT_EQ(strlen(e.name_first()), name_length);
@@ -898,60 +923,17 @@ TEST_F(dac_object_test, list_filter)
     EXPECT_EQ(count_names(8), 2);
 
     // Filter for names ending in 'y'.
-    auto names_ending_with_y = employee_t::list()
-                                   .where([&](const employee_t& e) {
-                                       const char* first_name = e.name_first();
-                                       return first_name[strlen(first_name) - 1] == 'y';
-                                   });
+    auto names_ending_with_y
+        = employee_t::list().where([&](const employee_t& e) {
+              const char* first_name = e.name_first();
+              return first_name[strlen(first_name) - 1] == 'y';
+          });
 
     for (const auto& e : names_ending_with_y)
     {
         const char* first_name = e.name_first();
         EXPECT_EQ(first_name[strlen(first_name) - 1], 'y');
     }
-}
-
-TEST_F(dac_object_test, array_insert)
-{
-    const char* customer_name = "Unibot";
-    const int32_t q1_sales = 200;
-    const int32_t q2_sales = 300;
-    const int32_t q3_sales = 500;
-
-    auto_transaction_t txn;
-    const std::vector<int32_t> sales_by_quarter{q1_sales, q2_sales, q3_sales};
-    gaia_id_t id = customer_t::insert_row(customer_name, sales_by_quarter);
-    txn.commit();
-
-    auto c = customer_t::get(id);
-    EXPECT_TRUE(std::equal(sales_by_quarter.begin(), sales_by_quarter.end(), c.sales_by_quarter().data()));
-}
-
-TEST_F(dac_object_test, array_writer)
-{
-    const char* customer_name = "xorlab";
-    const int32_t q1_sales = 100;
-    const int32_t q2_sales = 200;
-    const int32_t q3_sales = 300;
-
-    auto_transaction_t txn;
-    auto w = customer_writer();
-    w.name = customer_name;
-    w.sales_by_quarter = {q1_sales, q2_sales};
-    gaia_id_t id = w.insert_row();
-    txn.commit();
-
-    auto c = customer_t::get(id);
-    EXPECT_STREQ(c.name(), customer_name);
-    EXPECT_EQ(c.sales_by_quarter()[0], q1_sales);
-    EXPECT_EQ(c.sales_by_quarter()[1], q2_sales);
-
-    w = c.writer();
-    w.sales_by_quarter.push_back(q3_sales);
-    w.update_row();
-    txn.commit();
-
-    EXPECT_EQ(customer_t::get(id).sales_by_quarter()[2], q3_sales);
 }
 
 // TESTCASE: Delete rows accessed through a list() iterator.

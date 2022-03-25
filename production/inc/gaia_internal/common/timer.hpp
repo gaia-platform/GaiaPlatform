@@ -5,10 +5,9 @@
 
 #pragma once
 
-#include <stdio.h>
+#include <cstdio>
 
 #include <chrono>
-
 #include <functional>
 
 // Simple timer utility classes for doing profiling.

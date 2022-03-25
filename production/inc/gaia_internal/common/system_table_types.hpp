@@ -19,37 +19,45 @@ constexpr gaia_type_t c_system_table_reserved_range_end = std::numeric_limits<ga
 constexpr gaia_type_t c_system_table_reserved_range_start
     = c_system_table_reserved_range_end.value() - c_system_table_reserved_range.value() + 1;
 
-// The order of these fields is relevant to the generated order of the catalog
-// table structs in the direct access classes (DAC) code. The child table
-// referencing the parent table (child->parent) should come before the parent
-// table. In other words, the child table should have a larger id than the
-// parent table. This allows incomplete forward declaration of structs that
-// refer to each other in the DAC code.
-enum class catalog_table_type_t : gaia_type_t::value_type
+// NOTE: The following tables are essential for the db server to operate at
+// lowest level. Consider adding to system tables instead unless necessary.
+enum class catalog_core_table_type_t : gaia_type_t::value_type
 {
-    gaia_field = c_system_table_reserved_range_end.value(),
+    gaia_ref_anchor = c_system_table_reserved_range_end.value(),
+    gaia_field = gaia_ref_anchor - 1,
     gaia_table = gaia_field - 1,
-    gaia_rule = gaia_table - 1,
-    gaia_ruleset = gaia_rule - 1,
-    gaia_database = gaia_ruleset - 1,
+    gaia_database = gaia_table - 1,
     gaia_relationship = gaia_database - 1,
     gaia_index = gaia_relationship - 1,
-    gaia_ref_anchor = gaia_index - 1,
+    last = gaia_index
 };
 
 enum class system_table_type_t : gaia_type_t::value_type
 {
-    catalog_gaia_table = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_table),
-    catalog_gaia_field = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_field),
-    catalog_gaia_ruleset = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_ruleset),
-    catalog_gaia_rule = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_rule),
-    catalog_gaia_database = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_database),
-    catalog_gaia_relationship = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_relationship),
-    catalog_gaia_index = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_index),
-    catalog_gaia_ref_anchor = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_ref_anchor),
+    catalog_gaia_table = static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_table),
+    catalog_gaia_field = static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_field),
+    catalog_gaia_database = static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_database),
+    catalog_gaia_relationship = static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_relationship),
+    catalog_gaia_index = static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_index),
+    catalog_gaia_ref_anchor = static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_ref_anchor),
+
     // Assign constant IDs to other system tables starting from lower end of the reserved range.
     event_log = c_system_table_reserved_range_start.value(),
+    gaia_ruleset,
+    gaia_rule,
+    gaia_application,
+    app_database,
+    app_ruleset,
+    ruleset_database,
+    rule_table,
+    rule_field,
+    rule_relationship,
 };
+
+inline bool is_catalog_core_object(gaia_type_t type)
+{
+    return type >= static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::last) && type <= c_system_table_reserved_range_end;
+}
 
 inline bool is_system_object(gaia_type_t type)
 {

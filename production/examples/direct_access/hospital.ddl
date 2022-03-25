@@ -1,10 +1,10 @@
----------------------------------------------
--- Copyright (c) 2021 Gaia Platform LLC
+----------------------------------------------------
+-- Copyright (c) Gaia Platform LLC
 --
--- Use of this source code is governed by an MIT-style
+-- Use of this source code is governed by the MIT
 -- license that can be found in the LICENSE.txt file
 -- or at https://opensource.org/licenses/MIT.
----------------------------------------------
+----------------------------------------------------
 
 database hospital
 
@@ -15,7 +15,7 @@ table doctor (
 
 table patient (
     name string,
-    height uint8,
+    height uint8 optional,
     is_active bool,
     analysis_results float[],
     doctor references doctor,

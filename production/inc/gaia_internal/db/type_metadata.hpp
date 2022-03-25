@@ -53,7 +53,7 @@ public:
     /**
      * The total number of references this type has.
      */
-    gaia::common::reference_offset_t num_references() const;
+    gaia::common::reference_offset_t references_count() const;
 
     // TODO the two following function should be called only by the registry.
     //  Need to figure the best way to do so since these are used in tests too
@@ -70,6 +70,12 @@ public:
      */
     void add_child_relationship(const std::shared_ptr<relationship_t>& relationship);
 
+    /**
+     * Returns true if this type is involved in at least one value linked relationship
+     * either as parent or child.
+     */
+    bool has_value_linked_relationship() const;
+
 private:
     const gaia::common::gaia_type_t m_type;
 
@@ -85,6 +91,9 @@ private:
 
     // The total number of reference slots this type has.
     common::reference_offset_t m_reference_count{0};
+
+    // Set to true as soon as at least one relationship is marked as VLR.
+    bool m_has_value_linked_relationship{false};
 
     bool is_initialized();
     void mark_as_initialized();
@@ -159,7 +168,7 @@ private:
     /**
      * Returns the gaia_id_t of the table that holds the information about the given gaia_type_t
      */
-    common::gaia_id_t get_record_id(gaia::common::gaia_type_t);
+    common::gaia_id_t get_table_id(gaia::common::gaia_type_t);
 
     /**
      * Creates an instance of type_metadata_t fetching the information from the Catalog.

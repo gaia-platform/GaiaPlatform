@@ -8,6 +8,7 @@
 #include <atomic>
 #include <vector>
 
+#include <gaia/logger.hpp>
 #include "gaia_prerequisites.h"
 #include "test_rulesets.hpp"
 
@@ -407,7 +408,6 @@ ruleset test_query_9
     }
 }
 
-
 ruleset test_query_10
 {
     on_insert(student)
@@ -707,7 +707,6 @@ ruleset test_insert_delete_2
     }
 }
 
-
 ruleset test_connect_1_n
 {
     on_insert(student)
@@ -852,3 +851,41 @@ ruleset test_clear_child_parent_1_n
         course.course_major.clear();
     }
 };
+
+//GAIAPLAT-1906
+ruleset vlr_rules
+{
+    on_update(floor_num)
+    {
+        auto c = floor(345.235345);
+        gaia_log::app().info("{} has arrived at: {}", person_name, floor.department);
+
+        auto me = person_name;
+
+        if (0 != strcmp(me, floor->person.person_name))
+        {
+            gaia_log::app().info("{} says: Hi, {}!", person_name, me);
+        }
+        gaia_log::app().info("---");
+    }
+}
+
+ruleset pick_and_place_ruleset
+{
+    {
+        if (@pick && !@place)
+        {
+            pick_action.insert();
+        }
+    }
+
+    on_insert(pick_action)
+    {
+        move_action.insert();
+    }
+
+    on_insert(move_action)
+    {
+        gaia_log::app().info("Moving...");
+    }
+}

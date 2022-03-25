@@ -40,6 +40,11 @@ transaction_object_limit_exceeded_internal::transaction_object_limit_exceeded_in
     m_message = "Transaction attempted to update too many objects.";
 }
 
+transaction_log_allocation_failure_internal::transaction_log_allocation_failure_internal()
+{
+    m_message = "Unable to allocate a log for this transaction.";
+}
+
 duplicate_object_id_internal::duplicate_object_id_internal(common::gaia_id_t id)
 {
     std::stringstream message;
@@ -72,7 +77,8 @@ object_still_referenced_internal::object_still_referenced_internal(
     message
         << "Cannot delete object with ID '" << id << "', type '" << object_type
         << "', because it is still referenced by another object with ID '"
-        << other_id << "', type '" << other_type << "'";
+        << other_id << "', type '" << other_type << "'. "
+        << "Use the 'force' option to force delete the object.";
     m_message = message.str();
 }
 
@@ -110,6 +116,11 @@ invalid_object_type_internal::invalid_object_type_internal(
         << "Requesting Gaia type '" << expected_typename << "'('" << expected_type
         << "'), but object identified by '" << id << "' is of type '" << actual_type << "'.";
     m_message = message.str();
+}
+
+type_limit_exceeded_internal::type_limit_exceeded_internal()
+{
+    m_message = "Registered type limit exceeded.";
 }
 
 session_limit_exceeded_internal::session_limit_exceeded_internal()
@@ -188,9 +199,9 @@ unique_constraint_violation_internal::unique_constraint_violation_internal(const
     std::stringstream message;
     message
         << c_error_description
-        << " Cannot insert a duplicate key in table: '"
-        << error_table_name << "', because of the unique constraint of "
-        << " index: '" << error_index_name << "'.";
+        << " Cannot insert a duplicate key in table '"
+        << error_table_name << "', because of the unique constraint of"
+        << " index '" << error_index_name << "'.";
     m_message = message.str();
 }
 

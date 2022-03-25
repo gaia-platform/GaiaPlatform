@@ -1,10 +1,9 @@
-#! /usr/bin/bash
+#!/usr/bin/env bash
 
 #############################################
 # Copyright (c) Gaia Platform LLC
 # All rights reserved.
 #############################################
-
 
 # Simple function to start the process off.
 start_process() {
@@ -175,8 +174,6 @@ handle_optional_flags() {
         rm -rf "$BUILD_DIRECTORY/gaia_generated/edc"
     fi
 }
-
-
 
 # Set up any global script variables.
 # shellcheck disable=SC2164

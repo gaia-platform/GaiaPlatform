@@ -25,7 +25,7 @@ inline int client_t::get_session_socket_for_txn()
 
 inline bool client_t::is_valid_event(common::gaia_type_t type)
 {
-    return (s_txn_commit_trigger && type < common::c_system_table_reserved_range_start);
+    return (s_txn_commit_trigger && !is_system_object(type));
 }
 
 inline void client_t::verify_txn_active()
@@ -65,16 +65,14 @@ inline void client_t::txn_log(
     gaia_offset_t old_offset,
     gaia_offset_t new_offset)
 {
-    ASSERT_PRECONDITION(s_log.is_set(), "Transaction log must be mapped!");
-
-    // We never allocate more than `c_max_log_records` records in the log.
-    if (s_log.data()->record_count == c_max_log_records)
+    txn_log_t* txn_log = get_txn_log();
+    if (txn_log->record_count == c_max_log_records)
     {
         throw transaction_object_limit_exceeded_internal();
     }
 
     // Initialize the new record and increment the record count.
-    auto& lr = s_log.data()->log_records[s_log.data()->record_count++];
+    auto& lr = txn_log->log_records[txn_log->record_count++];
     lr.locator = locator;
     lr.old_offset = old_offset;
     lr.new_offset = new_offset;
@@ -120,8 +118,15 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
 
             if (datagram_size == 0)
             {
-                // We received EOF from the server, so close the socket and tell
-                // the caller to stop iteration.
+                // We received EOF from the server, so tell the caller to stop iterating.
+                // We also close the socket here to make it easier to detect further calls
+                // into the iterator, which would now hit the earlier assertion.
+                // This early close is also an optimization to allow the server to close
+                // its cursor socket and terminate its cursor thread immediately
+                // after the client detects the end of iteration.
+                //
+                // See: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2056
+                // for additional discussion of this code.
                 common::close_fd(*stream_socket_ptr);
                 return std::nullopt;
             }
@@ -129,14 +134,14 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
             // The datagram size must be an integer multiple of our datum size.
             ASSERT_INVARIANT(datagram_size % sizeof(T_element_type) == 0, c_message_unexpected_datagram_size);
 
-            // Align the end of the buffer to the datagram size.
+            // Align the end of the buffer to the expected number of elements.
             // Per the C++ standard, this will never reduce capacity.
-            batch_buffer.resize(datagram_size);
+            batch_buffer.resize(datagram_size / sizeof(T_element_type));
 
             // Get the actual data.
             // This is a nonblocking read, because the previous blocking
             // read will not return until data is available.
-            ssize_t bytes_read = ::recv(*stream_socket_ptr, batch_buffer.data(), batch_buffer.size(), MSG_DONTWAIT);
+            ssize_t bytes_read = ::recv(*stream_socket_ptr, batch_buffer.data(), datagram_size, MSG_DONTWAIT);
             if (bytes_read == -1)
             {
                 // Per above, we should never have to block here.
@@ -156,6 +161,10 @@ client_t::get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr
         // (the server reversed the original buffer before sending).
         T_element_type next_value = batch_buffer.back();
         batch_buffer.pop_back();
+
+        // See https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2001
+        // ASSERT_POSTCONDITION(next_value.is_valid(), "The stream generator has produced an invalid element value!");
+
         return next_value;
     };
 }

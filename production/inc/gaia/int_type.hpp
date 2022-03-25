@@ -14,13 +14,13 @@
 namespace gaia
 {
 /**
- * \addtogroup gaia
+ * @addtogroup gaia
  * @{
  */
 namespace common
 {
 /**
- * \addtogroup common
+ * @addtogroup common
  * @{
  */
 
@@ -45,13 +45,26 @@ public:
     {
     }
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     constexpr int_type_t(T_type value)
         : m_value(value)
     {
     }
 
     // This conversion operator will enable many direct operations with integers.
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator T_type() const;
+
+    // Disable conversions to bool.
+    explicit operator bool() = delete;
+    explicit operator bool() const = delete;
+
+    // Returns whether the contained value is set
+    // to a different value than the default_invalid_value.
+    constexpr bool is_valid() const
+    {
+        return (m_value != c_default_invalid_value);
+    }
 
     // For explicit retrieval of contained value.
     constexpr T_type value() const
@@ -80,9 +93,11 @@ protected:
     T_type m_value;
 };
 
-/*@}*/
+#include "gaia/internal/common/int_type.inc"
+
+/**@}*/
 } // namespace common
-/*@}*/
+/**@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.

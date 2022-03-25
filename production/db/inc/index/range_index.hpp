@@ -23,8 +23,8 @@ using range_type_t = std::multimap<index_key_t, index_record_t>;
 using range_index_iterator_t = index_iterator_t<range_type_t, range_type_t::const_iterator>;
 
 /**
-* Actual range index implementation.
-*/
+ * Actual range index implementation.
+ */
 class range_index_t : public index_t<range_type_t, range_index_iterator_t>
 {
 public:
@@ -42,7 +42,6 @@ public:
     range_index_iterator_t upper_bound(const index_key_t& key);
 
     std::pair<range_index_iterator_t, range_index_iterator_t> equal_range(const index_key_t& key) override;
-    std::shared_ptr<common::iterators::generator_t<index_record_t>> equal_range_generator(gaia_txn_id_t txn_id, const index_key_t& key) override;
 };
 
 } // namespace index

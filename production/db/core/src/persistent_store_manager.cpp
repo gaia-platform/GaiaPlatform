@@ -122,7 +122,7 @@ void persistent_store_manager::prepare_wal_for_write(gaia::db::txn_log_t* log, c
     rocksdb::Transaction* txn = m_rdb_wrapper->get_txn_by_name(txn_name);
     for (size_t i = 0; i < log->record_count; i++)
     {
-        txn_log_t::log_record_t* lr = log->log_records + i;
+        log_record_t* lr = log->log_records + i;
         if (lr->operation() == gaia_operation_t::remove)
         {
             // Encode key to be deleted.
@@ -178,7 +178,7 @@ void persistent_store_manager::recover()
     for (it->SeekToFirst(); it->Valid(); it->Next())
     {
         db_object_t* recovered_object = decode_object(it->key(), it->value());
-        if (recovered_object->type > max_type_id && recovered_object->type < c_system_table_reserved_range_start)
+        if (recovered_object->type > max_type_id && !is_catalog_core_object(recovered_object->type))
         {
             max_type_id = recovered_object->type;
         }

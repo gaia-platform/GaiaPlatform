@@ -1,4 +1,4 @@
-#! /usr/bin/python3
+#!/usr/bin/env python3
 
 #############################################
 # Copyright (c) Gaia Platform LLC
@@ -15,6 +15,8 @@ All rights reserved.
 import json
 import sys
 import os
+
+__DEFAULT_FILE_ENCODING = "utf-8"
 
 DECIMALS_PLACES_IN_NANOSECONDS = 9
 MICROSEC_PER_SEC = 1000000
@@ -66,14 +68,14 @@ def __load_simple_result_files(base_dir):
     """
 
     json_path = os.path.join(base_dir, "return_code.json")
-    with open(json_path) as input_file:
+    with open(json_path, encoding=__DEFAULT_FILE_ENCODING) as input_file:
         data = json.load(input_file)
         return_code_data = data[RETURN_CODE_TITLE]
 
     duration_data = 0.0
     json_path = os.path.join(base_dir, "duration.json")
     try:
-        with open(json_path) as input_file:
+        with open(json_path, encoding=__DEFAULT_FILE_ENCODING) as input_file:
             data = json.load(input_file)
             duration_data = data["duration"]
     except Exception as my_exception:
@@ -107,7 +109,7 @@ def __load_output_timing_files(base_dir):
 
     json_path = os.path.join(base_dir, "output.delay")
     if os.path.exists(json_path):
-        with open(json_path) as input_file:
+        with open(json_path, encoding=__DEFAULT_FILE_ENCODING) as input_file:
             data = json.load(input_file)
             stop_pause_data = data["stop_pause_in_sec"]
             iterations_data = data["iterations"]
@@ -275,7 +277,7 @@ def __dump_results_dictionary(output_directory, full_test_results):
     """
     output_path = os.path.join(output_directory, TEST_RESULTS_FILE)
     print(f"Creating test results file: {str(os.path.abspath(output_path))}")
-    with open(f"{output_path}", "w") as write_file:
+    with open(f"{output_path}", "w", encoding=__DEFAULT_FILE_ENCODING) as write_file:
         json.dump(full_test_results, write_file, indent=4)
 
 
@@ -301,7 +303,9 @@ def __process_script_action():
         sys.exit(1)
     test_configuration_file = sys.argv[2]
 
-    results_dictionary = __load_test_result_files(test_results_directory, test_configuration_file)
+    results_dictionary = __load_test_result_files(
+        test_results_directory, test_configuration_file
+    )
     __dump_results_dictionary(test_results_directory, results_dictionary)
 
 

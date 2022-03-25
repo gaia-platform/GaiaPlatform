@@ -29,7 +29,7 @@ public:
             throw no_open_transaction_internal();
         }
 
-        hash_node_t* node = id_index->hash_nodes + (id % c_hash_buckets);
+        hash_node_t* node = id_index->hash_buckets + (id % c_hash_buckets);
         common::gaia_id_t::value_type expected_id = common::c_invalid_gaia_id;
         if (node->id.compare_exchange_strong(expected_id, id))
         {
@@ -38,7 +38,7 @@ public:
 
         size_t new_node_idx = 0;
 
-        for (;;)
+        while (true)
         {
             if (node->id == id)
             {
@@ -61,13 +61,13 @@ public:
             if (!new_node_idx)
             {
                 ASSERT_INVARIANT(
-                    id_index->hash_node_count + c_hash_buckets < c_max_locators,
+                    id_index->hash_node_count < c_max_locators,
                     "hash_node_count exceeds expected limits!");
-                new_node_idx = c_hash_buckets + id_index->hash_node_count++;
+                new_node_idx = id_index->hash_node_count++;
                 (id_index->hash_nodes + new_node_idx)->id = id;
             }
 
-            size_t expected_offset = 0;
+            uint32_t expected_offset = 0;
             if (node->next_offset.compare_exchange_strong(expected_offset, new_node_idx))
             {
                 return id_index->hash_nodes + new_node_idx;
@@ -84,7 +84,7 @@ public:
             throw no_open_transaction_internal();
         }
 
-        hash_node_t* node = id_index->hash_nodes + (id % c_hash_buckets);
+        hash_node_t* node = id_index->hash_buckets + (id % c_hash_buckets);
 
         while (node)
         {
@@ -111,16 +111,13 @@ public:
     static void remove(common::gaia_id_t id)
     {
         id_index_t* id_index = get_id_index();
-        hash_node_t* node = id_index->hash_nodes + (id % c_hash_buckets);
+        hash_node_t* node = id_index->hash_buckets + (id % c_hash_buckets);
 
         while (node->id != common::c_invalid_gaia_id)
         {
             if (node->id == id)
             {
-                if (node->locator != c_invalid_gaia_locator)
-                {
-                    node->locator = c_invalid_gaia_locator;
-                }
+                node->locator = c_invalid_gaia_locator;
                 return;
             }
             if (!node->next_offset)

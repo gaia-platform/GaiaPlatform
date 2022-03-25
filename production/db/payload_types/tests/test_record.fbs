@@ -12,6 +12,10 @@ table test_record
   sleeve_cost:float64;
   monthly_sleeve_insurance:float32;
   last_yearly_top_credit_amounts:[float64];
+  float_field_with_default_value:float = 7.7;
+  missing_int_field:int32;
+  missing_string_field:string;
+  missing_int_array_field:[int16];
 }
 
 root_type test_record;

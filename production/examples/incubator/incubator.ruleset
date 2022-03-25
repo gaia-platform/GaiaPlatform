@@ -1,10 +1,10 @@
-/////////////////////////////////////////////
-// Copyright (c) 2021 Gaia Platform LLC
+////////////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
 //
-// Use of this source code is governed by an MIT-style
+// Use of this source code is governed by the MIT
 // license that can be found in the LICENSE.txt file
 // or at https://opensource.org/licenses/MIT.
-/////////////////////////////////////////////
+////////////////////////////////////////////////////
 
 #include <algorithm>
 #include <atomic>
@@ -40,7 +40,7 @@ ruleset incubator_ruleset
             return;
         }
 
-        if (sensor.value < incubator.min_temp 
+        if (sensor.value < incubator.min_temp
             || sensor.value > incubator.max_temp)
         {
             for (actuator)
@@ -52,7 +52,7 @@ ruleset incubator_ruleset
     }
 
     // Rule 2:  Verify the temperature is kept in range if the
-    // incubator temperature limits change. 
+    // incubator temperature limits change.
     on_update(incubator.max_temp, incubator.min_temp)
     {
         if (!incubator.is_on)
@@ -63,7 +63,7 @@ ruleset incubator_ruleset
         sensor_loop:
         for (sensor)
         {
-            if (sensor.value < min_temp 
+            if (sensor.value < min_temp
                 || sensor.value > max_temp)
             {
                 for (actuator)

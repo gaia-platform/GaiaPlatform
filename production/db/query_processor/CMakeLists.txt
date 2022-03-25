@@ -1,6 +1,7 @@
-# ##############################################################################
-# Copyright (c) Gaia Platform LLC. All rights reserved.
-# ##############################################################################
+#############################################
+# Copyright (c) Gaia Platform LLC
+# All rights reserved.
+#############################################
 
 project(query_processor)
 
@@ -11,6 +12,8 @@ add_library(gaia_qp STATIC
   src/index_scan.cpp
   src/predicate.cpp
   src/scan_generators.cpp)
+
+configure_gaia_target(gaia_qp)
 
 set(GAIA_QP_PRIVATE_INCLUDES
   "${GAIA_REPO}/production/db/core/inc"

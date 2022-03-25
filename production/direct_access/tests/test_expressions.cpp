@@ -174,20 +174,36 @@ protected:
     {
         EXPECT_EQ(gaia_container.begin(), gaia_container.end());
     }
+
+    template <class T_container>
+    void assert_non_empty(T_container gaia_container)
+    {
+        EXPECT_TRUE(gaia_container.begin() != gaia_container.end());
+    }
 };
 
 TEST_F(test_expressions, gaia_id_ed)
 {
     auto_transaction_t txn;
-
     assert_contains(
         employee_t::list()
             .where(employee_t::expr::gaia_id == yiwen.gaia_id()),
         yiwen);
 
+    // Yoda expression support.
+    assert_contains(
+        employee_t::list()
+            .where(yiwen.gaia_id() == employee_t::expr::gaia_id),
+        yiwen);
+
     assert_empty(
         employee_t::list()
             .where(employee_t::expr::gaia_id == seattle.gaia_id()));
+
+    // != support.
+    assert_non_empty(
+        employee_t::list()
+            .where(employee_t::expr::gaia_id != seattle.gaia_id()));
 }
 
 TEST_F(test_expressions, int64_eq)
@@ -199,9 +215,18 @@ TEST_F(test_expressions, int64_eq)
             .where(hire_date == date(2020, 5, 10)),
         yiwen);
 
+    assert_contains(
+        employee_t::list()
+            .where(hire_date == hire_date),
+        {simone, dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
+
     assert_empty(
         employee_t::list()
             .where(hire_date == date(2050, 5, 10)));
+
+    assert_empty(
+        employee_t::list()
+            .where(date(2050, 5, 10) == hire_date));
 }
 
 TEST_F(test_expressions, int64_ne)
@@ -215,8 +240,17 @@ TEST_F(test_expressions, int64_ne)
 
     assert_contains(
         employee_t::list()
+            .where(date(2020, 5, 10) != hire_date),
+        {simone, mihir, laurentiu, tobin, wayne, bill, dax});
+
+    assert_contains(
+        employee_t::list()
             .where(hire_date != date(2050, 5, 10)),
         {simone, mihir, yiwen, laurentiu, tobin, wayne, bill, dax});
+
+    assert_empty(
+        employee_t::list()
+            .where(hire_date != hire_date));
 }
 
 TEST_F(test_expressions, int64_gt)
@@ -228,12 +262,21 @@ TEST_F(test_expressions, int64_gt)
             .where(hire_date > date(2020, 5, 10)),
         {simone, mihir});
 
+    assert_contains(
+        employee_t::list()
+            .where(date(2020, 5, 10) > hire_date),
+        {laurentiu, tobin, wayne, bill, dax});
+
     assert_empty(
         employee_t::list()
             .where(hire_date > date(2050, 5, 10)));
+
+    assert_empty(
+        employee_t::list()
+            .where(hire_date > hire_date));
 }
 
-TEST_F(test_expressions, int64_gteq)
+TEST_F(test_expressions, int64_ge)
 {
     auto_transaction_t txn;
 
@@ -242,9 +285,18 @@ TEST_F(test_expressions, int64_gteq)
             .where(hire_date >= date(2020, 5, 10)),
         {simone, mihir, yiwen});
 
+    assert_contains(
+        employee_t::list()
+            .where(date(2020, 5, 10) >= hire_date),
+        {yiwen, laurentiu, tobin, wayne, bill, dax});
+
     assert_empty(
         employee_t::list()
             .where(hire_date >= date(2050, 5, 10)));
+
+    assert_non_empty(
+        employee_t::list()
+            .where(hire_date >= hire_date));
 }
 
 TEST_F(test_expressions, int64_lt)
@@ -256,12 +308,21 @@ TEST_F(test_expressions, int64_lt)
             .where(hire_date < date(2020, 5, 10)),
         {laurentiu, tobin, wayne, bill, dax});
 
+    assert_contains(
+        employee_t::list()
+            .where(date(2020, 5, 10) < hire_date),
+        {simone, mihir});
+
     assert_empty(
         employee_t::list()
             .where(hire_date < date(1902, 5, 10)));
+
+    assert_empty(
+        employee_t::list()
+            .where(hire_date < hire_date));
 }
 
-TEST_F(test_expressions, int64_lteq)
+TEST_F(test_expressions, int64_le)
 {
     auto_transaction_t txn;
 
@@ -270,14 +331,27 @@ TEST_F(test_expressions, int64_lteq)
             .where(hire_date <= date(2020, 5, 10)),
         {yiwen, laurentiu, tobin, wayne, bill, dax});
 
+    assert_contains(
+        employee_t::list()
+            .where(date(2020, 5, 10) <= hire_date),
+        {yiwen, simone, mihir});
+
     assert_empty(
         employee_t::list()
             .where(hire_date <= date(1902, 5, 10)));
+
+    assert_non_empty(
+        employee_t::list()
+            .where(hire_date <= hire_date));
 }
 
 TEST_F(test_expressions, string_eq)
 {
     auto_transaction_t txn;
+
+    assert_non_empty(
+        employee_t::list()
+            .where(name_first == name_first));
 
     assert_contains(
         employee_t::list()
@@ -286,7 +360,17 @@ TEST_F(test_expressions, string_eq)
 
     assert_contains(
         employee_t::list()
+            .where("Simone" == name_first),
+        simone);
+
+    assert_contains(
+        employee_t::list()
             .where(name_first == std::string("Simone")),
+        simone);
+
+    assert_contains(
+        employee_t::list()
+            .where(std::string("Simone") == name_first),
         simone);
 
     const char* surname = "Hawkins";
@@ -308,6 +392,10 @@ TEST_F(test_expressions, string_ne)
 {
     auto_transaction_t txn;
 
+    assert_empty(
+        employee_t::list()
+            .where(name_first != name_first));
+
     assert_contains(
         employee_t::list()
             .where(name_first != "Simone"),
@@ -315,7 +403,17 @@ TEST_F(test_expressions, string_ne)
 
     assert_contains(
         employee_t::list()
+            .where("Simone" != name_first),
+        {dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
+
+    assert_contains(
+        employee_t::list()
             .where(name_first != std::string("Simone")),
+        {dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
+
+    assert_contains(
+        employee_t::list()
+            .where(std::string("Simone") != name_first),
         {dax, bill, laurentiu, wayne, yiwen, mihir, tobin});
 
     const char* surname = "Hawkins";
@@ -378,7 +476,7 @@ TEST_F(test_expressions, object_ne)
         {seattle, aberdeen, tyngsborough, puyallup, renton, bellevue, redmond, kissimmee});
 }
 
-TEST_F(test_expressions, or_predicate)
+TEST_F(test_expressions, or_expr)
 {
     auto_transaction_t txn;
 
@@ -388,7 +486,6 @@ TEST_F(test_expressions, or_predicate)
         || name_first == "Cristofor");
 
     assert_contains(employees, {wayne, bill});
-
     employees = employee_t::list().where(
         hire_date <= date(2020, 1, 10)
         || hire_date >= date(2020, 5, 31)
@@ -420,6 +517,30 @@ TEST_F(test_expressions, and_expr)
     assert_empty(
         employee_t::list()
             .where(hire_date <= date(2021, 1, 1) && hire_date >= date(2036, 2, 7)));
+}
+
+TEST_F(test_expressions, xor_expr)
+{
+    auto_transaction_t txn;
+
+    auto employees = employee_t::list().where(
+        name_first == "Wayne"
+        ^ name_first == "Bill"
+        ^ name_first == "Cristofor");
+
+    assert_contains(employees, {wayne, bill});
+    employees = employee_t::list().where(
+        hire_date <= date(2020, 1, 10)
+        ^ hire_date >= date(2020, 5, 31)
+        ^ name_last == "Cristofor");
+
+    assert_contains(employees, {dax, bill, wayne, laurentiu, simone, mihir});
+
+    employees = employee_t::list().where(
+        hire_date <= date(1991, 1, 1)
+        ^ hire_date >= date(2036, 2, 7));
+
+    assert_empty(employees);
 }
 
 TEST_F(test_expressions, not_expr)
@@ -552,11 +673,25 @@ TEST_F(test_expressions, array)
             }),
         hooli);
 
+    assert_contains(
+        customer_t::list().where(sales_by_quarter[3] == hooli_sales[3]),
+        hooli);
+
+    assert_contains(
+        customer_t::list().where(sales_by_quarter[sales_by_quarter.size() - 1] == hooli_sales[hooli_sales.size() - 1]),
+        {hooli, pied_piper}); // pied_piper's last quarter has the same sales as hooli's quarter.
+
     assert_empty(
         customer_t::list().where(
             [](const auto& c) {
                 return c.sales_by_quarter()[0] == -1;
             }));
+
+    assert_empty(
+        customer_t::list().where(sales_by_quarter[0] == -1));
+
+    assert_non_empty(customer_t::list().where(sales_by_quarter[0] == sales_by_quarter[0]));
+    assert_non_empty(customer_t::list().where(sales_by_quarter.size() == 5));
 }
 
 TEST_F(test_expressions, one_to_one)

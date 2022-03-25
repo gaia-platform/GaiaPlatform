@@ -8,5 +8,6 @@
   known_aliases: ["Mamba Lev", "One Hand Rending", "The Ice", "Ken Kakura"],
   sleeve_cost: 769999.19,
   monthly_sleeve_insurance: 149.29,
-  last_yearly_top_credit_amounts: [190000000.39, 29900000.49, 0]
+  last_yearly_top_credit_amounts: [190000000.39, 29900000.49, 0],
+  float_field_with_default_value: 7.7
 }

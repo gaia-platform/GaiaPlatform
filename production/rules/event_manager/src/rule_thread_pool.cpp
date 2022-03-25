@@ -237,7 +237,7 @@ void rule_thread_pool_t::invoke_rule_inner(invocation_t& invocation)
     {
         try
         {
-            auto_transaction_t txn(auto_transaction_t::no_auto_begin);
+            auto_transaction_t txn(auto_transaction_t::no_auto_restart);
 
             // If the anchor row is invalid, then do not invoke the rule.  This can
             // occur if the row is deleted after it has been inserted or updated but

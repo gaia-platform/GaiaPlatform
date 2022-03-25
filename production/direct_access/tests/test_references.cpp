@@ -3,9 +3,13 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <charconv>
 #include <iostream>
 
 #include "gtest/gtest.h"
+
+#include <gaia/direct_access/auto_transaction.hpp>
+#include <gaia/exceptions.hpp>
 
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
@@ -24,6 +28,14 @@ using std::to_string;
 
 class gaia_references_test : public db_catalog_test_base_t
 {
+public:
+    inline static constexpr size_t hire_date = 20200530;
+    inline static constexpr size_t count_employees = 1;
+    inline static constexpr size_t count_addresses = 200;
+    inline static constexpr size_t count_phones = 20;
+    inline static constexpr size_t addr_size = 6;
+    inline static constexpr size_t phone_size = 5;
+
 protected:
     gaia_references_test()
         : db_catalog_test_base_t(string("addr_book.ddl")){};
@@ -48,7 +60,7 @@ protected:
         }
 
         throw std::runtime_error(
-            "Impossible to find an invalid ID in the range "
+            "Cannot find an invalid ID in the range "
             + to_string(c_lower_id_range) + " - " + to_string(c_higher_id_range));
     }
 
@@ -177,24 +189,20 @@ TEST_F(gaia_references_test, connect_disconnect_id_member)
 
 employee_t create_hierarchy()
 {
-    const int hire_date = 20200530;
-    const int count_addresses = 200;
-    const int count_phones = 20;
-    const int addr_size = 6;
-    const int phone_size = 5;
+
     auto employee
-        = employee_t::get(employee_t::insert_row("Heidi", "Humphry", "555-22-4444", hire_date, "heidi@gmail.com", ""));
-    for (int i = 0; i < count_addresses; i++)
+        = employee_t::get(employee_t::insert_row("Heidi", "Humphry", "555-22-4444", gaia_references_test::hire_date, "heidi@gmail.com", ""));
+    for (size_t i = 0; i < gaia_references_test::count_addresses; i++)
     {
-        char addr_string[addr_size];
-        sprintf(addr_string, "%d", i);
+        char addr_string[gaia_references_test::addr_size];
+        sprintf(addr_string, "%zu", i);
         auto address = address_t::get(
             address_t::insert_row(addr_string, addr_string, addr_string, addr_string, addr_string, addr_string, true));
         employee.addresses().insert(address);
-        for (int j = 0; j < count_phones; j++)
+        for (size_t j = 0; j < gaia_references_test::count_phones; j++)
         {
-            char phone_string[phone_size];
-            sprintf(phone_string, "%d", j);
+            char phone_string[gaia_references_test::phone_size];
+            sprintf(phone_string, "%zu", j);
             auto phone = phone_t::get(phone_t::insert_row(phone_string, phone_string, true));
             address.phones().insert(phone);
         }
@@ -302,35 +310,25 @@ int count_type()
 
 string first_employee()
 {
-    const char* name = nullptr;
-    for (auto const& row : employee_t::list())
-    {
-        name = row.name_first();
-    }
-    return name;
+    return employee_t::list().begin()->name_first();
 }
 
 int all_addressee()
 {
-    int count = 0;
-    const int addr_size = 6;
-    char addr_string[addr_size];
+    // This is the sum from 0 to N-1, with N=count_addresses.
+    auto count_addresses_sum = ((gaia_references_test::count_addresses * (gaia_references_test::count_addresses + 1)) / 2) - gaia_references_test::count_addresses;
+
+    // Decrement the sum of all addresses' numeric values by the current
+    // address's numeric value.
     for (auto const& address : address_t::list())
     {
-        sprintf(addr_string, "%d", count);
-        EXPECT_STREQ(addr_string, address.city());
-        count++;
-    }
-    int i = 0;
-    for (auto it = address_t::list().begin(); it != address_t::list().end(); ++it)
-    {
-        sprintf(addr_string, "%d", i);
-        EXPECT_STREQ(addr_string, (*it).city());
-        count--;
-        ++i;
+        auto str = address.city();
+        size_t value{};
+        std::from_chars(str, str + ::strlen(str), value);
+        count_addresses_sum -= value;
     }
 
-    return count;
+    return count_addresses_sum;
 }
 
 // Create a hierachy of records, then scan and count them.
@@ -346,15 +344,17 @@ TEST_F(gaia_references_test, connect_scan)
 
     // Count the records in the hierarchy
     auto record_count = scan_hierarchy(eptr);
-    EXPECT_EQ(record_count, 4201);
+    auto total_count_addresses = gaia_references_test::count_employees * gaia_references_test::count_addresses;
+    auto total_count_phones = total_count_addresses * gaia_references_test::count_phones;
+    EXPECT_EQ(record_count, gaia_references_test::count_employees + total_count_addresses + total_count_phones);
 
     // Travel down, then up the hierarchy
     EXPECT_EQ(bounce_hierarchy(eptr), true);
 
     // Count the rows.
-    EXPECT_EQ(count_type<employee_t>(), 1);
-    EXPECT_EQ(count_type<address_t>(), 200);
-    EXPECT_EQ(count_type<phone_t>(), 4000);
+    EXPECT_EQ(count_type<employee_t>(), gaia_references_test::count_employees);
+    EXPECT_EQ(count_type<address_t>(), total_count_addresses);
+    EXPECT_EQ(count_type<phone_t>(), total_count_phones);
 
     // Scan through some rows.
     EXPECT_EQ(first_employee(), "Heidi");
@@ -613,7 +613,7 @@ void insert_object(bool committed, employee_t e1, address_t a1)
         else
         {
             // Nothing is committed yet.
-            EXPECT_THROW(e1.addresses().insert(a1), invalid_object_state);
+            EXPECT_THROW(e1.addresses().insert(a1), invalid_object_id);
         }
     }
     commit_transaction();
@@ -989,4 +989,84 @@ TEST_F(gaia_references_test, test_temporary_object)
     emp.addresses().insert(address_t::get(address_t::insert_row("", "", "", "", "", "", true)));
 
     commit_transaction();
+}
+
+TEST_F(gaia_references_test, test_delete_referenced_child)
+{
+    auto_transaction_t txn;
+
+    const size_t c_num_addresses = 10;
+    employee_t employee = insert_records(c_num_addresses);
+    txn.commit();
+
+    size_t count = 0;
+    for (auto addr = employee.addresses().begin(); addr != employee.addresses().end();)
+    {
+        auto prev = addr++;
+        if (++count % 2 == 0)
+        {
+            // Referenced child objects can be deleted.
+            ASSERT_NO_THROW(prev->delete_row());
+        }
+        else
+        {
+            // The 'force' delete option is not needed here. We use force
+            // deletion for test completeness.
+            ASSERT_NO_THROW(prev->delete_row(true));
+        }
+    }
+    ASSERT_EQ(count, c_num_addresses);
+    txn.commit();
+
+    ASSERT_EQ(employee.addresses().size(), 0);
+    address_t addr = insert_address("2400 4th Ave", "Houston");
+    employee.addresses().connect(addr);
+    txn.commit();
+
+    ASSERT_EQ(employee.addresses().begin()->gaia_id(), addr.gaia_id());
+    ASSERT_NO_THROW(addr.delete_row());
+}
+
+TEST_F(gaia_references_test, test_delete_referenced_parent)
+{
+    auto_transaction_t txn;
+
+    const size_t c_num_addresses = 10;
+    employee_t employee = insert_records(c_num_addresses);
+
+    std::array<address_t, c_num_addresses> addresses;
+    std::copy(employee.addresses().begin(), employee.addresses().end(), addresses.begin());
+    txn.commit();
+
+    // Referenced parent object in an explicit 1:N relationships cannot be
+    // deleted without the force option.
+    ASSERT_THROW(employee.delete_row(), object_still_referenced);
+    txn.commit();
+
+    // Referenced parent object in explicit 1:N relationships can still be
+    // deleted using the force option.
+    ASSERT_NO_THROW(employee.delete_row(true));
+    txn.commit();
+
+    employee_t employee1 = insert_employee("e1");
+    employee_t employee2 = insert_employee("e2");
+    size_t count = 0;
+    for (const auto& addr : addresses)
+    {
+        // All child objects will be disconnected from the force deleted parent
+        // object. They can still be connected to other objects.
+        ASSERT_FALSE(addr.owner());
+        if (++count % 2 == 0)
+        {
+            employee1.addresses().insert(addr);
+        }
+        else
+        {
+            employee2.addresses().connect(addr);
+        }
+    }
+    txn.commit();
+
+    ASSERT_EQ(employee1.addresses().size(), c_num_addresses / 2);
+    ASSERT_EQ(employee2.addresses().size(), c_num_addresses / 2);
 }

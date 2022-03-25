@@ -1,0 +1,4 @@
+Template: gaia/install-service
+Type: boolean
+Default: true
+Description: Install the Gaia Database Server as a systemd service?

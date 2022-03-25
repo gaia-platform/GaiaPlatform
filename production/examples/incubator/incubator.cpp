@@ -1,17 +1,17 @@
-/////////////////////////////////////////////
-// Copyright (c) 2021 Gaia Platform LLC
+////////////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
 //
-// Use of this source code is governed by an MIT-style
+// Use of this source code is governed by the MIT
 // license that can be found in the LICENSE.txt file
 // or at https://opensource.org/licenses/MIT.
-/////////////////////////////////////////////
+////////////////////////////////////////////////////
 
-#include <chrono>
 #include <cstring>
 #include <ctime>
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <iomanip>
 #include <iostream>
 #include <map>
@@ -117,7 +117,7 @@ void restore_default_values()
 
 void init_storage()
 {
-    auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+    auto_transaction_t tx(auto_transaction_t::no_auto_restart);
 
     // If we already have inserted an incubator then our storage has already been
     // initialized.  Re-initialize the database to default values.
@@ -196,7 +196,7 @@ float calc_new_temp(float curr_temp, float fan_speed)
 
 void set_power(bool is_on)
 {
-    auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+    auto_transaction_t tx(auto_transaction_t::no_auto_restart);
     for (auto i : incubator_t::list())
     {
         auto w = i.writer();
@@ -216,7 +216,7 @@ void simulation()
     {
         std::this_thread::sleep_for(std::chrono::seconds(1));
 
-        auto_transaction_t tx(auto_transaction_t::no_auto_begin);
+        auto_transaction_t tx(auto_transaction_t::no_auto_restart);
 
         float new_temp = 0.0;
         float fan_a = 0.0;

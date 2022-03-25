@@ -116,7 +116,7 @@ jboolean remove(jlong id)
         gaia_ptr_t t = gaia_ptr_t::from_gaia_id(id);
         if (t)
         {
-            gaia_ptr_t::remove(t);
+            t.reset();
         }
         else
         {
@@ -234,7 +234,7 @@ JNIEXPORT jlong JNICALL Java_com_gaiaplatform_database_GaiaDatabase_createNode(
     try
     {
         node = gaia_ptr_t::create(
-            id, type, payload_holder.size(), payload_holder.bytes());
+            id, type, 0, payload_holder.size(), payload_holder.bytes());
     }
     catch (const std::exception& e)
     {

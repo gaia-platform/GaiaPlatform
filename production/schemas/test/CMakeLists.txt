@@ -34,4 +34,12 @@ process_schema_internal(
   DATABASE_NAME amr_swarm)
 
 process_schema_internal(
+  DDL_FILE "${PROJECT_SOURCE_DIR}/optional/optional.ddl"
+  DATABASE_NAME optional_sandbox)
+
+process_schema_internal(
+  DDL_FILE "${PROJECT_SOURCE_DIR}/insert/insert.ddl"
+  DATABASE_NAME insert_sandbox)
+
+process_schema_internal(
   DDL_FILE "${PROJECT_SOURCE_DIR}/default/no_db.ddl")

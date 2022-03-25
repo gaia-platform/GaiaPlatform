@@ -56,8 +56,8 @@ public:
         rule_binding_t m_rule1{"ruleset1_name", "rule1_name", rule1};
         subscribe_rule(employee_t::s_gaia_type, event_type_t::row_insert, empty_fields, m_rule1);
 
-        //TODO[GAIAPLAT-445]: We don't expose deleted row events
-        //subscribe_rule(employee_t::s_gaia_type, event_type_t::row_delete, empty_fields, m_rule1);
+        // TODO[GAIAPLAT-445]: We don't expose deleted row events
+        // subscribe_rule(employee_t::s_gaia_type, event_type_t::row_delete, empty_fields, m_rule1);
 
         field_position_list_t fields;
         // We only have 1 field in this test.

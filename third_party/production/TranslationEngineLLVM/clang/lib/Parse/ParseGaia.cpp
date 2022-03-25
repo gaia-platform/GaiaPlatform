@@ -61,7 +61,7 @@ std::string Parser::GetExplicitNavigationPath()
             returnValue = "@/";
         }
     }
-    else if (previousPreviousToken.is(tok::slash))
+    else if (previousPreviousToken.is(tok::slash) && getPreviousToken(previousPreviousToken).isNot(tok::star))
     {
         returnValue = "/";
         startLocation = previousPreviousToken.getLocation();
@@ -69,7 +69,9 @@ std::string Parser::GetExplicitNavigationPath()
     else if (previousPreviousToken.is(tok::colon) && insertCallParameterLocations.find(previousToken.getLocation()) == insertCallParameterLocations.end())
     {
         Token tagToken = getPreviousToken(previousPreviousToken);
-        if (tagToken.is(tok::identifier) && !(Actions.getCurScope()->isSwitchScope() && getPreviousToken(tagToken).is(tok::coloncolon)))
+        if (tagToken.is(tok::identifier)
+            && !(Actions.getCurScope()->isSwitchScope() && getPreviousToken(tagToken).is(tok::coloncolon))
+            && !(isKnownToBeTypeSpecifier(getPreviousToken(tagToken)) || getPreviousToken(tagToken).is(tok::kw_auto)))
         {
             returnValue = tagToken.getIdentifierInfo()->getName();
             returnValue += ':';
@@ -579,7 +581,7 @@ void Parser::ParseRule(Declarator &D)
         return;
     }
     // Reset search context stack
-    Actions.ResetTableSearchContextStack();
+    Actions.ActOnRuleStart();
     Actions.PushTableSearchContext();
     ParsedAttributesWithRange attrs(AttrFactory);
     if (!ParseGaiaAttributes(attrs, Rule))

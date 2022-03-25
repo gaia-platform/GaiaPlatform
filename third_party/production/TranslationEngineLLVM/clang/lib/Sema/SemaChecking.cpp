@@ -4205,13 +4205,18 @@ void Sema::CheckConstructorCall(FunctionDecl *FDecl,
 /// CheckFunctionCall - Check a direct function call for various correctness
 /// and safety properties not strictly enforced by the C type system.
 bool Sema::CheckFunctionCall(FunctionDecl *FDecl, CallExpr *TheCall,
-                             const FunctionProtoType *Proto) {
+                             const FunctionProtoType *Proto,
+                             bool isSpecialGaiaFunctionCall) {
   bool IsMemberOperatorCall = isa<CXXOperatorCallExpr>(TheCall) &&
                               isa<CXXMethodDecl>(FDecl);
   bool IsMemberFunction = isa<CXXMemberCallExpr>(TheCall) ||
                           IsMemberOperatorCall;
   VariadicCallType CallType = getVariadicCallType(FDecl, Proto,
                                                   TheCall->getCallee());
+  if (isSpecialGaiaFunctionCall && CallType == VariadicMethod)
+  {
+    CallType = VariadicDoesNotApply;
+  }
   Expr** Args = TheCall->getArgs();
   unsigned NumArgs = TheCall->getNumArgs();
 

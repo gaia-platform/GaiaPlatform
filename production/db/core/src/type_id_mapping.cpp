@@ -12,7 +12,7 @@
 
 using namespace gaia::db;
 
-gaia::common::gaia_id_t type_id_mapping_t::get_record_id(gaia::common::gaia_type_t type_id)
+gaia::common::gaia_id_t type_id_mapping_t::get_table_id(gaia::common::gaia_type_t type_id)
 {
     std::shared_lock lock(m_lock);
 
@@ -35,7 +35,7 @@ void type_id_mapping_t::init_type_map()
 {
     m_type_map.clear();
 
-    for (const auto& table_view : catalog_core_t::list_tables())
+    for (const auto& table_view : catalog_core::list_tables())
     {
         m_type_map[table_view.table_type()] = table_view.id();
     }

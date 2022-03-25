@@ -1,14 +1,14 @@
-#############################################
-# Copyright (c) 2021 Gaia Platform LLC
+###################################################
+# Copyright (c) Gaia Platform LLC
 #
-# Use of this source code is governed by an MIT-style
+# Use of this source code is governed by the MIT
 # license that can be found in the LICENSE.txt file
 # or at https://opensource.org/licenses/MIT.
-#############################################
+###################################################
 
 cmake_minimum_required(VERSION 3.16)
 
-project(hospital)
+project(direct_access)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -25,10 +25,10 @@ process_schema(
   DATABASE_NAME hospital
 )
 
-add_executable(hospital
-    hospital.cpp
+add_executable(direct_access
+  hospital.cpp
 )
 
-target_add_gaia_generated_sources(hospital)
-target_include_directories(hospital PRIVATE ${GAIA_INC})
-target_link_libraries(hospital PRIVATE ${GAIA_LIB} Threads::Threads)
+target_add_gaia_generated_sources(direct_access)
+target_include_directories(direct_access PRIVATE ${GAIA_INC})
+target_link_libraries(direct_access PRIVATE ${GAIA_LIB} Threads::Threads)

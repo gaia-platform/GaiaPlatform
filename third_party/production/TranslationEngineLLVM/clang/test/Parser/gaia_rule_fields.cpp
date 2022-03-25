@@ -34,7 +34,7 @@ ruleset test15
 ruleset test16
 {
     {
-        value++; // expected-error {{Duplicate field 'value'}} \
+        value++; // expected-error {{The reference to field 'value'}} \
                  // expected-error {{use of undeclared identifier 'value'}}
     }
 }

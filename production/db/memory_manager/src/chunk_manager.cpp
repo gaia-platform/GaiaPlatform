@@ -369,7 +369,7 @@ gaia_offset_t chunk_manager_t::last_allocated_offset()
     m_metadata->synchronize_allocation_metadata();
 
     slot_offset_t max_allocated_slot_offset = m_metadata->max_allocated_slot_offset();
-    if (max_allocated_slot_offset == c_invalid_slot_offset)
+    if (!max_allocated_slot_offset.is_valid())
     {
         return c_invalid_gaia_offset;
     }

@@ -30,6 +30,7 @@
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/Twine.h"
 using namespace gaia;
+using namespace gaia::catalog::gaiat;
 using namespace std;
 using namespace clang;
 
@@ -62,7 +63,7 @@ static StringRef getTableFromExpression(StringRef expression)
     }
 }
 
-static QualType mapFieldType(catalog::data_type_t dbType, ASTContext* context)
+static QualType mapFieldType(catalog::data_type_t dbType, bool isArray, ASTContext* context)
 {
     // Clang complains if we add a default clause to a switch that covers all values of an enum,
     // so this code is written to avoid that.
@@ -111,6 +112,11 @@ static QualType mapFieldType(catalog::data_type_t dbType, ASTContext* context)
     // We should not be reaching this line with this value,
     // unless there is an error in code.
     assert(returnType != context->VoidTy);
+
+    if (isArray)
+    {
+        return context->getIncompleteArrayType(returnType, ArrayType::Normal, 0);
+    }
 
     return returnType;
 }
@@ -331,7 +337,7 @@ std::string Sema::ParseExplicitPath(StringRef pathString, SourceLocation loc, St
 
             if (!previousTable.empty())
             {
-                const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+                const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::getCatalogTableData();
                 const auto& relatedTablesIterator = catalogData.find(previousTable);
 
                 if (relatedTablesIterator == catalogData.end() || relatedTablesIterator->second.linkData.empty())
@@ -392,14 +398,14 @@ std::string Sema::ParseExplicitPath(StringRef pathString, SourceLocation loc, St
 llvm::StringMap<llvm::StringMap<QualType>> Sema::getTableData()
 {
     llvm::StringMap<llvm::StringMap<QualType>> result;
-    const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+    const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::getCatalogTableData();
 
     for (const auto& catalogDataItem : catalogData)
     {
         llvm::StringMap<QualType> fields;
         for (const auto& fieldData : catalogDataItem.second.fieldData)
         {
-            fields[fieldData.first()] =  mapFieldType(fieldData.second.fieldType, &Context);
+            fields[fieldData.first()] =  mapFieldType(fieldData.second.fieldType, fieldData.second.isArray, &Context);
         }
         result[catalogDataItem.first()] = fields;
     }
@@ -410,7 +416,7 @@ llvm::StringMap<llvm::StringMap<QualType>> Sema::getTableData()
 llvm::StringSet<> Sema::getCatalogTableList()
 {
     llvm::StringSet<> result;
-    const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+    const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::getCatalogTableData();
 
     for (const auto& catalogDataItem : catalogData)
     {
@@ -621,7 +627,6 @@ TagDecl* Sema::lookupEDCClass(StringRef className)
     {
         return llvm::cast_or_null<TagDecl>(typeIterator->second->getAsRecordDecl());
     }
-
     return nullptr;
 }
 
@@ -650,12 +655,11 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, StringRef targetTab
 
     targetTypes.push_back(implicitTargetTypeDecl);
 
-    // TODO [GAIAPLAT-1168] We should not statically build the EDC type, bust ask the Catalog for it.
-    // Lookup the EDC class type (table_t)
-    llvm::SmallString<20> edcTableTypeName = targetTableName;
-    edcTableTypeName += "_t";
-    TagDecl* edcTargetTypeDecl = lookupEDCClass(edcTableTypeName);
-
+    // TODO [GAIAPLAT-1168] We should not statically build the EDC type, must ask the Catalog for it.
+    // Lookup the EDC class type.
+    auto edcClassName = table_facade_t::class_name(targetTableName);
+    // llvm::SmallString<20> edcTableTypeName = edcClassName;
+    TagDecl* edcTargetTypeDecl = lookupEDCClass(edcClassName);
     if (edcTargetTypeDecl)
     {
         targetTypes.push_back(edcTargetTypeDecl);
@@ -812,8 +816,7 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
 
     // Adds a conversion function from the generated table type (table__type)
     // to the EDC type (table_t).
-    llvm::SmallString<20> edcClassName = typeName;
-    edcClassName += "_t";
+    auto edcClassName = table_facade_t::class_name(typeName.c_str());
     TagDecl* edcType = lookupEDCClass(edcClassName);
     if (edcType != nullptr)
     {
@@ -858,7 +861,7 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
         addField(&Context.Idents.get(fieldName), fieldType, RD, loc);
     }
 
-    const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+    const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::getCatalogTableData();
     const auto& links = catalogData.find(typeName)->second.linkData;
 
     // For every relationship target table we count how many links
@@ -1367,7 +1370,7 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
             bool isAnchorFound = false;
 
             // Check if first component is a field. It should be the only component in the path.
-            const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::GaiaCatalog::getCatalogTableData();
+            const llvm::StringMap<gaia::catalog::CatalogTableData>& catalogData = gaia::catalog::getCatalogTableData();
             StringRef firstComponentTable = firstComponent;
             if (catalogData.find(firstComponentTable) == catalogData.end())
             {
@@ -1413,7 +1416,7 @@ NamedDecl* Sema::injectVariableDefinition(IdentifierInfo* II, SourceLocation loc
                             source_table = tagIterator->second;
                         }
                         // Find topographically shortest path between anchor table and destination table.
-                        if (gaia::catalog::GaiaCatalog::findNavigationPath(source_table, firstComponentTable, path, false))
+                        if (gaia::catalog::findNavigationPath(source_table, firstComponentTable, path, false))
                         {
                             if (path.size() < pathLength)
                             {
@@ -1672,4 +1675,15 @@ bool Sema::ValidateLabel(const LabelDecl* label)
     labelsInProcess.erase(labelName);
     declarativeLabelsInProcess.erase(labelName);
     return true;
+}
+
+void Sema::ActOnRuleStart()
+{
+    ResetTableSearchContextStack();
+    labelsInProcess.clear();
+    declarativeLabelsInProcess.clear();
+    explicitPathData.clear();
+    explicitPathTagMapping.clear();
+    extendedExplicitPathTagMapping.clear();
+    injectedVariablesLocation.clear();
 }

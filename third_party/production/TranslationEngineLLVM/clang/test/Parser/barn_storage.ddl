@@ -77,7 +77,8 @@ create relationship if not exists incubator_raised (
 
 create table if not exists yield (
     crop_name string,
-    bushels uint32
+    bushels uint32,
+    previous_years uint32[]
 );
 
 create relationship if not exists farmer_yield (
@@ -112,7 +113,8 @@ create relationship if not exists animal_feeding (
 );
 
 create table if not exists isolated (
-    age uint32
+    age uint32,
+    history int32[]
 );
 
 create table if not exists hyperconnected (

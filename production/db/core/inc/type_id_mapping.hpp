@@ -32,7 +32,7 @@ public:
     }
 
     // Return the id of the gaia_table record that defines a given type.
-    common::gaia_id_t get_record_id(common::gaia_type_t type_id);
+    common::gaia_id_t get_table_id(common::gaia_type_t type_id);
 
     // Clear the cache content, used for tests.
     void clear();

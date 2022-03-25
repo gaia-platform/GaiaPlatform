@@ -1,4 +1,4 @@
-# shellcheck shell=bash
+#!/usr/bin/env bash
 
 #############################################
 # Copyright (c) Gaia Platform LLC
@@ -136,4 +136,3 @@ execute_commands() {
         complete_process 1 "Command '${PARAMS[0]}' not known."
     fi
 }
-

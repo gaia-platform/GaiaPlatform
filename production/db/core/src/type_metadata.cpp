@@ -60,6 +60,11 @@ void type_metadata_t::add_parent_relationship(const std::shared_ptr<relationship
 
     m_parent_relationships.insert({relationship->first_child_offset, relationship});
     m_reference_count += 1;
+
+    if (relationship->value_linked)
+    {
+        m_has_value_linked_relationship = true;
+    }
 }
 
 void type_metadata_t::add_child_relationship(const std::shared_ptr<relationship_t>& relationship)
@@ -67,19 +72,11 @@ void type_metadata_t::add_child_relationship(const std::shared_ptr<relationship_
     std::unique_lock lock(m_metadata_lock);
 
     m_child_relationships.insert({relationship->parent_offset, relationship});
-
-    // A child node contains 2 ref slots for every relationship.
-    constexpr std::size_t c_num_ref_slots = 2;
-    // A child node contains 3 ref slots for every value linked relationship.
-    constexpr std::size_t c_value_linked_rel_num_ref_slots = 3;
+    m_reference_count += 3;
 
     if (relationship->value_linked)
     {
-        m_reference_count += c_value_linked_rel_num_ref_slots;
-    }
-    else
-    {
-        m_reference_count += c_num_ref_slots;
+        m_has_value_linked_relationship = true;
     }
 }
 
@@ -88,7 +85,7 @@ gaia_type_t type_metadata_t::get_type() const
     return m_type;
 }
 
-reference_offset_t type_metadata_t::num_references() const
+reference_offset_t type_metadata_t::references_count() const
 {
     std::shared_lock lock(m_metadata_lock);
     return m_reference_count;
@@ -104,6 +101,11 @@ void type_metadata_t::mark_as_initialized()
     m_initialized.store(true);
 }
 
+bool type_metadata_t::has_value_linked_relationship() const
+{
+    return m_has_value_linked_relationship;
+}
+
 /*
  * type_registry_t
  */
@@ -114,21 +116,19 @@ void type_registry_t::init()
     // The type registry is initialized before ddl_executor at runtime upon database startup.
     // The following initialization step is needed before we have a proper runtime bootstrap of the catalog.
     // TODO: runtime bootstrap of the catalog.
-    auto database = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_database);
-    auto table = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_table);
-    auto field = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_field);
-    auto relationship = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_relationship);
-    auto rule = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_rule);
-    auto ruleset = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_ruleset);
-    auto index = static_cast<gaia_type_t::value_type>(catalog_table_type_t::gaia_index);
+    auto database = static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_database);
+    auto table = static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_table);
+    auto field = static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_field);
+    auto relationship = static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_relationship);
+    auto index = static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_index);
 
     auto db_table_relationship = std::make_shared<relationship_t>(relationship_t{
         .parent_type = database,
         .child_type = table,
-        .first_child_offset = catalog_core_t::c_gaia_database_first_gaia_table_offset,
-        .next_child_offset = catalog_core_t::c_gaia_table_next_gaia_table_offset,
-        .prev_child_offset = c_invalid_reference_offset,
-        .parent_offset = catalog_core_t::c_gaia_table_parent_gaia_database_offset,
+        .first_child_offset = catalog_core::c_gaia_database_first_gaia_table_offset,
+        .next_child_offset = catalog_core::c_gaia_table_next_gaia_table_offset,
+        .prev_child_offset = catalog_core::c_gaia_table_prev_gaia_table_offset,
+        .parent_offset = catalog_core::c_gaia_table_parent_gaia_database_offset,
         .cardinality = cardinality_t::many,
         .parent_required = false,
         .value_linked = false});
@@ -136,10 +136,10 @@ void type_registry_t::init()
     auto table_field_relationship = std::make_shared<relationship_t>(relationship_t{
         .parent_type = table,
         .child_type = field,
-        .first_child_offset = catalog_core_t::c_gaia_table_first_gaia_field_offset,
-        .next_child_offset = catalog_core_t::c_gaia_field_next_gaia_field_offset,
-        .prev_child_offset = c_invalid_reference_offset,
-        .parent_offset = catalog_core_t::c_gaia_field_parent_gaia_table_offset,
+        .first_child_offset = catalog_core::c_gaia_table_first_gaia_field_offset,
+        .next_child_offset = catalog_core::c_gaia_field_next_gaia_field_offset,
+        .prev_child_offset = catalog_core::c_gaia_field_prev_gaia_field_offset,
+        .parent_offset = catalog_core::c_gaia_field_parent_gaia_table_offset,
         .cardinality = cardinality_t::many,
         .parent_required = false,
         .value_linked = false});
@@ -147,10 +147,10 @@ void type_registry_t::init()
     auto relationship_parent_table_relationship = std::make_shared<relationship_t>(relationship_t{
         .parent_type = table,
         .child_type = relationship,
-        .first_child_offset = catalog_core_t::c_gaia_table_first_parent_gaia_relationship_offset,
-        .next_child_offset = catalog_core_t::c_gaia_relationship_next_parent_gaia_relationship_offset,
-        .prev_child_offset = c_invalid_reference_offset,
-        .parent_offset = catalog_core_t::c_gaia_relationship_parent_parent_gaia_table_offset,
+        .first_child_offset = catalog_core::c_gaia_table_first_parent_gaia_relationship_offset,
+        .next_child_offset = catalog_core::c_gaia_relationship_next_parent_gaia_relationship_offset,
+        .prev_child_offset = catalog_core::c_gaia_relationship_prev_parent_gaia_relationship_offset,
+        .parent_offset = catalog_core::c_gaia_relationship_parent_parent_gaia_table_offset,
         .cardinality = cardinality_t::many,
         .parent_required = false,
         .value_linked = false});
@@ -158,21 +158,10 @@ void type_registry_t::init()
     auto relationship_child_table_relationship = std::make_shared<relationship_t>(relationship_t{
         .parent_type = table,
         .child_type = relationship,
-        .first_child_offset = catalog_core_t::c_gaia_table_first_child_gaia_relationship_offset,
-        .next_child_offset = catalog_core_t::c_gaia_relationship_next_child_gaia_relationship_offset,
-        .prev_child_offset = c_invalid_reference_offset,
-        .parent_offset = catalog_core_t::c_gaia_relationship_parent_child_gaia_table_offset,
-        .cardinality = cardinality_t::many,
-        .parent_required = false,
-        .value_linked = false});
-
-    auto ruleset_rule_relationship = std::make_shared<relationship_t>(relationship_t{
-        .parent_type = ruleset,
-        .child_type = rule,
-        .first_child_offset = catalog_core_t::c_gaia_ruleset_first_gaia_rule_offset,
-        .next_child_offset = catalog_core_t::c_gaia_rule_next_gaia_rule_offset,
-        .prev_child_offset = c_invalid_reference_offset,
-        .parent_offset = catalog_core_t::c_gaia_rule_parent_gaia_ruleset_offset,
+        .first_child_offset = catalog_core::c_gaia_table_first_child_gaia_relationship_offset,
+        .next_child_offset = catalog_core::c_gaia_relationship_next_child_gaia_relationship_offset,
+        .prev_child_offset = catalog_core::c_gaia_relationship_prev_child_gaia_relationship_offset,
+        .parent_offset = catalog_core::c_gaia_relationship_parent_child_gaia_table_offset,
         .cardinality = cardinality_t::many,
         .parent_required = false,
         .value_linked = false});
@@ -180,10 +169,10 @@ void type_registry_t::init()
     auto table_index_relationship = std::make_shared<relationship_t>(relationship_t{
         .parent_type = table,
         .child_type = index,
-        .first_child_offset = catalog_core_t::c_gaia_table_first_gaia_index_offset,
-        .next_child_offset = catalog_core_t::c_gaia_index_next_gaia_index_offset,
-        .prev_child_offset = c_invalid_reference_offset,
-        .parent_offset = catalog_core_t::c_gaia_index_parent_gaia_table_offset,
+        .first_child_offset = catalog_core::c_gaia_table_first_gaia_index_offset,
+        .next_child_offset = catalog_core::c_gaia_index_next_gaia_index_offset,
+        .prev_child_offset = catalog_core::c_gaia_index_prev_gaia_index_offset,
+        .parent_offset = catalog_core::c_gaia_index_parent_gaia_table_offset,
         .cardinality = cardinality_t::many,
         .parent_required = false,
         .value_linked = false});
@@ -209,22 +198,14 @@ void type_registry_t::init()
     relationship_metadata.add_child_relationship(relationship_child_table_relationship);
     relationship_metadata.mark_as_initialized();
 
-    auto& ruleset_metadata = get_or_create_no_lock(ruleset);
-    ruleset_metadata.add_parent_relationship(ruleset_rule_relationship);
-    ruleset_metadata.mark_as_initialized();
-
-    auto& rule_metadata = get_or_create_no_lock(rule);
-    rule_metadata.add_child_relationship(ruleset_rule_relationship);
-    rule_metadata.mark_as_initialized();
-
     auto& index_metadata = get_or_create_no_lock(index);
     index_metadata.add_child_relationship(table_index_relationship);
     index_metadata.mark_as_initialized();
 }
 
-gaia_id_t type_registry_t::get_record_id(gaia_type_t type)
+gaia_id_t type_registry_t::get_table_id(gaia_type_t type)
 {
-    return type_id_mapping_t::instance().get_record_id(type);
+    return type_id_mapping_t::instance().get_table_id(type);
 }
 
 bool type_registry_t::exists(gaia_type_t type) const
@@ -260,10 +241,10 @@ type_metadata_t& type_registry_t::test_get_or_create(gaia_type_t type)
     return metadata;
 }
 
-static std::shared_ptr<relationship_t> create_relationship(relationship_view_t relationship)
+static std::shared_ptr<relationship_t> create_relationship(catalog_core::relationship_view_t relationship)
 {
-    auto parent_table_type = catalog_core_t::get_table(relationship.parent_table_id()).table_type();
-    auto child_table_type = catalog_core_t::get_table(relationship.child_table_id()).table_type();
+    auto parent_table_type = catalog_core::get_table(relationship.parent_table_id()).table_type();
+    auto child_table_type = catalog_core::get_table(relationship.child_table_id()).table_type();
     return std::make_shared<relationship_t>(relationship_t{
         .parent_type = parent_table_type,
         .child_type = child_table_type,
@@ -271,7 +252,7 @@ static std::shared_ptr<relationship_t> create_relationship(relationship_view_t r
         .next_child_offset = relationship.next_child_offset(),
         .prev_child_offset = relationship.prev_child_offset(),
         .parent_offset = relationship.parent_offset(),
-        .cardinality = cardinality_t::many,
+        .cardinality = relationship.cardinality(),
         .parent_required = false,
         .value_linked = relationship.is_value_linked()});
 }
@@ -280,14 +261,14 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
 {
     gaia_log::db().trace("Creating metadata for type: '{}'", type);
 
-    gaia_id_t record_id = get_record_id(type);
-    if (record_id == c_invalid_gaia_id)
+    gaia_id_t table_id = get_table_id(type);
+    if (!table_id.is_valid())
     {
         throw invalid_object_type_internal(type);
     }
     auto& metadata = get_or_create_no_lock(type);
 
-    for (auto relationship_view : catalog_core_t::list_relationship_to(record_id))
+    for (auto relationship_view : catalog_core::list_relationship_to(table_id))
     {
         if (metadata.find_child_relationship(relationship_view.parent_offset()))
         {
@@ -306,7 +287,7 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
         metadata.add_child_relationship(rel);
     }
 
-    for (auto relationship_view : catalog_core_t::list_relationship_from(record_id))
+    for (auto relationship_view : catalog_core::list_relationship_from(table_id))
     {
         if (metadata.find_parent_relationship(relationship_view.first_child_offset()))
         {

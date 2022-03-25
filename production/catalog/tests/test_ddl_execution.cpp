@@ -6,13 +6,12 @@
 #include <gtest/gtest.h>
 
 #include "gaia/direct_access/auto_transaction.hpp"
+#include <gaia/exceptions.hpp>
 
-#include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/ddl_execution.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
-#include "catalog_tests_helper.hpp"
 #include "gaia_parser.hpp"
 
 using namespace std;
@@ -439,4 +438,57 @@ create relationship r (d1.t1.link2 -> d2.t2, d2.t2.link1 -> d1.t1);
     ddl::parser_t parser;
     ASSERT_NO_THROW(parser.parse_string(ddl));
     ASSERT_THROW(execute(parser.statements), no_cross_db_relationship);
+}
+
+TEST_F(ddl_execution_test, create_optional_fields)
+{
+    const string ddl = R"(
+DROP TABLE IF EXISTS t1;
+CREATE TABLE IF NOT EXISTS t1(t1c1 INT32, t1c2 STRING OPTIONAL);
+
+DROP TABLE IF EXISTS t2;
+CREATE TABLE IF NOT EXISTS t2(t2c1 INT32 OPTIONAL UNIQUE, t2c2 INT32[] OPTIONAL);
+)";
+
+    ddl::parser_t parser;
+    ASSERT_NO_THROW(parser.parse_string(ddl));
+    ASSERT_NO_THROW(execute(parser.statements));
+
+    gaia::direct_access::auto_transaction_t txn(false);
+    ASSERT_EQ(gaia_field_t::list().where(gaia_field_expr::name == "t1c1").begin()->optional(), false);
+    ASSERT_EQ(gaia_field_t::list().where(gaia_field_expr::name == "t1c2").begin()->optional(), true);
+    ASSERT_EQ(gaia_field_t::list().where(gaia_field_expr::name == "t2c1").begin()->optional(), true);
+    ASSERT_EQ(gaia_field_t::list().where(gaia_field_expr::name == "t2c2").begin()->optional(), true);
+}
+
+TEST_F(ddl_execution_test, no_system_db_operation)
+{
+    array ddls{
+        R"(
+create table catalog.t (c int32);
+)",
+        R"(
+drop table catalog.gaia_index;
+)",
+        R"(
+use catalog;
+)",
+        R"(
+drop database event_log;
+)",
+        R"(
+drop database catalog;
+)",
+        R"(
+create database if not exists catalog
+create table if not exists t (c int32);
+)",
+    };
+
+    for (const auto& ddl : ddls)
+    {
+        ddl::parser_t parser;
+        ASSERT_NO_THROW(parser.parse_string(ddl));
+        ASSERT_THROW(execute(parser.statements), forbidden_system_db_operation);
+    }
 }

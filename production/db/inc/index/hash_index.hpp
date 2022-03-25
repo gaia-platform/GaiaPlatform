@@ -21,9 +21,8 @@ using hash_type_t = std::unordered_multimap<index_key_t, index_record_t, index_k
 using hash_index_iterator_t = index_iterator_t<hash_type_t, hash_type_t::const_iterator>;
 
 /**
-* Actual hash index implementation.
-*/
-
+ * Actual hash index implementation.
+ */
 class hash_index_t : public index_t<hash_type_t, hash_index_iterator_t>
 {
 public:
@@ -38,7 +37,6 @@ public:
     hash_index_iterator_t find(const index_key_t& key) override;
 
     std::pair<hash_index_iterator_t, hash_index_iterator_t> equal_range(const index_key_t& key) override;
-    std::shared_ptr<common::iterators::generator_t<index_record_t>> equal_range_generator(gaia_txn_id_t txn_id, const index_key_t& key) override;
 };
 
 } // namespace index

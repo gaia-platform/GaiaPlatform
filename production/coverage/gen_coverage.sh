@@ -1,9 +1,15 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 #############################################
 # Copyright (c) Gaia Platform LLC
 # All rights reserved.
 #############################################
+
+# Note that this script makes use of the following resources:
+#
+# - https://chromium.googlesource.com/chromium/src.git/+/65.0.3283.0/docs/ios/coverage.md
+# - https://llvm.org/docs/CommandGuide/llvm-cov.html#llvm-cov-show
+# - https://clang.llvm.org/docs/SourceBasedCodeCoverage.html
 
 # Simple function to start the process off.
 start_process() {
@@ -57,7 +63,7 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags] <command>"
     echo "Flags:"
-    echo "  -v,--verbose                Show lots of information while executing the project."
+    echo "  -q,--quiet                  Do not show lots of information while executing the project."
     echo "  -h,--help                   Display this help text."
     echo ""
     show_usage_commands
@@ -66,12 +72,12 @@ show_usage() {
 
 # Parse the command line.
 parse_command_line() {
-    VERBOSE_MODE=0
+    VERBOSE_MODE=1
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
-        -v|--verbose)
-            VERBOSE_MODE=1
+        -q|--quiet)
+            VERBOSE_MODE=0
             shift
         ;;
         -h|--help)
@@ -89,9 +95,48 @@ parse_command_line() {
     done
 }
 
-# Set up any global script variables.
-# shellcheck disable=SC2164
-SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+export COVERAGE_PROFILE="./tests.profdata"
+export COVERAGE_BINARIES="catalog/gaiac/gaiac -object db/core/gaia_db_server -object tools/gaia_translate/gaiat tools/gaia_db_extract"
+export COVERAGE_HTML_FLAGS="-format=html -show-expansions -show-regions"
+export COVERAGE_EXPORT_FLAGS="-format=lcov"
+
+# Generate a report for a given subset of the source tree.
+#
+# Note that SC2086 is disabled a lot because it is replacing multiple values.
+#
+# For more information:
+#   https://www.shellcheck.net/wiki/SC2086 -- Double quote to prevent globbing ...
+generate_report() {
+    local COVERAGE_TYPE=$1
+    local HTML_OUTPUT_DIR=$2
+    local FILTER_NAME=$3
+    local SOURCE_DIRECTORIES=$4
+
+    echo "Creating HTML representation of coverage $COVERAGE_TYPE."
+    mkdir -p "$HTML_OUTPUT_DIR"
+    # shellcheck disable=SC2086
+    if ! /usr/lib/llvm-13/bin/llvm-cov show \
+        -instr-profile=$COVERAGE_PROFILE \
+        -output-dir="$HTML_OUTPUT_DIR" \
+        $COVERAGE_HTML_FLAGS \
+        $COVERAGE_BINARIES \
+        $SOURCE_DIRECTORIES ; then
+        complete_process 1 "Unable to create HTML representation of coverage $COVERAGE_TYPE."
+    fi
+    chmod -R 666 "$HTML_OUTPUT_DIR/coverage"
+    chmod 666 "$HTML_OUTPUT_DIR/index.html"
+    chmod 666 "$HTML_OUTPUT_DIR/style.css"
+
+    echo "Generating export for $COVERAGE_TYPE."
+    # shellcheck disable=SC2086
+    if ! /usr/lib/llvm-13/bin/llvm-cov export \
+        -instr-profile=$COVERAGE_PROFILE \
+        $COVERAGE_EXPORT_FLAGS \
+        $COVERAGE_BINARIES \
+        $SOURCE_DIRECTORIES > "$FILTER_NAME" ; then
+        complete_process 1 "Unable to generate export for $COVERAGE_TYPE."
+    fi
+}
 
 # Set up any project based local script variables.
 TEMP_FILE=/tmp/blah.tmp
@@ -103,183 +148,120 @@ parse_command_line "$@"
 # Clean entrance into the script.
 start_process
 
-PACKAGES=(
-    # We need this for llvm-cov.
-    llvm-10
-    lcov
-    nano
-    zip
-    unzip
-)
-echo "Installing additional packages: ${PACKAGES[@]}"
-apt -y update
-apt-get install -y ${PACKAGES[@]}
+echo "---"
+echo "before"
+du --max-depth=1 -m
+echo "---"
 
-rm -rf /build/production/output/*
+find . -name "*.o" -type f -delete
+find . -name "*.a" -type f -delete
+rm -rf llvm/unittests/
+rm -rf llvm/tools/
+rm -rf llvm/test/
 
-echo "Setting baseline state"
-lcov \
-    --no-external \
-    --config-file /source/production/coverage/.lcovrc \
-    --capture \
-    --initial \
-    --directory /build/production \
-    --base-directory /source/production \
-    --gcov-tool /source/production/coverage/llvm-gcov.sh \
-    -o /build/production/coverage.base \
-    > /build/production/output/base.log
-echo "Running tests"
-ctest > /build/production/output/ctest.log
-echo "Capturing current state"
-lcov \
-    --no-external \
-    --config-file /source/production/coverage/.lcovrc \
-    --capture \
-    --directory /build/production \
-    --base-directory /source/production \
-    --gcov-tool /source/production/coverage/llvm-gcov.sh \
-    -o /build/production/coverage.test \
-    > /build/production/output/test.log
-echo "Calculating difference between baselines and current"
-lcov \
-    --config-file /source/production/coverage/.lcovrc \
-    -a /build/production/coverage.base \
-    -a /build/production/coverage.test \
-    -o /build/production/coverage.total \
-    > /build/production/output/total.log
-echo "Filtering for total..."
-lcov \
-    --config-file /source/production/coverage/.lcovrc \
-    -r /build/production/coverage.total \
-    "/build/production/generated/*" \
-    "/build/production/*/*" \
-    "/source/production/generated/*" \
-    "/source/production/parser/generated/*" \
-    "/source/production/catalog/parser/tests/*" \
-    "/source/production/catalog/tests/*" \
-    "/source/production/common/tests/*" \
-    "/source/production/db/core/tests/*" \
-    "/source/production/db/index/tests/*" \
-    "/source/production/db/memory_manager/tests/*" \
-    "/source/production/db/payload_types/tests/*" \
-    "/source/production/db/query_processor/tests/*" \
-    "/source/production/direct_access/tests/*" \
-    "/source/production/rules/event_manager/tests/*" \
-    "/source/production/sdk/tests/*" \
-    "/source/production/system/tests/*" \
-    "/source/production/tools/gaia_dump/tests/*" \
-    -o /build/production/coverage.filter \
-    > /build/production/output/filter.log
+echo "---"
+echo "after"
+du --max-depth=1 -m
+echo "---"
 
-echo "Filtering for rules..."
-echo "- /source/production/direct_access"
-echo "- /source/production/rules"
-echo "- /source/production/system"
-lcov \
-    --config-file /source/production/coverage/.lcovrc \
-    -r /build/production/coverage.filter \
-    "/source/production/catalog/*" \
-    "/source/production/common/*" \
-    "/source/production/db/*" \
-    "/source/production/inc/*" \
-    "/source/production/schemas/*" \
-    "/source/production/sql/*" \
-    "/source/production/tools/*" \
-    -o /build/production/coverage.rules \
-    > /build/production/output/rules.log
+echo "Downloading LLVM-13."
+wget --no-check-certificate -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+add-apt-repository 'deb http://apt.llvm.org/focal/   llvm-toolchain-focal-13  main'
+apt update
+apt-get install -y llvm-13 lldb-13 llvm-13-dev libllvm13 llvm-13-runtime lcov
 
-echo "Filtering for database..."
-echo "- /source/production/catalog"
-echo "- /source/production/db"
-echo "- /source/production/sql"
-lcov \
-    --config-file /source/production/coverage/.lcovrc \
-    -r /build/production/coverage.filter \
-    "/source/production/common/*" \
-    "/source/production/direct_access/*" \
-    "/source/production/inc/*" \
-    "/source/production/rules/*" \
-    "/source/production/schemas/*" \
-    "/source/production/system/*" \
-    "/source/production/tools/*" \
-    -o /build/production/coverage.database \
-    > /build/production/output/database.log
+echo "Installing Python helper packages."
+pip install lcov_cobertura
+chmod +x /usr/local/lib/python3.8/dist-packages/lcov_cobertura.py
 
-echo "Filtering for other..."
-echo "- /source/production/common"
-echo "- /source/production/inc"
-echo "- /source/production/schemas"
-echo "- /source/production/tools"
-lcov \
-    --config-file /source/production/coverage/.lcovrc \
-    -r /build/production/coverage.filter \
-    "/source/production/catalog/*" \
-    "/source/production/db/*" \
-    "/source/production/direct_access/*" \
-    "/source/production/rules/*" \
-    "/source/production/sql/*" \
-    "/source/production/system/*" \
-    -o /build/production/coverage.other \
-    > /build/production/output/other.log
+echo "Cleaning the output directory."
+mkdir -p /build/production/output
+pushd /build/production/output || exit
+rm -rf ./*
+popd || exit
 
-echo "Producing total HTML files."
-mkdir /build/production/output/total
-genhtml \
-    --config-file /source/production/coverage/.lcovrc \
-    --ignore-errors source \
-    -p /build/production \
-    --legend \
-    --demangle-cpp \
-    coverage.filter \
-    -o /build/production/output/total \
-    > gen-total.log
+# Note that for the purposes of coverage, we are not concerned with pass/fail.
+# That responsibility is covered by the other jobs.
+echo "Running tests with profile-enabled binaries."
+export LLVM_PROFILE_FILE="/build/production/tests.%4m.profraw"
+ctest --output-log /build/production/output/ctest.log --output-junit /build/production/output/ctest.xml
 
-echo "Producing Database HTML files."
-mkdir /build/production/output/database
-genhtml \
-    --config-file /source/production/coverage/.lcovrc \
-    --ignore-errors source \
-    -p /build/production \
-    --legend \
-    --demangle-cpp \
-    coverage.database \
-    -o /build/production/output/database \
-    > gen-database.log
+echo "Creating an input file of all created profiles."
+find . -name "*.profraw" ! -path "./llvm/*" > /build/production/output/profiles.txt
+cat /build/production/output/profiles.txt
 
-echo "Producing Rules HTML files."
-mkdir /build/production/output/rules
-genhtml \
-    --config-file /source/production/coverage/.lcovrc \
-    --ignore-errors source \
-    -p /build/production \
-    --legend \
-    --demangle-cpp \
-    coverage.rules \
-    -o /build/production/output/rules \
-    > gen-rules.log
+echo "Merging all profiles into a single profile data file."
+if ! /usr/lib/llvm-13/bin/llvm-profdata merge --input-files /build/production/output/profiles.txt --output tests.profdata ; then
+    complete_process 1 "Unable to merge profiles into a single data file."
+fi
 
-echo "Producing Other HTML files."
-mkdir /build/production/output/other
-genhtml \
-    --config-file /source/production/coverage/.lcovrc \
-    --ignore-errors source \
-    -p /build/production \
-    --legend \
-    --demangle-cpp \
-    coverage.other \
-    -o /build/production/output/other \
-    > gen-other.log
+echo "Removing all profiles."
+find . -name "*.profraw" -type f -delete
 
-echo "Producing RAW HTML files."
-mkdir /build/production/output/raw
-genhtml \
-    --config-file /source/production/coverage/.lcovrc \
-    --ignore-errors source \
-    --legend \
-    --demangle-cpp \
-    coverage.total \
-    -o /build/production/output/raw \
-    > gen-raw.log
+#
+# Source directories, by team:
+#
+# Rules:
+# - direct_access
+# - tools
+#
+# Database:
+# - catalog
+# - db
+#
+# Common (needs further refining):
+# - inc
+# - common
+#
+echo "Generate the various flavors of reports."
+generate_report \
+    "total" \
+    "/build/production/output/total" \
+    "/build/production/output/coverage.filter" \
+    "/source/production"
+
+generate_report \
+    "rules" \
+    "/build/production/output/rules" \
+    "/build/production/output/coverage.rules" \
+    "/source/production/direct_access /source/production/tools"
+
+generate_report \
+    "database" \
+    "/build/production/output/database" \
+    "/build/production/output/coverage.database" \
+    "/source/production/db /source/production/catalog"
+
+generate_report \
+    "common" \
+    "/build/production/output/common" \
+    "/build/production/output/coverage.common" \
+    "/source/production/inc /source/production/common"
+
+echo "Producing Cobertura Coverage files."
+if ! /usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.filter \
+    --base-dir /source/production \
+    --output /build/production/output/coverage.xml ; then
+    complete_process 1 "Unable to produce Cobertura Coverage file: coverage.xml"
+fi
+if ! /usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.rules \
+    --base-dir /source/production \
+    --output /build/production/output/rules.xml ; then
+    complete_process 1 "Unable to produce Cobertura Coverage file: rules.xml"
+fi
+if ! /usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.database \
+    --base-dir /source/production \
+    --output /build/production/output/database.xml ; then
+    complete_process 1 "Unable to produce Cobertura Coverage file: database.xml"
+fi
+if ! /usr/local/lib/python3.8/dist-packages/lcov_cobertura.py /build/production/output/coverage.common \
+    --base-dir /source/production \
+    --output /build/production/output/common.xml ; then
+    complete_process 1 "Unable to produce Cobertura Coverage file: common.xml"
+fi
+
+mkdir -p /build/output
+cp -a /build/production/output /build
 
 # If we get here, we have a clean exit from the script.
 complete_process 0
