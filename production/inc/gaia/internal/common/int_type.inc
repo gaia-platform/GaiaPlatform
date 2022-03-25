@@ -3,15 +3,6 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "gaia/int_type.hpp"
-
-#include <cstdint>
-
-namespace gaia
-{
-namespace common
-{
-
 template <typename T_type, T_type default_invalid_value, typename T_type_constraint>
 int_type_t<T_type, default_invalid_value, T_type_constraint>::operator T_type() const
 {
@@ -186,6 +177,3 @@ static_assert(
 static_assert(
     sizeof(int_type_t<int8_t, std::numeric_limits<int8_t>::max()>) == sizeof(int8_t),
     "The int_type_t<int8_t> instantiation has a different size than its underlying int8_t type!");
-
-} // namespace common
-} // namespace gaia

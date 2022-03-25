@@ -22,7 +22,6 @@ add_library(gaia_common STATIC
   src/config.cpp
   src/exceptions.cpp
   src/file.cpp
-  src/int_type.cpp
   src/timer.cpp
   src/logger.cpp
   src/logger_manager.cpp
