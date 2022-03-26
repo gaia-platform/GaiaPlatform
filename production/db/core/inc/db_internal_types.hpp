@@ -142,19 +142,16 @@ static_assert(sizeof(hash_node_t) == 16, "Expected hash_node_t to occupy 16 byte
 struct log_record_t
 {
     gaia_locator_t locator;
-    uint16_t sequence;
-    // We need 2 bytes of padding to maintain total size at 16 bytes.
+    // We need 4 bytes of padding to maintain total size at 16 bytes.
     // (We place the padding here to align the two offsets on an 8-byte
     // boundary, in case we need to modify them both atomically in the future.)
-    uint16_t reserved;
+    uint32_t reserved;
     gaia_offset_t old_offset;
     gaia_offset_t new_offset;
 
     friend std::ostream& operator<<(std::ostream& os, const log_record_t& lr)
     {
-        os << "sequence: "
-           << lr.sequence
-           << "\tlocator: "
+        os << "locator: "
            << lr.locator
            << "\told_offset: "
            << lr.old_offset
@@ -186,10 +183,6 @@ struct log_record_t
         }
     }
 };
-
-// We want to ensure that the txn log record size never changes accidentally.
-constexpr size_t c_txn_log_record_size = 16;
-static_assert(c_txn_log_record_size == sizeof(log_record_t), "Txn log record size must be 16 bytes!");
 
 // We can reference at most 2^16 logs from the 16 bits available in a txn
 // metadata entry, and we must reserve the value 0 for an invalid log offset.

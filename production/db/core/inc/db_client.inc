@@ -73,8 +73,6 @@ inline void client_t::txn_log(
 
     // Initialize the new record and increment the record count.
     auto& lr = txn_log->log_records[txn_log->record_count++];
-    // The log record sequence should start at 0.
-    lr.sequence = txn_log->record_count - 1;
     lr.locator = locator;
     lr.old_offset = old_offset;
     lr.new_offset = new_offset;

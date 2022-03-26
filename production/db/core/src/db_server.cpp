@@ -2594,16 +2594,14 @@ void server_t::perform_pre_commit_work_for_txn()
 // search and merge intersection algorithms for conflict detection.
 void server_t::sort_log()
 {
-    // We use `log_record_t.sequence` as a secondary sort key to preserve the
-    // temporal order of multiple updates to the same locator.
+    // We use stable_sort() to preserve the temporal order of multiple updates
+    // to the same locator.
     txn_log_t* txn_log = get_txn_log();
-    std::sort(
+    std::stable_sort(
         &txn_log->log_records[0],
         &txn_log->log_records[txn_log->record_count],
         [](const log_record_t& lhs, const log_record_t& rhs) {
-            return lhs.locator == rhs.locator
-                ? lhs.sequence < rhs.sequence
-                : lhs.locator < rhs.locator;
+            return lhs.locator < rhs.locator;
         });
 }
 
