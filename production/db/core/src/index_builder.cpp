@@ -6,6 +6,7 @@
 #include "gaia_internal/db/index_builder.hpp"
 
 #include <array>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -371,6 +372,8 @@ void index_builder_t::update_indexes_from_txn_log(
     txn_log_t* txn_log, bool skip_catalog_integrity_check, bool allow_create_empty)
 {
     std::vector<gaia_type_t> dropped_types;
+    std::unordered_map<gaia_type_t, std::vector<catalog_core::index_view_t>> indexes_for_type;
+
     if (c_is_running_on_server)
     {
         // Clear the type_id_mapping cache (so it will be refreshed) if we find any
@@ -452,7 +455,21 @@ void index_builder_t::update_indexes_from_txn_log(
 
         ASSERT_INVARIANT(table_id.is_valid(), "Cannot find type table id for object.");
 
-        for (const auto& index : catalog_core::list_indexes(table_id))
+        if (!indexes_for_type.count(obj->type))
+        {
+            std::vector<catalog_core::index_view_t> indexes;
+            auto index_list = catalog_core::list_indexes(table_id);
+            // REVIEW [GAIAPLAT-2116]: We can't use std::copy() because
+            // index_list_t.begin() and index_list_t.end() are of different
+            // types.
+            for (auto& index : index_list)
+            {
+                indexes.push_back(index);
+            }
+            indexes_for_type.insert({obj->type, indexes});
+        }
+
+        for (const auto& index : indexes_for_type[obj->type])
         {
             ASSERT_PRECONDITION(get_indexes(), "Indexes are not initialized.");
             auto it = get_indexes()->find(index.id());
