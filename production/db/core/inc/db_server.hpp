@@ -137,12 +137,12 @@ private:
     static inline std::unique_ptr<persistent_store_manager> s_persistent_store{};
 
     // These fields have transaction lifetime.
-    thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
-    thread_local static inline log_offset_t s_txn_log_offset = c_invalid_log_offset;
-    thread_local static inline std::vector<std::pair<gaia_txn_id_t, log_offset_t>> s_txn_logs_for_snapshot{};
+    static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
+    static inline log_offset_t s_txn_log_offset = c_invalid_log_offset;
+    static inline std::vector<std::pair<gaia_txn_id_t, log_offset_t>> s_txn_logs_for_snapshot{};
 
     // Local snapshot for server-side transactions.
-    thread_local static inline mapped_data_t<locators_t> s_local_snapshot_locators{};
+    static inline mapped_data_t<locators_t> s_local_snapshot_locators{};
 
     // The allocated status of each log offset is tracked in this bitmap. When
     // opening a new txn, each session thread must allocate an offset for its txn
@@ -160,23 +160,23 @@ private:
     static inline std::atomic<size_t> s_next_unused_log_offset{1};
 
     // This is used by GC tasks on a session thread to cache chunk IDs for empty chunk deallocation.
-    thread_local static inline std::unordered_map<
+    static inline std::unordered_map<
         memory_manager::chunk_offset_t, memory_manager::chunk_version_t>
         s_map_gc_chunks_to_versions{};
 
     // These fields have session lifetime.
-    thread_local static inline int s_session_socket = -1;
-    thread_local static inline messages::session_state_t s_session_state = messages::session_state_t::DISCONNECTED;
-    thread_local static inline bool s_session_shutdown = false;
-    thread_local static inline int s_session_shutdown_eventfd = -1;
+    static inline int s_session_socket = -1;
+    static inline messages::session_state_t s_session_state = messages::session_state_t::DISCONNECTED;
+    static inline bool s_session_shutdown = false;
+    static inline int s_session_shutdown_eventfd = -1;
 
-    thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
-    thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
+    static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
+    static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
 
     // These thread objects are owned by the session thread that created them.
-    thread_local static inline std::vector<std::thread> s_session_owned_threads{};
+    static inline std::vector<std::thread> s_session_owned_threads{};
 
-    thread_local static inline std::string s_error_message = common::c_empty_string;
+    static inline std::string s_error_message = common::c_empty_string;
 
     // These global timestamp variables are "watermarks" that represent the
     // progress of various system functions with respect to transaction history.
@@ -258,7 +258,7 @@ private:
     static constexpr size_t c_invalid_safe_ts_index{s_safe_ts_per_thread_entries.size()};
 
     // The current thread's index in `s_safe_ts_per_thread_entries`.
-    thread_local static inline size_t s_safe_ts_index{c_invalid_safe_ts_index};
+    static inline size_t s_safe_ts_index{c_invalid_safe_ts_index};
 
 private:
     // Returns the current value of the given watermark.
@@ -567,7 +567,7 @@ private:
 
         // We keep this vector sorted for fast searches. We add entries by
         // appending them and remove entries by swapping them with the tail.
-        thread_local static inline std::vector<gaia_txn_id_t> s_safe_ts_values{};
+        static inline std::vector<gaia_txn_id_t> s_safe_ts_values{};
     };
 
     // This class can be used in place of safe_ts_t, when the "safe timestamp"
