@@ -16,6 +16,14 @@
                 "command": "database-webview.start",
                 "title": "Start Database Webview",
                 "category": "GaiaPlatform"
+            },
+            {
+                "command": "databases.displayRecords",
+                "title": "Display Records",
+                "icon" : {
+                    "light": "resources/light/boolean.svg",
+                    "dark" : "resources/dark/boolean.svg"
+                }
             }
         ],
         "viewsWelcome": [
@@ -38,6 +46,15 @@
                     "id": "gaia-explorer",
                     "title": "Gaia Explorer",
                     "icon": "media/gaia_logo.png"
+                }
+            ]
+        },
+        "menus": {
+            "view/item/context":[
+                {
+                    "command" : "databases.displayRecords",
+                    "when" : "view == databases && viewItem == table",
+                    "group" : "inline"
                 }
             ]
         }

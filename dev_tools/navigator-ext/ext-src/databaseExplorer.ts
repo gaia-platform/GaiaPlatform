@@ -4,7 +4,7 @@ import * as console from 'console';
 import * as path from 'path';
 
 export class GaiaCatalogProvider implements vscode.TreeDataProvider<CatalogItem> {
-  constructor() {console.log("Created!");}
+  constructor() {}
 
   getTreeItem(element: CatalogItem): vscode.TreeItem {
     return element;
@@ -69,7 +69,7 @@ export class GaiaCatalogProvider implements vscode.TreeDataProvider<CatalogItem>
   }
 }
 
-class CatalogItem extends vscode.TreeItem {
+export class CatalogItem extends vscode.TreeItem {
   constructor(
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
     public readonly label: string,
@@ -83,17 +83,18 @@ class CatalogItem extends vscode.TreeItem {
   )
   {
     super(label, collapsibleState);
-    if (this.label == "")
-    {
+    if (this.label == "")    {
       this.label = "<default>";
     }
     var brackets = is_array ? "[]" : "";
-    if (column_id != undefined)
-    {
+    if (column_id != undefined)    {
       this.tooltip = `column type: ${this.type}${brackets}, position: ${this.position}`;
-    } else if (this.table_id != undefined)
-    {
+      this.contextValue = 'column';
+    } else if (this.table_id != undefined)    {
       this.tooltip = `table type: ${this.table_type}`
+      this.contextValue = 'table';
+    } else {
+      this.contextValue = 'database';
     }
   }
 
@@ -101,4 +102,6 @@ class CatalogItem extends vscode.TreeItem {
     light: path.join(__filename, '..', '..', '..', 'resources', 'light', 'catalog.svg'),
     dark: path.join(__filename, '..', '..', '..', 'resources', 'dark', 'catalog.svg')
   };
+
+  contextValue = 'database';
 }

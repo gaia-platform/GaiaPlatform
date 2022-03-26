@@ -3,12 +3,17 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { GaiaCatalogProvider } from './databaseExplorer';
+import { CatalogItem } from './databaseExplorer';
 
 export function activate(context: vscode.ExtensionContext) {
 
-    context.subscriptions.push(vscode.commands.registerCommand('database-webview.start', () => {
-        ReactPanel.createOrShow(context.extensionPath);
-    }));
+//    context.subscriptions.push(vscode.commands.registerCommand('database-webview.start', () => {
+//        ReactPanel.createOrShow(context.extensionPath);
+//    }));
+
+    vscode.commands.registerCommand('databases.displayRecords', item => {
+        ReactPanel.createOrShow(context.extensionPath, item);
+    });
 
     vscode.window.registerTreeDataProvider('databases', new GaiaCatalogProvider());
 
@@ -31,7 +36,7 @@ class ReactPanel {
     private readonly _extensionPath: string;
     private _disposables: vscode.Disposable[] = [];
 
-    public static createOrShow(extensionPath: string) {
+    public static createOrShow(extensionPath: string, item : CatalogItem) {
         const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
 
         // If we already have a panel, show it.
@@ -39,15 +44,15 @@ class ReactPanel {
         if (ReactPanel.currentPanel) {
             ReactPanel.currentPanel._panel.reveal(column);
         } else {
-            ReactPanel.currentPanel = new ReactPanel(extensionPath, column || vscode.ViewColumn.One);
+            ReactPanel.currentPanel = new ReactPanel(extensionPath, item.label, column || vscode.ViewColumn.One);
         }
     }
 
-    private constructor(extensionPath: string, column: vscode.ViewColumn) {
+    private constructor(extensionPath: string, table: string, column: vscode.ViewColumn) {
         this._extensionPath = extensionPath;
 
         // Create and show a new webview panel.
-        this._panel = vscode.window.createWebviewPanel(ReactPanel.viewType, "React", column, {
+        this._panel = vscode.window.createWebviewPanel(ReactPanel.viewType, table, column, {
             // Enable javascript in the webview.
             enableScripts: true,
 
