@@ -2601,9 +2601,9 @@ void server_t::sort_log()
         &txn_log->log_records[0],
         &txn_log->log_records[txn_log->record_count],
         [](const log_record_t& lhs, const log_record_t& rhs) {
-            return lhs.locator == rhs.locator
-                ? lhs.sequence < rhs.sequence
-                : lhs.locator < rhs.locator;
+            auto lhs_pair = std::pair{lhs.locator, lhs.sequence};
+            auto rhs_pair = std::pair{rhs.locator, rhs.sequence};
+            return lhs_pair < rhs_pair;
         });
 }
 
