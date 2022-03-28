@@ -461,7 +461,7 @@ void index_builder_t::update_indexes_from_txn_log(
 
         ASSERT_INVARIANT(table_id.is_valid(), "Cannot find table id for object type.");
 
-        if (!indexes_for_type.count(obj->type))
+        if (indexes_for_type.find(obj->type) == indexes_for_type.end())
         {
             std::vector<catalog_core::index_view_t> indexes;
             auto index_list = catalog_core::list_indexes(table_id);
