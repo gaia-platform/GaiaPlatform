@@ -32,7 +32,7 @@ class db_client_proxy_t
 public:
     static void verify_txn_active();
     static gaia::db::gaia_txn_id_t get_current_txn_id();
-    static void rebuild_local_indexes();
+    static void update_local_indexes();
 };
 
 } // namespace query_processor

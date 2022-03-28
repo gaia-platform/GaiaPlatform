@@ -775,7 +775,7 @@ void server_t::update_indexes_from_txn_log()
     auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
 
     index::index_builder_t::update_indexes_from_txn_log(
-        get_txn_log(), s_server_conf.skip_catalog_integrity_checks());
+        get_txn_log(), 0, s_server_conf.skip_catalog_integrity_checks());
 }
 
 void server_t::recover_db()

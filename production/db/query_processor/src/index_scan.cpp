@@ -128,7 +128,7 @@ std::shared_ptr<base_index_scan_physical_t>
 base_index_scan_physical_t::open(common::gaia_id_t index_id, std::shared_ptr<index_predicate_t> predicate)
 {
     db_client_proxy_t::verify_txn_active();
-    db_client_proxy_t::rebuild_local_indexes();
+    db_client_proxy_t::update_local_indexes();
 
     // Get type of index.
     auto it = db::get_indexes()->find(index_id);
