@@ -409,6 +409,10 @@ static_assert(c_txn_log_header_size == offsetof(txn_log_t, log_records), "Txn lo
 
 static_assert(c_txn_log_size == sizeof(txn_log_t), "Txn log size must be 1MB!");
 
+// To ensure the txn log record sequence number doesn't overflow,
+// log_record_t::sequence must be at least as large as txn_log_t::record_count.
+static_assert(sizeof(log_record_t::sequence) >= sizeof(txn_log_t::record_count));
+
 struct counters_t
 {
     // These fields are used as cross-process atomic counters. We don't need
