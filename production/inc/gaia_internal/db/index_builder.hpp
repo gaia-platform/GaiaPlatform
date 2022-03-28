@@ -47,7 +47,7 @@ public:
     static void populate_index(common::gaia_id_t index_id, gaia_locator_t locator);
     static void update_indexes_from_txn_log(
         txn_log_t* txn_log,
-        size_t last_client_processed_log,
+        size_t last_client_processed_log_count,
         bool skip_catalog_integrity_check,
         bool allow_create_empty = false);
     static void gc_indexes_from_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets);
