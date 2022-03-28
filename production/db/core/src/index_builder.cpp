@@ -369,8 +369,16 @@ void index_builder_t::populate_index(common::gaia_id_t index_id, gaia_locator_t 
  * As such, we rely on the logs being sorted by temporal order.
  */
 void index_builder_t::update_indexes_from_txn_log(
-    txn_log_t* txn_log, bool skip_catalog_integrity_check, bool allow_create_empty)
+    txn_log_t* txn_log,
+    size_t last_client_processed_log,
+    bool skip_catalog_integrity_check,
+    bool allow_create_empty)
 {
+    ASSERT_PRECONDITION(c_is_running_on_client || last_client_processed_log == 0, "Server calls to update_indexes_from_txn_log should pass a 'last_client_processed_log' value of 0!")
+    ASSERT_PRECONDITION(
+        last_client_processed_log <= txn_log->record_count,
+        "An unexpected value was detected for last client processed log!");
+
     std::vector<gaia_type_t> dropped_types;
     std::unordered_map<gaia_type_t, std::vector<catalog_core::index_view_t>> indexes_for_type;
 
@@ -380,10 +388,9 @@ void index_builder_t::update_indexes_from_txn_log(
         // table is created or dropped in the txn.
         // Keep track of dropped tables.
         bool has_cleared_cache = false;
-        for (auto log_record = txn_log->log_records;
-             log_record < txn_log->log_records + txn_log->record_count;
-             ++log_record)
+        for (size_t i = 0; i < txn_log->record_count; ++i)
         {
+            auto log_record = &(txn_log->log_records[i]);
             if ((log_record->operation() == gaia_operation_t::remove
                  || log_record->operation() == gaia_operation_t::create)
                 && offset_to_ptr(
@@ -409,10 +416,9 @@ void index_builder_t::update_indexes_from_txn_log(
     }
 
     gaia_operation_t last_index_operation = gaia_operation_t::not_set;
-    for (auto log_record = txn_log->log_records;
-         log_record < txn_log->log_records + txn_log->record_count;
-         ++log_record)
+    for (size_t i = last_client_processed_log; i < txn_log->record_count; ++i)
     {
+        auto log_record = &(txn_log->log_records[i]);
         db_object_t* obj = offset_to_ptr(
             (log_record->operation() == gaia_operation_t::remove)
                 ? log_record->old_offset
@@ -453,7 +459,7 @@ void index_builder_t::update_indexes_from_txn_log(
             continue;
         }
 
-        ASSERT_INVARIANT(table_id.is_valid(), "Cannot find type table id for object.");
+        ASSERT_INVARIANT(table_id.is_valid(), "Cannot find table id for object type.");
 
         if (!indexes_for_type.count(obj->type))
         {
