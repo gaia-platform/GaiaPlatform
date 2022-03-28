@@ -466,7 +466,7 @@ void index_builder_t::update_indexes_from_txn_log(
             if (!table_id.is_valid())
             {
                 ASSERT_INVARIANT(skip_catalog_integrity_check, "Cannot find table id for object type!");
-                // Map this type to an empty indexes vector.
+                // Map this type to an empty indexes vector, to avoid looking up the table ID again.
                 indexes_for_type.insert({obj->type, {}});
                 continue;
             }
