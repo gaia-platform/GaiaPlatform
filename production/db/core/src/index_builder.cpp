@@ -449,23 +449,27 @@ void index_builder_t::update_indexes_from_txn_log(
             continue;
         }
 
-        gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(obj->type);
-
         // Catalog core tables are not indexed.
-        // The operation is from a dropped table.
-        // Skip if catalog verification disabled and type not found in the catalog.
+        // If this type is a catalog core table or a table that has been dropped
+        // in this txn, skip the index update.
         if (is_catalog_core_object(obj->type)
-            || std::find(dropped_types.begin(), dropped_types.end(), obj->type) != dropped_types.end()
-            || (skip_catalog_integrity_check && !table_id.is_valid()))
+            || std::find(dropped_types.begin(), dropped_types.end(), obj->type) != dropped_types.end())
         {
             continue;
         }
 
-        ASSERT_INVARIANT(table_id.is_valid(), "Cannot find table id for object type.");
-
         if (indexes_for_type.find(obj->type) == indexes_for_type.end())
         {
             std::vector<catalog_core::index_view_t> indexes;
+            gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(obj->type);
+            // Skip if catalog verification disabled and type not found in the catalog.
+            if (!table_id.is_valid())
+            {
+                ASSERT_INVARIANT(skip_catalog_integrity_check, "Cannot find table id for object type!");
+                // Map this type to an empty indexes vector.
+                indexes_for_type.insert({obj->type, {}});
+                continue;
+            }
             auto index_list = catalog_core::list_indexes(table_id);
             // REVIEW [GAIAPLAT-2116]: We can't use std::copy() because
             // index_list_t.begin() and index_list_t.end() are of different
