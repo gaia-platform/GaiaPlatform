@@ -1990,8 +1990,8 @@ void server_t::gc_txn_log_from_offset(log_offset_t log_offset, bool is_committed
 
     // Remove index entries that might be referencing obsolete versions before
     // actually deallocating them.
-    bool deallocate_new_offsets = !is_committed;
-    index::index_builder_t::gc_indexes_from_txn_log(txn_log, deallocate_new_offsets);
+    //    bool deallocate_new_offsets = !is_committed;
+    //    index::index_builder_t::gc_indexes_from_txn_log(txn_log, deallocate_new_offsets);
 
     // If the txn committed, we deallocate only undo versions, because the
     // redo versions may still be visible after the txn has fallen
@@ -2596,15 +2596,15 @@ void server_t::sort_log()
 {
     // We use `log_record_t.sequence` as a secondary sort key to preserve the
     // temporal order of multiple updates to the same locator.
-    txn_log_t* txn_log = get_txn_log();
-    std::sort(
-        &txn_log->log_records[0],
-        &txn_log->log_records[txn_log->record_count],
-        [](const log_record_t& lhs, const log_record_t& rhs) {
-            return lhs.locator == rhs.locator
-                ? lhs.sequence < rhs.sequence
-                : lhs.locator < rhs.locator;
-        });
+    //    txn_log_t* txn_log = get_txn_log();
+    //    std::sort(
+    //        &txn_log->log_records[0],
+    //        &txn_log->log_records[txn_log->record_count],
+    //        [](const log_record_t& lhs, const log_record_t& rhs) {
+    //            return lhs.locator == rhs.locator
+    //                ? lhs.sequence < rhs.sequence
+    //                : lhs.locator < rhs.locator;
+    //        });
 }
 
 // This method returns true for a commit decision and false for an abort decision.

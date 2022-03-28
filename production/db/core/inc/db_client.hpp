@@ -99,14 +99,14 @@ public:
 
 private:
     // These fields have transaction lifetime.
-    thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
-    thread_local static inline log_offset_t s_txn_log_offset = c_invalid_log_offset;
+    static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
+    static inline log_offset_t s_txn_log_offset = c_invalid_log_offset;
 
-    thread_local static inline mapped_data_t<locators_t> s_private_locators;
-    thread_local static inline gaia::db::index::indexes_t s_local_indexes{};
+    static inline mapped_data_t<locators_t> s_private_locators;
+    static inline gaia::db::index::indexes_t s_local_indexes{};
 
     // These fields have session lifetime.
-    thread_local static inline config::session_options_t s_session_options;
+    static inline config::session_options_t s_session_options;
 
     // REVIEW [GAIAPLAT-2068]: When we enable snapshot reuse across txns (by
     // applying the undo log from the previous txn to the existing snapshot and
@@ -114,24 +114,24 @@ private:
     // locators view update), we need to track the last commit_ts whose log was
     // applied to the snapshot, so we can ignore any logs committed at or before
     // that commit_ts.
-    thread_local static inline gaia_txn_id_t s_latest_applied_commit_ts = c_invalid_gaia_txn_id;
+    static inline gaia_txn_id_t s_latest_applied_commit_ts = c_invalid_gaia_txn_id;
 
-    thread_local static inline int s_fd_locators = -1;
+    static inline int s_fd_locators = -1;
 
-    thread_local static inline mapped_data_t<counters_t> s_shared_counters;
-    thread_local static inline mapped_data_t<data_t> s_shared_data;
-    thread_local static inline mapped_data_t<logs_t> s_shared_logs;
-    thread_local static inline mapped_data_t<id_index_t> s_shared_id_index;
-    thread_local static inline mapped_data_t<type_index_t> s_shared_type_index;
+    static inline mapped_data_t<counters_t> s_shared_counters;
+    static inline mapped_data_t<data_t> s_shared_data;
+    static inline mapped_data_t<logs_t> s_shared_logs;
+    static inline mapped_data_t<id_index_t> s_shared_id_index;
+    static inline mapped_data_t<type_index_t> s_shared_type_index;
 
-    thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
-    thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
+    static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
+    static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
 
-    thread_local static inline int s_session_socket = -1;
+    static inline int s_session_socket = -1;
 
     // A list of data mappings that we manage together.
     // The order of declarations must be the order of data_mapping_t::index_t values!
-    thread_local static inline data_mapping_t s_data_mappings[] = {
+    static inline data_mapping_t s_data_mappings[] = {
         {data_mapping_t::index_t::locators, &s_private_locators, c_gaia_mem_locators_prefix},
         {data_mapping_t::index_t::counters, &s_shared_counters, c_gaia_mem_counters_prefix},
         {data_mapping_t::index_t::data, &s_shared_data, c_gaia_mem_data_prefix},
@@ -142,7 +142,7 @@ private:
 
     // s_events has transaction lifetime and is cleared after each transaction.
     // Set by the rules engine.
-    thread_local static inline std::vector<gaia::db::triggers::trigger_event_t> s_events{};
+    static inline std::vector<gaia::db::triggers::trigger_event_t> s_events{};
     static inline triggers::commit_trigger_fn s_txn_commit_trigger = nullptr;
 
 private:

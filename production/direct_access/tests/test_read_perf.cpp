@@ -25,27 +25,42 @@ using namespace std;
 
 using g_timer_t = gaia::common::timer_t;
 
-static const uint64_t c_num_records = 100000;
-static const uint64_t c_num_iterations = 1;
+static const uint64_t c_num_records = 10000000;
+static const uint64_t c_num_iterations = 100;
 
 // This is a hard limit imposed by the db architecture.
 static const uint64_t c_max_insertion_single_txn = (1 << 16) - 1;
 
-class test_read_perf : public gaia::db::db_catalog_test_base_t
+class test_read_perf : public ::testing::Test
 {
+    // public:
+    //     test_read_perf()
+    //         : db_catalog_test_base_t("insert.ddl"){};
+
 public:
-    test_read_perf()
-        : db_catalog_test_base_t("insert.ddl"){};
-
-    void TearDown() override
+    static void SetUpTestSuite()
     {
-        if (gaia::db::is_transaction_open())
-        {
-            gaia::db::rollback_transaction();
-        }
-
-        db_catalog_test_base_t::TearDown();
+        ::setenv("GAIA_DB_INSTANCE_NAME", "gaia_default_instance", true);
+        gaia_log::initialize({});
+        gaia::db::begin_session();
+        //        db_catalog_test_base_t::SetUpTestSuite();
     }
+
+    static void TearDownTestSuite()
+    {
+        gaia_log::shutdown();
+        gaia::db::end_session();
+    }
+
+    //    void TearDown() override
+    //    {
+    //        if (gaia::db::is_transaction_open())
+    //        {
+    //            gaia::db::rollback_transaction();
+    //        }
+    //
+    //        db_catalog_test_base_t::TearDown();
+    //    }
 };
 
 template <typename T_type>
@@ -177,11 +192,11 @@ void run_performance_test(
         double_t iteration_ms = g_timer_t::ns_to_ms(expr_duration);
         gaia_log::app().info("[{}]: {} iteration, completed in {:.2f}ms", message, iteration, iteration_ms);
     }
-
-    gaia_log::app().info("[{}]: clearing database", message);
-    int64_t clear_database_duration = g_timer_t::get_function_duration(clear_database);
-    double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
-    gaia_log::app().info("[{}]: cleared in {:.2f}ms", message, clear_ms);
+    //
+    //    gaia_log::app().info("[{}]: clearing database", message);
+    //    int64_t clear_database_duration = g_timer_t::get_function_duration(clear_database);
+    //    double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
+    //    gaia_log::app().info("[{}]: cleared in {:.2f}ms", message, clear_ms);
 
     log_performance_difference(expr_accumulator, message, num_records, num_iterations);
 }
@@ -209,7 +224,7 @@ void insert_data()
 
 TEST_F(test_read_perf, table_scan)
 {
-    insert_data();
+    //    insert_data();
 
     auto work = []() {
         gaia::db::begin_transaction();

@@ -25,7 +25,7 @@ using namespace std;
 
 using g_timer_t = gaia::common::timer_t;
 
-static const uint64_t c_num_records = 100000;
+static const uint64_t c_num_records = 100000000;
 static const uint64_t c_num_iterations = 1;
 
 // This is a hard limit imposed by the db architecture.
@@ -36,6 +36,12 @@ class test_insert_perf : public gaia::db::db_catalog_test_base_t
 public:
     test_insert_perf()
         : db_catalog_test_base_t("insert.ddl"){};
+
+    static void SetUpTestSuite()
+    {
+        ::setenv("GAIA_DB_INSTANCE_NAME", "gaia_default_instance", true);
+        db_catalog_test_base_t::SetUpTestSuite();
+    }
 
     void TearDown() override
     {
@@ -170,17 +176,17 @@ void run_performance_test(
 
     for (size_t iteration = 0; iteration < num_iterations; iteration++)
     {
-        gaia_log::app().debug("[{}]: {} iteration starting, {} records", message, iteration, num_insertions);
+        gaia_log::app().info("[{}]: {} iteration starting, {} records", message, iteration, num_insertions);
         int64_t expr_duration = g_timer_t::get_function_duration(expr_fn);
         expr_accumulator.add(expr_duration);
 
         double_t iteration_ms = g_timer_t::ns_to_ms(expr_duration);
-        gaia_log::app().debug("[{}]: {} iteration, completed in {:.2f}ms", message, iteration, iteration_ms);
+        gaia_log::app().info("[{}]: {} iteration, completed in {:.2f}ms", message, iteration, iteration_ms);
 
-        gaia_log::app().debug("[{}]: {} iteration, clearing database", message, iteration);
-        int64_t clear_database_duration = g_timer_t::get_function_duration(clear_database);
-        double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
-        gaia_log::app().debug("[{}]: {} iteration, cleared in {:.2f}ms", message, iteration, clear_ms);
+        //        gaia_log::app().info("[{}]: {} iteration, clearing database", message, iteration);
+        //        int64_t clear_database_duration = g_timer_t::get_function_duration(clear_database);
+        //        double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
+        //        gaia_log::app().info("[{}]: {} iteration, cleared in {:.2f}ms", message, iteration, clear_ms);
     }
 
     log_performance_difference(expr_accumulator, message, num_insertions, num_iterations);
@@ -464,7 +470,7 @@ TEST_F(test_insert_perf, value_linked_relationships_autoconnect_to_different_par
 // Keeping it disabled for now because it takes too much time.
 TEST_F(test_insert_perf, simple_table_concurrent)
 {
-    constexpr size_t c_num_workers = 5;
+    constexpr size_t c_num_workers = 8;
 
     auto insert = []() {
         std::vector<std::thread> workers;

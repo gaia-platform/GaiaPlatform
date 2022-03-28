@@ -36,6 +36,8 @@ namespace common
 // For this reason is optimal to put string concatenation within the ASSERT, eg.
 // ASSERT_PRECONDITION(gaia_fmt::format("Message {}", 123).c_str());
 
+#define DISABLE_ASSERTS
+
 #ifdef DISABLE_ASSERTS
 #define DISABLE_ASSERT_PRECONDITION
 #define DISABLE_ASSERT_INVARIANT
