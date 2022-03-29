@@ -153,7 +153,8 @@ void server_t::txn_begin()
 }
 
 void server_t::get_txn_log_offsets_for_snapshot(
-    gaia_txn_id_t begin_ts, std::vector<std::pair<gaia_txn_id_t, log_offset_t>>& txn_ids_with_log_offsets_for_snapshot)
+    gaia_txn_id_t begin_ts,
+    std::vector<std::pair<gaia_txn_id_t, log_offset_t>>& txn_ids_with_log_offsets_for_snapshot)
 {
     ASSERT_PRECONDITION(
         txn_ids_with_log_offsets_for_snapshot.empty(),
@@ -237,6 +238,9 @@ void server_t::release_transaction_resources()
     // NB: this must be called before calling perform_maintenance(), because
     // otherwise we cannot GC the referenced txn logs!
     release_txn_log_offsets_for_snapshot();
+
+    s_local_snapshot_locators.close();
+    s_last_snapshot_processed_log_record_count = 0;
 
     // Update watermarks and perform associated maintenance tasks. This will
     // block new transactions on this session thread, but that is a feature, not
@@ -453,8 +457,8 @@ void server_t::handle_request_stream(
             {
                 // Create local snapshot to query catalog for key serialization schema.
                 bool apply_logs = true;
-                create_local_snapshot(apply_logs);
-                auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
+                create_or_refresh_local_snapshot(apply_logs);
+                auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); s_last_snapshot_processed_log_record_count = 0; });
                 const payload_types::serialization_buffer_t* key_buffer;
 
                 if (query_type == index_query_t::index_point_read_query_t)
@@ -582,6 +586,7 @@ void server_t::clear_server_state()
 {
     data_mapping_t::close(c_data_mappings);
     s_local_snapshot_locators.close();
+    s_last_snapshot_processed_log_record_count = 0;
     s_chunk_manager.release();
 }
 
@@ -604,7 +609,7 @@ void server_t::init_shared_memory()
     // We may be reinitializing the server upon receiving a SIGHUP.
     clear_server_state();
 
-    // Clear all shared memory if an exception is thrown.
+    // Clear server state if an exception is thrown.
     auto cleanup_memory = make_scope_guard([]() { clear_server_state(); });
 
     // Validate shared memory mapping definitions and assert that mappings are not made yet.
@@ -643,7 +648,7 @@ void server_t::init_shared_memory()
 
     // Create snapshot for db recovery and index population.
     bool apply_logs = false;
-    create_local_snapshot(apply_logs);
+    create_or_refresh_local_snapshot(apply_logs);
 
     // Populate shared memory from the persistent log and snapshot.
     recover_db();
@@ -770,9 +775,9 @@ void server_t::init_indexes()
 // On commit, update in-memory-indexes to reflect logged operations.
 void server_t::update_indexes_from_txn_log()
 {
-    bool replay_logs = true;
-    create_local_snapshot(replay_logs);
-    auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
+    bool apply_logs = true;
+    create_or_refresh_local_snapshot(apply_logs);
+    auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); s_last_snapshot_processed_log_record_count = 0; });
 
     index::index_builder_t::update_indexes_from_txn_log(
         get_txn_log(), 0, s_server_conf.skip_catalog_integrity_checks());
@@ -853,25 +858,38 @@ void server_t::end_startup_txn()
 }
 
 // Create a thread-local snapshot from the shared locators.
-void server_t::create_local_snapshot(bool apply_logs)
+void server_t::create_or_refresh_local_snapshot(bool apply_logs)
 {
-    ASSERT_PRECONDITION(!s_local_snapshot_locators.is_set(), "Local snapshot is already mapped!");
-    bool manage_fd = false;
-    bool is_shared = false;
+    ASSERT_PRECONDITION(apply_logs || !s_local_snapshot_locators.is_set(), "Local snapshot is already mapped!");
+
+    bool was_snapshot_already_created = s_local_snapshot_locators.is_set();
+
+    if (!was_snapshot_already_created)
+    {
+        ASSERT_PRECONDITION(
+            s_last_snapshot_processed_log_record_count == 0,
+            "'s_last_snapshot_processed_log_record_count' is set without the local snapshot being created!");
+
+        // Open a private locator mapping for the current thread.
+        bool manage_fd = false;
+        bool is_shared = false;
+        s_local_snapshot_locators.open(s_shared_locators.fd(), manage_fd, is_shared);
+    }
 
     if (apply_logs)
     {
-        ASSERT_PRECONDITION(
-            s_txn_id.is_valid() && txn_metadata_t::is_txn_active(s_txn_id),
-            "create_local_snapshot() must be called from within an active transaction!");
-
-        // Open a private locator mapping for the current thread.
-        s_local_snapshot_locators.open(s_shared_locators.fd(), manage_fd, is_shared);
-
-        // Apply txn_logs for the snapshot.
-        for (const auto& [txn_id, log_offset] : s_txn_logs_for_snapshot)
+        // We only need to apply the logs for other transactions when we first create the snapshot.
+        if (!was_snapshot_already_created)
         {
-            apply_log_from_offset(s_local_snapshot_locators.data(), log_offset);
+            ASSERT_PRECONDITION(
+                s_txn_id.is_valid() && txn_metadata_t::is_txn_active(s_txn_id),
+                "To apply logs, create_or_refresh_local_snapshot() must be called from within an active transaction!");
+
+            // Apply txn_logs for the snapshot.
+            for (const auto& [txn_id, log_offset] : s_txn_logs_for_snapshot)
+            {
+                apply_log_from_offset(s_local_snapshot_locators.data(), log_offset);
+            }
         }
 
         // BUG (yiwen): This is incorrect: it races with client writes to the
@@ -879,12 +897,13 @@ void server_t::create_local_snapshot(bool apply_logs)
         // records are 16 bytes and don't use a 128-bit integer type), so
         // applied log records may be inconsistent!
 
-        // Apply current txn log to the local snapshot.
-        apply_log_from_offset(s_local_snapshot_locators.data(), s_txn_log_offset);
-    }
-    else
-    {
-        s_local_snapshot_locators.open(s_shared_locators.fd(), manage_fd, is_shared);
+        // Apply current txn log to the local snapshot starting from the last processed log record count.
+        apply_log_from_offset(
+            s_local_snapshot_locators.data(), s_txn_log_offset, s_last_snapshot_processed_log_record_count);
+
+        // Update our log record count watermark.
+        txn_log_t* txn_log = get_txn_log_from_offset(s_txn_log_offset);
+        s_last_snapshot_processed_log_record_count = txn_log->record_count;
     }
 }
 
