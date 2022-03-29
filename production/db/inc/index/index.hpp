@@ -60,8 +60,8 @@ public:
     inline void insert(gaia_offset_t offset, common::gaia_type_t type);
     inline gaia_offset_t get_offset(size_t index) const;
     inline common::gaia_type_t get_type(size_t index) const;
-    inline bool empty() const;
     inline size_t size() const;
+    inline bool empty() const;
 
 private:
     std::array<std::pair<gaia_offset_t, common::gaia_type_t>, c_offset_buffer_size> m_offsets = {};
