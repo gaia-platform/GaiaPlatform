@@ -101,11 +101,12 @@ inline gaia_txn_id_t get_last_txn_id()
     return counters->last_txn_id.load();
 }
 
-inline void apply_log_to_locators(locators_t* locators, txn_log_t* log)
+inline void apply_log_to_locators(locators_t* locators, txn_log_t* txn_log, size_t starting_log_record_index = 0)
 {
-    for (auto record = log->log_records; record < log->log_records + log->record_count; ++record)
+    for (size_t i = starting_log_record_index; i < txn_log->record_count; ++i)
     {
-        (*locators)[record->locator] = record->new_offset;
+        auto log_record = &(txn_log->log_records[i]);
+        (*locators)[log_record->locator] = log_record->new_offset;
     }
 }
 
@@ -116,10 +117,10 @@ inline gaia::db::txn_log_t* get_txn_log_from_offset(log_offset_t offset)
     return &((*logs)[offset]);
 }
 
-inline void apply_log_from_offset(locators_t* locators, log_offset_t log_offset)
+inline void apply_log_from_offset(locators_t* locators, log_offset_t log_offset, size_t starting_log_record_index = 0)
 {
     txn_log_t* txn_log = get_txn_log_from_offset(log_offset);
-    apply_log_to_locators(locators, txn_log);
+    apply_log_to_locators(locators, txn_log, starting_log_record_index);
 }
 
 inline index::db_index_t id_to_index(common::gaia_id_t index_id)

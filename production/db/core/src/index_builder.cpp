@@ -438,7 +438,8 @@ void index_builder_t::update_indexes_from_txn_log(
             {
                 index::index_builder_t::drop_index(index_view);
             }
-            // We only create the empty index after the post-create update operation because it is finally linked to the parent.
+            // We only create the empty index after the post-create update operation
+            // because it is finally linked to the parent.
             else if (log_record->operation() == gaia_operation_t::update && last_index_operation == gaia_operation_t::create)
             {
                 index::index_builder_t::create_empty_index(index_view, skip_catalog_integrity_check);
