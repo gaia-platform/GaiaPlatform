@@ -775,7 +775,7 @@ void server_t::update_indexes_from_txn_log()
     //    auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
     //
     //    index::index_builder_t::update_indexes_from_txn_log(
-    //        get_txn_log(), s_server_conf.skip_catalog_integrity_checks());
+    //        get_txn_log(), 0, s_server_conf.skip_catalog_integrity_checks());
 }
 
 void server_t::recover_db()
@@ -1957,22 +1957,22 @@ bool server_t::advance_watermark(watermark_type_t watermark_type, gaia_txn_id_t 
 
 void server_t::apply_txn_log_from_ts(gaia_txn_id_t commit_ts)
 {
-    //    ASSERT_PRECONDITION(
-    //        txn_metadata_t::is_commit_ts(commit_ts) && txn_metadata_t::is_txn_committed(commit_ts),
-    //        "apply_txn_log_from_ts() must be called on the commit_ts of a committed txn!");
-    //
-    //    // Because txn logs are only eligible for GC after they fall behind the
-    //    // post-apply watermark, we don't need to protect this txn log from GC.
-    //    ASSERT_INVARIANT(
-    //        commit_ts <= get_watermark(watermark_type_t::pre_apply) && commit_ts > get_watermark(watermark_type_t::post_apply),
-    //        "Cannot apply txn log unless it is at or behind the pre-apply watermark and ahead of the post-apply watermark!");
+    ASSERT_PRECONDITION(
+        txn_metadata_t::is_commit_ts(commit_ts) && txn_metadata_t::is_txn_committed(commit_ts),
+        "apply_txn_log_from_ts() must be called on the commit_ts of a committed txn!");
+
+    // Because txn logs are only eligible for GC after they fall behind the
+    // post-apply watermark, we don't need to protect this txn log from GC.
+    ASSERT_INVARIANT(
+        commit_ts <= get_watermark(watermark_type_t::pre_apply) && commit_ts > get_watermark(watermark_type_t::post_apply),
+        "Cannot apply txn log unless it is at or behind the pre-apply watermark and ahead of the post-apply watermark!");
     log_offset_t log_offset = txn_metadata_t::get_txn_log_offset(commit_ts);
     txn_log_t* txn_log = get_txn_log_from_offset(log_offset);
 
-    //    // Ensure that the begin_ts in this metadata entry matches the txn log header.
-    //    ASSERT_INVARIANT(
-    //        txn_log->begin_ts() == txn_metadata_t::get_begin_ts_from_commit_ts(commit_ts),
-    //        "txn log begin_ts must match begin_ts reference in commit_ts metadata!");
+    // Ensure that the begin_ts in this metadata entry matches the txn log header.
+    ASSERT_INVARIANT(
+        txn_log->begin_ts() == txn_metadata_t::get_begin_ts_from_commit_ts(commit_ts),
+        "txn log begin_ts must match begin_ts reference in commit_ts metadata!");
 
     // Update the shared locator view with each redo version (i.e., the
     // version created or updated by the txn). This is safe as long as the
@@ -2601,9 +2601,9 @@ void server_t::sort_log()
     //        &txn_log->log_records[0],
     //        &txn_log->log_records[txn_log->record_count],
     //        [](const log_record_t& lhs, const log_record_t& rhs) {
-    //            return lhs.locator == rhs.locator
-    //                ? lhs.sequence < rhs.sequence
-    //                : lhs.locator < rhs.locator;
+    //            auto lhs_pair = std::pair{lhs.locator, lhs.sequence};
+    //            auto rhs_pair = std::pair{rhs.locator, rhs.sequence};
+    //            return lhs_pair < rhs_pair;
     //        });
 }
 

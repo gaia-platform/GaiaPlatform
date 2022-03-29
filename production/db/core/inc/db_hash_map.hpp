@@ -90,9 +90,10 @@ public:
         {
             if (node->id == id)
             {
-                if (locator_exists(node->locator.load()))
+                auto locator = node->locator.load();
+                if (locator_exists(locator))
                 {
-                    return node->locator.load();
+                    return locator;
                 }
                 else
                 {
