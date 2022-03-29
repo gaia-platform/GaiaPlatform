@@ -26,9 +26,6 @@ protected:
             MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE,
             -1,
             0);
-
-        // Register our type.
-        m_type_index->register_type(c_first_type);
     }
 
     void TearDown() override
@@ -281,30 +278,23 @@ TEST_F(type_index_test, add_multi_delete_only_head_and_tail_unlink_all_deleted)
 // thrown.
 TEST_F(type_index_test, exceed_registered_type_limit)
 {
-    // We already registered a single type, so start after that type ID and
-    // stop at the type limit.
-    for (gaia_type_t type_id = c_first_type + 1; type_id.value() <= c_max_types; ++type_id)
+    gaia_locator_t locator = c_first_locator;
+    for (gaia_type_t type_id{c_first_type}; type_id.value() <= c_max_types; ++type_id, ++locator)
     {
-        EXPECT_NO_THROW(m_type_index->register_type(type_id));
+        EXPECT_NO_THROW(m_type_index->add_locator(type_id, locator));
     }
-    // Now try to register another type after we've already reached the type limit.
-    EXPECT_THROW(m_type_index->register_type(c_max_types + 1), type_limit_exceeded);
+    // Now try to add a locator for another type after we've already reached the type limit.
+    EXPECT_THROW(m_type_index->add_locator(c_max_types + 1, locator + 1), type_limit_exceeded);
 }
 
-// Register as many types as allowed by the type limit, then add a locator to
-// each list and verify its presence, delete the locator from each list and
-// verify its logically deleted status, and finally unlink the locator from each
-// list and verify its absence.
+// For as many types as allowed by the type limit, add a locator to each list
+// and verify its presence, delete the locator from each list and verify its
+// logically deleted status, and finally unlink the locator from each list and
+// verify its absence.
 TEST_F(type_index_test, add_delete_unlink_locators_multiple_types)
 {
-    // We already registered a single type, so start after that type ID and
-    // stop at the type limit.
-    for (gaia_type_t type_id = c_first_type + 1; type_id.value() <= c_max_types; ++type_id)
-    {
-        EXPECT_NO_THROW(m_type_index->register_type(type_id));
-    }
-    // For each registered type, add a locator to the index for that type and
-    // verify its presence.
+    // For each type, add a locator to the index for that type and verify its
+    // presence.
     gaia_locator_t locator = c_first_locator;
     for (gaia_type_t type_id{c_first_type}; type_id.value() <= c_max_types; ++type_id, ++locator)
     {
@@ -313,7 +303,7 @@ TEST_F(type_index_test, add_delete_unlink_locators_multiple_types)
         EXPECT_EQ(cursor.current_locator(), locator);
         EXPECT_FALSE(cursor.next_locator().is_valid());
     }
-    // For each registered type, logically delete the locator in the index for
+    // For each type, logically delete the locator in the index for
     // that type, verify its deleted status, then unlink it.
     locator = c_first_locator;
     for (gaia_type_t type_id{c_first_type}; type_id.value() <= c_max_types; ++type_id, ++locator)
@@ -325,8 +315,8 @@ TEST_F(type_index_test, add_delete_unlink_locators_multiple_types)
         EXPECT_TRUE(cursor.is_current_node_deleted());
         EXPECT_TRUE(cursor.unlink_for_deletion());
     }
-    // For each registered type, verify that there are no locators in the index
-    // for that type.
+    // For each type, verify that there are no locators in the index for that
+    // type.
     for (gaia_type_t type_id = c_first_type; type_id.value() <= c_max_types; ++type_id)
     {
         type_index_cursor_t cursor(m_type_index, type_id);
