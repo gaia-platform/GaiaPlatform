@@ -239,6 +239,7 @@ void server_t::release_transaction_resources()
     // otherwise we cannot GC the referenced txn logs!
     release_txn_log_offsets_for_snapshot();
 
+    // Clear local snapshot information.
     s_local_snapshot_locators.close();
     s_last_snapshot_processed_log_record_count = 0;
 
@@ -458,7 +459,6 @@ void server_t::handle_request_stream(
                 // Create local snapshot to query catalog for key serialization schema.
                 bool apply_logs = true;
                 create_or_refresh_local_snapshot(apply_logs);
-                auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); s_last_snapshot_processed_log_record_count = 0; });
                 const payload_types::serialization_buffer_t* key_buffer;
 
                 if (query_type == index_query_t::index_point_read_query_t)
@@ -646,10 +646,6 @@ void server_t::init_shared_memory()
     // Mark the invalid offset as allocated.
     safe_set_bit_value(s_allocated_log_offsets_bitmap.data(), s_allocated_log_offsets_bitmap.size(), c_invalid_log_offset, true);
 
-    // Create snapshot for db recovery and index population.
-    bool apply_logs = false;
-    create_or_refresh_local_snapshot(apply_logs);
-
     // Populate shared memory from the persistent log and snapshot.
     recover_db();
 
@@ -777,7 +773,6 @@ void server_t::update_indexes_from_txn_log()
 {
     bool apply_logs = true;
     create_or_refresh_local_snapshot(apply_logs);
-    auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); s_last_snapshot_processed_log_record_count = 0; });
 
     index::index_builder_t::update_indexes_from_txn_log(
         get_txn_log(), 0, s_server_conf.skip_catalog_integrity_checks());
@@ -827,6 +822,10 @@ gaia_txn_id_t server_t::begin_startup_txn()
     txn_begin();
     ASSERT_POSTCONDITION(s_txn_id.is_valid(), "Transaction begin timestamp should be valid!");
     ASSERT_POSTCONDITION(s_txn_log_offset.is_valid(), "Transaction log offset should be valid!");
+
+    // Create snapshot for db recovery and index population.
+    bool apply_logs = false;
+    create_or_refresh_local_snapshot(apply_logs);
 
     return s_txn_id;
 }
