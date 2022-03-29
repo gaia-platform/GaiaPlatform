@@ -193,6 +193,25 @@ int uint_to_int(SourceLocation location, unsigned int token_length)
     return static_cast<int>(token_length);
 }
 
+void clear_global_data()
+{
+    g_expression_explicit_path_data.clear();
+    g_insert_tables.clear();
+    g_update_tables.clear();
+    g_active_fields.clear();
+    g_attribute_tag_map.clear();
+    g_rewriter_history.clear();
+    g_nomatch_location_list.clear();
+    g_insert_data.clear();
+    g_connect_data.clear();
+    g_variable_declaration_location.clear();
+    g_variable_declaration_init_location.clear();
+    g_writer_data.clear();
+    g_is_rule_prolog_specified = false;
+    g_rule_attribute_source_range = SourceRange();
+    g_is_rule_context_rule_name_referenced = false;
+}
+
 bool check_match_source_range(SourceRange range)
 {
     if (g_match_source_ranges.find(range) != g_match_source_ranges.end())
@@ -768,11 +787,12 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
 
     for (const auto& connect_data : g_connect_data)
     {
-        string expression_replacement_string = (Twine(rewriter.getRewrittenText(connect_data.argument_range))
-                                                + "."
-                                                + connect_data.link_name
-                                                + "()")
-                                                   .str();
+        string expression_replacement_string
+            = (Twine(rewriter.getRewrittenText(connect_data.argument_range))
+               + "."
+               + connect_data.link_name
+               + "()")
+                  .str();
         string argument_replacement_string;
         if (!connect_data.skip_argument)
         {
@@ -2966,21 +2986,7 @@ public:
 
         SourceRange rule_range = g_current_rule_declaration->getSourceRange();
         g_current_ruleset_rule_line_number = m_rewriter.getSourceMgr().getSpellingLineNumber(rule_range.getBegin());
-        g_expression_explicit_path_data.clear();
-        g_insert_tables.clear();
-        g_update_tables.clear();
-        g_active_fields.clear();
-        g_attribute_tag_map.clear();
-        g_rewriter_history.clear();
-        g_nomatch_location_list.clear();
-        g_insert_data.clear();
-        g_connect_data.clear();
-        g_variable_declaration_location.clear();
-        g_variable_declaration_init_location.clear();
-        g_writer_data.clear();
-        g_is_rule_prolog_specified = false;
-        g_rule_attribute_source_range = SourceRange();
-        g_is_rule_context_rule_name_referenced = false;
+        clear_global_data();
 
         if (update_attribute != nullptr)
         {
@@ -3098,20 +3104,7 @@ public:
             return;
         }
         g_current_rule_declaration = nullptr;
-        g_expression_explicit_path_data.clear();
-        g_active_fields.clear();
-        g_insert_tables.clear();
-        g_update_tables.clear();
-        g_attribute_tag_map.clear();
-        g_rewriter_history.clear();
-        g_nomatch_location_list.clear();
-        g_insert_data.clear();
-        g_connect_data.clear();
-        g_writer_data.clear();
-        g_variable_declaration_location.clear();
-        g_variable_declaration_init_location.clear();
-        g_is_rule_prolog_specified = false;
-        g_rule_attribute_source_range = SourceRange();
+        clear_global_data();
 
         if (ruleset_declaration == nullptr)
         {
@@ -3885,14 +3878,14 @@ public:
 
         gaiat::diag().set_location(table_call->getLocation());
 
-        const auto src_table_iter = table_data.find(src_table_name);
-        if (src_table_iter == table_data.end())
+        const auto src_table_it = table_data.find(src_table_name);
+        if (src_table_it == table_data.end())
         {
             gaiat::diag().emit(diag::err_table_not_found) << src_table_name;
             g_is_generation_error = true;
             return;
         }
-        const CatalogTableData& src_table_data = src_table_iter->second;
+        const CatalogTableData& src_table_data = src_table_it->second;
 
         const auto dest_table_iter = table_data.find(dest_table_name);
         if (dest_table_iter == table_data.end())
@@ -4058,14 +4051,14 @@ public:
 
         gaiat::diag().set_location(table_call->getLocation());
 
-        const auto src_table_iter = table_data.find(src_table_name);
-        if (src_table_iter == table_data.end())
+        const auto src_table_it = table_data.find(src_table_name);
+        if (src_table_it == table_data.end())
         {
             gaiat::diag().emit(diag::err_table_not_found) << src_table_name;
             g_is_generation_error = true;
             return;
         }
-        const CatalogTableData& src_table_data = src_table_iter->second;
+        const CatalogTableData& src_table_data = src_table_it->second;
 
         // If the link_expr is not null this is a call in the form table.link.connect()
         // hence we don't need to look up the name. Otherwise, this is in the form
