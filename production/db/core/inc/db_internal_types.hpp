@@ -142,16 +142,19 @@ static_assert(sizeof(hash_node_t) == 16, "Expected hash_node_t to occupy 16 byte
 struct log_record_t
 {
     gaia_locator_t locator;
-    // We need 4 bytes of padding to maintain total size at 16 bytes.
+    uint16_t sequence;
+    // We need 2 bytes of padding to maintain total size at 16 bytes.
     // (We place the padding here to align the two offsets on an 8-byte
     // boundary, in case we need to modify them both atomically in the future.)
-    uint32_t reserved;
+    uint16_t reserved;
     gaia_offset_t old_offset;
     gaia_offset_t new_offset;
 
     friend std::ostream& operator<<(std::ostream& os, const log_record_t& lr)
     {
-        os << "locator: "
+        os << "sequence: "
+           << lr.sequence
+           << "\tlocator: "
            << lr.locator
            << "\told_offset: "
            << lr.old_offset
@@ -183,6 +186,10 @@ struct log_record_t
         }
     }
 };
+
+// We want to ensure that the txn log record size never changes accidentally.
+constexpr size_t c_txn_log_record_size = 16;
+static_assert(c_txn_log_record_size == sizeof(log_record_t), "Txn log record size must be 16 bytes!");
 
 // We can reference at most 2^16 logs from the 16 bits available in a txn
 // metadata entry, and we must reserve the value 0 for an invalid log offset.
@@ -401,6 +408,10 @@ struct txn_log_t
 static_assert(c_txn_log_header_size == offsetof(txn_log_t, log_records), "Txn log header size must be 16 bytes!");
 
 static_assert(c_txn_log_size == sizeof(txn_log_t), "Txn log size must be 1MB!");
+
+// To ensure the txn log record sequence number doesn't overflow,
+// log_record_t::sequence must be at least as large as txn_log_t::record_count.
+static_assert(sizeof(log_record_t::sequence) >= sizeof(txn_log_t::record_count));
 
 struct counters_t
 {

@@ -95,9 +95,9 @@ struct type_index_t
     // corresponds to the locator it represents.
     locator_list_node_t locator_lists_array[c_max_locators + 1];
 
-    // Returns a reference to the type index entry containing `type`.
+    // Returns a pointer to the type index entry containing `type`.
     // PRECONDITION: `type` has already been registered.
-    inline std::atomic<type_index_entry_t>& get_type_index_entry(common::gaia_type_t type);
+    inline std::atomic<type_index_entry_t>* get_type_index_entry(common::gaia_type_t type);
 
     // Claims a slot in `type_index_entries` by atomically incrementing
     // `type_index_entries_count` (slots are not reused).

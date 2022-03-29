@@ -7,6 +7,9 @@
 #include "db_server.hpp"
 #include "db_shared_data.hpp"
 
+const bool gaia::db::c_is_running_on_server = true;
+const bool gaia::db::c_is_running_on_client = false;
+
 gaia::db::locators_t* gaia::db::get_locators()
 {
     // The local snapshot segment should always be mapped whenever any callers

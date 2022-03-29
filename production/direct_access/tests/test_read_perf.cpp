@@ -170,7 +170,7 @@ void run_performance_test(
 
     for (size_t iteration = 0; iteration < num_iterations; iteration++)
     {
-        gaia_log::app().info("[{}]: {} iteration staring, {} records", message, iteration, num_records);
+        gaia_log::app().info("[{}]: {} iteration starting, {} records", message, iteration, num_records);
         int64_t expr_duration = g_timer_t::get_function_duration(expr_fn);
         expr_accumulator.add(expr_duration);
 
@@ -226,7 +226,7 @@ TEST_F(test_read_perf, table_scan)
         ASSERT_EQ(c_num_records, i);
     };
 
-    run_performance_test(work, "simple_table_t::table_scan", 2);
+    run_performance_test(work, "simple_table_t::table_scan");
 }
 
 TEST_F(test_read_perf, table_scan_data_access)

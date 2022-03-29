@@ -771,10 +771,11 @@ void server_t::init_indexes()
 void server_t::update_indexes_from_txn_log()
 {
     bool replay_logs = true;
-
     create_local_snapshot(replay_logs);
     auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
-    index::index_builder_t::update_indexes_from_txn_log(get_txn_log(), s_server_conf.skip_catalog_integrity_checks());
+
+    index::index_builder_t::update_indexes_from_txn_log(
+        get_txn_log(), 0, s_server_conf.skip_catalog_integrity_checks());
 }
 
 void server_t::recover_db()
@@ -2593,14 +2594,16 @@ void server_t::perform_pre_commit_work_for_txn()
 // search and merge intersection algorithms for conflict detection.
 void server_t::sort_log()
 {
-    // We use stable_sort() to preserve the temporal order of multiple updates
-    // to the same locator.
+    // We use `log_record_t.sequence` as a secondary sort key to preserve the
+    // temporal order of multiple updates to the same locator.
     txn_log_t* txn_log = get_txn_log();
-    std::stable_sort(
+    std::sort(
         &txn_log->log_records[0],
         &txn_log->log_records[txn_log->record_count],
         [](const log_record_t& lhs, const log_record_t& rhs) {
-            return lhs.locator < rhs.locator;
+            auto lhs_pair = std::pair{lhs.locator, lhs.sequence};
+            auto rhs_pair = std::pair{rhs.locator, rhs.sequence};
+            return lhs_pair < rhs_pair;
         });
 }
 

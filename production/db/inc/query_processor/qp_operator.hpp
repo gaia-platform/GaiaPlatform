@@ -32,7 +32,11 @@ class db_client_proxy_t
 public:
     static void verify_txn_active();
     static gaia::db::gaia_txn_id_t get_current_txn_id();
-    static void rebuild_local_indexes();
+
+    // The client maintains local indexes for uncommitted changes.
+    // These are used to augment the server index information.
+    // The merging is performed in the physical index scan implementation.
+    static void update_local_indexes();
 };
 
 } // namespace query_processor
