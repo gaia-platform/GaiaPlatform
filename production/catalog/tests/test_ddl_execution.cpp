@@ -474,9 +474,6 @@ drop table catalog.gaia_index;
 use catalog;
 )",
         R"(
-drop database event_log;
-)",
-        R"(
 drop database catalog;
 )",
         R"(

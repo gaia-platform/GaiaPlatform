@@ -61,7 +61,6 @@ ddl_executor_t& ddl_executor_t::get()
 
 void ddl_executor_t::bootstrap_catalog()
 {
-    static constexpr char c_event_log_table_name[] = "event_log";
     static constexpr char c_gaia_database_table_name[] = "gaia_database";
     static constexpr char c_gaia_table_table_name[] = "gaia_table";
     static constexpr char c_gaia_field_table_name[] = "gaia_field";
@@ -247,28 +246,6 @@ void ddl_executor_t::bootstrap_catalog()
         create_table_impl(
             c_catalog_db_name, c_gaia_ref_anchor_table_name, fields, is_system, throw_on_exists, auto_drop,
             static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_ref_anchor));
-    }
-
-    create_database(c_event_log_db_name, false);
-    {
-        // create table event_log (
-        //     event_type: uint32,
-        //     type_id: uint64,
-        //     record_id: uint64,
-        //     column_id: uint16,
-        //     timestamp: uint64,
-        //     rules_invoked: bool
-        // );
-        field_def_list_t fields;
-        fields.emplace_back(make_unique<data_field_def_t>("event_type", data_type_t::e_uint32, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("type_id", data_type_t::e_uint32, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("record_id", data_type_t::e_uint64, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("column_id", data_type_t::e_uint16, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("timestamp", data_type_t::e_uint64, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("rules_invoked", data_type_t::e_bool, 1));
-        create_table_impl(
-            c_event_log_db_name, c_event_log_table_name, fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t::value_type>(system_table_type_t::event_log));
     }
 
     // Create the special empty database. Tables created without specifying a
