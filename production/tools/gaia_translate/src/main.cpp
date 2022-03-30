@@ -1160,15 +1160,13 @@ void generate_table_subscription(
                 return;
             }
             SmallString<c_size_256> anchor_code;
-            (
-                Twine("\nauto ")
-                + table
-                + " = gaia::"
-                + db_namespace(anchor_table_data_itr->second.dbName)
-                + class_name
-                + "::get(context->record);\n"
-                + "{\n")
-                .toVector(anchor_code);
+            anchor_code.append("\nauto ");
+            anchor_code.append(table);
+            anchor_code.append(" = gaia::");
+            anchor_code.append(db_namespace(anchor_table_data_itr->second.dbName));
+            anchor_code.append(class_name);
+            anchor_code.append("::get(context->record);\n");
+            anchor_code.append("{\n");
 
             for (const auto& attribute_tag_iterator : g_attribute_tag_map)
             {

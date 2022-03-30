@@ -15,4 +15,4 @@ ruleset test_connect_child_parent_vlr_1_n
     }
 };
 
-// CHECK: no member named 'connect' in 'registration_563873d38950b841aebf89c3be1b1a35__type'
+// CHECK: no member named 'connect' in 'registration_{{([a-z, 0-9]{32})}}__type'
