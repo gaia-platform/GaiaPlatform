@@ -129,10 +129,11 @@ static bool try_set_first_locator_internal(
 {
     // This relaxed load is correct because the calling thread has already
     // called `get_or_create_type_index_entry()` to retrieve `type_index_entry`,
-    // in which it read the value of `type_index_entry.type`. Because a type
-    // index entry is immutable once initialized, and even relaxed loads cannot
-    // go backward in time, the caller is guaranteed to read the same value of
-    // `type_index_entry.type` that it read previously.
+    // in which it verified that the value of `type_index_entry.type` was equal
+    // to the desired type. Because a type index entry is immutable once
+    // initialized, and even relaxed loads cannot go backward in time, the
+    // caller is guaranteed to read the same value of `type_index_entry.type`
+    // that it read previously.
     common::gaia_type_t type = type_index_entry.load(std::memory_order_relaxed).type;
     ASSERT_INVARIANT(type.is_valid(), "Type index entry must have valid type!");
 
