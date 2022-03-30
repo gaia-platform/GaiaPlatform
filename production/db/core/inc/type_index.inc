@@ -16,8 +16,8 @@ static uint64_t data_word_from_locator(gaia_locator_t locator)
 void locator_list_node_t::set_next_locator(gaia_locator_t locator, bool relaxed_store)
 {
     uint64_t word{data_word_from_locator(locator)};
-    std::memory_order mo = relaxed_store ? std::memory_order_relaxed : std::memory_order_seq_cst;
-    return data_word.store(word, mo);
+    std::memory_order order = relaxed_store ? std::memory_order_relaxed : std::memory_order_seq_cst;
+    return data_word.store(word, order);
 }
 
 bool locator_list_node_t::try_set_next_locator(
@@ -113,8 +113,8 @@ std::atomic<type_index_entry_t>& type_index_t::get_or_create_type_index_entry(co
 static gaia_locator_t get_first_locator_internal(
     std::atomic<type_index_entry_t>& type_index_entry, bool relaxed_load = false)
 {
-    std::memory_order mo = relaxed_load ? std::memory_order_relaxed : std::memory_order_seq_cst;
-    return type_index_entry.load(mo).first_locator;
+    std::memory_order order = relaxed_load ? std::memory_order_relaxed : std::memory_order_seq_cst;
+    return type_index_entry.load(order).first_locator;
 }
 
 gaia_locator_t type_index_t::get_first_locator(common::gaia_type_t type)
@@ -128,6 +128,8 @@ static bool try_set_first_locator_internal(
     gaia_locator_t expected_locator, gaia_locator_t desired_locator)
 {
     common::gaia_type_t type = type_index_entry.load(std::memory_order_relaxed).type;
+    ASSERT_INVARIANT(type.is_valid(), "Type index entry must have valid type!");
+
     type_index_entry_t expected_entry{type, expected_locator};
     type_index_entry_t desired_entry{type, desired_locator};
 
