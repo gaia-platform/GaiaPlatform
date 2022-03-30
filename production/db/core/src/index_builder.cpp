@@ -350,7 +350,6 @@ void index_builder_t::update_index(
 
 void index_builder_t::populate_index(common::gaia_id_t index_id, gaia_locator_t locator)
 {
-    ASSERT_PRECONDITION(get_indexes(), "Indexes are not initialized.");
     auto payload = reinterpret_cast<const uint8_t*>(locator_to_ptr(locator)->data());
 
     auto it = get_indexes()->find(index_id);
@@ -438,7 +437,8 @@ void index_builder_t::update_indexes_from_txn_log(
             {
                 index::index_builder_t::drop_index(index_view);
             }
-            // We only create the empty index after the post-create update operation because it is finally linked to the parent.
+            // We only create the empty index after the post-create update operation
+            // because it is finally linked to the parent.
             else if (log_record->operation() == gaia_operation_t::update && last_index_operation == gaia_operation_t::create)
             {
                 index::index_builder_t::create_empty_index(index_view, skip_catalog_integrity_check);
@@ -483,7 +483,6 @@ void index_builder_t::update_indexes_from_txn_log(
 
         for (const auto& index : indexes_for_type[obj->type])
         {
-            ASSERT_PRECONDITION(get_indexes(), "Indexes are not initialized.");
             auto it = get_indexes()->find(index.id());
 
             if (allow_create_empty && it == get_indexes()->end())
@@ -524,12 +523,19 @@ void remove_entries_with_offsets(
 
 void index_builder_t::gc_indexes_from_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets)
 {
+    // No indexes, no work needed.
+    if (get_indexes()->empty())
+    {
+        return;
+    }
+
     size_t record_index = 0;
     size_t record_count = txn_log->record_count;
 
     while (record_index < record_count)
     {
         index_offset_buffer_t collected_offsets;
+
         // Fill the offset buffer for garbage collection.
         // Exit the loop when we either have run out of records to process or the offsets buffer is full.
         for (; record_index < record_count && collected_offsets.size() < c_offset_buffer_size; ++record_index)

@@ -57,11 +57,11 @@ constexpr size_t c_offset_buffer_size = 32;
 class index_offset_buffer_t
 {
 public:
-    void insert(gaia_offset_t offset, common::gaia_type_t type);
-    gaia_offset_t get_offset(size_t index) const;
-    common::gaia_type_t get_type(size_t index) const;
-    bool empty() const;
-    size_t size() const;
+    inline void insert(gaia_offset_t offset, common::gaia_type_t type);
+    inline gaia_offset_t get_offset(size_t index) const;
+    inline common::gaia_type_t get_type(size_t index) const;
+    inline size_t size() const;
+    inline bool empty() const;
 
 private:
     std::array<std::pair<gaia_offset_t, common::gaia_type_t>, c_offset_buffer_size> m_offsets = {};
