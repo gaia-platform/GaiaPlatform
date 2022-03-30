@@ -7,12 +7,12 @@ project(core)
 
 set(GAIA_DB_CORE_PUBLIC_INCLUDES
   "${GAIA_INC}"
-  "${GAIA_REPO}/production/db/inc/types"
 )
 
 message(VERBOSE "GAIA_DB_CORE_PUBLIC_INCLUDES=${GAIA_DB_CORE_PUBLIC_INCLUDES}")
 
 set(GAIA_DB_CORE_PRIVATE_INCLUDES
+  "${GAIA_DB_INC}/core"
   "${GAIA_DB_INC}/index"
   "${GAIA_DB_INC}/memory_manager"
   "${GAIA_DB_INC}/payload_types"
@@ -61,28 +61,31 @@ endforeach(FBS_SOURCE)
 ###############################################
 add_library(gaia_db_client STATIC
   src/catalog_core.cpp
-  src/exceptions.cpp
-  src/db_client_api.cpp
-  src/gaia_ptr.cpp
-  src/gaia_ptr_client.cpp
-  src/gaia_ptr_api.cpp
-  src/payload_diff.cpp
+  src/chunk_manager.cpp
   src/client_messenger.cpp
-  src/db_client.cpp
-  src/db_shared_data_client.cpp
-  src/type_metadata.cpp
-  src/type_id_mapping.cpp
+  src/db_client_api.cpp
   src/db_client_config.cpp
+  src/db_client.cpp
   src/db_server_instance.cpp
+  src/db_shared_data_client.cpp
+  src/exceptions.cpp
+  src/gaia_ptr_api.cpp
+  src/gaia_ptr_client.cpp
+  src/gaia_ptr.cpp
   src/index_builder.cpp
-  src/txn_metadata.cpp)
+  src/memory_manager.cpp
+  src/payload_diff.cpp
+  src/txn_metadata.cpp
+  src/type_id_mapping.cpp
+  src/type_metadata.cpp
+)
 
 add_dependencies(gaia_db_client ${FBS_SOURCE_FILENAMES})
 configure_gaia_target(gaia_db_client)
 target_include_directories(gaia_db_client PUBLIC ${GAIA_DB_CORE_PUBLIC_INCLUDES})
 target_include_directories(gaia_db_client PRIVATE ${GAIA_DB_CORE_PRIVATE_INCLUDES})
 target_link_libraries(gaia_db_client PUBLIC gaia_common)
-target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager gaia_qp dac_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
+target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_index gaia_qp dac_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
 
 # Suppress spurious warnings about zero-initialized structs.
 target_compile_options(gaia_db_client PRIVATE -Wno-missing-field-initializers)
@@ -90,8 +93,9 @@ target_compile_options(gaia_db_client PRIVATE -Wno-missing-field-initializers)
 # For flatbuffers generated code.
 target_include_directories(gaia_db_client SYSTEM PRIVATE "${FLATBUFFERS_INC}")
 target_include_directories(gaia_db_client SYSTEM PRIVATE "${GEN_DIR}")
-target_link_libraries(gaia_db_client PUBLIC gaia_common)
-target_link_libraries(gaia_db_client PRIVATE gaia_payload_types gaia_memory_manager gaia_index gaia_qp dac_catalog ${LIB_EXPLAIN} ${LIB_CAP} dl)
+
+# libstdc++ apparently needs libatomic for struct last_allocation_metadata_t, even though it's 8 bytes.
+target_link_libraries(gaia_db_client PRIVATE atomic)
 
 add_library(rocks_wrapper STATIC
   src/rdb_wrapper.cpp
@@ -134,15 +138,18 @@ target_link_libraries(gaia_db_persistence PUBLIC rocksdb "${LIBURING_LIBRARY}")
 
 set(GAIA_DB_SERVER_SOURCES
   src/catalog_core.cpp
-  src/exceptions.cpp
+  src/chunk_manager.cpp
   src/db_server.cpp
   src/db_shared_data_server.cpp
-  src/gaia_ptr.cpp
+  src/exceptions.cpp
   src/gaia_ptr_server.cpp
+  src/gaia_ptr.cpp
   src/index_builder.cpp
+  src/memory_manager.cpp
   src/system_checks.cpp
   src/txn_metadata.cpp
-  src/type_id_mapping.cpp)
+  src/type_id_mapping.cpp
+)
 
 add_library(gaia_db_server ${GAIA_DB_SERVER_SOURCES})
 add_dependencies(gaia_db_server ${FBS_SOURCE_FILENAMES})
@@ -150,9 +157,13 @@ configure_gaia_target(gaia_db_server)
 target_include_directories(gaia_db_server PUBLIC
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
   "${GAIA_DB_CORE_PRIVATE_INCLUDES}")
+
 # For flatbuffers generated code.
 target_include_directories(gaia_db_server SYSTEM PUBLIC "${FLATBUFFERS_INC}")
 target_include_directories(gaia_db_server SYSTEM PUBLIC "${GEN_DIR}")
+
+# libstdc++ apparently needs libatomic for struct last_allocation_metadata_t, even though it's 8 bytes.
+target_link_libraries(gaia_db_server PRIVATE atomic)
 
 target_link_libraries(gaia_db_server
   PUBLIC
@@ -163,7 +174,6 @@ target_link_libraries(gaia_db_server
     gaia_common
     gaia_db_persistence
     gaia_index
-    gaia_memory_manager
     rocks_wrapper
 )
 
@@ -229,7 +239,7 @@ if(JAVA_FOUND AND JNI_FOUND)
   target_include_directories(gaia_db_jni PRIVATE ${PROJECT_BINARY_DIR})
   target_include_directories(gaia_db_jni PRIVATE ${JNI_INCLUDE_DIRS})
   target_include_directories(gaia_db_jni PRIVATE ${GAIA_DB_CORE_INCLUDES})
-  target_include_directories(gaia_db_jni PRIVATE ${GAIA_REPO}/production/db/inc/memory_manager)
+  target_include_directories(gaia_db_jni PRIVATE ${GAIA_REPO}/production/db/inc/core)
   target_link_libraries(gaia_db_jni PRIVATE rt gaia_system gaia_db_client db_jni_headers)
   target_compile_options(gaia_db_jni PRIVATE -Wno-deprecated-register -Wno-unused-parameter)
   if("$CACHE{SANITIZER}" STREQUAL "ASAN")
@@ -240,8 +250,7 @@ endif()
 set(GAIA_DB_CATALOG_TEST_PRIVATE_INCLUDES
   ${GAIA_INC}
   ${GAIA_REPO}/production/schemas/repository/inc
-  ${GAIA_REPO}/production/db/core/inc
-  ${GAIA_REPO}/production/db/inc/memory_manager
+  ${GAIA_REPO}/production/db/inc/core
 )
 
 add_library(gaia_db_catalog_test tests/db_catalog_test_base.cpp)

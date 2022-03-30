@@ -31,7 +31,6 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::db::triggers;
 using namespace gaia::db::messages;
-using namespace gaia::db::memory_manager;
 using namespace flatbuffers;
 using namespace scope_guard;
 

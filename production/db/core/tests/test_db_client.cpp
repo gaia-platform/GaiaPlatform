@@ -17,7 +17,7 @@ using namespace gaia::common;
 // NOTE: This test is used to test lower level DB client and 'gaia_ptr_t' APIs.
 // Avoid adding higher level components like catalog to the test.
 
-// duplicated from production/db/core/inc/db_server.hpp
+// duplicated from production/db/inc/core/db_server.hpp
 constexpr size_t c_stream_batch_size = 1 << 10;
 
 void print_payload(std::ostream& o, size_t size, const char* payload)

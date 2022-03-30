@@ -3,28 +3,7 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "bitmap.hpp"
-
-#include <bitset>
-#include <iostream>
-#include <sstream>
-
-#include "gaia/common.hpp"
-
-#include "gaia_internal/common/retail_assert.hpp"
-
-using namespace std;
-
-using namespace gaia::common;
-
-namespace gaia
-{
-namespace db
-{
-namespace memory_manager
-{
-
-size_t find_first_set_bit_in_word(uint64_t word)
+static size_t find_first_set_bit_in_word(uint64_t word)
 {
     ASSERT_PRECONDITION(word != 0, "find_first_set_bit_in_word() cannot evaluate a zero argument!");
 
@@ -34,7 +13,7 @@ size_t find_first_set_bit_in_word(uint64_t word)
     return first_set_bit_index_in_word;
 }
 
-size_t find_last_set_bit_in_word(uint64_t word)
+static size_t find_last_set_bit_in_word(uint64_t word)
 {
     ASSERT_PRECONDITION(word != 0, "find_last_set_bit_in_word() cannot evaluate a zero argument!");
 
@@ -45,7 +24,7 @@ size_t find_last_set_bit_in_word(uint64_t word)
     return last_set_bit_index_in_word;
 }
 
-bool apply_mask_to_word(
+static bool apply_mask_to_word(
     uint64_t& word, uint64_t mask, bool set, bool fail_if_already_applied = false)
 {
     if (fail_if_already_applied)
@@ -62,7 +41,7 @@ bool apply_mask_to_word(
     return true;
 }
 
-bool apply_mask_to_word(
+static bool apply_mask_to_word(
     std::atomic<uint64_t>& word, uint64_t mask, bool set, bool fail_if_already_applied = false)
 {
     uint64_t word_copy = word;
@@ -74,7 +53,7 @@ bool apply_mask_to_word(
     return true;
 }
 
-bool try_apply_mask_to_word(
+static bool try_apply_mask_to_word(
     std::atomic<uint64_t>& word, uint64_t mask, bool set, bool fail_if_already_applied = false)
 {
     // We read the word once, because other threads may be updating it.
@@ -92,7 +71,7 @@ bool try_apply_mask_to_word(
     return word.compare_exchange_strong(old_word, new_word);
 }
 
-void safe_apply_mask_to_word(
+static void safe_apply_mask_to_word(
     std::atomic<uint64_t>& word, uint64_t mask, bool set)
 {
     while (!try_apply_mask_to_word(word, mask, set))
@@ -101,14 +80,14 @@ void safe_apply_mask_to_word(
     }
 }
 
-void validate_bitmap_parameters(
+static void validate_bitmap_parameters(
     std::atomic<uint64_t>* bitmap, size_t bitmap_size_in_words)
 {
     ASSERT_PRECONDITION(bitmap != nullptr, "validate_bitmap_parameters() was called with a null bitmap!");
     ASSERT_PRECONDITION(bitmap_size_in_words > 0, "validate_bitmap_parameters() was called with an empty bitmap!");
 }
 
-void validate_bit_index(
+static void validate_bit_index(
     size_t bitmap_size_in_words, size_t bit_index)
 {
     ASSERT_PRECONDITION(
@@ -116,15 +95,7 @@ void validate_bit_index(
         "validate_bit_index() was called with arguments that exceed the range of the input bitmap!");
 }
 
-void validate_element_index(
-    size_t bitarray_word_size, size_t element_index, size_t element_width)
-{
-    ASSERT_PRECONDITION(
-        element_index < (bitarray_word_size * (common::c_uint64_bit_count / element_width)),
-        "validate_element_index() was called with arguments that exceed the range of the input bitarray!");
-}
-
-void find_bit_word_and_mask(
+static void find_bit_word_and_mask(
     std::atomic<uint64_t>* bitmap, size_t bitmap_size_in_words, size_t bit_index, std::atomic<uint64_t>*& word, uint64_t& mask)
 {
     validate_bitmap_parameters(bitmap, bitmap_size_in_words);
@@ -137,7 +108,7 @@ void find_bit_word_and_mask(
     mask = 1ULL << bit_index_within_word;
 }
 
-bool is_bit_set(
+static bool is_bit_set(
     std::atomic<uint64_t>* bitmap, size_t bitmap_size_in_words, size_t bit_index)
 {
     std::atomic<uint64_t>* word = nullptr;
@@ -146,7 +117,7 @@ bool is_bit_set(
     return ((word->load() & mask) != 0);
 }
 
-void set_bit_value(
+static void set_bit_value(
     std::atomic<uint64_t>* bitmap, size_t bitmap_size_in_words, size_t bit_index, bool value)
 {
     std::atomic<uint64_t>* word = nullptr;
@@ -155,14 +126,14 @@ void set_bit_value(
     apply_mask_to_word(*word, mask, value);
 }
 
-void safe_set_bit_value(
+static void safe_set_bit_value(
     std::atomic<uint64_t>* bitmap, size_t bitmap_size_in_words, size_t bit_index, bool value)
 {
     while (!try_set_bit_value(bitmap, bitmap_size_in_words, bit_index, value))
         ;
 }
 
-bool try_set_bit_value(
+static bool try_set_bit_value(
     std::atomic<uint64_t>* bitmap, size_t bitmap_size_in_words, size_t bit_index, bool value, bool fail_if_already_set)
 {
     std::atomic<uint64_t>* word = nullptr;
@@ -171,7 +142,7 @@ bool try_set_bit_value(
     return try_apply_mask_to_word(*word, mask, value, fail_if_already_set);
 }
 
-void safe_set_bit_range_value(
+static void safe_set_bit_range_value(
     std::atomic<uint64_t>* bitmap, size_t bitmap_size_in_words, size_t start_bit_index, size_t bit_count, bool value)
 {
     validate_bitmap_parameters(bitmap, bitmap_size_in_words);
@@ -226,7 +197,7 @@ void safe_set_bit_range_value(
     }
 }
 
-size_t count_set_bits(
+static size_t count_set_bits(
     std::atomic<uint64_t>* bitmap, size_t bitmap_size_in_words, size_t end_limit_exclusive_bit_index)
 {
     validate_bitmap_parameters(bitmap, bitmap_size_in_words);
@@ -272,7 +243,7 @@ size_t count_set_bits(
     return bit_count;
 }
 
-size_t find_first_unset_bit(
+static size_t find_first_unset_bit(
     std::atomic<uint64_t>* bitmap, size_t bitmap_size_in_words, size_t end_limit_exclusive_bit_index)
 {
     validate_bitmap_parameters(bitmap, bitmap_size_in_words);
@@ -327,7 +298,7 @@ size_t find_first_unset_bit(
     return c_max_bit_index;
 }
 
-size_t find_last_set_bit(std::atomic<uint64_t>* bitmap, size_t bitmap_size_in_words)
+static size_t find_last_set_bit(std::atomic<uint64_t>* bitmap, size_t bitmap_size_in_words)
 {
     validate_bitmap_parameters(bitmap, bitmap_size_in_words);
 
@@ -352,12 +323,12 @@ size_t find_last_set_bit(std::atomic<uint64_t>* bitmap, size_t bitmap_size_in_wo
     return c_max_bit_index;
 }
 
-void print_bitmap(
+static void print_bitmap(
     std::atomic<uint64_t>* bitmap, size_t bitmap_size_in_words, bool msb_first)
 {
     validate_bitmap_parameters(bitmap, bitmap_size_in_words);
 
-    cout << "\nBitmap value:" << endl;
+    std::cerr << "\nBitmap value:" << std::endl;
 
     for (size_t word_index = 0; word_index < bitmap_size_in_words; ++word_index)
     {
@@ -380,19 +351,15 @@ void print_bitmap(
             }
 
             uint64_t bit_value = word & 1;
-            cout << bit_value << " ";
+            std::cerr << bit_value << " ";
 
             // Insert line breaks between groups of 16 bits.
             if (((bit_index + 1) % (sizeof(uint16_t) * CHAR_BIT)) == 0)
             {
-                cout << endl;
+                std::cerr << std::endl;
             }
         }
 
-        cout << endl;
+        std::cerr << std::endl;
     }
 }
-
-} // namespace memory_manager
-} // namespace db
-} // namespace gaia

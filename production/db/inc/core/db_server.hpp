@@ -99,8 +99,8 @@ class server_t
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
     friend gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id();
     friend gaia::db::txn_log_t* gaia::db::get_txn_log();
-    friend gaia::db::memory_manager::memory_manager_t* gaia::db::get_memory_manager();
-    friend gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager();
+    friend gaia::db::memory_manager_t* gaia::db::get_memory_manager();
+    friend gaia::db::chunk_manager_t* gaia::db::get_chunk_manager();
 
 public:
     static void run(server_config_t server_conf);
@@ -164,7 +164,7 @@ private:
 
     // This is used by GC tasks on a session thread to cache chunk IDs for empty chunk deallocation.
     thread_local static inline std::unordered_map<
-        memory_manager::chunk_offset_t, memory_manager::chunk_version_t>
+        chunk_offset_t, chunk_version_t>
         s_map_gc_chunks_to_versions{};
 
     // These fields have session lifetime.
@@ -173,8 +173,8 @@ private:
     thread_local static inline bool s_session_shutdown = false;
     thread_local static inline int s_session_shutdown_eventfd = -1;
 
-    thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
-    thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
+    thread_local static inline gaia::db::memory_manager_t s_memory_manager{};
+    thread_local static inline gaia::db::chunk_manager_t s_chunk_manager{};
 
     // These thread objects are owned by the session thread that created them.
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};

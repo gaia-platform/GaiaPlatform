@@ -7,8 +7,10 @@
 
 #include "gaia_internal/db/db_types.hpp"
 
+#include "chunk_manager.hpp"
 #include "db_internal_types.hpp"
 #include "mapped_data.hpp"
+#include "memory_manager.hpp"
 #include "memory_types.hpp"
 #include "type_index.hpp"
 
@@ -16,14 +18,6 @@ namespace gaia
 {
 namespace db
 {
-
-// We forward-declare these definitions instead of including their header files,
-// to avoid circular dependencies.
-namespace memory_manager
-{
-class memory_manager_t;
-class chunk_manager_t;
-} // namespace memory_manager
 
 // Indicates whether the code is executed on server or client.
 extern const bool c_is_running_on_server;
@@ -57,10 +51,10 @@ gaia::db::gaia_txn_id_t get_current_txn_id();
 gaia::db::index::indexes_t* get_indexes();
 
 // Gets the memory manager instance for the current thread or process.
-gaia::db::memory_manager::memory_manager_t* get_memory_manager();
+gaia::db::memory_manager_t* get_memory_manager();
 
 // Gets the chunk manager instance for the current thread or process.
-gaia::db::memory_manager::chunk_manager_t* get_chunk_manager();
+gaia::db::chunk_manager_t* get_chunk_manager();
 
 // Gets the transaction log for the current session thread.
 gaia::db::txn_log_t* get_txn_log();

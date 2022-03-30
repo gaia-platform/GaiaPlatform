@@ -16,8 +16,6 @@ namespace gaia
 {
 namespace db
 {
-namespace memory_manager
-{
 
 // A chunk manager is used to allocate memory from a 4MB memory "chunk".
 // Memory is allocated in 64B "slots".
@@ -148,6 +146,5 @@ private:
     void decommit_data_pages();
 };
 
-} // namespace memory_manager
 } // namespace db
 } // namespace gaia

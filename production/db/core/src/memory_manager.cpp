@@ -10,9 +10,9 @@
 #include <iostream>
 #include <memory>
 
+#include "gaia_internal/common/bitmap.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 
-#include "bitmap.hpp"
 #include "chunk_manager.hpp"
 #include "memory_helpers.hpp"
 #include "memory_types.hpp"
@@ -20,12 +20,11 @@
 using namespace std;
 
 using namespace gaia::common;
+using namespace gaia::common::bitmap;
 
 namespace gaia
 {
 namespace db
-{
-namespace memory_manager
 {
 
 inline void validate_metadata(memory_manager_metadata_t* metadata)
@@ -216,6 +215,5 @@ void memory_manager_t::update_chunk_allocation_status(chunk_offset_t chunk_offse
         chunk_offset, is_allocated);
 }
 
-} // namespace memory_manager
 } // namespace db
 } // namespace gaia

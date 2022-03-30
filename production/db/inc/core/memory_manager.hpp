@@ -15,8 +15,6 @@ namespace gaia
 {
 namespace db
 {
-namespace memory_manager
-{
 
 // A memory manager is used to manage the memory range allocated for our process.
 // We allocate memory from this range in 4MB "chunks".
@@ -63,6 +61,5 @@ private:
     chunk_offset_t allocate_used_chunk();
 };
 
-} // namespace memory_manager
 } // namespace db
 } // namespace gaia

@@ -8,17 +8,15 @@
 #include <algorithm>
 #include <atomic>
 
+#include "gaia_internal/common/bitmap.hpp"
 #include "gaia_internal/common/inline_shared_lock.hpp"
 
-#include "bitmap.hpp"
 #include "db_internal_types.hpp"
 #include "memory_types.hpp"
 
 namespace gaia
 {
 namespace db
-{
-namespace memory_manager
 {
 
 // A memory manager's metadata information.
@@ -284,6 +282,5 @@ constexpr size_t c_chunk_data_pages_size_in_bytes{
 
 #include "memory_structures.inc"
 
-} // namespace memory_manager
 } // namespace db
 } // namespace gaia

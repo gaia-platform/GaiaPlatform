@@ -10,7 +10,7 @@ set(GAIA_DUMP_INCLUDES
   ${GAIA_PROD_BUILD}/catalog/parser/generated
   ${GAIA_REPO}/third_party/production/flatbuffers/include
   ${GAIA_REPO}/production/catalog/parser/inc
-  ${GAIA_REPO}/production/db/inc/memory_manager
+  ${GAIA_REPO}/production/db/inc/core
   ${GAIA_INC}
   ${CMAKE_CURRENT_SOURCE_DIR}/inc
 )

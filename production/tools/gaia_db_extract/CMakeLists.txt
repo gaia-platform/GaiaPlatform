@@ -9,7 +9,7 @@ set(GAIA_DB_EXTRACT_TEST_INCLUDES
   ${GAIA_INC}
   ${FLATBUFFERS_INC}
   ${JSON_INC}
-  ${GAIA_REPO}/production/db/inc/memory_manager
+  ${GAIA_REPO}/production/db/inc/core
   ${GAIA_REPO}/production/db/inc/payload_types
   ${CMAKE_CURRENT_SOURCE_DIR}/inc
 )

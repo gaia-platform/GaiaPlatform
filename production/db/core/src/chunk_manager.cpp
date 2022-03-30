@@ -10,10 +10,10 @@
 
 #include <sys/mman.h>
 
+#include "gaia_internal/common/bitmap.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 
-#include "bitmap.hpp"
 #include "memory_helpers.hpp"
 #include "memory_manager.hpp"
 #include "memory_types.hpp"
@@ -22,10 +22,9 @@ namespace gaia
 {
 namespace db
 {
-namespace memory_manager
-{
 
 using namespace gaia::common;
+using namespace gaia::common::bitmap;
 using scope_guard::make_scope_guard;
 
 void chunk_manager_t::initialize_internal(
@@ -386,6 +385,5 @@ gaia_offset_t chunk_manager_t::last_allocated_offset()
     return offset_from_chunk_and_slot(m_chunk_offset, max_allocated_slot_offset);
 }
 
-} // namespace memory_manager
 } // namespace db
 } // namespace gaia

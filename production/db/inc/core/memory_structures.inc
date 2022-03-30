@@ -10,7 +10,8 @@ void memory_manager_metadata_t::clear()
     // Mark all chunks as initially unallocated.
     std::fill(allocated_chunks_bitmap, allocated_chunks_bitmap + c_chunk_bitmap_size_in_words, 0);
     // Mark all metadata chunks as allocated.
-    safe_set_bit_range_value(allocated_chunks_bitmap, c_chunk_bitmap_size_in_words, 0, c_first_chunk_offset, true);
+    common::bitmap::safe_set_bit_range_value(
+        allocated_chunks_bitmap, c_chunk_bitmap_size_in_words, 0, c_first_chunk_offset, true);
 }
 
 std::pair<chunk_state_t, chunk_version_t>
@@ -123,9 +124,10 @@ static inline slot_offset_t bit_index_to_slot(size_t bit_index)
 void chunk_manager_metadata_t::synchronize_allocation_metadata()
 {
     // Find the last set bit in the allocation bitmap.
-    size_t bit_index = find_last_set_bit(allocated_slots_bitmap, c_slot_bitmap_size_in_words);
+    size_t bit_index = common::bitmap::find_last_set_bit(
+        allocated_slots_bitmap, c_slot_bitmap_size_in_words);
     slot_offset_t last_allocated_slot_from_bitmap{
-        (bit_index == c_max_bit_index)
+        (bit_index == common::bitmap::c_max_bit_index)
             ? c_invalid_slot_offset
             : bit_index_to_slot(bit_index)};
 
@@ -140,7 +142,7 @@ void chunk_manager_metadata_t::synchronize_allocation_metadata()
             "Last allocated slot in bitmap must point to either last allocation or previous allocation!");
 
         // Fix up the allocation bitmap.
-        set_bit_value(
+        common::bitmap::set_bit_value(
             allocated_slots_bitmap, c_slot_bitmap_size_in_words,
             max_allocated_slot_offset(), true);
     }
