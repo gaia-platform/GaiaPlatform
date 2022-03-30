@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import * as child_process from 'child_process';
-import * as console from 'console';
 import * as path from 'path';
 
 export class GaiaCatalogProvider implements vscode.TreeDataProvider<CatalogItem> {
@@ -43,6 +42,12 @@ export class GaiaCatalogProvider implements vscode.TreeDataProvider<CatalogItem>
     }
 
     var child = child_process.spawnSync('/opt/gaia/bin/gaia_db_extract');
+    var resultText = child.stderr.toString().trim();
+    if (resultText) {
+      vscode.window.showErrorMessage(resultText);
+      return [];
+    }
+
     const gaiaJson = JSON.parse(child.stdout.toString());
     var items = gaiaJson.databases;
 
