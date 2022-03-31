@@ -18,7 +18,7 @@
 
 #include "timer.hpp"
 
-const constexpr uint32_t c_num_insertion = 1000000;
+const constexpr uint32_t c_num_insertion = 3000000;
 const constexpr uint32_t c_num_iterations = 3;
 const constexpr uint32_t c_insert_buffer_stmts = c_num_insertion > 1000000 ? c_num_insertion / 10 : c_num_insertion;
 
@@ -70,6 +70,9 @@ void clear_database(sqlite3* db)
     assert_result(db, rc);
 
     exec(db, "DELETE FROM  simple_table");
+    exec(db, "DELETE FROM  simple_table_3");
+    exec(db, "DELETE FROM  unique_index_table");
+    exec(db, "DELETE FROM  range_index_table");
 }
 
 template <typename T_num>
@@ -119,7 +122,7 @@ class sqlite3_benchmark : public ::testing::Test
 protected:
     static void SetUpTestSuite()
     {
-        spdlog::set_level(spdlog::level::debug);
+        spdlog::set_level(spdlog::level::info);
     }
 
     static void TearDownTestCase()
@@ -146,8 +149,33 @@ protected:
         printf("%s\n", sqlite3_column_text(version_stmt, 0));
         sqlite3_finalize(version_stmt);
 
-        exec(db, "CREATE TABLE IF NOT EXISTS simple_table(id INTEGER PRIMARY KEY, uint64_field BIGINT);\n"
-                 "PRAGMA user_version = 4;");
+        exec(db, "CREATE TABLE IF NOT EXISTS simple_table(\n"
+                 "  uint64_field BIGINT\n"
+                 ");\n"
+                 "----------------------------------------\n"
+                 "CREATE TABLE IF NOT EXISTS simple_table_3(\n"
+                 "  uint64_field_1 BIGINT,\n"
+                 "  uint64_field_2 BIGINT,\n"
+                 "  uint64_field_3 BIGINT,\n"
+                 "  uint64_field_4 BIGINT,\n"
+                 "  string_field_1 TEXT,\n"
+                 "  string_field_2 TEXT,\n"
+                 "  string_field_3 TEXT,\n"
+                 "  string_field_4 TEXT\n"
+                 ");\n"
+                 "----------------------------------------\n"
+                 "CREATE TABLE IF NOT EXISTS unique_index_table(\n"
+                 "  uint64_field BIGINT\n"
+                 ");\n"
+                 "CREATE UNIQUE INDEX unique_idx \n"
+                 "ON unique_index_table(uint64_field);\n"
+                 "----------------------------------------\n"
+                 "CREATE TABLE IF NOT EXISTS range_index_table(\n"
+                 "  uint64_field BIGINT\n"
+                 ");\n"
+                 "CREATE INDEX range_idx \n"
+                 "ON range_index_table(uint64_field);\n"
+                 "----------------------------------------\n");
     }
 
     void log_performance_difference(accumulator_t<int64_t> expr_accumulator, std::string_view message, uint64_t num_insertions, size_t num_iterations)
@@ -185,12 +213,12 @@ protected:
 
         for (size_t iteration = 0; iteration < num_iterations; iteration++)
         {
-            spdlog::debug("[{}]: {} iteration staring, {} insertions", message, iteration, num_insertions);
+            spdlog::info("[{}]: {} iteration staring, {} insertions", message, iteration, num_insertions);
             int64_t expr_duration = g_timer_t::get_function_duration(expr_fn);
             expr_accumulator.add(expr_duration);
 
             double_t iteration_ms = g_timer_t::ns_to_ms(expr_duration);
-            spdlog::debug("[{}]: {} iteration, completed in {:.2f}ms", message, iteration, iteration_ms);
+            spdlog::info("[{}]: {} iteration, completed in {:.2f}ms", message, iteration, iteration_ms);
 
             // Writer benchmarks need to reset the data on every iteration.
             if (!read_benchmark)
@@ -335,6 +363,152 @@ TEST_F(sqlite3_benchmark, simple_insert_prepared_statement)
     };
 
     run_performance_test(simple_insert, "sqlite3::simple_insert_prepared_statement");
+}
+
+TEST_F(sqlite3_benchmark, simple_insert_3)
+{
+    auto simple_insert = [this]() {
+        const char* sql = "INSERT INTO simple_table_3("
+                          " uint64_field_1,"
+                          " uint64_field_2,"
+                          " uint64_field_3,"
+                          " uint64_field_4,"
+                          " string_field_1,"
+                          " string_field_2,"
+                          " string_field_3,"
+                          " string_field_4) "
+                          "VALUES (?,?,?,?,?,?,?,?);";
+
+        sqlite3_stmt* stmt; // will point to prepared statement object
+        sqlite3_prepare_v2(
+            db, // the handle to your (opened and ready) database
+            sql, // the sql statement, utf-8 encoded
+            -1, // max length of sql statement
+            &stmt, // this is an "out" parameter, the compiled statement goes here
+            nullptr); // pointer to the tail end of sql statement (when there are
+                      // multiple statements inside the string; can be null)
+
+        exec(db, "BEGIN TRANSACTION;");
+
+        for (int i = 0; i < c_num_insertion; i++)
+        {
+            sqlite3_bind_int64(stmt, 1, i);
+            sqlite3_bind_int64(stmt, 2, i);
+            sqlite3_bind_int64(stmt, 3, i);
+            sqlite3_bind_int64(stmt, 4, i);
+            sqlite3_bind_text(stmt, 5, "aa", 2, SQLITE_STATIC);
+            sqlite3_bind_text(stmt, 6, "bb", 2, SQLITE_STATIC);
+            sqlite3_bind_text(stmt, 7, "cc", 2, SQLITE_STATIC);
+            sqlite3_bind_text(stmt, 8, "dd", 2, SQLITE_STATIC);
+
+            int ret_val = sqlite3_step(stmt);
+            if (ret_val != SQLITE_DONE)
+            {
+                printf("Commit Failed! %d\n", ret_val);
+                sqlite3_close(db);
+                exit(1);
+            }
+            sqlite3_reset(stmt);
+
+            if (i % c_insert_buffer_stmts == 0 || i == c_num_insertion - 1)
+            {
+                exec(db, "COMMIT;");
+
+                if (i < c_num_insertion - 1)
+                {
+                    exec(db, "BEGIN TRANSACTION;");
+                }
+            }
+        }
+    };
+
+    run_performance_test(simple_insert, "sqlite3::simple_insert_3");
+}
+
+TEST_F(sqlite3_benchmark, unique_index_table)
+{
+    auto simple_insert = [this]() {
+        const char* sql = "INSERT INTO unique_index_table(uint64_field) VALUES (?);";
+
+        sqlite3_stmt* stmt; // will point to prepared stamement object
+        sqlite3_prepare_v2(
+            db, // the handle to your (opened and ready) database
+            sql, // the sql statement, utf-8 encoded
+            -1, // max length of sql statement
+            &stmt, // this is an "out" parameter, the compiled statement goes here
+            nullptr); // pointer to the tail end of sql statement (when there are
+                      // multiple statements inside the string; can be null)
+
+        exec(db, "BEGIN TRANSACTION;");
+
+        for (int i = 0; i < c_num_insertion; i++)
+        {
+            sqlite3_bind_int64(stmt, 1, i);
+            int ret_val = sqlite3_step(stmt);
+            if (ret_val != SQLITE_DONE)
+            {
+                printf("Commit Failed! %d\n", ret_val);
+                sqlite3_close(db);
+                exit(1);
+            }
+            sqlite3_reset(stmt);
+
+            if (i % c_insert_buffer_stmts == 0 || i == c_num_insertion - 1)
+            {
+                exec(db, "COMMIT;");
+
+                if (i < c_num_insertion - 1)
+                {
+                    exec(db, "BEGIN TRANSACTION;");
+                }
+            }
+        }
+    };
+
+    run_performance_test(simple_insert, "sqlite3::unique_index_table");
+}
+
+TEST_F(sqlite3_benchmark, range_index_table)
+{
+    auto simple_insert = [this]() {
+        const char* sql = "INSERT INTO range_index_table(uint64_field) VALUES (?);";
+
+        sqlite3_stmt* stmt; // will point to prepared stamement object
+        sqlite3_prepare_v2(
+            db, // the handle to your (opened and ready) database
+            sql, // the sql statement, utf-8 encoded
+            -1, // max length of sql statement
+            &stmt, // this is an "out" parameter, the compiled statement goes here
+            nullptr); // pointer to the tail end of sql statement (when there are
+                      // multiple statements inside the string; can be null)
+
+        exec(db, "BEGIN TRANSACTION;");
+
+        for (int i = 0; i < c_num_insertion; i++)
+        {
+            sqlite3_bind_int64(stmt, 1, i);
+            int ret_val = sqlite3_step(stmt);
+            if (ret_val != SQLITE_DONE)
+            {
+                printf("Commit Failed! %d\n", ret_val);
+                sqlite3_close(db);
+                exit(1);
+            }
+            sqlite3_reset(stmt);
+
+            if (i % c_insert_buffer_stmts == 0 || i == c_num_insertion - 1)
+            {
+                exec(db, "COMMIT;");
+
+                if (i < c_num_insertion - 1)
+                {
+                    exec(db, "BEGIN TRANSACTION;");
+                }
+            }
+        }
+    };
+
+    run_performance_test(simple_insert, "sqlite3::range_index_table");
 }
 
 void insert_records(sqlite3* db)
