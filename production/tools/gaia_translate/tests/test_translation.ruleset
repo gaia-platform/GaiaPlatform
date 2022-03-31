@@ -378,3 +378,12 @@ ruleset test16
         /actuator.timestamp = sensor.timestamp;
     }
 }
+
+// GAIAPLAT-2094
+ruleset test17
+{
+    on_update(sensor.name)
+    {
+        /actuator.timestamp++;
+    }
+}
