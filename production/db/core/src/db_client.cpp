@@ -137,7 +137,7 @@ int client_t::get_session_socket(const std::string& socket_name)
 // and would be difficult to handle properly even if it were possible.
 // In any case, send_msg_with_fds()/recv_msg_with_fds() already throws a
 // peer_disconnected exception when the other end of the socket is closed.
-void client_t::begin_session(config::session_options_t session_options, bool is_gaiac)
+void client_t::begin_session(config::session_options_t session_options)
 {
     // Fail if a session already exists on this thread.
     verify_no_session();
@@ -162,7 +162,9 @@ void client_t::begin_session(config::session_options_t session_options, bool is_
 
     // Send the server the connection request.
     FlatBufferBuilder builder;
-    build_client_request(builder, is_gaiac ? session_event_t::CONNECT_GAIAC : session_event_t::CONNECT);
+    build_client_request(
+        builder,
+        session_options.is_ddl_session ? session_event_t::CONNECT_DDL : session_event_t::CONNECT);
 
     client_messenger_t client_messenger;
 

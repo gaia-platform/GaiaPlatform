@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_test_base.hpp"
 
 namespace gaia

@@ -79,7 +79,7 @@ public:
     static void clear_shared_memory();
 
     // These public functions are exported from and documented in db.hpp.
-    static void begin_session(config::session_options_t session_options, bool is_gaiac = false);
+    static void begin_session(config::session_options_t session_options);
     static void end_session();
     static void begin_transaction();
     static void rollback_transaction();

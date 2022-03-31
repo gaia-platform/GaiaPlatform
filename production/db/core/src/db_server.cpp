@@ -77,10 +77,10 @@ static constexpr char c_message_preceding_txn_should_have_been_validated[]
     = "A transaction with commit timestamp preceding this transaction's begin timestamp is undecided!";
 static constexpr char c_message_unexpected_query_type[] = "Unexpected query type!";
 
-void server_t::handle_connect_gaiac(
+void server_t::handle_connect_ddl(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
-    ASSERT_PRECONDITION(event == session_event_t::CONNECT_GAIAC, c_message_unexpected_event_received);
+    ASSERT_PRECONDITION(event == session_event_t::CONNECT_DDL, c_message_unexpected_event_received);
 
     s_is_ddl_session = true;
 
@@ -2614,7 +2614,7 @@ void server_t::txn_rollback(bool client_disconnected)
 
 void server_t::perform_pre_commit_work_for_txn()
 {
-    // Only update indexes in gaiac sessions (when new ones could be created)
+    // Only update indexes in DDL sessions (when new ones could be created)
     // or if we know that indexes already exist.
     if (s_is_ddl_session || !get_indexes()->empty())
     {
