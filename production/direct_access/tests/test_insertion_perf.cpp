@@ -81,7 +81,9 @@ void clear_database()
     clear_table<simple_table_t>();
     clear_table<simple_table_2_t>();
     clear_table<simple_table_3_t>();
-    clear_table<simple_table_index_t>();
+    clear_table<unique_index_table_t>();
+    clear_table<hash_index_table_t>();
+    clear_table<range_index_table_t>();
     // When deleting a connected entity there are 4 objects mutations happening.
     clear_table<table_child_t>(c_max_insertion_single_txn / 4);
     clear_table<table_parent_t>();
@@ -286,7 +288,7 @@ TEST_F(test_insert_perf, simple_table_2)
     run_performance_test(insert, "simple_table_2_t::insert_row");
 }
 
-TEST_F(test_insert_perf, simple_table_index)
+TEST_F(test_insert_perf, simple_table_3)
 {
     auto insert = []() {
         gaia::db::begin_transaction();
@@ -299,7 +301,8 @@ TEST_F(test_insert_perf, simple_table_index)
                 gaia::db::begin_transaction();
             }
 
-            simple_table_index_t::insert_row(i);
+            simple_table_3_t::insert_row(
+                i, i, i, i, "aa", "bb", "cc", "dd");
         }
 
         if (gaia::db::is_transaction_open())
@@ -308,7 +311,82 @@ TEST_F(test_insert_perf, simple_table_index)
         }
     };
 
-    run_performance_test(insert, "simple_table_index_t::insert_row");
+    run_performance_test(insert, "simple_table_3_t::insert_row");
+}
+
+TEST_F(test_insert_perf, unique_index_table)
+{
+    auto insert = []() {
+        gaia::db::begin_transaction();
+
+        for (size_t i = 0; i < c_num_records; i++)
+        {
+            if (i > 0 && i % c_max_insertion_single_txn == 0)
+            {
+                gaia::db::commit_transaction();
+                gaia::db::begin_transaction();
+            }
+
+            unique_index_table_t::insert_row(i);
+        }
+
+        if (gaia::db::is_transaction_open())
+        {
+            gaia::db::commit_transaction();
+        }
+    };
+
+    run_performance_test(insert, "unique_index_table_t::insert_row");
+}
+
+TEST_F(test_insert_perf, hash_index_table)
+{
+    auto insert = []() {
+        gaia::db::begin_transaction();
+
+        for (size_t i = 0; i < c_num_records; i++)
+        {
+            if (i > 0 && i % c_max_insertion_single_txn == 0)
+            {
+                gaia::db::commit_transaction();
+                gaia::db::begin_transaction();
+            }
+
+            hash_index_table_t::insert_row(i);
+        }
+
+        if (gaia::db::is_transaction_open())
+        {
+            gaia::db::commit_transaction();
+        }
+    };
+
+    run_performance_test(insert, "hash_index_table::insert_row");
+}
+
+TEST_F(test_insert_perf, range_index_table)
+{
+    auto insert = []() {
+        gaia::db::begin_transaction();
+
+        for (size_t i = 0; i < c_num_records; i++)
+        {
+            if (i > 0 && i % c_max_insertion_single_txn == 0)
+            {
+                gaia::db::commit_transaction();
+                gaia::db::begin_transaction();
+            }
+
+            range_index_table_t::insert_row(i);
+        }
+
+        if (gaia::db::is_transaction_open())
+        {
+            gaia::db::commit_transaction();
+        }
+    };
+
+    run_performance_test(insert, "range_index_table::insert_row");
 }
 
 TEST_F(test_insert_perf, simple_relationships)
@@ -458,27 +536,24 @@ TEST_F(test_insert_perf, value_linked_relationships_autoconnect_to_different_par
     run_performance_test(insert, "value_linked_relationships_autoconnect_to_different_parent", c_num_iterations, c_vlr_insertions * 2);
 }
 
-// To reproduce GAIAPLAT-1475 you need to:
-// - c_num_insertion = 200000
-// - Call run_performance_test with num_iterations=10
-// Keeping it disabled for now because it takes too much time.
 TEST_F(test_insert_perf, simple_table_concurrent)
 {
-    constexpr size_t c_num_workers = 5;
+    for (size_t num_workers : {2, 4})
+    {
+        auto insert = [num_workers]() {
+            std::vector<std::thread> workers;
 
-    auto insert = []() {
-        std::vector<std::thread> workers;
+            for (size_t i = 0; i < num_workers; i++)
+            {
+                workers.emplace_back(insert_thread, (c_num_records / num_workers));
+            }
 
-        for (size_t i = 0; i < c_num_workers; i++)
-        {
-            workers.emplace_back(insert_thread, (c_num_records / c_num_workers));
-        }
+            for (auto& worker : workers)
+            {
+                worker.join();
+            }
+        };
 
-        for (auto& worker : workers)
-        {
-            worker.join();
-        }
-    };
-
-    run_performance_test(insert, gaia_fmt::format("simple_table_t::insert_row with {} threads", c_num_workers));
+        run_performance_test(insert, gaia_fmt::format("simple_table_t::insert_row with {} threads", num_workers));
+    }
 }
