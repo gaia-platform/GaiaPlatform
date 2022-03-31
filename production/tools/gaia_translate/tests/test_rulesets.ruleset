@@ -807,6 +807,51 @@ ruleset test_disconnect_delete
     }
 }
 
+ruleset test_connect_child_parent_1_1
+{
+    on_insert(parents)
+    {
+        auto s = student.insert(student_id: "1", surname: "test");
+        parents.connect(s);
+    }
+};
+
+ruleset test_disconnect_child_parent_1_1
+{
+    on_insert(student)
+    {
+        for(/p:parents)
+        {
+            p.disconnect(student);
+        }
+    }
+};
+
+ruleset test_connect_child_parent_1_n
+{
+    on_insert(course)
+    {
+        auto m = major.insert(major_name: "test1");
+        course.connect(m);
+    }
+};
+
+ruleset test_disconnect_child_parent_1_n
+{
+    on_insert(major)
+    {
+        course.disconnect(major);
+    }
+};
+
+ruleset test_clear_child_parent_1_n
+{
+    on_insert(course)
+    {
+        course.course_major.clear();
+    }
+};
+
 //GAIAPLAT-1906
 ruleset vlr_rules
 {

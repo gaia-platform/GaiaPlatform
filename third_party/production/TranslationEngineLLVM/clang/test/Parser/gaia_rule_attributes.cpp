@@ -277,7 +277,7 @@ ruleset test79
     {
         actuator.value += value/2; // expected-error {{The reference to field 'value' is ambiguous; the field 'value' is defined in multiple tables. To disambiguate field names that occur in more than one table, qualify the field with the table name (table.field). To restrict the list of tables to search, specify the tables in the ruleset 'tables' attribute.}}
                                    // expected-error@-1 {{use of undeclared identifier 'value'}}
-                                   // expected-note@-2 {{'actuator__type::value' declared here}}
+                                   // expected-note@-2 {{'actuator_9f63755fe9e4859c03277e1b6fae0f4e__type::value' declared here}}
                                    // expected-error@-3 {{invalid use of non-static data member 'value'}}
     }
 }

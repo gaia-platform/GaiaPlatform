@@ -4644,7 +4644,7 @@ private:
   QualType getTableType (StringRef tableName, SourceLocation loc);
   llvm::StringMap<std::string> getTagMapping(const DeclContext *context, SourceLocation loc);
   QualType getRuleContextType(SourceLocation loc);
-  QualType getLinkType(StringRef linkName, StringRef from_table, StringRef to_table, bool is_one_to_many, SourceLocation loc);
+  QualType getLinkType(StringRef linkName, StringRef from_table, StringRef to_table, bool is_one_to_many, bool is_from_parent, bool is_value_linked, SourceLocation loc);
   void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, const SmallVector<QualType, 8>& parameterTypes,
                  AttributeFactory &attrFactory, ParsedAttributes &attrs, RecordDecl *RD,
                  SourceLocation loc, bool isVariadic = false, ParsedType returnType = nullptr);
@@ -4665,7 +4665,7 @@ private:
   /// This method will generate connect/disconnect for the dynamic type (table__type) and, if available, the EDC type (table_t):
   /// - bool incubator::connect(sensor__type&)
   /// - bool incubator::connect(sensor_t&)
-  void addConnectDisconnect(RecordDecl* sourceTableDecl, StringRef targetTableName, bool is_one_to_many, SourceLocation loc, AttributeFactory& attrFactory, ParsedAttributes& attrs);
+  void addConnectDisconnect(RecordDecl* sourceTableDecl, StringRef targetTableName, bool is_one_to_many, bool is_from_parent, SourceLocation loc, AttributeFactory& attrFactory, ParsedAttributes& attrs);
 
   void addField(IdentifierInfo *name, QualType type, RecordDecl *R, SourceLocation locD) const ;
   void RemoveExplicitPathData(SourceLocation location);
