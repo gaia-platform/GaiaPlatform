@@ -41,7 +41,7 @@ ruleset test95
 ruleset test96
 {
     {
-        if (farmer-->raised) // expected-error {{cannot decrement value of type 'farmer__type'}}
+        if (farmer-->raised) // expected-error {{cannot decrement value of type 'farmer_97f974881b3726d9a77014b5f3b4d795__type'}}
         {}
     }
 }
@@ -49,7 +49,7 @@ ruleset test96
 ruleset test97
 {
     {
-        if (farmer>-raised) // expected-error {{invalid argument type 'raised__type' to unary expression}}
+        if (farmer>-raised) // expected-error {{invalid argument type 'raised_72e22a4abca7ba56c227d97d9d1664c8__type' to unary expression}}
         {}
     }
 }
@@ -57,7 +57,7 @@ ruleset test97
 ruleset test98
 {
     {
-        if (farmer<-raised) // expected-error {{invalid argument type 'raised__type' to unary expression}}
+        if (farmer<-raised) // expected-error {{invalid argument type 'raised_72e22a4abca7ba56c227d97d9d1664c8__type' to unary expression}}
         {}
     }
 }

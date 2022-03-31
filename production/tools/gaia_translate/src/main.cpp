@@ -78,6 +78,7 @@ bool g_is_rule_prolog_specified = false;
 
 constexpr char c_connect_keyword[] = "connect";
 constexpr char c_disconnect_keyword[] = "disconnect";
+constexpr char c_clear_keyword[] = "clear";
 
 llvm::SmallVector<string, c_size_8> g_rulesets;
 llvm::StringMap<llvm::StringSet<>> g_active_fields;
@@ -86,6 +87,7 @@ llvm::StringSet<> g_update_tables;
 llvm::StringMap<string> g_attribute_tag_map;
 
 llvm::DenseSet<SourceLocation> g_insert_call_locations;
+llvm::DenseMap<SourceRange, string> g_clear_call_locations;
 
 llvm::DenseSet<SourceRange> g_match_source_ranges;
 
@@ -142,9 +144,22 @@ struct writer_data_t
     string variable_name;
 };
 
+// Data structure to hold data for code generation for connect/disconnect function calls.
+struct connect_data_t
+{
+    SourceRange expression_range;
+    SourceRange argument_range;
+    SourceRange link_range;
+    string link_name;
+    bool skip_argument{false};
+};
+
 // Vector to contain all the data to properly generate code for insert function call.
 // The generation deferred to allow proper code generation for declarative references as arguments for insert call.
 llvm::SmallVector<insert_data_t, c_size_8> g_insert_data;
+// Vector to contain all the data to properly generate code for connect/disconnect function call.
+// The generation deferred to allow proper code generation for declarative references as arguments for connect/disconnect call.
+llvm::SmallVector<connect_data_t, c_size_8> g_connect_data;
 llvm::SmallVector<rewriter_history_t, c_size_8> g_rewriter_history;
 llvm::DenseMap<SourceRange, string> g_variable_declaration_location;
 llvm::DenseSet<SourceRange> g_variable_declaration_init_location;
@@ -176,6 +191,25 @@ int uint_to_int(SourceLocation location, unsigned int token_length)
     }
 
     return static_cast<int>(token_length);
+}
+
+void clear_global_data()
+{
+    g_expression_explicit_path_data.clear();
+    g_insert_tables.clear();
+    g_update_tables.clear();
+    g_active_fields.clear();
+    g_attribute_tag_map.clear();
+    g_rewriter_history.clear();
+    g_nomatch_location_list.clear();
+    g_insert_data.clear();
+    g_connect_data.clear();
+    g_variable_declaration_location.clear();
+    g_variable_declaration_init_location.clear();
+    g_writer_data.clear();
+    g_is_rule_prolog_specified = false;
+    g_rule_attribute_source_range = SourceRange();
+    g_is_rule_context_rule_name_referenced = false;
 }
 
 bool check_match_source_range(SourceRange range)
@@ -751,6 +785,35 @@ void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
         rewriter.ReplaceText(insert_data.expression_range, replacement_string);
     }
 
+    for (const auto& connect_data : g_connect_data)
+    {
+        string expression_replacement_string
+            = (Twine(rewriter.getRewrittenText(connect_data.argument_range))
+               + "."
+               + connect_data.link_name
+               + "()")
+                  .str();
+        string argument_replacement_string;
+        if (!connect_data.skip_argument)
+        {
+            argument_replacement_string = rewriter.getRewrittenText(connect_data.expression_range);
+        }
+
+        SourceRange expression_replacement_source_range = connect_data.expression_range;
+        if (connect_data.link_range.isValid())
+        {
+            expression_replacement_source_range.setEnd(connect_data.link_range.getEnd());
+        }
+
+        rewriter.ReplaceText(expression_replacement_source_range, expression_replacement_string);
+        rewriter.ReplaceText(connect_data.argument_range, argument_replacement_string);
+    }
+
+    for (const auto& clear_data : g_clear_call_locations)
+    {
+        rewriter.ReplaceText(clear_data.first, clear_data.second);
+    }
+
     for (const auto& explicit_path_data_iterator : g_expression_explicit_path_data)
     {
         SourceRange nomatch_range;
@@ -1097,15 +1160,13 @@ void generate_table_subscription(
                 return;
             }
             SmallString<c_size_256> anchor_code;
-            (
-                Twine("\nauto ")
-                + table
-                + " = gaia::"
-                + db_namespace(anchor_table_data_itr->second.dbName)
-                + class_name
-                + "::get(context->record);\n"
-                + "{\n")
-                .toVector(anchor_code);
+            anchor_code.append("\nauto ");
+            anchor_code.append(table);
+            anchor_code.append(" = gaia::");
+            anchor_code.append(db_namespace(anchor_table_data_itr->second.dbName));
+            anchor_code.append(class_name);
+            anchor_code.append("::get(context->record);\n");
+            anchor_code.append("{\n");
 
             for (const auto& attribute_tag_iterator : g_attribute_tag_map)
             {
@@ -2926,20 +2987,7 @@ public:
 
         SourceRange rule_range = g_current_rule_declaration->getSourceRange();
         g_current_ruleset_rule_line_number = m_rewriter.getSourceMgr().getSpellingLineNumber(rule_range.getBegin());
-        g_expression_explicit_path_data.clear();
-        g_insert_tables.clear();
-        g_update_tables.clear();
-        g_active_fields.clear();
-        g_attribute_tag_map.clear();
-        g_rewriter_history.clear();
-        g_nomatch_location_list.clear();
-        g_insert_data.clear();
-        g_variable_declaration_location.clear();
-        g_variable_declaration_init_location.clear();
-        g_writer_data.clear();
-        g_is_rule_prolog_specified = false;
-        g_rule_attribute_source_range = SourceRange();
-        g_is_rule_context_rule_name_referenced = false;
+        clear_global_data();
 
         if (update_attribute != nullptr)
         {
@@ -3057,19 +3105,7 @@ public:
             return;
         }
         g_current_rule_declaration = nullptr;
-        g_expression_explicit_path_data.clear();
-        g_active_fields.clear();
-        g_insert_tables.clear();
-        g_update_tables.clear();
-        g_attribute_tag_map.clear();
-        g_rewriter_history.clear();
-        g_nomatch_location_list.clear();
-        g_insert_data.clear();
-        g_writer_data.clear();
-        g_variable_declaration_location.clear();
-        g_variable_declaration_init_location.clear();
-        g_is_rule_prolog_specified = false;
-        g_rule_attribute_source_range = SourceRange();
+        clear_global_data();
 
         if (ruleset_declaration == nullptr)
         {
@@ -3383,6 +3419,11 @@ public:
                 }
                 return;
             }
+            if (g_clear_call_locations.find(expression->getBeginLoc()) != g_clear_call_locations.end())
+            {
+                return;
+            }
+
             m_rewriter.ReplaceText(expression_source_range, variable_name);
             g_rewriter_history.push_back({expression_source_range, variable_name, replace_text});
 
@@ -3838,16 +3879,16 @@ public:
 
         gaiat::diag().set_location(table_call->getLocation());
 
-        auto src_table_iter = table_data.find(src_table_name);
-        if (src_table_iter == table_data.end())
+        const auto src_table_it = table_data.find(src_table_name);
+        if (src_table_it == table_data.end())
         {
             gaiat::diag().emit(diag::err_table_not_found) << src_table_name;
             g_is_generation_error = true;
             return;
         }
-        const CatalogTableData& src_table_data = src_table_iter->second;
+        const CatalogTableData& src_table_data = src_table_it->second;
 
-        auto dest_table_iter = table_data.find(dest_table_name);
+        const auto dest_table_iter = table_data.find(dest_table_name);
         if (dest_table_iter == table_data.end())
         {
             gaiat::diag().emit(param->getLocation(), diag::err_table_not_found) << dest_table_name;
@@ -3872,6 +3913,7 @@ public:
                 if (link_data_pair.second.targetTable == dest_table_name)
                 {
                     link_name = link_data_pair.first();
+                    break;
                 }
             }
 
@@ -3886,7 +3928,7 @@ public:
             return;
         }
 
-        auto link_data_iter = src_table_data.linkData.find(link_name);
+        const auto link_data_iter = src_table_data.linkData.find(link_name);
         if (link_data_iter == src_table_data.linkData.end())
         {
             gaiat::diag().emit(diag::err_no_link) << src_table_name << link_name;
@@ -3894,11 +3936,43 @@ public:
             return;
         }
 
-        if (need_link_field)
+        if (!link_data_iter->second.isFromParent)
         {
-            // Inserts the link name between the table name and the connect/disconnect method:
-            // table.link_name().connect().
-            m_rewriter.InsertTextBefore(method_call_expr->getExprLoc(), link_name + "().");
+            connect_data_t connect_data;
+            connect_data.argument_range = param->getSourceRange();
+            connect_data.expression_range = table_call->getSourceRange();
+            if (link_expr != nullptr)
+            {
+                connect_data.link_range = link_expr->getSourceRange();
+            }
+            catalog::relationship_cardinality_t link_cardinality;
+            for (const auto& link_data_pair : dest_table_iter->second.linkData)
+            {
+                if (link_data_pair.second.targetTable == src_table_name)
+                {
+                    link_cardinality = link_data_pair.second.cardinality;
+                    connect_data.link_name = link_data_pair.first();
+                    break;
+                }
+            }
+
+            if (method_call_expr->getMethodDecl()->getName() == c_disconnect_keyword
+                && link_cardinality == catalog::relationship_cardinality_t::one
+                && link_data_iter->second.cardinality == catalog::relationship_cardinality_t::one)
+            {
+                connect_data.skip_argument = true;
+            }
+
+            g_connect_data.push_back(connect_data);
+        }
+        else
+        {
+            if (need_link_field)
+            {
+                // Inserts the link name between the table name and the connect/disconnect method:
+                // table.link_name().connect().
+                m_rewriter.InsertTextBefore(method_call_expr->getExprLoc(), link_name + "().");
+            }
         }
     }
 
@@ -3951,6 +4025,104 @@ private:
     Rewriter& m_rewriter;
 };
 
+class declarative_clear_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    explicit declarative_clear_handler_t(Rewriter& r)
+        : m_rewriter(r){};
+
+    void run(const MatchFinder::MatchResult& result) override
+    {
+        if (g_is_generation_error)
+        {
+            return;
+        }
+
+        string src_table_name;
+        string link_name;
+
+        const auto* method_call_expr = result.Nodes.getNodeAs<CXXMemberCallExpr>("clearCall");
+
+        const auto* table_call = result.Nodes.getNodeAs<DeclRefExpr>("tableCall");
+        src_table_name = get_table_name(table_call->getDecl());
+
+        const auto* link_expr = result.Nodes.getNodeAs<MemberExpr>("tableFieldGet");
+
+        const llvm::StringMap<CatalogTableData>& table_data = getCatalogTableData();
+
+        gaiat::diag().set_location(table_call->getLocation());
+
+        const auto src_table_it = table_data.find(src_table_name);
+        if (src_table_it == table_data.end())
+        {
+            gaiat::diag().emit(diag::err_table_not_found) << src_table_name;
+            g_is_generation_error = true;
+            return;
+        }
+        const CatalogTableData& src_table_data = src_table_it->second;
+
+        // If the link_expr is not null this is a call in the form table.link.connect()
+        // hence we don't need to look up the name. Otherwise, this is in the form
+        // table.connect() and we have to infer the link name from the catalog.
+        if (link_expr)
+        {
+            link_name = link_expr->getMemberNameInfo().getName().getAsString();
+        }
+
+        if (link_name.empty())
+        {
+            gaiat::diag().emit(diag::err_no_link) << src_table_name << link_name;
+            g_is_generation_error = true;
+            return;
+        }
+
+        const auto link_data_iter = src_table_data.linkData.find(link_name);
+        if (link_data_iter == src_table_data.linkData.end())
+        {
+            gaiat::diag().emit(diag::err_no_link) << src_table_name << link_name;
+            g_is_generation_error = true;
+            return;
+        }
+
+        if (!link_data_iter->second.isFromParent)
+        {
+            string dest_table_name = link_data_iter->second.targetTable;
+            const auto dest_table_iter = table_data.find(dest_table_name);
+            string dest_link_name;
+            for (const auto& link_data : dest_table_iter->second.linkData)
+            {
+                if (link_data.second.targetTable == src_table_name)
+                {
+                    dest_link_name = link_data.first();
+                    break;
+                }
+            }
+
+            if (dest_link_name.empty())
+            {
+                gaiat::diag().emit(diag::err_no_path) << src_table_name << dest_table_name;
+                g_is_generation_error = true;
+                return;
+            }
+            string replacement_string = (Twine(m_rewriter.getRewrittenText(table_call->getSourceRange()))
+                                         + "."
+                                         + link_name
+                                         + "()."
+                                         + dest_link_name
+                                         + "()."
+                                         + c_disconnect_keyword
+                                         + "("
+                                         + m_rewriter.getRewrittenText(table_call->getSourceRange())
+                                         + ")")
+                                            .str();
+            g_clear_call_locations[method_call_expr->getSourceRange()] = replacement_string;
+        }
+    }
+
+private:
+    Rewriter& m_rewriter;
+};
+
 class translation_engine_consumer_t : public clang::ASTConsumer
 {
 public:
@@ -3969,6 +4141,7 @@ public:
         , m_declarative_insert_handler(r)
         , m_declarative_connect_disconnect_handler(r)
         , m_unused_label_handler(r)
+        , m_declarative_clear_handler(r)
     {
         DeclarationMatcher ruleset_matcher = rulesetDecl().bind("rulesetDecl");
         DeclarationMatcher rule_matcher
@@ -4187,6 +4360,15 @@ public:
                   on(table_field_get_matcher))
                   .bind("connectDisconnectCall");
 
+        // Matches an expression in the form: table.link.clear().
+        StatementMatcher declarative_link_clear_matcher
+            = cxxMemberCallExpr(
+                  hasAncestor(ruleset_matcher),
+                  callee(cxxMethodDecl(
+                      hasName(c_clear_keyword))),
+                  on(table_field_get_matcher))
+                  .bind("clearCall");
+
         StatementMatcher unused_label_matcher = labelStmt(hasAncestor(rule_matcher)).bind("labelDeclaration");
 
         m_matcher.addMatcher(field_get_matcher, &m_field_get_match_handler);
@@ -4220,6 +4402,7 @@ public:
         m_matcher.addMatcher(declarative_table_connect_disconnect_matcher, &m_declarative_connect_disconnect_handler);
         m_matcher.addMatcher(declarative_link_connect_disconnect_matcher, &m_declarative_connect_disconnect_handler);
         m_matcher.addMatcher(unused_label_matcher, &m_unused_label_handler);
+        m_matcher.addMatcher(declarative_link_clear_matcher, &m_declarative_clear_handler);
     }
 
     void HandleTranslationUnit(clang::ASTContext& context) override
@@ -4244,6 +4427,7 @@ private:
     declarative_insert_handler_t m_declarative_insert_handler;
     declarative_connect_disconnect_handler_t m_declarative_connect_disconnect_handler;
     unused_label_handler_t m_unused_label_handler;
+    declarative_clear_handler_t m_declarative_clear_handler;
 };
 
 // This class allows us to generate diagnostics with source file information

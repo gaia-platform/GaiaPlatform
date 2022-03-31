@@ -36,9 +36,19 @@ using namespace clang;
 
 static SmallString<20> fieldTableName;
 
-static constexpr char ruleContextTypeName[] = "rule_context__type";
+static constexpr char ruleContextTypeNameBase[] = "rule_context";
 static constexpr char connectFunctionName[] = "connect";
 static constexpr char disconnectFunctionName[] = "disconnect";
+static constexpr char clearFunctionName[] = "clear";
+
+static SmallString<32> calculateNameHash(StringRef name)
+{
+    llvm::MD5 Hasher;
+    llvm::MD5::MD5Result Hash;
+    Hasher.update(name);
+    Hasher.final(Hash);
+    return Hash.digest();
+}
 
 static StringRef getTableFromExpression(StringRef expression)
 {
@@ -269,7 +279,7 @@ std::string Sema::ParseExplicitPath(StringRef pathString, SourceLocation loc, St
                 if (dotPosition != string::npos)
                 {
                     string postLink = fieldName.substr(dotPosition + 1);
-                    if (postLink != connectFunctionName && postLink != disconnectFunctionName)
+                    if (postLink != connectFunctionName && postLink != disconnectFunctionName && postLink != clearFunctionName)
                     {
                         Diag(loc, diag::err_invalid_explicit_path);
                         return "";
@@ -506,7 +516,8 @@ void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, const Small
 
 QualType Sema::getRuleContextType(SourceLocation loc)
 {
-    RecordDecl* RD = Context.buildImplicitRecord(ruleContextTypeName);
+    Twine ruleContextTypeName = Twine(ruleContextTypeNameBase) + "_" + calculateNameHash(ruleContextTypeNameBase) + "__type";
+    RecordDecl* RD = Context.buildImplicitRecord(ruleContextTypeName.str());
     RD->setLexicalDeclContext(CurContext);
     RD->startDefinition();
     Scope S(CurScope, Scope::DeclScope | Scope::ClassScope, Diags);
@@ -536,14 +547,18 @@ QualType Sema::getRuleContextType(SourceLocation loc)
     return Context.getTagDeclType(RD);
 }
 
-QualType Sema::getLinkType(StringRef linkName, StringRef from_table, StringRef to_table, bool is_one_to_many, SourceLocation loc)
+QualType Sema::getLinkType(StringRef linkName, StringRef from_table, StringRef to_table, bool is_one_to_many, bool is_from_parent, bool is_value_linked, SourceLocation loc)
 {
     // If you have (farmer)-[incubators]->(incubator), the type name is: farmer_incubators__type.
     // The table name is necessary because there could me multiple links in multiple tables
     // with the same name.
-    llvm::SmallString<20> linkTypeName = from_table;
+    llvm::SmallString<64> linkTypeName = from_table;
     linkTypeName += '_';
     linkTypeName += linkName;
+    linkTypeName += '_';
+    linkTypeName += to_table;
+    linkTypeName += '_';
+    linkTypeName += calculateNameHash(linkTypeName);
     linkTypeName += "__type";
 
     TagDecl* linkTypeDeclaration = lookupClass(linkTypeName, loc, getCurScope());
@@ -560,7 +575,10 @@ QualType Sema::getLinkType(StringRef linkName, StringRef from_table, StringRef t
     AttributeFactory attrFactory;
     ParsedAttributes attrs(attrFactory);
 
-    addConnectDisconnect(RD, to_table, is_one_to_many, loc, attrFactory, attrs);
+    if (!is_value_linked)
+    {
+        addConnectDisconnect(RD, to_table, is_one_to_many, is_from_parent, loc, attrFactory, attrs);
+    }
 
     RD->completeDefinition();
 
@@ -612,12 +630,14 @@ TagDecl* Sema::lookupEDCClass(StringRef className)
     return nullptr;
 }
 
-void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, StringRef targetTableName, bool is_one_to_many, SourceLocation loc, AttributeFactory& attrFactory, ParsedAttributes& attrs)
+void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, StringRef targetTableName, bool is_one_to_many, bool is_from_parent, SourceLocation loc, AttributeFactory& attrFactory, ParsedAttributes& attrs)
 {
     SmallVector<TagDecl*, 2> targetTypes;
 
     // Look up the implicit class type (table__type).
-    llvm::SmallString<20> implicitTableTypeName = targetTableName;
+    llvm::SmallString<64> implicitTableTypeName = targetTableName;
+    implicitTableTypeName += '_';
+    implicitTableTypeName += calculateNameHash(targetTableName);
     implicitTableTypeName += "__type";
     TagDecl* implicitTargetTypeDecl = lookupClass(implicitTableTypeName, loc, getCurScope());
 
@@ -659,20 +679,20 @@ void Sema::addConnectDisconnect(RecordDecl* sourceTableDecl, StringRef targetTab
         addMethod(&Context.Idents.get(connectFunctionName), DeclSpec::TST_void, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
 
         // The disconnect with argument is available only 1:n relationships.
-        if (is_one_to_many)
+        if (!(is_from_parent ^ is_one_to_many))
         {
             addMethod(&Context.Idents.get(disconnectFunctionName), DeclSpec::TST_void, parameters, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
         }
     }
 
-    if (is_one_to_many)
+    if (!(is_from_parent ^ is_one_to_many) && !sourceTableDecl->hasAttr<GaiaTableAttr>())
     {
         addMethod(&Context.Idents.get("clear"), DeclSpec::TST_void, {}, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
     }
 
     // The disconnect without arguments is available only for 1:1 relationships that have explicit link:
     //  person.mother.disconnect();
-    if (!is_one_to_many && !sourceTableDecl->hasAttr<GaiaTableAttr>())
+    if ((is_from_parent ^ is_one_to_many) && !sourceTableDecl->hasAttr<GaiaTableAttr>())
     {
         addMethod(&Context.Idents.get(disconnectFunctionName), DeclSpec::TST_void, {}, attrFactory, attrs, sourceTableDecl, SourceLocation(), false);
     }
@@ -742,7 +762,10 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
     //  3. It finds the definition and returns it. This happens if this method
     //     is called multiple times for the same table.
 
-    llvm::SmallString<20> implicitClassName = typeName;
+    llvm::SmallString<64> implicitClassName;
+    implicitClassName += typeName;
+    implicitClassName += "_";
+    implicitClassName += calculateNameHash(typeName);
     implicitClassName += "__type";
 
     TagDecl* previousDeclaration = lookupClass(implicitClassName, loc, getCurScope());
@@ -852,6 +875,12 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
     // because the connect/disconnect methods are not generated.
     llvm::StringMap<bool> links_cardinality;
 
+    // Stores if a link is from parent to children.
+    llvm::StringMap<bool> links_from_parent;
+
+    // Stores if a link is value linked.
+    llvm::StringMap<bool> value_linked_link;
+
     for (const auto& link : links)
     {
         const auto& linkData = link.second;
@@ -861,10 +890,35 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
         if (linkData.isFromParent)
         {
             QualType type = getLinkType(link.first(), tableName, linkData.targetTable
-                , linkData.cardinality == catalog::relationship_cardinality_t::many, loc);
+                , linkData.cardinality == catalog::relationship_cardinality_t::many, true, linkData.isValueLinked, loc);
             addField(&Context.Idents.get(link.first()), type, RD, loc);
             links_target_tables[linkData.targetTable]++;
             links_cardinality[linkData.targetTable] = linkData.cardinality == catalog::relationship_cardinality_t::many;
+            links_from_parent[linkData.targetTable] = true;
+            value_linked_link[linkData.targetTable] = linkData.isValueLinked;
+        }
+        else
+        {
+            int linkCount = 0;
+            const auto& targetLinks = catalogData.find(linkData.targetTable)->second.linkData;
+            for (const auto& targetLink : targetLinks)
+            {
+                if (targetLink.second.targetTable == typeName)
+                {
+                    ++linkCount;
+                }
+            }
+
+            if (linkCount == 1)
+            {
+                QualType type = getLinkType(link.first(), tableName, linkData.targetTable
+                    , linkData.cardinality == catalog::relationship_cardinality_t::many, false, linkData.isValueLinked, loc);
+                addField(&Context.Idents.get(link.first()), type, RD, loc);
+                links_target_tables[linkData.targetTable]++;
+                links_cardinality[linkData.targetTable] = linkData.cardinality == catalog::relationship_cardinality_t::many;
+                links_from_parent[linkData.targetTable] = false;
+                value_linked_link[linkData.targetTable] = linkData.isValueLinked;
+            }
         }
     }
 
@@ -890,15 +944,14 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
             // link pointing to a target type.
             // The user will need to full qualify the relationship to use connect/disconnect:
             // incubator.actuators.connect(actuator);
-            if (targetTablePair.second > 1)
+            if (targetTablePair.second > 1 || value_linked_link[targetTablePair.first()])
             {
                 continue;
             }
 
-            addConnectDisconnect(RD, targetTablePair.first(), links_cardinality[targetTablePair.first()], loc, attrFactory, attrs);
+            addConnectDisconnect(RD, targetTablePair.first(), links_cardinality[targetTablePair.first()], links_from_parent[targetTablePair.first()], loc, attrFactory, attrs);
         }
     }
-
     RD->completeDefinition();
 
     return Context.getTagDeclType(RD);

@@ -184,14 +184,16 @@ void GaiaCatalog::fillTableData()
             {
                 child_table.name(),
                 static_cast<relationship_cardinality_t>(relationship.cardinality()),
-                true
+                true,
+                relationship.parent_field_positions().size() > 0
             };
 
             CatalogLinkData to_parent_link =
             {
                 parent_table.name(),
                 relationship_cardinality_t::one,
-                false
+                false,
+                relationship.parent_field_positions().size() > 0
             };
 
             m_catalogTableData[parent_table.name()].linkData[relationship.to_child_link_name()] = to_child_link;
