@@ -77,6 +77,16 @@ static constexpr char c_message_preceding_txn_should_have_been_validated[]
     = "A transaction with commit timestamp preceding this transaction's begin timestamp is undecided!";
 static constexpr char c_message_unexpected_query_type[] = "Unexpected query type!";
 
+void server_t::handle_connect_gaiac(
+    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+{
+    ASSERT_PRECONDITION(event == session_event_t::CONNECT_GAIAC, c_message_unexpected_event_received);
+
+    s_is_ddl_session = true;
+
+    handle_connect(nullptr, 0, session_event_t::CONNECT, nullptr, old_state, new_state);
+}
+
 void server_t::handle_connect(
     int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
@@ -730,9 +740,6 @@ void server_t::init_indexes()
     // Allocate new txn id for initializing indexes.
     begin_startup_txn();
 
-    gaia_locator_t locator = c_invalid_gaia_locator;
-    gaia_locator_t last_locator = s_shared_counters.data()->last_locator.load();
-
     // Create initial index data structures.
     for (const auto& table : catalog_core::list_tables())
     {
@@ -742,6 +749,8 @@ void server_t::init_indexes()
         }
     }
 
+    gaia_locator_t locator = c_invalid_gaia_locator;
+    gaia_locator_t last_locator = s_shared_counters.data()->last_locator.load();
     while ((++locator).is_valid() && locator <= last_locator)
     {
         auto obj = locator_to_ptr(locator);
@@ -2605,7 +2614,12 @@ void server_t::txn_rollback(bool client_disconnected)
 
 void server_t::perform_pre_commit_work_for_txn()
 {
-    update_indexes_from_txn_log();
+    // Only update indexes in gaiac sessions (when new ones could be created)
+    // or if we know that indexes already exist.
+    if (s_is_ddl_session || !get_indexes()->empty())
+    {
+        update_indexes_from_txn_log();
+    }
 }
 
 // Sort all txn log records by locator. This enables us to use fast binary

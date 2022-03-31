@@ -21,6 +21,7 @@
 #include "gaia_internal/common/logger.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_error.hpp"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/db_server_instance.hpp"
 #include "gaia_internal/db/db_types.hpp"
@@ -81,6 +82,7 @@ protected:
     void SetUp() override
     {
         gaia_log::initialize({});
+
         // The server will only reset on SIGHUP if persistence is disabled.
         if (m_disable_persistence)
         {
@@ -91,6 +93,7 @@ protected:
         {
             gaia_log::db().warn("Not resetting server before test because persistence is enabled.");
         }
+
         if (!m_client_manages_session)
         {
             begin_session();

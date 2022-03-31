@@ -29,21 +29,31 @@ protected:
     {
         db_test_base_t::SetUp();
 
-        if (is_client_managing_session())
-        {
-            begin_session();
-        }
-
         reset_database_status();
 
         if (!m_ddl_file_name.empty())
         {
-            load_schema(m_ddl_file_name);
-        }
+            // If the client is not managing its own session,
+            // one was started in db_test_base_t::SetUp() and we now have to end it,
+            // to start our own DDL session.
+            if (!is_client_managing_session())
+            {
+                end_session();
+            }
 
-        if (is_client_managing_session())
-        {
+            // Start our own DDL session.
+            begin_ddl_session();
+
+            load_schema(m_ddl_file_name);
+
+            // End the DDL session.
             end_session();
+
+            // If the client is not managing its own session, we'll start a new one.
+            if (!is_client_managing_session())
+            {
+                begin_session();
+            }
         }
     }
 

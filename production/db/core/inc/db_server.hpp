@@ -176,6 +176,8 @@ private:
     thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
     thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
 
+    thread_local static inline bool s_is_ddl_session{false};
+
     // These thread objects are owned by the session thread that created them.
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
 
@@ -364,6 +366,7 @@ private:
         messages::session_state_t new_state);
 
     // Session state transition handler functions.
+    static void handle_connect_gaiac(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
     static void handle_connect(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
     static void handle_begin_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
     static void handle_rollback_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
@@ -389,6 +392,7 @@ private:
     // "Wildcard" transitions (current state = session_state_t::ANY) must be listed after
     // non-wildcard transitions with the same event, or the latter will never be applied.
     static inline constexpr valid_transition_t c_valid_transitions[] = {
+        {messages::session_state_t::DISCONNECTED, messages::session_event_t::CONNECT_GAIAC, {messages::session_state_t::CONNECTED, handle_connect_gaiac}},
         {messages::session_state_t::DISCONNECTED, messages::session_event_t::CONNECT, {messages::session_state_t::CONNECTED, handle_connect}},
         {messages::session_state_t::ANY, messages::session_event_t::CLIENT_SHUTDOWN, {messages::session_state_t::DISCONNECTED, handle_client_shutdown}},
         {messages::session_state_t::CONNECTED, messages::session_event_t::BEGIN_TXN, {messages::session_state_t::TXN_IN_PROGRESS, handle_begin_txn}},
