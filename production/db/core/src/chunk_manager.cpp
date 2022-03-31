@@ -198,16 +198,25 @@ void chunk_manager_t::mark_slot(slot_offset_t slot_offset, bool is_allocating)
 
     size_t bit_index = slot_to_bit_index(slot_offset);
 
-    // We really need safe_set_bit_value() only for deallocation, because GC
-    // tasks deallocate slots, and multiple GC tasks can be concurrently active
-    // within a chunk, but only the owning thread can allocate slots in a chunk.
-    safe_set_bit_value(
-        is_allocating
-            ? m_metadata->allocated_slots_bitmap
-            : m_metadata->deallocated_slots_bitmap,
-        chunk_manager_metadata_t::c_slot_bitmap_size_in_words,
-        bit_index,
-        true);
+    // We need safe_set_bit_value() only for deallocation, because GC tasks
+    // deallocate slots, and multiple GC tasks can be concurrently active within
+    // a chunk, but only the owning thread can allocate slots in a chunk.
+    if (is_allocating)
+    {
+        common::bitmap::set_bit_value(
+            m_metadata->allocated_slots_bitmap,
+            chunk_manager_metadata_t::c_slot_bitmap_size_in_words,
+            bit_index,
+            true);
+    }
+    else
+    {
+        common::bitmap::safe_set_bit_value(
+            m_metadata->deallocated_slots_bitmap,
+            chunk_manager_metadata_t::c_slot_bitmap_size_in_words,
+            bit_index,
+            true);
+    }
 }
 
 void chunk_manager_t::mark_slot_allocated(slot_offset_t slot_offset)
