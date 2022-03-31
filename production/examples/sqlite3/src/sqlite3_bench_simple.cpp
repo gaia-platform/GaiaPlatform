@@ -18,7 +18,8 @@
 
 #include "timer.hpp"
 
-const constexpr uint32_t c_num_insertion = 10000000;
+const constexpr uint32_t c_num_insertion = 1000000;
+const constexpr uint32_t c_num_iterations = 3;
 const constexpr uint32_t c_insert_buffer_stmts = c_num_insertion > 1000000 ? c_num_insertion / 10 : c_num_insertion;
 
 using namespace std::chrono;
@@ -176,7 +177,7 @@ protected:
     void run_performance_test(
         std::function<void()> expr_fn,
         std::string_view message,
-        size_t num_iterations = 3,
+        size_t num_iterations = c_num_iterations,
         uint64_t num_insertions = c_num_insertion,
         bool read_benchmark = false)
     {
@@ -396,7 +397,7 @@ TEST_F(sqlite3_benchmark, full_table_scan)
         ASSERT_EQ(c_num_insertion, i);
     };
 
-    run_performance_test(simple_insert, "sqlite3::full_table_scan", 3, c_num_insertion, true);
+    run_performance_test(simple_insert, "sqlite3::full_table_scan", c_num_iterations, c_num_insertion, true);
 }
 
 TEST_F(sqlite3_benchmark, full_table_scan_access_data)
@@ -420,7 +421,7 @@ TEST_F(sqlite3_benchmark, full_table_scan_access_data)
         ASSERT_EQ(c_num_insertion, i);
     };
 
-    run_performance_test(simple_insert, "sqlite3::full_table_scan_access_data", 3, c_num_insertion, true);
+    run_performance_test(simple_insert, "sqlite3::full_table_scan_access_data", c_num_iterations, c_num_insertion, true);
 }
 
 TEST_F(sqlite3_benchmark, filter_no_match)
@@ -443,7 +444,7 @@ TEST_F(sqlite3_benchmark, filter_no_match)
         ASSERT_EQ(0, i);
     };
 
-    run_performance_test(simple_insert, "sqlite3::filter_no_match", 3, c_num_insertion, true);
+    run_performance_test(simple_insert, "sqlite3::filter_no_match", c_num_iterations, c_num_insertion, true);
 }
 
 TEST_F(sqlite3_benchmark, filter_match)
@@ -466,7 +467,7 @@ TEST_F(sqlite3_benchmark, filter_match)
         ASSERT_EQ(c_num_insertion / 2, i);
     };
 
-    run_performance_test(simple_insert, fmt::format("sqlite3::filter_match {} matches", c_num_insertion / 2), 3, c_num_insertion, true);
+    run_performance_test(simple_insert, fmt::format("sqlite3::filter_match {} matches", c_num_insertion / 2), c_num_iterations, c_num_insertion, true);
 }
 
 // int main()
