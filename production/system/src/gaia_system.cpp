@@ -82,6 +82,9 @@ void gaia::system::initialize(const char* gaia_config_file, const char* logger_c
     gaia::catalog::initialize_catalog();
     gaia::rules::initialize_rules_engine(root_config);
 
+    gaia::db::end_session();
+    gaia::db::begin_session();
+
     cleanup_init_state.dismiss();
 }
 
