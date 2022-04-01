@@ -359,22 +359,21 @@ private:
     // Function pointer type that executes side effects of a session state transition.
     // REVIEW: replace void* with std::any?
     typedef void (*transition_handler_fn)(
-        int* fds, size_t fd_count,
         messages::session_event_t event,
         const void* event_data,
         messages::session_state_t old_state,
         messages::session_state_t new_state);
 
     // Session state transition handler functions.
-    static void handle_connect_ddl(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_connect(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_begin_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_rollback_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_commit_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_decide_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_client_shutdown(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_server_shutdown(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_request_stream(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_connect_ddl(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_connect(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_begin_txn(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_rollback_txn(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_commit_txn(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_decide_txn(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_client_shutdown(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_server_shutdown(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_request_stream(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
 
     struct transition_t
     {
@@ -405,7 +404,7 @@ private:
         {messages::session_state_t::ANY, messages::session_event_t::REQUEST_STREAM, {messages::session_state_t::ANY, handle_request_stream}},
     };
 
-    static void apply_transition(messages::session_event_t event, const void* event_data, int* fds, size_t fd_count);
+    static void apply_transition(messages::session_event_t event, const void* event_data);
 
     static void build_server_reply_info(
         flatbuffers::FlatBufferBuilder& builder,
