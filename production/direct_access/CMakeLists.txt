@@ -60,7 +60,7 @@ add_gtest(test_optional_dac
   "rt;gaia_direct;gaia_db_catalog_test;dac_optional_sandbox")
 
 add_gtest(test_insert_perf
-  "tests/test_insertion_perf.cpp"
+  "tests/test_insert_perf.cpp"
   "${DIRECT_ACCESS_TEST_INCLUDES};"
   "rt;gaia_direct;gaia_db_catalog_test;dac_insert_sandbox")
 

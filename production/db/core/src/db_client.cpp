@@ -162,7 +162,9 @@ void client_t::begin_session(config::session_options_t session_options)
 
     // Send the server the connection request.
     FlatBufferBuilder builder;
-    build_client_request(builder, session_event_t::CONNECT);
+    build_client_request(
+        builder,
+        session_options.is_ddl_session ? session_event_t::CONNECT_DDL : session_event_t::CONNECT);
 
     client_messenger_t client_messenger;
 

@@ -23,6 +23,7 @@ enum session_event_t: uint8 {
     DECIDE_TXN_ABORT,
     REQUEST_STREAM,
     DECIDE_TXN_ROLLBACK_FOR_ERROR,
+    CONNECT_DDL,
 }
 
 union index_query_t {index_range_query_t, index_point_read_query_t, index_equal_range_query_t}
