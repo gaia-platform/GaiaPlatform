@@ -38,6 +38,7 @@ struct CatalogLinkData
     string targetTable;
     ::gaia::catalog::relationship_cardinality_t cardinality;
     bool isFromParent;
+    bool isValueLinked;
 };
 
 struct CatalogTableData
