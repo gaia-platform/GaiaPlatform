@@ -82,7 +82,7 @@ bool apply_mask_to_word(
 bool try_apply_mask_to_word(
     std::atomic<uint64_t>& word, uint64_t mask, bool set, bool fail_if_already_applied = false)
 {
-     // We read the word once, because other threads may be updating it.
+    // We read the word once, because other threads may be updating it.
     // A relaxed load is sufficient, because a stale read will cause the
     // subsequent CAS to fail.
     uint64_t old_word = word.load(std::memory_order_relaxed);
