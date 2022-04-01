@@ -153,8 +153,10 @@ static bool add_field_value(json_t& row, const gaia_field_t& field_object, const
         break;
 
     default:
-        fprintf(stderr, "Unhandled data_holder_t type '%d'.\n", value.type);
-        return false;
+        // todo (dax): fix this!
+        // fprintf(stderr, "Unhandled data_holder_t type '%d' for field '%s'.\n", value.type, field_name);
+        row[field_name] = value.hold.vector_value;
+        // return false;
     }
 
     return true;

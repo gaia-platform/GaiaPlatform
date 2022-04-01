@@ -6,17 +6,11 @@
     },
     "publisher": "Gaia Platform",
     "activationEvents": [
-        "onCommand:database-webview.start",
         "onView:databases"
     ],
     "main": "./build/extension.js",
     "contributes": {
         "commands": [
-            {
-                "command": "database-webview.start",
-                "title": "Start Database Webview",
-                "category": "GaiaPlatform"
-            },
             {
                 "command": "databases.displayRecords",
                 "title": "Display Records",
