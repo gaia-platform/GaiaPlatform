@@ -309,7 +309,7 @@ TEST_F(test_insert_perf, simple_relationships)
 {
     auto insert = []() {
         bulk_insert(
-            [](size_t _) {
+            [](size_t) {
                 table_parent_t parent = table_parent_t::get(table_parent_t::insert_row());
                 gaia_id_t child = table_child_t::insert_row();
                 parent.children().insert(child);
@@ -391,7 +391,7 @@ TEST_F(test_insert_perf, value_linked_relationships_autoconnect_to_different_par
 
 TEST_F(test_insert_perf, simple_table_concurrent)
 {
-    for (size_t num_workers : {2, 4})
+    for (size_t num_workers : {2, 4, 8})
     {
         auto insert = [num_workers]() {
             std::vector<std::thread> workers;
