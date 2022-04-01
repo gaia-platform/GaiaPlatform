@@ -13,6 +13,7 @@
 #include "gaia_internal/common/config.hpp"
 #include "gaia_internal/common/logger.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/exceptions.hpp"
 #include "gaia_internal/rules/rules_config.hpp"
@@ -73,13 +74,19 @@ void gaia::system::initialize(const char* gaia_config_file, const char* logger_c
         gaia::db::config::set_default_session_options(session_options);
     }
 
-    gaia::db::begin_session();
+    // Start a DDL session for the catalog initialization.
+    // We'll use this session for all other initializations as well.
+    gaia::db::begin_ddl_session();
 
     // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
     db_initialized = true;
 
     gaia::catalog::initialize_catalog();
     gaia::rules::initialize_rules_engine(root_config);
+
+    // End the DDL session and start a regular session.
+    gaia::db::end_session();
+    gaia::db::begin_session();
 
     cleanup_init_state.dismiss();
 }

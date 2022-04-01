@@ -21,6 +21,13 @@ bool gaia::db::is_transaction_open()
     return gaia::db::client_t::is_transaction_open();
 }
 
+void gaia::db::begin_ddl_session()
+{
+    config::session_options_t session_options = config::get_default_session_options();
+    session_options.is_ddl_session = true;
+    gaia::db::client_t::begin_session(session_options);
+}
+
 void gaia::db::begin_session()
 {
     config::session_options_t session_options = config::get_default_session_options();
