@@ -538,7 +538,7 @@ TEST_F(test_insert_perf, value_linked_relationships_autoconnect_to_different_par
 
 TEST_F(test_insert_perf, simple_table_concurrent)
 {
-    for (size_t num_workers : {2, 4})
+    for (size_t num_workers : {2, 4, 8})
     {
         auto insert = [num_workers]() {
             std::vector<std::thread> workers;
