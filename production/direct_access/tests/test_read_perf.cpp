@@ -81,7 +81,9 @@ void clear_database()
     clear_table<simple_table_t>();
     clear_table<simple_table_2_t>();
     clear_table<simple_table_3_t>();
-    clear_table<simple_table_index_t>();
+    clear_table<unique_index_table_t>();
+    clear_table<hash_index_table_t>();
+    clear_table<range_index_table_t>();
     // When deleting a connected entity there are 4 objects mutations happening.
     clear_table<table_child_t>(c_max_insertion_single_txn / 4);
     clear_table<table_parent_t>();
