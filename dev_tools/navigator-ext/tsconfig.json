@@ -6,20 +6,22 @@
             "dom.iterable",
             "esnext"
         ],
-        "allowJs": true,
-        "skipLibCheck": true,
-        "esModuleInterop": true,
-        "allowSyntheticDefaultImports": true,
-        "strict": true,
-        "forceConsistentCasingInFileNames": true,
-        "module": "esnext",
-        "moduleResolution": "node",
-        "resolveJsonModule": true,
-        "isolatedModules": true,
-        "noEmit": true,
-        "jsx": "preserve"
+        "outDir" : "build",
+        "sourceMap" : true,
+        "rootDir": "ext-src",
+        "strict" : true
     },
-    "include": [
-        "src"
+    "include":[
+        "public",
+        "ext-src"
+    ],
+    "exclude": [
+        "node_modules",
+        ".vscode-test",
+        "**/data_view/app/dataview.css",
+        "**/data_view/app/dataview.tsx",
+        "**/data_view/app/index.tsx",
+        "**/data_view/app/index.css",
+        "**/data_view/app/tsconfig.json"
     ]
 }
