@@ -807,6 +807,14 @@ ruleset test_disconnect_delete
     }
 }
 
+ruleset test_force_delete
+{
+    on_insert(course)
+    {
+        major.remove(true);
+    }
+}
+
 ruleset test_connect_child_parent_1_1
 {
     on_insert(parents)

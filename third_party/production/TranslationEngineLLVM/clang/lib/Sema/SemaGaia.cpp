@@ -926,6 +926,7 @@ QualType Sema::getTableType(StringRef tableName, SourceLocation loc)
     // avoid conflicting with the C++ 'delete' keyword.
     addMethod(&Context.Idents.get("insert"), DeclSpec::TST_typename, {}, attrFactory, attrs, RD, loc, true, ParsedType::make(Context.getTagDeclType(RD)));
     addMethod(&Context.Idents.get("remove"), DeclSpec::TST_void, {}, attrFactory, attrs, RD, loc);
+    addMethod(&Context.Idents.get("remove"), DeclSpec::TST_void, {Context.BoolTy}, attrFactory, attrs, RD, loc);
     addMethod(&Context.Idents.get("gaia_id"), DeclSpec::TST_int, {}, attrFactory, attrs, RD, loc);
 
     // connect and disconnect can be present only if the table has outgoing relationships.
