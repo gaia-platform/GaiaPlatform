@@ -32,8 +32,6 @@ session_options_t create_session_options(std::shared_ptr<cpptoml::table> root_co
 
     session_options_t session_options;
     session_options.db_instance_name = value;
-    session_options.skip_catalog_integrity_check = false;
-    session_options.is_ddl_session = false;
     return session_options;
 }
 
@@ -48,8 +46,6 @@ session_options_t get_default_session_options()
 
     session_options_t session_options;
     session_options.db_instance_name = value ?: c_default_instance_name;
-    session_options.skip_catalog_integrity_check = false;
-    session_options.is_ddl_session = false;
     return session_options;
 }
 

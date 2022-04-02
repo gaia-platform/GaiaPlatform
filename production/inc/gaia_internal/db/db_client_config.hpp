@@ -21,6 +21,11 @@ struct session_options_t
     std::string db_instance_name;
     bool skip_catalog_integrity_check;
     bool is_ddl_session;
+
+    session_options_t()
+        : skip_catalog_integrity_check{false}, is_ddl_session{false}
+    {
+    }
 };
 
 /**
