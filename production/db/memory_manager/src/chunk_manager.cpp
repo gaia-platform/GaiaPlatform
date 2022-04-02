@@ -119,9 +119,13 @@ gaia_offset_t chunk_manager_t::allocate(
     // Update the allocation bitmap (order is important for crash-consistency).
     slot_offset_t allocated_slot = m_metadata->max_allocated_slot_offset();
     mark_slot_allocated(allocated_slot);
+
+    // This is an expensive check in a hot path.
+#ifdef DEBUG
     ASSERT_INVARIANT(
         is_slot_allocated(allocated_slot),
         "Slot just marked allocated must be visible as allocated!");
+#endif
 
     gaia_offset_t offset = offset_from_chunk_and_slot(m_chunk_offset, allocated_slot);
     return offset;
@@ -135,10 +139,13 @@ void chunk_manager_t::deallocate(gaia_offset_t offset)
 
     slot_offset_t deallocated_slot = slot_from_offset(offset);
 
+    // This is an expensive check in a hot path.
+#ifdef DEBUG
     // It is illegal to deallocate the same object twice.
     ASSERT_PRECONDITION(
         is_slot_allocated(deallocated_slot),
         "Only an allocated object can be deallocated!");
+#endif
 
     // Update the deallocation bitmap.
     mark_slot_deallocated(deallocated_slot);
@@ -179,6 +186,8 @@ void chunk_manager_t::mark_slot(slot_offset_t slot_offset, bool is_allocating)
         slot_offset >= c_first_slot_offset && slot_offset <= c_last_slot_offset,
         "Slot offset passed to mark_slot() is out of bounds");
 
+    // This is an expensive check in a hot path.
+#ifdef DEBUG
     // is_slot_allocated() also checks that the deallocation bit is not set if
     // the allocation bit is not set.
     ASSERT_PRECONDITION(
@@ -186,6 +195,7 @@ void chunk_manager_t::mark_slot(slot_offset_t slot_offset, bool is_allocating)
         is_allocating
             ? "Slot cannot be allocated multiple times!"
             : "Slot cannot be deallocated unless it is first allocated!");
+#endif
 
     size_t bit_index = slot_to_bit_index(slot_offset);
 
@@ -369,7 +379,7 @@ gaia_offset_t chunk_manager_t::last_allocated_offset()
     m_metadata->synchronize_allocation_metadata();
 
     slot_offset_t max_allocated_slot_offset = m_metadata->max_allocated_slot_offset();
-    if (max_allocated_slot_offset == c_invalid_slot_offset)
+    if (!max_allocated_slot_offset.is_valid())
     {
         return c_invalid_gaia_offset;
     }

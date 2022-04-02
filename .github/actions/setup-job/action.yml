@@ -1,0 +1,39 @@
+# Title:      Setup Action
+# Purpose:    To do the heavy lifting of getting jobs setup that require a developer image.
+# Prereqs:    - `actions/checkout@master`
+# Inputs:     - `docker-user` - docker user to log into the docker repository with
+#             - `docker-password` - docker password corresponding to the `docker-user`
+# Notes:      - if the `docker-user` input is provided, the image will be downloaded from the repository
+#             - if the `docker-user` input is NOT provided, the image will be downloaded from the workflow's artifacts
+---
+name: 'Setup Action'
+description: 'Setup a Gaia GHA Job'
+inputs:
+  docker-user:
+    description: 'User for Docker'
+    default: ''
+  docker-password:
+    description: 'Password for Docker'
+    default: ''
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Clean up disk space
+      shell: bash
+      run: |
+        echo "Before Any Cleanup"
+        df -h
+        rm -rf /usr/share/dotnet
+        echo "After Dotnet Cleanup ~ 4G"
+        df -h
+        rm -rf /opt/ghc
+        echo "After Haskell Cleanup ~0.5G"
+        df -h
+        rm -rf /usr/local/lib/android
+        echo "After Android Cleanup ~15G"
+        df -h

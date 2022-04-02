@@ -47,6 +47,7 @@ add_library(gaia_catalog STATIC
   src/catalog.cpp
   src/catalog_facade.cpp
   src/gaiac_catalog_facade.cpp
+  src/gaiat_catalog_facade.cpp
   src/dac_generator.cpp
   src/gaia_generate.cpp
   ${FLATBUFFERS_SRC}/src/code_generators.cpp)
@@ -98,6 +99,11 @@ add_gtest(test_gaiac_generation
     "tests/test_gaiac_generation.cpp"
     "${TEST_GAIA_EXECUTION_INCLUDES}"
     "rt;gaia_system;gaia_db_catalog_test;dac_airport")
+
+add_gtest(test_rule_tables
+    "tests/test_rule_tables.cpp"
+    "${TEST_GAIA_EXECUTION_INCLUDES}"
+    "rt;gaia_system;gaia_db_catalog_test;")
 
 add_subdirectory(gaiac)
 add_subdirectory(parser)

@@ -45,12 +45,9 @@ gaia_id_t find_using_index(
     gaia_id_t indexed_table_id,
     field_position_t indexed_field_position)
 {
-    gaia_type_t indexed_table_type = catalog_core::get_table(indexed_table_id).table_type();
-    gaia_id_t indexed_table_type_id = type_id_mapping_t::instance().get_record_id(indexed_table_type);
-
-    gaia_id_t index_id = catalog_core::find_index(indexed_table_type_id, indexed_field_position);
+    gaia_id_t index_id = catalog_core::find_index(indexed_table_id, indexed_field_position);
     // Callers need to ensure the table has an index on the field to search.
-    ASSERT_PRECONDITION(index_id != c_invalid_gaia_id, "Cannot find value index for the table.");
+    ASSERT_PRECONDITION(index_id.is_valid(), "Cannot find value index for the table.");
 
     auto schema = catalog_core::get_table(type_id).binary_schema();
     auto field_value = payload_types::get_field_value(
@@ -59,6 +56,13 @@ gaia_id_t find_using_index(
         schema->data(),
         schema->size(),
         field_position);
+
+    if (field_value.is_null)
+    {
+        // We don't want null values on both sides of a relationship to
+        // be considered as a match.
+        return c_invalid_gaia_id;
+    }
 
     index::index_key_t key;
     key.insert(field_value);
@@ -94,10 +98,10 @@ void parent_side_auto_connect(
         //
         // If the node already has some child nodes, disconnect all existing
         // children by detaching the children's reference anchor.
-        if (references[relationship_view.first_child_offset()] != c_invalid_gaia_id)
+        if (references[relationship_view.first_child_offset()].is_valid())
         {
             auto parent_anchor = gaia_ptr_t::from_gaia_id(references[relationship_view.first_child_offset()]);
-            if (parent_anchor.references()[c_ref_anchor_first_child_offset] != c_invalid_gaia_id)
+            if (parent_anchor.references()[c_ref_anchor_first_child_offset].is_valid())
             {
                 parent_anchor.set_reference(c_ref_anchor_parent_offset, c_invalid_gaia_id);
                 references[relationship_view.first_child_offset()] = c_invalid_gaia_id;
@@ -113,7 +117,7 @@ void parent_side_auto_connect(
             relationship_view.child_table_id(),
             relationship_view.child_field_positions()->Get(0));
 
-        if (child_id != c_invalid_gaia_id)
+        if (child_id.is_valid())
         {
             // We have found the child with the field value. Link the child
             // node(s) to the parent node by connecting the child's
@@ -128,7 +132,7 @@ void parent_side_auto_connect(
 
         // Create an anchor node for the parent node if it does not already
         // exist for the field's value.
-        if (references[relationship_view.first_child_offset()] == c_invalid_gaia_id)
+        if (references[relationship_view.first_child_offset()].is_valid() == false)
         {
             gaia_ptr_t anchor = gaia_ptr_t::create_ref_anchor(id, c_invalid_gaia_id);
             references[relationship_view.first_child_offset()] = anchor.id();
@@ -159,27 +163,27 @@ void child_side_auto_connect(
         // node participated in on the child side.
         //
         // Disconnect the node from its existing reference chain.
-        if (references[relationship_view.next_child_offset()] != c_invalid_gaia_id)
+        if (references[relationship_view.next_child_offset()].is_valid())
         {
             // Update the next child if exists.
             auto next_child = gaia_ptr_t::from_gaia_id(references[relationship_view.next_child_offset()]);
             next_child.set_reference(relationship_view.prev_child_offset(), references[relationship_view.prev_child_offset()]);
         }
-        if (references[relationship_view.prev_child_offset()] != c_invalid_gaia_id)
+        if (references[relationship_view.prev_child_offset()].is_valid())
         {
             // Update the previous child if exists.
             auto prev_child = gaia_ptr_t::from_gaia_id(references[relationship_view.prev_child_offset()]);
             prev_child.set_reference(relationship_view.next_child_offset(), references[relationship_view.next_child_offset()]);
         }
-        else if (references[relationship_view.parent_offset()] != c_invalid_gaia_id)
+        else if (references[relationship_view.parent_offset()].is_valid())
         {
             // This is the first child because previous node does not exist.
             bool anchor_deleted = false;
-            if (references[relationship_view.next_child_offset()] == c_invalid_gaia_id)
+            if (references[relationship_view.next_child_offset()].is_valid() == false)
             {
                 // This is the only child because next node does not exist.
                 auto anchor = gaia_ptr_t::from_gaia_id(references[relationship_view.parent_offset()]);
-                if (anchor.references()[c_ref_anchor_parent_offset] == c_invalid_gaia_id)
+                if (anchor.references()[c_ref_anchor_parent_offset].is_valid() == false)
                 {
                     // Delete the anchor node if it is not connected to some parent node.
                     anchor.reset();
@@ -207,7 +211,7 @@ void child_side_auto_connect(
             relationship_view.parent_table_id(),
             relationship_view.parent_field_positions()->Get(0));
 
-        if (parent_id != c_invalid_gaia_id)
+        if (parent_id.is_valid())
         {
             // We have found the parent node with the field value. Link the
             // child node to the parent node by connecting the child to the
@@ -220,7 +224,7 @@ void child_side_auto_connect(
 
             anchor.set_reference(c_ref_anchor_first_child_offset, id);
 
-            if (references[relationship_view.next_child_offset()] != c_invalid_gaia_id)
+            if (references[relationship_view.next_child_offset()].is_valid())
             {
                 auto next_child = gaia_ptr_t::from_gaia_id(references[relationship_view.next_child_offset()]);
                 next_child.set_reference(relationship_view.prev_child_offset(), id);
@@ -236,7 +240,7 @@ void child_side_auto_connect(
                 type_id,
                 relationship_view.child_table_id(),
                 relationship_view.child_field_positions()->Get(0));
-            if (child_id != c_invalid_gaia_id)
+            if (child_id.is_valid())
             {
                 // We have found some child node with the same linked field
                 // value. Insert the node to the existing anchor chain.
@@ -248,13 +252,13 @@ void child_side_auto_connect(
 
                 anchor.set_reference(c_ref_anchor_first_child_offset, id);
 
-                if (references[relationship_view.next_child_offset()] != c_invalid_gaia_id)
+                if (references[relationship_view.next_child_offset()].is_valid())
                 {
                     auto next_child = gaia_ptr_t::from_gaia_id(references[relationship_view.next_child_offset()]);
                     next_child.set_reference(relationship_view.prev_child_offset(), id);
                 }
             }
-            else if (references[relationship_view.parent_offset()] == c_invalid_gaia_id)
+            else if (references[relationship_view.parent_offset()].is_valid() == false)
             {
                 // This child has no matching parent or other child of the
                 // same field value. Create an anchor node for the child to
@@ -308,7 +312,7 @@ void auto_connect(
         return;
     }
     field_position_list_t candidate_fields;
-    gaia_id_t table_id = type_id_mapping_t::instance().get_record_id(type);
+    gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(type);
     for (auto field_view : catalog_core::list_fields(table_id))
     {
         candidate_fields.push_back(field_view.position());
@@ -339,13 +343,17 @@ gaia_ptr_t create(
     reference_offset_t references_count = metadata.references_count();
 
     gaia_ptr_t obj = gaia_ptr_t::create_no_txn(id, type, references_count, data_size, data);
-    db_object_t* obj_ptr = obj.to_ptr();
-    auto_connect(
-        id,
-        type,
-        // NOLINTNEXTLINE: cppcoreguidelines-pro-type-const-cast
-        const_cast<gaia_id_t*>(obj_ptr->references()),
-        reinterpret_cast<const uint8_t*>(obj_ptr->data()));
+
+    if (metadata.has_value_linked_relationship())
+    {
+        db_object_t* obj_ptr = obj.to_ptr();
+        auto_connect(
+            id,
+            type,
+            // NOLINTNEXTLINE: cppcoreguidelines-pro-type-const-cast
+            const_cast<gaia_id_t*>(obj_ptr->references()),
+            reinterpret_cast<const uint8_t*>(obj_ptr->data()));
+    }
 
     obj.finalize_create();
 
@@ -390,7 +398,7 @@ void update_payload(gaia_ptr_t& obj, size_t data_size, const void* data)
     auto_connect(
         obj.id(),
         obj.type(),
-        type_id_mapping_t::instance().get_record_id(obj.type()),
+        type_id_mapping_t::instance().get_table_id(obj.type()),
         obj.references(),
         new_data,
         changed_fields);
@@ -418,7 +426,7 @@ void remove(gaia_ptr_t& object, bool force)
         // explicit 1:N relationship that still connects to some child nodes.
         for (reference_offset_t i = 0; i < object.references_count(); i++)
         {
-            if (references[i] == c_invalid_gaia_id)
+            if (!references[i].is_valid())
             {
                 continue;
             }
@@ -443,7 +451,7 @@ void remove(gaia_ptr_t& object, bool force)
                     // relationships or 1:1 relationships.
                     continue;
                 }
-                if (anchor.references()[c_ref_anchor_first_child_offset] == c_invalid_gaia_id)
+                if (anchor.references()[c_ref_anchor_first_child_offset].is_valid() == false)
                 {
                     // There is no child. We can delete the parent.
                     continue;
@@ -466,7 +474,7 @@ void remove(gaia_ptr_t& object, bool force)
     // Make necessary changes to the anchor chain before deleting the node.
     for (reference_offset_t i = 0; i < object.references_count(); i++)
     {
-        if (references[i] == c_invalid_gaia_id)
+        if (!references[i].is_valid())
         {
             continue;
         }
@@ -480,7 +488,7 @@ void remove(gaia_ptr_t& object, bool force)
         if (anchor.references()[c_ref_anchor_parent_offset] == object.id())
         {
             // The anchor node is connected to a parent node.
-            if (anchor.references()[c_ref_anchor_first_child_offset] == c_invalid_gaia_id)
+            if (anchor.references()[c_ref_anchor_first_child_offset].is_valid() == false)
             {
                 // Delete the anchor node if there is no child node in the chain.
                 anchor.reset();
@@ -531,7 +539,7 @@ bool insert_into_reference_container(gaia_ptr_t& parent, gaia_id_t child_id, ref
     gaia_ptr_t parent_anchor;
     gaia_id_t parent_anchor_id = parent.references()[parent_anchor_slot];
     gaia_id_t child_anchor_id = child.references()[relationship->parent_offset];
-    if (parent_anchor_id != c_invalid_gaia_id)
+    if (parent_anchor_id.is_valid())
     {
         if (child_anchor_id == parent_anchor_id)
         {
@@ -543,22 +551,22 @@ bool insert_into_reference_container(gaia_ptr_t& parent, gaia_id_t child_id, ref
         parent_anchor = gaia_ptr_t::from_gaia_id(parent_anchor_id);
 
         if (relationship->cardinality == cardinality_t::one
-            && parent_anchor.references()[c_ref_anchor_first_child_offset] != c_invalid_gaia_id)
+            && parent_anchor.references()[c_ref_anchor_first_child_offset].is_valid())
         {
             throw single_cardinality_violation_internal(parent_type, parent_anchor_slot);
         }
     }
-    if (child_anchor_id != c_invalid_gaia_id)
+    if (child_anchor_id.is_valid())
     {
         gaia_ptr_t child_anchor = gaia_ptr_t::from_gaia_id(child_anchor_id);
-        if (child_anchor.references()[c_ref_anchor_parent_offset] != c_invalid_gaia_id)
+        if (child_anchor.references()[c_ref_anchor_parent_offset].is_valid())
         {
             // Do not allow inserting a child that is already in some other chain.
             throw child_already_referenced_internal(child.type(), parent_anchor_slot);
         }
     }
 
-    if (parent_anchor_id == c_invalid_gaia_id)
+    if (!parent_anchor_id.is_valid())
     {
         parent_anchor = gaia_ptr_t::create_ref_anchor(parent.id(), child_id);
         parent_anchor_id = parent_anchor.id();
@@ -583,7 +591,7 @@ bool insert_into_reference_container(gaia_ptr_t& parent, gaia_id_t child_id, ref
         parent_anchor.set_reference(c_ref_anchor_first_child_offset, child_id);
     }
 
-    if (child.references()[relationship->next_child_offset] != c_invalid_gaia_id)
+    if (child.references()[relationship->next_child_offset].is_valid())
     {
         auto next_child = gaia_ptr_t::from_gaia_id(child.references()[relationship->next_child_offset]);
         next_child.set_reference(relationship->prev_child_offset, child_id);
@@ -635,7 +643,7 @@ bool remove_from_reference_container(gaia_ptr_t& parent, gaia_id_t child_id, ref
         throw invalid_relationship_type_internal(parent_anchor_slot, child.type(), relationship->child_type);
     }
 
-    if (child.references()[relationship->parent_offset] == c_invalid_gaia_id)
+    if (child.references()[relationship->parent_offset].is_valid() == false)
     {
         return false;
     }
@@ -663,27 +671,27 @@ bool remove_from_reference_container(gaia_ptr_t& child, reference_offset_t child
     reference_offset_t next_child_offset = child_anchor_slot + 1;
     reference_offset_t prev_child_offset = next_child_offset + 1;
 
-    if (child.references()[next_child_offset] != c_invalid_gaia_id)
+    if (child.references()[next_child_offset].is_valid())
     {
         // Update the next child if exists.
         auto next_child = gaia_ptr_t::from_gaia_id(child.references()[next_child_offset]);
         next_child.set_reference(prev_child_offset, child.references()[prev_child_offset]);
     }
-    if (child.references()[prev_child_offset] != c_invalid_gaia_id)
+    if (child.references()[prev_child_offset].is_valid())
     {
         // Update the previous child if exists.
         auto prev_child = gaia_ptr_t::from_gaia_id(child.references()[prev_child_offset]);
         prev_child.set_reference(next_child_offset, child.references()[next_child_offset]);
     }
-    else if (child.references()[child_anchor_slot] != c_invalid_gaia_id)
+    else if (child.references()[child_anchor_slot].is_valid())
     {
         // This is the first child because previous node does not exist.
-        if (child.references()[next_child_offset] == c_invalid_gaia_id)
+        if (child.references()[next_child_offset].is_valid() == false)
         {
             // This is the only child because next node does not exist.
             // Delete the anchor node and reset the parent node's anchor slot.
             auto anchor = gaia_ptr_t::from_gaia_id(child.references()[child_anchor_slot]);
-            if (anchor.references()[c_ref_anchor_parent_offset] != c_invalid_gaia_id)
+            if (anchor.references()[c_ref_anchor_parent_offset].is_valid())
             {
                 auto parent = gaia_ptr_t::from_gaia_id(anchor.references()[c_ref_anchor_parent_offset]);
                 const type_metadata_t& metadata = type_registry_t::instance().get(child.type());
@@ -737,7 +745,7 @@ bool update_parent_reference(gaia_ptr_t& child, gaia_id_t new_parent_id, referen
     //  https://gaiaplatform.atlassian.net/browse/GAIAPLAT-435
 
     // Check cardinality.
-    if (new_parent.references()[relationship->first_child_offset] != c_invalid_gaia_id)
+    if (new_parent.references()[relationship->first_child_offset].is_valid())
     {
         // This parent already has a child for this relationship.
         // If the relationship is one-to-one we fail.
@@ -747,7 +755,7 @@ bool update_parent_reference(gaia_ptr_t& child, gaia_id_t new_parent_id, referen
         }
     }
 
-    if (child.references()[parent_offset] != c_invalid_gaia_id)
+    if (child.references()[parent_offset].is_valid())
     {
         auto anchor = gaia_ptr_t::from_gaia_id(child.references()[parent_offset]);
         auto old_parent = gaia_ptr_t::from_gaia_id(anchor.references()[c_ref_anchor_parent_offset]);

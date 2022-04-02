@@ -3000,7 +3000,8 @@ public:
   BuildCallToMemberFunction(Scope *S, Expr *MemExpr,
                             SourceLocation LParenLoc,
                             MultiExprArg Args,
-                            SourceLocation RParenLoc);
+                            SourceLocation RParenLoc,
+                            bool isSpecialGaiaFunctionCall = false);
   ExprResult
   BuildCallToObjectOfClassType(Scope *S, Expr *Object, SourceLocation LParenLoc,
                                MultiExprArg Args,
@@ -4615,6 +4616,7 @@ public:
                                SourceLocation IdentLoc, IdentifierInfo *Ident,
                                const ParsedAttributesView &AttrList);
   void ActOnRulesetDefFinish(Decl *Dcl, SourceLocation RBrace);
+  void ActOnRuleStart();
   llvm::StringSet<> getCatalogTableList();
   llvm::StringMap<llvm::StringMap<QualType>> getTableData();
   void AddExplicitPathData(SourceLocation location, SourceLocation startLocation, SourceLocation endLocation, const std::string &explicitPath);
@@ -4642,7 +4644,7 @@ private:
   QualType getTableType (StringRef tableName, SourceLocation loc);
   llvm::StringMap<std::string> getTagMapping(const DeclContext *context, SourceLocation loc);
   QualType getRuleContextType(SourceLocation loc);
-  QualType getLinkType(StringRef linkName, StringRef from_table, StringRef to_table, bool is_one_to_many, SourceLocation loc);
+  QualType getLinkType(StringRef linkName, StringRef from_table, StringRef to_table, bool is_one_to_many, bool is_from_parent, bool is_value_linked, SourceLocation loc);
   void addMethod(IdentifierInfo *name, DeclSpec::TST retValType, const SmallVector<QualType, 8>& parameterTypes,
                  AttributeFactory &attrFactory, ParsedAttributes &attrs, RecordDecl *RD,
                  SourceLocation loc, bool isVariadic = false, ParsedType returnType = nullptr);
@@ -4663,7 +4665,7 @@ private:
   /// This method will generate connect/disconnect for the dynamic type (table__type) and, if available, the EDC type (table_t):
   /// - bool incubator::connect(sensor__type&)
   /// - bool incubator::connect(sensor_t&)
-  void addConnectDisconnect(RecordDecl* sourceTableDecl, StringRef targetTableName, bool is_one_to_many, SourceLocation loc, AttributeFactory& attrFactory, ParsedAttributes& attrs);
+  void addConnectDisconnect(RecordDecl* sourceTableDecl, StringRef targetTableName, bool is_one_to_many, bool is_from_parent, SourceLocation loc, AttributeFactory& attrFactory, ParsedAttributes& attrs);
 
   void addField(IdentifierInfo *name, QualType type, RecordDecl *R, SourceLocation locD) const ;
   void RemoveExplicitPathData(SourceLocation location);
@@ -9811,7 +9813,7 @@ public:
   // For simple assignment, pass both expressions and a null converted type.
   // For compound assignment, pass both expressions and the converted type.
   QualType CheckAssignmentOperands( // C99 6.5.16.[1,2]
-    Expr *LHSExpr, ExprResult &RHS, SourceLocation Loc, QualType CompoundType);
+    Expr *LHSExpr, ExprResult &RHS, SourceLocation Loc, QualType CompoundType, bool isGaiaArrayFieldAssignment = false);
 
   ExprResult checkPseudoObjectIncDec(Scope *S, SourceLocation OpLoc,
                                      UnaryOperatorKind Opcode, Expr *Op);
@@ -10580,7 +10582,8 @@ private:
   static bool getFormatStringInfo(const FormatAttr *Format, bool IsCXXMember,
                                   FormatStringInfo *FSI);
   bool CheckFunctionCall(FunctionDecl *FDecl, CallExpr *TheCall,
-                         const FunctionProtoType *Proto);
+                         const FunctionProtoType *Proto,
+                         bool isSpecialGaiaFunctionCall = false);
   bool CheckObjCMethodCall(ObjCMethodDecl *Method, SourceLocation loc,
                            ArrayRef<const Expr *> Args);
   bool CheckPointerCall(NamedDecl *NDecl, CallExpr *TheCall,

@@ -3,8 +3,12 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "db_helpers.hpp"
 #include "db_server.hpp"
 #include "db_shared_data.hpp"
+
+const bool gaia::db::c_is_running_on_server = true;
+const bool gaia::db::c_is_running_on_client = false;
 
 gaia::db::locators_t* gaia::db::get_locators()
 {
@@ -40,6 +44,15 @@ gaia::db::data_t* gaia::db::get_data()
     return gaia::db::server_t::s_shared_data.data();
 }
 
+gaia::db::logs_t* gaia::db::get_logs()
+{
+    // Since we don't use this accessor in the server itself, we can assert that
+    // it is always non-null (since callers should never be able to see it in
+    // its null state, i.e., with the data segment unmapped).
+    ASSERT_PRECONDITION(gaia::db::server_t::s_shared_logs.is_set(), "Server logs segment is unmapped!");
+    return gaia::db::server_t::s_shared_logs.data();
+}
+
 gaia::db::id_index_t* gaia::db::get_id_index()
 {
     // Since we don't use this accessor in the server itself, we can assert that
@@ -47,6 +60,15 @@ gaia::db::id_index_t* gaia::db::get_id_index()
     // its null state, i.e., with the id_index segment unmapped).
     ASSERT_PRECONDITION(gaia::db::server_t::s_shared_id_index.is_set(), "Server id_index segment is unmapped!");
     return gaia::db::server_t::s_shared_id_index.data();
+}
+
+gaia::db::type_index_t* gaia::db::get_type_index()
+{
+    // Since we don't use this accessor in the server itself, we can assert that
+    // it is always non-null (since callers should never be able to see it in
+    // its null state, i.e., with the type_index segment unmapped).
+    ASSERT_PRECONDITION(gaia::db::server_t::s_shared_type_index.is_set(), "Server type_index segment is unmapped!");
+    return gaia::db::server_t::s_shared_type_index.data();
 }
 
 gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id()
@@ -69,7 +91,7 @@ gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager()
     return &gaia::db::server_t::s_chunk_manager;
 }
 
-gaia::db::mapped_log_t* gaia::db::get_mapped_log()
+gaia::db::txn_log_t* gaia::db::get_txn_log()
 {
-    return &gaia::db::server_t::s_log;
+    return gaia::db::get_txn_log_from_offset(gaia::db::server_t::s_txn_log_offset);
 }

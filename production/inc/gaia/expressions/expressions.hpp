@@ -16,6 +16,7 @@
 // 3) Execution/Evaluation - All expression objects are also functors accepting a bind context that
 //    will cause the expression to be evaluated against that context.
 
-#include "expression_builder.hpp"
-#include "expression_int_type.hpp"
-#include "expression_string.hpp"
+#include "gaia/internal/expressions/builders/expression_builder.hpp"
+#include "gaia/internal/expressions/builders/expression_int_type.hpp"
+#include "gaia/internal/expressions/builders/expression_optional.hpp"
+#include "gaia/internal/expressions/builders/expression_string.hpp"

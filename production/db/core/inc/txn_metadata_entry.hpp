@@ -12,6 +12,8 @@
 #include <sstream>
 #include <string>
 
+#include "gaia/common.hpp"
+
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
@@ -54,7 +56,7 @@ public:
     static inline txn_metadata_entry_t uninitialized_value();
     static inline txn_metadata_entry_t sealed_value();
     static inline txn_metadata_entry_t new_begin_ts_entry();
-    static inline txn_metadata_entry_t new_commit_ts_entry(gaia_txn_id_t begin_ts, int log_fd);
+    static inline txn_metadata_entry_t new_commit_ts_entry(gaia_txn_id_t begin_ts, db::log_offset_t log_offset);
 
     inline bool is_uninitialized();
     inline bool is_sealed();
@@ -72,9 +74,8 @@ public:
 
     inline uint64_t get_status();
     inline gaia_txn_id_t get_timestamp();
-    inline int get_log_fd();
+    inline db::log_offset_t get_log_offset();
 
-    inline txn_metadata_entry_t invalidate_log_fd();
     inline txn_metadata_entry_t set_submitted(gaia_txn_id_t commit_ts);
     inline txn_metadata_entry_t set_terminated();
     inline txn_metadata_entry_t set_decision(bool is_committed);
@@ -90,20 +91,15 @@ private:
     // Transaction metadata format:
     // 64 bits:
     //   0-41 = linked timestamp
-    //   42-57 = log fd
+    //   42-57 = log offset
     //   58 = reserved
     //   59 = persistence status
     //   60 = gc status
     //   61-63 = txn status
     //
-    // txn_status (3) | gc_status (1) | persistence_status (1) | reserved (1) | log_fd (16) | linked_timestamp (42)
+    // txn_status (3) | gc_status (1) | persistence_status (1) | reserved (1) | log_offset (16) | linked_timestamp (42)
 
-    static constexpr size_t c_txn_metadata_bit_width{64};
-
-    // Because we restrict all fds to 16 bits, this is the largest possible
-    // value in that range, which we reserve to indicate an invalidated fd
-    // (i.e., one which was claimed for deallocation by a maintenance thread).
-    static constexpr uint16_t c_invalid_txn_log_fd_bit_pattern{std::numeric_limits<uint16_t>::max()};
+    static constexpr size_t c_txn_metadata_bit_width{common::c_uint64_bit_count};
 
     // Transaction status flags.
     static constexpr size_t c_txn_status_flags_bit_width{3};
@@ -136,7 +132,7 @@ private:
     // These only apply to a commit_ts metadata entry.
     // We don't need TXN_GC_ELIGIBLE or TXN_GC_INITIATED flags, because any txn
     // behind the post-apply watermark (and with TXN_PERSISTENCE_COMPLETE set if
-    // persistence is enabled) is eligible for GC, and an invalidated log fd
+    // persistence is enabled) is eligible for GC, and an invalidated txn log
     // indicates that GC is in progress.
     static constexpr size_t c_txn_gc_flags_bit_width{1};
     static constexpr size_t c_txn_gc_flags_shift{
@@ -175,19 +171,22 @@ private:
     // metadata format.
     static constexpr size_t c_txn_reserved_flags_bit_width{1};
 
-    // Txn log fd embedded in the txn metadata.
+    // Txn log offset embedded in the txn metadata.
     // This is only present in a commit_ts metadata entry.
-    // NB: we assume that any fd will be < 2^16 - 1!
-    static constexpr size_t c_txn_log_fd_bit_width{16};
-    static constexpr size_t c_txn_log_fd_shift{
-        (c_txn_metadata_bit_width - c_txn_log_fd_bit_width)
+    // NB: we assume that any offset will be < 2^16!
+    static constexpr size_t c_txn_log_offset_bit_width{16};
+    static constexpr size_t c_txn_log_offset_shift{
+        (c_txn_metadata_bit_width - c_txn_log_offset_bit_width)
         - (c_txn_status_flags_bit_width
            + c_txn_gc_flags_bit_width
            + c_txn_persistence_flags_bit_width
            + c_txn_reserved_flags_bit_width)};
-    static constexpr uint64_t c_txn_log_fd_mask{
-        ((1ULL << c_txn_log_fd_bit_width) - 1) << c_txn_log_fd_shift};
+    static constexpr uint64_t c_txn_log_offset_mask{
+        ((1ULL << c_txn_log_offset_bit_width) - 1) << c_txn_log_offset_shift};
 
+    // We need the timestamp size constants to be public for now, because
+    // they're used by the txn log metadata.
+public:
     // Linked txn timestamp embedded in a txn metadata entry. For a commit_ts
     // entry, this is its associated begin_ts, and for a begin_ts entry, this is
     // its associated commit_ts. A commit_ts entry always contains its linked
@@ -221,6 +220,7 @@ private:
     static constexpr size_t c_txn_ts_shift{0};
     static constexpr uint64_t c_txn_ts_mask{((1ULL << c_txn_ts_bit_width) - 1) << c_txn_ts_shift};
 
+private:
     // Transaction metadata special values.
 
     // The first 3 bits of this value are unused for any txn state.

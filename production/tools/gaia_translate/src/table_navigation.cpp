@@ -12,14 +12,16 @@
 #pragma clang diagnostic pop
 
 #include "gaia_internal/common/random.hpp"
+#include "gaia_internal/gaiat/catalog_facade.hpp"
 
 #include "diagnostics.h"
 #include "table_navigation.h"
 
 using namespace std;
 using namespace clang;
-using namespace ::gaia::translation;
 using namespace clang::gaia::catalog;
+using namespace ::gaia::translation;
+using namespace ::gaia::catalog::gaiat;
 
 constexpr char c_nolint_range_copy[] = "// NOLINTNEXTLINE(performance-for-range-copy)";
 constexpr int c_variable_length = 15;
@@ -96,6 +98,7 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(llv
                 {
                     return {};
                 }
+                string class_name = catalog::gaiat::table_facade_t::class_name(table);
                 return_value.prefix.append("\n{\n");
                 return_value.prefix.append(c_nolint_range_copy);
                 return_value.prefix.append("\nfor (auto ");
@@ -103,9 +106,8 @@ navigation_code_data_t table_navigation_t::generate_explicit_navigation_code(llv
                 return_value.prefix.append(" : gaia::");
                 return_value.prefix.append(table_data_itr->second.dbName);
                 return_value.prefix.append("::");
-                return_value.prefix.append(table);
-                return_value.prefix.append("_t::");
-                return_value.prefix.append("list())\n{\n");
+                return_value.prefix.append(class_name);
+                return_value.prefix.append("::list())\n{\n");
 
                 return_value.postfix = "\n}\n}\n";
             }
@@ -180,7 +182,7 @@ navigation_code_data_t table_navigation_t::generate_navigation_code(
         variable_name = last_variable_name;
     }
 
-    if (variable_name != anchor_table_name || variable_name != anchor_variable)
+    if (variable_name != anchor_variable)
     {
         return_value.prefix.append("\n{\nauto ");
         return_value.prefix.append(variable_name);

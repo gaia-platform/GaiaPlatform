@@ -250,7 +250,7 @@ void generate_table_fbs(const string& name)
             }
         }
     }
-    if (table_id == c_invalid_gaia_id)
+    if (!table_id.is_valid())
     {
         throw table_does_not_exist_internal(name);
     }

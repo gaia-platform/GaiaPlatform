@@ -43,6 +43,11 @@ namespace catalog_core
     return catalog::Getgaia_field(m_obj_ptr->data())->position();
 }
 
+[[nodiscard]] bool field_view_t::optional() const
+{
+    return catalog::Getgaia_field(m_obj_ptr->data())->optional();
+}
+
 [[nodiscard]] const char* table_view_t::name() const
 {
     return catalog::Getgaia_table(m_obj_ptr->data())->name()->c_str();
@@ -122,6 +127,23 @@ namespace catalog_core
     return catalog::Getgaia_relationship(m_obj_ptr->data())->child_field_positions();
 }
 
+[[nodiscard]] cardinality_t relationship_view_t::cardinality() const
+{
+    uint8_t relationship_cardinality_value = catalog::Getgaia_relationship(m_obj_ptr->data())->cardinality();
+    if (relationship_cardinality_value == static_cast<uint8_t>(gaia::catalog::relationship_cardinality_t::one))
+    {
+        return cardinality_t::one;
+    }
+    else if (relationship_cardinality_value == static_cast<uint8_t>(gaia::catalog::relationship_cardinality_t::many))
+    {
+        return cardinality_t::many;
+    }
+    else
+    {
+        return cardinality_t::not_set;
+    }
+}
+
 [[nodiscard]] bool relationship_view_t::is_value_linked() const
 {
     return parent_field_positions() != nullptr && parent_field_positions()->size() > 0;
@@ -196,7 +218,7 @@ list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint
 {
     auto obj_ptr = id_to_ptr(table_id);
     gaia_id_t anchor_id = obj_ptr->references()[first_offset];
-    if (anchor_id == c_invalid_gaia_id)
+    if (!anchor_id.is_valid())
     {
         return generator_range_t<T_catalog_obj_view>();
     }
@@ -204,7 +226,7 @@ list_catalog_obj_reference_chain(gaia_id_t table_id, uint16_t first_offset, uint
     gaia_id_t first_obj_id = anchor_ptr->references()[c_ref_anchor_first_child_offset];
 
     auto generator = [id = first_obj_id, next_offset]() mutable -> std::optional<T_catalog_obj_view> {
-        if (id == c_invalid_gaia_id)
+        if (!id.is_valid())
         {
             return std::nullopt;
         }

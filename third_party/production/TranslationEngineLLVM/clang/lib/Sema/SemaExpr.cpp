@@ -2160,7 +2160,6 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
   } else {
     bool IvarLookupFollowUp = II && !SS.isSet() && getCurMethodDecl();
     LookupParsedName(R, S, &SS, !IvarLookupFollowUp);
-
     // If the result might be in a dependent base class, this is a dependent
     // id-expression.
     if (R.getResultKind() == LookupResult::NotFoundInCurrentInstantiation)
@@ -2197,7 +2196,20 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
   bool isVariableInjected = false;
   bool isInjectionFailed = false;
 
-  if (R.empty() && getCurScope()->isInRulesetScope())
+  bool isPossibleFunctionShadowOfDeclarativeEntity = false;
+  if (!R.empty())
+  {
+    for (NamedDecl *declaration : R)
+    {
+      if (isa<FunctionDecl>(declaration))
+      {
+        isPossibleFunctionShadowOfDeclarativeEntity = !explicitPath.empty() && explicitPath.rfind(II->getName(), 0) == 0 && explicitPath != II->getName();
+        break;
+      }
+    }
+  }
+
+  if ((R.empty() || isPossibleFunctionShadowOfDeclarativeEntity) && getCurScope()->isInRulesetScope())
   {
     if (S->getFnParent() != nullptr)
     {
@@ -2212,6 +2224,10 @@ Sema::ActOnIdExpression(Scope *S, CXXScopeSpec &SS,
             NamedDecl *D = injectVariableDefinition(II, NameLoc, explicitPath);
             if (D)
             {
+              if (!R.empty())
+              {
+                R.clear(LookupOrdinaryName);
+              }
               R.addDecl(D);
               isVariableInjected = true;
               injectedVariablesLocation.insert(NameLoc);
@@ -5475,9 +5491,10 @@ ExprResult Sema::ActOnCallExpr(Scope *Scope, Expr *Fn, SourceLocation LParenLoc,
                                Expr *ExecConfig, bool IsExecConfig,
                                std::string tableName,
                                std::vector<std::string> parameterNames) {
-
+  bool isSpecialGaiaFunctionCall = false;
   if (!tableName.empty())
   {
+    isSpecialGaiaFunctionCall = true;
     auto numberOfParameters = ArgExprs.size();
     if (numberOfParameters != parameterNames.size())
     {
@@ -5541,6 +5558,36 @@ ExprResult Sema::ActOnCallExpr(Scope *Scope, Expr *Fn, SourceLocation LParenLoc,
             Diag(LParenLoc, diag::err_argument_type_mismatch)
               << argumentType.getAsString() << parameterType.getAsString() << parameterNames[i];
             return ExprError();
+          }
+        }
+        else if (parameterType->isArrayType())
+        {
+          if (!argumentType->isArrayType() && !isa<InitListExpr>(ArgExprs[i]))
+          {
+            Diag(LParenLoc, diag::err_argument_type_mismatch)
+              << argumentType.getAsString() << parameterType.getAsString() << parameterNames[i];
+            return ExprError();
+          }
+
+          if (!isa<InitListExpr>(ArgExprs[i]) && Context.getBaseElementType(parameterType) != Context.getBaseElementType(argumentType))
+          {
+            Diag(LParenLoc, diag::err_argument_type_mismatch)
+              << argumentType.getAsString() << parameterType.getAsString() << parameterNames[i];
+            return ExprError();
+          }
+
+          if (isa<InitListExpr>(ArgExprs[i]))
+          {
+            const InitListExpr* initList = cast<InitListExpr>(ArgExprs[i]);
+            for (unsigned idx = 0; idx < initList->getNumInits(); ++idx)
+            {
+              if(Context.getBaseElementType(parameterType) != initList->getInit(idx)->getType())
+              {
+                Diag(LParenLoc, diag::err_argument_type_mismatch)
+                  << "initializer list" << parameterType.getAsString() << parameterNames[i];
+                return ExprError();
+              }
+            }
           }
         }
         else
@@ -5611,7 +5658,7 @@ ExprResult Sema::ActOnCallExpr(Scope *Scope, Expr *Fn, SourceLocation LParenLoc,
 
     if (Fn->getType() == Context.BoundMemberTy) {
       return BuildCallToMemberFunction(Scope, Fn, LParenLoc, ArgExprs,
-                                       RParenLoc);
+                                       RParenLoc, isSpecialGaiaFunctionCall);
     }
   }
 
@@ -11326,30 +11373,40 @@ static void DiagnoseRecursiveConstFields(Sema &S, const Expr *E,
 /// emit an error and return true.  If so, return false.
 static bool CheckForModifiableLvalue(Expr *E, SourceLocation Loc, Sema &S) {
   assert(!E->hasPlaceholderType(BuiltinType::PseudoObject));
-
+  bool isGaiaFieldAssignment = false;
   if (S.getLangOpts().Gaia && S.getCurScope()->isInRulesetScope())
   {
-      DeclRefExpr* exp = dyn_cast<DeclRefExpr>(E);
+      Expr* LHSExpression = E;
+      if (isa<ArraySubscriptExpr>(LHSExpression))
+      {
+        LHSExpression = dyn_cast<ArraySubscriptExpr>(LHSExpression)->getBase();
+      }
+
+      if (isa<CastExpr>(LHSExpression))
+      {
+        LHSExpression = dyn_cast<CastExpr>(LHSExpression)->getSubExpr();
+      }
+
+      DeclRefExpr* exp = dyn_cast<DeclRefExpr>(LHSExpression);
 
       if (exp == nullptr)
       {
-          MemberExpr* memberExp = dyn_cast<MemberExpr>(E);
+          MemberExpr* memberExp = dyn_cast<MemberExpr>(LHSExpression);
 
           if (memberExp != nullptr)
           {
               exp = dyn_cast<DeclRefExpr>(memberExp->getBase());
           }
       }
-
       if (exp != nullptr)
       {
           ValueDecl* decl = exp->getDecl();
-
           if (decl->hasAttr<GaiaFieldAttr>()
               || decl->hasAttr<GaiaFieldValueAttr>()
               || decl->hasAttr<FieldTableAttr>())
           {
               decl->addAttr(GaiaFieldLValueAttr::CreateImplicit(S.Context));
+              isGaiaFieldAssignment = true;
           }
       }
   }
@@ -11435,6 +11492,10 @@ static bool CheckForModifiableLvalue(Expr *E, SourceLocation Loc, Sema &S) {
     return true;
   case Expr::MLV_ArrayType:
   case Expr::MLV_ArrayTemporary:
+    if (isGaiaFieldAssignment)
+    {
+      return false;
+    }
     DiagID = diag::err_typecheck_array_not_modifiable_lvalue;
     NeedType = true;
     break;
@@ -11526,7 +11587,8 @@ static void CheckIdentityFieldAssignment(Expr *LHSExpr, Expr *RHSExpr,
 // C99 6.5.16.1
 QualType Sema::CheckAssignmentOperands(Expr *LHSExpr, ExprResult &RHS,
                                        SourceLocation Loc,
-                                       QualType CompoundType) {
+                                       QualType CompoundType,
+                                       bool isGaiaArrayFieldAssignment) {
   assert(!LHSExpr->hasPlaceholderType(BuiltinType::PseudoObject));
 
   // Verify that LHS is a modifiable lvalue, and emit error if not.
@@ -11553,7 +11615,14 @@ QualType Sema::CheckAssignmentOperands(Expr *LHSExpr, ExprResult &RHS,
     CheckIdentityFieldAssignment(LHSExpr, RHSCheck, Loc, *this);
 
     QualType LHSTy(LHSType);
-    ConvTy = CheckSingleAssignmentConstraints(LHSTy, RHS);
+    if (isGaiaArrayFieldAssignment)
+    {
+      ConvTy = Compatible;
+    }
+    else
+    {
+      ConvTy = CheckSingleAssignmentConstraints(LHSTy, RHS);
+    }
     if (RHS.isInvalid())
       return QualType();
     // Special case of NSObject attributes on c-style pointer types.
@@ -12448,6 +12517,50 @@ ExprResult Sema::CreateBuiltinBinOp(SourceLocation OpLoc,
       return Init;
     RHSExpr = Init.get();
   }
+  bool isGaiaArrayFieldAssignment = false;
+  if (getLangOpts().Gaia && getCurScope()->isInRulesetScope())
+  {
+    const DeclRefExpr* exp = dyn_cast<DeclRefExpr>(LHSExpr);
+    if (exp == nullptr)
+    {
+      const MemberExpr* memberExp = dyn_cast<MemberExpr>(LHSExpr);
+      if (memberExp != nullptr)
+      {
+        exp = dyn_cast<DeclRefExpr>(memberExp->getBase());
+      }
+    }
+    if (exp != nullptr)
+    {
+      const ValueDecl* decl = exp->getDecl();
+      if ((decl->hasAttr<GaiaFieldAttr>()
+            || decl->hasAttr<GaiaFieldValueAttr>()
+            || decl->hasAttr<FieldTableAttr>())
+          && LHSExpr->getType()->isIncompleteArrayType())
+      {
+        if (RHSExpr->getType()->isArrayType() || isa<InitListExpr>(RHSExpr))
+        {
+          if (!isa<InitListExpr>(RHSExpr)
+            && Context.getBaseElementType(RHSExpr->getType()) == Context.getBaseElementType(LHSExpr->getType()))
+          {
+            isGaiaArrayFieldAssignment = true;
+          }
+          else if (isa<InitListExpr>(RHSExpr))
+          {
+            isGaiaArrayFieldAssignment = true;
+            const InitListExpr* initList = cast<InitListExpr>(RHSExpr);
+            for (unsigned idx = 0; idx < initList->getNumInits(); ++idx)
+            {
+              if(Context.getBaseElementType(LHSExpr->getType()) != initList->getInit(idx)->getType())
+              {
+                isGaiaArrayFieldAssignment = false;
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 
   ExprResult LHS = LHSExpr, RHS = RHSExpr;
   QualType ResultTy;     // Result type of the binary operator.
@@ -12489,7 +12602,7 @@ ExprResult Sema::CreateBuiltinBinOp(SourceLocation OpLoc,
 
   switch (Opc) {
   case BO_Assign:
-    ResultTy = CheckAssignmentOperands(LHS.get(), RHS, OpLoc, QualType());
+    ResultTy = CheckAssignmentOperands(LHS.get(), RHS, OpLoc, QualType(), isGaiaArrayFieldAssignment);
     if (getLangOpts().CPlusPlus &&
         LHS.get()->getObjectKind() != OK_ObjCProperty) {
       VK = LHS.get()->getValueKind();
@@ -13045,8 +13158,8 @@ ExprResult Sema::CreateBuiltinUnaryOp(SourceLocation OpLoc,
                                       Expr *InputExpr) {
   if (getLangOpts().Gaia && getCurScope()->isInRulesetScope())
   {
-    DeclRefExpr *exp = dyn_cast<DeclRefExpr>(InputExpr);
-    MemberExpr *expm = dyn_cast<MemberExpr>(InputExpr);
+    const DeclRefExpr *exp = dyn_cast<DeclRefExpr>(InputExpr);
+    const MemberExpr *expm = dyn_cast<MemberExpr>(InputExpr);
 
     if (exp == nullptr && expm != nullptr)
     {
@@ -13055,7 +13168,7 @@ ExprResult Sema::CreateBuiltinUnaryOp(SourceLocation OpLoc,
 
     if (exp != nullptr)
     {
-        ValueDecl *decl = exp->getDecl();
+        const ValueDecl *decl = exp->getDecl();
         if ((decl->hasAttr<GaiaFieldAttr>() ||
             decl->hasAttr<GaiaFieldValueAttr>()) &&
             (Opc == UO_AddrOf || Opc == UO_Deref))

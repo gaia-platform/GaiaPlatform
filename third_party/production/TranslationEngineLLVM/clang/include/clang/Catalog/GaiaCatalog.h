@@ -9,6 +9,7 @@
 #include "llvm/ADT/StringMap.h"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/catalog/catalog.hpp"
+#include "gaia_internal/gaiat/catalog_facade.hpp"
 
 using namespace gaia;
 using namespace gaia::common;
@@ -27,6 +28,7 @@ struct CatalogFieldData
 {
     bool isDeprecated;
     bool isActive;
+    bool isArray;
     field_position_t position;
     data_type_t fieldType;
 };
@@ -36,6 +38,7 @@ struct CatalogLinkData
     string targetTable;
     ::gaia::catalog::relationship_cardinality_t cardinality;
     bool isFromParent;
+    bool isValueLinked;
 };
 
 struct CatalogTableData

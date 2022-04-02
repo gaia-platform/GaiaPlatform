@@ -25,6 +25,7 @@ namespace direct_access
 //
 // Exception class implementations.
 //
+
 invalid_object_state_internal::invalid_object_state_internal()
 {
     m_message = "An operation was attempted on an object that does not exist.";
@@ -76,7 +77,9 @@ gaia_id_t dac_db_t::get_iterator_value(std::shared_ptr<dac_base_iterator_state_t
         return c_invalid_gaia_id;
     }
     gaia_ptr_t gaia_ptr = *iterator;
-    return gaia_ptr.id();
+    gaia_id_t gaia_id = gaia_ptr.id();
+    ASSERT_INVARIANT(gaia_id.is_valid(), "get_iterator_value() has unexpectedly produced an invalid gaia_id value!");
+    return gaia_id;
 }
 
 bool dac_db_t::advance_iterator(std::shared_ptr<dac_base_iterator_state_t> iterator_state)
@@ -243,6 +246,7 @@ void dac_base_t::set(common::gaia_id_t new_id)
 //
 // dac_base_reference_t implementation
 //
+
 dac_base_reference_t::dac_base_reference_t(gaia_id_t parent, reference_offset_t child_offset)
     : m_parent_id(parent), m_child_offset(child_offset)
 {
@@ -250,7 +254,7 @@ dac_base_reference_t::dac_base_reference_t(gaia_id_t parent, reference_offset_t 
 
 bool dac_base_reference_t::connect(gaia_id_t old_id, gaia::common::gaia_id_t new_id)
 {
-    if (old_id != c_invalid_gaia_id && old_id == new_id)
+    if (old_id.is_valid() && old_id == new_id)
     {
         return false;
     }
@@ -261,7 +265,7 @@ bool dac_base_reference_t::connect(gaia_id_t old_id, gaia::common::gaia_id_t new
 
 bool dac_base_reference_t::disconnect(gaia_id_t id)
 {
-    if (id == gaia::common::c_invalid_gaia_id)
+    if (!id.is_valid())
     {
         return false;
     }

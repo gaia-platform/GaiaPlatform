@@ -5,11 +5,12 @@
 # All rights reserved.
 #############################################
 
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/ without the fail fast.
+set -uo pipefail
+
 # Simple function to start the process off.
 start_process() {
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Executing tasks inside of the built Gaia image..."
-    fi
+    echo "Executing tasks inside of the built Gaia image..."
 }
 
 # Simple function to stop the process, including any cleanup
@@ -24,9 +25,7 @@ complete_process() {
     if [ "$SCRIPT_RETURN_CODE" -ne 0 ]; then
         echo "Executing tasks inside of the Gaia image failed."
     else
-        if [ "$VERBOSE_MODE" -ne 0 ]; then
-            echo "Executing tasks inside of the Gaia image succeeded."
-        fi
+        echo "Executing tasks inside of the Gaia image succeeded."
     fi
 
     if [ -f "$TEMP_FILE" ]; then
@@ -48,8 +47,6 @@ show_usage() {
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
     echo "  -a,--action         Action to execute inside of the container."
-    echo "  -g,--gaia-version   Version associate with the build."
-    echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
     echo ""
     exit 1
@@ -57,9 +54,7 @@ show_usage() {
 
 # Parse the command line.
 parse_command_line() {
-    VERBOSE_MODE=0
     ACTION_NAME=
-    GAIA_VERSION=
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
@@ -70,19 +65,6 @@ parse_command_line() {
             fi
             ACTION_NAME=$2
             shift
-            shift
-        ;;
-        -g|--gaia-version)
-            if [ -z "$2" ] ; then
-                echo "Error: Argument $1 must be followed by the version of Gaia being built." >&2
-                show_usage
-            fi
-            GAIA_VERSION=$2
-            shift
-            shift
-        ;;
-        -v|--verbose)
-            VERBOSE_MODE=1
             shift
         ;;
         -h|--help)
@@ -103,18 +85,12 @@ parse_command_line() {
         echo "Error: Argument -a/--action is required" >&2
         show_usage
     fi
-    if [ -z "$GAIA_VERSION" ] ; then
-        echo "Error: Argument -g/--gaia-version is required" >&2
-        show_usage
-    fi
 }
 
 # Save the current directory when starting the script, so we can go back to that
 # directory at the end of the script.
 save_current_directory() {
-    if [ "$VERBOSE_MODE" -ne 0 ]; then
-        echo "Saving current directory prior to execution."
-    fi
+    echo "Saving current directory prior to execution."
     if ! pushd . >"$TEMP_FILE" 2>&1;  then
         cat "$TEMP_FILE"
         complete_process 1 "Script cannot save the current directory before proceeding."
@@ -134,20 +110,49 @@ save_current_directory
 
 cd /build/production || exit
 
+echo "Creating image action output directory."
 mkdir -p /build/output
 cp /build/production/*.log /build/output
 
 if [ "$ACTION_NAME" == "unit_tests" ] ; then
-    if ! ctest 2>&1 | tee /build/output/ctest.log; then
+    echo "Executing unit tests."
+
+    # Enable FDW Tests
+    cd /build/production/sql || exit
+    make install
+    service postgresql restart
+    cd /build/production || exit
+
+    if ! ctest --output-on-failure 2>&1 | tee /build/output/ctest.log; then
         complete_process 1 "Unit tests failed to complete successfully."
     fi
+
+    echo "Unit tests complete successfully."
 elif [ "$ACTION_NAME" == "publish_package" ] ; then
-    #cp gaia-${{ env.GAIA_VERSION }}_amd64.deb gaia-${{ env.GAIA_VERSION }}-${{ github.run_id }}_amd64.deb
-    cpack -V
+    echo "Publishing SDK package."
+
+    GAIA_PACKAGE_NAME=$(tr -d '\n' < /build/production/gaia_package_name.txt)
+    if [ -z "$GAIA_PACKAGE_NAME" ]; then
+        complete_process 1 "Failed to read the Gaia Package Name from gaia_package_name.txt"
+    fi
+    echo "Gaia Package Name is: $GAIA_PACKAGE_NAME"
+
+    if ! cpack -V ; then
+        complete_process 1 "Failed to package the build into file $GAIA_PACKAGE_NAME.deb"
+    fi
+
     mkdir -p /build/output/package
-    cp /build/production/"gaia-${GAIA_VERSION}_amd64.deb" "/build/output/package/gaia-${GAIA_VERSION}_amd64.deb"
+    if ! cp /build/production/"${GAIA_PACKAGE_NAME}.deb" "/build/output/package/${GAIA_PACKAGE_NAME}.deb" ; then
+        complete_process 1 "Failed to copy the build package into file /build/output/package directory."
+    fi
+
+    echo "Publishing of the SDK package completed successfully."
 else
     complete_process 1 "Action '$ACTION_NAME' is not known."
 fi
 
-complete_process 0
+# Change ownership of our output files to our generated docker user so that we can remove it at
+# a later build step outside of the container.
+chown --recursive ci-user:ci-user /build/output
+
+complete_process 0 ""

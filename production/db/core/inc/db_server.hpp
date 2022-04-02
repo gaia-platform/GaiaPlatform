@@ -26,6 +26,7 @@
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 #include "txn_metadata.hpp"
+#include "type_index.hpp"
 
 namespace gaia
 {
@@ -87,17 +88,17 @@ private:
 class server_t
 {
     friend class gaia_ptr_t;
-    friend class type_generator_t;
 
     friend gaia::db::locators_t* gaia::db::get_locators();
     friend gaia::db::locators_t* gaia::db::get_locators_for_allocator();
     friend gaia::db::counters_t* gaia::db::get_counters();
     friend gaia::db::data_t* gaia::db::get_data();
+    friend gaia::db::logs_t* gaia::db::get_logs();
     friend gaia::db::id_index_t* gaia::db::get_id_index();
-    friend gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id();
-    friend gaia::db::mapped_log_t* get_mapped_log();
+    friend gaia::db::type_index_t* gaia::db::get_type_index();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
-
+    friend gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id();
+    friend gaia::db::txn_log_t* gaia::db::get_txn_log();
     friend gaia::db::memory_manager::memory_manager_t* gaia::db::get_memory_manager();
     friend gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager();
 
@@ -116,6 +117,8 @@ private:
     // would be exhausted by 512 sessions opened in a single process, but we
     // also create other large per-session mappings, so we need a large margin
     // of error, hence the choice of 128 for the session limit).
+    // REVIEW: How much could we relax this limit if we revert to per-process
+    // mappings of the data segment?
     static constexpr size_t c_session_limit{1ULL << 7};
 
     static inline int s_server_shutdown_eventfd = -1;
@@ -127,16 +130,37 @@ private:
     static inline mapped_data_t<locators_t> s_shared_locators{};
     static inline mapped_data_t<counters_t> s_shared_counters{};
     static inline mapped_data_t<data_t> s_shared_data{};
+    static inline mapped_data_t<logs_t> s_shared_logs{};
     static inline mapped_data_t<id_index_t> s_shared_id_index{};
+    static inline mapped_data_t<type_index_t> s_shared_type_index{};
     static inline index::indexes_t s_global_indexes{};
     static inline std::unique_ptr<persistent_store_manager> s_persistent_store{};
 
     // These fields have transaction lifetime.
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
-    thread_local static inline mapped_log_t s_log{};
+    thread_local static inline log_offset_t s_txn_log_offset = c_invalid_log_offset;
+    thread_local static inline std::vector<std::pair<gaia_txn_id_t, log_offset_t>> s_txn_logs_for_snapshot{};
 
-    // Local snapshot. This is a private copy of locators for server-side transactions.
+    // Local snapshot for server-side transactions.
     thread_local static inline mapped_data_t<locators_t> s_local_snapshot_locators{};
+    // Watermark that tracks how many log records have been used for the current snapshot instance.
+    // This is used to permit the incremental updating of the snapshot.
+    thread_local static inline size_t s_last_snapshot_processed_log_record_count{0};
+
+    // The allocated status of each log offset is tracked in this bitmap. When
+    // opening a new txn, each session thread must allocate an offset for its txn
+    // log by setting a cleared bit in this bitmap. When txn log GC completes,
+    // the log's allocated bit should be cleared.
+    static inline std::array<
+        std::atomic<uint64_t>, (c_max_logs + 1) / common::c_uint64_bit_count>
+        s_allocated_log_offsets_bitmap{};
+
+    // We use this offset to track the lowest-numbered log offset that has never
+    // been allocated.
+    // NB: We use size_t here rather than log_offset_t to avoid integer
+    // overflow. A 64-bit atomically incremented counter cannot overflow in any
+    // reasonable time.
+    static inline std::atomic<size_t> s_next_unused_log_offset{1};
 
     // This is used by GC tasks on a session thread to cache chunk IDs for empty chunk deallocation.
     thread_local static inline std::unordered_map<
@@ -151,6 +175,8 @@ private:
 
     thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
     thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
+
+    thread_local static inline bool s_is_ddl_session{false};
 
     // These thread objects are owned by the session thread that created them.
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
@@ -201,7 +227,7 @@ private:
 
     // An array of monotonically nondecreasing timestamps, or "watermarks", that
     // represent the progress of system maintenance tasks with respect to txn
-    // timestamps. See `watermark_type_t` for a full explanation.
+    // history. See `watermark_type_t` for a full explanation.
     static inline std::array<std::atomic<gaia_txn_id_t::value_type>, common::get_enum_value(watermark_type_t::count)> s_watermarks{};
 
     // A global array in which each session thread publishes a "safe timestamp"
@@ -231,7 +257,7 @@ private:
     // When it is no longer using the safe_ts API (e.g., at session exit), each
     // thread should clear the bit that it set.
     static inline std::array<
-        std::atomic<uint64_t>, s_safe_ts_per_thread_entries.size() / memory_manager::c_uint64_bit_count>
+        std::atomic<uint64_t>, s_safe_ts_per_thread_entries.size() / common::c_uint64_bit_count>
         s_safe_ts_reserved_indexes_bitmap{};
 
     static constexpr size_t c_invalid_safe_ts_index{s_safe_ts_per_thread_entries.size()};
@@ -302,6 +328,22 @@ private:
     // that was reserved before this method was called.
     static gaia_txn_id_t get_safe_truncation_ts();
 
+    // Returns true if the given log offset is allocated, false otherwise.
+    static bool is_log_offset_allocated(log_offset_t offset);
+
+    // Allocates the first unallocated log offset, returning the invalid log
+    // offset if no unallocated offset is available.
+    static log_offset_t allocate_log_offset();
+
+    // Deallocates the given log offset.
+    static void deallocate_log_offset(log_offset_t offset);
+
+    // Allocates the first used log offset.
+    static log_offset_t allocate_used_log_offset();
+
+    // Allocates the first unused log offset.
+    static log_offset_t allocate_unused_log_offset();
+
 private:
     // A list of data mappings that we manage together.
     // The order of declarations must be the order of data_mapping_t::index_t values!
@@ -309,27 +351,29 @@ private:
         {data_mapping_t::index_t::locators, &s_shared_locators, c_gaia_mem_locators_prefix},
         {data_mapping_t::index_t::counters, &s_shared_counters, c_gaia_mem_counters_prefix},
         {data_mapping_t::index_t::data, &s_shared_data, c_gaia_mem_data_prefix},
+        {data_mapping_t::index_t::logs, &s_shared_logs, c_gaia_mem_logs_prefix},
         {data_mapping_t::index_t::id_index, &s_shared_id_index, c_gaia_mem_id_index_prefix},
+        {data_mapping_t::index_t::type_index, &s_shared_type_index, c_gaia_mem_type_index_prefix},
     };
 
     // Function pointer type that executes side effects of a session state transition.
     // REVIEW: replace void* with std::any?
     typedef void (*transition_handler_fn)(
-        int* fds, size_t fd_count,
         messages::session_event_t event,
         const void* event_data,
         messages::session_state_t old_state,
         messages::session_state_t new_state);
 
     // Session state transition handler functions.
-    static void handle_connect(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_begin_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_rollback_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_commit_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_decide_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_client_shutdown(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_server_shutdown(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_request_stream(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_connect_ddl(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_connect(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_begin_txn(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_rollback_txn(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_commit_txn(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_decide_txn(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_client_shutdown(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_server_shutdown(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_request_stream(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
 
     struct transition_t
     {
@@ -347,6 +391,7 @@ private:
     // "Wildcard" transitions (current state = session_state_t::ANY) must be listed after
     // non-wildcard transitions with the same event, or the latter will never be applied.
     static inline constexpr valid_transition_t c_valid_transitions[] = {
+        {messages::session_state_t::DISCONNECTED, messages::session_event_t::CONNECT_DDL, {messages::session_state_t::CONNECTED, handle_connect_ddl}},
         {messages::session_state_t::DISCONNECTED, messages::session_event_t::CONNECT, {messages::session_state_t::CONNECTED, handle_connect}},
         {messages::session_state_t::ANY, messages::session_event_t::CLIENT_SHUTDOWN, {messages::session_state_t::DISCONNECTED, handle_client_shutdown}},
         {messages::session_state_t::CONNECTED, messages::session_event_t::BEGIN_TXN, {messages::session_state_t::TXN_IN_PROGRESS, handle_begin_txn}},
@@ -359,7 +404,7 @@ private:
         {messages::session_state_t::ANY, messages::session_event_t::REQUEST_STREAM, {messages::session_state_t::ANY, handle_request_stream}},
     };
 
-    static void apply_transition(messages::session_event_t event, const void* event_data, int* fds, size_t fd_count);
+    static void apply_transition(messages::session_event_t event, const void* event_data);
 
     static void build_server_reply_info(
         flatbuffers::FlatBufferBuilder& builder,
@@ -367,7 +412,8 @@ private:
         messages::session_state_t old_state,
         messages::session_state_t new_state,
         gaia_txn_id_t txn_id = c_invalid_gaia_txn_id,
-        size_t log_fds_to_apply_count = 0);
+        log_offset_t txn_log_offset = c_invalid_log_offset,
+        const std::vector<std::pair<gaia_txn_id_t, log_offset_t>>& txn_logs_to_apply = {});
 
     static void build_server_reply_error(
         flatbuffers::FlatBufferBuilder& builder,
@@ -376,7 +422,7 @@ private:
         messages::session_state_t new_state,
         const char* error_message);
 
-    static void clear_shared_memory();
+    static void clear_server_state();
 
     static void init_memory_manager(bool initializing);
 
@@ -392,7 +438,7 @@ private:
 
     // TODO: Remove the apply_logs flag, because a snapshot can't be used
     // correctly without first applying txn logs up to its begin timestamp.
-    static void create_local_snapshot(bool apply_logs);
+    static void create_or_refresh_local_snapshot(bool apply_logs);
 
     static void recover_db();
 
@@ -421,12 +467,15 @@ private:
         int stream_socket,
         std::shared_ptr<common::iterators::generator_t<T_element>> generator);
 
-    static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> get_id_generator_for_type(
-        common::gaia_type_t type);
+    static void get_txn_log_offsets_for_snapshot(
+        gaia_txn_id_t begin_ts,
+        std::vector<std::pair<gaia_txn_id_t, log_offset_t>>& txn_ids_with_log_offsets_for_snapshot);
 
-    static void get_txn_log_fds_for_snapshot(gaia_txn_id_t begin_ts, std::vector<int>& txn_log_fds);
+    static void release_txn_log_offsets_for_snapshot();
 
-    static void txn_begin(std::vector<int>& txn_log_fds_for_snapshot);
+    static void release_transaction_resources();
+
+    static void txn_begin();
 
     static void txn_rollback(bool client_disconnected = false);
 
@@ -438,11 +487,13 @@ private:
 
     static void gc_applied_txn_logs();
 
+    static void update_post_gc_watermark();
+
     static void truncate_txn_table();
 
-    static gaia_txn_id_t submit_txn(gaia_txn_id_t begin_ts, int log_fd);
+    static gaia_txn_id_t submit_txn(gaia_txn_id_t begin_ts, log_offset_t log_offset);
 
-    static bool txn_logs_conflict(int log_fd1, int log_fd2);
+    static bool txn_logs_conflict(log_offset_t offset_1, log_offset_t offset_2);
 
     static void perform_pre_commit_work_for_txn();
 
@@ -452,9 +503,9 @@ private:
 
     static void apply_txn_log_from_ts(gaia_txn_id_t commit_ts);
 
-    static void gc_txn_log_from_fd(int log_fd, bool committed = true);
+    static void gc_txn_log_from_offset(log_offset_t offset, bool is_committed);
 
-    static void deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets = false);
+    static void deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets);
 
     // The following method pairs are used to work on a startup transaction.
 
@@ -472,49 +523,9 @@ private:
 
     static char* get_txn_metadata_page_address_from_ts(gaia_txn_id_t ts);
 
-    class invalid_log_fd : public common::gaia_exception
-    {
-    public:
-        explicit invalid_log_fd(gaia_txn_id_t commit_ts)
-            : m_commit_ts(commit_ts)
-        {
-        }
+    static inline bool acquire_txn_log_reference_from_commit_ts(gaia_txn_id_t commit_ts);
 
-        gaia_txn_id_t get_ts() const
-        {
-            return m_commit_ts;
-        }
-
-    private:
-        gaia_txn_id_t m_commit_ts{c_invalid_gaia_txn_id};
-    };
-
-    // This class allows txn code to safely use a txn log fd embedded in a
-    // commit_ts metadata entry even while it is concurrently invalidated (i.e.,
-    // the fd is closed and its embedded value is set to -1). The constructor
-    // throws an invalid_log_fd exception if the fd is invalidated during
-    // construction.
-    class safe_fd_from_ts_t
-    {
-    public:
-        inline explicit safe_fd_from_ts_t(gaia_txn_id_t commit_ts, bool auto_close_fd = true);
-
-        // The "rule of 3" doesn't apply here because we never pass this object
-        // directly to a function; we always extract the safe fd value first.
-        safe_fd_from_ts_t() = delete;
-        safe_fd_from_ts_t(const safe_fd_from_ts_t&) = delete;
-        safe_fd_from_ts_t& operator=(const safe_fd_from_ts_t&) = delete;
-        inline ~safe_fd_from_ts_t();
-
-        // This is the only public API. Callers are expected to call this method on
-        // a stack-constructed instance of the class before they pass an fd to a
-        // function that does not expect it to be concurrently closed.
-        inline int get_fd() const;
-
-    private:
-        int m_local_log_fd{-1};
-        bool m_auto_close_fd{true};
-    };
+    static inline void release_txn_log_reference_from_commit_ts(gaia_txn_id_t commit_ts);
 
     class safe_ts_failure : public common::gaia_exception
     {

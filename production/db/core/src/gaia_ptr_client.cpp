@@ -49,13 +49,6 @@ void gaia_ptr_t::reset()
     m_locator = c_invalid_gaia_locator;
 }
 
-// This trivial implementation is necessary to avoid calling into client_t code from the header file.
-std::shared_ptr<generator_t<gaia_id_t>>
-gaia_ptr_t::get_id_generator_for_type(gaia_type_t type)
-{
-    return client_t::get_id_generator_for_type(type);
-}
-
 db_object_t* gaia_ptr_t::to_ptr() const
 {
     client_t::verify_txn_active();
@@ -121,7 +114,7 @@ gaia_ptr_t gaia_ptr_t::create_no_txn(gaia_id_t id, gaia_type_t type, reference_o
     // TODO: this constructor allows creating a gaia_ptr_t in an invalid state;
     //  the db_object_t should either be initialized before and passed in
     //  or it should be initialized inside the constructor.
-    gaia_locator_t locator = allocate_locator();
+    gaia_locator_t locator = allocate_locator(type);
     hash_node_t* hash_node = db_hash_map::insert(id);
     hash_node->locator = locator;
     allocate_object(locator, total_payload_size);
@@ -130,7 +123,7 @@ gaia_ptr_t gaia_ptr_t::create_no_txn(gaia_id_t id, gaia_type_t type, reference_o
     obj_ptr->id = id;
     obj_ptr->type = type;
     obj_ptr->references_count = references_count;
-    if (references_count)
+    if (references_count > 0)
     {
         memset(obj_ptr->payload, 0, references_size);
     }

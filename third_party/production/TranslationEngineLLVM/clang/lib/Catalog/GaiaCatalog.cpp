@@ -42,9 +42,9 @@ bool clang::gaia::catalog::findNavigationPath(llvm::StringRef src, llvm::StringR
 }
 
 // This pointer is filled in either by gaiat invoking GaiaCatalog::create() (our main use case)
-// or by get() below when we are running clang standalone with gaia extensions enabled for the 
+// or by get() below when we are running clang standalone with gaia extensions enabled for the
 // LLVM parser tests.
-// 
+//
 // The create() and get() methods are not intended to be called concurrently.
 // If multi-threaded use of these APIs becomes a use-case then we'll need to
 // add synchronization around the initialization of this catalog instance pointer.
@@ -59,7 +59,7 @@ void GaiaCatalog::create(clang::DiagnosticsEngine& diag)
 GaiaCatalog& GaiaCatalog::get()
 {
     // If running under gaiat, s_catalog_ptr will be setup with the DiagnosticsEngine from the compiler
-    // instance that gaiat creates. Otherwise lazily create a DiagnosticEngine here and wrap a 
+    // instance that gaiat creates. Otherwise lazily create a DiagnosticEngine here and wrap a
     // catalog instance around it.
     if (!s_catalog_ptr)
     {
@@ -100,6 +100,7 @@ void GaiaCatalog::fillTableData()
                 continue;
             }
             CatalogTableData table_data;
+            table_data.dbName = table.database().name();
             m_catalogTableData[table.name()] = table_data;
         }
 
@@ -110,6 +111,13 @@ void GaiaCatalog::fillTableData()
             {
                 // TODO: Add better message. How does this happen?
                 m_diags.Report(diag::err_incorrect_table) << field.name();
+                m_catalogTableData.clear();
+                return;
+            }
+
+            if (field.repeated_count() > 1)
+            {
+                m_diags.Report(diag::err_incorrect_repeated_count) << field.name();
                 m_catalogTableData.clear();
                 return;
             }
@@ -126,8 +134,8 @@ void GaiaCatalog::fillTableData()
                 m_catalogTableData.clear();
                 return;
             }
-            CatalogTableData table_data = table_data_iterator->second;
-            if (table_data.fieldData.find(field.name()) != table_data.fieldData.end())
+
+            if (table_data_iterator->second.fieldData.find(field.name()) != table_data_iterator->second.fieldData.end())
             {
                 m_diags.Report(diag::err_duplicate_field) << field.name();
                 m_catalogTableData.clear();
@@ -137,10 +145,9 @@ void GaiaCatalog::fillTableData()
             field_data.isActive = field.active();
             field_data.position = field.position();
             field_data.isDeprecated = field.deprecated();
+            field_data.isArray = field.repeated_count() == 0;
             field_data.fieldType = static_cast<data_type_t>(field.type());
-            table_data.dbName = table.database().name();
-            table_data.fieldData[field.name()] = field_data;
-            m_catalogTableData[table.name()] = table_data;
+            table_data_iterator->second.fieldData[field.name()] = field_data;
         }
 
         for (const auto& relationship : gaia_relationship_t::list())
@@ -177,14 +184,16 @@ void GaiaCatalog::fillTableData()
             {
                 child_table.name(),
                 static_cast<relationship_cardinality_t>(relationship.cardinality()),
-                true
+                true,
+                relationship.parent_field_positions().size() > 0
             };
 
             CatalogLinkData to_parent_link =
             {
                 parent_table.name(),
                 relationship_cardinality_t::one,
-                false
+                false,
+                relationship.parent_field_positions().size() > 0
             };
 
             m_catalogTableData[parent_table.name()].linkData[relationship.to_child_link_name()] = to_child_link;

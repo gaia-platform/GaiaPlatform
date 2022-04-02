@@ -9527,10 +9527,10 @@ def err_declarative_label_statement_is_invalid : Error<
 def err_declarative_label_wrong_statement : Error<
   "The statement of the declarative label is not a declarative 'if' or 'for'.">;
 def err_duplicate_field : Error<
-  "Duplicate field '%0' found in multiple tables. Qualify your field with the "
-  "table name (table.field) to disambiguate field names that occur in more "
-  "than one table. You can also restrict the list of tables to search by "
-  "specifying them in the ruleset 'tables' attribute.">;
+  "The reference to field '%0' is ambiguous; the field '%0' is defined in multiple tables. "
+  "To disambiguate field names that occur in more than one table, qualify the field with the "
+  "table name (table.field). To restrict the list of tables to search, specify the tables "
+  "in the ruleset 'tables' attribute.">;
 def err_wrong_table_field : Error<
   "Field '%0' is defined in table '%1', which does not exist in the catalog."
   "Ensure that the catalog is in consistent state.">;
@@ -9565,6 +9565,8 @@ def err_incorrect_operator_expression_type : Error<
   "Incorrect operator expression type.">;
 def err_incorrect_table : Error<
   "Incorrect table for field '%0'.">;
+def err_incorrect_repeated_count : Error<
+  "Fixed size arrays are not supported for field '%0'.">;
 def err_incorrect_tag_use_in_path : Error<
   "Tag '%0' cannot be used in this context.">;
 def err_incorrect_operator_type : Error<

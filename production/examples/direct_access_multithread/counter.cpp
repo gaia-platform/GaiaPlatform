@@ -7,7 +7,6 @@
 ////////////////////////////////////////////////////
 
 #include <chrono>
-
 #include <random>
 #include <thread>
 #include <vector>

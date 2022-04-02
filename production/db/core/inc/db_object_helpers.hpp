@@ -31,10 +31,11 @@ inline db_object_t* create_object(
 {
     size_t ref_len = refs_count * sizeof(*refs);
     size_t total_len = obj_data_size + ref_len;
+    gaia_locator_t locator = allocate_locator(type);
     gaia::db::hash_node_t* hash_node = db_hash_map::insert(id);
-    hash_node->locator = allocate_locator();
-    gaia::db::allocate_object(hash_node->locator.load(), total_len);
-    db_object_t* obj_ptr = locator_to_ptr(hash_node->locator.load());
+    hash_node->locator = locator;
+    gaia::db::allocate_object(locator, total_len);
+    db_object_t* obj_ptr = locator_to_ptr(locator);
     obj_ptr->id = id;
     obj_ptr->type = type;
     obj_ptr->references_count = refs_count;
@@ -55,10 +56,11 @@ inline db_object_t* create_object(
     size_t refs_count, size_t obj_data_size,
     const void* obj_data)
 {
+    gaia_locator_t locator = allocate_locator(type);
     gaia::db::hash_node_t* hash_node = db_hash_map::insert(id);
-    hash_node->locator = allocate_locator();
-    gaia::db::allocate_object(hash_node->locator.load(), obj_data_size);
-    db_object_t* obj_ptr = locator_to_ptr(hash_node->locator.load());
+    hash_node->locator = locator;
+    gaia::db::allocate_object(locator, obj_data_size);
+    db_object_t* obj_ptr = locator_to_ptr(locator);
     obj_ptr->id = id;
     obj_ptr->type = type;
     obj_ptr->references_count = refs_count;

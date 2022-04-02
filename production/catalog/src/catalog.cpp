@@ -7,6 +7,7 @@
 
 #include <optional>
 
+#include "gaia_internal/catalog/ddl_execution.hpp"
 #include "gaia_internal/catalog/ddl_executor.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/exceptions.hpp"

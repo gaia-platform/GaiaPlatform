@@ -23,7 +23,6 @@ using namespace std;
 
 namespace gaia
 {
-
 namespace translation
 {
 
@@ -76,5 +75,6 @@ private:
     static navigation_code_data_t generate_navigation_code(llvm::StringRef anchor_table, llvm::StringRef anchor_variable, const llvm::StringSet<>& tables, const llvm::StringMap<string>& tags, string& last_table);
     static bool generate_navigation_step(llvm::StringRef source_table, llvm::StringRef source_field, llvm::StringRef destination_table, llvm::StringRef source_variable_name, llvm::StringRef variable_name, navigation_code_data_t& navigation_data);
 };
+
 } // namespace translation
 } // namespace gaia

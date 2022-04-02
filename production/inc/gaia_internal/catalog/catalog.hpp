@@ -50,16 +50,13 @@ const std::string c_empty_db_name = "";
 constexpr char c_db_table_name_connector = '.';
 
 const std::string c_catalog_db_name = "catalog";
-const std::string c_event_log_db_name = "event_log";
-const std::string c_event_log_table_name = "event_log";
+const std::string c_default_db_name = "";
 const std::string c_gaia_database_table_name = "gaia_database";
 const std::string c_gaia_table_table_name = "gaia_table";
 const std::string c_gaia_field_table_name = "gaia_field";
 const std::string c_gaia_relationship_table_name = "gaia_relationship";
 const std::string c_gaia_index_table_name = "gaia_index";
 const std::string c_gaia_ref_anchor_table_name = "gaia_ref_anchor";
-const std::string c_gaia_ruleset_table_name = "gaia_ruleset";
-const std::string c_gaia_rule_table_name = "gaia_rule";
 
 /*
  * The following enum classes are shared cross the catalog usage.
@@ -705,7 +702,7 @@ std::string generate_fdw_ddl(
 
 inline void check_not_system_db(const std::string& name)
 {
-    if (name == c_catalog_db_name || name == c_event_log_db_name)
+    if (name == c_catalog_db_name)
     {
         throw forbidden_system_db_operation_internal(name);
     }

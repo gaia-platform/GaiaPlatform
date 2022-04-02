@@ -51,18 +51,17 @@ private:
 
 constexpr size_t c_offset_buffer_size = 32;
 
-/*
+/**
  * Buffer storing data for garbage collecting offsets.
  */
-
 class index_offset_buffer_t
 {
 public:
-    void insert(gaia_offset_t offset, common::gaia_type_t type);
-    gaia_offset_t get_offset(size_t index) const;
-    common::gaia_type_t get_type(size_t index) const;
-    bool empty() const;
-    size_t size() const;
+    inline void insert(gaia_offset_t offset, common::gaia_type_t type);
+    inline gaia_offset_t get_offset(size_t index) const;
+    inline common::gaia_type_t get_type(size_t index) const;
+    inline size_t size() const;
+    inline bool empty() const;
 
 private:
     std::array<std::pair<gaia_offset_t, common::gaia_type_t>, c_offset_buffer_size> m_offsets = {};
@@ -105,6 +104,8 @@ public:
     index_writer_guard_t<T_structure> get_writer();
 
     std::shared_ptr<common::iterators::generator_t<index_record_t>> generator(gaia_txn_id_t txn_id) override;
+    std::shared_ptr<common::iterators::generator_t<index_record_t>> equal_range_generator(
+        gaia_txn_id_t txn_id, std::vector<char>&& key_storage, const index_key_t& key) override;
 
 protected:
     T_structure m_data;

@@ -14,7 +14,7 @@ include(UseJava)
 
 enable_testing()
 
-project(production VERSION 0.3.3)
+project(production VERSION 0.4.1)
 
 # Sets the pre-release version which will be appended to the
 # product version: 0.1.0-alpha.
@@ -30,6 +30,8 @@ option(BUILD_GAIA_SDK "Build Gaia SDK packages and binaries" OFF)
 option(ENABLE_SDK_TESTS "Build and execute ruleset translation tests" ON)
 
 option(EXPORT_SYMBOLS "Export symbols by default from shared libraries" OFF)
+
+option(ENABLE_PROFILING_SUPPORT "Instrument binaries for profiling" OFF)
 
 option(DISABLE_ASSERTS "Disable assertions" OFF)
 

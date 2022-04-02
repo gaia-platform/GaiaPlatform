@@ -129,7 +129,7 @@ private:
 
     void clone_no_txn();
 
-    static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> get_id_generator_for_type(common::gaia_type_t type);
+    static std::shared_ptr<common::iterators::generator_t<gaia_locator_t>> get_locator_generator_for_type(common::gaia_type_t type);
 
 private:
     gaia_locator_t m_locator{c_invalid_gaia_locator};
@@ -151,11 +151,11 @@ static_assert(
 class gaia_ptr_generator_t : public common::iterators::generator_t<gaia_ptr_t>
 {
 public:
-    explicit gaia_ptr_generator_t(std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> id_generator);
+    explicit gaia_ptr_generator_t(std::shared_ptr<common::iterators::generator_t<gaia_locator_t>> locator_generator);
     std::optional<gaia_ptr_t> operator()() final;
 
 private:
-    std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> m_id_generator;
+    std::shared_ptr<common::iterators::generator_t<gaia_locator_t>> m_locator_generator;
 };
 
 #include "gaia_ptr.inc"

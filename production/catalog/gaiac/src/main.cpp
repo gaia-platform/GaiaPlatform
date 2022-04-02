@@ -33,8 +33,9 @@ using namespace gaia::catalog::ddl;
 using namespace gaia::common;
 using namespace gaia::db;
 
+// Use unnamed namespace to restrict external linkage.
 namespace
-{ // Use unnamed namespace to restrict external linkage.
+{
 
 const string c_error_prompt = "ERROR: ";
 const string c_warning_prompt = "WARNING: ";
@@ -65,8 +66,6 @@ string trim(const string& s)
 
 void start_repl(parser_t& parser)
 {
-    initialize_catalog();
-
     const auto prompt = "gaiac> ";
     const auto wait_for_more_prompt = "> ";
     const auto exit_command = "exit";
@@ -446,11 +445,13 @@ int main(int argc, char* argv[])
 
     try
     {
-        gaia::db::begin_session();
+        gaia::db::begin_ddl_session();
         const auto session_cleanup = scope_guard::make_scope_guard(
             []() {
                 gaia::db::end_session();
             });
+
+        initialize_catalog();
 
         if (mode == operate_mode_t::interactive)
         {
@@ -458,8 +459,6 @@ int main(int argc, char* argv[])
         }
         else
         {
-            initialize_catalog();
-
             if (!ddl_filename.empty())
             {
                 load_catalog(parser, ddl_filename);

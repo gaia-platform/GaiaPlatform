@@ -1,0 +1,25 @@
+---
+name: Documentation
+
+on:
+  workflow_dispatch:
+env:
+  SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+  DEV_IMAGE: ghcr.io/gaia-platform/dev-base-gaia-platform:latest
+
+jobs:
+
+  Documentation:
+    runs-on: self-hosted
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Build Documentation
+        uses: ./.github/actions/documentation-job
+        with:
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          github-token: ${{ secrets.API_TOKEN_GITHUB }}

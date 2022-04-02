@@ -152,6 +152,12 @@ public:
     explicit configuration_error_internal(const char* filename);
 };
 
+class optional_value_not_found_internal : public optional_value_not_found
+{
+public:
+    optional_value_not_found_internal();
+};
+
 namespace logging
 {
 
@@ -201,6 +207,12 @@ class transaction_object_limit_exceeded_internal : public transaction_object_lim
 {
 public:
     transaction_object_limit_exceeded_internal();
+};
+
+class transaction_log_allocation_failure_internal : public transaction_log_allocation_failure
+{
+public:
+    transaction_log_allocation_failure_internal();
 };
 
 class duplicate_object_id_internal : public duplicate_object_id
@@ -253,6 +265,12 @@ public:
         common::gaia_type_t expected_type,
         const char* expected_typename,
         common::gaia_type_t actual_type);
+};
+
+class type_limit_exceeded_internal : public type_limit_exceeded
+{
+public:
+    type_limit_exceeded_internal();
 };
 
 class session_limit_exceeded_internal : public session_limit_exceeded

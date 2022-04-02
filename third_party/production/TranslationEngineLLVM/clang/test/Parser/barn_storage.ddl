@@ -77,7 +77,8 @@ create relationship if not exists incubator_raised (
 
 create table if not exists yield (
     crop_name string,
-    bushels uint32
+    bushels uint32,
+    previous_years uint32[]
 );
 
 create relationship if not exists farmer_yield (
@@ -112,7 +113,8 @@ create relationship if not exists animal_feeding (
 );
 
 create table if not exists isolated (
-    age uint32
+    age uint32,
+    history int32[]
 );
 
 create table if not exists hyperconnected (
@@ -140,3 +142,22 @@ table detection (
 table d_object (
     detection references detection
 )
+
+create table if not exists student (
+    student_id string unique,
+    surname string
+);
+
+table registration (
+    reg_id string,
+    student_id string,
+    course_id string,
+    status string,
+    grade float
+);
+
+relationship student_reg (
+    student.registrations -> registration[],
+    registration.registered_student -> student,
+    using registration(student_id), student(student_id)
+);

@@ -659,11 +659,11 @@ bool scan_state_t::initialize_scan()
 {
     try
     {
-        m_current_record = gaia_ptr_t::find_first(m_container_id);
+        m_iterator = gaia_ptr_t::find_all_iterator(m_container_id);
 
-        if (m_current_record)
+        if (m_iterator)
         {
-            m_current_payload = reinterpret_cast<uint8_t*>(m_current_record.data());
+            m_current_payload = reinterpret_cast<uint8_t*>(m_iterator->data());
         }
 
         return true;
@@ -682,7 +682,7 @@ bool scan_state_t::initialize_scan()
 
 bool scan_state_t::has_scan_ended()
 {
-    return !m_current_record;
+    return !m_iterator;
 }
 
 NullableDatum scan_state_t::extract_field_value(size_t field_index)
@@ -705,12 +705,12 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
 
         if (is_gaia_id_field_index(field_index))
         {
-            field_value.value = UInt64GetDatum(m_current_record.id());
+            field_value.value = UInt64GetDatum(m_iterator->id());
         }
         else if (m_fields[field_index].is_reference)
         {
             reference_offset_t reference_offset = m_fields[field_index].position;
-            if (reference_offset >= m_current_record.references_count())
+            if (reference_offset >= m_iterator->references_count())
             {
                 ereport(
                     ERROR,
@@ -720,8 +720,8 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
                          reference_offset, get_table_name())));
             }
 
-            gaia_id_t anchor_id = m_current_record.references()[reference_offset];
-            if (anchor_id == c_invalid_gaia_id)
+            gaia_id_t anchor_id = m_iterator->references()[reference_offset];
+            if (!anchor_id.is_valid())
             {
                 field_value.value = UInt64GetDatum(c_invalid_gaia_id);
                 field_value.isnull = true;
@@ -732,7 +732,7 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
                 field_value.value = UInt64GetDatum(reference_id);
 
                 // If the reference id is invalid, surface the value as NULL.
-                if (reference_id == c_invalid_gaia_id)
+                if (!reference_id.is_valid())
                 {
                     field_value.isnull = true;
                 }
@@ -810,11 +810,11 @@ bool scan_state_t::scan_forward()
     {
         ASSERT_PRECONDITION(!has_scan_ended(), "Attempt to scan forward after scan has ended!");
 
-        m_current_record = m_current_record.find_next();
+        ++m_iterator;
 
-        if (m_current_record)
+        if (m_iterator)
         {
-            m_current_payload = reinterpret_cast<uint8_t*>(m_current_record.data());
+            m_current_payload = reinterpret_cast<uint8_t*>(m_iterator->data());
         }
 
         return has_scan_ended();
@@ -1088,7 +1088,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
                 // If inserting a new record or if the existing reference is not set,
                 // we can just leave the reference unset.
                 if (modify_operation_type == modify_operation_type_t::insert
-                    || old_reference_id == c_invalid_gaia_id)
+                    || !old_reference_id.is_valid())
                 {
                     continue;
                 }
@@ -1100,7 +1100,7 @@ bool modify_state_t::modify_record(uint64_t gaia_id, modify_operation_type_t mod
             {
                 gaia_id_t new_reference_id = DatumGetUInt64(m_fields[i].value_to_set.value);
 
-                if (new_reference_id == c_invalid_gaia_id)
+                if (!new_reference_id.is_valid())
                 {
                     ereport(
                         ERROR,

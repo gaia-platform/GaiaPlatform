@@ -105,7 +105,9 @@ public:
         insert_station(station_id_t::inbound);
 
         auto pallet_bot = robot_t::get(insert_robot(c_sole_robot_id));
-        charging_station.robots().connect(pallet_bot);
+        robot_writer robot_w = pallet_bot.writer();
+        robot_w.station_id = static_cast<int>(station_id_t::charging);
+        robot_w.update_row();
         txn.commit();
     }
 

@@ -6,33 +6,45 @@
 #pragma once
 
 #include "gaia/exception.hpp"
+#include "gaia/optional.hpp"
 
 #include "gaia_spdlog/spdlog.h"
 
 // Export all symbols declared in this file.
 #pragma GCC visibility push(default)
 
+/**
+ * @defgroup logging logging
+ * @ingroup common
+ * Logging namespace
+ */
+
 namespace gaia
 {
 /**
- * \addtogroup gaia
+ * @addtogroup gaia
  * @{
  */
 namespace common
 {
 /**
- * \addtogroup common
+ * @addtogroup common
  * @{
  */
 namespace logging
 {
 /**
- * \addtogroup logging
+ * @addtogroup logging
  * @{
  */
 
+// Forward declarations of internal classes.
+class internal_logger_t;
+
 /**
- * Gaia logging API. Logging is performed via instances of logger_t.
+ * @brief Gaia logging API.
+ *
+ * Logging is performed via instances of logger_t.
  * Direct instantiation of logger_t is disabled. You can access predefined instances
  * of logger_t using the methods provided in this namespace (i.e. app()).
  *
@@ -61,16 +73,6 @@ namespace logging
  *      int num = very_slow_function();
  *      gaia_log::app().debug("value: {}", num);
  *  }
- *
- * \addtogroup Logging
- * @{
- */
-
-// Forward declarations of internal classes.
-class internal_logger_t;
-
-/**
- * Gaia Logger API.
  */
 class logger_t
 {
@@ -201,14 +203,34 @@ private:
  */
 logger_t& app();
 
-/*@}*/
+/**@}*/
 } // namespace logging
-/*@}*/
+/**@}*/
 } // namespace common
-/*@}*/
+/**@}*/
 } // namespace gaia
 
 namespace gaia_log = gaia::common::logging;
+
+GAIA_FMT_BEGIN_NAMESPACE
+/**
+ * Formatter to allow logging gaia::common::optional_t types.
+ */
+template <typename T>
+struct formatter<gaia::common::optional_t<T>> : formatter<T>
+{
+    template <typename FormatContext>
+    auto format(gaia::common::optional_t<T> optional, FormatContext& ctx)
+    {
+        if (!optional.has_value())
+        {
+            formatter<string_view> str_formatter;
+            return str_formatter.format("<missing>", ctx);
+        }
+        return formatter<T>::format(optional.value(), ctx);
+    }
+};
+GAIA_FMT_END_NAMESPACE
 
 // Restore default hidden visibility for all symbols.
 #pragma GCC visibility pop

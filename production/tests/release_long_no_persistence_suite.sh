@@ -21,6 +21,10 @@ TEST_WORKLOADS=("largest-scale")
 USE_PERSISTENT_DATABASE=0
 
 # Invoke the actual execution of the suites.
-# shellcheck source=execute_suites.sh
+# Invoke the actual execution of the suites.
+# Shellcheck has issues following dynamic paths to validate files. There is an open github
+# issue (2176) in the koalaman/shellcheck repo to use the active path to check the soure files.
+# Until then disable this check.
+# shellcheck disable=SC1091
 source "$SCRIPTPATH/execute_suites.sh"
 execute_suites "$@"

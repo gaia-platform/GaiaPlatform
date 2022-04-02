@@ -1,0 +1,17 @@
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
+
+// RUN: not %gaiat %s -- 2>&1| FileCheck  %s
+
+// TESTCASE: assign to scalar value not in table
+ruleset test00
+{
+    on_insert(farmer)
+    {
+        farmer.previous_years[0] = 5;
+    }
+}
+
+// CHECK: error: no member named 'previous_years' in 'farmer_{{([a-z, 0-9]{32})}}__type'

@@ -1,0 +1,42 @@
+# Title:      Lint Job Action
+# Purpose:    To run any static analysis checks across the product repository.
+# Prereqs:    - `actions/checkout`
+# Inputs:     - `gaia-repo` - root of the GAIA repository on the file system
+#             - `job-name` - name of the job that contains the call to this action
+# Notes:      - None
+---
+name: 'Lint Job'
+description: 'Execute any quick static analysis checks.'
+inputs:
+  gaia-repo:
+    description: 'Repository location'
+    required: true
+runs:
+  using: "composite"
+  steps:
+
+    - name: Setup Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install Required Python Packages
+      shell: bash
+      run: |
+        python3 -m pip install pre-commit
+
+#    - name: Set Cache Key for Pre-Commit Checks
+#      shell: bash
+#      run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
+
+#    - name: Apply Pre-Commit Checks Cache
+#      uses: actions/cache@v2
+#      with:
+#        path: ~/.cache/pre-commit
+#        key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+
+    - name: Execute Pre-Commit Checks
+      shell: bash
+      run: |
+        cd ${{ inputs.gaia-repo }}/production
+        pre-commit run --all-files

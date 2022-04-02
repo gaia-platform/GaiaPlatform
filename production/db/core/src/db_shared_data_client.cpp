@@ -4,7 +4,11 @@
 /////////////////////////////////////////////
 
 #include "db_client.hpp"
+#include "db_helpers.hpp"
 #include "db_shared_data.hpp"
+
+const bool gaia::db::c_is_running_on_server = false;
+const bool gaia::db::c_is_running_on_client = true;
 
 gaia::db::locators_t* gaia::db::get_locators()
 {
@@ -57,6 +61,20 @@ gaia::db::data_t* gaia::db::get_data()
     return gaia::db::client_t::s_shared_data.data();
 }
 
+gaia::db::logs_t* gaia::db::get_logs()
+{
+    // Since we don't use this accessor in the client itself, we can assert that
+    // it is always non-null (since callers should never be able to observe it
+    // in its null state, i.e., with the data segment unmapped).
+
+    if (!gaia::db::client_t::s_shared_logs.is_set())
+    {
+        throw no_open_session_internal();
+    }
+
+    return gaia::db::client_t::s_shared_logs.data();
+}
+
 gaia::db::id_index_t* gaia::db::get_id_index()
 {
     // Since we don't use this accessor in the client itself, we can assert that
@@ -69,6 +87,20 @@ gaia::db::id_index_t* gaia::db::get_id_index()
     }
 
     return gaia::db::client_t::s_shared_id_index.data();
+}
+
+gaia::db::type_index_t* gaia::db::get_type_index()
+{
+    // Since we don't use this accessor in the client itself, we can assert that
+    // it is always non-null (since callers should never be able to observe it
+    // in its null state, i.e., with the type_index segment unmapped).
+
+    if (!gaia::db::client_t::s_shared_type_index.is_set())
+    {
+        throw no_open_session_internal();
+    }
+
+    return gaia::db::client_t::s_shared_type_index.data();
 }
 
 gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id()
@@ -91,7 +123,11 @@ gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager()
     return &gaia::db::client_t::s_chunk_manager;
 }
 
-gaia::db::mapped_log_t* gaia::db::get_mapped_log()
+gaia::db::txn_log_t* gaia::db::get_txn_log()
 {
-    return &gaia::db::client_t::s_log;
+    if (gaia::db::client_t::s_txn_log_offset == gaia::db::c_invalid_log_offset)
+    {
+        throw no_open_session_internal();
+    }
+    return gaia::db::get_txn_log_from_offset(gaia::db::client_t::s_txn_log_offset);
 }

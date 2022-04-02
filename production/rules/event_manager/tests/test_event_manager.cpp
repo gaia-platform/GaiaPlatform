@@ -392,19 +392,19 @@ struct rule_decl_t
  */
 static const rule_decl_t c_rule_decl[] = {
     // TODO[GAIAPLAT-445] We don't expose deleted row events
-    // {{c_ruleset1_name, c_rule1_name, test_gaia_t::s_gaia_type, event_type_t::row_delete, 0, 1}, rule1},
-    // {{c_ruleset1_name, c_rule2_name, test_gaia_t::s_gaia_type, event_type_t::row_delete, 0, 2}, rule2},
-    {{c_ruleset1_name, c_rule2_name, test_gaia_t::s_gaia_type, event_type_t::row_insert, 0, 2}, rule2},
-    {{c_ruleset1_name, c_rule1_name, test_gaia_t::s_gaia_type, event_type_t::row_update, 0, 1}, rule1},
-    {{c_ruleset2_name, c_rule3_name, test_gaia_other_t::s_gaia_type, event_type_t::row_insert, 0, 30}, rule3},
-    {{c_ruleset2_name, c_rule4_name, test_gaia_other_t::s_gaia_type, event_type_t::row_insert, 0, 40}, rule4},
+    // {{c_ruleset1_name, c_rule1_name, test_gaia_t::s_gaia_type, event_type_t::row_delete, gaia::common::c_invalid_field_position, 1}, rule1},
+    // {{c_ruleset1_name, c_rule2_name, test_gaia_t::s_gaia_type, event_type_t::row_delete, gaia::common::c_invalid_field_position, 2}, rule2},
+    {{c_ruleset1_name, c_rule2_name, test_gaia_t::s_gaia_type, event_type_t::row_insert, gaia::common::c_invalid_field_position, 2}, rule2},
+    {{c_ruleset1_name, c_rule1_name, test_gaia_t::s_gaia_type, event_type_t::row_update, gaia::common::c_invalid_field_position, 1}, rule1},
+    {{c_ruleset2_name, c_rule3_name, test_gaia_other_t::s_gaia_type, event_type_t::row_insert, gaia::common::c_invalid_field_position, 30}, rule3},
+    {{c_ruleset2_name, c_rule4_name, test_gaia_other_t::s_gaia_type, event_type_t::row_insert, gaia::common::c_invalid_field_position, 40}, rule4},
     {{c_ruleset1_name, c_rule1_name, test_gaia_other_t::s_gaia_type, event_type_t::row_update, c_first_name, 1}, rule1},
     {{c_ruleset1_name, c_rule2_name, test_gaia_other_t::s_gaia_type, event_type_t::row_update, c_last_name, 2}, rule2}
-    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_begin, 0, 30}, rule3},
-    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_commit, 0, 30}, rule3},
-    //{{ruleset2_name, rule4_name, 0, event_type_t::transaction_commit, 0, 40}, rule4},
-    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_rollback, 0, 30}, rule3},
-    //{{ruleset2_name, rule4_name, 0, event_type_t::transaction_rollback, 0, 40}, rule4}
+    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_begin, gaia::common::c_invalid_field_position, 30}, rule3},
+    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_commit, gaia::common::c_invalid_field_position, 30}, rule3},
+    //{{ruleset2_name, rule4_name, 0, event_type_t::transaction_commit, gaia::common::c_invalid_field_position, 40}, rule4},
+    //{{ruleset2_name, rule3_name, 0, event_type_t::transaction_rollback, gaia::common::c_invalid_field_position, 30}, rule3},
+    //{{ruleset2_name, rule4_name, 0, event_type_t::transaction_rollback, gaia::common::c_invalid_field_position, 40}, rule4}
 };
 
 /**
@@ -539,50 +539,13 @@ public:
             gaia_type_t gaia_type = decl.sub.gaia_type;
             field_position_list_t fields;
 
-            if (decl.sub.field)
+            if (decl.sub.field.is_valid())
             {
                 fields.emplace_back(decl.sub.field);
             }
             subscribe_rule(gaia_type, event, fields, binding);
         }
     }
-
-    /*
-    // event log table helpers
-    uint64_t clear_event_log()
-    {
-        uint64_t rows_cleared = 0;
-        gaia::db::begin_transaction();
-        auto entry = *(gaia::event_log::event_log_t::list().begin());
-        while (entry)
-        {
-            entry.delete_row();
-            entry = *(gaia::event_log::event_log_t::list().begin());
-            rows_cleared++;
-        }
-        gaia::db::commit_transaction();
-        return rows_cleared;
-    }
-
-    void verify_event_log_row(
-        const gaia::event_log::event_log_t& row, event_type_t event_type,
-        gaia_type_t gaia_type, gaia_id_t record_id, uint16_t column_id, bool rules_invoked)
-    {
-        EXPECT_EQ(row.event_type(), (uint32_t)event_type);
-        EXPECT_EQ(row.type_id(), gaia_type);
-        EXPECT_EQ(row.record_id(), record_id);
-        EXPECT_EQ(row.column_id(), column_id);
-        EXPECT_EQ(row.rules_invoked(), rules_invoked);
-    }
-
-    void verify_event_log_is_empty()
-    {
-        gaia::db::begin_transaction();
-        auto entry = *(gaia::event_log::event_log_t::list().begin());
-        EXPECT_FALSE((bool)entry);
-        gaia::db::commit_transaction();
-    }
-    */
 
 protected:
     static void SetUpTestSuite()

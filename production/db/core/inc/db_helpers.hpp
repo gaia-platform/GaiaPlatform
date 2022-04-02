@@ -32,19 +32,13 @@ inline common::gaia_id_t allocate_id()
     return ++(counters->last_id);
 }
 
-inline common::gaia_type_t allocate_type()
-{
-    counters_t* counters = gaia::db::get_counters();
-    return ++(counters->last_type_id);
-}
-
 inline gaia_txn_id_t allocate_txn_id()
 {
     counters_t* counters = gaia::db::get_counters();
     return ++(counters->last_txn_id);
 }
 
-inline gaia_locator_t allocate_locator()
+inline gaia_locator_t allocate_locator(common::gaia_type_t type)
 {
     counters_t* counters = gaia::db::get_counters();
 
@@ -53,7 +47,12 @@ inline gaia_locator_t allocate_locator()
         throw system_object_limit_exceeded_internal();
     }
 
-    return ++(counters->last_locator);
+    gaia_locator_t locator = ++(counters->last_locator);
+
+    type_index_t* type_index = get_type_index();
+    type_index->add_locator(type, locator);
+
+    return locator;
 }
 
 inline void update_locator(gaia_locator_t locator, gaia_offset_t offset)
@@ -68,7 +67,7 @@ inline bool locator_exists(gaia_locator_t locator)
     locators_t* locators = gaia::db::get_locators();
     counters_t* counters = gaia::db::get_counters();
 
-    return (locator != c_invalid_gaia_locator)
+    return (locator.is_valid())
         && (locator <= counters->last_locator)
         && ((*locators)[locator] != c_invalid_gaia_offset);
 }
@@ -77,14 +76,14 @@ inline gaia_offset_t locator_to_offset(gaia_locator_t locator)
 {
     locators_t* locators = gaia::db::get_locators();
     return locator_exists(locator)
-        ? (*locators)[locator].load()
-        : c_invalid_gaia_offset.value();
+        ? (*locators)[locator]
+        : c_invalid_gaia_offset;
 }
 
 inline db_object_t* offset_to_ptr(gaia_offset_t offset)
 {
     data_t* data = gaia::db::get_data();
-    return (offset != c_invalid_gaia_offset)
+    return (offset.is_valid())
         ? reinterpret_cast<db_object_t*>(&data->objects[offset])
         : nullptr;
 }
@@ -102,13 +101,26 @@ inline gaia_txn_id_t get_last_txn_id()
     return counters->last_txn_id.load();
 }
 
-inline void apply_log_to_locators(locators_t* locators, txn_log_t* log)
+inline void apply_log_to_locators(locators_t* locators, txn_log_t* txn_log, size_t starting_log_record_index = 0)
 {
-    for (size_t i = 0; i < log->record_count; ++i)
+    for (size_t i = starting_log_record_index; i < txn_log->record_count; ++i)
     {
-        auto& record = log->log_records[i];
-        (*locators)[record.locator] = record.new_offset;
+        auto log_record = &(txn_log->log_records[i]);
+        (*locators)[log_record->locator] = log_record->new_offset;
     }
+}
+
+inline gaia::db::txn_log_t* get_txn_log_from_offset(log_offset_t offset)
+{
+    ASSERT_PRECONDITION(offset != gaia::db::c_invalid_log_offset, "Txn log offset is invalid!");
+    gaia::db::logs_t* logs = gaia::db::get_logs();
+    return &((*logs)[offset]);
+}
+
+inline void apply_log_from_offset(locators_t* locators, log_offset_t log_offset, size_t starting_log_record_index = 0)
+{
+    txn_log_t* txn_log = get_txn_log_from_offset(log_offset);
+    apply_log_to_locators(locators, txn_log, starting_log_record_index);
 }
 
 inline index::db_index_t id_to_index(common::gaia_id_t index_id)
@@ -130,7 +142,7 @@ inline void allocate_object(
     // The allocation can fail either because there is no current chunk, or
     // because the current chunk is full.
     gaia_offset_t object_offset = chunk_manager->allocate(size + c_db_object_header_size);
-    if (object_offset == c_invalid_gaia_offset)
+    if (!object_offset.is_valid())
     {
         if (chunk_manager->initialized())
         {
@@ -147,7 +159,7 @@ inline void allocate_object(
 
         // Allocate a new chunk.
         memory_manager::chunk_offset_t new_chunk_offset = memory_manager->allocate_chunk();
-        if (new_chunk_offset == memory_manager::c_invalid_chunk_offset)
+        if (!new_chunk_offset.is_valid())
         {
             throw memory_allocation_error_internal();
         }
@@ -160,11 +172,23 @@ inline void allocate_object(
     }
 
     ASSERT_POSTCONDITION(
-        object_offset != c_invalid_gaia_offset,
+        object_offset.is_valid(),
         "Allocation from chunk was not expected to fail!");
 
     // Update locator array to point to the new offset.
     update_locator(locator, object_offset);
+}
+
+inline bool acquire_txn_log_reference(log_offset_t log_offset, gaia_txn_id_t begin_ts)
+{
+    txn_log_t* txn_log = get_txn_log_from_offset(log_offset);
+    return txn_log->acquire_reference(begin_ts);
+}
+
+inline void release_txn_log_reference(log_offset_t log_offset, gaia_txn_id_t begin_ts)
+{
+    txn_log_t* txn_log = get_txn_log_from_offset(log_offset);
+    txn_log->release_reference(begin_ts);
 }
 
 } // namespace db

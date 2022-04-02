@@ -10,7 +10,7 @@ constexpr char c_message_not_a_commit_timestamp[] = "Not a commit timestamp!";
 txn_metadata_t::txn_metadata_t(gaia_txn_id_t ts)
     : m_ts(ts)
 {
-    ASSERT_PRECONDITION(m_ts != c_invalid_gaia_txn_id, "Invalid txn timestamp!");
+    ASSERT_PRECONDITION(m_ts.is_valid(), "Invalid txn timestamp!");
     txn_metadata_entry_t::check_ts_size(m_ts);
 }
 
@@ -169,7 +169,7 @@ std::optional<txn_metadata_t> txn_metadata_t::get_commit_ts_metadata()
 {
     ASSERT_PRECONDITION(is_begin_ts(), "Not a begin timestamp!");
     gaia_txn_id_t commit_ts = get_entry().get_timestamp();
-    if (commit_ts != c_invalid_gaia_txn_id)
+    if (commit_ts.is_valid())
     {
         return txn_metadata_t(commit_ts);
     }
@@ -187,38 +187,9 @@ gaia_txn_id_t txn_metadata_t::get_commit_ts_from_begin_ts(gaia_txn_id_t begin_ts
     return commit_ts_metadata ? commit_ts_metadata->get_timestamp() : c_invalid_gaia_txn_id;
 }
 
-int txn_metadata_t::get_txn_log_fd()
+db::log_offset_t txn_metadata_t::get_txn_log_offset()
 {
-    return get_entry().get_log_fd();
-}
-
-bool txn_metadata_t::invalidate_txn_log_fd()
-{
-    // We need a CAS because only one thread can be allowed to invalidate the fd
-    // entry and hence to close the fd.
-    while (true)
-    {
-        txn_metadata_entry_t expected_value{
-            get_entry()};
-
-        // If this metadata entry was already invalidated, then return failure.
-        if (expected_value.get_log_fd() == -1)
-        {
-            return false;
-        }
-
-        txn_metadata_entry_t desired_value{
-            expected_value.invalidate_log_fd()};
-        txn_metadata_entry_t actual_value{
-            compare_exchange(expected_value, desired_value)};
-
-        if (actual_value == expected_value)
-        {
-            break;
-        }
-    }
-
-    return true;
+    return get_entry().get_log_offset();
 }
 
 void txn_metadata_t::set_active_txn_submitted(gaia_txn_id_t commit_ts)
@@ -330,19 +301,14 @@ bool txn_metadata_t::seal_if_uninitialized()
     return true;
 }
 
-int txn_metadata_t::get_txn_log_fd(gaia_txn_id_t commit_ts)
+db::log_offset_t txn_metadata_t::get_txn_log_offset(gaia_txn_id_t commit_ts)
 {
-    return txn_metadata_t(commit_ts).get_txn_log_fd();
+    return txn_metadata_t(commit_ts).get_txn_log_offset();
 }
 
 bool txn_metadata_t::seal_uninitialized_ts(gaia_txn_id_t ts)
 {
     return txn_metadata_t(ts).seal_if_uninitialized();
-}
-
-bool txn_metadata_t::invalidate_txn_log_fd(gaia_txn_id_t commit_ts)
-{
-    return txn_metadata_t(commit_ts).invalidate_txn_log_fd();
 }
 
 void txn_metadata_t::set_active_txn_submitted(gaia_txn_id_t begin_ts, gaia_txn_id_t commit_ts)

@@ -47,8 +47,10 @@ show_usage() {
 
     echo "Usage: $(basename "$SCRIPT_NAME") [flags]"
     echo "Flags:"
+    echo "  -d,--db-persistence Whether the database is started with persistence enabled or disabled."
     echo "  -j,--job-name       GitHub Actions job that this script is being invoked from."
     echo "  -r,--repo-path      Base path of the repository to generate from."
+    echo "  -s,--suite-name     Name of the integration test suite to execute."
     echo "  -v,--verbose        Display detailed information during execution."
     echo "  -h,--help           Display this help text."
     echo ""
@@ -61,9 +63,20 @@ parse_command_line() {
     JOB_NAME=
     GAIA_REPO=
     PACKAGE_PATH=
+    SUITE_NAME=
+    PERSISTENCE_MODE=0
     PARAMS=()
     while (( "$#" )); do
     case "$1" in
+        -d|--db-persistence)
+            if [ -z "$2" ] ; then
+                echo "Error: Argument $1 must be followed by either 'enabled' or 'disabled'." >&2
+                show_usage
+            fi
+            PERSISTENCE_MODE=$2
+            shift
+            shift
+        ;;
         -r|--repo-path)
             if [ -z "$2" ] ; then
                 echo "Error: Argument $1 must be followed by the path to the repository." >&2
@@ -88,6 +101,15 @@ parse_command_line() {
                 show_usage
             fi
             PACKAGE_PATH=$2
+            shift
+            shift
+        ;;
+        -s|--suite-name)
+            if [ -z "$2" ] ; then
+                echo "Error: Argument $1 must be followed by the integration suite name to execute." >&2
+                show_usage
+            fi
+            SUITE_NAME=$2
             shift
             shift
         ;;
@@ -121,6 +143,18 @@ parse_command_line() {
         echo "Error: Argument -j/--job-name is required" >&2
         show_usage
     fi
+    if [ "$JOB_NAME" != "Integration_Samples" ] ; then
+        if [ -z "$SUITE_NAME" ] ; then
+            echo "Error: Argument -s/--suite-name is required for non-Integration_Samples jobs." >&2
+            show_usage
+        fi
+        if [ -n "$PERSISTENCE_MODE" ] ; then
+            if [ "$PERSISTENCE_MODE" != "enabled" ] && [ "$PERSISTENCE_MODE" != "disabled" ] ; then
+                echo "Error: Argument -d/--db-persistence must be 'enabled' or 'disabled'." >&2
+                show_usage
+            fi
+        fi
+    fi
 }
 
 # Save the current directory when starting the script, so we can go back to that
@@ -147,47 +181,104 @@ start_process
 save_current_directory
 
 # Ensure we have a predicatable place to place output that we want to expose.
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Creating test output directory."
+fi
+
 if ! mkdir -p "$GAIA_REPO/production/tests/results" ; then
     complete_process 1 "Unable to create an output directory for '$JOB_NAME'."
 fi
 
+if ! mkdir -p "$GAIA_REPO/production/tests/staging" ; then
+    complete_process 1 "Unable to create a staging directory for '$JOB_NAME'."
+fi
+
+if [ "$VERBOSE_MODE" -ne 0 ]; then
+    echo "Looking for Debian package to install..."
+fi
 cd "$PACKAGE_PATH" || exit
 # shellcheck disable=SC2061
-sudo apt --assume-yes install "$(find . -name gaia*)"
+INSTALL_PATH="$(find . -name gaia-*.deb)"
+if [[ -z "$INSTALL_PATH" ]] ; then
+    ls -la "$PACKAGE_PATH"
+    complete_process 1 "Debian package to install could not be found."
+fi
 
 ## PER JOB CONFIGURATION ##
 
-if [ "$JOB_NAME" == "Integration_Smoke" ] ; then
+if [[ "$JOB_NAME" == Integration_Tests* ]] || [[ "$JOB_NAME" == "Performance_Tests" ]] ; then
 
-    sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop --database
+    cd "$GAIA_REPO/production/tests" || exit
+
+    if ! "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop --database ; then
+        complete_process 1 "Stopping of the database before execution of integration tests failed."
+    fi
+
+    PERSISTENCE_FLAG=
+    if [ "$PERSISTENCE_MODE" == "enabled" ] ; then
+        PERSISTENCE_FLAG="--persistence"
+        echo "  using a persistent database."
+    else
+        echo "  using a non-persistent database."
+    fi
 
     DID_FAIL=0
-    if ! "$GAIA_REPO/production/tests/smoke_suites.sh" --verbose ; then
+    if ! ./suite.sh --verbose --json --database $PERSISTENCE_FLAG --memory "$SUITE_NAME" ; then
         DID_FAIL=1
     fi
-    cp -a "$GAIA_REPO/production/tests/suites" "$GAIA_REPO/production/tests/results"
-    if [ $DID_FAIL -ne 0 ] ; then
-        complete_process 1 "Tests for job '$JOB_NAME' failed  See job artifacts for more information."
-    fi
 
-elif [ "$JOB_NAME" == "Integration_Smoke_Persistence" ] ; then
-
-    sudo "$GAIA_REPO/production/tests/reset_database.sh" --verbose --stop --database
-
-    DID_FAIL=0
-    if ! "$GAIA_REPO/production/tests/smoke_suites_with_persistence.sh" --verbose ; then
-        DID_FAIL=1
-    fi
-    cp -a "$GAIA_REPO/production/tests/suites" "$GAIA_REPO/production/tests/results"
+    cp -a "$GAIA_REPO/production/tests/suite-results" "$GAIA_REPO/production/tests/results"
     if [ $DID_FAIL -ne 0 ] ; then
         complete_process 1 "Tests for job '$JOB_NAME' failed  See job artifacts for more information."
     fi
 
 elif [ "$JOB_NAME" == "Integration_Samples" ] ; then
 
-    cd "$GAIA_REPO/dev_tools/sdk/test" || exit
-    if ! sudo bash -c "./build_sdk_samples.sh > \"$GAIA_REPO/production/tests/results/test.log\"" ; then
-        complete_process 1 "Tests for job '$JOB_NAME' failed  See job artifacts for more information."
+    # Place the files we need accessible to our docker container into the staging
+    # directory.
+    cp "${GAIA_REPO}/dev_tools/sdk/test/"* "${GAIA_REPO}/production/tests/staging/"
+    cp "${INSTALL_PATH}" "${GAIA_REPO}/production/tests/staging"
+
+    # Only run sample tests instead of the other integration tests
+    cd "${GAIA_REPO}/production/tests/staging" || exit
+
+    # Build our empty ubuntu20 container with cmake and clang
+    if ! docker buildx build \
+        -f Dockerfile_gaia_ubuntu_20 \
+        -t gaia_ubuntu_20 \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        --platform linux/amd64 \
+        --shm-size 1gb \
+        --ssh default \
+        --compress \
+        . ; then
+        complete_process 1 "Docker build for job failed (gaia_ubuntu_20)."
+    fi
+
+    echo "Install path = ${INSTALL_PATH}"
+
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Executing the Integration Samples tests."
+    fi
+
+    # Now build our SDK container which will run the samples script
+    if ! docker buildx build \
+        -f Dockerfile_gaia_sdk_20 \
+        -t gaia_sdk_20 \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        --build-arg gaia_sdk_deb="${INSTALL_PATH}" \
+        --platform linux/amd64 \
+        --no-cache \
+        --shm-size 1gb \
+        --ssh default \
+        --progress=plain \
+        --compress \
+        . ; then
+        complete_process 1 "Docker build for job failed (gaia_sdk_20)."
+    fi
+
+    if [ "$VERBOSE_MODE" -ne 0 ]; then
+        echo "Integration Sample tests executed successfully."
     fi
 fi
 

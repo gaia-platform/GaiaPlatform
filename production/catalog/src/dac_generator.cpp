@@ -11,8 +11,7 @@
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/catalog_facade.hpp"
-
-#include "gaiac_catalog_facade.hpp"
+#include "gaia_internal/gaiac/catalog_facade.hpp"
 
 namespace gaia
 {
@@ -101,6 +100,7 @@ std::string dac_compilation_unit_writer_t::generate_close_header_guard()
 std::string dac_compilation_unit_writer_t::generate_includes()
 {
     flatbuffers::CodeWriter code = create_code_writer();
+    code += "#include <gaia/optional.hpp>";
     code += "#include <gaia/direct_access/dac_object.hpp>";
     code += "#include <gaia/direct_access/dac_iterators.hpp>";
     code += "#include \"{{DBNAME}}_generated.h\"";
@@ -161,7 +161,7 @@ std::string dac_compilation_unit_writer_t::generate_constants()
 
         for (const auto& incoming_link : table.incoming_links())
         {
-            gaiac_incoming_link_facade_t link{incoming_link};
+            gaiac::incoming_link_facade_t link{incoming_link};
             flatbuffers::CodeWriter const_code = create_code_writer();
             const_code.SetValue("PARENT_OFFSET", link.parent_offset());
             const_code.SetValue("PARENT_OFFSET_VALUE", std::to_string(link.parent_offset_value()));
@@ -177,7 +177,7 @@ std::string dac_compilation_unit_writer_t::generate_constants()
 
         for (const auto& outgoing_link : table.outgoing_links())
         {
-            gaiac_outgoing_link_facade_t link{outgoing_link};
+            gaiac::outgoing_link_facade_t link{outgoing_link};
             flatbuffers::CodeWriter const_code = create_code_writer();
             const_code.SetValue("FIRST_OFFSET", link.first_offset());
             const_code.SetValue("FIRST_OFFSET_VALUE", std::to_string(link.first_offset_value()));
@@ -201,8 +201,8 @@ std::string dac_compilation_unit_writer_t::generate_forward_declarations()
 
     for (const auto& table : m_database.tables())
     {
-        code.SetValue("TABLE_NAME", table.table_name());
-        code += "class {{TABLE_NAME}}_t;";
+        code.SetValue("CLASS_NAME", table.class_name());
+        code += "class {{CLASS_NAME}};";
     }
     std::string str = code.ToString();
     return str;
@@ -274,6 +274,7 @@ flatbuffers::CodeWriter class_writer_t::create_code_writer()
 {
     flatbuffers::CodeWriter code(c_indentation_string);
     code.SetValue("TABLE_NAME", m_table.table_name());
+    code.SetValue("CLASS_NAME", m_table.class_name());
 
     for (size_t i = 0; i < m_indent_level; i++)
     {
@@ -287,7 +288,7 @@ std::string class_writer_t::generate_class_section_comment_cpp()
 {
     flatbuffers::CodeWriter code = create_code_writer();
     code += "//";
-    code += "// Implementation of class {{TABLE_NAME}}_t.";
+    code += "// Implementation of class {{CLASS_NAME}}.";
     code += "//";
     return code.ToString();
 }
@@ -295,7 +296,7 @@ std::string class_writer_t::generate_class_section_comment_cpp()
 std::string class_writer_t::generate_writer()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "typedef gaia::direct_access::dac_writer_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, internal::{{TABLE_NAME}}T> "
+    code += "typedef gaia::direct_access::dac_writer_t<c_gaia_type_{{TABLE_NAME}}, {{CLASS_NAME}}, internal::{{TABLE_NAME}}, internal::{{TABLE_NAME}}T> "
             "{{TABLE_NAME}}_writer;";
     return code.ToString();
 }
@@ -303,7 +304,7 @@ std::string class_writer_t::generate_writer()
 std::string class_writer_t::generate_class_definition()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "class {{TABLE_NAME}}_t : public gaia::direct_access::dac_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, "
+    code += "class {{CLASS_NAME}} : public gaia::direct_access::dac_object_t<c_gaia_type_{{TABLE_NAME}}, {{CLASS_NAME}}, "
             "internal::{{TABLE_NAME}}, internal::{{TABLE_NAME}}T> {";
     return code.ToString();
 }
@@ -314,18 +315,18 @@ std::string class_writer_t::generate_list_types()
     for (link_facade_t& link : m_table.outgoing_links())
     {
         code.SetValue("FIELD_NAME", link.field_name());
-        code.SetValue("CHILD_TABLE", link.to_table());
+        code.SetValue("CHILD_TABLE", link.to_class_name());
 
         if (link.is_multiple_cardinality())
         {
             if (link.is_value_linked())
             {
-                code += "typedef gaia::direct_access::value_linked_reference_container_t<{{CHILD_TABLE}}_t> "
+                code += "typedef gaia::direct_access::value_linked_reference_container_t<{{CHILD_TABLE}}> "
                         "{{FIELD_NAME}}_list_t;";
             }
             else
             {
-                code += "typedef gaia::direct_access::reference_container_t<{{CHILD_TABLE}}_t> "
+                code += "typedef gaia::direct_access::reference_container_t<{{CHILD_TABLE}}> "
                         "{{FIELD_NAME}}_list_t;";
             }
         }
@@ -336,7 +337,7 @@ std::string class_writer_t::generate_list_types()
 std::string class_writer_t::generate_public_constructor()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "{{TABLE_NAME}}_t() : dac_object_t() {}";
+    code += "{{CLASS_NAME}}() : dac_object_t() {}";
     return code.ToString();
 }
 
@@ -352,13 +353,14 @@ std::string class_writer_t::generate_insert()
 std::string class_writer_t::generate_insert_cpp()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "gaia::common::gaia_id_t {{TABLE_NAME}}_t::insert_row(\\";
+    code += "gaia::common::gaia_id_t {{CLASS_NAME}}::insert_row(\\";
     code += generate_method_params(m_table.fields()) + "\\";
     code += ")";
     code += "{";
     code.IncrementIdentLevel();
 
     code += "flatbuffers::FlatBufferBuilder b(c_flatbuffer_builder_size);";
+    code += "b.ForceDefaults(true);";
     code.SetValue("DIRECT", m_table.has_string_or_vector() ? "Direct" : "");
     code += "b.Finish(internal::Create{{TABLE_NAME}}{{DIRECT}}(b\\";
 
@@ -389,10 +391,9 @@ std::string class_writer_t::generate_gaia_typename_accessor()
 std::string class_writer_t::generate_gaia_typename_accessor_cpp()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "const char* {{TABLE_NAME}}_t::gaia_typename()";
-    code += "{";
+    code += "const char* {{CLASS_NAME}}::gaia_typename() {";
     code.IncrementIdentLevel();
-    code += "static const char* gaia_typename = \"{{TABLE_NAME}}_t\";";
+    code += "static const char* gaia_typename = \"{{CLASS_NAME}}\";";
     code += "return gaia_typename;";
     code.DecrementIdentLevel();
     code += "}";
@@ -403,17 +404,17 @@ std::string class_writer_t::generate_gaia_typename_accessor_cpp()
 std::string class_writer_t::generate_list_accessor()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "static gaia::direct_access::dac_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t> list();";
+    code += "static gaia::direct_access::dac_container_t<c_gaia_type_{{TABLE_NAME}}, {{CLASS_NAME}}> list();";
     return code.ToString();
 }
 
 std::string class_writer_t::generate_list_accessor_cpp()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "gaia::direct_access::dac_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t> {{TABLE_NAME}}_t::list()";
+    code += "gaia::direct_access::dac_container_t<c_gaia_type_{{TABLE_NAME}}, {{CLASS_NAME}}> {{CLASS_NAME}}::list()";
     code += "{";
     code.IncrementIdentLevel();
-    code += "return gaia::direct_access::dac_container_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t>();";
+    code += "return gaia::direct_access::dac_container_t<c_gaia_type_{{TABLE_NAME}}, {{CLASS_NAME}}>();";
     code.DecrementIdentLevel();
     code += "}";
     code += "";
@@ -459,7 +460,7 @@ std::string class_writer_t::generate_fields_accessors_cpp()
         {
             code.SetValue("FUNCTION_NAME", "GET");
         }
-        code += "{{TYPE}} {{TABLE_NAME}}_t::{{FIELD_NAME}}() const";
+        code += "{{TYPE}} {{CLASS_NAME}}::{{FIELD_NAME}}() const";
         code += "{";
         code.IncrementIdentLevel();
         code += "return {{FUNCTION_NAME}}({{FIELD_NAME}});";
@@ -479,9 +480,9 @@ std::string class_writer_t::generate_incoming_links_accessors()
     for (auto& link : m_table.incoming_links())
     {
         code.SetValue("FIELD_NAME", link.field_name());
-        code.SetValue("PARENT_TABLE", link.to_table());
+        code.SetValue("PARENT_CLASS_NAME", link.to_class_name());
 
-        code += "{{PARENT_TABLE}}_t {{FIELD_NAME}}() const;";
+        code += "{{PARENT_CLASS_NAME}} {{FIELD_NAME}}() const;";
     }
 
     return code.ToString();
@@ -494,12 +495,12 @@ std::string class_writer_t::generate_incoming_links_accessors_cpp()
     // Iterate over the relationships where the current table is the child
     for (auto& incoming_link : m_table.incoming_links())
     {
-        gaiac_incoming_link_facade_t link{incoming_link};
+        gaiac::incoming_link_facade_t link{incoming_link};
         code.SetValue("FIELD_NAME", link.field_name());
-        code.SetValue("PARENT_TABLE", link.to_table());
+        code.SetValue("PARENT_CLASS_NAME", link.to_class_name());
         code.SetValue("PARENT_OFFSET", link.parent_offset());
 
-        code += "{{PARENT_TABLE}}_t {{TABLE_NAME}}_t::{{FIELD_NAME}}() const";
+        code += "{{PARENT_CLASS_NAME}} {{CLASS_NAME}}::{{FIELD_NAME}}() const";
         code += "{";
         code.IncrementIdentLevel();
         if (incoming_link.is_value_linked())
@@ -509,15 +510,15 @@ std::string class_writer_t::generate_incoming_links_accessors_cpp()
         else
         {
             code += "gaia::common::gaia_id_t anchor_id = this->references()[{{PARENT_OFFSET}}];";
-            code += "if (anchor_id == gaia::common::c_invalid_gaia_id)";
+            code += "if (!anchor_id.is_valid())";
             code += "{";
             code.IncrementIdentLevel();
-            code += "return {{PARENT_TABLE}}_t();";
+            code += "return {{PARENT_CLASS_NAME}}();";
             code.DecrementIdentLevel();
             code += "}";
             code += "gaia::common::gaia_id_t id = dac_db_t::get_reference(anchor_id, gaia::common::c_ref_anchor_parent_offset);";
         }
-        code += "return (id == gaia::common::c_invalid_gaia_id) ? {{PARENT_TABLE}}_t() : {{PARENT_TABLE}}_t::get(id);";
+        code += "return (id.is_valid()) ? {{PARENT_CLASS_NAME}}::get(id) : {{PARENT_CLASS_NAME}}();";
         code.DecrementIdentLevel();
         code += "}";
         code += "";
@@ -560,7 +561,7 @@ std::string class_writer_t::generate_outgoing_links_accessors_cpp()
     // Iterate over the relationships where the current table appear as parent
     for (auto& outgoing_link : m_table.outgoing_links())
     {
-        gaiac_outgoing_link_facade_t link{outgoing_link};
+        gaiac::outgoing_link_facade_t link{outgoing_link};
         code.SetValue("CHILD_TABLE", link.to_table());
         code.SetValue("FIELD_NAME", link.field_name());
         code.SetValue("FIRST_OFFSET", link.first_offset());
@@ -571,30 +572,30 @@ std::string class_writer_t::generate_outgoing_links_accessors_cpp()
         {
             if (link.is_value_linked())
             {
-                code += "{{TABLE_NAME}}_t::{{FIELD_NAME}}_list_t {{TABLE_NAME}}_t::{{FIELD_NAME}}() const";
+                code += "{{CLASS_NAME}}::{{FIELD_NAME}}_list_t {{CLASS_NAME}}::{{FIELD_NAME}}() const";
                 code += "{";
                 code.IncrementIdentLevel();
-                code += "return {{TABLE_NAME}}_t::{{FIELD_NAME}}_list_t(this->references()[{{FIRST_OFFSET}}], {{PARENT_OFFSET}});";
+                code += "return {{CLASS_NAME}}::{{FIELD_NAME}}_list_t(this->references()[{{FIRST_OFFSET}}], {{PARENT_OFFSET}});";
                 code.DecrementIdentLevel();
                 code += "}";
             }
             else
             {
-                code += "{{TABLE_NAME}}_t::{{FIELD_NAME}}_list_t {{TABLE_NAME}}_t::{{FIELD_NAME}}() const";
+                code += "{{CLASS_NAME}}::{{FIELD_NAME}}_list_t {{CLASS_NAME}}::{{FIELD_NAME}}() const";
                 code += "{";
                 code.IncrementIdentLevel();
-                code += "return {{TABLE_NAME}}_t::{{FIELD_NAME}}_list_t(gaia_id(), {{FIRST_OFFSET}}, {{NEXT_OFFSET}});";
+                code += "return {{CLASS_NAME}}::{{FIELD_NAME}}_list_t(gaia_id(), {{FIRST_OFFSET}}, {{NEXT_OFFSET}});";
                 code.DecrementIdentLevel();
                 code += "}";
             }
         }
         else if (link.is_single_cardinality())
         {
-            code += "{{CHILD_TABLE}}_ref_t {{TABLE_NAME}}_t::{{FIELD_NAME}}() const";
+            code += "{{CHILD_TABLE}}_ref_t {{CLASS_NAME}}::{{FIELD_NAME}}() const";
             code += "{";
             code.IncrementIdentLevel();
             code += "gaia::common::gaia_id_t anchor_id = this->references()[{{FIRST_OFFSET}}];";
-            code += "gaia::common::gaia_id_t child_id = (anchor_id == gaia::common::c_invalid_gaia_id) ? gaia::common::c_invalid_gaia_id : dac_db_t::get_reference(anchor_id, gaia::common::c_ref_anchor_first_child_offset);";
+            code += "gaia::common::gaia_id_t child_id = (anchor_id.is_valid()) ? dac_db_t::get_reference(anchor_id, gaia::common::c_ref_anchor_first_child_offset) : gaia::common::c_invalid_gaia_id;";
             code += "return {{CHILD_TABLE}}_ref_t(gaia_id(), child_id, {{FIRST_OFFSET}});";
             code.DecrementIdentLevel();
             code += "}";
@@ -624,12 +625,12 @@ std::string class_writer_t::generate_expressions()
 
     gaia_id_accessor.append("gaia::expressions::member_accessor_t");
     gaia_id_accessor.append("<");
-    gaia_id_accessor.append(code.GetValue("TABLE_NAME"));
-    gaia_id_accessor.append("_t, ");
+    gaia_id_accessor.append(code.GetValue("CLASS_NAME"));
+    gaia_id_accessor.append(", ");
     gaia_id_accessor.append("gaia::common::gaia_id_t");
     gaia_id_accessor.append(">");
     expr_variable = field_facade_t::generate_expr_variable(
-        code.GetValue("TABLE_NAME"),
+        code.GetValue("CLASS_NAME"),
         gaia_id_accessor,
         "gaia_id");
     code += expr_variable.first;
@@ -642,13 +643,13 @@ std::string class_writer_t::generate_expressions()
 
     for (auto& link : m_table.incoming_links())
     {
-        expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), link.expression_accessor(), link.field_name());
+        expr_variable = field_facade_t::generate_expr_variable(m_table.class_name(), link.expression_accessor(), link.field_name());
         code += expr_variable.first;
     }
 
     for (auto& link : m_table.outgoing_links())
     {
-        expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), link.expression_accessor(), link.field_name());
+        expr_variable = field_facade_t::generate_expr_variable(m_table.class_name(), link.expression_accessor(), link.field_name());
         code += expr_variable.first;
     }
 
@@ -661,14 +662,14 @@ std::string class_writer_t::generate_expressions()
 std::string class_writer_t::generate_private_constructor()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "explicit {{TABLE_NAME}}_t(gaia::common::gaia_id_t id) : dac_object_t(id) {}";
+    code += "explicit {{CLASS_NAME}}(gaia::common::gaia_id_t id) : dac_object_t(id) {}";
     return code.ToString();
 }
 
 std::string class_writer_t::generate_friend_declarations()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "friend class dac_object_t<c_gaia_type_{{TABLE_NAME}}, {{TABLE_NAME}}_t, internal::{{TABLE_NAME}}, "
+    code += "friend class dac_object_t<c_gaia_type_{{TABLE_NAME}}, {{CLASS_NAME}}, internal::{{TABLE_NAME}}, "
             "internal::{{TABLE_NAME}}T>;";
     if (m_table.needs_reference_class())
     {
@@ -721,24 +722,24 @@ std::string class_writer_t::generate_expr_namespace()
 
     code += "namespace {{TABLE_NAME}}_expr {";
     code.IncrementIdentLevel();
-    code += "static auto& gaia_id = {{TABLE_NAME}}_t::expr::gaia_id;";
+    code += "static auto& gaia_id = {{CLASS_NAME}}::expr::gaia_id;";
 
     for (const field_facade_t& field : m_table.fields())
     {
         code.SetValue("FIELD_NAME", field.field_name());
-        code += "static auto& {{FIELD_NAME}} = {{TABLE_NAME}}_t::expr::{{FIELD_NAME}};";
+        code += "static auto& {{FIELD_NAME}} = {{CLASS_NAME}}::expr::{{FIELD_NAME}};";
     }
 
     for (auto& link : m_table.incoming_links())
     {
         code.SetValue("FIELD_NAME", link.field_name());
-        code += "static auto& {{FIELD_NAME}} = {{TABLE_NAME}}_t::expr::{{FIELD_NAME}};";
+        code += "static auto& {{FIELD_NAME}} = {{CLASS_NAME}}::expr::{{FIELD_NAME}};";
     }
 
     for (auto& link : m_table.outgoing_links())
     {
         code.SetValue("FIELD_NAME", link.field_name());
-        code += "static auto& {{FIELD_NAME}} = {{TABLE_NAME}}_t::expr::{{FIELD_NAME}};";
+        code += "static auto& {{FIELD_NAME}} = {{CLASS_NAME}}::expr::{{FIELD_NAME}};";
     }
     code.DecrementIdentLevel();
     code += "} // {{TABLE_NAME}}_expr";
@@ -758,14 +759,14 @@ std::string class_writer_t::generate_expr_instantiation_cpp()
 
     gaia_id_accessor.append("gaia::expressions::member_accessor_t");
     gaia_id_accessor.append("<");
-    gaia_id_accessor.append(m_table.table_name());
-    gaia_id_accessor.append("_t, ");
+    gaia_id_accessor.append(m_table.class_name());
+    gaia_id_accessor.append(", ");
     gaia_id_accessor.append("gaia::common::gaia_id_t");
     gaia_id_accessor.append(">");
 
     expr_variable
         = field_facade_t::generate_expr_variable(
-            m_table.table_name(),
+            m_table.class_name(),
             gaia_id_accessor,
             "gaia_id");
     code += expr_variable.second;
@@ -778,13 +779,13 @@ std::string class_writer_t::generate_expr_instantiation_cpp()
 
     for (auto& link : m_table.incoming_links())
     {
-        expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), link.expression_accessor(), link.field_name());
+        expr_variable = field_facade_t::generate_expr_variable(m_table.class_name(), link.expression_accessor(), link.field_name());
         code += expr_variable.second;
     }
 
     for (auto& link : m_table.outgoing_links())
     {
-        expr_variable = field_facade_t::generate_expr_variable(m_table.table_name(), link.expression_accessor(), link.field_name());
+        expr_variable = field_facade_t::generate_expr_variable(m_table.class_name(), link.expression_accessor(), link.field_name());
         code += expr_variable.second;
     }
 
@@ -800,7 +801,7 @@ std::string class_writer_t::generate_ref_class()
 
     flatbuffers::CodeWriter code = create_code_writer();
 
-    code += "class {{TABLE_NAME}}_ref_t : public {{TABLE_NAME}}_t, direct_access::dac_base_reference_t {";
+    code += "class {{TABLE_NAME}}_ref_t : public {{CLASS_NAME}}, direct_access::dac_base_reference_t {";
     code += "public:";
     code.IncrementIdentLevel();
     code += "{{TABLE_NAME}}_ref_t() = delete;";
@@ -808,7 +809,7 @@ std::string class_writer_t::generate_ref_class()
             "gaia::common::reference_offset_t child_offset);";
     code += "bool disconnect();";
     code += "bool connect(gaia::common::gaia_id_t id);";
-    code += "bool connect(const {{TABLE_NAME}}_t& object);";
+    code += "bool connect(const {{CLASS_NAME}}& object);";
     code.DecrementIdentLevel();
     code += "};";
     return code.ToString();
@@ -827,7 +828,7 @@ std::string class_writer_t::generate_ref_class_cpp()
     code += "{{TABLE_NAME}}_ref_t::{{TABLE_NAME}}_ref_t(gaia::common::gaia_id_t parent, "
             "gaia::common::gaia_id_t child, gaia::common::reference_offset_t child_offset)";
     code.IncrementIdentLevel();
-    code += ": {{TABLE_NAME}}_t(child), direct_access::dac_base_reference_t(parent, child_offset)";
+    code += ": {{CLASS_NAME}}(child), direct_access::dac_base_reference_t(parent, child_offset)";
     code.DecrementIdentLevel();
     code += "{";
     code += "}";
@@ -866,7 +867,7 @@ std::string class_writer_t::generate_ref_class_cpp()
     code += "";
 
     // connect(dac_class_ref_t)
-    code += "bool {{TABLE_NAME}}_ref_t::connect(const {{TABLE_NAME}}_t& object)";
+    code += "bool {{TABLE_NAME}}_ref_t::connect(const {{CLASS_NAME}}& object)";
     code += "{";
     code.IncrementIdentLevel();
     code += "return connect(object.gaia_id());";
