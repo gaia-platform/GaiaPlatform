@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 
 #include "gaia_internal/catalog/catalog.hpp"
-#include "gaia_internal/db/db_test_base.hpp"
+#include "gaia_internal/db/db_ddl_test_base.hpp"
 
 using namespace std;
 
@@ -19,7 +19,7 @@ using namespace gaia::db;
 constexpr char c_table_name[] = "test_table";
 constexpr char c_server_name[] = "test_server";
 
-class fdw_ddl_generation_test : public db_test_base_t
+class fdw_ddl_generation_test : public db_ddl_test_base_t
 {
 protected:
     static void SetUpTestSuite()

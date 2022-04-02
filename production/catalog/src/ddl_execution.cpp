@@ -15,6 +15,7 @@
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/ddl_executor.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/exceptions.hpp"
 
 #include "gaia_parser.hpp"
@@ -406,6 +407,8 @@ void execute_create_list_statements(
 
 void execute(std::vector<std::unique_ptr<ddl::statement_t>>& statements)
 {
+    ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
+
     for (auto& stmt : statements)
     {
         if (stmt->is_type(ddl::statement_type_t::create_list))

@@ -13,6 +13,11 @@ namespace db
 {
 
 /**
+ * @brief Checks whether a DDL session is open.
+ */
+bool is_ddl_session_open();
+
+/**
  * @brief Special version of begin_session() used for DDL operations.
  */
 void begin_ddl_session();

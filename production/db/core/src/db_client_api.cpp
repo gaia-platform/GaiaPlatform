@@ -16,6 +16,11 @@ bool gaia::db::is_session_open()
     return gaia::db::client_t::is_session_open();
 }
 
+bool gaia::db::is_ddl_session_open()
+{
+    return gaia::db::client_t::is_ddl_session_open();
+}
+
 bool gaia::db::is_transaction_open()
 {
     return gaia::db::client_t::is_transaction_open();

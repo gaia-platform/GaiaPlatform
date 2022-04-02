@@ -28,12 +28,14 @@ using relationship_names_t = std::unordered_map<std::string, gaia::common::gaia_
 class ddl_executor_t
 {
 public:
+    static ddl_executor_t& get();
+
+public:
     /**
      * Catalog manager scaffolding to ensure we have one global static instance
      */
     ddl_executor_t(ddl_executor_t&) = delete;
     void operator=(ddl_executor_t const&) = delete;
-    static ddl_executor_t& get();
 
     /**
      * APIs for accessing catalog records
@@ -75,10 +77,6 @@ public:
     void drop_relationship(const std::string& name, bool throw_unless_exists);
 
     void drop_index(const std::string& name, bool throw_unless_exists);
-
-    void drop_table(const std::string& db_name, const std::string& name);
-
-    void drop_database(const std::string& name);
 
     void switch_db_context(const std::string& db_name);
 
