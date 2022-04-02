@@ -644,6 +644,17 @@ TEST_F(sqlite3_benchmark, filter_match)
     run_performance_test(simple_insert, fmt::format("sqlite3::filter_match {} matches", c_num_insertion / 2), c_num_iterations, c_num_insertion, true);
 }
 
+TEST_F(sqlite3_benchmark, simple_update)
+{
+    insert_records(db);
+
+    auto simple_insert = [this]() {
+        exec(db, "UPDATE simple_table SET uint64_field = uint64_field + 1");
+    };
+
+    run_performance_test(simple_insert, "sqlite3::simple_update", c_num_iterations, c_num_insertion, true);
+}
+
 // int main()
 //{
 //
