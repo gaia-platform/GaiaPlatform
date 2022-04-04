@@ -21,6 +21,16 @@ protected:
     fdw_test()
         : db_catalog_test_base_t(){};
 
+    void SetUp() override
+    {
+        db_catalog_test_base_t::SetUp();
+
+        // These tests require a DDL session,
+        // so we'll be closing the session opened in db_catalog_test_base_t::SetUp().
+        end_session();
+        begin_ddl_session();
+    }
+
     static void SetUpTestSuite()
     {
         gaia_log::initialize({});
