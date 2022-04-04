@@ -8,6 +8,11 @@ inline bool client_t::is_session_open()
     return (s_session_socket != -1);
 }
 
+inline bool client_t::is_ddl_session_open()
+{
+    return is_session_open() && s_session_options.is_ddl_session;
+}
+
 inline bool client_t::is_transaction_open()
 {
     return (s_private_locators.is_set());

@@ -22,6 +22,7 @@
 #include "gaia_internal/catalog/ddl_execution.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/timer.hpp"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_test_base.hpp"
 #include "gaia_internal/rules/rules_test_helpers.hpp"
 
@@ -132,7 +133,7 @@ void rule_conflict_exception(const rule_context_t* context)
  * test case below.  SetUp() is called before each test is run
  * and TearDown() is called after each test case is done.
  */
-class rule_exception_test : public db_test_base_t
+class rule_exceptions_test : public db_test_base_t
 {
 public:
     void subscribe_conflict()
@@ -194,7 +195,7 @@ protected:
         // Do this before resetting the server to initialize the logger.
         gaia_log::initialize("./gaia_log.conf");
 
-        begin_session();
+        begin_ddl_session();
 
         // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
         // Otherwise, the event log activities will cause out of order test table IDs.
@@ -205,6 +206,9 @@ protected:
         // NOTE: uncomment the next line to enable individual rule stats from the rules engine.
         // settings.enable_rule_stats = true;
         gaia::rules::test::initialize_rules_engine(settings);
+
+        end_session();
+        begin_session();
     }
 
     static void TearDownTestSuite()
@@ -228,7 +232,7 @@ protected:
 
 // Ensures std exceeptions are caught by the rules engine and
 // propogated to the exception handler.
-TEST_F(rule_exception_test, test_std_exception)
+TEST_F(rule_exceptions_test, test_std_exception)
 {
     init_exception_counters();
 
@@ -242,7 +246,7 @@ TEST_F(rule_exception_test, test_std_exception)
 
 // Ensures exceptions that don't inherit from std::exception
 // are caught by the rules engine and propogated to the exception
-TEST_F(rule_exception_test, test_non_std_exception)
+TEST_F(rule_exceptions_test, test_non_std_exception)
 {
     init_exception_counters();
 
@@ -257,7 +261,7 @@ TEST_F(rule_exception_test, test_non_std_exception)
 // This test ensures that we only throw a single transaction
 // update conflict exception even though the rule that causes
 // the conflict exception gets invoked multiple times.
-TEST_F(rule_exception_test, test_update_conflict_exception)
+TEST_F(rule_exceptions_test, test_update_conflict_exception)
 {
     init_exception_counters();
 
