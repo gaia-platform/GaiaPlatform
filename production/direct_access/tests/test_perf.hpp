@@ -142,10 +142,10 @@ void run_performance_test(
 
         if (clean_db_after_each_iteration)
         {
-            gaia_log::app().debug("[{}]: {} iteration, clearing database", message, iteration);
+            gaia_log::app().info("[{}]: {} iteration, clearing database", message, iteration);
             int64_t clear_database_duration = g_timer_t::get_function_duration(clear_db_fn);
             double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
-            gaia_log::app().debug("[{}]: {} iteration, cleared in {:.2f}ms", message, iteration, clear_ms);
+            gaia_log::app().info("[{}]: {} iteration, cleared in {:.2f}ms", message, iteration, clear_ms);
         }
     }
 
