@@ -516,8 +516,13 @@ void Sema::addMethod(IdentifierInfo* name, DeclSpec::TST retValType, const Small
 
 QualType Sema::getRuleContextType(SourceLocation loc)
 {
-    Twine ruleContextTypeName = Twine(ruleContextTypeNameBase) + "_" + calculateNameHash(ruleContextTypeNameBase) + "__type";
-    RecordDecl* RD = Context.buildImplicitRecord(ruleContextTypeName.str());
+    llvm::SmallString<64> ruleContextTypeName;
+    ruleContextTypeName += ruleContextTypeNameBase;
+    ruleContextTypeName += '_';
+    ruleContextTypeName += calculateNameHash(ruleContextTypeNameBase);
+    ruleContextTypeName += "__type";
+
+    RecordDecl* RD = Context.buildImplicitRecord(ruleContextTypeName);
     RD->setLexicalDeclContext(CurContext);
     RD->startDefinition();
     Scope S(CurScope, Scope::DeclScope | Scope::ClassScope, Diags);

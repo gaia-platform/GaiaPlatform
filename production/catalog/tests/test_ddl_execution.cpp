@@ -26,6 +26,16 @@ protected:
     ddl_execution_test()
         : db_catalog_test_base_t(){};
 
+    void SetUp() override
+    {
+        db_catalog_test_base_t::SetUp();
+
+        // These tests require a DDL session,
+        // so we'll be closing the session opened in db_catalog_test_base_t::SetUp().
+        end_session();
+        begin_ddl_session();
+    }
+
     void check_table_name(gaia_id_t id, const string& name)
     {
         gaia::db::begin_transaction();

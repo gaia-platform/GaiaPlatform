@@ -19,6 +19,7 @@
 #include "gaia_internal/catalog/ddl_executor.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/logger.hpp"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/db_server_instance.hpp"
 
@@ -117,7 +118,7 @@ protected:
     void SetUp() override
     {
         s_server.start();
-        begin_session();
+        begin_ddl_session();
         type_id_mapping_t::instance().clear();
         schema_loader_t::instance().load_schema("addr_book.ddl");
 
