@@ -7,7 +7,7 @@
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
-#include "gaia_internal/db/db_test_base.hpp"
+#include "gaia_internal/db/db_ddl_test_base.hpp"
 #include "gaia_internal/db/type_metadata.hpp"
 
 #include "db_test_util.hpp"
@@ -17,12 +17,13 @@ using namespace gaia::db;
 using namespace gaia::common;
 using namespace gaia::db::test;
 
-class gaia_relationships_test : public db_test_base_t
+class relationships_test : public db_ddl_test_base_t
 {
 protected:
     void SetUp() override
     {
-        db_test_base_t::SetUp();
+        db_ddl_test_base_t::SetUp();
+
         gaia_id_t doctor_table_id = gaia::catalog::create_table("doctor", {});
         gaia_id_t patient_table_id = gaia::catalog::create_table("patient", {});
 
@@ -42,8 +43,8 @@ protected:
     static gaia_type_t patient_table_type;
 };
 
-gaia_type_t gaia_relationships_test::doctor_table_type = c_invalid_gaia_type;
-gaia_type_t gaia_relationships_test::patient_table_type = c_invalid_gaia_type;
+gaia_type_t relationships_test::doctor_table_type = c_invalid_gaia_type;
+gaia_type_t relationships_test::patient_table_type = c_invalid_gaia_type;
 
 // simone: I tried overloading the operator == with no success.
 bool compare_relationships(const relationship_t& lhs, const relationship_t& rhs)
@@ -59,7 +60,7 @@ bool compare_relationships(const relationship_t& lhs, const relationship_t& rhs)
         && lhs.value_linked == rhs.value_linked;
 }
 
-TEST_F(gaia_relationships_test, metadata_init)
+TEST_F(relationships_test, metadata_init)
 {
     const string db{"company"};
     const string employee_table{"employee"};
@@ -136,7 +137,7 @@ TEST_F(gaia_relationships_test, metadata_init)
     commit_transaction();
 }
 
-TEST_F(gaia_relationships_test, metadata_not_exists)
+TEST_F(relationships_test, metadata_not_exists)
 {
     begin_transaction();
 
@@ -148,7 +149,7 @@ TEST_F(gaia_relationships_test, metadata_not_exists)
     commit_transaction();
 }
 
-TEST_F(gaia_relationships_test, metadata_one_to_many)
+TEST_F(relationships_test, metadata_one_to_many)
 {
     type_registry_t& test_registry = type_registry_t::instance();
 
@@ -184,7 +185,7 @@ TEST_F(gaia_relationships_test, metadata_one_to_many)
     ASSERT_EQ(parent_rel->cardinality, cardinality_t::many);
 }
 
-TEST_F(gaia_relationships_test, metadata_one_to_one)
+TEST_F(relationships_test, metadata_one_to_one)
 {
     type_registry_t& test_registry = type_registry_t::instance();
 
@@ -220,7 +221,7 @@ TEST_F(gaia_relationships_test, metadata_one_to_one)
     ASSERT_EQ(parent_rel->cardinality, cardinality_t::one);
 }
 
-TEST_F(gaia_relationships_test, child_relation_do_not_use_next_child)
+TEST_F(relationships_test, child_relation_do_not_use_next_child)
 {
     type_registry_t& test_registry = type_registry_t::instance();
 

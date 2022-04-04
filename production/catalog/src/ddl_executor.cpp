@@ -48,20 +48,21 @@ static constexpr char c_assert_throw_and_auto_drop[]
     = "Cannot auto drop and skip on exists at the same time.";
 static constexpr char c_empty_hash[] = "";
 
-ddl_executor_t::ddl_executor_t()
-{
-    bootstrap_catalog();
-}
-
 ddl_executor_t& ddl_executor_t::get()
 {
     static ddl_executor_t s_instance;
     return s_instance;
 }
 
+ddl_executor_t::ddl_executor_t()
+{
+    bootstrap_catalog();
+}
+
 void ddl_executor_t::bootstrap_catalog()
 {
-    static constexpr char c_event_log_table_name[] = "event_log";
+    ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
+
     static constexpr char c_gaia_database_table_name[] = "gaia_database";
     static constexpr char c_gaia_table_table_name[] = "gaia_table";
     static constexpr char c_gaia_field_table_name[] = "gaia_field";
@@ -247,28 +248,6 @@ void ddl_executor_t::bootstrap_catalog()
         create_table_impl(
             c_catalog_db_name, c_gaia_ref_anchor_table_name, fields, is_system, throw_on_exists, auto_drop,
             static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_ref_anchor));
-    }
-
-    create_database(c_event_log_db_name, false);
-    {
-        // create table event_log (
-        //     event_type: uint32,
-        //     type_id: uint64,
-        //     record_id: uint64,
-        //     column_id: uint16,
-        //     timestamp: uint64,
-        //     rules_invoked: bool
-        // );
-        field_def_list_t fields;
-        fields.emplace_back(make_unique<data_field_def_t>("event_type", data_type_t::e_uint32, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("type_id", data_type_t::e_uint32, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("record_id", data_type_t::e_uint64, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("column_id", data_type_t::e_uint16, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("timestamp", data_type_t::e_uint64, 1));
-        fields.emplace_back(make_unique<data_field_def_t>("rules_invoked", data_type_t::e_bool, 1));
-        create_table_impl(
-            c_event_log_db_name, c_event_log_table_name, fields, is_system, throw_on_exists, auto_drop,
-            static_cast<gaia_type_t::value_type>(system_table_type_t::event_log));
     }
 
     // Create the special empty database. Tables created without specifying a
@@ -500,6 +479,7 @@ void ddl_executor_t::bootstrap_catalog()
 
 gaia_id_t ddl_executor_t::create_database(const string& name, bool throw_on_exists, bool auto_drop)
 {
+    ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
     ASSERT_PRECONDITION(throw_on_exists || !auto_drop, c_assert_throw_and_auto_drop);
 
     // TODO: switch to index for fast lookup.
@@ -538,6 +518,7 @@ gaia_id_t ddl_executor_t::create_table(
     bool throw_on_exists,
     bool auto_drop)
 {
+    ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
     return create_table_impl(db_name, name, fields, false, throw_on_exists, auto_drop);
 }
 
@@ -569,6 +550,7 @@ gaia_id_t ddl_executor_t::create_relationship(
     bool throw_on_exists,
     bool auto_drop)
 {
+    ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
     ASSERT_PRECONDITION(throw_on_exists || !auto_drop, c_assert_throw_and_auto_drop);
 
     // TODO: switch to index for fast lookup.
@@ -855,6 +837,8 @@ void ddl_executor_t::drop_relationship_no_ri(gaia_relationship_t& relationship)
 
 void ddl_executor_t::drop_relationship(const std::string& name, bool throw_unless_exists)
 {
+    ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
+
     // TODO: switch to index for fast lookup.
     auto rel_iter = gaia_relationship_t::list().where(gaia_relationship_expr::name == name).begin();
     if (rel_iter == gaia_relationship_t::list().end())
@@ -957,6 +941,8 @@ void ddl_executor_t::drop_table(gaia_id_t table_id, bool enforce_referential_int
 
 void ddl_executor_t::drop_database(const string& name, bool throw_unless_exists)
 {
+    ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
+
     gaia_id_t db_id = find_db_id(name);
     if (db_id == c_invalid_gaia_id)
     {
@@ -982,6 +968,8 @@ void ddl_executor_t::drop_database(const string& name, bool throw_unless_exists)
 
 void ddl_executor_t::drop_table(const string& db_name, const string& name, bool throw_unless_exists)
 {
+    ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
+
     gaia_id_t db_id = find_db_id(in_context(db_name));
     if (db_id == c_invalid_gaia_id)
     {
@@ -1313,6 +1301,7 @@ gaia_id_t ddl_executor_t::create_index(
     bool throw_on_exists,
     bool auto_drop)
 {
+    ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
     ASSERT_PRECONDITION(throw_on_exists || !auto_drop, c_assert_throw_and_auto_drop);
 
     gaia_id_t table_id = get_table_id(in_context(db_name), table_name);
@@ -1377,6 +1366,8 @@ gaia_id_t ddl_executor_t::create_index(
 
 void ddl_executor_t::drop_index(const std::string& name, bool throw_unless_exists)
 {
+    ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
+
     // TODO: switch to index for fast lookup.
     auto index_iter = gaia_index_t::list().where(gaia_index_expr::name == name).begin();
     if (index_iter == gaia_index_t::list().end())

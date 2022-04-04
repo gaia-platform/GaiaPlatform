@@ -67,6 +67,7 @@ class client_t
 
 public:
     static inline bool is_session_open();
+    static inline bool is_ddl_session_open();
     static inline bool is_transaction_open();
 
     /**

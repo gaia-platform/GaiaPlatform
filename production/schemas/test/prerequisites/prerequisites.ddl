@@ -72,7 +72,16 @@ table enrollment_log (
     log_name string,
     log_hours int32,
     log_reg_id string
-)
+);
+
+table major (
+    major_name string
+);
+
+create relationship if not exists major_courses (
+    major.courses -> course[],
+    course.course_major -> major
+);
 
 table floor (
     num int32 unique,

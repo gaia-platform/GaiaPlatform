@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 
 #include "gaia_internal/catalog/catalog_tests_helper.hpp"
-#include "gaia_internal/db/db_test_base.hpp"
+#include "gaia_internal/db/db_ddl_test_base.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 #include "gaia_internal/db/gaia_ptr_api.hpp"
 
@@ -18,7 +18,7 @@ using namespace gaia::catalog;
 using namespace gaia::direct_access;
 using namespace gaia::db::payload_types;
 
-class test_optional_scalars : public db_test_base_t
+class test_optional_scalars : public db_ddl_test_base_t
 {
 };
 

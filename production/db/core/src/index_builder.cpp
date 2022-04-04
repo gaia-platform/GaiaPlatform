@@ -460,9 +460,9 @@ void index_builder_t::update_indexes_from_txn_log(
 
         if (indexes_for_type.find(obj->type) == indexes_for_type.end())
         {
-            std::vector<catalog_core::index_view_t> indexes;
             gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(obj->type);
-            // Skip if catalog verification disabled and type not found in the catalog.
+
+            // Skip if catalog verification is disabled and the type is not found in the catalog.
             if (!table_id.is_valid())
             {
                 ASSERT_INVARIANT(skip_catalog_integrity_check, "Cannot find table id for object type!");
@@ -470,7 +470,9 @@ void index_builder_t::update_indexes_from_txn_log(
                 indexes_for_type.insert({obj->type, {}});
                 continue;
             }
+
             auto index_list = catalog_core::list_indexes(table_id);
+            std::vector<catalog_core::index_view_t> indexes;
             // REVIEW [GAIAPLAT-2116]: We can't use std::copy() because
             // index_list_t.begin() and index_list_t.end() are of different
             // types.

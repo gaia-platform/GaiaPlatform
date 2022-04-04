@@ -43,13 +43,18 @@ static bool apply_mask_to_word(
 
 static bool apply_mask_to_word(
     std::atomic<uint64_t>& word, uint64_t mask, bool set, bool fail_if_already_applied = false)
+
 {
-    uint64_t word_copy = word;
+    // This should only be used when a single thread is reading and writing the bitmap,
+    // so a relaxed load is sufficient.
+    uint64_t word_copy = word.load(std::memory_order_relaxed);
     if (!apply_mask_to_word(word_copy, mask, set, fail_if_already_applied))
     {
         return false;
     }
-    word = word_copy;
+    // This should only be used when a single thread is reading and writing the bitmap,
+    // so a relaxed store is sufficient.
+    word.store(word_copy, std::memory_order_relaxed);
     return true;
 }
 
@@ -57,7 +62,9 @@ static bool try_apply_mask_to_word(
     std::atomic<uint64_t>& word, uint64_t mask, bool set, bool fail_if_already_applied = false)
 {
     // We read the word once, because other threads may be updating it.
-    uint64_t old_word = word;
+    // A relaxed load is sufficient, because a stale read will cause the
+    // subsequent CAS to fail.
+    uint64_t old_word = word.load(std::memory_order_relaxed);
     uint64_t new_word = old_word;
 
     // REVIEW: If callers need to distinguish between CAS failure and failure
