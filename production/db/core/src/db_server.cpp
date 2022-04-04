@@ -77,8 +77,18 @@ static constexpr char c_message_preceding_txn_should_have_been_validated[]
     = "A transaction with commit timestamp preceding this transaction's begin timestamp is undecided!";
 static constexpr char c_message_unexpected_query_type[] = "Unexpected query type!";
 
+void server_t::handle_connect_ddl(
+    session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+{
+    ASSERT_PRECONDITION(event == session_event_t::CONNECT_DDL, c_message_unexpected_event_received);
+
+    s_is_ddl_session = true;
+
+    handle_connect(session_event_t::CONNECT, nullptr, old_state, new_state);
+}
+
 void server_t::handle_connect(
-    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::CONNECT, c_message_unexpected_event_received);
 
@@ -104,7 +114,7 @@ void server_t::handle_connect(
 }
 
 void server_t::handle_begin_txn(
-    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::BEGIN_TXN, c_message_unexpected_event_received);
 
@@ -256,7 +266,7 @@ void server_t::release_transaction_resources()
 }
 
 void server_t::handle_rollback_txn(
-    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::ROLLBACK_TXN, c_message_unexpected_event_received);
 
@@ -274,7 +284,7 @@ void server_t::handle_rollback_txn(
 }
 
 void server_t::handle_commit_txn(
-    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::COMMIT_TXN, c_message_unexpected_event_received);
 
@@ -302,11 +312,11 @@ void server_t::handle_commit_txn(
     }
 
     // REVIEW: This is the only reentrant transition handler, and the only server-side state transition.
-    apply_transition(decision, nullptr, nullptr, 0);
+    apply_transition(decision, nullptr);
 }
 
 void server_t::handle_decide_txn(
-    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(
         event == session_event_t::DECIDE_TXN_COMMIT
@@ -336,7 +346,7 @@ void server_t::handle_decide_txn(
 }
 
 void server_t::handle_client_shutdown(
-    int*, size_t, session_event_t event, const void*, session_state_t, session_state_t new_state)
+    session_event_t event, const void*, session_state_t, session_state_t new_state)
 {
     ASSERT_PRECONDITION(
         event == session_event_t::CLIENT_SHUTDOWN,
@@ -364,7 +374,7 @@ void server_t::handle_client_shutdown(
 }
 
 void server_t::handle_server_shutdown(
-    int*, size_t, session_event_t event, const void*, session_state_t, session_state_t new_state)
+    session_event_t event, const void*, session_state_t, session_state_t new_state)
 {
     ASSERT_PRECONDITION(
         event == session_event_t::SERVER_SHUTDOWN,
@@ -410,7 +420,7 @@ std::pair<int, int> server_t::get_stream_socket_pair()
 }
 
 void server_t::handle_request_stream(
-    int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
+    session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(
         event == session_event_t::REQUEST_STREAM,
@@ -500,7 +510,7 @@ void server_t::handle_request_stream(
     send_msg_with_fds(s_session_socket, &client_socket, 1, builder.GetBufferPointer(), builder.GetSize());
 }
 
-void server_t::apply_transition(session_event_t event, const void* event_data, int* fds, size_t fd_count)
+void server_t::apply_transition(session_event_t event, const void* event_data)
 {
     if (event == session_event_t::NOP)
     {
@@ -524,7 +534,7 @@ void server_t::apply_transition(session_event_t event, const void* event_data, i
 
             if (t.transition.handler)
             {
-                t.transition.handler(fds, fd_count, event, event_data, old_state, s_session_state);
+                t.transition.handler(event, event_data, old_state, s_session_state);
             }
 
             return;
@@ -730,9 +740,6 @@ void server_t::init_indexes()
     // Allocate new txn id for initializing indexes.
     begin_startup_txn();
 
-    gaia_locator_t locator = c_invalid_gaia_locator;
-    gaia_locator_t last_locator = s_shared_counters.data()->last_locator.load();
-
     // Create initial index data structures.
     for (const auto& table : catalog_core::list_tables())
     {
@@ -742,6 +749,8 @@ void server_t::init_indexes()
         }
     }
 
+    gaia_locator_t locator = c_invalid_gaia_locator;
+    gaia_locator_t last_locator = s_shared_counters.data()->last_locator.load();
     while ((++locator).is_valid() && locator <= last_locator)
     {
         auto obj = locator_to_ptr(locator);
@@ -1315,8 +1324,6 @@ void server_t::session_handler(int session_socket)
         // Buffer used to receive file descriptors.
         int fd_buf[c_max_fd_count] = {-1};
         size_t fd_buf_size = std::size(fd_buf);
-        int* fds = nullptr;
-        size_t fd_count = 0;
 
         // If the shutdown flag is set, we need to exit immediately before
         // processing the next ready fd.
@@ -1374,12 +1381,6 @@ void server_t::session_handler(int session_socket)
                     const client_request_t* request = msg->msg_as_request();
                     event = request->event();
                     event_data = static_cast<const void*>(request);
-
-                    if (fd_buf_size > 0)
-                    {
-                        fds = fd_buf;
-                        fd_count = fd_buf_size;
-                    }
                 }
                 else
                 {
@@ -1406,7 +1407,7 @@ void server_t::session_handler(int session_socket)
             // exception thrown from that method (translated from EPIPE).
             try
             {
-                apply_transition(event, event_data, fds, fd_count);
+                apply_transition(event, event_data);
             }
             catch (const peer_disconnected& e)
             {
@@ -2605,7 +2606,12 @@ void server_t::txn_rollback(bool client_disconnected)
 
 void server_t::perform_pre_commit_work_for_txn()
 {
-    update_indexes_from_txn_log();
+    // Only update indexes in DDL sessions (when new ones could be created)
+    // or if we know that indexes already exist.
+    if (s_is_ddl_session || !get_indexes()->empty())
+    {
+        update_indexes_from_txn_log();
+    }
 }
 
 // Sort all txn log records by locator. This enables us to use fast binary

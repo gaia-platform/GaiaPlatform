@@ -2642,6 +2642,7 @@ public:
             }
             if (!get_explicit_path_data(operator_declaration, explicit_path_data, operator_source_range))
             {
+                operator_source_range.setBegin(declaration_expression->getLocation());
                 variable_name = table_name;
                 explicit_path_present = false;
                 g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
@@ -2680,6 +2681,7 @@ public:
             }
             if (!get_explicit_path_data(operator_declaration, explicit_path_data, operator_source_range))
             {
+                operator_source_range.setBegin(member_expression->getBeginLoc());
                 explicit_path_present = false;
                 g_used_dbs.insert(getCatalogTableData().find(table_name)->second.dbName);
             }
@@ -2906,11 +2908,12 @@ public:
         }
         else
         {
+            update_expression_location(operator_source_range, op->getBeginLoc(), op->getEndLoc());
             m_rewriter.ReplaceText(
-                SourceRange(op->getBeginLoc(), op->getEndLoc().getLocWithOffset(op_end_location_offset)),
+                SourceRange(operator_source_range.getBegin(), op->getEndLoc().getLocWithOffset(op_end_location_offset)),
                 replace_string);
             g_rewriter_history.push_back(
-                {SourceRange(op->getBeginLoc(), op->getEndLoc().getLocWithOffset(op_end_location_offset)),
+                {SourceRange(operator_source_range.getBegin(), op->getEndLoc().getLocWithOffset(op_end_location_offset)),
                  replace_string, replace_text});
         }
         unsigned int token_length = Lexer::MeasureTokenLength(op->getEndLoc(), m_rewriter.getSourceMgr(), m_rewriter.getLangOpts()) + 1;

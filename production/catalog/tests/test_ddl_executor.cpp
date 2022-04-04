@@ -120,8 +120,7 @@ TEST_F(ddl_executor_test, system_tables)
 
     for (gaia_table_t gaia_table : gaia_table_t::list())
     {
-        if (strcmp(c_catalog_db_name.c_str(), gaia_table.database().name()) == 0
-            || strcmp(c_event_log_db_name.c_str(), gaia_table.database().name()) == 0)
+        if (strcmp(c_catalog_db_name.c_str(), gaia_table.database().name()) == 0)
         {
             ASSERT_TRUE(gaia_table.is_system());
         }
