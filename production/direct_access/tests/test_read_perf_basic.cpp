@@ -15,10 +15,10 @@ using namespace gaia::common;
 using namespace gaia::direct_access;
 using namespace std;
 
-class test_insert_perf_basic : public gaia::db::db_catalog_test_base_t
+class test_read_perf_basic : public gaia::db::db_catalog_test_base_t
 {
 public:
-    test_insert_perf_basic()
+    test_read_perf_basic()
         : db_catalog_test_base_t("perf_basic.ddl"){};
 
     void TearDown() override
@@ -38,6 +38,7 @@ void clear_database()
     clear_table<simple_table_2_t>();
     clear_table<simple_table_3_t>();
 }
+
 void insert_data()
 {
     gaia::db::begin_transaction();
@@ -59,7 +60,7 @@ void insert_data()
     }
 }
 
-TEST_F(test_insert_perf_basic, table_scan)
+TEST_F(test_read_perf_basic, table_scan)
 {
     insert_data();
 
@@ -78,10 +79,12 @@ TEST_F(test_insert_perf_basic, table_scan)
         ASSERT_EQ(c_num_records, i);
     };
 
-    run_performance_test(work, clear_database, "simple_table_t::table_scan");
+    bool clean_db_after_each_iteration = false;
+    run_performance_test(
+        work, clear_database, "simple_table_t::table_scan", clean_db_after_each_iteration);
 }
 
-TEST_F(test_insert_perf_basic, table_scan_data_access)
+TEST_F(test_read_perf_basic, table_scan_data_access)
 {
     insert_data();
 
@@ -101,10 +104,12 @@ TEST_F(test_insert_perf_basic, table_scan_data_access)
         ASSERT_EQ(c_num_records, i);
     };
 
-    run_performance_test(work, clear_database, "simple_table_t::table_scan_data_access");
+    bool clean_db_after_each_iteration = false;
+    run_performance_test(
+        work, clear_database, "simple_table_t::table_scan_data_access", clean_db_after_each_iteration);
 }
 
-TEST_F(test_insert_perf_basic, filter_no_match)
+TEST_F(test_read_perf_basic, filter_no_match)
 {
     insert_data();
 
@@ -123,10 +128,12 @@ TEST_F(test_insert_perf_basic, filter_no_match)
         ASSERT_EQ(0, i);
     };
 
-    run_performance_test(work, clear_database, "simple_table_t::filter_no_match");
+    bool clean_db_after_each_iteration = false;
+    run_performance_test(
+        work, clear_database, "simple_table_t::filter_no_match", clean_db_after_each_iteration);
 }
 
-TEST_F(test_insert_perf_basic, filter_match)
+TEST_F(test_read_perf_basic, filter_match)
 {
     insert_data();
 
@@ -145,8 +152,10 @@ TEST_F(test_insert_perf_basic, filter_match)
         ASSERT_EQ(c_num_records / 2, i);
     };
 
+    bool clean_db_after_each_iteration = false;
     run_performance_test(
         work,
         clear_database,
-        gaia_fmt::format("simple_table_t::filter_match {} matches", c_num_records / 2));
+        gaia_fmt::format("simple_table_t::filter_match {} matches", c_num_records / 2),
+        clean_db_after_each_iteration);
 }

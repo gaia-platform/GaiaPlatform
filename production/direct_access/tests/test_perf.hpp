@@ -125,27 +125,39 @@ void run_performance_test(
     std::function<void()> expr_fn,
     std::function<void()> clear_db_fn,
     std::string_view message,
+    bool clean_db_after_each_iteration = true,
     size_t num_iterations = c_num_iterations,
-    uint64_t num_insertions = c_num_records)
+    uint64_t num_records = c_num_records)
 {
     accumulator_t<int64_t> expr_accumulator;
 
     for (size_t iteration = 0; iteration < num_iterations; iteration++)
     {
-        gaia_log::app().info("[{}]: {} iteration starting, {} records", message, iteration, num_insertions);
+        gaia_log::app().info("[{}]: {} iteration starting, {} records", message, iteration, num_records);
         int64_t expr_duration = g_timer_t::get_function_duration(expr_fn);
         expr_accumulator.add(expr_duration);
 
         double_t iteration_ms = g_timer_t::ns_to_ms(expr_duration);
         gaia_log::app().info("[{}]: {} iteration, completed in {:.2f}ms", message, iteration, iteration_ms);
 
-        gaia_log::app().debug("[{}]: {} iteration, clearing database", message, iteration);
-        int64_t clear_database_duration = g_timer_t::get_function_duration(clear_db_fn);
-        double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
-        gaia_log::app().debug("[{}]: {} iteration, cleared in {:.2f}ms", message, iteration, clear_ms);
+        if (clean_db_after_each_iteration)
+        {
+            gaia_log::app().debug("[{}]: {} iteration, clearing database", message, iteration);
+            int64_t clear_database_duration = g_timer_t::get_function_duration(clear_db_fn);
+            double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
+            gaia_log::app().debug("[{}]: {} iteration, cleared in {:.2f}ms", message, iteration, clear_ms);
+        }
     }
 
-    log_performance_difference(expr_accumulator, message, num_insertions, num_iterations);
+    if (!clean_db_after_each_iteration)
+    {
+        gaia_log::app().info("[{}]: clearing database", message);
+        int64_t clear_database_duration = g_timer_t::get_function_duration(clear_db_fn);
+        double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
+        gaia_log::app().info("[{}]: cleared in {:.2f}ms", message, clear_ms);
+    }
+
+    log_performance_difference(expr_accumulator, message, num_records, num_iterations);
 }
 
 template <typename T_work>

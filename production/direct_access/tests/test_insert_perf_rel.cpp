@@ -54,7 +54,8 @@ TEST_F(test_insert_perf_rel, simple_relationships)
             c_max_insertion_single_txn / 5);
     };
 
-    run_performance_test(insert, clear_database, "simple_relationships");
+    run_performance_test(
+        insert, clear_database, "simple_relationships");
 }
 
 TEST_F(test_insert_perf_rel, value_linked_relationships_parent_only)
@@ -69,7 +70,8 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_parent_only)
             c_vlr_insertions);
     };
 
-    run_performance_test(insert, clear_database, "value_linked_relationships_parent_only", c_num_iterations, c_vlr_insertions);
+    run_performance_test(
+        insert, clear_database, "value_linked_relationships_parent_only", true, c_num_iterations, c_vlr_insertions);
 }
 
 TEST_F(test_insert_perf_rel, value_linked_relationships_child_only)
@@ -84,7 +86,8 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_child_only)
             c_vlr_insertions);
     };
 
-    run_performance_test(insert, clear_database, "value_linked_relationships_child_only", c_num_iterations, c_vlr_insertions);
+    run_performance_test(
+        insert, clear_database, "value_linked_relationships_child_only", true, c_num_iterations, c_vlr_insertions);
 }
 
 TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_same_parent)
@@ -103,7 +106,13 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_same_pare
             c_max_insertion_single_txn / 2);
     };
 
-    run_performance_test(insert, clear_database, "value_linked_relationships_autoconnect_to_same_parent", c_num_iterations, c_vlr_insertions + 1);
+    run_performance_test(
+        insert,
+        clear_database,
+        "value_linked_relationships_autoconnect_to_same_parent",
+        true,
+        c_num_iterations,
+        c_vlr_insertions + 1);
 }
 
 TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_different_parent)
@@ -122,5 +131,11 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_different
             c_max_insertion_single_txn / 5);
     };
 
-    run_performance_test(insert, clear_database, "value_linked_relationships_autoconnect_to_different_parent", c_num_iterations, c_vlr_insertions * 2);
+    run_performance_test(
+        insert,
+        clear_database,
+        "value_linked_relationships_autoconnect_to_different_parent",
+        true,
+        c_num_iterations,
+        c_vlr_insertions * 2);
 }

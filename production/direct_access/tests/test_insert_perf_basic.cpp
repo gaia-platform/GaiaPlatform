@@ -68,7 +68,8 @@ TEST_F(test_insert_perf_basic, simple_table_insert)
         bulk_insert(&simple_table_t::insert_row);
     };
 
-    run_performance_test(insert, clear_database, "simple_table_t::insert_row");
+    run_performance_test(
+        insert, clear_database, "simple_table_t::insert_row");
 }
 
 TEST_F(test_insert_perf_basic, simple_table_writer)
@@ -81,7 +82,8 @@ TEST_F(test_insert_perf_basic, simple_table_writer)
         });
     };
 
-    run_performance_test(insert, clear_database, "simple_table_writer");
+    run_performance_test(
+        insert, clear_database, "simple_table_writer");
 }
 
 TEST_F(test_insert_perf_basic, simple_table_2)
@@ -92,7 +94,8 @@ TEST_F(test_insert_perf_basic, simple_table_2)
         });
     };
 
-    run_performance_test(insert, clear_database, "simple_table_2_t::insert_row");
+    run_performance_test(
+        insert, clear_database, "simple_table_2_t::insert_row");
 }
 
 TEST_F(test_insert_perf_basic, simple_table_3)
@@ -104,7 +107,8 @@ TEST_F(test_insert_perf_basic, simple_table_3)
         });
     };
 
-    run_performance_test(insert, clear_database, "simple_table_3_t::insert_row");
+    run_performance_test(
+        insert, clear_database, "simple_table_3_t::insert_row");
 }
 
 TEST_F(test_insert_perf_basic, simple_table_concurrent)
@@ -125,6 +129,7 @@ TEST_F(test_insert_perf_basic, simple_table_concurrent)
             }
         };
 
-        run_performance_test(insert, clear_database, gaia_fmt::format("simple_table_t::insert_row with {} threads", num_workers));
+        run_performance_test(
+            insert, clear_database, gaia_fmt::format("simple_table_t::insert_row with {} threads", num_workers));
     }
 }
