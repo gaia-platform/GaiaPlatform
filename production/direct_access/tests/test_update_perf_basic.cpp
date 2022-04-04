@@ -60,9 +60,6 @@ void insert_data()
     }
 }
 
-// TODO this should be refactored into a separate file. I didn't do that to avoid further
-//  duplication of the benchmarking framework. Created a JIRA to do the refactoring:
-//  https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2131
 TEST_F(test_update_perf_basic, simple_table_update)
 {
     insert_data();
