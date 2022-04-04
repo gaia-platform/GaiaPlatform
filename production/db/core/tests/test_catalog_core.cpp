@@ -12,12 +12,12 @@
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
-#include "gaia_internal/db/db_test_base.hpp"
+#include "gaia_internal/db/db_ddl_test_base.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
 
-class catalog_core_test : public db_test_base_t
+class catalog_core_test : public db_ddl_test_base_t
 {
 };
 

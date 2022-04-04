@@ -8,7 +8,7 @@
 
 #include "gaia/direct_access/auto_transaction.hpp"
 
-#include "gaia_internal/db/db_test_base.hpp"
+#include "gaia_internal/db/db_ddl_test_base.hpp"
 
 #include "fbs_generator.hpp"
 #include "json_generator.hpp"
@@ -21,7 +21,7 @@ using namespace gaia::common;
 using namespace gaia::db;
 using namespace gaia::direct_access;
 
-class json_generation_test : public db_test_base_t
+class json_generation_test : public db_ddl_test_base_t
 {
 protected:
     static void SetUpTestSuite()

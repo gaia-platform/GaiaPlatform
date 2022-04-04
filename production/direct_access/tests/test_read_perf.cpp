@@ -81,7 +81,9 @@ void clear_database()
     clear_table<simple_table_t>();
     clear_table<simple_table_2_t>();
     clear_table<simple_table_3_t>();
-    clear_table<simple_table_index_t>();
+    clear_table<unique_index_table_t>();
+    clear_table<hash_index_table_t>();
+    clear_table<range_index_table_t>();
     // When deleting a connected entity there are 4 objects mutations happening.
     clear_table<table_child_t>(c_max_insertion_single_txn / 4);
     clear_table<table_parent_t>();
@@ -184,6 +186,31 @@ void run_performance_test(
     gaia_log::app().info("[{}]: cleared in {:.2f}ms", message, clear_ms);
 
     log_performance_difference(expr_accumulator, message, num_records, num_iterations);
+}
+
+template <typename T_type, typename T_work>
+void bulk_update(T_work update, int64_t max_insertion_single_txn = c_max_insertion_single_txn)
+{
+    gaia::db::begin_transaction();
+
+    size_t i = 0;
+    for (T_type& obj : T_type::list())
+    {
+        if (i > 0 && i % max_insertion_single_txn == 0)
+        {
+            gaia::db::commit_transaction();
+            gaia::db::begin_transaction();
+        }
+
+        update(obj);
+
+        i++;
+    }
+
+    if (gaia::db::is_transaction_open())
+    {
+        gaia::db::commit_transaction();
+    }
 }
 
 void insert_data()
@@ -294,4 +321,22 @@ TEST_F(test_read_perf, filter_match)
     };
 
     run_performance_test(work, gaia_fmt::format("simple_table_t::filter_match {} matches", c_num_records / 2));
+}
+
+// TODO this should be refactored into a separate file. I didn't do that to avoid further
+//  duplication of the benchmarking framework. Created a JIRA to do the refactoring:
+//  https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2131
+TEST_F(test_read_perf, simple_table_update)
+{
+    insert_data();
+
+    auto update = []() {
+        bulk_update<simple_table_t>([](simple_table_t& obj) {
+            simple_table_writer w = obj.writer();
+            w.uint64_field = 1;
+            w.update_row();
+        });
+    };
+
+    run_performance_test(update, "simple_table_update");
 }

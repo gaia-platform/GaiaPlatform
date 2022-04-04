@@ -547,43 +547,6 @@ public:
         }
     }
 
-    /*
-    // event log table helpers
-    uint64_t clear_event_log()
-    {
-        uint64_t rows_cleared = 0;
-        gaia::db::begin_transaction();
-        auto entry = *(gaia::event_log::event_log_t::list().begin());
-        while (entry)
-        {
-            entry.delete_row();
-            entry = *(gaia::event_log::event_log_t::list().begin());
-            rows_cleared++;
-        }
-        gaia::db::commit_transaction();
-        return rows_cleared;
-    }
-
-    void verify_event_log_row(
-        const gaia::event_log::event_log_t& row, event_type_t event_type,
-        gaia_type_t gaia_type, gaia_id_t record_id, uint16_t column_id, bool rules_invoked)
-    {
-        EXPECT_EQ(row.event_type(), (uint32_t)event_type);
-        EXPECT_EQ(row.type_id(), gaia_type);
-        EXPECT_EQ(row.record_id(), record_id);
-        EXPECT_EQ(row.column_id(), column_id);
-        EXPECT_EQ(row.rules_invoked(), rules_invoked);
-    }
-
-    void verify_event_log_is_empty()
-    {
-        gaia::db::begin_transaction();
-        auto entry = *(gaia::event_log::event_log_t::list().begin());
-        EXPECT_FALSE((bool)entry);
-        gaia::db::commit_transaction();
-    }
-    */
-
 protected:
     static void SetUpTestSuite()
     {
