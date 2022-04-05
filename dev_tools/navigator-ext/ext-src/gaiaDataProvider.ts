@@ -12,21 +12,22 @@ export class GaiaDataProvider {
 
   static getDatabases(refresh? : boolean) : any {
     this.populateCatalog(refresh);
-    return this.catalog ? this.catalog.databases : undefined;
+    return this.exists() ? this.catalog.databases : undefined;
   }
 
   static getTables(db_id : number, refresh? : boolean): void {
     this.populateCatalog(refresh);
-    return this.catalog ? this.catalog.databases[db_id].tables : undefined;
+    return this.exists(db_id) ? this.catalog.databases[db_id].tables : undefined;
   }
 
   static getFields(db_id : number, table_id: number, refresh? : boolean): void {
     this.populateCatalog(refresh);
-    return this.catalog ? this.catalog.databases[db_id].tables[table_id].fields : undefined;
+    return this.exists(db_id, table_id) ? this.catalog.databases[db_id].tables[table_id].fields : undefined;
   }
 
+
   // Never cache table data.
-  static getTableData(db_name : string, table_name : string, fields? : any) {
+  static getTableData(db_name : string, table_name : string) {
 
     var child = child_process.spawnSync(this.extract_cmd,
       [`--database=${db_name}`, `--table=${table_name}`]);
@@ -38,19 +39,36 @@ export class GaiaDataProvider {
 
     // We've got the data but we need to get the catalog metadata for the
     // column information if it is not passed in.
-    if (!fields) {
-      fields = this.findFields(db_name, table_name);
-      if (fields === undefined) {
-          vscode.window.showInformationMessage(`Table ${table_name} has no columns.`)
-          return undefined;
-      }
+    var table = this.findTable(db_name, table_name);
+    if (!table) {
+      vscode.window.showInformationMessage(`Table ${table_name} was not found.`);
+      return undefined;
     }
 
-    // Add the row_id to the columns list for data.
+    const fields = this.findFields(table);
+    if (!fields) {
+      vscode.window.showInformationMessage(`Table ${table_name} has no columns.`)
+      return undefined;
+    }
+
+    const relationships = this.getRelationships(table);
+
+    // Add the row_id to the columns list as a "generated column"
     const data = JSON.parse(child.stdout.toString());
-    var cols = [{key: 'row_id', name : 'row_id'}];
+    var cols = [{key: 'row_id', name : this.getGeneratedFieldName('row_id'), is_link : false}];
+
+    // Add any relationships as "generated columns"
+    for (var i = 0; i < relationships.length; i++) {
+      var relationship = relationships[i];
+      cols.push({
+        key: relationship.link_name,
+        name : this.getGeneratedFieldName(relationship.link_name), is_link : true
+      });
+    }
+
+    // Add the table's columns now.
     for (var i = 0; i < fields.length; i++) {
-      cols.push({ key : fields[i], name : fields[i]});
+      cols.push({ key : fields[i], name : fields[i], is_link : false});
     }
 
     let tableData : ITableView = {
@@ -63,40 +81,75 @@ export class GaiaDataProvider {
     return tableData;
   }
 
-  private static findFields(db_name : string, table_name:string) {
+  private static getGeneratedFieldName(name : string) {
+    return '<' + name + '>';
+  }
+
+  // Verify that all references exist in the JSON up to the last optional
+  // parameter passed in.
+  private static exists(db_id? : number, table_id? : number) {
+    if (!this.catalog) {
+      return false;
+    }
+
+    if (db_id != undefined) {
+      var databases = this.catalog.databases;
+      if (databases == undefined || databases[db_id] == undefined) {
+        return false;
+      }
+      if (table_id != undefined) {
+        var tables = databases[db_id].tables;
+        if (tables == undefined || tables[table_id] == undefined) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  private static findTable(db_name : string, table_name : string) {
     this.populateCatalog();
     if (!this.catalog) {
       return undefined;
     }
-
     var databases = this.catalog.databases;
     if (!databases) {
       return undefined;
     }
 
     for (var db_index = 0; db_index < databases.length; db_index++) {
-      if (databases[db_index].name == db_name) {
-        var tables = databases[db_index].tables;
-        if (!tables) {
-          return undefined;
-        }
-        for (var table_index = 0; table_index < tables.length; table_index++) {
-          if (tables[table_index].name == table_name) {
-            var catalog_fields = tables[table_index].fields;
-            if (!catalog_fields) {
-              return undefined;
-            }
-            var fields = [];
-            for (let catalog_field of catalog_fields) {
-                fields.push(catalog_field.name);
-            }
-            return fields;
-          }
-        }
+       if (databases[db_index].name == db_name) {
+         var tables = databases[db_index].tables;
+         if (!tables) {
+           return undefined;
+         }
+         for (var table_index = 0; table_index < tables.length; table_index++) {
+           if (tables[table_index].name == table_name) {
+             return tables[table_index];
+           }
+         }
       }
     }
 
     return undefined;
+  }
+
+  private static findFields(table : any) {
+    var catalog_fields = table.fields;
+    if (!catalog_fields) {
+      return undefined;
+    }
+
+    var fields = [];
+    for (let catalog_field of catalog_fields) {
+        fields.push(catalog_field.name);
+    }
+    return fields;
+  }
+
+  private static getRelationships(table : any) {
+    return table.relationships;
   }
 
   private static populateCatalog(refresh? : boolean ) {

@@ -138,7 +138,7 @@ export default class ViewLoader {
 
         // Use a nonce to whitelist which scripts can be run
         const nonce = getNonce();
-        const tableData = GaiaDataProvider.getTableData(db_name, table_name, fields);
+        const tableData = GaiaDataProvider.getTableData(db_name, table_name);
         if (!tableData)
         {
             return`<!DOCTYPE html>
