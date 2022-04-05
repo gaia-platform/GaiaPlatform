@@ -5,8 +5,8 @@ import * as vscode from 'vscode';
 import * as child_process from 'child_process';
 
 import { CatalogItem } from '../databaseExplorer';
-import { ITableView } from './app/model';
-
+import { ICommand, CommandAction, ILink } from './app/model';
+import { GaiaDataProvider } from '../gaiaDataProvider';
 
 
 // Manages react webview panels.
@@ -24,7 +24,8 @@ export default class ViewLoader {
     private readonly _extensionPath: string;
     private _disposables: vscode.Disposable[] = [];
 
-    public static createOrShow(extensionPath: string, item : CatalogItem) {
+    // Shows records from a table.
+    public static showRecords(extensionPath: string, item : CatalogItem) {
         const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
         var title = `${item.db_name}.${item.label}`;
 
@@ -35,12 +36,41 @@ export default class ViewLoader {
             ViewLoader.currentViews[title] = new ViewLoader(
                 extensionPath,
                 title,
-                item,
-                column || vscode.ViewColumn.One);
+                column || vscode.ViewColumn.One,
+                item.db_name,
+                item.label,
+                item.fields
+                );
         }
     }
 
-    private constructor(extensionPath: string, title: string, table: CatalogItem, column: vscode.ViewColumn) {
+    // Shows related records to a table.
+    public static showRelatedRecords(extensionPath: string, link : ILink) {
+        const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
+
+        // See if we can find the metadata for this table via the catalog.  If not,
+        // we'll have to look it up.
+        // todo (dax): enable/maintain a for catalog items so that we can go directly to a table either
+        // via the explorer or by getting a link from a table.
+
+        var title = `${link.db_name}.${link.table_name}`;
+
+        // todo (dax): you can see that you would have to change the function prototypes "all the way down"
+        // if you don't pass CatalogItems.  Need to figure out how to pull together ILink and CatalogItem
+
+        // For now, always create a new view since the set of records
+        // for the same title may be diffrent depending on the row id of the
+        // "parent" record
+        ViewLoader.currentViews[title] = new ViewLoader(
+            extensionPath,
+            title,
+            column || vscode.ViewColumn.One,
+            link.db_name,
+            link.table_name
+            );
+    }
+
+    private constructor(extensionPath: string, title: string, column: vscode.ViewColumn, db_name: string, table_name : string, fields? : any) {
         this._extensionPath = extensionPath;
         this._title = title;
 
@@ -56,24 +86,24 @@ export default class ViewLoader {
         });
 
         // Set the webview's initial html content.
-        this._panel.webview.html = this._getHtmlForWebview(table);
+        this._panel.webview.html = this._getHtmlForWebview(db_name, table_name, fields);
 
         // Listen for when the panel is disposed.
         // This happens when the user closes the panel or when the panel is closed programatically.
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
         // Handle messages from the webview.
-        this._panel.webview.onDidReceiveMessage(message => {
-            switch (message.command) {
-                case 'alert':
-                    vscode.window.showErrorMessage(message.text);
+        this._panel.webview.onDidReceiveMessage((command : ICommand)  => {
+            switch (command.action) {
+                case CommandAction.ShowRelatedRecords:
+                    vscode.commands.executeCommand('databases.showRelatedRecords', command.link);
                     return;
             }
         }, null, this._disposables);
     }
 
     public doRefactor() {
-        // Send a message to the webview webview.
+        // Send a message to the webview.
         // You can send any JSON serializable data.
         this._panel.webview.postMessage({ command: 'refactor' });
     }
@@ -92,7 +122,7 @@ export default class ViewLoader {
         }
     }
 
-    private _getHtmlForWebview(table : CatalogItem) {
+    private _getHtmlForWebview(db_name : string, table_name : string, fields? : any) {
 //        const manifest = require(path.join(this._extensionPath, 'build', 'asset-manifest.json'));
 //        const mainScript = manifest.files['main.js'];
 //        const mainStyle = manifest.files['main.css'];
@@ -106,11 +136,9 @@ export default class ViewLoader {
 0       //const stylePathOnDisk = vscode.Uri.file(path.join(this._extensionPath, 'build', mainStyle));
         //const styleUri = stylePathOnDisk.with({ scheme: 'vscode-resource' });
 
-
-
         // Use a nonce to whitelist which scripts can be run
         const nonce = getNonce();
-        const tableData = this._loadData(table);
+        const tableData = GaiaDataProvider.getTableData(db_name, table_name, fields);
         if (!tableData)
         {
             return`<!DOCTYPE html>
@@ -122,7 +150,7 @@ export default class ViewLoader {
                 </head>
                 <body>
                     <div id="root">
-                    <h2> An error occurred retrieving data for table '${table.label}'.</h2>
+                    <h2> An error occurred retrieving data for table '${table_name}'.</h2>
                     </div>
                 </body>
                 </html>`;
@@ -187,34 +215,6 @@ export default class ViewLoader {
             </html>`;
             */
 
-    }
-
-    private _loadData(table: CatalogItem) {
-        var child = child_process.spawnSync('/opt/gaia/bin/gaia_db_extract',
-            [`--database=${table.db_name}`, `--table=${table.label}`]);
-
-        var resultText = child.stderr.toString().trim();
-        if (resultText) {
-            vscode.window.showErrorMessage(resultText);
-            return undefined;
-        }
-
-        if (table.fields === undefined) {
-            vscode.window.showInformationMessage(`Table {table.label} has no columns.`)
-            return undefined;
-        }
-
-        const gaiaJson = JSON.parse(child.stdout.toString());
-        const cols = table.fields.map((item : string) => {
-            return { key : item, name : item};
-        })
-
-        let tableData : ITableView = {
-            columns : cols,
-            rows : gaiaJson.rows || [],
-        };
-
-        return tableData;
     }
 }
 

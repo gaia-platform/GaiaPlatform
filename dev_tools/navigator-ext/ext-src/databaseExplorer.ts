@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
-import * as child_process from 'child_process';
 import * as path from 'path';
+import { GaiaDataProvider } from './gaiaDataProvider';
 
 export class GaiaCatalogProvider implements vscode.TreeDataProvider<CatalogItem> {
-  constructor() {}
+  constructor() {
+
+  }
 
   getTreeItem(element: CatalogItem): vscode.TreeItem {
     return element;
@@ -34,9 +36,6 @@ export class GaiaCatalogProvider implements vscode.TreeDataProvider<CatalogItem>
         name, db_id, db_name, table_id, table_type, fields, column_id, position, type, is_array);
     }
 
-  /**
-   * Read Gaia objects by executing the gaia_db_extract command
-   */
   private getCatalogItems(element?: CatalogItem): CatalogItem[] {
     // We only read databases -> tables -> columns.
     // If this is a column, there there is no more data to read.
@@ -44,48 +43,40 @@ export class GaiaCatalogProvider implements vscode.TreeDataProvider<CatalogItem>
       return [];
     }
 
-    var child = child_process.spawnSync('/opt/gaia/bin/gaia_db_extract');
-    var resultText = child.stderr.toString().trim();
-    if (resultText) {
-      vscode.window.showErrorMessage(resultText);
-      return [];
-    }
+    var items = GaiaDataProvider.getDatabases();
 
-    const gaiaJson = JSON.parse(child.stdout.toString());
-    var items = gaiaJson.databases;
-
-    // Return the databases if we don't have a child element.
+    // Return the databases if we were not passed a parent catalog item.
     if (!element) {
       return Object.keys(items).map((catalogItem, index) =>
         this.getCatalogItem(items[catalogItem].name, index, items[catalogItem].name)
       )
     }
 
-    // If we have a table_id then we are iterate over the table's fields.
-    if (element.table_id != undefined)
-    {
-      items = gaiaJson.databases[element.db_id].tables[element.table_id].fields;
+    // Otherwise, this is a table element and we iterate over the table's fields.
+    if (element.table_id != undefined) {
+      items = GaiaDataProvider.getFields(element.db_id, element.table_id);
       return Object.keys(items).map((catalogItem, index) =>
         this.getCatalogItem(items[catalogItem].name,
           element.db_id, element.db_name, element.table_id, element.table_type, element.fields, index,
           items[catalogItem].position, items[catalogItem].type, items[catalogItem].repeated_count == 0))
     }
 
-   // If a table_id is not defined then iterate over the database's tables.
-   items = gaiaJson.databases[element.db_id].tables;
-   if (!items) {
-     return [];
-   }
-   return Object.keys(items).map((catalogItem, index) => {
-        var fields = ["row_id"];
-        var catalog_fields = items[catalogItem].fields;
-        if (catalog_fields) {
-          for (let catalog_field of catalog_fields) {
-            fields.push(catalog_field.name);
+
+    // If a table_id is not defined then iterate over the database's tables.
+    items = GaiaDataProvider.getTables(element.db_id);
+    if (!items) {
+      return [];
+    }
+    return Object.keys(items).map((catalogItem, index) => {
+      var fields = [];
+          var catalog_fields = items[catalogItem].fields;
+          if (catalog_fields) {
+            for (let catalog_field of catalog_fields) {
+              fields.push(catalog_field.name);
+            }
           }
-        }
-        return this.getCatalogItem(items[catalogItem].name, element.db_id, element.db_name, index, items[catalogItem].type, fields);
-   });
+          return this.getCatalogItem(items[catalogItem].name, element.db_id, element.db_name, index, items[catalogItem].type, fields);
+    });
   }
 }
 

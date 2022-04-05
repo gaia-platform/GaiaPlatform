@@ -8,6 +8,7 @@
 
 # production
 /build
+/dataViewer
 
 # misc
 .DS_Store
