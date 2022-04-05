@@ -61,12 +61,13 @@ private:
 class function_handler_t : public MatchFinder::MatchCallback
 {
 public:
-    function_handler_t(Rewriter& rewrite)
+    explicit function_handler_t(Rewriter& rewrite)
         : m_rewrite(rewrite){};
 
-    virtual void run(const MatchFinder::MatchResult& result)
+    void run(const MatchFinder::MatchResult& result) override
     {
-        const FunctionDecl* function_decl = result.Nodes.getNodeAs<FunctionDecl>("funcDecl");
+        llvm::outs() << "function_handler_t\n";
+        const auto* function_decl = result.Nodes.getNodeAs<FunctionDecl>("funcDecl");
 
         if (!function_decl)
         {
@@ -75,7 +76,34 @@ public:
 
         for (auto attr : function_decl->attrs())
         {
-            llvm::outs() << "Found attr: " << attr->getSpelling() << "\n";
+            llvm::outs() << "1 Found attr: " << attr->getSpelling() << "\n";
+        }
+    }
+
+private:
+    Rewriter& m_rewrite;
+};
+
+class gaia_rule_attr_handler_t : public MatchFinder::MatchCallback
+{
+public:
+    explicit gaia_rule_attr_handler_t(Rewriter& rewrite)
+        : m_rewrite(rewrite){};
+
+    void run(const MatchFinder::MatchResult& result) override
+    {
+        llvm::outs() << "gaia_rule_attr_handler_t\n";
+
+        const auto* function_decl = result.Nodes.getNodeAs<FunctionDecl>("ruleDecl");
+
+        if (!function_decl)
+        {
+            llvm::outs() << "What da fuck\n";
+        }
+
+        for (auto attr : function_decl->attrs())
+        {
+            llvm::outs() << "2 Found attr: " << attr->getSpelling() << "\n";
         }
     }
 
@@ -87,10 +115,11 @@ class translation_engine_consumer_t : public clang::ASTConsumer
 {
 public:
     explicit translation_engine_consumer_t(ASTContext* ast, Rewriter& r)
-        : m_rewriter(r), m_handler_for_if(r), m_function_handler(r)
+        : m_rewriter(r), m_handler_for_if(r), m_function_handler(r), m_gaia_rule_attr_handler(r)
     {
         m_matcher.addMatcher(functionDecl().bind("funcDecl"), &m_function_handler);
         m_matcher.addMatcher(ifStmt().bind("ifStmt"), &m_handler_for_if);
+        m_matcher.addMatcher(functionDecl(hasAttr(attr::GaiaRule)).bind("ruleDecl"), &m_gaia_rule_attr_handler);
     }
 
     void HandleTranslationUnit(clang::ASTContext& context) override
@@ -104,6 +133,7 @@ private:
 
     IfStmtHandler m_handler_for_if;
     function_handler_t m_function_handler;
+    gaia_rule_attr_handler_t m_gaia_rule_attr_handler;
 };
 
 class translation_engine_action_t : public clang::ASTFrontendAction

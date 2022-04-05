@@ -17,4 +17,5 @@ class suppini_test : public ::testing::Test
 
 TEST_F(suppini_test, subscribe_invalid_ruleset)
 {
+    ASSERT_TRUE(true);
 }

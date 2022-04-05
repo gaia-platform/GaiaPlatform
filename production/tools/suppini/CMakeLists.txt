@@ -58,6 +58,7 @@ add_custom_command(
   OUTPUT ${TEST_OUTPUT}
   COMMAND ${SUPPINI_CMD} ${TEST_INPUT} -output ${TEST_OUTPUT} --
   DEPENDS ${SUPPINI_CMD}
+  DEPENDS ${TEST_INPUT}
 )
 
 # Smoke test for basic ruleset translation functionality
