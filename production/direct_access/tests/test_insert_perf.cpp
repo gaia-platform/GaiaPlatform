@@ -280,7 +280,7 @@ TEST_F(test_insert_perf, simple_table_3)
 
 TEST_F(test_insert_perf, simple_table_insert_txn_size)
 {
-    for (int64_t txn_size : {1, 10, 100, 1000, 10000})
+    for (int64_t txn_size : {1, 16, 256, 4096, static_cast<int>(c_max_insertion_single_txn)})
     {
         const int64_t num_records = txn_size == 1 ? c_num_records / 10 : c_num_records;
 
