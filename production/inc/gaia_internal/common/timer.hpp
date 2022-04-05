@@ -27,33 +27,36 @@ public:
     static std::chrono::steady_clock::time_point get_time_point();
 
     // Return a duration calculated as now() - start
-    static int64_t get_duration(std::chrono::steady_clock::time_point& start_time);
+    static uint64_t get_duration(std::chrono::steady_clock::time_point& start_time);
 
     // Convenience method to calculate the duration and print out the result
     static void log_duration(std::chrono::steady_clock::time_point& start_time, const char* message);
 
     // Time the function and return result in nanoseconds.
-    static int64_t get_function_duration(std::function<void()> fn);
+    static uint64_t get_function_duration(std::function<void()> fn);
 
     // Time the function and output a message to the console.
     static void log_function_duration(std::function<void()> fn, const char* function_name);
 
     // ns -> s
-    static double ns_to_s(int64_t nanoseconds)
+    static double ns_to_s(uint64_t nanoseconds)
     {
-        return nanoseconds / (double)(1e9);
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
+        return static_cast<double>(nanoseconds) / static_cast<double>(1e9);
     }
 
     // ns -> ms
-    static double ns_to_ms(int64_t nanoseconds)
+    static double ns_to_ms(uint64_t nanoseconds)
     {
-        return nanoseconds / (double)(1e6);
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
+        return static_cast<double>(nanoseconds) / static_cast<double>(1e6);
     }
 
     // ns -> us
-    static double ns_to_us(int64_t nanoseconds)
+    static double ns_to_us(uint64_t nanoseconds)
     {
-        return nanoseconds / (double)(1e3);
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-magic-numbers)
+        return static_cast<double>(nanoseconds) / static_cast<double>(1e3);
     }
 };
 
@@ -82,7 +85,7 @@ public:
         return std::chrono::steady_clock::time_point::min();
     }
 
-    int64_t get_duration(std::chrono::steady_clock::time_point& start_time)
+    uint64_t get_duration(std::chrono::steady_clock::time_point& start_time)
     {
         if (m_enabled)
         {
@@ -101,7 +104,7 @@ public:
     }
 
     // Time the function and return result in nanoseconds.
-    int64_t get_function_duration(std::function<void()> fn)
+    uint64_t get_function_duration(std::function<void()> fn)
     {
         if (m_enabled)
         {
