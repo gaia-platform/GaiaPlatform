@@ -326,7 +326,7 @@ TEST_F(test_read_perf, filter_match)
 // TODO this should be refactored into a separate file. I didn't do that to avoid further
 //  duplication of the benchmarking framework. Created a JIRA to do the refactoring:
 //  https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2131
-TEST_F(test_read_perf, simple_table_update_static)
+TEST_F(test_read_perf, simple_table_update)
 {
     insert_data();
 
@@ -353,5 +353,5 @@ TEST_F(test_read_perf, simple_table_update_dynamic)
         });
     };
 
-    run_performance_test(update, "simple_table_update");
+    run_performance_test(update, "simple_table_update_dynamic");
 }
