@@ -18,8 +18,8 @@
 
 #include "timer.hpp"
 
-const constexpr uint32_t c_num_insertion = 3000000;
-const constexpr uint32_t c_num_iterations = 3;
+const constexpr uint32_t c_num_insertion = 10000000;
+const constexpr uint32_t c_num_iterations = 1;
 const constexpr uint32_t c_insert_buffer_stmts = c_num_insertion > 1000000 ? c_num_insertion / 10 : c_num_insertion;
 
 using namespace std::chrono;
@@ -363,6 +363,52 @@ TEST_F(sqlite3_benchmark, simple_insert_prepared_statement)
     };
 
     run_performance_test(simple_insert, "sqlite3::simple_insert_prepared_statement");
+}
+
+TEST_F(sqlite3_benchmark, simple_insert_txn_size)
+{
+    for (int64_t txn_size : {1, 10, 100, 1000, 10000})
+    {
+        auto simple_insert = [this, txn_size]() {
+            const char* sql = "INSERT INTO simple_table(uint64_field) VALUES (?);";
+
+            sqlite3_stmt* stmt; // will point to prepared stamement object
+            sqlite3_prepare_v2(
+                db, // the handle to your (opened and ready) database
+                sql, // the sql statement, utf-8 encoded
+                -1, // max length of sql statement
+                &stmt, // this is an "out" parameter, the compiled statement goes here
+                nullptr); // pointer to the tail end of sql statement (when there are
+                          // multiple statements inside the string; can be null)
+
+            exec(db, "BEGIN TRANSACTION;");
+
+            for (int i = 0; i < c_num_insertion; i++)
+            {
+                sqlite3_bind_int64(stmt, 1, i);
+                int ret_val = sqlite3_step(stmt);
+                if (ret_val != SQLITE_DONE)
+                {
+                    printf("Commit Failed! %d\n", ret_val);
+                    sqlite3_close(db);
+                    exit(1);
+                }
+                sqlite3_reset(stmt);
+
+                if (i % txn_size == 0 || i == c_num_insertion - 1)
+                {
+                    exec(db, "COMMIT;");
+
+                    if (i < c_num_insertion - 1)
+                    {
+                        exec(db, "BEGIN TRANSACTION;");
+                    }
+                }
+            }
+        };
+
+        run_performance_test(simple_insert, fmt::format("sqlite3::simple_insert with txn of size {}", txn_size), c_num_iterations, c_num_insertion);
+    }
 }
 
 TEST_F(sqlite3_benchmark, simple_insert_3)
