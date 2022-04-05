@@ -34,11 +34,12 @@ public:
 
 void clear_database()
 {
-    // When deleting a connected entity there are 4 objects mutations happening.
-    clear_table<table_child_t>(c_max_insertion_single_txn / 4);
-    clear_table<table_parent_t>();
-    clear_table<table_child_vlr_t>();
-    clear_table<table_parent_vlr_t>();
+    // Batch record deletions to avoid hitting transaction limits.
+    constexpr size_t c_max_deletion_per_txn = 10000;
+    clear_table<table_child_t>(c_max_deletion_per_txn);
+    clear_table<table_parent_t>(c_max_deletion_per_txn);
+    clear_table<table_child_vlr_t>(c_max_deletion_per_txn);
+    clear_table<table_parent_vlr_t>(c_max_deletion_per_txn);
 }
 
 TEST_F(test_insert_perf_rel, simple_relationships)
@@ -63,11 +64,13 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_parent_only)
     // VLR are so slow that we need to use a lower number of insertion to
     // finish in a reasonable amount of time.
     constexpr size_t c_vlr_insertions = c_num_records / 10;
+    constexpr size_t c_max_vlr_insertion_single_txn = 30000;
 
     auto insert = []() {
         bulk_insert(
             &table_parent_vlr_t::insert_row,
-            c_vlr_insertions);
+            c_vlr_insertions,
+            c_max_vlr_insertion_single_txn);
     };
 
     run_performance_test(
@@ -79,11 +82,13 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_child_only)
     // VLR are so slow that we need to use a lower number of insertion to
     // finish in a reasonable amount of time.
     constexpr size_t c_vlr_insertions = c_num_records / 10;
+    constexpr size_t c_max_vlr_insertion_single_txn = 30000;
 
     auto insert = []() {
         bulk_insert(
             &table_child_vlr_t::insert_row,
-            c_vlr_insertions);
+            c_vlr_insertions,
+            c_max_vlr_insertion_single_txn);
     };
 
     run_performance_test(
@@ -102,8 +107,7 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_same_pare
         gaia::db::commit_transaction();
         bulk_insert(
             [](size_t) { table_child_vlr_t::insert_row(0); },
-            c_vlr_insertions,
-            c_max_insertion_single_txn / 2);
+            c_vlr_insertions);
     };
 
     run_performance_test(
@@ -112,7 +116,7 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_same_pare
         "value_linked_relationships_autoconnect_to_same_parent",
         true,
         c_num_iterations,
-        c_vlr_insertions + 1);
+        c_vlr_insertions);
 }
 
 TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_different_parent)
@@ -120,6 +124,7 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_different
     // VLR are so slow that we need to use a lower number of insertion to
     // finish in a reasonable amount of time.
     constexpr size_t c_vlr_insertions = c_num_records / 10;
+    constexpr size_t c_max_vlr_insertion_single_txn = 10000;
 
     auto insert = []() {
         bulk_insert(
@@ -128,7 +133,7 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_different
                 table_child_vlr_t::insert_row(iter);
             },
             c_vlr_insertions,
-            c_max_insertion_single_txn / 5);
+            c_max_vlr_insertion_single_txn);
     };
 
     run_performance_test(
@@ -137,5 +142,5 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_different
         "value_linked_relationships_autoconnect_to_different_parent",
         true,
         c_num_iterations,
-        c_vlr_insertions * 2);
+        c_vlr_insertions);
 }
