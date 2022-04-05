@@ -55,6 +55,24 @@ static json_t to_json(gaia_field_t field)
     return json;
 }
 
+// Add a link array element.
+static json_t to_json(gaia_relationship_t relationship, bool is_outgoing)
+{
+    json_t json;
+
+    json["is_outgoing"] = is_outgoing;
+    if (is_outgoing)
+    {
+        json["link_name"] = relationship.to_child_link_name();
+    }
+    else
+    {
+        json["link_name"] = relationship.to_parent_link_name();
+    }
+
+    return json;
+}
+
 // Add a table array element.
 static json_t to_json(gaia_table_t table)
 {
@@ -68,6 +86,18 @@ static json_t to_json(gaia_table_t table)
     for (const auto& field : table.gaia_fields())
     {
         json["fields"].push_back(to_json(field));
+    }
+
+    for (const auto& relationship : gaia_relationship_t::list())
+    {
+        if (strcmp(relationship.parent().name(), table.name()) == 0)
+        {
+            json["relationships"].push_back(to_json(relationship, true));
+        }
+        else if (strcmp(relationship.child().name(), table.name()) == 0)
+        {
+            json["relationships"].push_back(to_json(relationship, false));
+        }
     }
 
     return json;
