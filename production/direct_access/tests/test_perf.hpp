@@ -16,11 +16,20 @@
 
 using g_timer_t = gaia::common::timer_t;
 
-static const uint64_t c_num_records = 100000;
-static const uint64_t c_num_iterations = 1;
+static const size_t c_num_records = 100000;
+static const size_t c_num_iterations = 1;
 
 // This is a hard limit imposed by the db architecture.
-static const uint64_t c_max_insertion_single_txn = (1 << 16) - 1;
+static const size_t c_max_insertion_single_txn = (((size_t)1) << 16) - 1;
+
+size_t get_duration(std::function<void()> fn)
+{
+    int64_t duration = g_timer_t::get_function_duration(fn);
+    ASSERT_INVARIANT(duration >= 0, "g_timer_t::get_function_duration() has returned a negative value!");
+
+    uint64_t result = duration;
+    return result;
+}
 
 template <typename T_type>
 void clear_table(size_t max_deletion_per_txn = c_max_insertion_single_txn)
@@ -89,20 +98,26 @@ private:
     T_num m_min = std::numeric_limits<T_num>::max();
     T_num m_max = std::numeric_limits<T_num>::min();
     T_num m_sum = 0;
-    uint64_t m_num_observations = 0;
+    size_t m_num_observations = 0;
 };
 
-double_t percentage_difference(int64_t expr, int64_t plain)
+double_t percentage_difference(size_t expr, size_t plain)
 {
+    ASSERT_INVARIANT(expr >= plain, "Negative difference detected in percentage_difference()!");
+
     return static_cast<double_t>(expr - plain) / static_cast<double_t>(plain) * 100.0;
 }
 
-void log_performance_difference(accumulator_t<int64_t> expr_accumulator, std::string_view message, uint64_t num_insertions, size_t num_iterations)
+void log_performance_difference(
+    accumulator_t<size_t> expr_accumulator,
+    std::string_view message,
+    size_t num_insertions,
+    size_t num_iterations)
 {
-    double_t avg_expr_us = g_timer_t::ns_to_us(static_cast<int64_t>(expr_accumulator.avg()));
+    double_t avg_expr_us = g_timer_t::ns_to_us(static_cast<size_t>(expr_accumulator.avg()));
     double_t min_expr_us = g_timer_t::ns_to_us(expr_accumulator.min());
     double_t max_expr_us = g_timer_t::ns_to_us(expr_accumulator.max());
-    double_t avg_expr_ms = g_timer_t::ns_to_ms(static_cast<int64_t>(expr_accumulator.avg()));
+    double_t avg_expr_ms = g_timer_t::ns_to_ms(static_cast<size_t>(expr_accumulator.avg()));
     double_t min_expr_ms = g_timer_t::ns_to_ms(expr_accumulator.min());
     double_t max_expr_ms = g_timer_t::ns_to_ms(expr_accumulator.max());
 
@@ -127,14 +142,14 @@ void run_performance_test(
     std::string_view message,
     bool clean_db_after_each_iteration = true,
     size_t num_iterations = c_num_iterations,
-    uint64_t num_records = c_num_records)
+    size_t num_records = c_num_records)
 {
-    accumulator_t<int64_t> expr_accumulator;
+    accumulator_t<size_t> expr_accumulator;
 
     for (size_t iteration = 0; iteration < num_iterations; iteration++)
     {
         gaia_log::app().info("[{}]: {} iteration starting, {} records", message, iteration, num_records);
-        int64_t expr_duration = g_timer_t::get_function_duration(expr_fn);
+        size_t expr_duration = get_duration(expr_fn);
         expr_accumulator.add(expr_duration);
 
         double_t iteration_ms = g_timer_t::ns_to_ms(expr_duration);
@@ -143,7 +158,7 @@ void run_performance_test(
         if (clean_db_after_each_iteration)
         {
             gaia_log::app().info("[{}]: {} iteration, clearing database", message, iteration);
-            int64_t clear_database_duration = g_timer_t::get_function_duration(clear_db_fn);
+            size_t clear_database_duration = get_duration(clear_db_fn);
             double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
             gaia_log::app().info("[{}]: {} iteration, cleared in {:.2f}ms", message, iteration, clear_ms);
         }
@@ -152,7 +167,7 @@ void run_performance_test(
     if (!clean_db_after_each_iteration)
     {
         gaia_log::app().info("[{}]: clearing database", message);
-        int64_t clear_database_duration = g_timer_t::get_function_duration(clear_db_fn);
+        size_t clear_database_duration = get_duration(clear_db_fn);
         double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
         gaia_log::app().info("[{}]: cleared in {:.2f}ms", message, clear_ms);
     }
@@ -161,11 +176,14 @@ void run_performance_test(
 }
 
 template <typename T_work>
-void bulk_insert(T_work insert, int64_t num_records = c_num_records, int64_t max_insertion_single_txn = c_max_insertion_single_txn)
+void bulk_insert(
+    T_work insert,
+    size_t num_records = c_num_records,
+    size_t max_insertion_single_txn = c_max_insertion_single_txn)
 {
     gaia::db::begin_transaction();
 
-    for (int64_t i = 0; i < num_records; i++)
+    for (size_t i = 0; i < num_records; i++)
     {
         if (i > 0 && i % max_insertion_single_txn == 0)
         {
@@ -183,7 +201,9 @@ void bulk_insert(T_work insert, int64_t num_records = c_num_records, int64_t max
 }
 
 template <typename T_type, typename T_work>
-void bulk_update(T_work update, int64_t max_insertion_single_txn = c_max_insertion_single_txn)
+void bulk_update(
+    T_work update,
+    size_t max_insertion_single_txn = c_max_insertion_single_txn)
 {
     gaia::db::begin_transaction();
 

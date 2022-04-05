@@ -62,7 +62,7 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_parent_only)
 {
     // VLR are so slow that we need to use a lower number of insertion to
     // finish in a reasonable amount of time.
-    constexpr uint64_t c_vlr_insertions = c_num_records / 10;
+    constexpr size_t c_vlr_insertions = c_num_records / 10;
 
     auto insert = []() {
         bulk_insert(
@@ -78,7 +78,7 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_child_only)
 {
     // VLR are so slow that we need to use a lower number of insertion to
     // finish in a reasonable amount of time.
-    constexpr uint64_t c_vlr_insertions = c_num_records / 10;
+    constexpr size_t c_vlr_insertions = c_num_records / 10;
 
     auto insert = []() {
         bulk_insert(
@@ -94,7 +94,7 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_same_pare
 {
     // VLR are so slow that we need to use a lower number of insertion to
     // finish in a reasonable amount of time.
-    constexpr uint64_t c_vlr_insertions = c_num_records / 50;
+    constexpr size_t c_vlr_insertions = c_num_records / 50;
 
     auto insert = []() {
         gaia::db::begin_transaction();
@@ -119,7 +119,7 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_different
 {
     // VLR are so slow that we need to use a lower number of insertion to
     // finish in a reasonable amount of time.
-    constexpr uint64_t c_vlr_insertions = c_num_records / 10;
+    constexpr size_t c_vlr_insertions = c_num_records / 10;
 
     auto insert = []() {
         bulk_insert(
