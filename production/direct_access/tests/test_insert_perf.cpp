@@ -245,9 +245,9 @@ TEST_F(test_insert_perf, simple_table_insert)
 TEST_F(test_insert_perf, simple_table_writer)
 {
     auto insert = []() {
-        bulk_insert([](size_t iter) {
+        bulk_insert([](size_t i) {
             simple_table_writer w;
-            w.uint64_field = iter;
+            w.uint64_field = i;
             w.insert_row();
         });
     };
@@ -258,8 +258,8 @@ TEST_F(test_insert_perf, simple_table_writer)
 TEST_F(test_insert_perf, simple_table_2)
 {
     auto insert = []() {
-        bulk_insert([](size_t iter) {
-            simple_table_2_t::insert_row(iter, "suppini", {1, 2, 3, 4, 5});
+        bulk_insert([](size_t i) {
+            simple_table_2_t::insert_row(i, "suppini", {1, 2, 3, 4, 5});
         });
     };
 
@@ -269,13 +269,28 @@ TEST_F(test_insert_perf, simple_table_2)
 TEST_F(test_insert_perf, simple_table_3)
 {
     auto insert = []() {
-        bulk_insert([](size_t iter) {
+        bulk_insert([](size_t i) {
             simple_table_3_t::insert_row(
-                iter, iter, iter, iter, "aa", "bb", "cc", "dd");
+                i, i, i, i, "aa", "bb", "cc", "dd");
         });
     };
 
     run_performance_test(insert, "simple_table_3_t::insert_row");
+}
+
+TEST_F(test_insert_perf, simple_table_insert_txn_size)
+{
+    for (int64_t txn_size : {1, 10, 100, 1000, 10000})
+    {
+        const int64_t num_records = txn_size == 1 ? c_num_records / 10 : c_num_records;
+
+        auto insert = [txn_size, num_records]() {
+            // Insertion with txn_size == 1 is really slow, hence reducing the number records.
+            bulk_insert(&simple_table_t::insert_row, num_records, txn_size);
+        };
+
+        run_performance_test(insert, gaia_fmt::format("simple_table_t::simple_table_insert_txn_size with txn of size {}", txn_size), c_num_iterations, num_records);
+    }
 }
 
 TEST_F(test_insert_perf, unique_index_table)
@@ -378,9 +393,9 @@ TEST_F(test_insert_perf, value_linked_relationships_autoconnect_to_different_par
 
     auto insert = []() {
         bulk_insert(
-            [](size_t iter) {
-                table_parent_vlr_t::insert_row(iter);
-                table_child_vlr_t::insert_row(iter);
+            [](size_t i) {
+                table_parent_vlr_t::insert_row(i);
+                table_child_vlr_t::insert_row(i);
             },
             c_vlr_insertions,
             c_max_insertion_single_txn / 5);
