@@ -67,7 +67,7 @@ TEST_F(test_read_perf_basic, table_scan)
     auto work = []() {
         gaia::db::begin_transaction();
 
-        int i = 0;
+        size_t i = 0;
         for ([[maybe_unused]] auto& record :
              simple_table_t::list())
         {
@@ -91,7 +91,7 @@ TEST_F(test_read_perf_basic, table_scan_data_access)
     auto work = []() {
         gaia::db::begin_transaction();
 
-        int i = 0;
+        size_t i = 0;
         for (auto& record : simple_table_t::list())
         {
             (void)record.uint64_field();
@@ -116,7 +116,7 @@ TEST_F(test_read_perf_basic, filter_no_match)
     auto work = []() {
         gaia::db::begin_transaction();
 
-        int i = 0;
+        size_t i = 0;
         for ([[maybe_unused]] auto& record :
              simple_table_t::list().where(simple_table_t::expr::uint64_field > c_num_records))
         {
@@ -140,7 +140,7 @@ TEST_F(test_read_perf_basic, filter_match)
     auto work = []() {
         gaia::db::begin_transaction();
 
-        int i = 0;
+        size_t i = 0;
         for ([[maybe_unused]] auto& record :
              simple_table_t::list().where(simple_table_t::expr::uint64_field >= (c_num_records / 2)))
         {
