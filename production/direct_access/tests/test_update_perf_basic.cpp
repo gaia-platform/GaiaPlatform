@@ -72,7 +72,7 @@ TEST_F(test_update_perf_basic, simple_table_update)
         });
     };
 
-    bool clean_db_after_each_iteration = false;
+    bool clear_db_after_each_iteration = false;
     run_performance_test(
-        update, clear_database, "simple_table_update", clean_db_after_each_iteration);
+        update, clear_database, "simple_table_update", clear_db_after_each_iteration);
 }

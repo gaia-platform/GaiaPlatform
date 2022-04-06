@@ -31,17 +31,22 @@ protected:
         : db_catalog_test_base_t()
     {
     }
+
+    void SetUp() override
+    {
+        db_catalog_test_base_t::SetUp();
+
+        // These tests require a DDL session,
+        // so we'll be closing the session opened in db_catalog_test_base_t::SetUp().
+        end_session();
+        begin_ddl_session();
+    }
 };
 
 // Insert one row of each catalog table.
 TEST_F(gaia_rule_tables_test, create_each_type)
 {
-    // Initialize the catalog in a dedicated DDL session.
-    end_session();
-    begin_ddl_session();
     initialize_catalog();
-    end_session();
-    begin_session();
 
     // Create and connect rules catalog rows.
     begin_transaction();

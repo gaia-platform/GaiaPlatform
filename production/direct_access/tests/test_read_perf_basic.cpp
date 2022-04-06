@@ -79,9 +79,9 @@ TEST_F(test_read_perf_basic, table_scan)
         ASSERT_EQ(c_num_records, i);
     };
 
-    bool clean_db_after_each_iteration = false;
+    bool clear_db_after_each_iteration = false;
     run_performance_test(
-        work, clear_database, "simple_table_t::table_scan", clean_db_after_each_iteration);
+        work, clear_database, "simple_table_t::table_scan", clear_db_after_each_iteration);
 }
 
 TEST_F(test_read_perf_basic, table_scan_data_access)
@@ -104,9 +104,9 @@ TEST_F(test_read_perf_basic, table_scan_data_access)
         ASSERT_EQ(c_num_records, i);
     };
 
-    bool clean_db_after_each_iteration = false;
+    bool clear_db_after_each_iteration = false;
     run_performance_test(
-        work, clear_database, "simple_table_t::table_scan_data_access", clean_db_after_each_iteration);
+        work, clear_database, "simple_table_t::table_scan_data_access", clear_db_after_each_iteration);
 }
 
 TEST_F(test_read_perf_basic, filter_no_match)
@@ -128,9 +128,9 @@ TEST_F(test_read_perf_basic, filter_no_match)
         ASSERT_EQ(0, i);
     };
 
-    bool clean_db_after_each_iteration = false;
+    bool clear_db_after_each_iteration = false;
     run_performance_test(
-        work, clear_database, "simple_table_t::filter_no_match", clean_db_after_each_iteration);
+        work, clear_database, "simple_table_t::filter_no_match", clear_db_after_each_iteration);
 }
 
 TEST_F(test_read_perf_basic, filter_match)
@@ -152,10 +152,10 @@ TEST_F(test_read_perf_basic, filter_match)
         ASSERT_EQ(c_num_records / 2, i);
     };
 
-    bool clean_db_after_each_iteration = false;
+    bool clear_db_after_each_iteration = false;
     run_performance_test(
         work,
         clear_database,
         gaia_fmt::format("simple_table_t::filter_match {} matches", c_num_records / 2),
-        clean_db_after_each_iteration);
+        clear_db_after_each_iteration);
 }
