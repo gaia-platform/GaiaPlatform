@@ -340,3 +340,18 @@ TEST_F(test_read_perf, simple_table_update)
 
     run_performance_test(update, "simple_table_update");
 }
+
+TEST_F(test_read_perf, simple_table_update_dynamic)
+{
+    insert_data();
+
+    auto update = []() {
+        bulk_update<simple_table_t>([](simple_table_t& obj) {
+            simple_table_writer w = obj.writer();
+            w.uint64_field = obj.uint64_field() + 1;
+            w.update_row();
+        });
+    };
+
+    run_performance_test(update, "simple_table_update_dynamic");
+}

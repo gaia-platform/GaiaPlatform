@@ -25,11 +25,11 @@ using namespace std;
 
 using g_timer_t = gaia::common::timer_t;
 
-static const uint64_t c_num_records = 100000;
-static const uint64_t c_num_iterations = 1;
+static const size_t c_num_records = 100000;
+static const size_t c_num_iterations = 1;
 
 // This is a hard limit imposed by the db architecture.
-static const uint64_t c_max_insertion_single_txn = (1 << 16) - 1;
+static const size_t c_max_insertion_single_txn = (1 << 16) - 1;
 
 class test_insert_perf : public gaia::db::db_catalog_test_base_t
 {
@@ -130,20 +130,20 @@ private:
     T_num m_min = std::numeric_limits<T_num>::max();
     T_num m_max = std::numeric_limits<T_num>::min();
     T_num m_sum = 0;
-    uint64_t m_num_observations = 0;
+    size_t m_num_observations = 0;
 };
 
-double_t percentage_difference(int64_t expr, int64_t plain)
+double_t percentage_difference(size_t expr, size_t plain)
 {
     return static_cast<double_t>(expr - plain) / static_cast<double_t>(plain) * 100.0;
 }
 
-void log_performance_difference(accumulator_t<int64_t> expr_accumulator, std::string_view message, uint64_t num_insertions, size_t num_iterations)
+void log_performance_difference(accumulator_t<size_t> expr_accumulator, std::string_view message, size_t num_insertions, size_t num_iterations)
 {
-    double_t avg_expr_us = g_timer_t::ns_to_us(static_cast<int64_t>(expr_accumulator.avg()));
+    double_t avg_expr_us = g_timer_t::ns_to_us(static_cast<size_t>(expr_accumulator.avg()));
     double_t min_expr_us = g_timer_t::ns_to_us(expr_accumulator.min());
     double_t max_expr_us = g_timer_t::ns_to_us(expr_accumulator.max());
-    double_t avg_expr_ms = g_timer_t::ns_to_ms(static_cast<int64_t>(expr_accumulator.avg()));
+    double_t avg_expr_ms = g_timer_t::ns_to_ms(static_cast<size_t>(expr_accumulator.avg()));
     double_t min_expr_ms = g_timer_t::ns_to_ms(expr_accumulator.min());
     double_t max_expr_ms = g_timer_t::ns_to_ms(expr_accumulator.max());
 
@@ -166,21 +166,21 @@ void run_performance_test(
     std::function<void()> expr_fn,
     std::string_view message,
     size_t num_iterations = c_num_iterations,
-    uint64_t num_insertions = c_num_records)
+    size_t num_insertions = c_num_records)
 {
-    accumulator_t<int64_t> expr_accumulator;
+    accumulator_t<size_t> expr_accumulator;
 
     for (size_t iteration = 0; iteration < num_iterations; iteration++)
     {
         gaia_log::app().info("[{}]: {} iteration starting, {} records", message, iteration, num_insertions);
-        int64_t expr_duration = g_timer_t::get_function_duration(expr_fn);
+        size_t expr_duration = g_timer_t::get_function_duration(expr_fn);
         expr_accumulator.add(expr_duration);
 
         double_t iteration_ms = g_timer_t::ns_to_ms(expr_duration);
         gaia_log::app().info("[{}]: {} iteration, completed in {:.2f}ms", message, iteration, iteration_ms);
 
         gaia_log::app().debug("[{}]: {} iteration, clearing database", message, iteration);
-        int64_t clear_database_duration = g_timer_t::get_function_duration(clear_database);
+        size_t clear_database_duration = g_timer_t::get_function_duration(clear_database);
         double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
         gaia_log::app().debug("[{}]: {} iteration, cleared in {:.2f}ms", message, iteration, clear_ms);
     }
@@ -188,14 +188,14 @@ void run_performance_test(
     log_performance_difference(expr_accumulator, message, num_insertions, num_iterations);
 }
 
-void insert_thread(size_t num_records)
+void insert_thread(size_t num_records, size_t txn_size = c_max_insertion_single_txn)
 {
     gaia::db::begin_session();
     gaia::db::begin_transaction();
 
     for (size_t i = 0; i < num_records; i++)
     {
-        if (i > 0 && i % c_max_insertion_single_txn == 0)
+        if (i > 0 && i % txn_size == 0)
         {
             gaia::db::commit_transaction();
             gaia::db::begin_transaction();
@@ -212,11 +212,11 @@ void insert_thread(size_t num_records)
 }
 
 template <typename T_work>
-void bulk_insert(T_work insert, int64_t num_records = c_num_records, int64_t max_insertion_single_txn = c_max_insertion_single_txn)
+void bulk_insert(T_work insert, size_t num_records = c_num_records, size_t max_insertion_single_txn = c_max_insertion_single_txn)
 {
     gaia::db::begin_transaction();
 
-    for (int64_t i = 0; i < num_records; i++)
+    for (size_t i = 0; i < num_records; i++)
     {
         if (i > 0 && i % max_insertion_single_txn == 0)
         {
@@ -245,9 +245,9 @@ TEST_F(test_insert_perf, simple_table_insert)
 TEST_F(test_insert_perf, simple_table_writer)
 {
     auto insert = []() {
-        bulk_insert([](size_t iter) {
+        bulk_insert([](size_t i) {
             simple_table_writer w;
-            w.uint64_field = iter;
+            w.uint64_field = i;
             w.insert_row();
         });
     };
@@ -258,8 +258,8 @@ TEST_F(test_insert_perf, simple_table_writer)
 TEST_F(test_insert_perf, simple_table_2)
 {
     auto insert = []() {
-        bulk_insert([](size_t iter) {
-            simple_table_2_t::insert_row(iter, "suppini", {1, 2, 3, 4, 5});
+        bulk_insert([](size_t i) {
+            simple_table_2_t::insert_row(i, "suppini", {1, 2, 3, 4, 5});
         });
     };
 
@@ -269,13 +269,31 @@ TEST_F(test_insert_perf, simple_table_2)
 TEST_F(test_insert_perf, simple_table_3)
 {
     auto insert = []() {
-        bulk_insert([](size_t iter) {
+        bulk_insert([](size_t i) {
             simple_table_3_t::insert_row(
-                iter, iter, iter, iter, "aa", "bb", "cc", "dd");
+                i, i, i, i, "aa", "bb", "cc", "dd");
         });
     };
 
     run_performance_test(insert, "simple_table_3_t::insert_row");
+}
+
+TEST_F(test_insert_perf, simple_table_insert_txn_size)
+{
+    for (size_t txn_size : {1, 4, 8, 16, 256, 1024, 4096, 16384, static_cast<int>(c_max_insertion_single_txn)})
+    {
+        const size_t num_records = txn_size == 1 ? c_num_records / 10 : c_num_records;
+
+        auto insert = [txn_size, num_records]() {
+            // Insertion with txn_size == 1 is really slow, hence reducing the number records.
+            bulk_insert(&simple_table_t::insert_row, num_records, txn_size);
+        };
+
+        run_performance_test(
+            insert,
+            gaia_fmt::format("simple_table_t::simple_table_insert_txn_size with txn of size {}", txn_size),
+            c_num_iterations, num_records);
+    }
 }
 
 TEST_F(test_insert_perf, unique_index_table)
@@ -325,7 +343,7 @@ TEST_F(test_insert_perf, value_linked_relationships_parent_only)
 {
     // VLR are so slow that we need to use a lower number of insertion to
     // finish in a reasonable amount of time.
-    constexpr uint64_t c_vlr_insertions = c_num_records / 10;
+    constexpr size_t c_vlr_insertions = c_num_records / 10;
 
     auto insert = []() {
         bulk_insert(
@@ -340,7 +358,7 @@ TEST_F(test_insert_perf, value_linked_relationships_child_only)
 {
     // VLR are so slow that we need to use a lower number of insertion to
     // finish in a reasonable amount of time.
-    constexpr uint64_t c_vlr_insertions = c_num_records / 10;
+    constexpr size_t c_vlr_insertions = c_num_records / 10;
 
     auto insert = []() {
         bulk_insert(
@@ -355,7 +373,7 @@ TEST_F(test_insert_perf, value_linked_relationships_autoconnect_to_same_parent)
 {
     // VLR are so slow that we need to use a lower number of insertion to
     // finish in a reasonable amount of time.
-    constexpr uint64_t c_vlr_insertions = c_num_records / 50;
+    constexpr size_t c_vlr_insertions = c_num_records / 50;
 
     auto insert = []() {
         gaia::db::begin_transaction();
@@ -374,13 +392,13 @@ TEST_F(test_insert_perf, value_linked_relationships_autoconnect_to_different_par
 {
     // VLR are so slow that we need to use a lower number of insertion to
     // finish in a reasonable amount of time.
-    constexpr uint64_t c_vlr_insertions = c_num_records / 10;
+    constexpr size_t c_vlr_insertions = c_num_records / 10;
 
     auto insert = []() {
         bulk_insert(
-            [](size_t iter) {
-                table_parent_vlr_t::insert_row(iter);
-                table_child_vlr_t::insert_row(iter);
+            [](size_t i) {
+                table_parent_vlr_t::insert_row(i);
+                table_child_vlr_t::insert_row(i);
             },
             c_vlr_insertions,
             c_max_insertion_single_txn / 5);
@@ -398,7 +416,7 @@ TEST_F(test_insert_perf, simple_table_concurrent)
 
             for (size_t i = 0; i < num_workers; i++)
             {
-                workers.emplace_back(insert_thread, (c_num_records / num_workers));
+                workers.emplace_back(insert_thread, (c_num_records / num_workers), c_max_insertion_single_txn);
             }
 
             for (auto& worker : workers)
@@ -408,5 +426,35 @@ TEST_F(test_insert_perf, simple_table_concurrent)
         };
 
         run_performance_test(insert, gaia_fmt::format("simple_table_t::insert_row with {} threads", num_workers));
+    }
+}
+
+TEST_F(test_insert_perf, simple_table_insert_txn_size_concurrent)
+{
+    for (size_t txn_size : {1, 4, 8, 128})
+    {
+        for (size_t num_workers : {2, 4, 8})
+        {
+            const size_t num_records = txn_size == 1 ? c_num_records / 10 : c_num_records;
+
+            auto insert = [num_workers, txn_size, num_records]() {
+                std::vector<std::thread> workers;
+
+                for (size_t i = 0; i < num_workers; i++)
+                {
+                    workers.emplace_back(insert_thread, (num_records / num_workers), txn_size);
+                }
+
+                for (auto& worker : workers)
+                {
+                    worker.join();
+                }
+            };
+
+            run_performance_test(
+                insert,
+                gaia_fmt::format("simple_table_t::simple_table_insert_txn_size_concurrent threads:{} txn_size:{}", num_workers, txn_size),
+                c_num_iterations, num_records);
+        }
     }
 }
