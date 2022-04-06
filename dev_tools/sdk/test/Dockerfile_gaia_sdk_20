@@ -15,6 +15,7 @@ ENV CC=/usr/bin/clang-10
 ENV CPP=/usr/bin/clang-cpp-10
 ENV CXX=/usr/bin/clang++-10
 
+RUN echo gaia gaia/install-service boolean false | debconf-set-selections
 RUN apt-get update \
-    && apt-get install -y ./$gaia_sdk_deb
+    && apt-get install ./$gaia_sdk_deb
 RUN /bin/bash ./build_sdk_samples.sh
