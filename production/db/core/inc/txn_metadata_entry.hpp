@@ -105,28 +105,28 @@ private:
     static constexpr size_t c_txn_status_flags_bit_width{3};
     static constexpr size_t c_txn_status_flags_shift{c_txn_metadata_bit_width - c_txn_status_flags_bit_width};
     static constexpr uint64_t c_txn_status_flags_mask{
-        ((1ULL << c_txn_status_flags_bit_width) - 1) << c_txn_status_flags_shift};
+        ((1UL << c_txn_status_flags_bit_width) - 1) << c_txn_status_flags_shift};
 
     // These are all begin_ts status values.
-    static constexpr uint64_t c_txn_status_active{0b010ULL};
-    static constexpr uint64_t c_txn_status_submitted{0b011ULL};
-    static constexpr uint64_t c_txn_status_terminated{0b001ULL};
+    static constexpr uint64_t c_txn_status_active{0b010UL};
+    static constexpr uint64_t c_txn_status_submitted{0b011UL};
+    static constexpr uint64_t c_txn_status_terminated{0b001UL};
 
     // This is the bitwise intersection of all commit_ts status values.
-    static constexpr uint64_t c_txn_status_commit_ts{0b100ULL};
+    static constexpr uint64_t c_txn_status_commit_ts{0b100UL};
     static constexpr uint64_t c_txn_status_commit_mask{
         c_txn_status_commit_ts << c_txn_status_flags_shift};
 
     // This is the bitwise intersection of all commit_ts decided status values
     // (i.e., committed or aborted).
-    static constexpr uint64_t c_txn_status_decided{0b110ULL};
+    static constexpr uint64_t c_txn_status_decided{0b110UL};
     static constexpr uint64_t c_txn_status_decided_mask{
         c_txn_status_decided << c_txn_status_flags_shift};
 
     // These are all commit_ts status values.
-    static constexpr uint64_t c_txn_status_validating{0b100ULL};
-    static constexpr uint64_t c_txn_status_committed{0b111ULL};
-    static constexpr uint64_t c_txn_status_aborted{0b110ULL};
+    static constexpr uint64_t c_txn_status_validating{0b100UL};
+    static constexpr uint64_t c_txn_status_committed{0b111UL};
+    static constexpr uint64_t c_txn_status_aborted{0b110UL};
 
     // Transaction GC status values.
     // These only apply to a commit_ts metadata entry.
@@ -138,15 +138,15 @@ private:
     static constexpr size_t c_txn_gc_flags_shift{
         (c_txn_metadata_bit_width - c_txn_gc_flags_bit_width) - c_txn_status_flags_bit_width};
     static constexpr uint64_t c_txn_gc_flags_mask{
-        ((1ULL << c_txn_gc_flags_bit_width) - 1) << c_txn_gc_flags_shift};
+        ((1UL << c_txn_gc_flags_bit_width) - 1) << c_txn_gc_flags_shift};
 
     // These are all commit_ts flag values.
-    static constexpr uint64_t c_txn_gc_unknown{0b0ULL};
+    static constexpr uint64_t c_txn_gc_unknown{0b0UL};
 
     // This flag indicates that the txn log and all obsolete versions (undo
     // versions for a committed txn, redo versions for an aborted txn) have been
     // reclaimed by the system.
-    static constexpr uint64_t c_txn_gc_complete{0b1ULL};
+    static constexpr uint64_t c_txn_gc_complete{0b1UL};
 
     // This flag indicates whether the txn has been made externally durable
     // (i.e., persisted to the write-ahead log). It can't be combined with the
@@ -161,11 +161,11 @@ private:
         (c_txn_metadata_bit_width - c_txn_persistence_flags_bit_width)
         - (c_txn_status_flags_bit_width + c_txn_gc_flags_bit_width)};
     static constexpr uint64_t c_txn_persistence_flags_mask{
-        ((1ULL << c_txn_persistence_flags_bit_width) - 1) << c_txn_persistence_flags_shift};
+        ((1UL << c_txn_persistence_flags_bit_width) - 1) << c_txn_persistence_flags_shift};
 
     // These are all commit_ts flag values.
-    static constexpr uint64_t c_txn_persistence_unknown{0b0ULL};
-    static constexpr uint64_t c_txn_persistence_complete{0b1ULL};
+    static constexpr uint64_t c_txn_persistence_unknown{0b0UL};
+    static constexpr uint64_t c_txn_persistence_complete{0b1UL};
 
     // This is a placeholder for the single (currently) reserved bit in the txn
     // metadata format.
@@ -182,7 +182,7 @@ private:
            + c_txn_persistence_flags_bit_width
            + c_txn_reserved_flags_bit_width)};
     static constexpr uint64_t c_txn_log_offset_mask{
-        ((1ULL << c_txn_log_offset_bit_width) - 1) << c_txn_log_offset_shift};
+        ((1UL << c_txn_log_offset_bit_width) - 1) << c_txn_log_offset_shift};
 
     // We need the timestamp size constants to be public for now, because
     // they're used by the txn log metadata.
@@ -218,16 +218,16 @@ public:
     static constexpr size_t c_txn_ts_bit_width{42};
 #endif
     static constexpr size_t c_txn_ts_shift{0};
-    static constexpr uint64_t c_txn_ts_mask{((1ULL << c_txn_ts_bit_width) - 1) << c_txn_ts_shift};
+    static constexpr uint64_t c_txn_ts_mask{((1UL << c_txn_ts_bit_width) - 1) << c_txn_ts_shift};
 
 private:
     // Transaction metadata special values.
 
     // The first 3 bits of this value are unused for any txn state.
-    static constexpr uint64_t c_value_uninitialized{0ULL};
+    static constexpr uint64_t c_value_uninitialized{0UL};
 
     // The first 3 bits of this value do not correspond to any valid txn status value.
-    static constexpr uint64_t c_value_sealed{0b101ULL << c_txn_status_flags_shift};
+    static constexpr uint64_t c_value_sealed{0b101UL << c_txn_status_flags_shift};
 
 private:
     const uint64_t m_word;
