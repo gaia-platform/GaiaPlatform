@@ -471,6 +471,9 @@ void remove(gaia_ptr_t& object, bool force)
         }
     }
 
+    printf("object.id(): %lu\n", object.id().value());
+    printf("object.references_count(): %i\n", object.references_count().value());
+
     // Make necessary changes to the anchor chain before deleting the node.
     for (reference_offset_t i = 0; i < object.references_count(); i++)
     {
@@ -480,21 +483,26 @@ void remove(gaia_ptr_t& object, bool force)
         }
 
         auto anchor = gaia_ptr_t::from_gaia_id(references[i]);
+        printf("------ anchor.id(): %lu\n", anchor.id().value());
         if (!anchor.is_ref_anchor())
         {
             continue;
         }
 
+        printf("c_ref_anchor_parent_offset: %lu\n", anchor.references()[c_ref_anchor_parent_offset].value());
         if (anchor.references()[c_ref_anchor_parent_offset] == object.id())
         {
             // The anchor node is connected to a parent node.
             if (anchor.references()[c_ref_anchor_first_child_offset].is_valid() == false)
             {
+                printf("anchor.reset()\n");
                 // Delete the anchor node if there is no child node in the chain.
                 anchor.reset();
             }
             else
             {
+                printf("anchor.set_reference()\n");
+
                 // Otherwise, disconnect the anchor node from the parent.
                 anchor.set_reference(c_ref_anchor_parent_offset, c_invalid_gaia_id);
             }

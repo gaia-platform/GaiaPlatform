@@ -249,3 +249,23 @@ TEST_F(auto_connect_test, delete_parent)
     ASSERT_EQ(passenger_t::get(spock_id).return_flight().gaia_id(), flight_id);
     ASSERT_EQ(passenger_t::get(kirk_id).return_flight().gaia_id(), flight_id);
 }
+
+TEST_F(auto_connect_test, disconnect_delete_test)
+{
+    sleep(1);
+    gaia::db::begin_transaction();
+    student_t student_1 = student_t::get(student_t::insert_row("stu001"));
+    printf("student_id: %lu\n", student_1.gaia_id().value());
+    registration_t registration_1 = registration_t::get(registration_t::insert_row("reg001", "stu001"));
+    printf("registration_id: %lu\n", registration_1.gaia_id().value());
+    gaia::db::commit_transaction();
+
+    gaia::db::begin_transaction();
+    registration_1.delete_row(true);
+    gaia::db::commit_transaction();
+
+    gaia::db::begin_transaction();
+    int count = student_1.registrations().size();
+    gaia::db::commit_transaction();
+    ASSERT_EQ(count, 0);
+}
