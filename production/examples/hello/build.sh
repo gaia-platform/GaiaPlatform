@@ -14,4 +14,4 @@ CLANG_INCLUDE_PATH="$(clang++-10 -print-resource-dir)/include"
 
 gaiat hello.ruleset -output hello_ruleset.cpp -- -I "$CLANG_INCLUDE_PATH" -I /opt/gaia/include
 
-clang++-10 hello.cpp hello_ruleset.cpp gaia_hello.cpp /usr/local/lib/libgaia.so -I /opt/gaia/include -Wl,-rpath,/usr/local/lib -lpthread -o hello
+clang++-10 hello.cpp hello_ruleset.cpp gaia_hello.cpp -lgaia -I /opt/gaia/include -Wl,-rpath,/usr/local/lib -lpthread -o hello
