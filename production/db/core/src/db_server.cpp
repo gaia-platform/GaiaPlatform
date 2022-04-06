@@ -2606,9 +2606,21 @@ void server_t::txn_rollback(bool client_disconnected)
 
 void server_t::perform_pre_commit_work_for_txn()
 {
+    // This assertion is meant to be tripped if the number of system indexes changes
+    // without updating the c_system_index_count constant.
+    // DDL sessions are exempt of this condition, because they're used to create system indexes.
+    // We also have some scenarios in which the database is used
+    // without initializing the catalog, so there will be no system indexes at all.
+    // In all other cases, we should find at least the number of system indexes.
+    ASSERT_INVARIANT(
+        s_is_ddl_session
+            || get_indexes()->size() == 0
+            || get_indexes()->size() >= gaia::catalog::c_system_index_count,
+        "Fewer indexes than expected were found during perform_pre_commit_work_for_txn()!");
+
     // Only update indexes in DDL sessions (when new ones could be created)
-    // or if we know that indexes already exist.
-    if (s_is_ddl_session || !get_indexes()->empty())
+    // or if we see that user indexes were created in addition to the catalog ones.
+    if (s_is_ddl_session || get_indexes()->size() > gaia::catalog::c_system_index_count)
     {
         update_indexes_from_txn_log();
     }
