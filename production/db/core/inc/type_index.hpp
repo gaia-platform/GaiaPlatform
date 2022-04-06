@@ -38,14 +38,14 @@ struct locator_list_node_t
     // locator reuse.
     std::atomic<uint64_t> data_word;
 
-    static constexpr size_t c_locator_bit_width{32ULL};
-    static constexpr uint64_t c_locator_shift{0ULL};
-    static constexpr uint64_t c_locator_mask{((1ULL << c_locator_bit_width) - 1) << c_locator_shift};
+    static constexpr size_t c_locator_bit_width{32UL};
+    static constexpr uint64_t c_locator_shift{0UL};
+    static constexpr uint64_t c_locator_mask{((1UL << c_locator_bit_width) - 1) << c_locator_shift};
 
-    static constexpr size_t c_deleted_flag_bit_width{1ULL};
+    static constexpr size_t c_deleted_flag_bit_width{1UL};
     static constexpr size_t c_deleted_flag_shift{
         common::c_uint64_bit_count - c_deleted_flag_bit_width};
-    static constexpr uint64_t c_deleted_flag_mask{1ULL << c_deleted_flag_shift};
+    static constexpr uint64_t c_deleted_flag_mask{1UL << c_deleted_flag_shift};
 
     // Returns the locator index of the current node's successor, or the invalid
     // locator if it has no successor.

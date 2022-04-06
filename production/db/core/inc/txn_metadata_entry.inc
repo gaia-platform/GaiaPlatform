@@ -21,13 +21,13 @@ uint64_t txn_metadata_entry_t::get_word()
 void txn_metadata_entry_t::check_ts_size(gaia_txn_id_t ts)
 {
     ASSERT_PRECONDITION(
-        ts < (1ULL << c_txn_ts_bit_width),
+        ts < (1UL << c_txn_ts_bit_width),
         "Timestamp values must fit in 42 bits!");
 }
 
 constexpr size_t txn_metadata_entry_t::get_max_ts_count()
 {
-    return (1ULL << c_txn_ts_bit_width);
+    return (1UL << c_txn_ts_bit_width);
 }
 
 txn_metadata_entry_t txn_metadata_entry_t::uninitialized_value()
