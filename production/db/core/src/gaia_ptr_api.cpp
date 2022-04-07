@@ -687,27 +687,25 @@ bool remove_from_reference_container(gaia_ptr_t& child, reference_offset_t child
     else if (child.references()[child_anchor_slot].is_valid())
     {
         // This is the first child because previous node does not exist.
-        if (child.references()[next_child_offset].is_valid())
-        {
-            // Disconnect the (first) child from the anchor if it is not the only child.
-            auto anchor = gaia_ptr_t::from_gaia_id(child.references()[child_anchor_slot]);
-            anchor.set_reference(c_ref_anchor_first_child_offset, child.references()[next_child_offset]);
-        }
-        else
+        if (child.references()[next_child_offset].is_valid() == false)
         {
             // This is the only child because next node does not exist.
             // Delete the anchor node and reset the parent node's anchor slot.
             auto anchor = gaia_ptr_t::from_gaia_id(child.references()[child_anchor_slot]);
             if (anchor.references()[c_ref_anchor_parent_offset].is_valid())
             {
-                // If there is a parent we need to set the anchor pointer to first child to c_invalid_gaia_id.
-                anchor.set_reference(c_ref_anchor_first_child_offset, c_invalid_gaia_id);
+                auto parent = gaia_ptr_t::from_gaia_id(anchor.references()[c_ref_anchor_parent_offset]);
+                const type_metadata_t& metadata = type_registry_t::instance().get(child.type());
+                std::optional<relationship_t> relationship = metadata.find_child_relationship(child_anchor_slot);
+                parent.set_reference(relationship->first_child_offset, c_invalid_gaia_id);
             }
-            else
-            {
-                // If there is no parent, we can remove the anchor.
-                anchor.reset();
-            }
+            anchor.reset();
+        }
+        else
+        {
+            // Disconnect the (first) child from the anchor if it is not the only child.
+            auto anchor = gaia_ptr_t::from_gaia_id(child.references()[child_anchor_slot]);
+            anchor.set_reference(c_ref_anchor_first_child_offset, child.references()[next_child_offset]);
         }
     }
     child.set_references(
