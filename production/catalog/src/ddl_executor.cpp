@@ -438,7 +438,7 @@ void ddl_executor_t::bootstrap_catalog()
         vector<string> child_fields{"gaia_rule_name"};
         table_field_map_t value_link{{c_catalog_db_name, c_gaia_rule_table_name, parent_fields}, {c_catalog_db_name, c_rule_table_table_name, child_fields}};
         create_relationship(
-            "rule_catalog_gaia_rule_gaia_rule_rule_table",
+            "rule_catalog_gaia_rule_rule_table",
             {c_catalog_db_name, c_gaia_rule_table_name, "rule_tables", c_catalog_db_name, c_rule_table_table_name, relationship_cardinality_t::many},
             {c_catalog_db_name, c_rule_table_table_name, "rule", c_catalog_db_name, c_gaia_rule_table_name, relationship_cardinality_t::one},
             value_link,
@@ -452,7 +452,7 @@ void ddl_executor_t::bootstrap_catalog()
         vector<string> child_fields{"gaia_rule_name"};
         table_field_map_t value_link{{c_catalog_db_name, c_gaia_rule_table_name, parent_fields}, {c_catalog_db_name, c_rule_field_table_name, child_fields}};
         create_relationship(
-            "rule_catalog_gaia_rule_gaia_rule_field_table",
+            "rule_catalog_gaia_rule_field_table",
             {c_catalog_db_name, c_gaia_rule_table_name, "rule_fields", c_catalog_db_name, c_rule_field_table_name, relationship_cardinality_t::many},
             {c_catalog_db_name, c_rule_field_table_name, "rule", c_catalog_db_name, c_gaia_rule_table_name, relationship_cardinality_t::one},
             value_link,
@@ -466,7 +466,7 @@ void ddl_executor_t::bootstrap_catalog()
         vector<string> child_fields{"gaia_rule_name"};
         table_field_map_t value_link{{c_catalog_db_name, c_gaia_rule_table_name, parent_fields}, {c_catalog_db_name, c_rule_relationship_table_name, child_fields}};
         create_relationship(
-            "rule_catalog_gaia_rule_gaia_rule_rule_relationship",
+            "rule_catalog_gaia_rule_rule_relationship",
             {c_catalog_db_name, c_gaia_rule_table_name, "rule_relationships", c_catalog_db_name, c_rule_relationship_table_name, relationship_cardinality_t::many},
             {c_catalog_db_name, c_rule_relationship_table_name, "rule", c_catalog_db_name, c_gaia_rule_table_name, relationship_cardinality_t::one},
             value_link,
