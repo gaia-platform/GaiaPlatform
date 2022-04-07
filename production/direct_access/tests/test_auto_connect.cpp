@@ -252,20 +252,22 @@ TEST_F(auto_connect_test, delete_parent)
 
 TEST_F(auto_connect_test, disconnect_delete_test)
 {
-    sleep(1);
+    // Regression test for: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2138
     gaia::db::begin_transaction();
-    student_t student_1 = student_t::get(student_t::insert_row("stu001"));
-    printf("student_id: %lu\n", student_1.gaia_id().value());
-    registration_t registration_1 = registration_t::get(registration_t::insert_row("reg001", "stu001"));
-    printf("registration_id: %lu\n", registration_1.gaia_id().value());
+    flight_t flight = flight_t::get(flight_t::insert_row(1, {}));
+    passenger_t passenger_1 = passenger_t::get(passenger_t::insert_row("Nicola", "Franco", 1));
+    passenger_t passenger_2 = passenger_t::get(passenger_t::insert_row("Vania", "Smith", 1));
     gaia::db::commit_transaction();
 
     gaia::db::begin_transaction();
-    registration_1.delete_row(true);
+    passenger_1.delete_row(true);
+    int count = flight.return_passengers().size();
+    ASSERT_EQ(count, 1);
     gaia::db::commit_transaction();
 
     gaia::db::begin_transaction();
-    int count = student_1.registrations().size();
-    gaia::db::commit_transaction();
+    passenger_2.delete_row(true);
+    count = flight.return_passengers().size();
     ASSERT_EQ(count, 0);
+    gaia::db::commit_transaction();
 }

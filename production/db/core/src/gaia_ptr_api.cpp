@@ -437,7 +437,7 @@ void remove(gaia_ptr_t& object, bool force)
                 continue;
             }
 
-            gaia_id_t referenced_obj_id = anchor.id();
+            gaia_id_t referenced_obj_id;
 
             if (anchor.references()[c_ref_anchor_parent_offset] == object.id())
             {
@@ -471,9 +471,6 @@ void remove(gaia_ptr_t& object, bool force)
         }
     }
 
-    printf("object.id(): %lu\n", object.id().value());
-    printf("object.references_count(): %i\n", object.references_count().value());
-
     // Make necessary changes to the anchor chain before deleting the node.
     for (reference_offset_t i = 0; i < object.references_count(); i++)
     {
@@ -483,26 +480,21 @@ void remove(gaia_ptr_t& object, bool force)
         }
 
         auto anchor = gaia_ptr_t::from_gaia_id(references[i]);
-        printf("------ anchor.id(): %lu\n", anchor.id().value());
         if (!anchor.is_ref_anchor())
         {
             continue;
         }
 
-        printf("c_ref_anchor_parent_offset: %lu\n", anchor.references()[c_ref_anchor_parent_offset].value());
         if (anchor.references()[c_ref_anchor_parent_offset] == object.id())
         {
             // The anchor node is connected to a parent node.
             if (anchor.references()[c_ref_anchor_first_child_offset].is_valid() == false)
             {
-                printf("anchor.reset()\n");
                 // Delete the anchor node if there is no child node in the chain.
                 anchor.reset();
             }
             else
             {
-                printf("anchor.set_reference()\n");
-
                 // Otherwise, disconnect the anchor node from the parent.
                 anchor.set_reference(c_ref_anchor_parent_offset, c_invalid_gaia_id);
             }
@@ -676,8 +668,9 @@ bool remove_from_reference_container(gaia_id_t parent_id, gaia_id_t child_id, re
 
 bool remove_from_reference_container(gaia_ptr_t& child, reference_offset_t child_anchor_slot)
 {
+    // The reference to the next_child and the prev_child are relative to the anchor slot.
     reference_offset_t next_child_offset = child_anchor_slot + 1;
-    reference_offset_t prev_child_offset = next_child_offset + 1;
+    reference_offset_t prev_child_offset = child_anchor_slot + 2;
 
     if (child.references()[next_child_offset].is_valid())
     {
@@ -694,25 +687,27 @@ bool remove_from_reference_container(gaia_ptr_t& child, reference_offset_t child
     else if (child.references()[child_anchor_slot].is_valid())
     {
         // This is the first child because previous node does not exist.
-        if (child.references()[next_child_offset].is_valid() == false)
+        if (child.references()[next_child_offset].is_valid())
+        {
+            // Disconnect the (first) child from the anchor if it is not the only child.
+            auto anchor = gaia_ptr_t::from_gaia_id(child.references()[child_anchor_slot]);
+            anchor.set_reference(c_ref_anchor_first_child_offset, child.references()[next_child_offset]);
+        }
+        else
         {
             // This is the only child because next node does not exist.
             // Delete the anchor node and reset the parent node's anchor slot.
             auto anchor = gaia_ptr_t::from_gaia_id(child.references()[child_anchor_slot]);
             if (anchor.references()[c_ref_anchor_parent_offset].is_valid())
             {
-                auto parent = gaia_ptr_t::from_gaia_id(anchor.references()[c_ref_anchor_parent_offset]);
-                const type_metadata_t& metadata = type_registry_t::instance().get(child.type());
-                std::optional<relationship_t> relationship = metadata.find_child_relationship(child_anchor_slot);
-                parent.set_reference(relationship->first_child_offset, c_invalid_gaia_id);
+                // If there is a parent we need to set the anchor pointer to first child to c_invalid_gaia_id.
+                anchor.set_reference(c_ref_anchor_first_child_offset, c_invalid_gaia_id);
             }
-            anchor.reset();
-        }
-        else
-        {
-            // Disconnect the (first) child from the anchor if it is not the only child.
-            auto anchor = gaia_ptr_t::from_gaia_id(child.references()[child_anchor_slot]);
-            anchor.set_reference(c_ref_anchor_first_child_offset, child.references()[next_child_offset]);
+            else
+            {
+                // If there is no parent, we can remove the anchor.
+                anchor.reset();
+            }
         }
     }
     child.set_references(

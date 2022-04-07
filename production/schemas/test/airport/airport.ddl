@@ -56,16 +56,3 @@ table trip_segment
     who string,
     segment references segment
 )
-
-
-table student (
-   id string unique,
-   registrations references registration[]
-)
-
-table registration (
-    id string,
-    student_id string,
-    student references student
-        where student.id = registration.student_id
-)
