@@ -1,4 +1,4 @@
-@CPACK_PACKAGING_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR/libgaia.so usr/local/lib/libgaia.so
-@CPACK_PACKAGING_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR/gaiat usr/local/bin/gaiat
-@CPACK_PACKAGING_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR/gaiac usr/local/bin/gaiac
-@CPACK_PACKAGING_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR/gaia_db_server usr/local/bin/gaia_db_server
+@CPACK_PACKAGING_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@/libgaia.so usr/local/lib/libgaia.so
+@CPACK_PACKAGING_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@/gaiat usr/local/bin/gaiat
+@CPACK_PACKAGING_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@/gaiac usr/local/bin/gaiac
+@CPACK_PACKAGING_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@/gaia_db_server usr/local/bin/gaia_db_server
