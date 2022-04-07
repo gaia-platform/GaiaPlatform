@@ -59,16 +59,6 @@ add_gtest(test_optional_dac
   "${DIRECT_ACCESS_TEST_INCLUDES}"
   "rt;gaia_direct;gaia_db_catalog_test;dac_optional_sandbox")
 
-add_gtest(test_insert_perf
-  "tests/test_insert_perf.cpp"
-  "${DIRECT_ACCESS_TEST_INCLUDES};"
-  "rt;gaia_direct;gaia_db_catalog_test;dac_insert_sandbox")
-
-add_gtest(test_read_perf
-  "tests/test_read_perf.cpp"
-  "${DIRECT_ACCESS_TEST_INCLUDES};"
-  "rt;gaia_direct;gaia_db_catalog_test;dac_insert_sandbox")
-
 add_gtest(test_expressions_perf
   "tests/test_expressions_perf.cpp"
   "${DIRECT_ACCESS_TEST_INCLUDES}"

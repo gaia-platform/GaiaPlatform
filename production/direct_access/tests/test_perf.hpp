@@ -16,11 +16,11 @@
 
 using g_timer_t = gaia::common::timer_t;
 
-static const size_t c_num_records = 100000;
+static const size_t c_num_records = 1000;
 static const size_t c_num_iterations = 1;
 
 // This is a hard limit imposed by the db architecture.
-static const size_t c_max_insertion_single_txn = (((size_t)1) << 16) - 1;
+static const size_t c_max_insertion_single_txn = (1UL << 16) - 1;
 
 size_t get_duration(std::function<void()> fn)
 {
@@ -140,7 +140,7 @@ void run_performance_test(
     std::function<void()> expr_fn,
     std::function<void()> clear_db_fn,
     std::string_view message,
-    bool clean_db_after_each_iteration = true,
+    bool clear_db_after_each_iteration = true,
     size_t num_iterations = c_num_iterations,
     size_t num_records = c_num_records)
 {
@@ -155,7 +155,7 @@ void run_performance_test(
         double_t iteration_ms = g_timer_t::ns_to_ms(expr_duration);
         gaia_log::app().info("[{}]: {} iteration, completed in {:.2f}ms", message, iteration, iteration_ms);
 
-        if (clean_db_after_each_iteration)
+        if (clear_db_after_each_iteration)
         {
             gaia_log::app().info("[{}]: {} iteration, clearing database", message, iteration);
             size_t clear_database_duration = get_duration(clear_db_fn);
@@ -164,7 +164,7 @@ void run_performance_test(
         }
     }
 
-    if (!clean_db_after_each_iteration)
+    if (!clear_db_after_each_iteration)
     {
         gaia_log::app().info("[{}]: clearing database", message);
         size_t clear_database_duration = get_duration(clear_db_fn);

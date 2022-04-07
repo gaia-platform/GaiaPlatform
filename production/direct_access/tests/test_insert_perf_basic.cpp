@@ -39,14 +39,14 @@ void clear_database()
     clear_table<simple_table_3_t>();
 }
 
-void insert_thread(size_t num_records)
+void insert_thread(size_t num_records, size_t txn_size = c_max_insertion_single_txn)
 {
     gaia::db::begin_session();
     gaia::db::begin_transaction();
 
     for (size_t i = 0; i < num_records; i++)
     {
-        if (i > 0 && i % c_max_insertion_single_txn == 0)
+        if (i > 0 && i % txn_size == 0)
         {
             gaia::db::commit_transaction();
             gaia::db::begin_transaction();
@@ -75,9 +75,9 @@ TEST_F(test_insert_perf_basic, simple_table_insert)
 TEST_F(test_insert_perf_basic, simple_table_writer)
 {
     auto insert = []() {
-        bulk_insert([](size_t iter) {
+        bulk_insert([](size_t i) {
             simple_table_writer w;
-            w.uint64_field = iter;
+            w.uint64_field = i;
             w.insert_row();
         });
     };
@@ -89,8 +89,8 @@ TEST_F(test_insert_perf_basic, simple_table_writer)
 TEST_F(test_insert_perf_basic, simple_table_2)
 {
     auto insert = []() {
-        bulk_insert([](size_t iter) {
-            simple_table_2_t::insert_row(iter, "suppini", {1, 2, 3, 4, 5});
+        bulk_insert([](size_t i) {
+            simple_table_2_t::insert_row(i, "suppini", {1, 2, 3, 4, 5});
         });
     };
 
@@ -101,14 +101,34 @@ TEST_F(test_insert_perf_basic, simple_table_2)
 TEST_F(test_insert_perf_basic, simple_table_3)
 {
     auto insert = []() {
-        bulk_insert([](size_t iter) {
+        bulk_insert([](size_t i) {
             simple_table_3_t::insert_row(
-                iter, iter, iter, iter, "aa", "bb", "cc", "dd");
+                i, i, i, i, "aa", "bb", "cc", "dd");
         });
     };
 
     run_performance_test(
         insert, clear_database, "simple_table_3_t::insert_row");
+}
+
+TEST_F(test_insert_perf_basic, simple_table_insert_txn_size)
+{
+    for (size_t txn_size : {1UL, 4UL, 8UL, 16UL, 256UL, 1024UL, 4096UL, 16384UL, c_max_insertion_single_txn})
+    {
+        const size_t num_records = (txn_size == 1) ? c_num_records / 10 : c_num_records;
+
+        auto insert = [num_records, txn_size]() {
+            bulk_insert(&simple_table_t::insert_row, num_records, txn_size);
+        };
+
+        bool clear_db_after_each_iteration = true;
+        run_performance_test(
+            insert,
+            clear_database,
+            gaia_fmt::format("simple_table_t::simple_table_insert_txn_size with txn of size {}", txn_size),
+            clear_db_after_each_iteration,
+            c_num_iterations, num_records);
+    }
 }
 
 TEST_F(test_insert_perf_basic, simple_table_concurrent)
@@ -120,7 +140,7 @@ TEST_F(test_insert_perf_basic, simple_table_concurrent)
 
             for (size_t i = 0; i < num_workers; i++)
             {
-                workers.emplace_back(insert_thread, (c_num_records / num_workers));
+                workers.emplace_back(insert_thread, (c_num_records / num_workers), c_max_insertion_single_txn);
             }
 
             for (auto& worker : workers)
@@ -130,6 +150,45 @@ TEST_F(test_insert_perf_basic, simple_table_concurrent)
         };
 
         run_performance_test(
-            insert, clear_database, gaia_fmt::format("simple_table_t::insert_row with {} threads", num_workers));
+            insert,
+            clear_database,
+            gaia_fmt::format("simple_table_t::insert_row with {} threads", num_workers));
+    }
+}
+
+TEST_F(test_insert_perf_basic, simple_table_insert_txn_size_concurrent)
+{
+    for (size_t txn_size : {1, 4, 8, 128})
+    {
+        for (size_t num_workers : {2, 4, 8})
+        {
+            const size_t num_records = (txn_size == 1) ? c_num_records / 10 : c_num_records;
+
+            auto insert = [num_workers, num_records, txn_size]() {
+                std::vector<std::thread> workers;
+
+                for (size_t i = 0; i < num_workers; i++)
+                {
+                    workers.emplace_back(insert_thread, (num_records / num_workers), txn_size);
+                }
+
+                for (auto& worker : workers)
+                {
+                    worker.join();
+                }
+            };
+
+            bool clear_db_after_each_iteration = true;
+            run_performance_test(
+                insert,
+                clear_database,
+                gaia_fmt::format(
+                    "simple_table_t::simple_table_insert_txn_size_concurrent threads:{} txn_size:{}",
+                    num_workers,
+                    txn_size),
+                clear_db_after_each_iteration,
+                c_num_iterations,
+                num_records);
+        }
     }
 }

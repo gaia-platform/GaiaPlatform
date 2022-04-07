@@ -31,7 +31,7 @@ struct memory_manager_metadata_t
     // so we need 1 bit/chunk.
     // Therefore our bitmap contains 2^16 bits = 8KB, or 1024 64-bit words.
     static constexpr size_t c_chunk_bitmap_size_in_words{
-        (1ULL << (CHAR_BIT * sizeof(chunk_offset_t))) / common::c_uint64_bit_count};
+        (1UL << (CHAR_BIT * sizeof(chunk_offset_t))) / common::c_uint64_bit_count};
 
     // This is a physical array of 64-bit words, storing a logical array of
     // bits, each of which denotes whether the chunk at its logical index is
@@ -162,7 +162,7 @@ struct chunk_manager_metadata_t
     // needs 2^10 - 4 64-bit words.
     static constexpr size_t c_bitmap_count{2};
     static constexpr size_t c_total_slots_count{
-        (1ULL << (CHAR_BIT * sizeof(slot_offset_t)))};
+        (1UL << (CHAR_BIT * sizeof(slot_offset_t)))};
     static constexpr size_t c_slot_bitmap_size_in_words_raw{
         c_total_slots_count / common::c_uint64_bit_count};
     static constexpr size_t c_slots_occupied_by_bitmap{
