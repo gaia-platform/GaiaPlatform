@@ -66,10 +66,10 @@ inline bool inline_shared_lock::is_valid()
     uint64_t lock_word = m_lock_word.load();
     uint64_t predicate_values{
         static_cast<uint64_t>(is_free(lock_word))
-        | (static_cast<uint64_t>(is_exclusive(lock_word)) << 1ULL)
-        | (static_cast<uint64_t>(is_shared(lock_word)) << 2ULL)
-        | (static_cast<uint64_t>(is_free_with_exclusive_intent(lock_word)) << 3ULL)
-        | (static_cast<uint64_t>(is_shared_with_exclusive_intent(lock_word)) << 4ULL)};
+        | (static_cast<uint64_t>(is_exclusive(lock_word)) << 1UL)
+        | (static_cast<uint64_t>(is_shared(lock_word)) << 2UL)
+        | (static_cast<uint64_t>(is_free_with_exclusive_intent(lock_word)) << 3UL)
+        | (static_cast<uint64_t>(is_shared_with_exclusive_intent(lock_word)) << 4UL)};
 
     // Now check that exactly one predicate is true, by separately checking that
     // at least one predicate is true[1], and at most one predicate is true[2].

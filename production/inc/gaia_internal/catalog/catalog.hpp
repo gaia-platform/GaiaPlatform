@@ -33,6 +33,9 @@ namespace catalog
  * @{
  */
 
+// The total count of system indexes.
+constexpr size_t c_system_index_count = 11;
+
 // The top level namespace for all the Gaia generated code.
 const std::string c_gaia_namespace = "gaia";
 
