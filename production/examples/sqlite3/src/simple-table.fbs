@@ -1,0 +1,4 @@
+table simple_table {
+    id: uint64;
+    field: uint64;
+}

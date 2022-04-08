@@ -19,8 +19,8 @@
 #include "timer.hpp"
 
 const constexpr uint32_t c_num_insertion = 10000000;
-const constexpr uint32_t c_num_iterations = 1;
-const constexpr uint32_t c_insert_buffer_stmts = c_num_insertion > 1000000 ? c_num_insertion / 10 : c_num_insertion;
+const constexpr uint32_t c_num_iterations = 3;
+const constexpr uint32_t max_insertion_single_txn = c_num_insertion > 1000000 ? c_num_insertion / 10 : c_num_insertion;
 
 using namespace std::chrono;
 using namespace std;
@@ -257,7 +257,7 @@ TEST_F(sqlite3_benchmark, simple_insert_string_multiple)
         {
             insert_ss << "(" << i << ")" << std::endl;
 
-            if (i % c_insert_buffer_stmts == 0 || i == c_num_insertion - 1)
+            if (i % max_insertion_single_txn == 0 || i == c_num_insertion - 1)
             {
                 insert_ss << ";COMMIT;";
                 char* err_msg = nullptr;
@@ -297,7 +297,7 @@ TEST_F(sqlite3_benchmark, simple_insert_string_single)
         {
             insert_ss << "INSERT INTO simple_table(uint64_field) VALUES (" << i << ");" << std::endl;
 
-            if (i % c_insert_buffer_stmts == 0 || i == c_num_insertion - 1)
+            if (i % max_insertion_single_txn == 0 || i == c_num_insertion - 1)
             {
                 insert_ss << "COMMIT;";
                 char* err_msg = nullptr;
@@ -350,7 +350,7 @@ TEST_F(sqlite3_benchmark, simple_insert_prepared_statement)
             }
             sqlite3_reset(stmt);
 
-            if (i % c_insert_buffer_stmts == 0 || i == c_num_insertion - 1)
+            if (i % max_insertion_single_txn == 0 || i == c_num_insertion - 1)
             {
                 exec(db, "COMMIT;");
 
@@ -456,7 +456,7 @@ TEST_F(sqlite3_benchmark, simple_insert_3)
             }
             sqlite3_reset(stmt);
 
-            if (i % c_insert_buffer_stmts == 0 || i == c_num_insertion - 1)
+            if (i % max_insertion_single_txn == 0 || i == c_num_insertion - 1)
             {
                 exec(db, "COMMIT;");
 
@@ -499,7 +499,7 @@ TEST_F(sqlite3_benchmark, unique_index_table)
             }
             sqlite3_reset(stmt);
 
-            if (i % c_insert_buffer_stmts == 0 || i == c_num_insertion - 1)
+            if (i % max_insertion_single_txn == 0 || i == c_num_insertion - 1)
             {
                 exec(db, "COMMIT;");
 
@@ -542,7 +542,7 @@ TEST_F(sqlite3_benchmark, range_index_table)
             }
             sqlite3_reset(stmt);
 
-            if (i % c_insert_buffer_stmts == 0 || i == c_num_insertion - 1)
+            if (i % max_insertion_single_txn == 0 || i == c_num_insertion - 1)
             {
                 exec(db, "COMMIT;");
 
@@ -584,7 +584,7 @@ void insert_records(sqlite3* db)
         }
         sqlite3_reset(stmt);
 
-        if (i % c_insert_buffer_stmts == 0 || i == c_num_insertion - 1)
+        if (i % max_insertion_single_txn == 0 || i == c_num_insertion - 1)
         {
             exec(db, "COMMIT;");
 

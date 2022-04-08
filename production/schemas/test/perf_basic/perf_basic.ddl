@@ -5,7 +5,7 @@
 
 database perf_basic
 
-table simple_table
+table simple_table_t
 (
     uint64_field uint64
 )
