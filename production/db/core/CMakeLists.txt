@@ -130,7 +130,8 @@ target_include_directories(gaia_db_persistence SYSTEM PRIVATE "${FLATBUFFERS_INC
 target_include_directories(gaia_db_persistence SYSTEM PRIVATE "${GEN_DIR}")
 target_include_directories(gaia_db_persistence SYSTEM PRIVATE "${LIBURING_INCLUDE_DIR}")
 # Only need util, not all of rocks.
-target_link_libraries(gaia_db_persistence PUBLIC rocksdb gaia_common "${LIBURING_LIBRARY}")
+target_link_libraries(gaia_db_persistence PUBLIC rocksdb "${LIBURING_LIBRARY}")
+add_dependencies(gaia_db_persistence gaia_common)
 
 set(GAIA_DB_SERVER_SOURCES
   src/catalog_core.cpp
