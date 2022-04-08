@@ -93,6 +93,8 @@ protected:
     T_type m_value;
 };
 
+#include "gaia/internal/common/int_type.inc"
+
 /**@}*/
 } // namespace common
 /**@}*/

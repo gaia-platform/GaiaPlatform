@@ -45,6 +45,9 @@ public:
         rule_binding_t binding("ruleset", "rulename", rule);
         subscription_list_t subscriptions;
 
+        end_session();
+        begin_ddl_session();
+
         // Just run some code that won't work if things aren't setup properly.
         gaia_id_t table_id = add_table();
         begin_transaction();

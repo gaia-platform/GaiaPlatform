@@ -837,9 +837,9 @@ ruleset interop
         }
     }
 
-    // [interop:6_location]
+    // [interop:6_resident]
     //
-    // Show how to read and write a null to an optional field.
+    // Show how to use optional fields.
     on_update(resident.is_intern)
     {
         if (!is_intern)
@@ -850,39 +850,26 @@ ruleset interop
         rule_scope_t r("{}:{}: 'is_intern' status for resident '{}' was updated.",
             rule_context.ruleset_name, rule_context.rule_name, resident.name, resident.is_intern);
 
-        gaia::common::optional_t<uint8_t> opt_height = resident.height;
-        if (opt_height.has_value())
-        {
-            gaia_log::app().info("Resident '{}' is '{}' inches tall.", resident.name, opt_height.value());
-            // Set to a null value;
-            gaia::clinic::resident_t dac_resident = resident;
-            auto writer = dac_resident.writer();
-            writer.height = gaia::common::nullopt;
-            writer.update_row();
-        }
-    }
+        // Read an optional value directly.
+        gaia_log::app().info("Resident '{}' is '{}' inches tall.", resident.name, height);
 
-    // [interop:7_location]
-    //
-    // Show how to read and write optional fields.
-    on_update(resident.is_intern)
-    {
-        if (is_intern)
-        {
-            return;
-        }
+        // Write to an optional value directly as long as the value is not gaia::common::nullopt.
+        height = 67;
+        gaia_log::app().info("Resident '{}' is now '{}' inches tall.", resident.name, height);
 
-        rule_scope_t r("{}:{}: 'is_intern' status for resident '{}' was updated.",
-            rule_context.ruleset_name, rule_context.rule_name, resident.name, resident.is_intern);
+        // If you need to set an optional value to gaia::common::nullopt, you need to use the Direct Access
+        // class writer for now.
+        gaia::clinic::resident_t dac_resident = resident;
+        auto writer = dac_resident.writer();
+        writer.height = gaia::common::nullopt;
+        writer.update_row();
+        gaia_log::app().info("Resident '{}' is '{}' inches tall.", resident.name, height);
 
-        gaia::common::optional_t<uint8_t> opt_height = resident.height;
-        if (!opt_height.has_value())
-        {
-            height = 67;
-            opt_height = height;
-            gaia_log::app().info("Resident '{}' has a new height of '{}' inches.",
-                resident.name, opt_height.value());
-        }
+        // If you want more control over optional value behavior, then you can use the
+        // 'gaia::common::optional_t' class.
+        gaia::common::optional_t<uint8_t> opt_height = height;
+        gaia_log::app().info("Resident '{}' is missing height information. Using '{}' inches tall.",
+            resident.name, opt_height.value_or(72));
     }
 } // ruleset interop
 

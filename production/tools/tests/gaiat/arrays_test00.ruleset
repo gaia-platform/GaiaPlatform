@@ -14,4 +14,4 @@ ruleset test00
     }
 }
 
-// CHECK: error: no member named 'previous_years' in 'farmer__type'
+// CHECK: error: no member named 'previous_years' in 'farmer_{{([a-z, 0-9]{32})}}__type'

@@ -85,13 +85,13 @@ constexpr char c_gaia_internal_txn_log_prefix[] = "gaia_internal_txn_log_";
 // However, this would introduce a circular dependency between the memory
 // manager headers and this header (which probably indicates excessive
 // modularization).
-constexpr size_t c_max_locators{(1ULL << 29) - 1};
+constexpr size_t c_max_locators{(1UL << 29) - 1};
 #else
 // We allow as many locators as the number of 64B objects (the minimum size)
 // that will fit into the data segment size of 256GB, or 2^38 / 2^6 = 2^32. The
 // first entry of the locators array must be reserved for the invalid locator
 // value, so we subtract 1.
-constexpr size_t c_max_locators{(1ULL << 32) - 1};
+constexpr size_t c_max_locators{(1UL << 32) - 1};
 #endif
 
 // This is the largest power of 2 that is compatible with a collision
@@ -102,13 +102,22 @@ constexpr size_t c_max_locators{(1ULL << 32) - 1};
 // larger randomized type IDs, we can expand this limit.
 constexpr size_t c_max_types = 64;
 
-// With 2^32 locators, 2^20 hash buckets bounds the average hash chain length to
-// 2^12. This is still prohibitive overhead for traversal on each reference
-// lookup (given that each node traversal is effectively random-access), but we
-// should be able to solve this by storing locators directly in each object's
-// references array rather than gaia_ids. Other expensive index lookups could be
-// similarly optimized by substituting locators for gaia_ids.
-constexpr size_t c_hash_buckets{1ULL << 20};
+// With 2^32 locators, 2^26 hash buckets bounds the average hash chain length to
+// 2^6. For more realistic workloads (say 2^27 locators, which bounds average
+// hash chain length to 2), this gives constant-time performance. The tradeoff
+// is that because buckets are scattered randomly in the array, we now consume
+// up to 1GB of physical memory, which can be fully allocated with as few as
+// 2^22 locators (coupon collector's approximation). To avoid this unpleasant
+// tradeoff, we need a different data structure (a randomized binary search tree
+// laid out breadth-first in an array currently seems like the best candidate).
+//
+// If hash map lookups during reference traversals are a bottleneck, we could
+// store locators rather than gaia_ids in each object's references array (we
+// would need to either swizzle them to gaia_ids during persistence and
+// unswizzle gaia_ids to locators during recovery, or persist the
+// gaia_id->locator mapping separately). Other expensive hash map lookups could
+// be similarly optimized by substituting locators for gaia_ids.
+constexpr size_t c_hash_buckets{1UL << 26};
 
 // This is an array of offsets in the data segment corresponding to object
 // versions, where each array index is referred to as a "locator."
@@ -121,23 +130,31 @@ struct hash_node_t
 {
     // To enable atomic operations, we use the base integer type instead of gaia_id_t.
     std::atomic<common::gaia_id_t::value_type> id;
-    std::atomic<size_t> next_offset;
+    std::atomic<uint32_t> next_offset;
     std::atomic<gaia_locator_t::value_type> locator;
 };
+
+// We need exactly as many hash nodes as valid locators, so we use the
+// underlying integer type of a locator to index hash nodes.
+static_assert(sizeof(gaia_locator_t) == sizeof(uint32_t), "Expected locators to be 4 bytes!");
+static_assert(sizeof(hash_node_t) == 16, "Expected hash_node_t to occupy 16 bytes!");
 
 struct log_record_t
 {
     gaia_locator_t locator;
-    // We need 4 bytes of padding to maintain total size at 16 bytes.
+    uint16_t sequence;
+    // We need 2 bytes of padding to maintain total size at 16 bytes.
     // (We place the padding here to align the two offsets on an 8-byte
     // boundary, in case we need to modify them both atomically in the future.)
-    uint32_t reserved;
+    uint16_t reserved;
     gaia_offset_t old_offset;
     gaia_offset_t new_offset;
 
     friend std::ostream& operator<<(std::ostream& os, const log_record_t& lr)
     {
-        os << "locator: "
+        os << "sequence: "
+           << lr.sequence
+           << "\tlocator: "
            << lr.locator
            << "\told_offset: "
            << lr.old_offset
@@ -170,9 +187,13 @@ struct log_record_t
     }
 };
 
+// We want to ensure that the txn log record size never changes accidentally.
+constexpr size_t c_txn_log_record_size = 16;
+static_assert(c_txn_log_record_size == sizeof(log_record_t), "Txn log record size must be 16 bytes!");
+
 // We can reference at most 2^16 logs from the 16 bits available in a txn
 // metadata entry, and we must reserve the value 0 for an invalid log offset.
-constexpr size_t c_max_logs{(1ULL << 16) - 1};
+constexpr size_t c_max_logs{(1UL << 16) - 1};
 
 // The total size of a txn log in shared memory.
 // We need to allow as many log records as the maximum number of live object
@@ -259,9 +280,9 @@ struct txn_log_t
         return os;
     }
 
-    static constexpr size_t c_txn_log_refcount_bit_width{16ULL};
+    static constexpr size_t c_txn_log_refcount_bit_width{16UL};
     static constexpr uint64_t c_txn_log_refcount_shift{common::c_uint64_bit_count - c_txn_log_refcount_bit_width};
-    static constexpr uint64_t c_txn_log_refcount_mask{((1ULL << c_txn_log_refcount_bit_width) - 1) << c_txn_log_refcount_shift};
+    static constexpr uint64_t c_txn_log_refcount_mask{((1UL << c_txn_log_refcount_bit_width) - 1) << c_txn_log_refcount_shift};
 
     static gaia_txn_id_t begin_ts_from_word(uint64_t word)
     {
@@ -388,6 +409,10 @@ static_assert(c_txn_log_header_size == offsetof(txn_log_t, log_records), "Txn lo
 
 static_assert(c_txn_log_size == sizeof(txn_log_t), "Txn log size must be 1MB!");
 
+// To ensure the txn log record sequence number doesn't overflow,
+// log_record_t::sequence must be at least as large as txn_log_t::record_count.
+static_assert(sizeof(log_record_t::sequence) >= sizeof(txn_log_t::record_count));
+
 struct counters_t
 {
     // These fields are used as cross-process atomic counters. We don't need
@@ -430,12 +455,14 @@ typedef txn_log_t logs_t[c_max_logs + 1];
 struct id_index_t
 {
     std::atomic<size_t> hash_node_count;
-    hash_node_t hash_nodes[c_hash_buckets + c_max_locators];
+    hash_node_t hash_buckets[c_hash_buckets];
+    hash_node_t hash_nodes[c_max_locators];
 };
 
 // These are types meant to access index types from the client/server.
 namespace index
 {
+
 class base_index_t;
 typedef std::shared_ptr<base_index_t> db_index_t;
 typedef std::unordered_map<common::gaia_id_t, db_index_t> indexes_t;

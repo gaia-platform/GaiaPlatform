@@ -13,4 +13,4 @@ ruleset test06
     }
 }
 
-// CHECK: no member named 'notavalue' in 'sensor__type'
+// CHECK: no member named 'notavalue' in 'sensor_{{([a-z, 0-9]{32})}}__type'

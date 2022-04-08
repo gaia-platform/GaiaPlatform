@@ -67,6 +67,7 @@ class client_t
 
 public:
     static inline bool is_session_open();
+    static inline bool is_ddl_session_open();
     static inline bool is_transaction_open();
 
     /**
@@ -128,6 +129,9 @@ private:
     thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
 
     thread_local static inline int s_session_socket = -1;
+
+    // A log processing watermark that is used for index maintenance.
+    thread_local static inline size_t s_last_index_processed_log_count = 0;
 
     // A list of data mappings that we manage together.
     // The order of declarations must be the order of data_mapping_t::index_t values!

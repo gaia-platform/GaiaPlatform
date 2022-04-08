@@ -6,6 +6,7 @@
 #include "gaia_internal/db/index_builder.hpp"
 
 #include <array>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -38,7 +39,8 @@ index_key_t index_builder_t::make_key(db_index_t index, const uint8_t* payload)
     return index_key_t(index->key_schema(), payload);
 }
 
-void index_builder_t::serialize_key(common::gaia_id_t index_id, const index_key_t& key, payload_types::data_write_buffer_t& buffer)
+void index_builder_t::serialize_key(
+    common::gaia_id_t index_id, const index_key_t& key, payload_types::data_write_buffer_t& buffer)
 {
     auto index_ptr = id_to_ptr(index_id);
     auto index_view = catalog_core::index_view_t(index_ptr);
@@ -53,7 +55,8 @@ void index_builder_t::serialize_key(common::gaia_id_t index_id, const index_key_
     }
 }
 
-index_key_t index_builder_t::deserialize_key(common::gaia_id_t index_id, payload_types::data_read_buffer_t& buffer)
+index_key_t index_builder_t::deserialize_key(
+    common::gaia_id_t index_id, payload_types::data_read_buffer_t& buffer)
 {
     ASSERT_PRECONDITION(index_id.is_valid(), "Invalid gaia id.");
 
@@ -93,9 +96,11 @@ bool index_builder_t::index_exists(common::gaia_id_t index_id)
     return get_indexes()->find(index_id) != get_indexes()->end();
 }
 
-indexes_t::iterator index_builder_t::create_empty_index(const catalog_core::index_view_t& index_view, bool skip_catalog_integrity_check)
+indexes_t::iterator index_builder_t::create_empty_index(
+    const catalog_core::index_view_t& index_view, bool skip_catalog_integrity_check)
 {
-    ASSERT_PRECONDITION(skip_catalog_integrity_check || index_view.table_id().is_valid(), "Cannot find table for index.");
+    ASSERT_PRECONDITION(
+        skip_catalog_integrity_check || index_view.table_id().is_valid(), "Cannot find table for index.");
 
     bool is_unique = index_view.unique();
 
@@ -118,22 +123,24 @@ indexes_t::iterator index_builder_t::create_empty_index(const catalog_core::inde
     switch (index_view.type())
     {
     case catalog::index_type_t::range:
-        return get_indexes()->emplace(
-                                index_view.id(),
-                                std::make_shared<range_index_t, gaia_id_t, index_key_schema_t, bool>(
-                                    std::forward<gaia_id_t>(index_view.id()),
-                                    std::forward<index_key_schema_t>(key_schema),
-                                    std::forward<bool>(is_unique)))
+        return get_indexes()
+            ->emplace(
+                index_view.id(),
+                std::make_shared<range_index_t, gaia_id_t, index_key_schema_t, bool>(
+                    std::forward<gaia_id_t>(index_view.id()),
+                    std::forward<index_key_schema_t>(key_schema),
+                    std::forward<bool>(is_unique)))
             .first;
         break;
 
     case catalog::index_type_t::hash:
-        return get_indexes()->emplace(
-                                index_view.id(),
-                                std::make_shared<hash_index_t, gaia_id_t, index_key_schema_t, bool>(
-                                    std::forward<gaia_id_t>(index_view.id()),
-                                    std::forward<index_key_schema_t>(key_schema),
-                                    std::forward<bool>(is_unique)))
+        return get_indexes()
+            ->emplace(
+                index_view.id(),
+                std::make_shared<hash_index_t, gaia_id_t, index_key_schema_t, bool>(
+                    std::forward<gaia_id_t>(index_view.id()),
+                    std::forward<index_key_schema_t>(key_schema),
+                    std::forward<bool>(is_unique)))
             .first;
         break;
     }
@@ -343,7 +350,6 @@ void index_builder_t::update_index(
 
 void index_builder_t::populate_index(common::gaia_id_t index_id, gaia_locator_t locator)
 {
-    ASSERT_PRECONDITION(get_indexes(), "Indexes are not initialized.");
     auto payload = reinterpret_cast<const uint8_t*>(locator_to_ptr(locator)->data());
 
     auto it = get_indexes()->find(index_id);
@@ -362,56 +368,68 @@ void index_builder_t::populate_index(common::gaia_id_t index_id, gaia_locator_t 
  * As such, we rely on the logs being sorted by temporal order.
  */
 void index_builder_t::update_indexes_from_txn_log(
-    txn_log_t* txn_log, bool skip_catalog_integrity_check, bool allow_create_empty)
+    txn_log_t* txn_log,
+    size_t last_client_processed_log_count,
+    bool skip_catalog_integrity_check,
+    bool allow_create_empty)
 {
-    // Clear the type_id_mapping cache (so it will be refreshed) if we find any
-    // table is created or dropped in the txn.
-    // Keep track of dropped tables.
-    bool has_cleared_cache = false;
+    ASSERT_PRECONDITION(
+        c_is_running_on_client || last_client_processed_log_count == 0,
+        "Server calls to update_indexes_from_txn_log should pass a 'last_client_processed_log_count' value of 0!")
+    ASSERT_PRECONDITION(
+        last_client_processed_log_count <= txn_log->record_count,
+        "An unexpected value was detected for last client processed log!");
+
     std::vector<gaia_type_t> dropped_types;
+    std::unordered_map<gaia_type_t, std::vector<catalog_core::index_view_t>> indexes_for_type;
 
-    for (auto log_record = txn_log->log_records; log_record < txn_log->log_records + txn_log->record_count; ++log_record)
+    if (c_is_running_on_server)
     {
-        if ((log_record->operation() == gaia_operation_t::remove || log_record->operation() == gaia_operation_t::create)
-            && offset_to_ptr(
-                   log_record->operation() == gaia_operation_t::remove
-                       ? log_record->old_offset
-                       : log_record->new_offset)
-                    ->type
-                == static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_table))
+        // Clear the type_id_mapping cache (so it will be refreshed)
+        // if we find that any table was created or dropped in the txn.
+        // Keep track of dropped tables.
+        bool has_cleared_cache = false;
+        for (size_t i = 0; i < txn_log->record_count; ++i)
         {
-            if (!has_cleared_cache)
+            auto log_record = &(txn_log->log_records[i]);
+            if ((log_record->operation() == gaia_operation_t::remove
+                 || log_record->operation() == gaia_operation_t::create)
+                && offset_to_ptr(
+                       log_record->operation() == gaia_operation_t::remove
+                           ? log_record->old_offset
+                           : log_record->new_offset)
+                        ->type
+                    == static_cast<gaia_type_t::value_type>(system_table_type_t::catalog_gaia_table))
             {
-                type_id_mapping_t::instance().clear();
-                has_cleared_cache = true;
-            }
+                if (!has_cleared_cache)
+                {
+                    type_id_mapping_t::instance().clear();
+                    has_cleared_cache = true;
+                }
 
-            if (log_record->operation() == gaia_operation_t::remove)
-            {
-                auto table_view = catalog_core::table_view_t(offset_to_ptr(log_record->old_offset));
-                dropped_types.push_back(table_view.table_type());
+                if (log_record->operation() == gaia_operation_t::remove)
+                {
+                    auto table_view = catalog_core::table_view_t(offset_to_ptr(log_record->old_offset));
+                    dropped_types.push_back(table_view.table_type());
+                }
             }
         }
     }
 
     gaia_operation_t last_index_operation = gaia_operation_t::not_set;
-    for (auto log_record = txn_log->log_records; log_record < txn_log->log_records + txn_log->record_count; ++log_record)
+    for (size_t i = last_client_processed_log_count; i < txn_log->record_count; ++i)
     {
-        db_object_t* obj = nullptr;
+        auto log_record = &(txn_log->log_records[i]);
+        db_object_t* obj = offset_to_ptr(
+            (log_record->operation() == gaia_operation_t::remove)
+                ? log_record->old_offset
+                : log_record->new_offset);
+        ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
 
-        if (log_record->operation() == gaia_operation_t::remove)
-        {
-            obj = offset_to_ptr(log_record->old_offset);
-            ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
-        }
-        else
-        {
-            obj = offset_to_ptr(log_record->new_offset);
-            ASSERT_INVARIANT(obj != nullptr, "Cannot find db object.");
-        }
-
-        // Maintenance on the in-memory index data structures.
-        if (obj->type == static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_index))
+        // Maintenance of the in-memory index data structures.
+        // This is only necessary on the server.
+        if (c_is_running_on_server
+            && obj->type == static_cast<gaia_type_t::value_type>(catalog_core_table_type_t::gaia_index))
         {
             auto index_view = catalog_core::index_view_t(obj);
 
@@ -419,7 +437,8 @@ void index_builder_t::update_indexes_from_txn_log(
             {
                 index::index_builder_t::drop_index(index_view);
             }
-            // We only create the empty index after the post-create update operation because it is finally linked to the parent.
+            // We only create the empty index after the post-create update operation
+            // because it is finally linked to the parent.
             else if (log_record->operation() == gaia_operation_t::update && last_index_operation == gaia_operation_t::create)
             {
                 index::index_builder_t::create_empty_index(index_view, skip_catalog_integrity_check);
@@ -430,23 +449,42 @@ void index_builder_t::update_indexes_from_txn_log(
             continue;
         }
 
-        gaia_id_t type_record_id = type_id_mapping_t::instance().get_record_id(obj->type);
-
         // Catalog core tables are not indexed.
-        // The operation is from a dropped table.
-        // Skip if catalog verification disabled and type not found in the catalog.
+        // If this type is a catalog core table or a table that has been dropped
+        // in this txn, skip the index update.
         if (is_catalog_core_object(obj->type)
-            || std::find(dropped_types.begin(), dropped_types.end(), obj->type) != dropped_types.end()
-            || (skip_catalog_integrity_check && !type_record_id.is_valid()))
+            || std::find(dropped_types.begin(), dropped_types.end(), obj->type) != dropped_types.end())
         {
             continue;
         }
 
-        ASSERT_INVARIANT(type_record_id.is_valid(), "Cannot find type record for object.");
-
-        for (const auto& index : catalog_core::list_indexes(type_record_id))
+        if (indexes_for_type.find(obj->type) == indexes_for_type.end())
         {
-            ASSERT_PRECONDITION(get_indexes(), "Indexes are not initialized.");
+            gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(obj->type);
+
+            // Skip if catalog verification is disabled and the type is not found in the catalog.
+            if (!table_id.is_valid())
+            {
+                ASSERT_INVARIANT(skip_catalog_integrity_check, "Cannot find table id for object type!");
+                // Map this type to an empty indexes vector, to avoid looking up the table ID again.
+                indexes_for_type.insert({obj->type, {}});
+                continue;
+            }
+
+            auto index_list = catalog_core::list_indexes(table_id);
+            std::vector<catalog_core::index_view_t> indexes;
+            // REVIEW [GAIAPLAT-2116]: We can't use std::copy() because
+            // index_list_t.begin() and index_list_t.end() are of different
+            // types.
+            for (auto& index : index_list)
+            {
+                indexes.push_back(index);
+            }
+            indexes_for_type.insert({obj->type, indexes});
+        }
+
+        for (const auto& index : indexes_for_type[obj->type])
+        {
             auto it = get_indexes()->find(index.id());
 
             if (allow_create_empty && it == get_indexes()->end())
@@ -467,7 +505,8 @@ void index_builder_t::update_indexes_from_txn_log(
 }
 
 template <class T_index>
-void remove_entries_with_offsets(base_index_t* base_index, const index_offset_buffer_t& offsets, gaia_txn_id_t txn_id)
+void remove_entries_with_offsets(
+    base_index_t* base_index, const index_offset_buffer_t& offsets, gaia_txn_id_t txn_id)
 {
     auto index = static_cast<T_index*>(base_index);
 
@@ -486,12 +525,19 @@ void remove_entries_with_offsets(base_index_t* base_index, const index_offset_bu
 
 void index_builder_t::gc_indexes_from_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets)
 {
+    // No indexes, no work needed.
+    if (get_indexes()->empty())
+    {
+        return;
+    }
+
     size_t record_index = 0;
     size_t record_count = txn_log->record_count;
 
     while (record_index < record_count)
     {
         index_offset_buffer_t collected_offsets;
+
         // Fill the offset buffer for garbage collection.
         // Exit the loop when we either have run out of records to process or the offsets buffer is full.
         for (; record_index < record_count && collected_offsets.size() < c_offset_buffer_size; ++record_index)
@@ -516,7 +562,8 @@ void index_builder_t::gc_indexes_from_txn_log(txn_log_t* txn_log, bool deallocat
             }
         }
 
-        // When we reach this point, either we have 1) run out of records to iterate over or 2) the offsets buffer is now considered full.
+        // When we reach this point, either we have 1) run out of records to iterate over
+        // or 2) the offsets buffer is now considered full.
         // We know that 2) is false when the offsets buffer is empty and there is no garbage to collect.
         // Therefore we can safely return here.
         if (collected_offsets.empty())
@@ -551,7 +598,8 @@ void index_builder_t::mark_index_entries_committed(gaia_txn_id_t txn_id)
 {
     for (const auto& it : *get_indexes())
     {
-        // Optimization: only mark index entries committed for UNIQUE indexes, as we only look up the flags on that path.
+        // Optimization: only mark index entries committed for UNIQUE indexes,
+        // as we only look up the flags on that path.
         if (it.second->is_unique())
         {
             switch (it.second->type())

@@ -11,6 +11,7 @@ ruleset test01
     on_insert(sensor)
     {
         sensor.remove();
+        sensor.remove(true);
     }
 }
 

@@ -38,24 +38,29 @@ struct locator_list_node_t
     // locator reuse.
     std::atomic<uint64_t> data_word;
 
-    static constexpr size_t c_locator_bit_width{32ULL};
-    static constexpr uint64_t c_locator_shift{0ULL};
-    static constexpr uint64_t c_locator_mask{((1ULL << c_locator_bit_width) - 1) << c_locator_shift};
+    static constexpr size_t c_locator_bit_width{32UL};
+    static constexpr uint64_t c_locator_shift{0UL};
+    static constexpr uint64_t c_locator_mask{((1UL << c_locator_bit_width) - 1) << c_locator_shift};
 
-    static constexpr size_t c_deleted_flag_bit_width{1ULL};
+    static constexpr size_t c_deleted_flag_bit_width{1UL};
     static constexpr size_t c_deleted_flag_shift{
         common::c_uint64_bit_count - c_deleted_flag_bit_width};
-    static constexpr uint64_t c_deleted_flag_mask{1ULL << c_deleted_flag_shift};
+    static constexpr uint64_t c_deleted_flag_mask{1UL << c_deleted_flag_shift};
 
     // Returns the locator index of the current node's successor, or the invalid
     // locator if it has no successor.
     inline gaia_locator_t get_next_locator();
 
-    // Returns true if the "deleted" bit is set, false otherwise.
-    inline bool is_marked_for_deletion();
+    // Changes the node's successor to `locator`.
+    // A caller can specify `relaxed_store=true` when the store will be made
+    // globally visible by a subsequent "release" operation (e.g., a CAS).
+    inline void set_next_locator(gaia_locator_t locator, bool relaxed_store = false);
 
     // Returns false if the "deleted" bit is set or the successor has been changed, true otherwise.
     inline bool try_set_next_locator(gaia_locator_t expected_locator, gaia_locator_t desired_locator);
+
+    // Returns true if the "deleted" bit is set, false otherwise.
+    inline bool is_marked_for_deletion();
 
     // Returns false if the "deleted" bit was already set, true otherwise.
     inline bool mark_for_deletion();
@@ -85,40 +90,10 @@ static_assert(std::atomic<type_index_entry_t>::is_always_lock_free);
 
 // An index enabling efficient retrieval of all locators of a registered type.
 // Each type ID maps to a linked list containing all locators of that type.
-struct type_index_t
+class type_index_t
 {
-    // Mapping of registered type IDs to the heads of their locator lists.
-    std::atomic<type_index_entry_t> type_index_entries[c_max_types];
-
-    // Pool of nodes used for the linked lists representing the sets of locators
-    // belonging to each registered type. The array index of each node
-    // corresponds to the locator it represents.
-    locator_list_node_t locator_lists_array[c_max_locators + 1];
-
-    // Returns a reference to the type index entry containing `type`.
-    // PRECONDITION: `type` has already been registered.
-    inline std::atomic<type_index_entry_t>& get_type_index_entry(common::gaia_type_t type);
-
-    // Claims a slot in `type_index_entries` by atomically incrementing
-    // `type_index_entries_count` (slots are not reused).
-    // Returns true if `type` was not already registered, false otherwise.
-    inline bool register_type(common::gaia_type_t type);
-
-    // Returns the head of the locator list for `type`.
-    inline gaia_locator_t get_first_locator(common::gaia_type_t type);
-
-    // Changes the head of the locator list for `type` to `desired_locator`, if
-    // the head is still `expected_locator`. Returns true if the head is still
-    // `expected_locator`, false otherwise. (This has CAS semantics because we
-    // need to retry if the head of the list changes during the operation.)
-    inline bool try_set_first_locator(
-        common::gaia_type_t type, gaia_locator_t expected_locator, gaia_locator_t desired_locator);
-
-    // Gets the list node corresponding to `locator`.
-    inline locator_list_node_t* get_list_node(gaia_locator_t locator);
-
+public:
     // Inserts the node for `locator` at the head of the list for `type`.
-    // PRECONDITION: `type` is already registered in `type_index_entries`.
     // PRECONDITION: The list node for `locator` has not been previously used.
     // POSTCONDITION: `type_index_cursor_t(type).current_locator()` returns
     // `locator` (in the absence of concurrent invocations).
@@ -129,6 +104,35 @@ struct type_index_t
     // PRECONDITION: `locator` was previously allocated.
     // POSTCONDITION: returns false if list node for `locator` was already marked for deletion.
     inline bool delete_locator(gaia_locator_t locator);
+
+    // Gets the list node corresponding to `locator`.
+    inline locator_list_node_t* get_list_node(gaia_locator_t locator);
+
+    // Returns the head of the locator list for `type`.
+    inline gaia_locator_t get_first_locator(common::gaia_type_t type);
+
+    // Changes the head of the locator list for `type` to `desired_locator`, if
+    // the head is still `expected_locator`.
+    // Returns true if the head is still `expected_locator`, false otherwise.
+    // (This has CAS semantics because we need to retry if the head of the list
+    // changes during the operation.)
+    inline bool try_set_first_locator(
+        common::gaia_type_t type, gaia_locator_t expected_locator, gaia_locator_t desired_locator);
+
+private:
+    // Returns a reference to the type index entry containing `type`, creating
+    // it if it does not exist.
+    inline std::atomic<type_index_entry_t>&
+    get_or_create_type_index_entry(common::gaia_type_t type);
+
+private:
+    // Mapping of registered type IDs to the heads of their locator lists.
+    std::atomic<type_index_entry_t> m_type_index_entries[c_max_types];
+
+    // Pool of nodes used for the linked lists representing the sets of locators
+    // belonging to each registered type. The array index of each node
+    // corresponds to the locator it represents.
+    locator_list_node_t m_locator_lists_array[c_max_locators + 1];
 };
 
 #include "type_index.inc"

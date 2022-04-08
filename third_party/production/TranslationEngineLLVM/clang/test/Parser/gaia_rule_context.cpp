@@ -17,7 +17,7 @@ ruleset test_rule_context_2
 ruleset test_rule_context_3
 {
     {
-        auto x = rule_context.x; // expected-error {{no member named 'x' in 'rule_context__type'}}
+        auto x = rule_context.x; // expected-error {{no member named 'x' in 'rule_context_f489c36097a661e7bb4d0934bf940da7__type'}}
     }
 }
 

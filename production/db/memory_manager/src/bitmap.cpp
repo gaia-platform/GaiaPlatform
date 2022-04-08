@@ -64,13 +64,18 @@ bool apply_mask_to_word(
 
 bool apply_mask_to_word(
     std::atomic<uint64_t>& word, uint64_t mask, bool set, bool fail_if_already_applied = false)
+
 {
-    uint64_t word_copy = word;
+    // This should only be used when a single thread is reading and writing the bitmap,
+    // so a relaxed load is sufficient.
+    uint64_t word_copy = word.load(std::memory_order_relaxed);
     if (!apply_mask_to_word(word_copy, mask, set, fail_if_already_applied))
     {
         return false;
     }
-    word = word_copy;
+    // This should only be used when a single thread is reading and writing the bitmap,
+    // so a relaxed store is sufficient.
+    word.store(word_copy, std::memory_order_relaxed);
     return true;
 }
 
@@ -78,7 +83,9 @@ bool try_apply_mask_to_word(
     std::atomic<uint64_t>& word, uint64_t mask, bool set, bool fail_if_already_applied = false)
 {
     // We read the word once, because other threads may be updating it.
-    uint64_t old_word = word;
+    // A relaxed load is sufficient, because a stale read will cause the
+    // subsequent CAS to fail.
+    uint64_t old_word = word.load(std::memory_order_relaxed);
     uint64_t new_word = old_word;
 
     // REVIEW: If callers need to distinguish between CAS failure and failure
@@ -134,7 +141,7 @@ void find_bit_word_and_mask(
     size_t bit_index_within_word = bit_index % common::c_uint64_bit_count;
 
     word = &bitmap[word_index];
-    mask = 1ULL << bit_index_within_word;
+    mask = 1UL << bit_index_within_word;
 }
 
 bool is_bit_set(
@@ -196,7 +203,7 @@ void safe_set_bit_range_value(
     {
         uint64_t mask = (bit_count == common::c_uint64_bit_count)
             ? c_all_set_word
-            : ((1ULL << bit_count) - 1) << start_bit_index_within_word;
+            : ((1UL << bit_count) - 1) << start_bit_index_within_word;
         safe_apply_mask_to_word(bitmap[start_word_index], mask, value);
     }
     else
@@ -205,7 +212,7 @@ void safe_set_bit_range_value(
         size_t count_bits_in_first_word = common::c_uint64_bit_count - start_bit_index_within_word;
         uint64_t start_word_mask = (count_bits_in_first_word == common::c_uint64_bit_count)
             ? c_all_set_word
-            : ((1ULL << count_bits_in_first_word) - 1) << start_bit_index_within_word;
+            : ((1UL << count_bits_in_first_word) - 1) << start_bit_index_within_word;
         safe_apply_mask_to_word(bitmap[start_word_index], start_word_mask, value);
 
         // Handle any words for which we have to set all bits.
@@ -221,7 +228,7 @@ void safe_set_bit_range_value(
         size_t count_bits_in_last_word = end_bit_index_within_word + 1;
         uint64_t end_word_mask = (count_bits_in_last_word == common::c_uint64_bit_count)
             ? c_all_set_word
-            : ((1ULL << count_bits_in_last_word) - 1);
+            : ((1UL << count_bits_in_last_word) - 1);
         safe_apply_mask_to_word(bitmap[end_word_index], end_word_mask, value);
     }
 }
@@ -261,7 +268,7 @@ size_t count_set_bits(
         // then first mask out the bits that we are supposed to ignore before doing the counting.
         if (word_index == end_word_index_exclusive - 1 && end_bit_index_in_word_exclusive != common::c_uint64_bit_count)
         {
-            uint64_t mask = (1ULL << end_bit_index_in_word_exclusive) - 1;
+            uint64_t mask = (1UL << end_bit_index_in_word_exclusive) - 1;
             word &= mask;
         }
 
@@ -306,7 +313,7 @@ size_t find_first_unset_bit(
         // then first mask out the bits that we are supposed to ignore before doing any check.
         if (word_index == end_word_index_exclusive - 1 && end_bit_index_in_word_exclusive != common::c_uint64_bit_count)
         {
-            uint64_t mask = (1ULL << end_bit_index_in_word_exclusive) - 1;
+            uint64_t mask = (1UL << end_bit_index_in_word_exclusive) - 1;
             // Because we're looking out for unset bits,
             // the masking is done by setting the irrelevant bits to 1.
             word |= ~mask;

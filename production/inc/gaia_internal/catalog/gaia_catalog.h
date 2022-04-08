@@ -23,44 +23,44 @@ namespace catalog
 constexpr size_t c_flatbuffer_builder_size = 128;
 
 // Constants contained in the rule_relationship object.
-constexpr common::gaia_type_t::value_type c_gaia_type_rule_relationship = 4294963209u;
+constexpr common::gaia_type_t::value_type c_gaia_type_rule_relationship = 4294963208u;
 constexpr common::reference_offset_t c_rule_relationship_parent_rule = 0;
 constexpr common::reference_offset_t c_rule_relationship_next_rule = 1;
 
 // Constants contained in the rule_field object.
-constexpr common::gaia_type_t::value_type c_gaia_type_rule_field = 4294963208u;
+constexpr common::gaia_type_t::value_type c_gaia_type_rule_field = 4294963207u;
 constexpr common::reference_offset_t c_rule_field_parent_rule = 0;
 constexpr common::reference_offset_t c_rule_field_next_rule = 1;
 
 // Constants contained in the rule_table object.
-constexpr common::gaia_type_t::value_type c_gaia_type_rule_table = 4294963207u;
+constexpr common::gaia_type_t::value_type c_gaia_type_rule_table = 4294963206u;
 constexpr common::reference_offset_t c_rule_table_parent_rule = 0;
 constexpr common::reference_offset_t c_rule_table_next_rule = 1;
 
 // Constants contained in the ruleset_database object.
-constexpr common::gaia_type_t::value_type c_gaia_type_ruleset_database = 4294963206u;
+constexpr common::gaia_type_t::value_type c_gaia_type_ruleset_database = 4294963205u;
 constexpr common::reference_offset_t c_ruleset_database_parent_ruleset = 0;
 constexpr common::reference_offset_t c_ruleset_database_next_ruleset = 1;
 
 // Constants contained in the app_ruleset object.
-constexpr common::gaia_type_t::value_type c_gaia_type_app_ruleset = 4294963205u;
+constexpr common::gaia_type_t::value_type c_gaia_type_app_ruleset = 4294963204u;
 constexpr common::reference_offset_t c_app_ruleset_parent_application = 0;
 constexpr common::reference_offset_t c_app_ruleset_next_application = 1;
 constexpr common::reference_offset_t c_app_ruleset_parent_ruleset = 3;
 constexpr common::reference_offset_t c_app_ruleset_next_ruleset = 4;
 
 // Constants contained in the app_database object.
-constexpr common::gaia_type_t::value_type c_gaia_type_app_database = 4294963204u;
+constexpr common::gaia_type_t::value_type c_gaia_type_app_database = 4294963203u;
 constexpr common::reference_offset_t c_app_database_parent_application = 0;
 constexpr common::reference_offset_t c_app_database_next_application = 1;
 
 // Constants contained in the gaia_application object.
-constexpr common::gaia_type_t::value_type c_gaia_type_gaia_application = 4294963203u;
+constexpr common::gaia_type_t::value_type c_gaia_type_gaia_application = 4294963202u;
 constexpr common::reference_offset_t c_gaia_application_first_app_databases = 0;
 constexpr common::reference_offset_t c_gaia_application_first_app_rulesets = 1;
 
 // Constants contained in the gaia_rule object.
-constexpr common::gaia_type_t::value_type c_gaia_type_gaia_rule = 4294963202u;
+constexpr common::gaia_type_t::value_type c_gaia_type_gaia_rule = 4294963201u;
 constexpr common::reference_offset_t c_gaia_rule_parent_ruleset = 0;
 constexpr common::reference_offset_t c_gaia_rule_next_ruleset = 1;
 constexpr common::reference_offset_t c_gaia_rule_first_rule_tables = 3;
@@ -68,7 +68,7 @@ constexpr common::reference_offset_t c_gaia_rule_first_rule_fields = 4;
 constexpr common::reference_offset_t c_gaia_rule_first_rule_relationships = 5;
 
 // Constants contained in the gaia_ruleset object.
-constexpr common::gaia_type_t::value_type c_gaia_type_gaia_ruleset = 4294963201u;
+constexpr common::gaia_type_t::value_type c_gaia_type_gaia_ruleset = 4294963200u;
 constexpr common::reference_offset_t c_gaia_ruleset_first_gaia_rules = 0;
 constexpr common::reference_offset_t c_gaia_ruleset_first_ruleset_databases = 1;
 constexpr common::reference_offset_t c_gaia_ruleset_first_app_rulesets = 2;
@@ -559,7 +559,7 @@ public:
         static gaia::expressions::member_accessor_t<gaia_index_t, const char*> name;
         static gaia::expressions::member_accessor_t<gaia_index_t, bool> unique;
         static gaia::expressions::member_accessor_t<gaia_index_t, uint8_t> type;
-        static gaia::expressions::member_accessor_t<gaia_index_t, gaia::direct_access::dac_vector_t<uint64_t>> fields;
+        static gaia::expressions::vector_accessor_t<gaia_index_t, uint64_t, gaia::direct_access::dac_vector_t<uint64_t>> fields;
         static gaia::expressions::member_accessor_t<gaia_index_t, const char*> hash;
         static gaia::expressions::member_accessor_t<gaia_index_t, gaia_table_t> table;
     };
@@ -582,7 +582,7 @@ template<class unused_t> gaia::expressions::member_accessor_t<gaia_index_t, gaia
 template<class unused_t> gaia::expressions::member_accessor_t<gaia_index_t, const char*> gaia_index_t::expr_<unused_t>::name{&gaia_index_t::name};
 template<class unused_t> gaia::expressions::member_accessor_t<gaia_index_t, bool> gaia_index_t::expr_<unused_t>::unique{&gaia_index_t::unique};
 template<class unused_t> gaia::expressions::member_accessor_t<gaia_index_t, uint8_t> gaia_index_t::expr_<unused_t>::type{&gaia_index_t::type};
-template<class unused_t> gaia::expressions::member_accessor_t<gaia_index_t, gaia::direct_access::dac_vector_t<uint64_t>> gaia_index_t::expr_<unused_t>::fields{&gaia_index_t::fields};
+template<class unused_t> gaia::expressions::vector_accessor_t<gaia_index_t, uint64_t, gaia::direct_access::dac_vector_t<uint64_t>> gaia_index_t::expr_<unused_t>::fields{&gaia_index_t::fields};
 template<class unused_t> gaia::expressions::member_accessor_t<gaia_index_t, const char*> gaia_index_t::expr_<unused_t>::hash{&gaia_index_t::hash};
 template<class unused_t> gaia::expressions::member_accessor_t<gaia_index_t, gaia_table_t> gaia_index_t::expr_<unused_t>::table{&gaia_index_t::table};
 
@@ -624,8 +624,8 @@ public:
         static gaia::expressions::member_accessor_t<gaia_relationship_t, uint16_t> next_child_offset;
         static gaia::expressions::member_accessor_t<gaia_relationship_t, uint16_t> prev_child_offset;
         static gaia::expressions::member_accessor_t<gaia_relationship_t, uint16_t> parent_offset;
-        static gaia::expressions::member_accessor_t<gaia_relationship_t, gaia::direct_access::dac_vector_t<uint16_t>> parent_field_positions;
-        static gaia::expressions::member_accessor_t<gaia_relationship_t, gaia::direct_access::dac_vector_t<uint16_t>> child_field_positions;
+        static gaia::expressions::vector_accessor_t<gaia_relationship_t, uint16_t, gaia::direct_access::dac_vector_t<uint16_t>> parent_field_positions;
+        static gaia::expressions::vector_accessor_t<gaia_relationship_t, uint16_t, gaia::direct_access::dac_vector_t<uint16_t>> child_field_positions;
         static gaia::expressions::member_accessor_t<gaia_relationship_t, const char*> hash;
         static gaia::expressions::member_accessor_t<gaia_relationship_t, gaia_table_t> child;
         static gaia::expressions::member_accessor_t<gaia_relationship_t, gaia_table_t> parent;
@@ -665,8 +665,8 @@ template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_
 template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, uint16_t> gaia_relationship_t::expr_<unused_t>::next_child_offset{&gaia_relationship_t::next_child_offset};
 template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, uint16_t> gaia_relationship_t::expr_<unused_t>::prev_child_offset{&gaia_relationship_t::prev_child_offset};
 template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, uint16_t> gaia_relationship_t::expr_<unused_t>::parent_offset{&gaia_relationship_t::parent_offset};
-template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, gaia::direct_access::dac_vector_t<uint16_t>> gaia_relationship_t::expr_<unused_t>::parent_field_positions{&gaia_relationship_t::parent_field_positions};
-template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, gaia::direct_access::dac_vector_t<uint16_t>> gaia_relationship_t::expr_<unused_t>::child_field_positions{&gaia_relationship_t::child_field_positions};
+template<class unused_t> gaia::expressions::vector_accessor_t<gaia_relationship_t, uint16_t, gaia::direct_access::dac_vector_t<uint16_t>> gaia_relationship_t::expr_<unused_t>::parent_field_positions{&gaia_relationship_t::parent_field_positions};
+template<class unused_t> gaia::expressions::vector_accessor_t<gaia_relationship_t, uint16_t, gaia::direct_access::dac_vector_t<uint16_t>> gaia_relationship_t::expr_<unused_t>::child_field_positions{&gaia_relationship_t::child_field_positions};
 template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, const char*> gaia_relationship_t::expr_<unused_t>::hash{&gaia_relationship_t::hash};
 template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, gaia_table_t> gaia_relationship_t::expr_<unused_t>::child{&gaia_relationship_t::child};
 template<class unused_t> gaia::expressions::member_accessor_t<gaia_relationship_t, gaia_table_t> gaia_relationship_t::expr_<unused_t>::parent{&gaia_relationship_t::parent};
@@ -767,8 +767,8 @@ public:
         static gaia::expressions::member_accessor_t<gaia_table_t, const char*> name;
         static gaia::expressions::member_accessor_t<gaia_table_t, uint32_t> type;
         static gaia::expressions::member_accessor_t<gaia_table_t, bool> is_system;
-        static gaia::expressions::member_accessor_t<gaia_table_t, gaia::direct_access::dac_vector_t<uint8_t>> binary_schema;
-        static gaia::expressions::member_accessor_t<gaia_table_t, gaia::direct_access::dac_vector_t<uint8_t>> serialization_template;
+        static gaia::expressions::vector_accessor_t<gaia_table_t, uint8_t, gaia::direct_access::dac_vector_t<uint8_t>> binary_schema;
+        static gaia::expressions::vector_accessor_t<gaia_table_t, uint8_t, gaia::direct_access::dac_vector_t<uint8_t>> serialization_template;
         static gaia::expressions::member_accessor_t<gaia_table_t, const char*> hash;
         static gaia::expressions::member_accessor_t<gaia_table_t, gaia_database_t> database;
         static gaia::expressions::container_accessor_t<gaia_table_t, gaia_index_t, gaia_table_t::gaia_indexes_list_t> gaia_indexes;
@@ -800,8 +800,8 @@ template<class unused_t> gaia::expressions::member_accessor_t<gaia_table_t, gaia
 template<class unused_t> gaia::expressions::member_accessor_t<gaia_table_t, const char*> gaia_table_t::expr_<unused_t>::name{&gaia_table_t::name};
 template<class unused_t> gaia::expressions::member_accessor_t<gaia_table_t, uint32_t> gaia_table_t::expr_<unused_t>::type{&gaia_table_t::type};
 template<class unused_t> gaia::expressions::member_accessor_t<gaia_table_t, bool> gaia_table_t::expr_<unused_t>::is_system{&gaia_table_t::is_system};
-template<class unused_t> gaia::expressions::member_accessor_t<gaia_table_t, gaia::direct_access::dac_vector_t<uint8_t>> gaia_table_t::expr_<unused_t>::binary_schema{&gaia_table_t::binary_schema};
-template<class unused_t> gaia::expressions::member_accessor_t<gaia_table_t, gaia::direct_access::dac_vector_t<uint8_t>> gaia_table_t::expr_<unused_t>::serialization_template{&gaia_table_t::serialization_template};
+template<class unused_t> gaia::expressions::vector_accessor_t<gaia_table_t, uint8_t, gaia::direct_access::dac_vector_t<uint8_t>> gaia_table_t::expr_<unused_t>::binary_schema{&gaia_table_t::binary_schema};
+template<class unused_t> gaia::expressions::vector_accessor_t<gaia_table_t, uint8_t, gaia::direct_access::dac_vector_t<uint8_t>> gaia_table_t::expr_<unused_t>::serialization_template{&gaia_table_t::serialization_template};
 template<class unused_t> gaia::expressions::member_accessor_t<gaia_table_t, const char*> gaia_table_t::expr_<unused_t>::hash{&gaia_table_t::hash};
 template<class unused_t> gaia::expressions::member_accessor_t<gaia_table_t, gaia_database_t> gaia_table_t::expr_<unused_t>::database{&gaia_table_t::database};
 template<class unused_t> gaia::expressions::container_accessor_t<gaia_table_t, gaia_index_t, gaia_table_t::gaia_indexes_list_t> gaia_table_t::expr_<unused_t>::gaia_indexes{&gaia_table_t::gaia_indexes};

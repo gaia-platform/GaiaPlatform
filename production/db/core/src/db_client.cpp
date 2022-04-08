@@ -73,6 +73,15 @@ void client_t::txn_cleanup()
     // Reset transaction log offset.
     s_txn_log_offset = c_invalid_log_offset;
 
+    // Reset the log processing watermark that is used for index building.
+    s_last_index_processed_log_count = 0;
+
+    // Clear the local indexes.
+    for (const auto& index : client_t::s_local_indexes)
+    {
+        index.second->clear();
+    }
+
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
 }
@@ -153,7 +162,9 @@ void client_t::begin_session(config::session_options_t session_options)
 
     // Send the server the connection request.
     FlatBufferBuilder builder;
-    build_client_request(builder, session_event_t::CONNECT);
+    build_client_request(
+        builder,
+        s_session_options.is_ddl_session ? session_event_t::CONNECT_DDL : session_event_t::CONNECT);
 
     client_messenger_t client_messenger;
 

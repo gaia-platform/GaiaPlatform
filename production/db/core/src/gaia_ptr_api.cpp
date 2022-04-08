@@ -45,10 +45,7 @@ gaia_id_t find_using_index(
     gaia_id_t indexed_table_id,
     field_position_t indexed_field_position)
 {
-    gaia_type_t indexed_table_type = catalog_core::get_table(indexed_table_id).table_type();
-    gaia_id_t indexed_table_type_id = type_id_mapping_t::instance().get_record_id(indexed_table_type);
-
-    gaia_id_t index_id = catalog_core::find_index(indexed_table_type_id, indexed_field_position);
+    gaia_id_t index_id = catalog_core::find_index(indexed_table_id, indexed_field_position);
     // Callers need to ensure the table has an index on the field to search.
     ASSERT_PRECONDITION(index_id.is_valid(), "Cannot find value index for the table.");
 
@@ -315,7 +312,7 @@ void auto_connect(
         return;
     }
     field_position_list_t candidate_fields;
-    gaia_id_t table_id = type_id_mapping_t::instance().get_record_id(type);
+    gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(type);
     for (auto field_view : catalog_core::list_fields(table_id))
     {
         candidate_fields.push_back(field_view.position());
@@ -346,13 +343,17 @@ gaia_ptr_t create(
     reference_offset_t references_count = metadata.references_count();
 
     gaia_ptr_t obj = gaia_ptr_t::create_no_txn(id, type, references_count, data_size, data);
-    db_object_t* obj_ptr = obj.to_ptr();
-    auto_connect(
-        id,
-        type,
-        // NOLINTNEXTLINE: cppcoreguidelines-pro-type-const-cast
-        const_cast<gaia_id_t*>(obj_ptr->references()),
-        reinterpret_cast<const uint8_t*>(obj_ptr->data()));
+
+    if (metadata.has_value_linked_relationship())
+    {
+        db_object_t* obj_ptr = obj.to_ptr();
+        auto_connect(
+            id,
+            type,
+            // NOLINTNEXTLINE: cppcoreguidelines-pro-type-const-cast
+            const_cast<gaia_id_t*>(obj_ptr->references()),
+            reinterpret_cast<const uint8_t*>(obj_ptr->data()));
+    }
 
     obj.finalize_create();
 
@@ -397,7 +398,7 @@ void update_payload(gaia_ptr_t& obj, size_t data_size, const void* data)
     auto_connect(
         obj.id(),
         obj.type(),
-        type_id_mapping_t::instance().get_record_id(obj.type()),
+        type_id_mapping_t::instance().get_table_id(obj.type()),
         obj.references(),
         new_data,
         changed_fields);

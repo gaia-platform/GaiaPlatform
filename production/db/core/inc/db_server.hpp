@@ -109,7 +109,7 @@ private:
     static inline server_config_t s_server_conf{};
 
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
-    static constexpr size_t c_stream_batch_size{1ULL << 10};
+    static constexpr size_t c_stream_batch_size{1UL << 10};
 
     // This is necessary to avoid VM exhaustion in the worst case where all
     // sessions are opened from a single process (we remap the 256GB data
@@ -119,7 +119,7 @@ private:
     // of error, hence the choice of 128 for the session limit).
     // REVIEW: How much could we relax this limit if we revert to per-process
     // mappings of the data segment?
-    static constexpr size_t c_session_limit{1ULL << 7};
+    static constexpr size_t c_session_limit{1UL << 7};
 
     static inline int s_server_shutdown_eventfd = -1;
     static inline int s_listening_socket = -1;
@@ -143,6 +143,9 @@ private:
 
     // Local snapshot for server-side transactions.
     thread_local static inline mapped_data_t<locators_t> s_local_snapshot_locators{};
+    // Watermark that tracks how many log records have been used for the current snapshot instance.
+    // This is used to permit the incremental updating of the snapshot.
+    thread_local static inline size_t s_last_snapshot_processed_log_record_count{0};
 
     // The allocated status of each log offset is tracked in this bitmap. When
     // opening a new txn, each session thread must allocate an offset for its txn
@@ -172,6 +175,8 @@ private:
 
     thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
     thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
+
+    thread_local static inline bool s_is_ddl_session{false};
 
     // These thread objects are owned by the session thread that created them.
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
@@ -354,21 +359,21 @@ private:
     // Function pointer type that executes side effects of a session state transition.
     // REVIEW: replace void* with std::any?
     typedef void (*transition_handler_fn)(
-        int* fds, size_t fd_count,
         messages::session_event_t event,
         const void* event_data,
         messages::session_state_t old_state,
         messages::session_state_t new_state);
 
     // Session state transition handler functions.
-    static void handle_connect(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_begin_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_rollback_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_commit_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_decide_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_client_shutdown(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_server_shutdown(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_request_stream(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_connect_ddl(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_connect(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_begin_txn(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_rollback_txn(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_commit_txn(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_decide_txn(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_client_shutdown(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_server_shutdown(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_request_stream(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
 
     struct transition_t
     {
@@ -386,6 +391,7 @@ private:
     // "Wildcard" transitions (current state = session_state_t::ANY) must be listed after
     // non-wildcard transitions with the same event, or the latter will never be applied.
     static inline constexpr valid_transition_t c_valid_transitions[] = {
+        {messages::session_state_t::DISCONNECTED, messages::session_event_t::CONNECT_DDL, {messages::session_state_t::CONNECTED, handle_connect_ddl}},
         {messages::session_state_t::DISCONNECTED, messages::session_event_t::CONNECT, {messages::session_state_t::CONNECTED, handle_connect}},
         {messages::session_state_t::ANY, messages::session_event_t::CLIENT_SHUTDOWN, {messages::session_state_t::DISCONNECTED, handle_client_shutdown}},
         {messages::session_state_t::CONNECTED, messages::session_event_t::BEGIN_TXN, {messages::session_state_t::TXN_IN_PROGRESS, handle_begin_txn}},
@@ -398,7 +404,7 @@ private:
         {messages::session_state_t::ANY, messages::session_event_t::REQUEST_STREAM, {messages::session_state_t::ANY, handle_request_stream}},
     };
 
-    static void apply_transition(messages::session_event_t event, const void* event_data, int* fds, size_t fd_count);
+    static void apply_transition(messages::session_event_t event, const void* event_data);
 
     static void build_server_reply_info(
         flatbuffers::FlatBufferBuilder& builder,
@@ -432,7 +438,7 @@ private:
 
     // TODO: Remove the apply_logs flag, because a snapshot can't be used
     // correctly without first applying txn logs up to its begin timestamp.
-    static void create_local_snapshot(bool apply_logs);
+    static void create_or_refresh_local_snapshot(bool apply_logs);
 
     static void recover_db();
 
