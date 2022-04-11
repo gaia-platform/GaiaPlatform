@@ -72,7 +72,24 @@ TEST_F(test_update_perf_basic, simple_table_update)
         });
     };
 
-    bool clean_db_after_each_iteration = false;
+    bool clear_db_after_each_iteration = false;
     run_performance_test(
-        update, clear_database, "simple_table_update", clean_db_after_each_iteration);
+        update, clear_database, "simple_table_update", clear_db_after_each_iteration);
+}
+
+TEST_F(test_update_perf_basic, simple_table_update_dynamic)
+{
+    insert_data();
+
+    auto update = []() {
+        bulk_update<simple_table_t>([](simple_table_t& obj) {
+            simple_table_writer w = obj.writer();
+            w.uint64_field = obj.uint64_field() + 1;
+            w.update_row();
+        });
+    };
+
+    bool clear_db_after_each_iteration = false;
+    run_performance_test(
+        update, clear_database, "simple_table_update_dynamic", clear_db_after_each_iteration);
 }

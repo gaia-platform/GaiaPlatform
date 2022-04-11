@@ -437,7 +437,7 @@ void remove(gaia_ptr_t& object, bool force)
                 continue;
             }
 
-            gaia_id_t referenced_obj_id = anchor.id();
+            gaia_id_t referenced_obj_id;
 
             if (anchor.references()[c_ref_anchor_parent_offset] == object.id())
             {
@@ -668,8 +668,9 @@ bool remove_from_reference_container(gaia_id_t parent_id, gaia_id_t child_id, re
 
 bool remove_from_reference_container(gaia_ptr_t& child, reference_offset_t child_anchor_slot)
 {
+    // The reference to the next_child and the prev_child are relative to the anchor slot.
     reference_offset_t next_child_offset = child_anchor_slot + 1;
-    reference_offset_t prev_child_offset = next_child_offset + 1;
+    reference_offset_t prev_child_offset = child_anchor_slot + 2;
 
     if (child.references()[next_child_offset].is_valid())
     {

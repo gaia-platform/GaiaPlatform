@@ -85,13 +85,13 @@ constexpr char c_gaia_internal_txn_log_prefix[] = "gaia_internal_txn_log_";
 // However, this would introduce a circular dependency between the memory
 // manager headers and this header (which probably indicates excessive
 // modularization).
-constexpr size_t c_max_locators{(1ULL << 29) - 1};
+constexpr size_t c_max_locators{(1UL << 29) - 1};
 #else
 // We allow as many locators as the number of 64B objects (the minimum size)
 // that will fit into the data segment size of 256GB, or 2^38 / 2^6 = 2^32. The
 // first entry of the locators array must be reserved for the invalid locator
 // value, so we subtract 1.
-constexpr size_t c_max_locators{(1ULL << 32) - 1};
+constexpr size_t c_max_locators{(1UL << 32) - 1};
 #endif
 
 // This is the largest power of 2 that is compatible with a collision
@@ -102,13 +102,22 @@ constexpr size_t c_max_locators{(1ULL << 32) - 1};
 // larger randomized type IDs, we can expand this limit.
 constexpr size_t c_max_types = 64;
 
-// With 2^32 locators, 2^20 hash buckets bounds the average hash chain length to
-// 2^12. This is still prohibitive overhead for traversal on each reference
-// lookup (given that each node traversal is effectively random-access), but we
-// should be able to solve this by storing locators directly in each object's
-// references array rather than gaia_ids. Other expensive index lookups could be
-// similarly optimized by substituting locators for gaia_ids.
-constexpr size_t c_hash_buckets{1ULL << 20};
+// With 2^32 locators, 2^26 hash buckets bounds the average hash chain length to
+// 2^6. For more realistic workloads (say 2^27 locators, which bounds average
+// hash chain length to 2), this gives constant-time performance. The tradeoff
+// is that because buckets are scattered randomly in the array, we now consume
+// up to 1GB of physical memory, which can be fully allocated with as few as
+// 2^22 locators (coupon collector's approximation). To avoid this unpleasant
+// tradeoff, we need a different data structure (a randomized binary search tree
+// laid out breadth-first in an array currently seems like the best candidate).
+//
+// If hash map lookups during reference traversals are a bottleneck, we could
+// store locators rather than gaia_ids in each object's references array (we
+// would need to either swizzle them to gaia_ids during persistence and
+// unswizzle gaia_ids to locators during recovery, or persist the
+// gaia_id->locator mapping separately). Other expensive hash map lookups could
+// be similarly optimized by substituting locators for gaia_ids.
+constexpr size_t c_hash_buckets{1UL << 26};
 
 // This is an array of offsets in the data segment corresponding to object
 // versions, where each array index is referred to as a "locator."
@@ -179,7 +188,7 @@ static_assert(c_txn_log_record_size == sizeof(log_record_t), "Txn log record siz
 
 // We can reference at most 2^16 logs from the 16 bits available in a txn
 // metadata entry, and we must reserve the value 0 for an invalid log offset.
-constexpr size_t c_max_logs{(1ULL << 16) - 1};
+constexpr size_t c_max_logs{(1UL << 16) - 1};
 
 // The total size of a txn log in shared memory.
 // We need to allow as many log records as the maximum number of live object
@@ -266,9 +275,9 @@ struct txn_log_t
         return os;
     }
 
-    static constexpr size_t c_txn_log_refcount_bit_width{16ULL};
+    static constexpr size_t c_txn_log_refcount_bit_width{16UL};
     static constexpr uint64_t c_txn_log_refcount_shift{common::c_uint64_bit_count - c_txn_log_refcount_bit_width};
-    static constexpr uint64_t c_txn_log_refcount_mask{((1ULL << c_txn_log_refcount_bit_width) - 1) << c_txn_log_refcount_shift};
+    static constexpr uint64_t c_txn_log_refcount_mask{((1UL << c_txn_log_refcount_bit_width) - 1) << c_txn_log_refcount_shift};
 
     static gaia_txn_id_t begin_ts_from_word(uint64_t word)
     {
