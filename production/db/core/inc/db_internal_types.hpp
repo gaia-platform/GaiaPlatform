@@ -420,15 +420,13 @@ struct counters_t
     // intrinsics for mutating the counters. (This is because the instructions
     // targeted by the intrinsics operate at the level of physical memory, not
     // virtual addresses.)
+    //
     // NB: All these fields are initialized to 0, even though C++ doesn't guarantee
     // it, because this struct is constructed in a memory-mapped shared-memory
     // segment, and the OS automatically zeroes new pages.
-    //
-    // To enable atomic operations, we use the base integer types of each custom Gaia type.
-    std::atomic<common::gaia_id_t::value_type> last_id;
-    std::atomic<common::gaia_type_t::value_type> last_type_id;
-    std::atomic<gaia_txn_id_t::value_type> last_txn_id;
-    std::atomic<gaia_locator_t::value_type> last_locator;
+    std::atomic<size_t> last_id;
+    std::atomic<size_t> last_txn_id;
+    std::atomic<size_t> last_locator;
 };
 
 struct data_t

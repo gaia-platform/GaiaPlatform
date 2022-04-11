@@ -750,7 +750,7 @@ void server_t::init_indexes()
     }
 
     gaia_locator_t locator = c_invalid_gaia_locator;
-    gaia_locator_t last_locator = s_shared_counters.data()->last_locator.load();
+    gaia_locator_t last_locator = get_last_locator();
     while ((++locator).is_valid() && locator <= last_locator)
     {
         auto obj = locator_to_ptr(locator);

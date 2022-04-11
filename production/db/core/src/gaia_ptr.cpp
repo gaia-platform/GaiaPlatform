@@ -69,7 +69,8 @@ gaia_ptr_t gaia_ptr_t::find_next(gaia_type_t type) const
     gaia_ptr_t next_ptr = *this;
 
     // Search for objects of this type within the range of used locators.
-    while ((++next_ptr.m_locator).is_valid() && next_ptr.m_locator <= counters->last_locator)
+    gaia_locator_t last_locator = get_last_locator();
+    while ((++next_ptr.m_locator).is_valid() && next_ptr.m_locator <= last_locator)
     {
         if (next_ptr.is(type))
         {
