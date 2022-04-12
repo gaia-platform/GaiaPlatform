@@ -65,7 +65,6 @@ gaia_ptr_t gaia_ptr_t::find_next() const
 
 gaia_ptr_t gaia_ptr_t::find_next(gaia_type_t type) const
 {
-    gaia::db::counters_t* counters = gaia::db::get_counters();
     gaia_ptr_t next_ptr = *this;
 
     // Search for objects of this type within the range of used locators.
