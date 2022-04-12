@@ -74,7 +74,11 @@ inline void update_locator(gaia_locator_t locator, gaia_offset_t offset)
 inline gaia_locator_t get_last_locator()
 {
     counters_t* counters = gaia::db::get_counters();
-    return static_cast<gaia_locator_t>(counters->last_locator);
+    auto last_locator_value = counters->last_locator.load();
+    ASSERT_INVARIANT(
+        last_locator_value <= c_max_locators,
+        "Largest locator value exceeds allowed range!");
+    return static_cast<gaia_locator_t>(last_locator_value);
 }
 
 inline bool locator_exists(gaia_locator_t locator)
