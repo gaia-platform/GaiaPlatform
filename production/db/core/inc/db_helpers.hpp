@@ -29,13 +29,27 @@ namespace db
 inline common::gaia_id_t allocate_id()
 {
     counters_t* counters = gaia::db::get_counters();
-    return ++(counters->last_id);
+    auto new_id = ++(counters->last_id);
+    // This is an expensive check in a hot path.
+#ifdef DEBUG
+    ASSERT_INVARIANT(
+        new_id <= std::numeric_limits<common::gaia_id_t::value_type>::max(),
+        "Gaia ID exceeds allowed range!");
+#endif
+    return static_cast<common::gaia_id_t>(new_id);
 }
 
 inline gaia_txn_id_t allocate_txn_id()
 {
     counters_t* counters = gaia::db::get_counters();
-    return ++(counters->last_txn_id);
+    auto new_txn_id = ++(counters->last_txn_id);
+    // This is an expensive check in a hot path.
+#ifdef DEBUG
+    ASSERT_INVARIANT(
+        new_txn_id < (1UL << transactions::txn_metadata_entry_t::c_txn_ts_bit_width),
+        "Transaction ID exceeds allowed range!");
+#endif
+    return static_cast<gaia_txn_id_t>(new_txn_id);
 }
 
 inline gaia_locator_t allocate_locator(common::gaia_type_t type)
@@ -47,12 +61,13 @@ inline gaia_locator_t allocate_locator(common::gaia_type_t type)
         throw system_object_limit_exceeded_internal();
     }
 
-    gaia_locator_t locator = ++(counters->last_locator);
+    auto new_locator_value = ++(counters->last_locator);
+    auto new_locator = static_cast<gaia_locator_t>(new_locator_value);
 
     type_index_t* type_index = get_type_index();
-    type_index->add_locator(type, locator);
+    type_index->add_locator(type, new_locator);
 
-    return locator;
+    return new_locator;
 }
 
 inline void update_locator(gaia_locator_t locator, gaia_offset_t offset)
@@ -62,13 +77,24 @@ inline void update_locator(gaia_locator_t locator, gaia_offset_t offset)
     (*locators)[locator] = offset;
 }
 
+inline gaia_locator_t get_last_locator()
+{
+    counters_t* counters = gaia::db::get_counters();
+    auto last_locator_value = counters->last_locator.load();
+    // This is an expensive check in a hot path.
+#ifdef DEBUG
+    ASSERT_INVARIANT(
+        last_locator_value <= c_max_locators,
+        "Largest locator value exceeds allowed range!");
+#endif
+    return static_cast<gaia_locator_t>(last_locator_value);
+}
+
 inline bool locator_exists(gaia_locator_t locator)
 {
     locators_t* locators = gaia::db::get_locators();
-    counters_t* counters = gaia::db::get_counters();
-
     return (locator.is_valid())
-        && (locator <= counters->last_locator)
+        && (locator <= get_last_locator())
         && ((*locators)[locator] != c_invalid_gaia_offset);
 }
 
@@ -98,7 +124,7 @@ inline db_object_t* locator_to_ptr(gaia_locator_t locator)
 inline gaia_txn_id_t get_last_txn_id()
 {
     counters_t* counters = gaia::db::get_counters();
-    return counters->last_txn_id.load();
+    return static_cast<gaia_txn_id_t>(counters->last_txn_id);
 }
 
 inline void apply_log_to_locators(locators_t* locators, txn_log_t* txn_log, size_t starting_log_record_index = 0)
