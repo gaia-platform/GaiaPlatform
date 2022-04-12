@@ -248,9 +248,10 @@ void server_t::release_transaction_resources()
     // NB: this must be called before calling perform_maintenance(), because
     // otherwise we cannot GC the referenced txn logs!
     release_txn_log_offsets_for_snapshot();
+    s_has_applied_txn_logs_for_snapshot = false;
 
-    // Clear local snapshot information.
-    s_local_snapshot_locators.close();
+    // Reset the txn log processing watermark
+    // that is used for locator snapshot maintenance.
     s_last_snapshot_processed_log_record_count = 0;
 
     // Update watermarks and perform associated maintenance tasks. This will
@@ -299,6 +300,23 @@ void server_t::handle_commit_txn(
     {
         bool success = txn_commit();
         decision = success ? session_event_t::DECIDE_TXN_COMMIT : session_event_t::DECIDE_TXN_ABORT;
+
+        if (s_local_snapshot_locators.is_set())
+        {
+            if (success)
+            {
+                // Update locator snapshot.
+                apply_log_from_offset(
+                    s_local_snapshot_locators.data(), s_txn_log_offset, s_last_snapshot_processed_log_record_count);
+            }
+            else
+            {
+                // Revert locator snapshot changes.
+                revert_log_from_offset(
+                    s_local_snapshot_locators.data(), s_txn_log_offset, s_last_snapshot_processed_log_record_count);
+            }
+            s_last_snapshot_processed_log_record_count = 0;
+        }
     }
     catch (const pre_commit_validation_failure& e)
     {
@@ -868,11 +886,14 @@ void server_t::end_startup_txn()
 // Create a thread-local snapshot from the shared locators.
 void server_t::create_or_refresh_local_snapshot(bool apply_logs)
 {
-    ASSERT_PRECONDITION(apply_logs || !s_local_snapshot_locators.is_set(), "Local snapshot is already mapped!");
+    if (!apply_logs && s_local_snapshot_locators.is_set())
+    {
+        s_local_snapshot_locators.close();
+        s_last_snapshot_processed_log_record_count = 0;
+        s_has_applied_txn_logs_for_snapshot = false;
+    }
 
-    bool was_snapshot_already_created = s_local_snapshot_locators.is_set();
-
-    if (!was_snapshot_already_created)
+    if (!s_local_snapshot_locators.is_set())
     {
         ASSERT_PRECONDITION(
             s_last_snapshot_processed_log_record_count == 0,
@@ -887,7 +908,7 @@ void server_t::create_or_refresh_local_snapshot(bool apply_logs)
     if (apply_logs)
     {
         // We only need to apply the logs for other transactions when we first create the snapshot.
-        if (!was_snapshot_already_created)
+        if (!s_has_applied_txn_logs_for_snapshot)
         {
             ASSERT_PRECONDITION(
                 s_txn_id.is_valid() && txn_metadata_t::is_txn_active(s_txn_id),
@@ -898,6 +919,8 @@ void server_t::create_or_refresh_local_snapshot(bool apply_logs)
             {
                 apply_log_from_offset(s_local_snapshot_locators.data(), log_offset);
             }
+
+            s_has_applied_txn_logs_for_snapshot = true;
         }
 
         // BUG (yiwen): This is incorrect: it races with client writes to the
@@ -2582,6 +2605,14 @@ void server_t::txn_rollback(bool client_disconnected)
         // crashed session will never be retired (and therefore can never be
         // reallocated). Deallocation of object versions in these orphaned
         // chunks will still succeed, though, so GC correctness is unaffected.
+    }
+
+    if (s_local_snapshot_locators.is_set())
+    {
+        // Revert locator snapshot changes.
+        revert_log_from_offset(
+            s_local_snapshot_locators.data(), s_txn_log_offset, s_last_snapshot_processed_log_record_count);
+        s_last_snapshot_processed_log_record_count = 0;
     }
 
     // Free any deallocated objects.

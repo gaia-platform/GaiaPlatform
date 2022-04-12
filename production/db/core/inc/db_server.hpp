@@ -140,12 +140,7 @@ private:
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
     thread_local static inline log_offset_t s_txn_log_offset = c_invalid_log_offset;
     thread_local static inline std::vector<std::pair<gaia_txn_id_t, log_offset_t>> s_txn_logs_for_snapshot{};
-
-    // Local snapshot for server-side transactions.
-    thread_local static inline mapped_data_t<locators_t> s_local_snapshot_locators{};
-    // Watermark that tracks how many log records have been used for the current snapshot instance.
-    // This is used to permit the incremental updating of the snapshot.
-    thread_local static inline size_t s_last_snapshot_processed_log_record_count{0};
+    thread_local static inline bool s_has_applied_txn_logs_for_snapshot{false};
 
     // The allocated status of each log offset is tracked in this bitmap. When
     // opening a new txn, each session thread must allocate an offset for its txn
@@ -175,6 +170,12 @@ private:
 
     thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
     thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
+
+    // Local snapshot for server-side transactions.
+    thread_local static inline mapped_data_t<locators_t> s_local_snapshot_locators{};
+    // Watermark that tracks how many log records have been used for the current snapshot instance.
+    // This is used to permit the incremental updating of the snapshot.
+    thread_local static inline size_t s_last_snapshot_processed_log_record_count{0};
 
     thread_local static inline bool s_is_ddl_session{false};
 
