@@ -84,6 +84,11 @@ add_gtest(test_read_perf_basic
   "${DIRECT_ACCESS_TEST_INCLUDES};"
   "rt;gaia_direct;gaia_db_catalog_test;dac_perf_basic")
 
+add_gtest(test_read_perf_rel
+  "tests/test_read_perf_rel.cpp"
+  "${DIRECT_ACCESS_TEST_INCLUDES};"
+  "rt;gaia_direct;gaia_db_catalog_test;dac_perf_rel")
+
 add_gtest(test_update_perf_basic
   "tests/test_update_perf_basic.cpp"
   "${DIRECT_ACCESS_TEST_INCLUDES};"

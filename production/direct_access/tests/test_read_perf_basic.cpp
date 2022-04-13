@@ -159,3 +159,39 @@ TEST_F(test_read_perf_basic, filter_match)
         gaia_fmt::format("simple_table_t::filter_match {} matches", c_num_records / 2),
         clear_db_after_each_iteration);
 }
+
+TEST_F(test_read_perf_basic, table_scan_read_size)
+{
+    insert_data();
+
+    for (size_t num_reads : {10UL, 100UL, 1000UL, 100000UL, 1000000UL, c_num_records})
+    {
+        auto work = [num_reads]() {
+            gaia::db::begin_transaction();
+
+            size_t i = 0;
+            for ([[maybe_unused]] auto& record :
+                 simple_table_t::list())
+            {
+                i++;
+                if (i == num_reads)
+                {
+                    break;
+                }
+            }
+
+            gaia::db::commit_transaction();
+
+            ASSERT_EQ(num_reads, i);
+        };
+
+        bool clear_db_after_each_iteration = false;
+        run_performance_test(
+            work,
+            clear_database,
+            gaia_fmt::format("simple_table_t::table_scan_size num_reads={}", num_reads),
+            clear_db_after_each_iteration,
+            num_reads < 1000 ? c_num_iterations * 10 : c_num_iterations,
+            num_reads);
+    }
+}

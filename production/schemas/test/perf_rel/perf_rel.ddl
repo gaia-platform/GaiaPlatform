@@ -27,3 +27,19 @@ table table_child_vlr
     parent_vlr references table_parent_vlr
         where table_child_vlr.parent_id = table_parent_vlr.id
 )
+
+table table_j1
+(
+    j2 references table_j2[]
+)
+
+table table_j2
+(
+    j1 references table_j1,
+    j3 references table_j3[]
+)
+
+table table_j3
+(
+    j2 references table_j2
+)
