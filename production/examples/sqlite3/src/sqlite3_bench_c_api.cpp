@@ -195,10 +195,15 @@ protected:
                  "  id INTEGER PRIMARY KEY NOT NULL,\n"
                  "  j1_id INTEGER NOT NULL \n"
                  ");\n"
+                 "CREATE INDEX j1_id_idx \n"
+                 "ON table_j2(j1_id);\n"
                  "CREATE TABLE IF NOT EXISTS table_j3 (\n"
                  "  id INTEGER PRIMARY KEY NOT NULL,\n"
                  "  j2_id INTEGER NOT NULL \n"
-                 ");\n");
+                 ");\n"
+                 "CREATE INDEX j2_id_idx \n"
+                 "ON table_j3(j2_id);\n"
+                 "");
     }
 
     void log_performance_difference(accumulator_t<int64_t> expr_accumulator, std::string_view message, uint64_t num_insertions, size_t num_iterations)

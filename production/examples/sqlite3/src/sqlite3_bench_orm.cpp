@@ -107,6 +107,8 @@ static inline auto init_storage()
 {
     return make_storage(
         "file:cachedb?mode=memory&cache=shared",
+        make_index("idx_j1_id", &table_j2_t::j1_id),
+        make_index("idx_j2_id", &table_j3_t::j2_id),
         make_table(
             "simple_table",
             make_column("uint64_field", &simple_table_t::uint64_field)),
