@@ -55,15 +55,15 @@ target_include_directories(gaia_common PRIVATE
 
 # --- Sqlite3 benchmark ---
 
-add_executable(sqlite3_bench_simple
-  src/sqlite3_bench_simple.cpp
+add_executable(sqlite3_bench_c_api
+  src/sqlite3_bench_c_api.cpp
 )
 
-target_include_directories(sqlite3_bench_simple PRIVATE
+target_include_directories(sqlite3_bench_c_api PRIVATE
   ${PROJECT_SOURCE_DIR}/include
 )
 
-target_link_libraries(sqlite3_bench_simple PRIVATE
+target_link_libraries(sqlite3_bench_c_api PRIVATE
   SQLite::SQLite3
   gaia_common
   gtest_main
@@ -103,7 +103,7 @@ target_link_libraries(objectbox_bench PRIVATE
 
 include(GoogleTest)
 gtest_discover_tests(
-  sqlite3_bench_simple
+  sqlite3_bench_c_api
   sqlite3_bench_orm
   objectbox_bench
 )
