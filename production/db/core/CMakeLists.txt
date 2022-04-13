@@ -266,10 +266,11 @@ add_gtest(test_relationships
   "${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_INC};${FLATBUFFERS_INC}"
   "gaia_common;gaia_db_client;gaia_catalog")
 
-add_gtest(test_catalog_core
-  tests/test_catalog_core.cpp
-  "${FLATBUFFERS_INC};${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_INC}"
-  "gaia_common;gaia_db_client;gaia_catalog")
+# TODO re-enable: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2140
+#add_gtest(test_catalog_core
+#  tests/test_catalog_core.cpp
+#  "${FLATBUFFERS_INC};${GAIA_DB_CORE_TEST_INCLUDES};${GAIA_INC}"
+#  "gaia_common;gaia_db_client;gaia_catalog")
 
 add_gtest(test_optional_scalars
   "tests/test_optional_scalars.cpp"
