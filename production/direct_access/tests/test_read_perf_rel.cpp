@@ -184,6 +184,11 @@ TEST_F(test_read_perf_rel, nested_joins)
 
         bool clear_db_after_each_iteration = false;
         run_performance_test(
-            work, clear_database, gaia_fmt::format("simple_table_t::table_scan num_records:{}", num_records), clear_db_after_each_iteration, c_num_iterations, num_j3_records);
+            work,
+            clear_database,
+            gaia_fmt::format("simple_table_t::table_scan num_records:{}", num_records),
+            clear_db_after_each_iteration,
+            c_num_iterations,
+            num_j3_records);
     }
 }
