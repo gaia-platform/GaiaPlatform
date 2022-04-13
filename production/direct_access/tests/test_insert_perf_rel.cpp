@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <algorithm>
+
 #include <gtest/gtest.h>
 
 #include "gaia_internal/db/db_catalog_test_base.hpp"
@@ -141,14 +143,13 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_same_pare
     // A max limit of 20000 is imposed to avoid running into the per-txn object update limit.
     // The additional arithmetic makes the count scale with c_num_records, so that the test
     // takes a reasonable amount of time during regular runs.
-    size_t count_vlr_insertions = 20 * (c_num_records / 1000);
-    count_vlr_insertions = (count_vlr_insertions > 20000) ? 20000 : count_vlr_insertions;
+    constexpr size_t c_vlr_insertions = std::min(20 * (c_num_records / 1000), 20000UL);
 
-    auto insert = [count_vlr_insertions]() {
+    auto insert = []() {
         // Insert children rows.
         bulk_insert(
             [](size_t) { table_child_vlr_t::insert_row(0); },
-            count_vlr_insertions);
+            c_vlr_insertions);
 
         // Insert parent row.
         gaia::db::begin_transaction();
@@ -156,7 +157,7 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_same_pare
         gaia::db::commit_transaction();
     };
 
-    // We perform count_vlr_insertions + 1 insertions.
+    // We perform c_vlr_insertions + 1 insertions.
     bool clear_db_after_each_iteration = true;
     run_performance_test(
         insert,
@@ -164,7 +165,7 @@ TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_same_pare
         "value_linked_relationships_autoconnect_to_same_parent_insert_children_first",
         clear_db_after_each_iteration,
         c_num_iterations,
-        count_vlr_insertions + 1);
+        c_vlr_insertions + 1);
 }
 
 TEST_F(test_insert_perf_rel, value_linked_relationships_autoconnect_to_different_parent_insert_parent_first)
