@@ -160,7 +160,7 @@ TEST_F(test_read_perf_basic, filter_match)
         clear_db_after_each_iteration);
 }
 
-TEST_F(test_read_perf_basic, table_scan_read_size)
+TEST_F(test_read_perf_basic, DISABLED_table_scan_read_size)
 {
     insert_data();
 
