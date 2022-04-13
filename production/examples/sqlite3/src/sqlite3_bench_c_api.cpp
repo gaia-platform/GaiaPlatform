@@ -18,9 +18,9 @@
 
 #include "timer.hpp"
 
-const constexpr uint32_t c_num_insertion = 10000000;
-const constexpr uint32_t c_num_iterations = 3;
-const constexpr uint32_t max_insertion_single_txn = c_num_insertion > 1000000 ? c_num_insertion / 10 : c_num_insertion;
+const constexpr size_t c_num_records = 100;
+const constexpr size_t c_num_iterations = 5;
+const constexpr size_t c_max_insertion_single_txn = c_num_records > 1000000 ? c_num_records / 10 : c_num_records;
 
 using namespace std::chrono;
 using namespace std;
@@ -67,12 +67,16 @@ void clear_database(sqlite3* db)
 {
 
     int rc = sqlite3_open("file:cachedb?mode=memory&cache=shared", &db);
+    //    int rc = sqlite3_open("/tmp/the.db", &db);
     assert_result(db, rc);
 
     exec(db, "DELETE FROM  simple_table");
     exec(db, "DELETE FROM  simple_table_3");
     exec(db, "DELETE FROM  unique_index_table");
     exec(db, "DELETE FROM  range_index_table");
+    exec(db, "DELETE FROM  table_j3");
+    exec(db, "DELETE FROM  table_j2");
+    exec(db, "DELETE FROM  table_j1");
 }
 
 template <typename T_num>
@@ -138,6 +142,7 @@ protected:
         }
 
         int rc = sqlite3_open("file:cachedb?mode=memory&cache=shared", &db);
+        //        int rc = sqlite3_open("/tmp/the.db", &db);
 
         assert_result(db, rc);
 
@@ -175,7 +180,25 @@ protected:
                  ");\n"
                  "CREATE INDEX range_idx \n"
                  "ON range_index_table(uint64_field);\n"
-                 "----------------------------------------\n");
+                 "----------------------------------------\n"
+                 "CREATE TABLE IF NOT EXISTS table_parent (\n"
+                 "  id BIGINT PRIMARY KEY\n"
+                 ");\n"
+                 "CREATE TABLE IF NOT EXISTS table_child (\n"
+                 "  parent_id BIGINT\n"
+                 ");\n"
+                 "----------------------------------------\n"
+                 "CREATE TABLE IF NOT EXISTS table_j1 (\n"
+                 "  id INTEGER PRIMARY KEY NOT NULL\n"
+                 ");\n"
+                 "CREATE TABLE IF NOT EXISTS table_j2 (\n"
+                 "  id INTEGER PRIMARY KEY NOT NULL,\n"
+                 "  j1_id INTEGER NOT NULL \n"
+                 ");\n"
+                 "CREATE TABLE IF NOT EXISTS table_j3 (\n"
+                 "  id INTEGER PRIMARY KEY NOT NULL,\n"
+                 "  j2_id INTEGER NOT NULL \n"
+                 ");\n");
     }
 
     void log_performance_difference(accumulator_t<int64_t> expr_accumulator, std::string_view message, uint64_t num_insertions, size_t num_iterations)
@@ -206,7 +229,7 @@ protected:
         std::function<void()> expr_fn,
         std::string_view message,
         size_t num_iterations = c_num_iterations,
-        uint64_t num_insertions = c_num_insertion,
+        uint64_t num_insertions = c_num_records,
         bool read_benchmark = false)
     {
         accumulator_t<int64_t> expr_accumulator;
@@ -220,24 +243,24 @@ protected:
             double_t iteration_ms = g_timer_t::ns_to_ms(expr_duration);
             spdlog::info("[{}]: {} iteration, completed in {:.2f}ms", message, iteration, iteration_ms);
 
-            // Writer benchmarks need to reset the data on every iteration.
-            if (!read_benchmark)
-            {
-                spdlog::debug("[{}]: {} iteration, clearing database", message, iteration);
-                int64_t clear_database_duration = g_timer_t::get_function_duration([this]() { clear_database(db); });
-                double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
-                spdlog::debug("[{}]: {} iteration, cleared in {:.2f}ms", message, iteration, clear_ms);
-            }
+            //            // Writer benchmarks need to reset the data on every iteration.
+            //            if (!read_benchmark)
+            //            {
+            //                spdlog::debug("[{}]: {} iteration, clearing database", message, iteration);
+            //                int64_t clear_database_duration = g_timer_t::get_function_duration([this]() { clear_database(db); });
+            //                double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
+            //                spdlog::debug("[{}]: {} iteration, cleared in {:.2f}ms", message, iteration, clear_ms);
+            //            }
         }
-
-        // Reader benchmarks need to use the data on every iteration hence the deletion should happen only at the end.
-        if (read_benchmark)
-        {
-            spdlog::debug("[{}]: clearing database", message);
-            int64_t clear_database_duration = g_timer_t::get_function_duration([this]() { clear_database(db); });
-            double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
-            spdlog::debug("[{}]: cleared in {:.2f}ms", message, clear_ms);
-        }
+        //
+        //        // Reader benchmarks need to use the data on every iteration hence the deletion should happen only at the end.
+        //        if (read_benchmark)
+        //        {
+        //            spdlog::debug("[{}]: clearing database", message);
+        //            int64_t clear_database_duration = g_timer_t::get_function_duration([this]() { clear_database(db); });
+        //            double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
+        //            spdlog::debug("[{}]: cleared in {:.2f}ms", message, clear_ms);
+        //        }
 
         log_performance_difference(expr_accumulator, message, num_insertions, num_iterations);
     }
@@ -253,11 +276,11 @@ TEST_F(sqlite3_benchmark, simple_insert_string_multiple)
         insert_ss << "BEGIN TRANSACTION;" << std::endl;
         insert_ss << "INSERT INTO simple_table(uint64_field) VALUES" << std::endl;
 
-        for (int i = 0; i < c_num_insertion; i++)
+        for (int i = 0; i < c_num_records; i++)
         {
             insert_ss << "(" << i << ")" << std::endl;
 
-            if (i % max_insertion_single_txn == 0 || i == c_num_insertion - 1)
+            if (i % c_max_insertion_single_txn == 0 || i == c_num_records - 1)
             {
                 insert_ss << ";COMMIT;";
                 char* err_msg = nullptr;
@@ -293,11 +316,11 @@ TEST_F(sqlite3_benchmark, simple_insert_string_single)
         std::stringstream insert_ss;
         insert_ss << "BEGIN TRANSACTION;";
 
-        for (int i = 0; i < c_num_insertion; i++)
+        for (int i = 0; i < c_num_records; i++)
         {
             insert_ss << "INSERT INTO simple_table(uint64_field) VALUES (" << i << ");" << std::endl;
 
-            if (i % max_insertion_single_txn == 0 || i == c_num_insertion - 1)
+            if (i % c_max_insertion_single_txn == 0 || i == c_num_records - 1)
             {
                 insert_ss << "COMMIT;";
                 char* err_msg = nullptr;
@@ -338,7 +361,7 @@ TEST_F(sqlite3_benchmark, simple_insert_prepared_statement)
 
         exec(db, "BEGIN TRANSACTION;");
 
-        for (int i = 0; i < c_num_insertion; i++)
+        for (int i = 0; i < c_num_records; i++)
         {
             sqlite3_bind_int64(stmt, 1, i);
             int ret_val = sqlite3_step(stmt);
@@ -350,11 +373,11 @@ TEST_F(sqlite3_benchmark, simple_insert_prepared_statement)
             }
             sqlite3_reset(stmt);
 
-            if (i % max_insertion_single_txn == 0 || i == c_num_insertion - 1)
+            if (i % c_max_insertion_single_txn == 0 || i == c_num_records - 1)
             {
                 exec(db, "COMMIT;");
 
-                if (i < c_num_insertion - 1)
+                if (i < c_num_records - 1)
                 {
                     exec(db, "BEGIN TRANSACTION;");
                 }
@@ -365,11 +388,69 @@ TEST_F(sqlite3_benchmark, simple_insert_prepared_statement)
     run_performance_test(simple_insert, "sqlite3::simple_insert_prepared_statement");
 }
 
+TEST_F(sqlite3_benchmark, simple_insert_txn_size_2)
+{
+    for (int64_t txn_size : {1, 10, 100, 1000, 10000})
+    {
+        size_t num_insertions = c_num_records;
+
+        if (txn_size == 1)
+        {
+            num_insertions = num_insertions / 10;
+        }
+
+        auto simple_insert = [this, txn_size, num_insertions]() {
+            std::stringstream insert_ss;
+            insert_ss << "BEGIN TRANSACTION;" << std::endl;
+            insert_ss << "INSERT INTO simple_table(uint64_field) VALUES" << std::endl;
+
+            for (int i = 0; i < num_insertions; i++)
+            {
+                insert_ss << "(" << i << ")" << std::endl;
+
+                if (i % txn_size == 0 || i == num_insertions - 1)
+                {
+                    insert_ss << ";COMMIT;";
+                    char* err_msg = nullptr;
+                    int rc = sqlite3_exec(db, insert_ss.str().c_str(), nullptr, nullptr, &err_msg);
+                    insert_ss = {};
+                    insert_ss << "BEGIN TRANSACTION;" << std::endl;
+                    insert_ss << "INSERT INTO simple_table(uint64_field) VALUES" << std::endl;
+
+                    if (rc != SQLITE_OK)
+                    {
+
+                        fprintf(stderr, "SQL error: %s\n", err_msg);
+
+                        sqlite3_free(err_msg);
+                        sqlite3_close(db);
+
+                        exit(1);
+                    }
+                }
+                else
+                {
+                    insert_ss << ",";
+                }
+            }
+        };
+
+        run_performance_test(simple_insert, fmt::format("sqlite3::simple_insert with txn of size {}", txn_size), c_num_iterations, num_insertions);
+    }
+}
+
 TEST_F(sqlite3_benchmark, simple_insert_txn_size)
 {
     for (int64_t txn_size : {1, 10, 100, 1000, 10000})
     {
-        auto simple_insert = [this, txn_size]() {
+        size_t num_insertions = c_num_records;
+
+        if (txn_size == 1)
+        {
+            num_insertions = num_insertions / 10;
+        }
+
+        auto simple_insert = [this, txn_size, num_insertions]() {
             const char* sql = "INSERT INTO simple_table(uint64_field) VALUES (?);";
 
             sqlite3_stmt* stmt; // will point to prepared stamement object
@@ -383,7 +464,7 @@ TEST_F(sqlite3_benchmark, simple_insert_txn_size)
 
             exec(db, "BEGIN TRANSACTION;");
 
-            for (int i = 0; i < c_num_insertion; i++)
+            for (int i = 0; i < num_insertions; i++)
             {
                 sqlite3_bind_int64(stmt, 1, i);
                 int ret_val = sqlite3_step(stmt);
@@ -395,11 +476,11 @@ TEST_F(sqlite3_benchmark, simple_insert_txn_size)
                 }
                 sqlite3_reset(stmt);
 
-                if (i % txn_size == 0 || i == c_num_insertion - 1)
+                if (i % txn_size == 0 || i == num_insertions - 1)
                 {
                     exec(db, "COMMIT;");
 
-                    if (i < c_num_insertion - 1)
+                    if (i < num_insertions - 1)
                     {
                         exec(db, "BEGIN TRANSACTION;");
                     }
@@ -407,7 +488,7 @@ TEST_F(sqlite3_benchmark, simple_insert_txn_size)
             }
         };
 
-        run_performance_test(simple_insert, fmt::format("sqlite3::simple_insert with txn of size {}", txn_size), c_num_iterations, c_num_insertion);
+        run_performance_test(simple_insert, fmt::format("sqlite3::simple_insert with txn of size {}", txn_size), c_num_iterations, num_insertions);
     }
 }
 
@@ -436,7 +517,7 @@ TEST_F(sqlite3_benchmark, simple_insert_3)
 
         exec(db, "BEGIN TRANSACTION;");
 
-        for (int i = 0; i < c_num_insertion; i++)
+        for (int i = 0; i < c_num_records; i++)
         {
             sqlite3_bind_int64(stmt, 1, i);
             sqlite3_bind_int64(stmt, 2, i);
@@ -456,11 +537,11 @@ TEST_F(sqlite3_benchmark, simple_insert_3)
             }
             sqlite3_reset(stmt);
 
-            if (i % max_insertion_single_txn == 0 || i == c_num_insertion - 1)
+            if (i % c_max_insertion_single_txn == 0 || i == c_num_records - 1)
             {
                 exec(db, "COMMIT;");
 
-                if (i < c_num_insertion - 1)
+                if (i < c_num_records - 1)
                 {
                     exec(db, "BEGIN TRANSACTION;");
                 }
@@ -487,7 +568,7 @@ TEST_F(sqlite3_benchmark, unique_index_table)
 
         exec(db, "BEGIN TRANSACTION;");
 
-        for (int i = 0; i < c_num_insertion; i++)
+        for (int i = 0; i < c_num_records; i++)
         {
             sqlite3_bind_int64(stmt, 1, i);
             int ret_val = sqlite3_step(stmt);
@@ -499,11 +580,11 @@ TEST_F(sqlite3_benchmark, unique_index_table)
             }
             sqlite3_reset(stmt);
 
-            if (i % max_insertion_single_txn == 0 || i == c_num_insertion - 1)
+            if (i % c_max_insertion_single_txn == 0 || i == c_num_records - 1)
             {
                 exec(db, "COMMIT;");
 
-                if (i < c_num_insertion - 1)
+                if (i < c_num_records - 1)
                 {
                     exec(db, "BEGIN TRANSACTION;");
                 }
@@ -530,7 +611,7 @@ TEST_F(sqlite3_benchmark, range_index_table)
 
         exec(db, "BEGIN TRANSACTION;");
 
-        for (int i = 0; i < c_num_insertion; i++)
+        for (int i = 0; i < c_num_records; i++)
         {
             sqlite3_bind_int64(stmt, 1, i);
             int ret_val = sqlite3_step(stmt);
@@ -542,11 +623,11 @@ TEST_F(sqlite3_benchmark, range_index_table)
             }
             sqlite3_reset(stmt);
 
-            if (i % max_insertion_single_txn == 0 || i == c_num_insertion - 1)
+            if (i % c_max_insertion_single_txn == 0 || i == c_num_records - 1)
             {
                 exec(db, "COMMIT;");
 
-                if (i < c_num_insertion - 1)
+                if (i < c_num_records - 1)
                 {
                     exec(db, "BEGIN TRANSACTION;");
                 }
@@ -572,7 +653,7 @@ void insert_records(sqlite3* db)
 
     exec(db, "BEGIN TRANSACTION;");
 
-    for (int i = 0; i < c_num_insertion; i++)
+    for (int i = 0; i < c_num_records; i++)
     {
         sqlite3_bind_int64(stmt, 1, i);
         int ret_val = sqlite3_step(stmt);
@@ -584,11 +665,11 @@ void insert_records(sqlite3* db)
         }
         sqlite3_reset(stmt);
 
-        if (i % max_insertion_single_txn == 0 || i == c_num_insertion - 1)
+        if (i % c_max_insertion_single_txn == 0 || i == c_num_records - 1)
         {
             exec(db, "COMMIT;");
 
-            if (i < c_num_insertion - 1)
+            if (i < c_num_records - 1)
             {
                 exec(db, "BEGIN TRANSACTION;");
             }
@@ -614,10 +695,10 @@ TEST_F(sqlite3_benchmark, full_table_scan)
 
         sqlite3_finalize(stmt);
 
-        ASSERT_EQ(c_num_insertion, i);
+        ASSERT_EQ(c_num_records, i);
     };
 
-    run_performance_test(simple_insert, "sqlite3::full_table_scan", c_num_iterations, c_num_insertion, true);
+    run_performance_test(simple_insert, "sqlite3::full_table_scan", c_num_iterations, c_num_records, true);
 }
 
 TEST_F(sqlite3_benchmark, full_table_scan_access_data)
@@ -638,10 +719,10 @@ TEST_F(sqlite3_benchmark, full_table_scan_access_data)
 
         sqlite3_finalize(stmt);
 
-        ASSERT_EQ(c_num_insertion, i);
+        ASSERT_EQ(c_num_records, i);
     };
 
-    run_performance_test(simple_insert, "sqlite3::full_table_scan_access_data", c_num_iterations, c_num_insertion, true);
+    run_performance_test(simple_insert, "sqlite3::full_table_scan_access_data", c_num_iterations, c_num_records, true);
 }
 
 TEST_F(sqlite3_benchmark, filter_no_match)
@@ -650,7 +731,7 @@ TEST_F(sqlite3_benchmark, filter_no_match)
 
     auto simple_insert = [this]() {
         sqlite3_stmt* stmt = query(db, "SELECT * FROM simple_table WHERE uint64_field > ?");
-        sqlite3_bind_int(stmt, 1, c_num_insertion);
+        sqlite3_bind_int(stmt, 1, c_num_records);
 
         int i = 0;
 
@@ -664,7 +745,7 @@ TEST_F(sqlite3_benchmark, filter_no_match)
         ASSERT_EQ(0, i);
     };
 
-    run_performance_test(simple_insert, "sqlite3::filter_no_match", c_num_iterations, c_num_insertion, true);
+    run_performance_test(simple_insert, "sqlite3::filter_no_match", c_num_iterations, c_num_records, true);
 }
 
 TEST_F(sqlite3_benchmark, filter_match)
@@ -673,7 +754,7 @@ TEST_F(sqlite3_benchmark, filter_match)
 
     auto simple_insert = [this]() {
         sqlite3_stmt* stmt = query(db, "SELECT * FROM simple_table WHERE uint64_field >= ?");
-        sqlite3_bind_int(stmt, 1, c_num_insertion / 2);
+        sqlite3_bind_int(stmt, 1, c_num_records / 2);
 
         int i = 0;
 
@@ -684,10 +765,10 @@ TEST_F(sqlite3_benchmark, filter_match)
 
         sqlite3_finalize(stmt);
 
-        ASSERT_EQ(c_num_insertion / 2, i);
+        ASSERT_EQ(c_num_records / 2, i);
     };
 
-    run_performance_test(simple_insert, fmt::format("sqlite3::filter_match {} matches", c_num_insertion / 2), c_num_iterations, c_num_insertion, true);
+    run_performance_test(simple_insert, fmt::format("sqlite3::filter_match {} matches", c_num_records / 2), c_num_iterations, c_num_records, true);
 }
 
 TEST_F(sqlite3_benchmark, simple_update)
@@ -698,7 +779,7 @@ TEST_F(sqlite3_benchmark, simple_update)
         exec(db, "UPDATE simple_table SET uint64_field = uint64_field + 1");
     };
 
-    run_performance_test(simple_insert, "sqlite3::simple_update", c_num_iterations, c_num_insertion, true);
+    run_performance_test(simple_insert, "sqlite3::simple_update", c_num_iterations, c_num_records, true);
 }
 
 // int main()
@@ -764,3 +845,207 @@ TEST_F(sqlite3_benchmark, simple_update)
 //     printf("Num of vertexes of type 1 %d in %ldms\n", i, elapsed);
 //     sqlite3_finalize(stmt);
 // }
+
+void insert_thread(sqlite3* db, size_t num_records)
+{
+    //    sqlite3* db;
+    //    int rc = sqlite3_open("file:cachedb?mode=memory&cache=shared", &db, );
+    //    assert_result(db, rc);
+
+    const char* sql = "INSERT INTO simple_table(uint64_field) VALUES (?);";
+
+    std::stringstream insert_ss;
+    insert_ss << "BEGIN TRANSACTION;" << std::endl;
+    insert_ss << "INSERT INTO simple_table(uint64_field) VALUES" << std::endl;
+
+    for (int i = 0; i < num_records; i++)
+    {
+        insert_ss << "(" << i << ")" << std::endl;
+
+        if (i % c_max_insertion_single_txn == 0 || i == num_records - 1)
+        {
+            insert_ss << ";COMMIT;";
+            char* err_msg = nullptr;
+            int rc = sqlite3_exec(db, insert_ss.str().c_str(), nullptr, nullptr, &err_msg);
+            insert_ss = {};
+            insert_ss << "BEGIN TRANSACTION;" << std::endl;
+            insert_ss << "INSERT INTO simple_table(uint64_field) VALUES" << std::endl;
+
+            if (rc != SQLITE_OK)
+            {
+
+                fprintf(stderr, "SQL error: %s\n", err_msg);
+
+                sqlite3_free(err_msg);
+                sqlite3_close(db);
+
+                exit(1);
+            }
+        }
+        else
+        {
+            insert_ss << ",";
+        }
+    }
+}
+
+TEST_F(sqlite3_benchmark, simple_table_concurrent)
+{
+    spdlog::info("Thread-safe: {}", sqlite3_threadsafe());
+
+    for (size_t num_workers : {2, 4, 8})
+    {
+        auto insert = [num_workers, this]() {
+            std::vector<std::thread> workers;
+
+            for (size_t i = 0; i < num_workers; i++)
+            {
+                workers.emplace_back(insert_thread, db, (c_num_records / num_workers));
+            }
+
+            for (auto& worker : workers)
+            {
+                worker.join();
+            }
+        };
+
+        run_performance_test(
+            insert,
+            fmt::format("simple_table_t::insert_row with {} threads", num_workers));
+    }
+}
+
+TEST_F(sqlite3_benchmark, table_scan)
+{
+    insert_records(db);
+
+    for (size_t num_reads : {10UL, 100UL, 1000UL, 100000UL, 1000000UL, c_num_records})
+    {
+        auto table_scan = [num_reads, this]() {
+            sqlite3_stmt* stmt = query(db, "SELECT * FROM simple_table");
+
+            int i = 0;
+
+            while (sqlite3_step(stmt) != SQLITE_DONE)
+            {
+                i++;
+
+                if (i == num_reads)
+                {
+                    break;
+                }
+            }
+
+            sqlite3_finalize(stmt);
+
+            ASSERT_EQ(num_reads, i);
+        };
+
+        run_performance_test(table_scan, fmt::format("sqlite3_benchmark::table_scan num_reads={}", num_reads), num_reads < 1000 ? c_num_iterations * 10 : c_num_iterations, num_reads);
+    }
+}
+
+void assert_query_res(sqlite3* db, int ret_val)
+{
+    if (ret_val != SQLITE_DONE)
+    {
+        printf("Error! ret_val:%d err:%s\n", ret_val, sqlite3_errstr(ret_val));
+        sqlite3_close(db);
+        exit(1);
+    }
+}
+
+size_t insert_nested_join_data(sqlite3* db, size_t num_records_per_join)
+{
+    size_t num_j3_records = 0;
+
+    const char* j1_sql = "INSERT INTO table_j1 DEFAULT VALUES;";
+    const char* j2_sql = "INSERT INTO table_j2(j1_id) VALUES(?);";
+    const char* j3_sql = "INSERT INTO table_j3(j2_id) VALUES(?);";
+
+    sqlite3_stmt* j1_stmt;
+    sqlite3_prepare_v2(db, j1_sql, -1, &j1_stmt, nullptr);
+    sqlite3_stmt* j2_stmt;
+    sqlite3_prepare_v2(db, j2_sql, -1, &j2_stmt, nullptr);
+    sqlite3_stmt* j3_stmt;
+    sqlite3_prepare_v2(db, j3_sql, -1, &j3_stmt, nullptr);
+
+    exec(db, "BEGIN TRANSACTION;");
+
+    for (int i = 0; i < num_records_per_join; i++)
+    {
+        int ret_val = sqlite3_step(j1_stmt);
+        assert_query_res(db, ret_val);
+        int64_t j1_id = sqlite3_last_insert_rowid(db);
+        sqlite3_reset(j1_stmt);
+
+        for (int j = 0; j < num_records_per_join; j++)
+        {
+            sqlite3_bind_int64(j2_stmt, 1, j1_id);
+            ret_val = sqlite3_step(j2_stmt);
+            assert_query_res(db, ret_val);
+
+            int64_t j2_id = sqlite3_last_insert_rowid(db);
+            sqlite3_reset(j2_stmt);
+
+            for (int z = 0; z < num_records_per_join; z++)
+            {
+                sqlite3_bind_int64(j3_stmt, 1, j2_id);
+                ret_val = sqlite3_step(j3_stmt);
+                assert_query_res(db, ret_val);
+                int64_t j3_id = sqlite3_last_insert_rowid(db);
+
+                sqlite3_reset(j3_stmt);
+                num_j3_records++;
+            }
+        }
+    }
+    exec(db, "COMMIT;");
+
+    return num_j3_records;
+}
+
+TEST_F(sqlite3_benchmark, nested_joins)
+{
+    for (size_t num_records : {10UL, 100UL, 1000UL, 10000UL, 100000UL})
+    {
+        clear_database(db);
+        const auto c_num_records_per_join = static_cast<size_t>(std::cbrt(num_records));
+        const auto c_tot_records = static_cast<size_t>(std::pow(c_num_records_per_join, 3));
+
+        size_t num_j3_records = insert_nested_join_data(db, c_num_records_per_join);
+
+        sqlite3_stmt* stmt_j1_ids = query(db, "SELECT id FROM table_j1;");
+        std::vector<uint64_t> j1_ids;
+        while (sqlite3_step(stmt_j1_ids) != SQLITE_DONE)
+        {
+            j1_ids.push_back(sqlite3_column_int(stmt_j1_ids, 0));
+        }
+        sqlite3_finalize(stmt_j1_ids);
+
+        auto table_scan = [this, &j1_ids, num_j3_records]() {
+            sqlite3_stmt* stmt = query(db, "SELECT DISTINCT table_j3.id, table_j3.j2_id "
+                                           "FROM table_j3 "
+                                           "JOIN table_j2 ON table_j3.j2_id = table_j2.id "
+                                           "JOIN table_j1 ON table_j2.j1_id = ?");
+
+            int i = 0;
+
+            for (uint64_t j1_id : j1_ids)
+            {
+                sqlite3_bind_int64(stmt, 1, j1_id);
+
+                while (sqlite3_step(stmt) != SQLITE_DONE)
+                {
+                    i++;
+                }
+            }
+
+            ASSERT_EQ(num_j3_records, i);
+
+            sqlite3_finalize(stmt);
+        };
+
+        run_performance_test(table_scan, fmt::format("sqlite3::nested_join num_records:{}", c_tot_records), c_num_iterations, num_j3_records);
+    }
+}

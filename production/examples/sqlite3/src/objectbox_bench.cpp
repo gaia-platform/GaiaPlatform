@@ -18,9 +18,9 @@
 #include "simple-table.obx.hpp"
 #include "timer.hpp"
 
-const constexpr uint32_t c_num_insertion = 10000000;
+const constexpr uint32_t c_num_records = 10000000;
 const constexpr uint32_t c_num_iterations = 3;
-const constexpr uint32_t max_insertion_single_txn = c_num_insertion > 1000000 ? c_num_insertion / 10 : c_num_insertion;
+const constexpr uint32_t c_max_insertion_single_txn = c_num_records > 1000000 ? c_num_records / 10 : c_num_records;
 
 using namespace std::chrono;
 using namespace std;
@@ -120,7 +120,7 @@ protected:
         std::function<void()> expr_fn,
         std::string_view message,
         size_t num_iterations = c_num_iterations,
-        uint64_t num_insertions = c_num_insertion,
+        uint64_t num_insertions = c_num_records,
         bool read_benchmark = false)
     {
         accumulator_t<int64_t> expr_accumulator;
@@ -172,9 +172,9 @@ TEST_F(objectbox_bench, simple_insert)
         obx::Box<simple_table> box(*storage.get());
         std::unique_ptr<obx::Transaction> txn = make_unique<obx::Transaction>(storage->txWrite());
 
-        for (int i = 0; i < c_num_insertion; i++)
+        for (int i = 0; i < c_num_records; i++)
         {
-            if (i > 0 && i % max_insertion_single_txn == 0)
+            if (i > 0 && i % c_max_insertion_single_txn == 0)
             {
                 txn->success();
                 txn = make_unique<obx::Transaction>(storage->txWrite());
