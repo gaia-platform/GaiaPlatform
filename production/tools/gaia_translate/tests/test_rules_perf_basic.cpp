@@ -26,8 +26,10 @@ atomic<uint32_t> g_c;
 steady_clock::time_point g_in_rule;
 
 static const size_t c_log_interval = 1;
-const uint32_t c_iterations_single_rule = 100000;
-const uint32_t c_iterations_multiple_rules = 100;
+const uint32_t c_single_rule_iterations = 100000;
+const uint32_t c_multiple_rules_iterations = 100;
+const bool c_enable_individual_rule_stats = true;
+const bool c_timed = true;
 
 class test_rules_perf_basic : public gaia::db::db_catalog_test_base_t
 {
@@ -49,7 +51,9 @@ public:
         clear_table<t1_t>();
     }
 
-    void init_rules_engine(size_t num_rules_threads, bool enable_rule_stats = false)
+    void init_rules_engine(
+        size_t num_rules_threads,
+        bool enable_rule_stats = false)
     {
         gaia::rules::event_manager_settings_t settings;
         settings.num_background_threads = num_rules_threads;
@@ -63,7 +67,9 @@ public:
 
     // We include the internal logger header so that we can write to the rule stats logger. This
     // enables us to group the statistics output by the test scenario.
-    void log_scenario(const char* ruleset, size_t count_rules_threads)
+    void log_scenario(
+        const char* ruleset,
+        size_t count_rules_threads)
     {
         static bool is_first_scenario = true;
         if (!is_first_scenario)
@@ -76,23 +82,29 @@ public:
         is_first_scenario = false;
     }
 
-    void run_timed_insert_scenario(const char* ruleset, size_t count_rules_threads = s_num_hardware_threads)
+    void run_timed_insert_scenario(
+        const char* ruleset,
+        size_t count_rules_threads = s_num_hardware_threads)
     {
-        run_insert_scenario(c_iterations_single_rule, count_rules_threads, ruleset, 1, true, false);
-    }
-
-    void run_insert_scenario(const char* ruleset, uint32_t expected_rules_count, size_t count_rules_threads = s_num_hardware_threads, bool enable_rule_stats = false)
-    {
-        run_insert_scenario(c_iterations_multiple_rules, count_rules_threads, ruleset, expected_rules_count, false, enable_rule_stats);
+        run_insert_scenario(ruleset, 1, c_single_rule_iterations, count_rules_threads, !c_enable_individual_rule_stats, c_timed);
     }
 
     void run_insert_scenario(
-        uint32_t iterations,
-        size_t count_rules_threads,
         const char* ruleset,
         uint32_t expected_rules_count,
-        bool is_timed,
-        bool enable_rule_stats)
+        size_t count_rules_threads = s_num_hardware_threads,
+        bool enable_rule_stats = false)
+    {
+        run_insert_scenario(ruleset, expected_rules_count, c_multiple_rules_iterations, count_rules_threads, enable_rule_stats, !c_timed);
+    }
+
+    void run_insert_scenario(
+        const char* ruleset,
+        uint32_t expected_rules_count,
+        uint32_t iterations,
+        size_t count_rules_threads,
+        bool enable_rule_stats,
+        bool is_timed)
     {
         init_rules_engine(count_rules_threads, enable_rule_stats);
         gaia::rules::subscribe_ruleset(ruleset);
@@ -102,27 +114,32 @@ public:
             t1_t::insert_row(0);
         };
 
-        is_timed ? run_timed_scenario(iterations, expected_rules_count, insert_fn)
-                 : run_scenario(iterations, expected_rules_count, insert_fn);
+        is_timed ? run_timed_scenario(iterations, expected_rules_count, insert_fn) : run_scenario(iterations, expected_rules_count, insert_fn);
     }
 
-    void run_timed_update_scenario(const char* ruleset, size_t count_rules_threads = s_num_hardware_threads)
+    void run_timed_update_scenario(
+        const char* ruleset,
+        size_t count_rules_threads = s_num_hardware_threads)
     {
-        run_update_scenario(c_iterations_single_rule, count_rules_threads, ruleset, 1, true, false);
-    }
-
-    void run_update_scenario(const char* ruleset, uint32_t expected_rules_count, size_t count_rules_threads = s_num_hardware_threads, bool enable_rule_stats = false)
-    {
-        run_update_scenario(c_iterations_multiple_rules, count_rules_threads, ruleset, expected_rules_count, false, enable_rule_stats);
+        run_update_scenario(ruleset, 1, c_single_rule_iterations, count_rules_threads, !c_enable_individual_rule_stats, c_timed);
     }
 
     void run_update_scenario(
-        uint32_t iterations,
-        size_t count_rules_threads,
         const char* ruleset,
         uint32_t expected_rules_count,
-        bool is_timed,
-        bool enable_rule_stats)
+        size_t count_rules_threads = s_num_hardware_threads,
+        bool enable_rule_stats = false)
+    {
+        run_update_scenario(ruleset, expected_rules_count, c_multiple_rules_iterations, count_rules_threads, enable_rule_stats, !c_timed);
+    }
+
+    void run_update_scenario(
+        const char* ruleset,
+        uint32_t expected_rules_count,
+        uint32_t iterations,
+        size_t count_rules_threads,
+        bool enable_rule_stats,
+        bool is_timed)
     {
         init_rules_engine(count_rules_threads, enable_rule_stats);
         gaia::db::begin_transaction();
@@ -138,8 +155,7 @@ public:
             writer.update_row();
         };
 
-        is_timed ? run_timed_scenario(iterations, expected_rules_count, update_fn)
-                 : run_scenario(iterations, expected_rules_count, update_fn);
+        is_timed ? run_timed_scenario(iterations, expected_rules_count, update_fn) : run_scenario(iterations, expected_rules_count, update_fn);
     }
 
     // The timed scenario is run against rulesets that have a single rule in them.  Note that we are also
@@ -148,10 +164,14 @@ public:
     // we wait for the rule to complete, these tests measure latency and not throughput (rules / second).
     void run_timed_scenario(uint32_t iterations, uint32_t expected_rules_count, std::function<void()> fn)
     {
+        // Count of rules that have been invoked. Name kept short just to enable 10 rows per line in the rulesets
+        // that have more than 10 rules each.
         g_c = 0;
+
         int64_t before_duration = 0;
         int64_t after_duration = 0;
-        for (uint i = 0; i < iterations; i++)
+
+        for (uint i = 0; i < iterations; ++i)
         {
             gaia::db::begin_transaction();
             fn();
@@ -193,7 +213,7 @@ public:
     void run_scenario(uint32_t iterations, uint32_t expected_rules_count, std::function<void()> fn)
     {
         g_c = 0;
-        for (uint i = 0; i < iterations; i++)
+        for (uint i = 0; i < iterations; ++i)
         {
             gaia::db::begin_transaction();
             fn();
@@ -213,17 +233,14 @@ protected:
         db_test_base_t::SetUpTestSuite({"./gaia_log.conf"});
         s_num_hardware_threads = thread::hardware_concurrency();
     }
-    static unsigned int s_num_hardware_threads;
+    static inline unsigned int s_num_hardware_threads = 1;
 
     steady_clock::time_point m_before_commit;
     steady_clock::time_point m_after_commit;
 
 private:
-    static bool s_is_initialized;
+    static inline bool s_is_initialized = false;
 };
-
-bool test_rules_perf_basic::s_is_initialized = false;
-unsigned int test_rules_perf_basic::s_num_hardware_threads = 1;
 
 // These tests take a long time to run (minutes) so do not enable
 // them. To run them, execute:
@@ -262,7 +279,7 @@ TEST_F(test_rules_perf_basic, DISABLED_insert_10_serial_group)
 
 TEST_F(test_rules_perf_basic, DISABLED_insert_10_rule_stats)
 {
-    run_insert_scenario(1, s_num_hardware_threads, "rules_insert_10", 10, false, true);
+    run_insert_scenario("rules_insert_10", 10, 1, s_num_hardware_threads, c_enable_individual_rule_stats, !c_timed);
 }
 
 TEST_F(test_rules_perf_basic, DISABLED_update_10)
@@ -272,7 +289,7 @@ TEST_F(test_rules_perf_basic, DISABLED_update_10)
 
 TEST_F(test_rules_perf_basic, DISABLED_update_10_rule_stats)
 {
-    run_update_scenario(1, s_num_hardware_threads, "rules_update_10", 10, false, true);
+    run_update_scenario("rules_update_10", 10, 1, s_num_hardware_threads, c_enable_individual_rule_stats, !c_timed);
 }
 
 TEST_F(test_rules_perf_basic, DISABLED_update_10_serial_group)
@@ -287,7 +304,7 @@ TEST_F(test_rules_perf_basic, DISABLED_update_50)
 
 TEST_F(test_rules_perf_basic, DISABLED_update_50_rule_stats)
 {
-    run_update_scenario(1, s_num_hardware_threads, "rules_update_50", 50, false, true);
+    run_update_scenario("rules_update_50", 50, 1, s_num_hardware_threads, c_enable_individual_rule_stats, !c_timed);
 }
 
 TEST_F(test_rules_perf_basic, DISABLED_update_100)
@@ -297,7 +314,7 @@ TEST_F(test_rules_perf_basic, DISABLED_update_100)
 
 TEST_F(test_rules_perf_basic, DISABLED_update_100_rule_stats)
 {
-    run_update_scenario(1, s_num_hardware_threads, "rules_update_100", 100, false, true);
+    run_update_scenario("rules_update_100", 100, 1, s_num_hardware_threads, c_enable_individual_rule_stats, !c_timed);
 }
 
 TEST_F(test_rules_perf_basic, DISABLED_update_500)
@@ -307,7 +324,7 @@ TEST_F(test_rules_perf_basic, DISABLED_update_500)
 
 TEST_F(test_rules_perf_basic, DISABLED_update_500_rule_stats)
 {
-    run_update_scenario(1, s_num_hardware_threads, "rules_update_500", 500, false, true);
+    run_update_scenario("rules_update_500", 500, 1, s_num_hardware_threads, c_enable_individual_rule_stats, !c_timed);
 }
 
 TEST_F(test_rules_perf_basic, DISABLED_update_1000)
@@ -317,5 +334,5 @@ TEST_F(test_rules_perf_basic, DISABLED_update_1000)
 
 TEST_F(test_rules_perf_basic, DISABLED_update_1000_rule_stats)
 {
-    run_update_scenario(1, s_num_hardware_threads, "rules_update_1000", 1000, false, true);
+    run_update_scenario("rules_update_1000", 1000, 1, s_num_hardware_threads, c_enable_individual_rule_stats, !c_timed);
 }
