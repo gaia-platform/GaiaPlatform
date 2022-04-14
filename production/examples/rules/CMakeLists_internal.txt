@@ -21,18 +21,11 @@ if(NOT DEFINED GAIA_REPO)
   message(FATAL_ERROR "GAIA_REPO is not set!")
 endif()
 
-set(GAIA_SOURCE "${GAIA_REPO}/production")
-set(GAIA_BUILD "${GAIA_REPO}/production/build")
-
-set(GAIA_INC "${GAIA_SOURCE}/inc")
-set(GAIA_GAIAT_CMD "${GAIA_BUILD}/tools/gaia_translate/gaiat")
-set(GAIA_GAIAC_CMD "${GAIA_BUILD}/catalog/gaiac/gaiac")
-set(GAIA_LIB_DIR "${GAIA_BUILD}/sdk")
+include ("${GAIA_REPO}/production/cmake/gaia_internal.cmake")
+set_gaia_internal_paths()
 
 # Use a custom gaia config file to suppress rule stats logging.
 configure_file("${PROJECT_SOURCE_DIR}/gaia.conf" "${PROJECT_BINARY_DIR}/gaia_tutorial.conf")
-
-include("${GAIA_SOURCE}/cmake/gaia.cmake")
 
 # --- Generate Direct Access classes from DDL---
 process_schema(
@@ -42,7 +35,7 @@ process_schema(
 
 translate_ruleset(
   RULESET_FILE ${PROJECT_SOURCE_DIR}/clinic.ruleset
-  CLANG_PARAMS -I${GAIA_BUILD}/deps/gaia_spdlog/include -I${GAIA_BUILD}/deps/flatbuffers/include
+  CLANG_PARAMS -I${SPDLOG_INC} -I${FLATBUFFERS_INC}
 )
 
 add_executable(rules
@@ -52,8 +45,10 @@ add_executable(rules
 
 target_add_gaia_generated_sources(rules)
 target_include_directories(rules PRIVATE
-  ${GAIA_INC} ${GAIA_BUILD}/deps/gaia_spdlog/include
-  ${GAIA_BUILD}/deps/flatbuffers/include
-  ${PROJECT_SOURCE_DIR})
+  ${GAIA_INC}
+  ${SPDLOG_INC}
+  ${FLATBUFFERS_INC}
+  ${PROJECT_SOURCE_DIR}
+)
 target_link_directories(rules PRIVATE ${GAIA_LIB_DIR})
 target_link_libraries(rules PRIVATE gaia Threads::Threads)
