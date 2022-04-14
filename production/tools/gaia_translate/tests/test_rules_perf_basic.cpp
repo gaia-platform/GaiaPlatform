@@ -3,6 +3,8 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include <unistd.h>
+
 #include <gtest/gtest.h>
 
 #include "gaia/logger.hpp"
@@ -25,14 +27,21 @@ using namespace std::chrono;
 atomic<uint32_t> g_c;
 steady_clock::time_point g_in_rule;
 
-static const size_t c_log_interval = 1;
-// Performance benchmark data was gathered using the following values:
-// c_single_rule_iterations: 100000
-// c_multiple_rules_iteration: 100
-// In order to run these suites as part CI in a reasonable time, lower
-// the values to 100 and 10.
-const uint32_t c_single_rule_iterations = 100;
-const uint32_t c_multiple_rules_iterations = 10;
+static const size_t c_log_interval_s = 1;
+
+// When gathering data for the rules performance benchmark, use the
+// commented out values below for the constants.
+
+// static const size_t c_s_to_us = 1000000;
+// static const size_t c_log_sleep_us = c_log_interval_s * 2 * c_s_to_us;
+static const size_t c_log_sleep_us = 0;
+
+// const uint32_t c_single_rule_iterations = 100000;
+const uint32_t c_single_rule_iterations = 10;
+
+// const uint32_t c_multiple_rules_iterations = 100;
+const uint32_t c_multiple_rules_iterations = 1;
+
 const bool c_enable_individual_rule_stats = true;
 const bool c_timed = true;
 
@@ -65,7 +74,7 @@ public:
         // Only enable cumulative stats, not individual rule stats.
         settings.enable_rule_stats = enable_rule_stats;
         // Log stats every second to get "Rules / Second"
-        settings.stats_log_interval = 1;
+        settings.stats_log_interval = c_log_interval_s;
         gaia::rules::test::initialize_rules_engine(settings);
         gaia::rules::unsubscribe_rules();
     }
@@ -192,7 +201,7 @@ public:
         }
         // Ensure we give enough time to the logger thread to write out
         // whatever stats it has before terminating the engine.
-        sleep(c_log_interval * 2);
+        usleep(c_log_sleep_us);
         gaia::rules::shutdown_rules_engine();
 
         // Just a sanity check to make sure we executed all the rules we scheduled.
@@ -225,7 +234,7 @@ public:
             gaia::db::commit_transaction();
         }
         gaia::rules::test::wait_for_rules_to_complete();
-        sleep(c_log_interval * 2);
+        usleep(c_log_sleep_us);
         gaia::rules::shutdown_rules_engine();
         EXPECT_EQ(expected_rules_count * iterations, g_c);
     }
@@ -247,97 +256,93 @@ private:
     static inline bool s_is_initialized = false;
 };
 
-// These tests take a long time to run (minutes) so do not enable
-// them. To run them, execute:
-// ./test_rules_perf_basic --gtest_also_run_disabled_tests
-//
 // Results will be placed in: ./logs/gaia_stats.log
-TEST_F(test_rules_perf_basic, DISABLED_insert_1_rule_1_thread)
+TEST_F(test_rules_perf_basic, insert_1_rule_1_thread)
 {
     run_timed_insert_scenario("rules_insert", 1);
 }
 
-TEST_F(test_rules_perf_basic, DISABLED_insert_1_rule_max_thread)
+TEST_F(test_rules_perf_basic, insert_1_rule_max_thread)
 {
     run_timed_insert_scenario("rules_insert");
 }
 
-TEST_F(test_rules_perf_basic, DISABLED_update_1_rule_1_thread)
+TEST_F(test_rules_perf_basic, update_1_rule_1_thread)
 {
     run_timed_update_scenario("rules_update", 1);
 }
 
-TEST_F(test_rules_perf_basic, DISABLED_update_1_rule_max_thread)
+TEST_F(test_rules_perf_basic, update_1_rule_max_thread)
 {
     run_timed_update_scenario("rules_update");
 }
 
-TEST_F(test_rules_perf_basic, DISABLED_insert_10)
+TEST_F(test_rules_perf_basic, insert_10)
 {
     run_insert_scenario("rules_insert_10", 10);
 }
 
-TEST_F(test_rules_perf_basic, DISABLED_insert_10_serial_group)
+TEST_F(test_rules_perf_basic, insert_10_serial_group)
 {
     run_insert_scenario("rules_insert_10_serial", 10);
 }
 
-TEST_F(test_rules_perf_basic, DISABLED_insert_10_rule_stats)
+TEST_F(test_rules_perf_basic, insert_10_rule_stats)
 {
     run_insert_scenario("rules_insert_10", 10, 1, s_num_hardware_threads, c_enable_individual_rule_stats, !c_timed);
 }
 
-TEST_F(test_rules_perf_basic, DISABLED_update_10)
+TEST_F(test_rules_perf_basic, update_10)
 {
     run_update_scenario("rules_update_10", 10);
 }
 
-TEST_F(test_rules_perf_basic, DISABLED_update_10_rule_stats)
+TEST_F(test_rules_perf_basic, update_10_rule_stats)
 {
     run_update_scenario("rules_update_10", 10, 1, s_num_hardware_threads, c_enable_individual_rule_stats, !c_timed);
 }
 
-TEST_F(test_rules_perf_basic, DISABLED_update_10_serial_group)
+TEST_F(test_rules_perf_basic, update_10_serial_group)
 {
     run_update_scenario("rules_update_10_serial", 10);
 }
 
-TEST_F(test_rules_perf_basic, DISABLED_update_50)
+TEST_F(test_rules_perf_basic, update_50)
 {
     run_update_scenario("rules_update_50", 50);
 }
 
-TEST_F(test_rules_perf_basic, DISABLED_update_50_rule_stats)
+TEST_F(test_rules_perf_basic, update_50_rule_stats)
 {
     run_update_scenario("rules_update_50", 50, 1, s_num_hardware_threads, c_enable_individual_rule_stats, !c_timed);
 }
 
-TEST_F(test_rules_perf_basic, DISABLED_update_100)
+TEST_F(test_rules_perf_basic, update_100)
 {
     run_update_scenario("rules_update_100", 100);
 }
 
-TEST_F(test_rules_perf_basic, DISABLED_update_100_rule_stats)
+TEST_F(test_rules_perf_basic, update_100_rule_stats)
 {
     run_update_scenario("rules_update_100", 100, 1, s_num_hardware_threads, c_enable_individual_rule_stats, !c_timed);
 }
 
-TEST_F(test_rules_perf_basic, DISABLED_update_500)
+TEST_F(test_rules_perf_basic, update_500)
 {
     run_update_scenario("rules_update_500", 500);
 }
 
-TEST_F(test_rules_perf_basic, DISABLED_update_500_rule_stats)
+TEST_F(test_rules_perf_basic, update_500_rule_stats)
 {
     run_update_scenario("rules_update_500", 500, 1, s_num_hardware_threads, c_enable_individual_rule_stats, !c_timed);
 }
 
-TEST_F(test_rules_perf_basic, DISABLED_update_1000)
+TEST_F(test_rules_perf_basic, update_1000)
 {
     run_update_scenario("rules_update_1000", 1000);
 }
 
-TEST_F(test_rules_perf_basic, DISABLED_update_1000_rule_stats)
+TEST_F(test_rules_perf_basic, update_1000_rule_stats)
 {
     run_update_scenario("rules_update_1000", 1000, 1, s_num_hardware_threads, c_enable_individual_rule_stats, !c_timed);
 }
