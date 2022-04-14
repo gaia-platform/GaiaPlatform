@@ -284,6 +284,7 @@ static string dump_rows(string database, string table, uint64_t start_after, uin
                         {
                             break;
                         }
+
                         linked_record_ids.push_back(child_id);
 
                         if (row_limit != c_row_limit_unlimited && row_limit <= ++link_counter)
@@ -310,6 +311,20 @@ static string dump_rows(string database, string table, uint64_t start_after, uin
                     }
                     auto reference = gaia_ptr_t::from_gaia_id(reference_id);
                     linked_record_ids.push_back(reference.references()[0]);
+                }
+
+                if (start_after != 0)
+                {
+                    auto iterator = linked_record_ids.begin();
+                    while (iterator != linked_record_ids.end())
+                    {
+                        if (*iterator == start_after)
+                        {
+                            linked_record_ids.erase(iterator);
+                            break;
+                        }
+                        iterator = linked_record_ids.erase(iterator);
+                    }
                 }
 
                 for (const auto& linked_table_object : database_object.gaia_tables().where(gaia_table_expr::name == table_name))
