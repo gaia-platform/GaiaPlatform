@@ -55,3 +55,7 @@ process_schema_internal(
 process_schema_internal(
   DDL_FILE "${PROJECT_SOURCE_DIR}/perf_rel/perf_rel.ddl"
   DATABASE_NAME perf_rel)
+
+process_schema_internal(
+  DDL_FILE "${PROJECT_SOURCE_DIR}/perf_rules/perf_rules.ddl"
+  DATABASE_NAME perf_rules)
