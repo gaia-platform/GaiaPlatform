@@ -43,6 +43,7 @@ public:
     table_iterator_t& operator=(const table_iterator_t&) = delete;
 
     // Scan API.
+    bool set(gaia::common::gaia_type_t, gaia::common::gaia_id_t);
     bool initialize_scan(gaia::common::gaia_id_t, gaia::common::gaia_type_t, gaia::common::gaia_id_t);
     bool scan_forward();
     bool has_scan_ended()

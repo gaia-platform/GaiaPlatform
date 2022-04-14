@@ -149,6 +149,43 @@ bool table_iterator_t::scan_forward()
     return false;
 }
 
+bool table_iterator_t::set(gaia_type_t container_id, gaia_id_t record_id)
+{
+    m_container_id = container_id;
+
+    try
+    {
+        if (record_id != 0)
+        {
+            m_current_record = gaia_ptr_t::from_gaia_id(record_id);
+            if (m_current_record.type() != container_id)
+            {
+                fprintf(stderr, "Row is not correct type.\n");
+                return false;
+            }
+        }
+        else
+        {
+            return false;
+        }
+
+        if (m_current_record)
+        {
+            m_current_payload = reinterpret_cast<uint8_t*>(m_current_record.data());
+        }
+
+        return true;
+    }
+    catch (const exception& e)
+    {
+        fprintf(
+            stderr,
+            "Failed initializing table iterator. Table: '%s', container id: '%u'. Exception: '%s'.\n",
+            get_table_name(), m_container_id.value(), e.what());
+    }
+    return false;
+}
+
 } // namespace db_extract
 } // namespace tools
 } // namespace gaia
