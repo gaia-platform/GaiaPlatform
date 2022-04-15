@@ -3,20 +3,12 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include <iostream>
-#include <limits>
-#include <string>
-
 #include <gtest/gtest.h>
 
-#include "gaia/common.hpp"
-#include "gaia/direct_access/auto_transaction.hpp"
-#include "gaia/logger.hpp"
-
-#include "gaia_internal/common/timer.hpp"
 #include "gaia_internal/db/db_catalog_test_base.hpp"
 
 #include "gaia_addr_book.h"
+#include "test_perf.hpp"
 
 using namespace gaia::addr_book;
 using namespace gaia::addr_book::address_expr;
@@ -30,7 +22,7 @@ using g_timer_t = gaia::common::timer_t;
 // For the tests to succeed:
 // - c_num_employees must be >= 101
 // - c_num_employee_addresses must be >= 1
-static const int64_t c_num_employees = 10000;
+static const int64_t c_num_employees = 1000;
 static const int64_t c_num_employee_addresses = 2;
 
 /**
@@ -146,54 +138,10 @@ public:
     }
 };
 
-template <typename T_num>
-class accumulator_t
-{
-public:
-    void add(T_num value)
-    {
-        if (value < m_min)
-        {
-            m_min = value;
-        }
-
-        if (value > m_max)
-        {
-            m_max = value;
-        }
-
-        m_sum += value;
-        m_num_observations++;
-    }
-
-    T_num min()
-    {
-        return m_min;
-    }
-
-    T_num max()
-    {
-        return m_max;
-    }
-
-    double_t avg()
-    {
-        return m_sum / (m_num_observations + 0.0);
-    }
-
-private:
-    T_num m_min = std::numeric_limits<T_num>::max();
-    T_num m_max = std::numeric_limits<T_num>::min();
-    T_num m_sum = 0;
-    uint64_t m_num_observations = 0;
-};
-
-double_t percentage_difference(int64_t expr, int64_t plain)
-{
-    return static_cast<double_t>(expr - plain) / plain * 100.0;
-}
-
-void log_performance_difference(accumulator_t<int64_t> expr_accumulator, accumulator_t<int64_t> plain_accumulator, std::string_view message)
+void log_performance_difference(
+    accumulator_t<int64_t> expr_accumulator,
+    accumulator_t<int64_t> plain_accumulator,
+    std::string_view message)
 {
     double_t avg_expr = g_timer_t::ns_to_us(expr_accumulator.avg());
     double_t min_expr = g_timer_t::ns_to_us(expr_accumulator.min());
@@ -220,7 +168,7 @@ void log_performance_difference(accumulator_t<int64_t> expr_accumulator, accumul
     cout << endl;
 }
 
-void run_performance_test(
+void run_expr_performance_test(
     std::function<void()> expr_fn,
     std::function<void()> plain_fn,
     std::string_view message,
@@ -241,7 +189,7 @@ void run_performance_test(
     log_performance_difference(expr_accumulator, plain_accumulator, message);
 }
 
-TEST_F(test_expressions_perf, DISABLED_int_eq)
+TEST_F(test_expressions_perf, int_eq)
 {
     auto_transaction_t txn;
 
@@ -267,12 +215,12 @@ TEST_F(test_expressions_perf, DISABLED_int_eq)
         EXPECT_EQ(num_employee, 1);
     };
 
-    run_performance_test(expr_fn, plain_fn, "int64_t ==");
+    run_expr_performance_test(expr_fn, plain_fn, "int64_t ==");
 
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, DISABLED_int_gteq)
+TEST_F(test_expressions_perf, int_gteq)
 {
     auto_transaction_t txn;
 
@@ -298,12 +246,12 @@ TEST_F(test_expressions_perf, DISABLED_int_gteq)
         EXPECT_EQ(num_employee, c_num_employees - c_time);
     };
 
-    run_performance_test(expr_fn, plain_fn, "int64_t >");
+    run_expr_performance_test(expr_fn, plain_fn, "int64_t >");
 
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, DISABLED_int_lt)
+TEST_F(test_expressions_perf, int_lt)
 {
     auto_transaction_t txn;
 
@@ -329,12 +277,12 @@ TEST_F(test_expressions_perf, DISABLED_int_lt)
         EXPECT_EQ(num_employee, c_time);
     };
 
-    run_performance_test(expr_fn, plain_fn, "int64_t <");
+    run_expr_performance_test(expr_fn, plain_fn, "int64_t <");
 
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, DISABLED_c_string_eq)
+TEST_F(test_expressions_perf, c_string_eq)
 {
     auto_transaction_t txn;
 
@@ -359,12 +307,12 @@ TEST_F(test_expressions_perf, DISABLED_c_string_eq)
         EXPECT_EQ(num_employee, 1);
     };
 
-    run_performance_test(expr_fn, plain_fn, "const char* ==");
+    run_expr_performance_test(expr_fn, plain_fn, "const char* ==");
 
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, DISABLED_string_eq)
+TEST_F(test_expressions_perf, string_eq)
 {
     auto_transaction_t txn;
 
@@ -389,12 +337,12 @@ TEST_F(test_expressions_perf, DISABLED_string_eq)
         EXPECT_EQ(num_employee, 1);
     };
 
-    run_performance_test(expr_fn, plain_fn, "std::string ==");
+    run_expr_performance_test(expr_fn, plain_fn, "std::string ==");
 
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, DISABLED_object_eq)
+TEST_F(test_expressions_perf, object_eq)
 {
     auto_transaction_t txn;
 
@@ -425,12 +373,12 @@ TEST_F(test_expressions_perf, DISABLED_object_eq)
         EXPECT_EQ(addresses.size(), c_num_employee_addresses);
     };
 
-    run_performance_test(expr_fn, plain_fn, "DAC class ==");
+    run_expr_performance_test(expr_fn, plain_fn, "DAC class ==");
 
     txn.commit();
 }
 
-TEST_F(test_expressions_perf, DISABLED_mixed_bool_op)
+TEST_F(test_expressions_perf, mixed_bool_op)
 {
     auto_transaction_t txn;
 
@@ -457,13 +405,13 @@ TEST_F(test_expressions_perf, DISABLED_mixed_bool_op)
         EXPECT_EQ(num_employee, 2);
     };
 
-    run_performance_test(expr_fn, plain_fn, "mixed boolean op");
+    run_expr_performance_test(expr_fn, plain_fn, "mixed boolean op");
 
     txn.commit();
 }
 
 // TODO: Test broken: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2059
-TEST_F(test_expressions_perf, DISABLED_test_container_contains)
+TEST_F(test_expressions_perf, test_container_contains)
 {
     auto_transaction_t txn;
 
@@ -490,13 +438,13 @@ TEST_F(test_expressions_perf, DISABLED_test_container_contains)
         EXPECT_EQ(num_employee, c_num_employees);
     };
 
-    run_performance_test(expr_fn, plain_fn, "container contains");
+    run_expr_performance_test(expr_fn, plain_fn, "container contains");
 
     txn.commit();
 }
 
 // TODO: Test broken: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2059
-TEST_F(test_expressions_perf, DISABLED_test_container_contains_lambda)
+TEST_F(test_expressions_perf, test_container_contains_lambda)
 {
     auto_transaction_t txn;
 
@@ -522,13 +470,13 @@ TEST_F(test_expressions_perf, DISABLED_test_container_contains_lambda)
         EXPECT_EQ(num_employee, c_num_employees);
     };
 
-    run_performance_test(expr_fn, plain_fn, "container contains lambda");
+    run_expr_performance_test(expr_fn, plain_fn, "container contains lambda");
 
     txn.commit();
 }
 
 // TODO: Test broken: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2059
-TEST_F(test_expressions_perf, DISABLED_test_container_count)
+TEST_F(test_expressions_perf, test_container_count)
 {
     auto_transaction_t txn;
 
@@ -553,13 +501,13 @@ TEST_F(test_expressions_perf, DISABLED_test_container_count)
         EXPECT_EQ(num_employee, c_num_employees);
     };
 
-    run_performance_test(expr_fn, plain_fn, "container count");
+    run_expr_performance_test(expr_fn, plain_fn, "container count");
 
     txn.commit();
 }
 
 // TODO: Test broken: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2059
-TEST_F(test_expressions_perf, DISABLED_test_container_empty)
+TEST_F(test_expressions_perf, test_container_empty)
 {
     auto_transaction_t txn;
 
@@ -584,7 +532,7 @@ TEST_F(test_expressions_perf, DISABLED_test_container_empty)
         EXPECT_EQ(num_employee, 0);
     };
 
-    run_performance_test(expr_fn, plain_fn, "container empty");
+    run_expr_performance_test(expr_fn, plain_fn, "container empty");
 
     txn.commit();
 }
