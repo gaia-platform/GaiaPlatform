@@ -700,18 +700,15 @@ TEST_F(recovery_test, basic_correctness_test)
 
 TEST_F(recovery_test, load_and_recover_test)
 {
+    // Load (more data) & Recover test - with data size greater than write buffer size.
+    // Writes will exist in both the WAL & SST files.
+    // TODO - Test is switched off as it takes some time to run. Run on teamcity.
+    // const uint64_t load_size = 16 * 1024 * 1024;
+
     // Load & Recover test - with data size less than write buffer size;
     // All writes will be confined to the WAL & will not make it to SST (DB binary file)
     // Sigkill server.
     const uint64_t load_size = 0.1 * 1024 * 1024;
-    load_modify_recover_test(load_size, 2, true);
-}
 
-TEST_F(recovery_test, DISABLED_load_more_data_and_recover_test)
-{
-    const uint64_t load_size = 16 * 1024 * 1024;
-    // Load (more data) & Recover test - with data size greater than write buffer size.
-    // Writes will exist in both the WAL & SST files.
-    // TODO - Test is switched off as it takes some time to run. Run on teamcity.
-    load_modify_recover_test(load_size, 1, false);
+    load_modify_recover_test(load_size, 2, true);
 }

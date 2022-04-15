@@ -41,14 +41,15 @@ TEST(common, retail_assert)
 
 using g_timer_t = gaia::common::timer_t;
 
-TEST(common, DISABLED_retail_assert_performance)
+TEST(common, retail_assert_perf)
 {
     constexpr size_t c_condition = 10000;
     std::random_device dev;
     std::mt19937_64 rng(dev());
     std::uniform_int_distribution<int32_t> dist(0, c_condition);
 
-    constexpr size_t c_num_samples = 1000000;
+    // Increase this value when using as a performance test.
+    constexpr size_t c_num_samples = 10;
     int32_t numbers[c_num_samples];
 
     for (int32_t& number : numbers)
