@@ -15,13 +15,14 @@ export interface ICommand {
   link: ILink;
 }
 
-// The link defines the parent row id
-// and link name.
+// The link defines the database and table information.
+// If this is a request to get rows related to the table
+// then a link_name and link_row are provided.
 export interface ILink {
   db_name : string;
   table_name : string;
-  link_name : string;
-  link_row : number;
+  link_name? : string;
+  link_row? : number;
 }
 
 // Actions that are commanded from the webview to the

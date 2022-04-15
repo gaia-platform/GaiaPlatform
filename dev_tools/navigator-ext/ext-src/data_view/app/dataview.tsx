@@ -21,7 +21,7 @@ function DataView(props : any) {
               link: {
                 db_name : initialData.db_name,
                 table_name : initialData.table_name,
-                link_name : col.name,
+                link_name : col.key,
                 link_row : row.row_id
               }
             };

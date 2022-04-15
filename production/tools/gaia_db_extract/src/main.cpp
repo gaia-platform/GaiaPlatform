@@ -21,8 +21,8 @@ constexpr char c_row_limit_string[] = "row-limit";
 constexpr char c_help_string[] = "help";
 constexpr char c_database_string[] = "database";
 constexpr char c_table_string[] = "table";
-constexpr char c_link_name_string[] = "link_name";
-constexpr char c_link_row_string[] = "link_row";
+constexpr char c_link_name_string[] = "link-name";
+constexpr char c_link_row_string[] = "link-row";
 
 // Command-line usage.
 static void usage()

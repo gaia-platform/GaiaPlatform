@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as child_process from 'child_process';
-import { ITableView } from './data_view/app/model';
+import { ILink, ITableView } from './data_view/app/model';
 
 // Interacts with the gaia_db_extract tool to get metadata from
 // the catalog as well as row data for each table.  Allow multiple
@@ -25,29 +25,41 @@ export class GaiaDataProvider {
     return this.exists(db_id, table_id) ? this.catalog.databases[db_id].tables[table_id].fields : undefined;
   }
 
-
   // Never cache table data.
-  static getTableData(db_name : string, table_name : string) {
+  static getTableData(link : ILink) {
+    // We've got the data but we need to get the catalog metadata for the
+    // column information.
+    var table = this.findTable(link.db_name, link.table_name);
+    if (!table) {
+      vscode.window.showInformationMessage(`Table '${link.table_name}' was not found.`);
+      return undefined;
+    }
 
-    var child = child_process.spawnSync(this.extract_cmd,
-      [`--database=${db_name}`, `--table=${table_name}`]);
+    // If this link is requesting related rows then the link_name and link_row fields
+    // will be filled in.  In this case we want to request rows from the
+    // related table.
+    var db_extract_arguments = [`--database=${link.db_name}`, `--table=${link.table_name}`];
+    if (link.link_name != undefined && link.link_row != undefined) {
+      table = this.findRelatedTable(table, link);
+      if (!table) {
+        vscode.window.showInformationMessage(`Could not find table for link '${link.link_name}'.`);
+        return undefined;
+      }
+      db_extract_arguments.push(`--link-name=${link.link_name}`);
+      db_extract_arguments.push(`--link-row=${link.link_row}`);
+    }
+
+    // Fetch the data by running the extract tool
+    var child = child_process.spawnSync(this.extract_cmd, db_extract_arguments);
     var resultText = child.stderr.toString().trim();
     if (resultText) {
         vscode.window.showErrorMessage(resultText);
         return undefined;
     }
 
-    // We've got the data but we need to get the catalog metadata for the
-    // column information if it is not passed in.
-    var table = this.findTable(db_name, table_name);
-    if (!table) {
-      vscode.window.showInformationMessage(`Table ${table_name} was not found.`);
-      return undefined;
-    }
-
     const fields = this.findFields(table);
     if (!fields) {
-      vscode.window.showInformationMessage(`Table ${table_name} has no columns.`)
+      vscode.window.showInformationMessage(`Table ${table.name} has no columns.`)
       return undefined;
     }
 
@@ -72,8 +84,8 @@ export class GaiaDataProvider {
     }
 
     let tableData : ITableView = {
-        db_name : db_name,
-        table_name : table_name,
+        db_name : link.db_name,
+        table_name : table.name,
         columns : cols,
         rows : data.rows || [],
     };
@@ -132,6 +144,17 @@ export class GaiaDataProvider {
       }
     }
 
+    return undefined;
+  }
+
+  private static findRelatedTable(table : any, link : ILink) {
+    const relationships = this.getRelationships(table);
+    for (let i = 0; i < relationships.length; i++) {
+      let relationship = relationships[i];
+      if (relationship.link_name == link.link_name) {
+        return this.findTable(link.db_name, relationship.table_name)
+      }
+    }
     return undefined;
   }
 

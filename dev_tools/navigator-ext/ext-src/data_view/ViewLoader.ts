@@ -8,7 +8,6 @@ import { CatalogItem } from '../databaseExplorer';
 import { ICommand, CommandAction, ILink } from './app/model';
 import { GaiaDataProvider } from '../gaiaDataProvider';
 
-
 // Manages react webview panels.
 export default class ViewLoader {
     // Track the currently panel.
@@ -37,10 +36,13 @@ export default class ViewLoader {
                 extensionPath,
                 title,
                 column || vscode.ViewColumn.One,
-                item.db_name,
-                item.label,
-                item.fields
-                );
+                {
+                    db_name : item.db_name,
+                    table_name : item.label,
+                    link_name : undefined,
+                    link_row : undefined
+                }
+            );
         }
     }
 
@@ -53,7 +55,7 @@ export default class ViewLoader {
         // todo (dax): enable/maintain a for catalog items so that we can go directly to a table either
         // via the explorer or by getting a link from a table.
 
-        var title = `${link.db_name}.${link.table_name}`;
+        var title = `${link.table_name}.${link.link_name}`;
 
         // todo (dax): you can see that you would have to change the function prototypes "all the way down"
         // if you don't pass CatalogItems.  Need to figure out how to pull together ILink and CatalogItem
@@ -65,12 +67,11 @@ export default class ViewLoader {
             extensionPath,
             title,
             column || vscode.ViewColumn.One,
-            link.db_name,
-            link.table_name
+            link
             );
     }
 
-    private constructor(extensionPath: string, title: string, column: vscode.ViewColumn, db_name: string, table_name : string, fields? : any) {
+    private constructor(extensionPath: string, title: string, column: vscode.ViewColumn, link : ILink) {
         this._extensionPath = extensionPath;
         this._title = title;
 
@@ -86,7 +87,7 @@ export default class ViewLoader {
         });
 
         // Set the webview's initial html content.
-        this._panel.webview.html = this._getHtmlForWebview(db_name, table_name, fields);
+        this._panel.webview.html = this._getHtmlForWebview(link);
 
         // Listen for when the panel is disposed.
         // This happens when the user closes the panel or when the panel is closed programatically.
@@ -122,7 +123,7 @@ export default class ViewLoader {
         }
     }
 
-    private _getHtmlForWebview(db_name : string, table_name : string, fields? : any) {
+    private _getHtmlForWebview(link : ILink) {
 //        const manifest = require(path.join(this._extensionPath, 'build', 'asset-manifest.json'));
 //        const mainScript = manifest.files['main.js'];
 //        const mainStyle = manifest.files['main.css'];
@@ -138,7 +139,7 @@ export default class ViewLoader {
 
         // Use a nonce to whitelist which scripts can be run
         const nonce = getNonce();
-        const tableData = GaiaDataProvider.getTableData(db_name, table_name);
+        const tableData = GaiaDataProvider.getTableData(link);
         if (!tableData)
         {
             return`<!DOCTYPE html>
@@ -150,7 +151,7 @@ export default class ViewLoader {
                 </head>
                 <body>
                     <div id="root">
-                    <h2> An error occurred retrieving data for table '${table_name}'.</h2>
+                    <h2> An error occurred retrieving data for table '${link.table_name}'.</h2>
                     </div>
                 </body>
                 </html>`;

@@ -64,10 +64,12 @@ static json_t to_json(gaia_relationship_t relationship, bool is_outgoing)
     if (is_outgoing)
     {
         json["link_name"] = relationship.to_child_link_name();
+        json["table_name"] = relationship.child().name();
     }
     else
     {
         json["link_name"] = relationship.to_parent_link_name();
+        json["table_name"] = relationship.parent().name();
     }
 
     return json;
@@ -369,7 +371,6 @@ static string dump_rows(string database, string table, uint64_t start_after, uin
                         }
 
                         child_id = child.references()[relationship.next_child_offset()];
-
                     }
                 }
                 else
@@ -419,7 +420,6 @@ static string dump_rows(string database, string table, uint64_t start_after, uin
 
                 terminate = true;
                 break;
-
             }
             else
             {
