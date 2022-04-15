@@ -43,7 +43,7 @@ public:
     table_iterator_t& operator=(const table_iterator_t&) = delete;
 
     // Scan API.
-    bool initialize_scan(gaia::common::gaia_type_t, gaia::common::gaia_id_t);
+    bool initialize_scan(gaia::common::gaia_id_t, gaia::common::gaia_type_t, gaia::common::gaia_id_t);
     bool scan_forward();
     bool has_scan_ended()
     {
@@ -67,7 +67,10 @@ private:
     // Store the table name for the convenience of printing it in error messages.
     char* m_table_name;
 
-    // The table (container) id.
+    // The table id.
+    gaia::common::gaia_id_t m_table_id;
+
+    // The container (type) id.
     gaia::common::gaia_type_t m_container_id;
 
     // The COW-SE smart ptr we are currently iterating over.
