@@ -26,8 +26,13 @@ atomic<uint32_t> g_c;
 steady_clock::time_point g_in_rule;
 
 static const size_t c_log_interval = 1;
-const uint32_t c_single_rule_iterations = 100000;
-const uint32_t c_multiple_rules_iterations = 100;
+// Performance benchmark data was gathered using the following values:
+// c_single_rule_iterations: 100000
+// c_multiple_rules_iteration: 100
+// In order to run these suites as part CI in a reasonable time, lower
+// the values to 100 and 10.
+const uint32_t c_single_rule_iterations = 100;
+const uint32_t c_multiple_rules_iterations = 10;
 const bool c_enable_individual_rule_stats = true;
 const bool c_timed = true;
 
