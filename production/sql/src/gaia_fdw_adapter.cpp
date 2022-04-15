@@ -255,9 +255,6 @@ void adapter_t::initialize_caches()
     gaia::db::begin_transaction();
 
     ASSERT_PRECONDITION(
-        type_cache_t::get()->size() == 0,
-        "type_cache_t has been initialized already!");
-    ASSERT_PRECONDITION(
         s_map_table_name_to_ids.size() == 0,
         "s_map_table_name_to_ids has been initialized already!");
 
@@ -279,41 +276,9 @@ void adapter_t::initialize_caches()
             elog(ERROR, "Table '%s' is missing serialization template data!", table_view.name());
         }
 
-        auto type_information = make_unique<type_information_t>();
-
-        initialize_type_information_from_binary_schema(
-            type_information.get(),
-            table_view.binary_schema()->data(),
-            table_view.binary_schema()->size());
-
-        type_information.get()->set_serialization_template(
-            table_view.serialization_template()->data(),
-            table_view.serialization_template()->size());
-
-        bool result = type_cache_t::get()->set_type_information(table_view.table_type(), type_information);
-        if (result == false)
-        {
-            ereport(
-                ERROR,
-                (errcode(ERRCODE_FDW_ERROR),
-                 errmsg("Failed to set type information in type_cache_t!")));
-        }
-
         s_map_table_name_to_ids.insert(make_pair(
             table_name,
             make_pair(table_view.id(), table_view.table_type())));
-    }
-
-    if (type_cache_t::get()->size() != s_map_table_name_to_ids.size())
-    {
-        ereport(
-            ERROR,
-            (errcode(ERRCODE_FDW_ERROR),
-             errmsg("Inconsistent initialization of caches!"),
-             errhint(
-                 "type_cache_t has size '%ld', but s_map_table_name_to_ids has size '%ld'.",
-                 type_cache_t::get()->size(),
-                 s_map_table_name_to_ids.size())));
     }
 
     gaia::db::commit_transaction();
@@ -703,6 +668,10 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
         NullableDatum field_value{};
         field_value.isnull = false;
 
+        // Get type schema.
+        catalog_core::table_view_t table_view = catalog_core::get_table(m_table_id);
+        auto schema = table_view.binary_schema();
+
         if (is_gaia_id_field_index(field_index))
         {
             field_value.value = UInt64GetDatum(m_iterator->id());
@@ -743,10 +712,8 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
             Oid element_type = convert_to_pg_type(m_fields[field_index].type);
 
             size_t array_size = get_field_array_size(
-                m_container_id,
                 m_current_payload,
-                nullptr,
-                0,
+                schema->data(),
                 m_fields[field_index].position);
 
             if (array_size == std::numeric_limits<size_t>::max())
@@ -760,10 +727,8 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
                 for (size_t i = 0; i < array_size; i++)
                 {
                     data_holder_t value = get_field_array_element(
-                        m_container_id,
                         m_current_payload,
-                        nullptr,
-                        0,
+                        schema->data(),
                         m_fields[field_index].position,
                         i);
 
@@ -781,10 +746,8 @@ NullableDatum scan_state_t::extract_field_value(size_t field_index)
         else
         {
             data_holder_t value = get_field_value(
-                m_container_id,
                 m_current_payload,
-                nullptr,
-                0,
+                schema->data(),
                 m_fields[field_index].position);
 
             field_value = convert_to_nullable_datum(value);
@@ -842,22 +805,22 @@ void modify_state_t::initialize_payload()
 {
     try
     {
-        // Get hold of the type cache and lookup the type information for our type.
-        auto_type_information_t auto_type_information;
-        type_cache_t::get()->get_type_information(m_container_id, auto_type_information);
+        // Get type schema and serialization template.
+        catalog_core::table_view_t table_view = catalog_core::get_table(m_table_id);
+        auto schema = table_view.binary_schema();
+        auto serialization_template = table_view.serialization_template();
 
         // Set current payload to a copy of the serialization template bits.
         m_current_payload = new vector<uint8_t>(
-            auto_type_information.get()->get_serialization_template(),
-            auto_type_information.get()->get_serialization_template()
-                + auto_type_information.get()->get_serialization_template_size());
+            serialization_template->data(),
+            serialization_template->data() + serialization_template->size());
 
         // Get a pointer to the binary schema.
         // We only need to do this on the first call.
         if (m_binary_schema == nullptr)
         {
-            m_binary_schema = auto_type_information.get()->get_binary_schema();
-            m_binary_schema_size = auto_type_information.get()->get_binary_schema_size();
+            m_binary_schema = schema->data();
+            m_binary_schema_size = schema->size();
         }
     }
     catch (const exception& e)
@@ -922,20 +885,16 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
             if (value.type == reflection::String)
             {
                 ::set_field_value(
-                    m_container_id,
                     *m_current_payload,
                     m_binary_schema,
-                    m_binary_schema_size,
                     m_fields[field_index].position,
                     value);
             }
             else
             {
                 bool result = ::set_field_value(
-                    m_container_id,
                     m_current_payload->data(),
                     m_binary_schema,
-                    m_binary_schema_size,
                     m_fields[field_index].position,
                     value);
 
@@ -996,10 +955,8 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
                 &num_elements);
 
             ::set_field_array_size(
-                m_container_id,
                 *m_current_payload,
                 m_binary_schema,
-                m_binary_schema_size,
                 m_fields[field_index].position,
                 num_elements);
 
@@ -1009,10 +966,8 @@ void modify_state_t::set_field_value(size_t field_index, const NullableDatum& fi
                     = convert_to_data_holder(values[array_index], m_fields[field_index].type);
 
                 ::set_field_array_element(
-                    m_container_id,
                     m_current_payload->data(),
                     m_binary_schema,
-                    m_binary_schema_size,
                     m_fields[field_index].position,
                     array_index,
                     element_value);

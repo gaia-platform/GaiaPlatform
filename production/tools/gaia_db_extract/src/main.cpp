@@ -151,15 +151,7 @@ int main(int argc, char* argv[])
 
     try
     {
-        // One-time preparation for scanning rows.
-        if (!gaia_db_extract_initialize())
-        {
-            cerr << "Extraction API failed to initialize." << endl;
-        }
-        else
-        {
-            extracted_data = gaia_db_extract(database, table, start_after, row_limit);
-        }
+        extracted_data = gaia_db_extract(database, table, start_after, row_limit);
     }
     catch (gaia_exception& e)
     {
