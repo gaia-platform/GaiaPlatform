@@ -20,11 +20,6 @@ constexpr uint32_t c_row_limit_unlimited = -1;
 constexpr char c_empty_object[] = "{}";
 
 /**
- * Initialize the type cache before extracting row data.
- */
-bool gaia_db_extract_initialize(void);
-
-/**
  * Return a string containing the JSON representation of data contained in
  * the current gaia_db_server. The specific data is requested by the parameters.
  */

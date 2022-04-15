@@ -31,11 +31,10 @@ static constexpr uint32_t c_num_employees = 10;
 static constexpr uint32_t c_sleep_micros = 100000;
 static constexpr uint32_t c_max_reader_wait_seconds = 10;
 
-// TODO re-enable once we have multi instance support.
-class DISABLED_multiple_server_instances_test : public ::testing::Test
+class multiple_server_instances_test : public ::testing::Test
 {
 public:
-    DISABLED_multiple_server_instances_test() = default;
+    multiple_server_instances_test() = default;
 
 protected:
     static void SetUpTestSuite()
@@ -140,7 +139,8 @@ private:
     std::string m_instance_name;
 };
 
-TEST_F(DISABLED_multiple_server_instances_test, multiple_instances)
+// TODO re-enable once we have multi-instance support.
+TEST_F(multiple_server_instances_test, DISABLED_multiple_instances)
 {
     std::vector<server_instance_t> server_instances;
 
