@@ -53,12 +53,12 @@ void clear_database()
 size_t insert_data(size_t num_children_per_parent = c_num_records - 1)
 {
     gaia::db::begin_transaction();
-    size_t tot_records_inserted = 0;
+    size_t total_records_inserted = 0;
 
     for (size_t i = 0; i < c_num_records; i++)
     {
 
-        if (tot_records_inserted > 0 && tot_records_inserted % c_max_insertion_single_txn_rel == 0)
+        if (total_records_inserted > 0 && total_records_inserted % c_max_insertion_single_txn_rel == 0)
         {
             gaia::db::commit_transaction();
             gaia::db::begin_transaction();
@@ -70,11 +70,11 @@ size_t insert_data(size_t num_children_per_parent = c_num_records - 1)
         }
 
         table_parent_t parent = table_parent_t::get(table_parent_t::insert_row());
-        tot_records_inserted++;
+        total_records_inserted++;
 
         for (size_t j = 0; j < num_children_per_parent; j++)
         {
-            if ((tot_records_inserted % c_max_insertion_single_txn_rel) == 0)
+            if ((total_records_inserted % c_max_insertion_single_txn_rel) == 0)
             {
                 gaia::db::commit_transaction();
                 gaia::db::begin_transaction();
@@ -82,7 +82,7 @@ size_t insert_data(size_t num_children_per_parent = c_num_records - 1)
 
             gaia_id_t child = table_child_t::insert_row();
             parent.children().insert(child);
-            tot_records_inserted++;
+            total_records_inserted++;
         }
     }
 
@@ -91,7 +91,7 @@ size_t insert_data(size_t num_children_per_parent = c_num_records - 1)
         gaia::db::commit_transaction();
     }
 
-    return tot_records_inserted;
+    return total_records_inserted;
 }
 
 TEST_F(test_read_perf_rel, single_join)
