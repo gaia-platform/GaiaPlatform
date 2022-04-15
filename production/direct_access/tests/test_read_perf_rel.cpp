@@ -15,6 +15,11 @@ using namespace gaia::common;
 using namespace gaia::direct_access;
 using namespace std;
 
+// Creating a relationship lead to 4/5 db operations, which reduces the number
+// of records that can be inserted by a single transaction.
+// This is why c_max_insertion_single_txn is divided by 5.
+static const size_t c_max_insertion_single_txn_rel = c_max_insertion_single_txn / 5;
+
 class test_read_perf_rel : public gaia::db::db_catalog_test_base_t
 {
 public:
@@ -34,7 +39,7 @@ public:
 
 void clear_database()
 {
-    constexpr size_t c_max_deletion_per_txn = 10000;
+    constexpr size_t c_max_deletion_per_txn = c_max_insertion_single_txn_rel;
     clear_table<table_child_t>(c_max_deletion_per_txn);
     clear_table<table_parent_t>(c_max_deletion_per_txn);
     clear_table<table_child_vlr_t>(c_max_deletion_per_txn);
@@ -52,7 +57,8 @@ size_t insert_data(size_t num_children_per_parent = c_num_records - 1)
 
     for (size_t i = 0; i < c_num_records; i++)
     {
-        if (tot_records_inserted > 0 && tot_records_inserted % c_max_insertion_single_txn / 5 == 0)
+
+        if (tot_records_inserted > 0 && tot_records_inserted % c_max_insertion_single_txn_rel == 0)
         {
             gaia::db::commit_transaction();
             gaia::db::begin_transaction();
@@ -68,7 +74,7 @@ size_t insert_data(size_t num_children_per_parent = c_num_records - 1)
 
         for (size_t j = 0; j < num_children_per_parent; j++)
         {
-            if ((tot_records_inserted % (c_max_insertion_single_txn / 4)) == 0)
+            if ((tot_records_inserted % c_max_insertion_single_txn_rel) == 0)
             {
                 gaia::db::commit_transaction();
                 gaia::db::begin_transaction();
@@ -88,11 +94,11 @@ size_t insert_data(size_t num_children_per_parent = c_num_records - 1)
     return tot_records_inserted;
 }
 
-TEST_F(test_read_perf_rel, table_scan)
+TEST_F(test_read_perf_rel, single_join)
 {
     const size_t num_records_inserted = insert_data();
 
-    auto work = [num_records_inserted]() {
+    benchmark_fn_t work_fn = [num_records_inserted]() {
         gaia::db::begin_transaction();
 
         size_t i = 0;
@@ -112,11 +118,19 @@ TEST_F(test_read_perf_rel, table_scan)
 
     bool clear_db_after_each_iteration = false;
     run_performance_test(
-        work, clear_database, "simple_table_t::table_scan", clear_db_after_each_iteration, c_num_iterations, num_records_inserted);
+        work_fn, clear_database, "simple_table_t::table_scan", clear_db_after_each_iteration, c_num_iterations, num_records_inserted);
 }
 
 size_t insert_nested_join_data(size_t num_records = c_num_records)
 {
+    // This benchmark created 3 tables, connected by two relationships:
+    // table_j1 -> table_j2 -> table_j3.
+    // The cubic root of num_records to create to calculate how many records to create
+    // for each join staying within the num_records boundary:
+    //  c_num_records_per_join^3 ~ num_records
+    //
+    // We create c_num_records_per_join table_j1 records, for each table_j1 record
+    // we create c_num_records_per_join table_j2 records, same for table_j3.
     const auto c_num_records_per_join = static_cast<size_t>(std::cbrt(num_records));
     size_t num_j3_records = 0;
 
@@ -134,7 +148,7 @@ size_t insert_nested_join_data(size_t num_records = c_num_records)
 
             for (size_t z = 1; z <= c_num_records_per_join; z++)
             {
-                if (i * j * z >= 10000)
+                if (i * j * z >= c_max_insertion_single_txn_rel)
                 {
                     gaia::db::commit_transaction();
                     gaia::db::begin_transaction();
@@ -162,7 +176,7 @@ TEST_F(test_read_perf_rel, nested_joins)
         clear_database();
         const size_t num_j3_records = insert_nested_join_data(num_records);
 
-        auto work = [num_j3_records]() {
+        benchmark_fn_t work_fn = [num_j3_records]() {
             gaia::db::begin_transaction();
 
             size_t i = 0;
@@ -184,7 +198,7 @@ TEST_F(test_read_perf_rel, nested_joins)
 
         bool clear_db_after_each_iteration = false;
         run_performance_test(
-            work,
+            work_fn,
             clear_database,
             gaia_fmt::format("simple_table_t::table_scan num_records:{}", num_records),
             clear_db_after_each_iteration,
