@@ -23,6 +23,11 @@ int64_t gaia::common::timer_t::get_duration(steady_clock::time_point& start_time
     return duration_cast<nanoseconds>(finish_time - start_time).count();
 }
 
+int64_t gaia::common::timer_t::get_duration(steady_clock::time_point& start_time, steady_clock::time_point& finish_time)
+{
+    return duration_cast<nanoseconds>(finish_time - start_time).count();
+}
+
 int64_t gaia::common::timer_t::get_function_duration(std::function<void()> fn)
 {
     auto start_time = steady_clock::now();
