@@ -65,7 +65,7 @@ TEST(common, retail_assert_perf)
         {
             ASSERT_PRECONDITION(number >= 0, gaia_fmt::format("Concatenating a string {}", number).c_str());
         }
-        catch (retail_assertion_failure& ex)
+        catch (retail_assertion_failure& e)
         {
         }
     }

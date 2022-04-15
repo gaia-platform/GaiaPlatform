@@ -79,12 +79,12 @@ public:
 
     static void load_data(uint64_t total_size_bytes, bool kill_server_during_load);
 
-    static int get_count();
+    static size_t get_count();
 
-    static void delete_all(int initial_record_count);
+    static void delete_all(size_t initial_record_count);
 
     static void load_modify_recover_test(
-        uint64_t load_size_bytes, int crash_validate_loop_count, bool kill_during_workload);
+        size_t load_size_bytes, size_t crash_validate_loop_count, bool kill_during_workload);
 
     static void ensure_uncommitted_value_absent_on_restart_and_commit_new_txn_test();
 
@@ -210,7 +210,7 @@ string recovery_test::generate_string(size_t length_in_bytes)
 void recovery_test::modify_data()
 {
     std::set<gaia_id_t> to_delete_set;
-    for (size_t i = 0; i < s_employee_map.size() / 2; i++)
+    for (size_t i = 0; i < s_employee_map.size() / 2; ++i)
     {
         begin_transaction();
         auto to_update = s_employee_map.find(get_random_map_key(s_employee_map));
@@ -263,12 +263,12 @@ void recovery_test::load_data(uint64_t total_size_bytes, bool kill_server_during
     cout << "Loading data: Total number of transactions " << number_of_transactions << endl;
 
     // Load data in multiple transactions.
-    for (uint64_t txn_id = 1; txn_id <= number_of_transactions; txn_id++)
+    for (uint64_t txn_id = 1; txn_id <= number_of_transactions; ++txn_id)
     {
         // Load a batch per transaction.
         std::map<gaia_id_t, employee_copy_t> temp_employee_map;
         begin_transaction();
-        for (uint64_t batch_count = 1; batch_count <= c_load_batch_size; batch_count++)
+        for (size_t batch_count = 1; batch_count <= c_load_batch_size; ++batch_count)
         {
             // Insert row.
             auto e = generate_employee_record();
@@ -284,8 +284,8 @@ void recovery_test::load_data(uint64_t total_size_bytes, bool kill_server_during
         ASSERT_EQ(temp_employee_map.size(), 0);
 
         // Crash during load.
-        const uint8_t count_crash = 5;
-        if (kill_server_during_load && txn_id % count_crash == 0)
+        constexpr size_t c_count_crash = 5;
+        if (kill_server_during_load && txn_id % c_count_crash == 0)
         {
             cout << "Crash during load" << endl;
             end_session();
@@ -295,8 +295,8 @@ void recovery_test::load_data(uint64_t total_size_bytes, bool kill_server_during
             validate_data();
         }
 
-        const uint8_t count_tx_interval = 25;
-        if (txn_id % count_tx_interval == 0)
+        constexpr size_t c_count_tx_interval = 25;
+        if (txn_id % c_count_tx_interval == 0)
         {
             cout << "Loading data: Executed " << txn_id << " transactions ..." << endl;
         }
@@ -305,23 +305,23 @@ void recovery_test::load_data(uint64_t total_size_bytes, bool kill_server_during
     cout << "Load completed for " << s_employee_map.size() << " records." << endl;
 }
 
-int recovery_test::get_count()
+size_t recovery_test::get_count()
 {
-    int total_count = 0;
+    size_t total_count = 0;
     begin_transaction();
     for (auto employee : employee_t::list())
     {
-        total_count++;
+        ++total_count;
     }
     commit_transaction();
     return total_count;
 }
 
-void recovery_test::delete_all(int initial_record_count)
+void recovery_test::delete_all(size_t initial_record_count)
 {
     cout << "Deleting all records" << endl;
     begin_transaction();
-    int total_count = 0;
+    size_t total_count = 0;
 
     // Cache entries to delete.
     std::set<gaia_id_t> to_delete;
@@ -333,7 +333,7 @@ void recovery_test::delete_all(int initial_record_count)
     cout << "To delete " << total_count << " records " << endl;
     commit_transaction();
 
-    int count = 0;
+    size_t count = 0;
 
     while (true)
     {
@@ -350,7 +350,7 @@ void recovery_test::delete_all(int initial_record_count)
             {
                 continue;
             }
-            count++;
+            ++count;
             s_employee_map.erase(id);
             to_delete.erase(id);
         }
@@ -366,9 +366,10 @@ void recovery_test::delete_all(int initial_record_count)
     validate_data();
 }
 
-void recovery_test::load_modify_recover_test(uint64_t load_size_bytes, int crash_validate_loop_count, bool kill_during_workload)
+void recovery_test::load_modify_recover_test(
+    size_t load_size_bytes, size_t crash_validate_loop_count, bool kill_during_workload)
 {
-    int initial_record_count;
+    size_t initial_record_count;
     s_server.start();
     begin_session();
     initial_record_count = get_count();
@@ -378,7 +379,7 @@ void recovery_test::load_modify_recover_test(uint64_t load_size_bytes, int crash
     end_session();
 
     // Restart server, modify & validate data.
-    for (int i = 0; i < crash_validate_loop_count; i++)
+    for (size_t i = 0; i < crash_validate_loop_count; ++i)
     {
         s_server.restart();
         begin_session();
@@ -481,7 +482,7 @@ TEST_F(recovery_test, reference_update_test)
         // Insert some phone records.
         const size_t count_rows = 10;
         auto_transaction_t txn;
-        for (size_t i = 0; i < count_rows; i++)
+        for (size_t i = 0; i < count_rows; ++i)
         {
             phone_writer w;
             w.phone_number = generate_string(c_field_size_bytes);
@@ -539,7 +540,7 @@ TEST_F(recovery_test, reference_update_test)
 
 TEST_F(recovery_test, reference_create_delete_test_new)
 {
-    constexpr int c_num_children = 10;
+    constexpr size_t c_num_children = 10;
     gaia_id_t parent_id;
     std::vector<gaia_id_t> children_ids{};
 
@@ -561,7 +562,7 @@ TEST_F(recovery_test, reference_create_delete_test_new)
         parent_id = parent.id();
 
         // Create the children.
-        for (int i = 0; i < c_num_children; i++)
+        for (size_t i = 0; i < c_num_children; ++i)
         {
             gaia_ptr_t child = create_object(patient_table_type, "John Doe " + std::to_string(i));
             gaia_ptr::insert_into_reference_container(parent, child.id(), c_first_patient_offset);
@@ -597,7 +598,7 @@ TEST_F(recovery_test, reference_create_delete_test_new)
         ASSERT_EQ(c_num_children, children_ids.size());
 
         // Delete the children.
-        for (int i = 0; i < c_num_children; i++)
+        for (size_t i = 0; i < c_num_children; ++i)
         {
             gaia_id_t child_id = children_ids[i];
 
@@ -703,12 +704,14 @@ TEST_F(recovery_test, load_and_recover_test)
     // Load & Recover test - with data size less than write buffer size;
     // All writes will be confined to the WAL & will not make it to SST (DB binary file)
     // Sigkill server.
-    const uint64_t load_size = 0.1 * 1024 * 1024;
-    load_modify_recover_test(load_size, 2, true);
+    constexpr size_t c_load_size = 0.1 * 1024 * 1024;
+    constexpr size_t c_crash_validate_loop_count = 2;
+    load_modify_recover_test(c_load_size, c_crash_validate_loop_count, true);
 
     // Load (more data) & Recover test - with data size greater than write buffer size.
     // Writes will exist in both the WAL & SST files.
     // TODO - Test is switched off as it takes some time to run. Run on teamcity.
-    // const uint64_t load_size = 16 * 1024 * 1024;
-    // load_modify_recover_test(load_size, 1, true);
+    // constexpr size_t c_load_size = 16 * 1024 * 1024;
+    // constexpr size_t c_crash_validate_loop_count = 1;
+    // load_modify_recover_test(c_load_size, c_crash_validate_loop_count, true);
 }
