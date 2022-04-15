@@ -813,8 +813,7 @@ void modify_state_t::initialize_payload()
         // Set current payload to a copy of the serialization template bits.
         m_current_payload = new vector<uint8_t>(
             serialization_template->data(),
-            serialization_template->data()
-                + serialization_template->size());
+            serialization_template->data() + serialization_template->size());
 
         // Get a pointer to the binary schema.
         // We only need to do this on the first call.
