@@ -386,6 +386,46 @@ function(translate_ruleset_internal)
   target_link_libraries(${ARG_LIB_NAME} PUBLIC gaia_direct ${ARG_DAC_LIBRARY})
 endfunction()
 
+function(add_example)
+  set(options "")
+  set(oneValueArgs NAME LIB_NAME DDL_FILE DB_NAME RULESET_FILE SOURCE_FILES)
+  set(multiValueArgs ARG_SOURCE_FILES)
+  cmake_parse_arguments("ARG" "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  check_param(ARG_NAME)
+  check_param(ARG_DDL_FILE)
+  check_param(ARG_DB_NAME)
+  check_param(ARG_SOURCE_FILES)
+
+  process_schema_internal(
+    DDL_FILE ${ARG_DDL_FILE}
+    DATABASE_NAME ${ARG_DB_NAME})
+
+  # Not all the examples have a ruleset file.
+  if(DEFINED ARG_RULESET_FILE)
+    get_filename_component(RULESET_NAME ${ARG_RULESET_FILE} NAME)
+    string(REPLACE ".ruleset" "" RULESET_NAME ${RULESET_NAME})
+
+    translate_ruleset_internal(
+      RULESET_FILE ${ARG_RULESET_FILE}
+      DAC_LIBRARY "dac_${ARG_DB_NAME}"
+    )
+
+    list(APPEND ARG_SOURCE_FILES ${GAIA_GENERATED_CODE}/rules/${RULESET_NAME}/${RULESET_NAME}_ruleset.cpp)
+  endif()
+
+  add_executable(${ARG_NAME}
+    ${ARG_SOURCE_FILES}
+  )
+
+  target_link_libraries(${ARG_NAME}
+    gaia
+    "dac_${ARG_DB_NAME}"
+    Threads::Threads
+  )
+  target_include_directories(${ARG_NAME} PRIVATE ${GAIA_INC})
+endfunction()
+
 # Stop CMake if the given parameter was not passed to the function.
 macro(check_param PARAM)
   if(NOT DEFINED ${PARAM})
