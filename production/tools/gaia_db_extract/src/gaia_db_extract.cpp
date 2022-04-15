@@ -89,38 +89,6 @@ static json_t to_json(gaia_database_t db)
     return json;
 }
 
-// To make sure that gaia_db_extract() can issue a warning if not initialized.
-static bool g_cache_initialized = false;
-
-bool gaia_db_extract_initialize()
-{
-    begin_transaction();
-
-    for (auto table_view : catalog_core::list_tables())
-    {
-        string table_name(table_view.name());
-
-        auto type_information = make_unique<type_information_t>();
-
-        initialize_type_information_from_binary_schema(
-            type_information.get(),
-            table_view.binary_schema()->data(),
-            table_view.binary_schema()->size());
-
-        type_information.get()->set_serialization_template(
-            table_view.serialization_template()->data(),
-            table_view.serialization_template()->size());
-
-        // It's okay for the information to exist after the first initialization.
-        type_cache_t::get()->set_type_information(table_view.table_type(), type_information);
-    }
-
-    commit_transaction();
-
-    g_cache_initialized = true;
-    return g_cache_initialized;
-}
-
 static string dump_catalog()
 {
     stringstream catalog_dump;
@@ -202,12 +170,6 @@ static string dump_rows(string database, string table, uint64_t start_after, uin
     stringstream row_dump;
     json_t rows = json_t{};
 
-    if (!g_cache_initialized)
-    {
-        fprintf(stderr, "API not initialized. Call gaia_db_extract_initialize() first.\n");
-        return c_empty_object;
-    }
-
     begin_transaction();
 
     // Locate the requested database.
@@ -216,8 +178,9 @@ static string dump_rows(string database, string table, uint64_t start_after, uin
         // Make sure the requested table is in this databaser..
         for (const auto& table_object : database_object.gaia_tables().where(gaia_table_expr::name == table))
         {
+            gaia_id_t table_id = table_object.gaia_id();
             gaia_type_t table_type = table_object.type();
-            if (!table_iterator.initialize_scan(table_type, start_after))
+            if (!table_iterator.initialize_scan(table_id, table_type, start_after))
             {
                 terminate = true;
                 break;
