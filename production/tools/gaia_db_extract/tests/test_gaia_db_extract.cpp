@@ -50,8 +50,6 @@ TEST_F(gaia_db_extract_test, extract_catalog)
     create_database("extract_test", false);
     create_table(c_table_name, test_table_fields);
 
-    // The gaia_db_extract_initialize() is actually only needed if rows must be found
-    // through reflection. So this should work.
     auto extracted_catalog = gaia_db_extract("", "", c_start_at_first, c_row_limit_unlimited);
     size_t field_count = 0;
 
@@ -110,9 +108,6 @@ TEST_F(gaia_db_extract_test, extract_catalog_rows)
         {"", c_table_name, "children", "", c_table_name, relationship_cardinality_t::many},
         {"", c_table_name, "parent", "", c_table_name, relationship_cardinality_t::one},
         false);
-
-    // Initialization is needed when using reflection.
-    ASSERT_TRUE(gaia_db_extract_initialize());
 
     // Fetch one row at a time, from the beginning.
     uint64_t row_id = c_start_at_first;
