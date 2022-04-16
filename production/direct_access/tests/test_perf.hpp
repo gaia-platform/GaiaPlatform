@@ -22,6 +22,9 @@ static const size_t c_num_iterations = 1;
 // This is a hard limit imposed by the db architecture.
 static const size_t c_max_insertion_single_txn = (1UL << 16) - 1;
 
+// Type declaration for the function that contains the benchmarking logic.
+using benchmark_fn_t = std::function<void()>;
+
 size_t get_duration(std::function<void()> fn)
 {
     int64_t duration = g_timer_t::get_function_duration(fn);
