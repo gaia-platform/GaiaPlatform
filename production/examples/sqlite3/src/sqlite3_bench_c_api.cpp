@@ -18,7 +18,7 @@
 
 #include "timer.hpp"
 
-const constexpr size_t c_num_records = 100;
+const constexpr size_t c_num_records = 1000000;
 const constexpr size_t c_num_iterations = 5;
 const constexpr size_t c_max_insertion_single_txn = c_num_records > 1000000 ? c_num_records / 10 : c_num_records;
 

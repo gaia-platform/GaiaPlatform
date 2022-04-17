@@ -65,6 +65,8 @@ target_include_directories(sqlite3_bench_c_api PRIVATE
 
 target_link_libraries(sqlite3_bench_c_api PRIVATE
   SQLite::SQLite3
+#  /usr/lib/x86_64-linux-gnu/libsqlite3.a
+#  dl
   gaia_common
   gtest_main
 )
