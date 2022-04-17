@@ -19,7 +19,6 @@ message(VERBOSE "GAIA_PAYLOAD_TYPES_INCLUDES=${GAIA_PAYLOAD_TYPES_INCLUDES}")
 # Our main target.
 add_library(gaia_payload_types STATIC
   src/data_holder.cpp
-  src/type_cache.cpp
   src/field_access.cpp
   src/data_buffer.cpp)
 configure_gaia_target(gaia_payload_types)
