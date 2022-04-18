@@ -105,7 +105,7 @@ TEST_F(test_read_perf_rel, single_join)
         for (const auto& parent : table_parent_t::list())
         {
             i++;
-            for (auto& child : parent.children())
+            for ([[maybe_unused]] auto& child : parent.children())
             {
                 i++;
             }
@@ -184,7 +184,7 @@ TEST_F(test_read_perf_rel, nested_joins)
             {
                 for (const auto& j2 : j1.j2())
                 {
-                    for (const auto& j3 : j2.j3())
+                    for ([[maybe_unused]] const auto& j3 : j2.j3())
                     {
                         i++;
                     }
