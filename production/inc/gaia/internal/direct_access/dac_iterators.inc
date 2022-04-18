@@ -241,7 +241,14 @@ bool dac_set_iterator_t<T_child>::operator!=(const dac_set_iterator_t& rhs) cons
 template <typename T_child>
 dac_set_iterator_t<T_child> value_linked_reference_container_t<T_child>::begin() const
 {
-    gaia::common::gaia_id_t id = dac_db_t::get_reference(m_anchor_id, gaia::common::c_ref_anchor_first_child_offset);
+    gaia::common::gaia_id_t id;
+
+    // The anchor could be invalid if there are no children in the chain.
+    if (m_anchor_id.is_valid())
+    {
+        id = dac_db_t::get_reference(m_anchor_id, gaia::common::c_ref_anchor_first_child_offset);
+    }
+
     gaia::common::reference_offset_t next_offset = m_anchor_offset + 1;
     while (id.is_valid())
     {

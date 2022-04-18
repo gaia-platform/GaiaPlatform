@@ -109,7 +109,7 @@ private:
     static inline server_config_t s_server_conf{};
 
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
-    static constexpr size_t c_stream_batch_size{1ULL << 10};
+    static constexpr size_t c_stream_batch_size{1UL << 10};
 
     // This is necessary to avoid VM exhaustion in the worst case where all
     // sessions are opened from a single process (we remap the 256GB data
@@ -119,7 +119,7 @@ private:
     // of error, hence the choice of 128 for the session limit).
     // REVIEW: How much could we relax this limit if we revert to per-process
     // mappings of the data segment?
-    static constexpr size_t c_session_limit{1ULL << 7};
+    static constexpr size_t c_session_limit{1UL << 7};
 
     static inline int s_server_shutdown_eventfd = -1;
     static inline int s_listening_socket = -1;

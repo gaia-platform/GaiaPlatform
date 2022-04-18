@@ -95,7 +95,7 @@ TEST(bitmap, find_first_unset_bit)
         size_t bit_index_in_word = i % c_uint64_bit_count;
         if (bit_index_in_word != 0)
         {
-            bitmap[i / c_uint64_bit_count] = (1ULL << bit_index_in_word) - 1;
+            bitmap[i / c_uint64_bit_count] = (1UL << bit_index_in_word) - 1;
         }
 
         ASSERT_EQ(i, find_first_unset_bit(bitmap, c_bitmap_size_in_words));
@@ -145,7 +145,7 @@ TEST(bitmap, limit)
         }
         else
         {
-            bitmap = (1ULL << i) - 1;
+            bitmap = (1UL << i) - 1;
         }
 
         if (i < end_limit_bit_index)
@@ -185,7 +185,7 @@ TEST(bitmap, count_set_bits)
         size_t bit_index_in_word = i % c_uint64_bit_count;
         if (bit_index_in_word != 0)
         {
-            bitmap[i / c_uint64_bit_count] = (1ULL << bit_index_in_word) - 1;
+            bitmap[i / c_uint64_bit_count] = (1UL << bit_index_in_word) - 1;
         }
 
         ASSERT_EQ(i, count_set_bits(bitmap, c_bitmap_size_in_words));

@@ -144,9 +144,6 @@ protected:
 // Store rows, convert them to JSON, scan through them as multiple blocks.
 TEST_F(row_extract_test, read_blocks)
 {
-    // Initialization is needed when using reflection.
-    ASSERT_TRUE(gaia_db_extract_initialize());
-
     // Try this with a number of permutations. The number of rows created goes from
     // 0 to over 1K. The test will scan the created rows in blocks of varying sizes
     // ranging from 0 to a few to unlimited.
@@ -182,9 +179,6 @@ constexpr double double_tolerance = 0.00001;
 // Using amr_swarm DDL because of it's variety of data types.
 TEST_F(row_field_values_test, verify_field_values)
 {
-    // Initialization is needed when using reflection.
-    ASSERT_TRUE(gaia_db_extract_initialize());
-
     // Using configuration_t.
     {
         begin_transaction();

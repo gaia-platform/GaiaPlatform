@@ -249,3 +249,25 @@ TEST_F(auto_connect_test, delete_parent)
     ASSERT_EQ(passenger_t::get(spock_id).return_flight().gaia_id(), flight_id);
     ASSERT_EQ(passenger_t::get(kirk_id).return_flight().gaia_id(), flight_id);
 }
+
+TEST_F(auto_connect_test, disconnect_delete_test)
+{
+    // Regression test for: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2138
+    gaia::db::begin_transaction();
+    flight_t flight = flight_t::get(flight_t::insert_row(1, {}));
+    passenger_t passenger_1 = passenger_t::get(passenger_t::insert_row("Nicola", "Franco", 1));
+    passenger_t passenger_2 = passenger_t::get(passenger_t::insert_row("Vania", "Smith", 1));
+    gaia::db::commit_transaction();
+
+    gaia::db::begin_transaction();
+    passenger_1.delete_row(true);
+    int count = flight.return_passengers().size();
+    ASSERT_EQ(count, 1);
+    gaia::db::commit_transaction();
+
+    gaia::db::begin_transaction();
+    passenger_2.delete_row(true);
+    count = flight.return_passengers().size();
+    ASSERT_EQ(count, 0);
+    gaia::db::commit_transaction();
+}

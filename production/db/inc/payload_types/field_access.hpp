@@ -10,10 +10,10 @@
 
 #include <flatbuffers/reflection.h>
 
+#include "gaia/common.hpp"
 #include "gaia/exception.hpp"
 
 #include "data_holder.hpp"
-#include "type_cache.hpp"
 
 namespace gaia
 {
@@ -85,16 +85,6 @@ public:
 // an invalid_schema() exception will be thrown.
 ///////////////////////////////////////////////////////////////////////////////
 
-// Parse the binary schema and insert its Field definitions
-// into the provided type_information.
-//
-// Note that binary schemas that we get passed right now are temporary copies,
-// so they need to be copied into the type information as well.
-void initialize_type_information_from_binary_schema(
-    type_information_t* type_information,
-    const uint8_t* binary_schema,
-    size_t binary_schema_size);
-
 // Verify that the serialized data matches the schema.
 bool verify_data_schema(
     const uint8_t* serialized_data,
@@ -105,68 +95,54 @@ bool verify_data_schema(
 //
 // This function handles numeric-type fields and numeric-type-array fields.
 bool are_field_values_equal(
-    gaia::common::gaia_type_t type_id,
     const uint8_t* first_serialized_data,
     const uint8_t* second_serialized_data,
     const uint8_t* binary_schema,
-    size_t binary_schema_size,
     gaia::common::field_position_t field_position);
 
 // Get the value of a field.
 //
 // This function handles both numeric-type fields and string-type fields.
 data_holder_t get_field_value(
-    gaia::common::gaia_type_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
-    size_t binary_schema_size,
     gaia::common::field_position_t field_position);
 
 // Set the value of a numeric-type field.
 bool set_field_value(
-    gaia::common::gaia_type_t type_id,
     uint8_t* serialized_data,
     const uint8_t* binary_schema,
-    size_t binary_schema_size,
     gaia::common::field_position_t field_position,
     const data_holder_t& value);
 
 // Set the value of a string-type field.
 void set_field_value(
-    gaia::common::gaia_type_t type_id,
     std::vector<uint8_t>& serialized_data,
     const uint8_t* binary_schema,
-    size_t binary_schema_size,
     gaia::common::field_position_t field_position,
     const data_holder_t& value);
 
 // Set the value of a string-type field.
 std::vector<uint8_t> set_field_value(
-    gaia::common::gaia_type_t type_id,
     const uint8_t* serialized_data,
     size_t serialized_data_size,
     const uint8_t* binary_schema,
-    size_t binary_schema_size,
     gaia::common::field_position_t field_position,
     const data_holder_t& value);
 
 // Get the size of an array-type field.
 // This will return std::numeric_limits<size_t>::max() if the array field is null.
 size_t get_field_array_size(
-    gaia::common::gaia_type_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
-    size_t binary_schema_size,
     gaia::common::field_position_t field_position);
 
 // Set the size of an array-type field.
 //
 // If the array is expanded, new entries will be set to 0.
 void set_field_array_size(
-    gaia::common::gaia_type_t type_id,
     std::vector<uint8_t>& serialized_data,
     const uint8_t* binary_schema,
-    size_t binary_schema_size,
     gaia::common::field_position_t field_position,
     size_t new_size);
 
@@ -174,11 +150,9 @@ void set_field_array_size(
 //
 // If the array is expanded, new entries will be set to 0.
 std::vector<uint8_t> set_field_array_size(
-    gaia::common::gaia_type_t type_id,
     const uint8_t* serialized_data,
     size_t serialized_data_size,
     const uint8_t* binary_schema,
-    size_t binary_schema_size,
     gaia::common::field_position_t field_position,
     size_t new_size);
 
@@ -188,10 +162,8 @@ std::vector<uint8_t> set_field_array_size(
 //
 // An exception will be thrown if the index is out of bounds.
 data_holder_t get_field_array_element(
-    gaia::common::gaia_type_t type_id,
     const uint8_t* serialized_data,
     const uint8_t* binary_schema,
-    size_t binary_schema_size,
     gaia::common::field_position_t field_position,
     size_t array_index);
 
@@ -199,10 +171,8 @@ data_holder_t get_field_array_element(
 //
 // An exception will be thrown if the index is out of bounds.
 void set_field_array_element(
-    gaia::common::gaia_type_t type_id,
     uint8_t* serialized_data,
     const uint8_t* binary_schema,
-    size_t binary_schema_size,
     gaia::common::field_position_t field_position,
     size_t array_index,
     const data_holder_t& value);
@@ -211,10 +181,8 @@ void set_field_array_element(
 //
 // An exception will be thrown if the index is out of bounds.
 void set_field_array_element(
-    gaia::common::gaia_type_t type_id,
     std::vector<uint8_t>& serialized_data,
     const uint8_t* binary_schema,
-    size_t binary_schema_size,
     gaia::common::field_position_t field_position,
     size_t array_index,
     const data_holder_t& value);
@@ -223,11 +191,9 @@ void set_field_array_element(
 //
 // An exception will be thrown if the index is out of bounds.
 std::vector<uint8_t> set_field_array_element(
-    gaia::common::gaia_type_t type_id,
     const uint8_t* serialized_data,
     size_t serialized_data_size,
     const uint8_t* binary_schema,
-    size_t binary_schema_size,
     gaia::common::field_position_t field_position,
     size_t array_index,
     const data_holder_t& value);

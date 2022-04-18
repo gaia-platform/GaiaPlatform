@@ -3512,8 +3512,8 @@ public:
         const auto* expression = result.Nodes.getNodeAs<CXXMemberCallExpr>("removeCall");
         if (expression != nullptr)
         {
-            m_rewriter.ReplaceText(SourceRange(expression->getExprLoc(), expression->getEndLoc()), "delete_row()");
-            g_rewriter_history.push_back({SourceRange(expression->getExprLoc(), expression->getEndLoc()), "delete_row()", replace_text});
+            m_rewriter.ReplaceText(SourceRange(expression->getExprLoc(), expression->getExprLoc().getLocWithOffset(1)), "delete_row");
+            g_rewriter_history.push_back({SourceRange(expression->getExprLoc(), expression->getExprLoc().getLocWithOffset(1)), "delete_row", replace_text});
         }
         else
         {

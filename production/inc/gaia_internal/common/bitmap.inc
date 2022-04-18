@@ -112,7 +112,7 @@ static void find_bit_word_and_mask(
     size_t bit_index_within_word = bit_index % common::c_uint64_bit_count;
 
     word = &bitmap[word_index];
-    mask = 1ULL << bit_index_within_word;
+    mask = 1UL << bit_index_within_word;
 }
 
 static bool is_bit_set(
@@ -174,7 +174,7 @@ static void safe_set_bit_range_value(
     {
         uint64_t mask = (bit_count == common::c_uint64_bit_count)
             ? c_all_set_word
-            : ((1ULL << bit_count) - 1) << start_bit_index_within_word;
+            : ((1UL << bit_count) - 1) << start_bit_index_within_word;
         safe_apply_mask_to_word(bitmap[start_word_index], mask, value);
     }
     else
@@ -183,7 +183,7 @@ static void safe_set_bit_range_value(
         size_t count_bits_in_first_word = common::c_uint64_bit_count - start_bit_index_within_word;
         uint64_t start_word_mask = (count_bits_in_first_word == common::c_uint64_bit_count)
             ? c_all_set_word
-            : ((1ULL << count_bits_in_first_word) - 1) << start_bit_index_within_word;
+            : ((1UL << count_bits_in_first_word) - 1) << start_bit_index_within_word;
         safe_apply_mask_to_word(bitmap[start_word_index], start_word_mask, value);
 
         // Handle any words for which we have to set all bits.
@@ -199,7 +199,7 @@ static void safe_set_bit_range_value(
         size_t count_bits_in_last_word = end_bit_index_within_word + 1;
         uint64_t end_word_mask = (count_bits_in_last_word == common::c_uint64_bit_count)
             ? c_all_set_word
-            : ((1ULL << count_bits_in_last_word) - 1);
+            : ((1UL << count_bits_in_last_word) - 1);
         safe_apply_mask_to_word(bitmap[end_word_index], end_word_mask, value);
     }
 }
@@ -239,7 +239,7 @@ static size_t count_set_bits(
         // then first mask out the bits that we are supposed to ignore before doing the counting.
         if (word_index == end_word_index_exclusive - 1 && end_bit_index_in_word_exclusive != common::c_uint64_bit_count)
         {
-            uint64_t mask = (1ULL << end_bit_index_in_word_exclusive) - 1;
+            uint64_t mask = (1UL << end_bit_index_in_word_exclusive) - 1;
             word &= mask;
         }
 
@@ -284,7 +284,7 @@ static size_t find_first_unset_bit(
         // then first mask out the bits that we are supposed to ignore before doing any check.
         if (word_index == end_word_index_exclusive - 1 && end_bit_index_in_word_exclusive != common::c_uint64_bit_count)
         {
-            uint64_t mask = (1ULL << end_bit_index_in_word_exclusive) - 1;
+            uint64_t mask = (1UL << end_bit_index_in_word_exclusive) - 1;
             // Because we're looking out for unset bits,
             // the masking is done by setting the irrelevant bits to 1.
             word |= ~mask;

@@ -11,7 +11,6 @@
 #include "gaia_internal/exceptions.hpp"
 
 #include "db_client.hpp"
-#include "db_hash_map.hpp"
 #include "db_helpers.hpp"
 
 #ifdef DEBUG
@@ -115,8 +114,16 @@ gaia_ptr_t gaia_ptr_t::create_no_txn(gaia_id_t id, gaia_type_t type, reference_o
     //  the db_object_t should either be initialized before and passed in
     //  or it should be initialized inside the constructor.
     gaia_locator_t locator = allocate_locator(type);
-    hash_node_t* hash_node = db_hash_map::insert(id);
-    hash_node->locator = locator;
+    // register_locator_for_id() returns false if the ID was already present in
+    // the map.
+    if (!register_locator_for_id(id, locator))
+    {
+        throw duplicate_object_id_internal(id);
+    }
+    // This is an expensive check in a hot path.
+#ifdef DEBUG
+    ASSERT_INVARIANT(id_to_locator(id) == locator, "Cannot find locator for just-inserted ID!");
+#endif
     allocate_object(locator, total_payload_size);
     gaia_ptr_t obj(locator);
     db_object_t* obj_ptr = obj.to_ptr();

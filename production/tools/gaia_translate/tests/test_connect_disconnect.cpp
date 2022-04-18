@@ -274,3 +274,24 @@ TEST_F(test_connect_disconnect, test_clear_child_parent_1_n)
 
     gaia::db::commit_transaction();
 }
+
+TEST_F(test_connect_disconnect, force_delete)
+{
+    gaia::rules::subscribe_ruleset("test_force_delete");
+
+    gaia::db::begin_transaction();
+    major_t major = major_t::get(major_t::insert_row("test"));
+    gaia_id_t course1_id = course_t::insert_row("course001", "test1", 45);
+    major.courses().connect(course1_id);
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+    gaia::db::begin_transaction();
+
+    int major_count = major_t::list().size();
+    int course_count = course_t::list().size();
+
+    gaia::db::commit_transaction();
+    ASSERT_EQ(major_count, 0);
+    ASSERT_EQ(course_count, 1);
+}

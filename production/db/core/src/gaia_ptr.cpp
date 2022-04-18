@@ -10,7 +10,6 @@
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/type_metadata.hpp"
 
-#include "db_hash_map.hpp"
 #include "db_helpers.hpp"
 #include "type_index.hpp"
 #include "type_index_cursor.hpp"
@@ -37,7 +36,7 @@ gaia_ptr_t gaia_ptr_t::from_locator(
 gaia_ptr_t gaia_ptr_t::from_gaia_id(
     common::gaia_id_t id)
 {
-    return gaia_ptr_t(db_hash_map::find(id));
+    return gaia_ptr_t(id_to_locator(id));
 }
 
 gaia_ptr_t gaia_ptr_t::find_first(common::gaia_type_t type)
@@ -65,11 +64,11 @@ gaia_ptr_t gaia_ptr_t::find_next() const
 
 gaia_ptr_t gaia_ptr_t::find_next(gaia_type_t type) const
 {
-    gaia::db::counters_t* counters = gaia::db::get_counters();
     gaia_ptr_t next_ptr = *this;
 
     // Search for objects of this type within the range of used locators.
-    while ((++next_ptr.m_locator).is_valid() && next_ptr.m_locator <= counters->last_locator)
+    gaia_locator_t last_locator = get_last_locator();
+    while ((++next_ptr.m_locator).is_valid() && next_ptr.m_locator <= last_locator)
     {
         if (next_ptr.is(type))
         {

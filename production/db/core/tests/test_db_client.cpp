@@ -141,7 +141,6 @@ TEST_F(db_client_test, gaia_ptr_no_transaction_fail)
 
     // Create with existent type fail
     EXPECT_THROW(gaia_ptr_t::create(99999, type1, 5, 0, ""), no_open_transaction);
-    EXPECT_THROW(gaia_ptr_t::from_gaia_id(node1_id), no_open_transaction);
     EXPECT_THROW(node1.id(), no_open_transaction);
     EXPECT_THROW(node1.type(), no_open_transaction);
     EXPECT_THROW(node1.data_size(), no_open_transaction);
