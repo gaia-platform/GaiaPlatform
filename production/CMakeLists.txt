@@ -369,8 +369,6 @@ add_subdirectory(schemas)
 # Tools.
 add_subdirectory(tools)
 
-# Examples.
-add_subdirectory(examples)
 
 if(BUILD_GAIA_SDK)
   unset(CMAKE_CXX_CLANG_TIDY)
@@ -378,6 +376,9 @@ if(BUILD_GAIA_SDK)
   if(ENABLE_CLANG_TIDY)
     set(CMAKE_CXX_CLANG_TIDY clang-tidy)
   endif()
+
+  # Examples.
+  add_subdirectory(examples)
 endif()
 
 # Query processors.
