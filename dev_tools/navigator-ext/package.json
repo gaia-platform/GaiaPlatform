@@ -26,6 +26,14 @@
                     "light": "resources/light/boolean.svg",
                     "dark": "resources/dark/boolean.svg"
                 }
+            },
+            {
+                "command": "databases.refreshEntry",
+                "title": "Refresh",
+                "icon": {
+                    "light": "resources/light/refresh.svg",
+                    "dark": "resources/dark/refresh.svg"
+                }
             }
         ],
         "viewsWelcome": [
@@ -52,6 +60,13 @@
             ]
         },
         "menus": {
+            "view/title" : [
+                {
+                    "command": "databases.refreshEntry",
+                    "when": "view == databases",
+                    "group": "navigation"
+                }
+            ],
             "view/item/context": [
                 {
                     "command": "databases.showRecords",

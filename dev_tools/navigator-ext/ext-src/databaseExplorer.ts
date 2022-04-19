@@ -3,8 +3,15 @@ import * as path from 'path';
 import { GaiaDataProvider } from './gaiaDataProvider';
 
 export class GaiaCatalogProvider implements vscode.TreeDataProvider<CatalogItem> {
-  constructor() {
+  private _onDidChangeTreeData: vscode.EventEmitter<CatalogItem | undefined | null> = new vscode.EventEmitter<CatalogItem | undefined | null>();
+  readonly onDidChangeTreeData: vscode.Event<CatalogItem | undefined | null> = this._onDidChangeTreeData.event;
 
+  constructor() {
+  }
+
+  refresh(): void {
+    GaiaDataProvider.clear();
+    this._onDidChangeTreeData.fire();
   }
 
   getTreeItem(element: CatalogItem): vscode.TreeItem {
@@ -34,7 +41,7 @@ export class GaiaCatalogProvider implements vscode.TreeDataProvider<CatalogItem>
       return new CatalogItem(
         vscode.TreeItemCollapsibleState.Collapsed,
         name, db_id, db_name, table_id, table_type, fields, column_id, position, type, is_array);
-    }
+  }
 
   private getCatalogItems(element?: CatalogItem): CatalogItem[] {
     // We only read databases -> tables -> columns.
@@ -44,6 +51,9 @@ export class GaiaCatalogProvider implements vscode.TreeDataProvider<CatalogItem>
     }
 
     var items = GaiaDataProvider.getDatabases();
+    if (!items) {
+      return [];
+    }
 
     // Return the databases if we were not passed a parent catalog item.
     if (!element) {

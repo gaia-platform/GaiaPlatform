@@ -10,19 +10,25 @@ export class GaiaDataProvider {
   constructor() {
   }
 
-  static getDatabases(refresh? : boolean) : any {
-    this.populateCatalog(refresh);
+  static getDatabases() : any {
+    this.populateCatalog();
     return this.exists() ? this.catalog.databases : undefined;
   }
 
-  static getTables(db_id : number, refresh? : boolean): void {
-    this.populateCatalog(refresh);
+  static getTables(db_id : number): void {
+    this.populateCatalog();
     return this.exists(db_id) ? this.catalog.databases[db_id].tables : undefined;
   }
 
-  static getFields(db_id : number, table_id: number, refresh? : boolean): void {
-    this.populateCatalog(refresh);
+  static getFields(db_id : number, table_id: number): void {
+    this.populateCatalog();
     return this.exists(db_id, table_id) ? this.catalog.databases[db_id].tables[table_id].fields : undefined;
+  }
+
+  // Wipe the catalog so that we force a refresh the next
+  // time we ask for data.
+  static clear() : void {
+    this.catalog = undefined;
   }
 
   // Never cache table data.
@@ -63,19 +69,20 @@ export class GaiaDataProvider {
       return undefined;
     }
 
-    const relationships = this.getRelationships(table);
-
     // Add the row_id to the columns list as a "generated column"
     const data = JSON.parse(child.stdout.toString());
     var cols = [{key: 'row_id', name : this.getGeneratedFieldName('row_id'), is_link : false}];
 
-    // Add any relationships as "generated columns"
-    for (var i = 0; i < relationships.length; i++) {
-      var relationship = relationships[i];
-      cols.push({
-        key: relationship.link_name,
-        name : this.getGeneratedFieldName(relationship.link_name), is_link : true
-      });
+    const relationships = this.getRelationships(table);
+    if (relationships) {
+      // Add any relationships as "generated columns"
+      for (var i = 0; i < relationships.length; i++) {
+        var relationship = relationships[i];
+        cols.push({
+          key: relationship.link_name,
+          name : this.getGeneratedFieldName(relationship.link_name), is_link : true
+        });
+      }
     }
 
     // Add the table's columns now.
@@ -175,9 +182,8 @@ export class GaiaDataProvider {
     return table.relationships;
   }
 
-  private static populateCatalog(refresh? : boolean ) {
-    refresh = refresh || false;
-    if (this.catalog && !refresh) {
+  private static populateCatalog() {
+    if (this.catalog) {
       return;
     }
 
