@@ -302,7 +302,7 @@ endfunction()
 #     schema headers.
 #     If not specified, translation will depend on the targets listed in
 #     ${GAIA_DIRECT_ACCESS_GENERATION_TARGETS}
-# - SKIP_LIB: Generates source only skipping the library cration.
+# - SKIP_LIB: Translates rulesets, skipping the library creation.
 function(translate_ruleset_internal)
   set(options "SKIP_LIB")
   set(oneValueArgs RULESET_FILE LIB_NAME TARGET_NAME DAC_LIBRARY GAIAT_CMD)
