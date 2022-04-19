@@ -37,35 +37,38 @@ add_example(
   SRC_FILES direct_access_vlr/direct_access_vlr.cpp
 )
 
-add_example(
-  NAME hello
-  DDL_FILE ${PROJECT_SOURCE_DIR}/hello/hello.ddl
-  DB_NAME hello
-  RULESET_FILE ${PROJECT_SOURCE_DIR}/hello/hello.ruleset
-  SRC_FILES hello/hello.cpp
-)
+# Examples that showcase the declarative language need gaiat.
+if(BUILD_GAIA_SDK)
+  add_example(
+    NAME hello
+    DDL_FILE ${PROJECT_SOURCE_DIR}/hello/hello.ddl
+    DB_NAME hello
+    RULESET_FILE ${PROJECT_SOURCE_DIR}/hello/hello.ruleset
+    SRC_FILES hello/hello.cpp
+  )
 
-add_example(
-  NAME incubator
-  DDL_FILE ${PROJECT_SOURCE_DIR}/incubator/incubator.ddl
-  DB_NAME incubator
-  RULESET_FILE ${PROJECT_SOURCE_DIR}/incubator/incubator.ruleset
-  SRC_FILES incubator/incubator.cpp
-)
+  add_example(
+    NAME incubator
+    DDL_FILE ${PROJECT_SOURCE_DIR}/incubator/incubator.ddl
+    DB_NAME incubator
+    RULESET_FILE ${PROJECT_SOURCE_DIR}/incubator/incubator.ruleset
+    SRC_FILES incubator/incubator.cpp
+  )
 
-add_example(
-  NAME rules
-  DDL_FILE ${PROJECT_SOURCE_DIR}/rules/clinic.ddl
-  DB_NAME clinic
-  RULESET_FILE ${PROJECT_SOURCE_DIR}/rules/clinic.ruleset
-  SRC_FILES "rules/clinic.cpp;rules/lesson_manager.cpp"
-  INC_DIRS ${PROJECT_SOURCE_DIR}/rules
-)
+  add_example(
+    NAME rules
+    DDL_FILE ${PROJECT_SOURCE_DIR}/rules/clinic.ddl
+    DB_NAME clinic
+    RULESET_FILE ${PROJECT_SOURCE_DIR}/rules/clinic.ruleset
+    SRC_FILES "rules/clinic.cpp;rules/lesson_manager.cpp"
+    INC_DIRS ${PROJECT_SOURCE_DIR}/rules
+  )
 
-add_example(
-  NAME rules_vlr
-  DDL_FILE ${PROJECT_SOURCE_DIR}/rules_vlr/rules_vlr.ddl
-  DB_NAME rules_vlr
-  RULESET_FILE ${PROJECT_SOURCE_DIR}/rules_vlr/rules_vlr.ruleset
-  SRC_FILES rules_vlr/rules_vlr.cpp
-)
+  add_example(
+    NAME rules_vlr
+    DDL_FILE ${PROJECT_SOURCE_DIR}/rules_vlr/rules_vlr.ddl
+    DB_NAME rules_vlr
+    RULESET_FILE ${PROJECT_SOURCE_DIR}/rules_vlr/rules_vlr.ruleset
+    SRC_FILES rules_vlr/rules_vlr.cpp
+  )
+endif()
