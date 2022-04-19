@@ -15,6 +15,7 @@
 #include "gaia_internal/db/type_metadata.hpp"
 #include "gaia_internal/exceptions.hpp"
 
+#include "db_caches.hpp"
 #include "db_client.hpp"
 #include "db_helpers.hpp"
 #include "field_access.hpp"
@@ -276,10 +277,32 @@ void auto_connect(
         return;
     }
 
-    for (auto field_position : candidate_fields)
+    if (caches::table_relationship_cache_t::get()->is_initialized())
     {
-        parent_side_auto_connect(id, table_id, references, payload, field_position);
-        child_side_auto_connect(id, table_id, references, payload, field_position);
+        // Check table_relationship_cache_t for the fields involved in relationships.
+        const auto& relationship_field_set = caches::table_relationship_cache_t::get()->get(table_id);
+        if (relationship_field_set.empty())
+        {
+            return;
+        }
+
+        // Only try to auto-connect fields actually involved in relationships.
+        for (auto field_position : candidate_fields)
+        {
+            if (relationship_field_set.find(field_position) != relationship_field_set.end())
+            {
+                parent_side_auto_connect(id, table_id, references, payload, field_position);
+                child_side_auto_connect(id, table_id, references, payload, field_position);
+            }
+        }
+    }
+    else
+    {
+        for (auto field_position : candidate_fields)
+        {
+            parent_side_auto_connect(id, table_id, references, payload, field_position);
+            child_side_auto_connect(id, table_id, references, payload, field_position);
+        }
     }
 }
 

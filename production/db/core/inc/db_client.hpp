@@ -99,6 +99,9 @@ public:
     get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr);
 
 private:
+    static inline bool s_are_db_caches_initialized{false};
+    static inline std::atomic<bool> s_are_db_caches_initializing{false};
+
     // These fields have transaction lifetime.
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
     thread_local static inline log_offset_t s_txn_log_offset = c_invalid_log_offset;
@@ -151,6 +154,9 @@ private:
 
 private:
     static void init_memory_manager();
+
+    static void try_init_db_caches();
+    static void init_db_caches();
 
     static void txn_cleanup();
 
