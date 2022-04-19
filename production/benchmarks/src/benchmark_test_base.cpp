@@ -1,6 +1,7 @@
-//
-// Created by simone on 4/19/22.
-//
+/////////////////////////////////////////////
+// Copyright (c) Gaia Platform LLC
+// All rights reserved.
+/////////////////////////////////////////////
 
 #include "benchmark_test_base.hpp"
 

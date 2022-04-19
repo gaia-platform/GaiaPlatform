@@ -71,4 +71,8 @@ target_link_libraries(bench_read_perf_basic PRIVATE
   gaia_benchmark
 )
 
+add_dependencies(bench_read_perf_basic
+  dac_perf_basic
+)
+
 gtest_discover_tests(bench_read_perf_basic)
