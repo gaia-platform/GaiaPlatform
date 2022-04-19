@@ -1155,7 +1155,7 @@ class table : public base {
 //         } catch (const std::out_of_range &) {
 //             return {};
 //         }
-        // The code above make ASAN complain. This workaround fixes it.
+        // The code above makes ASAN complain. This workaround fixes it.
         // Fixes https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2142
         if (contains(key))
         {
