@@ -389,7 +389,6 @@ function(translate_ruleset_internal)
   endif()
 endfunction()
 
-
 # Make the Gaia examples, shipped as part of the SDK, buildable against the production
 # CMake project. This makes the examples built as part of regular gaia builds.
 #
@@ -444,8 +443,6 @@ function(add_example)
   add_executable(${ARG_NAME}
     ${ARG_SRC_FILES}
   )
-
-  message(STATUS "Suppini: ${ARG_INC_DIRS} ${ARG_SRC_FILES}")
 
   target_link_libraries(${ARG_NAME}
     gaia

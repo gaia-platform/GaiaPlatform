@@ -369,7 +369,6 @@ add_subdirectory(schemas)
 # Tools.
 add_subdirectory(tools)
 
-
 if(BUILD_GAIA_SDK)
   unset(CMAKE_CXX_CLANG_TIDY)
   add_subdirectory("${GAIA_REPO}/third_party/production/TranslationEngineLLVM/llvm" llvm EXCLUDE_FROM_ALL)
