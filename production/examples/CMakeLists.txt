@@ -37,7 +37,7 @@ add_example(
   SRC_FILES direct_access_vlr/direct_access_vlr.cpp
 )
 
-# Examples that showcase the declarative language need gaiat.
+# Examples that use a ruleset need gaiat.
 if(BUILD_GAIA_SDK)
   add_example(
     NAME hello
