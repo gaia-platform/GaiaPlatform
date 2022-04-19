@@ -461,3 +461,22 @@ macro(check_param PARAM)
     message(FATAL_ERROR "The parameter ${PARAM} is required!")
   endif()
 endmacro()
+
+# Set include and lib paths expected by the public gaia.cmake file
+# to internal production source and build paths. Also loads the
+# public cmake file.
+# NOTE: GAIA_REPO must be set before calling this macro.
+macro(set_gaia_internal_paths)
+  set(GAIA_SOURCE "${GAIA_REPO}/production")
+  set(GAIA_BUILD "${GAIA_REPO}/production/build")
+
+  set(GAIA_INC "${GAIA_SOURCE}/inc")
+  set(GAIA_GAIAT_CMD "${GAIA_BUILD}/tools/gaia_translate/gaiat")
+  set(GAIA_GAIAC_CMD "${GAIA_BUILD}/catalog/gaiac/gaiac")
+  set(GAIA_LIB_DIR "${GAIA_BUILD}/sdk")
+
+  set(FLATBUFFERS_INC "${GAIA_BUILD}/deps/flatbuffers/include")
+  set(SPDLOG_INC "${GAIA_BUILD}/deps/gaia_spdlog/include")
+
+  include("${GAIA_SOURCE}/cmake/gaia.cmake")
+endmacro()
