@@ -1150,9 +1150,19 @@ class table : public base {
      * to the template parameter from a given key.
      */
     template <class T> option<T> get_as(const std::string &key) const {
-        try {
+//         try {
+//             return get_impl<T>(get(key));
+//         } catch (const std::out_of_range &) {
+//             return {};
+//         }
+        // The code above make ASAN complain. This workaround fixes it.
+        // Fixes https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2142
+        if (contains(key))
+        {
             return get_impl<T>(get(key));
-        } catch (const std::out_of_range &) {
+        }
+        else
+        {
             return {};
         }
     }
