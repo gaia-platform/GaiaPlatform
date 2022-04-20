@@ -160,12 +160,12 @@ TEST_F(test_read_perf_basic, filter_match)
         clear_db_after_each_iteration);
 }
 
-TEST_F(test_read_perf_basic, DISABLED_table_scan_read_size)
+TEST_F(test_read_perf_basic, table_scan_read_size)
 {
-    insert_data();
-
-    for (size_t num_reads : {10UL, 100UL, 1000UL, 100000UL, 1000000UL, c_num_records})
+    for (size_t num_reads : {10UL, 100UL, 1000UL, /*100000UL, 1000000UL, c_num_records*/})
     {
+        insert_data();
+
         auto work = [num_reads]() {
             gaia::db::begin_transaction();
 
@@ -173,8 +173,7 @@ TEST_F(test_read_perf_basic, DISABLED_table_scan_read_size)
             for ([[maybe_unused]] auto& record :
                  simple_table_t::list())
             {
-                i++;
-                if (i == num_reads)
+                if (++i == num_reads)
                 {
                     break;
                 }
