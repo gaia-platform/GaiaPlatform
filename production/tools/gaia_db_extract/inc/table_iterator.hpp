@@ -52,7 +52,8 @@ public:
     }
 
     // Obtain contents.
-    db::payload_types::data_holder_t extract_field_value(uint16_t, size_t field_index);
+    db::payload_types::data_holder_t extract_field_value(size_t field_index);
+    std::vector<db::payload_types::data_holder_t> extract_field_vector_value(size_t field_index);
 
     const char* get_table_name()
     {

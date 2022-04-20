@@ -153,6 +153,68 @@ static string dump_catalog()
     }
 }
 
+static bool add_field_array_value(json_t& row, const gaia_field_t& field_object, const std::vector<data_holder_t>& value)
+{
+    auto field_name = field_object.name();
+    if (value.empty())
+    {
+        row[field_name] = std::vector<int>();
+        return true;
+    }
+
+    switch (value[0].type)
+    {
+    case reflection::Float:
+    case reflection::Double:
+    {
+        std::vector<double> values;
+        values.reserve(value.size());
+        for (const auto& element: value)
+        {
+            values.push_back(element.hold.float_value);
+        }
+        row[field_name] = values;
+        break;
+    }
+
+    // The remainder are integers.
+    case reflection::Bool:
+    {
+        std::vector<bool> values;
+        values.reserve(value.size());
+        for (const auto& element: value)
+        {
+            values.push_back(element.hold.integer_value != 0);
+        }
+        row[field_name] = values;
+        break;
+    }
+    case reflection::Byte:
+    case reflection::UByte:
+    case reflection::Short:
+    case reflection::UShort:
+    case reflection::Int:
+    case reflection::UInt:
+    case reflection::Long:
+    case reflection::ULong:
+    {
+        std::vector<int64_t> values;
+        values.reserve(value.size());
+        for (const auto& element: value)
+        {
+            values.push_back(element.hold.integer_value);
+        }
+        row[field_name] = values;
+        break;
+    }
+    default:
+        fprintf(stderr, "Unhandled data_holder_t type '%d' for field '%s'.\n", value[0].type, field_name);
+        return false;
+    }
+
+    return true;
+}
+
 // Select the correct data_holder_t element from which to pull the field value.
 static bool add_field_value(json_t& row, const gaia_field_t& field_object, const data_holder_t& value)
 {
@@ -198,8 +260,16 @@ static json_t serialize_row(table_iterator_t& table_iterator, const gaia_table_t
     for (const auto& field_object : table_object.gaia_fields())
     {
         // Pull one field value out of the database and included it in the JSON row object.
-        auto value = table_iterator.extract_field_value(field_object.repeated_count(), field_object.position());
-        add_field_value(row, field_object, value);
+        if (field_object.repeated_count() == 1)
+        {
+            auto value = table_iterator.extract_field_value(field_object.position());
+            add_field_value(row, field_object, value);
+        }
+        else
+        {
+            auto value = table_iterator.extract_field_vector_value(field_object.position());
+            add_field_array_value(row, field_object, value);
+        }
     }
     row["row_id"] = table_iterator.gaia_id().value();
     return row;
