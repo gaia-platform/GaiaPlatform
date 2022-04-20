@@ -277,11 +277,12 @@ void auto_connect(
         return;
     }
 
-    if (caches::table_relationship_cache_t::get()->is_initialized())
+    if (caches::table_relationship_fields_cache_t::get()->is_initialized())
     {
-        // Check table_relationship_cache_t for the fields involved in relationships.
-        const auto& relationship_field_set = caches::table_relationship_cache_t::get()->get(table_id);
-        if (relationship_field_set.empty())
+        // Check table_relationship_fields_cache_t for the fields involved in relationships.
+        const auto& relationship_field_set_pair = caches::table_relationship_fields_cache_t::get()->get(table_id);
+        if (relationship_field_set_pair.first.empty()
+            && relationship_field_set_pair.second.empty())
         {
             return;
         }
@@ -289,9 +290,12 @@ void auto_connect(
         // Only try to auto-connect fields actually involved in relationships.
         for (auto field_position : candidate_fields)
         {
-            if (relationship_field_set.find(field_position) != relationship_field_set.end())
+            if (relationship_field_set_pair.first.find(field_position) != relationship_field_set_pair.first.end())
             {
                 parent_side_auto_connect(id, table_id, references, payload, field_position);
+            }
+            if (relationship_field_set_pair.second.find(field_position) != relationship_field_set_pair.second.end())
+            {
                 child_side_auto_connect(id, table_id, references, payload, field_position);
             }
         }

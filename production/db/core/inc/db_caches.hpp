@@ -31,37 +31,39 @@ namespace caches
 
 typedef std::unordered_set<common::field_position_t> field_position_set_t;
 
-typedef std::unordered_map<common::gaia_id_t, field_position_set_t> table_relationship_field_map_t;
+typedef std::unordered_map<common::gaia_id_t, std::pair<field_position_set_t, field_position_set_t>>
+    table_relationship_fields_map_t;
 
-class table_relationship_cache_t
+class table_relationship_fields_cache_t
 {
 protected:
     // Do not allow copies to be made;
     // disable copy constructor and assignment operator.
-    table_relationship_cache_t(const table_relationship_cache_t&) = delete;
-    table_relationship_cache_t& operator=(const table_relationship_cache_t&) = delete;
+    table_relationship_fields_cache_t(const table_relationship_fields_cache_t&) = delete;
+    table_relationship_fields_cache_t& operator=(const table_relationship_fields_cache_t&) = delete;
 
-    // table_relationship_cache_t is a singleton, so its constructor is not public.
-    table_relationship_cache_t() = default;
+    // table_relationship_fields_cache_t is a singleton, so its constructor is not public.
+    table_relationship_fields_cache_t() = default;
 
 public:
     // Return a pointer to the singleton instance.
-    static table_relationship_cache_t* get();
+    static table_relationship_fields_cache_t* get();
 
     bool is_initialized();
 
     void put(common::gaia_id_t table_id);
-    void put(common::gaia_id_t table_id, common::field_position_t field);
-    field_position_set_t& get(common::gaia_id_t table_id);
+    void put_parent_relationship_field(common::gaia_id_t table_id, common::field_position_t field);
+    void put_child_relationship_field(common::gaia_id_t table_id, common::field_position_t field);
+    std::pair<field_position_set_t, field_position_set_t>& get(common::gaia_id_t table_id);
 
     size_t size() const;
 
 protected:
     // The singleton instance.
-    static table_relationship_cache_t s_cache;
+    static table_relationship_fields_cache_t s_cache;
 
     // The map used by the cache.
-    table_relationship_field_map_t m_map;
+    table_relationship_fields_map_t m_map;
 
     // Indicates whether the cache was initialized.
     bool m_is_initialized{false};

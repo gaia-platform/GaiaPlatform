@@ -432,6 +432,9 @@ void client_t::try_init_db_caches()
             expected = false;
         }
 
+        ASSERT_INVARIANT(
+            s_are_db_caches_initializing, "Cache initialization flag was expected to be set at this point.");
+
         if (!s_are_db_caches_initialized)
         {
             init_db_caches();
@@ -445,26 +448,27 @@ void client_t::try_init_db_caches()
 
 void client_t::init_db_caches()
 {
+    // Initialize table_relationship_fields_cache_t.
     for (const auto& table : catalog_core::list_tables())
     {
         gaia_id_t table_id = table.id();
-        caches::table_relationship_cache_t::get()->put(table_id);
-
-        for (const auto& relationship : catalog_core::list_relationship_to(table_id))
-        {
-            if (relationship.child_field_positions()->size() == 1)
-            {
-                field_position_t field = relationship.child_field_positions()->Get(0);
-                caches::table_relationship_cache_t::get()->put(table_id, field);
-            }
-        }
+        caches::table_relationship_fields_cache_t::get()->put(table_id);
 
         for (const auto& relationship : catalog_core::list_relationship_from(table_id))
         {
             if (relationship.parent_field_positions()->size() == 1)
             {
                 field_position_t field = relationship.parent_field_positions()->Get(0);
-                caches::table_relationship_cache_t::get()->put(table_id, field);
+                caches::table_relationship_fields_cache_t::get()->put_parent_relationship_field(table_id, field);
+            }
+        }
+
+        for (const auto& relationship : catalog_core::list_relationship_to(table_id))
+        {
+            if (relationship.child_field_positions()->size() == 1)
+            {
+                field_position_t field = relationship.child_field_positions()->Get(0);
+                caches::table_relationship_fields_cache_t::get()->put_child_relationship_field(table_id, field);
             }
         }
     }
