@@ -7,6 +7,7 @@ import * as child_process from 'child_process';
 import { CatalogItem } from '../databaseExplorer';
 import { ICommand, CommandAction, ILink } from './app/model';
 import { GaiaDataProvider } from '../gaiaDataProvider';
+import { getUri } from "./getUri";
 
 // Manages react webview panels.
 export default class ViewLoader {
@@ -24,7 +25,7 @@ export default class ViewLoader {
     private _disposables: vscode.Disposable[] = [];
 
     // Shows records from a table.
-    public static showRecords(extensionPath: string, item : CatalogItem) {
+    public static showRecords(extensionPath: string, item : CatalogItem, extensionUri: vscode.Uri) {
         const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
         var title = `${item.db_name}.${item.label}`;
 
@@ -41,13 +42,14 @@ export default class ViewLoader {
                     table_name : item.label,
                     link_name : undefined,
                     link_row : undefined
-                }
+                },
+                extensionUri
             );
         }
     }
 
     // Shows related records to a table.
-    public static showRelatedRecords(extensionPath: string, link : ILink) {
+    public static showRelatedRecords(extensionPath: string, link : ILink, extensionUri: vscode.Uri) {
         const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
 
         // See if we can find the metadata for this table via the catalog.  If not,
@@ -67,11 +69,12 @@ export default class ViewLoader {
             extensionPath,
             title,
             column || vscode.ViewColumn.One,
-            link
+            link,
+            extensionUri
             );
     }
 
-    private constructor(extensionPath: string, title: string, column: vscode.ViewColumn, link : ILink) {
+    private constructor(extensionPath: string, title: string, column: vscode.ViewColumn, link : ILink, extensionUri : vscode.Uri) {
         this._extensionPath = extensionPath;
         this._title = title;
 
@@ -87,7 +90,7 @@ export default class ViewLoader {
         });
 
         // Set the webview's initial html content.
-        this._panel.webview.html = this._getHtmlForWebview(link);
+        this._panel.webview.html = this._getHtmlForWebview(link, this._panel.webview, extensionUri);
 
         // Listen for when the panel is disposed.
         // This happens when the user closes the panel or when the panel is closed programatically.
@@ -123,7 +126,7 @@ export default class ViewLoader {
         }
     }
 
-    private _getHtmlForWebview(link : ILink) {
+    private _getHtmlForWebview(link : ILink, webview: vscode.Webview, extensionUri: vscode.Uri) {
 //        const manifest = require(path.join(this._extensionPath, 'build', 'asset-manifest.json'));
 //        const mainScript = manifest.files['main.js'];
 //        const mainStyle = manifest.files['main.css'];
@@ -134,7 +137,16 @@ export default class ViewLoader {
 
         const appUri = appPathOnDisk.with({scheme: "vscode-resource"});
 
-0       //const stylePathOnDisk = vscode.Uri.file(path.join(this._extensionPath, 'build', mainStyle));
+        // file: src/panels/HelloWorldPanel.ts
+        const toolkitUri = getUri(webview, extensionUri, [
+            "node_modules",
+            "@vscode",
+            "webview-ui-toolkit",
+            "dist",
+            "toolkit.js", // A toolkit.min.js file is also available
+        ]);
+
+        //const stylePathOnDisk = vscode.Uri.file(path.join(this._extensionPath, 'build', mainStyle));
         //const styleUri = stylePathOnDisk.with({ scheme: 'vscode-resource' });
 
         // Use a nonce to whitelist which scripts can be run
@@ -147,7 +159,7 @@ export default class ViewLoader {
                 <head>
                     <meta charset="utf-8">
                     <meta name="viewport" content="width=device-width,initial-scale=1.0,shrink-to-fit=yes">
-                    <meta name="theme-color" content="#000000">
+                    <script type="module" src="${toolkitUri}"></script>
                 </head>
                 <body>
                     <div id="root">
@@ -211,6 +223,7 @@ export default class ViewLoader {
             </head>
             <body>
                 <div id="root"></div>
+                <img src = {showRecords}>;
                 <script nonce="${nonce}" src="${appUri}"></script>
             </body>
             </html>`;

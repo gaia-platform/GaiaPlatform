@@ -6,10 +6,10 @@ import ViewLoader from './data_view/ViewLoader';
 
 export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('databases.showRecords', item => {
-            ViewLoader.showRecords(context.extensionPath, item);
+            ViewLoader.showRecords(context.extensionPath, item, context.extensionUri);
     });
     vscode.commands.registerCommand('databases.showRelatedRecords', link => {
-        ViewLoader.showRelatedRecords(context.extensionPath, link);
+        ViewLoader.showRelatedRecords(context.extensionPath, link, context.extensionUri);
     });
 
     const gaiaProvider = new GaiaCatalogProvider();

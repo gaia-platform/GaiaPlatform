@@ -3,8 +3,8 @@ import * as path from 'path';
 import { GaiaDataProvider } from './gaiaDataProvider';
 
 export class GaiaCatalogProvider implements vscode.TreeDataProvider<CatalogItem> {
-  private _onDidChangeTreeData: vscode.EventEmitter<CatalogItem | undefined | null> = new vscode.EventEmitter<CatalogItem | undefined | null>();
-  readonly onDidChangeTreeData: vscode.Event<CatalogItem | undefined | null> = this._onDidChangeTreeData.event;
+  private _onDidChangeTreeData: vscode.EventEmitter<CatalogItem | undefined | null | void> = new vscode.EventEmitter<CatalogItem | undefined | null | void>();
+  readonly onDidChangeTreeData: vscode.Event<CatalogItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
   constructor() {
   }
