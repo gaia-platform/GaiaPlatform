@@ -8,6 +8,8 @@ export interface ITableView {
 export interface IColumn {
   key : string;
   name : string;
+  is_link : boolean;
+  is_array : boolean;
 }
 
 export interface ICommand {

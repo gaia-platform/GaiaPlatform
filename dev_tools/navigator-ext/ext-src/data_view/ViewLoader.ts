@@ -223,7 +223,6 @@ export default class ViewLoader {
             </head>
             <body>
                 <div id="root"></div>
-                <img src = {showRecords}>;
                 <script nonce="${nonce}" src="${appUri}"></script>
             </body>
             </html>`;

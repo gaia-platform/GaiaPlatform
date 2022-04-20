@@ -63,15 +63,15 @@ export class GaiaDataProvider {
         return undefined;
     }
 
-    const fields = this.findFields(table);
+    const fields = table.fields;
     if (!fields) {
-      vscode.window.showInformationMessage(`Table ${table.name} has no columns.`)
+      vscode.window.showInformationMessage(`Table '${table.name}' has no columns.`)
       return undefined;
     }
 
     // Add the row_id to the columns list as a "generated column"
     const data = JSON.parse(child.stdout.toString());
-    var cols = [{key: 'row_id', name : this.getGeneratedFieldName('row_id'), is_link : false}];
+    var cols = [{key: 'row_id', name : this.getGeneratedFieldName('row_id'), is_link : false, is_array : false}];
 
     const relationships = this.getRelationships(table);
     if (relationships) {
@@ -80,14 +80,21 @@ export class GaiaDataProvider {
         var relationship = relationships[i];
         cols.push({
           key: relationship.link_name,
-          name : this.getGeneratedFieldName(relationship.link_name), is_link : true
+          name : this.getGeneratedFieldName(relationship.link_name),
+          is_link : true,
+          is_array : false
         });
       }
     }
 
     // Add the table's columns now.
     for (var i = 0; i < fields.length; i++) {
-      cols.push({ key : fields[i], name : fields[i], is_link : false});
+      cols.push({
+        key : fields[i].name,
+        name : fields[i].name,
+        is_link : false,
+        is_array : fields[i].repeated_count == 0
+      });
     }
 
     let tableData : ITableView = {
@@ -163,19 +170,6 @@ export class GaiaDataProvider {
       }
     }
     return undefined;
-  }
-
-  private static findFields(table : any) {
-    var catalog_fields = table.fields;
-    if (!catalog_fields) {
-      return undefined;
-    }
-
-    var fields = [];
-    for (let catalog_field of catalog_fields) {
-        fields.push(catalog_field.name);
-    }
-    return fields;
   }
 
   private static getRelationships(table : any) {

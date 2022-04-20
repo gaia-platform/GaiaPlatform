@@ -4,18 +4,41 @@ import {CommandAction, IColumn, ILink, ICommand} from "./model";
 import ShowRecordsDarkIcon from '../../../resources/dark/boolean.svg';
 import ShowRecordsLightIcon from '../../../resources/light/boolean.svg';
 import {VSCodeButton} from "@vscode/webview-ui-toolkit/react"
+import { dataGridCellTemplate } from '@microsoft/fast-foundation';
+
+function getArrayString( arrayData : any ) {
+  if (!arrayData || arrayData.length == 0) {
+    return '';
+  }
+
+  var arrayString = '[';
+  for (let i = 0; i < arrayData.length; i++) {
+    arrayString += arrayData[i];
+    if (i < arrayData.length - 1) {
+      arrayString += ', '
+    }
+  }
+  arrayString += ']'
+  return arrayString;
+}
+
+function getAppearance() {
+  var theme = document.body.className;
+  var gridTheme = 'rdg-light';
+  var recordsIcon = ShowRecordsLightIcon;
+  if (theme === 'vscode-dark' || theme == 'vscode-high-contrast') {
+    gridTheme = 'rdg-dark';
+    recordsIcon = ShowRecordsDarkIcon;
+  }
+
+  return { gridClass: gridTheme, RecordsIcon: recordsIcon};
+}
 
 function DataView(props : any) {
     let initialData = props.initialData;
     let vscode = props.vscode;
 
-    var theme = document.body.className;
-    var gridTheme = 'rdg-light';
-    var RecordsIcon = ShowRecordsLightIcon;
-    if (theme === 'vscode-dark' || theme == 'vscode-high-contrast') {
-      gridTheme = 'rdg-dark';
-      RecordsIcon = ShowRecordsDarkIcon;
-    }
+    const { gridClass, RecordsIcon } = getAppearance();
 
     for (var i = 0; i < initialData.columns.length; i++) {
       let col = initialData.columns[i];
@@ -36,10 +59,14 @@ function DataView(props : any) {
           <RecordsIcon/>
           </VSCodeButton>
         }
+      } else if (col.is_array) {
+        col['formatter'] = ({row}) => {
+          return getArrayString(row[col.key]);
+        }
       }
     }
 
-   return <DataGrid className={gridTheme} style={{height:window.innerHeight}} columns={initialData.columns} rows={initialData.rows} />
+   return <DataGrid className={gridClass} style={{height:window.innerHeight}} columns={initialData.columns} rows={initialData.rows} />
 }
 
 export default DataView;
