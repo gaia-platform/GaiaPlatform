@@ -4,7 +4,6 @@ import {CommandAction, IColumn, ILink, ICommand} from "./model";
 import ShowRecordsDarkIcon from '../../../resources/dark/boolean.svg';
 import ShowRecordsLightIcon from '../../../resources/light/boolean.svg';
 import {VSCodeButton} from "@vscode/webview-ui-toolkit/react"
-import { dataGridCellTemplate } from '@microsoft/fast-foundation';
 
 function getArrayString( arrayData : any ) {
   if (!arrayData || arrayData.length == 0) {

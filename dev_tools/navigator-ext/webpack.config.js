@@ -8,7 +8,7 @@ module.exports = {
     path: path.resolve(__dirname, "dataViewer"),
     filename: "[name].js"
   },
-  devtool: "eval-source-map",
+  devtool: "cheap-module-source-map",
   externals: {
     vscode: 'commonjs vscode'
   },

@@ -21,11 +21,10 @@ export default class ViewLoader {
 
     private readonly _panel: vscode.WebviewPanel;
     private readonly _title: string;
-    private readonly _extensionPath: string;
     private _disposables: vscode.Disposable[] = [];
 
     // Shows records from a table.
-    public static showRecords(extensionPath: string, item : CatalogItem, extensionUri: vscode.Uri) {
+    public static showRecords(extensionUri: vscode.Uri, item : CatalogItem) {
         const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
         var title = `${item.db_name}.${item.label}`;
 
@@ -34,7 +33,6 @@ export default class ViewLoader {
             ViewLoader.currentViews[title]._panel.reveal(column);
         } else {
             ViewLoader.currentViews[title] = new ViewLoader(
-                extensionPath,
                 title,
                 column || vscode.ViewColumn.One,
                 {
@@ -49,7 +47,7 @@ export default class ViewLoader {
     }
 
     // Shows related records to a table.
-    public static showRelatedRecords(extensionPath: string, link : ILink, extensionUri: vscode.Uri) {
+    public static showRelatedRecords(extensionUri: vscode.Uri, link : ILink) {
         const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
 
         // See if we can find the metadata for this table via the catalog.  If not,
@@ -66,7 +64,6 @@ export default class ViewLoader {
         // for the same title may be diffrent depending on the row id of the
         // "parent" record
         ViewLoader.currentViews[title] = new ViewLoader(
-            extensionPath,
             title,
             column || vscode.ViewColumn.One,
             link,
@@ -74,8 +71,7 @@ export default class ViewLoader {
             );
     }
 
-    private constructor(extensionPath: string, title: string, column: vscode.ViewColumn, link : ILink, extensionUri : vscode.Uri) {
-        this._extensionPath = extensionPath;
+    private constructor(title: string, column: vscode.ViewColumn, link : ILink, extensionUri : vscode.Uri) {
         this._title = title;
 
         // Create and show a new webview panel.
@@ -85,7 +81,7 @@ export default class ViewLoader {
 
             // And restrict the webview to only loading content from our extension's `media` directory.
             localResourceRoots: [
-                vscode.Uri.file(path.join(this._extensionPath, 'dataViewer'))
+                extensionUri
             ]
         });
 
@@ -126,18 +122,25 @@ export default class ViewLoader {
         }
     }
 
+    private _getHtmlForNoTable(tableName : string) {
+        return `<!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width,initial-scale=1.0,shrink-to-fit=yes">
+        </head>
+        <body>
+            <div id="root">
+            <h2> An error occurred retrieving data for table '${tableName}'.</h2>
+            </div>
+        </body>
+        </html>`;
+    }
+
     private _getHtmlForWebview(link : ILink, webview: vscode.Webview, extensionUri: vscode.Uri) {
-//        const manifest = require(path.join(this._extensionPath, 'build', 'asset-manifest.json'));
-//        const mainScript = manifest.files['main.js'];
-//        const mainStyle = manifest.files['main.css'];
-
         // Here 'app' refers to the react application running inside the webview.
-        const appPathOnDisk = vscode.Uri.file(path.join(
-            this._extensionPath, 'dataViewer', 'dataViewer.js'));
-
-        const appUri = appPathOnDisk.with({scheme: "vscode-resource"});
-
-        // file: src/panels/HelloWorldPanel.ts
+        const scriptPathOnDisk = vscode.Uri.joinPath(extensionUri, 'dataViewer', 'dataViewer.js');
+        const scriptUri = webview.asWebviewUri(scriptPathOnDisk);
         const toolkitUri = getUri(webview, extensionUri, [
             "node_modules",
             "@vscode",
@@ -146,32 +149,17 @@ export default class ViewLoader {
             "toolkit.js", // A toolkit.min.js file is also available
         ]);
 
-        //const stylePathOnDisk = vscode.Uri.file(path.join(this._extensionPath, 'build', mainStyle));
-        //const styleUri = stylePathOnDisk.with({ scheme: 'vscode-resource' });
-
         // Use a nonce to whitelist which scripts can be run
         const nonce = getNonce();
+
         const tableData = GaiaDataProvider.getTableData(link);
         if (!tableData)
         {
-            return`<!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <meta charset="utf-8">
-                    <meta name="viewport" content="width=device-width,initial-scale=1.0,shrink-to-fit=yes">
-                    <script type="module" src="${toolkitUri}"></script>
-                </head>
-                <body>
-                    <div id="root">
-                    <h2> An error occurred retrieving data for table '${link.table_name}'.</h2>
-                    </div>
-                </body>
-                </html>`;
+            return this._getHtmlForNoTable(link.table_name);
         }
 
         const tableJson = JSON.stringify(tableData);
 
-        // todo (dax): not sure all this html below is necessary.
         return `<!DOCTYPE html>
             <html lang="en">
             <head>
@@ -181,53 +169,19 @@ export default class ViewLoader {
                 <title>Data View</title>
                 <meta http-equiv="Content-Security-Policy"
                     content="default-src 'none';
-                    img-src vscode-resource: https:;
-                    script-src 'unsafe-eval' 'unsafe-inline' vscode-resource:;
-                    style-src vscode-resource: 'unsafe-inline' http: https: data:;">
-                <script>
+                    script-src 'nonce-${nonce}';
+                    style-src 'unsafe-inline' ${webview.cspSource};">
+                <script type="module" src="${toolkitUri}"></script>
+                <script nonce="${nonce}">
                     window.acquireVsCodeApi = acquireVsCodeApi;
                     window.initialData = ${tableJson};
                 </script>
             </head>
             <body>
                 <div id="root"></div>
-                <script src="${appUri}"></script>
+                <script nonce="${nonce}" src="${scriptUri}"></script>
             </body>
             </html>`;
-
-            /**old school
-            return `<!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width,initial-scale=1.0,shrink-to-fit=no">
-                <meta name="theme-color" content="#000000">
-                <title>Data View</title>
-                <meta http-equiv="Content-Security-Policy"
-                    content="default-src 'none';
-                    img-src vscode-resource: https:;
-                    script-src 'nonce-${nonce}';style-src vscode-resource: vscode-resource:;
-                    style-src vscode-resource: 'unsafe-inline;">
-
-                // this worked
-                <meta http-equiv="Content-Security-Policy"
-                    content="default-src 'none';
-                    img-src https:;
-                    script-src 'unsafe-eval' 'unsafe-inline' vscode-resource:;
-                    style-src vscode-resource: 'unsafe-inline';">
-
-                <script>
-                    window.acquireVsCodeApi = acquireVsCodeApi;
-                    window.initialData = ${tableJson};
-                </script>
-            </head>
-            <body>
-                <div id="root"></div>
-                <script nonce="${nonce}" src="${appUri}"></script>
-            </body>
-            </html>`;
-            */
-
     }
 }
 
