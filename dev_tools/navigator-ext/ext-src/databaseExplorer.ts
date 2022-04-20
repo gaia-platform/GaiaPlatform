@@ -114,15 +114,15 @@ export class CatalogItem extends vscode.TreeItem {
       this.tooltip = `column type: ${this.type}${brackets}, position: ${this.position}`;
       this.contextValue = 'column';
       this.iconPath = {
-        light: path.join(__filename, '..', '..', 'resources', 'light', 'calendar_view_week_black_24dp.svg'),
-        dark: path.join(__filename, '..', '..', 'resources', 'dark', 'calendar_view_week_white_24dp.svg')
+        light: path.join(__filename, '..', '..', 'resources', 'light', 'column.svg'),
+        dark: path.join(__filename, '..', '..', 'resources', 'dark', 'column.svg')
       };
 
     } else if (this.table_id != undefined)    {
       this.tooltip = `table type: ${this.table_type}`
         this.iconPath = {
-          light: path.join(__filename, '..', '..', 'resources', 'light', 'calendar_view_month_black_24dp.svg'),
-          dark: path.join(__filename, '..', '..', 'resources', 'dark', 'calendar_view_month_white_24dp.svg')
+          light: path.join(__filename, '..', '..', 'resources', 'light', 'table.svg'),
+          dark: path.join(__filename, '..', '..', 'resources', 'dark', 'table.svg')
         };
       this.contextValue = 'table';
     } else {

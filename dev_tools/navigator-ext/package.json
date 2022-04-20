@@ -55,7 +55,7 @@
                 {
                     "id": "gaia-explorer",
                     "title": "Gaia Explorer",
-                    "icon": "media/gaia_logo.png"
+                    "icon": "resources/gaia_logo.png"
                 }
             ]
         },
