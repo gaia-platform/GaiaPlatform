@@ -16,6 +16,7 @@
 #include "gaia_internal/exceptions.hpp"
 
 #include "chunk_manager.hpp"
+#include "db_hash_map.hpp"
 #include "db_internal_types.hpp"
 #include "db_shared_data.hpp"
 #include "memory_manager.hpp"
@@ -98,6 +99,18 @@ inline bool locator_exists(gaia_locator_t locator)
         && ((*locators)[locator] != c_invalid_gaia_offset);
 }
 
+// Returns true if ID was not already registered, false otherwise.
+inline bool register_locator_for_id(
+    common::gaia_id_t id, gaia_locator_t locator)
+{
+    return gaia::db::db_hash_map::insert(id, locator);
+}
+
+inline gaia_locator_t id_to_locator(common::gaia_id_t id)
+{
+    return id.is_valid() ? gaia::db::db_hash_map::find(id) : c_invalid_gaia_locator;
+}
+
 inline gaia_offset_t locator_to_offset(gaia_locator_t locator)
 {
     locators_t* locators = gaia::db::get_locators();
@@ -117,6 +130,15 @@ inline db_object_t* offset_to_ptr(gaia_offset_t offset)
 inline db_object_t* locator_to_ptr(gaia_locator_t locator)
 {
     return offset_to_ptr(locator_to_offset(locator));
+}
+
+inline db_object_t* id_to_ptr(common::gaia_id_t id)
+{
+    gaia_locator_t locator = id_to_locator(id);
+    ASSERT_INVARIANT(
+        locator_exists(locator),
+        "An invalid locator was returned by id_to_locator()!");
+    return locator_to_ptr(locator);
 }
 
 // This is only meant for "fuzzy snapshots" of the current last_txn_id; there
