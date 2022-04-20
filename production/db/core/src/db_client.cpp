@@ -421,9 +421,14 @@ void client_t::init_memory_manager()
 
 void client_t::try_init_db_caches()
 {
+    // Because this code can be called concurrently,
+    // we want to ensure that only one thread can perform the initialization.
+    // This is accomplished using the s_are_db_caches_initializing atomic flag:
+    // only the thread that succeeds in turning the flag on will continue to
+    // perform the initialization steps.
     if (!s_are_db_caches_initialized)
     {
-        // Try to get exclusive right to initialize caches.
+        // Try to gain the exclusive right to initialize the caches.
         bool expected = false;
         while (!s_are_db_caches_initializing.compare_exchange_strong(expected, true))
         {
@@ -435,6 +440,8 @@ void client_t::try_init_db_caches()
         ASSERT_INVARIANT(
             s_are_db_caches_initializing, "Cache initialization flag was expected to be set at this point.");
 
+        // If the caches have already been initialized,
+        // skip that work and revert the flag back to its normal value.
         if (!s_are_db_caches_initialized)
         {
             init_db_caches();

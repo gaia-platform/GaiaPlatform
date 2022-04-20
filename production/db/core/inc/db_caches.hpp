@@ -34,7 +34,23 @@ typedef std::unordered_set<common::field_position_t> field_position_set_t;
 typedef std::unordered_map<common::gaia_id_t, std::pair<field_position_set_t, field_position_set_t>>
     table_relationship_fields_map_t;
 
-class table_relationship_fields_cache_t
+// The base db cache class provides functionality common to all caches.
+class base_db_cache_t
+{
+public:
+    virtual bool is_initialized() = 0;
+
+protected:
+    // Indicates whether the cache was initialized.
+    // The caches will not be initialized for DDL sessions,
+    // to prevent their information from becoming outdated as a result of DDL operations.
+    bool m_is_initialized{false};
+};
+
+// A cache that collects parent and child relationship fields that can be auto-connected.
+// For each table, the cache stores a pair of sets that represent the parent and child field positions.
+// The first element of the pair is for the parent relationships and the second is for the child relationships .
+class table_relationship_fields_cache_t : public base_db_cache_t
 {
 protected:
     // Do not allow copies to be made;
@@ -49,7 +65,7 @@ public:
     // Return a pointer to the singleton instance.
     static table_relationship_fields_cache_t* get();
 
-    bool is_initialized();
+    bool is_initialized() override;
 
     void put(common::gaia_id_t table_id);
     void put_parent_relationship_field(common::gaia_id_t table_id, common::field_position_t field);
@@ -64,9 +80,6 @@ protected:
 
     // The map used by the cache.
     table_relationship_fields_map_t m_map;
-
-    // Indicates whether the cache was initialized.
-    bool m_is_initialized{false};
 };
 
 } // namespace caches
