@@ -27,10 +27,10 @@ public:
         id_index_t* id_index = get_id_index();
         size_t bucket_index = id % c_hash_buckets;
 
-        // Initialize next_index_ptr to point to the head of the linked list of
-        // hash nodes for this bucket. (We need a load-seq_cst to ensure
+        // Initialize current_next_index_ptr to point to the head of the linked
+        // list of hash nodes for this bucket. (We need a load-seq_cst to ensure
         // linearizability.)
-        auto next_index_ptr = &(id_index->list_head_index_for_bucket[bucket_index]);
+        auto current_next_index_ptr = &(id_index->list_head_index_for_bucket[bucket_index]);
 
         while (true)
         {
@@ -40,22 +40,22 @@ public:
             // bucket's linked list and point it to the new hash node.
             //
             // The linearization point of an insert is a store-seq_cst to
-            // next_index, so we need a load-seq_cst on next_index to ensure
-            // linearizability.
-            auto next_index = next_index_ptr->load(std::memory_order_seq_cst);
-            if (!next_index)
+            // current_next_index, so we need a load-seq_cst on
+            // current_next_index to ensure linearizability.
+            auto current_next_index = current_next_index_ptr->load(std::memory_order_seq_cst);
+            if (!current_next_index)
             {
                 // We're at the end of this bucket's linked list, so create a
                 // new hash node and point the tail of the list to the new node.
                 //
-                // NB: 0 serves as an "invalid" value for `next_index`, so we
-                // can't use the entry `id_index->hash_nodes[0]. This means that
+                // NB: 0 serves as an "invalid" value for `current_next_index`, so we
+                // can't use the entry `id_index->list_nodes[0]. This means that
                 // `new_hash_node_index` must start at 1.
-                auto new_hash_node_index = ++(id_index->last_allocated_hash_node_index);
+                auto new_hash_node_index = ++(id_index->last_allocated_list_node_index);
                 ASSERT_INVARIANT(
                     new_hash_node_index < c_max_locators,
                     "Index of new hash node is out of range!");
-                auto& new_hash_node = id_index->hash_nodes[new_hash_node_index];
+                auto& new_hash_node = id_index->list_nodes[new_hash_node_index];
 
                 // These stores can be relaxed, because the new node is
                 // inaccessible until the subsequent CAS succeeds, and release
@@ -64,12 +64,13 @@ public:
                 new_hash_node.id.store(id, std::memory_order_relaxed);
                 new_hash_node.locator.store(locator, std::memory_order_relaxed);
 
-                // Try to point the current next_index to the new node.
+                // Try to point current_next_index to the new node.
+                //
                 // NB: A successful CAS requires store-seq_cst to ensure that
                 // insert()/find()/remove() are globally linearizable.
                 uint32_t expected_index = 0;
                 auto desired_index = static_cast<uint32_t>(new_hash_node_index);
-                if (next_index_ptr->compare_exchange_strong(expected_index, desired_index))
+                if (current_next_index_ptr->compare_exchange_strong(expected_index, desired_index))
                 {
                     // We pointed the tail node of this bucket's list to the new
                     // node, so we're done.
@@ -85,11 +86,11 @@ public:
             // We haven't reached the end of this bucket's linked list yet, so
             // check the ID of the current node and return false if it matches,
             // otherwise continue traversing the list.
-            auto& current_node = id_index->hash_nodes[next_index];
+            auto& current_node = id_index->list_nodes[current_next_index];
 
             // Because the ID field is always written before a store-seq_cst to
-            // next_index, and we've already performed a load-seq_cst on
-            // next_index, we can use a relaxed load for the ID.
+            // current_next_index, and we've already performed a load-seq_cst on
+            // current_next_index, we can use a relaxed load for the ID.
             common::gaia_id_t current_id = current_node.id.load(std::memory_order_relaxed);
 
             // We don't assert here because the caller might be performing a blind insert.
@@ -99,7 +100,7 @@ public:
                 return false;
             }
 
-            next_index_ptr = &current_node.next_index;
+            current_next_index_ptr = &current_node.next_index;
         }
     }
 
@@ -112,20 +113,20 @@ public:
 
         gaia_locator_t locator;
 
-        // Initialize next_index_ptr to point to the head of the linked list of
-        // hash nodes for this bucket. (We need a load-seq_cst to ensure
+        // Initialize current_next_index_ptr to point to the head of the linked
+        // list of hash nodes for this bucket. (We need a load-seq_cst to ensure
         // linearizability.)
-        auto next_index_ptr = &(id_index->list_head_index_for_bucket[bucket_index]);
+        auto current_next_index_ptr = &(id_index->list_head_index_for_bucket[bucket_index]);
 
         while (true)
         {
             // Check if we're at the end of this bucket's linked list.
             //
             // The linearization point of an insert is a store-seq_cst to
-            // next_index, so we need a load-seq_cst on next_index to ensure
-            // linearizability.
-            auto next_index = next_index_ptr->load(std::memory_order_seq_cst);
-            if (!next_index)
+            // current_next_index, so we need a load-seq_cst on
+            // current_next_index to ensure linearizability.
+            auto current_next_index = current_next_index_ptr->load(std::memory_order_seq_cst);
+            if (!current_next_index)
             {
                 break;
             }
@@ -133,11 +134,11 @@ public:
             // We haven't reached the end of this bucket's linked list yet, so
             // check the ID of the current node and return its locator if it
             // matches, otherwise continue traversing the list.
-            auto& current_node = id_index->hash_nodes[next_index];
+            auto& current_node = id_index->list_nodes[current_next_index];
 
             // Because the ID field is always written before a store-seq_cst to
-            // next_index, and we've already performed a load-seq_cst on
-            // next_index, we can use a relaxed load for the ID.
+            // current_next_index, and we've already performed a load-seq_cst on
+            // current_next_index, we can use a relaxed load for the ID.
             common::gaia_id_t current_id = current_node.id.load(std::memory_order_relaxed);
 
             if (current_id == id)
@@ -149,7 +150,7 @@ public:
                 break;
             }
 
-            next_index_ptr = &current_node.next_index;
+            current_next_index_ptr = &current_node.next_index;
         }
 
         return locator;
@@ -162,20 +163,20 @@ public:
         id_index_t* id_index = get_id_index();
         size_t bucket_index = id % c_hash_buckets;
 
-        // Initialize next_index_ptr to point to the head of the linked list of
+        // Initialize current_next_index_ptr to point to the head of the linked list of
         // hash nodes for this bucket. (We need a load-seq_cst to ensure
         // linearizability.)
-        auto next_index_ptr = &(id_index->list_head_index_for_bucket[bucket_index]);
+        auto current_next_index_ptr = &(id_index->list_head_index_for_bucket[bucket_index]);
 
         while (true)
         {
             // Check if we're at the end of this bucket's linked list.
             //
             // The linearization point of an insert is a store-seq_cst to
-            // next_index, so we need a load-seq_cst on next_index to ensure
-            // linearizability.
-            auto next_index = next_index_ptr->load(std::memory_order_seq_cst);
-            if (!next_index)
+            // current_next_index, so we need a load-seq_cst on
+            // current_next_index to ensure linearizability.
+            auto current_next_index = current_next_index_ptr->load(std::memory_order_seq_cst);
+            if (!current_next_index)
             {
                 break;
             }
@@ -183,11 +184,11 @@ public:
             // We haven't reached the end of this bucket's linked list yet, so
             // check the ID of the current node and return false if it matches,
             // otherwise continue traversing the list.
-            auto& current_node = id_index->hash_nodes[next_index];
+            auto& current_node = id_index->list_nodes[current_next_index];
 
             // Because the ID field is always written before a store-seq_cst to
-            // next_index, and we've already performed a load-seq_cst on
-            // next_index, we can use a relaxed load for the ID.
+            // current_next_index, and we've already performed a load-seq_cst on
+            // current_next_index, we can use a relaxed load for the ID.
             common::gaia_id_t current_id = current_node.id.load(std::memory_order_relaxed);
 
             if (current_id == id)
@@ -217,7 +218,7 @@ public:
                 return false;
             }
 
-            next_index_ptr = &current_node.next_index;
+            current_next_index_ptr = &current_node.next_index;
         }
 
         return false;
