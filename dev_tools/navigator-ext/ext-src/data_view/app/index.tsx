@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import './index.css';
 import DataView from "./dataview";
 import {ITableView} from "./model";
@@ -12,8 +12,6 @@ declare global {
 }
 
 const vscode = window.acquireVsCodeApi();
-
-ReactDOM.render(
-    <DataView vscode={vscode} initialData={window.initialData} />,
-    document.getElementById('root') as HTMLElement
-);
+const container = document.getElementById('root') as HTMLElement;
+const root = createRoot(container);
+root.render(<DataView vscode={vscode} initialData={window.initialData} />);

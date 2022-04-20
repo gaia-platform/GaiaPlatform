@@ -171,7 +171,7 @@ export default class ViewLoader {
                     content="default-src 'none';
                     script-src 'nonce-${nonce}';
                     style-src 'unsafe-inline' ${webview.cspSource};">
-                <script type="module" src="${toolkitUri}"></script>
+                <script nonce="${nonce}" type="module" src="${toolkitUri}"></script>
                 <script nonce="${nonce}">
                     window.acquireVsCodeApi = acquireVsCodeApi;
                     window.initialData = ${tableJson};
