@@ -171,7 +171,7 @@ static bool add_field_array_value(json_t& row, const gaia_field_t& field_object,
     {
         std::vector<double> values;
         values.reserve(value.size());
-        for (const auto& element: value)
+        for (const auto& element : value)
         {
             values.push_back(element.hold.float_value);
         }
@@ -184,7 +184,7 @@ static bool add_field_array_value(json_t& row, const gaia_field_t& field_object,
     {
         std::vector<bool> values;
         values.reserve(value.size());
-        for (const auto& element: value)
+        for (const auto& element : value)
         {
             values.push_back(element.hold.integer_value != 0);
         }
@@ -202,7 +202,7 @@ static bool add_field_array_value(json_t& row, const gaia_field_t& field_object,
     {
         std::vector<int64_t> values;
         values.reserve(value.size());
-        for (const auto& element: value)
+        for (const auto& element : value)
         {
             values.push_back(element.hold.integer_value);
         }
@@ -486,8 +486,9 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
     {
         return dump_catalog();
     }
-    else if (!database.empty() && !table.empty())
+    else if (!table.empty())
     {
+        // If no database name is specified then it will use the default name of ''.
         if ((link_name.empty() && anchor_record > 0) || (!link_name.empty() && anchor_record == 0))
         {
             fprintf(stderr, "Must have both link name name and anchor row id to extract related row data.\n");

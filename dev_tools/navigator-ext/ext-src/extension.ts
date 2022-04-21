@@ -17,4 +17,8 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('databases.refreshEntry', () =>
         gaiaProvider.refresh()
     );
+
+    context.subscriptions.push(vscode.window.onDidChangeActiveColorTheme( () =>
+        ViewLoader.applyTheme()
+    ));
 }

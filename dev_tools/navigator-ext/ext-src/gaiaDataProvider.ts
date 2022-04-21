@@ -69,9 +69,8 @@ export class GaiaDataProvider {
       return undefined;
     }
 
-    // Add the row_id to the columns list as a "generated column"
     const data = JSON.parse(child.stdout.toString());
-    var cols = [{key: 'row_id', name : this.getGeneratedFieldName('row_id'), is_link : false, is_array : false}];
+    var cols = [];
 
     const relationships = this.getRelationships(table);
     if (relationships) {

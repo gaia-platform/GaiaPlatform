@@ -1,11 +1,8 @@
 'use strict';
 
-import * as path from 'path';
 import * as vscode from 'vscode';
-import * as child_process from 'child_process';
-
 import { CatalogItem } from '../databaseExplorer';
-import { ICommand, CommandAction, ILink } from './app/model';
+import { ICommand, CommandAction, ILink, IPanelState } from './app/model';
 import { GaiaDataProvider } from '../gaiaDataProvider';
 import { getUri } from "./getUri";
 
@@ -21,6 +18,7 @@ export default class ViewLoader {
 
     private readonly _panel: vscode.WebviewPanel;
     private readonly _title: string;
+    private _state : IPanelState;
     private _disposables: vscode.Disposable[] = [];
 
     // Shows records from a table.
@@ -71,8 +69,28 @@ export default class ViewLoader {
             );
     }
 
+    // Called when the user has changed the theme. We just want to reapply the CSS
+    // but I haven't figured out a good way to do this so re-render the HTML.
+    public static applyTheme() {
+        for (var title in ViewLoader.currentViews) {
+            ViewLoader.currentViews[title].updateHtml();
+        }
+    }
+
+    private updateHtml() {
+        // Only refresh a panel that has user focus.
+        if (!this._panel.active) {
+            return;
+        }
+        this._panel.webview.html = this._getHtmlForWebview(
+            this._state.link,
+            this._panel.webview,
+            this._state.extensionUri);
+    }
+
     private constructor(title: string, column: vscode.ViewColumn, link : ILink, extensionUri : vscode.Uri) {
         this._title = title;
+        this._state = {link, extensionUri};
 
         // Create and show a new webview panel.
         this._panel = vscode.window.createWebviewPanel(ViewLoader.viewType, this._title, column, {

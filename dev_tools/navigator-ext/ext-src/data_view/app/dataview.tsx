@@ -25,6 +25,8 @@ function getAppearance() {
   var theme = document.body.className;
   var gridTheme = 'rdg-light';
   var recordsIcon = ShowRecordsLightIcon;
+  // Unfortunately, we don't get the light or dark "flavor"
+  // of high contrast.
   if (theme === 'vscode-dark' || theme == 'vscode-high-contrast') {
     gridTheme = 'rdg-dark';
     recordsIcon = ShowRecordsDarkIcon;
@@ -42,6 +44,8 @@ function DataView(props : any) {
     for (var i = 0; i < initialData.columns.length; i++) {
       let col = initialData.columns[i];
       if (col.is_link) {
+        // Note that the row_id is returned in the data but we don't
+        // expose it as a column.
         col['formatter'] = ({row}) => {
           return <VSCodeButton appearance="icon" onClick={() => {
             let command : ICommand = {

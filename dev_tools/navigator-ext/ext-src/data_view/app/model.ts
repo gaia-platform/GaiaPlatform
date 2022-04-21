@@ -1,3 +1,5 @@
+import * as vscode from 'vscode';
+
 export interface ITableView {
   db_name: string;
   table_name : string;
@@ -31,4 +33,11 @@ export interface ILink {
 // extension.
 export enum CommandAction {
   ShowRelatedRecords
+}
+
+// Saved context to re-open a webview based on its previous
+// state.
+export interface IPanelState {
+  link : ILink
+  extensionUri : vscode.Uri
 }
