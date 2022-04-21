@@ -37,9 +37,6 @@ typedef std::unordered_map<common::gaia_id_t, std::pair<field_position_set_t, fi
 // The base db cache class provides functionality common to all caches.
 class base_db_cache_t
 {
-public:
-    virtual bool is_initialized() = 0;
-
 protected:
     // Indicates whether the cache was initialized.
     // The caches will not be initialized for DDL sessions,
@@ -65,7 +62,7 @@ public:
     // Return a pointer to the singleton instance.
     static table_relationship_fields_cache_t* get();
 
-    bool is_initialized() override;
+    bool is_initialized();
 
     void put(common::gaia_id_t table_id);
     void put_parent_relationship_field(common::gaia_id_t table_id, common::field_position_t field);

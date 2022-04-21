@@ -297,7 +297,7 @@ void client_t::begin_transaction()
     // that is not a DDL transaction.
     if (!s_session_options.is_ddl_session)
     {
-        try_init_db_caches();
+        std::call_once(s_are_db_caches_initialized, init_db_caches);
     }
 
     cleanup_private_locators.dismiss();
@@ -417,40 +417,6 @@ void client_t::init_memory_manager()
     s_memory_manager.load(
         reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
         sizeof(s_shared_data.data()->objects));
-}
-
-void client_t::try_init_db_caches()
-{
-    // Because this code can be called concurrently,
-    // we want to ensure that only one thread can perform the initialization.
-    // This is accomplished using the s_are_db_caches_initializing atomic flag:
-    // only the thread that succeeds in turning the flag on will continue to
-    // perform the initialization steps.
-    if (!s_are_db_caches_initialized)
-    {
-        // Try to gain the exclusive right to initialize the caches.
-        bool expected = false;
-        while (!s_are_db_caches_initializing.compare_exchange_strong(expected, true))
-        {
-            // Wait 1usec, then reset 'expected' and retry.
-            usleep(1);
-            expected = false;
-        }
-
-        ASSERT_INVARIANT(
-            s_are_db_caches_initializing, "Cache initialization flag was expected to be set at this point.");
-
-        // If the caches have already been initialized,
-        // skip that work and revert the flag back to its normal value.
-        if (!s_are_db_caches_initialized)
-        {
-            init_db_caches();
-
-            s_are_db_caches_initialized = true;
-        }
-
-        s_are_db_caches_initializing = false;
-    }
 }
 
 void client_t::init_db_caches()
