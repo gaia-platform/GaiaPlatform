@@ -459,17 +459,29 @@ typedef txn_log_t logs_t[c_max_logs + 1];
 // This is a shared-memory hash table mapping gaia_id keys to locator values. We
 // need a hash table node for each locator (to store the gaia_id key and the
 // locator value). The hash nodes associated with each hash bucket are linked in
-// a list whose head is stored in an array indexed by hash bucket.
+// a list whose head is stored in an array indexed by hash bucket
+// (`list_head_index_for_bucket`). Each operation on the hash table
+// (`db_hash_map::insert()`, `db_hash_map::find()`, `db_hash_map::remove()`)
+// must first hash the given gaia_id to its bucket (currently using just modulo
+// reduction, which works well for sequentially allocated gaia_ids), and begin
+// traversing that bucket's list at the index given by the bucket's entry in
+// `list_head_index_for_bucket`. If no node in the list contains a matching
+// gaia_id, then find() and remove() return false, while insert() creates a new
+// node, links it into the list, and returns true. If a matching node is found,
+// then find() returns the locator stored in that node, insert() returns false,
+// and remove() invalidates the locator stored in that node and returns true.
 struct id_index_t
 {
-    // This counts the number of hash nodes currently allocated to all buckets.
-    std::atomic<size_t> last_allocated_hash_node_index;
-    // The index of the head node in each hash bucket's linked list.
-    // Empty buckets are indicated by a zero index, so the first hash node is unused.
+    // The index in `list_nodes` of the last allocated list node.
+    // Always begins at 1, because the first list node is unused.
+    std::atomic<size_t> last_allocated_list_node_index;
+    // The index in `list_nodes` of the head of each bucket's linked list.
+    // An empty bucket is indicated by a zero index.
     std::atomic<uint32_t> list_head_index_for_bucket[c_hash_buckets];
-    // An array of hash nodes storing an ID, locator, and the index of the next
-    // hash node in its bucket's linked list.
-    hash_node_t hash_nodes[c_max_locators];
+    // An array of list nodes storing an ID, locator, and the index of the next
+    // node in its bucket's linked list.
+    // Empty buckets are indicated by a zero index, so the first list node is unused.
+    hash_node_t list_nodes[c_max_locators];
 };
 
 // These are types meant to access index types from the client/server.
