@@ -64,6 +64,8 @@ public:
 
     bool is_initialized();
 
+    // Each table gets an entry, regardless of whether it is involved in a relationship or not.
+    // This eliminates having to check for special situations during lookups.
     void put(common::gaia_id_t table_id);
     void put_parent_relationship_field(common::gaia_id_t table_id, common::field_position_t field);
     void put_child_relationship_field(common::gaia_id_t table_id, common::field_position_t field);
