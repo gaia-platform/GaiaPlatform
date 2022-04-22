@@ -18,10 +18,12 @@
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/socket_helpers.hpp"
 #include "gaia_internal/common/system_error.hpp"
+#include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
 #include "client_messenger.hpp"
+#include "db_caches.hpp"
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
 #include "messages_generated.h"
@@ -290,6 +292,14 @@ void client_t::begin_transaction()
         apply_log_from_offset(s_private_locators.data(), txn_log_info->log_offset());
     }
 
+    // We need to perform this initialization in the context of a transaction,
+    // so we'll just piggyback on the first transaction started by the client
+    // that is not a DDL transaction.
+    if (!s_session_options.is_ddl_session)
+    {
+        std::call_once(s_are_db_caches_initialized, init_db_caches);
+    }
+
     cleanup_private_locators.dismiss();
 }
 
@@ -407,4 +417,32 @@ void client_t::init_memory_manager()
     s_memory_manager.load(
         reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
         sizeof(s_shared_data.data()->objects));
+}
+
+void client_t::init_db_caches()
+{
+    // Initialize table_relationship_fields_cache_t.
+    for (const auto& table : catalog_core::list_tables())
+    {
+        gaia_id_t table_id = table.id();
+        caches::table_relationship_fields_cache_t::get()->put(table_id);
+
+        for (const auto& relationship : catalog_core::list_relationship_from(table_id))
+        {
+            if (relationship.parent_field_positions()->size() == 1)
+            {
+                field_position_t field = relationship.parent_field_positions()->Get(0);
+                caches::table_relationship_fields_cache_t::get()->put_parent_relationship_field(table_id, field);
+            }
+        }
+
+        for (const auto& relationship : catalog_core::list_relationship_to(table_id))
+        {
+            if (relationship.child_field_positions()->size() == 1)
+            {
+                field_position_t field = relationship.child_field_positions()->Get(0);
+                caches::table_relationship_fields_cache_t::get()->put_child_relationship_field(table_id, field);
+            }
+        }
+    }
 }
