@@ -158,8 +158,9 @@ bool table_iterator_t::scan_forward()
     return false;
 }
 
-bool table_iterator_t::set(gaia_type_t container_id, gaia_id_t record_id)
+bool table_iterator_t::set(gaia_id_t table_id, gaia_type_t container_id, gaia_id_t record_id)
 {
+    m_table_id = table_id;
     m_container_id = container_id;
 
     try

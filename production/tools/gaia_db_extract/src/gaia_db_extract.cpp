@@ -398,10 +398,11 @@ static string dump_rows(string database, string table, uint64_t start_after, uin
 
                 for (const auto& linked_table_object : database_object.gaia_tables().where(gaia_table_expr::name == table_name))
                 {
+                    gaia_id_t table_id = linked_table_object.gaia_id();
                     gaia_type_t table_type = linked_table_object.type();
                     for (auto record_id : linked_record_ids)
                     {
-                        if (!table_iterator.set(table_type, record_id))
+                        if (!table_iterator.set(table_id, table_type, record_id))
                         {
                             break;
                         }
