@@ -10,6 +10,21 @@ namespace gaia
 namespace db
 {
 
+server_connection_failed_internal::server_connection_failed_internal(const char* error_message, int error_number)
+{
+    std::stringstream message;
+    message
+        << "Client failed to connect to server! Error message: '"
+        << error_message << "'.";
+    m_message = message.str();
+    m_error_number = error_number;
+}
+
+int server_connection_failed_internal::get_errno()
+{
+    return m_error_number;
+}
+
 session_exists_internal::session_exists_internal()
 {
     m_message = "Close the current session before opening a new one.";

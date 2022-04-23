@@ -18,6 +18,7 @@
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/db_server_instance.hpp"
+#include "gaia_internal/exceptions.hpp"
 
 using namespace gaia::common;
 using namespace gaia::db;
@@ -119,7 +120,7 @@ TEST_F(db_server_env_test, instance_name_from_env)
             gaia::db::begin_session();
             connected = true;
         }
-        catch (gaia::common::system_error& e)
+        catch (gaia::db::server_connection_failed_internal& e)
         {
             if (e.get_errno() == ECONNREFUSED)
             {
@@ -134,8 +135,8 @@ TEST_F(db_server_env_test, instance_name_from_env)
         break;
     }
 
-    ASSERT_TRUE(connected) << "It was not possible to connect the the gaia_db_server instance named " << instance_name;
-    ASSERT_TRUE(fs::exists(data_dir)) << "The gaia_db_server did not created the expected data dir " << data_dir;
+    ASSERT_TRUE(connected) << "It was not possible to connect to the gaia_db_server instance named '" << instance_name << "'.";
+    ASSERT_TRUE(fs::exists(data_dir)) << "gaia_db_server did not create the expected data folder '" << data_dir << "'.";
 
     // Kill the server and cleanup the directory.
     kill_server();
