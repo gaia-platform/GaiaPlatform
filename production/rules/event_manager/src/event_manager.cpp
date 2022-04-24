@@ -410,11 +410,11 @@ void event_manager_t::unsubscribe_rules()
     }
 
     // Now it is safe to clear out the subscriptions and rule bindings.
-    m_subscriptions.clear();
     if (m_stats_manager)
     {
         m_stats_manager->clear_rule_stats();
     }
+    m_subscriptions.clear();
     m_rules.clear();
 
     // Reset the commit trigger so we are ready to go on any new

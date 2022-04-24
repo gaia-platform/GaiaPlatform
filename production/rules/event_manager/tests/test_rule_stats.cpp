@@ -242,7 +242,7 @@ public:
 class rule_stats_test : public ::testing::Test
 {
 public:
-    // Do comparison with a big fudge factor (within 2x)
+    // Do comparison with a big fudge factor (within 5x)
     // of expected value for time comparisons.  Note that all
     // times are in nanoseconds.  Equality comparison for
     // 0 values.
@@ -251,7 +251,7 @@ public:
         if (expected_ns)
         {
             EXPECT_GT(actual_ns, expected_ns);
-            EXPECT_LT(actual_ns, 2 * expected_ns);
+            EXPECT_LT(actual_ns, 5 * expected_ns);
         }
         else
         {

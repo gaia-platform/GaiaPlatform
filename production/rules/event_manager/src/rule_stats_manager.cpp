@@ -60,7 +60,7 @@ void rule_stats_manager_t::inc_executed(const char* rule_id)
     m_scheduler_stats.count_executed++;
     if (m_rule_stats_enabled)
     {
-        m_rule_stats_map.at(rule_id).count_executed++;
+        get_stats(rule_id).count_executed++;
     }
 }
 
@@ -69,7 +69,7 @@ void rule_stats_manager_t::inc_scheduled(const char* rule_id)
     m_scheduler_stats.count_scheduled++;
     if (m_rule_stats_enabled)
     {
-        m_rule_stats_map.at(rule_id).count_scheduled++;
+        get_stats(rule_id).count_scheduled++;
     }
 }
 
@@ -78,7 +78,7 @@ void rule_stats_manager_t::inc_retries(const char* rule_id)
     m_scheduler_stats.count_retries++;
     if (m_rule_stats_enabled)
     {
-        m_rule_stats_map.at(rule_id).count_retries++;
+        get_stats(rule_id).count_retries++;
     }
 }
 
@@ -87,7 +87,7 @@ void rule_stats_manager_t::inc_abandoned(const char* rule_id)
     m_scheduler_stats.count_abandoned++;
     if (m_rule_stats_enabled)
     {
-        m_rule_stats_map.at(rule_id).count_abandoned++;
+        get_stats(rule_id).count_abandoned++;
     }
 }
 
@@ -96,7 +96,7 @@ void rule_stats_manager_t::inc_pending(const char* rule_id)
     m_scheduler_stats.count_pending++;
     if (m_rule_stats_enabled)
     {
-        m_rule_stats_map.at(rule_id).count_pending++;
+        get_stats(rule_id).count_pending++;
     }
 }
 
@@ -105,7 +105,7 @@ void rule_stats_manager_t::inc_exceptions(const char* rule_id)
     m_scheduler_stats.count_exceptions++;
     if (m_rule_stats_enabled)
     {
-        m_rule_stats_map.at(rule_id).count_exceptions++;
+        get_stats(rule_id).count_exceptions++;
     }
 }
 
@@ -117,7 +117,7 @@ void rule_stats_manager_t::compute_rule_invocation_latency(
     m_scheduler_stats.add_rule_invocation_latency(duration);
     if (m_rule_stats_enabled)
     {
-        m_rule_stats_map.at(rule_id).add_rule_invocation_latency(duration);
+        get_stats(rule_id).add_rule_invocation_latency(duration);
     }
 }
 
@@ -129,7 +129,7 @@ void rule_stats_manager_t::compute_rule_execution_time(
     m_scheduler_stats.add_rule_execution_time(duration);
     if (m_rule_stats_enabled)
     {
-        m_rule_stats_map.at(rule_id).add_rule_execution_time(duration);
+        get_stats(rule_id).add_rule_execution_time(duration);
     }
 }
 
@@ -150,6 +150,7 @@ void rule_stats_manager_t::log_stats()
     m_count_entries_logged++;
     if (m_rule_stats_enabled)
     {
+        shared_lock lock(m_rule_stats_mutex);
         for (auto& rule_it : m_rule_stats_map)
         {
             // Only log stats for a rule if it has at least one non-zero counter.
@@ -167,10 +168,17 @@ void rule_stats_manager_t::log_stats()
     }
 }
 
+rule_stats_t& rule_stats_manager_t::get_stats(const char* rule_id)
+{
+    shared_lock lock(m_rule_stats_mutex);
+    return m_rule_stats_map.at(rule_id);
+}
+
 void rule_stats_manager_t::insert_rule_stats(const std::string& rule_id)
 {
     if (m_rule_stats_enabled)
     {
+        unique_lock lock(m_rule_stats_mutex);
         m_rule_stats_map.try_emplace(rule_id, rule_id);
     }
 }
@@ -179,6 +187,7 @@ void rule_stats_manager_t::remove_rule_stats(const std::string& rule_id)
 {
     if (m_rule_stats_enabled)
     {
+        unique_lock lock(m_rule_stats_mutex);
         m_rule_stats_map.erase(rule_id);
     }
 }
@@ -187,6 +196,7 @@ void rule_stats_manager_t::clear_rule_stats()
 {
     if (m_rule_stats_enabled)
     {
+        unique_lock lock(m_rule_stats_mutex);
         m_rule_stats_map.clear();
     }
 }

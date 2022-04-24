@@ -7,7 +7,7 @@
 
 #include <atomic>
 #include <condition_variable>
-#include <mutex>
+#include <shared_mutex>
 #include <thread>
 #include <unordered_map>
 
@@ -65,8 +65,15 @@ protected:
     uint8_t m_count_entries_logged;
 
 private:
+    rule_stats_t& get_stats(const char* rule_id);
+
     // Individual rule stats are off by default.  Must be explicitly enabled by the user.
     bool m_rule_stats_enabled;
+    // Protects the individual rule stats map since rules can
+    // be subscribed when the engine is running.  Allow multiple readers
+    // of the map but require exclusive access for map membership changes.
+    std::shared_mutex m_rule_stats_mutex;
+
     // Management of stats logger thread
     std::thread m_logger_thread;
     std::mutex m_logging_lock;
