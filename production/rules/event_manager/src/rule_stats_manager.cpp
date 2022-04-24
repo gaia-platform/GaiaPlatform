@@ -60,7 +60,8 @@ void rule_stats_manager_t::inc_executed(const char* rule_id)
     m_scheduler_stats.count_executed++;
     if (m_rule_stats_enabled)
     {
-        get_stats(rule_id).count_executed++;
+        shared_lock lock(m_rule_stats_mutex);
+        m_rule_stats_map.at(rule_id).count_executed++;
     }
 }
 
@@ -69,7 +70,8 @@ void rule_stats_manager_t::inc_scheduled(const char* rule_id)
     m_scheduler_stats.count_scheduled++;
     if (m_rule_stats_enabled)
     {
-        get_stats(rule_id).count_scheduled++;
+        shared_lock lock(m_rule_stats_mutex);
+        m_rule_stats_map.at(rule_id).count_scheduled++;
     }
 }
 
@@ -78,7 +80,8 @@ void rule_stats_manager_t::inc_retries(const char* rule_id)
     m_scheduler_stats.count_retries++;
     if (m_rule_stats_enabled)
     {
-        get_stats(rule_id).count_retries++;
+        shared_lock lock(m_rule_stats_mutex);
+        m_rule_stats_map.at(rule_id).count_retries++;
     }
 }
 
@@ -87,7 +90,8 @@ void rule_stats_manager_t::inc_abandoned(const char* rule_id)
     m_scheduler_stats.count_abandoned++;
     if (m_rule_stats_enabled)
     {
-        get_stats(rule_id).count_abandoned++;
+        shared_lock lock(m_rule_stats_mutex);
+        m_rule_stats_map.at(rule_id).count_abandoned++;
     }
 }
 
@@ -96,7 +100,8 @@ void rule_stats_manager_t::inc_pending(const char* rule_id)
     m_scheduler_stats.count_pending++;
     if (m_rule_stats_enabled)
     {
-        get_stats(rule_id).count_pending++;
+        shared_lock lock(m_rule_stats_mutex);
+        m_rule_stats_map.at(rule_id).count_pending++;
     }
 }
 
@@ -105,7 +110,8 @@ void rule_stats_manager_t::inc_exceptions(const char* rule_id)
     m_scheduler_stats.count_exceptions++;
     if (m_rule_stats_enabled)
     {
-        get_stats(rule_id).count_exceptions++;
+        shared_lock lock(m_rule_stats_mutex);
+        m_rule_stats_map.at(rule_id).count_exceptions++;
     }
 }
 
@@ -117,7 +123,8 @@ void rule_stats_manager_t::compute_rule_invocation_latency(
     m_scheduler_stats.add_rule_invocation_latency(duration);
     if (m_rule_stats_enabled)
     {
-        get_stats(rule_id).add_rule_invocation_latency(duration);
+        shared_lock lock(m_rule_stats_mutex);
+        m_rule_stats_map.at(rule_id).add_rule_invocation_latency(duration);
     }
 }
 
@@ -129,7 +136,8 @@ void rule_stats_manager_t::compute_rule_execution_time(
     m_scheduler_stats.add_rule_execution_time(duration);
     if (m_rule_stats_enabled)
     {
-        get_stats(rule_id).add_rule_execution_time(duration);
+        shared_lock lock(m_rule_stats_mutex);
+        m_rule_stats_map.at(rule_id).add_rule_execution_time(duration);
     }
 }
 
@@ -166,12 +174,6 @@ void rule_stats_manager_t::log_stats()
             }
         }
     }
-}
-
-rule_stats_t& rule_stats_manager_t::get_stats(const char* rule_id)
-{
-    shared_lock lock(m_rule_stats_mutex);
-    return m_rule_stats_map.at(rule_id);
 }
 
 void rule_stats_manager_t::insert_rule_stats(const std::string& rule_id)

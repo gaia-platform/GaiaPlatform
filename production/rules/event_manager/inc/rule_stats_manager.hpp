@@ -65,8 +65,6 @@ protected:
     uint8_t m_count_entries_logged;
 
 private:
-    rule_stats_t& get_stats(const char* rule_id);
-
     // Individual rule stats are off by default.  Must be explicitly enabled by the user.
     bool m_rule_stats_enabled;
     // Protects the individual rule stats map since rules can
