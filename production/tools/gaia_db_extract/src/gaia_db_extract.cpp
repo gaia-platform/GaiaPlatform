@@ -40,7 +40,7 @@ namespace db_extract
 
 constexpr int c_default_json_indentation = 4;
 
-struct relationship_info_t 
+struct relationship_info_t
 {
     string table_name;
     bool is_from_parent = false;
@@ -282,7 +282,6 @@ static json_t serialize_row(table_iterator_t& table_iterator, const gaia_table_t
     return row;
 }
 
-
 static relationship_info_t get_relationship_info(gaia_table_t& table_object, string& link_name)
 {
     relationship_info_t info;
@@ -320,11 +319,7 @@ static relationship_info_t get_relationship_info(gaia_table_t& table_object, str
     return info;
 }
 
-static bool get_related_records(std::vector<gaia_id_t>& linked_record_ids, 
-    gaia_ptr_t& anchor_row, 
-    gaia_relationship_t& relationship,
-    bool is_from_parent, 
-    uint32_t row_limit)
+static bool get_related_records(std::vector<gaia_id_t>& linked_record_ids, gaia_ptr_t& anchor_row, gaia_relationship_t& relationship, bool is_from_parent, uint32_t row_limit)
 {
     if (!is_from_parent)
     {
@@ -374,13 +369,7 @@ static bool get_related_records(std::vector<gaia_id_t>& linked_record_ids,
     return true;
 }
 
-static bool dump_related_rows(json_t& rows, 
-    gaia_database_t& database_object, 
-    gaia_table_t& table_object, 
-    uint64_t start_after, 
-    uint32_t row_limit, 
-    string link_name, 
-    uint64_t link_row_id)
+static bool dump_related_rows(json_t& rows, gaia_database_t& database_object, gaia_table_t& table_object, uint64_t start_after, uint32_t row_limit, string link_name, uint64_t link_row_id)
 {
     relationship_info_t info = get_relationship_info(table_object, link_name);
     if (!info.relationship)
@@ -415,15 +404,17 @@ static bool dump_related_rows(json_t& rows,
     }
 
     // Fetch records from the related table.
-    auto& linked_table_object = *(database_object.gaia_tables().where(gaia_table_expr::name == info.table_name).begin());
+    auto linked_table_object = *(database_object.gaia_tables().where(gaia_table_expr::name == info.table_name).begin());
     if (linked_table_object)
     {
         gaia_id_t table_id = linked_table_object.gaia_id();
         gaia_type_t table_type = linked_table_object.type();
         related_table_iterator_t related_table_iterator;
-         
+        bool has_results = false;
+
         for (auto record_id : linked_record_ids)
         {
+            has_results = true;
             if (!related_table_iterator.prepare(table_id, table_type, record_id))
             {
                 break;
@@ -431,7 +422,7 @@ static bool dump_related_rows(json_t& rows,
             rows["rows"].push_back(serialize_row(related_table_iterator, linked_table_object));
         }
 
-        return true;
+        return has_results;
     }
 
     return false;
@@ -442,12 +433,14 @@ static bool dump_rows(json_t& rows, gaia_table_t& table_object, uint64_t start_a
     gaia_id_t table_id = table_object.gaia_id();
     gaia_type_t table_type = table_object.type();
     table_iterator_t table_iterator;
-    
+    bool has_results = false;
+
     if (!table_iterator.prepare(table_id, table_type, start_after))
     {
         return false;
     }
 
+    has_results = !table_iterator.has_scan_ended();
     while (!table_iterator.has_scan_ended())
     {
         // Note that a row_limit of -1 means "unlimited", so it will never be 0.
@@ -462,17 +455,17 @@ static bool dump_rows(json_t& rows, gaia_table_t& table_object, uint64_t start_a
         table_iterator.scan_forward();
     }
 
-    return true;
+    return has_results;
 }
 
 // Scan the database for rows within the database and table requested. Dump rows into JSON
 // format, potentially restricted by start_after and row_limit parameters.
 static string dump_rows(
-    string database, 
-    string table, 
-    uint64_t start_after, 
-    uint32_t row_limit, 
-    string link_name, 
+    string database,
+    string table,
+    uint64_t start_after,
+    uint32_t row_limit,
+    string link_name,
     uint64_t link_row_id)
 {
     json_t rows = json_t{};
@@ -509,7 +502,7 @@ static string dump_rows(
         rows["table"] = table;
     }
 
-    //row_dump << rows.dump(c_default_json_indentation);
+    // row_dump << rows.dump(c_default_json_indentation);
     auto return_string = rows.dump(c_default_json_indentation);
     if (!return_string.compare("null"))
     {
@@ -521,12 +514,7 @@ static string dump_rows(
     }
 }
 
-string gaia_db_extract(string database, 
-    string table, 
-    uint64_t start_after, 
-    uint32_t row_limit, 
-    string link_name, 
-    uint64_t link_row_id)
+string gaia_db_extract(string database, string table, uint64_t start_after, uint32_t row_limit, string link_name, uint64_t link_row_id)
 {
     // Select the document. Either the catalog (no parameters) or table rows (database and table parameters).
     if (database.empty() && table.empty())
