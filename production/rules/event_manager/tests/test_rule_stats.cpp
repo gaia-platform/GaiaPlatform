@@ -166,7 +166,7 @@ public:
         format.append(c_thread_load);
         format.append("%");
         format.append(to_string(c_thread_load_padding));
-        format.append(".2f %]");
+        format.append(".2f %%]");
         format.append(get_int_format(as_number_format));
         format.append(get_float_format(as_number_format));
         return format;
@@ -213,7 +213,7 @@ public:
         return m_scheduler_stats;
     }
 
-    std::map<string, rule_stats_t>& get_rule_stats_map()
+    std::unordered_map<string, rule_stats_t>& get_rule_stats_map()
     {
         return m_rule_stats_map;
     }
@@ -363,6 +363,41 @@ public:
         m_expected_lines.emplace_back(m_line);
     }
 
+    // For fuzzy match, match c_fuzzy_match_len and don't rely on the order.
+    void verify_log_fuzzy(string& log_string)
+    {
+        auto len = log_string.find("\n");
+        while (len != string::npos)
+        {
+            string log_line = log_string.substr(0, len);
+            bool found_line = false;
+            string fuzzy_log = log_line.substr(0, c_fuzzy_match_len);
+            for (auto const& expected_line : m_expected_lines)
+            {
+                string fuzzy_expected = expected_line.substr(0, c_fuzzy_match_len);
+                if (fuzzy_expected == fuzzy_log)
+                {
+                    found_line = true;
+                    break;
+                }
+            }
+            EXPECT_TRUE(found_line);
+            log_string = log_string.substr(len + 1);
+            len = log_string.find("\n");
+        }
+    }
+
+    void verify_log_verbatim(string& log_string)
+    {
+        for (auto const& expected_line : m_expected_lines)
+        {
+            auto len = log_string.find("\n");
+            string log_line = log_string.substr(0, len);
+            EXPECT_EQ(log_line, expected_line);
+            log_string = log_string.substr(len + 1);
+        }
+    }
+
     // If use_fuzzy_match is true, then just match the first c_fuzzy_match_len characters of the line.
     void verify_log(bool use_fuzzy_match = false)
     {
@@ -370,21 +405,13 @@ public:
         // Lines in the log are delimted by '\n'.
         string log_string = s_logger_output.str();
 
-        for (auto const& expected_line : m_expected_lines)
+        if (use_fuzzy_match)
         {
-            auto len = log_string.find("\n");
-            string log_line = log_string.substr(0, len);
-            if (use_fuzzy_match)
-            {
-                string fuzzy_expected = expected_line.substr(0, c_fuzzy_match_len);
-                string fuzzy_log = log_line.substr(0, c_fuzzy_match_len);
-                EXPECT_EQ(fuzzy_log, fuzzy_expected);
-            }
-            else
-            {
-                EXPECT_EQ(log_line, expected_line);
-            }
-            log_string = log_string.substr(len + 1);
+            verify_log_fuzzy(log_string);
+        }
+        else
+        {
+            verify_log_verbatim(log_string);
         }
 
         // Clear out the stream content.
@@ -472,7 +499,7 @@ TEST_F(rule_stats_test, rule_stats_ctor)
 
 TEST_F(rule_stats_test, rule_stats_null_rule_id)
 {
-    rule_stats_t stats(nullptr);
+    rule_stats_t stats;
     EXPECT_STREQ(stats.rule_id.c_str(), "");
 }
 
