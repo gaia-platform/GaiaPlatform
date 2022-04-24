@@ -37,8 +37,7 @@ public:
 
     virtual ~table_iterator_t() = default;
 
-    // Do not allow copies to be made;
-    // disable copy constructor and assignment operator.
+    // Do not allow copies to be made; disable copy constructor and assignment operator.
     table_iterator_t(const table_iterator_t&) = delete;
     table_iterator_t& operator=(const table_iterator_t&) = delete;
 
@@ -86,7 +85,7 @@ private:
 
 class related_table_iterator_t : public table_iterator_t
 {
-public: 
+public:
     virtual bool initialize_scan(gaia::common::gaia_type_t, gaia::common::gaia_id_t) override;
 };
 

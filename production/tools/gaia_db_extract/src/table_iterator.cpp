@@ -37,7 +37,6 @@ namespace db_extract
 // The form of this object was borrowed and simplified from the SQL FDW adapter,
 // in gaia_fdw_adapter.cpp, which also interfaces with Postgres. As this utility does
 // not use Postgres, all of the Postgres-specific code has been eliminated.
-
 bool table_iterator_t::prepare(gaia_id_t table_id, gaia_type_t container_id, gaia_id_t record_id)
 {
     m_table_id = table_id;
@@ -60,7 +59,7 @@ bool table_iterator_t::prepare(gaia_id_t table_id, gaia_type_t container_id, gai
     return false;
 }
 
-// For the table_iterator_t::initialize_scan, the record_id parameter passed to 
+// For the table_iterator_t::initialize_scan, the record_id parameter passed to
 // table_iterator_t::prepare represents the row to start after.
 bool table_iterator_t::initialize_scan(gaia_type_t container_id, gaia_id_t start_after)
 {
@@ -168,7 +167,7 @@ bool table_iterator_t::scan_forward()
     return false;
 }
 
-// For the related_table_iterator_t::initialize_scan, the record_id parameter passed to 
+// For the related_table_iterator_t::initialize_scan, the record_id parameter passed to
 // table_iterator_t::prepare represents the related record_id to fetch. For the related table,
 // the "scan" is driven by a set of prefetched record ids.
 bool related_table_iterator_t::initialize_scan(gaia_type_t container_id, gaia_id_t record_id)

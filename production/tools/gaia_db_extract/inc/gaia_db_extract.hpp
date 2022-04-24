@@ -28,7 +28,7 @@ std::string gaia_db_extract(
     std::string table,
     uint64_t start_after,
     uint32_t row_limit,
-    std::string link_name, 
+    std::string link_name,
     uint64_t link_row);
 
 } // namespace db_extract
