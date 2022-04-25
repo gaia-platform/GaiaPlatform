@@ -23,6 +23,7 @@
 #include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_client_config.hpp"
 #include "gaia_internal/db/db_server_instance.hpp"
+#include "gaia_internal/exceptions.hpp"
 
 #include "command.hpp"
 #include "gaia_parser.hpp"
@@ -479,7 +480,7 @@ int main(int argc, char* argv[])
             }
         }
     }
-    catch (gaia::common::system_error& e)
+    catch (gaia::db::server_connection_failed_internal& e)
     {
         cerr << c_error_prompt << e.what() << endl;
         if (e.get_errno() == ECONNREFUSED)
