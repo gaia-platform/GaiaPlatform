@@ -11,13 +11,13 @@ namespace db
 {
 
 server_connection_failed_internal::server_connection_failed_internal(const char* error_message, int error_number)
+    : m_error_number(error_number)
 {
     std::stringstream message;
     message
-        << "Client failed to connect to server! Error message: '"
+        << "Client failed to connect to server! System error: '"
         << error_message << "'.";
     m_message = message.str();
-    m_error_number = error_number;
 }
 
 int server_connection_failed_internal::get_errno()
