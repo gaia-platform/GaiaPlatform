@@ -6,6 +6,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <optional>
 
 #include <sys/socket.h>
@@ -99,6 +100,8 @@ public:
     get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr);
 
 private:
+    static inline std::once_flag s_are_db_caches_initialized;
+
     // These fields have transaction lifetime.
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
     thread_local static inline log_offset_t s_txn_log_offset = c_invalid_log_offset;
@@ -151,6 +154,8 @@ private:
 
 private:
     static void init_memory_manager();
+
+    static void init_db_caches();
 
     static void txn_cleanup();
 

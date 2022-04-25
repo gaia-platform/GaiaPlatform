@@ -63,6 +63,7 @@ add_library(gaia_db_client STATIC
   src/catalog_core.cpp
   src/chunk_manager.cpp
   src/client_messenger.cpp
+  src/db_caches.cpp
   src/db_client_api.cpp
   src/db_client_config.cpp
   src/db_client.cpp
@@ -261,6 +262,7 @@ target_link_libraries(gaia_db_catalog_test PRIVATE gaia_common gaia_db_client ga
 
 add_gtest(test_type_index tests/test_type_index.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_db_client;${LIB_CAP};${LIB_EXPLAIN}")
 add_gtest(test_db_client tests/test_db_client.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_db_client")
+add_gtest(test_db_caches tests/test_db_caches.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_db_client")
 add_gtest(test_concurrent_db_client tests/test_concurrent_db_client.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_db_client")
 add_gtest(test_gaia_ptr_api tests/test_gaia_ptr_api.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_db_client;gaia_direct;gaia_catalog")
 add_gtest(test_env_instance_name tests/test_db_server_env.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_db_client;gaia_direct")
