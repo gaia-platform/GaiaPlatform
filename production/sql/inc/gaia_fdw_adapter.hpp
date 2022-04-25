@@ -40,6 +40,7 @@ extern "C"
 
 #include "gaia/common.hpp"
 
+#include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 
@@ -109,7 +110,26 @@ public:
     template <class S>
     static S* get_state(const char* table_name, size_t expected_field_count)
     {
-        S* state = (S*)palloc0(sizeof(S));
+        // Ensure that the space allocated for S is properly aligned.
+        // We'll allocate enough extra space to ensure that the requested buffer
+        // can be properly aligned within it.
+        size_t state_size = sizeof(S);
+        size_t state_alignment = alignof(S);
+        size_t buffer_size = state_size + state_alignment - 1;
+        void* buffer = palloc0(buffer_size);
+        ASSERT_INVARIANT(
+            buffer != nullptr,
+            "palloc0() failed!");
+        void* original_buffer = buffer;
+        void* aligned_buffer = std::align(state_alignment, state_size, buffer, buffer_size);
+        ASSERT_INVARIANT(
+            aligned_buffer >= original_buffer,
+            "Aligned pointer should be higher than original pointer!");
+        ASSERT_INVARIANT(
+            static_cast<uint8_t*>(aligned_buffer) < static_cast<uint8_t*>(original_buffer) + state_alignment,
+            "Aligned pointer exceeds original pointer by more than the alignment size!");
+
+        S* state = reinterpret_cast<S*>(aligned_buffer);
 
         return state->initialize(table_name, expected_field_count) ? state : nullptr;
     }
@@ -216,8 +236,8 @@ public:
     bool scan_forward();
 
 protected:
-    // The COW-SE smart ptr we are currently iterating over.
-    gaia::db::gaia_ptr_t m_current_record;
+    // The iterator that we are using for the current scan.
+    gaia::common::iterators::generator_iterator_t<gaia::db::gaia_ptr_t> m_iterator;
 
     // Pointer to the deserialized payload of the current record.
     const uint8_t* m_current_payload;

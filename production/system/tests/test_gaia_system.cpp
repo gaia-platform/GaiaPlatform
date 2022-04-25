@@ -14,6 +14,7 @@
 
 #include "gaia_internal/catalog/ddl_execution.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_test_base.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
@@ -44,13 +45,16 @@ public:
     {
         db_test_base_t::SetUpTestSuite();
 
-        begin_session();
+        begin_ddl_session();
 
         // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
         //       Otherwise, the event log activities will cause out of order test table IDs.
         schema_loader_t::instance().load_schema("addr_book.ddl");
 
         gaia::rules::initialize_rules_engine();
+
+        end_session();
+        begin_session();
 
         // Initialize rules after loading the catalog.
         rule_binding_t m_rule1{"ruleset1_name", "rule1_name", rule1};

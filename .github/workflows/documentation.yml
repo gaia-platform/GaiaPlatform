@@ -9,14 +9,17 @@ env:
 
 jobs:
 
-  Third-Party:
-    runs-on: ubuntu-20.04
+  Documentation:
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@master
-      - name: Generate Documentation
-        uses: mattnotmitt/doxygen-action@v1.9.2
+
+      - name: Build Documentation
+        uses: ./.github/actions/documentation-job
         with:
-          additional-packages: font-fira-code
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          github-token: ${{ secrets.API_TOKEN_GITHUB }}

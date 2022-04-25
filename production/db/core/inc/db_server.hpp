@@ -26,6 +26,7 @@
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
 #include "txn_metadata.hpp"
+#include "type_index.hpp"
 
 namespace gaia
 {
@@ -87,7 +88,6 @@ private:
 class server_t
 {
     friend class gaia_ptr_t;
-    friend class type_generator_t;
 
     friend gaia::db::locators_t* gaia::db::get_locators();
     friend gaia::db::locators_t* gaia::db::get_locators_for_allocator();
@@ -95,6 +95,7 @@ class server_t
     friend gaia::db::data_t* gaia::db::get_data();
     friend gaia::db::logs_t* gaia::db::get_logs();
     friend gaia::db::id_index_t* gaia::db::get_id_index();
+    friend gaia::db::type_index_t* gaia::db::get_type_index();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
     friend gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id();
     friend gaia::db::txn_log_t* gaia::db::get_txn_log();
@@ -108,7 +109,7 @@ private:
     static inline server_config_t s_server_conf{};
 
     // This is arbitrary but seems like a reasonable starting point (pending benchmarks).
-    static constexpr size_t c_stream_batch_size{1ULL << 10};
+    static constexpr size_t c_stream_batch_size{1UL << 10};
 
     // This is necessary to avoid VM exhaustion in the worst case where all
     // sessions are opened from a single process (we remap the 256GB data
@@ -118,7 +119,7 @@ private:
     // of error, hence the choice of 128 for the session limit).
     // REVIEW: How much could we relax this limit if we revert to per-process
     // mappings of the data segment?
-    static constexpr size_t c_session_limit{1ULL << 7};
+    static constexpr size_t c_session_limit{1UL << 7};
 
     static inline int s_server_shutdown_eventfd = -1;
     static inline int s_listening_socket = -1;
@@ -131,6 +132,7 @@ private:
     static inline mapped_data_t<data_t> s_shared_data{};
     static inline mapped_data_t<logs_t> s_shared_logs{};
     static inline mapped_data_t<id_index_t> s_shared_id_index{};
+    static inline mapped_data_t<type_index_t> s_shared_type_index{};
     static inline index::indexes_t s_global_indexes{};
     static inline std::unique_ptr<persistent_store_manager> s_persistent_store{};
 
@@ -141,6 +143,9 @@ private:
 
     // Local snapshot for server-side transactions.
     thread_local static inline mapped_data_t<locators_t> s_local_snapshot_locators{};
+    // Watermark that tracks how many log records have been used for the current snapshot instance.
+    // This is used to permit the incremental updating of the snapshot.
+    thread_local static inline size_t s_last_snapshot_processed_log_record_count{0};
 
     // The allocated status of each log offset is tracked in this bitmap. When
     // opening a new txn, each session thread must allocate an offset for its txn
@@ -170,6 +175,8 @@ private:
 
     thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
     thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
+
+    thread_local static inline bool s_is_ddl_session{false};
 
     // These thread objects are owned by the session thread that created them.
     thread_local static inline std::vector<std::thread> s_session_owned_threads{};
@@ -346,26 +353,27 @@ private:
         {data_mapping_t::index_t::data, &s_shared_data, c_gaia_mem_data_prefix},
         {data_mapping_t::index_t::logs, &s_shared_logs, c_gaia_mem_logs_prefix},
         {data_mapping_t::index_t::id_index, &s_shared_id_index, c_gaia_mem_id_index_prefix},
+        {data_mapping_t::index_t::type_index, &s_shared_type_index, c_gaia_mem_type_index_prefix},
     };
 
     // Function pointer type that executes side effects of a session state transition.
     // REVIEW: replace void* with std::any?
     typedef void (*transition_handler_fn)(
-        int* fds, size_t fd_count,
         messages::session_event_t event,
         const void* event_data,
         messages::session_state_t old_state,
         messages::session_state_t new_state);
 
     // Session state transition handler functions.
-    static void handle_connect(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_begin_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_rollback_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_commit_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_decide_txn(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_client_shutdown(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_server_shutdown(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
-    static void handle_request_stream(int*, size_t, messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_connect_ddl(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_connect(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_begin_txn(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_rollback_txn(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_commit_txn(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_decide_txn(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_client_shutdown(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_server_shutdown(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
+    static void handle_request_stream(messages::session_event_t, const void*, messages::session_state_t, messages::session_state_t);
 
     struct transition_t
     {
@@ -383,6 +391,7 @@ private:
     // "Wildcard" transitions (current state = session_state_t::ANY) must be listed after
     // non-wildcard transitions with the same event, or the latter will never be applied.
     static inline constexpr valid_transition_t c_valid_transitions[] = {
+        {messages::session_state_t::DISCONNECTED, messages::session_event_t::CONNECT_DDL, {messages::session_state_t::CONNECTED, handle_connect_ddl}},
         {messages::session_state_t::DISCONNECTED, messages::session_event_t::CONNECT, {messages::session_state_t::CONNECTED, handle_connect}},
         {messages::session_state_t::ANY, messages::session_event_t::CLIENT_SHUTDOWN, {messages::session_state_t::DISCONNECTED, handle_client_shutdown}},
         {messages::session_state_t::CONNECTED, messages::session_event_t::BEGIN_TXN, {messages::session_state_t::TXN_IN_PROGRESS, handle_begin_txn}},
@@ -395,7 +404,7 @@ private:
         {messages::session_state_t::ANY, messages::session_event_t::REQUEST_STREAM, {messages::session_state_t::ANY, handle_request_stream}},
     };
 
-    static void apply_transition(messages::session_event_t event, const void* event_data, int* fds, size_t fd_count);
+    static void apply_transition(messages::session_event_t event, const void* event_data);
 
     static void build_server_reply_info(
         flatbuffers::FlatBufferBuilder& builder,
@@ -429,7 +438,7 @@ private:
 
     // TODO: Remove the apply_logs flag, because a snapshot can't be used
     // correctly without first applying txn logs up to its begin timestamp.
-    static void create_local_snapshot(bool apply_logs);
+    static void create_or_refresh_local_snapshot(bool apply_logs);
 
     static void recover_db();
 
@@ -457,9 +466,6 @@ private:
     static void start_stream_producer(
         int stream_socket,
         std::shared_ptr<common::iterators::generator_t<T_element>> generator);
-
-    static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>> get_id_generator_for_type(
-        common::gaia_type_t type);
 
     static void get_txn_log_offsets_for_snapshot(
         gaia_txn_id_t begin_ts,

@@ -15,6 +15,7 @@
 #include "gaia_internal/db/type_metadata.hpp"
 #include "gaia_internal/exceptions.hpp"
 
+#include "db_caches.hpp"
 #include "db_client.hpp"
 #include "db_helpers.hpp"
 #include "field_access.hpp"
@@ -40,24 +41,18 @@ namespace
 gaia_id_t find_using_index(
     const uint8_t* payload,
     field_position_t field_position,
-    gaia_type_t type,
-    gaia_id_t type_id,
+    gaia_id_t table_id,
     gaia_id_t indexed_table_id,
     field_position_t indexed_field_position)
 {
-    gaia_type_t indexed_table_type = catalog_core::get_table(indexed_table_id).table_type();
-    gaia_id_t indexed_table_type_id = type_id_mapping_t::instance().get_record_id(indexed_table_type);
-
-    gaia_id_t index_id = catalog_core::find_index(indexed_table_type_id, indexed_field_position);
+    gaia_id_t index_id = catalog_core::find_index(indexed_table_id, indexed_field_position);
     // Callers need to ensure the table has an index on the field to search.
     ASSERT_PRECONDITION(index_id.is_valid(), "Cannot find value index for the table.");
 
-    auto schema = catalog_core::get_table(type_id).binary_schema();
+    auto schema = catalog_core::get_table(table_id).binary_schema();
     auto field_value = payload_types::get_field_value(
-        type,
         payload,
         schema->data(),
-        schema->size(),
         field_position);
 
     if (field_value.is_null)
@@ -80,15 +75,14 @@ gaia_id_t find_using_index(
 
 void parent_side_auto_connect(
     gaia_id_t id,
-    gaia_type_t type,
-    gaia_id_t type_id,
+    gaia_id_t table_id,
     gaia_id_t* references,
     const uint8_t* payload,
     field_position_t field_position)
 {
     // Check if the given field is used in establishing a relationship where the
     // field's table is on the parent side.
-    for (auto relationship_view : catalog_core::list_relationship_from(type_id))
+    for (auto relationship_view : catalog_core::list_relationship_from(table_id))
     {
         if (relationship_view.parent_field_positions()->size() != 1
             || relationship_view.parent_field_positions()->Get(0) != field_position)
@@ -115,8 +109,7 @@ void parent_side_auto_connect(
         gaia_id_t child_id = find_using_index(
             payload,
             field_position,
-            type,
-            type_id,
+            table_id,
             relationship_view.child_table_id(),
             relationship_view.child_field_positions()->Get(0));
 
@@ -145,8 +138,7 @@ void parent_side_auto_connect(
 
 void child_side_auto_connect(
     gaia_id_t id,
-    gaia_type_t type,
-    gaia_id_t type_id,
+    gaia_id_t table_id,
     gaia_id_t* references,
     const uint8_t* payload,
     field_position_t field_position)
@@ -154,7 +146,7 @@ void child_side_auto_connect(
 
     // Check if the given field is used in establishing a relationship where the
     // field's table is on the child side.
-    for (auto relationship_view : catalog_core::list_relationship_to(type_id))
+    for (auto relationship_view : catalog_core::list_relationship_to(table_id))
     {
         if (relationship_view.child_field_positions()->size() != 1
             || relationship_view.child_field_positions()->Get(0) != field_position)
@@ -209,8 +201,7 @@ void child_side_auto_connect(
         gaia_id_t parent_id = find_using_index(
             payload,
             field_position,
-            type,
-            type_id,
+            table_id,
             relationship_view.parent_table_id(),
             relationship_view.parent_field_positions()->Get(0));
 
@@ -239,8 +230,7 @@ void child_side_auto_connect(
             gaia_id_t child_id = find_using_index(
                 payload,
                 field_position,
-                type,
-                type_id,
+                table_id,
                 relationship_view.child_table_id(),
                 relationship_view.child_field_positions()->Get(0));
             if (child_id.is_valid())
@@ -276,7 +266,7 @@ void child_side_auto_connect(
 void auto_connect(
     gaia_id_t id,
     gaia_type_t type,
-    gaia_id_t type_id,
+    gaia_id_t table_id,
     gaia_id_t* references,
     const uint8_t* payload,
     const field_position_list_t& candidate_fields)
@@ -287,10 +277,36 @@ void auto_connect(
         return;
     }
 
-    for (auto field_position : candidate_fields)
+    if (caches::table_relationship_fields_cache_t::get()->is_initialized())
     {
-        parent_side_auto_connect(id, type, type_id, references, payload, field_position);
-        child_side_auto_connect(id, type, type_id, references, payload, field_position);
+        // Check table_relationship_fields_cache_t for the fields involved in relationships.
+        const auto& relationship_field_set_pair = caches::table_relationship_fields_cache_t::get()->get(table_id);
+        if (relationship_field_set_pair.first.empty()
+            && relationship_field_set_pair.second.empty())
+        {
+            return;
+        }
+
+        // Only try to auto-connect fields actually involved in relationships.
+        for (auto field_position : candidate_fields)
+        {
+            if (relationship_field_set_pair.first.find(field_position) != relationship_field_set_pair.first.end())
+            {
+                parent_side_auto_connect(id, table_id, references, payload, field_position);
+            }
+            if (relationship_field_set_pair.second.find(field_position) != relationship_field_set_pair.second.end())
+            {
+                child_side_auto_connect(id, table_id, references, payload, field_position);
+            }
+        }
+    }
+    else
+    {
+        for (auto field_position : candidate_fields)
+        {
+            parent_side_auto_connect(id, table_id, references, payload, field_position);
+            child_side_auto_connect(id, table_id, references, payload, field_position);
+        }
     }
 }
 
@@ -315,7 +331,7 @@ void auto_connect(
         return;
     }
     field_position_list_t candidate_fields;
-    gaia_id_t table_id = type_id_mapping_t::instance().get_record_id(type);
+    gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(type);
     for (auto field_view : catalog_core::list_fields(table_id))
     {
         candidate_fields.push_back(field_view.position());
@@ -346,13 +362,17 @@ gaia_ptr_t create(
     reference_offset_t references_count = metadata.references_count();
 
     gaia_ptr_t obj = gaia_ptr_t::create_no_txn(id, type, references_count, data_size, data);
-    db_object_t* obj_ptr = obj.to_ptr();
-    auto_connect(
-        id,
-        type,
-        // NOLINTNEXTLINE: cppcoreguidelines-pro-type-const-cast
-        const_cast<gaia_id_t*>(obj_ptr->references()),
-        reinterpret_cast<const uint8_t*>(obj_ptr->data()));
+
+    if (metadata.has_value_linked_relationship())
+    {
+        db_object_t* obj_ptr = obj.to_ptr();
+        auto_connect(
+            id,
+            type,
+            // NOLINTNEXTLINE: cppcoreguidelines-pro-type-const-cast
+            const_cast<gaia_id_t*>(obj_ptr->references()),
+            reinterpret_cast<const uint8_t*>(obj_ptr->data()));
+    }
 
     obj.finalize_create();
 
@@ -397,7 +417,7 @@ void update_payload(gaia_ptr_t& obj, size_t data_size, const void* data)
     auto_connect(
         obj.id(),
         obj.type(),
-        type_id_mapping_t::instance().get_record_id(obj.type()),
+        type_id_mapping_t::instance().get_table_id(obj.type()),
         obj.references(),
         new_data,
         changed_fields);
@@ -436,7 +456,7 @@ void remove(gaia_ptr_t& object, bool force)
                 continue;
             }
 
-            gaia_id_t referenced_obj_id = anchor.id();
+            gaia_id_t referenced_obj_id;
 
             if (anchor.references()[c_ref_anchor_parent_offset] == object.id())
             {
@@ -667,8 +687,9 @@ bool remove_from_reference_container(gaia_id_t parent_id, gaia_id_t child_id, re
 
 bool remove_from_reference_container(gaia_ptr_t& child, reference_offset_t child_anchor_slot)
 {
+    // The reference to the next_child and the prev_child are relative to the anchor slot.
     reference_offset_t next_child_offset = child_anchor_slot + 1;
-    reference_offset_t prev_child_offset = next_child_offset + 1;
+    reference_offset_t prev_child_offset = child_anchor_slot + 2;
 
     if (child.references()[next_child_offset].is_valid())
     {

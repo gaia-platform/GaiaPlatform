@@ -66,40 +66,63 @@ constexpr char c_gaia_mem_counters_prefix[] = "gaia_mem_counters_";
 constexpr char c_gaia_mem_data_prefix[] = "gaia_mem_data_";
 constexpr char c_gaia_mem_logs_prefix[] = "gaia_mem_logs_";
 constexpr char c_gaia_mem_id_index_prefix[] = "gaia_mem_id_index_";
+constexpr char c_gaia_mem_type_index_prefix[] = "gaia_mem_type_index_";
 
 constexpr char c_gaia_mem_txn_log_prefix[] = "gaia_mem_txn_log_";
 constexpr char c_gaia_internal_txn_log_prefix[] = "gaia_internal_txn_log_";
 
 #if __has_feature(thread_sanitizer)
-// We set the maximum number of locators to 2^29 in TSan builds, which reduces
-// the data segment size from 256GB to 32GB. This seems small enough to avoid
-// ENOMEM errors when mapping the data segment under TSan. Because our chunk
-// address space is unchanged (still 2^16 4MB chunks), we could now segfault if
-// we allocate too many chunks! However, given that we still have room for 1
-// minimum-sized (64B) object version per locator, this is unlikely, so it's
-// probably acceptable for TSan builds (since they're not intended to be used
-// in production). If we do encounter this issue, then we can add explicit
-// checks to chunk allocation: we just need to define a new constant like
-// constexpr size_t c_max_chunks = sizeof(data_t) / c_chunk_size_in_bytes;
-// However, this would introduce a circular dependency between the memory
-// manager headers and this header (which probably indicates excessive
-// modularization).
-constexpr size_t c_max_locators{(1ULL << 29) - 1};
+// We set the maximum number of locators (including the reserved "invalid"
+// value) to 2^29 in TSan builds, which reduces the data segment size from 256GB
+// to 32GB. This seems small enough to avoid ENOMEM errors when mapping the data
+// segment under TSan. Because our chunk address space is unchanged (still 2^16
+// 4MB chunks), we could now segfault if we allocate too many chunks! However,
+// given that we still have room for 1 minimum-sized (64B) object version per
+// locator, this is unlikely, so it's probably acceptable for TSan builds (since
+// they're not intended to be used in production). If we do encounter this
+// issue, then we can add explicit checks to chunk allocation: we just need to
+// define a new constant like constexpr size_t c_max_chunks = sizeof(data_t) /
+// c_chunk_size_in_bytes; However, this would introduce a circular dependency
+// between the memory manager headers and this header (which probably indicates
+// excessive modularization).
+constexpr size_t c_max_locators{(1UL << 29) - 1};
 #else
 // We allow as many locators as the number of 64B objects (the minimum size)
 // that will fit into the data segment size of 256GB, or 2^38 / 2^6 = 2^32. The
 // first entry of the locators array must be reserved for the invalid locator
-// value, so we subtract 1.
-constexpr size_t c_max_locators{(1ULL << 32) - 1};
+// value (0), so we subtract 1.
+constexpr size_t c_max_locators{(1UL << 32) - 1};
 #endif
 
-// With 2^32 locators, 2^20 hash buckets bounds the average hash chain length to
-// 2^12. This is still prohibitive overhead for traversal on each reference
-// lookup (given that each node traversal is effectively random-access), but we
-// should be able to solve this by storing locators directly in each object's
-// references array rather than gaia_ids. Other expensive index lookups could be
-// similarly optimized by substituting locators for gaia_ids.
-constexpr size_t c_hash_buckets{1ULL << 20};
+// This is the largest power of 2 that is compatible with a collision
+// probability < 2^-20 for 32-bit randomized type IDs (see
+// https://en.wikipedia.org/wiki/Birthday_problem#Square_approximation).
+//
+// REVIEW: If we move to either sequentially allocated type IDs or 64-bit or
+// larger randomized type IDs, we can expand this limit.
+constexpr size_t c_max_types = 64;
+
+// With 2^32 locators, 2^26 hash buckets bounds the average hash chain length to
+// 2^6. For more realistic workloads (say 2^27 locators, which bounds average
+// hash chain length to 2), this gives constant-time performance. We currently
+// use modulo reduction instead of a random hash function to map IDs to buckets,
+// which gives excellent locality as long as IDs are sequentially allocated. If
+// IDs are randomized, then locality will be poor and we may want to consider a
+// more compact structure (e.g., a randomized binary search tree).
+//
+// If hash map lookups during reference traversals are a bottleneck, we could
+// store locators rather than gaia_ids in each object's references array (we
+// would need to either swizzle them to gaia_ids during persistence and
+// unswizzle gaia_ids to locators during recovery, or persist the
+// gaia_id->locator mapping separately). Other expensive hash map lookups could
+// be similarly optimized by substituting locators for gaia_ids.
+constexpr size_t c_hash_buckets{1UL << 26};
+// For efficient modulo reduction, the hash bucket count should be a power of 2.
+static_assert((c_hash_buckets & (c_hash_buckets - 1)) == 0, "Hash bucket count must be a power of 2!");
+// We use uint32_t as the type of a hash node index.
+static_assert(
+    c_max_locators <= std::numeric_limits<uint32_t>::max(),
+    "The index of a hash node must fit into 32 bits!");
 
 // This is an array of offsets in the data segment corresponding to object
 // versions, where each array index is referred to as a "locator."
@@ -110,25 +133,37 @@ typedef std::atomic<gaia_offset_t::value_type> locators_t[c_max_locators + 1];
 
 struct hash_node_t
 {
-    // To enable atomic operations, we use the base integer type instead of gaia_id_t.
+    // To enable atomic operations, we use the base integer type instead of
+    // gaia_id_t and gaia_locator_t.
     std::atomic<common::gaia_id_t::value_type> id;
-    std::atomic<size_t> next_offset;
     std::atomic<gaia_locator_t::value_type> locator;
+    std::atomic<uint32_t> next_index;
 };
+
+static_assert(decltype(hash_node_t::id)::is_always_lock_free);
+static_assert(decltype(hash_node_t::locator)::is_always_lock_free);
+static_assert(decltype(hash_node_t::next_index)::is_always_lock_free);
+
+// We want to ensure that the hash node size never changes accidentally.
+constexpr size_t c_hash_node_size = 16;
+static_assert(c_hash_node_size == sizeof(hash_node_t), "Hash node size must be 16 bytes!");
 
 struct log_record_t
 {
     gaia_locator_t locator;
-    // We need 4 bytes of padding to maintain total size at 16 bytes.
+    uint16_t sequence;
+    // We need 2 bytes of padding to maintain total size at 16 bytes.
     // (We place the padding here to align the two offsets on an 8-byte
     // boundary, in case we need to modify them both atomically in the future.)
-    uint32_t reserved;
+    uint16_t reserved;
     gaia_offset_t old_offset;
     gaia_offset_t new_offset;
 
     friend std::ostream& operator<<(std::ostream& os, const log_record_t& lr)
     {
-        os << "locator: "
+        os << "sequence: "
+           << lr.sequence
+           << "\tlocator: "
            << lr.locator
            << "\told_offset: "
            << lr.old_offset
@@ -161,9 +196,13 @@ struct log_record_t
     }
 };
 
+// We want to ensure that the txn log record size never changes accidentally.
+constexpr size_t c_txn_log_record_size = 16;
+static_assert(c_txn_log_record_size == sizeof(log_record_t), "Txn log record size must be 16 bytes!");
+
 // We can reference at most 2^16 logs from the 16 bits available in a txn
 // metadata entry, and we must reserve the value 0 for an invalid log offset.
-constexpr size_t c_max_logs{(1ULL << 16) - 1};
+constexpr size_t c_max_logs{(1UL << 16) - 1};
 
 // The total size of a txn log in shared memory.
 // We need to allow as many log records as the maximum number of live object
@@ -250,9 +289,9 @@ struct txn_log_t
         return os;
     }
 
-    static constexpr size_t c_txn_log_refcount_bits{16ULL};
-    static constexpr uint64_t c_txn_log_refcount_shift{common::c_uint64_bit_count - c_txn_log_refcount_bits};
-    static constexpr uint64_t c_txn_log_refcount_mask{((1ULL << c_txn_log_refcount_bits) - 1) << c_txn_log_refcount_shift};
+    static constexpr size_t c_txn_log_refcount_bit_width{16UL};
+    static constexpr uint64_t c_txn_log_refcount_shift{common::c_uint64_bit_count - c_txn_log_refcount_bit_width};
+    static constexpr uint64_t c_txn_log_refcount_mask{((1UL << c_txn_log_refcount_bit_width) - 1) << c_txn_log_refcount_shift};
 
     static gaia_txn_id_t begin_ts_from_word(uint64_t word)
     {
@@ -267,7 +306,7 @@ struct txn_log_t
     static uint64_t word_from_begin_ts_and_refcount(gaia_txn_id_t begin_ts, size_t refcount)
     {
         ASSERT_PRECONDITION(begin_ts.is_valid(), "Begin timestamp must be valid!");
-        ASSERT_PRECONDITION(refcount < (1 << c_txn_log_refcount_bits), "Reference count must fit in 16 bits!");
+        ASSERT_PRECONDITION(refcount < (1 << c_txn_log_refcount_bit_width), "Reference count must fit in 16 bits!");
         return (begin_ts << transactions::txn_metadata_entry_t::c_txn_ts_shift) | (refcount << c_txn_log_refcount_shift);
     }
 
@@ -379,6 +418,10 @@ static_assert(c_txn_log_header_size == offsetof(txn_log_t, log_records), "Txn lo
 
 static_assert(c_txn_log_size == sizeof(txn_log_t), "Txn log size must be 1MB!");
 
+// To ensure the txn log record sequence number doesn't overflow,
+// log_record_t::sequence must be at least as large as txn_log_t::record_count.
+static_assert(sizeof(log_record_t::sequence) >= sizeof(txn_log_t::record_count));
+
 struct counters_t
 {
     // These fields are used as cross-process atomic counters. We don't need
@@ -386,15 +429,13 @@ struct counters_t
     // intrinsics for mutating the counters. (This is because the instructions
     // targeted by the intrinsics operate at the level of physical memory, not
     // virtual addresses.)
+    //
     // NB: All these fields are initialized to 0, even though C++ doesn't guarantee
     // it, because this struct is constructed in a memory-mapped shared-memory
     // segment, and the OS automatically zeroes new pages.
-    //
-    // To enable atomic operations, we use the base integer types of each custom Gaia type.
-    std::atomic<common::gaia_id_t::value_type> last_id;
-    std::atomic<common::gaia_type_t::value_type> last_type_id;
-    std::atomic<gaia_txn_id_t::value_type> last_txn_id;
-    std::atomic<gaia_locator_t::value_type> last_locator;
+    std::atomic<size_t> last_id;
+    std::atomic<size_t> last_txn_id;
+    std::atomic<size_t> last_locator;
 };
 
 struct data_t
@@ -417,16 +458,36 @@ typedef txn_log_t logs_t[c_max_logs + 1];
 
 // This is a shared-memory hash table mapping gaia_id keys to locator values. We
 // need a hash table node for each locator (to store the gaia_id key and the
-// locator value).
+// locator value). The hash nodes associated with each hash bucket are linked in
+// a list whose head is stored in an array indexed by hash bucket
+// (`list_head_index_for_bucket`). Each operation on the hash table
+// (`db_hash_map::insert()`, `db_hash_map::find()`, `db_hash_map::remove()`)
+// must first hash the given gaia_id to its bucket (currently using just modulo
+// reduction, which works well for sequentially allocated gaia_ids), and begin
+// traversing that bucket's list at the index given by the bucket's entry in
+// `list_head_index_for_bucket`. If no node in the list contains a matching
+// gaia_id, then find() and remove() return false, while insert() creates a new
+// node, links it into the list, and returns true. If a matching node is found,
+// then find() returns the locator stored in that node, insert() returns false,
+// and remove() invalidates the locator stored in that node and returns true.
 struct id_index_t
 {
-    std::atomic<size_t> hash_node_count;
-    hash_node_t hash_nodes[c_hash_buckets + c_max_locators];
+    // The index in `list_nodes` of the last allocated list node.
+    // Always begins at 1, because the first list node is unused.
+    std::atomic<size_t> last_allocated_list_node_index;
+    // The index in `list_nodes` of the head of each bucket's linked list.
+    // An empty bucket is indicated by a zero index.
+    std::atomic<uint32_t> list_head_index_for_bucket[c_hash_buckets];
+    // An array of list nodes storing an ID, locator, and the index of the next
+    // node in its bucket's linked list.
+    // Empty buckets are indicated by a zero index, so the first list node is unused.
+    hash_node_t list_nodes[c_max_locators];
 };
 
 // These are types meant to access index types from the client/server.
 namespace index
 {
+
 class base_index_t;
 typedef std::shared_ptr<base_index_t> db_index_t;
 typedef std::unordered_map<common::gaia_id_t, db_index_t> indexes_t;

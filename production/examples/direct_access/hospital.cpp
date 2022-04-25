@@ -44,10 +44,10 @@ void create_record_insert()
 }
 
 /**
- *  Creates a record using the writer class (patient_writer in this case).
- *  A writer class does not require that values are set for all of the
- *  fields in the class. Fields for which a value is not specified
- *  are assigned a default value. The writer returns a gaia_id_t.
+ * Creates a record using the writer class (patient_writer in this case).
+ * A writer class does not require that values are set for all of the
+ * fields in the class. Fields for which a value is not specified
+ * are assigned a default value. The writer returns a gaia_id_t.
  */
 void create_record_writer()
 {

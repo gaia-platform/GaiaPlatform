@@ -50,6 +50,11 @@ protected:
         EXPECT_TRUE(std::equal(expected_values.begin(), expected_values.end(), c.sales().data()));
         gaia::db::commit_transaction();
     }
+
+    void check_array(const client_t& client, const std::vector<int32_t>& expected_values)
+    {
+        EXPECT_TRUE(std::equal(expected_values.begin(), expected_values.end(), client.sales().data()));
+    }
 };
 
 TEST_F(test_array, test_array_unqualified_fields)
@@ -57,7 +62,7 @@ TEST_F(test_array, test_array_unqualified_fields)
     const std::vector<int32_t> expected_sales{6, 2, 4, 5, 4};
     gaia::db::begin_transaction();
 
-    auto client_id = client_t::insert_row("1", {9, 8, 7, 6, 5});
+    auto client_id = client_t::insert_row("1", 0, {9, 8, 7, 6, 5});
 
     gaia::db::commit_transaction();
 
@@ -72,7 +77,7 @@ TEST_F(test_array, test_array_qualified_fields)
     const std::vector<int32_t> expected_sales{7, 3, 12, 7, 6};
     gaia::db::begin_transaction();
 
-    auto client_id = client_t::insert_row("2", {9, 8, 7, 6, 5});
+    auto client_id = client_t::insert_row("2", 0, {9, 8, 7, 6, 5});
 
     gaia::db::commit_transaction();
 
@@ -87,7 +92,7 @@ TEST_F(test_array, test_array_unqualified_assignment_init)
     const std::vector<int32_t> expected_sales{3, 4, 5};
     gaia::db::begin_transaction();
 
-    auto client_id = client_t::insert_row("3", {9, 8, 7, 6, 5});
+    auto client_id = client_t::insert_row("3", 0, {9, 8, 7, 6, 5});
 
     gaia::db::commit_transaction();
 
@@ -101,7 +106,7 @@ TEST_F(test_array, test_array_unqualified_constant_array)
     const std::vector<int32_t> expected_sales{1, 2, 3};
     gaia::db::begin_transaction();
 
-    auto client_id = client_t::insert_row("4", {9, 8, 7, 6, 5});
+    auto client_id = client_t::insert_row("4", 0, {9, 8, 7, 6, 5});
 
     gaia::db::commit_transaction();
 
@@ -115,7 +120,7 @@ TEST_F(test_array, test_array_explicit_navigation)
     const std::vector<int32_t> expected_sales{8, 3, 12, 7, 6};
     gaia::db::begin_transaction();
 
-    auto client_id = client_t::insert_row("5", {9, 8, 7, 6, 5});
+    auto client_id = client_t::insert_row("5", 0, {9, 8, 7, 6, 5});
     auto company = company_t::get(company_t::insert_row("c1"));
     company.clients().connect(client_t::get(client_id));
 
@@ -132,7 +137,7 @@ TEST_F(test_array, test_array_implicit_navigation)
     const std::vector<int32_t> expected_sales{6, 3, 12, 7, 6};
     gaia::db::begin_transaction();
 
-    auto client_id = client_t::insert_row("zz", {9, 8, 7, 6, 5});
+    auto client_id = client_t::insert_row("zz", 0, {9, 8, 7, 6, 5});
     auto company = company_t::get(company_t::insert_row("c2"));
     company.clients().connect(client_t::get(client_id));
 
@@ -149,7 +154,7 @@ TEST_F(test_array, test_array_qualified_assignment_init)
     const std::vector<int32_t> expected_sales{10, 11, 12};
     gaia::db::begin_transaction();
 
-    auto client_id = client_t::insert_row("6", {9, 8, 7, 6, 5});
+    auto client_id = client_t::insert_row("6", 0, {9, 8, 7, 6, 5});
 
     gaia::db::commit_transaction();
 
@@ -163,7 +168,7 @@ TEST_F(test_array, test_array_qualified_constant_array)
     const std::vector<int32_t> expected_sales{7, 9, 4};
     gaia::db::begin_transaction();
 
-    auto client_id = client_t::insert_row("7", {9, 8, 7, 6, 5});
+    auto client_id = client_t::insert_row("7", 0, {9, 8, 7, 6, 5});
 
     gaia::db::commit_transaction();
 
@@ -177,7 +182,7 @@ TEST_F(test_array, test_array_unqualified_field_to_qualified_assignment)
     const std::vector<int32_t> expected_sales{7, 9, 4};
     gaia::db::begin_transaction();
 
-    auto client_id = client_t::insert_row("8", expected_sales);
+    auto client_id = client_t::insert_row("8", 0, expected_sales);
 
     gaia::db::commit_transaction();
 
@@ -191,7 +196,7 @@ TEST_F(test_array, test_array_unqualified_field_to_unqualified_assignment)
     const std::vector<int32_t> expected_sales{7, 9, 4};
     gaia::db::begin_transaction();
 
-    auto client_id = client_t::insert_row("9", expected_sales);
+    auto client_id = client_t::insert_row("9", 0, expected_sales);
 
     gaia::db::commit_transaction();
 
@@ -205,7 +210,7 @@ TEST_F(test_array, test_array_qualified_field_to_unqualified_assignment)
     const std::vector<int32_t> expected_sales{7, 9, 4};
     gaia::db::begin_transaction();
 
-    auto client_id = client_t::insert_row("10", expected_sales);
+    auto client_id = client_t::insert_row("10", 0, expected_sales);
 
     gaia::db::commit_transaction();
 
@@ -219,7 +224,7 @@ TEST_F(test_array, test_array_qualified_field_to_qualified_assignment)
     const std::vector<int32_t> expected_sales{7, 9, 4};
     gaia::db::begin_transaction();
 
-    auto client_id = client_t::insert_row("11", expected_sales);
+    auto client_id = client_t::insert_row("11", 0, expected_sales);
 
     gaia::db::commit_transaction();
 
@@ -232,7 +237,7 @@ TEST_F(test_array, test_array_qualified_field_to_empty)
 {
     gaia::db::begin_transaction();
 
-    auto client_id = client_t::insert_row("12", {7, 9, 4});
+    auto client_id = client_t::insert_row("12", 0, {7, 9, 4});
 
     gaia::db::commit_transaction();
 
@@ -248,7 +253,7 @@ TEST_F(test_array, test_array_unqualified_field_to_empty)
 {
     gaia::db::begin_transaction();
 
-    auto client_id = client_t::insert_row("13", {5, 8, 3});
+    auto client_id = client_t::insert_row("13", 0, {5, 8, 3});
 
     gaia::db::commit_transaction();
 
@@ -265,7 +270,7 @@ TEST_F(test_array, test_array_explicit_navigation_init_assignment)
     const std::vector<int32_t> expected_sales{6, 9, 8};
     gaia::db::begin_transaction();
 
-    auto client_id = client_t::insert_row("yy", {9, 8, 7, 6, 5});
+    auto client_id = client_t::insert_row("yy", 0, {9, 8, 7, 6, 5});
     auto company = company_t::get(company_t::insert_row("c3"));
     company.clients().connect(client_t::get(client_id));
 
@@ -281,7 +286,7 @@ TEST_F(test_array, test_array_explicit_navigation_array_assignment)
     const std::vector<int32_t> expected_sales{1, 5, 3};
     gaia::db::begin_transaction();
 
-    auto client_id = client_t::insert_row("xx", {9, 8, 7, 6, 5});
+    auto client_id = client_t::insert_row("xx", 0, {9, 8, 7, 6, 5});
     auto company = company_t::get(company_t::insert_row("c4"));
     company.clients().connect(client_t::get(client_id));
 
@@ -295,20 +300,21 @@ TEST_F(test_array, test_array_explicit_navigation_array_assignment)
 TEST_F(test_array, test_array_insert)
 {
     gaia::db::begin_transaction();
-    auto client_id = client_t::insert_row("dsf", {9, 8, 5, 6, 1});
-    auto company = company_t::get(company_t::insert_row("c5"));
+    auto client_id = client_t::insert_row("dsf", 0, {9, 8, 5, 6, 1});
+    auto company = company_t::get(company_t::insert_row("zz"));
     company.clients().connect(client_t::get(client_id));
     gaia::db::commit_transaction();
 
     gaia::db::begin_transaction();
     auto company_writer = company.writer();
-    company_writer.company_name = "c6";
+    company_writer.company_name = "qq";
     company_writer.update_row();
     gaia::db::commit_transaction();
 
     gaia::rules::test::wait_for_rules_to_complete();
 
     gaia::db::begin_transaction();
+    ASSERT_EQ(client_t::list().size(), 13);
     for (const auto& client : client_t::list())
     {
         std::string name = client.client_name();
@@ -317,11 +323,11 @@ TEST_F(test_array, test_array_insert)
             ASSERT_TRUE(client.sales().size() == 3 || client.sales().size() == 4);
             if (client.sales().size() == 3)
             {
-                check_array(client.gaia_id(), {4, 7, 8});
+                check_array(client, {4, 7, 8});
             }
             else if (client.sales().size() == 4)
             {
-                check_array(client.gaia_id(), {1, 2, 3, 5});
+                check_array(client, {1, 2, 3, 5});
             }
         }
         else if (name == "a")
@@ -330,28 +336,124 @@ TEST_F(test_array, test_array_insert)
         }
         else if (name == "b")
         {
-            check_array(client.gaia_id(), {1, 2, 3, 5});
+            check_array(client, {1, 2, 3, 5});
         }
         else if (name == "c")
         {
-            check_array(client.gaia_id(), {5, 7, 9});
+            check_array(client, {5, 7, 9});
         }
         else if (name == "d")
         {
-            check_array(client.gaia_id(), {1, 2, 3, 5});
+            check_array(client, {1, 2, 3, 5});
         }
         else if (name == "e")
         {
-            check_array(client.gaia_id(), {4, 7, 8});
+            check_array(client, {4, 7, 8});
         }
         else if (name == "f")
         {
-            check_array(client.gaia_id(), {9, 8, 5, 6, 1});
+            check_array(client, {9, 8, 5, 6, 1});
         }
         else if (name == "g")
         {
-            check_array(client.gaia_id(), {9, 8, 5, 6, 1});
+            check_array(client, {9, 8, 5, 6, 1});
+        }
+        else if (name == "h")
+        {
+            ASSERT_EQ(client.period(), 0);
+            check_array(client, {0, 1, 0, 2});
+        }
+        else if (name == "i")
+        {
+            ASSERT_EQ(client.period(), 2);
+            check_array(client, {3, 4, 3, 5});
+        }
+        else if (name == "j")
+        {
+            ASSERT_EQ(client.period(), 6);
+            check_array(client, {6, 7, 6, 8});
         }
     }
     gaia::db::commit_transaction();
+}
+
+TEST_F(test_array, test_array_unqualified_field_index)
+{
+    const std::vector<int32_t> expected_sales{0, 8, 2, 7, 5, 4, 3};
+    gaia::db::begin_transaction();
+
+    auto client_id = client_t::insert_row("ss", 0, {9, 8, 7, 6, 5, 4, 3});
+    auto company = company_t::get(company_t::insert_row("c5"));
+    company.clients().connect(client_t::get(client_id));
+
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    gaia::db::begin_transaction();
+    auto c = client_t::get(client_id);
+    ASSERT_EQ(c.period(), 5);
+    gaia::db::commit_transaction();
+
+    ASSERT_EQ(g_client_sales, 4);
+
+    check_array(client_id, expected_sales);
+}
+
+TEST_F(test_array, test_array_unqualified_field_array_assignment)
+{
+    const std::vector<int32_t> expected_sales{0, 1, 1, 3};
+    gaia::db::begin_transaction();
+
+    auto client_id = client_t::insert_row("xx", 0, {9, 8, 7, 6, 5});
+    auto company = company_t::get(company_t::insert_row("c6"));
+    company.clients().connect(client_t::get(client_id));
+
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    ASSERT_EQ(g_client_sales, 1);
+    check_array(client_id, expected_sales);
+}
+
+TEST_F(test_array, test_array_unqualified_field_iteration)
+{
+    gaia::db::begin_transaction();
+
+    client_t::insert_row("14", 0, {2, 9, 6});
+
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    ASSERT_EQ(g_client_sales, 17);
+}
+
+TEST_F(test_array, test_array_qualified_field_iteration)
+{
+    gaia::db::begin_transaction();
+
+    client_t::insert_row("15", 0, {3, 7, 6});
+
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    ASSERT_EQ(g_client_sales, 16);
+}
+
+TEST_F(test_array, test_array_explicit_path_iteration)
+{
+    gaia::db::begin_transaction();
+
+    auto client_id = client_t::insert_row("16", 0, {1, 19, 6});
+    auto company = company_t::get(company_t::insert_row("jj"));
+    company.clients().connect(client_t::get(client_id));
+
+    gaia::db::commit_transaction();
+
+    gaia::rules::test::wait_for_rules_to_complete();
+
+    ASSERT_EQ(g_client_sales, 26);
 }

@@ -60,6 +60,11 @@ void type_metadata_t::add_parent_relationship(const std::shared_ptr<relationship
 
     m_parent_relationships.insert({relationship->first_child_offset, relationship});
     m_reference_count += 1;
+
+    if (relationship->value_linked)
+    {
+        m_has_value_linked_relationship = true;
+    }
 }
 
 void type_metadata_t::add_child_relationship(const std::shared_ptr<relationship_t>& relationship)
@@ -68,6 +73,11 @@ void type_metadata_t::add_child_relationship(const std::shared_ptr<relationship_
 
     m_child_relationships.insert({relationship->parent_offset, relationship});
     m_reference_count += 3;
+
+    if (relationship->value_linked)
+    {
+        m_has_value_linked_relationship = true;
+    }
 }
 
 gaia_type_t type_metadata_t::get_type() const
@@ -89,6 +99,11 @@ bool type_metadata_t::is_initialized()
 void type_metadata_t::mark_as_initialized()
 {
     m_initialized.store(true);
+}
+
+bool type_metadata_t::has_value_linked_relationship() const
+{
+    return m_has_value_linked_relationship;
 }
 
 /*
@@ -188,9 +203,9 @@ void type_registry_t::init()
     index_metadata.mark_as_initialized();
 }
 
-gaia_id_t type_registry_t::get_record_id(gaia_type_t type)
+gaia_id_t type_registry_t::get_table_id(gaia_type_t type)
 {
-    return type_id_mapping_t::instance().get_record_id(type);
+    return type_id_mapping_t::instance().get_table_id(type);
 }
 
 bool type_registry_t::exists(gaia_type_t type) const
@@ -246,14 +261,14 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
 {
     gaia_log::db().trace("Creating metadata for type: '{}'", type);
 
-    gaia_id_t record_id = get_record_id(type);
-    if (!record_id.is_valid())
+    gaia_id_t table_id = get_table_id(type);
+    if (!table_id.is_valid())
     {
         throw invalid_object_type_internal(type);
     }
     auto& metadata = get_or_create_no_lock(type);
 
-    for (auto relationship_view : catalog_core::list_relationship_to(record_id))
+    for (auto relationship_view : catalog_core::list_relationship_to(table_id))
     {
         if (metadata.find_child_relationship(relationship_view.parent_offset()))
         {
@@ -272,7 +287,7 @@ type_metadata_t& type_registry_t::create(gaia_type_t type)
         metadata.add_child_relationship(rel);
     }
 
-    for (auto relationship_view : catalog_core::list_relationship_from(record_id))
+    for (auto relationship_view : catalog_core::list_relationship_from(table_id))
     {
         if (metadata.find_parent_relationship(relationship_view.first_child_offset()))
         {

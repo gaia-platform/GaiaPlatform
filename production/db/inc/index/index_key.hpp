@@ -25,8 +25,7 @@ namespace index
 
 /**
  * Schema required to compute index keys from a binary payload.
- **/
-
+ */
 struct index_key_schema_t
 {
     common::gaia_type_t table_type;

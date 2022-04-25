@@ -20,6 +20,7 @@
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/timer.hpp"
+#include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_test_base.hpp"
 #include "gaia_internal/rules/rules_test_helpers.hpp"
 
@@ -284,7 +285,7 @@ protected:
         // Do this before resetting the server to initialize the logger.
         gaia_log::initialize("./gaia_log.conf");
 
-        begin_session();
+        begin_ddl_session();
 
         // NOTE: For the unit test setup, we need to init catalog and load test tables before rules engine starts.
         // Otherwise, the event log activities will cause out of order test table IDs.
@@ -295,6 +296,9 @@ protected:
         // NOTE: uncomment the next line to enable individual rule stats from the rules engine.
         // settings.enable_rule_stats = true;
         gaia::rules::test::initialize_rules_engine(settings);
+
+        end_session();
+        begin_session();
     }
 
     static void TearDownTestSuite()

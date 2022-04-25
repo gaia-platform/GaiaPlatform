@@ -8,7 +8,7 @@
 
 cmake_minimum_required(VERSION 3.16)
 
-project(hospital)
+project(direct_access)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -25,10 +25,10 @@ process_schema(
   DATABASE_NAME hospital
 )
 
-add_executable(hospital
+add_executable(direct_access
   hospital.cpp
 )
 
-target_add_gaia_generated_sources(hospital)
-target_include_directories(hospital PRIVATE ${GAIA_INC})
-target_link_libraries(hospital PRIVATE ${GAIA_LIB} Threads::Threads)
+target_add_gaia_generated_sources(direct_access)
+target_include_directories(direct_access PRIVATE ${GAIA_INC})
+target_link_libraries(direct_access PRIVATE ${GAIA_LIB} Threads::Threads)

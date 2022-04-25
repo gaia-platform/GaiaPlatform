@@ -8,8 +8,8 @@
 #include <flatbuffers/flatbuffers.h>
 
 #include "gaia/direct_access/auto_transaction.hpp"
-#include "gaia/direct_access/dac_array.hpp"
 #include "gaia/direct_access/dac_base.hpp"
+#include "gaia/direct_access/dac_vector.hpp"
 #include "gaia/direct_access/nullable_string.hpp"
 #include "gaia/exceptions.hpp"
 #include "gaia/expressions/expressions.hpp"
@@ -20,29 +20,26 @@
 namespace gaia
 {
 /**
- * \addtogroup gaia
+ * @addtogroup gaia
  * @{
  */
 namespace direct_access
 {
 /**
- * \addtogroup direct_access
+ * @addtogroup direct_access
  * @{
- *
- * Implementation of Direct Access Classes. This provides a direct access API
- * for CRUD operations on the database.
  */
 
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_gaia, typename T_fb, typename T_obj>
 class dac_writer_t;
 
 /**
- * The dac_object_t that must be specialized to operate on a flatbuffer type.
+ * The dac_object_t that must be specialized to operate on a serialization type.
  *
- * @tparam container_type_id an integer (gaia_type_t) uniquely identifying the flatbuffer table type
+ * @tparam container_type_id an integer (gaia_type_t) uniquely identifying the serialization type
  * @tparam T_gaia the subclass type derived from this template
- * @tparam T_fb the flatbuffer table type to be implemented
- * @tparam T_obj the mutable flatbuffer type to be implemented
+ * @tparam T_fb the serialization type to be implemented
+ * @tparam T_obj the mutable serialization type to be implemented
  */
 template <gaia::common::gaia_type_t::value_type container_type_id, typename T_gaia, typename T_fb, typename T_obj>
 class dac_object_t : public dac_base_t
@@ -131,13 +128,13 @@ protected:
     dac_object_t(gaia::common::gaia_id_t id);
 
     /**
-     * Insert a mutable flatbuffer into a newly created database object. This will be
+     * Insert a mutable serialization into a newly created database object. This will be
      * used by the generated type-specific insert_row() method.
      */
     static gaia::common::gaia_id_t insert_row(flatbuffers::FlatBufferBuilder& fbb);
 
     /**
-     * Materialize the flatbuffer associated with this record
+     * Materialize the serialization associated with this record.
      */
     const T_fb* row() const;
 
@@ -191,11 +188,11 @@ private:
 // Pick up our template implementation.  These still
 // need to be in the header so that template specializations
 // that are declared later will pick up the definitions.
-#include "gaia/direct_access/dac_object.inc"
+#include "gaia/internal/direct_access/dac_object.inc"
 
-/*@}*/
+/**@}*/
 } // namespace direct_access
-/*@}*/
+/**@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.

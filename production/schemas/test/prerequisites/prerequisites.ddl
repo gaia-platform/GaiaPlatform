@@ -72,4 +72,35 @@ table enrollment_log (
     log_name string,
     log_hours int32,
     log_reg_id string
+);
+
+table major (
+    major_name string
+);
+
+create relationship if not exists major_courses (
+    major.courses -> course[],
+    course.course_major -> major
+);
+
+table floor (
+    num int32 unique,
+    department string,
+    people references person[]
 )
+
+table person (
+    person_name string,
+    floor_num int32,
+    floor references floor
+        where person.floor_num = floor.num
+)
+
+table state (
+    pick bool,
+    place bool
+)
+
+table pick_action ()
+
+table move_action ()

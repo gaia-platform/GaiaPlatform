@@ -173,6 +173,17 @@ public:
 namespace db
 {
 
+class server_connection_failed_internal : public server_connection_failed
+{
+public:
+    explicit server_connection_failed_internal(const char* error_message, int error_number);
+
+    int get_errno();
+
+protected:
+    int m_error_number;
+};
+
 class session_exists_internal : public session_exists
 {
 public:
@@ -265,6 +276,12 @@ public:
         common::gaia_type_t expected_type,
         const char* expected_typename,
         common::gaia_type_t actual_type);
+};
+
+class type_limit_exceeded_internal : public type_limit_exceeded
+{
+public:
+    type_limit_exceeded_internal();
 };
 
 class session_limit_exceeded_internal : public session_limit_exceeded

@@ -80,6 +80,7 @@ void event_manager_t::init(const event_manager_settings_t& settings)
     {
         count_worker_threads = thread::hardware_concurrency();
     }
+    gaia_log::rules().debug("The rules engine is using '{}' worker threads.", count_worker_threads);
 
     m_stats_manager = make_unique<rule_stats_manager_t>(
         settings.enable_rule_stats,

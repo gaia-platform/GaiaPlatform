@@ -14,13 +14,13 @@
 namespace gaia
 {
 /**
- * \addtogroup gaia
+ * @addtogroup gaia
  * @{
  */
 namespace common
 {
 /**
- * \addtogroup common
+ * @addtogroup common
  * @{
  */
 
@@ -93,9 +93,11 @@ protected:
     T_type m_value;
 };
 
-/*@}*/
+#include "gaia/internal/common/int_type.inc"
+
+/**@}*/
 } // namespace common
-/*@}*/
+/**@}*/
 } // namespace gaia
 
 // Restore default hidden visibility for all symbols.

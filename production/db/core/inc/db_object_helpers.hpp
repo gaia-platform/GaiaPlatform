@@ -12,7 +12,6 @@
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
-#include "db_hash_map.hpp"
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
 
@@ -31,10 +30,15 @@ inline db_object_t* create_object(
 {
     size_t ref_len = refs_count * sizeof(*refs);
     size_t total_len = obj_data_size + ref_len;
-    gaia::db::hash_node_t* hash_node = db_hash_map::insert(id);
-    hash_node->locator = allocate_locator();
-    gaia::db::allocate_object(hash_node->locator.load(), total_len);
-    db_object_t* obj_ptr = locator_to_ptr(hash_node->locator.load());
+    gaia_locator_t locator = allocate_locator(type);
+    // register_locator_for_id() returns false if the ID was already present in
+    // the map.
+    if (!register_locator_for_id(id, locator))
+    {
+        throw duplicate_object_id_internal(id);
+    }
+    gaia::db::allocate_object(locator, total_len);
+    db_object_t* obj_ptr = locator_to_ptr(locator);
     obj_ptr->id = id;
     obj_ptr->type = type;
     obj_ptr->references_count = refs_count;
@@ -55,10 +59,15 @@ inline db_object_t* create_object(
     size_t refs_count, size_t obj_data_size,
     const void* obj_data)
 {
-    gaia::db::hash_node_t* hash_node = db_hash_map::insert(id);
-    hash_node->locator = allocate_locator();
-    gaia::db::allocate_object(hash_node->locator.load(), obj_data_size);
-    db_object_t* obj_ptr = locator_to_ptr(hash_node->locator.load());
+    gaia_locator_t locator = allocate_locator(type);
+    // register_locator_for_id() returns false if the ID was already present in
+    // the map.
+    if (!register_locator_for_id(id, locator))
+    {
+        throw duplicate_object_id_internal(id);
+    }
+    gaia::db::allocate_object(locator, obj_data_size);
+    db_object_t* obj_ptr = locator_to_ptr(locator);
     obj_ptr->id = id;
     obj_ptr->type = type;
     obj_ptr->references_count = refs_count;
@@ -68,15 +77,6 @@ inline db_object_t* create_object(
         memcpy(obj_ptr->payload, obj_data, obj_data_size);
     }
     return obj_ptr;
-}
-
-inline db_object_t* id_to_ptr(common::gaia_id_t id)
-{
-    gaia_locator_t locator = gaia::db::db_hash_map::find(id);
-    ASSERT_INVARIANT(
-        locator_exists(locator),
-        "An invalid locator was returned by db_hash_map::find()!");
-    return locator_to_ptr(locator);
 }
 
 } // namespace db

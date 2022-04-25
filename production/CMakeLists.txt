@@ -14,7 +14,7 @@ include(UseJava)
 
 enable_testing()
 
-project(production VERSION 0.4.0)
+project(production VERSION 0.4.1)
 
 # Sets the pre-release version which will be appended to the
 # product version: 0.1.0-alpha.
@@ -368,6 +368,9 @@ add_subdirectory(schemas)
 
 # Tools.
 add_subdirectory(tools)
+
+# Examples
+add_subdirectory(examples)
 
 if(BUILD_GAIA_SDK)
   unset(CMAKE_CXX_CLANG_TIDY)

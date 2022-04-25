@@ -10,6 +10,21 @@ namespace gaia
 namespace db
 {
 
+server_connection_failed_internal::server_connection_failed_internal(const char* error_message, int error_number)
+    : m_error_number(error_number)
+{
+    std::stringstream message;
+    message
+        << "Client failed to connect to server! System error: '"
+        << error_message << "'.";
+    m_message = message.str();
+}
+
+int server_connection_failed_internal::get_errno()
+{
+    return m_error_number;
+}
+
 session_exists_internal::session_exists_internal()
 {
     m_message = "Close the current session before opening a new one.";
@@ -116,6 +131,11 @@ invalid_object_type_internal::invalid_object_type_internal(
         << "Requesting Gaia type '" << expected_typename << "'('" << expected_type
         << "'), but object identified by '" << id << "' is of type '" << actual_type << "'.";
     m_message = message.str();
+}
+
+type_limit_exceeded_internal::type_limit_exceeded_internal()
+{
+    m_message = "Registered type limit exceeded.";
 }
 
 session_limit_exceeded_internal::session_limit_exceeded_internal()

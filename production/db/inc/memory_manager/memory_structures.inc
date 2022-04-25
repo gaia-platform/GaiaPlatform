@@ -17,9 +17,9 @@ std::pair<chunk_state_t, chunk_version_t>
 chunk_manager_metadata_t::get_chunk_state_and_version() const
 {
     constexpr chunk_version_t c_chunk_state_mask{
-        ((1ULL << c_chunk_state_bit_width) - 1) << c_chunk_state_shift};
+        ((1UL << c_chunk_state_bit_width) - 1) << c_chunk_state_shift};
     constexpr chunk_version_t c_chunk_version_mask{
-        ((1ULL << c_chunk_version_bit_width) - 1) << c_chunk_version_shift};
+        ((1UL << c_chunk_version_bit_width) - 1) << c_chunk_version_shift};
     chunk_state_t state{
         (chunk_state_and_version & c_chunk_state_mask) >> c_chunk_state_shift};
     chunk_version_t version{

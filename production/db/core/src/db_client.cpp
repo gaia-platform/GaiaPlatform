@@ -18,10 +18,12 @@
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/socket_helpers.hpp"
 #include "gaia_internal/common/system_error.hpp"
+#include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
 #include "client_messenger.hpp"
+#include "db_caches.hpp"
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
 #include "messages_generated.h"
@@ -34,118 +36,6 @@ using namespace gaia::db::messages;
 using namespace gaia::db::memory_manager;
 using namespace flatbuffers;
 using namespace scope_guard;
-
-std::shared_ptr<int> client_t::get_id_cursor_socket_for_type(gaia_type_t type)
-{
-    // Build the cursor socket request.
-    FlatBufferBuilder builder;
-    builder.ForceDefaults(true);
-    auto table_scan_info = Createtable_scan_info_t(builder, type);
-    auto client_request = Createclient_request_t(
-        builder, session_event_t::REQUEST_STREAM, request_data_t::table_scan, table_scan_info.Union());
-    auto message = Createmessage_t(builder, any_message_t::request, client_request.Union());
-    builder.Finish(message);
-
-    client_messenger_t client_messenger;
-    client_messenger.send_and_receive(s_session_socket, nullptr, 0, builder, 1);
-
-    int stream_socket = client_messenger.received_fd(client_messenger_t::c_index_stream_socket);
-    auto cleanup_stream_socket = make_scope_guard([&]() { close_fd(stream_socket); });
-
-    const session_event_t event = client_messenger.server_reply()->event();
-    ASSERT_INVARIANT(event == session_event_t::REQUEST_STREAM, c_message_unexpected_event_received);
-
-    // Check that our stream socket is blocking (because we need to perform blocking reads).
-    ASSERT_INVARIANT(!is_non_blocking(stream_socket), "Stream socket is not set to blocking!");
-
-    // We use shared_ptr with a custom deleter to guarantee that the socket is
-    // closed when its owning object is destroyed. We could possibly achieve the
-    // same effect with an RAII wrapper, but it would need to have copy rather
-    // than move semantics, since the socket is captured by a lambda that must
-    // be copyable (since it is coerced to std::function).
-    std::shared_ptr<int> stream_socket_ptr(new int{stream_socket}, [](int* fd_ptr) {
-        close_fd(*fd_ptr);
-        delete fd_ptr; });
-
-    // Both our explicit new() and the shared_ptr constructor dynamically allocate
-    // memory, so we might need to clean up the socket if either fails.
-    cleanup_stream_socket.dismiss();
-
-    return stream_socket_ptr;
-}
-
-std::function<std::optional<gaia_id_t>()>
-client_t::augment_id_generator_for_type(gaia_type_t type, std::function<std::optional<gaia_id_t>()> id_generator)
-{
-    bool has_exhausted_id_generator = false;
-    size_t log_index = 0;
-
-    std::function<std::optional<gaia_id_t>()> augmented_id_generator
-        = [type, id_generator, has_exhausted_id_generator, log_index]() mutable -> std::optional<gaia_id_t> {
-        // First, we use the id_generator until it's exhausted.
-        if (!has_exhausted_id_generator)
-        {
-            std::optional<gaia_id_t> id_opt = id_generator();
-            if (id_opt)
-            {
-                // See https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2001
-                ASSERT_POSTCONDITION(id_opt.value().is_valid(), "The id generator has produced an invalid gaia_id value!");
-                return id_opt;
-            }
-            else
-            {
-                has_exhausted_id_generator = true;
-            }
-        }
-
-        // Once the id_generator is exhausted, we start iterating over our transaction log.
-        if (has_exhausted_id_generator)
-        {
-            auto txn_log = get_txn_log();
-            while (log_index < txn_log->record_count)
-            {
-                log_record_t* lr = &(txn_log->log_records[log_index++]);
-
-                // Look for insertions of objects of the given data type and return their gaia_id.
-                if (lr->old_offset == c_invalid_gaia_offset)
-                {
-                    gaia_offset_t offset = lr->new_offset;
-
-                    ASSERT_INVARIANT(
-                        offset.is_valid(),
-                        "An unexpected invalid object offset was found in the log record!");
-
-                    db_object_t* db_object = offset_to_ptr(offset);
-
-                    if (db_object->type == type)
-                    {
-                        ASSERT_PRECONDITION(
-                            db_object->id.is_valid(), "Database object has an invalid gaia_id value!");
-                        return db_object->id;
-                    }
-                }
-            }
-        }
-
-        return std::nullopt;
-    };
-
-    return augmented_id_generator;
-}
-
-std::shared_ptr<gaia::common::iterators::generator_t<gaia_id_t>>
-client_t::get_id_generator_for_type(gaia_type_t type)
-{
-    std::shared_ptr<int> stream_socket_ptr = get_id_cursor_socket_for_type(type);
-
-    auto id_generator = get_stream_generator_for_socket<gaia_id_t>(stream_socket_ptr);
-
-    // We need to augment the server-based id generator with a local generator
-    // that will also return the elements that have been added by the client
-    // in the current transaction, which the server does not yet know about.
-    auto augmented_id_generator = augment_id_generator_for_type(type, id_generator);
-    return std::make_shared<gaia::common::iterators::generator_t<gaia_id_t>>(augmented_id_generator);
-}
 
 static void build_client_request(
     FlatBufferBuilder& builder,
@@ -184,6 +74,15 @@ void client_t::txn_cleanup()
 
     // Reset transaction log offset.
     s_txn_log_offset = c_invalid_log_offset;
+
+    // Reset the log processing watermark that is used for index building.
+    s_last_index_processed_log_count = 0;
+
+    // Clear the local indexes.
+    for (const auto& index : client_t::s_local_indexes)
+    {
+        index.second->clear();
+    }
 
     // Reset TLS events vector for the next transaction that will run on this thread.
     s_events.clear();
@@ -259,13 +158,22 @@ void client_t::begin_session(config::session_options_t session_options)
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
-    s_session_socket = get_session_socket(s_session_options.db_instance_name);
+    try
+    {
+        s_session_socket = get_session_socket(s_session_options.db_instance_name);
+    }
+    catch (const system_error& e)
+    {
+        throw server_connection_failed_internal(e.what(), e.get_errno());
+    }
 
     auto cleanup_session_socket = make_scope_guard([&]() { close_fd(s_session_socket); });
 
     // Send the server the connection request.
     FlatBufferBuilder builder;
-    build_client_request(builder, session_event_t::CONNECT);
+    build_client_request(
+        builder,
+        s_session_options.is_ddl_session ? session_event_t::CONNECT_DDL : session_event_t::CONNECT);
 
     client_messenger_t client_messenger;
 
@@ -391,6 +299,14 @@ void client_t::begin_transaction()
         apply_log_from_offset(s_private_locators.data(), txn_log_info->log_offset());
     }
 
+    // We need to perform this initialization in the context of a transaction,
+    // so we'll just piggyback on the first transaction started by the client
+    // that is not a DDL transaction.
+    if (!s_session_options.is_ddl_session)
+    {
+        std::call_once(s_are_db_caches_initialized, init_db_caches);
+    }
+
     cleanup_private_locators.dismiss();
 }
 
@@ -508,4 +424,32 @@ void client_t::init_memory_manager()
     s_memory_manager.load(
         reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
         sizeof(s_shared_data.data()->objects));
+}
+
+void client_t::init_db_caches()
+{
+    // Initialize table_relationship_fields_cache_t.
+    for (const auto& table : catalog_core::list_tables())
+    {
+        gaia_id_t table_id = table.id();
+        caches::table_relationship_fields_cache_t::get()->put(table_id);
+
+        for (const auto& relationship : catalog_core::list_relationship_from(table_id))
+        {
+            if (relationship.parent_field_positions()->size() == 1)
+            {
+                field_position_t field = relationship.parent_field_positions()->Get(0);
+                caches::table_relationship_fields_cache_t::get()->put_parent_relationship_field(table_id, field);
+            }
+        }
+
+        for (const auto& relationship : catalog_core::list_relationship_to(table_id))
+        {
+            if (relationship.child_field_positions()->size() == 1)
+            {
+                field_position_t field = relationship.child_field_positions()->Get(0);
+                caches::table_relationship_fields_cache_t::get()->put_child_relationship_field(table_id, field);
+            }
+        }
+    }
 }

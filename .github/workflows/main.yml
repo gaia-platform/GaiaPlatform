@@ -16,7 +16,7 @@ env:
 jobs:
 
   Lint:
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -28,30 +28,10 @@ jobs:
         with:
           gaia-repo: ${{ github.workspace }}
 
-  Third-Party:
-    runs-on: ubuntu-20.04
-    env:
-      GAIA_REPO: ${{ github.workspace }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@master
-      - name: Setup Action
-        uses: ./.github/actions/setup-job
-        with:
-          docker-user: ${{ github.actor }}
-          docker-password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build Third-Party Projects
-        uses: ./.github/actions/third-party-job
-        with:
-          gaia-repo: ${{ github.workspace }}
-          job-name: ${{ github.job }}
-
   Core:
     needs:
       - Lint
-      - Third-Party
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -74,9 +54,8 @@ jobs:
   SDK:
     needs:
       - Lint
-      - Third-Party
     if: github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -99,8 +78,8 @@ jobs:
   Debug_Core:
     needs:
       - Core
-    runs-on: ubuntu-20.04
-    if: github.event_name != 'pull_request'
+    runs-on: self-hosted
+    if: ${{ false }}
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -124,7 +103,7 @@ jobs:
     needs:
       - Core
     if: github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -146,9 +125,9 @@ jobs:
   Coverage:
     needs:
       - Lint
-      - Third-Party
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
+    if: ${{ false }}
+    timeout-minutes: 200
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -167,9 +146,8 @@ jobs:
   LLVM_Tests:
     needs:
       - Lint
-      - Third-Party
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
+    if: ${{ false }}
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:
@@ -192,8 +170,9 @@ jobs:
   Integration_Tests:
     needs:
       - SDK
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
+    # if: github.event_name != 'pull_request'
+    if: ${{false}}
+    runs-on: self-hosted
     timeout-minutes: 7
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -238,7 +217,7 @@ jobs:
 #    Disabled due to https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2002
 #    if: github.event_name != 'pull_request'
     if: ${{ false }}
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     timeout-minutes: 7
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -275,8 +254,9 @@ jobs:
   Performance_Tests:
     needs:
       - Integration_Tests
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
+    # if: github.event_name != 'pull_request'
+    if: ${{false}}
+    runs-on: self-hosted
     timeout-minutes: 10
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -312,7 +292,7 @@ jobs:
 
   Integration_Samples:
     needs: SDK
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     if: github.event_name != 'pull_request'
     env:
       GAIA_REPO: ${{ github.workspace }}
@@ -348,17 +328,36 @@ jobs:
           path: |
             ${{ github.workspace }}/production/tests/results
 
+  Documentation:
+    needs:
+      - Lint
+    if: ${{ false }}
+    runs-on: self-hosted
+    env:
+      GAIA_REPO: ${{ github.workspace }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+
+      - name: Build Documentation
+        uses: ./.github/actions/documentation-job
+        with:
+          gaia-repo: ${{ github.workspace }}
+          job-name: ${{ github.job }}
+          github-token: ${{ secrets.API_TOKEN_GITHUB }}
+
   Final:
     needs:
       - Core
-      - Debug_Core
-      - Coverage
-      - LLVM_Tests
-      - Integration_Tests
-      - Integration_Tests_Debug
-      - Performance_Tests
+#      - Debug_Core
+#      - Coverage
+#      - LLVM_Tests
+#      - Integration_Tests
+#      - Integration_Tests_Debug
+#      - Performance_Tests
       - Integration_Samples
-    runs-on: ubuntu-20.04
+#      - Documentation
+    runs-on: self-hosted
     steps:
       - uses: geekyeggo/delete-artifact@v1
         with:

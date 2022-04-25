@@ -117,6 +117,12 @@ cp /build/production/*.log /build/output
 if [ "$ACTION_NAME" == "unit_tests" ] ; then
     echo "Executing unit tests."
 
+    # Enable FDW Tests
+    cd /build/production/sql || exit
+    make install
+    service postgresql restart
+    cd /build/production || exit
+
     if ! ctest --output-on-failure 2>&1 | tee /build/output/ctest.log; then
         complete_process 1 "Unit tests failed to complete successfully."
     fi
@@ -144,5 +150,9 @@ elif [ "$ACTION_NAME" == "publish_package" ] ; then
 else
     complete_process 1 "Action '$ACTION_NAME' is not known."
 fi
+
+# Change ownership of our output files to our generated docker user so that we can remove it at
+# a later build step outside of the container.
+chown --recursive ci-user:ci-user /build/output
 
 complete_process 0 ""

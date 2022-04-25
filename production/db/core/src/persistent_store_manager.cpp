@@ -191,7 +191,6 @@ void persistent_store_manager::recover()
     // Check for any errors found during the scan
     m_rdb_wrapper->handle_rdb_error(it->status());
     m_counters->last_id = max_id;
-    m_counters->last_type_id = max_type_id;
 }
 
 void persistent_store_manager::destroy_persistent_store()

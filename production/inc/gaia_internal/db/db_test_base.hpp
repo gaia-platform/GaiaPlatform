@@ -54,7 +54,17 @@ protected:
 
     static void SetUpTestSuite()
     {
-        gaia_log::initialize({});
+        SetUpTestSuite({});
+    }
+
+    // Test suites can customize logger behavior by passing in a logger configuration file.
+    // This must be done in a test specific SetupTestSuite function which then must call
+    // db_test_base_t::SetupTestSuite with the logger file path.  If the test does not provide
+    // its own implementation of SetupTestSuite then default logging with an "empty" configuration
+    // above.
+    static void SetUpTestSuite(const std::string& log_conf_path)
+    {
+        gaia_log::initialize(log_conf_path);
 
         server_instance_config_t conf = server_instance_config_t::get_new_instance_config();
         conf.skip_catalog_integrity_check = true;
@@ -81,6 +91,7 @@ protected:
     void SetUp() override
     {
         gaia_log::initialize({});
+
         // The server will only reset on SIGHUP if persistence is disabled.
         if (m_disable_persistence)
         {
@@ -91,6 +102,7 @@ protected:
         {
             gaia_log::db().warn("Not resetting server before test because persistence is enabled.");
         }
+
         if (!m_client_manages_session)
         {
             begin_session();

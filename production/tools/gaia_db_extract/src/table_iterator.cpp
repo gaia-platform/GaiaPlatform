@@ -38,8 +38,9 @@ namespace db_extract
 // in gaia_fdw_adapter.cpp, which also interfaces with Postgres. As this utility does
 // not use Postgres, all of the Postgres-specific code has been eliminated.
 
-bool table_iterator_t::initialize_scan(gaia_type_t container_id, gaia_id_t start_after)
+bool table_iterator_t::initialize_scan(gaia_id_t table_id, gaia_type_t container_id, gaia_id_t start_after)
 {
+    m_table_id = table_id;
     m_container_id = container_id;
 
     try
@@ -86,30 +87,32 @@ data_holder_t table_iterator_t::extract_field_value(uint16_t repeated_count, siz
 {
     try
     {
+        catalog_core::table_view_t table_view = catalog_core::get_table(m_table_id);
+        auto schema = table_view.binary_schema();
+
         // TODO: Decide how arrays should be represented. Currently nothing will happen,
         if (repeated_count != 1)
         {
             size_t array_size = get_field_array_size(
-                m_container_id,
                 m_current_payload,
-                nullptr,
-                0,
+                schema->data(),
                 position);
 
             for (size_t i = 0; i < array_size; i++)
             {
                 [[maybe_unused]] auto value = get_field_array_element(
-                    m_container_id,
                     m_current_payload,
-                    nullptr,
-                    0,
+                    schema->data(),
                     position,
                     i);
             }
         }
         else
         {
-            return get_field_value(m_container_id, m_current_payload, nullptr, 0, position);
+            return get_field_value(
+                m_current_payload,
+                schema->data(),
+                position);
         }
     }
     catch (const exception& e)

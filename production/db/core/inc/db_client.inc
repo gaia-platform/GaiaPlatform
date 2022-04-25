@@ -8,6 +8,11 @@ inline bool client_t::is_session_open()
     return (s_session_socket != -1);
 }
 
+inline bool client_t::is_ddl_session_open()
+{
+    return is_session_open() && s_session_options.is_ddl_session;
+}
+
 inline bool client_t::is_transaction_open()
 {
     return (s_private_locators.is_set());
@@ -73,6 +78,8 @@ inline void client_t::txn_log(
 
     // Initialize the new record and increment the record count.
     auto& lr = txn_log->log_records[txn_log->record_count++];
+    // The log record sequence should start at 0.
+    lr.sequence = txn_log->record_count - 1;
     lr.locator = locator;
     lr.old_offset = old_offset;
     lr.new_offset = new_offset;

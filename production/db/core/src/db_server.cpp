@@ -42,17 +42,14 @@
 #include "memory_types.hpp"
 #include "messages_generated.h"
 #include "persistent_store_manager.hpp"
-#include "record_list_manager.hpp"
 #include "system_checks.hpp"
 #include "txn_metadata.hpp"
-#include "type_generator.hpp"
 #include "type_id_mapping.hpp"
 
 using namespace flatbuffers;
 using namespace gaia::db;
 using namespace gaia::db::messages;
 using namespace gaia::db::memory_manager;
-using namespace gaia::db::storage;
 using namespace gaia::db::transactions;
 using namespace gaia::common;
 using namespace gaia::common::iterators;
@@ -80,8 +77,18 @@ static constexpr char c_message_preceding_txn_should_have_been_validated[]
     = "A transaction with commit timestamp preceding this transaction's begin timestamp is undecided!";
 static constexpr char c_message_unexpected_query_type[] = "Unexpected query type!";
 
+void server_t::handle_connect_ddl(
+    session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+{
+    ASSERT_PRECONDITION(event == session_event_t::CONNECT_DDL, c_message_unexpected_event_received);
+
+    s_is_ddl_session = true;
+
+    handle_connect(session_event_t::CONNECT, nullptr, old_state, new_state);
+}
+
 void server_t::handle_connect(
-    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::CONNECT, c_message_unexpected_event_received);
 
@@ -107,7 +114,7 @@ void server_t::handle_connect(
 }
 
 void server_t::handle_begin_txn(
-    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::BEGIN_TXN, c_message_unexpected_event_received);
 
@@ -156,7 +163,8 @@ void server_t::txn_begin()
 }
 
 void server_t::get_txn_log_offsets_for_snapshot(
-    gaia_txn_id_t begin_ts, std::vector<std::pair<gaia_txn_id_t, log_offset_t>>& txn_ids_with_log_offsets_for_snapshot)
+    gaia_txn_id_t begin_ts,
+    std::vector<std::pair<gaia_txn_id_t, log_offset_t>>& txn_ids_with_log_offsets_for_snapshot)
 {
     ASSERT_PRECONDITION(
         txn_ids_with_log_offsets_for_snapshot.empty(),
@@ -241,6 +249,10 @@ void server_t::release_transaction_resources()
     // otherwise we cannot GC the referenced txn logs!
     release_txn_log_offsets_for_snapshot();
 
+    // Clear local snapshot information.
+    s_local_snapshot_locators.close();
+    s_last_snapshot_processed_log_record_count = 0;
+
     // Update watermarks and perform associated maintenance tasks. This will
     // block new transactions on this session thread, but that is a feature, not
     // a bug, because it provides natural backpressure on clients who submit
@@ -254,7 +266,7 @@ void server_t::release_transaction_resources()
 }
 
 void server_t::handle_rollback_txn(
-    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::ROLLBACK_TXN, c_message_unexpected_event_received);
 
@@ -272,7 +284,7 @@ void server_t::handle_rollback_txn(
 }
 
 void server_t::handle_commit_txn(
-    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(event == session_event_t::COMMIT_TXN, c_message_unexpected_event_received);
 
@@ -300,11 +312,11 @@ void server_t::handle_commit_txn(
     }
 
     // REVIEW: This is the only reentrant transition handler, and the only server-side state transition.
-    apply_transition(decision, nullptr, nullptr, 0);
+    apply_transition(decision, nullptr);
 }
 
 void server_t::handle_decide_txn(
-    int*, size_t, session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
+    session_event_t event, const void*, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(
         event == session_event_t::DECIDE_TXN_COMMIT
@@ -334,7 +346,7 @@ void server_t::handle_decide_txn(
 }
 
 void server_t::handle_client_shutdown(
-    int*, size_t, session_event_t event, const void*, session_state_t, session_state_t new_state)
+    session_event_t event, const void*, session_state_t, session_state_t new_state)
 {
     ASSERT_PRECONDITION(
         event == session_event_t::CLIENT_SHUTDOWN,
@@ -362,7 +374,7 @@ void server_t::handle_client_shutdown(
 }
 
 void server_t::handle_server_shutdown(
-    int*, size_t, session_event_t event, const void*, session_state_t, session_state_t new_state)
+    session_event_t event, const void*, session_state_t, session_state_t new_state)
 {
     ASSERT_PRECONDITION(
         event == session_event_t::SERVER_SHUTDOWN,
@@ -408,7 +420,7 @@ std::pair<int, int> server_t::get_stream_socket_pair()
 }
 
 void server_t::handle_request_stream(
-    int*, size_t, session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
+    session_event_t event, const void* event_data, session_state_t old_state, session_state_t new_state)
 {
     ASSERT_PRECONDITION(
         event == session_event_t::REQUEST_STREAM,
@@ -433,14 +445,6 @@ void server_t::handle_request_stream(
 
     switch (request->data_type())
     {
-    case request_data_t::table_scan:
-    {
-        auto type = static_cast<gaia_type_t>(request->data_as_table_scan()->type_id());
-
-        start_stream_producer(server_socket, get_id_generator_for_type(type));
-
-        break;
-    }
     case request_data_t::index_scan:
     {
         auto request_data = request->data_as_index_scan();
@@ -464,8 +468,7 @@ void server_t::handle_request_stream(
             {
                 // Create local snapshot to query catalog for key serialization schema.
                 bool apply_logs = true;
-                create_local_snapshot(apply_logs);
-                auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
+                create_or_refresh_local_snapshot(apply_logs);
                 const payload_types::serialization_buffer_t* key_buffer;
 
                 if (query_type == index_query_t::index_point_read_query_t)
@@ -507,7 +510,7 @@ void server_t::handle_request_stream(
     send_msg_with_fds(s_session_socket, &client_socket, 1, builder.GetBufferPointer(), builder.GetSize());
 }
 
-void server_t::apply_transition(session_event_t event, const void* event_data, int* fds, size_t fd_count)
+void server_t::apply_transition(session_event_t event, const void* event_data)
 {
     if (event == session_event_t::NOP)
     {
@@ -531,7 +534,7 @@ void server_t::apply_transition(session_event_t event, const void* event_data, i
 
             if (t.transition.handler)
             {
-                t.transition.handler(fds, fd_count, event, event_data, old_state, s_session_state);
+                t.transition.handler(event, event_data, old_state, s_session_state);
             }
 
             return;
@@ -593,8 +596,8 @@ void server_t::clear_server_state()
 {
     data_mapping_t::close(c_data_mappings);
     s_local_snapshot_locators.close();
+    s_last_snapshot_processed_log_record_count = 0;
     s_chunk_manager.release();
-    record_list_manager_t::get()->clear();
 }
 
 // To avoid synchronization, we assume that this method is only called when
@@ -616,7 +619,7 @@ void server_t::init_shared_memory()
     // We may be reinitializing the server upon receiving a SIGHUP.
     clear_server_state();
 
-    // Clear all shared memory if an exception is thrown.
+    // Clear server state if an exception is thrown.
     auto cleanup_memory = make_scope_guard([]() { clear_server_state(); });
 
     // Validate shared memory mapping definitions and assert that mappings are not made yet.
@@ -626,7 +629,7 @@ void server_t::init_shared_memory()
         ASSERT_INVARIANT(!data_mapping.is_set(), "Memory should be unmapped");
     }
 
-    // s_shared_locators uses sizeof(gaia_offset_t) * c_max_locators = 32GB of virtual address space.
+    // s_shared_locators uses sizeof(gaia_offset_t) * c_max_locators = 16GB of virtual address space.
     //
     // s_shared_data uses (64B) * c_max_locators = 256GB of virtual address space.
     //
@@ -637,6 +640,8 @@ void server_t::init_shared_memory()
     // 4B/locator (assuming 4-byte locators), or 16GB, if we can assume that
     // gaia_ids are sequentially allocated and seldom deleted, so we can just
     // use an array of locators indexed by gaia_id.
+    //
+    // s_shared_type_index uses (8B) * c_max_locators = 32GB of virtual address space.
     data_mapping_t::create(c_data_mappings, s_server_conf.instance_name().c_str());
 
     bool initializing = true;
@@ -650,10 +655,6 @@ void server_t::init_shared_memory()
     std::fill(std::begin(s_allocated_log_offsets_bitmap), std::end(s_allocated_log_offsets_bitmap), 0);
     // Mark the invalid offset as allocated.
     safe_set_bit_value(s_allocated_log_offsets_bitmap.data(), s_allocated_log_offsets_bitmap.size(), c_invalid_log_offset, true);
-
-    // Create snapshot for db recovery and index population.
-    bool apply_logs = false;
-    create_local_snapshot(apply_logs);
 
     // Populate shared memory from the persistent log and snapshot.
     recover_db();
@@ -739,9 +740,6 @@ void server_t::init_indexes()
     // Allocate new txn id for initializing indexes.
     begin_startup_txn();
 
-    gaia_locator_t locator = c_invalid_gaia_locator;
-    gaia_locator_t last_locator = s_shared_counters.data()->last_locator.load();
-
     // Create initial index data structures.
     for (const auto& table : catalog_core::list_tables())
     {
@@ -751,6 +749,8 @@ void server_t::init_indexes()
         }
     }
 
+    gaia_locator_t locator = c_invalid_gaia_locator;
+    gaia_locator_t last_locator = get_last_locator();
     while ((++locator).is_valid() && locator <= last_locator)
     {
         auto obj = locator_to_ptr(locator);
@@ -761,10 +761,8 @@ void server_t::init_indexes()
             continue;
         }
 
-        gaia_id_t type_record_id
-            = type_id_mapping_t::instance().get_record_id(obj->type);
-
-        if (!type_record_id.is_valid())
+        gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(obj->type);
+        if (!table_id.is_valid())
         {
             // Orphaned object detected. We continue instead of throw here because of GAIAPLAT-1276.
             // This should be reverted once we no longer orphan objects during a DROP operation.
@@ -772,7 +770,7 @@ void server_t::init_indexes()
             continue;
         }
 
-        for (const auto& index : catalog_core::list_indexes(type_record_id))
+        for (const auto& index : catalog_core::list_indexes(table_id))
         {
             index::index_builder_t::populate_index(index.id(), locator);
         }
@@ -782,11 +780,11 @@ void server_t::init_indexes()
 // On commit, update in-memory-indexes to reflect logged operations.
 void server_t::update_indexes_from_txn_log()
 {
-    bool replay_logs = true;
+    bool apply_logs = true;
+    create_or_refresh_local_snapshot(apply_logs);
 
-    create_local_snapshot(replay_logs);
-    auto cleanup_local_snapshot = make_scope_guard([]() { s_local_snapshot_locators.close(); });
-    index::index_builder_t::update_indexes_from_txn_log(get_txn_log(), s_server_conf.skip_catalog_integrity_checks());
+    index::index_builder_t::update_indexes_from_txn_log(
+        get_txn_log(), 0, s_server_conf.skip_catalog_integrity_checks());
 }
 
 void server_t::recover_db()
@@ -834,6 +832,10 @@ gaia_txn_id_t server_t::begin_startup_txn()
     ASSERT_POSTCONDITION(s_txn_id.is_valid(), "Transaction begin timestamp should be valid!");
     ASSERT_POSTCONDITION(s_txn_log_offset.is_valid(), "Transaction log offset should be valid!");
 
+    // Create snapshot for db recovery and index population.
+    bool apply_logs = false;
+    create_or_refresh_local_snapshot(apply_logs);
+
     return s_txn_id;
 }
 
@@ -864,25 +866,38 @@ void server_t::end_startup_txn()
 }
 
 // Create a thread-local snapshot from the shared locators.
-void server_t::create_local_snapshot(bool apply_logs)
+void server_t::create_or_refresh_local_snapshot(bool apply_logs)
 {
-    ASSERT_PRECONDITION(!s_local_snapshot_locators.is_set(), "Local snapshot is already mapped!");
-    bool manage_fd = false;
-    bool is_shared = false;
+    ASSERT_PRECONDITION(apply_logs || !s_local_snapshot_locators.is_set(), "Local snapshot is already mapped!");
+
+    bool was_snapshot_already_created = s_local_snapshot_locators.is_set();
+
+    if (!was_snapshot_already_created)
+    {
+        ASSERT_PRECONDITION(
+            s_last_snapshot_processed_log_record_count == 0,
+            "'s_last_snapshot_processed_log_record_count' is set without the local snapshot being created!");
+
+        // Open a private locator mapping for the current thread.
+        bool manage_fd = false;
+        bool is_shared = false;
+        s_local_snapshot_locators.open(s_shared_locators.fd(), manage_fd, is_shared);
+    }
 
     if (apply_logs)
     {
-        ASSERT_PRECONDITION(
-            s_txn_id.is_valid() && txn_metadata_t::is_txn_active(s_txn_id),
-            "create_local_snapshot() must be called from within an active transaction!");
-
-        // Open a private locator mapping for the current thread.
-        s_local_snapshot_locators.open(s_shared_locators.fd(), manage_fd, is_shared);
-
-        // Apply txn_logs for the snapshot.
-        for (const auto& [txn_id, log_offset] : s_txn_logs_for_snapshot)
+        // We only need to apply the logs for other transactions when we first create the snapshot.
+        if (!was_snapshot_already_created)
         {
-            apply_log_from_offset(s_local_snapshot_locators.data(), log_offset);
+            ASSERT_PRECONDITION(
+                s_txn_id.is_valid() && txn_metadata_t::is_txn_active(s_txn_id),
+                "To apply logs, create_or_refresh_local_snapshot() must be called from within an active transaction!");
+
+            // Apply txn_logs for the snapshot.
+            for (const auto& [txn_id, log_offset] : s_txn_logs_for_snapshot)
+            {
+                apply_log_from_offset(s_local_snapshot_locators.data(), log_offset);
+            }
         }
 
         // BUG (yiwen): This is incorrect: it races with client writes to the
@@ -890,12 +905,13 @@ void server_t::create_local_snapshot(bool apply_logs)
         // records are 16 bytes and don't use a 128-bit integer type), so
         // applied log records may be inconsistent!
 
-        // Apply current txn log to the local snapshot.
-        apply_log_from_offset(s_local_snapshot_locators.data(), s_txn_log_offset);
-    }
-    else
-    {
-        s_local_snapshot_locators.open(s_shared_locators.fd(), manage_fd, is_shared);
+        // Apply current txn log to the local snapshot starting from the last processed log record count.
+        apply_log_from_offset(
+            s_local_snapshot_locators.data(), s_txn_log_offset, s_last_snapshot_processed_log_record_count);
+
+        // Update our log record count watermark.
+        txn_log_t* txn_log = get_txn_log_from_offset(s_txn_log_offset);
+        s_last_snapshot_processed_log_record_count = txn_log->record_count;
     }
 }
 
@@ -1308,8 +1324,6 @@ void server_t::session_handler(int session_socket)
         // Buffer used to receive file descriptors.
         int fd_buf[c_max_fd_count] = {-1};
         size_t fd_buf_size = std::size(fd_buf);
-        int* fds = nullptr;
-        size_t fd_count = 0;
 
         // If the shutdown flag is set, we need to exit immediately before
         // processing the next ready fd.
@@ -1367,12 +1381,6 @@ void server_t::session_handler(int session_socket)
                     const client_request_t* request = msg->msg_as_request();
                     event = request->event();
                     event_data = static_cast<const void*>(request);
-
-                    if (fd_buf_size > 0)
-                    {
-                        fds = fd_buf;
-                        fd_count = fd_buf_size;
-                    }
                 }
                 else
                 {
@@ -1399,7 +1407,7 @@ void server_t::session_handler(int session_socket)
             // exception thrown from that method (translated from EPIPE).
             try
             {
-                apply_transition(event, event_data, fds, fd_count);
+                apply_transition(event, event_data);
             }
             catch (const peer_disconnected& e)
             {
@@ -1641,11 +1649,6 @@ void server_t::start_stream_producer(int stream_socket, std::shared_ptr<generato
     // Create stream producer thread.
     s_session_owned_threads.emplace_back(
         stream_producer_handler<T_element>, stream_socket, s_session_shutdown_eventfd, generator_fn);
-}
-
-std::shared_ptr<generator_t<gaia_id_t>> server_t::get_id_generator_for_type(gaia_type_t type)
-{
-    return std::make_shared<type_generator_t>(type, s_txn_id);
 }
 
 void server_t::validate_txns_in_range(gaia_txn_id_t start_ts, gaia_txn_id_t end_ts)
@@ -2004,6 +2007,11 @@ void server_t::gc_txn_log_from_offset(log_offset_t log_offset, bool is_committed
 {
     txn_log_t* txn_log = get_txn_log_from_offset(log_offset);
 
+    // Remove index entries that might be referencing obsolete versions before
+    // actually deallocating them.
+    bool deallocate_new_offsets = !is_committed;
+    index::index_builder_t::gc_indexes_from_txn_log(txn_log, deallocate_new_offsets);
+
     // If the txn committed, we deallocate only undo versions, because the
     // redo versions may still be visible after the txn has fallen
     // behind the watermark. If the txn aborted, then we deallocate only
@@ -2011,15 +2019,10 @@ void server_t::gc_txn_log_from_offset(log_offset_t log_offset, bool is_committed
     // that we could deallocate intermediate versions (i.e., those
     // superseded within the same txn) immediately, but we do it here
     // for simplicity.
-    bool deallocate_new_offsets = !is_committed;
-
-    // Remove index entries that might be referencing obsolete versions before
-    // actually deallocating them.
-    index::index_builder_t::gc_indexes_from_txn_log(txn_log, deallocate_new_offsets);
-    deallocate_txn_log(txn_log, deallocate_new_offsets);
+    deallocate_txn_log(txn_log, is_committed);
 }
 
-void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offsets)
+void server_t::deallocate_txn_log(txn_log_t* txn_log, bool is_committed)
 {
     ASSERT_PRECONDITION(txn_log, "txn_log must be a valid address!");
     ASSERT_PRECONDITION(
@@ -2041,27 +2044,25 @@ void server_t::deallocate_txn_log(txn_log_t* txn_log, bool deallocate_new_offset
         // txn log of an aborted txn is after it falls behind the watermark,
         // because at that point it cannot be in the conflict window of any
         // committing txn.
-        gaia_offset_t offset_to_free = deallocate_new_offsets
-            ? log_record->new_offset
-            : log_record->old_offset;
-
-        // If we're gc-ing the old version of an object that is being deleted,
-        // then request the deletion of its locator from the corresponding record list.
-        if (!deallocate_new_offsets && !log_record->new_offset.is_valid())
-        {
-            // Get the old object data to extract its type.
-            db_object_t* db_object = offset_to_ptr(log_record->old_offset);
-
-            // Retrieve the record_list_t instance corresponding to the type.
-            std::shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(db_object->type);
-
-            // Request the deletion of the record corresponding to the object.
-            record_list->request_deletion(log_record->locator);
-        }
+        gaia_offset_t offset_to_free = is_committed
+            ? log_record->old_offset
+            : log_record->new_offset;
 
         if (offset_to_free.is_valid())
         {
             deallocate_object(offset_to_free);
+        }
+
+        // For committed txns, we need to remove any deleted locators from the
+        // type index. For aborted or rolled-back txns, we need to remove any
+        // allocated locators from the type index.
+        bool is_locator_removal_committed = is_committed && log_record->operation() == gaia_operation_t::remove;
+        bool is_locator_creation_aborted = !is_committed && log_record->operation() == gaia_operation_t::create;
+        if (is_locator_removal_committed || is_locator_creation_aborted)
+        {
+            type_index_t* type_index = get_type_index();
+            bool has_succeeded = type_index->delete_locator(log_record->locator);
+            ASSERT_INVARIANT(has_succeeded, "A locator cannot be deleted twice!");
         }
     }
 
@@ -2605,41 +2606,40 @@ void server_t::txn_rollback(bool client_disconnected)
 
 void server_t::perform_pre_commit_work_for_txn()
 {
-    // Process the txn log to update record lists.
-    txn_log_t* txn_log = get_txn_log();
-    for (log_record_t* log_record = txn_log->log_records; log_record < txn_log->log_records + txn_log->record_count; ++log_record)
+    // This assertion is meant to be tripped if the number of system indexes changes
+    // without updating the c_system_index_count constant.
+    // DDL sessions are exempt of this condition, because they're used to create system indexes.
+    // We also have some scenarios in which the database is used
+    // without initializing the catalog, so there will be no system indexes at all.
+    // In all other cases, we should find at least the number of system indexes.
+    ASSERT_INVARIANT(
+        s_is_ddl_session
+            || get_indexes()->size() == 0
+            || get_indexes()->size() >= gaia::catalog::c_system_index_count,
+        "Fewer indexes than expected were found during perform_pre_commit_work_for_txn()!");
+
+    // Only update indexes in DDL sessions (when new ones could be created)
+    // or if we see that user indexes were created in addition to the catalog ones.
+    if (s_is_ddl_session || get_indexes()->size() > gaia::catalog::c_system_index_count)
     {
-        // In case of insertions, we want to update the record list for the object's type.
-        // We do this after updating the shared locator view, so we can access the new object's data.
-        if (log_record->old_offset.is_valid() == false)
-        {
-            gaia_locator_t locator = log_record->locator;
-            gaia_offset_t offset = log_record->new_offset;
-
-            ASSERT_INVARIANT(
-                offset.is_valid(), "An unexpected invalid object offset was found in the log record!");
-
-            db_object_t* db_object = offset_to_ptr(offset);
-            std::shared_ptr<record_list_t> record_list = record_list_manager_t::get()->get_record_list(db_object->type);
-            record_list->add(locator);
-        }
+        update_indexes_from_txn_log();
     }
-
-    update_indexes_from_txn_log();
 }
 
 // Sort all txn log records by locator. This enables us to use fast binary
 // search and merge intersection algorithms for conflict detection.
 void server_t::sort_log()
 {
-    // We use stable_sort() to preserve the temporal order of multiple updates
-    // to the same locator.
+    // We use `log_record_t.sequence` as a secondary sort key to preserve the
+    // temporal order of multiple updates to the same locator.
     txn_log_t* txn_log = get_txn_log();
-    std::stable_sort(
+    std::sort(
         &txn_log->log_records[0],
         &txn_log->log_records[txn_log->record_count],
         [](const log_record_t& lhs, const log_record_t& rhs) {
-            return lhs.locator < rhs.locator;
+            auto lhs_pair = std::pair{lhs.locator, lhs.sequence};
+            auto rhs_pair = std::pair{rhs.locator, rhs.sequence};
+            return lhs_pair < rhs_pair;
         });
 }
 

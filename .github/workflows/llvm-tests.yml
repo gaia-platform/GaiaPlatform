@@ -9,28 +9,8 @@ env:
 
 jobs:
 
-  Third-Party:
-    runs-on: ubuntu-20.04
-    env:
-      GAIA_REPO: ${{ github.workspace }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@master
-      - name: Setup Action
-        uses: ./.github/actions/setup-job
-        with:
-          docker-user: ${{ github.actor }}
-          docker-password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build Third-Party Projects
-        uses: ./.github/actions/third-party-job
-        with:
-          gaia-repo: ${{ github.workspace }}
-          job-name: ${{ github.job }}
-
   LLVM_Tests:
-    needs: Third-Party
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       GAIA_REPO: ${{ github.workspace }}
     steps:

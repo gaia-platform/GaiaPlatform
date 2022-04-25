@@ -160,7 +160,7 @@ ruleset test_array
         }
     }
 
-    on_update(client_name)
+    on_update(company_name)
     {
         int test_array[4] = {1, 2, 3, 5};
         client.insert(client_name:"a");
@@ -172,5 +172,66 @@ ruleset test_array
         client.insert(sales:{4, 7, 8}, client_name:"e");
         client.insert(sales:client.sales, client_name:"f");
         client.insert(sales:sales, client_name:"g");
+        client.insert(sales:{period, period + 1, period++, ++period}, client_name:"h");
+        client.insert(sales:{period, period + 1, period++, ++period}, period:period++, client_name:"i");
+        client.insert(sales:{period, period + 1, period++, ++period}, period:++period, client_name:"j");
+    }
+
+    on_insert(company)
+    {
+        if (strcmp(company_name, "c5") == 0)
+        {
+            sales[period] = period++;
+            sales[period++] = ++period;
+            sales[period + 1] = period + 1;
+            sales[period]++;
+            ++sales[++period];
+            g_client_sales = sales[++period];
+        }
+    }
+
+    on_insert(company)
+    {
+        if (strcmp(company_name, "c6") == 0)
+        {
+            sales = {period, period + 1, ++period, 3};
+            g_client_sales = period;
+        }
+    }
+
+    on_insert(client)
+    {
+        if (strcmp(client_name, "14") == 0)
+        {
+            g_client_sales = 0;
+            for (auto sale : sales)
+            {
+                g_client_sales += sale;
+            }
+        }
+    }
+
+    on_insert(client)
+    {
+        if (strcmp(client_name, "15") == 0)
+        {
+            g_client_sales = 0;
+            for (auto sale : client.sales)
+            {
+                g_client_sales += sale;
+            }
+        }
+    }
+
+    on_insert(client)
+    {
+        if (strcmp(client_name, "16") == 0)
+        {
+            g_client_sales = 0;
+            for (auto sale : company->client.sales)
+            {
+                g_client_sales += sale;
+            }
+        }
     }
 }

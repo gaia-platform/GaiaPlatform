@@ -6,6 +6,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <optional>
 
 #include <sys/socket.h>
@@ -58,6 +59,7 @@ class client_t
     friend gaia::db::data_t* gaia::db::get_data();
     friend gaia::db::logs_t* gaia::db::get_logs();
     friend gaia::db::id_index_t* gaia::db::get_id_index();
+    friend gaia::db::type_index_t* gaia::db::get_type_index();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
     friend gaia::db::memory_manager::memory_manager_t* gaia::db::get_memory_manager();
     friend gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager();
@@ -66,6 +68,7 @@ class client_t
 
 public:
     static inline bool is_session_open();
+    static inline bool is_ddl_session_open();
     static inline bool is_transaction_open();
 
     /**
@@ -86,9 +89,9 @@ public:
 
     static inline int get_session_socket_for_txn();
 
-    // This returns a generator object for gaia_ids of a given type.
-    static std::shared_ptr<common::iterators::generator_t<common::gaia_id_t>>
-    get_id_generator_for_type(common::gaia_type_t type);
+    // This returns a generator object for locators of a given type.
+    static std::shared_ptr<common::iterators::generator_t<gaia_locator_t>>
+    get_locator_generator_for_type(common::gaia_type_t type);
 
     // This is a helper for higher-level methods that use
     // this generator to build a range or iterator object.
@@ -97,6 +100,8 @@ public:
     get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr);
 
 private:
+    static inline std::once_flag s_are_db_caches_initialized;
+
     // These fields have transaction lifetime.
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
     thread_local static inline log_offset_t s_txn_log_offset = c_invalid_log_offset;
@@ -121,11 +126,15 @@ private:
     thread_local static inline mapped_data_t<data_t> s_shared_data;
     thread_local static inline mapped_data_t<logs_t> s_shared_logs;
     thread_local static inline mapped_data_t<id_index_t> s_shared_id_index;
+    thread_local static inline mapped_data_t<type_index_t> s_shared_type_index;
 
     thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
     thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
 
     thread_local static inline int s_session_socket = -1;
+
+    // A log processing watermark that is used for index maintenance.
+    thread_local static inline size_t s_last_index_processed_log_count = 0;
 
     // A list of data mappings that we manage together.
     // The order of declarations must be the order of data_mapping_t::index_t values!
@@ -135,6 +144,7 @@ private:
         {data_mapping_t::index_t::data, &s_shared_data, c_gaia_mem_data_prefix},
         {data_mapping_t::index_t::logs, &s_shared_logs, c_gaia_mem_logs_prefix},
         {data_mapping_t::index_t::id_index, &s_shared_id_index, c_gaia_mem_id_index_prefix},
+        {data_mapping_t::index_t::type_index, &s_shared_type_index, c_gaia_mem_type_index_prefix},
     };
 
     // s_events has transaction lifetime and is cleared after each transaction.
@@ -145,6 +155,8 @@ private:
 private:
     static void init_memory_manager();
 
+    static void init_db_caches();
+
     static void txn_cleanup();
 
     static void commit_chunk_manager_allocations();
@@ -153,14 +165,6 @@ private:
     static void apply_txn_log(log_offset_t offset);
 
     static int get_session_socket(const std::string& socket_name);
-
-    static std::shared_ptr<int> get_id_cursor_socket_for_type(common::gaia_type_t type);
-
-    static std::function<std::optional<int>()>
-    get_fd_stream_generator_for_socket(int stream_socket);
-
-    static std::function<std::optional<common::gaia_id_t>()>
-    augment_id_generator_for_type(common::gaia_type_t type, std::function<std::optional<common::gaia_id_t>()> id_generator);
 
     /**
      *  Check if an event should be generated for a given type.

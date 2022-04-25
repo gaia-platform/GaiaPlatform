@@ -8,6 +8,7 @@
 #include <atomic>
 #include <vector>
 
+#include <gaia/logger.hpp>
 #include "gaia_prerequisites.h"
 #include "test_rulesets.hpp"
 
@@ -803,5 +804,96 @@ ruleset test_disconnect_delete
     {
         registration.student_id = nullptr;
         registration.remove();
+    }
+}
+
+ruleset test_force_delete
+{
+    on_insert(course)
+    {
+        major.remove(true);
+    }
+}
+
+ruleset test_connect_child_parent_1_1
+{
+    on_insert(parents)
+    {
+        auto s = student.insert(student_id: "1", surname: "test");
+        parents.connect(s);
+    }
+};
+
+ruleset test_disconnect_child_parent_1_1
+{
+    on_insert(student)
+    {
+        for(/p:parents)
+        {
+            p.disconnect(student);
+        }
+    }
+};
+
+ruleset test_connect_child_parent_1_n
+{
+    on_insert(course)
+    {
+        auto m = major.insert(major_name: "test1");
+        course.connect(m);
+    }
+};
+
+ruleset test_disconnect_child_parent_1_n
+{
+    on_insert(major)
+    {
+        course.disconnect(major);
+    }
+};
+
+ruleset test_clear_child_parent_1_n
+{
+    on_insert(course)
+    {
+        course.course_major.clear();
+    }
+};
+
+//GAIAPLAT-1906
+ruleset vlr_rules
+{
+    on_update(floor_num)
+    {
+        auto c = floor(345.235345);
+        gaia_log::app().info("{} has arrived at: {}", person_name, floor.department);
+
+        auto me = person_name;
+
+        if (0 != strcmp(me, floor->person.person_name))
+        {
+            gaia_log::app().info("{} says: Hi, {}!", person_name, me);
+        }
+        gaia_log::app().info("---");
+    }
+}
+
+ruleset pick_and_place_ruleset
+{
+    {
+        if (@pick && !@place)
+        {
+            pick_action.insert();
+        }
+    }
+
+    on_insert(pick_action)
+    {
+        move_action.insert();
+    }
+
+    on_insert(move_action)
+    {
+        gaia_log::app().info("Moving...");
     }
 }

@@ -8,7 +8,7 @@
 
 cmake_minimum_required(VERSION 3.16)
 
-project(counter)
+project(direct_access_multithread)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -25,10 +25,10 @@ process_schema(
   DATABASE_NAME counter
 )
 
-add_executable(counter
+add_executable(direct_access_multithread
   counter.cpp
 )
 
-target_add_gaia_generated_sources(counter)
-target_include_directories(counter PRIVATE ${GAIA_INC})
-target_link_libraries(counter PRIVATE ${GAIA_LIB} Threads::Threads)
+target_add_gaia_generated_sources(direct_access_multithread)
+target_include_directories(direct_access_multithread PRIVATE ${GAIA_INC})
+target_link_libraries(direct_access_multithread PRIVATE ${GAIA_LIB} Threads::Threads)
