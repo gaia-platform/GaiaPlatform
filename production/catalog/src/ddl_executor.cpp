@@ -672,8 +672,8 @@ gaia_id_t ddl_executor_t::create_relationship(
                 "Defining relationships using composite keys is not supported currently.");
         }
 
-        gaia_id_t first_table_id = get_table_id(in_context(field_map->first.database), field_map->first.table);
-        gaia_id_t second_table_id = get_table_id(in_context(field_map->second.database), field_map->second.table);
+        gaia_id_t first_table_id = get_table_id(field_map->first.database, field_map->first.table);
+        gaia_id_t second_table_id = get_table_id(field_map->second.database, field_map->second.table);
 
         std::vector<gaia_id_t> parent_field_ids, child_field_ids;
         if (first_table_id == parent_table_id && second_table_id == child_table_id)
@@ -967,7 +967,7 @@ void ddl_executor_t::drop_table(const string& db_name, const string& name, bool 
 {
     ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
 
-    gaia_id_t db_id = find_db_id(in_context(db_name));
+    gaia_id_t db_id = find_db_id(db_name);
     if (db_id == c_invalid_gaia_id)
     {
         if (throw_unless_exists)
