@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
     string database;
     string table;
     string link_name;
-    gaia_id_t link_anchor_id = c_start_at_first;
+    gaia_id_t link_row_id = c_start_at_first;
 
     string key;
     string value;
@@ -138,8 +138,8 @@ int main(int argc, char* argv[])
         }
         else if (!key.compare(c_link_row_string))
         {
-            link_anchor_id = stoi(value);
-            if (link_anchor_id < 1)
+            link_row_id = stoi(value);
+            if (link_row_id < 1)
             {
                 cerr << "Illegal value for " << c_link_row_string << ". It must be 1 or greater." << endl
                      << endl;
@@ -171,7 +171,7 @@ int main(int argc, char* argv[])
 
     try
     {
-        extracted_data = gaia_db_extract(database, table, start_after, row_limit, link_name, link_anchor_id);
+        extracted_data = gaia_db_extract(database, table, start_after, row_limit, link_name, link_row_id);
     }
     catch (gaia_exception& e)
     {

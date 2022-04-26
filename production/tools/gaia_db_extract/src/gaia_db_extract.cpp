@@ -40,6 +40,13 @@ namespace db_extract
 
 constexpr int c_default_json_indentation = 4;
 
+struct relationship_info_t 
+{
+    string table_name;
+    bool is_from_parent = false;
+    gaia_relationship_t relationship;
+};
+
 // Add a field array element.
 static json_t to_json(gaia_field_t field)
 {
@@ -259,7 +266,7 @@ static json_t serialize_row(table_iterator_t& table_iterator, const gaia_table_t
     json_t row;
     for (const auto& field_object : table_object.gaia_fields())
     {
-        // Pull one field value out of the database and included it in the JSON row object.
+        // Pull one field value out of the database and include it in the JSON row object.
         if (field_object.repeated_count() == 1)
         {
             auto value = table_iterator.extract_field_value(field_object.position());
@@ -275,198 +282,234 @@ static json_t serialize_row(table_iterator_t& table_iterator, const gaia_table_t
     return row;
 }
 
+
+static relationship_info_t get_relationship_info(gaia_table_t& table_object, string& link_name)
+{
+    relationship_info_t info;
+
+    for (const gaia_relationship_t& child_relationship : table_object.incoming_relationships())
+    {
+        if (strcmp(link_name.c_str(), child_relationship.to_parent_link_name()) == 0)
+        {
+            info.relationship = child_relationship;
+            info.table_name = info.relationship.parent().name();
+            info.is_from_parent = false;
+            break;
+        }
+    }
+
+    if (!info.relationship)
+    {
+        for (const gaia_relationship_t& child_relationship : table_object.outgoing_relationships())
+        {
+            if (strcmp(link_name.c_str(), child_relationship.to_child_link_name()) == 0)
+            {
+                info.is_from_parent = true;
+                info.relationship = child_relationship;
+                info.table_name = info.relationship.child().name();
+                break;
+            }
+        }
+    }
+
+    if (!info.relationship)
+    {
+        fprintf(stderr, "The relationship %s doesn't exist\n", link_name.c_str());
+    }
+
+    return info;
+}
+
+static bool get_related_records(std::vector<gaia_id_t>& linked_record_ids, 
+    gaia_ptr_t& anchor_row, 
+    gaia_relationship_t& relationship,
+    bool is_from_parent, 
+    uint32_t row_limit)
+{
+    if (!is_from_parent)
+    {
+        // Get parent record
+        auto reference_id = anchor_row.references()[relationship.parent_offset()];
+        if (reference_id == c_invalid_gaia_id)
+        {
+            return false;
+        }
+        auto reference = gaia_ptr_t::from_gaia_id(reference_id);
+        linked_record_ids.push_back(reference.references()[0]);
+        return true;
+    }
+
+    // Get all child records of parent.
+    size_t link_counter = 0;
+    auto reference_id = anchor_row.references()[relationship.first_child_offset()];
+    if (reference_id == c_invalid_gaia_id)
+    {
+        return false;
+    }
+
+    auto reference = gaia_ptr_t::from_gaia_id(reference_id);
+    auto child_id = reference.references()[gaia::common::c_ref_anchor_first_child_offset];
+    while (true)
+    {
+        if (child_id == c_invalid_gaia_id)
+        {
+            break;
+        }
+
+        linked_record_ids.push_back(child_id);
+
+        if (row_limit != c_row_limit_unlimited && row_limit <= ++link_counter)
+        {
+            break;
+        }
+
+        auto child = gaia_ptr_t::from_gaia_id(child_id);
+        if (!child)
+        {
+            break;
+        }
+
+        child_id = child.references()[relationship.next_child_offset()];
+    }
+    return true;
+}
+
+static bool dump_related_rows(json_t& rows, 
+    gaia_database_t& database_object, 
+    gaia_table_t& table_object, 
+    uint64_t start_after, 
+    uint32_t row_limit, 
+    string link_name, 
+    uint64_t link_row_id)
+{
+    relationship_info_t info = get_relationship_info(table_object, link_name);
+    if (!info.relationship)
+    {
+        return false;
+    }
+
+    std::vector<gaia_id_t> linked_record_ids;
+    auto anchor_row = gaia_ptr_t::from_gaia_id(link_row_id);
+    if (!anchor_row)
+    {
+        return false;
+    }
+
+    if (!get_related_records(linked_record_ids, anchor_row, info.relationship, info.is_from_parent, row_limit))
+    {
+        return false;
+    }
+
+    if (start_after != 0)
+    {
+        auto iterator = linked_record_ids.begin();
+        while (iterator != linked_record_ids.end())
+        {
+            if (*iterator == start_after)
+            {
+                linked_record_ids.erase(iterator);
+                break;
+            }
+            iterator = linked_record_ids.erase(iterator);
+        }
+    }
+
+    // Fetch records from the related table.
+    auto& linked_table_object = *(database_object.gaia_tables().where(gaia_table_expr::name == info.table_name).begin());
+    if (linked_table_object)
+    {
+        gaia_id_t table_id = linked_table_object.gaia_id();
+        gaia_type_t table_type = linked_table_object.type();
+        related_table_iterator_t related_table_iterator;
+         
+        for (auto record_id : linked_record_ids)
+        {
+            if (!related_table_iterator.prepare(table_id, table_type, record_id))
+            {
+                break;
+            }
+            rows["rows"].push_back(serialize_row(related_table_iterator, linked_table_object));
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+static bool dump_rows(json_t& rows, gaia_table_t& table_object, uint64_t start_after, uint32_t row_limit)
+{
+    gaia_id_t table_id = table_object.gaia_id();
+    gaia_type_t table_type = table_object.type();
+    table_iterator_t table_iterator;
+    
+    if (!table_iterator.prepare(table_id, table_type, start_after))
+    {
+        return false;
+    }
+
+    while (!table_iterator.has_scan_ended())
+    {
+        // Note that a row_limit of -1 means "unlimited", so it will never be 0.
+        if (row_limit-- == 0)
+        {
+            break;
+        }
+
+        rows["rows"].push_back(serialize_row(table_iterator, table_object));
+
+        // Next row.
+        table_iterator.scan_forward();
+    }
+
+    return true;
+}
+
 // Scan the database for rows within the database and table requested. Dump rows into JSON
 // format, potentially restricted by start_after and row_limit parameters.
-static string dump_rows(string database, string table, uint64_t start_after, uint32_t row_limit, string link_name, uint64_t anchor_record)
+static string dump_rows(
+    string database, 
+    string table, 
+    uint64_t start_after, 
+    uint32_t row_limit, 
+    string link_name, 
+    uint64_t link_row_id)
 {
-    bool terminate = false;
-    bool has_included_top_level = false;
-    table_iterator_t table_iterator;
-    stringstream row_dump;
     json_t rows = json_t{};
+    bool has_results = false;
 
     begin_transaction();
 
     // Locate the requested database.
-    for (const auto& database_object : gaia_database_t::list().where(gaia_database_expr::name == database))
+    gaia_database_t database_object = *(gaia_database_t::list().where(gaia_database_expr::name == database).begin());
+    if (database_object)
     {
-        // Make sure the requested table is in this database.
-        for (const auto& table_object : database_object.gaia_tables().where(gaia_table_expr::name == table))
+        gaia_table_t table_object = *(database_object.gaia_tables().where(gaia_table_expr::name == table).begin());
+        if (table_object)
         {
+            // If a link_name is provided then we want to return the rows from the related table associated
+            // with the link.
             if (!link_name.empty())
             {
-                gaia_relationship_t relationship;
-                string table_name;
-                bool is_from_parent = false;
-                for (const gaia_relationship_t& child_relationship : table_object.incoming_relationships())
-                {
-                    if (strcmp(link_name.c_str(), child_relationship.to_parent_link_name()) == 0)
-                    {
-                        relationship = child_relationship;
-                        table_name = relationship.parent().name();
-                        is_from_parent = false;
-                        break;
-                    }
-                }
-
-                if (!relationship)
-                {
-                    for (const gaia_relationship_t& child_relationship : table_object.outgoing_relationships())
-                    {
-                        if (strcmp(link_name.c_str(), child_relationship.to_child_link_name()) == 0)
-                        {
-                            is_from_parent = true;
-                            relationship = child_relationship;
-                            table_name = relationship.child().name();
-                            break;
-                        }
-                    }
-                }
-                if (!relationship)
-                {
-                    terminate = true;
-                    fprintf(stderr, "The relationship %s doesn't exist\n", link_name.c_str());
-                    break;
-                }
-
-                std::vector<gaia_id_t> linked_record_ids;
-
-                auto anchor_row = gaia_ptr_t::from_gaia_id(anchor_record);
-                if (!anchor_row)
-                {
-                    terminate = true;
-                    break;
-                }
-                if (is_from_parent)
-                {
-                    size_t link_counter = 0;
-
-                    auto reference_id = anchor_row.references()[relationship.first_child_offset()];
-                    if (reference_id == c_invalid_gaia_id)
-                    {
-                        break;
-                    }
-                    auto reference = gaia_ptr_t::from_gaia_id(reference_id);
-                    auto child_id = reference.references()[1];
-                    while (true)
-                    {
-                        if (child_id == c_invalid_gaia_id)
-                        {
-                            break;
-                        }
-
-                        linked_record_ids.push_back(child_id);
-
-                        if (row_limit != c_row_limit_unlimited && row_limit <= ++link_counter)
-                        {
-                            break;
-                        }
-
-                        auto child = gaia_ptr_t::from_gaia_id(child_id);
-                        if (!child)
-                        {
-                            break;
-                        }
-
-                        child_id = child.references()[relationship.next_child_offset()];
-                    }
-                }
-                else
-                {
-                    auto reference_id = anchor_row.references()[relationship.parent_offset()];
-                    if (reference_id == c_invalid_gaia_id)
-                    {
-                        break;
-                    }
-                    auto reference = gaia_ptr_t::from_gaia_id(reference_id);
-                    linked_record_ids.push_back(reference.references()[0]);
-                }
-
-                if (start_after != 0)
-                {
-                    auto iterator = linked_record_ids.begin();
-                    while (iterator != linked_record_ids.end())
-                    {
-                        if (*iterator == start_after)
-                        {
-                            linked_record_ids.erase(iterator);
-                            break;
-                        }
-                        iterator = linked_record_ids.erase(iterator);
-                    }
-                }
-
-                for (const auto& linked_table_object : database_object.gaia_tables().where(gaia_table_expr::name == table_name))
-                {
-                    gaia_id_t table_id = linked_table_object.gaia_id();
-                    gaia_type_t table_type = linked_table_object.type();
-                    for (auto record_id : linked_record_ids)
-                    {
-                        if (!table_iterator.set(table_id, table_type, record_id))
-                        {
-                            break;
-                        }
-                        if (!has_included_top_level)
-                        {
-                            // Top level of the JSON document, contains database and table names.
-                            rows["database"] = database;
-                            rows["table"] = table_name;
-                            has_included_top_level = true;
-                        }
-                        rows["rows"].push_back(serialize_row(table_iterator, linked_table_object));
-                    }
-                }
-
-                terminate = true;
-                break;
+                has_results = dump_related_rows(rows, database_object, table_object, start_after, row_limit, link_name, link_row_id);
             }
             else
             {
-                gaia_id_t table_id = table_object.gaia_id();
-                gaia_type_t table_type = table_object.type();
-                if (!table_iterator.initialize_scan(table_id, table_type, start_after))
-                {
-                    terminate = true;
-                    break;
-                }
-
-                while (!table_iterator.has_scan_ended())
-                {
-                    if (!has_included_top_level)
-                    {
-                        // Top level of the JSON document, contains database and table names.
-                        rows["database"] = database;
-                        rows["table"] = table;
-                        has_included_top_level = true;
-                    }
-
-                    // Note that a row_limit of -1 means "unlimited", so it will never be 0.
-                    if (row_limit-- == 0)
-                    {
-                        terminate = true;
-                        break;
-                    }
-
-                    rows["rows"].push_back(serialize_row(table_iterator, table_object));
-
-                    // Next row.
-                    table_iterator.scan_forward();
-                }
-                if (terminate)
-                {
-                    break;
-                }
+                has_results = dump_rows(rows, table_object, start_after, row_limit);
             }
-        }
-        if (terminate)
-        {
-            break;
         }
     }
 
     commit_transaction();
 
-    row_dump << rows.dump(c_default_json_indentation);
+    if (has_results)
+    {
+        // Top level of the JSON document, contains database and table names.
+        rows["database"] = database;
+        rows["table"] = table;
+    }
+
+    //row_dump << rows.dump(c_default_json_indentation);
     auto return_string = rows.dump(c_default_json_indentation);
     if (!return_string.compare("null"))
     {
@@ -478,7 +521,12 @@ static string dump_rows(string database, string table, uint64_t start_after, uin
     }
 }
 
-string gaia_db_extract(string database, string table, uint64_t start_after, uint32_t row_limit, string link_name, uint64_t anchor_record)
+string gaia_db_extract(string database, 
+    string table, 
+    uint64_t start_after, 
+    uint32_t row_limit, 
+    string link_name, 
+    uint64_t link_row_id)
 {
     // Select the document. Either the catalog (no parameters) or table rows (database and table parameters).
     if (database.empty() && table.empty())
@@ -488,14 +536,14 @@ string gaia_db_extract(string database, string table, uint64_t start_after, uint
     else if (!table.empty())
     {
         // If no database name is specified then it will use the default name of ''.
-        if ((link_name.empty() && anchor_record > 0) || (!link_name.empty() && anchor_record == 0))
+        if ((link_name.empty() && link_row_id > 0) || (!link_name.empty() && link_row_id == 0))
         {
-            fprintf(stderr, "Must have both link name name and anchor row id to extract related row data.\n");
+            fprintf(stderr, "Must have both link name name and link row id to extract related row data.\n");
             return c_empty_object;
         }
         if (row_limit != 0)
         {
-            return dump_rows(database, table, start_after, row_limit, link_name, anchor_record);
+            return dump_rows(database, table, start_after, row_limit, link_name, link_row_id);
         }
         else
         {

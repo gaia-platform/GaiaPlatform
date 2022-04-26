@@ -38,40 +38,17 @@ namespace db_extract
 // in gaia_fdw_adapter.cpp, which also interfaces with Postgres. As this utility does
 // not use Postgres, all of the Postgres-specific code has been eliminated.
 
-bool table_iterator_t::initialize_scan(gaia_id_t table_id, gaia_type_t container_id, gaia_id_t start_after)
+bool table_iterator_t::prepare(gaia_id_t table_id, gaia_type_t container_id, gaia_id_t record_id)
 {
     m_table_id = table_id;
     m_container_id = container_id;
 
     try
     {
-        if (start_after != 0)
+        if (initialize_scan(container_id, record_id))
         {
-            m_current_record = gaia_ptr_t::from_gaia_id(start_after);
-            if (m_current_record.type() != container_id)
-            {
-                fprintf(stderr, "Starting row is not correct type.\n");
-                return false;
-            }
-            m_current_record = m_current_record.find_next();
-            if (m_current_record.type() != container_id)
-            {
-                // This is expected when the scan is already at the end.
-                // fprintf(stderr, "Starting row is not correct type.\n");
-                return false;
-            }
+            return true;
         }
-        else
-        {
-            m_current_record = gaia_ptr_t::find_first(m_container_id);
-        }
-
-        if (m_current_record)
-        {
-            m_current_payload = reinterpret_cast<uint8_t*>(m_current_record.data());
-        }
-
-        return true;
     }
     catch (const exception& e)
     {
@@ -81,6 +58,39 @@ bool table_iterator_t::initialize_scan(gaia_id_t table_id, gaia_type_t container
             get_table_name(), m_container_id.value(), e.what());
     }
     return false;
+}
+
+// For the table_iterator_t::initialize_scan, the record_id parameter passed to 
+// table_iterator_t::prepare represents the row to start after.
+bool table_iterator_t::initialize_scan(gaia_type_t container_id, gaia_id_t start_after)
+{
+    if (start_after.is_valid())
+    {
+        m_current_record = gaia_ptr_t::from_gaia_id(start_after);
+        if (m_current_record.type() != container_id)
+        {
+            fprintf(stderr, "Starting row is not correct type.\n");
+            return false;
+        }
+        m_current_record = m_current_record.find_next();
+        if (m_current_record.type() != container_id)
+        {
+            // This is expected when the scan is already at the end.
+            // fprintf(stderr, "Starting row is not correct type.\n");
+            return false;
+        }
+    }
+    else
+    {
+        m_current_record = gaia_ptr_t::find_first(m_container_id);
+    }
+
+    if (m_current_record)
+    {
+        m_current_payload = reinterpret_cast<uint8_t*>(m_current_record.data());
+    }
+
+    return true;
 }
 
 std::vector<data_holder_t> table_iterator_t::extract_field_vector_value(size_t position)
@@ -158,42 +168,31 @@ bool table_iterator_t::scan_forward()
     return false;
 }
 
-bool table_iterator_t::set(gaia_id_t table_id, gaia_type_t container_id, gaia_id_t record_id)
+// For the related_table_iterator_t::initialize_scan, the record_id parameter passed to 
+// table_iterator_t::prepare represents the related record_id to fetch. For the related table,
+// the "scan" is driven by a set of prefetched record ids.
+bool related_table_iterator_t::initialize_scan(gaia_type_t container_id, gaia_id_t record_id)
 {
-    m_table_id = table_id;
-    m_container_id = container_id;
-
-    try
+    if (record_id.is_valid())
     {
-        if (record_id != 0)
+        m_current_record = gaia_ptr_t::from_gaia_id(record_id);
+        if (m_current_record.type() != container_id)
         {
-            m_current_record = gaia_ptr_t::from_gaia_id(record_id);
-            if (m_current_record.type() != container_id)
-            {
-                fprintf(stderr, "Row is not correct type.\n");
-                return false;
-            }
-        }
-        else
-        {
+            fprintf(stderr, "Row is not correct type.\n");
             return false;
         }
-
-        if (m_current_record)
-        {
-            m_current_payload = reinterpret_cast<uint8_t*>(m_current_record.data());
-        }
-
-        return true;
     }
-    catch (const exception& e)
+    else
     {
-        fprintf(
-            stderr,
-            "Failed initializing table iterator. Table: '%s', container id: '%u'. Exception: '%s'.\n",
-            get_table_name(), m_container_id.value(), e.what());
+        return false;
     }
-    return false;
+
+    if (m_current_record)
+    {
+        m_current_payload = reinterpret_cast<uint8_t*>(m_current_record.data());
+    }
+
+    return true;
 }
 
 } // namespace db_extract
