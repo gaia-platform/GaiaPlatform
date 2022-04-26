@@ -330,12 +330,14 @@ void auto_connect(
     {
         return;
     }
+
     field_position_list_t candidate_fields;
     gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(type);
     for (auto field_view : catalog_core::list_fields(table_id))
     {
         candidate_fields.push_back(field_view.position());
     }
+
     auto_connect(id, type, table_id, references, payload, candidate_fields);
 }
 
@@ -414,13 +416,17 @@ void update_payload(gaia_ptr_t& obj, size_t data_size, const void* data)
 
     field_position_list_t changed_fields = compute_payload_diff(obj.type(), old_data, new_data);
 
-    auto_connect(
-        obj.id(),
-        obj.type(),
-        type_id_mapping_t::instance().get_table_id(obj.type()),
-        obj.references(),
-        new_data,
-        changed_fields);
+    const type_metadata_t& metadata = type_registry_t::instance().get(obj.type());
+    if (metadata.has_value_linked_relationship())
+    {
+        auto_connect(
+            obj.id(),
+            obj.type(),
+            type_id_mapping_t::instance().get_table_id(obj.type()),
+            obj.references(),
+            new_data,
+            changed_fields);
+    }
 
     obj.finalize_update(old_offset);
 
