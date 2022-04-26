@@ -24,7 +24,7 @@ namespace common
  */
 
 // The ASSERT macros defined in this file are used for internal validation checks
-// that are meant to be performed in both debug and retail builds.
+// that are meant to be performed in both debug and release builds.
 //
 // These ASSERTs provide a mechanism for failing execution as soon as an issue is detected,
 // which should surface errors early on and should prevent more expensive investigations.

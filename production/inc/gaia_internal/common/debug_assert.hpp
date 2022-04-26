@@ -24,7 +24,7 @@ namespace common
  */
 
 // The DEBUG_ASSERT macros defined in this file are used for internal validation checks
-// that are meant to be performed in debug and builds only.
+// that are meant to be performed in debug builds only.
 //
 // These DEBUG_ASSERTs provide a mechanism for failing execution as soon as an issue is detected,
 // which should surface errors early on and should prevent more expensive investigations.
@@ -56,10 +56,10 @@ namespace common
 // This is arguably the most important ASSERT to use, because it can surface
 // algorithmic errors which would otherwise be very difficult to detect.
 #ifdef DEBUG
-#define DEBUG_ASSERT_INVARIANT(c, m)                                                   \
-    if (__builtin_expect(!static_cast<bool>(c), 0))                                    \
-    {                                                                                  \
-        gaia::common::throw_retail_assertion_failure(m, __FILE__, __LINE__, __func__); \
+#define DEBUG_ASSERT_INVARIANT(c, m)                                                  \
+    if (__builtin_expect(!static_cast<bool>(c), 0))                                   \
+    {                                                                                 \
+        gaia::common::throw_debug_assertion_failure(m, __FILE__, __LINE__, __func__); \
     }
 #else
 #define DEBUG_ASSERT_INVARIANT(c, m)
@@ -70,10 +70,10 @@ namespace common
 //
 // This should be used to validate that functions produce the expected outcome.
 #ifdef DEBUG
-#define DEBUG_ASSERT_POSTCONDITION(c, m)                                               \
-    if (__builtin_expect(!static_cast<bool>(c), 0))                                    \
-    {                                                                                  \
-        gaia::common::throw_retail_assertion_failure(m, __FILE__, __LINE__, __func__); \
+#define DEBUG_ASSERT_POSTCONDITION(c, m)                                              \
+    if (__builtin_expect(!static_cast<bool>(c), 0))                                   \
+    {                                                                                 \
+        gaia::common::throw_debug_assertion_failure(m, __FILE__, __LINE__, __func__); \
     }
 #else
 #define DEBUG_ASSERT_POSTCONDITION(c, m)
