@@ -361,8 +361,6 @@ gaia_ptr_t create(
     size_t data_size,
     const void* data)
 {
-    client_t::verify_txn_active();
-
     gaia_id_t id = gaia_ptr_t::generate_id();
     return create(id, type, data_size, data);
 }
@@ -373,8 +371,6 @@ gaia_ptr_t create(
     size_t data_size,
     const void* data)
 {
-    client_t::verify_txn_active();
-
     const type_metadata_t& metadata = type_registry_t::instance().get(type);
     reference_offset_t references_count = metadata.references_count();
 
@@ -402,8 +398,6 @@ gaia_ptr_t create(
 
 void update_payload(gaia_id_t id, size_t data_size, const void* data)
 {
-    client_t::verify_txn_active();
-
     gaia_ptr_t obj = gaia_ptr_t::from_gaia_id(id);
     if (!obj)
     {
@@ -414,8 +408,6 @@ void update_payload(gaia_id_t id, size_t data_size, const void* data)
 
 void update_payload(gaia_ptr_t& obj, size_t data_size, const void* data)
 {
-    client_t::verify_txn_active();
-
     db_object_t* old_this = obj.to_ptr();
     gaia_offset_t old_offset = obj.to_offset();
 
@@ -457,8 +449,6 @@ void update_payload(gaia_ptr_t& obj, size_t data_size, const void* data)
 
 void remove(gaia_ptr_t& object, bool force)
 {
-    client_t::verify_txn_active();
-
     if (!object)
     {
         return;
@@ -559,8 +549,6 @@ void remove(gaia_ptr_t& object, bool force)
 
 bool insert_into_reference_container(gaia_ptr_t& parent, gaia_id_t child_id, reference_offset_t parent_anchor_slot)
 {
-    client_t::verify_txn_active();
-
     gaia_type_t parent_type = parent.type();
     const type_metadata_t& parent_metadata = type_registry_t::instance().get(parent_type);
     std::optional<relationship_t> relationship = parent_metadata.find_parent_relationship(parent_anchor_slot);
@@ -650,8 +638,6 @@ bool insert_into_reference_container(gaia_ptr_t& parent, gaia_id_t child_id, ref
 
 bool insert_into_reference_container(gaia_id_t parent_id, gaia_id_t child_id, reference_offset_t parent_anchor_slot)
 {
-    client_t::verify_txn_active();
-
     gaia_ptr_t parent = gaia_ptr_t::from_gaia_id(parent_id);
     if (!parent)
     {
@@ -662,8 +648,6 @@ bool insert_into_reference_container(gaia_id_t parent_id, gaia_id_t child_id, re
 
 bool remove_from_reference_container(gaia_ptr_t& parent, gaia_id_t child_id, reference_offset_t parent_anchor_slot)
 {
-    client_t::verify_txn_active();
-
     gaia_type_t parent_type = parent.type();
     const type_metadata_t& parent_metadata = type_registry_t::instance().get(parent_type);
     std::optional<relationship_t> relationship = parent_metadata.find_parent_relationship(parent_anchor_slot);
@@ -710,8 +694,6 @@ bool remove_from_reference_container(gaia_ptr_t& parent, gaia_id_t child_id, ref
 
 bool remove_from_reference_container(gaia_id_t parent_id, gaia_id_t child_id, reference_offset_t parent_anchor_slot)
 {
-    client_t::verify_txn_active();
-
     gaia_ptr_t parent = gaia_ptr_t::from_gaia_id(parent_id);
     if (!parent)
     {
@@ -722,8 +704,6 @@ bool remove_from_reference_container(gaia_id_t parent_id, gaia_id_t child_id, re
 
 bool remove_from_reference_container(gaia_ptr_t& child, reference_offset_t child_anchor_slot)
 {
-    client_t::verify_txn_active();
-
     // The reference to the next_child and the prev_child are relative to the anchor slot.
     reference_offset_t next_child_offset = child_anchor_slot + 1;
     reference_offset_t prev_child_offset = child_anchor_slot + 2;
@@ -776,16 +756,12 @@ bool remove_from_reference_container(gaia_ptr_t& child, reference_offset_t child
 
 bool remove_from_reference_container(gaia_id_t child_id, reference_offset_t child_anchor_slot)
 {
-    client_t::verify_txn_active();
-
     gaia_ptr_t child = gaia_ptr_t::from_gaia_id(child_id);
     return remove_from_reference_container(child, child_anchor_slot);
 }
 
 bool update_parent_reference(gaia_ptr_t& child, gaia_id_t new_parent_id, reference_offset_t parent_offset)
 {
-    client_t::verify_txn_active();
-
     const type_metadata_t& child_metadata = type_registry_t::instance().get(child.type());
     std::optional<relationship_t> relationship = child_metadata.find_child_relationship(parent_offset);
 
@@ -828,8 +804,6 @@ bool update_parent_reference(gaia_ptr_t& child, gaia_id_t new_parent_id, referen
 
 bool update_parent_reference(gaia_id_t child_id, gaia_id_t new_parent_id, reference_offset_t parent_offset)
 {
-    client_t::verify_txn_active();
-
     gaia_ptr_t child = gaia_ptr_t::from_gaia_id(child_id);
     return update_parent_reference(child, new_parent_id, parent_offset);
 }

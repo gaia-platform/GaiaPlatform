@@ -146,6 +146,11 @@ gaia_id_t dac_db_t::get_reference(gaia_id_t id, common::reference_offset_t slot)
 
 gaia_id_t dac_db_t::insert(gaia_type_t container, size_t data_size, const void* data)
 {
+    if (!is_transaction_open())
+    {
+        throw no_open_transaction_internal();
+    }
+
     gaia_id_t id = gaia_ptr_t::generate_id();
     gaia_ptr::create(id, container, data_size, data);
     return id;
@@ -153,6 +158,11 @@ gaia_id_t dac_db_t::insert(gaia_type_t container, size_t data_size, const void* 
 
 void dac_db_t::delete_row(gaia_id_t id, bool force)
 {
+    if (!is_transaction_open())
+    {
+        throw no_open_transaction_internal();
+    }
+
     gaia_ptr_t gaia_ptr = gaia_ptr_t::from_gaia_id(id);
     if (!gaia_ptr)
     {
@@ -164,16 +174,31 @@ void dac_db_t::delete_row(gaia_id_t id, bool force)
 
 void dac_db_t::update(gaia_id_t id, size_t data_size, const void* data)
 {
+    if (!is_transaction_open())
+    {
+        throw no_open_transaction_internal();
+    }
+
     gaia_ptr::update_payload(id, data_size, data);
 }
 
 bool dac_db_t::insert_into_reference_container(gaia_id_t parent_id, gaia_id_t id, common::reference_offset_t anchor_slot)
 {
+    if (!is_transaction_open())
+    {
+        throw no_open_transaction_internal();
+    }
+
     return gaia_ptr::insert_into_reference_container(parent_id, id, anchor_slot);
 }
 
 bool dac_db_t::remove_from_reference_container(gaia_id_t parent_id, gaia_id_t id, common::reference_offset_t anchor_slot)
 {
+    if (!is_transaction_open())
+    {
+        throw no_open_transaction_internal();
+    }
+
     return gaia_ptr::remove_from_reference_container(parent_id, id, anchor_slot);
 }
 
@@ -217,6 +242,7 @@ constexpr T_ptr* dac_base_t::to_ptr()
     {
         throw no_open_transaction_internal();
     }
+
     return reinterpret_cast<T_ptr*>(&m_record);
 }
 
@@ -227,6 +253,7 @@ constexpr const T_ptr* dac_base_t::to_const_ptr() const
     {
         throw no_open_transaction_internal();
     }
+
     return reinterpret_cast<const T_ptr*>(&m_record);
 }
 

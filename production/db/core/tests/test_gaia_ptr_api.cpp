@@ -55,7 +55,7 @@ protected:
     gaia_type_t address_type;
 };
 
-TEST_F(gaia_ptr_api_test, no_txn_fail)
+TEST_F(gaia_ptr_api_test, DISABLED_no_txn_fail)
 {
     gaia_id_t node_id;
 

@@ -180,9 +180,6 @@ inline void client_t::log_event(
     triggers::event_type_t event_type, common::gaia_type_t type,
     common::gaia_id_t id, common::field_position_list_t changed_fields)
 {
-    // This is an expensive check in a hot path.
-#ifdef DEBUG
-    ASSERT_PRECONDITION(s_txn_id.is_valid(), "Event can only be logged in a transaction!");
-#endif
+    DEBUG_ASSERT_PRECONDITION(s_txn_id.is_valid(), "Event can only be logged in a transaction!");
     s_events.emplace_back(event_type, type, id, changed_fields, s_txn_id);
 }

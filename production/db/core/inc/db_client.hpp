@@ -13,6 +13,7 @@
 
 #include "gaia/db/db.hpp"
 
+#include "gaia_internal/common/debug_assert.hpp"
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/mmap_helpers.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
