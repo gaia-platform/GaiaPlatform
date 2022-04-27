@@ -59,7 +59,7 @@ TEST_F(gaia_one_to_one_test, connect_with_id)
 
 TEST_F(gaia_one_to_one_test, connect_with_dac_obj)
 {
-    auto_transaction_t txn;
+    auto_transaction_t txn(auto_transaction_t::no_auto_restart);
 
     auto madeline_person = create<person_t>("Madeline", "Clark");
     auto madeline_employee = create<employee_t>("Gaia Platform LLC");
@@ -67,7 +67,15 @@ TEST_F(gaia_one_to_one_test, connect_with_dac_obj)
     ASSERT_FALSE(madeline_person.employee());
     ASSERT_FALSE(madeline_employee.person());
 
+    txn.commit();
+
     // Test connect.
+
+    // First verify that connect outside a transaction throws the expected exception.
+    EXPECT_THROW(madeline_person.employee().connect(madeline_employee), no_open_transaction);
+
+    txn.begin();
+
     ASSERT_TRUE(madeline_person.employee().connect(madeline_employee));
 
     ASSERT_EQ(madeline_employee.person(), madeline_person);
@@ -77,11 +85,21 @@ TEST_F(gaia_one_to_one_test, connect_with_dac_obj)
     ASSERT_EQ(madeline_person.employee(), madeline_employee);
     ASSERT_STREQ(madeline_person.employee().company(), madeline_employee.company());
 
+    txn.commit();
+
     // Test disconnect.
+
+    // First verify that disconnect outside a transaction throws the expected exception.
+    EXPECT_THROW(madeline_person.employee().disconnect(), no_open_transaction);
+
+    txn.begin();
+
     ASSERT_TRUE(madeline_person.employee().disconnect());
 
     ASSERT_FALSE(madeline_person.employee());
     ASSERT_FALSE(madeline_employee.person());
+
+    txn.commit();
 }
 
 TEST_F(gaia_one_to_one_test, multiple_disconnect_same_obj_succeed)

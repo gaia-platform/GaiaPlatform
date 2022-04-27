@@ -14,6 +14,7 @@
 #include "gaia/db/db.hpp"
 
 #include "gaia_internal/common/assert.hpp"
+#include "gaia_internal/common/debug_assert.hpp"
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/common/mmap_helpers.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
@@ -40,11 +41,6 @@ class db_client_proxy_t;
 
 class client_t
 {
-    friend class gaia_ptr_t;
-
-    friend void gaia_ptr::update_payload(gaia_ptr_t& obj, size_t data_size, const void* data);
-    friend gaia_ptr_t gaia_ptr::create(common::gaia_id_t id, common::gaia_type_t type, size_t data_size, const void* data);
-
     /**
      * @throws no_open_transaction_internal if there is no open transaction.
      */
@@ -98,6 +94,25 @@ public:
     template <typename T_element_type>
     static std::function<std::optional<T_element_type>()>
     get_stream_generator_for_socket(std::shared_ptr<int> stream_socket_ptr);
+
+    // Called by internal code to verify preconditions.
+    static inline void verify_txn_active();
+    static inline void verify_no_txn();
+
+    static inline void verify_session_active();
+    static inline void verify_no_session();
+
+    // Called by internal code to log transactional updates.
+    static inline void txn_log(
+        gaia_locator_t locator,
+        gaia_offset_t old_offset,
+        gaia_offset_t new_offset);
+
+    // Called by internal code to log events for rule invocations.
+    static inline bool is_valid_event(common::gaia_type_t type);
+    static inline void log_event(
+        triggers::event_type_t event_type, common::gaia_type_t type,
+        common::gaia_id_t id, common::field_position_list_t changed_fields);
 
 private:
     static inline std::once_flag s_are_db_caches_initialized;
@@ -165,22 +180,6 @@ private:
     static void apply_txn_log(log_offset_t offset);
 
     static int get_session_socket(const std::string& socket_name);
-
-    /**
-     *  Check if an event should be generated for a given type.
-     */
-    static inline bool is_valid_event(common::gaia_type_t type);
-
-    static inline void verify_txn_active();
-    static inline void verify_no_txn();
-
-    static inline void verify_session_active();
-    static inline void verify_no_session();
-
-    static inline void txn_log(
-        gaia_locator_t locator,
-        gaia_offset_t old_offset,
-        gaia_offset_t new_offset);
 };
 
 #include "db_client.inc"

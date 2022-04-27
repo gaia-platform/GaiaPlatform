@@ -372,8 +372,6 @@ gaia_ptr_t create(
     size_t data_size,
     const void* data)
 {
-    client_t::verify_txn_active();
-
     const type_metadata_t& metadata = type_registry_t::instance().get(type);
     reference_offset_t references_count = metadata.references_count();
 
@@ -394,7 +392,7 @@ gaia_ptr_t create(
 
     if (client_t::is_valid_event(type))
     {
-        client_t::s_events.emplace_back(triggers::event_type_t::row_insert, type, id, triggers::c_empty_position_list, get_current_txn_id());
+        client_t::log_event(triggers::event_type_t::row_insert, type, id, triggers::c_empty_position_list);
     }
     return obj;
 }
@@ -446,7 +444,7 @@ void update_payload(gaia_ptr_t& obj, size_t data_size, const void* data)
 
     if (client_t::is_valid_event(obj.type()))
     {
-        client_t::s_events.emplace_back(triggers::event_type_t::row_update, obj.type(), obj.id(), changed_fields, get_current_txn_id());
+        client_t::log_event(triggers::event_type_t::row_update, obj.type(), obj.id(), changed_fields);
     }
 }
 

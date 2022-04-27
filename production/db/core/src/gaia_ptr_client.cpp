@@ -51,13 +51,11 @@ void gaia_ptr_t::reset()
 
 db_object_t* gaia_ptr_t::to_ptr() const
 {
-    client_t::verify_txn_active();
     return locator_to_ptr(m_locator);
 }
 
 gaia_offset_t gaia_ptr_t::to_offset() const
 {
-    client_t::verify_txn_active();
     return locator_to_offset(m_locator);
 }
 
