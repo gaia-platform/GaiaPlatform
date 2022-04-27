@@ -21,7 +21,7 @@ class rule_stats_t
 {
 public:
     rule_stats_t();
-    rule_stats_t(const char* a_rule_id);
+    rule_stats_t(const std::string& a_rule_id);
 
     std::string rule_id;
     std::string truncated_rule_id;

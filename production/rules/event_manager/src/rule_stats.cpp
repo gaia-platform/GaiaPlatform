@@ -13,15 +13,16 @@ using namespace std;
 using namespace gaia::rules;
 
 rule_stats_t::rule_stats_t()
-    : rule_stats_t(nullptr)
 {
+    reset_counters();
 }
 
-rule_stats_t::rule_stats_t(const char* a_rule_id)
+rule_stats_t::rule_stats_t(const std::string& a_rule_id)
+    : rule_stats_t()
 {
     // Keep a local copy of the string because the thread that logs statistics
     // may outlive the rule subscription (and binding) that owns the name.
-    if (a_rule_id)
+    if (!a_rule_id.empty())
     {
         rule_id = a_rule_id;
         // Truncate long rule ids for pretty formatting.
@@ -35,7 +36,6 @@ rule_stats_t::rule_stats_t(const char* a_rule_id)
             truncated_rule_id = rule_id;
         }
     }
-    reset_counters();
 }
 
 void rule_stats_t::reset_counters()
