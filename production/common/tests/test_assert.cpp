@@ -21,21 +21,21 @@ TEST(common, assert)
     try
     {
         ASSERT_INVARIANT(true, "Unexpected triggering of assert!");
-        EXPECT_EQ(true, true);
+        SUCCEED() << "No exception should have been thrown.";
     }
     catch (const std::exception& e)
     {
-        EXPECT_EQ(true, false);
+        FAIL() << "Did not expect an exception!";
     }
 
     try
     {
         ASSERT_INVARIANT(false, "Expected triggering of assert.");
-        EXPECT_EQ(true, false);
+        FAIL() << "Did not expect to get here!";
     }
     catch (const std::exception& e)
     {
-        EXPECT_EQ(true, true);
+        SUCCEED() << "An exception was thrown, as expected.";
         cerr << "Exception message: " << e.what() << '\n';
     }
 }
@@ -45,28 +45,28 @@ TEST(common, debug_assert)
     try
     {
         DEBUG_ASSERT_INVARIANT(true, "Unexpected triggering of debug assert!");
-        EXPECT_EQ(true, true);
+        SUCCEED() << "No exception should have been thrown.";
     }
     catch (const std::exception& e)
     {
-        EXPECT_EQ(true, false);
+        FAIL() << "Did not expect an exception!";
     }
 
     try
     {
         DEBUG_ASSERT_INVARIANT(false, "Expected (in debug builds only) triggering of debug assert.");
 #ifdef DEBUG
-        EXPECT_EQ(true, false);
+        FAIL() << "Did not expect to get here!";
 #else
-        EXPECT_EQ(true, true);
+        SUCCEED() << "No exception should have been thrown when not in debug mode.";
 #endif
     }
     catch (const std::exception& e)
     {
 #ifdef DEBUG
-        EXPECT_EQ(true, true);
+        SUCCEED() << "An exception was thrown, as expected.";
 #else
-        EXPECT_EQ(true, false);
+        FAIL() << "Did not expect an exception when not in debug mode!";
 #endif
         cerr << "Exception message: " << e.what() << '\n';
     }
