@@ -10,6 +10,7 @@
 
 #include <sys/mman.h>
 
+#include "gaia_internal/common/debug_assert.hpp"
 #include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 
@@ -121,11 +122,9 @@ gaia_offset_t chunk_manager_t::allocate(
     mark_slot_allocated(allocated_slot);
 
     // This is an expensive check in a hot path.
-#ifdef DEBUG
-    ASSERT_INVARIANT(
+    DEBUG_ASSERT_INVARIANT(
         is_slot_allocated(allocated_slot),
         "Slot just marked allocated must be visible as allocated!");
-#endif
 
     gaia_offset_t offset = offset_from_chunk_and_slot(m_chunk_offset, allocated_slot);
     return offset;
@@ -140,12 +139,10 @@ void chunk_manager_t::deallocate(gaia_offset_t offset)
     slot_offset_t deallocated_slot = slot_from_offset(offset);
 
     // This is an expensive check in a hot path.
-#ifdef DEBUG
     // It is illegal to deallocate the same object twice.
-    ASSERT_PRECONDITION(
+    DEBUG_ASSERT_PRECONDITION(
         is_slot_allocated(deallocated_slot),
         "Only an allocated object can be deallocated!");
-#endif
 
     // Update the deallocation bitmap.
     mark_slot_deallocated(deallocated_slot);
@@ -187,15 +184,13 @@ void chunk_manager_t::mark_slot(slot_offset_t slot_offset, bool is_allocating)
         "Slot offset passed to mark_slot() is out of bounds");
 
     // This is an expensive check in a hot path.
-#ifdef DEBUG
     // is_slot_allocated() also checks that the deallocation bit is not set if
     // the allocation bit is not set.
-    ASSERT_PRECONDITION(
+    DEBUG_ASSERT_PRECONDITION(
         is_allocating != is_slot_allocated(slot_offset),
         is_allocating
             ? "Slot cannot be allocated multiple times!"
             : "Slot cannot be deallocated unless it is first allocated!");
-#endif
 
     size_t bit_index = slot_to_bit_index(slot_offset);
 

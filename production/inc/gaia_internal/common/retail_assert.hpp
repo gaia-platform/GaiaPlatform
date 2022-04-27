@@ -24,7 +24,7 @@ namespace common
  */
 
 // The ASSERT macros defined in this file are used for internal validation checks
-// that are meant to be performed in both debug and retail builds.
+// that are meant to be performed in both debug and release builds.
 //
 // These ASSERTs provide a mechanism for failing execution as soon as an issue is detected,
 // which should surface errors early on and should prevent more expensive investigations.
@@ -33,7 +33,7 @@ namespace common
 // for determining if they contribute any negative execution impact.
 //
 // The ASSERT message is wrapped within an if that is evaluated only if the condition is false.
-// For this reason is optimal to put string concatenation within the ASSERT, eg.
+// For this reason, it is optimal to put string concatenation within the ASSERT, eg.
 // ASSERT_PRECONDITION(gaia_fmt::format("Message {}", 123).c_str());
 
 #ifdef DISABLE_ASSERTS
