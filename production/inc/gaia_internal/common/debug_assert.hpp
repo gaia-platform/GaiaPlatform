@@ -26,20 +26,8 @@ namespace common
 // The DEBUG_ASSERT macros defined in this file are used for internal validation checks
 // that are meant to be performed in debug builds only.
 //
-// These DEBUG_ASSERTs provide a mechanism for failing execution as soon as an issue is detected,
-// which should surface errors early on and should prevent more expensive investigations.
-//
-// The DEBUG_ASSERT message is wrapped within an if that is evaluated only if the condition is false.
-// For this reason, it is optimal to put string concatenation within the ASSERT, eg.
-// ASSERT_PRECONDITION(gaia_fmt::format("Message {}", 123).c_str());
+// This is typically the case when the checks are too expensive to perform in release builds.
 
-// ASSERT_PRECONDITION is meant for validating conditions that should hold when a function is called.
-//
-// This should be used to validate that internal functions are called with the correct parameters
-// and in the correct context.
-//
-// NOTE: This assert should not be used within public functions. Public functions should expect to
-// be called incorrectly and should handle such incorrect calls with regular errors or exceptions.
 #ifdef DEBUG
 #define DEBUG_ASSERT_PRECONDITION(c, m)                                               \
     if (__builtin_expect(!static_cast<bool>(c), 0))                                   \
@@ -50,11 +38,6 @@ namespace common
 #define DEBUG_ASSERT_PRECONDITION(c, m)
 #endif
 
-// ASSERT_INVARIANT is meant for validating conditions that should hold internally,
-// during the execution of a function.
-//
-// This is arguably the most important ASSERT to use, because it can surface
-// algorithmic errors which would otherwise be very difficult to detect.
 #ifdef DEBUG
 #define DEBUG_ASSERT_INVARIANT(c, m)                                                  \
     if (__builtin_expect(!static_cast<bool>(c), 0))                                   \
@@ -65,10 +48,6 @@ namespace common
 #define DEBUG_ASSERT_INVARIANT(c, m)
 #endif
 
-// ASSERT_POSTCONDITION is meant for validating conditions that should hold after a function
-// has completed execution.
-//
-// This should be used to validate that functions produce the expected outcome.
 #ifdef DEBUG
 #define DEBUG_ASSERT_POSTCONDITION(c, m)                                              \
     if (__builtin_expect(!static_cast<bool>(c), 0))                                   \
@@ -92,9 +71,6 @@ public:
 };
 
 /**
- * Debug asserts are meant for important conditions that indicate internal errors.
- * They help us surface issues early, at the source.
- *
  * This function should only be called through the various assert macros,
  * so that it gets passed the correct information about the point of call.
  *
