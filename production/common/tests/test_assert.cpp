@@ -7,7 +7,8 @@
 
 #include <gtest/gtest.h>
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
+#include "gaia_internal/common/debug_assert.hpp"
 #include "gaia_internal/common/timer.hpp"
 
 #include <gaia_spdlog/fmt/fmt.h>
@@ -15,11 +16,11 @@
 using namespace std;
 using namespace gaia::common;
 
-TEST(common, retail_assert)
+TEST(common, assert)
 {
     try
     {
-        ASSERT_INVARIANT(true, "Unexpected triggering of retail assert!");
+        ASSERT_INVARIANT(true, "Unexpected triggering of assert!");
         EXPECT_EQ(true, true);
     }
     catch (const std::exception& e)
@@ -29,12 +30,44 @@ TEST(common, retail_assert)
 
     try
     {
-        ASSERT_INVARIANT(false, "Expected triggering of retail assert.");
+        ASSERT_INVARIANT(false, "Expected triggering of assert.");
         EXPECT_EQ(true, false);
     }
     catch (const std::exception& e)
     {
         EXPECT_EQ(true, true);
+        cerr << "Exception message: " << e.what() << '\n';
+    }
+}
+
+TEST(common, debug_assert)
+{
+    try
+    {
+        DEBUG_ASSERT_INVARIANT(true, "Unexpected triggering of debug assert!");
+        EXPECT_EQ(true, true);
+    }
+    catch (const std::exception& e)
+    {
+        EXPECT_EQ(true, false);
+    }
+
+    try
+    {
+        DEBUG_ASSERT_INVARIANT(false, "Expected triggering of debug assert.");
+#ifdef DEBUG
+        EXPECT_EQ(true, false);
+#else
+        EXPECT_EQ(true, true);
+#endif
+    }
+    catch (const std::exception& e)
+    {
+#ifdef DEBUG
+        EXPECT_EQ(true, true);
+#else
+        EXPECT_EQ(true, false);
+#endif
         cerr << "Exception message: " << e.what() << '\n';
     }
 }
@@ -65,7 +98,7 @@ TEST(common, retail_assert_perf)
         {
             ASSERT_PRECONDITION(number >= 0, gaia_fmt::format("Concatenating a string {}", number).c_str());
         }
-        catch (retail_assertion_failure& e)
+        catch (assertion_failure& e)
         {
         }
     }

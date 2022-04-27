@@ -17,8 +17,8 @@
 
 #include "gaia/exception.hpp"
 
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/fd_helpers.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db.hpp"

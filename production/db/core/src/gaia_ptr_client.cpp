@@ -6,8 +6,8 @@
 #include "gaia/common.hpp"
 #include "gaia/exceptions.hpp"
 
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/debug_assert.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 #include "gaia_internal/exceptions.hpp"
 
