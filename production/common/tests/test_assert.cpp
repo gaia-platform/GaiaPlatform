@@ -54,7 +54,7 @@ TEST(common, debug_assert)
 
     try
     {
-        DEBUG_ASSERT_INVARIANT(false, "Expected triggering of debug assert.");
+        DEBUG_ASSERT_INVARIANT(false, "Expected (in debug builds only) triggering of debug assert.");
 #ifdef DEBUG
         EXPECT_EQ(true, false);
 #else
