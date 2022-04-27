@@ -52,10 +52,10 @@ namespace common
 #ifdef DISABLE_ASSERT_PRECONDITION
 #define ASSERT_PRECONDITION(c, m)
 #else
-#define ASSERT_PRECONDITION(c, m)                                                      \
-    if (__builtin_expect(!static_cast<bool>(c), 0))                                    \
-    {                                                                                  \
-        gaia::common::throw_retail_assertion_failure(m, __FILE__, __LINE__, __func__); \
+#define ASSERT_PRECONDITION(c, m)                                               \
+    if (__builtin_expect(!static_cast<bool>(c), 0))                             \
+    {                                                                           \
+        gaia::common::throw_assertion_failure(m, __FILE__, __LINE__, __func__); \
     }
 #endif
 
@@ -67,10 +67,10 @@ namespace common
 #ifdef DISABLE_ASSERT_INVARIANT
 #define ASSERT_INVARIANT(c, m)
 #else
-#define ASSERT_INVARIANT(c, m)                                                         \
-    if (__builtin_expect(!static_cast<bool>(c), 0))                                    \
-    {                                                                                  \
-        gaia::common::throw_retail_assertion_failure(m, __FILE__, __LINE__, __func__); \
+#define ASSERT_INVARIANT(c, m)                                                  \
+    if (__builtin_expect(!static_cast<bool>(c), 0))                             \
+    {                                                                           \
+        gaia::common::throw_assertion_failure(m, __FILE__, __LINE__, __func__); \
     }
 #endif
 
@@ -81,10 +81,10 @@ namespace common
 #ifdef DISABLE_ASSERT_POSTCONDITION
 #define ASSERT_POSTCONDITION(c, m)
 #else
-#define ASSERT_POSTCONDITION(c, m)                                                     \
-    if (__builtin_expect(!static_cast<bool>(c), 0))                                    \
-    {                                                                                  \
-        gaia::common::throw_retail_assertion_failure(m, __FILE__, __LINE__, __func__); \
+#define ASSERT_POSTCONDITION(c, m)                                              \
+    if (__builtin_expect(!static_cast<bool>(c), 0))                             \
+    {                                                                           \
+        gaia::common::throw_assertion_failure(m, __FILE__, __LINE__, __func__); \
     }
 #endif
 
@@ -93,36 +93,36 @@ namespace common
 // Because ASSERT_UNREACHABLE results in an unconditional failure,
 // there should never be a need to disable such an assert - even for debugging purposes.
 #define ASSERT_UNREACHABLE(m) \
-    gaia::common::throw_retail_assertion_failure(m, __FILE__, __LINE__, __func__)
+    gaia::common::throw_assertion_failure(m, __FILE__, __LINE__, __func__)
 
 /**
- * Thrown when a retail assert check has failed.
+ * Thrown when an assertion check has failed.
  */
-class retail_assertion_failure : public gaia_exception
+class assertion_failure : public gaia_exception
 {
 public:
-    explicit retail_assertion_failure(const std::string& message)
+    explicit assertion_failure(const std::string& message)
         : gaia_exception(message)
     {
     }
 };
 
 /**
- * Retail asserts are meant for important conditions that indicate internal errors.
+ * Assertions are meant for important conditions that indicate internal errors.
  * They help us surface issues early, at the source.
  *
- * This function should only be called through the various assert macros,
+ * This function should only be called through the various ASSERT macros,
  * so that it gets passed the correct information about the point of call.
  *
  * The message parameter is typed const char * to encourage passing string
  * literals rather than dynamically allocated strings.
  */
-__attribute__((noreturn)) inline void throw_retail_assertion_failure(
+__attribute__((noreturn)) inline void throw_assertion_failure(
     const char* message, const char* file, size_t line, const char* function)
 {
     std::stringstream message_stream;
     message_stream << "Assertion failed in " << file << "::" << function << "(): line " << line << ": " << message;
-    throw retail_assertion_failure(message_stream.str());
+    throw assertion_failure(message_stream.str());
 }
 
 /*@}*/

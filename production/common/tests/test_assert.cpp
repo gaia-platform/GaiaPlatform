@@ -7,7 +7,8 @@
 
 #include <gtest/gtest.h>
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
+#include "gaia_internal/common/debug_assert.hpp"
 #include "gaia_internal/common/timer.hpp"
 
 #include <gaia_spdlog/fmt/fmt.h>
@@ -15,26 +16,58 @@
 using namespace std;
 using namespace gaia::common;
 
-TEST(common, retail_assert)
+TEST(common, assert)
 {
     try
     {
-        ASSERT_INVARIANT(true, "Unexpected triggering of retail assert!");
-        EXPECT_EQ(true, true);
+        ASSERT_INVARIANT(true, "Unexpected triggering of assert!");
+        SUCCEED() << "No exception should have been thrown.";
     }
     catch (const std::exception& e)
     {
-        EXPECT_EQ(true, false);
+        FAIL() << "Did not expect an exception!";
     }
 
     try
     {
-        ASSERT_INVARIANT(false, "Expected triggering of retail assert.");
-        EXPECT_EQ(true, false);
+        ASSERT_INVARIANT(false, "Expected triggering of assert.");
+        FAIL() << "Did not expect to get here!";
     }
     catch (const std::exception& e)
     {
-        EXPECT_EQ(true, true);
+        SUCCEED() << "An exception was thrown, as expected.";
+        cerr << "Exception message: " << e.what() << '\n';
+    }
+}
+
+TEST(common, debug_assert)
+{
+    try
+    {
+        DEBUG_ASSERT_INVARIANT(true, "Unexpected triggering of debug assert!");
+        SUCCEED() << "No exception should have been thrown.";
+    }
+    catch (const std::exception& e)
+    {
+        FAIL() << "Did not expect an exception!";
+    }
+
+    try
+    {
+        DEBUG_ASSERT_INVARIANT(false, "Expected (in debug builds only) triggering of debug assert.");
+#ifdef DEBUG
+        FAIL() << "Did not expect to get here!";
+#else
+        SUCCEED() << "No exception should have been thrown when not in debug mode.";
+#endif
+    }
+    catch (const std::exception& e)
+    {
+#ifdef DEBUG
+        SUCCEED() << "An exception was thrown, as expected.";
+#else
+        FAIL() << "Did not expect an exception when not in debug mode!";
+#endif
         cerr << "Exception message: " << e.what() << '\n';
     }
 }
@@ -65,7 +98,7 @@ TEST(common, retail_assert_perf)
         {
             ASSERT_PRECONDITION(number >= 0, gaia_fmt::format("Concatenating a string {}", number).c_str());
         }
-        catch (retail_assertion_failure& e)
+        catch (assertion_failure& e)
         {
         }
     }

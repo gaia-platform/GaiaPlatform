@@ -12,8 +12,8 @@
 
 #include "gaia/common.hpp"
 
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/mmap_helpers.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
 namespace gaia

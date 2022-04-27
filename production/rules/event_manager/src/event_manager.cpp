@@ -12,8 +12,8 @@
 
 #include "gaia/db/events.hpp"
 
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/logger.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/timer.hpp"
 #include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/triggers.hpp"
