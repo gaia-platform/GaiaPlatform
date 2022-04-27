@@ -704,11 +704,11 @@ CREATE TABLE t1(
     ASSERT_NO_THROW(execute(parser.statements));
     std::string second_hash = get_database_hash(c_empty_db_name);
 
-    ASSERT_STRNE(first_hash.c_str(), second_hash.c_str());
+    ASSERT_STREQ(first_hash.c_str(), second_hash.c_str());
 }
 
 // Tables with shared relationships should result in hash codes
-// that are different when the relationships are in a different order.
+// that are the same when the relationships are in a different order.
 TEST_F(ddl_execution_test, hash_reversed_relationships)
 {
     const string ddl_order1 = R"(
@@ -763,5 +763,5 @@ CREATE RELATIONSHIP r1 (
     ASSERT_NO_THROW(execute(parser.statements));
     std::string second_hash = get_database_hash(c_empty_db_name);
 
-    ASSERT_STRNE(first_hash.c_str(), second_hash.c_str());
+    ASSERT_STREQ(first_hash.c_str(), second_hash.c_str());
 }

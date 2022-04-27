@@ -26,7 +26,7 @@ namespace
 {
 
 // Calculate and store a hash for this index. Store it in the gaia_index row.
-void add_hash(multi_segment_hash& table_hash, gaia_index_t& index)
+void add_hash(multi_segment_hash& parent_hash, gaia_index_t index)
 {
     multi_segment_hash index_hash;
     index_hash.hash_add(index.name());
@@ -37,14 +37,14 @@ void add_hash(multi_segment_hash& table_hash, gaia_index_t& index)
         index_hash.hash_add(index.fields()[field_position]);
     }
     index_hash.hash_calc();
-    table_hash.hash_include(index_hash.hash());
+    parent_hash.hash_include(index_hash.hash());
     auto index_w = index.writer();
     index_w.hash = index_hash.to_string();
     index_w.update_row();
 }
 
 // Calculate and store a hash for this field. Store it in the gaia_field row.
-void add_hash(multi_segment_hash& table_hash, gaia_field_t& field)
+void add_hash(multi_segment_hash& parent_hash, gaia_field_t field)
 {
     multi_segment_hash field_hash;
     field_hash.hash_add(field.name());
@@ -55,14 +55,14 @@ void add_hash(multi_segment_hash& table_hash, gaia_field_t& field)
     field_hash.hash_add(field.unique());
     field_hash.hash_add(field.optional());
     field_hash.hash_calc();
-    table_hash.hash_include(field_hash.hash());
+    parent_hash.hash_include(field_hash.hash());
     auto field_w = field.writer();
     field_w.hash = field_hash.to_string();
     field_w.update_row();
 }
 
 // Calculate and store a hash for this relationship. Store it in the gaia_relationship row.
-void add_hash(multi_segment_hash& table_hash, gaia_relationship_t& relationship)
+void add_hash(multi_segment_hash& parent_hash, gaia_relationship_t relationship)
 {
     if (relationship.deprecated())
     {
@@ -91,19 +91,36 @@ void add_hash(multi_segment_hash& table_hash, gaia_relationship_t& relationship)
     }
     auto relationship_w = relationship.writer();
     relationship_hash.hash_calc();
-    table_hash.hash_include(relationship_hash.hash());
+    parent_hash.hash_include(relationship_hash.hash());
     relationship_w.hash = relationship_hash.to_string();
     relationship_w.update_row();
 }
 
-struct hash_buffer_t
+
+// Calculate and store a hash for this table. Store it in the gaia_table row.
+void add_hash(multi_segment_hash& parent_hash, gaia_table_t table)
 {
-    uint8_t hash_buffer[multi_segment_hash::c_murmur3_128_hash_size_in_bytes];
-};
+    // Calculate the hash.
+    multi_segment_hash table_hash;
+    table_hash.hash_add(table.name());
+    table_hash.hash_add(table.type());
+
+    for (auto& field : table.gaia_fields())
+    {
+        add_hash(table_hash, field);
+    }
+
+    auto table_w = table.writer();
+    table_hash.hash_calc();
+    parent_hash.hash_include(table_hash.hash());
+    table_w.hash = table_hash.to_string();
+    table_w.update_row();
+}
+
 
 bool sort_by_name(
-    const pair<string, hash_buffer_t>& a,
-    const pair<string, hash_buffer_t>& b)
+    const pair<string, common::gaia_id_t>& a,
+    const pair<string, common::gaia_id_t>& b)
 {
     return (a.first < b.first);
 }
@@ -122,56 +139,72 @@ void add_hash(const std::string db_name)
         db_hash.hash_add(db.name());
         auto db_w = db.writer();
 
-        // Prepare to collect and sort the table hashes by the table name. This ensures that the
+        // Prepare to collect and sort the tables by the table name. This ensures that the
         // same hash for the database will be generated even if the table definitions have been
         // re-arranged in the DDL.
-        vector<pair<string, hash_buffer_t>> table_vector;
+        vector<pair<string, common::gaia_id_t>> table_vector;
+        // Prepare to collect and sort the indices by the table name. This ensures that the
+        // same hash for the database will be generated even if the index definitions have been
+        // re-arranged in the DDL.
+        vector<pair<string, common::gaia_id_t>> index_vector;
+        // Prepare to collect and sort the relations by the table name. This ensures that the
+        // same hash for the database will be generated even if the relation definitions have been
+        // re-arranged in the DDL.
+        vector<pair<string, common::gaia_id_t>> relationship_vector;
 
         // The table hash is composed of the hashes for the table's name and type, followed
         // by the hashes of all indexes, fields and relationships that are connected to this table.
-        for (auto& table : db.gaia_tables())
+        for (const auto& table : db.gaia_tables())
         {
-            multi_segment_hash table_hash;
-            table_hash.hash_add(table.name());
-            table_hash.hash_add(table.type());
-
-            for (auto& index : table.gaia_indexes())
-            {
-                add_hash(table_hash, index);
-            }
-
-            for (auto& field : table.gaia_fields())
-            {
-                add_hash(table_hash, field);
-            }
-
-            for (auto& parent_relationship : table.outgoing_relationships())
-            {
-                add_hash(table_hash, parent_relationship);
-            }
-
-            for (auto& child_relationship : table.incoming_relationships())
-            {
-                add_hash(table_hash, child_relationship);
-            }
-
-            // Store the hash string in this table.
-            table_hash.hash_calc();
-            auto table_w = table.writer();
-            table_w.hash = table_hash.to_string();
-            table_w.update_row();
-
-            pair<string, hash_buffer_t> table_pair;
+            pair<string, common::gaia_id_t> table_pair;
             table_pair.first = table.name();
-            memcpy(table_pair.second.hash_buffer, table_hash.hash(), multi_segment_hash::c_murmur3_128_hash_size_in_bytes);
+            table_pair.second = table.gaia_id();
             table_vector.push_back(table_pair);
         }
 
-        // Include the ordered table hash in the database hash.
+        for (const auto& index : gaia_index_t::list())
+        {
+            const gaia_table_t& table = index.table();
+            const gaia_database_t& database = table.database();
+            if (db.gaia_id() == database.gaia_id())
+            {
+                pair<string, common::gaia_id_t> index_pair;
+                index_pair.first = index.name();
+                index_pair.second = index.gaia_id();
+                index_vector.push_back(index_pair);
+            }
+        }
+
+        for (const auto& relationship : gaia_relationship_t::list())
+        {
+            const gaia_table_t& table = relationship.child();
+            const gaia_database_t& database = table.database();
+            if (db.gaia_id() == database.gaia_id())
+            {
+                pair<string, common::gaia_id_t> relationship_pair;
+                relationship_pair.first = relationship.name();
+                relationship_pair.second = relationship.gaia_id();
+                relationship_vector.push_back(relationship_pair);
+            }
+        }
+
+        // Sort the data.
         sort(table_vector.begin(), table_vector.end(), sort_by_name);
+        sort(index_vector.begin(), index_vector.end(), sort_by_name);
+        sort(relationship_vector.begin(), relationship_vector.end(), sort_by_name);
+
+        // Calculate the hash.
         for (const auto& table : table_vector)
         {
-            db_hash.hash_include(table.second.hash_buffer);
+            add_hash(db_hash, gaia_table_t::get(table.second));
+        }
+        for (const auto& index : index_vector)
+        {
+            add_hash(db_hash, gaia_index_t::get(index.second));
+        }
+        for (const auto& relationship : relationship_vector)
+        {
+            add_hash(db_hash, gaia_relationship_t::get(relationship.second));
         }
 
         // Finally, store the hash string of the database.
