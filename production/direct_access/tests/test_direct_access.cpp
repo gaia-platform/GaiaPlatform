@@ -98,23 +98,16 @@ TEST_F(dac_object_test, create_employee_delete)
 // Verify that insert/update/delete outside a transaction throw the expected exception.
 TEST_F(dac_object_test, no_open_transaction)
 {
-    employee_t employee;
-    gaia_id_t eid;
-
-    // Note no transaction needed to create & use writer.
+    // An uninitialized writer can be created outside a transaction.
     auto writer = employee_writer();
 
     // Insert will fail with no open transaction.
     EXPECT_THROW(writer.insert_row(), no_open_transaction);
 
     // Now insert the row.
-    {
-        auto_transaction_t txn;
-        eid = writer.insert_row();
-        employee = employee_t::get(eid);
-        writer = employee.writer();
-        txn.commit();
-    }
+    begin_transaction();
+    auto employee = employee_t::get(writer.insert_row());
+    commit_transaction();
 
     // Update will fail with no open transaction.
     writer.name_last = "Smith";

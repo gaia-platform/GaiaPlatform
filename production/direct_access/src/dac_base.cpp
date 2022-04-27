@@ -3,9 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
+#include "gaia/direct_access/dac_base.hpp"
+
 #include "gaia/common.hpp"
 #include "gaia/db/db.hpp"
-#include "gaia/direct_access/dac_base.hpp"
 
 #include "gaia_internal/common/generator_iterator.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
@@ -55,12 +56,17 @@ struct dac_generator_iterator_state_t : public dac_base_iterator_state_t
 // dac_db_t implementation
 //
 
-std::shared_ptr<dac_base_iterator_state_t> dac_db_t::initialize_iterator(gaia_type_t container_type_id)
+inline static void check_open_transaction()
 {
     if (!is_transaction_open())
     {
         throw no_open_transaction_internal();
     }
+}
+
+std::shared_ptr<dac_base_iterator_state_t> dac_db_t::initialize_iterator(gaia_type_t container_type_id)
+{
+    check_open_transaction();
 
     std::shared_ptr<dac_base_iterator_state_t> iterator_state
         = std::make_shared<dac_generator_iterator_state_t>();
@@ -74,10 +80,7 @@ gaia_id_t dac_db_t::get_iterator_value(std::shared_ptr<dac_base_iterator_state_t
 {
     ASSERT_PRECONDITION(iterator_state, "Attempt to access unset iterator state!");
 
-    if (!is_transaction_open())
-    {
-        throw no_open_transaction_internal();
-    }
+    check_open_transaction();
 
     generator_iterator_t<gaia_ptr_t>& iterator
         = (reinterpret_cast<dac_generator_iterator_state_t*>(iterator_state.get()))->iterator;
@@ -95,10 +98,7 @@ bool dac_db_t::advance_iterator(std::shared_ptr<dac_base_iterator_state_t> itera
 {
     ASSERT_PRECONDITION(iterator_state, "Attempt to advance unset iterator state!");
 
-    if (!is_transaction_open())
-    {
-        throw no_open_transaction_internal();
-    }
+    check_open_transaction();
 
     generator_iterator_t<gaia_ptr_t>& iterator
         = (reinterpret_cast<dac_generator_iterator_state_t*>(iterator_state.get()))->iterator;
@@ -113,10 +113,7 @@ bool dac_db_t::advance_iterator(std::shared_ptr<dac_base_iterator_state_t> itera
 // Otherwise, returns false.
 bool dac_db_t::get_type(gaia_id_t id, gaia_type_t& type)
 {
-    if (!is_transaction_open())
-    {
-        throw no_open_transaction_internal();
-    }
+    check_open_transaction();
 
     gaia_ptr_t gaia_ptr = gaia_ptr_t::from_gaia_id(id);
     if (gaia_ptr)
@@ -130,10 +127,7 @@ bool dac_db_t::get_type(gaia_id_t id, gaia_type_t& type)
 
 gaia_id_t dac_db_t::get_reference(gaia_id_t id, common::reference_offset_t slot)
 {
-    if (!is_transaction_open())
-    {
-        throw no_open_transaction_internal();
-    }
+    check_open_transaction();
 
     gaia_ptr_t gaia_ptr = gaia_ptr_t::from_gaia_id(id);
     if (!gaia_ptr)
@@ -146,10 +140,7 @@ gaia_id_t dac_db_t::get_reference(gaia_id_t id, common::reference_offset_t slot)
 
 gaia_id_t dac_db_t::insert(gaia_type_t container, size_t data_size, const void* data)
 {
-    if (!is_transaction_open())
-    {
-        throw no_open_transaction_internal();
-    }
+    check_open_transaction();
 
     gaia_id_t id = gaia_ptr_t::generate_id();
     gaia_ptr::create(id, container, data_size, data);
@@ -158,10 +149,7 @@ gaia_id_t dac_db_t::insert(gaia_type_t container, size_t data_size, const void* 
 
 void dac_db_t::delete_row(gaia_id_t id, bool force)
 {
-    if (!is_transaction_open())
-    {
-        throw no_open_transaction_internal();
-    }
+    check_open_transaction();
 
     gaia_ptr_t gaia_ptr = gaia_ptr_t::from_gaia_id(id);
     if (!gaia_ptr)
@@ -174,30 +162,21 @@ void dac_db_t::delete_row(gaia_id_t id, bool force)
 
 void dac_db_t::update(gaia_id_t id, size_t data_size, const void* data)
 {
-    if (!is_transaction_open())
-    {
-        throw no_open_transaction_internal();
-    }
+    check_open_transaction();
 
     gaia_ptr::update_payload(id, data_size, data);
 }
 
 bool dac_db_t::insert_into_reference_container(gaia_id_t parent_id, gaia_id_t id, common::reference_offset_t anchor_slot)
 {
-    if (!is_transaction_open())
-    {
-        throw no_open_transaction_internal();
-    }
+    check_open_transaction();
 
     return gaia_ptr::insert_into_reference_container(parent_id, id, anchor_slot);
 }
 
 bool dac_db_t::remove_from_reference_container(gaia_id_t parent_id, gaia_id_t id, common::reference_offset_t anchor_slot)
 {
-    if (!is_transaction_open())
-    {
-        throw no_open_transaction_internal();
-    }
+    check_open_transaction();
 
     return gaia_ptr::remove_from_reference_container(parent_id, id, anchor_slot);
 }
@@ -238,10 +217,7 @@ void report_invalid_object_state(
 template <typename T_ptr>
 constexpr T_ptr* dac_base_t::to_ptr()
 {
-    if (!is_transaction_open())
-    {
-        throw no_open_transaction_internal();
-    }
+    check_open_transaction();
 
     return reinterpret_cast<T_ptr*>(&m_record);
 }
@@ -249,10 +225,7 @@ constexpr T_ptr* dac_base_t::to_ptr()
 template <typename T_ptr>
 constexpr const T_ptr* dac_base_t::to_const_ptr() const
 {
-    if (!is_transaction_open())
-    {
-        throw no_open_transaction_internal();
-    }
+    check_open_transaction();
 
     return reinterpret_cast<const T_ptr*>(&m_record);
 }

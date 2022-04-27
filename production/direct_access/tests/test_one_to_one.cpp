@@ -70,38 +70,36 @@ TEST_F(gaia_one_to_one_test, connect_with_dac_obj)
     txn.commit();
 
     // Test connect.
-    {
-        // First verify that connect outside a transaction throws the expected exception.
-        EXPECT_THROW(madeline_person.employee().connect(madeline_employee), no_open_transaction);
 
-        auto_transaction_t txn;
+    // First verify that connect outside a transaction throws the expected exception.
+    EXPECT_THROW(madeline_person.employee().connect(madeline_employee), no_open_transaction);
 
-        ASSERT_TRUE(madeline_person.employee().connect(madeline_employee));
+    txn.begin();
 
-        ASSERT_EQ(madeline_employee.person(), madeline_person);
-        ASSERT_STREQ(madeline_employee.person().name_first(), madeline_person.name_first());
-        ASSERT_STREQ(madeline_employee.person().name_last(), madeline_person.name_last());
+    ASSERT_TRUE(madeline_person.employee().connect(madeline_employee));
 
-        ASSERT_EQ(madeline_person.employee(), madeline_employee);
-        ASSERT_STREQ(madeline_person.employee().company(), madeline_employee.company());
+    ASSERT_EQ(madeline_employee.person(), madeline_person);
+    ASSERT_STREQ(madeline_employee.person().name_first(), madeline_person.name_first());
+    ASSERT_STREQ(madeline_employee.person().name_last(), madeline_person.name_last());
 
-        txn.commit();
-    }
+    ASSERT_EQ(madeline_person.employee(), madeline_employee);
+    ASSERT_STREQ(madeline_person.employee().company(), madeline_employee.company());
+
+    txn.commit();
 
     // Test disconnect.
-    {
-        // First verify that disconnect outside a transaction throws the expected exception.
-        EXPECT_THROW(madeline_person.employee().disconnect(), no_open_transaction);
 
-        auto_transaction_t txn;
+    // First verify that disconnect outside a transaction throws the expected exception.
+    EXPECT_THROW(madeline_person.employee().disconnect(), no_open_transaction);
 
-        ASSERT_TRUE(madeline_person.employee().disconnect());
+    txn.begin();
 
-        ASSERT_FALSE(madeline_person.employee());
-        ASSERT_FALSE(madeline_employee.person());
+    ASSERT_TRUE(madeline_person.employee().disconnect());
 
-        txn.commit();
-    }
+    ASSERT_FALSE(madeline_person.employee());
+    ASSERT_FALSE(madeline_employee.person());
+
+    txn.commit();
 }
 
 TEST_F(gaia_one_to_one_test, multiple_disconnect_same_obj_succeed)
