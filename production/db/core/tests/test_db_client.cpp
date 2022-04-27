@@ -133,7 +133,7 @@ TEST_F(db_client_test, early_session_termination)
     rollback_transaction();
 }
 
-TEST_F(db_client_test, gaia_ptr_no_transaction_fail)
+TEST_F(db_client_test, DISABLED_gaia_ptr_no_transaction_fail)
 {
     begin_transaction();
     gaia_ptr_t node1 = gaia_ptr_t::from_gaia_id(node1_id);
