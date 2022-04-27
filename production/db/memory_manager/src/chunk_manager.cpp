@@ -10,8 +10,8 @@
 
 #include <sys/mman.h>
 
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/debug_assert.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 
 #include "bitmap.hpp"
