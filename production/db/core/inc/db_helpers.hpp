@@ -160,7 +160,10 @@ inline void apply_log_to_locators(locators_t* locators, txn_log_t* txn_log, size
 
 inline gaia::db::txn_log_t* get_txn_log_from_offset(log_offset_t offset)
 {
-    ASSERT_PRECONDITION(offset != gaia::db::c_invalid_log_offset, "Txn log offset is invalid!");
+    // This is an expensive check in a hot path.
+#ifdef DEBUG
+    ASSERT_PRECONDITION(offset.is_valid(), "Txn log offset is invalid!");
+#endif
     gaia::db::logs_t* logs = gaia::db::get_logs();
     return &((*logs)[offset]);
 }

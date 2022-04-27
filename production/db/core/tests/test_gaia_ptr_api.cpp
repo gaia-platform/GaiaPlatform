@@ -57,18 +57,21 @@ protected:
 
 TEST_F(gaia_ptr_api_test, no_txn_fail)
 {
+    gaia_id_t node_id;
+
     begin_transaction();
     gaia_ptr_t node = gaia_ptr::create(doctor_type, 0, nullptr);
+    node_id = node.id();
     commit_transaction();
 
     EXPECT_THROW(gaia_ptr::create(doctor_type, 0, ""), no_open_transaction);
     EXPECT_THROW(gaia_ptr::create(99999, doctor_type, 0, ""), no_open_transaction);
     EXPECT_THROW(gaia_ptr::remove(node), no_open_transaction);
-    EXPECT_THROW(gaia_ptr::update_payload(node.id(), 0, ""), no_open_transaction);
-    EXPECT_THROW(gaia_ptr::insert_into_reference_container(node.id(), 1, 2), no_open_transaction);
-    EXPECT_THROW(gaia_ptr::remove_from_reference_container(node.id(), 1, 2), no_open_transaction);
-    EXPECT_THROW(gaia_ptr::remove_from_reference_container(node.id(), 1), no_open_transaction);
-    EXPECT_THROW(gaia_ptr::update_parent_reference(node.id(), 1, 2), no_open_transaction);
+    EXPECT_THROW(gaia_ptr::update_payload(node_id, 0, ""), no_open_transaction);
+    EXPECT_THROW(gaia_ptr::insert_into_reference_container(node_id, 1, 2), no_open_transaction);
+    EXPECT_THROW(gaia_ptr::remove_from_reference_container(node_id, 1, 2), no_open_transaction);
+    EXPECT_THROW(gaia_ptr::remove_from_reference_container(node_id, 1), no_open_transaction);
+    EXPECT_THROW(gaia_ptr::update_parent_reference(node_id, 1, 2), no_open_transaction);
 }
 
 TEST_F(gaia_ptr_api_test, creation_fail_for_invalid_type)
