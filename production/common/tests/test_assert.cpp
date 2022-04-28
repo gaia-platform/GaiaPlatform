@@ -74,35 +74,143 @@ TEST(common, debug_assert)
 
 using g_timer_t = gaia::common::timer_t;
 
-TEST(common, retail_assert_perf)
+inline int32_t check_number(int32_t number)
 {
-    constexpr size_t c_condition = 10000;
+    ASSERT_PRECONDITION(
+        number >= 0,
+        "check_number() was called with a negative number!");
+
+    return number + 1;
+}
+
+inline int32_t check_number_format(int32_t number)
+{
+    ASSERT_PRECONDITION(
+        number >= 0,
+        gaia_fmt::format("check_number() was called with a negative number: {}!", number).c_str());
+
+    return number + 1;
+}
+
+inline int32_t check_number_debug(int32_t number)
+{
+    DEBUG_ASSERT_PRECONDITION(
+        number >= 0,
+        gaia_fmt::format("check_number() was called with a negative number: {}!", number).c_str());
+
+    return number + 1;
+}
+
+TEST(common, assert_perf)
+{
+    // Increase these values when using the test as a performance test.
+    // The number of iterations can be increased
+    // once the number of samples no longer fits in memory.
+    constexpr size_t c_count_numbers = 10;
+    constexpr size_t c_count_iterations = 1;
+
+    constexpr int32_t c_min_distribution_value = 0;
+    constexpr int32_t c_max_distribution_value = 100000;
     std::random_device dev;
     std::mt19937_64 rng(dev());
-    std::uniform_int_distribution<int32_t> dist(0, c_condition);
+    std::uniform_int_distribution<int32_t> dist(c_min_distribution_value, c_max_distribution_value);
 
-    // Increase this value when using as a performance test.
-    constexpr size_t c_num_samples = 10;
-    int32_t numbers[c_num_samples];
-
+    // Pre-generate the random input values.
+    int32_t numbers[c_count_numbers];
     for (int32_t& number : numbers)
     {
         number = dist(rng);
     }
 
+    cout << endl;
+
+    // Test debug asserts.
     auto start = g_timer_t::get_time_point();
 
-    for (int number : numbers)
+    for (size_t i = 0; i < c_count_iterations; ++i)
     {
-        try
+        for (int32_t number : numbers)
         {
-            ASSERT_PRECONDITION(number >= 0, gaia_fmt::format("Concatenating a string {}", number).c_str());
-        }
-        catch (assertion_failure& e)
-        {
+            check_number_debug(number);
         }
     }
 
-    auto elapsed = g_timer_t::ns_to_ms(g_timer_t::get_duration(start));
-    cout << "Elapsed: " << elapsed << endl;
+    double elapsed = g_timer_t::get_duration(start);
+
+    cout << ">>> Time Elapsed (helper with DEBUG_ASSERT): " << g_timer_t::ns_to_ms(elapsed) << "ms." << endl;
+    cout << ">>> Average time: " << elapsed / (c_count_numbers * c_count_iterations) << "ns." << endl;
+
+    // Test the assert condition itself.
+    start = g_timer_t::get_time_point();
+
+    size_t count_condition_failures = 0;
+    for (size_t i = 0; i < c_count_iterations; ++i)
+    {
+        for (int32_t number : numbers)
+        {
+            if (number < 0)
+            {
+                ++count_condition_failures;
+            }
+        }
+    }
+
+    ASSERT_EQ(0, count_condition_failures);
+
+    elapsed = g_timer_t::get_duration(start);
+
+    cout << ">>> Time Elapsed (condition): " << g_timer_t::ns_to_ms(elapsed) << "ms." << endl;
+    cout << ">>> Average time: " << elapsed / (c_count_numbers * c_count_iterations) << "ns." << endl;
+
+    // Test regular asserts with a formatted assertion message.
+    start = g_timer_t::get_time_point();
+
+    for (size_t i = 0; i < c_count_iterations; ++i)
+    {
+        for (int32_t number : numbers)
+        {
+            check_number_format(number);
+        }
+    }
+
+    elapsed = g_timer_t::get_duration(start);
+
+    cout << ">>> Time Elapsed (helper with gaia_fmt::format): " << g_timer_t::ns_to_ms(elapsed) << "ms." << endl;
+    cout << ">>> Average time: " << elapsed / (c_count_numbers * c_count_iterations) << "ns." << endl;
+
+    // Test regular asserts with a static assertion message.
+    start = g_timer_t::get_time_point();
+
+    for (size_t i = 0; i < c_count_iterations; ++i)
+    {
+        for (int32_t number : numbers)
+        {
+            check_number(number);
+        }
+    }
+
+    elapsed = g_timer_t::get_duration(start);
+
+    cout << ">>> Time Elapsed (helper with static message): " << g_timer_t::ns_to_ms(elapsed) << "ms." << endl;
+    cout << ">>> Average time: " << elapsed / (c_count_numbers * c_count_iterations) << "ns." << endl;
+
+    // Test inline asserts with a static assertion message.
+    start = g_timer_t::get_time_point();
+
+    for (size_t i = 0; i < c_count_iterations; ++i)
+    {
+        for (int32_t number : numbers)
+        {
+            ASSERT_PRECONDITION(
+                number >= 0,
+                "check_number() was called with a negative number!");
+        }
+    }
+
+    elapsed = g_timer_t::get_duration(start);
+
+    cout << ">>> Time Elapsed (inline with static message): " << g_timer_t::ns_to_ms(elapsed) << "ms." << endl;
+    cout << ">>> Average time: " << elapsed / (c_count_numbers * c_count_iterations) << "ns." << endl;
+
+    cout << endl;
 }

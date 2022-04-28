@@ -21,6 +21,8 @@ constexpr char c_row_limit_string[] = "row-limit";
 constexpr char c_help_string[] = "help";
 constexpr char c_database_string[] = "database";
 constexpr char c_table_string[] = "table";
+constexpr char c_link_name_string[] = "link-name";
+constexpr char c_link_row_string[] = "link-row";
 
 // Command-line usage.
 static void usage()
@@ -41,6 +43,8 @@ static void usage()
     cerr << "                               block that you just extracted. To extract rows from the database" << endl;
     cerr << "                               in blocks, use this parameter in conjunction with row-limit." << endl;
     cerr << "                               Omit this parameter to start from the beginning." << endl;
+    cerr << "  --" << c_link_name_string << "=linkname         Optional. Selects the link that will be used to extract related rows." << endl;
+    cerr << "  --" << c_link_row_string << "=ID                Optional. " << endl;
 
     // Print an empty JSON object when there is any kind of error.
     cout << "{}" << endl;
@@ -90,6 +94,8 @@ int main(int argc, char* argv[])
     uint32_t row_limit = c_row_limit_unlimited;
     string database;
     string table;
+    string link_name;
+    gaia_id_t link_row_id = c_start_at_first;
 
     string key;
     string value;
@@ -126,6 +132,20 @@ int main(int argc, char* argv[])
         {
             table = value;
         }
+        else if (!key.compare(c_link_name_string))
+        {
+            link_name = value;
+        }
+        else if (!key.compare(c_link_row_string))
+        {
+            link_row_id = stoi(value);
+            if (link_row_id < 1)
+            {
+                cerr << "Illegal value for " << c_link_row_string << ". It must be 1 or greater." << endl
+                     << endl;
+                usage();
+            }
+        }
         else
         {
             cerr << "Unrecognized parameter: '" << key << "'." << endl
@@ -151,7 +171,7 @@ int main(int argc, char* argv[])
 
     try
     {
-        extracted_data = gaia_db_extract(database, table, start_after, row_limit);
+        extracted_data = gaia_db_extract(database, table, start_after, row_limit, link_name, link_row_id);
     }
     catch (gaia_exception& e)
     {
