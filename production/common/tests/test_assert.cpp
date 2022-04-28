@@ -169,5 +169,22 @@ TEST(common, assert_perf)
 
     cout << ">>> Time Elapsed: " << elapsed << "ms." << endl;
 
+    // Test inline asserts with a static assertion message.
+    start = g_timer_t::get_time_point();
+
+    for (size_t i = 0; i < c_count_iterations; ++i)
+    {
+        for (int32_t number : numbers)
+        {
+            ASSERT_PRECONDITION(
+                number >= 0,
+                "check_number() was called with a negative number!");
+        }
+    }
+
+    elapsed = g_timer_t::ns_to_ms(g_timer_t::get_duration(start));
+
+    cout << ">>> Time Elapsed (inline): " << elapsed << "ms." << endl;
+
     cout << endl;
 }
