@@ -48,6 +48,7 @@
 
 using namespace flatbuffers;
 using namespace gaia::db;
+using namespace gaia::db::memory_manager;
 using namespace gaia::db::messages;
 using namespace gaia::db::transactions;
 using namespace gaia::common;

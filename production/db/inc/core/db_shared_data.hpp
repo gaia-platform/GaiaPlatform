@@ -51,10 +51,10 @@ gaia::db::gaia_txn_id_t get_current_txn_id();
 gaia::db::index::indexes_t* get_indexes();
 
 // Gets the memory manager instance for the current thread or process.
-gaia::db::memory_manager_t* get_memory_manager();
+gaia::db::memory_manager::memory_manager_t* get_memory_manager();
 
 // Gets the chunk manager instance for the current thread or process.
-gaia::db::chunk_manager_t* get_chunk_manager();
+gaia::db::memory_manager::chunk_manager_t* get_chunk_manager();
 
 // Gets the transaction log for the current session thread.
 gaia::db::txn_log_t* get_txn_log();

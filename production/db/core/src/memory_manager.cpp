@@ -26,6 +26,8 @@ namespace gaia
 {
 namespace db
 {
+namespace memory_manager
+{
 
 inline void validate_metadata(memory_manager_metadata_t* metadata)
 {
@@ -215,5 +217,6 @@ void memory_manager_t::update_chunk_allocation_status(chunk_offset_t chunk_offse
         chunk_offset, is_allocated);
 }
 
+} // namespace memory_manager
 } // namespace db
 } // namespace gaia

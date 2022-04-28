@@ -85,12 +85,12 @@ gaia::db::index::indexes_t* gaia::db::get_indexes()
     return &gaia::db::client_t::s_local_indexes;
 }
 
-gaia::db::memory_manager_t* gaia::db::get_memory_manager()
+gaia::db::memory_manager::memory_manager_t* gaia::db::get_memory_manager()
 {
     return &gaia::db::client_t::s_memory_manager;
 }
 
-gaia::db::chunk_manager_t* gaia::db::get_chunk_manager()
+gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager()
 {
     return &gaia::db::client_t::s_chunk_manager;
 }

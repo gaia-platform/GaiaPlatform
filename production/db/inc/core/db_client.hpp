@@ -57,8 +57,8 @@ class client_t
     friend gaia::db::id_index_t* gaia::db::get_id_index();
     friend gaia::db::type_index_t* gaia::db::get_type_index();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
-    friend gaia::db::memory_manager_t* gaia::db::get_memory_manager();
-    friend gaia::db::chunk_manager_t* gaia::db::get_chunk_manager();
+    friend gaia::db::memory_manager::memory_manager_t* gaia::db::get_memory_manager();
+    friend gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager();
 
     friend class gaia::db::query_processor::db_client_proxy_t;
 
@@ -143,8 +143,8 @@ private:
     thread_local static inline mapped_data_t<id_index_t> s_shared_id_index;
     thread_local static inline mapped_data_t<type_index_t> s_shared_type_index;
 
-    thread_local static inline gaia::db::memory_manager_t s_memory_manager{};
-    thread_local static inline gaia::db::chunk_manager_t s_chunk_manager{};
+    thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
+    thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
 
     thread_local static inline int s_session_socket = -1;
 

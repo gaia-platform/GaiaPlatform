@@ -99,8 +99,8 @@ class server_t
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
     friend gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id();
     friend gaia::db::txn_log_t* gaia::db::get_txn_log();
-    friend gaia::db::memory_manager_t* gaia::db::get_memory_manager();
-    friend gaia::db::chunk_manager_t* gaia::db::get_chunk_manager();
+    friend gaia::db::memory_manager::memory_manager_t* gaia::db::get_memory_manager();
+    friend gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager();
 
 public:
     static void run(server_config_t server_conf);
@@ -173,8 +173,8 @@ private:
     thread_local static inline bool s_session_shutdown = false;
     thread_local static inline int s_session_shutdown_eventfd = -1;
 
-    thread_local static inline gaia::db::memory_manager_t s_memory_manager{};
-    thread_local static inline gaia::db::chunk_manager_t s_chunk_manager{};
+    thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
+    thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};
 
     thread_local static inline bool s_is_ddl_session{false};
 
