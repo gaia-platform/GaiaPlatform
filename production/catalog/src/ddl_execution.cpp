@@ -323,7 +323,7 @@ void execute_create_statement_no_txn(
     {
         auto create_relationship_stmt = dynamic_cast<ddl::create_relationship_t*>(create_stmt);
 
-        // Update this section if DDL compilaiton ever allows the naming of another database
+        // Update this section if DDL compilation ever allows the naming of another database
         // in the "create relationship" statement.
         create_relationship_stmt->relationship.first.from_database
             = select_active_database(create_relationship_stmt->relationship.first.from_database, current_database);
