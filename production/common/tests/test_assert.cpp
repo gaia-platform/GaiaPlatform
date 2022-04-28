@@ -135,9 +135,32 @@ TEST(common, assert_perf)
         }
     }
 
-    auto elapsed = g_timer_t::ns_to_ms(g_timer_t::get_duration(start));
+    double elapsed = g_timer_t::get_duration(start);
 
-    cout << ">>> Time Elapsed (DEBUG): " << elapsed << "ms." << endl;
+    cout << ">>> Time Elapsed (helper with DEBUG_ASSERT): " << g_timer_t::ns_to_ms(elapsed) << "ms." << endl;
+    cout << ">>> Average time: " << elapsed / (c_count_numbers * c_count_iterations) << "ns." << endl;
+
+    // Test the assert condition itself.
+    start = g_timer_t::get_time_point();
+
+    size_t count_condition_failures = 0;
+    for (size_t i = 0; i < c_count_iterations; ++i)
+    {
+        for (int32_t number : numbers)
+        {
+            if (number < 0)
+            {
+                ++count_condition_failures;
+            }
+        }
+    }
+
+    ASSERT_EQ(0, count_condition_failures);
+
+    elapsed = g_timer_t::get_duration(start);
+
+    cout << ">>> Time Elapsed (condition): " << g_timer_t::ns_to_ms(elapsed) << "ms." << endl;
+    cout << ">>> Average time: " << elapsed / (c_count_numbers * c_count_iterations) << "ns." << endl;
 
     // Test regular asserts with a formatted assertion message.
     start = g_timer_t::get_time_point();
@@ -150,9 +173,10 @@ TEST(common, assert_perf)
         }
     }
 
-    elapsed = g_timer_t::ns_to_ms(g_timer_t::get_duration(start));
+    elapsed = g_timer_t::get_duration(start);
 
-    cout << ">>> Time Elapsed (gaia_fmt::format): " << elapsed << "ms." << endl;
+    cout << ">>> Time Elapsed (helper with gaia_fmt::format): " << g_timer_t::ns_to_ms(elapsed) << "ms." << endl;
+    cout << ">>> Average time: " << elapsed / (c_count_numbers * c_count_iterations) << "ns." << endl;
 
     // Test regular asserts with a static assertion message.
     start = g_timer_t::get_time_point();
@@ -165,9 +189,10 @@ TEST(common, assert_perf)
         }
     }
 
-    elapsed = g_timer_t::ns_to_ms(g_timer_t::get_duration(start));
+    elapsed = g_timer_t::get_duration(start);
 
-    cout << ">>> Time Elapsed: " << elapsed << "ms." << endl;
+    cout << ">>> Time Elapsed (helper with static message): " << g_timer_t::ns_to_ms(elapsed) << "ms." << endl;
+    cout << ">>> Average time: " << elapsed / (c_count_numbers * c_count_iterations) << "ns." << endl;
 
     // Test inline asserts with a static assertion message.
     start = g_timer_t::get_time_point();
@@ -182,9 +207,10 @@ TEST(common, assert_perf)
         }
     }
 
-    elapsed = g_timer_t::ns_to_ms(g_timer_t::get_duration(start));
+    elapsed = g_timer_t::get_duration(start);
 
-    cout << ">>> Time Elapsed (inline): " << elapsed << "ms." << endl;
+    cout << ">>> Time Elapsed (inline with static message): " << g_timer_t::ns_to_ms(elapsed) << "ms." << endl;
+    cout << ">>> Average time: " << elapsed / (c_count_numbers * c_count_iterations) << "ns." << endl;
 
     cout << endl;
 }
