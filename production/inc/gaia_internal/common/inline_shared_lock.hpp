@@ -7,7 +7,7 @@
 
 #include <atomic>
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 
 namespace gaia
 {

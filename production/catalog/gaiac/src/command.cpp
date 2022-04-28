@@ -11,7 +11,7 @@
 #include <tabulate/table.hpp>
 
 #include "gaia_internal/catalog/gaia_catalog.h"
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/exceptions.hpp"
 
 #include <gaia_spdlog/fmt/fmt.h>

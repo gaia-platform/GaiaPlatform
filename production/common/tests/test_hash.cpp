@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 
 #include "gaia_internal/common/hash.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 
 using namespace std;
 using namespace gaia::common;
@@ -101,6 +101,6 @@ TEST(hash_test, bad_keys)
     // A null cstring or uint8_t pointer should result in an excepton.
     const char* null_cstring = nullptr;
     uint8_t* null_byte_ptr = nullptr;
-    EXPECT_THROW(hashes.hash_add(null_cstring), retail_assertion_failure);
-    EXPECT_THROW(hashes.hash_include(null_byte_ptr), retail_assertion_failure);
+    EXPECT_THROW(hashes.hash_add(null_cstring), assertion_failure);
+    EXPECT_THROW(hashes.hash_include(null_byte_ptr), assertion_failure);
 }

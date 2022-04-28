@@ -10,7 +10,7 @@
 #include <libexplain/fsync.h>
 #include <libexplain/openat.h>
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
 using namespace gaia::common;
