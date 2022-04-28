@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "gaia_internal/catalog/catalog.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 
 #include "yy_parser.hpp"

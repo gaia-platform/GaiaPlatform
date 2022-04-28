@@ -9,7 +9,8 @@
 
 #include "gaia/db/db.hpp"
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
+#include "gaia_internal/common/debug_assert.hpp"
 #include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
@@ -31,12 +32,12 @@ inline common::gaia_id_t allocate_id()
 {
     counters_t* counters = gaia::db::get_counters();
     auto new_id = ++(counters->last_id);
+
     // This is an expensive check in a hot path.
-#ifdef DEBUG
-    ASSERT_INVARIANT(
+    DEBUG_ASSERT_INVARIANT(
         new_id <= std::numeric_limits<common::gaia_id_t::value_type>::max(),
         "Gaia ID exceeds allowed range!");
-#endif
+
     return static_cast<common::gaia_id_t>(new_id);
 }
 
@@ -44,12 +45,12 @@ inline gaia_txn_id_t allocate_txn_id()
 {
     counters_t* counters = gaia::db::get_counters();
     auto new_txn_id = ++(counters->last_txn_id);
+
     // This is an expensive check in a hot path.
-#ifdef DEBUG
-    ASSERT_INVARIANT(
+    DEBUG_ASSERT_INVARIANT(
         new_txn_id < (1UL << transactions::txn_metadata_entry_t::c_txn_ts_bit_width),
         "Transaction ID exceeds allowed range!");
-#endif
+
     return static_cast<gaia_txn_id_t>(new_txn_id);
 }
 
@@ -82,12 +83,12 @@ inline gaia_locator_t get_last_locator()
 {
     counters_t* counters = gaia::db::get_counters();
     auto last_locator_value = counters->last_locator.load();
+
     // This is an expensive check in a hot path.
-#ifdef DEBUG
-    ASSERT_INVARIANT(
+    DEBUG_ASSERT_INVARIANT(
         last_locator_value <= c_max_locators,
         "Largest locator value exceeds allowed range!");
-#endif
+
     return static_cast<gaia_locator_t>(last_locator_value);
 }
 
@@ -160,7 +161,7 @@ inline void apply_log_to_locators(locators_t* locators, txn_log_t* txn_log, size
 
 inline gaia::db::txn_log_t* get_txn_log_from_offset(log_offset_t offset)
 {
-    ASSERT_PRECONDITION(offset != gaia::db::c_invalid_log_offset, "Txn log offset is invalid!");
+    DEBUG_ASSERT_PRECONDITION(offset.is_valid(), "Txn log offset is invalid!");
     gaia::db::logs_t* logs = gaia::db::get_logs();
     return &((*logs)[offset]);
 }

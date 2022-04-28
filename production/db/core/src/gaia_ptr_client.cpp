@@ -6,7 +6,8 @@
 #include "gaia/common.hpp"
 #include "gaia/exceptions.hpp"
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
+#include "gaia_internal/common/debug_assert.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 #include "gaia_internal/exceptions.hpp"
 
@@ -50,13 +51,11 @@ void gaia_ptr_t::reset()
 
 db_object_t* gaia_ptr_t::to_ptr() const
 {
-    client_t::verify_txn_active();
     return locator_to_ptr(m_locator);
 }
 
 gaia_offset_t gaia_ptr_t::to_offset() const
 {
-    client_t::verify_txn_active();
     return locator_to_offset(m_locator);
 }
 
@@ -120,10 +119,10 @@ gaia_ptr_t gaia_ptr_t::create_no_txn(gaia_id_t id, gaia_type_t type, reference_o
     {
         throw duplicate_object_id_internal(id);
     }
+
     // This is an expensive check in a hot path.
-#ifdef DEBUG
-    ASSERT_INVARIANT(id_to_locator(id) == locator, "Cannot find locator for just-inserted ID!");
-#endif
+    DEBUG_ASSERT_INVARIANT(id_to_locator(id) == locator, "Cannot find locator for just-inserted ID!");
+
     allocate_object(locator, total_payload_size);
     gaia_ptr_t obj(locator);
     db_object_t* obj_ptr = obj.to_ptr();
