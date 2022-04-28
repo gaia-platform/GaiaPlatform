@@ -117,9 +117,9 @@ TEST(common, assert_perf)
 
     // Pre-generate the random input values.
     int32_t numbers[c_count_numbers];
-    for (size_t i = 0; i < c_count_numbers; ++i)
+    for (int32_t& number : numbers)
     {
-        numbers[i] = dist(rng);
+        number = dist(rng);
     }
 
     cout << endl;
