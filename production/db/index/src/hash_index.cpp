@@ -5,7 +5,7 @@
 
 #include "hash_index.hpp"
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 
 #include "txn_metadata.hpp"
 

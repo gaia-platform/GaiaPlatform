@@ -316,7 +316,7 @@ void get_fields_data(
         field::known_aliases));
 }
 
-void process_flatbuffers_data(bool access_fields)
+void read_flatbuffers_data()
 {
     // Load binary flatbuffers schema.
     file_loader_t schema_loader;
@@ -329,45 +329,19 @@ void process_flatbuffers_data(bool access_fields)
     // Validate data.
     ASSERT_EQ(true, verify_data_schema(data_loader.get_data(), data_loader.get_data_length(), schema_loader.get_data()));
 
-    if (access_fields)
-    {
-        cout << "\nFirst round of field access:" << endl;
-
-        // Access fields using cache information.
-        // Schema information is not passed to the get_field_value() calls.
-        bool check_new_values = false;
-        get_fields_data(
-            data_loader,
-            schema_loader,
-            check_new_values);
-    }
-
-    if (access_fields)
-    {
-        cout << "\nSecond round of field access:" << endl;
-
-        // Pass schema information to the get_field_value() calls,
-        // because cache is empty.
-        bool check_new_values = false;
-        get_fields_data(
-            data_loader,
-            schema_loader,
-            check_new_values);
-    }
+    // Read data.
+    bool check_new_values = false;
+    get_fields_data(
+        data_loader,
+        schema_loader,
+        check_new_values);
 
     cout << endl;
 }
 
-TEST(payload_types, payload_type_cache)
+TEST(payload_types, field_read)
 {
-    bool access_fields = false;
-    process_flatbuffers_data(access_fields);
-}
-
-TEST(payload_types, field_access)
-{
-    bool access_fields = true;
-    process_flatbuffers_data(access_fields);
+    read_flatbuffers_data();
 }
 
 void update_flatbuffers_data()

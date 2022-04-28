@@ -17,9 +17,9 @@
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/hash.hpp"
 #include "gaia_internal/common/logger.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
 

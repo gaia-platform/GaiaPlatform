@@ -234,6 +234,15 @@ namespace db
  */
 
 /**
+ * @brief Client failed to connect to the server.
+ *
+ * Server needs to be running.
+ */
+class server_connection_failed : public common::gaia_exception
+{
+};
+
+/**
  * @brief A session already exists on this thread.
  *
  * Only one session at a time can exist on a thread.

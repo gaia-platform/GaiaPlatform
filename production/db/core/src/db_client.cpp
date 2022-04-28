@@ -14,7 +14,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/socket_helpers.hpp"
 #include "gaia_internal/common/system_error.hpp"
@@ -157,7 +157,14 @@ void client_t::begin_session(config::session_options_t session_options)
 
     // Connect to the server's well-known socket name, and ask it
     // for the data and locator shared memory segment fds.
-    s_session_socket = get_session_socket(s_session_options.db_instance_name);
+    try
+    {
+        s_session_socket = get_session_socket(s_session_options.db_instance_name);
+    }
+    catch (const system_error& e)
+    {
+        throw server_connection_failed_internal(e.what(), e.get_errno());
+    }
 
     auto cleanup_session_socket = make_scope_guard([&]() { close_fd(s_session_socket); });
 

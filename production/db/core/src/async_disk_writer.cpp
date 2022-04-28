@@ -15,8 +15,8 @@
 #include <sys/eventfd.h>
 #include <liburing.h>
 
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/fd_helpers.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
 
 #include "async_write_batch.hpp"
 #include "persistence_types.hpp"

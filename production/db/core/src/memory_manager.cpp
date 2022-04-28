@@ -10,8 +10,8 @@
 #include <iostream>
 #include <memory>
 
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/bitmap.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
 
 #include "chunk_manager.hpp"
 #include "memory_helpers.hpp"

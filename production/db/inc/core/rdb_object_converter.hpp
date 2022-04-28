@@ -13,7 +13,7 @@
 
 #include <rocksdb/slice.h>
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/persistent_store_error.hpp"
 

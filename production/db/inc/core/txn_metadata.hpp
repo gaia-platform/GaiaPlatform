@@ -11,7 +11,7 @@
 #include <limits>
 #include <optional>
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/db/db_types.hpp"
 
 #include "db_internal_types.hpp"
