@@ -9,8 +9,8 @@
 
 #include "gaia_internal/catalog/catalog.hpp"
 #include "gaia_internal/catalog/gaia_catalog.h"
-#include "gaia_internal/common/hash.hpp"
 #include "gaia_internal/common/assert.hpp"
+#include "gaia_internal/common/hash.hpp"
 
 #include <gaia_spdlog/fmt/fmt.h>
 
@@ -96,7 +96,6 @@ void add_hash(multi_segment_hash& parent_hash, gaia_relationship_t relationship)
     relationship_w.update_row();
 }
 
-
 // Calculate and store a hash for this table. Store it in the gaia_table row.
 void add_hash(multi_segment_hash& parent_hash, gaia_table_t table)
 {
@@ -116,7 +115,6 @@ void add_hash(multi_segment_hash& parent_hash, gaia_table_t table)
     table_w.hash = table_hash.to_string();
     table_w.update_row();
 }
-
 
 bool sort_by_name(
     const pair<string, common::gaia_id_t>& a,

@@ -5,8 +5,8 @@
 
 #include <gtest/gtest.h>
 
-#include "gaia_internal/common/hash.hpp"
 #include "gaia_internal/common/assert.hpp"
+#include "gaia_internal/common/hash.hpp"
 
 using namespace std;
 using namespace gaia::common;
