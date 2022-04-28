@@ -185,8 +185,8 @@ inline void allocate_object(
     gaia_locator_t locator,
     size_t size)
 {
-    memory_manager_t* memory_manager = gaia::db::get_memory_manager();
-    chunk_manager_t* chunk_manager = gaia::db::get_chunk_manager();
+    memory_manager::memory_manager_t* memory_manager = gaia::db::get_memory_manager();
+    memory_manager::chunk_manager_t* chunk_manager = gaia::db::get_chunk_manager();
 
     // The allocation can fail either because there is no current chunk, or
     // because the current chunk is full.

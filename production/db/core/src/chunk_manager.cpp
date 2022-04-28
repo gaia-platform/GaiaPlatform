@@ -23,6 +23,8 @@ namespace gaia
 {
 namespace db
 {
+namespace memory_manager
+{
 
 using namespace gaia::common;
 using namespace gaia::common::bitmap;
@@ -389,5 +391,6 @@ gaia_offset_t chunk_manager_t::last_allocated_offset()
     return offset_from_chunk_and_slot(m_chunk_offset, max_allocated_slot_offset);
 }
 
+} // namespace memory_manager
 } // namespace db
 } // namespace gaia
