@@ -154,18 +154,16 @@ static void safe_set_bit_range_value(
     DEBUG_ASSERT_PRECONDITION(
         validate_bitmap_parameters(bitmap, bitmap_size_in_words), "Invalid bitmap parameters!");
     DEBUG_ASSERT_PRECONDITION(
-        validate_bit_index(bitmap_size_in_words, bit_index), "Invalid start bit index!");
-
+        validate_bit_index(bitmap_size_in_words, start_bit_index), "Invalid start bit index!");
+    DEBUG_ASSERT_PRECONDITION(
+        validate_bit_index(
+            bitmap_size_in_words, start_bit_index + bit_count - 1),
+        "Invalid end bit index!");
     DEBUG_ASSERT_PRECONDITION(
         bit_count > 0, "safe_set_bit_range_value() was called with a 0 bit count!");
     DEBUG_ASSERT_PRECONDITION(
         start_bit_index + bit_count - 1 >= start_bit_index,
         "safe_set_bit_range_value() was called with arguments that cause an integer overflow!");
-
-    DEBUG_ASSERT_PRECONDITION(
-        validate_bit_index(
-            bitmap_size_in_words, start_bit_index + bit_count - 1),
-        "Invalid end bit index!");
 
     size_t start_word_index = start_bit_index / common::c_uint64_bit_count;
     size_t start_bit_index_within_word = start_bit_index % common::c_uint64_bit_count;
