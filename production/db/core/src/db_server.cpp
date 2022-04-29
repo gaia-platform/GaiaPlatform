@@ -25,6 +25,7 @@
 #include "gaia/exceptions.hpp"
 
 #include "gaia_internal/common/assert.hpp"
+#include "gaia_internal/common/bitmap.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/socket_helpers.hpp"
 #include "gaia_internal/common/system_error.hpp"
@@ -35,7 +36,6 @@
 
 #include "gaia_spdlog/fmt/fmt.h"
 
-#include "bitmap.hpp"
 #include "db_helpers.hpp"
 #include "db_internal_types.hpp"
 #include "memory_helpers.hpp"
@@ -48,10 +48,11 @@
 
 using namespace flatbuffers;
 using namespace gaia::db;
-using namespace gaia::db::messages;
 using namespace gaia::db::memory_manager;
+using namespace gaia::db::messages;
 using namespace gaia::db::transactions;
 using namespace gaia::common;
+using namespace gaia::common::bitmap;
 using namespace gaia::common::iterators;
 using namespace gaia::common::scope_guard;
 
@@ -677,7 +678,7 @@ void server_t::init_memory_manager(bool initializing)
             reinterpret_cast<uint8_t*>(s_shared_data.data()->objects),
             sizeof(s_shared_data.data()->objects));
 
-        memory_manager::chunk_offset_t chunk_offset = s_memory_manager.allocate_chunk();
+        chunk_offset_t chunk_offset = s_memory_manager.allocate_chunk();
         if (!chunk_offset.is_valid())
         {
             throw memory_allocation_error_internal();
@@ -699,15 +700,15 @@ void server_t::deallocate_object(gaia_offset_t offset)
 {
     // First extract the chunk ID from the offset, so we know which chunks are
     // candidates for deallocation.
-    memory_manager::chunk_offset_t chunk_offset = memory_manager::chunk_from_offset(offset);
+    chunk_offset_t chunk_offset = chunk_from_offset(offset);
 
-    memory_manager::chunk_manager_t chunk_manager;
+    chunk_manager_t chunk_manager;
     chunk_manager.load(chunk_offset);
 
     // We need to read the chunk version *before* we deallocate the object, to
     // ensure that the chunk hasn't already been deallocated and reused before
     // we read the version!
-    memory_manager::chunk_version_t version = chunk_manager.get_version();
+    chunk_version_t version = chunk_manager.get_version();
 
     // Cache this chunk and its current version for later deallocation.
     // REVIEW: This could be changed to use contains() after C++20.
@@ -718,7 +719,7 @@ void server_t::deallocate_object(gaia_offset_t offset)
     else
     {
         // If this GC task already cached this chunk, then the versions must match!
-        memory_manager::chunk_version_t cached_version = s_map_gc_chunks_to_versions[chunk_offset];
+        chunk_version_t cached_version = s_map_gc_chunks_to_versions[chunk_offset];
         ASSERT_INVARIANT(version == cached_version, "Chunk version must match cached chunk version!");
     }
 
@@ -2401,9 +2402,9 @@ void server_t::gc_applied_txn_logs()
     // TODO: decommit unused pages (https://gaiaplatform.atlassian.net/browse/GAIAPLAT-1446)
     for (auto& entry : s_map_gc_chunks_to_versions)
     {
-        memory_manager::chunk_offset_t chunk_offset = entry.first;
-        memory_manager::chunk_version_t chunk_version = entry.second;
-        memory_manager::chunk_manager_t chunk_manager;
+        chunk_offset_t chunk_offset = entry.first;
+        chunk_version_t chunk_version = entry.second;
+        chunk_manager_t chunk_manager;
         chunk_manager.load(chunk_offset);
         chunk_manager.try_deallocate_chunk(chunk_version);
         chunk_manager.release();
@@ -2717,7 +2718,7 @@ bool server_t::reserve_safe_ts_index()
     size_t reserved_index = c_invalid_safe_ts_index;
     while (true)
     {
-        reserved_index = memory_manager::find_first_unset_bit(
+        reserved_index = find_first_unset_bit(
             s_safe_ts_reserved_indexes_bitmap.data(), s_safe_ts_reserved_indexes_bitmap.size());
 
         // If our scan doesn't find any unset bits, immediately return failure
@@ -2737,7 +2738,7 @@ bool server_t::reserve_safe_ts_index()
         // index. We force try_set_bit_value() to fail in this case by passing
         // fail_if_already_set=true.
         bool fail_if_already_set = true;
-        if (memory_manager::try_set_bit_value(
+        if (try_set_bit_value(
                 s_safe_ts_reserved_indexes_bitmap.data(),
                 s_safe_ts_reserved_indexes_bitmap.size(),
                 reserved_index, true, fail_if_already_set))
@@ -2759,7 +2760,7 @@ void server_t::release_safe_ts_index()
         "Expected this thread's safe_ts entry index to be valid!");
 
     ASSERT_PRECONDITION(
-        memory_manager::is_bit_set(
+        is_bit_set(
             s_safe_ts_reserved_indexes_bitmap.data(),
             s_safe_ts_reserved_indexes_bitmap.size(),
             s_safe_ts_index),
@@ -2776,7 +2777,7 @@ void server_t::release_safe_ts_index()
 
     // Clear the bit for this entry's index in the "free safe_ts indexes"
     // bitmap.
-    memory_manager::safe_set_bit_value(
+    safe_set_bit_value(
         s_safe_ts_reserved_indexes_bitmap.data(),
         s_safe_ts_reserved_indexes_bitmap.size(),
         safe_ts_index, false);
@@ -3058,7 +3059,7 @@ log_offset_t server_t::allocate_used_log_offset()
         // offset. We force try_set_bit_value() to fail in this case by passing
         // fail_if_already_set=true.
         bool fail_if_already_set = true;
-        if (memory_manager::try_set_bit_value(
+        if (try_set_bit_value(
                 s_allocated_log_offsets_bitmap.data(),
                 s_allocated_log_offsets_bitmap.size(),
                 first_unallocated_index, true, fail_if_already_set))
@@ -3102,7 +3103,7 @@ log_offset_t server_t::allocate_unused_log_offset()
         // offset. We force try_set_bit_value() to fail in this case by passing
         // fail_if_already_set=true.
         bool fail_if_already_set = true;
-        if (memory_manager::try_set_bit_value(
+        if (try_set_bit_value(
                 s_allocated_log_offsets_bitmap.data(),
                 s_allocated_log_offsets_bitmap.size(),
                 next_offset, true, fail_if_already_set))
@@ -3164,7 +3165,7 @@ void server_t::deallocate_log_offset(log_offset_t offset)
     ASSERT_PRECONDITION(!txn_log->begin_ts().is_valid(), "Cannot deallocate a txn log with a valid txn ID!");
     ASSERT_PRECONDITION(txn_log->reference_count() == 0, "Cannot deallocate a txn log with a nonzero reference count!");
 
-    memory_manager::safe_set_bit_value(
+    safe_set_bit_value(
         s_allocated_log_offsets_bitmap.data(),
         s_allocated_log_offsets_bitmap.size(),
         static_cast<size_t>(offset), false);

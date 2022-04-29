@@ -164,7 +164,7 @@ private:
 
     // This is used by GC tasks on a session thread to cache chunk IDs for empty chunk deallocation.
     thread_local static inline std::unordered_map<
-        memory_manager::chunk_offset_t, memory_manager::chunk_version_t>
+        chunk_offset_t, chunk_version_t>
         s_map_gc_chunks_to_versions{};
 
     // These fields have session lifetime.

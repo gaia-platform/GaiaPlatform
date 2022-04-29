@@ -11,10 +11,10 @@
 #include <sys/mman.h>
 
 #include "gaia_internal/common/assert.hpp"
+#include "gaia_internal/common/bitmap.hpp"
 #include "gaia_internal/common/debug_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 
-#include "bitmap.hpp"
 #include "memory_helpers.hpp"
 #include "memory_manager.hpp"
 #include "memory_types.hpp"
@@ -27,6 +27,7 @@ namespace memory_manager
 {
 
 using namespace gaia::common;
+using namespace gaia::common::bitmap;
 using scope_guard::make_scope_guard;
 
 void chunk_manager_t::initialize_internal(
@@ -199,7 +200,7 @@ void chunk_manager_t::mark_slot(slot_offset_t slot_offset, bool is_allocating)
     // a chunk, but only the owning thread can allocate slots in a chunk.
     if (is_allocating)
     {
-        set_bit_value(
+        common::bitmap::set_bit_value(
             m_metadata->allocated_slots_bitmap,
             chunk_manager_metadata_t::c_slot_bitmap_size_in_words,
             bit_index,
@@ -207,7 +208,7 @@ void chunk_manager_t::mark_slot(slot_offset_t slot_offset, bool is_allocating)
     }
     else
     {
-        safe_set_bit_value(
+        common::bitmap::safe_set_bit_value(
             m_metadata->deallocated_slots_bitmap,
             chunk_manager_metadata_t::c_slot_bitmap_size_in_words,
             bit_index,

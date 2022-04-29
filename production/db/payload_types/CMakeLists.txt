@@ -9,8 +9,7 @@ set(GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 set(GAIA_PAYLOAD_TYPES_INCLUDES
   "${GAIA_INC}"
   "${GAIA_DB_INC}/payload_types"
-  "${GAIA_REPO}/production/db/core/inc"
-  "${GAIA_REPO}/production/db/inc/memory_manager"
+  "${GAIA_REPO}/production/db/inc/core"
   "${GAIA_REPO}/production/catalog/inc"
   "${GEN_DIR}")
 

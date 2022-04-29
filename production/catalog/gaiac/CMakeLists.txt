@@ -8,8 +8,7 @@ project(gaiac)
 set(GAIA_CATALOG_TOOL_INCLUDES
   ${GAIA_REPO}/production/catalog/inc
   ${GAIA_REPO}/production/catalog/parser/inc
-  ${GAIA_REPO}/production/db/core/inc
-  ${GAIA_REPO}/production/db/inc/memory_manager
+  ${GAIA_REPO}/production/db/inc/core
   ${GAIA_INC}
   ${GAIA_PARSER_GENERATED}
   ${PROJECT_SOURCE_DIR}/inc

@@ -51,7 +51,7 @@ TEST_F(gaia_db_extract_test, extract_catalog)
     create_database(c_db_name, false);
     create_table(c_db_name, c_table_name, test_table_fields);
 
-    auto extracted_catalog = gaia_db_extract("", "", c_start_at_first, c_row_limit_unlimited);
+    auto extracted_catalog = gaia_db_extract("", "", c_start_at_first, c_row_limit_unlimited, "", c_start_at_first);
     size_t field_count = 0;
 
     json_t json_object = json_t::parse(extracted_catalog);
@@ -114,7 +114,7 @@ TEST_F(gaia_db_extract_test, extract_catalog_rows)
     uint64_t row_id = c_start_at_first;
     for (;;)
     {
-        auto extracted_rows = gaia_db_extract("catalog", "gaia_field", row_id, 3);
+        auto extracted_rows = gaia_db_extract("catalog", "gaia_field", row_id, 3, "", c_start_at_first);
         if (!extracted_rows.compare(c_empty_object))
         {
             break;
