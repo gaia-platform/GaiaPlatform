@@ -16,7 +16,7 @@
 
 #ifdef DEBUG
 #include "memory_helpers.hpp"
-#define WRITE_PROTECT(o) memory_manager::write_protect_allocation_page_for_offset((o))
+#define WRITE_PROTECT(o) write_protect_allocation_page_for_offset((o))
 #else
 #define WRITE_PROTECT(o) ((void)0)
 #endif

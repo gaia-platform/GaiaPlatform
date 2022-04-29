@@ -15,8 +15,6 @@ namespace gaia
 {
 namespace db
 {
-namespace memory_manager
-{
 
 inline chunk_offset_t chunk_from_offset(gaia_offset_t offset);
 
@@ -47,6 +45,5 @@ inline void write_protect_allocation_page_for_offset(gaia_offset_t offset);
 
 #include "memory_helpers.inc"
 
-} // namespace memory_manager
 } // namespace db
 } // namespace gaia

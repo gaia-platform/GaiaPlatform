@@ -199,7 +199,7 @@ inline void allocate_object(
             // In case it is already empty, try to deallocate it after retiring it.
 
             // Get the session's chunk version for safe deallocation.
-            memory_manager::chunk_version_t version = chunk_manager->get_version();
+            chunk_version_t version = chunk_manager->get_version();
             // Now retire the chunk.
             chunk_manager->retire_chunk(version);
             // Release ownership of the chunk.
@@ -207,7 +207,7 @@ inline void allocate_object(
         }
 
         // Allocate a new chunk.
-        memory_manager::chunk_offset_t new_chunk_offset = memory_manager->allocate_chunk();
+        chunk_offset_t new_chunk_offset = memory_manager->allocate_chunk();
         if (!new_chunk_offset.is_valid())
         {
             throw memory_allocation_error_internal();
