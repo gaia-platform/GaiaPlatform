@@ -26,6 +26,8 @@ configure_gaia_target(gaia_db_extract)
 target_include_directories(gaia_db_extract PRIVATE ${GAIA_DB_EXTRACT_TEST_INCLUDES})
 target_link_libraries(gaia_db_extract PRIVATE rt gaia_catalog gaia_parser gaia_db_client Threads::Threads)
 
+install(TARGETS gaia_db_extract DESTINATION ${CMAKE_INSTALL_BINDIR})
+
 # Start unit tests.
 add_gtest(test_gaia_db_extract
   "tests/test_gaia_db_extract.cpp;src/gaia_db_extract.cpp;src/table_iterator.cpp"
