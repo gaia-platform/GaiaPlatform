@@ -159,13 +159,6 @@ inline void apply_log_to_locators(locators_t* locators, txn_log_t* txn_log, size
     }
 }
 
-inline gaia::db::txn_log_t* get_txn_log_from_offset(log_offset_t offset)
-{
-    DEBUG_ASSERT_PRECONDITION(offset.is_valid(), "Txn log offset is invalid!");
-    gaia::db::logs_t* logs = gaia::db::get_logs();
-    return &((*logs)[offset]);
-}
-
 inline void apply_log_from_offset(locators_t* locators, log_offset_t log_offset, size_t starting_log_record_index = 0)
 {
     txn_log_t* txn_log = get_txn_log_from_offset(log_offset);
@@ -178,6 +171,8 @@ inline index::db_index_t id_to_index(common::gaia_id_t index_id)
 
     return (it != get_indexes()->end()) ? it->second : nullptr;
 }
+
+// FIXME: pull out slow path to make this more inlinable!
 
 // Allocate an object from the "data" shared memory segment.
 // The `size` argument *does not* include the object header size!
@@ -226,6 +221,27 @@ inline void allocate_object(
 
     // Update locator array to point to the new offset.
     update_locator(locator, object_offset);
+}
+
+// Record a transactional operation in the txn log.
+inline void log_txn_operation(
+    gaia_locator_t locator,
+    gaia_offset_t old_offset,
+    gaia_offset_t new_offset)
+{
+    txn_log_t* txn_log = get_txn_log();
+    if (txn_log->record_count == c_max_log_records)
+    {
+        throw transaction_object_limit_exceeded_internal();
+    }
+
+    // Initialize the new record and increment the record count.
+    auto& lr = txn_log->log_records[txn_log->record_count++];
+    // The log record sequence should start at 0.
+    lr.sequence = txn_log->record_count - 1;
+    lr.locator = locator;
+    lr.old_offset = old_offset;
+    lr.new_offset = new_offset;
 }
 
 inline bool acquire_txn_log_reference(log_offset_t log_offset, gaia_txn_id_t begin_ts)

@@ -16,6 +16,7 @@
 
 #include "data_holder.hpp"
 #include "db_helpers.hpp"
+#include "db_shared_data.hpp"
 #include "field_access.hpp"
 #include "hash_index.hpp"
 #include "range_index.hpp"
@@ -88,7 +89,7 @@ index_record_t index_builder_t::make_record(
         operation != index_record_operation_t::not_set,
         "A valid operation should be set in each index record!");
 
-    return index_record_t{get_current_txn_id(), locator, offset, operation, 0};
+    return index_record_t{get_txn_id(), locator, offset, operation, 0};
 }
 
 bool index_builder_t::index_exists(common::gaia_id_t index_id)
