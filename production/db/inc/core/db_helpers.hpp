@@ -172,7 +172,35 @@ inline index::db_index_t id_to_index(common::gaia_id_t index_id)
     return (it != get_indexes()->end()) ? it->second : nullptr;
 }
 
-// FIXME: pull out slow path to make this more inlinable!
+// This method exists purely to isolate the chunk allocation slow path from
+// allocate_object(), so that it can be more easily inlined.
+inline void allocate_new_chunk(
+    memory_manager::memory_manager_t* memory_manager,
+    memory_manager::chunk_manager_t* chunk_manager)
+{
+    if (chunk_manager->initialized())
+    {
+        // The current chunk is out of memory, so retire it and allocate a new chunk.
+        // In case it is already empty, try to deallocate it after retiring it.
+
+        // Get the session's chunk version for safe deallocation.
+        chunk_version_t version = chunk_manager->get_version();
+        // Now retire the chunk.
+        chunk_manager->retire_chunk(version);
+        // Release ownership of the chunk.
+        chunk_manager->release();
+    }
+
+    // Allocate a new chunk.
+    chunk_offset_t new_chunk_offset = memory_manager->allocate_chunk();
+    if (!new_chunk_offset.is_valid())
+    {
+        throw memory_allocation_error_internal();
+    }
+
+    // Initialize the new chunk.
+    chunk_manager->initialize(new_chunk_offset);
+}
 
 // Allocate an object from the "data" shared memory segment.
 // The `size` argument *does not* include the object header size!
@@ -188,30 +216,10 @@ inline void allocate_object(
     gaia_offset_t object_offset = chunk_manager->allocate(size + c_db_object_header_size);
     if (!object_offset.is_valid())
     {
-        if (chunk_manager->initialized())
-        {
-            // The current chunk is out of memory, so retire it and allocate a new chunk.
-            // In case it is already empty, try to deallocate it after retiring it.
+        // Initialize the chunk manager with a new chunk.
+        allocate_new_chunk(memory_manager, chunk_manager);
 
-            // Get the session's chunk version for safe deallocation.
-            chunk_version_t version = chunk_manager->get_version();
-            // Now retire the chunk.
-            chunk_manager->retire_chunk(version);
-            // Release ownership of the chunk.
-            chunk_manager->release();
-        }
-
-        // Allocate a new chunk.
-        chunk_offset_t new_chunk_offset = memory_manager->allocate_chunk();
-        if (!new_chunk_offset.is_valid())
-        {
-            throw memory_allocation_error_internal();
-        }
-
-        // Initialize the new chunk.
-        chunk_manager->initialize(new_chunk_offset);
-
-        // Allocate from new chunk.
+        // Allocate from the new chunk.
         object_offset = chunk_manager->allocate(size + c_db_object_header_size);
     }
 
