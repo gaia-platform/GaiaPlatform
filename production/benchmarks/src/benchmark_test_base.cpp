@@ -11,7 +11,7 @@
 
 namespace gaia
 {
-namespace bench
+namespace benchmark
 {
 
 benchmark_test_base::benchmark_test_base(std::string ddl_path, bool persistence_enabled)
@@ -48,5 +48,5 @@ void benchmark_test_base::TearDown()
     m_server.stop();
 }
 
-} // namespace bench
+} // namespace benchmark
 } // namespace gaia

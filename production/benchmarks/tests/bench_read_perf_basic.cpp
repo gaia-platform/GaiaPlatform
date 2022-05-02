@@ -11,7 +11,7 @@
 
 using namespace gaia::perf_basic;
 using namespace gaia::db;
-using namespace gaia::bench;
+using namespace gaia::benchmark;
 using namespace std;
 
 class bench_read_perf_basic : public benchmark_test_base

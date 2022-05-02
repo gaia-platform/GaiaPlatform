@@ -12,7 +12,7 @@
 
 namespace gaia
 {
-namespace bench
+namespace benchmark
 {
 
 // Flags to enable/disable persistence.
@@ -41,5 +41,5 @@ private:
     bool m_persistence_enabled;
 };
 
-} // namespace bench
+} // namespace benchmark
 } // namespace gaia

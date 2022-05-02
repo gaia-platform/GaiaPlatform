@@ -15,6 +15,7 @@
 #include <sys/wait.h>
 
 #include "gaia/db/db.hpp"
+#include "gaia/exceptions.hpp"
 #include "gaia/logger.hpp"
 
 #include "resource_manager.hpp"
@@ -163,32 +164,22 @@ void server_instance_t::wait_for_init()
 
             gaia::db::begin_session();
         }
-        catch (std::exception& ex)
+        catch (gaia::db::server_connection_failed& ex)
         {
-            // Unfortunately the public API throws a generic std::exception hence
-            // we have to check for the string content.
-            // https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2145
-            if (std::string(ex.what()).find("Connection refused"))
+            if (counter % c_print_error_interval == 0)
             {
-                if (counter % c_print_error_interval == 0)
-                {
-                    gaia_spdlog::warn(
-                        "Cannot connect to Gaia instance:{}; the '{}' process may not be running!",
-                        instance_name(),
-                        c_db_server_exec_name);
-                    counter = 1;
-                }
-                else
-                {
-                    counter++;
-                }
-                std::this_thread::sleep_for(std::chrono::milliseconds(c_poll_interval_millis));
-                continue;
+                gaia_spdlog::warn(
+                    "Cannot connect to Gaia instance:{}; the '{}' process may not be running!",
+                    instance_name(),
+                    c_db_server_exec_name);
+                counter = 1;
             }
             else
             {
-                throw;
+                counter++;
             }
+            std::this_thread::sleep_for(std::chrono::milliseconds(c_poll_interval_millis));
+            continue;
         }
         catch (...)
         {

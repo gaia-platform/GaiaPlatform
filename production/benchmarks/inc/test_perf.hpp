@@ -14,10 +14,15 @@
 
 #include "gaia_internal/common/timer.hpp"
 
+namespace gaia
+{
+namespace benchmark
+{
+
 using g_timer_t = gaia::common::timer_t;
 
-static const size_t c_num_records = 1000;
-static const size_t c_num_iterations = 1;
+static const size_t c_num_records = 1000000;
+static const size_t c_num_iterations = 10;
 
 // This is a hard limit imposed by the db architecture.
 static const size_t c_max_insertion_single_txn = (1UL << 16) - 1;
@@ -220,3 +225,6 @@ void bulk_update(
         gaia::db::commit_transaction();
     }
 }
+
+} // namespace benchmark
+} // namespace gaia
