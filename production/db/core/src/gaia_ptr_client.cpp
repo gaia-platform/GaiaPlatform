@@ -37,7 +37,7 @@ namespace db
 void gaia_ptr_t::reset()
 {
     locators_t* locators = get_locators();
-    client_t::txn_log(m_locator, to_offset(), c_invalid_gaia_offset);
+    log_txn_operation(m_locator, to_offset(), c_invalid_gaia_offset);
 
     // TODO[GAIAPLAT-445]:  We don't expose delete events.
     // if (client_t::is_valid_event(to_ptr()->type))
@@ -62,13 +62,13 @@ gaia_offset_t gaia_ptr_t::to_offset() const
 void gaia_ptr_t::finalize_create()
 {
     WRITE_PROTECT(to_offset());
-    client_t::txn_log(m_locator, c_invalid_gaia_offset, to_offset());
+    log_txn_operation(m_locator, c_invalid_gaia_offset, to_offset());
 }
 
 void gaia_ptr_t::finalize_update(gaia_offset_t old_offset)
 {
     WRITE_PROTECT(to_offset());
-    client_t::txn_log(m_locator, old_offset, to_offset());
+    log_txn_operation(m_locator, old_offset, to_offset());
 }
 
 gaia_ptr_t gaia_ptr_t::create(gaia_id_t id, gaia_type_t type, reference_offset_t references_count, size_t data_size, const void* data)

@@ -18,6 +18,11 @@ inline bool client_t::is_transaction_open()
     return (s_private_locators.is_set());
 }
 
+inline gaia_txn_id_t client_t::get_current_txn_id()
+{
+    return s_txn_id;
+}
+
 inline void client_t::set_commit_trigger(triggers::commit_trigger_fn trigger_fn)
 {
     s_txn_commit_trigger = trigger_fn;
@@ -63,26 +68,6 @@ inline void client_t::verify_no_session()
     {
         throw session_exists_internal();
     }
-}
-
-inline void client_t::txn_log(
-    gaia_locator_t locator,
-    gaia_offset_t old_offset,
-    gaia_offset_t new_offset)
-{
-    txn_log_t* txn_log = get_txn_log();
-    if (txn_log->record_count == c_max_log_records)
-    {
-        throw transaction_object_limit_exceeded_internal();
-    }
-
-    // Initialize the new record and increment the record count.
-    auto& lr = txn_log->log_records[txn_log->record_count++];
-    // The log record sequence should start at 0.
-    lr.sequence = txn_log->record_count - 1;
-    lr.locator = locator;
-    lr.old_offset = old_offset;
-    lr.new_offset = new_offset;
 }
 
 // This generator wraps a socket which reads a stream of values of `T_element_type` from the server.

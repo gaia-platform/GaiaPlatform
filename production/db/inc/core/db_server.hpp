@@ -20,6 +20,7 @@
 
 #include "gaia_internal/common/generator_iterator.hpp"
 
+#include "chunk_manager.hpp"
 #include "db_internal_types.hpp"
 #include "mapped_data.hpp"
 #include "memory_manager.hpp"
@@ -85,6 +86,9 @@ private:
     bool m_skip_catalog_integrity_checks;
 };
 
+// For declarations of friend functions.
+#include "db_shared_data_interface.inc"
+
 class server_t
 {
     friend class gaia_ptr_t;
@@ -97,10 +101,11 @@ class server_t
     friend gaia::db::id_index_t* gaia::db::get_id_index();
     friend gaia::db::type_index_t* gaia::db::get_type_index();
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
-    friend gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id();
     friend gaia::db::txn_log_t* gaia::db::get_txn_log();
+    friend gaia::db::txn_log_t* get_txn_log_from_offset(gaia::db::log_offset_t offset);
     friend gaia::db::memory_manager::memory_manager_t* gaia::db::get_memory_manager();
     friend gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager();
+    friend gaia::db::gaia_txn_id_t gaia::db::get_txn_id();
 
 public:
     static void run(server_config_t server_conf);
