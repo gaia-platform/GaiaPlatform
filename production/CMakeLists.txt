@@ -14,7 +14,7 @@ include(UseJava)
 
 enable_testing()
 
-project(production VERSION 0.4.1)
+project(production VERSION 0.5.0)
 
 # Sets the pre-release version which will be appended to the
 # product version: 0.1.0-alpha.
