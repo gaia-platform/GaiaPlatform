@@ -482,7 +482,6 @@ function (add_benchmark)
 
   add_executable(${ARG_NAME}
     ${ARG_SRC_FILES}
-    ${GAIA_REPO}/production/common/src/timer.cpp
     ${DAC_SRC}
   )
 

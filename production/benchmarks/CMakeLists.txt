@@ -11,11 +11,13 @@ add_library(gaia_tools
   src/gaiac_cmd.cpp
   src/db_server_cmd.cpp
   src/resource_manager.cpp
+  ${GAIA_REPO}/production/common/src/timer.cpp
 )
 
 target_include_directories(gaia_tools PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/inc
   ${GAIA_SPDLOG_INC}
+  ${FLATBUFFERS_INC}
   ${GAIA_INC}
 )
 
