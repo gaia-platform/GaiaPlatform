@@ -23,11 +23,6 @@ target_link_libraries(gaia PRIVATE
 
 install(TARGETS gaia DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-# Customize test commands.
-file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/CTestCustom.cmake"
-  CONTENT "set(CTEST_CUSTOM_PRE_TEST \"daemonize $<TARGET_FILE:gaia_db_server_exec> --persistence disabled\")\nset(CTEST_CUSTOM_POST_TEST \"pkill -f -KILL gaia_db_server\")\n"
-)
-
 #
 # Ensure this test only includes public headers and links to the gaia shared library
 # Emulate what an SDK user does as closely as possible minus gaiat functionality for
