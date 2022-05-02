@@ -202,8 +202,21 @@ set(GAIA_DB_CORE_TEST_INCLUDES
 )
 
 ###############################################
-# PyBind11 wrapper for database.
+# Python and PyBind11 wrapper for database.
 ###############################################
+
+message(CHECK_START "Looking for Python3")
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+if(Python3_FOUND)
+  list(APPEND CMAKE_MESSAGE_INDENT "  ")
+  message(VERBOSE "Python3_EXECUTABLE=${Python3_EXECUTABLE}")
+  message(VERBOSE "Python3_INCLUDE_DIRS=${Python3_INCLUDE_DIRS}")
+  list(POP_BACK CMAKE_MESSAGE_INDENT)
+  message(CHECK_PASS "found")
+else()
+  message(CHECK_FAIL "not found")
+endif()
+
 find_package(pybind11)
 
 if(Python3_FOUND AND pybind11_FOUND)
@@ -226,7 +239,7 @@ if(Python3_FOUND AND pybind11_FOUND)
   # Python wrapper unit test.
   # This test is disabled for Debug builds.
   # See: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-602
-  if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+  if(ENABLE_PYTHON_TESTS AND (NOT CMAKE_BUILD_TYPE STREQUAL "Debug"))
     configure_file(tests/test_db.py . COPYONLY)
     add_test(
       NAME test_db_pybind
