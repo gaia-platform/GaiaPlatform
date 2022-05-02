@@ -9,13 +9,15 @@
 
 #include "gaia/db/db.hpp"
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
+#include "gaia_internal/common/debug_assert.hpp"
 #include "gaia_internal/db/db.hpp"
 #include "gaia_internal/db/db_object.hpp"
 #include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/exceptions.hpp"
 
 #include "chunk_manager.hpp"
+#include "db_hash_map.hpp"
 #include "db_internal_types.hpp"
 #include "db_shared_data.hpp"
 #include "memory_manager.hpp"
@@ -30,12 +32,12 @@ inline common::gaia_id_t allocate_id()
 {
     counters_t* counters = gaia::db::get_counters();
     auto new_id = ++(counters->last_id);
+
     // This is an expensive check in a hot path.
-#ifdef DEBUG
-    ASSERT_INVARIANT(
+    DEBUG_ASSERT_INVARIANT(
         new_id <= std::numeric_limits<common::gaia_id_t::value_type>::max(),
         "Gaia ID exceeds allowed range!");
-#endif
+
     return static_cast<common::gaia_id_t>(new_id);
 }
 
@@ -43,12 +45,12 @@ inline gaia_txn_id_t allocate_txn_id()
 {
     counters_t* counters = gaia::db::get_counters();
     auto new_txn_id = ++(counters->last_txn_id);
+
     // This is an expensive check in a hot path.
-#ifdef DEBUG
-    ASSERT_INVARIANT(
+    DEBUG_ASSERT_INVARIANT(
         new_txn_id < (1UL << transactions::txn_metadata_entry_t::c_txn_ts_bit_width),
         "Transaction ID exceeds allowed range!");
-#endif
+
     return static_cast<gaia_txn_id_t>(new_txn_id);
 }
 
@@ -81,12 +83,12 @@ inline gaia_locator_t get_last_locator()
 {
     counters_t* counters = gaia::db::get_counters();
     auto last_locator_value = counters->last_locator.load();
+
     // This is an expensive check in a hot path.
-#ifdef DEBUG
-    ASSERT_INVARIANT(
+    DEBUG_ASSERT_INVARIANT(
         last_locator_value <= c_max_locators,
         "Largest locator value exceeds allowed range!");
-#endif
+
     return static_cast<gaia_locator_t>(last_locator_value);
 }
 
@@ -96,6 +98,18 @@ inline bool locator_exists(gaia_locator_t locator)
     return (locator.is_valid())
         && (locator <= get_last_locator())
         && ((*locators)[locator] != c_invalid_gaia_offset);
+}
+
+// Returns true if ID was not already registered, false otherwise.
+inline bool register_locator_for_id(
+    common::gaia_id_t id, gaia_locator_t locator)
+{
+    return gaia::db::db_hash_map::insert(id, locator);
+}
+
+inline gaia_locator_t id_to_locator(common::gaia_id_t id)
+{
+    return id.is_valid() ? gaia::db::db_hash_map::find(id) : c_invalid_gaia_locator;
 }
 
 inline gaia_offset_t locator_to_offset(gaia_locator_t locator)
@@ -119,6 +133,15 @@ inline db_object_t* locator_to_ptr(gaia_locator_t locator)
     return offset_to_ptr(locator_to_offset(locator));
 }
 
+inline db_object_t* id_to_ptr(common::gaia_id_t id)
+{
+    gaia_locator_t locator = id_to_locator(id);
+    ASSERT_INVARIANT(
+        locator_exists(locator),
+        "An invalid locator was returned by id_to_locator()!");
+    return locator_to_ptr(locator);
+}
+
 // This is only meant for "fuzzy snapshots" of the current last_txn_id; there
 // are no memory barriers.
 inline gaia_txn_id_t get_last_txn_id()
@@ -138,7 +161,7 @@ inline void apply_log_to_locators(locators_t* locators, txn_log_t* txn_log, size
 
 inline gaia::db::txn_log_t* get_txn_log_from_offset(log_offset_t offset)
 {
-    ASSERT_PRECONDITION(offset != gaia::db::c_invalid_log_offset, "Txn log offset is invalid!");
+    DEBUG_ASSERT_PRECONDITION(offset.is_valid(), "Txn log offset is invalid!");
     gaia::db::logs_t* logs = gaia::db::get_logs();
     return &((*logs)[offset]);
 }
@@ -176,7 +199,7 @@ inline void allocate_object(
             // In case it is already empty, try to deallocate it after retiring it.
 
             // Get the session's chunk version for safe deallocation.
-            memory_manager::chunk_version_t version = chunk_manager->get_version();
+            chunk_version_t version = chunk_manager->get_version();
             // Now retire the chunk.
             chunk_manager->retire_chunk(version);
             // Release ownership of the chunk.
@@ -184,7 +207,7 @@ inline void allocate_object(
         }
 
         // Allocate a new chunk.
-        memory_manager::chunk_offset_t new_chunk_offset = memory_manager->allocate_chunk();
+        chunk_offset_t new_chunk_offset = memory_manager->allocate_chunk();
         if (!new_chunk_offset.is_valid())
         {
             throw memory_allocation_error_internal();

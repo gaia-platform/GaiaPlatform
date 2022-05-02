@@ -95,6 +95,28 @@ TEST_F(dac_object_test, create_employee_delete)
     commit_transaction();
 }
 
+// Verify that insert/update/delete outside a transaction throw the expected exception.
+TEST_F(dac_object_test, no_open_transaction)
+{
+    // An uninitialized writer can be created outside a transaction.
+    auto writer = employee_writer();
+
+    // Insert will fail with no open transaction.
+    EXPECT_THROW(writer.insert_row(), no_open_transaction);
+
+    // Now insert the row.
+    begin_transaction();
+    auto employee = employee_t::get(writer.insert_row());
+    commit_transaction();
+
+    // Update will fail with no open transaction.
+    writer.name_last = "Smith";
+    EXPECT_THROW(writer.update_row(), no_open_transaction);
+
+    // Delete will fail with no open transaction.
+    EXPECT_THROW(employee.delete_row(), no_open_transaction);
+}
+
 // Scan multiple rows
 TEST_F(dac_object_test, new_set_ins)
 {
@@ -519,8 +541,7 @@ TEST_F(dac_object_test, auto_txn_begin)
 
 TEST_F(dac_object_test, auto_txn)
 {
-    // Specify auto_begin = false
-    auto_transaction_t txn(false);
+    auto_transaction_t txn(auto_transaction_t::no_auto_restart);
     auto writer = employee_writer();
 
     writer.name_last = "Hawkins";

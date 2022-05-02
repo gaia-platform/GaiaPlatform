@@ -7,7 +7,7 @@
 
 #include "gaia/common.hpp"
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/system_table_types.hpp"
 #include "gaia_internal/db/catalog_core.hpp"
 #include "gaia_internal/db/gaia_ptr.hpp"
@@ -15,6 +15,7 @@
 #include "gaia_internal/db/type_metadata.hpp"
 #include "gaia_internal/exceptions.hpp"
 
+#include "db_caches.hpp"
 #include "db_client.hpp"
 #include "db_helpers.hpp"
 #include "field_access.hpp"
@@ -81,7 +82,7 @@ void parent_side_auto_connect(
 {
     // Check if the given field is used in establishing a relationship where the
     // field's table is on the parent side.
-    for (auto relationship_view : catalog_core::list_relationship_from(table_id))
+    for (const auto& relationship_view : catalog_core::list_relationship_from(table_id))
     {
         if (relationship_view.parent_field_positions()->size() != 1
             || relationship_view.parent_field_positions()->Get(0) != field_position)
@@ -96,10 +97,11 @@ void parent_side_auto_connect(
         // children by detaching the children's reference anchor.
         if (references[relationship_view.first_child_offset()].is_valid())
         {
-            auto parent_anchor = gaia_ptr_t::from_gaia_id(references[relationship_view.first_child_offset()]);
-            if (parent_anchor.references()[c_ref_anchor_first_child_offset].is_valid())
+            gaia_id_t anchor_id = references[relationship_view.first_child_offset()];
+            auto anchor = gaia_ptr_t::from_gaia_id(anchor_id);
+            if (anchor.references()[c_ref_anchor_first_child_offset].is_valid())
             {
-                parent_anchor.set_reference(c_ref_anchor_parent_offset, c_invalid_gaia_id);
+                anchor.set_reference(c_ref_anchor_parent_offset, c_invalid_gaia_id);
                 references[relationship_view.first_child_offset()] = c_invalid_gaia_id;
             }
         }
@@ -135,6 +137,29 @@ void parent_side_auto_connect(
     }
 }
 
+void connect_child_to_anchor(
+    gaia_id_t id,
+    gaia_id_t* references,
+    const catalog_core::relationship_view_t& relationship_view,
+    gaia_id_t anchor_id)
+{
+    auto anchor = gaia_ptr_t::from_gaia_id(anchor_id);
+
+    // Link us to the anchor.
+    references[relationship_view.parent_offset()] = anchor_id;
+    references[relationship_view.next_child_offset()] = anchor.references()[c_ref_anchor_first_child_offset];
+
+    // Link the anchor to us.
+    anchor.set_reference(c_ref_anchor_first_child_offset, id);
+
+    // Link us to the next child, if one exists.
+    if (references[relationship_view.next_child_offset()].is_valid())
+    {
+        auto next_child = gaia_ptr_t::from_gaia_id(references[relationship_view.next_child_offset()]);
+        next_child.set_reference(relationship_view.prev_child_offset(), id);
+    }
+}
+
 void child_side_auto_connect(
     gaia_id_t id,
     gaia_id_t table_id,
@@ -142,10 +167,9 @@ void child_side_auto_connect(
     const uint8_t* payload,
     field_position_t field_position)
 {
-
     // Check if the given field is used in establishing a relationship where the
     // field's table is on the child side.
-    for (auto relationship_view : catalog_core::list_relationship_to(table_id))
+    for (const auto& relationship_view : catalog_core::list_relationship_to(table_id))
     {
         if (relationship_view.child_field_positions()->size() != 1
             || relationship_view.child_field_positions()->Get(0) != field_position)
@@ -161,17 +185,20 @@ void child_side_auto_connect(
         {
             // Update the next child if exists.
             auto next_child = gaia_ptr_t::from_gaia_id(references[relationship_view.next_child_offset()]);
-            next_child.set_reference(relationship_view.prev_child_offset(), references[relationship_view.prev_child_offset()]);
+            next_child.set_reference(
+                relationship_view.prev_child_offset(), references[relationship_view.prev_child_offset()]);
         }
+
         if (references[relationship_view.prev_child_offset()].is_valid())
         {
             // Update the previous child if exists.
             auto prev_child = gaia_ptr_t::from_gaia_id(references[relationship_view.prev_child_offset()]);
-            prev_child.set_reference(relationship_view.next_child_offset(), references[relationship_view.next_child_offset()]);
+            prev_child.set_reference(
+                relationship_view.next_child_offset(), references[relationship_view.next_child_offset()]);
         }
         else if (references[relationship_view.parent_offset()].is_valid())
         {
-            // This is the first child because previous node does not exist.
+            // This is the first child because the previous node does not exist.
             bool anchor_deleted = false;
             if (references[relationship_view.next_child_offset()].is_valid() == false)
             {
@@ -192,6 +219,7 @@ void child_side_auto_connect(
                 anchor.set_reference(c_ref_anchor_first_child_offset, references[relationship_view.next_child_offset()]);
             }
         }
+
         references[relationship_view.prev_child_offset()] = c_invalid_gaia_id;
         references[relationship_view.next_child_offset()] = c_invalid_gaia_id;
         references[relationship_view.parent_offset()] = c_invalid_gaia_id;
@@ -211,17 +239,8 @@ void child_side_auto_connect(
             // parent's child anchor node.
             auto parent = gaia_ptr_t::from_gaia_id(parent_id);
             gaia_id_t anchor_id = parent.references()[relationship_view.first_child_offset()];
-            auto anchor = gaia_ptr_t::from_gaia_id(anchor_id);
-            references[relationship_view.parent_offset()] = anchor_id;
-            references[relationship_view.next_child_offset()] = anchor.references()[c_ref_anchor_first_child_offset];
 
-            anchor.set_reference(c_ref_anchor_first_child_offset, id);
-
-            if (references[relationship_view.next_child_offset()].is_valid())
-            {
-                auto next_child = gaia_ptr_t::from_gaia_id(references[relationship_view.next_child_offset()]);
-                next_child.set_reference(relationship_view.prev_child_offset(), id);
-            }
+            connect_child_to_anchor(id, references, relationship_view, anchor_id);
         }
         else
         {
@@ -232,26 +251,22 @@ void child_side_auto_connect(
                 table_id,
                 relationship_view.child_table_id(),
                 relationship_view.child_field_positions()->Get(0));
+
             if (child_id.is_valid())
             {
                 // We have found some child node with the same linked field
-                // value. Insert the node to the existing anchor chain.
+                // value. Insert the node into the existing anchor chain.
                 auto child = gaia_ptr_t::from_gaia_id(child_id);
                 gaia_id_t anchor_id = child.references()[relationship_view.parent_offset()];
-                auto anchor = gaia_ptr_t::from_gaia_id(anchor_id);
-                references[relationship_view.parent_offset()] = anchor_id;
-                references[relationship_view.next_child_offset()] = anchor.references()[c_ref_anchor_first_child_offset];
 
-                anchor.set_reference(c_ref_anchor_first_child_offset, id);
-
-                if (references[relationship_view.next_child_offset()].is_valid())
-                {
-                    auto next_child = gaia_ptr_t::from_gaia_id(references[relationship_view.next_child_offset()]);
-                    next_child.set_reference(relationship_view.prev_child_offset(), id);
-                }
+                connect_child_to_anchor(id, references, relationship_view, anchor_id);
             }
-            else if (references[relationship_view.parent_offset()].is_valid() == false)
+            else
             {
+                ASSERT_INVARIANT(
+                    references[relationship_view.parent_offset()].is_valid() == false,
+                    "Child node was unexpectedly connected to a parent!");
+
                 // This child has no matching parent or other child of the
                 // same field value. Create an anchor node for the child to
                 // form an anchor chain of itself.
@@ -276,10 +291,36 @@ void auto_connect(
         return;
     }
 
-    for (auto field_position : candidate_fields)
+    if (caches::table_relationship_fields_cache_t::get()->is_initialized())
     {
-        parent_side_auto_connect(id, table_id, references, payload, field_position);
-        child_side_auto_connect(id, table_id, references, payload, field_position);
+        // Check table_relationship_fields_cache_t for the fields involved in relationships.
+        const auto& relationship_field_set_pair = caches::table_relationship_fields_cache_t::get()->get(table_id);
+        if (relationship_field_set_pair.first.empty()
+            && relationship_field_set_pair.second.empty())
+        {
+            return;
+        }
+
+        // Only try to auto-connect fields actually involved in relationships.
+        for (auto field_position : candidate_fields)
+        {
+            if (relationship_field_set_pair.first.find(field_position) != relationship_field_set_pair.first.end())
+            {
+                parent_side_auto_connect(id, table_id, references, payload, field_position);
+            }
+            if (relationship_field_set_pair.second.find(field_position) != relationship_field_set_pair.second.end())
+            {
+                child_side_auto_connect(id, table_id, references, payload, field_position);
+            }
+        }
+    }
+    else
+    {
+        for (auto field_position : candidate_fields)
+        {
+            parent_side_auto_connect(id, table_id, references, payload, field_position);
+            child_side_auto_connect(id, table_id, references, payload, field_position);
+        }
     }
 }
 
@@ -303,12 +344,14 @@ void auto_connect(
     {
         return;
     }
+
     field_position_list_t candidate_fields;
     gaia_id_t table_id = type_id_mapping_t::instance().get_table_id(type);
     for (auto field_view : catalog_core::list_fields(table_id))
     {
         candidate_fields.push_back(field_view.position());
     }
+
     auto_connect(id, type, table_id, references, payload, candidate_fields);
 }
 
@@ -329,8 +372,6 @@ gaia_ptr_t create(
     size_t data_size,
     const void* data)
 {
-    client_t::verify_txn_active();
-
     const type_metadata_t& metadata = type_registry_t::instance().get(type);
     reference_offset_t references_count = metadata.references_count();
 
@@ -351,7 +392,7 @@ gaia_ptr_t create(
 
     if (client_t::is_valid_event(type))
     {
-        client_t::s_events.emplace_back(triggers::event_type_t::row_insert, type, id, triggers::c_empty_position_list, get_current_txn_id());
+        client_t::log_event(triggers::event_type_t::row_insert, type, id, triggers::c_empty_position_list);
     }
     return obj;
 }
@@ -387,19 +428,23 @@ void update_payload(gaia_ptr_t& obj, size_t data_size, const void* data)
 
     field_position_list_t changed_fields = compute_payload_diff(obj.type(), old_data, new_data);
 
-    auto_connect(
-        obj.id(),
-        obj.type(),
-        type_id_mapping_t::instance().get_table_id(obj.type()),
-        obj.references(),
-        new_data,
-        changed_fields);
+    const type_metadata_t& metadata = type_registry_t::instance().get(obj.type());
+    if (metadata.has_value_linked_relationship())
+    {
+        auto_connect(
+            obj.id(),
+            obj.type(),
+            type_id_mapping_t::instance().get_table_id(obj.type()),
+            obj.references(),
+            new_data,
+            changed_fields);
+    }
 
     obj.finalize_update(old_offset);
 
     if (client_t::is_valid_event(obj.type()))
     {
-        client_t::s_events.emplace_back(triggers::event_type_t::row_update, obj.type(), obj.id(), changed_fields, get_current_txn_id());
+        client_t::log_event(triggers::event_type_t::row_update, obj.type(), obj.id(), changed_fields);
     }
 }
 

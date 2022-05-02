@@ -7,10 +7,9 @@
 
 #include <cstring>
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/db/type_metadata.hpp"
 
-#include "db_hash_map.hpp"
 #include "db_helpers.hpp"
 #include "type_index.hpp"
 #include "type_index_cursor.hpp"
@@ -37,7 +36,7 @@ gaia_ptr_t gaia_ptr_t::from_locator(
 gaia_ptr_t gaia_ptr_t::from_gaia_id(
     common::gaia_id_t id)
 {
-    return gaia_ptr_t(db_hash_map::find(id));
+    return gaia_ptr_t(id_to_locator(id));
 }
 
 gaia_ptr_t gaia_ptr_t::find_first(common::gaia_type_t type)

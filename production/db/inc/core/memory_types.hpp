@@ -8,13 +8,11 @@
 #include <climits>
 #include <cstdint>
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
 
 namespace gaia
 {
 namespace db
-{
-namespace memory_manager
 {
 
 // This alignment applies to chunks and to individual object allocations within
@@ -176,7 +174,6 @@ constexpr size_t c_chunk_version_shift{c_chunk_state_bit_width};
 static_assert(
     common::get_enum_value(chunk_state_t::last_value) < (1 << c_chunk_state_bit_width));
 
-} // namespace memory_manager
 } // namespace db
 } // namespace gaia
 
@@ -185,11 +182,11 @@ namespace std
 
 // This enables chunk_offset_t to be hashed and used as a key in maps.
 template <>
-struct hash<gaia::db::memory_manager::chunk_offset_t>
+struct hash<gaia::db::chunk_offset_t>
 {
-    size_t operator()(const gaia::db::memory_manager::chunk_offset_t& chunk_offset) const noexcept
+    size_t operator()(const gaia::db::chunk_offset_t& chunk_offset) const noexcept
     {
-        return std::hash<gaia::db::memory_manager::chunk_offset_t::value_type>()(chunk_offset.value());
+        return std::hash<gaia::db::chunk_offset_t::value_type>()(chunk_offset.value());
     }
 };
 

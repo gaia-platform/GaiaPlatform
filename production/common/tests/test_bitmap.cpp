@@ -9,12 +9,12 @@
 
 #include <gaia/common.hpp>
 
-#include "bitmap.hpp"
+#include "gaia_internal/common/bitmap.hpp"
 
 using namespace std;
 
-using namespace gaia::db::memory_manager;
 using namespace gaia::common;
+using namespace gaia::common::bitmap;
 
 TEST(bitmap, set_bit_value_and_is_bit_set)
 {

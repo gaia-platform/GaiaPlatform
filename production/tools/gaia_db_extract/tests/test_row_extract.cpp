@@ -97,7 +97,7 @@ protected:
         while (true)
         {
             // Produce the JSON string of this selection.
-            auto extracted_rows = gaia_db_extract("addr_book", "employee", row_id, block_size);
+            auto extracted_rows = gaia_db_extract("addr_book", "employee", row_id, block_size, "", c_start_at_first);
             if (!extracted_rows.compare(c_empty_object))
             {
                 break;
@@ -198,7 +198,7 @@ TEST_F(row_field_values_test, verify_field_values)
         commit_transaction();
 
         // Produce the JSON string of this selection.
-        auto extracted_rows = gaia_db_extract("amr_swarm", "configuration", c_start_at_first, c_row_limit_unlimited);
+        auto extracted_rows = gaia_db_extract("amr_swarm", "configuration", c_start_at_first, c_row_limit_unlimited, "", c_start_at_first);
         EXPECT_NE(extracted_rows.compare(c_empty_object), 0);
 
         // Parse all of the rows.
@@ -250,7 +250,7 @@ TEST_F(row_field_values_test, verify_field_values)
         commit_transaction();
 
         // Produce the JSON string of this selection.
-        auto extracted_rows = gaia_db_extract("amr_swarm", "robot", c_start_at_first, c_row_limit_unlimited);
+        auto extracted_rows = gaia_db_extract("amr_swarm", "robot", c_start_at_first, c_row_limit_unlimited, "", c_start_at_first);
         EXPECT_NE(extracted_rows.compare(c_empty_object), 0);
 
         // Parse all of the rows.

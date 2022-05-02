@@ -10,9 +10,9 @@
 #include <iostream>
 #include <memory>
 
-#include "gaia_internal/common/retail_assert.hpp"
+#include "gaia_internal/common/assert.hpp"
+#include "gaia_internal/common/bitmap.hpp"
 
-#include "bitmap.hpp"
 #include "chunk_manager.hpp"
 #include "memory_helpers.hpp"
 #include "memory_types.hpp"
@@ -20,6 +20,7 @@
 using namespace std;
 
 using namespace gaia::common;
+using namespace gaia::common::bitmap;
 
 namespace gaia
 {

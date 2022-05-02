@@ -17,8 +17,8 @@
 
 #include "gaia/exception.hpp"
 
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/fd_helpers.hpp"
-#include "gaia_internal/common/retail_assert.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
 #include "gaia_internal/common/system_error.hpp"
 #include "gaia_internal/db/db.hpp"
@@ -39,7 +39,7 @@ bool is_little_endian()
 
 bool has_expected_page_size()
 {
-    return (::sysconf(_SC_PAGESIZE) == memory_manager::c_page_size_in_bytes);
+    return (::sysconf(_SC_PAGESIZE) == c_page_size_in_bytes);
 }
 
 static uint64_t read_integer_from_proc_fd(int proc_fd)
