@@ -11,6 +11,7 @@ add_library(gaia_tools
   src/gaiac_cmd.cpp
   src/db_server_cmd.cpp
   src/resource_manager.cpp
+  # We can't link against gaia_common, test_perf.hpp uses timer.hpp to measure times.
   ${GAIA_REPO}/production/common/src/timer.cpp
 )
 
