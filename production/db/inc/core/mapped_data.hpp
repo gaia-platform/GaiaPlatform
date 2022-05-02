@@ -36,7 +36,9 @@ template <typename T_data>
 class core_mapped_data_t : public base_mapped_data_t
 {
 public:
-    core_mapped_data_t();
+    // Thread-local variables cannot have nontrivial constructors without
+    // prohibitive overhead.
+    constexpr core_mapped_data_t() = default;
 
     // Copy semantics is disabled and moves should be performed via reset().
     core_mapped_data_t(const core_mapped_data_t& other) = delete;
@@ -44,7 +46,9 @@ public:
     core_mapped_data_t& operator=(const core_mapped_data_t& rhs) = delete;
     core_mapped_data_t& operator=(core_mapped_data_t&& rhs) = delete;
 
-    ~core_mapped_data_t();
+    // Thread-local variables cannot have nontrivial destructors without
+    // prohibitive overhead.
+    ~core_mapped_data_t() = default;
 
     // Stops tracking any data and reverts back to uninitialized state.
     void clear();
@@ -67,12 +71,12 @@ protected:
     void close_internal();
 
 protected:
-    bool m_is_set;
-    int m_fd;
-    T_data* m_data;
+    bool m_is_set{false};
+    int m_fd{-1};
+    T_data* m_data{nullptr};
 
     // This is used to track the mapped data size, so we can call unmap_fd_data()/munmap() with the same value.
-    size_t m_mapped_data_size;
+    size_t m_mapped_data_size{0};
 };
 
 // This class abstracts the server and client operations with memory-mapped data.
@@ -81,7 +85,7 @@ template <typename T_data>
 class mapped_data_t : public core_mapped_data_t<T_data>
 {
 public:
-    mapped_data_t() = default;
+    constexpr mapped_data_t() = default;
 
     // Copy semantics is disabled and moves should be performed via reset().
     mapped_data_t(const mapped_data_t& other) = delete;

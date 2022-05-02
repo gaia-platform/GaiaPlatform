@@ -4,18 +4,6 @@
 /////////////////////////////////////////////
 
 template <typename T_data>
-core_mapped_data_t<T_data>::core_mapped_data_t()
-{
-    clear();
-}
-
-template <typename T_data>
-core_mapped_data_t<T_data>::~core_mapped_data_t()
-{
-    close_internal();
-}
-
-template <typename T_data>
 void core_mapped_data_t<T_data>::clear()
 {
     m_is_set = false;
