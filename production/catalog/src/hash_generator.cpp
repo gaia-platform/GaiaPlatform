@@ -51,7 +51,7 @@ void add_hash(multi_segment_hash& parent_hash, gaia_field_t field)
     field_hash.hash_add(field.type());
     field_hash.hash_add(field.repeated_count());
     field_hash.hash_add(field.position());
-    // active? Currently 'active' is unused.
+    // active? Currently, 'active' is unused.
     field_hash.hash_add(field.unique());
     field_hash.hash_add(field.optional());
     field_hash.hash_calc();
@@ -75,17 +75,11 @@ void add_hash(multi_segment_hash& parent_hash, gaia_relationship_t relationship)
     relationship_hash.hash_add(relationship.to_child_link_name());
     relationship_hash.hash_add(relationship.cardinality());
     relationship_hash.hash_add(relationship.parent_required());
-    for (
-        size_t parent_position = 0;
-        parent_position < relationship.parent_field_positions().size();
-        ++parent_position)
+    for (size_t parent_position = 0; parent_position < relationship.parent_field_positions().size(); ++parent_position)
     {
         relationship_hash.hash_add(relationship.parent_field_positions()[parent_position]);
     }
-    for (
-        size_t child_position = 0;
-        child_position < relationship.child_field_positions().size();
-        ++child_position)
+    for (size_t child_position = 0; child_position < relationship.child_field_positions().size(); ++child_position)
     {
         relationship_hash.hash_add(relationship.parent_field_positions()[child_position]);
     }
@@ -140,15 +134,15 @@ void add_hash(const std::string db_name)
         // Prepare to collect and sort the tables by the table name. This ensures that the
         // same hash for the database will be generated even if the table definitions have been
         // re-arranged in the DDL.
-        vector<pair<string, common::gaia_id_t>> table_vector;
+        vector<pair<string, common::gaia_id_t>> table_list;
         // Prepare to collect and sort the indices by the table name. This ensures that the
         // same hash for the database will be generated even if the index definitions have been
         // re-arranged in the DDL.
-        vector<pair<string, common::gaia_id_t>> index_vector;
+        vector<pair<string, common::gaia_id_t>> index_list;
         // Prepare to collect and sort the relations by the table name. This ensures that the
         // same hash for the database will be generated even if the relation definitions have been
         // re-arranged in the DDL.
-        vector<pair<string, common::gaia_id_t>> relationship_vector;
+        vector<pair<string, common::gaia_id_t>> relationship_list;
 
         // The table hash is composed of the hashes for the table's name and type, followed
         // by the hashes of all indexes, fields and relationships that are connected to this table.
@@ -157,7 +151,7 @@ void add_hash(const std::string db_name)
             pair<string, common::gaia_id_t> table_pair;
             table_pair.first = table.name();
             table_pair.second = table.gaia_id();
-            table_vector.push_back(table_pair);
+            table_list.push_back(table_pair);
         }
 
         for (const auto& index : gaia_index_t::list())
@@ -169,7 +163,7 @@ void add_hash(const std::string db_name)
                 pair<string, common::gaia_id_t> index_pair;
                 index_pair.first = index.name();
                 index_pair.second = index.gaia_id();
-                index_vector.push_back(index_pair);
+                index_list.push_back(index_pair);
             }
         }
 
@@ -182,25 +176,25 @@ void add_hash(const std::string db_name)
                 pair<string, common::gaia_id_t> relationship_pair;
                 relationship_pair.first = relationship.name();
                 relationship_pair.second = relationship.gaia_id();
-                relationship_vector.push_back(relationship_pair);
+                relationship_list.push_back(relationship_pair);
             }
         }
 
         // Sort the data.
-        sort(table_vector.begin(), table_vector.end(), sort_by_name);
-        sort(index_vector.begin(), index_vector.end(), sort_by_name);
-        sort(relationship_vector.begin(), relationship_vector.end(), sort_by_name);
+        sort(table_list.begin(), table_list.end(), sort_by_name);
+        sort(index_list.begin(), index_list.end(), sort_by_name);
+        sort(relationship_list.begin(), relationship_list.end(), sort_by_name);
 
         // Calculate the hash.
-        for (const auto& table : table_vector)
+        for (const auto& table : table_list)
         {
             add_hash(db_hash, gaia_table_t::get(table.second));
         }
-        for (const auto& index : index_vector)
+        for (const auto& index : index_list)
         {
             add_hash(db_hash, gaia_index_t::get(index.second));
         }
-        for (const auto& relationship : relationship_vector)
+        for (const auto& relationship : relationship_list)
         {
             add_hash(db_hash, gaia_relationship_t::get(relationship.second));
         }
@@ -215,7 +209,7 @@ void add_hash(const std::string db_name)
 // Apply this algorithm on all non-system databases.
 void add_hash()
 {
-    for (auto& db : gaia_database_t::list())
+    for (const auto& db : gaia_database_t::list())
     {
         if (strcmp(db.name(), "catalog") && strcmp(db.name(), "event_log"))
         {
