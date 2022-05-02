@@ -156,19 +156,3 @@ server_t::safe_watermark_t::operator gaia_txn_id_t() const
 {
     return gaia_txn_id_t(m_safe_ts);
 }
-
-bool server_t::acquire_txn_log_reference_from_commit_ts(gaia_txn_id_t commit_ts)
-{
-    ASSERT_PRECONDITION(transactions::txn_metadata_t::is_commit_ts(commit_ts), "Not a commit timestamp!");
-    gaia_txn_id_t begin_ts = transactions::txn_metadata_t::get_begin_ts_from_commit_ts(commit_ts);
-    log_offset_t log_offset = transactions::txn_metadata_t::get_txn_log_offset(commit_ts);
-    return acquire_txn_log_reference(log_offset, begin_ts);
-}
-
-void server_t::release_txn_log_reference_from_commit_ts(gaia_txn_id_t commit_ts)
-{
-    ASSERT_PRECONDITION(transactions::txn_metadata_t::is_commit_ts(commit_ts), "Not a commit timestamp!");
-    gaia_txn_id_t begin_ts = transactions::txn_metadata_t::get_begin_ts_from_commit_ts(commit_ts);
-    log_offset_t log_offset = transactions::txn_metadata_t::get_txn_log_offset(commit_ts);
-    release_txn_log_reference(log_offset, begin_ts);
-}

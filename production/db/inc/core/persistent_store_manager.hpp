@@ -11,9 +11,7 @@
 
 #include "gaia_internal/db/db_types.hpp"
 
-#include "db_helpers.hpp"
 #include "db_internal_types.hpp"
-#include "db_shared_data.hpp"
 #include "rdb_wrapper.hpp"
 
 // This file provides gaia specific functionality to persist writes to & read from
