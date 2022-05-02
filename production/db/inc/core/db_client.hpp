@@ -25,9 +25,10 @@
 
 #include "chunk_manager.hpp"
 #include "client_messenger.hpp"
-#include "db_shared_data.hpp"
+#include "mapped_data.hpp"
 #include "memory_manager.hpp"
 #include "messages_generated.h"
+#include "type_index.hpp"
 
 namespace gaia
 {
@@ -39,14 +40,17 @@ namespace query_processor
 class db_client_proxy_t;
 } // namespace query_processor
 
+// For declarations of friend functions.
+#include "db_shared_data_interface.inc"
+
 class client_t
 {
     /**
      * @throws no_open_transaction_internal if there is no open transaction.
      */
     friend gaia::db::locators_t* gaia::db::get_locators();
-    friend gaia_txn_id_t gaia::db::get_current_txn_id();
     friend gaia::db::txn_log_t* gaia::db::get_txn_log();
+    friend gaia::db::txn_log_t* get_txn_log_from_offset(gaia::db::log_offset_t offset);
 
     /**
      * @throws no_open_session_internal if there is no open session.
@@ -59,24 +63,20 @@ class client_t
     friend gaia::db::index::indexes_t* gaia::db::get_indexes();
     friend gaia::db::memory_manager::memory_manager_t* gaia::db::get_memory_manager();
     friend gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager();
+    friend gaia::db::gaia_txn_id_t gaia::db::get_txn_id();
 
     friend class gaia::db::query_processor::db_client_proxy_t;
 
 public:
+    // These functions are exported from gaia_internal/db/db.hpp.
+    static inline gaia_txn_id_t get_current_txn_id();
+    static void clear_shared_memory();
+    static inline void set_commit_trigger(triggers::commit_trigger_fn trigger_fn);
+
+    // These functions are exported from and documented in db.hpp.
     static inline bool is_session_open();
     static inline bool is_ddl_session_open();
     static inline bool is_transaction_open();
-
-    /**
-     * Called by the rules engine only during initialization and
-     * shutdown.
-     */
-    static inline void set_commit_trigger(triggers::commit_trigger_fn trigger_fn);
-
-    // This test-only function is exported from gaia_internal/db/db.hpp.
-    static void clear_shared_memory();
-
-    // These public functions are exported from and documented in db.hpp.
     static void begin_session(config::session_options_t session_options);
     static void end_session();
     static void begin_transaction();
@@ -101,12 +101,6 @@ public:
 
     static inline void verify_session_active();
     static inline void verify_no_session();
-
-    // Called by internal code to log transactional updates.
-    static inline void txn_log(
-        gaia_locator_t locator,
-        gaia_offset_t old_offset,
-        gaia_offset_t new_offset);
 
     // Called by internal code to log events for rule invocations.
     static inline bool is_valid_event(common::gaia_type_t type);

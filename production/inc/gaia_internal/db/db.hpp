@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "gaia_internal/db/db_types.hpp"
 #include "gaia_internal/db/triggers.hpp"
 
 namespace gaia
@@ -24,6 +25,7 @@ void begin_ddl_session();
 
 /**
  * @brief Sets the DB client's commit trigger function.
+ * Called by the rules engine only during initialization and shutdown.
  */
 void set_commit_trigger(gaia::db::triggers::commit_trigger_fn trigger_fn);
 

@@ -68,7 +68,6 @@ add_library(gaia_db_client STATIC
   src/db_client_config.cpp
   src/db_client.cpp
   src/db_server_instance.cpp
-  src/db_shared_data_client.cpp
   src/exceptions.cpp
   src/gaia_ptr_api.cpp
   src/gaia_ptr_client.cpp
@@ -102,6 +101,8 @@ add_library(rocks_wrapper STATIC
   src/rdb_wrapper.cpp
   src/rdb_object_converter.cpp
   src/persistent_store_manager.cpp)
+# Add GAIA_DB_SERVER preprocessor definition for conditional includes.
+target_compile_definitions(rocks_wrapper PUBLIC GAIA_DB_SERVER=1)
 configure_gaia_target(rocks_wrapper)
 target_include_directories(rocks_wrapper PRIVATE
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
@@ -127,6 +128,8 @@ add_library(gaia_db_persistence STATIC
   src/log_file.cpp
   src/async_disk_writer.cpp
   src/async_write_batch.cpp)
+# Add GAIA_DB_SERVER preprocessor definition for conditional includes.
+target_compile_definitions(gaia_db_persistence PUBLIC GAIA_DB_SERVER=1)
 configure_gaia_target(gaia_db_persistence)
 target_include_directories(gaia_db_persistence PRIVATE
   "${GAIA_DB_CORE_PUBLIC_INCLUDES}"
@@ -142,7 +145,6 @@ set(GAIA_DB_SERVER_SOURCES
   src/catalog_core.cpp
   src/chunk_manager.cpp
   src/db_server.cpp
-  src/db_shared_data_server.cpp
   src/exceptions.cpp
   src/gaia_ptr_server.cpp
   src/gaia_ptr.cpp
@@ -154,6 +156,8 @@ set(GAIA_DB_SERVER_SOURCES
 )
 
 add_library(gaia_db_server ${GAIA_DB_SERVER_SOURCES})
+# Add GAIA_DB_SERVER preprocessor definition for conditional includes.
+target_compile_definitions(gaia_db_server PUBLIC GAIA_DB_SERVER=1)
 add_dependencies(gaia_db_server ${FBS_SOURCE_FILENAMES})
 configure_gaia_target(gaia_db_server)
 target_include_directories(gaia_db_server PUBLIC
@@ -263,7 +267,7 @@ target_link_libraries(gaia_db_catalog_test PRIVATE gaia_common gaia_db_client ga
 add_gtest(test_type_index tests/test_type_index.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_db_client;${LIB_CAP};${LIB_EXPLAIN}")
 add_gtest(test_db_client tests/test_db_client.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_db_client")
 add_gtest(test_db_caches tests/test_db_caches.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_db_client")
-add_gtest(test_concurrent_db_client tests/test_concurrent_db_client.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_db_client")
+add_gtest(test_concurrent_db_client tests/test_concurrent_db_client.cpp "${GEN_DIR};${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_db_client")
 add_gtest(test_gaia_ptr_api tests/test_gaia_ptr_api.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_db_client;gaia_direct;gaia_catalog")
 add_gtest(test_env_instance_name tests/test_db_server_env.cpp "${GAIA_DB_CORE_TEST_INCLUDES}" "gaia_common;gaia_db_client;gaia_direct")
 

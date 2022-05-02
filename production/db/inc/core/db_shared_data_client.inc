@@ -3,14 +3,10 @@
 // All rights reserved.
 /////////////////////////////////////////////
 
-#include "db_client.hpp"
-#include "db_helpers.hpp"
-#include "db_shared_data.hpp"
+inline const bool c_is_running_on_server = false;
+inline const bool c_is_running_on_client = true;
 
-const bool gaia::db::c_is_running_on_server = false;
-const bool gaia::db::c_is_running_on_client = true;
-
-gaia::db::locators_t* gaia::db::get_locators()
+static gaia::db::locators_t* get_locators()
 {
     // Since we don't use this accessor in the client itself, we can assert that
     // it is always non-null (since callers should never be able to observe it
@@ -20,12 +16,12 @@ gaia::db::locators_t* gaia::db::get_locators()
     return gaia::db::client_t::s_private_locators.data();
 }
 
-gaia::db::locators_t* gaia::db::get_locators_for_allocator()
+static gaia::db::locators_t* get_locators_for_allocator()
 {
-    return gaia::db::get_locators();
+    return get_locators();
 }
 
-gaia::db::counters_t* gaia::db::get_counters()
+static gaia::db::counters_t* get_counters()
 {
     // Since we don't use this accessor in the client itself, we can assert that
     // it is always non-null (since callers should never be able to observe it
@@ -35,7 +31,7 @@ gaia::db::counters_t* gaia::db::get_counters()
     return gaia::db::client_t::s_shared_counters.data();
 }
 
-gaia::db::data_t* gaia::db::get_data()
+static gaia::db::data_t* get_data()
 {
     // Since we don't use this accessor in the client itself, we can assert that
     // it is always non-null (since callers should never be able to observe it
@@ -45,7 +41,7 @@ gaia::db::data_t* gaia::db::get_data()
     return gaia::db::client_t::s_shared_data.data();
 }
 
-gaia::db::logs_t* gaia::db::get_logs()
+static gaia::db::logs_t* get_logs()
 {
     // Since we don't use this accessor in the client itself, we can assert that
     // it is always non-null (since callers should never be able to observe it
@@ -55,7 +51,7 @@ gaia::db::logs_t* gaia::db::get_logs()
     return gaia::db::client_t::s_shared_logs.data();
 }
 
-gaia::db::id_index_t* gaia::db::get_id_index()
+static gaia::db::id_index_t* get_id_index()
 {
     // Since we don't use this accessor in the client itself, we can assert that
     // it is always non-null (since callers should never be able to observe it
@@ -65,7 +61,7 @@ gaia::db::id_index_t* gaia::db::get_id_index()
     return gaia::db::client_t::s_shared_id_index.data();
 }
 
-gaia::db::type_index_t* gaia::db::get_type_index()
+static gaia::db::type_index_t* get_type_index()
 {
     // Since we don't use this accessor in the client itself, we can assert that
     // it is always non-null (since callers should never be able to observe it
@@ -75,32 +71,40 @@ gaia::db::type_index_t* gaia::db::get_type_index()
     return gaia::db::client_t::s_shared_type_index.data();
 }
 
-gaia::db::gaia_txn_id_t gaia::db::get_current_txn_id()
-{
-    return gaia::db::client_t::s_txn_id;
-}
-
-gaia::db::index::indexes_t* gaia::db::get_indexes()
+static gaia::db::index::indexes_t* get_indexes()
 {
     return &gaia::db::client_t::s_local_indexes;
 }
 
-gaia::db::memory_manager::memory_manager_t* gaia::db::get_memory_manager()
+static gaia::db::memory_manager::memory_manager_t* get_memory_manager()
 {
     return &gaia::db::client_t::s_memory_manager;
 }
 
-gaia::db::memory_manager::chunk_manager_t* gaia::db::get_chunk_manager()
+static gaia::db::memory_manager::chunk_manager_t* get_chunk_manager()
 {
     return &gaia::db::client_t::s_chunk_manager;
 }
 
-gaia::db::txn_log_t* gaia::db::get_txn_log()
+static gaia::db::txn_log_t* get_txn_log_from_offset(gaia::db::log_offset_t offset)
+{
+    DEBUG_ASSERT_PRECONDITION(offset.is_valid(), "Txn log offset is invalid!");
+
+    gaia::db::logs_t* logs = get_logs();
+    return &((*logs)[offset]);
+}
+
+static gaia::db::txn_log_t* get_txn_log()
 {
     // Since we don't use this accessor in the client itself, we can assert that
     // it is always non-null (since callers should never be able to observe it
     // in its null state, i.e., with the id_index segment unmapped).
     DEBUG_ASSERT_PRECONDITION(gaia::db::client_t::s_txn_log_offset.is_valid(), "Invalid txn log offset!");
 
-    return gaia::db::get_txn_log_from_offset(gaia::db::client_t::s_txn_log_offset);
+    return get_txn_log_from_offset(gaia::db::client_t::s_txn_log_offset);
+}
+
+static gaia::db::gaia_txn_id_t get_txn_id()
+{
+    return gaia::db::client_t::s_txn_id;
 }
