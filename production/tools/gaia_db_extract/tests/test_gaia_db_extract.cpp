@@ -22,6 +22,7 @@ using namespace std;
 using json_t = nlohmann::json;
 
 constexpr char c_table_name[] = "test_table";
+constexpr char c_db_name[] = "extract_test";
 
 class gaia_db_extract_test : public db_ddl_test_base_t
 {
@@ -47,8 +48,8 @@ field_def_list_t gaia_db_extract_test::test_table_fields;
 // comparison method that is white-space and ordering independent.
 TEST_F(gaia_db_extract_test, extract_catalog)
 {
-    create_database("extract_test", false);
-    create_table(c_table_name, test_table_fields);
+    create_database(c_db_name, false);
+    create_table(c_db_name, c_table_name, test_table_fields);
 
     auto extracted_catalog = gaia_db_extract("", "", c_start_at_first, c_row_limit_unlimited, "", c_start_at_first);
     size_t field_count = 0;

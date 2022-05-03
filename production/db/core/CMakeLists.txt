@@ -202,8 +202,21 @@ set(GAIA_DB_CORE_TEST_INCLUDES
 )
 
 ###############################################
-# PyBind11 wrapper for database.
+# Python and PyBind11 wrapper for database.
 ###############################################
+
+message(CHECK_START "Looking for Python3")
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+if(Python3_FOUND)
+  list(APPEND CMAKE_MESSAGE_INDENT "  ")
+  message(VERBOSE "Python3_EXECUTABLE=${Python3_EXECUTABLE}")
+  message(VERBOSE "Python3_INCLUDE_DIRS=${Python3_INCLUDE_DIRS}")
+  list(POP_BACK CMAKE_MESSAGE_INDENT)
+  message(CHECK_PASS "found")
+else()
+  message(CHECK_FAIL "not found")
+endif()
+
 find_package(pybind11)
 
 if(Python3_FOUND AND pybind11_FOUND)
@@ -230,7 +243,11 @@ if(Python3_FOUND AND pybind11_FOUND)
     configure_file(tests/test_db.py . COPYONLY)
     add_test(
       NAME test_db_pybind
-      COMMAND ${Python3_EXECUTABLE} test_db.py)
+      COMMAND
+        daemonize $<TARGET_FILE:gaia_db_server_exec> --persistence disabled &;
+        ${Python3_EXECUTABLE} test_db.py;
+        pkill -f -KILL gaia_db_server
+      )
   endif()
 endif()
 
