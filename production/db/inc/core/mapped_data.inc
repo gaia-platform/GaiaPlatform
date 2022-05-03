@@ -4,18 +4,6 @@
 /////////////////////////////////////////////
 
 template <typename T_data>
-core_mapped_data_t<T_data>::core_mapped_data_t()
-{
-    clear();
-}
-
-template <typename T_data>
-core_mapped_data_t<T_data>::~core_mapped_data_t()
-{
-    close_internal();
-}
-
-template <typename T_data>
 void core_mapped_data_t<T_data>::clear()
 {
     m_is_set = false;
@@ -44,12 +32,6 @@ void core_mapped_data_t<T_data>::reset(core_mapped_data_t<T_data>& other)
 
 template <typename T_data>
 void core_mapped_data_t<T_data>::close()
-{
-    close_internal();
-}
-
-template <typename T_data>
-void core_mapped_data_t<T_data>::close_internal()
 {
     common::unmap_fd_data(m_data, m_mapped_data_size);
     m_mapped_data_size = 0;

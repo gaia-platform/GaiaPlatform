@@ -115,7 +115,10 @@ private:
     thread_local static inline gaia_txn_id_t s_txn_id = c_invalid_gaia_txn_id;
     thread_local static inline log_offset_t s_txn_log_offset = c_invalid_log_offset;
 
-    thread_local static inline mapped_data_t<locators_t> s_private_locators;
+    // NB: We need to use the (nonstandard) __thread attribute rather than
+    // thread_local to ensure that a minimal TLS implementation is used.
+    __thread static inline mapped_data_t<locators_t> s_private_locators{};
+
     thread_local static inline gaia::db::index::indexes_t s_local_indexes{};
 
     // These fields have session lifetime.
@@ -131,11 +134,13 @@ private:
 
     thread_local static inline int s_fd_locators = -1;
 
-    thread_local static inline mapped_data_t<counters_t> s_shared_counters;
-    thread_local static inline mapped_data_t<data_t> s_shared_data;
-    thread_local static inline mapped_data_t<logs_t> s_shared_logs;
-    thread_local static inline mapped_data_t<id_index_t> s_shared_id_index;
-    thread_local static inline mapped_data_t<type_index_t> s_shared_type_index;
+    // NB: We need to use the (nonstandard) __thread attribute rather than
+    // thread_local to ensure that a minimal TLS implementation is used.
+    __thread static inline mapped_data_t<counters_t> s_shared_counters{};
+    __thread static inline mapped_data_t<data_t> s_shared_data{};
+    __thread static inline mapped_data_t<logs_t> s_shared_logs{};
+    __thread static inline mapped_data_t<id_index_t> s_shared_id_index{};
+    __thread static inline mapped_data_t<type_index_t> s_shared_type_index{};
 
     thread_local static inline gaia::db::memory_manager::memory_manager_t s_memory_manager{};
     thread_local static inline gaia::db::memory_manager::chunk_manager_t s_chunk_manager{};

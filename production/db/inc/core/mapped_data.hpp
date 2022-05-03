@@ -32,11 +32,18 @@ protected:
 };
 
 // Core class implementing common functionality for mapped data classes.
+//
+// NB: Because efficient thread-local objects must have trivial destructors,
+// this class does not implement automatic resource reclamation in the
+// destructor. Instead, the close() method must be called explicitly, or
+// resources will be leaked.
 template <typename T_data>
 class core_mapped_data_t : public base_mapped_data_t
 {
 public:
-    core_mapped_data_t();
+    // Thread-local variables cannot have nontrivial constructors without
+    // prohibitive overhead.
+    constexpr core_mapped_data_t() = default;
 
     // Copy semantics is disabled and moves should be performed via reset().
     core_mapped_data_t(const core_mapped_data_t& other) = delete;
@@ -44,7 +51,12 @@ public:
     core_mapped_data_t& operator=(const core_mapped_data_t& rhs) = delete;
     core_mapped_data_t& operator=(core_mapped_data_t&& rhs) = delete;
 
-    ~core_mapped_data_t();
+    // Thread-local variables cannot have nontrivial destructors without
+    // prohibitive overhead.
+    // Because the destructor is empty, cleanup must be done manually by calling
+    // the close() method. Currently, this is done via data_mapping_t::close()
+    // (which performs bulk deallocation of mapping objects).
+    ~core_mapped_data_t() = default;
 
     // Stops tracking any data and reverts back to uninitialized state.
     void clear();
@@ -54,7 +66,6 @@ public:
 
     // Unmaps the data and closes the file descriptor, if one is tracked.
     // Reverts back to uninitialized state.
-    // This permits manual cleanup, before instance destruction time.
     // Can be called repeatedly.
     void close() override;
 
@@ -63,16 +74,12 @@ public:
     inline bool is_set() override;
 
 protected:
-    // Non-virtual internal implementation that can be safely called from destructor.
-    void close_internal();
-
-protected:
-    bool m_is_set;
-    int m_fd;
-    T_data* m_data;
+    bool m_is_set{false};
+    int m_fd{-1};
+    T_data* m_data{nullptr};
 
     // This is used to track the mapped data size, so we can call unmap_fd_data()/munmap() with the same value.
-    size_t m_mapped_data_size;
+    size_t m_mapped_data_size{0};
 };
 
 // This class abstracts the server and client operations with memory-mapped data.
@@ -81,7 +88,7 @@ template <typename T_data>
 class mapped_data_t : public core_mapped_data_t<T_data>
 {
 public:
-    mapped_data_t() = default;
+    constexpr mapped_data_t() = default;
 
     // Copy semantics is disabled and moves should be performed via reset().
     mapped_data_t(const mapped_data_t& other) = delete;
