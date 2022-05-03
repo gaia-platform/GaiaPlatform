@@ -109,7 +109,6 @@ if(ENABLE_LTO)
   target_link_options(gaia_build_options INTERFACE -flto=thin)
 endif()
 
-
 # LLVM and CLANG specific options.
 if(BUILD_GAIA_SDK OR BUILD_GAIA_LLVM_TESTS)
   set(LLVM_ENABLE_WARNINGS OFF CACHE BOOL "")
