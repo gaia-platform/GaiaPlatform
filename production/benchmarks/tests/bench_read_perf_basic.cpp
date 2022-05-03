@@ -18,7 +18,7 @@ class bench_read_perf_basic : public benchmark_test_base
 {
 public:
     bench_read_perf_basic()
-        : benchmark_test_base("schemas/test/perf_basic/perf_basic.ddl", c_persistence_disabled){};
+        : benchmark_test_base("schemas/perf_basic.ddl", c_persistence_disabled){};
 };
 
 void clear_database()
