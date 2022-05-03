@@ -30,21 +30,6 @@ public:
     explicit benchmark_test_base(std::string ddl_path);
 
 protected:
-    static void SetUpTestSuite()
-    {
-        // TODO: Workaround until this PR is merged: https://github.com/gaia-platform/GaiaPlatform/pull/1501
-        //  Kills the gaia_db_server run by ctest which interferes with the gaia_db_server run by the benchmark.
-        system("pkill -f -KILL gaia_db_server ");
-    }
-
-    static void TearDownTestSuite()
-    {
-        // TODO: Workaround until this PR is merged: https://github.com/gaia-platform/GaiaPlatform/pull/1501
-        //  Ctest expects the gaia_db_server to be running in at the end of this test.
-        //  If it is not running it the following tests will fail.
-        system("systemd-run --no-ask-password ../db/core/gaia_db_server --persistence disabled &");
-    }
-
     void SetUp() override;
 
     void TearDown() override;
