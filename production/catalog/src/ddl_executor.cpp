@@ -253,7 +253,6 @@ void ddl_executor_t::bootstrap_catalog()
     // Create the special empty database. Tables created without specifying a
     // database name will be created in it.
     m_empty_db_id = create_database(c_empty_db_name, false);
-    m_db_context = c_empty_db_name;
 
     // Initialize the rule catalog tables.
     //
@@ -506,8 +505,6 @@ gaia_id_t ddl_executor_t::create_database(const string& name, bool throw_on_exis
 
     gaia_log::catalog().debug("Created database '{}' with id '{}'.", name, id);
 
-    switch_db_context(name);
-
     return id;
 }
 
@@ -571,11 +568,11 @@ gaia_id_t ddl_executor_t::create_relationship(
         }
     }
 
-    gaia_id_t link1_src_table_id = get_table_id(in_context(link1.from_database), link1.from_table);
-    gaia_id_t link1_dest_table_id = get_table_id(in_context(link1.to_database), link1.to_table);
+    gaia_id_t link1_src_table_id = get_table_id(link1.from_database, link1.from_table);
+    gaia_id_t link1_dest_table_id = get_table_id(link1.to_database, link1.to_table);
 
-    gaia_id_t link2_src_table_id = get_table_id(in_context(link2.from_database), link2.from_table);
-    gaia_id_t link2_dest_table_id = get_table_id(in_context(link2.to_database), link2.to_table);
+    gaia_id_t link2_src_table_id = get_table_id(link2.from_database, link2.from_table);
+    gaia_id_t link2_dest_table_id = get_table_id(link2.to_database, link2.to_table);
 
     if (link1_src_table_id != link2_dest_table_id)
     {
@@ -675,8 +672,8 @@ gaia_id_t ddl_executor_t::create_relationship(
                 "Defining relationships using composite keys is not supported currently.");
         }
 
-        gaia_id_t first_table_id = get_table_id(in_context(field_map->first.database), field_map->first.table);
-        gaia_id_t second_table_id = get_table_id(in_context(field_map->second.database), field_map->second.table);
+        gaia_id_t first_table_id = get_table_id(field_map->first.database, field_map->first.table);
+        gaia_id_t second_table_id = get_table_id(field_map->second.database, field_map->second.table);
 
         std::vector<gaia_id_t> parent_field_ids, child_field_ids;
         if (first_table_id == parent_table_id && second_table_id == child_table_id)
@@ -970,7 +967,7 @@ void ddl_executor_t::drop_table(const string& db_name, const string& name, bool 
 {
     ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
 
-    gaia_id_t db_id = find_db_id(in_context(db_name));
+    gaia_id_t db_id = find_db_id(db_name);
     if (db_id == c_invalid_gaia_id)
     {
         if (throw_unless_exists)
@@ -1099,7 +1096,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
 {
     ASSERT_PRECONDITION(throw_on_exists || !auto_drop, c_assert_throw_and_auto_drop);
 
-    gaia_id_t db_id = find_db_id(in_context(db_name));
+    gaia_id_t db_id = find_db_id(db_name);
     if (db_id == c_invalid_gaia_id)
     {
         throw db_does_not_exist_internal(db_name);
@@ -1156,7 +1153,7 @@ gaia_id_t ddl_executor_t::create_table_impl(
     gaia_type_t table_type
         = (fixed_type.is_valid())
         ? fixed_type
-        : gaia_type_t(generate_table_type(in_context(db_name), table_name));
+        : gaia_type_t(generate_table_type(db_name, table_name));
 
     ASSERT_INVARIANT(
         !is_type_used(table_type),
@@ -1250,16 +1247,6 @@ string ddl_executor_t::get_full_table_name(const string& db, const string& table
     }
 }
 
-void ddl_executor_t::switch_db_context(const string& db_name)
-{
-    if (!db_name.empty() && find_db_id(db_name) == c_invalid_gaia_id)
-    {
-        throw db_does_not_exist_internal(db_name);
-    }
-
-    m_db_context = db_name;
-}
-
 std::vector<gaia_id_t> ddl_executor_t::find_table_field_ids(
     gaia_id_t table_id, const std::vector<std::string>& field_names)
 {
@@ -1304,7 +1291,7 @@ gaia_id_t ddl_executor_t::create_index(
     ASSERT_PRECONDITION(gaia::db::is_ddl_session_open(), "DDL execution should only happen within a DDL session!");
     ASSERT_PRECONDITION(throw_on_exists || !auto_drop, c_assert_throw_and_auto_drop);
 
-    gaia_id_t table_id = get_table_id(in_context(db_name), table_name);
+    gaia_id_t table_id = get_table_id(db_name, table_name);
 
     for (const auto& index : gaia_table_t::get(table_id).gaia_indexes())
     {
