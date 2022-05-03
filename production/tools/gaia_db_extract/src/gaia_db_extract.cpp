@@ -89,8 +89,8 @@ static json_t to_json(gaia_table_t table)
 
     json["name"] = table.name();
     json["id"] = table.gaia_id().value();
-    json["hash"] = table.hash();
     json["type"] = table.type();
+    json["hash"] = table.hash();
 
     for (const auto& field : table.gaia_fields())
     {

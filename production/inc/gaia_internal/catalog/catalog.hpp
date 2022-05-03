@@ -454,14 +454,6 @@ struct drop_statement_t : statement_t
 void initialize_catalog();
 
 /**
- * Switch to the database.
- *
- * @param name database name
- * @throw db_does_not_exist_internal
- */
-void use_database(const std::string& name);
-
-/**
  * Create a database in the catalog.
  *
  * @param name database name
@@ -710,6 +702,18 @@ inline void check_not_system_db(const std::string& name)
         throw forbidden_system_db_operation_internal(name);
     }
 }
+
+/**
+ * Generate and store hash values in a database definition.
+ *
+ * @param dbname database name
+ */
+void add_hash(const std::string dbname);
+
+/**
+ * Generate and store hash values in all non-system catalogs.
+ */
+void add_hash();
 
 /*@}*/
 } // namespace catalog
