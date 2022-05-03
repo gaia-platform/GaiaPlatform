@@ -19,10 +19,15 @@ std::string find_resource(std::string& path)
     fs::path current_path = fs::current_path();
     fs::path target_path = fs::path(current_path) / path;
 
+    printf("current_path: %s\n", current_path.string().c_str());
+    printf("target_path: %s\n", target_path.string().c_str());
+
     while (!fs::exists(target_path) && current_path.has_root_path() && current_path != current_path.root_path())
     {
         current_path = current_path.parent_path();
         target_path = fs::path(current_path) / path;
+        printf("current_path: %s\n", current_path.string().c_str());
+        printf("target_path: %s\n", target_path.string().c_str());
     }
 
     if (!fs::exists(target_path))
