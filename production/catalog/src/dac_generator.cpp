@@ -238,6 +238,7 @@ std::string class_writer_t::write_header()
     code += generate_list_types() + "\\";
     code += generate_public_constructor() + "\\";
     code += generate_gaia_typename_accessor() + "\\";
+    code += generate_gaia_table_hash_accessor() + "\\";
     code += generate_insert() + "\\";
     code += generate_list_accessor() + "\\";
     code += generate_fields_accessors() + "\\";
@@ -261,6 +262,7 @@ std::string class_writer_t::write_cpp()
     flatbuffers::CodeWriter code(c_indentation_string);
     code += generate_class_section_comment_cpp();
     code += generate_gaia_typename_accessor_cpp() + "\\";
+    code += generate_gaia_table_hash_accessor_cpp() + "\\";
     code += generate_insert_cpp() + "\\";
     code += generate_list_accessor_cpp() + "\\";
     code += generate_fields_accessors_cpp() + "\\";
@@ -275,6 +277,7 @@ flatbuffers::CodeWriter class_writer_t::create_code_writer()
     flatbuffers::CodeWriter code(c_indentation_string);
     code.SetValue("TABLE_NAME", m_table.table_name());
     code.SetValue("CLASS_NAME", m_table.class_name());
+    code.SetValue("CLASS_HASH", m_table.hash());
 
     for (size_t i = 0; i < m_indent_level; i++)
     {
@@ -395,6 +398,26 @@ std::string class_writer_t::generate_gaia_typename_accessor_cpp()
     code.IncrementIdentLevel();
     code += "static const char* gaia_typename = \"{{CLASS_NAME}}\";";
     code += "return gaia_typename;";
+    code.DecrementIdentLevel();
+    code += "}";
+    code += "";
+    return code.ToString();
+}
+
+std::string class_writer_t::generate_gaia_table_hash_accessor()
+{
+    flatbuffers::CodeWriter code = create_code_writer();
+    code += "static const char* gaia_hash();";
+    return code.ToString();
+}
+
+std::string class_writer_t::generate_gaia_table_hash_accessor_cpp()
+{
+    flatbuffers::CodeWriter code = create_code_writer();
+    code += "const char* {{CLASS_NAME}}::gaia_hash() {";
+    code.IncrementIdentLevel();
+    code += "static const char* gaia_hash = \"{{CLASS_HASH}}\";";
+    code += "return gaia_hash;";
     code.DecrementIdentLevel();
     code += "}";
     code += "";
