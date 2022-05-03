@@ -27,7 +27,7 @@ std::string find_resource(std::string& path)
 
     if (!fs::exists(target_path))
     {
-        throw std::runtime_error("Impossible to find gaiac executable!");
+        throw std::runtime_error(std::string("Impossible to find resource: ") + path);
     }
 
     return target_path.string();
