@@ -101,6 +101,9 @@ target_compile_definitions(gaia_build_options INTERFACE $<$<CONFIG:Debug>:DEBUG>
 target_compile_definitions(gaia_build_options INTERFACE $<$<BOOL:${DISABLE_ASSERTS}>:DISABLE_ASSERTS>)
 # Disabling asserts will produce bogus unused variable warnings.
 target_compile_options(gaia_build_options INTERFACE $<$<BOOL:${DISABLE_ASSERTS}>:-Wno-unused-parameter -Wno-unused-lambda-capture -Wno-unused-variable -Wno-unused-but-set-variable>)
+# Enable Thin LTO
+target_compile_options(gaia_build_options INTERFACE -flto=thin)
+target_link_options(gaia_build_options INTERFACE -flto=thin)
 
 # LLVM and CLANG specific options.
 if(BUILD_GAIA_SDK OR BUILD_GAIA_LLVM_TESTS)
