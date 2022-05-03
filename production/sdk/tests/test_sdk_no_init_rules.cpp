@@ -10,6 +10,8 @@
 // get a link error.  The other test (test_sdk.cpp) tests that a strong
 // reference will override the weak reference and take precedence.
 
+#include <thread>
+
 #include <gtest/gtest.h>
 
 #include "gaia/rules/rules.hpp"
@@ -26,7 +28,26 @@ using namespace gaia::direct_access;
 using namespace gaia::addr_book;
 using namespace gaia::db::triggers;
 
-TEST(sdk_test_no_init_rules, app_check)
+constexpr size_t c_wait_server_millis = 100;
+
+class sdk_test_no_init_rules : public ::testing::Test
+{
+protected:
+    static void SetUpTestSuite()
+    {
+        // Starts the server in a "public way".
+        system("../db/core/gaia_db_server --persistence disabled &");
+        // Wait for the server.
+        std::this_thread::sleep_for(std::chrono::milliseconds(c_wait_server_millis));
+    }
+
+    static void TearDownTestSuite()
+    {
+        system("pkill -f -KILL gaia_db_server");
+    }
+};
+
+TEST_F(sdk_test_no_init_rules, app_check)
 {
     gaia::system::initialize();
     {
