@@ -32,6 +32,11 @@ protected:
 };
 
 // Core class implementing common functionality for mapped data classes.
+//
+// NB: Because efficient thread-local objects must have trivial destructors,
+// this class does not implement automatic resource reclamation in the
+// destructor. Instead, the close() method must be called explicitly, or
+// resources will be leaked.
 template <typename T_data>
 class core_mapped_data_t : public base_mapped_data_t
 {
@@ -48,6 +53,9 @@ public:
 
     // Thread-local variables cannot have nontrivial destructors without
     // prohibitive overhead.
+    // Because the destructor is empty, cleanup must be done manually by calling
+    // the close() method. Currently, this is done via data_mapping_t::close()
+    // (which performs bulk deallocation of mapping objects).
     ~core_mapped_data_t() = default;
 
     // Stops tracking any data and reverts back to uninitialized state.
@@ -58,17 +66,12 @@ public:
 
     // Unmaps the data and closes the file descriptor, if one is tracked.
     // Reverts back to uninitialized state.
-    // This permits manual cleanup, before instance destruction time.
     // Can be called repeatedly.
     void close() override;
 
     inline T_data* data();
     inline int fd() override;
     inline bool is_set() override;
-
-protected:
-    // Non-virtual internal implementation that can be safely called from destructor.
-    void close_internal();
 
 protected:
     bool m_is_set{false};
