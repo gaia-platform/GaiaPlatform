@@ -8,7 +8,7 @@
 #include <sstream>
 #include <string>
 
-#include "gaia/exception.hpp"
+#include "assert.hpp"
 
 namespace gaia
 {
@@ -61,11 +61,11 @@ namespace common
 /**
  * Thrown when a debug assert check has failed.
  */
-class debug_assertion_failure : public gaia_exception
+class debug_assertion_failure : public assertion_failure
 {
 public:
     explicit debug_assertion_failure(const std::string& message)
-        : gaia_exception(message)
+        : assertion_failure(message)
     {
     }
 };
