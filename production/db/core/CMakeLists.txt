@@ -239,11 +239,15 @@ if(Python3_FOUND AND pybind11_FOUND)
   # Python wrapper unit test.
   # This test is disabled for Debug builds.
   # See: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-602
-  if(ENABLE_PYTHON_TESTS AND (NOT CMAKE_BUILD_TYPE STREQUAL "Debug"))
+  if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     configure_file(tests/test_db.py . COPYONLY)
     add_test(
       NAME test_db_pybind
-      COMMAND ${Python3_EXECUTABLE} test_db.py)
+      COMMAND
+        daemonize $<TARGET_FILE:gaia_db_server_exec> --persistence disabled &;
+        ${Python3_EXECUTABLE} test_db.py;
+        pkill -f -KILL gaia_db_server
+      )
   endif()
 endif()
 

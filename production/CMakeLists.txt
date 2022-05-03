@@ -37,12 +37,6 @@ option(DISABLE_CCACHE "Disable ccache unconditionally" OFF)
 
 option(ENABLE_CLANG_TIDY "Enable Clang-Tidy to be specified externally")
 
-# Disabled by default because: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2157.
-option(ENABLE_JAVA_TESTS "Enable Java tests" OFF)
-
-# Disabled by default because: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-2157.
-option(ENABLE_PYTHON_TESTS "Enable Python tests" OFF)
-
 if (NOT ENABLE_CLANG_TIDY)
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     option(ENABLE_CLANG_TIDY "Enable clang tidy" ON)
@@ -373,7 +367,7 @@ file(
 
 # We want to disable all clang-tidy checks for generated code.
 # However, if no checks are specified, clang-tidy will assume we
-# did not configure it correctly. Just add one check that will never be found.
+# did not configure it correctly. Just add one check that will never be triggered.
 file(WRITE ${GAIA_PROD_BUILD}/.clang-tidy "Checks: '-*,llvm-twine-local'\n")
 
 # Generate dependencies graph

@@ -92,13 +92,16 @@ if(JAVA_FOUND AND JNI_FOUND)
   # Add JNI test.
   # This test is disabled for Debug builds.
   # See: https://gaiaplatform.atlassian.net/browse/GAIAPLAT-602
-  if(ENABLE_JAVA_TESTS AND (NOT CMAKE_BUILD_TYPE STREQUAL "Debug"))
+  if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_test(
       NAME test_db_jni
-      COMMAND ${Java_JAVA_EXECUTABLE}
-      -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
-      -cp ${GAIA_TINKERPOP_JAR}
-      com.gaiaplatform.database.GaiaDatabase)
+      COMMAND
+        daemonize $<TARGET_FILE:gaia_db_server_exec> --persistence disabled &;
+        ${Java_JAVA_EXECUTABLE}
+          -Djava.library.path=${PROJECT_BINARY_DIR}/db/core
+          -cp ${GAIA_TINKERPOP_JAR}
+          com.gaiaplatform.database.GaiaDatabase;
+        pkill -f -KILL gaia_db_server)
   endif()
 
   # Add CacheGraph tests.
