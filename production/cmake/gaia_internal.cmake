@@ -393,7 +393,7 @@ endfunction()
 # CMake project. This makes the examples built as part of regular gaia builds.
 #
 # Args:
-# - NAME example name, used also as CMake target name.
+# - NAME: example name, used also as CMake target name.
 # - DDL_FILE: the path to the .ddl file.
 # - DB_NAME: [optional] name of the database the headers are generated from.
 #     If not specified the default database is used.
@@ -453,6 +453,57 @@ function(add_example)
     ${GAIA_INC}
     ${ARG_INC_DIRS}
   )
+endfunction()
+
+# Add a benchmark linking against the public gaia library instead of the internal Cmake
+# targets. The intention is to run benchmarks in an environment that is as close as possible
+# to what the customer runs. We noticed a significant performance drop when linking against
+# the gaia shared library instead of the internal static targets.
+#
+# Args:
+# - NAME benchmark name, used also as CMake target name.
+# - SRC_FILES: The .cpp files.
+# - DAC_LIB: The DAC library from which retrieve the source files and link them against the
+#                the benchmark code. Note: this implies that the DAC code is compiled twice.
+function (add_benchmark)
+  set(options "")
+  set(oneValueArgs NAME DAC_LIB)
+  set(multiValueArgs SRC_FILES)
+  cmake_parse_arguments("ARG" "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  check_param(ARG_NAME)
+  check_param(ARG_DAC_LIB)
+  check_param(ARG_SRC_FILES)
+
+  get_target_property(DAC_SRC ${ARG_DAC_LIB} SOURCES)
+  get_target_property(DAC_INC ${ARG_DAC_LIB} INTERFACE_INCLUDE_DIRECTORIES)
+
+  set_source_files_properties(${DAC_SRC} PROPERTIES GENERATED TRUE)
+
+  add_executable(${ARG_NAME}
+    ${ARG_SRC_FILES}
+    ${DAC_SRC}
+  )
+
+  target_include_directories(${ARG_NAME} PRIVATE
+    ${GAIA_REPO}/production/benchmarks/inc
+    ${GAIA_INC}
+    ${GAIA_SPDLOG_INC}
+    ${DAC_INC}
+  )
+
+  target_link_libraries(${ARG_NAME} PRIVATE
+    gaia
+    gtest_main
+    gaia_tools
+    gaia_benchmark
+  )
+
+  add_dependencies(${ARG_NAME}
+    ${ARG_DAC_LIB}
+  )
+
+  gtest_discover_tests(${ARG_NAME})
 endfunction()
 
 # Stop CMake if the given parameter was not passed to the function.
