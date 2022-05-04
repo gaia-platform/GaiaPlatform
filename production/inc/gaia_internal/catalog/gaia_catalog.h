@@ -130,6 +130,7 @@ class rule_relationship_t : public gaia::direct_access::dac_object_t<c_gaia_type
 public:
     rule_relationship_t() : dac_object_t() {}
     static const char* gaia_typename();
+    static const char* gaia_hash();
     static gaia::common::gaia_id_t insert_row(uint8_t type, const char* gaia_rule_name, uint64_t gaia_relationship_id);
     static gaia::direct_access::dac_container_t<c_gaia_type_rule_relationship, rule_relationship_t> list();
     uint8_t type() const;
@@ -171,6 +172,7 @@ class rule_field_t : public gaia::direct_access::dac_object_t<c_gaia_type_rule_f
 public:
     rule_field_t() : dac_object_t() {}
     static const char* gaia_typename();
+    static const char* gaia_hash();
     static gaia::common::gaia_id_t insert_row(uint8_t type, bool active, const char* gaia_rule_name, uint64_t gaia_field_id);
     static gaia::direct_access::dac_container_t<c_gaia_type_rule_field, rule_field_t> list();
     uint8_t type() const;
@@ -216,6 +218,7 @@ class rule_table_t : public gaia::direct_access::dac_object_t<c_gaia_type_rule_t
 public:
     rule_table_t() : dac_object_t() {}
     static const char* gaia_typename();
+    static const char* gaia_hash();
     static gaia::common::gaia_id_t insert_row(uint8_t type, bool anchor, const char* gaia_rule_name, uint64_t gaia_table_id);
     static gaia::direct_access::dac_container_t<c_gaia_type_rule_table, rule_table_t> list();
     uint8_t type() const;
@@ -261,6 +264,7 @@ class ruleset_database_t : public gaia::direct_access::dac_object_t<c_gaia_type_
 public:
     ruleset_database_t() : dac_object_t() {}
     static const char* gaia_typename();
+    static const char* gaia_hash();
     static gaia::common::gaia_id_t insert_row(const char* gaia_ruleset_name, uint64_t gaia_database_id);
     static gaia::direct_access::dac_container_t<c_gaia_type_ruleset_database, ruleset_database_t> list();
     const char* gaia_ruleset_name() const;
@@ -298,6 +302,7 @@ class app_ruleset_t : public gaia::direct_access::dac_object_t<c_gaia_type_app_r
 public:
     app_ruleset_t() : dac_object_t() {}
     static const char* gaia_typename();
+    static const char* gaia_hash();
     static gaia::common::gaia_id_t insert_row(bool active_on_startup, const char* gaia_application_name, const char* gaia_ruleset_name);
     static gaia::direct_access::dac_container_t<c_gaia_type_app_ruleset, app_ruleset_t> list();
     bool active_on_startup() const;
@@ -343,6 +348,7 @@ class app_database_t : public gaia::direct_access::dac_object_t<c_gaia_type_app_
 public:
     app_database_t() : dac_object_t() {}
     static const char* gaia_typename();
+    static const char* gaia_hash();
     static gaia::common::gaia_id_t insert_row(const char* gaia_application_name, uint64_t gaia_database_id);
     static gaia::direct_access::dac_container_t<c_gaia_type_app_database, app_database_t> list();
     const char* gaia_application_name() const;
@@ -382,6 +388,7 @@ public:
     typedef gaia::direct_access::value_linked_reference_container_t<app_database_t> app_databases_list_t;
     gaia_application_t() : dac_object_t() {}
     static const char* gaia_typename();
+    static const char* gaia_hash();
     static gaia::common::gaia_id_t insert_row(const char* name);
     static gaia::direct_access::dac_container_t<c_gaia_type_gaia_application, gaia_application_t> list();
     const char* name() const;
@@ -422,6 +429,7 @@ public:
     typedef gaia::direct_access::value_linked_reference_container_t<rule_table_t> rule_tables_list_t;
     gaia_rule_t() : dac_object_t() {}
     static const char* gaia_typename();
+    static const char* gaia_hash();
     static gaia::common::gaia_id_t insert_row(const char* name, const char* gaia_ruleset_name);
     static gaia::direct_access::dac_container_t<c_gaia_type_gaia_rule, gaia_rule_t> list();
     const char* name() const;
@@ -474,6 +482,7 @@ public:
     typedef gaia::direct_access::value_linked_reference_container_t<gaia_rule_t> gaia_rules_list_t;
     gaia_ruleset_t() : dac_object_t() {}
     static const char* gaia_typename();
+    static const char* gaia_hash();
     static gaia::common::gaia_id_t insert_row(const char* name, const char* serial_stream);
     static gaia::direct_access::dac_container_t<c_gaia_type_gaia_ruleset, gaia_ruleset_t> list();
     const char* name() const;
@@ -519,6 +528,7 @@ class gaia_ref_anchor_t : public gaia::direct_access::dac_object_t<c_gaia_type_g
 public:
     gaia_ref_anchor_t() : dac_object_t() {}
     static const char* gaia_typename();
+    static const char* gaia_hash();
     static gaia::common::gaia_id_t insert_row();
     static gaia::direct_access::dac_container_t<c_gaia_type_gaia_ref_anchor, gaia_ref_anchor_t> list();
 
@@ -544,6 +554,7 @@ class gaia_index_t : public gaia::direct_access::dac_object_t<c_gaia_type_gaia_i
 public:
     gaia_index_t() : dac_object_t() {}
     static const char* gaia_typename();
+    static const char* gaia_hash();
     static gaia::common::gaia_id_t insert_row(const char* name, bool unique, uint8_t type, const std::vector<uint64_t>& fields, const char* hash);
     static gaia::direct_access::dac_container_t<c_gaia_type_gaia_index, gaia_index_t> list();
     const char* name() const;
@@ -593,6 +604,7 @@ class gaia_relationship_t : public gaia::direct_access::dac_object_t<c_gaia_type
 public:
     gaia_relationship_t() : dac_object_t() {}
     static const char* gaia_typename();
+    static const char* gaia_hash();
     static gaia::common::gaia_id_t insert_row(const char* name, const char* to_parent_link_name, const char* to_child_link_name, uint8_t cardinality, bool parent_required, bool deprecated, uint16_t first_child_offset, uint16_t next_child_offset, uint16_t prev_child_offset, uint16_t parent_offset, const std::vector<uint16_t>& parent_field_positions, const std::vector<uint16_t>& child_field_positions, const char* hash);
     static gaia::direct_access::dac_container_t<c_gaia_type_gaia_relationship, gaia_relationship_t> list();
     const char* name() const;
@@ -678,6 +690,7 @@ class gaia_field_t : public gaia::direct_access::dac_object_t<c_gaia_type_gaia_f
 public:
     gaia_field_t() : dac_object_t() {}
     static const char* gaia_typename();
+    static const char* gaia_hash();
     static gaia::common::gaia_id_t insert_row(const char* name, uint8_t type, uint16_t repeated_count, uint16_t position, bool deprecated, bool active, bool unique, bool optional, const char* hash);
     static gaia::direct_access::dac_container_t<c_gaia_type_gaia_field, gaia_field_t> list();
     const char* name() const;
@@ -747,6 +760,7 @@ public:
     typedef gaia::direct_access::reference_container_t<gaia_field_t> gaia_fields_list_t;
     gaia_table_t() : dac_object_t() {}
     static const char* gaia_typename();
+    static const char* gaia_hash();
     static gaia::common::gaia_id_t insert_row(const char* name, uint32_t type, bool is_system, const std::vector<uint8_t>& binary_schema, const std::vector<uint8_t>& serialization_template, const char* hash);
     static gaia::direct_access::dac_container_t<c_gaia_type_gaia_table, gaia_table_t> list();
     const char* name() const;
@@ -817,6 +831,7 @@ public:
     typedef gaia::direct_access::reference_container_t<gaia_table_t> gaia_tables_list_t;
     gaia_database_t() : dac_object_t() {}
     static const char* gaia_typename();
+    static const char* gaia_hash();
     static gaia::common::gaia_id_t insert_row(const char* name, const char* hash);
     static gaia::direct_access::dac_container_t<c_gaia_type_gaia_database, gaia_database_t> list();
     const char* name() const;
