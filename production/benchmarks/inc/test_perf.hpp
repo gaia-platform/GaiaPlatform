@@ -31,7 +31,7 @@ static const size_t c_max_insertion_single_txn = (1UL << 16) - 1;
 // Type declaration for the function that contains the benchmarking logic.
 using benchmark_fn_t = std::function<void()>;
 
-size_t get_duration(std::function<void()> fn)
+size_t get_duration(benchmark_fn_t fn)
 {
     int64_t duration = g_timer_t::get_function_duration(fn);
     ASSERT_INVARIANT(duration >= 0, "g_timer_t::get_function_duration() has returned a negative value!");
@@ -142,8 +142,8 @@ void log_performance_difference(
 }
 
 void run_performance_test(
-    std::function<void()> expr_fn,
-    std::function<void()> clear_db_fn,
+    benchmark_fn_t expr_fn,
+    benchmark_fn_t clear_db_fn,
     std::string_view message,
     bool clear_db_after_each_iteration = true,
     size_t num_iterations = c_num_iterations,
