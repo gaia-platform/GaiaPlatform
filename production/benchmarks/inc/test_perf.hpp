@@ -135,12 +135,10 @@ void log_performance_difference(
     printf(
         "[%s] %lu records, %zu iterations:\n"
         "   [total]: avg:%0.2fms min:%0.2fms max:%0.2fms\n"
-        "  [single]: avg:%0.2fus min:%0.2fus max:%0.2fus",
+        "  [single]: avg:%0.2fus min:%0.2fus max:%0.2fus\n",
         message.data(), num_insertions, num_iterations,
         avg_expr_ms, min_expr_ms, max_expr_ms,
         single_record_avg_ns, single_record_min_ns, single_record_max_ns);
-
-    std::cout << std::endl;
 }
 
 void run_performance_test(
