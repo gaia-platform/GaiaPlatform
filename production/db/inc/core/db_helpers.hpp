@@ -136,7 +136,7 @@ inline db_object_t* locator_to_ptr(gaia_locator_t locator)
 inline db_object_t* id_to_ptr(common::gaia_id_t id)
 {
     gaia_locator_t locator = id_to_locator(id);
-    ASSERT_INVARIANT(
+    DEBUG_ASSERT_INVARIANT(
         locator_exists(locator),
         "An invalid locator was returned by id_to_locator()!");
     return locator_to_ptr(locator);
