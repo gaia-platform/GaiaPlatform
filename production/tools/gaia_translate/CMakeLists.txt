@@ -175,7 +175,7 @@ if("$CACHE{ENABLE_SDK_TESTS}")
 
   add_gtest(test_rules_perf_basic
     "tests/test_rules_perf_basic.cpp;${RULES_TEST_HELPERS};${GAIA_REPO}/production/common/src/debug_logger.cpp"
-    "${TEST_INCLUDES};${GAIA_REPO}/production/direct_access/tests"
+    "${TEST_INCLUDES};${GAIA_REPO}/production/benchmarks/inc"
     "rt;gaia_system;gaia_db_catalog_test;test_rules_perf_basic_ruleset")
 
 endif()

@@ -18,9 +18,10 @@
 #include "gaia_perf_rules.h"
 #include "test_perf.hpp"
 
-using namespace gaia::perf_rules;
+using namespace gaia::benchmark;
 using namespace gaia::common;
 using namespace gaia::direct_access;
+using namespace gaia::perf_rules;
 using namespace std;
 using namespace std::chrono;
 
