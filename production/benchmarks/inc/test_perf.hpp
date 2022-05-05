@@ -112,7 +112,7 @@ private:
 
 double_t percentage_difference(size_t expr, size_t plain)
 {
-    return static_cast<double_t>(expr) - static_cast<double_t>(plain) / static_cast<double_t>(plain) * 100.0;
+    return ((static_cast<double_t>(expr) - static_cast<double_t>(plain)) / static_cast<double_t>(plain)) * 100.0;
 }
 
 void log_performance_difference(

@@ -12,8 +12,6 @@ set(GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES
 message(VERBOSE "GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES=${GAIA_DIRECT_ACCESS_PUBLIC_INCLUDES}")
 
 set(GAIA_DIRECT_ACCESS_PRIVATE_INCLUDES
-  ${GAIA_INC}/internal/common
-  ${GAIA_INC}/internal/db
   ${GAIA_REPO}/production/benchmarks/inc
   ${GAIA_REPO}/production/db/inc/core
   ${GAIA_REPO}/production/db/inc/expressions
