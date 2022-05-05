@@ -53,6 +53,7 @@ public:
     std::string table_name() const;
     std::string class_name() const;
     std::string table_type() const;
+    std::string hash() const;
     std::vector<field_facade_t> fields() const;
     bool has_string_or_vector() const;
     bool needs_reference_class() const;

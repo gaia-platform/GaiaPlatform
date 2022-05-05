@@ -69,6 +69,11 @@ std::string table_facade_t::class_name() const
     return std::string(m_table.name()) + c_class_name_suffix;
 }
 
+std::string table_facade_t::hash() const
+{
+    return std::string(m_table.database().hash());
+}
+
 std::vector<field_facade_t> table_facade_t::fields() const
 {
     auto fields = std::vector<field_facade_t>();
