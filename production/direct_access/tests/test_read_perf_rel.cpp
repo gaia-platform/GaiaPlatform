@@ -10,9 +10,10 @@
 #include "gaia_perf_rel.h"
 #include "test_perf.hpp"
 
-using namespace gaia::perf_rel;
+using namespace gaia::benchmark;
 using namespace gaia::common;
 using namespace gaia::direct_access;
+using namespace gaia::perf_rel;
 using namespace std;
 
 // Creating a relationship lead to 4/5 db operations, which reduces the number

@@ -12,6 +12,7 @@
 #include "gaia/direct_access/auto_transaction.hpp"
 #include "gaia/logger.hpp"
 
+#include "gaia_internal/common/assert.hpp"
 #include "gaia_internal/common/timer.hpp"
 
 namespace gaia
@@ -27,9 +28,14 @@ static const size_t c_num_iterations = 1;
 // This is a hard limit imposed by the db architecture.
 static const size_t c_max_insertion_single_txn = (1UL << 16) - 1;
 
-size_t get_duration(std::function<void()> fn)
+// Type declaration for the function that contains the benchmarking logic.
+using benchmark_fn_t = std::function<void()>;
+
+size_t get_duration(benchmark_fn_t fn)
 {
     int64_t duration = g_timer_t::get_function_duration(fn);
+    ASSERT_INVARIANT(duration >= 0, "g_timer_t::get_function_duration() has returned a negative value!");
+
     uint64_t result = duration;
     return result;
 }
@@ -106,7 +112,7 @@ private:
 
 double_t percentage_difference(size_t expr, size_t plain)
 {
-    return static_cast<double_t>(expr - plain) / static_cast<double_t>(plain) * 100.0;
+    return ((static_cast<double_t>(expr) - static_cast<double_t>(plain)) / static_cast<double_t>(plain)) * 100.0;
 }
 
 void log_performance_difference(
@@ -136,8 +142,8 @@ void log_performance_difference(
 }
 
 void run_performance_test(
-    std::function<void()> expr_fn,
-    std::function<void()> clear_db_fn,
+    benchmark_fn_t expr_fn,
+    benchmark_fn_t clear_db_fn,
     std::string_view message,
     bool clear_db_after_each_iteration = true,
     size_t num_iterations = c_num_iterations,
@@ -145,21 +151,21 @@ void run_performance_test(
 {
     accumulator_t<size_t> expr_accumulator;
 
-    for (size_t iteration = 0; iteration < num_iterations; iteration++)
+    for (size_t iteration = 1; iteration <= num_iterations; ++iteration)
     {
-        gaia_log::app().info("[{}]: {} iteration starting, {} records", message, iteration, num_records);
+        gaia_log::app().info("[{}]: iteration #{} starting, {} records", message, iteration, num_records);
         size_t expr_duration = get_duration(expr_fn);
         expr_accumulator.add(expr_duration);
 
         double_t iteration_ms = g_timer_t::ns_to_ms(expr_duration);
-        gaia_log::app().info("[{}]: {} iteration, completed in {:.2f}ms", message, iteration, iteration_ms);
+        gaia_log::app().info("[{}]: iteration #{}, completed in {:.2f}ms", message, iteration, iteration_ms);
 
         if (clear_db_after_each_iteration)
         {
-            gaia_log::app().info("[{}]: {} iteration, clearing database", message, iteration);
+            gaia_log::app().info("[{}]: iteration #{}, clearing database", message, iteration);
             size_t clear_database_duration = get_duration(clear_db_fn);
             double_t clear_ms = g_timer_t::ns_to_ms(clear_database_duration);
-            gaia_log::app().info("[{}]: {} iteration, cleared in {:.2f}ms", message, iteration, clear_ms);
+            gaia_log::app().info("[{}]: iteration #{}, cleared in {:.2f}ms", message, iteration, clear_ms);
         }
     }
 
