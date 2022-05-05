@@ -120,7 +120,6 @@ gaia_ptr_t gaia_ptr_t::create_no_txn(gaia_id_t id, gaia_type_t type, reference_o
         throw duplicate_object_id_internal(id);
     }
 
-    // This is an expensive check in a hot path.
     DEBUG_ASSERT_INVARIANT(id_to_locator(id) == locator, "Cannot find locator for just-inserted ID!");
 
     allocate_object(locator, total_payload_size);

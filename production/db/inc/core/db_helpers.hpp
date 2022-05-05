@@ -33,7 +33,6 @@ inline common::gaia_id_t allocate_id()
     counters_t* counters = gaia::db::get_counters();
     auto new_id = ++(counters->last_id);
 
-    // This is an expensive check in a hot path.
     DEBUG_ASSERT_INVARIANT(
         new_id <= std::numeric_limits<common::gaia_id_t::value_type>::max(),
         "Gaia ID exceeds allowed range!");
@@ -46,7 +45,6 @@ inline gaia_txn_id_t allocate_txn_id()
     counters_t* counters = gaia::db::get_counters();
     auto new_txn_id = ++(counters->last_txn_id);
 
-    // This is an expensive check in a hot path.
     DEBUG_ASSERT_INVARIANT(
         new_txn_id < (1UL << transactions::txn_metadata_entry_t::c_txn_ts_bit_width),
         "Transaction ID exceeds allowed range!");
@@ -84,7 +82,6 @@ inline gaia_locator_t get_last_locator()
     counters_t* counters = gaia::db::get_counters();
     auto last_locator_value = counters->last_locator.load();
 
-    // This is an expensive check in a hot path.
     DEBUG_ASSERT_INVARIANT(
         last_locator_value <= c_max_locators,
         "Largest locator value exceeds allowed range!");
@@ -136,7 +133,7 @@ inline db_object_t* locator_to_ptr(gaia_locator_t locator)
 inline db_object_t* id_to_ptr(common::gaia_id_t id)
 {
     gaia_locator_t locator = id_to_locator(id);
-    ASSERT_INVARIANT(
+    DEBUG_ASSERT_INVARIANT(
         locator_exists(locator),
         "An invalid locator was returned by id_to_locator()!");
     return locator_to_ptr(locator);
