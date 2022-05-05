@@ -122,7 +122,6 @@ gaia_offset_t chunk_manager_t::allocate(
     slot_offset_t allocated_slot = m_metadata->max_allocated_slot_offset();
     mark_slot_allocated(allocated_slot);
 
-    // This is an expensive check in a hot path.
     DEBUG_ASSERT_INVARIANT(
         is_slot_allocated(allocated_slot),
         "Slot just marked allocated must be visible as allocated!");
@@ -139,7 +138,6 @@ void chunk_manager_t::deallocate(gaia_offset_t offset)
 
     slot_offset_t deallocated_slot = slot_from_offset(offset);
 
-    // This is an expensive check in a hot path.
     // It is illegal to deallocate the same object twice.
     DEBUG_ASSERT_PRECONDITION(
         is_slot_allocated(deallocated_slot),
@@ -184,7 +182,6 @@ void chunk_manager_t::mark_slot(slot_offset_t slot_offset, bool is_allocating)
         slot_offset >= c_first_slot_offset && slot_offset <= c_last_slot_offset,
         "Slot offset passed to mark_slot() is out of bounds");
 
-    // This is an expensive check in a hot path.
     // is_slot_allocated() also checks that the deallocation bit is not set if
     // the allocation bit is not set.
     DEBUG_ASSERT_PRECONDITION(
