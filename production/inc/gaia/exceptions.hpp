@@ -182,6 +182,22 @@ class invalid_create_list : public common::gaia_exception
 {
 };
 
+/**
+ * @brief The specified ruleset is built against different schema.
+ */
+class ruleset_not_consistent_with_catalog : public common::gaia_exception
+{
+};
+
+/**
+ * @brief The specified class is built against different schema.
+ */
+class dac_not_consistent_with_catalog : public common::gaia_exception
+{
+public:
+    explicit dac_not_consistent_with_catalog(const std::string& dac_name);
+};
+
 /**@}*/
 } // namespace catalog
 

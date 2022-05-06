@@ -10,6 +10,7 @@
 #include "gaia/system.hpp"
 
 #include "gaia_internal/catalog/catalog.hpp"
+#include "gaia_internal/catalog/gaia_catalog.h"
 #include "gaia_internal/common/config.hpp"
 #include "gaia_internal/common/logger.hpp"
 #include "gaia_internal/common/scope_guard.hpp"
@@ -118,4 +119,21 @@ void gaia::system::shutdown()
             "An exception occurred while shutting down the database: '{}'.", e.what());
     }
     gaia_log::shutdown();
+}
+
+void gaia::system::validate_db_schema(const char* database_name, const char* hash)
+{
+    auto db_iterator = gaia::catalog::gaia_database_t::list().where(gaia::catalog::gaia_database_expr::name == database_name).begin();
+    if (db_iterator != gaia::catalog::gaia_database_t::list().end())
+    {
+        const char* db_hash = db_iterator->hash();
+        if (strcmp(db_hash, hash) != 0)
+        {
+            throw gaia::catalog::ruleset_not_consistent_with_catalog_internal(database_name);
+        }
+    }
+    else
+    {
+        throw gaia::catalog::ruleset_not_consistent_with_catalog_internal(database_name);
+    }
 }

@@ -471,6 +471,11 @@ void validate_table_data()
     }
 }
 
+string db_namespace(StringRef db_name)
+{
+    return db_name == catalog::c_empty_db_name ? "" : Twine(db_name, "::").str();
+}
+
 llvm::SmallString<c_size_256> generate_general_subscription_code()
 {
     llvm::SmallString<c_size_256> return_value = StringRef(
@@ -535,7 +540,48 @@ llvm::SmallString<c_size_256> generate_general_subscription_code()
     return_value.append("throw ruleset_not_found(ruleset_name);\n"
                         "}\n"
                         "extern \"C\" void initialize_rules()\n"
-                        "{\n");
+                        "{\n"
+                        "::gaia::db::begin_transaction();\n");
+    const llvm::StringMap<CatalogTableData>& catalog_data = getCatalogTableData();
+    for (const auto& used_db : g_used_dbs)
+    {
+        string db_hash;
+        for (const auto& catalog_entry : catalog_data)
+        {
+            if (catalog_entry.second.dbName == used_db.first())
+            {
+                db_hash = catalog_entry.second.dbHash;
+                break;
+            }
+        }
+        return_value.append("::gaia::system::validate_db_schema(\"");
+        return_value.append(used_db.first());
+        return_value.append("\",");
+        return_value.append("\"");
+        return_value.append(db_hash);
+        return_value.append("\");\n");
+
+        return_value.append("::gaia::db::commit_transaction();\n");
+
+        for (const auto& catalog_entry : catalog_data)
+        {
+            if (catalog_entry.second.dbName == used_db.first())
+            {
+                return_value.append("if (strcmp(\"");
+                return_value.append(db_hash);
+                return_value.append("\", gaia::");
+                return_value.append(db_namespace(used_db.first()));
+                return_value.append(table_facade_t::class_name(catalog_entry.first()));
+                return_value.append("::gaia_hash()) != 0)\n");
+                return_value.append("{\n");
+                return_value.append(c_ident);
+                return_value.append("throw ::gaia::catalog::dac_not_consistent_with_catalog(\"");
+                return_value.append(table_facade_t::class_name(catalog_entry.first()));
+                return_value.append("\");\n");
+                return_value.append("}\n");
+            }
+        }
+    }
 
     for (const string& ruleset : g_rulesets)
     {
@@ -697,11 +743,6 @@ StringRef get_table_name(StringRef table, const llvm::StringMap<string>& tag_map
     }
 
     return table;
-}
-
-string db_namespace(StringRef db_name)
-{
-    return db_name == catalog::c_empty_db_name ? "" : Twine(db_name, "::").str();
 }
 
 void generate_navigation(StringRef anchor_table, Rewriter& rewriter)
@@ -4499,6 +4540,8 @@ public:
                 output_file << "#include <cstring>\n";
                 output_file << "\n";
                 output_file << "#include \"gaia/rules/rules.hpp\"\n";
+                output_file << "#include \"gaia/exceptions.hpp\"\n";
+                output_file << "#include \"gaia/system.hpp\"\n";
                 output_file << "\n";
                 for (const auto& db_iterator : g_used_dbs)
                 {
