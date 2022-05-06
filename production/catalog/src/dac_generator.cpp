@@ -394,7 +394,8 @@ std::string class_writer_t::generate_gaia_typename_accessor()
 std::string class_writer_t::generate_gaia_typename_accessor_cpp()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "const char* {{CLASS_NAME}}::gaia_typename() {";
+    code += "const char* {{CLASS_NAME}}::gaia_typename()";
+    code += "{";
     code.IncrementIdentLevel();
     code += "static const char* gaia_typename = \"{{CLASS_NAME}}\";";
     code += "return gaia_typename;";
@@ -414,7 +415,8 @@ std::string class_writer_t::generate_gaia_table_hash_accessor()
 std::string class_writer_t::generate_gaia_table_hash_accessor_cpp()
 {
     flatbuffers::CodeWriter code = create_code_writer();
-    code += "const char* {{CLASS_NAME}}::gaia_hash() {";
+    code += "const char* {{CLASS_NAME}}::gaia_hash()";
+    code += "{";
     code.IncrementIdentLevel();
     code += "static const char* gaia_hash = \"{{CLASS_HASH}}\";";
     code += "return gaia_hash;";
