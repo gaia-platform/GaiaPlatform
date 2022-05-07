@@ -51,7 +51,9 @@ protected:
     explicit db_test_base_t(
         bool is_managing_session = true,
         bool start_ddl_session = false)
-        : m_is_managing_session(is_managing_session), m_start_ddl_session(start_ddl_session), m_disable_persistence(true)
+        : m_is_managing_session(is_managing_session)
+        , m_start_ddl_session(start_ddl_session)
+        , m_disable_persistence(true)
     {
     }
 

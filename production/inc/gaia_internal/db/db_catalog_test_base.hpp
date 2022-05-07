@@ -29,7 +29,9 @@ protected:
         bool is_managing_session = true,
         bool start_ddl_session = true,
         bool start_new_session_after_setup = false)
-        : db_test_base_t(is_managing_session, start_ddl_session), m_ddl_file_name(std::move(ddl_file_name)), m_start_new_session_after_setup(start_new_session_after_setup)
+        : db_test_base_t(is_managing_session, start_ddl_session)
+        , m_ddl_file_name(std::move(ddl_file_name))
+        , m_start_new_session_after_setup(start_new_session_after_setup)
     {
         ASSERT_PRECONDITION(
             ddl_file_name.empty() || !is_managing_session || start_ddl_session,
